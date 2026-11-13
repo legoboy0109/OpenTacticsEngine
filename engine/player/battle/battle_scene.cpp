@@ -10,7 +10,7 @@ BattleScene::BattleScene(SceneHost& host)
     : host_(host), session_(*host.session()), battle_(host.session()->battle) {
   autoplay_ = host.args().autoplay;
   const ViewConfig& vc = session_.db.view;
-  layout_ = Layout::make(vc.width, vc.height, vc.tileSize);
+  layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
   view_.init(battle_, layout_.tile, autoplay_);
   view_.push(session_.startEvents);  // first TurnStarted + income
   int rx, ry;
@@ -18,9 +18,9 @@ BattleScene::BattleScene(SceneHost& host)
   view_.setResourceAnchor(rx, ry);
 }
 
-void BattleScene::ensureLayout(int w, int h) {
-  if (w == layout_.W && h == layout_.H) return;
-  layout_ = Layout::make(w, h, layout_.tile);
+void BattleScene::ensureLayout(const Renderer& r) {
+  if (!layout_.stale(r.width(), r.height(), r)) return;
+  layout_ = Layout::make(r.width(), r.height(), layout_.tile, r);
   int rx, ry;
   panelResourceAnchor(layout_, (int)session_.db.resources.size(), rx, ry);
   view_.setResourceAnchor(rx, ry);
@@ -144,7 +144,7 @@ std::string BattleScene::hint() const {
 }
 
 void BattleScene::draw(Renderer& r) {
-  ensureLayout(r.width(), r.height());
+  ensureLayout(r);
   DrawCtx ctx{battle_, view_, layout_, cam_, time_};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();

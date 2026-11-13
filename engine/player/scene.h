@@ -23,6 +23,7 @@ class SceneHost {
   virtual ~SceneHost() {}
   virtual const Args& args() const = 0;
   virtual GameSession* session() = 0;  // null until a game is loaded
+  virtual Renderer& renderer() = 0;     // for measuring text outside draw()
   virtual void showGameSelect() = 0;
   virtual void showMapSelect() = 0;
   virtual void loadGame(const std::string& gameId) = 0;   // then map select / battle

@@ -24,7 +24,7 @@ class BattleScene : public Scene {
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn };
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
-  void ensureLayout(int w, int h);
+  void ensureLayout(const Renderer& r);
   bool humanTurn() const;
   void enterResult();
   void aiStep();

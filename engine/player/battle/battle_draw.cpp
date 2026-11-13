@@ -19,9 +19,7 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   r.fillRect(sx, sy, t, t, col);
   r.drawRect(sx, sy, t, t, Color(0, 0, 0, 28));
   if (td.glyph != ' ') {
-    char g[2] = {td.glyph, 0};
-    int gs = std::max(1, t / 24);
-    r.drawText(sx + (t - kGlyph * gs) / 2, sy + (t - kGlyph * gs) / 2, g, mix(col, readableOn(col), 0.28f), gs);
+    drawGlyphCentered(r, sx + t / 2, sy + t / 2, td.glyph, mix(col, readableOn(col), 0.28f), t * 9 / 20);
   }
   if (cs.owner >= 0) {
     Color oc = Color::rgb(b.sides[cs.owner].color);
@@ -38,8 +36,8 @@ void drawCapture(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   int pts = c.battle.terrainAt(cell).capturePoints;
   if (cs.capturer < 0 || pts <= 0 || cs.capture >= pts) return;
   std::string n = intStr(cs.capture);
-  int w = textWidth(n), x = sx + c.layout.tile - w - 2, y = sy + c.layout.tile - 20;
-  r.fillRect(x - 1, y - 1, w + 2, 10, Color(0, 0, 0, 190));
+  int w = textW(r, n), x = sx + c.layout.tile - w - 2, y = sy + c.layout.tile / 6;
+  r.fillRect(x - 1, y - 1, w + 2, c.layout.lh + 2, Color(0, 0, 0, 190));
   r.drawText(x, y, n.c_str(), Color(255, 240, 120));
 }
 
@@ -63,9 +61,8 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
   r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
   r.fillRect(bx, by, bw, bh, scaled(base, al));
   r.fillRect(bx, by, bw, 1, scaled(mix(base, Color(255, 255, 255), 0.35f), al));  // soft top highlight
-  char g[2] = {b.typeOf(u).glyph, 0};
-  int gs = std::max(1, t / 24);
-  r.drawText(bx + (bw - kGlyph * gs) / 2, by + (bh - kGlyph * gs) / 2, g, scaled(readableOn(base), al), gs);
+  drawGlyphCentered(r, bx + bw / 2, by + bh / 2, b.typeOf(u).glyph, scaled(readableOn(base), al),
+                    std::max(1, std::min(bw, bh) * 3 / 4));
   if (u.leader) {
     r.fillRect(bx - 1, by - 1, 5, 5, scaled(Color(0, 0, 0, 220), al));
     r.fillRect(bx, by, 3, 3, scaled(Color(255, 210, 40), al));

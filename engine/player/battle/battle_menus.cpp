@@ -36,7 +36,7 @@ void BattleScene::openActionMenu() {
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
   items.push_back({"Wait", "", true, kWait});
-  menu_.open("", items, 0, 0, layout_.vw, layout_.vh);
+  menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
   anchorActionMenu();
 }
 
@@ -58,14 +58,15 @@ void BattleScene::openBuildMenu(Cell cell) {
   }
   int t = layout_.tile;
   int sx = battle_.grid.x(cell) * t - cam_.ix(), sy = battle_.grid.y(cell) * t - cam_.iy();
-  menu_.open("Build", items, sx + t + 2, sy, layout_.vw, layout_.vh);
+  menu_.open(host_.renderer(), "Build", items, sx + t + 2, sy, layout_.vw, layout_.vh);
   menu_.reanchor(sx + t + 2, sy, sx - 2, layout_.vw, layout_.vh);
 }
 
 void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
-  menu_.open("", {{"End Turn", "", true, kEndTurn}, {"Cancel", "", true, 0}}, layout_.vw / 2 - 40,
+  menu_.open(host_.renderer(), "", {{"End Turn", "", true, kEndTurn}, {"Cancel", "", true, 0}}, layout_.vw / 2 - 40,
              layout_.vh / 2 - 20, layout_.vw, layout_.vh);
+  menu_.place(layout_.vw / 2 - menu_.w() / 2, layout_.vh / 2 - menu_.h() / 2, layout_.vw, layout_.vh);
 }
 
 void BattleScene::menuInput(const InputEvent& e) {

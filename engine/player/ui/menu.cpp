@@ -6,11 +6,11 @@
 
 namespace ote {
 namespace {
-constexpr int kPad = 4, kRowH = 12;
+constexpr int kPad = 4;
 }
 
-void Menu::open(const std::string& title, const std::vector<MenuItem>& items, int anchorX, int anchorY,
-                int screenW, int screenH) {
+void Menu::open(Renderer& r, const std::string& title, const std::vector<MenuItem>& items, int anchorX,
+                int anchorY, int screenW, int screenH) {
   open_ = true;
   title_ = title;
   items_ = items;
@@ -18,14 +18,18 @@ void Menu::open(const std::string& title, const std::vector<MenuItem>& items, in
   sel_ = -1;
   step(1);
 
-  int chars = (int)title.size();
+  // Everything is measured with the active font, so the menu fits any text.
+  rowH_ = r.lineHeight() + 4;
+  int gap = textW(r, "  "), arrowW = textW(r, ">") + 4;
+  int widest = textW(r, title);
   for (const MenuItem& it : items) {
-    int n = (int)it.label.size() + (it.extra.empty() ? 0 : 2 + (int)it.extra.size());
-    chars = std::max(chars, n);
+    int n = textW(r, it.label) + (it.extra.empty() ? 0 : gap + textW(r, it.extra));
+    widest = std::max(widest, n);
   }
-  titleH_ = title.empty() ? 0 : kRowH;
-  w_ = chars * kGlyph + kPad * 2 + 10;  // 10 = room for the selection arrow
-  h_ = titleH_ + (int)items.size() * kRowH + kPad * 2 - 2;
+  arrowW_ = arrowW;
+  titleH_ = title.empty() ? 0 : rowH_;
+  w_ = std::min(widest + kPad * 2 + arrowW + 2, std::max(40, screenW - 4));
+  h_ = titleH_ + (int)items.size() * rowH_ + kPad * 2 - 2;
   reanchor(anchorX, anchorY, anchorX, screenW, screenH);
 }
 
@@ -53,7 +57,7 @@ void Menu::step(int dir) {
 
 int Menu::itemAt(int x, int y) const {
   if (!inside(x, y)) return -1;
-  int row = (y - y_ - kPad - titleH_) / kRowH;
+  int row = (y - y_ - kPad - titleH_) / rowH_;
   if (y - y_ - kPad - titleH_ < 0 || row < 0 || row >= (int)items_.size()) return -1;
   return row;
 }
@@ -96,20 +100,20 @@ void Menu::draw(Renderer& r) const {
   r.drawRect(x_, y_, w_, h_, Color(200, 205, 230));
   int ty = y_ + kPad;
   if (titleH_) {
-    r.drawText(x_ + kPad + 2, ty + 1, title_.c_str(), Color(150, 160, 200));
+    r.drawText(x_ + kPad + 2, ty + 1, fitText(r, title_, w_ - 2 * kPad - 2).c_str(), Color(150, 160, 200));
     ty += titleH_;
   }
   for (size_t i = 0; i < items_.size(); ++i) {
     const MenuItem& it = items_[i];
-    int ry = ty + (int)i * kRowH;
+    int ry = ty + (int)i * rowH_;
     bool sel = (int)i == sel_;
-    if (sel) r.fillRect(x_ + 2, ry - 1, w_ - 4, kRowH - 1, Color(70, 90, 150));
+    if (sel) r.fillRect(x_ + 2, ry - 1, w_ - 4, rowH_ - 1, Color(70, 90, 150));
     Color c = it.enabled ? Color(240, 240, 245) : Color(110, 112, 125);
     if (sel) r.drawText(x_ + 3, ry + 1, ">", Color(255, 220, 90));
-    r.drawText(x_ + kPad + 8, ry + 1, it.label.c_str(), c);
-    if (!it.extra.empty())
-      r.drawText(x_ + w_ - kPad - textWidth(it.extra), ry + 1, it.extra.c_str(),
-                 it.enabled ? Color(255, 220, 120) : c);
+    int tx = x_ + kPad + arrowW_;
+    int extraW = it.extra.empty() ? 0 : textW(r, it.extra);
+    r.drawText(tx, ry + 1, fitText(r, it.label, w_ - kPad - (tx - x_) - (extraW ? extraW + 4 : 0)).c_str(), c);
+    if (extraW) r.drawText(x_ + w_ - kPad - extraW, ry + 1, it.extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
   }
 }
 
