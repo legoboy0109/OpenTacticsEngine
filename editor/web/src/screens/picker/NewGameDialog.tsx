@@ -58,7 +58,7 @@ function Form({ existing, onClose }: Omit<Props, 'open'>) {
       const next = [...taken, id]
       setTaken(next)
       setError(T.taken(name.trim()))
-      setSuggestion(idOverride === null ? suggestName(name.trim(), next) : null)
+      setSuggestion(suggestName(name.trim(), next))
       return
     }
     setError(res.error)
@@ -77,7 +77,7 @@ function Form({ existing, onClose }: Omit<Props, 'open'>) {
           <TextInput value={name} onChange={(v) => { setName(v); setError(null); setSuggestion(null) }} />
         </Field>
         {suggestion && (
-          <div><button type="button" className="btn sm" onClick={() => { setName(suggestion); setError(null); setSuggestion(null) }}>{T.useSuggestion(suggestion)}</button></div>
+          <div><button type="button" className="btn sm" onClick={() => { setName(suggestion); setIdOverride(null); setError(null); setSuggestion(null) }}>{T.useSuggestion(suggestion)}</button></div>
         )}
         <FieldGroup label={T.templateLabel} help={T.templateHelp}>
           <div className="template-grid" role="radiogroup" aria-label={T.templateLabel}>

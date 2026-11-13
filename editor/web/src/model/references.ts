@@ -23,7 +23,11 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
   const units = doc.units ?? []
   switch (kind) {
     case 'stat':
-      for (const u of units) if (u.stats && id in u.stats || u.growths && id in u.growths) out.push({ section: 'units', text: `Unit "${u.name}" has a value for it` })
+      {
+        // One line for all units: a stat is on every unit, so a per-unit list would be long.
+        const names = units.filter((u) => (u.stats && id in u.stats) || (u.growths && id in u.growths)).map((u) => u.name)
+        if (names.length) out.push({ section: 'units', text: `${names.length} unit${names.length === 1 ? '' : 's'} ${names.length === 1 ? 'has' : 'have'} a value for it: ${names.slice(0, 5).join(', ')}${names.length > 5 ? ` and ${names.length - 5} more` : ''}` })
+      }
       for (const [mid, m] of mapEntries(doc))
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, mu.type)} has its own value` })
       break

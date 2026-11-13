@@ -47,7 +47,7 @@
   width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
 }
 .dialog::backdrop { background: rgba(10, 14, 22, 0.5); }
-.dialog form, .dialog > div { display: contents; }
+.dialog > form { display: contents; }
 .dialog-title { padding: 20px 24px 0; }
 .dialog-body { padding: 14px 24px 8px; display: grid; gap: 12px; overflow-wrap: anywhere; }
 .dialog-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 24px 20px; flex-wrap: wrap; }
@@ -99,6 +99,8 @@ table.kv .input-wrap { flex-wrap: wrap; }
   .form-grid, .form-grid.cols-3 { grid-template-columns: minmax(0, 1fr); }
   .field-toggle { padding-top: 0; }
   .card { padding: 14px; }
+  table.kv tbody th { width: 30%; }
+  .input.num { max-width: 5.5rem; }
   .master-detail { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .master-detail[data-view='list'] .md-detail { display: none; }
   .master-detail[data-view='detail'] .md-list { display: none; }

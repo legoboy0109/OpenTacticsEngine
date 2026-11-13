@@ -27,7 +27,7 @@ export const T = {
   addLook: 'Add a style',
   newLookTitle: 'New visual style',
   newLookLabel: 'Name of the style',
-  lookName: 'Name',
+  lookName: 'Style name',
   background: 'Background colour',
   backgroundHelp: 'Behind the map. Leave it alone to use the standard one.',
   backgroundReset: 'Use standard',
