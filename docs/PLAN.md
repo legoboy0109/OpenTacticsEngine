@@ -54,6 +54,22 @@ goal (demos only exercise features).
 5. Ports: Android, console/handheld backends, GLES3/SDL_GPU renderer, 3D
    grids, homebrew old-console ports via the SDL2 backend.
 
+## Potential future features (not scheduled; owner to decide)
+
+- **Obsidian vault projects** (idea, 2026-11-13). A project could be stored
+  as an Obsidian vault instead of plain JSON files: one note per unit /
+  weapon / terrain with stats in the note's Properties, `[[links]]` for
+  references, design notes in the body, maps as a text block, Bases tables
+  for side-by-side balancing. This is how OVERCLOCK's `game-data/` vault
+  works (read it for the pattern; never edit it). Constraints found:
+  the player should keep loading JSON (vault = authoring format, JSON
+  generated on save/Play/export); Obsidian Properties are flat, so nested
+  data becomes flat keys (`stat_hp`, `growth_hp`, `cost_funds`); needs a
+  one-way (vault is the source) vs two-way (browser editor also edits the
+  notes, preserving the body) decision. Recommended shape if built:
+  two-way, as a second storage option inside `ote-editor` (the helper's
+  on-disk revision check already detects Obsidian's edits).
+
 ## Settings model (owner decision, 2026-11-13)
 
 Options are global: they apply to every game by default. A game can carry
