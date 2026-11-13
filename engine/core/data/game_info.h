@@ -1,0 +1,26 @@
+// A cheap preview of a game folder for launchers: just the fields of
+// game.json a game list or options screen needs, without loading terrain,
+// units, maps or Lua. Full validation stays in loadGame().
+#pragma once
+#include <string>
+#include <vector>
+
+#include "core/data/database.h"
+
+namespace ote {
+
+struct StyleInfo { std::string id, name; };
+
+struct GameInfo {
+  std::string name, description, author;
+  int mapCount = 0;
+  FontConfig font;                // the game's own font choice
+  std::vector<StyleInfo> styles;  // never empty; [0] is the default style
+};
+
+// Reads <gameDir>/game.json. False (with err naming the file and problem)
+// if it is missing or not a JSON object; individual odd fields fall back to
+// defaults rather than failing.
+bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err);
+
+}  // namespace ote
