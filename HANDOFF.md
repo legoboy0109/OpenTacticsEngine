@@ -11,6 +11,8 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 - Two demo games in `games/` load and start battles.
 - In progress (delegated, each in its own git worktree/branch, to be merged
   and verified): real AI + `ote-sim`; SDL3 backend + `ote-player`.
+- Text/fonts: shared text engine (TrueType via stb_truetype) with SDL3 and
+  SDL2 backends; the player lays out everything from measured text.
 - Not started: web build (Emscripten is installed at
   `~/.local/share/emsdk`; run `source ~/.local/share/emsdk/emsdk_env.sh`),
   README.
@@ -21,6 +23,16 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 cmake -S . -B build -G Ninja && cmake --build build
 ./build/ote_tests            # all unit tests
 ./build/ote_tests battle     # subset by name
+```
+
+Player backend (SDL3 default; SDL2 for old ports, same sources):
+
+```
+cmake -S . -B build -G Ninja && cmake --build build                       # SDL3
+cmake -S . -B build-sdl2 -G Ninja -DOTE_PLATFORM=sdl2 && cmake --build build-sdl2
+./build/engine/player/ote-player --game demo-srpg --font sans             # fonts: pixel pixel-ttf arcade sans serif mono
+./build/engine/player/ote-player --headless --game demo-srpg --map bridge \
+    --input "wait:14,confirm,wait:2" --screenshot /tmp/x.bmp               # --font-size N, --font-smooth 0|1, --assets DIR
 ```
 
 ## Working agreements

@@ -24,16 +24,40 @@ engine/core/           rules core: pure logic, no graphics, no platform code
   script/              Lua host (formulas, later event hooks)
   battle/              Battle state, actions, events, combat, turns, modules
   ai/                  computer opponent (uses only Battle's public API)
-engine/platform/       platform.h interface + one folder per backend (sdl3/)
+engine/platform/       platform.h interface; common/ (shared text engine, fonts); one folder per backend (sdl3/, sdl2/)
 engine/player/         the game-running app: scenes, UI, input -> actions
 tools/sim/             headless AI-vs-AI runner (testing, balance)
 tests/                 unit tests for the core
 third_party/lua/       Lua 5.4 (vendored)
+third_party/stb/       stb_truetype (public domain, the only font rasterizer)
 ```
 
 Dependency rule: `core` depends on nothing but Lua and the C/C++ standard
 library. `player` depends on `core` and `platform.h`. Only
 `platform/<backend>/` may touch SDL or any device API.
+
+## Platform layer and text
+
+`platform.h` is the whole device interface (`Renderer`, `App`, `runApp`).
+Backends: `platform/sdl3/` (default) and `platform/sdl2/` (plain SDL 2.0.x
+calls, for old ports). Pick one at configure time:
+`cmake -S . -B build [-DOTE_PLATFORM=sdl3|sdl2]`; the player sources are
+identical for both.
+
+Everything text-related is backend independent and lives in
+`platform/common/`: `TextEngine` (UTF-8, measuring, glyph atlas, the
+built-in 8x8 font from `bitmap_font` and TrueType via stb_truetype),
+`font_registry` (built-in font list from `assets/fonts/fonts.json`, and
+game/command-line font choice -> `FontRequest`) and `StickMapper`.
+`smooth` fonts are rasterized at the real display resolution and drawn 1:1
+in output pixels; `textWidth`/`lineHeight` are always logical pixels, so
+layout never depends on the window size or the font (the player measures
+everything, it never assumes a glyph size).
+
+A new backend (another SDL, a console SDK) implements `Renderer` +
+`runApp` and gives `TextEngine` a `TextTarget` (create/update/destroy an
+RGBA texture, draw a tinted sub-rectangle in logical or output pixels,
+report the logical->output transform). Copy `sdl2/`, replace the SDL calls.
 
 ## Core ideas
 
@@ -60,8 +84,9 @@ library. `player` depends on `core` and `platform.h`. Only
 - Never assume little-endian: binary files (future saves/asset packs) must
   be written byte by byte. Text formats are preferred.
 - Rendering goes through `platform.h`: logical-pixel 2D primitives only.
-  The first backend uses SDL3's 2D renderer; a GLES3/SDL_GPU backend for
-  effects and 3D grids is a later, optional addition.
+  The backends use SDL3's / SDL2's 2D renderer; a GLES3/SDL_GPU backend for
+  effects and 3D grids is a later, optional addition. Text goes through the
+  shared `TextEngine` (no SDL_ttf/FreeType).
 - Fixed small logical resolution (default 480x270) scaled to the display.
 - Keep memory modest (original Xbox has 64 MB).
 

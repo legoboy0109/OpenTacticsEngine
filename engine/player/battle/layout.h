@@ -3,25 +3,45 @@
 #include <algorithm>
 #include <cmath>
 
+#include "platform/platform.h"
+
 namespace ote {
 
 struct Layout {
   int W = 480, H = 270;
   int tile = 24;
+  int lh = 8;        // line height of the active font
+  int row = 10;      // panel/list row pitch (lh + 2)
   int panelW = 128;  // info panel on the right
   int hintH = 11;    // one-line hint strip at the bottom
   int vw = 352, vh = 259;  // map viewport (left, above the hint strip)
+  int fontKey = 0;   // what the metrics were computed from (see sameFont)
 
-  static Layout make(int W, int H, int tile) {
+  // Everything is sized from the active font: the panel is at least its
+  // classic 128px, wider when the font needs room for ~15 characters, but
+  // never more than half the screen so the map stays usable.
+  static Layout make(int W, int H, int tile, const Renderer& r) {
     Layout l;
     l.W = W;
     l.H = H;
     l.tile = std::max(8, tile);
-    l.panelW = std::min(128, W * 3 / 8);
+    l.lh = r.lineHeight();
+    l.row = l.lh + 2;
+    l.hintH = l.lh + 3;
+    int digit = std::max(1, r.textWidth("0000000000") / 10);
+    int wide = std::max(digit, r.textWidth("M") * 3 / 4);
+    l.panelW = std::max(std::min(128, W * 3 / 8), 15 * std::max(digit, wide) + 8);
+    l.panelW = std::min(l.panelW, W / 2);
     l.vw = W - l.panelW;
     l.vh = H - l.hintH;
+    l.fontKey = fontKeyOf(r);
     return l;
   }
+  static int fontKeyOf(const Renderer& r) { return r.lineHeight() * 1000 + r.textWidth("0123456789MW"); }
+  bool stale(int w, int h, const Renderer& r) const { return w != W || h != H || fontKeyOf(r) != fontKey; }
+
+  // Top of the panel's content (below the header bar).
+  int panelTop() const { return lh + 4 + 3; }
 };
 
 // Camera in map pixels (top-left of the viewport). Maps smaller than the

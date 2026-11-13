@@ -1,10 +1,10 @@
 // Platform abstraction: the ONLY interface the player uses to reach the
 // device (window, drawing, input, main loop). Each port implements this
-// once: engine/platform/sdl3/ today; SDL2 or a console SDK later. Nothing
+// once: engine/platform/sdl3/ and sdl2/ today; a console SDK later. Nothing
 // outside engine/platform/<backend>/ may include backend headers.
 //
 // Kept deliberately tiny and "lowest common denominator" (solid rects,
-// bitmap text, later textured quads) so it fits weak hardware; fancier
+// text via the shared engine/platform/common/text_engine, later textured quads) so it fits weak hardware; fancier
 // backends can add optional capabilities without changing these calls.
 #pragma once
 #include <cstdint>
@@ -33,20 +33,39 @@ struct InputEvent {
   int x = 0, y = 0;  // pointer position in LOGICAL pixels
 };
 
+// Which font to draw text with. An empty file means the built-in 8x8 pixel font.
+struct FontRequest {
+  std::string file;   // path to a .ttf/.otf file
+  int size = 8;       // text height (line box) in logical pixels at scale 1
+  bool smooth = true; // true: anti-aliased, rasterized at the display's real
+                      // resolution; false: hard pixels at logical resolution
+};
+
 // Immediate-mode 2D drawing in logical pixels (the backend scales the
 // logical screen to the real display, keeping aspect ratio).
 class Renderer {
  public:
-  static constexpr int kGlyphSize = 8;  // built-in font is 8x8 per character
-
   virtual ~Renderer() {}
   virtual int width() const = 0;
   virtual int height() const = 0;
   virtual void clear(Color color) = 0;
   virtual void fillRect(int x, int y, int w, int h, Color color) = 0;  // alpha blended
   virtual void drawRect(int x, int y, int w, int h, Color color) = 0;  // 1px outline
-  // ASCII text with the built-in font; scale is an integer multiplier.
+
+  // Changes the logical screen size (e.g. when a game with a different
+  // "view" size starts). Drawing coordinates follow immediately.
+  virtual void setLogicalSize(int width, int height) = 0;
+
+  // Selects the font for all following text calls. On failure returns false,
+  // logs why, and falls back to the built-in pixel font.
+  virtual bool setFont(const FontRequest& font) = 0;
+  // Text is UTF-8. (x, y) is the top-left of the line box. `scale` is an
+  // integer multiplier on the font size.
   virtual void drawText(int x, int y, const char* text, Color color, int scale = 1) = 0;
+  // Width of the text in logical pixels / height of one line (use these for
+  // ALL layout; never assume a fixed glyph size).
+  virtual int textWidth(const char* text, int scale = 1) const = 0;
+  virtual int lineHeight(int scale = 1) const = 0;
 };
 
 // What the player implements.
@@ -56,6 +75,9 @@ class App {
   virtual void onInput(const InputEvent& event) = 0;
   virtual void update(double dtSeconds) = 0;
   virtual void draw(Renderer& renderer) = 0;
+  // Called once by the backend after the window/renderer exist and before
+  // the first frame (set the font / logical size here, load content).
+  virtual void onStart(Renderer& renderer) {}
   virtual bool wantsQuit() const = 0;
 };
 

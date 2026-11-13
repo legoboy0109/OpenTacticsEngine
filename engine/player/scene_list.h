@@ -34,6 +34,8 @@ class ListScene : public Scene {
   int visibleRows(int screenH) const;
   int firstRow(int screenH) const;
   int rowAt(int x, int y) const;
+  void measure(const Renderer& r);
+  int rowH_ = 24, top_ = 44, bottom_ = 22;  // from the font, see measure()
   int lastW_ = 480, lastH_ = 270;  // from the last draw, for pointer hit tests
 };
 

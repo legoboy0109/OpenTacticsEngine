@@ -47,23 +47,7 @@ bool isDirection(Button b) {
   return b == Button::Up || b == Button::Down || b == Button::Left || b == Button::Right;
 }
 
-constexpr int kStickOn = 16000, kStickOff = 9000;  // hysteresis avoids chatter
-
 }  // namespace
-
-void SdlInput::stick(int axis, int value, std::vector<InputEvent>& out) {
-  int& dir = stickDir_[axis];
-  int want = dir;
-  if (value > kStickOn) want = 1;
-  else if (value < -kStickOn) want = -1;
-  else if (value > -kStickOff && value < kStickOff) want = 0;
-  if (want == dir) return;
-  Button neg = axis == 0 ? Button::Left : Button::Up;
-  Button pos = axis == 0 ? Button::Right : Button::Down;
-  if (dir != 0) out.push_back(buttonEvent(InputEvent::ButtonUp, dir < 0 ? neg : pos));
-  if (want != 0) out.push_back(buttonEvent(InputEvent::ButtonDown, want < 0 ? neg : pos));
-  dir = want;
-}
 
 void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<InputEvent>& out) {
   switch (e.type) {
@@ -93,7 +77,7 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       break;
     case SDL_EVENT_GAMEPAD_REMOVED:
       if (SDL_Gamepad* pad = SDL_GetGamepadFromID(e.gdevice.which)) SDL_CloseGamepad(pad);
-      stickDir_[0] = stickDir_[1] = 0;
+      stick_.reset();
       OTE_INFO("gamepad disconnected");
       break;
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
@@ -105,8 +89,8 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       break;
     }
     case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-      if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) stick(0, e.gaxis.value, out);
-      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) stick(1, e.gaxis.value, out);
+      if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) stick_.update(0, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) stick_.update(1, e.gaxis.value, out);
       break;
     case SDL_EVENT_MOUSE_MOTION:
     case SDL_EVENT_MOUSE_BUTTON_DOWN:

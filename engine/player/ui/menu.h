@@ -20,7 +20,7 @@ class Menu {
 
   // Places the menu near (anchorX, anchorY) and keeps it inside the screen.
   // Opens with the first enabled item selected.
-  void open(const std::string& title, const std::vector<MenuItem>& items, int anchorX, int anchorY,
+  void open(Renderer& r, const std::string& title, const std::vector<MenuItem>& items, int anchorX, int anchorY,
             int screenW, int screenH);
   // Moves an open menu (e.g. to follow a unit while the camera eases). If it
   // would run off the right edge it is placed to the left of altX instead.
@@ -48,7 +48,7 @@ class Menu {
   std::vector<MenuItem> items_;
   int sel_ = -1, chosen_ = -1;
   int x_ = 0, y_ = 0, w_ = 0, h_ = 0;
-  int titleH_ = 0;
+  int titleH_ = 0, rowH_ = 12, arrowW_ = 12;
 };
 
 }  // namespace ote

@@ -6,6 +6,10 @@ namespace ote {
 
 struct Args {
   std::string gamesDir = "games";
+  std::string assetsDir = "assets";  // built-in fonts live in <assetsDir>/fonts
+  std::string font;       // --font: built-in id, "pixel", or a font file; empty = the game decides
+  int fontSize = 0;       // --font-size, logical pixels; 0 = default
+  int fontSmooth = -1;    // --font-smooth 0|1; -1 = default
   std::string game, map;  // empty = ask
   bool autoplay = false;
   unsigned seed = 1;

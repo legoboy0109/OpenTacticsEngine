@@ -16,14 +16,14 @@ using Column = std::vector<Line>;
 const Color kText(235, 237, 245), kGrey(130, 136, 165);
 
 Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int hpAfter, bool showHit,
-                  bool showCrit, int chars, bool counterMissing) {
+                  bool showCrit, bool counterMissing) {
   Column col;
   Color sc = Color::rgb(b.sides[u.side].color);
-  col.push_back({fitText(u.name, chars), mix(sc, Color(255, 255, 255), 0.35f)});
+  col.push_back({u.name, mix(sc, Color(255, 255, 255), 0.35f)});
   if (counterMissing) {
     col.push_back({"No counter", kGrey});
   } else {
-    col.push_back({fitText(b.db->weapons[sf.weapon].name, chars), kGrey});
+    col.push_back({b.db->weapons[sf.weapon].name, kGrey});
   }
   col.push_back({"HP " + intStr(u.hp) + " > " + intStr(hpAfter), hpAfter <= 0 ? Color(255, 110, 100) : kText});
   if (!counterMissing) {
@@ -53,13 +53,18 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   bool showHit = f.attack.hit < 100 || (f.counter.can && f.counter.hit < 100);
   bool showCrit = f.attack.crit > 0 || (f.counter.can && f.counter.crit > 0);
 
-  int chars = std::min(16, (L.vw - 24) / (2 * kGlyph));
-  Column ca = makeColumn(b, a, f.attack, hpA, showHit, showCrit, chars, false);
-  Column cd = makeColumn(b, d, f.counter, hpD, showHit, showCrit, chars, !f.counter.can);
+  Column ca = makeColumn(b, a, f.attack, hpA, showHit, showCrit, false);
+  Column cd = makeColumn(b, d, f.counter, hpD, showHit, showCrit, !f.counter.can);
   if (!f.counter.can) std::swap(cd[1], cd[2]);  // keep HP right under the name
   size_t rows = std::max(ca.size(), cd.size());
 
-  int colW = chars * kGlyph, w = colW * 2 + 24, h = (int)rows * 10 + 12;
+  // Column width follows the widest line (capped so the box fits the map view);
+  // longer lines are truncated with "..".
+  int colW = 0;
+  for (const Column* col : {&ca, &cd})
+    for (const Line& ln : *col) colW = std::max(colW, textW(r, ln.text));
+  colW = std::min(colW, (L.vw - 24) / 2);
+  int rh = L.row, w = colW * 2 + 24, h = (int)rows * rh + 12;
   int x = (L.vw - w) / 2;
   int ty = targetCell >= 0 ? b.grid.y(targetCell) * L.tile - c.cam.iy() : 0;
   int y = ty < L.vh / 2 ? L.vh - h - 6 : 6;  // opposite half from the target
@@ -67,8 +72,10 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   r.fillRect(x, y, w, h, Color(22, 26, 46, 245));
   r.drawRect(x, y, w, h, Color(255, 220, 90));
   r.fillRect(x + w / 2, y + 4, 1, h - 8, Color(70, 76, 110));
-  for (size_t i = 0; i < ca.size(); ++i) r.drawText(x + 8, y + 6 + (int)i * 10, ca[i].text.c_str(), ca[i].color);
-  for (size_t i = 0; i < cd.size(); ++i) r.drawText(x + w / 2 + 8, y + 6 + (int)i * 10, cd[i].text.c_str(), cd[i].color);
+  for (size_t i = 0; i < ca.size(); ++i)
+    r.drawText(x + 8, y + 6 + (int)i * rh, fitText(r, ca[i].text, colW).c_str(), ca[i].color);
+  for (size_t i = 0; i < cd.size(); ++i)
+    r.drawText(x + w / 2 + 8, y + 6 + (int)i * rh, fitText(r, cd[i].text, colW).c_str(), cd[i].color);
 }
 
 }  // namespace ote
