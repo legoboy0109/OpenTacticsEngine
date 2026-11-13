@@ -4,7 +4,7 @@
 // outside engine/platform/<backend>/ may include backend headers.
 //
 // Kept deliberately tiny and "lowest common denominator" (solid rects,
-// text via the shared engine/platform/common/text_engine, later textured quads) so it fits weak hardware; fancier
+// text via the shared engine/platform/common/text_engine, textured sprites) so it fits weak hardware; fancier
 // backends can add optional capabilities without changing these calls.
 #pragma once
 #include <cstdint>
@@ -43,6 +43,9 @@ struct FontRequest {
                       // resolution; false: hard pixels at logical resolution
 };
 
+// Handle of an image the platform holds for drawing (0 = none).
+typedef int TextureId;
+
 // Immediate-mode 2D drawing in logical pixels (the backend scales the
 // logical screen to the real display, keeping aspect ratio).
 class Renderer {
@@ -68,6 +71,18 @@ class Renderer {
   // ALL layout; never assume a fixed glyph size).
   virtual int textWidth(const char* text, int scale = 1) const = 0;
   virtual int lineHeight(int scale = 1) const = 0;
+
+  // Images (sprite sheets). Creates a texture from 32-bit pixels (R,G,B,A
+  // bytes, row by row, not premultiplied). Nearest-neighbour scaling. Returns
+  // 0 on failure (logged). Textures survive setLogicalSize; whatever is still
+  // alive when the renderer goes away is freed with it.
+  virtual TextureId createTexture(const uint8_t* rgba, int width, int height) = 0;
+  virtual void destroyTexture(TextureId id) = 0;
+  // Draws part of a texture (sx,sy,sw,sh in texture pixels) into a rectangle
+  // in logical pixels, alpha blended. `mod` multiplies colour and alpha
+  // (white = as is). Unknown ids draw nothing.
+  virtual void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
+                           Color mod = Color(255, 255, 255)) = 0;
 };
 
 // What the player implements.

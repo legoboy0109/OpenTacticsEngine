@@ -6,6 +6,7 @@ import { startServer } from '../lib/server.mjs';
 import { buildMock } from '../lib/mock.mjs';
 import { Session } from '../lib/session.mjs';
 import { same } from '../lib/flows.mjs';
+import { checkArtDrawn } from '../lib/analyze.mjs';
 
 export const name = 'embed';
 
@@ -40,7 +41,12 @@ export async function run(env) {
       C.check('fonts are fetched from /assets/fonts/', s.requests.some((u) => u.endsWith('/assets/fonts/fonts.json')) &&
               s.requests.some((u) => u.endsWith('/assets/fonts/AtkinsonHyperlegible-Regular.ttf')));
       C.check('canvas has focus inside the iframe', await s.frame().evaluate(() => document.activeElement && document.activeElement.id === 'canvas'));
-      await s.shot('battle');
+      const battlePng = await s.shot('battle');
+      // The PNG sheets went through the project file API as binary and were decoded.
+      await checkArtDrawn(env, C, battlePng, 'embed battle');
+      C.check('embed: PNG sheets are fetched from the project files',
+              s.requests.some((u) => u.endsWith('/file/art/tiles.png')) && s.requests.some((u) => u.endsWith('/file/art/units.png')));
+      C.check('embed: no art sheet errors in the log', !s.logs.some((l) => /art sheet/.test(l)));
 
       // Keyboard goes to the game; the host page must not scroll.
       await page.mouse.click(300, 200);  // click inside the iframe

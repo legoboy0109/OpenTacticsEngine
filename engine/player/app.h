@@ -31,6 +31,7 @@ class PlayerApp : public App, public SceneHost {
   // SceneHost
   const Args& args() const override { return args_; }
   GameSession* session() override { return session_.get(); }
+  const Sprites* sprites() const override { return session_ && sprites_.any() ? &sprites_ : nullptr; }
   Renderer& renderer() override { return *renderer_; }
   Settings& settings() override { return settings_; }
   const std::vector<GameEntry>& games() const override { return games_; }
@@ -50,6 +51,7 @@ class PlayerApp : public App, public SceneHost {
  private:
   void later(std::function<void()> fn) { pending_ = std::move(fn); }
   void runPending();
+  void dropSession();
   void doLoadGame(const std::string& gameId);
   void doStartBattle(const std::string& mapId);
 
@@ -71,6 +73,7 @@ class PlayerApp : public App, public SceneHost {
   bool fontApplied_ = false;
   EffectiveLook look_;
   std::unique_ptr<GameSession> session_;
+  Sprites sprites_;  // textures of session_'s art sheets; released whenever session_ goes
   std::unique_ptr<Scene> scene_;
   std::vector<GameEntry> games_;
   std::string gameId_;

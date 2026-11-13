@@ -50,3 +50,29 @@ export async function edgeSteepness(page, png, rect) {
     return { range, edges: steps.length, steepness: steps.length ? steps[Math.floor(steps.length * 0.95)] / range : 0 };
   }, { b64: png.toString('base64'), rect });
 }
+
+// Share (0..1) of the screenshot's pixels within `tol` of colour [r, g, b] on every channel.
+// Used to tell art from placeholders: demo-srpg's placeholder grass is exactly #8fbf6a
+// and covers most of the map, while the starter art's grass uses other greens.
+export async function colorShare(page, png, rgb, tol = 0) {
+  return page.evaluate(async ({ b64, rgb, tol }) => {
+    const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+    const c = new OffscreenCanvas(bmp.width, bmp.height);
+    const g = c.getContext('2d');
+    g.drawImage(bmp, 0, 0);
+    const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4)
+      if (Math.abs(d[i] - rgb[0]) <= tol && Math.abs(d[i + 1] - rgb[1]) <= tol && Math.abs(d[i + 2] - rgb[2]) <= tol) n++;
+    return n / (d.length / 4);
+  }, { b64: png.toString('base64'), rgb, tol });
+}
+
+// The art check shared by the suites: a battle screenshot of demo-srpg must show the
+// starter art (its grass colour) and almost none of the placeholder grass colour.
+export async function checkArtDrawn(env, C, png, label) {
+  const placeholder = await colorShare(env.analysisPage, png, [0x8f, 0xbf, 0x6a]);
+  const art = await colorShare(env.analysisPage, png, [0x88, 0xb9, 0x5f], 2);
+  C.check(`${label}: terrain art is drawn (not the placeholder colours)`, art > 0.08 && placeholder < 0.005,
+          `art grass ${(art * 100).toFixed(1)}%, placeholder grass ${(placeholder * 100).toFixed(2)}%`);
+}

@@ -90,6 +90,29 @@ struct Graphics {
 // Neighbour bits for Join looks.
 enum JoinBit { JoinN = 1, JoinE = 2, JoinS = 4, JoinW = 8 };
 
+// The JoinBit set of neighbours of square (x, y) that count as "the same" for
+// a Join look: the neighbour's terrain index (from terrainAt) is flagged in
+// look.joinWith, or the neighbour is off the map (gridW x gridH) and
+// look.joinEdge is set. Squares only touch N, E, S, W here.
+// terrainAt is any callable (x, y) -> terrain index. A template rather than
+// std::function: this runs for every visible square every frame.
+template <class TerrainAt>
+int joinMaskAt(const Look& look, int x, int y, int gridW, int gridH, const TerrainAt& terrainAt) {
+  static const int dx[4] = {0, 1, 0, -1}, dy[4] = {-1, 0, 1, 0};
+  static const int bit[4] = {JoinN, JoinE, JoinS, JoinW};
+  int mask = 0;
+  for (int i = 0; i < 4; ++i) {
+    int nx = x + dx[i], ny = y + dy[i];
+    if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) {
+      if (look.joinEdge) mask |= bit[i];
+      continue;
+    }
+    int t = terrainAt(nx, ny);
+    if (t >= 0 && (size_t)t < look.joinWith.size() && look.joinWith[(size_t)t]) mask |= bit[i];
+  }
+  return mask;
+}
+
 // The sheet cell to draw for `look` on map square (x, y).
 //   joinMask: JoinBit set of neighbours that count as the same (Join only).
 //   timeMs:   running time, for Animated.

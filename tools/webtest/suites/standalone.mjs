@@ -1,5 +1,5 @@
 // (a) Standalone page: Home, keyboard battle flow, options, sharp text at DPR 1 and 2, persistence.
-import { contentBox, edgeSteepness } from '../lib/analyze.mjs';
+import { contentBox, edgeSteepness, checkArtDrawn } from '../lib/analyze.mjs';
 import { open, keyboardToBattle, keyboardMoveLord, keyboardEndTurn, same } from '../lib/flows.mjs';
 
 export const name = 'standalone';
@@ -27,6 +27,8 @@ export async function run(env) {
     await keyboardToBattle(s);
     const b0 = await s.shot('battle');
     C.check('battle started', s.logs.some((l) => /loaded game 'demo-srpg'/.test(l)));
+    await checkArtDrawn(env, C, b0, 'standalone battle');
+    C.check('no art sheet errors in the log', !s.logs.some((l) => /art sheet/.test(l)));
     await s.keys(['Enter']);
     const b1 = await s.shot('unit-selected');
     C.check('selecting a unit changes the picture (move range)', !same(b0, b1));
