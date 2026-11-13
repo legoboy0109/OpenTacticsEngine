@@ -71,7 +71,10 @@ void PlayerApp::applyScreen(const Database* game) {
   if (fontApplied_ && req.file == appliedFont_.file && req.size == appliedFont_.size &&
       req.smooth == appliedFont_.smooth)
     return;  // unchanged: skip re-reading the font file
-  if (!renderer_->setFont(req)) renderer_->setFont(pixelFontRequest());
+  if (!renderer_->setFont(req)) {  // unusable file: the engine already fell back to the built-in font
+    req = pixelFontRequest();
+    renderer_->setFont(req);
+  }
   appliedFont_ = req;
   fontApplied_ = true;
   OTE_INFO("font: %s size %d %s", req.file.empty() ? "built-in pixel" : req.file.c_str(), req.size,
@@ -80,12 +83,12 @@ void PlayerApp::applyScreen(const Database* game) {
 
 void PlayerApp::onStart(Renderer& r) {
   renderer_ = &r;
-  applyScreen(nullptr);
   readIndex();
   if (!args_.game.empty()) doLoadGame(args_.game);
   else if (games_.size() == 1) doLoadGame(games_[0].id);
   else if (!indexError_.empty())
-    showError("Cannot read game list", indexError_, ToGameSelect), runPending();
+    applyScreen(nullptr),
+        showError("Cannot read game list", indexError_, ToGameSelect), runPending();
   else showGameSelect(), runPending();
 }
 
@@ -149,11 +152,11 @@ void PlayerApp::startBattle(const std::string& mapId) {
 
 void PlayerApp::doLoadGame(const std::string& gameId) {
   scene_.reset();
-  applyScreen(nullptr);  // an error screen must not inherit the previous game's look
   session_.reset(new GameSession());
   std::string err;
   if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
     session_.reset();
+    applyScreen(nullptr);  // an error screen must not inherit the previous game's look
     showError("Cannot load game '" + gameId + "'", err, ToGameSelect);
     runPending();
     return;
