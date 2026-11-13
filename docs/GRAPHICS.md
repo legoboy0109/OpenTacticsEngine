@@ -45,6 +45,8 @@ art keeps that placeholder look next to ones that have art.
 }
 ```
 
+- A sheet may also have `"name"`: a display name for editors; the engine
+  ignores it (like any key it does not know).
 - Sheet images are PNG files inside the game folder (by convention in
   `art/`), at most 2048 x 2048 pixels. Cells are counted `[column, row]`
   from 0 at the top-left. Pixels right of / below the last whole cell are

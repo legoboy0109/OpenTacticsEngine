@@ -204,3 +204,100 @@ Play in `src/play/`. Decisions and deviations:
   panel only while focus is outside the iframe (inside it, Esc belongs to the game).
 - **Phone top bar** is one row: icon-only Undo/Redo/Play, the problem count as a badge on the problems button, the save
   state as a dot (the words stay for screen readers).
+
+## Art (third slice): images, tiles and sprites
+
+Contract for the data and drawing rules: docs/GRAPHICS.md. Helper calls:
+docs/EDITOR_API.md (`graphics` section, `/art` endpoints). Wording here is
+a starting point; the owner decides final names and layout.
+
+Words: the UI says **image** (a file), **piece** (one cell of an image),
+**picture** (what a terrain or unit looks like). It never says "sheet",
+"cell", "sprite" or "tileset" outside Advanced.
+
+### Document model additions
+- `graphics` joins the document (the GET/PUT section). `null` from the
+  helper means "no art yet"; the first edit creates `{ "sheets": [] }`.
+  All looks edits are pure `doc -> doc` functions and undoable.
+- Image files are NOT in the document; they live on disk in `art/`.
+  Uploading returns a new `revision`: the store adopts it without treating
+  it as a conflict. Undo never deletes or restores files; it only changes
+  which images the game uses. Files no longer used by any image entry show
+  up under "Unused files" where they can be deleted for good (confirm).
+- Image entries may carry `"name"` (display name; the engine ignores it).
+- Deleting a terrain or unit removes its pictures (base and every style
+  override, and its id from other terrains' `joinWith`) in the same undo
+  step. Duplicating copies its pictures. Deleting a visual style removes
+  that style's overrides.
+- Problems in `data/graphics.json` link to the Art section.
+
+### Art section (sidebar, between Terrain and Maps)
+List on the left (thumbnail + name), details on the right.
+- **Add image**: file picker (multiple) and drag-and-drop anywhere on the
+  section. Any image the browser can open is accepted; anything that is not
+  a PNG is converted to PNG in the browser first. File name on disk = slug
+  of the original name, made unique. Errors in plain words ("This image is
+  3000 x 1200 pixels. The largest that works on every device is 2048 x
+  2048.").
+- First guess for how the image is divided: if it is at most twice the
+  game's tile size in both directions → **One picture**; otherwise **A grid
+  of pieces** using the tile size if it divides the image evenly, else 16,
+  32, 24, 48 (first that divides both sides), else the tile size.
+- Details: name; "How is this image divided?" (**One picture** / **A grid
+  of pieces** with piece width and height, quick buttons 16 / 24 / 32 /
+  48); a zoomable preview on a checkerboard with the grid drawn over it and
+  "N across, M down"; a note when pixels are left over at the right or
+  bottom; **Used by** (links to the terrains and units using it);
+  **Replace file…** (same name, `?overwrite=1`; warns that pieces keep
+  their positions); **Remove** (asks first when used, listing users; clears
+  those pictures in the same undo step; the file moves to "Unused files").
+- Section setting: "Show a coloured base under units so sides can be told
+  apart" (`unitMarker`).
+
+### Picture card (on each Terrain and each Unit)
+Shows a live preview and **Choose picture…** / **Remove picture**.
+- Terrain preview: a small sample patch drawn with the real rules (for
+  joining pictures a shape with a bend, a T, a cross and a dead end; for
+  random mixes a 5 x 5 field). Unit preview: the unit on its coloured base
+  in two side colours. Animations play (first frame only when the system
+  asks for reduced motion).
+- The picker dialog: choose an image, then click pieces on a zoomable grid.
+  - Terrain kinds: **One piece**; **Random mix** (click several; numbered
+    badges; click again to remove); **Animation** (click frames in order;
+    speed Slow / Medium / Fast = 700 / 400 / 200 ms, exact number under
+    Advanced); **Joins with neighbours** (hovering shows the 4 x 4 block
+    that will be used, click to place it; a diagram explains which of the
+    16 pieces goes where and **Download a guide image** saves a template
+    PNG at the image's piece size, generated in the browser; "Also joins
+    with" multi-select of other terrains; "Joins at the edge of the map").
+  - Unit kinds: **One piece**, **Animation**.
+- Units: "A different picture for a side" lists every side id used by the
+  game's maps (with its name and colour); each can have its own picture.
+- When the game has more than one visual style, the card has a "For look:"
+  selector: **All looks** (the base picture) or one style. In a style:
+  **Same as the others** (no override), a picture of its own, or **No
+  picture in this look** (`null`).
+
+### Map editor
+- The canvas, the terrain palette and the unit palette draw with the art,
+  following "Drawing rules" in docs/GRAPHICS.md exactly (stretch to the
+  square, placeholder colour under transparent pixels, joining, random mix
+  by position with the SAME hash as the engine, marker base, per-side
+  pictures, units sorted top row first). Port `pickCell`'s hash to
+  TypeScript and unit-test it against values taken from the C++ function.
+- Animated pictures animate on the canvas only while the tab is visible and
+  not under reduced motion.
+- A **Look** selector in the map toolbar (only when the game has more than
+  one visual style) previews a style: its art overrides AND its colours,
+  background and letter setting (this closes the earlier gap "the canvas
+  ignores visual styles").
+- Things without a picture keep the placeholder look.
+
+### Tests and screenshots
+Unit tests for every model function (pictures per kind, cascade deletes,
+used-by, first-guess division, the hash/pickCell port, the join mask). e2e
+against the real helper: add a PNG made in the test, convert a non-PNG,
+too-large image error, set the grid, assign each kind to a terrain and a
+unit, per-side and per-look pictures, undo/redo, remove with users, unused
+file delete, the canvas shows the art (pixel checks), Play shows the art in
+the real player, phone layout. New screenshots continue the numbering.
