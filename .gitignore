@@ -1,0 +1,8 @@
+build/
+build-*/
+.agent/
+temp/
+*.swp
+.vscode/
+.idea/
+compile_commands.json
