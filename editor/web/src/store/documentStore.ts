@@ -3,6 +3,7 @@
 // context module wraps it for components.
 import type { Api } from '../api/client'
 import type { Problem, ProjectDoc } from '../model/types'
+import { ArtLibrary } from './art'
 import { Saver, type SaveStatus, type SaverOptions } from './autosave'
 import { canRedo, canUndo, initHistory, pushEdit, redo, undo, type History } from './history'
 
@@ -22,19 +23,22 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, weapons: null, units: null, maps: {}, scripts: {} }
+const EMPTY: ProjectDoc = { game: null, terrain: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
 
 export class DocumentStore {
   private state: StoreState
   private history: History<ProjectDoc> = initHistory(EMPTY)
   private saver: Saver | null = null
   private listeners = new Set<() => void>()
+  /** The image files of this game (not part of the undoable document). */
+  readonly art: ArtLibrary
 
   constructor(private api: Api, readonly id: string, private opts: SaverOptions & { now?: () => number } = {}) {
     this.state = {
       phase: 'loading', loadError: null, id, doc: EMPTY, revision: '', problems: [],
       save: { state: 'saved' }, canUndo: false, canRedo: false, notice: null,
     }
+    this.art = new ArtLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
   }
 
   // --- subscription (useSyncExternalStore) ---
@@ -57,9 +61,11 @@ export class DocumentStore {
       getDoc: () => this.history.present,
       onStatus: (save) => this.patch({ save }),
       onSaved: (rev, probs) => this.patch({ revision: rev, problems: probs }),
+      onRevision: (rev) => this.patch({ revision: rev }),
     }, { doc, revision }, this.opts)
     this.patch({ phase: 'ready', loadError: null, revision, problems, save: { state: 'saved' } })
     this.syncHistory()
+    void this.art.refresh()
   }
 
   // --- editing ---
@@ -106,6 +112,7 @@ export class DocumentStore {
     this.saver?.reset(doc, revision)
     this.patch({ revision, problems, notice: null })
     this.syncHistory()
+    void this.art.refresh()
   }
 
   /** Conflict: keep local changes and overwrite what is on disk. */

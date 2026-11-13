@@ -1,5 +1,5 @@
 // Loads the real demo projects (JSON with comments) from ../../games as documents.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { ProjectDoc } from '../../src/model/types'
 
@@ -42,5 +42,7 @@ function loadFrom(root: string, name: string): ProjectDoc {
     units: read(name, 'data/units.json').units,
     maps,
     scripts: {},
+    // Art is optional: a game without data/graphics.json has none.
+    graphics: existsSync(path.join(root, name, 'data/graphics.json')) ? read(name, 'data/graphics.json') : null,
   }
 }

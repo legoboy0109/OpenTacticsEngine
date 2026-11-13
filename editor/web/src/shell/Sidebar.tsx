@@ -9,6 +9,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   units: 'Units',
   weapons: 'Weapons',
   terrain: 'Terrain',
+  art: 'Art',
   maps: 'Maps',
 }
 

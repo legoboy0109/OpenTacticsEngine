@@ -1,5 +1,6 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
+import { dropArtOf } from './graphicsClean'
 import { readGrid, writeGrid } from './mapGrid'
 import { dropKey, without } from './util'
 import type { MapFile, ProjectDoc, Section, Unit } from './types'
@@ -49,6 +50,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         const n = (m.units ?? []).filter((u) => u.type === id).length
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
       }
+      if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
     case 'weapon':
       for (const u of units) if (u.weapons?.includes(id)) out.push({ section: 'units', text: `Unit "${u.name}" carries it` })
@@ -57,11 +59,14 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const [mid, m] of mapEntries(doc))
         if (Object.values(m.legend).includes(id)) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has tiles of it (they become ${firstOther(doc, id)})` })
       for (const s of doc.game?.styles ?? []) if (s.terrainColors && id in s.terrainColors) out.push({ section: 'game', text: `Look "${s.name}" recolours it` })
+      if (hasPicture(doc, 'terrain', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
   }
   return out
 }
 
+const hasPicture = (doc: ProjectDoc, kind: 'terrain' | 'units', id: string): boolean =>
+  !!doc.graphics && (id in (doc.graphics[kind] ?? {}) || Object.values(doc.graphics.styles ?? {}).some((st) => id in (st[kind] ?? {})))
 const nameOfUnit = (units: Unit[], type: string) => units.find((u) => u.id === type)?.name ?? type
 const firstOther = (doc: ProjectDoc, id: string) => doc.terrain?.find((t) => t.id !== id)?.name ?? 'nothing'
 /** A "versus" key can be a unit id or a tag; keep it if another unit still has that tag. */
@@ -106,13 +111,13 @@ export function cleanMoveType(doc: ProjectDoc, id: string, reassignTo: string): 
 
 export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
   const remaining = (doc.units ?? []).filter((u) => u.id !== id)
-  return {
+  return dropArtOf({
     ...doc,
     weapons: doc.weapons && doc.weapons.map((w) => (w.versus && id in w.versus && !tagStillUsed(remaining, id, id)
       ? stripKey(w, 'versus', dropKey(w.versus, id)) : w)),
     terrain: doc.terrain && doc.terrain.map((t) => (t.produces?.includes(id) ? stripKey(t, 'produces', without(t.produces, id)) : t)),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => u.type === id) ? { ...m, units: m.units.filter((u) => u.type !== id) } : m)),
-  }
+  }, 'units', id)
 }
 
 export function cleanWeapon(doc: ProjectDoc, id: string): ProjectDoc {
@@ -127,7 +132,7 @@ export function cleanTerrain(doc: ProjectDoc, id: string, replacement: string): 
   const game = doc.game && doc.game.styles?.some((s) => s.terrainColors && id in s.terrainColors)
     ? { ...doc.game, styles: updateStyles(doc.game.styles, id) } : doc.game
   const remaining = (doc.terrain ?? []).filter((t) => t.id !== id)
-  return {
+  return dropArtOf({
     ...doc,
     game,
     maps: mapMembers(doc, (m) => {
@@ -135,7 +140,7 @@ export function cleanTerrain(doc: ProjectDoc, id: string, replacement: string): 
       const swapped = { ...m, legend: Object.fromEntries(Object.entries(m.legend).map(([ch, t]) => [ch, t === id ? replacement : t])) }
       return remaining.length ? writeGrid(swapped, readGrid(swapped, remaining), remaining) : swapped
     }),
-  }
+  }, 'terrain', id)
 }
 
 function updateStyles(styles: NonNullable<ProjectDoc['game']>['styles'], id: string) {

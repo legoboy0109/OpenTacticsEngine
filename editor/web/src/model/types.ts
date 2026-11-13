@@ -87,6 +87,34 @@ export interface MapFile extends Extra {
   units?: MapUnit[]
 }
 
+// --- art (docs/GRAPHICS.md, data/graphics.json) ---
+export type CellRef = [number, number]
+/** An image file and how it is cut into pieces (the file format calls this a "sheet"; the UI says "image"). */
+export interface Sheet extends Extra { id: string; file: string; cellWidth: number; cellHeight: number; name?: string }
+/** How one terrain or unit is drawn: `sheet` plus exactly one of cell / variants / frames / join. */
+export interface Look extends Extra {
+  sheet: string
+  cell?: CellRef
+  variants?: CellRef[]
+  frames?: CellRef[]
+  frameMs?: number
+  join?: CellRef
+  joinWith?: string[]
+  joinEdge?: boolean
+  /** Units only: a different picture for particular sides (by map side id). */
+  sides?: Record<string, Look>
+}
+/** A visual style's overrides; `null` = no picture in that style. */
+export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null> }
+export interface Graphics extends Extra {
+  sheets: Sheet[]
+  unitMarker?: boolean
+  terrain?: Record<string, Look>
+  units?: Record<string, Look>
+  styles?: Record<string, StyleArt>
+}
+export type LookKind = 'terrain' | 'units'
+
 /** The editable project: exactly the GET shape minus id/revision/problems. */
 export interface ProjectDoc {
   game: Game | null
@@ -95,6 +123,8 @@ export interface ProjectDoc {
   units: Unit[] | null
   maps: Record<string, MapFile | null>
   scripts: Record<string, string>
+  /** null = the game has no art yet (the first art edit creates it). */
+  graphics: Graphics | null
 }
 
 export interface Problem { file: string; message: string }
@@ -106,5 +136,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'terrain' | 'maps'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'terrain', 'maps']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'terrain' | 'art' | 'maps'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'terrain', 'art', 'maps']

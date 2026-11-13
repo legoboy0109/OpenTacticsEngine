@@ -1,6 +1,7 @@
 // Terrain types.
 import { clone, ids, withTerrain } from './doc'
 import { makeId } from './ids'
+import { copyArtOf } from './graphicsClean'
 import { cleanTerrain } from './references'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { ProjectDoc, Terrain } from './types'
@@ -17,13 +18,15 @@ export function addTerrain(doc: ProjectDoc, name: string, id: string = newTerrai
 }
 
 export function duplicateTerrain(doc: ProjectDoc, id: string, newId?: string): ProjectDoc {
-  return withTerrain(doc, (list) => {
-    const i = list.findIndex((t) => t.id === id)
-    if (i < 0) return list
-    const name = `${list[i].name} copy`
-    const copy: Terrain = { ...clone(list[i]), id: newId ?? makeId(name, ids(list), { fallback: 'terrain' }), name }
+  const i = (doc.terrain ?? []).findIndex((t) => t.id === id)
+  if (i < 0) return doc
+  const name = `${doc.terrain![i].name} copy`
+  const copyId = newId ?? makeId(name, ids(doc.terrain), { fallback: 'terrain' })
+  const added = withTerrain(doc, (list) => {
+    const copy: Terrain = { ...clone(list[i]), id: copyId, name }
     return [...list.slice(0, i + 1), copy, ...list.slice(i + 1)]
   })
+  return copyArtOf(added, 'terrain', id, copyId)
 }
 
 export function terrainRemovalBlock(doc: ProjectDoc): string | null {
