@@ -30,7 +30,7 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
-         rel == "data/units.json";
+         rel == "data/units.json" || rel == "data/graphics.json";
 }
 
 struct PendingWrite {
@@ -57,6 +57,7 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (badType(body["terrain"], Json::Type::Array)) return apiError(400, "\"terrain\" must be an array");
   if (badType(body["weapons"], Json::Type::Array)) return apiError(400, "\"weapons\" must be an array");
   if (badType(body["units"], Json::Type::Array)) return apiError(400, "\"units\" must be an array");
+  if (badType(body["graphics"], Json::Type::Object)) return apiError(400, "\"graphics\" must be an object");
   if (badType(maps, Json::Type::Object)) return apiError(400, "\"maps\" must be an object of objects");
   if (badType(scripts, Json::Type::Object)) return apiError(400, "\"scripts\" must be an object of strings");
   for (const auto& m : maps.members())
@@ -110,6 +111,9 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
     wrap.set(l.key, body[l.key]);
     if (!add(l.file, wrap.dump(2) + "\n")) return apiError(400, escape);
   }
+
+  if (!body["graphics"].isNull() && !add("data/graphics.json", body["graphics"].dump(2) + "\n"))
+    return apiError(400, escape);
 
   std::set<std::string> writtenMapFiles;
   for (const auto& m : maps.members()) {

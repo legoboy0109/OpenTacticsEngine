@@ -18,6 +18,8 @@ import sys
 import tempfile
 import time
 
+from editor_api_graphics_checks import run_graphics_checks
+
 PASSED = 0
 FAILED = 0
 
@@ -127,6 +129,7 @@ def main():
               second.returncode != 0 and b"port" in second.stderr.lower(), second.stderr[-200:])
         check("first helper unaffected by the failed second start", api.call("GET", "/api/info")[0] == 200)
         run_checks(api, port, tmp, games, sentinel, proc)
+        run_graphics_checks(api, tmp, games, templates, check, get_project, put_project)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")
         check("helper still alive after all checks", proc.poll() is None and st == 200)
