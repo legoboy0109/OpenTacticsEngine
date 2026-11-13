@@ -1,0 +1,7 @@
+{
+  "grid": { "type": "square", "width": 3, "height": 2 },
+  "legend": { ".": "plain", "~": "water" },
+  "tiles": [ "...", "..." ],
+  "sides": [ { "id": "a" } ],
+  "units": []
+}

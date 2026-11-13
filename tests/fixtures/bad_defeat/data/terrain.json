@@ -1,0 +1,4 @@
+{ "terrain": [
+  { "id": "plain", "name": "Plain" },
+  { "id": "water", "name": "Water", "moveCost": { "foot": 0 } }
+] }

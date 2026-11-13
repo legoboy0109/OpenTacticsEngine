@@ -1,0 +1,17 @@
+{ "units": [
+  { "id": "infantry", "name": "Infantry", "glyph": "i", "moveType": "foot",
+    "stats": { "hp": 100, "mov": 3 }, "weapons": ["rifle"],
+    "cost": { "funds": 1000 }, "canCapture": true },
+  { "id": "mech", "name": "Mech", "glyph": "m", "moveType": "foot",
+    "stats": { "hp": 100, "mov": 2 }, "weapons": ["bazooka"],
+    "cost": { "funds": 3000 }, "canCapture": true },
+  { "id": "recon", "name": "Recon", "glyph": "r", "moveType": "wheels",
+    "stats": { "hp": 100, "mov": 8 }, "weapons": ["machine_gun"],
+    "cost": { "funds": 4000 } },
+  { "id": "tank", "name": "Tank", "glyph": "T", "moveType": "tread",
+    "stats": { "hp": 100, "mov": 6 }, "weapons": ["tank_cannon"],
+    "cost": { "funds": 7000 } },
+  { "id": "artillery", "name": "Artillery", "glyph": "A", "moveType": "tread",
+    "stats": { "hp": 100, "mov": 5 }, "weapons": ["cannon"],
+    "cost": { "funds": 6000 } }
+] }

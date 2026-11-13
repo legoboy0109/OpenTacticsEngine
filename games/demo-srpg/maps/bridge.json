@@ -1,0 +1,35 @@
+// The river splits the map; the bridge at the middle row is the only
+// ground crossing (pegasi ignore it). Blue starts west, red east.
+{
+  "name": "Skirmish at the Ford",
+  "grid": { "type": "square", "width": 13, "height": 9 },
+  "legend": { ".": "plain", "f": "forest", "m": "mountain", "F": "fort", "~": "water", "=": "bridge" },
+  "tiles": [
+    "..ff..~..mm..",
+    "...f..~...m..",
+    "......~.f....",
+    "....F.~..F...",
+    ".F....=....F.",
+    "..f...~.F....",
+    "......~....f.",
+    ".mm...~f.....",
+    ".m....~......"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Company", "color": "#3d85c6", "controller": "human" },
+    { "id": "red",  "name": "Red Warband",  "color": "#cc0000", "controller": "ai" }
+  ],
+  "units": [
+    { "type": "lord",     "side": "blue", "x": 2, "y": 4, "name": "Eirik", "level": 3, "leader": true },
+    { "type": "cavalier", "side": "blue", "x": 3, "y": 3, "name": "Kell",  "level": 2 },
+    { "type": "archer",   "side": "blue", "x": 1, "y": 5, "name": "Lyra",  "level": 2 },
+    { "type": "fighter",  "side": "blue", "x": 3, "y": 5, "name": "Bram",  "level": 2 },
+
+    { "type": "knight",   "side": "red", "x": 11, "y": 4, "name": "Gorm", "level": 3, "leader": true,
+      "stats": { "hp": 26, "str": 8 } },
+    { "type": "soldier",  "side": "red", "x": 9,  "y": 4, "name": "Tane", "level": 1 },
+    { "type": "fighter",  "side": "red", "x": 9,  "y": 3, "name": "Orsk", "level": 2 },
+    { "type": "archer",   "side": "red", "x": 10, "y": 5, "name": "Vex",  "level": 2 },
+    { "type": "pegasus",  "side": "red", "x": 8,  "y": 2, "name": "Sera", "level": 2 }
+  ]
+}

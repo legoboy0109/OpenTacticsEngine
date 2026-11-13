@@ -1,0 +1,38 @@
+// Mirror-symmetric: blue holds the west, red the east, five neutral cities
+// between them. Each side starts with an HQ, a factory and a city.
+{
+  "name": "Twin Rivers",
+  "grid": { "type": "square", "width": 15, "height": 10 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea",
+              "c": "city", "F": "factory", "H": "hq" },
+  "tiles": [
+    "..ff..m.m..ff..",
+    ".c..f..r..f..c.",
+    "...r...r...r...",
+    "..FrrrrrrrrrF..",
+    ".H..f..r..f..H.",
+    "..r.m..c..m.r..",
+    ".c..~~.~.~~..c.",
+    "...rc..r..cr...",
+    ".f..rr.r.rr..f.",
+    "~~..ff...ff..~~"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human",
+      "resources": { "funds": 3000 } },
+    { "id": "red",  "name": "Red Army",  "color": "#cc0000", "controller": "ai",
+      "resources": { "funds": 3000 } }
+  ],
+  "owners": [
+    { "x": 1,  "y": 4, "side": "blue" }, { "x": 2,  "y": 3, "side": "blue" }, { "x": 1,  "y": 6, "side": "blue" },
+    { "x": 13, "y": 4, "side": "red" },  { "x": 12, "y": 3, "side": "red" },  { "x": 13, "y": 6, "side": "red" }
+  ],
+  "units": [
+    { "type": "infantry", "side": "blue", "x": 2,  "y": 4 },
+    { "type": "infantry", "side": "blue", "x": 2,  "y": 5 },
+    { "type": "tank",     "side": "blue", "x": 3,  "y": 4 },
+    { "type": "infantry", "side": "red",  "x": 12, "y": 4 },
+    { "type": "infantry", "side": "red",  "x": 12, "y": 5 },
+    { "type": "tank",     "side": "red",  "x": 11, "y": 4 }
+  ]
+}
