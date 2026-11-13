@@ -190,4 +190,14 @@ describe('art uploads and the autosave', () => {
     store.edit(rename('x')); await vi.advanceTimersByTimeAsync(800)
     expect(Object.keys(state.puts.at(-1)!)).not.toContain('graphics')
   })
+
+  it('undoing back past the first image writes an empty art section instead of leaving the old one on disk', async () => {
+    const { store, state } = await open()
+    store.edit((d) => addSheet(d, { file: 'art/a.png', cellWidth: 24, cellHeight: 24 })); await vi.advanceTimersByTimeAsync(800)
+    store.undo(); await vi.advanceTimersByTimeAsync(800)
+    expect(state.puts.at(-1)!.graphics).toEqual({ sheets: [] })
+    expect(store.getState().save.state).toBe('saved')
+    store.redo(); await vi.advanceTimersByTimeAsync(800)
+    expect(state.puts.at(-1)!.graphics!.sheets).toHaveLength(1)
+  })
 })

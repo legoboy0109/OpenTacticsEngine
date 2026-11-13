@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { clickPiece, hex, picker, pickerGrid, pieceColor, seedArt, sheetPng, tilesGraphics } from './artkit'
 import { decodePng } from './png'
-import { diskPath, editorUrl, expect, readDisk, saved, test } from './fixtures'
+import { editorUrl, expect, readDisk, saved, test } from './fixtures'
 import { openMap } from './mapkit'
 
 const useIt = (page: import('@playwright/test').Page) => picker(page).getByRole('button', { name: 'Use this picture' })

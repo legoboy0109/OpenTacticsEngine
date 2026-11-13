@@ -33,7 +33,10 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
   const body: PutBody = { baseRevision }
   let any = false
   for (const k of SECTIONS) {
-    if (doc[k] !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = doc[k]; any = true }
+    // Art is the one section that can legitimately go back to "none" (undo past the first image): that is written as an
+    // empty section, because sending nothing would leave the old images on disk while the screen shows none.
+    const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] } : doc[k]
+    if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}
   for (const [id, m] of Object.entries(doc.maps)) {
