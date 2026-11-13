@@ -216,9 +216,10 @@ is the default. A game without a `styles` list has one style, `default`.
 ]
 ```
 
-Every key except `id` is optional. Styles currently recolor the placeholder
-graphics; tilesets and sprites will attach to the same style ids, so games
-written now keep working.
+Every key except `id` is optional. These keys recolor the placeholder
+graphics. Real art (sheets, tiles, sprites) lives in the optional
+`data/graphics.json`, which can also override art per style id: see
+docs/GRAPHICS.md.
 
 ## Player settings (not part of a game)
 

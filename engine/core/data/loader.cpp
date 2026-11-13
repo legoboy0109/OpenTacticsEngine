@@ -245,6 +245,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
+  if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;
 
   out = db;
   err.clear();

@@ -48,7 +48,11 @@ goal (demos only exercise features).
    Awaiting the owner's verdict on wording/layout. Left out on purpose:
    heights editing, visual-style preview on the map canvas, a scripts
    screen, inline field validation (Problems panel only).
-3. From here on, each engine feature lands with its editor screen:
+3. IN PROGRESS (owner picked this first, 2026-11-13): sprites and
+   tilesets. Decisions and contract: docs/GRAPHICS.md (sheets + single
+   images, 16-piece joining tiles, colour marker + optional per-side art,
+   original starter art, simple looping animation).
+   From here on, each engine feature lands with its editor screen:
    sprites/tilesets + named visual styles, sound; save/resume; event
    system (story triggers, dialogue, win/lose conditions in data) and
    campaign layer; speed-based turns (FFT), height rules; economy depth

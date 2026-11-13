@@ -4,6 +4,7 @@
 //
 // File format: docs/GAME_FORMAT.md. Loader: core/data/loader.h.
 #pragma once
+#include "core/data/graphics.h"
 #include "core/base/types.h"
 #include "core/grid/grid.h"
 
@@ -132,6 +133,7 @@ struct Database {
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
   std::vector<StyleDef> styles;  // never empty after loading; [0] = default
+  Graphics graphics;             // art (data/graphics.json); empty = placeholders
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;
