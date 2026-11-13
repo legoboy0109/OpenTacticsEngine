@@ -1,0 +1,6 @@
+{
+  "terrain": [
+    { "id": "plain", "name": "Plain", "color": "#8fbf6a", "glyph": "." },
+    { "id": "wall", "name": "Wall", "color": "#555555", "glyph": "#", "moveCost": { "foot": 0 } }
+  ]
+}

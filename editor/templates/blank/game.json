@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "name": "Blank",
+  "description": "The smallest valid game: one unit type, two terrains, one map.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [
+    { "id": "hp", "name": "HP" },
+    { "id": "mov", "name": "Move" }
+  ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [
+    { "id": "foot", "name": "Foot" }
+  ],
+  "rules": {
+    "turnOrder": "sides",
+    "counterAttacks": true,
+    "defeat": ["noUnits"]
+  },
+  "formulas": {
+    "damage": "5"
+  },
+  "scripts": [],
+  "maps": [
+    { "id": "start", "name": "First Map", "file": "maps/start.json" }
+  ]
+}
