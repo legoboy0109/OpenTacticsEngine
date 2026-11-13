@@ -167,3 +167,21 @@ test('warnings: no leader / no headquarters appear and clear', async ({ page, ga
   await clickCell(page, 1, 2)
   await expect(page.getByTestId('map-warnings')).toHaveCount(0)
 })
+
+test('the level box shows only when Experience is on; the chosen tool is remembered across a reload', async ({ page, game }) => {
+  const eco = await game.create('economy-tactics', 'NoLevels')
+  await openMap(page, eco, 'crossroads')
+  await tool(page, 'Select').click()
+  await clickCell(page, 2, 2) // an infantry unit
+  await expect(page.getByTestId('unit-props')).toBeVisible()
+  await expect(page.getByTestId('unit-props').getByLabel('Level')).toHaveCount(0)
+  await expect(page.getByTestId('unit-props').getByLabel('HP for this unit')).toBeVisible()
+  await page.reload()
+  await expect(tool(page, 'Select')).toHaveAttribute('aria-pressed', 'true')
+
+  const rpg = await game.create('strategy-rpg', 'Levels')
+  await openMap(page, rpg, 'ford')
+  await tool(page, 'Select').click()
+  await clickCell(page, 1, 3)
+  await expect(page.getByTestId('unit-props').getByLabel('Level')).toBeVisible()
+})

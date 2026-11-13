@@ -62,8 +62,8 @@ test('painting by touch drag, a tap, and a long press that picks terrain', async
   const c = await touch(page)
   const p = await cellPoint(page, 6, 5)
   await send(c, 'touchStart', [p]); await send(c, 'touchEnd', [])
-  await saved(page)
-  expect(diskGrid(id, 'start')[5][6]).toBe('wall')
+  // (not saved(page): it can still say "Saved" for an instant before the tap's edit arrives)
+  await expect.poll(() => diskGrid(id, 'start')[5][6]).toBe('wall')
 
   // A long press picks the terrain under the finger (and paints nothing).
   await pickTerrain(page, 'Wall').click()
@@ -86,9 +86,7 @@ test('place a unit with a tap; pinch zooms the map', async ({ page, game }) => {
   const c = await touch(page)
   const p = await cellPoint(page, 6, 3)
   await send(c, 'touchStart', [p]); await send(c, 'touchEnd', [])
-  await saved(page)
-  const units = readDisk(id, 'maps/ford.json').units
-  expect(units.at(-1)).toEqual({ type: 'archer', side: 'red', x: 6, y: 3 })
+  await expect.poll(() => readDisk(id, 'maps/ford.json').units.at(-1)).toEqual({ type: 'archer', side: 'red', x: 6, y: 3 })
   await expectNoHScroll(page)
 
   const scale = async () => Number((await canvas(page).getAttribute('data-view'))!.split(',')[0])

@@ -9,6 +9,19 @@ const playButton = (page: Page) => page.getByRole('button', { name: 'Play', exac
 const panel = (page: Page) => page.getByRole('dialog', { name: 'Play', exact: true })
 const frameShot = async (page: Page) => decodePng(await panel(page).locator('.play-frame').screenshot())
 
+/** The game starts with a short intro (banner, fades) that ignores input; wait until the picture holds still. */
+async function settle(page: Page): Promise<void> {
+  let last = await frameShot(page)
+  let calm = 0
+  for (let i = 0; i < 40 && calm < 3; i++) {
+    await page.waitForTimeout(250)
+    const now = await frameShot(page)
+    calm = diffCount(last, now) < 2500 ? calm + 1 : 0
+    last = now
+  }
+  expect(calm, 'the game picture never settled').toBeGreaterThanOrEqual(3)
+}
+
 /** Press Play and wait until the player says it is ready (the loading veil goes away). */
 async function play(page: Page): Promise<void> {
   await playButton(page).click()
@@ -48,15 +61,13 @@ test('@smoke keyboard input reaches the game without clicking it first', async (
   const id = await game.create('strategy-rpg', 'PlayKeys')
   await openMap(page, id, 'ford')
   await play(page)
+  await settle(page)
   const before = await frameShot(page)
-  await page.keyboard.press('z') // confirm on the lord under the cursor: shows where he can move
-  await page.waitForTimeout(400)
-  const during = await frameShot(page)
-  expect(diffCount(before, during)).toBeGreaterThan(5000)
-  await page.keyboard.press('x') // back out
-  await page.waitForTimeout(400)
-  const after = await frameShot(page)
-  expect(diffCount(during, after)).toBeGreaterThan(5000)
+  await page.keyboard.press('z', { delay: 80 }) // confirm on the lord under the cursor: shows where he can move
+  let during = before
+  await expect.poll(async () => { during = await frameShot(page); return diffCount(before, during) }, { timeout: 10_000 }).toBeGreaterThan(5000)
+  await page.keyboard.press('x', { delay: 80 }) // back out: the move range goes away again
+  await expect.poll(async () => diffCount(during, await frameShot(page)), { timeout: 10_000 }).toBeGreaterThan(5000)
   // Esc went to the game, not to the dialog: the panel is still open.
   await expect(panel(page)).toBeVisible()
 })

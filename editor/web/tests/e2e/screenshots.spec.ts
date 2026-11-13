@@ -15,9 +15,13 @@ async function busy(request: APIRequestContext, id: string, fn: (doc: any) => vo
   expect(res.ok()).toBeTruthy()
 }
 
+// Long pages are cut after the first 1900 px: the review set stays small enough to commit.
 async function shot(page: Page, name: string, full = false) {
   await page.waitForTimeout(150)
-  await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: full })
+  if (!full) { await page.screenshot({ path: `${OUT}/${name}.png` }); return }
+  const height = await page.evaluate(() => document.documentElement.scrollHeight)
+  const width = page.viewportSize()!.width
+  await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: true, clip: { x: 0, y: 0, width, height: Math.min(height, 1900) } })
 }
 
 const NAMES = ['Knight', 'Archer', 'Mage of the Eastern Marches and Beyond', 'Cavalier', 'Fighter', 'Priest', 'Thief', 'Paladin', 'Sniper', 'Berserker']

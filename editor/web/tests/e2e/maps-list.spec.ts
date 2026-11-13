@@ -73,7 +73,7 @@ test('deleting a unit type or a terrain used on a map cleans the map (grid model
   expect(await game.problems(id)).toEqual([])
 })
 
-test('a 64 x 64 map paints a 200-square stroke without errors (timing is reported)', async ({ page, game }, info) => {
+for (const size of [64, 256]) test(`a ${size} x ${size} map paints a 200-square stroke without errors (timing is reported)`, async ({ page, game }, info) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
@@ -82,10 +82,10 @@ test('a 64 x 64 map paints a 200-square stroke without errors (timing is reporte
   await tab(page, 'Map').click()
   await page.getByRole('button', { name: 'Resize…' }).click()
   const dlg = page.getByRole('dialog', { name: 'Resize the map' })
-  await dlg.getByLabel('Width').fill('64')
-  await dlg.getByLabel('Height').fill('64')
+  await dlg.getByLabel('Width').fill(String(size))
+  await dlg.getByLabel('Height').fill(String(size))
   await dlg.getByRole('button', { name: 'Resize', exact: true }).click()
-  await expect(page.getByTestId('map-size')).toHaveText('64 × 64 squares')
+  await expect(page.getByTestId('map-size')).toHaveText(`${size} × ${size} squares`)
   await tab(page, 'Tool').click()
   await pickTerrain(page, 'Mountain').click()
   await saved(page)
@@ -114,12 +114,12 @@ test('a 64 x 64 map paints a 200-square stroke without errors (timing is reporte
     return { ms: performance.now() - t0, n }
   })
   expect(ms.n).toBe(200)
-  info.annotations.push({ type: 'stroke-ms', description: `${ms.ms.toFixed(0)} ms for ${ms.n} squares on 64x64` })
-  console.log(`STROKE_TIMING 64x64, ${ms.n} squares: ${ms.ms.toFixed(0)} ms`)
-  expect(ms.ms).toBeLessThan(3000)
+  info.annotations.push({ type: 'stroke-ms', description: `${ms.ms.toFixed(0)} ms for ${ms.n} squares on ${size}x${size}` })
+  console.log(`STROKE_TIMING ${size}x${size}, ${ms.n} squares: ${ms.ms.toFixed(0)} ms`)
+  expect(ms.ms).toBeLessThan(size === 64 ? 1500 : 6000)
   await saved(page)
   const file = readDisk(id, 'maps/ford.json')
-  expect(file.tiles).toHaveLength(64)
+  expect(file.tiles).toHaveLength(size)
   const mountains = file.tiles.flatMap((r: string) => [...r]).filter((c: string) => file.legend[c] === 'mountain').length
   expect(mountains).toBeGreaterThanOrEqual(200)
   // The whole 200-square drag is a single undo step.
@@ -129,5 +129,33 @@ test('a 64 x 64 map paints a 200-square stroke without errors (timing is reporte
   await saved(page)
   const undone = readDisk(id, 'maps/ford.json')
   expect(undone.tiles[10].slice(5, 55).split('').some((c: string) => undone.legend[c] === 'mountain')).toBe(false)
+  expect(errors).toEqual([])
+})
+
+test('the largest map (256 x 256) opens, paints and saves', async ({ page, game }, info) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  const id = await game.create('blank', 'Huge')
+  await openMap(page, id, 'start')
+  await tab(page, 'Map').click()
+  await page.getByRole('button', { name: 'Resize…' }).click()
+  const dlg = page.getByRole('dialog', { name: 'Resize the map' })
+  await dlg.getByLabel('Width').fill('256')
+  await dlg.getByLabel('Height').fill('256')
+  await expect(dlg.getByText(/big map/)).toBeVisible()
+  await dlg.getByRole('button', { name: 'Resize', exact: true }).click()
+  await expect(page.getByTestId('map-size')).toHaveText('256 × 256 squares')
+  await expect(page.getByText(/big map: painting and zooming/)).toBeVisible()
+  await tab(page, 'Tool').click()
+  await pickTerrain(page, 'Wall').click()
+  const t0 = Date.now()
+  const p = await cellPoint(page, 128, 128)
+  await page.mouse.click(p.x, p.y)
+  await saved(page)
+  info.annotations.push({ type: 'paint-256', description: `${Date.now() - t0} ms to paint and save one square on 256x256` })
+  const file = readDisk(id, 'maps/start.json')
+  expect(file.tiles).toHaveLength(256)
+  expect(file.legend[file.tiles[128][128]]).toBe('wall')
+  expect(await game.problems(id)).toEqual([])
   expect(errors).toEqual([])
 })
