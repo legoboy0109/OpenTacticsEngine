@@ -19,9 +19,14 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   const StyleDef* st = c.style;
   Color col = Color::rgb(terrainRgb(c, cs.terrain));
   r.fillRect(sx, sy, t, t, col);
-  r.drawRect(sx, sy, t, t, Color(0, 0, 0, 28));
-  if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {
-    drawGlyphCentered(r, sx + t / 2, sy + t / 2, td.glyph, mix(col, readableOn(col), 0.28f), t * 9 / 20);
+  if (const Look* art = terrainArt(c, cs.terrain)) {
+    // Art replaces the faint outline and the letter; transparent pixels show the colour above.
+    drawTerrainArt(r, c, *art, cell, sx, sy, t, t);
+  } else {
+    r.drawRect(sx, sy, t, t, Color(0, 0, 0, 28));
+    if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {
+      drawGlyphCentered(r, sx + t / 2, sy + t / 2, td.glyph, mix(col, readableOn(col), 0.28f), t * 9 / 20);
+    }
   }
   if (cs.owner >= 0) {
     Color oc = Color::rgb(b.sides[cs.owner].color);
@@ -58,20 +63,31 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
     bw = nw;
     bh = nh;
   }
-  Color base = Color::rgb(b.sides[u.side].color);
-  if (u.done) base = mix(base, Color(70, 70, 78), 0.55f);  // dimmed: already acted
-  r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
-  r.fillRect(bx, by, bw, bh, scaled(base, al));
-  r.fillRect(bx, by, bw, 1, scaled(mix(base, Color(255, 255, 255), 0.35f), al));  // soft top highlight
-  drawGlyphCentered(r, bx + bw / 2, by + bh / 2, b.typeOf(u).glyph, scaled(readableOn(base), al),
-                    std::max(1, std::min(bw, bh) * 3 / 4));
+  if (const Look* artLook = unitArt(c, u)) {
+    drawUnitArt(r, c, *artLook, u, sx, sy, v.scale, al, u.done);
+  } else {
+    Color base = Color::rgb(b.sides[u.side].color);
+    if (u.done) base = mix(base, Color(70, 70, 78), 0.55f);  // dimmed: already acted
+    r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
+    r.fillRect(bx, by, bw, bh, scaled(base, al));
+    r.fillRect(bx, by, bw, 1, scaled(mix(base, Color(255, 255, 255), 0.35f), al));  // soft top highlight
+    drawGlyphCentered(r, bx + bw / 2, by + bh / 2, b.typeOf(u).glyph, scaled(readableOn(base), al),
+                      std::max(1, std::min(bw, bh) * 3 / 4));
+  }
   if (u.leader) {
     r.fillRect(bx - 1, by - 1, 5, 5, scaled(Color(0, 0, 0, 220), al));
     r.fillRect(bx, by, 3, 3, scaled(Color(255, 210, 40), al));
   }
   // HP bar under the block, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barY = sy + t - inset - 2, barW = t - 2 * inset;
-  r.fillRect(bx - 1, barY - 1, barW + 2, 4, scaled(Color(0, 0, 0, 200), al));
+  const Look* art = unitArt(c, u);
+  if (art && b.db->graphics.unitMarker) {
+    // On the side-colour base the bar sits inside the colour (a dark track, no outline),
+    // so the base still shows above, below and beside it.
+    r.fillRect(bx, barY, barW, 2, scaled(Color(20, 20, 28, 230), al));
+  } else {
+    r.fillRect(bx - 1, barY - 1, barW + 2, 4, scaled(Color(0, 0, 0, 200), al));
+  }
   int fill = mx > 0 ? std::max(v.hp > 0 ? 1 : 0, barW * std::min(v.hp, mx) / mx) : 0;
   r.fillRect(bx, barY, fill, 2, scaled(hpColor(v.hp, mx), al));
 }
