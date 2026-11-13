@@ -116,20 +116,23 @@ int runApp(App& app, const PlatformConfig& config) {
                                         SDL_LOGICAL_PRESENTATION_LETTERBOX))
     OTE_WARN("logical presentation failed: %s", SDL_GetError());
 
-  Loop loop;
-  loop.app = &app;
-  loop.cfg = &config;
-  SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless);
-  loop.gfx = &gfx;
-  loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
-  app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
-  loop.lastNs = SDL_GetTicksNS();
+  {
+    // Scoped: the text atlas textures must be destroyed before the SDL renderer.
+    Loop loop;
+    loop.app = &app;
+    loop.cfg = &config;
+    SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless);
+    loop.gfx = &gfx;
+    loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
+    app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
+    loop.lastNs = SDL_GetTicksNS();
 
 #ifdef __EMSCRIPTEN__
-  emscripten_set_main_loop_arg(emFrame, &loop, 0, 1);
+    emscripten_set_main_loop_arg(emFrame, &loop, 0, 1);
 #else
-  while (!loop.done) frame(loop);
+    while (!loop.done) frame(loop);
 #endif
+  }
 
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);
