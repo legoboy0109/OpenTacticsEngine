@@ -7,3 +7,10 @@ temp/
 .idea/
 compile_commands.json
 .claude/worktrees/
+
+# Editor web UI
+editor/web/node_modules/
+editor/web/dist/
+editor/web/test-results/
+editor/web/playwright-report/
+editor/web/.e2e-tmp/

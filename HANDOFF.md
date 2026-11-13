@@ -36,6 +36,25 @@ third_party/httplib); the engine itself stays exception-free.
 `ote_tests` writes a settings file into `<repo>/build/`, so that folder must
 exist when running it from another build dir name.
 
+## Editor web UI
+
+`editor/web/` is the browser editor (TypeScript, React 18, Vite; runtime deps: react, react-dom only).
+Layout: `src/api` (the only fetch calls), `src/model` (pure doc edits, no React), `src/store`
+(undo, autosave, conflict), `src/ui` (components), `src/screens/<section>`, `src/shell` (top bar, sidebar).
+Map editor / Play plug in at `src/screens/maps/MapsScreen.tsx` (replace `MapDetail`) and the disabled
+Play button in `src/shell/TopBar.tsx`; `store.flush()` exists for "save before Play".
+
+```
+cd editor/web && npm install
+npm run build          # -> editor/web/dist (served by ote-editor at /)
+npm run dev            # Vite on :5173, proxies /api /assets /player to 127.0.0.1:8765
+npm test               # vitest unit tests (model, presets, store, autosave)
+OTE_EDITOR_BIN=../../build-ui/ote-editor npm run e2e   # Playwright vs the real helper on a temp copy of games/
+npm run screenshots    # regenerate editor/web/screenshots (needs OTE_EDITOR_BIN too)
+```
+Notes: Vite's asset folder is `app/` because the helper owns `/assets/`. e2e needs `npm run build` first and
+a built `ote-editor` (default `../../build/ote-editor`). Firefox runs the `@smoke` tests only.
+
 ## Build and test
 
 ```

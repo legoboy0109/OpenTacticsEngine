@@ -1,0 +1,131 @@
+// The one place that holds the open project: the document, its undo
+// history, the revision on disk and the save status. No React in here; the
+// context module wraps it for components.
+import type { Api } from '../api/client'
+import type { Problem, ProjectDoc } from '../model/types'
+import { Saver, type SaveStatus, type SaverOptions } from './autosave'
+import { canRedo, canUndo, initHistory, pushEdit, redo, undo, type History } from './history'
+
+export type Phase = 'loading' | 'ready' | 'failed'
+
+export interface StoreState {
+  phase: Phase
+  loadError: string | null
+  id: string
+  doc: ProjectDoc
+  revision: string
+  problems: Problem[]
+  save: SaveStatus
+  canUndo: boolean
+  canRedo: boolean
+  /** A short message the user should see (dismissible), e.g. what a delete changed. */
+  notice: string | null
+}
+
+const EMPTY: ProjectDoc = { game: null, terrain: null, weapons: null, units: null, maps: {}, scripts: {} }
+
+export class DocumentStore {
+  private state: StoreState
+  private history: History<ProjectDoc> = initHistory(EMPTY)
+  private saver: Saver | null = null
+  private listeners = new Set<() => void>()
+
+  constructor(private api: Api, readonly id: string, private opts: SaverOptions & { now?: () => number } = {}) {
+    this.state = {
+      phase: 'loading', loadError: null, id, doc: EMPTY, revision: '', problems: [],
+      save: { state: 'saved' }, canUndo: false, canRedo: false, notice: null,
+    }
+  }
+
+  // --- subscription (useSyncExternalStore) ---
+  subscribe = (l: () => void): (() => void) => { this.listeners.add(l); return () => this.listeners.delete(l) }
+  getState = (): StoreState => this.state
+  private patch(p: Partial<StoreState>) { this.state = { ...this.state, ...p }; this.listeners.forEach((l) => l()) }
+  private syncHistory() {
+    this.patch({ doc: this.history.present, canUndo: canUndo(this.history), canRedo: canRedo(this.history) })
+  }
+
+  // --- loading ---
+  async load(): Promise<void> {
+    const res = await this.api.getProject(this.id)
+    if (!res.ok) { this.patch({ phase: 'failed', loadError: res.error }); return }
+    const { id: _id, revision, problems, ...doc } = res.value
+    this.history = initHistory(doc)
+    this.saver?.dispose()
+    this.saver = new Saver({
+      api: this.api, id: this.id,
+      getDoc: () => this.history.present,
+      onStatus: (save) => this.patch({ save }),
+      onSaved: (rev, probs) => this.patch({ revision: rev, problems: probs }),
+    }, { doc, revision }, this.opts)
+    this.patch({ phase: 'ready', loadError: null, revision, problems, save: { state: 'saved' } })
+    this.syncHistory()
+  }
+
+  // --- editing ---
+  /** Apply a pure edit. Edits with the same `key` in quick succession
+   *  (typing in one field) become one undo step. */
+  edit = (fn: (doc: ProjectDoc) => ProjectDoc, key?: string): void => {
+    if (this.state.phase !== 'ready') return
+    const next = fn(this.history.present)
+    const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
+    if (h === this.history) return
+    this.history = h
+    this.syncHistory()
+    this.saver?.changed()
+  }
+
+  undo(): void { this.step(undo) }
+  redo(): void { this.step(redo) }
+  private step(f: (h: History<ProjectDoc>) => History<ProjectDoc>) {
+    const h = f(this.history)
+    if (h === this.history) return
+    this.history = h
+    this.syncHistory()
+    this.saver?.changed()
+  }
+
+  setNotice(notice: string | null): void { this.patch({ notice }) }
+
+  // --- saving ---
+  /** Save everything now (Play and leaving the page use this). Resolves true when disk matches memory. */
+  async flush(): Promise<boolean> {
+    await this.saver?.flush()
+    return this.state.save.state === 'saved'
+  }
+
+  /** The page is hiding or closing: fire the save with keepalive. */
+  flushOnHide(): void { void this.saver?.flush({ keepalive: true }) }
+
+  /** Conflict: drop local changes and take what is on disk. */
+  async reload(): Promise<void> {
+    const res = await this.api.getProject(this.id)
+    if (!res.ok) { this.patch({ save: { state: 'conflict', message: res.error } }); return }
+    const { id: _id, revision, problems, ...doc } = res.value
+    this.history = initHistory(doc)
+    this.saver?.reset(doc, revision)
+    this.patch({ revision, problems, notice: null })
+    this.syncHistory()
+  }
+
+  /** Conflict: keep local changes and overwrite what is on disk. */
+  async keepMine(): Promise<void> { await this.saver?.keepMine() }
+
+  /** Listen for the page going away. Returns the cleanup function. */
+  attachPageEvents(): () => void {
+    const onHide = () => { if (document.visibilityState === 'hidden') this.flushOnHide() }
+    const onPageHide = () => this.flushOnHide()
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }
+
+  /** Leaving the project inside the app: write what is pending, then stop. */
+  dispose(): void {
+    const saver = this.saver
+    void saver?.flush().finally(() => saver.dispose())
+  }
+}
