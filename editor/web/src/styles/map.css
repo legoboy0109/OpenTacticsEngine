@@ -3,8 +3,11 @@
 .master-detail[data-list='hidden'] { grid-template-columns: minmax(0, 1fr); }
 .master-detail[data-list='hidden'] > .md-list { display: none; }
 
-.map-editor { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
-.map-main { display: grid; gap: 8px; min-width: 0; }
+.map-editor { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px 16px; align-items: start; }
+.map-editor > .map-warnings { grid-column: 1 / -1; }
+.map-main { display: grid; gap: 8px; min-width: 0; container-type: inline-size; }
+/* Tight columns: drop the key hints so tools and zoom share one row. */
+@container (max-width: 680px) { .tool-key { display: none; } }
 .map-stage {
   position: relative; height: clamp(320px, calc(100vh - 330px), 900px); overflow: hidden;
   border: 1px solid var(--border-strong); border-radius: var(--radius); background: #14161c;
@@ -12,8 +15,6 @@
 .map-canvas-wrap { position: absolute; inset: 0; }
 .map-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; outline: none; user-select: none; -webkit-user-select: none; }
 .map-canvas:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
-/* zoom buttons float over the canvas corner */
-.zoom-controls { position: absolute; right: 8px; bottom: 8px; background: color-mix(in srgb, var(--surface) 88%, transparent); }
 [data-tool='select'] .map-canvas { cursor: default; }
 
 .map-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -56,7 +57,7 @@
 .label-sm { font-size: 0.82rem; color: var(--muted); }
 .row.space-between { justify-content: space-between; }
 .facts.compact { margin: 0; gap: 4px 20px; }
-.side-card .form-grid { grid-template-columns: minmax(0, 1fr); }
+.panel-form { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
 .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
 .pick-row { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -80,17 +81,24 @@
 @media (max-width: 1100px) {
   .map-editor { grid-template-columns: minmax(0, 1fr) 290px; }
 }
+.map-editor > .map-warnings { grid-column: 1 / -1; }
 
-/* ---- phones: canvas on top, options as a collapsible sheet underneath ---- */
+/* ---- phones: canvas on top (it stays put while the options sheet scrolls), options as a collapsible sheet underneath ---- */
 @media (max-width: 719.98px) {
   .map-editor { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .map-stage { height: clamp(240px, 44vh, 420px); }
+  .map-main {
+    position: sticky; top: var(--switcher-h); z-index: 6; margin: 0 -12px; padding: 6px 12px 4px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .map-stage { height: clamp(220px, 38vh, 340px); }
+  .map-toolbar .tool-group { flex: 1; }
+  .tool-btn { flex: 1; min-height: 40px; justify-content: center; padding: 0 8px; }
+  .tool-label, .tool-key, .map-keys, .map-status-cell.idle { display: none; }
+  .map-status { min-height: 0; gap: 8px; }
   .map-panel { position: static; max-height: none; overflow: visible; }
   .panel-bar { border-radius: var(--radius) var(--radius) 0 0; }
   .sheet-toggle { display: inline-flex; margin-right: 4px; }
   .map-panel[data-open='false'] .panel-body { display: none; }
-  .tool-label, .tool-key, .map-keys { display: none; }
-  .tool-btn { min-width: 44px; min-height: 40px; justify-content: center; padding: 0 8px; }
   .tab { padding: 11px 10px 9px; }
   .pick-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
   .map-warnings { max-height: 96px; }

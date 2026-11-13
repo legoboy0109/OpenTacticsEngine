@@ -11,9 +11,9 @@ const TOOL_ICON: Record<Tool, ReactNode> = {
   select: <path d="M5 4l13 6-6 2-2 6zM13 13l6 6" />,
 }
 
-interface Props { tool: Tool; onTool: (t: Tool) => void }
+interface Props { tool: Tool; onTool: (t: Tool) => void; vs: MapViewState; mapW: number; mapH: number }
 
-export function Toolbar({ tool, onTool }: Props) {
+export function Toolbar({ tool, onTool, vs, mapW, mapH }: Props) {
   return (
     <div className="map-toolbar">
       <div className="tool-group" role="toolbar" aria-label={T.toolsLabel}>
@@ -25,14 +25,14 @@ export function Toolbar({ tool, onTool }: Props) {
           </button>
         ))}
       </div>
+      <ZoomControls vs={vs} mapW={mapW} mapH={mapH} />
     </div>
   )
 }
 
-/** Floats over the corner of the canvas. */
-export function ZoomControls({ vs, mapW, mapH }: { vs: MapViewState; mapW: number; mapH: number }) {
+function ZoomControls({ vs, mapW, mapH }: { vs: MapViewState; mapW: number; mapH: number }) {
   return (
-    <div className="tool-group zoom-controls" role="group" aria-label="Zoom">
+    <div className="tool-group" role="group" aria-label="Zoom">
       <button type="button" className="btn ghost sm icon" onClick={() => vs.zoomBy(1 / 1.25)} aria-label={T.zoomOut} title={`${T.zoomOut} (-)`}><Icon name="minus" /></button>
       <button type="button" className="btn ghost sm icon" onClick={() => vs.zoomBy(1.25)} aria-label={T.zoomIn} title={`${T.zoomIn} (+)`}><Icon name="plus" /></button>
       <button type="button" className="btn ghost sm" onClick={() => vs.fit(mapW, mapH)} title={T.fitHelp}>{T.fit}</button>

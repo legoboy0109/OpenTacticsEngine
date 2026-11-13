@@ -23,7 +23,6 @@ export function SettingsPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFi
         <div><div className="label-sm">{T.sizeLabel}</div><strong data-testid="map-size">{T.sizeValue(width, height)}</strong></div>
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
-      {(width > 64 || height > 64) && <p className="attention">{T.big(width, height)}</p>}
       {resizing && <ResizeDialog doc={doc} map={map} mapId={mapId} onClose={() => setResizing(false)} />}
     </div>
   )

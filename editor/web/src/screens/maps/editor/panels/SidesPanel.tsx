@@ -61,7 +61,7 @@ function SideCard({ side, index, resources, canRemove, onPatch, onResource, onRe
           <Icon name="trash" />{T.removeSide}
         </button>
       </div>
-      <div className="form-grid">
+      <div className="form-grid panel-form">
         <Field label={T.sideName}><TextInput value={side.name} onChange={(v) => onPatch({ name: v }, 'name')} /></Field>
         <Field label={T.sideColor}><ColorInput value={side.color} aria-label={`${side.name} colour`} onChange={(v) => onPatch({ color: v }, 'color')} /></Field>
         <Field label={T.sideControl}>

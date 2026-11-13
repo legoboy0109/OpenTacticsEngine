@@ -24,6 +24,7 @@
   --gap: 16px;
   --topbar-h: 56px;
   --sidebar-w: 208px;
+  --switcher-h: 50px; /* the phone section switcher, so sticky things can sit below it */
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   color-scheme: light;

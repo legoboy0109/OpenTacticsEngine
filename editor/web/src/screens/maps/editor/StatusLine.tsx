@@ -26,7 +26,7 @@ export function StatusLine({ vs, map, terrain, unitTypes, notice }: Props) {
   }
   return (
     <div className="map-status">
-      <span className="map-status-cell" data-testid="map-status">{text}</span>
+      <span className={`map-status-cell${key ? '' : ' idle'}`} data-testid="map-status">{text}</span>
       <span className="map-notice" role="status" aria-live="polite" data-testid="map-notice">{notice}</span>
     </div>
   )

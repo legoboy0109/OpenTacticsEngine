@@ -31,7 +31,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
   return (
     <div className="stack tight" data-testid="unit-props">
       <h3>{T.unitTitle} <span className="help inline">{T.unitAt(cell.x, cell.y)}</span></h3>
-      <div className="form-grid">
+      <div className="form-grid panel-form">
         <Field label={T.unitTypeLabel}>
           <Select value={unit.type} onChange={typeError} options={(doc.units ?? []).map((u) => ({ value: u.id, label: u.name }))} />
         </Field>

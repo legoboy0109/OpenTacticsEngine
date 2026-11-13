@@ -12,7 +12,7 @@ import { MapCanvas } from './MapCanvas'
 import { OptionsPanel } from './OptionsPanel'
 import { StatusLine } from './StatusLine'
 import { T } from './text'
-import { Toolbar, ZoomControls } from './Toolbar'
+import { Toolbar } from './Toolbar'
 import { beginStroke, type StrokeEnv, type Tool, type ToolState } from './tools'
 import { useMapShortcuts } from './useMapShortcuts'
 import { MapViewState, useViewSlice } from './viewState'
@@ -95,9 +95,9 @@ function Editor({ id }: { id: string }) {
   const big = map.grid.width > 64 || map.grid.height > 64
   return (
     <div className="map-editor" data-tool={ts.tool}>
+      <Warnings warnings={warnings} onFocus={focusCell} />
       <div className="map-main">
-        <Warnings warnings={warnings} onFocus={focusCell} />
-        <Toolbar tool={ts.tool} onTool={setTool} />
+        <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={map.grid.width} mapH={map.grid.height} />
         {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
         <div className="map-stage">
           <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} flagged={flagged} vs={vs}
@@ -111,7 +111,6 @@ function Editor({ id }: { id: string }) {
             act={(cell) => { beginStroke(env, cell).end(cell) }}
             remove={removeAt}
             escape={() => { vs.set({ selected: null }); setNotice(null) }} />
-          <ZoomControls vs={vs} mapW={map.grid.width} mapH={map.grid.height} />
         </div>
         <StatusLine vs={vs} map={map} terrain={terrain} unitTypes={unitTypes} notice={notice} />
         <p className="help map-keys">{T.shortcuts}</p>

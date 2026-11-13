@@ -73,7 +73,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
               {narrow && <button type="button" className="btn ghost sm" onClick={onBack}><Icon name="back" />{title}</button>}
               <h2 className="md-detail-title">{item.label || 'Unnamed'}</h2>
               <div className="md-detail-actions">
-                {extraActions}
+                {!narrow && extraActions}
                 {onMove && (
                   <>
                     <button type="button" className="btn ghost sm icon" aria-label={`Move ${noun} up`} disabled={index <= 0} onClick={() => onMove(item.id, -1)}><Icon name="up" /></button>
