@@ -1,0 +1,62 @@
+// Internals shared by the AI's source files. Not a public interface:
+// everything the rest of the engine may call is declared in ai.h.
+#pragma once
+#include <map>
+#include <vector>
+
+#include "core/battle/battle.h"
+
+namespace ote {
+namespace ai {
+
+constexpr int kFar = 1 << 28;  // "unreachable" in a distance field
+
+// One unit's chosen turn: optionally move, then do `kind`.
+struct Order {
+  double score = 0;
+  Cell moveTo = kNoCell;               // kNoCell = act from the current cell
+  ActionType kind = ActionType::Wait;  // Attack, Capture or Wait
+  int target = -1, weapon = -1;        // Attack only
+};
+
+// Cached data shared by all unit evaluations of ONE aiTakeStep call.
+// Nothing survives between calls (the AI is stateless on purpose: the same
+// Battle always yields the same decision, and copies of a Battle just work).
+struct Context {
+  explicit Context(const Battle& battle);
+  const Battle& b;
+  int side;
+  std::vector<std::vector<int>> enemyField;  // per move type; empty = not built yet
+  std::vector<Cell> captureGoals;            // capturable cells not claimed by a friendly capturer
+  std::vector<Cell> assigned;                // per unit id: capture goal to walk to, or kNoCell
+  std::map<std::pair<int, Cell>, std::vector<int>> goalFields;  // (moveType, goal) -> field
+
+  const std::vector<int>& enemyFieldFor(int moveType);
+  const std::vector<int>& goalFieldFor(int moveType, Cell goal);
+};
+
+// ---- ai_goals.cpp ----
+// Travel cost from every cell to the nearest goal, summing terrain entry
+// costs for `moveType` and ignoring units (so a blocked chokepoint still
+// attracts). kFar where no path exists.
+void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals,
+                   std::vector<int>& out);
+// Fills captureGoals and assigns each ready capturer a distinct goal.
+void assignCaptureGoals(Context& cx);
+
+// ---- ai_score.cpp ----
+double typeValue(const Database& db, int type);
+// Score of attacking `target` with `weapon` from `from`; <= 0 means "not worth it".
+double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from);
+// Score of starting/continuing a capture of the cell `at` with `u`.
+double scoreCapture(const Battle& b, const Unit& u, Cell at);
+double terrainDefense(const Battle& b, Cell c);
+
+// ---- ai_order.cpp ----
+Order bestOrder(Context& cx, const Unit& u);
+
+// ---- ai_build.cpp ----
+bool chooseBuild(const Battle& b, Cell& cell, int& unitType);
+
+}  // namespace ai
+}  // namespace ote
