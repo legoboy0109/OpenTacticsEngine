@@ -53,7 +53,10 @@ void frame(Loop& L) {
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
   SDL_RenderPresent(L.gfx->handle());
   // Without working vsync a plain loop would spin a core at 100%.
+  // (The browser paces the web loop itself.)
+#ifndef __EMSCRIPTEN__
   if (!L.cfg->headless && !L.vsync) SDL_Delay(1);
+#endif
   if (last) L.done = true;
 }
 
@@ -61,7 +64,11 @@ void frame(Loop& L) {
 void emFrame(void* arg) {
   Loop& L = *static_cast<Loop*>(arg);
   frame(L);
-  if (L.done) emscripten_cancel_main_loop();
+  if (L.done) {
+    // Reached --frames, the end of an --input script, or a quit request. The page stays up.
+    OTE_INFO("main loop ended after %ld frames", L.frames);
+    emscripten_cancel_main_loop();
+  }
 }
 #endif
 
@@ -92,6 +99,11 @@ int runApp(App& app, const PlatformConfig& config) {
   int winW = config.logicalWidth * (config.headless ? 1 : scale);
   int winH = config.logicalHeight * (config.headless ? 1 : scale);
   SDL_WindowFlags flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
+#ifdef __EMSCRIPTEN__
+  // The canvas backing store gets devicePixelRatio times its CSS size, so smooth
+  // text is rasterized at real screen resolution (the page sizes the canvas via CSS).
+  flags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#endif
   SDL_Window* window = SDL_CreateWindow(config.title.c_str(), winW, winH, flags);
   if (!window) {
     OTE_ERROR("SDL_CreateWindow(%dx%d) failed: %s", winW, winH, SDL_GetError());

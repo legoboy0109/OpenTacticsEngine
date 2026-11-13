@@ -2,8 +2,10 @@
 # configure time (the player sources are identical for both):
 #   cmake -S . -B build                      # SDL3 (default)
 #   cmake -S . -B build -DOTE_PLATFORM=sdl2  # SDL2 (system package "sdl2")
-# Desktop only for now; the web build config (Emscripten ports SDL itself)
-# is added by a later task, hence the EMSCRIPTEN guards below.
+# Web: `emcmake cmake -S . -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release`
+# builds ote-player.js/.wasm (SDL3 from Emscripten's port) plus the pages from
+# engine/platform/web and a copy of games/ + assets/ with a manifest, all in
+# build-web/engine/player (see docs/ARCHITECTURE.md "Web").
 set(OTE_PLATFORM "sdl3" CACHE STRING "Platform backend: sdl3 | sdl2")
 set_property(CACHE OTE_PLATFORM PROPERTY STRINGS sdl3 sdl2)
 if(NOT OTE_PLATFORM STREQUAL "sdl3" AND NOT OTE_PLATFORM STREQUAL "sdl2")
@@ -47,3 +49,33 @@ target_compile_options(ote-player PRIVATE ${OTE_WARN})
 set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/platform/common/bitmap_font_data.c
                             ${CMAKE_SOURCE_DIR}/engine/platform/common/stb_truetype_impl.cpp
                             PROPERTIES COMPILE_OPTIONS "-w")
+
+if(EMSCRIPTEN)
+  if(NOT OTE_PLATFORM STREQUAL "sdl3")
+    message(FATAL_ERROR "The web build uses the SDL3 backend (SDL2's Emscripten branch is untested)")
+  endif()
+  target_compile_options(ote-player PRIVATE --use-port=sdl3)
+  # MODULARIZE: the page gets a factory (createOtePlayer) and decides the
+  # arguments (INVOKE_RUN=0: main is started with Module.callMain).
+  # IDBFS holds the settings between visits. No exceptions/threads in the engine.
+  target_link_options(ote-player PRIVATE
+    --use-port=sdl3 -O2
+    -sMODULARIZE=1 -sEXPORT_NAME=createOtePlayer -sENVIRONMENT=web
+    -sINVOKE_RUN=0 -sEXIT_RUNTIME=0
+    -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1048576
+    -sFORCE_FILESYSTEM=1 -lidbfs.js
+    -sEXPORTED_RUNTIME_METHODS=FS,callMain,IDBFS)
+
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  # Pages + data next to the module, so the folder can be served as it is.
+  set(WEB_SRC ${CMAKE_SOURCE_DIR}/engine/platform/web)
+  set(WEB_OUT $<TARGET_FILE_DIR:ote-player>)
+  add_custom_target(ote-web-files ALL
+    COMMAND ${CMAKE_COMMAND} -E copy ${WEB_SRC}/index.html ${WEB_SRC}/embed.html ${WEB_SRC}/player.js
+            ${WEB_SRC}/player.css ${WEB_OUT}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/games ${WEB_OUT}/games
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${WEB_OUT}/assets
+    COMMAND ${Python3_EXECUTABLE} ${WEB_SRC}/make_manifest.py ${WEB_OUT} ${WEB_OUT}/games.manifest.json
+    VERBATIM)
+  add_dependencies(ote-web-files ote-player)
+endif()

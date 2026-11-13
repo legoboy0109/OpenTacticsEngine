@@ -1,0 +1,76 @@
+/* Shared by index.html and embed.html. */
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;           /* no page scroll, ever */
+  background: #000;
+  color: #ddd;
+  font-family: system-ui, sans-serif;
+  touch-action: none;         /* drags are game input, not page scroll/zoom */
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The canvas fills the page; the engine letterboxes its picture inside it, and
+   SDL sizes the backing store to CSS size * devicePixelRatio (sharp text).
+   `pixelated` keeps the pixel art scaled with hard edges. */
+#canvas {
+  position: fixed;
+  inset: 0;
+  /* !important: SDL writes inline width/height on the canvas style; the page decides the size. */
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  outline: none;
+  touch-action: none;
+  image-rendering: pixelated;
+}
+
+.ote-status {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 2;
+  pointer-events: none;
+  font-size: 15px;
+}
+.ote-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #444;
+  border-top-color: #ddd;
+  border-radius: 50%;
+  animation: ote-spin 0.9s linear infinite;
+}
+@keyframes ote-spin { to { transform: rotate(360deg); } }
+
+.ote-error {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  padding: 16px;
+  overflow: auto;
+  background: #1a0d0d;
+  color: #f2dede;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: pan-y;
+}
+.ote-error h1 { font-size: 18px; margin: 0 0 8px; }
+.ote-error-msg { margin: 0 0 8px; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.ote-error-detail {
+  margin: 0 0 12px;
+  padding: 8px;
+  font-size: 12px;
+  background: #000;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ote-error button { font-size: 14px; padding: 6px 14px; }

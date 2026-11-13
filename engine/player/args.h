@@ -14,6 +14,8 @@ struct Args {
   int uiScale = 0;        // --ui-scale PERCENT (multiplies the font size); 0 = default
   std::string settings;   // --settings PATH; empty = <user data folder>/settings.json
                           // (none at all when --headless, so test runs never touch real settings)
+  bool noSettings = false;  // --no-settings: options live in memory only (nothing read or written);
+                            // used by the embedded web player so the editor preview starts from defaults
   std::string game, map;  // empty = ask
   bool autoplay = false;
   unsigned seed = 1;

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>OpenTacticsEngine</title>
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script src="ote-player.js"></script>
+<script src="player.js"></script>
+<script>
+// Standalone player: every file of games/ and assets/ is listed in
+// games.manifest.json (made at build time) and copied into the virtual file
+// system; the launcher then starts with no arguments.
+// Debug: ?args=--autoplay+--frames+300 appends extra arguments to main().
+(function () {
+  var extra = (new URLSearchParams(location.search).get('args') || '').split(/\s+/).filter(Boolean);
+
+  OtePlayer.run({
+    persist: true,  // options survive reloads (IDBFS at /userdata)
+    args: extra,
+    prepare: function (api) {
+      api.status('Loading game data...');
+      return fetch('games.manifest.json').then(function (r) {
+        if (!r.ok) throw new Error('Cannot load games.manifest.json (HTTP ' + r.status + ')');
+        return r.json();
+      }).then(function (manifest) {
+        var files = manifest.files, total = 0, got = 0;
+        files.forEach(function (f) { total += f.size; });
+        return OtePlayer.forEachLimited(files, 8, function (f) {
+          // Path segments are encoded; the manifest paths use "/" only.
+          var url = f.path.split('/').map(encodeURIComponent).join('/');
+          return OtePlayer.fetchBytes(url).then(function (bytes) {
+            api.writeFile('/' + f.path, bytes);
+            got += f.size;
+            api.status('Loading game data... ' + Math.min(100, Math.round(100 * got / Math.max(1, total))) + '%');
+          });
+        });
+      });
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>OpenTacticsEngine player</title>
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script src="ote-player.js"></script>
+<script src="player.js"></script>
+<script>
+// Embedded player for the editor's Play button (see docs/ARCHITECTURE.md "Web").
+//   embed.html?project=<id>[&map=<mapId>][&api=<base>][&font=<id>][&style=<id>]
+// Loads the project from <api>/api/projects/<id>/files and .../file/<path>
+// (api defaults to this page's origin), plus the fonts from <api>/assets/fonts/,
+// then starts the game. Options are never stored (--no-settings), so the
+// preview always starts from defaults. Messages to the parent window:
+//   {type:"ote-player-ready"}  {type:"ote-player-error", message}
+// Message from the parent: {type:"ote-player-restart"} reloads the project.
+(function () {
+  var q = new URLSearchParams(location.search);
+  var project = q.get('project');
+  var api = (q.get('api') || location.origin).replace(/\/+$/, '');
+
+  function tell(msg) { if (window.parent !== window) window.parent.postMessage(msg, '*'); }
+
+  window.addEventListener('message', function (e) {
+    if (e.source === window.parent && e.data && e.data.type === 'ote-player-restart') location.reload();
+  });
+
+  function enc(path) { return path.split('/').map(encodeURIComponent).join('/'); }
+
+  OtePlayer.run({
+    persist: false,
+    onReady: function () { tell({ type: 'ote-player-ready' }); },
+    onError: function (message) { tell({ type: 'ote-player-error', message: message }); },
+    args: (function () {
+      var a = ['--games', '/games', '--assets', '/assets', '--no-settings', '--game', project || ''];
+      if (q.get('map')) a.push('--map', q.get('map'));
+      if (q.get('font')) a.push('--font', q.get('font'));
+      if (q.get('style')) a.push('--style', q.get('style'));
+      return a;
+    })(),
+    prepare: function (api_) {
+      if (!project) throw new Error('Missing ?project=<id> in the page address');
+      var base = api + '/api/projects/' + encodeURIComponent(project);
+      api_.status('Loading project...');
+      var jobs = [];
+      return fetch(base + '/files').then(function (r) {
+        if (!r.ok) throw new Error('Cannot load the project file list (HTTP ' + r.status + ' for ' + base + '/files)');
+        return r.json();
+      }).then(function (list) {
+        (list.files || []).forEach(function (f) {
+          jobs.push({ url: base + '/file/' + enc(f.path), dest: '/games/' + project + '/' + f.path });
+        });
+        return OtePlayer.fetchBytes(api + '/assets/fonts/fonts.json');
+      }).then(function (bytes) {
+        // Fonts: fonts.json (it has comments; JSON.parse needs them stripped) lists the files.
+        api_.writeFile('/assets/fonts/fonts.json', bytes);
+        var text = new TextDecoder().decode(bytes);
+        var fonts = JSON.parse(OtePlayer.stripJsonComments(text)).fonts || [];
+        fonts.forEach(function (f) {
+          if (f.file) jobs.push({ url: api + '/assets/fonts/' + enc(f.file), dest: '/assets/fonts/' + f.file });
+        });
+        var done = 0;
+        return OtePlayer.forEachLimited(jobs, 6, function (j) {
+          return OtePlayer.fetchBytes(j.url).then(function (b) {
+            api_.writeFile(j.dest, b);
+            api_.status('Loading project... ' + (++done) + '/' + jobs.length);
+          });
+        });
+      });
+    },
+  });
+})();
+</script>
+</body>
+</html>
