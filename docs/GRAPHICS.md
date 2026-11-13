@@ -185,3 +185,55 @@ Specified in docs/EDITOR_UI.md ("Art"). In short: a new **Art** section to
 import images and set how they are cut into cells; a **Picture** part on
 each terrain and unit to choose cells with a click; and the map canvas
 draws with the art using the rules above.
+
+## Implementation notes
+
+What the first implementation does, where it is, and where it differs from
+the contract above.
+
+- **Where things live.** `engine/platform/common/image.{h,cpp}` (PNG decode,
+  `stb_image_impl.cpp` compiles stb_image with `STBI_ONLY_PNG`, `STBI_NO_STDIO`;
+  version and checksum in `third_party/stb/README`); texture calls in
+  `sdl3/sdl_renderer.cpp` and `sdl2/sdl2_renderer.cpp`; `engine/player/battle/sprites.{h,cpp}`
+  (sheet textures, terrain and unit drawing); `joinMaskAt()` in
+  `engine/core/data/graphics.{h,cpp}` (the pure neighbour test, unit-tested
+  in `tests/test_art.cpp`); the generator in `tools/art/`.
+- **Texture lifetime.** `PlayerApp` owns one `Sprites` object and decodes the
+  game's sheets right after `GameSession::load`; `dropSession()` frees them
+  before the session goes (home, game page, options, loading another game).
+  `Sprites` never frees in its destructor, because at shutdown the renderer
+  is already gone; each backend frees whatever textures are left when the
+  renderer is destroyed.
+- **Failure.** A sheet that cannot be decoded logs one line
+  (`art sheet "units" (art/units.png): ...; what uses it keeps the placeholder look`)
+  and only the things using that sheet fall back; terrain and units that
+  use other sheets keep their art. (A file whose header is not a PNG is
+  already rejected by the loader as a game error, as before.)
+- **Units.** The sprite is drawn after the marker. The marker's colour is
+  the 4 pixel rows of fill inside its 1 px outline (`t / 6` high, at least 2).
+  Because the HP bar sits on the same rows, an art unit's HP bar is drawn as a
+  dark 2 px track with the fill on it and **no black outline** (deviation from
+  "stays where it is today": same position and size, but the outline is
+  dropped so the base's colour stays visible above, below and beside the bar;
+  with the outline the sides could not be told apart). With
+  `unitMarker: false` the bar keeps its outline. Pop-in scales the sprite
+  around its own centre and shrinks the base's width with it. A unit that
+  has acted gets colour multiply 0.55 on both the sprite and the base.
+- **Info panel.** The small terrain swatch of the panel draws the terrain's
+  art (stretched into the swatch, and for joined terrain with the piece of
+  the inspected square). Unit and side chips in the panel and the forecast
+  box are flat colours today and stay that way.
+- **Starter art.** `python3 tools/art/make_starter_art.py` (Pillow) writes
+  `art/tiles.png` (8 x 8 cells), `art/units.png` (2 frames per unit, one row
+  per unit type of that game) and `data/graphics.json` for the two demos and
+  the three templates, plus `art/tiles_night.png` / `art/tiles_parchment.png`
+  (tinted copies of the tiles, referenced by those styles) for the demos that
+  have such styles. Roads (joined, also into cities, factories and HQs) and
+  bridges (joined with the land terrain they connect; deck direction follows
+  the neighbours) use the 16-piece layout. Rivers and the sea animate over two
+  frames instead of joining (a look is either animated or joined). Unit sprites
+  stand on row 17 of the 24 px cell so the engine's base and HP bar fill the
+  bottom rows.
+- **Web.** Nothing special was needed: the pages already fetch and write
+  every file as bytes, and `make_manifest.py` lists the PNGs. `tools/webtest`
+  (standalone and embed suites) now fails when terrain art is not drawn.

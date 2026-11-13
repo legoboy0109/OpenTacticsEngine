@@ -99,8 +99,12 @@ def night(r, g, b):
 
 
 def sepia(r, g, b):
+    """Old-map look: warm browns with more contrast; water keeps a faded blue so rivers still read."""
     lum = (0.30 * r + 0.59 * g + 0.11 * b) / 255.0
-    return 70 + 175 * lum, 52 + 150 * lum, 30 + 110 * lum
+    lum = max(0.0, min(1.0, (lum - 0.5) * 1.6 + 0.5))
+    if b > r + 25:
+        return 55 + 95 * lum, 85 + 95 * lum, 110 + 100 * lum
+    return 55 + 185 * lum, 38 + 160 * lum, 20 + 115 * lum
 
 
 STYLE_TINTS = {'night': night, 'parchment': sepia}
