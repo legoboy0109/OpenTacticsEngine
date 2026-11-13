@@ -7,6 +7,7 @@
 // which means "draw the placeholder (colour + letter)".
 #pragma once
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -89,6 +90,13 @@ struct Graphics {
 
 // Neighbour bits for Join looks.
 enum JoinBit { JoinN = 1, JoinE = 2, JoinS = 4, JoinW = 8 };
+
+// The JoinBit set of neighbours of square (x, y) that count as "the same" for
+// a Join look: the neighbour's terrain index (from terrainAt) is flagged in
+// look.joinWith, or the neighbour is off the map (gridW x gridH) and
+// look.joinEdge is set. Squares only touch N, E, S, W here.
+int joinMaskAt(const Look& look, int x, int y, int gridW, int gridH,
+               const std::function<int(int, int)>& terrainAt);
 
 // The sheet cell to draw for `look` on map square (x, y).
 //   joinMask: JoinBit set of neighbours that count as the same (Join only).

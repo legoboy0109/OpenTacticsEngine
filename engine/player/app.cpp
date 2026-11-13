@@ -97,7 +97,7 @@ void PlayerApp::draw(Renderer& r) {
 void PlayerApp::showHome() {
   later([this] {
     scene_.reset();  // the battle (if any) must die before the session changes
-    session_.reset();
+    dropSession();
     gameId_.clear();
     applyLauncherLook();  // back to the launcher's own font, scale and size
     scene_.reset(new HomeScene(*this));
@@ -110,7 +110,7 @@ void PlayerApp::showGame(const std::string& gameId) {
     for (const GameEntry& g : games_)
       if (g.id == gameId) entry = &g;
     scene_.reset();
-    session_.reset();
+    dropSession();
     applyLauncherLook();
     if (!entry) { gameId_.clear(); scene_.reset(new HomeScene(*this)); return; }
     gameId_ = gameId;
@@ -121,7 +121,7 @@ void PlayerApp::showGame(const std::string& gameId) {
 void PlayerApp::showOptions(const std::string& gameId) {
   later([this, gameId] {
     scene_.reset();
-    session_.reset();
+    dropSession();
     relook(gameId);
     scene_.reset(new OptionsScene(*this, gameId));
   });
@@ -153,19 +153,27 @@ void PlayerApp::startBattle(const std::string& mapId) {
   later([this, mapId] { doStartBattle(mapId); });
 }
 
+// Ends the current game: its art textures go first (the renderer is alive here).
+void PlayerApp::dropSession() {
+  if (renderer_) sprites_.release(*renderer_);
+  session_.reset();
+}
+
 void PlayerApp::doLoadGame(const std::string& gameId) {
   scene_.reset();
   gameId_ = gameId;
+  dropSession();
   session_.reset(new GameSession());
   std::string err;
   if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
-    session_.reset();
+    dropSession();
     applyLauncherLook();  // an error screen must not inherit the previous game's look
     showError("Cannot load game '" + gameId + "'", err, ToGame);
     runPending();
     return;
   }
   OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
+  if (session_->db.graphics.any()) sprites_.load(*renderer_, session_->dir, session_->db.graphics);
   int w, h;
   viewSize(session_->db, w, h);
   applyLook(gameId, lookOf(session_->db), w, h);

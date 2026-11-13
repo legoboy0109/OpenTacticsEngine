@@ -148,7 +148,7 @@ std::string BattleScene::hint() const {
 
 void BattleScene::draw(Renderer& r) {
   ensureLayout(r);
-  DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_]};
+  DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));

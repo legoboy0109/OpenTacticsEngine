@@ -6,6 +6,7 @@
 
 #include "battle/battle_view.h"
 #include "battle/layout.h"
+#include "battle/sprites.h"
 #include "core/battle/battle.h"
 #include "platform/platform.h"
 
@@ -18,6 +19,8 @@ struct DrawCtx {
   const Camera& cam;
   float time = 0;
   const StyleDef* style = nullptr;  // the visual style in use (null = defaults)
+  const Sprites* sprites = nullptr;  // the game's sheet textures (null = placeholders only)
+  int styleIndex = 0;                // index of `style` in Database::styles (picks the art set)
 };
 
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).
