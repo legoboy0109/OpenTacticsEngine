@@ -1,5 +1,6 @@
 // Game screen edits: name/description/author, font, screen size, visual styles.
 import { withGame } from './doc'
+import { dropStyleArt } from './graphicsClean'
 import { makeId } from './ids'
 import { moveItem, patchObj, updateById } from './util'
 import type { FontSpec, ProjectDoc, Style } from './types'
@@ -44,10 +45,11 @@ export function moveStyle(doc: ProjectDoc, from: number, to: number): ProjectDoc
 }
 
 export function removeStyle(doc: ProjectDoc, id: string): ProjectDoc {
-  return withGame(doc, (g) => {
+  const removed = withGame(doc, (g) => {
     const rest = (g.styles ?? []).filter((s) => s.id !== id)
     return patchObj(g, { styles: rest.length ? rest : undefined })
   })
+  return dropStyleArt(removed, id)
 }
 
 /** Recolour one terrain in one look; undefined colour goes back to the terrain's own. */

@@ -8,6 +8,7 @@ import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { MultiSelect } from '../../ui/MultiSelect'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
+import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
 import { T } from './text'
 
@@ -39,6 +40,8 @@ export function UnitForm({ id }: { id: string }) {
           </Field>
         </FormGrid>
       </Card>
+
+      <PictureCard kind="units" id={id} name={unit.name} />
 
       <Card>
         <KeyNumberTable label={T.stats} help={growth ? `${T.statsHelp} ${T.growthHelp}` : T.statsHelp} rows={statRows} emptyText={T.noStats}

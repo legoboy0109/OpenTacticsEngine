@@ -9,6 +9,8 @@ export interface ApiError {
   error: string
   /** Present on 409: the revision now on disk. */
   revision?: string
+  /** Present on a 409 when deleting an image that the saved game still uses: the image entries (sheet ids). */
+  usedBy?: string[]
 }
 export type Result<T> = { ok: true; value: T } | ApiError
 
@@ -19,14 +21,18 @@ export interface ApiInfo { engine: string; apiVersion: number; formatVersion: nu
 export interface FileInfo { path: string; size: number }
 export interface PutBody extends Partial<ProjectDoc> { baseRevision: string }
 export interface PutResult { revision: string; problems: Problem[] }
+/** One PNG in the game's art/ folder (width/height 0 + error when it cannot be read). */
+export interface ArtFile { file: string; width: number; height: number; size: number; error?: string }
+export interface UploadResult { file: string; width: number; height: number; size: number; revision: string }
 
 async function request<T>(method: string, path: string, body?: unknown, keepalive = false): Promise<Result<T>> {
   let res: Response
   try {
+    const raw = body instanceof Blob
     res = await fetch(path, {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: body === undefined || raw ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
       keepalive,
     })
   } catch (e) {
@@ -35,8 +41,8 @@ async function request<T>(method: string, path: string, body?: unknown, keepaliv
   let data: unknown = null
   try { data = await res.json() } catch { /* non-JSON error page */ }
   if (res.ok) return { ok: true, value: data as T }
-  const obj = (data ?? {}) as { error?: string; revision?: string }
-  return { ok: false, status: res.status, error: obj.error ?? `Request failed (${res.status}).`, revision: obj.revision }
+  const obj = (data ?? {}) as { error?: string; revision?: string; usedBy?: string[] }
+  return { ok: false, status: res.status, error: obj.error ?? `Request failed (${res.status}).`, revision: obj.revision, usedBy: obj.usedBy }
 }
 
 const enc = encodeURIComponent
@@ -55,6 +61,10 @@ export interface Api {
   getProject(id: string): Promise<Result<ServerProject>>
   putProject(id: string, body: PutBody, opts?: { keepalive?: boolean }): Promise<Result<PutResult>>
   getProblems(id: string): Promise<Result<Problem[]>>
+  listArt(id: string): Promise<Result<ArtFile[]>>
+  /** `name` is the file name without folder and extension ("tiles" -> art/tiles.png). */
+  uploadArt(id: string, name: string, png: Blob, overwrite: boolean): Promise<Result<UploadResult>>
+  deleteArt(id: string, name: string): Promise<Result<{ revision: string }>>
 }
 
 /** URL of one raw project file (the Play panel feeds these to the embedded player). */
@@ -70,4 +80,7 @@ export const api: Api = {
   getProject: (id) => request('GET', `/api/projects/${enc(id)}`),
   putProject: (id, body, opts) => request('PUT', `/api/projects/${enc(id)}`, body, opts?.keepalive),
   getProblems: (id) => unwrap(request<{ problems: Problem[] }>('GET', `/api/projects/${enc(id)}/problems`), 'problems'),
+  listArt: (id) => unwrap(request<{ art: ArtFile[] }>('GET', `/api/projects/${enc(id)}/art`), 'art'),
+  uploadArt: (id, name, png, overwrite) => request('PUT', `/api/projects/${enc(id)}/art/${enc(name)}.png${overwrite ? '?overwrite=1' : ''}`, png),
+  deleteArt: (id, name) => request('DELETE', `/api/projects/${enc(id)}/art/${enc(name)}.png`),
 }

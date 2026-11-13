@@ -1,6 +1,6 @@
 // Autosave: debounce, exactly one PUT in flight, retry with backoff, and a
 // conflict state that stops everything until the user decides.
-import type { Api, PutBody } from '../api/client'
+import type { Api, PutBody, Result } from '../api/client'
 import type { Problem, ProjectDoc } from '../model/types'
 
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
@@ -18,12 +18,14 @@ interface Deps {
   getDoc: () => ProjectDoc
   onStatus: (s: SaveStatus) => void
   onSaved: (revision: string, problems: Problem[]) => void
+  /** The revision changed because of an art upload/delete (not a save). */
+  onRevision?: (revision: string) => void
 }
 
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'weapons', 'units'] as const
+const SECTIONS = ['game', 'terrain', 'weapons', 'units', 'graphics'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -31,7 +33,10 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
   const body: PutBody = { baseRevision }
   let any = false
   for (const k of SECTIONS) {
-    if (doc[k] !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = doc[k]; any = true }
+    // Art is the one section that can legitimately go back to "none" (undo past the first image): that is written as an
+    // empty section, because sending nothing would leave the old images on disk while the screen shows none.
+    const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] } : doc[k]
+    if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}
   for (const [id, m] of Object.entries(doc.maps)) {
@@ -52,6 +57,8 @@ export class Saver {
   private status: SaveStatus = { state: 'saved' }
   private timer: ReturnType<typeof setTimeout> | null = null
   private inFlight: Promise<void> | null = null
+  /** An art upload/delete is running: no save may start until it is done (see withDiskChange). */
+  private diskOp: Promise<unknown> | null = null
   private rerun = false
   private forceAll = false
   private attempts = 0
@@ -93,6 +100,7 @@ export class Saver {
 
   private run(keepalive: boolean): Promise<void> {
     if (this.inFlight) { this.rerun = true; return this.inFlight }
+    if (this.diskOp) { this.rerun = true; return this.diskOp.then(() => undefined) }
     if (this.status.state === 'conflict') return Promise.resolve()
     this.clearTimer()
     const doc = this.deps.getDoc()
@@ -137,6 +145,7 @@ export class Saver {
       return
     }
     for (let i = 0; i < 20; i++) {
+      if (this.diskOp) await this.diskOp
       if (this.inFlight) {
         await this.inFlight
         if (this.halted()) return
@@ -146,6 +155,34 @@ export class Saver {
       await this.run(false)
       if (this.halted()) return
     }
+  }
+
+  /** Runs a call that changes the project on disk outside a save (uploading or deleting an image) without ever
+   *  causing a false "changed on disk" conflict:
+   *  1. it waits for a save in flight, and no save starts while it runs (they wait, then go on);
+   *  2. a cheap revision check (a PUT with no sections) tells a real outside change from our own;
+   *  3. the revision the call returns is adopted, so the next save carries the right baseRevision.
+   *  In the conflict state the call still runs but its revision is not adopted (the user decides first). */
+  async withDiskChange<T extends { revision: string }>(op: () => Promise<Result<T>>): Promise<Result<T>> {
+    while (this.diskOp || this.inFlight) await (this.diskOp ?? this.inFlight)
+    const running = this.runDiskOp(op)
+    this.diskOp = running
+    try { return await running } finally {
+      this.diskOp = null
+      if (this.rerun || (this.status.state !== 'conflict' && this.deps.getDoc() !== this.saved)) { this.rerun = false; void this.run(false) }
+    }
+  }
+
+  private async runDiskOp<T extends { revision: string }>(op: () => Promise<Result<T>>): Promise<Result<T>> {
+    let adopt = this.status.state !== 'conflict'
+    if (adopt) {
+      const check = await this.deps.api.putProject(this.deps.id, { baseRevision: this.revision })
+      if (!check.ok && check.status === 409) { this.set('conflict', check.error); adopt = false }
+      else if (!check.ok) return check
+    }
+    const res = await op()
+    if (res.ok && adopt) { this.revision = res.value.revision; this.deps.onRevision?.(res.value.revision) }
+    return res
   }
 
   /** After Reload: the loaded state is now what is on disk. */

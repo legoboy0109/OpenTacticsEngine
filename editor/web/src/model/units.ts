@@ -1,6 +1,7 @@
 // Unit types (classes): what the player picks to place or build.
 import { clone, ids, withUnits } from './doc'
 import { makeId } from './ids'
+import { copyArtOf } from './graphicsClean'
 import { cleanUnit } from './references'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { NumMap, ProjectDoc, Unit } from './types'
@@ -24,13 +25,15 @@ export function addUnit(doc: ProjectDoc, name: string, id: string = newUnitId(do
 }
 
 export function duplicateUnit(doc: ProjectDoc, id: string, newId?: string): ProjectDoc {
-  return withUnits(doc, (list) => {
-    const i = list.findIndex((u) => u.id === id)
-    if (i < 0) return list
-    const name = `${list[i].name} copy`
-    const copy: Unit = { ...clone(list[i]), id: newId ?? makeId(name, ids(list), { fallback: 'unit' }), name }
+  const i = (doc.units ?? []).findIndex((u) => u.id === id)
+  if (i < 0) return doc
+  const name = `${doc.units![i].name} copy`
+  const copyId = newId ?? makeId(name, ids(doc.units), { fallback: 'unit' })
+  const added = withUnits(doc, (list) => {
+    const copy: Unit = { ...clone(list[i]), id: copyId, name }
     return [...list.slice(0, i + 1), copy, ...list.slice(i + 1)]
   })
+  return copyArtOf(added, 'units', id, copyId)
 }
 
 export function unitRemovalBlock(doc: ProjectDoc): string | null {

@@ -7,6 +7,7 @@ export function problemTarget(file: string, doc: ProjectDoc | null): ProblemTarg
   if (file === 'data/units.json') return { section: 'units' }
   if (file === 'data/weapons.json') return { section: 'weapons' }
   if (file === 'data/terrain.json') return { section: 'terrain' }
+  if (file === 'data/graphics.json') return { section: 'art' }
   if (file.startsWith('maps/')) {
     const ref = doc?.game?.maps.find((m) => m.file === file)
     return { section: 'maps', itemId: ref?.id }

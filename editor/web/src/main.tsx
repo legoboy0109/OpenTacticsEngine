@@ -6,6 +6,7 @@ import './styles/shell.css'
 import './styles/components.css'
 import './styles/screens.css'
 import './styles/map.css'
+import './styles/art.css'
 import './styles/play.css'
 
 createRoot(document.getElementById('root')!).render(<App />)

@@ -1,5 +1,7 @@
 // The map editor: warnings, toolbar, canvas and the options panel for one map.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { styleView } from '../../../art/scene'
+import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { editMap } from '../../../model/mapCtx'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
@@ -7,6 +9,7 @@ import { removeMapUnit, unitAt } from '../../../model/mapUnits'
 import { useDoc, useEdit, useStore } from '../../../store/context'
 import { Banner } from '../../../ui/Banner'
 import { useStored } from '../../../ui/hooks'
+import { LookContext } from '../../../ui/picture/usePreview'
 import { cellKey, reveal } from './geometry'
 import { MapCanvas } from './MapCanvas'
 import { OptionsPanel } from './OptionsPanel'
@@ -48,6 +51,13 @@ function Editor({ id }: { id: string }) {
   const vs = useMemo(() => new MapViewState(), [])
   const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', ownerSide: '' })
   const [notice, setNotice] = useState<string | null>(null)
+  // The visual style shown on the canvas (the player starts with the first one); only offered when there are several.
+  const styles = doc.game?.styles ?? []
+  const [storedLook, setLook] = useStored<string>(`ote.mapLook.${store.id}`, '')
+  const lookId = styles.some((s) => s.id === storedLook) ? storedLook : styles[0]?.id
+  const art = useArtScene(lookId)
+  const look = useMemo(() => styleView(doc.game, lookId), [doc.game, lookId])
+  const lookChoice = useMemo(() => ({ id: lookId, view: look }), [lookId, look])
 
   // Remembered choices can name things that were deleted since: fall back to the first one.
   const ts: ToolState = {
@@ -94,13 +104,15 @@ function Editor({ id }: { id: string }) {
   const selected = useViewSlice(vs, (s) => cellKey(s.selected))
   const big = map.grid.width > 64 || map.grid.height > 64
   return (
+    <LookContext.Provider value={lookChoice}>
     <div className="map-editor" data-tool={ts.tool}>
       <Warnings warnings={warnings} onFocus={focusCell} />
       <div className="map-main">
-        <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={map.grid.width} mapH={map.grid.height} />
+        <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={map.grid.width} mapH={map.grid.height}
+          looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
         {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
         <div className="map-stage">
-          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} flagged={flagged} vs={vs}
+          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} flagged={flagged} art={art} style={look} vs={vs}
             begin={(cell, o) => beginStroke(env, cell, o)}
             longPress={(cell) => {
               if (tsRef.current.tool !== 'terrain') return false
@@ -117,6 +129,7 @@ function Editor({ id }: { id: string }) {
       </div>
       <OptionsPanel doc={doc} map={map} mapId={id} state={ts} selected={selected} onChange={patch} say={setNotice} />
     </div>
+    </LookContext.Provider>
   )
 }
 

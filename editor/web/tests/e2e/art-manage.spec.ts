@@ -1,0 +1,248 @@
+// Managing art: undo/redo, removing, unused files, replacing a file, art that follows deleted/duplicated things,
+// and the races between uploads and the autosave.
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { addImage, addImages, bareGame, clickPiece, imageList, openArt, png, picker, pickerGrid, seedArt, sheetPng, solidPng, tilesGraphics } from './artkit'
+import { diskPath, editorUrl, expect, readDisk, saved, section, test, writeDisk } from './fixtures'
+
+const noConflict = (page: import('@playwright/test').Page) => expect(page.getByText(/changed on disk/i)).toHaveCount(0)
+const undo = (page: import('@playwright/test').Page) => page.getByRole('button', { name: 'Undo' })
+const redo = (page: import('@playwright/test').Page) => page.getByRole('button', { name: 'Redo' })
+const pictures = { terrain: { forest: { sheet: 'tiles', cell: [3, 3] } }, units: { lord: { sheet: 'tiles', cell: [0, 1] } } }
+
+test('undo and redo cover every picture edit and never touch the files @smoke', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Undo')
+  await openArt(page, id)
+  await addImage(page, 'tiles.png', sheetPng(4, 4))
+  await page.getByRole('link', { name: 'Terrain', exact: true }).click()
+  await page.getByRole('button', { name: 'Forest' }).first().click()
+  await page.getByRole('button', { name: 'Choose picture…' }).click()
+  await clickPiece(page, pickerGrid(page), 3, 3)
+  await picker(page).getByRole('button', { name: 'Use this picture' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').terrain.forest.cell).toEqual([3, 3])
+  // Undo the picture, then the image; the file stays on disk.
+  await undo(page).click()
+  await expect(page.getByText('No picture yet.')).toBeVisible()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').terrain).toBeUndefined()
+  await page.keyboard.press('Control+z')
+  await expect(page.getByText('There are no images yet. Add one on the Art screen first.')).toBeVisible()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').sheets).toEqual([])
+  expect(existsSync(diskPath(id, 'art/tiles.png'))).toBe(true)
+  // The file now shows as unused.
+  await section(page, 'Art').click()
+  await expect(page.getByRole('region', { name: 'Unused files' })).toContainText('art/tiles.png')
+  // Redo brings everything back (the image, then the picture).
+  await redo(page).click(); await redo(page).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').terrain.forest.cell).toEqual([3, 3])
+  await expect(page.getByRole('region', { name: 'Unused files' })).toHaveCount(0)
+  await noConflict(page)
+})
+
+test('unused files: use again, delete for good with a confirmation, and a refusal while the saved game still uses it', async ({ page, request, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Unused')
+  await seedArt(request, id, { tiles: sheetPng(2, 2), spare: solidPng(24, 24, [1, 2, 3, 255]) }, tilesGraphics())
+  await openArt(page, id)
+  const unused = page.getByRole('region', { name: 'Unused files' })
+  await expect(unused).toContainText('art/spare.png')
+  await expect(unused).not.toContainText('art/tiles.png')
+  await unused.getByRole('button', { name: 'Use again art/spare.png' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').sheets.map((s: any) => s.file)).toEqual(['art/tiles.png', 'art/spare.png'])
+  await expect(unused).toHaveCount(0)
+  // Remove it again (nothing uses it: no question) and delete the file.
+  await imageList(page).getByRole('button', { name: /spare/ }).click()
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await saved(page)
+  await unused.getByRole('button', { name: 'Delete file art/spare.png' }).click()
+  const dlg = page.getByRole('dialog', { name: 'Delete art/spare.png for good?' })
+  await dlg.getByRole('button', { name: 'Cancel' }).click()
+  expect(existsSync(diskPath(id, 'art/spare.png'))).toBe(true)
+  await unused.getByRole('button', { name: 'Delete file art/spare.png' }).click()
+  await dlg.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByText('art/spare.png was deleted.')).toBeVisible()
+  expect(existsSync(diskPath(id, 'art/spare.png'))).toBe(false)
+  await expect(unused).toHaveCount(0)
+  await expect(undo(page)).toBeEnabled() // earlier edits are still undoable; the file is simply gone
+
+  // The helper says no while the saved game uses the file: a plain message, nothing deleted.
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await saved(page)
+  await page.route('**/api/projects/*/art/tiles.png', (r) => r.fulfill({ status: 409, contentType: 'application/json', body: '{"error":"in use","usedBy":["tiles"]}' }))
+  await unused.getByRole('button', { name: 'Delete file art/tiles.png' }).click()
+  await dlg.page().getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByText('art/tiles.png is still used by the saved game (Tiles), so it was not deleted.')).toBeVisible()
+  expect(existsSync(diskPath(id, 'art/tiles.png'))).toBe(true)
+})
+
+test('removing an image that is used asks first, clears those pictures in one undo step, and keeps the file', async ({ page, request, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Remove')
+  await seedArt(request, id, { tiles: sheetPng(4, 4) }, tilesGraphics(pictures))
+  await openArt(page, id, 'tiles')
+  await expect(page.getByRole('list', { name: 'Used by' }).getByRole('link')).toHaveText(['Terrain: Forest', 'Unit: Lord'])
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  const dlg = page.getByRole('dialog', { name: 'Remove the image “Tiles”?' })
+  await expect(dlg).toContainText('Terrain: Forest')
+  await expect(dlg).toContainText('Unit: Lord')
+  await dlg.getByRole('button', { name: 'Cancel' }).click()
+  expect(readDisk(id, 'data/graphics.json').terrain.forest).toBeDefined()
+  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await dlg.getByRole('button', { name: 'Remove' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json')).toEqual({ sheets: [] })
+  expect(existsSync(diskPath(id, 'art/tiles.png'))).toBe(true)
+  await expect(page.getByRole('region', { name: 'Unused files' })).toContainText('art/tiles.png')
+  expect(await game.problems(id)).toEqual([])
+  await undo(page).click() // one step brings the image and both pictures back
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json')).toMatchObject({ sheets: [{ id: 'tiles' }], ...pictures })
+})
+
+test('replace file: same name, pieces keep their positions, a warning when some would fall outside', async ({ page, request, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Replace')
+  await seedArt(request, id, { tiles: sheetPng(4, 4) }, tilesGraphics(pictures))
+  await openArt(page, id, 'tiles')
+  const small = sheetPng(2, 2)
+  await page.getByTestId('replace-input').setInputFiles(png('other.png', small))
+  const dlg = page.getByRole('dialog', { name: 'Replace this image’s file?' })
+  await expect(dlg).toContainText('48 × 48 pixels')
+  await expect(dlg).toContainText('These pictures use pieces that would be outside the new image: Forest. They stop')
+  await dlg.getByRole('button', { name: 'Cancel' }).click()
+  expect(readFileSync(diskPath(id, 'art/tiles.png')).equals(sheetPng(4, 4))).toBe(true)
+  await page.getByTestId('replace-input').setInputFiles(png('other.png', small))
+  await dlg.getByRole('button', { name: 'Replace' }).click()
+  await expect(page.getByText('The file was replaced.')).toBeVisible()
+  expect(readFileSync(diskPath(id, 'art/tiles.png')).equals(small)).toBe(true)
+  expect(existsSync(diskPath(id, 'art/other.png'))).toBe(false)
+  await expect(page.getByTestId('grid-summary')).toHaveText('2 across, 2 down')
+  await expect(page.getByText('Some pictures no longer fit this image')).toBeVisible()
+  await noConflict(page)
+  await page.getByLabel('Name', { exact: true }).fill('Smaller')
+  await saved(page)
+  await noConflict(page)
+  // The helper's own report agrees something is wrong.
+  expect((await game.problems(id)).some((p) => p.file === 'data/graphics.json')).toBe(true)
+})
+
+test('deleting a terrain or unit that has a picture clears it (one undo step); duplicating copies it', async ({ page, request, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Cascade')
+  await seedArt(request, id, { tiles: sheetPng(4, 4) }, tilesGraphics({ ...pictures, styles: { night: { terrain: { forest: null } } } }))
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  doc.game.styles = [{ id: 'night', name: 'Night' }]
+  await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: doc.game } })
+  await page.goto(editorUrl(id, 'units', 'lord'))
+  await page.getByRole('button', { name: 'Duplicate' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').units).toEqual({ lord: { sheet: 'tiles', cell: [0, 1] }, lord_copy: { sheet: 'tiles', cell: [0, 1] } })
+  await page.goto(editorUrl(id, 'terrain', 'forest'))
+  await page.getByRole('button', { name: 'Duplicate' }).click()
+  await saved(page)
+  const g = readDisk(id, 'data/graphics.json')
+  expect(g.terrain.forest_copy).toEqual({ sheet: 'tiles', cell: [3, 3] })
+  expect(g.styles.night.terrain.forest_copy).toBeNull()
+  // Delete the original forest: its picture and its look entry go, the copy keeps its own.
+  await page.goto(editorUrl(id, 'terrain', 'forest'))
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  const dlg = page.getByRole('dialog', { name: /^Delete the terrain/ })
+  await expect(dlg).toContainText('Its picture is cleared')
+  await dlg.getByRole('button', { name: 'Delete' }).click()
+  await saved(page)
+  const after = readDisk(id, 'data/graphics.json')
+  expect(after.terrain.forest).toBeUndefined()
+  expect(after.styles.night.terrain.forest).toBeUndefined()
+  expect(after.terrain.forest_copy).toBeDefined()
+  expect(await game.problems(id)).toEqual([])
+  await undo(page).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').terrain.forest).toEqual({ sheet: 'tiles', cell: [3, 3] })
+  // Deleting a unit clears its picture too.
+  await page.goto(editorUrl(id, 'units', 'lord_copy'))
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').units).toEqual({ lord: { sheet: 'tiles', cell: [0, 1] } })
+  // Removing a visual style removes its pictures.
+  await page.goto(editorUrl(id, 'game'))
+  await page.getByRole('button', { name: 'Delete style' }).first().click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete style' }).click()
+  await saved(page)
+  expect(readDisk(id, 'data/graphics.json').styles).toBeUndefined()
+})
+
+test.describe('uploads and the autosave', () => {
+  test('an edit waiting for its autosave while an image is added: no false conflict, nothing lost @smoke', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Race')
+    await openArt(page, id)
+    await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
+    await page.getByLabel('Name', { exact: true }).fill('Renamed one') // autosave is now waiting its 800 ms
+    await addImages(page, [png('two.png', solidPng(24, 24, [20, 20, 20, 255]))])
+    await expect(imageList(page).getByRole('button', { name: 'two' })).toBeVisible()
+    await saved(page)
+    await noConflict(page)
+    const g = readDisk(id, 'data/graphics.json')
+    expect(g.sheets.map((s: any) => [s.file, s.name])).toEqual([['art/one.png', 'Renamed one'], ['art/two.png', 'two']])
+    // And the next edit saves normally.
+    await page.getByLabel('Name', { exact: true }).fill('Renamed two')
+    await saved(page)
+    await noConflict(page)
+    expect(readDisk(id, 'data/graphics.json').sheets[1].name).toBe('Renamed two')
+  })
+
+  test('an image added while a save is in flight waits for it and nothing conflicts', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Race Slow')
+    await openArt(page, id)
+    await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
+    let slowed = 0
+    await page.route(`**/api/projects/${id}`, async (route) => {
+      if (route.request().method() === 'PUT' && Object.keys(route.request().postDataJSON()).length > 1) { slowed++; await new Promise((r) => setTimeout(r, 1500)) }
+      await route.continue()
+    })
+    await page.getByLabel('Name', { exact: true }).fill('Slow save')
+    await expect(page.getByRole('status').filter({ hasText: /^Saving/ })).toBeVisible()
+    await addImages(page, [png('two.png', solidPng(24, 24, [20, 20, 20, 255]))])
+    await expect(imageList(page).getByRole('button', { name: 'two' })).toBeVisible({ timeout: 10_000 })
+    await saved(page)
+    await noConflict(page)
+    expect(slowed).toBeGreaterThan(0)
+    const g = readDisk(id, 'data/graphics.json')
+    expect(g.sheets.map((s: any) => s.name)).toEqual(['Slow save', 'two'])
+  })
+
+  test('a real change made elsewhere is still caught: the upload works, the banner appears, nothing is overwritten', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Elsewhere')
+    await openArt(page, id)
+    await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
+    const g = readDisk(id, 'game.json')
+    g.description = 'Edited elsewhere'
+    writeDisk(id, 'game.json', JSON.stringify(g, null, 2))
+    await addImages(page, [png('two.png', solidPng(24, 24, [20, 20, 20, 255]))])
+    await expect(page.getByRole('alert').filter({ hasText: 'changed on disk' })).toBeVisible()
+    expect(existsSync(diskPath(id, 'art/two.png'))).toBe(true)
+    expect(readDisk(id, 'game.json').description).toBe('Edited elsewhere')
+    await page.getByRole('alert').filter({ hasText: 'changed on disk' }).getByRole('button', { name: 'Reload' }).click()
+    await expect(imageList(page).getByRole('button')).toHaveCount(1) // the document on disk has one image; the new file is unused
+    await expect(page.getByRole('region', { name: 'Unused files' })).toContainText('art/two.png')
+  })
+})
+
+test('problems in the art settings link to the Art section', async ({ page, request, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Problems')
+  await seedArt(request, id, { tiles: sheetPng(2, 2) }, tilesGraphics({ terrain: { forest: { sheet: 'nope', cell: [0, 0] } } }))
+  await page.goto(editorUrl(id, 'game'))
+  await expect(page.getByRole('link', { name: /^Art/ }).locator('.nav-dot')).toBeVisible()
+  await page.getByRole('button', { name: /problem/ }).click()
+  await page.getByRole('button', { name: /data\/graphics\.json/ }).first().click()
+  await expect(page).toHaveURL(/\/art$/)
+})
+
+test('a damaged art file is not overwritten: the Art section explains and refuses', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'Art Damaged')
+  writeFileSync(diskPath(id, 'data/graphics.json'), '{ this is not json')
+  await openArt(page, id).catch(() => undefined)
+  await page.goto(editorUrl(id, 'art'))
+  await expect(page.getByText('The art settings could not be read')).toBeVisible()
+  await expect(page.getByTestId('add-image-input')).toHaveCount(0)
+  expect(readFileSync(diskPath(id, 'data/graphics.json'), 'utf8')).toBe('{ this is not json')
+})

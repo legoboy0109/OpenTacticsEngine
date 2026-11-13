@@ -58,6 +58,7 @@ function fakeApi(project: ServerProject, put: PutFn) {
   const api = {
     getProject: vi.fn(async () => ({ ok: true, value: project }) as Result<ServerProject>),
     putProject: vi.fn(async (_id: string, body: PutBody) => { calls.push(body); return put(body) }),
+    listArt: vi.fn(async () => ({ ok: true, value: [] })),
   } as unknown as Api
   return { api, calls }
 }
