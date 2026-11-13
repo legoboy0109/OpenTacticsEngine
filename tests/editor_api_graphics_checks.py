@@ -32,6 +32,10 @@ def run_graphics_checks(api, tmp, games, templates, check, get_project, put_proj
     check("graphics: create scratch project", st == 201, (st, doc))
     pdir = os.path.join(games, pid)
     art = "/api/projects/%s/art" % pid
+    # Templates ship starter art; these checks start from a project without any.
+    shutil.rmtree(os.path.join(pdir, "art"), ignore_errors=True)
+    if os.path.exists(os.path.join(pdir, "data", "graphics.json")):
+        os.remove(os.path.join(pdir, "data", "graphics.json"))
     png_hdr = {"Content-Type": "image/png"}
 
     # ---- graphics section: absent / round trip / invalid ----
@@ -312,5 +316,5 @@ def run_graphics_checks(api, tmp, games, templates, check, get_project, put_proj
     with open(os.path.join(games, "gfx-from-tpl", "art", "pic.png"), "rb") as f:
         check("template art copied byte for byte", f.read() == blob)
     st, lst = api.json("GET", "/api/projects/gfx-from-tpl/art")
-    check("copied art is listed", [a["file"] for a in lst["art"]] == ["art/pic.png"], lst)
+    check("copied art is listed", "art/pic.png" in [a["file"] for a in lst["art"]], lst)
     shutil.rmtree(tpl_art)

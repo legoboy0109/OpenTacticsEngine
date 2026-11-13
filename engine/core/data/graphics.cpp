@@ -45,23 +45,6 @@ SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeM
   }
 }
 
-int joinMaskAt(const Look& look, int x, int y, int gridW, int gridH,
-               const std::function<int(int, int)>& terrainAt) {
-  static const int dx[4] = {0, 1, 0, -1}, dy[4] = {-1, 0, 1, 0};
-  static const int bit[4] = {JoinN, JoinE, JoinS, JoinW};
-  int mask = 0;
-  for (int i = 0; i < 4; ++i) {
-    int nx = x + dx[i], ny = y + dy[i];
-    if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) {
-      if (look.joinEdge) mask |= bit[i];
-      continue;
-    }
-    int t = terrainAt(nx, ny);
-    if (t >= 0 && (size_t)t < look.joinWith.size() && look.joinWith[(size_t)t]) mask |= bit[i];
-  }
-  return mask;
-}
-
 bool readPngSize(const std::string& path, int& width, int& height, std::string& err) {
   FILE* f = std::fopen(path.c_str(), "rb");
   if (!f) {
