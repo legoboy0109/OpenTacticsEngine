@@ -18,7 +18,6 @@ class HomeScene : public Scene {
   void drawInfo(Renderer& r, int x, int y, int w, int h) const;
   int gameCount() const { return (int)host_.games().size(); }
   int optionsRow() const { return gameCount(); }
-  int quitRow() const { return gameCount() + 1; }  // -1 where Quit is not offered
   bool hasQuit() const;
   std::string label(int row) const;
 

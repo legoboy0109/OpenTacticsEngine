@@ -17,10 +17,7 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   const TerrainDef& td = b.terrainAt(cell);
   // The visual style may recolor terrain and force the placeholder letters on or off.
   const StyleDef* st = c.style;
-  size_t ti = (size_t)b.cells[cell].terrain;
-  uint32_t rgb = st && ti < st->terrainColors.size() && st->terrainColors[ti] >= 0 ? (uint32_t)st->terrainColors[ti]
-                                                                                    : td.color;
-  Color col = Color::rgb(rgb);
+  Color col = Color::rgb(terrainRgb(c, cs.terrain));
   r.fillRect(sx, sy, t, t, col);
   r.drawRect(sx, sy, t, t, Color(0, 0, 0, 28));
   if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {
