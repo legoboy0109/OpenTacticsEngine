@@ -8,17 +8,19 @@ interface DialogProps {
   footer?: ReactNode
   /** Submit handler when the dialog content is a form. */
   onSubmit?: () => void
+  /** A roomy dialog (the picture picker). */
+  wide?: boolean
 }
 
 /** A modal dialog on the native <dialog> element: the rest of the page is
  *  inert (that is the focus trap), Escape closes it, and focus returns to
  *  whatever opened it. */
-export function Dialog({ open, title, onClose, children, footer, onSubmit }: DialogProps) {
+export function Dialog({ open, title, onClose, children, footer, onSubmit, wide }: DialogProps) {
   if (!open) return null
-  return <OpenDialog title={title} onClose={onClose} footer={footer} onSubmit={onSubmit}>{children}</OpenDialog>
+  return <OpenDialog title={title} onClose={onClose} footer={footer} onSubmit={onSubmit} wide={wide}>{children}</OpenDialog>
 }
 
-function OpenDialog({ title, onClose, children, footer, onSubmit }: Omit<DialogProps, 'open'>) {
+function OpenDialog({ title, onClose, children, footer, onSubmit, wide }: Omit<DialogProps, 'open'>) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const el = ref.current!
@@ -34,7 +36,7 @@ function OpenDialog({ title, onClose, children, footer, onSubmit }: Omit<DialogP
     </>
   )
   return (
-    <dialog ref={ref} className="dialog" aria-label={title}
+    <dialog ref={ref} className={`dialog${wide ? ' wide' : ''}`} aria-label={title}
       onCancel={(e) => { e.preventDefault(); onClose() }}
       onMouseDown={(e) => { if (e.target === ref.current) onClose() }}>
       {onSubmit

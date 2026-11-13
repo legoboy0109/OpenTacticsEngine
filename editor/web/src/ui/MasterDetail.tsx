@@ -8,6 +8,8 @@ export interface ListItem {
   sub?: string
   /** A colour chip shown before the label (terrain). */
   swatch?: string
+  /** Something else shown before the label (a thumbnail). */
+  thumb?: ReactNode
 }
 
 interface Props {
@@ -31,11 +33,14 @@ interface Props {
   listHidden?: boolean
   /** Extra buttons next to Duplicate / Delete. */
   extraActions?: ReactNode
+  /** Wording of the New / Delete buttons when "New {noun}" / "Delete" do not fit (default: New {noun}, Delete). */
+  newLabel?: string
+  deleteLabel?: string
 }
 
 /** List on the left, form for the selected item on the right. On a phone the
  *  two are separate views: the list first, the form opens with a back button. */
-export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions }: Props) {
+export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions, newLabel, deleteLabel }: Props) {
   const narrow = useNarrow()
   const known = items.some((i) => i.id === selectedId)
   // Wide screens always show a form; phones show it only once an item is picked.
@@ -49,7 +54,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
       <div className="md-list">
         <div className="md-list-head">
           <h1>{title}</h1>
-          <button type="button" className="btn primary sm" onClick={onNew}><Icon name="plus" />New {noun}</button>
+          <button type="button" className="btn primary sm" onClick={onNew}><Icon name="plus" />{newLabel ?? `New ${noun}`}</button>
         </div>
         {items.length === 0 && <p className="help">{emptyText ?? `No ${title.toLowerCase()} yet.`}</p>}
         <ul className="md-items" aria-label={title}>
@@ -57,6 +62,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
             <li key={i.id}>
               <button type="button" className="md-item" aria-current={i.id === current ? 'true' : undefined} onClick={() => onSelect(i.id)}>
                 {i.swatch && <span className="swatch" style={{ background: i.swatch }} aria-hidden="true" />}
+                {i.thumb}
                 <span className="md-item-text">
                   <span className="md-item-label">{i.label || 'Unnamed'}</span>
                   {i.sub && <span className="md-item-sub">{i.sub}</span>}
@@ -81,7 +87,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
                   </>
                 )}
                 {onDuplicate && <button type="button" className="btn sm" onClick={() => onDuplicate(item.id)}><Icon name="copy" />Duplicate</button>}
-                {onDelete && <button type="button" className="btn sm danger" onClick={() => onDelete(item.id)}><Icon name="trash" />Delete</button>}
+                {onDelete && <button type="button" className="btn sm danger" onClick={() => onDelete(item.id)}><Icon name="trash" />{deleteLabel ?? 'Delete'}</button>}
               </div>
             </div>
             <div className="md-detail-body" key={item.id}>{children(item.id)}</div>

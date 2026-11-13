@@ -7,9 +7,15 @@ export interface Division { mode: 'one' | 'grid'; cellWidth: number; cellHeight:
 export function guessDivision(width: number, height: number, tileSize: number): Division {
   const tile = Math.max(1, Math.round(tileSize) || 24)
   if (width <= tile * 2 && height <= tile * 2) return { mode: 'one', cellWidth: width, cellHeight: height }
-  const fits = (n: number) => width % n === 0 && height % n === 0
-  const size = fits(tile) ? tile : [16, 32, 24, 48].find(fits) ?? tile
+  const size = gridSizeFor(width, height, tile)
   return { mode: 'grid', cellWidth: size, cellHeight: size }
+}
+
+/** The square piece size a grid should start with (also used when someone switches "One picture" to a grid). */
+export function gridSizeFor(width: number, height: number, tileSize: number): number {
+  const tile = Math.max(1, Math.round(tileSize) || 24)
+  const fits = (n: number) => width % n === 0 && height % n === 0
+  return fits(tile) ? tile : [16, 32, 24, 48].find(fits) ?? tile
 }
 
 export interface GridInfo { cols: number; rows: number; extraRight: number; extraBottom: number }

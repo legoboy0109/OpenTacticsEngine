@@ -1,0 +1,89 @@
+// Helpers for the art tests: PNGs made on the fly (no files in the repo), driving the Art screen and the picker like a
+// person would, and reading pixels from the canvases.
+import { deflateSync } from 'node:zlib'
+import type { Locator, Page } from '@playwright/test'
+import { editorUrl, expect, saved } from './fixtures'
+
+export type Rgba = [number, number, number, number]
+
+const crcTable = (() => {
+  const t: number[] = []
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t.push(c >>> 0) }
+  return t
+})()
+const crc = (b: Buffer) => { let c = 0xffffffff; for (const x of b) c = crcTable[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0 }
+function chunk(type: string, data: Buffer): Buffer {
+  const out = Buffer.alloc(12 + data.length)
+  out.writeUInt32BE(data.length, 0); out.write(type, 4, 'latin1'); data.copy(out, 8)
+  out.writeUInt32BE(crc(out.subarray(4, 8 + data.length)), 8 + data.length)
+  return out
+}
+
+/** An 8-bit RGBA PNG; `px(x, y)` gives each pixel. */
+export function makePng(width: number, height: number, px: (x: number, y: number) => Rgba): Buffer {
+  const raw = Buffer.alloc((width * 4 + 1) * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) raw.set(px(x, y), y * (width * 4 + 1) + 1 + x * 4)
+  }
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(height, 4); ihdr[8] = 8; ihdr[9] = 6
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))])
+}
+
+/** Distinct, easy-to-tell colour for piece (col, row). */
+export const pieceColor = (col: number, row: number): Rgba => [(col * 53 + 40) % 256, (row * 71 + 90) % 256, ((col + row) * 37 + 20) % 256, 255]
+
+/** A sheet of `cols` x `rows` pieces of `cell` pixels, each piece one flat colour (pieceColor). */
+export const sheetPng = (cols: number, rows: number, cell = 24): Buffer =>
+  makePng(cols * cell, rows * cell, (x, y) => pieceColor(Math.floor(x / cell), Math.floor(y / cell)))
+
+export const solidPng = (w: number, h: number, c: Rgba): Buffer => makePng(w, h, () => c)
+
+export const png = (name: string, buffer: Buffer) => ({ name, mimeType: 'image/png', buffer })
+
+export async function openArt(page: Page, game: string, item?: string): Promise<void> {
+  await page.goto(editorUrl(game, 'art', item))
+  await expect(page.getByRole('heading', { name: 'Art', level: 1 })).toBeVisible()
+}
+
+/** Adds images through the file chooser of the Art screen. */
+export async function addImages(page: Page, files: Array<{ name: string; mimeType: string; buffer: Buffer }>): Promise<void> {
+  await page.getByTestId('add-image-input').setInputFiles(files)
+}
+
+/** Adds one image and waits until it is in the list and saved. */
+export async function addImage(page: Page, name: string, buffer: Buffer, listName?: string): Promise<void> {
+  await addImages(page, [png(name, buffer)])
+  await expect(page.getByRole('list', { name: 'Art' }).getByRole('button', { name: listName ?? name.replace(/\.png$/, '') })).toBeVisible()
+  await saved(page)
+}
+
+export const imageList = (page: Page) => page.getByRole('list', { name: 'Art' })
+
+/** Page coordinates of the middle of piece (col, row) on a piece grid (the picker's or the Art screen's). */
+export async function piecePoint(grid: Locator, col: number, row: number): Promise<{ x: number; y: number }> {
+  await grid.scrollIntoViewIfNeeded()
+  const box = (await grid.boundingBox())!
+  const zoom = Number(await grid.getAttribute('data-zoom'))
+  const [cw, ch] = (await grid.getAttribute('data-cell'))!.split(',').map(Number)
+  return { x: box.x + (col + 0.5) * cw * zoom, y: box.y + (row + 0.5) * ch * zoom }
+}
+
+export async function clickPiece(page: Page, grid: Locator, col: number, row: number): Promise<void> {
+  const p = await piecePoint(grid, col, row)
+  await page.mouse.click(p.x, p.y)
+}
+
+export const picker = (page: Page) => page.getByRole('dialog', { name: /^Choose a picture for/ })
+export const pickerGrid = (page: Page) => picker(page).getByTestId('piece-grid')
+
+/** Reads one device pixel of a canvas (page coordinates are not needed: canvas coordinates). */
+export async function canvasPixel(canvas: Locator, x: number, y: number): Promise<Rgba> {
+  return canvas.evaluate((el, [px, py]) => {
+    const c = el as HTMLCanvasElement
+    const d = c.getContext('2d')!.getImageData(px, py, 1, 1).data
+    return [d[0], d[1], d[2], d[3]] as [number, number, number, number]
+  }, [x, y] as [number, number])
+}
+
+export const near = (a: Rgba | number[], b: Rgba | number[], tol = 6) => a.slice(0, 3).every((v, i) => Math.abs(v - b[i]) <= tol)

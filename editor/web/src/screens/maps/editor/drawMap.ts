@@ -2,6 +2,8 @@
 // terrain colour + faint letter, owner border in the side's colour, unit block in the
 // side's colour with the type's letter, yellow leader marker. All coordinates are device pixels
 // rounded to whole pixels so edges stay crisp at any zoom and devicePixelRatio.
+import { drawTerrainArt, drawUnitArt } from '../../../art/draw'
+import { PLAIN_STYLE, unitPicture, type ArtScene, type StyleView } from '../../../art/scene'
 import type { Cell } from '../../../model/mapGrid'
 import type { MapFile, MapUnit, Terrain, Unit } from '../../../model/types'
 import type { View } from './geometry'
@@ -12,6 +14,10 @@ export interface Scene {
   types: Map<string, Unit>
   /** "x,y" of units standing where they cannot be. */
   flagged: Set<string>
+  /** Pictures (null = the game has none: everything keeps the placeholder look). */
+  art?: ArtScene | null
+  /** The visual style being previewed: background, terrain colours, letters on/off. */
+  style?: StyleView
 }
 
 export interface DrawState {
@@ -23,6 +29,8 @@ export interface DrawState {
   cursor: Cell | null
   selected: Cell | null
   ghost: { from: Cell; to: Cell } | null
+  /** Running time in ms for animated pictures (0 under reduced motion). */
+  time?: number
 }
 
 const BACKDROP = '#14161c'
@@ -49,7 +57,10 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
   const mw = map.grid.width, mh = map.grid.height
   const S = view.scale * dpr, ox = view.x * dpr, oy = view.y * dpr
   g.setTransform(1, 0, 0, 1, 0, 0)
-  g.fillStyle = BACKDROP
+  const style = scene.style ?? PLAIN_STYLE
+  const art = scene.art ?? null
+  const time = st.time ?? 0
+  g.fillStyle = style.background ?? BACKDROP
   g.fillRect(0, 0, Math.ceil(st.w * dpr), Math.ceil(st.h * dpr))
   const x0 = Math.max(0, Math.floor(-ox / S)), x1 = Math.min(mw - 1, Math.floor((st.w * dpr - ox) / S))
   const y0 = Math.max(0, Math.floor(-oy / S)), y1 = Math.min(mh - 1, Math.floor((st.h * dpr - oy) / S))
@@ -61,23 +72,35 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
 
   g.textAlign = 'center'
   g.textBaseline = 'middle'
+  const idAt = (x: number, y: number) => map.legend[map.tiles[y]?.[x] ?? ''] ?? ''
+  const wantGlyph = showGlyph && style.showGlyphs
   for (let y = y0; y <= y1; y++) {
     const row = map.tiles[y] ?? ''
     for (let x = x0; x <= x1; x++) {
-      const t = scene.terrain.get(map.legend[row[x]] ?? '')
-      const col = parseHex(t?.color)
+      const tid = map.legend[row[x]] ?? ''
+      const t = scene.terrain.get(tid)
+      const col = parseHex(style.terrainColors[tid] ?? t?.color)
       const cx = px(x), cy = py(y), cw = px(x + 1) - cx, ch = py(y + 1) - cy
       g.fillStyle = css(col)
       g.fillRect(cx, cy, cw, ch)
+      // Art replaces the letter and the faint outline; the colour stays underneath for transparent pixels.
+      if (art && drawTerrainArt(g, art, tid, x, y, mw, mh, idAt, time, cx, cy, cw, ch)) continue
       const glyph = t?.glyph
-      if (showGlyph && glyph && glyph !== ' ') {
+      if (wantGlyph && glyph && glyph !== ' ') {
         g.fillStyle = css(mix(col, readableOn(col), 0.28))
         g.font = `bold ${Math.round(S * 0.45)}px ${FONT}`
         g.fillText(glyph, cx + cw / 2, cy + ch / 2 + 1)
       }
+      // With art on the map the outline is drawn per square (art squares have none); without, one pass below.
+      if (art && S >= 8 * dpr) {
+        g.fillStyle = 'rgba(0,0,0,0.11)'
+        g.fillRect(cx, cy, cw, 1); g.fillRect(cx, cy, 1, ch)
+        if (x === mw - 1) g.fillRect(cx + cw, cy, 1, ch)
+        if (y === mh - 1) g.fillRect(cx, cy + ch, cw, 1)
+      }
     }
   }
-  if (S >= 8 * dpr) {
+  if (!art && S >= 8 * dpr) {
     g.fillStyle = 'rgba(0,0,0,0.11)'
     for (let x = x0; x <= x1 + 1; x++) g.fillRect(px(x), py(y0), 1, py(y1 + 1) - py(y0))
     for (let y = y0; y <= y1 + 1; y++) g.fillRect(px(x0), py(y), px(x1 + 1) - px(x0), 1)
@@ -90,16 +113,20 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
     g.fillRect(cx, cy, cw, bw); g.fillRect(cx, cy + ch - bw, cw, bw)
     g.fillRect(cx, cy + bw, bw, ch - 2 * bw); g.fillRect(cx + cw - bw, cy + bw, bw, ch - 2 * bw)
   }
-  for (const u of map.units ?? []) {
-    if (u.x < x0 || u.x > x1 || u.y < y0 || u.y > y1) continue
-    drawUnit(g, scene, u, px(u.x), py(u.y), px(u.x + 1) - px(u.x), py(u.y + 1) - py(u.y), sideColor(u.side), 1, showGlyph || S >= 9 * dpr)
-    if (scene.flagged.has(`${u.x},${u.y}`)) drawFlag(g, px(u.x), py(u.y), px(u.x + 1) - px(u.x), S)
+  // Top row first, so lower units overlap higher ones (only matters for sprites taller than their square).
+  const units = art && map.units ? map.units.slice().sort((a, b) => a.y - b.y) : map.units ?? []
+  const reach = art?.tallRows ?? 0
+  for (const u of units) {
+    if (u.x < x0 || u.x > x1 || u.y < y0 || u.y > y1 + reach) continue
+    const ux = px(u.x), uy = py(u.y), uw = px(u.x + 1) - ux, uh = py(u.y + 1) - uy
+    drawAnyUnit(g, scene, u, ux, uy, uw, uh, sideColor(u.side), 1, showGlyph || S >= 9 * dpr, time)
+    if (u.y <= y1 && scene.flagged.has(`${u.x},${u.y}`)) drawFlag(g, ux, uy, uw, S)
   }
   if (st.ghost) {
     const u = map.units?.find((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
     const t = st.ghost.to
     if (u && t.x >= 0 && t.y >= 0 && t.x < mw && t.y < mh) {
-      drawUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true)
+      drawAnyUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true, time)
     }
   }
   const ring = (c: Cell, color: string, width: number, inset = 0) => {
@@ -112,6 +139,25 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
   if (st.hover) { g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(px(st.hover.x), py(st.hover.y), px(st.hover.x + 1) - px(st.hover.x), py(st.hover.y + 1) - py(st.hover.y)) }
   if (st.selected) { ring(st.selected, 'rgba(0,0,0,0.85)', line * 3); ring(st.selected, '#ffffff', line * 2, line * 0.5) }
   if (st.cursor) { ring(st.cursor, '#ffe45c', line * 2); ring(st.cursor, '#ffffff', line, line * 2) }
+}
+
+/** A unit with a picture is drawn from it; every other unit keeps the coloured block with its letter. */
+function drawAnyUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean, time: number): void {
+  const pic = unitPicture(scene.art ?? null, u.type, u.side)
+  if (pic && drawUnitArt(g, pic, { on: scene.art!.marker, color: css(side) }, time, cx, cy, cw, ch, alpha)) {
+    if (u.leader) drawLeaderPip(g, cx, cy, cw, alpha)
+    return
+  }
+  drawUnit(g, scene, u, cx, cy, cw, ch, side, alpha, glyph)
+}
+
+function drawLeaderPip(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, alpha: number): void {
+  const k = cw / 24
+  const m = Math.max(3, Math.round(5 * k)), inset = Math.max(1, Math.round(3 * k))
+  g.fillStyle = `rgba(0,0,0,${0.86 * alpha})`
+  g.fillRect(cx + inset - 1, cy + inset - 1, m, m)
+  g.fillStyle = `rgba(255,210,40,${alpha})`
+  g.fillRect(cx + inset, cy + inset, m - 2, m - 2)
 }
 
 function drawUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean): void {

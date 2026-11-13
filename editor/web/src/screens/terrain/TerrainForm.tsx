@@ -10,6 +10,7 @@ import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { MultiSelect } from '../../ui/MultiSelect'
 import { NumberInput } from '../../ui/NumberInput'
 import { TextInput } from '../../ui/TextInput'
+import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
 import { MoveCosts } from './MoveCosts'
 import { T } from './text'
@@ -48,6 +49,8 @@ export function TerrainForm({ id }: { id: string }) {
           </Field>
         </FormGrid>
       </Card>
+
+      <PictureCard kind="terrain" id={id} name={t.name} />
 
       <Card><MoveCosts id={id} /></Card>
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../../../ui/Icon'
+import { Select, type Option } from '../../../ui/Select'
 import { TOOLS, type Tool } from './tools'
 import { T } from './text'
 import type { MapViewState } from './viewState'
@@ -11,9 +12,13 @@ const TOOL_ICON: Record<Tool, ReactNode> = {
   select: <path d="M5 4l13 6-6 2-2 6zM13 13l6 6" />,
 }
 
-interface Props { tool: Tool; onTool: (t: Tool) => void; vs: MapViewState; mapW: number; mapH: number }
+interface Props {
+  tool: Tool; onTool: (t: Tool) => void; vs: MapViewState; mapW: number; mapH: number
+  /** Visual styles to preview (only passed when the game has more than one). */
+  looks?: { options: Option[]; value: string; onChange: (id: string) => void }
+}
 
-export function Toolbar({ tool, onTool, vs, mapW, mapH }: Props) {
+export function Toolbar({ tool, onTool, vs, mapW, mapH, looks }: Props) {
   return (
     <div className="map-toolbar">
       <div className="tool-group" role="toolbar" aria-label={T.toolsLabel}>
@@ -25,6 +30,12 @@ export function Toolbar({ tool, onTool, vs, mapW, mapH }: Props) {
           </button>
         ))}
       </div>
+      {looks && (
+        <label className="look-select" title={T.lookHelp}>
+          <span className="look-label">{T.look}</span>
+          <Select value={looks.value} options={looks.options} onChange={looks.onChange} aria-label={T.lookAria} />
+        </label>
+      )}
       <ZoomControls vs={vs} mapW={mapW} mapH={mapH} />
     </div>
   )
