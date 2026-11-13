@@ -166,9 +166,9 @@ describe('terrain deletion and maps', () => {
     expect(Object.values(m.legend)).not.toContain('plain')
     expect(gridProblems(m, next.terrain!)).toEqual([])
     expect(terrainAt(m, 0, 0)).toBe(next.terrain![0].id)
-    // The grid model reads it and re-writes a clean legend.
-    const out = writeGrid(m, readGrid(m, next.terrain!), next.terrain!)
-    expect(new Set(Object.values(out.legend)).size).toBe(Object.keys(out.legend).length)
-    expect(gridProblems(out, next.terrain!)).toEqual([])
+    // The map is rewritten through the grid model: one symbol per terrain, rows unchanged in meaning.
+    expect(new Set(Object.values(m.legend)).size).toBe(Object.keys(m.legend).length)
+    expect(m.tiles).toHaveLength(d.maps.bridge!.tiles.length)
+    expect(readGrid(m, next.terrain!).cells.filter((c) => c === next.terrain![0].id).length).toBeGreaterThan(0)
   })
 })

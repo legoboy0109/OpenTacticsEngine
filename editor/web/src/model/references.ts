@@ -1,5 +1,6 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
+import { readGrid, writeGrid } from './mapGrid'
 import { dropKey, without } from './util'
 import type { MapFile, ProjectDoc, Section, Unit } from './types'
 
@@ -121,15 +122,19 @@ export function cleanWeapon(doc: ProjectDoc, id: string): ProjectDoc {
   }
 }
 
-/** Map tiles of the removed terrain become `replacement`; looks forget its colour. */
+/** Map squares of the removed terrain become `replacement`; the legend and tiles are rebuilt so no two symbols mean the same terrain. Looks forget its colour. */
 export function cleanTerrain(doc: ProjectDoc, id: string, replacement: string): ProjectDoc {
   const game = doc.game && doc.game.styles?.some((s) => s.terrainColors && id in s.terrainColors)
     ? { ...doc.game, styles: updateStyles(doc.game.styles, id) } : doc.game
+  const remaining = (doc.terrain ?? []).filter((t) => t.id !== id)
   return {
     ...doc,
     game,
-    maps: mapMembers(doc, (m) => (Object.values(m.legend).includes(id)
-      ? { ...m, legend: Object.fromEntries(Object.entries(m.legend).map(([ch, t]) => [ch, t === id ? replacement : t])) } : m)),
+    maps: mapMembers(doc, (m) => {
+      if (!Object.values(m.legend).includes(id)) return m
+      const swapped = { ...m, legend: Object.fromEntries(Object.entries(m.legend).map(([ch, t]) => [ch, t === id ? replacement : t])) }
+      return remaining.length ? writeGrid(swapped, readGrid(swapped, remaining), remaining) : swapped
+    }),
   }
 }
 

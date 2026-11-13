@@ -7,6 +7,7 @@ import { RulesScreen } from '../screens/rules/RulesScreen'
 import { TerrainScreen } from '../screens/terrain/TerrainScreen'
 import { UnitsScreen } from '../screens/units/UnitsScreen'
 import { WeaponsScreen } from '../screens/weapons/WeaponsScreen'
+import { usePlay } from '../play/usePlay'
 import { useProject, useStore } from '../store/context'
 import { ProblemsPanel } from './ProblemsPanel'
 import { SaveBanners } from './SaveBanners'
@@ -15,8 +16,7 @@ import { TopBar } from './TopBar'
 
 type ProjectRoute = Extract<Route, { kind: 'project' }>
 
-/** Screens receive the item picked in the URL (if any). The map editor and
- *  Play plug in here: replace MapsScreen, and give TopBar a real Play button. */
+/** Screens receive the item picked in the URL (if any). */
 function Screen({ route }: { route: ProjectRoute }) {
   switch (route.section) {
     case 'game': return <GameScreen />
@@ -32,7 +32,12 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
   const store = useStore()
   const { phase, loadError, doc, canUndo, canRedo } = useProject()
   const [problemsOpen, setProblemsOpen] = useState(false)
-  const closeProblems = useCallback(() => setProblemsOpen(false), [])
+  const [fixFirst, setFixFirst] = useState(false)
+  const closeProblems = useCallback(() => { setProblemsOpen(false); setFixFirst(false) }, [])
+  // Play runs the map being edited, or the first map anywhere else.
+  const maps = doc.game?.maps ?? []
+  const playMap = (route.section === 'maps' && maps.some((m) => m.id === route.itemId) ? route.itemId : maps[0]?.id) ?? ''
+  const play = usePlay(maps, useCallback(() => { setFixFirst(true); setProblemsOpen(true) }, []))
 
   // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z act on the whole game, even while typing in a box.
   useEffect(() => {
@@ -60,8 +65,10 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
   return (
     <div className="app">
       <a href="#main" className="skip-link">Skip to content</a>
-      <TopBar problemsOpen={problemsOpen} onToggleProblems={() => setProblemsOpen((o) => !o)} />
-      {problemsOpen && <ProblemsPanel onClose={closeProblems} />}
+      <TopBar problemsOpen={problemsOpen} onToggleProblems={() => { if (problemsOpen) closeProblems(); else setProblemsOpen(true) }}
+        onPlay={() => void play.start(playMap)} playBusy={play.busy} playDisabled={!playMap} playRef={play.buttonRef} />
+      {problemsOpen && <ProblemsPanel onClose={closeProblems} fixFirst={fixFirst} />}
+      {play.node}
       <div className="workspace">
         <Sidebar current={route.section} />
         <main id="main" className="main" tabIndex={-1}>
