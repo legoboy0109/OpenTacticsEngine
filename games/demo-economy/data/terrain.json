@@ -1,0 +1,23 @@
+{ "terrain": [
+  { "id": "plain",    "name": "Plain",    "color": "#9ccc65", "glyph": ".",
+    "props": { "defense": 1 } },
+  { "id": "road",     "name": "Road",     "color": "#c9c3b0", "glyph": "r",
+    "props": { "defense": 0 } },
+  { "id": "forest",   "name": "Forest",   "color": "#43803c", "glyph": "f",
+    "moveCost": { "tread": 2, "wheels": 3 },
+    "props": { "defense": 2 } },
+  { "id": "mountain", "name": "Mountain", "color": "#8d7b68", "glyph": "m",
+    "moveCost": { "foot": 2, "tread": 0, "wheels": 0 },
+    "props": { "defense": 4 } },
+  { "id": "sea",      "name": "Sea",      "color": "#3b78c4", "glyph": "~",
+    "moveCost": { "foot": 0, "tread": 0, "wheels": 0 },
+    "props": { "defense": 0 } },
+  { "id": "city",     "name": "City",     "color": "#b7b7b7", "glyph": "c",
+    "props": { "defense": 3 }, "capture": 20, "income": { "funds": 1000 } },
+  { "id": "factory",  "name": "Factory",  "color": "#9a9a9a", "glyph": "F",
+    "props": { "defense": 3 }, "capture": 20, "income": { "funds": 1000 },
+    "produces": ["infantry", "mech", "recon", "tank", "artillery"] },
+  { "id": "hq",       "name": "Headquarters", "color": "#d4af37", "glyph": "H",
+    "props": { "defense": 4 }, "capture": 20, "income": { "funds": 1000 },
+    "tags": ["hq"] }
+] }
