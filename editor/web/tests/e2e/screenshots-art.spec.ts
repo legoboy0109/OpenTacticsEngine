@@ -29,18 +29,11 @@ async function artGame(request: APIRequestContext, create: () => Promise<string>
   return { id, sheet: 'tiles' }
 }
 
-async function addStyles(request: APIRequestContext, id: string) {
-  const doc = await (await request.get(`/api/projects/${id}`)).json()
-  doc.game.styles = [{ id: 'classic', name: 'Classic' }, { id: 'parchment', name: 'Parchment', background: '#2b2118', showGlyphs: false, terrainColors: { plain: '#d9c79a', forest: '#9aa66a' } }]
-  expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: doc.game } })).ok()).toBeTruthy()
-}
-
 test.describe('art screenshots', () => {
   test('desktop light', async ({ page, request, game }) => {
     await page.setViewportSize({ width: 1180, height: 760 })
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
     const { id, sheet } = await artGame(request, () => game.create('strategy-rpg', 'Ford Skirmish'))
-    await addStyles(request, id)
     await openArt(page, id, sheet)
     await expect(page.getByTestId('grid-summary')).toBeVisible()
     await shot(page, '32-art-light', true)
@@ -69,11 +62,12 @@ test.describe('art screenshots', () => {
     await shot(page, '39-picker-unit-light')
     await page.keyboard.press('Escape')
 
-    await page.goto(editorUrl(id, 'terrain', 'forest')); await saved(page)
+    // Looks: the demo game has a Parchment look with pictures of its own (read-only here: nothing is saved).
+    await page.goto(editorUrl('demo-srpg', 'terrain', 'plain')); await saved(page)
     await page.getByLabel('For look:').selectOption('parchment')
-    await shot(page, '40-picture-looks-light')
+    await shot(page, '40-picture-looks-light', true)
 
-    await openMap(page, id, 'ford')
+    await openMap(page, 'demo-srpg', 'bridge')
     await pickTerrain(page, 'Forest').click()
     await shot(page, '41-map-art-light')
     await page.getByLabel('Look to preview').selectOption('parchment')

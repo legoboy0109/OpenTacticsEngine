@@ -64,13 +64,25 @@ export const imageList = (page: Page) => page.getByRole('list', { name: 'Art' })
 export async function piecePoint(grid: Locator, col: number, row: number): Promise<{ x: number; y: number }> {
   await grid.scrollIntoViewIfNeeded()
   const box = (await grid.boundingBox())!
-  const zoom = Number(await grid.getAttribute('data-zoom'))
+  const zoom = await steadyZoom(grid)
   const [cw, ch] = (await grid.getAttribute('data-cell'))!.split(',').map(Number)
   return { x: box.x + (col + 0.5) * cw * zoom, y: box.y + (row + 0.5) * ch * zoom }
 }
 
+/** The grid fits itself to its box a moment after a dialog opens: wait until the zoom has stopped changing. */
+async function steadyZoom(grid: Locator): Promise<number> {
+  let last = -1
+  for (let i = 0; i < 30; i++) {
+    const z = Number(await grid.getAttribute('data-zoom'))
+    if (z === last) return z
+    last = z
+    await grid.page().waitForTimeout(120)
+  }
+  return last
+}
+
 export async function clickPiece(_page: Page, grid: Locator, col: number, row: number): Promise<void> {
-  const zoom = Number(await grid.getAttribute('data-zoom'))
+  const zoom = await steadyZoom(grid)
   const [cw, ch] = (await grid.getAttribute('data-cell'))!.split(',').map(Number)
   // Locator.click scrolls the point into view (the picker's grid scrolls inside the dialog).
   await grid.click({ position: { x: (col + 0.5) * cw * zoom, y: (row + 0.5) * ch * zoom } })
@@ -92,15 +104,30 @@ export const near = (a: Rgba | number[], b: Rgba | number[], tol = 6) => a.slice
 
 // ---- seeding through the API (fast set-up for tests that are not about adding images) ----
 
-/** Puts PNG files into art/ and the given graphics section into the project, like another program would. */
+/** Puts PNG files into art/ and the given graphics section into the project, like another program would. The starter art
+ *  that templates now carry is wiped first, so a test sees exactly the art it seeds (nothing else in art/, no stray images). */
 export async function seedArt(request: APIRequestContext, id: string, files: Record<string, Buffer>, graphics: object): Promise<void> {
+  let doc = await (await request.get(`/api/projects/${id}`)).json()
+  if (doc.graphics) {
+    expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, graphics: { sheets: [] } } })).ok()).toBeTruthy()
+  }
+  for (const f of (await (await request.get(`/api/projects/${id}/art`)).json()).art) {
+    expect((await request.delete(`/api/projects/${id}/${f.file}`)).ok(), f.file).toBeTruthy()
+  }
   for (const [name, buffer] of Object.entries(files)) {
     const res = await request.put(`/api/projects/${id}/art/${name}.png`, { data: buffer, headers: { 'content-type': 'image/png' } })
     expect(res.status(), await res.text()).toBe(201)
   }
-  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  doc = await (await request.get(`/api/projects/${id}`)).json()
   const res = await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, graphics } })
   expect(res.ok(), await res.text()).toBeTruthy()
+}
+
+/** A game from a template with no art at all (art section empty, nothing in art/), for tests that start from scratch. */
+export async function bareGame(request: APIRequestContext, game: { create(template: string, name?: string): Promise<string> }, template: string, name: string): Promise<string> {
+  const id = await game.create(template, name)
+  await seedArt(request, id, {}, { sheets: [] })
+  return id
 }
 
 /** One image "tiles" (art/tiles.png, square pieces of `cell` pixels) plus optional extra graphics keys. */

@@ -8,7 +8,8 @@ import { updateUnit } from '../../src/model/units'
 import { DocumentStore } from '../../src/store/documentStore'
 import { loadTemplate } from './fixtures'
 
-const server = (): ServerProject => ({ ...loadTemplate('blank'), id: 'g', revision: 'r0', problems: [] })
+// A game with no art yet (the templates now come with starter art).
+const server = (): ServerProject => ({ ...loadTemplate('blank'), graphics: null, id: 'g', revision: 'r0', problems: [] })
 const rename = (n: string) => (d: ProjectDoc) => updateUnit(d, d.units![0].id, { name: n })
 const png = () => new Blob([new Uint8Array([1, 2, 3])])
 const uploaded = (rev: string, file = 'art/a.png'): Result<UploadResult> => ({ ok: true, value: { file, width: 24, height: 24, size: 3, revision: rev } })

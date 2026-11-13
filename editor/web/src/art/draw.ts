@@ -31,17 +31,19 @@ export function drawTerrainArt(g: CanvasRenderingContext2D, art: ArtScene, id: s
   return !!r && drawPiece(g, r, terrainCell(art, id, r, x, y, mapW, mapH, idAt, timeMs), dx, dy, dw, dh)
 }
 
-/** The flat base in the side's colour: a bar across the bottom of the square, about a sixth of it high, inset one pixel,
- *  with a one-pixel dark outline (pixels scale with the square: 24 px is the player's tile). */
+/** The flat base in the side's colour, as the player draws it (engine/player/battle/sprites.cpp): a bar across the bottom of the
+ *  square, inset one pixel on the sides and the bottom, a sixth of the square of fill inside a one-pixel dark outline.
+ *  "One pixel" is a pixel of the player's 24 px tile, scaled to the square being drawn. */
 export function drawMarker(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, ch: number, color: string, alpha: number): void {
   const px = Math.max(1, Math.round(cw / 24))
-  const h = Math.max(3 * px, Math.round(ch / 6))
-  const x = cx + px, w = cw - 2 * px, y = cy + ch - px - h
-  g.fillStyle = `rgba(0,0,0,${0.78 * alpha})`
-  g.fillRect(x, y, w, h)
+  const fill = Math.max(2 * px, Math.round(ch / 6))
+  const bw = cw - 2 * px, bh = fill + 2 * px
+  const x = cx + px, y = cy + ch - px - bh
+  g.fillStyle = `rgba(20,20,28,${(200 / 255) * alpha})`
+  g.fillRect(x, y, bw, bh)
   g.fillStyle = color
   g.globalAlpha = alpha
-  g.fillRect(x + px, y + px, w - 2 * px, h - 2 * px)
+  g.fillRect(x + px, y + px, bw - 2 * px, bh - 2 * px)
   g.globalAlpha = 1
 }
 

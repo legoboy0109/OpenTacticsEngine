@@ -2,6 +2,7 @@
 // "Use this picture" is pressed; until then nothing in the document changes.
 import { useMemo, useState } from 'react'
 import { useArtState } from '../../art/useArt'
+import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
 import { emptyPick, lookFromPick, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
 import { gridInfo } from '../../model/gridGuess'
@@ -102,7 +103,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
       <div className="picker-layout">
         <div className="picker-main stack tight">
           <Field label={P.image} help={P.imageHelp}>
-            <Select value={pick.sheet} options={sheets.map((s) => ({ value: s.id, label: s.name || s.file }))}
+            <Select value={pick.sheet} options={sheets.map((s) => ({ value: s.id, label: s.name || artBase(s.file) }))}
               onChange={(v) => { setWarn(false); set({ sheet: v, cells: [] }) }} />
           </Field>
           <fieldset className="fieldset">
@@ -120,7 +121,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           {warn && <p className="error-text" role="alert">{P.blockOutside}</p>}
           {sheet && img?.status === 'ready' && info && (
             <PieceGrid key={sheet.id + sheet.file} image={img.img} width={img.width} height={img.height} cellWidth={sheet.cellWidth} cellHeight={sheet.cellHeight}
-              marks={marks} block={block} hoverBlock={pick.kind === 'join' ? 4 : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || sheet.file)} />
+              marks={marks} block={block} hoverBlock={pick.kind === 'join' ? 4 : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
           )}
           {sheet && img?.status === 'loading' && <p className="help" role="status">Loading the image…</p>}
           {sheet && img?.status === 'error' && <p className="error-text" role="alert">The image file could not be opened.</p>}

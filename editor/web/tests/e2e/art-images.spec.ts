@@ -1,12 +1,12 @@
 // The Art screen: adding images (PNG and other formats), the limits, the grid, replace, remove, unused files.
-import { existsSync, readFileSync } from 'node:fs'
-import { addImage, addImages, imageList, makePng, openArt, png, sheetPng, solidPng } from './artkit'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { addImage, addImages, bareGame, imageList, makePng, openArt, png, sheetPng, solidPng } from './artkit'
 import { diskPath, expect, readDisk, saved, test } from './fixtures'
 
 const noConflict = (page: import('@playwright/test').Page) => expect(page.getByText(/changed on disk/i)).toHaveCount(0)
 
-test('add a PNG: it is listed, divided by the first guess, saved, and no false conflict @smoke', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Add')
+test('add a PNG: it is listed, divided by the first guess, saved, and no false conflict @smoke', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Add')
   await openArt(page, id)
   await expect(page.getByText('No images yet.').first()).toBeVisible()
   await addImage(page, 'Terrain Tiles.png', sheetPng(4, 2), 'Terrain Tiles')
@@ -28,8 +28,8 @@ test('add a PNG: it is listed, divided by the first guess, saved, and no false c
   expect(readDisk(id, 'data/graphics.json').sheets[0].name).toBe('Ground')
 })
 
-test('a small image is one picture; the same name twice gets a different file name', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art One')
+test('a small image is one picture; the same name twice gets a different file name', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art One')
   await openArt(page, id)
   await addImage(page, 'hero.png', solidPng(24, 24, [200, 30, 30, 255]))
   await expect(page.getByRole('radio', { name: 'One picture' })).toHaveAttribute('aria-checked', 'true')
@@ -45,8 +45,8 @@ test('a small image is one picture; the same name twice gets a different file na
   await expect(page).toHaveURL(/\/art\/b$/)
 })
 
-test('an image that is not a PNG is converted in the browser before it goes up', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Convert')
+test('an image that is not a PNG is converted in the browser before it goes up', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Convert')
   await openArt(page, id)
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24"><rect width="24" height="24" fill="#d22"/><rect x="24" width="24" height="24" fill="#22d"/></svg>'
   await addImages(page, [{ name: 'flags.svg', mimeType: 'image/svg+xml', buffer: Buffer.from(svg) }])
@@ -61,8 +61,8 @@ test('an image that is not a PNG is converted in the browser before it goes up',
   expect(await game.problems(id)).toEqual([])
 })
 
-test('an image that cannot be opened, or is too large, is refused with a plain message and nothing changes', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Refuse')
+test('an image that cannot be opened, or is too large, is refused with a plain message and nothing changes', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Refuse')
   await openArt(page, id)
   await addImages(page, [{ name: 'notes.png', mimeType: 'image/png', buffer: Buffer.from('this is not a picture') }])
   await expect(page.getByText('“notes.png” could not be opened as an image.')).toBeVisible()
@@ -70,26 +70,27 @@ test('an image that cannot be opened, or is too large, is refused with a plain m
   await expect(page.getByText('This image is 3000 × 1200 pixels. The largest that works on every device is 2048 × 2048.')).toBeVisible()
   await expect(page.getByText('No images yet.').first()).toBeVisible()
   await saved(page)
-  expect(existsSync(diskPath(id, 'art'))).toBe(false)
-  expect(existsSync(diskPath(id, 'data/graphics.json'))).toBe(false)
+  expect(readdirSync(diskPath(id, 'art'))).toEqual([])
+  expect(readDisk(id, 'data/graphics.json')).toEqual({ sheets: [] })
   // 2048 x 2048 is the largest that works.
   await addImage(page, 'max.png', solidPng(2048, 2048, [5, 5, 5, 255]))
   expect(readDisk(id, 'data/graphics.json').sheets[0]).toMatchObject({ cellWidth: 16 })
 })
 
-test('when the helper refuses an upload the message is shown and the document is untouched', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Helper No')
+test('when the helper refuses an upload the message is shown and the document is untouched', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Helper No')
   await openArt(page, id)
   await page.route('**/api/projects/*/art/*.png*', (r) => r.fulfill({ status: 400, contentType: 'application/json', body: '{"error":"the file is not a PNG image"}' }))
   await addImages(page, [png('x.png', solidPng(24, 24, [1, 1, 1, 255]))])
   await expect(page.getByText('“x.png” was not added: the file is not a PNG image')).toBeVisible()
   await expect(page.getByText('No images yet.').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled()
-  expect(existsSync(diskPath(id, 'data/graphics.json'))).toBe(false)
+  expect(readDisk(id, 'data/graphics.json')).toEqual({ sheets: [] })
+  expect(readdirSync(diskPath(id, 'art'))).toEqual([])
 })
 
-test('set how an image is divided: grid size, quick sizes, left-over pixels', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Grid')
+test('set how an image is divided: grid size, quick sizes, left-over pixels', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Grid')
   await openArt(page, id)
   await addImage(page, 'sheet.png', makePng(100, 50, () => [90, 120, 60, 255]))
   await expect(page.getByTestId('grid-summary')).toHaveText('4 across, 2 down') // nothing divides 100 x 50 evenly: the tile size

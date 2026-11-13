@@ -1,7 +1,7 @@
 // Managing art: undo/redo, removing, unused files, replacing a file, art that follows deleted/duplicated things,
 // and the races between uploads and the autosave.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { addImage, addImages, clickPiece, imageList, openArt, png, picker, pickerGrid, seedArt, sheetPng, solidPng, tilesGraphics } from './artkit'
+import { addImage, addImages, bareGame, clickPiece, imageList, openArt, png, picker, pickerGrid, seedArt, sheetPng, solidPng, tilesGraphics } from './artkit'
 import { diskPath, editorUrl, expect, readDisk, saved, section, test, writeDisk } from './fixtures'
 
 const noConflict = (page: import('@playwright/test').Page) => expect(page.getByText(/changed on disk/i)).toHaveCount(0)
@@ -9,8 +9,8 @@ const undo = (page: import('@playwright/test').Page) => page.getByRole('button',
 const redo = (page: import('@playwright/test').Page) => page.getByRole('button', { name: 'Redo' })
 const pictures = { terrain: { forest: { sheet: 'tiles', cell: [3, 3] } }, units: { lord: { sheet: 'tiles', cell: [0, 1] } } }
 
-test('undo and redo cover every picture edit and never touch the files @smoke', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Art Undo')
+test('undo and redo cover every picture edit and never touch the files @smoke', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'Art Undo')
   await openArt(page, id)
   await addImage(page, 'tiles.png', sheetPng(4, 4))
   await page.getByRole('link', { name: 'Terrain', exact: true }).click()
@@ -172,8 +172,8 @@ test('deleting a terrain or unit that has a picture clears it (one undo step); d
 })
 
 test.describe('uploads and the autosave', () => {
-  test('an edit waiting for its autosave while an image is added: no false conflict, nothing lost @smoke', async ({ page, game }) => {
-    const id = await game.create('strategy-rpg', 'Art Race')
+  test('an edit waiting for its autosave while an image is added: no false conflict, nothing lost @smoke', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Race')
     await openArt(page, id)
     await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
     await page.getByLabel('Name', { exact: true }).fill('Renamed one') // autosave is now waiting its 800 ms
@@ -190,8 +190,8 @@ test.describe('uploads and the autosave', () => {
     expect(readDisk(id, 'data/graphics.json').sheets[1].name).toBe('Renamed two')
   })
 
-  test('an image added while a save is in flight waits for it and nothing conflicts', async ({ page, game }) => {
-    const id = await game.create('strategy-rpg', 'Art Race Slow')
+  test('an image added while a save is in flight waits for it and nothing conflicts', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Race Slow')
     await openArt(page, id)
     await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
     let slowed = 0
@@ -210,8 +210,8 @@ test.describe('uploads and the autosave', () => {
     expect(g.sheets.map((s: any) => s.name)).toEqual(['Slow save', 'two'])
   })
 
-  test('a real change made elsewhere is still caught: the upload works, the banner appears, nothing is overwritten', async ({ page, game }) => {
-    const id = await game.create('strategy-rpg', 'Art Elsewhere')
+  test('a real change made elsewhere is still caught: the upload works, the banner appears, nothing is overwritten', async ({ page, request, game }) => {
+    const id = await bareGame(request, game, 'strategy-rpg', 'Art Elsewhere')
     await openArt(page, id)
     await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
     const g = readDisk(id, 'game.json')

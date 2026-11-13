@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { bareGame } from './artkit'
 import { addSecondMap, editorUrl, expect, requirePlayer, saved, section, test } from './fixtures'
 import { clickCell, openMap, pickTerrain, tab } from './mapkit'
 import { countColor, decodePng, diffCount, distinctColors } from './png'
@@ -31,7 +32,7 @@ async function play(page: Page): Promise<void> {
 }
 
 test('@smoke Play opens the embedded player on the map being edited; it posts ready and draws a real picture', async ({ page, game, request }) => {
-  const id = await game.create('strategy-rpg', 'Play')
+  const id = await bareGame(request, game, 'strategy-rpg', 'Play')
   const second = await addSecondMap(request, id)
   await page.addInitScript(() => {
     ;(window as unknown as { __msgs: string[] }).__msgs = []
@@ -50,15 +51,15 @@ test('@smoke Play opens the embedded player on the map being edited; it posts re
 })
 
 test('Play from another section runs the first map', async ({ page, game, request }) => {
-  const id = await game.create('strategy-rpg', 'PlayFirst')
+  const id = await bareGame(request, game, 'strategy-rpg', 'PlayFirst')
   await addSecondMap(request, id)
   await page.goto(editorUrl(id, 'rules'))
   await playButton(page).click()
   await expect(panel(page).locator('iframe')).toHaveAttribute('src', `/player/embed.html?project=${id}&map=ford`)
 })
 
-test('@smoke keyboard input reaches the game without clicking it first', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'PlayKeys')
+test('@smoke keyboard input reaches the game without clicking it first', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'PlayKeys')
   await openMap(page, id, 'ford')
   await play(page)
   await settle(page)
@@ -73,7 +74,7 @@ test('@smoke keyboard input reaches the game without clicking it first', async (
 })
 
 test('@smoke Restart runs the latest save; a changed side colour shows in the unit blocks', async ({ page, game, request }) => {
-  const id = await game.create('strategy-rpg', 'PlayRestart')
+  const id = await bareGame(request, game, 'strategy-rpg', 'PlayRestart')
   await openMap(page, id, 'ford')
   await tab(page, 'Sides').click()
   await page.getByLabel('Blue Company colour (hex code)').fill('#ff00ff') // edit in the editor, then play at once: Play saves first
@@ -95,7 +96,7 @@ test('@smoke Restart runs the latest save; a changed side colour shows in the un
 })
 
 test('the map picker switches maps; Close and Esc return focus to the Play button', async ({ page, game, request }) => {
-  const id = await game.create('economy-tactics', 'PlayPick')
+  const id = await bareGame(request, game, 'economy-tactics', 'PlayPick')
   const second = await addSecondMap(request, id)
   await page.goto(editorUrl(id, 'rules'))
   await play(page)
@@ -114,8 +115,8 @@ test('the map picker switches maps; Close and Esc return focus to the Play butto
   await expect(playButton(page)).toBeFocused()
 })
 
-test('Play with a problem shows the Problems panel instead and does not start', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'PlayProblem')
+test('Play with a problem shows the Problems panel instead and does not start', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'strategy-rpg', 'PlayProblem')
   await openMap(page, id, 'ford')
   await pickTerrain(page, 'River').click()
   await clickCell(page, 1, 3) // a lord stands here: the game no longer loads
@@ -132,8 +133,8 @@ test('Play with a problem shows the Problems panel instead and does not start', 
   await play(page)
 })
 
-test('an error from the player is shown readably with a way back', async ({ page, game }) => {
-  const id = await game.create('blank', 'PlayError')
+test('an error from the player is shown readably with a way back', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'blank', 'PlayError')
   await page.route('**/player/embed.html*', (route) => route.fulfill({
     contentType: 'text/html',
     body: '<script>parent.postMessage({type:"ote-player-error", message:"Script error: boom at line 3"}, "*")</script>',
@@ -148,8 +149,8 @@ test('an error from the player is shown readably with a way back', async ({ page
   await expect(section(page, 'Rules')).toBeVisible()
 })
 
-test('while the player has not answered yet, a loading state shows', async ({ page, game }) => {
-  const id = await game.create('blank', 'PlayLoading')
+test('while the player has not answered yet, a loading state shows', async ({ page, request, game }) => {
+  const id = await bareGame(request, game, 'blank', 'PlayLoading')
   await page.route('**/player/embed.html*', (route) => route.fulfill({ contentType: 'text/html', body: '<p>quiet</p>' }))
   await page.goto(editorUrl(id, 'rules'))
   await playButton(page).click()
