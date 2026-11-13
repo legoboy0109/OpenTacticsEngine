@@ -4,6 +4,7 @@ import path from 'node:path'
 import type { ProjectDoc } from '../../src/model/types'
 
 const games = path.resolve(import.meta.dirname, '../../../../games')
+const templates = path.resolve(import.meta.dirname, '../../../templates')
 
 /** Removes // comments and trailing commas without touching strings. */
 export function parseLoose(text: string): any {
@@ -22,9 +23,15 @@ export function parseLoose(text: string): any {
   return JSON.parse(out.replace(/,(\s*[}\]])/g, '$1'))
 }
 
-const read = (name: string, rel: string) => parseLoose(readFileSync(path.join(games, name, rel), 'utf8'))
+const readIn = (root: string) => (name: string, rel: string) => parseLoose(readFileSync(path.join(root, name, rel), 'utf8'))
 
-export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc {
+export const TEMPLATES = ['strategy-rpg', 'economy-tactics', 'blank'] as const
+
+export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc { return loadFrom(games, name) }
+export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
+
+function loadFrom(root: string, name: string): ProjectDoc {
+  const read = readIn(root)
   const game = read(name, 'game.json')
   const maps: ProjectDoc['maps'] = {}
   for (const m of game.maps) maps[m.id] = read(name, m.file)

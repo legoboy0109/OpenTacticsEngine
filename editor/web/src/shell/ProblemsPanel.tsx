@@ -6,7 +6,7 @@ import { Icon } from '../ui/Icon'
 import { SECTION_LABEL } from './Sidebar'
 
 /** The helper's problem list. The message text is shown exactly as the helper wrote it. */
-export function ProblemsPanel({ onClose }: { onClose: () => void }) {
+export function ProblemsPanel({ onClose, fixFirst }: { onClose: () => void; fixFirst?: boolean }) {
   const store = useStore()
   const { problems, doc, save } = useProject()
   useEffect(() => {
@@ -21,6 +21,7 @@ export function ProblemsPanel({ onClose }: { onClose: () => void }) {
         <h2>Problems</h2>
         <button type="button" className="btn ghost sm icon" aria-label="Close problems" onClick={onClose}><Icon name="close" /></button>
       </header>
+      {fixFirst && problems.length > 0 && <p className="attention" role="alert">Fix these before playing.</p>}
       {problems.length === 0 && <p className="help">The game loads and starts without problems.</p>}
       {pending && problems.length > 0 && <p className="help">This list is from the last save; it updates after the next one.</p>}
       <ul>

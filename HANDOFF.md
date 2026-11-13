@@ -13,7 +13,7 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
   and verified): real AI + `ote-sim`; SDL3 backend + `ote-player`.
 - Text/fonts: shared text engine (TrueType via stb_truetype) with SDL3 and
   SDL2 backends; the player lays out everything from measured text.
-- Web build done (see "Web build" below). Not started: README.
+- Web build done (see "Web build" below). Browser editor done end to end (see "Editor web UI"). Not started: README.
 
 ## Editor helper
 
@@ -38,22 +38,38 @@ exist when running it from another build dir name.
 
 ## Editor web UI
 
-`editor/web/` is the browser editor (TypeScript, React 18, Vite; runtime deps: react, react-dom only).
-Layout: `src/api` (the only fetch calls), `src/model` (pure doc edits, no React), `src/store`
-(undo, autosave, conflict), `src/ui` (components), `src/screens/<section>`, `src/shell` (top bar, sidebar).
-Map editor / Play plug in at `src/screens/maps/MapsScreen.tsx` (replace `MapDetail`) and the disabled
-Play button in `src/shell/TopBar.tsx`; `store.flush()` exists for "save before Play".
+`editor/web/` is the browser editor (TypeScript, React 18, Vite; runtime deps: react, react-dom only). All screens are
+done: project picker, Game, Rules, Units, Weapons, Terrain, **Maps (full map editor)** and **Play** (embedded web player).
+Layout: `src/api` (the only fetch calls), `src/model` (pure doc edits, no React; `map*.ts` = the map grid model),
+`src/store` (undo, autosave, conflict), `src/ui` (components), `src/screens/<section>` (`maps/editor/` = canvas, tools,
+panels), `src/play` (Play button logic + panel), `src/shell` (top bar, sidebar). Spec and decisions: docs/EDITOR_UI.md.
+
+Run the whole editor end to end from a clean checkout (needs CMake, Ninja, Node 20+, Emscripten for Play):
 
 ```
-cd editor/web && npm install
-npm run build          # -> editor/web/dist (served by ote-editor at /)
-npm run dev            # Vite on :5173, proxies /api /assets /player to 127.0.0.1:8765
-npm test               # vitest unit tests (model, presets, store, autosave)
-OTE_EDITOR_BIN=../../build-ui/ote-editor npm run e2e   # Playwright vs the real helper on a temp copy of games/
-npm run screenshots    # regenerate editor/web/screenshots (needs OTE_EDITOR_BIN too)
+cmake -S . -B build -G Ninja -DOTE_BUILD_PLAYER=OFF && cmake --build build            # the helper -> build/ote-editor
+PATH="$HOME/.local/share/emsdk:$HOME/.local/share/emsdk/upstream/emscripten:$PATH" EM_CONFIG="$HOME/.local/share/emsdk/.emscripten" \
+  emcmake cmake -S . -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build-web   # web player (Play), ~1 min
+(cd editor/web && npm install && npm run build)                                        # the UI -> editor/web/dist
+./build/ote-editor            # from the repo root; open http://127.0.0.1:8765/
 ```
-Notes: Vite's asset folder is `app/` because the helper owns `/assets/`. e2e needs `npm run build` first and
-a built `ote-editor` (default `../../build/ote-editor`). Firefox runs the `@smoke` tests only.
+The helper's defaults (`--web editor/web/dist`, `--player build-web/engine/player`, `--games games`) match this layout.
+Without the web player build everything but Play works (Play explains how to build it).
+
+```
+cd editor/web
+npm run dev            # Vite on :5173, proxies /api /assets /player to 127.0.0.1:8765 (a helper must be running)
+npm run typecheck      # tsc, zero errors expected
+npm test               # vitest unit tests (model incl. map grid, presets, store, autosave, history)
+OTE_EDITOR_BIN=../../build/ote-editor OTE_PLAYER_DIR=../../build-web/engine/player npm run e2e
+npm run screenshots    # regenerate editor/web/screenshots (same env vars), then: python3 tools/compress_screenshots.py screenshots
+```
+Notes: Vite's asset folder is `app/` because the helper owns `/assets/`. e2e needs `npm run build` first, a built
+`ote-editor` (`OTE_EDITOR_BIN`, default `../../build/ote-editor`) and, for the Play tests, the web player build
+(`OTE_PLAYER_DIR`, default `../../build-web/engine/player`; the Play tests FAIL with the build command when it is missing).
+e2e starts the real helper on a temp copy of games/ and editor/templates (never the repo's own) plus a second helper without
+a player for the "player not built" test. Firefox runs the `@smoke` tests only; the phone tests (360 x 740, touch) are
+Chromium only. Play tests read the player's picture from screenshots (WebGL), so they need the player's intro to settle.
 
 ## Build and test
 
@@ -128,4 +144,4 @@ node run.mjs --only embed --build /path/to/web/output
 
 ## Next concrete step
 
-Hook the editor's Play button to `/player/embed.html` (docs/ARCHITECTURE.md "Web"); README.
+README; heights editing and Visual-style preview in the map editor (not built yet).

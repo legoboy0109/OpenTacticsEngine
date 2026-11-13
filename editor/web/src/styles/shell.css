@@ -24,7 +24,8 @@
 .problems-badge .icon-svg { color: var(--ok); }
 .problems-badge.has-problems { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); font-weight: 600; }
 .problems-badge.has-problems .icon-svg { color: var(--warn); }
-.play-wrap { display: inline-flex; margin-left: 6px; }
+.play-btn { margin-left: 6px; }
+.badge-count { display: none; }
 
 .problems-panel {
   position: sticky; top: var(--topbar-h); z-index: 19; max-height: 50vh; overflow: auto;
@@ -61,21 +62,27 @@
 
 /* ---- phones: sidebar becomes a compact switcher ---- */
 @media (max-width: 719.98px) {
-  .topbar { flex-wrap: wrap; padding: 6px 12px; gap: 4px 8px; }
-  .topbar-title { max-width: 60vw; }
-  .topbar-status { order: 3; margin-left: 0; font-size: 0.85rem; }
-  .topbar-tools { display: contents; }
-  .play-wrap { order: 2; margin-left: auto; }
-  .topbar-name { order: 1; }
-  .topbar-tools > .btn.icon, .problems-badge { order: 4; }
-  .topbar-tools > .btn.icon:first-child { margin-left: auto; }
-  .topbar-status { order: 3; }
+  /* One tidy row at 360 px: icon-only buttons, the problem count as a badge, the save state as a dot. */
+  .topbar { flex-wrap: nowrap; padding: 6px 8px; gap: 4px; position: static; }
+  .topbar-name { flex: 1 1 auto; min-width: 0; padding-right: 6px; }
+  .topbar-title { max-width: none; }
+  .topbar-tools { margin-left: 0; gap: 2px; flex: none; }
+  .topbar-status { flex: none; }
+  .status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .topbar-status:not([data-state='saved'])::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+  .topbar-status[data-state='error']::before, .topbar-status[data-state='conflict']::before { background: var(--danger); }
+  .problems-badge { position: relative; width: 36px; padding: 0; }
+  .badge-text, .btn-text { display: none; }
+  .badge-count {
+    display: grid; place-items: center; position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px;
+    border-radius: 9px; background: var(--warn); color: var(--surface); font-size: 0.72rem; font-weight: 700;
+  }
+  .play-btn { width: 36px; padding: 0; margin-left: 2px; }
   .workspace { flex-direction: column; align-items: stretch; }
   .sidebar {
     position: sticky; top: 0; z-index: 15; width: auto; height: auto; padding: 6px 8px;
     border-right: 0; border-bottom: 1px solid var(--border);
   }
-  .topbar { position: static; }
   .sidebar ul { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
   .nav-link { justify-content: center; padding: 8px 2px; font-size: 0.82rem; position: relative; }
   .nav-dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; }

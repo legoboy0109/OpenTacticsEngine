@@ -49,3 +49,25 @@ export async function expectNoHScroll(page: Page): Promise<void> {
   const wide = await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)
   expect(wide, 'page is wider than the viewport').toBeLessThanOrEqual(0)
 }
+
+/** Play tests need the web player build. Missing = a FAILURE with the fix spelled out, never a silent skip. */
+export function requirePlayer(): void {
+  if (!process.env.OTE_E2E_PLAYER) {
+    throw new Error(
+      'The web player is not built, so the Play tests cannot run. Build it:\n' +
+      '  PATH="$HOME/.local/share/emsdk:$HOME/.local/share/emsdk/upstream/emscripten:$PATH" EM_CONFIG="$HOME/.local/share/emsdk/.emscripten" \\\n' +
+      '    emcmake cmake -S . -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build-web\n' +
+      'then run the tests with OTE_PLAYER_DIR=../../build-web/engine/player (the default, relative to editor/web).')
+  }
+}
+
+/** Adds a second map ("second", a copy of the first) through the API, like a second author would. */
+export async function addSecondMap(request: APIRequestContext, id: string): Promise<string> {
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  const first = doc.game.maps[0]
+  doc.game.maps.push({ id: 'second', name: 'Second Map', file: 'maps/second.json' })
+  doc.maps.second = { ...doc.maps[first.id], name: 'Second Map' }
+  const res = await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: doc.game, maps: doc.maps } })
+  expect(res.ok()).toBeTruthy()
+  return 'second'
+}

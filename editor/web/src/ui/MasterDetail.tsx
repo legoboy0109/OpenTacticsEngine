@@ -27,11 +27,15 @@ interface Props {
   /** Form for the selected item. */
   children: (id: string) => ReactNode
   emptyText?: string
+  /** Wide screens only: hide the list so the form gets the whole width (the map editor). */
+  listHidden?: boolean
+  /** Extra buttons next to Duplicate / Delete. */
+  extraActions?: ReactNode
 }
 
 /** List on the left, form for the selected item on the right. On a phone the
  *  two are separate views: the list first, the form opens with a back button. */
-export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText }: Props) {
+export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions }: Props) {
   const narrow = useNarrow()
   const known = items.some((i) => i.id === selectedId)
   // Wide screens always show a form; phones show it only once an item is picked.
@@ -41,7 +45,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
   const showDetail = item !== undefined
 
   return (
-    <div className="master-detail" data-view={showDetail && narrow ? 'detail' : 'list'}>
+    <div className="master-detail" data-view={showDetail && narrow ? 'detail' : 'list'} data-list={listHidden && !narrow ? 'hidden' : undefined}>
       <div className="md-list">
         <div className="md-list-head">
           <h1>{title}</h1>
@@ -69,6 +73,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
               {narrow && <button type="button" className="btn ghost sm" onClick={onBack}><Icon name="back" />{title}</button>}
               <h2 className="md-detail-title">{item.label || 'Unnamed'}</h2>
               <div className="md-detail-actions">
+                {!narrow && extraActions}
                 {onMove && (
                   <>
                     <button type="button" className="btn ghost sm icon" aria-label={`Move ${noun} up`} disabled={index <= 0} onClick={() => onMove(item.id, -1)}><Icon name="up" /></button>

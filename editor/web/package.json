@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "screenshots": "SHOTS=1 playwright test tests/e2e/screenshots.spec.ts --project=chromium"
+    "screenshots": "SHOTS=1 playwright test tests/e2e/screenshots --project=chromium"
   },
   "dependencies": {
     "react": "^18.3.1",

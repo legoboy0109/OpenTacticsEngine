@@ -2,6 +2,7 @@
 // Editing a map's contents (tiles, units, sides) is the map editor's job.
 import { clone, withGame } from './doc'
 import { makeId } from './ids'
+import { writeGrid } from './mapGrid'
 import { moveItem } from './util'
 import type { MapFile, ProjectDoc } from './types'
 
@@ -15,12 +16,13 @@ export function mapSize(doc: ProjectDoc, id: string): { width: number; height: n
 
 /** A fresh, valid battlefield: all of the first terrain, two sides. */
 export function blankMap(doc: ProjectDoc, name: string, width = 12, height = 8): MapFile {
-  const first = doc.terrain?.[0]?.id ?? 'plain'
-  return {
+  const terrain = doc.terrain ?? []
+  const first = terrain[0]?.id ?? 'plain'
+  const base: MapFile = {
     name,
     grid: { type: 'square', width, height },
-    legend: { '.': first },
-    tiles: Array.from({ length: height }, () => '.'.repeat(width)),
+    legend: {},
+    tiles: [],
     sides: [
       { id: 'blue', name: 'Blue', color: '#3d85c6', controller: 'human' },
       { id: 'red', name: 'Red', color: '#cc0000', controller: 'ai' },
@@ -28,6 +30,7 @@ export function blankMap(doc: ProjectDoc, name: string, width = 12, height = 8):
     owners: [],
     units: [],
   }
+  return writeGrid(base, { width, height, cells: new Array(width * height).fill(first) }, terrain.length ? terrain : [{ id: first, name: first }])
 }
 
 export function addMap(doc: ProjectDoc, name: string, id: string = newMapId(doc, name)): ProjectDoc {

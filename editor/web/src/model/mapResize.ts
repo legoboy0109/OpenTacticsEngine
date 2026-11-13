@@ -1,0 +1,51 @@
+// Changing a map's size. The anchor is where the existing map stays.
+import { MAP_MAX, readGrid, writeGrid } from './mapGrid'
+import type { MapFile, MapUnit, Terrain } from './types'
+
+export type Anchor = 'nw' | 'n' | 'ne' | 'w' | 'c' | 'e' | 'sw' | 's' | 'se'
+export const ANCHORS: Anchor[] = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se']
+
+/** How far the old top-left corner moves in the new grid. */
+export function resizeOffset(oldW: number, oldH: number, newW: number, newH: number, anchor: Anchor): { dx: number; dy: number } {
+  const dx = anchor.includes('w') ? 0 : anchor.includes('e') ? newW - oldW : Math.floor((newW - oldW) / 2)
+  const dy = anchor.includes('n') ? 0 : anchor.includes('s') ? newH - oldH : Math.floor((newH - oldH) / 2)
+  return { dx, dy }
+}
+
+export interface ResizeLoss { units: MapUnit[]; owners: Array<{ x: number; y: number; side: string }> }
+
+export const validSize = (w: number, h: number): boolean =>
+  Number.isInteger(w) && Number.isInteger(h) && w >= 1 && h >= 1 && w <= MAP_MAX && h <= MAP_MAX
+
+/** What a resize would remove (units and owned squares that fall outside). */
+export function resizeLoss(map: MapFile, newW: number, newH: number, anchor: Anchor): ResizeLoss {
+  const { dx, dy } = resizeOffset(map.grid.width, map.grid.height, newW, newH, anchor)
+  const out = (x: number, y: number) => x + dx < 0 || y + dy < 0 || x + dx >= newW || y + dy >= newH
+  return {
+    units: (map.units ?? []).filter((u) => out(u.x, u.y)),
+    owners: (map.owners ?? []).filter((o) => out(o.x, o.y)),
+  }
+}
+
+/** Resizes and removes what falls outside; new squares are the first terrain. Heights (when present) follow. */
+export function resizeMap(map: MapFile, terrain: Terrain[], newW: number, newH: number, anchor: Anchor): MapFile {
+  if (!validSize(newW, newH) || (newW === map.grid.width && newH === map.grid.height)) return map
+  const old = readGrid(map, terrain)
+  const { dx, dy } = resizeOffset(old.width, old.height, newW, newH, anchor)
+  const first = terrain[0]?.id ?? ''
+  const cells: string[] = new Array(newW * newH)
+  for (let y = 0; y < newH; y++) {
+    for (let x = 0; x < newW; x++) {
+      const ox = x - dx, oy = y - dy
+      cells[y * newW + x] = ox >= 0 && oy >= 0 && ox < old.width && oy < old.height ? old.cells[oy * old.width + ox] : first
+    }
+  }
+  const inside = (x: number, y: number) => x + dx >= 0 && y + dy >= 0 && x + dx < newW && y + dy < newH
+  const next = writeGrid(map, { width: newW, height: newH, cells }, terrain)
+  if (map.units) next.units = map.units.filter((u) => inside(u.x, u.y)).map((u) => ({ ...u, x: u.x + dx, y: u.y + dy }))
+  if (map.owners) next.owners = map.owners.filter((o) => inside(o.x, o.y)).map((o) => ({ ...o, x: o.x + dx, y: o.y + dy }))
+  if (map.heights) {
+    next.heights = Array.from({ length: newH }, (_, y) => Array.from({ length: newW }, (_, x) => map.heights![y - dy]?.[x - dx] ?? 0))
+  }
+  return next
+}

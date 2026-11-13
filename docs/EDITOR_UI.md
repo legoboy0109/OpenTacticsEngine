@@ -149,9 +149,6 @@ Deviations and additions made while building the first slice:
 - **Removed stat in a preset**: that choice is blanked, the expression uses `0` in its place (the game still
   loads), and the Rules screen shows a warning until a stat is picked again. Hand-written (custom) formulas
   that mention the stat are only listed in the delete confirmation.
-- **Maps screen** is a stub with list actions only (new, rename, duplicate, reorder, delete; the last map cannot
-  be deleted). New maps are 12 x 8 of the first terrain with two sides.
-- **Play** is a disabled button with a tooltip.
 - Deleting the last unit, terrain, map or movement type is refused (the loader requires at least one).
 - Autosave sends only the sections that changed since the last save; "Keep mine" sends everything loadable.
   Sections that failed to load (null) are never sent. Page-hide saves use `fetch` keepalive and fall back to a
@@ -161,3 +158,49 @@ Deviations and additions made while building the first slice:
   on the chosen presets; capture, income and build lists stay visible with a hint when their feature is off.
 - The first effectiveness row added to a weapon that could hit anything also sets "everything else", so the weapon
   does not suddenly lose targets.
+
+### Map editor and Play (second slice)
+
+Code: `editor/web/src/screens/maps/editor/` (canvas, tools, panels), pure edits in `src/model/map*.ts`,
+Play in `src/play/`. Decisions and deviations:
+
+- **The legend is invisible.** Maps are edited as a grid of terrain ids; `legend` + `tiles` are rebuilt on every edit
+  (`model/legend.ts`, `model/mapGrid.ts`). Characters already in the file are kept; a terrain new to the map gets its own
+  glyph/letter if free, else the first free character of a fixed pool (87 symbols; never space, `"` or `\`). Legend entries
+  for terrain no longer used on the map are dropped on the next edit. Deleting a terrain rewrites the maps through the same
+  code, so no two symbols ever mean the same terrain. Unknown keys on maps, sides, units and owners survive every edit.
+- **Damaged maps** (wrong row count/length, unknown symbol, legend naming a missing terrain, bad heights) show the exact
+  problems and a **Repair this map** button instead of the editor; the repair is one undo step.
+- **Impassable terrain under a unit**: painting is allowed and the unit is flagged (red corner on the canvas, a line in the
+  checks list, the helper reports it as a problem); nothing is deleted. Placing/dragging a unit onto terrain it cannot enter,
+  and changing a unit's type to one that cannot stand there, is refused with a one-line explanation. Placing on an occupied
+  square selects the unit there instead.
+- **Selection is a square, not a list index**, so it survives undo. Stat overrides are stored only when they differ from the
+  unit type's value; typing the base value (or clearing the box) removes the key; changing the unit type drops overrides that
+  equal the new type's values. Name, level and leader are stored only when meaningful.
+- **Undo**: one drag (paint, owners) = one history step through a `stroke:<n>` coalescing key, which merges however long
+  the pointer rests (ordinary typing keys still merge only within 1.5 s). Fill, place, move, remove, resize are single steps.
+- **Touch**: the first action of a touch is held until it is clear whether it is a tap, a drag, a long press or the start
+  of a two-finger pan/pinch (no timer is involved except the 500 ms long press, which picks terrain with the Terrain tool).
+  Mouse acts immediately. Canvas uses `touch-action: none`, so the page never scrolls while drawing.
+- **Keyboard**: the canvas has a cursor (arrows, Shift+arrows = 5 squares, Enter or Space applies the tool, Delete removes
+  a unit, Esc deselects). Space pans only while the mouse is over the canvas; with the keyboard alone it applies the tool.
+  Tool/palette buttons are individually tabbable `radio` buttons (no arrow-key roving inside a group).
+- **Layout**: the zoom buttons live in the toolbar (floating buttons covered squares on phones). Below 680 px of column
+  width the key hints are dropped from the tool buttons (the line under the map lists them). The map list column starts
+  hidden below 1500 px window width (a "Show map list" button brings it back; the choice is remembered) so the canvas gets
+  the width. On phones the canvas and tools stay pinned at the top while the options sheet scrolls; the sheet can be folded.
+- **Remembered per browser** (localStorage, optional): chosen tool, fill mode, last terrain/unit type/side, options sheet
+  open/closed, map list shown/hidden.
+- **Checks** (`model/mapChecks.ts`) are friendly hints, separate from the helper's problems. Square coordinates in them
+  and in the status line count from 1; the helper's own messages count from 0.
+- **Rendering** reproduces the game's placeholder look but ignores Visual styles (always the terrain's own colour/letter);
+  heights are preserved and resized but not drawn or edited.
+- **Play**: Play flushes the save, refuses with the Problems panel ("Fix these before playing.") when the saved game has
+  problems, then does a HEAD request for `/player/ote-player.wasm` (404 = player not built: a dialog shows the build
+  command), then opens a full-size dialog with the embedded player. It runs the map being edited, else the first map; the
+  header map picker and Restart both save first. The panel listens only to messages from its own iframe, shows a loading
+  veil until `ote-player-ready`, and a readable error with **Back to editing** on `ote-player-error`. Esc closes the
+  panel only while focus is outside the iframe (inside it, Esc belongs to the game).
+- **Phone top bar** is one row: icon-only Undo/Redo/Play, the problem count as a badge on the problems button, the save
+  state as a dot (the words stay for screen readers).

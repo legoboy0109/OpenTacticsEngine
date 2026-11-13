@@ -1,23 +1,21 @@
-// Stub: lists the maps and handles list-level actions. The map editor (paint
-// tiles, place units, sides, resize) will replace MapDetail below; everything
-// it needs about a map is doc.maps[id] and the pure edits in model/maps.ts.
+// The Maps section: the list (new, rename, duplicate, reorder, delete) and the map editor for the picked map.
 import { useState } from 'react'
-import { addMap, deleteMap, duplicateMap, mapRemovalBlock, mapSize, moveMap, newMapId, renameMap } from '../../model/maps'
+import { addMap, deleteMap, duplicateMap, mapRemovalBlock, mapSize, moveMap, newMapId } from '../../model/maps'
 import { navigate, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
 import { useDoc, useEdit, useStore } from '../../store/context'
 import { Banner } from '../../ui/Banner'
-import { Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
-import { Field } from '../../ui/Field'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
-import { TextInput } from '../../ui/TextInput'
+import { useStored } from '../../ui/hooks'
+import { Icon } from '../../ui/Icon'
+import { MapEditor } from './editor/MapEditor'
 import { T } from './text'
 
 export function MapsScreen({ itemId }: { itemId?: string }) {
   return (
-    <div className="screen">
+    <div className="screen wide">
       <Needs parts={['game']}><MapsList itemId={itemId} /></Needs>
     </div>
   )
@@ -30,6 +28,8 @@ function MapsList({ itemId }: { itemId?: string }) {
   const maps = doc.game!.maps
   const [naming, setNaming] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  // The editor needs width: on a laptop the list starts hidden (a button brings it back).
+  const [hidden, setHidden] = useStored('ote.mapListHidden', typeof window !== 'undefined' && window.innerWidth < 1500)
   const go = (id?: string) => navigate(projectPath(store.id, 'maps', id))
   const target = maps.find((m) => m.id === deleting)
   const block = target ? mapRemovalBlock(doc) : null
@@ -39,6 +39,12 @@ function MapsList({ itemId }: { itemId?: string }) {
     <>
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
         items={maps.map((m) => ({ id: m.id, label: m.name, sub: sizeText(m.id) }))}
+        listHidden={hidden}
+        extraActions={(
+          <button type="button" className="btn ghost sm" aria-pressed={!hidden} onClick={() => setHidden(!hidden)}>
+            <Icon name="list" />{hidden ? T.showList : T.hideList}
+          </button>
+        )}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}
         onDuplicate={(id) => {
           const src = maps.find((m) => m.id === id)!
@@ -60,28 +66,12 @@ function MapsList({ itemId }: { itemId?: string }) {
   )
 }
 
-/** Replace this with the map editor. */
 function MapDetail({ id }: { id: string }) {
   const doc = useDoc()
-  const edit = useEdit()
   const ref = doc.game!.maps.find((m) => m.id === id)
-  const map = doc.maps[id]
   if (!ref) return null
-  const sides = map?.sides?.length ?? 0
-  return (
-    <div className="stack">
-      <Card>
-        <Field label={T.name} help={T.nameHelp}>
-          <TextInput value={ref.name} onChange={(v) => edit((d) => renameMap(d, id, v), `map:${id}:name`)} />
-        </Field>
-        <dl className="facts">
-          <div><dt>{T.sizeLabel}</dt><dd>{map ? T.size(map.grid.width, map.grid.height) : T.unreadable}</dd></div>
-          <div><dt>{T.sidesLabel}</dt><dd>{map ? sides : T.unreadable}</dd></div>
-          <div><dt>{T.unitsLabel}</dt><dd>{map ? map.units?.length ?? 0 : T.unreadable}</dd></div>
-        </dl>
-      </Card>
-      {map === null && <Banner tone="error" title={T.unreadableTitle}>{T.unreadableBody}</Banner>}
-      <Banner tone="info" title={T.comingTitle}>{T.comingBody}</Banner>
-    </div>
-  )
+  if (doc.maps[id] === null) {
+    return <Banner tone="error" title={T.unreadableTitle}>{T.unreadableBody}</Banner>
+  }
+  return <Needs parts={['terrain', 'units']}><MapEditor id={id} /></Needs>
 }
