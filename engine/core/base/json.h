@@ -56,6 +56,8 @@ class Json {
   // Builders (used for save files). set() replaces an existing key.
   void push(const Json& v);                        // turns Null into Array
   void set(const std::string& key, const Json& v); // turns Null into Object
+  // Removes an object member; returns whether it existed.
+  bool erase(const std::string& key);
 
   // Parse text. On failure returns false and sets err to "line N: message".
   static bool parse(const std::string& text, Json& out, std::string& err);

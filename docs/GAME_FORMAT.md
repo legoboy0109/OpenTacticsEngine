@@ -22,6 +22,8 @@ id that does not exist is a load error.
 {
   "formatVersion": 1,
   "name": "My Game",
+  "description": "A short line shown in the launcher.",      // optional
+  "author": "Your Name",                                     // optional
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
 
   // Text font (optional; default is the built-in 8x8 pixel font).
@@ -58,6 +60,9 @@ id that does not exist is a load error.
     "critMultiplier": 3,
     "strikes": "1"                          // optional, attacks per combat
   },
+
+  // Switchable looks, see "Visual styles" below (optional).
+  "styles": [ { "id": "classic", "name": "Classic" } ],
 
   "scripts": ["scripts/formulas.lua"],      // optional, loaded in order
   "maps": [ { "id": "m1", "name": "First Battle", "file": "maps/m1.json" } ]
@@ -194,3 +199,31 @@ with hard pixel edges, which suits pixel fonts. Built-ins choose a default.
 The player can override a game's font: `ote-player --font sans
 --font-size 11` (or `--font path/to/file.ttf`). If a font cannot be loaded
 the player falls back to `pixel` and logs a warning.
+
+## Visual styles
+
+A game can offer several named looks; the player's "Visual style" option
+switches between them (globally or per game). The first style in the list
+is the default. A game without a `styles` list has one style, `default`.
+
+```jsonc
+"styles": [
+  { "id": "classic", "name": "Classic" },
+  { "id": "night", "name": "Night",
+    "background": "#05060f",                       // screen background
+    "showGlyphs": false,                           // hide terrain letters
+    "terrainColors": { "plain": "#2f4f3a", "sea": "#101a40" } }  // recolor terrain
+]
+```
+
+Every key except `id` is optional. Styles currently recolor the placeholder
+graphics; tilesets and sprites will attach to the same style ids, so games
+written now keep working.
+
+## Player settings (not part of a game)
+
+The player stores the user's options in `settings.json` in the user data
+folder. Options are global and apply to every game; any single option can
+be overridden for one game. Lookup order for an option: per-game override,
+then the global value, then the game's own default (e.g. `font`), then the
+engine default.

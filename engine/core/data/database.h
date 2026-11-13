@@ -102,10 +102,23 @@ struct FontConfig {
   int smooth = -1;             // 1 = anti-aliased, 0 = crisp pixels, -1 = font's default
 };
 
+// A named, switchable look for the game (docs/GAME_FORMAT.md "styles").
+// Today a style can recolor the placeholder graphics; tilesets/sprites
+// will hang off the same ids later. Index 0 is always the default style.
+struct StyleDef {
+  std::string id, name;
+  bool hasBackground = false;
+  uint32_t background = 0;
+  int showGlyphs = -1;  // 1/0 = force terrain letters on/off, -1 = default
+  // Per terrain index: replacement color, or -1 to keep the terrain's own.
+  std::vector<int32_t> terrainColors;
+};
+
 struct MapRef { std::string id, name, file; };
 
 struct Database {
   std::string name;
+  std::string description, author;  // optional, shown in the launcher
   std::string rootPath;  // game folder, no trailing slash
   ViewConfig view;
   FontConfig font;
@@ -118,6 +131,7 @@ struct Database {
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
+  std::vector<StyleDef> styles;  // never empty after loading; [0] = default
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;
@@ -127,6 +141,7 @@ struct Database {
   int findWeapon(const std::string& id) const;
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
+  int findStyle(const std::string& id) const;
 };
 
 // ---- Map (one battle setup) ----

@@ -99,6 +99,8 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
       root["formatVersion"].asNumber() != 1)
     return c.fail("", "\"formatVersion\" must be 1");
   if (!c.str(root, "name", "", db.name)) return false;
+  if (!c.str(root, "description", "", db.description)) return false;
+  if (!c.str(root, "author", "", db.author)) return false;
 
   const Json* view;
   if (!c.object(root, "view", "", view)) return false;
@@ -166,6 +168,69 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   return true;
 }
 
+static bool isHexColor(const std::string& t) {
+  if (t.size() != 7 || t[0] != '#') return false;
+  for (size_t i = 1; i < 7; ++i) {
+    char ch = t[i];
+    if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F'))) return false;
+  }
+  return true;
+}
+
+// "styles" refer to terrain ids, so they are read after the terrain file.
+// The list always ends up with a default style at index 0.
+static bool loadStyles(const std::string& path, Database& db, std::string& err) {
+  Json root;
+  if (!loadObjectFile(path, root, err)) return false;
+  LoadCtx c(err, path);
+  const Json* list;
+  if (!c.array(root, "styles", "", list)) return false;
+
+  for (size_t i = 0; i < list->size(); ++i) {
+    const Json& j = (*list)[i];
+    std::string where = "styles[" + std::to_string(i) + "]";
+    if (!j.isObject()) return c.fail(where, "must be an object");
+    StyleDef st;
+    if (!c.str(j, "id", where, st.id, true)) return false;
+    if (st.id.empty()) return c.fail(where, "\"id\" must not be empty");
+    where = "style \"" + st.id + "\"";
+    if (db.findStyle(st.id) >= 0) return c.fail(where, "duplicate id");
+    st.name = st.id;
+    if (!c.str(j, "name", where, st.name)) return false;
+    std::string bg;
+    if (!c.str(j, "background", where, bg)) return false;
+    if (!bg.empty()) {
+      if (!isHexColor(bg)) return c.fail(where, "\"background\" must look like \"#rrggbb\"");
+      st.hasBackground = true;
+      st.background = parseColor(bg, 0);
+    }
+    if (j.has("showGlyphs")) {
+      bool show = true;
+      if (!c.boolean(j, "showGlyphs", where, show)) return false;
+      st.showGlyphs = show ? 1 : 0;
+    }
+    st.terrainColors.assign(db.terrains.size(), -1);
+    const Json* colors;
+    if (!c.object(j, "terrainColors", where, colors)) return false;
+    for (const Json::Member& m : colors->members()) {
+      int t = db.findTerrain(m.first);
+      if (t < 0) return c.fail(where, "\"terrainColors\" names unknown terrain \"" + m.first + "\"");
+      if (!m.second.isString() || !isHexColor(m.second.asString()))
+        return c.fail(where, "\"terrainColors\".\"" + m.first + "\" must look like \"#rrggbb\"");
+      st.terrainColors[(size_t)t] = (int32_t)parseColor(m.second.asString(), 0);
+    }
+    db.styles.push_back(st);
+  }
+  if (db.styles.empty()) {
+    StyleDef def;
+    def.id = "default";
+    def.name = "Default";
+    def.terrainColors.assign(db.terrains.size(), -1);
+    db.styles.push_back(def);
+  }
+  return true;
+}
+
 bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   Database db;
   std::string root = gameDir;
@@ -179,6 +244,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
+  if (!loadStyles(root + "/game.json", db, err)) return false;
 
   out = db;
   err.clear();

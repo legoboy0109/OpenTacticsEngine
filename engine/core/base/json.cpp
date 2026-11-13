@@ -67,6 +67,15 @@ void Json::set(const std::string& key, const Json& v) {
   members_.push_back(Member(key, v));
 }
 
+bool Json::erase(const std::string& key) {
+  for (size_t i = 0; i < members_.size(); ++i)
+    if (members_[i].first == key) {
+      members_.erase(members_.begin() + (std::ptrdiff_t)i);
+      return true;
+    }
+  return false;
+}
+
 // ---------------------------------------------------------------- parser
 
 class JsonParser {

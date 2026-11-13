@@ -16,5 +16,6 @@ int Database::findTerrain(const std::string& id) const { return findById(terrain
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }
 int Database::findUnitType(const std::string& id) const { return findById(unitTypes, id); }
 int Database::findMap(const std::string& id) const { return findById(maps, id); }
+int Database::findStyle(const std::string& id) const { return findById(styles, id); }
 
 }  // namespace ote
