@@ -32,24 +32,20 @@ TEST(demo_srpg_starts_and_forecasts) {
   CHECK(d.db.rules.progression && d.db.rules.defeatLeaderDead);
   // Every blue unit can move somewhere, and a blue-vs-red forecast through
   // the scripted damage formula gives believable numbers.
-  int blue = -1, red = -1;
   for (const Unit& u : d.battle.units) {
-    if (u.side == 0) {
-      Reach r;
-      d.battle.reachable(u.id, r);
-      CHECK(r.stops.size() > 1);
-      if (blue < 0) blue = u.id;
-    } else if (red < 0) red = u.id;
+    if (u.side != 0) continue;
+    Reach r;
+    d.battle.reachable(u.id, r);
+    CHECK(r.stops.size() > 1);
   }
-  CHECK(blue >= 0 && red >= 0);
-  StrikeForecast f;
-  const Unit& a = d.battle.units[blue];
-  const Unit& b = d.battle.units[red];
+  // Fighter Bram (unit 3) against soldier Tane (unit 5): 7 + 8 - 4 = 11.
+  const Unit& a = d.battle.units[3];
+  const Unit& b = d.battle.units[5];
   FormulaCtx ctx;
   ctx.a = &a; ctx.b = &b; ctx.w = &d.db.weapons[d.battle.typeOf(a).weapons[0]];
   ctx.ta = &d.battle.terrainAt(a.cell); ctx.tb = &d.battle.terrainAt(b.cell);
   double dmg = d.formulas.evalDamage(d.battle.typeOf(a).weapons[0], ctx);
-  CHECK(dmg > 0 && dmg < 40);
+  CHECK_EQ((int)dmg, 11);
   double hit = d.formulas.eval(Formulas::Hit, ctx, -1);
   CHECK(hit > 20 && hit <= 150);
 }
