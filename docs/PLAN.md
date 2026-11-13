@@ -29,6 +29,8 @@ docs/GAME_FORMAT.md.
 | 4 | AI opponent (`core/ai`) + `ote-sim` headless runner | in progress |
 | 5 | SDL3 platform backend + player (menus, battle UI, automation flags) | in progress |
 | 6 | Web build (Emscripten) | todo |
+| 6a | Real fonts (stb_truetype, shared by all backends), `--font` option, SDL2 backend | todo (fonts/format groundwork done) |
+| 6b | Launcher front end inside the player: pick/load a game, edit options (font, size, display...) before starting; settings persist across restarts | todo (owner request; confirm option list + layout with owner) |
 | 7 | README, how-to-run, cleanup | todo |
 
 Done means: `ote_tests` green, `ote-sim` finishes both demo maps, the
