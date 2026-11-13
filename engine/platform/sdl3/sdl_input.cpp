@@ -1,0 +1,133 @@
+#include "platform/sdl3/sdl_input.h"
+
+#include "core/base/log.h"
+
+namespace ote {
+namespace {
+
+Button keyButton(SDL_Scancode sc) {
+  switch (sc) {
+    case SDL_SCANCODE_UP: case SDL_SCANCODE_W: return Button::Up;
+    case SDL_SCANCODE_DOWN: case SDL_SCANCODE_S: return Button::Down;
+    case SDL_SCANCODE_LEFT: case SDL_SCANCODE_A: return Button::Left;
+    case SDL_SCANCODE_RIGHT: case SDL_SCANCODE_D: return Button::Right;
+    case SDL_SCANCODE_RETURN: case SDL_SCANCODE_KP_ENTER: case SDL_SCANCODE_SPACE:
+    case SDL_SCANCODE_Z: return Button::Confirm;
+    case SDL_SCANCODE_ESCAPE: case SDL_SCANCODE_X: case SDL_SCANCODE_BACKSPACE: return Button::Cancel;
+    case SDL_SCANCODE_TAB: case SDL_SCANCODE_E: return Button::Next;
+    case SDL_SCANCODE_Q: return Button::Prev;
+    case SDL_SCANCODE_M: return Button::Menu;
+    default: return Button::None;
+  }
+}
+
+Button padButton(Uint8 b) {
+  switch (b) {
+    case SDL_GAMEPAD_BUTTON_DPAD_UP: return Button::Up;
+    case SDL_GAMEPAD_BUTTON_DPAD_DOWN: return Button::Down;
+    case SDL_GAMEPAD_BUTTON_DPAD_LEFT: return Button::Left;
+    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: return Button::Right;
+    case SDL_GAMEPAD_BUTTON_SOUTH: return Button::Confirm;
+    case SDL_GAMEPAD_BUTTON_EAST: return Button::Cancel;
+    case SDL_GAMEPAD_BUTTON_START: return Button::Menu;
+    case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: return Button::Prev;
+    case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: return Button::Next;
+    default: return Button::None;
+  }
+}
+
+InputEvent buttonEvent(InputEvent::Type t, Button b) {
+  InputEvent ev;
+  ev.type = t;
+  ev.button = b;
+  return ev;
+}
+
+bool isDirection(Button b) {
+  return b == Button::Up || b == Button::Down || b == Button::Left || b == Button::Right;
+}
+
+constexpr int kStickOn = 16000, kStickOff = 9000;  // hysteresis avoids chatter
+
+}  // namespace
+
+void SdlInput::stick(int axis, int value, std::vector<InputEvent>& out) {
+  int& dir = stickDir_[axis];
+  int want = dir;
+  if (value > kStickOn) want = 1;
+  else if (value < -kStickOn) want = -1;
+  else if (value > -kStickOff && value < kStickOff) want = 0;
+  if (want == dir) return;
+  Button neg = axis == 0 ? Button::Left : Button::Up;
+  Button pos = axis == 0 ? Button::Right : Button::Down;
+  if (dir != 0) out.push_back(buttonEvent(InputEvent::ButtonUp, dir < 0 ? neg : pos));
+  if (want != 0) out.push_back(buttonEvent(InputEvent::ButtonDown, want < 0 ? neg : pos));
+  dir = want;
+}
+
+void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<InputEvent>& out) {
+  switch (e.type) {
+    case SDL_EVENT_QUIT:
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
+      InputEvent q;
+      q.type = InputEvent::Quit;
+      out.push_back(q);
+      break;
+    }
+    case SDL_EVENT_KEY_DOWN:
+    case SDL_EVENT_KEY_UP: {
+      Button b = keyButton(e.key.scancode);
+      if (b == Button::None) break;
+      bool down = e.type == SDL_EVENT_KEY_DOWN;
+      // Auto-repeat is useful for moving a cursor, harmful for Confirm/Cancel.
+      if (down && e.key.repeat && !isDirection(b)) break;
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      break;
+    }
+    case SDL_EVENT_GAMEPAD_ADDED:
+      if (SDL_Gamepad* pad = SDL_OpenGamepad(e.gdevice.which)) {
+        OTE_INFO("gamepad connected: %s", SDL_GetGamepadName(pad));
+      } else {
+        OTE_WARN("cannot open gamepad: %s", SDL_GetError());
+      }
+      break;
+    case SDL_EVENT_GAMEPAD_REMOVED:
+      if (SDL_Gamepad* pad = SDL_GetGamepadFromID(e.gdevice.which)) SDL_CloseGamepad(pad);
+      stickDir_[0] = stickDir_[1] = 0;
+      OTE_INFO("gamepad disconnected");
+      break;
+    case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+    case SDL_EVENT_GAMEPAD_BUTTON_UP: {
+      Button b = padButton(e.gbutton.button);
+      if (b == Button::None) break;
+      out.push_back(buttonEvent(
+          e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      break;
+    }
+    case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+      if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) stick(0, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) stick(1, e.gaxis.value, out);
+      break;
+    case SDL_EVENT_MOUSE_MOTION:
+    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+    case SDL_EVENT_MOUSE_BUTTON_UP: {
+      if (e.type != SDL_EVENT_MOUSE_MOTION && e.button.button != SDL_BUTTON_LEFT) break;
+      SDL_ConvertEventToRenderCoordinates(renderer, &e);
+      InputEvent ev;
+      if (e.type == SDL_EVENT_MOUSE_MOTION) {
+        ev.type = InputEvent::PointerMove;
+        ev.x = (int)SDL_floorf(e.motion.x);
+        ev.y = (int)SDL_floorf(e.motion.y);
+      } else {
+        ev.type = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ? InputEvent::PointerDown : InputEvent::PointerUp;
+        ev.x = (int)SDL_floorf(e.button.x);
+        ev.y = (int)SDL_floorf(e.button.y);
+      }
+      out.push_back(ev);
+      break;
+    }
+    default: break;
+  }
+}
+
+}  // namespace ote
