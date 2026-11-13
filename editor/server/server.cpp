@@ -121,6 +121,14 @@ struct EditorServer::Impl {
 
   void setup() {
     svr.set_payload_max_length(kMaxBody);
+#ifndef _WIN32
+    // httplib's default also sets SO_REUSEPORT, which would let a second helper
+    // silently share the port. We want "port busy" to be a hard error.
+    svr.set_socket_options([](socket_t sock) {
+      int yes = 1;
+      setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof yes);
+    });
+#endif
     svr.set_default_headers({{"Cache-Control", "no-store"}});
 
     // DNS-rebinding defence: a hostile web page can point its own domain at
