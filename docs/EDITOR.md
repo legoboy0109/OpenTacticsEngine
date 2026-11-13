@@ -51,7 +51,20 @@ decisions: show options/mock-ups and let them choose.
    resize, per-map settings.
 4. Play button: runs the current project in the embedded player.
 
-Open design questions for the owner (ask with mock-ups when starting):
+Decided by the owner: **sidebar layout** — a left sidebar lists the
+sections (Game, Rules, Units, Weapons, Terrain, Maps), the main area shows
+the selected section, and the project name, problem count and Play button
+stay in a top bar.
+
+Technical choices: helper API in docs/EDITOR_API.md (C++ `ote-editor`
+using the vendored cpp-httplib); web UI in `editor/web/` built with
+TypeScript + React + Vite; the whole project is one document in the UI
+(GET/PUT), with undo/redo and autosave on top. Formula presets are UI
+concerns: the UI writes the generated Lua expression to the game file and
+remembers the chosen preset under an `"editor"` key in `game.json` (the
+engine ignores unknown keys).
+
+Still open for the owner (show the first version, then adjust):
 overall layout (RPG Maker-like tabs vs sidebar), naming of things shown to
 novices ("unit type" vs "class", "terrain" vs "tile"...), how presets are
 presented, visual identity.
