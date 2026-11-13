@@ -49,6 +49,21 @@ player plays both demos on Linux and in a browser, verified by screenshots.
 7. The editor (its look and workflow are the owner's design decisions).
 8. Ports: Android, console/handheld backends, GLES3/SDL_GPU renderer, 3D grids.
 
+## Settings model (owner decision, 2026-11-13)
+
+Options are global: they apply to every game by default. A game can carry
+a per-game setting that overrides one particular option for that game only;
+everything not overridden keeps following the global value. Layers, lowest
+to highest priority: engine default < game's own default in game.json
+(e.g. its `font`) < user's global option (when not left on "game default")
+< per-game override. (Confirm the middle ordering with the owner when the
+options screen is shown.)
+
+First options: font, text size, UI scale, visual style. "Visual style"
+means a game can ship several switchable graphics styles (e.g. tilesets /
+palettes) and the option picks one; design the sprite/tileset system with
+named styles in mind. More options get fleshed out later.
+
 ## Known gaps / notes
 
 - `versus` + per-weapon damage formulas cover AW damage charts and FE
