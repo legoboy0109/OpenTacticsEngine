@@ -119,9 +119,10 @@ int runApp(App& app, const PlatformConfig& config) {
   Loop loop;
   loop.app = &app;
   loop.cfg = &config;
-  SdlRenderer gfx(ren, config.logicalWidth, config.logicalHeight);
+  SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless);
   loop.gfx = &gfx;
   loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
+  app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
   loop.lastNs = SDL_GetTicksNS();
 
 #ifdef __EMSCRIPTEN__

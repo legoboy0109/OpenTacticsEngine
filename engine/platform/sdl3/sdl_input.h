@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "platform/common/stick_mapper.h"
 #include "platform/platform.h"
 
 namespace ote {
@@ -15,8 +16,7 @@ class SdlInput {
   void translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<InputEvent>& out);
 
  private:
-  void stick(int axis, int value, std::vector<InputEvent>& out);
-  int stickDir_[2] = {0, 0};  // -1 / 0 / +1 for X, Y
+  StickMapper stick_;
 };
 
 }  // namespace ote

@@ -1,10 +1,11 @@
 // Fonts shipped with the engine. "id" is what games write in
 // game.json -> font.name. "size" is the default height in logical pixels;
 // "smooth" picks anti-aliased (true) or hard-pixel (false) rendering.
+// Pixelify Sans is only legible with hard pixels from about 14px up.
 // The id "pixel" is the built-in 8x8 bitmap font and needs no entry here.
 {
   "fonts": [
-    { "id": "pixel-ttf", "name": "Pixelify Sans",          "file": "PixelifySans.ttf",                 "size": 10, "smooth": false },
+    { "id": "pixel-ttf", "name": "Pixelify Sans",          "file": "PixelifySans.ttf",                 "size": 14, "smooth": false },
     { "id": "arcade",    "name": "Press Start 2P",         "file": "PressStart2P-Regular.ttf",         "size": 8,  "smooth": false },
     { "id": "sans",      "name": "Atkinson Hyperlegible",  "file": "AtkinsonHyperlegible-Regular.ttf", "size": 10, "smooth": true },
     { "id": "serif",     "name": "Alegreya",               "file": "Alegreya.ttf",                     "size": 11, "smooth": true },
