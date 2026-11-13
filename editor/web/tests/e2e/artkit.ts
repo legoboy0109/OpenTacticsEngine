@@ -1,7 +1,7 @@
 // Helpers for the art tests: PNGs made on the fly (no files in the repo), driving the Art screen and the picker like a
 // person would, and reading pixels from the canvases.
 import { deflateSync } from 'node:zlib'
-import type { Locator, Page } from '@playwright/test'
+import type { APIRequestContext, Locator, Page } from '@playwright/test'
 import { editorUrl, expect, saved } from './fixtures'
 
 export type Rgba = [number, number, number, number]
@@ -69,9 +69,11 @@ export async function piecePoint(grid: Locator, col: number, row: number): Promi
   return { x: box.x + (col + 0.5) * cw * zoom, y: box.y + (row + 0.5) * ch * zoom }
 }
 
-export async function clickPiece(page: Page, grid: Locator, col: number, row: number): Promise<void> {
-  const p = await piecePoint(grid, col, row)
-  await page.mouse.click(p.x, p.y)
+export async function clickPiece(_page: Page, grid: Locator, col: number, row: number): Promise<void> {
+  const zoom = Number(await grid.getAttribute('data-zoom'))
+  const [cw, ch] = (await grid.getAttribute('data-cell'))!.split(',').map(Number)
+  // Locator.click scrolls the point into view (the picker's grid scrolls inside the dialog).
+  await grid.click({ position: { x: (col + 0.5) * cw * zoom, y: (row + 0.5) * ch * zoom } })
 }
 
 export const picker = (page: Page) => page.getByRole('dialog', { name: /^Choose a picture for/ })
@@ -87,3 +89,33 @@ export async function canvasPixel(canvas: Locator, x: number, y: number): Promis
 }
 
 export const near = (a: Rgba | number[], b: Rgba | number[], tol = 6) => a.slice(0, 3).every((v, i) => Math.abs(v - b[i]) <= tol)
+
+// ---- seeding through the API (fast set-up for tests that are not about adding images) ----
+
+/** Puts PNG files into art/ and the given graphics section into the project, like another program would. */
+export async function seedArt(request: APIRequestContext, id: string, files: Record<string, Buffer>, graphics: object): Promise<void> {
+  for (const [name, buffer] of Object.entries(files)) {
+    const res = await request.put(`/api/projects/${id}/art/${name}.png`, { data: buffer, headers: { 'content-type': 'image/png' } })
+    expect(res.status(), await res.text()).toBe(201)
+  }
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  const res = await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, graphics } })
+  expect(res.ok(), await res.text()).toBeTruthy()
+}
+
+/** One image "tiles" (art/tiles.png, square pieces of `cell` pixels) plus optional extra graphics keys. */
+export const tilesGraphics = (extra: object = {}, cell = 24) => ({
+  sheets: [{ id: 'tiles', file: 'art/tiles.png', cellWidth: cell, cellHeight: cell, name: 'Tiles' }], ...extra,
+})
+
+// ---- the map canvas ----
+
+/** Reads the colour of the map canvas at a point inside square (cx, cy); fx, fy are fractions of the square (0..1). */
+export async function mapPixel(page: Page, cx: number, cy: number, fx = 0.5, fy = 0.5): Promise<Rgba> {
+  const c = page.getByTestId('map-canvas')
+  await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))))
+  const [scale, vx, vy] = (await c.getAttribute('data-view'))!.split(',').map(Number)
+  return canvasPixel(c, Math.round(vx + (cx + fx) * scale), Math.round(vy + (cy + fy) * scale))
+}
+
+export const hex = (c: Rgba | number[]): string => `#${c.slice(0, 3).map((v) => v.toString(16).padStart(2, '0')).join('')}`
