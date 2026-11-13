@@ -104,6 +104,11 @@ int runApp(App& app, const PlatformConfig& config);
 // without a trailing slash. Empty string if the platform has none.
 std::string userDataDir();
 
+// Call after writing files inside userDataDir(): lets the platform persist
+// them (the web build copies its in-memory folder to browser storage; every
+// other platform writes through already, so this does nothing there).
+void commitUserData();
+
 // Names (not paths) of the sub-folders directly inside `path`, in no
 // particular order. Returns false if the folder cannot be read or the
 // platform cannot list folders (callers must then rely on index files).

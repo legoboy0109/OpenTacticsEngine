@@ -10,6 +10,13 @@
 namespace ote {
 
 std::string userDataDir() {
+#ifdef __EMSCRIPTEN__
+  // The page mounts browser storage (IDBFS) here before main() runs
+  // (engine/platform/web/player.js). Not mounted (embedded preview) = no folder.
+  SDL_PathInfo info;
+  if (SDL_GetPathInfo("/userdata", &info) && info.type == SDL_PATHTYPE_DIRECTORY) return "/userdata";
+  return "";
+#else
   char* p = SDL_GetPrefPath("OpenTacticsEngine", "player");  // created if missing, ends with a separator
   if (!p) {
     OTE_WARN("no user data folder: %s", SDL_GetError());
@@ -21,6 +28,7 @@ std::string userDataDir() {
     if (c == '\\') c = '/';
   while (dir.size() > 1 && dir.back() == '/') dir.pop_back();
   return dir;
+#endif
 }
 
 namespace {

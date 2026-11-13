@@ -2,12 +2,13 @@
 #include "app.h"
 #include "core/base/log.h"
 #include "options/option_defs.h"
+#include "platform/platform.h"
 
 namespace ote {
 
 void PlayerApp::loadSettings() {
-  settingsPath_ = args_.settings;
-  if (settingsPath_.empty() && !args_.headless) {
+  settingsPath_ = args_.noSettings ? "" : args_.settings;
+  if (settingsPath_.empty() && !args_.headless && !args_.noSettings) {
     // Headless runs are tests: never read or write the user's real settings unless asked to.
     std::string dir = userDataDir();
     if (dir.empty()) OTE_WARN("no user data folder: options will not be remembered");
@@ -26,7 +27,10 @@ void PlayerApp::loadSettings() {
 void PlayerApp::flushSettings() {
   if (settingsPath_.empty() || !settings_.dirty()) return;
   std::string err;
-  if (settings_.save(err)) return;
+  if (settings_.save(err)) {
+    commitUserData();  // web: push the written file into browser storage
+    return;
+  }
   if (!saveWarned_) OTE_ERROR("cannot save settings: %s", err.c_str());
   saveWarned_ = true;
 }
