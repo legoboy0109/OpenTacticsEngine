@@ -223,7 +223,13 @@ written now keep working.
 ## Player settings (not part of a game)
 
 The player stores the user's options in `settings.json` in the user data
-folder. Options are global and apply to every game; any single option can
-be overridden for one game. Lookup order for an option: per-game override,
-then the global value, then the game's own default (e.g. `font`), then the
-engine default.
+folder (`--settings FILE` picks another file). Options are global and apply
+to every game; any single option can be overridden for one game. Lookup
+order for an option, highest first: command-line flag, per-game override,
+global value, the game's own default (e.g. `font`, the first style), then the
+engine default. The options today are `font`, `fontSize`, `uiScale`
+(percent; multiplies the text size, rounded) and `style` (a style id above;
+a game that lacks the chosen id uses its first style). An explicit
+`fontSize` wins; otherwise the size of the font in use applies (the game's
+`font.size` only while the game's own font is in use). The built-in `pixel`
+font only grows in whole multiples of 8.

@@ -35,6 +35,21 @@ cmake -S . -B build-sdl2 -G Ninja -DOTE_PLATFORM=sdl2 && cmake --build build-sdl
     --input "wait:14,confirm,wait:2" --screenshot /tmp/x.bmp               # --font-size N, --font-smooth 0|1, --assets DIR
 ```
 
+Launcher (default when no `--game` is given): Home -> game page -> map select
+-> battle. Options (font, text size, UI scale, visual style) are global with
+optional per-game overrides and live in `settings.json` in the user data
+folder (Linux: `~/.local/share/OpenTacticsEngine/player/`). Tests and
+automation should pass `--settings /tmp/x.json`; `--headless` without it uses
+no settings file at all. Flags `--font --font-size --font-smooth --style
+--ui-scale` override the stored options for one run.
+
+```
+./build/engine/player/ote-player                                    # the launcher
+./build/engine/player/ote-player --game demo-srpg --map bridge      # straight into a battle
+./build/engine/player/ote-player --settings /tmp/s.json             # use another settings file
+./build/engine/player/ote-player --headless --settings /tmp/s.json --input "down,down,down,confirm,wait:2" --screenshot /tmp/x.bmp
+```
+
 ## Working agreements
 
 - The owner makes design/naming/direction calls; technical calls are ours.
