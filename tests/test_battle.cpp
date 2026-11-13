@@ -189,8 +189,12 @@ TEST(battle_progression_levels_up) {
   CHECK_EQ(w.battle.units[0].stats[0], 11);
   CHECK_EQ(w.battle.units[0].stats[1], 6);
   CHECK_EQ(w.battle.units[0].stats[2], 2);
-  const Event* up = w.last(EventType::LevelUp);
-  CHECK(up && up->a == 0 && up->b == 2 && up->data[0] == 1 && up->data[2] == 0);
+  // Both fighters level up (the defender earns XP for its counters too).
+  CHECK_EQ(w.count(EventType::LevelUp), 2);
+  const Event* up = nullptr;
+  for (const Event& e : w.events)
+    if (e.type == EventType::LevelUp && e.a == 0) up = &e;
+  CHECK(up && up->b == 2 && up->data[0] == 1 && up->data[2] == 0);
 }
 
 TEST(battle_hit_and_strikes_formulas) {

@@ -42,6 +42,7 @@ class Json {
   size_t size() const;
   // Array element; shared Null if out of range or not an array.
   const Json& operator[](size_t index) const;
+  const Json& operator[](int index) const { return (*this)[(size_t)(index < 0 ? ~(size_t)0 : (size_t)index)]; }
   // Object member; shared Null if missing or not an object.
   const Json& operator[](const char* key) const;
   const Json& operator[](const std::string& key) const;
