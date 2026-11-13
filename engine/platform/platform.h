@@ -34,7 +34,8 @@ struct InputEvent {
   int x = 0, y = 0;  // pointer position in LOGICAL pixels
 };
 
-// Which font to draw text with. An empty file means the built-in 8x8 pixel font.
+// Which font to draw text with. An empty file means the built-in 8x8 pixel
+// font; it is never smooth and its size rounds to a multiple of 8 (8, 16, ...).
 struct FontRequest {
   std::string file;   // path to a .ttf/.otf file
   int size = 8;       // text height (line box) in logical pixels at scale 1
