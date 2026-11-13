@@ -4,6 +4,7 @@
 export const HISTORY_CAP = 200
 /** Edits with the same key within this many ms count as one undo step (typing). */
 export const COALESCE_MS = 1500
+export const STROKE_PREFIX = 'stroke:'
 
 export interface History<T> {
   past: T[]
@@ -19,7 +20,8 @@ export const canRedo = (h: History<unknown>): boolean => h.future.length > 0
 
 export function pushEdit<T>(h: History<T>, next: T, key: string | undefined, now: number): History<T> {
   if (next === h.present) return h
-  if (key !== undefined && key === h.lastKey && now - h.lastTime < COALESCE_MS && h.past.length > 0) {
+  // "stroke:" keys (a drag on the map) merge however long the pointer rests: one drag = one undo step.
+  if (key !== undefined && key === h.lastKey && (now - h.lastTime < COALESCE_MS || key.startsWith(STROKE_PREFIX)) && h.past.length > 0) {
     return { ...h, present: next, future: [], lastTime: now }
   }
   return {
