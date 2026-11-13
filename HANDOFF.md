@@ -6,14 +6,17 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 
 ## State (2026-11-13)
 
-- Rules core complete for milestone 1 and tested: `engine/core` (JSON,
-  loader, grid, battle, Lua formulas). 36 tests green.
-- Two demo games in `games/` load and start battles.
-- In progress (delegated, each in its own git worktree/branch, to be merged
-  and verified): real AI + `ote-sim`; SDL3 backend + `ote-player`.
-- Text/fonts: shared text engine (TrueType via stb_truetype) with SDL3 and
-  SDL2 backends; the player lays out everything from measured text.
-- Web build done (see "Web build" below). Browser editor done end to end (see "Editor web UI"). Not started: README.
+Everything below is merged on `main` (local repo only, nothing pushed).
+
+- Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 55 green.
+- Player (`ote-player`): launcher, options with per-game overrides, real
+  fonts; SDL3 and SDL2 backends; web build (Emscripten).
+- Editor first slice complete: helper `ote-editor` (API test 134 green) and
+  the browser UI with every screen including the map editor and Play
+  (137 unit tests, 85 e2e in Chromium + Firefox smoke).
+- Waiting on the owner: verdict on editor wording/layout, launcher layout,
+  font picks, licence choice. Not started: README.
 
 ## Editor helper
 
@@ -29,8 +32,8 @@ python3 tests/editor_api_test.py ./build/ote-editor .   # also ctest "editor_api
 ```
 
 Notes: all /api handlers run under one mutex (engine core is not
-thread-safe); the web UI folder (editor/web/dist) does not exist yet, so `/`
-shows a built-in placeholder page. Creating a project does not touch
+thread-safe); `/` shows a built-in placeholder page until the web UI is built
+(editor/web/dist). Creating a project does not touch
 games/index.json. The helper is built with exceptions on (httplib, v0.26.0 in
 third_party/httplib); the engine itself stays exception-free.
 `ote_tests` writes a settings file into `<repo>/build/`, so that folder must
@@ -144,4 +147,8 @@ node run.mjs --only embed --build /path/to/web/output
 
 ## Next concrete step
 
-README; heights editing and Visual-style preview in the map editor (not built yet).
+Get the owner's feedback on the editor, then roadmap item 3 in docs/PLAN.md
+(each engine feature lands with its editor screen; sprites/tilesets + visual
+styles is first in the list, the owner picks the order). Small leftovers:
+README; heights editing and visual-style preview in the map editor; arrow-key
+navigation inside the editor's option groups; the "+N Funds" toast overlap.

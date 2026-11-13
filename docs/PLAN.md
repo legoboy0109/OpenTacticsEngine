@@ -41,9 +41,13 @@ player plays both demos on Linux and in a browser, verified by screenshots.
 Focus on engine functionality and the editor. Demo game balance is NOT a
 goal (demos only exercise features).
 
-1. Launcher front end + settings (work package 6b).
-2. Editor first slice: browser editor for novices (see docs/EDITOR.md),
-   including the web build of the player for in-editor play-testing.
+1. DONE: launcher front end + settings (work package 6b).
+2. DONE (2026-11-13): editor first slice: browser editor for novices (see
+   docs/EDITOR.md, docs/EDITOR_UI.md): project picker, Game, Rules, Units,
+   Weapons, Terrain, Maps (full map editor) and Play (embedded web player).
+   Awaiting the owner's verdict on wording/layout. Left out on purpose:
+   heights editing, visual-style preview on the map canvas, a scripts
+   screen, inline field validation (Problems panel only).
 3. From here on, each engine feature lands with its editor screen:
    sprites/tilesets + named visual styles, sound; save/resume; event
    system (story triggers, dialogue, win/lose conditions in data) and
@@ -94,3 +98,8 @@ named styles in mind. More options get fleshed out later.
   make this a rule option when it matters).
 - Unit ids index `Battle::units` and are never reused; dead units stay in
   the vector with `alive=false`.
+- Player: the "+N Funds" toast is drawn over the side panel's terrain line
+  at the start of a turn (seen in editor/web/screenshots/27). Cosmetic.
+- Editor screenshots are lossily compressed (20-64 colour palettes), so
+  colours in editor/web/screenshots can be off (24 shows forest as slate);
+  judge colours in the running editor, not the PNGs.
