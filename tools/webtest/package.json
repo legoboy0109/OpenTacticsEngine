@@ -1,0 +1,8 @@
+{
+  "name": "ote-webtest",
+  "private": true,
+  "type": "module",
+  "description": "Browser checks for the web build of ote-player (see HANDOFF.md)",
+  "scripts": { "test": "node run.mjs" },
+  "dependencies": { "playwright": "^1.50.0" }
+}
