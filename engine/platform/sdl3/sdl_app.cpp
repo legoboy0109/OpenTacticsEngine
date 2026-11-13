@@ -64,7 +64,11 @@ void frame(Loop& L) {
 void emFrame(void* arg) {
   Loop& L = *static_cast<Loop*>(arg);
   frame(L);
-  if (L.done) emscripten_cancel_main_loop();
+  if (L.done) {
+    // Reached --frames, the end of an --input script, or a quit request. The page stays up.
+    OTE_INFO("main loop ended after %ld frames", L.frames);
+    emscripten_cancel_main_loop();
+  }
 }
 #endif
 
