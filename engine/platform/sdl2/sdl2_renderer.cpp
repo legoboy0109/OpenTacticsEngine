@@ -86,6 +86,8 @@ SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int 
 }
 
 SdlRenderer::~SdlRenderer() {
+  for (SDL_Texture* t : images_)
+    if (t) SDL_DestroyTexture(t);
   text_.reset();  // frees atlas textures through target_, before the SDL renderer goes away
   target_.reset();
 }
@@ -101,6 +103,44 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   }
   if (SDL_RenderSetLogicalSize(r_, w_, h_) != 0) OTE_WARN("logical size failed: %s", SDL_GetError());
   OTE_INFO("logical size %dx%d", w_, h_);
+}
+
+TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height) {
+  if (!rgba || width < 1 || height < 1) return 0;
+  SDL_Texture* t = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
+  if (!t) {
+    OTE_ERROR("createTexture(%dx%d) failed: %s", width, height, SDL_GetError());
+    return 0;
+  }
+  SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+  // SDL2 has no per-texture scale mode: nearest is the default quality hint
+  // (SDL_HINT_RENDER_SCALE_QUALITY is unset or "0"; the app does not change it).
+  if (SDL_UpdateTexture(t, nullptr, rgba, width * 4) != 0) {
+    OTE_ERROR("createTexture: cannot upload pixels: %s", SDL_GetError());
+    SDL_DestroyTexture(t);
+    return 0;
+  }
+  for (size_t i = 0; i < images_.size(); ++i)
+    if (!images_[i]) { images_[i] = t; return (TextureId)(i + 1); }
+  images_.push_back(t);
+  return (TextureId)images_.size();
+}
+
+void SdlRenderer::destroyTexture(TextureId id) {
+  if (id < 1 || (size_t)id > images_.size() || !images_[(size_t)id - 1]) return;
+  SDL_DestroyTexture(images_[(size_t)id - 1]);
+  images_[(size_t)id - 1] = nullptr;
+}
+
+void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
+                              Color mod) {
+  if (id < 1 || (size_t)id > images_.size() || !images_[(size_t)id - 1] || sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) return;
+  SDL_Texture* t = images_[(size_t)id - 1];
+  SDL_SetTextureColorMod(t, mod.r, mod.g, mod.b);
+  SDL_SetTextureAlphaMod(t, mod.a);
+  SDL_Rect src = {sx, sy, sw, sh};
+  SDL_Rect dst = {dx, dy, dw, dh};
+  SDL_RenderCopy(r_, t, &src, &dst);
 }
 
 void SdlRenderer::setColor(Color c) { SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a); }

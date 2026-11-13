@@ -31,6 +31,11 @@ class SdlRenderer : public Renderer {
   int textWidth(const char* text, int scale = 1) const override { return text_->textWidth(text, scale); }
   int lineHeight(int scale = 1) const override { return text_->lineHeight(scale); }
 
+  TextureId createTexture(const uint8_t* rgba, int width, int height) override;
+  void destroyTexture(TextureId id) override;
+  void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
+                   Color mod = Color(255, 255, 255)) override;
+
   SDL_Renderer* handle() const { return r_; }
   // Saves what the player sees (the whole output, including letterbox bars)
   // as BMP. Call after drawing, before present.
@@ -43,6 +48,7 @@ class SdlRenderer : public Renderer {
   SDL_Renderer* r_;
   int w_, h_;
   bool headless_;
+  std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
   std::unique_ptr<Target> target_;
   std::unique_ptr<TextEngine> text_;
 };
