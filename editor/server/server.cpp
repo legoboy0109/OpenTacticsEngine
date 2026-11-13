@@ -7,6 +7,7 @@
 #include <mutex>
 
 #include "httplib.h"
+#include "art.h"
 #include "log.h"
 #include "projects.h"
 #include "static_files.h"
@@ -199,8 +200,23 @@ struct EditorServer::Impl {
     svr.Get(R"(/api/projects/([^/]+)/file/(.+))", guarded([this](const httplib::Request& req, httplib::Response& res) {
       RawFile f = getProjectFile(cfg, req.matches[1].str(), req.matches[2].str());
       if (f.status != 200) sendError(res, f.status, f.error);
-      else { res.status = 200; res.set_content(f.bytes, "application/octet-stream"); }
+      else {
+        std::string rel = lower(req.matches[2].str());
+        bool png = rel.size() > 4 && rel.compare(rel.size() - 4, 4, ".png") == 0;
+        res.status = 200;
+        res.set_content(f.bytes, png ? "image/png" : "application/octet-stream");
+      }
     }, true));
+    svr.Get("/api/projects/:id/art", api([this](const httplib::Request& req) {
+      return listArt(cfg, req.path_params.at("id"));
+    }));
+    svr.Put(R"(/api/projects/([^/]+)/art/(.+))", api([this](const httplib::Request& req) {
+      return putArt(cfg, req.matches[1].str(), req.matches[2].str(), req.body,
+                    req.get_param_value("overwrite") == "1");
+    }));
+    svr.Delete(R"(/api/projects/([^/]+)/art/(.+))", api([this](const httplib::Request& req) {
+      return deleteArt(cfg, req.matches[1].str(), req.matches[2].str());
+    }));
     // Any other /api path: JSON 404 (must be registered before the web catch-all).
     svr.Get(R"(/api(/.*)?)", guarded([](const httplib::Request&, httplib::Response& res) {
       sendError(res, 404, "no such API endpoint");

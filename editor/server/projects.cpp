@@ -185,6 +185,25 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   doc.set("weapons", readDataList(dir, "data/weapons.json", "weapons", readProbs));
   doc.set("units", readDataList(dir, "data/units.json", "units", readProbs));
 
+  // graphics.json is optional: absent = null with no problem.
+  Json graphics;
+  {
+    fs::path gfull;
+    std::string gwhy;
+    std::error_code gec;
+    bool absent = resolveInside(dir, "data/graphics.json", gfull, gwhy) && !fs::exists(gfull, gec);
+    if (!absent) {
+      Json g;
+      Problem gpb;
+      if (readJsonRel(dir, "data/graphics.json", g, gpb) && g.isObject()) graphics = g;
+      else {
+        if (gpb.message.empty()) gpb = {"data/graphics.json", "the file must contain a JSON object at the top level"};
+        readProbs.push_back(gpb);
+      }
+    }
+  }
+  doc.set("graphics", graphics);
+
   Json maps, scripts;  // stay null when game.json is unusable
   if (game.isObject()) {
     maps = Json::makeObject();
