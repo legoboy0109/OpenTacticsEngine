@@ -73,7 +73,9 @@ FontRequest resolveFont(const std::string& assetsDir, const std::string& gameRoo
       return pixelFontRequest();
     }
   } else if (choice.name.empty() || choice.name == "pixel") {
-    return pixelFontRequest();  // sizes/smoothing do not apply to the built-in font
+    FontRequest px = pixelFontRequest();  // smoothing never applies; size scales in whole multiples of 8
+    if (choice.size > 0) px.size = choice.size;
+    return px;
   } else {
     bool found = false;
     for (const BuiltinFont& b : listBuiltinFonts(assetsDir))

@@ -90,6 +90,38 @@ report the logical->output transform). Copy `sdl2/`, replace the SDL calls.
 - Fixed small logical resolution (default 480x270) scaled to the display.
 - Keep memory modest (original Xbox has 64 MB).
 
+## Launcher and options
+
+`ote-player` opens a launcher: Home (games from `games/index.json`, then
+any other sub-folder with a `game.json`, alphabetical; plus Options and
+Quit) -> a game's page (Play, Game options, Back) -> map select -> battle.
+The folder scan is `listSubdirs()` in the platform layer (the SDL2 backend
+returns false on platforms without a folder API, where only the index
+counts). `userDataDir()` holds `settings.json` (`core/data/settings.*`:
+global options, per-game overrides, remembered UI state such as the last
+game/map). `--headless` never reads or writes it unless `--settings FILE`.
+
+Where things live (`engine/player/`):
+- `options/option_defs.cpp`: THE table of options (key, label, list of
+  choices, how a stored value feeds the look). Both options screens
+  (`scene_options*.cpp`, global and per-game) are generated from it.
+- `options/effective.cpp`: the one function that combines the layers into
+  the font request, UI scale and style index. Priority, highest first:
+  command-line flags > per-game override > global option > the game's own
+  default (`font`, style index 0) > engine default. On launcher screens
+  (no game) the game level is skipped. An explicit font size wins, else the
+  size belonging to the font in use; `uiScale` then multiplies it.
+- `app_look.cpp`: loads/saves settings (saved on every scene switch and on
+  exit) and applies the result through `Renderer::setFont` / `setLogicalSize`.
+- `scene_home|game|options*.cpp`, `game_library.*` (discovery),
+  `ui/chrome.*` and `ui/row_list.*` (shared look, scrolling lists).
+
+Adding an option: add one entry to `optionDefs()`; if it affects the look,
+add a field to `LookLayer` (effective.h), read it in `resolveLook()`, and
+fill it in the entry's `apply`. The screens, the per-game override, "Use
+global", reset and persistence need no further code. Style recoloring
+itself is in `battle/battle_draw.*` (`terrainRgb`, background, glyphs).
+
 ## Testing
 
 `ote_tests` (unit tests) and `ote-sim` (plays whole battles AI vs AI,

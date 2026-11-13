@@ -70,7 +70,8 @@ bool TextEngine::setFont(const FontRequest& req) {
   if (font_.size > 128) font_.size = 128;
   lastOutScale_ = 0;
   if (req.file.empty()) {
-    font_.size = kBuiltinSize;
+    // The 8x8 bitmap font only grows in whole multiples (size 12 -> 16 px, ...).
+    font_.size = kBuiltinSize * ((font_.size + kBuiltinSize / 2) / kBuiltinSize);  // size was clamped to >= 4, so >= 1x
     font_.smooth = false;
     return true;
   }
@@ -117,7 +118,7 @@ int TextEngine::pixelHeightFor(int scale) const {
 
 int TextEngine::lineHeight(int scale) const {
   if (scale < 1) scale = 1;
-  return (ttf_ ? font_.size : kBuiltinSize) * scale;
+  return font_.size * scale;  // built-in font: 8 x its whole-number multiple
 }
 
 int TextEngine::glyphIndex(uint32_t cp) const {
@@ -142,7 +143,7 @@ int TextEngine::textWidth(const char* text, int scale) const {
   if (!ttf_) {
     int n = 0;
     for (const char* p = text; *p;) { decodeUtf8(p); ++n; }
-    return n * kBuiltinSize * scale;
+    return n * font_.size * scale;
   }
   float sc = unitScale(pixelHeightFor(scale));
   if (font_.smooth) {  // fractional pen: the real advances, rounded once at the end
@@ -241,7 +242,7 @@ void TextEngine::drawText(int x, int y, const char* text, Color c, int scale) {
   Mode m = mode();
 
   if (m == kBuiltin) {
-    int pen = 0, cell = kBuiltinSize * scale;
+    int pen = 0, cell = font_.size * scale;
     for (const char* p = text; *p;) {
       uint32_t cp = decodeUtf8(p);
       if (cp < 32) cp = ' ';

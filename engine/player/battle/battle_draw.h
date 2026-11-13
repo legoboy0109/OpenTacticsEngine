@@ -17,7 +17,16 @@ struct DrawCtx {
   const Layout& layout;
   const Camera& cam;
   float time = 0;
+  const StyleDef* style = nullptr;  // the visual style in use (null = defaults)
 };
+
+// Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).
+inline uint32_t terrainRgb(const DrawCtx& c, int terrain) {
+  const StyleDef* st = c.style;
+  size_t t = (size_t)terrain;
+  if (st && t < st->terrainColors.size() && st->terrainColors[t] >= 0) return (uint32_t)st->terrainColors[t];
+  return c.battle.db->terrains[t].color;
+}
 
 // Per-cell highlight masks for a selected unit (empty = nothing highlighted).
 struct Overlay {

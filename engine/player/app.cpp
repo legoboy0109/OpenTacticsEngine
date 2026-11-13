@@ -3,32 +3,17 @@
 #include "battle/battle_scene.h"
 #include "core/base/json.h"
 #include "core/base/log.h"
+#include "scene_game.h"
+#include "scene_home.h"
+#include "scene_options.h"
+#include "scene_select.h"
 
 namespace ote {
 
 PlayerApp::PlayerApp(const Args& args) : args_(args) {}
 
-void PlayerApp::readIndex() {
-  games_.clear();
-  Json index;
-  std::string err;
-  if (!loadJsonFile(args_.gamesDir + "/index.json", index, err)) {
-    indexError_ = err;
-    OTE_WARN("%s", err.c_str());
-    return;
-  }
-  for (const Json& g : index["games"].items()) {
-    GameEntry e;
-    e.id = g.asString();
-    if (e.id.empty()) continue;
-    e.name = e.id;
-    Json gj;
-    std::string gerr;
-    if (loadJsonFile(args_.gamesDir + "/" + e.id + "/game.json", gj, gerr)) e.name = gj["name"].asString(e.id);
-    else { e.readable = false; OTE_WARN("%s", gerr.c_str()); }
-    games_.push_back(e);
-  }
-}
+// Last chance to keep changes when the window is closed or the process ends normally.
+PlayerApp::~PlayerApp() { flushSettings(); }
 
 bool PlayerApp::start(std::string& err) {
   if (!args_.input.empty() && !script_.parse(args_.input, args_.inputInterval, err)) return false;
@@ -36,60 +21,47 @@ bool PlayerApp::start(std::string& err) {
 }
 
 namespace {
-constexpr int kDefaultW = 480, kDefaultH = 270;  // logical size of the list screens
-
-bool isBuiltinName(const std::string& s) { return s.find_first_of("/\\.") == std::string::npos; }
-}  // namespace
-
-// Precedence: command line > the loaded game's "font" > "pixel". --font
-// replaces the game's font entirely (its size/smooth defaults come with it);
-// --font-size / --font-smooth then override single fields of either.
-void PlayerApp::applyScreen(const Database* game) {
-  int w = kDefaultW, h = kDefaultH;
-  FontChoice choice;
-  std::string root;
-  if (game) {
-    const ViewConfig& v = game->view;
-    if (v.width >= 160 && v.height >= 120 && v.width <= 1920 && v.height <= 1080) { w = v.width; h = v.height; }
-    choice.name = game->font.name;
-    choice.file = game->font.file;
-    choice.size = game->font.size;
-    choice.smooth = game->font.smooth;
-    root = game->rootPath;
-  }
-  if (!args_.font.empty()) {
-    choice = FontChoice();
-    root.clear();
-    if (isBuiltinName(args_.font)) choice.name = args_.font;
-    else choice.file = args_.font;
-  }
-  if (args_.fontSize > 0) choice.size = args_.fontSize;
-  if (args_.fontSmooth >= 0) choice.smooth = args_.fontSmooth;
-
-  renderer_->setLogicalSize(w, h);
-  FontRequest req = resolveFont(args_.assetsDir, root, choice);
-  if (fontApplied_ && req.file == appliedFont_.file && req.size == appliedFont_.size &&
-      req.smooth == appliedFont_.smooth)
-    return;  // unchanged: skip re-reading the font file
-  if (!renderer_->setFont(req)) {  // unusable file: the engine already fell back to the built-in font
-    req = pixelFontRequest();
-    renderer_->setFont(req);
-  }
-  appliedFont_ = req;
-  fontApplied_ = true;
-  OTE_INFO("font: %s size %d %s", req.file.empty() ? "built-in pixel" : req.file.c_str(), req.size,
-           req.smooth ? "smooth" : "crisp");
+GameLook lookOf(const Database& db) {
+  GameLook g;
+  g.present = true;
+  g.font.name = db.font.name;
+  g.font.file = db.font.file;
+  g.font.size = db.font.size;
+  g.font.smooth = db.font.smooth;
+  g.root = db.rootPath;
+  for (const StyleDef& s : db.styles) g.styleIds.push_back(s.id);
+  return g;
 }
+
+GameLook lookOf(const GameEntry& e, const std::string& gamesDir) {
+  GameLook g;
+  g.present = true;
+  g.font.name = e.info.font.name;
+  g.font.file = e.info.font.file;
+  g.font.size = e.info.font.size;
+  g.font.smooth = e.info.font.smooth;
+  g.root = gamesDir + "/" + e.id;
+  for (const StyleInfo& s : e.info.styles) g.styleIds.push_back(s.id);
+  return g;
+}
+
+// Logical size of the screens while a game is loaded: the game's own view.
+void viewSize(const Database& db, int& w, int& h) {
+  w = 480;
+  h = 270;
+  const ViewConfig& v = db.view;
+  if (v.width >= 160 && v.height >= 120 && v.width <= 1920 && v.height <= 1080) { w = v.width; h = v.height; }
+}
+}  // namespace
 
 void PlayerApp::onStart(Renderer& r) {
   renderer_ = &r;
-  readIndex();
+  loadSettings();
+  std::string warning;
+  games_ = discoverGames(args_.gamesDir, warning);
+  if (notice_.empty()) notice_ = warning;
   if (!args_.game.empty()) doLoadGame(args_.game);
-  else if (games_.size() == 1) doLoadGame(games_[0].id);
-  else if (!indexError_.empty())
-    applyScreen(nullptr),
-        showError("Cannot read game list", indexError_, ToGameSelect), runPending();
-  else showGameSelect(), runPending();
+  else { applyLauncherLook(); showHome(); runPending(); }
 }
 
 void PlayerApp::runPending() {
@@ -97,10 +69,11 @@ void PlayerApp::runPending() {
   std::function<void()> fn = std::move(pending_);
   pending_ = nullptr;
   fn();
+  flushSettings();  // every scene switch is a good moment to save
 }
 
 void PlayerApp::onInput(const InputEvent& e) {
-  if (e.type == InputEvent::Quit) quit_ = true;
+  if (e.type == InputEvent::Quit) { quit_ = true; flushSettings(); }
   else if (scene_) scene_->onInput(e);
   runPending();
 }
@@ -121,18 +94,48 @@ void PlayerApp::draw(Renderer& r) {
   else r.clear(Color(0, 0, 0));
 }
 
-void PlayerApp::showGameSelect() {
+void PlayerApp::showHome() {
   later([this] {
     scene_.reset();  // the battle (if any) must die before the session changes
-    applyScreen(nullptr);  // lists use the default size and font
-    std::vector<GameEntry> games = games_;
-    scene_.reset(new GameSelectScene(*this, games, args_.gamesDir));
+    session_.reset();
+    gameId_.clear();
+    applyLauncherLook();  // back to the launcher's own font, scale and size
+    scene_.reset(new HomeScene(*this));
   });
+}
+
+void PlayerApp::showGame(const std::string& gameId) {
+  later([this, gameId] {
+    const GameEntry* entry = nullptr;
+    for (const GameEntry& g : games_)
+      if (g.id == gameId) entry = &g;
+    scene_.reset();
+    session_.reset();
+    applyLauncherLook();
+    if (!entry) { gameId_.clear(); scene_.reset(new HomeScene(*this)); return; }
+    gameId_ = gameId;
+    scene_.reset(new GameScene(*this, *entry));
+  });
+}
+
+void PlayerApp::showOptions(const std::string& gameId) {
+  later([this, gameId] {
+    scene_.reset();
+    session_.reset();
+    relook(gameId);
+    scene_.reset(new OptionsScene(*this, gameId));
+  });
+}
+
+void PlayerApp::relook(const std::string& gameId) {
+  for (const GameEntry& g : games_)
+    if (g.id == gameId && !gameId.empty()) { applyLook(gameId, lookOf(g, args_.gamesDir), 480, 270); return; }
+  applyLauncherLook();
 }
 
 void PlayerApp::showMapSelect() {
   later([this] {
-    if (!session_) { applyScreen(nullptr); scene_.reset(new GameSelectScene(*this, games_, args_.gamesDir)); return; }
+    if (!session_) { applyLauncherLook(); scene_.reset(new HomeScene(*this)); return; }
     scene_.reset(new MapSelectScene(*this));
   });
 }
@@ -152,17 +155,20 @@ void PlayerApp::startBattle(const std::string& mapId) {
 
 void PlayerApp::doLoadGame(const std::string& gameId) {
   scene_.reset();
+  gameId_ = gameId;
   session_.reset(new GameSession());
   std::string err;
   if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
     session_.reset();
-    applyScreen(nullptr);  // an error screen must not inherit the previous game's look
-    showError("Cannot load game '" + gameId + "'", err, ToGameSelect);
+    applyLauncherLook();  // an error screen must not inherit the previous game's look
+    showError("Cannot load game '" + gameId + "'", err, ToGame);
     runPending();
     return;
   }
   OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
-  applyScreen(&session_->db);
+  int w, h;
+  viewSize(session_->db, w, h);
+  applyLook(gameId, lookOf(session_->db), w, h);
   bool direct = firstLoad_ && !args_.map.empty();
   firstLoad_ = false;
   if (direct) doStartBattle(args_.map);

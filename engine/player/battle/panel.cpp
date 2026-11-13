@@ -46,7 +46,7 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
   const TerrainDef& td = b.terrainAt(cell);
   const CellState& cs = b.cells[cell];
   int sw = std::max(6, lh * 3 / 4);
-  r.fillRect(x, y, sw, lh - 1, Color::rgb(td.color));
+  r.fillRect(x, y, sw, lh - 1, Color::rgb(terrainRgb(c, cs.terrain)));
   r.drawRect(x, y, sw, lh - 1, Color(0, 0, 0, 160));
   r.drawText(x + sw + 3, y, fitText(r, td.name, w - sw - 3).c_str(), kText);
   y += rh;
