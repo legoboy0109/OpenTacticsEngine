@@ -9,6 +9,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace ote {
 
@@ -95,5 +96,16 @@ struct PlatformConfig {
 // Runs the main loop until app.wantsQuit() / window close / maxFrames.
 // Implemented by the active backend. Returns a process exit code.
 int runApp(App& app, const PlatformConfig& config);
+
+// ---- Files (implemented by the backend) ----
+
+// Writable folder for the user's settings and saves, created if missing,
+// without a trailing slash. Empty string if the platform has none.
+std::string userDataDir();
+
+// Names (not paths) of the sub-folders directly inside `path`, in no
+// particular order. Returns false if the folder cannot be read or the
+// platform cannot list folders (callers must then rely on index files).
+bool listSubdirs(const std::string& path, std::vector<std::string>& names);
 
 }  // namespace ote
