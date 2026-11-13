@@ -1,7 +1,7 @@
 // The map canvas draws art by the rules in docs/GRAPHICS.md ("Drawing rules"): pixel checks on the real canvas.
 import type { APIRequestContext } from '@playwright/test'
 import { cellHash } from '../../src/model/pickCell'
-import { canvasPixel, hex, makePng, mapPixel, near, pieceColor, seedArt, sheetPng, tilesGraphics, type Rgba } from './artkit'
+import { canvasPixel, expectPixel, hex, makePng, mapPixel, near, pieceColor, seedArt, sheetPng, tilesGraphics, type Rgba } from './artkit'
 import { expect, test } from './fixtures'
 import { canvas, diskGrid, openMap, pickTerrain, pickUnitType, tool } from './mapkit'
 
@@ -22,11 +22,11 @@ test('terrain with a picture: the piece fills the square, the letter and outline
   await openMap(page, id, MAP)
   const want = hex(pieceColor(2, 1))
   for (const [fx, fy] of [[0.5, 0.5], [0.1, 0.1], [0.9, 0.9], [0.5, 0.1], [0.05, 0.5]]) {
-    expect(hex(await mapPixel(page, 2, 0, fx, fy)), `forest at ${fx},${fy}`).toBe(want)
+    await expectPixel(page, 2, 0, fx, fy, want, `forest at ${fx},${fy}`)
   }
-  expect(hex(await mapPixel(page, 1, 1))).toBe(want)
+  await expectPixel(page, 1, 1, 0.5, 0.5, want)
   // A square without a picture next to it is unchanged (colour; the letter sits in the middle, so look near the corner).
-  expect(hex(await mapPixel(page, 0, 0, 0.2, 0.2))).toBe(hex(col.plain))
+  await expectPixel(page, 0, 0, 0.2, 0.2, hex(col.plain))
 })
 
 test('a random mix shows, on every square, the piece the engine would pick (same hash)', async ({ page, request, game }) => {
@@ -41,7 +41,7 @@ test('a random mix shows, on every square, the piece the engine would pick (same
     seen.add(want)
     // Away from the unit blocks: only squares without a unit.
     if ([[1, 3], [1, 4], [8, 3], [8, 4]].some(([ux, uy]) => ux === x && uy === y)) continue
-    expect(hex(await mapPixel(page, x, y, 0.5, 0.5)), `(${x}, ${y})`).toBe(want)
+    await expectPixel(page, x, y, 0.5, 0.5, want, `(${x}, ${y})`)
   }
   expect(seen.size).toBe(3) // all three variants really occur on this map
 })
@@ -51,7 +51,9 @@ test('animation: frames alternate on the canvas, and stay on the first frame whe
   await seedArt(request, id, { tiles: sheetPng(4, 4) }, tilesGraphics({ terrain: { forest: { sheet: 'tiles', frames: [[0, 0], [1, 0]], frameMs: 100 } } }))
   await openMap(page, id, MAP)
   const seen = new Set<string>()
-  await expect.poll(async () => { seen.add(hex(await mapPixel(page, 2, 0))); return seen.size }, { timeout: 4000 }).toBe(2)
+  // Sample often, at a rhythm that does not line up with the 100 ms frames (the default poll is too sparse to be sure).
+  for (let i = 0; i < 100 && seen.size < 2; i++) { seen.add(hex(await mapPixel(page, 2, 0))); await page.waitForTimeout(37) }
+  expect(seen.size).toBe(2)
   expect([...seen].sort()).toEqual([hex(pieceColor(0, 0)), hex(pieceColor(1, 0))].sort())
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -68,19 +70,19 @@ test('joining pictures choose the piece by neighbours: N1 E2 S4 W8, the map edge
   const piece = (n: number) => hex(pieceColor(n % 4, Math.floor(n / 4)))
   await openMap(page, id, MAP)
   // Mountains at (8,0) (9,0) (9,1): (8,0) has only an east neighbour, (9,0) west and south, (9,1) only north.
-  expect(hex(await mapPixel(page, 8, 0))).toBe(piece(2))
-  expect(hex(await mapPixel(page, 9, 0))).toBe(piece(8 | 4))
-  expect(hex(await mapPixel(page, 9, 1))).toBe(piece(1))
+  await expectPixel(page, 8, 0, 0.5, 0.5, piece(2))
+  await expectPixel(page, 9, 0, 0.5, 0.5, piece(8 | 4))
+  await expectPixel(page, 9, 1, 0.5, 0.5, piece(1))
   // With the map edge counting, (8,0) also joins up; (9,0) joins up and right too; (9,1) joins up (a mountain) and right (the edge).
   await request.put(`/api/projects/${id}`, { data: { baseRevision: (await (await request.get(`/api/projects/${id}`)).json()).revision, graphics: { ...tilesGraphics(join({ joinEdge: true })) } } })
   await openMap(page, id, MAP)
-  expect(hex(await mapPixel(page, 8, 0))).toBe(piece(1 | 2))
-  expect(hex(await mapPixel(page, 9, 0))).toBe(piece(1 | 2 | 4 | 8))
-  expect(hex(await mapPixel(page, 9, 1))).toBe(piece(1 | 2))
+  await expectPixel(page, 8, 0, 0.5, 0.5, piece(1 | 2))
+  await expectPixel(page, 9, 0, 0.5, 0.5, piece(1 | 2 | 4 | 8))
+  await expectPixel(page, 9, 1, 0.5, 0.5, piece(1 | 2))
   // Plain counts as the same terrain: (8,0) now also has plain to the west and south.
   await request.put(`/api/projects/${id}`, { data: { baseRevision: (await (await request.get(`/api/projects/${id}`)).json()).revision, graphics: { ...tilesGraphics(join({ joinEdge: false, joinWith: ['plain'] })) } } })
   await openMap(page, id, MAP)
-  expect(hex(await mapPixel(page, 8, 0))).toBe(piece(2 | 4 | 8))
+  await expectPixel(page, 8, 0, 0.5, 0.5, piece(2 | 4 | 8))
 })
 
 test('transparent pixels show the terrain colour; pieces are stretched without smoothing', async ({ page, request, game }) => {
@@ -93,10 +95,10 @@ test('transparent pixels show the terrain colour; pieces are stretched without s
   await openMap(page, id, MAP)
   const [scale] = (await canvas(page).getAttribute('data-view'))!.split(',').map(Number)
   expect(scale).toBeGreaterThan(20)
-  expect(hex(await mapPixel(page, 2, 0, 0.25, 0.25))).toBe(hex(col.forest)) // the hole shows the terrain colour
-  expect(hex(await mapPixel(page, 2, 0, 0.75, 0.25))).toBe(hex(A))
-  expect(hex(await mapPixel(page, 2, 0, 0.25, 0.75))).toBe(hex(B))
-  expect(hex(await mapPixel(page, 2, 0, 0.75, 0.75))).toBe(hex(C))
+  await expectPixel(page, 2, 0, 0.25, 0.25, hex(col.forest)) // the hole shows the terrain colour
+  await expectPixel(page, 2, 0, 0.75, 0.25, hex(A))
+  await expectPixel(page, 2, 0, 0.25, 0.75, hex(B))
+  await expectPixel(page, 2, 0, 0.75, 0.75, hex(C))
   // Right at the edge between pieces' pixels the colour is one of the two, never a blend.
   const [, vx, vy] = (await canvas(page).getAttribute('data-view'))!.split(',').map(Number)
   const mid = Math.round(vx + 2 * scale + scale / 2)
@@ -120,12 +122,12 @@ test('units: a sprite on a coloured base, tall sprites reach above their square,
   })
   await openMap(page, id, MAP)
   // Blue lord at (1,3): twice as tall as its square, so its head is in the square above (1,2).
-  expect(hex(await mapPixel(page, 1, 2, 0.5, 0.5))).toBe(hex(ORANGE))
+  await expectPixel(page, 1, 2, 0.5, 0.5, hex(ORANGE))
   // The blue cavalier at (1,4) is taller than the square too and reaches into the lord's square: lower units are drawn over
   // higher ones (the file lists the cavalier first, so this is the sort by row, not the file order).
-  expect(hex(await mapPixel(page, 1, 3, 0.5, 0.5))).toBe(hex(GREEN))
+  await expectPixel(page, 1, 3, 0.5, 0.5, hex(GREEN))
   // Red archer at (8,3): a flat base in the side colour (red #cc0000) shows through the transparent feet.
-  expect(hex(await mapPixel(page, 8, 2, 0.5, 0.5))).toBe(hex(ORANGE))
+  await expectPixel(page, 8, 2, 0.5, 0.5, hex(ORANGE))
   expect(near(await mapPixel(page, 8, 3, 0.5, 21.5 / 24), rgb('#cc0000'), 2)).toBe(true)
   // The base is inset: its outline is dark and the corner of the square next to it is plain terrain.
   expect(near(await mapPixel(page, 8, 3, 0.5, 23.7 / 24), rgb('#cc0000'), 30)).toBe(false)
@@ -138,12 +140,13 @@ test('the coloured base can be switched off in the Art section', async ({ page, 
   await seedArt(request, id, { men: img }, { sheets: [{ id: 'men', file: 'art/men.png', cellWidth: 24, cellHeight: 24 }], units: { lord: { sheet: 'men', cell: [0, 0] } } })
   const col = await colors(request, id)
   await openMap(page, id, MAP)
+  await expectPixel(page, 1, 3, 0.5, 0.3, hex(ORANGE)) // wait for the picture to load
   expect(near(await mapPixel(page, 1, 3, 0.5, 21.5 / 24), rgb('#3d85c6'), 2)).toBe(true)
   await page.getByRole('link', { name: 'Art', exact: true }).click()
   await page.getByRole('switch', { name: /coloured base under units/ }).uncheck()
   await page.getByRole('link', { name: 'Maps', exact: true }).click()
   await expect(canvas(page)).toHaveAttribute('data-view', /.+/)
-  expect(hex(await mapPixel(page, 1, 3, 0.5, 21.5 / 24))).toBe(hex(col.plain))
+  await expectPixel(page, 1, 3, 0.5, 21.5 / 24, hex(col.plain))
 })
 
 test('palettes show pictures too: terrain and unit buttons draw the art, others keep their chip', async ({ page, request, game }) => {
@@ -172,12 +175,12 @@ test('the Look selector previews a style: its pictures, terrain colours and back
   await openMap(page, id, MAP)
   const look = page.getByLabel('Look to preview')
   await expect(look).toHaveValue('day') // the player starts with the first look
-  expect(hex(await mapPixel(page, 2, 0))).toBe(hex(pieceColor(0, 0)))
-  expect(hex(await mapPixel(page, 0, 0, 0.2, 0.2))).toBe(hex(col.plain))
+  await expectPixel(page, 2, 0, 0.5, 0.5, hex(pieceColor(0, 0)))
+  await expectPixel(page, 0, 0, 0.2, 0.2, hex(col.plain))
   await look.selectOption('night')
-  expect(hex(await mapPixel(page, 2, 0))).toBe(hex(pieceColor(3, 3))) // its own picture
-  expect(hex(await mapPixel(page, 0, 0, 0.2, 0.2))).toBe('#ff00ff') // its own colour
-  expect(hex(await mapPixel(page, 5, 0, 0.1, 0.1))).toBe(hex(col.water)) // "no picture in this look" keeps the coloured square
+  await expectPixel(page, 2, 0, 0.5, 0.5, hex(pieceColor(3, 3))) // its own picture
+  await expectPixel(page, 0, 0, 0.2, 0.2, '#ff00ff') // its own colour
+  await expectPixel(page, 5, 0, 0.1, 0.1, hex(col.water)) // "no picture in this look" keeps the coloured square
   const box = (await canvas(page).boundingBox())!
   expect(hex(await canvasPixel(canvas(page), 2, Math.floor(box.height) - 3))).toBe('#112233') // background around the map
   // The choice is remembered.

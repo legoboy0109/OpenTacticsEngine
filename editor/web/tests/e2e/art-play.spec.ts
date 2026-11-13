@@ -55,7 +55,8 @@ for (const name of ['demo-srpg', 'demo-economy'] as const) {
     await expect(canvas(page)).toHaveAttribute('data-view', /.+/)
     const m = doc.maps[map]
     const t = doc.terrain.find((x: any) => x.id === m.legend[m.tiles[0][0]])
-    expect(hex(await mapPixel(page, 0, 0, 0.1, 0.1))).not.toBe(t.color)
+    // The images load a moment after the map opens: wait until the square no longer shows the plain terrain colour.
+    await expect.poll(async () => hex(await mapPixel(page, 0, 0, 0.1, 0.1)), { intervals: [50, 100, 200, 400], timeout: 7000 }).not.toBe(t.color)
     // Looking around changed nothing on disk.
     await page.waitForTimeout(1200)
     expect(readFileSync(diskPath(name, 'data/graphics.json'), 'utf8')).toBe(before)

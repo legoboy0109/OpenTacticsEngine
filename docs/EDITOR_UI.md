@@ -205,6 +205,58 @@ Play in `src/play/`. Decisions and deviations:
 - **Phone top bar** is one row: icon-only Undo/Redo/Play, the problem count as a badge on the problems button, the save
   state as a dot (the words stay for screen readers).
 
+### Art (third slice)
+
+Code: pure edits in `editor/web/src/model/graphics*.ts` (+ `pickCell.ts`, `gridGuess.ts`, `artFiles.ts`), the image files and
+the upload-safe saver in `src/store/art.ts` + `autosave.ts`, drawing in `src/art/` (shared by the map canvas, the palettes and
+every preview), the Art screen in `src/screens/art/`, the Picture card and picker in `src/ui/picture/`. Wording: `screens/art/text.ts`
+and `ui/picture/text.ts`. Decisions and deviations:
+
+- **Uploads never cause a false conflict.** Uploading, replacing or deleting an image changes the project revision outside a save.
+  These calls run through `Saver.withDiskChange`: it waits for a save in flight, no save starts while it runs (autosaves wait,
+  then go on with the new revision), a cheap check (a PUT with no sections) tells a real outside change from our own, and the
+  revision the call returns is adopted. If the check (or an earlier save) found a real outside change, the file is still
+  uploaded but the revision is NOT adopted and the usual conflict banner stays. `flush()` (Play, leaving) waits for a running
+  upload. Limitation: a change made elsewhere in the few milliseconds between the check and the upload is not detected.
+- **Undo past the first image.** Back at "no art" after art was saved, the saver writes `{ "sheets": [] }` (a `null` section is never
+  sent, so otherwise the old images would stay on disk while the screen showed none). Files are never touched by undo.
+- **A damaged `data/graphics.json`** (helper reports `null` plus a problem on that file) blocks the Art section with an explanation,
+  so a first edit cannot overwrite the file.
+- **Adding images.** The file chooser and drag-and-drop accept any file the browser can open (SVG, JPEG, GIF = first frame, ...);
+  PNGs are uploaded byte for byte, others are drawn on a canvas and sent as PNG. The 2048 x 2048 limit and 8 MB are checked before
+  uploading; the helper's own errors are shown in plain words. The image's display name is the original file name without its
+  extension; the file name on disk is its slug (made unique); the internal name is a slug of the display name.
+- **Division.** "One picture" = the piece covers the whole image; switching to a grid starts from the tile size when it divides the
+  image, else 16, 32, 24, 48 (same rule as the first guess). Pieces keep their positions when the grid changes; a banner names the
+  terrain and units whose pieces would fall outside (also before **Replace file…**, which asks for confirmation because the old
+  file is gone for good). Quick sizes are square 16 / 24 / 32 / 48.
+- **Removing an image** asks only when something uses it; the file moves to "Unused files". There each file can be **Use again**
+  (added back as an image) or deleted for good (confirmation; the editor saves first, because the helper refuses while the saved
+  game still uses it, and a refusal is explained).
+- **Per-side pictures** need the unit's own picture first (the file format has no side pictures without one); changing the unit's
+  own picture keeps its side pictures; removing it removes them. Side ids that no map has any more but that still have a picture are
+  listed (marked) so they can be removed. A look's entry for a unit replaces the whole entry, side pictures included, like the engine.
+- **Looks.** The picker and card say "look"; the Game screen says "style" (its existing wording). The map's Look selector is shown
+  with two or more styles; the canvas always shows the first style until another is picked (what the player starts with), so a
+  game with one style now shows that style's colours, background and letters too. The choice is remembered per game.
+- **Drawing.** The map canvas, the palette chips, the card samples and the picker preview all use `drawMap` (previews are tiny
+  generated maps), so they cannot differ. Join pieces, random mixes (`cellHash`, ported with `Math.imul`, pinned by 16 values printed
+  by the C++ function in `tests/unit/pickCell.test.ts`) and animation follow `engine/core/data/graphics.*`. The unit base follows
+  the player's code (`engine/player/battle/sprites.cpp`: a sixth of the square of fill, one-pixel dark outline, one pixel inset),
+  scaled with the zoom. The HP bar and the "already acted" darkening of the player do not exist in the editor; the leader pip keeps
+  its top-left place on the square (not on a tall sprite). Units are sorted by row only (ties keep file order). With art on the map
+  the faint square outline is drawn per square, only for squares without a picture; a map without any art keeps the old
+  single-pass path (same speed as before).
+- **Animation** runs on the page's own clock (about 20 redraws a second, only while the tab is in front and only when an animation
+  is on screen); under "reduce motion" every animation shows its first frame.
+- **Piece grid** (`ui/picture/PieceGrid.tsx`): one canvas with zoom buttons (25 % to 1600 %), scrolling inside its box, keyboard
+  cursor (arrows + Enter/Space). It starts at the whole image across the box; in the picker, pieces smaller than 32 px start zoomed
+  in (up to 4x) so they can be tapped. The guide image for joining pieces is generated in the browser at the image's piece size.
+- **Perf.** A 200-square stroke on a 64 x 64 map: about 32 ms without art (unchanged code path), about 41 ms with art on every
+  square type (random mix, joins, animation, sprites), measured in headless Chromium with `tests/e2e/art-perf.spec.ts`.
+- **Tests start from art-free games** (`bareGame`/`seedArt` in `tests/e2e/artkit.ts`) because the templates now carry starter art;
+  the Play tests use them too, since animated starter art keeps the picture from "settling".
+
 ## Art (third slice): images, tiles and sprites
 
 Contract for the data and drawing rules: docs/GRAPHICS.md. Helper calls:

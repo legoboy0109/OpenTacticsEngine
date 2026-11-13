@@ -146,3 +146,8 @@ export async function mapPixel(page: Page, cx: number, cy: number, fx = 0.5, fy 
 }
 
 export const hex = (c: Rgba | number[]): string => `#${c.slice(0, 3).map((v) => v.toString(16).padStart(2, '0')).join('')}`
+
+/** Waits (the images load a moment after the map opens) until a point of the map canvas has the colour `want` ("#rrggbb"). */
+export async function expectPixel(page: Page, cx: number, cy: number, fx: number, fy: number, want: string, message = ''): Promise<void> {
+  await expect.poll(async () => hex(await mapPixel(page, cx, cy, fx, fy)), { message: message || `square (${cx}, ${cy}) at ${fx}, ${fy}`, intervals: [50, 100, 200, 400], timeout: 7000 }).toBe(want)
+}

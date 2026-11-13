@@ -89,5 +89,5 @@ export const T = {
 
   // blocked
   blockedTitle: 'The art settings could not be read',
-  blockedBody: 'The file data/graphics.json is damaged, so art cannot be edited here without overwriting it. Fix or delete that file (it is in the game’s folder), then reload this page. The other sections still work.',
+  blockedBody: 'The game’s art settings file is damaged, so art cannot be edited here without overwriting it. Fix or delete that file (it is in the game’s data folder), then reload this page. The other sections still work.',
 }
