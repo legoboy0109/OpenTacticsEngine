@@ -120,6 +120,12 @@ def main():
         if not check("helper starts and answers /api/info", up,
                      proc.stderr.read().decode("utf-8", "replace") if proc.poll() is not None else ""):
             return 1
+        # A second helper on the same port must fail loudly, not share the port.
+        second = subprocess.run([binary, "--games", games, "--templates", templates, "--port", str(port)],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=20)
+        check("second helper on a busy port exits non-zero with a clear message",
+              second.returncode != 0 and b"port" in second.stderr.lower(), second.stderr[-200:])
+        check("first helper unaffected by the failed second start", api.call("GET", "/api/info")[0] == 200)
         run_checks(api, port, tmp, games, sentinel, proc)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")
