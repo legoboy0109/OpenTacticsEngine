@@ -1,7 +1,7 @@
 // An image on a checkerboard with its grid of pieces drawn over it, zoomable and scrollable. Optionally clickable:
 // the picker uses it to choose pieces. Keyboard: arrow keys move a cursor, Enter or Space picks. All drawing is on
 // one canvas (an image can have thousands of pieces, so no element per piece).
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { gridInfo } from '../../model/gridGuess'
 import { Icon } from '../Icon'
 import { P } from './text'
@@ -31,9 +31,12 @@ const MAX_CANVAS = 4096
 /** Largest zoom that keeps the canvas a sane size. */
 const maxZoomFor = (w: number, h: number) => ZOOMS.filter((z) => w * z <= MAX_CANVAS && h * z <= MAX_CANVAS).pop() ?? ZOOMS[0]
 /** Start zoom: the whole image across the available width when that is at least 1x (whole steps, at most 8x), else 1x. */
-export function startZoom(imageW: number, imageH: number, availableW: number): number {
-  const fit = Math.floor(availableW / Math.max(1, imageW))
-  return Math.min(Math.max(1, fit), 8, maxZoomFor(imageW, imageH))
+export function startZoom(imageW: number, imageH: number, availableW: number, touchPiece?: number): number {
+  const cap = maxZoomFor(imageW, imageH)
+  let want = Math.min(Math.max(1, Math.floor(availableW / Math.max(1, imageW))), 8, cap)
+  // Pieces to tap should be a finger wide (about 32 px): zoom in and let the box scroll rather than make them tiny.
+  if (touchPiece && touchPiece * want < 32) want = Math.min(Math.max(want, Math.ceil(32 / touchPiece)), 4, cap)
+  return ZOOMS.filter((z) => z <= want).pop() ?? 1
 }
 
 export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks = [], block, hoverBlock, onPick, label }: Props) {
@@ -46,10 +49,18 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
   const info = gridInfo(width, height, cellWidth, cellHeight)
   const interactive = !!onPick
 
-  // The first zoom needs the real width of the box: measured once, before the first paint.
-  useLayoutEffect(() => {
-    if (zoom === null && wrap.current && width > 0) setZoom(startZoom(width, height, wrap.current.clientWidth - 2))
-  }, [zoom, width, height])
+  // The first zoom needs the real width of the box, which is only known once it is on screen (a dialog opens a moment
+  // after it is built): measure with the box and fit the image across it, until the person picks a zoom themselves.
+  const userZoom = useRef(false)
+  useEffect(() => {
+    const el = wrap.current
+    if (!el || width <= 0) return
+    const fit = () => { if (!userZoom.current && el.clientWidth > 0) setZoom(startZoom(width, height, el.clientWidth - 2, interactive ? Math.min(cellWidth, cellHeight) : undefined)) }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [width, height, cellWidth, cellHeight, interactive])
 
   const draw = useCallback(() => {
     const c = cv.current
@@ -111,7 +122,7 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
     const row = Math.floor(((e.clientY - r.top) / r.height) * height / cellHeight)
     return col >= 0 && row >= 0 && col < info.cols && row < info.rows ? { col, row } : null
   }
-  const step = (d: number) => setZoom(ZOOMS[Math.min(Math.max(ZOOMS.indexOf(z) + d, 0), ZOOMS.indexOf(maxZoomFor(width, height)))] ?? z)
+  const step = (d: number) => { userZoom.current = true; setZoom(ZOOMS[Math.min(Math.max(ZOOMS.indexOf(z) + d, 0), ZOOMS.indexOf(maxZoomFor(width, height)))] ?? z) }
   const onKey = (e: React.KeyboardEvent) => {
     if (!interactive) return
     const c = cursor ?? { col: 0, row: 0 }
@@ -129,7 +140,7 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
         <button type="button" className="btn ghost sm icon" aria-label={P.zoomOut} disabled={z <= ZOOMS[0]} onClick={() => step(-1)}><Icon name="minus" /></button>
         <span className="pg-zoom" aria-live="polite">{Math.round(z * 100)}%</span>
         <button type="button" className="btn ghost sm icon" aria-label={P.zoomIn} disabled={z >= maxZoomFor(width, height)} onClick={() => step(1)}><Icon name="plus" /></button>
-        <button type="button" className="btn ghost sm" onClick={() => setZoom(startZoom(width, height, (wrap.current?.clientWidth ?? 320) - 2))}>{P.zoomFit}</button>
+        <button type="button" className="btn ghost sm" onClick={() => { userZoom.current = false; setZoom(startZoom(width, height, (wrap.current?.clientWidth ?? 320) - 2, interactive ? Math.min(cellWidth, cellHeight) : undefined)) }}>{P.zoomFit}</button>
       </div>
       <div className="pg-scroll checker" ref={wrap}>
         <canvas ref={cv} className="pg-canvas" data-testid="piece-grid" data-zoom={z} data-cell={`${cellWidth},${cellHeight}`}
