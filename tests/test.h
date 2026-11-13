@@ -29,6 +29,8 @@ struct Registrar {
 
 // Root of the source tree, for locating games/ and tests/fixtures/.
 inline std::string sourceDir() { return OTE_SOURCE_DIR; }
+// Scratch folder for tests that write files (the build directory).
+inline std::string tempDir() { return OTE_TEMP_DIR; }
 
 }  // namespace ote_test
 

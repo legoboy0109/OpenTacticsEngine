@@ -30,7 +30,7 @@ docs/GAME_FORMAT.md.
 | 5 | SDL3 platform backend + player (menus, battle UI, automation flags) | done |
 | 6 | Web build (Emscripten) | todo |
 | 6a | Real fonts (stb_truetype, shared by all backends), `--font` option, SDL2 backend | done |
-| 6b | Launcher front end inside the player: pick/load a game, edit options (font, size, display...) before starting; settings persist across restarts | in progress |
+| 6b | Launcher front end inside the player: pick/load a game, edit options (font, size, display...) before starting; settings persist across restarts | done |
 | 7 | README, how-to-run, cleanup | todo |
 
 Done means: `ote_tests` green, `ote-sim` finishes both demo maps, the

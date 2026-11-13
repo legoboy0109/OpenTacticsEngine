@@ -7,7 +7,7 @@
 using namespace ote;
 
 static std::string tempPath(const char* name) {
-  return ote_test::sourceDir() + "/build/" + name;  // build/ is gitignored
+  return ote_test::tempDir() + "/" + name;
 }
 
 TEST(settings_global_applies_everywhere_until_overridden_per_game) {

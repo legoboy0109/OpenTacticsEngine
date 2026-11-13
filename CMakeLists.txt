@@ -39,7 +39,8 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   add_executable(ote_tests ${TEST_SRC})
   target_link_libraries(ote_tests PRIVATE ote_core)
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
-  target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+  target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+                                             OTE_TEMP_DIR="${CMAKE_BINARY_DIR}")
   add_test(NAME ote_tests COMMAND ote_tests)
 
   file(GLOB SIM_SRC CONFIGURE_DEPENDS tools/sim/*.cpp)
