@@ -1,0 +1,139 @@
+# Browser editor UI spec (first slice)
+
+Audience: novices who never want to script. Plain language everywhere; the
+words "JSON", "id", "Lua", "formula" appear only inside "Advanced"
+disclosures. Layout and wording are the owner's to change — keep text in
+one place per screen so it is easy to adjust.
+
+Tech: `editor/web/` — TypeScript, React, Vite. Minimal dependencies
+(react, react-dom; dev: vite, typescript, vitest, playwright). No UI
+component library; small own components + plain CSS with CSS variables
+(light/dark from `prefers-color-scheme`). Talks to the helper only through
+docs/EDITOR_API.md. Built output in `editor/web/dist` (not committed).
+
+## Document model
+
+The whole project is one in-memory document, exactly the GET shape
+(`game`, `terrain`, `weapons`, `units`, `maps`, `scripts`). All edits are
+pure functions `doc -> doc` so undo/redo is a snapshot stack (cap 200).
+
+- **Autosave**: 800 ms after the last change, PUT with `baseRevision`;
+  top bar shows "Saved" / "Saving…" / "Unsaved changes" / "Could not save".
+  Also save before Play and on page hide. Never lose edits: if a save
+  fails keep retrying with backoff and keep the edits in memory.
+- **Conflict (409)**: banner "This game changed on disk (another program
+  or device edited it)" with **Reload** (drop local changes) and **Keep
+  mine** (re-read the revision, save again).
+- **Undo/redo**: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and top-bar buttons. Typing
+  in one field coalesces into one undo step.
+- **Problems**: the list returned by every save; badge in the top bar,
+  panel listing them; each problem links to the section that owns its file
+  (data/units.json → Units, maps/x.json → that map, game.json → Game/Rules).
+- **Ids**: generated once from the name when a thing is created (slug,
+  unique within its list: "Iron Sword" → `iron_sword`, then `iron_sword_2`).
+  Renaming a thing changes only its display name. Ids are shown (read-only)
+  under Advanced. Deleting a thing that is used elsewhere asks first,
+  listing where it is used, and removes those references in the same undo
+  step (unit removed from terrain "produces", weapon lists, versus tables,
+  map units; terrain replaced by the first remaining terrain on maps; a
+  stat removed from every unit, etc.). Never leave dangling references.
+- **Editor-only data** lives under `game.editor` (ignored by the engine):
+  chosen formula presets and their parameters.
+
+## Screens
+
+**Project picker** (`/`): a card per game (name, description, "N maps",
+a warning mark if it has problems) and **New game**: name + choose a
+starting point (the templates, as cards with their descriptions) → creates
+the project (id = slug of the name) and opens it.
+
+**Shell** (`/p/<id>/<section>`): top bar = game name (back to picker),
+save status, undo/redo, problems badge, **Play**. Left sidebar = Game,
+Rules, Units, Weapons, Terrain, Maps. Below 720 px the sidebar becomes a
+compact section switcher and forms go single-column. Every list screen is
+"list on the left, form for the selected item on the right" with **New**,
+**Duplicate**, **Delete** and drag-or-buttons reordering.
+
+**Game**: name, description, author. Text font (built-in fonts from
+`/api/fonts`, size, smooth toggle; "Default pixel font" = no font key).
+Visual styles (list: name, background colour, show terrain letters,
+per-terrain colour overrides with colour pickers). Advanced: screen size
+and tile size.
+
+**Rules** (grouped cards, each with one sentence of help):
+- *Stats*: list of stats (name); "Which stat is health?" and "Which stat
+  is movement?" selectors. *Resources* (e.g. Funds). *Movement types*
+  (e.g. Foot, Wheels).
+- *Battle*: counterattacks on/off; how a side loses (checkboxes: "all its
+  units are defeated", "its leader is defeated", "its headquarters is
+  captured").
+- *Features* (toggles revealing their settings): Income from buildings;
+  Building units (new units can act immediately on/off); Capturing
+  buildings (capture speed preset); Experience and levels (XP per level,
+  maximum level, XP rewards).
+- *Combat maths* — presets instead of formulas. Each preset is a named
+  choice with a one-line explanation and a few selectors; the UI generates
+  the expression, shows a plain-language summary ("Damage = attacker's
+  Strength + weapon Might − defender's Defense − terrain defense") and
+  stores preset + parameters in `game.editor.formulas`. A formula in the
+  file that matches no stored preset shows as "Custom" with the raw text
+  under Advanced (never silently overwritten).
+
+| Formula | Presets (parameters) → generated expression |
+|---|---|
+| damage | **Attack minus defense** (attack stat A, defense stat D, weapon bonus on/off, effectiveness on/off, terrain defense on/off) → `(a.A + (w.might or 0) * vs) - b.D - (tb.defense or 0)` with the optional parts dropped when off (`vs` multiplies the weapon bonus; without weapon bonus it multiplies `a.A`). **Damage chart** (terrain reduces damage on/off) → `vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))`; explains that each weapon's "Effectiveness" table then holds the damage percent against each unit. **Fixed amount** (N) → `N`. **Custom**. |
+| hit | **Always hits** → key removed. **Weapon accuracy** → `(w.hit or 100)`. **Accuracy against evasion** (skill stat S, speed stat P, terrain avoid on/off) → `(w.hit or 100) + a.S * 2 - b.P * 2 - (tb.avoid or 0)`. **Custom**. |
+| crit | **No critical hits** → key removed. **Fixed chance** (N%) → `N`. **Based on a stat** (stat S, divisor) → `a.S / K`. Plus "critical hits multiply damage by" (critMultiplier). **Custom**. |
+| strikes | **One attack** → key removed. **Attack twice when faster** (speed stat P, lead needed N) → `(a.P - b.P >= N) and 2 or 1`. **Custom**. |
+| progression xpHit / xpKill | **Fixed amounts** (hit N, kill M) → `N` / `M`. **More for stronger enemies** (base, per level) → `B + math.max(0, b.level - a.level) * K`. **Custom**. |
+| capture amount | **Instant** → `9999`. **Faster with more health** (divisor K) → `a.hp / K`. **Fixed points per turn** (N) → `N`. **Custom**. |
+
+**Units**: name, map letter (one character), movement type, a stats table
+(value per stat; a growth % column when Experience is on), weapons
+(multi-select), cost per resource (when Building units is on), "can
+capture buildings" (when Capturing is on), tags (free chips; explained as
+"labels weapons can be strong or weak against").
+
+**Weapons**: name, range (min–max), "can strike back when attacked", "can
+attack after moving", numbers used by combat maths (a small key/number
+table; offers `might` and `hit` when the chosen presets use them),
+effectiveness: rows of (unit or tag → number) plus "against everything
+else" (on → number; off → cannot target others). Label and help text adapt
+to the damage preset ("multiplier" vs "damage percent"). Advanced:
+per-weapon damage override.
+
+**Terrain**: name, colour, letter, movement cost per movement type (number
+or "cannot enter"), numbers used by combat maths (`defense`, `avoid`),
+"can be captured" (points), income per resource, "units can be built
+here" (multi-select), "counts as headquarters" (the `hq` tag), other tags
+under Advanced.
+
+**Maps**: map list (new, rename, duplicate, delete) + the map editor:
+- Canvas grid drawn like the player's placeholder look (terrain colour +
+  letter, owner border, unit block with letter in side colour, leader
+  mark). Zoom and pan (wheel/pinch, drag with middle button or two
+  fingers), fits to the available space initially.
+- Tools: **Terrain** (palette; click/drag paints; fill tool; pick with
+  Alt-click), **Units** (choose side + unit type; click places; clicking
+  an existing unit selects it → name, level, leader, stat overrides;
+  drag moves; eraser removes), **Owners** (choose side or neutral; click a
+  capturable/owned tile), **Select** (inspect a tile).
+- Map settings: name, size (resize with an anchor choice; warns before
+  cropping units), sides (name, colour, played by Human/Computer, team,
+  starting resources; add/remove with at least two).
+- Every paint stroke is one undo step.
+
+**Play**: saves, then opens a panel with the embedded player
+(`/player/…` in an iframe) running the current project on the map being
+edited (or the first map), with **Restart** and **Close**. If the project
+has problems, Play explains them instead of starting.
+
+## Quality bar
+
+Keyboard accessible, labelled inputs, visible focus, works at 360 px
+wide, no layout shift while typing, no data loss on reload (state is the
+saved project; unsaved edits are flushed on page hide). Unit tests
+(vitest) for the pure logic: slugs/ids, preset → expression and
+expression → preset detection, reference clean-up on delete, document
+edit functions, map resize. End-to-end tests (Playwright, headless
+Chromium) against a real `ote-editor` on a temp copy of the games folder.
