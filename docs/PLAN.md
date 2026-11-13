@@ -24,10 +24,10 @@ docs/GAME_FORMAT.md.
 | # | Work package | Status |
 |---|---|---|
 | 1 | Scaffold, contracts, format spec | done |
-| 2 | JSON + game/map loader + two demo games | in progress |
-| 3 | Battle core: movement, combat, turns, capture, production, progression, Lua formulas | written, tests pending |
-| 4 | AI opponent (`core/ai`) + `ote-sim` headless runner | todo |
-| 5 | SDL3 platform backend + player (menus, battle UI, automation flags) | todo |
+| 2 | JSON + game/map loader + two demo games | done |
+| 3 | Battle core: movement, combat, turns, capture, production, progression, Lua formulas | done (36 tests) |
+| 4 | AI opponent (`core/ai`) + `ote-sim` headless runner | in progress |
+| 5 | SDL3 platform backend + player (menus, battle UI, automation flags) | in progress |
 | 6 | Web build (Emscripten) | todo |
 | 7 | README, how-to-run, cleanup | todo |
 
