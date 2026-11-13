@@ -48,10 +48,14 @@ goal (demos only exercise features).
    Awaiting the owner's verdict on wording/layout. Left out on purpose:
    heights editing, visual-style preview on the map canvas, a scripts
    screen, inline field validation (Problems panel only).
-3. IN PROGRESS (owner picked this first, 2026-11-13): sprites and
-   tilesets. Decisions and contract: docs/GRAPHICS.md (sheets + single
-   images, 16-piece joining tiles, colour marker + optional per-side art,
-   original starter art, simple looping animation).
+3. DONE (2026-11-13): sprites and tilesets, engine + editor. Decisions and
+   contract: docs/GRAPHICS.md (sheets + single images, 16-piece joining
+   tiles, colour marker + optional per-side art, original generated starter
+   art, simple looping animation). Editor: Art section, Picture cards,
+   map canvas draws with art (docs/EDITOR_UI.md "Art"). Awaiting the
+   owner's verdict on wording/layout and the starter art. Not in this
+   step: 47-piece blending, walking/attack animation, sheet margins/gaps,
+   animated joining tiles, unit art in the player's side panel/forecast.
    From here on, each engine feature lands with its editor screen:
    sprites/tilesets + named visual styles, sound; save/resume; event
    system (story triggers, dialogue, win/lose conditions in data) and
