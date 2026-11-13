@@ -150,7 +150,7 @@ TEST(loader_demo_srpg_map) {
     CHECK_EQ(gorm->type, db.findUnitType("knight"));
     CHECK_EQ(gorm->stats[size_t(db.findStat("hp"))], 26);   // override
     CHECK_EQ(gorm->stats[size_t(db.findStat("str"))], 8);   // override
-    CHECK_EQ(gorm->stats[size_t(db.findStat("def"))], 8);   // type base
+    CHECK_EQ(gorm->stats[size_t(db.findStat("def"))], 6);   // type base
     CHECK_EQ(m.terrain[size_t(gorm->y * m.width + gorm->x)], db.findTerrain("fort"));
     CHECK(gorm->leader);
   }

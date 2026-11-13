@@ -20,10 +20,13 @@
     { "id": "red",  "name": "Red Warband",  "color": "#cc0000", "controller": "ai" }
   ],
   "units": [
-    { "type": "lord",     "side": "blue", "x": 2, "y": 4, "name": "Eirik", "level": 3, "leader": true },
-    { "type": "cavalier", "side": "blue", "x": 3, "y": 3, "name": "Kell",  "level": 2 },
+    { "type": "lord",     "side": "blue", "x": 2, "y": 4, "name": "Eirik", "level": 3, "leader": true,
+      "stats": { "hp": 24, "str": 7, "def": 5 } },
+    { "type": "cavalier", "side": "blue", "x": 3, "y": 3, "name": "Kell",  "level": 2,
+      "stats": { "hp": 23 } },
     { "type": "archer",   "side": "blue", "x": 1, "y": 5, "name": "Lyra",  "level": 2 },
-    { "type": "fighter",  "side": "blue", "x": 3, "y": 5, "name": "Bram",  "level": 2 },
+    { "type": "fighter",  "side": "blue", "x": 3, "y": 5, "name": "Bram",  "level": 2,
+      "stats": { "hp": 25 } },
 
     { "type": "knight",   "side": "red", "x": 11, "y": 4, "name": "Gorm", "level": 3, "leader": true,
       "stats": { "hp": 26, "str": 8 } },
