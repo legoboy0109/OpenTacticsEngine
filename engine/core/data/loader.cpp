@@ -108,6 +108,27 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (db.view.width < 1 || db.view.height < 1 || db.view.tileSize < 1)
     return c.fail("view", "width, height and tileSize must be positive");
 
+  const Json* font;
+  if (!c.object(root, "font", "", font)) return false;
+  if (!c.str(*font, "name", "font", db.font.name)) return false;
+  if (!c.str(*font, "file", "font", db.font.file)) return false;
+  if (!c.integer(*font, "size", "font", db.font.size)) return false;
+  bool smooth = false;
+  if (font->has("smooth")) {
+    if (!c.boolean(*font, "smooth", "font", smooth)) return false;
+    db.font.smooth = smooth ? 1 : 0;
+  }
+  if (db.font.size < 0 || db.font.size > 200) return c.fail("font", "\"size\" must be between 1 and 200");
+  if (font->has("name") && db.font.name.empty()) return c.fail("font", "\"name\" must not be empty");
+  if (!db.font.file.empty()) {
+    // Keep font paths inside the game folder so games stay self-contained.
+    if (db.font.file[0] == '/' || db.font.file.find("..") != std::string::npos)
+      return c.fail("font", "\"file\" must be a path inside the game folder");
+    std::string probe;
+    if (!readTextFile(db.rootPath + "/" + db.font.file, probe))
+      return c.fail("font", "cannot read font file \"" + db.font.file + "\"");
+  }
+
   if (!readIdList(c, root, "stats", true, db.stats)) return false;
   if (!readIdList(c, root, "resources", false, db.resources)) return false;
   if (!readIdList(c, root, "moveTypes", true, db.moveTypes)) return false;

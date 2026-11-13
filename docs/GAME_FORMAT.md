@@ -24,6 +24,14 @@ id that does not exist is a load error.
   "name": "My Game",
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
 
+  // Text font (optional; default is the built-in 8x8 pixel font).
+  "font": {
+    "name": "sans",              // a built-in font, see "Fonts" below
+    // "file": "fonts/My.ttf",   // OR a .ttf/.otf inside the game folder
+    "size": 10,                  // text height in logical pixels (optional)
+    "smooth": true               // optional, see "Fonts"
+  },
+
   // Stats are whatever the game wants. The engine itself only needs to know
   // which one is hit points and which one is movement ("roles").
   "stats": [ { "id": "hp", "name": "HP" }, { "id": "mov", "name": "Move" } ],
@@ -159,3 +167,30 @@ crit chances itself so battles replay identically.
 
 Functions defined in `scripts/*.lua` can be called from formulas, e.g.
 `"damage": "my_damage(a, b, w, tb, vs)"`.
+
+## Fonts
+
+`font.name` picks one of the fonts shipped with the engine
+(`assets/fonts/fonts.json` lists them; add entries there to make more
+built-ins):
+
+| name | look |
+|------|------|
+| `pixel` | built-in 8x8 pixel font (default; needs no font file, works on every platform) |
+| `pixel-ttf` | Pixelify Sans, a proportional pixel-style font |
+| `arcade` | Press Start 2P, chunky arcade lettering |
+| `sans` | Atkinson Hyperlegible, a clean, highly readable sans-serif |
+| `serif` | Alegreya, a bookish serif suited to fantasy |
+| `mono` | JetBrains Mono, fixed-width |
+
+`font.file` uses your own TrueType/OpenType font from the game folder
+instead. `size` is the text height in logical pixels (the game's `view`
+resolution); each built-in has a sensible default.
+
+`smooth: true` draws anti-aliased text at the display's full resolution
+(sharp on any screen size). `smooth: false` draws at the logical resolution
+with hard pixel edges, which suits pixel fonts. Built-ins choose a default.
+
+The player can override a game's font: `ote-player --font sans
+--font-size 11` (or `--font path/to/file.ttf`). If a font cannot be loaded
+the player falls back to `pixel` and logs a warning.

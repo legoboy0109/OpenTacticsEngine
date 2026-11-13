@@ -93,12 +93,22 @@ struct ViewConfig {
   int tileSize = 24;
 };
 
+// Which font the game's text uses (docs/GAME_FORMAT.md "font"). The core
+// only carries this; the player resolves and loads it.
+struct FontConfig {
+  std::string name = "pixel";  // a built-in font id (assets/fonts/fonts.json)
+  std::string file;            // font file inside the game folder; overrides name
+  int size = 0;                // height in logical pixels; 0 = the font's default
+  int smooth = -1;             // 1 = anti-aliased, 0 = crisp pixels, -1 = font's default
+};
+
 struct MapRef { std::string id, name, file; };
 
 struct Database {
   std::string name;
   std::string rootPath;  // game folder, no trailing slash
   ViewConfig view;
+  FontConfig font;
   RulesConfig rules;
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
