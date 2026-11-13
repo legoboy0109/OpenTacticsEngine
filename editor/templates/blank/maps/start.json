@@ -1,0 +1,21 @@
+{
+  "name": "First Map",
+  "grid": { "type": "square", "width": 8, "height": 6 },
+  "legend": { ".": "plain", "#": "wall" },
+  "tiles": [
+    "........",
+    "...##...",
+    "........",
+    "........",
+    "...##...",
+    "........"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue", "color": "#3d85c6", "controller": "human" },
+    { "id": "red", "name": "Red", "color": "#cc0000", "controller": "ai" }
+  ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 1, "y": 2 },
+    { "type": "soldier", "side": "red", "x": 6, "y": 3 }
+  ]
+}

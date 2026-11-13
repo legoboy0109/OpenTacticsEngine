@@ -1,0 +1,6 @@
+{
+  "units": [
+    { "id": "soldier", "name": "Soldier", "glyph": "S", "moveType": "foot",
+      "stats": { "hp": 10, "mov": 4 }, "weapons": ["sword"] }
+  ]
+}

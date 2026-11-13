@@ -1,0 +1,25 @@
+{
+  "name": "The Ford",
+  "grid": { "type": "square", "width": 10, "height": 8 },
+  "legend": { ".": "plain", "f": "forest", "m": "mountain", "~": "water" },
+  "tiles": [
+    "..f..~..mm",
+    ".f...~...m",
+    ".....~.f..",
+    "..........",
+    "..........",
+    ".....~.f..",
+    ".f...~...m",
+    "..f..~..mm"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Company", "color": "#3d85c6", "controller": "human" },
+    { "id": "red", "name": "Red Warband", "color": "#cc0000", "controller": "ai" }
+  ],
+  "units": [
+    { "type": "lord", "side": "blue", "x": 1, "y": 3, "name": "Eirik", "level": 2, "leader": true },
+    { "type": "cavalier", "side": "blue", "x": 1, "y": 4, "name": "Kell", "level": 1 },
+    { "type": "soldier", "side": "red", "x": 8, "y": 4, "name": "Gorm", "level": 2, "leader": true },
+    { "type": "archer", "side": "red", "x": 8, "y": 3, "name": "Vex", "level": 1 }
+  ]
+}

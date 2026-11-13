@@ -1,0 +1,31 @@
+{
+  "name": "Crossroads",
+  "grid": { "type": "square", "width": 12, "height": 8 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "c": "city", "F": "factory", "H": "hq" },
+  "tiles": [
+    "..f..cc..f..",
+    "...rrrrrr...",
+    ".H.r....r.H.",
+    "..FrrrrrrF..",
+    ".c.rf..fr.c.",
+    "..r......r..",
+    ".f.f.cc.f.f.",
+    "..f......f.."
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human", "resources": { "funds": 3000 } },
+    { "id": "red", "name": "Red Army", "color": "#cc0000", "controller": "ai", "resources": { "funds": 3000 } }
+  ],
+  "owners": [
+    { "x": 1, "y": 2, "side": "blue" }, { "x": 2, "y": 3, "side": "blue" }, { "x": 1, "y": 4, "side": "blue" },
+    { "x": 10, "y": 2, "side": "red" }, { "x": 9, "y": 3, "side": "red" }, { "x": 10, "y": 4, "side": "red" }
+  ],
+  "units": [
+    { "type": "infantry", "side": "blue", "x": 2, "y": 2 },
+    { "type": "infantry", "side": "blue", "x": 2, "y": 4 },
+    { "type": "tank", "side": "blue", "x": 3, "y": 3 },
+    { "type": "infantry", "side": "red", "x": 9, "y": 2 },
+    { "type": "infantry", "side": "red", "x": 9, "y": 4 },
+    { "type": "tank", "side": "red", "x": 8, "y": 3 }
+  ]
+}
