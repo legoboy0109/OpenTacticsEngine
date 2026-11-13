@@ -1,0 +1,1 @@
+{ "units": [ { "id": "grunt", "moveType": "foot", "stats": { "hp": 10, "mov": 3 }, "weapons": ["stick"] } ] }

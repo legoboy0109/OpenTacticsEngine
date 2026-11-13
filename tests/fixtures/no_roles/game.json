@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1,
+  "name": "Fixture",
+  "stats": [ { "id": "hp" }, { "id": "mov" } ],
+  "moveTypes": [ { "id": "foot" } ],
+  "formulas": { "damage": "1" },
+  "maps": [
+    { "id": "ok", "file": "maps/ok.json" },
+    { "id": "bad_row", "file": "maps/bad_row.json" },
+    { "id": "bad_char", "file": "maps/bad_char.json" },
+    { "id": "bad_legend", "file": "maps/bad_legend.json" },
+    { "id": "on_water", "file": "maps/on_water.json" },
+    { "id": "overlap", "file": "maps/overlap.json" },
+    { "id": "bad_side", "file": "maps/bad_side.json" },
+    { "id": "bad_type", "file": "maps/bad_type.json" },
+    { "id": "one_side", "file": "maps/one_side.json" },
+    { "id": "out_of_bounds", "file": "maps/out_of_bounds.json" },
+    { "id": "missing_file", "file": "maps/nope.json" }
+  ]
+}
