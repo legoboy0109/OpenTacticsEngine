@@ -36,18 +36,23 @@ docs/GAME_FORMAT.md.
 Done means: `ote_tests` green, `ote-sim` finishes both demo maps, the
 player plays both demos on Linux and in a browser, verified by screenshots.
 
-## After milestone 1 (rough order, to be confirmed with the owner)
+## After milestone 1 (owner priorities, 2026-11-13)
 
-1. Save/resume (battle state to JSON), settings persistence.
-2. Sprites and tilesets (image loading, animation), sound.
-3. Speed-based turn order (FFT style), move-after-attack option, height rules.
-4. Event system (story triggers, dialogue, win/lose conditions in data),
-   Lua event hooks, campaign layer (chapters, persistent army).
-5. Economy depth: multiple resources in UI, research/tech tree, upgradable
-   cities, fog of war, repair/supply.
-6. Hex grid; isometric view.
-7. The editor (its look and workflow are the owner's design decisions).
-8. Ports: Android, console/handheld backends, GLES3/SDL_GPU renderer, 3D grids.
+Focus on engine functionality and the editor. Demo game balance is NOT a
+goal (demos only exercise features).
+
+1. Launcher front end + settings (work package 6b).
+2. Editor first slice: browser editor for novices (see docs/EDITOR.md),
+   including the web build of the player for in-editor play-testing.
+3. From here on, each engine feature lands with its editor screen:
+   sprites/tilesets + named visual styles, sound; save/resume; event
+   system (story triggers, dialogue, win/lose conditions in data) and
+   campaign layer; speed-based turns (FFT), height rules; economy depth
+   (research, upgradable cities, fog, repair/supply); hex grid, isometric
+   view.
+4. Native developer app (Dear ImGui) for advanced users.
+5. Ports: Android, console/handheld backends, GLES3/SDL_GPU renderer, 3D
+   grids, homebrew old-console ports via the SDL2 backend.
 
 ## Settings model (owner decision, 2026-11-13)
 
