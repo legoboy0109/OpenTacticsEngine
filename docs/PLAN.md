@@ -26,7 +26,7 @@ docs/GAME_FORMAT.md.
 | 1 | Scaffold, contracts, format spec | done |
 | 2 | JSON + game/map loader + two demo games | done |
 | 3 | Battle core: movement, combat, turns, capture, production, progression, Lua formulas | done (36 tests) |
-| 4 | AI opponent (`core/ai`) + `ote-sim` headless runner | in progress |
+| 4 | AI opponent (`core/ai`) + `ote-sim` headless runner | done |
 | 5 | SDL3 platform backend + player (menus, battle UI, automation flags) | in progress |
 | 6 | Web build (Emscripten) | todo |
 | 6a | Real fonts (stb_truetype, shared by all backends), `--font` option, SDL2 backend | todo (fonts/format groundwork done) |
