@@ -9,9 +9,11 @@ const char* usageText() {
   return "usage: ote-player [--games DIR=games] [--assets DIR=assets] [--game ID] [--map ID] [--autoplay] [--seed N]\n"
          "                  [--headless] [--frames N] [--fixed-dt SECONDS] [--screenshot FILE.bmp]\n"
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
-         "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1]\n"
+         "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
+         "                  [--settings FILE=<user data folder>/settings.json]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
+         "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
          "input tokens: up down left right confirm cancel menu next prev wait wait:N tap:X:Y\n";
 }
 
@@ -52,6 +54,8 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--games")) { if (value(v)) a.gamesDir = v; }
     else if (!strcmp(arg, "--assets")) { if (value(v)) a.assetsDir = v; }
     else if (!strcmp(arg, "--font")) { if (value(v)) a.font = v; }
+    else if (!strcmp(arg, "--style")) { if (value(v)) a.style = v; }
+    else if (!strcmp(arg, "--settings")) { if (value(v)) a.settings = v; }
     else if (!strcmp(arg, "--game")) { if (value(v)) a.game = v; }
     else if (!strcmp(arg, "--map")) { if (value(v)) a.map = v; }
     else if (!strcmp(arg, "--screenshot")) { if (value(v)) a.screenshot = v; }
@@ -64,6 +68,8 @@ Args parseArgs(int argc, char** argv) {
       if (value(v)) { if (toLong(v, n) && n >= 1) a.inputInterval = (int)n; else a.error = "bad --input-interval"; }
     } else if (!strcmp(arg, "--font-size")) {
       if (value(v)) { if (toLong(v, n) && n >= 4 && n <= 128) a.fontSize = (int)n; else a.error = "bad --font-size (4..128)"; }
+    } else if (!strcmp(arg, "--ui-scale")) {
+      if (value(v)) { if (toLong(v, n) && n >= 25 && n <= 400) a.uiScale = (int)n; else a.error = "bad --ui-scale (25..400)"; }
     } else if (!strcmp(arg, "--font-smooth")) {
       if (value(v)) { if (toLong(v, n) && (n == 0 || n == 1)) a.fontSmooth = (int)n; else a.error = "bad --font-smooth (0 or 1)"; }
     } else if (!strcmp(arg, "--scale")) {

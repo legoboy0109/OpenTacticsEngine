@@ -1,10 +1,11 @@
-// Shared list-with-title scene used by game select and map select, plus the
-// error screen. Concrete scenes override onChoose / onCancel.
+// Shared list-with-title scene (map select), plus the error screen.
+// Concrete scenes override onChoose / onCancel.
 #pragma once
 #include <string>
 #include <vector>
 
 #include "scene.h"
+#include "ui/row_list.h"
 
 namespace ote {
 
@@ -22,21 +23,16 @@ class ListScene : public Scene {
  protected:
   virtual void onChoose(int index) = 0;
   virtual void onCancel() {}
-  void select(int index) { sel_ = index; }
+  void select(int index) { list_.sel = index < 0 || index >= (int)entries_.size() ? 0 : index; }
 
   SceneHost& host_;
   std::string title_;
   std::vector<ListEntry> entries_;
   std::string footer_;
-  int sel_ = 0;
 
  private:
-  int visibleRows(int screenH) const;
-  int firstRow(int screenH) const;
-  int rowAt(int x, int y) const;
-  void measure(const Renderer& r);
-  int rowH_ = 24, top_ = 44, bottom_ = 22;  // from the font, see measure()
-  int lastW_ = 480, lastH_ = 270;  // from the last draw, for pointer hit tests
+  void layout(const Renderer& r);  // fills list_ from the screen size and the active font
+  RowList list_;
 };
 
 // Shows a (possibly long) message in wrapped text; Cancel/Confirm/tap goes back.

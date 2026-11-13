@@ -17,6 +17,7 @@ struct DrawCtx {
   const Layout& layout;
   const Camera& cam;
   float time = 0;
+  const StyleDef* style = nullptr;  // the visual style in use (null = defaults)
 };
 
 // Per-cell highlight masks for a selected unit (empty = nothing highlighted).

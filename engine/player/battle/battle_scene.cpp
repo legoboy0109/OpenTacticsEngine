@@ -1,5 +1,7 @@
 #include "battle/battle_scene.h"
 
+#include <algorithm>
+
 #include "core/ai/ai.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -9,6 +11,7 @@ namespace ote {
 BattleScene::BattleScene(SceneHost& host)
     : host_(host), session_(*host.session()), battle_(host.session()->battle) {
   autoplay_ = host.args().autoplay;
+  styleIdx_ = std::max(0, std::min(host.styleIndex(), (int)session_.db.styles.size() - 1));
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
   view_.init(battle_, layout_.tile, autoplay_);
@@ -145,7 +148,7 @@ std::string BattleScene::hint() const {
 
 void BattleScene::draw(Renderer& r) {
   ensureLayout(r);
-  DrawCtx ctx{battle_, view_, layout_, cam_, time_};
+  DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_]};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));

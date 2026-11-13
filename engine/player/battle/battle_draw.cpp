@@ -15,10 +15,15 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   int t = c.layout.tile;
   const CellState& cs = b.cells[cell];
   const TerrainDef& td = b.terrainAt(cell);
-  Color col = Color::rgb(td.color);
+  // The visual style may recolor terrain and force the placeholder letters on or off.
+  const StyleDef* st = c.style;
+  size_t ti = (size_t)b.cells[cell].terrain;
+  uint32_t rgb = st && ti < st->terrainColors.size() && st->terrainColors[ti] >= 0 ? (uint32_t)st->terrainColors[ti]
+                                                                                    : td.color;
+  Color col = Color::rgb(rgb);
   r.fillRect(sx, sy, t, t, col);
   r.drawRect(sx, sy, t, t, Color(0, 0, 0, 28));
-  if (td.glyph != ' ') {
+  if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {
     drawGlyphCentered(r, sx + t / 2, sy + t / 2, td.glyph, mix(col, readableOn(col), 0.28f), t * 9 / 20);
   }
   if (cs.owner >= 0) {
@@ -80,7 +85,8 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
   const Battle& b = c.battle;
   const Layout& L = c.layout;
   int t = L.tile, cx = c.cam.ix(), cy = c.cam.iy();
-  r.fillRect(0, 0, L.vw, L.vh, Color(10, 10, 16));  // behind a map smaller than the viewport
+  // Behind a map smaller than the viewport (the style may pick the colour).
+  r.fillRect(0, 0, L.vw, L.vh, c.style && c.style->hasBackground ? Color::rgb(c.style->background) : Color(10, 10, 16));
   int gw = b.grid.width(), gh = b.grid.height();
   int x0 = std::max(0, cx / t), x1 = std::min(gw - 1, (cx + L.vw) / t);
   int y0 = std::max(0, cy / t), y1 = std::min(gh - 1, (cy + L.vh) / t);

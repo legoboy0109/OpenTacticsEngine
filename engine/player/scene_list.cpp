@@ -3,87 +3,63 @@
 #include <algorithm>
 
 #include "core/base/log.h"
+#include "ui/chrome.h"
 #include "ui/text.h"
 
 namespace ote {
-namespace {
-const Color kBg(18, 20, 32), kAccent(255, 220, 90);
-}  // namespace
 
-ListScene::ListScene(SceneHost& host, std::string title, std::vector<ListEntry> entries,
-                     std::string footer)
+ListScene::ListScene(SceneHost& host, std::string title, std::vector<ListEntry> entries, std::string footer)
     : host_(host), title_(std::move(title)), entries_(std::move(entries)), footer_(std::move(footer)) {
-  measure(host.renderer());
+  list_.count = (int)entries_.size();
 }
 
-// All vertical metrics come from the active font (at the classic 8px font they
-// are the original 44 / 24 / 22).
-void ListScene::measure(const Renderer& r) {
+// All vertical metrics come from the active font.
+void ListScene::layout(const Renderer& r) {
   int lh = r.lineHeight();
-  rowH_ = 2 * lh + 8;
-  top_ = 14 + r.lineHeight(2) + 14;
-  bottom_ = lh + 14;
-}
-
-int ListScene::visibleRows(int screenH) const { return std::max(1, (screenH - top_ - bottom_) / rowH_); }
-
-int ListScene::firstRow(int screenH) const {
-  int vis = visibleRows(screenH), n = (int)entries_.size();
-  return std::max(0, std::min(sel_ - vis / 2, n - vis));
-}
-
-int ListScene::rowAt(int x, int y) const {
-  int row = (y - top_) / rowH_;
-  if (y < top_ || row >= visibleRows(lastH_)) return -1;
-  row += firstRow(lastH_);
-  return row < (int)entries_.size() ? row : -1;
+  list_.rowH = 2 * lh + 8;
+  int top = 8 + r.lineHeight(lh <= 11 ? 2 : 1) + 8 + lh;  // below the title, room for the "^" marker
+  int bottom = footerHeight(r) + lh;                        // above the footer, room for "v"
+  list_.w = std::min(r.width() - 24, 320);
+  list_.x = (r.width() - list_.w) / 2;
+  list_.y = top;
+  list_.h = std::max(list_.rowH, r.height() - top - bottom);
+  list_.count = (int)entries_.size();
 }
 
 void ListScene::onInput(const InputEvent& e) {
-  int n = (int)entries_.size();
+  layout(host_.renderer());
   if (e.type == InputEvent::PointerMove) {
-    int row = rowAt(e.x, e.y);
-    if (row >= 0) sel_ = row;
+    int row = list_.rowAt(e.x, e.y);
+    if (row >= 0) list_.sel = row;
   } else if (e.type == InputEvent::PointerDown) {
-    int row = rowAt(e.x, e.y);
-    if (row >= 0) { sel_ = row; onChoose(row); }
-  } else if (e.type == InputEvent::ButtonDown && n > 0) {
-    if (e.button == Button::Up || e.button == Button::Prev) sel_ = (sel_ + n - 1) % n;
-    else if (e.button == Button::Down || e.button == Button::Next) sel_ = (sel_ + 1) % n;
-    else if (e.button == Button::Confirm) onChoose(sel_);
+    int row = list_.rowAt(e.x, e.y);
+    if (row >= 0) { list_.sel = row; onChoose(row); }
+  } else if (e.type == InputEvent::ButtonDown) {
+    if (list_.step(e.button)) return;
+    if (e.button == Button::Confirm && !entries_.empty()) onChoose(list_.sel);
     else if (e.button == Button::Cancel) onCancel();
-  } else if (e.type == InputEvent::ButtonDown && e.button == Button::Cancel) {
-    onCancel();
   }
 }
 
 void ListScene::draw(Renderer& r) {
-  lastW_ = r.width();
-  lastH_ = r.height();
-  measure(r);
+  layout(r);
   const int lh = r.lineHeight();
-  r.clear(kBg);
-  int tsc = fitScale(r, title_, lastW_ - 16, 2);
-  drawTextCentered(r, lastW_ / 2, 14, fitText(r, title_, lastW_ - 16, tsc), Color(235, 238, 255), tsc);
-  int vis = visibleRows(lastH_), first = firstRow(lastH_);
-  int boxW = std::min(lastW_ - 24, 320), bx = (lastW_ - boxW) / 2;
+  drawTitle(r, title_);
   if (entries_.empty())
-    drawTextCentered(r, lastW_ / 2, top_ + 20, "(nothing here)", Color(140, 145, 170));
-  for (int i = 0; i < vis && first + i < (int)entries_.size(); ++i) {
+    drawTextCentered(r, r.width() / 2, list_.y + 20, "(nothing here)", chrome::kDim);
+  int first = list_.first();
+  for (int i = 0; i < list_.visible() && first + i < (int)entries_.size(); ++i) {
     const ListEntry& it = entries_[first + i];
-    int y = top_ + i * rowH_;
-    bool sel = first + i == sel_;
-    r.fillRect(bx, y, boxW, rowH_ - 3, sel ? Color(60, 78, 130) : Color(30, 34, 54));
-    if (sel) r.drawRect(bx, y, boxW, rowH_ - 3, kAccent);
-    int textW_ = boxW - 16;
-    int ly = it.detail.empty() ? y + (rowH_ - 3 - lh) / 2 : y + 3;
-    r.drawText(bx + 8, ly, fitText(r, it.label, textW_).c_str(), sel ? Color(255, 255, 255) : Color(215, 218, 235));
+    int y = list_.rowY(first + i);
+    bool sel = first + i == list_.sel;
+    drawRowBox(r, list_.x, y, list_.w, list_.rowH - 3, sel);
+    int textW_ = list_.w - 16;
+    r.drawText(list_.x + 8, y + 3, fitText(r, it.label, textW_).c_str(), sel ? chrome::kTextSel : chrome::kText);
     if (!it.detail.empty())
-      r.drawText(bx + 8, y + 3 + lh + 1, fitText(r, it.detail, textW_).c_str(), Color(165, 172, 205));
+      r.drawText(list_.x + 8, y + 3 + lh + 1, fitText(r, it.detail, textW_).c_str(), Color(165, 172, 205));
   }
-  if (first > 0) drawTextCentered(r, lastW_ / 2, top_ - lh - 2, "^", kAccent);
-  if (first + vis < (int)entries_.size()) drawTextCentered(r, lastW_ / 2, lastH_ - bottom_ + 2, "v", kAccent);
-  drawTextCentered(r, lastW_ / 2, lastH_ - lh - 4, fitText(r, footer_, lastW_ - 16), Color(120, 128, 160));
+  list_.drawMore(r, chrome::kAccent);
+  drawFooter(r, footer_);
 }
 
 void ErrorScene::onInput(const InputEvent& e) {
@@ -92,7 +68,8 @@ void ErrorScene::onInput(const InputEvent& e) {
                (e.button == Button::Cancel || e.button == Button::Confirm || e.button == Button::Menu));
   if (!back) return;
   if (back_ == SceneHost::ToMapSelect) host_.showMapSelect();
-  else host_.showGameSelect();
+  else if (back_ == SceneHost::ToGame && !host_.currentGameId().empty()) host_.showGame(host_.currentGameId());
+  else host_.showHome();
 }
 
 void ErrorScene::draw(Renderer& r) {

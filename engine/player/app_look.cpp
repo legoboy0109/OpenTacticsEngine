@@ -1,0 +1,64 @@
+// Settings file handling and applying the effective look.
+#include "app.h"
+#include "core/base/log.h"
+#include "options/option_defs.h"
+
+namespace ote {
+
+void PlayerApp::loadSettings() {
+  settingsPath_ = args_.settings;
+  if (settingsPath_.empty() && !args_.headless) {
+    // Headless runs are tests: never read or write the user's real settings unless asked to.
+    std::string dir = userDataDir();
+    if (dir.empty()) OTE_WARN("no user data folder: options will not be remembered");
+    else settingsPath_ = dir + "/settings.json";
+  }
+  if (settingsPath_.empty()) return;
+  std::string err;
+  if (!settings_.load(settingsPath_, err)) {
+    OTE_ERROR("%s (using defaults; the file is kept as .bad when settings are next saved)", err.c_str());
+    notice_ = "Settings file unreadable - using defaults";
+  } else {
+    OTE_INFO("settings: %s", settingsPath_.c_str());
+  }
+}
+
+void PlayerApp::flushSettings() {
+  if (settingsPath_.empty() || !settings_.dirty()) return;
+  std::string err;
+  if (settings_.save(err)) return;
+  if (!saveWarned_) OTE_ERROR("cannot save settings: %s", err.c_str());
+  saveWarned_ = true;
+}
+
+namespace {
+LookLayer argsLayer(const Args& a) {
+  LookLayer l;
+  l.font = a.font;
+  l.fontSize = a.fontSize;
+  l.smooth = a.fontSmooth;
+  l.uiScale = a.uiScale;
+  l.style = a.style;
+  return l;
+}
+}  // namespace
+
+void PlayerApp::applyLook(const std::string& gameId, const GameLook& game, int w, int h) {
+  LookLayer perGame = gameId.empty() ? LookLayer() : overrideLayer(settings_, gameId);
+  look_ = resolveLook(args_.assetsDir, argsLayer(args_), perGame, globalLayer(settings_), game);
+  renderer_->setLogicalSize(w, h);
+  FontRequest req = look_.font;
+  if (fontApplied_ && req.file == appliedFont_.file && req.size == appliedFont_.size &&
+      req.smooth == appliedFont_.smooth)
+    return;  // unchanged: skip re-reading the font file
+  if (!renderer_->setFont(req)) {  // unusable file: the engine already fell back to the built-in font
+    req = pixelFontRequest();
+    renderer_->setFont(req);
+  }
+  appliedFont_ = req;
+  fontApplied_ = true;
+  OTE_INFO("font: %s size %d %s (ui scale %d%%)", req.file.empty() ? "built-in pixel" : req.file.c_str(), req.size,
+           req.smooth ? "smooth" : "crisp", look_.uiScale);
+}
+
+}  // namespace ote

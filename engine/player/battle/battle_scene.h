@@ -64,6 +64,7 @@ class BattleScene : public Scene {
   Menu menu_;
   Mode mode_ = Mode::Idle;
   bool autoplay_ = false;
+  int styleIdx_ = 0;  // visual style of the look in use (index into db.styles)
   float time_ = 0;
 
   Cell cursor_ = 0;
