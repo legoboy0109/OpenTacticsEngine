@@ -17,6 +17,27 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
   `~/.local/share/emsdk`; run `source ~/.local/share/emsdk/emsdk_env.sh`),
   README.
 
+## Editor helper
+
+`ote-editor` (editor/server) serves the browser editor and the HTTP API in
+docs/EDITOR_API.md, using the real loader for validation. Starter projects
+live in editor/templates (strategy-rpg, economy-tactics, blank). Build and
+run (does not need the player target):
+
+```
+cmake -S . -B build -G Ninja -DOTE_BUILD_PLAYER=OFF && cmake --build build
+./build/ote-editor            # from the repo root; http://127.0.0.1:8765/
+python3 tests/editor_api_test.py ./build/ote-editor .   # also ctest "editor_api"
+```
+
+Notes: all /api handlers run under one mutex (engine core is not
+thread-safe); the web UI folder (editor/web/dist) does not exist yet, so `/`
+shows a built-in placeholder page. Creating a project does not touch
+games/index.json. The helper is built with exceptions on (httplib, v0.26.0 in
+third_party/httplib); the engine itself stays exception-free.
+`ote_tests` writes a settings file into `<repo>/build/`, so that folder must
+exist when running it from another build dir name.
+
 ## Build and test
 
 ```
