@@ -122,6 +122,54 @@ fill it in the entry's `apply`. The screens, the per-game override, "Use
 global", reset and persistence need no further code. Style recoloring
 itself is in `battle/battle_draw.*` (`terrainRgb`, background, glyphs).
 
+## Web
+
+`emcmake cmake` builds `ote-player` with Emscripten's SDL3 port into
+`build-web/engine/player/` (see HANDOFF.md). The main loop is
+`emscripten_set_main_loop_arg` (sdl_app.cpp); the module is MODULARIZE'd
+(`createOtePlayer`), `INVOKE_RUN=0`, and exports `FS`, `callMain`, `IDBFS`.
+The pages decide the arguments and call `Module.callMain([...])`.
+
+**Files reach the engine through Emscripten's in-memory file system** (the
+engine just `fopen`s): `engine/platform/web/player.js` instantiates the
+module, the page's `prepare` callback fetches files and writes them with
+`FS.writeFile` (creating folders), then `callMain` runs. `index.html` reads
+`games.manifest.json` (made by `make_manifest.py` at build time: every file of
+`games/` and `assets/` with sizes) and loads `/games/...` and `/assets/...`;
+it starts the launcher with no arguments. `?args=...` appends arguments
+(spaces as `+`), e.g. `--autoplay --frames 300`; `--input` works too.
+
+**Embed protocol** (`embed.html`, for the editor's Play button, inside an iframe):
+`embed.html?project=<id>[&map=<mapId>][&api=<base>][&font=<id>][&style=<id>]`.
+It fetches `<api>/api/projects/<id>/files` and each
+`<api>/api/projects/<id>/file/<path>` (path segments URL-encoded, 6 requests at
+a time) into `/games/<id>/`, plus `<api>/assets/fonts/fonts.json` and every font
+it lists into `/assets/fonts/` (`api` defaults to the page's origin), then runs
+`ote-player --games /games --assets /assets --no-settings --game <id> [--map ..]`.
+Messages to the parent window: `{type:"ote-player-ready"}` once the first frames
+are drawn; `{type:"ote-player-error", message}` on any failure (file list not
+loadable, a script error, or engine `[ERROR]` lines printed while starting, such
+as a broken game.json - the engine's own error screen stays visible in that
+case; for load failures the page shows an error panel). From the parent:
+`{type:"ote-player-restart"}` reloads the page (re-fetches the project).
+The canvas fills the iframe (CSS `!important` size, SDL sizes the backing
+store to CSS size x devicePixelRatio via `SDL_WINDOW_HIGH_PIXEL_DENSITY`, so
+smooth text is rasterized at real resolution); the engine letterboxes inside.
+Arrow keys, space, tab and backspace are `preventDefault`ed so the host page
+never scrolls; the canvas takes focus on load and on click.
+
+**Settings persistence.** `userDataDir()` on the web is `/userdata` if it
+exists, else empty (settings then live in memory only). The standalone page
+mounts IDBFS there and loads it (`FS.syncfs(true)`) before `main`; after every
+successful settings save the app calls `commitUserData()` (platform.h; no-op on
+desktop) which runs `FS.syncfs(false)`. The embed page mounts nothing and passes
+`--no-settings` (new flag: settings are never read or written, always
+defaults), so the editor preview always starts from the defaults.
+
+Testing: `tools/webtest` (HANDOFF.md). Known limits: the SDL2 backend's
+Emscripten branch is untested; when the main loop ends (`--frames`, end of an
+`--input` script) destructors do not run (Emscripten unwinds), the page stays up.
+
 ## Testing
 
 `ote_tests` (unit tests) and `ote-sim` (plays whole battles AI vs AI,

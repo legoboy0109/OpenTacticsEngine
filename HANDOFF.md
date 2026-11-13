@@ -13,9 +13,7 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
   and verified): real AI + `ote-sim`; SDL3 backend + `ote-player`.
 - Text/fonts: shared text engine (TrueType via stb_truetype) with SDL3 and
   SDL2 backends; the player lays out everything from measured text.
-- Not started: web build (Emscripten is installed at
-  `~/.local/share/emsdk`; run `source ~/.local/share/emsdk/emsdk_env.sh`),
-  README.
+- Web build done (see "Web build" below). Not started: README.
 
 ## Build and test
 
@@ -50,6 +48,34 @@ no settings file at all. Flags `--font --font-size --font-smooth --style
 ./build/engine/player/ote-player --headless --settings /tmp/s.json --input "down,down,down,confirm,wait:2" --screenshot /tmp/x.bmp
 ```
 
+## Web build
+
+Emscripten 7.0.0 (`~/.local/share/emsdk`; `source ~/.local/share/emsdk/emsdk_env.sh`
+puts `emcmake` on PATH). SDL3 backend only (SDL2's Emscripten branch is untested).
+
+```
+emcmake cmake -S . -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build-web
+python3 -m http.server -d build-web/engine/player 8000     # any static server works
+# http://localhost:8000/index.html  (standalone launcher)
+# http://localhost:8000/index.html?args=--game+demo-srpg+--map+bridge+--autoplay+--frames+300   (debug args)
+# embed.html?project=<id>&map=<id> needs the editor helper's API (docs/EDITOR_API.md)
+```
+
+`build-web/engine/player/` is self-contained: `ote-player.js/.wasm` (factory
+`createOtePlayer`, main is not auto-run), `index.html`, `embed.html`,
+`player.js/.css`, copies of `games/` + `assets/` and `games.manifest.json`.
+Sources of the pages: `engine/platform/web/`. Details: docs/ARCHITECTURE.md "Web".
+Size: wasm ~1.5 MB (490 KB gzip), js 163 KB (41 KB gzip); first frame ~0.1 s locally.
+
+Browser checks (Playwright; Chromium + Firefox), screenshots land in `tools/webtest/out/`:
+
+```
+cd tools/webtest && npm install && npx playwright install chromium firefox   # once
+node run.mjs                       # standalone, pointer/touch, resize, embed (mock API), perf: Chromium
+node run.mjs --browser firefox     # smoke test in Firefox
+node run.mjs --only embed --build /path/to/web/output
+```
+
 ## Working agreements
 
 - The owner makes design/naming/direction calls; technical calls are ours.
@@ -62,5 +88,4 @@ no settings file at all. Flags `--font --font-size --font-smooth --style
 
 ## Next concrete step
 
-Merge the AI and player branches, run `ote_tests`, `ote-sim` on both
-demos, and the player's headless screenshot flows; then the web build.
+Hook the editor's Play button to `/player/embed.html` (docs/ARCHITECTURE.md "Web"); README.
