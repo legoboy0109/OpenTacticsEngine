@@ -137,3 +137,27 @@ saved project; unsaved edits are flushed on page hide). Unit tests
 expression → preset detection, reference clean-up on delete, document
 edit functions, map resize. End-to-end tests (Playwright, headless
 Chromium) against a real `ote-editor` on a temp copy of the games folder.
+
+## Implementation notes
+
+Deviations and additions made while building the first slice:
+
+- **Preset recognition is broader than "stored preset only".** Besides the preset stored in
+  `game.editor.formulas`, any expression that matches a preset's generated shape (ignoring spaces and the
+  `or 0` / `or 100` defaults) is recognised, so the templates' hand-written formulas show as presets rather
+  than "Custom". The stored preset wins when two would give the same text.
+- **Removed stat in a preset**: that choice is blanked, the expression uses `0` in its place (the game still
+  loads), and the Rules screen shows a warning until a stat is picked again. Hand-written (custom) formulas
+  that mention the stat are only listed in the delete confirmation.
+- **Maps screen** is a stub with list actions only (new, rename, duplicate, reorder, delete; the last map cannot
+  be deleted). New maps are 12 x 8 of the first terrain with two sides.
+- **Play** is a disabled button with a tooltip.
+- Deleting the last unit, terrain, map or movement type is refused (the loader requires at least one).
+- Autosave sends only the sections that changed since the last save; "Keep mine" sends everything loadable.
+  Sections that failed to load (null) are never sent. Page-hide saves use `fetch` keepalive and fall back to a
+  normal request above 60 KB.
+- Stat ids avoid the names the engine reserves in formulas (`hp`, `maxhp`, `level`, `xp`, `type`, `name`, `tags`).
+- Per-terrain "numbers used by combat maths" and weapon numbers offer `defense`/`avoid` and `might`/`hit` based
+  on the chosen presets; capture, income and build lists stay visible with a hint when their feature is off.
+- The first effectiveness row added to a weapon that could hit anything also sets "everything else", so the weapon
+  does not suddenly lose targets.
