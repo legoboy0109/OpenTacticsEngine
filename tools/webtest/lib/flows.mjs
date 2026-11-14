@@ -41,9 +41,10 @@ export async function pointerMoveLord(s, tap = false) {
   await hit(...tile(4, 4));
 }
 
-// Presses the "Wait" entry of the open action menu with the pointer.
+// Presses the "Wait" entry of the open action menu with the pointer. The lord's menu
+// at (4,4) is Items, Storage, Wait: Wait is the third row (rows are 12 apart from y = 125).
 export async function pointerWait(s, tap = false) {
-  if (tap) await s.tapL(172, 125); else await s.clickL(172, 125);
+  if (tap) await s.tapL(172, 149); else await s.clickL(172, 149);
 }
 
 // Opens the end-turn menu with the keyboard and ends the turn; waits for the AI.

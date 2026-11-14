@@ -45,7 +45,7 @@ export async function run(env) {
     await s.keys(['ArrowRight', 'ArrowRight', 'Enter']);
     const b2 = await s.shot('action-menu');
     C.check('moving opens the action menu', !same(b1, b2));
-    await s.keys(['Enter']);  // Wait
+    await s.keys(['ArrowUp', 'Enter']);  // Wait, the last entry
     const b3 = await s.shot('unit-waited');
     C.check('unit waits (menu closes)', !same(b2, b3));
     await keyboardEndTurn(s);
