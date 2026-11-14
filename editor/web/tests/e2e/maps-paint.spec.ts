@@ -127,7 +127,7 @@ test('tool shortcuts and visible hints', async ({ page, game }) => {
   const id = await game.create('blank', 'Keys')
   await openMap(page, id, 'start')
   await expect(page.getByText(/T U O S pick a tool/)).toBeVisible()
-  for (const [key, name] of [['u', 'Units'], ['o', 'Owners'], ['s', 'Select'], ['t', 'Terrain']] as const) {
+  for (const [key, name] of [['u', 'Units'], ['o', 'Structures'], ['s', 'Select'], ['t', 'Terrain']] as const) {
     await page.keyboard.press(key)
     await expect(tool(page, name)).toHaveAttribute('aria-pressed', 'true')
   }

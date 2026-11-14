@@ -64,7 +64,10 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     const c = cv.current
     const g = c?.getContext('2d')
     if (!c || !g) return
-    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: ghostRef.current(), selSize: vs.selSize, time: clockNow(reduced.current) })
+    const sg = ghostRef.current()
+    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, time: clockNow(reduced.current) })
+    // What the structure ghost shows (for tests and curious people): "kind,x,y,ok|bad", empty when there is none.
+    c.dataset.ghost = sg ? `${sg.type},${sg.x},${sg.y},${sg.ok ? 'ok' : 'bad'}` : ''
     // Lets tests (and curious people) find a square on screen without guessing.
     c.dataset.view = `${vs.view.scale},${vs.view.x},${vs.view.y}`
   }, [vs])

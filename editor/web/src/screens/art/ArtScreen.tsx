@@ -95,7 +95,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
       <ConfirmDialog open={!!target} title={T.removeTitle(target?.name || (target ? artBase(target.file) : ''))} confirmLabel={T.removeConfirm} danger
         onConfirm={() => target && doRemove(target.id)} onCancel={() => setRemoving(null)}>
         <p>{T.removeUsedIntro}</p>
-        <ul className="usage-list">{users.map((u) => <li key={`${u.kind}:${u.id}`}>{u.kind === 'terrain' ? T.usedTerrain(u.name) : T.usedUnit(u.name)}</li>)}</ul>
+        <ul className="usage-list">{users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}</ul>
         <p className="help">{T.removeUnusedNote}</p>
         <p className="help">{T.removeUndo}</p>
       </ConfirmDialog>

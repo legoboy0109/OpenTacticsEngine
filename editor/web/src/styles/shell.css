@@ -83,7 +83,8 @@
     position: sticky; top: 0; z-index: 15; width: auto; height: auto; padding: 6px 8px;
     border-right: 0; border-bottom: 1px solid var(--border);
   }
-  .sidebar ul { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; }
+  /* Eight sections do not fit one row at 360 px ("Structures" would be clipped): two rows of four. */
+  .sidebar ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
   .nav-link { justify-content: center; padding: 8px 2px; font-size: 0.82rem; position: relative; }
   .nav-dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; }
   .main { padding: 16px 12px 48px; }
