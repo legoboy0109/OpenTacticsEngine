@@ -64,6 +64,8 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
   // --- what draws 3D: anything but the known names is "let the player decide"
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.draw3d == "opengl" || x.draw3d == "software"; }))
     out.draw3d = l->draw3d;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.res3d == "display" || x.res3d == "game"; }))
+    out.res3d = l->res3d;
   return out;
 }
 

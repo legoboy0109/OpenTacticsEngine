@@ -74,6 +74,15 @@ std::vector<OptionChoice> draw3dChoices(const OptionContext& ctx) {
 }
 void applyDraw3d(const Json& v, LookLayer& l) { l.draw3d = v.asString(); }
 
+// ---- how big the 3D picture is (docs/RENDER3D.md "Resolution") ---------------
+// Automatic: the display's resolution with OpenGL, the game's size with the
+// (slower) software drawer.
+std::vector<OptionChoice> res3dChoices(const OptionContext& ctx) {
+  return {choice(ctx.game ? "Use global" : "Automatic"), choice("Display", Json::makeString("display")),
+          choice("Game size", Json::makeString("game"))};
+}
+void applyRes3d(const Json& v, LookLayer& l) { l.res3d = v.asString(); }
+
 }  // namespace
 
 const std::vector<OptionDef>& optionDefs() {
@@ -83,6 +92,7 @@ const std::vector<OptionDef>& optionDefs() {
       {"uiScale", "UI scale", scaleChoices, applyScale},
       {"style", "Visual style", styleChoices, applyStyle},
       {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},
+      {"res3d", "3D resolution", res3dChoices, applyRes3d},
   };
   return defs;
 }

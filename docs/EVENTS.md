@@ -9,10 +9,16 @@ Contract for PLAN item 3f. Owner decisions (2026-11-14):
   resources; set win / lose conditions; switches and variables.
 - The first version **includes a campaign**: chapters in order, surviving
   units with levels and items carried over, scenes between maps.
+- **Dialogue** is a box across the bottom with the speaker's name and, when
+  the game has one, the speaker's portrait beside it.
+- **Dialogue choices come later**, not in the first version.
+- **Fallen units: the maker chooses per game** (gone for good, or back next
+  chapter).
+- **Single maps next to a campaign: the maker chooses** (campaign only, or
+  campaign plus free battles).
 
 Everything below is engine design and may change; all wording shown to
-players and makers is placeholder until the owner approves it. Points
-marked **(owner)** are choices still to be put to the owner.
+players and makers is placeholder until the owner approves it.
 
 Status: design only; see "Build order".
 
@@ -24,7 +30,7 @@ Status: design only; see "Build order".
   played by `ote-sim`. A command changes the battle at once and leaves
   entries in the event stream; the player shows them in order (a line of
   dialogue is one such entry). Nothing waits for input inside the core, so
-  **dialogue choices are not in this version** **(owner)**.
+  dialogue choices are not in this version (owner decision).
 - A game without events, objectives or a campaign behaves exactly as today
   and keeps its save hash.
 
@@ -116,7 +122,7 @@ keeps applying to the other sides.
 A box across the bottom of the screen: the speaker's name, the text
 appearing letter by letter (confirm = finish the line, then next; a hold
 or a "skip" button runs through the rest), and the speaker's portrait if
-one exists **(owner: look and position)**. Portraits are pictures in
+one exists, to the left of the box. Portraits are pictures in
 `data/graphics.json` under `"portraits": { "eirik": { "sheet": …, "cell": … } }`,
 per style like other art. In 3D styles the box is the same 2D box. The
 objective text is shown at battle start and in the battle menu.
@@ -155,8 +161,8 @@ campaign keep their format. The save hash rule stays: rules changes
 refuse old saves, wording and art do not; dialogue text is wording.
 
 **Launcher.** A game with a campaign offers New game / Continue / Load.
-Whether single maps stay startable on their own is the maker's setting
-**(owner)**.
+`"freeBattles"` in campaign.json (`"none"` default, `"all"`, or a list of map
+ids) says which maps can also be started on their own.
 
 ## Editor
 

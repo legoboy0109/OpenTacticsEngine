@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
   cfg.title = "OpenTacticsEngine";
   cfg.windowScale = args.scale;
   cfg.headless = args.headless;
+  cfg.headlessScale = args.scale3d;
   cfg.fixedDt = args.fixedDt;
   cfg.maxFrames = args.frames;
   cfg.screenshotPath = args.screenshot;

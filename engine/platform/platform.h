@@ -60,6 +60,12 @@ class Renderer {
   virtual ~Renderer() {}
   virtual int width() const = 0;
   virtual int height() const = 0;
+  // The real size in device pixels of the area the logical screen is shown in
+  // (the letterboxed rectangle, not the whole window; on the web the canvas's
+  // real pixels, devicePixelRatio included). Follows window resizes. Headless
+  // runs have no display: there it is the logical size times
+  // PlatformConfig::headlessScale. Used to draw 3D at the display's resolution.
+  virtual void displaySize(int& width, int& height) const = 0;
   virtual void clear(Color color) = 0;
   virtual void fillRect(int x, int y, int w, int h, Color color) = 0;  // alpha blended
   virtual void drawRect(int x, int y, int w, int h, Color color) = 0;  // 1px outline
@@ -80,10 +86,12 @@ class Renderer {
   virtual int lineHeight(int scale = 1) const = 0;
 
   // Images (sprite sheets). Creates a texture from 32-bit pixels (R,G,B,A
-  // bytes, row by row, not premultiplied). Nearest-neighbour scaling. Returns
-  // 0 on failure (logged). Textures survive setLogicalSize; whatever is still
+  // bytes, row by row, not premultiplied). Nearest-neighbour scaling, or with
+  // `smooth` linear (for a picture drawn at about its own pixel size or
+  // smaller, like the 3D picture, which must not be doubled or blurred up).
+  // Returns 0 on failure (logged). Textures survive setLogicalSize; whatever is still
   // alive when the renderer goes away is freed with it.
-  virtual TextureId createTexture(const uint8_t* rgba, int width, int height) = 0;
+  virtual TextureId createTexture(const uint8_t* rgba, int width, int height, bool smooth = false) = 0;
   virtual void destroyTexture(TextureId id) = 0;
   // Replaces all pixels of a texture with a picture of the same size (a
   // picture that changes every frame, like the software 3D layer's).
@@ -114,6 +122,8 @@ struct PlatformConfig {
   int windowScale = 3;        // initial window = logical size * scale
   // Test/automation support:
   bool headless = false;      // no visible window (offscreen software rendering)
+  int headlessScale = 1;      // headless: the "display" is the logical size times this (1..8), so screenshots
+                              // and the 3D picture can be taken at a higher resolution
   double fixedDt = 0;         // > 0: update() gets exactly this dt every frame
   int maxFrames = 0;          // > 0: quit after this many frames
   std::string screenshotPath; // non-empty: save the final frame as BMP on exit

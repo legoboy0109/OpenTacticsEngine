@@ -19,20 +19,80 @@ target, including homebrew console ports.
     drawn at `end()`, far to near by the mesh's origin, without writing
     depth;
   - linear fog by distance from the camera;
-  - texture sampling: hard pixels or smooth, repeat or clamp;
+  - texture sampling: hard pixels or smooth (with mipmaps if the texture
+    was made with them), repeat or clamp;
   - the depth test can be switched off per material (things shown through
     walls).
 - Moving characters are posed on the CPU and uploaded again
   (`updateMesh`). No GPU skinning.
 - Limits a backend states in `Caps3D` (defaults: textures power-of-two up
-  to 1024 a side, 65535 vertices per mesh). Loaders shrink and split content
-  to fit; a backend refuses (returns 0, logs) what is over.
+  to 1024 a side, 65535 vertices per mesh; the software backend says 2048,
+  the OpenGL one the driver's limit, at most 4096). Loaders shrink and split
+  content to fit; a backend refuses (returns 0, logs) what is over.
 - Conventions (`math3d.h`): right-handed, +Y up, cameras look down -Z,
   column-major matrices, radians, front faces counter-clockwise, texture
   (0,0) = top-left of the picture. Same as glTF, so models need no
   conversion.
 - One 3D picture per `begin`/`end`, in a rectangle of the 2D screen given
   in logical pixels. 2D drawing done afterwards lies on top (menus, text).
+  The picture itself may have more pixels than the rectangle has logical
+  ones (`Frame3D::renderWidth/Height`): see "Resolution".
+
+## Resolution
+
+The 3D picture is drawn at the **display's real resolution**, so detailed art
+is not shrunk to the game's 480 x 270 and scaled up again. Everything that
+is about places stays in logical pixels (`MapProj`, picking, the letters and
+bars drawn on top); only the picture's pixel count changes, the camera is
+the same.
+
+- **Asking the display.** `Renderer::displaySize()` (platform.h) is the real
+  pixel size of the rectangle the logical screen is shown in (the
+  letterboxed area, not the window; on the web the canvas's real pixels,
+  devicePixelRatio included). It follows window resizes, so the picture size
+  does too (a new framebuffer / texture when it changes).
+- **Fitting.** `Show3D::fit()` (`engine/player/show3d.cpp`) turns that into
+  `Frame3D::renderWidth/Height`: the logical rectangle times the display's
+  pixels per logical pixel, never below the logical size, at most **4096 on
+  the longer side**. `Map3D` and the `--test-3d` scene use it; the backends
+  clamp again to what they can (OpenGL: its framebuffer limit).
+- **Showing.** `Show3D::show()` draws the picture into the logical rectangle
+  through a 2D texture. A picture bigger than its rectangle is drawn with
+  linear scaling (SDL3: `SDL_SCALEMODE_LINEAR`; SDL2: the scale-quality hint
+  while the texture is made), which on the display is about 1:1, so it
+  arrives at full detail. A picture at the logical size is still scaled with
+  hard pixels, as before.
+- **Choosing**: the "3D resolution" option (Automatic / Display / Game size;
+  key `res3d` = `"display"` / `"game"`, global or per game), or
+  `ote-player --3d-res auto|display|game`, which wins. Automatic is the
+  display's resolution where the backend says it is fast enough
+  (`Caps3D::fullResolution`: the OpenGL one) and the game's size otherwise
+  (the software backend, which is too slow for more; "Display" forces it).
+- **Headless** runs have no display: it is the logical size, unless
+  `--3d-scale N` (1..8) says the "display" is N times bigger. The headless
+  window is then N times the logical size, so the 3D picture is N times the
+  logical one (Automatic becomes Display there) and **the screenshot is
+  written at that size too** (2D things in it are scaled up, the 3D picture
+  is the real detail). That is how a high-resolution result is checked
+  without a window:
+  `ote-player --headless --game demo-srpg --map bridge --style full-3d --no-settings --no-saving --3d-scale 4 --screenshot out.bmp`
+  (software at 1920 x 1080 takes ~190 ms a frame).
+- **Edges.** At display resolution the OpenGL backend draws with 4x
+  multisampling (`Frame3D::samples`; ES 3.0 / WebGL 2 multisampled
+  renderbuffers resolved by a blit) when the context supports it, else
+  silently without. Texture positions are interpolated at the centroid, or
+  the edge samples of a tile read the transparent padding of its sheet.
+- **Cost.** The read-back into memory is unchanged and grows with the
+  picture: 8 MB a frame at 1920 x 1080 (RGBA), 64 MB at 4096 x 4096, then
+  one upload into the 2D renderer's texture. Measured on the desktop
+  (AMD Radeon, Mesa), full 3D at 1920 x 1080 with 4x multisampling: the
+  frame's GPU work plus the read-back wait 2.4-3.1 ms (`glReadPixels` alone
+  is a fraction of that). The headless screenshot run takes ~55 ms a frame
+  because its 2D side is SDL's software renderer scaling the picture; the
+  software 3D backend takes ~190 ms a frame at that size. A weak or
+  shared-memory GPU, or the web (the copy out of WebGL), costs more.
+  Drawing 2D and 3D in one context (no read-back) is the way to remove
+  this cost; not done.
 
 ## Backends
 
@@ -62,9 +122,10 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   there and reads the finished picture back into memory, so it hands the
   picture over through `framePixels` exactly like the software backend. The
   2D renderer is untouched and need not be GL at all, and the two backends
-  can be swapped at will. The read-back is small at the logical resolution.
-  (Drawing 2D and 3D in one context would save it; that is only worth doing
-  if 3D is ever drawn at the display's full resolution.)
+  can be swapped at will. The read-back is small at the logical resolution
+  and grows with the picture (see "Resolution"). (Drawing 2D and 3D in one
+  context would save it; that is worth doing if the display-resolution
+  read-back ever proves too slow.)
 - **Draws are queued** and carried out in `end()`, inside one
   `enter()`/`leave()` of the host, which puts back whatever context was
   current (SDL's own 2D renderer is often GL too). A solid draw whose mesh
@@ -85,7 +146,8 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   loads either way.
 - **Choosing**: the player's "3D graphics" option (Automatic / OpenGL /
   Software; settings key `draw3d` = `"opengl"` / `"software"`, global or per
-  game; `options/option_defs.cpp`), or `ote-player --3d
+  game; `options/option_defs.cpp`; "3D resolution" next to it, see
+  "Resolution"), or `ote-player --3d
   auto|software|hardware`, which wins over the option. Automatic is
   hardware, except in `--headless` runs, which keep the software backend so
   their screenshots do not depend on the machine's driver. A changed choice
@@ -113,7 +175,9 @@ scene, and a scene frees its own meshes and textures when it ends.
 into plain data (`Model3D`: nodes, parts, materials, images) by `loadModel`.
 Only what the feature set above can show is read: base colour and its
 texture (PNG or JPEG), alpha mode, double-sidedness, unlit, repeat/clamp,
-hard or smooth pixels; other PBR values are ignored. Content is fitted to
+hard or smooth pixels (the sampler's `magFilter` NEAREST = hard pixels;
+anything else, or no sampler, = smooth, and the texture gets mipmaps);
+other PBR values are ignored. Content is fitted to
 the backend's `Caps3D`: pictures shrunk to power-of-two sides, big meshes
 split. Compressed files (Draco, meshopt), sparse accessors and files that
 point outside their own folder are refused with a plain sentence; lines,

@@ -217,6 +217,22 @@ def run_graphics_checks(api, tmp, games, templates, check, get_project, put_proj
     st, res = put_project(api, pid, d, d["revision"], graphics=gfx)
     check("fixing graphics clears the problem", st == 200 and res["problems"] == [], res)
 
+    # a sheet's optional "smooth" flag (3D views blend its pixels) round-trips, and must be a boolean
+    smooth_gfx = {"sheets": [{"id": "main", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24, "smooth": True}]}
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], graphics=smooth_gfx)
+    check("PUT graphics with smooth true -> 200, no problems", st == 200 and res["problems"] == [], (st, res))
+    st, d = get_project(api, pid)
+    check("GET returns the smooth flag as written", d["graphics"] == smooth_gfx, d["graphics"])
+    bad_smooth = {"sheets": [{"id": "main", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24, "smooth": "yes"}]}
+    st, res = put_project(api, pid, d, d["revision"], graphics=bad_smooth)
+    check("smooth that is not true/false -> problem on data/graphics.json naming it",
+          st == 200 and res["problems"] and res["problems"][0]["file"] == "data/graphics.json" and
+          "smooth" in res["problems"][0]["message"], res)
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], graphics=gfx)
+    check("restoring the plain sheet clears the problem again", st == 200 and res["problems"] == [], res)
+
     # missing image file referenced by a sheet
     missing = {"sheets": [{"id": "gone", "file": "art/gone.png", "cellWidth": 8, "cellHeight": 8}]}
     st, d = get_project(api, pid)

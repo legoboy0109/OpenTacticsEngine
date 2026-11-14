@@ -249,6 +249,12 @@ SDL2). Both demos have a "Full 3D" style (same art as 3D isometric). Editor:
 "Full 3D" kind on the Game screen, models allowed in such styles.
 Player option "3D graphics" (Automatic / OpenGL / Software): settings key
 `draw3d`, docs/RENDER3D.md "Choosing".
+3D at the display's real resolution (docs/RENDER3D.md "Resolution"): option
+"3D resolution" (key `res3d`), `--3d-res`, headless `--3d-scale N` (screenshot
+written at N times the size), `Renderer::displaySize()`, OpenGL 4x
+multisampling. Graphics sheets take `"smooth": true` (3D views only: linear +
+mipmaps; the editor's Art screen has the checkbox); models follow the glTF
+sampler. Not verified by hand: a real window, the web build's canvas size.
 Not verified by hand: gamepad stick/triggers (no gamepad in tests); mouse
 wheel and right-drag are checked in the browser suite only.
 
@@ -281,11 +287,13 @@ the 2D renderer is untouched; `--3d auto|software|hardware`), glTF models
 with animation and 3D isometric are done. The full 3D view's map part
 is done too (close-up battle scenes later, by owner decision). Nothing in game data may name a
 graphics API or carry shader code (console ports must be able to
-implement the interface). Items are done. In progress (2026-11-14):
-drawing 3D at the display's resolution, smooth textures, then a
-high-resolution 3D style in `demo-srpg` from the CC0 KayKit Adventurers
-models (github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)
-and CC0 ground textures. Then story events and dialogue including a
+implement the interface). Items are done, and so is drawing 3D at the display's
+resolution with smooth textures (docs/RENDER3D.md "Resolution"; option
+"3D resolution", key `res3d`; `--3d-res`, `--3d-scale N` for headless
+screenshots at N times the size) plus `demo-srpg`'s "Detailed 3D" style
+from CC0 packs (`games/demo-srpg/CREDITS.md`,
+`tools/art/make_detailed_style.py`). Not checked in a real window.
+Then story events and dialogue including a
 campaign (owner decisions in docs/PLAN.md 3f; write docs/EVENTS.md
 first), economy options, sound and music. Close-up battle scenes: low
 priority.

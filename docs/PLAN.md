@@ -91,8 +91,8 @@ goal (demos only exercise features).
       2026-11-14, docs/VIEWS.md "Full 3D": free camera with perspective
       over the block map, both demos have a "Full 3D" style; still to do:
       close-up battle scenes, low priority by owner decision; drawing
-      3D at the display's resolution with detailed test art from a CC0
-      pack, asked for 2026-11-14, in progress).
+      3D at the display's resolution, smooth textures and a "Detailed
+      3D" test style in `demo-srpg` from CC0 packs DONE 2026-11-14).
    e. Items (DONE 2026-11-14, docs/ITEMS.md: usable items, carried
       weapons with wear, accessories, unit inventories plus a shared
       storage per side, trading, shops, drops; `demo-srpg` uses them;

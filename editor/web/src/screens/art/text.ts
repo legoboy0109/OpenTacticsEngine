@@ -29,6 +29,8 @@ export const T = {
   divideOneHelp: 'The whole image is one piece.',
   divideGrid: 'A grid of pieces',
   divideGridHelp: 'Several equal pieces side by side, for example a set of terrain squares or the frames of an animation.',
+  smooth: 'Smooth (for detailed art)',
+  smoothHelp: 'In the 3D views, blends the image’s pixels together instead of showing them as hard squares. Good for detailed, high-resolution pictures; leave it off for pixel art. The flat views do not use this yet.',
   pieceWidth: 'Piece width',
   pieceHeight: 'Piece height',
   pixels: 'pixels',

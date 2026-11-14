@@ -23,7 +23,7 @@ units do, drawn across their whole footprint.
 ```jsonc
 {
   "sheets": [
-    { "id": "tiles", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24 },
+    { "id": "tiles", "file": "art/tiles.png", "cellWidth": 24, "cellHeight": 24 },   // "smooth": true for detailed art
     { "id": "knight", "file": "art/knight.png", "cellWidth": 24, "cellHeight": 24 }  // a single image
   ],
   "unitMarker": true,                      // optional, default true (see "Units")
@@ -55,6 +55,24 @@ units do, drawn across their whole footprint.
 
 - A sheet may also have `"name"`: a display name for editors; the engine
   ignores it (like any key it does not know).
+- A sheet may have `"smooth": true` (default `false`, the hard pixels of
+  pixel art): for detailed, high-resolution art. **In the 3D kinds of view**
+  the sheet is sampled with blending between pixels and with mipmaps
+  (shrunk-down copies, so far-away detail does not shimmer; the software 3D
+  drawer blends pixels only). Hard-pixel sheets look exactly as before. The
+  2D views (top-down and 2D isometric) do not use the key yet: not yet.
+  Must be `true` or `false`. A smooth sheet's pictures are cut half a pixel
+  inside their cell so neighbouring cells do not bleed in; leave a little
+  margin round detailed pictures that touch their cell's edge, and note that
+  see-through edges of smooth art may show a faint dark rim in the shrunk
+  copies (the colour under fully transparent pixels takes part).
+- 3D textures are padded to power-of-two sides (a 1500 x 1000 sheet is a
+  2048 x 1024 texture). The largest texture is what the 3D drawer takes:
+  the graphics driver's limit but at most 4096 on OpenGL, 2048 in software.
+  A sheet is at most 2048 x 2048 anyway (the loader refuses more), so it
+  always fits; if a drawer ever had less, the sheet is refused with a plain
+  message in the log and what uses it keeps the placeholder look, never a
+  crash.
 - Sheet images are PNG files inside the game folder (by convention in
   `art/`), at most 2048 x 2048 pixels. Cells are counted `[column, row]`
   from 0 at the top-left. Pixels right of / below the last whole cell are
@@ -139,6 +157,10 @@ style.
   `height` squares tall (measured from its origin). A structure without
   `height` is scaled so that its wider side fills 0.92 of the shorter side
   of its footprint.
+- Textures of the model follow the glTF sampler: `magFilter` NEAREST (9728)
+  = hard pixels; anything else, or no sampler, = smooth with mipmaps. The
+  models this repository makes (`tools/art/make_test_model.py`) say NEAREST
+  and look as before; the unit and bend models have no textures.
 - Side colour: every material named `sideMaterial` is multiplied by the
   colour of the unit's side (a structure: its owner's; nobody's: a pale
   grey). Make that material white or light in the file. The `unitMarker`
@@ -216,8 +238,9 @@ typedef int TextureId;   // 0 = none
 
 class Renderer {
   // Creates a texture from 32-bit pixels (R,G,B,A bytes, row by row, not
-  // premultiplied). Nearest-neighbour scaling. 0 on failure (logged).
-  virtual TextureId createTexture(const uint8_t* rgba, int width, int height) = 0;
+  // premultiplied). Nearest-neighbour scaling, or linear with `smooth` (used
+  // for the 3D picture only). 0 on failure (logged).
+  virtual TextureId createTexture(const uint8_t* rgba, int width, int height, bool smooth = false) = 0;
   virtual void destroyTexture(TextureId id) = 0;
   // Draws part of a texture (sx,sy,sw,sh in texture pixels) into a rectangle
   // in logical pixels. `mod` multiplies colour and alpha (white = as is).
@@ -246,6 +269,14 @@ define, and must exercise every feature: variants (plain), join
 (roads), animated join (water/sea and bridges), a two-frame unit idle, and at least one
 per-style override in a demo that has styles. Re-running the script
 reproduces identical files.
+
+`demo-srpg` also has a "Detailed 3D" style for trying the 3D views with
+detailed art: smooth 512-pixel ground pictures and animated character
+models from public-domain packs (`games/demo-srpg/CREDITS.md`). It is built
+by `tools/art/make_detailed_style.py` (which uses `tools/art/trim_glb.py`
+to cut a model file down to chosen parts and animations) into
+`art/detailed.style.json`; `make_starter_art.py` merges every
+`art/*.style.json` of a game into its `data/graphics.json`.
 
 ## Editor helper API additions (docs/EDITOR_API.md is updated to match)
 

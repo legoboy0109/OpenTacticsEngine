@@ -22,6 +22,7 @@ struct SheetDef {
   int cellW = 16, cellH = 16;
   int width = 0, height = 0;  // image size in pixels (read from the PNG header)
   int cols = 0, rows = 0;     // whole cells that fit
+  bool smooth = false;        // detailed art: the 3D views blend texels (bilinear, mipmaps) instead of hard pixels
 };
 
 struct SpriteCell {
