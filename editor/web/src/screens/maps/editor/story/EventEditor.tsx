@@ -34,15 +34,15 @@ export function EventEditor({ event, checks, onBack }: { event: StoryEvent; chec
         <IdInput value={event.id} validate={(t) => idProblem(t, others)} onChange={(v) => apply((m) => renameEvent(m, event.id, v), `event:${event.id}:name`)} />
       </Field>
       <StoryChecks checks={checks} testId="event-checks" compact />
-      <section className="story-section" aria-label={S.when}><TriggerForm event={event} /></section>
-      <section className="story-section" aria-label={S.onlyIf}>
+      <section className="story-section"><TriggerForm event={event} /></section>
+      <section className="story-section">
         <h3>{S.onlyIf}</h3>
         <p className="help">{S.onlyIfHelp}</p>
         <ConditionList name={S.onlyIf} conditions={event.if ?? []} onChange={(list, k) => apply((m) => setEventConditions(m, event.id, list), k && `event:${event.id}:if:${k}`)} />
       </section>
       <Check label={S.repeat} help={kind === 'everyTurn' ? S.repeatAlways : S.repeatHelp} checked={kind === 'everyTurn' || event.repeat === true} disabled={kind === 'everyTurn'}
         onChange={(v) => apply((m) => setEventRepeat(m, event.id, v))} />
-      <section className="story-section" aria-label={S.then}>
+      <section className="story-section">
         <h3>{S.then}</h3>
         <p className="help">{S.thenHelp}</p>
         <CommandList eventId={event.id} path={[]} commands={event.do ?? []} talk={kind === 'talk'} selected={selected} onSelect={setSelected} name={S.then} />

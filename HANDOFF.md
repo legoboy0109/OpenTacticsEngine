@@ -282,6 +282,17 @@ All wording is placeholder until the owner approves it. Open owner
 questions: should Trade / Storage / Shop stay open for several actions;
 show Storage when empty; id renaming for items.
 
+## Story events in the editor (2026-11-14)
+
+Build order step 3 of docs/EVENTS.md (inside one map; the Campaign screen is step 5). Model: `editor/web/src/model/story*.ts`
+(`storyWalk.ts` = the ONE walk over every id an event names: rename, clean-up, "used by" lines and checks all use it;
+`storyChecks.ts` mirrors the loader; `storyUnits.ts` = unit / side deletes as one undo step), `portraits.ts`. UI:
+`screens/maps/editor/story/` (Events and Objectives tabs, one file per form group), unit "Story name" in `panels/UnitProps.tsx`,
+switches / variables on Rules (`screens/rules/StoryListsCards.tsx`), Portraits card on Art (`screens/art/Portraits*.tsx`).
+Picking a square / area on the map: `MapViewState.picking` + `story/pickStroke.ts`; open event areas are drawn by `drawStory.ts`.
+The helper passes the new keys through unchanged (docs/EDITOR_API.md "Story data"). Squares are shown 1-based, stored 0-based.
+Tests: `tests/unit/story.test.ts`, `tests/e2e/story*.spec.ts`, `tests/editor_api_events_checks.py`. All wording is placeholder.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining

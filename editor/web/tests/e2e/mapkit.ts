@@ -53,7 +53,7 @@ export const pickUnitType = (page: Page, name: string) => page.getByRole('radiog
 export const pickStructure = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Structure' }).getByRole('radio', { name: new RegExp(`^${name}`) })
 export const pickSide = (page: Page, name: string) => page.getByRole('radiogroup', { name: /^(Side|Owner)$/ }).getByRole('radio', { name })
 
-export const tab = (page: Page, name: 'Tool' | 'Map' | 'Sides') => page.getByRole('tab', { name, exact: true })
+export const tab = (page: Page, name: 'Tool' | 'Map' | 'Sides' | 'Events' | 'Objectives') => page.getByRole('tab', { name, exact: true })
 
 /** The terrain id at a square, read from the saved file (stable, independent of the UI). */
 export function diskCell(game: string, mapFile: string, x: number, y: number): string {

@@ -195,18 +195,20 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   ])
 }
 
-function mapCommands(list: Command[], w: Walk, where: string): Command[] {
+/** `trail` numbers the commands of a nested list after the `if` they sit in: "3" at the top, "3.1" inside it. */
+function mapCommands(list: Command[], w: Walk, where: string, trail = ''): Command[] {
   const out: Command[] = []
   let changed = false
   list.forEach((c, i) => {
-    const here = `${where}, command ${i + 1}`
+    const num = trail ? `${trail}.${i + 1}` : `${i + 1}`
+    const here = `${where}, command ${num}`
     const first = mapCommand(c, w, here)
     if (first === DROP) { changed = true; w.dropped?.({ what: 'command', text: w.describe?.command?.(c) ?? 'A command', where: here }); return }
     let r: Command = first
     for (const branch of ['then', 'else'] as const) {
       const inner: Command[] | undefined = r[branch]
       if (!Array.isArray(inner)) continue
-      const next = mapCommands(inner, w, `${here}, “${branch === 'then' ? 'Then' : 'Else'}”`)
+      const next = mapCommands(inner, w, where, num)
       if (next !== inner) r = { ...r, [branch]: next }
     }
     if (r !== c) changed = true
@@ -255,12 +257,12 @@ export function walkStory(map: MapFile, w: Walk): MapFile {
 }
 
 /** Every command of the list including those inside `if` branches, with where it sits. */
-export function forEachCommand(list: Command[] | undefined, where: string, fn: (c: Command, where: string) => void): void {
+export function forEachCommand(list: Command[] | undefined, where: string, fn: (c: Command, where: string) => void, trail = ''): void {
   if (!Array.isArray(list)) return
   list.forEach((c, i) => {
-    const here = `${where}, command ${i + 1}`
-    fn(c, here)
-    forEachCommand(c.then, `${here}, “Then”`, fn)
-    forEachCommand(c.else, `${here}, “Else”`, fn)
+    const num = trail ? `${trail}.${i + 1}` : `${i + 1}`
+    fn(c, `${where}, command ${num}`)
+    forEachCommand(c.then, where, fn, num)
+    forEachCommand(c.else, where, fn, num)
   })
 }

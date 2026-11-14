@@ -97,7 +97,7 @@ export function FilterPicker({ label, value, onChange, mode = 'required', defaul
   }
   const set = (key: 'unit' | 'side' | 'team' | 'type' | 'tag') => (v: string) => onChange({ [key]: v })
   return (
-    <div className="filter-picker" role="group" aria-label={label}>
+    <div className="filter-picker">
       <Field label={label}><Select value={kind} options={options} onChange={pick} /></Field>
       {value && kind === 'unit' && <UnitPick label={`${label}: ${S.filterUnit}`} value={value.unit ?? ''} onChange={set('unit')} />}
       {value && kind === 'side' && <SidePick label={`${label}: ${S.filterSide}`} value={value.side ?? ''} onChange={set('side')} />}
