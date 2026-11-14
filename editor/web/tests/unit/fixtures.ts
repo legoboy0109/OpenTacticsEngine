@@ -38,6 +38,7 @@ function loadFrom(root: string, name: string): ProjectDoc {
   return {
     game,
     terrain: read(name, 'data/terrain.json').terrain,
+    structures: existsSync(path.join(root, name, 'data/structures.json')) ? read(name, 'data/structures.json').structures : null,
     weapons: read(name, 'data/weapons.json').weapons,
     units: read(name, 'data/units.json').units,
     maps,

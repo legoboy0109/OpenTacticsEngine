@@ -27,7 +27,6 @@ export function blankMap(doc: ProjectDoc, name: string, width = 12, height = 8):
       { id: 'blue', name: 'Blue', color: '#3d85c6', controller: 'human' },
       { id: 'red', name: 'Red', color: '#cc0000', controller: 'ai' },
     ],
-    owners: [],
     units: [],
   }
   return writeGrid(base, { width, height, cells: new Array(width * height).fill(first) }, terrain.length ? terrain : [{ id: first, name: first }])

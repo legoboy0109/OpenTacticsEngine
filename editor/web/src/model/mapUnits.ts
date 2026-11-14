@@ -2,8 +2,10 @@
 // and a unit may not start on terrain its movement type cannot enter.
 import type { MapCtx } from './mapCtx'
 import { inBounds, terrainAt } from './mapGrid'
+import { structureAt } from './mapStructures'
+import { canEnter } from './structuresEffective'
 import { patchObj } from './util'
-import type { MapFile, MapUnit, Terrain, Unit } from './types'
+import type { MapFile, MapUnit, Unit } from './types'
 
 export interface UnitEdit {
   map: MapFile
@@ -18,22 +20,21 @@ export const unitIndexAt = (map: MapFile, x: number, y: number): number =>
 
 export const unitAt = (map: MapFile, x: number, y: number): MapUnit | undefined => map.units?.[unitIndexAt(map, x, y)]
 
-/** Movement cost of 0 or less means the unit can never enter (the loader's rule); a missing entry costs 1. */
-export const canEnter = (t: Terrain | undefined, u: Unit | undefined): boolean => {
-  if (!t || !u) return true
-  const cost = t.moveCost?.[u.moveType]
-  return cost === undefined || cost > 0
-}
-
 const typeOf = (c: MapCtx, id: string) => c.unitTypes.find((u) => u.id === id)
 const terrainDef = (c: MapCtx, map: MapFile, x: number, y: number) => c.terrain.find((t) => t.id === terrainAt(map, x, y))
+const structureDef = (c: MapCtx, map: MapFile, x: number, y: number) => {
+  const s = structureAt(map, c, x, y)
+  return s ? c.structureTypes.find((d) => d.id === s.type) : undefined
+}
 const refuse = (map: MapFile, error: string, existing?: { x: number; y: number }): UnitEdit => ({ map, error, existing })
 
+/** Judged the way the loader does: the structure on the square (if any) replaces the terrain's cost where it sets one. */
 function blockedReason(c: MapCtx, map: MapFile, type: string, x: number, y: number): string | null {
   const t = terrainDef(c, map, x, y)
+  const sd = structureDef(c, map, x, y)
   const u = typeOf(c, type)
-  if (canEnter(t, u)) return null
-  return `${u?.name ?? 'This unit'} cannot stand on ${t?.name ?? 'that terrain'}: its movement type cannot enter it.`
+  if (canEnter(t, sd, u)) return null
+  return `${u?.name ?? 'This unit'} cannot stand on ${sd ? `a ${sd.name}` : t?.name ?? 'that terrain'}: its movement type cannot enter it.`
 }
 
 export function placeUnit(map: MapFile, c: MapCtx, spec: { type: string; side: string; x: number; y: number }): UnitEdit {

@@ -33,6 +33,8 @@ export interface View extends Extra { width?: number; height?: number; tileSize?
 export interface FontSpec extends Extra { name?: string; file?: string; size?: number; smooth?: boolean }
 export interface Style extends Named {
   background?: string; showGlyphs?: boolean; terrainColors?: Record<string, string>
+  /** Placeholder colour of structure blocks in this style (structure id -> colour). */
+  structureColors?: Record<string, string>
 }
 export interface MapRef extends Named { file: string }
 
@@ -56,8 +58,21 @@ export interface Game extends Extra {
 }
 
 export interface Terrain extends Named {
-  color?: string; glyph?: string; moveCost?: NumMap; props?: NumMap; capture?: number
-  income?: NumMap; produces?: string[]; tags?: string[]
+  color?: string; glyph?: string; moveCost?: NumMap; props?: NumMap; tags?: string[]
+  // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
+  // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
+  capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]
+}
+/** A building standing on top of terrain (docs/STRUCTURES.md). It sets only the rules it lists; the rest comes from the ground. */
+export interface Structure extends Named {
+  color?: string; glyph?: string
+  /** Footprint in squares, 1 to 8 (missing = 1). */
+  width?: number; height?: number
+  /** Listed movement types replace the terrain's cost; 0 = cannot enter. */
+  moveCost?: NumMap
+  /** Listed numbers replace (or add to) the terrain's numbers of the same name. */
+  props?: NumMap
+  capturePoints?: number; income?: NumMap; produces?: string[]; tags?: string[]
 }
 export interface Weapon extends Named {
   range?: [number, number]; counter?: boolean; afterMove?: boolean
@@ -83,9 +98,13 @@ export interface MapFile extends Extra {
   tiles: string[]
   heights?: number[][]
   sides?: MapSide[]
+  /** Old projects only: the engine now refuses a non-empty list (the Convert flow turns it into `structures`). */
   owners?: Array<{ x: number; y: number; side: string } & Extra>
+  structures?: MapStructure[]
   units?: MapUnit[]
 }
+/** `x`, `y` = the top-left square of the footprint; `side` missing = nobody owns it. */
+export interface MapStructure extends Extra { type: string; x: number; y: number; side?: string }
 
 // --- art (docs/GRAPHICS.md, data/graphics.json) ---
 export type CellRef = [number, number]
@@ -101,24 +120,27 @@ export interface Look extends Extra {
   join?: CellRef
   joinWith?: string[]
   joinEdge?: boolean
-  /** Units only: a different picture for particular sides (by map side id). */
+  /** Units and structures only: a different picture for particular sides (by map side id). */
   sides?: Record<string, Look>
 }
 /** A visual style's overrides; `null` = no picture in that style. */
-export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null> }
+export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 export interface Graphics extends Extra {
   sheets: Sheet[]
   unitMarker?: boolean
   terrain?: Record<string, Look>
   units?: Record<string, Look>
+  structures?: Record<string, Look>
   styles?: Record<string, StyleArt>
 }
-export type LookKind = 'terrain' | 'units'
+export type LookKind = 'terrain' | 'units' | 'structures'
 
 /** The editable project: exactly the GET shape minus id/revision/problems. */
 export interface ProjectDoc {
   game: Game | null
   terrain: Terrain[] | null
+  /** null = the game has no structures yet (the first structure edit creates the list). */
+  structures: Structure[] | null
   weapons: Weapon[] | null
   units: Unit[] | null
   maps: Record<string, MapFile | null>
@@ -136,5 +158,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'terrain' | 'art' | 'maps'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'terrain', 'art', 'maps']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'terrain' | 'structures' | 'art' | 'maps'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'terrain', 'structures', 'art', 'maps']

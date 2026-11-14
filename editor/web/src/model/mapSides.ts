@@ -24,16 +24,16 @@ export function addSide(map: MapFile): MapFile {
 
 export const canRemoveSide = (map: MapFile): boolean => (map.sides?.length ?? 0) > MIN_SIDES
 
-/** What removing a side takes with it. */
-export function sideRemovalLoss(map: MapFile, id: string): { units: number; owners: number } {
-  return { units: (map.units ?? []).filter((u) => u.side === id).length, owners: (map.owners ?? []).filter((o) => o.side === id).length }
+/** What removing a side takes with it: its units go; its structures stay and become nobody's. */
+export function sideRemovalLoss(map: MapFile, id: string): { units: number; structures: number } {
+  return { units: (map.units ?? []).filter((u) => u.side === id).length, structures: (map.structures ?? []).filter((o) => o.side === id).length }
 }
 
 export function removeSide(map: MapFile, id: string): MapFile {
   if (!canRemoveSide(map) || !sideOf(map, id)) return map
   const next: MapFile = { ...map, sides: map.sides!.filter((s) => s.id !== id) }
   if (map.units) next.units = map.units.filter((u) => u.side !== id)
-  if (map.owners) next.owners = map.owners.filter((o) => o.side !== id)
+  if (map.structures?.some((o) => o.side === id)) next.structures = map.structures.map((o) => (o.side === id ? patchObj(o, { side: undefined }) : o))
   return next
 }
 
