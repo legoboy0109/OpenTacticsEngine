@@ -89,6 +89,8 @@ Play panel never saves (it passes a flag that turns saving off).
 
 ## Player behaviour
 
+(A game with a campaign behaves differently in the places marked by "Campaign saves in the player" at the end of this file; everything below is a game without one, or a free battle.)
+
 - **Continue save** (settings `any` and `continue`): written at the start
   of every turn and after every completed action of a human player, once
   the action's animation has finished. Deleted when the battle ends. If

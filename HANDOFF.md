@@ -36,11 +36,11 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
   has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 105 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 370 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
-  Chromium 86, Firefox 19.
+  Chromium 126, Firefox 59.
 - Editor: helper `ote-editor` (API test 250 green) and the browser UI with
   every screen incl. map editor, Play, Art and Structures (258 unit tests,
   171 e2e in Chromium + Firefox smoke, 15 screenshot specs skipped unless
