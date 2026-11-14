@@ -21,6 +21,10 @@ SCENES = [
                                       '--autoplay', '--seed', '3', '--frames', '320']),
     ('demo-srpg, a unit falling (blended)', ['--game', 'demo-srpg', '--map', 'bridge', '--style', 'isometric-3d',
                                              '--autoplay', '--seed', '3', '--frames', '995']),
+    ('demo-srpg, full 3D, camera turned and tilted', ['--game', 'demo-srpg', '--map', 'bridge', '--style', 'full-3d', '--input',
+                                                      'wait:150,turnright,turnright,tiltdown,tiltdown,zoomin,wait:40']),
+    ('demo-economy, full 3D battle (pictures)', ['--game', 'demo-economy', '--map', 'twin_rivers', '--style', 'full-3d',
+                                                 '--autoplay', '--seed', '2', '--frames', '500']),
     ('demo-economy', ['--game', 'demo-economy', '--map', 'twin_rivers', '--style', 'isometric-3d',
                       '--autoplay', '--seed', '2', '--frames', '500']),
 ]

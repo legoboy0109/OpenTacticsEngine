@@ -66,5 +66,48 @@ export async function run(env) {
   const d3 = await diffShare(env.analysisPage, turned2, back, { x: 0, y: 0, w: 700, h: 470 });
   C.check('the other turn key turns the view back', d3 > 0.15, `${(d3 * 100).toFixed(1)}%`);
   C.noErrors(t, '3D isometric view: no console errors');
+
+  // Full 3D: the same blocks under a free camera with perspective.
+  const f = await open(page, env.out, 'g-full3d', env.url + args('full-3d'));
+  await f.page.waitForTimeout(3500);
+  const full = await f.shot('battle');
+  C.check('the Full 3D style loaded with its game', f.logs.some((l) => /loaded game 'demo-srpg'/.test(l)));
+  const differsFull = await diffShare(env.analysisPage, iso3d, full, { x: 0, y: 0, w: 700, h: 470 });
+  C.check('the full 3D picture is a different picture from the 3D isometric one', differsFull > 0.3, `${(differsFull * 100).toFixed(1)}%`);
+  // The lord's square is around logical pixel (188, 196) when the battle starts.
+  await f.clickL(188, 196, 500);
+  const pickedFull = await f.shot('lord-selected');
+  const tintedFull = await diffShare(env.analysisPage, full, pickedFull, { x: 0, y: 0, w: 700, h: 470 });
+  C.check('clicking the lord in the full 3D view selects him (his move range is tinted)', tintedFull > 0.08, `${(tintedFull * 100).toFixed(1)}%`);
+  await f.keys(['Escape'], 300);
+  let before = await f.shot('before-camera');
+  const moved3d = async (name, what, least) => {
+    const after = await f.shot(name);
+    const d = await diffShare(env.analysisPage, before, after, { x: 0, y: 0, w: 700, h: 470 });
+    C.check(what, d > least, `${(d * 100).toFixed(1)}%`);
+    before = after;
+  };
+  await f.keys(['Period'], 600);
+  await moved3d('turned', 'the turn key turns the free camera', 0.1);
+  await f.keys(['KeyF'], 600);
+  await moved3d('tilted', 'the tilt key tilts it', 0.1);
+  await f.keys(['Minus'], 600);
+  await moved3d('zoomed', 'the zoom key zooms out', 0.1);
+  // The on-screen buttons: "+" (zoom in) is the fifth, around logical pixel (95, 248).
+  await f.clickL(95, 248, 600);
+  await moved3d('zoomed-by-button', 'the on-screen zoom button zooms in', 0.1);
+  // Mouse: the wheel zooms, dragging with the right button turns and tilts.
+  const box = await f.page.locator('canvas').first().boundingBox();
+  const mx = box.x + box.width * 0.35, my = box.y + box.height * 0.4;
+  await f.page.mouse.move(mx, my);
+  await f.page.mouse.wheel(0, 300);
+  await f.page.waitForTimeout(600);
+  await moved3d('wheel', 'the mouse wheel zooms', 0.1);
+  await f.page.mouse.down({ button: 'right' });
+  await f.page.mouse.move(mx + 120, my + 40, { steps: 6 });
+  await f.page.mouse.up({ button: 'right' });
+  await f.page.waitForTimeout(600);
+  await moved3d('dragged', 'dragging with the right mouse button turns the camera', 0.15);
+  C.noErrors(f, 'full 3D view: no console errors');
   await close();
 }
