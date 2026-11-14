@@ -1,6 +1,6 @@
 // "Kind of view" of one visual style (docs/VIEWS.md) and, for Isometric, its sizes in a collapsed Advanced area.
 import { updateStyleWith } from '../../model/game'
-import { isoDefaults, ISO_RANGE, viewKind, withIsoSize, withView, type IsoKey } from '../../model/styleView'
+import { isIsometric, isoDefaults, ISO_RANGE, viewKind, withIsoSize, withView, type EditableKind, type IsoKey } from '../../model/styleView'
 import type { Style } from '../../model/types'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, FormGrid } from '../../ui/Card'
@@ -21,19 +21,19 @@ export function ViewFields({ style }: { style: Style }) {
   const edit = useEdit()
   const kind = viewKind(style)
   const key = `style:${style.id}`
-  // "isometric-3d" and "3d" are kept exactly as the file has them: no control, so nothing can change them here.
+  // "3d" is kept exactly as the file has it: no control, so nothing can change it here.
   if (kind === 'future') return <p className="help" data-testid="view-future">{T.viewFuture}</p>
   const defaults = isoDefaults(doc.game, style.isometric)
   return (
     <>
       <Field label={T.view} help={T.viewHelp}>
         <Select value={kind} aria-label={`${style.name}: ${T.view}`}
-          options={[{ value: 'top-down', label: T.viewTopDown }, { value: 'isometric', label: T.viewIsometric }]}
-          onChange={(v) => edit((d) => updateStyleWith(d, style.id, (s) => withView(s, v === 'isometric' ? 'isometric' : 'top-down')))} />
+          options={[{ value: 'top-down', label: T.viewTopDown }, { value: 'isometric', label: T.viewIsometric }, { value: 'isometric-3d', label: T.viewIsometric3d }]}
+          onChange={(v) => edit((d) => updateStyleWith(d, style.id, (s) => withView(s, v as EditableKind)))} />
       </Field>
-      {kind === 'isometric' && (
+      {isIsometric(kind) && (
         <>
-          <p className="help">{T.viewOtherPictures}</p>
+          <p className="help">{kind === 'isometric-3d' ? T.viewOtherPictures3d : T.viewOtherPictures}</p>
           <Advanced label={T.advanced}>
             <div className="stack">
               <p className="help">{T.isoSizesHelp}</p>

@@ -61,6 +61,32 @@ test('@smoke a style switches to Isometric and back; the file is exactly as expe
   expect(await game.problems(id)).toEqual([])
 })
 
+test('@smoke a style switches to 3D isometric and back; the file is exactly as expected, the game loads, Play offers it', async ({ page, game }) => {
+  const id = await game.create('blank', 'Views3d')
+  await page.goto(editorUrl(id, 'game'))
+  await addStyle(page, 'Turning')
+  const kind = page.getByLabel('Turning: Kind of view')
+  await kind.selectOption('isometric-3d')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'turning', name: 'Turning', view: 'isometric-3d' }])
+  expect(await game.problems(id)).toEqual([])
+  await expect(page.getByText(/terrain picture lies flat on top of the block/)).toBeVisible()
+  // The same four sizes as Isometric.
+  await page.locator('.subcard').getByText('Advanced').click()
+  await expect(page.getByLabel('Turning: Unit width')).toHaveAttribute('placeholder', '24')
+  await page.getByLabel('Turning: Square width').fill('64')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles[0]).toEqual({ id: 'turning', name: 'Turning', view: 'isometric-3d', isometric: { tileWidth: 64 } })
+  expect(await game.problems(id)).toEqual([])
+  await kind.selectOption('isometric')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles[0]).toEqual({ id: 'turning', name: 'Turning', view: 'isometric', isometric: { tileWidth: 64 } })
+  await kind.selectOption('top-down')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'turning', name: 'Turning' }])
+  expect(await game.problems(id)).toEqual([])
+})
+
 test('a style with a kind of view that is not available yet is kept as it is', async ({ page, request, game }) => {
   const id = await game.create('blank', 'Future')
   const doc = await (await request.get(`/api/projects/${id}`)).json()
@@ -217,4 +243,24 @@ test('Play offers the styles and starts in the chosen one', async ({ page, game,
   await expect(panel.locator('iframe')).toHaveAttribute('src', `/player/embed.html?project=${id}&map=ford&style=isometric`)
   await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
   await expect(page.getByTestId('play-error')).toHaveCount(0)
+})
+
+test('Play offers a 3D isometric style, starts it, and the player loads without errors', async ({ page, game, request }) => {
+  requirePlayer()
+  const id = await bareGame(request, game, 'strategy-rpg', 'Play3d')
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  const styles = [...doc.game.styles, { id: 'turning', name: 'Turning', view: 'isometric-3d' }]
+  expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: { ...doc.game, styles } } })).ok()).toBeTruthy()
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+  await openMap(page, id, 'ford')
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  const panel = page.getByRole('dialog', { name: 'Play', exact: true })
+  await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
+  await panel.getByLabel('Style').selectOption('turning')
+  await expect(panel.locator('iframe')).toHaveAttribute('src', `/player/embed.html?project=${id}&map=ford&style=turning`)
+  await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
+  await expect(page.getByTestId('play-error')).toHaveCount(0)
+  expect(errors).toEqual([])
 })
