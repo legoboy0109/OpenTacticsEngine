@@ -19,10 +19,14 @@ int elevOr(const MapProj& p, const Grid& g, int x, int y) {
 Map3D::Map3D(Renderer3D& r3d, Show3D& show, const std::string& gameDir, const Graphics& graphics)
     : r3d_(r3d), show_(show) {
   sheets_.init(gameDir, &graphics);
+  models_.init(gameDir);
 }
 
 Map3D::~Map3D() {
   if (ground_) r3d_.destroyMesh(ground_);
+  for (ModelActor& a : unitActors_) a.release(r3d_);
+  for (ModelActor& a : structureActors_) a.release(r3d_);
+  models_.release(r3d_);
   batch_.release(r3d_);
   sheets_.release(r3d_);
 }

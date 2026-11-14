@@ -382,111 +382,30 @@
       },
       "units": {
         "lord": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              0
-            ],
-            [
-              1,
-              0
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/lord.glb"
         },
         "cavalier": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              1
-            ],
-            [
-              1,
-              1
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/cavalier.glb"
         },
         "archer": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              2
-            ],
-            [
-              1,
-              2
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/archer.glb"
         },
         "fighter": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              3
-            ],
-            [
-              1,
-              3
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/fighter.glb"
         },
         "knight": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              4
-            ],
-            [
-              1,
-              4
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/knight.glb"
         },
         "soldier": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              5
-            ],
-            [
-              1,
-              5
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/soldier.glb"
         },
         "pegasus": {
-          "sheet": "iso_units",
-          "frames": [
-            [
-              0,
-              6
-            ],
-            [
-              1,
-              6
-            ]
-          ],
-          "frameMs": 600
+          "model": "models/pegasus.glb"
         }
       },
       "structures": {
         "fort": {
-          "sheet": "structures",
-          "cell": [
-            0,
-            0
-          ]
+          "model": "models/fort.glb"
         }
       }
     },

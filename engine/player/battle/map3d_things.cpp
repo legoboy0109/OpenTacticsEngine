@@ -5,13 +5,13 @@
 
 #include "battle/battle_draw.h"
 #include "battle/map3d.h"
+#include "battle/map3d_sizes.h"
 #include "ui/text.h"
 
 namespace ote {
 
 namespace {
 
-const float kWall = 0.45f;  // height of a placeholder structure's box, in squares
 
 Tint3D tintOf(Color c, float alpha = 1.0f) { return Tint3D(c.r, c.g, c.b, (uint8_t)(c.a * alpha + 0.5f)); }
 
@@ -80,6 +80,11 @@ void Map3D::drawStructures(const DrawCtx& c) {
     if (st.owner >= 0)
       frame(batch_.mesh(flat()), c, st.x, st.y, def.width, def.height, Y + 0.012f, 0.07f,
             tintOf(Color::rgb(b.sides[(size_t)st.owner].color)));
+    const ModelAsset* asset = nullptr;
+    if (const ModelLook* ml = structureModel(c, st, asset)) {
+      drawStructureModel(c, (int)(&st - &b.structures[0]), *ml, *asset, Y);
+      continue;
+    }
     const Look* art = structureArt(c, st);
     Material3D m = flat(Blend3D::Cutout);
     float uv[4];
@@ -107,7 +112,8 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
   // Top of what covers a square: its block, or the placeholder box of a structure on it.
   auto topOf = [&](Cell cell, int x, int y) {
     int si = b.structureAt[cell];
-    if (si >= 0 && !structureArt(c, b.structures[(size_t)si]))
+    const ModelAsset* asset = nullptr;
+    if (si >= 0 && !structureArt(c, b.structures[(size_t)si]) && !structureModel(c, b.structures[(size_t)si], asset))
       return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY + kWall;
     return c.proj->elevation(x, y) * g.stepY;
   };
@@ -145,7 +151,10 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
     const StructureState& st = b.structures[(size_t)si];
     const StructureDef& def = b.defOf(st);
     const Look* sa = structureArt(c, st);
-    if (sa && sheets_.texture(r3d_, sa->sheet)) {
+    const ModelAsset* sm = nullptr;
+    if (structureModel(c, st, sm)) {
+      towards = 0.45f * std::max(def.width, def.height);  // in front of the building, not inside it
+    } else if (sa && sheets_.texture(r3d_, sa->sheet)) {
       Spot mid = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
       float ahead = (feet.X - mid.X) * cx_ + (feet.Z - mid.Z) * cz_;  // how far in front of the picture's plane
       if (ahead < 0.06f) towards = 0.06f - ahead;
@@ -156,7 +165,9 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
   Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;
   Color side = Color::rgb(b.sides[(size_t)u.side].color);
   if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
-  const Look* art = unitArt(c, u);
+  const ModelAsset* asset = nullptr;
+  const ModelLook* model = unitModel(c, u, asset);
+  const Look* art = model ? nullptr : unitArt(c, u);
   Material3D pm = flat(al < 0.999f ? Blend3D::Blend : Blend3D::Cutout, !through);
   float uv[4];
   SpriteSrc src;
@@ -175,6 +186,13 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
     float w = std::max(1.0f, uw * v.scale);
     uint8_t k = (uint8_t)(u.done ? 140 : 255);
     upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), towards, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
+  } else if (model) {
+    if (b.db->graphics.unitMarker && !through) {
+      float half = std::max(0.12f, 0.3f * v.scale);
+      addQuad(batch_.mesh(flat(solid)), Vec3(feet.X - half, feet.Y + 0.02f, feet.Z + half), Vec3(feet.X + half, feet.Y + 0.02f, feet.Z + half),
+              Vec3(feet.X + half, feet.Y + 0.02f, feet.Z - half), Vec3(feet.X - half, feet.Y + 0.02f, feet.Z - half), tintOf(side, al));
+    }
+    drawUnitModel(c, u, v, *model, *asset, feet, towards, fade, through);
   } else {
     // Placeholder: an upright block in the side's colour (its letter is drawn on top in 2D).
     float bw = std::max(2.0f, uw * 0.75f * v.scale);
@@ -219,7 +237,8 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     for (const StructureState& st : b.structures) {
       const StructureDef& def = b.defOf(st);
       const Look* art = structureArt(c, st);
-      if (def.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet))) continue;
+      const ModelAsset* asset = nullptr;
+      if (def.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet)) || structureModel(c, st, asset)) continue;
       int sx, sy;
       screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY + kWall, sx, sy);
       if (off(sx, sy)) continue;
@@ -241,7 +260,10 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     auto a = [&](Color col) { return withAlpha(col, (int)(col.a * al)); };
     int body = unitBodyPx(c, u, v);
     const Look* art = unitArt(c, u);
-    if (!(art && sheets_.texture(r3d_, art->sheet))) {
+    const ModelAsset* asset = nullptr;
+    const ModelLook* model = unitModel(c, u, asset);
+    if (model) body = (int)((model->height > 0 ? model->height : kUnitModelHeight) * v.scale * g.pixels * g.cosPitch());
+    if (!model && !(art && sheets_.texture(r3d_, art->sheet))) {
       Color side = Color::rgb(b.sides[(size_t)u.side].color);
       if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
       drawGlyphCentered(r, sx, sy - body / 2, b.typeOf(u).glyph, a(readableOn(side)), std::max(1, body * 3 / 4));

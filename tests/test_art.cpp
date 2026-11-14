@@ -122,9 +122,9 @@ TEST(shipped_games_have_complete_art) {
       for (size_t t = 0; t < db.terrains.size(); ++t)
         if (!set.terrain[t].any()) std::printf("  %s: terrain \"%s\" has no look in style %zu\n", g, db.terrains[t].id.c_str(), s);
       for (size_t u = 0; u < db.unitTypes.size(); ++u)
-        if (!set.units[u].base.any()) std::printf("  %s: unit \"%s\" has no look in style %zu\n", g, db.unitTypes[u].id.c_str(), s);
+        if (!set.units[u].base.any() && !set.units[u].model.any()) std::printf("  %s: unit \"%s\" has no look in style %zu\n", g, db.unitTypes[u].id.c_str(), s);
       for (size_t t = 0; t < db.terrains.size(); ++t) CHECK(set.terrain[t].any());
-      for (size_t u = 0; u < db.unitTypes.size(); ++u) CHECK(set.units[u].base.any());
+      for (size_t u = 0; u < db.unitTypes.size(); ++u) CHECK(set.units[u].base.any() || set.units[u].model.any());  // a picture or a 3D model
     }
     for (const SheetDef& sh : db.graphics.sheets) {
       Image img;

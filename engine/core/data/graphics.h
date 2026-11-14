@@ -52,8 +52,23 @@ struct Look {
   bool any() const { return kind != None; }
 };
 
+// A 3D model in place of a picture (docs/GRAPHICS.md "Models"; only in styles
+// whose kind of view is 3D). The core only carries the description; the
+// player loads the file.
+enum ModelAnim { AnimIdle, AnimMove, AnimAttack, AnimDie, kModelAnims };
+struct ModelLook {
+  std::string file;        // .glb / .gltf inside the game folder, e.g. "models/lord.glb"; empty = no model
+  float height = 0;        // how tall it stands, in squares; 0 = the standard size
+  float turn = 0;          // degrees added to the way it faces (a model that does not face +Z)
+  std::string sideMaterial = "side";  // the material that takes the side's colour; empty = none
+  std::string clips[kModelAnims] = {"Idle", "Move", "Attack", "Die"};  // animation names in the file
+
+  bool any() const { return !file.empty(); }
+};
+
 struct UnitLook {
   Look base;
+  ModelLook model;  // when set, `base` and `sides` are empty
   // Different art for particular sides, by map side id. Checked first.
   std::vector<std::pair<std::string, Look>> sides;
 

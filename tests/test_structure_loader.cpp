@@ -340,6 +340,7 @@ TEST(structures_shipped_games_have_pictures_for_every_structure) {
       CHECK_EQ(set->structures.size(), db.structures.size());
       for (size_t i = 0; i < db.structures.size(); ++i) {
         const Look& look = set->structures[i].base;
+        if (set->structures[i].model.any()) continue;  // shown as a 3D model, which has no picture
         if (!look.any()) std::printf("  %s: structure \"%s\" has no picture in style \"%s\"\n", d, db.structures[i].id.c_str(), db.styles[s].id.c_str());
         CHECK(look.any());
         if (!look.any()) continue;

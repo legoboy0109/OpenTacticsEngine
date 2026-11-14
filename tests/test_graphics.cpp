@@ -254,3 +254,62 @@ TEST(graphics_errors_are_readable) {
                        "{\"id\":\"a\",\"file\":\"art/men.png\",\"cellWidth\":16,\"cellHeight\":16}] }",
               "duplicate id");
 }
+
+TEST(graphics_models_load_only_in_3d_styles) {
+  // The same small game with a third style of the 3D isometric kind and a model file.
+  auto make = [](const char* name, const std::string& body) {
+    std::string root = makeGame(name, "");
+    mkdir((root + "/models").c_str(), 0755);
+    CHECK(writeTextFile(root + "/models/grunt.glb", "not really a model: the core only checks that it is there"));
+    CHECK(writeTextFile(root + "/game.json",
+                        "{ \"formatVersion\": 1, \"name\": \"G\", \"stats\": [{\"id\":\"hp\"},{\"id\":\"mov\"}],"
+                        " \"roles\": {\"hp\":\"hp\",\"move\":\"mov\"}, \"moveTypes\": [{\"id\":\"foot\"}],"
+                        " \"formulas\": {\"damage\":\"1\"},"
+                        " \"styles\": [{\"id\":\"day\"},{\"id\":\"night\"},{\"id\":\"solid\",\"view\":\"isometric-3d\"}] }"));
+    CHECK(writeTextFile(root + "/data/graphics.json", body));
+    return root;
+  };
+  Database db;
+  std::string err;
+  bool ok = loadGame(make("model_ok", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\","
+                                      " \"height\": 1.5, \"turn\": 90, \"sideMaterial\": \"cloth\","
+                                      " \"animations\": { \"move\": \"Run\", \"die\": \"Fall\" } } } } } }"),
+                     db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (ok) {
+    // No sheets at all, yet the style has its set.
+    CHECK_EQ((int)db.graphics.styles.size(), 3);
+    const ModelLook& m = db.graphics.styles[2].units[0].model;
+    CHECK(m.any());
+    CHECK_STR(m.file, "models/grunt.glb");
+    CHECK(m.height == 1.5f && m.turn == 90.0f);
+    CHECK_STR(m.sideMaterial, "cloth");
+    CHECK_STR(m.clips[AnimIdle], "Idle");
+    CHECK_STR(m.clips[AnimMove], "Run");
+    CHECK_STR(m.clips[AnimAttack], "Attack");
+    CHECK_STR(m.clips[AnimDie], "Fall");
+    CHECK(!db.graphics.styles[0].units[0].model.any());
+  }
+  auto bad = [&](const char* name, const std::string& body, const char* a, const char* b = "") {
+    Database d;
+    std::string e;
+    bool loaded = loadGame(make(name, body), d, e);
+    CHECK(!loaded);
+    if (loaded || !has(e, a) || !has(e, b)) std::printf("  [%s] message was: %s\n", name, e.c_str());
+    CHECK(has(e, a) && has(e, b));
+  };
+  bad("model_flat", "{ \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\" } } }", "kind of view is 3D", "unit \"grunt\"");
+  bad("model_flat_style", "{ \"styles\": { \"night\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\" } } } } }",
+      "kind of view is 3D", "style \"night\"");
+  bad("model_missing", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/nobody.glb\" } } } } }",
+      "does not exist", "models/nobody.glb");
+  bad("model_path", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"../grunt.glb\" } } } } }", ".glb or .gltf");
+  bad("model_type", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.png\" } } } } }", ".glb or .gltf");
+  bad("model_both", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\", \"frameMs\": 100 } } } } }",
+      "cannot also have", "frameMs");
+  bad("model_height", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\", \"height\": 40 } } } } }",
+      "\"height\" must be between");
+  bad("model_anim", "{ \"styles\": { \"solid\": { \"units\": { \"grunt\": { \"model\": \"models/grunt.glb\","
+                    " \"animations\": { \"dance\": \"Jig\" } } } } } }", "not \"dance\"");
+}

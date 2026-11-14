@@ -8,7 +8,8 @@ An original, tiny model: a pawn-like figure (a revolved profile, interleaved
 vertex data, an 8 x 8 checker texture) with a child node "hat" (a box with no
 normals, a see-through unlit colour). Written twice with identical content:
 figure.glb (texture embedded) and figure.gltf + figure.bin + figure_tex.png.
-Also grey200.jpg, an 8 x 8 flat grey JPEG for the image-decoder test (a
+Also bend.glb (a skinned, animated column, see make_bend_model.py) and
+grey200.jpg, an 8 x 8 flat grey JPEG for the image-decoder test (a
 hand-built single-block baseline JPEG: no JPEG library needed).
 
 Pure Python standard library; no input files. Re-running reproduces identical
@@ -205,6 +206,9 @@ def main():
         f.write(png)
     with open(os.path.join(out, 'grey200.jpg'), 'wb') as f:
         f.write(make_jpeg())
+    import make_bend_model  # the skinned, animated test model lives in its own file
+    doc, binary = make_bend_model.build()
+    write_glb(os.path.join(out, 'bend.glb'), doc, binary)
     print('wrote', out)
 
 

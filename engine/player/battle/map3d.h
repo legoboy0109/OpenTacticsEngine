@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "battle/batch3d.h"
+#include "battle/models3d.h"
 #include "battle/sheets3d.h"
 #include "core/battle/battle.h"
 #include "platform/platform.h"
@@ -43,11 +44,21 @@ class Map3D {
   void drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor);
   void drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float fade, bool through);
   void drawOnTop(Renderer& r, const DrawCtx& c);
+  // map3d_models.cpp
+  const ModelLook* unitModel(const DrawCtx& c, const Unit& u, const ModelAsset*& asset);
+  const ModelLook* structureModel(const DrawCtx& c, const StructureState& st, const ModelAsset*& asset);
+  void animateUnit(const DrawCtx& c, const Unit& u, const UnitView& v, const ModelLook& look, const ModelAsset& asset);
+  void drawUnitModel(const DrawCtx& c, const Unit& u, const UnitView& v, const ModelLook& look, const ModelAsset& asset,
+                     Spot feet, float towards, float fade, bool through);
+  void drawStructureModel(const DrawCtx& c, int index, const ModelLook& look, const ModelAsset& asset, float Y);
+  float unitFacing(const DrawCtx& c, const Unit& u) const;
 
   Renderer3D& r3d_;
   Show3D& show_;
   Sheets3D sheets_;
   Batch3D batch_;
+  Models3D models_;
+  std::vector<ModelActor> unitActors_, structureActors_;  // by unit id / structure index
   MeshId ground_ = 0;
   bool built_ = false;
   std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle

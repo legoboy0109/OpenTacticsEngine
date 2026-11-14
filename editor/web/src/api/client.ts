@@ -23,6 +23,8 @@ export interface PutBody extends Partial<ProjectDoc> { baseRevision: string }
 export interface PutResult { revision: string; problems: Problem[] }
 /** One PNG in the game's art/ folder (width/height 0 + error when it cannot be read). */
 export interface ArtFile { file: string; width: number; height: number; size: number; error?: string }
+/** One model file in the game's models/ folder; `usedBy` = the saved graphics entries that name it. */
+export interface ModelFile { file: string; size: number; usedBy: Array<{ style: string; kind: string; id: string }> }
 export interface UploadResult { file: string; width: number; height: number; size: number; revision: string }
 
 async function request<T>(method: string, path: string, body?: unknown, keepalive = false): Promise<Result<T>> {
@@ -65,6 +67,9 @@ export interface Api {
   /** `name` is the file name without folder and extension ("tiles" -> art/tiles.png). */
   uploadArt(id: string, name: string, png: Blob, overwrite: boolean): Promise<Result<UploadResult>>
   deleteArt(id: string, name: string): Promise<Result<{ revision: string }>>
+  listModels(id: string): Promise<Result<ModelFile[]>>
+  /** `name` is the file name without folder and extension ("knight" -> models/knight.glb). */
+  uploadModel(id: string, name: string, glb: Blob, overwrite: boolean): Promise<Result<{ file: string; size: number; revision: string }>>
 }
 
 /** URL of one raw project file (the Play panel feeds these to the embedded player). */
@@ -83,4 +88,6 @@ export const api: Api = {
   listArt: (id) => unwrap(request<{ art: ArtFile[] }>('GET', `/api/projects/${enc(id)}/art`), 'art'),
   uploadArt: (id, name, png, overwrite) => request('PUT', `/api/projects/${enc(id)}/art/${enc(name)}.png${overwrite ? '?overwrite=1' : ''}`, png),
   deleteArt: (id, name) => request('DELETE', `/api/projects/${enc(id)}/art/${enc(name)}.png`),
+  listModels: (id) => unwrap(request<{ models: ModelFile[] }>('GET', `/api/projects/${enc(id)}/models`), 'models'),
+  uploadModel: (id, name, glb, overwrite) => request('PUT', `/api/projects/${enc(id)}/models/${enc(name)}.glb${overwrite ? '?overwrite=1' : ''}`, glb),
 }
