@@ -61,7 +61,10 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
     if (const Look* art = structureArt(c, st)) drawStructureArt(r, c, *art, x, y, sw, lh - 1);
     r.drawRect(x, y, sw, lh - 1, Color(0, 0, 0, 160));
     std::string name = sd.name;
-    if (sd.width > 1 || sd.height > 1) name += " " + intStr(sd.width) + "x" + intStr(sd.height);
+    if (sd.width > 1 || sd.height > 1) {  // footprint, only when the panel has room for it
+      std::string sized = name + " " + intStr(sd.width) + "x" + intStr(sd.height);
+      if (textW(r, sized) <= w - sw - 3) name = sized;
+    }
     r.drawText(x + sw + 3, y, fitText(r, name, w - sw - 3).c_str(), kText);
     y += rh;
   }
