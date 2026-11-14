@@ -143,8 +143,8 @@ test('duplicate makes a copy next to it; the new kind can be renamed and ids nev
 
 test('the Terrain form no longer has capture, income, build lists or headquarters, and points to Structures', async ({ page, game }) => {
   const id = await game.create('economy-tactics', 'TerrainForm')
-  await page.goto(editorUrl(id, 'terrain', 'city'))
-  await expect(page.getByLabel('Name', { exact: true })).toBeVisible()
+  await page.goto(editorUrl(id, 'terrain', 'forest'))
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Forest')
   for (const word of [/Can be captured/, /Counts as headquarters/, /Units that can be built here/, /^Income/]) await expect(page.getByText(word)).toHaveCount(0)
   await page.getByRole('link', { name: 'Open Structures' }).click()
   await expect(page).toHaveURL(/\/structures$/)

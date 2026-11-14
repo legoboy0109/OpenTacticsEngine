@@ -48,13 +48,15 @@ exist when running it from another build dir name.
 ## Editor web UI
 
 `editor/web/` is the browser editor (TypeScript, React 18, Vite; runtime deps: react, react-dom only). All screens are
-done: project picker, Game, Rules, Units, Weapons, Terrain, **Art** (images, pictures, picker), **Maps (full map editor,
-drawn with the art)** and **Play** (embedded web player).
+done: project picker, Game, Rules, Units, Weapons, Terrain, **Structures** (cities, forts, factories; the Terrain form points to it),
+**Art** (images, pictures, picker), **Maps (full map editor with the Structures tool, drawn with the art)** and **Play** (embedded web
+player). Projects made before structures existed get a one-click, one-undo-step **Convert** offer (a banner on every screen).
 Layout: `src/api` (the only fetch calls), `src/model` (pure doc edits, no React; `map*.ts` = the map grid model,
-`graphics*.ts` + `pickCell.ts` = art), `src/store` (undo, autosave, conflict; `art.ts` = the image files),
+`graphics*.ts` + `pickCell.ts` = art, `structures*.ts` + `mapStructures.ts` = structures incl. `structuresEffective.ts` (the engine's
+terrain + structure combination rule) and `structuresConvert.ts` (old projects)), `src/store` (undo, autosave, conflict; `art.ts` = the image files),
 `src/art` (drawing art, shared by canvas/palettes/previews), `src/ui` (components; `picture/` = Picture card, picker, piece grid),
-`src/screens/<section>` (`maps/editor/` = canvas, tools, panels; `art/` = the Art section), `src/play` (Play button logic + panel),
-`src/shell` (top bar, sidebar). Spec and decisions: docs/EDITOR_UI.md (the art notes explain the upload/autosave handling).
+`src/screens/<section>` (`maps/editor/` = canvas, tools, panels, `drawStructures.ts`; `art/` = the Art section; `structures/`), `src/play` (Play button logic + panel),
+`src/shell` (top bar, sidebar). Spec and decisions: docs/EDITOR_UI.md (the art notes explain the upload/autosave handling, the structures notes the Convert flow).
 
 Run the whole editor end to end from a clean checkout (needs CMake, Ninja, Node 20+, Emscripten for Play):
 
@@ -72,7 +74,8 @@ Without the web player build everything but Play works (Play explains how to bui
 cd editor/web
 npm run dev            # Vite on :5173, proxies /api /assets /player to 127.0.0.1:8765 (a helper must be running)
 npm run typecheck      # tsc, zero errors expected
-npm test               # vitest unit tests (model incl. map grid, presets, art, the C++-pinned pickCell hash, store, autosave, uploads)
+npm test               # vitest unit tests (model incl. map grid, presets, art, the C++-pinned pickCell hash, store, autosave, uploads,
+                       #   structures: effective numbers pinned to tests/test_structures.cpp, placing, cascades, the Convert flow)
 OTE_EDITOR_BIN=../../build/ote-editor OTE_PLAYER_DIR=../../build-web/engine/player npm run e2e
 npm run screenshots    # regenerate editor/web/screenshots (same env vars), then: python3 tools/compress_screenshots.py screenshots
 ```
@@ -80,11 +83,14 @@ Notes: Vite's asset folder is `app/` because the helper owns `/assets/`. e2e nee
 `ote-editor` (`OTE_EDITOR_BIN`, default `../../build/ote-editor`) and, for the Play tests, the web player build
 (`OTE_PLAYER_DIR`, default `../../build-web/engine/player`; the Play tests FAIL with the build command when it is missing).
 e2e starts the real helper on a temp copy of games/ and editor/templates (never the repo's own) plus a second helper without
-a player for the "player not built" test. Firefox runs the `@smoke` tests only; the phone tests (360 x 740, touch) are
+a player for the "player not built" test. One structures test also runs the native simulator on the saved game (`OTE_SIM_BIN`, default
+`../../build/ote-sim`); the Convert tests write a project in the pre-structures format into the temp game folder (`tests/e2e/oldkit.ts`,
+fixture `tests/unit/oldProject.ts`). Firefox runs the `@smoke` tests only; the phone tests (360 x 740, touch) are
 Chromium only. Play tests read the player's picture from screenshots (WebGL), so they need the player's intro to settle.
 The templates carry starter art now: tests that need an art-free game use `bareGame` / `seedArt` (`tests/e2e/artkit.ts`, which also
-makes PNGs on the fly); the new art screenshots are `tests/e2e/screenshots-art.spec.ts` (generate into a temp folder, compress,
-then copy only the new files, so the older screenshots are not re-quantised).
+makes PNGs on the fly); the new art screenshots are `tests/e2e/screenshots-art.spec.ts` and the structures ones (53 to 72)
+`tests/e2e/screenshots-structures.spec.ts` (generate into a temp folder with `SHOTS_DIR`, compress, then copy only the new or changed files, so
+the older screenshots are not re-quantised).
 
 ## Build and test
 

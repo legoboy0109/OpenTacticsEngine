@@ -77,6 +77,8 @@
 .art-canvas { display: block; image-rendering: pixelated; }
 .pick-chip.small { width: 18px; height: 18px; }
 .pick-chip.none { background: repeating-linear-gradient(45deg, transparent 0 3px, var(--border-strong) 3px 4px); }
+/* Structures list one per row: a two-line label (name, size) needs more room than a terrain chip. */
+.pick-grid.structures { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 .pick-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .pick-sub { font-size: 0.76rem; color: var(--muted); }
 .pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }

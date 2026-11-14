@@ -76,7 +76,7 @@ function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color:
 /** The structure kinds as buttons; each shows its footprint ("2 × 2") so the ghost on the map is no surprise. */
 export function StructurePicker({ kinds, value, side, onChange }: { kinds: Structure[]; value: string; side: MapSide | undefined; onChange: (id: string) => void }) {
   return (
-    <div className="pick-grid" role="radiogroup" aria-label="Structure">
+    <div className="pick-grid structures" role="radiogroup" aria-label="Structure">
       {kinds.map((k) => {
         const { w, h } = sizeOf(k)
         return (

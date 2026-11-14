@@ -2,7 +2,7 @@
 import type { APIRequestContext, Page } from '@playwright/test'
 import { clickPiece, picker, pickerGrid, seedArt, sheetPng } from './artkit'
 import { editorUrl, expect, saved, test } from './fixtures'
-import { cellPoint, clickCell, hoverCell, openMap, pickSide, pickStructure, tool } from './mapkit'
+import { clickCell, hoverCell, openMap, pickSide, pickStructure, tool } from './mapkit'
 import { seedOldGame } from './oldkit'
 
 const OUT = process.env.SHOTS_DIR ?? 'screenshots'
@@ -35,7 +35,8 @@ test.describe('structures screenshots', () => {
     await page.goto(editorUrl(id, 'structures', 'gate')); await saved(page)
     await page.getByLabel('Foot: rule').scrollIntoViewIfNeeded()
     await shot(page, '54-structure-moving-numbers')
-    await page.goto(editorUrl(id, 'terrain', 'city')); await saved(page)
+    await page.goto(editorUrl(id, 'terrain', 'forest')); await saved(page)
+    await page.getByTestId('terrain-structures-note').scrollIntoViewIfNeeded()
     await shot(page, '55-terrain-points-to-structures')
 
     // Pictures for structures (plain pieces seeded: a layout check, not an art review).
@@ -65,7 +66,7 @@ test.describe('structures screenshots', () => {
     await hoverCell(page, 11, 7)
     await shot(page, '59-map-structure-ghost-invalid')
     await clickCell(page, 3, 5)
-    await page.mouse.move((await cellPoint(page, 8, 7)).x, (await cellPoint(page, 8, 7)).y)
+    await page.mouse.move(700, 30) // off the map: no ghost, just the selection
     await shot(page, '60-map-structure-selected')
 
     await pickStructure(page, 'Gate').click()
@@ -91,7 +92,7 @@ test.describe('structures screenshots', () => {
     await page.setViewportSize({ width: 1180, height: 800 })
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
     const id = await game.create('economy-tactics', 'Old Capital Wars')
-    await seedOldGame(request, id)
+    await seedOldGame(request, id, { art: false })
     await page.goto(editorUrl(id, 'maps', 'crossroads'))
     await expect(page.getByText('This game was made with an older version of the editor.')).toBeVisible()
     await shot(page, '64-convert-offer')
@@ -130,7 +131,7 @@ test.describe('structures screenshots', () => {
     await page.evaluate(() => window.scrollTo(0, 420))
     await shot(page, '71-mobile-map-structure-panel')
     const old = await game.create('economy-tactics', 'Old Pocket')
-    await seedOldGame(request, old)
+    await seedOldGame(request, old, { art: false })
     await page.goto(editorUrl(old, 'game'))
     await page.getByRole('button', { name: 'See what will change…' }).click()
     await shot(page, '72-mobile-convert-dialog')
