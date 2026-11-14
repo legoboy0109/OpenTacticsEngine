@@ -2,7 +2,7 @@
 {
   "formatVersion": 1,
   "name": "Emblem Demo",
-  "description": "A small Fire Emblem-style skirmish: named heroes, experience and level-ups.",
+  "description": "A short Fire Emblem-style story in two chapters: named heroes, items, dialogue, experience and level-ups.",
   "styles": [
     { "id": "classic", "name": "Classic" },
     { "id": "parchment", "name": "Parchment", "background": "#2b2118", "showGlyphs": false,

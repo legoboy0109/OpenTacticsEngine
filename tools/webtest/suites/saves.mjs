@@ -44,7 +44,7 @@ export async function run(env) {
   await s.keys(['Enter']);  // the first row is Continue
   await s.page.waitForTimeout(1500);
   C.check('Continue was offered and used after the reload',
-          s.logs.some((l) => /resumed the Continue save of 'demo-srpg' \(map bridge, turn 1\)/.test(l)),
+          s.logs.some((l) => /resumed the Continue save of 'demo-srpg' \(campaign, chapter Skirmish at the Ford, battle\)/.test(l)),
           s.logs.slice(-4).join(' | '));
   const after = await s.shot('after-continue');
   // The lord moved from tile (2,4) to (4,4) and waited. Idle animation makes whole-picture

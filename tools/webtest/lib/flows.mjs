@@ -24,10 +24,15 @@ export async function skipStory(s) {
   await s.page.waitForTimeout(2600);  // the turn banner with the objective (2.4 s) follows the story
 }
 
-// Home -> Emblem Demo -> Play -> map "bridge" -> battle, by keyboard.
+// Home -> Emblem Demo -> New game -> chapter 1's title card and opening scene -> battle, by keyboard.
 export async function keyboardToBattle(s) {
-  await s.keys(['Enter', 'Enter', 'Enter'], 200);
-  await s.page.waitForTimeout(1200);  // the battle's opening animation swallows input
+  await s.keys(['Enter', 'Enter'], 200);  // the game's page, then "New game" (its first row without a save)
+  await s.page.waitForTimeout(400);
+  await s.keys(['Enter'], 300);           // the chapter's title card
+  await s.page.keyboard.down('x');        // the scene before the battle: holding cancel skips it
+  await s.page.waitForTimeout(800);
+  await s.page.keyboard.up('x');
+  await s.page.waitForTimeout(1500);      // the battle's opening animation swallows input
   await skipStory(s);
 }
 
@@ -35,10 +40,12 @@ export async function keyboardToBattle(s) {
 export async function pointerToBattle(s, tap = false) {
   const hit = tap ? (x, y, p) => s.tapL(x, y, p) : (x, y, p) => s.clickL(x, y, p);
   await hit(90, 46);        // "Emblem Demo" in the list
-  await hit(240, 46);       // "Play"
-  await hit(240, 50, 1200); // the only map
-  await hit(458, 203, 4500); // the "Skip" tab on the opening dialogue; then the turn banner
-                             // (after the view has moved where the story pointed; it carries the objective, 2.4 s) has to pass, or it eats the next tap
+  await hit(240, 46, 500);  // "New game"
+  await hit(240, 100, 500); // the chapter's title card
+  await hit(458, 200, 1800); // "Skip" on the scene before the battle; then the battle opens
+  await hit(458, 203, 4500); // the "Skip" tab on the battle's opening dialogue; then the turn banner
+                             // (after the view has moved where the story pointed; it carries the
+                             // objective, 2.4 s) has to pass, or it eats the next tap
 }
 
 // Select the lord at tile (2,4) and move him to (4,4) with the keyboard. The
