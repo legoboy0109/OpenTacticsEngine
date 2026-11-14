@@ -1,0 +1,81 @@
+// Story state in saves (see save_story.h and docs/SAVES.md).
+#include "core/battle/save_story.h"
+
+namespace ote {
+
+using savejson::Reader;
+
+namespace {
+
+bool hasStoryState(const Battle& b) { return b.story || !b.db->switches.empty() || !b.db->variables.empty(); }
+
+}  // namespace
+
+void saveStoryState(const Battle& b, Json& out) {
+  if (!hasStoryState(b)) return;
+  Json j = Json::makeObject();
+  Json sw = Json::makeArray();
+  for (uint8_t on : b.storyState.switches) sw.push(Json::makeBool(on != 0));
+  j.set("switches", sw);
+  Json vars = Json::makeArray();
+  for (int v : b.storyState.variables) vars.push(Json::makeNumber(v));
+  j.set("variables", vars);
+  // Events are named by id: readable, and independent of their order in the file.
+  Json fired = Json::makeArray();
+  if (b.story)
+    for (size_t i = 0; i < b.story->events.size(); ++i)
+      if (b.storyState.fired[i]) fired.push(Json::makeString(b.story->events[i].id));
+  j.set("fired", fired);
+  j.set("objectives", Json::makeNumber(b.storyState.objectives));
+  out.set("story", j);
+}
+
+bool restoreStoryState(Reader& rd, const Json& saved, Battle& b) {
+  if (!hasStoryState(b)) {
+    if (saved.has("story")) return rd.fail("battle.story", "this game has no events, objectives, switches or variables");
+    return true;
+  }
+  const Json* j;
+  if (!rd.object(saved, "story", "battle", j)) return false;
+  const std::string where = "battle.story";
+
+  const Json* list;
+  if (!rd.array(*j, "switches", where, (int)b.db->switches.size(), 0, list)) return false;
+  for (size_t i = 0; i < list->size(); ++i) {
+    if (!(*list)[i].isBool()) return rd.fail(where + ".switches[" + std::to_string(i) + "]", "not true/false");
+    b.storyState.switches[i] = (*list)[i].asBool() ? 1 : 0;
+  }
+  if (!rd.array(*j, "variables", where, (int)b.db->variables.size(), 0, list)) return false;
+  for (size_t i = 0; i < list->size(); ++i) {
+    const Json& v = (*list)[i];
+    if (!v.isNumber() || v.asNumber() != std::floor(v.asNumber()) || std::fabs(v.asNumber()) > kMaxStoryNumber)
+      return rd.fail(where + ".variables[" + std::to_string(i) + "]", "not a whole number");
+    b.storyState.variables[i] = (int)v.asNumber();
+  }
+
+  const size_t eventCount = b.story ? b.story->events.size() : 0;
+  if (!rd.array(*j, "fired", where, -1, (int)eventCount, list)) return false;
+  b.storyState.fired.assign(eventCount, 0);
+  for (size_t i = 0; i < list->size(); ++i) {
+    std::string at = where + ".fired[" + std::to_string(i) + "]";
+    if (!(*list)[i].isString()) return rd.fail(at, "not an event id");
+    size_t e = 0;
+    while (e < eventCount && b.story->events[e].id != (*list)[i].asString()) ++e;
+    if (e == eventCount) return rd.fail(at, "the map has no event \"" + (*list)[i].asString() + "\"");
+    if (b.storyState.fired[e]) return rd.fail(at, "event \"" + (*list)[i].asString() + "\" is listed twice");
+    b.storyState.fired[e] = 1;
+  }
+  int sets = b.story ? (int)b.story->objectives.size() : 1;
+  return rd.integer(*j, "objectives", where, 0, sets - 1, b.storyState.objectives);
+}
+
+bool readUnitStoryId(Reader& rd, const Json& unit, const std::string& where, std::string& out) {
+  out.clear();
+  if (!unit.has("id")) return true;
+  if (!unit["id"].isString() || !isStoryId(unit["id"].asString()))
+    return rd.fail(where + ".id", "not a valid unit id (letters, digits, _ and -)");
+  out = unit["id"].asString();
+  return true;
+}
+
+}  // namespace ote

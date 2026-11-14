@@ -6,10 +6,13 @@
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
 
+#include "core/battle/save_reader.h"
+#include "core/battle/save_story.h"
 #include "core/battle/unit_stats.h"
 
 #include <cmath>
 #include <cstdio>
+#include <set>
 
 namespace ote {
 namespace {
@@ -41,56 +44,10 @@ bool parseHex64(const Json& j, uint64_t& out) {
   return true;
 }
 
-// Reads fields with a context path for error messages ("units[3].hp").
-class Reader {
- public:
-  explicit Reader(std::string& err) : err_(err) {}
-
-  bool fail(const std::string& where, const std::string& what) {
-    err_ = where + ": " + what;
-    return false;
-  }
-  bool integer(const Json& o, const char* key, const std::string& where, int lo, int hi, int& out) {
-    const Json& v = o[key];
-    if (!v.isNumber()) return fail(where + "." + key, "missing or not a number");
-    double d = v.asNumber();
-    if (!(d == std::floor(d)) || d < (double)lo || d > (double)hi)
-      return fail(where + "." + key, "value " + trimmed(d) + " is outside " + std::to_string(lo) + ".." + std::to_string(hi));
-    out = (int)d;
-    return true;
-  }
-  bool boolean(const Json& o, const char* key, const std::string& where, bool& out) {
-    if (!o[key].isBool()) return fail(where + "." + key, "missing or not true/false");
-    out = o[key].asBool();
-    return true;
-  }
-  bool object(const Json& o, const char* key, const std::string& where, const Json*& out) {
-    out = &o[key];
-    if (!out->isObject()) return fail(where + "." + key, "missing or not an object");
-    return true;
-  }
-  // Array of exactly `count` entries (count < 0: any length up to `maxCount`).
-  bool array(const Json& o, const char* key, const std::string& where, int count, int maxCount, const Json*& out) {
-    out = &o[key];
-    if (!out->isArray()) return fail(where + "." + key, "missing or not a list");
-    if (count >= 0 && (int)out->size() != count)
-      return fail(where + "." + key, "has " + std::to_string(out->size()) + " entries, expected " + std::to_string(count));
-    if (count < 0 && (int)out->size() > maxCount) return fail(where + "." + key, "is unreasonably long");
-    return true;
-  }
-
- private:
-  static std::string trimmed(double d) {
-    char buf[32];
-    std::snprintf(buf, sizeof buf, "%.15g", d);
-    return buf;
-  }
-  std::string& err_;
-};
-
-constexpr int kMaxUnits = 100000;
-constexpr int kMaxLevel = 1000000;
-constexpr int kMaxNumber = 1000000000;  // resources, stats, xp
+using savejson::Reader;
+using savejson::kMaxLevel;
+using savejson::kMaxNumber;
+using savejson::kMaxUnits;
 
 Json itemsJson(const std::vector<ItemStack>& items) {
   Json list = Json::makeArray();
@@ -156,6 +113,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   if (!j["name"].isString()) return rd.fail(where + ".name", "missing or not text");
   u.name = j["name"].asString();
   if (u.name.size() > 200) return rd.fail(where + ".name", "unreasonably long");
+  if (!readUnitStoryId(rd, j, where, u.storyId)) return false;
   if (!rd.integer(j, "level", where, 1, kMaxLevel, u.level)) return false;
   if (!rd.integer(j, "xp", where, 0, kMaxNumber, u.xp)) return false;
   const Json* stats;
@@ -228,6 +186,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("side", num(u.side));
     j.set("cell", num(u.cell));
     j.set("name", Json::makeString(u.name));
+    if (!u.storyId.empty()) j.set("id", Json::makeString(u.storyId));
     j.set("level", num(u.level));
     j.set("xp", num(u.xp));
     Json stats = Json::makeArray();
@@ -252,6 +211,7 @@ void saveBattleState(const Battle& b, Json& out) {
     structures.push(j);
   }
   out.set("structures", structures);
+  saveStoryState(b, out);
 }
 
 bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
@@ -288,9 +248,14 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   b.units.clear();
   b.units.reserve(units->size());
   b.occupant.assign(b.occupant.size(), -1);
+  std::set<std::string> ids;  // story ids are unique among units
   for (size_t i = 0; i < units->size(); ++i) {
     Unit u;
     if (!readUnit(rd, b, (*units)[i], (int)i, u)) return false;
+    if (!u.storyId.empty()) {
+      if (!ids.insert(u.storyId).second)
+        return rd.fail("units[" + std::to_string(i) + "].id", "\"" + u.storyId + "\" belongs to another unit too");
+    }
     if (u.alive) {
       if (b.occupant[(size_t)u.cell] != -1)
         return rd.fail("units[" + std::to_string(i) + "].cell",
@@ -304,6 +269,8 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   if (!rd.array(saved, "structures", top, (int)b.structures.size(), 0, structures)) return false;
   for (size_t i = 0; i < b.structures.size(); ++i)
     if (!readStructure(rd, b, (*structures)[i], (int)i, b.structures[i])) return false;
+
+  if (!restoreStoryState(rd, saved, b)) return false;
 
   battle = b;
   return true;
