@@ -249,6 +249,12 @@ SDL2). Both demos have a "Full 3D" style (same art as 3D isometric). Editor:
 "Full 3D" kind on the Game screen, models allowed in such styles.
 Player option "3D graphics" (Automatic / OpenGL / Software): settings key
 `draw3d`, docs/RENDER3D.md "Choosing".
+3D at the display's real resolution (docs/RENDER3D.md "Resolution"): option
+"3D resolution" (key `res3d`), `--3d-res`, headless `--3d-scale N` (screenshot
+written at N times the size), `Renderer::displaySize()`, OpenGL 4x
+multisampling. Graphics sheets take `"smooth": true` (3D views only: linear +
+mipmaps; the editor's Art screen has the checkbox); models follow the glTF
+sampler. Not verified by hand: a real window, the web build's canvas size.
 Not verified by hand: gamepad stick/triggers (no gamepad in tests); mouse
 wheel and right-drag are checked in the browser suite only.
 

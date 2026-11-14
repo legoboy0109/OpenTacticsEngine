@@ -41,6 +41,9 @@ export function setSheetGrid(doc: ProjectDoc, id: string, cellWidth: number, cel
   return updateSheet(doc, id, { cellWidth: whole(cellWidth), cellHeight: whole(cellHeight) })
 }
 
+/** "Smooth (for detailed art)": the 3D views blend this image's pixels instead of drawing them hard. Off leaves the key out. */
+export const setSheetSmooth = (doc: ProjectDoc, id: string, on: boolean): ProjectDoc => updateSheet(doc, id, { smooth: on ? true : undefined })
+
 export function setUnitMarker(doc: ProjectDoc, on: boolean): ProjectDoc {
   return withGraphics(doc, (g) => patchObj(g, { unitMarker: on ? undefined : false }))
 }

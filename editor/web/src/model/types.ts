@@ -117,7 +117,7 @@ export interface MapStructure extends Extra { type: string; x: number; y: number
 // --- art (docs/GRAPHICS.md, data/graphics.json) ---
 export type CellRef = [number, number]
 /** An image file and how it is cut into pieces (the file format calls this a "sheet"; the UI says "image"). */
-export interface Sheet extends Extra { id: string; file: string; cellWidth: number; cellHeight: number; name?: string }
+export interface Sheet extends Extra { id: string; file: string; cellWidth: number; cellHeight: number; name?: string; smooth?: boolean }
 /** How one terrain or unit is drawn: `sheet` plus exactly one of cell / variants / frames / join. */
 export interface Look extends Extra {
   sheet: string

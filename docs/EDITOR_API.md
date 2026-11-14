@@ -106,8 +106,9 @@ not part of this call: they have their own endpoints below.
 `{ "problems": [ { "file": "maps/m1.json", "message": "…" } ] }`. Runs the
 real loader on the saved files: `loadGame`, then every map with `loadMap`,
 (`loadGame` includes `data/graphics.json`, so art problems such as an unknown
-sheet or a missing/oversized image are reported with `file:
-"data/graphics.json"`), then compiles the Lua formulas and starts a battle on each map. `file` is
+sheet, a missing/oversized image or a sheet's `"smooth"` that is not `true` /
+`false` are reported with `file: "data/graphics.json"`; `smooth` is an
+optional key of a sheet, written and returned like any other), then compiles the Lua formulas and starts a battle on each map. `file` is
 relative to the project folder ("" when unknown); any loader message that starts with a
 project file's path (e.g. `data/structures.json`) is reported with that `file`. The loader stops at the
 first error per file group, so fixing one problem can reveal the next.

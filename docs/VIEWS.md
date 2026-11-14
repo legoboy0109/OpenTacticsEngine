@@ -235,11 +235,16 @@ the platform side; `--input` knows `tiltup tiltdown zoomin zoomout`. Arrow
 keys keep their directions on screen: they follow the camera in quarter
 turns. The camera is not saved.
 
+**Resolution and detailed art.** Both 3D kinds draw their picture at the
+display's real resolution (docs/RENDER3D.md "Resolution": option "3D
+resolution", `--3d-res`, `--3d-scale` for headless runs), and a graphics.json
+sheet with `"smooth": true` is sampled with blending and mipmaps there
+(docs/GRAPHICS.md). The 2D views do not use `smooth` yet: not yet.
+
 **Not yet**: close-up battle scenes; slopes or modelled terrain (the map is
 blocks); remembering the camera; touch gestures (pinch, two-finger turn;
-the on-screen buttons work); drawing 3D at the display's full resolution
-(it is drawn at the game's logical size like everything else); per-style
-camera settings (start angle, limits, field of view).
+the on-screen buttons work); per-style camera settings (start angle,
+limits, field of view); smooth art in the 2D views.
 
 ## Shipped games
 

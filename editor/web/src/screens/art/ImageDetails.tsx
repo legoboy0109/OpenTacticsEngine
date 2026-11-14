@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { prepareImage, type Prepared } from '../../art/importImage'
 import { useArtState } from '../../art/useArt'
 import { artBase } from '../../model/artFiles'
-import { findSheet, setSheetName } from '../../model/graphics'
+import { findSheet, setSheetName, setSheetSmooth } from '../../model/graphics'
 import { outsideUsers, sheetUsers } from '../../model/graphicsUsage'
 import { gridInfo } from '../../model/gridGuess'
 import { Link, projectPath } from '../../router'
@@ -12,6 +12,7 @@ import { Banner } from '../../ui/Banner'
 import { Advanced, Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
 import { Field } from '../../ui/Field'
+import { Check } from '../../ui/Toggle'
 import { PieceGrid } from '../../ui/picture/PieceGrid'
 import { TextInput } from '../../ui/TextInput'
 import { DivisionCard } from './DivisionCard'
@@ -68,6 +69,10 @@ export function ImageDetails({ id, say }: Props) {
       </Card>
 
       {width > 0 && <DivisionCard sheet={sheet} width={width} height={height} />}
+
+      <Card>
+        <Check label={T.smooth} help={T.smoothHelp} checked={sheet.smooth === true} onChange={(v) => edit((d) => setSheetSmooth(d, id, v), `art:${id}:smooth`)} />
+      </Card>
 
       {width > 0 && grid && (
         <Card title="Preview" help={T.size(width, height)}>
