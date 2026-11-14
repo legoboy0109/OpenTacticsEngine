@@ -157,7 +157,7 @@ test('a style can recolour a structure; the map shows it in that style, and Rese
   await page.getByRole('button', { name: 'Add a style' }).click()
   await page.getByRole('dialog', { name: 'New visual style' }).getByLabel('Name of the style').fill('Dusk')
   await page.getByRole('dialog', { name: 'New visual style' }).getByRole('button', { name: 'Create' }).click()
-  await expect(page.getByText('Structure colours in this style')).toBeVisible()
+  await expect(page.getByText('Structure colours in this style')).toHaveCount(3) // one per style
   await page.getByLabel('Dusk: City colour (hex code)').fill('#123456')
   await saved(page)
   // The template already has Classic and Isometric; Dusk comes after them.
