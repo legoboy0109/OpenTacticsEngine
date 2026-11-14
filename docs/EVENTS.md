@@ -20,9 +20,10 @@ Contract for PLAN item 3f. Owner decisions (2026-11-14):
 Everything below is engine design and may change; all wording shown to
 players and makers is placeholder until the owner approves it.
 
-Status: step 1 of the "Build order" (the rules core: data, loader, battle,
-saves, `ote-sim`) is built and tested; the sections on the player, the
-campaign and the editor are still design only. Where building step 1
+Status: steps 1 and 2 of the "Build order" (the rules core: data, loader,
+battle, saves, `ote-sim`; and the player's part inside one battle: dialogue
+box, Talk, objectives) are built and tested; the sections on the campaign and
+the editor are still design only. Where building step 1
 refined or corrected the first contract, the text below is the corrected
 version and says so ("refined").
 
@@ -184,16 +185,61 @@ objective block with only a `text` shows the text and judges nothing.
 
 ## Dialogue (player)
 
-(Design only; the player does not show dialogue yet and skips the new
-entries; `Talk` is not offered yet.)
+Built (step 2): `engine/player/ui/dialogue_{text,box}.*` (text logic and the
+box), `engine/player/battle/battle_view_story.cpp` (how the view plays the
+story entries) and `battle_story.cpp` (the scene side).
 
-A box across the bottom of the screen: the speaker's name, the text
-appearing letter by letter (confirm = finish the line, then next; a hold
-or a "skip" button runs through the rest), and the speaker's portrait if
-one exists, to the left of the box. Portraits are pictures in
-`data/graphics.json` under `"portraits": { "eirik": { "sheet": …, "cell": … } }`,
-per style like other art. In 3D styles the box is the same 2D box. The
-objective text is shown at battle start and in the battle menu.
+- **The box**: across the bottom of the screen, just above the hint line, in
+  every kind of view (it is a plain 2D overlay). The speaker's name on the
+  first row (the unit's `name`, or the free name; a line with neither has no
+  name row); the text appears at 60 letters a second
+  (`kDialogueLettersPerSecond`), word-wrapped to the box, up to three lines
+  a page (fewer with a very large font). A line too long continues on a
+  second page: Confirm turns it. A blinking `v` shows that the page is
+  complete. The map stays visible above; its camera, cursor and orders do not
+  react while a line is up.
+- **Input**: Confirm / tap = show the whole page, then turn the page, then
+  end the line. Holding Cancel or Menu for 0.5 s, tapping the **Skip** tab
+  on the box's top-right corner, or the `--input` token `skip` skips every
+  remaining line of the **current run of events** (one `Battle::apply` /
+  `start` / AI step's entries; also fights and moves still play). A tap of
+  Cancel alone does nothing. The hint line shows the keys.
+- **Portrait**: `"portraits": { "<id>": { "sheet": …, "cell": [x, y] } }` in
+  `data/graphics.json` (docs/GRAPHICS.md "Portraits"). A line uses its own
+  `portrait` id, else the speaking unit's story id (`Unit::storyId`), else
+  none; an id with no portrait shows the box without one. It is drawn to the
+  left of the box at 48 x 48 px with the 8 px font (it grows with the font
+  size and the UI scale), keeping the cell's proportions, sitting on the
+  box's bottom edge.
+- **Pausing**: a `Dialogue` entry becomes the view's current entry with no
+  end time; the view's queue does not advance, so everything after it (a
+  reinforcement the line announces, the AI's next step) waits until the scene
+  calls `BattleView::skip` (Confirm on the last page) or `skipDialogues` (skip
+  all: lines then pass at once until the queue drains). In `--autoplay` a
+  line ends by itself after 1 s (and nothing else is waited for), so runs and
+  the embedded editor's Play cannot hang on dialogue. A line triggered on the
+  AI's turn pauses the AI the same way. Loading a save replays nothing (the
+  view starts empty; the story state is saved, the stream is not).
+- **Other entries**: `Focus` moves the view's focus to the square or unit and
+  keeps it there for the rest of the run (so the camera stays on it while the
+  next line is up); `UnitAdded` pops in like a built unit; `UnitRemoved`
+  fades out (no death effect); `UnitRelocated` slides (snaps when more than 8
+  squares away); `SideChanged` keeps the old colour until its entry plays,
+  then takes the new side's colour with a short white flash and a "Joins
+  <side>" float; `ObjectiveChanged` shows a "New objective" banner with the
+  text (nothing when the objective was cleared).
+- **Talk**: the action menu has an entry per `talkOptions` result before
+  "Items": the event's label ("Talk" when it has none), and with several
+  results "<label>: <partner name>". Choosing it submits `Action::talk`; the
+  menu is then rebuilt and the move can no longer be undone (like the item
+  actions), unless the event ended the turn, removed the unit or ended the
+  battle.
+- **Objective**: when a new battle starts, its objective text is a second
+  line under the first turn banner ("Objective: …", the banner stays up
+  2.4 s; Confirm skips it). The battle menu (the one with End Turn) has an
+  "Objective" entry, only when there is text, that shows it in a small box.
+  A save restores the current objective. A battle ending through objectives
+  shows the usual VICTORY / DEFEAT after the `won` / `lost` events' lines.
 
 ## Campaign
 
@@ -257,7 +303,9 @@ commands; voice.
    tests; `ote-sim` runs them. **Done** (engine/core/data/events.h and
    loader_events.cpp / loader_story_*.cpp; engine/core/battle/story*.cpp,
    objectives.cpp, save_story.cpp; tests/test_story_*.cpp).
-2. Player: dialogue box, Talk, objective display.
+2. Player: dialogue box, Talk, objective display. **Done** (see "Dialogue
+   (player)"; tests `test_dialogue_text.cpp`, `test_dialogue_box.cpp`,
+   `test_portraits.cpp`).
 3. Editor: events, objectives, switches / variables, portraits.
 4. Campaign: core roster and progress, saves, launcher.
 5. Editor: Campaign screen; demo content (`demo-srpg`: an opening scene, a

@@ -12,6 +12,7 @@
 #include "scene.h"
 #include "saves.h"
 #include "ui/confirm.h"
+#include "ui/dialogue_box.h"
 #include "ui/item_panel.h"
 #include "ui/menu.h"
 #include "ui/slot_panel.h"
@@ -27,12 +28,13 @@ class BattleScene : public Scene {
   void draw(Renderer& r) override;
 
  private:
-  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Result };
+  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, Result };
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
-                kUse, kEquip, kStore, kDiscard };
+                kUse, kEquip, kStore, kDiscard, kObjective,
+                kTalkBase = 1000 };  // kTalkBase + n = the n-th Talk entry of the action menu
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
   void ensureLayout(const Renderer& r);
@@ -88,6 +90,17 @@ class BattleScene : public Scene {
   bool submitItem(const Action& a); // submit() for those; then itemActionDone()
   std::string itemsHint() const;
 
+  // --- battle_story.cpp: story events in the player (docs/EVENTS.md): dialogue box, Talk, objectives
+  void updateDialogue(double dt);
+  void dialogueResult(DialogueBox::Result res);
+  PortraitArt portraitFor(const std::string& id) const;
+  void addTalkEntries(std::vector<MenuItem>& items);
+  void talkChosen(int index);
+  void openObjective();
+  bool objectiveInput(const InputEvent& e);  // true = the event was used
+  void drawStory(Renderer& r);               // under the panel: the flash of a unit that changed sides
+  void drawObjectiveBox(Renderer& r);
+
   // --- battle_saves.cpp: Continue save, manual Save / Load (docs/SAVES.md)
   bool savingOn() const;       // saves usable here: folder, game setting, not autoplay
   bool manualSaves() const;    // savingOn and the game allows slots
@@ -136,6 +149,9 @@ class BattleScene : public Scene {
   int partner_ = -1;         // trade partner unit
   std::vector<int> shopList_;   // item indexes in the shop panel's rows
   std::vector<Event> events_;
+  DialogueBox dialogue_;
+  int dialogueSerial_ = -1;       // the line (BattleView::dialogue.serial) the box is showing
+  std::vector<TalkOption> talk_;  // the Talk entries of the action menu now open
   std::string resultText_, resultSub_;
   Color resultColor_;
 

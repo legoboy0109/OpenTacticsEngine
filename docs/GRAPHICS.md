@@ -39,6 +39,9 @@ units do, drawn across their whole footprint.
     "castle": { "sheet": "castle", "cell": [0,0],           // 2 x 2 squares: a cell 48 wide, taller
                 "sides": { "red": { "sheet": "castle", "cell": [1,0] } } }
   },
+  "portraits": {                           // dialogue portraits (see "Portraits")
+    "eirik": { "sheet": "faces", "cell": [0,0] }
+  },
   "units": {                               // unit type id -> look
     "knight": { "sheet": "knight", "cell": [0,0] },
     "soldier": { "sheet": "men", "frames": [[0,0],[1,0]], "frameMs": 450,
@@ -124,6 +127,34 @@ row 3   12 S+W     13 N+S+W   14 E+S+W   15 all four
 
 So a road running left-right is piece 10, a dead end pointing up from a
 square is piece 4 (its only neighbour is to the south), a crossroads is 15.
+
+## Portraits (dialogue)
+
+```jsonc
+"portraits": { "eirik": { "sheet": "faces", "cell": [0,0] },
+               "gorm_angry": { "sheet": "faces", "cell": [1,0] } },
+"styles": { "night": { "portraits": { "eirik": { "sheet": "faces", "cell": [0,1] }, "gorm_angry": null } } }
+```
+
+The picture beside a line of dialogue (docs/EVENTS.md "Dialogue (player)").
+Each entry is exactly one `cell` of a sheet. The id is what a line of
+dialogue asks for: the line's own `portrait`, else the speaking unit's story
+id. An id that has no entry just shows the dialogue box without a picture.
+A style's `portraits` replace the general ones per id and `null` removes
+one, like the other per-style art. Unlike terrain and units, **every style
+starts with the general portraits, whatever its kind of view**: a face is
+not drawn differently for the isometric or 3D kinds (a style can still
+replace or remove one). Errors read `data/graphics.json: portrait "eirik": …`
+(unknown sheet, a cell outside the sheet, `frames` instead of one cell).
+
+The box draws a portrait 48 x 48 logical pixels with the 8 px font (more
+with larger fonts / UI scale), keeping the cell's proportions (fitted
+inside, standing on the box's bottom edge), so square cells or cells a bit
+taller than wide work best. The 2D renderer draws every sheet the same way,
+so the sheet's `smooth` key has no effect on portraits yet.
+
+In memory: `GraphicsSet::portraits` and `GraphicsSet::portrait(id)`;
+player: `BattleScene::portraitFor` (battle_story.cpp).
 
 ## Models (3D kinds of view only)
 

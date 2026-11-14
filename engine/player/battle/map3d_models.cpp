@@ -123,7 +123,7 @@ void Map3D::drawUnitModel(const DrawCtx& c, const Unit& u, const UnitView& v, co
   Mat4 place = Mat4::translate(Vec3(feet.X + cx_ * towards, feet.Y, feet.Z + cz_ * towards)) *
                Mat4::rotate(Quat::axisAngle(Vec3(0, 1, 0), a.facing + look.turn * kPi / 180.0f)) * Mat4::scale(Vec3(size, size, size));
   ModelTint tint;
-  tint.side = rgba(Color::rgb(c.battle.sides[(size_t)u.side].color));
+  tint.side = rgba(Color::rgb(c.battle.sides[(size_t)shownSide(c, u)].color));
   tint.sideMaterial = look.sideMaterial;
   tint.dim = u.done ? 0.55f : 1.0f;  // dimmed: already acted
   tint.alpha = v.alpha * fade;

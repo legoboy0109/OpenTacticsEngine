@@ -164,7 +164,7 @@ void drawUnitIso(const Iso& I, const Unit& u, const UnitView& v, float fade) {
   if (I.offScreen(cx - uw, foot - uw * 3, uw * 2, uw * 3 + 8)) return;
   float al = v.alpha * fade;
   int a = std::max(0, std::min(255, (int)(al * 255.0f + 0.5f)));
-  Color side = Color::rgb(b.sides[(size_t)u.side].color);
+  Color side = Color::rgb(b.sides[(size_t)shownSide(I.c, u)].color);
   if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
   const Look* art = unitArt(I.c, u);
   int bodyTop;
