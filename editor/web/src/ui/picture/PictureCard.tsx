@@ -14,7 +14,7 @@ import { Select } from '../Select'
 import { ArtCanvas } from './ArtCanvas'
 import { PickerDialog } from './PickerDialog'
 import { P } from './text'
-import { useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
+import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
 
 interface Props { kind: LookKind; id: string; name: string }
 type Open = { side?: string } | null
@@ -34,7 +34,7 @@ export function PictureCard({ kind, id, name }: Props) {
   const key = `picture:${kind}:${id}`
 
   return (
-    <Card title={P.cardTitle} help={kind === 'terrain' ? P.cardHelpTerrain : P.cardHelpUnit} id={key}>
+    <Card title={P.cardTitle} help={kind === 'terrain' ? P.cardHelpTerrain : kind === 'structures' ? P.cardHelpStructure : P.cardHelpUnit} id={key}>
       <div className="stack tight">
         {styles.length > 1 && (
           <Field label={P.forLook} help={P.lookHelp}>
@@ -46,7 +46,7 @@ export function PictureCard({ kind, id, name }: Props) {
           : (
             <div className="picture-row">
               <div className="picture-preview">
-                {kind === 'terrain' ? <TerrainSample id={id} name={name} look={choice} /> : <UnitSample id={id} name={name} look={choice} />}
+                {kind === 'terrain' ? <TerrainSample id={id} name={name} look={choice} /> : kind === 'structures' ? <StructureSample id={id} name={name} look={choice} /> : <UnitSample id={id} name={name} look={choice} />}
               </div>
               <div className="stack tight picture-controls">
                 {style ? (
@@ -68,7 +68,7 @@ export function PictureCard({ kind, id, name }: Props) {
               </div>
             </div>
           )}
-        {kind === 'units' && hasImages && <SideList slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
+        {kind !== 'terrain' && hasImages && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
       </div>
       {open && (
         <PickerDialog kind={kind} thingId={id} look={choice} side={open.side}
@@ -89,20 +89,24 @@ function Radio({ on, label, onPick }: { on: boolean; label: string; onPick: () =
 function TerrainSample({ id, name, look }: { id: string; name: string; look: LookChoice }) {
   return <ArtCanvas spec={useTerrainSample(id, look)} label={P.previewTerrain(name)} />
 }
+function StructureSample({ id, name, look }: { id: string; name: string; look: LookChoice }) {
+  return <ArtCanvas spec={useStructureSample(id, look)} label={P.previewStructure(name)} />
+}
 function UnitSample({ id, name, look }: { id: string; name: string; look: LookChoice }) {
   return <ArtCanvas spec={useUnitSample(id, look)} label={P.previewUnit(name)} />
 }
 
 /** One row per side of the game (from the maps): that side's own picture, if any. */
-function SideList({ slot, entry, choice, id, name, onChoose }: { slot: Slot; entry: Look | null | undefined; choice: LookChoice; id: string; name: string; onChoose: (side: string) => void }) {
+function SideList({ kind, slot, entry, choice, id, name, onChoose }: { kind: LookKind; slot: Slot; entry: Look | null | undefined; choice: LookChoice; id: string; name: string; onChoose: (side: string) => void }) {
   const doc = useDoc()
   const edit = useEdit()
   const sides = gameSides(doc)
+  const structure = kind === 'structures'
   return (
-    <section className="side-pictures" aria-label={P.sidesTitle}>
-      <h3>{P.sidesTitle}</h3>
-      <p className="help">{P.sidesHelp}</p>
-      {!entry && <p className="help">{P.sidesNeedPicture}</p>}
+    <section className="side-pictures" aria-label={structure ? P.ownersTitle : P.sidesTitle}>
+      <h3>{structure ? P.ownersTitle : P.sidesTitle}</h3>
+      <p className="help">{structure ? P.ownersHelp : P.sidesHelp}</p>
+      {!entry && <p className="help">{structure ? P.ownersNeedPicture : P.sidesNeedPicture}</p>}
       {entry && sides.length === 0 && <p className="help">{P.sidesNone}</p>}
       {entry && sides.length > 0 && (
         <ul className="side-list">
@@ -110,7 +114,7 @@ function SideList({ slot, entry, choice, id, name, onChoose }: { slot: Slot; ent
             const own = entry.sides?.[s.id]
             return (
               <li key={s.id}>
-                <SideRow side={s} own={!!own} id={id} name={name} choice={choice} />
+                <SideRow kind={kind} side={s} own={!!own} id={id} name={name} choice={choice} />
                 <span className="row">
                   <button type="button" className="btn sm" aria-label={`${own ? P.change : P.sideChoose} ${s.name}`} onClick={() => onChoose(s.id)}>{own ? P.change : P.sideChoose}</button>
                   {own && <button type="button" className="btn sm" aria-label={`${P.sideRemove} ${s.name}`} onClick={() => edit((d) => setSideLook(d, slot, s.id, undefined))}>{P.sideRemove}</button>}
@@ -124,8 +128,8 @@ function SideList({ slot, entry, choice, id, name, onChoose }: { slot: Slot; ent
   )
 }
 
-function SideRow({ side, own, id, name, choice }: { side: GameSide; own: boolean; id: string; name: string; choice: LookChoice }) {
-  const spec = useUnitSample(id, choice, undefined, [side.id])
+function SideRow({ kind, side, own, id, name, choice }: { kind: LookKind; side: GameSide; own: boolean; id: string; name: string; choice: LookChoice }) {
+  const structure = kind === 'structures'
   return (
     <span className="side-row">
       <span className="swatch" style={{ background: side.color ?? '#888' }} aria-hidden="true" />
@@ -133,7 +137,14 @@ function SideRow({ side, own, id, name, choice }: { side: GameSide; own: boolean
         <strong>{side.name}</strong>
         <span className="help">{side.orphan ? P.sideOrphan : own ? '' : P.sideSame}</span>
       </span>
-      {own && <ArtCanvas spec={spec} label={P.previewUnit(`${name}, ${side.name}`)} />}
+      {own && (structure ? <StructureSideSample id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} /> : <UnitSideSample id={id} name={`${name}, ${side.name}`} side={side.id} look={choice} />)}
     </span>
   )
+}
+
+function UnitSideSample({ id, name, side, look }: { id: string; name: string; side: string; look: LookChoice }) {
+  return <ArtCanvas spec={useUnitSample(id, look, undefined, [side])} label={P.previewUnit(name)} />
+}
+function StructureSideSample({ id, name, side, look }: { id: string; name: string; side: string; look: LookChoice }) {
+  return <ArtCanvas spec={useStructureSample(id, look, undefined, [side])} label={P.previewStructure(name)} />
 }

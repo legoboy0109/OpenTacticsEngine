@@ -18,7 +18,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
   const [removing, setRemoving] = useState<string | null>(null)
   const sides = map.sides ?? []
   const target = sides.find((s) => s.id === removing)
-  const loss = target ? sideRemovalLoss(map, target.id) : { units: 0, owners: 0 }
+  const loss = target ? sideRemovalLoss(map, target.id) : { units: 0, structures: 0 }
   const apply = (fn: (m: MapFile, c: Parameters<Parameters<typeof editMap>[2]>[1]) => MapFile, key?: string) => edit((d) => editMap(d, mapId, fn), key)
   return (
     <div className="stack tight">
@@ -36,7 +36,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
       <ConfirmDialog open={!!target} title={T.removeSideTitle(target?.name ?? '')} confirmLabel={T.removeSide} danger
         onCancel={() => setRemoving(null)}
         onConfirm={() => { if (target) apply((m) => removeSide(m, target.id)); setRemoving(null) }}>
-        <p>{T.removeSideBody(loss.units, loss.owners)}</p>
+        <p>{T.removeSideBody(loss.units, loss.structures)}</p>
       </ConfirmDialog>
     </div>
   )

@@ -5,6 +5,7 @@ import { GameScreen } from '../screens/game/GameScreen'
 import { ArtScreen } from '../screens/art/ArtScreen'
 import { MapsScreen } from '../screens/maps/MapsScreen'
 import { RulesScreen } from '../screens/rules/RulesScreen'
+import { StructuresScreen } from '../screens/structures/StructuresScreen'
 import { TerrainScreen } from '../screens/terrain/TerrainScreen'
 import { UnitsScreen } from '../screens/units/UnitsScreen'
 import { WeaponsScreen } from '../screens/weapons/WeaponsScreen'
@@ -25,6 +26,7 @@ function Screen({ route }: { route: ProjectRoute }) {
     case 'units': return <UnitsScreen itemId={route.itemId} />
     case 'weapons': return <WeaponsScreen itemId={route.itemId} />
     case 'terrain': return <TerrainScreen itemId={route.itemId} />
+    case 'structures': return <StructuresScreen itemId={route.itemId} />
     case 'art': return <ArtScreen itemId={route.itemId} />
     case 'maps': return <MapsScreen itemId={route.itemId} />
   }

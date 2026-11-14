@@ -19,7 +19,7 @@ import { ArtCanvas } from './ArtCanvas'
 import { JoinGuide } from './JoinGuide'
 import { PieceGrid, type PieceMark } from './PieceGrid'
 import { P } from './text'
-import { useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
+import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
 
 interface Props {
   kind: LookKind
@@ -36,7 +36,7 @@ interface Props {
   onClose: () => void
 }
 
-const KINDS: Record<LookKind, PickKind[]> = { terrain: ['one', 'mix', 'animation', 'join'], units: ['one', 'animation'] }
+const KINDS: Record<LookKind, PickKind[]> = { terrain: ['one', 'mix', 'animation', 'join'], units: ['one', 'animation'], structures: ['one', 'animation'] }
 const same = (a: CellRef, b: CellRef) => a[0] === b[0] && a[1] === b[1]
 
 export function PickerDialog({ kind, thingId, what, current, apply, look, side, onChoose, onClose }: Props) {
@@ -88,7 +88,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
   }, [pick.kind, pick.cells])
   const block = pick.kind === 'join' && pick.cells[0] ? { col: pick.cells[0][0], row: pick.cells[0][1], size: 4 } : null
 
-  const hint = pick.kind === 'one' ? (kind === 'terrain' ? P.pickHintOne : P.pickHintUnitOne) : pick.kind === 'mix' ? P.pickHintMix : pick.kind === 'animation' ? P.pickHintAnimation : P.pickHintJoin
+  const hint = pick.kind === 'one' ? (kind === 'terrain' ? P.pickHintOne : kind === 'structures' ? P.pickHintStructureOne : P.pickHintUnitOne) : pick.kind === 'mix' ? P.pickHintMix : pick.kind === 'animation' ? P.pickHintAnimation : P.pickHintJoin
   const speedKey = (Object.entries(SPEEDS).find(([, ms]) => ms === pick.frameMs)?.[0] ?? 'custom') as keyof typeof SPEEDS | 'custom'
   const others = (doc.terrain ?? []).filter((t) => t.id !== thingId)
 
@@ -115,7 +115,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
                 </button>
               ))}
             </div>
-            <p className="help">{(kind === 'terrain' ? P.kindHelp : P.unitKindHelp)[pick.kind as 'one']}</p>
+            <p className="help">{(kind === 'terrain' ? P.kindHelp : kind === 'structures' ? P.structureKindHelp : P.unitKindHelp)[pick.kind as 'one']}</p>
           </fieldset>
           <p className="help">{hint}</p>
           {warn && <p className="error-text" role="alert">{P.blockOutside}</p>}
@@ -172,7 +172,9 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
             <p className="help">{P.previewHelp}</p>
             {kind === 'terrain'
               ? <TerrainDraft id={thingId} look={look} doc={draftDoc} what={what} />
-              : <UnitDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />}
+              : kind === 'structures'
+                ? <StructureDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />
+                : <UnitDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />}
           </section>
         </div>
       </div>
@@ -185,4 +187,7 @@ function TerrainDraft({ id, look, doc, what }: { id: string; look: LookChoice; d
 }
 function UnitDraft({ id, look, doc, what, side }: { id: string; look: LookChoice; doc: ProjectDoc; what: string; side?: string }) {
   return <ArtCanvas spec={useUnitSample(id, look, doc, side ? [side] : undefined)} label={P.previewUnit(what)} />
+}
+function StructureDraft({ id, look, doc, what, side }: { id: string; look: LookChoice; doc: ProjectDoc; what: string; side?: string }) {
+  return <ArtCanvas spec={useStructureSample(id, look, doc, side ? [side] : undefined)} label={P.previewStructure(what)} />
 }

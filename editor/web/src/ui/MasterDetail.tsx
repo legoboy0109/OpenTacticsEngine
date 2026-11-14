@@ -36,11 +36,13 @@ interface Props {
   /** Wording of the New / Delete buttons when "New {noun}" / "Delete" do not fit (default: New {noun}, Delete). */
   newLabel?: string
   deleteLabel?: string
+  /** A short explanation shown under the list heading. */
+  note?: ReactNode
 }
 
 /** List on the left, form for the selected item on the right. On a phone the
  *  two are separate views: the list first, the form opens with a back button. */
-export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions, newLabel, deleteLabel }: Props) {
+export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions, newLabel, deleteLabel, note }: Props) {
   const narrow = useNarrow()
   const known = items.some((i) => i.id === selectedId)
   // Wide screens always show a form; phones show it only once an item is picked.
@@ -56,6 +58,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
           <h1>{title}</h1>
           <button type="button" className="btn primary sm" onClick={onNew}><Icon name="plus" />{newLabel ?? `New ${noun}`}</button>
         </div>
+        {note && <p className="help">{note}</p>}
         {items.length === 0 && <p className="help">{emptyText ?? `No ${title.toLowerCase()} yet.`}</p>}
         <ul className="md-items" aria-label={title}>
           {items.map((i) => (

@@ -17,7 +17,7 @@ export function useArtScene(style?: string): ArtScene | null {
   const store = useStore()
   const { version } = useArtState()
   // `version` is part of the key on purpose: a picture finishing loading must rebuild the scene.
-  return useMemo(() => buildArtScene(doc, style, store.art), [doc.graphics, doc.terrain, doc.units, style, store, version]) // eslint-disable-line react-hooks/exhaustive-deps
+  return useMemo(() => buildArtScene(doc, style, store.art), [doc.graphics, doc.terrain, doc.units, doc.structures, style, store, version]) // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export const useReducedMotion = (): boolean => useMediaQuery('(prefers-reduced-motion: reduce)')

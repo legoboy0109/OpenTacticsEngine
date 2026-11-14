@@ -1,5 +1,5 @@
 // The selected unit's details: type, side, name, level, leader and its own stats.
-import { editMap } from '../../../../model/mapCtx'
+import { ctxOfParts, editMap } from '../../../../model/mapCtx'
 import { changeUnitType, removeMapUnit, setUnitStat, unitAt, updateMapUnit } from '../../../../model/mapUnits'
 import { useState } from 'react'
 import { useDoc, useEdit } from '../../../../store/context'
@@ -24,7 +24,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
   const key = (f: string) => `unit:${mapId}:${cell.x},${cell.y}:${f}`
   const patch = (p: Parameters<typeof updateMapUnit>[3], k?: string) => edit((d) => editMap(d, mapId, (m) => updateMapUnit(m, cell.x, cell.y, p)), k)
   const typeError = (id: string) => {
-    const r = changeUnitType(map, { terrain: doc.terrain ?? [], unitTypes: doc.units ?? [], resources: [] }, cell.x, cell.y, id)
+    const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? []), cell.x, cell.y, id)
     if (r.error) { say(r.error); return }
     edit((d) => editMap(d, mapId, (m, c) => changeUnitType(m, c, cell.x, cell.y, id).map))
   }
