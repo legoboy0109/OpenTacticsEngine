@@ -14,10 +14,21 @@ export async function open(page, outDir, label, url) {
   return s;
 }
 
+// The demo battle opens with a few lines of dialogue: holding the cancel key runs through them
+// (docs/EVENTS.md "Dialogue (player)"). Harmless when no dialogue is up: a held cancel on the map
+// does nothing.
+export async function skipStory(s) {
+  await s.page.keyboard.down('x');
+  await s.page.waitForTimeout(800);
+  await s.page.keyboard.up('x');
+  await s.page.waitForTimeout(2600);  // the turn banner with the objective (2.4 s) follows the story
+}
+
 // Home -> Emblem Demo -> Play -> map "bridge" -> battle, by keyboard.
 export async function keyboardToBattle(s) {
   await s.keys(['Enter', 'Enter', 'Enter'], 200);
   await s.page.waitForTimeout(1200);  // the battle's opening animation swallows input
+  await skipStory(s);
 }
 
 // Home -> battle by mouse / touch (tap = true).
@@ -26,6 +37,8 @@ export async function pointerToBattle(s, tap = false) {
   await hit(90, 46);        // "Emblem Demo" in the list
   await hit(240, 46);       // "Play"
   await hit(240, 50, 1200); // the only map
+  await hit(458, 203, 4500); // the "Skip" tab on the opening dialogue; then the turn banner
+                             // (after the view has moved where the story pointed; it carries the objective, 2.4 s) has to pass, or it eats the next tap
 }
 
 // Select the lord at tile (2,4) and move him to (4,4) with the keyboard. The
@@ -44,7 +57,8 @@ export async function pointerMoveLord(s, tap = false) {
 // Presses the "Wait" entry of the open action menu with the pointer. The lord's menu
 // at (4,4) is Items, Storage, Wait: Wait is the third row (rows are 12 apart from y = 125).
 export async function pointerWait(s, tap = false) {
-  if (tap) await s.tapL(172, 149); else await s.clickL(172, 149);
+  // By touch the first tap on a row selects it and the second chooses it.
+  if (tap) { await s.tapL(172, 149); await s.tapL(172, 149); } else await s.clickL(172, 149);
 }
 
 // Opens the end-turn menu with the keyboard and ends the turn; waits for the AI.
