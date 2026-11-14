@@ -6,6 +6,7 @@
 
 #include "core/base/log.h"
 #include "platform/platform.h"
+#include "platform/sdl3/sdl_gl3d.h"
 #include "platform/sdl3/sdl_input.h"
 #include "platform/sdl3/sdl_renderer.h"
 
@@ -146,6 +147,7 @@ int runApp(App& app, const PlatformConfig& config) {
 #endif
   }
 
+  shutdownHardware3D();  // its GL context must go before SDL does
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);
   SDL_Quit();
