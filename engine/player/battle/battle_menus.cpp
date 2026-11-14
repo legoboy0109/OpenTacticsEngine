@@ -8,9 +8,14 @@ namespace ote {
 // another unit (an adjacent enemy is exactly what the player wants to see).
 void BattleScene::anchorActionMenu() {
   const Unit& u = battle_.units[sel_];
-  int t = layout_.tile, mw = menu_.w(), mh = menu_.h();
-  int sx = battle_.grid.x(u.cell) * t - cam_.ix(), sy = battle_.grid.y(u.cell) * t - cam_.iy();
-  const int cand[4][2] = {{sx + t + 2, sy}, {sx - mw - 2, sy}, {sx, sy + t + 2}, {sx, sy - mh - 2}};
+  int mw = menu_.w(), mh = menu_.h();
+  int sx, sy, bw, bh;
+  cellScreenBox(u.cell, sx, sy, bw, bh);
+  if (proj_.iso()) {  // keep clear of the unit standing above the square's middle
+    sy -= proj_.unitW();
+    bh += proj_.unitW();
+  }
+  const int cand[4][2] = {{sx + bw + 2, sy}, {sx - mw - 2, sy}, {sx, sy + bh + 2}, {sx, sy - mh - 2}};
   // Pass 0 avoids every unit; pass 1 only avoids enemies (surrounded by allies).
   for (int pass = 0; pass < 2; ++pass)
     for (int i = 0; i < 4; ++i) {
@@ -18,8 +23,9 @@ void BattleScene::anchorActionMenu() {
       bool clear = true;
       for (const Unit& o : battle_.units) {
         if (!o.alive || o.id == u.id || (pass == 1 && !battle_.isEnemy(u, o))) continue;
-        int ox = battle_.grid.x(o.cell) * t - cam_.ix(), oy = battle_.grid.y(o.cell) * t - cam_.iy();
-        if (ox < menu_.x() + mw && ox + t > menu_.x() && oy < menu_.y() + mh && oy + t > menu_.y()) clear = false;
+        int ox, oy, ow, oh;
+        cellScreenBox(o.cell, ox, oy, ow, oh);
+        if (ox < menu_.x() + mw && ox + ow > menu_.x() && oy < menu_.y() + mh && oy + oh > menu_.y()) clear = false;
       }
       if (clear) return;
     }
@@ -56,10 +62,10 @@ void BattleScene::openBuildMenu(Cell cell) {
     it.id = t;
     items.push_back(it);
   }
-  int t = layout_.tile;
-  int sx = battle_.grid.x(cell) * t - cam_.ix(), sy = battle_.grid.y(cell) * t - cam_.iy();
-  menu_.open(host_.renderer(), "Build", items, sx + t + 2, sy, layout_.vw, layout_.vh);
-  menu_.reanchor(sx + t + 2, sy, sx - 2, layout_.vw, layout_.vh);
+  int sx, sy, bw, bh;
+  cellScreenBox(cell, sx, sy, bw, bh);
+  menu_.open(host_.renderer(), "Build", items, sx + bw + 2, sy, layout_.vw, layout_.vh);
+  menu_.reanchor(sx + bw + 2, sy, sx - 2, layout_.vw, layout_.vh);
 }
 
 void BattleScene::openEndMenu() {

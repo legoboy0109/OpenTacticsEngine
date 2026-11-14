@@ -89,8 +89,9 @@ TEST(demo_styles_load_with_terrain_recolors) {
   bool ok = loadGame(ote_test::sourceDir() + "/games/demo-economy", db, err);
   if (!ok) std::printf("  %s\n", err.c_str());
   CHECK(ok);
-  CHECK_EQ((int)db.styles.size(), 2);
+  CHECK_EQ((int)db.styles.size(), 3);
   CHECK_STR(db.styles[0].id, "classic");
+  CHECK(db.styles[2].view == StyleView::Isometric);
   CHECK_EQ(db.styles[0].terrainColors[(size_t)db.findTerrain("sea")], -1);
   int night = db.findStyle("night");
   CHECK_EQ(night, 1);

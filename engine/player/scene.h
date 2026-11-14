@@ -8,6 +8,7 @@
 #include "game_library.h"
 #include "game_session.h"
 #include "platform/platform.h"
+#include "battle/iso_tiles.h"
 #include "battle/sprites.h"
 #include "saves.h"
 
@@ -29,6 +30,7 @@ class SceneHost {
   virtual const Args& args() const = 0;
   virtual GameSession* session() = 0;  // null until a game is loaded
   virtual const Sprites* sprites() const = 0;  // art textures of the loaded game (null = none)
+  virtual IsoTiles* isoTiles() = 0;            // pictures the isometric view makes (freed with the game session)
   virtual Renderer& renderer() = 0;     // for measuring text outside draw()
   virtual Settings& settings() = 0;     // options + remembered UI state (saved by the App)
   virtual const std::vector<GameEntry>& games() const = 0;

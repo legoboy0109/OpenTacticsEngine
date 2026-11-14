@@ -1,3 +1,4 @@
+#include "views.h"
 #include "app.h"
 
 #include "battle/battle_scene.h"
@@ -29,7 +30,10 @@ GameLook lookOf(const Database& db) {
   g.font.size = db.font.size;
   g.font.smooth = db.font.smooth;
   g.root = db.rootPath;
-  for (const StyleDef& s : db.styles) g.styleIds.push_back(s.id);
+  for (const StyleDef& s : db.styles) {
+    g.styleIds.push_back(s.id);
+    g.styleUsable.push_back(viewSupported(s.view));
+  }
   return g;
 }
 
@@ -41,7 +45,10 @@ GameLook lookOf(const GameEntry& e, const std::string& gamesDir) {
   g.font.size = e.info.font.size;
   g.font.smooth = e.info.font.smooth;
   g.root = gamesDir + "/" + e.id;
-  for (const StyleInfo& s : e.info.styles) g.styleIds.push_back(s.id);
+  for (const StyleInfo& s : e.info.styles) {
+    g.styleIds.push_back(s.id);
+    g.styleUsable.push_back(viewSupported(s.view));
+  }
   return g;
 }
 
@@ -158,6 +165,7 @@ void PlayerApp::startBattle(const std::string& mapId) {
 // Ends the current game: its art textures go first (the renderer is alive here).
 void PlayerApp::dropSession() {
   if (renderer_) sprites_.release(*renderer_);
+  if (renderer_) isoTiles_.release(*renderer_);
   session_.reset();
 }
 

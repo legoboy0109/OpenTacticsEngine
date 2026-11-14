@@ -18,6 +18,7 @@ BattleScene::BattleScene(SceneHost& host)
   styleIdx_ = std::max(0, std::min(host.styleIndex(), (int)session_.db.styles.size() - 1));
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
+  proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
   view_.init(battle_, layout_.tile, autoplay_);
   view_.push(session_.startEvents);  // first TurnStarted + income
   int rx, ry;
@@ -40,9 +41,13 @@ bool BattleScene::humanTurn() const {
 
 Cell BattleScene::cellAt(int x, int y) const {
   if (x < 0 || y < 0 || x >= layout_.vw || y >= layout_.vh) return kNoCell;
-  int mx = x + cam_.ix(), my = y + cam_.iy();
-  if (mx < 0 || my < 0) return kNoCell;
-  return battle_.grid.at(mx / layout_.tile, my / layout_.tile);
+  return proj_.pick(x + cam_.ix(), y + cam_.iy());
+}
+
+void BattleScene::cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const {
+  proj_.cellBox(battle_.grid.x(c), battle_.grid.y(c), x, y, w, h);
+  x -= cam_.ix();
+  y -= cam_.iy();
 }
 
 void BattleScene::enterResult() {
@@ -117,7 +122,9 @@ void BattleScene::followCamera(double dt) {
     fx = (battle_.grid.x(c) + 0.5f) * layout_.tile;
     fy = (battle_.grid.y(c) + 0.5f) * layout_.tile;
   }
-  cam_.follow(fx, fy, layout_, battle_.grid.width() * layout_.tile, battle_.grid.height() * layout_.tile, dt);
+  float wx, wy;
+  proj_.toWorld(fx, fy, wx, wy);
+  cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), dt);
 }
 
 void BattleScene::update(double dt) {
@@ -157,7 +164,8 @@ std::string BattleScene::hint() const {
 
 void BattleScene::draw(Renderer& r) {
   ensureLayout(r);
-  DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_};
+  DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_,
+              &proj_, host_.isoTiles()};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));

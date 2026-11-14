@@ -81,6 +81,32 @@ const Look* structureArt(const DrawCtx& c, const StructureState& s) {
   return c.sprites->has(look) ? &look : nullptr;
 }
 
+namespace {
+SpriteSrc srcOf(const DrawCtx& c, const Look& look, SpriteCell cell) {
+  const SheetDef& s = c.battle.db->graphics.sheets[(size_t)look.sheet];
+  SpriteSrc out;
+  out.tex = c.sprites->texture(look.sheet);
+  out.x = cell.col * s.cellW;
+  out.y = cell.row * s.cellH;
+  out.w = s.cellW;
+  out.h = s.cellH;
+  return out;
+}
+int joinMaskOf(const DrawCtx& c, const Look& look, int x, int y) {
+  if (look.kind != Look::Join) return 0;
+  const Grid& g = c.battle.grid;
+  return joinMaskAt(look, x, y, g.width(), g.height(),
+                    [&](int nx, int ny) { return (int)c.battle.cells[(size_t)g.at(nx, ny)].terrain; });
+}
+}  // namespace
+
+SpriteSrc terrainSrc(const DrawCtx& c, const Look& look, Cell cell) {
+  int x = c.battle.grid.x(cell), y = c.battle.grid.y(cell);
+  return srcOf(c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c)));
+}
+
+SpriteSrc lookSrc(const DrawCtx& c, const Look& look) { return srcOf(c, look, pickCell(look, 0, 0, 0, timeMs(c))); }
+
 void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, int sy, int fw, int fh) {
   const SheetDef& sh = c.battle.db->graphics.sheets[(size_t)look.sheet];
   int dh = std::max(1, fw * sh.cellH / sh.cellW);
@@ -90,11 +116,7 @@ void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, i
 void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, int dx, int dy, int dw, int dh) {
   const Grid& g = c.battle.grid;
   int x = g.x(cell), y = g.y(cell);
-  int mask = 0;
-  if (look.kind == Look::Join)
-    mask = joinMaskAt(look, x, y, g.width(), g.height(),
-                      [&](int nx, int ny) { return (int)c.battle.cells[(size_t)g.at(nx, ny)].terrain; });
-  blit(r, c, look, pickCell(look, x, y, mask, timeMs(c)), dx, dy, dw, dh, Color(255, 255, 255));
+  blit(r, c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c)), dx, dy, dw, dh, Color(255, 255, 255));
 }
 
 void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u, int sx, int sy, float scale,

@@ -346,6 +346,13 @@ TEST(structures_shipped_games_have_pictures_for_every_structure) {
         // The cell is as wide as the footprint is (a picture is stretched across it, nothing is squeezed).
         const SheetDef& sh = db.graphics.sheets[(size_t)look.sheet];
         CHECK_EQ(sh.cellW % 24, 0);
+        if (db.styles[s].view == StyleView::Isometric) {
+          // Isometric: the footprint is (width + height) half-diamonds wide and half as high.
+          int span = db.structures[i].width + db.structures[i].height;
+          CHECK_EQ(sh.cellW / 24, span);
+          CHECK(sh.cellH >= 12 * span);
+          continue;
+        }
         CHECK_EQ(sh.cellW / 24, db.structures[i].width);
         CHECK(sh.cellH >= 24 * db.structures[i].height);  // at least the footprint; taller ones stick out
       }

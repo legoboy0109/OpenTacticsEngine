@@ -51,10 +51,15 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
   if (out.font.size < 4) out.font.size = 4;
   if (out.font.size > 128) out.font.size = 128;
 
-  // --- style: a game that lacks the chosen id keeps its default (index 0)
+  // --- style: the game's default is its first style this player can draw; a
+  // game that lacks the chosen id (or whose chosen style cannot be drawn here)
+  // keeps that default. With nothing drawable, index 0 is drawn top-down.
+  auto usable = [&game](size_t i) { return i >= game.styleUsable.size() || game.styleUsable[i]; };
+  for (size_t i = 0; i < game.styleIds.size(); ++i)
+    if (usable(i)) { out.styleIndex = (int)i; break; }
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return !x.style.empty(); })) {
     for (size_t i = 0; i < game.styleIds.size(); ++i)
-      if (game.styleIds[i] == l->style) out.styleIndex = (int)i;
+      if (game.styleIds[i] == l->style && usable(i)) out.styleIndex = (int)i;
   }
   return out;
 }

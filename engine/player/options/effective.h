@@ -29,12 +29,15 @@ struct GameLook {
   FontChoice font;                 // from game.json "font"
   std::string root;                // game folder (base of font.file)
   std::vector<std::string> styleIds;  // [0] = the default style
+  // Per style: can this player draw it? (empty = all). A style that cannot be
+  // drawn is never picked; the default is then the first one that can.
+  std::vector<char> styleUsable;
 };
 
 struct EffectiveLook {
   FontRequest font;
   int uiScale = 100;
-  int styleIndex = 0;  // index into the game's styles; 0 if none / not found
+  int styleIndex = 0;  // index into the game's styles: the chosen one, else the first this player can draw
 };
 
 // Font size rule: an explicit size setting wins; otherwise the size that

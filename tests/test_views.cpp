@@ -31,7 +31,7 @@ std::string gameWithStyles(const char* name, const std::string& styles) {
   for (const char* f : files) CHECK(copyFile(src + "/" + f, dir + "/" + f));
   std::string text;
   CHECK(readTextFile(dir + "/game.json", text));
-  size_t a = text.find("\"styles\": ["), b = text.find("\"view\":");
+  size_t a = text.find("\"styles\": ["), b = text.find("\"view\": {");
   CHECK(a != std::string::npos && b != std::string::npos && a < b);
   size_t end = text.rfind("],", b);
   CHECK(end != std::string::npos && end > a);
@@ -109,6 +109,7 @@ TEST(views_style_view_kinds_load) {
   CHECK(loadGame(dir, db, err));
   if (!err.empty()) std::printf("  %s\n", err.c_str());
   CHECK_EQ((int)db.styles.size(), 6);
+  if (db.styles.size() != 6) return;
   CHECK(db.styles[0].view == StyleView::TopDown && db.styles[1].view == StyleView::TopDown);
   CHECK(db.styles[2].view == StyleView::Isometric);
   CHECK_EQ(db.styles[2].iso.tileWidth, 64);
