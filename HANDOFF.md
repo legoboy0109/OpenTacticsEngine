@@ -174,6 +174,22 @@ until ALL parts work together. Integration happens on branch `structures`
 If picking this up cold: `git branch -a` and `git worktree list` show how
 far it got; agent branches are named `worktree-agent-*`.
 
+### Also in flight on top of `structures` (2026-11-14)
+
+All agents work in worktrees that first `git merge structures`; their
+branches are named `worktree-agent-*` and get merged into `structures`.
+- Editor Structures screens (spec: docs/EDITOR_UI.md "Structures").
+- Starter art: water as an ANIMATED JOIN with shorelines, and bridges
+  that reach the bank (`joinExcept`). Core support for both is already on
+  `structures` (docs/GRAPHICS.md look kinds).
+- Saving, engine side (contract: docs/SAVES.md on `structures`).
+Editor follow-ups still to do after those land (one small package):
+picture picker support for animated joins (several 4x4 blocks) and
+"joins with everything except…"; the TypeScript `pickCell` port must match
+the new C++ behaviour; the Rules screen "Saving" card (docs/SAVES.md).
+The owner's own game `games/test` (made in the editor) is not tracked by
+git and must never be modified by scripts or agents.
+
 ## Next concrete step
 
 Finish structures (above). Then, in the owner's order: animated terrain
