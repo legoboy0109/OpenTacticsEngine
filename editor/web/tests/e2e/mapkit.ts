@@ -47,7 +47,7 @@ export async function dragThrough(page: Page, cells: Array<[number, number]>): P
 export const row = (y: number, x0: number, x1: number): Array<[number, number]> =>
   Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, y] as [number, number])
 
-export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Structures' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
+export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Structures' | 'Heights' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
 export const pickTerrain = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Terrain' }).getByRole('radio', { name })
 export const pickUnitType = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Unit type' }).getByRole('radio', { name })
 export const pickStructure = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Structure' }).getByRole('radio', { name: new RegExp(`^${name}`) })
