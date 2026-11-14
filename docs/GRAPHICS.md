@@ -187,8 +187,8 @@ files) draws the starter set and writes the PNGs and `data/graphics.json`
 into both demos and the three editor templates. Art is original to this
 project: simple flat pixel art, 24 x 24 cells (the games' `tileSize`), with
 a limited palette. It must cover every terrain, structure and unit type those games
-define, and must exercise every feature: variants (plain), animation
-(water/sea), join (roads, rivers), a two-frame unit idle, and at least one
+define, and must exercise every feature: variants (plain), join
+(roads), animated join (water/sea and bridges), a two-frame unit idle, and at least one
 per-style override in a demo that has styles. Re-running the script
 reproduces identical files.
 
@@ -270,14 +270,15 @@ the contract above.
   the inspected square). Unit and side chips in the panel and the forecast
   box are flat colours today and stay that way.
 - **Starter art.** `python3 tools/art/make_starter_art.py` (Pillow) writes
-  `art/tiles.png` (8 x 8 cells), `art/units.png` (2 frames per unit, one row
+  `art/tiles.png` (8 x 18 cells), `art/units.png` (2 frames per unit, one row
   per unit type of that game) and `data/graphics.json` for the two demos and
   the three templates, plus `art/tiles_night.png` / `art/tiles_parchment.png`
   (tinted copies of the tiles, referenced by those styles) for the demos that
-  have such styles. Roads (joined, also with bridges) and
-  bridges (joined with the land terrain they connect; deck direction follows
-  the neighbours) use the 16-piece layout. Rivers and the sea animate over two
-  frames instead of joining (a look is either animated or joined). Unit sprites
+  have such styles. Roads (joined, also with bridges) use the 16-piece layout. Water (river and sea) is an
+  **animated join**: two 4 x 4 blocks (frames), each piece drawing a sand bank with a foam
+  line on the sides whose neighbour is not water, and open water on the others; it joins
+  with the map edge and with bridges. A bridge joins everything except water (`joinExcept`),
+  so its deck runs to the bank, and is an animated join over the same water. Unit sprites
   stand on row 17 of the 24 px cell so the engine's base and HP bar fill the
   bottom rows.
 - **Structure starter art.** `tools/art/art_structures.py` draws the pictures
