@@ -252,6 +252,25 @@ Player option "3D graphics" (Automatic / OpenGL / Software): settings key
 Not verified by hand: gamepad stick/triggers (no gamepad in tests); mouse
 wheel and right-drag are checked in the browser suite only.
 
+## Items (2026-11-14)
+
+Contract: docs/ITEMS.md. Core: `engine/core/data/loader_items.cpp`,
+`engine/core/battle/items.cpp`, `unit_stats.h`, item actions / events /
+queries on `Battle`, carried weapons in `combat.cpp`, AI healing rule
+`engine/core/ai/ai_items.cpp`; saves carry inventories and storage; the
+save hash mixes `data/items.json` only when the file exists (games
+without items keep their old hash). Player: `battle/battle_items.cpp`
+(state machine), `battle/item_text.*`, `ui/item_panel.*`,
+`ui/trade_panel.*`; action menu entries Items / Trade / Storage / Shop.
+Editor: Items screen (`editor/web/src/screens/items/`), Items card on
+Rules, item fields on Weapons, Units, Structures and the map editor;
+server reads/writes `data/items.json` (docs/EDITOR_API.md).
+`demo-srpg` uses carried weapons, gold, a shop at the fort, storage next
+to the leader and two enemy drops (its saves from before are refused).
+All wording is placeholder until the owner approves it. Open owner
+questions: should Trade / Storage / Shop stay open for several actions;
+show Storage when empty; id renaming for items.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
@@ -260,11 +279,16 @@ layer (software backend and the OpenGL ES 3 / WebGL 2 / OpenGL 3.3 one,
 docs/RENDER3D.md "OpenGL backend": own GL context, picture read back, so
 the 2D renderer is untouched; `--3d auto|software|hardware`), glTF models
 with animation and 3D isometric are done. The full 3D view's map part
-is done too (close-up battle scenes later, by owner decision). Next, unless
-the owner says otherwise: items (PLAN item 3e). Nothing in game data may name a
+is done too (close-up battle scenes later, by owner decision). Nothing in game data may name a
 graphics API or carry shader code (console ports must be able to
-implement the interface). After items:
-story events and dialogue, economy options, sound and music.
+implement the interface). Items are done. In progress (2026-11-14):
+drawing 3D at the display's resolution, smooth textures, then a
+high-resolution 3D style in `demo-srpg` from the CC0 KayKit Adventurers
+models (github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)
+and CC0 ground textures. Then story events and dialogue including a
+campaign (owner decisions in docs/PLAN.md 3f; write docs/EVENTS.md
+first), economy options, sound and music. Close-up battle scenes: low
+priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
 night style does not darken unit sprites; editor paint stroke with art
