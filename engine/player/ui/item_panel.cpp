@@ -18,9 +18,16 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
   int s = std::max(3, lh / 3), tx = x + 4;
   if (row.mark) r.fillRect(tx, y + (h - s) / 2, s, s, kMark);  // a small square: this weapon is in hand
   tx += s + 3;  // names line up whether or not a marker is shown
-  int extraW = row.extra.empty() ? 0 : textW(r, row.extra) + 6;
-  r.drawText(tx, ty, fitText(r, row.label, x + w - 4 - tx - extraW).c_str(), c);
-  if (extraW) r.drawText(x + w - 4 - (extraW - 6), ty, row.extra.c_str(), row.dim ? kGreyed : chrome::kAccent);
+  // The name matters more than the extra: when both do not fit, the name keeps at least half the row.
+  int avail = x + w - 4 - tx, gap = 6;
+  std::string extra = row.extra, label = row.label;
+  if (!extra.empty() && textW(r, label) + gap + textW(r, extra) > avail) {
+    int labelMax = std::max(avail / 2, avail - gap - textW(r, extra));
+    label = fitText(r, label, labelMax);
+    extra = fitText(r, extra, std::max(0, avail - gap - textW(r, label)));
+  }
+  r.drawText(tx, ty, fitText(r, label, avail).c_str(), c);
+  if (!extra.empty()) r.drawText(x + w - 4 - textW(r, extra), ty, extra.c_str(), row.dim ? kGreyed : chrome::kAccent);
 }
 
 void ItemPanel::open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,
