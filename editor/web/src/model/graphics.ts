@@ -69,6 +69,11 @@ function sweepMap(m: Record<string, Look | null> | undefined, sheetId: string, k
   return Object.keys(out).length ? out : undefined
 }
 
+function keepPortraits(all: NonNullable<Graphics['portraits']>, sheetId: string): Graphics['portraits'] {
+  const kept = Object.fromEntries(Object.entries(all).filter(([, p]) => p.sheet !== sheetId))
+  return Object.keys(kept).length ? kept : undefined
+}
+
 /** Removes the image and clears every picture that used it (all in one edit). */
 export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
   const g = doc.graphics
@@ -83,6 +88,8 @@ export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
     units: sweepMap(g.units, id, false) as Graphics['units'],
     structures: sweepMap(g.structures, id, false) as Graphics['structures'],
     styles: Object.keys(styles).length ? styles : undefined,
+    // Dialogue portraits drawn from the image go with it.
+    portraits: g.portraits && keepPortraits(g.portraits, id),
   })
   return { ...doc, graphics: next }
 }

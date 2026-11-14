@@ -1,6 +1,7 @@
 // What other parts of a game hold about items, and the clean-up when an item (or a stat, resource or weapon an item
 // points at) is deleted. Pure functions returning new documents, so a delete and its clean-up are one undo step.
 import { entryId, withoutItem } from './itemGrants'
+import { scrubMap, storyUsages } from './storyRefs'
 import { dropKey } from './util'
 import type { Usage } from './references'
 import type { Item, ItemEntry, MapFile, ProjectDoc } from './types'
@@ -20,13 +21,15 @@ export function itemUsageLines(doc: ProjectDoc, id: string): Usage[] {
     if (carriers) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: ${carriers} placed ${plural(carriers, 'unit carries', 'units carry')} it` })
     for (const s of m.sides ?? []) if (holds(s.storage, id)) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: side “${s.name || s.id}” starts with it in storage` })
   }
+  // Events and objectives that give it, check for it or add units carrying it.
+  out.push(...storyUsages(doc, [{ kind: 'item', id }]))
   return out
 }
 
 /** Takes the item out of every list. A placed unit that is left with no items keeps an empty list (it now has none). */
 export function cleanItem(doc: ProjectDoc, id: string): ProjectDoc {
   const maps: ProjectDoc['maps'] = {}
-  for (const [mid, m] of Object.entries(doc.maps)) maps[mid] = m === null ? null : cleanMap(m, id)
+  for (const [mid, m] of Object.entries(doc.maps)) maps[mid] = m === null ? null : scrubMap(doc, cleanMap(m, id), [{ kind: 'item', id }])
   return {
     ...doc,
     units: doc.units && doc.units.map((u) => (holds(u.items, id) ? dropList(u, 'items', withoutItem(u.items!, id)) : u)),

@@ -1,0 +1,140 @@
+// Story events and objectives as they are written in a map file (docs/EVENTS.md). A trigger, condition, command or
+// objective entry is an object with ONE "kind" key (plus that kind's extras); the editor finds the kind by which key
+// is there. Every interface lists all the keys any kind may use as optional, so the forms stay simple, and carries an
+// index signature so a key the editor does not know survives load -> edit -> save.
+import type { Extra, ItemEntry, MapUnit } from './types'
+
+/** A rectangle of squares, 0-based as stored (the editor shows 1-based numbers). */
+export interface Rect { x: number; y: number; w: number; h: number }
+
+/** Which unit(s): exactly one key, or none = any unit. */
+export interface Filter extends Extra { unit?: string; side?: string; team?: string; type?: string; tag?: string }
+export type FilterKind = 'any' | 'unit' | 'side' | 'team' | 'type' | 'tag'
+export const FILTER_KINDS: FilterKind[] = ['any', 'unit', 'side', 'team', 'type', 'tag']
+
+export type CompareOp = '=' | '!=' | '<' | '<=' | '>' | '>='
+export const COMPARE_OPS: CompareOp[] = ['=', '!=', '<', '<=', '>', '>=']
+
+export interface Trigger extends Extra {
+  battle?: 'start' | 'won' | 'lost' | 'end'
+  /** A round number, or "every". */
+  turn?: number | 'every'
+  side?: string
+  reach?: Rect
+  by?: Filter
+  defeated?: Filter
+  fight?: Filter
+  with?: Filter
+  talk?: string
+  to?: string
+  label?: string
+}
+/** The kinds the editor offers (the file has six keys; battle and turn split in more). */
+export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk'
+export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk']
+
+export interface Condition extends Extra {
+  switch?: string
+  is?: boolean
+  variable?: string
+  op?: CompareOp
+  value?: number
+  alive?: Filter
+  dead?: Filter
+  round?: { op: CompareOp; value: number }
+  carries?: string
+  unit?: Filter
+}
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries']
+
+/** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
+export interface Command extends Extra {
+  say?: string
+  speaker?: string
+  speakerName?: string
+  portrait?: string
+  addUnit?: MapUnit
+  removeUnit?: Filter
+  moveUnit?: string
+  x?: number
+  y?: number
+  changeSide?: Filter
+  side?: string
+  giveItem?: string
+  to?: Filter | boolean | number
+  giveResource?: Record<string, number>
+  setSwitch?: string
+  setVariable?: string
+  addVariable?: string
+  by?: number
+  objective?: Objectives
+  win?: string
+  lose?: string
+  if?: Condition[]
+  then?: Command[]
+  else?: Command[]
+  endTurn?: boolean
+  focus?: { x: number; y: number } | string
+}
+export type CommandKind =
+  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'giveItem' | 'giveResource'
+  | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus'
+/** In the order the loader looks for them. */
+export const COMMAND_KINDS: CommandKind[] = [
+  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'giveItem', 'giveResource',
+  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus',
+]
+
+export interface StoryEvent extends Extra {
+  id: string
+  when: Trigger
+  if?: Condition[]
+  repeat?: boolean
+  do: Command[]
+}
+
+export interface ObjectiveRule extends Extra { defeated?: Filter; reach?: Rect; by?: Filter; round?: number; survive?: number }
+export type RuleKind = 'defeated' | 'reach' | 'round' | 'survive'
+export const RULE_KINDS: RuleKind[] = ['defeated', 'reach', 'round', 'survive']
+export interface Objectives extends Extra { text?: string; win?: ObjectiveRule[]; lose?: ObjectiveRule[] }
+
+/** `items` in an addUnit is the same list as on a placed unit. */
+export type { ItemEntry }
+
+const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
+
+export function triggerKind(t: Trigger): TriggerKind | null {
+  if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' ? t.battle : 'start'
+  if (has(t, 'turn')) return t.turn === 'every' ? 'everyTurn' : 'turn'
+  for (const k of ['reach', 'defeated', 'fight', 'talk'] as const) if (has(t, k)) return k
+  return null
+}
+
+export function conditionKind(c: Condition): ConditionKind | null {
+  return CONDITION_KINDS.find((k) => has(c, k)) ?? null
+}
+
+export function commandKind(c: Command): CommandKind | null {
+  return COMMAND_KINDS.find((k) => has(c, k)) ?? null
+}
+
+export function ruleKind(r: ObjectiveRule): RuleKind | null {
+  return RULE_KINDS.find((k) => has(r, k)) ?? null
+}
+
+/** Which filter key is set; none (or an empty object) = any unit. */
+export function filterKind(f: Filter | undefined): FilterKind {
+  if (!f) return 'any'
+  return (FILTER_KINDS.find((k) => k !== 'any' && typeof f[k] === 'string') ?? 'any')
+}
+
+/** A plain string where a filter is expected means a specific unit (the loader accepts it). */
+export function asFilter(f: Filter | string | undefined): Filter | undefined {
+  return typeof f === 'string' ? { unit: f } : f
+}
+
+export const rectOf = (r: unknown): Rect => {
+  const o = (r && typeof r === 'object' ? r : {}) as Partial<Rect>
+  return { x: o.x ?? 0, y: o.y ?? 0, w: o.w ?? 1, h: o.h ?? 1 }
+}

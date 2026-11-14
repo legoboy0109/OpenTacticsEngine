@@ -4,6 +4,7 @@ import { dropArtOf } from './graphicsClean'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { readGrid, writeGrid } from './mapGrid'
+import { scrubMap, storyUsages } from './storyRefs'
 import { cleanMoveTypeInStructures, cleanResourceInStructures, cleanUnitInStructures } from './structuresRefs'
 import { dropKey, without } from './util'
 import type { MapFile, ProjectDoc, Section, Unit } from './types'
@@ -43,6 +44,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const i of doc.items ?? []) if (i.price && id in i.price) out.push({ section: 'items', text: `Item "${i.name}" has a price in it` })
       for (const [mid, m] of mapEntries(doc))
         for (const s of m.sides ?? []) if (s.resources && id in s.resources) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": side "${s.name}" starts with some` })
+      out.push(...storyUsages(doc, [{ kind: 'resource', id }]))
       break
     case 'moveType':
       for (const u of units) if (u.moveType === id) out.push({ section: 'units', text: `Unit "${u.name}" moves this way` })
@@ -56,6 +58,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         const n = (m.units ?? []).filter((u) => u.type === id).length
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
       }
+      out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))
       if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
     case 'weapon':
@@ -71,6 +74,10 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
   }
   return out
 }
+
+/** The story names of placed units of this type: they go with it, and so does what events say about them. */
+const placedIdsOfType = (doc: ProjectDoc, type: string): Array<{ kind: 'unit'; id: string }> =>
+  mapEntries(doc).flatMap(([, m]) => (m.units ?? []).filter((u) => u.type === type && u.id).map((u) => ({ kind: 'unit' as const, id: u.id! })))
 
 const hasPicture = (doc: ProjectDoc, kind: 'terrain' | 'units', id: string): boolean =>
   !!doc.graphics && (id in (doc.graphics[kind] ?? {}) || Object.values(doc.graphics.styles ?? {}).some((st) => id in (st[kind] ?? {})))
@@ -106,8 +113,11 @@ export function cleanResource(doc: ProjectDoc, id: string): ProjectDoc {
     terrain: doc.terrain && doc.terrain.map((t) => (t.income && id in t.income ? stripKey(t, 'income', dropKey(t.income, id)) : t)),
     structures: cleanResourceInStructures(doc, id),
     items: cleanResourceInItems(doc, id),
-    maps: mapMembers(doc, (m) => (m.sides?.some((s) => s.resources && id in s.resources)
-      ? { ...m, sides: m.sides.map((s) => (s.resources && id in s.resources ? stripKey(s, 'resources', dropKey(s.resources, id)) : s)) } : m)),
+    maps: mapMembers(doc, (m0) => {
+      const m = m0.sides?.some((s) => s.resources && id in s.resources)
+        ? { ...m0, sides: m0.sides.map((s) => (s.resources && id in s.resources ? stripKey(s, 'resources', dropKey(s.resources, id)) : s)) } : m0
+      return scrubMap(doc, m, [{ kind: 'resource', id }])
+    }),
   }
 }
 
@@ -130,7 +140,12 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
     // Old (unconverted) terrain may still list what it builds; the structures' list is the live one.
     terrain: doc.terrain && doc.terrain.map((t) => (t.produces?.includes(id) ? stripKey(t, 'produces', without(t.produces, id)) : t)),
     structures: cleanUnitInStructures(doc, id),
-    maps: mapMembers(doc, (m) => (m.units?.some((u) => u.type === id) ? { ...m, units: m.units.filter((u) => u.type !== id) } : m)),
+    maps: mapMembers(doc, (m) => {
+      if (!m.units?.some((u) => u.type === id)) return scrubMap(doc, m, [{ kind: 'type', id }])
+      // The units go, and with them whatever events and objectives said about their story names.
+      const gone = m.units.filter((u) => u.type === id && u.id).map((u) => ({ kind: 'unit' as const, id: u.id! }))
+      return scrubMap(doc, { ...m, units: m.units.filter((u) => u.type !== id) }, [{ kind: 'type', id }, ...gone])
+    }),
   }, 'units', id)
 }
 

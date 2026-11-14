@@ -1,5 +1,6 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
+import type { Objectives, StoryEvent } from './storyTypes'
 
 export interface Extra { [key: string]: unknown }
 export type NumMap = Record<string, number>
@@ -67,6 +68,9 @@ export interface Game extends Extra {
   editor?: EditorData
   /** Who may save (docs/SAVES.md): missing = 'any'. */
   saving?: SavingMode
+  /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
+  switches?: Named[]
+  variables?: Named[]
 }
 
 export interface Terrain extends Named {
@@ -130,6 +134,8 @@ export interface MapSide extends Extra {
 export interface MapUnit extends Extra {
   type: string; side: string; x: number; y: number
   name?: string; level?: number; leader?: boolean; stats?: NumMap
+  /** The story name events and objectives point at (letters, digits, _ and -; unique in the map). */
+  id?: string
   /** Missing = the unit type's starting items; a list (even an empty one) replaces them. */
   items?: ItemEntry[]
 }
@@ -144,6 +150,9 @@ export interface MapFile extends Extra {
   owners?: Array<{ x: number; y: number; side: string } & Extra>
   structures?: MapStructure[]
   units?: MapUnit[]
+  /** Story events and objectives (docs/EVENTS.md); model/storyTypes.ts. */
+  events?: StoryEvent[]
+  objectives?: Objectives
 }
 /** `x`, `y` = the top-left square of the footprint; `side` missing = nobody owns it. */
 export interface MapStructure extends Extra { type: string; x: number; y: number; side?: string }
@@ -170,8 +179,12 @@ export interface Look extends Extra {
 }
 /** A visual style's overrides; `null` = no picture in that style. */
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
+/** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
+export interface Portrait extends Extra { sheet: string; cell: CellRef }
 export interface Graphics extends Extra {
   sheets: Sheet[]
+  /** Portrait id -> picture; the id is what a `say` command's "portrait" names. */
+  portraits?: Record<string, Portrait>
   unitMarker?: boolean
   terrain?: Record<string, Look>
   units?: Record<string, Look>
