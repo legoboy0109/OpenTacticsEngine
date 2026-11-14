@@ -264,9 +264,11 @@ void computeBounds(Model3D& m) {
   for (size_t n = 0; n < m.nodes.size(); ++n) {
     if (m.nodes[n].parts.empty()) continue;
     Mat4 mat = m.nodeMatrix((int)n);
-    for (int pi : m.nodes[n].parts)
+    for (int pi : m.nodes[n].parts) {
+      // A skinned part's vertices are already in model space (glTF ignores the node's own transform for them).
+      const Mat4 pm = m.parts[(size_t)pi].skinned() ? Mat4() : mat;
       for (const Vertex3D& v : m.parts[(size_t)pi].mesh.vertices) {
-        Vec3 p = mat.point(Vec3(v.x, v.y, v.z));
+        Vec3 p = pm.point(Vec3(v.x, v.y, v.z));
         if (!any) {
           lo = hi = p;
           any = true;
@@ -274,6 +276,7 @@ void computeBounds(Model3D& m) {
         lo = Vec3(std::fmin(lo.x, p.x), std::fmin(lo.y, p.y), std::fmin(lo.z, p.z));
         hi = Vec3(std::fmax(hi.x, p.x), std::fmax(hi.y, p.y), std::fmax(hi.z, p.z));
       }
+    }
   }
   m.boundsMin = lo;
   m.boundsMax = hi;
