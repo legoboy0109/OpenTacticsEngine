@@ -5,6 +5,7 @@ export const T = {
   fixFirst: 'Fix these before playing.',
   panelTitle: 'Play',
   mapLabel: 'Map',
+  styleLabel: 'Style',
   restart: 'Restart',
   restartTitle: 'Start again with your latest changes',
   close: 'Close',

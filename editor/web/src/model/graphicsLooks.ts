@@ -17,11 +17,12 @@ export function getLook(doc: ProjectDoc, s: Slot): Look | null | undefined {
   return m && Object.prototype.hasOwnProperty.call(m, s.id) ? m[s.id] : undefined
 }
 
-/** What is actually drawn in `style` (undefined = the base): the style's entry if it has one, else the base entry. */
-export function effectiveLook(g: Graphics | null, kind: LookKind, id: string, style?: string): Look | null {
+/** What is actually drawn in `style` (undefined = the base): the style's entry if it has one, else the base entry.
+ *  `inherit` false (a style whose kind of view is not top-down: loader_graphics.cpp) = the base entries do not count. */
+export function effectiveLook(g: Graphics | null, kind: LookKind, id: string, style?: string, inherit = true): Look | null {
   const own = mapOf(g, kind, style)
   if (style !== undefined && own && Object.prototype.hasOwnProperty.call(own, id)) return own[id]
-  return mapOf(g, kind)?.[id] ?? null
+  return style !== undefined && !inherit ? null : mapOf(g, kind)?.[id] ?? null
 }
 
 function writeMap(g: Graphics, s: Slot, next: LookMap | undefined): Graphics {

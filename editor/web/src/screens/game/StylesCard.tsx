@@ -11,6 +11,7 @@ import { NameDialog } from '../../ui/NameDialog'
 import { TextInput } from '../../ui/TextInput'
 import { Toggle } from '../../ui/Toggle'
 import { T } from './text'
+import { ViewFields } from './ViewFields'
 
 export function StylesCard() {
   const doc = useDoc()
@@ -55,6 +56,7 @@ function StyleBox({ style, index, count, terrain, structures, onDelete }: { styl
         <Field label={T.lookName}>
           <TextInput value={style.name} onChange={(v) => edit((d) => updateStyle(d, style.id, { name: v }), `${key}:name`)} />
         </Field>
+        <ViewFields style={style} />
         <Field label={T.background} help={T.backgroundHelp}>
           <div className="row">
             <ColorInput value={style.background} aria-label={`${style.name} ${T.background}`} onChange={(v) => edit((d) => updateStyle(d, style.id, { background: v }), `${key}:bg`)} />

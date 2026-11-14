@@ -2,6 +2,7 @@
 // decoded. Built from the document + the image library; rebuilt when either changes (cheap: a few lookups).
 import { findSheet, unitMarkerOn } from '../model/graphics'
 import { effectiveLook } from '../model/graphicsLooks'
+import { inheritsGeneralArt } from '../model/styleView'
 import { lookCells, lookShape, type LookShape } from '../model/pickCell'
 import type { Game, Look, ProjectDoc, Sheet } from '../model/types'
 import type { LoadedImage } from '../store/art'
@@ -46,16 +47,17 @@ export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: I
   const g = doc.graphics
   if (!g || g.sheets.length === 0) return null
   const scene: ArtScene = { marker: unitMarkerOn(doc), terrain: new Map(), units: new Map(), structures: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
+  const inherit = inheritsGeneralArt(doc.game, style)
   const note = (r: Resolved) => { if (r.shape === 'animated' || (r.shape === 'join' && lookCells(r.look).length > 1)) scene.animated = true }
   for (const t of doc.terrain ?? []) {
-    const r = resolveLook(doc, src, effectiveLook(g, 'terrain', t.id, style))
+    const r = resolveLook(doc, src, effectiveLook(g, 'terrain', t.id, style, inherit))
     if (!r) continue
     scene.terrain.set(t.id, r)
     note(r)
     if (r.shape === 'join') scene.joinSame.set(t.id, joinSet(doc, t.id, r.look))
   }
   for (const u of doc.units ?? []) {
-    const entry = effectiveLook(g, 'units', u.id, style)
+    const entry = effectiveLook(g, 'units', u.id, style, inherit)
     const base = resolveLook(doc, src, entry)
     if (!base) continue
     const sides = new Map<string, Resolved>()
@@ -67,7 +69,7 @@ export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: I
     }
   }
   for (const s of doc.structures ?? []) {
-    const entry = effectiveLook(g, 'structures', s.id, style)
+    const entry = effectiveLook(g, 'structures', s.id, style, inherit)
     const base = resolveStructure(doc, src, entry)
     if (!base) continue
     const sides = new Map<string, Resolved>()

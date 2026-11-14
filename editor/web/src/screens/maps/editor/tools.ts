@@ -3,6 +3,7 @@
 import { ctxOf, editMap } from '../../../model/mapCtx'
 import { terrainAt, type Cell } from '../../../model/mapGrid'
 import { fillFrom, lineCells, paintCells } from '../../../model/mapPaint'
+import { applyHeights, clampHeight, type HeightMode } from '../../../model/mapHeights'
 import { moveStructureBy, placeStructure, rectOf, structureIndexAt, placedOf } from '../../../model/mapStructures'
 import { moveMapUnit, placeUnit, unitAt } from '../../../model/mapUnits'
 import { STROKE_PREFIX } from '../../../store/history'
@@ -10,10 +11,10 @@ import type { DocumentStore } from '../../../store/documentStore'
 import type { MapViewState } from './viewState'
 import { T } from './text'
 
-export type Tool = 'terrain' | 'units' | 'structures' | 'select'
-export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'select']
+export type Tool = 'terrain' | 'units' | 'structures' | 'heights' | 'select'
+export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'heights', 'select']
 /** O stays the key of the old Owners tool, which the Structures tool replaced. */
-export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', select: 's' }
+export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', heights: 'h', select: 's' }
 
 export interface ToolState {
   tool: Tool
@@ -24,6 +25,9 @@ export interface ToolState {
   structureType: string
   /** Owner of newly placed structures; '' = nobody. */
   structureSide: string
+  /** The Heights tool: what a click or drag does, and the number for "Set to". */
+  heightMode: HeightMode
+  heightValue: number
 }
 
 /** One drag. `end` gets the square the pointer was released on (null if outside the map). */
@@ -61,6 +65,7 @@ export function beginStroke(env: StrokeEnv, cell: Cell, opts: { alt?: boolean } 
     return paintStroke(cell, (cells, k) => env.store.edit((d) => editMap(d, env.mapId, (m, c) => paintCells(m, c.terrain, cells, t.terrainId)), k))
   }
   if (t.tool === 'structures') return structureStroke(env, cell, t)
+  if (t.tool === 'heights') return heightStroke(env, cell, t)
   env.view.set({ selected: cell })
   const unit = unitAt(map, cell.x, cell.y)
   if (t.tool === 'select') return NOOP
@@ -73,6 +78,21 @@ function paintStroke(first: Cell, apply: (cells: Cell[], key: string) => void): 
   let last = first
   apply([first], k)
   return { move(c) { apply(lineCells(last, c), k); last = c }, end() {} }
+}
+
+/** Raises, lowers or sets the squares the pointer passes over; each square changes once per drag and the drag is one undo step. */
+function heightStroke(env: StrokeEnv, first: Cell, t: ToolState): Stroke {
+  const k = `${STROKE_PREFIX}${++strokeCounter}`
+  const action = t.heightMode === 'set' ? { kind: 'set' as const, value: clampHeight(t.heightValue) } : { kind: t.heightMode }
+  const done = new Set<string>()
+  const apply = (cells: Cell[]) => {
+    const fresh = cells.filter((c) => !done.has(`${c.x},${c.y}`))
+    fresh.forEach((c) => done.add(`${c.x},${c.y}`))
+    if (fresh.length) env.store.edit((d) => editMap(d, env.mapId, (m) => applyHeights(m, fresh, action)), k)
+  }
+  let last = first
+  apply([first])
+  return { move(c) { apply(lineCells(last, c)); last = c }, end() {} }
 }
 
 /** Click an empty square: place the chosen structure with its top-left corner there. Click a placed one: select it;

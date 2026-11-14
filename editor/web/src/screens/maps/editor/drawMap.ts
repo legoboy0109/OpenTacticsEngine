@@ -24,6 +24,8 @@ export interface Scene {
   art?: ArtScene | null
   /** The visual style being previewed: background, terrain colours, letters on/off. */
   style?: StyleView
+  /** Squares whose height is not 0 get a tint and their number (the Heights tool). */
+  showHeights?: boolean
 }
 
 export interface DrawState {
@@ -126,6 +128,7 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       drawStructure(g, scene, grid, s, time, glyphOn)
     }
   }
+  if (scene.showHeights && map.heights) drawHeights(g, map, x0, x1, y0, y1, px, py, S, dpr)
   if (st.structureGhost) drawStructureGhost(g, scene, grid, st.structureGhost, time)
   if (st.ghost) {
     const u = map.units?.find((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
@@ -201,4 +204,31 @@ function drawFlag(g: CanvasRenderingContext2D, cx: number, cy: number, cw: numbe
   g.strokeStyle = '#e5322d'
   g.lineWidth = lw
   g.strokeRect(cx + lw / 2, cy + lw / 2, cw - lw, cw - lw)
+}
+
+/** Squares above ground are lightened, squares below darkened, and (when big enough) the number is written in the corner. */
+function drawHeights(g: CanvasRenderingContext2D, map: MapFile, x0: number, x1: number, y0: number, y1: number, px: (c: number) => number, py: (c: number) => number, S: number, dpr: number): void {
+  const size = Math.max(9 * dpr, Math.round(S * 0.34))
+  g.font = `bold ${size}px ${FONT}`
+  g.textAlign = 'left'
+  g.textBaseline = 'top'
+  g.lineJoin = 'round'
+  g.lineWidth = Math.max(2, Math.round(size / 4))
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const v = map.heights?.[y]?.[x]
+      if (typeof v !== 'number' || v === 0) continue
+      const cx = px(x), cy = py(y)
+      g.fillStyle = v > 0 ? `rgba(255,255,255,${Math.min(0.5, 0.1 + v * 0.025)})` : `rgba(0,0,0,${Math.min(0.5, 0.15 + -v * 0.05)})`
+      g.fillRect(cx, cy, px(x + 1) - cx, py(y + 1) - cy)
+      if (S < 10 * dpr) continue
+      const label = String(v)
+      g.strokeStyle = 'rgba(0,0,0,0.85)'
+      g.strokeText(label, cx + 2 * dpr, cy + 1 * dpr)
+      g.fillStyle = '#ffffff'
+      g.fillText(label, cx + 2 * dpr, cy + 1 * dpr)
+    }
+  }
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
 }

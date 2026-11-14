@@ -6,6 +6,7 @@ export const T = {
     terrain: { label: 'Terrain', key: 'T', help: 'Paint the ground.' },
     units: { label: 'Units', key: 'U', help: 'Place and move units.' },
     structures: { label: 'Structures', key: 'O', help: 'Place and move structures: cities, forts, factories.' },
+    heights: { label: 'Heights', key: 'H', help: 'Raise or lower squares.' },
     select: { label: 'Select', key: 'S', help: 'Look at a square.' },
   },
   zoomIn: 'Zoom in',
@@ -15,7 +16,8 @@ export const T = {
   lookHelp: 'Preview the map in one of the game’s visual styles (its pictures, colours and background).',
   fit: 'Fit',
   fitHelp: 'Show the whole map',
-  shortcuts: 'Keys: T U O S pick a tool, F fill, + / − zoom, Delete removes the selected unit or structure, Esc deselects, Space + drag pans.',
+  mapViewNote: 'This map editor shows the top-down view. Play shows the game in its styles.',
+  shortcuts: 'Keys: T U O H S pick a tool, F fill, + / − zoom, Delete removes the selected unit or structure, Esc deselects, Space + drag pans.',
 
   // status line
   statusSquare: (x: number, y: number) => `${x + 1}, ${y + 1}`,
@@ -79,6 +81,15 @@ export const T = {
   structureOwner: 'Owner',
   structureRemove: 'Remove structure',
   structureOwnerNoEffect: (n: string) => `${n} has no use for an owner: it cannot be captured, earns nothing and builds nothing.`,
+
+  // heights panel
+  heightsTitle: 'Heights',
+  heightsHelp: 'Click or drag over squares to change how high they are. Raised squares show as blocks in an isometric style.',
+  heightModes: { raise: 'Raise', lower: 'Lower', set: 'Set to' },
+  heightValue: 'Height',
+  heightRange: (lo: number, hi: number) => `A whole number from ${lo} to ${hi}. 0 is ground level.`,
+  heightsNote: 'Squares that are not at ground level show their height on the map. The top-down view itself does not change.',
+  heightOf: 'Height',
 
   // select panel
   selectTitle: 'Square',

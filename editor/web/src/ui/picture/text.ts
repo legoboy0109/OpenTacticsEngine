@@ -35,6 +35,7 @@ export const P = {
   lookGroup: 'In this style',
   lookNoneHelp: 'This terrain or unit is drawn as a plain coloured square in this style.',
   lookSameHelp: 'Uses the picture from “All styles”.',
+  lookOtherView: 'This style has a different kind of view, so it does not use the pictures from “All styles”. Choose a picture made for it, or it is drawn as a plain coloured shape.',
 
   // sides
   sidesTitle: 'A different picture for a side',

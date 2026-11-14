@@ -528,3 +528,38 @@ Catches the editor up with engine features documented in GRAPHICS.md and SAVES.m
   automatic Continue save" (`continue`), "No saving" (`off`). Unknown values read as "anywhere" until the user picks.
   The helper passes `saving` through unchanged (checked by the e2e test against the real loader).
 - **Tests.** Unit: `pickCell.test.ts`, `joinAnimated.test.ts`. E2E: `art-join-animated.spec.ts` (both `@smoke`).
+
+## Kinds of view and heights (implementation notes)
+
+Contract: `docs/VIEWS.md`. The engine loader (`loadStyles`, `loader_graphics.cpp`) stays the source of truth.
+
+- **Kind of view per style** (Game screen, `screens/game/ViewFields.tsx`, model `model/styleView.ts`). A "Kind of view" choice,
+  Top-down or Isometric, sits under the style's name. Top-down writes no `view` key and removes the style's `isometric` object
+  (so switching to Isometric and back leaves the file as it was). For Isometric, the four sizes (`tileWidth`, `tileHeight`,
+  `heightStep`, `unitWidth`) are in a collapsed "Advanced" area. An empty box writes no key; the placeholder is the default
+  computed as in VIEWS.md from the sizes around it (2 x the game's tile size, then halves), so it follows what the maker types.
+  Ranges are the loader's (even for the two diamond sizes); `NumberInput` got an `even` option for that.
+  A style whose file says `isometric-3d` or `3d` shows only a note ("not available yet"): no control, so nothing in it can change
+  (its other settings, such as the background, still edit). The kind cannot be chosen for other styles.
+- **Art mirrors the loader.** `effectiveLook(..., inherit)` ignores the general pictures for a style whose kind is not top-down
+  (`inheritsGeneralArt`); `buildArtScene` uses it. The picture card for such a style hides "Same as the others", says why in one
+  sentence, and "No picture in this style" removes the style's entry instead of writing `null` (both mean the same there).
+  Its preview is the chosen piece itself (`PreviewSpec.piece`, drawn as it is in its image, animations play), not a top-down
+  composition; with no picture it falls back to the plain placeholder preview.
+- **Map editor.** The canvas always draws top-down. For a non-top-down style in the "Style" preview choice it uses that style's
+  colours and background but the general pictures (`MapEditor.tsx`). A line under the map says so. Deviation: none.
+- **Heights tool** (key H, `panels/HeightsTool.tsx`, `model/mapHeights.ts`, stroke in `tools.ts`). Raise / Lower / Set to a number,
+  -8..32 (clamped). A drag changes each square once (a square crossed again is not raised twice) and is one undo step. The tool
+  settings are remembered with the other tool settings (older saved choices default to Raise, 1). With the tool active, squares
+  not at 0 are tinted and show their number (`drawHeights` in `drawMap.ts`; hidden below ~10 px squares, the tint stays).
+  The Select tool's panel always lists the square's height. Saving: `heights` is written only when some square is not 0; a map
+  that never had heights stays byte-identical, and bringing every square back to 0 removes the key. Resize already kept heights
+  with their squares (new squares 0). A heights grid that does not match the size is reported by the existing repair banner.
+- **Play** (`play/PlayPanel.tsx`). The embedded player already took `style=<id>`, so a "Style" choice is offered when the game
+  has more than one style the player can draw (`isometric-3d` and `3d` are left out, as the player does). The choice is remembered
+  per game. The address only carries `style` when it is not the first style, so the default stays `embed.html?project=..&map=..`.
+- **Templates.** Strategy RPG and Economy Tactics start with a Classic and an Isometric style (generated isometric art by
+  `tools/art/make_starter_art.py`); Blank has none.
+- **Tests.** Unit: `tests/unit/views.test.ts`. E2E: `views.spec.ts` (styles, templates, picture cards, Heights, Play; the style
+  round trip, the template check and the Heights drag/undo are `@smoke`), `views-mobile.spec.ts`. Screenshots 73-75
+  (`screenshots-views.spec.ts`).

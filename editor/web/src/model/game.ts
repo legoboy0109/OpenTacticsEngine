@@ -40,6 +40,11 @@ export function updateStyle(doc: ProjectDoc, id: string, patch: Partial<Omit<Sty
   return withGame(doc, (g) => ({ ...g, styles: updateById(g.styles ?? [], id, (s) => patchObj(s, patch)) }))
 }
 
+/** Replaces a style by `fn(style)` (kind of view and sizes: model/styleView.ts). */
+export function updateStyleWith(doc: ProjectDoc, id: string, fn: (s: Style) => Style): ProjectDoc {
+  return withGame(doc, (g) => ({ ...g, styles: updateById(g.styles ?? [], id, fn) }))
+}
+
 export function moveStyle(doc: ProjectDoc, from: number, to: number): ProjectDoc {
   return withGame(doc, (g) => ({ ...g, styles: moveItem(g.styles ?? [], from, to) }))
 }
