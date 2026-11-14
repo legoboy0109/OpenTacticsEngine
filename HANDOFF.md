@@ -6,7 +6,11 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 
 ## State (2026-11-14)
 
-Everything below is merged on `main` (local repo only, nothing pushed).
+Everything below is merged on `main`, which is also on GitHub:
+https://github.com/legoboy0109/OpenTacticsEngine (public, remote `origin`;
+owner said yes to uploading on 2026-11-14). Keep it up to date as work
+lands; never force-push. Commits use the account's GitHub no-reply address
+(set in this repo's git config), never a personal email.
 
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
   `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 105 green (SDL3 and
@@ -35,8 +39,7 @@ Everything below is merged on `main` (local repo only, nothing pushed).
   alone does not write the Continue save (owner: wanted).
 - Waiting on the owner: verdict on editor wording/layout (incl. Art,
   Structures, Convert, Saving card, picture dialog's animated joining),
-  starter art, launcher layout, font picks, licence choice. Not started:
-  README.
+  starter art, launcher layout, font picks. README is a first short version.
 
 ## Editor helper
 
@@ -174,8 +177,9 @@ node run.mjs --only embed --build /path/to/web/output
   models: well-specified work packages against those contracts, verified
   by the delegating session before merging.
 - Commit style: `feat(core): ...`, `test: ...`, `content: ...`, `docs: ...`.
-- Nothing is published/pushed anywhere without the owner's explicit yes.
-  No license chosen yet (owner decision, needed before publishing).
+- Licence: GPL-3.0 (owner decision 2026-11-14); a game's own data is its
+  maker's. Pushing to `origin` is agreed; anything else public (releases,
+  posts, other sites) still needs the owner's explicit yes.
 
 ## Kinds of view (2026-11-14)
 

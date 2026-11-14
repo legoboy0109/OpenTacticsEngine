@@ -15,8 +15,9 @@ docs/GAME_FORMAT.md.
   strategy RPGs (Fire Emblem, FFT).
 - Grids: square top-down first; hex, isometric, 3D later.
 - Audience: mixed. Editor for common things, Lua for unusual ones.
-- Open source (license not chosen yet; nothing gets published without the
-  owner's say-so).
+- Open source under GPL-3.0 (owner, 2026-11-14), on GitHub. Known limits of
+  that choice: not compatible with Apple's App Store or official (non-homebrew)
+  console releases.
 - OVERCLOCK (~/Projects/UntitledTBT) is separate: ideas only, never edit it.
 
 ## Milestone 1: both genres playable from data, desktop + web
