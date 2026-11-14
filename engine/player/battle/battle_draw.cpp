@@ -62,7 +62,7 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
   if (const Look* artLook = unitArt(c, u)) {
     drawUnitArt(r, c, *artLook, u, sx, sy, v.scale, al, u.done);
   } else {
-    Color base = Color::rgb(b.sides[u.side].color);
+    Color base = Color::rgb(b.sides[shownSide(c, u)].color);
     if (u.done) base = mix(base, Color(70, 70, 78), 0.55f);  // dimmed: already acted
     r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
     r.fillRect(bx, by, bw, bh, scaled(base, al));

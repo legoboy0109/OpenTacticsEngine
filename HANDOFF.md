@@ -12,11 +12,15 @@ owner said yes to uploading on 2026-11-14). Keep it up to date as work
 lands; never force-push. Commits use the account's GitHub no-reply address
 (set in this repo's git config), never a personal email.
 
-- Story events, build step 1 (docs/EVENTS.md): the rules core is done and
-  tested (307 tests): unit ids, switches / variables, events, objectives,
-  Talk, saves and hash, `ote-sim` output. Not done: the player's dialogue
-  box / Talk menu / objective display (it skips the new entries), editor,
-  campaign. No shipped game has events yet.
+- Story events, build steps 1 and 2 (docs/EVENTS.md): the rules core is done
+  and tested: unit ids, switches / variables, events, objectives, Talk, saves
+  and hash, `ote-sim` output. The player shows them inside one battle:
+  dialogue box (letter by letter, pages, portrait, skip; `--input` token
+  `skip`), Focus / add / remove / relocate / side-change effects, Talk in the
+  action menu, objective banner and "Objective" in the battle menu, portraits
+  in `data/graphics.json` (docs/GRAPHICS.md). Not done: editor, campaign, web
+  build check of the new code. No shipped game has events yet (so nothing
+  looks different in the demos; checked byte for byte).
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
   `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 105 green (SDL3 and
   SDL2 builds).

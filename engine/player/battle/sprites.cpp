@@ -63,10 +63,10 @@ const Look* terrainArt(const DrawCtx& c, int terrain) {
 const Look* unitArt(const DrawCtx& c, const Unit& u) {
   if (!c.sprites) return nullptr;
   const GraphicsSet* set = c.battle.db->graphics.set(c.styleIndex);
-  if (!set || u.type < 0 || (size_t)u.type >= set->units.size() || u.side < 0 ||
-      (size_t)u.side >= c.battle.sides.size())
+  int side = shownSide(c, u);
+  if (!set || u.type < 0 || (size_t)u.type >= set->units.size() || side < 0 || (size_t)side >= c.battle.sides.size())
     return nullptr;
-  const Look& look = set->units[(size_t)u.type].forSide(c.battle.sides[(size_t)u.side].id);
+  const Look& look = set->units[(size_t)u.type].forSide(c.battle.sides[(size_t)side].id);
   return c.sprites->has(look) ? &look : nullptr;
 }
 
@@ -146,7 +146,7 @@ void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u,
       bx = sx + (t - bw) / 2;
       by = sy + t - 1 - bh;
     }
-    Color side = Color::rgb(c.battle.sides[(size_t)u.side].color);
+    Color side = Color::rgb(c.battle.sides[(size_t)shownSide(c, u)].color);
     r.fillRect(bx, by, bw, bh, Color(20, 20, 28, (uint8_t)(a * 200 / 255)));
     r.fillRect(bx + 1, by + 1, bw - 2, bh - 2, withAlpha(darker(side, k), a));
   }

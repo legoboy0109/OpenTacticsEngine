@@ -41,6 +41,7 @@ void BattleScene::openActionMenu() {
   std::vector<MenuItem> items;
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
+  addTalkEntries(items);  // story: one entry per partner / event (docs/EVENTS.md)
   // Item entries (docs/ITEMS.md "Player"); none of them exist in a game without items.
   if (!u.items.empty()) items.push_back({"Items", "", true, kItems});
   std::vector<int> partners, shop;
@@ -81,6 +82,7 @@ void BattleScene::openBuildMenu(Cell cell) {
 void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
   std::vector<MenuItem> items = {{"End Turn", "", true, kEndTurn}};
+  if (!battle_.objectiveText().empty()) items.push_back({"Objective", "", true, kObjective});  // only when the map has one
   if (manualSaves()) {  // game setting "any": the player may save and load at will
     items.push_back({"Save", "", true, kSave});
     items.push_back({"Load", "", true, kLoad});
@@ -104,6 +106,7 @@ void BattleScene::menuInput(const InputEvent& e) {
       return;
     }
     if (id == kAttack) beginTargeting(-1);
+    else if (id >= kTalkBase) talkChosen(id - kTalkBase);
     else if (id == kItems) openItems();
     else if (id == kTrade) openTrade();
     else if (id == kStorage) openStorage();
@@ -118,6 +121,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     menu_.close();
     mode_ = Mode::Idle;
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
+    else if (res == Menu::Chosen && id == kObjective) openObjective();
     else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
     else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
     else if (res == Menu::Chosen && id == kLeave) {

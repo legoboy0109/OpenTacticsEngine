@@ -42,6 +42,13 @@ struct DrawCtx {
   bool raised() const { return iso() || view3d(); }
 };
 
+// The side whose colour and art a unit is drawn with: its own, except while the view has not yet
+// played the SideChanged entry that moved it (BattleView::push keeps the old side until then).
+inline int shownSide(const DrawCtx& c, const Unit& u) {
+  if ((size_t)u.id < c.view.units.size() && c.view.units[(size_t)u.id].side >= 0) return c.view.units[(size_t)u.id].side;
+  return u.side;
+}
+
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).
 inline uint32_t terrainRgb(const DrawCtx& c, int terrain) {
   const StyleDef* st = c.style;

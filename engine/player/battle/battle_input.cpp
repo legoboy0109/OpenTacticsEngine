@@ -60,6 +60,11 @@ bool BattleScene::turnInput(const InputEvent& e) {
 }
 
 void BattleScene::onInput(const InputEvent& e) {
+  // While a line of dialogue is up, the box takes every input: no camera, no cursor, no orders.
+  if (view_.dialogue.active) {
+    if (dialogue_.isOpen()) dialogueResult(dialogue_.onInput(e));
+    return;
+  }
   if (turnInput(e)) return;
   bool confirmish = e.type == InputEvent::PointerDown ||
                     (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
@@ -82,6 +87,7 @@ void BattleScene::onInput(const InputEvent& e) {
     itemsInput(e);
     return;
   }
+  if (mode_ == Mode::Objective && objectiveInput(e)) return;
   if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu) {
     menuInput(e);
     return;

@@ -48,8 +48,12 @@ void BattleView::resync(const Battle& b) {
   queue_.clear();
   cur_.active = false;
   banner.clear();
+  bannerSub.clear();
   levelUp.active = false;
+  dialogue.active = false;
   hasFocus = false;
+  stickyFocus_ = false;
+  skipping_ = false;
   wasBusy_ = false;
 }
 
@@ -63,7 +67,13 @@ void BattleView::ensureUnits(const Battle& b) {
 }
 
 void BattleView::push(const std::vector<Event>& events) {
-  for (const Event& e : events) queue_.push_back(e);
+  for (const Event& e : events) {
+    queue_.push_back(e);
+    // The rules already show the unit on its new side; the view keeps the old colour until the
+    // SideChanged entry plays (a line like "Join us!" comes first).
+    if (e.type == EventType::SideChanged && e.a >= 0 && (size_t)e.a < units.size() && units[(size_t)e.a].side < 0)
+      units[(size_t)e.a].side = e.b;
+  }
 }
 
 void BattleView::addFloat(const std::string& text, float x, float y, Color c, float life, bool screen) {
@@ -89,11 +99,20 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   float cx = tile_ / 2.0f;
+  if (beginStory(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
       bannerColor = sideColor(b, e.a);
       cur_.dur = 0.6f;
+      if (announce_) {  // the very first turn of a new battle: say what the battle is about, long enough to read
+        announce_ = false;
+        bannerSub = b.objectiveText();
+        if (!bannerSub.empty()) {
+          bannerSub = "Objective: " + bannerSub;
+          cur_.dur = 2.4f;
+        }
+      }
       break;
     case EventType::UnitMoved:
       cur_.path.assign(e.data.begin(), e.data.end());
@@ -200,9 +219,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::ItemMoved:
     case EventType::ItemEquipped:
     case EventType::BattleEnded: break;
-    // Story events (docs/EVENTS.md). The dialogue box, focus and objective display come with the
-    // player's story step; until then they are skipped, and the unit changes only keep the
-    // pictures of units in step with the rules.
+    // Story entries are handled by beginStory() above (battle_view_story.cpp).
     case EventType::Dialogue:
     case EventType::Focus:
     case EventType::SideChanged:
@@ -229,6 +246,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
+  if (progressStory(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -280,9 +298,16 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
+  if (finishStory(b)) {
+    cur_.active = false;
+    return;
+  }
   switch (e.type) {
     case EventType::TurnStarted:
-    case EventType::SideDefeated: banner.clear(); break;
+    case EventType::SideDefeated:
+      banner.clear();
+      bannerSub.clear();
+      break;
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
       cellPos(b, cur_.path.back(), v.px, v.py);
@@ -303,17 +328,6 @@ void BattleView::finish(const Battle& b) {
     }
     case EventType::UnitBuilt:
     case EventType::UnitAdded: units[e.a].scale = 1; break;
-    case EventType::UnitRemoved: {
-      UnitView& v = units[e.a];
-      v.visible = false;
-      v.hp = 0;
-      break;
-    }
-    case EventType::UnitRelocated: {
-      UnitView& v = units[e.a];
-      cellPos(b, e.c, v.px, v.py);
-      break;
-    }
     case EventType::LevelUp: levelUp.active = false; break;
     case EventType::UnitHealed: units[e.a].hp = cur_.hpTo; break;
     case EventType::StatsRaised: {
@@ -369,6 +383,11 @@ void BattleView::update(double dt, const Battle& b) {
   startNext(b);
   if (cur_.active) progress(b);  // so a freshly started event shows frame 0
   if (!cur_.active) hasFocus = false;
+  if (!hasFocus && stickyFocus_) {  // a Focus entry's spot, until the run is over
+    hasFocus = true;
+    focusX = stickyX_;
+    focusY = stickyY_;
+  }
 
   bool nowBusy = busy();
   if (wasBusy_ && !nowBusy) {
@@ -378,7 +397,10 @@ void BattleView::update(double dt, const Battle& b) {
     floats.swap(keep);
   }
   wasBusy_ = nowBusy;
-  if (!nowBusy) resFloats_ = 0;
+  if (!nowBusy) {
+    resFloats_ = 0;
+    skipping_ = false;
+  }
 }
 
 }  // namespace ote

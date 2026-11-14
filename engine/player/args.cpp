@@ -25,7 +25,7 @@ const char* usageText() {
          "      auto = display with the hardware drawer, game size with the software one. Beats the option.\n"
          "--3d-scale N (1..8, with --headless): there is no display, so the 3D picture is N times the logical size and\n"
          "      the screenshot is written at that size too (check detailed art without a window).\n"
-         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout wait wait:N tap:X:Y\n";
+         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip wait wait:N tap:X:Y\n";
 }
 
 namespace {

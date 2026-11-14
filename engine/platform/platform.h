@@ -29,7 +29,8 @@ struct Color {
 // TiltDown and ZoomIn / ZoomOut move the free camera of the full 3D view
 // (docs/VIEWS.md).
 enum class Button {
-  None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight, TiltUp, TiltDown, ZoomIn, ZoomOut
+  None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight, TiltUp, TiltDown, ZoomIn, ZoomOut,
+  Skip  // "skip everything" in a dialogue: no key or pad button makes it, only the --input script (and tests)
 };
 
 struct InputEvent {

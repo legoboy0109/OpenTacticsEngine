@@ -163,7 +163,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
   float al = v.alpha * fade;
   // Solid things are cut out against the depth picture; fading ones are blended in afterwards.
   Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;
-  Color side = Color::rgb(b.sides[(size_t)u.side].color);
+  Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
   if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
   const ModelAsset* asset = nullptr;
   const ModelLook* model = unitModel(c, u, asset);
@@ -267,7 +267,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     const ModelLook* model = unitModel(c, u, asset);
     if (model) body = (int)((model->height > 0 ? model->height : kUnitModelHeight) * v.scale * g.artPixels() * k * g.uprightSquash() * shown);
     if (!model && !(art && sheets_.texture(r3d_, art->sheet))) {
-      Color side = Color::rgb(b.sides[(size_t)u.side].color);
+      Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
       if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
       drawGlyphCentered(r, sx, sy - body / 2, b.typeOf(u).glyph, a(readableOn(side)), std::max(1, body * 3 / 4));
     }

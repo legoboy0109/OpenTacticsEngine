@@ -23,7 +23,9 @@ BattleScene::BattleScene(SceneHost& host)
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
   if (proj_.view3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
-  view_.push(session_.startEvents);  // first TurnStarted + income
+  view_.push(session_.startEvents);  // first TurnStarted + income (empty when the battle was resumed from a save)
+  // A new battle says what it is about under its first banner (nothing when the map has no objective text).
+  if (!session_.startEvents.empty() && !battle_.objectiveText().empty()) view_.announceObjective();
   int rx, ry;
   panelResourceAnchor(layout_, (int)session_.db.resources.size(), rx, ry);
   view_.setResourceAnchor(rx, ry);
@@ -150,6 +152,7 @@ void BattleScene::followCamera(double dt) {
 void BattleScene::update(double dt) {
   time_ += (float)dt;
   view_.update(dt, battle_);
+  updateDialogue(dt);
   if (mode_ != Mode::Result && !view_.busy()) {
     updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
     if (battle_.over) enterResult();
@@ -186,6 +189,7 @@ void BattleScene::update(double dt) {
 
 std::string BattleScene::hint() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
+  if (view_.dialogue.active) return "Z / tap: next   hold X or Menu, or tap Skip: skip all";
   if (mode_ == Mode::Result) return "Confirm / tap: back to map select";
   if (view_.busy()) return "Confirm / Cancel / tap: skip animation";
   if (!humanTurn()) return battle_.sides[battle_.activeSide].name + " is acting...";
@@ -201,6 +205,7 @@ std::string BattleScene::hint() const {
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
     case Mode::Items: return itemsHint();
+    case Mode::Objective: return "Z / X / tap: close";
     default: return "";
   }
 }
@@ -214,6 +219,7 @@ void BattleScene::draw(Renderer& r) {
   r.clear(Color(0, 0, 0));
   drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : Overlay(), cursor_, human);
   drawFloats(r, ctx, false);
+  drawStory(r);
   if (map3d_) {  // the camera buttons, for pointer and touch
     static const char* const kLabels[6] = {"<", ">", "^", "v", "+", "-"};
     for (int i = 0; i < cameraButtons(); ++i) {
@@ -237,13 +243,15 @@ void BattleScene::draw(Renderer& r) {
     }
     if (mode_ == Mode::Items) drawItems(r);
     else menu_.draw(r);
+    if (mode_ == Mode::Objective) drawObjectiveBox(r);
   }
   if (mode_ == Mode::SlotList) {
     r.fillRect(0, 0, r.width(), r.height(), Color(0, 0, 0, 150));
     slots_.fitScreen(r);
     slots_.draw(r);
   }
-  if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, "");
+  if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, view_.bannerSub);
+  if (view_.dialogue.active) dialogue_.draw(r);
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);
 }
