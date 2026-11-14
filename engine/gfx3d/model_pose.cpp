@@ -26,7 +26,7 @@ void locate(const std::vector<float>& times, size_t n, float t, size_t& a, float
   f = span > 0 ? (t - times[a]) / span : 0;
 }
 
-float time_in_clip(const ModelClip& clip, float time, bool loop) {
+float timeInClip(const ModelClip& clip, float time, bool loop) {
   if (!(time == time)) return 0;  // NaN
   if (loop) {
     if (!(clip.duration > 0)) return 0;
@@ -39,11 +39,13 @@ float time_in_clip(const ModelClip& clip, float time, bool loop) {
 // Scratch for pass 1 of poseModel: a node's local translation, rotation and scale, kept in the node's own world
 // matrix slot (16 floats) until pass 2 turns them into the real matrix. Saves a per-call allocation.
 struct LocalTRS {
-  static Vec3& t(Mat4& m) { return *reinterpret_cast<Vec3*>(&m.m[0]); }
-  static Quat& r(Mat4& m) { return *reinterpret_cast<Quat*>(&m.m[4]); }
-  static Vec3& s(Mat4& m) { return *reinterpret_cast<Vec3*>(&m.m[8]); }
+  static void setT(Mat4& m, Vec3 v) { m.m[0] = v.x; m.m[1] = v.y; m.m[2] = v.z; }
+  static void setR(Mat4& m, Quat q) { m.m[4] = q.x; m.m[5] = q.y; m.m[6] = q.z; m.m[7] = q.w; }
+  static void setS(Mat4& m, Vec3 v) { m.m[8] = v.x; m.m[9] = v.y; m.m[10] = v.z; }
+  static Vec3 t(const Mat4& m) { return Vec3(m.m[0], m.m[1], m.m[2]); }
+  static Quat r(const Mat4& m) { return Quat(m.m[4], m.m[5], m.m[6], m.m[7]); }
+  static Vec3 s(const Mat4& m) { return Vec3(m.m[8], m.m[9], m.m[10]); }
 };
-static_assert(sizeof(Vec3) == 3 * sizeof(float) && sizeof(Quat) == 4 * sizeof(float), "scratch layout");
 
 }  // namespace
 
@@ -52,13 +54,13 @@ void poseModel(const Model3D& model, int clip, float time, bool loop, ModelPose&
   out.world.resize(n);
   for (size_t i = 0; i < n; ++i) {
     const ModelNode& nd = model.nodes[i];
-    LocalTRS::t(out.world[i]) = nd.translation;
-    LocalTRS::r(out.world[i]) = nd.rotation;
-    LocalTRS::s(out.world[i]) = nd.scale;
+    LocalTRS::setT(out.world[i], nd.translation);
+    LocalTRS::setR(out.world[i], nd.rotation);
+    LocalTRS::setS(out.world[i], nd.scale);
   }
   if (clip >= 0 && (size_t)clip < model.clips.size()) {
     const ModelClip& c = model.clips[(size_t)clip];
-    const float t = time_in_clip(c, time, loop);
+    const float t = timeInClip(c, time, loop);
     for (const ModelTrack& tr : c.tracks) {
       if (tr.node < 0 || (size_t)tr.node >= n || tr.times.empty()) continue;
       const size_t width = tr.path == ModelTrack::Rotation ? 4 : 3;
@@ -72,10 +74,11 @@ void poseModel(const Model3D& model, int clip, float time, bool loop, ModelPose&
       Mat4& slot = out.world[(size_t)tr.node];
       if (tr.path == ModelTrack::Rotation) {
         Quat q0(v0[0], v0[1], v0[2], v0[3]), q1(v1[0], v1[1], v1[2], v1[3]);
-        LocalTRS::r(slot) = v1 == v0 ? normalize(q0) : nlerp(q0, q1, f);
+        LocalTRS::setR(slot, v1 == v0 ? normalize(q0) : nlerp(q0, q1, f));
       } else {
         Vec3 v(v0[0] + (v1[0] - v0[0]) * f, v0[1] + (v1[1] - v0[1]) * f, v0[2] + (v1[2] - v0[2]) * f);
-        (tr.path == ModelTrack::Translation ? LocalTRS::t(slot) : LocalTRS::s(slot)) = v;
+        if (tr.path == ModelTrack::Translation) LocalTRS::setT(slot, v);
+        else LocalTRS::setS(slot, v);
       }
     }
   }
