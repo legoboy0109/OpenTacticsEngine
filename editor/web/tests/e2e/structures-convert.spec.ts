@@ -36,7 +36,7 @@ test('@smoke an old project offers Convert with a plain explanation; Not now cha
 
   // Convert.
   await page.getByRole('button', { name: 'See what will change…' }).click()
-  await dlg.getByRole('button', { name: 'Update this game' }).click()
+  await dlg.getByRole('button', { name: 'Convert this game' }).click()
   await expect(banner(page)).toHaveCount(0)
   await expect(page.getByText('The game now uses structures. You can undo this with the Undo button.')).toBeVisible()
   await saved(page)
@@ -82,7 +82,7 @@ test('Undo takes the conversion back in one step and saves the old project exact
   }
   await page.goto(editorUrl(id, 'terrain'))
   await page.getByRole('button', { name: 'See what will change…' }).click()
-  await page.getByRole('dialog', { name: 'Update this game for structures' }).getByRole('button', { name: 'Update this game' }).click()
+  await page.getByRole('dialog', { name: 'Update this game for structures' }).getByRole('button', { name: 'Convert this game' }).click()
   await saved(page)
   expect(await game.problems(id)).toEqual([])
 
@@ -137,7 +137,7 @@ test('a non-empty owners list on its own is offered for conversion too, and is n
   const dlg = page.getByRole('dialog', { name: 'Update this game for structures' })
   await expect(dlg.getByTestId('convert-explanation')).toContainText('1 owned square sits on ground that is not one of those buildings')
   await expect(dlg.getByTestId('convert-explanation')).not.toContainText('Terrain that becomes structures')
-  await dlg.getByRole('button', { name: 'Update this game' }).click()
+  await dlg.getByRole('button', { name: 'Convert this game' }).click()
   await saved(page)
   expect(readDisk(id, 'maps/crossroads.json')).not.toHaveProperty('owners')
   expect(await game.problems(id)).toEqual([])
@@ -149,7 +149,7 @@ test('the converted game plays: structures are in the real player, and the game 
   await seedOldGame(request, id)
   await page.goto(editorUrl(id, 'maps', 'crossroads'))
   await page.getByRole('button', { name: 'See what will change…' }).click()
-  await page.getByRole('dialog', { name: 'Update this game for structures' }).getByRole('button', { name: 'Update this game' }).click()
+  await page.getByRole('dialog', { name: 'Update this game for structures' }).getByRole('button', { name: 'Convert this game' }).click()
   await saved(page)
   await page.getByRole('button', { name: 'Play', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Play', exact: true })).toBeVisible()

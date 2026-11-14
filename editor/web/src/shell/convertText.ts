@@ -17,6 +17,6 @@ export const C = {
   looks: 'Pictures and colours of those terrains are copied to the new structures (including each style’s colour), so they look the same afterwards.',
   safe: 'Nothing else changes. You can undo all of it in one step with the Undo button.',
   cancel: 'Not now',
-  convert: 'Update this game',
+  convert: 'Convert this game',
   done: 'The game now uses structures. You can undo this with the Undo button.',
 } as const
