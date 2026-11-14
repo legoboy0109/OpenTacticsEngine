@@ -233,7 +233,7 @@ Decisions where the contract was silent, and the few deviations:
   <folder>", "off for this game" or "not available in this run"); the web
   tests rely on it.
 
-## Campaign saves (engine side, built; the player does not call it yet)
+## Campaign saves (engine side)
 
 A game with `data/campaign.json` (docs/EVENTS.md "Campaign") saves **a playthrough**,
 not a single battle. Games without a campaign are unaffected: their files and
@@ -296,7 +296,7 @@ bool campaignSaveUsable(db, gameId, const Json& file, std::string& reasonForPlay
 bool restoreCampaignSave(db, formulas, gameId, const Json& file, Playthrough& pt, Battle& battle, bool& hasBattle, err);
 ```
 
-**What the player has to call** (full flow in HANDOFF.md):
+**What the player calls** (the flow built on it is "Campaign saves in the player" below):
 - *Save*: `buildCampaignSave(db, gameId, pt, inBattle ? &battle : nullptr, nowSeconds(), file, err)`, then
   the usual atomic write. Battles are only saved in phase `Battle` (`pt.phase`), with the
   `Battle` that `startChapterBattle` made. Free battles (`freeBattleAllowed`) are saved as before
@@ -311,3 +311,53 @@ bool restoreCampaignSave(db, formulas, gameId, const Json& file, Playthrough& pt
 - Continue-save: the same file, written at the same moments as today while a chapter's battle is on;
   also write it when a scene ends and when a battle is won (phase changes), so a closed window never
   loses a chapter.
+
+## Campaign saves in the player (built)
+
+Code: `engine/player/app_campaign.cpp` (flow, loading), `campaign/` (`campaign_logic.*` the testable decisions,
+`story_scene.*`, `end_scenes.*`, `campaign_run.*`), `battle/battle_campaign.cpp`, `saves.*` (reading), `scene_game.*`,
+`ui/slot_panel.*` (lists). Tests: `tests/test_campaign_player.cpp`, `tests/campaign_player_test.py` (the player run
+windowless on a three-chapter game), `tools/webtest/suites/campaign.mjs`.
+
+- **One file kind per game.** In a game with a campaign the Continue save and the five slots hold **campaign saves**
+  (`buildCampaignSave` / `restoreCampaignSave`) whenever they are written from the story. `SaveStore::parseFile` accepts
+  them: `playthrough` with a `phase` replaces the required `round` and `battle` (those are needed only when the file has a
+  `battle`). `SaveInfo` gained `campaign`, `inBattle`, `chapterName`, `phase`; `inspect` judges a campaign save with
+  `campaignSaveUsable` (version, game, hash over every chapter; no map lookup), `read` hands the whole file back
+  (`SaveFile::root`) for `restoreCampaignSave`.
+- **Continue is shared like this (owner may change it).** The Continue file belongs to the story. A **free battle**
+  of a campaign game (a map started from the page's "Free battles" list, or `--map`) **never writes or deletes the Continue
+  file** (`continueIsWritten`): it is "not saved automatically" (the rows say so), the battle menu says **Abandon battle**
+  instead of Leave battle, and a free battle in progress cannot destroy a playthrough. Free battles can still be
+  saved by hand into a slot (a plain battle save, as before, with the plain `dataHash`, which also mixes
+  `data/campaign.json`), and such a slot is loaded as a free battle (no playthrough involved). Games without a campaign
+  are untouched, byte for byte (the launcher and game pages of both demos were compared pixel for pixel).
+- **When the Continue file is written** (campaign game, `saving` is `any` or `continue`, not `--autoplay`): at the start of
+  every turn and after every completed action of a human player, as in any battle; **after each scene ends** (the state the
+  scene left behind: after a before scene phase `battle` without a battle, after an after scene the next chapter's phase
+  `before`); **when a chapter battle is won** (phase `after`, written when the result banner appears, before the
+  player confirms it); when a battle is **lost with `retry`** (phase `battle` without a battle, so a closed window does not
+  bring the lost position back); and on **Leave battle**. It is **deleted** when a battle is lost with `onDefeat: "end"` (at
+  the result banner) and when the last chapter's after scene ends (the story is finished). A scene that is not finished
+  when the window closes is not saved: Continue shows it again from its title card.
+- **Loading** (Continue, a slot, `--continue`, `--load-slot N`) continues by phase exactly as the contract says: `before` ->
+  title card + scene; `battle` with a battle -> that battle, as a saved battle is resumed (no replay; a computer turn
+  carries on); `battle` without one -> a new chapter battle (new seed, no scene); `after` -> the after scene;
+  `finished` / `over` -> the end screen. A campaign save that cannot be loaded is greyed out with the reason
+  ("Made with a different version of this game", ...), like any save; a damaged one fails with "The save is damaged (field and
+  problem)" and changes nothing.
+- **Lists.** Continue row / slot rows show the **chapter's name** (the map's name for a plain save) and a detail line:
+  **Turn N** in the middle of a battle, else where the story stands ("Chapter begins", "Ready to fight", "Battle won",
+  "Story complete", "Story ended"), then the date and time in slots. The "This replaces your Continue save." question
+  before New game and before loading a slot from the page applies to campaign saves only (a free battle's plain slot
+  does not touch the Continue file, so loading it asks nothing).
+- **Battle menu.** Save / Load as before (the slot gets a campaign save including the battle); Leave battle writes the
+  Continue save and returns to the game page.
+- **Settings.** `saving: "continue"` = the Continue file only, no Load row and no slots; `"off"` = nothing is written
+  (a story still plays, Leave battle reads Abandon battle, no Continue row).
+- **Command line.** `--continue` and `--load-slot N` resume a campaign save of `--game` directly. `--campaign` (with
+  `--game`) starts a New game. `--map ID` on a campaign game starts that map as a free battle whatever its `freeBattles`
+  say and never touches campaign saves (the editor's Play panel and the tests rely on it). `--campaign` cannot be
+  combined with `--map`, `--continue` or `--load-slot`. `--autoplay --campaign` plays the whole story with the computer
+  on the human side (title cards, scene lines, results and the retry choice pass by themselves; nothing is saved); with
+  `--frames N` it stops as before.
