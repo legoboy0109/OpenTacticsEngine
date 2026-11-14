@@ -34,6 +34,12 @@ void Battle::beginTurn(std::vector<Event>& events) {
     }
     for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, income[r], events);
   }
+
+  StoryOccurrence o;
+  o.kind = Trigger::Kind::Turn;
+  o.side = activeSide;
+  o.round = round;
+  fireStory(o, events);
 }
 
 void Battle::advanceTurn(std::vector<Event>& events) {
@@ -65,6 +71,7 @@ bool Battle::ownsHq(int side) const {
 void Battle::checkDefeat(std::vector<Event>& events) {
   if (over) return;
   const RulesConfig& rules = db->rules;
+  std::vector<int> fallen;  // units that left with a defeated side: story events hear of them afterwards
 
   for (int s = 0; s < (int)sides.size(); ++s) {
     SideState& side = sides[s];
@@ -87,8 +94,11 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     e.a = s;
     events.push_back(e);
     // A defeated side leaves the field entirely.
-    for (Unit& u : units)
-      if (u.alive && u.side == s) killUnit(u.id, events);
+    for (size_t i = 0; i < units.size(); ++i)
+      if (units[i].alive && units[i].side == s) {
+        killUnit((int)i, events);
+        fallen.push_back((int)i);
+      }
     // Its structures become neutral (and any capture in progress stops).
     for (StructureState& st : structures)
       if (st.owner == s) {
@@ -98,6 +108,9 @@ void Battle::checkDefeat(std::vector<Event>& events) {
       }
   }
 
+  // Events may add units or end the battle themselves; they run after the sweep above is complete.
+  for (int u : fallen) unitDefeated(u, -1, events);
+
   int survivingTeam = -1;
   bool several = false;
   for (const SideState& side : sides) {
@@ -105,14 +118,15 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     if (survivingTeam == -1) survivingTeam = side.team;
     else if (survivingTeam != side.team) several = true;
   }
-  if (!several) {
-    over = true;
-    winnerTeam = survivingTeam;
-    Event e;
-    e.type = EventType::BattleEnded;
-    e.a = winnerTeam;
-    events.push_back(e);
-  }
+  if (!several) endBattle(survivingTeam, events);
+}
+
+void Battle::unitDefeated(int unit, int killer, std::vector<Event>& events) {
+  StoryOccurrence o;
+  o.kind = Trigger::Kind::Defeated;
+  o.unit = unit;
+  o.other = killer;
+  fireStory(o, events);
 }
 
 }  // namespace ote

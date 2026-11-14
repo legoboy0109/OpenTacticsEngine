@@ -83,6 +83,13 @@ bool Battle::validate(const Action& action, std::string* why) const {
       return true;
     case ActionType::Wait:
       return true;
+    case ActionType::Talk: {
+      std::vector<TalkOption> options;
+      talkOptions(action.unit, u.cell, options);
+      for (const TalkOption& o : options)
+        if (o.target == action.target && (action.slot < 0 || action.slot == o.event)) return true;
+      return fail(why, "there is nobody here to talk to");
+    }
     default:
       return validateItemAction(action, why);
   }
@@ -96,10 +103,15 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::Capture: applyCapture(action, events); break;
     case ActionType::Wait: units[action.unit].done = true; break;
     case ActionType::Build: applyBuild(action, events); break;
-    case ActionType::EndTurn: advanceTurn(events); return true;
+    case ActionType::Talk: applyTalk(action, events); break;
+    case ActionType::EndTurn:
+      advanceTurn(events);
+      // Without a story nothing can have changed since the last action's check.
+      if (!story) return true;
+      break;
     default: applyItemAction(action, events); break;
   }
-  checkDefeat(events);
+  settle(events);
   // A counterattack can eliminate the side whose turn it is.
   if (!over && sides[activeSide].defeated) advanceTurn(events);
   return true;
@@ -133,6 +145,12 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   u.cell = action.cell;
   occupant[u.cell] = action.unit;
   u.moved = true;
+
+  StoryOccurrence o;  // the unit has ended its move: events waiting for it to arrive here may run
+  o.kind = Trigger::Kind::Reach;
+  o.unit = action.unit;
+  o.cell = action.cell;
+  fireStory(o, events);
 }
 
 void Battle::applyCapture(const Action& action, std::vector<Event>& events) {

@@ -12,9 +12,13 @@
 //    by db->rules flags, so one engine runs Fire Emblem-like and Advance
 //    Wars-like games.
 #pragma once
+#include <memory>
+
 #include "core/base/rng.h"
 #include "core/base/types.h"
+#include "core/battle/story_state.h"
 #include "core/data/database.h"
+#include "core/data/events.h"
 #include "core/grid/grid.h"
 
 namespace ote {
@@ -43,6 +47,14 @@ enum class EventType {
   ItemLost,         // a=unit that could not take it, b=item
   ItemMoved,        // a=from unit (-1 = storage), b=to unit (-1 = storage, -2 = thrown away), c=item, d=side
   ItemEquipped,     // a=unit, b=item
+  // Story events (docs/EVENTS.md). "text" is an index for Battle::storyText().
+  Dialogue,         // a=speaker unit (-1 = none), b=text, c=free speaker name text (-1 = none), d=portrait id text (-1 = none)
+  Focus,            // a=cell the view moves to, b=unit it follows (-1 = just the square)
+  UnitAdded,        // a=unit, b=cell
+  UnitRemoved,      // a=unit, b=cell it stood on (it is gone: not a defeat)
+  UnitRelocated,    // a=unit, b=cell it left, c=cell it now stands on (moved by an event)
+  SideChanged,      // a=unit, b=old side, c=new side
+  ObjectiveChanged, // a=text of the new objective (-1 = none), b=objective set
 };
 
 enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
@@ -67,6 +79,7 @@ struct Unit {
   int side = 0;
   Cell cell = kNoCell;  // kNoCell once dead
   std::string name;
+  std::string storyId;  // the map's / addUnit's "id" for events ("" = none); fixed once the unit exists
   int level = 1, xp = 0;
   std::vector<int> stats;  // current maximums, per stat index
   int hp = 0;
@@ -108,7 +121,9 @@ struct SideState {
 enum class ActionType {
   Move, Attack, Capture, Wait, Build, EndTurn,
   // Items (docs/ITEMS.md). Only UseItem ends the unit's turn.
-  UseItem, Equip, GiveItem, TakeItem, StoreItem, FetchItem, BuyItem, DiscardItem
+  UseItem, Equip, GiveItem, TakeItem, StoreItem, FetchItem, BuyItem, DiscardItem,
+  // Story (docs/EVENTS.md): `unit` talks to `target`; free, ends the turn only if the event says so.
+  Talk
 };
 
 struct Action {
@@ -118,7 +133,7 @@ struct Action {
   int target = -1;      // Attack: defender unit
   int weapon = -1;      // Attack: weapon index (db->weapons)
   int unitType = -1;    // Build
-  int slot = -1;        // item actions: position in an inventory, or in the storage (FetchItem)
+  int slot = -1;        // item actions: position in an inventory, or in the storage (FetchItem); Talk: the story event (-1 = the first that is offered)
   int item = -1;        // BuyItem: index into db->items
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
@@ -138,6 +153,7 @@ struct Action {
   static Action storeItem(int unit, int slot) { return itemAction(ActionType::StoreItem, unit, slot); }
   static Action fetchItem(int unit, int index) { return itemAction(ActionType::FetchItem, unit, index); }
   static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }
+  static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
   static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
 };
 
@@ -186,6 +202,9 @@ class Battle {
   bool over = false;
   int winnerTeam = -1;
   Rng rng;
+  // The map's events and objectives (null = none) and how far they have got. Copies share the data.
+  std::shared_ptr<const StoryData> story;
+  StoryState storyState;
 
   // ---- setup ----
   bool init(const Database& database, const MapDef& map, Formulas& formulaHost,
@@ -265,6 +284,23 @@ class Battle {
   // Neighbouring living units of the same side (trade partners).
   void tradePartners(int unit, std::vector<int>& out) const;
 
+  // ---- story (story*.cpp, objectives.cpp; docs/EVENTS.md) ----
+  // Wording of dialogue, names, labels and objectives is kept here; events carry indices into it.
+  const std::string& storyText(int index) const;
+  // The unit with this story id (the newest if an id was reused), -1 if there is none; dead ones count.
+  int unitByStoryId(const std::string& id) const;
+  bool unitMatches(const UnitFilter& filter, const Unit& u) const;
+  // The Talk menu for `unit` standing on `from`: events whose two named units are alive and next to
+  // each other, whose conditions hold and which have not run (or repeat). Empty unless the unit can act.
+  void talkOptions(int unit, Cell from, std::vector<TalkOption>& out) const;
+  // The team objectives are judged for: the first human side's, else the first side's.
+  int humanTeam() const;
+  // What the player should show as the current objective ("" = none).
+  const std::string& objectiveText() const;
+  // Hands in starting switches / variables (a campaign carries them); sizes must match the game's
+  // lists. Call after init(), before start(). False (nothing changed) on a size mismatch.
+  bool setStartingStory(const std::vector<uint8_t>& switches, const std::vector<int>& variables);
+
   // ---- actions ----
   // why (optional) receives a short human-readable reason on failure.
   bool validate(const Action& action, std::string* why = nullptr) const;
@@ -282,6 +318,8 @@ class Battle {
   void doStrike(int atk, int def, int weapon, int baseFlags, std::vector<Event>& events);
   void applyAttack(const Action& action, std::vector<Event>& events);
   void killUnit(int unit, std::vector<Event>& events);
+  // After a unit fell (killUnit already ran): story events waiting for it. killer -1 = nobody.
+  void unitDefeated(int unit, int killer, std::vector<Event>& events);
   // turn.cpp
   void beginTurn(std::vector<Event>& events);
   void advanceTurn(std::vector<Event>& events);
@@ -302,8 +340,35 @@ class Battle {
   // Hands an item to a unit; without room it goes to the side's storage, else it is lost.
   void giveTo(int unit, ItemStack stack, int flags, std::vector<Event>& events);
   void clampHp(Unit& u);
+  // battle_init.cpp: a unit as a map (or addUnit) describes it, not yet placed.
+  Unit makeUnit(const MapUnitDef& def) const;
+  // story.cpp
+  bool conditionHolds(const Condition& c) const;
+  bool conditionsHold(const std::vector<Condition>& list) const;
+  bool triggerMatches(const Trigger& t, const StoryOccurrence& o) const;
+  void fireStory(const StoryOccurrence& o, std::vector<Event>& events);
+  void drainStory(std::vector<Event>& events);
+  void applyTalk(const Action& action, std::vector<Event>& events);
+  // story_commands.cpp
+  void runCommands(const std::vector<Command>& list, std::vector<Event>& events);
+  void runCommand(const Command& c, std::vector<Event>& events);
+  void storyAddUnit(const MapUnitDef& def, std::vector<Event>& events);
+  void storyRelocate(int unit, Cell to, std::vector<Event>& events);
+  Cell nearestFreeCell(Cell target, int moveType) const;
+  // objectives.cpp
+  bool objectiveHolds(const ObjectiveRule& r, bool win) const;
+  // Judges the current objectives for the human team and ends the battle if one holds.
+  void checkObjectives(std::vector<Event>& events);
+  // The team that wins when `team` loses: the only other team still in the battle, else -1.
+  int winnerAgainst(int team) const;
+  // Decides the battle: BattleEnded, then the events waiting for it. No-op once over.
+  void endBattle(int winnerTeam, std::vector<Event>& events);
+  // Everything that can end a battle after a change: defeat rules, then objectives.
+  void settle(std::vector<Event>& events);
   // progression.cpp
   void awardXp(int unit, int amount, std::vector<Event>& events);
+
+  StoryRun storyRun_;  // transient: empty between actions
 };
 
 }  // namespace ote

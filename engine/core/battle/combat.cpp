@@ -152,6 +152,7 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
       if (s.drop) drops.push_back(s);
     killUnit(def, events);
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
+    unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
   }
 }
 
@@ -159,6 +160,18 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   int a = action.unit, d = action.target;
   Forecast f;
   forecast(a, d, action.weapon, units[a].cell, f);  // validated by caller
+
+  // "Just before a fight": story events may change things, even take a fighter off the map or end
+  // the battle, in which case there is no fight.
+  StoryOccurrence fight;
+  fight.kind = Trigger::Kind::Fight;
+  fight.unit = a;
+  fight.other = d;
+  fireStory(fight, events);
+  if (over || !units[a].alive || !units[d].alive || !forecast(a, d, action.weapon, units[a].cell, f)) {
+    if (units[a].alive) units[a].done = true;
+    return;
+  }
 
   // Attacking with a carried weapon takes it in hand.
   if (db->rules.items.carriedWeapons) {
