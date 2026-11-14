@@ -1,6 +1,8 @@
 // A 3D model as the engine holds it after loading a glTF file
 // (docs/RENDER3D.md "Models"). Plain data: nothing here talks to a renderer.
 #pragma once
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -56,9 +58,21 @@ struct Model3D {
   }
 };
 
-// Loads a .glb or .gltf file (the nodes of its default scene). False with a
+// Turns PNG/JPEG bytes into pixels. gfx3d does not decode images itself (it
+// must not depend on the platform layer): the caller passes a decoder, e.g.
+// one wrapping platform/common/image.h's decodeImage. False with a reason in err.
+typedef bool (*ModelImageDecoder)(const uint8_t* data, size_t size, ModelImage& out, std::string& err);
+
+// Loads a .glb or .gltf file (the nodes of its default scene; skins and
+// animations are ignored, the model is in its rest pose). False with a
 // plain-English reason in `err` (which does not repeat the path). Content is
-// fitted to `caps`: large textures are shrunk, large meshes split.
-bool loadModel(const std::string& path, const Caps3D& caps, Model3D& out, std::string& err);
+// fitted to `caps`: large textures are shrunk, large meshes split. See
+// model_gltf.cpp for what is and is not supported.
+bool loadModel(const std::string& path, const Caps3D& caps, ModelImageDecoder decode, Model3D& out, std::string& err);
+
+// The same from bytes already in memory (.glb or .gltf text). `baseDir` is the
+// folder that the file's external .bin / image files are relative to.
+bool loadModelBytes(const uint8_t* data, size_t size, const std::string& baseDir, const Caps3D& caps,
+                    ModelImageDecoder decode, Model3D& out, std::string& err);
 
 }  // namespace ote
