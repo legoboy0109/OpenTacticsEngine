@@ -175,7 +175,7 @@ void Battle::start(std::vector<Event>& events) {
   StoryOccurrence o;  // "before the first turn": the first turn's own events come after TurnStarted
   o.kind = Trigger::Kind::BattleStart;
   fireStory(o, events);
-  beginTurn(events);
+  if (!over) beginTurn(events);  // an event may have decided the battle already
   if (story) settle(events);  // an event may already have decided things
 }
 

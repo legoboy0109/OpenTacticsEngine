@@ -103,6 +103,7 @@ static bool readEvents(StoryLoader& L, const Json& list, const std::string& mapN
     if (!readTrigger(L, e["when"], where, ev.when)) return false;
     if (e.has("if") && !L.conditions(e["if"], where, ev.cond)) return false;
     if (!L.ctx().boolean(e, "repeat", where, ev.repeat)) return false;
+    if (ev.when.kind == Trigger::Kind::Turn && ev.when.round == 0) ev.repeat = true;  // "every" round means every round
     if (!e.has("do")) return L.fail(where, "missing required \"do\" (the commands to run)");
     bool talk = ev.when.kind == Trigger::Kind::Talk;
     if (!L.commands(e["do"], where + ": \"do\"", talk, ev.commands, ev.endsTurnOnTalk)) return false;
