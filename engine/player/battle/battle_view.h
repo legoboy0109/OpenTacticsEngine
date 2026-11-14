@@ -55,6 +55,7 @@ class BattleView {
   std::vector<UnitView> units;  // indexed by unit id
   std::vector<FloatText> floats;
   LevelUpPanel levelUp;
+  std::string notice;  // a short message for the hint line (the scene says it and clears this)
   std::string banner;  // centred banner text, empty = none
   Color bannerColor;
   // While an event involving a unit plays, the camera should follow it.
@@ -78,6 +79,8 @@ class BattleView {
   void finish(const Battle& b);    // final state of cur_
   void impact(const Battle& b);    // attack: spawn numbers
   void addFloat(const std::string& text, float x, float y, Color c, float life = 0.9f, bool screen = false);
+  void clampHpTo(const Battle& b, int unit);
+  std::string itemName(const Battle& b, int item) const;
   void cellPos(const Battle& b, Cell c, float& x, float& y) const;
   bool showsResources(const Battle& b, int side) const;
 

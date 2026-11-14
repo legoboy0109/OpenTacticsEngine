@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "battle/battle_draw.h"
+#include "battle/item_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -87,6 +88,31 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
   }
 }
 
+// What the unit carries: "Items" heading, one line each with uses left, the weapon in hand marked with a small
+// square. When the panel runs out of height the list is cut with "..." (never over the hint strip).
+void drawCarried(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w) {
+  if (u.items.empty()) return;
+  const Battle& b = c.battle;
+  const int rh = c.layout.row, lh = c.layout.lh, bottom = c.layout.vh - lh;
+  if (y > bottom) return;
+  r.drawText(x, y, "Items", kLabel);
+  y += rh;
+  int fit = (bottom - y) / rh + 1;  // lines that still fit
+  int n = (int)u.items.size(), shown = n <= fit ? n : std::max(0, fit - 1);
+  int eq = b.db->rules.items.carriedWeapons ? b.equippedSlot(u) : -1;
+  int sq = std::max(3, lh / 3);
+  for (int i = 0; i < shown; ++i) {
+    const ItemStack& s = u.items[(size_t)i];
+    if (i == eq) r.fillRect(x, y + (lh - sq) / 2, sq, sq, Color(255, 220, 90));
+    row(r, x + sq + 3, y, w - sq - 3, b.itemOf(s).name, s.uses >= 0 ? intStr(s.uses) : "", kText, kLabel);  // the narrow panel: uses left only
+    y += rh;
+  }
+  if (shown < n && fit > 0) {
+    r.drawText(x, y, "...", kLabel);
+    y += rh;
+  }
+}
+
 void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w) {
   const Battle& b = c.battle;
   const Database& db = *b.db;
@@ -114,14 +140,21 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   const int bottom = c.layout.vh - lh;
   for (size_t s = 0; s < db.stats.size(); ++s) {
     if ((int)s == db.rules.statHp || y > bottom) continue;
-    row(r, x, y, w, db.stats[s].name, intStr(u.stats[s]));
+    int own = u.stats[s], now = b.stat(u, (int)s);  // an accessory's share shows in colour
+    Color vc = now > own ? Color(130, 235, 150) : now < own ? Color(255, 140, 120) : kText;
+    row(r, x, y, w, db.stats[s].name, intStr(now), kLabel, vc);
     y += rh;
   }
-  for (int wi : b.typeOf(u).weapons) {
+  std::vector<int> weapons;
+  b.weaponsOf(u, weapons);
+  // Carried weapons are listed with the items below; here only the one in hand (the first) tells the range.
+  if (db.rules.items.carriedWeapons && weapons.size() > 1) weapons.resize(1);
+  for (int wi : weapons) {
     if (y > bottom) break;
     row(r, x, y, w, db.weapons[wi].name, "r" + rangeText(db.weapons[wi]), kText, kLabel);
     y += rh;
   }
+  drawCarried(r, c, u, x, y, w);
 }
 
 }  // namespace
@@ -149,8 +182,10 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   row(r, x, y, w, "Turn " + intStr(b.round), (side.ai || autoplay) ? "AI" : "You");
   y += L.row;
 
-  // Resources of the side the player is looking at (economy games only).
-  if (!db.resources.empty() && db.rules.economy) {
+  // Resources of the side the player is looking at (economy games, and games with shops to spend them in).
+  bool shops = false;
+  for (const StructureDef& sd : db.structures) shops |= !sd.sells.empty();
+  if (!db.resources.empty() && (db.rules.economy || shops)) {
     const SideState& vs = b.sides[viewSide(b, autoplay)];
     rule(r, x, y, w);
     for (size_t i = 0; i < db.resources.size(); ++i) {
