@@ -84,7 +84,9 @@ goal (demos only exercise features).
       drawing layer (first part DONE 2026-11-14, contract:
       docs/RENDER3D.md: interface, software backend that runs everywhere,
       glTF loading, test scene `--test-3d`; still to do: the OpenGL ES 3 /
-      WebGL 2 backend, skins and animation); d3 3D isometric; d4 full 3D.
+      WebGL 2 backend, skins and animation); d3 3D isometric (first part
+      DONE 2026-11-14: blocks, sprites, turning camera, editor; still to
+      do: 3D models for units and structures); d4 full 3D.
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,
       campaign layer).
