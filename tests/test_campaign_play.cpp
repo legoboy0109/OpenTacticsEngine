@@ -40,9 +40,9 @@ TEST(campaign_scenes_give_lines_and_apply_at_once) {
   CHECK(r.pt.phase == Phase::Before);
   CHECK(r.scene(SceneKind::Before));
   CHECK_EQ((int)r.lines.size(), 2);
-  // eirik is not in the party yet: no name, like a Dialogue entry with no unit; the id is kept.
+  // eirik is not in the party yet: the name comes from the chapter's map; the id is kept.
   CHECK_STR(r.lines[0].speakerId, "eirik");
-  CHECK_STR(r.lines[0].speaker, "");
+  CHECK_STR(r.lines[0].speaker, "Eirik");
   CHECK_STR(r.lines[0].text, "We hold the ford.");
   CHECK_STR(r.lines[1].speaker, "Narrator");
   CHECK_STR(r.lines[1].portrait, "narr");
