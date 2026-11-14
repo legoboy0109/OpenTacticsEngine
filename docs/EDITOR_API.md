@@ -118,7 +118,7 @@ file in the project, for loading the project into the embedded player.
 
 ### GET /api/projects/:id/file/<path>
 Raw bytes of one project file: `image/png` for `.png` files, otherwise
-`application/octet-stream`.
+`application/octet-stream` (so `file/models/knight.glb` reads a model).
 
 ### GET /api/projects/:id/art
 Every `.png` in the project's `art/` folder, sorted by name (plain files
@@ -160,6 +160,38 @@ nothing behind (no partial or temp file).
 The project `revision` covers every file in the project including art and
 `data/graphics.json`, so uploads and deletes change it. A `PUT
 /api/projects/:id` that carries an older `baseRevision` gets `409`.
+
+### GET /api/projects/:id/models
+Every `.glb` and `.gltf` in the project's `models/` folder (same name rule as
+art, plain files only), sorted by name, with the entries of the SAVED
+`data/graphics.json` that name each file. No `models/` folder gives an empty list.
+```json
+{ "models": [ { "file": "models/knight.glb", "size": 1234,
+                "usedBy": [ { "style": "solid", "kind": "units", "id": "knight" } ] } ] }
+```
+`kind` is `"units"` or `"structures"`.
+
+### PUT /api/projects/:id/models/<name>.glb
+Uploads a model. The body is the raw `.glb` file. Only `.glb` can be uploaded
+(a `.gltf` with side files cannot). `<name>` follows the art rule
+(`[a-z0-9][a-z0-9_-]{0,39}\.glb`). `?overwrite=1` is needed to replace a file.
+The body must start with the glTF binary header: `glTF` and version 2.
+
+- `201 { "file": "models/knight.glb", "size": 1234, "revision": "<new>" }`
+- `400` bad name (a `.gltf` name says only `.glb` can be uploaded); empty
+  body; not a glTF binary (`"this is not a .glb model file (it does not start
+  with \"glTF\"); ..."`); a version other than 2; `models/` or the file is a
+  link. `404` unknown project. `409` file exists without `?overwrite=1`.
+- `413` body larger than 8 MB.
+
+The file's contents beyond the header are not checked here; the player reports
+a model it cannot read when a battle starts.
+
+### DELETE /api/projects/:id/models/<name>.glb
+- `200 { "revision": "<new>" }`.
+- `409 { "error": "…", "usedBy": [ … ] }` while the SAVED `data/graphics.json`
+  names the file (`usedBy` as in the list). Nothing is deleted.
+- `404` no such file; `400` bad name.
 
 ### GET /api/fonts
 `{ "fonts": [ { "id": "pixel", "name": "Pixel (built-in)", "size": 8, "smooth": false }, … ] }`
