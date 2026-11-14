@@ -35,6 +35,10 @@
     "critMultiplier": 3,
     "strikes": "(a.spd - b.spd >= 4) and 2 or 1"
   },
+  "styles": [
+    { "id": "classic", "name": "Classic" },
+    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" }
+  ],
   "scripts": [],
   "maps": [
     { "id": "ford", "name": "The Ford", "file": "maps/ford.json" }
