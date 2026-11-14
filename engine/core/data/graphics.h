@@ -85,6 +85,17 @@ struct GraphicsSet {
   std::vector<Look> terrain;        // per terrain index
   std::vector<UnitLook> units;      // per unit type index
   std::vector<UnitLook> structures; // per structure type index (same shape as a unit's look)
+  // Portraits of the dialogue box (docs/EVENTS.md): id -> one cell (Look::Still). The id is the
+  // line's own `portrait` or the speaking unit's story id. A portrait is a face, not a view-kind
+  // dependent picture, so every style starts from the general ones (unlike terrain and units).
+  std::vector<std::pair<std::string, Look>> portraits;
+
+  // The portrait with this id, or null.
+  const Look* portrait(const std::string& id) const {
+    for (const auto& p : portraits)
+      if (p.first == id) return &p.second;
+    return nullptr;
+  }
 };
 
 struct Graphics {

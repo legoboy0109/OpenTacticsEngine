@@ -185,10 +185,36 @@ bool readThingLooks(const LoadCtx& c, const Database& db, const Json& o, const s
   return true;
 }
 
+// The "portraits" map of the file root or of one style: id -> { "sheet", "cell" }, applied on top of
+// what `set` already has (replacing per id; null removes the id).
+bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const std::string& prefix, GraphicsSet& set) {
+  const Json* m;
+  if (!c.object(o, "portraits", prefix, m)) return false;
+  for (const Json::Member& e : m->members()) {
+    std::string where = prefix + (prefix.empty() ? "" : ": ") + "portrait " + q(e.first);
+    if (e.first.empty()) return c.fail(where, "the id must not be empty");
+    auto& list = set.portraits;
+    for (size_t i = 0; i < list.size(); ++i)
+      if (list[i].first == e.first) {
+        list.erase(list.begin() + (long)i);
+        break;
+      }
+    if (e.second.isNull()) continue;
+    if (e.second.isObject() && (e.second.has("frames") || e.second.has("variants") || e.second.has("join")))
+      return c.fail(where, "a portrait is one \"cell\" of a sheet");
+    Look look;
+    if (!readLook(c, db, e.second, where, false, -1, look, "portraits")) return false;
+    if (look.kind != Look::Still) return c.fail(where, "a portrait is one \"cell\" of a sheet");
+    list.push_back(std::make_pair(e.first, look));
+  }
+  return true;
+}
+
 // The "terrain" / "units" / "structures" maps of the file root or of one style, applied on
 // top of `set`. A null value removes the art (placeholder look).
 bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::string& prefix, bool view3d,
              GraphicsSet& set) {
+  if (!readPortraits(c, db, o, prefix, set)) return false;
   const Json* m;
   if (!c.object(o, "terrain", prefix, m)) return false;
   for (const Json::Member& e : m->members()) {
