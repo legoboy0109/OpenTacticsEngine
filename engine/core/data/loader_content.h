@@ -21,6 +21,14 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err);
 
 class LoadCtx;
 class Json;
+// The side index of a map side id, -1 if there is none (map_loader.cpp).
+int findMapSide(const MapDef& m, const std::string& id);
+// A unit entry of a map or of the addUnit command, in two halves (map_loader.cpp): what it is and
+// where (checks type, side, position inside the map; `where` is extended to name the unit),
+// then its stats and items.
+bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, std::string& where,
+                  MapUnitDef& u);
+bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u);
 // A list of items handed out by data ("items" of a unit type or a map unit, "storage" of a map side):
 // ids or { "item", "uses", "drop" }. A missing key gives an empty list. maxCount < 0 = any length.
 bool readItemGrants(const LoadCtx& c, const Database& db, const Json& o, const char* key, const std::string& where,

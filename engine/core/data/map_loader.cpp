@@ -2,6 +2,7 @@
 
 #include "core/data/loader.h"
 #include "core/data/loader_content.h"
+#include "core/data/events.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -165,31 +166,61 @@ bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapD
   return true;
 }
 
+}  // namespace
+
+int findMapSide(const MapDef& m, const std::string& id) { return findSide(m, id); }
+
+// The first half of a unit entry (map "units" and the addUnit command): what it is and where.
+// `where` ends up naming the unit for later messages.
+bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, std::string& where,
+                  MapUnitDef& u) {
+  std::string type, side;
+  if (!c.str(e, "type", where, type, true) || !c.str(e, "side", where, side, true) ||
+      !c.integer(e, "x", where, u.x, true) || !c.integer(e, "y", where, u.y, true))
+    return false;
+  if (!c.str(e, "name", where, u.name) || !c.integer(e, "level", where, u.level) ||
+      !c.boolean(e, "leader", where, u.leader) || !c.str(e, "id", where, u.id))
+    return false;
+  u.type = db.findUnitType(type);
+  if (u.type < 0) return c.fail(where, "unknown unit type \"" + type + "\"");
+  u.side = findSide(m, side);
+  if (u.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
+  where += " (" + type + (u.name.empty() ? "" : " \"" + u.name + "\"") + " at " +
+           std::to_string(u.x) + "," + std::to_string(u.y) + ")";
+  if (e.has("id") && !isStoryId(u.id))
+    return c.fail(where, "\"id\" must be letters, digits, \"_\" and \"-\" (got \"" + u.id + "\")");
+  if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
+  if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
+    return c.fail(where, "position is outside the map");
+  return true;
+}
+
+// The second half: stats and items.
+bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u) {
+  u.stats = db.unitTypes[static_cast<size_t>(u.type)].stats;
+  if (!c.statMap(db, e, "stats", where, u.stats)) return false;
+  u.hasItems = e.has("items");
+  return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items);
+}
+
+namespace {
+
 bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m, const std::vector<int>& structureAt) {
   const Json* list;
   if (!c.array(root, "units", "", list)) return false;
   std::map<int, int> occupied;  // cell -> unit index
+  std::map<std::string, int> ids;  // story id -> unit index
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
     std::string where = "units[" + std::to_string(i) + "]";
     if (!e.isObject()) return c.fail(where, "must be an object");
     MapUnitDef u;
-    std::string type, side;
-    if (!c.str(e, "type", where, type, true) || !c.str(e, "side", where, side, true) ||
-        !c.integer(e, "x", where, u.x, true) || !c.integer(e, "y", where, u.y, true))
-      return false;
-    if (!c.str(e, "name", where, u.name) || !c.integer(e, "level", where, u.level) ||
-        !c.boolean(e, "leader", where, u.leader))
-      return false;
-    u.type = db.findUnitType(type);
-    if (u.type < 0) return c.fail(where, "unknown unit type \"" + type + "\"");
-    u.side = findSide(m, side);
-    if (u.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
-    where += " (" + type + (u.name.empty() ? "" : " \"" + u.name + "\"") + " at " +
-             std::to_string(u.x) + "," + std::to_string(u.y) + ")";
-    if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
-    if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
-      return c.fail(where, "position is outside the map");
+    if (!readUnitHead(c, db, m, e, where, u)) return false;
+    if (!u.id.empty()) {
+      if (ids.count(u.id))
+        return c.fail(where, "\"id\" \"" + u.id + "\" is already used by units[" + std::to_string(ids[u.id]) + "]");
+      ids[u.id] = static_cast<int>(i);
+    }
     int cell = u.y * m.width + u.x;
     if (occupied.count(cell))
       return c.fail(where, "shares a cell with units[" + std::to_string(occupied[cell]) + "]");
@@ -207,10 +238,7 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
       return c.fail(where, "starts on " + what + " which is impassable for move type \"" +
                                db.moveTypes[static_cast<size_t>(ut.moveType)].id + "\"");
     }
-    u.stats = ut.stats;
-    if (!c.statMap(db, e, "stats", where, u.stats)) return false;
-    u.hasItems = e.has("items");
-    if (!readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items)) return false;
+    if (!readUnitBody(c, db, e, where, u)) return false;
     m.units.push_back(u);
   }
   return true;
@@ -236,7 +264,8 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   if (!c.str(root, "name", "", m.name)) return false;
   std::vector<int> structureAt;
   if (!loadGrid(c, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
-      !loadStructures(c, db, root, m, structureAt) || !loadUnits(c, db, root, m, structureAt))
+      !loadStructures(c, db, root, m, structureAt) || !loadUnits(c, db, root, m, structureAt) ||
+      !loadMapStory(db, root, m, path, err))
     return false;
   out = m;
   err.clear();

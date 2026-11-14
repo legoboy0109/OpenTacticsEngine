@@ -4,6 +4,8 @@
 //
 // File format: docs/GAME_FORMAT.md. Loader: core/data/loader.h.
 #pragma once
+#include <memory>
+
 #include "core/data/graphics.h"
 #include "core/base/types.h"
 #include "core/grid/grid.h"
@@ -13,6 +15,9 @@ namespace ote {
 struct StatDef { std::string id, name; };
 struct ResourceDef { std::string id, name; };
 struct MoveTypeDef { std::string id, name; };
+// Story switches (off / on) and variables (whole numbers, start 0): docs/EVENTS.md.
+struct SwitchDef { std::string id, name; };
+struct VariableDef { std::string id, name; };
 
 // An amount of one resource (costs, income, starting funds).
 struct Amount {
@@ -205,6 +210,8 @@ struct Database {
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
   std::vector<MoveTypeDef> moveTypes;
+  std::vector<SwitchDef> switches;       // game.json "switches" (optional)
+  std::vector<VariableDef> variables;    // game.json "variables" (optional)
   std::vector<TerrainDef> terrains;
   std::vector<StructureDef> structures;  // data/structures.json (optional)
   std::vector<WeaponDef> weapons;
@@ -219,6 +226,8 @@ struct Database {
   int findStat(const std::string& id) const;
   int findResource(const std::string& id) const;
   int findMoveType(const std::string& id) const;
+  int findSwitch(const std::string& id) const;
+  int findVariable(const std::string& id) const;
   int findTerrain(const std::string& id) const;
   int findStructure(const std::string& id) const;
   int findWeapon(const std::string& id) const;
@@ -246,6 +255,8 @@ const Props& squareNumbers(const Database& db, int terrain, int structure, Props
 
 // ---- Map (one battle setup) ----
 
+struct StoryData;  // events and objectives of a map (core/data/events.h)
+
 struct MapSideDef {
   std::string id, name;
   uint32_t color = 0xffffff;
@@ -256,6 +267,7 @@ struct MapSideDef {
 };
 
 struct MapUnitDef {
+  std::string id;    // optional story id, unique in the map (docs/EVENTS.md "Named units"); empty = none
   int type = 0;
   int side = 0;
   int x = 0, y = 0;
@@ -283,6 +295,7 @@ struct MapDef {
   std::vector<MapSideDef> sides;
   std::vector<MapStructureDef> structures;
   std::vector<MapUnitDef> units;
+  std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
 };
 
 }  // namespace ote
