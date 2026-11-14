@@ -121,8 +121,8 @@ std::string describeEvent(const Battle& b, const Event& e) {
       // The speaker is a unit (its current name), a free name, or nobody.
       std::string who = e.a >= 0 && e.a < (int)b.units.size() ? b.units[(size_t)e.a].name
                         : e.c >= 0 ? b.storyText(e.c) : "Narrator";
-      std::string portrait = e.d >= 0 ? " [portrait " + b.storyText(e.d) + "]" : "";
-      return "\"" + who + "\"" + portrait + ": " + b.storyText(e.b);
+      std::string portrait = e.d >= 0 ? " [" + b.storyText(e.d) + "]" : "";
+      return who + portrait + ": " + b.storyText(e.b);
     }
     case EventType::Focus:
       return e.b >= 0 ? fmt("view follows %s at %s", unitName(b, e.b).c_str(), cellName(b, e.a).c_str())
