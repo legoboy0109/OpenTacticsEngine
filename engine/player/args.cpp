@@ -21,7 +21,7 @@ const char* usageText() {
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
          "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
-         "input tokens: up down left right confirm cancel menu next prev turnleft turnright wait wait:N tap:X:Y\n";
+         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout wait wait:N tap:X:Y\n";
 }
 
 namespace {

@@ -17,6 +17,11 @@ class SdlInput {
 
  private:
   StickMapper stick_;
+  // The camera stick: sideways turns, up and down tilts. The triggers zoom.
+  StickMapper camStick_{Button::TurnLeft, Button::TurnRight, Button::TiltUp, Button::TiltDown};
+  StickMapper triggers_{Button::None, Button::ZoomOut, Button::None, Button::ZoomIn};
+  bool dragging_ = false;  // the second pointer button is held
+  float dragX_ = 0, dragY_ = 0;  // drag distance not handed on yet (fractions of a pixel)
 };
 
 }  // namespace ote

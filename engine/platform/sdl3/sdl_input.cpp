@@ -19,6 +19,10 @@ Button keyButton(SDL_Scancode sc) {
     case SDL_SCANCODE_M: return Button::Menu;
     case SDL_SCANCODE_COMMA: case SDL_SCANCODE_LEFTBRACKET: return Button::TurnLeft;
     case SDL_SCANCODE_PERIOD: case SDL_SCANCODE_RIGHTBRACKET: return Button::TurnRight;
+    case SDL_SCANCODE_PAGEUP: case SDL_SCANCODE_R: return Button::TiltUp;
+    case SDL_SCANCODE_PAGEDOWN: case SDL_SCANCODE_F: return Button::TiltDown;
+    case SDL_SCANCODE_EQUALS: case SDL_SCANCODE_KP_PLUS: return Button::ZoomIn;
+    case SDL_SCANCODE_MINUS: case SDL_SCANCODE_KP_MINUS: return Button::ZoomOut;
     default: return Button::None;
   }
 }
@@ -82,6 +86,8 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
     case SDL_EVENT_GAMEPAD_REMOVED:
       if (SDL_Gamepad* pad = SDL_GetGamepadFromID(e.gdevice.which)) SDL_CloseGamepad(pad);
       stick_.reset();
+      camStick_.reset();
+      triggers_.reset();
       OTE_INFO("gamepad disconnected");
       break;
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
@@ -95,14 +101,37 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
     case SDL_EVENT_GAMEPAD_AXIS_MOTION:
       if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX) stick_.update(0, e.gaxis.value, out);
       else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY) stick_.update(1, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTX) camStick_.update(0, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTY) camStick_.update(1, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER) triggers_.update(0, e.gaxis.value, out);
+      else if (e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) triggers_.update(1, e.gaxis.value, out);
+      break;
+    case SDL_EVENT_MOUSE_WHEEL:  // one press per notch: away from the player zooms in
+      if (e.wheel.y != 0) {
+        Button b = e.wheel.y > 0 ? Button::ZoomIn : Button::ZoomOut;
+        out.push_back(buttonEvent(InputEvent::ButtonDown, b));
+        out.push_back(buttonEvent(InputEvent::ButtonUp, b));
+      }
       break;
     case SDL_EVENT_MOUSE_MOTION:
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
     case SDL_EVENT_MOUSE_BUTTON_UP: {
-      if (e.type != SDL_EVENT_MOUSE_MOTION && e.button.button != SDL_BUTTON_LEFT) break;
+      if (e.type != SDL_EVENT_MOUSE_MOTION && e.button.button != SDL_BUTTON_LEFT) {
+        if (e.button.button == SDL_BUTTON_RIGHT) dragging_ = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
+        break;
+      }
       SDL_ConvertEventToRenderCoordinates(renderer, &e);
       InputEvent ev;
-      if (e.type == SDL_EVENT_MOUSE_MOTION) {
+      if (e.type == SDL_EVENT_MOUSE_MOTION && dragging_ && (e.motion.state & SDL_BUTTON_RMASK)) {
+        ev.type = InputEvent::CameraDrag;  // how far, in logical pixels (rounded: slow drags still add up over events)
+        dragX_ += e.motion.xrel;
+        dragY_ += e.motion.yrel;
+        ev.x = (int)dragX_;
+        ev.y = (int)dragY_;
+        dragX_ -= (float)ev.x;
+        dragY_ -= (float)ev.y;
+        if (ev.x == 0 && ev.y == 0) break;
+      } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
         ev.type = InputEvent::PointerMove;
         ev.x = (int)SDL_floorf(e.motion.x);
         ev.y = (int)SDL_floorf(e.motion.y);
