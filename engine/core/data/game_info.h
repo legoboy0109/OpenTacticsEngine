@@ -14,6 +14,7 @@ struct StyleInfo { std::string id, name; };
 struct GameInfo {
   std::string name, description, author;
   int mapCount = 0;
+  SavingMode saving = SavingMode::Any;  // unknown values read as Any (loadGame rejects them)
   FontConfig font;                // the game's own font choice
   std::vector<StyleInfo> styles;  // never empty; [0] is the default style
 };

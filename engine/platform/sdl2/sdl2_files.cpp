@@ -5,6 +5,7 @@
 // games/index.json to know which games exist.
 #include <SDL.h>
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -62,6 +63,27 @@ bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
 #else
   return false;
 #endif
+}
+
+bool makeDir(const std::string& path) {
+#if defined(_WIN32)
+  if (CreateDirectoryA(path.c_str(), nullptr)) return true;
+  return GetLastError() == ERROR_ALREADY_EXISTS;
+#elif defined(OTE_POSIX_DIRS)
+  if (mkdir(path.c_str(), 0755) == 0) return true;
+  struct stat st;
+  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);  // already there
+#else
+  return false;
+#endif
+}
+
+bool removeFile(const std::string& path) {
+  if (std::remove(path.c_str()) == 0) return true;
+  FILE* f = std::fopen(path.c_str(), "rb");  // failed because it was not there?
+  if (!f) return true;
+  std::fclose(f);
+  return false;
 }
 
 }  // namespace ote

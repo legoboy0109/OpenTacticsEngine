@@ -129,4 +129,12 @@ void commitUserData();
 // platform cannot list folders (callers must then rely on index files).
 bool listSubdirs(const std::string& path, std::vector<std::string>& names);
 
+// Creates the folder (one level; callers create parents first). True if the
+// folder exists afterwards, including when it already did.
+bool makeDir(const std::string& path);
+
+// Deletes a file. True if the file is gone afterwards (also when it never
+// existed).
+bool removeFile(const std::string& path);
+
 }  // namespace ote

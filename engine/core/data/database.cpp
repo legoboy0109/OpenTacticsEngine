@@ -9,6 +9,14 @@ static int findById(const std::vector<T>& v, const std::string& id) {
   return -1;
 }
 
+bool parseSavingMode(const std::string& text, SavingMode& out) {
+  if (text == "any") out = SavingMode::Any;
+  else if (text == "continue") out = SavingMode::Continue;
+  else if (text == "off") out = SavingMode::Off;
+  else return false;
+  return true;
+}
+
 int Database::findStat(const std::string& id) const { return findById(stats, id); }
 int Database::findResource(const std::string& id) const { return findById(resources, id); }
 int Database::findMoveType(const std::string& id) const { return findById(moveTypes, id); }
