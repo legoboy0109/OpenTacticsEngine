@@ -234,15 +234,28 @@ def make_game(root, repo):
 
     # Styles with the isometric kind of view start without any art, so they get a full set of their own.
     iso_ids = [s['id'] for s in game_styles if s.get('view') == 'isometric']
+    iso3d_ids = [s['id'] for s in game_styles if s.get('view') == 'isometric-3d']
+    iso_units = None
     if iso_ids:
         iso.terrain_sheet().image().save(os.path.join(art_dir, 'iso_tiles.png'))
         sheets.append({'id': 'iso_tiles', 'file': 'art/iso_tiles.png', 'cellWidth': iso.CW, 'cellHeight': iso.CH})
+    if (iso_ids or iso3d_ids) and units_here:
+        iso.unit_sheet(units_here).image().save(os.path.join(art_dir, 'iso_units.png'))
+        sheets.append({'id': 'iso_units', 'file': 'art/iso_units.png', 'cellWidth': iso.UNIT_W, 'cellHeight': iso.UNIT_H})
+        iso_units = {uid: {'sheet': 'iso_units', 'frames': [[0, row], [1, row]], 'frameMs': 600}
+                     for row, uid in enumerate(units_here)}
+    # The 3D isometric view lays a terrain picture flat on top of its block, so the top-down
+    # tiles fit as they are; units are the standing ones; structures stand up as pictures.
+    for sid in iso3d_ids:
+        styles[sid] = {'terrain': terrain}
+        if iso_units:
+            styles[sid]['units'] = iso_units
+        if structure_looks:
+            styles[sid]['structures'] = structure_looks
+    if iso_ids:
         iso_set = {'terrain': iso.terrain_looks(terrain_ids, 'iso_tiles', FRAME_MS)}
-        if units_here:
-            iso.unit_sheet(units_here).image().save(os.path.join(art_dir, 'iso_units.png'))
-            sheets.append({'id': 'iso_units', 'file': 'art/iso_units.png', 'cellWidth': iso.UNIT_W, 'cellHeight': iso.UNIT_H})
-            iso_set['units'] = {uid: {'sheet': 'iso_units', 'frames': [[0, row], [1, row]], 'frameMs': 600}
-                                for row, uid in enumerate(units_here)}
+        if iso_units:
+            iso_set['units'] = iso_units
         iso_structs = {}
         for sid, w, h in structs:
             if sid not in structure_looks:

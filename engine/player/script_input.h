@@ -1,6 +1,6 @@
 // Test automation: feeds a comma-separated token script to the App as if a
 // player were pressing buttons.
-//   up down left right confirm cancel menu next prev   press+release
+//   up down left right confirm cancel menu next prev turnleft turnright   press+release
 //   wait | wait:N                                      idle for 1 / N intervals
 //   tap:X:Y                                            pointer down+up at logical pixel
 // One token is consumed every `interval` frames, starting after frame 1.

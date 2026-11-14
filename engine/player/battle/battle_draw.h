@@ -8,6 +8,7 @@
 #include "battle/battle_view.h"
 #include "battle/iso_tiles.h"
 #include "battle/layout.h"
+#include "battle/map3d.h"
 #include "battle/map_proj.h"
 #include "battle/sprites.h"
 #include "core/battle/battle.h"
@@ -26,6 +27,7 @@ struct DrawCtx {
   int styleIndex = 0;                // index of `style` in Database::styles (picks the art set)
   const MapProj* proj = nullptr;     // where squares are on screen (null = plain top-down)
   IsoTiles* tiles = nullptr;         // pictures the isometric view makes for itself
+  Map3D* map3d = nullptr;            // the drawer of the 3D isometric view (null in the other kinds)
 
   // A spot in flat map pixels (what BattleView animates) -> screen pixels.
   void toScreen(float fx, float fy, int& sx, int& sy) const {
@@ -35,6 +37,9 @@ struct DrawCtx {
     sy = (int)std::lround(wy) - cam.iy();
   }
   bool iso() const { return proj && proj->iso() && tiles; }
+  bool iso3d() const { return proj && proj->iso3d() && map3d; }
+  // Squares are shown at their heights and units stand upright on them.
+  bool raised() const { return iso() || iso3d(); }
 };
 
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).

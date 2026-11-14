@@ -25,7 +25,8 @@ struct Color {
 
 // Logical buttons. Backends map keyboard, gamepad and touch onto these, so
 // game code never sees device-specific keys.
-enum class Button { None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev };
+// TurnLeft / TurnRight turn the camera in views that can turn (docs/VIEWS.md).
+enum class Button { None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight };
 
 struct InputEvent {
   enum Type { ButtonDown, ButtonUp, PointerMove, PointerDown, PointerUp, Quit };

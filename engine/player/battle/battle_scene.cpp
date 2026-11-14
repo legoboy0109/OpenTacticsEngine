@@ -1,6 +1,7 @@
 #include "battle/battle_scene.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "core/ai/ai.h"
 #include "core/base/log.h"
@@ -19,6 +20,7 @@ BattleScene::BattleScene(SceneHost& host)
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
+  if (proj_.iso3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
   view_.push(session_.startEvents);  // first TurnStarted + income
   int rx, ry;
@@ -42,6 +44,13 @@ bool BattleScene::humanTurn() const {
 Cell BattleScene::cellAt(int x, int y) const {
   if (x < 0 || y < 0 || x >= layout_.vw || y >= layout_.vh) return kNoCell;
   return proj_.pick(x + cam_.ix(), y + cam_.iy());
+}
+
+// Bottom-left corner of the map: 0 = turn left, 1 = turn right.
+void BattleScene::turnButtonBox(int which, int& x, int& y, int& w, int& h) const {
+  w = h = std::max(14, layout_.lh + 8);
+  x = 3 + which * (w + 3);
+  y = layout_.vh - h - 3;
 }
 
 void BattleScene::cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const {
@@ -124,7 +133,8 @@ void BattleScene::followCamera(double dt) {
   }
   float wx, wy;
   proj_.toWorld(fx, fy, wx, wy);
-  cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), dt);
+  if (map3d_ && !cam_.placed) cam_.centre(wx, wy, layout_, proj_.worldW(), proj_.worldH());
+  else cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), dt);
 }
 
 void BattleScene::update(double dt) {
@@ -139,6 +149,22 @@ void BattleScene::update(double dt) {
       beginHumanTurn();
     }
   }
+  if (turnPos_ != (float)turn_) {  // a quarter turn takes a quarter of a second
+    float d = (float)turn_ - turnPos_, step = (float)dt * 4.0f;
+    turnPos_ = std::fabs(d) <= step ? (float)turn_ : turnPos_ + (d > 0 ? step : -step);
+    if (turnPos_ == (float)turn_) {  // keep the numbers small: whole turns change nothing
+      turn_ = ((turn_ % 4) + 4) % 4;
+      turnPos_ = (float)turn_;
+    }
+    // The square under the cursor keeps its place on screen while the map turns about it.
+    Cell c = battle_.grid.valid(cursor_) ? cursor_ : 0;
+    float fx = (battle_.grid.x(c) + 0.5f) * layout_.tile, fy = (battle_.grid.y(c) + 0.5f) * layout_.tile, ax, ay, bx, by;
+    proj_.toWorld(fx, fy, ax, ay);
+    proj_.setTurn(turnPos_);
+    proj_.toWorld(fx, fy, bx, by);
+    cam_.x += bx - ax;
+    cam_.y += by - ay;
+  }
   if (noticeTime_ > 0) noticeTime_ -= (float)dt;
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
@@ -152,7 +178,8 @@ std::string BattleScene::hint() const {
   switch (mode_) {
     case Mode::Idle:
       if (!humanHasOptions()) return "All units done.  Menu (M): end turn";
-      return "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
+      return map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
+                    : "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
     case Mode::Selected: return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
     case Mode::ActionMenu: return "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
@@ -165,12 +192,22 @@ std::string BattleScene::hint() const {
 void BattleScene::draw(Renderer& r) {
   ensureLayout(r);
   DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_,
-              &proj_, host_.isoTiles()};
+              &proj_, host_.isoTiles(), map3d_.get()};
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));
   drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : Overlay(), cursor_, human);
   drawFloats(r, ctx, false);
+  if (map3d_) {  // the two turn buttons, for pointer and touch
+    for (int i = 0; i < 2; ++i) {
+      int x, y, w, h;
+      turnButtonBox(i, x, y, w, h);
+      r.fillRect(x, y, w, h, Color(10, 12, 24, 190));
+      r.drawRect(x, y, w, h, Color(150, 156, 185, 200));
+      const char* label = i ? ">" : "<";
+      r.drawText(x + (w - r.textWidth(label)) / 2, y + (h - layout_.lh) / 2, label, Color(235, 238, 255));
+    }
+  }
   bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
   drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
   drawHint(r, layout_, hint());

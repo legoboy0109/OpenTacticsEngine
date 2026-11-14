@@ -1,0 +1,262 @@
+// What stands on the 3D isometric map's blocks: pictures on the tops,
+// structures, highlights, the cursor, units, and the 2D things on top.
+#include <algorithm>
+#include <cmath>
+
+#include "battle/battle_draw.h"
+#include "battle/map3d.h"
+#include "ui/text.h"
+
+namespace ote {
+
+namespace {
+
+const float kWall = 0.45f;  // height of a placeholder structure's box, in squares
+
+Tint3D tintOf(Color c, float alpha = 1.0f) { return Tint3D(c.r, c.g, c.b, (uint8_t)(c.a * alpha + 0.5f)); }
+
+Material3D flat(Blend3D blend = Blend3D::Opaque, bool depthTest = true) {
+  Material3D m;
+  m.lit = false;
+  m.twoSided = true;
+  m.blend = blend;
+  m.depthTest = depthTest;
+  return m;
+}
+
+// Elevation a structure stands at: the highest of its squares.
+int structureElev(const DrawCtx& c, const StructureState& st, const StructureDef& def) {
+  int e = 0;
+  for (int dy = 0; dy < def.height; ++dy)
+    for (int dx = 0; dx < def.width; ++dx)
+      if (c.battle.grid.at(st.x + dx, st.y + dy) != kNoCell) e = std::max(e, c.proj->elevation(st.x + dx, st.y + dy));
+  return e;
+}
+
+// A unit's spot in squares (BattleView animates flat map pixels).
+void unitSpot(const DrawCtx& c, const UnitView& v, float& gx, float& gy) {
+  int t = c.proj->tile();
+  gx = (v.px + v.ox) / t + 0.5f;
+  gy = (v.py + v.oy) / t + 0.5f;
+}
+
+// Height in pixels of a unit's body as drawn (picture or placeholder block).
+int unitBodyPx(const DrawCtx& c, const Unit& u, const UnitView& v) {
+  int uw = c.proj->unitW();
+  if (const Look* art = unitArt(c, u)) {
+    SpriteSrc src = lookSrc(c, *art);
+    return std::max(1, (int)(uw * v.scale) * src.h / std::max(1, src.w));
+  }
+  return std::max(2, (int)(uw * 3 / 4 * v.scale));
+}
+
+}  // namespace
+
+// The terrain pictures, laid flat on the tops (north of the picture = grid
+// north). Refilled every frame: animated and joining terrain change pieces.
+void Map3D::drawTops(const DrawCtx& c) {
+  const Battle& b = c.battle;
+  const Iso3DGeometry& g = c.proj->geo3();
+  for (int y = 0; y < g.gridH; ++y)
+    for (int x = 0; x < g.gridW; ++x) {
+      Cell cell = b.grid.at(x, y);
+      const Look* art = terrainArt(c, b.cells[cell].terrain);
+      if (!art) continue;
+      SpriteSrc src = terrainSrc(c, *art, cell);
+      Material3D m = flat();
+      float uv[4];
+      if (!picture(c, *art, src.x, src.y, src.w, src.h, m, uv)) continue;
+      // A hair above the block so the picture, not the block, wins where both are.
+      groundQuad(batch_.mesh(m), c, x, y, 1, 1, c.proj->elevation(x, y) * g.stepY + 0.001f, 0, Tint3D(), uv);
+    }
+}
+
+void Map3D::drawStructures(const DrawCtx& c) {
+  const Battle& b = c.battle;
+  const Iso3DGeometry& g = c.proj->geo3();
+  for (const StructureState& st : b.structures) {
+    const StructureDef& def = b.defOf(st);
+    float Y = structureElev(c, st, def) * g.stepY;
+    if (st.owner >= 0)
+      frame(batch_.mesh(flat()), c, st.x, st.y, def.width, def.height, Y + 0.012f, 0.07f,
+            tintOf(Color::rgb(b.sides[(size_t)st.owner].color)));
+    const Look* art = structureArt(c, st);
+    Material3D m = flat(Blend3D::Cutout);
+    float uv[4];
+    SpriteSrc src;
+    if (art) src = lookSrc(c, *art);
+    if (art && picture(c, *art, src.x, src.y, src.w, src.h, m, uv)) {
+      // A standing picture in the middle of the footprint, a little wider than a square's edge per square.
+      float wPx = (def.width + def.height) * 0.5f * g.pixels * 1.15f;
+      Spot feet = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
+      feet.Y = Y;
+      upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(), uv);
+    } else {
+      // Placeholder: a low lit box in the structure's colour.
+      Spot a = spot(c, st.x + 0.08f, st.y + 0.08f, 0), z = spot(c, st.x + def.width - 0.08f, st.y + def.height - 0.08f, 0);
+      Tint3D col = tintOf(Color::rgb(structureRgb(c, st.type)));
+      Material3D lit;
+      addBlock(batch_.mesh(lit), Vec3(a.X, Y, a.Z), Vec3(z.X, Y + kWall, z.Z), col, col);
+    }
+  }
+}
+
+void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
+  const Battle& b = c.battle;
+  const Iso3DGeometry& g = c.proj->geo3();
+  // Top of what covers a square: its block, or the placeholder box of a structure on it.
+  auto topOf = [&](Cell cell, int x, int y) {
+    int si = b.structureAt[cell];
+    if (si >= 0 && !structureArt(c, b.structures[(size_t)si]))
+      return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY + kWall;
+    return c.proj->elevation(x, y) * g.stepY;
+  };
+  if (ov.any()) {
+    MeshData& m = batch_.mesh(flat(Blend3D::Blend));
+    for (int y = 0; y < g.gridH; ++y)
+      for (int x = 0; x < g.gridW; ++x) {
+        Cell cell = b.grid.at(x, y);
+        if (ov.reach[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(50, 110, 255, 120));
+        else if (ov.attack[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(255, 50, 50, 120));
+      }
+  }
+  if (showCursor && b.grid.valid(cursor)) {
+    int x = b.grid.x(cursor), y = b.grid.y(cursor);
+    int pulse = 200 + (int)(55 * std::sin(c.time * 6.0f));
+    float Y = topOf(cursor, x, y) + 0.024f;
+    frame(batch_.mesh(flat(Blend3D::Blend)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)pulse));
+    // Behind higher blocks: again, faintly, over everything.
+    if (hidden_[(size_t)cursor])
+      frame(batch_.mesh(flat(Blend3D::Blend, false)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)(pulse * 2 / 5)));
+  }
+}
+
+void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float fade, bool through) {
+  const Battle& b = c.battle;
+  const Iso3DGeometry& g = c.proj->geo3();
+  int uw = c.proj->unitW();
+  float gx, gy;
+  unitSpot(c, v, gx, gy);
+  Spot feet = spot(c, gx, gy, c.proj->elevationAt(gx, gy));
+  float al = v.alpha * fade;
+  // Solid things are cut out against the depth picture; fading ones are blended in afterwards.
+  Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;
+  Color side = Color::rgb(b.sides[(size_t)u.side].color);
+  if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
+  const Look* art = unitArt(c, u);
+  Material3D pm = flat(al < 0.999f ? Blend3D::Blend : Blend3D::Cutout, !through);
+  float uv[4];
+  SpriteSrc src;
+  if (art) src = lookSrc(c, *art);
+  if (art && picture(c, *art, src.x, src.y, src.w, src.h, pm, uv)) {
+    if (b.db->graphics.unitMarker) {
+      // A flat square in the side's colour under the feet, dark rim first.
+      float half = std::max(0.12f, 0.3f * v.scale);
+      MeshData& m = batch_.mesh(flat(solid, !through));
+      addQuad(m, Vec3(feet.X - half - 0.04f, feet.Y + 0.018f, feet.Z + half + 0.04f), Vec3(feet.X + half + 0.04f, feet.Y + 0.018f, feet.Z + half + 0.04f),
+              Vec3(feet.X + half + 0.04f, feet.Y + 0.018f, feet.Z - half - 0.04f), Vec3(feet.X - half - 0.04f, feet.Y + 0.018f, feet.Z - half - 0.04f),
+              Tint3D(20, 20, 28, (uint8_t)(200 * al)));
+      addQuad(m, Vec3(feet.X - half, feet.Y + 0.02f, feet.Z + half), Vec3(feet.X + half, feet.Y + 0.02f, feet.Z + half),
+              Vec3(feet.X + half, feet.Y + 0.02f, feet.Z - half), Vec3(feet.X - half, feet.Y + 0.02f, feet.Z - half), tintOf(side, al));
+    }
+    float w = std::max(1.0f, uw * v.scale);
+    uint8_t k = (uint8_t)(u.done ? 140 : 255);
+    upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), 0, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
+  } else {
+    // Placeholder: an upright block in the side's colour (its letter is drawn on top in 2D).
+    float bw = std::max(2.0f, uw * 0.75f * v.scale);
+    MeshData& m = batch_.mesh(flat(solid, !through));
+    upright(m, feet, bw + 2, bw + 1, 0, Tint3D(0, 0, 0, (uint8_t)(200 * al)));
+    upright(m, feet, bw, bw, 0.02f, tintOf(side, al));
+  }
+  (void)g;
+}
+
+// With the 2D renderer, over the finished 3D picture: letters of things
+// without art, leader marks, HP bars and capture numbers.
+void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
+  const Battle& b = c.battle;
+  const MapProj& p = *c.proj;
+  const Iso3DGeometry& g = p.geo3();
+  const Layout& L = c.layout;
+  const StyleDef* style = c.style;
+  bool letters = !(style && style->showGlyphs == 0);
+  auto screen = [&](float gx, float gy, float Y, int& sx, int& sy) {
+    float wx, wy;
+    g.projectPoint(gx - g.gridW * 0.5f, Y, gy - g.gridH * 0.5f, wx, wy);
+    sx = (int)std::lround(wx) - c.cam.ix();
+    sy = (int)std::lround(wy) - c.cam.iy();
+  };
+  auto off = [&](int sx, int sy) { return sx < -40 || sy < -40 || sx > L.vw + 40 || sy > L.vh + 40; };
+  int glyphPx = std::max(4, (int)(g.pixels * g.sinPitch * 0.64f));
+
+  if (letters) {
+    for (int y = 0; y < g.gridH; ++y)
+      for (int x = 0; x < g.gridW; ++x) {
+        Cell cell = b.grid.at(x, y);
+        if (hidden_[(size_t)cell] || b.structureAt[cell] >= 0) continue;
+        const TerrainDef& td = b.terrainAt(cell);
+        const Look* art = terrainArt(c, b.cells[cell].terrain);
+        if (td.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet))) continue;
+        int sx, sy;
+        screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY, sx, sy);
+        if (off(sx, sy)) continue;
+        Color col = Color::rgb(terrainRgb(c, b.cells[cell].terrain));
+        drawGlyphCentered(r, sx, sy, td.glyph, mix(col, readableOn(col), 0.28f), glyphPx);
+      }
+    for (const StructureState& st : b.structures) {
+      const StructureDef& def = b.defOf(st);
+      const Look* art = structureArt(c, st);
+      if (def.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet))) continue;
+      int sx, sy;
+      screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY + kWall, sx, sy);
+      if (off(sx, sy)) continue;
+      drawGlyphCentered(r, sx, sy, def.glyph, readableOn(Color::rgb(structureRgb(c, st.type))),
+                        glyphPx * std::min(def.width, def.height));
+    }
+  }
+
+  int uw = p.unitW();
+  for (const Unit& u : b.units) {
+    if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
+    const UnitView& v = c.view.units[u.id];
+    float gx, gy;
+    unitSpot(c, v, gx, gy);
+    int sx, sy;
+    screen(gx, gy, p.elevationAt(gx, gy) * g.stepY, sx, sy);
+    if (off(sx, sy)) continue;
+    float al = v.alpha;
+    auto a = [&](Color col) { return withAlpha(col, (int)(col.a * al)); };
+    int body = unitBodyPx(c, u, v);
+    const Look* art = unitArt(c, u);
+    if (!(art && sheets_.texture(r3d_, art->sheet))) {
+      Color side = Color::rgb(b.sides[(size_t)u.side].color);
+      if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
+      drawGlyphCentered(r, sx, sy - body / 2, b.typeOf(u).glyph, a(readableOn(side)), std::max(1, body * 3 / 4));
+    }
+    if (u.leader) {
+      r.fillRect(sx - uw / 2, sy - body - 1, 5, 5, a(Color(0, 0, 0, 220)));
+      r.fillRect(sx - uw / 2 + 1, sy - body, 3, 3, a(Color(255, 210, 40)));
+    }
+    // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
+    int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = sx - barW / 2, barY = sy + 2;
+    r.fillRect(barX - 1, barY - 1, barW + 2, 4, a(Color(0, 0, 0, 200)));
+    int fill = mx > 0 ? std::max(v.hp > 0 ? 1 : 0, barW * std::min(v.hp, mx) / mx) : 0;
+    r.fillRect(barX, barY, fill, 2, a(hpColor(v.hp, mx)));
+  }
+
+  for (const StructureState& st : b.structures) {
+    int pts = b.defOf(st).capturePoints;
+    if (st.capturer < 0 || pts <= 0 || st.capture >= pts) continue;
+    const Unit& u = b.units[st.capturer];
+    if (!u.alive || u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
+    int x = b.grid.x(u.cell), y = b.grid.y(u.cell), sx, sy;
+    screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY, sx, sy);
+    std::string n = intStr(st.capture);
+    int w = textW(r, n), tx = sx + uw / 2 - w / 2, ty = sy - uw - L.lh;
+    r.fillRect(tx - 1, ty - 1, w + 2, L.lh + 2, Color(0, 0, 0, 190));
+    r.drawText(tx, ty, n.c_str(), Color(255, 240, 120));
+  }
+}
+
+}  // namespace ote

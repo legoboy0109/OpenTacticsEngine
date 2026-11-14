@@ -61,6 +61,14 @@ struct Camera {
     return std::max(0.0f, std::min(t, (float)(map - view)));
   }
 
+  // Puts (fx, fy) in the middle of the viewport at once (views whose world
+  // box is mostly empty space around the map start like this).
+  void centre(float fx, float fy, const Layout& L, int mapW, int mapH) {
+    x = mapW <= L.vw ? -(L.vw - mapW) / 2.0f : std::max(0.0f, std::min(fx - L.vw / 2.0f, (float)(mapW - L.vw)));
+    y = mapH <= L.vh ? -(L.vh - mapH) / 2.0f : std::max(0.0f, std::min(fy - L.vh / 2.0f, (float)(mapH - L.vh)));
+    placed = true;
+  }
+
   // Keeps (fx, fy) inside the viewport (with a margin), easing quickly.
   void follow(float fx, float fy, const Layout& L, int mapW, int mapH, double dt) {
     int margin = L.tile * 2;
