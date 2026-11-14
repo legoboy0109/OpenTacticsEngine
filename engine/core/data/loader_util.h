@@ -170,6 +170,9 @@ bool readIdList(const LoadCtx& c, const Json& root, const char* key, bool requir
   return true;
 }
 
+// True when the file can be opened for reading (optional data files).
+bool fileExists(const std::string& path);
+
 // Loads a JSON file whose root must be an object; err is fully formed.
 bool loadObjectFile(const std::string& path, Json& out, std::string& err);
 

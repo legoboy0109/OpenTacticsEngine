@@ -1,5 +1,5 @@
 // Art in the battle scene: sheet textures of the loaded game, and drawing of
-// terrain squares and units with them (rules: docs/GRAPHICS.md "Drawing rules").
+// terrain squares, structures and units with them (rules: docs/GRAPHICS.md "Drawing rules").
 // A thing without art (or whose sheet failed to decode) gets no call here and
 // keeps its placeholder look.
 #pragma once
@@ -37,11 +37,20 @@ class Sprites {
 // has none usable (no art, or its sheet is missing).
 const Look* terrainArt(const DrawCtx& c, int terrain);
 const Look* unitArt(const DrawCtx& c, const Unit& u);
+// The look of a structure (its owner's own picture if the game gives one).
+const Look* structureArt(const DrawCtx& c, const StructureState& s);
 
 // Draws the art of the square `cell` into the rectangle (stretched, nearest).
 // The caller has filled the placeholder colour under it already. `look` comes
 // from terrainArt().
 void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, int dx, int dy, int dw, int dh);
+
+// Draws a structure picture across its footprint whose top-left is (sx, sy) and
+// which is fw x fh pixels: width = fw, height keeps the cell's proportions, the
+// bottom edge sits on the footprint's bottom edge (so tall pictures stick out
+// above it). `look` comes from structureArt(). Frames of an animated look follow
+// the battle's running time.
+void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, int sy, int fw, int fh);
 
 // Draws a unit with art on the square whose top-left is (sx, sy): side marker,
 // then the sprite. `scale` < 1 is the pop-in; `alpha` 0..1; `done` = has acted.

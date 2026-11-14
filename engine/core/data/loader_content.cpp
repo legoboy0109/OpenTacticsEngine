@@ -135,19 +135,77 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
     }
 
     if (!c.props(e, "props", where, t.props)) return false;
-    if (!c.integer(e, "capture", where, t.capturePoints)) return false;
-    if (t.capturePoints < 0) return c.fail(where, "\"capture\" must not be negative");
-    if (!c.amounts(db, e, "income", where, t.income)) return false;
+    // Buildings are structures now: say where each old setting went.
+    for (const char* old : {"capture", "capturePoints", "income", "produces"})
+      if (e.has(old))
+        return c.fail(where, std::string("\"") + old +
+                                 "\" now belongs to structures (data/structures.json), see docs/STRUCTURES.md");
+    if (!c.stringList(e, "tags", where, t.tags)) return false;
+    for (const std::string& tag : t.tags)
+      if (tag == "hq")
+        return c.fail(where, "the tag \"hq\" now belongs to structures (data/structures.json), see docs/STRUCTURES.md");
+    db.terrains.push_back(t);
+  }
+  return true;
+}
+
+bool loadStructures(const std::string& path, Database& db, std::string& err) {
+  db.structures.clear();
+  if (!fileExists(path)) return true;
+  Json root;
+  if (!loadObjectFile(path, root, err)) return false;
+  LoadCtx c(err, path);
+  const Json* list;
+  if (!c.array(root, "structures", "", list, true)) return false;
+  for (size_t i = 0; i < list->size(); ++i) {
+    const Json& e = (*list)[i];
+    StructureDef s;
+    std::string where;
+    if (!readEntryHead(c, e, "structure", i, db.structures, s, where)) return false;
+
+    std::string color, glyph;
+    if (!c.str(e, "color", where, color)) return false;
+    if (e.has("color")) {
+      bool ok = color.size() == 7 && color[size_t(0)] == '#';
+      for (size_t k = 1; ok && k < 7; ++k) ok = std::isxdigit(static_cast<unsigned char>(color[k])) != 0;
+      if (!ok) return c.fail(where, "\"color\" must look like \"#rrggbb\"");
+      s.color = parseColor(color, s.color);
+    }
+    if (!c.str(e, "glyph", where, glyph)) return false;
+    if (!glyph.empty()) s.glyph = glyph[0];
+
+    if (!c.integer(e, "width", where, s.width) || !c.integer(e, "height", where, s.height)) return false;
+    if (s.width < 1 || s.width > kMaxStructureSize || s.height < 1 || s.height > kMaxStructureSize)
+      return c.fail(where, "\"width\" and \"height\" must be between 1 and " + std::to_string(kMaxStructureSize) +
+                               " squares");
+
+    s.moveCost.assign(db.moveTypes.size(), -1);  // -1 = not set: the terrain's cost applies
+    const Json* mc;
+    if (!c.object(e, "moveCost", where, mc)) return false;
+    for (const Json::Member& m : mc->members()) {
+      int k = db.findMoveType(m.first);
+      if (k < 0) return c.fail(where, "\"moveCost\" names unknown move type \"" + m.first + "\"");
+      if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 0)
+        return c.fail(where, "\"moveCost\".\"" + m.first + "\" must be a whole number, 0 or more (0 = cannot enter)");
+      s.moveCost[static_cast<size_t>(k)] = m.second.asInt();
+    }
+
+    if (!c.props(e, "props", where, s.props)) return false;
+    if (e.has("capture"))
+      return c.fail(where, "\"capture\" is called \"capturePoints\" on structures");
+    if (!c.integer(e, "capturePoints", where, s.capturePoints)) return false;
+    if (s.capturePoints < 0) return c.fail(where, "\"capturePoints\" must not be negative");
+    if (!c.amounts(db, e, "income", where, s.income)) return false;
 
     std::vector<std::string> produces;
     if (!c.stringList(e, "produces", where, produces)) return false;
     for (const std::string& uid : produces) {
       int u = db.findUnitType(uid);
       if (u < 0) return c.fail(where, "\"produces\" names unknown unit type \"" + uid + "\"");
-      t.produces.push_back(u);
+      s.produces.push_back(u);
     }
-    if (!c.stringList(e, "tags", where, t.tags)) return false;
-    db.terrains.push_back(t);
+    if (!c.stringList(e, "tags", where, s.tags)) return false;
+    db.structures.push_back(s);
   }
   return true;
 }

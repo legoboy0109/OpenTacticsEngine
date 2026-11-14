@@ -28,21 +28,17 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
       drawGlyphCentered(r, sx + t / 2, sy + t / 2, td.glyph, mix(col, readableOn(col), 0.28f), t * 9 / 20);
     }
   }
-  if (cs.owner >= 0) {
-    Color oc = Color::rgb(b.sides[cs.owner].color);
-    r.fillRect(sx, sy, t, 2, oc);
-    r.fillRect(sx, sy + t - 2, t, 2, oc);
-    r.fillRect(sx, sy + 2, 2, t - 4, oc);
-    r.fillRect(sx + t - 2, sy + 2, 2, t - 4, oc);
-  }
 }
 
-// Remaining capture points, drawn over the unit that is capturing.
-void drawCapture(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
-  const CellState& cs = c.battle.cells[cell];
-  int pts = c.battle.terrainAt(cell).capturePoints;
-  if (cs.capturer < 0 || pts <= 0 || cs.capture >= pts) return;
-  std::string n = intStr(cs.capture);
+// Remaining capture points of a structure, once per structure, drawn over the
+// square of the unit that is capturing it.
+void drawCapture(Renderer& r, const DrawCtx& c, const StructureState& st, int camX, int camY) {
+  int pts = c.battle.defOf(st).capturePoints;
+  if (st.capturer < 0 || pts <= 0 || st.capture >= pts) return;
+  const Unit& u = c.battle.units[st.capturer];
+  if (!u.alive || u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) return;
+  int sx = c.battle.grid.x(u.cell) * c.layout.tile - camX, sy = c.battle.grid.y(u.cell) * c.layout.tile - camY;
+  std::string n = intStr(st.capture);
   int w = textW(r, n), x = sx + c.layout.tile - w - 2, y = sy + c.layout.tile / 6;
   r.fillRect(x - 1, y - 1, w + 2, c.layout.lh + 2, Color(0, 0, 0, 190));
   r.drawText(x, y, n.c_str(), Color(255, 240, 120));
@@ -113,13 +109,35 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
         else if (ov.attack[cell]) r.fillRect(sx, sy, t, t, Color(255, 50, 50, 105));
       }
     }
-  for (const Unit& u : b.units) {
-    if (u.id >= (int)c.view.units.size()) continue;
-    const UnitView& v = c.view.units[u.id];
-    if (v.visible) drawUnit(r, c, u, v, cx, cy);
+  // Structures and units share one pass, sorted by the pixel row of their bottom
+  // edge (structures first on a tie), so a tall structure covers what stands
+  // behind it. A unit standing on a structure square sorts with that structure's
+  // bottom edge instead, so it is always drawn over the structure it stands on
+  // (also on the upper rows of a multi-square footprint).
+  struct Item { int key, kind, index; };  // kind 0 = structure, 1 = unit
+  std::vector<Item> items;
+  for (size_t i = 0; i < b.structures.size(); ++i) {
+    const StructureState& st = b.structures[i];
+    const StructureDef& def = b.defOf(st);
+    items.push_back({(st.y + def.height) * t, 0, (int)i});
   }
-  for (int y = y0; y <= y1; ++y)
-    for (int x = x0; x <= x1; ++x) drawCapture(r, c, b.grid.at(x, y), x * t - cx, y * t - cy);
+  for (const Unit& u : b.units) {
+    if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
+    const UnitView& v = c.view.units[u.id];
+    int key = (int)std::lround(v.py) + t;
+    Cell under = b.grid.at(((int)std::lround(v.px) + t / 2) / t, ((int)std::lround(v.py) + t / 2) / t);
+    int si = under == kNoCell ? -1 : b.structureAt[under];
+    if (si >= 0) key = std::max(key, (b.structures[si].y + b.defOf(b.structures[si]).height) * t);
+    items.push_back({key, 1, u.id});
+  }
+  std::stable_sort(items.begin(), items.end(), [](const Item& a, const Item& b2) {
+    return a.key != b2.key ? a.key < b2.key : a.kind < b2.kind;
+  });
+  for (const Item& it : items) {
+    if (it.kind == 0) drawStructure(r, c, it.index, cx, cy, ov);
+    else drawUnit(r, c, b.units[it.index], c.view.units[it.index], cx, cy);
+  }
+  for (const StructureState& st : b.structures) drawCapture(r, c, st, cx, cy);
   if (showCursor && b.grid.valid(cursor)) {
     int sx = b.grid.x(cursor) * t - cx, sy = b.grid.y(cursor) * t - cy;
     int a = 200 + (int)(55 * std::sin(c.time * 6.0f));

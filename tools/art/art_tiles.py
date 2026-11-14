@@ -71,15 +71,13 @@ def mountain():
     return p
 
 
-def composite(ground, built):
-    """Outlines the structure drawn on a transparent canvas, then puts it on the ground."""
+def finish(built):
+    """Outlines a building drawn on a transparent canvas (structures stand on terrain, no ground here)."""
     built.outline(DARKLINE)
-    ground.paste(built, 0, 0)
-    return ground
+    return built
 
 
-def fort():
-    g = grass(31, tufts=4)
+def fort_body():
     p = Pix(T, T)
     # keep
     p.rect(4, 9, 19, 21, STONE[0])
@@ -102,19 +100,10 @@ def fort():
     p.line(12, 1, 12, 6, 0x4A4038)
     p.rect(13, 1, 16, 3, 0xF0E8D0)
     p.set(16, 2, 0xD8CDAE)
-    return composite(g, p)
+    return finish(p)
 
 
-def _ground(base, seed):
-    p = Pix(T, T, base[0])
-    r = rng('ground', seed)
-    for _ in range(14):
-        p.set(r.randrange(T), r.randrange(T), base[1])
-    return p
-
-
-def city():
-    g = _ground((0xBDB8A8, 0xA8A392), 41)
+def city_body():
     p = Pix(T, T)
     def house(x0, y0, x1, wall, roof, roof_dark):
         p.rect(x0, y0, x1, 21, wall)
@@ -131,11 +120,10 @@ def city():
     house(12, 11, 21, 0xC9CFD6, 0x6F819A, 0x56667C)
     p.rect(6, 17, 7, 21, 0x4A3A30)
     p.rect(16, 17, 17, 21, 0x4A3A30)
-    return composite(g, p)
+    return finish(p)
 
 
-def factory():
-    g = _ground((0xA2A2A8, 0x8C8C94), 51)
+def factory_body():
     p = Pix(T, T)
     body, dark, light = 0x8D949C, 0x6A7078, 0xB4BAC2
     p.rect(2, 11, 21, 21, body)
@@ -161,11 +149,10 @@ def factory():
     p.rect(8, 14, 14, 14, 0xE0B030)
     for wx in (3, 17):
         p.rect(wx, 14, wx + 1, 15, 0x35465E)
-    return composite(g, p)
+    return finish(p)
 
 
-def hq():
-    g = _ground((0xCDC7A6, 0xB9B38F), 61)
+def hq_body():
     p = Pix(T, T)
     wall, dark, light, gold = 0xEADFB6, 0xC3B88E, 0xF6F0D4, 0xD8B03A
     p.rect(3, 12, 20, 21, wall)
@@ -191,7 +178,7 @@ def hq():
         p.rect(wx, wy, wx + 1, wy + 2, 0x35465E)
     p.set(15, 9, 0x35465E)
     p.set(12, 9, gold); p.set(12, 8, gold); p.set(12, 10, gold); p.set(11, 9, gold); p.set(13, 9, gold)
-    return composite(g, p)
+    return finish(p)
 
 
 def water(frame, deep, mid, light, seed):

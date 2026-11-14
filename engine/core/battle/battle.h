@@ -28,8 +28,8 @@ enum class EventType {
   UnitDied,         // a=unit, b=cell it stood on
   XpGained,         // a=unit, b=amount
   LevelUp,          // a=unit, b=new level, data=gain per stat index
-  CaptureProgress,  // a=unit, b=cell, c=points remaining
-  CellCaptured,     // a=cell, b=new owner side, c=previous owner (-1 neutral)
+  CaptureProgress,  // a=unit, b=the unit's cell, c=points remaining, d=structure index
+  StructureCaptured,  // a=structure index, b=new owner side, c=previous owner (-1 neutral)
   ResourceChanged,  // a=side, b=resource, c=delta, d=new total
   UnitBuilt,        // a=unit, b=cell
   SideDefeated,     // a=side
@@ -63,9 +63,16 @@ struct Unit {
 struct CellState {
   int terrain = 0;
   int height = 0;
+};
+
+// A structure placed on the map (docs/STRUCTURES.md). Fixed for the battle:
+// only its owner and capture progress change. Index = id, never reordered.
+struct StructureState {
+  int type = 0;       // index into db->structures
+  int x = 0, y = 0;   // top-left square
   int owner = -1;     // side index, -1 neutral
   int capture = 0;    // capture points remaining
-  int capturer = -1;  // unit currently capturing; progress resets if it leaves
+  int capturer = -1;  // unit currently capturing; progress resets if it leaves the structure
 };
 
 struct SideState {
@@ -132,6 +139,8 @@ class Battle {
   Formulas* formulas = nullptr;  // shared Lua host; must outlive the battle
   Grid grid;
   std::vector<CellState> cells;
+  std::vector<StructureState> structures;
+  std::vector<int> structureAt;  // per cell: index into `structures` or -1
   std::vector<int> occupant;  // per cell: unit id or -1
   std::vector<Unit> units;
   std::vector<SideState> sides;
@@ -150,6 +159,26 @@ class Battle {
 
   // ---- queries ----
   const TerrainDef& terrainAt(Cell c) const { return db->terrains[cells[c].terrain]; }
+  // Structure queries. Rules code never combines terrain and structure by
+  // hand: it asks these (they sit on enterCostOf / squareNumbers in database.h).
+  int structureIndexAt(Cell c) const { return grid.valid(c) ? structureAt[c] : -1; }
+  const StructureDef* structureDefAt(Cell c) const {
+    int s = structureIndexAt(c);
+    return s < 0 ? nullptr : &db->structures[structures[s].type];
+  }
+  // Type (index into db->structures) of the structure on the square, -1 if none.
+  int structureTypeAt(Cell c) const { return structureAt[c] < 0 ? -1 : structures[structureAt[c]].type; }
+  const StructureDef& defOf(const StructureState& s) const { return db->structures[s.type]; }
+  // Cost for a move type to enter the square (structure's cost if it sets one,
+  // else the terrain's). <= 0 = cannot enter.
+  int enterCost(Cell c, int moveType) const { return enterCostOf(*db, cells[c].terrain, structureTypeAt(c), moveType); }
+  // What formulas see as `ta` / `tb` for the square: terrain numbers with the
+  // structure's numbers replacing/adding. May return `scratch`.
+  const Props& numbersAt(Cell c, Props& scratch) const {
+    return squareNumbers(*db, cells[c].terrain, structureTypeAt(c), scratch);
+  }
+  // Every square covered by structure `s`, row by row.
+  void structureCells(int s, std::vector<Cell>& out) const;
   const UnitTypeDef& typeOf(const Unit& u) const { return db->unitTypes[u.type]; }
   int unitAt(Cell c) const { return grid.valid(c) ? occupant[c] : -1; }
   int teamOf(const Unit& u) const { return sides[u.side].team; }
@@ -169,9 +198,12 @@ class Battle {
   // Expected exchange. Returns false if the attack is not possible.
   bool forecast(int attacker, int defender, int weapon, Cell from, Forecast& out) const;
 
-  // Would a Capture action be valid if the unit stood on `at`?
+  // Would a Capture action be valid if the unit stood on `at`? (`at` is any
+  // square of a capturable structure that the unit's team does not own.)
   bool canCaptureAt(int unit, Cell at) const;
-  // Unit types the active side could build on this cell (affordable or not).
+  // Unit types the active side could build on this cell (affordable or not):
+  // the cell must be a free square of a structure the side owns, and the new
+  // unit must be able to enter that square.
   void buildOptions(Cell cell, std::vector<int>& unitTypes) const;
   bool canAfford(int side, int unitType) const;
 
@@ -201,7 +233,10 @@ class Battle {
   void applyMove(const Action& action, std::vector<Event>& events);
   void applyCapture(const Action& action, std::vector<Event>& events);
   void applyBuild(const Action& action, std::vector<Event>& events);
-  void releaseCapture(int unit);
+  // Resets the capture progress of `unit` unless it now stands (`newCell`) on
+  // a square of the structure it is capturing.
+  void releaseCapture(int unit, Cell newCell);
+  bool ownsHq(int side) const;
   // progression.cpp
   void awardXp(int unit, int amount, std::vector<Event>& events);
 };

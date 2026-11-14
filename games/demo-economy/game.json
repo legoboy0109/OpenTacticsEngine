@@ -6,7 +6,8 @@
   "styles": [
     { "id": "classic", "name": "Classic" },
     { "id": "night", "name": "Night Ops", "background": "#05060f",
-      "terrainColors": { "plain": "#2f4f3a", "road": "#55585f", "forest": "#1d3a2a", "mountain": "#4a4038", "sea": "#101a40", "city": "#6a6a78", "factory": "#5a5a80", "hq": "#8a7a30" } }
+      "terrainColors": { "plain": "#2f4f3a", "road": "#55585f", "forest": "#1d3a2a", "mountain": "#4a4038", "sea": "#101a40" },
+      "structureColors": { "city": "#6a6a78", "factory": "#5a5a80", "hq": "#8a7a30" } }
   ],
   "view": { "width": 480, "height": 270, "tileSize": 24 },
 

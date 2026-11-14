@@ -130,10 +130,11 @@ void BattleView::begin(const Battle& b) {
       cur_.dur = 0.3f;
       break;
     }
-    case EventType::CellCaptured: {
-      float x, y;
-      cellPos(b, e.a, x, y);
-      addFloat("Captured!", x + cx, y, Color(255, 240, 140), 1.2f);
+    case EventType::StructureCaptured: {
+      // Once per structure, over the middle of its footprint's top edge.
+      const StructureState& st = b.structures[(size_t)e.a];
+      float x = (float)(st.x * tile_), y = (float)(st.y * tile_);
+      addFloat("Captured!", x + b.defOf(st).width * tile_ / 2.0f, y, Color(255, 240, 140), 1.2f);
       cur_.dur = 0.35f;
       break;
     }

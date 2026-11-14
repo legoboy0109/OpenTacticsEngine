@@ -13,8 +13,10 @@ Contract for art in games. Owner decisions (2026-11-13):
 - Simple looping animation is included. Walking/attack animation is later.
 
 Everything is optional: a game without `data/graphics.json` looks exactly
-as before (coloured squares and letters), and any terrain or unit without
-art keeps that placeholder look next to ones that have art.
+as before (coloured squares and letters), and any terrain, structure or unit
+without art keeps that placeholder look next to ones that have art.
+Structures (buildings standing on terrain, docs/STRUCTURES.md) have art like
+units do, drawn across their whole footprint.
 
 ## File format: data/graphics.json
 
@@ -32,6 +34,11 @@ art keeps that placeholder look next to ones that have art.
     "sea":    { "sheet": "tiles", "frames": [[0,1],[1,1]], "frameMs": 500 },
     "road":   { "sheet": "tiles", "join": [0,2], "joinWith": ["bridge"], "joinEdge": true }
   },
+  "structures": {                          // structure id -> look (like a unit's)
+    "city": { "sheet": "buildings", "cell": [0,0] },
+    "castle": { "sheet": "castle", "cell": [0,0],           // 2 x 2 squares: a cell 48 wide, taller
+                "sides": { "red": { "sheet": "castle", "cell": [1,0] } } }
+  },
   "units": {                               // unit type id -> look
     "knight": { "sheet": "knight", "cell": [0,0] },
     "soldier": { "sheet": "men", "frames": [[0,0],[1,0]], "frameMs": 450,
@@ -40,6 +47,7 @@ art keeps that placeholder look next to ones that have art.
 
   "styles": {                              // visual style id -> overrides
     "night": { "terrain": { "plain": { "sheet": "tiles", "cell": [0,6] }, "sea": null },
+               "structures": { "city": { "sheet": "buildings_night", "cell": [0,0] } },
                "units": { } }
   }
 }
@@ -62,14 +70,19 @@ art keeps that placeholder look next to ones that have art.
     choosing a piece; `joinEdge` (default true) makes the map edge count too.
 - `units.<id>.sides.<side id>` gives a side its own look (side ids are the
   `id`s in a map's `sides`).
+- `structures.<id>` is exactly like a unit entry (`cell` or `frames`, optional
+  `sides`; `variants` and `join` are not allowed). With `sides`, the look of the
+  structure's current owner is used (neutral structures use the base look).
 - `styles.<style id>` overrides entries for one visual style of `game.json`.
   `null` removes the art for that style (placeholder look). Entries not
   mentioned are inherited.
 
 Loader: `engine/core/data/loader_graphics.cpp` (errors read
-`data/graphics.json: terrain "plain": …`). In memory: `Database::graphics`
-(`engine/core/data/graphics.h`), with one already-merged set per style and
-`pickCell()` to choose the cell for a square.
+`data/graphics.json: terrain "plain": …`, `structure "city": …`). In memory:
+`Database::graphics` (`engine/core/data/graphics.h`), with one already-merged
+`GraphicsSet` per style (`terrain` per terrain index, `units` per unit type,
+`structures` per structure type, the last two as `UnitLook`) and `pickCell()`
+to choose the cell for a square.
 
 ### The 16 join pieces
 
@@ -115,6 +128,26 @@ Units with art:
 
 Unit with no art: today's coloured block with a letter, unchanged.
 
+Structures (docs/STRUCTURES.md "Drawing"; the editor canvas matches):
+- Order: all terrain first; then structures and units together, sorted by the
+  pixel row of their bottom edge, structures before units in the same row. A
+  unit standing on a structure square always sorts with that structure's bottom
+  edge, so it is drawn over the structure it stands on (also on the upper rows of
+  a multi-square footprint); a tall structure covers what stands behind it.
+- With a picture: the sheet cell is drawn across the whole footprint: width =
+  `width` squares, height keeps the cell's proportions (nearest-neighbour), and the
+  bottom edge sits on the footprint's bottom edge, so a taller picture sticks out
+  above it (towers, chimneys, flags). Transparent pixels show the terrain below.
+  Animated looks play with the battle's running time.
+- Without a picture: a block in the structure's colour over the footprint, inset one
+  pixel, with a 1-pixel dark outline, a soft top highlight and the letter centred
+  (`styles.<id>.structureColors` recolors it; `showGlyphs: false` hides the letter).
+- Owner: a 2-pixel frame in the owner's colour around the whole footprint
+  (drawn with the structure, so units drawn later stand over it).
+- Move/attack highlights are painted again over the structure's squares after it is
+  drawn (otherwise its picture would hide the terrain pass's tint).
+- Capture points remaining are shown once per structure, on the capturing unit's square.
+
 ## Platform: textures
 
 `engine/platform/platform.h` gains (all backends must implement):
@@ -149,7 +182,7 @@ falls back to the placeholder look; the game still runs.
 files) draws the starter set and writes the PNGs and `data/graphics.json`
 into both demos and the three editor templates. Art is original to this
 project: simple flat pixel art, 24 x 24 cells (the games' `tileSize`), with
-a limited palette. It must cover every terrain and unit type those games
+a limited palette. It must cover every terrain, structure and unit type those games
 define, and must exercise every feature: variants (plain), animation
 (water/sea), join (roads, rivers), a two-frame unit idle, and at least one
 per-style override in a demo that has styles. Re-running the script
@@ -221,6 +254,13 @@ the contract above.
   `unitMarker: false` the bar keeps its outline. Pop-in scales the sprite
   around its own centre and shrinks the base's width with it. A unit that
   has acted gets colour multiply 0.55 on both the sprite and the base.
+- **Structures in the player.** `Sprites` needs nothing new (structure sheets
+  are ordinary sheets). `structureArt()` / `drawStructureArt()` in
+  `engine/player/battle/sprites.cpp`; the per-structure pass (picture or
+  placeholder block, owner frame, highlight re-tint) is `drawStructure()` in
+  `engine/player/battle/structure_draw.cpp`, called by `drawMap()` in sorted order. The info
+  panel shows the structure under the cursor with its own small swatch (its picture
+  squeezed into it) after the terrain line, then the merged numbers.
 - **Info panel.** The small terrain swatch of the panel draws the terrain's
   art (stretched into the swatch, and for joined terrain with the piece of
   the inspected square). Unit and side chips in the panel and the forecast
@@ -230,12 +270,22 @@ the contract above.
   per unit type of that game) and `data/graphics.json` for the two demos and
   the three templates, plus `art/tiles_night.png` / `art/tiles_parchment.png`
   (tinted copies of the tiles, referenced by those styles) for the demos that
-  have such styles. Roads (joined, also into cities, factories and HQs) and
+  have such styles. Roads (joined, also with bridges) and
   bridges (joined with the land terrain they connect; deck direction follows
   the neighbours) use the 16-piece layout. Rivers and the sea animate over two
   frames instead of joining (a look is either animated or joined). Unit sprites
   stand on row 17 of the 24 px cell so the engine's base and HP bar fill the
   bottom rows.
+- **Structure starter art.** `tools/art/art_structures.py` draws the pictures
+  (city with a clock tower, factory with tall chimneys, fort, a 1-square and a 2 x 2
+  headquarters with a gold-roofed tower and flag). Each picture sits on a small paved
+  plot and is outlined; its top rows stick out above the footprint (4 px for a 24 x 28
+  cell, 8 px for the 48 x 56 cell of the 2 x 2 headquarters). One sheet per footprint
+  size: `art/structures.png` (1 x 1, cells 24 x 28) and `art/structures_2x2.png`
+  (cells 48 x 56); styles with a tint get tinted copies (`structures_night.png`...)
+  and `styles.<id>.structures`. The tile sheet no longer has building tiles. Roads
+  are not joined into buildings any more (buildings are not terrain); maps put
+  road terrain under the structures a road leads into instead.
 - **Web.** Nothing special was needed: the pages already fetch and write
   every file as bytes, and `make_manifest.py` lists the PNGs. `tools/webtest`
   (standalone and embed suites) now fails when terrain art is not drawn.

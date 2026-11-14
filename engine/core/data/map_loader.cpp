@@ -111,29 +111,56 @@ int findSide(const MapDef& m, const std::string& id) {
   return -1;
 }
 
-bool loadOwners(const LoadCtx& c, const Json& root, MapDef& m) {
-  m.owner.assign(m.terrain.size(), -1);
+// "structures": buildings standing on top of the terrain (docs/STRUCTURES.md).
+// `at` receives, per cell, the index of the structure covering it (-1 none).
+bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapDef& m, std::vector<int>& at) {
+  at.assign(m.terrain.size(), -1);
+  if (root.has("owners"))
+    return c.fail("", "\"owners\" is no longer used: ownership now belongs to structures "
+                      "(give each entry of \"structures\" a \"side\"), see docs/STRUCTURES.md");
   const Json* list;
-  if (!c.array(root, "owners", "", list)) return false;
+  if (!c.array(root, "structures", "", list)) return false;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
-    std::string where = "owners[" + std::to_string(i) + "]";
+    std::string where = "structures[" + std::to_string(i) + "]";
     if (!e.isObject()) return c.fail(where, "must be an object");
-    int x = 0, y = 0;
-    std::string side;
-    if (!c.integer(e, "x", where, x, true) || !c.integer(e, "y", where, y, true) ||
-        !c.str(e, "side", where, side, true))
+    MapStructureDef s;
+    std::string type, side;
+    if (!c.str(e, "type", where, type, true) || !c.integer(e, "x", where, s.x, true) ||
+        !c.integer(e, "y", where, s.y, true) || !c.str(e, "side", where, side))
       return false;
-    if (x < 0 || y < 0 || x >= m.width || y >= m.height)
-      return c.fail(where, "position (" + std::to_string(x) + "," + std::to_string(y) + ") is outside the map");
-    int s = findSide(m, side);
-    if (s < 0) return c.fail(where, "unknown side \"" + side + "\"");
-    m.owner[static_cast<size_t>(y * m.width + x)] = s;
+    s.type = db.findStructure(type);
+    if (s.type < 0)
+      return c.fail(where, "unknown structure type \"" + type + "\"" +
+                               (db.structures.empty() ? " (this game has no data/structures.json)" : ""));
+    const StructureDef& def = db.structures[(size_t)s.type];
+    where += " (" + type + " at " + std::to_string(s.x) + "," + std::to_string(s.y) + ")";
+    if (!side.empty()) {
+      s.side = findSide(m, side);
+      if (s.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
+    }
+    if (s.x < 0 || s.y < 0 || s.x + def.width > m.width || s.y + def.height > m.height)
+      return c.fail(where, "needs " + std::to_string(def.width) + " x " + std::to_string(def.height) +
+                               " squares from its top-left corner but does not fit inside the map (" +
+                               std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
+    for (int dy = 0; dy < def.height; ++dy)
+      for (int dx = 0; dx < def.width; ++dx) {
+        int cell = (s.y + dy) * m.width + s.x + dx;
+        if (at[(size_t)cell] >= 0) {
+          const MapStructureDef& o = m.structures[(size_t)at[(size_t)cell]];
+          return c.fail(where, "overlaps structures[" + std::to_string(at[(size_t)cell]) + "] (" +
+                                   db.structures[(size_t)o.type].id + " at " + std::to_string(o.x) + "," +
+                                   std::to_string(o.y) + ") on square " + std::to_string(s.x + dx) + "," +
+                                   std::to_string(s.y + dy));
+        }
+        at[(size_t)cell] = (int)m.structures.size();
+      }
+    m.structures.push_back(s);
   }
   return true;
 }
 
-bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
+bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m, const std::vector<int>& structureAt) {
   const Json* list;
   if (!c.array(root, "units", "", list)) return false;
   std::map<int, int> occupied;  // cell -> unit index
@@ -163,11 +190,18 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
       return c.fail(where, "shares a cell with units[" + std::to_string(occupied[cell]) + "]");
     occupied[cell] = static_cast<int>(i);
 
-    const TerrainDef& t = db.terrains[static_cast<size_t>(m.terrain[static_cast<size_t>(cell)])];
+    const int terrain = m.terrain[static_cast<size_t>(cell)], structure = structureAt[static_cast<size_t>(cell)];
+    const int structureType = structure < 0 ? -1 : m.structures[static_cast<size_t>(structure)].type;
     const UnitTypeDef& ut = db.unitTypes[static_cast<size_t>(u.type)];
-    if (t.moveCost[static_cast<size_t>(ut.moveType)] <= 0)
-      return c.fail(where, "starts on terrain \"" + t.id + "\" which is impassable for move type \"" +
+    if (enterCostOf(db, terrain, structureType, ut.moveType) <= 0) {
+      std::string what = "terrain \"" + db.terrains[static_cast<size_t>(terrain)].id + "\"";
+      if (structure >= 0) {
+        const MapStructureDef& ms = m.structures[static_cast<size_t>(structure)];
+        what = "structure \"" + db.structures[static_cast<size_t>(ms.type)].id + "\" (on " + what + ")";
+      }
+      return c.fail(where, "starts on " + what + " which is impassable for move type \"" +
                                db.moveTypes[static_cast<size_t>(ut.moveType)].id + "\"");
+    }
     u.stats = ut.stats;
     if (!c.statMap(db, e, "stats", where, u.stats)) return false;
     m.units.push_back(u);
@@ -193,8 +227,9 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   m.id = ref.id;
   m.name = ref.name;
   if (!c.str(root, "name", "", m.name)) return false;
+  std::vector<int> structureAt;
   if (!loadGrid(c, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
-      !loadOwners(c, root, m) || !loadUnits(c, db, root, m))
+      !loadStructures(c, db, root, m, structureAt) || !loadUnits(c, db, root, m, structureAt))
     return false;
   out = m;
   err.clear();

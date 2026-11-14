@@ -135,8 +135,8 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   pushUnit(ctx.a);
   pushUnit(ctx.b);
   pushProps(L_, ctx.w ? &ctx.w->props : nullptr);
-  pushProps(L_, ctx.ta ? &ctx.ta->props : nullptr);
-  pushProps(L_, ctx.tb ? &ctx.tb->props : nullptr);
+  pushProps(L_, ctx.ta);
+  pushProps(L_, ctx.tb);
   lua_pushinteger(L_, ctx.dist);
   lua_pushnumber(L_, ctx.vs);
   double result = def;

@@ -8,6 +8,12 @@
       "cellHeight": 24
     },
     {
+      "id": "structures",
+      "file": "art/structures.png",
+      "cellWidth": 24,
+      "cellHeight": 28
+    },
+    {
       "id": "units",
       "file": "art/units.png",
       "cellWidth": 24,
@@ -18,6 +24,12 @@
       "file": "art/tiles_parchment.png",
       "cellWidth": 24,
       "cellHeight": 24
+    },
+    {
+      "id": "structures_parchment",
+      "file": "art/structures_parchment.png",
+      "cellWidth": 24,
+      "cellHeight": 28
     }
   ],
   "unitMarker": true,
@@ -53,13 +65,6 @@
         1
       ]
     },
-    "fort": {
-      "sheet": "tiles",
-      "cell": [
-        1,
-        1
-      ]
-    },
     "water": {
       "sheet": "tiles",
       "frames": [
@@ -83,8 +88,7 @@
       "joinWith": [
         "plain",
         "forest",
-        "mountain",
-        "fort"
+        "mountain"
       ],
       "joinEdge": false
     }
@@ -189,6 +193,15 @@
       "frameMs": 600
     }
   },
+  "structures": {
+    "fort": {
+      "sheet": "structures",
+      "cell": [
+        0,
+        0
+      ]
+    }
+  },
   "styles": {
     "parchment": {
       "terrain": {
@@ -223,13 +236,6 @@
             1
           ]
         },
-        "fort": {
-          "sheet": "tiles_parchment",
-          "cell": [
-            1,
-            1
-          ]
-        },
         "water": {
           "sheet": "tiles_parchment",
           "frames": [
@@ -253,10 +259,18 @@
           "joinWith": [
             "plain",
             "forest",
-            "mountain",
-            "fort"
+            "mountain"
           ],
           "joinEdge": false
+        }
+      },
+      "structures": {
+        "fort": {
+          "sheet": "structures_parchment",
+          "cell": [
+            0,
+            0
+          ]
         }
       }
     }

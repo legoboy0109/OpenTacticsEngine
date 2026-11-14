@@ -1,19 +1,20 @@
 // Mirror-symmetric: blue holds the west, red the east, five neutral cities
-// between them. Each side starts with an HQ, a factory and a city.
+// between them. Each side starts with an HQ (a 2 x 2 structure), a factory and
+// a city. Buildings are structures standing on ordinary ground; roads run
+// underneath the ones they lead into.
 {
   "name": "Twin Rivers",
   "grid": { "type": "square", "width": 15, "height": 10 },
-  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea",
-              "c": "city", "F": "factory", "H": "hq" },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea" },
   "tiles": [
     "..ff..m.m..ff..",
-    ".c..f..r..f..c.",
+    "....f..r..f....",
     "...r...r...r...",
-    "..FrrrrrrrrrF..",
-    ".H..f..r..f..H.",
-    "..r.m..c..m.r..",
-    ".c..~~.~.~~..c.",
-    "...rc..r..cr...",
+    "..rrrrrrrrrrr..",
+    "....f..r..f....",
+    "..r.m..r..m.r..",
+    "....~~.~.~~....",
+    "...rr..r..rr...",
     ".f..rr.r.rr..f.",
     "~~..ff...ff..~~"
   ],
@@ -23,9 +24,18 @@
     { "id": "red",  "name": "Red Army",  "color": "#cc0000", "controller": "ai",
       "resources": { "funds": 3000 } }
   ],
-  "owners": [
-    { "x": 1,  "y": 4, "side": "blue" }, { "x": 2,  "y": 3, "side": "blue" }, { "x": 1,  "y": 6, "side": "blue" },
-    { "x": 13, "y": 4, "side": "red" },  { "x": 12, "y": 3, "side": "red" },  { "x": 13, "y": 6, "side": "red" }
+  "structures": [
+    { "type": "city", "x": 1, "y": 1 },
+    { "type": "city", "x": 13, "y": 1 },
+    { "type": "factory", "x": 2, "y": 3, "side": "blue" },
+    { "type": "factory", "x": 12, "y": 3, "side": "red" },
+    { "type": "city", "x": 7, "y": 5 },
+    { "type": "city", "x": 1, "y": 6, "side": "blue" },
+    { "type": "city", "x": 13, "y": 6, "side": "red" },
+    { "type": "city", "x": 4, "y": 7 },
+    { "type": "city", "x": 10, "y": 7 },
+    { "type": "hq", "x": 0, "y": 4, "side": "blue" },
+    { "type": "hq", "x": 13, "y": 4, "side": "red" }
   ],
   "units": [
     { "type": "infantry", "side": "blue", "x": 2,  "y": 4 },

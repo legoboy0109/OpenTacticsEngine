@@ -6,7 +6,8 @@ platform. JSON files may contain `//` comments and trailing commas.
 ```
 my-game/
   game.json            rules, stats, resources, map list
-  data/terrain.json    terrain types
+  data/terrain.json    terrain types (the ground)
+  data/structures.json optional: buildings standing on terrain (see docs/STRUCTURES.md)
   data/weapons.json    weapons / attacks
   data/units.json      unit types (classes)
   maps/<name>.json     one battle each
@@ -45,7 +46,7 @@ id that does not exist is a load error.
   "rules": {
     "turnOrder": "sides",              // only "sides" for now
     "counterAttacks": true,
-    "defeat": ["noUnits"],             // any of: noUnits, leaderDead, lostHq
+    "defeat": ["noUnits"],             // any of: noUnits, leaderDead, lostHq (no "hq" structure left)
     "economy":     { "enabled": false },
     "production":  { "enabled": false, "builtUnitsCanAct": false },
     "capture":     { "enabled": false, "amount": "a.hp" },
@@ -80,12 +81,38 @@ Every `rules` block and key is optional; defaults are shown above
     "color": "#b7b7b7", "glyph": "c",          // placeholder look
     "moveCost": { "foot": 1, "tread": 1 },     // missing type = 1; 0 or less = impassable
     "props": { "defense": 2 },                 // free-form numbers for formulas
-    "capture": 20,                             // capture points; omit/0 = not capturable
-    "income": { "funds": 1000 },               // per turn to owner
-    "produces": ["infantry", "tank"],          // unit type ids buildable here
-    "tags": ["hq"] }
+    "tags": ["open"] }                         // free-form labels
 ] }
 ```
+
+Terrain is only the ground. Buildings are not terrain any more: `capture`,
+`capturePoints`, `income`, `produces` and the tag `hq` are **refused** on
+terrain with a message that says they belong to `data/structures.json`.
+
+## data/structures.json (optional)
+
+Structures stand on top of terrain squares, may cover several squares, and
+can be captured, pay income, build units and count as headquarters. A game
+without this file simply has no structures. Full rules: docs/STRUCTURES.md.
+
+```jsonc
+{ "structures": [
+  { "id": "city", "name": "City",                 // name defaults to the id
+    "color": "#b7b7b7", "glyph": "c",             // placeholder look
+    "width": 1, "height": 1,                       // squares, 1..8 each, default 1
+    "moveCost": { "tread": 2, "ship": 0 },        // optional: replaces the terrain's cost for
+                                                   // the listed move types; 0 = cannot enter
+    "props": { "defense": 3 },                    // optional: replaces / adds to the terrain's numbers
+    "capturePoints": 20,                           // > 0 = can be captured
+    "income": { "funds": 1000 },                  // per turn to the owner, once per structure
+    "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
+    "tags": ["hq"] }                              // "hq" = headquarters (defeat: lostHq)
+] }
+```
+
+Everything a structure does not set comes from the terrain underneath each
+of its squares, so one structure can stand on grass, road or sand and keep
+the ground's movement costs. Ids are unique among structures.
 
 ## data/weapons.json
 
@@ -128,10 +155,10 @@ and gets `vs = 1`.
 {
   "name": "First Battle",
   "grid": { "type": "square", "width": 4, "height": 3 },
-  "legend": { ".": "plain", "f": "forest", "H": "hq" },   // char -> terrain id
-  "tiles": [ "H..f",
-             "....",
-             "f..H" ],                   // exactly height rows of width chars
+  "legend": { ".": "plain", "f": "forest", "r": "road" },   // char -> terrain id
+  "tiles": [ "...f",
+             "rrrr",
+             "f..." ],                   // exactly height rows of width chars
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
   "sides": [
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
@@ -139,7 +166,9 @@ and gets `vs = 1`.
       "resources": { "funds": 3000 } },
     { "id": "red", "name": "Red", "color": "#cc0000", "controller": "ai" }
   ],
-  "owners": [ { "x": 0, "y": 0, "side": "blue" }, { "x": 3, "y": 2, "side": "red" } ],
+  "structures": [                        // optional; needs data/structures.json
+    { "type": "hq", "x": 0, "y": 0, "side": "blue" },   // x, y = top-left square; side optional = neutral
+    { "type": "city", "x": 3, "y": 2 } ],
   "units": [
     { "type": "knight", "side": "blue", "x": 1, "y": 0,
       "name": "Gilda", "level": 3, "leader": true,
@@ -150,7 +179,14 @@ and gets `vs = 1`.
 
 Sides take turns in listed order. `x` counts columns from the left, `y`
 rows from the top, both starting at 0. Two units may not share a cell, and
-a unit may not start on terrain impassable to it.
+a unit may not start on a square impassable to it (judged with the
+structure's movement costs applied, if one stands there).
+
+Each structure's whole rectangle (`width` x `height` from its top-left
+square) must lie inside the map, and structures may not overlap. The type
+and side must exist. The old `owners` list is refused: ownership now
+belongs to structures (their `side`). Only the owner of a structure changes
+during a battle.
 
 ## Formulas
 
@@ -161,7 +197,7 @@ Formulas are Lua expressions. Variables:
 | `a`    | acting unit: every stat by id, plus `hp` (current), `maxhp`, `level`, `xp`, `type`, `name`, `tags.<tag>` |
 | `b`    | the other unit (same fields); nil for `capture.amount` |
 | `w`    | the weapon's `props` |
-| `ta`, `tb` | `props` of the terrain under `a` / `b` |
+| `ta`, `tb` | the numbers of the square under `a` / `b`: the terrain's `props`, with the `props` of a structure standing there replacing numbers of the same name and adding the others |
 | `dist` | grid distance between them |
 | `vs`   | the weapon's `versus` value for `b` |
 
@@ -212,12 +248,14 @@ is the default. A game without a `styles` list has one style, `default`.
   { "id": "night", "name": "Night",
     "background": "#05060f",                       // screen background
     "showGlyphs": false,                           // hide terrain letters
-    "terrainColors": { "plain": "#2f4f3a", "sea": "#101a40" } }  // recolor terrain
+    "terrainColors": { "plain": "#2f4f3a", "sea": "#101a40" },   // recolor terrain
+    "structureColors": { "city": "#6a6a78" } }                    // recolor structure blocks
 ]
 ```
 
 Every key except `id` is optional. These keys recolor the placeholder
-graphics. Real art (sheets, tiles, sprites) lives in the optional
+graphics (`structureColors` does the same for structure blocks, by structure
+id, like `terrainColors` does for terrain). Real art (sheets, tiles, sprites) lives in the optional
 `data/graphics.json`, which can also override art per style id: see
 docs/GRAPHICS.md.
 

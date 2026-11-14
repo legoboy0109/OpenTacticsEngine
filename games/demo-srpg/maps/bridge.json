@@ -3,17 +3,24 @@
 {
   "name": "Skirmish at the Ford",
   "grid": { "type": "square", "width": 13, "height": 9 },
-  "legend": { ".": "plain", "f": "forest", "m": "mountain", "F": "fort", "~": "water", "=": "bridge" },
+  "legend": { ".": "plain", "f": "forest", "m": "mountain", "~": "water", "=": "bridge" },
   "tiles": [
     "..ff..~..mm..",
     "...f..~...m..",
     "......~.f....",
-    "....F.~..F...",
-    ".F....=....F.",
-    "..f...~.F....",
+    "......~......",
+    "......=......",
+    "..f...~......",
     "......~....f.",
     ".mm...~f.....",
     ".m....~......"
+  ],
+  "structures": [
+    { "type": "fort", "x": 4, "y": 3 },
+    { "type": "fort", "x": 9, "y": 3 },
+    { "type": "fort", "x": 1, "y": 4 },
+    { "type": "fort", "x": 11, "y": 4 },
+    { "type": "fort", "x": 8, "y": 5 }
   ],
   "sides": [
     { "id": "blue", "name": "Blue Company", "color": "#3d85c6", "controller": "human" },

@@ -1,5 +1,5 @@
-// Art for a game: sheets (grid images) and which cells draw each terrain
-// and unit type (docs/GRAPHICS.md, file data/graphics.json).
+// Art for a game: sheets (grid images) and which cells draw each terrain,
+// structure and unit type (docs/GRAPHICS.md, file data/graphics.json).
 //
 // The core only describes art; it never decodes or draws pixels. The player
 // loads each SheetDef::file as a texture and asks pickCell() which cell to
@@ -64,8 +64,9 @@ struct UnitLook {
 
 // One complete set of looks.
 struct GraphicsSet {
-  std::vector<Look> terrain;    // per terrain index
-  std::vector<UnitLook> units;  // per unit type index
+  std::vector<Look> terrain;        // per terrain index
+  std::vector<UnitLook> units;      // per unit type index
+  std::vector<UnitLook> structures; // per structure type index (same shape as a unit's look)
 };
 
 struct Graphics {

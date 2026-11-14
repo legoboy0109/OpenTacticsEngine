@@ -107,19 +107,19 @@ TEST(ai_captures_building_over_several_turns) {
   CHECK(runTurn(w.battle, w.events) >= 0);
   CHECK_EQ(w.battle.units[1].cell, city);  // walked onto it and started capturing
   CHECK_EQ(w.count(EventType::CaptureProgress), 1);
-  CHECK_EQ(w.battle.cells[city].owner, -1);
+  CHECK_EQ(w.structureAt(1, 0).owner, -1);
 
   w.act(Action::endTurn());  // blue
   CHECK(runTurn(w.battle, w.events) >= 0);
   CHECK_EQ(w.battle.units[1].cell, city);  // did not wander off
-  CHECK_EQ(w.battle.cells[city].owner, 1);
-  CHECK_EQ(w.count(EventType::CellCaptured), 1);
+  CHECK_EQ(w.structureAt(1, 0).owner, 1);
+  CHECK_EQ(w.count(EventType::StructureCaptured), 1);
 }
 
 TEST(ai_builds_when_it_has_funds_and_a_factory) {
   World w({"F....", "....."}, {{"soldier", 0, 4, 1, false}, {"soldier", 1, 3, 1, false}});
   w.db.rules.production = true;
-  w.map.owner[0] = 1;
+  w.own(0, 0, 1);
   w.map.sides[1].resources = {{0, 250}};
   CHECK(w.begin());
   CHECK(toRed(w));
@@ -132,7 +132,7 @@ TEST(ai_builds_when_it_has_funds_and_a_factory) {
 TEST(ai_does_not_build_what_it_cannot_afford) {
   World w({"F....", "....."}, {{"soldier", 0, 4, 1, false}, {"soldier", 1, 3, 1, false}});
   w.db.rules.production = true;
-  w.map.owner[0] = 1;
+  w.own(0, 0, 1);
   w.map.sides[1].resources = {{0, 50}};
   CHECK(w.begin());
   CHECK(toRed(w));
