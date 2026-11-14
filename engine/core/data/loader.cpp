@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdio>
 
+#include "core/data/events.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_util.h"
 
@@ -163,6 +164,13 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!readIdList(c, root, "stats", true, db.stats)) return false;
   if (!readIdList(c, root, "resources", false, db.resources)) return false;
   if (!readIdList(c, root, "moveTypes", true, db.moveTypes)) return false;
+  // Story switches and variables (docs/EVENTS.md); ids are what events refer to.
+  if (!readIdList(c, root, "switches", false, db.switches)) return false;
+  if (!readIdList(c, root, "variables", false, db.variables)) return false;
+  for (const SwitchDef& sw : db.switches)
+    if (!isStoryId(sw.id)) return c.fail("switches \"" + sw.id + "\"", "\"id\" must be letters, digits, \"_\" and \"-\"");
+  for (const VariableDef& v : db.variables)
+    if (!isStoryId(v.id)) return c.fail("variables \"" + v.id + "\"", "\"id\" must be letters, digits, \"_\" and \"-\"");
 
   const Json* roles;
   if (!c.object(root, "roles", "", roles, true)) return false;

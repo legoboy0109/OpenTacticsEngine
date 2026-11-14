@@ -150,7 +150,8 @@ void BattleView::begin(const Battle& b) {
         cur_.dur = 0.12f;
       }
       break;
-    case EventType::UnitBuilt: {
+    case EventType::UnitBuilt:
+    case EventType::UnitAdded: {  // same layout: a=unit, b=cell
       UnitView& v = units[e.a];
       v = UnitView();
       v.hp = b.units[e.a].hp;
@@ -199,6 +200,15 @@ void BattleView::begin(const Battle& b) {
     case EventType::ItemMoved:
     case EventType::ItemEquipped:
     case EventType::BattleEnded: break;
+    // Story events (docs/EVENTS.md). The dialogue box, focus and objective display come with the
+    // player's story step; until then they are skipped, and the unit changes only keep the
+    // pictures of units in step with the rules.
+    case EventType::Dialogue:
+    case EventType::Focus:
+    case EventType::SideChanged:
+    case EventType::ObjectiveChanged:
+    case EventType::UnitRemoved:
+    case EventType::UnitRelocated: break;
   }
 }
 
@@ -258,7 +268,8 @@ void BattleView::progress(const Battle& b) {
       focusY = units[e.a].py + tile_ / 2.0f;
       break;
     case EventType::UnitDied: units[e.a].alpha = 1 - p; break;
-    case EventType::UnitBuilt: units[e.a].scale = p; break;
+    case EventType::UnitBuilt:
+    case EventType::UnitAdded: units[e.a].scale = p; break;
     case EventType::LevelUp:
       levelUp.timer = cur_.t;
       if (levelUp.autoContinue && cur_.t >= 1.2f) cur_.dur = 0;  // ends this frame
@@ -290,7 +301,19 @@ void BattleView::finish(const Battle& b) {
       v.alpha = 1;
       break;
     }
-    case EventType::UnitBuilt: units[e.a].scale = 1; break;
+    case EventType::UnitBuilt:
+    case EventType::UnitAdded: units[e.a].scale = 1; break;
+    case EventType::UnitRemoved: {
+      UnitView& v = units[e.a];
+      v.visible = false;
+      v.hp = 0;
+      break;
+    }
+    case EventType::UnitRelocated: {
+      UnitView& v = units[e.a];
+      cellPos(b, e.c, v.px, v.py);
+      break;
+    }
     case EventType::LevelUp: levelUp.active = false; break;
     case EventType::UnitHealed: units[e.a].hp = cur_.hpTo; break;
     case EventType::StatsRaised: {

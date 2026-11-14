@@ -1,0 +1,69 @@
+// Internal to the event loader (loader_events.cpp, loader_story_*.cpp): the state shared while
+// one map's "events" and "objectives" are read. Every reader returns false after writing a
+// message of the form
+//   <map file>: map "<id>": event "<id>": command 3 (addUnit): <what is wrong>
+#pragma once
+#include <initializer_list>
+#include <string>
+#include <vector>
+
+#include "core/data/events.h"
+#include "core/data/loader_util.h"
+
+namespace ote {
+
+class StoryLoader {
+ public:
+  StoryLoader(const Database& db, const MapDef& map, const std::string& file, std::string& err, StoryData& data)
+      : db_(db), map_(map), c_(err, file), data_(data) {}
+
+  const Database& db() const { return db_; }
+  const MapDef& map() const { return map_; }
+  const LoadCtx& ctx() const { return c_; }
+  StoryData& data() { return data_; }
+
+  // Story ids the map knows: its units' and those of addUnit commands (collected before parsing).
+  std::vector<std::string> unitIds;
+  // Ids already taken by units (map units first, then each addUnit as it is read).
+  std::vector<std::string> usedIds;
+
+  bool fail(const std::string& where, const std::string& msg) const { return c_.fail(where, msg); }
+  // Adds a piece of wording to the text table; returns its index.
+  int text(const std::string& s) {
+    data_.texts.push_back(s);
+    return (int)data_.texts.size() - 1;
+  }
+
+  // An object may only have these keys (a typo must not pass silently).
+  bool onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& where) const;
+
+  // -- ids (loader_story_refs.cpp) --
+  bool sideIndex(const std::string& id, const std::string& where, const char* what, int& out) const;
+  // A team name; a side id also works (its team).
+  bool teamIndex(const std::string& id, const std::string& where, const char* what, int& out) const;
+  bool unitId(const Json& j, const std::string& where, const char* what, std::string& out) const;
+  // { "unit": id } | { "side": id } | { "team": name } | { "type": id } | { "tag": text } | {} | "unit id"
+  bool filter(const Json& j, const std::string& where, const char* what, UnitFilter& out) const;
+  bool rect(const Json& j, const std::string& where, Rect& out) const;
+  bool conditions(const Json& list, const std::string& where, std::vector<Condition>& out) const;
+
+  // -- commands (loader_story_commands.cpp) --
+  bool commands(const Json& list, const std::string& where, bool talk, std::vector<Command>& out,
+                bool& usesEndTurn);
+
+  // -- objectives (loader_story_objectives.cpp) --
+  bool objectiveSet(const Json& o, const std::string& where, ObjectiveSet& out);
+
+ private:
+  bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);
+  bool addUnitCommand(const Json& e, const std::string& where, Command& out);
+  bool condition(const Json& e, const std::string& where, Condition& out) const;
+  bool rules(const Json& list, const char* key, const std::string& where, bool win, std::vector<ObjectiveRule>& out) const;
+
+  const Database& db_;
+  const MapDef& map_;
+  LoadCtx c_;
+  StoryData& data_;
+};
+
+}  // namespace ote

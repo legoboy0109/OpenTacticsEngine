@@ -45,6 +45,10 @@ is put on top.
   are not stored.
 - Because the random generator's state is saved, reloading and repeating
   the same action gives the same dice.
+- Games with story (docs/EVENTS.md): `battle` also holds a `story` object
+  with the switches and variables, the ids of the events that have run, and
+  which objectives are current; units keep their story `id`. See the
+  implementation notes below.
 - `dataHash`: a hash of the **rules** of this battle, read from
   `game.json`, every `data/*.json` the loader reads except `graphics.json`,
   the scripts listed in `game.json`, and the map file. Things that only
@@ -125,7 +129,18 @@ Decisions where the contract was silent, and the few deviations:
   game with a shared storage `storage[]`), `units[]`
   (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader,
   and in a game with items `items[]`: item, uses left, drop)
-  and `structures[]` (owner, capture, capturer). A side's id, name, colour,
+  and `structures[]` (owner, capture, capturer). A unit that has a story id
+  also has `"id"`.
+  A game with events, objectives, switches or variables also gets
+  `"story": { "switches": [true, ...], "variables": [3, ...], "fired": ["event ids"],
+  "objectives": 0 }` (all four required then; `switches` and `variables` have
+  exactly the game's lengths, variables are whole numbers within plus or minus
+  1,000,000,000, `fired` lists known events once each, `objectives` is the
+  index of the current set: 0 = the map's own, then one per `objective`
+  command in file order). Other games write no `story` key and no unit
+  `"id"`, so their saves are byte for byte what they were, and a `story` key in
+  a save of a game without story is refused. Restoring checks all of it and
+  that story ids are valid and unique among the units, like the rest. A side's id, name, colour,
   team and `ai` flag come from the map (the hash covers it), so they are not
   stored. The random generator state is two 16-digit hex strings (a JSON
   number is a double and loses 64-bit values).
@@ -142,11 +157,21 @@ Decisions where the contract was silent, and the few deviations:
   every depth, except inside number tables (`props`, `versus`, `stats`,
   `growths`, `moveCost`, `income`, `cost`, `resources`), where a key is a rule
   whatever it is called. Of `game.json` only `formatVersion`, `stats`,
-  `resources`, `moveTypes`, `roles`, `rules`, `formulas` and `scripts` count.
+  `resources`, `moveTypes`, `roles`, `rules`, `formulas`, `scripts`, and
+  (when present, so a game without them hashes as before) `switches` and
+  `variables` count.
   Then `data/weapons.json`, `units.json`, `terrain.json`, `structures.json`
   and `items.json` (each when present; a game without `items.json` hashes
   exactly as it did before items existed), the scripts in `game.json` order (byte for byte) and the map
-  file, each preceded by its path and length. Key order counts. A new
+  file, each preceded by its path and length. Key order counts. In the map
+  file the **wording** of story events is cosmetic like names: the text of
+  `say`, `speakerName`, a Talk `label` and an objective's `text` are blanked
+  before hashing (the key stays, so adding or removing a line still changes
+  the hash); everything else in `events` and `objectives` (triggers,
+  conditions, speakers, portraits, every command) counts. Unit `id`s count.
+  A game without events, objectives, switches or variables hashes exactly as
+  it did before they existed (tests/test_story_save.cpp holds the hashes of
+  both demos). A new
   top-level rules key in `game.json` must be added to the list in
   `computeDataHash`, and a new cosmetic key to `cosmeticKey`.
 - A save is "unusable" (greyed, with a reason, never deleted) when: the file

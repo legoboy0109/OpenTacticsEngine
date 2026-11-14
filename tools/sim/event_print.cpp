@@ -117,6 +117,27 @@ std::string describeEvent(const Battle& b, const Event& e) {
       return fmt("%s: %s -> %s", itemId(b, e.c).c_str(), holderName(b, e.a).c_str(), holderName(b, e.b).c_str());
     case EventType::ItemEquipped:
       return fmt("%s equips %s", unitName(b, e.a).c_str(), itemId(b, e.b).c_str());
+    case EventType::Dialogue: {
+      // The speaker is a unit (its current name), a free name, or nobody.
+      std::string who = e.a >= 0 && e.a < (int)b.units.size() ? b.units[(size_t)e.a].name
+                        : e.c >= 0 ? b.storyText(e.c) : "Narrator";
+      std::string portrait = e.d >= 0 ? " [" + b.storyText(e.d) + "]" : "";
+      return who + portrait + ": " + b.storyText(e.b);
+    }
+    case EventType::Focus:
+      return e.b >= 0 ? fmt("view follows %s at %s", unitName(b, e.b).c_str(), cellName(b, e.a).c_str())
+                      : fmt("view moves to %s", cellName(b, e.a).c_str());
+    case EventType::UnitAdded:
+      return fmt("%s appears at %s", unitName(b, e.a).c_str(), cellName(b, e.b).c_str());
+    case EventType::UnitRemoved:
+      return fmt("%s leaves the map from %s", unitName(b, e.a).c_str(), cellName(b, e.b).c_str());
+    case EventType::UnitRelocated:
+      return fmt("%s is moved %s > %s", unitName(b, e.a).c_str(), cellName(b, e.b).c_str(), cellName(b, e.c).c_str());
+    case EventType::SideChanged:
+      return fmt("%s joins side %s (was %s)", unitName(b, e.a).c_str(), b.sides[(size_t)e.c].name.c_str(),
+                 b.sides[(size_t)e.b].name.c_str());
+    case EventType::ObjectiveChanged:
+      return "new objective: " + (e.a >= 0 ? b.storyText(e.a) : std::string("(none)"));
   }
   return "?";
 }

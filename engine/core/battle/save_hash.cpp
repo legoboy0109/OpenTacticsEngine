@@ -40,21 +40,31 @@ bool cosmeticKey(const std::string& k) {
   return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph";
 }
 
+// Wording of story events (docs/EVENTS.md): what is said and how things are labelled. Like names,
+// it does not count; but the key stays (with empty text) so that adding or removing a line, or
+// turning one into another kind of command, still does.
+bool wordingKey(const std::string& k) { return k == "say" || k == "speakerName" || k == "label" || k == "text"; }
+
 // A copy without cosmetic keys, at any depth. Formula numbers ("props",
 // "versus", stat tables...) are kept whole: a number called "name" is a rule.
-Json rulesOnly(const Json& j, bool numbersTable = false) {
+// `mapFile`: also blank the wording of events and objectives (only maps have any).
+Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
   if (j.isArray()) {
     Json out = Json::makeArray();
-    for (const Json& e : j.items()) out.push(rulesOnly(e));
+    for (const Json& e : j.items()) out.push(rulesOnly(e, mapFile));
     return out;
   }
   if (j.isObject()) {
     Json out = Json::makeObject();
     for (const Json::Member& m : j.members()) {
       if (!numbersTable && cosmeticKey(m.first)) continue;
+      if (!numbersTable && mapFile && wordingKey(m.first) && m.second.isString()) {
+        out.set(m.first, Json::makeString(""));
+        continue;
+      }
       bool table = m.first == "props" || m.first == "versus" || m.first == "stats" || m.first == "growths" ||
                    m.first == "moveCost" || m.first == "income" || m.first == "cost" || m.first == "resources";
-      out.set(m.first, rulesOnly(m.second, table && m.second.isObject()));
+      out.set(m.first, rulesOnly(m.second, mapFile, table && m.second.isObject()));
     }
     return out;
   }
@@ -64,7 +74,7 @@ Json rulesOnly(const Json& j, bool numbersTable = false) {
 // Mixes the rules content of a JSON file: layout, comments and cosmetic keys
 // do not count. `only` (optional) limits the top-level keys that count.
 bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optional,
-             const char* const* only, std::string& err) {
+             const char* const* only, std::string& err, bool mapFile = false) {
   std::string text;
   if (!readTextFile(root + "/" + rel, text)) {
     if (!optional) {
@@ -80,7 +90,7 @@ bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optio
     err = root + "/" + rel + ": " + perr;
     return false;
   }
-  Json rules = rulesOnly(doc);
+  Json rules = rulesOnly(doc, mapFile);
   if (only && rules.isObject()) {
     Json kept = Json::makeObject();
     for (const char* const* k = only; *k; ++k)
@@ -103,9 +113,10 @@ bool computeDataHash(const Database& db, const std::string& mapId, std::string& 
   const std::string& root = db.rootPath;
   // game.json: only the parts that are rules. Its name, description, author,
   // font, visual styles, screen size, the saving setting and editor notes are
-  // not, and the map list is covered by hashing the map being played.
+  // not, and the map list is covered by hashing the map being played. Switches and variables
+  // count when present (a game without them hashes as before).
   static const char* const kGameKeys[] = {"formatVersion", "stats", "resources", "moveTypes", "roles",
-                                          "rules", "formulas", "scripts", nullptr};
+                                          "rules", "formulas", "scripts", "switches", "variables", nullptr};
   if (!mixJson(f, root, "game.json", false, kGameKeys, err)) return false;
   static const char* const kData[] = {"data/weapons.json", "data/units.json", "data/terrain.json"};
   for (const char* rel : kData)
@@ -117,7 +128,7 @@ bool computeDataHash(const Database& db, const std::string& mapId, std::string& 
   if (readTextFile(root + "/data/items.json", probe) && !mixJson(f, root, "data/items.json", false, nullptr, err)) return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
-  if (!mixJson(f, root, db.maps[(size_t)mi].file, false, nullptr, err)) return false;
+  if (!mixJson(f, root, db.maps[(size_t)mi].file, false, nullptr, err, true)) return false;
 
   static const char* const kHex = "0123456789abcdef";
   out.assign(16, '0');

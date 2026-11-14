@@ -20,6 +20,8 @@ bool parseSavingMode(const std::string& text, SavingMode& out) {
 int Database::findStat(const std::string& id) const { return findById(stats, id); }
 int Database::findResource(const std::string& id) const { return findById(resources, id); }
 int Database::findMoveType(const std::string& id) const { return findById(moveTypes, id); }
+int Database::findSwitch(const std::string& id) const { return findById(switches, id); }
+int Database::findVariable(const std::string& id) const { return findById(variables, id); }
 int Database::findTerrain(const std::string& id) const { return findById(terrains, id); }
 int Database::findStructure(const std::string& id) const { return findById(structures, id); }
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }

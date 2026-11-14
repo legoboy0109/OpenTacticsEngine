@@ -116,29 +116,48 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
       err = "map '" + map.id + "' has an invalid unit placement";
       return false;
     }
-    Unit u;
+    Unit u = makeUnit(ud);
     u.id = (int)units.size();
-    u.type = ud.type;
-    u.side = ud.side;
     u.cell = c;
-    u.name = ud.name.empty() ? db->unitTypes[ud.type].name : ud.name;
-    u.level = ud.level;
-    u.leader = ud.leader;
-    u.stats = ud.stats;
-    u.stats.resize(db->stats.size(), 0);
-    for (const ItemGrant& g : ud.hasItems ? ud.items : db->unitTypes[ud.type].items) {
-      ItemStack s;
-      s.item = g.item;
-      s.uses = g.uses;
-      s.drop = g.drop;
-      u.items.push_back(s);
-    }
-    u.hp = maxHp(u);
     occupant[c] = u.id;
     sides[u.side].everHadUnits = true;
     units.push_back(u);
   }
+
+  // Story: the map's events and objectives, everything off / 0 / not yet run.
+  story = map.story;
+  storyState.switches.assign(db->switches.size(), 0);
+  storyState.variables.assign(db->variables.size(), 0);
+  if (story) {
+    storyState.fired.assign(story->events.size(), 0);
+    for (const StoryEvent& ev : story->events)
+      if (ev.when.kind == Trigger::Kind::Turn && ev.when.side >= (int)sides.size()) {
+        err = "map '" + map.id + "': event '" + ev.id + "' names a side that does not exist";
+        return false;
+      }
+  }
   return true;
+}
+
+Unit Battle::makeUnit(const MapUnitDef& ud) const {
+  Unit u;
+  u.type = ud.type;
+  u.side = ud.side;
+  u.name = ud.name.empty() ? db->unitTypes[ud.type].name : ud.name;
+  u.storyId = ud.id;
+  u.level = ud.level;
+  u.leader = ud.leader;
+  u.stats = ud.stats;
+  u.stats.resize(db->stats.size(), 0);
+  for (const ItemGrant& g : ud.hasItems ? ud.items : db->unitTypes[ud.type].items) {
+    ItemStack s;
+    s.item = g.item;
+    s.uses = g.uses;
+    s.drop = g.drop;
+    u.items.push_back(s);
+  }
+  u.hp = maxHp(u);
+  return u;
 }
 
 void Battle::structureCells(int s, std::vector<Cell>& out) const {
@@ -153,7 +172,11 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
 void Battle::start(std::vector<Event>& events) {
   activeSide = 0;
   round = 1;
-  beginTurn(events);
+  StoryOccurrence o;  // "before the first turn": the first turn's own events come after TurnStarted
+  o.kind = Trigger::Kind::BattleStart;
+  fireStory(o, events);
+  if (!over) beginTurn(events);  // an event may have decided the battle already
+  if (story) settle(events);  // an event may already have decided things
 }
 
 bool Battle::canAct(int unit) const {
