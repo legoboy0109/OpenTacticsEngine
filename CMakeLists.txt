@@ -71,6 +71,17 @@ if(OTE_BUILD_PLAYER AND EXISTS ${CMAKE_SOURCE_DIR}/engine/player/CMakeLists.txt)
   add_subdirectory(engine/player)
 endif()
 
+# The campaign played through the real player, windowless (tests/campaign_player_test.py).
+if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player)
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_FOUND)
+    enable_testing()
+    add_test(NAME campaign_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/campaign_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+  endif()
+endif()
+
 # --- Editor helper (desktop tool: HTTP server for the browser editor) ---
 # Unlike the engine it may use exceptions/threads/<filesystem>; handlers catch
 # everything so no error can take the process down.
