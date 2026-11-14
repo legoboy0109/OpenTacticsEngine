@@ -6,20 +6,20 @@ import type { Look, LookKind, ProjectDoc } from './types'
 export interface ArtUser { kind: LookKind; id: string; name: string }
 
 const nameOf = (doc: ProjectDoc, kind: LookKind, id: string): string =>
-  ((kind === 'terrain' ? doc.terrain : doc.units) ?? []).find((x) => x.id === id)?.name ?? id
+  ((kind === 'terrain' ? doc.terrain : kind === 'units' ? doc.units : doc.structures) ?? []).find((x) => x.id === id)?.name ?? id
 
 /** Every look entry in the document with the thing it belongs to. */
 function* allLooks(doc: ProjectDoc): Generator<{ kind: LookKind; id: string; look: Look }> {
   const g = doc.graphics
   if (!g) return
-  for (const kind of ['terrain', 'units'] as const) {
+  for (const kind of ['terrain', 'units', 'structures'] as const) {
     for (const [id, look] of Object.entries(g[kind] ?? {})) yield { kind, id, look }
     for (const st of Object.values(g.styles ?? {}))
       for (const [id, look] of Object.entries(st[kind] ?? {})) if (look) yield { kind, id, look }
   }
 }
 
-/** The terrains and units that draw from an image (base, per-side or in any look), each once, in screen order. */
+/** The terrains, structures and units that draw from an image (base, per-side or in any look), each once, in screen order. */
 export function sheetUsers(doc: ProjectDoc, sheetId: string): ArtUser[] {
   const seen = new Set<string>()
   const out: ArtUser[] = []
@@ -29,7 +29,8 @@ export function sheetUsers(doc: ProjectDoc, sheetId: string): ArtUser[] {
     seen.add(key)
     out.push({ kind, id, name: nameOf(doc, kind, id) })
   }
-  return out.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'terrain' ? -1 : 1))
+  const rank = { terrain: 0, structures: 1, units: 2 } as const
+  return out.sort((a, b) => rank[a.kind] - rank[b.kind])
 }
 
 /** Files in art/ that no image entry of the document points at. */
@@ -67,8 +68,10 @@ export function gameSides(doc: ProjectDoc): GameSide[] {
   const g = doc.graphics
   const extra = new Set<string>()
   const scan = (l: Look | null | undefined) => { for (const k of Object.keys(l?.sides ?? {})) extra.add(k) }
-  Object.values(g?.units ?? {}).forEach(scan)
-  Object.values(g?.styles ?? {}).forEach((st) => Object.values(st.units ?? {}).forEach(scan))
+  for (const kind of ['units', 'structures'] as const) {
+    Object.values(g?.[kind] ?? {}).forEach(scan)
+    Object.values(g?.styles ?? {}).forEach((st) => Object.values(st[kind] ?? {}).forEach(scan))
+  }
   for (const id of extra) if (!out.some((o) => o.id === id)) out.push({ id, name: id, orphan: true })
   return out
 }

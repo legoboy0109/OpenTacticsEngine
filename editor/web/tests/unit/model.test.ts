@@ -4,7 +4,7 @@ import { addMap, deleteMap, duplicateMap, renameMap } from '../../src/model/maps
 import { addMoveType, addResource, removeMoveType, removeResource } from '../../src/model/rulesLists'
 import { setDefeatCondition, setFeature, setFeatureField } from '../../src/model/rules'
 import { addStat, removeStat, setRole, statRemovalBlock } from '../../src/model/stats'
-import { deleteTerrain, setHeadquarters, setMoveCost, terrainRemovalBlock } from '../../src/model/terrain'
+import { deleteTerrain, setMoveCost, terrainRemovalBlock } from '../../src/model/terrain'
 import { addUnit, deleteUnit, duplicateUnit, setUnitNumber, setUnitTags } from '../../src/model/units'
 import { addWeapon, deleteWeapon, removeVersus, setVersus, setWeaponRange } from '../../src/model/weapons'
 import { setFontName, setGameText } from '../../src/model/game'
@@ -142,14 +142,11 @@ describe('units, weapons, terrain edits', () => {
     expect('versus' in removeVersus(d, 'iron_sword', 'flier').weapons![0]).toBe(false)
     expect(addWeapon(eco(), 'Sword').weapons!.at(-1)!.props).toEqual({})
   })
-  it('terrain move cost, blocking, headquarters', () => {
+  it('terrain move cost and blocking', () => {
     let d = setMoveCost(srpg(), 'plain', 'horse', 0)
     expect(d.terrain![0].moveCost).toEqual({ horse: 0 })
     d = setMoveCost(d, 'plain', 'horse', undefined)
     expect('moveCost' in d.terrain![0]).toBe(false)
-    d = setHeadquarters(d, 'plain', true)
-    expect(d.terrain![0].tags).toEqual(['hq'])
-    expect('tags' in setHeadquarters(d, 'plain', false).terrain![0]).toBe(false)
   })
 })
 

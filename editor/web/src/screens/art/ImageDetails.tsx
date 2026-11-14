@@ -87,7 +87,7 @@ export function ImageDetails({ id, say }: Props) {
             <ul className="usage-list" aria-label={T.usedBy}>
               {users.map((u) => (
                 <li key={`${u.kind}:${u.id}`}>
-                  <Link to={projectPath(store.id, u.kind, u.id)}>{u.kind === 'terrain' ? T.usedTerrain(u.name) : T.usedUnit(u.name)}</Link>
+                  <Link to={projectPath(store.id, u.kind, u.id)}>{T.usedByItem(u.kind, u.name)}</Link>
                 </li>
               ))}
             </ul>

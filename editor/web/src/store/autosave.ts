@@ -1,6 +1,7 @@
 // Autosave: debounce, exactly one PUT in flight, retry with backoff, and a
 // conflict state that stops everything until the user decides.
 import type { Api, PutBody, Result } from '../api/client'
+import { dropEmptyOwners } from '../model/structuresConvert'
 import type { Problem, ProjectDoc } from '../model/types'
 
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
@@ -25,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'weapons', 'units', 'graphics'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'weapons', 'units', 'graphics'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -35,12 +36,15 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
   for (const k of SECTIONS) {
     // Art is the one section that can legitimately go back to "none" (undo past the first image): that is written as an
     // empty section, because sending nothing would leave the old images on disk while the screen shows none.
-    const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] } : doc[k]
+    // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
+    const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
+      : k === 'structures' && doc.structures === null && saved.structures !== null ? []
+        : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}
   for (const [id, m] of Object.entries(doc.maps)) {
-    if (m !== null && (all || m !== saved.maps[id])) { maps[id] = m; any = true }
+    if (m !== null && (all || m !== saved.maps[id])) { maps[id] = dropEmptyOwners(m); any = true }
   }
   if (Object.keys(maps).length) body.maps = maps
   const scripts: Record<string, string> = {}

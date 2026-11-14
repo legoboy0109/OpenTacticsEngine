@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ctxOf, type MapCtx } from '../../src/model/mapCtx'
 import { terrainAt } from '../../src/model/mapGrid'
-import { ownerAt, ownershipMatters, setOwners } from '../../src/model/mapOwners'
 import { ANCHORS, resizeLoss, resizeMap, resizeOffset } from '../../src/model/mapResize'
 import { changeUnitType, moveMapUnit, placeUnit, removeMapUnit, setUnitStat, unitAt, updateMapUnit } from '../../src/model/mapUnits'
 import { setMoveCost } from '../../src/model/terrain'
@@ -105,34 +104,6 @@ describe('unit properties', () => {
   })
 })
 
-describe('owners', () => {
-  it('sets, replaces and clears', () => {
-    const d = eco(); let m = d.maps.twin_rivers!
-    const before = m.owners!.length
-    m = setOwners(m, [{ x: 7, y: 5 }], 'red')
-    expect(ownerAt(m, 7, 5)).toBe('red')
-    m = setOwners(m, [{ x: 7, y: 5 }], 'blue')
-    expect(ownerAt(m, 7, 5)).toBe('blue')
-    expect(m.owners).toHaveLength(before + 1)
-    m = setOwners(m, [{ x: 7, y: 5 }], null)
-    expect(ownerAt(m, 7, 5)).toBeUndefined()
-    expect(m.owners).toHaveLength(before)
-  })
-  it('refuses unknown sides, ignores outside squares, same object when unchanged', () => {
-    const m = eco().maps.twin_rivers!
-    expect(setOwners(m, [{ x: 0, y: 0 }], 'ghost')).toBe(m)
-    expect(setOwners(m, [{ x: 99, y: 0 }], 'red')).toBe(m)
-    expect(setOwners(m, [{ x: 1, y: 4 }], 'blue')).toBe(m)
-    expect(setOwners(m, [{ x: 5, y: 5 }], null)).toBe(m)
-  })
-  it('knows which terrain ownership matters on', () => {
-    const t = eco().terrain!
-    expect(ownershipMatters(t.find((x) => x.id === 'city'))).toBe(true)
-    expect(ownershipMatters(t.find((x) => x.id === 'factory'))).toBe(true)
-    expect(ownershipMatters(t.find((x) => x.id === 'forest'))).toBe(false)
-  })
-})
-
 describe('resize', () => {
   const map = (): { d: ProjectDoc; m: MapFile } => { const d = srpg(); return { d, m: d.maps.bridge! } } // 13 x 9
   it('offset per anchor', () => {
@@ -145,7 +116,7 @@ describe('resize', () => {
   for (const a of ANCHORS) {
     it(`growing with anchor ${a} keeps terrain and units together and pads with the first terrain`, () => {
       const { d, m } = map()
-      const out = resizeMap(m, d.terrain!, 17, 12, a)
+      const out = resizeMap(m, d.terrain!, d.structures ?? [], 17, 12, a)
       const { dx, dy } = resizeOffset(13, 9, 17, 12, a)
       expect(out.grid).toMatchObject({ width: 17, height: 12 })
       expect(out.tiles).toHaveLength(12)
@@ -159,8 +130,8 @@ describe('resize', () => {
     })
     it(`shrinking with anchor ${a} reports and removes exactly what is cropped`, () => {
       const { d, m } = map()
-      const loss = resizeLoss(m, 6, 5, a)
-      const out = resizeMap(m, d.terrain!, 6, 5, a)
+      const loss = resizeLoss(m, d.structures ?? [], 6, 5, a)
+      const out = resizeMap(m, d.terrain!, d.structures ?? [], 6, 5, a)
       const { dx, dy } = resizeOffset(13, 9, 6, 5, a)
       const survivors = m.units!.filter((u) => u.x + dx >= 0 && u.x + dx < 6 && u.y + dy >= 0 && u.y + dy < 5)
       expect(out.units).toHaveLength(survivors.length)
@@ -169,18 +140,18 @@ describe('resize', () => {
       expect(out.tiles.every((r) => r.length === 6)).toBe(true)
     })
   }
-  it('crops owners, resizes heights, refuses out-of-range sizes', () => {
+  it('crops structures, resizes heights, refuses out-of-range sizes', () => {
     const d = eco(); const m0 = d.maps.twin_rivers!
     const m = { ...m0, heights: m0.tiles.map((r) => [...r].map(() => 1)) }
-    const loss = resizeLoss(m, 5, 5, 'nw')
-    expect(loss.owners.length).toBeGreaterThan(0)
-    const out = resizeMap(m, d.terrain!, 20, 12, 'nw')
+    const loss = resizeLoss(m, d.structures!, 5, 5, 'nw')
+    expect(loss.structures.length).toBeGreaterThan(0)
+    const out = resizeMap(m, d.terrain!, d.structures!, 20, 12, 'nw')
     expect(out.heights).toHaveLength(12)
     expect(out.heights![0]).toHaveLength(20)
     expect(out.heights![0][0]).toBe(1)
     expect(out.heights![11][19]).toBe(0)
-    expect(resizeMap(m, d.terrain!, 0, 5, 'nw')).toBe(m)
-    expect(resizeMap(m, d.terrain!, 257, 5, 'nw')).toBe(m)
-    expect(resizeMap(m, d.terrain!, 1, 1, 'c').tiles).toHaveLength(1)
+    expect(resizeMap(m, d.terrain!, d.structures!, 0, 5, 'nw')).toBe(m)
+    expect(resizeMap(m, d.terrain!, d.structures!, 257, 5, 'nw')).toBe(m)
+    expect(resizeMap(m, d.terrain!, d.structures!, 1, 1, 'c').tiles).toHaveLength(1)
   })
 })

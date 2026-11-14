@@ -122,30 +122,6 @@ test('Delete key and button remove the selected unit', async ({ page, game }) =>
   expect(diskUnits(id, 'ford')).toHaveLength(3)
 })
 
-test('owners: set, drag-set, clear, and the soft warning on terrain where ownership means nothing', async ({ page, game }) => {
-  const id = await game.create('economy-tactics', 'Owners')
-  await openMap(page, id, 'crossroads')
-  await tool(page, 'Owners').click()
-  await expect(page.getByText(/Ownership matters for terrain that can be captured/)).toBeVisible()
-  await pickSide(page, 'Red').click()
-  await dragThrough(page, [[5, 0], [6, 0]]) // two cities
-  await saved(page)
-  const owners = () => readDisk(id, 'maps/crossroads.json').owners as Array<{ x: number; y: number; side: string }>
-  expect(owners()).toEqual(expect.arrayContaining([{ x: 5, y: 0, side: 'red' }, { x: 6, y: 0, side: 'red' }]))
-  expect(owners()).toHaveLength(8)
-  await expect(notice(page)).toHaveText('')
-  await clickCell(page, 2, 0) // forest: no use for an owner
-  await expect(notice(page)).toContainText('has no use for an owner')
-  await saved(page)
-  expect(owners()).toHaveLength(9) // set anyway
-  await pickSide(page, 'No owner').click()
-  await dragThrough(page, [[5, 0], [6, 0], [2, 0]])
-  await saved(page)
-  expect(owners()).toHaveLength(6)
-  expect(owners().some((o) => o.y === 0)).toBe(false)
-  expect(await game.problems(id)).toEqual([])
-})
-
 test('warnings: no leader / no headquarters appear and clear', async ({ page, game }) => {
   const rpg = await game.create('strategy-rpg', 'Leader warn')
   await openMap(page, rpg, 'ford')
@@ -159,12 +135,12 @@ test('warnings: no leader / no headquarters appear and clear', async ({ page, ga
   const eco = await game.create('economy-tactics', 'HQ warn')
   await openMap(page, eco, 'crossroads')
   await expect(page.getByTestId('map-warnings')).toHaveCount(0)
-  await tool(page, 'Owners').click()
-  await pickSide(page, 'No owner').click()
-  await clickCell(page, 1, 2) // blue's headquarters
+  await tool(page, 'Structures').click()
+  await clickCell(page, 1, 2) // a square of blue's headquarters (a 2 x 2 structure): selects it
+  const props = page.getByTestId('structure-props')
+  await props.getByLabel('Owner').selectOption({ label: 'Nobody' })
   await expect(page.getByTestId('map-warnings')).toContainText('owns no headquarters, but')
-  await pickSide(page, 'Blue').click()
-  await clickCell(page, 1, 2)
+  await props.getByLabel('Owner').selectOption({ label: 'Blue Army' })
   await expect(page.getByTestId('map-warnings')).toHaveCount(0)
 })
 

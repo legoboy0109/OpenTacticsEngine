@@ -257,6 +257,72 @@ and `ui/picture/text.ts`. Decisions and deviations:
 - **Tests start from art-free games** (`bareGame`/`seedArt` in `tests/e2e/artkit.ts`) because the templates now carry starter art;
   the Play tests use them too, since animated starter art keeps the picture from "settling".
 
+### Structures (fourth slice)
+
+Code: pure edits in `editor/web/src/model/structures*.ts` (kinds, `structuresEffective.ts` = the engine's combination rule,
+`structuresRefs.ts` = cascades, `structuresConvert.ts` = old projects) and `model/mapStructures.ts` (placing on maps); the screen in
+`src/screens/structures/`; the map tool in `src/screens/maps/editor/` (`tools.ts`, `panels/StructureTool.tsx`, `panels/Inspect.tsx`,
+`drawStructures.ts`); the offer to convert in `src/shell/ConvertOffer.tsx`. Wording: `screens/structures/text.ts`, the map editor's
+`text.ts` and `shell/convertText.ts`. Decisions and deviations from the spec above:
+
+- **Structure kinds.** A new kind gets the next palette colour and its first letter; the size boxes write `width` / `height` only above 1
+  (1 is the default). Making a kind bigger leaves placed ones at their top-left corner; the map checks then say "does not fit there any more"
+  (outside the map or overlapping) because the game would refuse to load it. Movement: "Same as the ground" removes the key, "A cost of its own"
+  needs at least 1, "Cannot enter" is 0. Numbers: an empty box means the ground's number; the numbers offered are the ones the damage / hit
+  formulas use (like Terrain) plus free-form ones.
+- **Settings of rules that are off.** The capture, headquarters, income and build-list settings are shown when their rule is on OR the structure
+  already has that setting (then with the old "switched off, so no effect yet" hint, so nothing is hidden that is in the file). With the rule off
+  and nothing set they are not shown; one line names what is hidden and links to Rules. Headquarters follows "its headquarters is captured" being
+  a way to lose.
+- **Owners tool replaced, key O kept.** The Structures tool has the owner choice (Nobody or a side) for the structures about to be placed. A click on
+  an empty square places with the top-left corner there; a click on a placed structure selects it (its whole footprint gets the selection ring) and
+  a drag moves it, keeping where inside the footprint it was grabbed. Owner, kind and Remove of the selected one are in the panel (changing an
+  owner never needs a different tool). Delete removes the structure under the Structures tool and the unit under every other tool.
+- **Refusals.** Beside the loader's rules (inside the map, no overlap) the editor also refuses a structure that would strand a unit (the unit's
+  movement type cannot enter once the structure's costs apply) and, the other way round, a unit on a square the structure makes impassable. Each
+  refusal is a plain sentence under the map; nothing is written. (Painting terrain under a structure is still allowed and flags a stranded unit,
+  like before.)
+- **The ghost.** The footprint follows the mouse pointer (and the keyboard cursor) and is red with a cross where the structure would not fit; it
+  is not shown over an existing structure (a click there selects). Touch has no hover: a tap places or says why not, a drag from a placed
+  structure shows the ghost while it moves. The canvas exposes the ghost as `data-ghost="kind,x,y,ok|bad"` for tests.
+- **Drawing** follows `docs/STRUCTURES.md` and `engine/player/battle/structure_draw.cpp`: one pass of structures and units sorted by the row of the
+  bottom edge (structures first on a tie, a unit on a structure square sorts with that structure's bottom edge, as the engine does), a picture
+  across the footprint's width standing on its bottom edge (the owner's own picture when it has one), the block without a picture (inset one pixel
+  of a 24 px square, soft top highlight, letter centred at 0.45 x the footprint's smaller side) and the owner frame around the whole footprint.
+  Differences from the player: lengths scale with the zoom (the player works in whole pixels of its own tile); the letter is hidden at very small
+  zoom like terrain letters; the move/attack highlight does not exist in the editor.
+- **Styles.** `styles.<id>.structureColors` colours the placeholder block; the Game screen lists every structure per style next to the terrain colours.
+  The map canvas and the palette chips use it. Per-style pictures for structures work like the other kinds ("No picture in this style" included).
+- **Pictures.** The picker offers "One piece" and "Animation" for structures (the file format has no mix or join for them). "A different picture
+  for an owner" works like a unit's per-side pictures. The card's preview shows the structure at its real footprint on the first terrain, once with
+  and once without an owner frame, with up to four rows above for a tall picture. The Art screen lists structures among the users of an image.
+- **Old projects (Convert).** The offer is a banner above every screen while the project has old terrain settings (`capture` or `capturePoints`,
+  `income`, `produces`, tag `hq`) or a non-empty `owners` list; **See what will change...** opens the plain-language explanation with the real numbers
+  (kinds, squares, owner marks). Converting is one edit, so one Undo restores the old project exactly (Undo past a first structure list saves an empty
+  `structures` list, never leaves stale data). Details the spec left open: the structure keeps the terrain's id when free (else `id_2`...); one 1 x 1
+  structure per square; owner marks on squares that do not become a structure (they never did anything) and marks naming an unknown side are left out
+  and counted in the explanation; the terrain stays under the structure and keeps its movement costs, numbers and other tags; a style's colour for the
+  terrain is COPIED to `structureColors` (the terrain colour stays); a single piece or animation picture of the terrain is copied to the structure, a
+  random mix copies its first piece, a joining set is not copied. A damaged `data/structures.json` blocks the offer (the Structures section explains).
+  Terrain that kept `capture` etc. is not rewritten any other way: until converted the engine reports its usual problem.
+- **Saving.** `structures` is a section like `terrain`; a map's EMPTY `owners` list (older editors wrote one into every map) is left out whenever the map
+  is written; a non-empty one is never dropped except by Convert.
+- **Cascades.** Deleting a kind lists the maps with counts, removes the placed ones, its pictures and style colours in one step; deleting a unit,
+  resource or movement type cleans the structures' build lists, income and movement rules; removing a side on a map makes its structures there
+  nobody's (the confirmation says how many). Duplicating copies the pictures.
+- **Select tool and checks.** "Ground", "Structure", "Owner" and "Unit" of a square, then the movement costs and numbers as the game will use them, each
+  marked "(the structure)" where the structure sets it; the checks judge units with the same rule, flag structures that no longer fit, and look for
+  an owned structure that builds units / the headquarters.
+- **Phone.** With eight sections the switcher is two rows of four (one row clipped "Structures").
+- **Other.** A tool remembered by an older editor under the name "owners" falls back to the Terrain tool. `MasterDetail` got an optional `note`
+  (the one-line explanation under the Structures list). `LookKind` is `'terrain' | 'units' | 'structures'`.
+- **Perf.** A 200-square stroke on a 64 x 64 map with 84 structures on it: 34 to 37 ms with placeholder blocks and 43 to 48 ms with pictures on
+  terrain, units and structures (four runs of `tests/e2e/structures-perf.spec.ts` in headless Chromium; the same drag without structures: about 32 to 45 ms
+  art-free and 41 to 49 ms with art, so structures cost nothing measurable).
+- **Tests.** Unit: `structures*.test.ts`, `mapStructures.test.ts`, `drawStructures.test.ts`, the effective numbers pinned to cases from
+  `tests/test_structures.cpp`, the conversion on an old-format fixture (`tests/unit/oldProject.ts`). e2e: `structures*.spec.ts` (kinds, map tool incl.
+  pixel checks of the drawing rules, pictures, the conversion on a project written to disk in the old format, phone, perf, Play and `ote-sim` on the saved game).
+
 ## Art (third slice): images, tiles and sprites
 
 Contract for the data and drawing rules: docs/GRAPHICS.md. Helper calls:

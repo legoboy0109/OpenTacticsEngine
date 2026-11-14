@@ -1,8 +1,9 @@
 // Small "pick one" controls used by the tool panels: terrain swatches, side chips, unit type buttons.
 import { useMemo } from 'react'
-import type { MapSide, Terrain, Unit } from '../../../../model/types'
+import { sizeOf } from '../../../../model/structures'
+import type { MapSide, Structure, Terrain, Unit } from '../../../../model/types'
 import { ArtCanvas } from '../../../../ui/picture/ArtCanvas'
-import { useLook, useTerrainThumb, useUnitThumb } from '../../../../ui/picture/usePreview'
+import { useLook, useStructureThumb, useTerrainThumb, useUnitThumb } from '../../../../ui/picture/usePreview'
 import { glyphOfType, parseHex, readableOn } from '../drawMap'
 
 const rgb = (c: string | undefined, fallback?: [number, number, number]) => `rgb(${parseHex(c, fallback).join(',')})`
@@ -70,4 +71,33 @@ function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color:
   const spec = useUnitThumb(unit.id, side, look)
   if (spec.scene.art?.units.has(unit.id)) return <span className="pick-chip art unit" aria-hidden="true"><ArtCanvas spec={spec} label="" /></span>
   return <span className="pick-chip unit" style={{ background: rgb(color, [136, 136, 136]), color: ink(color) }} aria-hidden="true">{glyphOfType(unit, '?')}</span>
+}
+
+/** The structure kinds as buttons; each shows its footprint ("2 × 2") so the ghost on the map is no surprise. */
+export function StructurePicker({ kinds, value, side, onChange }: { kinds: Structure[]; value: string; side: MapSide | undefined; onChange: (id: string) => void }) {
+  return (
+    <div className="pick-grid structures" role="radiogroup" aria-label="Structure">
+      {kinds.map((k) => {
+        const { w, h } = sizeOf(k)
+        return (
+          <button key={k.id} type="button" role="radio" aria-checked={k.id === value} className="pick" onClick={() => onChange(k.id)} title={`${k.name} (${w} × ${h})`}>
+            <StructureChip kind={k} side={side} />
+            <span className="pick-text">
+              <span className="pick-name">{k.name}</span>
+              <span className="pick-sub">{w} × {h}</span>
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The structure's picture when it has one, else the coloured chip with its letter. */
+export function StructureChip({ kind: k, side }: { kind: Structure; side: MapSide | undefined }) {
+  const look = useLook()
+  const spec = useStructureThumb(k.id, side, look)
+  if (spec.scene.art?.structures.has(k.id)) return <span className="pick-chip art" aria-hidden="true"><ArtCanvas spec={spec} label="" /></span>
+  const color = look.view.structureColors[k.id] ?? k.color
+  return <span className="pick-chip" style={{ background: rgb(color), color: ink(color), outline: side ? `2px solid ${rgb(side.color, [136, 136, 136])}` : undefined, outlineOffset: -2 }} aria-hidden="true">{k.glyph?.trim()}</span>
 }

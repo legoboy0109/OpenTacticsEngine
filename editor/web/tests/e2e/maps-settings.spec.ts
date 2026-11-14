@@ -1,5 +1,5 @@
 import { expect, readDisk, saved, test } from './fixtures'
-import { clickCell, diskGrid, openMap, pickSide, pickUnitType, tab, tool } from './mapkit'
+import { clickCell, diskGrid, openMap, pickSide, pickStructure, pickUnitType, tab, tool } from './mapkit'
 
 const mapFile = (id: string, f: string) => readDisk(id, `maps/${f}.json`)
 
@@ -118,24 +118,28 @@ test('@smoke sides: add a third, set everything, give it a unit and a building, 
   await pickSide(page, 'Gold').click()
   await pickUnitType(page, 'Infantry').click()
   await clickCell(page, 6, 7)
-  await tool(page, 'Owners').click()
+  await tool(page, 'Structures').click()
   await pickSide(page, 'Gold').click()
-  await clickCell(page, 5, 6) // a city
+  await pickStructure(page, 'City').click()
+  await clickCell(page, 4, 5) // an empty square: a city goes there, owned by Gold
   await saved(page)
   expect(mapFile(id, 'crossroads').units.at(-1)).toEqual({ type: 'infantry', side: 'green', x: 6, y: 7 })
-  expect(mapFile(id, 'crossroads').owners.at(-1)).toEqual({ x: 5, y: 6, side: 'green' })
+  expect(mapFile(id, 'crossroads').structures.at(-1)).toEqual({ type: 'city', x: 4, y: 5, side: 'green' })
+  expect(mapFile(id, 'crossroads')).not.toHaveProperty('owners')
   expect(await game.problems(id)).toEqual([])
 
   await tab(page, 'Sides').click()
   await page.getByRole('button', { name: 'Remove Gold' }).click()
   const dlg = page.getByRole('dialog', { name: /Remove the side/ })
-  await expect(dlg).toContainText('1 unit and 1 owned square')
+  await expect(dlg).toContainText('Its 1 unit is removed')
+  await expect(dlg).toContainText('1 structure it owns stays on the map and becomes nobody')
   await dlg.getByRole('button', { name: 'Cancel' }).click()
   expect(mapFile(id, 'crossroads').sides).toHaveLength(3)
   await page.getByRole('button', { name: 'Remove Gold' }).click()
   await page.getByRole('dialog', { name: /Remove the side/ }).getByRole('button', { name: 'Remove', exact: true }).click()
   await saved(page)
-  expect(mapFile(id, 'crossroads')).toEqual(before)
+  // Its unit went with it; the city it owned stays on the map and belongs to nobody now.
+  expect(mapFile(id, 'crossroads')).toEqual({ ...before, structures: [...before.structures, { type: 'city', x: 4, y: 5 }] })
   expect(await game.problems(id)).toEqual([])
 })
 

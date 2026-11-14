@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { addStyle, moveStyle, newStyleId, removeStyle, setStyleTerrainColor, updateStyle } from '../../model/game'
-import type { Style, Terrain } from '../../model/types'
+import { addStyle, moveStyle, newStyleId, removeStyle, setStyleStructureColor, setStyleTerrainColor, updateStyle } from '../../model/game'
+import type { Structure, Style, Terrain } from '../../model/types'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { ColorInput } from '../../ui/ColorInput'
@@ -25,7 +25,7 @@ export function StylesCard() {
       {styles.length === 0 && <p className="help">{T.looksEmpty}</p>}
       <div className="stack">
         {styles.map((s, i) => (
-          <StyleBox key={s.id} style={s} index={i} count={styles.length} terrain={doc.terrain} onDelete={() => setDeleting(s)} />
+          <StyleBox key={s.id} style={s} index={i} count={styles.length} terrain={doc.terrain} structures={doc.structures} onDelete={() => setDeleting(s)} />
         ))}
       </div>
       <NameDialog open={adding} title={T.newLookTitle} label={T.newLookLabel} onCancel={() => setAdding(false)}
@@ -38,7 +38,7 @@ export function StylesCard() {
   )
 }
 
-function StyleBox({ style, index, count, terrain, onDelete }: { style: Style; index: number; count: number; terrain: Terrain[] | null; onDelete: () => void }) {
+function StyleBox({ style, index, count, terrain, structures, onDelete }: { style: Style; index: number; count: number; terrain: Terrain[] | null; structures: Structure[] | null; onDelete: () => void }) {
   const edit = useEdit()
   const key = `style:${style.id}`
   return (
@@ -84,6 +84,25 @@ function StyleBox({ style, index, count, terrain, onDelete }: { style: Style; in
             </ul>
           )}
         </FieldGroup>
+        {(structures?.length ?? 0) > 0 && (
+          <FieldGroup label={T.structureColors} help={T.structureColorsHelp}>
+            <ul className="color-rows">
+              {structures!.map((s) => {
+                const over = style.structureColors?.[s.id]
+                return (
+                  <li key={s.id}>
+                    <span className="color-row-name">{s.name}</span>
+                    <ColorInput value={over ?? s.color} aria-label={`${style.name}: ${s.name} colour`}
+                      onChange={(v) => edit((d) => setStyleStructureColor(d, style.id, s.id, v), `${key}:sc:${s.id}`)} />
+                    {over !== undefined
+                      ? <button type="button" className="btn sm" onClick={() => edit((d) => setStyleStructureColor(d, style.id, s.id, undefined))}>{T.terrainReset}</button>
+                      : <span className="help">{T.terrainDefault}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          </FieldGroup>
+        )}
       </div>
     </div>
   )

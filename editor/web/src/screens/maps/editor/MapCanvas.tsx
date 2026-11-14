@@ -2,7 +2,10 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { clockNow, useAnimating, useAnimationClock, useReducedMotion } from '../../../art/useArt'
 import type { ArtScene, StyleView } from '../../../art/scene'
-import type { MapFile, Terrain, Unit } from '../../../model/types'
+import { ctxOfParts } from '../../../model/mapCtx'
+import { fitProblem, indexByOrigin, placedOf, structureIndexAt } from '../../../model/mapStructures'
+import type { MapFile, Structure, Terrain, Unit } from '../../../model/types'
+import type { StructureGhost } from './drawStructures'
 import { drawMap, type Scene } from './drawMap'
 import { useCanvasInput, type InputProps } from './useCanvasInput'
 import { T } from './text'
@@ -11,12 +14,13 @@ interface Props extends Omit<InputProps, 'mapSize' | 'size'> {
   map: MapFile
   terrain: Terrain[]
   unitTypes: Unit[]
+  structureTypes: Structure[]
   flagged: Set<string>
   art: ArtScene | null
   style: StyleView
 }
 
-export function MapCanvas({ map, terrain, unitTypes, flagged, art, style, ...input }: Props) {
+export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, style, ...input }: Props) {
   const { vs } = input
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
@@ -31,17 +35,39 @@ export function MapCanvas({ map, terrain, unitTypes, flagged, art, style, ...inp
     map,
     terrain: new Map(terrain.map((t) => [t.id, t])),
     types: new Map(unitTypes.map((u) => [u.id, u])),
+    structures: new Map(structureTypes.map((s) => [s.id, s])),
     flagged, art, style,
-  }), [map, terrain, unitTypes, flagged, art, style])
+  }), [map, terrain, unitTypes, structureTypes, flagged, art, style])
   const sceneRef = useRef(scene)
   sceneRef.current = scene
+
+  // Where a structure would go (placing with the pointer or keyboard cursor, or dragging one), and whether it fits.
+  const ctx = useMemo(() => ctxOfParts(terrain, structureTypes, unitTypes), [terrain, structureTypes, unitTypes])
+  const ghostOf = useCallback((): StructureGhost | null => {
+    const m = sceneRef.current.map
+    if (vs.dragS) {
+      const i = indexByOrigin(m, vs.dragS.origin.x, vs.dragS.origin.y)
+      const s = placedOf(m)[i]
+      if (!s) return null
+      const x = s.x + vs.dragS.dx, y = s.y + vs.dragS.dy
+      return { type: s.type, x, y, side: s.side, ok: fitProblem(m, ctx, s.type, x, y, i) === null }
+    }
+    const at = vs.placing ? vs.hover ?? (vs.cursorVisible ? vs.cursor : null) : null
+    if (!vs.placing || !at || structureIndexAt(m, ctx, at.x, at.y) >= 0) return null
+    return { type: vs.placing.type, x: at.x, y: at.y, side: vs.placing.side || undefined, ok: fitProblem(m, ctx, vs.placing.type, at.x, at.y) === null }
+  }, [vs, ctx])
+  const ghostRef = useRef(ghostOf)
+  ghostRef.current = ghostOf
 
   const draw = useCallback(() => {
     raf.current = 0
     const c = cv.current
     const g = c?.getContext('2d')
     if (!c || !g) return
-    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, time: clockNow(reduced.current) })
+    const sg = ghostRef.current()
+    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, time: clockNow(reduced.current) })
+    // What the structure ghost shows (for tests and curious people): "kind,x,y,ok|bad", empty when there is none.
+    c.dataset.ghost = sg ? `${sg.type},${sg.x},${sg.y},${sg.ok ? 'ok' : 'bad'}` : ''
     // Lets tests (and curious people) find a square on screen without guessing.
     c.dataset.view = `${vs.view.scale},${vs.view.x},${vs.view.y}`
   }, [vs])

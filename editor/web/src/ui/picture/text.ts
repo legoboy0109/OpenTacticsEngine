@@ -5,6 +5,7 @@ export const P = {
   cardTitle: 'Picture',
   cardHelpTerrain: 'How this terrain is drawn on the map. Without a picture it stays a coloured square with its letter.',
   cardHelpUnit: 'How this unit is drawn on the map. Without a picture it stays a coloured block with its letter.',
+  cardHelpStructure: 'How this structure is drawn on the map. The picture is drawn across the whole footprint, standing on its bottom edge, so a tall picture may stick out above. Without a picture it stays a coloured block with its letter.',
   choose: 'Choose picture…',
   change: 'Change picture…',
   remove: 'Remove picture',
@@ -13,6 +14,7 @@ export const P = {
   goToArt: 'Go to Art',
   previewTerrain: (n: string) => `How ${n} looks on a map`,
   previewUnit: (n: string) => `${n} on its coloured base, for two sides`,
+  previewStructure: (n: string) => `${n} on the ground, with an owner frame and without`,
   kindNames: { one: 'One piece', mix: 'Random mix', animation: 'Animation', join: 'Joins with neighbours' },
   kindHelp: {
     one: 'The same piece on every square.',
@@ -21,6 +23,7 @@ export const P = {
     join: 'A set of 16 pieces for roads, rivers and walls: the piece shown depends on which neighbours are the same terrain.',
   },
   unitKindHelp: { one: 'The same picture all the time.', animation: 'Pictures shown one after the other, over and over.' },
+  structureKindHelp: { one: 'The same picture all the time, drawn across the whole footprint.', animation: 'Pictures shown one after the other, over and over.' },
 
   // looks (visual styles)
   forLook: 'For style:',
@@ -38,6 +41,9 @@ export const P = {
   sidesHelp: 'Each side can show its own picture instead of the general one. Sides come from your maps.',
   sidesNeedPicture: 'Choose a picture first; then each side can get its own.',
   sidesNone: 'No map has sides yet.',
+  ownersTitle: 'A different picture for an owner',
+  ownersHelp: 'A structure can show its own picture when a particular side owns it. Sides come from your maps. Structures nobody owns use the general picture.',
+  ownersNeedPicture: 'Choose a picture first; then each owner can get its own.',
   sideSame: 'Uses the general picture',
   sideOrphan: 'No map uses this side any more',
   sideChoose: 'Choose…',
@@ -54,6 +60,7 @@ export const P = {
   pickHintAnimation: 'Click the pieces in the order they should play. The same piece can come again later.',
   pickHintJoin: 'Point at the top-left piece of the 16 pieces and click. All 4 × 4 pieces from there are used.',
   pickHintUnitOne: 'Click the piece to use.',
+  pickHintStructureOne: 'Click the piece to use. It is stretched across the whole footprint, so a piece with the same shape as the footprint looks best.',
   chosen: 'Chosen',
   chosenNone: 'Nothing chosen yet.',
   chosenPieces: (n: number) => (n === 1 ? '1 piece' : `${n} pieces`),

@@ -72,12 +72,13 @@ export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
   if (!g || !g.sheets.some((s) => s.id === id)) return doc
   const styles: Record<string, StyleArt> = {}
   for (const [sid, st] of Object.entries(g.styles ?? {})) {
-    const next = patchObj(st, { terrain: sweepMap(st.terrain, id, true), units: sweepMap(st.units, id, true) })
-    if (next.terrain || next.units || Object.keys(next).length) styles[sid] = next
+    const next = patchObj(st, { terrain: sweepMap(st.terrain, id, true), units: sweepMap(st.units, id, true), structures: sweepMap(st.structures, id, true) })
+    if (Object.keys(next).length) styles[sid] = next
   }
   const next = patchObj({ ...g, sheets: g.sheets.filter((s) => s.id !== id) }, {
     terrain: sweepMap(g.terrain, id, false) as Graphics['terrain'],
     units: sweepMap(g.units, id, false) as Graphics['units'],
+    structures: sweepMap(g.structures, id, false) as Graphics['structures'],
     styles: Object.keys(styles).length ? styles : undefined,
   })
   return { ...doc, graphics: next }

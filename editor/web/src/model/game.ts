@@ -52,14 +52,18 @@ export function removeStyle(doc: ProjectDoc, id: string): ProjectDoc {
   return dropStyleArt(removed, id)
 }
 
-/** Recolour one terrain in one look; undefined colour goes back to the terrain's own. */
-export function setStyleTerrainColor(doc: ProjectDoc, styleId: string, terrainId: string, color: string | undefined): ProjectDoc {
-  return updateStyle(doc, styleId, {
-    terrainColors: (() => {
-      const cur = doc.game?.styles?.find((s) => s.id === styleId)?.terrainColors ?? {}
-      const next = { ...cur }
-      if (color === undefined) delete next[terrainId]; else next[terrainId] = color
-      return Object.keys(next).length ? next : undefined
-    })(),
-  })
+/** One colour entry of a style (`terrainColors` or `structureColors`); an emptied map leaves the key out. */
+function setStyleColor(doc: ProjectDoc, styleId: string, field: 'terrainColors' | 'structureColors', id: string, color: string | undefined): ProjectDoc {
+  const cur = doc.game?.styles?.find((s) => s.id === styleId)?.[field] ?? {}
+  const next = { ...cur }
+  if (color === undefined) delete next[id]; else next[id] = color
+  return updateStyle(doc, styleId, { [field]: Object.keys(next).length ? next : undefined })
 }
+
+/** Recolour one terrain in one style; undefined colour goes back to the terrain's own. */
+export const setStyleTerrainColor = (doc: ProjectDoc, styleId: string, terrainId: string, color: string | undefined): ProjectDoc =>
+  setStyleColor(doc, styleId, 'terrainColors', terrainId, color)
+
+/** Recolour one structure's block in one style; undefined colour goes back to the structure's own. */
+export const setStyleStructureColor = (doc: ProjectDoc, styleId: string, structureId: string, color: string | undefined): ProjectDoc =>
+  setStyleColor(doc, styleId, 'structureColors', structureId, color)

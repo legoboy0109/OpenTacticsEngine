@@ -14,6 +14,8 @@ export interface ArtScene {
   marker: boolean
   terrain: Map<string, Resolved>
   units: Map<string, ResolvedUnit>
+  /** Structure id -> its picture (and per-owner pictures); drawn across the whole footprint. */
+  structures: Map<string, ResolvedUnit>
   /** Terrain id -> ids that count as "the same" for joining (itself included). */
   joinSame: Map<string, Set<string>>
   /** Most extra rows above its square any sprite sticks out (tall sprites), from the cell proportions. */
@@ -37,7 +39,7 @@ export function resolveLook(doc: ProjectDoc, src: ImageSource, look: Look | null
 export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: ImageSource): ArtScene | null {
   const g = doc.graphics
   if (!g || g.sheets.length === 0) return null
-  const scene: ArtScene = { marker: unitMarkerOn(doc), terrain: new Map(), units: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
+  const scene: ArtScene = { marker: unitMarkerOn(doc), terrain: new Map(), units: new Map(), structures: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
   const note = (r: Resolved) => { if (r.shape === 'animated') scene.animated = true }
   for (const t of doc.terrain ?? []) {
     const r = resolveLook(doc, src, effectiveLook(g, 'terrain', t.id, style))
@@ -58,7 +60,28 @@ export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: I
       scene.tallRows = Math.max(scene.tallRows, Math.ceil(r.ch / r.cw) - 1)
     }
   }
+  for (const s of doc.structures ?? []) {
+    const entry = effectiveLook(g, 'structures', s.id, style)
+    const base = resolveStructure(doc, src, entry)
+    if (!base) continue
+    const sides = new Map<string, Resolved>()
+    for (const [side, l] of Object.entries(entry?.sides ?? {})) { const r = resolveStructure(doc, src, l); if (r) sides.set(side, r) }
+    scene.structures.set(s.id, { base, sides })
+    for (const r of [base, ...sides.values()]) note(r)
+  }
   return scene
+}
+
+/** Structures only draw one piece or an animation (the file format refuses anything else). */
+const resolveStructure = (doc: ProjectDoc, src: ImageSource, look: Look | null | undefined): Resolved | null => {
+  const r = resolveLook(doc, src, look)
+  return r && (r.shape === 'still' || r.shape === 'animated') ? r : null
+}
+
+/** The picture of a structure owned by `side` (or by nobody: undefined): its own for that side, else the general one. */
+export const structurePicture = (art: ArtScene | null, type: string, side: string | undefined): Resolved | null => {
+  const s = art?.structures.get(type)
+  return s ? (side !== undefined ? s.sides.get(side) : undefined) ?? s.base : null
 }
 
 /** The picture of a unit of one side: its own for that side, else the general one; null = draw the placeholder block. */
@@ -68,11 +91,11 @@ export const unitPicture = (art: ArtScene | null, type: string, side: string): R
 }
 
 // ---- visual style as the canvas shows it ----
-export interface StyleView { background?: string; showGlyphs: boolean; terrainColors: Record<string, string> }
-export const PLAIN_STYLE: StyleView = { showGlyphs: true, terrainColors: {} }
+export interface StyleView { background?: string; showGlyphs: boolean; terrainColors: Record<string, string>; structureColors: Record<string, string> }
+export const PLAIN_STYLE: StyleView = { showGlyphs: true, terrainColors: {}, structureColors: {} }
 
 export function styleView(game: Game | null, styleId: string | undefined): StyleView {
   const s = styleId === undefined ? undefined : game?.styles?.find((x) => x.id === styleId)
   if (!s) return PLAIN_STYLE
-  return { background: s.background, showGlyphs: s.showGlyphs !== false, terrainColors: s.terrainColors ?? {} }
+  return { background: s.background, showGlyphs: s.showGlyphs !== false, terrainColors: s.terrainColors ?? {}, structureColors: s.structureColors ?? {} }
 }

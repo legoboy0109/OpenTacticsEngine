@@ -19,15 +19,16 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
   const [w, setW] = useState(map.grid.width)
   const [h, setH] = useState(map.grid.height)
   const [anchor, setAnchor] = useState<Anchor>('nw')
-  const loss = resizeLoss(map, w, h, anchor)
-  const lossCount = loss.units.length + loss.owners.length
+  const structureTypes = doc.structures ?? []
+  const loss = resizeLoss(map, structureTypes, w, h, anchor)
+  const lossCount = loss.units.length + loss.structures.length
   const changed = w !== map.grid.width || h !== map.grid.height
   const unitName = (u: MapFile['units'] extends (infer U)[] | undefined ? U : never) =>
     `${u.name ? `${u.name} (${typeName(u.type)})` : typeName(u.type)} at ${u.x + 1}, ${u.y + 1}`
   const typeName = (id: string) => doc.units?.find((x) => x.id === id)?.name ?? id
   const listed = loss.units.slice(0, MAX_LISTED).map(unitName)
   const apply = () => {
-    if (changed) edit((d) => editMap(d, mapId, (m, c) => resizeMap(m, c.terrain, w, h, anchor)))
+    if (changed) edit((d) => editMap(d, mapId, (m, c) => resizeMap(m, c.terrain, c.structureTypes, w, h, anchor)))
     onClose()
   }
   return (
@@ -61,7 +62,7 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
             <ul className="usage-list">
               {listed.map((t, i) => <li key={i}>{t}</li>)}
               {loss.units.length > MAX_LISTED && <li>and {loss.units.length - MAX_LISTED} more units</li>}
-              {loss.owners.length > 0 && <li>{T.cropOwners(loss.owners.length)}</li>}
+              {loss.structures.map((s, i) => <li key={`s${i}`}>{`${doc.structures?.find((d) => d.id === s.type)?.name ?? s.type} at ${s.x + 1}, ${s.y + 1}`}</li>)}
             </ul>
             <p className="help">{T.resizeUndo}</p>
           </div>

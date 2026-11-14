@@ -35,7 +35,7 @@ function writeMap(g: Graphics, s: Slot, next: LookMap | undefined): Graphics {
 /** Sets what a slot shows.
  *  - base slot: a look sets it; `null`/undefined remove it (back to the placeholder).
  *  - style slot: a look overrides; `null` = "no picture in this style"; undefined = "same as the others".
- *  A unit keeps its per-side pictures when only its own picture changes. */
+ *  A unit or structure keeps its per-side pictures when only its own picture changes. */
 export function setLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined): ProjectDoc {
   return writeLook(doc, s, look, true)
 }
@@ -50,13 +50,13 @@ function writeLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined, carr
     if (value === undefined) delete cur[s.id]
     else {
       const old = cur[s.id]
-      cur[s.id] = carrySides && value && s.kind === 'units' && value.sides === undefined && old?.sides ? { ...value, sides: old.sides } : value
+      cur[s.id] = carrySides && value && s.kind !== 'terrain' && value.sides === undefined && old?.sides ? { ...value, sides: old.sides } : value
     }
     return writeMap(g, s, cur)
   })
 }
 
-/** A different picture for one side of a unit (inside the unit's entry in the base or in a style). */
+/** A different picture for one side of a unit or structure (inside its entry in the base or in a style). */
 export function setSideLook(doc: ProjectDoc, s: Slot, sideId: string, look: Look | undefined): ProjectDoc {
   const entry = getLook(doc, s)
   if (!entry) return doc
