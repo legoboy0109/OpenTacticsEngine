@@ -19,8 +19,9 @@ BattleScene::BattleScene(SceneHost& host)
   styleIdx_ = std::max(0, std::min(host.styleIndex(), (int)session_.db.styles.size() - 1));
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
+  proj_.setViewport(layout_.vw, layout_.vh);
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
-  if (proj_.iso3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
+  if (proj_.view3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
   view_.push(session_.startEvents);  // first TurnStarted + income
   int rx, ry;
@@ -35,6 +36,7 @@ void BattleScene::ensureLayout(const Renderer& r) {
   panelResourceAnchor(layout_, (int)session_.db.resources.size(), rx, ry);
   view_.setResourceAnchor(rx, ry);
   cam_.placed = false;
+  proj_.setViewport(layout_.vw, layout_.vh);
 }
 
 bool BattleScene::humanTurn() const {
@@ -49,7 +51,7 @@ Cell BattleScene::cellAt(int x, int y) const {
 // Bottom-left corner of the map: 0 = turn left, 1 = turn right.
 void BattleScene::turnButtonBox(int which, int& x, int& y, int& w, int& h) const {
   w = h = std::max(14, layout_.lh + 8);
-  x = 3 + which * (w + 3);
+  x = 3 + which * (w + 3) + (which / 2) * 4;  // pairs: turn, tilt, zoom
   y = layout_.vh - h - 3;
 }
 
@@ -131,6 +133,13 @@ void BattleScene::followCamera(double dt) {
     fx = (battle_.grid.x(c) + 0.5f) * layout_.tile;
     fy = (battle_.grid.y(c) + 0.5f) * layout_.tile;
   }
+  if (proj_.free3d()) {  // this view has no scrolling: its own camera keeps the spot in the picture
+    float gx = fx / layout_.tile, gy = fy / layout_.tile;
+    freeCam_.update(dt, proj_.cam3(), gx - proj_.gridW() * 0.5f, proj_.elevationAt(gx, gy) * proj_.stepY(), gy - proj_.gridH() * 0.5f);
+    cam_.x = cam_.y = 0;
+    cam_.placed = true;
+    return;
+  }
   float wx, wy;
   proj_.toWorld(fx, fy, wx, wy);
   if (map3d_ && !cam_.placed) cam_.centre(wx, wy, layout_, proj_.worldW(), proj_.worldH());
@@ -178,7 +187,8 @@ std::string BattleScene::hint() const {
   switch (mode_) {
     case Mode::Idle:
       if (!humanHasOptions()) return "All units done.  Menu (M): end turn";
-      return map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
+      return proj_.free3d() ? "Arrows  Z:select  ,.:turn  RF:tilt  -=:zoom  M:menu"
+             : map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
                     : "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
     case Mode::Selected: return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
     case Mode::ActionMenu: return "Up/Down + Z:choose  X:undo move";
@@ -198,13 +208,14 @@ void BattleScene::draw(Renderer& r) {
   r.clear(Color(0, 0, 0));
   drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : Overlay(), cursor_, human);
   drawFloats(r, ctx, false);
-  if (map3d_) {  // the two turn buttons, for pointer and touch
-    for (int i = 0; i < 2; ++i) {
+  if (map3d_) {  // the camera buttons, for pointer and touch
+    static const char* const kLabels[6] = {"<", ">", "^", "v", "+", "-"};
+    for (int i = 0; i < cameraButtons(); ++i) {
       int x, y, w, h;
       turnButtonBox(i, x, y, w, h);
       r.fillRect(x, y, w, h, Color(10, 12, 24, 190));
       r.drawRect(x, y, w, h, Color(150, 156, 185, 200));
-      const char* label = i ? ">" : "<";
+      const char* label = kLabels[i];
       r.drawText(x + (w - r.textWidth(label)) / 2, y + (h - layout_.lh) / 2, label, Color(235, 238, 255));
     }
   }

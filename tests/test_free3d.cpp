@@ -110,7 +110,7 @@ TEST(free3d_pick_meets_block_sides_and_hidden_agrees) {
 }
 
 TEST(free3d_shift_into_view_puts_a_point_at_the_margin) {
-  Free3DGeometry g = cam(40, 40, 2, 0.4f, 0.7f, 10);
+  Free3DGeometry g = cam(80, 80, 2, 0.4f, 0.7f, 10);
   float dX, dZ, sx, sy;
   g.shiftIntoView(0.5f, 0, -0.5f, 40, 40, dX, dZ);  // near the middle already
   CHECK(dX == 0 && dZ == 0);
@@ -136,7 +136,11 @@ TEST(free3d_limits_and_quarters) {
   g.focusZ = -99;
   g.clamp();
   CHECK(g.pitch == Free3DGeometry::kMaxPitch && g.distance == Free3DGeometry::kMaxDistance);
-  CHECK(g.focusX == 5 && g.focusZ == -3);
+  CHECK(g.focusX == 0 && g.focusZ == 0);  // a map smaller than the zoomed-out picture: its middle
+  g.gridW = 40;
+  g.focusX = 99;
+  g.clamp();
+  CHECK(g.focusX == 20 - 30 * 0.2f);  // otherwise: kept a little inside the outline
   g.pitch = 0;
   g.distance = 0;
   g.clamp();

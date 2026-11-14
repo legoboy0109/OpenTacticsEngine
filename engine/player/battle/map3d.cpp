@@ -32,8 +32,8 @@ Map3D::~Map3D() {
 }
 
 Map3D::Spot Map3D::spot(const DrawCtx& c, float gx, float gy, float elevation) const {
-  const Iso3DGeometry& g = c.proj->geo3();
-  return Spot{gx - g.gridW * 0.5f, elevation * g.stepY, gy - g.gridH * 0.5f};
+  const MapProj& g = *c.proj;
+  return Spot{gx - g.gridW() * 0.5f, elevation * g.stepY(), gy - g.gridH() * 0.5f};
 }
 
 // The 3D texture and texture positions of a piece of a look's sheet; false = not usable in 3D.
@@ -78,10 +78,10 @@ void Map3D::buildGround(const DrawCtx& c) {
   built_ = true;
   const Battle& b = c.battle;
   const MapProj& p = *c.proj;
-  const Iso3DGeometry& g = p.geo3();
+  const MapProj& g = p;
   MeshData m;
-  for (int y = 0; y < g.gridH; ++y)
-    for (int x = 0; x < g.gridW; ++x) {
+  for (int y = 0; y < g.gridH(); ++y)
+    for (int x = 0; x < g.gridW(); ++x) {
       Cell cell = b.grid.at(x, y);
       int e = p.elevation(x, y);
       Color col = Color::rgb(terrainRgb(c, b.cells[cell].terrain));
@@ -91,7 +91,7 @@ void Map3D::buildGround(const DrawCtx& c) {
       const Look* art = terrainArt(c, b.cells[cell].terrain);
       if (!art || !sheets_.texture(r3d_, art->sheet)) groundQuad(m, c, x, y, 1, 1, hi, 0, tintOf(col));
       // Sides, down to the neighbour's top (the rim of the map shows one level below the lowest ground).
-      auto lowOf = [&](int nx, int ny) { return elevOr(p, b.grid, nx, ny) * g.stepY; };
+      auto lowOf = [&](int nx, int ny) { return elevOr(p, b.grid, nx, ny) * g.stepY(); };
       float lo;
       if ((lo = lowOf(x, y + 1)) < hi) addQuad(m, Vec3(a.X, lo, z.Z), Vec3(z.X, lo, z.Z), Vec3(z.X, hi, z.Z), Vec3(a.X, hi, z.Z), side);
       if ((lo = lowOf(x, y - 1)) < hi) addQuad(m, Vec3(z.X, lo, a.Z), Vec3(a.X, lo, a.Z), Vec3(a.X, hi, a.Z), Vec3(z.X, hi, a.Z), side);
@@ -102,21 +102,31 @@ void Map3D::buildGround(const DrawCtx& c) {
 }
 
 void Map3D::updateHidden(const DrawCtx& c) {
-  const Iso3DGeometry& g = c.proj->geo3();
-  if (g.yaw == hiddenYaw_ && hidden_.size() == (size_t)(g.gridW * g.gridH)) return;
-  hiddenYaw_ = g.yaw;
-  hidden_.assign((size_t)(g.gridW * g.gridH), 0);
-  if (g.levels == 0) return;  // flat map: nothing can cover anything
-  for (int y = 0; y < g.gridH; ++y)
-    for (int x = 0; x < g.gridW; ++x) hidden_[(size_t)(y * g.gridW + x)] = g.hidden(x, y, c.proj->elevations());
+  const MapProj& g = *c.proj;
+  // What covers what only changes when the camera does.
+  float key[7] = {g.yaw(), 0, 0, 0, 0, 0, 0};
+  if (g.free3d()) {
+    const Free3DGeometry& f = g.cam3();
+    key[1] = f.pitch; key[2] = f.distance; key[3] = f.focusX; key[4] = f.focusY; key[5] = f.focusZ; key[6] = 1;
+  }
+  bool same = hidden_.size() == (size_t)(g.gridW() * g.gridH());
+  for (int i = 0; i < 7 && same; ++i) same = key[i] == hiddenKey_[i];
+  if (same) return;
+  for (int i = 0; i < 7; ++i) hiddenKey_[i] = key[i];
+  hidden_.assign((size_t)(g.gridW() * g.gridH()), 0);
+  bool flat = true;  // flat map: nothing can cover anything
+  for (int e : g.elevations()) flat = flat && e == 0;
+  if (flat) return;
+  for (int y = 0; y < g.gridH(); ++y)
+    for (int x = 0; x < g.gridW(); ++x) hidden_[(size_t)(y * g.gridW() + x)] = g.hidden3(x, y);
 }
 
 void Map3D::beginFrame(const DrawCtx& c) {
-  const Iso3DGeometry& g = c.proj->geo3();
+  const MapProj& p = *c.proj;
   const Layout& L = c.layout;
-  float s = std::sin(g.yaw), co = std::cos(g.yaw);
-  pixels_ = g.pixels;
-  cosP_ = g.cosPitch();
+  float s = std::sin(p.yaw()), co = std::cos(p.yaw());
+  pixels_ = p.artPixels();
+  cosP_ = p.uprightSquash();
   rx_ = co;
   rz_ = -s;
   cx_ = s;
@@ -129,14 +139,25 @@ void Map3D::beginFrame(const DrawCtx& c) {
   f.height = L.vh;
   Color bg = c.style && c.style->hasBackground ? Color::rgb(c.style->background) : Color(10, 10, 16);
   f.clear = Rgba3D(bg.r / 255.0f, bg.g / 255.0f, bg.b / 255.0f);
-  // The camera of Iso3DGeometry: far enough out that the whole map is in front of it.
-  float reach = g.radius() / g.pixels + 4.0f;
-  Vec3 eye(s * cosP_ * reach, g.sinPitch * reach, co * cosP_ * reach);
-  f.view = Mat4::lookAt(eye, Vec3(0, 0, 0), Vec3(0, 1, 0));
-  // Scrolling: the map's middle (world pixel radius, radius) goes where the 2D camera puts it.
-  float R = g.radius(), shiftX = R - c.cam.ix() - L.vw * 0.5f, shiftY = R - c.cam.iy() - L.vh * 0.5f;
-  f.proj = Mat4::translate(Vec3(2.0f * shiftX / L.vw, -2.0f * shiftY / L.vh, 0)) *
-           Mat4::ortho(L.vh / (2.0f * g.pixels), (float)L.vw / (float)L.vh, 0.5f, reach * 2.0f);
+  if (p.free3d()) {
+    // The camera of Free3DGeometry (tests/test_free3d.cpp holds the two together).
+    const Free3DGeometry& g = p.cam3();
+    float ex, ey, ez;
+    g.eye(ex, ey, ez);
+    f.view = Mat4::lookAt(Vec3(ex, ey, ez), Vec3(g.focusX, g.focusY, g.focusZ), Vec3(0, 1, 0));
+    float reach = g.distance + std::sqrt((float)(g.gridW * g.gridW + g.gridH * g.gridH)) + (g.levels + 2) * g.stepY;
+    f.proj = Mat4::perspective(g.fovY, (float)L.vw / (float)L.vh, Free3DGeometry::kNear, reach);
+  } else {
+    // The camera of Iso3DGeometry: far enough out that the whole map is in front of it.
+    const Iso3DGeometry& g = p.geo3();
+    float reach = g.radius() / g.pixels + 4.0f, cosP = g.cosPitch();
+    Vec3 eye(s * cosP * reach, g.sinPitch * reach, co * cosP * reach);
+    f.view = Mat4::lookAt(eye, Vec3(0, 0, 0), Vec3(0, 1, 0));
+    // Scrolling: the map's middle (world pixel radius, radius) goes where the 2D camera puts it.
+    float R = g.radius(), shiftX = R - c.cam.ix() - L.vw * 0.5f, shiftY = R - c.cam.iy() - L.vh * 0.5f;
+    f.proj = Mat4::translate(Vec3(2.0f * shiftX / L.vw, -2.0f * shiftY / L.vh, 0)) *
+             Mat4::ortho(L.vh / (2.0f * g.pixels), (float)L.vw / (float)L.vh, 0.5f, reach * 2.0f);
+  }
   // Light fixed to the map (faces change shade as the view turns). Chosen so
   // that tops are lit at exactly full strength: pictures there look as drawn.
   Vec3 toSun = normalize(Vec3(-0.5f, 1.0f, 0.35f));

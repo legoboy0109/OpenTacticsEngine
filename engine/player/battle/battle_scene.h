@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "battle/free_cam.h"
 #include "battle/battle_draw.h"
 #include "battle/battle_view.h"
 #include "battle/layout.h"
@@ -47,8 +48,10 @@ class BattleScene : public Scene {
   void targetingButton(Button b);
   void menuInput(const InputEvent& e);
   void moveCursor(int dx, int dy);
-  bool turnInput(const InputEvent& e);  // camera turning (3D isometric); true = the event was used
-  void turnButtonBox(int which, int& x, int& y, int& w, int& h) const;  // the two on-screen turn buttons
+  bool turnInput(const InputEvent& e);  // moving the camera (the 3D kinds of view); true = the event was used
+  void turnButtonBox(int which, int& x, int& y, int& w, int& h) const;  // the on-screen camera buttons
+  int cameraButtons() const { return proj_.free3d() ? 6 : 2; }  // turn left/right; full 3D adds tilt and zoom
+  int quarterTurns() const { return proj_.free3d() ? proj_.cam3().quarter() : ((turn_ % 4) + 4) % 4; }
   void cycleUnit(int dir);
   void selectUnit(int unit);
   void computeOverlay();
@@ -79,7 +82,8 @@ class BattleScene : public Scene {
   Layout layout_;
   Camera cam_;
   MapProj proj_;  // where squares are on screen in the style in use
-  std::unique_ptr<Map3D> map3d_;  // the 3D isometric view's drawer (only in that kind of view)
+  std::unique_ptr<Map3D> map3d_;  // the drawer of the 3D kinds of view (only in those)
+  FreeCam freeCam_;     // full 3D: the player's camera
   int turn_ = 0;        // 3D isometric: quarter turns of the camera asked for
   float turnPos_ = 0;   // where the camera is now (eases towards turn_)
   Overlay overlay_;

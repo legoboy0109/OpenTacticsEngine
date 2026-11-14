@@ -27,7 +27,7 @@ struct DrawCtx {
   int styleIndex = 0;                // index of `style` in Database::styles (picks the art set)
   const MapProj* proj = nullptr;     // where squares are on screen (null = plain top-down)
   IsoTiles* tiles = nullptr;         // pictures the isometric view makes for itself
-  Map3D* map3d = nullptr;            // the drawer of the 3D isometric view (null in the other kinds)
+  Map3D* map3d = nullptr;            // the drawer of the 3D kinds of view (null in the others)
 
   // A spot in flat map pixels (what BattleView animates) -> screen pixels.
   void toScreen(float fx, float fy, int& sx, int& sy) const {
@@ -37,9 +37,9 @@ struct DrawCtx {
     sy = (int)std::lround(wy) - cam.iy();
   }
   bool iso() const { return proj && proj->iso() && tiles; }
-  bool iso3d() const { return proj && proj->iso3d() && map3d; }
+  bool view3d() const { return proj && proj->view3d() && map3d; }  // 3D isometric or full 3D
   // Squares are shown at their heights and units stand upright on them.
-  bool raised() const { return iso() || iso3d(); }
+  bool raised() const { return iso() || view3d(); }
 };
 
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).

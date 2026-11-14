@@ -164,8 +164,12 @@ void Free3DGeometry::shiftIntoView(float X, float Y, float Z, float marginX, flo
 void Free3DGeometry::clamp() {
   pitch = std::max(kMinPitch, std::min(pitch, kMaxPitch));
   distance = std::max(kMinDistance, std::min(distance, kMaxDistance));
-  focusX = std::max(-gridW * 0.5f, std::min(focusX, gridW * 0.5f));
-  focusZ = std::max(-gridH * 0.5f, std::min(focusZ, gridH * 0.5f));
+  // The focus stays a little inside the map's outline (more when zoomed out),
+  // so the picture is not half empty at an edge; the edge squares are still
+  // well inside the picture from there.
+  float inset = distance * 0.2f, hx = std::max(0.0f, gridW * 0.5f - inset), hz = std::max(0.0f, gridH * 0.5f - inset);
+  focusX = std::max(-hx, std::min(focusX, hx));
+  focusZ = std::max(-hz, std::min(focusZ, hz));
 }
 
 int Free3DGeometry::quarter() const {

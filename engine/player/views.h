@@ -7,7 +7,7 @@
 namespace ote {
 
 inline bool viewSupported(StyleView v) {
-  return v == StyleView::TopDown || v == StyleView::Isometric || v == StyleView::Isometric3D;
+  return v == StyleView::TopDown || v == StyleView::Isometric || v == StyleView::Isometric3D || v == StyleView::Full3D;
 }
 
 }  // namespace ote
