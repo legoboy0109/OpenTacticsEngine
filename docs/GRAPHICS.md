@@ -107,6 +107,59 @@ row 3   12 S+W     13 N+S+W   14 E+S+W   15 all four
 So a road running left-right is piece 10, a dead end pointing up from a
 square is piece 4 (its only neighbour is to the south), a crossroads is 15.
 
+## Models (3D kinds of view only)
+
+In a style whose kind of view is 3D (`isometric-3d`, later `3d`; see
+docs/VIEWS.md) a unit or a structure can be a 3D model instead of a
+picture. The maker chooses per thing; pictures and models mix freely in one
+style.
+
+```jsonc
+"styles": {
+  "solid": {                                  // a style with "view": "isometric-3d"
+    "units": {
+      "knight": { "model": "models/knight.glb" },
+      "archer": { "model": "models/archer.glb",
+                  "height": 1.2,              // how tall it stands, in squares (default 1.0)
+                  "turn": 180,                // degrees added to its facing (a model that does not face +Z)
+                  "sideMaterial": "cloth",    // the material that takes the side's colour (default "side"; "" = none)
+                  "animations": { "idle": "Breathe", "move": "Run", "attack": "Shoot", "die": "Fall" } }
+    },
+    "structures": { "fort": { "model": "models/fort.glb" } }
+  }
+}
+```
+
+- `model`: a glTF file (`.glb`, or `.gltf` with its files) inside the game
+  folder, by convention in `models/`. What the engine reads from it:
+  docs/RENDER3D.md "Models". An entry with `model` cannot have `sheet`,
+  `cell`, `frames`, `frameMs` or `sides`.
+- The model stands with its origin on the ground in the middle of the
+  square, +Y up, facing +Z. It is scaled as a whole so that its rest pose is
+  `height` squares tall (measured from its origin). A structure without
+  `height` is scaled so that its wider side fills 0.92 of the shorter side
+  of its footprint.
+- Side colour: every material named `sideMaterial` is multiplied by the
+  colour of the unit's side (a structure: its owner's; nobody's: a pale
+  grey). Make that material white or light in the file. The `unitMarker`
+  square under a unit's feet is drawn as well.
+- Animations are named clips in the file. The view plays, by default,
+  `Idle` (looped; also for structures), `Move` (looped, while the unit
+  travels), `Attack` (once, when it strikes) and `Die` (once, spread over
+  the time the unit takes to vanish). `animations` gives other names. A
+  name the file does not have means the rest pose for that state.
+- A unit faces the way it moves and strikes; when first seen it faces the
+  nearest enemy. A unit that has acted is drawn darker.
+- Errors: outside a 3D style (`a "model" can only be used in a style whose
+  kind of view is 3D`), a missing file, a wrong extension and unknown
+  animation states are refused when the game loads. A file that exists but
+  cannot be read as a model is reported in the log when the battle starts
+  and the thing keeps its placeholder look.
+
+In memory: `UnitLook::model` (`ModelLook`). Player:
+`engine/player/battle/models3d.*` (loading, posing, drawing) and
+`map3d_models.cpp` (which animation, facing).
+
 ## Drawing rules (player and editor canvas must match)
 
 Terrain with art:

@@ -158,7 +158,9 @@ top-down):
 - Sheets become textures of the 3D layer: sides are padded to powers of two
   and a sheet larger than the backend's limit (1024) is refused there with a
   logged error; what uses it keeps the placeholder look in this view.
-- 3D models for units and structures: not yet (see "Not in this step").
+- Units and structures can be 3D models instead of pictures, chosen per
+  thing: docs/GRAPHICS.md "Models". A unit standing on a model structure is
+  drawn in front of it.
 
 **Drawing** (engine/player/battle/map3d*.cpp, `Map3D`; `Sheets3D`,
 `Batch3D`):
@@ -196,9 +198,7 @@ the mountains, a sunken river bed).
 
 ## Not in this step
 
-3D models for units and structures in the 3D isometric view (owner: the
-maker chooses per game between sprites and models; needs model art in
-data/graphics.json and animation), side pictures for blocks, remembering the
+Side pictures for blocks, remembering the
 turn, free turning or zooming; rotating the 2D isometric view (owner: fixed), cliff art separate from the
 terrain picture, joining isometric starter art (roads and water are single
 pieces), slopes and stairs, the editor's map canvas in isometric (it stays
