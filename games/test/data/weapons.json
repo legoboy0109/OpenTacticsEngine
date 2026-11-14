@@ -1,7 +1,0 @@
-{
-  "weapons": [
-    { "id": "iron_sword", "name": "Iron Sword", "props": { "might": 6, "hit": 90 } },
-    { "id": "iron_lance", "name": "Iron Lance", "props": { "might": 7, "hit": 80 } },
-    { "id": "iron_bow", "name": "Iron Bow", "range": [2, 2], "props": { "might": 6, "hit": 85 } }
-  ]
-}
