@@ -220,6 +220,16 @@ TEST(structures_map_loads_and_places_structures) {
   CHECK_EQ(m.terrain[1 * 6 + 2], db.findTerrain("water"));
 }
 
+// Older editor versions wrote "owners": [] into every map; that assigns nothing and must still load.
+TEST(structures_map_accepts_an_empty_owners_list) {
+  Database db;
+  MapDef m;
+  std::string err;
+  bool ok = loadWithMap("map_empty_owners", mapJson("[]", "[]", ", \"owners\": []"), db, m, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+}
+
 TEST(structures_map_loader_errors) {
   expectMapError("m_owners", mapJson("[]", "[]", ", \"owners\": [ {\"x\":0,\"y\":0,\"side\":\"blue\"} ]"), "\"owners\" is no longer used",
                  "ownership now belongs to structures");

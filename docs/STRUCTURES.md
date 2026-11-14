@@ -47,7 +47,8 @@ structures (data/structures.json), see docs/STRUCTURES.md`.
 `x`, `y` is the structure's top-left square. Rules, each with a clear
 loader message: the whole rectangle must be inside the map; structures may
 not overlap; `type` and `side` must exist. The old `owners` list is refused
-("ownership now belongs to structures"). A unit may not start on a square
+("ownership now belongs to structures") unless it is empty: older editor
+versions wrote `"owners": []` into every map, which assigns nothing. A unit may not start on a square
 it cannot enter, judged with the structure's movement costs applied.
 
 ### Art (data/graphics.json)

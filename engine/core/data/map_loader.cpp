@@ -115,7 +115,8 @@ int findSide(const MapDef& m, const std::string& id) {
 // `at` receives, per cell, the index of the structure covering it (-1 none).
 bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapDef& m, std::vector<int>& at) {
   at.assign(m.terrain.size(), -1);
-  if (root.has("owners"))
+  // An empty list assigns nothing (older editor versions always wrote one), so it is harmless.
+  if (root.has("owners") && !(root["owners"].isArray() && root["owners"].size() == 0))
     return c.fail("", "\"owners\" is no longer used: ownership now belongs to structures "
                       "(give each entry of \"structures\" a \"side\"), see docs/STRUCTURES.md");
   const Json* list;
