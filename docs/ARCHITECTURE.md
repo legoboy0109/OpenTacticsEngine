@@ -23,6 +23,7 @@ engine/core/           rules core: pure logic, no graphics, no platform code
   data/                Database + loader (game folder -> structs)
   script/              Lua host (formulas, later event hooks)
   battle/              Battle state, actions, events, combat, turns, modules
+  campaign/            playthrough of a campaign: roster, scenes, chapter battles, saves (docs/EVENTS.md)
   ai/                  computer opponent (uses only Battle's public API)
 engine/platform/       platform.h interface; common/ (shared text engine, fonts); one folder per backend (sdl3/, sdl2/)
 engine/player/         the game-running app: scenes, UI, input -> actions
