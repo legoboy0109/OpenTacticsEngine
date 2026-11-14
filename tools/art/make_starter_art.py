@@ -280,6 +280,19 @@ def make_game(root, repo):
         for sid in iso_ids:
             styles[sid] = iso_set
 
+    # Hand-made or third-party styles of a game: art/*.style.json holds their sheets and their
+    # piece of "styles" (see make_detailed_style.py); what they give replaces the starter art
+    # for those styles, thing by thing.
+    for name in sorted(os.listdir(art_dir)):
+        if not name.endswith('.style.json'):
+            continue
+        piece = load_json(os.path.join(art_dir, name))
+        sheets.extend(piece.get('sheets', []))
+        for sid, parts in piece.get('styles', {}).items():
+            base = styles.setdefault(sid, {})
+            for kind, looks in parts.items():
+                base[kind] = dict(base.get(kind, {}), **looks)
+
     doc = {'sheets': sheets, 'unitMarker': True, 'terrain': terrain, 'units': unit_looks}
     if structure_looks:
         doc['structures'] = structure_looks

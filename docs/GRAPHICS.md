@@ -270,6 +270,14 @@ define, and must exercise every feature: variants (plain), join
 per-style override in a demo that has styles. Re-running the script
 reproduces identical files.
 
+`demo-srpg` also has a "Detailed 3D" style for trying the 3D views with
+detailed art: smooth 512-pixel ground pictures and animated character
+models from public-domain packs (`games/demo-srpg/CREDITS.md`). It is built
+by `tools/art/make_detailed_style.py` (which uses `tools/art/trim_glb.py`
+to cut a model file down to chosen parts and animations) into
+`art/detailed.style.json`; `make_starter_art.py` merges every
+`art/*.style.json` of a game into its `data/graphics.json`.
+
 ## Editor helper API additions (docs/EDITOR_API.md is updated to match)
 
 - `GET /api/projects/:id` gains `"graphics"`: the contents of

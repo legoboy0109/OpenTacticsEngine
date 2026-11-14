@@ -48,6 +48,13 @@
       "file": "art/iso_fort.png",
       "cellWidth": 48,
       "cellHeight": 48
+    },
+    {
+      "id": "detailed_tiles",
+      "file": "art/detailed_tiles.png",
+      "cellWidth": 512,
+      "cellHeight": 512,
+      "smooth": true
     }
   ],
   "unitMarker": true,
@@ -500,6 +507,101 @@
         },
         "pegasus": {
           "model": "models/pegasus.glb"
+        }
+      },
+      "structures": {
+        "fort": {
+          "model": "models/fort.glb"
+        }
+      }
+    },
+    "detailed-3d": {
+      "terrain": {
+        "plain": {
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "sheet": "detailed_tiles"
+        },
+        "forest": {
+          "cell": [
+            0,
+            1
+          ],
+          "sheet": "detailed_tiles"
+        },
+        "mountain": {
+          "cell": [
+            1,
+            1
+          ],
+          "sheet": "detailed_tiles"
+        },
+        "water": {
+          "cell": [
+            2,
+            1
+          ],
+          "sheet": "detailed_tiles"
+        },
+        "bridge": {
+          "cell": [
+            3,
+            1
+          ],
+          "sheet": "detailed_tiles"
+        }
+      },
+      "units": {
+        "lord": {
+          "model": "models/detailed/lord.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "cavalier": {
+          "model": "models/detailed/cavalier.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "archer": {
+          "model": "models/detailed/archer.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "fighter": {
+          "model": "models/detailed/fighter.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "knight": {
+          "model": "models/detailed/knight.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "soldier": {
+          "model": "models/detailed/soldier.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "pegasus": {
+          "model": "models/detailed/pegasus.glb",
+          "height": 1.15,
+          "sideMaterial": ""
         }
       },
       "structures": {
