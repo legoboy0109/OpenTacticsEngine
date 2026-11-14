@@ -32,7 +32,8 @@ export async function run(env) {
   await s.clickL(190, 162, 600);
   const menu = await s.shot('moved-menu');
   C.check('clicking a square in range moves him there and opens the action menu', !same(selected, menu));
-  await s.keys(['Enter'], 600);  // Wait
+  await s.keys(['ArrowUp'], 100);
+  await s.keys(['Enter'], 600);  // Wait, the last entry
   const waited = await s.shot('waited');
   const moved = await diffShare(env.analysisPage, iso, waited, { x: 300, y: 250, w: 130, h: 110 });
   C.check('after Wait the lord stands on the clicked square', moved > 0.05, `${(moved * 100).toFixed(1)}%`);

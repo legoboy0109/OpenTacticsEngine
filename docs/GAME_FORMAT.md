@@ -116,6 +116,7 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "capturePoints": 20,                           // > 0 = can be captured
     "income": { "funds": 1000 },                  // per turn to the owner, once per structure
     "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
+    "sells": ["vulnerary"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)
     "tags": ["hq"] }                              // "hq" = headquarters (defeat: lostHq)
 ] }
 ```
@@ -135,6 +136,7 @@ the ground's movement costs. Ids are unique among structures.
     "props": { "might": 6, "hit": 85 },
     "versus": { "flier": 3 },     // key = target unit type id or tag
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
+    "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
     "damage": "a.str + w.might"   // optional override of formulas.damage
   }
 ] }
@@ -152,12 +154,24 @@ and gets `vs = 1`.
     "moveType": "foot",
     "stats":   { "hp": 22, "str": 8, "def": 9, "mov": 4 },   // missing = 0
     "growths": { "hp": 80, "str": 50 },                      // % per level, missing = 0
-    "weapons": ["lance"],
+    "weapons": ["lance"],                                    // fixed weapons: what it fights with.
+                                                             // carried weapons: what it can wield
+    "wields": ["lance"],                                     // optional: weapon groups it can wield (carried)
+    "items": ["iron_lance", "vulnerary"],                    // optional: what it starts with (docs/ITEMS.md)
     "cost": { "funds": 3000 },
     "tags": ["armored"],
     "canCapture": false }
 ] }
 ```
+
+## data/items.json (optional)
+
+Things units carry: usable items, carried weapons and accessories, with
+optional limited uses and prices. A game without this file has no items.
+The switch between fixed and carried weapons, the inventory size and the
+shared storage are in `game.json` under `rules.items`. A map can give each
+unit its own `"items"` and each side a starting `"storage"`. Everything is
+in docs/ITEMS.md.
 
 ## maps/*.json
 

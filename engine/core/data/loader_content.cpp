@@ -52,6 +52,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
       w.hasVersusDefault = true;
     }
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
+    if (!c.str(e, "group", where, w.group)) return false;
     db.weapons.push_back(w);
   }
   return true;
@@ -91,6 +92,8 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
       if (w < 0) return c.fail(where, "unknown weapon \"" + wid + "\"");
       u.weapons.push_back(w);
     }
+    if (!c.stringList(e, "wields", where, u.wields)) return false;
+    if (!readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items)) return false;
     if (!c.amounts(db, e, "cost", where, u.cost)) return false;
     if (!c.stringList(e, "tags", where, u.tags)) return false;
     if (!c.boolean(e, "canCapture", where, u.canCapture)) return false;
@@ -203,6 +206,15 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
       int u = db.findUnitType(uid);
       if (u < 0) return c.fail(where, "\"produces\" names unknown unit type \"" + uid + "\"");
       s.produces.push_back(u);
+    }
+    std::vector<std::string> sells;
+    if (!c.stringList(e, "sells", where, sells)) return false;
+    for (const std::string& iid : sells) {
+      int it = db.findItem(iid);
+      if (it < 0) return c.fail(where, "\"sells\" names unknown item \"" + iid + "\"");
+      if (db.items[(size_t)it].price.empty())
+        return c.fail(where, "\"sells\" lists \"" + iid + "\", which has no \"price\" (data/items.json)");
+      s.sells.push_back(it);
     }
     if (!c.stringList(e, "tags", where, s.tags)) return false;
     db.structures.push_back(s);

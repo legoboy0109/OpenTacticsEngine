@@ -45,6 +45,7 @@ struct StructureDef {
   int capturePoints = 0;       // > 0 makes it capturable
   std::vector<Amount> income;  // per turn to the owner (economy module), once per structure
   std::vector<int> produces;   // unit type indices buildable on its squares
+  std::vector<int> sells;      // item indices a unit standing here can buy (docs/ITEMS.md "Shops")
   std::vector<std::string> tags;  // e.g. "hq"
 };
 
@@ -63,7 +64,44 @@ struct WeaponDef {
   bool hasVersusDefault = false;
   double versusDefault = 1;
   std::string damageFormula;  // optional per-weapon override (Lua expr)
+  std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
 };
+
+// ---- Items (docs/ITEMS.md) ----
+
+enum class ItemKind { Usable, Weapon, Accessory };
+
+struct ItemDef {
+  std::string id, name, description;
+  ItemKind kind = ItemKind::Usable;
+  int uses = -1;               // how often it can be used when new; -1 = unlimited
+  std::vector<Amount> price;   // empty = shops cannot sell it
+  // Usable:
+  bool targetAlly = false;     // false: used on the carrier; true: on a neighbouring unit of its team
+  int heal = 0;                // HP restored; kHealFull = all of it
+  std::vector<int> raise;      // per stat index: raised for good (empty or all 0 = none)
+  // Weapon:
+  int weapon = -1;             // index into Database::weapons
+  // Accessory:
+  std::vector<int> bonus;      // per stat index: added while carried
+};
+const int kHealFull = 1000000000;
+
+// One item as it is handed out by data: a unit's starting items, a side's starting storage.
+struct ItemGrant {
+  int item = 0;
+  int uses = -1;      // what is left; -1 = unlimited (filled in from the item when the entry says nothing)
+  bool drop = false;  // goes to whoever defeats the carrier
+};
+
+enum class ItemStorage { Off, Anywhere, Structure, Leader };
+
+struct ItemRules {
+  bool carriedWeapons = false;  // false: a unit type's weapons, fixed; true: weapons are items
+  int inventorySize = 5;
+  ItemStorage storage = ItemStorage::Off;
+};
+const int kMaxInventory = 20;
 
 struct UnitTypeDef {
   std::string id, name;
@@ -71,7 +109,9 @@ struct UnitTypeDef {
   int moveType = 0;
   std::vector<int> stats;    // base value per stat index
   std::vector<int> growths;  // % chance per stat to gain +1 on level up
-  std::vector<int> weapons;  // weapon indices
+  std::vector<int> weapons;  // weapon indices (with carried weapons: the ones it CAN wield)
+  std::vector<std::string> wields;  // weapon groups it can wield (carried weapons)
+  std::vector<ItemGrant> items;     // what a unit of this type starts with
   std::vector<Amount> cost;  // production cost
   std::vector<std::string> tags;
   bool canCapture = false;
@@ -95,6 +135,7 @@ struct RulesConfig {
   bool production = false;   // build units on producing structures
   bool builtUnitsCanAct = false;
   bool capture = false;      // units may capture capturable structures
+  ItemRules items;           // docs/ITEMS.md
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
   int maxLevel = 20;
@@ -167,6 +208,7 @@ struct Database {
   std::vector<TerrainDef> terrains;
   std::vector<StructureDef> structures;  // data/structures.json (optional)
   std::vector<WeaponDef> weapons;
+  std::vector<ItemDef> items;            // data/items.json (optional)
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
@@ -180,6 +222,9 @@ struct Database {
   int findTerrain(const std::string& id) const;
   int findStructure(const std::string& id) const;
   int findWeapon(const std::string& id) const;
+  int findItem(const std::string& id) const;
+  // Carried weapons: may a unit of this type use this weapon?
+  bool canWield(int unitType, int weapon) const;
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
   int findStyle(const std::string& id) const;
@@ -207,6 +252,7 @@ struct MapSideDef {
   std::string team;  // sides sharing a team are allies; defaults to id
   bool ai = false;
   std::vector<Amount> resources;  // starting amounts
+  std::vector<ItemGrant> storage; // starting contents of the side's shared storage
 };
 
 struct MapUnitDef {
@@ -217,6 +263,8 @@ struct MapUnitDef {
   int level = 1;
   bool leader = false;
   std::vector<int> stats;  // final per-stat values (type base + overrides)
+  bool hasItems = false;         // the map gives this unit its own items (else the type's)
+  std::vector<ItemGrant> items;
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square.

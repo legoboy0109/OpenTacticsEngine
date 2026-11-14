@@ -168,7 +168,7 @@ struct HashGame {
     tempFolder("save_hash_game/maps");
     tempFolder("save_hash_game/scripts");
     const char* files[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
-                           "data/structures.json", "data/graphics.json", "maps/bridge.json", "scripts/formulas.lua"};
+                           "data/structures.json", "data/items.json", "data/graphics.json", "maps/bridge.json", "scripts/formulas.lua"};
     for (const char* f : files)
       if (!copyFile(src + "/" + f, dir + "/" + f)) return false;
     db.rootPath = dir;
@@ -221,6 +221,7 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
       {"data/units.json", "\"hp\": 20", "\"hp\": 21"},
       {"data/terrain.json", "\"defense\": 0", "\"defense\": 1"},
       {"data/structures.json", "\"id\": \"fort\"", "\"id\": \"fort\", \"capturePoints\": 5"},
+      {"data/items.json", "\"heal\": 10", "\"heal\": 12"},
       {"maps/bridge.json", "\"x\": 4, \"y\": 3", "\"x\": 5, \"y\": 3"},
       {"maps/bridge.json", "\"controller\": \"ai\"", "\"controller\": \"human\""},
       {"scripts/formulas.lua", "\n", "\n-- changed\n"},
@@ -242,6 +243,7 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
       {"game.json", "\"tileSize\": 24", "\"tileSize\": 32"},
       {"game.json", "\"name\": \"Strength\"", "\"name\": \"Power\""},
       {"data/weapons.json", "\"name\": \"Iron Sword\"", "\"name\": \"Old Sword\""},
+      {"data/items.json", "\"name\": \"Vulnerary\"", "\"name\": \"Herb\""},
       {"data/units.json", "\"name\": \"Lord\", \"glyph\": \"L\"", "\"name\": \"Hero\", \"glyph\": \"H\""},
       {"data/terrain.json", "\"color\": \"#8fbf6a\", \"glyph\": \".\"", "\"color\": \"#123456\",   \"glyph\": \",\""},
       {"data/structures.json", "{ \"structures\"", "// another note\n{   \"structures\""},

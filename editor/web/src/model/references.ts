@@ -1,6 +1,8 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
 import { dropArtOf } from './graphicsClean'
+import { deleteItem } from './items'
+import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { readGrid, writeGrid } from './mapGrid'
 import { cleanMoveTypeInStructures, cleanResourceInStructures, cleanUnitInStructures } from './structuresRefs'
 import { dropKey, without } from './util'
@@ -33,10 +35,12 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       }
       for (const [mid, m] of mapEntries(doc))
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, mu.type)} has its own value` })
+      for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
       break
     case 'resource':
       for (const u of units) if (u.cost && id in u.cost) out.push({ section: 'units', text: `Unit "${u.name}" has a cost in it` })
       for (const t of doc.structures ?? []) if (t.income && id in t.income) out.push({ section: 'structures', text: `Structure "${t.name}" gives it as income` })
+      for (const i of doc.items ?? []) if (i.price && id in i.price) out.push({ section: 'items', text: `Item "${i.name}" has a price in it` })
       for (const [mid, m] of mapEntries(doc))
         for (const s of m.sides ?? []) if (s.resources && id in s.resources) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": side "${s.name}" starts with some` })
       break
@@ -56,6 +60,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       break
     case 'weapon':
       for (const u of units) if (u.weapons?.includes(id)) out.push({ section: 'units', text: `Unit "${u.name}" carries it` })
+      for (const i of doc.items ?? []) if (i.kind === 'weapon' && i.weapon === id) out.push({ section: 'items', text: `Item "${i.name}" is this weapon (the item is deleted too)` })
       break
     case 'terrain':
       for (const [mid, m] of mapEntries(doc))
@@ -80,6 +85,7 @@ export function cleanStat(doc: ProjectDoc, id: string): ProjectDoc {
     ...doc,
     units: doc.units && doc.units.map((u) => (has(u.stats) || has(u.growths)
       ? stripKey(stripKey(u, 'stats', dropKey(u.stats, id)), 'growths', dropKey(u.growths, id)) : u)),
+    items: cleanStatInItems(doc, id),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => has(u.stats))
       ? { ...m, units: m.units.map((u) => (has(u.stats) ? stripKey(u, 'stats', dropKey(u.stats, id)) : u)) } : m)),
   }
@@ -99,6 +105,7 @@ export function cleanResource(doc: ProjectDoc, id: string): ProjectDoc {
     // Old (unconverted) terrain may still list income; the structures' list is the live one.
     terrain: doc.terrain && doc.terrain.map((t) => (t.income && id in t.income ? stripKey(t, 'income', dropKey(t.income, id)) : t)),
     structures: cleanResourceInStructures(doc, id),
+    items: cleanResourceInItems(doc, id),
     maps: mapMembers(doc, (m) => (m.sides?.some((s) => s.resources && id in s.resources)
       ? { ...m, sides: m.sides.map((s) => (s.resources && id in s.resources ? stripKey(s, 'resources', dropKey(s.resources, id)) : s)) } : m)),
   }
@@ -127,10 +134,13 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
   }, 'units', id)
 }
 
+/** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */
 export function cleanWeapon(doc: ProjectDoc, id: string): ProjectDoc {
+  const gone = (doc.items ?? []).filter((i) => i.kind === 'weapon' && i.weapon === id)
+  const base = gone.reduce((d, i) => deleteItem(d, i.id), doc)
   return {
-    ...doc,
-    units: doc.units && doc.units.map((u) => (u.weapons?.includes(id) ? { ...u, weapons: u.weapons.filter((w) => w !== id) } : u)),
+    ...base,
+    units: base.units && base.units.map((u) => (u.weapons?.includes(id) ? { ...u, weapons: u.weapons.filter((w) => w !== id) } : u)),
   }
 }
 

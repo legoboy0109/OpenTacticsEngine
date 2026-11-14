@@ -24,7 +24,7 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
+const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
 
 export class DocumentStore {
   private state: StoreState

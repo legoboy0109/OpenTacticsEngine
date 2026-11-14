@@ -54,6 +54,12 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.resources.assign(db->resources.size(), 0);
     for (const Amount& a : sd.resources)
       if (a.resource >= 0 && a.resource < (int)s.resources.size()) s.resources[a.resource] += a.amount;
+    for (const ItemGrant& g : sd.storage) {
+      ItemStack st;
+      st.item = g.item;
+      st.uses = g.uses;
+      s.storage.push_back(st);
+    }
     sides.push_back(s);
   }
   teamCount = (int)teamNames.size();
@@ -120,7 +126,14 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     u.leader = ud.leader;
     u.stats = ud.stats;
     u.stats.resize(db->stats.size(), 0);
-    u.hp = u.stats[db->rules.statHp];
+    for (const ItemGrant& g : ud.hasItems ? ud.items : db->unitTypes[ud.type].items) {
+      ItemStack s;
+      s.item = g.item;
+      s.uses = g.uses;
+      s.drop = g.drop;
+      u.items.push_back(s);
+    }
+    u.hp = maxHp(u);
     occupant[c] = u.id;
     sides[u.side].everHadUnits = true;
     units.push_back(u);

@@ -37,6 +37,33 @@ std::string unitName(const Battle& b, int id) {
   return fmt("%s#%d[%s/%s]", u.name.c_str(), id, b.sides[u.side].id.c_str(), b.typeOf(u).id.c_str());
 }
 
+
+// An item's id; the index in an event is checked so a bad event cannot crash the printer.
+std::string itemId(const Battle& b, int item) {
+  return item >= 0 && item < (int)b.db->items.size() ? b.db->items[(size_t)item].id : "item?";
+}
+
+// "storage" for -1, "(thrown away)" for -2, else the unit.
+std::string holderName(const Battle& b, int id) {
+  if (id == -1) return "storage";
+  if (id == -2) return "(thrown away)";
+  return unitName(b, id);
+}
+
+// "+2 str +1 def": per-stat gains by stat id.
+std::string gains(const Battle& b, const std::vector<int>& data) {
+  std::string s;
+  for (size_t i = 0; i < data.size() && i < b.db->stats.size(); ++i)
+    if (data[i] != 0) s += (s.empty() ? "" : " ") + fmt("%+d %s", data[i], b.db->stats[i].id.c_str());
+  return s.empty() ? "nothing" : s;
+}
+
+std::string gained(const Battle& b, const Event& e) {
+  std::string how = (e.flags & kDropped) ? " (dropped)" : (e.flags & kBought) ? " (bought)" : "";
+  std::string who = e.a >= 0 ? unitName(b, e.a) : "storage of " + b.sides[(size_t)e.c].name;
+  return who + " gets " + itemId(b, e.b) + how;
+}
+
 }  // namespace
 
 std::string describeEvent(const Battle& b, const Event& e) {
@@ -74,6 +101,22 @@ std::string describeEvent(const Battle& b, const Event& e) {
       return fmt("side %s is defeated", b.sides[e.a].name.c_str());
     case EventType::BattleEnded:
       return fmt("== battle ended, winning team %d", e.a);
+    case EventType::ItemUsed:
+      return fmt("%s uses %s on %s", unitName(b, e.a).c_str(), itemId(b, e.b).c_str(), unitName(b, e.c).c_str());
+    case EventType::UnitHealed:
+      return fmt("%s heals %d", unitName(b, e.a).c_str(), e.b);
+    case EventType::StatsRaised:
+      return fmt("%s raised: %s", unitName(b, e.a).c_str(), gains(b, e.data).c_str());
+    case EventType::ItemBroke:
+      return fmt("%s's %s breaks", unitName(b, e.a).c_str(), itemId(b, e.b).c_str());
+    case EventType::ItemGained:
+      return gained(b, e);
+    case EventType::ItemLost:
+      return fmt("%s has no room: %s is lost", unitName(b, e.a).c_str(), itemId(b, e.b).c_str());
+    case EventType::ItemMoved:
+      return fmt("%s: %s -> %s", itemId(b, e.c).c_str(), holderName(b, e.a).c_str(), holderName(b, e.b).c_str());
+    case EventType::ItemEquipped:
+      return fmt("%s equips %s", unitName(b, e.a).c_str(), itemId(b, e.b).c_str());
   }
   return "?";
 }

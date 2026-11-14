@@ -79,6 +79,23 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (r.capture) r.fCaptureAmount = "a.hp";
   if (!c.str(*blk, "amount", "rules.capture", r.fCaptureAmount)) return false;
 
+  // Items (docs/ITEMS.md): no "enabled" flag; a game has items when data/items.json lists some.
+  if (!c.object(*rules, "items", "rules", blk)) return false;
+  std::string weapons = "fixed", storage = "off";
+  if (!c.str(*blk, "weapons", "rules.items", weapons) || !c.str(*blk, "storage", "rules.items", storage) ||
+      !c.integer(*blk, "inventorySize", "rules.items", r.items.inventorySize))
+    return false;
+  if (weapons != "fixed" && weapons != "carried")
+    return c.fail("rules.items", "\"weapons\" must be \"fixed\" or \"carried\", not \"" + weapons + "\"");
+  r.items.carriedWeapons = weapons == "carried";
+  if (storage == "off") r.items.storage = ItemStorage::Off;
+  else if (storage == "anywhere") r.items.storage = ItemStorage::Anywhere;
+  else if (storage == "structure") r.items.storage = ItemStorage::Structure;
+  else if (storage == "leader") r.items.storage = ItemStorage::Leader;
+  else return c.fail("rules.items", "\"storage\" must be \"off\", \"anywhere\", \"structure\" or \"leader\"");
+  if (r.items.inventorySize < 1 || r.items.inventorySize > kMaxInventory)
+    return c.fail("rules.items", "\"inventorySize\" must be from 1 to " + std::to_string(kMaxInventory));
+
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
   if (!c.integer(*blk, "xpPerLevel", "rules.progression", r.xpPerLevel)) return false;
@@ -287,6 +304,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   // Order matters: each step resolves ids defined by the previous ones.
   if (!loadGameFile(root + "/game.json", db, err)) return false;
   if (!loadWeapons(weaponsPath, db, err)) return false;
+  if (!loadItems(root + "/data/items.json", db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;

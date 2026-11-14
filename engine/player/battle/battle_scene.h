@@ -11,8 +11,11 @@
 #include "battle/layout.h"
 #include "scene.h"
 #include "saves.h"
+#include "ui/confirm.h"
+#include "ui/item_panel.h"
 #include "ui/menu.h"
 #include "ui/slot_panel.h"
+#include "ui/trade_panel.h"
 
 namespace ote {
 
@@ -24,8 +27,12 @@ class BattleScene : public Scene {
   void draw(Renderer& r) override;
 
  private:
-  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Result };
-  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave };
+  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Result };
+  // The screens of Mode::Items (battle_items.cpp).
+  enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
+  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
+                kItems, kTrade, kStorage, kShop,
+                kUse, kEquip, kStore, kDiscard };
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
   void ensureLayout(const Renderer& r);
@@ -64,6 +71,23 @@ class BattleScene : public Scene {
   void anchorActionMenu();
   bool submit(const Action& a);
 
+  // --- battle_items.cpp: the item screens (Items, Trade, Storage, Shop; docs/ITEMS.md "Player")
+  void openItems(int selectSlot = 0);
+  void openTrade();
+  void openStorage();
+  void openShop();
+  void openChoiceMenu();            // the small menu on the item picked in the list
+  void itemsInput(const InputEvent& e);
+  void drawItems(Renderer& r);
+  void itemChoice(int id);          // an entry of the small menu on an item (Use, Equip, Store, Discard)
+  void chooseUseTarget(int slot);   // asks for the target when there are several, else uses at once
+  void openTradeWith(int partner);
+  void tradePicked();
+  void closeItems();                // leaves every item screen without returning to the action menu
+  void itemActionDone();            // after an action that does not end the turn: back to the action menu
+  bool submitItem(const Action& a); // submit() for those; then itemActionDone()
+  std::string itemsHint() const;
+
   // --- battle_saves.cpp: Continue save, manual Save / Load (docs/SAVES.md)
   bool savingOn() const;       // saves usable here: folder, game setting, not autoplay
   bool manualSaves() const;    // savingOn and the game allows slots
@@ -98,11 +122,19 @@ class BattleScene : public Scene {
   Reach reach_;
   Battle undo_;          // copy taken before the unit's Move
   bool hasUndo_ = false;
+  bool itemsUsed_ = false;  // an item action was done in this order: the move can no longer be undone
   Cell undoCell_ = kNoCell;
   std::vector<AttackOption> targets_;
   int targetIdx_ = 0;
   Cell buildCell_ = kNoCell;
   int turnKey_ = -1;
+  ItemScreen itemScreen_ = ItemScreen::List;
+  ItemPanel itemPanel_;
+  TradePanel tradePanel_;
+  ConfirmBox confirm_;
+  int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
+  int partner_ = -1;         // trade partner unit
+  std::vector<int> shopList_;   // item indexes in the shop panel's rows
   std::vector<Event> events_;
   std::string resultText_, resultSub_;
   Color resultColor_;

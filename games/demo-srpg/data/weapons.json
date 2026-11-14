@@ -1,9 +1,10 @@
 { "weapons": [
-  { "id": "iron_sword", "name": "Iron Sword", "props": { "might": 6, "hit": 90 } },
-  { "id": "iron_lance", "name": "Iron Lance", "props": { "might": 7, "hit": 80 } },
-  { "id": "iron_axe",   "name": "Iron Axe",   "props": { "might": 8, "hit": 75 } },
+  // "group" says which unit types can wield a weapon they carry (units.json "wields").
+  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "props": { "might": 6, "hit": 90 } },
+  { "id": "iron_lance", "name": "Iron Lance", "group": "lance", "props": { "might": 7, "hit": 80 } },
+  { "id": "iron_axe",   "name": "Iron Axe",   "group": "axe", "props": { "might": 8, "hit": 75 } },
   // Bows hit fliers hard (x3 might); everything else is normal (x1).
-  { "id": "iron_bow",   "name": "Iron Bow",   "range": [2, 2],
+  { "id": "iron_bow",   "name": "Iron Bow",   "group": "bow", "range": [2, 2],
     "props": { "might": 6, "hit": 85 },
     "versus": { "flier": 3 }, "versusDefault": 1 }
 ] }

@@ -26,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'weapons', 'units', 'graphics'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'weapons', 'units', 'graphics'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -38,7 +38,7 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
     // empty section, because sending nothing would leave the old images on disk while the screen shows none.
     // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
     const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
-      : k === 'structures' && doc.structures === null && saved.structures !== null ? []
+      : (k === 'structures' || k === 'items') && doc[k] === null && saved[k] !== null ? []
         : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "battle/item_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -74,6 +75,10 @@ void BattleView::addFloat(const std::string& text, float x, float y, Color c, fl
   f.life = life;
   f.screen = screen;
   floats.push_back(f);
+}
+
+std::string BattleView::itemName(const Battle& b, int item) const {
+  return item >= 0 && item < (int)b.db->items.size() ? b.db->items[(size_t)item].name : "item";
 }
 
 bool BattleView::showsResources(const Battle& b, int side) const { return side == viewSide(b, autoplay_); }
@@ -159,6 +164,40 @@ void BattleView::begin(const Battle& b) {
       bannerColor = sideColor(b, e.a);
       cur_.dur = 0.8f;
       break;
+    case EventType::UnitHealed: {
+      UnitView& v = units[e.a];
+      cur_.hpFrom = v.hp;
+      cur_.hpTo = std::min(v.hp + e.b, b.maxHp(b.units[e.a]));
+      addFloat("+" + intStr(e.b), v.px + cx, v.py - 2, Color(120, 255, 140), 1.0f);
+      cur_.dur = 0.35f;
+      break;
+    }
+    case EventType::StatsRaised: {
+      std::string t = gainsText(*b.db, e.data);
+      if (!t.empty()) addFloat(t, units[e.a].px + cx, units[e.a].py - 2, Color(255, 235, 130), 1.2f);
+      cur_.dur = t.empty() ? 0 : 0.3f;
+      break;
+    }
+    case EventType::ItemBroke:
+      // A potion is used up rather than broken.
+      addFloat(itemName(b, e.b) + (b.db->items[(size_t)e.b].kind == ItemKind::Usable ? " used up" : " broke"), units[e.a].px + cx, units[e.a].py - 2, Color(255, 170, 110), 1.2f);
+      cur_.dur = 0.3f;
+      break;
+    case EventType::ItemGained:
+      if (e.a >= 0) {
+        addFloat("Got " + itemName(b, e.b), units[e.a].px + cx, units[e.a].py - 2, Color(170, 235, 255), 1.1f);
+        cur_.dur = 0.25f;
+      } else if (showsResources(b, e.c)) {  // into the storage: nobody to float over, say it in the hint line
+        notice = itemName(b, e.b) + " sent to storage";
+      }
+      break;
+    case EventType::ItemLost:
+      addFloat(itemName(b, e.b) + " lost (no room)", units[e.a].px + cx, units[e.a].py - 2, Color(255, 140, 120), 1.2f);
+      cur_.dur = 0.3f;
+      break;
+    case EventType::ItemUsed:    // nothing to show beyond what its effects show
+    case EventType::ItemMoved:
+    case EventType::ItemEquipped:
     case EventType::BattleEnded: break;
   }
 }
@@ -212,6 +251,12 @@ void BattleView::progress(const Battle& b) {
       focusY = d.py + tile_ / 2.0f;
       break;
     }
+    case EventType::UnitHealed:
+      units[e.a].hp = cur_.hpFrom + (int)std::lround((cur_.hpTo - cur_.hpFrom) * p);
+      hasFocus = true;
+      focusX = units[e.a].px + tile_ / 2.0f;
+      focusY = units[e.a].py + tile_ / 2.0f;
+      break;
     case EventType::UnitDied: units[e.a].alpha = 1 - p; break;
     case EventType::UnitBuilt: units[e.a].scale = p; break;
     case EventType::LevelUp:
@@ -247,9 +292,29 @@ void BattleView::finish(const Battle& b) {
     }
     case EventType::UnitBuilt: units[e.a].scale = 1; break;
     case EventType::LevelUp: levelUp.active = false; break;
+    case EventType::UnitHealed: units[e.a].hp = cur_.hpTo; break;
+    case EventType::StatsRaised: {
+      // New maximum hit points arrive filled (the rules do the same); other stats show in the panel.
+      int hpGain = e.data.size() > (size_t)b.db->rules.statHp ? e.data[(size_t)b.db->rules.statHp] : 0;
+      if (hpGain > 0) units[e.a].hp = std::min(units[e.a].hp + hpGain, b.maxHp(b.units[e.a]));
+      clampHpTo(b, e.a);
+      break;
+    }
+    // Moving an accessory (or throwing it away) can lower someone's maximum: the displayed hit points follow.
+    case EventType::ItemMoved:
+      clampHpTo(b, e.a);
+      clampHpTo(b, e.b);
+      break;
+    case EventType::ItemBroke: clampHpTo(b, e.a); break;
     default: break;
   }
   cur_.active = false;
+}
+
+// The displayed hit points never exceed the unit's maximum (a lowered maximum cuts them, as in the rules).
+void BattleView::clampHpTo(const Battle& b, int unit) {
+  if (unit < 0 || unit >= (int)units.size() || unit >= (int)b.units.size() || !b.units[(size_t)unit].alive) return;
+  units[(size_t)unit].hp = std::min(units[(size_t)unit].hp, b.maxHp(b.units[(size_t)unit]));
 }
 
 void BattleView::startNext(const Battle& b) {

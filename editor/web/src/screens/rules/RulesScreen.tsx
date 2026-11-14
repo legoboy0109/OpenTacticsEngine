@@ -5,6 +5,7 @@ import { Banner } from '../../ui/Banner'
 import { Card, PageHeader } from '../../ui/Card'
 import { BattleCard } from './BattleCard'
 import { FeaturesCard } from './FeaturesCard'
+import { ItemsCard } from './ItemsCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { SavingCard } from './SavingCard'
@@ -33,6 +34,7 @@ function RulesForm() {
       <MoveTypesCard />
       <BattleCard />
       <FeaturesCard />
+      <ItemsCard />
       <SavingCard />
       <Card title={T.combat} help={T.combatHelp}>
         <div className="stack formulas">

@@ -1,5 +1,5 @@
 // Section helpers: an edit on a section that failed to load (null) is a no-op.
-import type { Game, ProjectDoc, Structure, Terrain, Unit, Weapon } from './types'
+import type { Game, Item, ProjectDoc, Structure, Terrain, Unit, Weapon } from './types'
 
 export const withGame = (doc: ProjectDoc, fn: (g: Game) => Game): ProjectDoc => (doc.game ? { ...doc, game: fn(doc.game) } : doc)
 export const withUnits = (doc: ProjectDoc, fn: (u: Unit[]) => Unit[]): ProjectDoc => (doc.units ? { ...doc, units: fn(doc.units) } : doc)
@@ -10,6 +10,12 @@ export const withTerrain = (doc: ProjectDoc, fn: (t: Terrain[]) => Terrain[]): P
 export const withStructures = (doc: ProjectDoc, fn: (s: Structure[]) => Structure[]): ProjectDoc => {
   const next = fn(doc.structures ?? [])
   return next === doc.structures ? doc : { ...doc, structures: next }
+}
+
+/** Applies `fn` to the item list; the first item edit creates it (`null` = "none yet"). */
+export const withItems = (doc: ProjectDoc, fn: (i: Item[]) => Item[]): ProjectDoc => {
+  const next = fn(doc.items ?? [])
+  return next === doc.items ? doc : { ...doc, items: next }
 }
 
 export const ids = (list: Array<{ id: string }> | null | undefined): string[] => (list ?? []).map((x) => x.id)

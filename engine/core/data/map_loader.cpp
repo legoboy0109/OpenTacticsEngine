@@ -1,6 +1,7 @@
 #include <map>
 
 #include "core/data/loader.h"
+#include "core/data/loader_content.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -100,6 +101,9 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     if (!c.str(e, "color", where, color)) return false;
     s.color = parseColor(color, 0xffffff);
     if (!c.amounts(db, e, "resources", where, s.resources)) return false;
+    if (!readItemGrants(c, db, e, "storage", where, false, -1, s.storage)) return false;
+    if (!s.storage.empty() && db.rules.items.storage == ItemStorage::Off)
+      return c.fail(where, "\"storage\" is given but the game has no shared storage (rules.items.storage)");
     m.sides.push_back(s);
   }
   return true;
@@ -205,6 +209,8 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     }
     u.stats = ut.stats;
     if (!c.statMap(db, e, "stats", where, u.stats)) return false;
+    u.hasItems = e.has("items");
+    if (!readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items)) return false;
     m.units.push_back(u);
   }
   return true;

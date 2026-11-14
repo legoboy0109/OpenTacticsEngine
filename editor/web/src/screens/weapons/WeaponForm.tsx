@@ -30,9 +30,15 @@ export function WeaponForm({ id }: { id: string }) {
   return (
     <div className="stack">
       <Card>
-        <Field label={T.name} help={T.nameHelp}>
-          <TextInput value={weapon.name} onChange={(v) => edit((d) => updateWeapon(d, id, { name: v }), `${key}:name`)} />
-        </Field>
+        <div className="stack">
+          <Field label={T.name} help={T.nameHelp}>
+            <TextInput value={weapon.name} onChange={(v) => edit((d) => updateWeapon(d, id, { name: v }), `${key}:name`)} />
+          </Field>
+          <Field label={T.group} help={T.groupHelp}>
+            <TextInput value={weapon.group ?? ''} placeholder={T.groupPlaceholder}
+              onChange={(v) => edit((d) => updateWeapon(d, id, { group: v.trim() === '' ? undefined : v }), `${key}:group`)} />
+          </Field>
+        </div>
       </Card>
 
       <Card>

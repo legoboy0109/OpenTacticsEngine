@@ -1,8 +1,9 @@
+import { hasPrice } from '../../model/items'
 import { suggestedTerrainProps } from '../../model/formulas'
 import { defeatConditions, featureEnabled } from '../../model/rules'
 import {
   SIZE_MAX, SIZE_MIN, isHeadquarters, setCapturePoints, setHeadquarters, setProduces, setSize, setStructureIncome, setStructureNumber,
-  setStructureTags, sizeOf, updateStructure,
+  setSells, setStructureTags, sizeOf, updateStructure,
 } from '../../model/structures'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -37,6 +38,11 @@ export function StructureForm({ id }: { id: string }) {
   const resources = game.resources ?? []
   const capturable = (s.capturePoints ?? 0) > 0
   const hq = isHeadquarters(s)
+  // Only items with a price can be sold; one already listed without a price stays visible (and is flagged) so it can be removed.
+  const items = doc.items ?? []
+  const sells = s.sells ?? []
+  const sellable = items.filter((x) => hasPrice(x) || sells.includes(x.id)).map((x) => ({ value: x.id, label: hasPrice(x) ? x.name : T.noPrice(x.name) }))
+  const showSells = items.length > 0 || sells.length > 0
   const otherTags = (s.tags ?? []).filter((x) => x !== 'hq')
 
   // A setting shows when its rule is on or the structure already has it (then with a hint); otherwise one line says it is hidden.
@@ -138,6 +144,14 @@ export function StructureForm({ id }: { id: string }) {
           <MultiSelect label={T.produces} help={T.producesHelp} value={s.produces ?? []} options={(doc.units ?? []).map((u) => ({ value: u.id, label: u.name }))}
             onChange={(v) => edit((d) => setProduces(d, id, v))} />
           {hasProduces && !productionOn && <p className="help">{T.producesOff}</p>}
+        </Card>
+      )}
+
+      {showSells && (
+        <Card>
+          <MultiSelect label={T.sells} help={T.sellsHelp} emptyText={T.sellsNone} value={sells} options={sellable}
+            onChange={(v) => edit((d) => setSells(d, id, v))} />
+          <p className="help">{T.sellsRule}</p>
         </Card>
       )}
 

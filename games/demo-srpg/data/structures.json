@@ -2,5 +2,7 @@
 // defense and avoid numbers; movement costs come from the ground beneath.
 { "structures": [
   { "id": "fort", "name": "Fort", "color": "#b0a58c", "glyph": "F",
-    "props": { "defense": 2, "avoid": 20 } }
+    "props": { "defense": 2, "avoid": 20 },
+    // A unit standing on a fort can buy these with its side's gold.
+    "sells": ["vulnerary", "iron_sword", "iron_lance", "iron_axe", "iron_bow"] }
 ] }

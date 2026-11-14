@@ -14,7 +14,7 @@ export const name = 'saves';
 // has not acted: exactly where a resumed battle puts it, so pictures can be compared.
 async function playOneMove(s) {
   await keyboardMoveLord(s);
-  await s.keys(['Enter']);          // Wait
+  await s.keys(['ArrowUp', 'Enter']);  // Wait is the last entry (Items and Storage come before it)
   await s.page.waitForTimeout(800); // the Continue save is written once the animation is done
   await s.keys(['Tab']);
 }

@@ -78,6 +78,10 @@ void BattleScene::onInput(const InputEvent& e) {
     slotInput(e);
     return;
   }
+  if (mode_ == Mode::Items) {
+    itemsInput(e);
+    return;
+  }
   if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu) {
     menuInput(e);
     return;
@@ -176,6 +180,7 @@ void BattleScene::idleButton(Button b) {
 void BattleScene::selectUnit(int unit) {
   sel_ = unit;
   hasUndo_ = false;
+  itemsUsed_ = false;
   if (battle_.units[unit].moved) {  // already moved this turn: only the action is left
     openActionMenu();
     return;
@@ -191,8 +196,10 @@ void BattleScene::computeOverlay() {
   overlay_.reach.assign(n, 0);
   overlay_.attack.assign(n, 0);
   for (Cell s : reach_.stops) overlay_.reach[s] = 1;
+  std::vector<int> weapons;  // what it can use now (carried weapons: the ones in its inventory)
+  battle_.weaponsOf(u, weapons);
   for (Cell s : reach_.stops) {
-    for (int wi : battle_.typeOf(u).weapons) {
+    for (int wi : weapons) {
       const WeaponDef& w = battle_.db->weapons[wi];
       if (s != u.cell && !w.afterMove) continue;
       for (Cell c = 0; c < n; ++c) {
@@ -243,6 +250,7 @@ void BattleScene::finishOrder() {
   menu_.close();
   overlay_ = Overlay();
   hasUndo_ = false;
+  itemsUsed_ = false;
   if (sel_ >= 0 && battle_.units[sel_].alive) cursor_ = battle_.units[sel_].cell;
   sel_ = -1;
 }

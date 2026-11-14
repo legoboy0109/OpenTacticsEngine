@@ -6,6 +6,8 @@ import type { MapFile, MapSide, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
 import { ColorInput } from '../../../../ui/ColorInput'
 import { ConfirmDialog } from '../../../../ui/Dialog'
+import { ItemListEditor } from '../../../../ui/ItemListEditor'
+import { storageMode } from '../../../../model/itemRules'
 import { Field, FieldGroup } from '../../../../ui/Field'
 import { Icon } from '../../../../ui/Icon'
 import { NumberInput } from '../../../../ui/NumberInput'
@@ -28,7 +30,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
       </div>
       <p className="help">{T.sidesHelp}</p>
       {sides.map((s, i) => (
-        <SideCard key={s.id} side={s} index={i} resources={doc.game?.resources ?? []} canRemove={canRemoveSide(map)}
+        <SideCard key={s.id} side={s} index={i} resources={doc.game?.resources ?? []} doc={doc} canRemove={canRemoveSide(map)}
           onPatch={(p, k) => apply((m) => updateSide(m, s.id, p), k && `side:${mapId}:${s.id}:${k}`)}
           onResource={(r, v) => apply((m, c) => setSideResource(m, c, s.id, r, v), `side:${mapId}:${s.id}:res:${r}`)}
           onRemove={() => setRemoving(s.id)} />
@@ -46,13 +48,14 @@ interface CardProps {
   side: MapSide
   index: number
   resources: Array<{ id: string; name: string }>
+  doc: ProjectDoc
   canRemove: boolean
   onPatch: (p: Parameters<typeof updateSide>[2], key?: string) => void
   onResource: (resource: string, v: number | undefined) => void
   onRemove: () => void
 }
 
-function SideCard({ side, index, resources, canRemove, onPatch, onResource, onRemove }: CardProps) {
+function SideCard({ side, index, resources, doc, canRemove, onPatch, onResource, onRemove }: CardProps) {
   return (
     <div className="subcard side-card" data-testid={`side-${side.id}`}>
       <div className="subcard-head">
@@ -81,6 +84,10 @@ function SideCard({ side, index, resources, canRemove, onPatch, onResource, onRe
           </tbody></table>
         </FieldGroup>
       )}
+      {(storageMode(doc) !== 'off' && (doc.items?.length ?? 0) > 0) || side.storage?.length ? (
+        <ItemListEditor label={T.sideStorage} help={storageMode(doc) === 'off' ? T.sideStorageOff : T.sideStorageHelp} entries={side.storage ?? []} items={doc.items ?? []}
+          testId={`side-storage-${side.id}`} onChange={(next, k) => onPatch({ storage: next }, k && `storage${k}`)} />
+      ) : null}
     </div>
   )
 }

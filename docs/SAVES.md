@@ -121,8 +121,10 @@ Decisions where the contract was silent, and the few deviations:
   `"game"` (the game's folder name; a file whose `game` differs is listed as
   "This save belongs to another game") and `savedAt` in seconds since 1970.
 - `battle` holds `round, activeSide, over, winnerTeam, rng {state, inc}`,
-  `sides[]` (resources, defeated, everHadUnits, hadHq, leaderLost), `units[]`
-  (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader)
+  `sides[]` (resources, defeated, everHadUnits, hadHq, leaderLost, and in a
+  game with a shared storage `storage[]`), `units[]`
+  (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader,
+  and in a game with items `items[]`: item, uses left, drop)
   and `structures[]` (owner, capture, capturer). A side's id, name, colour,
   team and `ai` flag come from the map (the hash covers it), so they are not
   stored. The random generator state is two 16-digit hex strings (a JSON
@@ -142,7 +144,8 @@ Decisions where the contract was silent, and the few deviations:
   whatever it is called. Of `game.json` only `formatVersion`, `stats`,
   `resources`, `moveTypes`, `roles`, `rules`, `formulas` and `scripts` count.
   Then `data/weapons.json`, `units.json`, `terrain.json`, `structures.json`
-  (when present), the scripts in `game.json` order (byte for byte) and the map
+  and `items.json` (each when present; a game without `items.json` hashes
+  exactly as it did before items existed), the scripts in `game.json` order (byte for byte) and the map
   file, each preceded by its path and length. Key order counts. A new
   top-level rules key in `game.json` must be added to the list in
   `computeDataHash`, and a new cosmetic key to `cosmeticKey`.

@@ -1,5 +1,6 @@
+import { carriedWeapons, inventorySize } from '../../model/itemRules'
 import { featureEnabled } from '../../model/rules'
-import { allTags, setUnitNumber, setUnitTags, setUnitWeapons, updateUnit } from '../../model/units'
+import { allTags, setUnitItems, setUnitNumber, setUnitTags, setUnitWeapons, setUnitWields, updateUnit, weaponGroups } from '../../model/units'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
 import { Field } from '../../ui/Field'
@@ -9,6 +10,7 @@ import { MultiSelect } from '../../ui/MultiSelect'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
+import { ItemListEditor } from '../../ui/ItemListEditor'
 import { Check } from '../../ui/Toggle'
 import { T } from './text'
 
@@ -21,6 +23,9 @@ export function UnitForm({ id }: { id: string }) {
   const key = `unit:${id}`
   const growth = featureEnabled(doc, 'progression')
   const production = featureEnabled(doc, 'production') && (game.resources ?? []).length > 0
+  const carried = carriedWeapons(doc)
+  const items = doc.items ?? []
+  const groups = [...new Set([...weaponGroups(doc), ...(unit.wields ?? [])])]
   const statRows = game.stats.map((s) => ({ key: s.id, label: s.name }))
 
   return (
@@ -52,10 +57,23 @@ export function UnitForm({ id }: { id: string }) {
       </Card>
 
       <Card>
-        <MultiSelect label={T.weapons} help={T.weaponsHelp} emptyText={T.noWeapons} value={unit.weapons ?? []}
-          options={(doc.weapons ?? []).map((w) => ({ value: w.id, label: w.name }))}
-          onChange={(v) => edit((d) => setUnitWeapons(d, id, v))} />
+        <div className="stack">
+          <MultiSelect label={carried ? T.weaponsCarried : T.weapons} help={carried ? T.weaponsCarriedHelp : T.weaponsHelp} emptyText={T.noWeapons} value={unit.weapons ?? []}
+            options={(doc.weapons ?? []).map((w) => ({ value: w.id, label: w.name }))}
+            onChange={(v) => edit((d) => setUnitWeapons(d, id, v))} />
+          {(carried || (unit.wields?.length ?? 0) > 0) && (
+            <MultiSelect label={T.wields} help={carried ? T.wieldsHelp : T.wieldsOff} emptyText={T.noGroups} value={unit.wields ?? []}
+              options={groups.map((g) => ({ value: g, label: g }))} onChange={(v) => edit((d) => setUnitWields(d, id, v))} />
+          )}
+        </div>
       </Card>
+
+      {(items.length > 0 || (unit.items?.length ?? 0) > 0) && (
+        <Card>
+          <ItemListEditor label={T.startItems} help={T.startItemsHelp} entries={unit.items ?? []} items={items} allowDrop max={inventorySize(doc)}
+            testId="unit-start-items" onChange={(next, k) => edit((d) => setUnitItems(d, id, next), k && `${key}:${k}`)} />
+        </Card>
+      )}
 
       {(production || featureEnabled(doc, 'capture')) && (
         <Card>

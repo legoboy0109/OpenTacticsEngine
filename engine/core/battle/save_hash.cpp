@@ -111,6 +111,10 @@ bool computeDataHash(const Database& db, const std::string& mapId, std::string& 
   for (const char* rel : kData)
     if (!mixJson(f, root, rel, false, nullptr, err)) return false;
   if (!mixJson(f, root, "data/structures.json", true, nullptr, err)) return false;  // optional file
+  // Items came later than the first saves: a game without the file must keep
+  // the hash it always had, so nothing at all is mixed in for a missing file.
+  std::string probe;
+  if (readTextFile(root + "/data/items.json", probe) && !mixJson(f, root, "data/items.json", false, nullptr, err)) return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   if (!mixJson(f, root, db.maps[(size_t)mi].file, false, nullptr, err)) return false;
