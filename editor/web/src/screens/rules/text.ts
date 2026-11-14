@@ -23,6 +23,17 @@ export const T = {
   moveTypesHelp: 'Ways to travel, such as Foot or Wheels. Terrain decides how costly each one is.',
   moveTypeNoun: 'movement type',
 
+  switches: 'Story switches',
+  switchesHelp: 'Things that are either off or on, such as “Village saved”. Story events turn them on and off and can check them. Leave empty if your story needs none.',
+  switchNoun: 'switch',
+  switchesEmpty: 'No switches yet.',
+  variables: 'Story variables',
+  variablesHelp: 'Whole numbers that story events can set, add to and compare, such as “Gold found”. They start at 0. Leave empty if your story needs none.',
+  variableNoun: 'variable',
+  variablesEmpty: 'No variables yet.',
+  deleteSwitchTitle: (n: string) => `the switch “${n}”`,
+  deleteVariableTitle: (n: string) => `the variable “${n}”`,
+
   battle: 'Battle',
   battleHelp: 'The basic rules of a fight.',
   counter: 'Counterattacks',

@@ -2,6 +2,7 @@
 // the helper reports what stops the game loading, these point at things that
 // load fine but are probably not what the author meant.
 import { itemChecks } from './itemChecks'
+import { storyChecks } from './storyChecks'
 import { ctxOf } from './mapCtx'
 import { terrainAt } from './mapGrid'
 import { misfits, placedOf, structureAt } from './mapStructures'
@@ -50,5 +51,7 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   // What the loader would refuse about the items on this map (placed units' items, sides' storage).
   const mapId = Object.keys(doc.maps).find((k) => doc.maps[k] === map)
   itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
+  // What the loader would refuse about this map's story events, objectives and unit story names.
+  if (mapId !== undefined) storyChecks(doc, mapId).forEach((x, i) => out.push({ key: `story:${i}`, text: x.text }))
   return out
 }

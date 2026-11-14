@@ -77,7 +77,10 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
-    case 'giveResource': return { giveResource: { [c.doc.game?.resources?.[0]?.id ?? '']: 100 }, side: firstSide(c) }
+    case 'giveResource': {
+      const res = c.doc.game?.resources?.[0]?.id
+      return { giveResource: res ? { [res]: 100 } : {}, side: firstSide(c) }
+    }
     case 'setSwitch': return { setSwitch: sw, to: true }
     case 'setVariable': return { setVariable: vr, to: 0 }
     case 'addVariable': return { addVariable: vr, by: 1 }

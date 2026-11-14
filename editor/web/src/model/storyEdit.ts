@@ -157,3 +157,11 @@ export function setUnitStoryId(map: MapFile, x: number, y: number, to: string): 
   const next = { ...map, units }
   return old && to ? renameUnitRefs(next, old, to) : next
 }
+
+/** Gives the unit an `addUnit` command creates a story name (or none); everything that named the old one follows. */
+export function setAddedUnitId(map: MapFile, eventId: string, path: ListPath, index: number, to: string): MapFile {
+  const event = map.events?.find((e) => e.id === eventId)
+  const old = event ? getList(event.do ?? [], path)?.[index]?.addUnit?.id : undefined
+  const next = editCommands(map, eventId, path, (l) => l.map((c, j) => (j === index && c.addUnit ? { ...c, addUnit: patchObj(c.addUnit, { id: to === '' ? undefined : to }) } : c)))
+  return old && to ? renameUnitRefs(next, old, to) : next
+}

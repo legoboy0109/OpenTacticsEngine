@@ -6,11 +6,14 @@ import { Icon } from '../../../ui/Icon'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { SidesPanel } from './panels/SidesPanel'
 import { ToolPanel } from './panels/ToolPanel'
+import { EventsPanel } from './story/EventsPanel'
+import { ObjectivesPanel } from './story/ObjectivesPanel'
+import type { MapViewState } from './viewState'
 import { T } from './text'
 import type { ToolState } from './tools'
 
-type Tab = 'tool' | 'map' | 'sides'
-const TABS: Tab[] = ['tool', 'map', 'sides']
+type Tab = 'tool' | 'map' | 'sides' | 'events' | 'objectives'
+const TABS: Tab[] = ['tool', 'map', 'sides', 'events', 'objectives']
 
 interface Props {
   doc: ProjectDoc
@@ -20,9 +23,11 @@ interface Props {
   selected: string | null
   onChange: (p: Partial<ToolState>) => void
   say: (m: string | null) => void
+  /** The map's view state: the story panels draw areas on the canvas and pick squares from it. */
+  vs: MapViewState
 }
 
-export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say }: Props) {
+export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say, vs }: Props) {
   const [tab, setTab] = useState<Tab>('tool')
   const [open, setOpen] = useStored('ote.mapSheetOpen', true)
   const choose = (t: Tab) => { setTab(t); setOpen(true) }
@@ -42,6 +47,8 @@ export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say }
         {tab === 'tool' && <ToolPanel doc={doc} map={map} mapId={mapId} tool={state.tool} state={state} selected={selected} onChange={onChange} say={say} />}
         {tab === 'map' && <SettingsPanel doc={doc} map={map} mapId={mapId} />}
         {tab === 'sides' && <SidesPanel doc={doc} map={map} mapId={mapId} />}
+        {tab === 'events' && <EventsPanel mapId={mapId} vs={vs} />}
+        {tab === 'objectives' && <ObjectivesPanel mapId={mapId} vs={vs} />}
       </div>
     </aside>
   )

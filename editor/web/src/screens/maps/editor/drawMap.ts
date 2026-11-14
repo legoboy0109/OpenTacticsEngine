@@ -7,6 +7,9 @@ import { PLAIN_STYLE, unitPicture, type ArtScene, type StyleView } from '../../.
 import type { Cell } from '../../../model/mapGrid'
 import type { MapFile, MapUnit, Structure, Terrain, Unit } from '../../../model/types'
 import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
+import { drawOverlays } from './drawStory'
+import type { Overlay } from '../../../model/storyOverlays'
+import type { Rect } from '../../../model/storyTypes'
 import { drawOrder, drawStructure, drawStructureGhost, structureRows, type StructureGhost } from './drawStructures'
 import type { View } from './geometry'
 
@@ -43,6 +46,9 @@ export interface DrawState {
   selSize?: { w: number; h: number } | null
   /** Running time in ms for animated pictures (0 under reduced motion). */
   time?: number
+  /** Areas / squares of the open event or the objectives, and the rectangle being picked. */
+  overlays?: Overlay[]
+  pickRect?: Rect | null
 }
 
 const BACKDROP = '#14161c'
@@ -137,6 +143,7 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       drawAnyUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true, time)
     }
   }
+  if (st.overlays?.length || st.pickRect) drawOverlays(g, st.overlays ?? [], st.pickRect ?? null, { px, py, S, dpr, mw, mh })
   const ring = (c: Cell, color: string, width: number, inset = 0, size = { w: 1, h: 1 }) => {
     g.strokeStyle = color
     g.lineWidth = width

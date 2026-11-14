@@ -1,7 +1,9 @@
 // The "Sides" tab: who plays, their colour, team and starting resources.
 import { useState } from 'react'
 import { editMap } from '../../../../model/mapCtx'
-import { addSide, canRemoveSide, removeSide, setSideResource, sideRemovalLoss, updateSide } from '../../../../model/mapSides'
+import { addSide, canRemoveSide, setSideResource, sideRemovalLoss, updateSide } from '../../../../model/mapSides'
+import { removeSideAndStory, sideRemovalUsages } from '../../../../model/storyUnits'
+import { S } from '../story/text'
 import type { MapFile, MapSide, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
 import { ColorInput } from '../../../../ui/ColorInput'
@@ -21,6 +23,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
   const sides = map.sides ?? []
   const target = sides.find((s) => s.id === removing)
   const loss = target ? sideRemovalLoss(map, target.id) : { units: 0, structures: 0 }
+  const storyLines = target ? sideRemovalUsages(doc, mapId, target.id) : []
   const apply = (fn: (m: MapFile, c: Parameters<Parameters<typeof editMap>[2]>[1]) => MapFile, key?: string) => edit((d) => editMap(d, mapId, fn), key)
   return (
     <div className="stack tight">
@@ -37,8 +40,14 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
       ))}
       <ConfirmDialog open={!!target} title={T.removeSideTitle(target?.name ?? '')} confirmLabel={T.removeSide} danger
         onCancel={() => setRemoving(null)}
-        onConfirm={() => { if (target) apply((m) => removeSide(m, target.id)); setRemoving(null) }}>
+        onConfirm={() => { if (target) edit((d) => removeSideAndStory(d, mapId, target.id)); setRemoving(null) }}>
         <p>{T.removeSideBody(loss.units, loss.structures)}</p>
+        {target && storyLines.length > 0 && (
+          <>
+            <p>{S.removeSideStory}</p>
+            <ul className="usage-list" data-testid="side-story-usages">{storyLines.map((u, i) => <li key={i}>{u.text}</li>)}</ul>
+          </>
+        )}
       </ConfirmDialog>
     </div>
   )
