@@ -30,7 +30,8 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
-         rel == "data/units.json" || rel == "data/graphics.json";
+         rel == "data/units.json" || rel == "data/graphics.json" ||
+         rel == "data/structures.json";
 }
 
 struct PendingWrite {
@@ -57,6 +58,7 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (badType(body["terrain"], Json::Type::Array)) return apiError(400, "\"terrain\" must be an array");
   if (badType(body["weapons"], Json::Type::Array)) return apiError(400, "\"weapons\" must be an array");
   if (badType(body["units"], Json::Type::Array)) return apiError(400, "\"units\" must be an array");
+  if (badType(body["structures"], Json::Type::Array)) return apiError(400, "\"structures\" must be an array");
   if (badType(body["graphics"], Json::Type::Object)) return apiError(400, "\"graphics\" must be an object");
   if (badType(maps, Json::Type::Object)) return apiError(400, "\"maps\" must be an object of objects");
   if (badType(scripts, Json::Type::Object)) return apiError(400, "\"scripts\" must be an object of strings");
@@ -104,7 +106,8 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   const char* escape = "a project file resolves outside the project folder";
   if (!game.isNull() && !add("game.json", game.dump(2) + "\n")) return apiError(400, escape);
   struct { const char* key; const char* file; } lists[] = {
-      {"terrain", "data/terrain.json"}, {"weapons", "data/weapons.json"}, {"units", "data/units.json"}};
+      {"terrain", "data/terrain.json"}, {"weapons", "data/weapons.json"}, {"units", "data/units.json"},
+      {"structures", "data/structures.json"}};
   for (const auto& l : lists) {
     if (body[l.key].isNull()) continue;
     Json wrap = Json::makeObject();

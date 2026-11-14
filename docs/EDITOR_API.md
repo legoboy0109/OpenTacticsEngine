@@ -66,6 +66,7 @@ dropped (the document is strict JSON).
   "maps": { "bridge": { …contents of that map file… } },
   "scripts": { "scripts/formulas.lua": "…text…" },
   "graphics": { …contents of data/graphics.json… },
+  "structures": [ …the "structures" list of data/structures.json… ],
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
 `maps` is keyed by the map id from `game.maps`. `scripts` holds the text
@@ -74,21 +75,26 @@ valid JSON does not fail the request: its section is `null` and a problem
 describes why. The exception is `graphics`: a project without
 `data/graphics.json` (no art) has `"graphics": null` and no problem (a file
 that exists but is not a JSON object is `null` plus a problem on
-`data/graphics.json`). `revision` identifies the on-disk state (a hash of the
+`data/graphics.json`). `structures` works the same way: no
+`data/structures.json` gives `"structures": null` and no problem; a file that
+is not valid JSON or has no `structures` list gives `null` plus a problem on
+`data/structures.json`. `revision` identifies the on-disk state (a hash of the
 project's files).
 
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,
-"units": …, "maps": { … }, "scripts": { … }, "graphics": { … } }` (same
-shapes as GET; a section that is absent or `null` is left untouched on disk;
-`graphics` must be an object, anything else is `400`). Art image files are
+"units": …, "maps": { … }, "scripts": { … }, "graphics": { … },
+"structures": [ … ] }` (same shapes as GET; a section that is absent or `null`
+is left untouched on disk; `graphics` must be an object and `structures` a
+list, anything else is `400`; `structures` is written as `{ "structures": [ … ] }`
+and an empty list is valid). Art image files are
 not part of this call: they have their own endpoints below.
 
 - If `baseRevision` is not the current on-disk revision → `409
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and
@@ -102,7 +108,8 @@ real loader on the saved files: `loadGame`, then every map with `loadMap`,
 (`loadGame` includes `data/graphics.json`, so art problems such as an unknown
 sheet or a missing/oversized image are reported with `file:
 "data/graphics.json"`), then compiles the Lua formulas and starts a battle on each map. `file` is
-relative to the project folder ("" when unknown). The loader stops at the
+relative to the project folder ("" when unknown); any loader message that starts with a
+project file's path (e.g. `data/structures.json`) is reported with that `file`. The loader stops at the
 first error per file group, so fixing one problem can reveal the next.
 
 ### GET /api/projects/:id/files
