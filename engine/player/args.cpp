@@ -12,12 +12,15 @@ const char* usageText() {
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N] [--test-3d]\n"
+         "                  [--3d auto|software|hardware]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
          "saves: Continue save + 5 slots per game (docs/SAVES.md); headless and --no-settings runs save nothing\n"
          "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
+         "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
+         "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
          "input tokens: up down left right confirm cancel menu next prev turnleft turnright wait wait:N tap:X:Y\n";
 }
 
@@ -68,6 +71,12 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--game")) { if (value(v)) a.game = v; }
     else if (!strcmp(arg, "--map")) { if (value(v)) a.map = v; }
     else if (!strcmp(arg, "--screenshot")) { if (value(v)) a.screenshot = v; }
+    else if (!strcmp(arg, "--3d")) {
+      if (value(v)) {
+        a.draw3d = v;
+        if (a.draw3d != "auto" && a.draw3d != "software" && a.draw3d != "hardware") a.error = "bad --3d (auto, software or hardware)";
+      }
+    }
     else if (!strcmp(arg, "--input")) { if (value(v)) a.input = v; }
     else if (!strcmp(arg, "--seed")) {
       if (value(v)) { if (toLong(v, n) && n >= 0) a.seed = (unsigned)n; else a.error = "bad --seed"; }

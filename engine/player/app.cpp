@@ -7,6 +7,7 @@
 #include "scene_game.h"
 #include "scene_home.h"
 #include "gfx3d/soft3d.h"
+#include "platform/platform3d.h"
 #include "scene_test3d.h"
 #include "scene_options.h"
 #include "scene_select.h"
@@ -18,10 +19,22 @@ PlayerApp::PlayerApp(const Args& args) : args_(args) {}
 // Last chance to keep changes when the window is closed or the process ends normally.
 PlayerApp::~PlayerApp() { flushSettings(); }
 
-// The software backend works on every platform; a faster one for the
-// platform takes its place here when there is one.
+// The software backend works on every platform; the platform's hardware
+// backend takes its place where there is one (docs/RENDER3D.md). Windowless
+// runs keep the software one unless asked: their pictures must not depend on
+// the machine's graphics driver.
 Renderer3D& PlayerApp::renderer3d() {
-  if (!r3d_) r3d_.reset(new SoftRenderer3D());
+  if (r3d_) return *r3d_;
+  bool hardware = args_.draw3d == "hardware" || (args_.draw3d == "auto" && !args_.headless);
+  if (hardware) {
+    std::string why;
+    r3d_ = createHardwareRenderer3D(why);
+    if (!r3d_) OTE_WARN("3D drawing: no hardware backend (%s); using the software one", why.c_str());
+  }
+  if (!r3d_) {
+    r3d_.reset(new SoftRenderer3D());
+    OTE_INFO("3D drawing: software");
+  }
   return *r3d_;
 }
 

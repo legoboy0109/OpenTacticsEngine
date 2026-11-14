@@ -39,17 +39,64 @@ target, including homebrew console ports.
 | Backend | Where | State |
 |---|---|---|
 | Software (`soft3d.h`) | everywhere: SDL3, SDL2, web, headless tests | built |
-| OpenGL ES 3 / WebGL 2 | PC, web, phones | next; needs the 2D drawing on the same GL context |
+| OpenGL (`gl/gl_renderer3d.h`) | PC (SDL3, SDL2) and web; phones when there is a phone port | built |
 | Console SDKs | homebrew ports | with each port |
 
 The software backend draws into an RGBA picture (`framePixels`); the player
 shows it through one 2D texture (`engine/player/show3d.h`,
 `Renderer::updateTexture`). It is the reference: tests check its pixels
-(`tests/test_soft3d.cpp`), and a new backend is right when the test scene
-looks the same. At the logical resolution (480 x 270) the test scene takes
-about 4 ms a frame on a desktop in an unoptimised build; it is meant for
-small maps, tests and platforms without anything better, not for big scenes
-on weak hardware.
+(`tests/test_soft3d.cpp`), and a new backend is right when its pictures are
+the software backend's. At the logical resolution (480 x 270) the test scene
+takes about 4 ms a frame on a desktop; it is meant for small maps, tests and
+platforms without anything better, not for big scenes on weak hardware.
+
+### OpenGL backend
+
+One backend for OpenGL ES 3.0, WebGL 2 and desktop OpenGL 3.3 core (the
+shaders differ in their first line only). It keeps the contract above: the
+shaders do exactly the software backend's arithmetic (lighting and fog per
+vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
+
+- **Its own context, its own picture.** The platform gives it a GL context
+  nothing else uses (`GlHost`, `gl/gl_api.h`). It draws into a framebuffer
+  there and reads the finished picture back into memory, so it hands the
+  picture over through `framePixels` exactly like the software backend. The
+  2D renderer is untouched and need not be GL at all, and the two backends
+  can be swapped at will. The read-back is small at the logical resolution.
+  (Drawing 2D and 3D in one context would save it; that is only worth doing
+  if 3D is ever drawn at the display's full resolution.)
+- **Draws are queued** and carried out in `end()`, inside one
+  `enter()`/`leave()` of the host, which puts back whatever context was
+  current (SDL's own 2D renderer is often GL too). A solid draw whose mesh
+  is updated or freed before `end()` is carried out first.
+- **No GL headers or libraries** in the engine: `gl_api.h` lists the ~60
+  functions used, with the same meaning in all three GL kinds, and the
+  platform fills the table by name.
+- **Where the context comes from** (`createHardwareRenderer3D`,
+  `engine/platform/platform3d.h`): SDL3 and SDL2 make a hidden 16 x 16
+  window with an OpenGL ES 3.0 context, or OpenGL 3.3 core when the driver
+  has no ES (`OTE_3D_GL=core` in the environment forces that path for
+  testing); the web makes a WebGL 2 context on a canvas that is never shown.
+  The platform frees the context when it shuts down; a backend that lives
+  longer draws nothing.
+- **Falling back.** At start the backend compiles its shaders and reads back
+  a test picture; if anything fails the player logs why and uses the
+  software backend. `Caps3D` are the software backend's, so the same content
+  loads either way.
+- **Choosing**: `ote-player --3d auto|software|hardware`. `auto` (the
+  default) is hardware, except in `--headless` runs, which keep the software
+  backend so their screenshots do not depend on the machine's driver. The
+  log says which one draws (`3D drawing: OpenGL (...)` / `3D drawing:
+  software`).
+- **Checked by** `tests/render3d_backends_test.py` (windowless, both
+  backends, five scenes, at most 0.2% of pixels may differ: triangle edges
+  are filled by slightly different rules) and the webtest suite `render3d`
+  (WebGL 2 against software in Chromium and Firefox).
+- Measured on a desktop (windowless, 480 x 270, whole frame including 2D):
+  test scene 4.3 ms software, 0.8 ms OpenGL; demo-srpg battle with models
+  2.4 ms and 1.2 ms.
+- Not handled yet: a lost context (a browser or phone taking the GL context
+  away) leaves the 3D picture empty until the page is reloaded.
 
 The player makes the backend in `PlayerApp::renderer3d()`; it outlives every
 scene, and a scene frees its own meshes and textures when it ends.

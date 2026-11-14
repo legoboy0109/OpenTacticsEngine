@@ -23,6 +23,8 @@ struct Args {
   int loadSlot = 0;       // --load-slot N: resume manual slot N (1..5; needs --game); 0 = no
   std::string game, map;  // empty = ask
   bool test3d = false;    // --test-3d: show the built-in 3D test scene instead of the launcher
+  std::string draw3d = "auto";  // --3d auto|software|hardware: which 3D backend (docs/RENDER3D.md). auto =
+                                // hardware where it works, but software when --headless (repeatable pictures)
   bool autoplay = false;
   unsigned seed = 1;
   bool headless = false;

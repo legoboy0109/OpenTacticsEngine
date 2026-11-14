@@ -34,9 +34,10 @@ target_include_directories(ote_core PUBLIC engine)
 target_link_libraries(ote_core PUBLIC lua)
 target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
 
-# --- 3D drawing layer: interface, maths, model loading and the software backend.
-# No platform or graphics-API dependencies (docs/RENDER3D.md).
-file(GLOB GFX3D_SRC CONFIGURE_DEPENDS engine/gfx3d/*.cpp)
+# --- 3D drawing layer: interface, maths, model loading, the software backend and the
+# OpenGL backend. No platform dependencies and no GL headers or libraries: the OpenGL
+# backend calls through pointers the platform hands it (docs/RENDER3D.md).
+file(GLOB GFX3D_SRC CONFIGURE_DEPENDS engine/gfx3d/*.cpp engine/gfx3d/gl/*.cpp)
 add_library(ote_gfx3d STATIC ${GFX3D_SRC})
 target_link_libraries(ote_gfx3d PUBLIC ote_core)
 target_compile_options(ote_gfx3d PRIVATE ${OTE_WARN})

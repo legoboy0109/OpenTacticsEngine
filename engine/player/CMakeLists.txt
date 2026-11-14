@@ -64,7 +64,9 @@ if(EMSCRIPTEN)
     -sINVOKE_RUN=0 -sEXIT_RUNTIME=0
     -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1048576
     -sFORCE_FILESYSTEM=1 -lidbfs.js
-    -sEXPORTED_RUNTIME_METHODS=FS,callMain,IDBFS)
+    -sEXPORTED_RUNTIME_METHODS=FS,callMain,IDBFS
+    # The hardware 3D backend: WebGL 2, its functions looked up by name.
+    -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1)
 
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   # Pages + data next to the module, so the folder can be served as it is.
