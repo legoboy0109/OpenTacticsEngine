@@ -19,10 +19,14 @@ class Sheets3D {
   // Texture positions of the pixel rectangle (x, y, w, h) of a sheet whose
   // texture() is not 0, pulled in a hair so neighbours never bleed in.
   void uv(int sheet, int x, int y, int w, int h, float& u0, float& v0, float& u1, float& v1) const;
+  // Whether the sheet asks for smooth sampling ("smooth" in graphics.json): the
+  // material of what is drawn from it must say so (Material3D::smooth).
+  bool smooth(int sheet) const { return g_ && sheet >= 0 && (size_t)sheet < g_->sheets.size() && g_->sheets[(size_t)sheet].smooth; }
   void release(Renderer3D& r3d);
 
  private:
   struct Entry { bool tried = false; Texture3DId tex = 0; int w = 1, h = 1; };
+  // uv() needs the sheet's own flag for its margin.
   std::string dir_;
   const Graphics* g_ = nullptr;
   std::vector<Entry> sheets_;

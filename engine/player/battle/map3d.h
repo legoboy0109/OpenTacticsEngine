@@ -31,7 +31,7 @@ class Map3D {
   struct Spot { float X, Y, Z; };
   // map3d.cpp
   void buildGround(const DrawCtx& c);
-  void beginFrame(const DrawCtx& c);
+  void beginFrame(Renderer& r, const DrawCtx& c);
   void updateHidden(const DrawCtx& c);
   Spot spot(const DrawCtx& c, float gx, float gy, float elevation) const;
   bool picture(const DrawCtx& c, const Look& look, int x, int y, int w, int h, Material3D& m, float uv[4]);

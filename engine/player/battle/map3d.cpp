@@ -40,6 +40,7 @@ Map3D::Spot Map3D::spot(const DrawCtx& c, float gx, float gy, float elevation) c
 bool Map3D::picture(const DrawCtx&, const Look& look, int x, int y, int w, int h, Material3D& m, float uv[4]) {
   m.texture = sheets_.texture(r3d_, look.sheet);
   if (!m.texture) return false;
+  m.smooth = sheets_.smooth(look.sheet);
   sheets_.uv(look.sheet, x, y, w, h, uv[0], uv[1], uv[2], uv[3]);
   return true;
 }
@@ -121,7 +122,7 @@ void Map3D::updateHidden(const DrawCtx& c) {
     for (int x = 0; x < g.gridW(); ++x) hidden_[(size_t)(y * g.gridW() + x)] = g.hidden3(x, y);
 }
 
-void Map3D::beginFrame(const DrawCtx& c) {
+void Map3D::beginFrame(Renderer& r, const DrawCtx& c) {
   const MapProj& p = *c.proj;
   const Layout& L = c.layout;
   float s = std::sin(p.yaw()), co = std::cos(p.yaw());
@@ -137,6 +138,7 @@ void Map3D::beginFrame(const DrawCtx& c) {
   f.y = 0;
   f.width = L.vw;
   f.height = L.vh;
+  show_.fit(r, r3d_, f);  // the picture itself may be bigger than this (the display's pixels); the camera does not care
   Color bg = c.style && c.style->hasBackground ? Color::rgb(c.style->background) : Color(10, 10, 16);
   f.clear = Rgba3D(bg.r / 255.0f, bg.g / 255.0f, bg.b / 255.0f);
   if (p.free3d()) {
@@ -171,7 +173,7 @@ void Map3D::beginFrame(const DrawCtx& c) {
 void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
   if (!built_) buildGround(c);
   updateHidden(c);
-  beginFrame(c);
+  beginFrame(r, c);
   if (ground_) r3d_.draw(ground_, Mat4(), Material3D());
   drawTops(c);
   drawStructures(c);

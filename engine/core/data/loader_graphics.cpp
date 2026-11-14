@@ -246,6 +246,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
     if (!c.integer(j, "cellWidth", where, sh.cellW, true)) return false;
     if (!c.integer(j, "cellHeight", where, sh.cellH, true)) return false;
     if (sh.cellW < 1 || sh.cellH < 1) return c.fail(where, "\"cellWidth\" and \"cellHeight\" must be at least 1");
+    if (!c.boolean(j, "smooth", where, sh.smooth)) return false;
     std::string why;
     if (!readPngSize(db.rootPath + "/" + sh.file, sh.width, sh.height, why))
       return c.fail(where, "image " + q(sh.file) + ": " + why);

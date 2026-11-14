@@ -12,7 +12,7 @@ const char* usageText() {
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N] [--test-3d]\n"
-         "                  [--3d auto|software|hardware]\n"
+         "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
@@ -21,6 +21,10 @@ const char* usageText() {
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
          "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
+         "--3d-res: how big the 3D picture is. display = the display's real pixels, game = the game's logical size,\n"
+         "      auto = display with the hardware drawer, game size with the software one. Beats the option.\n"
+         "--3d-scale N (1..8, with --headless): there is no display, so the 3D picture is N times the logical size and\n"
+         "      the screenshot is written at that size too (check detailed art without a window).\n"
          "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout wait wait:N tap:X:Y\n";
 }
 
@@ -77,6 +81,15 @@ Args parseArgs(int argc, char** argv) {
         if (a.draw3d != "auto" && a.draw3d != "software" && a.draw3d != "hardware") a.error = "bad --3d (auto, software or hardware)";
       }
     }
+    else if (!strcmp(arg, "--3d-res")) {
+      if (value(v)) {
+        a.res3d = v;
+        if (a.res3d != "auto" && a.res3d != "display" && a.res3d != "game") a.error = "bad --3d-res (auto, display or game)";
+      }
+    }
+    else if (!strcmp(arg, "--3d-scale")) {
+      if (value(v)) { if (toLong(v, n) && n >= 1 && n <= 8) a.scale3d = (int)n; else a.error = "bad --3d-scale (1..8)"; }
+    }
     else if (!strcmp(arg, "--input")) { if (value(v)) a.input = v; }
     else if (!strcmp(arg, "--seed")) {
       if (value(v)) { if (toLong(v, n) && n >= 0) a.seed = (unsigned)n; else a.error = "bad --seed"; }
@@ -104,6 +117,7 @@ Args parseArgs(int argc, char** argv) {
   if (!a.error.empty()) return a;
   if (a.continueSave && a.loadSlot > 0) a.error = "use either --continue or --load-slot, not both";
   else if ((a.continueSave || a.loadSlot > 0) && a.game.empty()) a.error = "--continue and --load-slot need --game";
+  if (a.scale3d > 1 && !a.headless) a.error = "--3d-scale only works with --headless (a real window has its own size)";
   // Headless runs are tests: deterministic time unless told otherwise.
   if (a.headless && a.fixedDt <= 0) a.fixedDt = 1.0 / 60.0;
   return a;

@@ -29,7 +29,7 @@ Texture3DId Sheets3D::texture(Renderer3D& r3d, int sheet) {
   std::vector<uint8_t> px((size_t)w * h * 4, 0);
   for (int y = 0; y < img.height; ++y)
     std::memcpy(&px[(size_t)y * w * 4], &img.rgba[(size_t)y * img.width * 4], (size_t)img.width * 4);
-  e.tex = r3d.createTexture(px.data(), w, h, false);
+  e.tex = r3d.createTexture(px.data(), w, h, false, s.smooth);  // smooth sheets also get mipmaps
   e.w = w;
   e.h = h;
   return e.tex;
@@ -37,7 +37,9 @@ Texture3DId Sheets3D::texture(Renderer3D& r3d, int sheet) {
 
 void Sheets3D::uv(int sheet, int x, int y, int w, int h, float& u0, float& v0, float& u1, float& v1) const {
   const Entry& e = sheets_[(size_t)sheet];
-  const float in = 0.02f;  // of a texel
+  // Of a texel. Hard pixels only need a hair; blended ones read half a texel past
+  // the edge, so they are pulled in that far or the next cell's colours bleed in.
+  const float in = smooth(sheet) ? 0.5f : 0.02f;
   u0 = (x + in) / e.w;
   v0 = (y + in) / e.h;
   u1 = (x + w - in) / e.w;
