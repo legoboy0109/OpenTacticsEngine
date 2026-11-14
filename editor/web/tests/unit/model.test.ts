@@ -64,15 +64,20 @@ describe('resources and move types', () => {
     expect(removeMoveType(d, 'fly')).toBe(d)
   })
   it('adds resources with unique ids', () => {
-    expect(addResource(addResource(srpg(), 'Gold'), 'Gold').game!.resources!.map((r) => r.id)).toEqual(['gold', 'gold_2'])
+    expect(addResource(addResource(srpg(), 'Ore'), 'Ore').game!.resources!.map((r) => r.id)).toEqual(['gold', 'ore', 'ore_2'])
   })
 })
 
 describe('deleting things removes every reference', () => {
   it('weapon: off every unit', () => {
     const d = srpg()
-    expect(findUsages(d, 'weapon', 'iron_lance').map((u) => u.text).join()).toContain('Cavalier')
+    // The demo carries its weapons as items; give one unit type the weapon directly as well.
+    d.units!.find((u) => u.id === 'cavalier')!.weapons = ['iron_lance']
+    const usages = findUsages(d, 'weapon', 'iron_lance').map((u) => u.text).join()
+    expect(usages).toContain('Cavalier')
+    expect(usages).toContain('Iron Lance')  // the weapon item goes with it
     const next = deleteWeapon(d, 'iron_lance')
+    expect(next.items!.some((i) => i.weapon === 'iron_lance')).toBe(false)
     expect(next.units!.some((u) => u.weapons?.includes('iron_lance'))).toBe(false)
     expect(next.weapons!.some((w) => w.id === 'iron_lance')).toBe(false)
   })
