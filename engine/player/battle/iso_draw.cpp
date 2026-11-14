@@ -118,6 +118,13 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
   int left = nx - def.height * g.tileW / 2;
   if (I.offScreen(left, ny - fw, fw, fh + fw)) return;
 
+  // The owner's frame around the footprint, on the ground: all of it under the
+  // structure, then its two near edges again on top (the body hides the far ones).
+  Color owner = st.owner >= 0 ? Color::rgb(b.sides[(size_t)st.owner].color) : Color(0, 0, 0, 0);
+  if (st.owner >= 0) {
+    IsoPicture ring = I.c.tiles->diamond(I.r, g, def.width, def.height, IsoTiles::Outline);
+    I.r.drawTexture(ring.tex, 0, 0, ring.w, ring.h, left, ny, ring.w, ring.h, owner);
+  }
   int lift = 0;  // where the move/attack highlight goes: on a placeholder block's top
   if (const Look* art = structureArt(I.c, st)) {
     // Across the footprint's full width, standing on its nearest corner.
@@ -134,9 +141,9 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
       drawGlyphCentered(I.r, left + fw / 2, ny - wall + fh / 2, def.glyph, readableOn(Color::rgb(structureRgb(I.c, st.type))),
                         g.tileH * 9 / 20 * std::min(def.width, def.height));
   }
-  if (st.owner >= 0) {  // the owner's frame around the footprint, on the ground
-    IsoPicture ring = I.c.tiles->diamond(I.r, g, def.width, def.height, true);
-    I.r.drawTexture(ring.tex, 0, 0, ring.w, ring.h, left, ny, ring.w, ring.h, Color::rgb(b.sides[(size_t)st.owner].color));
+  if (st.owner >= 0) {
+    IsoPicture ring = I.c.tiles->diamond(I.r, g, def.width, def.height, IsoTiles::FrontOutline);
+    I.r.drawTexture(ring.tex, 0, 0, ring.w, ring.h, left, ny, ring.w, ring.h, owner);
   }
   for (int dy = 0; dy < def.height; ++dy)
     for (int dx = 0; dx < def.width; ++dx) {

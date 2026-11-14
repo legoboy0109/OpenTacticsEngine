@@ -12,8 +12,13 @@ struct Face {
   float hw, hh;
   int w, h;
   bool has(int px, int py) const {
+    float gx, gy;
+    return at(px, py, gx, gy);
+  }
+  bool at(int px, int py, float& gx, float& gy) const {
     float u = (px + 0.5f - h * hw) / hw, v = (py + 0.5f) / hh;
-    float gx = (u + v) * 0.5f, gy = (v - u) * 0.5f;
+    gx = (u + v) * 0.5f;
+    gy = (v - u) * 0.5f;
     return gx >= 0 && gy >= 0 && gx < w && gy < h;
   }
 };
@@ -55,8 +60,8 @@ IsoPicture IsoTiles::block(Renderer& r, const IsoGeometry& g, int wCells, int hC
   return pic;
 }
 
-IsoPicture IsoTiles::diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, bool outline) {
-  std::vector<int> key{outline ? 2 : 1, g.tileW, g.tileH, wCells, hCells};
+IsoPicture IsoTiles::diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, Shape shape) {
+  std::vector<int> key{-(int)shape, g.tileW, g.tileH, wCells, hCells};
   auto it = cache_.find(key);
   if (it != cache_.end()) return it->second;
   Face f{g.tileW * 0.5f, g.tileH * 0.5f, wCells, hCells};
@@ -66,9 +71,12 @@ IsoPicture IsoTiles::diamond(Renderer& r, const IsoGeometry& g, int wCells, int 
   std::vector<uint8_t> px((size_t)pic.w * pic.h * 4, 0);
   for (int y = 0; y < pic.h; ++y)
     for (int x = 0; x < pic.w; ++x) {
-      if (!f.has(x, y)) continue;
+      float gx, gy;
+      if (!f.at(x, y, gx, gy)) continue;
       bool edge = !(f.has(x - 3, y) && f.has(x + 3, y) && f.has(x, y - 2) && f.has(x, y + 2));
-      if (!outline || edge) put(px, pic.w, x, y, 0xffffff, 1.0f);
+      // The edges nearest the viewer are those where x or y of the footprint is largest.
+      bool front = !(f.has(x, y + 2) && (x < wCells * g.tileW / 2 ? f.has(x - 3, y) : f.has(x + 3, y)));
+      if (shape == Fill || (shape == Outline && edge) || (shape == FrontOutline && front)) put(px, pic.w, x, y, 0xffffff, 1.0f);
     }
   pic.tex = r.createTexture(px.data(), pic.w, pic.h);
   cache_[key] = pic;

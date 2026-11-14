@@ -177,12 +177,27 @@ node run.mjs --only embed --build /path/to/web/output
 - Nothing is published/pushed anywhere without the owner's explicit yes.
   No license chosen yet (owner decision, needed before publishing).
 
+## In progress: kinds of view (2026-11-14)
+
+Owner decisions and the contract: docs/VIEWS.md (also docs/PLAN.md item
+3d). Build order: d1 2D isometric, d2 the 3D drawing layer (must be
+portable to the console ports), d3 3D isometric, d4 full 3D.
+
+d1 is built on branch `iso` (worktree `.claude/worktrees/iso`, own build
+folders): core `engine/core/view/iso.*` + `StyleDef::view`; player
+`battle/map_proj.*`, `iso_tiles.*`, `iso_draw.cpp`, `views.h`; isometric
+starter art `tools/art/art_iso.py`; webtest suite `views`. The editor side
+(kind of view per style, Heights tool in the map editor, templates with an
+Isometric style) is a separate package built on top of `iso`. When both are
+verified the branch is merged into `main` in one go and everything re-run.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
-terrain and c saving are done. Next is d, alternative visual styles: ASK
-the owner what it should cover before building. Then items, story events
-and dialogue, economy options, sound and music.
+terrain and c saving are done. d (kinds of view) is in progress, see above;
+after d1 lands, design d2 (the 3D drawing layer) before writing code:
+interface first, OpenGL ES 3 / WebGL 2 backend, glTF loading. Then items,
+story events and dialogue, economy options, sound and music.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
 night style does not darken unit sprites; editor paint stroke with art

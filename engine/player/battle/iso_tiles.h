@@ -22,8 +22,13 @@ class IsoTiles {
   // `sideH` pixels high below it. Size: (w+h)*tileW/2 by (w+h)*tileH/2 + sideH.
   IsoPicture block(Renderer& r, const IsoGeometry& g, int wCells, int hCells, int sideH, uint32_t rgb);
   // A white diamond over wCells x hCells squares (tint it with the draw colour):
-  // filled, or only a 2-pixel outline.
-  IsoPicture diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, bool outline);
+  // filled, only a 2-pixel outline, or only the two outline edges nearest the
+  // viewer (drawn over a structure, whose body hides the far edges).
+  enum Shape { Fill = 1, Outline = 2, FrontOutline = 3 };
+  IsoPicture diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, Shape shape);
+  IsoPicture diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, bool outline) {
+    return diamond(r, g, wCells, hCells, outline ? Outline : Fill);
+  }
   void release(Renderer& r);
 
  private:
