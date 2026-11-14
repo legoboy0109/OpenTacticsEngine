@@ -57,7 +57,8 @@ TEST(loader_demo_srpg_game) {
   CHECK_EQ(db.moveTypes.size(), size_t(3));
   CHECK_EQ(db.unitTypes.size(), size_t(7));
   CHECK_EQ(db.weapons.size(), size_t(4));
-  CHECK_EQ(db.terrains.size(), size_t(6));
+  CHECK_EQ(db.terrains.size(), size_t(5));  // the fort is a structure now
+  CHECK_EQ(db.structures.size(), size_t(1));
   CHECK_EQ(db.scripts.size(), size_t(1));
 
   const TerrainDef& forest = db.terrains[size_t(db.findTerrain("forest"))];
@@ -121,8 +122,8 @@ TEST(loader_demo_srpg_map) {
   CHECK_EQ(m.height, 9);
   CHECK_EQ(m.terrain.size(), size_t(13 * 9));
   CHECK_EQ(m.heights.size(), size_t(13 * 9));
-  CHECK_EQ(m.owner.size(), size_t(13 * 9));
-  CHECK_EQ(m.owner[0], -1);
+  CHECK_EQ(m.structures.size(), size_t(5));
+  for (const MapStructureDef& s : m.structures) CHECK_EQ(s.side, -1);  // neutral forts
   CHECK_EQ(m.terrain[size_t(4 * 13 + 6)], db.findTerrain("bridge"));
   CHECK_EQ(m.sides.size(), size_t(2));
   CHECK_STR(m.sides[0].team, "blue");  // team defaults to id
@@ -151,7 +152,12 @@ TEST(loader_demo_srpg_map) {
     CHECK_EQ(gorm->stats[size_t(db.findStat("hp"))], 26);   // override
     CHECK_EQ(gorm->stats[size_t(db.findStat("str"))], 8);   // override
     CHECK_EQ(gorm->stats[size_t(db.findStat("def"))], 6);   // type base
-    CHECK_EQ(m.terrain[size_t(gorm->y * m.width + gorm->x)], db.findTerrain("fort"));
+    // Gorm starts on a fort: ordinary plain ground with a fort standing on it.
+    CHECK_EQ(m.terrain[size_t(gorm->y * m.width + gorm->x)], db.findTerrain("plain"));
+    bool onFort = false;
+    for (const MapStructureDef& s : m.structures)
+      if (s.x == gorm->x && s.y == gorm->y && s.type == db.findStructure("fort")) onFort = true;
+    CHECK(onFort);
     CHECK(gorm->leader);
   }
 
@@ -177,16 +183,20 @@ TEST(loader_demo_economy_game) {
   CHECK_EQ(mtn.moveCost[size_t(db.findMoveType("foot"))], 2);
   CHECK(mtn.moveCost[size_t(db.findMoveType("tread"))] <= 0);
 
-  const TerrainDef& factory = db.terrains[size_t(db.findTerrain("factory"))];
+  CHECK_EQ(db.findTerrain("factory"), -1);  // buildings are structures
+  const StructureDef& factory = db.structures[size_t(db.findStructure("factory"))];
+  CHECK_EQ(factory.width, 1);
   CHECK_EQ(factory.capturePoints, 20);
   CHECK_EQ(factory.income.size(), size_t(1));
   CHECK_EQ(factory.income[size_t(0)].resource, db.findResource("funds"));
   CHECK_EQ(factory.income[size_t(0)].amount, 1000);
   CHECK_EQ(factory.produces.size(), size_t(5));
-  const TerrainDef& hq = db.terrains[size_t(db.findTerrain("hq"))];
+  const StructureDef& hq = db.structures[size_t(db.findStructure("hq"))];
   CHECK_EQ(hq.tags.size(), size_t(1));
   CHECK_STR(hq.tags[size_t(0)], "hq");
-  CHECK_EQ(db.terrains[size_t(db.findTerrain("sea"))].capturePoints, 0);
+  CHECK_EQ(hq.width, 2);
+  CHECK_EQ(hq.height, 2);
+  for (int mc : hq.moveCost) CHECK_EQ(mc, -1);  // sets no movement costs: the ground decides
 
   const WeaponDef& cannon = db.weapons[size_t(db.findWeapon("cannon"))];
   CHECK_EQ(cannon.minRange, 2);
@@ -226,25 +236,30 @@ TEST(loader_demo_economy_map) {
   CHECK_EQ(m.sides[0].resources[size_t(0)].amount, 3000);
   CHECK_EQ(m.units.size(), size_t(6));
 
-  // Mirror symmetry, and each side owns exactly one hq, factory and city.
+  // Mirror symmetry of the ground, and each side owns exactly one hq, factory and city.
+  for (int y = 0; y < m.height; ++y)
+    for (int x = 0; x < m.width; ++x)
+      CHECK_EQ(m.terrain[size_t(y * m.width + x)], m.terrain[size_t(y * m.width + (m.width - 1 - x))]);
   int hq[2] = {0, 0}, fac[2] = {0, 0}, city[2] = {0, 0}, neutral = 0;
-  for (int y = 0; y < m.height; ++y) {
-    for (int x = 0; x < m.width; ++x) {
-      int c = y * m.width + x, mirror = y * m.width + (m.width - 1 - x);
-      CHECK_EQ(m.terrain[size_t(c)], m.terrain[size_t(mirror)]);
-      CHECK_EQ(m.owner[size_t(c)] < 0, m.owner[size_t(mirror)] < 0);
-      const std::string& id = db.terrains[size_t(m.terrain[size_t(c)])].id;
-      int o = m.owner[size_t(c)];
-      if (o < 0) { if (id == "city") ++neutral; continue; }
-      if (id == "hq") ++hq[o];
-      if (id == "factory") ++fac[o];
-      if (id == "city") ++city[o];
-    }
+  for (const MapStructureDef& s : m.structures) {
+    const StructureDef& def = db.structures[size_t(s.type)];
+    // The mirrored footprint holds the same structure type, owned by the other side.
+    int mx = m.width - (s.x + def.width);
+    const MapStructureDef* twin = nullptr;
+    for (const MapStructureDef& o : m.structures)
+      if (o.type == s.type && o.x == mx && o.y == s.y) twin = &o;
+    CHECK(twin != nullptr);
+    if (twin) CHECK_EQ(twin->side < 0, s.side < 0);
+    if (s.side < 0) { if (def.id == "city") ++neutral; continue; }
+    if (def.id == "hq") ++hq[s.side];
+    if (def.id == "factory") ++fac[s.side];
+    if (def.id == "city") ++city[s.side];
   }
   for (int s = 0; s < 2; ++s) { CHECK_EQ(hq[s], 1); CHECK_EQ(fac[s], 1); CHECK_EQ(city[s], 1); }
   CHECK(neutral >= 4 && neutral <= 6);
-  CHECK_EQ(m.owner[size_t(4 * m.width + 1)], 0);
-  CHECK_EQ(m.owner[size_t(4 * m.width + 13)], 1);
+  // Blue's 2 x 2 headquarters starts at (0,4), red's at (13,4).
+  for (const MapStructureDef& s : m.structures)
+    if (s.type == db.findStructure("hq")) CHECK_EQ(s.x, s.side == 0 ? 0 : 13);
 }
 
 TEST(loader_fixture_base_is_valid) {

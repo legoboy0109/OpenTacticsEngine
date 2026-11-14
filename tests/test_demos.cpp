@@ -43,7 +43,8 @@ TEST(demo_srpg_starts_and_forecasts) {
   const Unit& b = d.battle.units[5];
   FormulaCtx ctx;
   ctx.a = &a; ctx.b = &b; ctx.w = &d.db.weapons[d.battle.typeOf(a).weapons[0]];
-  ctx.ta = &d.battle.terrainAt(a.cell); ctx.tb = &d.battle.terrainAt(b.cell);
+  Props scratchA, scratchB;
+  ctx.ta = &d.battle.numbersAt(a.cell, scratchA); ctx.tb = &d.battle.numbersAt(b.cell, scratchB);
   double dmg = d.formulas.evalDamage(d.battle.typeOf(a).weapons[0], ctx);
   CHECK_EQ((int)dmg, 11);
   double hit = d.formulas.eval(Formulas::Hit, ctx, -1);

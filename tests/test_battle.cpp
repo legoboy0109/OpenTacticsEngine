@@ -83,8 +83,8 @@ TEST(battle_ranged_no_counter_and_versus_block) {
 TEST(battle_turns_and_income) {
   World w({"c..c"}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 3, 0, false}});
   w.db.rules.economy = true;
-  w.map.owner[0] = 0;
-  w.map.owner[3] = 1;
+  w.own(0, 0, 0);
+  w.own(3, 0, 1);
   CHECK(w.begin());
   CHECK_EQ(w.battle.sides[0].resources[0], 100);  // income on turn start
   CHECK_EQ(w.battle.sides[1].resources[0], 0);
@@ -107,8 +107,8 @@ TEST(battle_capture_progress_reset_and_hq_defeat) {
   w.db.rules.capture = true;
   w.db.rules.defeatLostHq = true;
   w.db.rules.fCaptureAmount = "a.hp";  // 10 per action, hq has 20 points
-  w.map.owner[1] = 0;
-  w.map.owner[3] = 1;
+  w.own(1, 0, 0);
+  w.own(3, 0, 1);
   CHECK(w.begin());
   CHECK(!w.battle.canCaptureAt(0, w.at(1, 0)));  // own building
   CHECK(!w.battle.canCaptureAt(2, w.at(3, 0)));  // archers cannot capture
@@ -120,17 +120,17 @@ TEST(battle_capture_progress_reset_and_hq_defeat) {
   n.db.rules.defeatLostHq = true;
   n.db.rules.defeatNoUnits = false;
   n.db.rules.fCaptureAmount = "a.hp";
-  n.map.owner[0] = 1;  // red owns the HQ at x=0
+  n.own(0, 0, 1);  // red owns the HQ at x=0
   CHECK(n.begin());
   CHECK(n.act(Action::move(0, n.at(2, 0))));
   CHECK(n.act(Action::capture(0)));
-  CHECK_EQ(n.battle.cells[n.at(2, 0)].capture, 10);
-  CHECK_EQ(n.battle.cells[n.at(2, 0)].owner, -1);
+  CHECK_EQ(n.structureAt(2, 0).capture, 10);
+  CHECK_EQ(n.structureAt(2, 0).owner, -1);
   CHECK(n.act(Action::endTurn()));
   CHECK(n.act(Action::endTurn()));
   // Walking away resets progress.
   CHECK(n.act(Action::move(0, n.at(1, 0))));
-  CHECK_EQ(n.battle.cells[n.at(2, 0)].capture, 20);
+  CHECK_EQ(n.structureAt(2, 0).capture, 20);
   CHECK(n.act(Action::endTurn()));
   CHECK(n.act(Action::endTurn()));
   // Take the enemy HQ in two actions -> red is defeated.
@@ -140,8 +140,8 @@ TEST(battle_capture_progress_reset_and_hq_defeat) {
   CHECK(n.act(Action::endTurn()));
   CHECK(n.act(Action::endTurn()));
   CHECK(n.act(Action::capture(0)));
-  CHECK_EQ(n.battle.cells[n.at(0, 0)].owner, 0);
-  CHECK_EQ(n.count(EventType::CellCaptured), 1);
+  CHECK_EQ(n.structureAt(0, 0).owner, 0);
+  CHECK_EQ(n.count(EventType::StructureCaptured), 1);
   CHECK(n.battle.over);
   CHECK_EQ(n.battle.winnerTeam, n.battle.sides[0].team);
 }
@@ -149,7 +149,7 @@ TEST(battle_capture_progress_reset_and_hq_defeat) {
 TEST(battle_production) {
   World w({"F..F"}, {{"soldier", 1, 3, 0, false}});
   w.db.rules.production = true;
-  w.map.owner[0] = 0;
+  w.own(0, 0, 0);
   w.map.sides[0].resources = {{0, 150}};
   CHECK(w.begin());
   std::vector<int> opts;

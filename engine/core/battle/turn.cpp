@@ -27,9 +27,10 @@ void Battle::beginTurn(std::vector<Event>& events) {
 
   if (db->rules.economy) {
     std::vector<int> income(db->resources.size(), 0);
-    for (const CellState& cs : cells) {
-      if (cs.owner != activeSide) continue;
-      for (const Amount& a : db->terrains[cs.terrain].income) income[a.resource] += a.amount;
+    // Once per owned structure, however many squares it covers.
+    for (const StructureState& st : structures) {
+      if (st.owner != activeSide) continue;
+      for (const Amount& a : defOf(st).income) income[a.resource] += a.amount;
     }
     for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, income[r], events);
   }
@@ -51,6 +52,16 @@ void Battle::advanceTurn(std::vector<Event>& events) {
   }
 }
 
+// True while the side owns at least one structure tagged "hq".
+bool Battle::ownsHq(int side) const {
+  for (const StructureState& st : structures) {
+    if (st.owner != side) continue;
+    for (const std::string& tag : defOf(st).tags)
+      if (tag == "hq") return true;
+  }
+  return false;
+}
+
 void Battle::checkDefeat(std::vector<Event>& events) {
   if (over) return;
   const RulesConfig& rules = db->rules;
@@ -67,16 +78,7 @@ void Battle::checkDefeat(std::vector<Event>& events) {
         if (u.alive && u.side == s) { any = true; break; }
       if (!any) lost = true;
     }
-    if (!lost && rules.defeatLostHq && side.hadHq) {
-      bool any = false;
-      for (const CellState& cs : cells) {
-        if (cs.owner != s) continue;
-        for (const std::string& tag : db->terrains[cs.terrain].tags)
-          if (tag == "hq") any = true;
-        if (any) break;
-      }
-      if (!any) lost = true;
-    }
+    if (!lost && rules.defeatLostHq && side.hadHq && !ownsHq(s)) lost = true;
     if (!lost) continue;
 
     side.defeated = true;
@@ -87,8 +89,13 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     // A defeated side leaves the field entirely.
     for (Unit& u : units)
       if (u.alive && u.side == s) killUnit(u.id, events);
-    for (CellState& cs : cells)
-      if (cs.owner == s) cs.owner = -1;
+    // Its structures become neutral (and any capture in progress stops).
+    for (StructureState& st : structures)
+      if (st.owner == s) {
+        st.owner = -1;
+        st.capture = defOf(st).capturePoints;
+        st.capturer = -1;
+      }
   }
 
   int survivingTeam = -1;

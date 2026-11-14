@@ -16,9 +16,10 @@ bool Battle::canCaptureAt(int unit, Cell at) const {
   if (!db->rules.capture || unit < 0 || unit >= (int)units.size() || !grid.valid(at)) return false;
   const Unit& u = units[unit];
   if (!u.alive || !typeOf(u).canCapture) return false;
-  const CellState& cs = cells[at];
-  if (terrainAt(at).capturePoints <= 0) return false;
-  return cs.owner < 0 || sides[cs.owner].team != teamOf(u);
+  int si = structureAt[at];
+  if (si < 0 || defOf(structures[si]).capturePoints <= 0) return false;
+  int owner = structures[si].owner;
+  return owner < 0 || sides[owner].team != teamOf(u);
 }
 
 bool Battle::canAfford(int side, int unitType) const {
@@ -30,8 +31,11 @@ bool Battle::canAfford(int side, int unitType) const {
 void Battle::buildOptions(Cell cell, std::vector<int>& unitTypes) const {
   unitTypes.clear();
   if (over || !db->rules.production || !grid.valid(cell)) return;
-  if (cells[cell].owner != activeSide || occupant[cell] != -1) return;
-  unitTypes = terrainAt(cell).produces;
+  int si = structureAt[cell];
+  if (si < 0 || structures[si].owner != activeSide || occupant[cell] != -1) return;
+  // The new unit appears on this very square, so it must be able to enter it.
+  for (int t : defOf(structures[si]).produces)
+    if (enterCost(cell, db->unitTypes[t].moveType) > 0) unitTypes.push_back(t);
 }
 
 bool Battle::validate(const Action& action, std::string* why) const {
@@ -42,11 +46,14 @@ bool Battle::validate(const Action& action, std::string* why) const {
   if (action.type == ActionType::Build) {
     if (!db->rules.production) return fail(why, "this game has no unit production");
     if (!grid.valid(action.cell)) return fail(why, "invalid cell");
-    if (cells[action.cell].owner != activeSide) return fail(why, "you do not own this building");
-    if (occupant[action.cell] != -1) return fail(why, "the building is occupied");
-    const std::vector<int>& list = terrainAt(action.cell).produces;
+    int si = structureAt[action.cell];
+    if (si < 0 || structures[si].owner != activeSide) return fail(why, "you do not own a structure here");
+    if (occupant[action.cell] != -1) return fail(why, "that square is occupied");
+    const std::vector<int>& list = defOf(structures[si]).produces;
     if (std::find(list.begin(), list.end(), action.unitType) == list.end())
       return fail(why, "that unit cannot be built here");
+    if (action.unitType < 0 || enterCost(action.cell, db->unitTypes[action.unitType].moveType) <= 0)
+      return fail(why, "that unit could not enter this square");
     if (!canAfford(activeSide, action.unitType)) return fail(why, "not enough resources");
     return true;
   }
@@ -97,11 +104,15 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
   return true;
 }
 
-void Battle::releaseCapture(int unit) {
-  Cell c = units[unit].cell;
-  if (c == kNoCell || cells[c].capturer != unit) return;
-  cells[c].capturer = -1;
-  cells[c].capture = terrainAt(c).capturePoints;
+void Battle::releaseCapture(int unit, Cell newCell) {
+  for (size_t i = 0; i < structures.size(); ++i) {
+    StructureState& st = structures[i];
+    if (st.capturer != unit) continue;
+    // Moving between squares of the same structure keeps the progress.
+    if (newCell != kNoCell && structureAt[newCell] == (int)i) continue;
+    st.capturer = -1;
+    st.capture = defOf(st).capturePoints;
+  }
 }
 
 void Battle::applyMove(const Action& action, std::vector<Event>& events) {
@@ -116,7 +127,7 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   e.data.assign(path.begin(), path.end());
   events.push_back(e);
 
-  releaseCapture(action.unit);  // walking away abandons a capture
+  releaseCapture(action.unit, action.cell);  // walking off the structure abandons a capture
   occupant[u.cell] = -1;
   u.cell = action.cell;
   occupant[u.cell] = action.unit;
@@ -125,34 +136,39 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
 
 void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
   Unit& u = units[action.unit];
-  CellState& cs = cells[u.cell];
-  int points = terrainAt(u.cell).capturePoints;
+  int si = structureAt[u.cell];  // validated: a capturable structure
+  StructureState& st = structures[si];
+  int points = defOf(st).capturePoints;
 
   int amount = points;  // default: instant (Fire Emblem "seize")
   if (formulas->has(Formulas::CaptureAmount)) {
     FormulaCtx ctx;
     ctx.a = &u;
-    ctx.ta = &terrainAt(u.cell);
+    Props scratch;
+    ctx.ta = &numbersAt(u.cell, scratch);
     amount = (int)std::floor(formulas->eval(Formulas::CaptureAmount, ctx, points));
   }
   if (amount < 1) amount = 1;
 
-  cs.capturer = action.unit;
-  cs.capture -= amount;
+  // Progress belongs to the structure and to one unit: a different unit starts from full.
+  if (st.capturer != action.unit) st.capture = points;
+  st.capturer = action.unit;
+  st.capture -= amount;
   Event e;
-  if (cs.capture <= 0) {
-    e.type = EventType::CellCaptured;
-    e.a = u.cell;
+  if (st.capture <= 0) {
+    e.type = EventType::StructureCaptured;
+    e.a = si;
     e.b = u.side;
-    e.c = cs.owner;
-    cs.owner = u.side;
-    cs.capture = points;
-    cs.capturer = -1;
+    e.c = st.owner;
+    st.owner = u.side;
+    st.capture = points;
+    st.capturer = -1;
   } else {
     e.type = EventType::CaptureProgress;
     e.a = action.unit;
     e.b = u.cell;
-    e.c = cs.capture;
+    e.c = st.capture;
+    e.d = si;
   }
   events.push_back(e);
   u.done = true;

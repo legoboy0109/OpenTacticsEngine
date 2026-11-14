@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "core/base/types.h"
+
 struct lua_State;
 
 namespace ote {
@@ -15,15 +17,15 @@ namespace ote {
 struct Database;
 struct Unit;
 struct WeaponDef;
-struct TerrainDef;
 
 // Inputs a formula can see. Null pointers become nil / empty tables.
 struct FormulaCtx {
   const Unit* a = nullptr;
   const Unit* b = nullptr;
   const WeaponDef* w = nullptr;
-  const TerrainDef* ta = nullptr;
-  const TerrainDef* tb = nullptr;
+  // Numbers of the square under `a` / `b` (Battle::numbersAt: terrain merged with structure).
+  const Props* ta = nullptr;
+  const Props* tb = nullptr;
   int dist = 0;
   double vs = 1;
 };

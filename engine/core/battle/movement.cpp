@@ -35,7 +35,7 @@ void Battle::reachable(int unit, Reach& out) const {
     int count = grid.neighbors(c, nb);
     for (int i = 0; i < count; ++i) {
       Cell next = nb[i];
-      int step = terrainAt(next).moveCost[moveType];
+      int step = enterCost(next, moveType);
       if (step <= 0) continue;  // impassable
       int occ = occupant[next];
       if (occ != -1 && isEnemy(u, units[occ])) continue;  // enemies block

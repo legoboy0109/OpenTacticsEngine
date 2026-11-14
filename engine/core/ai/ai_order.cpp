@@ -132,7 +132,7 @@ Order bestOrder(Context& cx, const Unit& u) {
   for (Cell s : stops) {
     int travel = s == u.cell ? 0 : reach.cost[s];
 
-    if (b.canCaptureAt(u.id, s)) {
+    if (b.canCaptureAt(u.id, s) && cx.mayCapture(u, s)) {
       double sc = scoreCapture(b, u, s) - kCaptureCostWeight * travel;
       if (sc > best.score) {
         best = Order();

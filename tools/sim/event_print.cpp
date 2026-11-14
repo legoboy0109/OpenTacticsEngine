@@ -24,6 +24,13 @@ std::string cellName(const Battle& b, Cell c) {
   return fmt("(%d,%d)", b.grid.x(c), b.grid.y(c));
 }
 
+// "city at (3,2)": structure index -> type id and top-left square.
+std::string structureName(const Battle& b, int index) {
+  if (index < 0 || index >= (int)b.structures.size()) return "structure?";
+  const StructureState& s = b.structures[index];
+  return fmt("%s at (%d,%d)", b.db->structures[s.type].id.c_str(), s.x, s.y);
+}
+
 std::string unitName(const Battle& b, int id) {
   if (id < 0 || id >= (int)b.units.size()) return "?";
   const Unit& u = b.units[id];
@@ -55,9 +62,9 @@ std::string describeEvent(const Battle& b, const Event& e) {
     case EventType::LevelUp:
       return fmt("%s reaches level %d", unitName(b, e.a).c_str(), e.b);
     case EventType::CaptureProgress:
-      return fmt("%s captures %s: %d points left", unitName(b, e.a).c_str(), cellName(b, e.b).c_str(), e.c);
-    case EventType::CellCaptured:
-      return fmt("%s captured by %s (was %s)", cellName(b, e.a).c_str(), b.sides[e.b].name.c_str(),
+      return fmt("%s captures %s: %d points left", unitName(b, e.a).c_str(), structureName(b, e.d).c_str(), e.c);
+    case EventType::StructureCaptured:
+      return fmt("%s captured by %s (was %s)", structureName(b, e.a).c_str(), b.sides[e.b].name.c_str(),
                  e.c >= 0 ? b.sides[e.c].name.c_str() : "neutral");
     case EventType::ResourceChanged:
       return fmt("%s %s %+d -> %d", b.sides[e.a].name.c_str(), b.db->resources[e.b].id.c_str(), e.c, e.d);

@@ -26,7 +26,7 @@ void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals
     open.pop();
     Cell c = node.second;
     if (node.first != out[c]) continue;
-    int enter = b.terrainAt(c).moveCost[moveType];
+    int enter = b.enterCost(c, moveType);
     if (enter <= 0) {
       if (node.first != 0) continue;  // cannot pass through it
       enter = 1;
@@ -66,11 +66,12 @@ const std::vector<int>& Context::goalFieldFor(int moveType, Cell goal) {
 
 namespace {
 struct Pair {
-  int dist, unit;
-  Cell goal;
+  int dist, unit, target;  // target = structure index
+  Cell goal;               // the square of it to walk to
   bool operator<(const Pair& o) const {
     if (dist != o.dist) return dist < o.dist;
     if (unit != o.unit) return unit < o.unit;
+    if (target != o.target) return target < o.target;
     return goal < o.goal;
   }
 };
@@ -79,43 +80,61 @@ struct Pair {
 void assignCaptureGoals(Context& cx) {
   const Battle& b = cx.b;
   cx.assigned.assign(b.units.size(), kNoCell);
-  cx.captureGoals.clear();
+  cx.captureTargets.clear();
+  cx.claimant.assign(b.structures.size(), -1);
   if (!b.db->rules.capture) return;
 
-  // Friendly capturers standing on a capturable cell have claimed it.
+  // A friendly capturer standing on any square of a capturable structure has claimed it.
+  // If several stand on the same one, the unit already capturing it keeps the claim
+  // (else the lowest id); the others walk on to other targets.
+  for (const Unit& u : b.units) {
+    if (!u.alive || u.side != cx.side || !b.typeOf(u).canCapture || !b.canCaptureAt(u.id, u.cell)) continue;
+    int s = b.structureIndexAt(u.cell);
+    if (cx.claimant[s] < 0 || b.structures[s].capturer == u.id) cx.claimant[s] = u.id;
+  }
   std::vector<int> walkers;  // ready capturers without a claim
-  std::vector<char> claimed(b.grid.cellCount(), 0);
   for (const Unit& u : b.units) {
     if (!u.alive || u.side != cx.side || !b.typeOf(u).canCapture) continue;
-    if (b.canCaptureAt(u.id, u.cell)) {
-      claimed[u.cell] = 1;
-      cx.assigned[u.id] = u.cell;
-    } else if (!u.done) {
-      walkers.push_back(u.id);
-    }
+    if (b.canCaptureAt(u.id, u.cell) && cx.claimant[b.structureIndexAt(u.cell)] == u.id) cx.assigned[u.id] = u.cell;
+    else if (!u.done) walkers.push_back(u.id);
   }
   if (walkers.empty()) return;
+  std::vector<char> claimed(b.structures.size(), 0);
+  for (size_t s = 0; s < claimed.size(); ++s) claimed[s] = cx.claimant[s] >= 0;
 
-  for (Cell c = 0; c < b.grid.cellCount(); ++c)
-    if (!claimed[c] && b.canCaptureAt(walkers[0], c)) cx.captureGoals.push_back(c);
+  std::vector<Cell> footprint;
+  for (int s = 0; s < (int)b.structures.size(); ++s) {
+    if (claimed[s]) continue;
+    b.structureCells(s, footprint);
+    // Capturability depends on the structure and the team only, so any square will do for the test.
+    if (b.canCaptureAt(walkers[0], footprint[0])) cx.captureTargets.push_back(s);
+  }
 
   // Greedy matching, shortest trip first, so the nearest unit takes each
-  // city and two capturers never queue for the same one.
+  // structure and two capturers never queue for the same one. A unit aims
+  // for the nearest square of the structure that it can enter and that is free.
   std::vector<Pair> pairs;
   for (int w : walkers) {
     const Unit& u = b.units[w];
     int mt = b.typeOf(u).moveType;
-    for (Cell g : cx.captureGoals) {
-      int d = cx.goalFieldFor(mt, g)[u.cell];
-      if (d < kFar) pairs.push_back(Pair{d, w, g});
+    for (int s : cx.captureTargets) {
+      b.structureCells(s, footprint);
+      int bestD = kFar;
+      Cell bestG = kNoCell;
+      for (Cell g : footprint) {
+        if (b.enterCost(g, mt) <= 0 || (b.unitAt(g) != -1 && b.unitAt(g) != w)) continue;
+        int d = cx.goalFieldFor(mt, g)[u.cell];
+        if (d < bestD) { bestD = d; bestG = g; }
+      }
+      if (bestG != kNoCell) pairs.push_back(Pair{bestD, w, s, bestG});
     }
   }
   std::sort(pairs.begin(), pairs.end());
-  std::vector<char> goalTaken(b.grid.cellCount(), 0);
+  std::vector<char> targetTaken(b.structures.size(), 0);
   for (const Pair& p : pairs) {
-    if (cx.assigned[p.unit] != kNoCell || goalTaken[p.goal]) continue;
+    if (cx.assigned[p.unit] != kNoCell || targetTaken[p.target]) continue;
     cx.assigned[p.unit] = p.goal;
-    goalTaken[p.goal] = 1;
+    targetTaken[p.target] = 1;
   }
 }
 

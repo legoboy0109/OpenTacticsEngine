@@ -43,8 +43,9 @@ bool Battle::strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell
   ctx.a = &atk;
   ctx.b = &def;
   ctx.w = &db->weapons[weapon];
-  ctx.ta = &terrainAt(atkCell);
-  ctx.tb = &terrainAt(defCell);
+  Props scratchA, scratchB;  // outlive the formula calls below
+  ctx.ta = &numbersAt(atkCell, scratchA);
+  ctx.tb = &numbersAt(defCell, scratchB);
   ctx.dist = grid.distance(atkCell, defCell);
 
   out.can = true;
@@ -172,7 +173,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
 void Battle::killUnit(int unit, std::vector<Event>& events) {
   Unit& u = units[unit];
   if (!u.alive) return;
-  releaseCapture(unit);
+  releaseCapture(unit, kNoCell);  // a dead capturer abandons the capture
   Event e;
   e.type = EventType::UnitDied;
   e.a = unit;

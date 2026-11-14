@@ -27,10 +27,17 @@ struct Context {
   const Battle& b;
   int side;
   std::vector<std::vector<int>> enemyField;  // per move type; empty = not built yet
-  std::vector<Cell> captureGoals;            // capturable cells not claimed by a friendly capturer
-  std::vector<Cell> assigned;                // per unit id: capture goal to walk to, or kNoCell
+  std::vector<int> captureTargets;           // capturable structures not claimed by a friendly capturer
+  std::vector<int> claimant;                 // per structure: friendly unit allowed to capture it now, or -1
+  std::vector<Cell> assigned;                // per unit id: square of a capture target to walk to, or kNoCell
   std::map<std::pair<int, Cell>, std::vector<int>> goalFields;  // (moveType, goal) -> field
 
+  // One claim per structure: a second capturer standing on another square of the
+  // same structure would only reset the first one's progress.
+  bool mayCapture(const Unit& u, Cell at) const {
+    int s = b.structureIndexAt(at);
+    return s >= 0 && s < (int)claimant.size() && (claimant[(size_t)s] < 0 || claimant[(size_t)s] == u.id);
+  }
   const std::vector<int>& enemyFieldFor(int moveType);
   const std::vector<int>& goalFieldFor(int moveType, Cell goal);
 };
@@ -41,14 +48,16 @@ struct Context {
 // attracts). kFar where no path exists.
 void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals,
                    std::vector<int>& out);
-// Fills captureGoals and assigns each ready capturer a distinct goal.
+// Fills captureTargets and assigns each ready capturer a distinct structure:
+// the unit walks to the nearest of that structure's squares it can enter and
+// that is free.
 void assignCaptureGoals(Context& cx);
 
 // ---- ai_score.cpp ----
 double typeValue(const Database& db, int type);
 // Score of attacking `target` with `weapon` from `from`; <= 0 means "not worth it".
 double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from);
-// Score of starting/continuing a capture of the cell `at` with `u`.
+// Score of starting/continuing a capture of the structure on cell `at` with `u`.
 double scoreCapture(const Battle& b, const Unit& u, Cell at);
 double terrainDefense(const Battle& b, Cell c);
 

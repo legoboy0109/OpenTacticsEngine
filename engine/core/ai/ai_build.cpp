@@ -55,12 +55,9 @@ bool chooseBuild(const Battle& b, Cell& outCell, int& outType) {
     }
   }
   if (db.rules.capture) {
-    for (Cell c = 0; c < b.grid.cellCount(); ++c) {
-      const CellState& cs = b.cells[c];
-      if (b.terrainAt(c).capturePoints > 0 &&
-          (cs.owner < 0 || b.sides[cs.owner].team != b.sides[side].team))
+    for (const StructureState& st : b.structures)
+      if (b.defOf(st).capturePoints > 0 && (st.owner < 0 || b.sides[st.owner].team != b.sides[side].team))
         ++targets;
-    }
   }
   int wanted = std::min(kWantedCapturers, targets);
 
