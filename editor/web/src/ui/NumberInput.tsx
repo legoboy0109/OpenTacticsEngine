@@ -8,6 +8,8 @@ interface Props {
   max?: number
   /** Whole numbers only (default). */
   integer?: boolean
+  /** Only even numbers are accepted. */
+  even?: boolean
   /** An empty box means "no value" (reports undefined) instead of being refused. */
   allowEmpty?: boolean
   placeholder?: string
@@ -29,7 +31,7 @@ export function parseNumber(text: string, integer: boolean): number | undefined 
 
 /** A text box that only ever reports real numbers (never NaN). Half-typed
  *  input ("-", "1.") is allowed while typing and tidied on blur. */
-export function NumberInput({ value, onChange, min, max, integer = true, allowEmpty, placeholder, suffix, disabled, className, ...rest }: Props) {
+export function NumberInput({ value, onChange, min, max, integer = true, even, allowEmpty, placeholder, suffix, disabled, className, ...rest }: Props) {
   const f = useFieldProps()
   const [text, setText] = useState(fmt(value))
   const [problem, setProblem] = useState<string | null>(null)
@@ -51,6 +53,7 @@ export function NumberInput({ value, onChange, min, max, integer = true, allowEm
       setProblem(integer ? 'Whole numbers only.' : 'Enter a number.')
     } else if (min !== undefined && n < min) setProblem(`At least ${min}.`)
     else if (max !== undefined && n > max) setProblem(`At most ${max}.`)
+    else if (even && n % 2 !== 0) setProblem('Use an even number.')
     else { setProblem(null); emit(n) }
   }
 
