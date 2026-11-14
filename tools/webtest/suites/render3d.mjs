@@ -35,9 +35,19 @@ export async function run(env) {
   await soft.page.waitForTimeout(1200);
   const softFlat = await soft.shot('flat');
   C.check('--3d software uses the software backend', soft.logs.some((l) => /3D drawing: software/.test(l)));
-  const d3 = await diffShare(env.analysisPage, flat, softFlat);
+  // Like for like: WebGL draws at the display's size by default and the software backend at
+  // the game's, so the comparison asks WebGL for the game's size too.
+  const c3 = await env.newContext({ viewport: { width: 960, height: 540 } });
+  const small = await open(c3.page, env.out, 'h-test3d-game-size', env.url + '/index.html?args=--test-3d+--3d-res+game');
+  await small.page.waitForTimeout(1200);
+  const smallFlat = await small.shot('flat');
+  const d3 = await diffShare(env.analysisPage, smallFlat, softFlat);
   C.check('WebGL 2 and the software backend draw the same picture', d3 < 0.005, `${(d3 * 100).toFixed(2)}% of pixels differ`);
+  const d4 = await diffShare(env.analysisPage, flat, smallFlat);
+  C.check('WebGL 2 at the display\'s size is a finer picture than at the game\'s size', d4 > 0.01 && d4 < 0.2, `${(d4 * 100).toFixed(2)}% of pixels differ`);
+  C.noErrors(small, '3D test scene (WebGL 2, game size): no console errors');
   C.noErrors(soft, '3D test scene (software): no console errors');
+  await c3.close();
   await c2.close();
   await close();
 }
