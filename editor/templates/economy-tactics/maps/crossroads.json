@@ -1,24 +1,32 @@
 {
   "name": "Crossroads",
   "grid": { "type": "square", "width": 12, "height": 8 },
-  "legend": { ".": "plain", "r": "road", "f": "forest", "c": "city", "F": "factory", "H": "hq" },
+  "legend": { ".": "plain", "r": "road", "f": "forest" },
   "tiles": [
-    "..f..cc..f..",
+    "..f..rr..f..",
     "...rrrrrr...",
-    ".H.r....r.H.",
-    "..FrrrrrrF..",
-    ".c.rf..fr.c.",
+    "...r....r...",
+    "..rrrrrrrr..",
+    "...rf..fr...",
     "..r......r..",
-    ".f.f.cc.f.f.",
+    ".f.f....f.f.",
     "..f......f.."
   ],
   "sides": [
     { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human", "resources": { "funds": 3000 } },
     { "id": "red", "name": "Red Army", "color": "#cc0000", "controller": "ai", "resources": { "funds": 3000 } }
   ],
-  "owners": [
-    { "x": 1, "y": 2, "side": "blue" }, { "x": 2, "y": 3, "side": "blue" }, { "x": 1, "y": 4, "side": "blue" },
-    { "x": 10, "y": 2, "side": "red" }, { "x": 9, "y": 3, "side": "red" }, { "x": 10, "y": 4, "side": "red" }
+  "structures": [
+    { "type": "city", "x": 5, "y": 0 },
+    { "type": "city", "x": 6, "y": 0 },
+    { "type": "factory", "x": 2, "y": 3, "side": "blue" },
+    { "type": "factory", "x": 9, "y": 3, "side": "red" },
+    { "type": "city", "x": 1, "y": 4, "side": "blue" },
+    { "type": "city", "x": 10, "y": 4, "side": "red" },
+    { "type": "city", "x": 5, "y": 6 },
+    { "type": "city", "x": 6, "y": 6 },
+    { "type": "hq", "x": 0, "y": 2, "side": "blue" },
+    { "type": "hq", "x": 10, "y": 2, "side": "red" }
   ],
   "units": [
     { "type": "infantry", "side": "blue", "x": 2, "y": 2 },

@@ -11,13 +11,5 @@
     "props": { "defense": 4 } },
   { "id": "sea",      "name": "Sea",      "color": "#3b78c4", "glyph": "~",
     "moveCost": { "foot": 0, "tread": 0, "wheels": 0 },
-    "props": { "defense": 0 } },
-  { "id": "city",     "name": "City",     "color": "#b7b7b7", "glyph": "c",
-    "props": { "defense": 3 }, "capture": 20, "income": { "funds": 1000 } },
-  { "id": "factory",  "name": "Factory",  "color": "#9a9a9a", "glyph": "F",
-    "props": { "defense": 3 }, "capture": 20, "income": { "funds": 1000 },
-    "produces": ["infantry", "mech", "recon", "tank", "artillery"] },
-  { "id": "hq",       "name": "Headquarters", "color": "#d4af37", "glyph": "H",
-    "props": { "defense": 4 }, "capture": 20, "income": { "funds": 1000 },
-    "tags": ["hq"] }
+    "props": { "defense": 0 } }
 ] }

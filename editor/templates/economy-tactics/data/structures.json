@@ -1,0 +1,7 @@
+{
+  "structures": [
+    { "id": "city", "name": "City", "color": "#b7b7b7", "glyph": "c", "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 } },
+    { "id": "factory", "name": "Factory", "color": "#9a9a9a", "glyph": "F", "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 }, "produces": ["infantry", "tank", "artillery"] },
+    { "id": "hq", "name": "Headquarters", "color": "#d4af37", "glyph": "H", "width": 2, "height": 2, "props": { "defense": 4 }, "capturePoints": 20, "income": { "funds": 1000 }, "tags": ["hq"] }
+  ]
+}
