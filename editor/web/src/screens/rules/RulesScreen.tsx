@@ -7,6 +7,7 @@ import { BattleCard } from './BattleCard'
 import { FeaturesCard } from './FeaturesCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
+import { SavingCard } from './SavingCard'
 import { StatsCard } from './StatsCard'
 import { T } from './text'
 
@@ -32,6 +33,7 @@ function RulesForm() {
       <MoveTypesCard />
       <BattleCard />
       <FeaturesCard />
+      <SavingCard />
       <Card title={T.combat} help={T.combatHelp}>
         <div className="stack formulas">
           <FormulaEditor fkey="damage" />

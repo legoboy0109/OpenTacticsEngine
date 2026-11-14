@@ -36,15 +36,16 @@ export function dropArtOf(doc: ProjectDoc, kind: LookKind, id: string): ProjectD
 }
 
 const joinsWith = (g: Graphics, terrainId: string): boolean => {
-  const has = (l: Look | null | undefined) => !!l?.joinWith?.includes(terrainId)
+  const has = (l: Look | null | undefined) => !!(l?.joinWith?.includes(terrainId) || l?.joinExcept?.includes(terrainId))
   return Object.values(g.terrain ?? {}).some(has) || Object.values(g.styles ?? {}).some((s) => Object.values(s.terrain ?? {}).some(has))
 }
 
 function stripJoinWith(g: Graphics, terrainId: string): Graphics {
   const fix = (l: Look): Look => {
-    if (!l.joinWith?.includes(terrainId)) return l
-    const rest = l.joinWith.filter((x) => x !== terrainId)
-    return patchObj(l, { joinWith: rest.length ? rest : undefined })
+    if (!l.joinWith?.includes(terrainId) && !l.joinExcept?.includes(terrainId)) return l
+    const rest = l.joinWith?.filter((x) => x !== terrainId)
+    // An emptied joinExcept stays an empty list: dropping it would change "everything except" into "only itself".
+    return patchObj(l, { joinWith: rest?.length ? rest : undefined, joinExcept: l.joinExcept?.filter((x) => x !== terrainId) })
   }
   const fixMap = <T extends Look | null>(m: Record<string, T> | undefined): Record<string, T> | undefined =>
     m && Object.fromEntries(Object.entries(m).map(([k, v]) => [k, (v === null ? v : fix(v)) as T]))

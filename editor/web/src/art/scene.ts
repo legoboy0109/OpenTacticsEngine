@@ -2,7 +2,7 @@
 // decoded. Built from the document + the image library; rebuilt when either changes (cheap: a few lookups).
 import { findSheet, unitMarkerOn } from '../model/graphics'
 import { effectiveLook } from '../model/graphicsLooks'
-import { lookShape, type LookShape } from '../model/pickCell'
+import { lookCells, lookShape, type LookShape } from '../model/pickCell'
 import type { Game, Look, ProjectDoc, Sheet } from '../model/types'
 import type { LoadedImage } from '../store/art'
 
@@ -35,18 +35,24 @@ export function resolveLook(doc: ProjectDoc, src: ImageSource, look: Look | null
   return { look, shape: lookShape(look), cw: sheet.cellWidth, ch: sheet.cellHeight, img: im.img, iw: im.width, ih: im.height }
 }
 
+/** The terrains a joining look counts as "the same": itself and joinWith, or (joinExcept) everything but the listed ones. */
+function joinSet(doc: ProjectDoc, id: string, look: Look): Set<string> {
+  if (look.joinExcept) return new Set((doc.terrain ?? []).map((t) => t.id).filter((x) => x === id || !look.joinExcept!.includes(x)))
+  return new Set([id, ...(look.joinWith ?? [])])
+}
+
 /** Null when the game has no images at all: every canvas then keeps its plain placeholder look (and its fast path). */
 export function buildArtScene(doc: ProjectDoc, style: string | undefined, src: ImageSource): ArtScene | null {
   const g = doc.graphics
   if (!g || g.sheets.length === 0) return null
   const scene: ArtScene = { marker: unitMarkerOn(doc), terrain: new Map(), units: new Map(), structures: new Map(), joinSame: new Map(), tallRows: 0, animated: false }
-  const note = (r: Resolved) => { if (r.shape === 'animated') scene.animated = true }
+  const note = (r: Resolved) => { if (r.shape === 'animated' || (r.shape === 'join' && lookCells(r.look).length > 1)) scene.animated = true }
   for (const t of doc.terrain ?? []) {
     const r = resolveLook(doc, src, effectiveLook(g, 'terrain', t.id, style))
     if (!r) continue
     scene.terrain.set(t.id, r)
     note(r)
-    if (r.shape === 'join') scene.joinSame.set(t.id, new Set([t.id, ...(r.look.joinWith ?? [])]))
+    if (r.shape === 'join') scene.joinSame.set(t.id, joinSet(doc, t.id, r.look))
   }
   for (const u of doc.units ?? []) {
     const entry = effectiveLook(g, 'units', u.id, style)

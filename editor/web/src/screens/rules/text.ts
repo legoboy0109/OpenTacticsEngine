@@ -51,6 +51,13 @@ export const T = {
   maxLevel: 'Highest level',
   maxLevelHelp: 'Units stop levelling up here.',
 
+  saving: 'Saving',
+  savingHelp: 'Whether players can save a battle in this game.',
+  savingChoices: {
+    any: { label: 'Players can save anywhere', help: 'Players get the automatic Continue save and can also save to numbered slots.' },
+    continue: { label: 'Only the automatic Continue save', help: 'The game keeps one automatic save to continue from; players cannot save to slots.' },
+    off: { label: 'No saving', help: 'Nothing is saved; every battle starts fresh.' },
+  },
   combat: 'Combat maths',
   combatHelp: 'How damage and luck are worked out. Pick a ready-made recipe for each and fill in the blanks.',
   preset: 'Recipe',

@@ -503,3 +503,28 @@ resize crop warning, cascade deletes, the conversion flow on a project
 seeded in the old format, pictures for structures, the canvas matches the
 drawing rules (pixel checks), Play shows structures and capturing one works
 in the real player, phone layout. Screenshots continue the numbering.
+
+## Animated join, joinExcept and the Saving card (implementation notes)
+
+Catches the editor up with engine features documented in GRAPHICS.md and SAVES.md.
+
+- **Model.** `Look.join` is `CellRef | CellRef[]`; `Look.joinExcept?: string[]`; `Game.saving?: 'any' | 'continue' | 'off'`.
+  `model/pickCell.ts` ports the C++ `pickCell` (time picks the block with `frameMs`, default 400; the mask picks the piece) and
+  has `joinBlocks`/`lookCells`/`lookShape` for both join shapes. Nothing is rewritten unless the user presses "Use this picture",
+  so untouched looks round-trip byte for byte.
+- **Writing.** `lookFromPick`: one block stays `"join": [c, r]`; two to 16 blocks write `"join": [[c, r], ...]` plus `frameMs`
+  (always written for several blocks, like the Animation kind). "Everything except" writes `joinExcept` and never `joinWith`.
+- **Canvas.** `art/scene.ts` builds each joining terrain's "same terrain" set from `joinWith`, or, for `joinExcept`, every terrain
+  but the listed ones. A join with several blocks keeps the animation clock running (canvases and previews animate).
+- **Cleaning.** Deleting a terrain also removes its id from `joinExcept` lists. A list that becomes empty is kept as `[]`
+  (dropping it would turn "everything except" into "only itself").
+- **Picture dialog (Joins with neighbours).** Clicking a block adds it (up to 16, numbered on the image when more than one);
+  "Remove last" and "Clear" undo. Deviation: a second click no longer replaces the single block, press Clear first.
+  With several blocks the same Speed control as Animation appears. A "Joins with" choice switches between "Only itself, and
+  the terrain I choose" (the existing list) and "Everything except the terrain I choose" (the new list).
+  The engine's rule that `joinExcept` cannot list its own terrain is met because the list never offers the terrain itself.
+- **Convert** (`structuresConvert.ts`) still does not copy a joining set to a structure; it now also leaves out `joinExcept`.
+- **Saving card** (Rules screen, after Experience): three choices, "Players can save anywhere" (writes no key), "Only the
+  automatic Continue save" (`continue`), "No saving" (`off`). Unknown values read as "anywhere" until the user picks.
+  The helper passes `saving` through unchanged (checked by the e2e test against the real loader).
+- **Tests.** Unit: `pickCell.test.ts`, `joinAnimated.test.ts`. E2E: `art-join-animated.spec.ts` (both `@smoke`).
