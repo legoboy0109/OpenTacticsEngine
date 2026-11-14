@@ -34,7 +34,7 @@ export interface FontSpec extends Extra { name?: string; file?: string; size?: n
 /** Isometric sizes in pixels (docs/VIEWS.md); each missing key takes its default. */
 export interface IsoSizes extends Extra { tileWidth?: number; tileHeight?: number; heightStep?: number; unitWidth?: number }
 export interface Style extends Named {
-  /** Kind of view: missing = "top-down"; "isometric"; "isometric-3d"; "3d" is kept but no player draws it yet. */
+  /** Kind of view: missing = "top-down"; "isometric"; "isometric-3d"; "3d" (full 3D; does not use the isometric measures). */
   view?: string; isometric?: IsoSizes
   background?: string; showGlyphs?: boolean; terrainColors?: Record<string, string>
   /** Placeholder colour of structure blocks in this style (structure id -> colour). */

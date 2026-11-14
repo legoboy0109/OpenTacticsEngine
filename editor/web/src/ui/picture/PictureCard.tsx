@@ -6,7 +6,7 @@ import { sheetsOf } from '../../model/graphics'
 import { getLook, setLook, setSideLook, type Slot } from '../../model/graphicsLooks'
 import { gameSides, type GameSide } from '../../model/graphicsUsage'
 import { isModelEntry } from '../../model/models3d'
-import { inheritsGeneralArt, viewKind } from '../../model/styleView'
+import { inheritsGeneralArt, is3dKind, viewKind } from '../../model/styleView'
 import type { Look, LookKind, ProjectDoc } from '../../model/types'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -37,8 +37,8 @@ export function PictureCard({ kind, id, name }: Props) {
   const choice = useMemo<LookChoice>(() => ({ id: style || undefined, view: styleView(doc.game, style || undefined) }), [doc.game, style])
   const otherView = !inheritsGeneralArt(doc.game, style || undefined) // a style of another kind of view starts with no pictures
   const key = `picture:${kind}:${id}`
-  // A 3D isometric style can show a thing as a 3D model instead of a picture (units and structures only).
-  const can3d = kind !== 'terrain' && !!style && viewKind(styles.find((s) => s.id === style)) === 'isometric-3d'
+  // A 3D isometric or full 3D style can show a thing as a 3D model instead of a picture (units and structures only).
+  const can3d = kind !== 'terrain' && !!style && is3dKind(viewKind(styles.find((s) => s.id === style)))
   const [modelPicked, setModelPicked] = useState<string | null>(null) // "Shown as 3D model" chosen, no file yet
   const modelMode = can3d && (isModelEntry(entry) || modelPicked === `${id}:${style}`)
 
