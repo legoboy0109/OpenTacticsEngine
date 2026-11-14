@@ -43,6 +43,7 @@ LookLayer argsLayer(const Args& a) {
   l.smooth = a.fontSmooth;
   l.uiScale = a.uiScale;
   l.style = a.style;
+  l.draw3d = a.draw3d == "hardware" ? "opengl" : a.draw3d == "software" ? "software" : "";
   return l;
 }
 }  // namespace
@@ -51,6 +52,13 @@ void PlayerApp::applyLook(const std::string& gameId, const GameLook& game, int w
   LookLayer perGame = gameId.empty() ? LookLayer() : overrideLayer(settings_, gameId);
   look_ = resolveLook(args_.assetsDir, argsLayer(args_), perGame, globalLayer(settings_), game);
   renderer_->setLogicalSize(w, h);
+  // Another 3D drawer was chosen: the next user of the 3D layer gets a new
+  // one. Nothing holds 3D things here (looks are applied between scenes and
+  // on the options screen, which have none).
+  if (r3d_ && look_.draw3d != made3d_) {
+    show3d_.release(*renderer_);
+    r3d_.reset();
+  }
   FontRequest req = look_.font;
   if (fontApplied_ && req.file == appliedFont_.file && req.size == appliedFont_.size &&
       req.smooth == appliedFont_.smooth)

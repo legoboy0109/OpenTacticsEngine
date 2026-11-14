@@ -19,6 +19,10 @@ Button keyButton(SDL_Scancode sc) {
     case SDL_SCANCODE_M: return Button::Menu;
     case SDL_SCANCODE_COMMA: case SDL_SCANCODE_LEFTBRACKET: return Button::TurnLeft;
     case SDL_SCANCODE_PERIOD: case SDL_SCANCODE_RIGHTBRACKET: return Button::TurnRight;
+    case SDL_SCANCODE_PAGEUP: case SDL_SCANCODE_R: return Button::TiltUp;
+    case SDL_SCANCODE_PAGEDOWN: case SDL_SCANCODE_F: return Button::TiltDown;
+    case SDL_SCANCODE_EQUALS: case SDL_SCANCODE_KP_PLUS: return Button::ZoomIn;
+    case SDL_SCANCODE_MINUS: case SDL_SCANCODE_KP_MINUS: return Button::ZoomOut;
     default: return Button::None;
   }
 }
@@ -88,6 +92,8 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
     case SDL_CONTROLLERDEVICEREMOVED:  // `which` is an instance id here
       if (SDL_GameController* pad = SDL_GameControllerFromInstanceID(e.cdevice.which)) SDL_GameControllerClose(pad);
       stick_.reset();
+      camStick_.reset();
+      triggers_.reset();
       OTE_INFO("gamepad disconnected");
       break;
     case SDL_CONTROLLERBUTTONDOWN:
@@ -100,11 +106,30 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
     case SDL_CONTROLLERAXISMOTION:
       if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) stick_.update(0, e.caxis.value, out);
       else if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) stick_.update(1, e.caxis.value, out);
+      else if (e.caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) camStick_.update(0, e.caxis.value, out);
+      else if (e.caxis.axis == SDL_CONTROLLER_AXIS_RIGHTY) camStick_.update(1, e.caxis.value, out);
+      else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) triggers_.update(0, e.caxis.value, out);
+      else if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) triggers_.update(1, e.caxis.value, out);
+      break;
+    case SDL_MOUSEWHEEL:  // one press per notch: away from the player zooms in
+      if (e.wheel.y != 0) {
+        Button b = e.wheel.y > 0 ? Button::ZoomIn : Button::ZoomOut;
+        out.push_back(buttonEvent(InputEvent::ButtonDown, b));
+        out.push_back(buttonEvent(InputEvent::ButtonUp, b));
+      }
       break;
     // Touch is delivered as synthesized mouse events (SDL2 default
     // SDL_HINT_TOUCH_MOUSE_EVENTS=1), same as in the SDL3 backend.
     case SDL_MOUSEMOTION: {
       InputEvent ev;
+      if (dragging_ && (e.motion.state & SDL_BUTTON_RMASK)) {
+        if (e.motion.xrel == 0 && e.motion.yrel == 0) break;
+        ev.type = InputEvent::CameraDrag;  // how far, in logical pixels
+        ev.x = e.motion.xrel;
+        ev.y = e.motion.yrel;
+        out.push_back(ev);
+        break;
+      }
       ev.type = InputEvent::PointerMove;
       ev.x = e.motion.x;
       ev.y = e.motion.y;
@@ -113,6 +138,7 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
     }
     case SDL_MOUSEBUTTONDOWN:
     case SDL_MOUSEBUTTONUP: {
+      if (e.button.button == SDL_BUTTON_RIGHT) dragging_ = e.type == SDL_MOUSEBUTTONDOWN;
       if (e.button.button != SDL_BUTTON_LEFT) break;
       InputEvent ev;
       ev.type = e.type == SDL_MOUSEBUTTONDOWN ? InputEvent::PointerDown : InputEvent::PointerUp;

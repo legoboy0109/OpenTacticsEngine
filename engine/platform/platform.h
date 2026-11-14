@@ -25,11 +25,17 @@ struct Color {
 
 // Logical buttons. Backends map keyboard, gamepad and touch onto these, so
 // game code never sees device-specific keys.
-// TurnLeft / TurnRight turn the camera in views that can turn (docs/VIEWS.md).
-enum class Button { None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight };
+// TurnLeft / TurnRight turn the camera in views that can turn; TiltUp /
+// TiltDown and ZoomIn / ZoomOut move the free camera of the full 3D view
+// (docs/VIEWS.md).
+enum class Button {
+  None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight, TiltUp, TiltDown, ZoomIn, ZoomOut
+};
 
 struct InputEvent {
-  enum Type { ButtonDown, ButtonUp, PointerMove, PointerDown, PointerUp, Quit };
+  // CameraDrag: the pointer's second button (right mouse button) is held and
+  // the pointer moved; x, y are how far, not where.
+  enum Type { ButtonDown, ButtonUp, PointerMove, PointerDown, PointerUp, Quit, CameraDrag };
   Type type = ButtonDown;
   Button button = Button::None;
   int x = 0, y = 0;  // pointer position in LOGICAL pixels

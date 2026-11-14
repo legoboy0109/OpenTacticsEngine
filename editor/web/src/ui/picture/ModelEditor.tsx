@@ -1,4 +1,4 @@
-// The "3D model" part of the Picture card (3D isometric styles only): choose or upload a model file and set how it is
+// The "3D model" part of the Picture card (3D isometric and full 3D styles only): choose or upload a model file and set how it is
 // used. Edits go through model/models3d.ts; the file's own facts (animation and material names) are read in the browser.
 import { useRef, useState, useSyncExternalStore } from 'react'
 import type { Slot } from '../../model/graphicsLooks'

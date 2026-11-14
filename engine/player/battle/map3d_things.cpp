@@ -56,9 +56,9 @@ int unitBodyPx(const DrawCtx& c, const Unit& u, const UnitView& v) {
 // north). Refilled every frame: animated and joining terrain change pieces.
 void Map3D::drawTops(const DrawCtx& c) {
   const Battle& b = c.battle;
-  const Iso3DGeometry& g = c.proj->geo3();
-  for (int y = 0; y < g.gridH; ++y)
-    for (int x = 0; x < g.gridW; ++x) {
+  const MapProj& g = *c.proj;
+  for (int y = 0; y < g.gridH(); ++y)
+    for (int x = 0; x < g.gridW(); ++x) {
       Cell cell = b.grid.at(x, y);
       const Look* art = terrainArt(c, b.cells[cell].terrain);
       if (!art) continue;
@@ -67,16 +67,16 @@ void Map3D::drawTops(const DrawCtx& c) {
       float uv[4];
       if (!picture(c, *art, src.x, src.y, src.w, src.h, m, uv)) continue;
       // A hair above the block so the picture, not the block, wins where both are.
-      groundQuad(batch_.mesh(m), c, x, y, 1, 1, c.proj->elevation(x, y) * g.stepY + 0.001f, 0, Tint3D(), uv);
+      groundQuad(batch_.mesh(m), c, x, y, 1, 1, c.proj->elevation(x, y) * g.stepY() + 0.001f, 0, Tint3D(), uv);
     }
 }
 
 void Map3D::drawStructures(const DrawCtx& c) {
   const Battle& b = c.battle;
-  const Iso3DGeometry& g = c.proj->geo3();
+  const MapProj& g = *c.proj;
   for (const StructureState& st : b.structures) {
     const StructureDef& def = b.defOf(st);
-    float Y = structureElev(c, st, def) * g.stepY;
+    float Y = structureElev(c, st, def) * g.stepY();
     if (st.owner >= 0)
       frame(batch_.mesh(flat()), c, st.x, st.y, def.width, def.height, Y + 0.012f, 0.07f,
             tintOf(Color::rgb(b.sides[(size_t)st.owner].color)));
@@ -92,7 +92,7 @@ void Map3D::drawStructures(const DrawCtx& c) {
     if (art) src = lookSrc(c, *art);
     if (art && picture(c, *art, src.x, src.y, src.w, src.h, m, uv)) {
       // A standing picture in the middle of the footprint, a little wider than a square's edge per square.
-      float wPx = (def.width + def.height) * 0.5f * g.pixels * 1.15f;
+      float wPx = (def.width + def.height) * 0.5f * g.artPixels() * 1.15f;
       Spot feet = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
       feet.Y = Y;
       upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(), uv);
@@ -108,19 +108,19 @@ void Map3D::drawStructures(const DrawCtx& c) {
 
 void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
   const Battle& b = c.battle;
-  const Iso3DGeometry& g = c.proj->geo3();
+  const MapProj& g = *c.proj;
   // Top of what covers a square: its block, or the placeholder box of a structure on it.
   auto topOf = [&](Cell cell, int x, int y) {
     int si = b.structureAt[cell];
     const ModelAsset* asset = nullptr;
     if (si >= 0 && !structureArt(c, b.structures[(size_t)si]) && !structureModel(c, b.structures[(size_t)si], asset))
-      return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY + kWall;
-    return c.proj->elevation(x, y) * g.stepY;
+      return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY() + kWall;
+    return c.proj->elevation(x, y) * g.stepY();
   };
   if (ov.any()) {
     MeshData& m = batch_.mesh(flat(Blend3D::Blend));
-    for (int y = 0; y < g.gridH; ++y)
-      for (int x = 0; x < g.gridW; ++x) {
+    for (int y = 0; y < g.gridH(); ++y)
+      for (int x = 0; x < g.gridW(); ++x) {
         Cell cell = b.grid.at(x, y);
         if (ov.reach[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(50, 110, 255, 120));
         else if (ov.attack[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(255, 50, 50, 120));
@@ -207,32 +207,35 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
 void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
   const Battle& b = c.battle;
   const MapProj& p = *c.proj;
-  const Iso3DGeometry& g = p.geo3();
+  const MapProj& g = p;
   const Layout& L = c.layout;
   const StyleDef* style = c.style;
   bool letters = !(style && style->showGlyphs == 0);
-  auto screen = [&](float gx, float gy, float Y, int& sx, int& sy) {
-    float wx, wy;
-    g.projectPoint(gx - g.gridW * 0.5f, Y, gy - g.gridH * 0.5f, wx, wy);
+  // Where a point is on screen; false = not in the picture. `k`: how large
+  // things are drawn there compared with their art size (1 without perspective).
+  auto screen = [&](float gx, float gy, float Y, int& sx, int& sy, float& k) {
+    float X = gx - g.gridW() * 0.5f, Z = gy - g.gridH() * 0.5f, wx, wy;
+    if (!g.project3(X, Y, Z, wx, wy)) return false;
+    k = g.pixelsAt(X, Y, Z) / g.artPixels();
     sx = (int)std::lround(wx) - c.cam.ix();
     sy = (int)std::lround(wy) - c.cam.iy();
+    return !(sx < -40 || sy < -40 || sx > L.vw + 40 || sy > L.vh + 40);
   };
-  auto off = [&](int sx, int sy) { return sx < -40 || sy < -40 || sx > L.vw + 40 || sy > L.vh + 40; };
-  int glyphPx = std::max(4, (int)(g.pixels * g.sinPitch * 0.64f));
+  auto glyphPx = [&](float k) { return std::max(4, (int)(g.artPixels() * k * g.flatSquash() * 0.64f)); };
+  float k = 1;
 
   if (letters) {
-    for (int y = 0; y < g.gridH; ++y)
-      for (int x = 0; x < g.gridW; ++x) {
+    for (int y = 0; y < g.gridH(); ++y)
+      for (int x = 0; x < g.gridW(); ++x) {
         Cell cell = b.grid.at(x, y);
         if (hidden_[(size_t)cell] || b.structureAt[cell] >= 0) continue;
         const TerrainDef& td = b.terrainAt(cell);
         const Look* art = terrainArt(c, b.cells[cell].terrain);
         if (td.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet))) continue;
         int sx, sy;
-        screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY, sx, sy);
-        if (off(sx, sy)) continue;
+        if (!screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY(), sx, sy, k)) continue;
         Color col = Color::rgb(terrainRgb(c, b.cells[cell].terrain));
-        drawGlyphCentered(r, sx, sy, td.glyph, mix(col, readableOn(col), 0.28f), glyphPx);
+        drawGlyphCentered(r, sx, sy, td.glyph, mix(col, readableOn(col), 0.28f), glyphPx(k));
       }
     for (const StructureState& st : b.structures) {
       const StructureDef& def = b.defOf(st);
@@ -240,29 +243,29 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
       const ModelAsset* asset = nullptr;
       if (def.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet)) || structureModel(c, st, asset)) continue;
       int sx, sy;
-      screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY + kWall, sx, sy);
-      if (off(sx, sy)) continue;
+      if (!screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY() + kWall, sx, sy, k)) continue;
       drawGlyphCentered(r, sx, sy, def.glyph, readableOn(Color::rgb(structureRgb(c, st.type))),
-                        glyphPx * std::min(def.width, def.height));
+                        glyphPx(k) * std::min(def.width, def.height));
     }
   }
 
-  int uw = p.unitW();
+  // An upright thing's height on screen, from its height in art pixels.
+  float shown = g.uprightShown();
   for (const Unit& u : b.units) {
     if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
     const UnitView& v = c.view.units[u.id];
     float gx, gy;
     unitSpot(c, v, gx, gy);
     int sx, sy;
-    screen(gx, gy, p.elevationAt(gx, gy) * g.stepY, sx, sy);
-    if (off(sx, sy)) continue;
+    if (!screen(gx, gy, p.elevationAt(gx, gy) * g.stepY(), sx, sy, k)) continue;
+    int uw = std::max(2, (int)std::lround(p.unitW() * k));
     float al = v.alpha;
     auto a = [&](Color col) { return withAlpha(col, (int)(col.a * al)); };
-    int body = unitBodyPx(c, u, v);
+    int body = std::max(1, (int)std::lround(unitBodyPx(c, u, v) * k * shown));
     const Look* art = unitArt(c, u);
     const ModelAsset* asset = nullptr;
     const ModelLook* model = unitModel(c, u, asset);
-    if (model) body = (int)((model->height > 0 ? model->height : kUnitModelHeight) * v.scale * g.pixels * g.cosPitch());
+    if (model) body = (int)((model->height > 0 ? model->height : kUnitModelHeight) * v.scale * g.artPixels() * k * g.uprightSquash() * shown);
     if (!model && !(art && sheets_.texture(r3d_, art->sheet))) {
       Color side = Color::rgb(b.sides[(size_t)u.side].color);
       if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
@@ -285,7 +288,8 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     const Unit& u = b.units[st.capturer];
     if (!u.alive || u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
     int x = b.grid.x(u.cell), y = b.grid.y(u.cell), sx, sy;
-    screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY, sx, sy);
+    if (!screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY(), sx, sy, k)) continue;
+    int uw = std::max(2, (int)std::lround(p.unitW() * k));
     std::string n = intStr(st.capture);
     int w = textW(r, n), tx = sx + uw / 2 - w / 2, ty = sy - uw - L.lh;
     r.fillRect(tx - 1, ty - 1, w + 2, L.lh + 2, Color(0, 0, 0, 190));

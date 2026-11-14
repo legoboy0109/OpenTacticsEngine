@@ -87,6 +87,7 @@ class PlayerApp : public App, public SceneHost {
   std::unique_ptr<GameSession> session_;
   IsoTiles isoTiles_;  // released with sprites_
   Sprites sprites_;  // textures of session_'s art sheets; released whenever session_ goes
+  std::string made3d_;  // the "3D graphics" choice r3d_ was made for
   std::unique_ptr<Renderer3D> r3d_;  // before scene_: scenes free their 3D things when they end
   Show3D show3d_;                    // released with sprites_
   std::unique_ptr<Scene> scene_;

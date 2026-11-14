@@ -20,12 +20,14 @@ PlayerApp::PlayerApp(const Args& args) : args_(args) {}
 PlayerApp::~PlayerApp() { flushSettings(); }
 
 // The software backend works on every platform; the platform's hardware
-// backend takes its place where there is one (docs/RENDER3D.md). Windowless
-// runs keep the software one unless asked: their pictures must not depend on
-// the machine's graphics driver.
+// backend takes its place where there is one (docs/RENDER3D.md). The choice
+// is the "3D graphics" option (or --3d); left to the player, windowless runs
+// keep the software one: their pictures must not depend on the machine's
+// graphics driver.
 Renderer3D& PlayerApp::renderer3d() {
   if (r3d_) return *r3d_;
-  bool hardware = args_.draw3d == "hardware" || (args_.draw3d == "auto" && !args_.headless);
+  made3d_ = look_.draw3d;
+  bool hardware = made3d_ == "opengl" || (made3d_.empty() && !args_.headless);
   if (hardware) {
     std::string why;
     r3d_ = createHardwareRenderer3D(why);

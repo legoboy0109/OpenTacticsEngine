@@ -11,6 +11,7 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   gridH_ = b.grid.height();
   iso_ = style && style->view == StyleView::Isometric;
   iso3d_ = style && style->view == StyleView::Isometric3D;
+  free3d_ = style && style->view == StyleView::Full3D;
   unitW_ = tile;
   elev_.assign((size_t)(gridW_ * gridH_), 0);
   if (!raised()) return;
@@ -24,6 +25,16 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   }
   const int kMaxLevels = 32;
   for (size_t i = 0; i < elev_.size(); ++i) elev_[i] = std::min(b.cells[i].height - lo, kMaxLevels);
+  if (free3d_) {  // no measures to read: sizes are in squares, the camera decides the pixels
+    int vw = free_.viewW, vh = free_.viewH;
+    free_ = Free3DGeometry();
+    free_.viewW = vw;
+    free_.viewH = vh;
+    free_.gridW = gridW_;
+    free_.gridH = gridH_;
+    free_.levels = std::min(hi - lo, kMaxLevels);
+    return;
+  }
   const IsoConfig& ic = style->iso;
   geo_ = IsoGeometry();
   geo_.tileW = ic.tileWidth > 0 ? ic.tileWidth : tile * 2;
@@ -64,11 +75,16 @@ void MapProj::toWorld(float fx, float fy, float& wx, float& wy) const {
     return;
   }
   float gx = fx / tile_, gy = fy / tile_;
-  if (iso3d_) geo3_.project(gx, gy, elevationAt(gx, gy), wx, wy);
+  if (free3d_) free_.project(gx, gy, elevationAt(gx, gy), wx, wy);
+  else if (iso3d_) geo3_.project(gx, gy, elevationAt(gx, gy), wx, wy);
   else geo_.project(gx, gy, elevationAt(gx, gy), wx, wy);
 }
 
 Cell MapProj::pick(int wx, int wy) const {
+  if (free3d_) {
+    int c = free_.pick(wx + 0.5f, wy + 0.5f, elev_);
+    return c < 0 ? kNoCell : (Cell)c;
+  }
   if (iso3d_) {
     int c = geo3_.pick(wx + 0.5f, wy + 0.5f, elev_);
     return c < 0 ? kNoCell : (Cell)c;
@@ -82,11 +98,11 @@ Cell MapProj::pick(int wx, int wy) const {
 }
 
 void MapProj::cellBox(int x, int y, int& bx, int& by, int& bw, int& bh) const {
-  if (iso3d_) {  // the box around the top face's four corners
+  if (view3d()) {  // the box around the top face's four corners
     float lo[2] = {1e9f, 1e9f}, hi[2] = {-1e9f, -1e9f};
     for (int i = 0; i < 4; ++i) {
       float wx, wy;
-      geo3_.project((float)(x + (i & 1)), (float)(y + (i >> 1)), (float)elevation(x, y), wx, wy);
+      project3(x + (i & 1) - gridW_ * 0.5f, elevation(x, y) * stepY(), y + (i >> 1) - gridH_ * 0.5f, wx, wy);
       lo[0] = std::min(lo[0], wx);
       lo[1] = std::min(lo[1], wy);
       hi[0] = std::max(hi[0], wx);

@@ -27,6 +27,21 @@ bool BattleScene::submit(const Action& a) {
 // or another side is acting: it changes nothing but the picture.
 bool BattleScene::turnInput(const InputEvent& e) {
   if (!map3d_ || mode_ == Mode::SlotList) return false;
+  if (proj_.free3d()) {
+    static const Button kButtons[6] = {Button::TurnLeft, Button::TurnRight, Button::TiltUp, Button::TiltDown, Button::ZoomIn, Button::ZoomOut};
+    if (e.type == InputEvent::PointerUp) freeCam_.releaseAll();  // and the tap goes on to whoever else wants it
+    if (e.type == InputEvent::PointerDown || e.type == InputEvent::PointerMove) {
+      for (int i = 0; i < cameraButtons(); ++i) {
+        int x, y, w, h;
+        turnButtonBox(i, x, y, w, h);
+        if (e.x < x || e.y < y || e.x >= x + w || e.y >= y + h) continue;
+        if (e.type == InputEvent::PointerDown) freeCam_.press(kButtons[i]);
+        return true;  // over a button the pointer belongs to the button, not to the square behind it
+      }
+      return false;
+    }
+    return freeCam_.input(e);
+  }
   int dir = 0;
   if (e.type == InputEvent::ButtonDown && e.button == Button::TurnLeft) dir = -1;
   else if (e.type == InputEvent::ButtonDown && e.button == Button::TurnRight) dir = 1;
@@ -107,7 +122,7 @@ void BattleScene::handlePointerDown(int x, int y) {
 void BattleScene::moveCursor(int dx, int dy) {
   const Grid& g = battle_.grid;
   // In a turned view the arrows keep their directions on screen (up = up-right, as in the 2D isometric view).
-  for (int i = ((turn_ % 4) + 4) % 4; i > 0; --i) {
+  for (int i = quarterTurns(); i > 0; --i) {
     int t = dx;
     dx = dy;
     dy = -t;

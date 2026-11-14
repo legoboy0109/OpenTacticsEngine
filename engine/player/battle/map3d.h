@@ -1,8 +1,9 @@
-// The battle map in the "isometric-3d" kind of view (docs/VIEWS.md "3D
-// isometric"): real blocks drawn through the 3D drawing layer by a camera
-// without perspective, then letters, bars and numbers on top with the 2D
-// renderer. Where things are comes from MapProj / Iso3DGeometry, so pointer
-// picking, the scrolling camera and this drawer always agree.
+// The battle map in the 3D kinds of view (docs/VIEWS.md "3D isometric" and
+// "Full 3D"): real blocks drawn through the 3D drawing layer, by a turning
+// camera without perspective or by a free one with it, then letters, bars and
+// numbers on top with the 2D renderer. Where things are comes from MapProj
+// (Iso3DGeometry / Free3DGeometry), so pointer picking, the camera and this
+// drawer always agree.
 #pragma once
 #include <string>
 #include <vector>
@@ -62,7 +63,7 @@ class Map3D {
   MeshId ground_ = 0;
   bool built_ = false;
   std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle
-  float hiddenYaw_ = -1000;
+  float hiddenKey_[7] = {-1000, 0, 0, 0, 0, 0, 0};  // the camera hidden_ was worked out for
   // Per frame: the camera's sideways and towards-the-camera directions on the ground, and pixel measures.
   float rx_ = 1, rz_ = 0, cx_ = 0, cz_ = 1, pixels_ = 34, cosP_ = 0.866f;
 };

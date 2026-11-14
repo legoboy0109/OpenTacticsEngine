@@ -3,15 +3,16 @@
 import { patchObj } from './util'
 import type { Game, IsoSizes, Style } from './types'
 
-/** 'future' = "3d" (full 3D): allowed in a game file, drawn by no player yet, so the editor keeps it untouched. */
-export type ViewKind = 'top-down' | 'isometric' | 'isometric-3d' | 'future'
+/** '3d' = full 3D (file value "3d"). */
+export type ViewKind = 'top-down' | 'isometric' | 'isometric-3d' | '3d'
 
-/** The kinds a style can be switched between here; both isometric ones share the same sizes. */
-export type EditableKind = Exclude<ViewKind, 'future'>
+/** The kinds a style can be switched between here. */
+export type EditableKind = ViewKind
+/** Only the two isometric kinds have the isometric measures; full 3D does not use them. */
 export const isIsometric = (k: ViewKind): boolean => k === 'isometric' || k === 'isometric-3d'
 
 export const viewKind = (s: Pick<Style, 'view'> | undefined | null): ViewKind =>
-  s?.view === 'isometric' ? 'isometric' : s?.view === 'isometric-3d' ? 'isometric-3d' : s?.view === '3d' ? 'future' : 'top-down'
+  s?.view === 'isometric' ? 'isometric' : s?.view === 'isometric-3d' ? 'isometric-3d' : s?.view === '3d' ? '3d' : 'top-down'
 
 /** True for a style that starts with the general (top-down) pictures: its own kind of view is top-down. */
 export const inheritsGeneralArt = (game: Game | null, styleId: string | undefined): boolean =>
@@ -34,10 +35,14 @@ export function isoDefaults(game: Game | null, iso: IsoSizes | undefined): Requi
   return { tileWidth, tileHeight, heightStep: iso?.heightStep ?? Math.floor(tileHeight / 2), unitWidth: iso?.unitWidth ?? Math.floor(tileWidth / 2) }
 }
 
-/** The style with another kind of view; sizes belong to the isometric kinds only, so they leave with it. */
+/** True for the kinds that start with no art and can show units and structures as 3D models. */
+export const is3dKind = (k: ViewKind): boolean => k === 'isometric-3d' || k === '3d'
+
+/** The style with another kind of view; sizes belong to the isometric kinds only, so they leave with it
+ *  (top-down and full 3D both drop them). */
 export function withView(s: Style, kind: EditableKind): Style {
-  if (kind !== 'top-down') return patchObj(s, { view: kind })
-  return patchObj(s, { view: undefined, isometric: undefined })
+  const view = kind === 'top-down' ? undefined : kind
+  return patchObj(s, kind === 'isometric' || kind === 'isometric-3d' ? { view } : { view, isometric: undefined })
 }
 
 /** Sets or clears (undefined) one isometric size; an empty `isometric` object is left out of the file. */

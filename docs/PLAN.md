@@ -87,7 +87,10 @@ goal (demos only exercise features).
       OpenGL 3.3 backend DONE 2026-11-14); d3 3D isometric (first part
       DONE 2026-11-14: blocks, sprites, turning camera, editor; still to
       do: nothing; units and structures can be animated glTF models, DONE
-      2026-11-14, docs/GRAPHICS.md "Models"); d4 full 3D.
+      2026-11-14, docs/GRAPHICS.md "Models"); d4 full 3D (map part DONE
+      2026-11-14, docs/VIEWS.md "Full 3D": free camera with perspective
+      over the block map, both demos have a "Full 3D" style; still to do:
+      close-up battle scenes, later by owner decision).
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,
       campaign layer).

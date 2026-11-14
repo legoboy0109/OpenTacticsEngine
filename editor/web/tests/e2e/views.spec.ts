@@ -87,19 +87,25 @@ test('@smoke a style switches to 3D isometric and back; the file is exactly as e
   expect(await game.problems(id)).toEqual([])
 })
 
-test('a style with a kind of view that is not available yet is kept as it is', async ({ page, request, game }) => {
-  const id = await game.create('blank', 'Future')
-  const doc = await (await request.get(`/api/projects/${id}`)).json()
-  const styles = [{ id: 'flat', name: 'Flat' }, { id: 'later', name: 'Later', view: '3d', isometric: { tileWidth: 40 } }]
-  expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: { ...doc.game, styles } } })).ok()).toBeTruthy()
+test('a style switches to Full 3D and back: no isometric block or measure fields, the file is exactly as expected', async ({ page, game }) => {
+  const id = await game.create('blank', 'ViewsFull3d')
   await page.goto(editorUrl(id, 'game'))
-  await expect(page.getByTestId('view-future')).toHaveText(/not available yet/)
-  await expect(page.getByLabel('Later: Kind of view')).toHaveCount(0)
-  await expect(page.getByLabel('Flat: Kind of view')).toHaveValue('top-down')
-  // Editing something else about it does not touch its view.
-  await page.getByLabel('Later Background colour (hex code)').fill('#102030')
+  await addStyle(page, 'Orbit')
+  const kind = page.getByLabel('Orbit: Kind of view')
+  await kind.selectOption('isometric')
+  await page.locator('.subcard').getByText('Advanced').click()
+  await page.getByLabel('Orbit: Square width').fill('64')
   await saved(page)
-  expect(readDisk(id, 'game.json').styles).toEqual([styles[0], { ...styles[1], background: '#102030' }])
+  await kind.selectOption('3d')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'orbit', name: 'Orbit', view: '3d' }])
+  expect(await game.problems(id)).toEqual([])
+  await expect(page.getByTestId('view-full3d-help')).toHaveText(/real blocks under a camera/)
+  await expect(page.getByLabel('Orbit: Square width')).toHaveCount(0)
+  await expect(page.locator('.subcard').getByText('Advanced')).toHaveCount(0)
+  await kind.selectOption('top-down')
+  await saved(page)
+  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'orbit', name: 'Orbit' }])
 })
 
 test('@smoke the two starting templates have an Isometric style; the blank one has none', async ({ page, game, request }) => {
