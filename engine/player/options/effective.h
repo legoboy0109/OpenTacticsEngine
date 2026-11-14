@@ -20,6 +20,7 @@ struct LookLayer {
   int smooth = -1;    // 1/0; -1 = unset (command line only)
   int uiScale = 0;    // percent; 0 = unset
   std::string style;  // style id; "" = unset
+  std::string draw3d; // what draws 3D: "opengl" or "software"; "" = unset
 };
 
 // What a game itself asks for. `present` is false on the launcher screens
@@ -38,6 +39,7 @@ struct EffectiveLook {
   FontRequest font;
   int uiScale = 100;
   int styleIndex = 0;  // index into the game's styles: the chosen one, else the first this player can draw
+  std::string draw3d;  // "opengl", "software", or "" = the player decides (docs/RENDER3D.md)
 };
 
 // Font size rule: an explicit size setting wins; otherwise the size that

@@ -61,6 +61,9 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
     for (size_t i = 0; i < game.styleIds.size(); ++i)
       if (game.styleIds[i] == l->style && usable(i)) out.styleIndex = (int)i;
   }
+  // --- what draws 3D: anything but the known names is "let the player decide"
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.draw3d == "opengl" || x.draw3d == "software"; }))
+    out.draw3d = l->draw3d;
   return out;
 }
 

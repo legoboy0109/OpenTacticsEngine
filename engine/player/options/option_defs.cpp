@@ -65,6 +65,15 @@ std::vector<OptionChoice> styleChoices(const OptionContext& ctx) {
 }
 void applyStyle(const Json& v, LookLayer& l) { l.style = v.asString(); }
 
+// ---- what draws 3D (docs/RENDER3D.md) ----------------------------------------
+// The software drawer works everywhere; OpenGL falls back to it by itself on
+// a machine where it cannot be used.
+std::vector<OptionChoice> draw3dChoices(const OptionContext& ctx) {
+  return {choice(ctx.game ? "Use global" : "Automatic"), choice("OpenGL", Json::makeString("opengl")),
+          choice("Software", Json::makeString("software"))};
+}
+void applyDraw3d(const Json& v, LookLayer& l) { l.draw3d = v.asString(); }
+
 }  // namespace
 
 const std::vector<OptionDef>& optionDefs() {
@@ -73,6 +82,7 @@ const std::vector<OptionDef>& optionDefs() {
       {"fontSize", "Text size", sizeChoices, applySize},
       {"uiScale", "UI scale", scaleChoices, applyScale},
       {"style", "Visual style", styleChoices, applyStyle},
+      {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},
   };
   return defs;
 }
