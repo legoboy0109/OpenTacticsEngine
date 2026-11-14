@@ -66,6 +66,7 @@ void BattleScene::enterResult() {
   mode_ = Mode::Result;
   menu_.close();
   slots_.close();
+  closeItems();
   bool humanWon = false, anyHuman = false;
   std::string winners;
   for (const SideState& s : battle_.sides) {
@@ -174,6 +175,10 @@ void BattleScene::update(double dt) {
     cam_.x += bx - ax;
     cam_.y += by - ay;
   }
+  if (!view_.notice.empty()) {  // something the view wants said in the hint line (an item sent to storage)
+    say(view_.notice);
+    view_.notice.clear();
+  }
   if (noticeTime_ > 0) noticeTime_ -= (float)dt;
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
@@ -191,10 +196,11 @@ std::string BattleScene::hint() const {
              : map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
                     : "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
     case Mode::Selected: return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
-    case Mode::ActionMenu: return "Up/Down + Z:choose  X:undo move";
+    case Mode::ActionMenu: return itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
+    case Mode::Items: return itemsHint();
     default: return "";
   }
 }
@@ -229,7 +235,8 @@ void BattleScene::draw(Renderer& r) {
       const AttackOption& t = targets_[targetIdx_];
       drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
-    menu_.draw(r);
+    if (mode_ == Mode::Items) drawItems(r);
+    else menu_.draw(r);
   }
   if (mode_ == Mode::SlotList) {
     r.fillRect(0, 0, r.width(), r.height(), Color(0, 0, 0, 150));
