@@ -246,12 +246,21 @@ def make_game(root, repo):
                      for row, uid in enumerate(units_here)}
     # The 3D isometric view lays a terrain picture flat on top of its block, so the top-down
     # tiles fit as they are; units are the standing ones; structures stand up as pictures.
+    # A unit or structure with a model file (models/<id>.glb, from make_unit_models.py) is shown
+    # as that model instead of a picture.
+    def with_models(looks):
+        out = dict(looks)
+        for thing in looks:
+            rel = 'models/%s.glb' % thing
+            if os.path.exists(os.path.join(path, rel)):
+                out[thing] = {'model': rel}
+        return out
     for sid in iso3d_ids:
         styles[sid] = {'terrain': terrain}
         if iso_units:
-            styles[sid]['units'] = iso_units
+            styles[sid]['units'] = with_models(iso_units)
         if structure_looks:
-            styles[sid]['structures'] = structure_looks
+            styles[sid]['structures'] = with_models(structure_looks)
     if iso_ids:
         iso_set = {'terrain': iso.terrain_looks(terrain_ids, 'iso_tiles', FRAME_MS)}
         if iso_units:
