@@ -27,6 +27,10 @@ bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err) {
     si.id = s["id"].asString();
     if (si.id.empty()) continue;
     si.name = s["name"].asString(si.id);
+    std::string view = s["view"].asString();
+    si.view = view == "isometric" ? StyleView::Isometric
+              : view == "isometric-3d" ? StyleView::Isometric3D
+              : view == "3d" ? StyleView::Full3D : StyleView::TopDown;
     out.styles.push_back(si);
   }
   if (out.styles.empty()) out.styles.push_back(StyleInfo{"default", "Default"});

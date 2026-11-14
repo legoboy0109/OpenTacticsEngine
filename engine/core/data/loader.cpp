@@ -216,6 +216,29 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
       st.hasBackground = true;
       st.background = parseColor(bg, 0);
     }
+    std::string view;
+    if (!c.str(j, "view", where, view)) return false;
+    if (view.empty() || view == "top-down") st.view = StyleView::TopDown;
+    else if (view == "isometric") st.view = StyleView::Isometric;
+    else if (view == "isometric-3d") st.view = StyleView::Isometric3D;
+    else if (view == "3d") st.view = StyleView::Full3D;
+    else return c.fail(where, "\"view\" must be \"top-down\", \"isometric\", \"isometric-3d\" or \"3d\"");
+    const Json* iso;
+    if (!c.object(j, "isometric", where, iso)) return false;
+    if (j.has("isometric")) {
+      std::string iw = where + " \"isometric\"";
+      if (!c.integer(*iso, "tileWidth", iw, st.iso.tileWidth) || !c.integer(*iso, "tileHeight", iw, st.iso.tileHeight) ||
+          !c.integer(*iso, "heightStep", iw, st.iso.heightStep) || !c.integer(*iso, "unitWidth", iw, st.iso.unitWidth))
+        return false;
+      if (iso->has("tileWidth") && (st.iso.tileWidth < 8 || st.iso.tileWidth > 512 || st.iso.tileWidth % 2))
+        return c.fail(iw, "\"tileWidth\" must be an even number from 8 to 512");
+      if (iso->has("tileHeight") && (st.iso.tileHeight < 4 || st.iso.tileHeight > 256 || st.iso.tileHeight % 2))
+        return c.fail(iw, "\"tileHeight\" must be an even number from 4 to 256");
+      if (iso->has("heightStep") && (st.iso.heightStep < 0 || st.iso.heightStep > 128))
+        return c.fail(iw, "\"heightStep\" must be from 0 to 128");
+      if (iso->has("unitWidth") && (st.iso.unitWidth < 4 || st.iso.unitWidth > 512))
+        return c.fail(iw, "\"unitWidth\" must be from 4 to 512");
+    }
     if (j.has("showGlyphs")) {
       bool show = true;
       if (!c.boolean(j, "showGlyphs", where, show)) return false;
