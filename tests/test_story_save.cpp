@@ -223,11 +223,12 @@ TEST(story_same_seed_same_event_stream) {
 
 // ---- the data hash ----
 
-TEST(story_hash_of_the_demo_games_is_exactly_what_it_was) {
+TEST(story_hash_of_a_game_without_a_story_is_exactly_what_it_was) {
   // Computed before story events existed. A game without events, objectives, switches or variables
   // must keep its hash, or every save made so far would be refused.
   struct Golden { const char* game; const char* map; const char* hash; };
-  const Golden golden[] = {{"demo-srpg", "bridge", "5d561ac273e900ee"}, {"demo-economy", "twin_rivers", "1e44dae676a88a38"}};
+  // (demo-srpg had "5d561ac273e900ee" until it got a story of its own; demo-economy has none.)
+  const Golden golden[] = {{"demo-economy", "twin_rivers", "1e44dae676a88a38"}};
   for (const Golden& g : golden) {
     Database db;
     std::string err, hash;

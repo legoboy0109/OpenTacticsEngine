@@ -236,6 +236,71 @@
       ]
     }
   },
+  "portraits": {
+    "eirik": {
+      "sheet": "units",
+      "cell": [
+        0,
+        0
+      ]
+    },
+    "kell": {
+      "sheet": "units",
+      "cell": [
+        0,
+        1
+      ]
+    },
+    "lyra": {
+      "sheet": "units",
+      "cell": [
+        0,
+        2
+      ]
+    },
+    "bram": {
+      "sheet": "units",
+      "cell": [
+        0,
+        3
+      ]
+    },
+    "gorm": {
+      "sheet": "units",
+      "cell": [
+        0,
+        4
+      ]
+    },
+    "tane": {
+      "sheet": "units",
+      "cell": [
+        0,
+        5
+      ]
+    },
+    "orsk": {
+      "sheet": "units",
+      "cell": [
+        0,
+        3
+      ]
+    },
+    "vex": {
+      "sheet": "units",
+      "cell": [
+        0,
+        2
+      ]
+    },
+    "sera": {
+      "sheet": "units",
+      "cell": [
+        0,
+        6
+      ]
+    }
+  },
   "styles": {
     "parchment": {
       "terrain": {
