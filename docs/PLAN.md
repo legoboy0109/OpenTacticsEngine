@@ -90,14 +90,22 @@ goal (demos only exercise features).
       2026-11-14, docs/GRAPHICS.md "Models"); d4 full 3D (map part DONE
       2026-11-14, docs/VIEWS.md "Full 3D": free camera with perspective
       over the block map, both demos have a "Full 3D" style; still to do:
-      close-up battle scenes, later by owner decision).
+      close-up battle scenes, low priority by owner decision; drawing
+      3D at the display's resolution with detailed test art from a CC0
+      pack, asked for 2026-11-14, in progress).
    e. Items (DONE 2026-11-14, docs/ITEMS.md: usable items, carried
       weapons with wear, accessories, unit inventories plus a shared
       storage per side, trading, shops, drops; `demo-srpg` uses them;
       not yet: selling, chests, stealing, scripted effects, carrying
       items between maps, AI that trades or shops).
-   f. Story events and dialogue (triggers, win/lose conditions in data,
-      campaign layer).
+   f. Story events and dialogue. Owner decisions 2026-11-14: triggers =
+      battle start / end and turn number, a unit reaching a square or
+      area, a unit defeated or fighting, a Talk command between two
+      units; actions besides dialogue = add / remove / move units, give
+      items or resources, set win / lose conditions, switches and
+      variables; the first version includes a campaign (chapters in
+      order, surviving units with levels and items carried over, scenes
+      between maps).
    g. More economy options (research, upgradable cities, fog,
       repair/supply).
    h. Sound and music.
