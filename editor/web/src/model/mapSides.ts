@@ -2,7 +2,7 @@
 import type { MapCtx } from './mapCtx'
 import { makeId } from './ids'
 import { patchObj, setNum } from './util'
-import type { MapFile, MapSide } from './types'
+import type { ItemEntry, MapFile, MapSide } from './types'
 
 const COLORS = ['#3d85c6', '#cc0000', '#6aa84f', '#e0a800', '#8e5fc0', '#e67e22', '#2aa7a7', '#c2578a']
 const NAMES = ['Blue', 'Red', 'Green', 'Yellow', 'Purple', 'Orange', 'Teal', 'Pink']
@@ -37,13 +37,14 @@ export function removeSide(map: MapFile, id: string): MapFile {
   return next
 }
 
-type SidePatch = { name?: string; color?: string; controller?: 'human' | 'ai'; team?: string }
+type SidePatch = { name?: string; color?: string; controller?: 'human' | 'ai'; team?: string; storage?: ItemEntry[] }
 
 /** The side's id never changes (units and owners point at it). An empty team removes the key (the side is then its own team). */
 export function updateSide(map: MapFile, id: string, patch: SidePatch): MapFile {
   if (!sideOf(map, id)) return map
   const clean: Record<string, unknown> = { ...patch }
   if ('team' in patch && !patch.team?.trim()) clean.team = undefined
+  if ('storage' in patch && !patch.storage?.length) clean.storage = undefined
   return { ...map, sides: map.sides!.map((s) => (s.id === id ? patchObj(s, clean) : s)) }
 }
 

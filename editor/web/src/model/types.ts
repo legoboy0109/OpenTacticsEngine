@@ -17,7 +17,11 @@ export interface Production extends Feature { builtUnitsCanAct?: boolean }
 export interface Progression extends Feature {
   xpPerLevel?: number; maxLevel?: number; xpHit?: string; xpKill?: string
 }
+/** docs/ITEMS.md `rules.items`; every key is optional and a default is never written. */
+export type StorageMode = 'off' | 'anywhere' | 'structure' | 'leader'
+export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode }
 export interface Rules extends Extra {
+  items?: ItemRules
   turnOrder?: string
   counterAttacks?: boolean
   defeat?: string[]
@@ -81,23 +85,53 @@ export interface Structure extends Named {
   /** Listed numbers replace (or add to) the terrain's numbers of the same name. */
   props?: NumMap
   capturePoints?: number; income?: NumMap; produces?: string[]; tags?: string[]
+  /** Item ids sold here; each needs a price. */
+  sells?: string[]
 }
 export interface Weapon extends Named {
+  /** Carried weapons only: a unit type that `wields` this group can use the weapon. */
+  group?: string
   range?: [number, number]; counter?: boolean; afterMove?: boolean
   props?: NumMap; versus?: NumMap; versusDefault?: number; damage?: string
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
   weapons?: string[]; cost?: NumMap; tags?: string[]; canCapture?: boolean
+  /** Weapon groups it can wield (carried weapons). */
+  wields?: string[]
+  /** Starting items. */
+  items?: ItemEntry[]
 }
+
+export type ItemKind = 'usable' | 'weapon' | 'accessory'
+/** One item of data/items.json (docs/ITEMS.md). Fields of another kind than `kind` are refused by the loader. */
+export interface Item extends Named {
+  description?: string
+  kind: ItemKind
+  /** Missing = unlimited. */
+  uses?: number
+  /** Per resource; missing = not for sale. */
+  price?: NumMap
+  target?: 'self' | 'ally'
+  heal?: number | 'full'
+  raise?: NumMap
+  weapon?: string
+  bonus?: NumMap
+}
+/** An item in a list: the id, or an object with the uses left and (on units) whether it drops when the unit is defeated. */
+export type ItemEntry = string | ({ item: string; uses?: number; drop?: boolean } & Extra)
 
 export interface MapSide extends Extra {
   id: string; name: string; color?: string; team?: string
   controller?: string; resources?: NumMap
+  /** The side's shared storage at the start. */
+  storage?: ItemEntry[]
 }
 export interface MapUnit extends Extra {
   type: string; side: string; x: number; y: number
   name?: string; level?: number; leader?: boolean; stats?: NumMap
+  /** Missing = the unit type's starting items; a list (even an empty one) replaces them. */
+  items?: ItemEntry[]
 }
 export interface MapFile extends Extra {
   name: string
@@ -153,6 +187,8 @@ export interface ProjectDoc {
   /** null = the game has no structures yet (the first structure edit creates the list). */
   structures: Structure[] | null
   weapons: Weapon[] | null
+  /** null = the game has no items yet (the first item edit creates the list). */
+  items: Item[] | null
   units: Unit[] | null
   maps: Record<string, MapFile | null>
   scripts: Record<string, string>
@@ -169,5 +205,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'terrain' | 'structures' | 'art' | 'maps'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'terrain', 'structures', 'art', 'maps']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'art' | 'maps'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'art', 'maps']

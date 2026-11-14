@@ -8,6 +8,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   rules: 'Rules',
   units: 'Units',
   weapons: 'Weapons',
+  items: 'Items',
   terrain: 'Terrain',
   structures: 'Structures',
   art: 'Art',

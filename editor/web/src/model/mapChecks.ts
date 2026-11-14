@@ -1,6 +1,7 @@
 // Friendly in-editor checks. They are separate from the helper's "Problems":
 // the helper reports what stops the game loading, these point at things that
 // load fine but are probably not what the author meant.
+import { itemChecks } from './itemChecks'
 import { ctxOf } from './mapCtx'
 import { terrainAt } from './mapGrid'
 import { misfits, placedOf, structureAt } from './mapStructures'
@@ -46,5 +47,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
       out.push({ key: `no-hq:${s.id}`, text: `${s.name} owns no headquarters, but "its headquarters is captured" is a way to lose. Place a headquarters structure and set ${s.name} as its owner.` })
     }
   }
+  // What the loader would refuse about the items on this map (placed units' items, sides' storage).
+  const mapId = Object.keys(doc.maps).find((k) => doc.maps[k] === map)
+  itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
   return out
 }
