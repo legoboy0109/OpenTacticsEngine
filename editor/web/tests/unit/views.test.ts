@@ -14,11 +14,11 @@ import { initHistory, pushEdit, undo } from '../../src/store/history'
 import { loadDemo, loadTemplate } from './fixtures'
 
 describe('kind of view of a style', () => {
-  it('a missing key is top-down; isometric is editable; the reserved kinds are kept apart', () => {
+  it('a missing key is top-down; both isometric kinds are editable; full 3D is kept apart', () => {
     expect(viewKind({})).toBe('top-down')
     expect(viewKind({ view: 'top-down' })).toBe('top-down')
     expect(viewKind({ view: 'isometric' })).toBe('isometric')
-    expect(viewKind({ view: 'isometric-3d' })).toBe('future')
+    expect(viewKind({ view: 'isometric-3d' })).toBe('isometric-3d')
     expect(viewKind({ view: '3d' })).toBe('future')
   })
   it('switching to Isometric writes view; switching back removes view and the sizes (byte-stable)', () => {
@@ -27,6 +27,14 @@ describe('kind of view of a style', () => {
     expect(iso).toEqual({ id: 'classic', name: 'Classic', background: '#101010', view: 'isometric', isometric: { tileWidth: 64 } })
     const back = withView(iso, 'top-down')
     expect(JSON.stringify(back)).toBe(JSON.stringify(s))
+  })
+  it('3D isometric shares the isometric sizes; switching between the kinds keeps them, top-down removes them', () => {
+    const s = withIsoSize(withView({ id: 'a', name: 'A' }, 'isometric'), 'tileWidth', 64)
+    const three = withView(s, 'isometric-3d')
+    expect(three).toEqual({ id: 'a', name: 'A', view: 'isometric-3d', isometric: { tileWidth: 64 } })
+    expect(withView(three, 'isometric').view).toBe('isometric')
+    expect(JSON.stringify(withView(three, 'top-down'))).toBe(JSON.stringify({ id: 'a', name: 'A' }))
+    expect(inheritsGeneralArt({ styles: [three] } as never, 'a')).toBe(false)
   })
   it('an emptied size leaves; the last one takes the isometric object with it', () => {
     let s = withIsoSize(withView({ id: 'a', name: 'A' }, 'isometric'), 'heightStep', 6)

@@ -3,11 +3,15 @@
 import { patchObj } from './util'
 import type { Game, IsoSizes, Style } from './types'
 
-/** 'future' = "isometric-3d" or "3d": allowed in a game file, drawn by no player yet, so the editor keeps them untouched. */
-export type ViewKind = 'top-down' | 'isometric' | 'future'
+/** 'future' = "3d" (full 3D): allowed in a game file, drawn by no player yet, so the editor keeps it untouched. */
+export type ViewKind = 'top-down' | 'isometric' | 'isometric-3d' | 'future'
+
+/** The kinds a style can be switched between here; both isometric ones share the same sizes. */
+export type EditableKind = Exclude<ViewKind, 'future'>
+export const isIsometric = (k: ViewKind): boolean => k === 'isometric' || k === 'isometric-3d'
 
 export const viewKind = (s: Pick<Style, 'view'> | undefined | null): ViewKind =>
-  s?.view === 'isometric' ? 'isometric' : s?.view === 'isometric-3d' || s?.view === '3d' ? 'future' : 'top-down'
+  s?.view === 'isometric' ? 'isometric' : s?.view === 'isometric-3d' ? 'isometric-3d' : s?.view === '3d' ? 'future' : 'top-down'
 
 /** True for a style that starts with the general (top-down) pictures: its own kind of view is top-down. */
 export const inheritsGeneralArt = (game: Game | null, styleId: string | undefined): boolean =>
@@ -30,9 +34,9 @@ export function isoDefaults(game: Game | null, iso: IsoSizes | undefined): Requi
   return { tileWidth, tileHeight, heightStep: iso?.heightStep ?? Math.floor(tileHeight / 2), unitWidth: iso?.unitWidth ?? Math.floor(tileWidth / 2) }
 }
 
-/** The style with another kind of view; sizes belong to Isometric only, so they leave with it. */
-export function withView(s: Style, kind: 'top-down' | 'isometric'): Style {
-  if (kind === 'isometric') return patchObj(s, { view: 'isometric' })
+/** The style with another kind of view; sizes belong to the isometric kinds only, so they leave with it. */
+export function withView(s: Style, kind: EditableKind): Style {
+  if (kind !== 'top-down') return patchObj(s, { view: kind })
   return patchObj(s, { view: undefined, isometric: undefined })
 }
 
