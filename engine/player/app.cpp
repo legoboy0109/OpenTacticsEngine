@@ -139,17 +139,19 @@ void PlayerApp::showHome() {
 }
 
 void PlayerApp::showGame(const std::string& gameId) {
-  later([this, gameId] {
-    const GameEntry* entry = nullptr;
-    for (const GameEntry& g : games_)
-      if (g.id == gameId) entry = &g;
-    scene_.reset();
-    dropSession();
-    applyLauncherLook();
-    if (!entry) { gameId_.clear(); scene_.reset(new HomeScene(*this)); return; }
-    gameId_ = gameId;
-    scene_.reset(new GameScene(*this, *entry));
-  });
+  later([this, gameId] { doShowGame(gameId); });
+}
+
+void PlayerApp::doShowGame(const std::string& gameId) {
+  const GameEntry* entry = nullptr;
+  for (const GameEntry& g : games_)
+    if (g.id == gameId) entry = &g;
+  scene_.reset();
+  dropSession();
+  applyLauncherLook();
+  if (!entry) { gameId_.clear(); scene_.reset(new HomeScene(*this)); return; }
+  gameId_ = gameId;
+  scene_.reset(new GameScene(*this, *entry));
 }
 
 void PlayerApp::showOptions(const std::string& gameId) {
@@ -170,6 +172,8 @@ void PlayerApp::relook(const std::string& gameId) {
 void PlayerApp::showMapSelect() {
   later([this] {
     if (!session_) { applyLauncherLook(); scene_.reset(new HomeScene(*this)); return; }
+    // A campaign game has no separate map list: its free battles are on the game page.
+    if (session_->db.campaign) { doShowGame(gameId_); return; }
     scene_.reset(new MapSelectScene(*this));
   });
 }
@@ -213,7 +217,7 @@ void PlayerApp::applyGameLook() {
   applyLook(gameId_, lookOf(session_->db), w, h);
 }
 
-void PlayerApp::doLoadGame(const std::string& gameId) {
+bool PlayerApp::openGame(const std::string& gameId) {
   scene_.reset();
   gameId_ = gameId;
   std::string err;
@@ -221,12 +225,18 @@ void PlayerApp::doLoadGame(const std::string& gameId) {
     applyLauncherLook();  // an error screen must not inherit the previous game's look
     showError("Cannot load game '" + gameId + "'", err, ToGame);
     runPending();
-    return;
+    return false;
   }
   applyGameLook();
-  bool direct = firstLoad_ && !args_.map.empty();
+  return true;
+}
+
+void PlayerApp::doLoadGame(const std::string& gameId) {
+  if (!openGame(gameId)) return;
+  bool first = firstLoad_;
   firstLoad_ = false;
-  if (direct) doStartBattle(args_.map);
+  if (first && !args_.map.empty()) doStartBattle(args_.map);  // a free battle, whatever the game's freeBattles say
+  else if (first && args_.campaign) doStartCampaign();
   else { showMapSelect(); runPending(); }
 }
 

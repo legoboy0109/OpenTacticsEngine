@@ -21,7 +21,10 @@ class SlotPanel {
   // `slots` holds SaveStore::kSlots entries (slot 1 first). `loadWarning`, when
   // not empty, is appended to a "Load slot N?" question ("You will leave the
   // battle in progress."); empty = loading needs no question.
-  void open(Mode mode, const std::vector<SaveInfo>& slots, const std::string& loadWarning);
+  // `warnOnlyForCampaign`: the warning belongs to campaign saves only (a free battle's plain save does not
+  // touch the Continue file of a story).
+  void open(Mode mode, const std::vector<SaveInfo>& slots, const std::string& loadWarning,
+            bool warnOnlyForCampaign = false);
   void close() { open_ = false; confirm_.close(); }
   bool isOpen() const { return open_; }
   // The rectangle the panel fills (logical pixels).
@@ -45,6 +48,7 @@ class SlotPanel {
   Mode mode_ = Load;
   std::vector<SaveInfo> slots_;
   std::string loadWarning_;
+  bool warnOnlyForCampaign_ = false;
   RowList list_;
   ConfirmBox confirm_;
   int pending_ = -1;  // row waiting for an answer in confirm_; -1 = a plain message

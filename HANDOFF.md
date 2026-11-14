@@ -18,41 +18,29 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   dialogue box (letter by letter, pages, portrait, skip; `--input` token
   `skip`), Focus / add / remove / relocate / side-change effects, Talk in the
   action menu, objective banner and "Objective" in the battle menu, portraits
-  in `data/graphics.json` (docs/GRAPHICS.md). Not done: editor, campaign, web
+  in `data/graphics.json` (docs/GRAPHICS.md). Not done: editor, web
   build check of the new code. No shipped game has events yet (so nothing
   looks different in the demos; checked byte for byte).
-- Campaign, build step 4 core part (docs/EVENTS.md "Campaign", docs/SAVES.md "Campaign saves"):
-  `data/campaign.json` (loader in `engine/core/data/loader_campaign*.cpp`, `Database::campaign`),
-  `engine/core/campaign/` (playthrough, scenes, chapter battles, saves, hash), tests
-  `tests/test_campaign_*.cpp` (+44), `ote-sim <game> --campaign`. No player or editor part yet; no
-  shipped game has a campaign (tests write a fixture game into the build folder).
-  **What the player must call** (all in `core/campaign/playthrough.h` / `campaign_save.h`):
-  - *Game page*: `db.campaign` non-null -> offer New game / Continue / Load; free battles only for
-    maps with `freeBattleAllowed(db, mapId)` (true for every map in a game without a campaign), played
-    exactly as today and never saved as a playthrough.
-  - *New game*: `Playthrough pt; pt.begin(db);` (phase `Before`, chapter 0).
-  - *Scene*: `std::vector<SceneLine> lines; runScene(db, pt, SceneKind::Before | After, lines);` the state
-    has already changed; show `lines` in the dialogue box (`speaker` name, `portrait` id, `speakerId`, `text`).
-    `Before` needs phase `Before` and moves to `Battle`; `After` needs phase `After` and moves to the next
-    chapter (`Before`) or `Finished`. `currentChapter(db, pt)` = the chapter (name for headings), null when over.
-  - *Start the chapter battle* (phase `Battle`): `startChapterBattle(db, pt, formulas, seed, battle, events, err)`
-    (= `prepareChapterBattle` + `battle.start(events)`); then play as usual.
-  - *Finish*: when `battle.over`, `ChapterResult r = finishChapterBattle(db, pt, battle)`: `Won` -> run the
-    after scene; `Retry` -> offer to start the chapter again (the playthrough is as it was; do not replay the
-    before scene); `Ended` -> `pt.phase == Phase::Over`, show the end. `pt.phase == Finished` after the last after scene.
-  - *Save*: `buildCampaignSave(db, gameId, pt, inBattle ? &battle : nullptr, now, file, err)`; save at scene
-    ends, on a won battle and at the usual battle moments. *Load*: `campaignSaveUsable` for lists, then
-    `restoreCampaignSave(db, formulas, gameId, file, pt, battle, hasBattle, err)` and continue by `pt.phase`
-    (details in docs/SAVES.md). `SaveStore::parseFile` must accept campaign saves (no `round` / `battle` required).
-  - Decisions for the owner: removeUnit counts as fallen; a unit that starts on a computer side and is
-    recruited by an event is dressed from the roster only from the next chapter on; carried storage has no
-    size limit; `retry` restarts with the same roster and a new battle seed is the player's choice.
+- Campaign, build step 4 (docs/EVENTS.md "Campaign" and "Campaign (player)", docs/SAVES.md "Campaign saves"): done in
+  the core and in the player. Core: `data/campaign.json`, `engine/core/campaign/`, tests `tests/test_campaign_*.cpp`,
+  `ote-sim <game> --campaign`. Player: game page (Continue / New game / Load / Free battles), title card + scenes in the
+  battle's dialogue box, chapter flow with retry / end screens, campaign saves in Continue and the slots,
+  `--campaign`, `--autoplay` through a story (`engine/player/app_campaign.cpp`, `campaign/`, `battle/battle_campaign.cpp`);
+  tests `tests/test_campaign_player.cpp`, `tests/campaign_player_test.py` (windowless playthroughs on a generated
+  three-chapter game, also the generator for the web test), `tools/webtest/suites/campaign.mjs`. No shipped game has a
+  campaign yet and the editor has no Campaign screen (step 5), so nothing looks different in the demos (launcher and
+  game pages compared pixel for pixel with the pre-campaign build). Decisions the owner can change: a free battle of a
+  campaign game never writes the Continue file ("not saved automatically"; by hand into a slot is fine); the title card
+  stays 2.5 s unless confirmed; Game options and Back sit above the Free battles list; the first chapter's before scene
+  cannot name roster units (the roster is empty then: use `speakerName`); removeUnit counts as fallen; a unit that starts on
+  a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
+  has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 105 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 370 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
-  Chromium 86, Firefox 19.
+  Chromium 126, Firefox 59.
 - Editor: helper `ote-editor` (API test 250 green) and the browser UI with
   every screen incl. map editor, Play, Art and Structures (258 unit tests,
   171 e2e in Chromium + Firefox smoke, 15 screenshot specs skipped unless

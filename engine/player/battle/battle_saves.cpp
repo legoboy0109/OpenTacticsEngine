@@ -5,12 +5,25 @@
 //   * Manual slots: Save / Load in the End Turn menu (game setting "any").
 // A failed write never interrupts play: one notice says saving is not working.
 #include "battle/battle_scene.h"
+#include "campaign/campaign_logic.h"
 #include "core/base/log.h"
 
 namespace ote {
 
 bool BattleScene::savingOn() const {
   return store_.enabled() && session_.db.saving != SavingMode::Off && !autoplay_;
+}
+
+// The Continue file is the playthrough's. A free battle of a campaign game never writes or deletes it
+// (docs/SAVES.md): it could not tell whose position it holds.
+bool BattleScene::continueOn() const {
+  return continueIsWritten(savingOn(), session_.db.campaign != nullptr, chapterBattle());
+}
+
+bool BattleScene::buildSave(Json& file, std::string& err) const {
+  if (chapterBattle())
+    return buildCampaignSave(session_.db, host_.currentGameId(), session_.campaign->pt, &battle_, nowSeconds(), file, err);
+  return buildSaveFile(battle_, session_.db, host_.currentGameId(), session_.map.id, nowSeconds(), file, err);
 }
 
 bool BattleScene::manualSaves() const { return savingOn() && session_.db.saving == SavingMode::Any; }
@@ -30,13 +43,11 @@ void BattleScene::saveFailed(const std::string& err) {
 void BattleScene::writeContinue() {
   Json file;
   std::string err;
-  if (!buildSaveFile(battle_, session_.db, host_.currentGameId(), session_.map.id, nowSeconds(), file, err) ||
-      !store_.write(0, file, err))
-    saveFailed(err);
+  if (!buildSave(file, err) || !store_.write(0, file, err)) saveFailed(err);
 }
 
 void BattleScene::clearContinue() {
-  if (continueCleared_ || !savingOn()) return;
+  if (continueCleared_ || !continueOn()) return;
   continueCleared_ = true;
   std::string err;
   if (!store_.remove(0, err)) saveFailed(err);
@@ -44,8 +55,11 @@ void BattleScene::clearContinue() {
 
 // Called every frame the view is idle.
 void BattleScene::updateSaves() {
-  if (!savingOn() || mode_ == Mode::Result) return;
-  if (battle_.over) { clearContinue(); return; }
+  if (!continueOn() || mode_ == Mode::Result) return;
+  if (battle_.over) {  // a chapter battle's result is handled by chapterDecided() (the story goes on)
+    if (!chapterBattle()) clearContinue();
+    return;
+  }
   long long turn = (long long)battle_.round * 1024 + battle_.activeSide;
   if (turn != savedTurn_) {  // a new turn has begun (either side)
     savedTurn_ = turn;
@@ -75,8 +89,7 @@ void BattleScene::slotInput(const InputEvent& e) {
     Json file;
     std::string err;
     int slot = slots_.slot();
-    if (buildSaveFile(battle_, session_.db, host_.currentGameId(), session_.map.id, nowSeconds(), file, err) &&
-        store_.write(slot, file, err)) {
+    if (buildSave(file, err) && store_.write(slot, file, err)) {
       slots_.close();
       mode_ = Mode::Idle;
       say("Saved to slot " + std::to_string(slot));

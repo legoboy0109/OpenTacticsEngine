@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "args.h"
+#include "core/campaign/playthrough.h"
 #include "core/data/settings.h"
 #include "game_library.h"
 #include "game_session.h"
@@ -64,6 +65,18 @@ class SceneHost {
   virtual void showSlots(const std::string& gameId) = 0;  // the launcher's Load list
   virtual void loadGame(const std::string& gameId) = 0;   // then map select / battle
   virtual void startBattle(const std::string& mapId) = 0;
+  // The campaign (docs/EVENTS.md "Campaign"). startCampaign = New game of gameId. startFreeBattle loads
+  // the game and starts mapId on its own, never touching a playthrough or its Continue save.
+  virtual void startCampaign(const std::string& gameId) = 0;
+  virtual void startFreeBattle(const std::string& gameId, const std::string& mapId) = 0;
+  // Do what the playthrough in play says comes next (its phase): a scene, a battle, an end screen.
+  // Also what "Try again" calls (the phase is still the chapter's battle).
+  virtual void campaignNext() = 0;
+  // A scene on screen is over: write the Continue save for the new state, then go on.
+  virtual void campaignSceneDone() = 0;
+  // The chapter battle on screen has been decided and its result shown; result is what
+  // finishChapterBattle said (the playthrough is already updated).
+  virtual void campaignBattleOver(ChapterResult result) = 0;
   // Re-applies font/size/scale after an option changed (immediately, so the
   // options screen shows the result). gameId as for showOptions.
   virtual void relook(const std::string& gameId) = 0;

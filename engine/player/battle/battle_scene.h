@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "battle/free_cam.h"
+#include "core/campaign/playthrough.h"
 #include "battle/battle_draw.h"
 #include "battle/battle_view.h"
 #include "battle/layout.h"
@@ -101,8 +102,15 @@ class BattleScene : public Scene {
   void drawStory(Renderer& r);               // under the panel: the flash of a unit that changed sides
   void drawObjectiveBox(Renderer& r);
 
+  // --- battle_campaign.cpp: a chapter battle of the campaign (docs/EVENTS.md "Campaign")
+  bool chapterBattle() const { return session_.campaign != nullptr; }
+  void chapterDecided();       // the battle is over: take the result into the playthrough and save
+  void leaveResult();          // Confirm on the result: on to the next step of the story, or the map list
+
   // --- battle_saves.cpp: Continue save, manual Save / Load (docs/SAVES.md)
   bool savingOn() const;       // saves usable here: folder, game setting, not autoplay
+  bool continueOn() const;     // the Continue file belongs to this battle (never a free battle of a campaign game)
+  bool buildSave(Json& file, std::string& err) const;  // a campaign save for a chapter battle, else a plain one
   bool manualSaves() const;    // savingOn and the game allows slots
   void updateSaves();          // writes the Continue save when one is due (view idle)
   void writeContinue();
@@ -154,6 +162,9 @@ class BattleScene : public Scene {
   std::vector<TalkOption> talk_;  // the Talk entries of the action menu now open
   std::string resultText_, resultSub_;
   Color resultColor_;
+  ChapterResult chapterResult_ = ChapterResult::NotOver;  // chapter battles: what finishChapterBattle said
+  bool leaving_ = false;  // leaveResult() was called
+  float resultTime_ = 0;  // autoplay of a chapter battle: how long the result has been up
 
   SaveStore store_;
   SlotPanel slots_;

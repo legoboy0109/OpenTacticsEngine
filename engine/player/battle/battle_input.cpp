@@ -69,7 +69,7 @@ void BattleScene::onInput(const InputEvent& e) {
   bool confirmish = e.type == InputEvent::PointerDown ||
                     (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
   if (mode_ == Mode::Result) {
-    if (confirmish && !view_.busy()) host_.showMapSelect();
+    if (confirmish && !view_.busy()) leaveResult();
     else if (confirmish) view_.skip(battle_);
     return;
   }

@@ -49,7 +49,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them), the option layering
   # and the 3D picture sizing are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
-                 engine/player/saves.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
+                 engine/player/saves.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
                  engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp
                  engine/player/show3d.cpp)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d)
@@ -69,6 +69,17 @@ endif()
 
 if(OTE_BUILD_PLAYER AND EXISTS ${CMAKE_SOURCE_DIR}/engine/player/CMakeLists.txt)
   add_subdirectory(engine/player)
+endif()
+
+# The campaign played through the real player, windowless (tests/campaign_player_test.py).
+if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player)
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_FOUND)
+    enable_testing()
+    add_test(NAME campaign_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/campaign_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+  endif()
 endif()
 
 # --- Editor helper (desktop tool: HTTP server for the browser editor) ---

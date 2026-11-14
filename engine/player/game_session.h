@@ -2,11 +2,13 @@
 // map is started) the battle. Heap-allocated and never moved because
 // Battle and Formulas keep pointers into the Database.
 #pragma once
+#include <memory>
 #include <string>
 
 #include "core/base/json.h"
 #include "core/battle/battle.h"
 #include "core/data/database.h"
+#include "campaign/campaign_run.h"
 #include "core/script/formulas.h"
 
 namespace ote {
@@ -32,6 +34,9 @@ class GameSession {
   Battle battle;
   std::vector<Event> startEvents;
   std::string dir;
+  // The story being played, when one is (null for a free battle and for games without a campaign).
+  // Its chapter battle is `battle` above; it is set up by the App, not by startMap / resume.
+  std::unique_ptr<CampaignRun> campaign;
 };
 
 }  // namespace ote
