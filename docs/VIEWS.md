@@ -153,7 +153,8 @@ top-down):
   `unitMarker` a flat square in the side's colour lies under the feet.
 - **Structures**: the picture stands upright in the middle of the footprint,
   1.15 x the average of the footprint's sides wide (in square edges), on the
-  highest of its squares.
+  highest of its squares. A unit on one of its squares is drawn just in
+  front of the picture; a unit behind it is covered (turn the view).
 - Sheets become textures of the 3D layer: sides are padded to powers of two
   and a sheet larger than the backend's limit (1024) is refused there with a
   logged error; what uses it keeps the placeholder look in this view.

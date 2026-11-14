@@ -133,11 +133,24 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
 
 void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float fade, bool through) {
   const Battle& b = c.battle;
-  const Iso3DGeometry& g = c.proj->geo3();
   int uw = c.proj->unitW();
   float gx, gy;
   unitSpot(c, v, gx, gy);
   Spot feet = spot(c, gx, gy, c.proj->elevationAt(gx, gy));
+  // On a structure that is a standing picture: stand just in front of that picture, never inside it.
+  float towards = 0;
+  Cell under = b.grid.at(std::max(0, std::min((int)gx, b.grid.width() - 1)), std::max(0, std::min((int)gy, b.grid.height() - 1)));
+  int si = under == kNoCell ? -1 : b.structureAt[under];
+  if (si >= 0) {
+    const StructureState& st = b.structures[(size_t)si];
+    const StructureDef& def = b.defOf(st);
+    const Look* sa = structureArt(c, st);
+    if (sa && sheets_.texture(r3d_, sa->sheet)) {
+      Spot mid = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
+      float ahead = (feet.X - mid.X) * cx_ + (feet.Z - mid.Z) * cz_;  // how far in front of the picture's plane
+      if (ahead < 0.06f) towards = 0.06f - ahead;
+    }
+  }
   float al = v.alpha * fade;
   // Solid things are cut out against the depth picture; fading ones are blended in afterwards.
   Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;
@@ -161,15 +174,14 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
     }
     float w = std::max(1.0f, uw * v.scale);
     uint8_t k = (uint8_t)(u.done ? 140 : 255);
-    upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), 0, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
+    upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), towards, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
   } else {
     // Placeholder: an upright block in the side's colour (its letter is drawn on top in 2D).
     float bw = std::max(2.0f, uw * 0.75f * v.scale);
     MeshData& m = batch_.mesh(flat(solid, !through));
-    upright(m, feet, bw + 2, bw + 1, 0, Tint3D(0, 0, 0, (uint8_t)(200 * al)));
-    upright(m, feet, bw, bw, 0.02f, tintOf(side, al));
+    upright(m, feet, bw + 2, bw + 1, towards, Tint3D(0, 0, 0, (uint8_t)(200 * al)));
+    upright(m, feet, bw, bw, towards + 0.02f, tintOf(side, al));
   }
-  (void)g;
 }
 
 // With the 2D renderer, over the finished 3D picture: letters of things

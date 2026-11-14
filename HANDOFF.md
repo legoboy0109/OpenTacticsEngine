@@ -208,17 +208,30 @@ model, `scene_test3d.*` is the test scene (`--test-3d`). Tests:
 Nothing in a game uses it yet: `viewSupported` (views.h) still offers only
 top-down and isometric.
 
+## 3D isometric view (2026-11-14)
+
+Contract: docs/VIEWS.md "3D isometric". Core `engine/core/view/iso3d.*`
+(`Iso3DGeometry`: projection, pick, hidden; tests/test_views3d.cpp). Player:
+`MapProj` has a third mode (`iso3d()`, `setTurn`), `battle/map3d*.cpp`
+(`Map3D`, owned by BattleScene, draws through the 3D layer), `sheets3d.*`
+(art sheets as 3D textures), `batch3d.*` (per-frame meshes per material),
+`Button::TurnLeft/TurnRight`, on-screen turn buttons
+(`BattleScene::turnButtonBox`). Both demos have a "3D Isometric" style
+(written by tools/art/make_starter_art.py: top-down tiles on block tops,
+iso unit sprites, top-down structure pictures). The editor offers the kind.
+Webtest suite `views` covers it.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
-terrain and c saving are done; of d (kinds of view) 2D isometric and the
-first part of d2 (3D layer: interface, software backend, glTF loading) are
-done. Next, in this order unless the owner says otherwise: d3 3D isometric
-on the software backend (map blocks from heights via `addBlock`, rotating
-camera in quarter turns, picking through the projection, units as standing
-pictures or models per game); the OpenGL ES 3 / WebGL 2 backend (needs the
-2D drawing moved onto the same GL context); skins and animation for
-models; d4 full 3D. Nothing in game data may name a
+terrain and c saving are done; of d (kinds of view) 2D isometric, the first
+part of the 3D layer (interface, software backend, glTF loading) and the
+sprite part of 3D isometric are done. Next, in this order unless the owner
+says otherwise: 3D models for units and structures in the 3D isometric view
+(owner: the maker chooses per game between sprites and models; needs a
+place for models in data/graphics.json, the editor, and skins/animation in
+the model loader); the OpenGL ES 3 / WebGL 2 backend (needs the 2D drawing
+moved onto the same GL context); d4 full 3D. Nothing in game data may name a
 graphics API or carry shader code (console ports must be able to
 implement the interface). Then items,
 story events and dialogue, economy options, sound and music.
