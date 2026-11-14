@@ -1,6 +1,9 @@
 // The Play overlay: the embedded web player in an iframe, with a map picker, Restart and Close.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { viewKind } from '../model/styleView'
+import { useDoc } from '../store/context'
 import type { DocumentStore } from '../store/documentStore'
+import { useStored } from '../ui/hooks'
 import { Icon } from '../ui/Icon'
 import { Select } from '../ui/Select'
 import { T } from './text'
@@ -14,8 +17,8 @@ interface Props {
 
 type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; message: string }
 
-export const playerUrl = (project: string, map: string): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&map=${encodeURIComponent(map)}`
+export const playerUrl = (project: string, map: string, style?: string): string =>
+  `/player/embed.html?project=${encodeURIComponent(project)}&map=${encodeURIComponent(map)}${style ? `&style=${encodeURIComponent(style)}` : ''}`
 
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -23,6 +26,15 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const [map, setMap] = useState(initialMap)
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
+  // Styles the player can draw (it leaves out "isometric-3d" and "3d" for now). With one there is nothing to choose.
+  const playable = (useDoc().game?.styles ?? []).filter((s) => viewKind(s) !== 'future')
+  const [storedStyle, setStoredStyle] = useStored<string>(`ote.playStyle.${store.id}`, '')
+  const style = playable.some((s) => s.id === storedStyle) ? storedStyle : playable[0]?.id ?? ''
+  const switchStyle = async (id: string) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setStoredStyle(id)
+  }
 
   useEffect(() => {
     const el = dialog.current!
@@ -66,13 +78,19 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
           <span>{T.mapLabel}</span>
           <Select value={map} onChange={(v) => void switchMap(v)} options={maps.map((m) => ({ value: m.id, label: m.name }))} aria-label={T.mapLabel} />
         </label>
+        {playable.length > 1 && (
+          <label className="play-map">
+            <span>{T.styleLabel}</span>
+            <Select value={style} onChange={(v) => void switchStyle(v)} options={playable.map((s) => ({ value: s.id, label: s.name || s.id }))} aria-label={T.styleLabel} />
+          </label>
+        )}
         <div className="play-actions">
           <button type="button" className="btn" onClick={() => void restart()} title={T.restartTitle}><Icon name="restart" />{T.restart}</button>
           <button type="button" className="btn" onClick={onClose}><Icon name="close" />{T.close}</button>
         </div>
       </header>
       <div className="play-stage">
-        <iframe key={map} ref={frame} src={playerUrl(store.id, map)} title="Game preview" className="play-frame"
+        <iframe key={`${map}:${style}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined)} title="Game preview" className="play-frame"
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (
