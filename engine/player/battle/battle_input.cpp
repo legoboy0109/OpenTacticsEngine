@@ -30,12 +30,14 @@ bool BattleScene::turnInput(const InputEvent& e) {
   int dir = 0;
   if (e.type == InputEvent::ButtonDown && e.button == Button::TurnLeft) dir = -1;
   else if (e.type == InputEvent::ButtonDown && e.button == Button::TurnRight) dir = 1;
-  else if (e.type == InputEvent::PointerDown) {
+  else if (e.type == InputEvent::PointerDown || e.type == InputEvent::PointerMove) {
     for (int i = 0; i < 2 && !dir; ++i) {
       int x, y, w, h;
       turnButtonBox(i, x, y, w, h);
       if (e.x >= x && e.y >= y && e.x < x + w && e.y < y + h) dir = i ? 1 : -1;
     }
+    // Over a button the pointer belongs to the button, not to the square behind it.
+    if (dir && e.type == InputEvent::PointerMove) return true;
   }
   if (!dir) return false;
   turn_ += dir;
