@@ -31,15 +31,28 @@ inline uint32_t terrainRgb(const DrawCtx& c, int terrain) {
   return c.battle.db->terrains[t].color;
 }
 
+// Fill colour of a structure's placeholder block under the visual style in use.
+inline uint32_t structureRgb(const DrawCtx& c, int structureType) {
+  const StyleDef* st = c.style;
+  size_t t = (size_t)structureType;
+  if (st && t < st->structureColors.size() && st->structureColors[t] >= 0) return (uint32_t)st->structureColors[t];
+  return c.battle.db->structures[t].color;
+}
+
 // Per-cell highlight masks for a selected unit (empty = nothing highlighted).
 struct Overlay {
   std::vector<uint8_t> reach, attack;
   bool any() const { return !reach.empty(); }
 };
 
-// Terrain, owners, overlays, units, cursor. Draws beyond the viewport edge
+// Terrain, then structures and units together (sorted by the row of their
+// bottom edge), overlays, capture numbers, cursor. Draws beyond the viewport edge
 // on purpose; the panel and hint strip are painted afterwards to cover it.
 void drawMap(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor, bool showCursor);
+
+// One structure (picture or placeholder block, owner frame, highlight re-tint on
+// its footprint). Lives in structure_draw.cpp; drawMap calls it in sorted order.
+void drawStructure(Renderer& r, const DrawCtx& c, int structure, int camX, int camY, const Overlay& overlay);
 
 // Floating numbers; call once with screenSpace=false (before the panel) and
 // once with true (after it).

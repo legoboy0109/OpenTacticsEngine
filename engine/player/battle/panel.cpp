@@ -51,17 +51,36 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
   r.drawRect(x, y, sw, lh - 1, Color(0, 0, 0, 160));
   r.drawText(x + sw + 3, y, fitText(r, td.name, w - sw - 3).c_str(), kText);
   y += rh;
-  for (const NamedNumber& p : td.props) {
+  // The structure standing here (name with its own swatch), then the numbers of the
+  // square as formulas see them (terrain merged with structure), then owner and capture.
+  const int si = b.structureIndexAt(cell);
+  if (si >= 0) {
+    const StructureState& st = b.structures[(size_t)si];
+    const StructureDef& sd = b.defOf(st);
+    r.fillRect(x, y, sw, lh - 1, Color::rgb(structureRgb(c, st.type)));
+    if (const Look* art = structureArt(c, st)) drawStructureArt(r, c, *art, x, y, sw, lh - 1);
+    r.drawRect(x, y, sw, lh - 1, Color(0, 0, 0, 160));
+    std::string name = sd.name;
+    if (sd.width > 1 || sd.height > 1) name += " " + intStr(sd.width) + "x" + intStr(sd.height);
+    r.drawText(x + sw + 3, y, fitText(r, name, w - sw - 3).c_str(), kText);
+    y += rh;
+  }
+  Props scratch;
+  for (const NamedNumber& p : b.numbersAt(cell, scratch)) {
     row(r, x, y, w, p.key, numStr(p.value));
     y += rh;
   }
-  if (cs.owner >= 0) {
-    row(r, x, y, w, "Owner", b.sides[cs.owner].name, kLabel, Color::rgb(b.sides[cs.owner].color));
-    y += rh;
-  }
-  if (td.capturePoints > 0) {
-    row(r, x, y, w, "Capture", intStr(cs.capture) + "/" + intStr(td.capturePoints));
-    y += rh;
+  if (si >= 0) {
+    const StructureState& st = b.structures[(size_t)si];
+    if (st.owner >= 0) {
+      row(r, x, y, w, "Owner", b.sides[st.owner].name, kLabel, Color::rgb(b.sides[st.owner].color));
+      y += rh;
+    }
+    int pts = b.defOf(st).capturePoints;
+    if (pts > 0) {
+      row(r, x, y, w, "Capture", intStr(st.capture) + "/" + intStr(pts));
+      y += rh;
+    }
   }
 }
 
