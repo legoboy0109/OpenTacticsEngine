@@ -1,6 +1,8 @@
 // ote-sim: plays whole battles with the AI on every side (testing and
 // balance tool). Usage:
 //   ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose]
+//   ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose]
+//       plays the game's campaign from chapter 1 (the human side played by the AI)
 // Exit codes: 0 all runs had a winner, 1 load/usage error, 2 some run
 // stalled (no winner within the round limit), 3 the AI misbehaved.
 #include <chrono>
@@ -13,6 +15,7 @@
 #include "core/ai/ai.h"
 #include "core/data/loader.h"
 #include "core/script/formulas.h"
+#include "campaign_sim.h"
 #include "event_print.h"
 
 using namespace ote;
@@ -25,6 +28,7 @@ struct Options {
   int runs = 1;
   int maxRounds = 60;
   bool verbose = false;
+  bool campaign = false;
 };
 
 // strtol-based, no exceptions. Returns false on junk.
@@ -40,6 +44,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
     std::string a = argv[i];
     long v = 0;
     if (a == "--verbose") o.verbose = true;
+    else if (a == "--campaign") o.campaign = true;
     else if ((a == "--seed" || a == "--runs" || a == "--max-rounds") && i + 1 < argc && parseInt(argv[i + 1], v)) {
       ++i;
       if (a == "--seed") o.seed = (unsigned)v;
@@ -50,7 +55,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
     else if (positional == 1) { o.mapId = a; ++positional; }
     else return false;
   }
-  return positional == 2 && o.runs > 0 && o.maxRounds > 0;
+  return positional == (o.campaign ? 1 : 2) && o.runs > 0 && o.maxRounds > 0;
 }
 
 struct RunResult {
@@ -125,13 +130,26 @@ RunResult playOne(const Database& db, const MapDef& map, Formulas& formulas, uns
 int main(int argc, char** argv) {
   Options opt;
   if (!parseArgs(argc, argv, opt)) {
-    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose]\n");
+    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose]\n"
+                         "       ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose]\n");
     return 1;
   }
   Database db;
   MapDef map;
   Formulas formulas;
   std::string err;
+  if (opt.campaign) {
+    if (!loadGame(opt.gameDir, db, err) || !formulas.init(db, err)) {
+      std::fprintf(stderr, "load error: %s\n", err.c_str());
+      return 1;
+    }
+    simtool::CampaignSimOptions c;
+    c.seed = opt.seed;
+    c.runs = opt.runs;
+    c.maxRounds = opt.maxRounds;
+    c.verbose = opt.verbose;
+    return simtool::runCampaignSim(db, formulas, c);
+  }
   if (!loadGame(opt.gameDir, db, err) || !loadMap(db, opt.mapId, map, err) || !formulas.init(db, err)) {
     std::fprintf(stderr, "load error: %s\n", err.c_str());
     return 1;
