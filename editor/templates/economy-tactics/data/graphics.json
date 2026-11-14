@@ -49,7 +49,7 @@
       "sheet": "tiles",
       "join": [
         0,
-        4
+        2
       ],
       "joinWith": [],
       "joinEdge": true

@@ -33,12 +33,13 @@ T = 24
 # Tile sheet layout: (column, row) of each tile; join blocks are 4 x 4 cells.
 TILE_CELLS = {
     'plain0': (0, 0), 'plain1': (1, 0), 'plain2': (2, 0), 'forest': (3, 0),
-    'mountain': (0, 1),
-    'wall': (1, 2), 'sea0': (2, 2), 'sea1': (3, 2),
-    'water0': (0, 3), 'water1': (1, 3),
-    'road': (0, 4), 'bridge': (4, 4),
+    'mountain': (4, 0), 'wall': (5, 0),
+    'road': (0, 2),
 }
-SHEET_COLS, SHEET_ROWS = 8, 8
+# Animated join blocks: one 4 x 4 block per frame, frames side by side, one band of 4 rows per terrain.
+JOIN_FRAMES = 2
+WATER_BLOCKS = {'sea': (0, 6), 'water': (0, 10), 'bridge': (0, 14)}  # (column, row) of frame 0
+SHEET_COLS, SHEET_ROWS = 4 * JOIN_FRAMES, 18
 FRAME_MS = 500
 
 
@@ -81,13 +82,16 @@ def build_tile_sheet():
     put('forest', tl.forest())
     put('mountain', tl.mountain())
     put('wall', tl.wall_tile())
-    put('sea0', tl.water(0, 0x2F62A0, 0x3F7CC4, 0x86B8EC, 1))
-    put('sea1', tl.water(1, 0x2F62A0, 0x3F7CC4, 0x86B8EC, 1))
-    put('water0', tl.water(0, 0x3873B0, 0x4A8FCB, 0x9CCBF0, 2))
-    put('water1', tl.water(1, 0x3873B0, 0x4A8FCB, 0x9CCBF0, 2))
+    for name, pal in (('sea', tl.SEA), ('water', tl.RIVER)):
+        for f in range(JOIN_FRAMES):
+            for n in range(16):
+                sheet.paste(tl.water_piece(n, f, pal), (WATER_BLOCKS[name][0] + 4 * f + n % 4) * T,
+                            (WATER_BLOCKS[name][1] + n // 4) * T)
     for n in range(16):
         put('road', tl.road_piece(n), n % 4, n // 4)
-        put('bridge', tl.bridge_piece(n), n % 4, n // 4)
+        for f in range(JOIN_FRAMES):
+            sheet.paste(tl.bridge_piece(n, f), (WATER_BLOCKS['bridge'][0] + 4 * f + n % 4) * T,
+                        (WATER_BLOCKS['bridge'][1] + n // 4) * T)
     return sheet
 
 
@@ -112,21 +116,31 @@ def terrain_looks(terrain_ids):
     """Terrain id -> look (dict for graphics.json), for the ids this set knows."""
     def cell(name):
         return list(TILE_CELLS[name])
+    def join_frames(name):
+        c, r = WATER_BLOCKS[name]
+        return [[c + 4 * f, r] for f in range(JOIN_FRAMES)]
     known = {
         'plain': {'sheet': 'tiles', 'variants': [cell('plain0'), cell('plain1'), cell('plain2')]},
         'forest': {'sheet': 'tiles', 'cell': cell('forest')},
         'mountain': {'sheet': 'tiles', 'cell': cell('mountain')},
         'wall': {'sheet': 'tiles', 'cell': cell('wall')},
-        'sea': {'sheet': 'tiles', 'frames': [cell('sea0'), cell('sea1')], 'frameMs': FRAME_MS},
-        'water': {'sheet': 'tiles', 'frames': [cell('water0'), cell('water1')], 'frameMs': FRAME_MS},
     }
     ids = set(terrain_ids)
     road_with = [t for t in ('bridge',) if t in ids]  # buildings are structures now: roads run under them
+    # Water joins with itself (banks only where the neighbour is not water), with the map edge, and with a
+    # bridge (no bank under it). Its look is an animated join: one block per frame.
+    for wid in ('sea', 'water'):
+        if wid in ids:
+            known[wid] = {'sheet': 'tiles', 'join': join_frames(wid), 'frameMs': FRAME_MS,
+                          'joinWith': [t for t in ('bridge',) if t in ids], 'joinEdge': True}
     if 'road' in ids:
         known['road'] = {'sheet': 'tiles', 'join': cell('road'), 'joinWith': road_with, 'joinEdge': True}
     if 'bridge' in ids:
-        land = [t for t in ('plain', 'forest', 'mountain', 'road') if t in ids]
-        known['bridge'] = {'sheet': 'tiles', 'join': cell('bridge'), 'joinWith': land, 'joinEdge': False}
+        # Joins with every terrain except the water it crosses: the deck then runs to the edge of the
+        # square beside land (and beside the next bridge square) and shows rails with water on the rest.
+        water = [t for t in ('sea', 'water') if t in ids]
+        known['bridge'] = {'sheet': 'tiles', 'join': join_frames('bridge'), 'frameMs': FRAME_MS,
+                           'joinExcept': water, 'joinEdge': False}
     out, missing = {}, []
     for tid in terrain_ids:
         if tid in known:

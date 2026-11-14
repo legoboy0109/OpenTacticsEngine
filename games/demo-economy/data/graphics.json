@@ -67,7 +67,7 @@
       "sheet": "tiles",
       "join": [
         0,
-        4
+        2
       ],
       "joinWith": [],
       "joinEdge": true
@@ -82,23 +82,25 @@
     "mountain": {
       "sheet": "tiles",
       "cell": [
-        0,
-        1
+        4,
+        0
       ]
     },
     "sea": {
       "sheet": "tiles",
-      "frames": [
+      "join": [
         [
-          2,
-          2
+          0,
+          6
         ],
         [
-          3,
-          2
+          4,
+          6
         ]
       ],
-      "frameMs": 500
+      "frameMs": 500,
+      "joinWith": [],
+      "joinEdge": true
     }
   },
   "units": {
@@ -220,7 +222,7 @@
           "sheet": "tiles_night",
           "join": [
             0,
-            4
+            2
           ],
           "joinWith": [],
           "joinEdge": true
@@ -235,23 +237,25 @@
         "mountain": {
           "sheet": "tiles_night",
           "cell": [
-            0,
-            1
+            4,
+            0
           ]
         },
         "sea": {
           "sheet": "tiles_night",
-          "frames": [
+          "join": [
             [
-              2,
-              2
+              0,
+              6
             ],
             [
-              3,
-              2
+              4,
+              6
             ]
           ],
-          "frameMs": 500
+          "frameMs": 500,
+          "joinWith": [],
+          "joinEdge": true
         }
       },
       "structures": {

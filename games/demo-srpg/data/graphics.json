@@ -61,34 +61,43 @@
     "mountain": {
       "sheet": "tiles",
       "cell": [
-        0,
-        1
+        4,
+        0
       ]
     },
     "water": {
       "sheet": "tiles",
-      "frames": [
+      "join": [
         [
           0,
-          3
+          10
         ],
         [
-          1,
-          3
+          4,
+          10
         ]
       ],
-      "frameMs": 500
+      "frameMs": 500,
+      "joinWith": [
+        "bridge"
+      ],
+      "joinEdge": true
     },
     "bridge": {
       "sheet": "tiles",
       "join": [
-        4,
-        4
+        [
+          0,
+          14
+        ],
+        [
+          4,
+          14
+        ]
       ],
-      "joinWith": [
-        "plain",
-        "forest",
-        "mountain"
+      "frameMs": 500,
+      "joinExcept": [
+        "water"
       ],
       "joinEdge": false
     }
@@ -232,34 +241,43 @@
         "mountain": {
           "sheet": "tiles_parchment",
           "cell": [
-            0,
-            1
+            4,
+            0
           ]
         },
         "water": {
           "sheet": "tiles_parchment",
-          "frames": [
+          "join": [
             [
               0,
-              3
+              10
             ],
             [
-              1,
-              3
+              4,
+              10
             ]
           ],
-          "frameMs": 500
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
         },
         "bridge": {
           "sheet": "tiles_parchment",
           "join": [
-            4,
-            4
+            [
+              0,
+              14
+            ],
+            [
+              4,
+              14
+            ]
           ],
-          "joinWith": [
-            "plain",
-            "forest",
-            "mountain"
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
           ],
           "joinEdge": false
         }
