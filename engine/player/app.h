@@ -33,6 +33,8 @@ class PlayerApp : public App, public SceneHost {
   GameSession* session() override { return session_.get(); }
   const Sprites* sprites() const override { return session_ && sprites_.any() ? &sprites_ : nullptr; }
   IsoTiles* isoTiles() override { return &isoTiles_; }
+  Renderer3D& renderer3d() override;
+  Show3D& show3d() override { return show3d_; }
   Renderer& renderer() override { return *renderer_; }
   Settings& settings() override { return settings_; }
   const std::vector<GameEntry>& games() const override { return games_; }
@@ -85,6 +87,8 @@ class PlayerApp : public App, public SceneHost {
   std::unique_ptr<GameSession> session_;
   IsoTiles isoTiles_;  // released with sprites_
   Sprites sprites_;  // textures of session_'s art sheets; released whenever session_ goes
+  std::unique_ptr<Renderer3D> r3d_;  // before scene_: scenes free their 3D things when they end
+  Show3D show3d_;                    // released with sprites_
   std::unique_ptr<Scene> scene_;
   std::vector<GameEntry> games_;
   std::string gameId_;

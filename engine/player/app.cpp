@@ -6,6 +6,8 @@
 #include "core/base/log.h"
 #include "scene_game.h"
 #include "scene_home.h"
+#include "gfx3d/soft3d.h"
+#include "scene_test3d.h"
 #include "scene_options.h"
 #include "scene_select.h"
 
@@ -15,6 +17,13 @@ PlayerApp::PlayerApp(const Args& args) : args_(args) {}
 
 // Last chance to keep changes when the window is closed or the process ends normally.
 PlayerApp::~PlayerApp() { flushSettings(); }
+
+// The software backend works on every platform; a faster one for the
+// platform takes its place here when there is one.
+Renderer3D& PlayerApp::renderer3d() {
+  if (!r3d_) r3d_.reset(new SoftRenderer3D());
+  return *r3d_;
+}
 
 bool PlayerApp::start(std::string& err) {
   if (!args_.input.empty() && !script_.parse(args_.input, args_.inputInterval, err)) return false;
@@ -68,7 +77,8 @@ void PlayerApp::onStart(Renderer& r) {
   games_ = discoverGames(args_.gamesDir, warning);
   if (notice_.empty()) notice_ = warning;
   findSavesFolder();
-  if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
+  if (args_.test3d) { applyLauncherLook(); scene_.reset(new Test3DScene(*this)); }
+  else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
 }
@@ -166,6 +176,7 @@ void PlayerApp::startBattle(const std::string& mapId) {
 void PlayerApp::dropSession() {
   if (renderer_) sprites_.release(*renderer_);
   if (renderer_) isoTiles_.release(*renderer_);
+  if (renderer_) show3d_.release(*renderer_);
   session_.reset();
 }
 

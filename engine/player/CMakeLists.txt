@@ -29,7 +29,7 @@ file(GLOB BACKEND_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/${OT
 add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
 # engine/ for "core/..." and "platform/..."; engine/player for the player's own "battle/..." "ui/...".
 target_include_directories(ote-player PRIVATE ${CMAKE_SOURCE_DIR}/engine ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ote-player PRIVATE ote_core)
+target_link_libraries(ote-player PRIVATE ote_core ote_gfx3d)
 if(NOT EMSCRIPTEN)
   if(OTE_PLATFORM STREQUAL "sdl3")
     target_link_libraries(ote-player PRIVATE SDL3::SDL3)

@@ -81,7 +81,10 @@ goal (demos only exercise features).
       power-of-two textures, CPU skinning, glTF models.
       Build order: d1 2D isometric (DONE 2026-11-14, contract:
       docs/VIEWS.md, with a Heights tool in the map editor); d2 the 3D
-      drawing layer; d3 3D isometric; d4 full 3D.
+      drawing layer (first part DONE 2026-11-14, contract:
+      docs/RENDER3D.md: interface, software backend that runs everywhere,
+      glTF loading, test scene `--test-3d`; still to do: the OpenGL ES 3 /
+      WebGL 2 backend, skins and animation); d3 3D isometric; d4 full 3D.
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,
       campaign layer).

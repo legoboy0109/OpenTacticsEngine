@@ -127,6 +127,15 @@ void SdlRenderer::destroyTexture(TextureId id) {
   images_[(size_t)id - 1] = nullptr;
 }
 
+void SdlRenderer::updateTexture(TextureId id, const uint8_t* rgba) {
+  if (!rgba || id < 1 || (size_t)id > images_.size() || !images_[(size_t)id - 1]) return;
+  SDL_Texture* t = images_[(size_t)id - 1];
+  float fw = 0, fh = 0;
+  SDL_GetTextureSize(t, &fw, &fh);
+  int w = (int)fw;
+  if (!SDL_UpdateTexture(t, nullptr, rgba, w * 4)) OTE_ERROR("updateTexture: cannot upload pixels: %s", SDL_GetError());
+}
+
 void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
                               Color mod) {
   if (id < 1 || (size_t)id > images_.size() || !images_[(size_t)id - 1] || sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) return;

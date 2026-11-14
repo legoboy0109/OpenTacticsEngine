@@ -196,14 +196,29 @@ style choice, both real templates ship an Isometric style. Verified:
 them), API 250, editor unit 274, e2e 185 (+18 skipped screenshot specs),
 webtest Chromium 92 / Firefox 25.
 
+## The 3D drawing layer (2026-11-14)
+
+Contract: docs/RENDER3D.md. `engine/gfx3d/` (library `ote_gfx3d`):
+`render3d.h` (the interface), `math3d.h`, `soft3d.*` (software backend,
+the reference), `shapes.*`, `model*.{h,cpp}` (glTF loader). Player:
+`PlayerApp::renderer3d()` owns the backend, `show3d.*` puts the picture on
+screen (`Renderer::updateTexture`), `model_view.*` uploads and draws a
+model, `scene_test3d.*` is the test scene (`--test-3d`). Tests:
+`tests/test_soft3d.cpp`, `tests/test_model.cpp`, webtest suite `render3d`.
+Nothing in a game uses it yet: `viewSupported` (views.h) still offers only
+top-down and isometric.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
-terrain and c saving are done; of d (kinds of view) the 2D isometric part
-is done. Next: d2, the 3D drawing layer. Design it before writing code:
-an engine-owned interface first (meshes, textures, camera, fixed
-materials, one sun light + ambient, CPU skinning), then the OpenGL ES 3 /
-WebGL 2 backend, then glTF loading. Nothing in game data may name a
+terrain and c saving are done; of d (kinds of view) 2D isometric and the
+first part of d2 (3D layer: interface, software backend, glTF loading) are
+done. Next, in this order unless the owner says otherwise: d3 3D isometric
+on the software backend (map blocks from heights via `addBlock`, rotating
+camera in quarter turns, picking through the projection, units as standing
+pictures or models per game); the OpenGL ES 3 / WebGL 2 backend (needs the
+2D drawing moved onto the same GL context); skins and animation for
+models; d4 full 3D. Nothing in game data may name a
 graphics API or carry shader code (console ports must be able to
 implement the interface). Then items,
 story events and dialogue, economy options, sound and music.

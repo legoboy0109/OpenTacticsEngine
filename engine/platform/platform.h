@@ -78,6 +78,9 @@ class Renderer {
   // alive when the renderer goes away is freed with it.
   virtual TextureId createTexture(const uint8_t* rgba, int width, int height) = 0;
   virtual void destroyTexture(TextureId id) = 0;
+  // Replaces all pixels of a texture with a picture of the same size (a
+  // picture that changes every frame, like the software 3D layer's).
+  virtual void updateTexture(TextureId id, const uint8_t* rgba) = 0;
   // Draws part of a texture (sx,sy,sw,sh in texture pixels) into a rectangle
   // in logical pixels, alpha blended. `mod` multiplies colour and alpha
   // (white = as is). Unknown ids draw nothing.
