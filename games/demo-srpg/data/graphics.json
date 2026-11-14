@@ -409,6 +409,105 @@
         }
       }
     },
+    "full-3d": {
+      "terrain": {
+        "plain": {
+          "sheet": "tiles",
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "forest": {
+          "sheet": "tiles",
+          "cell": [
+            3,
+            0
+          ]
+        },
+        "mountain": {
+          "sheet": "tiles",
+          "cell": [
+            4,
+            0
+          ]
+        },
+        "water": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              10
+            ],
+            [
+              4,
+              10
+            ]
+          ],
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
+        },
+        "bridge": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              14
+            ],
+            [
+              4,
+              14
+            ]
+          ],
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
+          ],
+          "joinEdge": false
+        }
+      },
+      "units": {
+        "lord": {
+          "model": "models/lord.glb"
+        },
+        "cavalier": {
+          "model": "models/cavalier.glb"
+        },
+        "archer": {
+          "model": "models/archer.glb"
+        },
+        "fighter": {
+          "model": "models/fighter.glb"
+        },
+        "knight": {
+          "model": "models/knight.glb"
+        },
+        "soldier": {
+          "model": "models/soldier.glb"
+        },
+        "pegasus": {
+          "model": "models/pegasus.glb"
+        }
+      },
+      "structures": {
+        "fort": {
+          "model": "models/fort.glb"
+        }
+      }
+    },
     "isometric": {
       "terrain": {
         "plain": {

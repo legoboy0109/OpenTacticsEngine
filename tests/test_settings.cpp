@@ -89,7 +89,8 @@ TEST(demo_styles_load_with_terrain_recolors) {
   bool ok = loadGame(ote_test::sourceDir() + "/games/demo-economy", db, err);
   if (!ok) std::printf("  %s\n", err.c_str());
   CHECK(ok);
-  CHECK_EQ((int)db.styles.size(), 4);
+  CHECK_EQ((int)db.styles.size(), 5);
+  CHECK(db.styles[4].view == StyleView::Full3D);
   CHECK(db.styles[3].view == StyleView::Isometric3D);
   CHECK_STR(db.styles[0].id, "classic");
   CHECK(db.styles[2].view == StyleView::Isometric);

@@ -10,7 +10,8 @@ TEST(game_info_reads_demo_launcher_fields) {
   CHECK_STR(gi.name, "Emblem Demo");
   CHECK(!gi.description.empty());
   CHECK(gi.mapCount >= 1);
-  CHECK_EQ((int)gi.styles.size(), 4);
+  CHECK_EQ((int)gi.styles.size(), 5);
+  CHECK(gi.styles[4].view == StyleView::Full3D);
   CHECK(gi.styles[3].view == StyleView::Isometric3D);
   CHECK(gi.styles[2].view == StyleView::Isometric);
   CHECK_STR(gi.styles[0].id, "classic");

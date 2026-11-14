@@ -9,7 +9,8 @@
       "terrainColors": { "plain": "#2f4f3a", "road": "#55585f", "forest": "#1d3a2a", "mountain": "#4a4038", "sea": "#101a40" },
       "structureColors": { "city": "#6a6a78", "factory": "#5a5a80", "hq": "#8a7a30" } },
     { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" },
-    { "id": "isometric-3d", "name": "3D Isometric", "view": "isometric-3d", "background": "#161a24" }
+    { "id": "isometric-3d", "name": "3D Isometric", "view": "isometric-3d", "background": "#161a24" },
+    { "id": "full-3d", "name": "Full 3D", "view": "3d", "background": "#161a24" }
   ],
   "view": { "width": 480, "height": 270, "tileSize": 24 },
 

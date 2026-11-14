@@ -234,7 +234,8 @@ def make_game(root, repo):
 
     # Styles with the isometric kind of view start without any art, so they get a full set of their own.
     iso_ids = [s['id'] for s in game_styles if s.get('view') == 'isometric']
-    iso3d_ids = [s['id'] for s in game_styles if s.get('view') == 'isometric-3d']
+    # Both 3D kinds (3D isometric and full 3D) take the same art.
+    iso3d_ids = [s['id'] for s in game_styles if s.get('view') in ('isometric-3d', '3d')]
     iso_units = None
     if iso_ids:
         iso.terrain_sheet().image().save(os.path.join(art_dir, 'iso_tiles.png'))
