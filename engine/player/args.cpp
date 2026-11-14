@@ -11,12 +11,13 @@ const char* usageText() {
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
-         "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N]\n"
+         "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N] [--test-3d]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
          "saves: Continue save + 5 slots per game (docs/SAVES.md); headless and --no-settings runs save nothing\n"
          "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
+         "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "input tokens: up down left right confirm cancel menu next prev wait wait:N tap:X:Y\n";
 }
 
@@ -54,6 +55,7 @@ Args parseArgs(int argc, char** argv) {
     if (!strcmp(arg, "--help") || !strcmp(arg, "-h")) a.help = true;
     else if (!strcmp(arg, "--autoplay")) a.autoplay = true;
     else if (!strcmp(arg, "--headless")) a.headless = true;
+    else if (!strcmp(arg, "--test-3d")) a.test3d = true;
     else if (!strcmp(arg, "--no-settings")) a.noSettings = true;
     else if (!strcmp(arg, "--no-saving")) a.noSaving = true;
     else if (!strcmp(arg, "--continue")) a.continueSave = true;

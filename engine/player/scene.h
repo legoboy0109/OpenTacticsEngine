@@ -11,6 +11,7 @@
 #include "battle/iso_tiles.h"
 #include "battle/sprites.h"
 #include "saves.h"
+#include "show3d.h"
 
 namespace ote {
 
@@ -31,6 +32,11 @@ class SceneHost {
   virtual GameSession* session() = 0;  // null until a game is loaded
   virtual const Sprites* sprites() const = 0;  // art textures of the loaded game (null = none)
   virtual IsoTiles* isoTiles() = 0;            // pictures the isometric view makes (freed with the game session)
+  // The 3D drawing layer (docs/RENDER3D.md), made on first use; it outlives
+  // every scene, so a scene frees its own meshes and textures when it ends.
+  // show3d() puts the finished 3D picture on the screen.
+  virtual Renderer3D& renderer3d() = 0;
+  virtual Show3D& show3d() = 0;
   virtual Renderer& renderer() = 0;     // for measuring text outside draw()
   virtual Settings& settings() = 0;     // options + remembered UI state (saved by the App)
   virtual const std::vector<GameEntry>& games() const = 0;

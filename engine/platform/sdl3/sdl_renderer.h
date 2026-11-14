@@ -32,6 +32,7 @@ class SdlRenderer : public Renderer {
 
   TextureId createTexture(const uint8_t* rgba, int width, int height) override;
   void destroyTexture(TextureId id) override;
+  void updateTexture(TextureId id, const uint8_t* rgba) override;
   void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
                    Color mod = Color(255, 255, 255)) override;
 
