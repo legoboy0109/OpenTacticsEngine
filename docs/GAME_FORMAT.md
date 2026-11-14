@@ -263,6 +263,10 @@ is the default. A game without a `styles` list has one style, `default`.
 ]
 ```
 
+A style also has a kind of view (`"view"`: top-down by default, or
+`"isometric"`; `"isometric-3d"` and `"3d"` are reserved for the 3D kinds), with
+optional sizes under `"isometric"`: see docs/VIEWS.md.
+
 Every key except `id` is optional. These keys recolor the placeholder
 graphics (`structureColors` does the same for structure blocks, by structure
 id, like `terrainColors` does for terrain). Real art (sheets, tiles, sprites) lives in the optional

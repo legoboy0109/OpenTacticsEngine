@@ -78,6 +78,8 @@ units do, drawn across their whole footprint.
   `sides`; `variants` and `join` are not allowed). With `sides`, the look of the
   structure's current owner is used (neutral structures use the base look).
 - `styles.<style id>` overrides entries for one visual style of `game.json`.
+  A style whose kind of view is not top-down inherits nothing and needs its
+  own pictures, drawn by other rules: docs/VIEWS.md "Art".
   `null` removes the art for that style (placeholder look). Entries not
   mentioned are inherited.
 
