@@ -5,6 +5,7 @@
 #include <ctime>
 
 #include "core/battle/save.h"
+#include "core/campaign/campaign_save.h"
 #include "platform/platform.h"
 
 namespace ote {
@@ -54,8 +55,12 @@ bool parseFile(const std::string& path, const std::string& gameId, Json& root, S
     info = unusable("This save belongs to another game");
     return false;
   }
-  if (!root["map"].isString() || !root["round"].isNumber() || !root["battle"].isObject() ||
-      !root["dataHash"].isString()) {
+  const bool campaign = isCampaignSave(root);
+  // A campaign save has a round and a battle only while a battle is under way.
+  const bool inBattle = campaign && root.has("battle");
+  if (!root["map"].isString() || !root["dataHash"].isString() ||
+      (!campaign && (!root["round"].isNumber() || !root["battle"].isObject())) ||
+      (campaign && (!root["playthrough"]["phase"].isString() || (inBattle && !root["round"].isNumber())))) {
     info = unusable("The file is damaged");
     return false;
   }
@@ -63,7 +68,13 @@ bool parseFile(const std::string& path, const std::string& gameId, Json& root, S
   info.state = SaveInfo::Ok;
   info.mapId = root["map"].asString();
   info.mapName = root["mapName"].asString(info.mapId);
-  info.round = root["round"].asInt();
+  info.round = inBattle || !campaign ? root["round"].asInt() : 0;
+  info.campaign = campaign;
+  if (campaign) {
+    info.inBattle = inBattle;
+    info.chapterName = root["chapterName"].asString("");
+    info.phase = root["playthrough"]["phase"].asString();
+  }
   info.savedAt = (long long)root["savedAt"].asNumber(0);
   hash = root["dataHash"].asString();
   return true;
@@ -85,7 +96,13 @@ SaveInfo SaveStore::inspect(int slot, const Database* db, const std::string& gam
   SaveInfo info;
   std::string hash;
   if (!parseFile(path(slot), gameId, root, info, hash)) return info;
-  if (db) {
+  if (db && info.campaign) {  // judged by the campaign's own rules (version, game, hash over every chapter)
+    std::string reason;
+    if (!campaignSaveUsable(*db, gameId, root, reason)) {
+      info.state = SaveInfo::Unusable;
+      info.reason = reason;
+    }
+  } else if (db) {
     if (db->findMap(info.mapId) < 0) {
       info.state = SaveInfo::Unusable;
       info.reason = "Its map is no longer in this game";
@@ -111,6 +128,7 @@ bool SaveStore::read(int slot, const Database& db, const std::string& gameId, Sa
   out.info = info;
   out.mapId = info.mapId;
   out.battle = root["battle"];
+  out.root = root;
   return true;
 }
 

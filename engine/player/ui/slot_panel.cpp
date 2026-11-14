@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "campaign/campaign_logic.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -11,8 +12,10 @@ constexpr int kPad = 8;
 const Color kGreyed(140, 143, 165), kReason(225, 150, 130);
 }  // namespace
 
-void SlotPanel::open(Mode mode, const std::vector<SaveInfo>& slots, const std::string& loadWarning) {
+void SlotPanel::open(Mode mode, const std::vector<SaveInfo>& slots, const std::string& loadWarning,
+                     bool warnOnlyForCampaign) {
   open_ = true;
+  warnOnlyForCampaign_ = warnOnlyForCampaign;
   mode_ = mode;
   slots_ = slots;
   slots_.resize(SaveStore::kSlots);
@@ -77,7 +80,7 @@ SlotPanel::Result SlotPanel::activate(int row) {
   }
   if (s.state != SaveInfo::Ok) return None;  // greyed out: the reason is on screen
   picked_ = n;
-  if (loadWarning_.empty()) return Picked;
+  if (loadWarning_.empty() || (warnOnlyForCampaign_ && !s.campaign)) return Picked;
   pending_ = row;
   confirm_.open("Load slot " + std::to_string(n) + "? " + loadWarning_, "Load", "Cancel");
   return None;
@@ -132,9 +135,10 @@ void SlotPanel::draw(Renderer& r) {
     if (s.state == SaveInfo::Empty) {
       label += "Empty";
     } else {
-      label += s.mapName.empty() ? "Unusable save" : s.mapName;
+      std::string title = saveTitle(s);  // the map's name; a campaign save shows its chapter's
+      label += title.empty() ? "Unusable save" : title;
       if (s.state == SaveInfo::Ok) {
-        detail = "Turn " + std::to_string(s.round);
+        detail = saveDetail(s);  // "Turn N", or where a campaign save stands between battles
         std::string when = formatSavedAt(s.savedAt);
         if (!when.empty()) detail += " - " + when;
       } else {

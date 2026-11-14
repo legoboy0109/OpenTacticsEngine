@@ -11,13 +11,15 @@ const char* usageText() {
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
-         "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N] [--test-3d]\n"
+         "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N | --campaign] [--test-3d]\n"
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
          "saves: Continue save + 5 slots per game (docs/SAVES.md); headless and --no-settings runs save nothing\n"
          "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
+         "campaign: --campaign starts a New game of --game's campaign; --map ID starts that map as a free battle (also in a\n"
+         "       campaign game, whatever its freeBattles says) and never touches campaign saves.\n"
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
          "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
@@ -66,6 +68,7 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--no-settings")) a.noSettings = true;
     else if (!strcmp(arg, "--no-saving")) a.noSaving = true;
     else if (!strcmp(arg, "--continue")) a.continueSave = true;
+    else if (!strcmp(arg, "--campaign")) a.campaign = true;
     else if (!strcmp(arg, "--saves")) { if (value(v)) a.saves = v; }
     else if (!strcmp(arg, "--games")) { if (value(v)) a.gamesDir = v; }
     else if (!strcmp(arg, "--assets")) { if (value(v)) a.assetsDir = v; }
@@ -115,7 +118,9 @@ Args parseArgs(int argc, char** argv) {
     if (!a.error.empty()) break;
   }
   if (!a.error.empty()) return a;
-  if (a.continueSave && a.loadSlot > 0) a.error = "use either --continue or --load-slot, not both";
+  if (a.campaign && (a.game.empty() || !a.map.empty() || a.continueSave || a.loadSlot > 0))
+    a.error = "--campaign needs --game and cannot be combined with --map, --continue or --load-slot";
+  else if (a.continueSave && a.loadSlot > 0) a.error = "use either --continue or --load-slot, not both";
   else if ((a.continueSave || a.loadSlot > 0) && a.game.empty()) a.error = "--continue and --load-slot need --game";
   if (a.scale3d > 1 && !a.headless) a.error = "--3d-scale only works with --headless (a real window has its own size)";
   // Headless runs are tests: deterministic time unless told otherwise.

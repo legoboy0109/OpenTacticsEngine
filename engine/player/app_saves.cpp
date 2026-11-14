@@ -61,9 +61,20 @@ bool PlayerApp::resumeSave(int slot, std::string& err) {
   }
   SaveFile file;
   if (!store.read(slot, db, gameId_, file, err)) return fail();
+  const std::string which = slot == 0 ? "the Continue save" : "slot " + std::to_string(slot);
+  if (file.info.campaign) {
+    if (!resumeCampaignSave(file, err)) return fail();
+    OTE_INFO("resumed %s of '%s' (campaign, chapter %s, %s)", which.c_str(), gameId_.c_str(),
+             file.info.chapterName.c_str(), file.info.phase.c_str());
+    later([this] {
+      scene_.reset();
+      applyGameLook();
+      doCampaignNext();  // by phase: a scene, the battle (resumed or started), or an end screen
+    });
+    return true;
+  }
   if (!session_->resume(file.mapId, file.battle, err)) return fail();
-  OTE_INFO("resumed %s of '%s' (map %s, turn %d)", slot == 0 ? "the Continue save" : ("slot " + std::to_string(slot)).c_str(),
-           gameId_.c_str(), file.mapId.c_str(), file.info.round);
+  OTE_INFO("resumed %s of '%s' (map %s, turn %d)", which.c_str(), gameId_.c_str(), file.mapId.c_str(), file.info.round);
   later([this] {
     scene_.reset();  // the old battle (if any) goes first; the new scene rebuilds its view from the state
     applyGameLook();

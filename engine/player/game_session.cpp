@@ -17,6 +17,7 @@ bool GameSession::load(const std::string& gameDir, std::string& err) {
 bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string& err) {
   battle = Battle();
   startEvents.clear();
+  campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
   if (!battle.init(db, map, formulas, seed, err)) return false;
   battle.start(startEvents);
@@ -37,6 +38,7 @@ bool GameSession::resume(const std::string& mapId, const Json& state, std::strin
   map = newMap;
   battle = fresh;
   startEvents.clear();
+  campaign.reset();  // a plain save is a free battle
   return true;
 }
 

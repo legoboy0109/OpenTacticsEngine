@@ -6,6 +6,7 @@
 
 #include "battle/battle_scene.h"
 #include "ui/chrome.h"
+#include "ui/dialogue_portrait.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -13,19 +14,7 @@ namespace ote {
 // ---- Dialogue
 
 PortraitArt BattleScene::portraitFor(const std::string& id) const {
-  PortraitArt art;
-  const Sprites* sprites = host_.sprites();
-  const GraphicsSet* set = session_.db.graphics.set(styleIdx_);
-  if (id.empty() || !set || !sprites) return art;
-  const Look* look = set->portrait(id);  // a missing portrait is fine: the box just has no picture
-  if (!look || !sprites->has(*look) || look->cells.empty()) return art;
-  const SheetDef& sh = session_.db.graphics.sheets[(size_t)look->sheet];
-  art.tex = sprites->texture(look->sheet);
-  art.sx = look->cells[0].col * sh.cellW;
-  art.sy = look->cells[0].row * sh.cellH;
-  art.sw = sh.cellW;
-  art.sh = sh.cellH;
-  return art;  // (the sheet's "smooth" flag is not honoured: the 2D renderer samples every texture the same way)
+  return portraitArt(session_.db, host_.sprites(), styleIdx_, id);  // a missing portrait is fine: no picture
 }
 
 void BattleScene::dialogueResult(DialogueBox::Result res) {

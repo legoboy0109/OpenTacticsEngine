@@ -49,7 +49,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them), the option layering
   # and the 3D picture sizing are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
-                 engine/player/saves.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
+                 engine/player/saves.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
                  engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp
                  engine/player/show3d.cpp)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d)
