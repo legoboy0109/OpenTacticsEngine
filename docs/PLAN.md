@@ -83,8 +83,8 @@ goal (demos only exercise features).
       docs/VIEWS.md, with a Heights tool in the map editor); d2 the 3D
       drawing layer (first part DONE 2026-11-14, contract:
       docs/RENDER3D.md: interface, software backend that runs everywhere,
-      glTF loading, test scene `--test-3d`; still to do: the OpenGL ES 3 /
-      WebGL 2 backend); d3 3D isometric (first part
+      glTF loading, test scene `--test-3d`; the OpenGL ES 3 / WebGL 2 /
+      OpenGL 3.3 backend DONE 2026-11-14); d3 3D isometric (first part
       DONE 2026-11-14: blocks, sprites, turning camera, editor; still to
       do: nothing; units and structures can be animated glTF models, DONE
       2026-11-14, docs/GRAPHICS.md "Models"); d4 full 3D.

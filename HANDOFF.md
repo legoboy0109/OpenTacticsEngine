@@ -52,6 +52,7 @@ run (does not need the player target):
 cmake -S . -B build -G Ninja -DOTE_BUILD_PLAYER=OFF && cmake --build build
 ./build/ote-editor            # from the repo root; http://127.0.0.1:8765/
 python3 tests/editor_api_test.py ./build/ote-editor .   # also ctest "editor_api"
+python3 tests/render3d_backends_test.py ./build/engine/player/ote-player .   # OpenGL vs software pictures
 ```
 
 Notes: all /api handlers run under one mutex (engine core is not
@@ -238,10 +239,11 @@ Structures screens.
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
 terrain and c saving are done; of d (kinds of view) 2D isometric, the 3D
-layer on its software backend, glTF models with animation and 3D isometric
-are done. Next, in this order unless the owner says otherwise: the OpenGL
-ES 3 / WebGL 2 backend (needs the 2D drawing moved onto the same GL
-context); d4 full 3D (free camera, 3D map; battle scenes later). Nothing in game data may name a
+layer (software backend and the OpenGL ES 3 / WebGL 2 / OpenGL 3.3 one,
+docs/RENDER3D.md "OpenGL backend": own GL context, picture read back, so
+the 2D renderer is untouched; `--3d auto|software|hardware`), glTF models
+with animation and 3D isometric are done. Next, unless the owner says
+otherwise: d4 full 3D (free camera, 3D map; battle scenes later). Nothing in game data may name a
 graphics API or carry shader code (console ports must be able to
 implement the interface). Then items,
 story events and dialogue, economy options, sound and music.
