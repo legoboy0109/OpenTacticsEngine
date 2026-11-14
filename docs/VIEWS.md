@@ -25,7 +25,8 @@ the same in every kind of view.
 
 Status: top-down and 2D isometric are built. `isometric-3d` and `3d` are
 accepted in game files already, so a game can be prepared for them; no
-player draws them yet (see "What the player offers").
+player draws them yet (see "What the player offers"). The 3D drawing layer
+they will use exists (docs/RENDER3D.md).
 
 ## Data (game.json `styles`)
 
