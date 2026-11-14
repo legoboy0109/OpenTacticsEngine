@@ -157,11 +157,29 @@ node run.mjs --only embed --build /path/to/web/output
 - Nothing is published/pushed anywhere without the owner's explicit yes.
   No license chosen yet (owner decision, needed before publishing).
 
+## In progress: structures (2026-11-14)
+
+Contract: docs/STRUCTURES.md (owner decisions at the top). Editor spec:
+docs/EDITOR_UI.md "Structures (fourth slice)". Owner's feature order after
+this: docs/PLAN.md item 3 (a-h).
+
+Because this moves settings out of terrain, `main` stays on the old format
+until ALL parts work together. Integration happens on branch `structures`
+(a worktree under `.claude/worktrees/structures`, own build folders):
+1. engine package (core rules, player, art, shipped games converted) and
+2. helper package (`structures` section) are merged there first, verified
+   (`ote_tests`, API test, webtest, sim, screenshots); then
+3. the editor UI package is built on top of that branch; then
+4. the branch is merged into `main` in one go, everything re-run.
+If picking this up cold: `git branch -a` and `git worktree list` show how
+far it got; agent branches are named `worktree-agent-*`.
+
 ## Next concrete step
 
-Owner feedback on the Art screens and starter art, then the next roadmap
-item in docs/PLAN.md (owner picks: sound, save/resume, events/dialogue,
-speed turns, height rules, economy depth, hex/isometric). Small leftovers:
-README; heights editing in the map editor; arrow-key navigation inside the
-editor's option groups; "+N Funds" toast overlap; night look does not
-darken unit sprites; editor paint stroke with art ~41 ms on 64 x 64.
+Finish structures (above). Then, in the owner's order: animated terrain
+that joins, saving, alternative visual styles (ask the owner what it should
+cover), items, story events and dialogue, economy options, sound and music.
+Small leftovers: README; heights editing in the map editor; arrow-key
+navigation inside the editor's option groups; "+N Funds" toast overlap;
+night style does not darken unit sprites; editor paint stroke with art
+~41 ms on 64 x 64.

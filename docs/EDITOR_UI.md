@@ -353,3 +353,87 @@ too-large image error, set the grid, assign each kind to a terrain and a
 unit, per-side and per-look pictures, undo/redo, remove with users, unused
 file delete, the canvas shows the art (pixel checks), Play shows the art in
 the real player, phone layout. New screenshots continue the numbering.
+
+## Structures (fourth slice)
+
+Contract for data and rules: docs/STRUCTURES.md. Helper: the `structures`
+section of GET/PUT project (docs/EDITOR_API.md). Wording is a starting
+point; the owner decides final names and layout.
+
+Words: the UI says **structure** (the kind: City, Fort) and, on a map,
+"a City" / "this structure". Help text explains it once: "Structures stand
+on top of the ground: cities, forts, factories, gates. The ground under
+them stays what it is."
+
+### Document model
+- `structures` joins the document (list, like `terrain`). `null` from the
+  helper = none yet; the first edit creates the list.
+- Maps gain `structures: [{ type, x, y, side? }]`; the `owners` list is
+  gone. The map grid model owns placing, moving, removing, overlap and
+  bounds checks, and resize (structures that no longer fit are listed in
+  the crop warning, like units, and removed on confirm).
+- Deleting a structure kind asks first when maps use it (lists the maps and
+  counts) and removes the placed ones, its pictures and style overrides in
+  the same undo step. Deleting a unit removes it from structures' "can
+  build" lists; deleting a movement type or a resource removes it from
+  structures' movement overrides / income; deleting a side on a map makes
+  that side's structures there neutral. Duplicating copies its pictures.
+- Problems in `data/structures.json` link to the Structures section.
+- **Old projects**: when a project is opened whose terrain still has the
+  moved settings (`capturePoints`, `income`, `produces`, tag `hq`) or whose
+  maps still have `owners`, the editor offers a one-click **Convert**
+  (explained in plain words, one undo step): each such terrain kind gets a
+  structure kind with the same name, colour, letter and those settings;
+  every square of that terrain on every map gets that structure (owner
+  taken from `owners`); the terrain keeps its ground rules but loses the
+  moved settings. Until converted, the engine reports the problem as usual.
+
+### Structures section (sidebar, between Terrain and Art)
+List + form, same pattern as Terrain.
+- Name, colour, map letter.
+- **Size**: width and height in squares (1 to 8), with a small footprint
+  preview.
+- **Moving through it**: per movement type a choice "Same as the ground" /
+  a cost / "Cannot enter".
+- **Numbers used by combat maths**: per number (the same keys Terrain
+  offers) "Same as the ground" or a value.
+- "Can be captured" (points), income per resource, "units can be built
+  here", "counts as headquarters"; each shown only when the matching rule
+  feature is on, as on the old Terrain form. Other tags under Advanced.
+- **Picture** card (the existing component): kinds One piece / Animation;
+  "A different picture for an owner" per side id; per-style overrides. The
+  preview shows the structure on a patch of the first terrain at its real
+  footprint, with an owner frame, including how far it sticks out above.
+
+### Terrain form
+Loses "can be captured", income, "units can be built here" and "counts as
+headquarters", with one line pointing to Structures.
+
+### Map editor
+- The **Owners** tool is replaced by **Structures** (key O stays): a
+  palette of structure kinds plus an owner choice (Nobody or a side).
+  Click places the chosen kind with its top-left corner on the square (a
+  ghost of the footprint follows the pointer and turns red where it would
+  not fit or would overlap); clicking a placed structure selects it
+  (panel: kind, owner, position, Remove); dragging moves it; Delete removes
+  it. Placing never changes the terrain underneath.
+- Painting terrain under a structure is allowed and leaves the structure.
+- The canvas draws structures per "Drawing" in docs/STRUCTURES.md
+  (placeholder block or picture, owner frame around the footprint, combined
+  row sorting with units, tall pictures).
+- Map checks ("things to check"): a unit standing where it cannot enter is
+  judged with the structure's movement costs; a side with the lost-HQ rule
+  on and no headquarters; structures of a kind that can build units but
+  belong to nobody are fine (neutral).
+- The Select tool shows the ground AND the structure of a square, with the
+  effective movement and numbers.
+
+### Tests and screenshots
+Unit tests for every model function (placing rules, overlap, bounds,
+resize, cascades, conversion of old projects, effective numbers). e2e
+against the real helper: create a structure kind of each size, set every
+field, place/move/remove/own on a map (mouse and touch), overlap refused,
+resize crop warning, cascade deletes, the conversion flow on a project
+seeded in the old format, pictures for structures, the canvas matches the
+drawing rules (pixel checks), Play shows structures and capturing one works
+in the real player, phone layout. Screenshots continue the numbering.
