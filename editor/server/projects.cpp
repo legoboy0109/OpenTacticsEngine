@@ -215,6 +215,17 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   }
   doc.set("structures", structures);
 
+  // items.json is optional too (docs/ITEMS.md): absent = null, no problem.
+  Json items;
+  {
+    fs::path ifull;
+    std::string iwhy;
+    std::error_code iec;
+    bool absent = resolveInside(dir, "data/items.json", ifull, iwhy) && !fs::exists(ifull, iec);
+    if (!absent) items = readDataList(dir, "data/items.json", "items", readProbs);
+  }
+  doc.set("items", items);
+
   Json maps, scripts;  // stay null when game.json is unusable
   if (game.isObject()) {
     maps = Json::makeObject();
