@@ -43,7 +43,8 @@ uniform vec3 uAmbient;
 uniform vec4 uParams;   // blend mode (0 solid, 1 cut-out, 2 blended), cutoff, lit, unused
 uniform vec3 uFog;      // start, 1 / (end - start), on
 out vec4 vColor;
-out vec2 vUv;
+centroid out vec2 vUv;  // centroid: with multisampling the position must stay inside the triangle,
+                        // or a tile's edge samples read the transparent padding of its sheet (dark seams)
 out float vFog;
 void main() {
   vec3 light = vec3(1.0);
@@ -64,7 +65,7 @@ void main() {
 
 const char* const kFragment = R"(
 in vec4 vColor;
-in vec2 vUv;
+centroid in vec2 vUv;
 in float vFog;
 uniform sampler2D uTex;
 uniform vec4 uParams;
@@ -161,15 +162,30 @@ bool GlRenderer3D::init(std::string& why) {
   u_.fogColor = gl_.GetUniformLocation(program_, "uFogColor");
   u_.tex = gl_.GetUniformLocation(program_, "uTex");
 
-  // One sampler per way of reading a texture: [repeat * 2 + smooth].
-  gl_.GenSamplers(4, samplers_);
-  for (int i = 0; i < 4; ++i) {
+  // What this context can take: textures up to the driver's limit (at most
+  // 4096), pictures as big as its framebuffers allow, and its multisampling.
+  GLint_ maxTex = 0, maxRb = 0, maxSamples = 0;
+  gl_.GetIntegerv(GL_MAX_TEXTURE_SIZE_, &maxTex);
+  gl_.GetIntegerv(GL_MAX_RENDERBUFFER_SIZE_, &maxRb);
+  gl_.GetIntegerv(GL_MAX_SAMPLES_, &maxSamples);
+  int tex = 1;
+  while (tex * 2 <= maxTex && tex * 2 <= 4096) tex *= 2;  // sides are powers of two
+  caps_.maxTextureSize = std::max(tex, 1024);              // every GL 3.3 / ES 3 / WebGL 2 context has at least 2048
+  caps_.fullResolution = true;
+  maxPicture_ = std::max(16, std::min(std::min(maxRb > 0 ? maxRb : 4096, maxTex > 0 ? maxTex : 4096), 4096));
+  maxSamples_ = maxSamples;
+
+  // One sampler per way of reading a texture: [mipmapped * 4 + repeat * 2 + smooth]. Hard pixels never
+  // use the smaller copies, so they exist for smooth ones only.
+  gl_.GenSamplers(8, samplers_);
+  for (int i = 0; i < 8; ++i) {
     GLint_ wrap = (i & 2) ? (GLint_)GL_REPEAT_ : (GLint_)GL_CLAMP_TO_EDGE_;
-    GLint_ filter = (i & 1) ? (GLint_)GL_LINEAR_ : (GLint_)GL_NEAREST_;
+    GLint_ mag = (i & 1) ? (GLint_)GL_LINEAR_ : (GLint_)GL_NEAREST_;
+    GLint_ min = (i & 4) ? (GLint_)GL_LINEAR_MIPMAP_LINEAR_ : mag;
     gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_WRAP_S_, wrap);
     gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_WRAP_T_, wrap);
-    gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_MIN_FILTER_, filter);
-    gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_MAG_FILTER_, filter);
+    gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_MIN_FILTER_, min);
+    gl_.SamplerParameteri(samplers_[i], GL_TEXTURE_MAG_FILTER_, mag);
   }
 
   // "No texture" is a white pixel, so the shader always samples.
@@ -184,7 +200,7 @@ bool GlRenderer3D::init(std::string& why) {
 
   // Proof that drawing into a picture and reading it back works here: clear
   // a small one to a known colour and look at it.
-  if (!target(16, 16)) {
+  if (!target(16, 16, 0)) {
     why = "a framebuffer could not be made";
     freeAll();
     return false;
@@ -218,14 +234,17 @@ void GlRenderer3D::freeAll() {
   meshes_.clear();
   textures_.clear();
   if (fbo_) gl_.DeleteFramebuffers(1, &fbo_);
+  if (msFbo_) gl_.DeleteFramebuffers(1, &msFbo_);
   if (colorTex_) gl_.DeleteTextures(1, &colorTex_);
   if (depthRb_) gl_.DeleteRenderbuffers(1, &depthRb_);
+  if (msColorRb_) gl_.DeleteRenderbuffers(1, &msColorRb_);
+  if (msDepthRb_) gl_.DeleteRenderbuffers(1, &msDepthRb_);
   if (white_) gl_.DeleteTextures(1, &white_);
-  if (samplers_[0]) gl_.DeleteSamplers(4, samplers_);
+  if (samplers_[0]) gl_.DeleteSamplers(8, samplers_);
   if (program_) gl_.DeleteProgram(program_);
-  fbo_ = colorTex_ = depthRb_ = white_ = program_ = 0;
-  samplers_[0] = samplers_[1] = samplers_[2] = samplers_[3] = 0;
-  fbW_ = fbH_ = 0;
+  fbo_ = msFbo_ = colorTex_ = depthRb_ = msColorRb_ = msDepthRb_ = white_ = program_ = 0;
+  for (GLuint_& smp : samplers_) smp = 0;
+  fbW_ = fbH_ = fbSamples_ = 0;
 }
 
 GlRenderer3D::~GlRenderer3D() {
@@ -318,7 +337,7 @@ void GlRenderer3D::destroyMesh(MeshId mesh) {
   m = Mesh();
 }
 
-Texture3DId GlRenderer3D::createTexture(const uint8_t* rgba, int width, int height, bool repeat) {
+Texture3DId GlRenderer3D::createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool mipmaps) {
   int limit = caps().maxTextureSize;
   if (!rgba || !powerOfTwo(width) || !powerOfTwo(height) || width > limit || height > limit) {
     OTE_ERROR("3D texture refused: %d x %d; each side must be a power of two up to %d", width, height, limit);
@@ -333,6 +352,7 @@ Texture3DId GlRenderer3D::createTexture(const uint8_t* rgba, int width, int heig
   t = Texture();
   t.used = true;
   t.repeat = repeat;
+  t.mipmaps = mipmaps;
   gl_.GenTextures(1, &t.id);
   gl_.ActiveTexture(GL_TEXTURE0_);
   gl_.BindTexture(GL_TEXTURE_2D_, t.id);
@@ -340,6 +360,7 @@ Texture3DId GlRenderer3D::createTexture(const uint8_t* rgba, int width, int heig
   gl_.TexParameteri(GL_TEXTURE_2D_, GL_TEXTURE_MIN_FILTER_, (GLint_)GL_NEAREST_);
   gl_.TexParameteri(GL_TEXTURE_2D_, GL_TEXTURE_MAG_FILTER_, (GLint_)GL_NEAREST_);
   gl_.TexImage2D(GL_TEXTURE_2D_, 0, (GLint_)GL_RGBA8_, width, height, 0, GL_RGBA_, GL_UNSIGNED_BYTE_, rgba);
+  if (mipmaps) gl_.GenerateMipmap(GL_TEXTURE_2D_);  // the smooth samplers then read the smaller copies too
   return (Texture3DId)(slot + 1);
 }
 
@@ -356,9 +377,11 @@ void GlRenderer3D::destroyTexture(Texture3DId texture) {
 
 // ---- frame ---------------------------------------------------------------------
 
-bool GlRenderer3D::target(int w, int h) {
-  if (fbo_ && w == fbW_ && h == fbH_) {
-    gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbo_);
+bool GlRenderer3D::target(int w, int h, int samples) {
+  if (samples > maxSamples_) samples = maxSamples_;
+  if (samples < 2 || msFailed_) samples = 0;
+  if (fbo_ && w == fbW_ && h == fbH_ && (samples == 0) == (fbSamples_ == 0)) {
+    gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbSamples_ ? msFbo_ : fbo_);
     return true;
   }
   if (!fbo_) {
@@ -371,11 +394,43 @@ bool GlRenderer3D::target(int w, int h) {
   gl_.TexParameteri(GL_TEXTURE_2D_, GL_TEXTURE_MIN_FILTER_, (GLint_)GL_NEAREST_);
   gl_.TexParameteri(GL_TEXTURE_2D_, GL_TEXTURE_MAG_FILTER_, (GLint_)GL_NEAREST_);
   gl_.TexImage2D(GL_TEXTURE_2D_, 0, (GLint_)GL_RGBA8_, w, h, 0, GL_RGBA_, GL_UNSIGNED_BYTE_, nullptr);
-  gl_.BindRenderbuffer(GL_RENDERBUFFER_, depthRb_);
-  gl_.RenderbufferStorage(GL_RENDERBUFFER_, GL_DEPTH_COMPONENT24_, w, h);
   gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbo_);
   gl_.FramebufferTexture2D(GL_FRAMEBUFFER_, GL_COLOR_ATTACHMENT0_, GL_TEXTURE_2D_, colorTex_, 0);
-  gl_.FramebufferRenderbuffer(GL_FRAMEBUFFER_, GL_DEPTH_ATTACHMENT_, GL_RENDERBUFFER_, depthRb_);
+
+  fbSamples_ = 0;
+  if (samples > 0) {
+    // Multisampled colour and depth; the finished frame is resolved into fbo_'s texture in end().
+    if (!msFbo_) {
+      gl_.GenFramebuffers(1, &msFbo_);
+      gl_.GenRenderbuffers(1, &msColorRb_);
+      gl_.GenRenderbuffers(1, &msDepthRb_);
+    }
+    gl_.GetError();  // forget earlier errors: only this block's count
+    gl_.BindRenderbuffer(GL_RENDERBUFFER_, msColorRb_);
+    gl_.RenderbufferStorageMultisample(GL_RENDERBUFFER_, samples, GL_RGBA8_, w, h);
+    gl_.BindRenderbuffer(GL_RENDERBUFFER_, msDepthRb_);
+    gl_.RenderbufferStorageMultisample(GL_RENDERBUFFER_, samples, GL_DEPTH_COMPONENT24_, w, h);
+    gl_.BindFramebuffer(GL_FRAMEBUFFER_, msFbo_);
+    gl_.FramebufferRenderbuffer(GL_FRAMEBUFFER_, GL_COLOR_ATTACHMENT0_, GL_RENDERBUFFER_, msColorRb_);
+    gl_.FramebufferRenderbuffer(GL_FRAMEBUFFER_, GL_DEPTH_ATTACHMENT_, GL_RENDERBUFFER_, msDepthRb_);
+    if (gl_.CheckFramebufferStatus(GL_FRAMEBUFFER_) == GL_FRAMEBUFFER_COMPLETE_ && gl_.GetError() == 0) {
+      fbSamples_ = samples;
+    } else {
+      msFailed_ = true;  // silently carry on without
+      OTE_INFO("3D (OpenGL): %dx multisampling not available here; drawing without", samples);
+    }
+  }
+  if (!fbSamples_) {
+    gl_.BindRenderbuffer(GL_RENDERBUFFER_, depthRb_);
+    gl_.RenderbufferStorage(GL_RENDERBUFFER_, GL_DEPTH_COMPONENT24_, w, h);
+    gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbo_);
+    gl_.FramebufferRenderbuffer(GL_FRAMEBUFFER_, GL_DEPTH_ATTACHMENT_, GL_RENDERBUFFER_, depthRb_);
+  }
+  if (fbSamples_) {  // fbo_ only receives the resolved colour: a depth buffer of an older size would make it incomplete
+    gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbo_);
+    gl_.FramebufferRenderbuffer(GL_FRAMEBUFFER_, GL_DEPTH_ATTACHMENT_, GL_RENDERBUFFER_, 0);
+  }
+  gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbSamples_ ? msFbo_ : fbo_);
   fbW_ = w;
   fbH_ = h;
   if (gl_.CheckFramebufferStatus(GL_FRAMEBUFFER_) != GL_FRAMEBUFFER_COMPLETE_) {
@@ -388,8 +443,13 @@ bool GlRenderer3D::target(int w, int h) {
 void GlRenderer3D::begin(const Frame3D& frame) {
   frame_ = frame;
   frame_.sunDir = normalize(frame.sunDir);
-  w_ = std::max(0, frame.width);
-  h_ = std::max(0, frame.height);
+  w_ = frame.renderWidth > 0 ? frame.renderWidth : std::max(0, frame.width);
+  h_ = frame.renderHeight > 0 ? frame.renderHeight : std::max(0, frame.height);
+  const int longer = std::max(w_, h_);
+  if (longer > maxPicture_) {  // over what this context's framebuffers (or the 4096 cap) allow: same picture, smaller
+    w_ = std::max(1, (int)((long long)w_ * maxPicture_ / longer));
+    h_ = std::max(1, (int)((long long)h_ * maxPicture_ / longer));
+  }
   queue_.clear();
   blended_.clear();
   for (Mesh& m : meshes_) m.queued = false;
@@ -418,7 +478,7 @@ void GlRenderer3D::flush(bool withBlended) {
     queue_.clear();
     return;
   }
-  if (!target(w_, h_)) {
+  if (!target(w_, h_, frame_.samples)) {
     if (!broken_) OTE_ERROR("3D (OpenGL): no framebuffer of %d x %d; the 3D picture is left out", w_, h_);
     broken_ = true;
     queue_.clear();
@@ -478,7 +538,7 @@ void GlRenderer3D::run(const Cmd& c) {
   else gl_.Enable(GL_CULL_FACE_);
 
   gl_.BindTexture(GL_TEXTURE_2D_, tex ? tex->id : white_);
-  gl_.BindSampler(0, samplers_[(tex && tex->repeat ? 2 : 0) + (mat.smooth ? 1 : 0)]);
+  gl_.BindSampler(0, samplers_[(tex && tex->repeat ? 2 : 0) + (mat.smooth ? 1 : 0) + (mat.smooth && tex && tex->mipmaps ? 4 : 0)]);
 
   const Mat4 mv = frame_.view * c.model, mvp = frame_.proj * mv;
   const float* mm = c.model.m;
@@ -500,10 +560,17 @@ void GlRenderer3D::end() {
   if (use.ok) flush(true);
   queue_.clear();
   blended_.clear();
-  pixels_.assign((size_t)w_ * h_ * 4, 0);
+  pixels_.resize((size_t)w_ * h_ * 4);
   if (use.ok && !broken_ && w_ > 0 && h_ > 0) {
+    if (fbSamples_) {  // resolve the multisampled frame into the texture
+      gl_.BindFramebuffer(GL_READ_FRAMEBUFFER_, msFbo_);
+      gl_.BindFramebuffer(GL_DRAW_FRAMEBUFFER_, fbo_);
+      gl_.BlitFramebuffer(0, 0, w_, h_, 0, 0, w_, h_, GL_COLOR_BUFFER_BIT_, GL_NEAREST_);
+    }
     gl_.BindFramebuffer(GL_FRAMEBUFFER_, fbo_);
     gl_.ReadPixels(0, 0, w_, h_, GL_RGBA_, GL_UNSIGNED_BYTE_, pixels_.data());
+  } else {
+    std::fill(pixels_.begin(), pixels_.end(), (uint8_t)0);
   }
   inFrame_ = false;
 }

@@ -56,7 +56,7 @@ enum : unsigned int {
   GL_TEXTURE_2D_ = 0x0DE1,
   GL_UNSIGNED_BYTE_ = 0x1401, GL_UNSIGNED_SHORT_ = 0x1403, GL_FLOAT_ = 0x1406,
   GL_RGBA_ = 0x1908, GL_RGBA8_ = 0x8058,
-  GL_NEAREST_ = 0x2600, GL_LINEAR_ = 0x2601,
+  GL_NEAREST_ = 0x2600, GL_LINEAR_ = 0x2601, GL_LINEAR_MIPMAP_LINEAR_ = 0x2703,
   GL_TEXTURE_MAG_FILTER_ = 0x2800, GL_TEXTURE_MIN_FILTER_ = 0x2801,
   GL_TEXTURE_WRAP_S_ = 0x2802, GL_TEXTURE_WRAP_T_ = 0x2803,
   GL_REPEAT_ = 0x2901, GL_CLAMP_TO_EDGE_ = 0x812F,
@@ -69,12 +69,15 @@ enum : unsigned int {
   GL_COLOR_ATTACHMENT0_ = 0x8CE0, GL_DEPTH_ATTACHMENT_ = 0x8D00,
   GL_FRAMEBUFFER_COMPLETE_ = 0x8CD5, GL_DEPTH_COMPONENT24_ = 0x81A6,
   GL_VERSION_ = 0x1F02, GL_RENDERER_ = 0x1F01,
+  GL_MAX_TEXTURE_SIZE_ = 0x0D33, GL_MAX_RENDERBUFFER_SIZE_ = 0x84E8, GL_MAX_SAMPLES_ = 0x8D57,
+  GL_READ_FRAMEBUFFER_ = 0x8CA8, GL_DRAW_FRAMEBUFFER_ = 0x8CA9,
 };
 
 // X(return type, name, parameters)
 #define OTE_GL_FUNCTIONS(X) \
   X(GLenum_, GetError, (void)) \
   X(const unsigned char*, GetString, (GLenum_)) \
+  X(void, GetIntegerv, (GLenum_, GLint_*)) \
   X(void, Viewport, (GLint_, GLint_, GLsizei_, GLsizei_)) \
   X(void, ClearColor, (GLfloat_, GLfloat_, GLfloat_, GLfloat_)) \
   X(void, Clear, (GLbitfield_)) \
@@ -115,6 +118,9 @@ enum : unsigned int {
   X(void, BindRenderbuffer, (GLenum_, GLuint_)) \
   X(void, RenderbufferStorage, (GLenum_, GLenum_, GLsizei_, GLsizei_)) \
   X(void, DeleteRenderbuffers, (GLsizei_, const GLuint_*)) \
+  X(void, RenderbufferStorageMultisample, (GLenum_, GLsizei_, GLenum_, GLsizei_, GLsizei_)) \
+  X(void, BlitFramebuffer, (GLint_, GLint_, GLint_, GLint_, GLint_, GLint_, GLint_, GLint_, GLbitfield_, GLenum_)) \
+  X(void, GenerateMipmap, (GLenum_)) \
   X(GLuint_, CreateShader, (GLenum_)) \
   X(void, ShaderSource, (GLuint_, GLsizei_, const GLchar_* const*, const GLint_*)) \
   X(void, CompileShader, (GLuint_)) \
