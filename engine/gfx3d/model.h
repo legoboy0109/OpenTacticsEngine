@@ -122,8 +122,8 @@ void skinPart(const Model3D& model, const ModelPose& pose, int node, int part, M
 // one wrapping platform/common/image.h's decodeImage. False with a reason in err.
 typedef bool (*ModelImageDecoder)(const uint8_t* data, size_t size, ModelImage& out, std::string& err);
 
-// Loads a .glb or .gltf file (the nodes of its default scene; skins and
-// animations are ignored, the model is in its rest pose). False with a
+// Loads a .glb or .gltf file (the nodes of its default scene, with their skins
+// and animations; the model itself is in its rest pose). False with a
 // plain-English reason in `err` (which does not repeat the path). Content is
 // fitted to `caps`: large textures are shrunk, large meshes split. See
 // model_gltf.cpp for what is and is not supported.

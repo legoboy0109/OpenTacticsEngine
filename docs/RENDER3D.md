@@ -66,15 +66,46 @@ split. Compressed files (Draco, meshopt), sparse accessors and files that
 point outside their own folder are refused with a plain sentence; lines,
 points and morph targets are skipped. Numbers are read byte by byte, so
 big-endian consoles load the same files. Damaged files never crash the
-loader (`tests/test_model.cpp`). Skins and animation come as a later step.
+loader (`tests/test_model.cpp`, `tests/test_model_anim_damage.cpp`).
+
+Skins and animation are loaded too, and posed on the CPU (the backend stays
+a plain mesh drawer):
+
+- `Model3D::skins`: the joint nodes and inverse bind matrices of every skin
+  a node uses. A skinned node's parts carry four joints and four weights per
+  vertex (`ModelPart::joints` / `weights`; ubyte or ushort joints, float or
+  normalised integer weights, normalised to add up to 1; all-zero weights
+  mean joint 0). Their vertices are in model space, as glTF has them, so the
+  node's own transform is not applied to them (bounds included). A primitive
+  without JOINTS_0 / WEIGHTS_0 is drawn rigid with a warning; a fifth and
+  later influence (JOINTS_1 / WEIGHTS_1) is ignored with a warning. A joint
+  that is not in the default scene, or a joint index past the skin's joints,
+  refuses the file.
+- `Model3D::clips`: one `ModelClip` per glTF animation (unnamed ones are
+  "Animation 1", "Animation 2", ...), with translation, rotation and scale
+  tracks. STEP holds, LINEAR blends, CUBICSPLINE is read as LINEAR from the
+  key values only (the tangents are dropped). Morph target (`weights`)
+  channels and channels of nodes outside the scene are skipped; so is a
+  sampler whose key times do not rise, whose counts do not match, that has no
+  keys or whose values are not numbers (with a warning). A clip left without
+  tracks is dropped.
+- `poseModel(model, clip, time, loop, pose)` fills the model-space matrix of
+  every node (no allocation beyond resizing `pose`); clip -1 or a missing
+  clip gives the rest pose. Time before the first key holds the first value,
+  after the last the last; `loop` wraps by the clip's duration.
+- `skinPart(model, pose, node, part, out)` writes a skinned part's posed
+  vertices (positions and normals, model space) for `Renderer3D::updateMesh`;
+  a rigid part, or any bad index, gives the rest mesh (an empty mesh for a
+  bad part index).
 
 The loader does not decode pictures itself (the core and gfx3d have no image
 code): the caller passes a decoder. The player's is in
 `engine/player/model_view.*`, which also uploads a model to the 3D layer and
 draws it (`ModelView`).
 
-The test model (`tests/fixtures/models/`, `assets/models/figure.glb`) is
-original and written by `tools/art/make_test_model.py`.
+The test models (`tests/fixtures/models/`, `assets/models/figure.glb`) are
+original and written by `tools/art/make_test_model.py`; `bend.glb` (a column
+with three joints and three clips) comes from `tools/art/make_bend_model.py`.
 
 ## Helpers
 
