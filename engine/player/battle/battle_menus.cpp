@@ -11,7 +11,7 @@ void BattleScene::anchorActionMenu() {
   int mw = menu_.w(), mh = menu_.h();
   int sx, sy, bw, bh;
   cellScreenBox(u.cell, sx, sy, bw, bh);
-  if (proj_.iso()) {  // keep clear of the unit standing above the square's middle
+  if (proj_.raised()) {  // keep clear of the unit standing above the square's middle
     sy -= proj_.unitW();
     bh += proj_.unitW();
   }

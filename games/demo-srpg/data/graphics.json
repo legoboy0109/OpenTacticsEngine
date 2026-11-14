@@ -310,6 +310,186 @@
         }
       }
     },
+    "isometric-3d": {
+      "terrain": {
+        "plain": {
+          "sheet": "tiles",
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "forest": {
+          "sheet": "tiles",
+          "cell": [
+            3,
+            0
+          ]
+        },
+        "mountain": {
+          "sheet": "tiles",
+          "cell": [
+            4,
+            0
+          ]
+        },
+        "water": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              10
+            ],
+            [
+              4,
+              10
+            ]
+          ],
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
+        },
+        "bridge": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              14
+            ],
+            [
+              4,
+              14
+            ]
+          ],
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
+          ],
+          "joinEdge": false
+        }
+      },
+      "units": {
+        "lord": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "frameMs": 600
+        },
+        "cavalier": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "frameMs": 600
+        },
+        "archer": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "frameMs": 600
+        },
+        "fighter": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ]
+          ],
+          "frameMs": 600
+        },
+        "knight": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              4
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "frameMs": 600
+        },
+        "soldier": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              5
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "frameMs": 600
+        },
+        "pegasus": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              6
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "frameMs": 600
+        }
+      },
+      "structures": {
+        "fort": {
+          "sheet": "structures",
+          "cell": [
+            0,
+            0
+          ]
+        }
+      }
+    },
     "isometric": {
       "terrain": {
         "plain": {

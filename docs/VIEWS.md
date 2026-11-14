@@ -23,10 +23,10 @@ Contract for how a visual style draws the battle. Owner decisions
 Rules never depend on the style: a save, the AI and the editor's checks are
 the same in every kind of view.
 
-Status: top-down and 2D isometric are built. `isometric-3d` and `3d` are
-accepted in game files already, so a game can be prepared for them; no
-player draws them yet (see "What the player offers"). The 3D drawing layer
-they will use exists (docs/RENDER3D.md).
+Status: top-down, 2D isometric and 3D isometric are built. `3d` is accepted
+in game files already, so a game can be prepared for it; no player draws it
+yet (see "What the player offers"). The 3D kinds draw through the 3D drawing
+layer (docs/RENDER3D.md).
 
 ## Data (game.json `styles`)
 
@@ -113,21 +113,93 @@ enough to cover the middle of a square. Both are unit-tested
 ## What the player offers
 
 `viewSupported()` (engine/player/views.h) lists the kinds this build draws:
-top-down and isometric. A style of another kind is left out of the options
-list and is never chosen: the game's default style is its first style the
-player can draw, and a remembered choice that cannot be drawn falls back to
-that default. When the 3D layer exists this asks the platform.
+top-down, isometric and 3D isometric. A style of another kind is left out of
+the options list and is never chosen: the game's default style is its first
+style the player can draw, and a remembered choice that cannot be drawn
+falls back to that default. A platform without a 3D backend would leave the
+3D kinds out here.
+
+## 3D isometric (`"view": "isometric-3d"`)
+
+The picture of the 2D isometric view, made from real blocks by a camera
+without perspective that turns about the map in quarter steps.
+
+**Measures.** The same optional `"isometric"` block with the same meanings
+and defaults: `tileWidth` x `tileHeight` is the diamond of a square at a
+quarter-turn position, `heightStep` the pixels one level raises it,
+`unitWidth` the width of unit pictures. So a style can change between the
+two isometric kinds and keep its proportions; at turn 0 the squares are in
+exactly the same places.
+
+**Geometry** (engine/core/view/iso3d.h, `Iso3DGeometry`; tests
+tests/test_views3d.cpp). 3D space in squares: square (x, y) spans
+X = x - gridW/2 .. +1, Z = y - gridH/2 .. +1, Y up, one level =
+`stepY`. The camera looks at the map's middle; quarter turn n has
+yaw (n + 0.5) x 90 degrees; its height angle comes from the diamond
+(`sin = tileHeight / tileWidth`). World pixels are a square box around
+everything the map can show at any turn, so the scrolling camera's limits do
+not change while turning. `pick` follows the line of sight through a pixel
+down to the first block it meets (top or side); `hidden` says whether blocks
+nearer the camera cover the middle of a square.
+
+**Art** (a style of this kind starts with no art, like every kind but
+top-down):
+- **Terrain**: the picture is laid flat on the top of the square's block,
+  picture north = map north, so a top-down tile fits as it is. Variants,
+  frames and joining pieces work as in the top-down view. The block's sides
+  take the terrain's colour, darkened.
+- **Units**: the picture stands upright on the middle of the square and
+  always faces the camera, `unitWidth` wide, height in proportion. With
+  `unitMarker` a flat square in the side's colour lies under the feet.
+- **Structures**: the picture stands upright in the middle of the footprint,
+  1.15 x the average of the footprint's sides wide (in square edges), on the
+  highest of its squares. A unit on one of its squares is drawn just in
+  front of the picture; a unit behind it is covered (turn the view).
+- Sheets become textures of the 3D layer: sides are padded to powers of two
+  and a sheet larger than the backend's limit (1024) is refused there with a
+  logged error; what uses it keeps the placeholder look in this view.
+- 3D models for units and structures: not yet (see "Not in this step").
+
+**Drawing** (engine/player/battle/map3d*.cpp, `Map3D`; `Sheets3D`,
+`Batch3D`):
+- Blocks are one fixed lit mesh (light fixed to the map; tops are lit at
+  exactly full strength so pictures there look as drawn). Everything that
+  changes is collected per material each frame.
+- Without art: a square's top is its terrain colour with its letter; a
+  structure is a low lit box in its colour with its letter; a unit is an
+  upright block in its side's colour with its letter. Letters, HP bars,
+  leader marks and capture numbers are drawn with the 2D renderer over the
+  finished 3D picture.
+- Move and attack highlights lie on the tops (on a placeholder structure: on
+  its box). The owner's frame lies around the footprint. The cursor is a
+  frame on the square.
+- Blocks cover what stands behind them. A unit or the cursor behind higher
+  blocks is drawn again faintly over everything (`Material3D::depthTest`
+  off), as in the 2D isometric view; turning the view is the real answer.
+
+**Turning.** `Button::TurnLeft` / `TurnRight`: keys `,` and `.` (also `[`
+and `]`), gamepad west and north face buttons, and two on-screen buttons in
+the map's bottom-left corner for pointer and touch. Allowed at any time,
+also during animations and other sides' turns. A quarter turn takes a
+quarter of a second; the square under the cursor keeps its place on screen.
+Arrow keys keep their directions on screen in every turn (up = up-right, as
+in the 2D isometric view). The turn is not saved.
 
 ## Shipped games
 
 Both demos have an "Isometric" style with generated art
 (`tools/art/art_iso.py`: terrain blocks, the buildings on stone plinths,
-the unit sprites cut under their feet). `demo-srpg`'s map has heights
-(hills under the mountains, a sunken river bed).
+the unit sprites cut under their feet) and a "3D Isometric" style that
+reuses the top-down tiles on the block tops, the standing unit sprites and
+the top-down structure pictures. `demo-srpg`'s map has heights (hills under
+the mountains, a sunken river bed).
 
 ## Not in this step
 
-Rotating the 2D isometric view (owner: fixed), cliff art separate from the
+3D models for units and structures in the 3D isometric view (owner: the
+maker chooses per game between sprites and models; needs model art in
+data/graphics.json and animation), side pictures for blocks, remembering the
+turn, free turning or zooming; rotating the 2D isometric view (owner: fixed), cliff art separate from the
 terrain picture, joining isometric starter art (roads and water are single
 pieces), slopes and stairs, the editor's map canvas in isometric (it stays
 top-down; Play shows the real thing), unit facing.

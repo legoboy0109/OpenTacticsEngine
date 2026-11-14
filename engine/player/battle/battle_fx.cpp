@@ -14,7 +14,7 @@ void drawFloats(Renderer& r, const DrawCtx& c, bool screenSpace) {
     float k = f.age / f.life;
     int rise = screenSpace ? 0 : (int)(f.age * 16);  // panel floats stay put on a backing plate
     int x = (int)f.x - (screenSpace ? 0 : cx), y = (int)f.y - (screenSpace ? 0 : cy) - rise;
-    if (!screenSpace && c.iso()) {
+    if (!screenSpace && c.raised()) {
       // The float belongs to the square under it: start above the unit standing
       // there, keeping the few pixels by which stacked floats are spread.
       int t = c.layout.tile;

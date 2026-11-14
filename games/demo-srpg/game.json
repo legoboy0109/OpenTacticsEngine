@@ -8,7 +8,8 @@
     { "id": "parchment", "name": "Parchment", "background": "#2b2118", "showGlyphs": false,
       "terrainColors": { "plain": "#d9c79a", "forest": "#9aa66a", "mountain": "#a08a6a", "water": "#7f9fb0", "bridge": "#b89868" },
       "structureColors": { "fort": "#c4a070" } },
-    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" }
+    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" },
+    { "id": "isometric-3d", "name": "3D Isometric", "view": "isometric-3d", "background": "#161a24" }
   ],
   "view": { "width": 480, "height": 270, "tileSize": 24 },
 

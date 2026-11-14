@@ -19,7 +19,9 @@ target, including homebrew console ports.
     drawn at `end()`, far to near by the mesh's origin, without writing
     depth;
   - linear fog by distance from the camera;
-  - texture sampling: hard pixels or smooth, repeat or clamp.
+  - texture sampling: hard pixels or smooth, repeat or clamp;
+  - the depth test can be switched off per material (things shown through
+    walls).
 - Moving characters are posed on the CPU and uploaded again
   (`updateMesh`). No GPU skinning.
 - Limits a backend states in `Caps3D` (defaults: textures power-of-two up

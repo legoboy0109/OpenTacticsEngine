@@ -18,7 +18,7 @@ const char* usageText() {
          "saves: Continue save + 5 slots per game (docs/SAVES.md); headless and --no-settings runs save nothing\n"
          "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
-         "input tokens: up down left right confirm cancel menu next prev wait wait:N tap:X:Y\n";
+         "input tokens: up down left right confirm cancel menu next prev turnleft turnright wait wait:N tap:X:Y\n";
 }
 
 namespace {

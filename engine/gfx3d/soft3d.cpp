@@ -242,7 +242,7 @@ void SoftRenderer3D::triangle(const V& a, const V& b, const V& c, const Material
       if (w0 < 0 || w1 < 0 || w2 < 0) continue;
       float z = w0 * sz[0] + w1 * sz[1] + w2 * sz[2];
       size_t at = (size_t)y * w_ + x;
-      if (z > 1.0f || z >= depth_[at]) continue;
+      if (z > 1.0f || (material.depthTest && z >= depth_[at])) continue;
 
       // Perspective-correct blend: weight by 1/w.
       float q0 = w0 * iw[0], q1 = w1 * iw[1], q2 = w2 * iw[2], qi = 1.0f / (q0 + q1 + q2);

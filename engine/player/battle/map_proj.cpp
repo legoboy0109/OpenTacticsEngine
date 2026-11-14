@@ -10,9 +10,10 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   gridW_ = b.grid.width();
   gridH_ = b.grid.height();
   iso_ = style && style->view == StyleView::Isometric;
+  iso3d_ = style && style->view == StyleView::Isometric3D;
   unitW_ = tile;
   elev_.assign((size_t)(gridW_ * gridH_), 0);
-  if (!iso_) return;
+  if (!raised()) return;
   // Heights count from the lowest square; a wild value in a map file must not
   // push the map off the screen, so the range is capped.
   int lo = 0, hi = 0;
@@ -34,10 +35,17 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   geo_.levels = std::min(hi - lo, kMaxLevels);
   unitW_ = ic.unitWidth > 0 ? ic.unitWidth : geo_.tileW / 2;
   geo_.headroom = std::max(geo_.tileH, unitW_ * 2);  // room for a unit or a tall picture on the top corner
+  // The 3D isometric view takes the same measures, so a style can switch kind and keep its proportions.
+  geo3_ = Iso3DGeometry();
+  geo3_.setFromDiamond(geo_.tileW, geo_.tileH, geo_.step);
+  geo3_.gridW = gridW_;
+  geo3_.gridH = gridH_;
+  geo3_.levels = geo_.levels;
+  geo3_.headroom = geo_.headroom;
 }
 
 float MapProj::elevationAt(float gx, float gy) const {
-  if (!iso_ || gridW_ == 0) return 0;
+  if (!raised() || gridW_ == 0) return 0;
   // Blend the four squares around the spot (units slide between square middles).
   float fx = std::max(0.0f, std::min(gx - 0.5f, (float)(gridW_ - 1)));
   float fy = std::max(0.0f, std::min(gy - 0.5f, (float)(gridH_ - 1)));
@@ -50,16 +58,21 @@ float MapProj::elevationAt(float gx, float gy) const {
 }
 
 void MapProj::toWorld(float fx, float fy, float& wx, float& wy) const {
-  if (!iso_) {
+  if (!raised()) {
     wx = fx;
     wy = fy;
     return;
   }
   float gx = fx / tile_, gy = fy / tile_;
-  geo_.project(gx, gy, elevationAt(gx, gy), wx, wy);
+  if (iso3d_) geo3_.project(gx, gy, elevationAt(gx, gy), wx, wy);
+  else geo_.project(gx, gy, elevationAt(gx, gy), wx, wy);
 }
 
 Cell MapProj::pick(int wx, int wy) const {
+  if (iso3d_) {
+    int c = geo3_.pick(wx + 0.5f, wy + 0.5f, elev_);
+    return c < 0 ? kNoCell : (Cell)c;
+  }
   if (iso_) {
     int c = geo_.pick(wx + 0.5f, wy + 0.5f, elev_);
     return c < 0 ? kNoCell : (Cell)c;
@@ -69,6 +82,22 @@ Cell MapProj::pick(int wx, int wy) const {
 }
 
 void MapProj::cellBox(int x, int y, int& bx, int& by, int& bw, int& bh) const {
+  if (iso3d_) {  // the box around the top face's four corners
+    float lo[2] = {1e9f, 1e9f}, hi[2] = {-1e9f, -1e9f};
+    for (int i = 0; i < 4; ++i) {
+      float wx, wy;
+      geo3_.project((float)(x + (i & 1)), (float)(y + (i >> 1)), (float)elevation(x, y), wx, wy);
+      lo[0] = std::min(lo[0], wx);
+      lo[1] = std::min(lo[1], wy);
+      hi[0] = std::max(hi[0], wx);
+      hi[1] = std::max(hi[1], wy);
+    }
+    bx = (int)std::lround(lo[0]);
+    by = (int)std::lround(lo[1]);
+    bw = (int)std::lround(hi[0]) - bx;
+    bh = (int)std::lround(hi[1]) - by;
+    return;
+  }
   if (!iso_) {
     bx = x * tile_;
     by = y * tile_;

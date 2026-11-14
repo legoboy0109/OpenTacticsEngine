@@ -20,6 +20,7 @@ const Name kButtons[] = {
     {"up", Button::Up},     {"down", Button::Down},   {"left", Button::Left},
     {"right", Button::Right}, {"confirm", Button::Confirm}, {"cancel", Button::Cancel},
     {"menu", Button::Menu}, {"next", Button::Next},   {"prev", Button::Prev},
+    {"turnleft", Button::TurnLeft}, {"turnright", Button::TurnRight},
 };
 
 }  // namespace

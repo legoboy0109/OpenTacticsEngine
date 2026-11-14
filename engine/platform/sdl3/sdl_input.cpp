@@ -17,6 +17,8 @@ Button keyButton(SDL_Scancode sc) {
     case SDL_SCANCODE_TAB: case SDL_SCANCODE_E: return Button::Next;
     case SDL_SCANCODE_Q: return Button::Prev;
     case SDL_SCANCODE_M: return Button::Menu;
+    case SDL_SCANCODE_COMMA: case SDL_SCANCODE_LEFTBRACKET: return Button::TurnLeft;
+    case SDL_SCANCODE_PERIOD: case SDL_SCANCODE_RIGHTBRACKET: return Button::TurnRight;
     default: return Button::None;
   }
 }
@@ -32,6 +34,8 @@ Button padButton(Uint8 b) {
     case SDL_GAMEPAD_BUTTON_START: return Button::Menu;
     case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: return Button::Prev;
     case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: return Button::Next;
+    case SDL_GAMEPAD_BUTTON_WEST: return Button::TurnLeft;
+    case SDL_GAMEPAD_BUTTON_NORTH: return Button::TurnRight;
     default: return Button::None;
   }
 }

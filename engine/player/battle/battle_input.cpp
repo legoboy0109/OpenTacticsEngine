@@ -23,7 +23,29 @@ bool BattleScene::submit(const Action& a) {
   return true;
 }
 
+// Turning the view is allowed at any time, also while something is playing
+// or another side is acting: it changes nothing but the picture.
+bool BattleScene::turnInput(const InputEvent& e) {
+  if (!map3d_ || mode_ == Mode::SlotList) return false;
+  int dir = 0;
+  if (e.type == InputEvent::ButtonDown && e.button == Button::TurnLeft) dir = -1;
+  else if (e.type == InputEvent::ButtonDown && e.button == Button::TurnRight) dir = 1;
+  else if (e.type == InputEvent::PointerDown || e.type == InputEvent::PointerMove) {
+    for (int i = 0; i < 2 && !dir; ++i) {
+      int x, y, w, h;
+      turnButtonBox(i, x, y, w, h);
+      if (e.x >= x && e.y >= y && e.x < x + w && e.y < y + h) dir = i ? 1 : -1;
+    }
+    // Over a button the pointer belongs to the button, not to the square behind it.
+    if (dir && e.type == InputEvent::PointerMove) return true;
+  }
+  if (!dir) return false;
+  turn_ += dir;
+  return true;
+}
+
 void BattleScene::onInput(const InputEvent& e) {
+  if (turnInput(e)) return;
   bool confirmish = e.type == InputEvent::PointerDown ||
                     (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
   if (mode_ == Mode::Result) {
@@ -84,6 +106,12 @@ void BattleScene::handlePointerDown(int x, int y) {
 
 void BattleScene::moveCursor(int dx, int dy) {
   const Grid& g = battle_.grid;
+  // In a turned view the arrows keep their directions on screen (up = up-right, as in the 2D isometric view).
+  for (int i = ((turn_ % 4) + 4) % 4; i > 0; --i) {
+    int t = dx;
+    dx = dy;
+    dy = -t;
+  }
   Cell c = g.at(g.x(cursor_) + dx, g.y(cursor_) + dy);
   if (c != kNoCell) cursor_ = c;
 }

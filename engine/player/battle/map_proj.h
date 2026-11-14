@@ -3,23 +3,30 @@
 // (square (x, y) spans x*tile .. (x+1)*tile; that is what BattleView animates);
 // this turns those into world pixels (before the camera) and back.
 // Top-down: world pixels = flat map pixels. Isometric: core/view/iso.h.
+// 3D isometric: core/view/iso3d.h (the view can turn: setTurn).
 #pragma once
 #include <vector>
 
 #include "core/battle/battle.h"
 #include "core/view/iso.h"
+#include "core/view/iso3d.h"
 
 namespace ote {
 
 class MapProj {
  public:
   void init(const Battle& b, const StyleDef* style, int tile);
-  bool iso() const { return iso_; }
+  bool iso() const { return iso_; }      // the 2D isometric view
+  bool iso3d() const { return iso3d_; }  // the 3D isometric view
+  bool raised() const { return iso_ || iso3d_; }  // squares are shown at their heights
   const IsoGeometry& geo() const { return geo_; }
+  const Iso3DGeometry& geo3() const { return geo3_; }
+  // 3D isometric only: where the camera is, in quarter turns (fractions while it turns).
+  void setTurn(float quarterTurns) { geo3_.yaw = Iso3DGeometry::yawOfTurn(quarterTurns); }
   int tile() const { return tile_; }
   int unitW() const { return unitW_; }
-  int worldW() const { return iso_ ? geo_.worldW() : gridW_ * tile_; }
-  int worldH() const { return iso_ ? geo_.worldH() : gridH_ * tile_; }
+  int worldW() const { return iso3d_ ? geo3_.size() : iso_ ? geo_.worldW() : gridW_ * tile_; }
+  int worldH() const { return iso3d_ ? geo3_.size() : iso_ ? geo_.worldH() : gridH_ * tile_; }
 
   // Elevation (levels above the map's lowest square) of a square, and of a
   // spot between squares (gx, gy in squares, measured at square middles).
@@ -36,9 +43,10 @@ class MapProj {
   void cellBox(int x, int y, int& bx, int& by, int& bw, int& bh) const;
 
  private:
-  bool iso_ = false;
+  bool iso_ = false, iso3d_ = false;
   int tile_ = 24, unitW_ = 24, gridW_ = 0, gridH_ = 0;
   IsoGeometry geo_;
+  Iso3DGeometry geo3_;
   std::vector<int> elev_;
 };
 

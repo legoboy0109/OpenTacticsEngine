@@ -53,6 +53,7 @@ struct Material3D {
   bool lit = true;         // false: colours as they are (sprites, effects)
   bool twoSided = false;   // also draw back faces
   bool smooth = false;     // blend neighbouring texels instead of hard pixels
+  bool depthTest = true;   // false: drawn over whatever is there (things shown through walls)
 };
 
 struct Frame3D {

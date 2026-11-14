@@ -2,6 +2,7 @@
 // input into Actions via a small state machine (Idle -> Selected ->
 // ActionMenu -> Targeting ...). AI turns are driven from update().
 #pragma once
+#include <memory>
 #include <vector>
 
 #include "battle/battle_draw.h"
@@ -46,6 +47,8 @@ class BattleScene : public Scene {
   void targetingButton(Button b);
   void menuInput(const InputEvent& e);
   void moveCursor(int dx, int dy);
+  bool turnInput(const InputEvent& e);  // camera turning (3D isometric); true = the event was used
+  void turnButtonBox(int which, int& x, int& y, int& w, int& h) const;  // the two on-screen turn buttons
   void cycleUnit(int dir);
   void selectUnit(int unit);
   void computeOverlay();
@@ -76,6 +79,9 @@ class BattleScene : public Scene {
   Layout layout_;
   Camera cam_;
   MapProj proj_;  // where squares are on screen in the style in use
+  std::unique_ptr<Map3D> map3d_;  // the 3D isometric view's drawer (only in that kind of view)
+  int turn_ = 0;        // 3D isometric: quarter turns of the camera asked for
+  float turnPos_ = 0;   // where the camera is now (eases towards turn_)
   Overlay overlay_;
   Menu menu_;
   Mode mode_ = Mode::Idle;
