@@ -27,7 +27,7 @@ std::string gameWithStyles(const char* name, const std::string& styles) {
   tempFolder(std::string(name) + "/maps");
   tempFolder(std::string(name) + "/scripts");
   const char* files[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
-                         "data/structures.json", "maps/bridge.json", "scripts/formulas.lua"};
+                         "data/structures.json", "data/items.json", "maps/bridge.json", "scripts/formulas.lua"};
   for (const char* f : files) CHECK(copyFile(src + "/" + f, dir + "/" + f));
   std::string text;
   CHECK(readTextFile(dir + "/game.json", text));

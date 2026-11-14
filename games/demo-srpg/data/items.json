@@ -1,0 +1,18 @@
+// Things units carry (docs/ITEMS.md). A weapon item points at an entry of
+// weapons.json, which holds its range and numbers; "uses" is how many strikes it lasts.
+{ "items": [
+  { "id": "iron_sword", "name": "Iron Sword", "kind": "weapon", "weapon": "iron_sword", "uses": 40, "price": { "gold": 400 } },
+  { "id": "iron_lance", "name": "Iron Lance", "kind": "weapon", "weapon": "iron_lance", "uses": 40, "price": { "gold": 400 } },
+  { "id": "iron_axe",   "name": "Iron Axe",   "kind": "weapon", "weapon": "iron_axe",   "uses": 40, "price": { "gold": 400 } },
+  { "id": "iron_bow",   "name": "Iron Bow",   "kind": "weapon", "weapon": "iron_bow",   "uses": 40, "price": { "gold": 450 } },
+
+  { "id": "vulnerary", "name": "Vulnerary", "description": "Restores 10 HP.",
+    "kind": "usable", "uses": 3, "price": { "gold": 300 }, "heal": 10 },
+  { "id": "salve", "name": "Salve", "description": "Fully heals a neighbouring ally.",
+    "kind": "usable", "uses": 1, "target": "ally", "heal": "full" },
+  { "id": "energy_drop", "name": "Energy Drop", "description": "Strength +2 for good.",
+    "kind": "usable", "uses": 1, "raise": { "str": 2 } },
+
+  { "id": "shield_ring", "name": "Shield Ring", "description": "Defense +2 while carried.",
+    "kind": "accessory", "bonus": { "def": 2 } }
+] }

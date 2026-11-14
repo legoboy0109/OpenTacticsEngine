@@ -24,6 +24,9 @@
   ],
   "roles": { "hp": "hp", "move": "mov" },
 
+  // Gold buys items at forts (data/structures.json "sells").
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+
   "moveTypes": [
     { "id": "foot",  "name": "Foot" },
     { "id": "horse", "name": "Horse" },
@@ -34,6 +37,9 @@
     "turnOrder": "sides",
     "counterAttacks": true,
     "defeat": ["noUnits", "leaderDead"],
+    // Items (docs/ITEMS.md): weapons are carried and wear out; each unit holds up to 5 things;
+    // the company's shared storage is reached by the leader and whoever stands next to them.
+    "items": { "weapons": "carried", "inventorySize": 5, "storage": "leader" },
     "progression": {
       "enabled": true,
       "xpPerLevel": 100,
