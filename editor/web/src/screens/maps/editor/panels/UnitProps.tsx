@@ -3,7 +3,11 @@ import { ctxOfParts, editMap } from '../../../../model/mapCtx'
 import { changeUnitType, removeMapUnit, setUnitStat, unitAt, updateMapUnit } from '../../../../model/mapUnits'
 import { useState } from 'react'
 import { useDoc, useEdit } from '../../../../store/context'
-import { Check } from '../../../../ui/Toggle'
+import { ItemListEditor } from '../../../../ui/ItemListEditor'
+import { Check, Toggle } from '../../../../ui/Toggle'
+import { inventorySize } from '../../../../model/itemRules'
+import { entryId } from '../../../../model/itemGrants'
+import { clone } from '../../../../model/doc'
 import { Field, FieldGroup } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
@@ -21,6 +25,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
   if (!map || !unit) return <p className="help">{T.unitNone}</p>
   const base = doc.units?.find((u) => u.id === unit.type)
   const stats = doc.game?.stats ?? []
+  const typeItems = (base?.items ?? []).map((e) => doc.items?.find((i) => i.id === entryId(e))?.name ?? entryId(e))
   const key = (f: string) => `unit:${mapId}:${cell.x},${cell.y}:${f}`
   const patch = (p: Parameters<typeof updateMapUnit>[3], k?: string) => edit((d) => editMap(d, mapId, (m) => updateMapUnit(m, cell.x, cell.y, p)), k)
   const typeError = (id: string) => {
@@ -48,6 +53,16 @@ export function UnitProps({ mapId, cell, say }: Props) {
         )}
       </div>
       <Check checked={!!unit.leader} label={T.unitLeader} help={T.unitLeaderHelp} onChange={(v) => patch({ leader: v })} />
+      {((doc.items?.length ?? 0) > 0 || unit.items !== undefined) && (
+        <div className="stack tight" data-testid="unit-own-items">
+          <Toggle label={T.ownItems} help={unit.items === undefined ? T.ownItemsOff(typeItems) : T.ownItemsOn}
+            checked={unit.items !== undefined} onChange={(v) => patch({ items: v ? clone(base?.items ?? []) : undefined })} />
+          {unit.items !== undefined && (
+            <ItemListEditor label={T.unitItems} entries={unit.items} items={doc.items ?? []} allowDrop max={inventorySize(doc)}
+              onChange={(next, k) => patch({ items: next }, k && key(k))} />
+          )}
+        </div>
+      )}
       <FieldGroup label={T.statsTitle} help={T.statsHelp}>
         <table className="kv">
           <tbody>

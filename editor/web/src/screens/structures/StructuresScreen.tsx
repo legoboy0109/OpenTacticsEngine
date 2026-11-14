@@ -9,6 +9,7 @@ import { Banner } from '../../ui/Banner'
 import { DeleteConfirm } from '../../ui/DeleteConfirm'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
+import { ItemChecks } from '../items/ItemChecks'
 import { StructureForm } from './StructureForm'
 import { T } from './text'
 
@@ -47,6 +48,7 @@ function StructureList({ itemId }: { itemId?: string }) {
 
   return (
     <>
+      <ItemChecks section="structures" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} note={T.intro} selectedId={itemId}
         items={list.map((s) => ({ id: s.id, label: s.name, sub: T.subtitle(sizeOf(s).w, sizeOf(s).h, s.glyph), swatch: s.color }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}
