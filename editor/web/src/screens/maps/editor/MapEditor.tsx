@@ -7,7 +7,7 @@ import { editMap } from '../../../model/mapCtx'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
 import { inheritsGeneralArt } from '../../../model/styleView'
 import { removeStructureAt, structureIndexAt } from '../../../model/mapStructures'
-import { removeMapUnit, unitAt } from '../../../model/mapUnits'
+import { unitAt } from '../../../model/mapUnits'
 import { useDoc, useEdit, useStore } from '../../../store/context'
 import { Banner } from '../../../ui/Banner'
 import { useStored } from '../../../ui/hooks'
@@ -18,6 +18,8 @@ import { OptionsPanel } from './OptionsPanel'
 import { StatusLine } from './StatusLine'
 import { T } from './text'
 import { Toolbar } from './Toolbar'
+import { pickStroke, stopPicking } from './story/pickStroke'
+import { useRemoveUnit } from './story/UnitRemoval'
 import { beginStroke, TOOLS, type StrokeEnv, type Tool, type ToolState } from './tools'
 import { useMapShortcuts } from './useMapShortcuts'
 import { MapViewState, useViewSlice } from './viewState'
@@ -100,6 +102,10 @@ function Editor({ id }: { id: string }) {
     pickTerrain: (tid) => patch({ terrainId: tid, fill: false }),
   }), [store, id, vs, patch])
 
+  // Deleting a unit that events or objectives point at asks first (the dialog is rendered below).
+  const [requestRemove, removeDialog] = useRemoveUnit(id)
+  const requestRemoveRef = useRef(requestRemove)
+  requestRemoveRef.current = requestRemove
   const removeAt = useCallback(() => {
     const c = vs.cursorVisible ? vs.cursor : vs.selected
     const d0 = store.getState().doc
@@ -112,7 +118,7 @@ function Editor({ id }: { id: string }) {
       return
     }
     if (!unitAt(m0, c.x, c.y)) return
-    store.edit((d) => editMap(d, id, (m) => removeMapUnit(m, c.x, c.y)))
+    requestRemoveRef.current(c)
   }, [vs, store, id])
 
   const focusCell = useCallback((c: { x: number; y: number }) => {
@@ -125,14 +131,15 @@ function Editor({ id }: { id: string }) {
 
   useMapShortcuts({
     onTool: setTool, onFill: () => patch({ tool: 'terrain', fill: !tsRef.current.fill }), onZoom: (k) => vs.zoomBy(k),
-    onFit: () => vs.fit(map.grid.width, map.grid.height), onRemove: removeAt, onEscape: () => { vs.set({ selected: null }); setNotice(null) },
+    onFit: () => vs.fit(map.grid.width, map.grid.height), onRemove: removeAt, onEscape: () => { stopPicking(vs); vs.set({ selected: null }); setNotice(null) },
   })
 
   const selected = useViewSlice(vs, (s) => cellKey(s.selected))
+  const picking = useViewSlice(vs, (s) => s.picking !== null)
   const big = map.grid.width > 64 || map.grid.height > 64
   return (
     <LookContext.Provider value={lookChoice}>
-    <div className="map-editor" data-tool={ts.tool}>
+    <div className="map-editor" data-tool={ts.tool} data-picking={picking || undefined}>
       <Warnings warnings={warnings} onFocus={focusCell} />
       <div className="map-main">
         <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={map.grid.width} mapH={map.grid.height}
@@ -140,22 +147,23 @@ function Editor({ id }: { id: string }) {
         {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
         <div className="map-stage">
           <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} showHeights={ts.tool === 'heights'}
-            begin={(cell, o) => beginStroke(env, cell, o)}
+            begin={(cell, o) => (vs.picking ? pickStroke(vs, vs.picking, cell) : beginStroke(env, cell, o))}
             longPress={(cell) => {
-              if (tsRef.current.tool !== 'terrain') return false
+              if (vs.picking || tsRef.current.tool !== 'terrain') return false
               const tid = terrainAt(store.getState().doc.maps[id]!, cell.x, cell.y)
               if (tid) patch({ terrainId: tid, fill: false })
               return !!tid
             }}
-            act={(cell) => { beginStroke(env, cell).end(cell) }}
+            act={(cell) => { (vs.picking ? pickStroke(vs, vs.picking, cell) : beginStroke(env, cell)).end(cell) }}
             remove={removeAt}
-            escape={() => { vs.set({ selected: null }); setNotice(null) }} />
+            escape={() => { stopPicking(vs); vs.set({ selected: null }); setNotice(null) }} />
         </div>
         <StatusLine vs={vs} map={map} terrain={terrain} structureTypes={structureTypes} unitTypes={unitTypes} notice={notice} />
         <p className="help map-keys">{T.shortcuts}</p>
         <p className="help map-view-note">{T.mapViewNote}</p>
       </div>
-      <OptionsPanel doc={doc} map={map} mapId={id} state={ts} selected={selected} onChange={patch} say={setNotice} />
+      <OptionsPanel doc={doc} map={map} mapId={id} state={ts} selected={selected} onChange={patch} say={setNotice} vs={vs} />
+      {removeDialog}
     </div>
     </LookContext.Provider>
   )

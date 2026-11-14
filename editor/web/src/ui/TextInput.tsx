@@ -13,6 +13,8 @@ interface Props {
   className?: string
   'aria-label'?: string
   autoFocus?: boolean
+  /** id of a <datalist> that suggests values. */
+  list?: string
   onEnter?: () => void
 }
 

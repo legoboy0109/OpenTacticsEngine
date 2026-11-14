@@ -9,6 +9,7 @@ import { ItemsCard } from './ItemsCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { SavingCard } from './SavingCard'
+import { SwitchesCard, VariablesCard } from './StoryListsCards'
 import { StatsCard } from './StatsCard'
 import { T } from './text'
 
@@ -36,6 +37,8 @@ function RulesForm() {
       <FeaturesCard />
       <ItemsCard />
       <SavingCard />
+      <SwitchesCard />
+      <VariablesCard />
       <Card title={T.combat} help={T.combatHelp}>
         <div className="stack formulas">
           <FormulaEditor fkey="damage" />

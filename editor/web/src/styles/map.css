@@ -50,7 +50,7 @@
 }
 .panel-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-bottom: 1px solid var(--border); }
 .tabs { display: flex; }
-.tab { padding: 11px 14px 9px; border: 0; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 600; color: var(--muted); }
+.tab { padding: 11px 9px 9px; border: 0; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-weight: 600; color: var(--muted); }
 .tab:hover { color: var(--text); }
 .tab[aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); }
 .sheet-toggle { display: none; }

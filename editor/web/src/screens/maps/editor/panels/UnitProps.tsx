@@ -1,6 +1,12 @@
 // The selected unit's details: type, side, name, level, leader and its own stats.
 import { ctxOfParts, editMap } from '../../../../model/mapCtx'
-import { changeUnitType, removeMapUnit, setUnitStat, unitAt, updateMapUnit } from '../../../../model/mapUnits'
+import { changeUnitType, setUnitStat, unitAt, updateMapUnit } from '../../../../model/mapUnits'
+import { idProblem, suggestUnitId, takenUnitIds } from '../../../../model/storyIds'
+import { storyIdUsages } from '../../../../model/storyRefs'
+import { changeUnitStoryId } from '../../../../model/storyUnits'
+import { IdInput } from '../../../../ui/IdInput'
+import { S } from '../story/text'
+import { useRemoveUnit } from '../story/UnitRemoval'
 import { useState } from 'react'
 import { useDoc, useEdit } from '../../../../store/context'
 import { ItemListEditor } from '../../../../ui/ItemListEditor'
@@ -20,6 +26,7 @@ interface Props { mapId: string; cell: Cell; say: (m: string | null) => void }
 export function UnitProps({ mapId, cell, say }: Props) {
   const doc = useDoc()
   const edit = useEdit()
+  const [removeUnit, removeDialog] = useRemoveUnit(mapId)
   const map = doc.maps[mapId]
   const unit = map ? unitAt(map, cell.x, cell.y) : undefined
   if (!map || !unit) return <p className="help">{T.unitNone}</p>
@@ -28,6 +35,11 @@ export function UnitProps({ mapId, cell, say }: Props) {
   const typeItems = (base?.items ?? []).map((e) => doc.items?.find((i) => i.id === entryId(e))?.name ?? entryId(e))
   const key = (f: string) => `unit:${mapId}:${cell.x},${cell.y}:${f}`
   const patch = (p: Parameters<typeof updateMapUnit>[3], k?: string) => edit((d) => editMap(d, mapId, (m) => updateMapUnit(m, cell.x, cell.y, p)), k)
+  // The story name: events and objectives point at the unit with it; renaming rewrites them (one undo step).
+  const setStoryId = (id: string) => edit((d) => changeUnitStoryId(d, mapId, cell.x, cell.y, id).doc, key('id'))
+  const validateStoryId = (text: string) => (text === ''
+    ? (unit.id && storyIdUsages(doc, mapId, unit.id).length ? S.nameInUse : null)
+    : idProblem(text, takenUnitIds(map, unit)))
   const typeError = (id: string) => {
     const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? []), cell.x, cell.y, id)
     if (r.error) { say(r.error); return }
@@ -46,6 +58,10 @@ export function UnitProps({ mapId, cell, say }: Props) {
         <Field label={T.unitName} help={T.unitNameHelp}>
           <TextInput value={unit.name ?? ''} onChange={(v) => patch({ name: v }, key('name'))} />
         </Field>
+        <Field label={S.unitStoryName} help={S.unitStoryNameHelp}>
+          <IdInput value={unit.id ?? ''} validate={validateStoryId} onChange={setStoryId} placeholder={S.unitStoryPlaceholder} />
+        </Field>
+        <button type="button" className="btn sm" onClick={() => setStoryId(suggestUnitId(doc, map, unit))}>{S.fillFromUnit}</button>
         {doc.game?.rules?.progression?.enabled && (
           <Field label={T.unitLevel} help={T.unitLevelHelp}>
             <NumberInput value={unit.level} min={1} allowEmpty placeholder="1" onChange={(v) => patch({ level: v }, key('level'))} />
@@ -78,7 +94,8 @@ export function UnitProps({ mapId, cell, say }: Props) {
           </tbody>
         </table>
       </FieldGroup>
-      <button type="button" className="btn danger sm" onClick={() => edit((d) => editMap(d, mapId, (m) => removeMapUnit(m, cell.x, cell.y)))}>{T.unitRemove}</button>
+      <button type="button" className="btn danger sm" onClick={() => removeUnit(cell)}>{T.unitRemove}</button>
+      {removeDialog}
     </div>
   )
 }
