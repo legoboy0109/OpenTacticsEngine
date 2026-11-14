@@ -78,7 +78,8 @@ goal (demos only exercise features).
       WebGL 2 first), no graphics-API or shader code in game data, fixed
       built-in materials, one directional light + ambient, modest
       power-of-two textures, CPU skinning, glTF models.
-      Build order: d1 2D isometric (contract: docs/VIEWS.md); d2 the 3D
+      Build order: d1 2D isometric (DONE 2026-11-14, contract:
+      docs/VIEWS.md, with a Heights tool in the map editor); d2 the 3D
       drawing layer; d3 3D isometric; d4 full 3D.
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,
