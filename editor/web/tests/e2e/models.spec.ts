@@ -24,7 +24,7 @@ function tinyGlb(json: object): Buffer {
 async function setup(request: APIRequestContext, game: any): Promise<string> {
   const id = await bareGame(request, game, 'economy-tactics', 'Models')
   const doc = await (await request.get(`/api/projects/${id}`)).json()
-  const styles = [...doc.game.styles, { id: 'solid', name: 'Solid', view: 'isometric-3d' }]
+  const styles = [...doc.game.styles, { id: 'solid', name: 'Solid', view: 'isometric-3d' }, { id: 'orbit', name: 'Orbit', view: '3d' }]
   expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: { ...doc.game, styles } } })).ok()).toBeTruthy()
   return id
 }
@@ -33,6 +33,18 @@ const forStyle = (page: Page, name: string) => page.getByLabel('For style:').sel
 const asModel = (page: Page) => page.getByRole('radio', { name: '3D model', exact: true })
 const asPicture = (page: Page) => page.getByRole('radio', { name: 'Picture', exact: true })
 const upload = (page: Page, file: string | { name: string; mimeType: string; buffer: Buffer }) => page.getByTestId('upload-model-input').setInputFiles(file)
+
+test('a unit in a Full 3D style offers 3D model; a terrain does not', async ({ page, request, game }) => {
+  const id = await setup(request, game)
+  await page.goto(editorUrl(id, 'units', 'infantry'))
+  await forStyle(page, 'Orbit')
+  await expect(asModel(page)).toBeVisible()
+  await asModel(page).click()
+  await expect(page.getByText('The editor shows no preview of a 3D model. Press Play to see it in this style.')).toBeVisible()
+  await page.goto(editorUrl(id, 'terrain', 'forest'))
+  await forStyle(page, 'Orbit')
+  await expect(asModel(page)).toHaveCount(0)
+})
 
 test('@smoke a unit gets a 3D model: upload, height and turn, saved as expected, no problems, Play starts, back to a picture', async ({ page, request, game }) => {
   requirePlayer()

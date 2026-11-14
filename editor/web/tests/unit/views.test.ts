@@ -19,7 +19,7 @@ describe('kind of view of a style', () => {
     expect(viewKind({ view: 'top-down' })).toBe('top-down')
     expect(viewKind({ view: 'isometric' })).toBe('isometric')
     expect(viewKind({ view: 'isometric-3d' })).toBe('isometric-3d')
-    expect(viewKind({ view: '3d' })).toBe('future')
+    expect(viewKind({ view: '3d' })).toBe('3d')
   })
   it('switching to Isometric writes view; switching back removes view and the sizes (byte-stable)', () => {
     const s: Style = { id: 'classic', name: 'Classic', background: '#101010' }
@@ -34,6 +34,9 @@ describe('kind of view of a style', () => {
     expect(three).toEqual({ id: 'a', name: 'A', view: 'isometric-3d', isometric: { tileWidth: 64 } })
     expect(withView(three, 'isometric').view).toBe('isometric')
     expect(JSON.stringify(withView(three, 'top-down'))).toBe(JSON.stringify({ id: 'a', name: 'A' }))
+    // Full 3D does not use the isometric measures: they leave with it, like for top-down.
+    expect(withView(s, '3d')).toEqual({ id: 'a', name: 'A', view: '3d' })
+    expect(withView(withView(s, '3d'), 'isometric').view).toBe('isometric')
     expect(inheritsGeneralArt({ styles: [three] } as never, 'a')).toBe(false)
   })
   it('an emptied size leaves; the last one takes the isometric object with it', () => {
@@ -56,7 +59,7 @@ describe('kind of view of a style', () => {
       heightStep: { min: 0, max: 128, even: false }, unitWidth: { min: 4, max: 512, even: false },
     })
   })
-  it('a future style survives an edit of another style untouched', () => {
+  it('a full 3D style survives an edit of another style untouched', () => {
     const d = loadTemplate('strategy-rpg')
     const g = { ...d.game!, styles: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B', view: '3d', isometric: { tileWidth: 7 } }] }
     const next = updateStyleWith({ ...d, game: g }, 'a', (s) => withView(s, 'isometric'))

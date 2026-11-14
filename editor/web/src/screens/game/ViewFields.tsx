@@ -21,16 +21,15 @@ export function ViewFields({ style }: { style: Style }) {
   const edit = useEdit()
   const kind = viewKind(style)
   const key = `style:${style.id}`
-  // "3d" is kept exactly as the file has it: no control, so nothing can change it here.
-  if (kind === 'future') return <p className="help" data-testid="view-future">{T.viewFuture}</p>
   const defaults = isoDefaults(doc.game, style.isometric)
   return (
     <>
       <Field label={T.view} help={T.viewHelp}>
         <Select value={kind} aria-label={`${style.name}: ${T.view}`}
-          options={[{ value: 'top-down', label: T.viewTopDown }, { value: 'isometric', label: T.viewIsometric }, { value: 'isometric-3d', label: T.viewIsometric3d }]}
+          options={[{ value: 'top-down', label: T.viewTopDown }, { value: 'isometric', label: T.viewIsometric }, { value: 'isometric-3d', label: T.viewIsometric3d }, { value: '3d', label: T.viewFull3d }]}
           onChange={(v) => edit((d) => updateStyleWith(d, style.id, (s) => withView(s, v as EditableKind)))} />
       </Field>
+      {kind === '3d' && <p className="help" data-testid="view-full3d-help">{T.viewFull3dHelp}</p>}
       {isIsometric(kind) && (
         <>
           <p className="help">{kind === 'isometric-3d' ? T.viewOtherPictures3d : T.viewOtherPictures}</p>

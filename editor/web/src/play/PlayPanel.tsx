@@ -1,6 +1,5 @@
 // The Play overlay: the embedded web player in an iframe, with a map picker, Restart and Close.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { viewKind } from '../model/styleView'
 import { useDoc } from '../store/context'
 import type { DocumentStore } from '../store/documentStore'
 import { useStored } from '../ui/hooks'
@@ -26,8 +25,8 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const [map, setMap] = useState(initialMap)
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
-  // Styles the player can draw (it leaves out "3d" for now). With one there is nothing to choose.
-  const playable = (useDoc().game?.styles ?? []).filter((s) => viewKind(s) !== 'future')
+  // Every style can be played. With one there is nothing to choose.
+  const playable = useDoc().game?.styles ?? []
   const [storedStyle, setStoredStyle] = useStored<string>(`ote.playStyle.${store.id}`, '')
   const style = playable.some((s) => s.id === storedStyle) ? storedStyle : playable[0]?.id ?? ''
   const switchStyle = async (id: string) => {
