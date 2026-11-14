@@ -1,0 +1,36 @@
+// Wording of the "3D model" choice on the Units and Structures screens (see ModelEditor.tsx).
+export const M = {
+  group: 'Shown as',
+  picture: 'Picture',
+  model: '3D model',
+  noPreview: 'The editor shows no preview of a 3D model. Press Play to see it in this style.',
+  pictureGone: 'Choosing a model replaces this style’s picture.',
+
+  file: 'Model file',
+  fileHelp: 'A .glb file from this game, or upload a new one (up to 8 MB).',
+  filePlaceholder: 'Choose a model file…',
+  fileMissing: (name: string) => `${name} (file not found)`,
+  upload: 'Upload a model…',
+  uploading: 'Uploading…',
+  notGlb: (name: string) => `“${name}” is not a .glb model. In your 3D program, export it as glTF Binary (.glb).`,
+  tooBig: (name: string) => `“${name}” is larger than 8 MB. Reduce its textures or polygon count.`,
+  uploadFailed: (name: string, why: string) => `“${name}” was not added: ${why}`,
+  unreadable: 'This file could not be read as a model, so its animations and materials are not listed. Check it with Play.',
+  reading: 'Reading the file…',
+
+  height: 'Model height',
+  heightUnit: 'squares',
+  heightHelpUnit: 'How tall it stands, in squares. Empty uses the standard height.',
+  heightHelpStructure: 'How tall it stands, in squares. Empty fits it to its footprint.',
+  turn: 'Model turn',
+  turnUnit: 'degrees',
+  turnHelp: 'Added to the way it faces. Use it when the model faces the wrong way. Empty means 0.',
+  sideMaterial: 'Side colour material',
+  sideMaterialHelp: 'The part of the model that takes the colour of its side. Make it white or light in the file.',
+  none: 'None',
+  notInFile: (name: string) => `${name} (not in this file)`,
+
+  animations: 'Animations',
+  animationsHelp: 'Which animation of the file plays for each. “None” keeps the model still.',
+  states: { idle: 'Idle', move: 'Move', attack: 'Attack', die: 'Die' },
+}

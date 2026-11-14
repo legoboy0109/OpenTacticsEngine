@@ -4,6 +4,7 @@
 import type { Api } from '../api/client'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
+import { ModelLibrary } from './models'
 import { Saver, type SaveStatus, type SaverOptions } from './autosave'
 import { canRedo, canUndo, initHistory, pushEdit, redo, undo, type History } from './history'
 
@@ -32,6 +33,8 @@ export class DocumentStore {
   private listeners = new Set<() => void>()
   /** The image files of this game (not part of the undoable document). */
   readonly art: ArtLibrary
+  /** The 3D model files of this game (not part of the undoable document). */
+  readonly models: ModelLibrary
 
   constructor(private api: Api, readonly id: string, private opts: SaverOptions & { now?: () => number } = {}) {
     this.state = {
@@ -39,6 +42,7 @@ export class DocumentStore {
       save: { state: 'saved' }, canUndo: false, canRedo: false, notice: null,
     }
     this.art = new ArtLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
+    this.models = new ModelLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
   }
 
   // --- subscription (useSyncExternalStore) ---
@@ -66,6 +70,7 @@ export class DocumentStore {
     this.patch({ phase: 'ready', loadError: null, revision, problems, save: { state: 'saved' } })
     this.syncHistory()
     void this.art.refresh()
+    void this.models.refresh()
   }
 
   // --- editing ---
@@ -115,6 +120,7 @@ export class DocumentStore {
     this.patch({ revision, problems, notice: null })
     this.syncHistory()
     void this.art.refresh()
+    void this.models.refresh()
   }
 
   /** Conflict: keep local changes and overwrite what is on disk. */
