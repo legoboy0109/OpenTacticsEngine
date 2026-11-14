@@ -73,6 +73,20 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
       if (t < 0) return c.fail(where, "\"joinWith\" names unknown terrain " + q(id));
       out.joinWith[(size_t)t] = 1;
     }
+    // "joinExcept": joins with every terrain EXCEPT the listed ones (a bridge
+    // reaches every kind of land but not the water it crosses).
+    if (j.has("joinExcept")) {
+      if (j.has("joinWith")) return c.fail(where, "use either \"joinWith\" or \"joinExcept\", not both");
+      std::vector<std::string> not_;
+      if (!c.stringList(j, "joinExcept", where, not_)) return false;
+      out.joinWith.assign(db.terrains.size(), 1);
+      for (const std::string& id : not_) {
+        int t = db.findTerrain(id);
+        if (t < 0) return c.fail(where, "\"joinExcept\" names unknown terrain " + q(id));
+        if (t == selfTerrain) return c.fail(where, "\"joinExcept\" cannot list the terrain itself");
+        out.joinWith[(size_t)t] = 0;
+      }
+    }
     if (!c.boolean(j, "joinEdge", where, out.joinEdge)) return false;
   } else {
     const char* key = j.has("variants") ? "variants" : "frames";

@@ -195,6 +195,28 @@ TEST(graphics_animated_join) {
               "4 x 4 block at [5, 0]", "outside");
 }
 
+TEST(graphics_join_except) {
+  // Terrains: plain(0), water(1), road(2). The road joins everything but water.
+  std::string s = std::string("{ ") + kSheets + ", ";
+  Database db;
+  std::string err;
+  bool ok = loadGame(makeGame("joinexcept", s + "\"terrain\": {\"road\": {\"sheet\":\"tiles\",\"join\":[0,0],"
+                                                "\"joinExcept\":[\"water\"]}} }"), db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (!ok) return;
+  const Look& l = db.graphics.set(0)->terrain[2];
+  CHECK_EQ((int)l.joinWith[0], 1);
+  CHECK_EQ((int)l.joinWith[1], 0);
+  CHECK_EQ((int)l.joinWith[2], 1);
+  expectError("e_except_both", s + "\"terrain\": {\"road\": {\"sheet\":\"tiles\",\"join\":[0,0],"
+                                   "\"joinWith\":[\"plain\"],\"joinExcept\":[\"water\"]}} }", "not both");
+  expectError("e_except_self", s + "\"terrain\": {\"road\": {\"sheet\":\"tiles\",\"join\":[0,0],"
+                                   "\"joinExcept\":[\"road\"]}} }", "cannot list the terrain itself");
+  expectError("e_except_unknown", s + "\"terrain\": {\"road\": {\"sheet\":\"tiles\",\"join\":[0,0],"
+                                      "\"joinExcept\":[\"lava\"]}} }", "joinExcept", "lava");
+}
+
 TEST(graphics_errors_are_readable) {
   std::string s = std::string("{ ") + kSheets + ", ";
   expectError("e_sheet", s + "\"terrain\": {\"plain\": {\"sheet\":\"nope\",\"cell\":[0,0]}} }", "terrain \"plain\"",
