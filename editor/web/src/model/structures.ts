@@ -88,6 +88,11 @@ export function setProduces(doc: ProjectDoc, id: string, unitIds: string[]): Pro
   return updateStructure(doc, id, { produces: unitIds.length ? unitIds : undefined })
 }
 
+/** Items a structure sells (docs/ITEMS.md "Shops"); empty removes the key. */
+export function setSells(doc: ProjectDoc, id: string, itemIds: string[]): ProjectDoc {
+  return updateStructure(doc, id, { sells: itemIds.length ? itemIds : undefined })
+}
+
 export function setStructureTags(doc: ProjectDoc, id: string, tags: string[]): ProjectDoc {
   return updateStructure(doc, id, { tags: tags.length ? tags : undefined })
 }

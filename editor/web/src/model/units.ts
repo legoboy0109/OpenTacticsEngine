@@ -4,7 +4,7 @@ import { makeId } from './ids'
 import { copyArtOf } from './graphicsClean'
 import { cleanUnit } from './references'
 import { moveItem, patchObj, setNum, updateById } from './util'
-import type { NumMap, ProjectDoc, Unit } from './types'
+import type { ItemEntry, NumMap, ProjectDoc, Unit } from './types'
 
 export const newUnitId = (doc: ProjectDoc, name: string): string => makeId(name, ids(doc.units), { fallback: 'unit' })
 
@@ -71,4 +71,19 @@ export function setUnitTags(doc: ProjectDoc, id: string, tags: string[]): Projec
 /** Every label (tag) some unit has: what weapon effectiveness rows can point at. */
 export function allTags(doc: ProjectDoc): string[] {
   return [...new Set((doc.units ?? []).flatMap((u) => u.tags ?? []))].sort()
+}
+
+/** Weapon groups a unit type can wield (carried weapons); empty removes the key. */
+export function setUnitWields(doc: ProjectDoc, id: string, groups: string[]): ProjectDoc {
+  return updateUnit(doc, id, { wields: groups.length ? groups : undefined })
+}
+
+/** A unit type's starting items; an empty list is the same as none, so the key goes. */
+export function setUnitItems(doc: ProjectDoc, id: string, items: ItemEntry[]): ProjectDoc {
+  return updateUnit(doc, id, { items: items.length ? items : undefined })
+}
+
+/** Every group some weapon belongs to: what a unit type can be told to wield. */
+export function weaponGroups(doc: ProjectDoc): string[] {
+  return [...new Set((doc.weapons ?? []).flatMap((w) => (w.group ? [w.group] : [])))].sort()
 }
