@@ -48,7 +48,9 @@ int outnumbered(const Battle& b, const Unit& u, Cell c) {
     int dist = b.grid.distance(c, o.cell);
     if (b.isEnemy(u, o)) {
       int range = 1;
-      for (int w : b.typeOf(o).weapons) range = std::max(range, b.db->weapons[w].maxRange);
+      std::vector<int> weapons;
+      b.weaponsOf(o, weapons);
+      for (int w : weapons) range = std::max(range, b.db->weapons[w].maxRange);
       if (dist <= b.movePoints(o) + range) ++threats;
     } else if (dist <= kSupportRadius) {
       ++support;
@@ -85,8 +87,10 @@ void considerAdvance(Context& cx, const Unit& u,
 
   const double fade = fadeFactor(b);
   int minRange = kFar;
-  for (int w : b.typeOf(u).weapons) minRange = std::min(minRange, b.db->weapons[w].minRange);
-  if (b.typeOf(u).weapons.empty()) minRange = 1;
+  std::vector<int> weapons;
+  b.weaponsOf(u, weapons);
+  for (int w : weapons) minRange = std::min(minRange, b.db->weapons[w].minRange);
+  if (weapons.empty()) minRange = 1;
 
   int here = (*field)[u.cell] >= kFar ? kFar
       : (*field)[u.cell] + closePenalty(b, u, u.cell, minRange) + danger(b, u, u.cell, fade);

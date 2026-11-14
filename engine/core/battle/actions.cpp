@@ -84,7 +84,7 @@ bool Battle::validate(const Action& action, std::string* why) const {
     case ActionType::Wait:
       return true;
     default:
-      return fail(why, "unknown action");
+      return validateItemAction(action, why);
   }
 }
 
@@ -97,6 +97,7 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::Wait: units[action.unit].done = true; break;
     case ActionType::Build: applyBuild(action, events); break;
     case ActionType::EndTurn: advanceTurn(events); return true;
+    default: applyItemAction(action, events); break;
   }
   checkDefeat(events);
   // A counterattack can eliminate the side whose turn it is.
@@ -186,7 +187,14 @@ void Battle::applyBuild(const Action& action, std::vector<Event>& events) {
   u.name = type.name;
   u.stats = type.stats;
   u.stats.resize(db->stats.size(), 0);
-  u.hp = u.stats[db->rules.statHp];
+  for (const ItemGrant& g : type.items) {
+    ItemStack s;
+    s.item = g.item;
+    s.uses = g.uses;
+    s.drop = g.drop;
+    u.items.push_back(s);
+  }
+  u.hp = maxHp(u);
   u.moved = u.done = !db->rules.builtUnitsCanAct;
   units.push_back(u);
   occupant[action.cell] = u.id;

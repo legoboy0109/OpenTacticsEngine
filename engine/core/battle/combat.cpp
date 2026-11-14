@@ -61,10 +61,15 @@ bool Battle::strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell
 int Battle::counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell atkCell) const {
   if (!db->rules.counterAttacks) return -1;
   int dist = grid.distance(defCell, atkCell);
-  for (int w : typeOf(def).weapons) {
-    double vs;
-    if (db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs)) return w;
+  double vs;
+  if (db->rules.items.carriedWeapons) {  // only what is in hand answers (docs/ITEMS.md)
+    int slot = equippedSlot(def);
+    if (slot < 0) return -1;
+    int w = itemOf(def.items[(size_t)slot]).weapon;
+    return db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs) ? w : -1;
   }
+  for (int w : typeOf(def).weapons)
+    if (db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs)) return w;
   return -1;
 }
 
@@ -73,7 +78,9 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
   if (unit < 0 || unit >= (int)units.size() || !units[unit].alive || !grid.valid(from)) return;
   const Unit& u = units[unit];
   bool moved = u.moved || from != u.cell;
-  for (int w : typeOf(u).weapons) {
+  std::vector<int> weapons;
+  weaponsOf(u, weapons);
+  for (int w : weapons) {
     if (moved && !db->weapons[w].afterMove) continue;
     for (const Unit& t : units) {
       if (!t.alive || !isEnemy(u, t)) continue;
@@ -95,7 +102,8 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
   if (!a.alive || !d.alive || !isEnemy(a, d)) return false;
-  const std::vector<int>& owned = typeOf(a).weapons;
+  std::vector<int> owned;
+  weaponsOf(a, owned);
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
   if ((a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
   if (!weaponInRange(weapon, grid.distance(from, d.cell))) return false;
@@ -110,6 +118,9 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
   // formulas (Advance Wars style) scale damage with current hp.
   StrikeForecast f;
   if (!strikeForecast(units[atk], units[atk].cell, units[def], units[def].cell, weapon, f)) return;
+  // A carried weapon: gone (broken earlier in this fight) means no strike.
+  int slot = -1;
+  if (db->rules.items.carriedWeapons && (slot = weaponSlot(units[atk], weapon)) < 0) return;
 
   Event e;
   e.type = EventType::Attack;
@@ -133,7 +144,15 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
     if (target.hp <= 0) e.flags |= kKill;
   }
   events.push_back(e);
-  if (e.flags & kKill) killUnit(def, events);
+  if (slot >= 0) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
+  if (e.flags & kKill) {
+    // What the fallen unit was marked to drop goes to the one who struck it down.
+    std::vector<ItemStack> drops;
+    for (const ItemStack& s : units[def].items)
+      if (s.drop) drops.push_back(s);
+    killUnit(def, events);
+    for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
+  }
 }
 
 void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
@@ -141,6 +160,15 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   Forecast f;
   forecast(a, d, action.weapon, units[a].cell, f);  // validated by caller
 
+  // Attacking with a carried weapon takes it in hand.
+  if (db->rules.items.carriedWeapons) {
+    int slot = weaponSlot(units[a], action.weapon);
+    if (slot > 0 && slot != equippedSlot(units[a])) {
+      ItemStack s = units[a].items[(size_t)slot];
+      units[a].items.erase(units[a].items.begin() + slot);
+      units[a].items.insert(units[a].items.begin(), s);
+    }
+  }
   int hpA = units[a].hp, hpD = units[d].hp;
   int rounds = std::max(f.attack.strikes, f.counter.can ? f.counter.strikes : 0);
   for (int i = 0; i < rounds; ++i) {

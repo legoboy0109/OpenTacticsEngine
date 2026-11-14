@@ -23,6 +23,17 @@ int Database::findMoveType(const std::string& id) const { return findById(moveTy
 int Database::findTerrain(const std::string& id) const { return findById(terrains, id); }
 int Database::findStructure(const std::string& id) const { return findById(structures, id); }
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }
+int Database::findItem(const std::string& id) const { return findById(items, id); }
+bool Database::canWield(int unitType, int weapon) const {
+  const UnitTypeDef& t = unitTypes[(size_t)unitType];
+  for (int w : t.weapons)
+    if (w == weapon) return true;
+  const std::string& group = weapons[(size_t)weapon].group;
+  if (group.empty()) return false;
+  for (const std::string& g : t.wields)
+    if (g == group) return true;
+  return false;
+}
 int Database::findUnitType(const std::string& id) const { return findById(unitTypes, id); }
 int Database::findMap(const std::string& id) const { return findById(maps, id); }
 int Database::findStyle(const std::string& id) const { return findById(styles, id); }

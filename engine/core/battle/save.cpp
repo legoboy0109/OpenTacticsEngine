@@ -6,6 +6,8 @@
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
 
+#include "core/battle/unit_stats.h"
+
 #include <cmath>
 #include <cstdio>
 
@@ -90,8 +92,44 @@ constexpr int kMaxUnits = 100000;
 constexpr int kMaxLevel = 1000000;
 constexpr int kMaxNumber = 1000000000;  // resources, stats, xp
 
-bool readSide(Reader& rd, const Json& j, const std::string& where, SideState& s) {
+Json itemsJson(const std::vector<ItemStack>& items) {
+  Json list = Json::makeArray();
+  for (const ItemStack& s : items) {
+    Json j = Json::makeObject();
+    j.set("item", num(s.item));
+    j.set("uses", num(s.uses));
+    if (s.drop) j.set("drop", boolean(true));
+    list.push(j);
+  }
+  return list;
+}
+
+// A missing list is an empty one (saves of games without items do not carry it).
+bool readItems(Reader& rd, const Database& db, const Json& o, const char* key, const std::string& where, int maxCount,
+               std::vector<ItemStack>& out) {
+  out.clear();
+  if (!o.has(key)) return true;
+  const Json* list;
+  if (!rd.array(o, key, where, -1, maxCount, list)) return false;
+  for (size_t i = 0; i < list->size(); ++i) {
+    std::string at = where + "." + key + "[" + std::to_string(i) + "]";
+    const Json& j = (*list)[i];
+    if (!j.isObject()) return rd.fail(at, "not an object");
+    ItemStack s;
+    if (!rd.integer(j, "item", at, 0, (int)db.items.size() - 1, s.item)) return false;
+    int newUses = db.items[(size_t)s.item].uses;
+    if (!rd.integer(j, "uses", at, newUses < 0 ? -1 : 1, newUses < 0 ? -1 : newUses, s.uses)) return false;
+    if (j.has("drop") && !rd.boolean(j, "drop", at, s.drop)) return false;
+    out.push_back(s);
+  }
+  return true;
+}
+
+bool readSide(Reader& rd, const Database& db, const Json& j, const std::string& where, SideState& s) {
   if (!j.isObject()) return rd.fail(where, "not an object");
+  if (!readItems(rd, db, j, "storage", where, 100000, s.storage)) return false;
+  if (!s.storage.empty() && db.rules.items.storage == ItemStorage::Off)
+    return rd.fail(where + ".storage", "the game has no shared storage");
   const Json* res;
   if (!rd.array(j, "resources", where, (int)s.resources.size(), 0, res)) return false;
   for (size_t i = 0; i < res->size(); ++i) {
@@ -129,7 +167,8 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
       return rd.fail(where + ".stats[" + std::to_string(i) + "]", "not a whole number");
     u.stats[i] = (int)v.asNumber();
   }
-  int maxHp = u.stats[(size_t)db.rules.statHp];
+  if (!readItems(rd, db, j, "items", where, db.rules.items.inventorySize, u.items)) return false;
+  int maxHp = unitStat(db, u, db.rules.statHp);  // with what its accessories add
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
   return rd.boolean(j, "moved", where, u.moved) && rd.boolean(j, "done", where, u.done) &&
@@ -177,6 +216,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("everHadUnits", boolean(s.everHadUnits));
     j.set("hadHq", boolean(s.hadHq));
     j.set("leaderLost", boolean(s.leaderLost));
+    if (!s.storage.empty()) j.set("storage", itemsJson(s.storage));
     sides.push(j);
   }
   out.set("sides", sides);
@@ -198,6 +238,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("done", boolean(u.done));
     j.set("alive", boolean(u.alive));
     j.set("leader", boolean(u.leader));
+    if (!u.items.empty()) j.set("items", itemsJson(u.items));
     units.push(j);
   }
   out.set("units", units);
@@ -239,7 +280,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   const Json* sides;
   if (!rd.array(saved, "sides", top, (int)b.sides.size(), 0, sides)) return false;
   for (size_t i = 0; i < b.sides.size(); ++i)
-    if (!readSide(rd, (*sides)[i], "sides[" + std::to_string(i) + "]", b.sides[i])) return false;
+    if (!readSide(rd, *b.db, (*sides)[i], "sides[" + std::to_string(i) + "]", b.sides[i])) return false;
 
   // Units: the whole list is replaced (units are created and die during play).
   const Json* units;

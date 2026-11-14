@@ -34,15 +34,31 @@ enum class EventType {
   UnitBuilt,        // a=unit, b=cell
   SideDefeated,     // a=side
   BattleEnded,      // a=winning team (-1 = nobody)
+  // Items (docs/ITEMS.md). "item" is an index into db->items.
+  ItemUsed,         // a=unit, b=item, c=target unit
+  UnitHealed,       // a=unit, b=amount
+  StatsRaised,      // a=unit, data=gain per stat index
+  ItemBroke,        // a=unit, b=item
+  ItemGained,       // a=unit (-1 = the side's storage), b=item, c=side, flags=kDropped|kBought
+  ItemLost,         // a=unit that could not take it, b=item
+  ItemMoved,        // a=from unit (-1 = storage), b=to unit (-1 = storage, -2 = thrown away), c=item, d=side
+  ItemEquipped,     // a=unit, b=item
 };
 
-enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8 };
+enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
 
 struct Event {
   EventType type = EventType::TurnStarted;
   int a = -1, b = -1, c = -1, d = -1;
   int flags = 0;
   std::vector<int> data;
+};
+
+// One item somebody holds (docs/ITEMS.md).
+struct ItemStack {
+  int item = 0;       // index into db->items
+  int uses = -1;      // left; -1 = unlimited
+  bool drop = false;  // goes to whoever defeats the carrier
 };
 
 struct Unit {
@@ -58,6 +74,7 @@ struct Unit {
   bool done = false;   // has finished acting this turn
   bool alive = true;
   bool leader = false;
+  std::vector<ItemStack> items;  // the inventory, in order (at most rules.items.inventorySize)
 };
 
 struct CellState {
@@ -85,9 +102,14 @@ struct SideState {
   bool everHadUnits = false;
   bool hadHq = false;
   bool leaderLost = false;
+  std::vector<ItemStack> storage;  // the side's shared storage (rules.items.storage)
 };
 
-enum class ActionType { Move, Attack, Capture, Wait, Build, EndTurn };
+enum class ActionType {
+  Move, Attack, Capture, Wait, Build, EndTurn,
+  // Items (docs/ITEMS.md). Only UseItem ends the unit's turn.
+  UseItem, Equip, GiveItem, TakeItem, StoreItem, FetchItem, BuyItem, DiscardItem
+};
 
 struct Action {
   ActionType type = ActionType::EndTurn;
@@ -96,6 +118,8 @@ struct Action {
   int target = -1;      // Attack: defender unit
   int weapon = -1;      // Attack: weapon index (db->weapons)
   int unitType = -1;    // Build
+  int slot = -1;        // item actions: position in an inventory, or in the storage (FetchItem)
+  int item = -1;        // BuyItem: index into db->items
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
   static Action attack(int unit, int target, int weapon) { Action a; a.type = ActionType::Attack; a.unit = unit; a.target = target; a.weapon = weapon; return a; }
@@ -103,6 +127,18 @@ struct Action {
   static Action wait(int unit) { Action a; a.type = ActionType::Wait; a.unit = unit; return a; }
   static Action build(Cell cell, int unitType) { Action a; a.type = ActionType::Build; a.cell = cell; a.unitType = unitType; return a; }
   static Action endTurn() { return Action(); }
+  static Action itemAction(ActionType t, int unit, int slot, int target = -1) {
+    Action a; a.type = t; a.unit = unit; a.slot = slot; a.target = target; return a;
+  }
+  static Action useItem(int unit, int slot, int target) { return itemAction(ActionType::UseItem, unit, slot, target); }
+  static Action equip(int unit, int slot) { return itemAction(ActionType::Equip, unit, slot); }
+  static Action giveItem(int unit, int slot, int to) { return itemAction(ActionType::GiveItem, unit, slot, to); }
+  // `slot` is the position in the OTHER unit's inventory.
+  static Action takeItem(int unit, int from, int slot) { return itemAction(ActionType::TakeItem, unit, slot, from); }
+  static Action storeItem(int unit, int slot) { return itemAction(ActionType::StoreItem, unit, slot); }
+  static Action fetchItem(int unit, int index) { return itemAction(ActionType::FetchItem, unit, index); }
+  static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }
+  static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
 };
 
 // Result of a movement search for one unit.
@@ -183,8 +219,10 @@ class Battle {
   int unitAt(Cell c) const { return grid.valid(c) ? occupant[c] : -1; }
   int teamOf(const Unit& u) const { return sides[u.side].team; }
   bool isEnemy(const Unit& a, const Unit& b) const { return teamOf(a) != teamOf(b); }
-  int maxHp(const Unit& u) const { return u.stats[db->rules.statHp]; }
-  int movePoints(const Unit& u) const { return u.stats[db->rules.statMove]; }
+  // A unit's stat as the rules see it: its own value plus what its accessories add.
+  int stat(const Unit& u, int index) const;
+  int maxHp(const Unit& u) const { return stat(u, db->rules.statHp); }
+  int movePoints(const Unit& u) const { return stat(u, db->rules.statMove); }
   // Alive, belongs to the active side, battle not over.
   bool canAct(int unit) const;
 
@@ -206,6 +244,26 @@ class Battle {
   // unit must be able to enter that square.
   void buildOptions(Cell cell, std::vector<int>& unitTypes) const;
   bool canAfford(int side, int unitType) const;
+
+  // ---- items (items.cpp; docs/ITEMS.md) ----
+  const ItemDef& itemOf(const ItemStack& s) const { return db->items[(size_t)s.item]; }
+  // The weapons the unit can attack with right now, in order of preference:
+  // its type's (fixed weapons) or the wieldable weapon items it carries, each once.
+  void weaponsOf(const Unit& u, std::vector<int>& out) const;
+  // Carried weapons: the inventory slot of the first item that is this weapon (-1 = none),
+  // and of the equipped weapon (the first wieldable one; -1 = unarmed).
+  int weaponSlot(const Unit& u, int weapon) const;
+  int equippedSlot(const Unit& u) const;
+  bool hasRoom(const Unit& u) const { return (int)u.items.size() < db->rules.items.inventorySize; }
+  // May this unit use its side's shared storage where it stands?
+  bool storageOpen(const Unit& u) const;
+  // Items the unit could buy where it stands (affordable or not); empty = no shop here.
+  void shopItems(int unit, std::vector<int>& items) const;
+  bool canPay(int side, const std::vector<Amount>& price) const;
+  // Units a usable item in `slot` could be used on right now (the unit itself or neighbouring allies).
+  void useTargets(int unit, int slot, std::vector<int>& targets) const;
+  // Neighbouring living units of the same side (trade partners).
+  void tradePartners(int unit, std::vector<int>& out) const;
 
   // ---- actions ----
   // why (optional) receives a short human-readable reason on failure.
@@ -237,6 +295,13 @@ class Battle {
   // a square of the structure it is capturing.
   void releaseCapture(int unit, Cell newCell);
   bool ownsHq(int side) const;
+  // items.cpp
+  bool validateItemAction(const Action& action, std::string* why) const;
+  void applyItemAction(const Action& action, std::vector<Event>& events);
+  void spendUse(int unit, int slot, std::vector<Event>& events);
+  // Hands an item to a unit; without room it goes to the side's storage, else it is lost.
+  void giveTo(int unit, ItemStack stack, int flags, std::vector<Event>& events);
+  void clampHp(Unit& u);
   // progression.cpp
   void awardXp(int unit, int amount, std::vector<Event>& events);
 };
