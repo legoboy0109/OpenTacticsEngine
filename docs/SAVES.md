@@ -45,10 +45,14 @@ is put on top.
   are not stored.
 - Because the random generator's state is saved, reloading and repeating
   the same action gives the same dice.
-- `dataHash`: a hash of the bytes of the files that define the rules of
-  this battle: `game.json`, every `data/*.json` the loader reads except
-  `graphics.json`, the scripts listed in `game.json`, and the map file. Art
-  and fonts are not included.
+- `dataHash`: a hash of the **rules** of this battle, read from
+  `game.json`, every `data/*.json` the loader reads except `graphics.json`,
+  the scripts listed in `game.json`, and the map file. Things that only
+  change how the game is called or drawn do not count (owner decision
+  2026-11-14): names, descriptions, the author, colours, letters, fonts,
+  visual styles, screen size, the saving setting, art, and the layout and
+  comments of the files. A maker can rename and restyle a game without
+  locking players out of their saves.
 - **A save whose `dataHash` does not match the game as it is now is not
   loaded.** It stays on disk and is listed as "made with a different
   version of this game". (Indices inside the save are only meaningful
@@ -130,13 +134,18 @@ Decisions where the contract was silent, and the few deviations:
   disagree); a structure's owner is a side, its capture progress is within its
   capture points, and its `capturer` is a living unit standing on it (no
   capturer means untouched progress). Nothing is applied unless all of it holds.
-- `dataHash` = 64-bit FNV-1a, 16 hex digits, over `game.json`,
-  `data/weapons.json`, `units.json`, `terrain.json`, `structures.json` (when
-  present), the scripts in `game.json` order and the map file, each preceded by
-  its path and length. Because `game.json` is hashed as a whole, changing its
-  name, font or styles also makes old saves unloadable; that follows the
-  contract's wording and is the safe side. Only art (`graphics.json`, PNGs,
-  font files) is free to change.
+- `dataHash` = 64-bit FNV-1a, 16 hex digits (`save_hash.cpp`). JSON files are
+  parsed and written out again compactly, so layout and comments do not count,
+  with the keys `name`, `description`, `author`, `color` and `glyph` left out at
+  every depth, except inside number tables (`props`, `versus`, `stats`,
+  `growths`, `moveCost`, `income`, `cost`, `resources`), where a key is a rule
+  whatever it is called. Of `game.json` only `formatVersion`, `stats`,
+  `resources`, `moveTypes`, `roles`, `rules`, `formulas` and `scripts` count.
+  Then `data/weapons.json`, `units.json`, `terrain.json`, `structures.json`
+  (when present), the scripts in `game.json` order (byte for byte) and the map
+  file, each preceded by its path and length. Key order counts. A new
+  top-level rules key in `game.json` must be added to the list in
+  `computeDataHash`, and a new cosmetic key to `cosmeticKey`.
 - A save is "unusable" (greyed, with a reason, never deleted) when: the file
   cannot be read ("The file cannot be read"), is not valid ("The file is
   damaged"), has another `saveVersion` or a different hash ("Made with a

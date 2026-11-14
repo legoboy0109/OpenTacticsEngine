@@ -179,18 +179,23 @@ struct HashGame {
     if (!computeDataHash(db, "bridge", h, err)) std::printf("  hash: %s\n", err.c_str());
     return h;
   }
-  // Appends a space to a file (any byte change must show), and takes it away again.
-  void touch(const char* rel) {
+  std::string before;  // the file as it was before the last edit()
+  // Replaces the first `from` in a file with `to`; false if it is not there.
+  bool edit(const char* rel, const std::string& from, const std::string& to) {
     std::string text;
-    readTextFile(dir + "/" + rel, text);
-    writeTextFile(dir + "/" + rel, text + " ");
+    if (!readTextFile(dir + "/" + rel, text)) return false;
+    before = text;
+    size_t at = text.find(from);
+    if (at == std::string::npos) {
+      std::printf("  [%s] does not contain: %s\n", rel, from.c_str());
+      return false;
+    }
+    text.replace(at, from.size(), to);
+    return writeTextFile(dir + "/" + rel, text);
   }
-  void untouch(const char* rel) {
-    std::string text;
-    readTextFile(dir + "/" + rel, text);
-    text.pop_back();
-    writeTextFile(dir + "/" + rel, text);
-  }
+  // Puts back the file changed by the last edit(). (Replacing `to` with
+  // `from` would not do: the new text may also appear earlier in the file.)
+  bool undo(const char* rel) { return writeTextFile(dir + "/" + rel, before); }
 };
 }  // namespace
 
@@ -208,18 +213,48 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
   CHECK(computeDataHash(orig, "bridge", origHash, err));
   CHECK_STR(origHash, base);
 
-  const char* rules[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
-                         "data/structures.json", "maps/bridge.json", "scripts/formulas.lua"};
-  for (const char* rel : rules) {
-    g.touch(rel);
-    if (g.hash() == base) std::printf("  hash did not change for %s\n", rel);
+  // Rules changes: each must change the hash, and undoing it must restore it.
+  struct Edit { const char* rel; const char* from; const char* to; };
+  const Edit rules[] = {
+      {"game.json", "\"id\": \"spd\"", "\"id\": \"speed\""},
+      {"data/weapons.json", "\"might\": 6", "\"might\": 9"},
+      {"data/units.json", "\"hp\": 20", "\"hp\": 21"},
+      {"data/terrain.json", "\"defense\": 0", "\"defense\": 1"},
+      {"data/structures.json", "\"id\": \"fort\"", "\"id\": \"fort\", \"capturePoints\": 5"},
+      {"maps/bridge.json", "\"x\": 4, \"y\": 3", "\"x\": 5, \"y\": 3"},
+      {"maps/bridge.json", "\"controller\": \"ai\"", "\"controller\": \"human\""},
+      {"scripts/formulas.lua", "\n", "\n-- changed\n"},
+  };
+  for (const Edit& e : rules) {
+    CHECK(g.edit(e.rel, e.from, e.to));
+    if (g.hash() == base) std::printf("  hash did not change for %s: %s\n", e.rel, e.to);
     CHECK(g.hash() != base);
-    g.untouch(rel);
+    CHECK(g.undo(e.rel));
     CHECK_STR(g.hash(), base);
   }
-  g.touch("data/graphics.json");  // art: pictures, not rules
+
+  // Cosmetic changes: names, descriptions, colours, letters, fonts, styles,
+  // screen size, the saving setting, comments and layout. Saves stay valid.
+  const Edit cosmetic[] = {
+      {"game.json", "\"name\": \"Emblem Demo\"", "\"name\": \"Renamed\", \"author\": \"Me\", \"saving\": \"continue\""},
+      {"game.json", "\"description\": \"A small", "\"font\": { \"name\": \"sans\" }, \"description\": \"A big"},
+      {"game.json", "\"name\": \"Classic\"", "\"name\": \"Plain\", \"background\": \"#000000\""},
+      {"game.json", "\"tileSize\": 24", "\"tileSize\": 32"},
+      {"game.json", "\"name\": \"Strength\"", "\"name\": \"Power\""},
+      {"data/weapons.json", "\"name\": \"Iron Sword\"", "\"name\": \"Old Sword\""},
+      {"data/units.json", "\"name\": \"Lord\", \"glyph\": \"L\"", "\"name\": \"Hero\", \"glyph\": \"H\""},
+      {"data/terrain.json", "\"color\": \"#8fbf6a\", \"glyph\": \".\"", "\"color\": \"#123456\",   \"glyph\": \",\""},
+      {"data/structures.json", "{ \"structures\"", "// another note\n{   \"structures\""},
+      {"maps/bridge.json", "\"name\": \"Skirmish at the Ford\"", "\"name\": \"The Ford\""},
+      {"maps/bridge.json", "\"name\": \"Blue Company\", \"color\": \"#3d85c6\"", "\"name\": \"Azure\", \"color\": \"#0000ff\""},
+  };
+  for (const Edit& e : cosmetic) {
+    CHECK(g.edit(e.rel, e.from, e.to));
+    if (g.hash() != base) std::printf("  hash changed for a cosmetic edit in %s: %s\n", e.rel, e.to);
+    CHECK_STR(g.hash(), base);
+  }
+  CHECK(g.edit("data/graphics.json", "{", "{ "));  // art: pictures, not rules
   CHECK_STR(g.hash(), base);
-  g.untouch("data/graphics.json");
 
   std::string h;
   CHECK(!computeDataHash(g.db, "no-such-map", h, err));
