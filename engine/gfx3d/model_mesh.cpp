@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <utility>
 
 #include "core/base/log.h"
 #include "gfx3d/model_internal.h"
@@ -10,97 +11,6 @@ namespace ote {
 namespace gltf {
 
 namespace {
-
-enum { kByte = 5120, kUByte = 5121, kShort = 5122, kUShort = 5123, kUInt = 5125, kFloat = 5126 };
-
-struct Accessor {
-  const uint8_t* data = nullptr;
-  size_t stride = 0, count = 0;
-  int comp = 0, n = 0;
-  bool norm = false;
-};
-
-int compSize(int t) {
-  switch (t) {
-    case kByte: case kUByte: return 1;
-    case kShort: case kUShort: return 2;
-    case kUInt: case kFloat: return 4;
-  }
-  return 0;
-}
-
-int typeCount(const std::string& t) {
-  if (t == "SCALAR") return 1;
-  if (t == "VEC2") return 2;
-  if (t == "VEC3") return 3;
-  if (t == "VEC4") return 4;
-  return 0;  // matrices: not used by anything this loader reads
-}
-
-bool fail(std::string& err, const char* fmt, size_t a) {
-  char msg[160];
-  std::snprintf(msg, sizeof msg, fmt, a);
-  err = msg;
-  return false;
-}
-
-// Checks everything about accessor `idx` against the real buffer sizes, so reads below cannot go out of range.
-bool openAccessor(const Context& c, size_t idx, Accessor& a, std::string& err) {
-  const Json& j = c.json["accessors"][idx];
-  if (!j.isObject()) return fail(err, "it uses accessor %zu, which does not exist", idx);
-  if (j.has("sparse")) return fail(err, "its accessor %zu uses sparse storage, which is not supported", idx);
-  size_t count = 0, off = 0, ct = 0;
-  if (!asIndex(j["componentType"], ct) || !asIndex(j["count"], count) || (j.has("byteOffset") && !asIndex(j["byteOffset"], off)))
-    return fail(err, "its accessor %zu is damaged (bad type, count or offset)", idx);
-  int es = compSize((int)ct), n = typeCount(j["type"].asString());
-  if (es == 0 || n == 0) return fail(err, "its accessor %zu has a data type that is not supported", idx);
-  size_t view = 0;
-  if (!asIndex(j["bufferView"], view)) return fail(err, "its accessor %zu has no data", idx);
-  const uint8_t* base;
-  size_t size, vstride;
-  if (!viewData(c, view, base, size, vstride, err)) return false;
-  size_t elem = (size_t)es * (size_t)n;
-  size_t stride = vstride ? vstride : elem;
-  if (stride < elem) return fail(err, "its accessor %zu has a byte stride smaller than its elements", idx);
-  if (count > 0) {
-    size_t need = off + (count - 1) * stride + elem;  // every factor is <= 1e9: no overflow
-    if (need > size) return fail(err, "its accessor %zu reads past the end of its data", idx);
-  }
-  a.data = base + off;
-  a.stride = stride;
-  a.count = count;
-  a.comp = (int)ct;
-  a.n = n;
-  a.norm = j["normalized"].asBool(false);
-  return true;
-}
-
-// glTF numbers are little-endian whatever the machine is; read them byte by
-// byte so big-endian consoles (PS3, Wii U, Xbox 360) get the same values.
-uint16_t le16(const uint8_t* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
-uint32_t le32(const uint8_t* p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
-
-// Component k of element i as a float (normalised integers mapped to 0..1 / -1..1).
-float readComp(const Accessor& a, size_t i, int k) {
-  const uint8_t* p = a.data + i * a.stride + (size_t)k * (size_t)compSize(a.comp);
-  switch (a.comp) {
-    case kFloat: { uint32_t bits = le32(p); float f; std::memcpy(&f, &bits, 4); return f; }
-    case kUByte: return a.norm ? p[0] / 255.0f : (float)p[0];
-    case kByte: { int v = (int8_t)p[0]; return a.norm ? std::max(v / 127.0f, -1.0f) : (float)v; }
-    case kUShort: { uint16_t v = le16(p); return a.norm ? v / 65535.0f : (float)v; }
-    case kShort: { int16_t v = (int16_t)le16(p); return a.norm ? std::max(v / 32767.0f, -1.0f) : (float)v; }
-    case kUInt: return (float)le32(p);
-  }
-  return 0;
-}
-
-uint32_t readIndex(const Accessor& a, size_t i) {
-  const uint8_t* p = a.data + i * a.stride;
-  if (a.comp == kUByte) return p[0];
-  if (a.comp == kUShort) return le16(p);
-  return le32(p);
-}
-
 uint8_t toByte(float f) {
   f = f < 0 ? 0 : (f > 1 ? 1 : f);
   return (uint8_t)(f * 255.0f + 0.5f);
@@ -125,11 +35,67 @@ bool optionalAttribute(const Context& c, const Json& attrs, const char* name, si
   return true;
 }
 
+// JOINTS_0 / WEIGHTS_0 -> four joints and four weights per vertex (weights normalised to sum 1; all zero = joint 0).
+// found = false (and a warning): the primitive has no usable pair.
+bool readSkinAttributes(const Context& c, const Json& attrs, size_t vcount, size_t jointCount, SkinWeights& sw, bool& found,
+                        std::string& err) {
+  found = false;
+  Accessor ja, wa;
+  bool hasJ, hasW;
+  if (!optionalAttribute(c, attrs, "JOINTS_0", vcount, 4, 4, ja, hasJ, err) ||
+      !optionalAttribute(c, attrs, "WEIGHTS_0", vcount, 4, 4, wa, hasW, err))
+    return false;
+  if (attrs.has("JOINTS_1") || attrs.has("WEIGHTS_1"))
+    OTE_WARN("model: more than four joints per vertex are not supported; only the first four count");
+  if (!hasJ || !hasW) {
+    OTE_WARN("model: a skinned mesh part has no JOINTS_0 / WEIGHTS_0; it is drawn rigid");
+    return true;
+  }
+  if (ja.comp != kUByte && ja.comp != kUShort) {
+    err = "a mesh has JOINTS_0 data that is not whole numbers";
+    return false;
+  }
+  if (wa.comp != kFloat && wa.comp != kUByte && wa.comp != kUShort) {
+    err = "a mesh has WEIGHTS_0 data of a type that is not supported";
+    return false;
+  }
+  wa.norm = wa.comp != kFloat;  // whole-number weights are always 0..max = 0..1
+  sw.joints.resize(vcount * 4);
+  sw.weights.resize(vcount * 4);
+  for (size_t i = 0; i < vcount; ++i) {
+    float sum = 0;
+    for (int k = 0; k < 4; ++k) {
+      size_t at = i * 4 + (size_t)k;
+      const uint8_t* p = ja.data + i * ja.stride + (size_t)k * (ja.comp == kUByte ? 1 : 2);
+      uint32_t j = ja.comp == kUByte ? p[0] : (uint32_t)(p[0] | (p[1] << 8));
+      if (j >= jointCount) {
+        err = "a mesh part refers to a joint its skin does not have";
+        sw = SkinWeights();
+        return false;
+      }
+      sw.joints[at] = (uint16_t)j;
+      float w = readComp(wa, i, k);
+      if (!(w >= 0) || w > 1e9f) w = 0;  // negative, NaN and absurd weights count as nothing
+      sw.weights[at] = w;
+      sum += w;
+    }
+    if (sum > 1e-8f) {
+      for (int k = 0; k < 4; ++k) sw.weights[i * 4 + (size_t)k] /= sum;
+    } else {
+      for (int k = 0; k < 4; ++k) sw.weights[i * 4 + (size_t)k] = k == 0 ? 1.0f : 0.0f;
+    }
+  }
+  found = true;
+  return true;
+}
+
 }  // namespace
 
-bool readPrimitive(const Context& c, const Json& prim, MeshData& out, bool& skip, std::string& err) {
+bool readPrimitive(const Context& c, const Json& prim, MeshData& out, bool& skip, std::string& err, size_t jointCount,
+                   SkinWeights* skin) {
   skip = false;
   out = MeshData();
+  if (skin) *skin = SkinWeights();
   size_t mode = 4;
   if (prim.has("mode") && !asIndex(prim["mode"], mode)) {
     err = "a mesh has a damaged drawing mode";
@@ -203,6 +169,10 @@ bool readPrimitive(const Context& c, const Json& prim, MeshData& out, bool& skip
     return true;
   }
 
+  SkinWeights sw;
+  bool hasSkin = false;
+  if (jointCount > 0 && skin && !readSkinAttributes(c, attrs, vcount, jointCount, sw, hasSkin, err)) return false;
+
   std::vector<Vertex3D> v(vcount);
   for (size_t i = 0; i < vcount; ++i) {
     Vertex3D& o = v[i];
@@ -229,6 +199,7 @@ bool readPrimitive(const Context& c, const Json& prim, MeshData& out, bool& skip
   if (hasN) {
     out.vertices.swap(v);
     out.indices = tri;
+    if (hasSkin) *skin = std::move(sw);
     return true;
   }
   // No normals: give every triangle its own three vertices carrying the flat face normal.
@@ -245,6 +216,12 @@ bool readPrimitive(const Context& c, const Json& prim, MeshData& out, bool& skip
       out.indices.push_back((uint32_t)out.vertices.size());
       out.vertices.push_back(*p);
     }
+    if (hasSkin)
+      for (size_t k = 0; k < 3; ++k) {
+        size_t o = tri[t + k] * 4;
+        skin->joints.insert(skin->joints.end(), sw.joints.begin() + o, sw.joints.begin() + o + 4);
+        skin->weights.insert(skin->weights.end(), sw.weights.begin() + o, sw.weights.begin() + o + 4);
+      }
   }
   return true;
 }

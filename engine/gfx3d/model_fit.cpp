@@ -6,20 +6,30 @@
 namespace ote {
 namespace gltf {
 
-void splitMesh(const MeshData& in, int maxVertices, std::vector<MeshData>& out) {
+void splitMesh(const MeshData& in, int maxVertices, std::vector<MeshData>& out, const SkinWeights* skin,
+               std::vector<SkinWeights>* skinOut) {
   out.clear();
+  if (skinOut) skinOut->clear();
+  if (skin && (skin->joints.size() != in.vertices.size() * 4 || skin->weights.size() != in.vertices.size() * 4))
+    skin = nullptr;  // not one entry per vertex: nothing to carry along
   const size_t limit = (size_t)std::max(maxVertices, 3);  // a triangle needs three vertices
   if (in.vertices.size() <= limit) {
     out.push_back(in);
+    if (skinOut) skinOut->push_back(skin ? *skin : SkinWeights());
     return;
   }
   const uint32_t kNone = 0xFFFFFFFFu;
   std::vector<uint32_t> remap(in.vertices.size(), kNone);  // old vertex -> index in the current part
   std::vector<uint32_t> used;                              // old vertices in the current part (to reset remap)
   MeshData cur;
+  SkinWeights curSkin;
   auto flush = [&]() {
-    if (!cur.indices.empty()) out.push_back(cur);
+    if (!cur.indices.empty()) {
+      out.push_back(cur);
+      if (skinOut) skinOut->push_back(curSkin);
+    }
     cur = MeshData();
+    curSkin = SkinWeights();
     for (uint32_t o : used) remap[o] = kNone;
     used.clear();
   };
@@ -37,6 +47,10 @@ void splitMesh(const MeshData& in, int maxVertices, std::vector<MeshData>& out) 
       if (remap[o] == kNone) {
         remap[o] = (uint32_t)cur.vertices.size();
         cur.vertices.push_back(in.vertices[o]);
+        if (skin) {
+          curSkin.joints.insert(curSkin.joints.end(), skin->joints.begin() + o * 4, skin->joints.begin() + o * 4 + 4);
+          curSkin.weights.insert(curSkin.weights.end(), skin->weights.begin() + o * 4, skin->weights.begin() + o * 4 + 4);
+        }
         used.push_back(o);
       }
       cur.indices.push_back(remap[o]);
