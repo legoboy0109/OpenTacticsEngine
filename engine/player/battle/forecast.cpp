@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "battle/battle_draw.h"
+#include "battle/item_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -23,7 +24,12 @@ Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int 
   if (counterMissing) {
     col.push_back({"No counter", kGrey});
   } else {
-    col.push_back({b.db->weapons[sf.weapon].name, kGrey});
+    std::string name = b.db->weapons[sf.weapon].name;
+    if (b.db->rules.items.carriedWeapons) {  // the weapon item's uses left, "Iron Sword 12"
+      int slot = b.weaponSlot(u, sf.weapon);
+      if (slot >= 0 && u.items[(size_t)slot].uses >= 0) name += " " + intStr(u.items[(size_t)slot].uses);
+    }
+    col.push_back({name, kGrey});
   }
   col.push_back({"HP " + intStr(u.hp) + " > " + intStr(hpAfter), hpAfter <= 0 ? Color(255, 110, 100) : kText});
   if (!counterMissing) {

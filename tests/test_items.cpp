@@ -5,45 +5,11 @@
 
 using namespace ote;
 using fixture::World;
+using fixture::addItems;
+using fixture::carry;
+using namespace fixture::items;
 
 namespace {
-
-enum { Potion, Salve, Tonic, Ring, Boots, SwordItem, BowItem, CannonItem };
-
-// Items of the miniature game. Stats: hp, atk, def, mov. Resource: funds.
-void addItems(World& w, bool carried = false) {
-  Database& db = w.db;
-  db.rules.items.carriedWeapons = carried;
-  auto item = [&](const char* id, ItemKind kind) {
-    ItemDef d;
-    d.id = d.name = id;
-    d.kind = kind;
-    return d;
-  };
-  ItemDef potion = item("potion", ItemKind::Usable); potion.heal = 5; potion.uses = 2; potion.price = {{0, 50}};
-  ItemDef salve = item("salve", ItemKind::Usable); salve.heal = kHealFull; salve.targetAlly = true;
-  ItemDef tonic = item("tonic", ItemKind::Usable); tonic.raise = {3, 2, 0, 0}; tonic.uses = 1;
-  ItemDef ring = item("ring", ItemKind::Accessory); ring.bonus = {0, 0, 2, 0};
-  ItemDef boots = item("boots", ItemKind::Accessory); boots.bonus = {4, 0, 0, 1};
-  ItemDef sword = item("sword_item", ItemKind::Weapon); sword.weapon = 0; sword.uses = 2; sword.price = {{0, 200}};
-  ItemDef bow = item("bow_item", ItemKind::Weapon); bow.weapon = 1;
-  ItemDef cannon = item("cannon_item", ItemKind::Weapon); cannon.weapon = 2;
-  db.items = {potion, salve, tonic, ring, boots, sword, bow, cannon};
-  db.structures[(size_t)db.findStructure("city")].sells = {Potion, SwordItem};
-}
-
-// Gives a map unit its own items (before begin()).
-void carry(World& w, int unit, std::vector<int> items, int dropIndex = -1) {
-  MapUnitDef& u = w.map.units[(size_t)unit];
-  u.hasItems = true;
-  for (size_t i = 0; i < items.size(); ++i) {
-    ItemGrant g;
-    g.item = items[i];
-    g.uses = w.db.items[(size_t)items[i]].uses;
-    g.drop = (int)i == dropIndex;
-    u.items.push_back(g);
-  }
-}
 
 int count(const World& w, EventType t) {
   int n = 0;

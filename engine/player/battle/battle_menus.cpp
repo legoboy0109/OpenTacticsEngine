@@ -41,6 +41,16 @@ void BattleScene::openActionMenu() {
   std::vector<MenuItem> items;
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
+  // Item entries (docs/ITEMS.md "Player"); none of them exist in a game without items.
+  if (!u.items.empty()) items.push_back({"Items", "", true, kItems});
+  std::vector<int> partners, shop;
+  battle_.tradePartners(sel_, partners);
+  bool anyItems = !u.items.empty();
+  for (int p : partners) anyItems |= !battle_.units[(size_t)p].items.empty();
+  if (!partners.empty() && anyItems) items.push_back({"Trade", "", true, kTrade});
+  if (battle_.storageOpen(u)) items.push_back({"Storage", "", true, kStorage});
+  battle_.shopItems(sel_, shop);
+  if (!shop.empty()) items.push_back({"Shop", "", true, kShop});
   items.push_back({"Wait", "", true, kWait});
   menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
   anchorActionMenu();
@@ -87,8 +97,17 @@ void BattleScene::menuInput(const InputEvent& e) {
   if (res == Menu::None) return;
   int id = menu_.chosenId();
   if (mode_ == Mode::ActionMenu) {
-    if (res == Menu::Cancelled) { cancelAction(); return; }
+    if (res == Menu::Cancelled) {
+      // An item action cannot be undone, and the walk back would undo it with the move.
+      if (itemsUsed_) say("Cannot undo after using items");
+      else cancelAction();
+      return;
+    }
     if (id == kAttack) beginTargeting(-1);
+    else if (id == kItems) openItems();
+    else if (id == kTrade) openTrade();
+    else if (id == kStorage) openStorage();
+    else if (id == kShop) openShop();
     else if (id == kCapture) { if (submit(Action::capture(sel_))) finishOrder(); }
     else if (id == kWait) { if (submit(Action::wait(sel_))) finishOrder(); }
   } else if (mode_ == Mode::BuildMenu) {

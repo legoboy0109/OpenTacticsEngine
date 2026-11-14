@@ -6,6 +6,9 @@
 
 using namespace ote;
 using fixture::World;
+using fixture::addItems;
+using fixture::carry;
+using namespace fixture::items;
 
 namespace {
 
@@ -198,4 +201,57 @@ TEST(ai_demo_games_finish_within_round_limit) {
     CHECK(playOut(eco.battle, eco.events, 60));
     CHECK(srpg.battle.winnerTeam >= 0 && eco.battle.winnerTeam >= 0);
   }
+}
+
+// ---- items: a badly hurt unit drinks instead of fighting on (docs/ITEMS.md "AI")
+
+// Red soldier next to a blue one, carrying a potion (heals 5 of 10). Blue's turn is over, red to act.
+static bool woundedRed(World& w, int redHp, int blueHp) {
+  addItems(w);
+  carry(w, 1, {Potion});
+  if (!w.begin()) return false;
+  w.battle.units[1].hp = redHp;
+  w.battle.units[0].hp = blueHp;
+  return toRed(w);
+}
+
+TEST(ai_hurt_unit_uses_its_healing_item_instead_of_attacking) {
+  World w({"....."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 1, 0, false}});
+  CHECK(woundedRed(w, 4, 10));
+  aiTakeStep(w.battle, w.events);  // the return value only says whether red's turn goes on
+  CHECK_EQ(w.count(EventType::ItemUsed), 1);
+  CHECK_EQ(w.count(EventType::UnitHealed), 1);
+  CHECK_EQ(w.count(EventType::Attack), 0);
+  CHECK_EQ(w.battle.units[1].hp, 9);
+  CHECK_EQ(w.battle.units[1].items[0].uses, 1);
+  CHECK(w.battle.units[1].done);
+}
+
+TEST(ai_hurt_unit_still_attacks_when_it_can_kill) {
+  World w({"....."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 1, 0, false}});
+  CHECK(woundedRed(w, 4, 3));  // 5 - 2 = 3 damage: blue dies
+  aiTakeStep(w.battle, w.events);  // the return value only says whether red's turn goes on
+  const Event* atk = w.last(EventType::Attack);
+  CHECK(atk && (atk->flags & kKill));
+  CHECK_EQ(w.count(EventType::ItemUsed), 0);
+}
+
+TEST(ai_unit_at_half_hit_points_or_more_does_not_drink) {
+  World w({"....."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 1, 0, false}});
+  CHECK(woundedRed(w, 5, 10));  // exactly half is not "below half"
+  aiTakeStep(w.battle, w.events);  // the return value only says whether red's turn goes on
+  CHECK_EQ(w.count(EventType::ItemUsed), 0);
+  CHECK(w.count(EventType::Attack) >= 1);  // a counterattack counts too
+}
+
+TEST(ai_hurt_unit_without_a_healing_item_fights_on) {
+  World w({"....."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 1, 0, false}});
+  addItems(w);
+  carry(w, 1, {Ring, Salve});  // an accessory, and an item that only works on a neighbour
+  CHECK(w.begin());
+  w.battle.units[1].hp = 3;
+  CHECK(toRed(w));
+  aiTakeStep(w.battle, w.events);  // the return value only says whether red's turn goes on
+  CHECK_EQ(w.count(EventType::ItemUsed), 0);
+  CHECK(w.count(EventType::Attack) >= 1);  // a counterattack counts too
 }
