@@ -12,14 +12,19 @@ namespace ote {
 
 class SoftRenderer3D : public Renderer3D {
  public:
-  // The picture is the frame's size in logical pixels times `scale`.
+  // The picture is the frame's renderWidth x renderHeight, or else its size in logical pixels times `scale`.
   explicit SoftRenderer3D(int scale = 1) : scale_(scale < 1 ? 1 : scale) {}
 
-  Caps3D caps() const override { return Caps3D(); }
+  // A bigger texture limit than the default: the CPU has the memory, and detailed sheets are 2048 a side.
+  Caps3D caps() const override {
+    Caps3D c;
+    c.maxTextureSize = 2048;
+    return c;
+  }
   MeshId createMesh(const MeshData& data) override;
   void updateMesh(MeshId mesh, const MeshData& data) override;
   void destroyMesh(MeshId mesh) override;
-  Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat) override;
+  Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool mipmaps = false) override;
   void destroyTexture(Texture3DId texture) override;
   void begin(const Frame3D& frame) override;
   void draw(MeshId mesh, const Mat4& model, const Material3D& material) override;

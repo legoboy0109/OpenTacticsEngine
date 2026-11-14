@@ -96,9 +96,10 @@ int runApp(App& app, const PlatformConfig& config) {
   if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD)) OTE_WARN("gamepad support unavailable: %s", SDL_GetError());
 
   int scale = config.windowScale < 1 ? 1 : config.windowScale;
-  // Headless windows are exactly logical size so screenshots are 1:1.
-  int winW = config.logicalWidth * (config.headless ? 1 : scale);
-  int winH = config.logicalHeight * (config.headless ? 1 : scale);
+  // Headless windows are exactly logical size (times headlessScale) so screenshots are 1:1.
+  int hs = config.headlessScale < 1 ? 1 : config.headlessScale;
+  int winW = config.logicalWidth * (config.headless ? hs : scale);
+  int winH = config.logicalHeight * (config.headless ? hs : scale);
   SDL_WindowFlags flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
 #ifdef __EMSCRIPTEN__
   // The canvas backing store gets devicePixelRatio times its CSS size, so smooth
@@ -134,7 +135,7 @@ int runApp(App& app, const PlatformConfig& config) {
     Loop loop;
     loop.app = &app;
     loop.cfg = &config;
-    SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless);
+    SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless, hs);
     loop.gfx = &gfx;
     loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards

@@ -25,6 +25,8 @@ struct Args {
   bool test3d = false;    // --test-3d: show the built-in 3D test scene instead of the launcher
   std::string draw3d = "auto";  // --3d auto|software|hardware: which 3D backend (docs/RENDER3D.md). auto =
                                 // hardware where it works, but software when --headless (repeatable pictures)
+  std::string res3d = "auto";   // --3d-res auto|display|game: how big the 3D picture is (docs/RENDER3D.md "Resolution")
+  int scale3d = 1;              // --3d-scale N (1..8, needs --headless): the headless "display" is N times the logical size
   bool autoplay = false;
   unsigned seed = 1;
   bool headless = false;

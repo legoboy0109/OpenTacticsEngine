@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { artNameFor, displayStem, pngSize, tooBig } from '../../src/model/artFiles'
-import { addSheet, newSheetId, removeSheet, setSheetGrid, setSheetName, setUnitMarker, unitMarkerOn, updateSheet } from '../../src/model/graphics'
+import { addSheet, newSheetId, removeSheet, setSheetGrid, setSheetName, setSheetSmooth, setUnitMarker, unitMarkerOn, updateSheet } from '../../src/model/graphics'
 import { copyArtOf, dropArtOf, dropStyleArt } from '../../src/model/graphicsClean'
 import { effectiveLook, emptyPick, getLook, lookFromPick, pickFromLook, setLook, setSideLook, sideLook, stylesWithOverride, type Pick } from '../../src/model/graphicsLooks'
 import { gameSides, outsideUsers, sheetUsers, unusedFiles } from '../../src/model/graphicsUsage'
@@ -36,6 +36,16 @@ describe('images', () => {
     expect(e.graphics!.sheets[1]).toBe(d.graphics!.sheets[1])
     expect(updateSheet(d, 'missing', { name: 'x' })).toBe(d)
     expect(updateSheet(d, 'a', { name: 'New' }).graphics!.sheets[0].name).toBe('New')
+  })
+  it('smooth is off by default; turning it on writes true, off removes the key and other keys stay', () => {
+    let d = addSheet(base(), { file: 'art/a.png', name: 'A', cellWidth: 24, cellHeight: 24 })
+    expect(d.graphics!.sheets[0].smooth).toBeUndefined()
+    d = setSheetSmooth(d, 'a', true)
+    expect(d.graphics!.sheets[0]).toEqual({ id: 'a', file: 'art/a.png', cellWidth: 24, cellHeight: 24, name: 'A', smooth: true })
+    d = setSheetGrid(d, 'a', 12, 12)
+    expect(d.graphics!.sheets[0].smooth).toBe(true)
+    d = setSheetSmooth(d, 'a', false)
+    expect('smooth' in d.graphics!.sheets[0]).toBe(false)
   })
   it('the unit marker defaults on; turning it off writes false, on removes the key', () => {
     let d = base()

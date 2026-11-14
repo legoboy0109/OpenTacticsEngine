@@ -7,7 +7,8 @@
 // framePixels(), exactly like the software backend. So the 2D renderer needs
 // no changes and need not be GL at all, and the two backends are swapped
 // freely. The price is one read-back of the picture per frame, small at the
-// game's logical resolution.
+// game's logical resolution and grows with the picture (1920 x 1080: 8 MB a
+// frame; docs/RENDER3D.md says what it costs).
 //
 // Draw calls are collected and carried out in end(), inside one
 // enter()/leave() of the host: between begin() and end() the 2D renderer may
@@ -29,11 +30,11 @@ class GlRenderer3D : public Renderer3D {
   static std::unique_ptr<Renderer3D> create(std::unique_ptr<GlHost> host, std::string& why);
   ~GlRenderer3D() override;
 
-  Caps3D caps() const override { return Caps3D(); }
+  Caps3D caps() const override { return caps_; }
   MeshId createMesh(const MeshData& data) override;
   void updateMesh(MeshId mesh, const MeshData& data) override;
   void destroyMesh(MeshId mesh) override;
-  Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat) override;
+  Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool mipmaps = false) override;
   void destroyTexture(Texture3DId texture) override;
   void begin(const Frame3D& frame) override;
   void draw(MeshId mesh, const Mat4& model, const Material3D& material) override;
@@ -53,7 +54,7 @@ class GlRenderer3D : public Renderer3D {
     int indexCount = 0;
   };
   struct Texture {
-    bool used = false, repeat = false, queued = false;
+    bool used = false, repeat = false, mipmaps = false, queued = false;
     GLuint_ id = 0;
   };
   struct Cmd {
@@ -71,15 +72,23 @@ class GlRenderer3D : public Renderer3D {
   bool init(std::string& why);
   bool validMesh(const MeshData& data) const;
   void upload(Mesh& m, const MeshData& data);
-  bool target(int w, int h);           // makes the framebuffer that size
+  bool target(int w, int h, int samples);  // makes the framebuffer that size (samples: wanted, 0 = none) and binds it
   void flush(bool withBlended);        // carries out the queued draws (context must be current)
   void run(const Cmd& c);
   void freeAll();
 
   std::unique_ptr<GlHost> host_;
   GlApi gl_;
-  GLuint_ program_ = 0, white_ = 0, fbo_ = 0, colorTex_ = 0, depthRb_ = 0;
-  GLuint_ samplers_[4] = {0, 0, 0, 0};  // [repeat * 2 + smooth]
+  GLuint_ program_ = 0, white_ = 0;
+  // The picture: fbo_ holds the finished colour texture (and the depth when
+  // there is no multisampling). With multisampling the frame is drawn into
+  // msFbo_ (multisampled colour and depth renderbuffers) and resolved into fbo_.
+  GLuint_ fbo_ = 0, colorTex_ = 0, depthRb_ = 0, msFbo_ = 0, msColorRb_ = 0, msDepthRb_ = 0;
+  GLuint_ samplers_[8] = {0, 0, 0, 0, 0, 0, 0, 0};  // [mipmapped smooth * 4 + repeat * 2 + smooth]
+  Caps3D caps_;
+  int maxPicture_ = 4096, maxSamples_ = 0;  // limits of the context
+  int fbSamples_ = 0;                       // samples the current framebuffer really has
+  bool msFailed_ = false;                   // multisampling did not work here: do not try again
   Uniforms u_;
   int fbW_ = 0, fbH_ = 0;
   std::vector<Mesh> meshes_;

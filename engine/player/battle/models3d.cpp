@@ -35,7 +35,7 @@ const ModelAsset* Models3D::get(Renderer3D& r3d, const std::string& file) {
     int im = m.materials[i].image;
     if (im < 0 || (size_t)im >= m.images.size()) continue;
     a->textures[i] = r3d.createTexture(m.images[(size_t)im].rgba.data(), m.images[(size_t)im].width, m.images[(size_t)im].height,
-                                       m.materials[i].repeat);
+                                       m.materials[i].repeat, m.materials[i].smooth);  // smooth (glTF sampler: anything but NEAREST): mipmaps too
   }
   for (size_t n = 0; n < m.nodes.size(); ++n)
     for (int p : m.nodes[n].parts) {

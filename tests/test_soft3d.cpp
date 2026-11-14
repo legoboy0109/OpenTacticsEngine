@@ -249,3 +249,55 @@ TEST(soft3d_survives_geometry_behind_the_camera_and_bad_input) {
   Px p = at(s, 32, 32);
   CHECK(p.r > 240 && p.g > 35 && p.g < 70);
 }
+
+TEST(soft3d_smooth_textures_blend_texels_and_hard_ones_do_not) {
+  SoftRenderer3D s;
+  // 2 x 1 texture: black, white. The quad shows it across 64 pixels; the seam between the texels is at x = 32.
+  const uint8_t px[8] = {0, 0, 0, 255, 255, 255, 255, 255};
+  Texture3DId t = s.createTexture(px, 2, 1, false, true);  // mipmaps asked for: the software backend just ignores that
+  CHECK(t != 0);
+  MeshData m;
+  m.vertices = {vert(-1, -1, 0, 0, 1), vert(1, -1, 0, 1, 1), vert(1, 1, 0, 1, 0), vert(-1, 1, 0, 0, 0)};
+  m.indices = {0, 1, 2, 0, 2, 3};
+  MeshId q = s.createMesh(m);
+  Material3D mat;
+  mat.lit = false;
+  mat.texture = t;
+  s.begin(frame());
+  s.draw(q, Mat4(), mat);
+  s.end();
+  CHECK(near(at(s, 20, 32), 0, 0, 0));  // hard pixels: a jump at the seam
+  CHECK(near(at(s, 44, 32), 255, 255, 255));
+  mat.smooth = true;
+  s.begin(frame());
+  s.draw(q, Mat4(), mat);
+  s.end();
+  Px a = at(s, 24, 32), b = at(s, 32, 32), c = at(s, 40, 32);  // a ramp: dark, grey, light
+  CHECK(a.r < b.r && b.r < c.r);
+  CHECK(near(b, 128, 128, 128, 12));
+  CHECK(near(at(s, 4, 32), 0, 0, 0));  // clamped at the edge: no wrap-around bleed
+}
+
+TEST(soft3d_draws_at_the_requested_picture_size_and_caps_it) {
+  SoftRenderer3D s;
+  MeshId q = s.createMesh(quad(0.5f, 0));
+  Frame3D f = frame();
+  f.renderWidth = f.renderHeight = 256;  // 4 times the logical 64: same picture, more pixels
+  s.begin(f);
+  s.draw(q, Mat4(), Material3D());
+  s.end();
+  int w = 0, h = 0;
+  CHECK(s.framePixels(w, h) != nullptr);
+  CHECK_EQ(w, 256);
+  CHECK_EQ(h, 256);
+  CHECK(near(at(s, 128, 128), 255, 255, 255));  // the square is still in the middle, half as wide as the picture
+  CHECK(near(at(s, 20, 20), 0, 0, 128));
+  f.renderWidth = 8192;  // longer side capped at 4096, aspect kept
+  f.renderHeight = 4096;
+  s.begin(f);
+  s.end();
+  s.framePixels(w, h);
+  CHECK_EQ(w, 4096);
+  CHECK_EQ(h, 2048);
+  CHECK_EQ(s.caps().maxTextureSize, 2048);
+}

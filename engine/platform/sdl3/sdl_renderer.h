@@ -14,11 +14,13 @@ namespace ote {
 
 class SdlRenderer : public Renderer {
  public:
-  // `headless`: the window always follows the logical size so screenshots stay 1:1.
-  SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless);
+  // `headless`: the window always follows the logical size times `headlessScale`, so screenshots stay 1:1
+  // with the (scaled) logical frame.
+  SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale);
   ~SdlRenderer() override;
   int width() const override { return w_; }
   int height() const override { return h_; }
+  void displaySize(int& width, int& height) const override;
   void clear(Color c) override;
   void fillRect(int x, int y, int w, int h, Color c) override;
   void drawRect(int x, int y, int w, int h, Color c) override;
@@ -30,7 +32,7 @@ class SdlRenderer : public Renderer {
   int textWidth(const char* text, int scale = 1) const override { return text_->textWidth(text, scale); }
   int lineHeight(int scale = 1) const override { return text_->lineHeight(scale); }
 
-  TextureId createTexture(const uint8_t* rgba, int width, int height) override;
+  TextureId createTexture(const uint8_t* rgba, int width, int height, bool smooth = false) override;
   void destroyTexture(TextureId id) override;
   void updateTexture(TextureId id, const uint8_t* rgba) override;
   void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
@@ -48,6 +50,7 @@ class SdlRenderer : public Renderer {
   SDL_Renderer* r_;
   int w_, h_;
   bool headless_;
+  int headlessScale_;
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
   std::unique_ptr<Target> target_;
   std::unique_ptr<TextEngine> text_;

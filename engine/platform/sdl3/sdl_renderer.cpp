@@ -74,8 +74,8 @@ class SdlRenderer::Target : public TextTarget {
   std::vector<SDL_Texture*> tex_;
 };
 
-SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless)
-    : window_(window), r_(renderer), w_(w), h_(h), headless_(headless) {
+SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
+    : window_(window), r_(renderer), w_(w), h_(h), headless_(headless), headlessScale_(headlessScale) {
   target_.reset(new Target(r_, &w_, &h_));
   text_.reset(new TextEngine(*target_));
 }
@@ -93,7 +93,7 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   w_ = width;
   h_ = height;
   if (headless_) {  // keep screenshots 1:1 with the logical frame
-    SDL_SetWindowSize(window_, w_, h_);
+    SDL_SetWindowSize(window_, w_ * headlessScale_, h_ * headlessScale_);
     SDL_SyncWindow(window_);
   }
   if (!SDL_SetRenderLogicalPresentation(r_, w_, h_, SDL_LOGICAL_PRESENTATION_LETTERBOX))
@@ -101,7 +101,18 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 
-TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height) {
+void SdlRenderer::displaySize(int& width, int& height) const {
+  SDL_FRect rc;  // the letterboxed rectangle, in output pixels
+  if (SDL_GetRenderLogicalPresentationRect(r_, &rc) && rc.w >= 1 && rc.h >= 1) {
+    width = (int)(rc.w + 0.5f);
+    height = (int)(rc.h + 0.5f);
+  } else {
+    width = w_;
+    height = h_;
+  }
+}
+
+TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height, bool smooth) {
   if (!rgba || width < 1 || height < 1) return 0;
   SDL_Texture* t = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
   if (!t) {
@@ -109,7 +120,7 @@ TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height)
     return 0;
   }
   SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
-  SDL_SetTextureScaleMode(t, SDL_SCALEMODE_NEAREST);
+  SDL_SetTextureScaleMode(t, smooth ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
   if (!SDL_UpdateTexture(t, nullptr, rgba, width * 4)) {
     OTE_ERROR("createTexture: cannot upload pixels: %s", SDL_GetError());
     SDL_DestroyTexture(t);

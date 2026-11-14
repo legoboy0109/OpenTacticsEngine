@@ -62,7 +62,7 @@ void SoftRenderer3D::destroyMesh(MeshId mesh) {
   meshes_[(size_t)mesh - 1] = Mesh();
 }
 
-Texture3DId SoftRenderer3D::createTexture(const uint8_t* rgba, int width, int height, bool repeat) {
+Texture3DId SoftRenderer3D::createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool /*mipmaps*/) {
   int limit = caps().maxTextureSize;
   if (!rgba || !powerOfTwo(width) || !powerOfTwo(height) || width > limit || height > limit) {
     OTE_ERROR("3D texture refused: %d x %d; each side must be a power of two up to %d", width, height, limit);
@@ -90,8 +90,14 @@ void SoftRenderer3D::destroyTexture(Texture3DId texture) {
 void SoftRenderer3D::begin(const Frame3D& frame) {
   frame_ = frame;
   frame_.sunDir = normalize(frame.sunDir);
-  w_ = std::max(0, frame.width) * scale_;
-  h_ = std::max(0, frame.height) * scale_;
+  // Same size limits the platform's 3D picture has (docs/RENDER3D.md): 4096 on the longer side.
+  w_ = frame.renderWidth > 0 ? frame.renderWidth : std::max(0, frame.width) * scale_;
+  h_ = frame.renderHeight > 0 ? frame.renderHeight : std::max(0, frame.height) * scale_;
+  const int longer = std::max(w_, h_), kMax = 4096;
+  if (longer > kMax) {
+    w_ = std::max(1, (int)((long long)w_ * kMax / longer));
+    h_ = std::max(1, (int)((long long)h_ * kMax / longer));
+  }
   color_.resize((size_t)w_ * h_ * 4);
   depth_.assign((size_t)w_ * h_, 1.0f);
   uint8_t c[4] = {(uint8_t)(clamp01(frame.clear.r) * 255.0f + 0.5f), (uint8_t)(clamp01(frame.clear.g) * 255.0f + 0.5f),

@@ -24,7 +24,7 @@ bool ModelView::load(Renderer3D& r3d, const std::string& path, std::string& err)
     const ModelMaterial& m = model_.materials[i];
     if (m.image < 0 || (size_t)m.image >= model_.images.size()) continue;
     const ModelImage& im = model_.images[(size_t)m.image];
-    textures_[i] = r3d.createTexture(im.rgba.data(), im.width, im.height, m.repeat);
+    textures_[i] = r3d.createTexture(im.rgba.data(), im.width, im.height, m.repeat, m.smooth);  // smooth: also mipmaps
   }
   for (size_t n = 0; n < model_.nodes.size(); ++n) {
     Mat4 node = model_.nodeMatrix((int)n);

@@ -141,6 +141,7 @@ void Test3DScene::draw(Renderer& r) {
   f.y = 0;
   f.width = r.width();
   f.height = r.height();
+  host_.show3d().fit(r, r3d_, f);
   f.clear = Rgba3D(0.45f, 0.62f, 0.85f);
   // The camera looks at the middle of the map from a corner, 30 degrees
   // above the ground when the picture is flat (the classic isometric angle)

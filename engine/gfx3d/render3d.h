@@ -52,12 +52,19 @@ struct Material3D {
   float cutoff = 0.5f;
   bool lit = true;         // false: colours as they are (sprites, effects)
   bool twoSided = false;   // also draw back faces
-  bool smooth = false;     // blend neighbouring texels instead of hard pixels
+  bool smooth = false;     // blend neighbouring texels instead of hard pixels (with mipmaps too, if the
+                           // texture was made with them); false: hard pixels, whatever the texture has
   bool depthTest = true;   // false: drawn over whatever is there (things shown through walls)
 };
 
 struct Frame3D {
   int x = 0, y = 0, width = 0, height = 0;  // where on the 2D screen, in logical pixels
+  // The size of the picture the backend draws, in real pixels: same aspect as
+  // width x height, usually bigger (the display's resolution). 0 = the size
+  // above (times the software backend's own scale). A backend may draw a
+  // smaller picture than asked (its limits); framePixels() says what it did.
+  int renderWidth = 0, renderHeight = 0;
+  int samples = 0;  // smoothing of edges: samples per pixel wanted (4), 0 = none; a backend without it ignores this
   Rgba3D clear = Rgba3D(0, 0, 0, 1);        // alpha 0: leave what the 2D layer drew showing
   Mat4 view, proj;
   Vec3 sunDir = Vec3(-0.4f, -1.0f, -0.3f);  // the way the light travels
@@ -72,6 +79,7 @@ struct Frame3D {
 struct Caps3D {
   int maxTextureSize = 1024;     // each side; sides are powers of two
   int maxMeshVertices = 65535;   // per mesh (16-bit indices on old hardware)
+  bool fullResolution = false;   // fast enough to draw at the display's resolution (the "Automatic" choice)
 };
 
 class Renderer3D {
@@ -88,7 +96,10 @@ class Renderer3D {
 
   // 32-bit pixels (R,G,B,A bytes, row by row, top row first, not
   // premultiplied). `repeat`: tile outside 0..1, else clamp to the edge.
-  virtual Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat) = 0;
+  // `mipmaps`: also keep smaller copies, so a smooth material (Material3D::smooth)
+  // reads detailed art shrunk far down without shimmering (trilinear). The
+  // software backend only blends neighbouring texels (bilinear) and ignores it.
+  virtual Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool mipmaps = false) = 0;
   virtual void destroyTexture(Texture3DId texture) = 0;
 
   // One 3D picture per begin/end. It lies under whatever the 2D renderer

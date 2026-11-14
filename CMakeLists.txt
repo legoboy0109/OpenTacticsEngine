@@ -45,11 +45,14 @@ target_compile_options(ote_gfx3d PRIVATE ${OTE_WARN})
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
   file(GLOB TEST_SRC CONFIGURE_DEPENDS tests/*.cpp)
-  # The PNG decoder (platform layer, no SDL) and the player's save-file module
-  # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them) are tested here too.
+  # The PNG decoder (platform layer, no SDL), the player's save-file module
+  # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them), the option layering
+  # and the 3D picture sizing are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
-                 engine/player/saves.cpp)
+                 engine/player/saves.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
+                 engine/player/show3d.cpp)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d)
+  target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
                                              OTE_TEMP_DIR="${CMAKE_BINARY_DIR}")
