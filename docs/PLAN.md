@@ -91,7 +91,11 @@ goal (demos only exercise features).
       2026-11-14, docs/VIEWS.md "Full 3D": free camera with perspective
       over the block map, both demos have a "Full 3D" style; still to do:
       close-up battle scenes, later by owner decision).
-   e. Items.
+   e. Items (DONE 2026-11-14, docs/ITEMS.md: usable items, carried
+      weapons with wear, accessories, unit inventories plus a shared
+      storage per side, trading, shops, drops; `demo-srpg` uses them;
+      not yet: selling, chests, stealing, scripted effects, carrying
+      items between maps, AI that trades or shops).
    f. Story events and dialogue (triggers, win/lose conditions in data,
       campaign layer).
    g. More economy options (research, upgradable cities, fog,
