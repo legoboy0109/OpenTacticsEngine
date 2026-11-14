@@ -44,6 +44,10 @@ id that does not exist is a load error.
   "resources": [ { "id": "funds", "name": "Funds" } ],        // optional
   "moveTypes": [ { "id": "foot", "name": "Foot" } ],          // at least one
 
+  // Story switches (off/on) and variables (whole numbers, start 0) for map events; optional.
+  "switches":  [ { "id": "village_saved", "name": "Village saved" } ],
+  "variables": [ { "id": "gold_found", "name": "Gold found" } ],
+
   "rules": {
     "turnOrder": "sides",              // only "sides" for now
     "counterAttacks": true,
@@ -79,6 +83,10 @@ value is a loader error (`game.json: "saving" must be "any", "continue" or
 "off"`). A save is only loadable while the rules files it was made with
 (game.json, `data/*.json` except graphics.json, the scripts, the map) are
 unchanged; art and fonts may change freely.
+
+`switches` and `variables` are what the events of the maps read and set
+(docs/EVENTS.md); ids are letters, digits, `_` and `-`, unique within their
+list. They count as rules for saves; their names do not.
 
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
@@ -196,10 +204,21 @@ in docs/ITEMS.md.
   "units": [
     { "type": "knight", "side": "blue", "x": 1, "y": 0,
       "name": "Gilda", "level": 3, "leader": true,
+      "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
       "stats": { "hp": 26 } }            // optional per-unit overrides
-  ]
+  ],
+  "events": [ … ],                       // optional: story events (docs/EVENTS.md)
+  "objectives": { … }                    // optional: win / lose conditions and the text shown (docs/EVENTS.md)
 }
 ```
+
+`events` and `objectives` are specified in docs/EVENTS.md: triggers,
+conditions, the list of commands (dialogue, adding / removing / moving
+units, items, resources, switches and variables, win / lose) and the
+objective kinds. Every id they name (units, sides, teams, types, items,
+resources, switches, variables) must exist and unknown keys are refused, with
+a message naming the map, the event and the command. A map without them
+loads and plays exactly as before.
 
 Sides take turns in listed order. `x` counts columns from the left, `y`
 rows from the top, both starting at 0. Two units may not share a cell, and
