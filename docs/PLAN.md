@@ -56,12 +56,23 @@ goal (demos only exercise features).
    owner's verdict on wording/layout and the starter art. Not in this
    step: 47-piece blending, walking/attack animation, sheet margins/gaps,
    animated joining tiles, unit art in the player's side panel/forecast.
-   From here on, each engine feature lands with its editor screen:
-   sprites/tilesets + named visual styles, sound; save/resume; event
-   system (story triggers, dialogue, win/lose conditions in data) and
-   campaign layer; speed-based turns (FFT), height rules; economy depth
-   (research, upgradable cities, fog, repair/supply); hex grid, isometric
-   view.
+   From here on, each engine feature lands with its editor screen.
+   Owner's order (2026-11-13), one after the other:
+   a. Structures: a separate layer placed on top of terrain squares
+      (buildings etc. stop being terrain kinds).
+   b. Animated terrain that also joins with its neighbours.
+   c. Saving (save/resume).
+   d. Alternative visual styles (owner to say what this should cover).
+   e. Items.
+   f. Story events and dialogue (triggers, win/lose conditions in data,
+      campaign layer).
+   g. More economy options (research, upgradable cities, fog,
+      repair/supply).
+   h. Sound and music.
+   Not yet ordered: speed-based turns (FFT), height rules, hex grid,
+   isometric view.
+   Editor wording decided: "style" (never "look"); terrain lists keep the
+   flat colour chip.
 4. Native developer app (Dear ImGui) for advanced users.
 5. Ports: Android, console/handheld backends, GLES3/SDL_GPU renderer, 3D
    grids, homebrew old-console ports via the SDL2 backend.
