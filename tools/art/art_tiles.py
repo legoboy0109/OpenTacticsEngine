@@ -246,8 +246,52 @@ def road_piece(arms, seed=1):
     return p
 
 
-def bridge_piece(arms):
-    p = water(0, 0x3873B0, 0x4A8FCB, 0x9CCBF0, 2)
+# Water palettes: (deep, mid, light, seed). The river is a little lighter than the sea.
+SEA = (0x2F62A0, 0x3F7CC4, 0x86B8EC, 1)
+RIVER = (0x3873B0, 0x4A8FCB, 0x9CCBF0, 2)
+# Shore colours: sand bank (outer fringe, sand, wet sand), foam, shallow water showing through foam gaps.
+SHORE_FRINGE, SHORE_SAND, SHORE_SAND_DARK, SHORE_WET = 0xB5A57E, 0xDDD2AA, 0xCBBE92, 0x9C8E68
+FOAM, SHALLOW = 0xF2F8FC, 0x74AEDC
+BANK = 4  # width in pixels of the bank drawn on a side whose neighbour is not water
+
+
+def water_piece(mask, frame, pal):
+    """One of the 16 water join pieces, `mask` = JoinBit set of neighbours that ARE water.
+
+    Open water is the plain shimmer tile; each side without water neighbour gets a BANK-wide sand
+    bank with a foam line along the water. The water core is a rectangle whose corners are rounded
+    by measuring Euclidean distance from it, so a lake tile or a river bend curves instead of being
+    square. Bank and foam outline are the same in every frame (the shoreline never jumps); only the
+    gaps in the foam line and the open-water shimmer move. All patterns repeat every 4 pixels (the
+    tile is 24 wide), so they run on across neighbouring tiles without a seam.
+    """
+    p = water(frame, *pal)
+    x0 = BANK if not mask & 8 else -999
+    x1 = T - 1 - BANK if not mask & 2 else 999
+    y0 = BANK if not mask & 1 else -999
+    y1 = T - 1 - BANK if not mask & 4 else 999
+    for y in range(T):
+        for x in range(T):
+            dx = max(x0 - x, x - x1, 0)
+            dy = max(y0 - y, y - y1, 0)
+            e = (dx * dx + dy * dy) ** 0.5
+            if e <= 0:
+                continue
+            if e <= 1.5:  # foam line, with gaps that drift along the shore
+                p.set(x, y, SHALLOW if (x + y + 2 * frame) % 4 == 0 else FOAM)
+            elif e <= 2.5:
+                p.set(x, y, SHORE_WET)
+            elif e <= BANK - 0.5:
+                p.set(x, y, SHORE_SAND_DARK if (x * 3 + y * 5) % 11 == 0 else SHORE_SAND)
+            else:
+                p.set(x, y, SHORE_FRINGE)
+    return p
+
+
+def bridge_piece(arms, frame=0):
+    # Open water under the deck, no banks: a side with an arm may face land or the next bridge square
+    # (the piece cannot tell which), and a bank sliver between two deck squares would look broken.
+    p = water_piece(15, frame, RIVER)
     h0, h1 = 6, 17  # deck band (12 px wide)
     deck, plank, rail = 0xB07F4C, 0x8C6238, 0x5B3F24
     def band(horizontal, lo, hi):
