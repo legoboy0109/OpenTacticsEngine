@@ -17,12 +17,17 @@ export function cellHash(x: number, y: number): number {
 
 export const DEFAULT_FRAME_MS = 400
 
-/** The cells a look draws from (for any kind). */
+/** The blocks of a joining look: `join` is either one cell [c, r] or a list of cells [[c, r], ...] (an animated join). */
+export function joinBlocks(join: CellRef | CellRef[]): CellRef[] {
+  return Array.isArray(join[0]) ? (join as CellRef[]) : [join as CellRef]
+}
+
+/** The cells a look draws from (for any kind). For a join: its 4 x 4 blocks. */
 export function lookCells(look: Look): CellRef[] {
   if (look.cell) return [look.cell]
   if (look.variants?.length) return look.variants
   if (look.frames?.length) return look.frames
-  if (look.join) return [look.join]
+  if (look.join) return joinBlocks(look.join)
   return []
 }
 
@@ -47,8 +52,14 @@ export function pickCell(look: Look, x: number, y: number, joinMask: number, tim
       return cells[Math.floor(timeMs / ms) % cells.length]
     }
     case 'join': {
+      // Several blocks = an animated join: time picks the block, the neighbours pick the piece inside it.
+      let block = first
+      if (cells.length > 1) {
+        const ms = look.frameMs !== undefined && look.frameMs > 0 ? look.frameMs : DEFAULT_FRAME_MS
+        block = cells[Math.floor(timeMs / ms) % cells.length]
+      }
       const n = joinMask & 15
-      return [first[0] + (n % 4), first[1] + Math.floor(n / 4)]
+      return [block[0] + (n % 4), block[1] + Math.floor(n / 4)]
     }
     default: return first
   }

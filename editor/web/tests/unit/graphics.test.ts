@@ -143,7 +143,7 @@ describe('looks', () => {
     expect(lookFromPick(p({ kind: 'mix', cells: [[5, 5]] }))).toEqual({ sheet: 'tiles', cell: [5, 5] })
     expect(lookFromPick(p({ kind: 'animation', cells: [[0, 1], [1, 1]], frameMs: 700 }))).toEqual({ sheet: 'tiles', frames: [[0, 1], [1, 1]], frameMs: 700 })
     expect(lookFromPick(p({ kind: 'animation', cells: [[0, 1]] }))).toEqual({ sheet: 'tiles', cell: [0, 1] })
-    expect(lookFromPick(p({ kind: 'join', cells: [[0, 2], [9, 9]] }))).toEqual({ sheet: 'tiles', join: [0, 2] })
+    expect(lookFromPick(p({ kind: 'join', cells: [[0, 2], [9, 9]] }))).toEqual({ sheet: 'tiles', join: [[0, 2], [9, 9]], frameMs: 400 })
     expect(lookFromPick(p({ kind: 'join', cells: [[0, 2]], joinWith: ['bridge'], joinEdge: false }))).toEqual({ sheet: 'tiles', join: [0, 2], joinWith: ['bridge'], joinEdge: false })
     expect(lookFromPick(p({ kind: 'one', cells: [[1, 1], [2, 2]] }))).toEqual({ sheet: 'tiles', cell: [1, 1] })
   })

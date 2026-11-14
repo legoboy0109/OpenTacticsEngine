@@ -128,7 +128,7 @@ const withoutMoved = (t: Terrain): Terrain => {
  *  joining set has no structure equivalent and is not copied (the structure then shows as a coloured block). */
 function structureLook(look: Look | null): Look | null | undefined {
   if (look === null) return null
-  if (look.cell || look.frames) { const { join: _j, joinWith: _w, joinEdge: _e, variants: _v, ...rest } = look; return rest }
+  if (look.cell || look.frames) { const { join: _j, joinWith: _w, joinExcept: _x, joinEdge: _e, variants: _v, ...rest } = look; return rest }
   if (look.variants?.length) return { sheet: look.sheet, cell: look.variants[0] }
   return undefined
 }

@@ -38,6 +38,8 @@ export interface Style extends Named {
 }
 export interface MapRef extends Named { file: string }
 
+export type SavingMode = 'any' | 'continue' | 'off'
+
 export interface Game extends Extra {
   formatVersion?: number
   name: string
@@ -55,6 +57,8 @@ export interface Game extends Extra {
   scripts?: string[]
   maps: MapRef[]
   editor?: EditorData
+  /** Who may save (docs/SAVES.md): missing = 'any'. */
+  saving?: SavingMode
 }
 
 export interface Terrain extends Named {
@@ -117,8 +121,11 @@ export interface Look extends Extra {
   variants?: CellRef[]
   frames?: CellRef[]
   frameMs?: number
-  join?: CellRef
+  /** One 4 x 4 block [c, r], or a list of 1-16 blocks played as an animation (speed: frameMs). */
+  join?: CellRef | CellRef[]
   joinWith?: string[]
+  /** Joins with every terrain except these (exclusive with joinWith; never its own terrain). */
+  joinExcept?: string[]
   joinEdge?: boolean
   /** Units and structures only: a different picture for particular sides (by map side id). */
   sides?: Record<string, Look>

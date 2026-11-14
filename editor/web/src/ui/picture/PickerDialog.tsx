@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useArtState } from '../../art/useArt'
 import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
-import { emptyPick, lookFromPick, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
+import { emptyPick, lookFromPick, MAX_BLOCKS, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
 import { gridInfo } from '../../model/gridGuess'
 import type { CellRef, Look, LookKind, ProjectDoc } from '../../model/types'
 import { useDoc, useStore } from '../../store/context'
@@ -56,7 +56,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
   const draftDoc = useMemo(() => (chosen ? apply(doc, chosen) : doc), [doc, chosen]) // eslint-disable-line react-hooks/exhaustive-deps -- `apply` is rebuilt by the parent on every render
 
   const set = (p: Partial<Pick>) => setPick((cur) => ({ ...cur, ...p }))
-  const changeKind = (k: PickKind) => { setWarn(false); set({ kind: k, cells: k === 'one' || k === 'join' ? pick.cells.slice(0, 1) : pick.cells }) }
+  const changeKind = (k: PickKind) => { setWarn(false); set({ kind: k, cells: k === 'one' ? pick.cells.slice(0, 1) : k === 'join' ? pick.cells.slice(0, MAX_BLOCKS) : pick.cells }) }
   const clickPiece = (col: number, row: number) => {
     const c: CellRef = [col, row]
     setWarn(false)
@@ -70,13 +70,14 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
       }
       case 'animation': if (pick.cells.length < MAX_PIECES) set({ cells: [...pick.cells, c] }); break
       case 'join':
-        if (info && col + 4 <= info.cols && row + 4 <= info.rows) set({ cells: [c] }); else setWarn(true)
+        if (!info || col + 4 > info.cols || row + 4 > info.rows) setWarn(true)
+        else if (pick.cells.length < MAX_BLOCKS) set({ cells: [...pick.cells, c] })
         break
     }
   }
 
   const marks = useMemo<PieceMark[]>(() => {
-    if (pick.kind === 'join') return []
+    if (pick.kind === 'join' && pick.cells.length < 2) return []
     if (pick.kind === 'one') return pick.cells.map(([col, row]) => ({ col, row }))
     const byCell = new Map<string, PieceMark>()
     pick.cells.forEach(([col, row], i) => {
@@ -86,7 +87,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
     })
     return [...byCell.values()]
   }, [pick.kind, pick.cells])
-  const block = pick.kind === 'join' && pick.cells[0] ? { col: pick.cells[0][0], row: pick.cells[0][1], size: 4 } : null
+  const blocks = useMemo(() => (pick.kind === 'join' ? pick.cells.map(([col, row]) => ({ col, row, size: 4 })) : []), [pick.kind, pick.cells])
 
   const hint = pick.kind === 'one' ? (kind === 'terrain' ? P.pickHintOne : kind === 'structures' ? P.pickHintStructureOne : P.pickHintUnitOne) : pick.kind === 'mix' ? P.pickHintMix : pick.kind === 'animation' ? P.pickHintAnimation : P.pickHintJoin
   const speedKey = (Object.entries(SPEEDS).find(([, ms]) => ms === pick.frameMs)?.[0] ?? 'custom') as keyof typeof SPEEDS | 'custom'
@@ -121,7 +122,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           {warn && <p className="error-text" role="alert">{P.blockOutside}</p>}
           {sheet && img?.status === 'ready' && info && (
             <PieceGrid key={sheet.id + sheet.file} image={img.img} width={img.width} height={img.height} cellWidth={sheet.cellWidth} cellHeight={sheet.cellHeight}
-              marks={marks} block={block} hoverBlock={pick.kind === 'join' ? 4 : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
+              marks={marks} blocks={blocks} hoverBlock={pick.kind === 'join' ? 4 : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
           )}
           {sheet && img?.status === 'loading' && <p className="help" role="status">Loading the image…</p>}
           {sheet && img?.status === 'error' && <p className="error-text" role="alert">The image file could not be opened.</p>}
@@ -131,17 +132,17 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           <section aria-label={P.chosen}>
             <h3>{P.chosen}</h3>
             <p className="help" data-testid="chosen-summary">
-              {pick.cells.length === 0 ? P.chosenNone : pick.kind === 'join' ? P.pieceAt(pick.cells[0][0], pick.cells[0][1]) : P.chosenPieces(pick.cells.length)}
+              {pick.cells.length === 0 ? P.chosenNone : pick.kind === 'join' ? (pick.cells.length === 1 ? P.pieceAt(pick.cells[0][0], pick.cells[0][1]) : P.chosenBlocks(pick.cells.length)) : P.chosenPieces(pick.cells.length)}
             </p>
             {pick.cells.length > 0 && (
               <div className="row">
-                {pick.kind === 'animation' && pick.cells.length > 1 && <button type="button" className="btn sm" onClick={() => set({ cells: pick.cells.slice(0, -1) })}>{P.removeLast}</button>}
+                {(pick.kind === 'animation' || pick.kind === 'join') && pick.cells.length > 1 && <button type="button" className="btn sm" onClick={() => set({ cells: pick.cells.slice(0, -1) })}>{P.removeLast}</button>}
                 <button type="button" className="btn sm" onClick={() => set({ cells: [] })}>{P.clearChoice}</button>
               </div>
             )}
           </section>
 
-          {pick.kind === 'animation' && (
+          {(pick.kind === 'animation' || (pick.kind === 'join' && pick.cells.length > 1)) && (
             <>
               <Field label={P.speed}>
                 <Select value={speedKey} aria-label={P.speed}
@@ -159,8 +160,18 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           {pick.kind === 'join' && (
             <>
               {others.length > 0 && (
+                <Field label={P.joinsWith}>
+                  <Select value={pick.joinMode} aria-label={P.joinsWith} options={[{ value: 'with', label: P.joinModes.with }, { value: 'except', label: P.joinModes.except }]}
+                    onChange={(v) => set({ joinMode: v as Pick['joinMode'] })} />
+                </Field>
+              )}
+              {others.length > 0 && pick.joinMode === 'with' && (
                 <MultiSelect label={P.alsoJoins} help={P.alsoJoinsHelp} value={pick.joinWith} options={others.map((t) => ({ value: t.id, label: t.name }))}
                   onChange={(v) => set({ joinWith: v })} />
+              )}
+              {others.length > 0 && pick.joinMode === 'except' && (
+                <MultiSelect label={P.exceptJoins} help={P.exceptJoinsHelp} value={pick.joinExcept} options={others.map((t) => ({ value: t.id, label: t.name }))}
+                  onChange={(v) => set({ joinExcept: v })} />
               )}
               <Check label={P.joinEdge} help={P.joinEdgeHelp} checked={pick.joinEdge} onChange={(v) => set({ joinEdge: v })} />
               {sheet && <JoinGuide pieceW={sheet.cellWidth} pieceH={sheet.cellHeight} />}

@@ -78,20 +78,24 @@ export type PickKind = 'one' | 'mix' | 'animation' | 'join'
 export interface Pick {
   kind: PickKind
   sheet: string
-  /** one: 1 piece; mix: 1+; animation: 1+ in order; join: the top-left piece of the 4 x 4 block. */
+  /** one: 1 piece; mix: 1+; animation: 1+ in order; join: the top-left piece of each 4 x 4 block (1-16, in order; several = animated). */
   cells: CellRef[]
   frameMs: number
+  /** join: "also with" these terrains (joinMode 'with') or "with everything except" these (joinMode 'except'). */
+  joinMode: 'with' | 'except'
   joinWith: string[]
+  joinExcept: string[]
   joinEdge: boolean
 }
 
 export const MAX_PIECES = 64
+export const MAX_BLOCKS = 16
 export const SPEEDS = { slow: 700, medium: 400, fast: 200 } as const
-export const emptyPick = (sheet: string, kind: PickKind = 'one'): Pick => ({ kind, sheet, cells: [], frameMs: SPEEDS.medium, joinWith: [], joinEdge: true })
+export const emptyPick = (sheet: string, kind: PickKind = 'one'): Pick => ({ kind, sheet, cells: [], frameMs: SPEEDS.medium, joinMode: 'with', joinWith: [], joinExcept: [], joinEdge: true })
 
 /** The look for a choice, or null while nothing is chosen. One piece in a list is stored as a plain `cell`. */
 export function lookFromPick(p: Pick): Look | null {
-  const cells = p.cells.slice(0, p.kind === 'one' || p.kind === 'join' ? 1 : MAX_PIECES)
+  const cells = p.cells.slice(0, p.kind === 'one' ? 1 : p.kind === 'join' ? MAX_BLOCKS : MAX_PIECES)
   if (!cells.length) return null
   const cell = (c: CellRef): CellRef => [c[0], c[1]]
   switch (p.kind) {
@@ -100,8 +104,10 @@ export function lookFromPick(p: Pick): Look | null {
     case 'animation':
       return cells.length === 1 ? { sheet: p.sheet, cell: cell(cells[0]) } : { sheet: p.sheet, frames: cells.map(cell), frameMs: p.frameMs }
     case 'join': {
-      const look: Look = { sheet: p.sheet, join: cell(cells[0]) }
-      if (p.joinWith.length) look.joinWith = [...p.joinWith]
+      // One block keeps the one-cell form; several are an animated join with a speed.
+      const look: Look = cells.length === 1 ? { sheet: p.sheet, join: cell(cells[0]) } : { sheet: p.sheet, join: cells.map(cell), frameMs: p.frameMs }
+      if (p.joinMode === 'except') look.joinExcept = [...p.joinExcept]
+      else if (p.joinWith.length) look.joinWith = [...p.joinWith]
       if (!p.joinEdge) look.joinEdge = false
       return look
     }
@@ -115,7 +121,8 @@ export function pickFromLook(look: Look | null | undefined, fallbackSheet: strin
   const kind: PickKind = shape === 'join' ? 'join' : shape === 'variants' ? 'mix' : shape === 'animated' ? 'animation' : 'one'
   return {
     kind, sheet: look.sheet, cells: lookCells(look).map((c) => [c[0], c[1]] as CellRef),
-    frameMs: look.frameMs ?? DEFAULT_FRAME_MS, joinWith: look.joinWith ? [...look.joinWith] : [], joinEdge: look.joinEdge !== false,
+    frameMs: look.frameMs ?? DEFAULT_FRAME_MS, joinMode: look.joinExcept ? 'except' : 'with', joinWith: look.joinWith ? [...look.joinWith] : [],
+    joinExcept: look.joinExcept ? [...look.joinExcept] : [], joinEdge: look.joinEdge !== false,
   }
 }
 
