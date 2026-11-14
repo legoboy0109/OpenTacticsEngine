@@ -16,8 +16,8 @@
 //   embed.html?project=<id>[&map=<mapId>][&api=<base>][&font=<id>][&style=<id>]
 // Loads the project from <api>/api/projects/<id>/files and .../file/<path>
 // (api defaults to this page's origin), plus the fonts from <api>/assets/fonts/,
-// then starts the game. Options are never stored (--no-settings), so the
-// preview always starts from defaults. Messages to the parent window:
+// then starts the game. Options are never stored (--no-settings) and nothing is
+// saved or offered for saving (--no-saving), so the preview always starts from defaults. Messages to the parent window:
 //   {type:"ote-player-ready"}  {type:"ote-player-error", message}
 // Message from the parent: {type:"ote-player-restart"} reloads the project.
 (function () {
@@ -38,7 +38,7 @@
     onReady: function () { tell({ type: 'ote-player-ready' }); },
     onError: function (message) { tell({ type: 'ote-player-error', message: message }); },
     args: (function () {
-      var a = ['--games', '/games', '--assets', '/assets', '--no-settings', '--game', project || ''];
+      var a = ['--games', '/games', '--assets', '/assets', '--no-settings', '--no-saving', '--game', project || ''];
       if (q.get('map')) a.push('--map', q.get('map'));
       if (q.get('font')) a.push('--font', q.get('font'));
       if (q.get('style')) a.push('--style', q.get('style'));

@@ -12,6 +12,9 @@ BattleScene::BattleScene(SceneHost& host)
     : host_(host), session_(*host.session()), battle_(host.session()->battle) {
   autoplay_ = host.args().autoplay;
   store_ = host.saveStore(host.currentGameId());
+  OTE_INFO("saves: %s", !store_.enabled() ? "not available in this run"
+                        : session_.db.saving == SavingMode::Off ? "off for this game"
+                                                                : store_.folder().c_str());
   styleIdx_ = std::max(0, std::min(host.styleIndex(), (int)session_.db.styles.size() - 1));
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
@@ -121,6 +124,7 @@ void BattleScene::update(double dt) {
   time_ += (float)dt;
   view_.update(dt, battle_);
   if (mode_ != Mode::Result && !view_.busy()) {
+    updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
     if (battle_.over) enterResult();
     else if (!humanTurn()) aiStep();
     else if (turnKey_ != battle_.round * 1000 + battle_.activeSide) {
@@ -128,7 +132,6 @@ void BattleScene::update(double dt) {
       beginHumanTurn();
     }
   }
-  if (!view_.busy()) updateSaves();
   if (noticeTime_ > 0) noticeTime_ -= (float)dt;
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
