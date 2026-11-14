@@ -8,6 +8,7 @@
 
 #include "httplib.h"
 #include "art.h"
+#include "models.h"
 #include "log.h"
 #include "projects.h"
 #include "static_files.h"
@@ -216,6 +217,16 @@ struct EditorServer::Impl {
     }));
     svr.Delete(R"(/api/projects/([^/]+)/art/(.+))", api([this](const httplib::Request& req) {
       return deleteArt(cfg, req.matches[1].str(), req.matches[2].str());
+    }));
+    svr.Get("/api/projects/:id/models", api([this](const httplib::Request& req) {
+      return listModels(cfg, req.path_params.at("id"));
+    }));
+    svr.Put(R"(/api/projects/([^/]+)/models/(.+))", api([this](const httplib::Request& req) {
+      return putModel(cfg, req.matches[1].str(), req.matches[2].str(), req.body,
+                      req.get_param_value("overwrite") == "1");
+    }));
+    svr.Delete(R"(/api/projects/([^/]+)/models/(.+))", api([this](const httplib::Request& req) {
+      return deleteModel(cfg, req.matches[1].str(), req.matches[2].str());
     }));
     // Any other /api path: JSON 404 (must be registered before the web catch-all).
     svr.Get(R"(/api(/.*)?)", guarded([](const httplib::Request&, httplib::Response& res) {

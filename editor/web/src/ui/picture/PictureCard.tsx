@@ -5,7 +5,8 @@ import { styleView } from '../../art/scene'
 import { sheetsOf } from '../../model/graphics'
 import { getLook, setLook, setSideLook, type Slot } from '../../model/graphicsLooks'
 import { gameSides, type GameSide } from '../../model/graphicsUsage'
-import { inheritsGeneralArt } from '../../model/styleView'
+import { isModelEntry } from '../../model/models3d'
+import { inheritsGeneralArt, viewKind } from '../../model/styleView'
 import type { Look, LookKind, ProjectDoc } from '../../model/types'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -13,6 +14,8 @@ import { Card } from '../Card'
 import { Field } from '../Field'
 import { Select } from '../Select'
 import { ArtCanvas } from './ArtCanvas'
+import { ModelEditor } from './ModelEditor'
+import { M } from './modelText'
 import { PickerDialog } from './PickerDialog'
 import { P } from './text'
 import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
@@ -34,6 +37,10 @@ export function PictureCard({ kind, id, name }: Props) {
   const choice = useMemo<LookChoice>(() => ({ id: style || undefined, view: styleView(doc.game, style || undefined) }), [doc.game, style])
   const otherView = !inheritsGeneralArt(doc.game, style || undefined) // a style of another kind of view starts with no pictures
   const key = `picture:${kind}:${id}`
+  // A 3D isometric style can show a thing as a 3D model instead of a picture (units and structures only).
+  const can3d = kind !== 'terrain' && !!style && viewKind(styles.find((s) => s.id === style)) === 'isometric-3d'
+  const [modelPicked, setModelPicked] = useState<string | null>(null) // "Shown as 3D model" chosen, no file yet
+  const modelMode = can3d && (isModelEntry(entry) || modelPicked === `${id}:${style}`)
 
   return (
     <Card title={P.cardTitle} help={kind === 'terrain' ? P.cardHelpTerrain : kind === 'structures' ? P.cardHelpStructure : P.cardHelpUnit} id={key}>
@@ -43,7 +50,19 @@ export function PictureCard({ kind, id, name }: Props) {
             <Select value={style} options={[{ value: '', label: P.allLooks }, ...styles.map((s) => ({ value: s.id, label: s.name || s.id }))]} onChange={setStyleSel} />
           </Field>
         )}
-        {!hasImages
+        {can3d && (
+          <fieldset className="fieldset">
+            <legend>{M.group}</legend>
+            <div className="kind-row" role="radiogroup" aria-label={M.group}>
+              <Radio on={!modelMode} label={M.picture} onPick={() => { setModelPicked(null); if (isModelEntry(entry)) edit((d) => setLook(d, slot, undefined)) }} />
+              <Radio on={modelMode} label={M.model} onPick={() => setModelPicked(`${id}:${style}`)} />
+            </div>
+            {modelMode && entry && !isModelEntry(entry) && <p className="help">{M.pictureGone}</p>}
+          </fieldset>
+        )}
+        {modelMode
+          ? <ModelEditor slot={slot} entry={entry} structure={kind === 'structures'} />
+          : !hasImages
           ? <p className="help">{P.noImages} <Link to={projectPath(store.id, 'art')}>{P.goToArt}</Link></p>
           : (
             <div className="picture-row">
@@ -71,7 +90,7 @@ export function PictureCard({ kind, id, name }: Props) {
               </div>
             </div>
           )}
-        {kind !== 'terrain' && hasImages && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
+        {kind !== 'terrain' && hasImages && !modelMode && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
       </div>
       {open && (
         <PickerDialog kind={kind} thingId={id} look={choice} side={open.side}
