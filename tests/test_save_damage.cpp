@@ -239,7 +239,7 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
   // screen size, the saving setting, comments and layout. Saves stay valid.
   const Edit cosmetic[] = {
       {"game.json", "\"name\": \"Emblem Demo\"", "\"name\": \"Renamed\", \"author\": \"Me\", \"saving\": \"continue\""},
-      {"game.json", "\"description\": \"A small", "\"font\": { \"name\": \"sans\" }, \"description\": \"A big"},
+      {"game.json", "\"description\": \"A short", "\"font\": { \"name\": \"sans\" }, \"description\": \"A long"},
       {"game.json", "\"name\": \"Classic\"", "\"name\": \"Plain\", \"background\": \"#000000\""},
       {"game.json", "\"tileSize\": 24", "\"tileSize\": 32"},
       {"game.json", "\"name\": \"Strength\"", "\"name\": \"Power\""},
