@@ -168,7 +168,8 @@ struct HashGame {
     tempFolder("save_hash_game/maps");
     tempFolder("save_hash_game/scripts");
     const char* files[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
-                           "data/structures.json", "data/items.json", "data/graphics.json", "maps/bridge.json", "scripts/formulas.lua"};
+                           "data/structures.json", "data/items.json", "data/graphics.json", "data/campaign.json",
+                           "maps/bridge.json", "maps/north_road.json", "scripts/formulas.lua"};
     for (const char* f : files)
       if (!copyFile(src + "/" + f, dir + "/" + f)) return false;
     db.rootPath = dir;

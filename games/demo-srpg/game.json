@@ -63,5 +63,6 @@
   },
 
   "scripts": ["scripts/formulas.lua"],
-  "maps": [ { "id": "bridge", "name": "Skirmish at the Ford", "file": "maps/bridge.json" } ]
+  "maps": [ { "id": "bridge", "name": "Skirmish at the Ford", "file": "maps/bridge.json" },
+            { "id": "north_road", "name": "The North Road", "file": "maps/north_road.json" } ]
 }

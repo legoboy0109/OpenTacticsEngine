@@ -1,0 +1,31 @@
+// The story of the game: its chapters in order (docs/EVENTS.md "Campaign").
+// Named units of the player's side carry their levels and items from chapter to chapter.
+{
+  "name": "The Ford War",
+  "rules": { "fallen": "gone", "onDefeat": "retry" },
+  // Every map can also be played on its own from the game's page.
+  "freeBattles": "all",
+  "chapters": [
+    { "id": "ford", "name": "Skirmish at the Ford", "map": "bridge",
+      "before": [
+        { "say": "Three days' march, and the Red Warband still holds every crossing but one.", "speakerName": "Narrator" },
+        { "say": "Then that one is ours by nightfall. Company, with me!", "speaker": "eirik" }
+      ],
+      "after": [
+        { "if": [ { "switch": "sera_joined", "is": true } ],
+          "then": [ { "say": "You kept your word about my village. I will keep mine.", "speaker": "sera" } ],
+          "else": [ { "say": "Their pegasus knight is gone. A pity; we could have used her.", "speaker": "kell" } ] },
+        { "say": "The garrison's stores are ours. Share them out.", "speaker": "eirik" },
+        { "giveResource": { "gold": 200 }, "side": "blue" }
+      ] },
+    { "id": "pass", "name": "The North Road", "map": "north_road",
+      "before": [
+        { "say": "Hald's fort sits where the road narrows. There is no way around.", "speaker": "kell" },
+        { "say": "Then we go through.", "speaker": "eirik" }
+      ],
+      "after": [
+        { "say": "The pass is open. The Red Warband is finished in these hills.", "speaker": "eirik" },
+        { "say": "And so the Ford War ended, for a while.", "speakerName": "Narrator" }
+      ] }
+  ]
+}

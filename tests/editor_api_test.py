@@ -178,7 +178,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           st == 200 and projs.get("demo-srpg", {}).get("ok") is True and projs.get("demo-economy", {}).get("ok") is True,
           doc)
     check("project list names and map counts",
-          projs.get("demo-srpg", {}).get("name") == "Emblem Demo" and projs["demo-srpg"].get("maps") == 1 and
+          projs.get("demo-srpg", {}).get("name") == "Emblem Demo" and projs["demo-srpg"].get("maps") == 2 and
           projs.get("demo-economy", {}).get("name") == "Wars Demo" and projs["demo-economy"].get("maps") == 1)
     check("project list entries have all fields",
           all(set(p) == {"id", "name", "description", "author", "maps", "ok", "error"} for p in projs.values()))
@@ -226,7 +226,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           isinstance(srpg["terrain"], list) and isinstance(srpg["weapons"], list) and
           isinstance(srpg["units"], list) and isinstance(srpg["maps"], dict) and isinstance(srpg["scripts"], dict))
     check("GET demo-srpg: maps keyed by id, scripts text present",
-          list(srpg["maps"].keys()) == ["bridge"] and "srpg_damage" in srpg["scripts"].get("scripts/formulas.lua", ""))
+          list(srpg["maps"].keys()) == ["bridge", "north_road"] and "srpg_damage" in srpg["scripts"].get("scripts/formulas.lua", ""))
     check("GET demo-srpg: revision non-empty, problems empty", bool(srpg["revision"]) and srpg["problems"] == [])
     check("GET demo-srpg: comments are gone (strict JSON data)",
           "Emblem Demo" == srpg["game"]["name"] and len(srpg["units"]) == 7)
