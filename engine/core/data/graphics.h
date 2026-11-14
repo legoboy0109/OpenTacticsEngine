@@ -40,7 +40,9 @@ struct Look {
   };
   Kind kind = None;
   int sheet = -1;                 // index into Graphics::sheets
-  std::vector<SpriteCell> cells;  // Still: 1, Variants/Animated: 2+, Join: 1 (top-left of the block)
+  // Still: 1. Variants/Animated: 2+. Join: the top-left cell of each 4 x 4
+  // block of pieces; more than one block = the join is animated (frameMs).
+  std::vector<SpriteCell> cells;
   int frameMs = 400;              // Animated: time per frame
   // Join only: per terrain index, 1 = counts as "the same" when choosing a
   // piece (always 1 for the terrain itself).

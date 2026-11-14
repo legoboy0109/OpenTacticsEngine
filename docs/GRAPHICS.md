@@ -66,7 +66,9 @@ units do, drawn across their whole footprint.
     wallpaper and do not flicker.
   - `frames`: cells played in a loop, `frameMs` each (default 400).
   - `join` (terrain only): top-left cell of a 4 x 4 block of 16 pieces, see
-    below. `joinWith` lists other terrain ids that count as "the same" when
+    below. It may also be a list of such cells, `[[0,2],[4,2]]`: the blocks
+    are then played as an animation (`frameMs` each, up to 16), so water or
+    lava can shimmer AND join. `joinWith` lists other terrain ids that count as "the same" when
     choosing a piece; `joinEdge` (default true) makes the map edge count too.
 - `units.<id>.sides.<side id>` gives a side its own look (side ids are the
   `id`s in a map's `sides`).

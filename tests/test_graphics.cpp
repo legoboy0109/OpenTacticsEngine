@@ -166,6 +166,35 @@ TEST(graphics_pick_cell) {
   CHECK_EQ((int)all.row, 5);
 }
 
+TEST(graphics_animated_join) {
+  // tiles.png is 8 x 6 cells: two 4 x 4 blocks side by side fit in rows 0..3.
+  std::string body = std::string("{ ") + kSheets +
+      ", \"terrain\": { \"water\": {\"sheet\":\"tiles\",\"join\":[[0,0],[4,0]],\"frameMs\":200} } }";
+  Database db;
+  std::string err;
+  bool ok = loadGame(makeGame("animjoin", body), db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (!ok) return;
+  const Look& l = db.graphics.set(0)->terrain[1];
+  CHECK(l.kind == Look::Join);
+  CHECK_EQ((int)l.cells.size(), 2);
+  CHECK_EQ(l.frameMs, 200);
+  // Piece 6 (E+S) is column 2, row 1 inside whichever block the time selects.
+  SpriteCell a = pickCell(l, 3, 3, JoinE | JoinS, 0), b = pickCell(l, 3, 3, JoinE | JoinS, 200),
+             c = pickCell(l, 3, 3, JoinE | JoinS, 400);
+  CHECK_EQ((int)a.col, 2);
+  CHECK_EQ((int)a.row, 1);
+  CHECK_EQ((int)b.col, 6);
+  CHECK_EQ((int)b.row, 1);
+  CHECK(a == c);  // loops
+
+  // The second block must fit too.
+  expectError("e_animjoin", std::string("{ ") + kSheets +
+                                ", \"terrain\": {\"water\": {\"sheet\":\"tiles\",\"join\":[[0,0],[5,0]]}} }",
+              "4 x 4 block at [5, 0]", "outside");
+}
+
 TEST(graphics_errors_are_readable) {
   std::string s = std::string("{ ") + kSheets + ", ";
   expectError("e_sheet", s + "\"terrain\": {\"plain\": {\"sheet\":\"nope\",\"cell\":[0,0]}} }", "terrain \"plain\"",

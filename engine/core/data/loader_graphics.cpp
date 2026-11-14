@@ -52,10 +52,18 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
     out.kind = Look::Still;
     out.cells.push_back(cell);
   } else if (j.has("join")) {
-    SpriteCell cell;
-    if (!readCell(c, j["join"], where, "join", cell) || !checkInside(c, sh, cell, 4, 4, where)) return false;
+    // Either one block, [col, row], or several blocks played as an animation,
+    // [[col, row], ...]. Each is the top-left cell of a 4 x 4 set of pieces.
+    const Json& jj = j["join"];
+    bool list = jj.isArray() && jj.size() > 0 && jj[0].isArray();
+    size_t blocks = list ? jj.size() : 1;
+    if (blocks > 16) return c.fail(where, "\"join\" can list at most 16 animation frames");
+    for (size_t i = 0; i < blocks; ++i) {
+      SpriteCell cell;
+      if (!readCell(c, list ? jj[i] : jj, where, "join", cell) || !checkInside(c, sh, cell, 4, 4, where)) return false;
+      out.cells.push_back(cell);
+    }
     out.kind = Look::Join;
-    out.cells.push_back(cell);
     out.joinWith.assign(db.terrains.size(), 0);
     if (selfTerrain >= 0) out.joinWith[(size_t)selfTerrain] = 1;
     std::vector<std::string> ids;

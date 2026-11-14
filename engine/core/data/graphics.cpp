@@ -34,10 +34,17 @@ SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeM
       return look.cells[(timeMs / ms) % look.cells.size()];
     }
     case Look::Join: {
+      // Several blocks = an animated join: time picks the block, the
+      // neighbours pick the piece inside it.
+      SpriteCell block = first;
+      if (look.cells.size() > 1) {
+        uint32_t ms = look.frameMs > 0 ? (uint32_t)look.frameMs : 400u;
+        block = look.cells[(timeMs / ms) % look.cells.size()];
+      }
       int n = joinMask & 15;
       SpriteCell c;
-      c.col = (int16_t)(first.col + n % 4);
-      c.row = (int16_t)(first.row + n / 4);
+      c.col = (int16_t)(block.col + n % 4);
+      c.row = (int16_t)(block.row + n / 4);
       return c;
     }
     default:
