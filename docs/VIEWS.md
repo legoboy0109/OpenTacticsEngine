@@ -23,10 +23,9 @@ Contract for how a visual style draws the battle. Owner decisions
 Rules never depend on the style: a save, the AI and the editor's checks are
 the same in every kind of view.
 
-Status: top-down, 2D isometric and 3D isometric are built. `3d` is accepted
-in game files already, so a game can be prepared for it; no player draws it
-yet (see "What the player offers"). The 3D kinds draw through the 3D drawing
-layer (docs/RENDER3D.md).
+Status: all four kinds are built. The 3D kinds draw through the 3D drawing
+layer (docs/RENDER3D.md). Still to come for full 3D: separate close-up
+battle scenes.
 
 ## Data (game.json `styles`)
 
@@ -113,7 +112,7 @@ enough to cover the middle of a square. Both are unit-tested
 ## What the player offers
 
 `viewSupported()` (engine/player/views.h) lists the kinds this build draws:
-top-down, isometric and 3D isometric. A style of another kind is left out of
+all four today. A style of a kind a build cannot draw is left out of
 the options list and is never chosen: the game's default style is its first
 style the player can draw, and a remembered choice that cannot be drawn
 falls back to that default. A platform without a 3D backend would leave the
@@ -187,13 +186,70 @@ quarter of a second; the square under the cursor keeps its place on screen.
 Arrow keys keep their directions on screen in every turn (up = up-right, as
 in the 2D isometric view). The turn is not saved.
 
+## Full 3D (`"view": "3d"`)
+
+The block map of the 3D isometric view under a camera with perspective that
+the player turns, tilts and zooms freely. Fights happen on the map; separate
+close-up battle scenes come later (owner decision).
+
+**Data and art.** Nothing but `"view": "3d"`; the `"isometric"` block is not
+used. One height level is half a square. Art is exactly that of the 3D
+isometric kind (a style of this kind starts with no art): terrain pictures
+flat on the block tops, units and structures as upright pictures or as glTF
+models (docs/GRAPHICS.md "Models"). A unit picture is 0.75 squares wide; an
+upright picture is drawn taller the more the camera looks from above (up to
+twice), so it does not look squashed.
+
+**Geometry** (engine/core/view/free3d.h, `Free3DGeometry`; tests
+tests/test_free3d.cpp). The 3D space of the 3D isometric kind. The camera
+circles a focus point on the map: `yaw` (0 = standing south, looking north:
+grid y up the screen, x to the right), `pitch` above the ground (25 to 75
+degrees, starts at 50), `distance` (4 to 30 squares, starts at 11), field of
+view 35 degrees. Pixels are viewport pixels: this kind has no 2D scrolling
+(`MapProj::worldW/H` are the viewport's size, so the 2D camera stays at 0);
+the focus moves instead. `pick` walks the sight line through a pixel square
+by square to the first block it meets; `hidden` does the same from a square
+to the eye. `shiftIntoView` says how far the focus must move for a spot to
+be inside the picture's margins; the focus is kept a little inside the
+map's outline so the picture is never half empty.
+
+**Player** (`battle/free_cam.*`, `FreeCam`; `MapProj::free3d()`; the drawer
+is `Map3D`, shared with the 3D isometric kind: `MapProj` hides which camera
+looks at the blocks). The camera follows the cursor, or what the battle
+shows, as soon as that leaves the middle of the picture (margins of 22% /
+24% of the viewport), and rises and sinks with the ground. Letters, HP bars
+and capture numbers are 2D things over the 3D picture, sized by how far
+away their spot is. What stands behind higher blocks is drawn again faintly
+on top, as in the other raised kinds.
+
+**Controls.** A tap or press is one step, holding keeps going:
+
+| | keys | gamepad | pointer |
+|---|---|---|---|
+| turn (15 degrees a step) | `,` `.` (`[` `]`) | camera stick sideways, west / north face buttons | on-screen `<` `>`, drag with the right mouse button |
+| tilt (7.5 degrees) | `R` `F` (Page Up / Down) | camera stick up / down | on-screen `^` `v`, right-button drag up / down |
+| zoom (15%) | `=` `-` (keypad `+` `-`) | right / left trigger | on-screen `+` `-`, mouse wheel |
+
+`Button::TiltUp/TiltDown/ZoomIn/ZoomOut` and `InputEvent::CameraDrag` are
+the platform side; `--input` knows `tiltup tiltdown zoomin zoomout`. Arrow
+keys keep their directions on screen: they follow the camera in quarter
+turns. The camera is not saved.
+
+**Not yet**: close-up battle scenes; slopes or modelled terrain (the map is
+blocks); remembering the camera; touch gestures (pinch, two-finger turn;
+the on-screen buttons work); drawing 3D at the display's full resolution
+(it is drawn at the game's logical size like everything else); per-style
+camera settings (start angle, limits, field of view).
+
 ## Shipped games
 
 Both demos have an "Isometric" style with generated art
 (`tools/art/art_iso.py`: terrain blocks, the buildings on stone plinths,
 the unit sprites cut under their feet) and a "3D Isometric" style that
 reuses the top-down tiles on the block tops, the standing unit sprites and
-the top-down structure pictures. `demo-srpg`'s map has heights (hills under
+the top-down structure pictures, and a "Full 3D" style with the same art as
+the 3D isometric one (in `demo-srpg`: the unit and fort models).
+`demo-srpg`'s map has heights (hills under
 the mountains, a sunken river bed).
 
 ## Not in this step

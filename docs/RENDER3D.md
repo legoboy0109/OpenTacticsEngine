@@ -83,9 +83,15 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   a test picture; if anything fails the player logs why and uses the
   software backend. `Caps3D` are the software backend's, so the same content
   loads either way.
-- **Choosing**: `ote-player --3d auto|software|hardware`. `auto` (the
-  default) is hardware, except in `--headless` runs, which keep the software
-  backend so their screenshots do not depend on the machine's driver. The
+- **Choosing**: the player's "3D graphics" option (Automatic / OpenGL /
+  Software; settings key `draw3d` = `"opengl"` / `"software"`, global or per
+  game; `options/option_defs.cpp`), or `ote-player --3d
+  auto|software|hardware`, which wins over the option. Automatic is
+  hardware, except in `--headless` runs, which keep the software backend so
+  their screenshots do not depend on the machine's driver. A changed choice
+  takes effect at once: `PlayerApp::applyLook` drops the backend (no scene
+  holds 3D things while looks are applied) and the next use makes the new
+  one. A further graphics API would be one more value here. The
   log says which one draws (`3D drawing: OpenGL (...)` / `3D drawing:
   software`).
 - **Checked by** `tests/render3d_backends_test.py` (windowless, both

@@ -116,7 +116,8 @@ Where things live (`engine/player/`):
   choices, how a stored value feeds the look). Both options screens
   (`scene_options*.cpp`, global and per-game) are generated from it.
 - `options/effective.cpp`: the one function that combines the layers into
-  the font request, UI scale and style index. Priority, highest first:
+  the font request, UI scale, style index and what draws 3D ("3D graphics",
+  docs/RENDER3D.md). Priority, highest first:
   command-line flags > per-game override > global option > the game's own
   default (`font`, style index 0) > engine default. On launcher screens
   (no game) the game level is skipped. An explicit font size wins, else the
