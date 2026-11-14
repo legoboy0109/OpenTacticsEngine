@@ -2,16 +2,12 @@
 #include <cstdint>
 
 #include "core/battle/save.h"
+#include "core/battle/save_hash.h"
 
 namespace ote {
 namespace {
 
-struct Fnv {
-  uint64_t h = 1469598103934665603ULL;
-  void byte(uint8_t b) { h ^= b; h *= 1099511628211ULL; }
-  void bytes(const std::string& s) { for (char c : s) byte((uint8_t)c); }
-  void number(uint64_t v) { for (int i = 0; i < 8; ++i) byte((uint8_t)(v >> (8 * i))); }
-};
+using savehash::Fnv;
 
 // Mixes one file (name, then length, then bytes) so that moving text between
 // two files, or swapping files, changes the hash.
@@ -103,13 +99,16 @@ bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optio
 
 }  // namespace
 
-bool computeDataHash(const Database& db, const std::string& mapId, std::string& out, std::string& err) {
-  int mi = db.findMap(mapId);
-  if (mi < 0) {
-    err = "unknown map '" + mapId + "'";
-    return false;
-  }
-  Fnv f;
+namespace savehash {
+
+std::string Fnv::hex() const {
+  static const char* const kHex = "0123456789abcdef";
+  std::string out(16, '0');
+  for (int i = 0; i < 16; ++i) out[(size_t)i] = kHex[(h >> (60 - 4 * i)) & 15];
+  return out;
+}
+
+bool mixRules(Fnv& f, const Database& db, std::string& err) {
   const std::string& root = db.rootPath;
   // game.json: only the parts that are rules. Its name, description, author,
   // font, visual styles, screen size, the saving setting and editor notes are
@@ -128,11 +127,35 @@ bool computeDataHash(const Database& db, const std::string& mapId, std::string& 
   if (readTextFile(root + "/data/items.json", probe) && !mixJson(f, root, "data/items.json", false, nullptr, err)) return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
-  if (!mixJson(f, root, db.maps[(size_t)mi].file, false, nullptr, err, true)) return false;
+  return true;
+}
 
-  static const char* const kHex = "0123456789abcdef";
-  out.assign(16, '0');
-  for (int i = 0; i < 16; ++i) out[(size_t)i] = kHex[(f.h >> (60 - 4 * i)) & 15];
+bool mixMapFile(Fnv& f, const Database& db, const std::string& mapFile, std::string& err) {
+  return mixJson(f, db.rootPath, mapFile, false, nullptr, err, true);
+}
+
+bool mixCampaignFile(Fnv& f, const Database& db, std::string& err) {
+  std::string probe;
+  if (!readTextFile(db.rootPath + "/data/campaign.json", probe)) return true;
+  // Scenes have the same wording keys as events (say, speakerName), so the map-file treatment fits;
+  // the campaign's and the chapters' "name" are cosmetic keys anyway.
+  return mixJson(f, db.rootPath, "data/campaign.json", false, nullptr, err, true);
+}
+
+}  // namespace savehash
+
+bool computeDataHash(const Database& db, const std::string& mapId, std::string& out, std::string& err) {
+  int mi = db.findMap(mapId);
+  if (mi < 0) {
+    err = "unknown map '" + mapId + "'";
+    return false;
+  }
+  Fnv f;
+  if (!savehash::mixRules(f, db, err) || !savehash::mixMapFile(f, db, db.maps[(size_t)mi].file, err)) return false;
+  // A game with a campaign: the file counts for single-battle saves too (a free battle of such a game
+  // is judged by the same data). Games without one keep their exact hash.
+  if (!savehash::mixCampaignFile(f, db, err)) return false;
+  out = f.hex();
   return true;
 }
 

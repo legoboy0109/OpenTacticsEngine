@@ -6,6 +6,7 @@
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
 
+#include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_story.h"
 #include "core/battle/unit_stats.h"
@@ -49,38 +50,8 @@ using savejson::kMaxLevel;
 using savejson::kMaxNumber;
 using savejson::kMaxUnits;
 
-Json itemsJson(const std::vector<ItemStack>& items) {
-  Json list = Json::makeArray();
-  for (const ItemStack& s : items) {
-    Json j = Json::makeObject();
-    j.set("item", num(s.item));
-    j.set("uses", num(s.uses));
-    if (s.drop) j.set("drop", boolean(true));
-    list.push(j);
-  }
-  return list;
-}
-
-// A missing list is an empty one (saves of games without items do not carry it).
-bool readItems(Reader& rd, const Database& db, const Json& o, const char* key, const std::string& where, int maxCount,
-               std::vector<ItemStack>& out) {
-  out.clear();
-  if (!o.has(key)) return true;
-  const Json* list;
-  if (!rd.array(o, key, where, -1, maxCount, list)) return false;
-  for (size_t i = 0; i < list->size(); ++i) {
-    std::string at = where + "." + key + "[" + std::to_string(i) + "]";
-    const Json& j = (*list)[i];
-    if (!j.isObject()) return rd.fail(at, "not an object");
-    ItemStack s;
-    if (!rd.integer(j, "item", at, 0, (int)db.items.size() - 1, s.item)) return false;
-    int newUses = db.items[(size_t)s.item].uses;
-    if (!rd.integer(j, "uses", at, newUses < 0 ? -1 : 1, newUses < 0 ? -1 : newUses, s.uses)) return false;
-    if (j.has("drop") && !rd.boolean(j, "drop", at, s.drop)) return false;
-    out.push_back(s);
-  }
-  return true;
-}
+using savejson::itemsJson;
+using savejson::readItems;
 
 bool readSide(Reader& rd, const Database& db, const Json& j, const std::string& where, SideState& s) {
   if (!j.isObject()) return rd.fail(where, "not an object");

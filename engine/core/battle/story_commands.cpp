@@ -45,16 +45,21 @@ Cell Battle::nearestFreeCell(Cell target, int moveType) const {
 }
 
 void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
-  Cell cell = nearestFreeCell(grid.at(def.x, def.y), db->unitTypes[(size_t)def.type].moveType);
-  if (cell == kNoCell) {
-    OTE_ERROR("story: addUnit '%s': no free square on the map for it", db->unitTypes[(size_t)def.type].id.c_str());
-    return;
-  }
   Unit u = makeUnit(def);
   if (!u.storyId.empty() && unitByStoryId(u.storyId) >= 0) {
     // Ids stay unique: a repeating event adds a second one without the id.
     OTE_WARN("story: addUnit: a unit with id '%s' already exists; the new one gets no id", u.storyId.c_str());
     u.storyId.clear();
+  }
+  if (applyRoster(u) == 0) {  // a campaign's unit that fell for good does not come back
+    OTE_INFO("story: addUnit '%s': the campaign roster says it is gone; not added", u.storyId.c_str());
+    return;
+  }
+  // After the roster: it may change the unit's type, and with it where it can stand.
+  Cell cell = nearestFreeCell(grid.at(def.x, def.y), typeOf(u).moveType);
+  if (cell == kNoCell) {
+    OTE_ERROR("story: addUnit '%s': no free square on the map for it", typeOf(u).id.c_str());
+    return;
   }
   u.id = (int)units.size();
   u.cell = cell;
