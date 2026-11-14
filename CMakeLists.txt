@@ -34,6 +34,13 @@ target_include_directories(ote_core PUBLIC engine)
 target_link_libraries(ote_core PUBLIC lua)
 target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
 
+# --- 3D drawing layer: interface, maths, model loading and the software backend.
+# No platform or graphics-API dependencies (docs/RENDER3D.md).
+file(GLOB GFX3D_SRC CONFIGURE_DEPENDS engine/gfx3d/*.cpp)
+add_library(ote_gfx3d STATIC ${GFX3D_SRC})
+target_link_libraries(ote_gfx3d PUBLIC ote_core)
+target_compile_options(ote_gfx3d PRIVATE ${OTE_WARN})
+
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
   file(GLOB TEST_SRC CONFIGURE_DEPENDS tests/*.cpp)
@@ -41,7 +48,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them) are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
                  engine/player/saves.cpp)
-  target_link_libraries(ote_tests PRIVATE ote_core)
+  target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d)
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
                                              OTE_TEMP_DIR="${CMAKE_BINARY_DIR}")
