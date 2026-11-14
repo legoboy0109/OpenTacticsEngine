@@ -1,0 +1,66 @@
+{
+  "terrain": [
+    {
+      "id": "plain",
+      "name": "Plain",
+      "color": "#8fbf6a",
+      "glyph": ".",
+      "props": {
+        "defense": 0,
+        "avoid": 0
+      }
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "color": "#3f7f3a",
+      "glyph": "f",
+      "moveCost": {
+        "foot": 2,
+        "horse": 3
+      },
+      "props": {
+        "defense": 1,
+        "avoid": 20
+      }
+    },
+    {
+      "id": "mountain",
+      "name": "Mountain",
+      "color": "#8a7a68",
+      "glyph": "m",
+      "moveCost": {
+        "foot": 3,
+        "horse": 0
+      },
+      "props": {
+        "defense": 2,
+        "avoid": 30
+      }
+    },
+    {
+      "id": "water",
+      "name": "River",
+      "color": "#4a7fc1",
+      "glyph": "~",
+      "moveCost": {
+        "foot": 0,
+        "horse": 0
+      },
+      "props": {
+        "defense": 0,
+        "avoid": 0
+      }
+    },
+    {
+      "id": "bridge",
+      "name": "Bridge",
+      "color": "#b0a58c",
+      "glyph": "b",
+      "props": {
+        "defense": 0,
+        "avoid": 0
+      }
+    }
+  ]
+}

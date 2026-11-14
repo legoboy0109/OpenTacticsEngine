@@ -1,5 +1,5 @@
 // The "Picture" card on every Terrain and Unit: live preview, Choose picture… / Remove picture, a picture per visual
-// style ("For look:") and, for units, a different picture per side.
+// style ("For style:") and, for units, a different picture per side.
 import { useMemo, useState } from 'react'
 import { styleView } from '../../art/scene'
 import { sheetsOf } from '../../model/graphics'

@@ -22,8 +22,8 @@ export const T = {
   fontFixed: 'The default pixel font has a fixed look. Choose another font to change the text size.',
 
   looks: 'Visual styles',
-  looksHelp: 'Different looks for the same game. The first one is used unless the player picks another.',
-  looksEmpty: 'No styles yet: the game uses one plain default look.',
+  looksHelp: 'Different appearances for the same game. The first one is used unless the player picks another.',
+  looksEmpty: 'No styles yet: the game uses one plain default style.',
   addLook: 'Add a style',
   newLookTitle: 'New visual style',
   newLookLabel: 'Name of the style',

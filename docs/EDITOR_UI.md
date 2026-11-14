@@ -325,10 +325,10 @@ Shows a live preview and **Choose picture…** / **Remove picture**.
   - Unit kinds: **One piece**, **Animation**.
 - Units: "A different picture for a side" lists every side id used by the
   game's maps (with its name and colour); each can have its own picture.
-- When the game has more than one visual style, the card has a "For look:"
-  selector: **All looks** (the base picture) or one style. In a style:
+- When the game has more than one visual style, the card has a "For style:"
+  selector: **All styles** (the base picture) or one style. In a style:
   **Same as the others** (no override), a picture of its own, or **No
-  picture in this look** (`null`).
+  picture in this style** (`null`).
 
 ### Map editor
 - The canvas, the terrain palette and the unit palette draw with the art,
@@ -339,7 +339,7 @@ Shows a live preview and **Choose picture…** / **Remove picture**.
   TypeScript and unit-test it against values taken from the C++ function.
 - Animated pictures animate on the canvas only while the tab is visible and
   not under reduced motion.
-- A **Look** selector in the map toolbar (only when the game has more than
+- A **Style** selector in the map toolbar (only when the game has more than
   one visual style) previews a style: its art overrides AND its colours,
   background and letter setting (this closes the earlier gap "the canvas
   ignores visual styles").

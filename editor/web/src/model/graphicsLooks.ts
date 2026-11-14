@@ -34,7 +34,7 @@ function writeMap(g: Graphics, s: Slot, next: LookMap | undefined): Graphics {
 
 /** Sets what a slot shows.
  *  - base slot: a look sets it; `null`/undefined remove it (back to the placeholder).
- *  - style slot: a look overrides; `null` = "no picture in this look"; undefined = "same as the others".
+ *  - style slot: a look overrides; `null` = "no picture in this style"; undefined = "same as the others".
  *  A unit keeps its per-side pictures when only its own picture changes. */
 export function setLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined): ProjectDoc {
   return writeLook(doc, s, look, true)

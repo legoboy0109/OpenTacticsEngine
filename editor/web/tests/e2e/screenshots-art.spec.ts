@@ -64,16 +64,16 @@ test.describe('art screenshots', () => {
 
     // Looks: the demo game has a Parchment look with pictures of its own (read-only here: nothing is saved).
     await page.goto(editorUrl('demo-srpg', 'terrain', 'plain')); await saved(page)
-    await page.getByLabel('For look:').selectOption('parchment')
+    await page.getByLabel('For style:').selectOption('parchment')
     await shot(page, '40-picture-looks-light', true)
 
     await openMap(page, 'demo-srpg', 'bridge')
     await pickTerrain(page, 'Forest').click()
     await shot(page, '41-map-art-light')
-    await page.getByLabel('Look to preview').selectOption('parchment')
+    await page.getByLabel('Style to preview').selectOption('parchment')
     await shot(page, '42-map-art-look-light')
     await tool(page, 'Units').click()
-    await page.getByLabel('Look to preview').selectOption('classic')
+    await page.getByLabel('Style to preview').selectOption('classic')
     await shot(page, '43-map-art-units-light')
   })
 

@@ -58,7 +58,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
     case 'terrain':
       for (const [mid, m] of mapEntries(doc))
         if (Object.values(m.legend).includes(id)) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has tiles of it (they become ${firstOther(doc, id)})` })
-      for (const s of doc.game?.styles ?? []) if (s.terrainColors && id in s.terrainColors) out.push({ section: 'game', text: `Look "${s.name}" recolours it` })
+      for (const s of doc.game?.styles ?? []) if (s.terrainColors && id in s.terrainColors) out.push({ section: 'game', text: `Style "${s.name}" recolours it` })
       if (hasPicture(doc, 'terrain', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
   }

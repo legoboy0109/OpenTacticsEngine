@@ -214,6 +214,7 @@ test.describe('uploads and the autosave', () => {
     const id = await bareGame(request, game, 'strategy-rpg', 'Art Elsewhere')
     await openArt(page, id)
     await addImage(page, 'one.png', solidPng(24, 24, [10, 10, 10, 255]))
+    await saved(page) // otherwise the save of "one" can land after our edit below and overwrite it
     const g = readDisk(id, 'game.json')
     g.description = 'Edited elsewhere'
     writeDisk(id, 'game.json', JSON.stringify(g, null, 2))

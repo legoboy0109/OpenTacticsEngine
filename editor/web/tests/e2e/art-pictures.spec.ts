@@ -174,7 +174,7 @@ test('units: one piece and animation; a different picture for a side; sides come
   expect(await game.problems(id)).toEqual([])
 })
 
-test('looks: a picture per visual style, "same as the others" and "no picture in this look"', async ({ page, request, game }) => {
+test('looks: a picture per visual style, "same as the others" and "no picture in this style"', async ({ page, request, game }) => {
   const id = await terrainWithTiles(request, game)
   const doc = await (await request.get(`/api/projects/${id}`)).json()
   doc.game.styles = [{ id: 'day', name: 'Day' }, { id: 'night', name: 'Night', background: '#001133' }]
@@ -184,7 +184,7 @@ test('looks: a picture per visual style, "same as the others" and "no picture in
   await clickPiece(page, pickerGrid(page), 0, 0)
   await useIt(page).click()
   await saved(page)
-  await page.getByLabel('For look:').selectOption('night')
+  await page.getByLabel('For style:').selectOption('night')
   await expect(page.getByRole('radio', { name: 'Same as the others' })).toHaveAttribute('aria-checked', 'true')
   await expect(page.getByRole('button', { name: 'Choose picture…' })).toHaveCount(0)
   await page.getByRole('radio', { name: 'A picture of its own' }).click()
@@ -194,18 +194,18 @@ test('looks: a picture per visual style, "same as the others" and "no picture in
   expect(readDisk(id, 'data/graphics.json')).toMatchObject({
     terrain: { forest: { sheet: 'tiles', cell: [0, 0] } }, styles: { night: { terrain: { forest: { sheet: 'tiles', cell: [3, 2] } } } },
   })
-  await page.getByRole('radio', { name: 'No picture in this look' }).click()
+  await page.getByRole('radio', { name: 'No picture in this style' }).click()
   await saved(page)
   expect(readDisk(id, 'data/graphics.json').styles.night.terrain.forest).toBeNull()
   expect(await game.problems(id)).toEqual([])
   await page.getByRole('radio', { name: 'Same as the others' }).click()
   await saved(page)
   expect(readDisk(id, 'data/graphics.json').styles).toBeUndefined()
-  // The base picture is untouched and "All looks" shows it.
-  await page.getByLabel('For look:').selectOption('')
+  // The base picture is untouched and "All styles" shows it.
+  await page.getByLabel('For style:').selectOption('')
   await expect(page.getByRole('button', { name: 'Change picture…' })).toBeVisible()
   expect(readDisk(id, 'data/graphics.json').terrain.forest.cell).toEqual([0, 0])
   // The map editor offers the same looks.
   await openMap(page, id, 'ford')
-  await expect(page.getByLabel('Look to preview')).toBeVisible()
+  await expect(page.getByLabel('Style to preview')).toBeVisible()
 })

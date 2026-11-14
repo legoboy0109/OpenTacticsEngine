@@ -173,17 +173,17 @@ test('the Look selector previews a style: its pictures, terrain colours and back
   await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, game: doc.game } })
   const col = await colors(request, id)
   await openMap(page, id, MAP)
-  const look = page.getByLabel('Look to preview')
+  const look = page.getByLabel('Style to preview')
   await expect(look).toHaveValue('day') // the player starts with the first look
   await expectPixel(page, 2, 0, 0.5, 0.5, hex(pieceColor(0, 0)))
   await expectPixel(page, 0, 0, 0.2, 0.2, hex(col.plain))
   await look.selectOption('night')
   await expectPixel(page, 2, 0, 0.5, 0.5, hex(pieceColor(3, 3))) // its own picture
   await expectPixel(page, 0, 0, 0.2, 0.2, '#ff00ff') // its own colour
-  await expectPixel(page, 5, 0, 0.1, 0.1, hex(col.water)) // "no picture in this look" keeps the coloured square
+  await expectPixel(page, 5, 0, 0.1, 0.1, hex(col.water)) // "no picture in this style" keeps the coloured square
   const box = (await canvas(page).boundingBox())!
   expect(hex(await canvasPixel(canvas(page), 2, Math.floor(box.height) - 3))).toBe('#112233') // background around the map
   // The choice is remembered.
   await page.reload()
-  await expect(page.getByLabel('Look to preview')).toHaveValue('night')
+  await expect(page.getByLabel('Style to preview')).toHaveValue('night')
 })

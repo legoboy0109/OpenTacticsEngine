@@ -23,15 +23,15 @@ export const P = {
   unitKindHelp: { one: 'The same picture all the time.', animation: 'Pictures shown one after the other, over and over.' },
 
   // looks (visual styles)
-  forLook: 'For look:',
-  allLooks: 'All looks',
-  lookHelp: 'A look can show different pictures. “All looks” is the picture used unless a look says otherwise.',
+  forLook: 'For style:',
+  allLooks: 'All styles',
+  lookHelp: 'A visual style can show different pictures. “All styles” is the picture used unless a style says otherwise.',
   lookSame: 'Same as the others',
   lookOwn: 'A picture of its own',
-  lookNone: 'No picture in this look',
-  lookGroup: 'In this look',
-  lookNoneHelp: 'This terrain or unit is drawn as a plain coloured square in this look.',
-  lookSameHelp: 'Uses the picture from “All looks”.',
+  lookNone: 'No picture in this style',
+  lookGroup: 'In this style',
+  lookNoneHelp: 'This terrain or unit is drawn as a plain coloured square in this style.',
+  lookSameHelp: 'Uses the picture from “All styles”.',
 
   // sides
   sidesTitle: 'A different picture for a side',
