@@ -57,6 +57,7 @@ struct RunResult {
   bool won = false;
   bool aiError = false;
   int rounds = 0;
+  int captures = 0, builds = 0;  // structures captured / units built during the run
   std::string winners;
   std::vector<int> survivors;  // per side
 };
@@ -96,6 +97,10 @@ RunResult playOne(const Database& db, const MapDef& map, Formulas& formulas, uns
       }
     }
     flush();
+    for (const Event& e : events) {
+      if (e.type == EventType::StructureCaptured) ++r.captures;
+      if (e.type == EventType::UnitBuilt) ++r.builds;
+    }
     events.clear();  // already printed; keeps memory flat on long runs
     printed = 0;
   }
@@ -135,7 +140,7 @@ int main(int argc, char** argv) {
   std::vector<int> wins(map.sides.size(), 0);
   std::vector<std::string> names;
   int stalls = 0;
-  double totalRounds = 0, totalMs = 0;
+  double totalRounds = 0, totalMs = 0, totalCaptures = 0, totalBuilds = 0;
   for (int i = 0; i < opt.runs; ++i) {
     unsigned seed = opt.seed + (unsigned)i;
     if (opt.verbose) std::printf("=== run seed %u ===\n", seed);
@@ -145,11 +150,13 @@ int main(int argc, char** argv) {
     if (r.aiError) return 3;
     totalMs += ms;
     totalRounds += r.rounds;
+    totalCaptures += r.captures;
+    totalBuilds += r.builds;
     std::string surv;
     for (size_t s = 0; s < r.survivors.size(); ++s)
       surv += (s ? ", " : "") + map.sides[s].name + "=" + std::to_string(r.survivors[s]);
-    std::printf("seed %u: winner %s, rounds %d, survivors %s\n", seed,
-                r.won ? r.winners.c_str() : "stalled", r.rounds, surv.c_str());
+    std::printf("seed %u: winner %s, rounds %d, survivors %s, captures %d, builds %d\n", seed,
+                r.won ? r.winners.c_str() : "stalled", r.rounds, surv.c_str(), r.captures, r.builds);
     if (!r.won) ++stalls;
     else
       for (size_t s = 0; s < map.sides.size(); ++s)
@@ -160,8 +167,8 @@ int main(int argc, char** argv) {
     std::printf("summary: %d runs;", opt.runs);
     for (size_t s = 0; s < map.sides.size(); ++s)
       std::printf(" %s wins %d;", map.sides[s].name.c_str(), wins[s]);
-    std::printf(" stalls %d; avg rounds %.1f; avg %.1f ms/run\n", stalls, totalRounds / opt.runs,
-                totalMs / opt.runs);
+    std::printf(" stalls %d; avg rounds %.1f; avg captures %.1f; avg builds %.1f; avg %.1f ms/run\n", stalls,
+                totalRounds / opt.runs, totalCaptures / opt.runs, totalBuilds / opt.runs, totalMs / opt.runs);
   }
   return stalls > 0 ? 2 : 0;
 }

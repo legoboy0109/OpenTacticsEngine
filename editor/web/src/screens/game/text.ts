@@ -35,6 +35,8 @@ export const T = {
   showGlyphsHelp: 'The small letter drawn on each tile (until real artwork is added).',
   terrainColors: 'Terrain colours in this style',
   terrainColorsHelp: 'Only the colours you change are stored; the rest follow the Terrain screen.',
+  structureColors: 'Structure colours in this style',
+  structureColorsHelp: 'Only the colours you change are stored; the rest follow the Structures screen. They colour a structure’s block when it has no picture.',
   terrainReset: 'Reset',
   terrainDefault: 'standard',
   removeLook: 'Delete style',

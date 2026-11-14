@@ -5,13 +5,19 @@
 import { drawTerrainArt, drawUnitArt } from '../../../art/draw'
 import { PLAIN_STYLE, unitPicture, type ArtScene, type StyleView } from '../../../art/scene'
 import type { Cell } from '../../../model/mapGrid'
-import type { MapFile, MapUnit, Terrain, Unit } from '../../../model/types'
+import type { MapFile, MapUnit, Structure, Terrain, Unit } from '../../../model/types'
+import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
+import { drawOrder, drawStructure, drawStructureGhost, structureRows, type StructureGhost } from './drawStructures'
 import type { View } from './geometry'
+
+export { parseHex, readableOn }
 
 export interface Scene {
   map: MapFile
   terrain: Map<string, Terrain>
   types: Map<string, Unit>
+  /** The game's structure kinds. */
+  structures: Map<string, Structure>
   /** "x,y" of units standing where they cannot be. */
   flagged: Set<string>
   /** Pictures (null = the game has none: everything keeps the placeholder look). */
@@ -29,26 +35,15 @@ export interface DrawState {
   cursor: Cell | null
   selected: Cell | null
   ghost: { from: Cell; to: Cell } | null
+  /** A structure about to be placed or being dragged (red where it cannot go). */
+  structureGhost?: StructureGhost | null
+  /** The selected structure's footprint (the selected square otherwise). */
+  selSize?: { w: number; h: number } | null
   /** Running time in ms for animated pictures (0 under reduced motion). */
   time?: number
 }
 
 const BACKDROP = '#14161c'
-const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
-
-type Rgb = [number, number, number]
-export function parseHex(c: string | undefined, fallback: Rgb = [128, 128, 128]): Rgb {
-  const m = /^#?([0-9a-f]{6})$/i.exec(c ?? '')
-  if (!m) return fallback
-  const n = parseInt(m[1], 16)
-  return [n >> 16, (n >> 8) & 255, n & 255]
-}
-const css = (c: Rgb, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`
-const luma = (c: Rgb) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]
-/** Black or white, whichever reads on `c` (the game's readableOn). */
-export const readableOn = (c: Rgb): Rgb => (luma(c) > 140 ? [18, 18, 24] : [245, 245, 250])
-const mix = (a: Rgb, b: Rgb, t: number): Rgb => [0, 1, 2].map((i) => Math.round(a[i] + (b[i] - a[i]) * t)) as Rgb
-
 export const glyphOfType = (u: Unit | undefined, fallback: string): string => (u?.glyph || u?.name?.[0]?.toUpperCase() || fallback).slice(0, 1)
 
 export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState): void {
@@ -105,23 +100,33 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
     for (let x = x0; x <= x1 + 1; x++) g.fillRect(px(x), py(y0), 1, py(y1 + 1) - py(y0))
     for (let y = y0; y <= y1 + 1; y++) g.fillRect(px(x0), py(y), px(x1 + 1) - px(x0), 1)
   }
-  const bw = Math.max(2, Math.round(S / 12))
-  for (const o of map.owners ?? []) {
-    if (o.x < x0 || o.x > x1 || o.y < y0 || o.y > y1) continue
-    const cx = px(o.x), cy = py(o.y), cw = px(o.x + 1) - cx, ch = py(o.y + 1) - cy
-    g.fillStyle = css(sideColor(o.side))
-    g.fillRect(cx, cy, cw, bw); g.fillRect(cx, cy + ch - bw, cw, bw)
-    g.fillRect(cx, cy + bw, bw, ch - 2 * bw); g.fillRect(cx + cw - bw, cy + bw, bw, ch - 2 * bw)
-  }
-  // Top row first, so lower units overlap higher ones (only matters for sprites taller than their square).
-  const units = art && map.units ? map.units.slice().sort((a, b) => a.y - b.y) : map.units ?? []
+  const grid = { px, py, S }
+  const placed = map.structures ?? []
+  const glyphOn = showGlyph || S >= 9 * dpr
   const reach = art?.tallRows ?? 0
-  for (const u of units) {
-    if (u.x < x0 || u.x > x1 || u.y < y0 || u.y > y1 + reach) continue
+  const unitVisible = (u: MapUnit) => u.x >= x0 && u.x <= x1 && u.y >= y0 && u.y <= y1 + reach
+  const paintUnit = (u: MapUnit) => {
     const ux = px(u.x), uy = py(u.y), uw = px(u.x + 1) - ux, uh = py(u.y + 1) - uy
-    drawAnyUnit(g, scene, u, ux, uy, uw, uh, sideColor(u.side), 1, showGlyph || S >= 9 * dpr, time)
+    drawAnyUnit(g, scene, u, ux, uy, uw, uh, sideColor(u.side), 1, glyphOn, time)
     if (u.y <= y1 && scene.flagged.has(`${u.x},${u.y}`)) drawFlag(g, ux, uy, uw, S)
   }
+  if (placed.length === 0) {
+    // Top row first, so lower units overlap higher ones (only matters for sprites taller than their square).
+    const units = art && map.units ? map.units.slice().sort((a, b) => a.y - b.y) : map.units ?? []
+    for (const u of units) if (unitVisible(u)) paintUnit(u)
+  } else {
+    // Structures and units in one pass, by the row of their bottom edge (drawStructures.ts).
+    for (const it of drawOrder(scene)) {
+      if (it.kind === 1) { const u = map.units![it.index]; if (unitVisible(u)) paintUnit(u); continue }
+      const s = placed[it.index]
+      const def = scene.structures.get(s.type)
+      const w = def?.width ?? 1
+      const [top, bottom] = structureRows(scene, s)
+      if (s.x + w - 1 < x0 || s.x > x1 || bottom < y0 || top > y1) continue
+      drawStructure(g, scene, grid, s, time, glyphOn)
+    }
+  }
+  if (st.structureGhost) drawStructureGhost(g, scene, grid, st.structureGhost, time)
   if (st.ghost) {
     const u = map.units?.find((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
     const t = st.ghost.to
@@ -129,15 +134,15 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       drawAnyUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true, time)
     }
   }
-  const ring = (c: Cell, color: string, width: number, inset = 0) => {
+  const ring = (c: Cell, color: string, width: number, inset = 0, size = { w: 1, h: 1 }) => {
     g.strokeStyle = color
     g.lineWidth = width
     const h = width / 2 + inset
-    g.strokeRect(px(c.x) + h, py(c.y) + h, px(c.x + 1) - px(c.x) - 2 * h, py(c.y + 1) - py(c.y) - 2 * h)
+    g.strokeRect(px(c.x) + h, py(c.y) + h, px(c.x + size.w) - px(c.x) - 2 * h, py(c.y + size.h) - py(c.y) - 2 * h)
   }
   const line = Math.max(1, Math.round(dpr * 1.5))
-  if (st.hover) { g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(px(st.hover.x), py(st.hover.y), px(st.hover.x + 1) - px(st.hover.x), py(st.hover.y + 1) - py(st.hover.y)) }
-  if (st.selected) { ring(st.selected, 'rgba(0,0,0,0.85)', line * 3); ring(st.selected, '#ffffff', line * 2, line * 0.5) }
+  if (st.hover && !st.structureGhost) { g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(px(st.hover.x), py(st.hover.y), px(st.hover.x + 1) - px(st.hover.x), py(st.hover.y + 1) - py(st.hover.y)) }
+  if (st.selected) { ring(st.selected, 'rgba(0,0,0,0.85)', line * 3, 0, st.selSize ?? undefined); ring(st.selected, '#ffffff', line * 2, line * 0.5, st.selSize ?? undefined) }
   if (st.cursor) { ring(st.cursor, '#ffe45c', line * 2); ring(st.cursor, '#ffffff', line, line * 2) }
 }
 

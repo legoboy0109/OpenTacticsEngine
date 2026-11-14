@@ -71,15 +71,13 @@ def mountain():
     return p
 
 
-def composite(ground, built):
-    """Outlines the structure drawn on a transparent canvas, then puts it on the ground."""
+def finish(built):
+    """Outlines a building drawn on a transparent canvas (structures stand on terrain, no ground here)."""
     built.outline(DARKLINE)
-    ground.paste(built, 0, 0)
-    return ground
+    return built
 
 
-def fort():
-    g = grass(31, tufts=4)
+def fort_body():
     p = Pix(T, T)
     # keep
     p.rect(4, 9, 19, 21, STONE[0])
@@ -102,19 +100,10 @@ def fort():
     p.line(12, 1, 12, 6, 0x4A4038)
     p.rect(13, 1, 16, 3, 0xF0E8D0)
     p.set(16, 2, 0xD8CDAE)
-    return composite(g, p)
+    return finish(p)
 
 
-def _ground(base, seed):
-    p = Pix(T, T, base[0])
-    r = rng('ground', seed)
-    for _ in range(14):
-        p.set(r.randrange(T), r.randrange(T), base[1])
-    return p
-
-
-def city():
-    g = _ground((0xBDB8A8, 0xA8A392), 41)
+def city_body():
     p = Pix(T, T)
     def house(x0, y0, x1, wall, roof, roof_dark):
         p.rect(x0, y0, x1, 21, wall)
@@ -131,11 +120,10 @@ def city():
     house(12, 11, 21, 0xC9CFD6, 0x6F819A, 0x56667C)
     p.rect(6, 17, 7, 21, 0x4A3A30)
     p.rect(16, 17, 17, 21, 0x4A3A30)
-    return composite(g, p)
+    return finish(p)
 
 
-def factory():
-    g = _ground((0xA2A2A8, 0x8C8C94), 51)
+def factory_body():
     p = Pix(T, T)
     body, dark, light = 0x8D949C, 0x6A7078, 0xB4BAC2
     p.rect(2, 11, 21, 21, body)
@@ -161,11 +149,10 @@ def factory():
     p.rect(8, 14, 14, 14, 0xE0B030)
     for wx in (3, 17):
         p.rect(wx, 14, wx + 1, 15, 0x35465E)
-    return composite(g, p)
+    return finish(p)
 
 
-def hq():
-    g = _ground((0xCDC7A6, 0xB9B38F), 61)
+def hq_body():
     p = Pix(T, T)
     wall, dark, light, gold = 0xEADFB6, 0xC3B88E, 0xF6F0D4, 0xD8B03A
     p.rect(3, 12, 20, 21, wall)
@@ -191,7 +178,7 @@ def hq():
         p.rect(wx, wy, wx + 1, wy + 2, 0x35465E)
     p.set(15, 9, 0x35465E)
     p.set(12, 9, gold); p.set(12, 8, gold); p.set(12, 10, gold); p.set(11, 9, gold); p.set(13, 9, gold)
-    return composite(g, p)
+    return finish(p)
 
 
 def water(frame, deep, mid, light, seed):
@@ -259,8 +246,53 @@ def road_piece(arms, seed=1):
     return p
 
 
-def bridge_piece(arms):
-    p = water(0, 0x3873B0, 0x4A8FCB, 0x9CCBF0, 2)
+# Water palettes: (deep, mid, light, seed). The river is a little lighter than the sea.
+SEA = (0x2F62A0, 0x3F7CC4, 0x86B8EC, 1)
+RIVER = (0x3873B0, 0x4A8FCB, 0x9CCBF0, 2)
+# Shore colours: sand bank (outer fringe, sand, wet sand), foam, shallow water showing through foam gaps.
+SHORE_FRINGE, SHORE_SAND, SHORE_SAND_DARK, SHORE_WET = 0xB5A57E, 0xDDD2AA, 0xCBBE92, 0x9C8E68
+FOAM, SHALLOW = 0xF2F8FC, 0x74AEDC
+BANK = 4  # width in pixels of the bank drawn on a side whose neighbour is not water
+
+
+def water_piece(mask, frame, pal):
+    """One of the 16 water join pieces, `mask` = JoinBit set of neighbours that ARE water.
+
+    Open water is the plain shimmer tile; each side without water neighbour gets a BANK-wide sand
+    bank with a foam line along the water. The water core is a rectangle whose corners are rounded
+    by measuring Euclidean distance from it, so a lake tile or a river bend curves instead of being
+    square. Bank and foam outline are the same in every frame (the shoreline never jumps); only the
+    gaps in the foam line and the open-water shimmer move. All patterns repeat every 4 pixels (the
+    tile is 24 wide), so they run on across neighbouring tiles without a seam.
+    """
+    p = water(frame, *pal)
+    x0 = BANK if not mask & 8 else -999
+    x1 = T - 1 - BANK if not mask & 2 else 999
+    y0 = BANK if not mask & 1 else -999
+    y1 = T - 1 - BANK if not mask & 4 else 999
+    for y in range(T):
+        for x in range(T):
+            dx = max(x0 - x, x - x1, 0)
+            dy = max(y0 - y, y - y1, 0)
+            e = (dx * dx + dy * dy) ** 0.5
+            if e <= 0:
+                continue
+            if e <= 1.5:  # foam line, with gaps that drift along the shore
+                p.set(x, y, SHALLOW if (x + y + 2 * frame) % 4 == 0 else FOAM)
+            elif e <= 2.5:
+                p.set(x, y, SHORE_WET)
+            elif e <= BANK - 0.5:
+                p.set(x, y, SHORE_SAND_DARK if (x * 3 + y * 5) % 11 == 0 else SHORE_SAND)
+            else:
+                p.set(x, y, SHORE_FRINGE)
+    return p
+
+
+def bridge_piece(arms, frame=0):
+    # Water under the deck, with banks on the sides that have an arm (land beyond: the usual one-square
+    # bridge keeps an unbroken bank). Next to another bridge square the bank shows as a short sand strip
+    # beside the deck, like a pier; the piece cannot tell the two cases apart.
+    p = water_piece(~arms & 15, frame, RIVER)
     h0, h1 = 6, 17  # deck band (12 px wide)
     deck, plank, rail = 0xB07F4C, 0x8C6238, 0x5B3F24
     def band(horizontal, lo, hi):

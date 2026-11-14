@@ -3,7 +3,8 @@
 import { effectiveLook } from '../model/graphicsLooks'
 import { gameSides } from '../model/graphicsUsage'
 import { drawMap, type Scene } from '../screens/maps/editor/drawMap'
-import type { MapFile, MapSide, ProjectDoc } from '../model/types'
+import { sizeOf } from '../model/structures'
+import type { MapFile, MapSide, MapStructure, ProjectDoc } from '../model/types'
 import { buildArtScene, type ImageSource, type StyleView } from './scene'
 
 export interface PreviewSpec { scene: Scene; cols: number; rows: number; scale: number; /** First square drawn (thumbnails show the middle square). */ origin: { x: number; y: number } }
@@ -12,12 +13,13 @@ export interface PreviewSpec { scene: Scene; cols: number; rows: number; scale: 
 export const JOIN_SAMPLE = ['..#....', '..#.##.', '.####..', '..##...', '.......']
 
 const SIDE_COLORS = ['#d23b3b', '#2f6fdb']
-const mapOf = (cols: number, rows: number, legend: Record<string, string>, tiles: string[], sides: MapSide[] = [], units: MapFile['units'] = []): MapFile =>
-  ({ name: 'preview', grid: { width: cols, height: rows }, legend, tiles, sides, units })
+const mapOf = (cols: number, rows: number, legend: Record<string, string>, tiles: string[], sides: MapSide[] = [], units: MapFile['units'] = [], structures: MapStructure[] = []): MapFile =>
+  ({ name: 'preview', grid: { width: cols, height: rows }, legend, tiles, sides, units, structures })
 
 function sceneFor(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, map: MapFile): Scene {
   return {
     map, terrain: new Map((doc.terrain ?? []).map((t) => [t.id, t])), types: new Map((doc.units ?? []).map((u) => [u.id, u])),
+    structures: new Map((doc.structures ?? []).map((s) => [s.id, s])),
     flagged: new Set(), art: buildArtScene(doc, styleId, src), style,
   }
 }
@@ -73,6 +75,43 @@ export function unitThumb(doc: ProjectDoc, src: ImageSource, style: StyleView, s
   const terrainId = doc.terrain?.[0]?.id ?? ''
   const map = mapOf(1, 1 + extra, { a: terrainId }, Array(1 + extra).fill('a'), [sd], [{ type: id, side: sd.id, x: 0, y: extra }])
   return { scene: { ...sceneFor(doc, src, style, styleId, map), art: probe }, cols: 1, rows: 1 + extra, scale: Math.floor(size / (1 + extra)), origin: { x: 0, y: 0 } }
+}
+
+/** Rows a structure's picture sticks out above its footprint (from the piece's proportions), at most `max`. */
+function stickOut(probe: ReturnType<typeof buildArtScene>, id: string, w: number, h: number, max = 4): number {
+  const pics = probe?.structures.get(id)
+  if (!pics) return 0
+  const rows = Math.max(...[pics.base, ...pics.sides.values()].map((r) => Math.ceil((w * r.ch) / r.cw)))
+  return Math.min(max, Math.max(0, rows - h))
+}
+
+/** A structure standing on a patch of the first terrain at its real footprint, owned by each of `sideIds` (default: the first
+ *  side and nobody), so the owner frame and the room a tall picture needs above are both visible. */
+export function structurePreview(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string, scale = 40, sideIds?: Array<string | undefined>): PreviewSpec {
+  const def = (doc.structures ?? []).find((s) => s.id === id)
+  const { w, h } = sizeOf(def)
+  const owners = sideIds?.length ? sideIds : [previewSides(doc)[0].id, undefined]
+  const sides = [...previewSides(doc), ...gameSides(doc).filter((g) => owners.includes(g.id)).map((g, i) => ({ id: g.id, name: g.name, color: g.color ?? SIDE_COLORS[i % 2] }))]
+  const probe = buildArtScene(doc, styleId, src)
+  const extra = stickOut(probe, id, w, h)
+  const cols = owners.length * (w + 1) + 1, rows = h + extra + 1
+  const terrainId = doc.terrain?.[0]?.id ?? ''
+  const placed = owners.map((side, i) => ({ type: id, x: 1 + i * (w + 1), y: extra, ...(side ? { side } : {}) }))
+  const map = mapOf(cols, rows, { a: terrainId }, Array(rows).fill('a'.repeat(cols)), sides, [], placed)
+  const fit = Math.max(14, Math.min(scale, Math.floor(300 / cols), Math.floor(260 / rows)))
+  return { scene: { ...sceneFor(doc, src, style, styleId, map), art: probe }, cols, rows, scale: fit, origin: { x: 0, y: 0 } }
+}
+
+/** One structure for the palette, at its real footprint (unowned or in the colour of `side`); tall pictures get room above. */
+export function structureThumb(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string, side: MapSide | undefined, size = 40): PreviewSpec {
+  const def = (doc.structures ?? []).find((s) => s.id === id)
+  const { w, h } = sizeOf(def)
+  const probe = buildArtScene(doc, styleId, src)
+  const extra = stickOut(probe, id, w, h, 2)
+  const rows = h + extra
+  const terrainId = doc.terrain?.[0]?.id ?? ''
+  const map = mapOf(w, rows, { a: terrainId }, Array(rows).fill('a'.repeat(w)), side ? [side] : [], [], [{ type: id, x: 0, y: extra, ...(side ? { side: side.id } : {}) }])
+  return { scene: { ...sceneFor(doc, src, style, styleId, map), art: probe }, cols: w, rows, scale: Math.max(4, Math.floor(size / Math.max(w, rows))), origin: { x: 0, y: 0 } }
 }
 
 /** Draws a preview onto a canvas whose backing store is already sized. */

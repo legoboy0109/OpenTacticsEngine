@@ -1,0 +1,124 @@
+// The data hash of a save (see save.h).
+#include <cstdint>
+
+#include "core/battle/save.h"
+
+namespace ote {
+namespace {
+
+struct Fnv {
+  uint64_t h = 1469598103934665603ULL;
+  void byte(uint8_t b) { h ^= b; h *= 1099511628211ULL; }
+  void bytes(const std::string& s) { for (char c : s) byte((uint8_t)c); }
+  void number(uint64_t v) { for (int i = 0; i < 8; ++i) byte((uint8_t)(v >> (8 * i))); }
+};
+
+// Mixes one file (name, then length, then bytes) so that moving text between
+// two files, or swapping files, changes the hash.
+void mixText(Fnv& f, const std::string& rel, bool have, const std::string& text) {
+  f.bytes(rel);
+  f.byte(0);
+  f.byte(have ? 1 : 0);
+  f.number((uint64_t)text.size());
+  f.bytes(text);
+}
+
+bool mixFile(Fnv& f, const std::string& root, const std::string& rel, std::string& err) {
+  std::string text;
+  if (!readTextFile(root + "/" + rel, text)) {
+    err = root + "/" + rel + ": cannot read the file to check the game's version";
+    return false;
+  }
+  mixText(f, rel, true, text);
+  return true;
+}
+
+// Keys that only change how things are called or drawn. A save stays valid
+// when these change, so a maker can rename things, recolour them or pick
+// another font without locking players out of their saves.
+bool cosmeticKey(const std::string& k) {
+  return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph";
+}
+
+// A copy without cosmetic keys, at any depth. Formula numbers ("props",
+// "versus", stat tables...) are kept whole: a number called "name" is a rule.
+Json rulesOnly(const Json& j, bool numbersTable = false) {
+  if (j.isArray()) {
+    Json out = Json::makeArray();
+    for (const Json& e : j.items()) out.push(rulesOnly(e));
+    return out;
+  }
+  if (j.isObject()) {
+    Json out = Json::makeObject();
+    for (const Json::Member& m : j.members()) {
+      if (!numbersTable && cosmeticKey(m.first)) continue;
+      bool table = m.first == "props" || m.first == "versus" || m.first == "stats" || m.first == "growths" ||
+                   m.first == "moveCost" || m.first == "income" || m.first == "cost" || m.first == "resources";
+      out.set(m.first, rulesOnly(m.second, table && m.second.isObject()));
+    }
+    return out;
+  }
+  return j;
+}
+
+// Mixes the rules content of a JSON file: layout, comments and cosmetic keys
+// do not count. `only` (optional) limits the top-level keys that count.
+bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optional,
+             const char* const* only, std::string& err) {
+  std::string text;
+  if (!readTextFile(root + "/" + rel, text)) {
+    if (!optional) {
+      err = root + "/" + rel + ": cannot read the file to check the game's version";
+      return false;
+    }
+    mixText(f, rel, false, "");
+    return true;
+  }
+  Json doc;
+  std::string perr;
+  if (!Json::parse(text, doc, perr)) {
+    err = root + "/" + rel + ": " + perr;
+    return false;
+  }
+  Json rules = rulesOnly(doc);
+  if (only && rules.isObject()) {
+    Json kept = Json::makeObject();
+    for (const char* const* k = only; *k; ++k)
+      if (rules.has(*k)) kept.set(*k, rules[*k]);
+    rules = kept;
+  }
+  mixText(f, rel, true, rules.dump(0));
+  return true;
+}
+
+}  // namespace
+
+bool computeDataHash(const Database& db, const std::string& mapId, std::string& out, std::string& err) {
+  int mi = db.findMap(mapId);
+  if (mi < 0) {
+    err = "unknown map '" + mapId + "'";
+    return false;
+  }
+  Fnv f;
+  const std::string& root = db.rootPath;
+  // game.json: only the parts that are rules. Its name, description, author,
+  // font, visual styles, screen size, the saving setting and editor notes are
+  // not, and the map list is covered by hashing the map being played.
+  static const char* const kGameKeys[] = {"formatVersion", "stats", "resources", "moveTypes", "roles",
+                                          "rules", "formulas", "scripts", nullptr};
+  if (!mixJson(f, root, "game.json", false, kGameKeys, err)) return false;
+  static const char* const kData[] = {"data/weapons.json", "data/units.json", "data/terrain.json"};
+  for (const char* rel : kData)
+    if (!mixJson(f, root, rel, false, nullptr, err)) return false;
+  if (!mixJson(f, root, "data/structures.json", true, nullptr, err)) return false;  // optional file
+  for (const std::string& sc : db.scripts)
+    if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
+  if (!mixJson(f, root, db.maps[(size_t)mi].file, false, nullptr, err)) return false;
+
+  static const char* const kHex = "0123456789abcdef";
+  out.assign(16, '0');
+  for (int i = 0; i < 16; ++i) out[(size_t)i] = kHex[(f.h >> (60 - 4 * i)) & 15];
+  return true;
+}
+
+}  // namespace ote

@@ -3,7 +3,9 @@
 // load fine but are probably not what the author meant.
 import { ctxOf } from './mapCtx'
 import { terrainAt } from './mapGrid'
-import { canEnter } from './mapUnits'
+import { misfits, placedOf, structureAt } from './mapStructures'
+import { isHeadquarters } from './structures'
+import { canEnter } from './structuresEffective'
 import type { MapFile, ProjectDoc } from './types'
 
 export interface MapWarning { key: string; text: string; cell?: { x: number; y: number } }
@@ -16,25 +18,32 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   const units = map.units ?? []
   const defeat = doc.game?.rules?.defeat ?? ['noUnits']
   const tOf = (id: string | undefined) => c.terrain.find((t) => t.id === id)
+  const sOf = (type: string | undefined) => c.structureTypes.find((s) => s.id === type)
 
   for (const u of units) {
     const t = tOf(terrainAt(map, u.x, u.y))
+    const st = sOf(structureAt(map, c, u.x, u.y)?.type)
     const type = c.unitTypes.find((x) => x.id === u.type)
-    if (!canEnter(t, type)) out.push({ key: `blocked:${u.x},${u.y}`, cell: { x: u.x, y: u.y }, text: `${type?.name ?? u.type} at ${u.x + 1},${u.y + 1} stands on ${t?.name ?? 'terrain'}, which it cannot enter. The game will not load until it is moved or the terrain changed.` })
+    // Judged the way the game does: the structure's movement costs replace the terrain's where it sets them.
+    if (!canEnter(t, st, type)) out.push({ key: `blocked:${u.x},${u.y}`, cell: { x: u.x, y: u.y }, text: `${type?.name ?? u.type} at ${u.x + 1},${u.y + 1} stands on ${st ? `a ${st.name}` : t?.name ?? 'terrain'}, which it cannot enter. The game will not load until it is moved or the ${st ? 'structure' : 'terrain'} changed.` })
+  }
+  for (const i of misfits(map, c)) {
+    const s = placedOf(map)[i]
+    out.push({ key: `misfit:${s.x},${s.y}`, cell: { x: s.x, y: s.y }, text: `${sOf(s.type)?.name ?? s.type} at ${s.x + 1},${s.y + 1} does not fit there any more (it sticks out of the map or overlaps another structure). The game will not load until it is moved or removed.` })
   }
   if (sides.length < 2) out.push({ key: 'few-sides', text: 'A battle needs at least two sides.' })
 
   const producing = doc.game?.rules?.production?.enabled
   for (const s of sides) {
     const hasUnits = units.some((u) => u.side === s.id)
-    const owned = (map.owners ?? []).filter((o) => o.side === s.id)
-    const canBuild = !!producing && owned.some((o) => tOf(terrainAt(map, o.x, o.y))?.produces?.length)
-    if (!hasUnits && !canBuild) out.push({ key: `no-units:${s.id}`, text: `${s.name} has no units and no way to get any${producing ? ' (it owns no building that makes units)' : ''}.` })
+    const owned = placedOf(map).filter((o) => o.side === s.id)
+    const canBuild = !!producing && owned.some((o) => sOf(o.type)?.produces?.length)
+    if (!hasUnits && !canBuild) out.push({ key: `no-units:${s.id}`, text: `${s.name} has no units and no way to get any${producing ? ' (it owns no structure that makes units)' : ''}.` })
     if (defeat.includes('leaderDead') && hasUnits && !units.some((u) => u.side === s.id && u.leader)) {
       out.push({ key: `no-leader:${s.id}`, text: `${s.name} has no leader, but "its leader is defeated" is a way to lose. Mark one of its units as the leader.` })
     }
-    if (defeat.includes('lostHq') && !owned.some((o) => tOf(terrainAt(map, o.x, o.y))?.tags?.includes('hq'))) {
-      out.push({ key: `no-hq:${s.id}`, text: `${s.name} owns no headquarters, but "its headquarters is captured" is a way to lose. Set it as the owner of a headquarters square.` })
+    if (defeat.includes('lostHq') && !owned.some((o) => isHeadquarters(sOf(o.type)))) {
+      out.push({ key: `no-hq:${s.id}`, text: `${s.name} owns no headquarters, but "its headquarters is captured" is a way to lose. Place a headquarters structure and set ${s.name} as its owner.` })
     }
   }
   return out

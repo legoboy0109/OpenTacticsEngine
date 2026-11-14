@@ -37,8 +37,10 @@ target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
   file(GLOB TEST_SRC CONFIGURE_DEPENDS tests/*.cpp)
-  # The PNG decoder (platform layer, no SDL) is tested here too.
-  add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp)
+  # The PNG decoder (platform layer, no SDL) and the player's save-file module
+  # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them) are tested here too.
+  add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
+                 engine/player/saves.cpp)
   target_link_libraries(ote_tests PRIVATE ote_core)
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"

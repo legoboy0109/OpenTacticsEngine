@@ -43,23 +43,25 @@
     "mountain": {
       "sheet": "tiles",
       "cell": [
-        0,
-        1
+        4,
+        0
       ]
     },
     "water": {
       "sheet": "tiles",
-      "frames": [
+      "join": [
         [
           0,
-          3
+          10
         ],
         [
-          1,
-          3
+          4,
+          10
         ]
       ],
-      "frameMs": 500
+      "frameMs": 500,
+      "joinWith": [],
+      "joinEdge": true
     }
   },
   "units": {

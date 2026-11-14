@@ -8,7 +8,9 @@
 #include "battle/battle_view.h"
 #include "battle/layout.h"
 #include "scene.h"
+#include "saves.h"
 #include "ui/menu.h"
+#include "ui/slot_panel.h"
 
 namespace ote {
 
@@ -20,8 +22,8 @@ class BattleScene : public Scene {
   void draw(Renderer& r) override;
 
  private:
-  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, Result };
-  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn };
+  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Result };
+  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave };
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
   void ensureLayout(const Renderer& r);
@@ -54,6 +56,17 @@ class BattleScene : public Scene {
   void anchorActionMenu();
   bool submit(const Action& a);
 
+  // --- battle_saves.cpp: Continue save, manual Save / Load (docs/SAVES.md)
+  bool savingOn() const;       // saves usable here: folder, game setting, not autoplay
+  bool manualSaves() const;    // savingOn and the game allows slots
+  void updateSaves();          // writes the Continue save when one is due (view idle)
+  void writeContinue();
+  void clearContinue();
+  void saveFailed(const std::string& err);
+  void openSlotList(SlotPanel::Mode mode);
+  void slotInput(const InputEvent& e);
+  void say(const std::string& text);  // short message in the hint line
+
   SceneHost& host_;
   GameSession& session_;
   Battle& battle_;  // lives in the session; undo assigns into it
@@ -80,6 +93,15 @@ class BattleScene : public Scene {
   std::vector<Event> events_;
   std::string resultText_, resultSub_;
   Color resultColor_;
+
+  SaveStore store_;
+  SlotPanel slots_;
+  bool dirty_ = true;        // the Continue save is out of date
+  long long savedTurn_ = -1; // round/side of the last turn start that was saved
+  bool continueCleared_ = false;
+  bool saveFailWarned_ = false;
+  std::string notice_;
+  float noticeTime_ = 0;
 };
 
 }  // namespace ote

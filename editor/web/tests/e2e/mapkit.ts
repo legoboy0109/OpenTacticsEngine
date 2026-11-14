@@ -47,9 +47,10 @@ export async function dragThrough(page: Page, cells: Array<[number, number]>): P
 export const row = (y: number, x0: number, x1: number): Array<[number, number]> =>
   Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, y] as [number, number])
 
-export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Owners' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
+export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Structures' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
 export const pickTerrain = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Terrain' }).getByRole('radio', { name })
 export const pickUnitType = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Unit type' }).getByRole('radio', { name })
+export const pickStructure = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Structure' }).getByRole('radio', { name: new RegExp(`^${name}`) })
 export const pickSide = (page: Page, name: string) => page.getByRole('radiogroup', { name: /^(Side|Owner)$/ }).getByRole('radio', { name })
 
 export const tab = (page: Page, name: 'Tool' | 'Map' | 'Sides') => page.getByRole('tab', { name, exact: true })
@@ -82,3 +83,17 @@ export function expectedFill(grid: string[][], x: number, y: number, to: string)
   }
   return out
 }
+
+/** Hover the pointer over square (x, y) (no click): a structure ghost follows it. */
+export async function hoverCell(page: Page, x: number, y: number): Promise<void> {
+  const p = await cellPoint(page, x, y)
+  await page.mouse.move(p.x, p.y)
+  await frames(page)
+}
+
+/** The structure ghost the canvas shows: "kind,x,y,ok|bad" (empty = none). */
+export const ghost = (page: Page): Promise<string> => canvas(page).evaluate((c) => (c as HTMLCanvasElement).dataset.ghost ?? '')
+
+/** The saved structures of a map file, as written on disk. */
+export const diskStructures = (game: string, mapFile: string): Array<{ type: string; x: number; y: number; side?: string }> =>
+  readDisk(game, `maps/${mapFile}.json`).structures ?? []

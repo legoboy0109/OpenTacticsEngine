@@ -5,6 +5,7 @@ import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { editMap } from '../../../model/mapCtx'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
+import { removeStructureAt, structureIndexAt } from '../../../model/mapStructures'
 import { removeMapUnit, unitAt } from '../../../model/mapUnits'
 import { useDoc, useEdit, useStore } from '../../../store/context'
 import { Banner } from '../../../ui/Banner'
@@ -16,7 +17,7 @@ import { OptionsPanel } from './OptionsPanel'
 import { StatusLine } from './StatusLine'
 import { T } from './text'
 import { Toolbar } from './Toolbar'
-import { beginStroke, type StrokeEnv, type Tool, type ToolState } from './tools'
+import { beginStroke, TOOLS, type StrokeEnv, type Tool, type ToolState } from './tools'
 import { useMapShortcuts } from './useMapShortcuts'
 import { MapViewState, useViewSlice } from './viewState'
 import { Warnings } from './Warnings'
@@ -47,9 +48,10 @@ function Editor({ id }: { id: string }) {
   const map = doc.maps[id]!
   const terrain = doc.terrain!
   const unitTypes = doc.units!
+  const structureTypes = useMemo(() => doc.structures ?? [], [doc.structures])
   const sides = map.sides ?? []
   const vs = useMemo(() => new MapViewState(), [])
-  const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', ownerSide: '' })
+  const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', structureType: '', structureSide: '' })
   const [notice, setNotice] = useState<string | null>(null)
   // The visual style shown on the canvas (the player starts with the first one); only offered when there are several.
   const styles = doc.game?.styles ?? []
@@ -62,15 +64,23 @@ function Editor({ id }: { id: string }) {
   // Remembered choices can name things that were deleted since: fall back to the first one.
   const ts: ToolState = {
     ...stored,
+    // A tool remembered under an old name (the Owners tool became Structures) falls back to the terrain tool.
+    tool: TOOLS.includes(stored.tool) ? stored.tool : 'terrain',
     terrainId: terrain.some((t) => t.id === stored.terrainId) ? stored.terrainId : terrain[0].id,
     unitType: unitTypes.some((u) => u.id === stored.unitType) ? stored.unitType : unitTypes[0]?.id ?? '',
     unitSide: sides.some((s) => s.id === stored.unitSide) ? stored.unitSide : sides[0]?.id ?? '',
-    ownerSide: sides.some((s) => s.id === stored.ownerSide) ? stored.ownerSide : '',
+    structureType: structureTypes.some((s) => s.id === stored.structureType) ? stored.structureType : structureTypes[0]?.id ?? '',
+    structureSide: sides.some((s) => s.id === stored.structureSide) ? stored.structureSide : '',
   }
   const tsRef = useRef(ts)
   tsRef.current = ts
   const patch = useCallback((p: Partial<ToolState>) => setStored({ ...tsRef.current, ...p }), [setStored])
   const setTool = useCallback((tool: Tool) => patch({ tool }), [patch])
+
+  // The Structures tool shows a footprint ghost under the pointer.
+  useEffect(() => {
+    vs.set({ placing: ts.tool === 'structures' && ts.structureType ? { type: ts.structureType, side: ts.structureSide } : null })
+  }, [vs, ts.tool, ts.structureType, ts.structureSide])
 
   useEffect(() => { if (notice) { const t = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(t) } }, [notice])
 
@@ -84,7 +94,16 @@ function Editor({ id }: { id: string }) {
 
   const removeAt = useCallback(() => {
     const c = vs.cursorVisible ? vs.cursor : vs.selected
-    if (!c || !unitAt(store.getState().doc.maps[id]!, c.x, c.y)) return
+    const d0 = store.getState().doc
+    const m0 = d0.maps[id]
+    if (!c || !m0) return
+    // The Structures tool deletes the structure on the square; every other tool deletes the unit there.
+    if (tsRef.current.tool === 'structures') {
+      if (structureIndexAt(m0, { structureTypes: d0.structures ?? [] }, c.x, c.y) >= 0) store.edit((d) => editMap(d, id, (m, x) => removeStructureAt(m, x, c.x, c.y)))
+      vs.set({ selected: null })
+      return
+    }
+    if (!unitAt(m0, c.x, c.y)) return
     store.edit((d) => editMap(d, id, (m) => removeMapUnit(m, c.x, c.y)))
   }, [vs, store, id])
 
@@ -112,7 +131,7 @@ function Editor({ id }: { id: string }) {
           looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
         {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
         <div className="map-stage">
-          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} flagged={flagged} art={art} style={look} vs={vs}
+          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs}
             begin={(cell, o) => beginStroke(env, cell, o)}
             longPress={(cell) => {
               if (tsRef.current.tool !== 'terrain') return false
@@ -124,7 +143,7 @@ function Editor({ id }: { id: string }) {
             remove={removeAt}
             escape={() => { vs.set({ selected: null }); setNotice(null) }} />
         </div>
-        <StatusLine vs={vs} map={map} terrain={terrain} unitTypes={unitTypes} notice={notice} />
+        <StatusLine vs={vs} map={map} terrain={terrain} structureTypes={structureTypes} unitTypes={unitTypes} notice={notice} />
         <p className="help map-keys">{T.shortcuts}</p>
       </div>
       <OptionsPanel doc={doc} map={map} mapId={id} state={ts} selected={selected} onChange={patch} say={setNotice} />

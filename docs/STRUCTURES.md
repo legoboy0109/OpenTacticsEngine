@@ -47,7 +47,8 @@ structures (data/structures.json), see docs/STRUCTURES.md`.
 `x`, `y` is the structure's top-left square. Rules, each with a clear
 loader message: the whole rectangle must be inside the map; structures may
 not overlap; `type` and `side` must exist. The old `owners` list is refused
-("ownership now belongs to structures"). A unit may not start on a square
+("ownership now belongs to structures") unless it is empty: older editor
+versions wrote `"owners": []` into every map, which assigns nothing. A unit may not start on a square
 it cannot enter, judged with the structure's movement costs applied.
 
 ### Art (data/graphics.json)
@@ -154,3 +155,90 @@ terrain (city, factory, headquarters, fort…) becomes a structure standing
 on ordinary ground, with its ownership moved from `owners` to the map's
 `structures`. Bridges stay terrain (they join with the river). At least one
 shipped map uses a structure larger than one square.
+
+## Implementation notes
+
+What the first implementation does where the contract was silent, and where it
+differs from the contract above (everything else is as written).
+
+Deviations
+- **Drawing order for units on a multi-square structure.** "Sorted by the row of
+  their bottom edge" alone would draw a unit standing on the upper row of a 2 x 2
+  footprint *behind* the structure. A unit standing on a structure square therefore
+  sorts with that structure's bottom edge (structures first on a tie), so it is always
+  drawn over the structure it stands on. Everything else sorts by the pixel row of its
+  bottom edge (units: `py + tile`, so a unit walking past a tall structure passes
+  behind/in front of it smoothly).
+- **Highlights.** Move/attack tint is painted again over a structure's squares right
+  after the structure is drawn; without that the picture hides the tint of the terrain pass.
+- **`TerrainDef::tags` stays** (only the tag `hq` is refused); the contract listed only
+  `capturePoints`, `income`, `produces` as removed from the struct.
+- **Old terrain keys.** The key terrain files actually used is `capture`, not
+  `capturePoints`: both are refused, naming the key as written
+  (`terrain "city": "capture" now belongs to structures (data/structures.json), see docs/STRUCTURES.md`),
+  as are `income`, `produces` and the tag `hq`. Structures use `capturePoints`; a structure
+  that says `capture` gets `"capture" is called "capturePoints" on structures`.
+- **`FormulaCtx::ta` / `tb` are `const Props*`** (the merged numbers) instead of
+  `const TerrainDef*`; the Lua side is unchanged.
+
+Decisions where the contract was silent
+- **Styles.** Games had `styles.<id>.terrainColors` entries for buildings (night/parchment).
+  Those names are no longer terrain, so a new `styles.<id>.structureColors` (structure id ->
+  `#rrggbb`) recolors structure placeholder blocks; unknown structure ids are load errors.
+  Both shipped games were moved over. (The editor's style screen does not know the key yet.)
+- **Shared queries.** `enterCostOf()` and `squareNumbers()` (database.cpp) are the single
+  place where terrain and structure combine; `Battle::enterCost` / `numbersAt` and the map
+  loader's "may a unit start here" check call them. `Battle::structureCells`, `structureTypeAt`,
+  `defOf`, `ownsHq` are the other helpers. `numbersAt` returns the terrain's own list without
+  copying when no structure number applies.
+- **Structure moveCost values** must be 0 or more (-1 is the in-memory "not set"); a
+  negative number is a loader error. The file is optional; an empty list is fine; a file
+  without `"structures"` is an error. A game without the file refuses map structures with
+  "unknown structure type ... (this game has no data/structures.json)".
+- **Map checks (messages).** `structures[i] (type at x,y): needs W x H squares from its
+  top-left corner but does not fit inside the map (w x h)`; `overlaps structures[j] (type at
+  x,y) on square x,y`; `unknown structure type`; `unknown side`. A unit starting on a
+  structure whose cost is 0 gets `starts on structure "wall" (on terrain "plain") which is
+  impassable for move type ...`; water with a structure that sets a cost for the unit's move
+  type (a pier) is a legal start square. `Battle::init` also refuses overlapping, out-of-map and
+  unknown structures (maps can be built in code).
+- **Capture.** Progress is stored on the structure (`capture`, `capturer`). A different
+  unit starts from full; leaving the structure (move to a square that is not part of it) or
+  dying resets; a defeated side's structures also reset. `CaptureProgress.b` is the capturing
+  unit's square; `d` is the structure index.
+- **Building.** `buildOptions` lists a structure's `produces` filtered by "the new unit can
+  enter this square" (per move type, with the structure's cost applied); `validate` gives
+  separate reasons (not your structure / occupied / not buildable here / could not enter).
+- **Income** once per owned structure per turn; hq = owning at least one structure tagged `hq`
+  (`SideState::hadHq` is set at start from owned hq structures).
+- **Computer player.** Capture targets are structures. Each ready capturer is matched (shortest
+  trip first) with one structure and walks to the nearest of its squares that it can enter and
+  that is free (own square counts). One claim per structure: if several friendly capturers
+  stand on squares of the same structure only the one already capturing it (else the lowest id)
+  captures; the others walk on. Building scans every cell, so it builds on the first free square
+  of any producing structure it owns (a 2 x 2 factory can therefore take up to four builds a
+  turn, money permitting). `terrainDefense` reads the merged `defense` number.
+- **Player.** Placeholder letter size is `tile * 9/20 * min(width, height)`. The cursor stays one
+  square. The info panel shows the terrain line, then a structure line with its own swatch (its
+  picture squeezed in; the size `2x2` is appended only when it fits), then the merged numbers,
+  Owner and Capture (structure's). `StructureCaptured` floats "Captured!" over the middle of the
+  footprint's top edge. Capture numbers and everything else read the Battle state; nothing
+  needed a refresh.
+- **Art model.** `graphics.json` `structures` reuses the unit look code (`cell` / `frames`, `sides`),
+  error messages say `structure "x"` / `structures can only use "cell" or "frames"`; `GraphicsSet::structures`
+  is a `std::vector<UnitLook>`.
+- **Shipped games.** demo-economy and the economy-tactics template: city, factory (1 x 1) and a
+  2 x 2 `hq` (blue at 0,4 / red at 13,4 in demo-economy). Under each building the ground is
+  plain, or road where a road led into the old building tile (roads no longer join buildings).
+  demo-srpg: five 1 x 1 forts on plain, no cost overrides (they set defense and avoid only).
+  `games/test`, the blank and strategy-rpg templates have no buildings and kept their data; their
+  art was regenerated (tile sheet no longer carries building tiles). `games/index.json` unchanged.
+- **ote-sim** prints captures and builds per run and their averages in the summary.
+- **Existing tests changed on purpose** (rules moved, intent kept): `test_battle` (capture, income and
+  production tests give structures an owner with `World::own`; checks read `Battle::structures`),
+  `test_ai` (same, `StructureCaptured`), `test_demos` (formula inputs via `numbersAt`),
+  `test_loader` (demo maps now have structures: forts are structures on plain, the economy map's
+  symmetry/ownership is checked on structures, terrain count 5), `battle_fixture.h` (city, hq,
+  factory became structures; new 2 x 2 castle, 2 x 1 gate, mire, block types for the new tests).
+  New: `test_structures.cpp` (rules) and `test_structure_loader.cpp` (loader messages, art section,
+  shipped games).

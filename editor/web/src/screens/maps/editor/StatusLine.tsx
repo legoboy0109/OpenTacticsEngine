@@ -1,16 +1,16 @@
 // Coordinates and contents of the square under the pointer (or the keyboard cursor).
 import { terrainAt } from '../../../model/mapGrid'
-import { ownerAt } from '../../../model/mapOwners'
 import { sideOf } from '../../../model/mapSides'
+import { structureAt } from '../../../model/mapStructures'
 import { unitAt } from '../../../model/mapUnits'
-import type { MapFile, Terrain, Unit } from '../../../model/types'
+import type { MapFile, Structure, Terrain, Unit } from '../../../model/types'
 import { cellKey } from './geometry'
 import { T } from './text'
 import { useViewSlice, type MapViewState } from './viewState'
 
-interface Props { vs: MapViewState; map: MapFile; terrain: Terrain[]; unitTypes: Unit[]; notice: string | null }
+interface Props { vs: MapViewState; map: MapFile; terrain: Terrain[]; structureTypes: Structure[]; unitTypes: Unit[]; notice: string | null }
 
-export function StatusLine({ vs, map, terrain, unitTypes, notice }: Props) {
+export function StatusLine({ vs, map, terrain, structureTypes, unitTypes, notice }: Props) {
   const hover = useViewSlice(vs, (s) => cellKey(s.hover))
   const cursor = useViewSlice(vs, (s) => (s.cursorVisible ? cellKey(s.cursor) : null))
   const key = hover ?? cursor
@@ -18,8 +18,11 @@ export function StatusLine({ vs, map, terrain, unitTypes, notice }: Props) {
   if (key) {
     const [x, y] = key.split(',').map(Number)
     const parts = [T.statusSquare(x, y), terrain.find((t) => t.id === terrainAt(map, x, y))?.name ?? '?']
-    const owner = ownerAt(map, x, y)
-    if (owner) parts.push(T.statusOwner(sideOf(map, owner)?.name ?? owner))
+    const st = structureAt(map, { structureTypes }, x, y)
+    if (st) {
+      parts.push(T.statusStructure(structureTypes.find((k) => k.id === st.type)?.name ?? st.type))
+      if (st.side) parts.push(T.statusOwner(sideOf(map, st.side)?.name ?? st.side))
+    }
     const u = unitAt(map, x, y)
     if (u) parts.push(T.statusUnit(unitTypes.find((t) => t.id === u.type)?.name ?? u.type, sideOf(map, u.side)?.name ?? u.side, u.name))
     text = parts.join(' · ')

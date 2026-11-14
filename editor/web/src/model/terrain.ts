@@ -53,29 +53,11 @@ export function setMoveCost(doc: ProjectDoc, id: string, moveType: string, cost:
   return withTerrain(doc, (list) => updateById(list, id, (t) => patchObj(t, { moveCost: setNum(t.moveCost, moveType, cost) })))
 }
 
-type TerrainTable = 'props' | 'income'
-export function setTerrainNumber(doc: ProjectDoc, id: string, table: TerrainTable, key: string, value: number | undefined): ProjectDoc {
-  return withTerrain(doc, (list) => updateById(list, id, (t) => patchObj(t, { [table]: setNum(t[table], key, value) })))
-}
-
-/** Capture points; 0 or empty = cannot be captured (key removed). */
-export function setCapturePoints(doc: ProjectDoc, id: string, points: number | undefined): ProjectDoc {
-  return updateTerrain(doc, id, { capture: points ? points : undefined })
-}
-
-export function setProduces(doc: ProjectDoc, id: string, unitIds: string[]): ProjectDoc {
-  return updateTerrain(doc, id, { produces: unitIds.length ? unitIds : undefined })
+/** One of the terrain's named numbers (defense, avoid...); undefined removes it. */
+export function setTerrainNumber(doc: ProjectDoc, id: string, key: string, value: number | undefined): ProjectDoc {
+  return withTerrain(doc, (list) => updateById(list, id, (t) => patchObj(t, { props: setNum(t.props, key, value) })))
 }
 
 export function setTerrainTags(doc: ProjectDoc, id: string, tags: string[]): ProjectDoc {
   return updateTerrain(doc, id, { tags: tags.length ? tags : undefined })
-}
-
-/** The "hq" tag marks a headquarters; other tags are left alone. */
-export function setHeadquarters(doc: ProjectDoc, id: string, on: boolean): ProjectDoc {
-  return withTerrain(doc, (list) => updateById(list, id, (t) => {
-    const tags = (t.tags ?? []).filter((x) => x !== 'hq')
-    if (on) tags.push('hq')
-    return patchObj(t, { tags: tags.length ? tags : undefined })
-  }))
 }

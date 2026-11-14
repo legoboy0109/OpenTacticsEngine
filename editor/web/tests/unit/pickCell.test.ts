@@ -44,9 +44,23 @@ describe('pickCell', () => {
     for (let n = 0; n < 16; n++) expect(pickCell(j, 0, 0, n, 0)).toEqual([4 + (n % 4), 8 + Math.floor(n / 4)])
     expect(pickCell(j, 0, 0, 0xff, 0)).toEqual([4 + 3, 8 + 3]) // only the low 4 bits count
   })
+  it('animated join: time picks the block (frameMs default 400), neighbours pick the piece inside it', () => {
+    const j: Look = { sheet: 's', join: [[0, 0], [4, 0], [8, 4]], frameMs: 500 }
+    // block = cells[floor(t / ms) % 3]; piece = block + (n % 4, floor(n / 4))
+    expect(pickCell(j, 0, 0, 5, 0)).toEqual([0 + 1, 0 + 1])
+    expect(pickCell(j, 0, 0, 5, 499)).toEqual([1, 1])
+    expect(pickCell(j, 0, 0, 5, 500)).toEqual([4 + 1, 1])
+    expect(pickCell(j, 0, 0, 14, 1000)).toEqual([8 + 2, 4 + 3])
+    expect(pickCell(j, 0, 0, 14, 1500)).toEqual([2, 3]) // wraps
+    const d: Look = { sheet: 's', join: [[0, 0], [4, 0]] }
+    expect([399, 400, 800].map((t) => pickCell(d, 0, 0, 0, t)[0])).toEqual([0, 4, 0])
+    expect(pickCell({ sheet: 's', join: [[2, 6]], frameMs: 100 }, 0, 0, 3, 900)).toEqual([2 + 3, 6]) // one block in a list never moves
+    expect(lookShape(j)).toBe('join')
+  })
   it('lookCells lists the cells of any kind', () => {
     expect(lookCells({ sheet: 's', cell: [1, 2] })).toEqual([[1, 2]])
     expect(lookCells({ sheet: 's', join: [0, 4] })).toEqual([[0, 4]])
+    expect(lookCells({ sheet: 's', join: [[0, 4], [4, 4]] })).toEqual([[0, 4], [4, 4]])
     expect(lookCells({ sheet: 's' })).toEqual([])
   })
 })

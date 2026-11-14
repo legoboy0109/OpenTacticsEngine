@@ -23,7 +23,7 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
+const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
 
 export class DocumentStore {
   private state: StoreState
@@ -105,6 +105,8 @@ export class DocumentStore {
 
   /** Conflict: drop local changes and take what is on disk. */
   async reload(): Promise<void> {
+    await this.saver?.diskIdle()
+    await Promise.resolve() // let the caller of the finished upload apply its edit before the document is replaced
     const res = await this.api.getProject(this.id)
     if (!res.ok) { this.patch({ save: { state: 'conflict', message: res.error } }); return }
     const { id: _id, revision, problems, ...doc } = res.value

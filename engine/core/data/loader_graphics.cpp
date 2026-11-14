@@ -1,6 +1,4 @@
 // Loads data/graphics.json (docs/GRAPHICS.md). The file is optional.
-#include <cstdio>
-
 #include "core/data/loader_content.h"
 #include "core/data/loader_util.h"
 
@@ -32,7 +30,7 @@ bool checkInside(const LoadCtx& c, const SheetDef& sh, SpriteCell at, int w, int
 
 // One look object. `terrainLook` allows "variants" and "join".
 bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool terrainLook,
-              int selfTerrain, Look& out) {
+              int selfTerrain, Look& out, const char* subject = "units") {
   out = Look();
   if (!j.isObject()) return c.fail(where, "must be an object (or null for no art)");
   std::string sheetId;
@@ -46,7 +44,7 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
   const char* allowed = terrainLook ? "\"cell\", \"variants\", \"frames\" or \"join\"" : "\"cell\" or \"frames\"";
   if (kinds != 1) return c.fail(where, std::string("needs exactly one of ") + allowed);
   if (!terrainLook && (j.has("variants") || j.has("join")))
-    return c.fail(where, std::string("units can only use ") + allowed);
+    return c.fail(where, std::string(subject) + " can only use " + allowed);
 
   if (j.has("cell")) {
     SpriteCell cell;
@@ -54,10 +52,18 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
     out.kind = Look::Still;
     out.cells.push_back(cell);
   } else if (j.has("join")) {
-    SpriteCell cell;
-    if (!readCell(c, j["join"], where, "join", cell) || !checkInside(c, sh, cell, 4, 4, where)) return false;
+    // Either one block, [col, row], or several blocks played as an animation,
+    // [[col, row], ...]. Each is the top-left cell of a 4 x 4 set of pieces.
+    const Json& jj = j["join"];
+    bool list = jj.isArray() && jj.size() > 0 && jj[0].isArray();
+    size_t blocks = list ? jj.size() : 1;
+    if (blocks > 16) return c.fail(where, "\"join\" can list at most 16 animation frames");
+    for (size_t i = 0; i < blocks; ++i) {
+      SpriteCell cell;
+      if (!readCell(c, list ? jj[i] : jj, where, "join", cell) || !checkInside(c, sh, cell, 4, 4, where)) return false;
+      out.cells.push_back(cell);
+    }
     out.kind = Look::Join;
-    out.cells.push_back(cell);
     out.joinWith.assign(db.terrains.size(), 0);
     if (selfTerrain >= 0) out.joinWith[(size_t)selfTerrain] = 1;
     std::vector<std::string> ids;
@@ -66,6 +72,20 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
       int t = db.findTerrain(id);
       if (t < 0) return c.fail(where, "\"joinWith\" names unknown terrain " + q(id));
       out.joinWith[(size_t)t] = 1;
+    }
+    // "joinExcept": joins with every terrain EXCEPT the listed ones (a bridge
+    // reaches every kind of land but not the water it crosses).
+    if (j.has("joinExcept")) {
+      if (j.has("joinWith")) return c.fail(where, "use either \"joinWith\" or \"joinExcept\", not both");
+      std::vector<std::string> not_;
+      if (!c.stringList(j, "joinExcept", where, not_)) return false;
+      out.joinWith.assign(db.terrains.size(), 1);
+      for (const std::string& id : not_) {
+        int t = db.findTerrain(id);
+        if (t < 0) return c.fail(where, "\"joinExcept\" names unknown terrain " + q(id));
+        if (t == selfTerrain) return c.fail(where, "\"joinExcept\" cannot list the terrain itself");
+        out.joinWith[(size_t)t] = 0;
+      }
     }
     if (!c.boolean(j, "joinEdge", where, out.joinEdge)) return false;
   } else {
@@ -87,7 +107,35 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
   return true;
 }
 
-// The "terrain" / "units" maps of the file root or of one style, applied on
+// The "units" or "structures" map of the file root or of one style: id -> look
+// (+ optional per-side looks). `find` maps an id to an index into `out`, or -1.
+template <class Find>
+bool readThingLooks(const LoadCtx& c, const Database& db, const Json& o, const std::string& prefix,
+                    const char* key, const char* word, const Find& find, std::vector<UnitLook>& out) {
+  const Json* m;
+  if (!c.object(o, key, prefix, m)) return false;
+  const std::string subject = std::string(word) + "s";
+  for (const Json::Member& e : m->members()) {
+    int u = find(e.first);
+    std::string where = prefix + (prefix.empty() ? "" : ": ") + word + " " + q(e.first);
+    if (u < 0) return c.fail(where, std::string("there is no ") + word + " with this id");
+    UnitLook& ul = out[(size_t)u];
+    ul = UnitLook();
+    if (e.second.isNull()) continue;
+    if (!readLook(c, db, e.second, where, false, -1, ul.base, subject.c_str())) return false;
+    const Json* sides;
+    if (!c.object(e.second, "sides", where, sides)) return false;
+    for (const Json::Member& s : sides->members()) {
+      if (s.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
+      Look l;
+      if (!readLook(c, db, s.second, where + " side " + q(s.first), false, -1, l, subject.c_str())) return false;
+      ul.sides.push_back(std::make_pair(s.first, l));
+    }
+  }
+  return true;
+}
+
+// The "terrain" / "units" / "structures" maps of the file root or of one style, applied on
 // top of `set`. A null value removes the art (placeholder look).
 bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::string& prefix, GraphicsSet& set) {
   const Json* m;
@@ -102,32 +150,12 @@ bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::str
     }
     if (!readLook(c, db, e.second, where, true, t, set.terrain[(size_t)t])) return false;
   }
-  if (!c.object(o, "units", prefix, m)) return false;
-  for (const Json::Member& e : m->members()) {
-    int u = db.findUnitType(e.first);
-    std::string where = prefix + (prefix.empty() ? "" : ": ") + "unit " + q(e.first);
-    if (u < 0) return c.fail(where, "there is no unit with this id");
-    UnitLook& ul = set.units[(size_t)u];
-    ul = UnitLook();
-    if (e.second.isNull()) continue;
-    if (!readLook(c, db, e.second, where, false, -1, ul.base)) return false;
-    const Json* sides;
-    if (!c.object(e.second, "sides", where, sides)) return false;
-    for (const Json::Member& s : sides->members()) {
-      if (s.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
-      Look l;
-      if (!readLook(c, db, s.second, where + " side " + q(s.first), false, -1, l)) return false;
-      ul.sides.push_back(std::make_pair(s.first, l));
-    }
-  }
-  return true;
-}
-
-bool fileExists(const std::string& path) {
-  FILE* f = std::fopen(path.c_str(), "rb");
-  if (!f) return false;
-  std::fclose(f);
-  return true;
+  if (!readThingLooks(c, db, o, prefix, "units", "unit", [&](const std::string& id) { return db.findUnitType(id); },
+                      set.units))
+    return false;
+  // Structures look like units: one cell drawn across the footprint, optional own art per side.
+  return readThingLooks(c, db, o, prefix, "structures", "structure",
+                        [&](const std::string& id) { return db.findStructure(id); }, set.structures);
 }
 
 // Art file names: inside the game folder, forward slashes, ".png".
@@ -188,6 +216,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());
   base.units.assign(db.unitTypes.size(), UnitLook());
+  base.structures.assign(db.structures.size(), UnitLook());
   if (!readSet(c, db, root, "", base)) return false;
 
   std::vector<GraphicsSet> sets(db.styles.size(), base);

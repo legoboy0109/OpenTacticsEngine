@@ -1,11 +1,11 @@
 // All wording of the map editor (canvas, tools, panels, dialogs).
 export const T = {
-  canvasLabel: 'Map. Arrow keys move the cursor, Enter uses the current tool, Delete removes a unit.',
+  canvasLabel: 'Map. Arrow keys move the cursor, Enter uses the current tool, Delete removes the selected unit or structure.',
   toolsLabel: 'Map tools',
   tools: {
     terrain: { label: 'Terrain', key: 'T', help: 'Paint the ground.' },
     units: { label: 'Units', key: 'U', help: 'Place and move units.' },
-    owners: { label: 'Owners', key: 'O', help: 'Set who owns buildings at the start.' },
+    structures: { label: 'Structures', key: 'O', help: 'Place and move structures: cities, forts, factories.' },
     select: { label: 'Select', key: 'S', help: 'Look at a square.' },
   },
   zoomIn: 'Zoom in',
@@ -15,12 +15,13 @@ export const T = {
   lookHelp: 'Preview the map in one of the game’s visual styles (its pictures, colours and background).',
   fit: 'Fit',
   fitHelp: 'Show the whole map',
-  shortcuts: 'Keys: T U O S pick a tool, F fill, + / − zoom, Delete removes a unit, Esc deselects, Space + drag pans.',
+  shortcuts: 'Keys: T U O S pick a tool, F fill, + / − zoom, Delete removes the selected unit or structure, Esc deselects, Space + drag pans.',
 
   // status line
   statusSquare: (x: number, y: number) => `${x + 1}, ${y + 1}`,
   statusNothing: 'Hover over the map to see a square.',
   statusOwner: (n: string) => `owned by ${n}`,
+  statusStructure: (n: string) => n,
   statusUnit: (type: string, side: string, name?: string) => `${name ? `${name}, ` : ''}${side} ${type}`,
   big: (w: number, h: number) => `${w} × ${h} squares is a big map: painting and zooming will feel slower than on a small one.`,
 
@@ -63,23 +64,39 @@ export const T = {
   statsTitle: 'Own stats',
   statsHelp: 'Leave a box empty to use the unit type’s value (shown greyed). Type a number to give just this unit a different one.',
 
-  // owners panel
-  ownersTitle: 'Owners',
-  ownersHelp: 'Buildings can belong to a side from the start. Ownership matters for terrain that can be captured, gives income or can build units, and for headquarters. Click or drag on the map to set it.',
-  neutral: 'No owner',
-  ownerNoEffect: (terrain: string) => `${terrain} has no use for an owner (it cannot be captured, earns nothing and builds nothing). It was set anyway.`,
+  // structures panel
+  structuresTitle: 'Structures',
+  structuresHelp: 'Pick a structure and who owns it, then click a square to place it with its top-left corner there. A ghost shows where it goes and turns red where it does not fit. Click a placed structure to select it; drag it to move it. The terrain underneath is never changed.',
+  structureKindLabel: 'Structure',
+  ownerLabel: 'Owner',
+  neutral: 'Nobody',
+  noStructureKinds: 'This game has no structures yet. Add some under Structures.',
+  footprint: (w: number, h: number) => (w === 1 && h === 1 ? '1 square' : `${w} × ${h} squares`),
+  structureTitle: 'Selected structure',
+  structureNone: 'Click a placed structure to change its owner or remove it.',
+  structureFrom: (x: number, y: number) => `top-left at ${x + 1}, ${y + 1}`,
+  structureKind: 'Kind',
+  structureOwner: 'Owner',
+  structureRemove: 'Remove structure',
+  structureOwnerNoEffect: (n: string) => `${n} has no use for an owner: it cannot be captured, earns nothing and builds nothing.`,
 
   // select panel
   selectTitle: 'Square',
   selectHelp: 'Click a square to look at it. Click a unit to change its details.',
   selectNone: 'Nothing selected.',
-  terrainOf: 'Terrain',
+  terrainOf: 'Ground',
+  structureOf: 'Structure',
+  noStructure: 'none',
   ownerOf: 'Owner',
   unitOf: 'Unit',
   noOwner: 'nobody',
   noUnit: 'none',
   moveCostsTitle: 'Movement costs',
   cannotEnter: 'cannot enter',
+  fromStructure: 'the structure',
+  fromGround: 'the ground',
+  numbersTitle: 'Numbers used by combat maths',
+  noNumbers: 'none',
 
   // panel tabs
   tabs: { tool: 'Tool', map: 'Map', sides: 'Sides' },
@@ -104,7 +121,7 @@ export const T = {
   sizeBigWarn: 'Big maps are slow to edit.',
   cropTitle: 'This will remove:',
   cropUnits: (n: number) => (n === 1 ? '1 unit' : `${n} units`),
-  cropOwners: (n: number) => (n === 1 ? '1 owned square' : `${n} owned squares`),
+  cropStructures: (n: number) => (n === 1 ? '1 structure that would no longer fit' : `${n} structures that would no longer fit`),
   cropNothing: 'Nothing on the map is lost.',
   cropCells: 'Squares outside the new size.',
   resizeApply: 'Resize',
@@ -116,7 +133,7 @@ export const T = {
   addSide: 'Add a side',
   removeSide: 'Remove',
   removeSideTitle: (n: string) => `Remove the side “${n}”?`,
-  removeSideBody: (units: number, owners: number) => `Its ${units} unit${units === 1 ? '' : 's'} and ${owners} owned square${owners === 1 ? '' : 's'} are removed with it.`,
+  removeSideBody: (units: number, structures: number) => `Its ${units} unit${units === 1 ? '' : 's'} ${units === 1 ? 'is' : 'are'} removed with it. ${structures === 0 ? 'No structure belongs to it.' : `The ${structures} structure${structures === 1 ? '' : 's'} it owns stay${structures === 1 ? 's' : ''} on the map and ${structures === 1 ? 'becomes' : 'become'} nobody’s.`}`,
   removeSideMin: 'A battle needs at least two sides.',
   sideName: 'Name',
   sideColor: 'Colour',

@@ -4,7 +4,7 @@ import { ctxOf, editMap, type MapCtx } from '../../src/model/mapCtx'
 import { paintCells } from '../../src/model/mapPaint'
 import { addSide, canRemoveSide, removeSide, setSideResource, sideRemovalLoss, updateSide } from '../../src/model/mapSides'
 import { setDefeatCondition, setFeature } from '../../src/model/rules'
-import { setHeadquarters } from '../../src/model/terrain'
+import { setHeadquarters } from '../../src/model/structures'
 import { removeStat } from '../../src/model/stats'
 import { deleteUnit } from '../../src/model/units'
 import { unitAt } from '../../src/model/mapUnits'
@@ -24,16 +24,18 @@ describe('sides', () => {
     expect(new Set(m.sides!.map((s) => s.color)).size).toBe(3)
     expect(addSide(m).sides![3].id).toBe('yellow')
   })
-  it('removing a side removes its units and owners; the minimum is two', () => {
+  it('removing a side removes its units and makes its structures neutral; the minimum is two', () => {
     const d = eco(); const m = d.maps.twin_rivers!
     expect(canRemoveSide(m)).toBe(false)
     expect(removeSide(m, 'red')).toBe(m)
     const three = addSide(m)
-    expect(sideRemovalLoss(three, 'red')).toEqual({ units: 3, owners: 3 })
+    expect(sideRemovalLoss(three, 'red')).toEqual({ units: 3, structures: 3 })
     const out = removeSide(three, 'red')
     expect(out.sides!.map((s) => s.id)).toEqual(['blue', 'green'])
     expect(out.units!.every((u) => u.side !== 'red')).toBe(true)
-    expect(out.owners!.every((o) => o.side !== 'red')).toBe(true)
+    expect(out.structures).toHaveLength(m.structures!.length) // none are deleted
+    expect(out.structures!.every((o) => o.side !== 'red')).toBe(true)
+    expect(out.structures!.filter((o) => o.side === undefined)).toHaveLength(m.structures!.filter((o) => o.side === undefined || o.side === 'red').length)
   })
   it('edits name (id stays), colour, controller, team and resources', () => {
     const d = eco(); let m = d.maps.twin_rivers!
@@ -72,7 +74,7 @@ describe('warnings', () => {
     let m = d.maps.twin_rivers!
     m = { ...m, units: m.units!.filter((u) => u.side !== 'red') } // red keeps its factory
     expect(mapWarnings({ ...d, maps: { twin_rivers: m } }, m).some((x) => x.key === 'no-units:red')).toBe(false)
-    m = { ...m, owners: m.owners!.filter((o) => o.side !== 'red') }
+    m = { ...m, structures: m.structures!.map((o) => (o.side === 'red' ? { type: o.type, x: o.x, y: o.y } : o)) }
     expect(mapWarnings({ ...d, maps: { twin_rivers: m } }, m).some((x) => x.key === 'no-units:red')).toBe(true)
   })
   it('leader and headquarters rules', () => {
@@ -81,7 +83,7 @@ describe('warnings', () => {
     d = setDefeatCondition(setDefeatCondition(d, 'leaderDead', true), 'lostHq', true)
     const keys = mapWarnings(d, d.maps.twin_rivers!).map((x) => x.key)
     expect(keys).toEqual(expect.arrayContaining(['no-leader:blue', 'no-leader:red']))
-    expect(keys.some((k) => k.startsWith('no-hq'))).toBe(false) // both own an HQ ("H" is tagged hq)
+    expect(keys.some((k) => k.startsWith('no-hq'))).toBe(false) // both own an HQ structure (tagged hq)
     d = setHeadquarters(d, 'hq', false)
     expect(mapWarnings(d, d.maps.twin_rivers!).map((x) => x.key)).toEqual(expect.arrayContaining(['no-hq:blue', 'no-hq:red']))
     const m = d.maps.twin_rivers!

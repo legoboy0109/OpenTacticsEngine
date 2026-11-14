@@ -1,7 +1,7 @@
 // Map editor and Play screenshots for design review (npm run screenshots; skipped otherwise).
 import type { Page } from '@playwright/test'
 import { expect, saved, test } from './fixtures'
-import { canvas, cellPoint, clickCell, openMap, pickSide, pickTerrain, pickUnitType, tab, tool } from './mapkit'
+import { canvas, cellPoint, clickCell, openMap, pickSide, pickStructure, pickTerrain, pickUnitType, tab, tool } from './mapkit'
 
 const OUT = process.env.SHOTS_DIR ?? 'screenshots'
 test.skip(!process.env.SHOTS, 'only when SHOTS=1')
@@ -59,15 +59,16 @@ test.describe('map screenshots', () => {
     await shot(page, '24-map-warnings')
   })
 
-  test('economy: owners, sides, dark', async ({ page, game }) => {
+  test('economy: structures, sides, dark', async ({ page, game }) => {
     await page.setViewportSize({ width: 1180, height: 760 })
     await page.emulateMedia({ colorScheme: 'light' })
     const id = await game.create('economy-tactics', 'Night Ops')
     await openMap(page, id, 'crossroads')
-    await tool(page, 'Owners').click()
+    await tool(page, 'Structures').click()
     await pickSide(page, 'Red').click()
-    await hover(page, 5, 0)
-    await shot(page, '19-map-owners-light')
+    await pickStructure(page, 'City').click()
+    await hover(page, 3, 5)
+    await shot(page, '19-map-structures-light')
 
     await tab(page, 'Sides').click()
     await page.getByRole('button', { name: 'Add a side' }).click()

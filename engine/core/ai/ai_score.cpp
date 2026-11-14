@@ -53,7 +53,8 @@ double typeValue(const Database& db, int type) {
 
 double terrainDefense(const Battle& b, Cell c) {
   double d = 0;
-  propFind(b.terrainAt(c).props, "defense", d);
+  Props scratch;
+  propFind(b.numbersAt(c, scratch), "defense", d);  // terrain + structure, as formulas see it
   return d;
 }
 
@@ -93,14 +94,14 @@ double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapo
 }
 
 double scoreCapture(const Battle& b, const Unit& u, Cell at) {
-  const CellState& cs = b.cells[at];
-  const TerrainDef& t = b.terrainAt(at);
+  const StructureState& st = b.structures[b.structureIndexAt(at)];
+  const StructureDef& t = b.defOf(st);
   double score = 1500;
   if (!t.income.empty()) score = 3000;
   if (!t.produces.empty()) score = 5000;
   if (hasTag(t.tags, "hq")) score = 8000;
-  if (cs.owner >= 0) score += 500;  // taking it also hurts the enemy
-  if (cs.capturer == u.id) score += 4000;  // finish what was started (hq still ranks above the rest)
+  if (st.owner >= 0) score += 500;  // taking it also hurts the enemy
+  if (st.capturer == u.id) score += 4000;  // finish what was started (hq still ranks above the rest)
   return score;
 }
 

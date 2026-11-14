@@ -1,7 +1,7 @@
 // Memoised preview specs for the open game. They only rebuild when pictures, terrain, units, the look or an image changed
 // (not on every paint stroke), so a palette full of thumbnails stays cheap while painting.
 import { createContext, useContext, useMemo } from 'react'
-import { terrainPreview, terrainThumb, unitPreview, unitThumb, type PreviewSpec } from '../../art/preview'
+import { structurePreview, structureThumb, terrainPreview, terrainThumb, unitPreview, unitThumb, type PreviewSpec } from '../../art/preview'
 import { PLAIN_STYLE, type StyleView } from '../../art/scene'
 import { useArtState } from '../../art/useArt'
 import type { MapSide, ProjectDoc } from '../../model/types'
@@ -18,7 +18,7 @@ function useSpec(build: (doc: ProjectDoc, src: ReturnType<typeof useStore>['art'
   const store = useStore()
   const { version } = useArtState()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => build(doc, store.art), [doc.graphics, doc.terrain, doc.units, doc.game, store, version, ...extra])
+  return useMemo(() => build(doc, store.art), [doc.graphics, doc.terrain, doc.units, doc.structures, doc.game, store, version, ...extra])
 }
 
 export const useTerrainThumb = (id: string, look: LookChoice): PreviewSpec =>
@@ -31,4 +31,11 @@ export const useTerrainSample = (id: string, look: LookChoice, doc?: ProjectDoc)
 export function useUnitSample(id: string, look: LookChoice, doc?: ProjectDoc, sideIds?: string[]): PreviewSpec {
   const maps = useDoc().maps // side colours come from the maps
   return useSpec((d, a) => unitPreview(doc ?? d, a, look.view, look.id, id, 48, sideIds), [id, look, doc, sideIds?.join(','), maps])
+}
+export const useStructureThumb = (id: string, side: MapSide | undefined, look: LookChoice): PreviewSpec =>
+  useSpec((d, a) => structureThumb(d, a, look.view, look.id, id, side), [id, side?.id, side?.color, look])
+/** A bigger sample for the Picture card (the structure at its real footprint, owned and unowned, or by each of `sideIds`). */
+export function useStructureSample(id: string, look: LookChoice, doc?: ProjectDoc, sideIds?: Array<string | undefined>): PreviewSpec {
+  const maps = useDoc().maps // side colours come from the maps
+  return useSpec((d, a) => structurePreview(doc ?? d, a, look.view, look.id, id, 40, sideIds), [id, look, doc, sideIds?.join(','), maps])
 }

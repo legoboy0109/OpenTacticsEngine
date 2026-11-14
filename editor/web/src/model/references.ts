@@ -2,6 +2,7 @@
 // clean-up that removes those references in the same edit as the delete.
 import { dropArtOf } from './graphicsClean'
 import { readGrid, writeGrid } from './mapGrid'
+import { cleanMoveTypeInStructures, cleanResourceInStructures, cleanUnitInStructures } from './structuresRefs'
 import { dropKey, without } from './util'
 import type { MapFile, ProjectDoc, Section, Unit } from './types'
 
@@ -35,17 +36,18 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       break
     case 'resource':
       for (const u of units) if (u.cost && id in u.cost) out.push({ section: 'units', text: `Unit "${u.name}" has a cost in it` })
-      for (const t of doc.terrain ?? []) if (t.income && id in t.income) out.push({ section: 'terrain', text: `Terrain "${t.name}" gives it as income` })
+      for (const t of doc.structures ?? []) if (t.income && id in t.income) out.push({ section: 'structures', text: `Structure "${t.name}" gives it as income` })
       for (const [mid, m] of mapEntries(doc))
         for (const s of m.sides ?? []) if (s.resources && id in s.resources) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": side "${s.name}" starts with some` })
       break
     case 'moveType':
       for (const u of units) if (u.moveType === id) out.push({ section: 'units', text: `Unit "${u.name}" moves this way` })
       for (const t of doc.terrain ?? []) if (t.moveCost && id in t.moveCost) out.push({ section: 'terrain', text: `Terrain "${t.name}" has a movement cost for it` })
+      for (const t of doc.structures ?? []) if (t.moveCost && id in t.moveCost) out.push({ section: 'structures', text: `Structure "${t.name}" has its own movement rule for it` })
       break
     case 'unit':
       for (const w of doc.weapons ?? []) if (w.versus && id in w.versus && !tagStillUsed(units, id, id)) out.push({ section: 'weapons', text: `Weapon "${w.name}" has an effectiveness row for it` })
-      for (const t of doc.terrain ?? []) if (t.produces?.includes(id)) out.push({ section: 'terrain', text: `Terrain "${t.name}" can build it` })
+      for (const t of doc.structures ?? []) if (t.produces?.includes(id)) out.push({ section: 'structures', text: `Structure "${t.name}" can build it` })
       for (const [mid, m] of mapEntries(doc)) {
         const n = (m.units ?? []).filter((u) => u.type === id).length
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
@@ -94,7 +96,9 @@ export function cleanResource(doc: ProjectDoc, id: string): ProjectDoc {
   return {
     ...doc,
     units: doc.units && doc.units.map((u) => (u.cost && id in u.cost ? stripKey(u, 'cost', dropKey(u.cost, id)) : u)),
+    // Old (unconverted) terrain may still list income; the structures' list is the live one.
     terrain: doc.terrain && doc.terrain.map((t) => (t.income && id in t.income ? stripKey(t, 'income', dropKey(t.income, id)) : t)),
+    structures: cleanResourceInStructures(doc, id),
     maps: mapMembers(doc, (m) => (m.sides?.some((s) => s.resources && id in s.resources)
       ? { ...m, sides: m.sides.map((s) => (s.resources && id in s.resources ? stripKey(s, 'resources', dropKey(s.resources, id)) : s)) } : m)),
   }
@@ -106,6 +110,7 @@ export function cleanMoveType(doc: ProjectDoc, id: string, reassignTo: string): 
     ...doc,
     units: doc.units && doc.units.map((u) => (u.moveType === id ? { ...u, moveType: reassignTo } : u)),
     terrain: doc.terrain && doc.terrain.map((t) => (t.moveCost && id in t.moveCost ? stripKey(t, 'moveCost', dropKey(t.moveCost, id)) : t)),
+    structures: cleanMoveTypeInStructures(doc, id),
   }
 }
 
@@ -115,7 +120,9 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
     ...doc,
     weapons: doc.weapons && doc.weapons.map((w) => (w.versus && id in w.versus && !tagStillUsed(remaining, id, id)
       ? stripKey(w, 'versus', dropKey(w.versus, id)) : w)),
+    // Old (unconverted) terrain may still list what it builds; the structures' list is the live one.
     terrain: doc.terrain && doc.terrain.map((t) => (t.produces?.includes(id) ? stripKey(t, 'produces', without(t.produces, id)) : t)),
+    structures: cleanUnitInStructures(doc, id),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => u.type === id) ? { ...m, units: m.units.filter((u) => u.type !== id) } : m)),
   }, 'units', id)
 }

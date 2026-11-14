@@ -70,6 +70,23 @@ const Look* unitArt(const DrawCtx& c, const Unit& u) {
   return c.sprites->has(look) ? &look : nullptr;
 }
 
+const Look* structureArt(const DrawCtx& c, const StructureState& s) {
+  if (!c.sprites) return nullptr;
+  const GraphicsSet* set = c.battle.db->graphics.set(c.styleIndex);
+  if (!set || s.type < 0 || (size_t)s.type >= set->structures.size()) return nullptr;
+  const UnitLook& ul = set->structures[(size_t)s.type];
+  const Look& look = s.owner >= 0 && (size_t)s.owner < c.battle.sides.size()
+                         ? ul.forSide(c.battle.sides[(size_t)s.owner].id)
+                         : ul.base;
+  return c.sprites->has(look) ? &look : nullptr;
+}
+
+void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, int sy, int fw, int fh) {
+  const SheetDef& sh = c.battle.db->graphics.sheets[(size_t)look.sheet];
+  int dh = std::max(1, fw * sh.cellH / sh.cellW);
+  blit(r, c, look, pickCell(look, 0, 0, 0, timeMs(c)), sx, sy + fh - dh, fw, dh, Color(255, 255, 255));
+}
+
 void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, int dx, int dy, int dw, int dh) {
   const Grid& g = c.battle.grid;
   int x = g.x(cell), y = g.y(cell);

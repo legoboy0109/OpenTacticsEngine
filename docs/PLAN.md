@@ -58,10 +58,12 @@ goal (demos only exercise features).
    animated joining tiles, unit art in the player's side panel/forecast.
    From here on, each engine feature lands with its editor screen.
    Owner's order (2026-11-13), one after the other:
-   a. Structures: a separate layer placed on top of terrain squares
-      (buildings etc. stop being terrain kinds).
-   b. Animated terrain that also joins with its neighbours.
-   c. Saving (save/resume).
+   a. DONE (2026-11-14): structures, a separate layer placed on top of
+      terrain squares, several squares allowed (docs/STRUCTURES.md).
+   b. DONE (2026-11-14): animated terrain that also joins with its
+      neighbours; bridges reach land (docs/GRAPHICS.md).
+   c. DONE (2026-11-14): saving: Continue + slots, per-game setting
+      (docs/SAVES.md).
    d. Alternative visual styles (owner to say what this should cover).
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,

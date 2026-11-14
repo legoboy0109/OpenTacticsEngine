@@ -8,6 +8,18 @@
       "cellHeight": 24
     },
     {
+      "id": "structures",
+      "file": "art/structures.png",
+      "cellWidth": 24,
+      "cellHeight": 28
+    },
+    {
+      "id": "structures_2x2",
+      "file": "art/structures_2x2.png",
+      "cellWidth": 48,
+      "cellHeight": 56
+    },
+    {
       "id": "units",
       "file": "art/units.png",
       "cellWidth": 24,
@@ -37,13 +49,9 @@
       "sheet": "tiles",
       "join": [
         0,
-        4
+        2
       ],
-      "joinWith": [
-        "city",
-        "factory",
-        "hq"
-      ],
+      "joinWith": [],
       "joinEdge": true
     },
     "forest": {
@@ -51,27 +59,6 @@
       "cell": [
         3,
         0
-      ]
-    },
-    "city": {
-      "sheet": "tiles",
-      "cell": [
-        2,
-        1
-      ]
-    },
-    "factory": {
-      "sheet": "tiles",
-      "cell": [
-        3,
-        1
-      ]
-    },
-    "hq": {
-      "sheet": "tiles",
-      "cell": [
-        0,
-        2
       ]
     }
   },
@@ -117,6 +104,29 @@
         ]
       ],
       "frameMs": 600
+    }
+  },
+  "structures": {
+    "city": {
+      "sheet": "structures",
+      "cell": [
+        0,
+        0
+      ]
+    },
+    "factory": {
+      "sheet": "structures",
+      "cell": [
+        1,
+        0
+      ]
+    },
+    "hq": {
+      "sheet": "structures_2x2",
+      "cell": [
+        0,
+        0
+      ]
     }
   }
 }

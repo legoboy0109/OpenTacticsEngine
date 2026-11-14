@@ -66,11 +66,41 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
       return false;
     }
     cs.height = c < (int)map.heights.size() ? map.heights[c] : 0;
-    cs.owner = c < (int)map.owner.size() ? map.owner[c] : -1;
-    if (cs.owner >= (int)sides.size()) cs.owner = -1;
-    const TerrainDef& t = db->terrains[cs.terrain];
-    cs.capture = t.capturePoints;
-    if (cs.owner >= 0 && hasTag(t.tags, "hq")) sides[cs.owner].hadHq = true;
+  }
+
+  // Structures: the loader already checked these, but maps can also be built
+  // in code (tests, tools), so refuse inconsistent ones here too.
+  structureAt.assign(cellCount, -1);
+  for (const MapStructureDef& ms : map.structures) {
+    if (ms.type < 0 || ms.type >= (int)db->structures.size()) {
+      err = "map '" + map.id + "' references an unknown structure type";
+      return false;
+    }
+    const StructureDef& def = db->structures[ms.type];
+    if (ms.x < 0 || ms.y < 0 || ms.x + def.width > map.width || ms.y + def.height > map.height) {
+      err = "map '" + map.id + "': structure '" + def.id + "' at " + std::to_string(ms.x) + "," +
+            std::to_string(ms.y) + " does not fit inside the map";
+      return false;
+    }
+    StructureState s;
+    s.type = ms.type;
+    s.x = ms.x;
+    s.y = ms.y;
+    s.owner = ms.side >= 0 && ms.side < (int)sides.size() ? ms.side : -1;
+    s.capture = def.capturePoints;
+    int index = (int)structures.size();
+    structures.push_back(s);
+    std::vector<Cell> footprint;
+    structureCells(index, footprint);
+    for (Cell c : footprint) {
+      if (structureAt[c] != -1) {
+        err = "map '" + map.id + "': structure '" + def.id + "' at " + std::to_string(ms.x) + "," +
+              std::to_string(ms.y) + " overlaps another structure";
+        return false;
+      }
+      structureAt[c] = index;
+    }
+    if (s.owner >= 0 && hasTag(def.tags, "hq")) sides[s.owner].hadHq = true;
   }
 
   for (const MapUnitDef& ud : map.units) {
@@ -96,6 +126,15 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     units.push_back(u);
   }
   return true;
+}
+
+void Battle::structureCells(int s, std::vector<Cell>& out) const {
+  out.clear();
+  if (s < 0 || s >= (int)structures.size()) return;
+  const StructureState& st = structures[s];
+  const StructureDef& def = defOf(st);
+  for (int dy = 0; dy < def.height; ++dy)
+    for (int dx = 0; dx < def.width; ++dx) out.push_back(grid.at(st.x + dx, st.y + dy));
 }
 
 void Battle::start(std::vector<Event>& events) {

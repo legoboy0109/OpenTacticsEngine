@@ -1,6 +1,7 @@
 #include "core/data/loader.h"
 
 #include <cctype>
+#include <cstdio>
 
 #include "core/data/loader_content.h"
 #include "core/data/loader_util.h"
@@ -20,6 +21,13 @@ uint32_t parseColor(const std::string& text, uint32_t def) {
     v = (v << 4) | d;
   }
   return v;
+}
+
+bool fileExists(const std::string& path) {
+  FILE* f = std::fopen(path.c_str(), "rb");
+  if (!f) return false;
+  std::fclose(f);
+  return true;
 }
 
 bool loadObjectFile(const std::string& path, Json& out, std::string& err) {
@@ -101,6 +109,10 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!c.str(root, "name", "", db.name)) return false;
   if (!c.str(root, "description", "", db.description)) return false;
   if (!c.str(root, "author", "", db.author)) return false;
+  std::string saving = "any";
+  if (!c.str(root, "saving", "", saving)) return false;
+  if (!parseSavingMode(saving, db.saving))
+    return c.fail("", "\"saving\" must be \"any\", \"continue\" or \"off\" (got \"" + saving + "\")");
 
   const Json* view;
   if (!c.object(root, "view", "", view)) return false;
@@ -177,7 +189,7 @@ static bool isHexColor(const std::string& t) {
   return true;
 }
 
-// "styles" refer to terrain ids, so they are read after the terrain file.
+// "styles" refer to terrain and structure ids, so they are read after those files.
 // The list always ends up with a default style at index 0.
 static bool loadStyles(const std::string& path, Database& db, std::string& err) {
   Json root;
@@ -219,6 +231,16 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
         return c.fail(where, "\"terrainColors\".\"" + m.first + "\" must look like \"#rrggbb\"");
       st.terrainColors[(size_t)t] = (int32_t)parseColor(m.second.asString(), 0);
     }
+    st.structureColors.assign(db.structures.size(), -1);
+    const Json* scolors;
+    if (!c.object(j, "structureColors", where, scolors)) return false;
+    for (const Json::Member& m : scolors->members()) {
+      int s = db.findStructure(m.first);
+      if (s < 0) return c.fail(where, "\"structureColors\" names unknown structure \"" + m.first + "\"");
+      if (!m.second.isString() || !isHexColor(m.second.asString()))
+        return c.fail(where, "\"structureColors\".\"" + m.first + "\" must look like \"#rrggbb\"");
+      st.structureColors[(size_t)s] = (int32_t)parseColor(m.second.asString(), 0);
+    }
     db.styles.push_back(st);
   }
   if (db.styles.empty()) {
@@ -226,6 +248,7 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     def.id = "default";
     def.name = "Default";
     def.terrainColors.assign(db.terrains.size(), -1);
+    def.structureColors.assign(db.structures.size(), -1);
     db.styles.push_back(def);
   }
   return true;
@@ -243,6 +266,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadWeapons(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
+  if (!loadStructures(root + "/data/structures.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
   if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;

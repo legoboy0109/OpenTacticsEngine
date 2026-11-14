@@ -17,8 +17,8 @@ interface Props {
   cellHeight: number
   /** Chosen pieces (outlined, optionally numbered). */
   marks?: PieceMark[]
-  /** A chosen block of pieces (joining pictures: 4 x 4), outlined. */
-  block?: PieceBlock | null
+  /** The chosen blocks of pieces (joining pictures: 4 x 4), outlined. */
+  blocks?: PieceBlock[]
   /** Hovering/the cursor shows a block of this size from the piece under it (joining pictures); the block must fit. */
   hoverBlock?: number
   onPick?: (col: number, row: number) => void
@@ -39,7 +39,7 @@ export function startZoom(imageW: number, imageH: number, availableW: number, to
   return ZOOMS.filter((z) => z <= want).pop() ?? 1
 }
 
-export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks = [], block, hoverBlock, onPick, label }: Props) {
+export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks = [], blocks = [], hoverBlock, onPick, label }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
   const [zoom, setZoom] = useState<number | null>(null)
@@ -100,7 +100,7 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
         g.fillText(m.label, bx, by + 1)
       }
     }
-    if (block && fits(block, block.size)) { rect(block.col, block.row, block.size, block.size, '#ffffff', 4); rect(block.col, block.row, block.size, block.size, '#2b62d6', 2) }
+    for (const block of blocks) if (fits(block, block.size)) { rect(block.col, block.row, block.size, block.size, '#ffffff', 4); rect(block.col, block.row, block.size, block.size, '#2b62d6', 2) }
     const at = hover ?? cursor
     if (at && at.col < info.cols && at.row < info.rows && interactive) {
       if (hoverBlock) {
@@ -113,7 +113,7 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
         rect(at.col, at.row, 1, 1, '#ffe45c', 2)
       }
     }
-  }, [image, width, height, cellWidth, cellHeight, z, marks, block, hover, cursor, hoverBlock, info.cols, info.rows, info.extraRight, info.extraBottom, interactive])
+  }, [image, width, height, cellWidth, cellHeight, z, marks, blocks, hover, cursor, hoverBlock, info.cols, info.rows, info.extraRight, info.extraBottom, interactive])
   useEffect(draw, [draw])
 
   const cellOf = (e: { clientX: number; clientY: number }) => {

@@ -1,5 +1,6 @@
 import { useProject, useStore } from '../store/context'
 import { Banner } from '../ui/Banner'
+import { ConvertOffer } from './ConvertOffer'
 
 /** Conflict, save failure and one-off notices, shown above the section. */
 export function SaveBanners() {
@@ -23,6 +24,7 @@ export function SaveBanners() {
           {save.message}
         </Banner>
       )}
+      <ConvertOffer />
       {notice && <Banner tone="warn" onDismiss={() => store.setNotice(null)}>{notice}</Banner>}
     </div>
   )

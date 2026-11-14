@@ -134,3 +134,39 @@ TEST(shipped_games_have_complete_art) {
     }
   }
 }
+
+// The starter water is an animated join (shoreline banks, shimmering water), in every style.
+// A bridge joins everything but the water, and the water counts the bridge as water.
+TEST(shipped_water_is_an_animated_join) {
+  const char* games[] = {"games/demo-srpg", "games/demo-economy", "editor/templates/strategy-rpg",
+                         "editor/templates/economy-tactics"};
+  int waters = 0;
+  for (const char* g : games) {
+    Database db;
+    std::string err;
+    CHECK(loadGame(ote_test::sourceDir() + "/" + g, db, err));
+    int bridge = -1;
+    for (size_t t = 0; t < db.terrains.size(); ++t)
+      if (db.terrains[t].id == "bridge") bridge = (int)t;
+    for (size_t si = 0; si < db.graphics.styles.size(); ++si) {
+      const GraphicsSet& set = db.graphics.styles[si];
+      for (size_t t = 0; t < db.terrains.size(); ++t) {
+        const std::string& id = db.terrains[t].id;
+        if (id != "sea" && id != "water") continue;
+        const Look& l = set.terrain[t];
+        if (si == 0) ++waters;
+        CHECK(l.kind == Look::Join);
+        CHECK(l.cells.size() >= 2);
+        CHECK(l.joinEdge);
+        if (bridge >= 0) {
+          CHECK_EQ((int)l.joinWith[bridge], 1);
+          const Look& b = set.terrain[bridge];
+          CHECK(b.kind == Look::Join);
+          CHECK(b.cells.size() >= 2);
+          CHECK_EQ((int)b.joinWith[t], 0);
+        }
+      }
+    }
+  }
+  CHECK_EQ(waters, 3);
+}

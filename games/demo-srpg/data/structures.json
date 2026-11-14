@@ -1,0 +1,6 @@
+// Structures stand on top of terrain squares. A fort only sets its own
+// defense and avoid numbers; movement costs come from the ground beneath.
+{ "structures": [
+  { "id": "fort", "name": "Fort", "color": "#b0a58c", "glyph": "F",
+    "props": { "defense": 2, "avoid": 20 } }
+] }

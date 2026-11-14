@@ -27,11 +27,28 @@ struct TerrainDef {
   // Movement cost to ENTER, indexed by move type. <= 0 means impassable.
   std::vector<int> moveCost;
   Props props;                 // formula-visible numbers (defense, avoid...)
-  int capturePoints = 0;       // > 0 makes the terrain capturable
-  std::vector<Amount> income;  // per turn to the owner (economy module)
-  std::vector<int> produces;   // unit type indices buildable here
+  std::vector<std::string> tags;  // free-form labels (the "hq" tag moved to structures)
+};
+
+// A building-like thing standing on top of terrain squares (docs/STRUCTURES.md).
+// It replaces only the rules it sets; everything else comes from the terrain
+// under each of its squares. Capture, income, production and the "hq" tag
+// live here and nowhere else.
+struct StructureDef {
+  std::string id, name;
+  uint32_t color = 0x808080;   // placeholder block colour
+  char glyph = ' ';            // placeholder letter
+  int width = 1, height = 1;   // footprint in squares (1..kMaxStructureSize)
+  // Per move type: -1 = not set (use the terrain's), 0 = cannot enter, > 0 = cost to enter.
+  std::vector<int> moveCost;
+  Props props;                 // only the numbers it sets
+  int capturePoints = 0;       // > 0 makes it capturable
+  std::vector<Amount> income;  // per turn to the owner (economy module), once per structure
+  std::vector<int> produces;   // unit type indices buildable on its squares
   std::vector<std::string> tags;  // e.g. "hq"
 };
+
+const int kMaxStructureSize = 8;
 
 struct WeaponDef {
   std::string id, name;
@@ -72,12 +89,12 @@ struct RulesConfig {
   // Defeat conditions: a side is out when any enabled one triggers.
   bool defeatNoUnits = true;     // lost every unit (after having had one)
   bool defeatLeaderDead = false; // a unit flagged "leader" died
-  bool defeatLostHq = false;     // owns no "hq"-tagged cell (and started with one)
+  bool defeatLostHq = false;     // owns no "hq"-tagged structure (and started with one)
 
-  bool economy = false;      // income from owned terrain
-  bool production = false;   // build units on producing terrain
+  bool economy = false;      // income from owned structures
+  bool production = false;   // build units on producing structures
   bool builtUnitsCanAct = false;
-  bool capture = false;      // units may capture capturable terrain
+  bool capture = false;      // units may capture capturable structures
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
   int maxLevel = 20;
@@ -113,9 +130,16 @@ struct StyleDef {
   int showGlyphs = -1;  // 1/0 = force terrain letters on/off, -1 = default
   // Per terrain index: replacement color, or -1 to keep the terrain's own.
   std::vector<int32_t> terrainColors;
+  // Same for structures' placeholder blocks (per structure index).
+  std::vector<int32_t> structureColors;
 };
 
 struct MapRef { std::string id, name, file; };
+
+// How much saving a game allows (docs/SAVES.md).
+enum class SavingMode { Any, Continue, Off };
+// "any" / "continue" / "off" -> mode; false for anything else.
+bool parseSavingMode(const std::string& text, SavingMode& out);
 
 struct Database {
   std::string name;
@@ -124,10 +148,12 @@ struct Database {
   ViewConfig view;
   FontConfig font;
   RulesConfig rules;
+  SavingMode saving = SavingMode::Any;  // game.json "saving"
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
   std::vector<MoveTypeDef> moveTypes;
   std::vector<TerrainDef> terrains;
+  std::vector<StructureDef> structures;  // data/structures.json (optional)
   std::vector<WeaponDef> weapons;
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
@@ -140,11 +166,26 @@ struct Database {
   int findResource(const std::string& id) const;
   int findMoveType(const std::string& id) const;
   int findTerrain(const std::string& id) const;
+  int findStructure(const std::string& id) const;
   int findWeapon(const std::string& id) const;
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
   int findStyle(const std::string& id) const;
 };
+
+// ---- A square = terrain + (optionally) the structure standing on it ----
+// The ONLY place where terrain and structure rules are combined. Battle's
+// queries and the map loader both go through these (structure -1 = none).
+
+// Cost to enter a square for a move type: the structure's cost if it sets
+// one for that movement type, else the terrain's. <= 0 = cannot enter.
+int enterCostOf(const Database& db, int terrain, int structure, int moveType);
+
+// The numbers formulas see for a square (`ta` / `tb`): the terrain's numbers
+// with the structure's numbers of the same name replacing them and its other
+// numbers added. Returns the terrain's own list (no copy) when there is no
+// structure or it sets no numbers; otherwise fills `scratch` and returns it.
+const Props& squareNumbers(const Database& db, int terrain, int structure, Props& scratch);
 
 // ---- Map (one battle setup) ----
 
@@ -166,14 +207,21 @@ struct MapUnitDef {
   std::vector<int> stats;  // final per-stat values (type base + overrides)
 };
 
+// A structure placed on a map: `x`, `y` is its top-left square.
+struct MapStructureDef {
+  int type = 0;      // index into Database::structures
+  int x = 0, y = 0;
+  int side = -1;     // owning side index, -1 neutral
+};
+
 struct MapDef {
   std::string id, name;
   GridType gridType = GridType::Square;
   int width = 0, height = 0;
   std::vector<int> terrain;  // per cell, row-major, terrain index
   std::vector<int> heights;  // per cell elevation (0 when unused)
-  std::vector<int> owner;    // per cell side index, -1 = neutral
   std::vector<MapSideDef> sides;
+  std::vector<MapStructureDef> structures;
   std::vector<MapUnitDef> units;
 };
 
