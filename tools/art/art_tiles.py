@@ -289,9 +289,10 @@ def water_piece(mask, frame, pal):
 
 
 def bridge_piece(arms, frame=0):
-    # Open water under the deck, no banks: a side with an arm may face land or the next bridge square
-    # (the piece cannot tell which), and a bank sliver between two deck squares would look broken.
-    p = water_piece(15, frame, RIVER)
+    # Water under the deck, with banks on the sides that have an arm (land beyond: the usual one-square
+    # bridge keeps an unbroken bank). Next to another bridge square the bank shows as a short sand strip
+    # beside the deck, like a pier; the piece cannot tell the two cases apart.
+    p = water_piece(~arms & 15, frame, RIVER)
     h0, h1 = 6, 17  # deck band (12 px wide)
     deck, plank, rail = 0xB07F4C, 0x8C6238, 0x5B3F24
     def band(horizontal, lo, hi):
