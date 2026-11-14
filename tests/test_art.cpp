@@ -150,6 +150,7 @@ TEST(shipped_water_is_an_animated_join) {
       if (db.terrains[t].id == "bridge") bridge = (int)t;
     for (size_t si = 0; si < db.graphics.styles.size(); ++si) {
       const GraphicsSet& set = db.graphics.styles[si];
+      if (db.styles[si].view != StyleView::TopDown) continue;  // joining pieces are the top-down art's
       for (size_t t = 0; t < db.terrains.size(); ++t) {
         const std::string& id = db.terrains[t].id;
         if (id != "sea" && id != "water") continue;

@@ -1,6 +1,7 @@
 // The Select tool's panel: what a square is, with the ground AND the structure on it, and what that does to movement and
 // combat numbers (the engine's combination rule, model/structuresEffective.ts).
 import { ctxOf } from '../../../../model/mapCtx'
+import { heightAt } from '../../../../model/mapHeights'
 import { terrainAt, type Cell } from '../../../../model/mapGrid'
 import { sideOf } from '../../../../model/mapSides'
 import { structureAt } from '../../../../model/mapStructures'
@@ -27,6 +28,7 @@ export function Inspect({ doc, map, mapId, cell, say }: { doc: ProjectDoc; map: 
       <h3>{T.selectTitle} <span className="help inline">{T.statusSquare(cell.x, cell.y)}</span></h3>
       <dl className="facts compact">
         <div><dt>{T.terrainOf}</dt><dd>{t?.name ?? '?'}</dd></div>
+        <div><dt>{T.heightOf}</dt><dd data-testid="square-height">{heightAt(map, cell.x, cell.y)}</dd></div>
         <div><dt>{T.structureOf}</dt><dd>{placed ? `${s?.name ?? placed.type}${size.w * size.h > 1 ? ` (${size.w} × ${size.h})` : ''}` : T.noStructure}</dd></div>
         {placed && <div><dt>{T.ownerOf}</dt><dd>{placed.side ? sideOf(map, placed.side)?.name ?? placed.side : T.noOwner}</dd></div>}
         <div><dt>{T.unitOf}</dt><dd>{unit ? doc.units?.find((u) => u.id === unit.type)?.name ?? unit.type : T.noUnit}</dd></div>

@@ -5,6 +5,7 @@ import { styleView } from '../../art/scene'
 import { sheetsOf } from '../../model/graphics'
 import { getLook, setLook, setSideLook, type Slot } from '../../model/graphicsLooks'
 import { gameSides, type GameSide } from '../../model/graphicsUsage'
+import { inheritsGeneralArt } from '../../model/styleView'
 import type { Look, LookKind, ProjectDoc } from '../../model/types'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -31,6 +32,7 @@ export function PictureCard({ kind, id, name }: Props) {
   const entry = getLook(doc, slot)
   const hasImages = sheetsOf(doc).length > 0
   const choice = useMemo<LookChoice>(() => ({ id: style || undefined, view: styleView(doc.game, style || undefined) }), [doc.game, style])
+  const otherView = !inheritsGeneralArt(doc.game, style || undefined) // a style of another kind of view starts with no pictures
   const key = `picture:${kind}:${id}`
 
   return (
@@ -53,12 +55,13 @@ export function PictureCard({ kind, id, name }: Props) {
                   <fieldset className="fieldset">
                     <legend>{P.lookGroup}</legend>
                     <div className="kind-row" role="radiogroup" aria-label={P.lookGroup}>
-                      <Radio on={entry === undefined} label={P.lookSame} onPick={() => edit((d) => setLook(d, slot, undefined))} />
+                      {!otherView && <Radio on={entry === undefined} label={P.lookSame} onPick={() => edit((d) => setLook(d, slot, undefined))} />}
                       <Radio on={!!entry} label={P.lookOwn} onPick={() => { if (!entry) setOpen({}) }} />
-                      <Radio on={entry === null} label={P.lookNone} onPick={() => edit((d) => setLook(d, slot, null))} />
+                      <Radio on={otherView ? !entry : entry === null} label={P.lookNone} onPick={() => edit((d) => setLook(d, slot, otherView ? undefined : null))} />
                     </div>
-                    {entry === undefined && <p className="help">{P.lookSameHelp}</p>}
-                    {entry === null && <p className="help">{P.lookNoneHelp}</p>}
+                    {otherView && <p className="help">{P.lookOtherView}</p>}
+                    {!otherView && entry === undefined && <p className="help">{P.lookSameHelp}</p>}
+                    {!otherView && entry === null && <p className="help">{P.lookNoneHelp}</p>}
                   </fieldset>
                 ) : (!entry && <p className="help">{P.none}</p>)}
                 <div className="row">

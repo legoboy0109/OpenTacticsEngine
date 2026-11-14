@@ -18,9 +18,11 @@ interface Props extends Omit<InputProps, 'mapSize' | 'size'> {
   flagged: Set<string>
   art: ArtScene | null
   style: StyleView
+  /** The Heights tool is active: squares not at ground level show their number. */
+  showHeights: boolean
 }
 
-export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, style, ...input }: Props) {
+export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights, ...input }: Props) {
   const { vs } = input
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
@@ -36,8 +38,8 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     terrain: new Map(terrain.map((t) => [t.id, t])),
     types: new Map(unitTypes.map((u) => [u.id, u])),
     structures: new Map(structureTypes.map((s) => [s.id, s])),
-    flagged, art, style,
-  }), [map, terrain, unitTypes, structureTypes, flagged, art, style])
+    flagged, art, style, showHeights,
+  }), [map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights])
   const sceneRef = useRef(scene)
   sceneRef.current = scene
 

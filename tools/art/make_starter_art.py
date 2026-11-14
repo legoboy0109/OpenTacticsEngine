@@ -19,6 +19,7 @@ sys.dont_write_bytecode = True  # keep tools/art free of __pycache__
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import art_iso as iso  # noqa: E402
 import art_structures as st  # noqa: E402
 import art_tiles as tl  # noqa: E402
 import art_units as un  # noqa: E402
@@ -176,7 +177,8 @@ def make_game(root, repo):
     path = os.path.join(repo, root)
     terrain_ids = [t['id'] for t in load_json(os.path.join(path, 'data/terrain.json'))['terrain']]
     unit_ids = [u['id'] for u in load_json(os.path.join(path, 'data/units.json'))['units']]
-    style_ids = [s['id'] for s in load_json(os.path.join(path, 'game.json')).get('styles', [])]
+    game_styles = load_json(os.path.join(path, 'game.json')).get('styles', [])
+    style_ids = [s['id'] for s in game_styles]
     struct_path = os.path.join(path, 'data/structures.json')
     structs = []
     if os.path.exists(struct_path):
@@ -229,6 +231,31 @@ def make_game(root, repo):
                     tinted[stid] = dict(look, sheet=tid)
         if tinted:
             styles[sid]['structures'] = tinted
+
+    # Styles with the isometric kind of view start without any art, so they get a full set of their own.
+    iso_ids = [s['id'] for s in game_styles if s.get('view') == 'isometric']
+    if iso_ids:
+        iso.terrain_sheet().image().save(os.path.join(art_dir, 'iso_tiles.png'))
+        sheets.append({'id': 'iso_tiles', 'file': 'art/iso_tiles.png', 'cellWidth': iso.CW, 'cellHeight': iso.CH})
+        iso_set = {'terrain': iso.terrain_looks(terrain_ids, 'iso_tiles', FRAME_MS)}
+        if units_here:
+            iso.unit_sheet(units_here).image().save(os.path.join(art_dir, 'iso_units.png'))
+            sheets.append({'id': 'iso_units', 'file': 'art/iso_units.png', 'cellWidth': iso.UNIT_W, 'cellHeight': iso.UNIT_H})
+            iso_set['units'] = {uid: {'sheet': 'iso_units', 'frames': [[0, row], [1, row]], 'frameMs': 600}
+                                for row, uid in enumerate(units_here)}
+        iso_structs = {}
+        for sid, w, h in structs:
+            if sid not in structure_looks:
+                continue
+            sheet_id = 'iso_' + sid
+            cw, ch = iso.structure_cell(w, h)
+            iso.structure(sid, w, h).image().save(os.path.join(art_dir, sheet_id + '.png'))
+            sheets.append({'id': sheet_id, 'file': 'art/%s.png' % sheet_id, 'cellWidth': cw, 'cellHeight': ch})
+            iso_structs[sid] = {'sheet': sheet_id, 'cell': [0, 0]}
+        if iso_structs:
+            iso_set['structures'] = iso_structs
+        for sid in iso_ids:
+            styles[sid] = iso_set
 
     doc = {'sheets': sheets, 'unitMarker': True, 'terrain': terrain, 'units': unit_looks}
     if structure_looks:

@@ -40,6 +40,17 @@ const Look* unitArt(const DrawCtx& c, const Unit& u);
 // The look of a structure (its owner's own picture if the game gives one).
 const Look* structureArt(const DrawCtx& c, const StructureState& s);
 
+// Where a picture sits in its sheet's texture, for drawers that place it
+// themselves (the isometric view). tex 0 = nothing to draw.
+struct SpriteSrc {
+  TextureId tex = 0;
+  int x = 0, y = 0, w = 0, h = 0;
+};
+// The piece of a terrain look for the square `cell` (neighbours and time pick it).
+SpriteSrc terrainSrc(const DrawCtx& c, const Look& look, Cell cell);
+// The piece of a unit or structure look at the battle's running time.
+SpriteSrc lookSrc(const DrawCtx& c, const Look& look);
+
 // Draws the art of the square `cell` into the rectangle (stretched, nearest).
 // The caller has filled the placeholder colour under it already. `look` comes
 // from terrainArt().

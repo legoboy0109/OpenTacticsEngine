@@ -64,7 +64,23 @@ goal (demos only exercise features).
       neighbours; bridges reach land (docs/GRAPHICS.md).
    c. DONE (2026-11-14): saving: Continue + slots, per-game setting
       (docs/SAVES.md).
-   d. Alternative visual styles (owner to say what this should cover).
+   d. Alternative visual styles. Owner decisions (2026-11-14): a style is
+      made separately by the game's maker and has a kind of view; the
+      player switches between the styles a game ships that the platform
+      can draw. Kinds: the current top-down 2D, 2D isometric, 3D isometric,
+      full 3D (GameCube/Wii Fire Emblem-like). Isometric shows map heights
+      as raised blocks. 2D isometric has one fixed angle; 3D isometric
+      rotates. In 3D isometric the maker chooses per game between 2D
+      sprites and 3D models for units. Full 3D: 3D map, free camera,
+      fights on the map first; separate close-up battle scenes later.
+      The 3D renderer must be portable to the console ports: an
+      engine-owned 3D interface with swappable backends (OpenGL ES 3 /
+      WebGL 2 first), no graphics-API or shader code in game data, fixed
+      built-in materials, one directional light + ambient, modest
+      power-of-two textures, CPU skinning, glTF models.
+      Build order: d1 2D isometric (DONE 2026-11-14, contract:
+      docs/VIEWS.md, with a Heights tool in the map editor); d2 the 3D
+      drawing layer; d3 3D isometric; d4 full 3D.
    e. Items.
    f. Story events and dialogue (triggers, win/lose conditions in data,
       campaign layer).

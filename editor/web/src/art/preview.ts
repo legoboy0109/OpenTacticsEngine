@@ -1,13 +1,36 @@
 // Small sample maps for previews and palettes. They are drawn by the real map renderer (drawMap), so a preview can never
 // look different from the canvas. A preview may use a draft look (what the picker has chosen so far) via `doc`.
-import { effectiveLook } from '../model/graphicsLooks'
+import { effectiveLook, sideLook } from '../model/graphicsLooks'
+import { pickCell } from '../model/pickCell'
+import { inheritsGeneralArt } from '../model/styleView'
+import { drawPiece } from './draw'
 import { gameSides } from '../model/graphicsUsage'
 import { drawMap, type Scene } from '../screens/maps/editor/drawMap'
 import { sizeOf } from '../model/structures'
 import type { MapFile, MapSide, MapStructure, ProjectDoc } from '../model/types'
-import { buildArtScene, type ImageSource, type StyleView } from './scene'
+import { buildArtScene, resolveLook, type ImageSource, type Resolved, type StyleView } from './scene'
 
-export interface PreviewSpec { scene: Scene; cols: number; rows: number; scale: number; /** First square drawn (thumbnails show the middle square). */ origin: { x: number; y: number } }
+export interface PreviewSpec {
+  scene: Scene; cols: number; rows: number; scale: number
+  /** First square drawn (thumbnails show the middle square). */
+  origin: { x: number; y: number }
+  /** A style that is not top-down: the chosen piece itself, as it is in its image (cols x rows = its size in pixels). */
+  piece?: Resolved
+}
+
+const PIECE_BOX = 112
+/** The preview of a picture in a style whose kind of view is not top-down: those pictures are made for another view, so a
+ *  top-down composition would be wrong; the piece is shown as it is. Null when the style has no picture here (the normal
+ *  preview then shows the placeholder). */
+function pieceSpec(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, kind: 'terrain' | 'units' | 'structures', id: string, sideId?: string): PreviewSpec | null {
+  if (inheritsGeneralArt(doc.game, styleId)) return null
+  const look = effectiveLook(doc.graphics, kind, id, styleId, false)
+  const r = resolveLook(doc, src, sideId ? sideLook(look, sideId) : look)
+  if (!r) return null
+  const scale = Math.min(PIECE_BOX / Math.max(r.cw, r.ch), 4)
+  const scene = sceneFor(doc, src, style, styleId, mapOf(1, 1, { a: doc.terrain?.[0]?.id ?? '' }, ['a']))
+  return { scene, cols: r.cw, rows: r.ch, scale: scale >= 1 ? Math.floor(scale) : scale, origin: { x: 0, y: 0 }, piece: r }
+}
 
 /** A road with a dead end, a bend, a T and a crossing ('#' = the terrain, '.' = something else). */
 export const JOIN_SAMPLE = ['..#....', '..#.##.', '.####..', '..##...', '.......']
@@ -27,6 +50,8 @@ const otherTerrain = (doc: ProjectDoc, id: string): string => (doc.terrain ?? []
 
 /** What a terrain looks like in context: joining pictures get a road-like shape, random mixes a field, the rest a small patch. */
 export function terrainPreview(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string, scale = 36): PreviewSpec {
+  const piece = pieceSpec(doc, src, style, styleId, 'terrain', id)
+  if (piece) return piece
   const look = effectiveLook(doc.graphics, 'terrain', id, styleId)
   const join = !!look?.join
   const mix = (look?.variants?.length ?? 0) > 1
@@ -54,6 +79,8 @@ export function previewSides(doc: ProjectDoc): MapSide[] {
 
 /** A unit on its coloured base for two sides, on the game's first terrain; tall pictures get room above. */
 export function unitPreview(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string, scale = 48, sideIds?: string[]): PreviewSpec {
+  const piece = pieceSpec(doc, src, style, styleId, 'units', id, sideIds?.[0])
+  if (piece) return piece
   const sides = sideIds?.length
     ? sideIds.map((sid, i) => ({ id: sid, name: sid, color: gameSides(doc).find((s) => s.id === sid)?.color ?? SIDE_COLORS[i % 2] }))
     : previewSides(doc)
@@ -88,6 +115,8 @@ function stickOut(probe: ReturnType<typeof buildArtScene>, id: string, w: number
 /** A structure standing on a patch of the first terrain at its real footprint, owned by each of `sideIds` (default: the first
  *  side and nobody), so the owner frame and the room a tall picture needs above are both visible. */
 export function structurePreview(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string, scale = 40, sideIds?: Array<string | undefined>): PreviewSpec {
+  const piece = pieceSpec(doc, src, style, styleId, 'structures', id, sideIds?.[0])
+  if (piece) return piece
   const def = (doc.structures ?? []).find((s) => s.id === id)
   const { w, h } = sizeOf(def)
   const owners = sideIds?.length ? sideIds : [previewSides(doc)[0].id, undefined]
@@ -117,5 +146,13 @@ export function structureThumb(doc: ProjectDoc, src: ImageSource, style: StyleVi
 /** Draws a preview onto a canvas whose backing store is already sized. */
 export function drawPreview(g: CanvasRenderingContext2D, spec: PreviewSpec, dpr: number, time: number): void {
   const w = spec.cols * spec.scale, h = spec.rows * spec.scale
+  if (spec.piece) {
+    const r = spec.piece
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.fillStyle = spec.scene.style?.background ?? '#2b2f3a'
+    g.fillRect(0, 0, Math.round(w * dpr), Math.round(h * dpr))
+    drawPiece(g, r, pickCell(r.look, 0, 0, 0, time), 0, 0, Math.round(w * dpr), Math.round(h * dpr))
+    return
+  }
   drawMap(g, spec.scene, { dpr, w, h, view: { scale: spec.scale, x: -spec.origin.x * spec.scale, y: -spec.origin.y * spec.scale }, hover: null, cursor: null, selected: null, ghost: null, time })
 }

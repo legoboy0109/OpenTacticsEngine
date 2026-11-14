@@ -9,6 +9,7 @@ const open = async (page: Page, id: string, item?: string) => {
   await page.goto(editorUrl(id, 'structures', item))
   await expect(page.getByRole('heading', { name: 'Structures', level: 1 })).toBeVisible()
 }
+const TEMPLATE_STYLES = [{ id: 'classic', name: 'Classic' }, { id: 'isometric', name: 'Isometric', view: 'isometric', background: '#161a24' }]
 const disk = (id: string) => readDisk(id, 'data/structures.json').structures as Array<Record<string, any>>
 
 async function createKind(page: Page, name: string): Promise<void> {
@@ -156,17 +157,19 @@ test('a style can recolour a structure; the map shows it in that style, and Rese
   await page.getByRole('button', { name: 'Add a style' }).click()
   await page.getByRole('dialog', { name: 'New visual style' }).getByLabel('Name of the style').fill('Dusk')
   await page.getByRole('dialog', { name: 'New visual style' }).getByRole('button', { name: 'Create' }).click()
-  await expect(page.getByText('Structure colours in this style')).toBeVisible()
+  await expect(page.getByText('Structure colours in this style')).toHaveCount(3) // one per style
   await page.getByLabel('Dusk: City colour (hex code)').fill('#123456')
   await saved(page)
-  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'dusk', name: 'Dusk', structureColors: { city: '#123456' } }])
+  // The template already has Classic and Isometric; Dusk comes after them.
+  expect(readDisk(id, 'game.json').styles).toEqual([...TEMPLATE_STYLES, { id: 'dusk', name: 'Dusk', structureColors: { city: '#123456' } }])
   expect(await game.problems(id)).toEqual([])
-  // The map starts with the first style: the city at (5, 0) is a block in the style's colour, the factory keeps its own.
+  // Previewing the Dusk style: the city at (5, 0) is a block in the style's colour, the factory keeps its own.
   await openMap(page, id, 'crossroads')
+  await page.getByLabel('Style to preview').selectOption('dusk')
   await expectPixel(page, 5, 0, 0.2, 0.3, '#123456', 'the city in the Dusk style')
   await expectPixel(page, 2, 3, 0.2, 0.3, '#9a9a9a', 'the factory is not recoloured')
   await page.goto(editorUrl(id, 'game'))
   await page.getByRole('button', { name: 'Reset' }).first().click()
   await saved(page)
-  expect(readDisk(id, 'game.json').styles).toEqual([{ id: 'dusk', name: 'Dusk' }])
+  expect(readDisk(id, 'game.json').styles).toEqual([...TEMPLATE_STYLES, { id: 'dusk', name: 'Dusk' }])
 })

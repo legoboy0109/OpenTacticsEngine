@@ -177,17 +177,39 @@ node run.mjs --only embed --build /path/to/web/output
 - Nothing is published/pushed anywhere without the owner's explicit yes.
   No license chosen yet (owner decision, needed before publishing).
 
+## Kinds of view (2026-11-14)
+
+Owner decisions and the contract: docs/VIEWS.md (also docs/PLAN.md item
+3d). Build order: d1 2D isometric (DONE, on main), d2 the 3D drawing layer
+(must be portable to the console ports), d3 3D isometric, d4 full 3D.
+
+d1: core `engine/core/view/iso.*` + `StyleDef::view`; player
+`battle/map_proj.*`, `iso_tiles.*`, `iso_draw.cpp`, `views.h`; isometric
+starter art `tools/art/art_iso.py`; webtest suite `views`; editor: kind of
+view per style (Game screen), Heights tool in the map editor (key H), Play
+style choice, both real templates ship an Isometric style. Verified:
+`ote_tests` 109 (SDL3 + SDL2, isometric screenshot pixel-identical between
+them), API 250, editor unit 274, e2e 185 (+18 skipped screenshot specs),
+webtest Chromium 92 / Firefox 25.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
-terrain and c saving are done. Next is d, alternative visual styles: ASK
-the owner what it should cover before building. Then items, story events
-and dialogue, economy options, sound and music.
+terrain and c saving are done; of d (kinds of view) the 2D isometric part
+is done. Next: d2, the 3D drawing layer. Design it before writing code:
+an engine-owned interface first (meshes, textures, camera, fixed
+materials, one sun light + ambient, CPU skinning), then the OpenGL ES 3 /
+WebGL 2 backend, then glTF loading. Nothing in game data may name a
+graphics API or carry shader code (console ports must be able to
+implement the interface). Then items,
+story events and dialogue, economy options, sound and music.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
 night style does not darken unit sprites; editor paint stroke with art
 ~45 ms on 64 x 64; starter-art limits (water corners that touch only
 diagonally are square, a sand strip shows between squares of a bridge
 longer than one square); no pixel-level check of animated water on the
-editor canvas; a capture was never clicked through in the embedded player
+editor canvas; the editor's map canvas and picture previews do not draw
+isometric (Play does); isometric starter art has no joining pieces and
+the buildings are the top-down pictures on plinths; a capture was never clicked through in the embedded player
 (the embed page has no scripted input; `ote-sim` covers captures).

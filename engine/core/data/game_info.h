@@ -9,7 +9,10 @@
 
 namespace ote {
 
-struct StyleInfo { std::string id, name; };
+struct StyleInfo {
+  std::string id, name;
+  StyleView view = StyleView::TopDown;  // unknown names read as TopDown (loadGame rejects them)
+};
 
 struct GameInfo {
   std::string name, description, author;

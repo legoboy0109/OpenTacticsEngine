@@ -10,7 +10,8 @@ TEST(game_info_reads_demo_launcher_fields) {
   CHECK_STR(gi.name, "Emblem Demo");
   CHECK(!gi.description.empty());
   CHECK(gi.mapCount >= 1);
-  CHECK_EQ((int)gi.styles.size(), 2);
+  CHECK_EQ((int)gi.styles.size(), 3);
+  CHECK(gi.styles[2].view == StyleView::Isometric);
   CHECK_STR(gi.styles[0].id, "classic");
   CHECK_STR(gi.styles[1].name, "Parchment");
   CHECK_STR(gi.font.name, "pixel");

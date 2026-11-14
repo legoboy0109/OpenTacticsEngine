@@ -5,6 +5,7 @@ import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { editMap } from '../../../model/mapCtx'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
+import { inheritsGeneralArt } from '../../../model/styleView'
 import { removeStructureAt, structureIndexAt } from '../../../model/mapStructures'
 import { removeMapUnit, unitAt } from '../../../model/mapUnits'
 import { useDoc, useEdit, useStore } from '../../../store/context'
@@ -51,15 +52,19 @@ function Editor({ id }: { id: string }) {
   const structureTypes = useMemo(() => doc.structures ?? [], [doc.structures])
   const sides = map.sides ?? []
   const vs = useMemo(() => new MapViewState(), [])
-  const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', structureType: '', structureSide: '' })
+  const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', structureType: '', structureSide: '', heightMode: 'raise', heightValue: 1 })
   const [notice, setNotice] = useState<string | null>(null)
   // The visual style shown on the canvas (the player starts with the first one); only offered when there are several.
   const styles = doc.game?.styles ?? []
   const [storedLook, setLook] = useStored<string>(`ote.mapLook.${store.id}`, '')
   const lookId = styles.some((s) => s.id === storedLook) ? storedLook : styles[0]?.id
-  const art = useArtScene(lookId)
+  // The canvas always draws top-down. A style of another kind of view contributes only its colours; its pictures are made
+  // for that view, so the general pictures are used instead.
+  const topDown = inheritsGeneralArt(doc.game, lookId)
+  const artStyle = topDown ? lookId : undefined
+  const art = useArtScene(artStyle)
   const look = useMemo(() => styleView(doc.game, lookId), [doc.game, lookId])
-  const lookChoice = useMemo(() => ({ id: lookId, view: look }), [lookId, look])
+  const lookChoice = useMemo(() => ({ id: artStyle, view: look }), [artStyle, look])
 
   // Remembered choices can name things that were deleted since: fall back to the first one.
   const ts: ToolState = {
@@ -71,6 +76,9 @@ function Editor({ id }: { id: string }) {
     unitSide: sides.some((s) => s.id === stored.unitSide) ? stored.unitSide : sides[0]?.id ?? '',
     structureType: structureTypes.some((s) => s.id === stored.structureType) ? stored.structureType : structureTypes[0]?.id ?? '',
     structureSide: sides.some((s) => s.id === stored.structureSide) ? stored.structureSide : '',
+    // Older saved choices have no Heights settings.
+    heightMode: stored.heightMode ?? 'raise',
+    heightValue: typeof stored.heightValue === 'number' ? stored.heightValue : 1,
   }
   const tsRef = useRef(ts)
   tsRef.current = ts
@@ -131,7 +139,7 @@ function Editor({ id }: { id: string }) {
           looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
         {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
         <div className="map-stage">
-          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs}
+          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} showHeights={ts.tool === 'heights'}
             begin={(cell, o) => beginStroke(env, cell, o)}
             longPress={(cell) => {
               if (tsRef.current.tool !== 'terrain') return false
@@ -145,6 +153,7 @@ function Editor({ id }: { id: string }) {
         </div>
         <StatusLine vs={vs} map={map} terrain={terrain} structureTypes={structureTypes} unitTypes={unitTypes} notice={notice} />
         <p className="help map-keys">{T.shortcuts}</p>
+        <p className="help map-view-note">{T.mapViewNote}</p>
       </div>
       <OptionsPanel doc={doc} map={map} mapId={id} state={ts} selected={selected} onChange={patch} say={setNotice} />
     </div>

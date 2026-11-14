@@ -35,6 +35,8 @@ class BattleScene : public Scene {
   std::string hint() const;
   void followCamera(double dt);
   Cell cellAt(int x, int y) const;
+  // Box around a square on screen (its top face in the isometric view).
+  void cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const;
 
   // --- battle_input.cpp: the human state machine
   void handleButton(Button b);
@@ -73,6 +75,7 @@ class BattleScene : public Scene {
   BattleView view_;
   Layout layout_;
   Camera cam_;
+  MapProj proj_;  // where squares are on screen in the style in use
   Overlay overlay_;
   Menu menu_;
   Mode mode_ = Mode::Idle;

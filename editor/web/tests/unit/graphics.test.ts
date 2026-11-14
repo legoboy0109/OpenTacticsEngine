@@ -266,7 +266,7 @@ describe('art follows its terrain, unit and visual style', () => {
     const d = addStyle(addStyle(d0(), 'Night', 'night'), 'Day', 'day')
     const e = removeStyle(d, 'night')
     expect(Object.keys(e.graphics!.styles!)).toEqual(['day'])
-    expect(e.game!.styles!.map((s) => s.id)).toEqual(['day'])
+    expect(e.game!.styles!.map((s) => s.id)).toEqual(['classic', 'isometric', 'day']) // the template's own styles stay
     expect(dropStyleArt(removeStyle(e, 'day'), 'day').graphics!.styles).toBeUndefined()
   })
   it('the delete confirmation mentions the picture only when there is one', () => {

@@ -123,8 +123,20 @@ struct FontConfig {
 // A named, switchable look for the game (docs/GAME_FORMAT.md "styles").
 // Today a style can recolor the placeholder graphics; tilesets/sprites
 // will hang off the same ids later. Index 0 is always the default style.
+// The kind of view a visual style draws the battle with (docs/VIEWS.md).
+enum class StyleView { TopDown, Isometric, Isometric3D, Full3D };
+
+// Sizes of the isometric kinds of view, in logical pixels.
+struct IsoConfig {
+  int tileWidth = 0, tileHeight = 0;  // the diamond of one square; 0 = from the game's tileSize
+  int heightStep = -1;                // pixels per height level; -1 = half the diamond's height
+  int unitWidth = 0;                  // width unit pictures are drawn at; 0 = half the diamond's width
+};
+
 struct StyleDef {
   std::string id, name;
+  StyleView view = StyleView::TopDown;
+  IsoConfig iso;
   bool hasBackground = false;
   uint32_t background = 0;
   int showGlyphs = -1;  // 1/0 = force terrain letters on/off, -1 = default

@@ -219,7 +219,15 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   base.structures.assign(db.structures.size(), UnitLook());
   if (!readSet(c, db, root, "", base)) return false;
 
-  std::vector<GraphicsSet> sets(db.styles.size(), base);
+  // A top-down style starts from the general art and replaces parts of it. A
+  // style with another kind of view starts with no art at all: pictures made
+  // for one kind of view are wrong in another (docs/VIEWS.md).
+  GraphicsSet none = base;
+  none.terrain.assign(db.terrains.size(), Look());
+  none.units.assign(db.unitTypes.size(), UnitLook());
+  none.structures.assign(db.structures.size(), UnitLook());
+  std::vector<GraphicsSet> sets;
+  for (const StyleDef& st : db.styles) sets.push_back(st.view == StyleView::TopDown ? base : none);
   const Json* styles;
   if (!c.object(root, "styles", "", styles)) return false;
   for (const Json::Member& e : styles->members()) {

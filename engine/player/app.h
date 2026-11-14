@@ -32,6 +32,7 @@ class PlayerApp : public App, public SceneHost {
   const Args& args() const override { return args_; }
   GameSession* session() override { return session_.get(); }
   const Sprites* sprites() const override { return session_ && sprites_.any() ? &sprites_ : nullptr; }
+  IsoTiles* isoTiles() override { return &isoTiles_; }
   Renderer& renderer() override { return *renderer_; }
   Settings& settings() override { return settings_; }
   const std::vector<GameEntry>& games() const override { return games_; }
@@ -82,6 +83,7 @@ class PlayerApp : public App, public SceneHost {
   bool fontApplied_ = false;
   EffectiveLook look_;
   std::unique_ptr<GameSession> session_;
+  IsoTiles isoTiles_;  // released with sprites_
   Sprites sprites_;  // textures of session_'s art sheets; released whenever session_ goes
   std::unique_ptr<Scene> scene_;
   std::vector<GameEntry> games_;

@@ -91,6 +91,10 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
 }  // namespace
 
 void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
+  if (c.iso()) {
+    drawMapIso(r, c, ov, cursor, showCursor);
+    return;
+  }
   const Battle& b = c.battle;
   const Layout& L = c.layout;
   int t = L.tile, cx = c.cam.ix(), cy = c.cam.iy();

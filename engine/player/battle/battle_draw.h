@@ -1,11 +1,14 @@
 // Drawing functions of the battle scene (all take the pieces they need, no
 // state of their own).
 #pragma once
+#include <cmath>
 #include <string>
 #include <vector>
 
 #include "battle/battle_view.h"
+#include "battle/iso_tiles.h"
 #include "battle/layout.h"
+#include "battle/map_proj.h"
 #include "battle/sprites.h"
 #include "core/battle/battle.h"
 #include "platform/platform.h"
@@ -21,6 +24,17 @@ struct DrawCtx {
   const StyleDef* style = nullptr;  // the visual style in use (null = defaults)
   const Sprites* sprites = nullptr;  // the game's sheet textures (null = placeholders only)
   int styleIndex = 0;                // index of `style` in Database::styles (picks the art set)
+  const MapProj* proj = nullptr;     // where squares are on screen (null = plain top-down)
+  IsoTiles* tiles = nullptr;         // pictures the isometric view makes for itself
+
+  // A spot in flat map pixels (what BattleView animates) -> screen pixels.
+  void toScreen(float fx, float fy, int& sx, int& sy) const {
+    float wx = fx, wy = fy;
+    if (proj) proj->toWorld(fx, fy, wx, wy);
+    sx = (int)std::lround(wx) - cam.ix();
+    sy = (int)std::lround(wy) - cam.iy();
+  }
+  bool iso() const { return proj && proj->iso() && tiles; }
 };
 
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).
@@ -49,6 +63,9 @@ struct Overlay {
 // bottom edge), overlays, capture numbers, cursor. Draws beyond the viewport edge
 // on purpose; the panel and hint strip are painted afterwards to cover it.
 void drawMap(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor, bool showCursor);
+
+// The same for the isometric kind of view (iso_draw.cpp; rules: docs/VIEWS.md).
+void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor, bool showCursor);
 
 // One structure (picture or placeholder block, owner frame, highlight re-tint on
 // its footprint). Lives in structure_draw.cpp; drawMap calls it in sorted order.

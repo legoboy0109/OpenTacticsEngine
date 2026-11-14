@@ -66,7 +66,11 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   colW = std::min(colW, (L.vw - 24) / 2);
   int rh = L.row, w = colW * 2 + 24, h = (int)rows * rh + 12;
   int x = (L.vw - w) / 2;
-  int ty = targetCell >= 0 ? b.grid.y(targetCell) * L.tile - c.cam.iy() : 0;
+  int ty = 0;
+  if (targetCell >= 0) {
+    int tx;
+    c.toScreen((b.grid.x(targetCell) + 0.5f) * L.tile, (b.grid.y(targetCell) + 0.5f) * L.tile, tx, ty);
+  }
   int y = ty < L.vh / 2 ? L.vh - h - 6 : 6;  // opposite half from the target
   r.fillRect(x + 2, y + 2, w, h, Color(0, 0, 0, 110));
   r.fillRect(x, y, w, h, Color(22, 26, 46, 245));
