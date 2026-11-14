@@ -79,8 +79,8 @@ class SdlRenderer::Target : public TextTarget {
   std::vector<SDL_Texture*> tex_;
 };
 
-SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless)
-    : window_(window), r_(renderer), w_(w), h_(h), headless_(headless) {
+SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
+    : window_(window), r_(renderer), w_(w), h_(h), headless_(headless), headlessScale_(headlessScale) {
   target_.reset(new Target(r_, &w_, &h_));
   text_.reset(new TextEngine(*target_));
 }
@@ -98,23 +98,38 @@ void SdlRenderer::setLogicalSize(int width, int height) {
   w_ = width;
   h_ = height;
   if (headless_) {  // keep screenshots 1:1 with the logical frame
-    SDL_SetWindowSize(window_, w_, h_);
+    SDL_SetWindowSize(window_, w_ * headlessScale_, h_ * headlessScale_);
     SDL_PumpEvents();  // let the window system apply the new size before the next draw
   }
   if (SDL_RenderSetLogicalSize(r_, w_, h_) != 0) OTE_WARN("logical size failed: %s", SDL_GetError());
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 
-TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height) {
+void SdlRenderer::displaySize(int& width, int& height) const {
+  int ow = 0, oh = 0;
+  SDL_GetRendererOutputSize(r_, &ow, &oh);
+  if (ow < 1 || oh < 1 || w_ < 1 || h_ < 1) {
+    width = w_;
+    height = h_;
+    return;
+  }
+  // The letterboxed rectangle: uniform scale (as in Target::outputTransform).
+  float sx = (float)ow / (float)w_, sy = (float)oh / (float)h_, k = sx < sy ? sx : sy;
+  width = (int)((float)w_ * k + 0.5f);
+  height = (int)((float)h_ * k + 0.5f);
+}
+
+TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height, bool smooth) {
   if (!rgba || width < 1 || height < 1) return 0;
+  // SDL2 fixes a texture's scaling when it is made, from this hint (the app keeps it at "0", nearest).
+  if (smooth) SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
   SDL_Texture* t = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
+  if (smooth) SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   if (!t) {
     OTE_ERROR("createTexture(%dx%d) failed: %s", width, height, SDL_GetError());
     return 0;
   }
   SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
-  // SDL2 has no per-texture scale mode: nearest is the default quality hint
-  // (SDL_HINT_RENDER_SCALE_QUALITY is unset or "0"; the app does not change it).
   if (SDL_UpdateTexture(t, nullptr, rgba, width * 4) != 0) {
     OTE_ERROR("createTexture: cannot upload pixels: %s", SDL_GetError());
     SDL_DestroyTexture(t);
