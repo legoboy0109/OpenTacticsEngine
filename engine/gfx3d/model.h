@@ -117,6 +117,11 @@ void poseModel(const Model3D& model, int clip, float time, bool loop, ModelPose&
 // skin). For a rigid part `out` is a copy of the rest mesh.
 void skinPart(const Model3D& model, const ModelPose& pose, int node, int part, MeshData& out);
 
+// Turns PNG/JPEG bytes into pixels. gfx3d does not decode images itself (it
+// must not depend on the platform layer): the caller passes a decoder, e.g.
+// one wrapping platform/common/image.h's decodeImage. False with a reason in err.
+typedef bool (*ModelImageDecoder)(const uint8_t* data, size_t size, ModelImage& out, std::string& err);
+
 // Loads a .glb or .gltf file (the nodes of its default scene; skins and
 // animations are ignored, the model is in its rest pose). False with a
 // plain-English reason in `err` (which does not repeat the path). Content is
