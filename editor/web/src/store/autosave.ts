@@ -189,6 +189,10 @@ export class Saver {
     return res
   }
 
+  /** Resolves when no art upload/delete is running. Reload waits for this: the conflict banner shows before the
+   *  upload itself finishes, and the image it adds afterwards must not land in the freshly reloaded document. */
+  async diskIdle(): Promise<void> { while (this.diskOp) await this.diskOp.catch(() => undefined) }
+
   /** After Reload: the loaded state is now what is on disk. */
   reset(doc: ProjectDoc, revision: string): void {
     this.clearTimer()
