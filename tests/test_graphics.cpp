@@ -166,6 +166,23 @@ TEST(graphics_pick_cell) {
   CHECK_EQ((int)all.row, 5);
 }
 
+TEST(graphics_sheet_smooth_flag) {
+  // "smooth" is optional (default: hard pixels) and must be a boolean.
+  Database db;
+  std::string err;
+  std::string body =
+      "{ \"sheets\": [ {\"id\":\"tiles\",\"file\":\"art/tiles.png\",\"cellWidth\":16,\"cellHeight\":16,\"smooth\":true},"
+      "              {\"id\":\"men\",\"file\":\"art/men.png\",\"cellWidth\":16,\"cellHeight\":16} ] }";
+  bool ok = loadGame(makeGame("smooth", body), db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (!ok) return;
+  CHECK(db.graphics.sheets[0].smooth);
+  CHECK(!db.graphics.sheets[1].smooth);
+  expectError("e_smooth", "{ \"sheets\": [{\"id\":\"a\",\"file\":\"art/tiles.png\",\"cellWidth\":16,\"cellHeight\":16,\"smooth\":1}] }",
+              "smooth");
+}
+
 TEST(graphics_animated_join) {
   // tiles.png is 8 x 6 cells: two 4 x 4 blocks side by side fit in rows 0..3.
   std::string body = std::string("{ ") + kSheets +
