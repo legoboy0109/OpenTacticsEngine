@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Writes the engine's glTF test fixtures (tests/fixtures/models/).
+"""Writes the engine's glTF test fixtures (tests/fixtures/models/) and
+assets/models/figure.glb (shown by the player's 3D test scene).
 
 usage: python3 tools/art/make_test_model.py [REPO_ROOT]
 
@@ -189,6 +190,9 @@ def main():
 
     doc, binary = build(True, png)
     write_glb(os.path.join(out, 'figure.glb'), doc, binary)
+    # The same file for the player's 3D test scene (--test-3d).
+    os.makedirs(os.path.join(root, 'assets', 'models'), exist_ok=True)
+    write_glb(os.path.join(root, 'assets', 'models', 'figure.glb'), doc, binary)
 
     doc, binary = build(False, png)
     doc['buffers'][0]['uri'] = 'figure.bin'

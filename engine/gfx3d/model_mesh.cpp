@@ -75,17 +75,21 @@ bool openAccessor(const Context& c, size_t idx, Accessor& a, std::string& err) {
   return true;
 }
 
-// Component k of element i as a float (normalised integers mapped to 0..1 / -1..1). Little-endian host assumed
-// (every target of the engine is).
+// glTF numbers are little-endian whatever the machine is; read them byte by
+// byte so big-endian consoles (PS3, Wii U, Xbox 360) get the same values.
+uint16_t le16(const uint8_t* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+uint32_t le32(const uint8_t* p) { return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t)p[3] << 24); }
+
+// Component k of element i as a float (normalised integers mapped to 0..1 / -1..1).
 float readComp(const Accessor& a, size_t i, int k) {
   const uint8_t* p = a.data + i * a.stride + (size_t)k * (size_t)compSize(a.comp);
   switch (a.comp) {
-    case kFloat: { float f; std::memcpy(&f, p, 4); return f; }
+    case kFloat: { uint32_t bits = le32(p); float f; std::memcpy(&f, &bits, 4); return f; }
     case kUByte: return a.norm ? p[0] / 255.0f : (float)p[0];
     case kByte: { int v = (int8_t)p[0]; return a.norm ? std::max(v / 127.0f, -1.0f) : (float)v; }
-    case kUShort: { uint16_t v; std::memcpy(&v, p, 2); return a.norm ? v / 65535.0f : (float)v; }
-    case kShort: { int16_t v; std::memcpy(&v, p, 2); return a.norm ? std::max(v / 32767.0f, -1.0f) : (float)v; }
-    case kUInt: { uint32_t v; std::memcpy(&v, p, 4); return (float)v; }
+    case kUShort: { uint16_t v = le16(p); return a.norm ? v / 65535.0f : (float)v; }
+    case kShort: { int16_t v = (int16_t)le16(p); return a.norm ? std::max(v / 32767.0f, -1.0f) : (float)v; }
+    case kUInt: return (float)le32(p);
   }
   return 0;
 }
@@ -93,10 +97,8 @@ float readComp(const Accessor& a, size_t i, int k) {
 uint32_t readIndex(const Accessor& a, size_t i) {
   const uint8_t* p = a.data + i * a.stride;
   if (a.comp == kUByte) return p[0];
-  if (a.comp == kUShort) { uint16_t v; std::memcpy(&v, p, 2); return v; }
-  uint32_t v;
-  std::memcpy(&v, p, 4);
-  return v;
+  if (a.comp == kUShort) return le16(p);
+  return le32(p);
 }
 
 uint8_t toByte(float f) {

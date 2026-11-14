@@ -55,10 +55,24 @@ scene, and a scene frees its own meshes and textures when it ends.
 ## Models
 
 `engine/gfx3d/model.h`: glTF 2.0 (`.glb`, or `.gltf` with its files) loaded
-into plain data (`Model3D`: nodes, parts, materials, images). Only what the
-feature set above can show is read: base colour and its texture, alpha mode,
-double-sidedness, unlit; other PBR values are ignored. Skins and animation
-come as a later step.
+into plain data (`Model3D`: nodes, parts, materials, images) by `loadModel`.
+Only what the feature set above can show is read: base colour and its
+texture (PNG or JPEG), alpha mode, double-sidedness, unlit, repeat/clamp,
+hard or smooth pixels; other PBR values are ignored. Content is fitted to
+the backend's `Caps3D`: pictures shrunk to power-of-two sides, big meshes
+split. Compressed files (Draco, meshopt), sparse accessors and files that
+point outside their own folder are refused with a plain sentence; lines,
+points and morph targets are skipped. Numbers are read byte by byte, so
+big-endian consoles load the same files. Damaged files never crash the
+loader (`tests/test_model.cpp`). Skins and animation come as a later step.
+
+The loader does not decode pictures itself (the core and gfx3d have no image
+code): the caller passes a decoder. The player's is in
+`engine/player/model_view.*`, which also uploads a model to the 3D layer and
+draws it (`ModelView`).
+
+The test model (`tests/fixtures/models/`, `assets/models/figure.glb`) is
+original and written by `tools/art/make_test_model.py`.
 
 ## Helpers
 
@@ -68,7 +82,8 @@ sides) for building map meshes.
 ## Seeing it
 
 `ote-player --test-3d` shows a built-in scene: a block map with water
-(blended), standing pictures that face the camera (cut-out), a lit building.
+(blended), standing pictures that face the camera (cut-out), a lit building
+and the loaded test model.
 Left/Right turn in quarter steps, Up/Down zoom, Confirm switches between the
 flat (isometric) and the perspective camera, Cancel quits. On the web:
 `index.html?args=--test-3d`. Webtest suite `render3d` runs it in Chromium

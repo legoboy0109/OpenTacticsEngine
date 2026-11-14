@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 
+#include "core/base/log.h"
 #include "gfx3d/shapes.h"
 #include "ui/chrome.h"
 
@@ -62,6 +63,7 @@ Test3DScene::~Test3DScene() {
   for (MeshId m : {ground_, water_, building_, figure_}) r3d_.destroyMesh(m);
   r3d_.destroyTexture(groundTex_);
   r3d_.destroyTexture(figureTex_);
+  model_.release(r3d_);
 }
 
 void Test3DScene::build() {
@@ -107,6 +109,10 @@ void Test3DScene::build() {
   MeshData f;
   addQuad(f, Vec3(-0.4f, 0, 0), Vec3(0.4f, 0, 0), Vec3(0.4f, 1.6f, 0), Vec3(-0.4f, 1.6f, 0));
   figure_ = r3d_.createMesh(f);
+
+  std::string err;
+  std::string path = host_.args().assetsDir + "/models/figure.glb";
+  if (!model_.load(r3d_, path, err)) OTE_WARN("3D test scene: no model (%s): %s", path.c_str(), err.c_str());
 }
 
 void Test3DScene::onInput(const InputEvent& e) {
@@ -181,6 +187,10 @@ void Test3DScene::draw(Renderer& r) {
              Mat4::rotate(Quat::axisAngle(Vec3(0, 1, 0), yaw));
     r3d_.draw(figure_, m, fig);
   }
+  // The loaded model stands on square (4, 5), turning slowly, scaled to a square's width.
+  if (model_.loaded())
+    model_.draw(r3d_, Mat4::translate(Vec3(4.5f - half, topOf(4, 5), 5.5f - half)) *
+                          Mat4::rotate(Quat::axisAngle(Vec3(0, 1, 0), (float)time_)) * Mat4::scale(Vec3(0.9f, 0.9f, 0.9f)));
   r3d_.end();
   host_.show3d().show(r, r3d_, f.x, f.y, f.width, f.height);
 
