@@ -5,8 +5,18 @@ import { open, keyboardToBattle, keyboardMoveLord, keyboardEndTurn, same } from 
 export const name = 'standalone';
 
 // Home -> Options, pick the "sans" font (4 steps right of "Game default": built-in, pixel-ttf, arcade, sans).
+// Home lists every game, then Options. The count comes from the build, so
+// games the owner has made with the editor do not throw the navigation off.
+async function gameCount(s) {
+  return s.page.evaluate(async () => {
+    const m = await (await fetch('games.manifest.json')).json();
+    return m.files.filter((f) => /^games\/[^/]+\/game\.json$/.test(f.path)).length;
+  });
+}
+
 async function chooseSansFont(s) {
-  await s.keys(['ArrowDown', 'ArrowDown', 'Enter']);  // Home: third row = Options
+  const downs = Array(await gameCount(s)).fill('ArrowDown');
+  await s.keys([...downs, 'Enter']);  // Home: the row after the games = Options
   await s.keys(['ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight']);
 }
 

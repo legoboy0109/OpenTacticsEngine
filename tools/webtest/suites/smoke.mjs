@@ -28,7 +28,12 @@ export async function run(env) {
   // Options persist over a reload (IndexedDB in this browser).
   await s.page.reload();
   await s.waitReady();
-  await s.keys(['ArrowDown', 'ArrowDown', 'Enter', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Escape']);
+  const games = await s.page.evaluate(async () => {
+    const m = await (await fetch('games.manifest.json')).json();
+    return m.files.filter((f) => /^games\/[^/]+\/game\.json$/.test(f.path)).length;
+  });
+  // Home lists every game, then Options (the owner's own games may be in the build too).
+  await s.keys([...Array(games).fill('ArrowDown'), 'Enter', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'Escape']);
   await s.page.waitForTimeout(800);
   await s.page.reload();
   await s.waitReady();

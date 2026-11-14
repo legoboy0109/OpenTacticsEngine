@@ -17,3 +17,8 @@ editor/web/.e2e-tmp/
 
 __pycache__/
 *.pyc
+
+# Games made with the editor are the owner's own projects, not part of the engine repo.
+games/*
+!games/demo-*/
+!games/index.json
