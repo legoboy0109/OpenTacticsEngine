@@ -69,6 +69,8 @@ void BattleScene::openEndMenu() {
     items.push_back({"Save", "", true, kSave});
     items.push_back({"Load", "", true, kLoad});
   }
+  // With a Continue save the battle can be picked up later; without one, leaving ends it.
+  items.push_back({savingOn() ? "Leave battle" : "Abandon battle", "", true, kLeave});
   items.push_back({"Cancel", "", true, 0});
   menu_.open(host_.renderer(), "", items, layout_.vw / 2 - 40, layout_.vh / 2 - 20, layout_.vw, layout_.vh);
   menu_.place(layout_.vw / 2 - menu_.w() / 2, layout_.vh / 2 - menu_.h() / 2, layout_.vw, layout_.vh);
@@ -93,6 +95,11 @@ void BattleScene::menuInput(const InputEvent& e) {
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
     else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
     else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
+    else if (res == Menu::Chosen && id == kLeave) {
+      if (savingOn()) writeContinue();  // keep the very latest position, including a unit that has only moved
+      host_.showGame(host_.currentGameId());  // replaces this scene: do nothing after this line
+      return;
+    }
   }
 }
 

@@ -23,7 +23,7 @@ class BattleScene : public Scene {
 
  private:
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Result };
-  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad };
+  enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave };
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
   void ensureLayout(const Renderer& r);

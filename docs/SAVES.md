@@ -92,8 +92,10 @@ Play panel never saves (it passes a flag that turns saving off).
   (5 slots: map name, turn, date and time, or "Empty"). Saving over a used
   slot and loading (which leaves the current battle) ask first. Saving is
   only offered when it is a human player's turn and nothing is animating.
-- **Leaving a battle** to the launcher keeps the Continue save, so the
-  battle can be picked up later.
+- **Leaving a battle**: the battle menu has **Leave battle**, which writes
+  the Continue save and returns to the game page, so the battle can be
+  picked up later. When nothing is being saved (setting `off`, or saving
+  unavailable) the entry reads **Abandon battle** instead.
 - Saves that cannot be loaded are shown greyed out with the reason.
 - After loading, the battle view is rebuilt from the state (no replay of
   old animations); if it is a computer player's turn, it carries on.
