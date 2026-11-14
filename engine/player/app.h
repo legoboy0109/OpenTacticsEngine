@@ -38,6 +38,9 @@ class PlayerApp : public App, public SceneHost {
   const std::string& notice() const override { return notice_; }
   const std::string& currentGameId() const override { return gameId_; }
   int styleIndex() const override { return look_.styleIndex; }
+  SaveStore saveStore(const std::string& gameId) override;
+  bool resumeSave(int slot, std::string& err) override;
+  void showSlots(const std::string& gameId) override;
   void showHome() override;
   void showGame(const std::string& gameId) override;
   void showOptions(const std::string& gameId) override;
@@ -53,6 +56,11 @@ class PlayerApp : public App, public SceneHost {
   void runPending();
   void dropSession();
   void doLoadGame(const std::string& gameId);
+  bool loadSession(const std::string& gameId, std::string& err);  // session_ + art; no scene, no look
+  void applyGameLook();
+  // app_saves.cpp
+  void findSavesFolder();
+  void startFromSave();  // --continue / --load-slot  // logical size, font and scale of the loaded game
   void doStartBattle(const std::string& mapId);
 
   // app_look.cpp: settings file and the look derived from the options.
@@ -68,6 +76,7 @@ class PlayerApp : public App, public SceneHost {
   Settings settings_;
   std::string settingsPath_;  // empty = in-memory only
   bool saveWarned_ = false;
+  std::string savesRoot_;  // folder holding <game>/continue.json and slotN.json; empty = no saving this run
   std::string notice_;
   FontRequest appliedFont_;
   bool fontApplied_ = false;

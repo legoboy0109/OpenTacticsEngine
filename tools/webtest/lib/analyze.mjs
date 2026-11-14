@@ -76,3 +76,25 @@ export async function checkArtDrawn(env, C, png, label) {
   C.check(`${label}: terrain art is drawn (not the placeholder colours)`, art > 0.08 && placeholder < 0.005,
           `art grass ${(art * 100).toFixed(1)}%, placeholder grass ${(placeholder * 100).toFixed(2)}%`);
 }
+
+// Share (0..1) of pixels that differ between two screenshots of the same size
+// (any channel by more than 8). 1 when the sizes differ. `rect` {x, y, w, h}
+// (screenshot pixels) limits the comparison to that area.
+export async function diffShare(page, pngA, pngB, rect = null) {
+  return page.evaluate(async ({ a, b, rect }) => {
+    const load = async (b64) => {
+      const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+      const c = new OffscreenCanvas(bmp.width, bmp.height);
+      const g = c.getContext('2d');
+      g.drawImage(bmp, 0, 0);
+      const r = rect || { x: 0, y: 0, w: bmp.width, h: bmp.height };
+      return { w: bmp.width, h: bmp.height, d: g.getImageData(r.x, r.y, r.w, r.h).data };
+    };
+    const A = await load(a), B = await load(b);
+    if (A.w !== B.w || A.h !== B.h) return 1;
+    let n = 0;
+    for (let i = 0; i < A.d.length; i += 4)
+      if (Math.abs(A.d[i] - B.d[i]) > 8 || Math.abs(A.d[i + 1] - B.d[i + 1]) > 8 || Math.abs(A.d[i + 2] - B.d[i + 2]) > 8) n++;
+    return n / (A.d.length / 4);
+  }, { a: pngA.toString('base64'), b: pngB.toString('base64'), rect });
+}

@@ -60,7 +60,9 @@ void PlayerApp::onStart(Renderer& r) {
   std::string warning;
   games_ = discoverGames(args_.gamesDir, warning);
   if (notice_.empty()) notice_ = warning;
-  if (!args_.game.empty()) doLoadGame(args_.game);
+  findSavesFolder();
+  if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
+  else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
 }
 
@@ -159,24 +161,35 @@ void PlayerApp::dropSession() {
   session_.reset();
 }
 
+bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
+  dropSession();
+  session_.reset(new GameSession());
+  if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
+    dropSession();
+    return false;
+  }
+  OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
+  if (session_->db.graphics.any()) sprites_.load(*renderer_, session_->dir, session_->db.graphics);
+  return true;
+}
+
+void PlayerApp::applyGameLook() {
+  int w, h;
+  viewSize(session_->db, w, h);
+  applyLook(gameId_, lookOf(session_->db), w, h);
+}
+
 void PlayerApp::doLoadGame(const std::string& gameId) {
   scene_.reset();
   gameId_ = gameId;
-  dropSession();
-  session_.reset(new GameSession());
   std::string err;
-  if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
-    dropSession();
+  if (!loadSession(gameId, err)) {
     applyLauncherLook();  // an error screen must not inherit the previous game's look
     showError("Cannot load game '" + gameId + "'", err, ToGame);
     runPending();
     return;
   }
-  OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
-  if (session_->db.graphics.any()) sprites_.load(*renderer_, session_->dir, session_->db.graphics);
-  int w, h;
-  viewSize(session_->db, w, h);
-  applyLook(gameId, lookOf(session_->db), w, h);
+  applyGameLook();
   bool direct = firstLoad_ && !args_.map.empty();
   firstLoad_ = false;
   if (direct) doStartBattle(args_.map);

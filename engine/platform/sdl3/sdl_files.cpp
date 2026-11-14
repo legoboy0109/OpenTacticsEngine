@@ -54,4 +54,16 @@ bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
   return SDL_EnumerateDirectory(path.c_str(), onEntry, &ctx);
 }
 
+bool makeDir(const std::string& path) {
+  // SDL3 creates missing parents too and succeeds when the folder exists. Also
+  // works on Emscripten's in-memory file system.
+  return SDL_CreateDirectory(path.c_str());
+}
+
+bool removeFile(const std::string& path) {
+  SDL_PathInfo info;
+  if (!SDL_GetPathInfo(path.c_str(), &info)) return true;  // not there already
+  return SDL_RemovePath(path.c_str());
+}
+
 }  // namespace ote

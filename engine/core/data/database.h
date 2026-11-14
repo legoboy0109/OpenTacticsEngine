@@ -136,6 +136,11 @@ struct StyleDef {
 
 struct MapRef { std::string id, name, file; };
 
+// How much saving a game allows (docs/SAVES.md).
+enum class SavingMode { Any, Continue, Off };
+// "any" / "continue" / "off" -> mode; false for anything else.
+bool parseSavingMode(const std::string& text, SavingMode& out);
+
 struct Database {
   std::string name;
   std::string description, author;  // optional, shown in the launcher
@@ -143,6 +148,7 @@ struct Database {
   ViewConfig view;
   FontConfig font;
   RulesConfig rules;
+  SavingMode saving = SavingMode::Any;  // game.json "saving"
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
   std::vector<MoveTypeDef> moveTypes;

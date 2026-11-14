@@ -109,6 +109,10 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!c.str(root, "name", "", db.name)) return false;
   if (!c.str(root, "description", "", db.description)) return false;
   if (!c.str(root, "author", "", db.author)) return false;
+  std::string saving = "any";
+  if (!c.str(root, "saving", "", saving)) return false;
+  if (!parseSavingMode(saving, db.saving))
+    return c.fail("", "\"saving\" must be \"any\", \"continue\" or \"off\" (got \"" + saving + "\")");
 
   const Json* view;
   if (!c.object(root, "view", "", view)) return false;
