@@ -26,9 +26,9 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   lh_ = r.lineHeight();
   pad_ = std::max(4, lh_ / 2);
   headerH_ = name_.empty() ? 0 : lh_ + 2;
-  // Up to three lines a page, fewer when a big font would make the box cover more than half the screen.
+  // Up to three lines a page, fewer when a big font would make the box cover more than 40% of the screen.
   step_ = lh_ + 2;  // line pitch (a little air between lines, like the other panels)
-  int room = (screenH / 2 - 2 * pad_ - headerH_) / step_;
+  int room = (screenH * 2 / 5 - 2 * pad_ - headerH_) / step_;
   linesPerPage_ = std::max(1, std::min(3, room));
   boxH_ = 2 * pad_ + headerH_ + linesPerPage_ * step_;
 
