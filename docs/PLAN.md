@@ -106,8 +106,16 @@ goal (demos only exercise features).
       variables; the first version includes a campaign (chapters in
       order, surviving units with levels and items carried over, scenes
       between maps).
-   g. More economy options (research, upgradable cities, fog,
-      repair/supply).
+   g. More economy options. Owner decisions 2026-11-14: all four in the
+      first version: fog of war (the maker switches it on per map;
+      Advance Wars kind: the map is known, enemy units and far-away
+      ownership are hidden outside sight range, some terrain hides units
+      until adjacent), repair and supply (repair on own structures is the
+      base; fuel and ammunition only for unit types / weapons the maker
+      gives an amount), research (pay and wait: cost, turns (0 =
+      instant), prerequisites, one at a time at a structure that allows
+      it; unlocks unit types, structure upgrades or bonuses), upgradable
+      structures (a structure becomes a better kind for a cost).
    h. Sound and music.
    Not yet ordered: speed-based turns (FFT), height rules, hex grid,
    isometric view.
