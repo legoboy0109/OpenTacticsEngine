@@ -16,6 +16,7 @@
 
 #include "core/base/rng.h"
 #include "core/base/types.h"
+#include "core/battle/carried.h"
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
 #include "core/data/events.h"
@@ -205,6 +206,9 @@ class Battle {
   // The map's events and objectives (null = none) and how far they have got. Copies share the data.
   std::shared_ptr<const StoryData> story;
   StoryState storyState;
+  // A campaign's roster as it was when the chapter began (null = none): named units of human sides
+  // take its version of themselves (setStartingRoster). Copies share it; it is not saved.
+  std::shared_ptr<const Roster> roster;
 
   // ---- setup ----
   bool init(const Database& database, const MapDef& map, Formulas& formulaHost,
@@ -300,6 +304,11 @@ class Battle {
   // Hands in starting switches / variables (a campaign carries them); sizes must match the game's
   // lists. Call after init(), before start(). False (nothing changed) on a size mismatch.
   bool setStartingStory(const std::vector<uint8_t>& switches, const std::vector<int>& variables);
+  // Hands in a campaign's roster (docs/EVENTS.md "Campaign"). Every named unit on a human side that the
+  // roster knows takes its type, name, level, xp, stats and items and starts at full HP; one the roster
+  // marks gone is taken off the map; others stay as the map says. Later addUnit events of named units
+  // on a human side get the same treatment. Call after init(), before start().
+  void setStartingRoster(std::shared_ptr<const Roster> carried);
 
   // ---- actions ----
   // why (optional) receives a short human-readable reason on failure.
@@ -342,6 +351,9 @@ class Battle {
   void clampHp(Unit& u);
   // battle_init.cpp: a unit as a map (or addUnit) describes it, not yet placed.
   Unit makeUnit(const MapUnitDef& def) const;
+  // carried.cpp: dresses a named unit of a human side from `roster`. 1 = done, 0 = the roster says it is
+  // gone (do not place it), -1 = not concerned.
+  int applyRoster(Unit& u) const;
   // story.cpp
   bool conditionHolds(const Condition& c) const;
   bool conditionsHold(const std::vector<Condition>& list) const;

@@ -194,6 +194,8 @@ struct StyleDef {
 
 struct MapRef { std::string id, name, file; };
 
+struct CampaignDef;  // data/campaign.json (core/data/campaign.h)
+
 // How much saving a game allows (docs/SAVES.md).
 enum class SavingMode { Any, Continue, Off };
 // "any" / "continue" / "off" -> mode; false for anything else.
@@ -221,6 +223,7 @@ struct Database {
   std::vector<MapRef> maps;
   std::vector<StyleDef> styles;  // never empty after loading; [0] = default
   Graphics graphics;             // art (data/graphics.json); empty = placeholders
+  std::shared_ptr<const CampaignDef> campaign;  // data/campaign.json; null = no campaign (docs/EVENTS.md)
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;

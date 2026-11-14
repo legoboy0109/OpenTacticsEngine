@@ -22,8 +22,9 @@ players and makers is placeholder until the owner approves it.
 
 Status: steps 1 and 2 of the "Build order" (the rules core: data, loader,
 battle, saves, `ote-sim`; and the player's part inside one battle: dialogue
-box, Talk, objectives) are built and tested; the sections on the campaign and
-the editor are still design only. Where building step 1
+box, Talk, objectives) and the core part of step 4 (the campaign: roster,
+scenes, saves) are built and tested; the player's campaign flow and the
+editor are still design only. Where building step 1
 refined or corrected the first contract, the text below is the corrected
 version and says so ("refined").
 
@@ -243,40 +244,100 @@ story entries) and `battle_story.cpp` (the scene side).
 
 ## Campaign
 
-`data/campaign.json` (optional; missing = single battles, as today):
+Built (step 4, the rules core; no player or editor part yet). `data/campaign.json`
+is optional; a game without it behaves exactly as before and keeps its save
+hashes. Code: `engine/core/data/campaign.h` and `loader_campaign*.cpp` (the
+file), `engine/core/campaign/` (playing it and saving it), `Battle::setStartingRoster`
+(`battle/carried.*`); tests `tests/test_campaign_*.cpp`; `ote-sim <game> --campaign`.
 
 ```jsonc
 { "name": "The Ford War",
-  "rules": { "fallen": "gone",          // "gone": a defeated unit never returns; "return": it is back next chapter
-             "onDefeat": "retry" },     // "retry": the chapter can be started again; "end": the campaign is over
+  "rules": { "fallen": "gone",          // "gone" (default): a defeated unit never returns; "return": it is back next chapter
+             "onDefeat": "retry" },     // "retry" (default): the chapter can be started again; "end": the campaign is over
+  "freeBattles": "none",                // "none" (default) | "all" | ["map_id", ...]: maps that can also be started on their own
   "chapters": [
     { "id": "ch1", "name": "The Ford", "map": "bridge",
-      "before": [ { "say": "…", "speaker": "eirik" } ],   // a scene: say / focus-less commands, switches, variables
-      "after":  [ … ],
-      "next": "ch2" }                    // optional; default = the next in the list. A chapter's `after`
-                                         // may also hold { "goto": "ch3b" } inside an `if` (branching)
+      "before": [ { "say": "…", "speaker": "eirik" } ],   // scenes, see below
+      "after":  [ { "if": [ { "switch": "village_saved" } ], "then": [ { "goto": "ch3b" } ] } ],
+      "next": "ch2" }                    // optional; default = the following chapter in the list
   ] }
 ```
 
-**Carry-over.** The campaign keeps a **roster**: every named unit (`id`)
-of a human side, with its type, name, level, experience, stats and items,
-plus the side's shared storage, resources, switches and variables. When a
-chapter's map places a named unit that is in the roster, the roster's
-version is used (the map gives only the square); one that is "gone" is not
-placed. After a won chapter the survivors are written back and new named
-units join. Units without an id are extras and are never carried.
-Whether a maker can let the player choose who to bring is a preparations
-screen, not in this version.
+Keys are checked like the rest of the game files: an unknown key, a bad
+`rules` / `freeBattles` value, an empty `chapters` list, a duplicate chapter
+id, an unknown `map` / `next` / `goto` / `freeBattles` map, a `goto` in a
+`before` scene, or a scene command that is not one of the list below is a
+loader error naming the file, the chapter and the command
+(`data/campaign.json: chapter "ch1": "before": command 2 (say): …`). A chapter
+nobody can reach is **not** an error. `name` of the campaign and the chapters
+is wording (default: "Campaign" / the chapter id).
 
-**Saves.** A save slot becomes one playthrough: campaign progress
-(chapter, roster, storage, resources, switches, variables) and, if a
-battle is under way, that battle as today. Saves of games without a
-campaign keep their format. The save hash rule stays: rules changes
-refuse old saves, wording and art do not; dialogue text is wording.
+**Scenes** are lists of a subset of the event commands, same JSON shapes: `say`
+(`speaker` = a roster unit id, only checked for being a well-formed id since the
+unit may join later; or `speakerName`; optional `portrait`), `setSwitch`,
+`setVariable`, `addVariable`, `giveResource` (`"side": "<side id>"`: added to what that
+side carries; a side id is only checked for being well-formed because scenes
+know no map), `if` with the conditions `switch`, `variable`, `alive` / `dead` (a
+roster id) and `{ "goto": "<chapter id>" }` (`after` only, also inside `if`).
+Refined: `alive` = the id is in the roster and not gone, `dead` = it is in the
+roster and gone (a unit that never joined is neither). A scene runs at once
+with no input: state changes apply immediately and the `say` lines come back in
+order as `SceneLine`s (speaker id, the name to show, portrait id, text), resolved like a battle's
+`Dialogue` entry: a roster unit's own name, else the free `speakerName`, else
+nobody; so the player can use one dialogue box for both.
 
-**Launcher.** A game with a campaign offers New game / Continue / Load.
-`"freeBattles"` in campaign.json (`"none"` default, `"all"`, or a list of map
-ids) says which maps can also be started on their own.
+**Where the player is** (`Playthrough`): the chapter and a **phase**: `Before` (the
+chapter's before scene is due), `Battle` (scene done; the battle is to be played
+or is under way), `After` (battle won and taken over; the after scene is due),
+`Finished` (the last chapter's after scene ran), `Over` (a battle was lost and
+`onDefeat` is `end`). Also the roster, what the sides carry, switches and
+variables. The next chapter after an `after` scene is the last `goto` that ran,
+else the chapter's `next`, else the following one in the list; after the last one
+the playthrough is `Finished`.
+
+**Carry-over.** The **roster** holds every named unit (`id`) of a human side: id, type,
+name, level, xp, stats, items with uses left, the side id it last fought on, and
+whether it is gone. Units without an id are extras and never carried. "Human
+side" = a side the map does not give to the computer.
+- *Starting a chapter's battle* (`startChapterBattle`): the map is loaded and the
+  Battle initialised as usual, then every map unit with an `id` on a human side is
+  looked up in the roster: found, it takes the roster's type, name, level, xp, stats
+  and items, starts at full HP (maximum from its stats and accessories) on the map's
+  square; marked gone, it is not placed (taken off the board before anything
+  happens, not "defeated", so no event sees it); not in the roster, it starts as
+  the map says. The same goes for a named unit that an `addUnit` event creates later
+  on a human side (a gone one is not added; logged). The roster dresses a unit only
+  where it is placed or added on a human side: a unit that starts on the computer's side
+  and is recruited by `changeSide` stays as the map says until the chapter's end.
+  The side's storage = carried storage followed by the map's `storage` entries;
+  resources = carried + the map's (the map's amount is that chapter's allowance).
+  Switches and variables go in through `Battle::setStartingStory`.
+- *After a won battle* (the human team won, `finishChapterBattle`): every living
+  named unit on a human side is written to the roster (including ones that joined
+  through `addUnit` or `changeSide`); a named human-side unit that was defeated
+  becomes gone (`fallen: gone`; a unit that joined and fell in the same chapter
+  gets a gone entry too) or stays as the roster had it at the start of the chapter,
+  gaining nothing (`fallen: return`; one that was not in the roster stays out of
+  it, so it starts as its next map says); a named unit that is on a non-human side at
+  the end leaves the roster; storage, resources, switches and variables of the human
+  sides are taken from the battle. Refined: a unit removed by a `removeUnit` event is
+  counted like a defeated one (the Battle does not tell them apart). Then the `after`
+  scene runs, then the next chapter.
+- *After a lost battle* (a draw counts): `retry` leaves the playthrough exactly as it
+  was before the battle (phase stays `Battle`; the chapter can be started again; the
+  before scene is not replayed); `end` makes the phase `Over`.
+
+**Saves.** One save slot is one playthrough: `"playthrough": { … }` and, in phase
+`Battle` while a battle is under way, `"battle": { … }`. Format, hash and the
+exact calls: docs/SAVES.md "Campaign saves". Saves of games without a campaign are
+unchanged byte for byte.
+
+**Free battles.** `freeBattleAllowed(db, mapId)`: true for every map when the game has no
+campaign; otherwise per `freeBattles`. A free battle is an ordinary `Battle::init` +
+`start` and never touches a playthrough.
+
+**Launcher** (player step, not built): a game with a campaign offers New game /
+Continue / Load, and free battles per `freeBattles`.
 
 ## Editor
 
@@ -307,6 +368,7 @@ commands; voice.
    (player)"; tests `test_dialogue_text.cpp`, `test_dialogue_box.cpp`,
    `test_portraits.cpp`).
 3. Editor: events, objectives, switches / variables, portraits.
-4. Campaign: core roster and progress, saves, launcher.
+4. Campaign: core roster and progress, saves (**core done**: engine/core/campaign/,
+   tests/test_campaign_*.cpp, `ote-sim --campaign`); launcher (player) still to do.
 5. Editor: Campaign screen; demo content (`demo-srpg`: an opening scene, a
    boss line, a Talk, reinforcements, a second chapter).

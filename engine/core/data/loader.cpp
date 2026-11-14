@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdio>
 
+#include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_util.h"
@@ -319,6 +320,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
   if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;
+  if (!loadCampaign(root + "/data/campaign.json", db, err)) return false;
 
   out = db;
   err.clear();

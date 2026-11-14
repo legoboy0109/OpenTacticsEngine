@@ -231,6 +231,16 @@ and side must exist. The old `owners` list is refused: ownership now
 belongs to structures (their `side`). Only the owner of a structure changes
 during a battle.
 
+## data/campaign.json (optional)
+
+A campaign strings maps together as chapters with scenes between them and carries
+surviving named units (levels, items), storage, resources, switches and variables
+from chapter to chapter. A game without the file plays single maps as before.
+Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
+`freeBattles` and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`).
+Unknown keys, unknown maps / chapters and bad rule values are loader errors. The
+file counts for the save hash except its wording (docs/SAVES.md).
+
 ## Formulas
 
 Formulas are Lua expressions. Variables:

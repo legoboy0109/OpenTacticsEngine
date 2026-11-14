@@ -23,7 +23,8 @@ Contract for saving and resuming battles. Owner decisions (2026-11-14):
 ## What a save is
 
 A save holds one battle in progress: which game and map, and the battle's
-changing state. It does NOT copy the game's data; on load the game and map
+changing state (a game with a campaign saves a whole playthrough instead: see
+"Campaign saves" at the end). It does NOT copy the game's data; on load the game and map
 are loaded normally, a fresh `Battle` is initialised, and the saved state
 is put on top.
 
@@ -231,3 +232,82 @@ Decisions where the contract was silent, and the few deviations:
 - The player logs one line per battle start saying where saves go ("saves:
   <folder>", "off for this game" or "not available in this run"); the web
   tests rely on it.
+
+## Campaign saves (engine side, built; the player does not call it yet)
+
+A game with `data/campaign.json` (docs/EVENTS.md "Campaign") saves **a playthrough**,
+not a single battle. Games without a campaign are unaffected: their files and
+hashes are byte for byte as before (pinned by tests).
+
+```jsonc
+{ "saveVersion": 1, "game": "demo-srpg", "gameName": "…",
+  "map": "bridge", "mapName": "…",          // the current chapter's map (for lists)
+  "chapter": "ch1", "chapterName": "…",     // the current chapter (for lists)
+  "dataHash": "…",                          // the campaign hash, below
+  "savedAt": 1794651000,
+  "round": 3, "activeSide": 0,              // only with "battle", as in battle saves
+  "playthrough": {
+    "chapter": 0,                           // index into the campaign's chapters
+    "phase": "before" | "battle" | "after" | "finished" | "over",
+    "roster": [ { "id": "eirik", "type": 0, "name": "Eirik", "level": 3, "xp": 40,
+                  "stats": [24, 7, …],      // one per stat, the unit's own values
+                  "items": [ { "item": 1, "uses": 2 } ],   // as in battle saves; omitted when empty
+                  "side": "blue", "gone": false } ],
+    "sides": [ { "id": "blue", "resources": [155], "storage": [ { "item": 0, "uses": 3 } ] } ],
+    "switches": [true, false], "variables": [3, 0] },
+  "battle": { … } }                         // exactly a battle save's "battle"; present only while a battle is under way
+```
+
+- The top-level fields are the existing ones (a list needs no more than `game`,
+  `map`, `mapName`, `dataHash`, `savedAt`, `saveVersion`); a campaign save is told
+  apart by the `playthrough` key (`isCampaignSave`). `round` / `activeSide` and
+  `battle` are written only with a battle; phase `battle` without a `battle` key
+  means the before scene is done and the battle has not started (the player starts
+  it on load). `battle` in any other phase is refused.
+- **`dataHash` of a campaign save** (`computeCampaignHash`): the same FNV-1a, format and
+  cosmetic rules as `computeDataHash`, over game.json's rule keys, the data files
+  (weapons, units, terrain, structures, items), the scripts, `data/campaign.json`
+  and then **the map file of every chapter in chapter order**. A playthrough is
+  therefore refused ("Made with a different version of this game") when the
+  rules of any chapter change; renaming things and rewording dialogue does not.
+  In `data/campaign.json` the **wording** does not count: the campaign's and the
+  chapters' `name`, the text of `say`, `speakerName` (the keys stay, so adding or
+  removing a line counts); everything else counts (`rules`, `freeBattles`, chapter
+  order, maps, `next`, `goto`, every scene command, `portrait`, `speaker`).
+- **`computeDataHash` (single battle) also mixes `data/campaign.json`**, after the
+  map, **only when the file exists** (a game without it hashes exactly as before;
+  the pinned-hash test is unchanged). That makes single-battle saves of a campaign
+  game depend on the campaign file too; free battles of a campaign game are saved
+  like any battle, with this hash.
+- Restoring checks every field's type and range (`chapter` within the chapters; `phase`
+  one of the five; roster ids well-formed and unique, `type` a unit type, `name` text up to
+  200, `level` 1..1,000,000, `xp` and stats whole numbers up to 1e9, items as in battle saves
+  with uses fitting the item, `side` an id, `gone` true/false; carried side ids unique,
+  one resource per game resource, storage only if the game has one; `switches` /
+  `variables` exactly the game's lists, variables within plus or minus 1e9), then the
+  battle part by the existing rules. Nothing is applied unless the whole file is
+  valid; messages name the field (`playthrough.roster[2].level: value 0 is outside 1..1000000`).
+  Fields in a save that the game does not know are ignored, as in battle saves.
+
+Core API (`engine/core/campaign/campaign_save.h`, `playthrough.h`; no file access):
+```cpp
+bool buildCampaignSave(db, gameId, playthrough, const Battle* battleOrNull, savedAt, Json& file, err);
+bool campaignSaveUsable(db, gameId, const Json& file, std::string& reasonForPlayer); // version, game, hash
+bool restoreCampaignSave(db, formulas, gameId, const Json& file, Playthrough& pt, Battle& battle, bool& hasBattle, err);
+```
+
+**What the player has to call** (full flow in HANDOFF.md):
+- *Save*: `buildCampaignSave(db, gameId, pt, inBattle ? &battle : nullptr, nowSeconds(), file, err)`, then
+  the usual atomic write. Battles are only saved in phase `Battle` (`pt.phase`), with the
+  `Battle` that `startChapterBattle` made. Free battles (`freeBattleAllowed`) are saved as before
+  (`buildSaveFile`) and never with a playthrough.
+- *Listing*: read the file; if `isCampaignSave(root)`, check `campaignSaveUsable` instead of the
+  battle checks (`SaveStore::parseFile` requires `round` and `battle`; it must accept a campaign save
+  without them). `map`, `mapName`, `chapterName`, `savedAt` are for display; `round` exists only mid-battle.
+- *Load*: `restoreCampaignSave(...)`. It fills `pt` and, when the file has a battle, `battle` (it ran
+  `prepareChapterBattle` and put the saved state on top, so the roster is back); `hasBattle` says which.
+  Then by `pt.phase`: `Before` -> run the before scene; `Battle` -> `hasBattle ? continue that battle :
+  startChapterBattle(...)`; `After` -> run the after scene; `Finished` / `Over` -> show the end.
+- Continue-save: the same file, written at the same moments as today while a chapter's battle is on;
+  also write it when a scene ends and when a battle is won (phase changes), so a closed window never
+  loses a chapter.
