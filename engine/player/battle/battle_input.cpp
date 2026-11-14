@@ -17,6 +17,9 @@ bool BattleScene::submit(const Action& a) {
     return false;
   }
   view_.push(events_);
+  // A Move is only the first half of an order (it can still be undone); every
+  // other action completes one, so the Continue save is due once it has played.
+  if (a.type != ActionType::Move) dirty_ = true;
   return true;
 }
 
@@ -34,6 +37,10 @@ void BattleScene::onInput(const InputEvent& e) {
   }
   if (!humanTurn()) return;
 
+  if (mode_ == Mode::SlotList) {
+    slotInput(e);
+    return;
+  }
   if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu) {
     menuInput(e);
     return;

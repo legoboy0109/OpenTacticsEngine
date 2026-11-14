@@ -4,6 +4,7 @@
 #pragma once
 #include <string>
 
+#include "core/base/json.h"
 #include "core/battle/battle.h"
 #include "core/data/database.h"
 #include "core/script/formulas.h"
@@ -20,6 +21,10 @@ class GameSession {
   bool load(const std::string& gameDir, std::string& err);
   // Loads a map, builds the battle and runs Battle::start (events -> startEvents).
   bool startMap(const std::string& mapId, unsigned seed, std::string& err);
+
+  // Loads `mapId` and puts a saved battle state (core/battle/save.h) on it, without
+  // starting a turn. Everything is checked first; on failure nothing changes.
+  bool resume(const std::string& mapId, const Json& state, std::string& err);
 
   Database db;
   Formulas formulas;

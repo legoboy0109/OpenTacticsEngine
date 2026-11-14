@@ -25,7 +25,33 @@ MapSelectScene::MapSelectScene(SceneHost& host)
   if (idx >= 0) select(idx);
 }
 
+// Starting a new battle ends the Continue save's life (the first turn writes a new
+// one), so ask first when there is one.
 void MapSelectScene::onChoose(int index) {
+  SaveStore store = host_.saveStore(host_.currentGameId());
+  if (store.enabled() && session_->db.saving != SavingMode::Off && store.exists(0)) {
+    pendingMap_ = index;
+    confirm_.open("This replaces your Continue save.", "Start new battle", "Cancel");
+    return;
+  }
+  startMap(index);
+}
+
+void MapSelectScene::onInput(const InputEvent& e) {
+  if (!confirm_.isOpen()) { ListScene::onInput(e); return; }
+  ConfirmBox::Result a = confirm_.onInput(e, host_.renderer());
+  if (a == ConfirmBox::None) return;
+  confirm_.close();
+  if (a == ConfirmBox::Yes && pendingMap_ >= 0) startMap(pendingMap_);
+  pendingMap_ = -1;
+}
+
+void MapSelectScene::draw(Renderer& r) {
+  ListScene::draw(r);
+  confirm_.draw(r);
+}
+
+void MapSelectScene::startMap(int index) {
   const std::string& id = session_->db.maps[index].id;
   host_.settings().setState(lastMapKey(host_.currentGameId()), id);
   host_.startBattle(id);

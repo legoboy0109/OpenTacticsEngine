@@ -16,6 +16,11 @@ struct Args {
                           // (none at all when --headless, so test runs never touch real settings)
   bool noSettings = false;  // --no-settings: options live in memory only (nothing read or written);
                             // used by the embedded web player so the editor preview starts from defaults
+  std::string saves;      // --saves DIR: where save files live (default: <user data folder>/saves; none
+                          // at all when --headless or --no-settings unless this is given)
+  bool noSaving = false;  // --no-saving: never save or offer saves (the editor's embedded player)
+  bool continueSave = false;  // --continue: resume the game's Continue save (needs --game)
+  int loadSlot = 0;       // --load-slot N: resume manual slot N (1..5; needs --game); 0 = no
   std::string game, map;  // empty = ask
   bool autoplay = false;
   unsigned seed = 1;

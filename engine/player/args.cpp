@@ -11,9 +11,12 @@ const char* usageText() {
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
+         "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
+         "saves: Continue save + 5 slots per game (docs/SAVES.md); headless and --no-settings runs save nothing\n"
+         "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
          "input tokens: up down left right confirm cancel menu next prev wait wait:N tap:X:Y\n";
 }
 
@@ -52,6 +55,9 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--autoplay")) a.autoplay = true;
     else if (!strcmp(arg, "--headless")) a.headless = true;
     else if (!strcmp(arg, "--no-settings")) a.noSettings = true;
+    else if (!strcmp(arg, "--no-saving")) a.noSaving = true;
+    else if (!strcmp(arg, "--continue")) a.continueSave = true;
+    else if (!strcmp(arg, "--saves")) { if (value(v)) a.saves = v; }
     else if (!strcmp(arg, "--games")) { if (value(v)) a.gamesDir = v; }
     else if (!strcmp(arg, "--assets")) { if (value(v)) a.assetsDir = v; }
     else if (!strcmp(arg, "--font")) { if (value(v)) a.font = v; }
@@ -63,6 +69,8 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--input")) { if (value(v)) a.input = v; }
     else if (!strcmp(arg, "--seed")) {
       if (value(v)) { if (toLong(v, n) && n >= 0) a.seed = (unsigned)n; else a.error = "bad --seed"; }
+    } else if (!strcmp(arg, "--load-slot")) {
+      if (value(v)) { if (toLong(v, n) && n >= 1 && n <= 5) a.loadSlot = (int)n; else a.error = "bad --load-slot (1..5)"; }
     } else if (!strcmp(arg, "--frames")) {
       if (value(v)) { if (toLong(v, n) && n >= 0) a.frames = (int)n; else a.error = "bad --frames"; }
     } else if (!strcmp(arg, "--input-interval")) {
@@ -82,6 +90,9 @@ Args parseArgs(int argc, char** argv) {
     }
     if (!a.error.empty()) break;
   }
+  if (!a.error.empty()) return a;
+  if (a.continueSave && a.loadSlot > 0) a.error = "use either --continue or --load-slot, not both";
+  else if ((a.continueSave || a.loadSlot > 0) && a.game.empty()) a.error = "--continue and --load-slot need --game";
   // Headless runs are tests: deterministic time unless told otherwise.
   if (a.headless && a.fixedDt <= 0) a.fixedDt = 1.0 / 60.0;
   return a;

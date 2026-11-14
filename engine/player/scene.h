@@ -9,6 +9,7 @@
 #include "game_session.h"
 #include "platform/platform.h"
 #include "battle/sprites.h"
+#include "saves.h"
 
 namespace ote {
 
@@ -37,11 +38,22 @@ class SceneHost {
   // meaningful for the game being played or edited in the options).
   virtual int styleIndex() const = 0;
 
+  // Save files of a game (docs/SAVES.md). Disabled (enabled() false) when saving is
+  // off for this run: --no-saving, or a headless / --no-settings run without --saves,
+  // or no user data folder. The game's own "saving" setting is checked by the scenes.
+  virtual SaveStore saveStore(const std::string& gameId) = 0;
+  // Loads save `slot` (0 = Continue) of currentGameId() and starts playing it. Checks
+  // everything first; on failure returns false with a plain sentence and changes
+  // nothing. On success the battle scene replaces the current scene after the
+  // caller returns, so the caller must not use the host any further.
+  virtual bool resumeSave(int slot, std::string& err) = 0;
+
   virtual void showHome() = 0;
   virtual void showGame(const std::string& gameId) = 0;
   // Options of one game, or the global options when gameId is empty.
   virtual void showOptions(const std::string& gameId) = 0;
   virtual void showMapSelect() = 0;
+  virtual void showSlots(const std::string& gameId) = 0;  // the launcher's Load list
   virtual void loadGame(const std::string& gameId) = 0;   // then map select / battle
   virtual void startBattle(const std::string& mapId) = 0;
   // Re-applies font/size/scale after an option changed (immediately, so the

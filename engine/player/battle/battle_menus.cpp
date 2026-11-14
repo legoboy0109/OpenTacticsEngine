@@ -64,8 +64,13 @@ void BattleScene::openBuildMenu(Cell cell) {
 
 void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
-  menu_.open(host_.renderer(), "", {{"End Turn", "", true, kEndTurn}, {"Cancel", "", true, 0}}, layout_.vw / 2 - 40,
-             layout_.vh / 2 - 20, layout_.vw, layout_.vh);
+  std::vector<MenuItem> items = {{"End Turn", "", true, kEndTurn}};
+  if (manualSaves()) {  // game setting "any": the player may save and load at will
+    items.push_back({"Save", "", true, kSave});
+    items.push_back({"Load", "", true, kLoad});
+  }
+  items.push_back({"Cancel", "", true, 0});
+  menu_.open(host_.renderer(), "", items, layout_.vw / 2 - 40, layout_.vh / 2 - 20, layout_.vw, layout_.vh);
   menu_.place(layout_.vw / 2 - menu_.w() / 2, layout_.vh / 2 - menu_.h() / 2, layout_.vw, layout_.vh);
 }
 
@@ -86,6 +91,8 @@ void BattleScene::menuInput(const InputEvent& e) {
     menu_.close();
     mode_ = Mode::Idle;
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
+    else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
+    else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
   }
 }
 

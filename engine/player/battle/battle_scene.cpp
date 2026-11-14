@@ -11,6 +11,7 @@ namespace ote {
 BattleScene::BattleScene(SceneHost& host)
     : host_(host), session_(*host.session()), battle_(host.session()->battle) {
   autoplay_ = host.args().autoplay;
+  store_ = host.saveStore(host.currentGameId());
   styleIdx_ = std::max(0, std::min(host.styleIndex(), (int)session_.db.styles.size() - 1));
   const ViewConfig& vc = session_.db.view;
   layout_ = Layout::make(vc.width, vc.height, vc.tileSize, host.renderer());
@@ -42,8 +43,10 @@ Cell BattleScene::cellAt(int x, int y) const {
 }
 
 void BattleScene::enterResult() {
+  clearContinue();  // a finished battle has nothing to continue
   mode_ = Mode::Result;
   menu_.close();
+  slots_.close();
   bool humanWon = false, anyHuman = false;
   std::string winners;
   for (const SideState& s : battle_.sides) {
@@ -125,11 +128,14 @@ void BattleScene::update(double dt) {
       beginHumanTurn();
     }
   }
+  if (!view_.busy()) updateSaves();
+  if (noticeTime_ > 0) noticeTime_ -= (float)dt;
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
 }
 
 std::string BattleScene::hint() const {
+  if (noticeTime_ > 0 && !notice_.empty()) return notice_;
   if (mode_ == Mode::Result) return "Confirm / tap: back to map select";
   if (view_.busy()) return "Confirm / Cancel / tap: skip animation";
   if (!humanTurn()) return battle_.sides[battle_.activeSide].name + " is acting...";
@@ -165,6 +171,11 @@ void BattleScene::draw(Renderer& r) {
       drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
     menu_.draw(r);
+  }
+  if (mode_ == Mode::SlotList) {
+    r.fillRect(0, 0, r.width(), r.height(), Color(0, 0, 0, 150));
+    slots_.fitScreen(r);
+    slots_.draw(r);
   }
   if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, "");
   drawLevelUp(r, layout_, view_.levelUp);
