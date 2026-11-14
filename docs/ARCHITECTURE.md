@@ -131,6 +131,31 @@ fill it in the entry's `apply`. The screens, the per-game override, "Use
 global", reset and persistence need no further code. Style recoloring
 itself is in `battle/battle_draw.*` (`terrainRgb`, background, glyphs).
 
+## Saves
+
+Contract and decisions: docs/SAVES.md. Layers:
+- `core/battle/save.{h,cpp}` + `save_hash.cpp`: `saveBattleState` / `restoreBattleState`
+  (Battle <-> JSON, no files; restoring validates everything and works on a
+  copy, so a damaged save never half-applies) and `computeDataHash`. Only
+  state that changes during play is stored; the 64-bit random generator state
+  is written as hex strings because JSON numbers are doubles.
+- `player/saves.{h,cpp}` (`SaveStore`): paths, the save-file JSON around the
+  battle state, atomic write (temp + rename, then `commitUserData()`), listing
+  with a plain-language reason for unusable files, delete. Needs `makeDir` and
+  `removeFile` from platform.h (both SDL backends; works on Emscripten).
+  Linked into `ote_tests` with a POSIX stub (`tests/platform_stub.cpp`).
+- Player UI: `ui/confirm.*` (question box), `ui/slot_panel.*` (the five slots,
+  shared by the launcher's `scene_slots.*` and the battle), `scene_game.*`
+  (Continue / Load rows), `scene_select.*` (replace-Continue question),
+  `battle/battle_saves.cpp` (autosave timing, Save/Load pages),
+  `app_saves.cpp` (where saves live; `resumeSave` loads a save into a new
+  battle scene, nothing is replaced unless every check passed).
+- The per-game `saving` setting is `Database::saving` (and `GameInfo::saving`
+  for the launcher's preview). `--saves DIR`, `--no-saving`, `--continue`,
+  `--load-slot N`; headless and `--no-settings` runs save nothing unless
+  `--saves` is given. On the web the standalone page keeps saves in the same
+  IDBFS mount as settings; the embed page passes `--no-saving`.
+
 ## Web
 
 `emcmake cmake` builds `ote-player` with Emscripten's SDL3 port into
@@ -173,7 +198,10 @@ mounts IDBFS there and loads it (`FS.syncfs(true)`) before `main`; after every
 successful settings save the app calls `commitUserData()` (platform.h; no-op on
 desktop) which runs `FS.syncfs(false)`. The embed page mounts nothing and passes
 `--no-settings` (new flag: settings are never read or written, always
-defaults), so the editor preview always starts from the defaults.
+defaults) and `--no-saving` (no Continue save, no slots, no Save/Load menu
+entries), so the editor preview always starts from the defaults and leaves
+nothing behind. Saves live in the same `/userdata` mount (`saves/<game>/`) and
+are pushed to IndexedDB after every write or delete.
 
 Testing: `tools/webtest` (HANDOFF.md). Known limits: the SDL2 backend's
 Emscripten branch is untested; when the main loop ends (`--frames`, end of an

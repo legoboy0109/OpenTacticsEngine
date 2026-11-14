@@ -26,6 +26,7 @@ id that does not exist is a load error.
   "description": "A short line shown in the launcher.",      // optional
   "author": "Your Name",                                     // optional
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
+  "saving": "any",                                           // optional: "any" | "continue" | "off"
 
   // Text font (optional; default is the built-in 8x8 pixel font).
   "font": {
@@ -69,6 +70,15 @@ id that does not exist is a load error.
   "maps": [ { "id": "m1", "name": "First Battle", "file": "maps/m1.json" } ]
 }
 ```
+
+`saving` says how much saving the player offers (docs/SAVES.md): `"any"` (the
+default) = an automatic Continue save plus five manual slots; `"continue"` =
+only the automatic Continue save (no Save/Load in the menus, so a bad dice
+roll cannot be undone by reloading); `"off"` = nothing is saved. Any other
+value is a loader error (`game.json: "saving" must be "any", "continue" or
+"off"`). A save is only loadable while the rules files it was made with
+(game.json, `data/*.json` except graphics.json, the scripts, the map) are
+unchanged; art and fonts may change freely.
 
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).

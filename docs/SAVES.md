@@ -104,3 +104,91 @@ Play panel never saves (it passes a flag that turns saving off).
 
 Rules screen, a small **Saving** card: "Players can save: Any time / Only
 the automatic Continue save / Never", with one line of help each.
+
+## Implementation notes (engine side, 2026-11-14)
+
+Built as specified; the editor's Saving card is not part of this package.
+Decisions where the contract was silent, and the few deviations:
+
+**Save data**
+- File: one line of compact JSON. Besides the contract's fields it holds
+  `"game"` (the game's folder name; a file whose `game` differs is listed as
+  "This save belongs to another game") and `savedAt` in seconds since 1970.
+- `battle` holds `round, activeSide, over, winnerTeam, rng {state, inc}`,
+  `sides[]` (resources, defeated, everHadUnits, hadHq, leaderLost), `units[]`
+  (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader)
+  and `structures[]` (owner, capture, capturer). A side's id, name, colour,
+  team and `ai` flag come from the map (the hash covers it), so they are not
+  stored. The random generator state is two 16-digit hex strings (a JSON
+  number is a double and loses 64-bit values).
+- Restoring checks: every field's type and range; the number of sides and
+  structures equals the map's; each unit's type, side and stat count; a living
+  unit has a cell and 1..max hit points, a dead one has no cell; no two living
+  units share a cell (occupancy is rebuilt from the units, so it cannot
+  disagree); a structure's owner is a side, its capture progress is within its
+  capture points, and its `capturer` is a living unit standing on it (no
+  capturer means untouched progress). Nothing is applied unless all of it holds.
+- `dataHash` = 64-bit FNV-1a, 16 hex digits, over `game.json`,
+  `data/weapons.json`, `units.json`, `terrain.json`, `structures.json` (when
+  present), the scripts in `game.json` order and the map file, each preceded by
+  its path and length. Because `game.json` is hashed as a whole, changing its
+  name, font or styles also makes old saves unloadable; that follows the
+  contract's wording and is the safe side. Only art (`graphics.json`, PNGs,
+  font files) is free to change.
+- A save is "unusable" (greyed, with a reason, never deleted) when: the file
+  cannot be read ("The file cannot be read"), is not valid ("The file is
+  damaged"), has another `saveVersion` or a different hash ("Made with a
+  different version of this game"), belongs to another game, or names a map the
+  game no longer has. A save that passes these but fails the deeper restore
+  checks is reported on load as "The save is damaged (<field and problem>)"
+  (also logged) and the current battle is left untouched.
+
+**Behaviour**
+- Continue save: written when a turn starts (also computer turns, before the
+  computer moves) and after each completed action of a human player once its
+  animation has finished. A Move alone does not count (it can still be undone
+  and is only half an order); Wait, Attack, Capture, Build and End Turn do.
+  Battles in `--autoplay` save nothing. It is deleted the moment the result
+  banner appears. Failure: the hint line shows "Saving is not working -
+  progress may be lost" for 6 seconds, once per battle; the details go to the
+  log. A failed manual save shows a message box with the reason instead.
+- Game page: rows are Continue (when a Continue file exists), Play, Load (mode
+  `any`), Game options, Back, each with a second line (Continue: map and turn;
+  Load: how many slots are used). Where saving is off for the game or the run the
+  page keeps its old single-line rows. A Continue file that cannot be loaded is
+  shown greyed with the reason; choosing it shows that reason on the error
+  screen. Load is always offered in mode `any`, even with no saves yet.
+- The "This replaces your Continue save." question appears when a map is chosen
+  (Play only leads to the map list), and also when a slot is loaded from the
+  launcher while a Continue file exists, because the first turn start overwrites
+  it. Loading from inside a battle asks "Load slot N? You will leave the current
+  battle."; saving over a used slot asks "Replace the save in slot N?". The safe
+  answer (Cancel) is selected first.
+- Save/Load are entries in the existing End Turn menu (Menu button, or Confirm
+  on empty ground), so they are only reachable on a human player's turn with
+  nothing animating. Slots holding an unusable save may be saved over (after the
+  question); they cannot be loaded. The list opens on the first empty slot when
+  saving and on the first loadable one when loading.
+- Loading rebuilds the whole battle scene (new view, camera and menus) from the
+  state; no events are replayed. It works across maps of the same game. A
+  computer turn carries on by itself.
+- There is no "leave the battle" command in the player today; leaving means
+  closing the window or reloading the page, which keeps the Continue save.
+  After the result screen the Continue file is already gone.
+- Times are shown as `YYYY-MM-DD HH:MM` in the viewer's local time.
+
+**Command line and platform**
+- `--saves DIR`, `--no-saving`, `--continue`, `--load-slot N` (1..5). The last
+  two need `--game` and cannot be combined; `--load-slot` on a game that is not
+  mode `any`, or any of them on a `saving: "off"` game, fails with an error screen.
+  `--no-saving` beats `--saves`. Headless runs and `--no-settings` runs save
+  nothing unless `--saves` is given. The editor's embed page passes both
+  `--no-settings` and `--no-saving`.
+- `platform.h` gained `makeDir` and `removeFile` (SDL3 and SDL2 backends; the
+  SDL3 one works on Emscripten's file system too). Every write or delete is
+  followed by `commitUserData()`, so the web build stores saves like settings.
+- Save files are written to `<name>.tmp` and renamed over the old file; a failed
+  write leaves the previous save as it was.
+- The player logs one line per battle start saying where saves go ("saves:
+  <folder>", "off for this game" or "not available in this run"); the web
+  tests rely on it.
