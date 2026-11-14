@@ -2,6 +2,7 @@
 """Plays a campaign through the real player, windowless (docs/EVENTS.md "Campaign", docs/SAVES.md).
 
   python3 tests/campaign_player_test.py ./build/engine/player/ote-player .
+  python3 tests/campaign_player_test.py --make-games OUT_DIR .     # only writes the test games (tools/webtest uses it)
 
 Builds three small campaign games as copies of games/demo-srpg in a temp folder (never in the repo), then runs
 the player with --input scripts and --saves on a temp folder and checks the log lines and the save files:
@@ -147,6 +148,7 @@ def make_games(root, folder_out):
     build('camp', 'Campaign Test', 'retry', 'gone', ['skirmish'], False)   # wins; retry; fallen gone; one free battle
     build('camp_end', 'Campaign Ends', 'end', 'return', 'none', True)      # loses chapter 1; the story ends; fallen return
     build('camp_lose', 'Campaign Retry', 'retry', 'gone', 'all', True)     # loses chapter 1; retry; every map free
+    json.dump({'games': ['camp', 'camp_end', 'camp_lose']}, open(os.path.join(out, 'index.json'), 'w'))  # the web build has no folder listing
 
 
 # ---- running the player
@@ -299,6 +301,9 @@ def scenarios(tmp):
 
 def main():
     global PLAYER, repo
+    if len(sys.argv) == 4 and sys.argv[1] == '--make-games':
+        make_games(os.path.abspath(sys.argv[3]), os.path.abspath(sys.argv[2]))
+        return 0
     if len(sys.argv) < 3:
         print(__doc__)
         return 2

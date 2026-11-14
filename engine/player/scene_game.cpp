@@ -58,7 +58,7 @@ void GameScene::buildRows() {
     }
     rows_.push_back(r);
   }
-  if (campaign) rows_.push_back({kNewGame, "New game", "Start the story from the beginning", true, ""});
+  if (campaign) rows_.push_back({kNewGame, "New game", "Begin the story", true, ""});
   else rows_.push_back({kPlay, "Play", "Start a new battle", true, ""});
   if (saving && mode == SavingMode::Any) {
     int used = 0;
