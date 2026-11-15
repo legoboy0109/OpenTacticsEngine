@@ -5,6 +5,8 @@
 // a different renderer, stacked 3D) only need changes here and in the
 // player's drawing code.
 #pragma once
+#include <vector>
+
 #include "core/base/types.h"
 
 namespace ote {
@@ -33,6 +35,8 @@ class Grid {
   int neighbors(Cell c, Cell out[kMaxNeighbors]) const;
   // Steps between two cells ignoring terrain (used for attack ranges).
   int distance(Cell a, Cell b) const;
+  // Every cell within `radius` steps of `c` (distance() <= radius), `c` included; ascending cell index.
+  void within(Cell c, int radius, std::vector<Cell>& out) const;
 
  private:
   GridType type_ = GridType::Square;

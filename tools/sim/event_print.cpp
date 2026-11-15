@@ -74,7 +74,7 @@ std::string gained(const Battle& b, const Event& e) {
 
 }  // namespace
 
-std::string describeEvent(const Battle& b, const Event& e) {
+static std::string describeEventText(const Battle& b, const Event& e) {
   switch (e.type) {
     case EventType::TurnStarted:
       return fmt("-- turn: %s, round %d", b.sides[e.a].name.c_str(), e.b);
@@ -162,8 +162,23 @@ std::string describeEvent(const Battle& b, const Event& e) {
     }
     case EventType::UnitResupplied:
       return fmt("%s is resupplied", unitName(b, e.a).c_str());
+    case EventType::MoveBlocked:
+      return fmt("%s is stopped at %s by %s at %s", unitName(b, e.a).c_str(), cellName(b, e.c).c_str(),
+                 unitName(b, e.b).c_str(), cellName(b, e.d).c_str());
   }
   return "?";
+}
+
+std::string describeEvent(const Battle& b, const Event& e) {
+  std::string text = describeEventText(b, e);
+  if (e.seen != kSeenByAll) {  // fog of war: say which teams saw it
+    text += " [seen by team";
+    bool first = true;
+    for (int t = 0; t < b.teamCount && t < kMaxFogTeams; ++t)
+      if ((e.seen >> t) & 1u) { text += (first ? " " : ", ") + std::to_string(t); first = false; }
+    text += first ? " none]" : "]";
+  }
+  return text;
 }
 
 }  // namespace simtool

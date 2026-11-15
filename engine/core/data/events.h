@@ -28,14 +28,15 @@ struct Rect {
 enum class CmpOp { Eq, Ne, Lt, Le, Gt, Ge };
 
 struct Condition {
-  enum class Kind { Switch, Variable, Alive, Dead, Round, Carries, Researched };
+  enum class Kind { Switch, Variable, Alive, Dead, Round, Carries, Researched, Sees };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
   int side = -1;      // Researched: the side
+  int team = -1;      // Sees: the team that must see a unit matching `filter`
   bool is = true;     // Switch
   CmpOp op = CmpOp::Eq;  // Variable, Round
   int value = 0;      // Variable, Round
-  UnitFilter filter;  // Alive, Dead, Carries
+  UnitFilter filter;  // Alive, Dead, Carries, Sees
 };
 
 struct Trigger {

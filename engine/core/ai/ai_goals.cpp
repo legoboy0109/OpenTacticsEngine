@@ -51,8 +51,7 @@ const std::vector<int>& Context::enemyFieldFor(int moveType) {
   std::vector<int>& f = enemyField[moveType];
   if (f.empty()) {
     std::vector<Cell> goals;
-    for (const Unit& u : b.units)
-      if (u.alive && b.teamOf(u) != b.sides[side].team) goals.push_back(u.cell);
+    enemyGoals(b, side, goals);
     distanceField(b, moveType, goals, f);
   }
   return f;
@@ -107,7 +106,8 @@ void assignCaptureGoals(Context& cx) {
     if (claimed[s]) continue;
     b.structureCells(s, footprint);
     // Capturability depends on the structure and the team only, so any square will do for the test.
-    if (b.canCaptureAt(walkers[0], footprint[0])) cx.captureTargets.push_back(s);
+    // (Judged on the owner the team knows: it cannot plan on the owner of a structure it has not seen change hands.)
+    if (knownCapturable(b, b.units[(size_t)walkers[0]], footprint[0])) cx.captureTargets.push_back(s);
   }
 
   // Greedy matching, shortest trip first, so the nearest unit takes each

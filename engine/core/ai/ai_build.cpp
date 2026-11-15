@@ -50,14 +50,22 @@ bool chooseBuild(const Battle& b, Cell& outCell, int& outType) {
     if (!u.alive) continue;
     if (u.side == side) {
       if (db.unitTypes[u.type].canCapture) ++capturers;
-    } else if (b.teamOf(u) != b.sides[side].team) {
+    } else if (knownEnemy(b, side, u)) {
       enemyType[u.type] = 1;
     }
   }
+  // Fog: with no enemy in sight it cannot tell what to expect, so every type counts (the same data a human has).
+  if (b.fogOn()) {
+    bool any = false;
+    for (char t : enemyType) any = any || t != 0;
+    if (!any) std::fill(enemyType.begin(), enemyType.end(), 1);
+  }
   if (db.rules.capture) {
-    for (const StructureState& st : b.structures)
-      if (b.defOf(st).capturePoints > 0 && (st.owner < 0 || b.sides[st.owner].team != b.sides[side].team))
-        ++targets;
+    for (size_t si = 0; si < b.structures.size(); ++si) {
+      const StructureState& st = b.structures[si];
+      int owner = knownOwner(b, side, (int)si);  // the owner it believes, not the true one
+      if (b.defOf(st).capturePoints > 0 && (owner < 0 || b.sides[owner].team != b.sides[side].team)) ++targets;
+    }
   }
   int wanted = std::min(kWantedCapturers, targets);
 

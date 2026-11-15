@@ -63,15 +63,27 @@ enum class EventType {
   // Repair and supply (docs/ECONOMY.md); a repair's payment comes first as ResourceChanged.
   UnitRepaired,       // a=unit, b=HP restored, c=its HP now, data=what it cost per resource index (empty = free)
   UnitResupplied,     // a=unit (fuel and/or ammunition filled up)
+  // Fog of war (docs/ECONOMY.md): a move that ran into an enemy nobody on its team saw. It comes right after the
+  // UnitMoved event of the squares actually walked (none when the unit never left its square).
+  MoveBlocked,        // a=unit, b=the unit in the way, c=square the unit stopped on, d=square the enemy stands on
 };
 
 enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
+
+// Bit `t` of Event::seen = team `t` saw the event (docs/ECONOMY.md "Fog of war"). Without fog every event has all bits.
+const uint32_t kSeenByAll = 0xffffffffu;
 
 struct Event {
   EventType type = EventType::TurnStarted;
   int a = -1, b = -1, c = -1, d = -1;
   int flags = 0;
   std::vector<int> data;
+  // Which teams saw it (set by Battle::apply / start: what "saw" means per type is in event_visibility.cpp).
+  // A consumer that shows the battle to one team skips (or hides) events whose bit for that team is clear.
+  uint32_t seen = kSeenByAll;
+  // UnitMoved with fog only: per team (index = team) two entries, the first and the last index into `data` of a square
+  // where that team saw the mover, or -1, -1 when it never did. Empty without fog.
+  std::vector<int> seenSteps;
 };
 
 // One item somebody holds (docs/ITEMS.md).
@@ -250,6 +262,8 @@ class Battle {
   bool over = false;
   int winnerTeam = -1;
   Rng rng;
+  // Fog of war (docs/ECONOMY.md): true from the map's "fog". The queries below answer "everything visible" without it.
+  bool fog = false;
   // The map's events and objectives (null = none) and how far they have got. Copies share the data.
   std::shared_ptr<const StoryData> story;
   StoryState storyState;
@@ -363,6 +377,31 @@ class Battle {
   // from its side's present funds (income comes first at the turn start and is not counted). False = no repair.
   bool repairPreviewAt(int unit, Cell at, RepairPlan& out) const;
   bool repairPreview(int unit, RepairPlan& out) const;
+
+  // ---- fog of war (sight.cpp, fog_rules.cpp, event_visibility.cpp; docs/ECONOMY.md "Fog of war") ----
+  // The battle always holds the truth. What a team knows is asked here; with fog off every answer is "everything
+  // is visible" / the true owner, so callers need no special case. `team` is a team index (SideState::team).
+  bool fogOn() const { return fog; }
+  // Does the team see the square now (terrain, heights and structure positions are known anyway)?
+  bool visibleTo(int team, Cell cell) const;
+  // Does the team see this unit now: alive, and on its own team, or on a square its sight reaches (a hiding square
+  // shows its unit only to units next to it)?
+  bool unitVisibleTo(int team, const Unit& unit) const;
+  bool unitVisibleTo(int team, int unit) const;
+  // Does the team see at least one square of the structure?
+  bool structureVisibleTo(int team, int structure) const;
+  // The owner (side index, -1 = nobody) the team believes the structure has: the true one while it sees it,
+  // else the last one it saw (the map's starting owner until then).
+  int seenOwner(int team, int structure) const;
+  // The same asked for a side (its team).
+  bool visibleToSide(int side, Cell cell) const { return visibleTo(sides[(size_t)side].team, cell); }
+  bool unitVisibleToSide(int side, int unit) const { return unitVisibleTo(sides[(size_t)side].team, unit); }
+  int seenOwnerForSide(int side, int structure) const { return seenOwner(sides[(size_t)side].team, structure); }
+  // Sight is recomputed by itself after every change made through apply() and at start / load. Code that edits the
+  // public state by hand (tests, tools) calls this afterwards.
+  void refreshSight() const { sight_.valid = false; }
+  // For loading a save: the last seen owners, one list per team with one entry per structure (checked by the caller).
+  void setSeenOwners(const std::vector<std::vector<int>>& owners) { seenOwners_ = owners; sight_.valid = false; }
 
   // ---- items (items.cpp; docs/ITEMS.md) ----
   const ItemDef& itemOf(const ItemStack& s) const { return db->items[(size_t)s.item]; }
@@ -505,6 +544,49 @@ class Battle {
   void awardXp(int unit, int amount, std::vector<Event>& events);
 
   StoryRun storyRun_;  // transient: empty between actions
+
+  // ---- fog of war, private (sight.cpp) ----
+  struct SightCache {
+    bool valid = false;
+    std::vector<std::vector<uint8_t>> seen;      // [team][cell]: the square is in the team's sight
+    std::vector<std::vector<uint8_t>> unitSeen;  // [team][cell]: a unit of ANOTHER team standing there would be seen
+  };
+  // Derived data kept lazily: a query recomputes it when `valid` is false. Copies carry it.
+  mutable SightCache sight_;
+  // Last seen owner per team and structure; the only part of fog that is state (saved). Updated by sight.
+  mutable std::vector<std::vector<int>> seenOwners_;
+  // While apply() / start() run: where events go and from which index they are not stamped with `seen` yet.
+  std::vector<Event>* sightEvents_ = nullptr;
+  size_t stampFrom_ = 0;
+
+  void ensureSight() const;
+  void computeTeamSight(int team) const;
+  int visionOf(const Unit& u) const;
+  // Call BEFORE a change that alters who sees what (a unit moves, dies, is added, changes side, a structure changes
+  // owner or kind): events pushed so far are stamped with the sight as it still is, then the cache is dropped.
+  void markSight();
+  // Stamps the events pushed since the last stamp (event_visibility.cpp).
+  void stampEvents();
+  uint32_t eventSeenBy(const Event& e) const;
+  uint32_t unitSeenBy(int unit) const;
+  uint32_t cellSeenBy(Cell cell) const;
+  uint32_t footprintSeenBy(int structure) const;
+  // After a structure's owner changed: the teams in `teams` now believe the new owner.
+  void learnOwner(int structure, uint32_t teams);
+  // fog_rules.cpp
+  // Sets sightEvents_ / stampFrom_ for the length of one apply() / start(); stamps what is left when it ends.
+  struct EventScope {
+    EventScope(Battle& battle, std::vector<Event>& events);
+    ~EventScope();
+    Battle& b;
+    bool owns = false;
+  };
+  // fog_rules.cpp: a planned move on what the team saw can run into an enemy it did not. Index of the path square
+  // the unit really reaches (the last free one before the enemy; path.size() - 1 when nothing is in the way);
+  // `blocker` receives the enemy unit's id, or -1, and `blockedAt` its square.
+  int pathStop(int unit, const std::vector<Cell>& path, int& blocker, Cell& blockedAt) const;
+  // The unit walked `path` up to index `upTo`: its team notices the structures it passed (their last seen owner).
+  void noticeAlong(int unit, const std::vector<Cell>& path, int upTo);
 };
 
 }  // namespace ote

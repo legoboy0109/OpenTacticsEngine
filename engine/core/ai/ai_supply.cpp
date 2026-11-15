@@ -69,7 +69,7 @@ bool considerResupply(const Battle& b, const Unit& u, const std::vector<Cell>& s
   if (b.db->rules.supply.structures) {
     std::vector<Cell> footprint;
     for (size_t s = 0; s < b.structures.size(); ++s) {
-      if (b.structures[s].owner != u.side) continue;
+      if (knownOwner(b, u.side, (int)s) != u.side) continue;
       b.structureCells((int)s, footprint);
       for (Cell c : footprint) {
         goals.push_back(c);

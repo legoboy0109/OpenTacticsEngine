@@ -61,6 +61,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
     OTE_ERROR("story: addUnit '%s': no free square on the map for it", typeOf(u).id.c_str());
     return;
   }
+  markSight();
   u.id = (int)units.size();
   u.cell = cell;
   occupant[(size_t)cell] = u.id;
@@ -76,6 +77,7 @@ void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events) {
   occupant[(size_t)from] = unit;
   if (dest == kNoCell || dest == from) return;
   releaseCapture(unit, dest);
+  markSight();
   occupant[(size_t)from] = -1;
   occupant[(size_t)dest] = unit;
   units[(size_t)unit].cell = dest;
@@ -109,6 +111,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         if (!units[(size_t)i].alive || !unitMatches(c.filter, units[(size_t)i])) continue;
         Cell cell = units[(size_t)i].cell;
         events.push_back(makeEvent(EventType::UnitRemoved, i, cell));
+        markSight();
         releaseCapture(i, kNoCell);
         occupant[(size_t)cell] = -1;
         units[(size_t)i].alive = false;  // gone, but not "defeated": no drops, no defeat events
@@ -126,6 +129,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         Unit& u = units[(size_t)i];
         if (!u.alive || u.side == c.side || !unitMatches(c.filter, u)) continue;
         events.push_back(makeEvent(EventType::SideChanged, i, u.side, c.side));
+        markSight();
         releaseCapture(i, kNoCell);  // a capture belongs to its capturer's side
         u.side = c.side;
         sides[(size_t)c.side].everHadUnits = true;

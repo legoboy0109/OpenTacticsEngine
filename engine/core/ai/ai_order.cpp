@@ -26,7 +26,7 @@ constexpr int kTooClosePenalty = 6;           // advance cost units, see closePe
 int closePenalty(const Battle& b, const Unit& u, Cell c, int minRange) {
   if (minRange <= 1) return 0;
   for (const Unit& e : b.units)
-    if (e.alive && b.isEnemy(u, e) && b.grid.distance(c, e.cell) < minRange) return kTooClosePenalty;
+    if (knownEnemy(b, u.side, e) && b.grid.distance(c, e.cell) < minRange) return kTooClosePenalty;
   return 0;
 }
 
@@ -47,6 +47,7 @@ int outnumbered(const Battle& b, const Unit& u, Cell c) {
     if (!o.alive || o.id == u.id) continue;
     int dist = b.grid.distance(c, o.cell);
     if (b.isEnemy(u, o)) {
+      if (!knownEnemy(b, u.side, o)) continue;  // fog: an enemy it cannot see is not counted
       int range = 1;
       std::vector<int> weapons;
       b.weaponsOf(o, weapons);
@@ -136,7 +137,7 @@ Order bestOrder(Context& cx, const Unit& u) {
   for (Cell s : stops) {
     int travel = s == u.cell ? 0 : reach.cost[s];
 
-    if (b.canCaptureAt(u.id, s) && cx.mayCapture(u, s)) {
+    if (knownCapturable(b, u, s) && cx.mayCapture(u, s)) {
       double sc = scoreCapture(b, u, s) - kCaptureCostWeight * travel;
       if (sc > best.score) {
         best = Order();

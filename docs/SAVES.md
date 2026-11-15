@@ -144,6 +144,14 @@ Decisions where the contract was silent, and the few deviations:
   technologies, every finished or running technology having its prerequisites finished; `current` not
   finished; `left` from 1 to the technology's turns; a `research` key in a game without research is refused;
   a living unit's `hp` is checked against its maximum with the side's research bonus.
+  A battle on a map with fog of war (docs/ECONOMY.md "Fog of war") also has
+  `"seenOwners": [[side index or -1, ...], ...]`: one list per team (in team order), each with one entry per
+  structure, what that team last saw of its owner (-1 = nobody's). Required for fog maps, refused otherwise
+  (`battle.seenOwners: this battle has no fog of war`); a list per team, one number per structure, whole, from -1 to
+  the last side. What each team currently sees is not saved: it is recomputed from the units when the save is
+  loaded. Games and maps without fog write and read exactly what they did before (the pinned demo hash and save
+  bytes are unchanged); the map's `fog` key and the new unit, terrain and structure keys are part of the data
+  hash like any other rule data (those files are hashed whole).
   A game with events, objectives, switches or variables also gets
   `"story": { "switches": [true, ...], "variables": [3, ...], "fired": ["event ids"],
   "objectives": 0 }` (all four required then; `switches` and `variables` have

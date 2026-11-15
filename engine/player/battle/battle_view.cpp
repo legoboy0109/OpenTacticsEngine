@@ -233,7 +233,9 @@ void BattleView::begin(const Battle& b) {
     case EventType::ResearchFinished:
     // Repair and supply (docs/ECONOMY.md): no player UI yet; the unit's HP shows by itself next time it is drawn.
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
-    case EventType::UnitResupplied: break;
+    case EventType::UnitResupplied:
+    // Fog of war (docs/ECONOMY.md): the player does not draw fog yet, so it shows everything as before.
+    case EventType::MoveBlocked: break;
   }
 }
 

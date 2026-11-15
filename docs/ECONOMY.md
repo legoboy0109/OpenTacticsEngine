@@ -16,11 +16,10 @@ first version:
 Everything below is engine design and may change; wording shown to players
 and makers is placeholder until the owner approves it.
 
-Status: upgradable structures and research (build order step 1) and repair and supply (step 2) are built in the
-rules core (done 2026-11-14, the sections below describe what the core does); fog of war is still
-design only. The player has the menus, the research panel, the info-panel lines and the event banners for upgrades,
-research, repair and supply (step 4, see "Player"; fog drawing is not done); no editor screens and no demo content yet
-(step 5).
+Status: upgradable structures and research (build order step 1), repair and supply (step 2) and fog of war (step 3)
+are built in the rules core (done 2026-11-14, the sections below describe what the core does). The player has the
+menus, the research panel, the info-panel lines and the event banners for upgrades, research, repair and supply
+(step 4, see "Player"); fog drawing in the player is not done; no editor screens and no demo content yet (step 5).
 
 A game that uses none of this behaves exactly as today and keeps its save
 hash. Each part is switched on by its own data, not by one big switch.
@@ -183,37 +182,111 @@ Unknown keys inside `supply` / `repair` are refused. A game without the block re
 
 ## Fog of war
 
-Map file: `"fog": true` (default false).
-- units.json `"vision": 3` (default 2); terrain.json / structures.json
-  optional `"visionBonus": 2` (for units standing on it, e.g. mountains)
-  and `"hides": true` (forest: a unit standing on it is seen only from an
-  adjacent square). Structures owned by a side see 1 around themselves.
-- A **team** shares sight. A square is visible to a team when within
-  vision range (grid distance, no line-of-sight blocking in this version)
-  of one of its units, subject to `hides`.
-- Hidden from a team: enemy units on squares it does not see, and the
-  **current owner / capture state** of structures it does not see (it keeps
-  the last owner it saw). Terrain, heights and structure positions are
-  always known.
-- Rules: a unit cannot target what its team does not see. A move is planned
-  on what is seen; if the path runs into a hidden enemy the unit stops on
-  the last free square before it and its turn ends (`MoveBlocked` event:
-  the ambush). Sight is recalculated after every move, death, capture and
-  build. Sight is always "now": squares passed during a move do not stay
-  revealed.
-- `Battle` keeps the truth; a view asks `visibleTo(team, cell)`,
-  `unitVisibleTo(team, unit)`, `seenOwner(team, structure)`. The event
-  stream carries, per event, which teams saw it, so the player shows a human
-  only what its team saw (an unseen enemy move is not animated; a unit
-  walking into view appears at the first seen square).
-- AI plays by the same rules: it only knows what its team sees (plus last
-  seen structure owners).
-- Hot-seat (two humans on one device): the screen is covered between turns
-  ("Pass the device to <side>") when fog is on.
-- Saves: last seen owner per team and structure. Sight itself is
-  recomputed.
-- Story events: unaffected (they act on the truth); dialogue always shows.
-  New condition `{ "sees": <filter>, "team": "blue" }`.
+Map file: `"fog": true` (default false; a boolean, anything else is refused). At most 32 sides on a fog map (an
+event's "seen by" is a 32-bit mask with one bit per team). Built in the rules core (2026-11-14); the player does not
+draw fog yet and the editor has no switch for it (steps 4 and 5).
+
+**Data.**
+- units.json `"vision": 3` (whole number 0 to 20, default 2): how many squares the unit's team sees from where it
+  stands, counted in grid distance (the same measure as weapon ranges), no line-of-sight blocking in this version.
+  It is not a stat: research and accessories do not change it.
+- terrain.json and structures.json `"visionBonus": 2` (0 to 10, default 0): added to the vision of a unit standing on
+  the square (a mountain). A unit on a structure square gets the terrain's and the structure's bonus **added**.
+- terrain.json and structures.json `"hides": true` (default false): see "Hiding" below. Either one hiding is enough.
+- Every refusal names the file, the entry and the key (`units.json: unit "scout": "vision" must be from 0 to 20`).
+
+**Sight** (`Battle::visibleTo`), per **team** (sides of a team share everything):
+- A square is in sight when it is within `vision + bonus` of a living unit of the team, or within 1 of any square of
+  the footprint of a structure owned by a side of the team (so the whole footprint and one square around it).
+  A neutral structure sees nothing.
+- **Hiding**: a unit standing on a square that hides is seen only by a unit of the team standing next to it (grid
+  distance 1; even a unit with vision 0 notices a neighbour in a hideout). The hiding square's terrain itself is
+  always known, as all terrain, heights and structure positions are. A unit of the team itself is always seen
+  by it (`unitVisibleTo` is true for the team's own units, hideout or not); dead units are never seen.
+- Sight is recomputed after every change made through `apply` (move, death, capture, build, unit added, removed or
+  relocated, side change, structure upgrade) and at battle start and load; the per-team bit grids are rebuilt lazily
+  the first time a query asks after a change (deterministic, no randomness). Code that edits the public state by hand
+  (tests, tools) calls `Battle::refreshSight()` afterwards. It is cheap: about units x area per team, rebuilt only
+  when dirty.
+
+**Rules with fog on.**
+- **Targeting**: attack options, `forecast` and `apply(Attack)` leave out units the acting team does not see (the same
+  refusal as any impossible attack, "that attack is not possible"); Talk is not offered towards an unseen unit. Item
+  and heal targets, trading, supply and the shop only ever involve units of the same team (or none), so they need no
+  rule. Planning "as if the unit stood on another square" still judges the targets on the sight of right now. A
+  defender still **counterattacks** an attacker its team cannot see (the exchange is the rules' business, not a
+  choice of the team).
+- **Movement is planned on what is seen**: `reachable` treats an enemy unit the unit's team does not see as absent (the
+  square costs its terrain, can be passed and can even be a stop). Seen enemies block as before.
+- **Ambush**: an order is carried out along the planned path square by square. If the next square holds an enemy
+  unit (seen or not: the plan is fixed, it is not replanned when something comes into view on the way), the unit stops on
+  the last square before it that it may legally end on (an ally's square can be walked through, never stopped on, so it
+  falls back further; at worst its own starting square), spends fuel only for the squares it walked, has `moved` and `done`
+  set (the turn is over for it) and the event `MoveBlocked` follows the `UnitMoved` of the squares walked (no
+  `UnitMoved` when it never left). Story "reach" triggers fire for the square it really ended on, only if it moved.
+  The mover's team notices structures passed on the way (their last seen owner is updated at every square walked, not
+  only at the end).
+- **Last seen owner per team and structure** (`seenOwner(team, structure)`): the true owner while the team sees any
+  square of the structure, otherwise the last one it saw; the map's starting owners are known to everybody at the start.
+  A change of owner is learned by every team that saw the `StructureCaptured` event (rules below) including the
+  old and the new owner's team; a defeated side's structures turn neutral for **every** team (`SideDefeated` is public).
+  Capture progress is not remembered: a view shows a structure's capture points only for a structure it currently sees
+  (`structureVisibleTo`); `CaptureProgress` events are seen only by teams that see the capturer.
+- **The truth decides**: defeat and victory rules, objectives and story events (including triggers by unseen units and
+  `Talk` conditions) act on the real situation. Dialogue and objective changes are public.
+- **Story condition** `{ "sees": <unit filter>, "team": "<team>" }` (docs/EVENTS.md): true when the team sees at least one
+  living unit that matches. Without fog it sees every living unit.
+
+**Queries** (`Battle`, with fog off they answer "everything visible" and the true owner, so callers need no special
+case): `fogOn()`, `visibleTo(team, cell)`, `unitVisibleTo(team, unit)` (a unit id or a `Unit`), `structureVisibleTo(team,
+structure)`, `seenOwner(team, structure)`, the side forms `visibleToSide`, `unitVisibleToSide`, `seenOwnerForSide`,
+`refreshSight()`.
+
+**Event visibility.** Every `Event` has `uint32_t seen` (bit `t` = team `t` saw it; all bits without fog and for the
+public events, so nothing changes for existing consumers) and, for `UnitMoved` with fog, `seenSteps`: per team (index =
+team) two numbers, the first and last index into `data` at which that team saw the mover (-1, -1 = never; the mover's
+own team: 0 and the last). "Saw" is decided with the sight of the moment the event happened:
+ - public (all teams): `TurnStarted`, `SideDefeated`, `BattleEnded`, `Dialogue`, `Focus`, `ObjectiveChanged`;
+ - `UnitMoved`: the mover's team and every team that saw the mover on at least one square of the path; a team that saw
+   only part of it gets the whole event and uses `seenSteps` to draw the part it saw (a unit walking into view appears
+   at its first seen square);
+ - `MoveBlocked`, `Attack`: the teams of both units and every team that sees either unit (a combat is shown in
+   full, counters included);
+ - `UnitDied`, `UnitRemoved`: the unit's team and the teams that saw it on its square; `UnitRelocated`: its team and
+   the teams that see either square; `UnitBuilt`, `UnitAdded`, `UnitHealed`, `CaptureProgress`: the unit's team and the
+   teams that see the unit; `ItemUsed`: teams that see the user or the target; `SideChanged`: both sides' teams and
+   the teams that see the unit;
+ - `StructureCaptured`: the new owner's team, the previous owner's team and every team that sees any square of it;
+   `StructureUpgraded`: the owner's team and every team that sees any square of it;
+ - one team's bookkeeping (`XpGained`, `LevelUp`, `StatsRaised`, `ItemBroke`, `ItemEquipped`, `ItemLost`,
+   `UnitRepaired`, `UnitResupplied`): only the unit's own team; resources, items and research of a side
+   (`ResourceChanged`, `ItemGained`, `ItemMoved`, `ResearchStarted`, `ResearchFinished`): only that side's team.
+The state of a battle is always the truth and is already updated when the events are animated; what a human sees of
+the stream is decided by the player from these masks.
+
+**AI** (`ai/ai_knowledge.cpp`): it reads enemy units, structure owners and capture state only through one small set of
+helpers (`knownEnemy`, `knownOwner`, `knownCapturable`, `enemyGoals`) that answer from its team's sight and memory; without fog
+they answer from the truth, so decisions are bit-for-bit what they were (checked with the sim's verbose output).
+Under fog: danger and exposure only count enemies it sees; capture targets are judged on the owner it last saw
+(a structure it believes its own is not a target); what to build counts only the unit types of enemies in sight (with
+none in sight every type counts as a possible target, which is data a human also has); advancing goes to the
+enemy units in sight, else to the structures it last saw in enemy hands (the enemy HQ is one), else to the unseen square
+farthest from everything it has. It never plans a move the rules refuse; a move that is ambushed ends like any
+other (the unit's turn is over and the AI simply continues with the next unit). Tests move a hidden enemy
+around out of sight and check that no decision changes.
+
+**Saves** (docs/SAVES.md): `"seenOwners"`, the last seen owner per team and structure, only for fog maps. Sight is
+recomputed on load.
+
+**Tools**: `ote-sim <game> <map> --force-fog` plays a map with fog on whatever the file says (single maps only), and
+prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
+
+**Player** (step 4): unseen squares dimmed; hidden units not drawn; structures show the last seen owner; works in all
+four kinds of view. What a human sees of the event stream is filtered by `Event::seen` for the human's team (an unseen
+enemy move is not animated; a walk into view starts at `seenSteps`' first index; a `MoveBlocked` of the human's own
+unit is animated as the walk, then a short "stopped" cue). Hot-seat (two humans on one device): the screen is covered
+between turns ("Pass the device to <side>") when fog is on.
+Story events: unaffected (they act on the truth); dialogue always shows.
 
 ## Editor
 
@@ -234,8 +307,8 @@ Map file: `"fog": true` (default false).
   the one in progress with turns left).
 - Info panel: fuel and ammunition when the unit has them; research in
   progress under the side's resources.
-- Fog: unseen squares are dimmed; hidden units are not drawn; structures
-  show the last seen owner. Works in all four kinds of view.
+- Fog: see "Fog of war > Player" above (dimmed unseen squares, hidden units not drawn, last seen owners, the event
+  stream filtered by `Event::seen`, hot-seat cover). Not built yet.
 - Action menu: **Supply** for supplier units (the units it would fill are tinted while the entry is selected).
 - Built (2026-11-14): a structure that offers one thing opens it at once, several open a menu first; greyed entries show
   their reason (upgrade / build: in place of the price; research: in the panel's detail lines); locked unit types are
@@ -252,7 +325,7 @@ stealth abilities beyond `hides`; several research queues.
 
 1. Core: upgradable structures + research (data, rules, saves, AI, tests). **Done.**
 2. Core: repair and supply. **Done.**
-3. Core: fog of war (the biggest: sight, per-team event visibility, AI).
+3. Core: fog of war (the biggest: sight, per-team event visibility, AI). **Done.**
 4. Player: menus and panel for 1 and 2; fog drawing in every kind of view.
 5. Editor: all screens; `demo-economy` content (a town upgrade, two
    technologies, repair, one fog map).

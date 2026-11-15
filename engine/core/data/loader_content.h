@@ -30,6 +30,11 @@ bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, U
 bool readStructureRepairs(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, StructureDef& s);
 // After items: "ammo" on a weapon that is carried as an item is an error.
 bool checkAmmoNotItems(const std::string& weaponsPath, const Database& db, std::string& err);
+// Fog of war (loader_fog.cpp; docs/ECONOMY.md): units.json "vision", terrain / structures "visionBonus" and
+// "hides", the map's "fog" (after the sides are loaded).
+bool readUnitVision(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
+bool readSquareVision(const LoadCtx& c, const Json& e, const std::string& where, int& visionBonus, bool& hides);
+bool readMapFog(const LoadCtx& c, const Json& root, MapDef& m);
 // The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
 // "structures" array of data/structures.json; db.structures already holds its entries in the same order.
 bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db);

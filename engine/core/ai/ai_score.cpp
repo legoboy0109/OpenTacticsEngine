@@ -100,7 +100,7 @@ double scoreCapture(const Battle& b, const Unit& u, Cell at) {
   if (!t.income.empty()) score = 3000;
   if (!t.produces.empty()) score = 5000;
   if (hasTag(t.tags, "hq")) score = 8000;
-  if (st.owner >= 0) score += 500;  // taking it also hurts the enemy
+  if (knownOwner(b, u.side, b.structureIndexAt(at)) >= 0) score += 500;  // taking it also hurts the enemy
   if (st.capturer == u.id) score += 4000;  // finish what was started (hq still ranks above the rest)
   return score;
 }

@@ -108,13 +108,17 @@ void Battle::checkDefeat(std::vector<Event>& events) {
         killUnit((int)i, events);
         fallen.push_back((int)i);
       }
-    // Its structures become neutral (and any capture in progress stops).
-    for (StructureState& st : structures)
-      if (st.owner == s) {
-        st.owner = -1;
-        st.capture = defOf(st).capturePoints;
-        st.capturer = -1;
-      }
+    // Its structures become neutral (and any capture in progress stops). SideDefeated is public, so every team
+    // learns that they are neutral now, seen or not.
+    markSight();
+    for (size_t i = 0; i < structures.size(); ++i) {
+      StructureState& st = structures[i];
+      if (st.owner != s) continue;
+      st.owner = -1;
+      st.capture = defOf(st).capturePoints;
+      st.capturer = -1;
+      learnOwner((int)i, kSeenByAll);
+    }
   }
 
   // Events may add units or end the battle themselves; they run after the sweep above is complete.

@@ -1,6 +1,7 @@
 // ote-sim: plays whole battles with the AI on every side (testing and
 // balance tool). Usage:
-//   ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose]
+//   ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose] [--force-fog]
+//       --force-fog plays the map with fog of war on even if the map file has none (single maps only)
 //   ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose]
 //       plays the game's campaign from chapter 1 (the human side played by the AI)
 // Exit codes: 0 all runs had a winner, 1 load/usage error, 2 some run
@@ -29,6 +30,7 @@ struct Options {
   int maxRounds = 60;
   bool verbose = false;
   bool campaign = false;
+  bool forceFog = false;  // switch fog of war on for the map, whatever the file says (to test the AI under fog)
 };
 
 // strtol-based, no exceptions. Returns false on junk.
@@ -45,6 +47,7 @@ bool parseArgs(int argc, char** argv, Options& o) {
     long v = 0;
     if (a == "--verbose") o.verbose = true;
     else if (a == "--campaign") o.campaign = true;
+    else if (a == "--force-fog") o.forceFog = true;
     else if ((a == "--seed" || a == "--runs" || a == "--max-rounds") && i + 1 < argc && parseInt(argv[i + 1], v)) {
       ++i;
       if (a == "--seed") o.seed = (unsigned)v;
@@ -130,7 +133,7 @@ RunResult playOne(const Database& db, const MapDef& map, Formulas& formulas, uns
 int main(int argc, char** argv) {
   Options opt;
   if (!parseArgs(argc, argv, opt)) {
-    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose]\n"
+    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose] [--force-fog]\n"
                          "       ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose]\n");
     return 1;
   }
@@ -155,6 +158,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if (opt.forceFog) map.fog = true;
   std::vector<int> wins(map.sides.size(), 0);
   std::vector<std::string> names;
   int stalls = 0;
