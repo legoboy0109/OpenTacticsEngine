@@ -4,10 +4,10 @@
       "stats": { "hp": 100, "mov": 3 }, "weapons": ["rifle"],
       "cost": { "funds": 1000 }, "canCapture": true },
     { "id": "tank", "name": "Tank", "glyph": "T", "moveType": "tread",
-      "stats": { "hp": 100, "mov": 6 }, "weapons": ["tank_cannon"],
+      "stats": { "hp": 100, "mov": 6 }, "weapons": ["tank_cannon"], "sounds": { "step": "tank_move" },
       "cost": { "funds": 7000 } },
     { "id": "artillery", "name": "Artillery", "glyph": "A", "moveType": "tread",
-      "stats": { "hp": 100, "mov": 5 }, "weapons": ["cannon"],
+      "stats": { "hp": 100, "mov": 5 }, "weapons": ["cannon"], "sounds": { "step": "tank_move" },
       "cost": { "funds": 6000 } }
   ]
 }
