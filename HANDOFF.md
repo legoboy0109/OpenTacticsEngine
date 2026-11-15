@@ -571,8 +571,7 @@ stepping a volume slider from "Default" goes to Off first (the unset choice is e
 ## Sound, step 2: the player plays sound (2026-11-14)
 
 docs/SOUND.md build order step 2, as built ("Step 2 as built" there has the full tables). No shipped game has an
-`audio.json` yet, so nothing is heard from `games/` until step 3; the demos behave exactly as before (a test asserts their audio
-log has no sound or music lines). **Real sound was never heard here** (no device is opened on this machine by rule): everything is
+`audio.json` yet at that point (step 3 below gave the demos and templates theirs). **Real sound was never heard here** (no device is opened on this machine by rule): everything is
 checked through `--audio-log` and offline.
 
 What it is: `data/audio.json` (+ `"sounds"` on weapons / units / items, `"music"` / `"playerTurnMusic"` / `"enemyTurnMusic"` on maps, a
@@ -614,6 +613,21 @@ choice is a design decision for the owner. The same sound at most once per frame
 (0.045 s) and `cursor` (0.03 s) are code constants (`game_audio.cpp`); the dialogue blip fires per typed letter, which may want a
 slower rate once heard.
 
+## Sound, step 3: starter audio in the demos and templates (2026-11-14)
+
+docs/SOUND.md "Step 3 as built" has the tables. `python3 tools/audio/make_starter_audio.py .` writes the retro set (`audio/` + `data/audio.json`)
+into `games/demo-economy` and the three templates (what each gets: `tools/audio/targets.py`; OGG re-encoded only when the SHA-256 of
+its source WAV in `tools/audio/starter_audio.manifest.json` changed, so a rerun is a no-op on any machine); `games/demo-srpg` has the
+CC0 set (`tools/audio/make_cc0_set.py --src <folder of the downloads>`; sources in `games/demo-srpg/CREDITS.md`, originals not
+committed). The overrides (weapons / units / items) and the bridge map's `playSound alarm` / `playMusic boss` / `stopMusic` are hand-written
+in the games' data. Repository grows by about 6 MB (4 retro copies of ~0.95 MB, the CC0 set 2.1 MB); the web package by the same
+(it copies `games/`). The demo-srpg rules hash changed (a new story command): older demo-srpg saves of the bridge are refused. **Nothing
+was heard**: the loops of the CC0 music were picked by comparing the two ends numerically and the sounds by name, so listen once
+(`ote-player --game demo-srpg --campaign`, `--game demo-economy --map twin_rivers`, a project made from each template) and tell what
+should change. For the editor step: the web editor's campaign screen does not read the scene object form (`{ "music", "commands" }`) or
+the commands `playMusic` / `stopMusic` / `playSound` in a scene (its unit test on the demo campaign fails on them), so `demo-srpg`'s
+`campaign.json` is left as it was and scene music comes from `sceneMusic`.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
@@ -643,8 +657,8 @@ and `demo-economy` content (town upgrades, three technologies, supply, fog map `
 for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window. Next:
 sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end): step 1 (engine: decoders, mixer, device,
 options, audio log, self-test) and the player part (audio.json loader, standard set wired to battle events and menus, music
-director, story commands, campaign scenes) are built, see "Sound, step 1" and "Sound, step 2" above; next is step 3 (starter audio into
-the demos and templates).
+director, story commands, campaign scenes) and starter audio in the demos and templates are built, see "Sound, step 1", "Sound, step 2" and "Sound, step 3" above; next is
+step 4 (the editor's Sound screen).
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

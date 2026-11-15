@@ -15,8 +15,8 @@ Contract for PLAN item 3h. Owner decisions (2026-11-14):
 Everything below is engine design and may change; wording shown to players
 and makers is placeholder until the owner approves it.
 
-Status: build order steps 1 (the engine) and 2 (the player: data, events, music) are done; the rest is design, see "Build order",
-"Step 1 as built" and "Step 2 as built".
+Status: build order steps 1 (the engine), 2 (the player: data, events, music) and 3 (starter audio in the demos and templates) are done;
+the rest (the editor) is design, see "Build order", "Step 1 as built", "Step 2 as built" and "Step 3 as built".
 
 A game without `data/audio.json` is silent and behaves exactly as today.
 Audio never changes rules, saves or the save hash: it is presentation, like
@@ -257,19 +257,70 @@ design decision for the owner.
 **Story commands.** `{ "playMusic": id, "fade": seconds }` (fade optional: not given = the 0.5 s cross-fade, 0 = a cut, up to 60),
 `{ "stopMusic": true, "fade": s }`, `{ "playSound": id }` in map events and campaign scenes (docs/EVENTS.md).
 
+## Step 3 as built
+
+**Who has what.** One command, `python3 tools/audio/make_starter_audio.py .`, writes `audio/` and `data/audio.json` into
+`games/demo-economy` and the three editor templates (`blank`, `economy-tactics`, `strategy-rpg`); `tools/audio/targets.py` lists what
+each copy gets. Every copy is self-contained (a project made from a template is a plain copy of the folder, so templates cannot share
+files), so each ships only the files its `audio.json` names. `blank` gets the set too (a new project must not be silent) but only the
+standard cues, no extra overrides; it has one unit and one sword.
+
+| Copy | Effects (WAV) | Music (OGG) | Overrides written into its data files |
+|---|---|---|---|
+| `games/demo-economy` | 24 files, 337 KB | title, battle, enemy, victory, defeat, levelup (623 KB) | tank / artillery / APC `step` = `tank_move`; Tank Gun / Howitzer `hit` = `cannon_shot`; standard `ambush` (fog maps) |
+| `editor/templates/blank` | 21 files, 284 KB | the same six | none |
+| `editor/templates/economy-tactics` | 23 files, 319 KB | the same six | tank / artillery `step` = `tank_move`; both cannons `hit` = `cannon_shot` |
+| `editor/templates/strategy-rpg` | 24 files, 315 KB | the same six | Iron Sword `sword_hit`, Iron Bow `bow_shot`, Cavalier `step` = `hooves` |
+| `games/demo-srpg` (CC0 set) | none (all OGG, 38 effects, 32 kHz mono) | title, battle, enemy, scene, boss, victory, defeat, levelup (see below) | below |
+
+No game here has a `scene` track in the retro copies (none has a campaign; `sceneMusic` is `""`); a game with a campaign gets it by
+adding `scene=True` to its profile in `targets.py`. There is no magic or potion in the templates, so `magic_cast` / `potion` are
+not shipped there; `levelup_tick` is not used by anything and is not shipped.
+
+**The files.** Effects are trimmed of silent and inaudible (below -48 dB) tails and fades, which with only the files each copy
+uses took the effects from 460 KB (all 30 in each copy) to 284..337 KB; they stay 16-bit 22050 Hz mono WAV (8-bit or a lower rate
+were not needed to be under 400 KB). The tread step and the hoof step are one square long (the walk plays one per square, a 0.75 s rumble
+would pile up). Music is OGG q3, 22050 Hz mono. The OGG bytes depend on the ffmpeg version, so the tool stores the SHA-256 of each
+track's source WAV in `tools/audio/starter_audio.manifest.json` and only re-encodes (once, shared by every copy) when it changes or a file
+is missing: a rerun on any machine changes nothing (`tests/starter_audio_test.py` checks it on a copy). Repository growth: the retro copies
+are 4 x ~0.95 MB, the CC0 set 2.1 MB.
+
+**The CC0 set** (`games/demo-srpg/audio`, 2.1 MB, mono 32 kHz, music and jingles scaled to the retro set's levels: RMS 0.13 music, 0.16
+effects and jingles, peaks under 0.97). Sources, all CC0 1.0 as stated on each source page (the Kenney zips also carry a License.txt):
+Kenney's RPG Audio, Interface Sounds, Impact Sounds and Music Jingles (kenney.nl); OpenGameArt entries by RandomMind (Medieval: The Bard's
+Tale, Battle, The Old Tower Inn, Rejoicing, Defeat Theme), Bobjt (Orcs Victorious) and Spring Spring (War Theme). The exact file behind each
+id is in `tools/audio/make_cc0_set.py` (`--credits` prints it) and in `games/demo-srpg/CREDITS.md`. Where a pack has nothing that fits, the
+closest was used: the bow is a string pluck plus a soft thud, the potion and magic are glass. Every music slot found a CC0 track, so no slot of the
+CC0 set is filled from the retro generator. The loops of the long tracks (battle, enemy, boss) were found by comparing
+the sound of the two ends and cross-fading 2 s (`LOOPS` in the script); **that was checked by numbers, never by ear**.
+`demo-srpg` overrides: sword / lance / axe / bow `hit` sounds, `step` for the cavalier (`hooves`), the knight (`plate_step`) and the
+pegasus knight (`flutter`), `potion` for the vulnerary and salve, `magic` for the energy drop, `scene` under all campaign scenes
+(the `sceneMusic` default), and in the bridge map's events: `playSound alarm` when the reinforcements come, `playMusic boss` (1 s fade)
+when Gorm is fought, `stopMusic` (1 s) when the battle is won. The demo's campaign file is unchanged (the editor's campaign screen
+does not yet read the object form of a scene).
+
+**Rules hash and saves.** The `sounds` keys and `audio.json` do not change the rules hash; the three story commands in the bridge map do, so
+the hash of `demo-srpg` is different from before and existing `demo-srpg` saves of the bridge map are refused ("made with other
+rules"), which is acceptable for a demo. The sims did not move: `bridge` Blue 17 / Red 13, `north_road` Blue 19 / Red 11, `--campaign
+--runs 20` finished 5; `demo-economy` is unchanged.
+
+**Tests.** `tests/sound_player_test.py` section 16 plays both demos and a project made from each template through `--audio-log`:
+title music on the game page, battle / enemy music and back, the tank's `tank_move`, scene music then battle music in the campaign,
+every weapon's sound, hooves, the story commands, clean loads (no warning), every file named by every shipped `audio.json` exists and
+none is unused, and the size budgets. `tests/starter_audio_test.py` checks the shipped copies and the no-op rerun.
+
 ## Starter audio
 
 - `tools/audio/make_starter_audio.py` synthesizes the **retro set**
-  (square / triangle / noise voices): every standard effect and five short
-  loops (title, battle, enemy turn, victory, defeat) plus a level-up
-  jingle. Output is committed; effects as WAV, music as OGG (encoded by
-  ffmpeg at generation time only, never needed to build or play).
-  **Generator built** (`tools/audio/`, checked by `tests/starter_audio_test.py`):
-  30 effects, four loops (title, battle, enemy, scene) and three jingles
-  (victory, defeat, levelup), plus a ready `audio.json.example`. Not yet
-  generated into the games.
-- The **CC0 set**: chosen from public CC0 libraries, trimmed, credited in
-  the game's `CREDITS.md` like the 3D art.
+  (square / triangle / noise voices): every standard effect and four loops (title,
+  battle, enemy turn, story scene) plus the victory, defeat and level-up jingles, and
+  the extra effects the overrides use. Output is committed; effects as WAV, music as OGG
+  (encoded by ffmpeg at generation time only, never needed to build or play).
+  `python3 tools/audio/make_starter_audio.py .` writes it into every place that ships
+  it, see "Step 3 as built".
+- The **CC0 set**: chosen from public CC0 libraries, cut and level-matched by
+  `tools/audio/make_cc0_set.py`, credited in the game's `CREDITS.md` like the 3D art.
+  `games/demo-srpg` (the demo with the "Detailed 3D" style) uses it.
 - New projects from a template get the retro set and a filled `use` block.
 
 ## Editor
@@ -294,6 +345,6 @@ audio in hot-seat.
    audio log, volumes in Options. See "Step 1 as built".
 2. **Done (2026-11-14).** Player: audio.json loader, standard set and overrides wired to battle
    events and menus, music director, story commands, campaign scenes. See "Step 2 as built".
-3. Starter audio: generator (built, `tools/audio/`); retro set generated
-   into the demos and templates; CC0 set for the Detailed 3D style.
+3. **Done (2026-11-14).** Starter audio: the generator, the retro set generated into `demo-economy`
+   and the three templates, the CC0 set in `demo-srpg`. See "Step 3 as built".
 4. Editor: Sound screen, pickers, uploads.

@@ -7,27 +7,25 @@
   "freeBattles": "all",
   "chapters": [
     { "id": "ford", "name": "Skirmish at the Ford", "map": "bridge",
-      // A scene can start its own music: "before" / "after" as { "music": id, "commands": [...] }
-      // (the same as the plain list with a playMusic in front; without it sceneMusic from audio.json plays).
-      "before": { "music": "scene", "commands": [
+      "before": [
         { "say": "Three days' march, and the Red Warband still holds every crossing but one.", "speakerName": "Narrator" },
         { "say": "Then that one is ours by nightfall. Company, with me!", "speaker": "eirik" }
-      ] },
-      "after": { "music": "title", "commands": [
+      ],
+      "after": [
         { "if": [ { "switch": "sera_joined", "is": true } ],
           "then": [ { "say": "You kept your word about my village. I will keep mine.", "speaker": "sera" } ],
           "else": [ { "say": "Their pegasus knight is gone. A pity; we could have used her.", "speaker": "kell" } ] },
         { "say": "The garrison's stores are ours. Share them out.", "speaker": "eirik" },
         { "giveResource": { "gold": 200 }, "side": "blue" }
-      ] } },
+      ] },
     { "id": "pass", "name": "The North Road", "map": "north_road",
-      "before": { "music": "boss", "commands": [
+      "before": [
         { "say": "Hald's fort sits where the road narrows. There is no way around.", "speaker": "kell" },
         { "say": "Then we go through.", "speaker": "eirik" }
-      ] },
-      "after": { "music": "title", "commands": [
+      ],
+      "after": [
         { "say": "The pass is open. The Red Warband is finished in these hills.", "speaker": "eirik" },
         { "say": "And so the Ford War ended, for a while.", "speakerName": "Narrator" }
-      ] } }
+      ] }
   ]
 }
