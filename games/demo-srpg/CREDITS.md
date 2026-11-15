@@ -1,9 +1,9 @@
 # Credits
 
 Everything in this game is original to OpenTacticsEngine (GPL-3.0, generated
-by `tools/art/`), except the art of the "Detailed 3D" style, which comes
-from public-domain packs (Creative Commons Zero, CC0 1.0: free for any use,
-no credit required; credited here with thanks).
+by `tools/art/`), except the art of the "Detailed 3D" style and the whole sound
+set (`audio/`), which come from public-domain works (Creative Commons Zero,
+CC0 1.0: free for any use, no credit required; credited here with thanks).
 
 | Files | From | Licence |
 |---|---|---|
@@ -13,3 +13,25 @@ no credit required; credited here with thanks).
 
 To rebuild the style: download the packs, then
 `python3 tools/art/make_detailed_style.py --kaykit <folder with the .glb files> --textures <folder with the *_Color.jpg files>`.
+
+## Sound and music
+
+`audio/*.ogg` are cut, mixed, looped, level-matched and re-encoded from the files below
+by `tools/audio/make_cc0_set.py` (the original downloads are not part of the repository). Licence as shown
+on each page: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/); the Kenney zips also carry a
+License.txt saying so.
+
+| Files | From | Used for |
+|---|---|---|
+| `audio/title.ogg` | "Medieval: The Bard's Tale" (loop version) by RandomMind, https://opengameart.org/content/medieval-the-bards-tale | title, free-battle lists |
+| `audio/battle.ogg` | "Medieval: Battle" by RandomMind, https://opengameart.org/content/medieval-battle | battles |
+| `audio/enemy.ogg` | "Orcs Victorious" (2024 version) by Bobjt, https://opengameart.org/content/orcs-victorious | the enemy's turn |
+| `audio/scene.ogg` | "Medieval: The Old Tower Inn" (loop version) by RandomMind, https://opengameart.org/content/medieval-the-old-tower-inn | story scenes |
+| `audio/boss.ogg` | "War Theme" by Spring Spring, https://opengameart.org/content/war-theme | Gorm's challenge (bridge), chapter 2's opening scene |
+| `audio/victory.ogg`, `audio/defeat.ogg` | "Medieval: Rejoicing", "Medieval: Defeat Theme" by RandomMind, https://opengameart.org/content/medieval-rejoicing , https://opengameart.org/content/medieval-defeat-theme | jingles (the start of each) |
+| `audio/levelup.ogg` | `jingles_STEEL07` from Music Jingles by Kenney Vleugels (www.kenney.nl), https://kenney.nl/assets/music-jingles | level-up jingle |
+| `audio/*.ogg` (the 38 sound effects: steps, hits, bells, coins, glass, menu clicks) | RPG Audio, Interface Sounds and Impact Sounds by Kenney Vleugels (www.kenney.nl), https://kenney.nl/assets/rpg-audio , https://kenney.nl/assets/interface-sounds , https://kenney.nl/assets/impact-sounds | the standard set and the per-weapon, per-unit and per-item sounds |
+
+`python3 tools/audio/make_cc0_set.py --credits` lists the exact original file behind every sound.
+The retro set (`tools/audio/make_starter_audio.py`, original to this project, GPL-3.0) is the other
+starter set; the demo-economy game and the editor's templates use it.

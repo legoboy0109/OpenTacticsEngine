@@ -1,0 +1,182 @@
+{
+  "music": {
+    "title": {
+      "file": "audio/title.ogg",
+      "loopStart": 0
+    },
+    "battle": {
+      "file": "audio/battle.ogg",
+      "loopStart": 0
+    },
+    "enemy": {
+      "file": "audio/enemy.ogg",
+      "loopStart": 0
+    },
+    "scene": {
+      "file": "audio/scene.ogg",
+      "loopStart": 0
+    },
+    "boss": {
+      "file": "audio/boss.ogg",
+      "loopStart": 0
+    },
+    "victory": {
+      "file": "audio/victory.ogg",
+      "loop": false
+    },
+    "defeat": {
+      "file": "audio/defeat.ogg",
+      "loop": false
+    },
+    "levelup": {
+      "file": "audio/levelup.ogg",
+      "loop": false
+    }
+  },
+  "sounds": {
+    "cursor": {
+      "file": "audio/cursor.ogg"
+    },
+    "confirm": {
+      "file": "audio/confirm.ogg"
+    },
+    "cancel": {
+      "file": "audio/cancel.ogg"
+    },
+    "error": {
+      "file": "audio/error.ogg"
+    },
+    "select": {
+      "file": "audio/select.ogg"
+    },
+    "dialogue": {
+      "file": "audio/dialogue.ogg"
+    },
+    "step": {
+      "files": [
+        "audio/step1.ogg",
+        "audio/step2.ogg",
+        "audio/step3.ogg"
+      ]
+    },
+    "hooves": {
+      "files": [
+        "audio/hooves1.ogg",
+        "audio/hooves2.ogg",
+        "audio/hooves3.ogg"
+      ]
+    },
+    "plate_step": {
+      "files": [
+        "audio/plate_step1.ogg",
+        "audio/plate_step2.ogg"
+      ]
+    },
+    "flutter": {
+      "files": [
+        "audio/flutter1.ogg",
+        "audio/flutter2.ogg"
+      ]
+    },
+    "hit": {
+      "file": "audio/hit.ogg"
+    },
+    "sword_hit": {
+      "file": "audio/sword_hit.ogg"
+    },
+    "lance_hit": {
+      "file": "audio/lance_hit.ogg"
+    },
+    "axe_hit": {
+      "file": "audio/axe_hit.ogg"
+    },
+    "bow_hit": {
+      "file": "audio/bow_hit.ogg"
+    },
+    "miss": {
+      "file": "audio/miss.ogg"
+    },
+    "critical": {
+      "file": "audio/critical.ogg"
+    },
+    "defeated": {
+      "file": "audio/defeated.ogg"
+    },
+    "heal": {
+      "file": "audio/heal.ogg"
+    },
+    "capture": {
+      "file": "audio/capture.ogg"
+    },
+    "build": {
+      "file": "audio/build.ogg"
+    },
+    "itemUse": {
+      "file": "audio/itemUse.ogg"
+    },
+    "potion": {
+      "file": "audio/potion.ogg"
+    },
+    "magic": {
+      "file": "audio/magic.ogg"
+    },
+    "gold": {
+      "file": "audio/gold.ogg"
+    },
+    "turnStart": {
+      "file": "audio/turnStart.ogg"
+    },
+    "upgrade": {
+      "file": "audio/upgrade.ogg"
+    },
+    "research": {
+      "file": "audio/research.ogg"
+    },
+    "repair": {
+      "file": "audio/repair.ogg"
+    },
+    "supply": {
+      "file": "audio/supply.ogg"
+    },
+    "ambush": {
+      "file": "audio/ambush.ogg"
+    },
+    "alarm": {
+      "file": "audio/alarm.ogg"
+    }
+  },
+  "use": {
+    "titleMusic": "title",
+    "mapMusic": "battle",
+    "playerTurnMusic": "",
+    "enemyTurnMusic": "enemy",
+    "sceneMusic": "scene",
+    "victory": "victory",
+    "defeat": "defeat",
+    "levelUp": "levelup",
+    "sounds": {
+      "cursor": "cursor",
+      "confirm": "confirm",
+      "cancel": "cancel",
+      "error": "error",
+      "step": "step",
+      "hit": "hit",
+      "miss": "miss",
+      "critical": "critical",
+      "heal": "heal",
+      "defeated": "defeated",
+      "capture": "capture",
+      "build": "build",
+      "itemUse": "itemUse",
+      "gold": "gold",
+      "dialogue": "dialogue",
+      "turnStart": "turnStart",
+      "upgrade": "upgrade",
+      "research": "research",
+      "repair": "repair",
+      "supply": "supply",
+      "ambush": "ambush",
+      "select": "select"
+    }
+  }
+}

@@ -78,6 +78,7 @@
       "if": [ { "switch": "sera_joined", "is": false } ],
       "do": [ { "addUnit": { "type": "soldier", "side": "red", "x": 12, "y": 7, "name": "Dag", "level": 1 } },
               { "focus": { "x": 12, "y": 7 } },
+              { "playSound": "alarm" },
               { "say": "Reinforcements from the east road!", "speakerName": "Red scout" } ] },
 
     // Eirik can talk Sera into changing sides (the computer never does this).
@@ -93,9 +94,12 @@
               { "giveResource": { "gold": 300 }, "side": "blue" } ] },
 
     { "id": "gorm_fights", "when": { "fight": "gorm", "with": { "side": "blue" } },
-      "do": [ { "say": "You will not cross while I stand!", "speaker": "gorm" } ] },
+      // Story sound commands (docs/EVENTS.md): the boss's challenge switches to a tenser track.
+      "do": [ { "playMusic": "boss", "fade": 1.0 },
+              { "say": "You will not cross while I stand!", "speaker": "gorm" } ] },
 
     { "id": "victory", "when": { "battle": "won" },
-      "do": [ { "say": "The ford is ours. Rest while you can; the road north will be harder.", "speaker": "eirik" } ] }
+      "do": [ { "stopMusic": true, "fade": 1.0 },
+              { "say": "The ford is ours. Rest while you can; the road north will be harder.", "speaker": "eirik" } ] }
   ]
 }

@@ -7,11 +7,14 @@
   { "id": "iron_bow",   "name": "Iron Bow",   "kind": "weapon", "weapon": "iron_bow",   "uses": 40, "price": { "gold": 450 } },
 
   { "id": "vulnerary", "name": "Vulnerary", "description": "Restores 10 HP.",
-    "kind": "usable", "uses": 3, "price": { "gold": 300 }, "heal": 10 },
+    "kind": "usable", "uses": 3, "price": { "gold": 300 }, "heal": 10,
+    "sounds": { "use": "potion" } },
   { "id": "salve", "name": "Salve", "description": "Fully heals a neighbouring ally.",
-    "kind": "usable", "uses": 1, "target": "ally", "heal": "full" },
+    "kind": "usable", "uses": 1, "target": "ally", "heal": "full",
+    "sounds": { "use": "potion" } },
   { "id": "energy_drop", "name": "Energy Drop", "description": "Strength +2 for good.",
-    "kind": "usable", "uses": 1, "raise": { "str": 2 } },
+    "kind": "usable", "uses": 1, "raise": { "str": 2 },
+    "sounds": { "use": "magic" } },
 
   { "id": "shield_ring", "name": "Shield Ring", "description": "Defense +2 while carried.",
     "kind": "accessory", "bonus": { "def": 2 } }

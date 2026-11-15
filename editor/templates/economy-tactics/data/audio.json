@@ -1,0 +1,132 @@
+{
+  "music": {
+    "title": {
+      "file": "audio/title.ogg",
+      "loopStart": 0
+    },
+    "battle": {
+      "file": "audio/battle.ogg",
+      "loopStart": 0,
+      "volume": 80
+    },
+    "enemy": {
+      "file": "audio/enemy.ogg",
+      "loopStart": 0
+    },
+    "victory": {
+      "file": "audio/victory.ogg",
+      "loop": false
+    },
+    "defeat": {
+      "file": "audio/defeat.ogg",
+      "loop": false
+    },
+    "levelup": {
+      "file": "audio/levelup.ogg",
+      "loop": false
+    }
+  },
+  "sounds": {
+    "cursor": {
+      "file": "audio/cursor.wav"
+    },
+    "confirm": {
+      "file": "audio/confirm.wav"
+    },
+    "cancel": {
+      "file": "audio/cancel.wav"
+    },
+    "error": {
+      "file": "audio/error.wav"
+    },
+    "step": {
+      "files": [
+        "audio/step1.wav",
+        "audio/step2.wav"
+      ]
+    },
+    "hit": {
+      "file": "audio/hit.wav"
+    },
+    "miss": {
+      "file": "audio/miss.wav"
+    },
+    "critical": {
+      "file": "audio/critical.wav"
+    },
+    "heal": {
+      "file": "audio/heal.wav"
+    },
+    "defeated": {
+      "file": "audio/defeated.wav"
+    },
+    "capture": {
+      "file": "audio/capture.wav"
+    },
+    "build": {
+      "file": "audio/build.wav"
+    },
+    "itemUse": {
+      "file": "audio/itemUse.wav"
+    },
+    "gold": {
+      "file": "audio/gold.wav"
+    },
+    "dialogue": {
+      "file": "audio/dialogue.wav"
+    },
+    "turnStart": {
+      "file": "audio/turnStart.wav"
+    },
+    "upgrade": {
+      "file": "audio/upgrade.wav"
+    },
+    "research": {
+      "file": "audio/research.wav"
+    },
+    "repair": {
+      "file": "audio/repair.wav"
+    },
+    "supply": {
+      "file": "audio/supply.wav"
+    },
+    "cannon_shot": {
+      "file": "audio/cannon_shot.wav"
+    },
+    "tank_move": {
+      "file": "audio/tank_move.wav"
+    }
+  },
+  "use": {
+    "titleMusic": "title",
+    "mapMusic": "battle",
+    "playerTurnMusic": "",
+    "enemyTurnMusic": "enemy",
+    "sceneMusic": "",
+    "victory": "victory",
+    "defeat": "defeat",
+    "levelUp": "levelup",
+    "sounds": {
+      "cursor": "cursor",
+      "confirm": "confirm",
+      "cancel": "cancel",
+      "error": "error",
+      "step": "step",
+      "hit": "hit",
+      "miss": "miss",
+      "critical": "critical",
+      "heal": "heal",
+      "defeated": "defeated",
+      "capture": "capture",
+      "build": "build",
+      "itemUse": "itemUse",
+      "gold": "gold",
+      "dialogue": "dialogue",
+      "turnStart": "turnStart",
+      "upgrade": "upgrade",
+      "research": "research",
+      "repair": "repair",
+      "supply": "supply"
+    }
+  }
+}

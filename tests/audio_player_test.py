@@ -17,6 +17,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -139,8 +140,18 @@ def test_null_device(tmp):
     code, out, again = headless(tmp, settings, ['--audio-test', '--no-settings'])
     code, out, first = headless(tmp, settings, ['--audio-test', '--no-settings'])
     check('null device: the log is the same on every run', first == again and len(first) == 5)
-    # A game plays exactly as before: no sound requests at all.
-    code, out, lines = headless(tmp, settings, ['--no-settings', '--game', 'demo-srpg', '--map', 'bridge', '--frames', '30'])
+    # A game without an audio.json plays exactly as before: no sound requests at all (the shipped demos have
+    # sound now, so this one is demo-economy's folder without its audio).
+    silent = os.path.join(tmp, 'silent_games')
+    if not os.path.isdir(silent):
+        os.mkdir(silent)
+        shutil.copytree(os.path.join(REPO, 'games', 'demo-economy'), os.path.join(silent, 'demo-economy'),
+                        ignore=shutil.ignore_patterns('audio', 'audio.json'))
+    log = os.path.join(tmp, 'audio.log')
+    code, out = run(['--headless', '--no-saving', '--no-settings', '--audio-log', log, '--games', silent,
+                     '--assets', os.path.join(REPO, 'assets'), '--game', 'demo-economy', '--map', 'twin_rivers',
+                     '--frames', '30'])
+    lines = open(log).read().splitlines() if os.path.exists(log) else []
     check('null device: a game without audio makes no sound requests', code == 0 and len(lines) == 1 and 'volumes' in lines[0], str(lines))
     # The log file cannot be written: a warning, not an error.
     code, out, lines = headless(tmp, settings, ['--no-settings', '--frames', '3'], log=os.path.join(tmp, 'nodir', 'a.log'))

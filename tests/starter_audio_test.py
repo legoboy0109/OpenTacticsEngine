@@ -7,6 +7,10 @@ Generates the set twice into a temp folder (WAV only: needs no ffmpeg) and check
 files exist, durations, peak/RMS bands, effect edges near zero, music loop seams,
 byte-identical determinism, and that audio.json.example is valid and matches the
 contract (every referenced file exists, `use` keys are the standard set).
+It also checks the committed copies (games/demo-economy and the editor templates): sizes under
+budget, and that `make_starter_audio.py REPO_ROOT` run on a copy of them (a temp folder, never the
+repo) changes nothing, twice, even though the OGG bytes would differ between ffmpeg versions; it
+re-encodes a music file only when the recorded hash of its source WAV changes.
 --summary also prints a per-file sanity table (dominant frequency, centroid, RMS).
 """
 import cmath
@@ -87,7 +91,81 @@ def seam_stats(x):
     return abs(x[0] - x[-1]), d[int(len(d) * 0.99)], d[-1]
 
 
+EFFECT_BUDGET = 400 * 1024   # bytes of effect WAVs in one shipped copy
+
+
+def snapshot(base, rels):
+    """{relative path: (bytes, mtime_ns)} of every file below the given folders."""
+    out = {}
+    for rel in rels:
+        for dp, _, fns in os.walk(os.path.join(base, rel)):
+            for fn in fns:
+                p = os.path.join(dp, fn)
+                with open(p, 'rb') as f:
+                    out[os.path.relpath(p, base)] = (f.read(), os.stat(p).st_mtime_ns)
+    return out
+
+
+def shipped_checks():
+    sys.path.insert(0, os.path.join(root, 'tools', 'audio'))
+    import targets
+    rels = sorted(targets.TARGETS)
+    for rel in rels:
+        gdir = os.path.join(root, rel)
+        wavs = [os.path.join(gdir, 'audio', f) for f in os.listdir(os.path.join(gdir, 'audio')) if f.endswith('.wav')]
+        total = sum(os.path.getsize(w) for w in wavs)
+        check(total < EFFECT_BUDGET, '%s: effects are %d KB, budget %d KB' % (rel, total // 1024, EFFECT_BUDGET // 1024))
+        want = {s + '.wav' for s in targets.profile_sounds(targets.TARGETS[rel])}
+        check({os.path.basename(w) for w in wavs} == want, rel + ': effect files differ from targets.py')
+        for w in wavs:
+            rate, ch, x = load(w)
+            check(rate == 22050 and ch == 1 and abs(x[0]) < 0.01 and abs(x[-1]) < 0.01, '%s: %s format or edges' % (rel, os.path.basename(w)))
+    if not shutil.which('ffmpeg'):
+        print('no ffmpeg: skipping the "rerun is a no-op" checks')
+        return
+    tmp = tempfile.mkdtemp(prefix='ote_audio_rerun_')
+    try:
+        sub = os.path.join(tmp, 'repo')
+        shutil.copytree(os.path.join(root, 'tools', 'audio'), os.path.join(sub, 'tools', 'audio'),
+                        ignore=shutil.ignore_patterns('__pycache__'))
+        for rel in rels:   # the committed games, without their art: only what the tool reads and writes
+            shutil.copytree(os.path.join(root, rel), os.path.join(sub, rel), ignore=shutil.ignore_patterns('art', 'maps'))
+        tool = os.path.join(sub, 'tools', 'audio', 'make_starter_audio.py')
+        before = snapshot(sub, rels)
+        for n in (1, 2):
+            res = subprocess.run([sys.executable, tool, sub], stdout=subprocess.PIPE, universal_newlines=True)
+            check(res.returncode == 0, 'run %d failed: %s' % (n, res.stdout[-300:]))
+            check(res.stdout.count('unchanged') == len(rels) and 'updated' not in res.stdout,
+                  'run %d is not a no-op:\n%s' % (n, res.stdout))
+            after = snapshot(sub, rels)
+            check(after == before, 'run %d changed bytes or modification times: %s' % (n, sorted(k for k in after if after[k] != before.get(k))[:5]))
+        # A source that changed (its recorded hash no longer matches) is re-encoded once and shared by every copy.
+        mpath = os.path.join(sub, 'tools', 'audio', 'starter_audio.manifest.json')
+        with open(mpath, encoding='utf-8') as f:
+            good = f.read()
+        man = json.loads(good)
+        man['title'] = '0' * 64
+        with open(mpath, 'w', encoding='utf-8') as f:
+            json.dump(man, f)
+        res = subprocess.run([sys.executable, tool, sub], stdout=subprocess.PIPE, universal_newlines=True)
+        check(res.returncode == 0 and 'title.ogg' in res.stdout and res.stdout.count('title.ogg') == len(rels),
+              'a changed hash must re-encode title.ogg in every copy:\n' + res.stdout)
+        blobs = {open(os.path.join(sub, rel, 'audio', 'title.ogg'), 'rb').read() for rel in rels}
+        check(len(blobs) == 1, 'the copies of a re-encoded track must be byte-identical')
+        with open(mpath, encoding='utf-8') as f:
+            check(json.load(f) == json.loads(good), 'the manifest must hold the real hash again after a re-encode')
+        # A deleted OGG comes back from a sibling copy, bit for bit.
+        gone = os.path.join(sub, rels[0], 'audio', 'battle.ogg')
+        keep = open(os.path.join(sub, rels[1], 'audio', 'battle.ogg'), 'rb').read()
+        os.remove(gone)
+        subprocess.run([sys.executable, tool, sub], stdout=subprocess.DEVNULL, check=True)
+        check(os.path.isfile(gone) and open(gone, 'rb').read() == keep, 'a missing OGG is restored from a sibling copy')
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
+    shipped_checks()
     tmp = tempfile.mkdtemp(prefix='ote_audio_')
     try:
         a, b = os.path.join(tmp, 'a'), os.path.join(tmp, 'b')
