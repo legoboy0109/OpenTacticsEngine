@@ -88,7 +88,7 @@ void writeStructureKind(const StructureState& s, Json& out) {
 bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, const std::string& at) {
   const StructureDef& base = db.structures[(size_t)mapType];
   const StructureDef& now = db.structures[(size_t)type];
-  if (now.width != base.width || now.height != base.height)
+  if (now.width != base.width || now.height != base.height || now.rings != base.rings)
     return rd.fail(at, "\"" + now.id + "\" does not have the size of \"" + base.id + "\", the kind the map placed");
   // Reachable from the map's kind through upgrades (a chain of them is fine).
   std::vector<char> seen(db.structures.size(), 0);

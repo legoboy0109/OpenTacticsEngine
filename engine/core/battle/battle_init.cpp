@@ -1,5 +1,6 @@
 // Battle setup from a loaded map.
 #include "core/battle/battle.h"
+#include "core/data/footprint.h"
 
 namespace ote {
 
@@ -31,7 +32,11 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
   }
 
   fog = map.fog;
-  grid = Grid(map.gridType, map.width, map.height);
+  if (map.gridType != db->gridType) {
+    err = "map '" + map.id + "' has a different kind of grid than the game";
+    return false;
+  }
+  grid = Grid(map.gridType, map.width, map.height, map.hexLayout);
   cells.resize(cellCount);
   occupant.assign(cellCount, -1);
 
@@ -85,7 +90,8 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
       return false;
     }
     const StructureDef& def = db->structures[ms.type];
-    if (ms.x < 0 || ms.y < 0 || ms.x + def.width > map.width || ms.y + def.height > map.height) {
+    std::vector<Cell> fits;
+    if (!structureFootprint(grid, def, ms.x, ms.y, fits)) {
       err = "map '" + map.id + "': structure '" + def.id + "' at " + std::to_string(ms.x) + "," +
             std::to_string(ms.y) + " does not fit inside the map";
       return false;
@@ -178,8 +184,7 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
   if (s < 0 || s >= (int)structures.size()) return;
   const StructureState& st = structures[s];
   const StructureDef& def = defOf(st);
-  for (int dy = 0; dy < def.height; ++dy)
-    for (int dx = 0; dx < def.width; ++dx) out.push_back(grid.at(st.x + dx, st.y + dy));
+  structureFootprint(grid, def, st.x, st.y, out);
 }
 
 void Battle::start(std::vector<Event>& events) {

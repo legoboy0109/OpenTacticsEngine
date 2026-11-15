@@ -27,6 +27,9 @@ bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db) {
       if (up.to < 0) return c.fail(where, at + " names unknown structure \"" + to + "\" in \"to\"");
       if (up.to == (int)i) return c.fail(where, at + ": a structure cannot be upgraded to itself");
       const StructureDef& target = db.structures[(size_t)up.to];
+      if (target.rings != from.rings)
+        return c.fail(where, at + ": \"" + to + "\" has rings " + std::to_string(target.rings) + " but \"" + from.id +
+                                 "\" has " + std::to_string(from.rings) + "; an upgrade keeps the footprint");
       if (target.width != from.width || target.height != from.height)
         return c.fail(where, at + ": \"" + to + "\" is " + std::to_string(target.width) + " x " + std::to_string(target.height) +
                                  " squares but \"" + from.id + "\" is " + std::to_string(from.width) + " x " +

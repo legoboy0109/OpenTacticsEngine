@@ -1,6 +1,7 @@
 #include <map>
 
 #include "core/data/loader.h"
+#include "core/data/footprint.h"
 #include "core/data/loader_content.h"
 #include "core/data/events.h"
 #include "core/data/loader_util.h"
@@ -9,12 +10,18 @@ namespace ote {
 
 namespace {
 
-bool loadGrid(const LoadCtx& c, const Json& root, MapDef& m) {
+bool loadGrid(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
   const Json* g;
   if (!c.object(root, "grid", "", g, true)) return false;
   std::string type;
   if (!c.str(*g, "type", "grid", type, true)) return false;
-  if (type != "square") return c.fail("grid", "type \"" + type + "\" is not supported (only \"square\")");
+  if (type != "square" && type != "hex")
+    return c.fail("grid", "type \"" + type + "\" is not supported (use \"square\" or \"hex\")");
+  if ((type == "hex") != (db.gridType == GridType::Hex))
+    return c.fail("grid", std::string("this is a ") + (db.gridType == GridType::Hex ? "hexagon" : "square") +
+                              " game (game.json \"grid\"), but the map's type is \"" + type + "\"");
+  m.gridType = db.gridType;
+  m.hexLayout = db.hexLayout;
   if (!c.integer(*g, "width", "grid", m.width, true)) return false;
   if (!c.integer(*g, "height", "grid", m.height, true)) return false;
   if (m.width < 1 || m.width > 256 || m.height < 1 || m.height > 256)
@@ -145,22 +152,26 @@ bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapD
       s.side = findSide(m, side);
       if (s.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
     }
-    if (s.x < 0 || s.y < 0 || s.x + def.width > m.width || s.y + def.height > m.height)
+    const Grid grid(m.gridType, m.width, m.height, m.hexLayout);
+    std::vector<Cell> cells;
+    if (!structureFootprint(grid, def, s.x, s.y, cells)) {
+      if (grid.isHex())
+        return c.fail(where, def.rings ? "covers its hexagon and the six around it (rings 1) but they do not all fit inside the map (" +
+                                             std::to_string(m.width) + " x " + std::to_string(m.height) + ")"
+                                       : "is outside the map (" + std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
       return c.fail(where, "needs " + std::to_string(def.width) + " x " + std::to_string(def.height) +
                                " squares from its top-left corner but does not fit inside the map (" +
                                std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
-    for (int dy = 0; dy < def.height; ++dy)
-      for (int dx = 0; dx < def.width; ++dx) {
-        int cell = (s.y + dy) * m.width + s.x + dx;
-        if (at[(size_t)cell] >= 0) {
-          const MapStructureDef& o = m.structures[(size_t)at[(size_t)cell]];
-          return c.fail(where, "overlaps structures[" + std::to_string(at[(size_t)cell]) + "] (" +
-                                   db.structures[(size_t)o.type].id + " at " + std::to_string(o.x) + "," +
-                                   std::to_string(o.y) + ") on square " + std::to_string(s.x + dx) + "," +
-                                   std::to_string(s.y + dy));
-        }
-        at[(size_t)cell] = (int)m.structures.size();
+    }
+    for (Cell cell : cells)
+      if (at[(size_t)cell] >= 0) {
+        const MapStructureDef& o = m.structures[(size_t)at[(size_t)cell]];
+        return c.fail(where, "overlaps structures[" + std::to_string(at[(size_t)cell]) + "] (" +
+                                 db.structures[(size_t)o.type].id + " at " + std::to_string(o.x) + "," +
+                                 std::to_string(o.y) + ") on " + (grid.isHex() ? "hexagon " : "square ") +
+                                 std::to_string(grid.x(cell)) + "," + std::to_string(grid.y(cell)));
       }
+    for (Cell cell : cells) at[(size_t)cell] = (int)m.structures.size();
     m.structures.push_back(s);
   }
   return true;
@@ -263,7 +274,7 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   m.name = ref.name;
   if (!c.str(root, "name", "", m.name)) return false;
   std::vector<int> structureAt;
-  if (!loadGrid(c, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
+  if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !loadStructures(c, db, root, m, structureAt) ||
       !loadUnits(c, db, root, m, structureAt) || !loadMapStory(db, root, m, path, err))
     return false;

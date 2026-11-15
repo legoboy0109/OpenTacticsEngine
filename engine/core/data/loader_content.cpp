@@ -181,6 +181,16 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     if (!glyph.empty()) s.glyph = glyph[0];
 
     if (!c.integer(e, "width", where, s.width) || !c.integer(e, "height", where, s.height)) return false;
+    if (db.gridType == GridType::Hex) {
+      // A hexagon structure is one hexagon or a hexagon with its ring (docs/HEX.md "Structures").
+      for (const char* key : {"width", "height"})
+        if (e.has(key) && e[key].isNumber() && e[key].asNumber() != 1)
+          return c.fail(where, std::string("\"") + key + "\" is for square games; a hexagon game uses \"rings\"");
+      if (!c.integer(e, "rings", where, s.rings)) return false;
+      if (s.rings < 0 || s.rings > 1) return c.fail(where, "\"rings\" must be 0 or 1");
+    } else if (e.has("rings")) {
+      return c.fail(where, "\"rings\" is for hexagon games; a square game uses \"width\" and \"height\"");
+    }
     if (s.width < 1 || s.width > kMaxStructureSize || s.height < 1 || s.height > kMaxStructureSize)
       return c.fail(where, "\"width\" and \"height\" must be between 1 and " + std::to_string(kMaxStructureSize) +
                                " squares");
