@@ -65,8 +65,16 @@ def make_map(name, tiles, units, structures=(), sides=None, fog=True):
 def make_games(out):
     g = write_game(out, 'fog', ('hide', 'ambush', 'capture', 'wander', 'approach', 'seat'))
     write_upgrade_game(out)
-    write_json(os.path.join(out, 'index.json'), {'games': ['fog', 'fogup']})
     make_maps(g)
+    # The same game with the ambush rule "canAct": the unit keeps its turn after being stopped.
+    ga = os.path.join(out, 'fogact')
+    shutil.rmtree(ga, ignore_errors=True)
+    shutil.copytree(g, ga)
+    game = json.load(open(ga + '/game.json'))
+    game['name'] = 'Fog Player Test (ambush canAct)'
+    game['rules']['fog'] = {'ambush': 'canAct'}
+    write_json(ga + '/game.json', game)
+    write_json(os.path.join(out, 'index.json'), {'games': ['fog', 'fogup', 'fogact']})
 
 
 def write_game(out, gid, map_ids, economy=False):
@@ -156,15 +164,6 @@ def make_maps(g):
                           sides=[{'id': 'blue', 'name': 'Blue Army', 'color': '#3d85c6', 'controller': 'human', 'team': 'a'},
                                  {'id': 'green', 'name': 'Green Army', 'color': '#2e9e44', 'controller': 'human', 'team': 'b'},
                                  {'id': 'red', 'name': 'Red Army', 'color': '#cc0000', 'controller': 'ai', 'team': 'c'}]))
-    # The same game with the ambush rule "canAct": the unit keeps its turn after being stopped.
-    ga = os.path.join(out, 'fogact')
-    shutil.rmtree(ga, ignore_errors=True)
-    shutil.copytree(g, ga)
-    game = json.load(open(ga + '/game.json'))
-    game['name'] = 'Fog Player Test (ambush canAct)'
-    game['rules']['fog'] = {'ambush': 'canAct'}
-    write_json(ga + '/game.json', game)
-    write_json(os.path.join(out, 'index.json'), {'games': ['fog', 'fogup', 'fogact']})
 
 
 # ---- running the player
