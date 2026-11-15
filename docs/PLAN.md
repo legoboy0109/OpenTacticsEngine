@@ -130,8 +130,11 @@ goal (demos only exercise features).
       retro set (default for new projects) and a CC0 set (for the
       Detailed 3D demo style / as an alternative).
       Contract: docs/SOUND.md (design only so far).
-   Not yet ordered: speed-based turns (FFT), height rules, hex grid,
-   isometric view.
+   i. Hexagonal grids (owner, 2026-11-14: next after sound and music).
+      Design questions to put to the owner when it starts.
+   j. A tutorial workflow for the editor (owner, 2026-11-14: after hex
+      grids).
+   Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
 4. Native developer app (Dear ImGui) for advanced users.

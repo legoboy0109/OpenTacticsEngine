@@ -226,7 +226,7 @@ TEST(audio_service_volume_options_are_in_the_table) {
   std::vector<OptionChoice> c = optionDefs()[music].choices(ctx);
   CHECK_EQ(c.size(), (size_t)12);  // unset, Off, 1..10
   CHECK(c[0].value.isNull());
-  CHECK(c[0].label == std::string("Default (7)"));
+  CHECK(c[0].label == std::string("7"));
   CHECK(c[1].label == std::string("Off"));
   CHECK_EQ(c[11].value.asInt(), 10);
   Settings s;

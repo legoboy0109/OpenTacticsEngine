@@ -97,7 +97,8 @@ any side not controlled by a human on this device.
 
 ## Options
 
-Options screen: **Music volume** and **Sound volume** (0..10 each, saved in
+Options screen: **Music volume** and **Sound volume** as sliders (Left lowers, Right raises, they stop at Off
+and 10; 0..10 each, saved in
 the player's settings; default 7). 0 does not decode music at all. Flags
 `--music-volume N`, `--sound-volume N`, `--no-audio`.
 

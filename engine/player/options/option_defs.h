@@ -35,6 +35,10 @@ struct OptionDef {
   std::vector<OptionChoice> (*choices)(const OptionContext&);
   // Copies a stored value into the layer used by resolveLook().
   void (*apply)(const Json& value, LookLayer& layer);
+  // A slider (the volumes): choices are "unset" then the values lowest to highest. Left lowers, Right raises,
+  // it stops at the ends instead of wrapping, and stepping from "unset" starts from the value in effect.
+  bool slider = false;
+  int sliderDefault = 0;  // the value in effect when nothing is set anywhere
 };
 
 const std::vector<OptionDef>& optionDefs();

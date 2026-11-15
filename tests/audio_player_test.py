@@ -157,36 +157,42 @@ DOWN_TO_MUSIC = ',down' * 6
 
 def test_options(tmp):
     settings = os.path.join(tmp, 'opt.json')
-    # Keyboard: Right from "Default" goes to Off (0), once more to 1.
-    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + DOWN_TO_MUSIC + ',right,right,wait:2'])
+    # Keyboard: a slider. Left from the default (7) lowers it: 6, then 5.
+    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + DOWN_TO_MUSIC + ',left,left,wait:2'])
     s = json.load(open(settings))
-    check('options: music volume is saved in the settings file', code == 0 and s['global'].get('musicVolume') == 1, str(s))
+    check('options: music volume is saved in the settings file', code == 0 and s['global'].get('musicVolume') == 5, str(s))
     body = [l.split(' ', 1)[1] for l in lines]
     check('options: each step plays a tick at the new level',
-          body == ['volumes music=7 sound=7', 'volumes music=0 sound=7', 'sound tick vol=100 bus=music level=0',
-                   'volumes music=1 sound=7', 'sound tick vol=100 bus=music level=1'], '\n'.join(lines))
-    # Sound volume next row; Left from "Default" wraps to 10.
-    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + DOWN_TO_MUSIC + ',down,left,wait:2'])
+          body == ['volumes music=7 sound=7', 'volumes music=6 sound=7', 'sound tick vol=100 bus=music level=6',
+                   'volumes music=5 sound=7', 'sound tick vol=100 bus=music level=5'], '\n'.join(lines))
+    # Sound volume next row; Right raises it and it stops at 10 (no wrapping, no tick past the end).
+    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + DOWN_TO_MUSIC + ',down' + ',right' * 5 + ',wait:2'])
     s = json.load(open(settings))
-    check('options: sound volume is saved (Left from the default wraps to 10)',
-          s['global'].get('soundVolume') == 10 and s['global'].get('musicVolume') == 1, str(s))
-    check('options: the sound slider ticks on the sound level',
-          any(l.endswith('sound tick vol=100 bus=sound level=10') for l in lines), '\n'.join(lines))
+    check('options: sound volume is saved (Right stops at 10)',
+          s['global'].get('soundVolume') == 10 and s['global'].get('musicVolume') == 5, str(s))
+    ticks = [l for l in lines if 'tick' in l]
+    check('options: the sound slider ticks on the sound level, three steps and no more',
+          len(ticks) == 3 and ticks[-1].endswith('sound tick vol=100 bus=sound level=10'), '\n'.join(lines))
+    # Left lowers it to Off and stops there.
+    low = os.path.join(tmp, 'low.json')
+    code, out, lines = headless(tmp, low, ['--input', TO_OPTIONS + DOWN_TO_MUSIC + ',left' * 9 + ',wait:2'])
+    s = json.load(open(low))
+    check('options: Left stops at Off', s['global'].get('musicVolume') == 0 and len([l for l in lines if 'tick' in l]) == 7, str(s))
     # The next run starts with the saved volumes.
     code, out, lines = headless(tmp, settings, ['--frames', '3'])
-    check('options: saved volumes are used at the next start', lines and lines[0].endswith('volumes music=1 sound=10'), str(lines))
+    check('options: saved volumes are used at the next start', lines and lines[0].endswith('volumes music=5 sound=10'), str(lines))
     # A command-line volume beats the saved option for that run only.
     code, out, lines = headless(tmp, settings, ['--frames', '3', '--music-volume', '9', '--sound-volume', '0'])
     check('options: --music-volume / --sound-volume beat the options', lines and lines[0].endswith('volumes music=9 sound=0'), str(lines))
     s = json.load(open(settings))
-    check('options: ...and are not saved', s['global'].get('musicVolume') == 1)
+    check('options: ...and are not saved', s['global'].get('musicVolume') == 5)
     # Touch: tap the row's value (steps forward), tap its left arrow (steps back). Rows are 14 px apart from y=45.
     touch = os.path.join(tmp, 'touch.json')
     code, out, lines = headless(tmp, touch, ['--input', TO_OPTIONS + ',tap:300:130,tap:300:130,tap:146:130,wait:2'])
     s = json.load(open(touch))
     body = [l.split(' ', 1)[1] for l in lines if 'tick' not in l]
-    check('options: touch steps the volume forward and back', s['global'].get('musicVolume') == 0 and
-          body[-3:] == ['volumes music=0 sound=7', 'volumes music=1 sound=7', 'volumes music=0 sound=7'], str(lines))
+    check('options: touch steps the volume up and down', s['global'].get('musicVolume') == 8 and
+          body[-3:] == ['volumes music=8 sound=7', 'volumes music=9 sound=7', 'volumes music=8 sound=7'], str(lines))
     # Reset to defaults: back to 7 with no tick.
     code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + ',down' * 8 + ',confirm,wait:2'])
     s = json.load(open(settings))

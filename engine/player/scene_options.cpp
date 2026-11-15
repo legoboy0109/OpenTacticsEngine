@@ -70,7 +70,25 @@ std::string OptionsScene::choiceLabel(int def, int index) const {
 
 void OptionsScene::change(int def, int delta) {
   int n = (int)choices_[def].size();
-  int next = ((currentChoice(def) + delta) % n + n) % n;
+  const OptionDef& od = optionDefs()[def];
+  int next;
+  if (od.slider) {
+    // Element 0 is "unset"; the values follow in order. Start from the value in effect and stop at the ends.
+    int cur = currentChoice(def);
+    if (cur == 0) {
+      Json g = perGame() ? host_.settings().global(od.key) : Json();
+      cur = 1 + (g.isNumber() ? g.asInt(od.sliderDefault) : od.sliderDefault);
+      if (cur < 1) cur = 1;
+      if (cur > n - 1) cur = n - 1;
+    } else if (cur + delta < 1 || cur + delta > n - 1) {
+      return;  // already at the end: nothing changes and nothing is heard
+    }
+    next = cur + delta;
+    if (next < 1) next = 1;
+    if (next > n - 1) next = n - 1;
+  } else {
+    next = ((currentChoice(def) + delta) % n + n) % n;
+  }
   const Json& v = choices_[def][next].value;
   const char* key = optionDefs()[def].key;
   if (perGame()) host_.settings().setOverride(gameId_, key, v);  // Null = back to following global
