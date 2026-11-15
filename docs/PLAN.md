@@ -119,7 +119,15 @@ goal (demos only exercise features).
       instant), prerequisites, one at a time at a structure that allows
       it; unlocks unit types, structure upgrades or bonuses), upgradable
       structures (a structure becomes a better kind for a cost).
-   h. Sound and music.
+   h. Sound and music. Owner decisions 2026-11-14: music can be set for
+      the title and per map (with a game default), per turn phase
+      (player's turn / enemy's turn), for story scenes and by event
+      commands (play music, stop music, play sound), and as victory /
+      defeat / level-up jingles; players get separate music and sound
+      volumes. Sound effects: one standard set per game with overrides
+      per weapon, unit type and item. Starter audio: both a generated
+      retro set (default for new projects) and a CC0 set (for the
+      Detailed 3D demo style / as an alternative).
    Not yet ordered: speed-based turns (FFT), height rules, hex grid,
    isometric view.
    Editor wording decided: "style" (never "look"); terrain lists keep the
