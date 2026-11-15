@@ -159,7 +159,8 @@ void BattleScene::logInspected() {
   std::string line;
   if (battle_.grid.valid(cursor_) && humanTurn()) {
     const int uid = battle_.unitAt(cursor_);
-    if (uid >= 0 && battle_.units[(size_t)uid].alive) line = supplyLogLine(battle_, battle_.units[(size_t)uid]);
+    if (uid >= 0 && battle_.units[(size_t)uid].alive && (!view_.fogged() || view_.units[(size_t)uid].visible))  // (fog: only what the panel shows)
+      line = supplyLogLine(battle_, battle_.units[(size_t)uid]);
   }
   if (line == inspectedLine_) return;
   inspectedLine_ = line;
