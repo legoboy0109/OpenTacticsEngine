@@ -1,5 +1,5 @@
 // A unit's stats as the rules see them: its own values plus what the
-// accessories it carries add (docs/ITEMS.md "Stats"). Free functions so the
+// accessories it carries and its side's finished technologies add (docs/ITEMS.md "Stats"). Free functions so the
 // formula host can use them without a Battle.
 #pragma once
 #include "core/battle/battle.h"
@@ -19,10 +19,28 @@ inline int itemBonus(const Database& db, const Unit& u, int statIndex) {
   return sum;
 }
 
-inline int unitStat(const Database& db, const Unit& u, int statIndex) {
+// What the finished technologies of the unit's side add to one stat (docs/ECONOMY.md "Research"): every
+// technology with a bonus whose "types" is empty or lists the unit's type.
+inline int researchBonus(const Database& db, const SideState& side, const Unit& u, int statIndex) {
+  int sum = 0;
+  for (size_t t = 0; t < side.researched.size(); ++t) {
+    if (!side.researched[t]) continue;
+    const TechnologyDef& d = db.research[t];
+    if ((size_t)statIndex >= d.bonus.size() || d.bonus[(size_t)statIndex] == 0) continue;
+    bool applies = d.bonusTypes.empty();
+    for (size_t k = 0; k < d.bonusTypes.size() && !applies; ++k) applies = d.bonusTypes[k] == u.type;
+    if (applies) sum += d.bonus[(size_t)statIndex];
+  }
+  return sum;
+}
+
+// `sides` (optional) is the battle's side list, for the research bonus; without it only items count.
+inline int unitStat(const Database& db, const Unit& u, int statIndex, const std::vector<SideState>* sides = nullptr) {
   int v = (size_t)statIndex < u.stats.size() ? u.stats[(size_t)statIndex] : 0;
-  if (u.items.empty()) return v;
+  const bool research = sides && !db.research.empty() && u.side >= 0 && (size_t)u.side < sides->size();
+  if (u.items.empty() && !research) return v;
   v += itemBonus(db, u, statIndex);
+  if (research) v += researchBonus(db, (*sides)[(size_t)u.side], u, statIndex);
   return v < 0 ? 0 : v;
 }
 

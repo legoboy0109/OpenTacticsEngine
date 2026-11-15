@@ -102,18 +102,18 @@ static void pushProps(lua_State* L, const Props* props) {
   }
 }
 
-void Formulas::pushUnit(const Unit* u) {
+void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx) {
   if (!u) { lua_pushnil(L_); return; }
   const UnitTypeDef& type = db_->unitTypes[u->type];
   lua_createtable(L_, 0, (int)db_->stats.size() + 7);
   for (size_t i = 0; i < db_->stats.size() && i < u->stats.size(); ++i) {
-    lua_pushinteger(L_, unitStat(*db_, *u, (int)i));  // with what its accessories add
+    lua_pushinteger(L_, unitStat(*db_, *u, (int)i, ctx.sides));  // with what its accessories and research add
     lua_setfield(L_, -2, db_->stats[i].id.c_str());
   }
   // Set after the stats on purpose: if the hp stat is literally named
   // "hp", a.hp must be the CURRENT value and a.maxhp the maximum.
   if (db_->rules.statHp >= 0) {
-    lua_pushinteger(L_, unitStat(*db_, *u, db_->rules.statHp));
+    lua_pushinteger(L_, unitStat(*db_, *u, db_->rules.statHp, ctx.sides));
     lua_setfield(L_, -2, "maxhp");
   }
   lua_pushinteger(L_, u->hp); lua_setfield(L_, -2, "hp");
@@ -133,8 +133,8 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
                       double def) {
   if (!ref) return def;
   lua_rawgeti(L_, LUA_REGISTRYINDEX, ref);
-  pushUnit(ctx.a);
-  pushUnit(ctx.b);
+  pushUnit(ctx.a, ctx);
+  pushUnit(ctx.b, ctx);
   pushProps(L_, ctx.w ? &ctx.w->props : nullptr);
   pushProps(L_, ctx.ta);
   pushProps(L_, ctx.tb);

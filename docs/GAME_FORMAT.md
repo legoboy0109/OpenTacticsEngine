@@ -125,7 +125,10 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "income": { "funds": 1000 },                  // per turn to the owner, once per structure
     "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
     "sells": ["vulnerary"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)
-    "tags": ["hq"] }                              // "hq" = headquarters (defeat: lostHq)
+    "tags": ["hq"],                               // "hq" = headquarters (defeat: lostHq)
+    "research": true,                             // optional: a side owning one may research (docs/ECONOMY.md)
+    "upgrades": [ { "to": "town", "cost": { "funds": 3000 },   // optional: kinds it can be built up into (same
+                    "requires": "masonry" } ] }                // width x height); "requires" = a technology
 ] }
 ```
 
@@ -180,6 +183,14 @@ The switch between fixed and carried weapons, the inventory size and the
 shared storage are in `game.json` under `rules.items`. A map can give each
 unit its own `"items"` and each side a starting `"storage"`. Everything is
 in docs/ITEMS.md.
+
+## data/research.json (optional)
+
+Technologies a side can research: cost, turns, prerequisites, unit types they unlock and stat bonuses. A game
+without this file has no research. `{ "technologies": [ { "id", "name", "description", "cost": {…}, "turns": 0..99
+(default 1), "requires": ["id"], "unlocks": { "units": ["id"] }, "bonus": { "types": ["unit id"], "stats":
+{ "def": 1 } } } ] }`; unknown keys are refused. A structure kind needs `"research": true` to research at.
+Everything is in docs/ECONOMY.md.
 
 ## maps/*.json
 

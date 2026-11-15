@@ -129,6 +129,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         releaseCapture(i, kNoCell);  // a capture belongs to its capturer's side
         u.side = c.side;
         sides[(size_t)c.side].everHadUnits = true;
+        clampHp(u);  // the new side's research may give it another maximum
       }
       break;
     case K::GiveItem:
@@ -147,6 +148,9 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         long long to = std::max(0LL, std::min((long long)kMaxStoryNumber, now + a.amount));
         changeResource(c.side, a.resource, (int)(to - now), events);
       }
+      break;
+    case K::GrantResearch:
+      finishResearch(c.side, c.index, events);  // no cost; nothing happens if it is finished already
       break;
     case K::SetSwitch:
       storyState.switches[(size_t)c.index] = c.on ? 1 : 0;

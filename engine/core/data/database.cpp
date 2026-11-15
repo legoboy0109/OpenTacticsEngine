@@ -26,6 +26,7 @@ int Database::findTerrain(const std::string& id) const { return findById(terrain
 int Database::findStructure(const std::string& id) const { return findById(structures, id); }
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }
 int Database::findItem(const std::string& id) const { return findById(items, id); }
+int Database::findTechnology(const std::string& id) const { return findById(research, id); }
 bool Database::canWield(int unitType, int weapon) const {
   const UnitTypeDef& t = unitTypes[(size_t)unitType];
   for (int w : t.weapons)

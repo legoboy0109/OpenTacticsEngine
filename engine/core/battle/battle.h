@@ -56,6 +56,10 @@ enum class EventType {
   UnitRelocated,    // a=unit, b=cell it left, c=cell it now stands on (moved by an event)
   SideChanged,      // a=unit, b=old side, c=new side
   ObjectiveChanged, // a=text of the new objective (-1 = none), b=objective set
+  // Upgradable structures and research (docs/ECONOMY.md); the payments come first as ResourceChanged.
+  StructureUpgraded,  // a=structure index, b=previous kind, c=new kind (indices into db->structures)
+  ResearchStarted,    // a=side, b=technology (index into db->research), c=turns it takes (0 = finished at once)
+  ResearchFinished,   // a=side, b=technology (also from a story event's grantResearch)
 };
 
 enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
@@ -96,10 +100,11 @@ struct CellState {
   int height = 0;
 };
 
-// A structure placed on the map (docs/STRUCTURES.md). Fixed for the battle:
-// only its owner and capture progress change. Index = id, never reordered.
+// A structure placed on the map (docs/STRUCTURES.md). Its position and size are fixed for the
+// battle; its owner, capture progress and (through upgrades) its kind change. Index = id, never reordered.
 struct StructureState {
-  int type = 0;       // index into db->structures
+  int type = 0;       // index into db->structures; the CURRENT kind (an upgrade changes it)
+  int mapType = 0;    // the kind the map placed (saves store `type` only when it differs)
   int x = 0, y = 0;   // top-left square
   int owner = -1;     // side index, -1 neutral
   int capture = 0;    // capture points remaining
@@ -117,6 +122,10 @@ struct SideState {
   bool hadHq = false;
   bool leaderLost = false;
   std::vector<ItemStack> storage;  // the side's shared storage (rules.items.storage)
+  // Research (docs/ECONOMY.md): per db->research index, 1 = finished; at most one in progress.
+  std::vector<uint8_t> researched;
+  int researching = -1;  // technology under way (index into db->research), -1 = none
+  int researchLeft = 0;  // of the side's own turns still to start before it is finished
 };
 
 enum class ActionType {
@@ -124,7 +133,10 @@ enum class ActionType {
   // Items (docs/ITEMS.md). Only UseItem ends the unit's turn.
   UseItem, Equip, GiveItem, TakeItem, StoreItem, FetchItem, BuyItem, DiscardItem,
   // Story (docs/EVENTS.md): `unit` talks to `target`; free, ends the turn only if the event says so.
-  Talk
+  Talk,
+  // Upgradable structures and research (docs/ECONOMY.md). Free of any unit, like Build.
+  UpgradeStructure,  // structure -> kind `to`
+  StartResearch      // technology `tech` for the active side
 };
 
 struct Action {
@@ -136,6 +148,9 @@ struct Action {
   int unitType = -1;    // Build
   int slot = -1;        // item actions: position in an inventory, or in the storage (FetchItem); Talk: the story event (-1 = the first that is offered)
   int item = -1;        // BuyItem: index into db->items
+  int structure = -1;   // UpgradeStructure: index into Battle::structures
+  int to = -1;          // UpgradeStructure: the kind it becomes (index into db->structures)
+  int tech = -1;        // StartResearch: index into db->research
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
   static Action attack(int unit, int target, int weapon) { Action a; a.type = ActionType::Attack; a.unit = unit; a.target = target; a.weapon = weapon; return a; }
@@ -155,6 +170,8 @@ struct Action {
   static Action fetchItem(int unit, int index) { return itemAction(ActionType::FetchItem, unit, index); }
   static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }
   static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
+  static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
+  static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
 };
 
@@ -165,6 +182,19 @@ struct Reach {
   std::vector<uint8_t> stop;    // per cell; 1 = unit may end its move here
   std::vector<Cell> stops;      // all cells with stop==1 (includes own cell)
   bool canStop(Cell c) const { return c >= 0 && c < (Cell)stop.size() && stop[c]; }
+};
+
+// One entry of an upgrade or research menu: possible now, or the plain reason it is not.
+struct UpgradeOption {
+  int to = -1;            // the kind it would become
+  const UpgradeDef* def = nullptr;  // its cost and requirement (points into the Database)
+  bool ok = false;
+  std::string why;        // when !ok
+};
+struct ResearchOption {
+  int tech = -1;
+  bool ok = false;
+  std::string why;        // when !ok: "needs Masonry", "not enough funds", ...
 };
 
 struct AttackOption {
@@ -265,8 +295,35 @@ class Battle {
   // Unit types the active side could build on this cell (affordable or not):
   // the cell must be a free square of a structure the side owns, and the new
   // unit must be able to enter that square.
-  void buildOptions(Cell cell, std::vector<int>& unitTypes) const;
+  // Types the side has not unlocked by research (docs/ECONOMY.md) are left out unless `includeLocked`
+  // (a menu that shows them greyed out, with unlockedBy for the reason).
+  void buildOptions(Cell cell, std::vector<int>& unitTypes, bool includeLocked = false) const;
   bool canAfford(int side, int unitType) const;
+  // The whole Build check for the active side (owner, free square, produced here, can enter, unlocked,
+  // affordable); false with the reason in `why` (optional).
+  bool canBuild(Cell cell, int unitType, std::string* why = nullptr) const;
+
+  // ---- upgradable structures and research (upgrades.cpp, research.cpp; docs/ECONOMY.md) ----
+  // The upgrades of structure `structure` (kinds it can become) for the active side, each with whether it
+  // can be done now. Empty when the structure is not the active side's or the battle is over.
+  void upgradeOptions(int structure, std::vector<UpgradeOption>& out) const;
+  // The technologies of `side` that are not finished (the one under way is left out: researching()),
+  // each with whether it could be started now (only the active side can start any).
+  void researchOptions(int side, std::vector<ResearchOption>& out) const;
+  bool hasTechnology(int side, int tech) const;
+  // The technology under way (index into db->research) or -1; researchTurnsLeft is the number of the
+  // side's turns still to start before it is done.
+  int researching(int side) const { return sides[(size_t)side].researching; }
+  int researchTurnsLeft(int side) const { return sides[(size_t)side].researchLeft; }
+  // Does the side own a structure of a kind with "research": true (otherwise the countdown is paused)?
+  bool canResearch(int side) const;
+  // Is a unit type free for the side to build: no technology lists it in "unlocks", or the side has one that does?
+  bool unitUnlocked(int side, int unitType) const;
+  // The technologies whose "unlocks" list the unit type (empty = needs none); any one of them is enough.
+  void unlockedBy(int unitType, std::vector<int>& techs) const;
+  // Hands a campaign's finished technologies to a side. Call after init(), before start(): marks them
+  // finished (no event) and gives the side's units their full, bonus-included hit points.
+  void setStartingResearch(int side, const std::vector<int>& techs);
 
   // ---- items (items.cpp; docs/ITEMS.md) ----
   const ItemDef& itemOf(const ItemStack& s) const { return db->items[(size_t)s.item]; }
@@ -338,6 +395,18 @@ class Battle {
   void applyMove(const Action& action, std::vector<Event>& events);
   void applyCapture(const Action& action, std::vector<Event>& events);
   void applyBuild(const Action& action, std::vector<Event>& events);
+  // upgrades.cpp / research.cpp
+  bool validateUpgrade(const Action& action, std::string* why) const;
+  void applyUpgrade(const Action& action, std::vector<Event>& events);
+  bool validateResearch(const Action& action, std::string* why) const;
+  void applyResearch(const Action& action, std::vector<Event>& events);
+  // Start of the active side's turn: counts the research under way down (paused without a research structure).
+  void researchTurn(std::vector<Event>& events);
+  // Marks a technology finished for the side, re-clamps its units' hit points (a bonus may have lowered the
+  // maximum) and appends ResearchFinished. Does nothing if it is finished already.
+  void finishResearch(int side, int tech, std::vector<Event>& events);
+  // Pays a cost (ResourceChanged events).
+  void pay(int side, const std::vector<Amount>& cost, std::vector<Event>& events);
   // Resets the capture progress of `unit` unless it now stands (`newCell`) on
   // a square of the structure it is capturing.
   void releaseCapture(int unit, Cell newCell);

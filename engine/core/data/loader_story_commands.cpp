@@ -12,7 +12,7 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
 constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit", "moveUnit",   "changeSide", "giveItem",
                                         "giveResource", "setSwitch", "setVariable", "addVariable", "objective", "win",
-                                        "lose",      "if",          "endTurn",    "focus"};
+                                        "lose",      "if",          "endTurn",    "focus",      "grantResearch"};
 
 }  // namespace
 
@@ -111,6 +111,15 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
     for (const Amount& a : out.amounts)
       if (a.amount < -kMaxStoryNumber || a.amount > kMaxStoryNumber) return fail(at, "an amount is unreasonably large");
     return sideIndex(side, at, "\"side\"", out.side);
+  }
+  if (k == "grantResearch") {
+    out.kind = K::GrantResearch;
+    std::string side;
+    if (!onlyKeys(e, {"grantResearch", "side"}, at)) return false;
+    if (!v.isString() || (out.index = db_.findTechnology(v.asString())) < 0)
+      return fail(at, "\"grantResearch\" names unknown technology " + quoted(v.asString()) +
+                          (db_.research.empty() ? " (this game has no data/research.json)" : ""));
+    return c_.str(e, "side", at, side, true) && sideIndex(side, at, "\"side\"", out.side);
   }
   if (k == "setSwitch" || k == "setVariable" || k == "addVariable") {
     bool isSwitch = k == "setSwitch";

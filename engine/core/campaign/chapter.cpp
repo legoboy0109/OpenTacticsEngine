@@ -17,6 +17,7 @@ void takeCarried(const Playthrough& pt, Battle& battle) {
     for (const CarriedSide& c : pt.sides) {
       if (c.id != side.id) continue;
       for (size_t i = 0; i < side.resources.size() && i < c.resources.size(); ++i) side.resources[i] += c.resources[i];
+      if (!c.research.empty()) battle.setStartingResearch((int)(&side - &battle.sides[0]), c.research);
       std::vector<ItemStack> storage;
       for (const ItemGrant& g : c.storage) {
         ItemStack s;
@@ -106,8 +107,9 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   MapDef map;
   if (!loadMap(db, db.maps[(size_t)ch->map].id, map, err)) return false;
   if (!battle.init(db, map, formulas, seed, err)) return false;
-  battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
+  // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
+  battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
   if (!battle.setStartingStory(pt.switches, pt.variables)) {
     err = "the playthrough's switches and variables do not fit the game";
     return false;
@@ -138,6 +140,9 @@ ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Bat
     CarriedSide& c = pt.sideCarry(side.id, db.resources.size());
     c.resources = side.resources;
     c.storage = grants(side.storage);
+    c.research.clear();  // finished ones only; what is still under way is lost with the chapter
+    for (size_t t = 0; t < side.researched.size(); ++t)
+      if (side.researched[t]) c.research.push_back((int)t);
   }
   pt.switches = battle.storyState.switches;
   pt.variables = battle.storyState.variables;

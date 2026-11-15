@@ -144,14 +144,14 @@ bool StoryLoader::rect(const Json& j, const std::string& where, Rect& out) const
 
 bool StoryLoader::condition(const Json& e, const std::string& where, Condition& out) const {
   if (!e.isObject()) return fail(where, "a condition must be an object");
-  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries"};
+  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
       if (kind) return fail(where, std::string("has two conditions (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
-  if (!kind) return fail(where, "is not a condition: it needs one of switch, variable, alive, dead, round, carries");
+  if (!kind) return fail(where, "is not a condition: it needs one of switch, variable, alive, dead, round, carries, researched");
   std::string k = kind;
   const Json& v = e[kind];
   if (k == "switch") {
@@ -187,6 +187,15 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
     if (!v.isString() || (out.index = db_.findItem(v.asString())) < 0)
       return fail(where, "\"carries\" names unknown item " + quoted(v.asString()));
     return !e.has("unit") || filter(e["unit"], where, "\"unit\"", out.filter);
+  }
+  if (k == "researched") {
+    if (!onlyKeys(e, {"researched", "side"}, where)) return false;
+    out.kind = Condition::Kind::Researched;
+    if (!v.isString() || (out.index = db_.findTechnology(v.asString())) < 0)
+      return fail(where, "\"researched\" names unknown technology " + quoted(v.asString()) +
+                             (db_.research.empty() ? " (this game has no data/research.json)" : ""));
+    std::string side;
+    return c_.str(e, "side", where, side, true) && sideIndex(side, where, "\"side\"", out.side);
   }
   if (!onlyKeys(e, {kind}, where)) return false;
   out.kind = k == "alive" ? Condition::Kind::Alive : Condition::Kind::Dead;

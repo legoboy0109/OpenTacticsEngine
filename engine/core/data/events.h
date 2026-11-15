@@ -28,9 +28,10 @@ struct Rect {
 enum class CmpOp { Eq, Ne, Lt, Le, Gt, Ge };
 
 struct Condition {
-  enum class Kind { Switch, Variable, Alive, Dead, Round, Carries };
+  enum class Kind { Switch, Variable, Alive, Dead, Round, Carries, Researched };
   Kind kind = Kind::Switch;
-  int index = -1;     // switch / variable index, or item index for Carries
+  int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
+  int side = -1;      // Researched: the side
   bool is = true;     // Switch
   CmpOp op = CmpOp::Eq;  // Variable, Round
   int value = 0;      // Variable, Round
@@ -52,7 +53,7 @@ struct Trigger {
 struct Command {
   enum class Kind {
     Say, AddUnit, RemoveUnit, MoveUnit, ChangeSide, GiveItem, GiveResource, SetSwitch, SetVariable,
-    AddVariable, Objective, Win, Lose, If, EndTurn, Focus
+    AddVariable, Objective, Win, Lose, If, EndTurn, Focus, GrantResearch
   };
   Kind kind = Kind::Say;
   // Say
@@ -61,11 +62,11 @@ struct Command {
   MapUnitDef newUnit;    // AddUnit
   UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem: which units
   int x = 0, y = 0;      // MoveUnit, Focus (a square)
-  int side = -1;         // ChangeSide, GiveResource: side index
+  int side = -1;         // ChangeSide, GiveResource, GrantResearch: side index
   int team = -1;         // Win, Lose: team index
   int item = -1;         // GiveItem
   std::vector<Amount> amounts;  // GiveResource
-  int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable
+  int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
   bool on = false;       // SetSwitch
   int value = 0;         // SetVariable / AddVariable
   int objectives = -1;   // Objective: index into StoryData::objectives

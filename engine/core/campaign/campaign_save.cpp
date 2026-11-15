@@ -5,6 +5,7 @@
 
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
+#include "core/battle/save_research.h"
 #include "core/campaign/campaign_save.h"
 
 namespace ote {
@@ -94,7 +95,7 @@ bool readSide(Reader& rd, const Database& db, const Json& j, size_t index, Carri
   if (!storage.empty() && db.rules.items.storage == ItemStorage::Off)
     return rd.fail(where + ".storage", "the game has no shared storage");
   s.storage = grantsOf(storage);
-  return true;
+  return savejson::readTechList(rd, db, j, "research", where, s.research);
 }
 
 }  // namespace
@@ -124,6 +125,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
     j.set("id", Json::makeString(s.id));
     j.set("resources", intList(s.resources));
     if (!s.storage.empty()) j.set("storage", savejson::itemsJson(stacks(s.storage)));
+    if (!s.research.empty()) j.set("research", savejson::techListJson(s.research));
     sides.push(j);
   }
   out.set("sides", sides);

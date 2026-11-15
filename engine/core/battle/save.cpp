@@ -8,6 +8,7 @@
 
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
+#include "core/battle/save_research.h"
 #include "core/battle/save_story.h"
 #include "core/battle/unit_stats.h"
 
@@ -66,6 +67,7 @@ bool readSide(Reader& rd, const Database& db, const Json& j, const std::string& 
       return rd.fail(where + ".resources[" + std::to_string(i) + "]", "not a whole number");
     s.resources[i] = (int)v.asNumber();
   }
+  if (!savejson::readSideResearch(rd, db, j, where, s)) return false;
   return rd.boolean(j, "defeated", where, s.defeated) && rd.boolean(j, "everHadUnits", where, s.everHadUnits) &&
          rd.boolean(j, "hadHq", where, s.hadHq) && rd.boolean(j, "leaderLost", where, s.leaderLost);
 }
@@ -97,7 +99,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
     u.stats[i] = (int)v.asNumber();
   }
   if (!readItems(rd, db, j, "items", where, db.rules.items.inventorySize, u.items)) return false;
-  int maxHp = unitStat(db, u, db.rules.statHp);  // with what its accessories add
+  int maxHp = unitStat(db, u, db.rules.statHp, &b.sides);  // with what its accessories and research add
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
   return rd.boolean(j, "moved", where, u.moved) && rd.boolean(j, "done", where, u.done) &&
@@ -107,6 +109,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
 bool readStructure(Reader& rd, const Battle& b, const Json& j, int index, StructureState& st) {
   std::string where = "structures[" + std::to_string(index) + "]";
   if (!j.isObject()) return rd.fail(where, "not an object");
+  if (!savejson::readStructureKind(rd, *b.db, j, where, st)) return false;  // before anything that depends on the kind
   int points = b.defOf(st).capturePoints;
   if (!rd.integer(j, "owner", where, -1, (int)b.sides.size() - 1, st.owner)) return false;
   if (!rd.integer(j, "capture", where, 0, points > 0 ? points : 0, st.capture)) return false;
@@ -146,6 +149,8 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("hadHq", boolean(s.hadHq));
     j.set("leaderLost", boolean(s.leaderLost));
     if (!s.storage.empty()) j.set("storage", itemsJson(s.storage));
+    Json research;
+    if (savejson::researchJson(s, research)) j.set("research", research);
     sides.push(j);
   }
   out.set("sides", sides);
@@ -179,6 +184,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("owner", num(s.owner));
     j.set("capture", num(s.capture));
     j.set("capturer", num(s.capturer));
+    savejson::writeStructureKind(s, j);
     structures.push(j);
   }
   out.set("structures", structures);

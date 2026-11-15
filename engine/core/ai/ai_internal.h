@@ -72,5 +72,11 @@ void considerHealing(const Battle& b, const Unit& u, Order& order);
 // ---- ai_build.cpp ----
 bool chooseBuild(const Battle& b, Cell& cell, int& unitType);
 
+// ---- ai_economy.cpp ----
+// The technology to start now (cheapest it can pay while still affording a build), if any.
+bool chooseResearch(const Battle& b, int& tech);
+// A structure to upgrade now (only with more than twice the cost to spare), if any.
+bool chooseUpgrade(const Battle& b, int& structure, int& to);
+
 }  // namespace ai
 }  // namespace ote

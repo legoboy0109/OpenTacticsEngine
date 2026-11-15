@@ -52,6 +52,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     }
     s.team = teamIndex;
     s.resources.assign(db->resources.size(), 0);
+    s.researched.assign(db->research.size(), 0);
     for (const Amount& a : sd.resources)
       if (a.resource >= 0 && a.resource < (int)s.resources.size()) s.resources[a.resource] += a.amount;
     for (const ItemGrant& g : sd.storage) {
@@ -89,7 +90,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
       return false;
     }
     StructureState s;
-    s.type = ms.type;
+    s.type = s.mapType = ms.type;
     s.x = ms.x;
     s.y = ms.y;
     s.owner = ms.side >= 0 && ms.side < (int)sides.size() ? ms.side : -1;

@@ -28,14 +28,36 @@ bool Battle::canAfford(int side, int unitType) const {
   return true;
 }
 
-void Battle::buildOptions(Cell cell, std::vector<int>& unitTypes) const {
+void Battle::buildOptions(Cell cell, std::vector<int>& unitTypes, bool includeLocked) const {
   unitTypes.clear();
   if (over || !db->rules.production || !grid.valid(cell)) return;
   int si = structureAt[cell];
   if (si < 0 || structures[si].owner != activeSide || occupant[cell] != -1) return;
   // The new unit appears on this very square, so it must be able to enter it.
   for (int t : defOf(structures[si]).produces)
-    if (enterCost(cell, db->unitTypes[t].moveType) > 0) unitTypes.push_back(t);
+    if (enterCost(cell, db->unitTypes[t].moveType) > 0 && (includeLocked || unitUnlocked(activeSide, t)))
+      unitTypes.push_back(t);
+}
+
+bool Battle::canBuild(Cell cell, int unitType, std::string* why) const {
+  if (over) return fail(why, "the battle is over");
+  if (!db->rules.production) return fail(why, "this game has no unit production");
+  if (!grid.valid(cell)) return fail(why, "invalid cell");
+  int si = structureAt[cell];
+  if (si < 0 || structures[si].owner != activeSide) return fail(why, "you do not own a structure here");
+  if (occupant[cell] != -1) return fail(why, "that square is occupied");
+  const std::vector<int>& list = defOf(structures[si]).produces;
+  if (std::find(list.begin(), list.end(), unitType) == list.end()) return fail(why, "that unit cannot be built here");
+  if (enterCost(cell, db->unitTypes[unitType].moveType) <= 0) return fail(why, "that unit could not enter this square");
+  if (!unitUnlocked(activeSide, unitType)) {
+    std::vector<int> techs;
+    unlockedBy(unitType, techs);
+    std::string need;
+    for (int t : techs) need += (need.empty() ? "" : " or ") + db->research[(size_t)t].name;
+    return fail(why, ("needs " + need).c_str());
+  }
+  if (!canAfford(activeSide, unitType)) return fail(why, "not enough resources");
+  return true;
 }
 
 bool Battle::validate(const Action& action, std::string* why) const {
@@ -43,20 +65,9 @@ bool Battle::validate(const Action& action, std::string* why) const {
 
   if (action.type == ActionType::EndTurn) return true;
 
-  if (action.type == ActionType::Build) {
-    if (!db->rules.production) return fail(why, "this game has no unit production");
-    if (!grid.valid(action.cell)) return fail(why, "invalid cell");
-    int si = structureAt[action.cell];
-    if (si < 0 || structures[si].owner != activeSide) return fail(why, "you do not own a structure here");
-    if (occupant[action.cell] != -1) return fail(why, "that square is occupied");
-    const std::vector<int>& list = defOf(structures[si]).produces;
-    if (std::find(list.begin(), list.end(), action.unitType) == list.end())
-      return fail(why, "that unit cannot be built here");
-    if (action.unitType < 0 || enterCost(action.cell, db->unitTypes[action.unitType].moveType) <= 0)
-      return fail(why, "that unit could not enter this square");
-    if (!canAfford(activeSide, action.unitType)) return fail(why, "not enough resources");
-    return true;
-  }
+  if (action.type == ActionType::Build) return canBuild(action.cell, action.unitType, why);
+  if (action.type == ActionType::UpgradeStructure) return validateUpgrade(action, why);
+  if (action.type == ActionType::StartResearch) return validateResearch(action, why);
 
   // Everything else is a unit order.
   if (!canAct(action.unit)) return fail(why, "that unit cannot act now");
@@ -103,6 +114,8 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::Capture: applyCapture(action, events); break;
     case ActionType::Wait: units[action.unit].done = true; break;
     case ActionType::Build: applyBuild(action, events); break;
+    case ActionType::UpgradeStructure: applyUpgrade(action, events); break;
+    case ActionType::StartResearch: applyResearch(action, events); break;
     case ActionType::Talk: applyTalk(action, events); break;
     case ActionType::EndTurn:
       advanceTurn(events);
@@ -162,6 +175,7 @@ void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
   int amount = points;  // default: instant (Fire Emblem "seize")
   if (formulas->has(Formulas::CaptureAmount)) {
     FormulaCtx ctx;
+    ctx.sides = &sides;
     ctx.a = &u;
     Props scratch;
     ctx.ta = &numbersAt(u.cell, scratch);

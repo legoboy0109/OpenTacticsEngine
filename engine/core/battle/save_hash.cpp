@@ -125,6 +125,8 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   // the hash it always had, so nothing at all is mixed in for a missing file.
   std::string probe;
   if (readTextFile(root + "/data/items.json", probe) && !mixJson(f, root, "data/items.json", false, nullptr, err)) return false;
+  // Research likewise: only a game that has the file mixes it in (its names and descriptions are cosmetic keys).
+  if (readTextFile(root + "/data/research.json", probe) && !mixJson(f, root, "data/research.json", false, nullptr, err)) return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   return true;
