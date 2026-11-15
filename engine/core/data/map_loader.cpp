@@ -264,8 +264,8 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   if (!c.str(root, "name", "", m.name)) return false;
   std::vector<int> structureAt;
   if (!loadGrid(c, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
-      !loadStructures(c, db, root, m, structureAt) || !loadUnits(c, db, root, m, structureAt) ||
-      !loadMapStory(db, root, m, path, err))
+      !readMapFog(c, root, m) || !loadStructures(c, db, root, m, structureAt) ||
+      !loadUnits(c, db, root, m, structureAt) || !loadMapStory(db, root, m, path, err))
     return false;
   out = m;
   err.clear();

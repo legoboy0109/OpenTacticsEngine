@@ -105,6 +105,11 @@ bool Battle::conditionHolds(const Condition& c) const {
     }
     case Condition::Kind::Researched:
       return hasTechnology(c.side, c.index);
+    case Condition::Kind::Sees:
+      // Judged on the team's sight (the truth of what it sees); without fog it sees every living unit.
+      for (const Unit& u : units)
+        if (u.alive && unitMatches(c.filter, u) && unitVisibleTo(c.team, u)) return true;
+      return false;
     case Condition::Kind::Carries:
       for (const Unit& u : units) {
         if (!u.alive || !unitMatches(c.filter, u)) continue;
@@ -201,6 +206,7 @@ void Battle::talkOptions(int unit, Cell from, std::vector<TalkOption>& out) cons
     if (storyState.fired[i] && !ev.repeat) continue;
     int t = unitByStoryId(ev.when.talkee);
     if (t < 0 || !units[(size_t)t].alive || grid.distance(from, units[(size_t)t].cell) != 1) continue;
+    if (!unitVisibleTo(teamOf(u), units[(size_t)t])) continue;  // fog: nobody to talk to that the team cannot see
     if (!conditionsHold(ev.cond)) continue;
     TalkOption opt;
     opt.target = t;

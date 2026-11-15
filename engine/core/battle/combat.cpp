@@ -88,7 +88,7 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
   for (int w : weapons) {
     if (moved && !db->weapons[w].afterMove) continue;
     for (const Unit& t : units) {
-      if (!t.alive || !isEnemy(u, t)) continue;
+      if (!t.alive || !isEnemy(u, t) || !unitVisibleTo(teamOf(u), t)) continue;  // fog: only what the team sees
       double vs;
       if (!weaponInRange(w, grid.distance(from, t.cell)) || !versusValue(w, t, vs)) continue;
       AttackOption opt;
@@ -106,7 +106,7 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
     return false;
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
-  if (!a.alive || !d.alive || !isEnemy(a, d)) return false;
+  if (!a.alive || !d.alive || !isEnemy(a, d) || !unitVisibleTo(teamOf(a), d)) return false;  // fog: not what it cannot see
   std::vector<int> owned;
   weaponsOf(a, owned);
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
@@ -231,6 +231,7 @@ void Battle::killUnit(int unit, std::vector<Event>& events) {
   e.a = unit;
   e.b = u.cell;
   events.push_back(e);
+  markSight();  // pushed events are stamped while the unit is still there
   if (u.cell != kNoCell) occupant[u.cell] = -1;
   u.alive = false;
   u.hp = 0;

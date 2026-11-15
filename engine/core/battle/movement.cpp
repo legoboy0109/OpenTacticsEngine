@@ -16,6 +16,7 @@ void Battle::reachable(int unit, Reach& out) const {
 
   const Unit& u = units[unit];
   int moveType = typeOf(u).moveType;
+  const int team = teamOf(u);
   int budget = movePoints(u);
   if (u.fuel >= 0 && u.fuel < budget) budget = u.fuel;  // fuel (docs/ECONOMY.md): the tank limits the reach
 
@@ -39,7 +40,9 @@ void Battle::reachable(int unit, Reach& out) const {
       int step = enterCost(next, moveType);
       if (step <= 0) continue;  // impassable
       int occ = occupant[next];
-      if (occ != -1 && isEnemy(u, units[occ])) continue;  // enemies block
+      // Enemies block; with fog only the ones the unit's team sees (an unseen one is planned around as if absent,
+      // and may stop the move when it is carried out: fog_rules.cpp).
+      if (occ != -1 && isEnemy(u, units[occ]) && unitVisibleTo(team, units[occ])) continue;
       int total = node.first + step;
       if (total > budget) continue;
       if (out.cost[next] != -1 && out.cost[next] <= total) continue;
@@ -52,7 +55,8 @@ void Battle::reachable(int unit, Reach& out) const {
   // May pass through allies but only stop on free cells (or stay put).
   for (Cell c = 0; c < n; ++c) {
     if (out.cost[c] < 0) continue;
-    if (occupant[c] == -1 || occupant[c] == unit) {
+    // A square held by an enemy the team does not see looks free to it.
+    if (occupant[c] == -1 || occupant[c] == unit || (isEnemy(u, units[occupant[c]]) && !unitVisibleTo(team, units[occupant[c]]))) {
       out.stop[c] = 1;
       out.stops.push_back(c);
     }

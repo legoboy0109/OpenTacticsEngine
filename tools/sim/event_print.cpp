@@ -162,6 +162,9 @@ std::string describeEvent(const Battle& b, const Event& e) {
     }
     case EventType::UnitResupplied:
       return fmt("%s is resupplied", unitName(b, e.a).c_str());
+    case EventType::MoveBlocked:
+      return fmt("%s is stopped at %s by %s at %s", unitName(b, e.a).c_str(), cellName(b, e.c).c_str(),
+                 unitName(b, e.b).c_str(), cellName(b, e.d).c_str());
   }
   return "?";
 }

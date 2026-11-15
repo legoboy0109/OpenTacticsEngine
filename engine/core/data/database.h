@@ -33,6 +33,10 @@ struct TerrainDef {
   std::vector<int> moveCost;
   Props props;                 // formula-visible numbers (defense, avoid...)
   std::vector<std::string> tags;  // free-form labels (the "hq" tag moved to structures)
+  // Fog of war (docs/ECONOMY.md "Fog of war"): squares a unit stands on add this to its vision (0..10); a unit on
+  // a square that hides is seen only by units next to it.
+  int visionBonus = 0;
+  bool hides = false;
 };
 
 // One way a structure kind can be built up into another (docs/ECONOMY.md "Upgradable structures").
@@ -65,6 +69,10 @@ struct StructureDef {
   // (like "versus" keys); repairsAll = no "repairs" key = every unit.
   bool repairsAll = true;
   std::vector<std::string> repairs;
+  // Fog of war: like the terrain's keys; a structure's values ADD to those of the terrain under the unit
+  // (bonuses are summed, "hides" on either one hides).
+  int visionBonus = 0;
+  bool hides = false;
 };
 
 const int kMaxStructureSize = 8;
@@ -138,7 +146,12 @@ struct UnitTypeDef {
   int fuel = 0;           // full tank (1..999)
   int fuelPerTurn = 0;    // lost at the start of each of its side's turns; 0 = only moving costs fuel
   bool supplies = false;  // refills fuel and ammunition of adjacent units of its side
+  // Fog of war: how far its team sees from the square it stands on (grid distance), 0..kMaxVision.
+  int vision = 2;
 };
+const int kMaxVision = 20;
+const int kMaxVisionBonus = 10;
+const int kMaxFogTeams = 32;  // an event's "seen by" is a 32-bit mask with one bit per team
 
 // One technology (data/research.json, docs/ECONOMY.md "Research").
 struct TechnologyDef {
@@ -339,6 +352,7 @@ struct MapDef {
   std::vector<MapSideDef> sides;
   std::vector<MapStructureDef> structures;
   std::vector<MapUnitDef> units;
+  bool fog = false;  // fog of war (docs/ECONOMY.md "Fog of war")
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
 };
 

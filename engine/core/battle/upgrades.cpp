@@ -69,6 +69,7 @@ void Battle::applyUpgrade(const Action& a, std::vector<Event>& events) {
     break;
   }
   const int from = st.type;
+  markSight();  // a new kind can see farther
   st.type = a.to;
   // Same place, same owner; the capture starts over for the new kind (nobody is capturing: only the owner's
   // own units may stand here, which was checked).

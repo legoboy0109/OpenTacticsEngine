@@ -144,14 +144,14 @@ bool StoryLoader::rect(const Json& j, const std::string& where, Rect& out) const
 
 bool StoryLoader::condition(const Json& e, const std::string& where, Condition& out) const {
   if (!e.isObject()) return fail(where, "a condition must be an object");
-  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched"};
+  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched", "sees"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
       if (kind) return fail(where, std::string("has two conditions (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
-  if (!kind) return fail(where, "is not a condition: it needs one of switch, variable, alive, dead, round, carries, researched");
+  if (!kind) return fail(where, "is not a condition: it needs one of switch, variable, alive, dead, round, carries, researched, sees");
   std::string k = kind;
   const Json& v = e[kind];
   if (k == "switch") {
@@ -196,6 +196,13 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
                              (db_.research.empty() ? " (this game has no data/research.json)" : ""));
     std::string side;
     return c_.str(e, "side", where, side, true) && sideIndex(side, where, "\"side\"", out.side);
+  }
+  if (k == "sees") {
+    if (!onlyKeys(e, {"sees", "team"}, where)) return false;
+    out.kind = Condition::Kind::Sees;
+    if (!filter(v, where, "\"sees\"", out.filter)) return false;
+    std::string team;
+    return c_.str(e, "team", where, team, true) && teamIndex(team, where, "\"team\"", out.team);
   }
   if (!onlyKeys(e, {kind}, where)) return false;
   out.kind = k == "alive" ? Condition::Kind::Alive : Condition::Kind::Dead;

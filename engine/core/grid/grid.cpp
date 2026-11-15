@@ -37,4 +37,21 @@ int Grid::distance(Cell a, Cell b) const {
   return 0;
 }
 
+void Grid::within(Cell c, int radius, std::vector<Cell>& out) const {
+  out.clear();
+  if (!valid(c) || radius < 0) return;
+  switch (type_) {
+    case GridType::Square: {
+      int cx = x(c), cy = y(c);
+      int y0 = cy - radius < 0 ? 0 : cy - radius, y1 = cy + radius >= height_ ? height_ - 1 : cy + radius;
+      for (int yy = y0; yy <= y1; ++yy) {
+        int span = radius - std::abs(yy - cy);
+        int x0 = cx - span < 0 ? 0 : cx - span, x1 = cx + span >= width_ ? width_ - 1 : cx + span;
+        for (int xx = x0; xx <= x1; ++xx) out.push_back(yy * width_ + xx);
+      }
+      break;
+    }
+  }
+}
+
 }  // namespace ote

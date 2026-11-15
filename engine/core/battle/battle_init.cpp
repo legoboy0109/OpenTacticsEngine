@@ -30,6 +30,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     return false;
   }
 
+  fog = map.fog;
   grid = Grid(map.gridType, map.width, map.height);
   cells.resize(cellCount);
   occupant.assign(cellCount, -1);
@@ -125,6 +126,13 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     units.push_back(u);
   }
 
+  // Fog: every team starts out knowing who owns what at the map's start.
+  if (fog) {
+    std::vector<int> owners;
+    for (const StructureState& st : structures) owners.push_back(st.owner);
+    seenOwners_.assign((size_t)teamCount, owners);
+  }
+
   // Story: the map's events and objectives, everything off / 0 / not yet run.
   story = map.story;
   storyState.switches.assign(db->switches.size(), 0);
@@ -172,6 +180,8 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
 }
 
 void Battle::start(std::vector<Event>& events) {
+  EventScope scope(*this, events);
+  sight_.valid = false;  // state may have been set up by hand since init (roster, research, tests)
   activeSide = 0;
   round = 1;
   StoryOccurrence o;  // "before the first turn": the first turn's own events come after TurnStarted
