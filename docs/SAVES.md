@@ -149,7 +149,13 @@ Decisions where the contract was silent, and the few deviations:
   structure, what that team last saw of its owner (-1 = nobody's). Required for fog maps, refused otherwise
   (`battle.seenOwners: this battle has no fog of war`); a list per team, one number per structure, whole, from -1 to
   the last side. What each team currently sees is not saved: it is recomputed from the units when the save is
-  loaded. Games and maps without fog write and read exactly what they did before (the pinned demo hash and save
+  loaded. A fog battle where some team last saw a structure as a kind other than the one the map placed (an upgrade
+  it did not see) also has `"seenKinds": [[kind index, ...], ...]`, shaped like `seenOwners` but with an index into the
+  game's structure kinds. It is written only then (so every save of a game that never upgraded anything out of sight is
+  byte for byte what it was) and optional when reading (absent = every team believes the map's kinds); refused without
+  fog (`battle.seenKinds: this battle has no fog of war`), and each entry must be a kind with the footprint of the
+  structure's map kind and reachable from it through upgrades (the same checks as a structure's own `type`).
+  Games and maps without fog write and read exactly what they did before (the pinned demo hash and save
   bytes are unchanged); the map's `fog` key and the new unit, terrain and structure keys are part of the data
   hash like any other rule data (those files are hashed whole).
   A game with events, objectives, switches or variables also gets
