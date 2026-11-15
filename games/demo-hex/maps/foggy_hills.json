@@ -1,0 +1,50 @@
+{
+  "name": "Foggy Hills",
+  "fog": true,
+  "grid": { "type": "hex", "width": 13, "height": 9 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "water", "=": "bridge" },
+  "tiles": [
+    "f.f..f.f..f.f",
+    ".f.ff..ff.f..",
+    "f.rrrr.rrrr.f",
+    ".r.ffffff.r..",
+    ".rrrrmmmrrrr.",
+    ".r.frmmrf.r..",
+    "fmr..r.r..rmf",
+    ".f.ff..ff.f..",
+    "..f.......f.."
+  ],
+  "sides": [
+    {"id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human", "resources": {"funds": 3000}},
+    {"id": "red", "name": "Red Army", "color": "#cc0000", "controller": "ai", "resources": {"funds": 3000}}
+  ],
+  "structures": [
+    {"type": "hq", "x": 1, "y": 4, "side": "blue"},
+    {"type": "hq", "x": 11, "y": 4, "side": "red"},
+    {"type": "factory", "x": 2, "y": 2, "side": "blue"},
+    {"type": "factory", "x": 10, "y": 2, "side": "red"},
+    {"type": "factory", "x": 2, "y": 6, "side": "blue"},
+    {"type": "factory", "x": 10, "y": 6, "side": "red"},
+    {"type": "city", "x": 1, "y": 2, "side": "blue"},
+    {"type": "city", "x": 11, "y": 2, "side": "red"},
+    {"type": "city", "x": 1, "y": 6, "side": "blue"},
+    {"type": "city", "x": 11, "y": 6, "side": "red"},
+    {"type": "city", "x": 5, "y": 2},
+    {"type": "city", "x": 7, "y": 2},
+    {"type": "city", "x": 5, "y": 6},
+    {"type": "city", "x": 7, "y": 6},
+    {"type": "city", "x": 6, "y": 4}
+  ],
+  "units": [
+    {"type": "infantry", "side": "blue", "x": 2, "y": 4},
+    {"type": "infantry", "side": "red", "x": 10, "y": 4},
+    {"type": "infantry", "side": "blue", "x": 3, "y": 2},
+    {"type": "infantry", "side": "red", "x": 9, "y": 2},
+    {"type": "infantry", "side": "blue", "x": 3, "y": 6},
+    {"type": "infantry", "side": "red", "x": 9, "y": 6},
+    {"type": "recon", "side": "blue", "x": 2, "y": 3},
+    {"type": "recon", "side": "red", "x": 9, "y": 3},
+    {"type": "tank", "side": "blue", "x": 2, "y": 5},
+    {"type": "tank", "side": "red", "x": 9, "y": 5}
+  ]
+}

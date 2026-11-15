@@ -1,0 +1,12 @@
+// On a hexagon game a structure covers one hexagon, or with "rings": 1 a hexagon and the six around it (the fortress).
+{ "structures": [
+  { "id": "city",     "name": "City",         "color": "#b7b7b7", "glyph": "c",
+    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 } },
+  { "id": "factory",  "name": "Factory",      "color": "#9a9a9a", "glyph": "F",
+    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 },
+    "produces": ["infantry", "mech", "recon", "tank", "artillery"] },
+  { "id": "hq",       "name": "Headquarters", "color": "#d4af37", "glyph": "H",
+    "props": { "defense": 4 }, "capturePoints": 20, "income": { "funds": 1000 }, "tags": ["hq"] },
+  { "id": "fortress", "name": "Fortress",     "color": "#8e8878", "glyph": "W", "rings": 1,
+    "props": { "defense": 4 }, "capturePoints": 40, "income": { "funds": 2000 } }
+] }

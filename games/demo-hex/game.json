@@ -1,0 +1,42 @@
+// Hexagon demo (pointy-top): capture cities, earn funds, build units, fight over the fortress that covers seven hexagons.
+{
+  "formatVersion": 1,
+  "name": "Hex Wars Demo",
+  "description": "A small Advance Wars-style battle on hexagons: capture cities, earn funds, build an army, cross the river by its bridges and fight over the fortress; the second map is fought in the fog.",
+  "grid": { "type": "hex", "layout": "pointy" },
+  "styles": [
+    { "id": "classic", "name": "Classic" }
+  ],
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+
+  "stats": [
+    { "id": "hp",  "name": "HP" },
+    { "id": "mov", "name": "Move" }
+  ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "funds", "name": "Funds" } ],
+
+  "moveTypes": [
+    { "id": "foot",   "name": "Foot" },
+    { "id": "tread",  "name": "Tread" },
+    { "id": "wheels", "name": "Wheels" }
+  ],
+
+  "rules": {
+    "turnOrder": "sides",
+    "counterAttacks": true,
+    "defeat": ["noUnits", "lostHq"],
+    "economy": { "enabled": true },
+    "production": { "enabled": true, "builtUnitsCanAct": false },
+    "capture": { "enabled": true, "amount": "a.hp / 10" }
+  },
+
+  "formulas": {
+    "damage": "vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))"
+  },
+
+  "maps": [
+    { "id": "fortress_ford", "name": "Fortress Ford", "file": "maps/fortress_ford.json" },
+    { "id": "foggy_hills", "name": "Foggy Hills", "file": "maps/foggy_hills.json" }
+  ]
+}
