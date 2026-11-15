@@ -154,6 +154,14 @@ std::string describeEvent(const Battle& b, const Event& e) {
       return fmt("%s starts researching %s (%d turns)", b.sides[(size_t)e.a].name.c_str(), techName(b, e.b).c_str(), e.c);
     case EventType::ResearchFinished:
       return fmt("%s has researched %s", b.sides[(size_t)e.a].name.c_str(), techName(b, e.b).c_str());
+    case EventType::UnitRepaired: {
+      std::string cost;
+      for (size_t r = 0; r < e.data.size() && r < b.db->resources.size(); ++r)
+        if (e.data[r] > 0) cost += (cost.empty() ? "" : ", ") + fmt("%d %s", e.data[r], b.db->resources[r].id.c_str());
+      return fmt("%s is repaired +%d -> %d HP (%s)", unitName(b, e.a).c_str(), e.b, e.c, cost.empty() ? "free" : cost.c_str());
+    }
+    case EventType::UnitResupplied:
+      return fmt("%s is resupplied", unitName(b, e.a).c_str());
   }
   return "?";
 }

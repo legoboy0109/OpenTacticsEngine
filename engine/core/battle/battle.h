@@ -60,6 +60,9 @@ enum class EventType {
   StructureUpgraded,  // a=structure index, b=previous kind, c=new kind (indices into db->structures)
   ResearchStarted,    // a=side, b=technology (index into db->research), c=turns it takes (0 = finished at once)
   ResearchFinished,   // a=side, b=technology (also from a story event's grantResearch)
+  // Repair and supply (docs/ECONOMY.md); a repair's payment comes first as ResourceChanged.
+  UnitRepaired,       // a=unit, b=HP restored, c=its HP now, data=what it cost per resource index (empty = free)
+  UnitResupplied,     // a=unit (fuel and/or ammunition filled up)
 };
 
 enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
@@ -93,6 +96,11 @@ struct Unit {
   bool alive = true;
   bool leader = false;
   std::vector<ItemStack> items;  // the inventory, in order (at most rules.items.inventorySize)
+  // Repair and supply (docs/ECONOMY.md). fuel: -1 = the type uses none. ammo: empty = no weapon of the type
+  // has ammunition (or weapons are carried); otherwise one entry per entry of the type's `weapons`, -1 = that
+  // weapon is unlimited. Filled by Battle::stockUnit.
+  int fuel = -1;
+  std::vector<int> ammo;
 };
 
 struct CellState {
@@ -136,7 +144,9 @@ enum class ActionType {
   Talk,
   // Upgradable structures and research (docs/ECONOMY.md). Free of any unit, like Build.
   UpgradeStructure,  // structure -> kind `to`
-  StartResearch      // technology `tech` for the active side
+  StartResearch,     // technology `tech` for the active side
+  // Repair and supply: a supplier unit (UnitTypeDef::supplies) refills the adjacent units of its side; ends its turn.
+  Supply
 };
 
 struct Action {
@@ -172,6 +182,7 @@ struct Action {
   static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
   static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
+  static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
   static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
 };
 
@@ -213,6 +224,12 @@ struct StrikeForecast {
 };
 struct Forecast {
   StrikeForecast attack, counter;
+};
+
+// What a repair would do to one unit (repairPreview): HP restored and the price per resource index.
+struct RepairPlan {
+  int heal = 0;
+  std::vector<int> cost;  // per resource index; all 0 = free
 };
 
 class Battle {
@@ -325,6 +342,28 @@ class Battle {
   // finished (no event) and gives the side's units their full, bonus-included hit points.
   void setStartingResearch(int side, const std::vector<int>& techs);
 
+  // ---- repair and supply (repair.cpp, fuel.cpp, ammo.cpp, supply.cpp; docs/ECONOMY.md) ----
+  // Fuel left / full tank of a unit; -1 when its type uses no fuel.
+  int fuel(int unit) const;
+  int maxFuel(int unit) const;
+  // Ammunition of a fixed weapon of the unit / the weapon's full load; -1 = unlimited (no "ammo", or not the
+  // unit's weapon).
+  int ammo(int unit, int weapon) const;
+  int maxAmmo(int unit, int weapon) const;
+  // Is it missing fuel or ammunition (something a supplier or a structure could fill up)?
+  bool needsSupply(const Unit& u) const;
+  // Neighbouring living units of the same side that `unit` (a supplier) would refill if it stood on `from`
+  // (they lack something). Empty for a unit that cannot supply.
+  void supplyTargetsFrom(int unit, Cell from, std::vector<int>& out) const;
+  // The Supply action would be valid now: a supplier of the active side that has not acted, next to at least
+  // one unit of its side that lacks something.
+  bool canSupply(int unit) const;
+  // Would a structure of its own side repair `unit` if it stood on `at` at the start of its turn (the rule exists,
+  // the structure's "repairs" list takes the unit, the unit is hurt)? With the amount and price it would get now
+  // from its side's present funds (income comes first at the turn start and is not counted). False = no repair.
+  bool repairPreviewAt(int unit, Cell at, RepairPlan& out) const;
+  bool repairPreview(int unit, RepairPlan& out) const;
+
   // ---- items (items.cpp; docs/ITEMS.md) ----
   const ItemDef& itemOf(const ItemStack& s) const { return db->items[(size_t)s.item]; }
   // The weapons the unit can attack with right now, in order of preference:
@@ -411,6 +450,22 @@ class Battle {
   // a square of the structure it is capturing.
   void releaseCapture(int unit, Cell newCell);
   bool ownsHq(int side) const;
+  // repair.cpp / fuel.cpp / ammo.cpp / supply.cpp (docs/ECONOMY.md "Repair and supply")
+  // Full fuel and ammunition for the unit's type (a new unit, or one dressed from a roster).
+  void stockUnit(Unit& u) const;
+  // Turn start, in this order: resupplyTurn (structures, then suppliers), burnFuel (fuelPerTurn; destroys what
+  // runs dry and settles the battle), repairTurn.
+  void resupplyTurn(std::vector<Event>& events);
+  void burnFuel(std::vector<Event>& events);
+  void repairTurn(std::vector<Event>& events);
+  bool repairPlan(const Unit& u, Cell at, RepairPlan& out) const;
+  // Fills one unit's fuel and ammunition; UnitResupplied if anything was missing.
+  void refill(int unit, std::vector<Event>& events);
+  // The slot of `ammo` that belongs to the fixed weapon (-1 = unlimited or no ammunition).
+  int ammoSlot(const Unit& u, int weapon) const;
+  // One attack's worth of ammunition (once per attack, not per strike).
+  void spendAmmo(int unit, int weapon);
+  void applySupply(const Action& action, std::vector<Event>& events);
   // items.cpp
   bool validateItemAction(const Action& action, std::string* why) const;
   void applyItemAction(const Action& action, std::vector<Event>& events);

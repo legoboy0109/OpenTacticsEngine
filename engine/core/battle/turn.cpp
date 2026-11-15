@@ -35,6 +35,13 @@ void Battle::beginTurn(std::vector<Event>& events) {
     for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, income[r], events);
   }
   researchTurn(events);
+  // Repair and supply (docs/ECONOMY.md): after income (it can pay for repairs) and research (a finished bonus
+  // changes the maximum HP). Resupply comes before the fuel burns so a unit on a depot is not destroyed by it,
+  // and a unit that runs dry is gone before it costs a repair.
+  resupplyTurn(events);
+  burnFuel(events);
+  if (over) return;  // running dry ended the battle: nothing else happens this turn
+  repairTurn(events);
 
   StoryOccurrence o;
   o.kind = Trigger::Kind::Turn;
@@ -54,7 +61,8 @@ void Battle::advanceTurn(std::vector<Event>& events) {
     }
     if (!sides[activeSide].defeated) {
       beginTurn(events);
-      return;
+      // A unit running dry at the start of this turn can have wiped the side out: it passes at once.
+      if (over || !sides[activeSide].defeated) return;
     }
   }
 }

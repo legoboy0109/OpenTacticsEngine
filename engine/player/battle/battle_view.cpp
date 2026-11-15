@@ -229,7 +229,10 @@ void BattleView::begin(const Battle& b) {
     // Upgrades and research (docs/ECONOMY.md): no player UI yet; the new structure kind shows by itself.
     case EventType::StructureUpgraded:
     case EventType::ResearchStarted:
-    case EventType::ResearchFinished: break;
+    case EventType::ResearchFinished:
+    // Repair and supply (docs/ECONOMY.md): no player UI yet; the unit's HP shows by itself next time it is drawn.
+    case EventType::UnitRepaired:  // (its hit points are set when the event ends)
+    case EventType::UnitResupplied: break;
   }
 }
 
@@ -334,6 +337,8 @@ void BattleView::finish(const Battle& b) {
     case EventType::UnitAdded: units[e.a].scale = 1; break;
     case EventType::LevelUp: levelUp.active = false; break;
     case EventType::UnitHealed: units[e.a].hp = cur_.hpTo; break;
+    // Repair at the start of a turn (no animation yet): the displayed hit points just follow the rules.
+    case EventType::UnitRepaired: units[e.a].hp = e.c; break;
     case EventType::StatsRaised: {
       // New maximum hit points arrive filled (the rules do the same); other stats show in the panel.
       int hpGain = e.data.size() > (size_t)b.db->rules.statHp ? e.data[(size_t)b.db->rules.statHp] : 0;

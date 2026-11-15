@@ -35,7 +35,10 @@ void Battle::clampHp(Unit& u) {
 void Battle::weaponsOf(const Unit& u, std::vector<int>& out) const {
   out.clear();
   if (!db->rules.items.carriedWeapons) {
-    out = typeOf(u).weapons;
+    // Fixed weapons; one with ammunition that has run out is not available (docs/ECONOMY.md).
+    const std::vector<int>& list = typeOf(u).weapons;
+    for (size_t i = 0; i < list.size(); ++i)
+      if (u.ammo.empty() || i >= u.ammo.size() || u.ammo[i] != 0) out.push_back(list[i]);
     return;
   }
   for (const ItemStack& s : u.items) {

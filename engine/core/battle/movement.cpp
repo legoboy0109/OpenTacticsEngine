@@ -17,6 +17,7 @@ void Battle::reachable(int unit, Reach& out) const {
   const Unit& u = units[unit];
   int moveType = typeOf(u).moveType;
   int budget = movePoints(u);
+  if (u.fuel >= 0 && u.fuel < budget) budget = u.fuel;  // fuel (docs/ECONOMY.md): the tank limits the reach
 
   // (cost, cell) min-heap. Ties resolve by cell index, keeping results
   // identical across platforms/standard libraries.

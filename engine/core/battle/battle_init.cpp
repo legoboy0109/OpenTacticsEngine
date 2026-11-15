@@ -158,6 +158,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
     u.items.push_back(s);
   }
   u.hp = maxHp(u);
+  stockUnit(u);
   return u;
 }
 
@@ -178,6 +179,7 @@ void Battle::start(std::vector<Event>& events) {
   fireStory(o, events);
   if (!over) beginTurn(events);  // an event may have decided the battle already
   if (story) settle(events);  // an event may already have decided things
+  if (!over && sides[(size_t)activeSide].defeated) advanceTurn(events);  // the first side ran out of fuel
 }
 
 bool Battle::canAct(int unit) const {
