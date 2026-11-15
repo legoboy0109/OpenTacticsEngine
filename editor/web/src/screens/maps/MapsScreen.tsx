@@ -1,6 +1,7 @@
 // The Maps section: the list (new, rename, duplicate, reorder, delete) and the map editor for the picked map.
 import { useState } from 'react'
 import { addMap, deleteMap, duplicateMap, mapRemovalBlock, mapSize, moveMap, newMapId } from '../../model/maps'
+import { mapDeleteUsages } from '../../model/campaignRefs'
 import { navigate, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -33,6 +34,8 @@ function MapsList({ itemId }: { itemId?: string }) {
   const go = (id?: string) => navigate(projectPath(store.id, 'maps', id))
   const target = maps.find((m) => m.id === deleting)
   const block = target ? mapRemovalBlock(doc) : null
+  // What the campaign (if the game has one) would lose with this map: its chapters' map is cleared, scenes are kept.
+  const usages = target && !block ? mapDeleteUsages(doc, target.id) : []
   const sizeText = (id: string) => { const s = mapSize(doc, id); return s ? T.size(s.width, s.height) : T.unreadable }
 
   return (
@@ -60,6 +63,12 @@ function MapsList({ itemId }: { itemId?: string }) {
       <ConfirmDialog open={!!target} title={block ? T.cannotDelete : T.deleteTitle(target?.name ?? '')} confirmLabel="Delete" danger blocked={!!block}
         onCancel={() => setDeleting(null)} onConfirm={() => { if (target) { edit((d) => deleteMap(d, target.id)); go() } setDeleting(null) }}>
         <p>{block ?? T.deleteBody}</p>
+        {!block && usages.length > 0 && (
+          <>
+            <p>{T.deleteCampaign}</p>
+            <ul className="usage-list" data-testid="map-delete-usages">{usages.map((u, i) => <li key={i}>{u.text}</li>)}</ul>
+          </>
+        )}
         {!block && <p className="help">{T.deleteUndo}</p>}
       </ConfirmDialog>
     </>

@@ -13,6 +13,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   structures: 'Structures',
   art: 'Art',
   maps: 'Maps',
+  campaign: 'Campaign',
 }
 
 /** Left sidebar on wide screens; a compact switcher row on phones (same markup, CSS decides). */

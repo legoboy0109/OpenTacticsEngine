@@ -4,6 +4,7 @@ import { ObjectiveEditor } from './ObjectiveEditor'
 import { tidyObjectives } from '../../../../model/storyEdit'
 import { AddUnitForm } from './forms/AddUnitForm'
 import { GiveItemForm, GiveResourceForm } from './forms/GiveForms'
+import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
 import { AddVariableForm, EndTurnForm, FocusForm, SetSwitchForm, SetVariableForm, WinLoseForm } from './forms/StoryForms'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
@@ -40,6 +41,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
           <ConditionList name={`If ${at.index + 1}`} conditions={cmd.if ?? []} onChange={(list, k) => patch({ if: list }, k && `if:${k}`)} />
         </div>
       )
+    case 'goto': return <GotoForm cmd={cmd} at={at} />
     case 'endTurn': return <EndTurnForm />
     case 'focus': return <FocusForm cmd={cmd} at={at} />
     default: return <p className="help">This command is not one the editor knows. It is kept as it is.</p>

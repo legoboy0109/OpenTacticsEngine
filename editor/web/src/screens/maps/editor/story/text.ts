@@ -149,6 +149,7 @@ export const S = {
     if: 'If… then… otherwise…',
     endTurn: 'End the turn',
     focus: 'Move the view',
+    goto: 'Go to a chapter',
   } as Record<CommandKind, string>,
   endTurnTalkOnly: 'only in a “Two units talk” event',
   commandN: (n: number) => `command ${n}`,
@@ -160,6 +161,11 @@ export const S = {
   elsePart: 'Otherwise (optional)',
   ifConditions: 'If all of these are true',
   nested: 'Inside',
+
+  // --- campaign scenes ---
+  gotoChapter: 'Next chapter',
+  gotoHelp: 'After this scene the story continues with that chapter instead of the usual one. The last “go to” that runs wins.',
+  gotoNone: 'The campaign has no chapters yet.',
 
   // --- say ---
   sayText: 'What is said',

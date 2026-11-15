@@ -23,6 +23,9 @@ export interface Story extends SumCtx, DefCtx {
 
 const Ctx = createContext<Story | null>(null)
 
+/** Lets another screen (the Campaign screen's scenes) hand the same forms a Story of its own. */
+export const StoryScope = Ctx.Provider
+
 export function StoryProvider({ mapId, vs, children }: { mapId: string; vs: MapViewState; children: ReactNode }) {
   const doc = useDoc()
   const edit = useEdit()

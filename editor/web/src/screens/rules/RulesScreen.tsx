@@ -3,6 +3,7 @@ import { Needs } from '../../shell/Blocked'
 import { useDoc } from '../../store/context'
 import { Banner } from '../../ui/Banner'
 import { Card, PageHeader } from '../../ui/Card'
+import { CampaignChecks } from '../campaign/CampaignChecks'
 import { BattleCard } from './BattleCard'
 import { FeaturesCard } from './FeaturesCard'
 import { ItemsCard } from './ItemsCard'
@@ -30,6 +31,8 @@ function RulesForm() {
       {attention.length > 0 && (
         <Banner tone="warn" title={T.attentionTitle}>{T.attentionBody(attention.map((a) => a.label))}</Banner>
       )}
+      {/* Switches, variables and resources the campaign's scenes use (the rest of its checks are on the Campaign screen). */}
+      <CampaignChecks topics={['switch', 'variable', 'resource']} />
       <StatsCard />
       <ResourcesCard />
       <MoveTypesCard />

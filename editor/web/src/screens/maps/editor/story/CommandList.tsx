@@ -30,8 +30,11 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
-  { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus'] },
+  { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
 ]
+
+/** A campaign scene knows no map, so it can only use these (`goto` only in an "after" scene). */
+const SCENE_KINDS: CommandKind[] = ['say', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto']
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
 function menu(story: Story, talk: boolean): OptionGroup[] {
@@ -43,11 +46,13 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     setVariable: doc.game?.variables?.length ? null : 'no variables yet',
     addVariable: doc.game?.variables?.length ? null : 'no variables yet',
     endTurn: talk ? null : S.endTurnTalkOnly,
+    goto: doc.campaign && doc.campaign.chapters.length > 0 ? null : 'no chapters yet',
   }
+  const allowed = (k: CommandKind) => (story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')
   return GROUPS.map((g) => ({
     group: g.group,
-    options: g.kinds.map((k) => ({ value: k, label: why[k] ? `${S.commandKinds[k]} (${why[k]})` : S.commandKinds[k], disabled: !!why[k] })),
-  }))
+    options: g.kinds.filter(allowed).map((k) => ({ value: k, label: why[k] ? `${S.commandKinds[k]} (${why[k]})` : S.commandKinds[k], disabled: !!why[k] })),
+  })).filter((g) => g.options.length > 0)
 }
 
 export function CommandList({ eventId, path, commands, talk, selected, onSelect, name }: Props) {

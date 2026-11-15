@@ -38,11 +38,13 @@ interface Props {
   deleteLabel?: string
   /** A short explanation shown under the list heading. */
   note?: ReactNode
+  /** The list heading's level when the screen has a heading of its own above (default h1). */
+  heading?: 'h1' | 'h2'
 }
 
 /** List on the left, form for the selected item on the right. On a phone the
  *  two are separate views: the list first, the form opens with a back button. */
-export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions, newLabel, deleteLabel, note }: Props) {
+export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack, onNew, onDuplicate, onDelete, onMove, children, emptyText, listHidden, extraActions, newLabel, deleteLabel, note, heading: Heading = 'h1' }: Props) {
   const narrow = useNarrow()
   const known = items.some((i) => i.id === selectedId)
   // Wide screens always show a form; phones show it only once an item is picked.
@@ -55,7 +57,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
     <div className="master-detail" data-view={showDetail && narrow ? 'detail' : 'list'} data-list={listHidden && !narrow ? 'hidden' : undefined}>
       <div className="md-list">
         <div className="md-list-head">
-          <h1>{title}</h1>
+          <Heading>{title}</Heading>
           <button type="button" className="btn primary sm" onClick={onNew}><Icon name="plus" />{newLabel ?? `New ${noun}`}</button>
         </div>
         {note && <p className="help">{note}</p>}

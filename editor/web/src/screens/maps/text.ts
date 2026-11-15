@@ -20,5 +20,6 @@ export const T = {
   cannotDelete: 'Can’t delete the last map',
   deleteTitle: (n: string) => `Delete the map “${n}”?`,
   deleteBody: 'The map and everything placed on it is removed from your game.',
+  deleteCampaign: 'The campaign uses this map. Deleting it changes the campaign (the chapters keep their scenes; you pick another map for them):',
   deleteUndo: 'You can undo this with the Undo button.',
 }
