@@ -112,7 +112,7 @@ int structureElev(const Iso& I, const StructureState& st, const StructureDef& de
 
 void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
   const Battle& b = I.c.battle;
-  const StructureState& st = b.structures[(size_t)index];
+  const StructureState st = shownStructure(I.c, index);  // fog: kind and owner as the viewer last saw them
   const StructureDef& def = b.defOf(st);
   const IsoGeometry& g = I.g;
   int e = structureElev(I, st, def);

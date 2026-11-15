@@ -133,7 +133,7 @@ void Map3D::drawUnitModel(const DrawCtx& c, const Unit& u, const UnitView& v, co
 
 void Map3D::drawStructureModel(const DrawCtx& c, int index, const ModelLook& look, const ModelAsset& asset, float Y) {
   const Battle& b = c.battle;
-  const StructureState& st = b.structures[(size_t)index];
+  const StructureState st = shownStructure(c, index);  // fog: the kind the viewer last saw
   const StructureDef& def = b.defOf(st);
   if (structureActors_.size() <= (size_t)index) structureActors_.resize((size_t)index + 1);
   ModelActor& a = structureActors_[(size_t)index];

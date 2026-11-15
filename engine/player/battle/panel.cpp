@@ -57,7 +57,7 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
   // square as formulas see them (terrain merged with structure), then owner and capture.
   const int si = b.structureIndexAt(cell);
   if (si >= 0) {
-    const StructureState& st = b.structures[(size_t)si];
+    const StructureState st = shownStructure(c, si);  // fog: the kind the viewer last saw (name, picture, numbers)
     const StructureDef& sd = b.defOf(st);
     r.fillRect(x, y, sw, lh - 1, Color::rgb(structureRgb(c, st.type)));
     if (const Look* art = structureArt(c, st)) drawStructureArt(r, c, *art, x, y, sw, lh - 1);
@@ -71,12 +71,12 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
     y += rh;
   }
   Props scratch;
-  for (const NamedNumber& p : b.numbersAt(cell, scratch)) {
+  for (const NamedNumber& p : (c.view.fogged() ? b.numbersAtSeen(c.view.viewerTeam(), cell, scratch) : b.numbersAt(cell, scratch))) {
     row(r, x, y, w, p.key, numStr(p.value));
     y += rh;
   }
   if (si >= 0) {
-    const StructureState& st = b.structures[(size_t)si];
+    const StructureState& st = b.structures[(size_t)si];  // (capture progress is shown only for what the viewer sees now)
     const int owner = shownOwner(c, si);  // fog: the owner the viewer last saw
     if (owner >= 0) {
       row(r, x, y, w, "Owner", b.sides[owner].name, kLabel, Color::rgb(b.sides[owner].color));

@@ -11,7 +11,7 @@ namespace ote {
 
 void drawStructure(Renderer& r, const DrawCtx& c, int index, int camX, int camY, const Overlay& ov) {
   const Battle& b = c.battle;
-  const StructureState& st = b.structures[(size_t)index];
+  const StructureState st = shownStructure(c, index);  // fog: kind and owner as the viewer last saw them
   const StructureDef& def = b.defOf(st);
   const int t = c.layout.tile;
   const int fw = def.width * t, fh = def.height * t;

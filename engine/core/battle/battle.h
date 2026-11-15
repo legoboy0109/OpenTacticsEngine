@@ -297,6 +297,12 @@ class Battle {
   const Props& numbersAt(Cell c, Props& scratch) const {
     return squareNumbers(*db, cells[c].terrain, structureTypeAt(c), scratch);
   }
+  // The same as `team` believes it to be: a structure it does not see counts as the kind it last saw (an upgrade done
+  // out of sight must not show in what a viewer reads off a square). Without fog identical to numbersAt.
+  const Props& numbersAtSeen(int team, Cell c, Props& scratch) const {
+    const int si = structureIndexAt(c);
+    return squareNumbers(*db, cells[c].terrain, si < 0 ? -1 : seenKind(team, si), scratch);
+  }
   // Every square covered by structure `s`, row by row.
   void structureCells(int s, std::vector<Cell>& out) const;
   const UnitTypeDef& typeOf(const Unit& u) const { return db->unitTypes[u.type]; }
