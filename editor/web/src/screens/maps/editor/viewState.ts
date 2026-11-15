@@ -7,7 +7,7 @@ import type { Overlay } from '../../../model/storyOverlays'
 import type { Rect } from '../../../model/storyTypes'
 import { fitView, zoomAt, type View } from './geometry'
 
-type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'picking' | 'pickRect'>
+type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'picking' | 'pickRect' | 'fogSeen' | 'fogSide'>
 
 /** The Events / Objectives panels asking for a square or an area on the map: the next click (or drag) answers it. */
 export interface PickRequest {
@@ -36,6 +36,10 @@ export class MapViewState {
   dragS: { origin: Cell; dx: number; dy: number } | null = null
   /** Areas and squares the open event or the objectives are about, drawn over the map. */
   overlays: Overlay[] = []
+  /** The "Show what a side sees" aid: per square 1 = that side's team sees it at the start; null = not shown. */
+  fogSeen: Uint8Array | null = null
+  /** The side picked for that aid (null = the aid is off); the editor turns it into `fogSeen`. */
+  fogSide: string | null = null
   /** Set while the person is picking a square or area for a form. */
   picking: PickRequest | null = null
   /** The rectangle being dragged out while picking (drawn dashed). */

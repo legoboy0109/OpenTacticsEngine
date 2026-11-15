@@ -6,7 +6,7 @@ import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, 
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
-import { FilterPicker, ItemPick, PickSelect, SidePick, SwitchPick, TechPick, UnitPick, VariablePick } from './pickers'
+import { FilterPicker, ItemPick, PickSelect, SidePick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
 import { S } from './text'
@@ -19,6 +19,7 @@ interface Props {
 }
 
 /** A campaign scene can only test these (the loader refuses the others there). */
+/** (a scene has no fog: `sees` is for map events only) */
 const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead']
 
 const OPS = COMPARE_OPS.map((o) => ({ value: o, label: S.ops[o] }))
@@ -74,6 +75,12 @@ export function ConditionList({ conditions, onChange, name }: Props) {
               <>
                 <TechPick label={S.conditionTech} value={c.researched ?? ''} onChange={(v) => patch(i, { researched: v })} />
                 <SidePick label={S.conditionTechSide} value={c.side ?? ''} onChange={(v) => patch(i, { side: v })} />
+              </>
+            )}
+            {kind === 'sees' && (
+              <>
+                <FilterPicker label={S.conditionSees} value={c.sees} onChange={(f) => patch(i, { sees: f ?? {} })} />
+                <TeamPick label={S.conditionSeesTeam} value={c.team ?? ''} onChange={(v) => patch(i, { team: v })} help={S.conditionSeesHelp} />
               </>
             )}
             {kind === 'carries' && (

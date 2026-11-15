@@ -7,6 +7,7 @@ import { PLAIN_STYLE, unitPicture, type ArtScene, type StyleView } from '../../.
 import type { Cell } from '../../../model/mapGrid'
 import type { MapFile, MapUnit, Structure, Terrain, Unit } from '../../../model/types'
 import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
+import { drawFogDim } from './drawFog'
 import { drawOverlays } from './drawStory'
 import type { Overlay } from '../../../model/storyOverlays'
 import type { Rect } from '../../../model/storyTypes'
@@ -49,6 +50,8 @@ export interface DrawState {
   /** Areas / squares of the open event or the objectives, and the rectangle being picked. */
   overlays?: Overlay[]
   pickRect?: Rect | null
+  /** Squares with 0 are dimmed (what a side does not see). */
+  fogSeen?: Uint8Array | null
 }
 
 const BACKDROP = '#14161c'
@@ -143,6 +146,7 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       drawAnyUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true, time)
     }
   }
+  if (st.fogSeen && st.fogSeen.length === mw * mh) drawFogDim(g, st.fogSeen, mw, x0, x1, y0, y1, px, py)
   if (st.overlays?.length || st.pickRect) drawOverlays(g, st.overlays ?? [], st.pickRect ?? null, { px, py, S, dpr, mw, mh })
   const ring = (c: Cell, color: string, width: number, inset = 0, size = { w: 1, h: 1 }) => {
     g.strokeStyle = color
