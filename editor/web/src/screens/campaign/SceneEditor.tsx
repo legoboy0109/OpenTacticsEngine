@@ -37,9 +37,11 @@ export function SceneEditor({ chapterId, which }: { chapterId: string; which: Sc
   const commands = story.map.events![0].do
   return (
     <Card title={SCENE_TITLE[which]} help={which === 'before' ? C.beforeHelp : C.afterHelp} className="scene-card">
-      <StoryScope value={story}>
-        <CommandList eventId={eventId} path={[]} commands={commands} talk={false} selected={selected} onSelect={setSelected} name={SCENE_TITLE[which]} />
-      </StoryScope>
+      <div data-testid={`scene-${which}`}>
+        <StoryScope value={story}>
+          <CommandList eventId={eventId} path={[]} commands={commands} talk={false} selected={selected} onSelect={setSelected} name={SCENE_TITLE[which]} />
+        </StoryScope>
+      </div>
       <p className="help">{C.speakersHelp}</p>
     </Card>
   )
