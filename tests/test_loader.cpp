@@ -243,7 +243,7 @@ TEST(loader_demo_economy_uses_upgrades_research_supply_and_fog) {
   CHECK_EQ(town.upgrades[size_t(0)].to, db.findStructure("metropolis"));
   CHECK(town.upgrades[size_t(0)].needs >= 0);
   CHECK(income("city") < income("town") && income("town") < income("metropolis"));
-  CHECK(db.structures[size_t(db.findStructure("hq"))].research);
+  CHECK(!db.rules.researchNeedsStructure);  // research needs no building in the demo (the default)
   // Research: three technologies; Armor unlocks the tank, Plating needs Armor and adds HP.
   CHECK_EQ(db.research.size(), size_t(3));
   int armor = -1, plating = -1;
