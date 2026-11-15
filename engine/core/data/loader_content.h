@@ -40,6 +40,8 @@ bool readSquareVision(const LoadCtx& c, const Database& db, const Json& e, const
                       std::vector<std::string>& visionUnits, bool& hides);
 // A unit type id, or a tag some unit type carries (the rule of "versus" and "repairs" keys).
 bool isUnitKey(const Database& db, const std::string& key);
+// game.json "grid" (loader_grid.cpp; docs/HEX.md): sets db.gridType and db.hexLayout. Missing = square.
+bool readGameGrid(const LoadCtx& c, const Json& root, Database& db);
 bool readMapFog(const LoadCtx& c, const Json& root, MapDef& m);
 // The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
 // "structures" array of data/structures.json; db.structures already holds its entries in the same order.

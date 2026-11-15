@@ -97,8 +97,14 @@ bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optio
   Json rules = rulesOnly(doc, mapFile);
   if (only && rules.isObject()) {
     Json kept = Json::makeObject();
-    for (const char* const* k = only; *k; ++k)
-      if (rules.has(*k)) kept.set(*k, rules[*k]);
+    for (const char* const* k = only; *k; ++k) {
+      if (!rules.has(*k)) continue;
+      // An explicit square grid is the same game as no "grid" at all, so it must not change the hash.
+      if (std::string(*k) == "grid" && rules[*k].isObject() && rules[*k].size() == 1 &&
+          rules[*k]["type"].asString() == "square")
+        continue;
+      kept.set(*k, rules[*k]);
+    }
     rules = kept;
   }
   mixText(f, rel, true, rules.dump(0));
@@ -121,9 +127,10 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   // game.json: only the parts that are rules. Its name, description, author,
   // font, visual styles, screen size, the saving setting and editor notes are
   // not, and the map list is covered by hashing the map being played. Switches and variables
-  // count when present (a game without them hashes as before).
+  // count when present (a game without them hashes as before). So does "grid" (hexagon games; docs/HEX.md): changing
+  // a game's grid kind or layout refuses its old saves.
   static const char* const kGameKeys[] = {"formatVersion", "stats", "resources", "moveTypes", "roles",
-                                          "rules", "formulas", "scripts", "switches", "variables", nullptr};
+                                          "rules", "formulas", "scripts", "switches", "variables", "grid", nullptr};
   if (!mixJson(f, root, "game.json", false, kGameKeys, err)) return false;
   static const char* const kData[] = {"data/weapons.json", "data/units.json", "data/terrain.json"};
   for (const char* rel : kData)

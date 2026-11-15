@@ -136,6 +136,8 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!parseSavingMode(saving, db.saving))
     return c.fail("", "\"saving\" must be \"any\", \"continue\" or \"off\" (got \"" + saving + "\")");
 
+  if (!readGameGrid(c, root, db)) return false;
+
   const Json* view;
   if (!c.object(root, "view", "", view)) return false;
   if (!c.integer(*view, "width", "view", db.view.width)) return false;
@@ -252,6 +254,8 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     else if (view == "isometric-3d") st.view = StyleView::Isometric3D;
     else if (view == "3d") st.view = StyleView::Full3D;
     else return c.fail(where, "\"view\" must be \"top-down\", \"isometric\", \"isometric-3d\" or \"3d\"");
+    if (db.gridType == GridType::Hex && st.view != StyleView::TopDown)  // later steps of docs/HEX.md lift this
+      return c.fail(where, "the \"" + view + "\" view is not available for hexagon games yet (only \"top-down\")");
     const Json* iso;
     if (!c.object(j, "isometric", where, iso)) return false;
     if (j.has("isometric")) {

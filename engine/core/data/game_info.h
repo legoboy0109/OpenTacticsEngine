@@ -18,6 +18,8 @@ struct GameInfo {
   std::string name, description, author;
   int mapCount = 0;
   SavingMode saving = SavingMode::Any;  // unknown values read as Any (loadGame rejects them)
+  GridType gridType = GridType::Square;     // game.json "grid" (unknown values read as square; loadGame rejects them)
+  HexLayout hexLayout = HexLayout::Pointy;  // meaningful when gridType is Hex
   FontConfig font;                // the game's own font choice
   std::vector<StyleInfo> styles;  // never empty; [0] is the default style
 };

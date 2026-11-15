@@ -16,6 +16,11 @@ bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err) {
   out.description = root["description"].asString();
   out.author = root["author"].asString();
   parseSavingMode(root["saving"].asString("any"), out.saving);
+  const Json& grid = root["grid"];
+  if (grid["type"].asString() == "hex") {
+    out.gridType = GridType::Hex;
+    if (grid["layout"].asString() == "flat") out.hexLayout = HexLayout::Flat;
+  }
   out.mapCount = (int)root["maps"].size();
   const Json& f = root["font"];
   out.font.name = f["name"].asString("pixel");

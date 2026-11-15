@@ -27,6 +27,8 @@ id that does not exist is a load error.
   "author": "Your Name",                                     // optional
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
   "saving": "any",                                           // optional: "any" | "continue" | "off"
+  "grid": { "type": "hex", "layout": "pointy" },             // optional: hexagon game, "pointy" | "flat" (docs/HEX.md);
+                                                             // missing (or { "type": "square" }) = a square game
 
   // Text font (optional; default is the built-in 8x8 pixel font).
   "font": {
@@ -131,6 +133,8 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
   { "id": "city", "name": "City",                 // name defaults to the id
     "color": "#b7b7b7", "glyph": "c",             // placeholder look
     "width": 1, "height": 1,                       // squares, 1..8 each, default 1
+    // "rings": 1,                                 // hexagon games instead of width/height: 0 = one hexagon, 1 = it and its six
+                                                   // neighbours (docs/HEX.md)
     "moveCost": { "tread": 2, "ship": 0 },        // optional: replaces the terrain's cost for
                                                    // the listed move types; 0 = cannot enter
     "props": { "defense": 3 },                    // optional: replaces / adds to the terrain's numbers
@@ -221,7 +225,7 @@ Everything is in docs/ECONOMY.md.
 ```jsonc
 {
   "name": "First Battle",
-  "grid": { "type": "square", "width": 4, "height": 3 },
+  "grid": { "type": "square", "width": 4, "height": 3 },   // "hex" in a hexagon game: must match game.json "grid"
   "legend": { ".": "plain", "f": "forest", "r": "road" },   // char -> terrain id
   "tiles": [ "...f",
              "rrrr",
@@ -265,7 +269,9 @@ a unit may not start on a square impassable to it (judged with the
 structure's movement costs applied, if one stands there).
 
 Each structure's whole rectangle (`width` x `height` from its top-left
-square) must lie inside the map, and structures may not overlap. The type
+square) must lie inside the map, and structures may not overlap. (Hexagon
+games: `x`, `y` is the middle hexagon and the ring around it must fit too;
+docs/HEX.md.) The type
 and side must exist. The old `owners` list is refused: ownership now
 belongs to structures (their `side`). Only the owner of a structure changes
 during a battle.

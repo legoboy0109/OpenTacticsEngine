@@ -1,0 +1,45 @@
+// Blue in the west, red in the east. The HQs (7 hexagons each) sit at (1,4) and (10,4); everything else keeps clear of them
+// in both layouts. The tiles are the same for both layouts.
+{
+  "name": "Skirmish",
+  "grid": { "type": "hex", "width": 12, "height": 9 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea" },
+  "tiles": [
+    "..ff..m...f.",
+    "....f..r.f..",
+    "...rr..rr.f.",
+    ".f.rrr.rrr..",
+    "..rrf.m.rr..",
+    "..r.r.mmr...",
+    "....~~~~..f.",
+    "...rr.r.rr..",
+    ".f.r~~~~.r.f"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "ai", "resources": { "funds": 3000 } },
+    { "id": "red",  "name": "Red Army",  "color": "#cc0000", "controller": "ai", "resources": { "funds": 3000 } }
+  ],
+  "structures": [
+    { "type": "hq", "x": 1, "y": 4, "side": "blue" },
+    { "type": "hq", "x": 10, "y": 4, "side": "red" },
+    { "type": "factory", "x": 3, "y": 3, "side": "blue" },
+    { "type": "factory", "x": 8, "y": 5, "side": "red" },
+    { "type": "city", "x": 1, "y": 7, "side": "blue" },
+    { "type": "city", "x": 10, "y": 7, "side": "red" },
+    { "type": "city", "x": 1, "y": 1 },
+    { "type": "city", "x": 10, "y": 1 },
+    { "type": "city", "x": 5, "y": 2 },
+    { "type": "city", "x": 6, "y": 4 },
+    { "type": "city", "x": 6, "y": 7 }
+  ],
+  "units": [
+    { "type": "infantry",  "side": "blue", "x": 3, "y": 4 },
+    { "type": "infantry",  "side": "blue", "x": 3, "y": 5 },
+    { "type": "tank",      "side": "blue", "x": 4, "y": 4 },
+    { "type": "artillery", "side": "blue", "x": 3, "y": 6 },
+    { "type": "infantry",  "side": "red",  "x": 8, "y": 4 },
+    { "type": "infantry",  "side": "red",  "x": 8, "y": 3 },
+    { "type": "tank",      "side": "red",  "x": 7, "y": 4 },
+    { "type": "artillery", "side": "red",  "x": 8, "y": 6 }
+  ]
+}

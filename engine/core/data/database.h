@@ -57,7 +57,8 @@ struct StructureDef {
   std::string id, name;
   uint32_t color = 0x808080;   // placeholder block colour
   char glyph = ' ';            // placeholder letter
-  int width = 1, height = 1;   // footprint in squares (1..kMaxStructureSize)
+  int width = 1, height = 1;   // footprint in squares (1..kMaxStructureSize); always 1 x 1 in a hexagon game
+  int rings = 0;               // hexagon games: 0 = one hexagon, 1 = the hexagon and its six neighbours (docs/HEX.md)
   // Per move type: -1 = not set (use the terrain's), 0 = cannot enter, > 0 = cost to enter.
   std::vector<int> moveCost;
   Props props;                 // only the numbers it sets
@@ -284,6 +285,8 @@ struct Database {
   FontConfig font;
   RulesConfig rules;
   SavingMode saving = SavingMode::Any;  // game.json "saving"
+  GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
+  HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;
   std::vector<ResourceDef> resources;
   std::vector<MoveTypeDef> moveTypes;
@@ -359,7 +362,7 @@ struct MapUnitDef {
   std::vector<ItemGrant> items;
 };
 
-// A structure placed on a map: `x`, `y` is its top-left square.
+// A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).
 struct MapStructureDef {
   int type = 0;      // index into Database::structures
   int x = 0, y = 0;
@@ -368,7 +371,8 @@ struct MapStructureDef {
 
 struct MapDef {
   std::string id, name;
-  GridType gridType = GridType::Square;
+  GridType gridType = GridType::Square;  // always the game's grid (the loader checks)
+  HexLayout hexLayout = HexLayout::Pointy;
   int width = 0, height = 0;
   std::vector<int> terrain;  // per cell, row-major, terrain index
   std::vector<int> heights;  // per cell elevation (0 when unused)

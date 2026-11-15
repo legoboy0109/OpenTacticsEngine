@@ -23,7 +23,7 @@ static uint32_t cellHash(int x, int y) {
   return h;
 }
 
-SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs) {
+SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs, int blockSide) {
   if (look.cells.empty()) return SpriteCell();
   const SpriteCell first = look.cells[0];
   switch (look.kind) {
@@ -41,10 +41,10 @@ SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeM
         uint32_t ms = look.frameMs > 0 ? (uint32_t)look.frameMs : 400u;
         block = look.cells[(timeMs / ms) % look.cells.size()];
       }
-      int n = joinMask & 15;
+      int n = joinMask & (blockSide * blockSide - 1);
       SpriteCell c;
-      c.col = (int16_t)(block.col + n % 4);
-      c.row = (int16_t)(block.row + n / 4);
+      c.col = (int16_t)(block.col + n % blockSide);
+      c.row = (int16_t)(block.row + n / blockSide);
       return c;
     }
     default:

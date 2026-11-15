@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "core/grid/grid.h"
+
 namespace ote {
 
 // Largest sheet image, in pixels per side. Chosen so the same art loads on
@@ -143,13 +145,35 @@ int joinMaskAt(const Look& look, int x, int y, int gridW, int gridH, const Terra
   return mask;
 }
 
+// The same for a hexagon game (docs/HEX.md "Join pieces on hexagons"): bit i is set when the neighbour in
+// direction i (Grid::neighbor order) counts as the same, or is off the map and look.joinEdge is set.
+// terrainAt is any callable (Cell) -> terrain index. Pass the result to pickCell with blockSide 8.
+template <class TerrainAt>
+int joinMaskHex(const Look& look, const Grid& grid, Cell c, const TerrainAt& terrainAt) {
+  int mask = 0;
+  for (int i = 0; i < 6; ++i) {
+    Cell nb = grid.neighbor(c, i);
+    if (nb == kNoCell) {
+      if (look.joinEdge) mask |= 1 << i;
+      continue;
+    }
+    int t = terrainAt(nb);
+    if (t >= 0 && (size_t)t < look.joinWith.size() && look.joinWith[(size_t)t]) mask |= 1 << i;
+  }
+  return mask;
+}
+
+// Side of a join block in sheet cells: 4 (16 pieces) on squares, 8 (64 pieces) on hexagons.
+inline int joinBlockSide(const Grid& grid) { return grid.isHex() ? 8 : 4; }
+
 // The sheet cell to draw for `look` on map square (x, y).
 //   joinMask: JoinBit set of neighbours that count as the same (Join only).
 //   timeMs:   running time, for Animated.
 // Join pieces sit in a 4x4 block: piece n (the mask value 0..15) is at
-// column n % 4, row n / 4, counted from the look's top-left cell.
+// column n % 4, row n / 4, counted from the look's top-left cell. Hexagon games use
+// blockSide 8: piece n (0..63) at column n % 8, row n / 8.
 // Must not be called for Look::None.
-SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs);
+SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs, int blockSide = 4);
 
 // Reads the pixel size from a PNG file's header. False (with a reason in
 // err, no file name) if the file is missing or is not a PNG.
