@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -71,21 +72,24 @@ Menu::Result Menu::onInput(const InputEvent& e) {
       return None;
     }
     case InputEvent::PointerDown: {
-      if (!inside(e.x, e.y)) return Cancelled;  // tap outside closes
+      if (!inside(e.x, e.y)) { uiCue(Cue::Cancel); return Cancelled; }  // tap outside closes
       int i = itemAt(e.x, e.y);
       if (i >= 0 && items_[i].enabled) {
         sel_ = i;
         chosen_ = items_[i].id;
+        uiCue(Cue::Confirm);
         return Chosen;
       }
+      if (i >= 0) uiCue(Cue::Error);  // a greyed entry
       return None;
     }
     case InputEvent::ButtonDown:
-      if (e.button == Button::Up || e.button == Button::Prev) step(-1);
-      else if (e.button == Button::Down || e.button == Button::Next) step(1);
-      else if (e.button == Button::Cancel || e.button == Button::Menu) return Cancelled;
+      if (e.button == Button::Up || e.button == Button::Prev) { step(-1); uiCue(Cue::Cursor); }
+      else if (e.button == Button::Down || e.button == Button::Next) { step(1); uiCue(Cue::Cursor); }
+      else if (e.button == Button::Cancel || e.button == Button::Menu) { uiCue(Cue::Cancel); return Cancelled; }
       else if (e.button == Button::Confirm && sel_ >= 0) {
         chosen_ = items_[sel_].id;
+        uiCue(Cue::Confirm);
         return Chosen;
       }
       return None;

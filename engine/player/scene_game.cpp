@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "campaign/campaign_logic.h"
 #include "core/base/log.h"
 #include "core/campaign/playthrough.h"
@@ -93,6 +94,7 @@ void GameScene::layout(const Renderer& r) {
 
 void GameScene::activate(int row) {
   const Row& r = rows_[(size_t)row];
+  uiCue(r.kind == kBack ? Cue::Cancel : (r.kind == kContinue && !r.enabled) ? Cue::Error : Cue::Confirm);
   switch (r.kind) {
     case kContinue: {
       std::string err;
@@ -144,7 +146,7 @@ void GameScene::onInput(const InputEvent& e) {
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) { skipHeading(e.button); return; }
     if (e.button == Button::Confirm) activate(list_.sel);
-    else if (e.button == Button::Cancel) host_.showHome();
+    else if (e.button == Button::Cancel) { uiCue(Cue::Cancel); host_.showHome(); }
   }
 }
 

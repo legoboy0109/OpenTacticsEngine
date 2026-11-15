@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -74,8 +75,8 @@ ConfirmBox::Result ConfirmBox::onInput(const InputEvent& e, const Renderer& r) {
     if (i >= 0) return answer(choices_[(size_t)i]);
     if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) return answer(dismiss);
   } else if (e.type == InputEvent::ButtonDown) {
-    if (e.button == Button::Left || e.button == Button::Up || e.button == Button::Prev) sel_ = (sel_ + n - 1) % n;
-    else if (e.button == Button::Right || e.button == Button::Down || e.button == Button::Next) sel_ = (sel_ + 1) % n;
+    if (e.button == Button::Left || e.button == Button::Up || e.button == Button::Prev) { sel_ = (sel_ + n - 1) % n; uiCue(Cue::Cursor); }
+    else if (e.button == Button::Right || e.button == Button::Down || e.button == Button::Next) { sel_ = (sel_ + 1) % n; uiCue(Cue::Cursor); }
     else if (e.button == Button::Confirm) return answer(choices_[(size_t)sel_]);
     else if (e.button == Button::Cancel || e.button == Button::Menu) return answer(dismiss);
   }

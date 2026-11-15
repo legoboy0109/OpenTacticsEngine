@@ -14,6 +14,8 @@
 
 namespace ote {
 
+class GameAudio;
+
 struct UnitView {
   float px = 0, py = 0;  // top-left of the unit's tile in map pixels (animated)
   float ox = 0, oy = 0;  // extra offset (attack lunge)
@@ -73,6 +75,8 @@ class BattleView {
     skipping_ = true;
     skip(b);
   }
+  // The sounds of the events it plays (battle_view_sound.cpp); null = none.
+  void setAudio(GameAudio* audio) { audio_ = audio; }
   // The first TurnStarted entry of this view also shows the objective text under its banner.
   void announceObjective() { announce_ = true; }
 
@@ -134,6 +138,10 @@ class BattleView {
   bool beginFog(const Battle& b);
   void updateShown(const Battle& b);
   void addFloat(const std::string& text, float x, float y, Color c, float life = 0.9f, bool screen = false);
+  // battle_view_sound.cpp
+  void soundStarted(const Battle& b);
+  void soundImpact(const Battle& b);
+  void soundStep(const Battle& b, size_t index);
   void clampHpTo(const Battle& b, int unit);
   std::string itemName(const Battle& b, int item) const;
   void cellPos(const Battle& b, Cell c, float& x, float& y) const;
@@ -141,6 +149,8 @@ class BattleView {
 
   Current cur_;
   std::deque<Event> queue_;
+  GameAudio* audio_ = nullptr;
+  int stepped_ = -1;  // UnitMoved: the path square the last step sound was made for
   int tile_ = 24;
   bool autoplay_ = false;
   bool wasBusy_ = false;

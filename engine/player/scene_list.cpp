@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "core/base/log.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
@@ -33,11 +34,11 @@ void ListScene::onInput(const InputEvent& e) {
     if (row >= 0) list_.sel = row;
   } else if (e.type == InputEvent::PointerDown) {
     int row = list_.rowAt(e.x, e.y);
-    if (row >= 0) { list_.sel = row; onChoose(row); }
+    if (row >= 0) { list_.sel = row; uiCue(Cue::Confirm); onChoose(row); }
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) return;
-    if (e.button == Button::Confirm && !entries_.empty()) onChoose(list_.sel);
-    else if (e.button == Button::Cancel) onCancel();
+    if (e.button == Button::Confirm && !entries_.empty()) { uiCue(Cue::Confirm); onChoose(list_.sel); }
+    else if (e.button == Button::Cancel) { uiCue(Cue::Cancel); onCancel(); }
   }
 }
 
@@ -67,6 +68,7 @@ void ErrorScene::onInput(const InputEvent& e) {
               (e.type == InputEvent::ButtonDown &&
                (e.button == Button::Cancel || e.button == Button::Confirm || e.button == Button::Menu));
   if (!back) return;
+  uiCue(Cue::Cancel);
   if (back_ == SceneHost::ToMapSelect) host_.showMapSelect();
   else if (back_ == SceneHost::ToGame && !host_.currentGameId().empty()) host_.showGame(host_.currentGameId());
   else host_.showHome();

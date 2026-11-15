@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -24,6 +25,7 @@ bool RowList::step(Button b) {
   if (b == Button::Up || b == Button::Prev) sel = (sel + count - 1) % count;
   else if (b == Button::Down || b == Button::Next) sel = (sel + 1) % count;
   else return false;
+  uiCue(Cue::Cursor);
   return true;
 }
 

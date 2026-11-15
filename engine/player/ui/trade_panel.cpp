@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -66,18 +67,22 @@ TradePanel::Result TradePanel::onInput(const InputEvent& e, const Renderer& r) {
       bool again = c == col_ && row == list_[c].sel;
       col_ = c;
       list_[c].sel = row;
+      if (again) uiCue(Cue::Confirm);
       return again ? Picked : None;
     }
-    if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) return Back;
+    if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) { uiCue(Cue::Cancel); return Back; }
   } else if (e.type == InputEvent::ButtonDown) {
     if (e.button == Button::Left || e.button == Button::Right) {
       int other = 1 - col_;
       list_[other].sel = std::min(list_[col_].sel, std::max(0, list_[other].count - 1));  // same height
       col_ = other;
+      uiCue(Cue::Cursor);
     } else if (list_[col_].step(e.button)) {
     } else if (e.button == Button::Confirm) {
+      uiCue(Cue::Confirm);
       return Picked;
     } else if (e.button == Button::Cancel || e.button == Button::Menu) {
+      uiCue(Cue::Cancel);
       return Back;
     }
   }

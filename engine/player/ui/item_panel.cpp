@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -84,13 +85,14 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
     if (row >= 0) {
       bool again = row == list_.sel;
       list_.sel = row;
+      if (again) uiCue(Cue::Confirm);
       return again ? Picked : None;  // a first tap only selects (a touch screen never hovers)
     }
-    if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) return Back;
+    if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) { uiCue(Cue::Cancel); return Back; }
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) return None;
-    if (e.button == Button::Confirm && list_.count > 0) return Picked;
-    if (e.button == Button::Cancel || e.button == Button::Menu) return Back;
+    if (e.button == Button::Confirm && list_.count > 0) { uiCue(Cue::Confirm); return Picked; }
+    if (e.button == Button::Cancel || e.button == Button::Menu) { uiCue(Cue::Cancel); return Back; }
   }
   return None;
 }

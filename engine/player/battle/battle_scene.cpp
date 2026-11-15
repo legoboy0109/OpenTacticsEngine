@@ -24,6 +24,7 @@ BattleScene::BattleScene(SceneHost& host)
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
   if (proj_.view3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
+  view_.setAudio(&host_.gameAudio());
   initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
   view_.push(session_.startEvents);  // first TurnStarted + income (empty when the battle was resumed from a save)
   // A new battle says what it is about under its first banner (nothing when the map has no objective text).
@@ -80,6 +81,7 @@ void BattleScene::enterResult() {
     if (!s.defeated) winners += (winners.empty() ? "" : " & ") + s.name;
   }
   for (const SideState& s : battle_.sides) anyHuman |= !s.ai;
+  soundResult(anyHuman && !autoplay_, humanWon);
   resultSub_ = chapterBattle() ? "Confirm: continue"
                : session_.db.campaign ? "Confirm: back to the game page" : "Confirm: back to map select";
   if (battle_.winnerTeam < 0) {

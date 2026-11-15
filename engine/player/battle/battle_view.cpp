@@ -221,6 +221,8 @@ void BattleView::begin(const Battle& b) {
     case EventType::ItemUsed:    // nothing to show beyond what its effects show
     case EventType::ItemMoved:
     case EventType::ItemEquipped:
+    case EventType::MusicChanged:  // sound only (battle_view_sound.cpp)
+    case EventType::SoundRequested:
     case EventType::BattleEnded: break;
     // Story entries are handled by beginStory() above (battle_view_story.cpp).
     case EventType::Dialogue:
@@ -243,6 +245,7 @@ void BattleView::begin(const Battle& b) {
 void BattleView::impact(const Battle& b) {
   const Event& e = cur_.ev;
   cur_.fired = true;
+  soundImpact(b);
   const UnitView& d = units[e.b];
   float x = d.px + tile_ / 2.0f, y = d.py - 2;
   if (e.flags & kHit) {
@@ -264,6 +267,7 @@ void BattleView::progress(const Battle& b) {
       float f = p * (float)(cur_.path.size() - 1);
       size_t i = std::min((size_t)f, cur_.path.size() - 1);
       size_t j = std::min(i + 1, cur_.path.size() - 1);
+      soundStep(b, i);
       float t = f - (float)i, x0, y0, x1, y1;
       cellPos(b, cur_.path[i], x0, y0);
       cellPos(b, cur_.path[j], x1, y1);
@@ -383,6 +387,7 @@ void BattleView::startNext(const Battle& b) {
     }
     cur_.active = true;
     begin(b);
+    soundStarted(b);
     if (cur_.dur <= 0) finish(b);
   }
 }

@@ -21,6 +21,26 @@ void PlayerApp::startAudio() {
   }
 }
 
+// A scene appeared: make sure the open game's sound data is loaded (its page has no Database yet, the session
+// has) and tell the music what the scene needs. Nothing is read in Off mode (docs/SOUND.md "Three modes").
+void PlayerApp::syncAudio() {
+  const unsigned id = scene_ ? scene_->audioId() : 0;
+  if (id == audioScene_) return;
+  audioScene_ = id;
+  if (audio_.mode() == AudioService::Mode::Off) return;
+  if (gameId_.empty()) {
+    if (gameAudio_.loaded()) gameAudio_.unload();
+  } else if (gameAudio_.gameId() != gameId_ || (session_ && !gameAudio_.full())) {
+    std::string err;
+    if (audioFailed_ != gameId_ + (session_ ? "+" : "") &&
+        !gameAudio_.load(args_.gamesDir + "/" + gameId_, gameId_, session_ ? &session_->db : nullptr, err)) {
+      OTE_WARN("audio: %s", err.c_str());
+      audioFailed_ = gameId_ + (session_ ? "+" : "");
+    }
+  }
+  if (scene_) gameAudio_.music().enter(scene_->audioContext());
+}
+
 void PlayerApp::openAudioDevice() {
   std::string why;
   std::unique_ptr<AudioOut> dev = openAudioOut(AudioService::kRate, why);
