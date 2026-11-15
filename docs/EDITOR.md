@@ -64,6 +64,11 @@ concerns: the UI writes the generated Lua expression to the game file and
 remembers the chosen preset under an `"editor"` key in `game.json` (the
 engine ignores unknown keys).
 
+The editor also teaches itself: a **Learn** button (top bar and game list) opens short hands-on lessons (docs/TUTORIAL.md). Their
+progress is remembered by the helper in `learn.json` in the user's data folder (`~/.local/share/OpenTacticsEngine/editor/` on Linux),
+outside every game and the repository. `ote-editor --learn-file FILE` puts it elsewhere and `--learn-file ""` keeps it in memory
+only; every test starts the helper with a temporary `--learn-file` (docs/EDITOR_API.md).
+
 Still open for the owner (show the first version, then adjust):
 overall layout (RPG Maker-like tabs vs sidebar), naming of things shown to
 novices ("unit type" vs "class", "terrain" vs "tile"...), how presets are

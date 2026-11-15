@@ -10,7 +10,15 @@ ote-editor [--games DIR=games] [--assets DIR=assets]
            [--templates DIR=editor/templates] [--web DIR=editor/web/dist]
            [--player DIR=build-web/engine/player]
            [--host 127.0.0.1] [--port 8765] [--allow-host NAME]...
+           [--learn-file FILE=<user data>/OpenTacticsEngine/editor/learn.json]
 ```
+
+`--learn-file` is where the tutorial's remembered state lives (`GET`/`PUT /api/learn`). The default is the platform's user data
+folder, never a game folder and never the repository: `~/.local/share` (or `$XDG_DATA_HOME`) on Linux, `~/Library/Application Support`
+on macOS, `%APPDATA%` on Windows, plus `OpenTacticsEngine/editor/learn.json`. `--learn-file ""` (an empty value) keeps the state in
+memory only: it is gone when the helper stops and no file is made anywhere. The file and its folders are created by the first `PUT`,
+never by starting the helper or by a `GET`. **Tests must always pass `--learn-file` with a temporary path** (the test fixtures do), so
+the real user data folder is never touched.
 
 Safety rules (it writes files, so these are not optional):
 - Binds to 127.0.0.1 unless `--host` says otherwise.
@@ -285,6 +293,17 @@ a model it cannot read when a battle starts.
 - `409 { "error": "…", "usedBy": [ … ] }` while the SAVED `data/graphics.json`
   names the file (`usedBy` as in the list). Nothing is deleted.
 - `404` no such file; `400` bad name.
+
+### GET /api/learn, PUT /api/learn
+The editor tutorial's remembered state (docs/TUTORIAL.md "Remembered state"): ONE JSON object, kept by the helper so it follows the
+maker to another browser or device. The helper stores it as is; the web editor owns its shape (`editor/web/src/learn/state.ts`:
+`version`, `offerAnswered`, and per lesson `state` / `step` / `skipped` / `signals` / `game`).
+- `GET` -> `200` the stored object. A missing, empty, unreadable, damaged (not JSON, not an object) or oversized file is **not an
+  error**: the answer is `200 {}` ("no state"; the damaged file is only mentioned in the helper's log and replaced by the next `PUT`).
+- `PUT` with a JSON object body (at most 64 KB) -> `200` the stored object. The file is written atomically (temp file in the same folder +
+  rename), compact. `400` when the body is empty, not JSON or not an object; `413` over 64 KB; `500` when the file cannot be written
+  (nothing changes). With `--learn-file ""` the object is kept in memory.
+- Tests: `tests/editor_api_learn_checks.py`.
 
 ### GET /api/fonts
 `{ "fonts": [ { "id": "pixel", "name": "Pixel (built-in)", "size": 8, "smooth": false }, … ] }`
