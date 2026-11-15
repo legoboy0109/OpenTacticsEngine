@@ -94,8 +94,9 @@ double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapo
 }
 
 double scoreCapture(const Battle& b, const Unit& u, Cell at) {
-  const StructureState& st = b.structures[b.structureIndexAt(at)];
-  const StructureDef& t = b.defOf(st);
+  const int si = b.structureIndexAt(at);
+  const StructureState& st = b.structures[si];
+  const StructureDef& t = knownDef(b, u.side, si);  // the kind the side believes it is (the truth while it sees it)
   double score = 1500;
   if (!t.income.empty()) score = 3000;
   if (!t.produces.empty()) score = 5000;

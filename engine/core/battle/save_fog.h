@@ -15,5 +15,13 @@ void writeSeenOwners(const Battle& b, Json& out);
 // Reads it into `b` (a copy being restored). A fog battle must have the key; one without fog must not.
 bool readSeenOwners(Reader& rd, const Json& saved, Battle& b);
 
+// Adds "seenKinds" (same shape as seenOwners, one structure kind index per entry) ONLY when the battle has fog and
+// some team last saw a structure as a kind other than the map's; so every save of a game that never upgraded
+// anything out of sight is byte for byte what it was before.
+void writeSeenKinds(const Battle& b, Json& out);
+// Reads it into `b`. A missing key means every team believes the map's kinds. Refused on a battle without fog,
+// and for an entry that is not a kind the structure can have become (same footprint, reachable by upgrades).
+bool readSeenKinds(Reader& rd, const Json& saved, Battle& b);
+
 }  // namespace savejson
 }  // namespace ote

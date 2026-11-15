@@ -193,6 +193,7 @@ void saveBattleState(const Battle& b, Json& out) {
   }
   out.set("structures", structures);
   savejson::writeSeenOwners(b, out);
+  savejson::writeSeenKinds(b, out);
   saveStoryState(b, out);
 }
 
@@ -253,6 +254,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
     if (!readStructure(rd, b, (*structures)[i], (int)i, b.structures[i])) return false;
 
   if (!savejson::readSeenOwners(rd, saved, b)) return false;
+  if (!savejson::readSeenKinds(rd, saved, b)) return false;
   if (!restoreStoryState(rd, saved, b)) return false;
 
   battle = b;

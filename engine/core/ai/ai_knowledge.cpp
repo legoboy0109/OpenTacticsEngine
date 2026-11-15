@@ -16,12 +16,14 @@ bool knownEnemy(const Battle& b, int side, const Unit& o) {
 
 int knownOwner(const Battle& b, int side, int structure) { return b.seenOwnerForSide(side, structure); }
 
+const StructureDef& knownDef(const Battle& b, int side, int structure) { return b.db->structures[(size_t)b.seenKindForSide(side, structure)]; }
+
 bool knownCapturable(const Battle& b, const Unit& u, Cell at) {
   const int team = b.teamOf(u);
   const int si = b.structureIndexAt(at);
   if (!b.fogOn() || si < 0 || b.structureVisibleTo(team, si)) return b.canCaptureAt(u.id, at);  // in sight: the truth
-  // Out of sight: judged on the owner the team last saw (the same test as Battle::canCaptureAt).
-  if (!b.db->rules.capture || !u.alive || !b.typeOf(u).canCapture || b.defOf(b.structures[(size_t)si]).capturePoints <= 0)
+  // Out of sight: judged on the owner and the kind the team last saw (the same test as Battle::canCaptureAt).
+  if (!b.db->rules.capture || !u.alive || !b.typeOf(u).canCapture || b.seenDef(team, si).capturePoints <= 0)
     return false;
   const int owner = b.seenOwner(team, si);
   return owner < 0 || b.sides[(size_t)owner].team != team;

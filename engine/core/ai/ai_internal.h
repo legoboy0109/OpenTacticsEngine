@@ -50,6 +50,9 @@ struct Context {
 bool knownEnemy(const Battle& b, int side, const Unit& other);
 // The owner the side's team believes the structure has.
 int knownOwner(const Battle& b, int side, int structure);
+// The kind the side's team believes the structure is (an upgrade it has not seen is not known to it): what it
+// plans on, e.g. the value of a capture target or the income it expects.
+const StructureDef& knownDef(const Battle& b, int side, int structure);
 // Battle::canCaptureAt, but for a structure the team cannot see judged on the owner it last saw.
 bool knownCapturable(const Battle& b, const Unit& u, Cell at);
 // Where the side should head to find the enemy: the enemy units it sees; with none in sight (and fog on) the

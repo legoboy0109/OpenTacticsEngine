@@ -85,26 +85,30 @@ void writeStructureKind(const StructureState& s, Json& out) {
   if (s.type != s.mapType) out.set("type", num(s.type));
 }
 
-bool readStructureKind(Reader& rd, const Database& db, const Json& j, const std::string& where, StructureState& st) {
-  if (!j.has("type")) return true;  // st.type is the map's kind already
-  int type = 0;
-  if (!rd.integer(j, "type", where, 0, (int)db.structures.size() - 1, type)) return false;
-  const StructureDef& base = db.structures[(size_t)st.mapType];
+bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, const std::string& at) {
+  const StructureDef& base = db.structures[(size_t)mapType];
   const StructureDef& now = db.structures[(size_t)type];
   if (now.width != base.width || now.height != base.height)
-    return rd.fail(where + ".type", "\"" + now.id + "\" does not have the size of \"" + base.id + "\", the kind the map placed");
+    return rd.fail(at, "\"" + now.id + "\" does not have the size of \"" + base.id + "\", the kind the map placed");
   // Reachable from the map's kind through upgrades (a chain of them is fine).
   std::vector<char> seen(db.structures.size(), 0);
-  std::vector<int> todo(1, st.mapType);
-  seen[(size_t)st.mapType] = 1;
+  std::vector<int> todo(1, mapType);
+  seen[(size_t)mapType] = 1;
   for (size_t i = 0; i < todo.size(); ++i)
     for (const UpgradeDef& up : db.structures[(size_t)todo[i]].upgrades)
       if (!seen[(size_t)up.to]) {
         seen[(size_t)up.to] = 1;
         todo.push_back(up.to);
       }
-  if (!seen[(size_t)type])
-    return rd.fail(where + ".type", "\"" + now.id + "\" cannot be reached from \"" + base.id + "\" by upgrades");
+  if (!seen[(size_t)type]) return rd.fail(at, "\"" + now.id + "\" cannot be reached from \"" + base.id + "\" by upgrades");
+  return true;
+}
+
+bool readStructureKind(Reader& rd, const Database& db, const Json& j, const std::string& where, StructureState& st) {
+  if (!j.has("type")) return true;  // st.type is the map's kind already
+  int type = 0;
+  if (!rd.integer(j, "type", where, 0, (int)db.structures.size() - 1, type)) return false;
+  if (!checkStructureKind(rd, db, type, st.mapType, where + ".type")) return false;
   st.type = type;
   return true;
 }

@@ -131,6 +131,9 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     std::vector<int> owners;
     for (const StructureState& st : structures) owners.push_back(st.owner);
     seenOwners_.assign((size_t)teamCount, owners);
+    std::vector<int> kinds;
+    for (const StructureState& st : structures) kinds.push_back(st.type);
+    seenKinds_.assign((size_t)teamCount, kinds);
   }
 
   // Story: the map's events and objectives, everything off / 0 / not yet run.
