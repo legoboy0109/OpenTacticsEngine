@@ -1,5 +1,6 @@
 // "Can be upgraded to": kinds this structure can be built up into, each with a cost and an optional technology.
 import { addUpgrade, footprintText, patchUpgrade, removeUpgrade, setUpgradeCost, upgradeTargets } from '../../model/structuresEconomy'
+import { gridOfGame, isHex } from '../../model/gridSpec'
 import { sizeOf } from '../../model/structures'
 import { useDoc, useEdit } from '../../store/context'
 import { Card, FormGrid } from '../../ui/Card'
@@ -20,6 +21,7 @@ export function UpgradesCard({ id }: { id: string }) {
   const techs = doc.research ?? []
   const free = upgradeTargets(doc, id)
   const { w, h } = sizeOf(s)
+  const hex = isHex(gridOfGame(doc.game))
   const kindName = (kid: string) => doc.structures?.find((x) => x.id === kid)?.name ?? T.missing(kid)
 
   return (
@@ -58,8 +60,8 @@ export function UpgradesCard({ id }: { id: string }) {
         <div>
           <button type="button" className="btn sm" disabled={free.length === 0} onClick={() => edit((d) => addUpgrade(d, id))}><Icon name="plus" />{T.addUpgrade}</button>
         </div>
-        {free.length === 0 && <p className="help" data-testid="upgrade-none-free">{upgrades.length ? T.upgradeAllTaken : T.upgradeNoTarget(footprintText(s))}</p>}
-        <p className="help">{T.upgradeSize(w, h)}</p>
+        {free.length === 0 && <p className="help" data-testid="upgrade-none-free">{upgrades.length ? T.upgradeAllTaken : (hex ? T.upgradeNoTargetHex : T.upgradeNoTarget)(footprintText(s, hex))}</p>}
+        <p className="help">{hex ? T.upgradeSizeHex : T.upgradeSize(w, h)}</p>
       </div>
     </Card>
   )

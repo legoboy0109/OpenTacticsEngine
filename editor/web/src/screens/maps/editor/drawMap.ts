@@ -2,62 +2,26 @@
 // terrain colour + faint letter, owner border in the side's colour, unit block in the
 // side's colour with the type's letter, yellow leader marker. All coordinates are device pixels
 // rounded to whole pixels so edges stay crisp at any zoom and devicePixelRatio.
-import { drawTerrainArt, drawUnitArt } from '../../../art/draw'
-import { PLAIN_STYLE, unitPicture, type ArtScene, type StyleView } from '../../../art/scene'
+import { drawTerrainArt } from '../../../art/draw'
+import { PLAIN_STYLE } from '../../../art/scene'
 import type { Cell } from '../../../model/mapGrid'
-import type { MapFile, MapUnit, Structure, Terrain, Unit } from '../../../model/types'
-import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
+import type { MapFile, MapUnit } from '../../../model/types'
+import { css, FONT, mix, parseHex, readableOn } from './drawColors'
 import { drawFogDim } from './drawFog'
+import { drawHexMap } from './drawHex'
 import { drawOverlays } from './drawStory'
-import type { Overlay } from '../../../model/storyOverlays'
-import type { Rect } from '../../../model/storyTypes'
-import { drawOrder, drawStructure, drawStructureGhost, structureRows, type StructureGhost } from './drawStructures'
-import type { View } from './geometry'
+import { drawOrder, drawStructure, drawStructureGhost, structureRows } from './drawStructures'
+import type { Scene } from './drawTypes'
+import type { DrawState } from './drawTypes'
+import { drawAnyUnit, drawFlag, glyphOfType } from './drawUnits'
 
-export { parseHex, readableOn }
-
-export interface Scene {
-  map: MapFile
-  terrain: Map<string, Terrain>
-  types: Map<string, Unit>
-  /** The game's structure kinds. */
-  structures: Map<string, Structure>
-  /** "x,y" of units standing where they cannot be. */
-  flagged: Set<string>
-  /** Pictures (null = the game has none: everything keeps the placeholder look). */
-  art?: ArtScene | null
-  /** The visual style being previewed: background, terrain colours, letters on/off. */
-  style?: StyleView
-  /** Squares whose height is not 0 get a tint and their number (the Heights tool). */
-  showHeights?: boolean
-}
-
-export interface DrawState {
-  dpr: number
-  w: number
-  h: number
-  view: View
-  hover: Cell | null
-  cursor: Cell | null
-  selected: Cell | null
-  ghost: { from: Cell; to: Cell } | null
-  /** A structure about to be placed or being dragged (red where it cannot go). */
-  structureGhost?: StructureGhost | null
-  /** The selected structure's footprint (the selected square otherwise). */
-  selSize?: { w: number; h: number } | null
-  /** Running time in ms for animated pictures (0 under reduced motion). */
-  time?: number
-  /** Areas / squares of the open event or the objectives, and the rectangle being picked. */
-  overlays?: Overlay[]
-  pickRect?: Rect | null
-  /** Squares with 0 are dimmed (what a side does not see). */
-  fogSeen?: Uint8Array | null
-}
+export { parseHex, readableOn, glyphOfType }
+export type { Scene, DrawState }
 
 const BACKDROP = '#14161c'
-export const glyphOfType = (u: Unit | undefined, fallback: string): string => (u?.glyph || u?.name?.[0]?.toUpperCase() || fallback).slice(0, 1)
 
 export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState): void {
+  if (scene.geo?.hex) return drawHexMap(g, scene, st)
   const { map } = scene
   const { dpr, view } = st
   const mw = map.grid.width, mh = map.grid.height
@@ -158,63 +122,6 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
   if (st.hover && !st.structureGhost) { g.fillStyle = 'rgba(255,255,255,0.22)'; g.fillRect(px(st.hover.x), py(st.hover.y), px(st.hover.x + 1) - px(st.hover.x), py(st.hover.y + 1) - py(st.hover.y)) }
   if (st.selected) { ring(st.selected, 'rgba(0,0,0,0.85)', line * 3, 0, st.selSize ?? undefined); ring(st.selected, '#ffffff', line * 2, line * 0.5, st.selSize ?? undefined) }
   if (st.cursor) { ring(st.cursor, '#ffe45c', line * 2); ring(st.cursor, '#ffffff', line, line * 2) }
-}
-
-/** A unit with a picture is drawn from it; every other unit keeps the coloured block with its letter. */
-function drawAnyUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean, time: number): void {
-  const pic = unitPicture(scene.art ?? null, u.type, u.side)
-  if (pic && drawUnitArt(g, pic, { on: scene.art!.marker, color: css(side) }, time, cx, cy, cw, ch, alpha)) {
-    if (u.leader) drawLeaderPip(g, cx, cy, cw, alpha)
-    return
-  }
-  drawUnit(g, scene, u, cx, cy, cw, ch, side, alpha, glyph)
-}
-
-function drawLeaderPip(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, alpha: number): void {
-  const k = cw / 24
-  const m = Math.max(3, Math.round(5 * k)), inset = Math.max(1, Math.round(3 * k))
-  g.fillStyle = `rgba(0,0,0,${0.86 * alpha})`
-  g.fillRect(cx + inset - 1, cy + inset - 1, m, m)
-  g.fillStyle = `rgba(255,210,40,${alpha})`
-  g.fillRect(cx + inset, cy + inset, m - 2, m - 2)
-}
-
-function drawUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean): void {
-  const k = cw / 24
-  const inset = Math.max(1, Math.round(3 * k))
-  const bx = cx + inset, by = cy + inset, bw = cw - 2 * inset, bh = ch - 2 * inset - Math.round(3 * k)
-  if (bw < 2 || bh < 2) return
-  g.fillStyle = `rgba(0,0,0,${0.78 * alpha})`
-  g.fillRect(bx - 1, by - 1, bw + 2, bh + 2)
-  g.fillStyle = css(side, alpha)
-  g.fillRect(bx, by, bw, bh)
-  g.fillStyle = css(mix(side, [255, 255, 255], 0.35), alpha)
-  g.fillRect(bx, by, bw, 1)
-  if (glyph) {
-    g.fillStyle = css(readableOn(side), alpha)
-    g.font = `bold ${Math.round(Math.min(bw, bh) * 0.75)}px ${FONT}`
-    g.fillText(glyphOfType(scene.types.get(u.type), '?'), bx + bw / 2, by + bh / 2 + 1)
-  }
-  if (u.leader) {
-    const m = Math.max(3, Math.round(5 * k))
-    g.fillStyle = `rgba(0,0,0,${0.86 * alpha})`
-    g.fillRect(bx - 1, by - 1, m, m)
-    g.fillStyle = `rgba(255,210,40,${alpha})`
-    g.fillRect(bx, by, m - 2, m - 2)
-  }
-}
-
-/** Red corner mark on a unit that stands on terrain it cannot enter. */
-function drawFlag(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, S: number): void {
-  const m = Math.max(6, Math.round(S * 0.36))
-  g.fillStyle = '#e5322d'
-  g.beginPath()
-  g.moveTo(cx + cw - m, cy); g.lineTo(cx + cw, cy); g.lineTo(cx + cw, cy + m); g.closePath()
-  g.fill()
-  const lw = Math.max(2, Math.round(S / 14))
-  g.strokeStyle = '#e5322d'
-  g.lineWidth = lw
-  g.strokeRect(cx + lw / 2, cy + lw / 2, cw - lw, cw - lw)
 }
 
 /** Squares above ground are lightened, squares below darkened, and (when big enough) the number is written in the corner. */

@@ -1,10 +1,12 @@
 // Resize with an anchor, and an honest list of what would be lost.
 import { useState } from 'react'
 import { editMap } from '../../../../model/mapCtx'
+import { gridOfGame, isHex } from '../../../../model/gridSpec'
 import { MAP_MAX } from '../../../../model/mapGrid'
 import { ANCHORS, resizeLoss, resizeMap, type Anchor } from '../../../../model/mapResize'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
+import { cellWords } from '../../../../ui/cellWords'
 import { Dialog } from '../../../../ui/Dialog'
 import { Field, FieldGroup } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
@@ -20,7 +22,9 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
   const [h, setH] = useState(map.grid.height)
   const [anchor, setAnchor] = useState<Anchor>('nw')
   const structureTypes = doc.structures ?? []
-  const loss = resizeLoss(map, structureTypes, w, h, anchor)
+  const grid = gridOfGame(doc.game)
+  const words = cellWords(isHex(grid))
+  const loss = resizeLoss(map, structureTypes, w, h, anchor, grid)
   const lossCount = loss.units.length + loss.structures.length
   const changed = w !== map.grid.width || h !== map.grid.height
   const unitName = (u: MapFile['units'] extends (infer U)[] | undefined ? U : never) =>
@@ -28,7 +32,7 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
   const typeName = (id: string) => doc.units?.find((x) => x.id === id)?.name ?? id
   const listed = loss.units.slice(0, MAX_LISTED).map(unitName)
   const apply = () => {
-    if (changed) edit((d) => editMap(d, mapId, (m, c) => resizeMap(m, c.terrain, c.structureTypes, w, h, anchor)))
+    if (changed) edit((d) => editMap(d, mapId, (m, c) => resizeMap(m, c.terrain, c.structureTypes, w, h, anchor, c.grid)))
     onClose()
   }
   return (
@@ -43,9 +47,9 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
         <Field label={T.widthLabel}><NumberInput value={w} min={1} max={MAX_SIZE} onChange={(v) => v !== undefined && setW(v)} /></Field>
         <Field label={T.heightLabel}><NumberInput value={h} min={1} max={MAX_SIZE} onChange={(v) => v !== undefined && setH(v)} /></Field>
       </div>
-      <p className="help">{T.sizeRange}</p>
-      {(w > 64 || h > 64) && <p className="attention">{T.big(w, h)}</p>}
-      <FieldGroup label={T.anchorLabel} help={T.anchorHelp}>
+      <p className="help">{words(T.sizeRange)}</p>
+      {(w > 64 || h > 64) && <p className="attention">{words(T.big(w, h))}</p>}
+      <FieldGroup label={T.anchorLabel} help={words(T.anchorHelp)}>
         <div className="anchor-grid" role="radiogroup" aria-label={T.anchorLabel}>
           {ANCHORS.map((a) => (
             <button key={a} type="button" role="radio" aria-checked={a === anchor} aria-label={T.anchorNames[a]} title={T.anchorNames[a]}

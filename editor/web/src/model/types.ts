@@ -61,7 +61,11 @@ export interface MapRef extends Named { file: string }
 
 export type SavingMode = 'any' | 'continue' | 'off'
 
+/** game.json `grid` (docs/HEX.md): missing = squares. Chosen when the game is made; the editor never changes it. */
+export interface GameGrid extends Extra { type?: string; layout?: string }
+
 export interface Game extends Extra {
+  grid?: GameGrid
   formatVersion?: number
   name: string
   description?: string
@@ -101,6 +105,8 @@ export interface Structure extends Named {
   color?: string; glyph?: string
   /** Footprint in squares, 1 to 8 (missing = 1). */
   width?: number; height?: number
+  /** Hexagon games only: 0 = one hexagon (missing), 1 = a hexagon and the six around it. */
+  rings?: number
   /** Listed movement types replace the terrain's cost; 0 = cannot enter. */
   moveCost?: NumMap
   /** Listed numbers replace (or add to) the terrain's numbers of the same name. */
@@ -212,7 +218,7 @@ export interface MapFile extends Extra {
   events?: StoryEvent[]
   objectives?: Objectives
 }
-/** `x`, `y` = the top-left square of the footprint; `side` missing = nobody owns it. */
+/** `x`, `y` = the top-left square of the footprint (on hexagon maps: the middle hexagon); `side` missing = nobody owns it. */
 export interface MapStructure extends Extra { type: string; x: number; y: number; side?: string }
 
 // --- art (docs/GRAPHICS.md, data/graphics.json) ---

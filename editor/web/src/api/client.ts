@@ -18,7 +18,8 @@ export interface ApiError {
 export type Result<T> = { ok: true; value: T } | ApiError
 
 export interface ProjectInfo { id: string; name: string; description: string; author: string; maps: number; ok: boolean; error: string }
-export interface TemplateInfo { id: string; name: string; description: string }
+/** `grid` = the template's grid (game.json): { type: 'square' } or { type: 'hex', layout: 'pointy' | 'flat' }. */
+export interface TemplateInfo { id: string; name: string; description: string; grid?: { type: string; layout?: string } }
 export interface FontInfo { id: string; name: string; size: number; smooth: boolean }
 export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number }
 export interface FileInfo { path: string; size: number }

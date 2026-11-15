@@ -5,12 +5,15 @@ import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { seenAtStart } from '../../../model/fogSight'
 import { editMap } from '../../../model/mapCtx'
+import { gridOfGame } from '../../../model/gridSpec'
+import { makeGeo } from '../../../model/mapGeo'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
 import { inheritsGeneralArt } from '../../../model/styleView'
 import { removeStructureAt, structureIndexAt } from '../../../model/mapStructures'
 import { unitAt } from '../../../model/mapUnits'
 import { useDoc, useEdit, useStore } from '../../../store/context'
 import { Banner } from '../../../ui/Banner'
+import { cellWords } from '../../../ui/cellWords'
 import { useStored } from '../../../ui/hooks'
 import { LookContext } from '../../../ui/picture/usePreview'
 import { cellKey, reveal } from './geometry'
@@ -55,6 +58,10 @@ function Editor({ id }: { id: string }) {
   const structureTypes = useMemo(() => doc.structures ?? [], [doc.structures])
   const sides = map.sides ?? []
   const vs = useMemo(() => new MapViewState(), [])
+  // Where cells are on the picture (squares or hexagons); one object for the canvas, the input and the view maths.
+  const grid = useMemo(() => gridOfGame(doc.game), [doc.game?.grid]) // eslint-disable-line react-hooks/exhaustive-deps
+  const tile = doc.game?.view?.tileSize ?? 24
+  const geo = useMemo(() => makeGeo(grid, tile, map.grid.width, map.grid.height), [grid, tile, map.grid.width, map.grid.height])
   const [stored, setStored] = useStored<ToolState>(`ote.mapTools.${store.id}`, { tool: 'terrain', terrainId: '', fill: false, unitType: '', unitSide: '', structureType: '', structureSide: '', heightMode: 'raise', heightValue: 1 })
   const [notice, setNotice] = useState<string | null>(null)
   // The visual style shown on the canvas (the player starts with the first one); only offered when there are several.
@@ -121,7 +128,7 @@ function Editor({ id }: { id: string }) {
     if (!c || !m0) return
     // The Structures tool deletes the structure on the square; every other tool deletes the unit there.
     if (tsRef.current.tool === 'structures') {
-      if (structureIndexAt(m0, { structureTypes: d0.structures ?? [] }, c.x, c.y) >= 0) store.edit((d) => editMap(d, id, (m, x) => removeStructureAt(m, x, c.x, c.y)))
+      if (structureIndexAt(m0, { structureTypes: d0.structures ?? [], grid: gridOfGame(d0.game) }, c.x, c.y) >= 0) store.edit((d) => editMap(d, id, (m, x) => removeStructureAt(m, x, c.x, c.y)))
       vs.set({ selected: null })
       return
     }
@@ -132,29 +139,31 @@ function Editor({ id }: { id: string }) {
   const focusCell = useCallback((c: { x: number; y: number }) => {
     const s = vs.size
     const scale = Math.max(vs.view.scale, 28)
-    const view = reveal({ scale, x: s.w / 2 - (c.x + 0.5) * scale, y: s.h / 2 - (c.y + 0.5) * scale }, c, s.w, s.h)
+    const b = geo.box(c.x, c.y)
+    const view = reveal({ scale, x: s.w / 2 - (b.x + b.w / 2) * scale, y: s.h / 2 - (b.y + b.h / 2) * scale }, c, s.w, s.h, geo)
     vs.set({ selected: c, cursor: c, cursorVisible: true, view, autoFit: false })
     setTool('select')
-  }, [vs, setTool])
+  }, [vs, setTool, geo])
 
   useMapShortcuts({
     onTool: setTool, onFill: () => patch({ tool: 'terrain', fill: !tsRef.current.fill }), onZoom: (k) => vs.zoomBy(k),
-    onFit: () => vs.fit(map.grid.width, map.grid.height), onRemove: removeAt, onEscape: () => { stopPicking(vs); vs.set({ selected: null }); setNotice(null) },
+    onFit: () => vs.fit(geo.uw, geo.uh), onRemove: removeAt, onEscape: () => { stopPicking(vs); vs.set({ selected: null }); setNotice(null) },
   })
 
   const selected = useViewSlice(vs, (s) => cellKey(s.selected))
   const picking = useViewSlice(vs, (s) => s.picking !== null)
+  const words = cellWords(geo.hex)
   const big = map.grid.width > 64 || map.grid.height > 64
   return (
     <LookContext.Provider value={lookChoice}>
     <div className="map-editor" data-tool={ts.tool} data-picking={picking || undefined}>
       <Warnings warnings={warnings} onFocus={focusCell} />
       <div className="map-main">
-        <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={map.grid.width} mapH={map.grid.height}
+        <Toolbar tool={ts.tool} onTool={setTool} vs={vs} mapW={geo.uw} mapH={geo.uh}
           looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
-        {big && <p className="help">{T.big(map.grid.width, map.grid.height)}</p>}
+        {big && <p className="help">{words(T.big(map.grid.width, map.grid.height))}</p>}
         <div className="map-stage">
-          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} showHeights={ts.tool === 'heights'}
+          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} geo={geo} showHeights={ts.tool === 'heights'}
             begin={(cell, o) => (vs.picking ? pickStroke(vs, vs.picking, cell) : beginStroke(env, cell, o))}
             longPress={(cell) => {
               if (vs.picking || tsRef.current.tool !== 'terrain') return false

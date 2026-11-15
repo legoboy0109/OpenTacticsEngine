@@ -5,7 +5,7 @@ import type { ApiError } from '../../api/client'
 import { prepareImage } from '../../art/importImage'
 import { artNameFor, displayStem } from '../../model/artFiles'
 import { addSheet, newSheetId } from '../../model/graphics'
-import { guessDivision } from '../../model/gridGuess'
+import { guessDivision, hexPieceBox } from '../../model/gridGuess'
 import { useStore } from '../../store/context'
 import { T } from './text'
 
@@ -42,7 +42,7 @@ export function useImageImport(onAdded: (sheetId: string) => void) {
           if (!res.ok) { say('error', uploadFailure(f.name, res)); continue }
           const doc = store.getState().doc
           const tile = doc.game?.view?.tileSize ?? 24
-          const div = guessDivision(res.value.width, res.value.height, tile)
+          const div = guessDivision(res.value.width, res.value.height, tile, hexPieceBox(doc.game))
           const stem = displayStem(f.name)
           const id = newSheetId(doc, stem || res.value.file)
           store.edit((d) => addSheet(d, { file: res.value.file, name: stem || undefined, cellWidth: div.cellWidth, cellHeight: div.cellHeight }, newSheetId(d, stem || res.value.file)))

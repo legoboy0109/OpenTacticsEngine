@@ -36,6 +36,7 @@ export const T = {
   pixels: 'pixels',
   quick: 'Quick sizes',
   quickButton: (n: number) => `${n} × ${n}`,
+  hexButton: (w: number, h: number) => `Hexagon size (${w} × ${h})`,
   across: (c: number, r: number) => `${c} across, ${r} down`,
   leftover: (right: number, bottom: number) => {
     const parts = [right > 0 ? `the rightmost ${right} pixel${right === 1 ? '' : 's'}` : '', bottom > 0 ? `the bottom ${bottom} pixel${bottom === 1 ? '' : 's'}` : ''].filter(Boolean)

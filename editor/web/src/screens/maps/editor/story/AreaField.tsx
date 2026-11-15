@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { areaText, squareText } from '../../../../model/storySummary'
 import type { Rect } from '../../../../model/storyTypes'
+import { useCellWords } from '../../../../ui/cellWords'
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { useViewSlice } from '../viewState'
@@ -23,6 +24,7 @@ interface Props {
 
 export function AreaField({ label, value, onChange, mode, help }: Props) {
   const { vs, map } = useStory()
+  const words = useCellWords()
   const id = useRef(0)
   if (!id.current) id.current = ++counter
   const picking = useViewSlice(vs, (s) => s.picking?.id === id.current)
@@ -70,14 +72,14 @@ export function AreaField({ label, value, onChange, mode, help }: Props) {
         {picking
           ? (
             <>
-              <span className="help picking-note" role="status">{square ? S.pickingSquare : S.pickingArea}</span>
+              <span className="help picking-note" role="status">{words(square ? S.pickingSquare : S.pickingArea)}</span>
               <button type="button" className="btn sm" onClick={() => stopPicking(vs)}>{S.cancelPick}</button>
             </>
           )
           : <button type="button" className="btn sm" aria-label={`${label}: ${S.pickOnMap}`} onClick={start}>{S.pickOnMap}</button>}
-        <span className="help area-readout">{square ? `Square ${squareText(value.x, value.y)}` : areaText(value)}</span>
+        <span className="help area-readout">{words(square ? `Square ${squareText(value.x, value.y)}` : areaText(value))}</span>
       </div>
-      <p className="help">{help ?? (square ? S.squareHelp : S.areaHelp)}</p>
+      <p className="help">{words(help ?? (square ? S.squareHelp : S.areaHelp))}</p>
     </div>
   )
 }

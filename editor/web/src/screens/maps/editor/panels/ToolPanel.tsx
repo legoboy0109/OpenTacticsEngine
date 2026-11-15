@@ -2,6 +2,7 @@
 import { type Cell } from '../../../../model/mapGrid'
 import { sideOf } from '../../../../model/mapSides'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
+import { useCellWords } from '../../../../ui/cellWords'
 import { Toggle } from '../../../../ui/Toggle'
 import type { Tool, ToolState } from '../tools'
 import { T } from '../text'
@@ -27,6 +28,7 @@ const parse = (k: string | null): Cell | null => { if (!k) return null; const [x
 
 export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, say }: Props) {
   const sides = map.sides ?? []
+  const words = useCellWords()
   const cell = parse(selected)
   switch (tool) {
     case 'terrain':
@@ -43,7 +45,7 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
       return (
         <div className="stack tight">
           <h3>{T.unitsTitle}</h3>
-          <p className="help">{T.unitsHelp}</p>
+          <p className="help">{words(T.unitsHelp)}</p>
           <SidePicker sides={sides} value={state.unitSide} onChange={(id) => onChange({ unitSide: id })} />
           {(doc.units?.length ?? 0) === 0 && <p className="help">{T.noUnitsTypes}</p>}
           <UnitTypePicker types={doc.units ?? []} value={state.unitType} color={sideOf(map, state.unitSide)?.color} sideId={state.unitSide} onChange={(id) => onChange({ unitType: id })} />

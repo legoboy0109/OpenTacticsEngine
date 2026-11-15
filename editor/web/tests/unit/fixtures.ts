@@ -32,6 +32,8 @@ export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc { retur
 /** The frozen copy of demo-economy from before it used upgrades, research, supply and fog (tests/fixtures/plain-economy,
  *  no art): the editor tests that need "a game with none of the optional economy data" use it, the live demo has some. */
 export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plain-economy') }
+/** The engine's hexagon test games (tests/fixtures/hex-pointy, hex-flat; no art): a 12 x 9 map with an HQ of seven hexagons at (1,4) and (10,4). */
+export function loadHexFixture(layout: 'pointy' | 'flat'): ProjectDoc { return loadFrom(fixtures, `hex-${layout}`) }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 function loadFrom(root: string, name: string): ProjectDoc {

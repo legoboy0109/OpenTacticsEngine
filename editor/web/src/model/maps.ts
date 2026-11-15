@@ -1,6 +1,7 @@
 // List-level map operations (new / rename / duplicate / delete / reorder).
 // Editing a map's contents (tiles, units, sides) is the map editor's job.
 import { clone, withGame } from './doc'
+import { gridOfGame, isHex } from './gridSpec'
 import { makeId } from './ids'
 import { writeGrid } from './mapGrid'
 import { moveItem } from './util'
@@ -14,13 +15,13 @@ export function mapSize(doc: ProjectDoc, id: string): { width: number; height: n
   return m ? { width: m.grid.width, height: m.grid.height } : null
 }
 
-/** A fresh, valid battlefield: all of the first terrain, two sides. */
+/** A fresh, valid battlefield: all of the first terrain, two sides. A hexagon game's new maps are hexagon maps. */
 export function blankMap(doc: ProjectDoc, name: string, width = 12, height = 8): MapFile {
   const terrain = doc.terrain ?? []
   const first = terrain[0]?.id ?? 'plain'
   const base: MapFile = {
     name,
-    grid: { type: 'square', width, height },
+    grid: { type: isHex(gridOfGame(doc.game)) ? 'hex' : 'square', width, height },
     legend: {},
     tiles: [],
     sides: [

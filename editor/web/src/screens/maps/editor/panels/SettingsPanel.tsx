@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { renameMap } from '../../../../model/maps'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
+import { useCellWords } from '../../../../ui/cellWords'
 import { Field } from '../../../../ui/Field'
 import { TextInput } from '../../../../ui/TextInput'
 import { T } from '../text'
@@ -13,6 +14,7 @@ import { ResizeDialog } from './ResizeDialog'
 
 export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: MapFile; mapId: string; vs: MapViewState }) {
   const edit = useEdit()
+  const words = useCellWords()
   const [resizing, setResizing] = useState(false)
   const ref = doc.game?.maps.find((m) => m.id === mapId)
   const { width, height } = map.grid
@@ -23,7 +25,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
         <TextInput value={ref?.name ?? map.name} onChange={(v) => edit((d) => renameMap(d, mapId, v), `map:${mapId}:name`)} />
       </Field>
       <div className="row space-between">
-        <div><div className="label-sm">{T.sizeLabel}</div><strong data-testid="map-size">{T.sizeValue(width, height)}</strong></div>
+        <div><div className="label-sm">{T.sizeLabel}</div><strong data-testid="map-size">{words(T.sizeValue(width, height))}</strong></div>
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />

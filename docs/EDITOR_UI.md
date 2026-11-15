@@ -599,3 +599,46 @@ on the campaign scenes, and Play music / Stop the music / Play a sound among the
 when the game has sounds or music. "Same as the game" = no key, "Silent" / "No music" = "". Delete and rename follow everywhere in one
 undo step; deleting a file that is used asks first. Amber checks mirror the player's loader (`model/audioChecks.ts`). Wording:
 `screens/sound/text.ts` and `model/audioLabels.ts`.
+
+## Hexagon games (editor step of docs/HEX.md)
+
+Contract: docs/HEX.md. A game's grid is chosen when it is made (the template decides) and cannot be changed in the editor. Square games
+behave exactly as before; everything below only happens when `game.json` has `"grid": { "type": "hex", ... }`.
+
+- **Model.** `model/hex.ts` is the one place for hexagon geometry (neighbour tables in the contract's order, distance, within, ring cells,
+  box positions, map size, corners, picking = nearest middle, straight lines, join mask). `model/gridSpec.ts` (`GridSpec`, `gridOfGame`,
+  `neighboursOf`, `distanceOf`, `withinOf`, `lineOf`) answers the same questions for squares, so fill, paint, fog and the checks do not branch.
+  `MapCtx` carries the `grid`; a structure's cells come from ONE function, `footprint` (`model/mapStructures.ts`: squares row by row, hexagons the
+  middle first then its neighbours), used by placing, overlap, `misfits`, resize, the sight aid and drawing. `model/mapGeo.ts` (`makeGeo`) puts
+  cells on the picture in **tiles** (1 tile = the game's tile size in pixels; a square is one tile, a hexagon has the box of docs/HEX.md): the
+  canvas, the input, the previews and the tools all ask it (`box`, `at`, `range`, `outline`), so the tools are shared. New maps in a hexagon
+  game are hexagon maps (`blankMap`).
+- **Canvas.** `drawMap.ts` keeps the square drawing untouched and hands hexagon maps to `drawHex.ts`; both read the same `Scene` / `DrawState`
+  (`drawTypes.ts`), units share `drawUnits.ts`. Terrain: a filled hexagon (also stroked one pixel in its colour, so no seam of the backdrop
+  shows between neighbours), or the sheet cell in the hexagon's box (join pieces from the 8 x 8 block with the six-bit mask, `pickCell(..., 8)`; animated
+  joins as on squares). Faint grid lines are one path of hexagon outlines. Units: their square of one tile centred on the hexagon's middle.
+  Structures: one hexagon = the picture in the box; with rings the picture across the box around all seven (width of the box, height from the piece's
+  proportions, standing on the bottom edge); placeholder = the covered hexagons filled in the colour with the letter on the middle one; the
+  owner frame, the selection ring and the story areas are outlines around the set of covered hexagons (`outline`, drawn inside the set). Drawing
+  order is by the bottom edge of the box. Highlights (hover, cursor, selection, ghost, fog dimming, heights) are hexagon shaped.
+  `data-view` is `scale,x,y` with scale = pixels per tile.
+- **Tools.** Paint: the hexagons under the pointer (a fast drag is joined by a straight line of hexagons), one drag = one undo step. Fill: through the six
+  neighbours. Eyedropper, units, erasing and keyboard (arrows by column and row) are unchanged. Structures are placed by their **middle**; the ghost shows
+  the whole footprint (red with a cross where it does not fit); refusals: "A Headquarters covers a hexagon and the six around it, and would stick
+  out of the map there." / "A Headquarters would overlap the City that is already there." Dragging a structure keeps the place it was grabbed at
+  (the same hexagon vector is applied to the middle, not the column difference, which changes meaning between odd and even rows). Map resize keeps
+  contents by column and row; a structure whose seven hexagons no longer all fit is listed and removed on confirm. Story areas (`reach`...) stay
+  rectangles of columns and rows (picked by dragging between two hexagons) and are drawn as the set of hexagons they contain. "Show what a side sees"
+  uses hexagon steps (`withinOf`).
+- **Screens.** Game: a "Grid" card shows "Squares", "Hexagons, pointy-top" or "Hexagons, flat-top" (read only) with one sentence; a style's Kind of
+  view can only be Top-down (the others are greyed with "not for hexagon games yet"). Structures: the size control is "Covers" with "1 hexagon" /
+  "7 hexagons (a hexagon and its ring)" (writes `rings`, 0 is not written), width and height are hidden, the preview is little hexagons; upgrades may
+  only target kinds with the same `rings`. Art: a new image is divided into pieces of the hexagon's box (24 x 28 pointy, 28 x 24 flat at tile size
+  24) with a "Hexagon size" quick button; the join picker uses 8 x 8 blocks (checked against the image, a guide with 64 hexagon diagrams, download at
+  the piece size); palettes and previews draw hexagons through the same `drawMap`. New game: each template card shows its grid (read from the template's
+  `game.json` by `GET /api/templates`). Wording that says "square" reads "hexagon" on a hexagon game (`ui/cellWords.ts`).
+- **Play.** The panel has a "Sound" checkbox (on by default, remembered per game like Style / Show everything) that adds `noaudio=1` to the
+  embed address when off; `embed.html` turns it into `--no-audio`.
+- **Tests.** Unit: `hex.test.ts` (tables pinned against the contract's text, distance = BFS steps, boxes, picking, join mask, fill), `hexMap.test.ts`
+  (on the engine's fixtures). API: `tests/editor_api_hex_checks.py`. e2e: `hex-map`, `hex-tools`, `hex-screens`, `hex-play` specs (both layouts, from
+  copies of `tests/fixtures/hex-pointy` / `hex-flat`, pixel checks from the contract's formulas) and `screenshots-hex.spec.ts`.

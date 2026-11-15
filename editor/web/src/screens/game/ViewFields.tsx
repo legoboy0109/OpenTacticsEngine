@@ -1,5 +1,6 @@
 // "Kind of view" of one visual style (docs/VIEWS.md) and, for Isometric, its sizes in a collapsed Advanced area.
 import { updateStyleWith } from '../../model/game'
+import { gridOfGame, isHex } from '../../model/gridSpec'
 import { isIsometric, isoDefaults, ISO_RANGE, viewKind, withIsoSize, withView, type EditableKind, type IsoKey } from '../../model/styleView'
 import type { Style } from '../../model/types'
 import { useDoc, useEdit } from '../../store/context'
@@ -22,13 +23,17 @@ export function ViewFields({ style }: { style: Style }) {
   const kind = viewKind(style)
   const key = `style:${style.id}`
   const defaults = isoDefaults(doc.game, style.isometric)
+  // On a hexagon game only the top-down kind of view can be chosen; the others stay in the list, greyed, with the reason.
+  const hex = isHex(gridOfGame(doc.game))
+  const choice = (value: string, label: string) => ({ value, label: hex && value !== 'top-down' ? `${label} (${T.viewNotHex})` : label, disabled: hex && value !== 'top-down' && value !== kind })
   return (
     <>
       <Field label={T.view} help={T.viewHelp}>
         <Select value={kind} aria-label={`${style.name}: ${T.view}`}
-          options={[{ value: 'top-down', label: T.viewTopDown }, { value: 'isometric', label: T.viewIsometric }, { value: 'isometric-3d', label: T.viewIsometric3d }, { value: '3d', label: T.viewFull3d }]}
+          options={[choice('top-down', T.viewTopDown), choice('isometric', T.viewIsometric), choice('isometric-3d', T.viewIsometric3d), choice('3d', T.viewFull3d)]}
           onChange={(v) => edit((d) => updateStyleWith(d, style.id, (s) => withView(s, v as EditableKind)))} />
       </Field>
+      {hex && <p className="help" data-testid="view-hex-help">{T.viewHexHelp}</p>}
       {kind === '3d' && <p className="help" data-testid="view-full3d-help">{T.viewFull3dHelp}</p>}
       {isIsometric(kind) && (
         <>

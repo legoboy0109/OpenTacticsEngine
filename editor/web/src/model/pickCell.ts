@@ -22,7 +22,7 @@ export function joinBlocks(join: CellRef | CellRef[]): CellRef[] {
   return Array.isArray(join[0]) ? (join as CellRef[]) : [join as CellRef]
 }
 
-/** The cells a look draws from (for any kind). For a join: its 4 x 4 blocks. */
+/** The cells a look draws from (for any kind). For a join: its blocks (4 x 4 on squares, 8 x 8 on hexagons). */
 export function lookCells(look: Look): CellRef[] {
   if (look.cell) return [look.cell]
   if (look.variants?.length) return look.variants
@@ -40,8 +40,12 @@ export function lookShape(look: Look): LookShape {
   return 'still'
 }
 
-/** The piece to draw for square (x, y). `joinMask` = N1+E2+S4+W8 of neighbours that count as the same terrain. */
-export function pickCell(look: Look, x: number, y: number, joinMask: number, timeMs: number): CellRef {
+/** Join blocks are 4 x 4 pieces on squares and 8 x 8 on hexagon games (docs/HEX.md "Join pieces on hexagons"). */
+export const joinBlockSide = (hex: boolean): 4 | 8 => (hex ? 8 : 4)
+
+/** The piece to draw for cell (x, y). `joinMask` = N1+E2+S4+W8 of neighbours that count as the same terrain; on hexagon games
+ *  (`blockSide` 8) the six bits of model/hex.ts `joinMask`, the piece sitting at column n % 8, row n / 8 of the block. */
+export function pickCell(look: Look, x: number, y: number, joinMask: number, timeMs: number, blockSide: 4 | 8 = 4): CellRef {
   const cells = lookCells(look)
   if (!cells.length) return [0, 0]
   const first = cells[0]
@@ -58,8 +62,8 @@ export function pickCell(look: Look, x: number, y: number, joinMask: number, tim
         const ms = look.frameMs !== undefined && look.frameMs > 0 ? look.frameMs : DEFAULT_FRAME_MS
         block = cells[Math.floor(timeMs / ms) % cells.length]
       }
-      const n = joinMask & 15
-      return [block[0] + (n % 4), block[1] + Math.floor(n / 4)]
+      const n = joinMask & (blockSide * blockSide - 1)
+      return [block[0] + (n % blockSide), block[1] + Math.floor(n / blockSide)]
     }
     default: return first
   }

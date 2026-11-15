@@ -10,10 +10,10 @@
 import { drawPiece } from '../../../art/draw'
 import { pickCell } from '../../../model/pickCell'
 import { structurePicture } from '../../../art/scene'
-import { rectOf, type Rect } from '../../../model/mapStructures'
+import { footprint, rectOf, type Rect } from '../../../model/mapStructures'
 import type { MapStructure } from '../../../model/types'
 import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
-import type { Scene } from './drawMap'
+import type { Scene } from './drawTypes'
 
 /** Where a square (or edge) is on the canvas, in device pixels. */
 export interface Grid { px: (cx: number) => number; py: (cy: number) => number; S: number }
@@ -23,17 +23,32 @@ export interface DrawItem { key: number; kind: 0 | 1; index: number }
 const rectOfPlaced = (scene: Scene, s: MapStructure): Rect => rectOf(scene.structures.get(s.type), s.x, s.y)
 
 /** Structures and units in drawing order. Keys count whole squares: a structure's bottom edge, a unit's bottom edge
- *  (raised to the bottom edge of the structure it stands on). */
+ *  (raised to the bottom edge of the structure it stands on). On hexagon maps the keys are the bottom edges of the boxes
+ *  in tiles, so a lower row of hexagons is drawn over the one above it. */
 export function drawOrder(scene: Scene): DrawItem[] {
   const placed = scene.map.structures ?? []
-  const rects = placed.map((s) => rectOfPlaced(scene, s))
-  const items: DrawItem[] = placed.map((_, i) => ({ key: rects[i].y + rects[i].h, kind: 0, index: i }))
   const units = scene.map.units ?? []
-  units.forEach((u, i) => {
-    let key = u.y + 1
-    for (const r of rects) if (u.x >= r.x && u.y >= r.y && u.x < r.x + r.w && u.y < r.y + r.h) key = Math.max(key, r.y + r.h)
-    items.push({ key, kind: 1, index: i })
-  })
+  const geo = scene.geo
+  let items: DrawItem[]
+  if (geo?.hex) {
+    const bottom = (c: { x: number; y: number }) => { const b = geo.box(c.x, c.y); return b.y + b.h }
+    const cells = placed.map((s) => footprint(scene.grid, scene.structures.get(s.type), s.x, s.y))
+    const keys = cells.map((cs) => Math.max(...cs.map(bottom)))
+    items = placed.map((_, i) => ({ key: keys[i], kind: 0 as const, index: i }))
+    units.forEach((u, i) => {
+      let key = bottom(u)
+      cells.forEach((cs, k) => { if (cs.some((c) => c.x === u.x && c.y === u.y)) key = Math.max(key, keys[k]) })
+      items.push({ key, kind: 1, index: i })
+    })
+  } else {
+    const rects = placed.map((s) => rectOfPlaced(scene, s))
+    items = placed.map((_, i) => ({ key: rects[i].y + rects[i].h, kind: 0 as const, index: i }))
+    units.forEach((u, i) => {
+      let key = u.y + 1
+      for (const r of rects) if (u.x >= r.x && u.y >= r.y && u.x < r.x + r.w && u.y < r.y + r.h) key = Math.max(key, r.y + r.h)
+      items.push({ key, kind: 1, index: i })
+    })
+  }
   // Array.prototype.sort is stable: structures keep list order, units keep file order.
   return items.sort((a, b) => (a.key !== b.key ? a.key - b.key : a.kind - b.kind))
 }

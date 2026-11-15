@@ -1,22 +1,25 @@
 // Structure settings of the economy options (docs/ECONOMY.md): research here, upgrades and repairs.
-import { sizeOf, updateStructure } from './structures'
+import { isHex, gridOfGame } from './gridSpec'
+import { hexCoverText, ringsOf, sizeOf, updateStructure } from './structures'
 import { patchObj, setNum } from './util'
 import type { ProjectDoc, Structure, Upgrade } from './types'
 
 export const setResearchHere = (doc: ProjectDoc, id: string, on: boolean): ProjectDoc => updateStructure(doc, id, { research: on ? true : undefined })
 
-const sameFootprint = (a: Structure, b: Structure): boolean => sizeOf(a).w === sizeOf(b).w && sizeOf(a).h === sizeOf(b).h
+/** Same size: squares compare width and height, hexagon games compare `rings`. */
+const sameFootprint = (a: Structure, b: Structure, hex: boolean): boolean =>
+  hex ? ringsOf(a) === ringsOf(b) : sizeOf(a).w === sizeOf(b).w && sizeOf(a).h === sizeOf(b).h
 
 /** Kinds `id` can be built up into: the same footprint, not itself, and not already listed (except `keep`, the entry being edited). */
 export function upgradeTargets(doc: ProjectDoc, id: string, keep?: string): Structure[] {
   const me = doc.structures?.find((s) => s.id === id)
   if (!me) return []
   const taken = new Set((me.upgrades ?? []).map((u) => u.to))
-  return (doc.structures ?? []).filter((s) => s.id !== id && sameFootprint(me, s) && (!taken.has(s.id) || s.id === keep))
+  return (doc.structures ?? []).filter((s) => s.id !== id && sameFootprint(me, s, isHex(gridOfGame(doc.game))) && (!taken.has(s.id) || s.id === keep))
 }
 
-/** "2 × 2": the footprint, for the reasons shown when a kind cannot be picked. */
-export const footprintText = (s: Structure): string => `${sizeOf(s).w} × ${sizeOf(s).h}`
+/** "2 × 2" (hexagon games: "7 hexagons"): the footprint, for the reasons shown when a kind cannot be picked. */
+export const footprintText = (s: Structure, hex = false): string => (hex ? hexCoverText(s) : `${sizeOf(s).w} × ${sizeOf(s).h}`)
 
 function withUpgrades(doc: ProjectDoc, id: string, fn: (list: Upgrade[]) => Upgrade[]): ProjectDoc {
   const s = doc.structures?.find((x) => x.id === id)

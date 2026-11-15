@@ -1,6 +1,8 @@
 // Small "pick one" controls used by the tool panels: terrain swatches, side chips, unit type buttons.
 import { useMemo } from 'react'
-import { sizeOf } from '../../../../model/structures'
+import { gridOfGame, isHex } from '../../../../model/gridSpec'
+import { hexCoverText, sizeOf } from '../../../../model/structures'
+import { useDoc } from '../../../../store/context'
 import type { MapSide, Structure, Terrain, Unit } from '../../../../model/types'
 import { ArtCanvas } from '../../../../ui/picture/ArtCanvas'
 import { useLook, useStructureThumb, useTerrainThumb, useUnitThumb } from '../../../../ui/picture/usePreview'
@@ -75,16 +77,18 @@ function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color:
 
 /** The structure kinds as buttons; each shows its footprint ("2 × 2") so the ghost on the map is no surprise. */
 export function StructurePicker({ kinds, value, side, onChange }: { kinds: Structure[]; value: string; side: MapSide | undefined; onChange: (id: string) => void }) {
+  const hex = isHex(gridOfGame(useDoc().game))
   return (
     <div className="pick-grid structures" role="radiogroup" aria-label="Structure">
       {kinds.map((k) => {
         const { w, h } = sizeOf(k)
+        const sub = hex ? hexCoverText(k) : `${w} × ${h}`
         return (
-          <button key={k.id} type="button" role="radio" aria-checked={k.id === value} className="pick" onClick={() => onChange(k.id)} title={`${k.name} (${w} × ${h})`}>
+          <button key={k.id} type="button" role="radio" aria-checked={k.id === value} className="pick" onClick={() => onChange(k.id)} title={`${k.name} (${sub})`}>
             <StructureChip kind={k} side={side} />
             <span className="pick-text">
               <span className="pick-name">{k.name}</span>
-              <span className="pick-sub">{w} × {h}</span>
+              <span className="pick-sub">{sub}</span>
             </span>
           </button>
         )

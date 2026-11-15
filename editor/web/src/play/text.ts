@@ -7,6 +7,8 @@ export const T = {
   mapLabel: 'Map',
   campaignChoice: 'The story, from chapter 1',
   styleLabel: 'Style',
+  sound: 'Sound',
+  soundTitle: 'Untick to test without sound (the game starts again).',
   showAll: 'Show everything',
   showAllTitle: 'This map has fog of war. Tick this to see the whole battlefield while you test (the game starts again).',
   restart: 'Restart',

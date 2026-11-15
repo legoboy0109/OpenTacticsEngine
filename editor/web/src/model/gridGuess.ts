@@ -1,12 +1,23 @@
 // How an image is divided: the first guess when it is added, and what the grid means for an image size.
+import { boxSize } from './hex'
+import { gridOfGame, isHex, layoutOf } from './gridSpec'
+import type { Game } from './types'
+
+/** A hexagon game's pieces are the size of a hexagon's box (docs/HEX.md: T x L pointy, L x T flat); null on a square game. */
+export function hexPieceBox(game: Game | null | undefined): { w: number; h: number } | null {
+  const grid = gridOfGame(game)
+  return isHex(grid) ? boxSize(layoutOf(grid), game?.view?.tileSize ?? 24) : null
+}
 
 export interface Division { mode: 'one' | 'grid'; cellWidth: number; cellHeight: number }
 
 /** At most twice the tile size both ways: one picture. Otherwise a grid of the tile size if that divides the image,
  *  else the first of 16, 32, 24, 48 that divides both sides, else the tile size anyway. */
-export function guessDivision(width: number, height: number, tileSize: number): Division {
+export function guessDivision(width: number, height: number, tileSize: number, box?: { w: number; h: number } | null): Division {
   const tile = Math.max(1, Math.round(tileSize) || 24)
   if (width <= tile * 2 && height <= tile * 2) return { mode: 'one', cellWidth: width, cellHeight: height }
+  // Hexagon games: the pieces are hexagon boxes, whether or not they divide the image evenly.
+  if (box) return { mode: 'grid', cellWidth: box.w, cellHeight: box.h }
   const size = gridSizeFor(width, height, tile)
   return { mode: 'grid', cellWidth: size, cellHeight: size }
 }

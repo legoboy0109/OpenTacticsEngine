@@ -1,6 +1,8 @@
 // Drawing art the way the player does (docs/GRAPHICS.md, "Drawing rules"). Used by the map canvas, the palettes
 // and every preview, so they cannot drift apart. All rectangles are whole device pixels.
-import { joinMaskAt, pickCell } from '../model/pickCell'
+import { isHex, layoutOf, SQUARE, type GridSpec } from '../model/gridSpec'
+import { joinMask } from '../model/hex'
+import { joinBlockSide, joinMaskAt, pickCell } from '../model/pickCell'
 import type { CellRef } from '../model/types'
 import type { ArtScene, Resolved } from './scene'
 
@@ -14,21 +16,24 @@ export function drawPiece(g: CanvasRenderingContext2D, r: Resolved, cell: CellRe
 }
 
 /** The piece a terrain square shows: variants by position (same hash as the player), animation by time, join by neighbours. */
-export function terrainCell(art: ArtScene, id: string, r: Resolved, x: number, y: number, mapW: number, mapH: number, idAt: (x: number, y: number) => string, timeMs: number): CellRef {
+export function terrainCell(art: ArtScene, id: string, r: Resolved, x: number, y: number, mapW: number, mapH: number, idAt: (x: number, y: number) => string, timeMs: number, grid: GridSpec = SQUARE): CellRef {
   let mask = 0
+  const hex = isHex(grid)
   if (r.shape === 'join') {
     const same = art.joinSame.get(id)
-    mask = joinMaskAt(x, y, mapW, mapH, r.look.joinEdge !== false, (nx, ny) => same?.has(idAt(nx, ny)) ?? false)
+    const isSame = (nx: number, ny: number) => same?.has(idAt(nx, ny)) ?? false
+    // Hexagons: six neighbour bits in the contract's order, from an 8 x 8 block; squares: four bits from a 4 x 4 block.
+    mask = hex ? joinMask(layoutOf(grid), mapW, mapH, { x, y }, r.look.joinEdge !== false, isSame) : joinMaskAt(x, y, mapW, mapH, r.look.joinEdge !== false, isSame)
   }
-  return pickCell(r.look, x, y, mask, timeMs)
+  return pickCell(r.look, x, y, mask, timeMs, joinBlockSide(hex))
 }
 
 /** Terrain with art: the piece stretched over the square (the caller has already filled the placeholder colour underneath,
  *  so transparent pixels show it). False = no art here (not loaded, or the piece is outside the image): draw the placeholder. */
 export function drawTerrainArt(g: CanvasRenderingContext2D, art: ArtScene, id: string, x: number, y: number, mapW: number, mapH: number,
-  idAt: (x: number, y: number) => string, timeMs: number, dx: number, dy: number, dw: number, dh: number): boolean {
+  idAt: (x: number, y: number) => string, timeMs: number, dx: number, dy: number, dw: number, dh: number, grid: GridSpec = SQUARE): boolean {
   const r = art.terrain.get(id)
-  return !!r && drawPiece(g, r, terrainCell(art, id, r, x, y, mapW, mapH, idAt, timeMs), dx, dy, dw, dh)
+  return !!r && drawPiece(g, r, terrainCell(art, id, r, x, y, mapW, mapH, idAt, timeMs, grid), dx, dy, dw, dh)
 }
 
 /** The flat base in the side's colour, as the player draws it (engine/player/battle/sprites.cpp): a bar across the bottom of the

@@ -5,7 +5,8 @@
 import { carriedAsItem } from './supplyUnits'
 import { footprintText } from './structuresEconomy'
 import { findLoop, TURNS_MAX } from './research'
-import { sizeOf } from './structures'
+import { isHex, gridOfGame } from './gridSpec'
+import { ringsOf, sizeOf } from './structures'
 import type { Section, ProjectDoc, Technology } from './types'
 
 export interface EconomyCheck { section: Section; text: string }
@@ -57,6 +58,7 @@ function techChecks(doc: ProjectDoc): EconomyCheck[] {
 function structureChecks(doc: ProjectDoc): EconomyCheck[] {
   const out: EconomyCheck[] = []
   const list = doc.structures ?? []
+  const hex = isHex(gridOfGame(doc.game))
   const techIds = new Set((doc.research ?? []).map((t) => t.id))
   const tags = new Set((doc.units ?? []).flatMap((u) => u.tags ?? []))
   const unitIds = new Set((doc.units ?? []).map((u) => u.id))
@@ -68,8 +70,8 @@ function structureChecks(doc: ProjectDoc): EconomyCheck[] {
       const target = list.find((x) => x.id === u.to)
       if (!target) say(`${at} goes to “${u.to}”, which is not a structure of this game.`)
       else if (target.id === s.id) say(`${at}: a structure cannot be upgraded to itself.`)
-      else if (sizeOf(target).w !== sizeOf(s).w || sizeOf(target).h !== sizeOf(s).h)
-        say(`${at}: ${target.name} covers ${footprintText(target)} squares but ${s.name} covers ${footprintText(s)}. An upgrade keeps the size.`)
+      else if (hex ? ringsOf(target) !== ringsOf(s) : sizeOf(target).w !== sizeOf(s).w || sizeOf(target).h !== sizeOf(s).h)
+        say(`${at}: ${target.name} covers ${footprintText(target, hex)}${hex ? '' : ' squares'} but ${s.name} covers ${footprintText(s, hex)}. An upgrade keeps the size.`)
       if (seen.has(u.to)) say(`${at}: “${target?.name ?? u.to}” is listed twice.`)
       seen.add(u.to)
       costChecks(doc, u.cost, (t) => say(`${at}: ${t}`))

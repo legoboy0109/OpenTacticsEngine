@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useCellWords } from '../../../ui/cellWords'
 import { Icon } from '../../../ui/Icon'
 import { Select, type Option } from '../../../ui/Select'
 import { TOOLS, type Tool } from './tools'
@@ -20,11 +21,12 @@ interface Props {
 }
 
 export function Toolbar({ tool, onTool, vs, mapW, mapH, looks }: Props) {
+  const words = useCellWords()
   return (
     <div className="map-toolbar">
       <div className="tool-group" role="toolbar" aria-label={T.toolsLabel}>
         {TOOLS.map((t) => (
-          <button key={t} type="button" className="tool-btn" aria-pressed={t === tool} onClick={() => onTool(t)} title={`${T.tools[t].label} (${T.tools[t].key}): ${T.tools[t].help}`} data-tool={t}>
+          <button key={t} type="button" className="tool-btn" aria-pressed={t === tool} onClick={() => onTool(t)} title={`${T.tools[t].label} (${T.tools[t].key}): ${words(T.tools[t].help)}`} data-tool={t}>
             <svg className="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{TOOL_ICON[t]}</svg>
             <span className="tool-label">{T.tools[t].label}</span>
             <kbd className="tool-key" aria-hidden="true">{T.tools[t].key}</kbd>

@@ -1,5 +1,6 @@
 // Painting terrain. Both functions return the same map object when nothing changed
 // (so a stroke over already-painted squares adds no undo step).
+import { lineOf, neighboursOf, SQUARE, type GridSpec } from './gridSpec'
 import { readGrid, writeGrid, type Cell } from './mapGrid'
 import type { MapFile, Terrain } from './types'
 
@@ -15,8 +16,9 @@ export function paintCells(map: MapFile, terrain: Terrain[], cells: Cell[], terr
   return changed ? writeGrid(map, g, terrain) : map
 }
 
-/** Flood fill: the 4-connected area of the same terrain around (x, y). */
-export function fillFrom(map: MapFile, terrain: Terrain[], x: number, y: number, terrainId: string): MapFile {
+/** Flood fill: the connected area of the same terrain around (x, y), through the neighbours the grid has
+ *  (squares: the four around; hexagons: the six around). */
+export function fillFrom(map: MapFile, terrain: Terrain[], x: number, y: number, terrainId: string, grid: GridSpec = SQUARE): MapFile {
   const g = readGrid(map, terrain)
   if (x < 0 || y < 0 || x >= g.width || y >= g.height) return map
   const from = g.cells[y * g.width + x]
@@ -26,22 +28,10 @@ export function fillFrom(map: MapFile, terrain: Terrain[], x: number, y: number,
     const i = stack.pop()!
     if (g.cells[i] !== from) continue
     g.cells[i] = terrainId
-    const cx = i % g.width
-    if (cx > 0) stack.push(i - 1)
-    if (cx < g.width - 1) stack.push(i + 1)
-    if (i >= g.width) stack.push(i - g.width)
-    if (i < g.cells.length - g.width) stack.push(i + g.width)
+    for (const n of neighboursOf(grid, g.width, g.height, { x: i % g.width, y: Math.floor(i / g.width) })) stack.push(n.y * g.width + n.x)
   }
   return writeGrid(map, g, terrain)
 }
 
-/** The squares on a straight line between two squares (inclusive): a fast drag leaves no gaps. */
-export function lineCells(a: Cell, b: Cell): Cell[] {
-  const out: Cell[] = []
-  const n = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y))
-  for (let i = 0; i <= n; i++) {
-    const t = n === 0 ? 0 : i / n
-    out.push({ x: Math.round(a.x + (b.x - a.x) * t), y: Math.round(a.y + (b.y - a.y) * t) })
-  }
-  return out
-}
+/** The cells on a straight line between two cells (inclusive): a fast drag leaves no gaps. */
+export const lineCells = (a: Cell, b: Cell, grid: GridSpec = SQUARE): Cell[] => lineOf(grid, a, b)

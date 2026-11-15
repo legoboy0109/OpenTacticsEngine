@@ -4,7 +4,7 @@ import { useArtState } from '../../art/useArt'
 import { artBase } from '../../model/artFiles'
 import { addSheet, newSheetId, sheetsOf } from '../../model/graphics'
 import { unusedFiles } from '../../model/graphicsUsage'
-import { guessDivision } from '../../model/gridGuess'
+import { guessDivision, hexPieceBox } from '../../model/gridGuess'
 import { useDoc, useEdit, useStore } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
@@ -23,7 +23,7 @@ export function UnusedFiles({ say }: { say: (tone: ArtNotice['tone'], text: stri
   const use = (file: string) => {
     const f = files.find((x) => x.file === file)
     if (!f || f.error || !f.width) return
-    const div = guessDivision(f.width, f.height, doc.game?.view?.tileSize ?? 24)
+    const div = guessDivision(f.width, f.height, doc.game?.view?.tileSize ?? 24, hexPieceBox(doc.game))
     edit((d) => addSheet(d, { file, cellWidth: div.cellWidth, cellHeight: div.cellHeight }, newSheetId(d, artBase(file))))
   }
   const remove = async () => {
