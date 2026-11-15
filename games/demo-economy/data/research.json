@@ -1,7 +1,7 @@
 // Research at the headquarters: pay, wait some of your own turns, one at a time.
 { "technologies": [
   { "id": "armor", "name": "Armor Doctrine",
-    "description": "Factories may build Tanks.",
+    "description": "Heavy tracked vehicles for the factories.",
     "cost": { "funds": 4000 }, "turns": 2,
     "unlocks": { "units": ["tank"] } },
   { "id": "plating", "name": "Reinforced Plating",
