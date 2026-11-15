@@ -20,6 +20,8 @@ struct Config {
   std::string host = "127.0.0.1";
   int port = 8765;
   std::vector<std::string> allowHosts;  // extra accepted Host header names
+  // Tutorial state file (learn.h). main sets it from --learn-file or the user data default; empty = memory only.
+  fs::path learnFile;
 };
 
 // What an API operation produces; server.cpp turns it into an HTTP response.

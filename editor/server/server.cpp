@@ -10,6 +10,7 @@
 #include "art.h"
 #include "audio.h"
 #include "models.h"
+#include "learn.h"
 #include "log.h"
 #include "projects.h"
 #include "static_files.h"
@@ -181,6 +182,8 @@ struct EditorServer::Impl {
       o.set("formatVersion", Json::makeNumber(1));
       return apiOk(o);
     }));
+    svr.Get("/api/learn", api([this](const httplib::Request&) { return getLearn(cfg); }));
+    svr.Put("/api/learn", api([this](const httplib::Request& req) { return putLearn(cfg, req.body); }));
     svr.Get("/api/projects", api([this](const httplib::Request&) { return listProjects(cfg); }));
     svr.Post("/api/projects", apiWithBody([this](const httplib::Request&, const Json& body) {
       return createProject(cfg, body);

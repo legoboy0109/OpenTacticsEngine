@@ -61,7 +61,7 @@ export function UnitForm({ id }: { id: string }) {
 
       <Card>
         <div className="stack">
-          <MultiSelect label={carried ? T.weaponsCarried : T.weapons} help={carried ? T.weaponsCarriedHelp : T.weaponsHelp} emptyText={T.noWeapons} value={unit.weapons ?? []}
+          <MultiSelect learn="unit-weapons" label={carried ? T.weaponsCarried : T.weapons} help={carried ? T.weaponsCarriedHelp : T.weaponsHelp} emptyText={T.noWeapons} value={unit.weapons ?? []}
             options={(doc.weapons ?? []).map((w) => ({ value: w.id, label: w.name }))}
             onChange={(v) => edit((d) => setUnitWeapons(d, id, v))} />
           {(carried || (unit.wields?.length ?? 0) > 0) && (

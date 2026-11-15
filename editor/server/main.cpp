@@ -11,6 +11,7 @@
 #include <unistd.h>
 #endif
 
+#include "learn.h"
 #include "log.h"
 #include "server.h"
 
@@ -21,10 +22,13 @@ static void usage() {
       "usage: ote-editor [--games DIR=games] [--assets DIR=assets]\n"
       "                  [--templates DIR=editor/templates] [--web DIR=editor/web/dist]\n"
       "                  [--player DIR=build-web/engine/player]\n"
-      "                  [--host 127.0.0.1] [--port 8765] [--allow-host NAME]...\n");
+      "                  [--host 127.0.0.1] [--port 8765] [--allow-host NAME]...\n"
+      "                  [--learn-file FILE=<user data>/OpenTacticsEngine/editor/learn.json]\n"
+      "                  (--learn-file \"\" keeps the tutorial state in memory only)\n");
 }
 
 static bool parseArgs(int argc, char** argv, Config& cfg, bool& help) {
+  cfg.learnFile = defaultLearnFile();
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     if (a == "-h" || a == "--help") { help = true; return true; }
@@ -35,6 +39,7 @@ static bool parseArgs(int argc, char** argv, Config& cfg, bool& help) {
     else if (a == "--templates") cfg.templatesDir = v;
     else if (a == "--web") cfg.webDir = v;
     else if (a == "--player") cfg.playerDir = v;
+    else if (a == "--learn-file") cfg.learnFile = v;
     else if (a == "--host") cfg.host = v;
     else if (a == "--allow-host") cfg.allowHosts.push_back(v);
     else if (a == "--port") {
@@ -68,6 +73,7 @@ int main(int argc, char** argv) {
   if (!parseArgs(argc, argv, cfg, help)) { usage(); return 2; }
   if (help) { usage(); return 0; }
   for (fs::path* p : {&cfg.gamesDir, &cfg.assetsDir, &cfg.templatesDir, &cfg.webDir, &cfg.playerDir}) absolutize(*p);
+  if (!cfg.learnFile.empty()) absolutize(cfg.learnFile);
 
   installEngineLogSink();
 
@@ -102,6 +108,7 @@ int main(int argc, char** argv) {
   std::printf("  Open:       http://%s:%d/\n", cfg.host.c_str(), cfg.port);
   std::printf("  Games:      %s\n", cfg.gamesDir.string().c_str());
   std::printf("  Templates:  %s\n", cfg.templatesDir.string().c_str());
+  std::printf("  Tutorial:   %s\n", cfg.learnFile.empty() ? "(kept in memory only)" : cfg.learnFile.string().c_str());
   std::printf("  Press Ctrl+C to stop.\n");
   std::fflush(stdout);
 

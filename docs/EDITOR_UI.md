@@ -642,3 +642,40 @@ behave exactly as before; everything below only happens when `game.json` has `"g
 - **Tests.** Unit: `hex.test.ts` (tables pinned against the contract's text, distance = BFS steps, boxes, picking, join mask, fill), `hexMap.test.ts`
   (on the engine's fixtures). API: `tests/editor_api_hex_checks.py`. e2e: `hex-map`, `hex-tools`, `hex-screens`, `hex-play` specs (both layouts, from
   copies of `tests/fixtures/hex-pointy` / `hex-flat`, pixel checks from the contract's formulas) and `screenshots-hex.spec.ts`.
+
+## Learn (the tutorial; contract docs/TUTORIAL.md)
+
+Code: `editor/web/src/learn/`. Wording: `learn/text.ts` (the framework) and `learn/lessons/*.ts` (the lessons).
+- **Learn button**: `learn/LearnButton.tsx`, in the top bar (before the problems badge; icon only on phones) and in the game list's header. It
+  opens the **Learn list** (`LearnList.tsx`, a dialog): every lesson in `lessons/index.ts` with title, one line, "About N minutes", its state
+  (Not started / In progress: step 3 of 10 / Finished) and Start, Continue or Start again. Lessons that do not exist are not listed.
+- **First-run card** (`FirstRunCard.tsx`) on the game list while the helper has no saved Learn state at all (and could be read): Start (makes the
+  practice game and starts) or Not now. Either answer is saved as `offerAnswered`; it never comes back by itself.
+- **Practice game**: `LearnController.start` lists the games, names the new one "Practice: <lesson title>" (a number is added while the folder name
+  is taken: `practiceName`), creates it from the lesson's template through `POST /api/projects` and opens it. Resume reopens it at the current step; a
+  game that was deleted is found by `checkPractice` (page load, game list, Learn list, a game that cannot be opened) and the panel / list say so and
+  offer Start again (a new game; the progress starts over).
+- **Panel** (`LessonPanel.tsx`): while a lesson runs, above every screen (mounted by `App`, so it stays across screens, the game list and reloads).
+  From **1800 px** wide it is docked at the right edge (340 px, the whole page gives up that room by a margin on `#root`); below that, and on phones, it is
+  a bottom sheet (padding on `#root`, sidebar / lists / the map's options end above it, `scroll-padding-bottom`). Both fold into a slim bar showing
+  the current step's title (remembered in `ote.learnCollapsed`). Why 1800: the map editor needs about 1200 px beside the sidebar and its own
+  options; `.map-main` got `grid-template-columns: minmax(0, 1fr)` so its canvas follows the room it has (before, it kept its size when the room shrank).
+  Content: lesson title, "Step 3 of 10", a meter, the ticked steps folded ("Done so far (n)", skipped ones marked), the current step (title, text,
+  "This happens on the X screen.", Take me there when elsewhere, Skip this step) and Stop lesson. At the end: "You finished the lesson", "What you made", Play,
+  Done and "Next lessons" (other lessons not finished). `data-testid`s: `learn-step-title`, `learn-done`, `learn-end`, `learn-gone`, `learn-offer`.
+- **Pointing**: `Highlight.tsx` draws a ring around the first visible element with `data-learn="<name>"`. It checks the element every frame (so it follows
+  scroll, resize and layout changes), is hidden when there is no such element or it is off screen (a control found off screen is scrolled into view
+  once), uses `pointer-events: none`, and pulses only under `prefers-reduced-motion: no-preference`. On the step's own screen it rings the step's
+  `point`; elsewhere it rings the sidebar link (`nav-<section>`) that gets there; on the game list, while folded or at the end, nothing.
+- **Names in use** (`data-learn`): `nav-<section>` (sidebar), `new-item` (the New ... button of a list screen), `game-name`, `unit-weapons`,
+  `tool-<tool>` (map toolbar), `terrain-picker`, `play`, `problems`, `learn`. A lesson that needs another control adds the attribute there.
+- **Runner** (`runner.ts`, `controller.ts`): done tests run on every change of the open practice game's document, its screen or the signals; only the
+  current step is tested, a step already true is ticked at once, nothing is ever unticked. `settleMs` makes a typing step wait for a pause.
+- **Signals** (`signals.ts`): `played` (PlayPanel's `ote-player-ready`), `saved` (the game's revision changed on disk), `problemsChecked` (the Problems
+  list opened). Remembered with the lesson's progress.
+- **State**: `GET`/`PUT /api/learn` (docs/EDITOR_API.md), every change is sent at once; `learn/state.ts` reads it tolerantly.
+- **Tests.** Unit: `learnHelpers`, `learnRunner` (runner, state, practice names), `learnController` (fake helper), `learnFirstGame` (every done test of
+  the lesson, true and false). API: `tests/editor_api_learn_checks.py`. e2e: `learn-lesson` (the whole lesson, step by step, ends with the real
+  engine loading the game), `learn-state` (offer, resume, stop and continue, skip, deleted game, numbering, no lesson = as before), `learn-layout`
+  (phone, laptop, wide window, the ring). Every Learn spec starts its own helper with an empty temporary `--learn-file` (`tests/e2e/learnkit.ts`);
+  the shared helper starts with "offer answered" so the game list looks as before for every other spec.

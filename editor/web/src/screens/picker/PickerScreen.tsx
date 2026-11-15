@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type ProjectInfo } from '../../api/client'
+import { FirstRunCard } from '../../learn/FirstRunCard'
+import { LearnButton } from '../../learn/LearnButton'
 import { Link, projectPath } from '../../router'
 import { Banner } from '../../ui/Banner'
 import { Icon } from '../../ui/Icon'
@@ -27,8 +29,12 @@ export function PickerScreen() {
           <h1>{T.title}</h1>
           <p className="help">{T.intro}</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => setCreating(true)}><Icon name="plus" />{T.newGame}</button>
+        <div className="picker-head-actions">
+          <LearnButton className="btn" compact={false} />
+          <button type="button" className="btn primary" onClick={() => setCreating(true)}><Icon name="plus" />{T.newGame}</button>
+        </div>
       </header>
+      <FirstRunCard />
 
       {load.state === 'loading' && <p className="help" role="status">{T.loading}</p>}
       {load.state === 'failed' && (

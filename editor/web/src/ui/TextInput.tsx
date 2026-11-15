@@ -12,6 +12,8 @@ interface Props {
   readOnly?: boolean
   className?: string
   'aria-label'?: string
+  /** Names the control for the lessons' pointer (learn/Highlight.tsx). */
+  'data-learn'?: string
   autoFocus?: boolean
   /** id of a <datalist> that suggests values. */
   list?: string

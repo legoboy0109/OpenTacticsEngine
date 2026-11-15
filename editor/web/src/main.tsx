@@ -11,5 +11,6 @@ import './styles/story.css'
 import './styles/sound.css'
 import './styles/campaign.css'
 import './styles/play.css'
+import './styles/learn.css'
 
 createRoot(document.getElementById('root')!).render(<App />)

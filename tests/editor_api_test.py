@@ -28,6 +28,7 @@ from editor_api_economy_checks import run_economy_checks
 from editor_api_fog_checks import run_fog_checks
 from editor_api_sound_checks import run_sound_checks
 from editor_api_hex_checks import run_hex_checks
+from editor_api_learn_checks import run_learn_checks
 
 PASSED = 0
 FAILED = 0
@@ -110,11 +111,13 @@ def main():
         sentinel = os.path.join(tmp, "work", "sentinel.txt")
         with open(sentinel, "w") as f:
             f.write("do not touch")
+        learn_file = os.path.join(tmp, "work", "userdata", "learn.json")
         port = free_port()
         proc = subprocess.Popen(
             [binary, "--games", games, "--templates", templates,
              "--assets", os.path.join(repo, "assets"),
              "--web", os.path.join(tmp, "no-web"), "--player", os.path.join(tmp, "no-player"),
+             "--learn-file", learn_file,  # never the real user data folder
              "--port", str(port)],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         api = Api(port)
@@ -132,7 +135,7 @@ def main():
                      proc.stderr.read().decode("utf-8", "replace") if proc.poll() is not None else ""):
             return 1
         # A second helper on the same port must fail loudly, not share the port.
-        second = subprocess.run([binary, "--games", games, "--templates", templates, "--port", str(port)],
+        second = subprocess.run([binary, "--games", games, "--templates", templates, "--learn-file", learn_file, "--port", str(port)],
                                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=20)
         check("second helper on a busy port exits non-zero with a clear message",
               second.returncode != 0 and b"port" in second.stderr.lower(), second.stderr[-200:])
@@ -148,6 +151,7 @@ def main():
         run_fog_checks(api, tmp, games, templates, check, get_project, put_project)
         run_sound_checks(api, tmp, games, templates, check, get_project, put_project)
         run_hex_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")
         check("helper still alive after all checks", proc.poll() is None and st == 200)

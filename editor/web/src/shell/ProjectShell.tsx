@@ -13,6 +13,7 @@ import { StructuresScreen } from '../screens/structures/StructuresScreen'
 import { TerrainScreen } from '../screens/terrain/TerrainScreen'
 import { UnitsScreen } from '../screens/units/UnitsScreen'
 import { WeaponsScreen } from '../screens/weapons/WeaponsScreen'
+import { useLearnContext, useSavedSignal } from '../learn/useLearn'
 import { PLAY_CAMPAIGN } from '../play/PlayPanel'
 import { usePlay } from '../play/usePlay'
 import { useProject, useStore } from '../store/context'
@@ -43,7 +44,7 @@ function Screen({ route }: { route: ProjectRoute }) {
 
 export function ProjectShell({ route }: { route: ProjectRoute }) {
   const store = useStore()
-  const { phase, loadError, doc, canUndo, canRedo } = useProject()
+  const { phase, loadError, doc, canUndo, canRedo, revision } = useProject()
   const [problemsOpen, setProblemsOpen] = useState(false)
   const [fixFirst, setFixFirst] = useState(false)
   const closeProblems = useCallback(() => { setProblemsOpen(false); setFixFirst(false) }, [])
@@ -52,6 +53,10 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
   const playMap = route.section === 'campaign' && doc.campaign && maps.length > 0 ? PLAY_CAMPAIGN
     : (route.section === 'maps' && maps.some((m) => m.id === route.itemId) ? route.itemId : maps[0]?.id) ?? ''
   const play = usePlay(maps, useCallback(() => { setFixFirst(true); setProblemsOpen(true) }, []))
+
+  // The lesson runner (docs/TUTORIAL.md) follows the open game, its screen, and the saves.
+  useLearnContext(store.id, route.section, phase === 'ready' ? doc : null, phase === 'failed', () => void play.start(playMap))
+  useSavedSignal(revision)
 
   // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z act on the whole game, even while typing in a box.
   useEffect(() => {

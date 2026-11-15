@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { emitSignal } from '../learn/signals'
 import { problemTarget } from '../model/problems'
 import { navigate, projectPath } from '../router'
 import { useProject, useStore } from '../store/context'
@@ -14,6 +15,7 @@ export function ProblemsPanel({ onClose, fixFirst }: { onClose: () => void; fixF
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
+  useEffect(() => { emitSignal('problemsChecked') }, [])
   const pending = save.state !== 'saved'
   return (
     <section id="problems-panel" className="problems-panel" aria-label="Problems">

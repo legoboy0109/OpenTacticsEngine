@@ -27,7 +27,7 @@ function GameForm() {
       <Card title={T.about}>
         <div className="stack">
           <Field label={T.name} help={T.nameHelp}>
-            <TextInput value={game.name} onChange={(v) => edit((d) => setGameText(d, 'name', v), 'game:name')} />
+            <TextInput data-learn="game-name" value={game.name} onChange={(v) => edit((d) => setGameText(d, 'name', v), 'game:name')} />
           </Field>
           <Field label={T.description} help={T.descriptionHelp}>
             <TextInput multiline rows={2} value={game.description ?? ''} onChange={(v) => edit((d) => setGameText(d, 'description', v), 'game:description')} />

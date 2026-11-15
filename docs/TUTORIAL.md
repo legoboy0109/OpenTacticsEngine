@@ -15,7 +15,8 @@ Owner decisions (2026-11-15):
   "Not now"); afterwards everything is behind a **Learn** button. Progress
   is remembered.
 
-Status: contract written; nothing built yet. Build order at the end.
+Status: step 1 of the build order is built (framework + lesson 1 "Your first game"; how it is built: docs/EDITOR_UI.md "Learn", the
+state file: docs/EDITOR_API.md). Topic lessons 2 to 8 are not written yet; "How to write a lesson" at the end is for them.
 
 ## How a lesson works
 
@@ -118,3 +119,115 @@ for people who do not program. Lesson texts are reviewed by the owner.
    "how to write a lesson" section at the end of this file.
 2. **Topic lessons** 2 to 8, written on the framework (can be split between
    people once step 1 is merged).
+
+## How to write a lesson
+
+You need no knowledge of the framework's code. A lesson is one TypeScript file of data plus a unit test and an e2e test.
+
+### 1. The file
+
+`editor/web/src/learn/lessons/<id>.ts` exports a `Lesson`; add it to the list in `lessons/index.ts` (the Learn list shows lessons in that
+order, and only those). The model to copy is `lessons/first-game.ts`.
+
+```ts
+import { addedCount, structuresOnMap } from '../helpers'
+import type { Lesson } from '../types'
+
+const START = { structures: [] as string[] }     // what the template begins with (see "Done tests")
+
+export const structures: Lesson = {
+  id: 'structures',                               // stable; used in the saved state
+  title: 'Structures',                            // the practice game is named "Practice: Structures"
+  description: 'Make a building that can be captured and earns funds, and put it on the map.',
+  minutes: 6,                                     // rough, shown in the list
+  template: 'economy-tactics',                    // a template id: blank, strategy-rpg, economy-tactics, hex-tactics-pointy, hex-tactics-flat
+  playable: true,                                 // the end offers a Play button
+  summary: ['A building kind that earns funds.'], // "What you made", one short sentence each
+  steps: [
+    {
+      id: 'new-kind',                             // stable within the lesson; "skipped" is remembered by it
+      title: 'Make a building',                   // short; shown in the panel and on the folded bar
+      text: 'Buildings stand on the map. On the Structures screen, click New structure and give it a name.',
+      where: { section: 'structures' },           // the screen it happens on (optional)
+      point: 'new-item',                          // data-learn name of the control to ring (optional)
+      done: (doc) => addedCount(doc.structures, START.structures) >= 1,
+    },
+    // ...
+  ],
+}
+```
+
+Step fields: `id`, `title`, `text` (one to three plain sentences: what to do and why), `where` (`{ section }`, optionally `item: (doc) => id` to
+open one entry of that screen: a map, a unit; used by "Take me there"), `point`, `done` and `settleMs` (below). 5 to 10 steps per lesson, one
+small task each. The lesson must end with a game that loads with no problems and, if `playable`, one that Play starts.
+
+Where things go: the panel says "This happens on the X screen." from `where`; **Take me there** opens it; while the maker is on another
+screen of the practice game the ring points at the sidebar link of `where.section`, and on that screen at `point`. A step with no `where`
+(Play, the Problems badge) works from any screen. When the control is inside something collapsed, only the text can say so ("open the Map tab"):
+the ring is simply absent when its control is not on screen.
+
+### 2. Done tests
+
+`done: (doc, screen, signals) => boolean` is a **pure function** of the game document (`ProjectDoc`, `editor/web/src/model/types.ts`), the current
+screen (`'games'` or a section name) and the editor signals seen so far in this lesson. It looks at real state, never at clicks. The runner calls
+it after every change; only the current step is tested; a step that is already true when it is reached ticks at once; nothing is ever unticked
+(undoing later changes nothing).
+
+Rules that keep ticks honest:
+- **Nothing may be true at the start.** Write down what the template begins with (`START` above: the ids of its terrain, unit types, weapons...)
+  and test for something *beyond* it ("a unit type that is not `soldier`"). The unit test checks this for every step.
+- **Make it hard to tick by accident**: "pick a tool" is not the work, "a unit of the new type stands on the map for side Blue" is.
+- **Do not depend on how the maker did it**: any way of getting the document into the right state counts.
+- **Typing**: a step done by typing a name should set `settleMs` (for example 1200): the test must stay true that long before it ticks, so
+  the lesson does not move on at the first letter.
+- **Things with no trace in the document** (Play, opening a panel) use a signal: `done: (_d, _s, signals) => signals.has('played')`.
+
+Helpers (`learn/helpers.ts`; maps default to the game's first map):
+`nameChanged(doc, notPrefix)`, `addedCount(list, startIds)` (entries beyond what the template began with: `doc.terrain`, `doc.units`, `doc.weapons`,
+`doc.structures`, `doc.items`...), `cellsOfTerrain(doc, terrainId, mapId?)`, `cellsOfOtherTerrain(doc, excludeIds, mapId?)`,
+`unitsOnMap(doc, { side?, type?, notTypes? }, mapId?)`, `structuresOnMap(doc, { type?, side? }, mapId?)`,
+`unitTypesWithWeapon(doc, excludeIds?)`, `mapOf(doc, mapId?)`, `firstMapId(doc)`. Anything else is a few lines over the document; if you write
+a helper another lesson would use, put it in `helpers.ts` with a unit test in `tests/unit/learnHelpers.test.ts`.
+
+### 3. Naming a control: `data-learn`
+
+The ring finds a control by `data-learn="<name>"`, never by its text or position. Put the attribute on the control (it renders onto the element;
+nothing else changes). The existing names: `nav-<section>` (every sidebar link, e.g. `nav-maps`), `new-item` (the "New ..." button of a list screen),
+`game-name`, `unit-weapons`, `tool-<tool>` (the map toolbar: `tool-terrain`, `tool-units`, `tool-structures`, `tool-heights`, `tool-select`),
+`terrain-picker`, `play`, `problems`, `learn`.
+To add one: pick a short lowercase name for *what the control is* (`structure-picker`), add `data-learn="structure-picker"` on the element
+(`TextInput` and `FieldGroup` / `MultiSelect` accept it as a prop: `data-learn` / `learn`; for another component add the same optional prop and pass
+it to its root element), then use it as a step's `point`. Names are never renamed afterwards (lessons and tests use them). The first visible element
+with the name is ringed, so use a name once per screen.
+
+### 4. Adding a signal
+
+`learn/signals.ts`: add the name to the `SignalName` union and call `emitSignal('name')` where the thing happens (for example `emitSignal('played')`
+in `play/PlayPanel.tsx` when the player reports ready). Signals seen while a lesson runs are saved with its progress. That is all.
+
+### 5. Wording
+
+Every text is reviewed by the owner. Plain, short, friendly, second person, for people who do not program: say "click", "screen", "square"
+("hexagon" in hexagon lessons); never "tile", "id", "expression", "formula", "script"; call the visual styles "style", never "look". Use the
+words the editor itself shows (Terrain, Units, Weapons, "New unit", "Take me there"). A title names the task ("Make a weapon"), a text says what to do and
+why in one to three sentences. Do not explain more than the step needs.
+
+### 6. Testing a lesson
+
+**Unit** (`tests/unit/learn<Lesson>.test.ts`; the model is `learnFirstGame.test.ts`): load the template (`loadTemplate('blank')` from
+`tests/unit/fixtures.ts`), `structuredClone` it, and for every step check: false at the start (the test loops over all steps), false for the near
+misses a maker could make, true once the work is done, and that `where.item` picks the right entry. Also check the lesson's data is well formed
+(unique step ids, the template exists, no forbidden words).
+
+**e2e** (`tests/e2e/learn-<lesson>.spec.ts`; the model is `learn-lesson.spec.ts`; helpers in `tests/e2e/learnkit.ts`): import `test` from
+`learnkit` (each test gets its own helper process with an empty temporary tutorial state; never the real user data folder) and play the lesson through
+doing what each step says: `expectCurrent(page, title)` before the action (the step is not ticked), the action, then
+`expectTicked(page, title, nextTitle)`; `expectRingOn(page, name)` where the ring matters. To start in the middle seed the state:
+create the practice game through `POST /api/projects` and `PUT /api/learn` (see `seed` in `learn-state.spec.ts`). End with
+`expectLoadsInEngine(lh, practiceId)` (the real loader finds no problem and the native player starts the game). Use a 1920 x 1080 window
+for a long run (the panel docks at the side; below 1800 px it is a bottom sheet over the lower part of the window).
+
+```
+cd editor/web && npm run typecheck && npm run build && npm test
+OTE_EDITOR_BIN=../../build/ote-editor OTE_PLAYER_DIR=../../build-web/engine/player npx playwright test learn --project chromium
+```

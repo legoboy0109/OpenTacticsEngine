@@ -5,7 +5,9 @@
 
 .map-editor { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px 16px; align-items: start; }
 .map-editor > .map-warnings { grid-column: 1 / -1; }
-.map-main { display: grid; gap: 8px; min-width: 0; container-type: inline-size; }
+/* The one column must be the column's width: without minmax(0, ...) the canvas' own size held it open and it could not shrink
+   when the room around it did (a docked lesson panel, a narrower window). */
+.map-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; container-type: inline-size; }
 /* Tight columns: drop the key hints so tools and zoom share one row. */
 @container (max-width: 680px) { .tool-key { display: none; } }
 .map-stage {

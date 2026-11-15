@@ -58,7 +58,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
       <div className="md-list">
         <div className="md-list-head">
           <Heading>{title}</Heading>
-          <button type="button" className="btn primary sm" onClick={onNew}><Icon name="plus" />{newLabel ?? `New ${noun}`}</button>
+          <button type="button" className="btn primary sm" data-learn="new-item" onClick={onNew}><Icon name="plus" />{newLabel ?? `New ${noun}`}</button>
         </div>
         {note && <p className="help">{note}</p>}
         {items.length === 0 && <p className="help">{emptyText ?? `No ${title.toLowerCase()} yet.`}</p>}

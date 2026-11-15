@@ -89,6 +89,12 @@ export interface Api {
 /** URL of one raw project file (the Play panel feeds these to the embedded player). */
 export const projectFileUrl = (id: string, path: string): string => `/api/projects/${enc(id)}/file/${path.split('/').map(enc).join('/')}`
 
+/** The tutorial's remembered state (GET/PUT /api/learn); the shape is owned by learn/state.ts. */
+export const learnApi = {
+  get: (): Promise<Result<unknown>> => request('GET', '/api/learn'),
+  put: (state: unknown): Promise<Result<unknown>> => request('PUT', '/api/learn', state),
+}
+
 export const api: Api = {
   info: () => request('GET', '/api/info'),
   listFiles: (id) => unwrap(request<{ files: FileInfo[] }>('GET', `/api/projects/${enc(id)}/files`), 'files'),
