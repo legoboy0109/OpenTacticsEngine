@@ -49,6 +49,30 @@ inline int shownSide(const DrawCtx& c, const Unit& u) {
   return u.side;
 }
 
+// ---- Fog of war (docs/ECONOMY.md "Fog of war > Player"). The view knows who the screen is drawn for; with no fog
+// (or the maker's show-all) none of these changes anything.
+constexpr float kFogDim = 0.55f;  // brightness of a square the viewer does not see (the 2D veil is black with alpha 115)
+constexpr int kFogDimAlpha = 115;
+inline Color fogDim(Color c) {
+  return Color((uint8_t)(c.r * kFogDim), (uint8_t)(c.g * kFogDim), (uint8_t)(c.b * kFogDim), c.a);
+}
+// A structure none of whose squares the viewer sees (so its picture is dimmed too).
+inline bool structureDimmed(const DrawCtx& c, int structure) {
+  if (!c.view.fogged()) return false;
+  const StructureState& st = c.battle.structures[(size_t)structure];
+  const StructureDef& def = c.battle.defOf(st);
+  for (int dy = 0; dy < def.height; ++dy)
+    for (int dx = 0; dx < def.width; ++dx) {
+      Cell cell = c.battle.grid.at(st.x + dx, st.y + dy);
+      if (cell != kNoCell && !c.view.dimmed(cell)) return false;
+    }
+  return true;
+}
+// Whose colours a structure is drawn in: for a viewer the owner it last saw (not the truth), else its owner.
+inline int shownOwner(const DrawCtx& c, int structure) {
+  return c.view.fogged() ? c.battle.seenOwner(c.view.viewerTeam(), structure) : c.battle.structures[(size_t)structure].owner;
+}
+
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).
 inline uint32_t terrainRgb(const DrawCtx& c, int terrain) {
   const StyleDef* st = c.style;

@@ -16,6 +16,7 @@
 #include "ui/dialogue_box.h"
 #include "ui/item_panel.h"
 #include "ui/menu.h"
+#include "ui/pass_device.h"
 #include "ui/slot_panel.h"
 #include "ui/trade_panel.h"
 
@@ -50,6 +51,13 @@ class BattleScene : public Scene {
   Cell cellAt(int x, int y) const;
   // Box around a square on screen (its top face in the isometric view).
   void cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const;
+
+  // --- battle_fog.cpp: fog of war (docs/ECONOMY.md "Fog of war > Player")
+  void initFog();
+  void setViewerSide(int side);   // who the screen is drawn for
+  void raiseCover(int side);      // hot-seat: "Pass the device to <side>"
+  bool fogTurnGate();             // a human turn is about to begin: true = the cover went up and the turn waits
+  void coverConfirmed();
 
   // --- battle_input.cpp: the human state machine
   void handleButton(Button b);
@@ -151,6 +159,12 @@ class BattleScene : public Scene {
   bool autoplay_ = false;
   int styleIdx_ = 0;  // visual style of the look in use (index into db.styles)
   float time_ = 0;
+  bool fogActive_ = false;  // the screen is drawn for one team (fog on, not --show-all, a human side exists)
+  bool hotSeat_ = false;    // fogActive_ and humans of two or more teams share the device: the cover between turns
+  bool covered_ = false;    // the cover is up
+  int viewerSide_ = -1;     // the human side the screen is drawn for (its team is the viewer)
+  int coverTeam_ = -1;      // the team the cover was last confirmed for (-1 = none yet: a new or resumed battle starts with it)
+  PassDevice cover_;
 
   Cell cursor_ = 0;
   int sel_ = -1;  // selected unit id
@@ -163,6 +177,7 @@ class BattleScene : public Scene {
   int targetIdx_ = 0;
   Cell buildCell_ = kNoCell;
   int turnKey_ = -1;
+  int aiTurnKey_ = -1;  // the AI turn the log last said it started
   ItemScreen itemScreen_ = ItemScreen::List;
   ItemPanel itemPanel_;
   ItemPanel researchPanel_;       // Mode::Research

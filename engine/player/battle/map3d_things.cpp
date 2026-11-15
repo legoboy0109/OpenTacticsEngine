@@ -77,12 +77,17 @@ void Map3D::drawStructures(const DrawCtx& c) {
   for (const StructureState& st : b.structures) {
     const StructureDef& def = b.defOf(st);
     float Y = structureElev(c, st, def) * g.stepY();
-    if (st.owner >= 0)
-      frame(batch_.mesh(flat()), c, st.x, st.y, def.width, def.height, Y + 0.012f, 0.07f,
-            tintOf(Color::rgb(b.sides[(size_t)st.owner].color)));
+    // Fog: the owner the viewer last saw; a structure out of its sight is darker (the ground under it gets the veil).
+    const int index = (int)(&st - &b.structures[0]), owner = shownOwner(c, index);
+    const bool dim = structureDimmed(c, index);
+    const uint8_t k = dim ? (uint8_t)(255 * kFogDim) : 255;
+    if (owner >= 0) {
+      Color oc = Color::rgb(b.sides[(size_t)owner].color);
+      frame(batch_.mesh(flat()), c, st.x, st.y, def.width, def.height, Y + 0.012f, 0.07f, tintOf(dim ? fogDim(oc) : oc));
+    }
     const ModelAsset* asset = nullptr;
     if (const ModelLook* ml = structureModel(c, st, asset)) {
-      drawStructureModel(c, (int)(&st - &b.structures[0]), *ml, *asset, Y);
+      drawStructureModel(c, index, *ml, *asset, Y);
       continue;
     }
     const Look* art = structureArt(c, st);
@@ -95,11 +100,12 @@ void Map3D::drawStructures(const DrawCtx& c) {
       float wPx = (def.width + def.height) * 0.5f * g.artPixels() * 1.15f;
       Spot feet = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
       feet.Y = Y;
-      upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(), uv);
+      upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(k, k, k, 255), uv);
     } else {
       // Placeholder: a low lit box in the structure's colour.
       Spot a = spot(c, st.x + 0.08f, st.y + 0.08f, 0), z = spot(c, st.x + def.width - 0.08f, st.y + def.height - 0.08f, 0);
-      Tint3D col = tintOf(Color::rgb(structureRgb(c, st.type)));
+      Color base = Color::rgb(structureRgb(c, st.type));
+      Tint3D col = tintOf(dim ? fogDim(base) : base);
       Material3D lit;
       addBlock(batch_.mesh(lit), Vec3(a.X, Y, a.Z), Vec3(z.X, Y + kWall, z.Z), col, col);
     }
@@ -117,6 +123,29 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
       return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY() + kWall;
     return c.proj->elevation(x, y) * g.stepY();
   };
+  if (c.view.fogged()) {
+    // Fog: a dark veil (a blended black quad in the same batch as the highlights) over the top and the lower side
+    // faces of every square the viewer does not see. Nothing is rebuilt when the sight changes.
+    MeshData& m = batch_.mesh(flat(Blend3D::Blend));
+    const Tint3D veil(0, 0, 0, (uint8_t)kFogDimAlpha);
+    const float eps = 0.004f;  // the side veils stand a hair outside the block
+    auto lowOf = [&](int nx, int ny) {
+      return (nx < 0 || ny < 0 || nx >= g.gridW() || ny >= g.gridH() ? -1 : c.proj->elevation(nx, ny)) * g.stepY();
+    };
+    for (int y = 0; y < g.gridH(); ++y)
+      for (int x = 0; x < g.gridW(); ++x) {
+        if (!c.view.dimmed(b.grid.at(x, y))) continue;
+        const int e = c.proj->elevation(x, y);
+        groundQuad(m, c, x, y, 1, 1, e * g.stepY() + 0.010f, 0, veil);
+        Spot a = spot(c, (float)x, (float)y, (float)e), z = spot(c, (float)(x + 1), (float)(y + 1), (float)e);
+        const float hi = a.Y;
+        float lo;
+        if ((lo = lowOf(x, y + 1)) < hi) addQuad(m, Vec3(a.X, lo, z.Z + eps), Vec3(z.X, lo, z.Z + eps), Vec3(z.X, hi, z.Z + eps), Vec3(a.X, hi, z.Z + eps), veil);
+        if ((lo = lowOf(x, y - 1)) < hi) addQuad(m, Vec3(z.X, lo, a.Z - eps), Vec3(a.X, lo, a.Z - eps), Vec3(a.X, hi, a.Z - eps), Vec3(z.X, hi, a.Z - eps), veil);
+        if ((lo = lowOf(x + 1, y)) < hi) addQuad(m, Vec3(z.X + eps, lo, z.Z), Vec3(z.X + eps, lo, a.Z), Vec3(z.X + eps, hi, a.Z), Vec3(z.X + eps, hi, z.Z), veil);
+        if ((lo = lowOf(x - 1, y)) < hi) addQuad(m, Vec3(a.X - eps, lo, a.Z), Vec3(a.X - eps, lo, z.Z), Vec3(a.X - eps, hi, z.Z), Vec3(a.X - eps, hi, a.Z), veil);
+      }
+  }
   if (ov.any()) {
     MeshData& m = batch_.mesh(flat(Blend3D::Blend));
     for (int y = 0; y < g.gridH(); ++y)
@@ -235,7 +264,8 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
         int sx, sy;
         if (!screen(x + 0.5f, y + 0.5f, p.elevation(x, y) * g.stepY(), sx, sy, k)) continue;
         Color col = Color::rgb(terrainRgb(c, b.cells[cell].terrain));
-        drawGlyphCentered(r, sx, sy, td.glyph, mix(col, readableOn(col), 0.28f), glyphPx(k));
+        Color gc = mix(col, readableOn(col), 0.28f);
+        drawGlyphCentered(r, sx, sy, td.glyph, c.view.dimmed(cell) ? fogDim(gc) : gc, glyphPx(k));
       }
     for (const StructureState& st : b.structures) {
       const StructureDef& def = b.defOf(st);
@@ -244,7 +274,8 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
       if (def.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet)) || structureModel(c, st, asset)) continue;
       int sx, sy;
       if (!screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY() + kWall, sx, sy, k)) continue;
-      drawGlyphCentered(r, sx, sy, def.glyph, readableOn(Color::rgb(structureRgb(c, st.type))),
+      Color gc = readableOn(Color::rgb(structureRgb(c, st.type)));
+      drawGlyphCentered(r, sx, sy, def.glyph, structureDimmed(c, (int)(&st - &b.structures[0])) ? fogDim(gc) : gc,
                         glyphPx(k) * std::min(def.width, def.height));
     }
   }

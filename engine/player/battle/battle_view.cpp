@@ -47,6 +47,7 @@ void BattleView::resync(const Battle& b) {
   }
   queue_.clear();
   cur_.active = false;
+  updateShown(b);  // fog: what the viewer cannot see is not drawn (after the queue is empty: the view is idle)
   banner.clear();
   bannerSub.clear();
   levelUp.active = false;
@@ -92,15 +93,16 @@ std::string BattleView::itemName(const Battle& b, int item) const {
   return item >= 0 && item < (int)b.db->items.size() ? b.db->items[(size_t)item].name : "item";
 }
 
-bool BattleView::showsResources(const Battle& b, int side) const { return side == viewSide(b, autoplay_); }
+bool BattleView::showsResources(const Battle& b, int side) const { return side == shownSide(b, autoplay_); }
 
 void BattleView::begin(const Battle& b) {
   const Event& e = cur_.ev;
   cur_.t = 0;
   cur_.dur = 0;
   cur_.fired = false;
+  cur_.hideAtEnd = false;
   float cx = tile_ / 2.0f;
-  if (beginStory(b) || beginEconomy(b)) return;
+  if (beginStory(b) || beginEconomy(b) || beginFog(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
@@ -115,7 +117,7 @@ void BattleView::begin(const Battle& b) {
         }
       }
       break;
-    case EventType::UnitMoved:
+    case EventType::UnitMoved:  // (with fog, beginFog took the ones it changes)
       cur_.path.assign(e.data.begin(), e.data.end());
       cur_.dur = std::max(0.02f, kMoveSecPerCell * (float)(cur_.path.size() - 1));
       break;
@@ -234,8 +236,7 @@ void BattleView::begin(const Battle& b) {
     // Repair and supply (docs/ECONOMY.md): no player UI yet; the unit's HP shows by itself next time it is drawn.
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
     case EventType::UnitResupplied:
-    // Fog of war (docs/ECONOMY.md): the player does not draw fog yet, so it shows everything as before.
-    case EventType::MoveBlocked: break;
+    case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
   }
 }
 
@@ -296,6 +297,11 @@ void BattleView::progress(const Battle& b) {
       focusY = units[e.a].py + tile_ / 2.0f;
       break;
     case EventType::UnitDied: units[e.a].alpha = 1 - p; break;
+    case EventType::MoveBlocked:  // the camera goes to the revealed enemy
+      hasFocus = true;
+      focusX = units[(size_t)e.b].px + tile_ / 2.0f;
+      focusY = units[(size_t)e.b].py + tile_ / 2.0f;
+      break;
     case EventType::UnitBuilt:
     case EventType::UnitAdded: units[e.a].scale = p; break;
     case EventType::LevelUp:
@@ -321,6 +327,7 @@ void BattleView::finish(const Battle& b) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
       cellPos(b, cur_.path.back(), v.px, v.py);
+      if (cur_.hideAtEnd) v.visible = false;  // fog: it walked on out of sight
       break;
     }
     case EventType::Attack: {
@@ -370,6 +377,10 @@ void BattleView::startNext(const Battle& b) {
   while (!cur_.active && !queue_.empty()) {
     cur_.ev = queue_.front();
     queue_.pop_front();
+    if (unseenByViewer(cur_.ev)) {  // fog: nothing to show, nothing to wait for
+      applyUnseen(b, cur_.ev);
+      continue;
+    }
     cur_.active = true;
     begin(b);
     if (cur_.dur <= 0) finish(b);
@@ -409,6 +420,7 @@ void BattleView::update(double dt, const Battle& b) {
     floats.swap(keep);
   }
   wasBusy_ = nowBusy;
+  updateShown(b);
   if (!nowBusy) {
     resFloats_ = 0;
     skipping_ = false;

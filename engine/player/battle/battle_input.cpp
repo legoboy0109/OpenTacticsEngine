@@ -60,6 +60,10 @@ bool BattleScene::turnInput(const InputEvent& e) {
 }
 
 void BattleScene::onInput(const InputEvent& e) {
+  if (covered_) {  // the cover takes every input (no camera, no cursor) until the next player confirms
+    if (cover_.confirmed(e)) coverConfirmed();
+    return;
+  }
   // While a line of dialogue is up, the box takes every input: no camera, no cursor, no orders.
   if (view_.dialogue.active) {
     if (dialogue_.isOpen()) dialogueResult(dialogue_.onInput(e));
@@ -237,6 +241,11 @@ void BattleScene::selectedButton(Button b) {
         undo_ = battle_;  // copy BEFORE the move: Cancel restores it
         undoCell_ = u.cell;
         if (!submit(Action::move(sel_, cursor_))) return;
+        if (battle_.units[sel_].done) {  // fog: an ambush ended its turn; nothing to undo to (that would show what was hidden)
+          dirty_ = true;
+          finishOrder();
+          return;
+        }
         hasUndo_ = true;
         openActionMenu();
       } else {

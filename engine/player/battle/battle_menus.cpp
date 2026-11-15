@@ -25,6 +25,7 @@ void BattleScene::anchorActionMenu() {
       bool clear = true;
       for (const Unit& o : battle_.units) {
         if (!o.alive || o.id == u.id || (pass == 1 && !battle_.isEnemy(u, o))) continue;
+        if ((size_t)o.id < view_.units.size() && !view_.units[(size_t)o.id].visible) continue;  // fog: an unseen unit must not steer the menu
         int ox, oy, ow, oh;
         cellScreenBox(o.cell, ox, oy, ow, oh);
         if (ox < menu_.x() + mw && ox + ow > menu_.x() && oy < menu_.y() + mh && oy + oh > menu_.y()) clear = false;
