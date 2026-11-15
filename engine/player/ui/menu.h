@@ -36,6 +36,7 @@ class Menu {
 
   Result onInput(const InputEvent& e);
   int chosenId() const { return chosen_; }
+  int selectedId() const { return open_ && sel_ >= 0 ? items_[(size_t)sel_].id : -1; }  // the highlighted entry (-1 = none)
   void draw(Renderer& r) const;
 
  private:

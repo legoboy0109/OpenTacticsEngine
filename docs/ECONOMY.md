@@ -18,7 +18,9 @@ and makers is placeholder until the owner approves it.
 
 Status: upgradable structures and research (build order step 1) and repair and supply (step 2) are built in the
 rules core (done 2026-11-14, the sections below describe what the core does); fog of war is still
-design only; no player UI, no editor screens and no demo content yet (steps 4 and 5).
+design only. The player has the menus, the research panel, the info-panel lines and the event banners for upgrades,
+research, repair and supply (step 4, see "Player"; fog drawing is not done); no editor screens and no demo content yet
+(step 5).
 
 A game that uses none of this behaves exactly as today and keeps its save
 hash. Each part is switched on by its own data, not by one big switch.
@@ -234,7 +236,11 @@ Map file: `"fog": true` (default false).
   progress under the side's resources.
 - Fog: unseen squares are dimmed; hidden units are not drawn; structures
   show the last seen owner. Works in all four kinds of view.
-- Action menu: **Supply** for supplier units.
+- Action menu: **Supply** for supplier units (the units it would fill are tinted while the entry is selected).
+- Built (2026-11-14): a structure that offers one thing opens it at once, several open a menu first; greyed entries show
+  their reason (upgrade / build: in place of the price; research: in the panel's detail lines); locked unit types are
+  greyed in the Build menu ("needs Armor"). Events show a banner (research), a heal number (repair), a small
+  "Resupplied" float and a flash on an upgraded structure. Test: `tests/economy_player_test.py`.
 
 ## Not in this version
 

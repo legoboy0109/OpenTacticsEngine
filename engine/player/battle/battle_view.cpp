@@ -50,6 +50,7 @@ void BattleView::resync(const Battle& b) {
   banner.clear();
   bannerSub.clear();
   levelUp.active = false;
+  structFlash.clear();
   dialogue.active = false;
   hasFocus = false;
   stickyFocus_ = false;
@@ -99,7 +100,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   float cx = tile_ / 2.0f;
-  if (beginStory(b)) return;
+  if (beginStory(b) || beginEconomy(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
@@ -253,7 +254,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressStory(b)) return;
+  if (progressStory(b) || progressEconomy(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -305,7 +306,7 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
-  if (finishStory(b)) {
+  if (finishStory(b) || finishEconomy(b)) {
     cur_.active = false;
     return;
   }

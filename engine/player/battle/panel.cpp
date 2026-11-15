@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "battle/battle_draw.h"
+#include "battle/economy_text.h"
 #include "battle/item_text.h"
 #include "ui/text.h"
 
@@ -145,13 +146,28 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
     row(r, x, y, w, db.stats[s].name, intStr(now), kLabel, vc);
     y += rh;
   }
+  // Fuel and ammunition (docs/ECONOMY.md): only for units whose type uses them. A low tank and an empty weapon are red.
+  const Color kWarn(255, 140, 120);
+  const std::string fuel = fuelValue(b, u);
+  if (!fuel.empty() && y <= bottom) {
+    row(r, x, y, w, EconomyWords::kFuel, fuel, kLabel, fuelLow(b, u) ? kWarn : kText);
+    y += rh;
+  }
   std::vector<int> weapons;
   b.weaponsOf(u, weapons);
   // Carried weapons are listed with the items below; here only the one in hand (the first) tells the range.
   if (db.rules.items.carriedWeapons && weapons.size() > 1) weapons.resize(1);
+  // A fixed weapon out of ammunition is not in weaponsOf: list the type's weapons so it still shows, marked.
+  else if (!db.rules.items.carriedWeapons) weapons = b.typeOf(u).weapons;
   for (int wi : weapons) {
     if (y > bottom) break;
-    row(r, x, y, w, db.weapons[wi].name, "r" + rangeText(db.weapons[wi]), kText, kLabel);
+    const int mx = b.maxAmmo(u.id, wi), left = mx < 0 ? 0 : b.ammo(u.id, wi);
+    if (mx >= 0 && left <= 0) {  // "EMPTY" in red instead of the range: it cannot be fired (short, so the name keeps its room)
+      row(r, x, y, w, db.weapons[wi].name, EconomyWords::kEmpty, kWarn, kWarn);
+    } else {
+      const std::string ammo = mx < 0 ? "" : intStr(left) + "/" + intStr(mx) + " ";  // "3/6 r1"
+      row(r, x, y, w, db.weapons[wi].name, ammo + "r" + rangeText(db.weapons[wi]), kText, kLabel);
+    }
     y += rh;
   }
   drawCarried(r, c, u, x, y, w);
@@ -192,6 +208,16 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
       row(r, x, y, w, db.resources[i].name, intStr(vs.resources[i]), kLabel, Color(255, 225, 120));
       y += L.row;
     }
+  }
+
+  // Research under way for the side being looked at ("Masonry   2": name and the turns left, or "paused").
+  const int rs = viewSide(b, autoplay);
+  if (b.researching(rs) >= 0) {
+    rule(r, x, y, w);
+    const bool paused = !b.canResearch(rs);
+    row(r, x, y, w, researchName(b, rs), paused ? std::string(EconomyWords::kPaused) : intStr(b.researchTurnsLeft(rs)), kText,
+        paused ? Color(255, 200, 110) : kText);
+    y += L.row;
   }
 
   if (b.grid.valid(cursor)) {

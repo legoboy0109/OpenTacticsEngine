@@ -88,7 +88,12 @@ void BattleScene::onInput(const InputEvent& e) {
     return;
   }
   if (mode_ == Mode::Objective && objectiveInput(e)) return;
-  if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu) {
+  if (mode_ == Mode::Research) {
+    researchInput(e);
+    return;
+  }
+  if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu || mode_ == Mode::StructureMenu ||
+      mode_ == Mode::UpgradeMenu) {
     menuInput(e);
     return;
   }
@@ -173,10 +178,7 @@ void BattleScene::idleButton(Button b) {
         selectUnit(uid);
         return;
       }
-      std::vector<int> opts;
-      battle_.buildOptions(cursor_, opts);
-      if (!opts.empty()) openBuildMenu(cursor_);
-      else openEndMenu();
+      if (!openStructureAt(cursor_)) openEndMenu();  // Build / Upgrade / Research of an own structure (battle_economy.cpp)
       break;
     }
     default: break;

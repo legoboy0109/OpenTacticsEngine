@@ -1,5 +1,7 @@
 // Popup menus of the battle scene: action, build and end-turn menus.
 #include "battle/battle_scene.h"
+#include "battle/economy_text.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -52,6 +54,7 @@ void BattleScene::openActionMenu() {
   if (battle_.storageOpen(u)) items.push_back({"Storage", "", true, kStorage});
   battle_.shopItems(sel_, shop);
   if (!shop.empty()) items.push_back({"Shop", "", true, kShop});
+  if (battle_.canSupply(sel_)) items.push_back({EconomyWords::kSupply, "", true, kSupply});
   items.push_back({"Wait", "", true, kWait});
   menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
   anchorActionMenu();
@@ -61,18 +64,27 @@ void BattleScene::openBuildMenu(Cell cell) {
   mode_ = Mode::BuildMenu;
   buildCell_ = cell;
   std::vector<int> types;
-  battle_.buildOptions(cell, types);
+  battle_.buildOptions(cell, types, true);  // unit types the side has not researched stay in, greyed
   const Database& db = *battle_.db;
   std::vector<MenuItem> items;
+  std::string log;
   for (int t : types) {
     MenuItem it;
     it.label = db.unitTypes[t].name;
     for (const Amount& a : db.unitTypes[t].cost)
       it.extra += (it.extra.empty() ? "" : " ") + intStr(a.amount) + " " + db.resources[a.resource].name;
     it.enabled = battle_.canAfford(battle_.activeSide, t);
+    if (!battle_.unitUnlocked(battle_.activeSide, t)) {  // the reason ("needs Armor") takes the price's place
+      std::string why;
+      battle_.canBuild(cell, t, &why);
+      it.extra = why;
+      it.enabled = false;
+    }
     it.id = t;
     items.push_back(it);
+    log += (log.empty() ? "" : "; ") + it.label + " (" + it.extra + ")" + (it.enabled ? "" : " [greyed]");
   }
+  OTE_INFO("build menu: %s", log.c_str());
   int sx, sy, bw, bh;
   cellScreenBox(cell, sx, sy, bw, bh);
   menu_.open(host_.renderer(), "Build", items, sx + bw + 2, sy, layout_.vw, layout_.vh);
@@ -111,12 +123,19 @@ void BattleScene::menuInput(const InputEvent& e) {
     else if (id == kTrade) openTrade();
     else if (id == kStorage) openStorage();
     else if (id == kShop) openShop();
+    else if (id == kSupply) { if (submit(Action::supply(sel_))) finishOrder(); }
     else if (id == kCapture) { if (submit(Action::capture(sel_))) finishOrder(); }
     else if (id == kWait) { if (submit(Action::wait(sel_))) finishOrder(); }
+  } else if (mode_ == Mode::StructureMenu || mode_ == Mode::UpgradeMenu) {
+    if (res == Menu::Cancelled) {
+      if (mode_ == Mode::UpgradeMenu) backToStructure();
+      else { menu_.close(); mode_ = Mode::Idle; }
+    } else economyMenuChosen(id);
   } else if (mode_ == Mode::BuildMenu) {
     menu_.close();
     mode_ = Mode::Idle;
     if (res == Menu::Chosen) submit(Action::build(buildCell_, id));
+    else if (structureMenuBack_) backToStructure();
   } else if (mode_ == Mode::EndMenu) {
     menu_.close();
     mode_ = Mode::Idle;
