@@ -117,12 +117,12 @@ def write_game(out, gid, map_ids, economy=False):
 
 
 def write_upgrade_game(out, funds=1000):
-    """'fogup': red owns a camp in the far corner and upgrades it on its first turn (when it has `funds`), out of
+    """'fogup': red owns a camp four squares from blue's scout and upgrades it on its first turn (when it has `funds`), out of
     blue's sight; blue's scout can reach a square from which the camp is in sight in one move."""
     g = write_game(out, 'fogup', ('upgrade', 'noupgrade'), economy=True)
     for name, red_funds in (('upgrade', funds), ('noupgrade', 0)):
         m = make_map(name, {}, [unit('scout', 'blue', 0, 5), unit('infantry', 'red', 9, 0)],
-                     [{'type': 'camp', 'x': 8, 'y': 5, 'side': 'red'}],
+                     [{'type': 'camp', 'x': 4, 'y': 5, 'side': 'red'}],
                      sides=[{'id': 'blue', 'name': 'Blue Army', 'color': '#3d85c6', 'controller': 'human',
                              'resources': {'funds': 0}},
                             {'id': 'red', 'name': 'Red Army', 'color': '#cc0000', 'controller': 'ai',
@@ -355,12 +355,12 @@ def upgrade(tmp, style, label):
     # battle where red could not afford the upgrade (so nothing depends on colours or the camera): out of sight the
     # two pictures are the same, in sight they differ at the structure, and the later sighting shows no animation.
     wait = 'wait:20,' + END_TURN + ',wait:80'
-    inp = wait + ',confirm,' + 'right,' * 6 + 'confirm,wait:20,confirm,wait:40'  # the scout walks to (6,5), 2 squares from the camp
+    inp = wait + ',confirm,' + 'right,' * 2 + 'confirm,wait:20,confirm,wait:40'  # the scout walks to (2,5), 2 squares from the camp
     up, up_all, log = shots(tmp, 'up_hidden', style, ['--map', 'upgrade'], wait, 520, game='fogup')
     no, no_all, _ = shots(tmp, 'noup_hidden', style, ['--map', 'noupgrade'], wait, 520, game='fogup')
     box = (0, 0, up.map_width(), up.h - 12)
     check('%s: red upgraded its camp (the maker sees the change)' % label, differ_count(up_all, no_all, box) > 60, str(differ_count(up_all, no_all, box)))
-    check('%s: an upgrade out of sight is not drawn (the picture is the one without it)' % label, differ_count(up, no, box) < 40, str(differ_count(up, no, box)))
+    check('%s: an upgrade out of sight is not drawn (the picture is the one without it)' % label, differ_count(up, no, box) < 8, str(differ_count(up, no, box)))
     check('%s: the upgrade out of sight is not announced' % label, not lines(log, 'upgrade:'), str(lines(log, 'upgrade:')))
     up2, _, log2 = shots(tmp, 'up_seen', style, ['--map', 'upgrade'], inp, 800, game='fogup')
     no2, _, _ = shots(tmp, 'noup_seen', style, ['--map', 'noupgrade'], inp, 800, game='fogup')
