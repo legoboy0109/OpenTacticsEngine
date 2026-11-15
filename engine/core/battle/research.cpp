@@ -22,6 +22,8 @@ bool Battle::hasTechnology(int side, int tech) const {
 }
 
 bool Battle::canResearch(int side) const {
+  // By default research needs no building ("rules.research.needsStructure" off): any side of a game with technologies.
+  if (!db->rules.researchNeedsStructure) return !db->research.empty();
   for (const StructureState& st : structures)
     if (st.owner == side && defOf(st).research) return true;
   return false;
@@ -121,7 +123,7 @@ void Battle::finishResearch(int side, int tech, std::vector<Event>& events) {
 
 void Battle::researchTurn(std::vector<Event>& events) {
   SideState& s = sides[(size_t)activeSide];
-  // Without a research structure the countdown waits; the progress is kept.
+  // With needsStructure and no research structure the countdown waits; the progress is kept.
   if (s.researching < 0 || !canResearch(activeSide)) return;
   if (--s.researchLeft > 0) return;
   finishResearch(activeSide, s.researching, events);

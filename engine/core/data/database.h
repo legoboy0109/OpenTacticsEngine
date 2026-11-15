@@ -175,6 +175,9 @@ struct SupplyRules {
   bool structures = false;    // own structures also refill fuel and ammunition
 };
 
+// What happens to a unit that walks into a hidden enemy (game.json "rules.fog.ambush"; docs/ECONOMY.md "Fog of war").
+enum class AmbushRule { EndsTurn, CanAct };
+
 // Rule switches. Each genre is a different combination of these.
 struct RulesConfig {
   TurnOrder turnOrder = TurnOrder::Sides;
@@ -193,6 +196,8 @@ struct RulesConfig {
   bool capture = false;      // units may capture capturable structures
   ItemRules items;           // docs/ITEMS.md
   SupplyRules supply;        // docs/ECONOMY.md "Repair and supply"
+  bool researchNeedsStructure = false;  // "rules.research.needsStructure": research needs an owned structure that allows it
+  AmbushRule ambush = AmbushRule::EndsTurn;  // "rules.fog.ambush"
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
   int maxLevel = 20;

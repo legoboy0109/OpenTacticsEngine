@@ -36,7 +36,19 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   }
 
   if (bestUnit >= 0) {
-    if (best.moveTo != kNoCell) battle.apply(Action::move(bestUnit, best.moveTo), events);
+    if (best.moveTo != kNoCell) {
+      battle.apply(Action::move(bestUnit, best.moveTo), events);
+      // Ambushed ("rules.fog.ambush": "canAct"): the unit stopped short and may still act. What it planned for the
+      // square it meant to reach may not apply here, so it picks again from where it stands (the unit has `moved`,
+      // so bestOrder only considers acting in place: attack if it can, else wait). With "endsTurn" it is done.
+      const Unit& ub = battle.units[bestUnit];
+      if (ub.alive && !ub.done && ub.cell != best.moveTo) {
+        ai::Context again(battle);
+        ai::assignCaptureGoals(again);
+        best = ai::bestOrder(again, ub);
+        best.moveTo = kNoCell;
+      }
+    }
     bool ok = false;
     if (best.kind == ActionType::Attack)
       ok = battle.apply(Action::attack(bestUnit, best.target, best.weapon), events);

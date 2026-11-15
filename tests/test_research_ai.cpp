@@ -67,6 +67,7 @@ TEST(ai_does_not_research_what_it_cannot_pay) {
 
 TEST(ai_without_a_research_structure_does_not_research) {
   ResearchWorld w;
+  w.db.rules.researchNeedsStructure = true;
   w.db.structures[Lab].research = false;  // (a unit could otherwise walk over and capture the lab)
   CHECK(w.begin());
   w.events.clear();
@@ -88,6 +89,7 @@ TEST(ai_upgrades_only_with_more_than_twice_the_cost_to_spare) {
   for (int funds : {800, 801}) {
     ResearchWorld w;
     w.db.rules.production = false;
+    w.db.rules.researchNeedsStructure = true;
     w.db.structures[Lab].research = false;  // no research in the way
     CHECK(w.begin());
     w.battle.sides[0].resources[0] = funds;                     // the factory's upgrade costs 400
@@ -172,4 +174,13 @@ TEST(ai_with_research_and_upgrades_is_deterministic_and_finishes) {
     if (run == 0) first = sig;
     else CHECK_STR(sig, first);
   }
+}
+
+TEST(ai_researches_without_any_structure_by_default) {
+  ResearchWorld w;
+  w.db.structures[Lab].research = false;  // no lab at all; the default rule does not need one
+  CHECK(w.begin());
+  w.events.clear();
+  aiTurn(w);
+  CHECK(!started(w).empty());
 }

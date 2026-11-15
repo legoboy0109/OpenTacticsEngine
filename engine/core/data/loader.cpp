@@ -99,6 +99,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
     return c.fail("rules.items", "\"inventorySize\" must be from 1 to " + std::to_string(kMaxInventory));
 
   if (!loadSupplyRules(c, *rules, db)) return false;
+  if (!loadOptionRules(c, *rules, db)) return false;
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
