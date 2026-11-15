@@ -24,12 +24,12 @@ export function TerrainPicker({ terrain, value, onChange }: { terrain: Terrain[]
   )
 }
 
-interface SideProps { sides: MapSide[]; value: string; onChange: (id: string) => void; neutral?: string; label?: string }
+interface SideProps { sides: MapSide[]; value: string; onChange: (id: string) => void; neutral?: string; label?: string; learn?: string }
 
 /** Sides as coloured chips; `neutral` adds a "nobody" choice with value ''. */
-export function SidePicker({ sides, value, onChange, neutral, label = 'Side' }: SideProps) {
+export function SidePicker({ sides, value, onChange, neutral, label = 'Side', learn }: SideProps) {
   return (
-    <div className="pick-row" role="radiogroup" aria-label={label}>
+    <div className="pick-row" role="radiogroup" aria-label={label} data-learn={learn}>
       {sides.map((s) => (
         <button key={s.id} type="button" role="radio" aria-checked={s.id === value} className="pick pick-inline" onClick={() => onChange(s.id)}>
           <span className="pick-chip small" style={{ background: rgb(s.color, [136, 136, 136]) }} aria-hidden="true" />
@@ -79,7 +79,7 @@ function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color:
 export function StructurePicker({ kinds, value, side, onChange }: { kinds: Structure[]; value: string; side: MapSide | undefined; onChange: (id: string) => void }) {
   const hex = isHex(gridOfGame(useDoc().game))
   return (
-    <div className="pick-grid structures" role="radiogroup" aria-label="Structure">
+    <div className="pick-grid structures" role="radiogroup" aria-label="Structure" data-learn="structure-picker">
       {kinds.map((k) => {
         const { w, h } = sizeOf(k)
         const sub = hex ? hexCoverText(k) : `${w} × ${h}`

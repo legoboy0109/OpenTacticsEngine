@@ -23,16 +23,45 @@ export function Highlight({ name }: { name: string | undefined }) {
     if (!name || !node) return
     let raf = 0
     let last = ''
+    // While a modal dialog (the picture chooser) is open it sits in the browser's top layer, above every z-index, so a plain ring would
+    // hide behind it. Then, and only then, the ring is a manual popover (also top layer); it is shown again whenever the set of open
+    // dialogs changes, which puts it back on top of a newly opened one. Without popover support it stays an ordinary fixed box.
+    const canPopover = typeof node.showPopover === 'function'
+    let dialogs = 0
+    const syncLayer = () => {
+      if (!canPopover) return
+      const n = document.querySelectorAll('dialog[open]').length
+      if (n === dialogs) return
+      dialogs = n
+      try {
+        if (node.matches(':popover-open')) node.hidePopover()
+        if (n > 0) { node.setAttribute('popover', 'manual'); node.showPopover() } else node.removeAttribute('popover')
+      } catch { /* not supported after all: stay a plain box */ }
+    }
     // A control found below or above the window is scrolled into view once, so the ring is never pointing at nothing.
+    // The layout can still be settling (the sheet's height is measured after the first frame, images load), so a control that is still
+    // out of view after a scroll gets a few more tries, spaced out so a smooth scroll in progress is never interrupted.
     let scrolled: HTMLElement | null = null
+    let tries = 0
+    let lastTry = 0
     const frame = () => {
+      syncLayer()
       const el = findTarget(name)
       const r = el?.getBoundingClientRect()
       // Off screen counts as absent, so a ring never hangs at the edge pointing at nothing.
-      const visible = !!r && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth
-      if (el && r && !visible && scrolled !== el && r.width > 0) {
+      // On a phone the lesson is a sheet over the lower part of the window: a control hidden under it counts as off screen too (and is
+      // scrolled up above it), unless it is inside a dialog, which is drawn above the sheet.
+      const sheet = el && !el.closest('dialog') ? document.querySelector<HTMLElement>('.learn-panel:not([data-dock])') : null
+      const bottom = sheet ? Math.min(window.innerHeight, sheet.getBoundingClientRect().top) : window.innerHeight
+      const visible = !!r && r.bottom > 0 && r.right > 0 && r.top < bottom && r.left < window.innerWidth
+      const now = performance.now()
+      // Only hidden by the sheet (still inside the window): jump, so the control is where the ring says at once and a click never lands on a moving page.
+      const underSheet = !!r && r.top < window.innerHeight && r.bottom > 0
+      if (el && r && !visible && r.width > 0 && (scrolled !== el || (tries < 4 && now - lastTry > 900))) {
+        tries = scrolled === el ? tries + 1 : 0
         scrolled = el
-        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+        lastTry = now
+        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches || underSheet ? 'auto' : 'smooth' })
       }
       const key = visible && r ? `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}` : ''
       if (key !== last) {
@@ -48,7 +77,7 @@ export function Highlight({ name }: { name: string | undefined }) {
       raf = requestAnimationFrame(frame)
     }
     frame()
-    return () => { cancelAnimationFrame(raf); node.style.display = 'none' }
+    return () => { cancelAnimationFrame(raf); node.style.display = 'none'; try { if (node.matches(':popover-open')) node.hidePopover() } catch { /* not a popover */ } node.removeAttribute('popover') }
   }, [name])
   return name ? <div ref={ring} className="learn-ring" aria-hidden="true" data-testid="learn-ring" data-target={name} style={{ display: 'none' }} /> : null
 }

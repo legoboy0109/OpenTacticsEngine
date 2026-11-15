@@ -36,7 +36,7 @@ export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say, 
       <div className="panel-bar">
         <div className="tabs" role="tablist" aria-label={T.panelLabel}>
           {TABS.map((t) => (
-            <button key={t} type="button" role="tab" id={`map-tab-${t}`} aria-selected={tab === t} aria-controls="map-tabpanel" className="tab" onClick={() => choose(t)}>{T.tabs[t]}</button>
+            <button key={t} type="button" role="tab" id={`map-tab-${t}`} aria-selected={tab === t} aria-controls="map-tabpanel" className="tab" data-learn={`map-tab-${t}`} onClick={() => choose(t)}>{T.tabs[t]}</button>
           ))}
         </div>
         <button type="button" className="btn ghost sm sheet-toggle" aria-expanded={open} aria-controls="map-tabpanel" onClick={() => setOpen(!open)}>

@@ -1,6 +1,7 @@
 // "Choose picture…": pick an image, then click its pieces. The choice becomes a look (model/graphicsLooks.ts) only when
 // "Use this picture" is pressed; until then nothing in the document changes.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { emitSignal } from '../../learn/signals'
 import { useArtState } from '../../art/useArt'
 import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
@@ -55,6 +56,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
     return findSheet(doc, p.sheet) ? p : { ...emptyPick(sheets[0]?.id ?? ''), kind: p.kind }
   })
   const [warn, setWarn] = useState(false)
+  useEffect(() => { emitSignal('pictureChooser') }, []) // tutorial: "open the picture chooser" leaves no trace in the game
   const sheet = findSheet(doc, pick.sheet)
   const img = sheet ? store.art.image(sheet.file) : null
   const info = sheet && img?.status === 'ready' ? gridInfo(img.width, img.height, sheet.cellWidth, sheet.cellHeight) : null
@@ -104,7 +106,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
       footer={(
         <>
           <button type="button" className="btn" onClick={onClose}>{P.cancel}</button>
-          <button type="button" className="btn primary" disabled={!chosen} onClick={() => chosen && onChoose(chosen)}>{P.use}</button>
+          <button type="button" className="btn primary" data-learn="picker-use" disabled={!chosen} onClick={() => chosen && onChoose(chosen)}>{P.use}</button>
         </>
       )}>
       <div className="picker-layout">
@@ -113,7 +115,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
             <Select value={pick.sheet} options={sheets.map((s) => ({ value: s.id, label: s.name || artBase(s.file) }))}
               onChange={(v) => { setWarn(false); set({ sheet: v, cells: [] }) }} />
           </Field>
-          <fieldset className="fieldset">
+          <fieldset className="fieldset" data-learn="picker-kind">
             <legend>{P.kind}</legend>
             <div className="kind-row" role="radiogroup" aria-label={P.kind}>
               {KINDS[kind].map((k) => (
@@ -128,7 +130,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           {warn && <p className="error-text" role="alert">{hex ? P.blockOutsideHex : P.blockOutside}</p>}
           {sheet && img?.status === 'ready' && info && (
             <PieceGrid key={sheet.id + sheet.file} image={img.img} width={img.width} height={img.height} cellWidth={sheet.cellWidth} cellHeight={sheet.cellHeight}
-              marks={marks} blocks={blocks} hoverBlock={pick.kind === 'join' ? blockSide : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
+              marks={marks} blocks={blocks} hoverBlock={pick.kind === 'join' ? blockSide : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} learn="picker-grid" />
           )}
           {sheet && img?.status === 'loading' && <p className="help" role="status">Loading the image…</p>}
           {sheet && img?.status === 'error' && <p className="error-text" role="alert">The image file could not be opened.</p>}

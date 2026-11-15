@@ -27,12 +27,14 @@ interface Props {
   onAdd?: (key: string) => void
   addLabel?: string
   emptyText?: string
+  /** `data-learn` name for the tutorial's pointing ring. */
+  learn?: string
 }
 
 /** A table of "name -> number" rows (stats, costs, weapon numbers...). */
-export function KeyNumberTable({ label, help, rows, columns, onRemove, addOptions, onAdd, addLabel = 'Add a number', emptyText }: Props) {
+export function KeyNumberTable({ label, help, rows, columns, onRemove, addOptions, onAdd, addLabel = 'Add a number', emptyText, learn }: Props) {
   return (
-    <FieldGroup label={label} help={help}>
+    <FieldGroup label={label} help={help} learn={learn}>
       {rows.length === 0 && emptyText && <p className="help">{emptyText}</p>}
       {rows.length > 0 && (
         <table className="kv">

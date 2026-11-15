@@ -32,7 +32,7 @@ export function StructureTool({ doc, map, mapId, state, cell, onChange, say }: P
     <div className="stack tight">
       <h3>{T.structuresTitle}</h3>
       <p className="help">{hex ? T.structuresHelpHex : T.structuresHelp}</p>
-      <SidePicker sides={sides} value={state.structureSide} onChange={(id) => onChange({ structureSide: id })} neutral={T.neutral} label={T.ownerLabel} />
+      <SidePicker sides={sides} value={state.structureSide} onChange={(id) => onChange({ structureSide: id })} neutral={T.neutral} label={T.ownerLabel} learn="owner-picker" />
       {kinds.length === 0 && <p className="help">{T.noStructureKinds}</p>}
       <StructurePicker kinds={kinds} value={state.structureType} side={sideOf(map, state.structureSide)} onChange={(id) => onChange({ structureType: id })} />
       <hr className="rule" />

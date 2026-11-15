@@ -36,6 +36,9 @@ export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plai
 export function loadHexFixture(layout: 'pointy' | 'flat'): ProjectDoc { return loadFrom(fixtures, `hex-${layout}`) }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
+/** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */
+export function loadTemplateById(name: string): ProjectDoc { return loadFrom(templates, name) }
+
 function loadFrom(root: string, name: string): ProjectDoc {
   const read = readIn(root)
   const game = read(name, 'game.json')

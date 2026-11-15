@@ -5,6 +5,9 @@
    --learn-h is the panel's measured height (set by LessonPanel). */
 html[data-learn-layout='dock'] #root { margin-right: var(--learn-w); }
 html[data-learn-layout='sheet'] #root { padding-bottom: var(--learn-h, 0px); }
+/* #root is exactly one window high (base.css), so on a page taller than the window its padding is not at the end of the content: the
+   room under the sheet has to be on .app, or the last controls of a long screen (the map's options) can never be scrolled above it. */
+html[data-learn-layout='sheet'] .app { padding-bottom: var(--learn-h, 0px); }
 /* Something scrolled or tabbed into view stops above the sheet, never under it. */
 html[data-learn-layout='sheet'] { scroll-padding-bottom: calc(var(--learn-h, 0px) + 8px); }
 /* Parts that stay in place while the page scrolls (sidebar, lists, the map's options) end above the sheet, so nothing of them
@@ -68,6 +71,8 @@ html[data-learn-layout='sheet'] { scroll-padding-bottom: calc(var(--learn-h, 0px
   position: fixed; z-index: 35; pointer-events: none; box-sizing: border-box; border: 3px solid var(--accent); border-radius: 10px;
   box-shadow: 0 0 0 3px var(--surface), 0 0 14px 2px var(--accent);
 }
+/* as a popover (top layer, see Highlight.tsx) the browser's popover defaults must not move or fill it */
+.learn-ring[popover] { inset: auto; margin: 0; padding: 0; overflow: visible; background: transparent; color: inherit; }
 @media (prefers-reduced-motion: no-preference) {
   .learn-ring { animation: learn-pulse 1.6s ease-in-out infinite; }
 }

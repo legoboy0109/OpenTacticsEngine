@@ -25,7 +25,7 @@ export function UpgradesCard({ id }: { id: string }) {
   const kindName = (kid: string) => doc.structures?.find((x) => x.id === kid)?.name ?? T.missing(kid)
 
   return (
-    <Card title={T.upgrades} help={T.upgradesHelp}>
+    <Card title={T.upgrades} help={T.upgradesHelp} learn="structure-upgrades">
       <div className="stack">
         {upgrades.length === 0 && <p className="help">{T.upgradesNone}</p>}
         {upgrades.map((u, i) => {
