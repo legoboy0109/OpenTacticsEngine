@@ -19,7 +19,7 @@ export function FogSettings({ doc, map, mapId, vs }: { doc: ProjectDoc; map: Map
   return (
     <div className="stack tight" data-testid="fog-settings">
       {/* Switching off stays possible when the map already has too many sides; only switching on is refused. */}
-      <Check label={T.fogLabel} checked={on} disabled={!on && block !== null} onChange={(v) => edit((d) => setFog(d, mapId, v))}
+      <Check learn="fog-setting" label={T.fogLabel} checked={on} disabled={!on && block !== null} onChange={(v) => edit((d) => setFog(d, mapId, v))}
         help={!on && block ? <>{T.fogHelp} <strong>{block}</strong></> : T.fogHelp} />
       {on && sides.length > 0 && (
         <>

@@ -6,6 +6,8 @@ interface Props {
   label: string
   help?: ReactNode
   disabled?: boolean
+  /** `data-learn` name for the tutorial's pointing ring (docs/TUTORIAL.md). */
+  learn?: string
 }
 
 export function Toggle({ checked, onChange, label, help, disabled }: Props) {
@@ -22,10 +24,10 @@ export function Toggle({ checked, onChange, label, help, disabled }: Props) {
 }
 
 /** A plain checkbox with a label and optional help line. */
-export function Check({ checked, onChange, label, help, disabled }: Props) {
+export function Check({ checked, onChange, label, help, disabled, learn }: Props) {
   const helpId = useId()
   return (
-    <label className="check">
+    <label className="check" data-learn={learn}>
       <input type="checkbox" checked={checked} disabled={disabled} aria-describedby={help ? helpId : undefined}
         onChange={(e) => onChange(e.target.checked)} />
       <span>{label}{help && <span className="help" id={helpId} style={{ display: 'block' }}>{help}</span>}</span>

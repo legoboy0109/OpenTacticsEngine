@@ -7,12 +7,14 @@ interface CardProps {
   children?: ReactNode
   className?: string
   id?: string
+  /** `data-learn` name for the tutorial's pointing ring. */
+  learn?: string
 }
 
 /** A titled group of related controls. */
-export function Card({ title, help, actions, children, className, id }: CardProps) {
+export function Card({ title, help, actions, children, className, id, learn }: CardProps) {
   return (
-    <section className={`card ${className ?? ''}`} id={id} aria-labelledby={title && id ? `${id}-title` : undefined}>
+    <section className={`card ${className ?? ''}`} id={id} data-learn={learn} aria-labelledby={title && id ? `${id}-title` : undefined}>
       {(title || actions) && (
         <header className="card-head">
           {title && <h2 id={id ? `${id}-title` : undefined}>{title}</h2>}

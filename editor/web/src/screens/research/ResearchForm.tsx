@@ -65,7 +65,7 @@ export function ResearchForm({ id }: { id: string }) {
       </Card>
 
       <Card>
-        <MultiSelect label={T.unlocks} help={T.unlocksHelp} emptyText={T.unlocksNone} value={tech.unlocks?.units ?? []}
+        <MultiSelect learn="tech-unlocks" label={T.unlocks} help={T.unlocksHelp} emptyText={T.unlocksNone} value={tech.unlocks?.units ?? []}
           options={(doc.units ?? []).map((u) => ({ value: u.id, label: u.name }))}
           onChange={(v) => edit((d) => setTechUnlocks(d, id, v))} />
         <p className="help">{T.unlocksSentence}</p>

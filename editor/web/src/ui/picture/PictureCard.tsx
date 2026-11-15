@@ -84,7 +84,7 @@ export function PictureCard({ kind, id, name }: Props) {
                   </fieldset>
                 ) : (!entry && <p className="help">{P.none}</p>)}
                 <div className="row">
-                  {(!style || entry) && <button type="button" className="btn primary" onClick={() => setOpen({})}>{entry ? P.change : P.choose}</button>}
+                  {(!style || entry) && <button type="button" className="btn primary" data-learn="picture-choose" onClick={() => setOpen({})}>{entry ? P.change : P.choose}</button>}
                   {!style && entry && <button type="button" className="btn" onClick={() => edit((d) => setLook(d, slot, undefined))}>{P.remove}</button>}
                 </div>
               </div>

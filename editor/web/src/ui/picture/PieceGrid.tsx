@@ -23,6 +23,8 @@ interface Props {
   hoverBlock?: number
   onPick?: (col: number, row: number) => void
   label: string
+  /** `data-learn` name for the tutorial's pointing ring. */
+  learn?: string
 }
 
 export const ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 6, 8, 12, 16]
@@ -39,7 +41,7 @@ export function startZoom(imageW: number, imageH: number, availableW: number, to
   return ZOOMS.filter((z) => z <= want).pop() ?? 1
 }
 
-export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks = [], blocks = [], hoverBlock, onPick, label }: Props) {
+export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks = [], blocks = [], hoverBlock, onPick, label, learn }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
   const [zoom, setZoom] = useState<number | null>(null)
@@ -142,7 +144,7 @@ export function PieceGrid({ image, width, height, cellWidth, cellHeight, marks =
         <button type="button" className="btn ghost sm icon" aria-label={P.zoomIn} disabled={z >= maxZoomFor(width, height)} onClick={() => step(1)}><Icon name="plus" /></button>
         <button type="button" className="btn ghost sm" onClick={() => { userZoom.current = false; setZoom(startZoom(width, height, (wrap.current?.clientWidth ?? 320) - 2, interactive ? Math.min(cellWidth, cellHeight) : undefined)) }}>{P.zoomFit}</button>
       </div>
-      <div className="pg-scroll checker" ref={wrap}>
+      <div className="pg-scroll checker" ref={wrap} data-learn={learn}>
         <canvas ref={cv} className="pg-canvas" data-testid="piece-grid" data-zoom={z} data-cell={`${cellWidth},${cellHeight}`}
           style={{ width: Math.round(width * z), height: Math.round(height * z), cursor: interactive ? 'pointer' : 'default' }}
           tabIndex={interactive ? 0 : -1} role={interactive ? 'application' : 'img'} aria-label={label}

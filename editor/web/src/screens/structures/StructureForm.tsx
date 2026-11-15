@@ -86,7 +86,7 @@ export function StructureForm({ id }: { id: string }) {
         <Card title={T.size} help={T.sizeHelpHex} id={`${key}:size`}>
           <div className="size-row">
             <div className="stack tight">
-              <div className="kind-row" role="radiogroup" aria-label={T.covers}>
+              <div className="kind-row" role="radiogroup" aria-label={T.covers} data-learn="structure-covers">
                 {([[0, T.coversOne], [1, T.coversSeven]] as const).map(([n, label]) => (
                   <button key={n} type="button" role="radio" aria-checked={rings === n} className="pick pick-inline" onClick={() => edit((d) => setRings(d, id, n))}>
                     <span className="pick-name">{label}</span>
@@ -133,7 +133,7 @@ export function StructureForm({ id }: { id: string }) {
           <div className="stack">
             {showCapture && (
               <>
-                <Check label={T.capture} help={T.captureHelp} checked={capturable} onChange={(on) => edit((d) => setCapturePoints(d, id, on ? 20 : undefined))} />
+                <Check learn="structure-capture" label={T.capture} help={T.captureHelp} checked={capturable} onChange={(on) => edit((d) => setCapturePoints(d, id, on ? 20 : undefined))} />
                 {capturable && (
                   <Field label={T.capturePoints} help={T.capturePointsHelp}>
                     <NumberInput value={s.capturePoints} min={1} onChange={(v) => { if (v !== undefined) edit((d) => setCapturePoints(d, id, v), `${key}:capture`) }} />
@@ -158,7 +158,7 @@ export function StructureForm({ id }: { id: string }) {
             ? <p className="help">{T.incomeNone}</p>
             : (
               <div className="stack">
-                <KeyNumberTable label={T.income} help={T.incomeHelp} rows={resources.map((r) => ({ key: r.id, label: r.name }))}
+                <KeyNumberTable learn="structure-income" label={T.income} help={T.incomeHelp} rows={resources.map((r) => ({ key: r.id, label: r.name }))}
                   columns={[{ title: T.incomeCol, values: s.income, min: 0, placeholder: '0', onChange: (k, v) => edit((d) => setStructureIncome(d, id, k, v), `${key}:income:${k}`) }]} />
                 {showIncome && !economyOn && <p className="help">{T.incomeOff}</p>}
               </div>
@@ -168,7 +168,7 @@ export function StructureForm({ id }: { id: string }) {
 
       {showProduces && (
         <Card>
-          <MultiSelect label={T.produces} help={T.producesHelp} value={s.produces ?? []} options={(doc.units ?? []).map((u) => ({ value: u.id, label: u.name }))}
+          <MultiSelect learn="structure-produces" label={T.produces} help={T.producesHelp} value={s.produces ?? []} options={(doc.units ?? []).map((u) => ({ value: u.id, label: u.name }))}
             onChange={(v) => edit((d) => setProduces(d, id, v))} />
           {hasProduces && !productionOn && <p className="help">{T.producesOff}</p>}
         </Card>

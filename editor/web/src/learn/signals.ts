@@ -7,6 +7,7 @@ export type SignalName =
   | 'played' // the Play panel reported that the embedded player is ready
   | 'saved' // the game was written to disk (autosave or Play)
   | 'problemsChecked' // the Problems list was opened
+  | 'pictureChooser' // the "Choose a picture" dialog was opened (Terrain, Units or Structures screen)
 
 type Listener = (name: SignalName) => void
 

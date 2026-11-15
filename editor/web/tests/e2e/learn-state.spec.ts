@@ -39,7 +39,7 @@ test.describe('first-run offer', () => {
     await expect(row).toContainText('Your first game')
     await expect(row).toContainText('About 10 minutes')
     await expect(row).toContainText('Not started')
-    await expect(learnList(page).getByRole('listitem')).toHaveCount(1) // only lessons that exist: no "coming soon" entries
+    await expect(learnList(page)).not.toContainText(/coming soon/i) // only lessons that exist
     await row.getByRole('button', { name: 'Start', exact: true }).click()
     await expect(stepTitle(page)).toHaveText('Name your game')
     await expect(page).toHaveURL(new RegExp(`/p/${PRACTICE}/game$`))
