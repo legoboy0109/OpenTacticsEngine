@@ -1,5 +1,6 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
+import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
@@ -135,6 +136,8 @@ export interface Weapon extends Named {
   props?: NumMap; versus?: NumMap; versusDefault?: number; damage?: string
   /** Attacks per supply (fixed weapons only); missing = unlimited. */
   ammo?: number
+  /** Sound overrides (event -> sound id, "" = silence): hit, miss, critical (docs/SOUND.md). */
+  sounds?: Record<string, string>
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
@@ -150,6 +153,8 @@ export interface Unit extends Named {
   supplies?: boolean
   /** How far its team sees on a map with fog of war, 0 to 20 (missing = 2). */
   vision?: number
+  /** Sound overrides: step, hit, miss, critical, defeated, select, heal (docs/SOUND.md). */
+  sounds?: Record<string, string>
 }
 
 export type ItemKind = 'usable' | 'weapon' | 'accessory'
@@ -166,6 +171,8 @@ export interface Item extends Named {
   raise?: NumMap
   weapon?: string
   bonus?: NumMap
+  /** Sound overrides: use (docs/SOUND.md). */
+  sounds?: Record<string, string>
 }
 /** An item in a list: the id, or an object with the uses left and (on units) whether it drops when the unit is defeated. */
 export type ItemEntry = string | ({ item: string; uses?: number; drop?: boolean } & Extra)
@@ -197,6 +204,10 @@ export interface MapFile extends Extra {
   units?: MapUnit[]
   /** Fog of war (docs/ECONOMY.md): missing = off. */
   fog?: boolean
+  /** Music (docs/SOUND.md): a track id of data/audio.json, "" = none on this map; missing = the game's. */
+  music?: string
+  playerTurnMusic?: string
+  enemyTurnMusic?: string
   /** Story events and objectives (docs/EVENTS.md); model/storyTypes.ts. */
   events?: StoryEvent[]
   objectives?: Objectives
@@ -258,6 +269,8 @@ export interface ProjectDoc {
   graphics: Graphics | null
   /** null = the game has no campaign (single battles). Removing it is written as `campaign: false` (see autosave). */
   campaign: Campaign | null
+  /** null = the game has no sound (a silent game). Removing all of it is written as `audio: false` (see autosave). */
+  audio: Audio | null
 }
 
 export interface Problem { file: string; message: string }
@@ -269,5 +282,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'maps' | 'campaign'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'maps', 'campaign']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'sound' | 'maps' | 'campaign'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'sound', 'maps', 'campaign']

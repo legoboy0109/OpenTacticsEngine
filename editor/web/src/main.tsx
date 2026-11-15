@@ -8,6 +8,7 @@ import './styles/screens.css'
 import './styles/map.css'
 import './styles/art.css'
 import './styles/story.css'
+import './styles/sound.css'
 import './styles/campaign.css'
 import './styles/play.css'
 

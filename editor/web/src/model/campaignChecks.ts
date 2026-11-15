@@ -6,6 +6,8 @@ import { unreachedChapters } from './campaignFlow'
 import { allSideIds, definedStoryIds } from './campaignRoster'
 import { chapterName, type Campaign, type Chapter } from './campaignTypes'
 import { SCENE_TITLE, walkCampaign } from './campaignWalk'
+import { sceneCommands } from './campaignScene'
+import { audioRefProblem } from './audioChecks'
 import { isStoryId } from './storyIds'
 import { commandKind, type Command } from './storyTypes'
 import { forEachCommand, type Ref } from './storyWalk'
@@ -40,6 +42,11 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
       if (r.id === '') return { topic: 'unit', level: 'error', text: 'pick a unit.' }
       if (!isStoryId(r.id)) return { topic: 'unit', level: 'error', text: 'a unit’s story name may use only letters, digits, _ and - (up to 64).' }
       return definedStoryIds(doc).has(r.id) ? null : { topic: 'unit', level: 'hint', text: `no map has a unit with the story name “${r.id}” (give a unit that story name in the map editor).` }
+    case 'music':
+    case 'sound': {
+      const text = audioRefProblem(doc, r.kind, r.id)
+      return text ? { topic: 'general', level: 'error', text } : null
+    }
     default: return null
   }
 }
@@ -63,7 +70,12 @@ function commandChecks(c: Command, where: string, say: (level: CampaignCheck['le
     case 'if':
       if (!c.if?.length) say('hint', 'general', where, 'this “If” has no conditions, so it always happens.')
       break
+    case 'playMusic':
+    case 'stopMusic':
+      if (c.fade !== undefined && (typeof c.fade !== 'number' || c.fade < 0 || c.fade > 60)) say('error', 'general', where, 'the fade is a number of seconds from 0 to 60.')
+      break
     case 'setSwitch':
+    case 'playSound':
       break
     default:
       // Only reachable from a hand-edited file: the Campaign screen offers nothing else.
@@ -88,7 +100,7 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
     if (seen.has(ch.id)) say('error', 'chapter', where, 'another chapter has the same internal name.', ch.id)
     seen.add(ch.id)
     for (const key of ['before', 'after'] as const) {
-      forEachCommand(ch[key], `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => commandChecks(cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'after'))
+      forEachCommand(sceneCommands(ch[key]), `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => commandChecks(cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'after'))
     }
   })
 

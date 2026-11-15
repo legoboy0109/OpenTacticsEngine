@@ -1,6 +1,7 @@
 // Friendly in-editor checks. They are separate from the helper's "Problems":
 // the helper reports what stops the game loading, these point at things that
 // load fine but are probably not what the author meant.
+import { audioChecks } from './audioChecks'
 import { fogChecks } from './fogChecks'
 import { itemChecks } from './itemChecks'
 import { storyChecks } from './storyChecks'
@@ -53,6 +54,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   const mapId = Object.keys(doc.maps).find((k) => doc.maps[k] === map)
   itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))
+  // What the player's sound loader would refuse about this map's music keys.
+  audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))
   // What the loader would refuse about this map's story events, objectives and unit story names.
   if (mapId !== undefined) storyChecks(doc, mapId).forEach((x, i) => out.push({ key: `story:${i}`, text: x.text }))
   return out

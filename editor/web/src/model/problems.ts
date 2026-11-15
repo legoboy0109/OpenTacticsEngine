@@ -12,6 +12,7 @@ export function problemTarget(file: string, doc: ProjectDoc | null): ProblemTarg
   if (file === 'data/campaign.json') return { section: 'campaign' }
   if (file === 'data/structures.json') return { section: 'structures' }
   if (file === 'data/graphics.json') return { section: 'art' }
+  if (file === 'data/audio.json') return { section: 'sound' }
   if (file.startsWith('maps/')) {
     const ref = doc?.game?.maps.find((m) => m.file === file)
     return { section: 'maps', itemId: ref?.id }

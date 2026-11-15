@@ -13,6 +13,7 @@ const PATHS = {
   back: 'M15 5l-7 7 7 7',
   warn: 'M12 3l10 18H2zM12 10v5M12 18v.01',
   play: 'M7 4l13 8-13 8z',
+  stop: 'M6 6h12v12H6z',
   check: 'M5 12l5 5 9-10',
   close: 'M6 6l12 12M18 6L6 18',
   info: 'M12 11v6M12 7.5v.01M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0',

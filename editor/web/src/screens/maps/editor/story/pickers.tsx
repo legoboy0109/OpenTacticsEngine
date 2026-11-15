@@ -66,6 +66,16 @@ export function TechPick({ label, value, onChange, help }: { label: string; valu
   return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noTechnologies} options={byName(doc.research)} />
 }
 
+export function MusicPick({ label, value, onChange, help }: { label: string; value: string; onChange: (v: string) => void; help?: string }) {
+  const { doc } = useStory()
+  return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noMusic} options={Object.keys(doc.audio?.music ?? {}).map((id) => ({ value: id, label: id }))} />
+}
+
+export function SoundPickStory({ label, value, onChange, help }: { label: string; value: string; onChange: (v: string) => void; help?: string }) {
+  const { doc } = useStory()
+  return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noSounds} options={Object.keys(doc.audio?.sounds ?? {}).map((id) => ({ value: id, label: id }))} />
+}
+
 export function SwitchPick({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   const { doc } = useStory()
   return <PickSelect label={label} value={value} onChange={onChange} empty={S.noSwitches} options={byName(doc.game?.switches)} />

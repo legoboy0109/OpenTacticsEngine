@@ -2,10 +2,12 @@
 // history, the revision on disk and the save status. No React in here; the
 // context module wraps it for components.
 import type { Api } from '../api/client'
+import { reconcileAudio } from '../model/audioRefs'
 import { reconcileCampaign } from '../model/campaignRefs'
 import { reconcileEconomy } from '../model/researchRefs'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
+import { AudioLibrary } from './audioFiles'
 import { ModelLibrary } from './models'
 import { Saver, type SaveStatus, type SaverOptions } from './autosave'
 import { canRedo, canUndo, initHistory, pushEdit, redo, undo, type History } from './history'
@@ -26,7 +28,7 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, research: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null, campaign: null }
+const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, research: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null, campaign: null, audio: null }
 
 export class DocumentStore {
   private state: StoreState
@@ -37,6 +39,8 @@ export class DocumentStore {
   readonly art: ArtLibrary
   /** The 3D model files of this game (not part of the undoable document). */
   readonly models: ModelLibrary
+  /** The sound files of this game (not part of the undoable document). */
+  readonly audioFiles: AudioLibrary
 
   constructor(private api: Api, readonly id: string, private opts: SaverOptions & { now?: () => number } = {}) {
     this.state = {
@@ -45,6 +49,7 @@ export class DocumentStore {
     }
     this.art = new ArtLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
     this.models = new ModelLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
+    this.audioFiles = new AudioLibrary(api, id, (op) => (this.saver ? this.saver.withDiskChange(op) : op()))
   }
 
   // --- subscription (useSyncExternalStore) ---
@@ -73,6 +78,7 @@ export class DocumentStore {
     this.syncHistory()
     void this.art.refresh()
     void this.models.refresh()
+    void this.audioFiles.refresh()
   }
 
   // --- editing ---
@@ -85,7 +91,9 @@ export class DocumentStore {
     // of the scenes in the same undo step (model/campaignRefs.ts).
     // Research, upgrades and repairs lists follow a deleted technology, unit type, structure kind, resource or stat the
     // same way (model/researchRefs.ts); the campaign then follows whatever that took out of the maps.
-    const edited = reconcileEconomy(prev, fn(prev))
+    // A track or sound that this edit deleted is taken out of the standard set, the overrides, the maps' music, the scenes
+    // and the story commands first (model/audioRefs.ts), also in the same undo step.
+    const edited = reconcileEconomy(prev, reconcileAudio(prev, fn(prev)))
     const next = reconcileCampaign(prev, edited)
     const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
     if (h === this.history) return
@@ -129,6 +137,7 @@ export class DocumentStore {
     this.syncHistory()
     void this.art.refresh()
     void this.models.refresh()
+    void this.audioFiles.refresh()
   }
 
   /** Conflict: keep local changes and overwrite what is on disk. */

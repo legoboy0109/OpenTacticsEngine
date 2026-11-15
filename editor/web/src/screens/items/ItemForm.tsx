@@ -4,6 +4,7 @@ import type { ItemKind } from '../../model/types'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
+import { SoundsGroup } from '../sound/SoundsGroup'
 import { Field, FieldGroup } from '../../ui/Field'
 import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { NumberInput } from '../../ui/NumberInput'
@@ -74,6 +75,8 @@ export function ItemForm({ id }: { id: string }) {
               columns={[{ title: T.priceCol, values: item.price, min: 0, placeholder: '—', onChange: (k, v) => edit((d) => setPrice(d, id, k, v), `${key}:price:${k}`) }]} />
           )}
       </Card>
+
+      <SoundsGroup owner="items" id={id} />
 
       <Advanced label={T.advanced}>
         <Field label={T.id} help={T.idHelp}><TextInput value={item.id} readOnly mono /></Field>

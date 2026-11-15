@@ -8,6 +8,7 @@ import { NumberInput } from '../../ui/NumberInput'
 import { TextInput } from '../../ui/TextInput'
 import { Check } from '../../ui/Toggle'
 import { AMMO_MAX, AMMO_START, carriedAsItem, setAmmo } from '../../model/supplyUnits'
+import { SoundsGroup } from '../sound/SoundsGroup'
 import { Effectiveness } from './Effectiveness'
 import { T } from './text'
 
@@ -85,6 +86,8 @@ export function WeaponForm({ id }: { id: string }) {
       <Card>
         <Effectiveness id={id} />
       </Card>
+
+      <SoundsGroup owner="weapons" id={id} />
 
       <Advanced label={T.advanced}>
         <div className="stack">

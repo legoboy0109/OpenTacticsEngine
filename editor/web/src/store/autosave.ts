@@ -26,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign', 'audio'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -42,7 +42,9 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
       : (k === 'structures' || k === 'items' || k === 'research') && doc[k] === null && saved[k] !== null ? []
         // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
         : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
-          : doc[k]
+          // Removing all sound (or undoing past the first track) likewise deletes data/audio.json.
+          : k === 'audio' && doc.audio === null && saved.audio !== null ? false
+            : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}

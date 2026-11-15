@@ -7,6 +7,7 @@ import { walkCampaign } from './campaignWalk'
 import type { Campaign, Chapter, DefeatRule, FallenRule, SceneKey } from './campaignTypes'
 import { DROP } from './storyWalk'
 import type { Command } from './storyTypes'
+import { sceneCommands, withSceneCommands, withSceneMusic } from './campaignScene'
 import { moveItem, patchObj } from './util'
 import type { MapFile, ProjectDoc } from './types'
 
@@ -90,16 +91,26 @@ export const setChapterNext = (doc: ProjectDoc, id: string, next: string | undef
 
 // --- scenes, edited as a "scene map" (see campaignRoster.ts) ---
 export const sceneOf = (doc: ProjectDoc, chapterId: string, which: SceneKey): Command[] =>
-  doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which] ?? []
+  sceneCommands(doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which])
 
 /** The scene as the one event of the scene map, so the map editor's command operations apply to it. */
 export function sceneAsMap(doc: ProjectDoc, chapterId: string, which: SceneKey): MapFile {
   return { ...sceneMap(doc), events: [sceneEvent(sceneEventId(chapterId, which), sceneOf(doc, chapterId, which))] }
 }
 
-/** Writes back the commands of the scene map's event. An emptied scene is written as no key. */
+/** Writes back the commands of the scene map's event. An emptied scene is written as no key; a scene that has music keeps
+ *  its object form (campaignScene.ts). */
 export function withScene(doc: ProjectDoc, chapterId: string, which: SceneKey, edited: MapFile): ProjectDoc {
   const list = edited.events?.[0]?.do ?? []
-  if (list === sceneOf(doc, chapterId, which) || (list.length === 0 && !doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which])) return doc
-  return patchChapter(doc, chapterId, { [which]: list.length ? list : undefined })
+  if (list === sceneOf(doc, chapterId, which)) return doc
+  const cur = doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which]
+  if (list.length === 0 && cur === undefined) return doc
+  return patchChapter(doc, chapterId, { [which]: withSceneCommands(cur, list) })
+}
+
+/** "Music for this scene": a track id, or undefined for "keep what is playing" (the plain list again when nothing else is in it). */
+export function setSceneMusic(doc: ProjectDoc, chapterId: string, which: SceneKey, music: string | undefined): ProjectDoc {
+  const cur = doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which]
+  const next = withSceneMusic(cur, music)
+  return next === cur ? doc : patchChapter(doc, chapterId, { [which]: next })
 }

@@ -1,6 +1,6 @@
 // data/campaign.json as the editor holds it (docs/EVENTS.md "Campaign"). Every interface carries the index signature of
 // `Extra`, so a key the editor does not know survives load -> edit -> save like everywhere else.
-import type { Command } from './storyTypes'
+import type { Scene } from './campaignScene'
 import type { Extra } from './types'
 
 export type FallenRule = 'gone' | 'return'
@@ -15,9 +15,10 @@ export interface Chapter extends Extra {
   name?: string
   /** A map id of game.json ("" while none is chosen: the loader refuses it until one is). */
   map: string
-  /** Scenes: the scene subset of the story commands (docs/EVENTS.md "Scenes"). `goto` only in `after`. */
-  before?: Command[]
-  after?: Command[]
+  /** Scenes: the scene subset of the story commands (docs/EVENTS.md "Scenes"), as a plain list or `{ music, commands }`
+   *  (campaignScene.ts). `goto` only in `after`. */
+  before?: Scene
+  after?: Scene
   /** Default: the following chapter in the list. */
   next?: string
 }

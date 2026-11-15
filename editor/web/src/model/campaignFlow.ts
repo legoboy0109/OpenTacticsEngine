@@ -2,6 +2,7 @@
 // chapter an "After the battle" scene sends it to with "Go to a chapter". The flow preview, the "nothing leads to this
 // chapter" hint and the checks all read this one place. (The first chapter is where the story starts.)
 import { chapterName, type Campaign } from './campaignTypes'
+import { sceneCommands } from './campaignScene'
 import { forEachCommand } from './storyWalk'
 
 export interface FlowTarget { id: string; name: string; kind: 'next' | 'goto'; known: boolean }
@@ -24,7 +25,7 @@ export function chapterLinks(c: Campaign): Map<string, Set<string>> {
     const to = new Set<string>()
     const nextId = ch.next || c.chapters[i + 1]?.id
     if (nextId) to.add(nextId)
-    forEachCommand(ch.after, '', (cmd) => { if (typeof cmd.goto === 'string' && cmd.goto) to.add(cmd.goto) })
+    forEachCommand(sceneCommands(ch.after), '', (cmd) => { if (typeof cmd.goto === 'string' && cmd.goto) to.add(cmd.goto) })
     out.set(ch.id, to)
   })
   return out
@@ -48,7 +49,7 @@ export function flowRows(c: Campaign): FlowRow[] {
       targets.push({ id, name: t ? chapterName(t) : id, kind, known: !!t })
     }
     add(ch.next || c.chapters[i + 1]?.id || '', 'next')
-    forEachCommand(ch.after, '', (cmd) => { if (typeof cmd.goto === 'string') add(cmd.goto, 'goto') })
+    forEachCommand(sceneCommands(ch.after), '', (cmd) => { if (typeof cmd.goto === 'string') add(cmd.goto, 'goto') })
     return { id: ch.id, name: chapterName(ch), number: i + 1, leadsTo: targets, ends: !ch.next && i === c.chapters.length - 1, unreached: unreached.has(ch.id) }
   })
 }

@@ -13,6 +13,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   structures: 'Structures',
   research: 'Research',
   art: 'Art',
+  sound: 'Sound',
   maps: 'Maps',
   campaign: 'Campaign',
 }
