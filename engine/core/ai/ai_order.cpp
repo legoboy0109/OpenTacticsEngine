@@ -168,6 +168,7 @@ Order bestOrder(Context& cx, const Unit& u) {
 
   if (!u.moved) considerAdvance(cx, u, stops, best);
   considerHealing(b, u, best);
+  considerSupply(b, u, reach, stops, best);
   return best;
 }
 
