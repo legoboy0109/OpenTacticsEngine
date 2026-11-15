@@ -27,6 +27,8 @@ void saveStoryState(const Battle& b, Json& out) {
       if (b.storyState.fired[i]) fired.push(Json::makeString(b.story->events[i].id));
   j.set("fired", fired);
   j.set("objectives", Json::makeNumber(b.storyState.objectives));
+  // Only once a playMusic / stopMusic command ran, so every other save stays byte for byte what it was.
+  if (b.storyState.musicAsked) j.set("music", Json::makeString(b.storyState.music));
   out.set("story", j);
 }
 
@@ -66,7 +68,18 @@ bool restoreStoryState(Reader& rd, const Json& saved, Battle& b) {
     b.storyState.fired[e] = 1;
   }
   int sets = b.story ? (int)b.story->objectives.size() : 1;
-  return rd.integer(*j, "objectives", where, 0, sets - 1, b.storyState.objectives);
+  if (!rd.integer(*j, "objectives", where, 0, sets - 1, b.storyState.objectives)) return false;
+  // "music" (docs/SAVES.md): the track the story asked for, "" = it stopped the music. Absent = it never asked.
+  b.storyState.musicAsked = false;
+  b.storyState.music.clear();
+  if (j->has("music")) {
+    const Json& m = (*j)["music"];
+    if (!m.isString() || (!m.asString().empty() && !isStoryId(m.asString())))
+      return rd.fail(where + ".music", "not a music id (letters, digits, _ and -) or \"\"");
+    b.storyState.musicAsked = true;
+    b.storyState.music = m.asString();
+  }
+  return true;
 }
 
 bool readUnitStoryId(Reader& rd, const Json& unit, const std::string& where, std::string& out) {

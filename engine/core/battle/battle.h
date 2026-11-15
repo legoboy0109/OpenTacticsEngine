@@ -66,6 +66,10 @@ enum class EventType {
   // Fog of war (docs/ECONOMY.md): a move that ran into an enemy nobody on its team saw. It comes right after the
   // UnitMoved event of the squares actually walked (none when the unit never left its square).
   MoveBlocked,        // a=unit, b=the unit in the way, c=square the unit stopped on, d=square the enemy stands on
+  // Sound (docs/SOUND.md), from the story commands playMusic / stopMusic / playSound. Presentation only; the ids are
+  // opaque text (Battle::storyText), only the player knows what they name.
+  MusicChanged,       // a=text index of the track id (-1 = the story stopped the music), b=fade in milliseconds
+  SoundRequested,     // a=text index of the sound id
 };
 
 enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };

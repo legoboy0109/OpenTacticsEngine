@@ -55,6 +55,11 @@ struct Playthrough {
 // One thing a scene shows, resolved like a battle's Dialogue entry: the speaker's name is the
 // roster unit's own, or the free "speakerName", or empty.
 struct SceneLine {
+  // A line to show, or (docs/SOUND.md) a sound request that comes between lines: the player acts on it when it
+  // reaches it. `text` is then the music / sound id ("" for StopMusic) and `fadeMs` the fade.
+  enum class Kind { Say, PlayMusic, StopMusic, PlaySound };
+  Kind kind = Kind::Say;
+  int fadeMs = 0;
   std::string speakerId;  // the roster id named by "speaker" ("" = none)
   std::string speaker;    // the name to show ("" = nobody)
   std::string portrait;   // portrait id ("" = none; the player may look up speakerId's instead)

@@ -2,6 +2,7 @@
 // story code in Battle shares. The events themselves are fixed data (core/data/events.h).
 #pragma once
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "core/base/types.h"
@@ -17,6 +18,10 @@ struct StoryState {
   std::vector<int> variables;     // per Database::variables
   std::vector<uint8_t> fired;     // per StoryData::events: has run (non-repeating events run once)
   int objectives = 0;             // index into StoryData::objectives; 0 = the map's own
+  // "The music the story asked for" (docs/SOUND.md): the last playMusic / stopMusic command that ran. Presentation
+  // only, kept so a resumed battle plays the right track. Saved only when musicAsked (docs/SAVES.md).
+  bool musicAsked = false;
+  std::string music;              // the track id; empty = the story stopped the music
 };
 
 // Something that happened which events can be waiting for.

@@ -22,12 +22,13 @@ struct SceneCondition {
 };
 
 struct SceneCommand {
-  enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto };
+  enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound };
   Kind kind = Kind::Say;
   // Say: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
   std::string unit;
   int index = -1;   // SetSwitch / SetVariable / AddVariable
+  // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms
   bool on = false;  // SetSwitch
   int value = 0;    // SetVariable / AddVariable
   std::string side;              // GiveResource: the side id the amounts go to

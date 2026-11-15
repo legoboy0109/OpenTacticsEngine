@@ -12,7 +12,7 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
 constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit", "moveUnit",   "changeSide", "giveItem",
                                         "giveResource", "setSwitch", "setVariable", "addVariable", "objective", "win",
-                                        "lose",      "if",          "endTurn",    "focus",      "grantResearch"};
+                                        "lose",      "if",          "endTurn",    "focus",      "grantResearch", "playMusic", "stopMusic", "playSound"};
 
 }  // namespace
 
@@ -120,6 +120,27 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       return fail(at, "\"grantResearch\" names unknown technology " + quoted(v.asString()) +
                           (db_.research.empty() ? " (this game has no data/research.json)" : ""));
     return c_.str(e, "side", at, side, true) && sideIndex(side, at, "\"side\"", out.side);
+  }
+  if (k == "playMusic" || k == "stopMusic" || k == "playSound") {
+    // Presentation only (docs/SOUND.md): the id is opaque here (it goes into the text table, so the save hash
+    // ignores which track it is); the player checks it against data/audio.json.
+    const bool sound = k == "playSound", stop = k == "stopMusic";
+    out.kind = sound ? K::PlaySound : stop ? K::StopMusic : K::PlayMusic;
+    if (!onlyKeys(e, sound ? std::initializer_list<const char*>{kind} : std::initializer_list<const char*>{kind, "fade"}, at))
+      return false;
+    if (stop) {
+      if (!v.isBool() || !v.asBool()) return fail(at, "write { \"stopMusic\": true }");
+    } else if (!v.isString() || !isStoryId(v.asString())) {
+      return fail(at, "\"" + k + "\" must name " + (sound ? "a sound" : "a music track") +
+                          " of data/audio.json (letters, digits, \"_\" and \"-\")");
+    } else {
+      out.text = text(v.asString());
+    }
+    double fade = 0;
+    if (!sound && !c_.num(e, "fade", at, fade)) return false;
+    if (fade < 0 || fade > 60) return fail(at, "\"fade\" is seconds, between 0 and 60");
+    out.value = (int)(fade * 1000 + 0.5);
+    return true;
   }
   if (k == "setSwitch" || k == "setVariable" || k == "addVariable") {
     bool isSwitch = k == "setSwitch";

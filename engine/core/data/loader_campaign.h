@@ -31,6 +31,9 @@ class CampaignLoader {
 
   // A scene: a list of commands. `allowGoto`: only the "after" scene may name the next chapter.
   bool scene(const Json& list, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out);
+  // A chapter's "before" / "after": a scene, or { "music": "id", "commands": [...] } (docs/SOUND.md), which is the
+  // same scene with a playMusic command in front.
+  bool chapterScene(const Json& v, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out);
 
  private:
   bool command(const Json& e, const std::string& where, bool allowGoto, SceneCommand& out);

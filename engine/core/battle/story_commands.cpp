@@ -182,6 +182,19 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       if (storyRun_.talker >= 0 && units[(size_t)storyRun_.talker].alive)
         units[(size_t)storyRun_.talker].moved = units[(size_t)storyRun_.talker].done = true;
       break;
+    case K::PlayMusic:
+      storyState.musicAsked = true;
+      storyState.music = storyText(c.text);
+      events.push_back(makeEvent(EventType::MusicChanged, c.text, c.value));
+      break;
+    case K::StopMusic:
+      storyState.musicAsked = true;
+      storyState.music.clear();
+      events.push_back(makeEvent(EventType::MusicChanged, -1, c.value));
+      break;
+    case K::PlaySound:
+      events.push_back(makeEvent(EventType::SoundRequested, c.text));
+      break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
       if (!c.unit.empty()) {

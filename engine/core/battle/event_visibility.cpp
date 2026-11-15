@@ -5,7 +5,7 @@
 // sight, and apply() / start() stamp the rest when they finish. "Seen by a unit" always includes the unit's own team.
 //
 // Per type (a = first field, ...):
-//   TurnStarted, SideDefeated, BattleEnded, Dialogue, Focus, ObjectiveChanged: all teams (public).
+//   TurnStarted, SideDefeated, BattleEnded, Dialogue, Focus, ObjectiveChanged, MusicChanged, SoundRequested: all teams (public).
 //   UnitMoved: the mover's team, and every team that saw the mover on at least one square of its path
 //              (`seenSteps` says on which indices); a team that saw it only on the way gets the whole event and
 //              decides for itself what to draw from `seenSteps`.
@@ -72,6 +72,8 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::Dialogue:
     case EventType::Focus:
     case EventType::ObjectiveChanged:
+    case EventType::MusicChanged:
+    case EventType::SoundRequested:
       return kSeenByAll;
     case EventType::UnitMoved: {
       uint32_t mask = unitTeam(e.a);
