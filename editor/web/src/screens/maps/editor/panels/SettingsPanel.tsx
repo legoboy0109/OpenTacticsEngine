@@ -6,9 +6,11 @@ import { useEdit } from '../../../../store/context'
 import { Field } from '../../../../ui/Field'
 import { TextInput } from '../../../../ui/TextInput'
 import { T } from '../text'
+import type { MapViewState } from '../viewState'
+import { FogSettings } from './FogSettings'
 import { ResizeDialog } from './ResizeDialog'
 
-export function SettingsPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile; mapId: string }) {
+export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: MapFile; mapId: string; vs: MapViewState }) {
   const edit = useEdit()
   const [resizing, setResizing] = useState(false)
   const ref = doc.game?.maps.find((m) => m.id === mapId)
@@ -23,6 +25,7 @@ export function SettingsPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFi
         <div><div className="label-sm">{T.sizeLabel}</div><strong data-testid="map-size">{T.sizeValue(width, height)}</strong></div>
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
+      <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
       {resizing && <ResizeDialog doc={doc} map={map} mapId={mapId} onClose={() => setResizing(false)} />}
     </div>
   )

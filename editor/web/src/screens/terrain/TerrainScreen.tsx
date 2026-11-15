@@ -7,6 +7,7 @@ import { useDoc, useEdit, useStore } from '../../store/context'
 import { DeleteConfirm } from '../../ui/DeleteConfirm'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
+import { EconomyChecks } from '../research/EconomyChecks'
 import { TerrainForm } from './TerrainForm'
 import { T } from './text'
 
@@ -30,6 +31,7 @@ function TerrainList({ itemId }: { itemId?: string }) {
 
   return (
     <>
+      <EconomyChecks section="terrain" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
         items={terrain.map((t) => ({ id: t.id, label: t.name, sub: T.subtitle(t.glyph), swatch: t.color }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

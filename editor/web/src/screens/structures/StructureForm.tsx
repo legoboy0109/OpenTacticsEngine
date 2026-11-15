@@ -18,6 +18,7 @@ import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
 import { repairOn } from '../../model/supplyRules'
+import { GroundSightCard } from '../fog/GroundSightCard'
 import { Footprint } from './Footprint'
 import { MovingThrough } from './MovingThrough'
 import { RepairsCard, ResearchHereCard } from './RepairsCard'
@@ -162,6 +163,7 @@ export function StructureForm({ id }: { id: string }) {
       <ResearchHereCard id={id} />
       <UpgradesCard id={id} />
       {showRepairs && <RepairsCard id={id} />}
+      <GroundSightCard kind="structure" id={id} />
 
       {hidden.length > 0 && (
         <p className="help" data-testid="hidden-settings">{T.hiddenBody(hidden.join(', '))} <Link to={projectPath(store.id, 'rules')}>{T.rulesLink}</Link></p>

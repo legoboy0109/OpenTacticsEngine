@@ -88,6 +88,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'dead': return `${filterText(c, k.dead)} is defeated`
     case 'round': return `the round ${opWords(k.round?.op)} ${k.round?.value ?? 0}`
     case 'carries': return `${filterText(c, k.unit)} carries ${itemLabel(c, k.carries!)}`
+    case 'sees': return `team ${teamText(c, k.team ?? '')} sees ${filterText(c, k.sees)}`
     case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
     default: return 'something is true'
   }

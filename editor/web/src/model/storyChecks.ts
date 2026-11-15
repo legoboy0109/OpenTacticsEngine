@@ -4,7 +4,7 @@
 // picture, an `if` with no conditions).
 import { inventorySize } from './itemRules'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
-import { rectOf, commandKind, triggerKind, type Command, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
+import { conditionKind, rectOf, commandKind, triggerKind, type Command, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
 import { forEachCommand, walkStory, type Ref } from './storyWalk'
 import type { MapFile, ProjectDoc } from './types'
 
@@ -95,6 +95,17 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
   }
 }
 
+/** What the loader refuses about a `sees` condition beyond the names it points at, plus the hint for a map without fog. */
+function seesChecks(map: MapFile, list: Condition[] | undefined, where: string, say: (w: string, t: string) => void): void {
+  list?.forEach((c, i) => {
+    if (conditionKind(c) !== 'sees') return
+    const at = `${where}, condition ${i + 1}`
+    if (typeof c.team !== 'string') say(at, 'pick the team that must see it.')
+    if (c.sees === null || typeof c.sees !== 'object') say(at, 'pick which unit must be seen.')
+    if (map.fog !== true) say(at, 'this map has no fog of war, so every team sees every living unit and this is true whenever such a unit is alive. Switch fog on in the map’s settings.')
+  })
+}
+
 /** Everything wrong in one map's events, objectives and unit names; empty when all is well. */
 export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
   const map = doc.maps[mapId]
@@ -133,6 +144,8 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     }
     if (kind === 'talk' && trig.talk && trig.talk === trig.to) say(`${where}, “When”`, 'a unit cannot talk to itself.')
     forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids))
+    seesChecks(map, e.if, `${where}, “Only if”`, say)
+    forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
   }
 
   // Do the names these events point at exist? (one walk for every kind of name)

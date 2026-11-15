@@ -88,6 +88,8 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'variable', 'variable', w, where),
     (x) => withFilter(x, 'alive', w, where),
     (x) => withFilter(x, 'dead', w, where),
+    (x) => withFilter(x, 'sees', w, where),
+    (x) => withRef(x, 'team', 'teamOrSide', w, where), // only a `sees` condition has one (a side id means that side's team)
     (x) => withRef(x, 'carries', 'item', w, where),
     (x) => withRef(x, 'researched', 'tech', w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one

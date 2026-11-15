@@ -582,3 +582,7 @@ Rules ("Repair and supply"). Story: condition "A side has researched a technolog
   only changes its name. A bonus whose unit types are all deleted is removed (an empty list would mean "all").
 - Checks (amber banners, `EconomyChecks`) mirror loader_research / loader_upgrades / loader_supply on the screen that holds the setting.
 - Not part of this: fog of war keys. Campaign scenes get neither the condition nor the command (the scene loader refuses them).
+
+## Fog of war
+
+Map tab: "Fog of war" (`fog: true`; off removes the key; disabled with the reason above 32 sides) and, while on, "Show what a side sees" (a drawing aid, nothing saved). Units: "Sight" (`vision`, 0 to 20, default 2 is not written). Terrain and Structures: "Extra sight" (`visionBonus`, 0 to 10, 0 not written) and "Hides" (`hides`). Events: condition "A team sees a unit" (`sees` + `team`), map events only. Play panel: "Show everything" (`showall=1`) when the played map (or any chapter's map) has fog.

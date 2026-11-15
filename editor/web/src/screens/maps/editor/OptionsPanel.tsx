@@ -45,7 +45,7 @@ export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say, 
       </div>
       <div id="map-tabpanel" role="tabpanel" aria-labelledby={`map-tab-${tab}`} className="panel-body">
         {tab === 'tool' && <ToolPanel doc={doc} map={map} mapId={mapId} tool={state.tool} state={state} selected={selected} onChange={onChange} say={say} />}
-        {tab === 'map' && <SettingsPanel doc={doc} map={map} mapId={mapId} />}
+        {tab === 'map' && <SettingsPanel doc={doc} map={map} mapId={mapId} vs={vs} />}
         {tab === 'sides' && <SidesPanel doc={doc} map={map} mapId={mapId} />}
         {tab === 'events' && <EventsPanel mapId={mapId} vs={vs} />}
         {tab === 'objectives' && <ObjectivesPanel mapId={mapId} vs={vs} />}

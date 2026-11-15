@@ -9,6 +9,7 @@ import { Field } from '../../ui/Field'
 import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
+import { GroundSightCard } from '../fog/GroundSightCard'
 import { MoveCosts } from './MoveCosts'
 import { T } from './text'
 
@@ -54,6 +55,8 @@ export function TerrainForm({ id }: { id: string }) {
           onRemove={(k) => edit((d) => setTerrainNumber(d, id, k, undefined))}
           addOptions={addable.map((s) => ({ key: s.id, label: s.label }))} onAdd={(k) => edit((d) => setTerrainNumber(d, id, k, 0))} addLabel={T.addNumber} />
       </Card>
+
+      <GroundSightCard kind="terrain" id={id} />
 
       <p className="help" data-testid="terrain-structures-note">{T.structuresNote} <Link to={projectPath(store.id, 'structures')}>{T.structuresLink}</Link></p>
 

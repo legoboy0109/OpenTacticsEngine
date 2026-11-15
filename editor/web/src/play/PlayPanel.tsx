@@ -1,5 +1,6 @@
 // The Play overlay: the embedded web player in an iframe, with a map picker, Restart and Close.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { campaignMapHasFog, mapHasFog } from '../model/fog'
 import { useDoc } from '../store/context'
 import type { DocumentStore } from '../store/documentStore'
 import { useStored } from '../ui/hooks'
@@ -19,8 +20,9 @@ type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; mess
 /** Picker value for "the campaign from chapter 1" (no map id can be this: ids have no '*'). */
 export const PLAY_CAMPAIGN = '*campaign'
 
-export const playerUrl = (project: string, map: string, style?: string): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}`
+/** `showAll` adds `showall=1`: the player draws without fog of war (the maker's view; docs/ECONOMY.md "Fog of war"). */
+export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean): string =>
+  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}`
 
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -39,6 +41,16 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
     if (!(await saveFirst())) return
     setStatus({ state: 'loading' })
     setStoredStyle(id)
+  }
+
+  // "Show everything" only means something when the played map has fog (for the story: when any chapter's map has).
+  const fogHere = map === PLAY_CAMPAIGN ? campaignMapHasFog(doc) : mapHasFog(doc, map)
+  const [storedAll, setStoredAll] = useStored<boolean>(`ote.playShowAll.${store.id}`, false)
+  const showAll = fogHere && storedAll === true
+  const switchShowAll = async (on: boolean) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setStoredAll(on)
   }
 
   useEffect(() => {
@@ -89,13 +101,19 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
             <Select value={style} onChange={(v) => void switchStyle(v)} options={playable.map((s) => ({ value: s.id, label: s.name || s.id }))} aria-label={T.styleLabel} />
           </label>
         )}
+        {fogHere && (
+          <label className="play-all" title={T.showAllTitle}>
+            <input type="checkbox" checked={showAll} onChange={(e) => void switchShowAll(e.target.checked)} />
+            <span>{T.showAll}</span>
+          </label>
+        )}
         <div className="play-actions">
           <button type="button" className="btn" onClick={() => void restart()} title={T.restartTitle}><Icon name="restart" />{T.restart}</button>
           <button type="button" className="btn" onClick={onClose}><Icon name="close" />{T.close}</button>
         </div>
       </header>
       <div className="play-stage">
-        <iframe key={`${map}:${style}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined)} title="Game preview" className="play-frame"
+        <iframe key={`${map}:${style}:${showAll}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll)} title="Game preview" className="play-frame"
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (

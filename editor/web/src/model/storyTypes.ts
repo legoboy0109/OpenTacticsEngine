@@ -49,9 +49,13 @@ export interface Condition extends Extra {
   researched?: string
   /** The side that must have it (a `researched` condition). */
   side?: string
+  /** Fog of war: the team sees at least one living unit matching this filter (needs `team`). Map events only. */
+  sees?: Filter
+  /** The team that must see it (a `sees` condition): a team name, or a side id for that side's team. */
+  team?: string
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees']
 
 /** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
 export interface Command extends Extra {

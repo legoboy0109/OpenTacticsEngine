@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styleView } from '../../../art/scene'
 import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
+import { seenAtStart } from '../../../model/fogSight'
 import { editMap } from '../../../model/mapCtx'
 import { gridProblems, repairMap, terrainAt } from '../../../model/mapGrid'
 import { inheritsGeneralArt } from '../../../model/styleView'
@@ -96,6 +97,13 @@ function Editor({ id }: { id: string }) {
 
   const warnings = useMemo(() => mapWarnings(doc, map), [doc, map])
   const flagged = useMemo(() => new Set(warnings.filter((w) => w.key.startsWith('blocked:')).map((w) => cellKey(w.cell!)!)), [warnings])
+
+  // The "Show what a side sees" aid: only while the map has fog and the picked side still exists.
+  const fogSide = useViewSlice(vs, (s) => s.fogSide)
+  useEffect(() => {
+    const live = map.fog === true && fogSide !== null && sides.some((s) => s.id === fogSide)
+    if (live || vs.fogSeen) vs.set({ fogSeen: live ? seenAtStart(doc, map, fogSide) : null })
+  }, [vs, doc, map, sides, fogSide])
 
   const env: StrokeEnv = useMemo(() => ({
     store, mapId: id, view: vs, tools: () => tsRef.current, say: setNotice,
