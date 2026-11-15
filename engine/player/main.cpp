@@ -4,6 +4,7 @@
 #include "app.h"
 #include "args.h"
 #include "core/base/log.h"
+#include "sound/audio_render.h"
 #include "platform/platform.h"
 
 using namespace ote;
@@ -15,6 +16,9 @@ int main(int argc, char** argv) {
     fputs(usageText(), args.help ? stdout : stderr);
     return args.help ? 0 : 1;
   }
+
+  // Offline mixing needs neither a window nor a sound device.
+  if (!args.audioRender.empty()) return runAudioRender(args);
 
   PlatformConfig cfg;
   cfg.title = "OpenTacticsEngine";

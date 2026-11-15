@@ -1,5 +1,7 @@
 #include "scene_options.h"
 
+#include <cstring>
+
 #include "core/base/log.h"
 #include "core/data/loader.h"
 
@@ -74,6 +76,9 @@ void OptionsScene::change(int def, int delta) {
   if (perGame()) host_.settings().setOverride(gameId_, key, v);  // Null = back to following global
   else host_.settings().setGlobal(key, v);
   host_.relook(gameId_);
+  // Moving a volume plays a short click at the new level, so the player can hear it.
+  if (!strcmp(key, "musicVolume")) host_.audio().playTick(true);
+  else if (!strcmp(key, "soundVolume")) host_.audio().playTick(false);
 }
 
 void OptionsScene::resetAll() {

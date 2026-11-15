@@ -20,7 +20,7 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
-file(GLOB PLAYER_SRC CONFIGURE_DEPENDS *.cpp battle/*.cpp campaign/*.cpp options/*.cpp ui/*.cpp)
+file(GLOB PLAYER_SRC CONFIGURE_DEPENDS *.cpp battle/*.cpp campaign/*.cpp options/*.cpp sound/*.cpp ui/*.cpp)
 # Shared by every backend: text engine, bitmap font, font registry (no SDL inside).
 file(GLOB COMMON_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/common/*.cpp
      ${CMAKE_SOURCE_DIR}/engine/platform/common/*.c)
@@ -29,7 +29,7 @@ file(GLOB BACKEND_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/${OT
 add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
 # engine/ for "core/..." and "platform/..."; engine/player for the player's own "battle/..." "ui/...".
 target_include_directories(ote-player PRIVATE ${CMAKE_SOURCE_DIR}/engine ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ote-player PRIVATE ote_core ote_gfx3d)
+target_link_libraries(ote-player PRIVATE ote_core ote_gfx3d ote_audio)
 if(NOT EMSCRIPTEN)
   if(OTE_PLATFORM STREQUAL "sdl3")
     target_link_libraries(ote-player PRIVATE SDL3::SDL3)

@@ -13,6 +13,7 @@
 #include "battle/sprites.h"
 #include "saves.h"
 #include "show3d.h"
+#include "sound/audio_service.h"
 
 namespace ote {
 
@@ -40,6 +41,7 @@ class SceneHost {
   virtual Show3D& show3d() = 0;
   virtual Renderer& renderer() = 0;     // for measuring text outside draw()
   virtual Settings& settings() = 0;     // options + remembered UI state (saved by the App)
+  virtual AudioService& audio() = 0;    // sound and music (docs/SOUND.md); safe to call without a sound device
   virtual const std::vector<GameEntry>& games() const = 0;
   virtual const std::string& notice() const = 0;  // one-line problem to show on the home screen, or ""
   virtual const std::string& currentGameId() const = 0;  // last game opened, or ""

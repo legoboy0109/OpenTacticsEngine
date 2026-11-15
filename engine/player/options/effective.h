@@ -22,6 +22,8 @@ struct LookLayer {
   std::string style;  // style id; "" = unset
   std::string draw3d; // what draws 3D: "opengl" or "software"; "" = unset
   std::string res3d;  // how big the 3D picture is: "display" or "game"; "" = unset
+  int musicVolume = -1;  // 0..10; -1 = unset
+  int soundVolume = -1;  // 0..10; -1 = unset
 };
 
 // What a game itself asks for. `present` is false on the launcher screens
@@ -42,6 +44,8 @@ struct EffectiveLook {
   int styleIndex = 0;  // index into the game's styles: the chosen one, else the first this player can draw
   std::string draw3d;  // "opengl", "software", or "" = the player decides (docs/RENDER3D.md)
   std::string res3d;   // "display", "game", or "" = automatic (docs/RENDER3D.md "Resolution")
+  int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
+  int soundVolume = 7;
 };
 
 // Font size rule: an explicit size setting wins; otherwise the size that
