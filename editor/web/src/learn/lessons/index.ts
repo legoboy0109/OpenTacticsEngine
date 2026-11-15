@@ -4,11 +4,13 @@ import type { Lesson } from '../types'
 import { firstGame } from './first-game'
 import { structures } from './structures'
 import { economy } from './economy'
+import { art } from './art'
 
 export const LESSONS: Lesson[] = [
   firstGame,
   structures,
   economy,
+  art,
 ]
 
 /** The beginner lesson the first-run offer shows. */
