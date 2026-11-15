@@ -96,6 +96,9 @@ void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
   std::vector<MenuItem> items = {{"End Turn", "", true, kEndTurn}};
   if (!battle_.objectiveText().empty()) items.push_back({"Objective", "", true, kObjective});  // only when the map has one
+  // Research (docs/ECONOMY.md "Player"): whenever the game has technologies. With "needsStructure" and no research
+  // structure it still opens; the panel greys its rows with the reason.
+  if (!session_.db.research.empty() && humanTurn()) items.push_back({EconomyWords::kResearch, "", true, kResearchEntry});
   if (manualSaves()) {  // game setting "any": the player may save and load at will
     items.push_back({"Save", "", true, kSave});
     items.push_back({"Load", "", true, kLoad});
@@ -103,6 +106,9 @@ void BattleScene::openEndMenu() {
   // With a Continue save the battle can be picked up later; without one, leaving ends it.
   items.push_back({continueOn() ? "Leave battle" : "Abandon battle", "", true, kLeave});
   items.push_back({"Cancel", "", true, 0});
+  std::string log;
+  for (const MenuItem& it : items) log += (log.empty() ? "" : ", ") + it.label;
+  OTE_INFO("battle menu: %s", log.c_str());
   menu_.open(host_.renderer(), "", items, layout_.vw / 2 - 40, layout_.vh / 2 - 20, layout_.vw, layout_.vh);
   menu_.place(layout_.vw / 2 - menu_.w() / 2, layout_.vh / 2 - menu_.h() / 2, layout_.vw, layout_.vh);
 }
@@ -142,6 +148,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     mode_ = Mode::Idle;
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
     else if (res == Menu::Chosen && id == kObjective) openObjective();
+    else if (res == Menu::Chosen && id == kResearchEntry) openResearchPanel();
     else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
     else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
     else if (res == Menu::Chosen && id == kLeave) {

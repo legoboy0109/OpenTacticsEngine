@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "battle/economy_text.h"
+#include "battle/fog_text.h"
 #include "core/ai/ai.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -215,7 +216,8 @@ std::string BattleScene::hint() const {
         return EconomyWords::kLowFuel + intStr(battle_.fuel(sel_)) + "  Z:move  X:cancel";
       return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
     }
-    case Mode::ActionMenu: return itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
+    case Mode::ActionMenu:
+      return ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";

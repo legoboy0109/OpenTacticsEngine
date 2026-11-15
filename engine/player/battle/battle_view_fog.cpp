@@ -122,7 +122,7 @@ bool BattleView::beginFog(const Battle& b) {
       cellPos(b, e.c, mover.px, mover.py);
       cellPos(b, e.d, enemy.px, enemy.py);
       addFloat(FogWords::kFloatAmbush, mover.px + cx, mover.py - 2, Color(255, 120, 100), 1.3f);
-      if (b.teamOf(b.units[(size_t)e.a]) == viewerTeam_) notice = FogWords::kNoticeStopped;
+      if (b.teamOf(b.units[(size_t)e.a]) == viewerTeam_) notice = b.db->rules.ambush == AmbushRule::CanAct ? FogWords::kNoticeCanAct : FogWords::kNoticeStopped;
       OTE_INFO("ambush: %s stopped at %d,%d by %s at %d,%d", b.units[(size_t)e.a].name.c_str(), b.grid.x(e.c), b.grid.y(e.c),
                b.units[(size_t)e.b].name.c_str(), b.grid.x(e.d), b.grid.y(e.d));
       cur_.dur = 0.7f;

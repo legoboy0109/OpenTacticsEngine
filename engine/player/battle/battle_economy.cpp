@@ -1,5 +1,6 @@
 // The player's part of docs/ECONOMY.md "Player" for upgrades, research and supply: the menu of an own structure
-// (Build / Upgrade / Research), the Upgrade list, the research panel, the Supply highlight and the log line for
+// (Build / Upgrade), the Upgrade list, the research panel (opened from the battle menu, battle_menus.cpp), the
+// Supply highlight and the log line for
 // units with fuel or ammunition. All changes go through submit(), like every other action, so the view animates
 // the events and the Continue save is written. Wording: economy_text.h.
 #include "battle/battle_scene.h"
@@ -21,15 +22,14 @@ bool BattleScene::openStructureAt(Cell cell) {
   const StructureDef& def = battle_.defOf(battle_.structures[(size_t)si]);
   std::vector<int> types;
   battle_.buildOptions(cell, types, true);  // locked unit types too: they are shown greyed with what they need
-  const bool build = !types.empty(), upgrade = !def.upgrades.empty(), research = def.research && !session_.db.research.empty();
-  const int count = (int)build + (int)upgrade + (int)research;
+  const bool build = !types.empty(), upgrade = !def.upgrades.empty();
+  const int count = (int)build + (int)upgrade;  // research is in the battle menu, not here
   if (count == 0) return false;
   buildCell_ = cell;
   structureMenuBack_ = count > 1;
   if (count > 1) openStructureMenu(cell);
   else if (build) openBuildMenu(cell);
-  else if (upgrade) openUpgradeMenu(si);
-  else openResearchPanel();
+  else openUpgradeMenu(si);
   return true;
 }
 
@@ -48,7 +48,6 @@ void BattleScene::openStructureMenu(Cell cell) {
   };
   if (!types.empty()) add(EconomyWords::kBuild, kBuildEntry);
   if (!def.upgrades.empty()) add(EconomyWords::kUpgrade, kUpgradeEntry);
-  if (def.research && !session_.db.research.empty()) add(EconomyWords::kResearch, kResearchEntry);
   OTE_INFO("structure menu: %s", log.c_str());
   int sx, sy, bw, bh;
   cellScreenBox(cell, sx, sy, bw, bh);
@@ -99,10 +98,14 @@ void BattleScene::openResearchPanel() {
   std::string log;
   for (const PanelRow& r : rows) log += (log.empty() ? "" : "; ") + rowLogText(r);
   OTE_INFO("research panel: %s", log.c_str());
+  if (!battle_.canResearch(side)) {  // needsStructure and none owned: the rows are greyed with this reason
+    std::vector<ResearchOption> opts;
+    battle_.researchOptions(side, opts);
+    if (!opts.empty()) OTE_INFO("research reason: %s", opts[0].why.c_str());
+  }
 }
 
 void BattleScene::backToStructure() {
-  researchPanel_.close();
   menu_.close();
   if (structureMenuBack_) openStructureMenu(buildCell_);
   else mode_ = Mode::Idle;
@@ -113,7 +116,6 @@ void BattleScene::economyMenuChosen(int id) {
     const int si = battle_.structureAt[(size_t)buildCell_];
     if (id == kBuildEntry) openBuildMenu(buildCell_);
     else if (id == kUpgradeEntry) openUpgradeMenu(si);
-    else if (id == kResearchEntry) openResearchPanel();
     return;
   }
   // Mode::UpgradeMenu: `id` is the kind it becomes.
@@ -126,7 +128,8 @@ void BattleScene::researchInput(const InputEvent& e) {
   researchPanel_.setArea(0, 0, layout_.vw, layout_.vh);
   ItemPanel::Result res = researchPanel_.onInput(e, host_.renderer());
   if (res == ItemPanel::Back) {
-    backToStructure();
+    researchPanel_.close();
+    openEndMenu();  // the panel is opened from the battle menu: Cancel goes back to it
   } else if (res == ItemPanel::Picked) {
     const int tech = techRows_[(size_t)researchPanel_.sel()];
     std::string why;

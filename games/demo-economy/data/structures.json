@@ -1,7 +1,7 @@
 // Buildings: structures stand on top of terrain squares and only replace the
 // rules they set (here: defense). Capture, income and production live here.
 // A city can be built up into a town, and a town (after the "urbanism" technology, data/research.json) into a
-// metropolis: same square, more income. The HQ is where a side researches.
+// metropolis: same square, more income. Research needs no building here (the Research entry of the battle menu).
 { "structures": [
   { "id": "city",     "name": "City",         "color": "#b7b7b7", "glyph": "c",
     "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 },
@@ -17,5 +17,5 @@
   { "id": "hq",       "name": "Headquarters", "color": "#d4af37", "glyph": "H",
     "width": 2, "height": 2,
     "props": { "defense": 4 }, "capturePoints": 20, "income": { "funds": 1000 },
-    "tags": ["hq"], "research": true }
+    "tags": ["hq"] }
 ] }
