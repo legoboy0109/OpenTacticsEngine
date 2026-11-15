@@ -57,7 +57,7 @@ function ResearchList({ itemId }: { itemId?: string }) {
     <>
       <EconomyChecks section="research" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
-        note={<>{T.intro}{list.length === 0 ? <> {structuresLink}.</> : null}{list.length > 0 && noPlace
+        note={<>{T.intro}{list.length === 0 ? <> {T.emptyExplain} {structuresLink}.</> : null}{list.length > 0 && noPlace
           ? <span data-testid="no-research-structure"> {T.noResearchStructure} {structuresLink}.</span> : null}</>}
         items={list.map((t) => ({ id: t.id, label: t.name, sub: T.subtitle(costText(t.cost), turnsOf(t)) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

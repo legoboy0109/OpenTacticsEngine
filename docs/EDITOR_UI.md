@@ -563,3 +563,22 @@ Contract: `docs/VIEWS.md`. The engine loader (`loadStyles`, `loader_graphics.cpp
 - **Tests.** Unit: `tests/unit/views.test.ts`. E2E: `views.spec.ts` (styles, templates, picture cards, Heights, Play; the style
   round trip, the template check and the Heights drag/undo are `@smoke`), `views-mobile.spec.ts`. Screenshots 73-75
   (`screenshots-views.spec.ts`).
+
+## Economy options: Research, upgrades, repair, fuel, ammunition, supply
+
+Contract: docs/ECONOMY.md. Model `editor/web/src/model/research*.ts`, `structuresEconomy.ts`, `supplyRules.ts`, `supplyUnits.ts`,
+`economyChecks.ts`; screens `screens/research/` (new sidebar entry "Research", after Structures; list + form like Items), plus cards on
+Structures (research here, "Can be upgraded to", Repairs), Units (fuel, loses fuel every turn, resupplies), Weapons (ammunition) and
+Rules ("Repair and supply"). Story: condition "A side has researched a technology" and command "Give a technology" (map events only).
+
+- `data/research.json` is read and written like Items (missing = no list, no file until there is a technology; a broken file blocks only
+  the Research screen). An empty list removes the file, because the loader refuses an empty one.
+- Prerequisites: options that would make a loop (itself, or a technology that already needs this one) are disabled with a reason.
+- Repairs show on a structure only while the game has a repair rule (otherwise the "hidden because the rule is off" line names them).
+  No key = all units; "Only these" = a list of unit types and tags (empty = repairs nothing, said on screen).
+- Bonus: "Makes units stronger" starts as +1 of a non-role stat; no unit type ticked = all unit types (un-ticking the last one goes back to all).
+- Clean-up: `reconcileEconomy` (run by the store's `edit`, like `reconcileCampaign`) takes a deleted technology, unit type, structure kind,
+  resource or stat out of research lists, upgrades, repairs and events in the same undo step. Ids never change, so renaming a technology
+  only changes its name. A bonus whose unit types are all deleted is removed (an empty list would mean "all").
+- Checks (amber banners, `EconomyChecks`) mirror loader_research / loader_upgrades / loader_supply on the screen that holds the setting.
+- Not part of this: fog of war keys. Campaign scenes get neither the condition nor the command (the scene loader refuses them).
