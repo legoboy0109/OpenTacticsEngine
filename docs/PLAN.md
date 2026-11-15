@@ -131,7 +131,9 @@ goal (demos only exercise features).
       Detailed 3D demo style / as an alternative).
       Contract: docs/SOUND.md. DONE (engine, player, starter audio, the editor's Sound screen).
    i. Hexagonal grids (owner, 2026-11-14: next after sound and music). NEXT.
-      Design questions to put to the owner when it starts.
+      Owner (2026-11-14): maker chooses pointy-top or flat-top; one grid
+      per game; top-down view first; structures of one hexagon or a
+      hexagon and its ring of six. Contract: docs/HEX.md.
    j. A tutorial workflow for the editor (owner, 2026-11-14: after hex
       grids).
    Not yet ordered: speed-based turns (FFT), height rules.
