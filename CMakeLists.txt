@@ -96,6 +96,8 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME demo_economy_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/demo_economy_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    add_test(NAME starter_audio
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/starter_audio_test.py ${CMAKE_SOURCE_DIR})
     add_test(NAME audio_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/audio_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

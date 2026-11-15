@@ -45,13 +45,24 @@ def run(args, timeout=60):
     return res.returncode, res.stdout + res.stderr
 
 
+def demo_games(tmp):
+    """A games folder holding only the two shipped demos. The home screen lists every game it finds, and the
+    scripted input counts rows, so a maker's own games in the real folder must not shift them."""
+    d = os.path.join(tmp, 'games')
+    if not os.path.isdir(d):
+        os.mkdir(d)
+        for g in ('demo-srpg', 'demo-economy'):
+            os.symlink(os.path.join(REPO, 'games', g), os.path.join(d, g))
+    return d
+
+
 def headless(tmp, settings, extra, log=None):
     """A windowless run on its own settings file; returns (code, output, audio log lines)."""
     log = log or os.path.join(tmp, 'audio.log')
     if os.path.exists(log):
         os.remove(log)
     args = ['--headless', '--no-saving', '--settings', settings, '--audio-log', log,
-            '--games', os.path.join(REPO, 'games'), '--assets', os.path.join(REPO, 'assets')] + extra
+            '--games', demo_games(tmp), '--assets', os.path.join(REPO, 'assets')] + extra
     code, out = run(args)
     lines = open(log).read().splitlines() if os.path.exists(log) else []
     return code, out, lines
