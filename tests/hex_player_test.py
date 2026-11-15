@@ -535,9 +535,9 @@ def picking(layout, geo):
               cells is not None and (0, target[0], target[1], 100) in cells, str(cells))
 
 
-def hq_frame(layout, geo, name, hq=(3, 3), fill=GOLD, owner=BLUE, hexes_fill=True):
-    img, _ = shot(name, 'hex_' + layout if name.startswith(layout + '_hq') else 'hexart_' + layout, 'hq' if name.startswith(layout + '_hq') else 'art',
-                  frames=120, inp=IDLE)
+def hq_frame(layout, geo, name, hq=(3, 3), fill=GOLD, owner=BLUE):
+    """The HQ (rings: 1) of the 'hq' map: seven hexagons in its colour, framed on the outer edges only."""
+    img, _ = shot(name, 'hex_' + layout, 'hq', inp=IDLE)
     ring = [hq] + [n for n in geo.neighbors(*hq)]
     bad_fill = 0
     for i, c in enumerate(ring):

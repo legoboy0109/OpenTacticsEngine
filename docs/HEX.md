@@ -187,8 +187,7 @@ What step 1 built, for the player, art and editor steps.
   neighbour `i`; `terrainAt` takes a `Cell`); `pickCell(look, x, y, mask, timeMs, blockSide)` takes `blockSide` 8 for
   hexagon games (piece `n` at column `n % 8`, row `n / 8`; default 4 keeps squares as they were);
   `joinBlockSide(grid)` returns 4 or 8. The loader checks join blocks against the sheet as 8 x 8 on hexagon games.
-  The player's existing square code (`sprites.cpp joinMaskOf`) still calls the four-neighbour version: harmless on a
-  hexagon game (the piece stays inside the block) but wrong; step 2 must switch to `joinMaskHex`.
+  (`sprites.cpp joinMaskOf` used the four-neighbour version until step 2; it now calls `joinMaskHex` on hexagon games.)
 - **Rules hash**: `game.json` is hashed key by key (rules keys only); `grid` was added to those keys, so a hexagon game
   hashes its kind and layout and an old save of a game whose grid changed is refused. `grid` missing and
   `{ "type": "square" }` hash alike (skipped), so square games keep their hash. `structures.json` (`rings`) and map files
@@ -205,3 +204,56 @@ What step 1 built, for the player, art and editor steps.
   `rings` yet (editor step; its server uses the engine loader, so hexagon games already validate there).
 - **Fixtures**: `tests/fixtures/hex-pointy` and `hex-flat` (no art; map `skirmish`, 12 x 9, 2 AI sides, an HQ with
   `"rings": 1`, factories, cities). `ote-sim tests/fixtures/hex-pointy skirmish` works; results are deterministic.
+
+## Implementation notes (player)
+
+What step 2 built (top-down view only), for the art, editor and later view steps.
+
+- **Geometry** is one small module with no drawing, `engine/core/view/hex_geo.h|cpp` (`HexGeo`, tested in
+  `tests/test_hex_view.cpp`): `HexGeo::of(grid, tile)`; `box(x, y)`, `middle`, `mapW/mapH`, `structureBox(x, y, rings)`,
+  `pick(fx, fy)` (nearest middle, `kNoCell` when that position is off the map), `nearestCell` (clamped), and
+  `rowSpan(row, l, r)`: the filled hexagon inside a box, row by row. `L` is `longSide(T)`; the quarter of it is the
+  overlap of rows (pointy) or columns (flat). Helpers that work on both kinds of grid (squares keep their exact old
+  arithmetic): `cellCentre`, `cellTopLeft`, `structureBox`, `cellNearPos`.
+- **Flat map pixels on hexagon maps.** A unit's `UnitView::px/py` is still the top-left of its tile-sized box, but that box is
+  centred on the hexagon's middle (`cellTopLeft`: middle minus `T/2`). So everything that adds `tile/2` to reach "the
+  middle" (floats, camera focus, lunges, fog flood) works unchanged, units are drawn exactly as on squares (sheet cell
+  `T` wide, feet at middle + `T/2`), and the walk glides between middles. Anything that needs a cell's position goes
+  through `cellCentre` / `cellTopLeft` / `structureBox`, never `x * tile` (there are no such uses left in `engine/player`
+  outside the isometric and 3D code, which never see a hexagon map).
+- **`MapProj`**: `hex()`, `hexGeo()`; `worldW/H` are the real map size (camera limits, scrolling, centring follow);
+  `pick` = nearest middle of the pixel's centre; `cellBox` = the hexagon's box (menus, the white flashes). A hexagon map
+  forces the top-down view (a warning if a style asks for another; the loader already refuses such styles).
+- **Drawing** is in `battle/hex_draw.h|cpp` and `structure_draw.cpp` (the square code paths are untouched): `fillHex`
+  (rows of equal width merged: about 15 `fillRect` calls), `hexEdges(color, width, edgeMask)` (the border of the
+  rows, only the edges whose direction bit is set), `outerEdges(grid, cell, covered)` (what an owner frame draws),
+  `drawTerrainHex`, and `CellShape` (one call for "a mark over this cell" on both kinds of grid). They draw whole
+  pixels, so any window scale or UI scale just magnifies them. The spans are built so that neighbouring hexagons
+  share their edges exactly (no gap, no overlap; `hex_drawn_hexagons_tile_exactly_and_agree_with_picking`); use an
+  **even `tileSize`** (an odd one may leave a one-pixel seam).
+- **Terrain**: the colour as a filled hexagon, then the art cell (box size, drawn in the box, never cut), or a faint outline
+  and the letter. Join pieces: `sprites.cpp` uses `joinMaskHex` + `pickCell(..., 8)` on hexagon games.
+- **Order of drawing**: terrain row by row (cells at screen positions sort the same way), then structures and units in one
+  pass sorted by the pixel row of their bottom edge (a structure: its box's bottom; a unit: its tile box's bottom; a unit
+  on a structure sorts with the structure), then fog, capture numbers, cursor. Odd columns on flat maps sit lower, rows
+  interleave on pointy maps: the pixel row decides, not the row index.
+- **Highlights** (move range, attack ring, supply, fog veil, white flashes) are `fillHex` at the cell's box; the cursor is
+  two rings (yellow outside, white inside). Capture numbers sit at the top right of the unit's tile box.
+- **Structures**: a one-hexagon picture is drawn in the hexagon's box; with `rings` across `structureBox` (pointy `3T` x
+  `5L/2`, flat `5L/2` x `3T`, bottom edge on the box's bottom) at its own aspect. The sheet cell of such a picture should
+  have exactly that size (it is scaled to the box's width). Placeholder: each covered hexagon filled, a dark outline round
+  the group, the letter on the middle hexagon. Owner frame: 2 pixels, on the outer edges of the covered hexagons only
+  (not on seams inside the group). `structureDimmed` (fog) now looks at `Battle::structureCells`.
+- **Input**: pointer and touch use `MapProj::pick`; the direction buttons move by column and row (unchanged code), the
+  turn/tilt buttons do not exist (no 3D). The player has no minimap, no edge scrolling and no drawn move path or
+  story-area markers, so there was nothing else to port; "next unit", dialogue focus, story camera moves and the
+  floating numbers use the hexagon's middle through the unit positions.
+- **Tests**: `tests/test_hex_view.cpp` (geometry, picking, tiling, `MapProj` on the fixtures), `tests/hex_player_test.py`
+  (both layouts: terrain and box corners by pixel, cursor, move range and attack ring against the contract's neighbour
+  order written again in Python, tap picking next to edges, rings frame, move and attack through the Continue save,
+  scrolling to the real map size, fog veil, and a generated art sheet: box-sized cells, 8 x 8 join pieces for every mask,
+  a ring structure's picture box), registered as `hex_player`; `tools/webtest/suites/hex.mjs` (a fixture through the
+  embed page, with a click).
+- **For art**: terrain cells are `T x L` (pointy) / `L x T` (flat), `L` = `longSide(T)`; join blocks 8 x 8 cells of that size;
+  unit cells as on squares (`T` wide); a ring structure's cell is `3T x 5L/2` (pointy) / `5L/2 x 3T` (flat). Transparent
+  corners show whatever was drawn before (the neighbour, or the background colour behind the map).
