@@ -456,6 +456,13 @@ Picking a square / area on the map: `MapViewState.picking` + `story/pickStroke.t
 The helper passes the new keys through unchanged (docs/EDITOR_API.md "Story data"). Squares are shown 1-based, stored 0-based.
 Tests: `tests/unit/story.test.ts`, `tests/e2e/story*.spec.ts`, `tests/editor_api_events_checks.py`. All wording is placeholder.
 
+## Economy in the editor (2026-11-14)
+
+Build order step 5 (editor part) of docs/ECONOMY.md: Research screen, structure upgrades / research / repairs, rules.supply on Rules,
+fuel / supplies on Units, ammunition on Weapons, story condition `researched` and command `grantResearch`. Notes: docs/EDITOR_UI.md
+"Economy options". Helper: `data/research.json` as `research` (empty list removes the file). Tests: `tests/editor_api_economy_checks.py`,
+`editor/web/tests/unit/economy.test.ts`, `tests/e2e/economy.spec.ts`. Fog of war keys and `demo-economy` content are still open.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining

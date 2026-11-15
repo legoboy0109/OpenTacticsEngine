@@ -7,6 +7,7 @@ import { useDoc, useEdit, useStore } from '../../store/context'
 import { DeleteConfirm } from '../../ui/DeleteConfirm'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
+import { EconomyChecks } from '../research/EconomyChecks'
 import { WeaponForm } from './WeaponForm'
 import { T } from './text'
 
@@ -30,6 +31,7 @@ function WeaponsList({ itemId }: { itemId?: string }) {
 
   return (
     <>
+      <EconomyChecks section="weapons" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
         items={weapons.map((w) => ({ id: w.id, label: w.name, sub: T.rangeText(w.range) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

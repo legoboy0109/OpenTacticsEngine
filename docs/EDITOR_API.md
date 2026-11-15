@@ -68,6 +68,7 @@ dropped (the document is strict JSON).
   "graphics": { …contents of data/graphics.json… },
   "structures": [ …the "structures" list of data/structures.json… ],
   "items": [ …the "items" list of data/items.json… ],
+  "research": [ …the "technologies" list of data/research.json… ],
   "campaign": { …contents of data/campaign.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
@@ -81,7 +82,9 @@ that exists but is not a JSON object is `null` plus a problem on
 `data/structures.json` gives `"structures": null` and no problem; a file that
 is not valid JSON or has no `structures` list gives `null` plus a problem on
 `data/structures.json`. `items` (`data/items.json`, docs/ITEMS.md) behaves exactly
-like `structures`. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is the file's one object; no file gives
+like `structures`. `research` (`data/research.json`, docs/ECONOMY.md "Research") behaves the same way, except that the
+file calls its list `technologies`; a broken file is `null` plus a problem on `data/research.json` and blocks only the
+Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is the file's one object; no file gives
 `"campaign": null` and no problem, a file that is not a JSON object gives `null` plus a problem on
 `data/campaign.json`. `revision` identifies the on-disk state (a hash of the
 project's files).
@@ -89,10 +92,12 @@ project's files).
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,
 "units": …, "maps": { … }, "scripts": { … }, "graphics": { … },
-"structures": [ … ], "items": [ … ], "campaign": { … } }` (same shapes as GET; a section that is absent or `null`
+"structures": [ … ], "items": [ … ], "research": [ … ], "campaign": { … } }` (same shapes as GET; a section that is absent or `null`
 is left untouched on disk; `graphics` must be an object and `structures` and `items` a
 list, anything else is `400`; `structures` is written as `{ "structures": [ … ] }`,
-`items` as `{ "items": [ … ] }`, and an empty list is valid). `campaign` is an object, written as it is; **`false` removes
+`items` as `{ "items": [ … ] }`, and an empty list is valid). `research` is a list too, written as
+`{ "technologies": [ … ] }`; **an empty `research` list removes `data/research.json`** instead (the loader refuses an
+empty technology list, so writing one would break the game; the project then reads back `"research": null`). `campaign` is an object, written as it is; **`false` removes
 `data/campaign.json`** (the game goes back to single battles) and any other value is `400`. Art image files are
 not part of this call: they have their own endpoints below.
 
@@ -100,13 +105,20 @@ not part of this call: they have their own endpoints below.
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/campaign.json`, each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and
   keys in the order received.
 - Invalid game data is still saved (work in progress must not be lost);
   the response reports it: `200 { "revision": "<new>", "problems": [ … ] }`.
+
+### Economy data (docs/ECONOMY.md)
+
+Upgrades, research, repair, fuel, ammunition and supply need nothing new on the wire: structures `upgrades` /
+`research` / `repairs`, units `fuel` / `fuelPerTurn` / `supplies`, weapons `ammo` and game.json `rules.supply` are part
+of the sections above and pass through with key order and unknown keys kept (tests/editor_api_economy_checks.py proves
+that file by file). Only `data/research.json` is a file of its own (see GET and PUT above); a map file may not use that name.
 
 ### Story data (docs/EVENTS.md)
 

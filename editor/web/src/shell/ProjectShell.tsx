@@ -6,6 +6,7 @@ import { CampaignScreen } from '../screens/campaign/CampaignScreen'
 import { ArtScreen } from '../screens/art/ArtScreen'
 import { ItemsScreen } from '../screens/items/ItemsScreen'
 import { MapsScreen } from '../screens/maps/MapsScreen'
+import { ResearchScreen } from '../screens/research/ResearchScreen'
 import { RulesScreen } from '../screens/rules/RulesScreen'
 import { StructuresScreen } from '../screens/structures/StructuresScreen'
 import { TerrainScreen } from '../screens/terrain/TerrainScreen'
@@ -31,6 +32,7 @@ function Screen({ route }: { route: ProjectRoute }) {
     case 'items': return <ItemsScreen itemId={route.itemId} />
     case 'terrain': return <TerrainScreen itemId={route.itemId} />
     case 'structures': return <StructuresScreen itemId={route.itemId} />
+    case 'research': return <ResearchScreen itemId={route.itemId} />
     case 'art': return <ArtScreen itemId={route.itemId} />
     case 'maps': return <MapsScreen itemId={route.itemId} />
     case 'campaign': return <CampaignScreen itemId={route.itemId} />

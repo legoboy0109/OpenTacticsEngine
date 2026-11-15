@@ -3,7 +3,7 @@ import type { Command } from '../../../../../model/storyTypes'
 import { setNum } from '../../../../../model/util'
 import { FieldGroup } from '../../../../../ui/Field'
 import { NumberInput } from '../../../../../ui/NumberInput'
-import { FilterPicker, ItemPick, SidePick } from '../pickers'
+import { FilterPicker, ItemPick, SidePick, TechPick } from '../pickers'
 import { useStory } from '../StoryContext'
 import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
@@ -15,6 +15,18 @@ export function GiveItemForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <ItemPick label={S.giveItem} value={cmd.giveItem ?? ''} onChange={(v) => patch({ giveItem: v })} />
       <FilterPicker label={S.giveItemTo} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
       <p className="help">{S.giveItemHelp}</p>
+    </div>
+  )
+}
+
+/** A technology a side has at once, for free (map events only: a campaign scene has no sides). */
+export function GrantResearchForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <TechPick label={S.grantTech} value={cmd.grantResearch ?? ''} onChange={(v) => patch({ grantResearch: v })} />
+      <SidePick label={S.grantSide} value={cmd.side ?? ''} onChange={(v) => patch({ side: v })} />
+      <p className="help">{S.grantHelp}</p>
     </div>
   )
 }

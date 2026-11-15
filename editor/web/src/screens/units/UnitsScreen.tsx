@@ -8,6 +8,7 @@ import { DeleteConfirm } from '../../ui/DeleteConfirm'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
 import { ItemChecks } from '../items/ItemChecks'
+import { EconomyChecks } from '../research/EconomyChecks'
 import { UnitForm } from './UnitForm'
 import { T } from './text'
 
@@ -33,6 +34,7 @@ function UnitsList({ itemId }: { itemId?: string }) {
   return (
     <>
       <ItemChecks section="units" />
+      <EconomyChecks section="units" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
         items={units.map((u) => ({ id: u.id, label: u.name, sub: T.subtitle(u.glyph, moveName(u.moveType)) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

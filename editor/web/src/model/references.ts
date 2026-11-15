@@ -1,6 +1,7 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
 import { dropArtOf } from './graphicsClean'
+import { economyUsageLines } from './researchRefs'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { readGrid, writeGrid } from './mapGrid'
@@ -37,6 +38,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const [mid, m] of mapEntries(doc))
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, mu.type)} has its own value` })
       for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
+      out.push(...economyUsageLines(doc, 'stat', id))
       break
     case 'resource':
       for (const u of units) if (u.cost && id in u.cost) out.push({ section: 'units', text: `Unit "${u.name}" has a cost in it` })
@@ -44,6 +46,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const i of doc.items ?? []) if (i.price && id in i.price) out.push({ section: 'items', text: `Item "${i.name}" has a price in it` })
       for (const [mid, m] of mapEntries(doc))
         for (const s of m.sides ?? []) if (s.resources && id in s.resources) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": side "${s.name}" starts with some` })
+      out.push(...economyUsageLines(doc, 'resource', id))
       out.push(...storyUsages(doc, [{ kind: 'resource', id }]))
       break
     case 'moveType':
@@ -58,6 +61,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         const n = (m.units ?? []).filter((u) => u.type === id).length
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
       }
+      out.push(...economyUsageLines(doc, 'unit', id))
       out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))
       if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break

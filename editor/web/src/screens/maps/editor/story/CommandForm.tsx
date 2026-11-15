@@ -3,7 +3,7 @@ import { commandKind, type Command } from '../../../../model/storyTypes'
 import { ObjectiveEditor } from './ObjectiveEditor'
 import { tidyObjectives } from '../../../../model/storyEdit'
 import { AddUnitForm } from './forms/AddUnitForm'
-import { GiveItemForm, GiveResourceForm } from './forms/GiveForms'
+import { GiveItemForm, GiveResourceForm, GrantResearchForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
 import { AddVariableForm, EndTurnForm, FocusForm, SetSwitchForm, SetVariableForm, WinLoseForm } from './forms/StoryForms'
@@ -22,6 +22,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
     case 'giveItem': return <GiveItemForm cmd={cmd} at={at} />
     case 'giveResource': return <GiveResourceForm cmd={cmd} at={at} />
+    case 'grantResearch': return <GrantResearchForm cmd={cmd} at={at} />
     case 'setSwitch': return <SetSwitchForm cmd={cmd} at={at} />
     case 'setVariable': return <SetVariableForm cmd={cmd} at={at} />
     case 'addVariable': return <AddVariableForm cmd={cmd} at={at} />

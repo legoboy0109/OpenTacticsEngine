@@ -24,6 +24,7 @@ export function clip(text: string, max = 32): string {
 export const sideName = ({ map }: SumCtx, id: string): string => map.sides?.find((s) => s.id === id)?.name || id
 const typeName = ({ doc }: SumCtx, id: string) => doc.units?.find((u) => u.id === id)?.name ?? id
 export const itemLabel = ({ doc }: SumCtx, id: string): string => doc.items?.find((i) => i.id === id)?.name ?? id
+export const techLabel = ({ doc }: SumCtx, id: string): string => doc.research?.find((t) => t.id === id)?.name ?? id
 const resourceName = ({ doc }: SumCtx, id: string) => doc.game?.resources?.find((r) => r.id === id)?.name ?? id
 export const switchName = ({ doc }: SumCtx, id: string): string => doc.game?.switches?.find((s) => s.id === id)?.name ?? id
 export const variableName = ({ doc }: SumCtx, id: string): string => doc.game?.variables?.find((v) => v.id === id)?.name ?? id
@@ -87,6 +88,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'dead': return `${filterText(c, k.dead)} is defeated`
     case 'round': return `the round ${opWords(k.round?.op)} ${k.round?.value ?? 0}`
     case 'carries': return `${filterText(c, k.unit)} carries ${itemLabel(c, k.carries!)}`
+    case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
     default: return 'something is true'
   }
 }
@@ -121,6 +123,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'moveUnit': return `Moves ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`
     case 'giveItem': return `Gives ${itemLabel(c, cmd.giveItem ?? '')} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
+    case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`
     case 'setSwitch': return `Turns the switch ${q(switchName(c, cmd.setSwitch ?? ''))} ${cmd.to === false ? 'off' : 'on'}`
     case 'setVariable': return `Sets the variable ${q(variableName(c, cmd.setVariable ?? ''))} to ${typeof cmd.to === 'number' ? cmd.to : 0}`

@@ -10,7 +10,8 @@ interface Props {
   emptyText?: string
 }
 
-/** A checkbox list; the order of `value` follows the order of `options`. */
+/** A checkbox list; the order of `value` follows the order of `options`. An option marked `disabled` cannot be ticked
+ *  (the caller puts the reason in its label); one that is already ticked can always be unticked. */
 export function MultiSelect({ label, help, options, value, onChange, emptyText }: Props) {
   const toggle = (v: string, on: boolean) => {
     const set = new Set(value)
@@ -26,7 +27,7 @@ export function MultiSelect({ label, help, options, value, onChange, emptyText }
       <div className="check-list">
         {options.map((o) => (
           <label key={o.value} className="check">
-            <input type="checkbox" checked={value.includes(o.value)} onChange={(e) => toggle(o.value, e.target.checked)} />
+            <input type="checkbox" checked={value.includes(o.value)} disabled={o.disabled && !value.includes(o.value)} onChange={(e) => toggle(o.value, e.target.checked)} />
             <span>{o.label}</span>
           </label>
         ))}

@@ -45,9 +45,13 @@ export interface Condition extends Extra {
   round?: { op: CompareOp; value: number }
   carries?: string
   unit?: Filter
+  /** A technology id: true once `side` has finished it (docs/ECONOMY.md). */
+  researched?: string
+  /** The side that must have it (a `researched` condition). */
+  side?: string
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched']
 
 /** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
 export interface Command extends Extra {
@@ -79,14 +83,16 @@ export interface Command extends Extra {
   focus?: { x: number; y: number } | string
   /** Campaign "after" scenes only: the chapter that comes next (docs/EVENTS.md "Campaign"). */
   goto?: string
+  /** A technology id: `side` has it at once, free (docs/ECONOMY.md). Map events only. */
+  grantResearch?: string
 }
 export type CommandKind =
   | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'giveItem' | 'giveResource'
-  | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto'
+  | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'giveItem', 'giveResource',
-  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto',
+  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
 ]
 
 export interface StoryEvent extends Extra {

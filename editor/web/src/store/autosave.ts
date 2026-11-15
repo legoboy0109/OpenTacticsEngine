@@ -26,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'items', 'weapons', 'units', 'graphics', 'campaign'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -37,8 +37,9 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
     // Art is the one section that can legitimately go back to "none" (undo past the first image): that is written as an
     // empty section, because sending nothing would leave the old images on disk while the screen shows none.
     // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
+    // For research an empty list removes data/research.json (the loader refuses an empty one).
     const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
-      : (k === 'structures' || k === 'items') && doc[k] === null && saved[k] !== null ? []
+      : (k === 'structures' || k === 'items' || k === 'research') && doc[k] === null && saved[k] !== null ? []
         // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
         : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
           : doc[k]

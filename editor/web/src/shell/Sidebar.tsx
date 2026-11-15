@@ -11,6 +11,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   items: 'Items',
   terrain: 'Terrain',
   structures: 'Structures',
+  research: 'Research',
   art: 'Art',
   maps: 'Maps',
   campaign: 'Campaign',
