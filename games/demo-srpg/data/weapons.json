@@ -1,10 +1,11 @@
 { "weapons": [
-  // "group" says which unit types can wield a weapon they carry (units.json "wields").
-  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "props": { "might": 6, "hit": 90 } },
-  { "id": "iron_lance", "name": "Iron Lance", "group": "lance", "props": { "might": 7, "hit": 80 } },
-  { "id": "iron_axe",   "name": "Iron Axe",   "group": "axe", "props": { "might": 8, "hit": 75 } },
+  // "group" says which unit types can wield a weapon they carry (units.json "wields"). "sounds" is what the
+  // weapon plays when it hits (docs/SOUND.md); a miss, or a weapon without it, uses the game's standard set (audio.json).
+  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "sounds": { "hit": "sword_hit" }, "props": { "might": 6, "hit": 90 } },
+  { "id": "iron_lance", "name": "Iron Lance", "group": "lance", "sounds": { "hit": "lance_hit" }, "props": { "might": 7, "hit": 80 } },
+  { "id": "iron_axe",   "name": "Iron Axe",   "group": "axe", "sounds": { "hit": "axe_hit" }, "props": { "might": 8, "hit": 75 } },
   // Bows hit fliers hard (x3 might); everything else is normal (x1).
-  { "id": "iron_bow",   "name": "Iron Bow",   "group": "bow", "range": [2, 2],
+  { "id": "iron_bow",   "name": "Iron Bow",   "group": "bow", "range": [2, 2], "sounds": { "hit": "bow_hit" },
     "props": { "might": 6, "hit": 85 },
     "versus": { "flier": 3 }, "versusDefault": 1 }
 ] }

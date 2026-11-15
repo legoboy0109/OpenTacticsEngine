@@ -8,7 +8,8 @@
   { "id": "cavalier", "name": "Cavalier", "glyph": "C", "moveType": "horse",
     "stats":   { "hp": 20, "str": 6, "skl": 5, "spd": 6, "def": 5, "mov": 7 },
     "growths": { "hp": 75, "str": 45, "skl": 45, "spd": 40, "def": 35 },
-    "wields": ["lance", "sword"], "items": ["iron_lance", "iron_sword"] },
+    "wields": ["lance", "sword"], "items": ["iron_lance", "iron_sword"],
+    "sounds": { "step": "hooves" } },
   { "id": "archer", "name": "Archer", "glyph": "A", "moveType": "foot",
     "stats":   { "hp": 16, "str": 5, "skl": 6, "spd": 6, "def": 3, "mov": 5 },
     "growths": { "hp": 65, "str": 45, "skl": 55, "spd": 45, "def": 25 },
@@ -20,7 +21,8 @@
   { "id": "knight", "name": "Knight", "glyph": "K", "moveType": "foot",
     "stats":   { "hp": 20, "str": 7, "skl": 3, "spd": 2, "def": 6, "mov": 4 },
     "growths": { "hp": 80, "str": 45, "skl": 30, "spd": 20, "def": 50 },
-    "wields": ["lance"], "items": ["iron_lance"], "tags": ["armored"] },
+    "wields": ["lance"], "items": ["iron_lance"], "tags": ["armored"],
+    "sounds": { "step": "plate_step" } },
   { "id": "soldier", "name": "Soldier", "glyph": "S", "moveType": "foot",
     "stats":   { "hp": 18, "str": 5, "skl": 3, "spd": 3, "def": 4, "mov": 5 },
     "growths": { "hp": 70, "str": 40, "skl": 30, "spd": 30, "def": 30 },
@@ -28,5 +30,6 @@
   { "id": "pegasus", "name": "Pegasus Knight", "glyph": "P", "moveType": "fly",
     "stats":   { "hp": 16, "str": 4, "skl": 5, "spd": 8, "def": 2, "mov": 7 },
     "growths": { "hp": 60, "str": 40, "skl": 50, "spd": 55, "def": 20 },
-    "wields": ["lance"], "items": ["iron_lance"], "tags": ["flier"] }
+    "wields": ["lance"], "items": ["iron_lance"], "tags": ["flier"],
+    "sounds": { "step": "flutter" } }
 ] }
