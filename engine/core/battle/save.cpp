@@ -6,6 +6,7 @@
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
 
+#include "core/battle/save_fog.h"
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
@@ -191,6 +192,7 @@ void saveBattleState(const Battle& b, Json& out) {
     structures.push(j);
   }
   out.set("structures", structures);
+  savejson::writeSeenOwners(b, out);
   saveStoryState(b, out);
 }
 
@@ -250,6 +252,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   for (size_t i = 0; i < b.structures.size(); ++i)
     if (!readStructure(rd, b, (*structures)[i], (int)i, b.structures[i])) return false;
 
+  if (!savejson::readSeenOwners(rd, saved, b)) return false;
   if (!restoreStoryState(rd, saved, b)) return false;
 
   battle = b;
