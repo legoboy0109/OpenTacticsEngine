@@ -58,7 +58,9 @@ export function LessonPanel() {
 
   return (
     <>
-      <Highlight name={collapsed ? undefined : target} />
+      {/* The ring stays while the lesson is folded: on a phone the open sheet covers the map editor's own controls, so folding is how
+          the maker gets at them, and that is when the ring is needed most. */}
+      <Highlight name={target} />
       <aside ref={el} className="learn-panel" data-collapsed={collapsed || undefined} data-dock={wide || undefined} aria-label={T.panelLabel}>
         {collapsed ? (
           <button type="button" className="learn-bar" aria-expanded="false" onClick={() => setCollapsed(false)} title={T.show}>

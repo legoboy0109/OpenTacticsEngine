@@ -163,11 +163,11 @@ test.describe('the pointing ring', () => {
     await expect(ring(page)).toHaveCSS('animation-name', 'none')
   })
 
-  test('is not shown on the game list or while the panel is folded', async ({ page }) => {
+  test('stays while the panel is folded (on a phone that is how the maker gets at the controls) and is not shown on the game list', async ({ page }) => {
     await startFromOffer(page)
     await expectRingOn(page, 'game-name')
     await panel(page).getByRole('button', { name: 'Hide lesson' }).click()
-    await expect(ring(page)).toHaveCount(0)
+    await expectRingOn(page, 'game-name')
     await page.getByRole('button', { name: /Step 1 of 10/ }).click()
     await expectRingOn(page, 'game-name')
     await page.getByRole('link', { name: /Back to all games/ }).click()

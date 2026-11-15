@@ -15,8 +15,9 @@ Owner decisions (2026-11-15):
   "Not now"); afterwards everything is behind a **Learn** button. Progress
   is remembered.
 
-Status: step 1 of the build order is built (framework + lesson 1 "Your first game"; how it is built: docs/EDITOR_UI.md "Learn", the
-state file: docs/EDITOR_API.md). Topic lessons 2 to 8 are not written yet; "How to write a lesson" at the end is for them.
+Status: built. The framework and all eight lessons of the first version are in (`editor/web/src/learn/`). Lesson texts
+await the owner's review. Weak spot: on a phone the open lesson sheet covers the map editor's own tabs, so map steps are
+done with the lesson folded (the ring stays while folded).
 
 ## How a lesson works
 

@@ -139,7 +139,8 @@ goal (demos only exercise features).
       grids).
       Owner (2026-11-15): teaches the editor; hands-on steps that tick
       themselves; "Your first game" plus topic lessons; offered once,
-      then behind a Learn button. Contract: docs/TUTORIAL.md.
+      then behind a Learn button. Contract: docs/TUTORIAL.md. DONE (lesson texts
+      to be reviewed by the owner).
    k. Strategy-RPG feature set (owner, 2026-11-15: wants the features a
       GBA-era strategy RPG fan project needs; reference point named by
       the owner: the fan game "Vision Quest"). After the tutorial.

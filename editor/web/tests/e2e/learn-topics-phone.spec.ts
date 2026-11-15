@@ -3,7 +3,7 @@
 // on screen, on the control the step names. With OTE_SHOT_DIR set a screenshot of each is saved to look at. The panel is a bottom sheet here.
 import type { Page } from '@playwright/test'
 import type { Helper } from './helper'
-import { answered, expect, panel, ring, setLearnState, stepTitle, test } from './learnkit'
+import { answered, expect, panel, ring, setLearnState, test } from './learnkit'
 import { tab } from './mapkit'
 import { shot } from './learnstart'
 
@@ -27,7 +27,8 @@ async function seed(lh: Helper, lesson: string, template: string, name: string, 
 
 /** The lesson shows `title` and the ring (after the page scrolled it into view) is up on the control named `target`. */
 async function expectPointing(page: Page, title: string, target: string, shotName: string, opts: { underSheet?: string } = {}): Promise<void> {
-  await expect(stepTitle(page)).toHaveText(title)
+  // Folded (after fold()), the slim bar carries the step's title instead of the open panel.
+  await expect(page.locator('.learn-bar-text, [data-testid="learn-step-title"]')).toContainText(title)
   await expect(ring(page)).toHaveAttribute('data-target', target)
   if (opts.underSheet) {
     // Known limits of the phone layout (see the report): the lesson sheet covers this control until the lesson is folded.
@@ -72,6 +73,14 @@ test('@smoke story on a phone: the map list, then the tabs of the map', async ({
   await expectPointing(page, 'Add an opening event', 'add-event|map-tab-events|list-item', 'story-p1c')
 })
 
+/** On a phone the open lesson sheet leaves no room for the map editor's own tabs: the maker folds the lesson ("Hide lesson") to use them. */
+async function fold(page: Page): Promise<void> {
+  // (folding is remembered across pages, so it may already be folded)
+  await expect(page.locator('.learn-panel')).toBeVisible()
+  const hide = page.getByRole('button', { name: 'Hide lesson' })
+  if (await hide.count()) await hide.click()
+}
+
 test('@smoke story on a phone: pick the place, and the objectives', async ({ page, lh }) => {
   const id = await seed(lh, 'story', 'blank', 'Story events', 4, (d) => {
     d.maps.start.events = [
@@ -81,6 +90,7 @@ test('@smoke story on a phone: pick the place, and the objectives', async ({ pag
   })
   await page.goto(`/p/${id}/maps`)
   await page.getByRole('button', { name: /^First Map/ }).click()
+  await fold(page)
   await tab(page, 'Events').click()
   await page.getByRole('button', { name: 'Open event event_2' }).dispatchEvent('click') // it sits under the lesson sheet until the ring scrolls it up
   await expectPointing(page, 'Pick the place', 'pick-area|list-item', 'story-p5')
@@ -88,6 +98,7 @@ test('@smoke story on a phone: pick the place, and the objectives', async ({ pag
   await setLearnState(lh, { version: 1, offerAnswered: true, lessons: { story: { state: 'running', step: 6, skipped: [], signals: [], game: o } } })
   await page.goto(`/p/${o}/maps`)
   await page.getByRole('button', { name: /^First Map/ }).click()
+  await fold(page)
   await tab(page, 'Objectives').click()
   await expectPointing(page, 'Tell the player the goal', 'objective-text|map-tab-objectives|list-item', 'story-p7')
 })
@@ -101,6 +112,7 @@ test('@smoke sound on a phone: music, map music and a weapon sound', async ({ pa
   await setLearnState(lh, { version: 1, offerAnswered: true, lessons: { sound: { state: 'running', step: 2, skipped: [], signals: ['soundPreviewed'], game: id } } })
   await page.goto(`/p/${id}/maps`)
   await page.getByRole('button', { name: /^First Map/ }).click()
+  await fold(page)
   await tab(page, 'Map').click()
   await expectPointing(page, 'Pick music for a map', 'map-music|map-tab-map|list-item', 'sound-p3', { underSheet: 'the map editor\'s own bottom sheet' })
   await setLearnState(lh, { version: 1, offerAnswered: true, lessons: { sound: { state: 'running', step: 4, skipped: [], signals: ['soundPreviewed'], game: id } } })
