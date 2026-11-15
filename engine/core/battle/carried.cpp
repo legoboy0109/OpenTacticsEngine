@@ -23,6 +23,7 @@ int Battle::applyRoster(Unit& u) const {
       u.items.push_back(s);
     }
     u.hp = maxHp(u);  // a chapter always begins at full strength
+    stockUnit(u);     // ... and with full fuel and ammunition (the roster does not carry them)
     return 1;
   }
   return -1;

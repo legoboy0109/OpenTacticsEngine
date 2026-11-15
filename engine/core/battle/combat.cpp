@@ -69,8 +69,12 @@ int Battle::counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell a
     int w = itemOf(def.items[(size_t)slot]).weapon;
     return db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs) ? w : -1;
   }
-  for (int w : typeOf(def).weapons)
+  const std::vector<int>& list = typeOf(def).weapons;
+  for (size_t i = 0; i < list.size(); ++i) {
+    int w = list[i];
+    if (!def.ammo.empty() && i < def.ammo.size() && def.ammo[i] == 0) continue;  // out of ammunition: the next weapon answers
     if (db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs)) return w;
+  }
   return -1;
 }
 
@@ -186,10 +190,15 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   int hpA = units[a].hp, hpD = units[d].hp;
   int rounds = std::max(f.attack.strikes, f.counter.can ? f.counter.strikes : 0);
   for (int i = 0; i < rounds; ++i) {
-    if (i < f.attack.strikes && units[a].alive && units[d].alive)
+    // Ammunition: one per attack, spent when its first strike is made (a counter that never comes costs nothing).
+    if (i < f.attack.strikes && units[a].alive && units[d].alive) {
+      if (i == 0) spendAmmo(a, action.weapon);
       doStrike(a, d, action.weapon, 0, events);
-    if (f.counter.can && i < f.counter.strikes && units[a].alive && units[d].alive)
+    }
+    if (f.counter.can && i < f.counter.strikes && units[a].alive && units[d].alive) {
+      if (i == 0) spendAmmo(d, f.counter.weapon);
       doStrike(d, a, f.counter.weapon, kCounter, events);
+    }
   }
   if (units[a].alive) units[a].done = true;
 

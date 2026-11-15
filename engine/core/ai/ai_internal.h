@@ -15,7 +15,7 @@ constexpr int kFar = 1 << 28;  // "unreachable" in a distance field
 struct Order {
   double score = 0;
   Cell moveTo = kNoCell;               // kNoCell = act from the current cell
-  ActionType kind = ActionType::Wait;  // Attack, Capture, UseItem or Wait
+  ActionType kind = ActionType::Wait;  // Attack, Capture, UseItem, Supply or Wait
   int target = -1, weapon = -1;        // Attack only
   int slot = -1;                       // UseItem only: the inventory slot (target = the unit itself)
 };
@@ -68,6 +68,11 @@ Order bestOrder(Context& cx, const Unit& u);
 // ---- ai_items.cpp ----
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.
 void considerHealing(const Battle& b, const Unit& u, Order& order);
+
+// ---- ai_supply.cpp ----
+// Repair and supply (docs/ECONOMY.md): may replace `order` by a retreat to a repairing structure or a supply
+// point, or by a Supply action of a supplier unit. `stops` are the squares the unit may end on (from `reach`).
+void considerSupply(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& order);
 
 // ---- ai_build.cpp ----
 bool chooseBuild(const Battle& b, Cell& cell, int& unitType);

@@ -16,8 +16,8 @@ first version:
 Everything below is engine design and may change; wording shown to players
 and makers is placeholder until the owner approves it.
 
-Status: upgradable structures and research are built in the rules core (build order step 1, done
-2026-11-14, the sections below describe what the core does); repair and supply and fog of war are still
+Status: upgradable structures and research (build order step 1) and repair and supply (step 2) are built in the
+rules core (done 2026-11-14, the sections below describe what the core does); fog of war is still
 design only; no player UI, no editor screens and no demo content yet (steps 4 and 5).
 
 A game that uses none of this behaves exactly as today and keeps its save
@@ -117,35 +117,67 @@ structures.json, per structure kind:
 
 game.json `rules.supply` (optional):
 ```jsonc
-"supply": { "repair": { "amount": 20,          // percent of max HP per turn, on a structure of its own side
-                        "costShare": 100 },    // percent of the proportional unit cost paid (0 = free)
-            "structures": true }               // own structures also refill fuel and ammunition
+"supply": { "repair": { "amount": 20,          // percent of max HP per turn, 1..100 (required inside "repair")
+                        "costShare": 100 },    // percent of the proportional unit cost paid, 0..100 (default 100; 0 = free)
+            "structures": true }               // own structures also refill fuel and ammunition (default false)
 ```
-- **Repair**: at the start of a side's turn every unit of it standing on a
-  structure it owns heals `amount`% of max HP (rounded up, capped), paying
-  `costShare`% of `unit cost x healed share`; if the side cannot pay, it
-  heals what it can afford. structures.json `"repairs": ["tag", "unitType"]`
-  limits which units a structure kind repairs (missing = all).
-- **Fuel** (optional per unit type): units.json `"fuel": 60`, optional
-  `"fuelPerTurn": 5` (aircraft, ships). Moving costs fuel equal to the
-  movement points spent. A unit cannot move further than its fuel allows. At
-  the start of its side's turn a unit with `fuelPerTurn` loses that much;
-  at 0 fuel a unit with `fuelPerTurn` is destroyed, others just cannot move.
-- **Ammunition** (optional per weapon): weapons.json `"ammo": 6`. Each
-  attack (not each strike) with it spends one; at 0 it cannot be used
-  (another weapon of the unit is used, or none). With carried weapons
-  (docs/ITEMS.md) item `uses` already do this job: `ammo` on a weapon that
-  is carried as an item is a loader error.
-- **Resupply**: own structures (if `structures: true`) at the start of the
-  turn, for free; and unit types with `"supplies": true`: at the start of
-  their side's turn, and by the action `Supply(unit)` (ends its turn), they
-  refill fuel and ammunition of adjacent units of their side.
-- Events `UnitRepaired` (unit, amount, cost), `UnitResupplied` (unit),
-  `FuelSpent` is not an event (the view reads the unit).
-- Saves: per unit fuel and per fixed weapon ammunition.
-- AI: a unit below 40% HP that can reach an own structure this turn and has
-  no kill goes there; a unit below a quarter of its fuel or out of
-  ammunition goes toward the nearest own structure or supplier.
+Unknown keys inside `supply` / `repair` are refused. A game without the block repairs and resupplies nothing.
+
+- **Repair**: at the start of a side's turn every hurt unit of it standing on a structure it owns (any square of a
+  bigger one; allied or neutral structures do not count) heals `amount`% of its **maximum HP** (`Battle::stat`, so
+  research and accessory bonuses count), rounded up, never more than is missing. structures.json
+  `"repairs": ["air", "ship", "tank"]` limits which units a structure kind repairs: each entry is a unit type id or a
+  tag some unit type carries (the same rule as weapon `versus` keys, same refusal when it is neither); no key = all;
+  `[]` = repairs nothing. A unit is matched when its type id or one of its tags is listed.
+- **Price**: for healing h HP, each resource `r` in the unit type's `cost` is paid as
+  `ceil(cost[r] x costShare / 100 x h / maxHp)`. Rounding is **up, per resource**, so a repair is never free by
+  rounding; a unit type with no `cost`, or `costShare` 0, repairs free. If the side cannot pay the full amount the
+  unit heals the **most HP it can afford** with every resource (the price only grows with h; possibly none, then
+  nothing happens and no event is sent). Units are served in unit index order, so a short purse pays the first ones.
+- **Fuel** (optional per unit type): units.json `"fuel": 60` (1..999), optional `"fuelPerTurn": 5` (needs `fuel`,
+  1..999 and less than `fuel`). A unit starts with a full tank. Moving costs fuel equal to the movement points of the
+  path; `Battle::reachable` limits the budget to `min(movement, fuel)`, so the movement range, the path planner, the
+  Move check and the AI all see the same squares. A unit with no fuel left can still wait, attack, capture. At the start
+  of its side's turn a unit with `fuelPerTurn` loses that much (the first turn of the battle included; a unit built or
+  added later burns from its side's next turn on); when that leaves 0 it is destroyed: a normal death (`UnitDied`, the
+  story's `defeated` events with no killer, defeat rules and objectives are checked right away). A type without
+  `fuelPerTurn` at 0 just cannot move.
+- **Ammunition** (optional per weapon): weapons.json `"ammo": 6` (1..99). A unit has one count per entry of its type's
+  weapon list. An attack spends one from the weapon used when its first strike is made, whether the unit started the
+  fight or counters (several strikes cost one; a counter that never comes, because the first strike killed, costs
+  nothing). A weapon at 0 is not offered: `weaponsOf` leaves it out, so attack options, forecasts, the Attack check
+  and the AI skip it, and a defender counters with its next usable weapon or not at all. With carried weapons
+  (docs/ITEMS.md) item `uses` already do this job: `ammo` on a weapon that is carried as an item is a loader error,
+  and a game with carried weapons tracks no ammunition.
+- **Resupply** refills fuel and ammunition to full and sends `UnitResupplied` (only when something was missing):
+  own structures when `structures: true` (free, a unit on any square), and unit types with units.json
+  `"supplies": true`: for the **adjacent units of the same side**, at the start of their side's turn and by the action
+  `Supply(unit)` (the supplier must not have acted, needs at least one adjacent unit of its side that lacks
+  something; it may move first; it ends the supplier's turn).
+- **Order at the start of a side's turn** (one place, `Battle::beginTurn`): `TurnStarted`, income, the research
+  countdown, **resupply** (structures, then suppliers), **fuel burn** (and its destructions), **repair**, then the
+  story's turn events. Income first so it can pay; research before repair so a finished HP bonus counts; resupply
+  before the burn so a unit on a depot is not destroyed by it; burn before repair so a unit that dies does not cost a
+  repair. If a unit running dry ends the battle, the rest of the turn start does not happen.
+- **Events** (after the old ones): `UnitRepaired` (a = unit, b = HP restored, c = its HP now, data = what it cost
+  per resource index, empty when free); the payment comes first as `ResourceChanged` events like every other
+  payment. `UnitResupplied` (a = unit). Fuel and ammunition are not events (the view reads the unit).
+- **New units** (built, added by a story event, placed by the map, dressed from a campaign roster) start with a full
+  tank and full ammunition. A campaign does **not** carry them: every chapter starts full.
+- Saves: per unit `"fuel": n` (units whose type has fuel) and `"ammo": { "<weapon id>": n }` (units with a
+  weapon that has ammunition; unlimited weapons are not listed); see docs/SAVES.md. Games without these features
+  write exactly the old files and keep their hash.
+- AI (`ai/ai_supply.cpp`; all of it only when the data exists): a unit **below 40% HP** that can reach this turn a
+  structure of its own side that would repair it, and could pay for at least some of it now, goes there (the
+  nearest by travel cost, ties to the lowest square), unless its planned attack kills. A unit **below a quarter of its
+  fuel, or with no usable weapon left for lack of ammunition**, goes toward the nearest own structure (when structures
+  resupply) or own supplier (distance field, so not through impassable ground), waits where it stands when it is
+  already on a structure or next to a supplier, and is not held back by a planned kill. A supplier uses `Supply` when
+  a square it can reach has a unit of its side next to it that lacks something (it moves there first). Every square is
+  taken from `reachable`, so it never plans a move its fuel does not allow.
+- Queries for the player (`Battle`): `fuel(unit)`, `maxFuel(unit)` (-1 = none), `ammo(unit, weapon)`,
+  `maxAmmo(unit, weapon)` (-1 = unlimited), `needsSupply(unit)`, `canSupply(unit)`, `supplyTargetsFrom(unit, cell,
+  out)`, `repairPreview(unit, plan)` / `repairPreviewAt(unit, cell, plan)` (`RepairPlan`: heal, cost per resource).
 
 ## Fog of war
 
@@ -213,7 +245,7 @@ stealth abilities beyond `hides`; several research queues.
 ## Build order
 
 1. Core: upgradable structures + research (data, rules, saves, AI, tests). **Done.**
-2. Core: repair and supply.
+2. Core: repair and supply. **Done.**
 3. Core: fog of war (the biggest: sight, per-team event visibility, AI).
 4. Player: menus and panel for 1 and 2; fog drawing in every kind of view.
 5. Editor: all screens; `demo-economy` content (a town upgrade, two

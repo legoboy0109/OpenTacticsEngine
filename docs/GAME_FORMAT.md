@@ -56,7 +56,11 @@ id that does not exist is a load error.
     "production":  { "enabled": false, "builtUnitsCanAct": false },
     "capture":     { "enabled": false, "amount": "a.hp" },
     "progression": { "enabled": false, "xpPerLevel": 100, "maxLevel": 20,
-                     "xpHit": "10", "xpKill": "30" }
+                     "xpHit": "10", "xpKill": "30" },
+    // Optional (docs/ECONOMY.md "Repair and supply"); unknown keys are refused. No block = nothing happens.
+    "supply": { "repair": { "amount": 20, "costShare": 100 },   // % of max HP per turn on an own structure, 1..100;
+                                                                  // % of the proportional unit cost, 0..100, default 100
+                "structures": true }                              // own structures also refill fuel and ammunition
   },
 
   "formulas": {
@@ -128,7 +132,9 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "tags": ["hq"],                               // "hq" = headquarters (defeat: lostHq)
     "research": true,                             // optional: a side owning one may research (docs/ECONOMY.md)
     "upgrades": [ { "to": "town", "cost": { "funds": 3000 },   // optional: kinds it can be built up into (same
-                    "requires": "masonry" } ] }                // width x height); "requires" = a technology
+                    "requires": "masonry" } ],                 // width x height); "requires" = a technology
+    "repairs": ["air", "tank"] }                   // optional: unit type ids / tags it repairs (rules.supply.repair);
+                                                   // missing = all, [] = none
 ] }
 ```
 
@@ -148,6 +154,7 @@ the ground's movement costs. Ids are unique among structures.
     "versus": { "flier": 3 },     // key = target unit type id or tag
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
+    "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
     "damage": "a.str + w.might"   // optional override of formulas.damage
   }
 ] }
@@ -171,7 +178,10 @@ and gets `vs = 1`.
     "items": ["iron_lance", "vulnerary"],                    // optional: what it starts with (docs/ITEMS.md)
     "cost": { "funds": 3000 },
     "tags": ["armored"],
-    "canCapture": false }
+    "canCapture": false,
+    "fuel": 60, "fuelPerTurn": 5,                            // optional (docs/ECONOMY.md): tank 1..999; burn per turn
+                                                             // (needs fuel, less than fuel)
+    "supplies": false }                                      // optional: refills adjacent units of its side
 ] }
 ```
 

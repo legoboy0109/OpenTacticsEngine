@@ -31,8 +31,10 @@ Contract for the structure layer. Owner decisions (2026-11-14):
     "produces": ["infantry", "tank"],           // unit types the owner can build here
     "tags": ["hq"],                             // "hq" = headquarters
     "research": true,                           // optional: owners may research here (docs/ECONOMY.md)
-    "upgrades": [ { "to": "town", "cost": { "funds": 3000 }, "requires": "masonry" } ] } ] }
+    "upgrades": [ { "to": "town", "cost": { "funds": 3000 }, "requires": "masonry" } ],
                                                 // optional: kinds it can become (same size); docs/ECONOMY.md
+    "repairs": ["air", "tank"] } ] }            // optional: unit type ids or tags it repairs (default all);
+                                                // needs rules.supply.repair; docs/ECONOMY.md "Repair and supply"
 ```
 
 Ids are unique among structures. `name` defaults to the id.

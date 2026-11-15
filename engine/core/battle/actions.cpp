@@ -94,6 +94,10 @@ bool Battle::validate(const Action& action, std::string* why) const {
       return true;
     case ActionType::Wait:
       return true;
+    case ActionType::Supply:
+      if (!typeOf(u).supplies) return fail(why, "that unit cannot supply others");
+      if (!canSupply(action.unit)) return fail(why, "there is nobody next to it who needs supplies");
+      return true;
     case ActionType::Talk: {
       std::vector<TalkOption> options;
       talkOptions(action.unit, u.cell, options);
@@ -116,6 +120,7 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::Build: applyBuild(action, events); break;
     case ActionType::UpgradeStructure: applyUpgrade(action, events); break;
     case ActionType::StartResearch: applyResearch(action, events); break;
+    case ActionType::Supply: applySupply(action, events); break;
     case ActionType::Talk: applyTalk(action, events); break;
     case ActionType::EndTurn:
       advanceTurn(events);
@@ -154,6 +159,7 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   events.push_back(e);
 
   releaseCapture(action.unit, action.cell);  // walking off the structure abandons a capture
+  if (u.fuel >= 0) u.fuel -= reach.cost[(size_t)action.cell];  // the movement points of the path (reach limited it to the tank)
   occupant[u.cell] = -1;
   u.cell = action.cell;
   occupant[u.cell] = action.unit;
@@ -227,6 +233,7 @@ void Battle::applyBuild(const Action& action, std::vector<Event>& events) {
     u.items.push_back(s);
   }
   u.hp = maxHp(u);
+  stockUnit(u);
   u.moved = u.done = !db->rules.builtUnitsCanAct;
   units.push_back(u);
   occupant[action.cell] = u.id;

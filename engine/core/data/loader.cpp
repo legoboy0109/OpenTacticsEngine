@@ -98,6 +98,8 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (r.items.inventorySize < 1 || r.items.inventorySize > kMaxInventory)
     return c.fail("rules.items", "\"inventorySize\" must be from 1 to " + std::to_string(kMaxInventory));
 
+  if (!loadSupplyRules(c, *rules, db)) return false;
+
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
   if (!c.integer(*blk, "xpPerLevel", "rules.progression", r.xpPerLevel)) return false;
@@ -314,6 +316,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadGameFile(root + "/game.json", db, err)) return false;
   if (!loadWeapons(weaponsPath, db, err)) return false;
   if (!loadItems(root + "/data/items.json", db, err)) return false;
+  if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
   if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
