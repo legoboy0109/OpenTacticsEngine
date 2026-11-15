@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "name": "Hex Tactics (pointy-top)",
+  "description": "An Advance Wars-style battle on hexagons with a corner pointing up: capture cities, earn funds, build an army; a fortress covers seven hexagons.",
+  "grid": { "type": "hex", "layout": "pointy" },
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [
+    { "id": "hp", "name": "HP" },
+    { "id": "mov", "name": "Move" }
+  ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "funds", "name": "Funds" } ],
+  "moveTypes": [
+    { "id": "foot", "name": "Foot" },
+    { "id": "tread", "name": "Tread" }
+  ],
+  "rules": {
+    "turnOrder": "sides",
+    "counterAttacks": true,
+    "defeat": ["noUnits", "lostHq"],
+    "economy": { "enabled": true },
+    "production": { "enabled": true, "builtUnitsCanAct": false },
+    "capture": { "enabled": true, "amount": "a.hp / 10" }
+  },
+  "formulas": {
+    "damage": "vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))"
+  },
+  "styles": [
+    { "id": "classic", "name": "Classic" }
+  ],
+  "scripts": [],
+  "maps": [
+    { "id": "crossing", "name": "River Crossing", "file": "maps/crossing.json" }
+  ]
+}

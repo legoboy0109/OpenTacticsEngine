@@ -27,6 +27,10 @@ TARGETS = {
     # A blank project has one foot unit and one sword: the standard set only.
     'editor/templates/blank': dict(extras=[]),
     'editor/templates/economy-tactics': dict(extras=['cannon_shot', 'tank_move']),
+    # the hexagon games: the same tanks and artillery; the demo's second map is a fog map
+    'games/demo-hex': dict(extras=['cannon_shot', 'tank_move'], use_extra={'ambush': 'ambush'}),
+    'editor/templates/hex-tactics-pointy': dict(extras=['cannon_shot', 'tank_move']),
+    'editor/templates/hex-tactics-flat': dict(extras=['cannon_shot', 'tank_move']),
     'editor/templates/strategy-rpg': dict(extras=['sword_hit', 'bow_shot', 'hooves']),
 }
 

@@ -106,7 +106,8 @@ TEST(png_decodes_rgba_and_rejects_garbage) {
 // size the loader read from their headers.
 TEST(shipped_games_have_complete_art) {
   const char* games[] = {"games/demo-srpg", "games/demo-economy", "editor/templates/strategy-rpg",
-                         "editor/templates/economy-tactics", "editor/templates/blank"};
+                         "editor/templates/economy-tactics", "editor/templates/blank",
+                         "games/demo-hex", "editor/templates/hex-tactics-pointy", "editor/templates/hex-tactics-flat"};
   for (const char* g : games) {
     Database db;
     std::string err;

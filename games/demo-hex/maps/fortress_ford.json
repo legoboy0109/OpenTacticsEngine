@@ -1,0 +1,55 @@
+{
+  "name": "Fortress Ford",
+  "grid": { "type": "hex", "width": 19, "height": 13 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "water", "=": "bridge" },
+  "tiles": [
+    "mf....f..~..f....fm",
+    "..f.rrrr==rrrr.f...",
+    "....r.mmf~fmm.r....",
+    "f..r....~~....r..f.",
+    ".r.r..f.~.~.f..r.r.",
+    "mrr.ff.~..~.ff.rrm.",
+    "..rrrrr=...=rrrrr..",
+    ".rr..f~....~f..rr..",
+    "fr.r..~.f.f.~..r.rf",
+    "...r.~m.mm.m~.r....",
+    "fm..r~.mf.fm.~r..mf",
+    "..fr~.f....f.~rf...",
+    ".f.r=rrrrrrrrr=r.f."
+  ],
+  "sides": [
+    {"id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human", "resources": {"funds": 3000}},
+    {"id": "red", "name": "Red Army", "color": "#cc0000", "controller": "ai", "resources": {"funds": 3000}}
+  ],
+  "structures": [
+    {"type": "hq", "x": 2, "y": 6, "side": "blue"},
+    {"type": "hq", "x": 16, "y": 6, "side": "red"},
+    {"type": "factory", "x": 3, "y": 3, "side": "blue"},
+    {"type": "factory", "x": 14, "y": 3, "side": "red"},
+    {"type": "factory", "x": 3, "y": 9, "side": "blue"},
+    {"type": "factory", "x": 14, "y": 9, "side": "red"},
+    {"type": "city", "x": 1, "y": 4, "side": "blue"},
+    {"type": "city", "x": 17, "y": 4, "side": "red"},
+    {"type": "city", "x": 1, "y": 8, "side": "blue"},
+    {"type": "city", "x": 17, "y": 8, "side": "red"},
+    {"type": "city", "x": 5, "y": 2},
+    {"type": "city", "x": 13, "y": 2},
+    {"type": "city", "x": 6, "y": 10},
+    {"type": "city", "x": 12, "y": 10},
+    {"type": "fortress", "x": 9, "y": 6}
+  ],
+  "units": [
+    {"type": "infantry", "side": "blue", "x": 3, "y": 6},
+    {"type": "infantry", "side": "red", "x": 15, "y": 6},
+    {"type": "infantry", "side": "blue", "x": 2, "y": 5},
+    {"type": "infantry", "side": "red", "x": 15, "y": 5},
+    {"type": "infantry", "side": "blue", "x": 2, "y": 7},
+    {"type": "infantry", "side": "red", "x": 15, "y": 7},
+    {"type": "mech", "side": "blue", "x": 4, "y": 6},
+    {"type": "mech", "side": "red", "x": 14, "y": 6},
+    {"type": "recon", "side": "blue", "x": 3, "y": 5},
+    {"type": "recon", "side": "red", "x": 14, "y": 5},
+    {"type": "tank", "side": "blue", "x": 3, "y": 7},
+    {"type": "tank", "side": "red", "x": 14, "y": 7}
+  ]
+}

@@ -1,0 +1,18 @@
+// On a fog map a unit in a forest is seen only from next door ("hides"); infantry and mech see 2 further from a mountain.
+{ "terrain": [
+  { "id": "plain",    "name": "Plain",    "color": "#9ccc65", "glyph": ".",
+    "props": { "defense": 1 } },
+  { "id": "road",     "name": "Road",     "color": "#c9c3b0", "glyph": "r",
+    "props": { "defense": 0 } },
+  { "id": "forest",   "name": "Forest",   "color": "#43803c", "glyph": "f",
+    "moveCost": { "tread": 2, "wheels": 3 },
+    "props": { "defense": 2 }, "hides": true },
+  { "id": "mountain", "name": "Mountain", "color": "#8d7b68", "glyph": "m",
+    "moveCost": { "foot": 2, "tread": 0, "wheels": 0 },
+    "props": { "defense": 4 }, "visionBonus": { "amount": 2, "units": ["infantry", "mech"] } },
+  { "id": "water",    "name": "River",    "color": "#4a8fcb", "glyph": "~",
+    "moveCost": { "foot": 0, "tread": 0, "wheels": 0 },
+    "props": { "defense": 0 } },
+  { "id": "bridge",   "name": "Bridge",   "color": "#b07f4c", "glyph": "=",
+    "props": { "defense": 0 } }
+] }
