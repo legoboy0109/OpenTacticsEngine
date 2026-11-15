@@ -72,7 +72,7 @@ test('every size from 1 to 8 is saved and drawn as a footprint; the boxes refuse
     await page.getByLabel('Width (squares)').fill(String(w))
     await page.getByLabel('Height (squares)').fill(String(h))
     await expect(page.getByTestId('footprint').locator('span')).toHaveCount(w * h)
-    await expect(page.getByText(`Covers ${w} × ${h} squares`)).toBeVisible()
+    await expect(page.getByText(`Covers ${w} × ${h} squares`, { exact: true })).toBeVisible()
     await saved(page)
     const k = disk(id).find((s) => s.id === 'big_one')!
     expect([k.width ?? 1, k.height ?? 1]).toEqual([w, h])
