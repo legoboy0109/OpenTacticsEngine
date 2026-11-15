@@ -2,8 +2,13 @@
 // lessons/<id>.ts (see "How to write a lesson" in docs/TUTORIAL.md) and add it here.
 import type { Lesson } from '../types'
 import { firstGame } from './first-game'
+import { items } from './items'
 
-export const LESSONS: Lesson[] = [firstGame]
+// Order of the Learn list: first-game, structures, items, story, economy, sound, art, hexagons.
+export const LESSONS: Lesson[] = [
+  firstGame,
+  items,
+]
 
 /** The beginner lesson the first-run offer shows. */
 export const FIRST_LESSON_ID = firstGame.id

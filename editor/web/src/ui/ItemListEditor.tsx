@@ -35,15 +35,17 @@ interface Props {
   /** Most entries allowed (the inventory size); the add box is disabled when it is reached. */
   max?: number
   testId?: string
+  /** Names the group for the lessons' pointer (learn/Highlight.tsx). */
+  learn?: string
 }
 
 /** An ordered list of the game's items; each row can say how many uses are left and whether it drops. */
-export function ItemListEditor({ label, help, entries, items, onChange, allowDrop, max, testId }: Props) {
+export function ItemListEditor({ label, help, entries, items, onChange, allowDrop, max, testId, learn }: Props) {
   const full = max !== undefined && entries.length >= max
   const options = items.map((i) => ({ value: i.id, label: i.name }))
   const defOf = (id: string) => items.find((i) => i.id === id)
   return (
-    <FieldGroup label={label} help={help}>
+    <FieldGroup label={label} help={help} learn={learn}>
       <div className="item-rows" data-testid={testId}>
         {entries.length === 0 && <p className="help">{items.length === 0 ? L.noItems : L.none}</p>}
         {entries.map((e, i) => {

@@ -24,7 +24,7 @@ export function ItemKindFields({ id }: { id: string }) {
             onChange={(v) => edit((d) => setTarget(d, id, v as 'self' | 'ally'))} />
         </Field>
         <Field label={T.heals} help={T.healsHelp}>
-          <NumberInput aria-label={T.healsAmount} value={typeof item.heal === 'number' ? item.heal : undefined} min={1} max={1000000} allowEmpty disabled={full}
+          <NumberInput data-learn="item-heal" aria-label={T.healsAmount} value={typeof item.heal === 'number' ? item.heal : undefined} min={1} max={1000000} allowEmpty disabled={full}
             onChange={(v) => edit((d) => setHeal(d, id, v), `${key}:heal`)} />
         </Field>
         <Check label={T.healsAll} checked={full} onChange={(v) => edit((d) => setHeal(d, id, v ? 'full' : undefined))} />
