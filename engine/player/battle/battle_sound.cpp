@@ -10,7 +10,9 @@ namespace ote {
 SceneAudio BattleScene::audioContext() const {
   SceneAudio a;
   a.kind = SceneAudio::Battle;
-  a.map = session_.db.findMap(session_.map.id);
+  // A chapter battle is not started through session_.map: its map is the chapter's.
+  const ChapterDef* chapter = chapterBattle() ? currentChapter(session_.db, session_.campaign->pt) : nullptr;
+  a.map = chapter ? chapter->map : session_.db.findMap(session_.map.id);
   // Only a battle that was loaded from a save starts with what the story had asked and whose turn it is. A new
   // battle has already run its start events in the rules, but its view has not played them yet: those entries
   // (MusicChanged, TurnStarted) tell the director themselves, in order, with their fades.

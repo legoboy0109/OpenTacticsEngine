@@ -276,13 +276,14 @@ def run_all(tmp):
                                                                     {'playMusic': 'scene'}, {'say': 'Again.'},
                                                                     {'playMusic': 'calm', 'fade': 2}, {'say': 'Over.'}]},
                           'after': [{'say': 'Done.'}]}]}
-    cg, _ = variant(tmp, starter, aj, 'games_camp', campaign=camp)
+    cg, cgd = variant(tmp, starter, aj, 'games_camp', campaign=camp)
+    edit_json(os.path.join(cgd, 'maps', 'duel.json'), lambda d: d.update({'music': 'boss'}))  # the chapter's map music
     code, out, seq, _ = go(['--campaign', '--autoplay'], None, 2400, g=cg)
     music = [t for t in seq if t.startswith('M')]
     shown('campaign', seq[:12])
     check('campaign scene: scene music with the card, the same track asked again keeps playing, a story track with a 2 s fade, '
-          'battle music in the battle, scene music again after it',
-          music[:4] == ['M:scene', 'M:calm f=2', 'M:battle', 'M:scene'], str(music))
+          'the chapter map\'s music in the battle, scene music again after it',
+          music[:4] == ['M:scene', 'M:calm f=2', 'M:boss', 'M:scene'], str(music))
     check('campaign scene: playSound plays between the lines, lines blip', 'thunder' in seq and 'dialogue' in seq, str(seq[:30]))
 
     # --- 13. A missing file is a warning and silence; --no-audio reads nothing.
