@@ -131,7 +131,10 @@ Decisions where the contract was silent, and the few deviations:
   `sides[]` (resources, defeated, everHadUnits, hadHq, leaderLost, and in a
   game with a shared storage `storage[]`), `units[]`
   (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader,
-  and in a game with items `items[]`: item, uses left, drop)
+  and in a game with items `items[]`: item, uses left, drop; `"fuel": n` for a unit whose type has fuel, and
+  `"ammo": { "<weapon id>": n }` for a unit with a weapon that has ammunition, unlimited weapons not listed:
+  both required for such units, refused for the others, `fuel` from 0 to the tank, each count from 0 to the
+  weapon's `ammo`, an unknown or unlimited weapon refused; games without these features write neither key)
   and `structures[]` (owner, capture, capturer, and `"type"` when an upgrade changed its kind: the index of
   the current kind, written only when it differs from the map's). A unit that has a story id
   also has `"id"`. A side that has finished or started research also has
@@ -172,7 +175,8 @@ Decisions where the contract was silent, and the few deviations:
   `variables` count.
   Then `data/weapons.json`, `units.json`, `terrain.json`, `structures.json`
   `items.json` and `research.json` (each when present; a game without `items.json` or `research.json` hashes
-  exactly as it did before they existed; a technology's `name` and `description` do not count), the scripts in `game.json` order (byte for byte) and the map
+  exactly as it did before they existed; the supply keys (`rules.supply`, `ammo`, `fuel`, `fuelPerTurn`, `supplies`, `repairs`) sit in files
+  that are hashed whole, so they change the hash exactly when a game uses them; a technology's `name` and `description` do not count), the scripts in `game.json` order (byte for byte) and the map
   file, each preceded by its path and length. Key order counts. In the map
   file the **wording** of story events is cosmetic like names: the text of
   `say`, `speakerName`, a Talk `label` and an objective's `text` are blanked

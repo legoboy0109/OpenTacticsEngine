@@ -36,7 +36,7 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
   has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 492 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 588 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
@@ -332,6 +332,39 @@ What the player and the editor need (all on `Battle` / `Database`):
 - Campaign scenes did not get `researched` / `grantResearch` (scenes have no map sides).
 Open for the owner: wording of every message (placeholder); whether a free upgrade should exist at all (the AI never
 takes one); whether research under way should carry between chapters (today it is lost).
+
+## Repair and supply, rules core (2026-11-14)
+
+docs/ECONOMY.md build order step 2, done in `engine/core` only (no player UI, no editor screens, no demo content).
+Both demos play exactly as before (`ote-sim` bridge Blue 17 / Red 13, twin_rivers Red 30, campaign finished 5; pinned
+hashes and save bytes unchanged). Where things are: data `data/loader_supply.cpp` (`rules.supply`, `repairs`, `fuel`,
+`fuelPerTurn`, `supplies`, `ammo`); battle `battle/repair.cpp`, `fuel.cpp`, `ammo.cpp`, `supply.cpp` (turn start order in
+`turn.cpp`, reach limit in `movement.cpp`, weapon choice in `items.cpp` `weaponsOf` and `combat.cpp`), saves
+`save_supply.*`, AI `ai/ai_supply.cpp`. Tests: `test_supply_loader.cpp`, `test_repair.cpp`, `test_fuel.cpp`,
+`test_ammo.cpp`, `test_supply.cpp`, `test_supply_save.cpp`, `test_supply_ai.cpp`, `supply_fixture.h`.
+
+What the player and the editor need (all on `Battle` / `Database`; the rules are in docs/ECONOMY.md):
+- Action: `Action::supply(unit)` (`ActionType::Supply`): a supplier unit that has not acted, next to a unit of its side
+  that lacks something; may move first; ends the unit's turn. Offer it in the unit's action menu when `canSupply(unit)`.
+  `supplyTargetsFrom(unit, cell, out)` lists whom a supplier standing on `cell` would fill (for a preview).
+- Unit state: `Unit::fuel` (-1 = none) and `Unit::ammo` (one entry per entry of the type's `weapons`, -1 = unlimited, empty =
+  nothing tracked) or `fuel(unit)`, `maxFuel(unit)`, `ammo(unit, weapon)`, `maxAmmo(unit, weapon)` (-1 = none / unlimited);
+  `needsSupply(unit)`. Show them in the info panel only when not -1. `weaponsOf` already leaves an empty weapon out;
+  to grey it out, walk `typeOf(u).weapons` and ask `ammo()`.
+- Repair: `repairPreview(unit, plan)` (what the next turn start would do for the unit where it stands, from the side's
+  funds now; false = nothing) and `repairPreviewAt(unit, cell, plan)`; `RepairPlan { heal, cost per resource index }`.
+- Events (after the old ones): `UnitRepaired` (a unit, b HP restored, c HP now, data cost per resource index, empty =
+  free), `UnitResupplied` (a unit). The payment of a repair arrives first as `ResourceChanged`. The player today draws
+  nothing for them and just sets the displayed HP when a repair event ends (`battle_view.cpp`); `ote-sim` prints both.
+- Editor: new keys `rules.supply` (`repair.amount` / `repair.costShare` / `structures`), structures `repairs`, units `fuel` /
+  `fuelPerTurn` / `supplies`, weapons `ammo`; the helper validates through the real loader (messages name the file and the
+  entry); the helper's model and the web model were not taught the new keys.
+Decisions the owner can change: the first turn of the battle already burns `fuelPerTurn` (a plane that starts with 20 and
+burns 4 has 16 at its first move); `fuelPerTurn` equal to or above `fuel` is refused; repair prices are rounded up per
+resource; resupply by structures needs no `repairs` match and goes to every unit of the owner; suppliers fill only their
+own side (not allies of another side); fuel and ammunition are not carried between chapters (full at each start); a unit
+running dry is destroyed by `fuelPerTurn` only (others just cannot move); the AI's thresholds (40% HP, a quarter of the
+tank, out of every usable weapon) are constants in `ai_supply.cpp`; wording of every loader message is placeholder.
 
 ## Story events in the editor (2026-11-14)
 
