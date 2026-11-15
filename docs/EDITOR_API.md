@@ -104,6 +104,20 @@ not part of this call: they have their own endpoints below.
 - Invalid game data is still saved (work in progress must not be lost);
   the response reports it: `200 { "revision": "<new>", "problems": [ … ] }`.
 
+### Story data (docs/EVENTS.md)
+
+The helper passes story data through like every other key: it is part of the sections above, nothing new is
+validated on write (invalid data is still saved), and key order and keys it does not know are kept.
+
+- A map file may have `events` (list), `objectives` (object) and, on each unit in `units`, an `id`. They come back in
+  `maps.<id>` exactly as written.
+- `game.json` may have `switches` and `variables` (lists of `{ "id", "name" }`); they are part of `game`.
+- `data/graphics.json` may have a top-level `portraits` object, `{ "<id>": { "sheet": "<sheet id>", "cell": [x, y] } }`
+  (dialogue portraits); it is part of `graphics`.
+
+`GET .../problems` runs the real loader over all of it, so a story the game would refuse is reported with the map
+file and the event, e.g. `maps/bridge.json: map "bridge": event "ambush": "do": command 2 (addUnit): unknown unit type "dragon"`.
+
 ### GET /api/projects/:id/problems
 `{ "problems": [ { "file": "maps/m1.json", "message": "…" } ] }`. Runs the
 real loader on the saved files: `loadGame`, then every map with `loadMap`,

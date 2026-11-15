@@ -20,11 +20,9 @@ Contract for PLAN item 3f. Owner decisions (2026-11-14):
 Everything below is engine design and may change; all wording shown to
 players and makers is placeholder until the owner approves it.
 
-Status: steps 1 and 2 of the "Build order" (the rules core: data, loader,
-battle, saves, `ote-sim`; and the player's part inside one battle: dialogue
-box, Talk, objectives) and the core part of step 4 (the campaign: roster,
-scenes, saves) are built and tested; the player's campaign flow and the
-editor are still design only. Where building step 1
+Status: steps 1 to 4 of the "Build order" are built and tested, and
+`demo-srpg` has a story and a two-chapter campaign; still to do: the
+editor's Campaign screen (the rest of step 5). Where building step 1
 refined or corrected the first contract, the text below is the corrected
 version and says so ("refined").
 
@@ -244,7 +242,7 @@ story entries) and `battle_story.cpp` (the scene side).
 
 ## Campaign
 
-Built (step 4, the rules core; no player or editor part yet). `data/campaign.json`
+Built (step 4: the rules core and the player; the editor part is step 5). `data/campaign.json`
 is optional; a game without it behaves exactly as before and keeps its save
 hashes. Code: `engine/core/data/campaign.h` and `loader_campaign*.cpp` (the
 file), `engine/core/campaign/` (playing it and saving it), `Battle::setStartingRoster`
@@ -336,8 +334,36 @@ unchanged byte for byte.
 campaign; otherwise per `freeBattles`. A free battle is an ordinary `Battle::init` +
 `start` and never touches a playthrough.
 
-**Launcher** (player step, not built): a game with a campaign offers New game /
-Continue / Load, and free battles per `freeBattles`.
+### Campaign (player)
+
+Built (step 4, player half). Code: `engine/player/app_campaign.cpp` (the flow), `campaign/` (`campaign_logic.*` the
+decisions, `story_scene.*`, `end_scenes.*`), `battle/battle_campaign.cpp`, `scene_game.*` (the page); the saves are in
+docs/SAVES.md "Campaign saves in the player". All wording below is placeholder.
+
+- **Game page** of a game with `data/campaign.json`: **Continue** (when a Continue save exists: the chapter's name, and
+  "Turn N" in the middle of a battle, else where the story stands), **New game**, **Load** (saving `any`), Game options,
+  Back, then under the heading **Free battles** the maps that `freeBattleAllowed` allows (none = no heading). New game
+  while a Continue save exists asks first ("This replaces your Continue save."). A free battle ends back on this page
+  (there is no separate map list for such a game).
+- **Scene screen** (`StoryScene`): the style's background colour; when a chapter begins, a **title card**
+  ("Chapter N" small above the chapter's name, N = its position in the list; Confirm / tap leaves it, or it leaves by
+  itself after 2.5 s); then the lines in the **same `DialogueBox` as a battle** (portrait from the line's `portrait`, else
+  the speaker's roster id; same controls: Confirm / tap, pages, hold Cancel or Menu for half a second, the Skip tab,
+  the `skip` script token). An empty before scene is only the card; an empty after scene is not shown at all. Note:
+  a roster id names a unit only once it is in the roster, so the first chapter's before scene should use
+  `speakerName` (the roster is empty before chapter 1's battle).
+- **Flow**: New game -> chapter 1's card + before scene -> `startChapterBattle` -> battle -> `finishChapterBattle` when it is
+  over. **Won**: the normal VICTORY banner ("Confirm: continue"), then the after scene, then the next chapter's card +
+  before scene; after the last chapter's after scene an end screen ("The End" + the campaign's name) -> the game
+  page. **Lost, `retry`**: the normal DEFEAT banner, then a choice **Try again** / **Back to title**; Try again starts the
+  chapter's battle again with a new seed (`args.seed` + the number of battles started so far) and without the before scene;
+  Back to title (or Cancel) goes to the game page, where Continue starts the chapter again. **Lost, `end`**: DEFEAT, then
+  the end screen "The story ends here." -> the game page. A draw counts as lost. "Leave battle" in the battle menu
+  saves and returns to the game page as in any battle.
+- **`--autoplay`** plays the story through (see docs/SAVES.md "Command line"): the AI plays the human side and every
+  screen in between passes by itself (card 1 s, each line 1 s, result 1.5 s, end screens 1 s, retry = Try again).
+- **Web**: the same code; `tools/webtest/suites/campaign.mjs` plays New game -> scene -> battle -> reload -> Continue on
+  the test game in a temp folder that serves the web build with its own `games/`.
 
 ## Editor
 
@@ -367,8 +393,11 @@ commands; voice.
 2. Player: dialogue box, Talk, objective display. **Done** (see "Dialogue
    (player)"; tests `test_dialogue_text.cpp`, `test_dialogue_box.cpp`,
    `test_portraits.cpp`).
-3. Editor: events, objectives, switches / variables, portraits.
-4. Campaign: core roster and progress, saves (**core done**: engine/core/campaign/,
-   tests/test_campaign_*.cpp, `ote-sim --campaign`); launcher (player) still to do.
-5. Editor: Campaign screen; demo content (`demo-srpg`: an opening scene, a
-   boss line, a Talk, reinforcements, a second chapter).
+3. Editor: events, objectives, switches / variables, portraits. **Done**
+   (docs/EDITOR_API.md "Story data"; `editor/web/src/screens/maps/editor/story/`).
+4. Campaign: core roster and progress, saves (**done**: engine/core/campaign/, tests/test_campaign_*.cpp,
+   `ote-sim --campaign`), and the player (game page, scenes, chapter flow, campaign saves; see "Campaign (player)").
+5. Editor: Campaign screen (not built yet); demo content **done**
+   (`demo-srpg`: opening scene, reinforcements, a recruit by Talk, a fort
+   reward, boss lines, and the campaign "The Ford War" with a second
+   chapter, `maps/north_road.json`, `data/campaign.json`).

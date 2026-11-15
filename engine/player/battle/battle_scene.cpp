@@ -64,7 +64,8 @@ void BattleScene::cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const {
 }
 
 void BattleScene::enterResult() {
-  clearContinue();  // a finished battle has nothing to continue
+  if (chapterBattle()) chapterDecided();  // the playthrough goes on: see battle_campaign.cpp
+  else clearContinue();                   // a finished battle has nothing to continue
   mode_ = Mode::Result;
   menu_.close();
   slots_.close();
@@ -77,7 +78,8 @@ void BattleScene::enterResult() {
     if (!s.defeated) winners += (winners.empty() ? "" : " & ") + s.name;
   }
   for (const SideState& s : battle_.sides) anyHuman |= !s.ai;
-  resultSub_ = "Confirm: back to map select";
+  resultSub_ = chapterBattle() ? "Confirm: continue"
+               : session_.db.campaign ? "Confirm: back to the game page" : "Confirm: back to map select";
   if (battle_.winnerTeam < 0) {
     resultText_ = "DRAW";
     resultColor_ = Color(150, 155, 175);
@@ -183,14 +185,21 @@ void BattleScene::update(double dt) {
     view_.notice.clear();
   }
   if (noticeTime_ > 0) noticeTime_ -= (float)dt;
+  // A chapter battle watched in --autoplay goes on by itself, so a smoke test plays a whole story.
+  if (autoplay_ && chapterBattle() && mode_ == Mode::Result && !view_.busy()) {
+    resultTime_ += (float)dt;
+    if (resultTime_ >= 1.5f) leaveResult();
+  }
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
 }
 
 std::string BattleScene::hint() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
-  if (view_.dialogue.active) return "Z / tap: next   hold X or Menu, or tap Skip: skip all";
-  if (mode_ == Mode::Result) return "Confirm / tap: back to map select";
+  if (view_.dialogue.active) return kDialogueHint;
+  if (mode_ == Mode::Result)
+    return chapterBattle() ? "Confirm / tap: continue"
+           : session_.db.campaign ? "Confirm / tap: back to the game page" : "Confirm / tap: back to map select";
   if (view_.busy()) return "Confirm / Cancel / tap: skip animation";
   if (!humanTurn()) return battle_.sides[battle_.activeSide].name + " is acting...";
   switch (mode_) {

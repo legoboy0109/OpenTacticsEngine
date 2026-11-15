@@ -35,6 +35,6 @@ std::string playedSave(const char* game, const char* map, unsigned seed) {
 }  // namespace
 
 TEST(campaign_games_without_one_keep_their_battle_saves_byte_for_byte) {
-  CHECK_STR(hex(fnv(playedSave("demo-srpg", "bridge", 7))), "1af1975f86935fd8");
+  // demo-srpg was pinned here too ("1af1975f86935fd8") until it got a story and a campaign.
   CHECK_STR(hex(fnv(playedSave("demo-economy", "twin_rivers", 7))), "7bd8c1c0aa74081e");
 }

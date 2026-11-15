@@ -12,6 +12,8 @@ import { ConfirmDialog } from '../../ui/Dialog'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { Toggle } from '../../ui/Toggle'
 import { ImageDetails } from './ImageDetails'
+import { PortraitsCard } from './PortraitsCard'
+import { portraitsUsingSheet } from '../../model/portraits'
 import { T } from './text'
 import { UnusedFiles } from './UnusedFiles'
 import { useImageImport } from './useImageImport'
@@ -84,18 +86,22 @@ function ArtBody({ itemId }: { itemId?: string }) {
             thumb: <img className="art-thumb" src={store.art.url(s.file)} alt="" />,
           }))}
           onSelect={go} onBack={() => go()} onNew={() => input.current?.click()}
-          onDelete={(id) => { if (sheetUsers(doc, id).length) setRemoving(id); else doRemove(id) }}>
+          onDelete={(id) => { if (sheetUsers(doc, id).length || portraitsUsingSheet(doc, id).length) setRemoving(id); else doRemove(id) }}>
           {(id) => <ImageDetails id={id} say={say} />}
         </MasterDetail>
         <Card title={T.settingsTitle}>
           <Toggle label={T.marker} help={T.markerHelp} checked={unitMarkerOn(doc)} onChange={(v) => edit((d) => setUnitMarker(d, v))} />
         </Card>
+        <PortraitsCard />
         <UnusedFiles say={say} />
       </div>
       <ConfirmDialog open={!!target} title={T.removeTitle(target?.name || (target ? artBase(target.file) : ''))} confirmLabel={T.removeConfirm} danger
         onConfirm={() => target && doRemove(target.id)} onCancel={() => setRemoving(null)}>
         <p>{T.removeUsedIntro}</p>
-        <ul className="usage-list">{users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}</ul>
+        <ul className="usage-list">
+          {users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}
+          {(target ? portraitsUsingSheet(doc, target.id) : []).map((p) => <li key={`portrait:${p}`}>{T.usedByPortrait(p)}</li>)}
+        </ul>
         <p className="help">{T.removeUnusedNote}</p>
         <p className="help">{T.removeUndo}</p>
       </ConfirmDialog>

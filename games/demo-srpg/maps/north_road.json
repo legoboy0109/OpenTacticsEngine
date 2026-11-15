@@ -1,0 +1,79 @@
+// Chapter 2. The road north climbs between two ridges to a walled pass.
+// Blue arrives from the south; Hald holds the fort at the top.
+{
+  "name": "The North Road",
+  "grid": { "type": "square", "width": 11, "height": 10 },
+  "legend": { ".": "plain", "f": "forest", "m": "mountain", "~": "water", "=": "bridge" },
+  "tiles": [
+    "mm.......mm",
+    "m...f.....m",
+    "m.........m",
+    "..f.....f..",
+    "~~~~=~~~~~~",
+    "...........",
+    ".f.......f.",
+    "m....f....m",
+    "m.........m",
+    "mm.......mm"
+  ],
+  "heights": [
+    [3,3,2,2,2,2,2,2,2,3,3],
+    [3,2,2,2,2,2,2,2,2,2,3],
+    [2,2,2,2,2,2,2,2,2,2,2],
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [0,0,0,0,1,0,0,0,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,1],
+    [2,1,1,1,1,1,1,1,1,1,2],
+    [2,1,1,1,1,1,1,1,1,1,2],
+    [3,2,1,1,1,1,1,1,1,2,3]
+  ],
+  "structures": [
+    { "type": "fort", "x": 5, "y": 1 },
+    { "type": "fort", "x": 5, "y": 8 }
+  ],
+  "sides": [
+    // What a side has here is added to what it carried over from the chapter before.
+    { "id": "blue", "name": "Blue Company", "color": "#3d85c6", "controller": "human",
+      "resources": { "gold": 300 } },
+    { "id": "red",  "name": "Red Warband",  "color": "#cc0000", "controller": "ai" }
+  ],
+  "units": [
+    // Named blue units come from the party as it left chapter 1 (level, items, who is still alive);
+    // what is written here is only used when this map is played on its own.
+    { "type": "lord",     "side": "blue", "x": 5, "y": 9, "id": "eirik", "name": "Eirik", "level": 3, "leader": true,
+      "stats": { "hp": 24, "str": 7, "def": 5 } },
+    { "type": "cavalier", "side": "blue", "x": 4, "y": 8, "id": "kell", "name": "Kell", "level": 2,
+      "stats": { "hp": 23 } },
+    { "type": "archer",   "side": "blue", "x": 6, "y": 9, "id": "lyra", "name": "Lyra", "level": 2 },
+    { "type": "fighter",  "side": "blue", "x": 6, "y": 8, "id": "bram", "name": "Bram", "level": 2,
+      "stats": { "hp": 25 } },
+
+    { "type": "knight",   "side": "red", "x": 5, "y": 1, "id": "hald", "name": "Hald", "level": 4, "leader": true,
+      "stats": { "hp": 28, "str": 9, "def": 7 },
+      "items": ["iron_lance", { "item": "salve", "drop": true }] },
+    { "type": "soldier",  "side": "red", "x": 4, "y": 3, "name": "Ro",   "level": 2 },
+    { "type": "soldier",  "side": "red", "x": 6, "y": 3, "name": "Iss",  "level": 2 },
+    { "type": "archer",   "side": "red", "x": 5, "y": 2, "name": "Marn", "level": 2 },
+    { "type": "fighter",  "side": "red", "x": 8, "y": 2, "name": "Ulf",  "level": 3 },
+    { "type": "soldier",  "side": "red", "x": 2, "y": 2, "name": "Brun", "level": 2 }
+  ],
+
+  "objectives": {
+    "text": "Defeat Hald. Eirik must survive.",
+    "win":  [ { "defeated": "hald" } ],
+    "lose": [ { "defeated": "eirik" } ]
+  },
+  "events": [
+    // Sera rides with the company only if Eirik won her over at the ford.
+    { "id": "sera_arrives", "when": { "battle": "start" },
+      "if": [ { "switch": "sera_joined", "is": true } ],
+      "do": [ { "addUnit": { "type": "pegasus", "side": "blue", "x": 4, "y": 9, "id": "sera", "name": "Sera", "level": 2 } },
+              { "say": "I can cross the stream wherever I like. Tell me where you want me.", "speaker": "sera" } ] },
+    { "id": "opening", "when": { "battle": "start" },
+      "do": [ { "focus": "hald" },
+              { "say": "So Gorm fell. No matter. Nobody takes this pass from me.", "speaker": "hald" } ] },
+    { "id": "hald_fights", "when": { "fight": "hald", "with": { "side": "blue" } },
+      "do": [ { "say": "Come, then!", "speaker": "hald" } ] }
+  ]
+}

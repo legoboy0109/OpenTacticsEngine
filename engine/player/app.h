@@ -50,6 +50,11 @@ class PlayerApp : public App, public SceneHost {
   void showMapSelect() override;
   void loadGame(const std::string& gameId) override;
   void startBattle(const std::string& mapId) override;
+  void startCampaign(const std::string& gameId) override;
+  void startFreeBattle(const std::string& gameId, const std::string& mapId) override;
+  void campaignNext() override;
+  void campaignSceneDone() override;
+  void campaignBattleOver(ChapterResult result) override;
   void relook(const std::string& gameId) override;
   void quit() override { quit_ = true; flushSettings(); }
   void showError(const std::string& title, const std::string& message, Back back) override;
@@ -65,6 +70,13 @@ class PlayerApp : public App, public SceneHost {
   void findSavesFolder();
   void startFromSave();  // --continue / --load-slot  // logical size, font and scale of the loaded game
   void doStartBattle(const std::string& mapId);
+  void doShowGame(const std::string& gameId);
+  bool openGame(const std::string& gameId);  // session + look of a game, without a scene; false = error screen is up
+  // app_campaign.cpp: the story flow (docs/EVENTS.md "Campaign")
+  void doStartCampaign();
+  void doCampaignNext();
+  void saveAfterScene();
+  bool resumeCampaignSave(const SaveFile& file, std::string& err);
 
   // app_look.cpp: settings file and the look derived from the options.
   void loadSettings();

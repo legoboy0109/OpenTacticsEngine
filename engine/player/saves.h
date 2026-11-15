@@ -18,15 +18,21 @@ struct SaveInfo {
   State state = Empty;
   std::string reason;  // Unusable: a plain sentence for the player
   std::string mapId, mapName;
-  int round = 0;
+  int round = 0;          // the battle's turn; 0 = no battle in the save (a campaign save between battles)
   long long savedAt = 0;  // seconds since 1970 (UTC)
+  // Campaign saves (docs/SAVES.md "Campaign saves"): a whole playthrough.
+  bool campaign = false;
+  bool inBattle = false;     // campaign: the save holds a battle that is under way
+  std::string chapterName;   // campaign: the chapter the playthrough is at
+  std::string phase;         // campaign: "before" | "battle" | "after" | "finished" | "over"
 };
 
 // A save read and checked completely, ready for restoreBattleState.
 struct SaveFile {
   std::string mapId;
-  Json battle;
-  SaveInfo info;
+  Json battle;    // a plain save's battle state
+  Json root;      // the whole file (a campaign save is restored from this)
+  SaveInfo info;  // info.campaign tells which kind it is
 };
 
 class SaveStore {

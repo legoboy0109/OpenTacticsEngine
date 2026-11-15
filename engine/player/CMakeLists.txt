@@ -20,7 +20,7 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
-file(GLOB PLAYER_SRC CONFIGURE_DEPENDS *.cpp battle/*.cpp options/*.cpp ui/*.cpp)
+file(GLOB PLAYER_SRC CONFIGURE_DEPENDS *.cpp battle/*.cpp campaign/*.cpp options/*.cpp ui/*.cpp)
 # Shared by every backend: text engine, bitmap font, font registry (no SDL inside).
 file(GLOB COMMON_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/common/*.cpp
      ${CMAKE_SOURCE_DIR}/engine/platform/common/*.c)

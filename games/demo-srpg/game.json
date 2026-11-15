@@ -2,7 +2,7 @@
 {
   "formatVersion": 1,
   "name": "Emblem Demo",
-  "description": "A small Fire Emblem-style skirmish: named heroes, experience and level-ups.",
+  "description": "A short Fire Emblem-style story in two chapters: named heroes, items, dialogue, experience and level-ups.",
   "styles": [
     { "id": "classic", "name": "Classic" },
     { "id": "parchment", "name": "Parchment", "background": "#2b2118", "showGlyphs": false,
@@ -28,6 +28,9 @@
 
   // Gold buys items at forts (data/structures.json "sells").
   "resources": [ { "id": "gold", "name": "Gold" } ],
+
+  // On / off facts the story remembers (docs/EVENTS.md).
+  "switches": [ { "id": "sera_joined", "name": "Sera joined" } ],
 
   "moveTypes": [
     { "id": "foot",  "name": "Foot" },
@@ -60,5 +63,6 @@
   },
 
   "scripts": ["scripts/formulas.lua"],
-  "maps": [ { "id": "bridge", "name": "Skirmish at the Ford", "file": "maps/bridge.json" } ]
+  "maps": [ { "id": "bridge", "name": "Skirmish at the Ford", "file": "maps/bridge.json" },
+            { "id": "north_road", "name": "The North Road", "file": "maps/north_road.json" } ]
 }

@@ -1,7 +1,7 @@
 // (g) Kinds of view (docs/VIEWS.md): the demo's Isometric style draws, differs from the
 // top-down one, and the pointer picks squares through the projection. The 3D
 // isometric style draws too, picks squares and turns.
-import { open, same } from '../lib/flows.mjs';
+import { open, skipStory, same } from '../lib/flows.mjs';
 import { diffShare } from '../lib/analyze.mjs';
 
 export const name = 'views';
@@ -14,10 +14,12 @@ export async function run(env) {
 
   const flat = await open(page, env.out, 'g-topdown', env.url + args('classic'));
   await flat.page.waitForTimeout(1500);
+  await skipStory(flat);
   const top = await flat.shot('battle');
 
   const s = await open(page, env.out, 'g-iso', env.url + args('isometric'));
   await s.page.waitForTimeout(1500);
+  await skipStory(s);
   const iso = await s.shot('battle');
   C.check('the isometric style loaded with its game', s.logs.some((l) => /loaded game 'demo-srpg'/.test(l)));
   const differs = await diffShare(env.analysisPage, top, iso, { x: 0, y: 0, w: 700, h: 510 });
@@ -42,6 +44,7 @@ export async function run(env) {
   // 3D isometric: the same game drawn from real blocks, with a camera that turns.
   const t = await open(page, env.out, 'g-iso3d', env.url + args('isometric-3d'));
   await t.page.waitForTimeout(3500);  // the turn banner has gone
+  await skipStory(t);
   const iso3d = await t.shot('battle');
   C.check('the 3D isometric style loaded with its game', t.logs.some((l) => /loaded game 'demo-srpg'/.test(l)));
   const differs3d = await diffShare(env.analysisPage, top, iso3d, { x: 0, y: 0, w: 700, h: 510 });
@@ -71,6 +74,7 @@ export async function run(env) {
   // Full 3D: the same blocks under a free camera with perspective.
   const f = await open(page, env.out, 'g-full3d', env.url + args('full-3d'));
   await f.page.waitForTimeout(3500);
+  await skipStory(f);
   const full = await f.shot('battle');
   C.check('the Full 3D style loaded with its game', f.logs.some((l) => /loaded game 'demo-srpg'/.test(l)));
   const differsFull = await diffShare(env.analysisPage, iso3d, full, { x: 0, y: 0, w: 700, h: 470 });

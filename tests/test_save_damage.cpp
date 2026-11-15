@@ -168,7 +168,8 @@ struct HashGame {
     tempFolder("save_hash_game/maps");
     tempFolder("save_hash_game/scripts");
     const char* files[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
-                           "data/structures.json", "data/items.json", "data/graphics.json", "maps/bridge.json", "scripts/formulas.lua"};
+                           "data/structures.json", "data/items.json", "data/graphics.json", "data/campaign.json",
+                           "maps/bridge.json", "maps/north_road.json", "scripts/formulas.lua"};
     for (const char* f : files)
       if (!copyFile(src + "/" + f, dir + "/" + f)) return false;
     db.rootPath = dir;
@@ -238,7 +239,7 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
   // screen size, the saving setting, comments and layout. Saves stay valid.
   const Edit cosmetic[] = {
       {"game.json", "\"name\": \"Emblem Demo\"", "\"name\": \"Renamed\", \"author\": \"Me\", \"saving\": \"continue\""},
-      {"game.json", "\"description\": \"A small", "\"font\": { \"name\": \"sans\" }, \"description\": \"A big"},
+      {"game.json", "\"description\": \"A short", "\"font\": { \"name\": \"sans\" }, \"description\": \"A long"},
       {"game.json", "\"name\": \"Classic\"", "\"name\": \"Plain\", \"background\": \"#000000\""},
       {"game.json", "\"tileSize\": 24", "\"tileSize\": 32"},
       {"game.json", "\"name\": \"Strength\"", "\"name\": \"Power\""},

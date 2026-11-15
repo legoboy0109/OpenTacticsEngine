@@ -20,6 +20,7 @@ struct Args {
                           // at all when --headless or --no-settings unless this is given)
   bool noSaving = false;  // --no-saving: never save or offer saves (the editor's embedded player)
   bool continueSave = false;  // --continue: resume the game's Continue save (needs --game)
+  bool campaign = false;  // --campaign: start a New game of the campaign of --game directly (not with --map)
   int loadSlot = 0;       // --load-slot N: resume manual slot N (1..5; needs --game); 0 = no
   std::string game, map;  // empty = ask
   bool test3d = false;    // --test-3d: show the built-in 3D test scene instead of the launcher

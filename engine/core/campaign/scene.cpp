@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "core/campaign/playthrough.h"
+#include "core/data/loader.h"
 
 namespace ote {
 
@@ -30,6 +31,23 @@ struct SceneRun {
   Playthrough& pt;
   std::vector<SceneLine>& lines;
   std::string gotoChapter;  // the last "goto" executed ("" = none)
+  // The chapter's map, read once when a speaker is not in the party yet: before the first battle
+  // the roster is empty, yet the hero must be able to speak under their name.
+  bool mapTried = false, mapOk = false;
+  MapDef map;
+
+  std::string nameFromMap(const std::string& id) {
+    if (!mapTried) {
+      mapTried = true;
+      const ChapterDef& ch = db.campaign->chapters[(size_t)pt.chapter];
+      std::string err;
+      mapOk = ch.map >= 0 && ch.map < (int)db.maps.size() && loadMap(db, db.maps[(size_t)ch.map].id, map, err);
+    }
+    if (!mapOk) return std::string();
+    for (const MapUnitDef& u : map.units)
+      if (u.id == id) return u.name.empty() ? db.unitTypes[(size_t)u.type].name : u.name;
+    return std::string();
+  }
 
   bool holds(const SceneCondition& c) const {
     switch (c.kind) {
@@ -60,7 +78,9 @@ struct SceneRun {
         l.speakerId = c.unit;
         if (!c.unit.empty()) {
           const RosterUnit* r = pt.findUnit(c.unit);
-          if (r) l.speaker = r->name;  // not in the party (yet): no name, like a Dialogue entry with no unit
+          // In the party: its name there. Not yet: the name the chapter's map gives that unit;
+          // unknown to both: no name, like a Dialogue entry with no unit.
+          l.speaker = r ? r->name : nameFromMap(c.unit);
         } else if (c.speakerName >= 0) {
           l.speaker = texts[(size_t)c.speakerName];
         }
@@ -100,7 +120,7 @@ bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<
   if (!cd || pt.chapter < 0 || pt.chapter >= (int)cd->chapters.size()) return false;
   if (pt.phase != (which == SceneKind::Before ? Phase::Before : Phase::After)) return false;
   const ChapterDef& ch = cd->chapters[(size_t)pt.chapter];
-  SceneRun r{db, pt, lines, std::string()};
+  SceneRun r{db, pt, lines, std::string(), false, false, MapDef()};
   if (which == SceneKind::Before) {
     r.run(ch.before);
     pt.phase = Phase::Battle;

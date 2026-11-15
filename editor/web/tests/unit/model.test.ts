@@ -193,7 +193,7 @@ describe('game settings and maps', () => {
     d = renameMap(d, 'second_fight', 'Renamed')
     expect(d.maps.second_fight!.name).toBe('Renamed')
     d = duplicateMap(d, 'bridge')
-    expect(d.game!.maps.map((m) => m.id)).toEqual(['bridge', 'skirmish_at_the_ford_copy', 'second_fight'])
+    expect(d.game!.maps.map((m) => m.id)).toEqual(['bridge', 'skirmish_at_the_ford_copy', 'north_road', 'second_fight'])
     expect(d.maps.skirmish_at_the_ford_copy!.tiles).toEqual(d.maps.bridge!.tiles)
     d = deleteMap(d, 'second_fight')
     expect('second_fight' in d.maps).toBe(false)

@@ -2,6 +2,7 @@
 
 #include "core/base/log.h"
 #include "core/data/loader.h"
+#include "platform/platform.h"
 #include "ui/chrome.h"
 
 namespace ote {
@@ -22,7 +23,10 @@ SlotScene::SlotScene(SceneHost& host, const GameEntry& game) : host_(host), game
   SaveStore store = host.saveStore(game.id);
   // Loading starts a battle, and the next autosave replaces the Continue save.
   std::string warning = store.exists(0) ? "This replaces your Continue save." : "";
-  panel_.open(SlotPanel::Load, inspectSlots(store, host.args().gamesDir, game.id), warning);
+  // In a campaign game only a story save replaces the Continue file; a free battle's plain save does not.
+  std::string probe;
+  const bool campaignGame = readTextFile(host.args().gamesDir + "/" + game.id + "/data/campaign.json", probe);
+  panel_.open(SlotPanel::Load, inspectSlots(store, host.args().gamesDir, game.id), warning, campaignGame);
 }
 
 void SlotScene::onInput(const InputEvent& e) {

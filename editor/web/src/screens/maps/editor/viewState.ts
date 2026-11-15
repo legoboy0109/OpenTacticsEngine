@@ -3,9 +3,19 @@
 // The canvas listens directly; small components subscribe to one slice.
 import { useSyncExternalStore } from 'react'
 import type { Cell } from '../../../model/mapGrid'
+import type { Overlay } from '../../../model/storyOverlays'
+import type { Rect } from '../../../model/storyTypes'
 import { fitView, zoomAt, type View } from './geometry'
 
-type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'ghost' | 'placing' | 'dragS' | 'size'>
+type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'picking' | 'pickRect'>
+
+/** The Events / Objectives panels asking for a square or an area on the map: the next click (or drag) answers it. */
+export interface PickRequest {
+  id: number
+  mode: 'area' | 'square'
+  /** The chosen rectangle (1 x 1 for a square), or null when cancelled. */
+  done: (r: Rect | null) => void
+}
 
 export class MapViewState {
   view: View = { scale: 16, x: 0, y: 0 }
@@ -24,6 +34,12 @@ export class MapViewState {
   placing: { type: string; side: string } | null = null
   /** A placed structure (by its top-left square) is being dragged by (dx, dy) squares. */
   dragS: { origin: Cell; dx: number; dy: number } | null = null
+  /** Areas and squares the open event or the objectives are about, drawn over the map. */
+  overlays: Overlay[] = []
+  /** Set while the person is picking a square or area for a form. */
+  picking: PickRequest | null = null
+  /** The rectangle being dragged out while picking (drawn dashed). */
+  pickRect: Rect | null = null
   private listeners = new Set<() => void>()
   subscribe = (l: () => void): (() => void) => { this.listeners.add(l); return () => this.listeners.delete(l) }
   set(patch: Partial<Fields>): void {

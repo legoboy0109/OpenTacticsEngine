@@ -91,8 +91,8 @@ TEST(campaign_hash_of_a_single_battle_includes_the_file_only_when_it_exists) {
   CHECK(!computeCampaignHash(without.db, c, err));  // no campaign, no campaign hash
 }
 
-TEST(campaign_the_demo_games_have_no_campaign) {
-  for (const char* demo : {"demo-srpg", "demo-economy"}) {
+TEST(campaign_a_demo_without_one_has_no_campaign) {
+  for (const char* demo : {"demo-economy"}) {  // demo-srpg has a campaign of its own
     Database db;
     std::string err;
     CHECK(loadGame(ote_test::sourceDir() + "/games/" + demo, db, err));

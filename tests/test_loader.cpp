@@ -111,8 +111,9 @@ TEST(loader_demo_srpg_game) {
   CHECK_STR(r.fDamage, "srpg_damage(a, b, w, tb, vs)");
   CHECK_STR(r.fStrikes, "(a.spd - b.spd >= 4) and 2 or 1");
   CHECK(r.critMultiplier == 3);
-  CHECK_EQ(db.maps.size(), size_t(1));
+  CHECK_EQ(db.maps.size(), size_t(2));
   CHECK_STR(db.maps[size_t(0)].file, "maps/bridge.json");
+  CHECK_STR(db.maps[size_t(1)].file, "maps/north_road.json");
 }
 
 TEST(loader_demo_srpg_map) {
