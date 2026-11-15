@@ -35,7 +35,7 @@ function TrackItem({ id, track, onRename, onDelete }: { id: string; track: Music
           <FilePick value={track.file ?? ''} aria-label={`${id}: ${T.trackFile}`} onChange={(f) => edit((d) => setTrackFile(d, id, f))} />
         </Field>
         <Field label={T.trackVolume} help={T.trackVolumeHelp}>
-          <NumberInput value={track.volume ?? 100} min={0} max={100} suffix="%" aria-label={`${id}: ${T.trackVolume}`}
+          <NumberInput data-learn="track-volume" value={track.volume ?? 100} min={0} max={100} suffix="%" aria-label={`${id}: ${T.trackVolume}`}
             onChange={(v) => { if (v !== undefined) edit((d) => setTrackVolume(d, id, v), `${k}:volume`) }} />
         </Field>
       </FormGrid>

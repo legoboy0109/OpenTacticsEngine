@@ -17,7 +17,7 @@ export function MapMusic({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile; m
       <p className="help">{T.mapMusicHelp}</p>
       {MAP_MUSIC_KEYS.map((key) => (
         <Field key={key} label={MAP_MUSIC_LABEL[key]}>
-          <AudioChoice kind="music" mode="map" value={map[key]} aria-label={MAP_MUSIC_LABEL[key]}
+          <AudioChoice data-learn={`map-${key}`} kind="music" mode="map" value={map[key]} aria-label={MAP_MUSIC_LABEL[key]}
             onChange={(v) => edit((d) => setMapMusic(d, mapId, key, v))} />
         </Field>
       ))}
