@@ -123,15 +123,23 @@ def make_games(out):
                           sides=[{'id': 'blue', 'name': 'Blue Army', 'color': '#3d85c6', 'controller': 'human', 'team': 'a'},
                                  {'id': 'green', 'name': 'Green Army', 'color': '#2e9e44', 'controller': 'human', 'team': 'b'},
                                  {'id': 'red', 'name': 'Red Army', 'color': '#cc0000', 'controller': 'ai', 'team': 'c'}]))
-    write_json(os.path.join(out, 'index.json'), {'games': ['fog']})
+    # The same game with the ambush rule "canAct": the unit keeps its turn after being stopped.
+    ga = os.path.join(out, 'fogact')
+    shutil.rmtree(ga, ignore_errors=True)
+    shutil.copytree(g, ga)
+    game = json.load(open(ga + '/game.json'))
+    game['name'] = 'Fog Player Test (ambush canAct)'
+    game['rules']['fog'] = {'ambush': 'canAct'}
+    write_json(ga + '/game.json', game)
+    write_json(os.path.join(out, 'index.json'), {'games': ['fog', 'fogact']})
 
 
 # ---- running the player
 
-def play(args, saves=None, frames=300, interval=4, inp=None, shot=None, style='classic', dt=0.016):
+def play(args, saves=None, frames=300, interval=4, inp=None, shot=None, style='classic', dt=0.016, game='fog'):
     """Runs the player windowless; returns (exit code, log text)."""
     cmd = [PLAYER, '--games', GAMES, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-settings',
-           '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', str(dt), '--game', 'fog',
+           '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', str(dt), '--game', game,
            '--style', style, '--3d', 'software']
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
@@ -258,6 +266,7 @@ def scenarios(tmp):
         hide(tmp, style, label)
         ambush(tmp, style, label)
         capture(tmp, style, label)
+    ambush_can_act(tmp)
     wander(tmp)
     approach(tmp)
     hardware(tmp)
@@ -307,6 +316,29 @@ def ambush(tmp, style, label):
     # The turn of that unit is over: no action menu, and nothing to select again.
     _, log2 = play(['--map', 'ambush'], frames=400, inp=go + ',wait:40,confirm', style=style)
     check('%s: after an ambush no menu opens and the unit is done' % label, not lines(log2, 'UI bug'), log2[-300:])
+
+
+def ambush_can_act(tmp):
+    # Rule "canAct": the stopped unit has moved but keeps its turn. The action menu opens on it; Cancel only closes it
+    # (the move stays), picking the unit again opens the action menu at once, and it can attack the revealed enemy.
+    go = 'wait:30,confirm,right,right,right,right,confirm,wait:40'
+    code, log = play(['--map', 'ambush'], game='fogact', frames=300, inp=go + ',cancel,wait:10,confirm,wait:10')
+    check('ambush canAct: the unit stops where it was blocked, as before', lines(log, 'ambush:') == ['ambush: Blind stopped at 3,3 by Infantry at 4,3'], log[-400:])
+    check('ambush canAct: the log says the unit may still act', lines(log, 'ambushed:') == ['ambushed: Blind may still act from 3,3'], log[-400:])
+    check('ambush canAct: the action menu is not logged as UI trouble and Cancel did not undo the move',
+          not lines(log, 'UI bug') and not any('x=1' in l for l in lines(log, 'move:')), log[-300:])
+    # Attack: Attack is the first entry of the menu once the enemy is revealed.
+    # Proof is in the Continue save written at the start of blue's next turn: the red infantry has lost HP.
+    sv = os.path.join(tmp, 'sv_ambush_act')
+    shutil.rmtree(sv, ignore_errors=True)
+    code, log = play(['--map', 'ambush'], game='fogact', saves=sv, frames=1500, inp=go + ',confirm,wait:5,confirm,wait:60,' + END_TURN + ',wait:150')
+    path = os.path.join(sv, 'fogact', 'continue.json')
+    units = json.load(open(path))['battle']['units'] if os.path.exists(path) else []
+    check('ambush canAct: the unit can attack the revealed enemy from where it stopped (red lost HP)',
+          len(units) == 2 and units[1].get('hp', 100) < 100, str(units) + log[-300:])
+    # Default rule: no menu, the unit is done (also logged nowhere).
+    code, log = play(['--map', 'ambush'], game='fog', frames=300, inp=go)
+    check('ambush endsTurn (default): nothing says the unit may still act', not lines(log, 'ambushed:'), log[-300:])
 
 
 def capture(tmp, style, label):
