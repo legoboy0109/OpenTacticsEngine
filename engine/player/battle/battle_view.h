@@ -79,6 +79,7 @@ class BattleView {
   std::string banner;  // centred banner text, empty = none
   std::string bannerSub;  // smaller line under the banner (an objective), empty = none
   DialogueState dialogue;
+  std::vector<float> structFlash;  // per structure: 0..1, the white flash of an upgrade (battle_view_economy.cpp)
   Color bannerColor;
   // While an event involving a unit plays, the camera should follow it.
   bool hasFocus = false;
@@ -104,6 +105,10 @@ class BattleView {
   bool beginStory(const Battle& b);
   bool progressStory(const Battle& b);
   bool finishStory(const Battle& b);
+  // Upgrades, research, repair and supply: battle_view_economy.cpp. Same contract as the story hooks.
+  bool beginEconomy(const Battle& b);
+  bool progressEconomy(const Battle& b);
+  bool finishEconomy(const Battle& b);
   void addFloat(const std::string& text, float x, float y, Color c, float life = 0.9f, bool screen = false);
   void clampHpTo(const Battle& b, int unit);
   std::string itemName(const Battle& b, int item) const;
