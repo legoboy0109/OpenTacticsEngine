@@ -521,11 +521,12 @@ Story events, dialogue and the campaign are built (docs/EVENTS.md) and
 --campaign`). The editor's Campaign screen is built (`editor/web/src/screens/campaign/`, model
 `model/campaign*.ts`; scenes reuse the story command list through a made-up "scene map"; the store's `edit` runs
 `reconcileCampaign` so deletes of switches / sides / maps / story names clean the scenes in the same undo step;
-`"campaign": false` in the PUT removes the file). Not done: a Play-from-chapter-1 button (needs a `campaign` query
-parameter in `engine/platform/web/embed.html`). Next:
-economy options (owner decisions in docs/PLAN.md 3g, contract in
-docs/ECONOMY.md, build order at its end: steps 1 to 4 are done (rules core, player menus and fog drawing), step 5's demo content too; the editor's fog keys
-are open), then sound and music.
+`"campaign": false` in the PUT removes the file); Play on the Campaign screen runs the story (`campaign=1` on the embed
+page). Economy options (docs/PLAN.md 3g, docs/ECONOMY.md) are done end to end: rules core, player menus and fog
+drawing, editor screens (Research, upgrades, repair and supply, fog settings, sight aid, "Show everything" in Play),
+and `demo-economy` content (town upgrades, three technologies, supply, fog map `misty_ford`; the frozen plain copy
+for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window. Next:
+sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end; nothing built yet).
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
