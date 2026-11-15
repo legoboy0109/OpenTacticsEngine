@@ -60,7 +60,12 @@ id that does not exist is a load error.
     // Optional (docs/ECONOMY.md "Repair and supply"); unknown keys are refused. No block = nothing happens.
     "supply": { "repair": { "amount": 20, "costShare": 100 },   // % of max HP per turn on an own structure, 1..100;
                                                                   // % of the proportional unit cost, 0..100, default 100
-                "structures": true }                              // own structures also refill fuel and ammunition
+                "structures": true },                             // own structures also refill fuel and ammunition
+    // Optional (docs/ECONOMY.md "Research", "Fog of war"); unknown keys and other values are refused.
+    "research": { "needsStructure": false },   // true: research needs an owned structure kind with "research": true. Default
+                                               // false: a side can research whenever the game has technologies
+    "fog": { "ambush": "endsTurn" }            // a unit that walks into a hidden enemy: "endsTurn" (default) or "canAct"
+                                               // (stopped and moved, but it may still attack, wait, capture...)
   },
 
   "formulas": {
@@ -133,7 +138,7 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
     "sells": ["vulnerary"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)
     "tags": ["hq"],                               // "hq" = headquarters (defeat: lostHq)
-    "research": true,                             // optional: a side owning one may research (docs/ECONOMY.md)
+    "research": true,                             // optional: only counts while rules.research.needsStructure is on (docs/ECONOMY.md)
     "upgrades": [ { "to": "town", "cost": { "funds": 3000 },   // optional: kinds it can be built up into (same
                     "requires": "masonry" } ],                 // width x height); "requires" = a technology
     "repairs": ["air", "tank"] }                   // optional: unit type ids / tags it repairs (rules.supply.repair);
@@ -204,7 +209,7 @@ in docs/ITEMS.md.
 Technologies a side can research: cost, turns, prerequisites, unit types they unlock and stat bonuses. A game
 without this file has no research. `{ "technologies": [ { "id", "name", "description", "cost": {…}, "turns": 0..99
 (default 1), "requires": ["id"], "unlocks": { "units": ["id"] }, "bonus": { "types": ["unit id"], "stats":
-{ "def": 1 } } } ] }`; unknown keys are refused. A structure kind needs `"research": true` to research at.
+{ "def": 1 } } } ] }`; unknown keys are refused. With `rules.research.needsStructure` on, a structure kind needs `"research": true` to research at (by default no building is needed).
 Everything is in docs/ECONOMY.md.
 
 ## maps/*.json

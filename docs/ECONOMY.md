@@ -74,18 +74,25 @@ structures.json, per structure kind:
   prerequisite loop (the message shows it: `a -> c -> b -> a`), `unlocks.units` / `bonus.types` naming unknown
   unit types or listing one twice, `bonus` without `stats` or with all zeros or unknown stats. `name` defaults to
   the id.
-- structures.json: `"research": true` on a structure kind = a side owning one may research.
+- **Where research is done** (game.json `"rules": { "research": { "needsStructure": true } }`, optional, default **false**;
+  unknown keys and non-boolean values are refused): by default a side can research whenever the game has technologies and
+  nothing ever pauses (the player offers it in the battle menu). With `needsStructure: true` a side must own a structure
+  whose kind has `"research": true` in structures.json (structures.json `"research": true` stays valid data either way; it
+  matters only while the rule is on, and the loader says nothing about it when the rule is off). Rule on: losing the last
+  such structure pauses the countdown (below). A game that has no `needsStructure` key keeps its save fingerprint (game.json
+  rules are hashed whole, so the key counts only when present), but its behaviour changed on 2026-11-14: research no longer
+  needs a building (the owner's decision).
 - **A unit type unlocked by several technologies needs any one of them** (a unit type no technology lists is always
   free). `unlocks.units` is the only place that says so for unit types; structure upgrades say it themselves with
   `requires` (a technology cannot "unlock" an upgrade from the research file).
 - Per side (`SideState`): `researched[]` (per technology, 1 = finished), `researching` (technology or -1) and
   `researchLeft`. Action `StartResearch(technology)` (`Action::research`; always for the active side): pays at once;
-  needs a structure with `research: true` owned by the side, the prerequisites finished, the money, nothing in
+  needs (with `needsStructure` on) a structure with `research: true` owned by the side, the prerequisites finished, the money, nothing in
   progress, and the technology not finished. `turns` counts the **side's own turns**: the countdown runs when
   the side's turn starts (after `TurnStarted` and income, before story events of that turn); a technology with
   `turns: 1` started now finishes at the start of the side's next turn, `turns: 0` finishes inside the action
-  (events `ResearchStarted` with c = 0, then `ResearchFinished`). Owning no research structure at that moment pauses the
-  countdown without losing the progress. No cancelling in this version.
+  (events `ResearchStarted` with c = 0, then `ResearchFinished`). With `needsStructure` on, owning no research structure at
+  that moment pauses the countdown without losing the progress. No cancelling in this version.
 - Bonuses apply through `Battle::stat` / `unitStat(db, unit, stat, &battle.sides)` (so formulas, forecasts and movement
   see them), to every unit of the side whose type is listed (`types` missing = all), for **new and existing units**.
   They add to the unit's own value and to accessory bonuses, never below 0. A rise of maximum HP does not heal;
@@ -96,8 +103,8 @@ structures.json, per structure kind:
   `ResearchFinished` (a = side, b = technology; also from the story command).
 - Queries: `researchOptions(side, out)` (technologies not finished and not under way, each `ok` / `why`: "needs
   Tools", "not enough Funds", "already researching X", "needs a structure that can research", "it is not that side's
-  turn"), `researching(side)`, `researchTurnsLeft(side)`, `hasTechnology(side, tech)`, `canResearch(side)` (owns a
-  research structure), `unitUnlocked(side, unitType)`, `unlockedBy(unitType, out)` (the technologies of which any
+  turn"), `researching(side)`, `researchTurnsLeft(side)`, `hasTechnology(side, tech)`, `canResearch(side)` (rule off: the game has technologies;
+  rule on: the side owns a research structure), `unitUnlocked(side, unitType)`, `unlockedBy(unitType, out)` (the technologies of which any
   one is enough), `canBuild(cell, unitType, why)` (the whole Build check, including unlocks) and
   `buildOptions(cell, out, includeLocked = false)` (locked types are left out unless asked for).
 - Story events: condition `{ "researched": "masonry", "side": "blue" }` and command
@@ -111,7 +118,7 @@ structures.json, per structure kind:
 - Saves: a side with something to say gets `"research": { "done": [technology indices, ascending], "current": n,
   "left": n }` (`current` and `left` only while one is under way); the carried list in a playthrough is
   `"research": [indices]` on the side. See docs/SAVES.md.
-- AI: before its builds it starts the **cheapest** technology (by summed cost; ties go to the lowest index) it can
+- AI: it follows the same rule (`canResearch`). Before its builds it starts the **cheapest** technology (by summed cost; ties go to the lowest index) it can
   start now and pay for while still being able to afford a unit it could build today (a side with nothing to build
   is not held back).
 
@@ -222,9 +229,19 @@ editor has no switch for it yet (step 5).
 - **Ambush**: an order is carried out along the planned path square by square. If the next square holds an enemy
   unit (seen or not: the plan is fixed, it is not replanned when something comes into view on the way), the unit stops on
   the last square before it that it may legally end on (an ally's square can be walked through, never stopped on, so it
-  falls back further; at worst its own starting square), spends fuel only for the squares it walked, has `moved` and `done`
-  set (the turn is over for it) and the event `MoveBlocked` follows the `UnitMoved` of the squares walked (no
-  `UnitMoved` when it never left). Story "reach" triggers fire for the square it really ended on, only if it moved.
+  falls back further; at worst its own starting square), spends fuel only for the squares it walked, has `moved` set, and the
+  event `MoveBlocked` follows the `UnitMoved` of the squares walked (no `UnitMoved` when it never left). Story "reach"
+  triggers fire for the square it really ended on, only if it moved. What happens to the unit's turn is the maker's choice,
+  game.json `"rules": { "fog": { "ambush": "endsTurn" | "canAct" } }` (optional, default `"endsTurn"`; unknown keys and other
+  values are refused; a game without the key is unchanged, also in its save fingerprint):
+  - `endsTurn`: `done` is set too, the turn is over for the unit (the behaviour before the rule existed).
+  - `canAct`: the unit is **not** done. It has "moved" (also when it walked zero squares) so it cannot move again, but it may
+    do anything else it could do after a normal move to that square: attack (the revealed enemy included, once the team
+    sees it, which a neighbour on open ground does if the unit's vision is at least 1), Capture, Wait, items, Talk, trading,
+    Supply. There is no undo. A unit with vision 0 does not notice the neighbour that stopped it, so it cannot attack it.
+    Saves need nothing new (`moved` and `done` are saved per unit; a mid-turn save with a moved, not done unit resumes as is).
+  - AI with `canAct`: after a blocked move it chooses again from where it stopped through the same code as a unit that
+    already moved (attack if worth it, capture, use an item, else wait); deterministic.
   The mover's team notices structures passed on the way (their last seen owner is updated at every square walked, not
   only at the end).
 - **Last seen owner per team and structure** (`seenOwner(team, structure)`): the true owner while the team sees any
@@ -303,8 +320,8 @@ prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
   public) and runs in a single frame (`BattleScene::aiStep` loops over unseen steps). A partly seen walk appears at the
   first seen square, walks to the last and vanishes when it goes on unseen (`seenSteps`; logged as `fog: <unit> seen on
   squares a..b of its n-square walk`). A seen fight shows both fighters, also a hidden attacker, until the run is over. A
-  `MoveBlocked` shows an "Ambush!" float on the stopped unit, brings in the revealed enemy and the camera, and ends the
-  unit's turn (no action menu, no undo). A `Focus` event on a square the viewer does not see is ignored. Nobody gets a
+  `MoveBlocked` shows an "Ambush!" float on the stopped unit, brings in the revealed enemy and the camera; with the default rule it ends the
+  unit's turn (no action menu, no undo), with `"ambush": "canAct"` the action menu opens (see "Player" below). A `Focus` event on a square the viewer does not see is ignored. Nobody gets a
   banner about research, upgrades or resources of another team: those events are masked to their own team.
 - **Hot-seat** (two or more human sides of different teams, fog on): before each human turn of another team than the
   last one shown, and when a battle starts or resumes on a human turn, the whole screen is covered with "Pass the device to
@@ -316,11 +333,16 @@ Story events: unaffected (they act on the truth); dialogue always shows.
 
 ## Editor
 
-- Structures: upgrades list, "research" checkbox, repairs list, vision
+- Structures: upgrades list, "research" checkbox (only with the rule), repairs list, vision
   bonus, hides.
 - New **Research** screen (like Items): technologies, costs, turns,
   prerequisites, unlocks, bonus.
-- Rules: Supply group (repair amount / cost share, structures resupply).
+- Rules: Supply group (repair amount / cost share, structures resupply); **Research** group (shown when the game has
+  technologies or the rule is set): "Research needs a structure"; **Fog of war** group (always): "When a unit walks into a
+  hidden enemy: its turn ends / it can still act". Defaults are not written; an emptied block is removed.
+- Structures: "Research can be done here" is shown only while the rule is on; otherwise one hint line with a link to the
+  Rules screen (an existing `research: true` stays in the file). The Research screen's "no structure kind allows research
+  yet" hint shows only while the rule is on. Checks (Rules screen) mirror the loader for both rules.
 - Units: vision, fuel, fuel per turn, supplies. Weapons: ammunition.
   Terrain: vision bonus, hides.
 - Map settings: Fog of war checkbox.
@@ -328,9 +350,19 @@ Story events: unaffected (they act on the truth); dialogue always shows.
 
 ## Player
 
-- Structure menu (on an own structure with nothing to build, or beside
-  Build): **Upgrade**, **Research** (list with cost, turns, what it gives;
-  the one in progress with turns left).
+- Structure menu (on an own structure, beside Build): **Upgrade**. Research is **not** in it any more (2026-11-14): a
+  structure with only one thing opens it directly, a structure with nothing (an HQ) behaves like any structure without a
+  menu (Confirm on it opens the battle menu).
+- Battle menu (End Turn, Objective, **Research**, Save, Load, Leave battle, Cancel): **Research** is shown after Objective when
+  the game has technologies and the side is human. It opens the research panel (list with cost, turns, what it gives; the one
+  in progress with turns left); Cancel goes back to the battle menu. With `needsStructure` and no research structure it is
+  still shown: the rows are greyed with "needs a structure that can research" and a countdown shows "paused: no research
+  structure". Seven rows (with an objective and manual saves) fit the 480 x 270 screen; a game without technologies has
+  exactly the menu it had. Log: `battle menu: ...`, `research reason: ...` (only when greyed for lack of a structure).
+- Ambush: with `"ambush": "canAct"` and a human unit, the action menu opens on the stopped unit after the "Ambush!" cue, the
+  hint line says `Stopped: an enemy was in the way. The unit can still act` and the menu hint `X:close (the move stays)`;
+  Cancel only closes the menu (the move is not undone; the unit stays selectable and opens its action menu at once). With
+  `endsTurn` nothing changes (`Stopped: an enemy was in the way`, no menu). Log: `ambushed: <unit> may still act from x,y`.
 - Info panel: fuel and ammunition when the unit has them; research in
   progress under the side's resources.
 - Fog: see "Fog of war > Player" above (dimmed unseen squares, hidden units not drawn, last seen owners, the event

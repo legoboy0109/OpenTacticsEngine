@@ -316,7 +316,7 @@ What the player and the editor need (all on `Battle` / `Database`):
 - Menus: `upgradeOptions(structure, out)` (for the active side's own structure; each entry: `to`, `def->cost`,
   `def->needs`, `ok`, `why`), `researchOptions(side, out)` (`tech`, `ok`, `why`; finished and under-way ones are not
   listed), `researching(side)` / `researchTurnsLeft(side)` (the panel line), `hasTechnology(side, tech)`,
-  `canResearch(side)` (does the side own a `research` structure: show "paused" otherwise),
+  `canResearch(side)` (rule `research.needsStructure` off: the game has technologies; on: the side owns a `research` structure; "paused" otherwise),
   `buildOptions(cell, out, includeLocked)` + `unlockedBy(unitType, out)` for a greyed "needs Armor or Forge" line,
   `canBuild(cell, unitType, &why)` (the whole check). Technology data: `db->research[i]` (id, name, description,
   cost, turns, needs, unlocksUnits, bonusTypes, bonus per stat).
@@ -462,6 +462,24 @@ hardware 3D backend when it exists). Not verified: a real window, WebGL, gamepad
 rest is the shared input code). Known gaps: the kind a structure was upgraded to is not hidden; a unit sprite taller than a tile
 can overhang a dimmed square in the top-down view; the "vanish when a walk ends unseen" path has no test of its own (the walk
 into view has); everything the AI does is silent for the viewer, so the only sign of it is what appears afterwards.
+
+## Research in the battle menu and the ambush rule (2026-11-14)
+
+Two owner decisions, built end to end (docs/ECONOMY.md, docs/GAME_FORMAT.md).
+- Research needs no building by default: game.json `rules.research.needsStructure` (default false). Core: `Battle::canResearch`
+  (`research.cpp`), loader `data/loader_options.cpp` (also reads `rules.fog.ambush`), fields `RulesConfig::researchNeedsStructure`
+  / `ambush`. Games without the key keep their save fingerprint but research no longer needs a building. Player: **Research**
+  in the battle menu (`battle_menus.cpp`, after Objective, human side, games with technologies), the structure menu lists
+  only Build / Upgrade; Cancel in the panel returns to the battle menu. Editor: Rules "Research" group, the Structures
+  checkbox and the Research screen's hint only with the rule on. `games/demo-economy`: HQ `research: true` removed (no effect).
+- Ambush: game.json `rules.fog.ambush` `"endsTurn"` (default) or `"canAct"` (the unit is `moved`, not `done`). Core
+  `actions.cpp` `applyMove`; AI picks again after a blocked move (`ai/ai.cpp`); player `battle_input.cpp` (`ambushed_`: no undo,
+  Cancel just closes the menu), words in `fog_text.h`. Editor: Rules "Fog of war" group. A unit with vision 0 does not see the
+  neighbour that stopped it, so it cannot attack it (it can still wait / capture).
+- Tests: `tests/test_research*.cpp`, `test_fog_ambush.cpp`, `economy_player_test.py` (also a needsStructure copy of the game),
+  `demo_economy_player_test.py`, `fog_player_test.py` (a `canAct` copy), `editor_api_economy_checks.py`, editor `optionRules.test.ts`
+  and `economy.spec.ts`. Webtest: demo-srpg has no technologies, so its battle menu is unchanged (checked byte for byte with
+  a screenshot against the build before); the web player build in `build-web` is older and does not have this change.
 
 ## Story events in the editor (2026-11-14)
 
