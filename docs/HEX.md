@@ -205,3 +205,22 @@ What step 1 built, for the player, art and editor steps.
   `rings` yet (editor step; its server uses the engine loader, so hexagon games already validate there).
 - **Fixtures**: `tests/fixtures/hex-pointy` and `hex-flat` (no art; map `skirmish`, 12 x 9, 2 AI sides, an HQ with
   `"rings": 1`, factories, cities). `ote-sim tests/fixtures/hex-pointy skirmish` works; results are deterministic.
+
+## Implementation notes (editor)
+
+What step 4 built (details and wording in docs/EDITOR_UI.md "Hexagon games"). Code: `editor/web/src/model/hex.ts`, `gridSpec.ts`, `mapGeo.ts`,
+`screens/maps/editor/drawHex.ts`, `drawUnits.ts`, `drawTypes.ts`.
+
+- **Interpretations.** "Settings screen" is the editor's **Game** screen (it has no screen of that name): the grid is a read-only "Grid" card there. The
+  map canvas measures everything in *tiles* (pixels of the game's tile size); `view.scale` is pixels per tile on both grids. A hexagon's unit is drawn
+  as a tile-sized square centred on the hexagon's middle (docs/HEX.md "Units"). A structure's picture keeps the piece's proportions across the box
+  (the rule squares use), so a ring picture of exactly 3T x 5L/2 fills the box and a taller one rises above it. The owner frame, selection and ghost are drawn
+  inside the outline of the covered hexagons. Picking returns the cell whose middle is nearest within the map's picture; outside it, nothing.
+- **Resize** works by column and row as on squares; anchors that shift by an odd number of rows (pointy) or columns (flat) change which shapes the odd/even
+  shift gives, so contents move half a hexagon sideways (or down). Structures whose seven hexagons no longer all fit are removed on confirm (listed first).
+- **Not changed on purpose.** Story rectangles stay columns and rows. The editor never changes a game's grid. The first-guess division of a new image uses the
+  hexagon's box; other quick sizes stay available.
+- **Server.** `GET /api/templates` reports each template's `grid`; everything else passes through (the loader judges hexagon games). No friendly editor
+  checks were added beyond the existing ones, which now know rings (`misfits`, units on a structure, upgrade sizes).
+- **Tests.** The editor's unit and e2e tests above, `tests/editor_api_hex_checks.py`. Play is checked only for "starts and reports ready" (the player draws
+  hexagon games in its own step).

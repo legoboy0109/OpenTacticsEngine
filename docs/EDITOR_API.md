@@ -45,7 +45,9 @@ listed and can still be opened for fixing.
 
 ### GET /api/templates
 Starting points for new projects (sub-folders of the templates folder,
-each a complete valid game). `{ "templates": [ { "id", "name", "description" } ] }`
+each a complete valid game). `{ "templates": [ { "id", "name", "description", "grid" } ] }`.
+`grid` is the template's `grid` from its `game.json` (docs/HEX.md): `{ "type": "square" }` (also when the
+file has none) or `{ "type": "hex", "layout": "pointy" | "flat" }`. The editor shows it on the new-game cards.
 
 ### POST /api/projects
 Body `{ "id": "my-game", "name": "My Game", "template": "strategy-rpg" }`.
@@ -73,6 +75,12 @@ dropped (the document is strict JSON).
   "audio": { …contents of data/audio.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
+`game.grid` (docs/HEX.md) is passed through untouched: missing or `{ "type": "square" }` is a square game, `{ "type": "hex",
+"layout": "pointy" | "flat" }` a hexagon game, whose maps carry `"grid": { "type": "hex", ... }` and whose structures may have
+`"rings": 0 | 1`. The helper adds no hexagon rules of its own: everything about hexagon games (a map of the wrong type, `width` /
+`height` on a hexagon structure, `rings` on a square game, an isometric style, a ring that does not fit the map, overlapping
+structures) is reported by the engine loader in `problems`, in the loader's own words. Saving a hexagon game keeps `grid`,
+`rings` and every unknown key exactly as received (an unknown key inside `grid` is saved and reported, never dropped).
 `maps` is keyed by the map id from `game.maps`. `scripts` holds the text
 of every file listed in `game.scripts`. A file that is missing or is not
 valid JSON does not fail the request: its section is `null` and a problem
