@@ -479,7 +479,11 @@ Tests: `tests/unit/story.test.ts`, `tests/e2e/story*.spec.ts`, `tests/editor_api
 Build order step 5 (editor part) of docs/ECONOMY.md: Research screen, structure upgrades / research / repairs, rules.supply on Rules,
 fuel / supplies on Units, ammunition on Weapons, story condition `researched` and command `grantResearch`. Notes: docs/EDITOR_UI.md
 "Economy options". Helper: `data/research.json` as `research` (empty list removes the file). Tests: `tests/editor_api_economy_checks.py`,
-`editor/web/tests/unit/economy.test.ts`, `tests/e2e/economy.spec.ts`. Fog of war keys and `demo-economy` content are still open.
+`editor/web/tests/unit/economy.test.ts`, `tests/e2e/economy.spec.ts`. `demo-economy` content is still open.
+
+## Fog of war in the editor (2026-11-14)
+
+Map settings "Fog of war" (disabled above 32 sides) and the canvas aid "Show what a side sees" (`model/fogSight.ts`, drawn by `drawFog.ts`, `data-fog` on the canvas); Units "Sight" (default 2, never written), Terrain / Structures "Extra sight" and "Hides" (`screens/fog/`); story condition `sees` (`model/story*.ts`, not in scenes); checks `model/fogChecks.ts` (banner via `EconomyChecks`, map ones in `mapWarnings`); Play panel "Show everything" adds `showall=1` (`ote.playShowAll.<project>`). The helper already passed every fog key through (tests/editor_api_fog_checks.py). Tests: `tests/unit/fog.test.ts`, `tests/e2e/fog.spec.ts`. Aid ignores line of sight (the engine has none yet).
 
 ## Next concrete step
 

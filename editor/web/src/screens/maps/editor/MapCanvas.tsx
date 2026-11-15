@@ -72,8 +72,9 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     c.dataset.ghost = sg ? `${sg.type},${sg.x},${sg.y},${sg.ok ? 'ok' : 'bad'}` : ''
     // Lets tests (and curious people) find a square on screen without guessing.
     c.dataset.view = `${vs.view.scale},${vs.view.x},${vs.view.y}`
+    // What the "Show what a side sees" aid shows, for tests and curious people: one digit per square, row by row (1 = seen, 0 = dimmed).
+    c.dataset.fog = vs.fogSeen ? Array.from(vs.fogSeen).join('') : ''
     // The squares of the open event / objectives ("tone:x,y,w,h;..."), for tests and curious people.
-    c.dataset.fog = vs.fogSeen ? String(vs.fogSeen.reduce((n, v) => n + (v ? 0 : 1), 0)) : ''
     c.dataset.areas = vs.overlays.map((o) => `${o.tone}:${o.x},${o.y},${o.w},${o.h}`).join(';')
   }, [vs])
   const schedule = useCallback(() => { if (!raf.current) raf.current = requestAnimationFrame(draw) }, [draw])
