@@ -226,6 +226,18 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   }
   doc.set("items", items);
 
+  // research.json is optional too (docs/ECONOMY.md "Research"): absent = null, no problem. The list sits under
+  // "technologies" in the file and comes back as "research" (a broken file only blocks the Research screen).
+  Json research;
+  {
+    fs::path rfull;
+    std::string rwhy;
+    std::error_code rec;
+    bool absent = resolveInside(dir, "data/research.json", rfull, rwhy) && !fs::exists(rfull, rec);
+    if (!absent) research = readDataList(dir, "data/research.json", "technologies", readProbs);
+  }
+  doc.set("research", research);
+
   // campaign.json is optional (docs/EVENTS.md "Campaign"): absent = null with no problem; a file that is not a JSON
   // object is null plus a problem on the file (the Campaign screen then refuses to edit, like Items).
   Json campaign;

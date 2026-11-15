@@ -31,7 +31,7 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
          rel == "data/units.json" || rel == "data/graphics.json" ||
-         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/campaign.json";
+         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/campaign.json";
 }
 
 struct PendingWrite {
@@ -60,6 +60,7 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (badType(body["units"], Json::Type::Array)) return apiError(400, "\"units\" must be an array");
   if (badType(body["structures"], Json::Type::Array)) return apiError(400, "\"structures\" must be an array");
   if (badType(body["items"], Json::Type::Array)) return apiError(400, "\"items\" must be an array");
+  if (badType(body["research"], Json::Type::Array)) return apiError(400, "\"research\" must be an array");
   // campaign: an object is written; `false` removes data/campaign.json (null / absent leave it alone).
   if (!body["campaign"].isNull() && !body["campaign"].isObject() &&
       !(body["campaign"].type() == Json::Type::Bool && !body["campaign"].asBool()))
@@ -110,20 +111,30 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   // A failed resolve of a fixed name means a symlink points outside the project.
   const char* escape = "a project file resolves outside the project folder";
   if (!game.isNull() && !add("game.json", game.dump(2) + "\n")) return apiError(400, escape);
-  struct { const char* key; const char* file; } lists[] = {
-      {"terrain", "data/terrain.json"}, {"weapons", "data/weapons.json"}, {"units", "data/units.json"},
-      {"structures", "data/structures.json"}, {"items", "data/items.json"}};
+  // `wrap` = the key the list sits under inside the file (research.json calls its list "technologies").
+  struct { const char* key; const char* file; const char* wrap; } lists[] = {
+      {"terrain", "data/terrain.json", "terrain"}, {"weapons", "data/weapons.json", "weapons"},
+      {"units", "data/units.json", "units"}, {"structures", "data/structures.json", "structures"},
+      {"items", "data/items.json", "items"}, {"research", "data/research.json", "technologies"}};
+  std::vector<fs::path> deletions;
   for (const auto& l : lists) {
     if (body[l.key].isNull()) continue;
+    // The loader refuses an empty technology list ("delete the file if the game has no research"), so an empty
+    // `research` removes data/research.json instead of writing a file that would break the game.
+    if (std::string(l.key) == "research" && body[l.key].size() == 0) {
+      std::error_code rec;
+      if (!resolveInside(dir, l.file, full, why)) return apiError(400, escape);
+      if (fs::is_regular_file(full, rec)) deletions.push_back(full);
+      continue;
+    }
     Json wrap = Json::makeObject();
-    wrap.set(l.key, body[l.key]);
+    wrap.set(l.wrap, body[l.key]);
     if (!add(l.file, wrap.dump(2) + "\n")) return apiError(400, escape);
   }
 
   if (!body["graphics"].isNull() && !add("data/graphics.json", body["graphics"].dump(2) + "\n"))
     return apiError(400, escape);
 
-  std::vector<fs::path> deletions;
   if (body["campaign"].isObject()) {
     if (!add("data/campaign.json", body["campaign"].dump(2) + "\n")) return apiError(400, escape);
   } else if (body["campaign"].type() == Json::Type::Bool) {
