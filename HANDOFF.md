@@ -673,7 +673,8 @@ rules core, player (`engine/core/view/hex_geo.*`, `engine/player/battle/hex_draw
 editor (`editor/web/src/model/hex.ts`, `gridSpec.ts`, `mapGeo.ts`, canvas `drawHex.ts`), Play panel Sound checkbox.
 Open: hexagons in the other three views; bridges on zigzag rivers fork oddly (join mask); demo maps one-sided; terrain
 palette chips without art are square; names of the templates and demo are placeholders; odd tileSize can leave a seam.
-Next: the editor tutorial workflow (PLAN 3j): ask the owner the design questions through the dialog first.
+Next: the editor tutorial (PLAN 3j, contract docs/TUTORIAL.md with the owner's answers of 2026-11-15). Step 1
+(framework + "Your first game") was handed to a Sonnet agent in a worktree; then topic lessons 2 to 8.
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

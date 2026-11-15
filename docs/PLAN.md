@@ -136,7 +136,10 @@ goal (demos only exercise features).
       per game; top-down view first; structures of one hexagon or a
       hexagon and its ring of six. Contract: docs/HEX.md.
    j. A tutorial workflow for the editor (owner, 2026-11-14: after hex
-      grids). NEXT: design questions to the owner first.
+      grids).
+      Owner (2026-11-15): teaches the editor; hands-on steps that tick
+      themselves; "Your first game" plus topic lessons; offered once,
+      then behind a Learn button. Contract: docs/TUTORIAL.md.
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
