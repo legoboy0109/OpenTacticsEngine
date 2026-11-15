@@ -22,8 +22,12 @@ export interface Progression extends Feature {
 /** docs/ITEMS.md `rules.items`; every key is optional and a default is never written. */
 export type StorageMode = 'off' | 'anywhere' | 'structure' | 'leader'
 export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode }
+/** docs/ECONOMY.md `rules.supply`; no block = nothing is repaired or resupplied. */
+export interface RepairRules extends Extra { amount?: number; costShare?: number }
+export interface SupplyRules extends Extra { repair?: RepairRules; structures?: boolean }
 export interface Rules extends Extra {
   items?: ItemRules
+  supply?: SupplyRules
   turnOrder?: string
   counterAttacks?: boolean
   defeat?: string[]
@@ -92,12 +96,32 @@ export interface Structure extends Named {
   capturePoints?: number; income?: NumMap; produces?: string[]; tags?: string[]
   /** Item ids sold here; each needs a price. */
   sells?: string[]
+  /** A side owning one may research (docs/ECONOMY.md). */
+  research?: boolean
+  /** Kinds it can be built up into. */
+  upgrades?: Upgrade[]
+  /** Unit type ids or tags it repairs; missing = all, [] = nothing. */
+  repairs?: string[]
+}
+/** One way to build a structure up into another kind (same footprint). */
+export interface Upgrade extends Extra { to: string; cost?: NumMap; requires?: string }
+/** One technology of data/research.json (docs/ECONOMY.md "Research"). */
+export interface Technology extends Named {
+  description?: string
+  cost?: NumMap
+  /** 0 = finished at once; missing = 1. */
+  turns?: number
+  requires?: string[]
+  unlocks?: { units?: string[] } & Extra
+  bonus?: { types?: string[]; stats?: NumMap } & Extra
 }
 export interface Weapon extends Named {
   /** Carried weapons only: a unit type that `wields` this group can use the weapon. */
   group?: string
   range?: [number, number]; counter?: boolean; afterMove?: boolean
   props?: NumMap; versus?: NumMap; versusDefault?: number; damage?: string
+  /** Attacks per supply (fixed weapons only); missing = unlimited. */
+  ammo?: number
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
@@ -106,6 +130,11 @@ export interface Unit extends Named {
   wields?: string[]
   /** Starting items. */
   items?: ItemEntry[]
+  /** Tank size; missing = no fuel. */
+  fuel?: number
+  fuelPerTurn?: number
+  /** Refills the units of its side next to it. */
+  supplies?: boolean
 }
 
 export type ItemKind = 'usable' | 'weapon' | 'accessory'
@@ -203,6 +232,8 @@ export interface ProjectDoc {
   weapons: Weapon[] | null
   /** null = the game has no items yet (the first item edit creates the list). */
   items: Item[] | null
+  /** null = the game has no research yet (the first technology edit creates the list; an empty list removes the file). */
+  research: Technology[] | null
   units: Unit[] | null
   maps: Record<string, MapFile | null>
   scripts: Record<string, string>
@@ -221,5 +252,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'art' | 'maps' | 'campaign'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'art', 'maps', 'campaign']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'maps' | 'campaign'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'maps', 'campaign']

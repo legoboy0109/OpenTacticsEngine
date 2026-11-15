@@ -12,6 +12,7 @@ import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
 import { ItemListEditor } from '../../ui/ItemListEditor'
 import { Check } from '../../ui/Toggle'
+import { SupplyCard } from './SupplyCard'
 import { T } from './text'
 
 export function UnitForm({ id }: { id: string }) {
@@ -89,6 +90,8 @@ export function UnitForm({ id }: { id: string }) {
           </div>
         </Card>
       )}
+
+      <SupplyCard id={id} />
 
       <Card>
         <Field label={T.tags} help={T.tagsHelp}>

@@ -6,7 +6,7 @@ import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, 
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
-import { FilterPicker, ItemPick, PickSelect, SwitchPick, UnitPick, VariablePick } from './pickers'
+import { FilterPicker, ItemPick, PickSelect, SidePick, SwitchPick, TechPick, UnitPick, VariablePick } from './pickers'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
 import { S } from './text'
@@ -68,6 +68,12 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <Field label={S.conditionRound}>
                   <NumberInput value={c.round?.value ?? 1} min={0} onChange={(v) => { if (v !== undefined) patch(i, { round: { op: c.round?.op ?? '>=', value: v } }, 'round') }} />
                 </Field>
+              </>
+            )}
+            {kind === 'researched' && (
+              <>
+                <TechPick label={S.conditionTech} value={c.researched ?? ''} onChange={(v) => patch(i, { researched: v })} />
+                <SidePick label={S.conditionTechSide} value={c.side ?? ''} onChange={(v) => patch(i, { side: v })} />
               </>
             )}
             {kind === 'carries' && (

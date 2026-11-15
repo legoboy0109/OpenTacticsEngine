@@ -65,6 +65,7 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'dead': return { dead: c.scene ? firstUnit(c) : defaultFilter(c) }
     case 'round': return { round: { op: '>=', value: 2 } }
     case 'carries': return { carries: c.doc.items?.[0]?.id ?? '' }
+    case 'researched': return { researched: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
   }
 }
 
@@ -83,6 +84,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
+    case 'grantResearch': return { grantResearch: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
     case 'giveResource': {
       const res = c.doc.game?.resources?.[0]?.id
       return { giveResource: res ? { [res]: 100 } : {}, side: firstSide(c) }

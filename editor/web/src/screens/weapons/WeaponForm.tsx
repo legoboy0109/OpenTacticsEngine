@@ -7,6 +7,7 @@ import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { NumberInput } from '../../ui/NumberInput'
 import { TextInput } from '../../ui/TextInput'
 import { Check } from '../../ui/Toggle'
+import { AMMO_MAX, AMMO_START, carriedAsItem, setAmmo } from '../../model/supplyUnits'
 import { Effectiveness } from './Effectiveness'
 import { T } from './text'
 
@@ -21,6 +22,7 @@ export function WeaponForm({ id }: { id: string }) {
   const suggested = suggestedWeaponProps(doc.game!)
   const min = weapon.range?.[0] ?? 1
   const max = weapon.range?.[1] ?? 1
+  const carriedItem = carriedAsItem(doc, id)
 
   // Offer the numbers the chosen combat maths uses, plus whatever the weapon already has.
   const known = new Map<string, string>(suggested.map((s) => [s.id, s.label]))
@@ -66,6 +68,18 @@ export function WeaponForm({ id }: { id: string }) {
           columns={[{ title: T.numberCol, values: weapon.props, integer: false, onChange: (k, v) => edit((d) => setWeaponProp(d, id, k, v), `${key}:prop:${k}`) }]}
           onRemove={(k) => edit((d) => setWeaponProp(d, id, k, undefined))}
           addOptions={addable} onAdd={(k) => edit((d) => setWeaponProp(d, id, k, suggested.find((s) => s.id === k)?.default ?? 0))} addLabel={T.addNumber} />
+      </Card>
+
+      <Card>
+        <div className="stack">
+          <Check label={T.ammo} help={carriedItem && weapon.ammo === undefined ? T.ammoCarried(carriedItem) : T.ammoHelp} checked={weapon.ammo !== undefined}
+            disabled={!!carriedItem && weapon.ammo === undefined} onChange={(on) => edit((d) => setAmmo(d, id, on ? AMMO_START : undefined))} />
+          {weapon.ammo !== undefined && (
+            <Field label={T.ammoAmount} help={T.ammoAmountHelp}>
+              <NumberInput value={weapon.ammo} min={1} max={AMMO_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setAmmo(d, id, v), `${key}:ammo`) }} />
+            </Field>
+          )}
+        </div>
       </Card>
 
       <Card>

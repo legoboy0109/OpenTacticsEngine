@@ -28,7 +28,7 @@ interface Props {
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say'] },
   { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide'] },
-  { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource'] },
+  { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
 ]
@@ -42,6 +42,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
   const why: Partial<Record<CommandKind, string | null>> = {
     giveItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',
+    grantResearch: doc.research?.length ? null : 'no technologies yet',
     setSwitch: doc.game?.switches?.length ? null : 'no switches yet',
     setVariable: doc.game?.variables?.length ? null : 'no variables yet',
     addVariable: doc.game?.variables?.length ? null : 'no variables yet',

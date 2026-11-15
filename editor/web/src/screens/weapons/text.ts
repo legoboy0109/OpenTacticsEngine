@@ -43,6 +43,11 @@ export const T = {
   elseValuePercent: 'Damage % against everything else',
   removeRow: (n: string) => `Remove ${n}`,
 
+  ammo: 'Limited ammunition',
+  ammoHelp: 'Each attack with this weapon uses one. A weapon with none left cannot attack until its unit is resupplied. Off means unlimited.',
+  ammoAmount: 'Ammunition',
+  ammoAmountHelp: 'How many attacks a full supply gives, from 1 to 99.',
+  ammoCarried: (item: string) => `This weapon is carried as the item “${item}”, and an item’s uses already limit it, so ammunition cannot be set here.`,
   advanced: 'Advanced',
   id: 'Internal name',
   idHelp: 'Made when the weapon was created and never changed by renaming.',

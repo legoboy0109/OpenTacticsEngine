@@ -10,6 +10,7 @@ import { ItemsCard } from './ItemsCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { SavingCard } from './SavingCard'
+import { SupplyCard } from './SupplyCard'
 import { SwitchesCard, VariablesCard } from './StoryListsCards'
 import { StatsCard } from './StatsCard'
 import { T } from './text'
@@ -38,6 +39,7 @@ function RulesForm() {
       <MoveTypesCard />
       <BattleCard />
       <FeaturesCard />
+      <SupplyCard />
       <ItemsCard />
       <SavingCard />
       <SwitchesCard />

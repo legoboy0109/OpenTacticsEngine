@@ -17,8 +17,11 @@ import { NumberInput } from '../../ui/NumberInput'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
+import { repairOn } from '../../model/supplyRules'
 import { Footprint } from './Footprint'
 import { MovingThrough } from './MovingThrough'
+import { RepairsCard, ResearchHereCard } from './RepairsCard'
+import { UpgradesCard } from './UpgradesCard'
 import { T } from './text'
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -54,7 +57,8 @@ export function StructureForm({ id }: { id: string }) {
   const showIncome = (economyOn || hasIncome) && resources.length > 0
   const showProduces = productionOn || hasProduces
   const showHq = hqOn || hq
-  const hidden = [!showCapture && T.hiddenCapture, !(economyOn || hasIncome) && T.hiddenIncome, !showProduces && T.hiddenProduces, !showHq && T.hiddenHq].filter(Boolean)
+  const showRepairs = repairOn(doc) || s.repairs !== undefined
+  const hidden = [!showCapture && T.hiddenCapture, !(economyOn || hasIncome) && T.hiddenIncome, !showProduces && T.hiddenProduces, !showHq && T.hiddenHq, !showRepairs && T.hiddenRepairs].filter(Boolean)
 
   return (
     <div className="stack">
@@ -154,6 +158,10 @@ export function StructureForm({ id }: { id: string }) {
           <p className="help">{T.sellsRule}</p>
         </Card>
       )}
+
+      <ResearchHereCard id={id} />
+      <UpgradesCard id={id} />
+      {showRepairs && <RepairsCard id={id} />}
 
       {hidden.length > 0 && (
         <p className="help" data-testid="hidden-settings">{T.hiddenBody(hidden.join(', '))} <Link to={projectPath(store.id, 'rules')}>{T.rulesLink}</Link></p>

@@ -1,7 +1,9 @@
 // What other parts of a game hold about structures, and the clean-up when something they point at is deleted. Every
 // function is pure and returns a new document, so the delete and its clean-up are one undo step.
 import { dropArtOf } from './graphicsClean'
+import { economyUsageLines } from './researchRefs'
 import { dropKey, without } from './util'
+import type { Usage } from './references'
 import type { MapFile, ProjectDoc, Structure } from './types'
 
 const mapEntries = (doc: ProjectDoc): Array<[string, MapFile]> =>
@@ -39,10 +41,11 @@ export function placedCounts(doc: ProjectDoc, id: string): Array<{ mapId: string
 }
 
 /** Lines for the delete confirmation: placed ones, pictures, style colours. */
-export function structureUsageLines(doc: ProjectDoc, id: string): Array<{ section: 'maps' | 'art' | 'game'; text: string }> {
-  const out: Array<{ section: 'maps' | 'art' | 'game'; text: string }> = []
+export function structureUsageLines(doc: ProjectDoc, id: string): Usage[] {
+  const out: Usage[] = []
   for (const p of placedCounts(doc, id)) out.push({ section: 'maps', text: `Map “${p.name}” has ${p.count} of them placed (they are removed)` })
   for (const s of doc.game?.styles ?? []) if (s.structureColors && id in s.structureColors) out.push({ section: 'game', text: `Style “${s.name}” recolours it` })
+  out.push(...economyUsageLines(doc, 'structure', id))
   const g = doc.graphics
   if (g && (id in (g.structures ?? {}) || Object.values(g.styles ?? {}).some((st) => id in (st.structures ?? {})))) {
     out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })

@@ -3,6 +3,7 @@
 // context module wraps it for components.
 import type { Api } from '../api/client'
 import { reconcileCampaign } from '../model/campaignRefs'
+import { reconcileEconomy } from '../model/researchRefs'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
 import { ModelLibrary } from './models'
@@ -25,7 +26,7 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null, campaign: null }
+const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, research: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null, campaign: null }
 
 export class DocumentStore {
   private state: StoreState
@@ -82,7 +83,10 @@ export class DocumentStore {
     const prev = this.history.present
     // The campaign follows the rest of the game: a switch, side, map or story name that this edit removed is taken out
     // of the scenes in the same undo step (model/campaignRefs.ts).
-    const next = reconcileCampaign(prev, fn(prev))
+    // Research, upgrades and repairs lists follow a deleted technology, unit type, structure kind, resource or stat the
+    // same way (model/researchRefs.ts); the campaign then follows whatever that took out of the maps.
+    const edited = reconcileEconomy(prev, fn(prev))
+    const next = reconcileCampaign(prev, edited)
     const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
     if (h === this.history) return
     this.history = h

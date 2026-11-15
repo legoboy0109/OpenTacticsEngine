@@ -62,6 +62,17 @@ export const T = {
   maxLevel: 'Highest level',
   maxLevelHelp: 'Units stop levelling up here.',
 
+  supply: 'Repair and supply',
+  supplyHelp: 'Healing units on your own structures, and refilling fuel and ammunition. Give units fuel on the Units screen and weapons ammunition on the Weapons screen.',
+  repair: 'Repair on own structures',
+  repairHelp: 'A hurt unit standing on a structure of its own side heals at the start of its side’s turn. Each structure kind can limit which units it repairs (Structures screen).',
+  repairAmount: 'Hit points healed per turn',
+  repairAmountHelp: 'Percent of the unit’s maximum hit points, from 1 to 100.',
+  repairShare: 'Share of the unit’s price paid',
+  repairShareHelp: 'Healing costs this share of the unit’s price in proportion to the hit points healed. 0 means free, 100 the full proportional price.',
+  supplyStructures: 'Own structures also refill fuel and ammunition',
+  supplyStructuresHelp: 'A unit standing on a structure of its own side is refilled for free at the start of its turn.',
+
   items: 'Items',
   itemsHelp: 'Things units carry. Make the items themselves on the Items screen.',
   itemWeapons: 'Weapons',
