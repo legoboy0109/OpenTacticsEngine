@@ -107,10 +107,28 @@ function weaponChecks(doc: ProjectDoc): EconomyCheck[] {
   return out
 }
 
+/** rules.research and rules.fog (engine/core/data/loader_options.cpp): unknown keys, a flag that is not on/off, an ambush choice the game does not know. */
+function optionRuleChecks(doc: ProjectDoc): EconomyCheck[] {
+  const out: EconomyCheck[] = []
+  const rules = doc.game?.rules
+  const research = rules?.research
+  if (research !== undefined) {
+    for (const k of Object.keys(research)) if (k !== 'needsStructure') out.push({ section: 'rules', text: `Research rules: “${k}” is not something this game knows.` })
+    if (research.needsStructure !== undefined && typeof research.needsStructure !== 'boolean') out.push({ section: 'rules', text: 'Research rules: “needs a structure” must be on or off.' })
+  }
+  const fog = rules?.fog
+  if (fog !== undefined) {
+    for (const k of Object.keys(fog)) if (k !== 'ambush') out.push({ section: 'rules', text: `Fog of war rules: “${k}” is not something this game knows.` })
+    if (fog.ambush !== undefined && fog.ambush !== 'endsTurn' && fog.ambush !== 'canAct')
+      out.push({ section: 'rules', text: `Fog of war rules: what happens to an ambushed unit must be “endsTurn” or “canAct”, not “${String(fog.ambush)}”.` })
+  }
+  return out
+}
+
 function ruleChecks(doc: ProjectDoc): EconomyCheck[] {
   const rep = doc.game?.rules?.supply?.repair
-  if (!rep) return []
-  const out: EconomyCheck[] = []
+  if (!rep) return optionRuleChecks(doc)
+  const out: EconomyCheck[] = optionRuleChecks(doc)
   if (rep.amount === undefined) out.push({ section: 'rules', text: 'Repair needs a percent of hit points per turn.' })
   else if (!isInt(rep.amount) || rep.amount < 1 || rep.amount > 100) out.push({ section: 'rules', text: 'Repair: the percent of hit points per turn must be from 1 to 100.' })
   if (rep.costShare !== undefined && (!isInt(rep.costShare) || rep.costShare < 0 || rep.costShare > 100)) out.push({ section: 'rules', text: 'Repair: the share of the unit’s price paid must be from 0 to 100.' })

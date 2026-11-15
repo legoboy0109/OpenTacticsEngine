@@ -73,6 +73,18 @@ export const T = {
   supplyStructures: 'Own structures also refill fuel and ammunition',
   supplyStructuresHelp: 'A unit standing on a structure of its own side is refilled for free at the start of its turn.',
 
+  researchGroup: 'Research',
+  researchGroupHelp: 'Make the technologies themselves on the Research screen. Players start research from the battle menu.',
+  researchNeedsStructure: 'Research needs a structure',
+  researchNeedsStructureHelp: 'Off: a side can research whenever it likes. On: a side can only research while it owns a structure kind marked “Research can be done here” (Structures screen); the countdown waits if it loses its last one.',
+
+  fogGroup: 'Fog of war',
+  fogGroupHelp: 'Applies to maps that have fog of war switched on (Map settings).',
+  ambush: 'When a unit walks into a hidden enemy',
+  ambushHelp: 'The unit always stops in front of the enemy. Choose whether its turn ends there or it can still act (attack, wait, capture…). It cannot move again either way.',
+  ambushEnds: 'Its turn ends',
+  ambushCanAct: 'It can still act',
+
   items: 'Items',
   itemsHelp: 'Things units carry. Make the items themselves on the Items screen.',
   itemWeapons: 'Weapons',

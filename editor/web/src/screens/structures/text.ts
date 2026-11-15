@@ -69,6 +69,8 @@ export const T = {
 
   researchHere: 'Research can be done here',
   researchHereHelp: 'A side that owns one of these can research technologies.',
+  researchRuleOff: 'In this game a side can research without owning any structure, so there is nothing to set here. You can change that on the Rules screen.',
+  openRules: 'Open Rules',
   researchHereNone: 'There are no technologies yet, so there is nothing to research.',
   openResearch: 'Open Research',
 

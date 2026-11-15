@@ -1,6 +1,8 @@
-// "Research can be done here" and "Repairs" on a structure kind (docs/ECONOMY.md).
+// "Research can be done here" (only while the game's rule says research needs a structure) and "Repairs" on a
+// structure kind (docs/ECONOMY.md).
 import { allTags } from '../../model/units'
 import { repairOn } from '../../model/supplyRules'
+import { researchNeedsStructure } from '../../model/optionRules'
 import { repairsAll, setRepairs, setResearchHere } from '../../model/structuresEconomy'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -17,6 +19,14 @@ export function ResearchHereCard({ id }: { id: string }) {
   const store = useStore()
   const s = doc.structures?.find((x) => x.id === id)
   if (!s) return null
+  // Without the rule nothing needs this flag: one line says so and links to the rule. An existing `research: true`
+  // stays in the file untouched (it matters again the moment the rule is switched on).
+  if (!researchNeedsStructure(doc))
+    return (
+      <Card>
+        <p className="help" data-testid="research-rule-off">{T.researchRuleOff} <Link to={projectPath(store.id, 'rules')}>{T.openRules}</Link></p>
+      </Card>
+    )
   return (
     <Card>
       <div className="stack">

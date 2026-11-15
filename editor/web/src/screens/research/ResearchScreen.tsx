@@ -1,6 +1,7 @@
 // The Research section: technologies a side can research (list + form, like Items).
 import { useState } from 'react'
 import { addTechnology, deleteTechnology, duplicateTechnology, moveTechnology, newTechId, turnsOf } from '../../model/research'
+import { researchNeedsStructure } from '../../model/optionRules'
 import { technologyUsageLines } from '../../model/researchRefs'
 import { navigate, Link, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
@@ -50,14 +51,15 @@ function ResearchList({ itemId }: { itemId?: string }) {
     const parts = resources.filter((r) => cost?.[r.id]).map((r) => `${cost![r.id]} ${r.name}`)
     return parts.length ? parts.join(', ') : T.free
   }
-  const noPlace = !(doc.structures ?? []).some((s) => s.research === true)
+  // Only when the game's rule says research needs a structure does the list matter.
+  const noPlace = researchNeedsStructure(doc) && !(doc.structures ?? []).some((s) => s.research === true)
   const structuresLink = <Link to={projectPath(store.id, 'structures')}>{T.emptyStructures}</Link>
 
   return (
     <>
       <EconomyChecks section="research" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
-        note={<>{T.intro}{list.length === 0 ? <> {T.emptyExplain} {structuresLink}.</> : null}{list.length > 0 && noPlace
+        note={<>{T.intro}{list.length === 0 ? <> {T.emptyExplain}{researchNeedsStructure(doc) ? <> {T.emptyExplainStructure} {structuresLink}.</> : null}</> : null}{list.length > 0 && noPlace
           ? <span data-testid="no-research-structure"> {T.noResearchStructure} {structuresLink}.</span> : null}</>}
         items={list.map((t) => ({ id: t.id, label: t.name, sub: T.subtitle(costText(t.cost), turnsOf(t)) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}
