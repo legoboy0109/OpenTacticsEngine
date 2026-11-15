@@ -10,7 +10,7 @@ buildings is transparent, so the terrain underneath shows around them.
 Original art, drawn from shapes; no input files.
 """
 import art_tiles as tl
-from pix import Pix
+from pix import Pix, hexc as hexc_
 
 T = 24
 OUT = tl.DARKLINE
@@ -159,9 +159,44 @@ def hq():
     return p_
 
 
+def town():
+    """24 x 28: the city on a golden plot with a red pennant on the clock tower (a city's first upgrade)."""
+    p = city()
+    swap = {hexc_(0xC9C3B0): 0xD9C58A, hexc_(0xE0DBC8): 0xEEDCA6, hexc_(0xA8A392): 0xB5A268}
+    for y in range(22, 28):  # the paved plot only: the houses stand above row 22 and on it at the foot
+        for x in range(24):
+            if p.get(x, y) in swap:
+                p.set(x, y, swap[p.get(x, y)])
+    p.line(12, 0, 12, 2, 0x4A4038)      # pennant pole on the tower roof
+    p.rect(13, 0, 16, 1, 0xC03A2E)
+    return p
+
+
+def metropolis():
+    """24 x 28: three glass towers of different heights on a blue-grey plot (a town's upgrade)."""
+    p = canvas(1, 1)
+    plot(p, 0, 22, 23, 27, 0xB9C6D4, 0xD6E0EA, 0x8E9DB0)
+    glass, light, dark, win = 0x7FA4C4, 0xB9D3E8, 0x5A7FA0, 0xDCEBF6
+    for x0, x1, top in ((1, 7, 10), (9, 14, 1), (16, 22, 6)):
+        t = Pix(x1 - x0 + 1, 22 - top)
+        t.rect(0, 0, t.w - 1, t.h - 1, glass)
+        t.rect(0, 0, t.w - 1, 0, light)
+        t.rect(t.w - 2, 1, t.w - 1, t.h - 1, dark)
+        for wy in range(2, t.h - 2, 3):
+            for wx in range(1, t.w - 2, 2):
+                t.rect(wx, wy, wx, wy, win)
+        t.outline(OUT)
+        p.paste(t, x0 - 1 + 1, top - 1 + 1)
+    p.rect(11, 0, 12, 0, 0xE0B030)       # gilded cap on the tallest tower
+    p.rect(11, 6, 12, 7, 0xE0B030)
+    return p
+
+
 # Structure id -> {(width, height): picture function}. The starter set can draw these.
 PICTURES = {
     'city': {(1, 1): city},
+    'town': {(1, 1): town},
+    'metropolis': {(1, 1): metropolis},
     'factory': {(1, 1): factory},
     'fort': {(1, 1): fort},
     'hq': {(2, 2): hq, (1, 1): hq_small},

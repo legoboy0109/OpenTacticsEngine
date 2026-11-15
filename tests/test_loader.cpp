@@ -178,7 +178,7 @@ TEST(loader_demo_economy_game) {
   CHECK_STR(db.name, "Wars Demo");
   CHECK_EQ(db.stats.size(), size_t(2));
   CHECK_EQ(db.resources.size(), size_t(1));
-  CHECK_EQ(db.unitTypes.size(), size_t(5));
+  CHECK_EQ(db.unitTypes.size(), size_t(6));  // infantry, mech, recon, tank, artillery, apc
   CHECK_EQ(db.moveTypes.size(), size_t(3));
 
   const TerrainDef& forest = db.terrains[size_t(db.findTerrain("forest"))];
@@ -196,7 +196,7 @@ TEST(loader_demo_economy_game) {
   CHECK_EQ(factory.income.size(), size_t(1));
   CHECK_EQ(factory.income[size_t(0)].resource, db.findResource("funds"));
   CHECK_EQ(factory.income[size_t(0)].amount, 1000);
-  CHECK_EQ(factory.produces.size(), size_t(5));
+  CHECK_EQ(factory.produces.size(), size_t(6));
   const StructureDef& hq = db.structures[size_t(db.findStructure("hq"))];
   CHECK_EQ(hq.tags.size(), size_t(1));
   CHECK_STR(hq.tags[size_t(0)], "hq");
@@ -208,8 +208,8 @@ TEST(loader_demo_economy_game) {
   CHECK_EQ(cannon.minRange, 2);
   CHECK_EQ(cannon.maxRange, 3);
   CHECK(!cannon.counter && !cannon.afterMove && !cannon.hasVersusDefault);
-  CHECK_EQ(cannon.versus.size(), size_t(5));
-  for (const WeaponDef& w : db.weapons) CHECK_EQ(w.versus.size(), size_t(5));
+  CHECK_EQ(cannon.versus.size(), size_t(6));  // one value per unit type, the APC included
+  for (const WeaponDef& w : db.weapons) CHECK_EQ(w.versus.size(), size_t(6));
 
   const UnitTypeDef& tank = db.unitTypes[size_t(db.findUnitType("tank"))];
   CHECK_EQ(tank.cost[size_t(0)].amount, 7000);
@@ -226,6 +226,54 @@ TEST(loader_demo_economy_game) {
   CHECK_STR(r.fCaptureAmount, "a.hp / 10");
   CHECK(r.fHit.empty() && r.fCrit.empty() && r.fStrikes.empty());
   CHECK(has(r.fDamage, "tb.defense"));
+}
+
+TEST(loader_demo_economy_uses_upgrades_research_supply_and_fog) {
+  Database db;
+  std::string err;
+  CHECK(loadGame(game("demo-economy"), db, err));
+  // Upgrades: city -> town (free of research) -> metropolis (needs Urbanism); same footprint, more income.
+  auto income = [&](const char* id) { return db.structures[size_t(db.findStructure(id))].income[size_t(0)].amount; };
+  const StructureDef& city = db.structures[size_t(db.findStructure("city"))];
+  const StructureDef& town = db.structures[size_t(db.findStructure("town"))];
+  CHECK_EQ(city.upgrades.size(), size_t(1));
+  CHECK_EQ(city.upgrades[size_t(0)].to, db.findStructure("town"));
+  CHECK_EQ(city.upgrades[size_t(0)].needs, -1);
+  CHECK_EQ(town.upgrades.size(), size_t(1));
+  CHECK_EQ(town.upgrades[size_t(0)].to, db.findStructure("metropolis"));
+  CHECK(town.upgrades[size_t(0)].needs >= 0);
+  CHECK(income("city") < income("town") && income("town") < income("metropolis"));
+  CHECK(db.structures[size_t(db.findStructure("hq"))].research);
+  // Research: three technologies; Armor unlocks the tank, Plating needs Armor and adds HP.
+  CHECK_EQ(db.research.size(), size_t(3));
+  int armor = -1, plating = -1;
+  for (size_t i = 0; i < db.research.size(); ++i) {
+    if (db.research[i].id == "armor") armor = int(i);
+    if (db.research[i].id == "plating") plating = int(i);
+  }
+  CHECK(armor >= 0 && plating >= 0);
+  if (armor >= 0) CHECK_EQ(db.research[size_t(armor)].unlocksUnits.size(), size_t(1));
+  if (plating >= 0) CHECK_EQ(db.research[size_t(plating)].needs.size(), size_t(1));
+  // Supply: paid repair, structures resupply, fuel on vehicles, ammunition on the heavy weapons, an APC that supplies.
+  CHECK(db.rules.supply.repair && db.rules.supply.repairAmount == 20 && db.rules.supply.structures);
+  CHECK(db.unitTypes[size_t(db.findUnitType("tank"))].fuel > 0);
+  CHECK_EQ(db.unitTypes[size_t(db.findUnitType("infantry"))].fuel, 0);
+  CHECK(db.unitTypes[size_t(db.findUnitType("apc"))].supplies);
+  CHECK(db.weapons[size_t(db.findWeapon("tank_cannon"))].ammo > 0);
+  CHECK_EQ(db.weapons[size_t(db.findWeapon("rifle"))].ammo, 0);
+  // Fog: forests hide, mountains see further, the recon sees furthest; only Misty Ford has fog.
+  CHECK(db.terrains[size_t(db.findTerrain("forest"))].hides);
+  CHECK(db.terrains[size_t(db.findTerrain("mountain"))].visionBonus > 0);
+  int scout = db.unitTypes[size_t(db.findUnitType("recon"))].vision;
+  for (const UnitTypeDef& u : db.unitTypes) CHECK(u.vision <= scout);
+  MapDef ford, rivers;
+  CHECK(loadMap(db, "misty_ford", ford, err));
+  CHECK(loadMap(db, "twin_rivers", rivers, err));
+  CHECK(ford.fog && !rivers.fog);
+  CHECK(ford.width < rivers.width && ford.height <= rivers.height);
+  for (int y = 0; y < ford.height; ++y)  // mirror-symmetric ground
+    for (int x = 0; x < ford.width; ++x)
+      CHECK_EQ(ford.terrain[size_t(y * ford.width + x)], ford.terrain[size_t(y * ford.width + (ford.width - 1 - x))]);
 }
 
 TEST(loader_demo_economy_map) {

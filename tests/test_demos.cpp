@@ -79,3 +79,36 @@ TEST(demo_economy_starts_with_income_and_production) {
   }
   CHECK(built);
 }
+
+// The optional features of the demo, played through the rules (the player and the AI use the same calls).
+TEST(demo_economy_tank_needs_research_and_cities_upgrade) {
+  Demo d;
+  CHECK(d.load("demo-economy", "twin_rivers"));
+  Battle& b = d.battle;
+  int tank = d.db.findUnitType("tank"), armor = -1;
+  for (size_t i = 0; i < d.db.research.size(); ++i)
+    if (d.db.research[i].id == "armor") armor = int(i);
+  CHECK(armor >= 0);
+  // The factory's tank is locked until Armor Doctrine is finished; a side can research at its HQ.
+  Cell factory = b.grid.at(2, 3);
+  CHECK(!b.canBuild(factory, tank) && !b.unitUnlocked(0, tank));
+  CHECK(b.canResearch(0));
+  b.sides[0].resources[0] = 20000;
+  CHECK(b.apply(Action::research(armor), d.events));
+  std::vector<Event> ev;
+  for (int i = 0; i < 4; ++i) b.apply(Action::endTurn(), ev);  // two full rounds: Armor takes two of blue's turns
+  CHECK(b.unitUnlocked(0, tank));
+  // Blue's own city (1,6) is built up into a town: one payment of 2000, then it is another kind.
+  int cityIdx = -1;
+  for (size_t i = 0; i < b.structures.size(); ++i)
+    if (b.structures[i].x == 1 && b.structures[i].y == 6) cityIdx = int(i);
+  CHECK(cityIdx >= 0);
+  std::vector<UpgradeOption> opts;
+  b.upgradeOptions(cityIdx, opts);
+  CHECK_EQ(opts.size(), size_t(1));
+  if (opts.empty()) return;
+  int before = b.sides[0].resources[0];
+  CHECK(b.apply(Action::upgrade(cityIdx, opts[0].to), d.events));
+  CHECK_STR(b.defOf(b.structures[size_t(cityIdx)]).id, "town");
+  CHECK_EQ(before - b.sides[0].resources[0], 2000);
+}

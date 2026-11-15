@@ -481,6 +481,20 @@ fuel / supplies on Units, ammunition on Weapons, story condition `researched` an
 "Economy options". Helper: `data/research.json` as `research` (empty list removes the file). Tests: `tests/editor_api_economy_checks.py`,
 `editor/web/tests/unit/economy.test.ts`, `tests/e2e/economy.spec.ts`. Fog of war keys and `demo-economy` content are still open.
 
+## demo-economy content (2026-11-14)
+
+Build order step 5, demo part, of docs/ECONOMY.md (all numbers placeholders; the list is in that file). `games/demo-economy` now has
+city -> town -> metropolis, research at the HQ (Armor Doctrine / Reinforced Plating / Urbanism), repair + fuel + ammunition + an APC,
+and the fog map `misty_ford`. Art for the new kinds comes from `tools/art` (re-run `make_starter_art.py`, never hand-edit).
+**Plain-game pins moved**: the old demo is frozen as `tests/fixtures/plain-economy` (`savetest::Rig::loadPlain`, `loadPlainEconomy()`
+in the editor unit fixtures); save bytes `7bd8c1c0aa74081e` and data hash `1e44dae676a88a38` are identical to before. A demo-economy save made
+earlier is refused (the rules changed). `ote-sim` (deterministic, all seeds equal): twin_rivers Red 30 / Blue 0 (10 rounds, 6 captures, 14 builds;
+before: Red 30, 15 rounds, 9 captures, 26 builds), misty_ford Blue 30 / Red 0 (11 rounds, 5 captures, 13 builds), no stalls; demo-srpg unchanged
+(bridge Blue 17 / Red 13). The one-sidedness is move order (the first side's lone tank walks into the other's gun), not data; starting funds
+and removing the tanks did not flip it. Test: `tests/demo_economy_player_test.py`. Not run here: the editor's e2e and the browser webtest
+(need the web build); they reference demo-economy only in `art-play.spec.ts` (opens it, expects "no problems" and unchanged graphics.json) and
+`editing.spec.ts` ("Wars Demo" link).
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
@@ -506,8 +520,8 @@ Story events, dialogue and the campaign are built (docs/EVENTS.md) and
 `"campaign": false` in the PUT removes the file). Not done: a Play-from-chapter-1 button (needs a `campaign` query
 parameter in `engine/platform/web/embed.html`). Next:
 economy options (owner decisions in docs/PLAN.md 3g, contract in
-docs/ECONOMY.md, build order at its end: steps 1 to 3 are done in the rules core, steps 4 (player menus and fog drawing)
-and 5 (editor screens, demo content) are open), then sound and music.
+docs/ECONOMY.md, build order at its end: steps 1 to 4 are done (rules core, player menus and fog drawing), step 5's demo content too; the editor's fog keys
+are open), then sound and music.
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

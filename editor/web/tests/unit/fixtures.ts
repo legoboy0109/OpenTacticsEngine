@@ -5,6 +5,7 @@ import type { ProjectDoc } from '../../src/model/types'
 
 const games = path.resolve(import.meta.dirname, '../../../../games')
 const templates = path.resolve(import.meta.dirname, '../../../templates')
+const fixtures = path.resolve(import.meta.dirname, '../../../../tests/fixtures')
 
 /** Removes // comments and trailing commas without touching strings. */
 export function parseLoose(text: string): any {
@@ -28,6 +29,9 @@ const readIn = (root: string) => (name: string, rel: string) => parseLoose(readF
 export const TEMPLATES = ['strategy-rpg', 'economy-tactics', 'blank'] as const
 
 export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc { return loadFrom(games, name) }
+/** The frozen copy of demo-economy from before it used upgrades, research, supply and fog (tests/fixtures/plain-economy,
+ *  no art): the editor tests that need "a game with none of the optional economy data" use it, the live demo has some. */
+export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plain-economy') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 function loadFrom(root: string, name: string): ProjectDoc {

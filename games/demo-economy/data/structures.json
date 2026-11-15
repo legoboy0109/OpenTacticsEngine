@@ -1,13 +1,21 @@
 // Buildings: structures stand on top of terrain squares and only replace the
 // rules they set (here: defense). Capture, income and production live here.
+// A city can be built up into a town, and a town (after the "urbanism" technology, data/research.json) into a
+// metropolis: same square, more income. The HQ is where a side researches.
 { "structures": [
   { "id": "city",     "name": "City",         "color": "#b7b7b7", "glyph": "c",
-    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 } },
+    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 },
+    "upgrades": [ { "to": "town", "cost": { "funds": 2000 } } ] },
+  { "id": "town",     "name": "Town",         "color": "#c7b98a", "glyph": "t",
+    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 2000 },
+    "upgrades": [ { "to": "metropolis", "cost": { "funds": 4000 }, "requires": "urbanism" } ] },
+  { "id": "metropolis", "name": "Metropolis", "color": "#8fb4d8", "glyph": "M",
+    "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 3000 } },
   { "id": "factory",  "name": "Factory",      "color": "#9a9a9a", "glyph": "F",
     "props": { "defense": 3 }, "capturePoints": 20, "income": { "funds": 1000 },
-    "produces": ["infantry", "mech", "recon", "tank", "artillery"] },
+    "produces": ["infantry", "mech", "recon", "tank", "artillery", "apc"] },
   { "id": "hq",       "name": "Headquarters", "color": "#d4af37", "glyph": "H",
     "width": 2, "height": 2,
     "props": { "defense": 4 }, "capturePoints": 20, "income": { "funds": 1000 },
-    "tags": ["hq"] }
+    "tags": ["hq"], "research": true }
 ] }

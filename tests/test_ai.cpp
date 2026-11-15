@@ -192,6 +192,26 @@ TEST(ai_is_deterministic_on_demo_economy) {
   CHECK_EQ(a.battle.winnerTeam, b.battle.winnerTeam);
 }
 
+// The fog map of the demo: the AI plays it out (sight, ambushes, repair, resupply and research all in play), the
+// same way twice, and ends the battle.
+TEST(ai_plays_the_demo_fog_map_to_the_end) {
+  Demo a, b;
+  CHECK(a.load("demo-economy", "misty_ford", 5));
+  CHECK(b.load("demo-economy", "misty_ford", 5));
+  CHECK(a.battle.fogOn());
+  CHECK(playOut(a.battle, a.events, 60));
+  CHECK(playOut(b.battle, b.events, 60));
+  CHECK(a.battle.winnerTeam >= 0);
+  CHECK(sameEvents(a.events, b.events));
+  int research = 0, repaired = 0, blocked = 0;
+  for (const Event& e : a.events) {
+    research += e.type == EventType::ResearchFinished;
+    repaired += e.type == EventType::UnitRepaired;
+    blocked += e.type == EventType::MoveBlocked;
+  }
+  CHECK(research > 0 && repaired > 0 && blocked > 0);
+}
+
 TEST(ai_demo_games_finish_within_round_limit) {
   for (uint32_t seed = 1; seed <= 3; ++seed) {
     Demo srpg, eco;

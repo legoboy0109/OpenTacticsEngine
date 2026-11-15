@@ -62,6 +62,18 @@
       "cellHeight": 48
     },
     {
+      "id": "iso_town",
+      "file": "art/iso_town.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_metropolis",
+      "file": "art/iso_metropolis.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
       "id": "iso_factory",
       "file": "art/iso_factory.png",
       "cellWidth": 48,
@@ -203,6 +215,20 @@
         ]
       ],
       "frameMs": 600
+    },
+    "apc": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "frameMs": 600
     }
   },
   "structures": {
@@ -213,10 +239,24 @@
         0
       ]
     },
-    "factory": {
+    "town": {
       "sheet": "structures",
       "cell": [
         1,
+        0
+      ]
+    },
+    "metropolis": {
+      "sheet": "structures",
+      "cell": [
+        2,
+        0
+      ]
+    },
+    "factory": {
+      "sheet": "structures",
+      "cell": [
+        3,
         0
       ]
     },
@@ -296,10 +336,24 @@
             0
           ]
         },
-        "factory": {
+        "town": {
           "sheet": "structures_night",
           "cell": [
             1,
+            0
+          ]
+        },
+        "metropolis": {
+          "sheet": "structures_night",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "structures_night",
+          "cell": [
+            3,
             0
           ]
         },
@@ -441,6 +495,20 @@
             ]
           ],
           "frameMs": 600
+        },
+        "apc": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              5
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "frameMs": 600
         }
       },
       "structures": {
@@ -451,10 +519,24 @@
             0
           ]
         },
-        "factory": {
+        "town": {
           "sheet": "structures",
           "cell": [
             1,
+            0
+          ]
+        },
+        "metropolis": {
+          "sheet": "structures",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "structures",
+          "cell": [
+            3,
             0
           ]
         },
@@ -596,6 +678,20 @@
             ]
           ],
           "frameMs": 600
+        },
+        "apc": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              5
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "frameMs": 600
         }
       },
       "structures": {
@@ -606,10 +702,24 @@
             0
           ]
         },
-        "factory": {
+        "town": {
           "sheet": "structures",
           "cell": [
             1,
+            0
+          ]
+        },
+        "metropolis": {
+          "sheet": "structures",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "structures",
+          "cell": [
+            3,
             0
           ]
         },
@@ -747,11 +857,39 @@
             ]
           ],
           "frameMs": 600
+        },
+        "apc": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              5
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "frameMs": 600
         }
       },
       "structures": {
         "city": {
           "sheet": "iso_city",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "town": {
+          "sheet": "iso_town",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "metropolis": {
+          "sheet": "iso_metropolis",
           "cell": [
             0,
             0

@@ -1,17 +1,22 @@
+// "vision" is how far a unit sees on a fog map (default 2); "fuel" is spent one per movement point and refilled on
+// own structures and next to a supplier; the APC has no weapon: it only carries supplies (the AI never builds it).
 { "units": [
   { "id": "infantry", "name": "Infantry", "glyph": "i", "moveType": "foot",
-    "stats": { "hp": 100, "mov": 3 }, "weapons": ["rifle"],
+    "stats": { "hp": 100, "mov": 3 }, "weapons": ["rifle"], "vision": 2,
     "cost": { "funds": 1000 }, "canCapture": true },
   { "id": "mech", "name": "Mech", "glyph": "m", "moveType": "foot",
-    "stats": { "hp": 100, "mov": 2 }, "weapons": ["bazooka"],
+    "stats": { "hp": 100, "mov": 2 }, "weapons": ["bazooka"], "vision": 2,
     "cost": { "funds": 3000 }, "canCapture": true },
   { "id": "recon", "name": "Recon", "glyph": "r", "moveType": "wheels",
-    "stats": { "hp": 100, "mov": 8 }, "weapons": ["machine_gun"],
+    "stats": { "hp": 100, "mov": 8 }, "weapons": ["machine_gun"], "vision": 5, "fuel": 80,
     "cost": { "funds": 4000 } },
   { "id": "tank", "name": "Tank", "glyph": "T", "moveType": "tread",
-    "stats": { "hp": 100, "mov": 6 }, "weapons": ["tank_cannon"],
+    "stats": { "hp": 100, "mov": 6 }, "weapons": ["tank_cannon"], "vision": 3, "fuel": 70,
     "cost": { "funds": 7000 } },
   { "id": "artillery", "name": "Artillery", "glyph": "A", "moveType": "tread",
-    "stats": { "hp": 100, "mov": 5 }, "weapons": ["cannon"],
-    "cost": { "funds": 6000 } }
+    "stats": { "hp": 100, "mov": 5 }, "weapons": ["cannon"], "vision": 2, "fuel": 50,
+    "cost": { "funds": 6000 } },
+  { "id": "apc", "name": "APC", "glyph": "P", "moveType": "tread",
+    "stats": { "hp": 100, "mov": 6 }, "weapons": [], "vision": 2, "fuel": 70, "supplies": true,
+    "cost": { "funds": 5000 } }
 ] }

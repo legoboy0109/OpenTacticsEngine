@@ -1,0 +1,49 @@
+// Fog of war. Mirror-symmetric (blue west, red east, a river between with two fords on the roads). Forests hide
+// whoever stands in them from everyone not next door; the two mountains above and below the river see far.
+// Each side starts with an HQ (2 x 2), a factory, a city, a recon and an APC; four neutral cities lie between.
+{
+  "name": "Misty Ford",
+  "fog": true,
+  "grid": { "type": "square", "width": 11, "height": 8 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea" },
+  "tiles": [
+    "..f.m~m.f..",
+    "...f.~.f...",
+    ".f...~...f.",
+    "..rrrrrrr..",
+    "..f..~..f..",
+    ".f...~...f.",
+    "..rrrrrrr..",
+    "..f.m~m.f.."
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human",
+      "resources": { "funds": 3000 } },
+    { "id": "red",  "name": "Red Army",  "color": "#cc0000", "controller": "ai",
+      "resources": { "funds": 3000 } }
+  ],
+  "structures": [
+    { "type": "hq", "x": 0, "y": 3, "side": "blue" },
+    { "type": "hq", "x": 9, "y": 3, "side": "red" },
+    { "type": "factory", "x": 2, "y": 2, "side": "blue" },
+    { "type": "factory", "x": 8, "y": 2, "side": "red" },
+    { "type": "city", "x": 1, "y": 6, "side": "blue" },
+    { "type": "city", "x": 9, "y": 6, "side": "red" },
+    { "type": "city", "x": 4, "y": 1 },
+    { "type": "city", "x": 6, "y": 1 },
+    { "type": "city", "x": 4, "y": 6 },
+    { "type": "city", "x": 6, "y": 6 }
+  ],
+  "units": [
+    { "type": "infantry", "side": "blue", "x": 2, "y": 3 },
+    { "type": "infantry", "side": "blue", "x": 2, "y": 5 },
+    { "type": "tank",     "side": "blue", "x": 3, "y": 3 },
+    { "type": "recon",    "side": "blue", "x": 3, "y": 2 },
+    { "type": "apc",      "side": "blue", "x": 2, "y": 6 },
+    { "type": "infantry", "side": "red",  "x": 8, "y": 3 },
+    { "type": "infantry", "side": "red",  "x": 8, "y": 5 },
+    { "type": "tank",     "side": "red",  "x": 7, "y": 3 },
+    { "type": "recon",    "side": "red",  "x": 7, "y": 2 },
+    { "type": "apc",      "side": "red",  "x": 8, "y": 6 }
+  ]
+}

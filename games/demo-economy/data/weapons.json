@@ -1,15 +1,17 @@
 // "versus" is the damage chart: base damage (out of 100 hp) per target type.
 // There is no versusDefault, so a weapon can only hit types listed here.
+// "ammo" is the number of fights a unit can start or answer with that weapon before it needs a refill
+// (on its own structures or beside an APC); weapons without it never run dry.
 { "weapons": [
   { "id": "rifle", "name": "Rifle",
-    "versus": { "infantry": 55, "mech": 45, "recon": 12, "tank": 5, "artillery": 15 } },
+    "versus": { "infantry": 55, "mech": 45, "recon": 12, "tank": 5, "artillery": 15, "apc": 14 } },
   { "id": "bazooka", "name": "Bazooka",
-    "versus": { "infantry": 65, "mech": 55, "recon": 85, "tank": 55, "artillery": 70 } },
+    "versus": { "infantry": 65, "mech": 55, "recon": 85, "tank": 55, "artillery": 70, "apc": 80 } },
   { "id": "machine_gun", "name": "Machine Gun",
-    "versus": { "infantry": 70, "mech": 65, "recon": 35, "tank": 6, "artillery": 45 } },
-  { "id": "tank_cannon", "name": "Tank Cannon",
-    "versus": { "infantry": 75, "mech": 70, "recon": 85, "tank": 55, "artillery": 70 } },
-  { "id": "cannon", "name": "Artillery Cannon", "range": [2, 3],
+    "versus": { "infantry": 70, "mech": 65, "recon": 35, "tank": 6, "artillery": 45, "apc": 45 } },
+  { "id": "tank_cannon", "name": "Tank Gun", "ammo": 9,
+    "versus": { "infantry": 75, "mech": 70, "recon": 85, "tank": 55, "artillery": 70, "apc": 75 } },
+  { "id": "cannon", "name": "Howitzer", "range": [2, 3], "ammo": 6,
     "counter": false, "afterMove": false,
-    "versus": { "infantry": 90, "mech": 85, "recon": 80, "tank": 70, "artillery": 75 } }
+    "versus": { "infantry": 90, "mech": 85, "recon": 80, "tank": 70, "artillery": 75, "apc": 70 } }
 ] }

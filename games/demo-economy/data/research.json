@@ -1,0 +1,14 @@
+// Research at the headquarters: pay, wait some of your own turns, one at a time.
+{ "technologies": [
+  { "id": "armor", "name": "Armor Doctrine",
+    "description": "Heavy tracked vehicles for the factories.",
+    "cost": { "funds": 4000 }, "turns": 2,
+    "unlocks": { "units": ["tank"] } },
+  { "id": "plating", "name": "Reinforced Plating",
+    "description": "Tanks and APCs carry 20 more HP.",
+    "cost": { "funds": 5000 }, "turns": 2, "requires": ["armor"],
+    "bonus": { "types": ["tank", "apc"], "stats": { "hp": 20 } } },
+  { "id": "urbanism", "name": "Urbanism",
+    "description": "Towns can be built up into Metropolises.",
+    "cost": { "funds": 6000 }, "turns": 2 }
+] }

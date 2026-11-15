@@ -32,10 +32,10 @@ import type { Condition } from '../../src/model/storyTypes'
 import type { ProjectDoc, ServerProject } from '../../src/model/types'
 import { buildBody } from '../../src/store/autosave'
 import { DocumentStore } from '../../src/store/documentStore'
-import { loadDemo } from './fixtures'
+import { loadPlainEconomy } from './fixtures'
 
 /** The economy demo (units infantry, mech, recon, tank, artillery; structures city, factory, hq; resource funds; sides blue and red). */
-const base = (): ProjectDoc => loadDemo('demo-economy')
+const base = (): ProjectDoc => loadPlainEconomy()
 const mapId = (d: ProjectDoc) => d.game!.maps[0].id
 
 /** A game that uses all of it: two more kinds (a same-size "metropolis" and a research lab), three technologies, repair. */

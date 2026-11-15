@@ -183,7 +183,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           doc)
     check("project list names and map counts",
           projs.get("demo-srpg", {}).get("name") == "Emblem Demo" and projs["demo-srpg"].get("maps") == 2 and
-          projs.get("demo-economy", {}).get("name") == "Wars Demo" and projs["demo-economy"].get("maps") == 1)
+          projs.get("demo-economy", {}).get("name") == "Wars Demo" and projs["demo-economy"].get("maps") == 2)  # twin_rivers + misty_ford
     check("project list entries have all fields",
           all(set(p) == {"id", "name", "description", "author", "maps", "ok", "error"} for p in projs.values()))
 

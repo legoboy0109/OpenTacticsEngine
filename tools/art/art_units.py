@@ -286,10 +286,32 @@ def artillery(b):
     return p
 
 
+def apc(b):
+    """Armoured supply carrier: a boxy hull on tracks with a hatch and a red cross-like supply crate."""
+    p = Pix(T, T)
+    p.rect(2, 12, 21, 16, 0x4C4C56)  # tracks
+    for x in range(2 + b, 22, 3):
+        p.rect(x, 12, x, 12, 0x6C6C78)
+        p.rect(x, 16, x, 16, 0x6C6C78)
+    for cx in (4, 8, 12, 16, 19):
+        p.circle(cx, 14, 1.5, 0x8A8A96)
+    p.rect(3, 6 + b, 20, 12, OLIVE)  # tall box hull
+    p.rect(3, 6 + b, 20, 6 + b, 0x9AA783)
+    p.rect(17, 7 + b, 20, 12, OLIVE_D)
+    p.rect(14, 4 + b, 19, 6 + b, OLIVE)  # cab
+    p.rect(16, 5 + b, 18, 5 + b, 0x7FA4C4)  # window slit
+    p.rect(6, 8 + b, 11, 11, WHITE)  # supply marking
+    p.rect(8, 8 + b, 9, 11, 0xC03A2E)
+    p.rect(6, 9 + b, 11, 10, 0xC03A2E)
+    p.outline(OUT)
+    return p
+
+
 # Unit type id -> drawing function. The sheet row of a unit is its position in ORDER.
 UNITS = {
     'lord': lord, 'cavalier': cavalier, 'archer': archer, 'fighter': fighter, 'knight': knight,
     'soldier': soldier, 'pegasus': pegasus,
     'infantry': infantry, 'mech': mech, 'recon': recon, 'tank': tank, 'artillery': artillery,
+    'apc': apc,
 }
 ORDER = list(UNITS.keys())
