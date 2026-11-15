@@ -33,7 +33,12 @@ bool checkAmmoNotItems(const std::string& weaponsPath, const Database& db, std::
 // Fog of war (loader_fog.cpp; docs/ECONOMY.md): units.json "vision", terrain / structures "visionBonus" and
 // "hides", the map's "fog" (after the sides are loaded).
 bool readUnitVision(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
-bool readSquareVision(const LoadCtx& c, const Json& e, const std::string& where, int& visionBonus, bool& hides);
+// "visionBonus" is a plain number (every unit) or {"amount": 0..10, "units": [type ids or tags]} (those units only);
+// `visionUnits` stays empty for the plain form. Needs the unit types loaded (the keys are checked against them).
+bool readSquareVision(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, int& visionBonus,
+                      std::vector<std::string>& visionUnits, bool& hides);
+// A unit type id, or a tag some unit type carries (the rule of "versus" and "repairs" keys).
+bool isUnitKey(const Database& db, const std::string& key);
 bool readMapFog(const LoadCtx& c, const Json& root, MapDef& m);
 // The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
 // "structures" array of data/structures.json; db.structures already holds its entries in the same order.

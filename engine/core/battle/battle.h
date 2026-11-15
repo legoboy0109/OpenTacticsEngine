@@ -414,6 +414,9 @@ class Battle {
   void refreshSight() const { sight_.valid = false; }
   // For loading a save: the last seen owners, one list per team with one entry per structure (checked by the caller).
   void setSeenOwners(const std::vector<std::vector<int>>& owners) { seenOwners_ = owners; sight_.valid = false; }
+  // How far a unit of this type standing on `cell` sees: its vision plus what the square gives it (terrain and
+  // structure bonuses, each possibly limited to some unit types). The one place that rule lives.
+  int visionAt(const UnitTypeDef& type, Cell cell) const;
   // The same for the last seen kinds (indices into db->structures).
   void setSeenKinds(const std::vector<std::vector<int>>& kinds) { seenKinds_ = kinds; sight_.valid = false; }
 

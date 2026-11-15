@@ -36,6 +36,9 @@ struct TerrainDef {
   // Fog of war (docs/ECONOMY.md "Fog of war"): squares a unit stands on add this to its vision (0..10); a unit on
   // a square that hides is seen only by units next to it.
   int visionBonus = 0;
+  // Which units get the bonus: empty = every unit (the plain number), else unit type ids or tags (the same
+  // matching as a weapon's "versus" keys). The loader refuses an empty list, so empty always means "all".
+  std::vector<std::string> visionUnits;
   bool hides = false;
 };
 
@@ -72,6 +75,7 @@ struct StructureDef {
   // Fog of war: like the terrain's keys; a structure's values ADD to those of the terrain under the unit
   // (bonuses are summed, "hides" on either one hides).
   int visionBonus = 0;
+  std::vector<std::string> visionUnits;  // as TerrainDef::visionUnits
   bool hides = false;
 };
 
@@ -149,6 +153,20 @@ struct UnitTypeDef {
   // Fog of war: how far its team sees from the square it stands on (grid distance), 0..kMaxVision.
   int vision = 2;
 };
+// Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
+inline bool unitTypeMatchesKey(const UnitTypeDef& t, const std::string& key) {
+  if (t.id == key) return true;
+  for (const std::string& tag : t.tags)
+    if (tag == key) return true;
+  return false;
+}
+// The sight bonus a square gives a unit of this type: `amount`, or 0 when the bonus is limited to other units.
+inline int visionBonusFor(int amount, const std::vector<std::string>& units, const UnitTypeDef& t) {
+  if (units.empty()) return amount;
+  for (const std::string& key : units)
+    if (unitTypeMatchesKey(t, key)) return amount;
+  return 0;
+}
 const int kMaxVision = 20;
 const int kMaxVisionBonus = 10;
 const int kMaxFogTeams = 32;  // an event's "seen by" is a 32-bit mask with one bit per team

@@ -11,13 +11,16 @@
 
 namespace ote {
 
-int Battle::visionOf(const Unit& u) const {
+int Battle::visionAt(const UnitTypeDef& type, Cell c) const {
   // Vision is a property of the unit's type plus the square it stands on. It is deliberately not a stat, so
-  // research and accessories do not change it.
-  int bonus = terrainAt(u.cell).visionBonus;
-  if (const StructureDef* s = structureDefAt(u.cell)) bonus += s->visionBonus;
-  return typeOf(u).vision + bonus;
+  // research and accessories do not change it. A square's bonus may be limited to some unit types.
+  const TerrainDef& t = terrainAt(c);
+  int bonus = visionBonusFor(t.visionBonus, t.visionUnits, type);
+  if (const StructureDef* s = structureDefAt(c)) bonus += visionBonusFor(s->visionBonus, s->visionUnits, type);
+  return type.vision + bonus;
 }
+
+int Battle::visionOf(const Unit& u) const { return visionAt(typeOf(u), u.cell); }
 
 void Battle::computeTeamSight(int team) const {
   const size_t n = (size_t)grid.cellCount();

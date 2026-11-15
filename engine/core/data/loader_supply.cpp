@@ -71,11 +71,7 @@ bool readStructureRepairs(const LoadCtx& c, const Database& db, const Json& e, c
   s.repairsAll = false;
   // Same rule as "versus" keys: a unit type id, or a tag some unit type carries.
   for (const std::string& key : s.repairs) {
-    bool known = db.findUnitType(key) >= 0;
-    for (size_t u = 0; u < db.unitTypes.size() && !known; ++u)
-      for (const std::string& tag : db.unitTypes[u].tags)
-        if (tag == key) { known = true; break; }
-    if (!known)
+    if (!isUnitKey(db, key))
       return c.fail(where, "\"repairs\" entry \"" + key + "\" is neither a unit type id nor a tag used by any unit type");
   }
   return true;

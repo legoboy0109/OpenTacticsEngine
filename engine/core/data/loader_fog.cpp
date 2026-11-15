@@ -21,8 +21,32 @@ bool readUnitVision(const LoadCtx& c, const Json& e, const std::string& where, U
   return inRange(c, e, "vision", where, 0, kMaxVision, u.vision);
 }
 
-bool readSquareVision(const LoadCtx& c, const Json& e, const std::string& where, int& visionBonus, bool& hides) {
-  return inRange(c, e, "visionBonus", where, 0, kMaxVisionBonus, visionBonus) && c.boolean(e, "hides", where, hides);
+bool isUnitKey(const Database& db, const std::string& key) {
+  if (db.findUnitType(key) >= 0) return true;
+  for (const UnitTypeDef& u : db.unitTypes)
+    for (const std::string& tag : u.tags)
+      if (tag == key) return true;
+  return false;
+}
+
+bool readSquareVision(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, int& visionBonus,
+                      std::vector<std::string>& visionUnits, bool& hides) {
+  if (!c.boolean(e, "hides", where, hides)) return false;
+  if (!e.has("visionBonus") || !e["visionBonus"].isObject()) return inRange(c, e, "visionBonus", where, 0, kMaxVisionBonus, visionBonus);
+  // The object form: the amount for some unit types only.
+  const Json& o = e["visionBonus"];
+  const std::string at = where + ".visionBonus";
+  for (const Json::Member& m : o.members())
+    if (m.first != "amount" && m.first != "units") return c.fail(at, "unknown key \"" + m.first + "\" (it has \"amount\" and \"units\")");
+  if (!o.has("amount")) return c.fail(at, "needs \"amount\"");
+  if (!o.has("units")) return c.fail(at, "needs \"units\" (leave the object out for a bonus that is for every unit)");
+  if (!inRange(c, o, "amount", at, 0, kMaxVisionBonus, visionBonus)) return false;
+  if (!c.stringList(o, "units", at, visionUnits)) return false;
+  if (visionUnits.empty()) return c.fail(at, "\"units\" is empty (use a plain number for a bonus that is for every unit)");
+  for (const std::string& key : visionUnits)
+    if (!isUnitKey(db, key))
+      return c.fail(at, "\"units\" entry \"" + key + "\" is neither a unit type id nor a tag used by any unit type");
+  return true;
 }
 
 bool readMapFog(const LoadCtx& c, const Json& root, MapDef& m) {

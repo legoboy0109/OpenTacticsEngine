@@ -299,3 +299,67 @@ TEST(fog_grid_within_lists_the_squares_by_distance_and_clips_at_the_edge) {
   g.within(kNoCell, 3, out);
   CHECK(out.empty());
 }
+
+// ---- a sight bonus for some unit types only (docs/ECONOMY.md "Fog of war") ----
+
+namespace {
+
+// A blue unit of `type` on the forest square (0,0) of a long field, a red soldier `far` squares to its right on the
+// same row. Reports whether blue sees the red soldier.
+bool seesAcross(const char* type, int far, const std::vector<std::string>& only, int amount = 2) {
+  FogWorld w({"f.............", "..............", ".............."}, {{type, 0, 0, 0, false}, {"soldier", 1, far, 0, false}});
+  TerrainDef& forest = w.db.terrains[(size_t)w.db.findTerrain("forest")];
+  forest.visionBonus = amount;
+  forest.visionUnits = only;
+  if (!w.begin()) return false;
+  return w.seesUnit(0, 1);
+}
+
+}  // namespace
+
+TEST(fog_sight_a_limited_bonus_applies_to_the_listed_unit_type_id) {
+  CHECK(seesAcross("soldier", 4, {"soldier"}));    // vision 2 + 2
+  CHECK(!seesAcross("soldier", 5, {"soldier"}));
+  CHECK(!seesAcross("archer", 3, {"soldier"}));    // an archer standing there gets nothing
+  CHECK(seesAcross("archer", 2, {"soldier"}));     // its own vision of 2 still works
+}
+
+TEST(fog_sight_a_limited_bonus_applies_to_a_tag) {
+  CHECK(seesAcross("tank", 4, {"armor"}));
+  CHECK(!seesAcross("soldier", 3, {"armor"}));
+  CHECK(seesAcross("soldier", 4, {"armor", "soldier"}));   // any entry matches
+}
+
+TEST(fog_sight_the_plain_form_is_for_every_unit) {
+  CHECK(seesAcross("archer", 4, {}));
+  CHECK(seesAcross("tank", 4, {}));
+  CHECK(!seesAcross("tank", 5, {}));
+}
+
+TEST(fog_sight_a_limited_bonus_of_zero_changes_nothing) {
+  CHECK(!seesAcross("soldier", 3, {"soldier"}, 0));
+}
+
+TEST(fog_sight_a_structures_limited_bonus_is_added_only_for_its_unit_types) {
+  for (const char* type : {"soldier", "archer"}) {
+    FogWorld w({"..............", "..............", ".............."}, {{type, 0, 0, 0, false}, {"soldier", 1, 5, 0, false}});
+    w.place("tower", 0, 0);   // bonus 3
+    StructureDef& tower = w.db.structures[(size_t)w.db.findStructure("tower")];
+    tower.visionUnits = {"archer"};
+    CHECK(w.begin());
+    CHECK_EQ(w.seesUnit(0, 1), std::string(type) == "archer");   // 2 + 3 = 5
+  }
+}
+
+TEST(fog_sight_terrain_and_structure_limits_are_independent) {
+  FogWorld w({"..............", "..............", ".............."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 7, 0, false}});
+  w.place("tower", 0, 0);   // 3, for archers only
+  w.db.structures[(size_t)w.db.findStructure("tower")].visionUnits = {"archer"};
+  TerrainDef& plain = w.db.terrains[(size_t)w.db.findTerrain("plain")];
+  plain.visionBonus = 2;   // for soldiers only
+  plain.visionUnits = {"soldier"};
+  CHECK(w.begin());
+  CHECK(!w.seesUnit(0, 1));   // 2 + 2 = 4: the tower adds nothing for a soldier
+  CHECK(w.sees(0, 4, 0));
+  CHECK(!w.sees(0, 5, 0));
+}
