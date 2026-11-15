@@ -11,6 +11,7 @@ import { StructuresScreen } from '../screens/structures/StructuresScreen'
 import { TerrainScreen } from '../screens/terrain/TerrainScreen'
 import { UnitsScreen } from '../screens/units/UnitsScreen'
 import { WeaponsScreen } from '../screens/weapons/WeaponsScreen'
+import { PLAY_CAMPAIGN } from '../play/PlayPanel'
 import { usePlay } from '../play/usePlay'
 import { useProject, useStore } from '../store/context'
 import { ProblemsPanel } from './ProblemsPanel'
@@ -42,9 +43,10 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
   const [problemsOpen, setProblemsOpen] = useState(false)
   const [fixFirst, setFixFirst] = useState(false)
   const closeProblems = useCallback(() => { setProblemsOpen(false); setFixFirst(false) }, [])
-  // Play runs the map being edited, or the first map anywhere else.
+  // Play runs the map being edited, the story on the Campaign screen, or the first map anywhere else.
   const maps = doc.game?.maps ?? []
-  const playMap = (route.section === 'maps' && maps.some((m) => m.id === route.itemId) ? route.itemId : maps[0]?.id) ?? ''
+  const playMap = route.section === 'campaign' && doc.campaign && maps.length > 0 ? PLAY_CAMPAIGN
+    : (route.section === 'maps' && maps.some((m) => m.id === route.itemId) ? route.itemId : maps[0]?.id) ?? ''
   const play = usePlay(maps, useCallback(() => { setFixFirst(true); setProblemsOpen(true) }, []))
 
   // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z act on the whole game, even while typing in a box.

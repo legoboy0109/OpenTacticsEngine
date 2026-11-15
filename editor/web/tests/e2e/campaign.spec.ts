@@ -4,7 +4,7 @@
 // removing the campaign, and a phone.
 import { existsSync, readFileSync } from 'node:fs'
 import type { Page } from '@playwright/test'
-import { diskPath, editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
+import { diskPath, editorUrl, expect, expectNoHScroll, readDisk, requirePlayer, saved, test } from './fixtures'
 import { addSceneCommand, copyDemo, openCampaign, openChapter, scene, sceneForm } from './campaignkit'
 import { openMap, tool } from './mapkit'
 import { nameUnit, shot } from './storykit'
@@ -310,4 +310,21 @@ test.describe('phone', () => {
     await page.getByRole('button', { name: /Chapters/ }).click()
     await expectNoHScroll(page)
   })
+})
+
+test('Play on the Campaign screen starts the story from chapter 1; the picker can go back to a single map', async ({ page }) => {
+  requirePlayer()
+  const id = copyDemo()
+  await page.goto(editorUrl(id))
+  await openCampaign(page)
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  const panel = page.getByRole('dialog', { name: 'Play', exact: true })
+  await expect(panel.locator('iframe')).toHaveAttribute('src', `/player/embed.html?project=${id}&campaign=1`)
+  await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
+  await expect(page.getByTestId('play-error')).toHaveCount(0)
+  await expect(panel.getByLabel('Map')).toHaveValue('*campaign')
+  await panel.getByLabel('Map').selectOption('bridge')
+  await expect(panel.locator('iframe')).toHaveAttribute('src', `/player/embed.html?project=${id}&map=bridge`)
+  await expect(page.getByTestId('play-loading')).toBeHidden({ timeout: 30_000 })
+  await expect(page.getByTestId('play-error')).toHaveCount(0)
 })

@@ -16,8 +16,11 @@ interface Props {
 
 type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; message: string }
 
+/** Picker value for "the campaign from chapter 1" (no map id can be this: ids have no '*'). */
+export const PLAY_CAMPAIGN = '*campaign'
+
 export const playerUrl = (project: string, map: string, style?: string): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&map=${encodeURIComponent(map)}${style ? `&style=${encodeURIComponent(style)}` : ''}`
+  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}`
 
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -26,7 +29,10 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
   // Every style can be played. With one there is nothing to choose.
-  const playable = useDoc().game?.styles ?? []
+  const doc = useDoc()
+  const playable = doc.game?.styles ?? []
+  // A game with a campaign can also be played as its story, from the first chapter.
+  const choices = [...(doc.campaign ? [{ value: PLAY_CAMPAIGN, label: T.campaignChoice }] : []), ...maps.map((m) => ({ value: m.id, label: m.name }))]
   const [storedStyle, setStoredStyle] = useStored<string>(`ote.playStyle.${store.id}`, '')
   const style = playable.some((s) => s.id === storedStyle) ? storedStyle : playable[0]?.id ?? ''
   const switchStyle = async (id: string) => {
@@ -75,7 +81,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         <h2>{T.panelTitle}</h2>
         <label className="play-map">
           <span>{T.mapLabel}</span>
-          <Select value={map} onChange={(v) => void switchMap(v)} options={maps.map((m) => ({ value: m.id, label: m.name }))} aria-label={T.mapLabel} />
+          <Select value={map} onChange={(v) => void switchMap(v)} options={choices} aria-label={T.mapLabel} />
         </label>
         {playable.length > 1 && (
           <label className="play-map">
