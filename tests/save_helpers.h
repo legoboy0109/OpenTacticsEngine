@@ -57,7 +57,7 @@ inline bool sameEvents(const std::vector<Event>& a, const std::vector<Event>& b)
   for (size_t i = 0; i < a.size(); ++i) {
     const Event &x = a[i], &y = b[i];
     if (x.type != y.type || x.a != y.a || x.b != y.b || x.c != y.c || x.d != y.d || x.flags != y.flags ||
-        x.data != y.data)
+        x.data != y.data || x.seen != y.seen || x.seenSteps != y.seenSteps)
       return false;
   }
   return true;
