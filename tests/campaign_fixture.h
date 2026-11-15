@@ -128,6 +128,7 @@ struct Game {
   Formulas formulas;
   std::string dir;
   std::string keepJson;  // replaces the keep map when set
+  std::string researchJson;  // data/research.json when set (else the game has no research)
 
   static bool write(const std::string& path, const std::string& text) { return writeTextFile(path, text); }
 
@@ -140,6 +141,9 @@ struct Game {
               write(dir + "/data/items.json", kItems) && write(dir + "/maps/ford.json", fordMap()) &&
               write(dir + "/maps/mill.json", millMap()) && write(dir + "/maps/keep.json", keepJson.empty() ? keepMap() : keepJson) &&
               write(dir + "/maps/skirmish.json", skirmishMap());
+    std::string researchPath = dir + "/data/research.json";
+    if (researchJson.empty()) removeFile(researchPath);
+    else ok = ok && write(researchPath, researchJson);
     std::string campPath = dir + "/data/campaign.json";
     if (campaign.empty()) removeFile(campPath);
     else ok = ok && write(campPath, campaign);

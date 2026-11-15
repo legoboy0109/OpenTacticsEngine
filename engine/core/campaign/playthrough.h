@@ -32,6 +32,8 @@ struct CarriedSide {
   std::string id;
   std::vector<int> resources;       // per Database::resources
   std::vector<ItemGrant> storage;   // the shared storage's items
+  std::vector<int> research;        // finished technologies (indices into Database::research, ascending);
+                                    // research still in progress is not carried (docs/ECONOMY.md)
 };
 
 struct Playthrough {
