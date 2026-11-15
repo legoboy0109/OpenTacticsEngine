@@ -9,7 +9,9 @@ Writes a small game into a temp folder (tests/sound_game.py) together with the g
 --headless, --fixed-dt (the default there) and --audio-log, and asserts the exact sounds and music changes:
 launcher navigation, a move, a hit, a miss, a critical, a defeat, a capture, a build, an item, turn changes with the
 enemy's turn music, the story commands, the victory jingle, the overrides, missing files, unknown ids, a save made
-after a story playMusic, fog, a campaign scene, and that the two demos (no audio.json) stay silent.
+after a story playMusic, fog, a campaign scene, and the shipped games: the demos (title, battle and enemy music, a tank's
+step, the campaign's scenes, weapon sounds, the story commands of the bridge map) and a project made from each template, all
+with a clean load; every file their audio.json names exists, none is unused, and the folders stay within their size budget.
 
 Never opens a window or a sound device (every run is --headless) and never touches the real games / settings / saves.
 """
@@ -355,15 +357,93 @@ def run_all(tmp):
     check('save: a game with sound writes the same save as one without (same hash, same state)',
           saved[0] is not None and saved[0] == saved[1], 'differs in %s' % diff)
 
-    # --- 16. The demos have no audio.json: nothing is requested but the volumes.
+    # --- 16. The shipped games have sound (docs/SOUND.md step 3): the demos, and a project made from each template.
     demos = games_folder(tmp, 'demos')
     for d in ('demo-srpg', 'demo-economy'):
         os.symlink(os.path.join(REPO, 'games', d), os.path.join(demos, d))
-    for game, extra in (('demo-srpg', ['--map', 'bridge']), ('demo-economy', ['--map', 'twin_rivers'])):
-        code, out, seq, raw = play(tmp, demos, extra + ['--autoplay'], 'wait:20', 500, game=game)
-        check('demo %s: a battle makes no sound or music' % game, code == 0 and seq == [] and all('volumes' in l for l in raw), str(raw[:5]))
-    code, out, seq, raw = play(tmp, demos, [], 'wait:10,down,confirm,wait:5,down,cancel,wait:5,confirm,wait:5,down,confirm,wait:5,cancel,wait:5', 500, game='')
-    check('demos: the launcher makes no sound or music', code == 0 and seq == [], str(raw[:5]))
+    shipped_games(tmp, demos)
+
+
+def shipped_games(tmp, demos):
+    def clean(label, out, code):
+        """A clean load: it ran, no warning (a missing or damaged file), and the audio line says what was loaded."""
+        check('%s: loads without a warning' % label, code == 0 and '[warn]' not in out and 'Cannot load' not in out
+              and re.search(r'audio: .*\d+ tracks, \d+ sounds', out) is not None, out[-400:])
+
+    # The launcher: a game's page plays the title music.
+    code, out, seq, raw = play(tmp, demos, [], 'wait:10,confirm,wait:10', 500, game='')
+    check('demos launcher: a game page plays its title music', seq == ['M:title'] and 'title.ogg' in raw[1], str(raw[:3]))
+    check('demos launcher: the home list itself is silent (nothing before the page opens)', raw[0].startswith('t=0.000 volumes'), raw[0])
+
+    # demo-economy: battle music, a tank's step, the enemy's turn and back.
+    OPEN = 'wait:60,'
+    code, out, seq, raw = play(tmp, demos, ['--map', 'twin_rivers'], OPEN + 'right,confirm,right,right,confirm,wait:60', 0, game='demo-economy')
+    clean('demo-economy twin_rivers', out, code)
+    check('demo-economy: a battle starts with the battle music and the turn chime', seq[:2] == ['M:battle', 'turnStart'], str(seq))
+    check('demo-economy: a tank moving plays tank_move, not the footstep', 'tank_move' in seq and 'step1' not in seq and 'step2' not in seq, str(seq))
+    check('demo-economy: picking and moving use the standard menu sounds', 'cursor' in seq and 'confirm' in seq, str(seq))
+    code, out, seq, raw = play(tmp, demos, ['--map', 'twin_rivers'], OPEN + 'menu,confirm,wait:300', 0, game='demo-economy')
+    music = [t for t in seq if t.startswith('M')]
+    check('demo-economy: the enemy turn plays the enemy music and the battle music comes back', music == ['M:battle', 'M:enemy', 'M:battle'], str(music))
+    en = seq[seq.index('M:enemy'):seq.index('M:enemy') + 12]
+    check('demo-economy: on the enemy turn infantry walk with step sounds, the tank with tank_move',
+          'tank_move' in en and ('step1' in en or 'step2' in en), str(en))
+    code, out, seq, raw = play(tmp, demos, ['--map', 'misty_ford'], 'wait:20', 100, game='demo-economy')
+    clean('demo-economy misty_ford', out, code)
+
+    # demo-srpg: the campaign's scenes, then the battle.
+    code, out, seq, raw = play(tmp, demos, ['--campaign'], 'wait:30,confirm,wait:30,confirm,wait:30,confirm,wait:30', 0, game='demo-srpg')
+    clean('demo-srpg --campaign', out, code)
+    music = [t for t in seq if t.startswith('M')]
+    check('demo-srpg: the opening scene plays the scene music, then the battle music', music[:2] == ['M:scene', 'M:battle'], str(music))
+    check('demo-srpg: the scene is read with dialogue blips', seq[1:11] == ['dialogue'] * 10, str(seq[:12]))
+    check('demo-srpg: the battle opening (story lines) blips too', seq.index('M:battle') < len(seq) - 1 and seq[seq.index('M:battle') + 1] == 'dialogue', str(seq))
+    # The bridge map on its own, played by the computer: the weapons' sounds, hooves, the story's commands.
+    code, out, seq, raw = play(tmp, demos, ['--map', 'bridge', '--autoplay', '--seed', '2'], 'wait:20', 3000, game='demo-srpg')
+    clean('demo-srpg bridge', out, code)
+    kinds = {re.sub(r'\d+$', '', t) for t in seq}   # (variants: step1 step2 step3 -> step)
+    for snd in ('sword_hit', 'lance_hit', 'axe_hit', 'bow_hit', 'hooves', 'flutter', 'step', 'miss', 'defeated', 'critical'):
+        check('demo-srpg: %s plays in a fight' % snd, snd in kinds, str(sorted(kinds)))
+    check('demo-srpg: the late arrival sounds the alarm (story playSound)', 'alarm' in seq, str(seq))
+    music = [t for t in seq if t.startswith('M')]
+    check('demo-srpg: Gorm\'s challenge switches to the boss track with a 1 s fade (story playMusic)', 'M:boss f=1' in music, str(music))
+    check('demo-srpg: the victory event stops the music with a 1 s fade (story stopMusic)', music[-1] == 'M- f=1' and music.index('M:boss f=1') < len(music) - 1, str(music))
+    check('demo-srpg: the level-up jingle plays through to its own track', 'M:levelup once cut' in music, str(music))
+
+    # Every file named by every shipped audio.json exists, and every file in audio/ is named (nothing unused).
+    for rel in ('games/demo-srpg', 'games/demo-economy', 'editor/templates/blank', 'editor/templates/economy-tactics',
+                'editor/templates/strategy-rpg'):
+        gdir = os.path.join(REPO, rel)
+        cfg = json.load(open(os.path.join(gdir, 'data', 'audio.json')))
+        named = [t['file'] for t in cfg['music'].values()]
+        for s in cfg['sounds'].values():
+            named += s['files'] if 'files' in s else [s['file']]
+        check('%s: every file in audio.json exists' % rel, all(os.path.isfile(os.path.join(gdir, f)) for f in named),
+              str([f for f in named if not os.path.isfile(os.path.join(gdir, f))]))
+        on_disk = sorted('audio/' + f for f in os.listdir(os.path.join(gdir, 'audio')))
+        check('%s: every file in audio/ is used by audio.json' % rel, on_disk == sorted(set(named)), str(set(on_disk) ^ set(named)))
+        total = sum(os.path.getsize(os.path.join(gdir, f)) for f in on_disk)
+        budget = 3 * 1024 * 1024 if rel == 'games/demo-srpg' else 1050 * 1024   # CC0 set / retro set (effects < 400 KB + music)
+        check('%s: the audio folder is within its size budget (%d KB of %d)' % (rel, total // 1024, budget // 1024), total <= budget, str(total))
+        wavs = [f for f in on_disk if f.endswith('.wav')]
+        check('%s: effect WAVs are 16-bit mono 22050' % rel, all(_wav_ok(os.path.join(gdir, f)) for f in wavs), str(wavs))
+
+    # A project made from each template (copied the way the editor's server does: the whole folder) loads cleanly
+    # and plays its music; the retro set comes with a new project.
+    for tpl, map_id in (('blank', 'start'), ('economy-tactics', 'crossroads'), ('strategy-rpg', 'ford')):
+        games = games_folder(tmp, 'tpl_' + tpl)
+        shutil.copytree(os.path.join(REPO, 'editor', 'templates', tpl), os.path.join(games, 'mine'))
+        code, out, seq, raw = play(tmp, games, ['--map', map_id], 'wait:30', 100, game='mine')
+        clean('template %s (a new project)' % tpl, out, code)
+        check('template %s: a battle plays the battle music and the chime' % tpl, seq[:2] == ['M:battle', 'turnStart'], str(seq[:4]))
+        code, out, seq, raw = play(tmp, games, [], 'wait:10,confirm,wait:10', 300, game='')
+        check('template %s: its game page plays the title music' % tpl, 'M:title' in seq, str(seq))
+
+
+def _wav_ok(path):
+    import wave
+    with wave.open(path, 'rb') as w:
+        return (w.getnchannels(), w.getframerate(), w.getsampwidth()) == (1, 22050, 2)
 
 
 def main():

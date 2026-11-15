@@ -146,6 +146,7 @@ def run_repo(root):
                 data = wav_bytes(build_music(name))
                 wavs[name] = (data, hashlib.sha256(data).hexdigest())
 
+    stale = {n: manifest.get(n) != wavs[n][1] for n in wavs}   # source changed since the OGG was made
     tmp = tempfile.mkdtemp(prefix='ote_starter_audio_')
     encoded = {}   # track -> path of a freshly encoded or copied-from-a-game OGG
     try:
@@ -154,7 +155,7 @@ def run_repo(root):
             matches (so every copy stays byte-identical), else one fresh encode."""
             if name in encoded:
                 return encoded[name]
-            if manifest.get(name) == wavs[name][1]:
+            if not stale[name]:
                 for p in targets.TARGETS:
                     cand = os.path.join(root, p, 'audio', name + '.ogg')
                     if os.path.isfile(cand):
@@ -166,7 +167,6 @@ def run_repo(root):
             ogg = os.path.join(tmp, name + '.ogg')
             encode_ogg(wav, ogg)
             encoded[name] = ogg
-            manifest[name] = wavs[name][1]
             return ogg
 
         generated = set(sfx.EFFECTS) | set(tracks.TRACKS)
@@ -184,7 +184,7 @@ def run_repo(root):
                 sfx_bytes += len(effects[stem])
             for name in names:
                 dst = os.path.join(adir, name + '.ogg')
-                if not (manifest.get(name) == wavs[name][1] and os.path.isfile(dst)):
+                if stale[name] or not os.path.isfile(dst):
                     src = source_ogg(name)
                     if os.path.abspath(src) != os.path.abspath(dst):
                         os.makedirs(adir, exist_ok=True)
@@ -203,6 +203,7 @@ def run_repo(root):
                 changed.append('data/audio.json')
             print('%-36s %7.0f K %7.0f K  %s' % (path, sfx_bytes / 1024, mus_bytes / 1024,
                                                   ', '.join(changed) if changed else 'unchanged'))
+        manifest.update({n: wavs[n][1] for n in wavs if stale[n]})
         if json.dumps(manifest, sort_keys=True) != old_manifest:
             write_if_changed(MANIFEST, json_bytes(dict(sorted(manifest.items()))))
             print('updated', os.path.relpath(MANIFEST, root))
