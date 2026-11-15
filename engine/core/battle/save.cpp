@@ -10,6 +10,7 @@
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
 #include "core/battle/save_story.h"
+#include "core/battle/save_supply.h"
 #include "core/battle/unit_stats.h"
 
 #include <cmath>
@@ -99,6 +100,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
     u.stats[i] = (int)v.asNumber();
   }
   if (!readItems(rd, db, j, "items", where, db.rules.items.inventorySize, u.items)) return false;
+  if (!savejson::readUnitSupply(rd, db, j, where, u)) return false;
   int maxHp = unitStat(db, u, db.rules.statHp, &b.sides);  // with what its accessories and research add
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
@@ -174,6 +176,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("alive", boolean(u.alive));
     j.set("leader", boolean(u.leader));
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
+    savejson::writeUnitSupply(*b.db, u, j);
     units.push(j);
   }
   out.set("units", units);
