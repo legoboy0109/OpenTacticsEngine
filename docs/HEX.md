@@ -17,9 +17,9 @@ Rules never look at coordinates: everything in `engine/core` goes through
 `Grid::neighbors / distance / within` (engine/core/grid/grid.h). Hexagons are
 a new case there plus drawing, input, art and the editor.
 
-Status: step 1 (core) done: grid, loader, structures with rings, join mask, `ote-sim`, tests and two fixture games.
-Nothing is drawn yet (the player draws a hexagon map as if it were squares until step 2). Build order at the end;
-what step 1 built is under "Implementation notes (core)".
+Status: built for the top-down view: rules core, player, starter art with two templates and `games/demo-hex`,
+and the editor (the four "Implementation notes" sections at the end). Not built: hexagons in the 2D isometric,
+3D isometric and full 3D views. Nobody has tried it in a real window yet.
 
 ## Data
 

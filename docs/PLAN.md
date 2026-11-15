@@ -130,12 +130,13 @@ goal (demos only exercise features).
       retro set (default for new projects) and a CC0 set (for the
       Detailed 3D demo style / as an alternative).
       Contract: docs/SOUND.md. DONE (engine, player, starter audio, the editor's Sound screen).
-   i. Hexagonal grids (owner, 2026-11-14: next after sound and music). NEXT.
+   i. Hexagonal grids (owner, 2026-11-14). DONE for the top-down view
+      (the other three views on hexagons: later steps, not yet ordered).
       Owner (2026-11-14): maker chooses pointy-top or flat-top; one grid
       per game; top-down view first; structures of one hexagon or a
       hexagon and its ring of six. Contract: docs/HEX.md.
    j. A tutorial workflow for the editor (owner, 2026-11-14: after hex
-      grids).
+      grids). NEXT: design questions to the owner first.
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.

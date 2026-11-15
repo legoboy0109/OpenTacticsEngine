@@ -5,7 +5,8 @@ test('@smoke picker lists the demo games', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible()
   await expect(page.getByRole('link', { name: /Emblem Demo/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Wars Demo/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Wars Demo/ })).toHaveCount(2)  // Wars Demo and Hex Wars Demo
+  await expect(page.getByRole('link', { name: /Hex Wars Demo/ })).toBeVisible()
   await page.getByRole('link', { name: /Emblem Demo/ }).click()
   await expect(page).toHaveURL(/\/p\/demo-srpg\/game/)
   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Emblem Demo')

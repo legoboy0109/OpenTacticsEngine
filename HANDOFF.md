@@ -667,12 +667,13 @@ Sound and music (docs/PLAN.md 3h, docs/SOUND.md) are done end to end: engine, pl
 templates, the editor's Sound screen (see "Sound, step 1" to "step 4" above). Nobody has listened to any of it yet.
 Shipped audio file names must be lower case (the editor's rule, `validAudioName`): the cues `itemUse` / `turnStart`
 use the sounds `item_use` / `turn_start` (`tools/audio/targets.py` STEMS; `tests/starter_audio_test.py` checks names).
-Hexagonal grids (PLAN 3i, contract docs/HEX.md with the owner's four decisions): step 1 (rules core) is merged and
-pushed (main 62e0864; ote_tests 866; fixtures tests/fixtures/hex-pointy, hex-flat). Steps 2 (player drawing), 3 (starter
-art, templates hex-tactics-pointy/-flat, games/demo-hex) and 4 (editor, plus the Play panel sound toggle) were handed to
-three Sonnet agents in worktrees on 2026-11-14; if no agent branch exists any more, check `git branch` / `git log` for
-what was merged and redo the missing steps from the contract. After merging all three: look at demo-hex screenshots in
-the player (both layouts), run every suite, update HEX.md Status, push. After that: a tutorial workflow for the editor (PLAN 3j).
+Hexagonal grids (PLAN 3i, contract docs/HEX.md with the owner's four decisions) are done for the top-down view:
+rules core, player (`engine/core/view/hex_geo.*`, `engine/player/battle/hex_draw.*`), starter art (`tools/art/make_hex_art.py`,
+`preview_hex.py`), templates `hex-tactics-pointy` / `hex-tactics-flat`, `games/demo-hex` (maps fortress_ford, foggy_hills),
+editor (`editor/web/src/model/hex.ts`, `gridSpec.ts`, `mapGeo.ts`, canvas `drawHex.ts`), Play panel Sound checkbox.
+Open: hexagons in the other three views; bridges on zigzag rivers fork oddly (join mask); demo maps one-sided; terrain
+palette chips without art are square; names of the templates and demo are placeholders; odd tileSize can leave a seam.
+Next: the editor tutorial workflow (PLAN 3j): ask the owner the design questions through the dialog first.
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
