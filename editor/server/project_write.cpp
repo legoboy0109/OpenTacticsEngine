@@ -31,7 +31,7 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
          rel == "data/units.json" || rel == "data/graphics.json" ||
-         rel == "data/structures.json" || rel == "data/items.json";
+         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/campaign.json";
 }
 
 struct PendingWrite {
@@ -60,6 +60,10 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (badType(body["units"], Json::Type::Array)) return apiError(400, "\"units\" must be an array");
   if (badType(body["structures"], Json::Type::Array)) return apiError(400, "\"structures\" must be an array");
   if (badType(body["items"], Json::Type::Array)) return apiError(400, "\"items\" must be an array");
+  // campaign: an object is written; `false` removes data/campaign.json (null / absent leave it alone).
+  if (!body["campaign"].isNull() && !body["campaign"].isObject() &&
+      !(body["campaign"].type() == Json::Type::Bool && !body["campaign"].asBool()))
+    return apiError(400, "\"campaign\" must be an object, or false to remove the campaign");
   if (badType(body["graphics"], Json::Type::Object)) return apiError(400, "\"graphics\" must be an object");
   if (badType(maps, Json::Type::Object)) return apiError(400, "\"maps\" must be an object of objects");
   if (badType(scripts, Json::Type::Object)) return apiError(400, "\"scripts\" must be an object of strings");
@@ -119,6 +123,15 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (!body["graphics"].isNull() && !add("data/graphics.json", body["graphics"].dump(2) + "\n"))
     return apiError(400, escape);
 
+  std::vector<fs::path> deletions;
+  if (body["campaign"].isObject()) {
+    if (!add("data/campaign.json", body["campaign"].dump(2) + "\n")) return apiError(400, escape);
+  } else if (body["campaign"].type() == Json::Type::Bool) {
+    std::error_code cec;
+    if (!resolveInside(dir, "data/campaign.json", full, why)) return apiError(400, escape);
+    if (fs::is_regular_file(full, cec)) deletions.push_back(full);
+  }
+
   std::set<std::string> writtenMapFiles;
   for (const auto& m : maps.members()) {
     if (m.second.isNull()) continue;
@@ -138,7 +151,6 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
       return apiError(400, "script \"" + s.first + "\": " + why);
   }
   // Map files dropped from game.maps: only plain files under maps/.
-  std::vector<fs::path> deletions;
   if (!game.isNull()) {
     Json disk;
     Problem p;
