@@ -5,12 +5,14 @@ import { firstGame } from './first-game'
 import { structures } from './structures'
 import { economy } from './economy'
 import { art } from './art'
+import { hexagons } from './hexagons'
 
 export const LESSONS: Lesson[] = [
   firstGame,
   structures,
   economy,
   art,
+  hexagons,
 ]
 
 /** The beginner lesson the first-run offer shows. */
