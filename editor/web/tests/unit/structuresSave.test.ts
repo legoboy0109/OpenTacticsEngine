@@ -6,12 +6,12 @@ import { setStructureOwner } from '../../src/model/mapStructures'
 import type { MapFile, ProjectDoc } from '../../src/model/types'
 import { buildBody } from '../../src/store/autosave'
 import { initHistory, pushEdit, undo } from '../../src/store/history'
-import { loadDemo } from './fixtures'
+import { loadDemo, loadPlainEconomy } from './fixtures'
 import { oldProject } from './oldProject'
 
 describe('saving structures', () => {
   it('sends the list when it changed, and nothing for a list that did not load', () => {
-    const a = loadDemo('demo-economy')
+    const a = loadPlainEconomy()
     const b = addStructure(a, 'Tower')
     expect(buildBody(b, a, 'r', false)!.structures).toHaveLength(4)
     expect(buildBody(a, a, 'r', false)).toBeNull()
@@ -24,7 +24,7 @@ describe('saving structures', () => {
     expect(buildBody(none, none, 'r', true)).not.toHaveProperty('structures') // never saved, still none: nothing to write
   })
   it('a map loaded with an empty owners list is saved without it; a non-empty one is kept as it is', () => {
-    const a = loadDemo('demo-economy')
+    const a = loadPlainEconomy()
     const m: MapFile = { ...a.maps.twin_rivers!, owners: [] }
     const withEmpty: ProjectDoc = { ...a, maps: { twin_rivers: m } }
     // unchanged maps are not sent at all; once sent (keep mine / any edit) the empty list is gone

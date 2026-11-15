@@ -13,9 +13,9 @@ import { placedCounts, structureUsageLines } from '../../src/model/structuresRef
 import { deleteUnit } from '../../src/model/units'
 import type { ProjectDoc } from '../../src/model/types'
 import { problemTarget } from '../../src/model/problems'
-import { loadDemo } from './fixtures'
+import { loadDemo, loadPlainEconomy } from './fixtures'
 
-const eco = () => loadDemo('demo-economy')
+const eco = () => loadPlainEconomy()
 const srpg = () => loadDemo('demo-srpg')
 const none = (): ProjectDoc => ({ ...loadDemo('demo-srpg'), structures: null })
 
