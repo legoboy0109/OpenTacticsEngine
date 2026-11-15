@@ -36,7 +36,7 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
   has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 370 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 492 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
@@ -299,6 +299,39 @@ to the leader and two enemy drops (its saves from before are refused).
 All wording is placeholder until the owner approves it. Open owner
 questions: should Trade / Storage / Shop stay open for several actions;
 show Storage when empty; id renaming for items.
+
+## Upgradable structures and research, rules core (2026-11-14)
+
+docs/ECONOMY.md build order step 1, done in `engine/core` only (no player UI, no editor screens, no demo content:
+steps 4 and 5 are open; both demos play exactly as before, checked: `ote-sim` bridge Blue 17 / Red 13, twin_rivers
+Red 30, pinned hashes and save bytes unchanged). Where things are: data `data/loader_research.cpp`,
+`loader_upgrades.cpp` (`Database::research`, `StructureDef::upgrades` / `research`); battle `battle/upgrades.cpp`,
+`research.cpp`, bonuses in `unit_stats.h` (`unitStat(db, unit, stat, &sides)`; the formula host gets the sides
+through `FormulaCtx::sides`), saves `save_research.*`, AI `ai/ai_economy.cpp`, campaign `CarriedSide::research`.
+Tests: `tests/test_upgrades.cpp`, `test_research*.cpp`, `research_fixture.h`, `json_edit.h`.
+
+What the player and the editor need (all on `Battle` / `Database`):
+- Actions: `Action::upgrade(structureIndex, toKind)` (`UpgradeStructure`) and `Action::research(techIndex)`
+  (`StartResearch`, for the active side); both free of any unit, no unit order is needed or consumed.
+- Menus: `upgradeOptions(structure, out)` (for the active side's own structure; each entry: `to`, `def->cost`,
+  `def->needs`, `ok`, `why`), `researchOptions(side, out)` (`tech`, `ok`, `why`; finished and under-way ones are not
+  listed), `researching(side)` / `researchTurnsLeft(side)` (the panel line), `hasTechnology(side, tech)`,
+  `canResearch(side)` (does the side own a `research` structure: show "paused" otherwise),
+  `buildOptions(cell, out, includeLocked)` + `unlockedBy(unitType, out)` for a greyed "needs Armor or Forge" line,
+  `canBuild(cell, unitType, &why)` (the whole check). Technology data: `db->research[i]` (id, name, description,
+  cost, turns, needs, unlocksUnits, bonusTypes, bonus per stat).
+- Events (after the old ones): `StructureUpgraded` (a structure, b old kind, c new kind), `ResearchStarted` (a side,
+  b technology, c turns; 0 = at once), `ResearchFinished` (a side, b technology). A payment arrives first as
+  `ResourceChanged`. The state is already updated when the events are animated, so the structure is drawn in its new
+  kind from the start of the animation (the player just ignores the three events today, `battle_view.cpp`).
+- A stat shown to a player: use `Battle::stat` (includes accessories and research); `Unit::stats` is the unit's own value.
+- Editor: new keys `upgrades` / `research` on structure kinds and the new file `data/research.json`. The helper
+  validates through the real loader, which reads them now (messages name the file, the technology or structure and
+  the entry, plain sentences, safe to show); the helper's project file list and the web model have not been taught
+  about `data/research.json` or the two keys (nothing in the editor was touched).
+- Campaign scenes did not get `researched` / `grantResearch` (scenes have no map sides).
+Open for the owner: wording of every message (placeholder); whether a free upgrade should exist at all (the AI never
+takes one); whether research under way should carry between chapters (today it is lost).
 
 ## Story events in the editor (2026-11-14)
 

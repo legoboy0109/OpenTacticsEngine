@@ -132,8 +132,15 @@ Decisions where the contract was silent, and the few deviations:
   game with a shared storage `storage[]`), `units[]`
   (type, side, cell, name, level, xp, stats, hp, moved, done, alive, leader,
   and in a game with items `items[]`: item, uses left, drop)
-  and `structures[]` (owner, capture, capturer). A unit that has a story id
-  also has `"id"`.
+  and `structures[]` (owner, capture, capturer, and `"type"` when an upgrade changed its kind: the index of
+  the current kind, written only when it differs from the map's). A unit that has a story id
+  also has `"id"`. A side that has finished or started research also has
+  `"research": { "done": [technology indices, ascending], "current": n, "left": n }` (`current` and `left`
+  only while one is under way, and then both). Restoring checks: `type` a kind with the map kind's width and
+  height that the map kind can reach through `upgrades`; `done` ascending without repeats, within the game's
+  technologies, every finished or running technology having its prerequisites finished; `current` not
+  finished; `left` from 1 to the technology's turns; a `research` key in a game without research is refused;
+  a living unit's `hp` is checked against its maximum with the side's research bonus.
   A game with events, objectives, switches or variables also gets
   `"story": { "switches": [true, ...], "variables": [3, ...], "fired": ["event ids"],
   "objectives": 0 }` (all four required then; `switches` and `variables` have
@@ -164,8 +171,8 @@ Decisions where the contract was silent, and the few deviations:
   (when present, so a game without them hashes as before) `switches` and
   `variables` count.
   Then `data/weapons.json`, `units.json`, `terrain.json`, `structures.json`
-  and `items.json` (each when present; a game without `items.json` hashes
-  exactly as it did before items existed), the scripts in `game.json` order (byte for byte) and the map
+  `items.json` and `research.json` (each when present; a game without `items.json` or `research.json` hashes
+  exactly as it did before they existed; a technology's `name` and `description` do not count), the scripts in `game.json` order (byte for byte) and the map
   file, each preceded by its path and length. Key order counts. In the map
   file the **wording** of story events is cosmetic like names: the text of
   `say`, `speakerName`, a Talk `label` and an objective's `text` are blanked
@@ -255,7 +262,8 @@ hashes are byte for byte as before (pinned by tests).
                   "stats": [24, 7, …],      // one per stat, the unit's own values
                   "items": [ { "item": 1, "uses": 2 } ],   // as in battle saves; omitted when empty
                   "side": "blue", "gone": false } ],
-    "sides": [ { "id": "blue", "resources": [155], "storage": [ { "item": 0, "uses": 3 } ] } ],
+    "sides": [ { "id": "blue", "resources": [155], "storage": [ { "item": 0, "uses": 3 } ],
+                 "research": [0, 2] } ],     // finished technologies (indices, ascending); omitted when none
     "switches": [true, false], "variables": [3, 0] },
   "battle": { … } }                         // exactly a battle save's "battle"; present only while a battle is under way
 ```
@@ -285,7 +293,9 @@ hashes are byte for byte as before (pinned by tests).
   one of the five; roster ids well-formed and unique, `type` a unit type, `name` text up to
   200, `level` 1..1,000,000, `xp` and stats whole numbers up to 1e9, items as in battle saves
   with uses fitting the item, `side` an id, `gone` true/false; carried side ids unique,
-  one resource per game resource, storage only if the game has one; `switches` /
+  one resource per game resource, storage only if the game has one, `research` (optional) ascending indices of
+  the game's technologies and only if the game has research (research under way is not carried: it is part of a
+  battle save only); `switches` /
   `variables` exactly the game's lists, variables within plus or minus 1e9), then the
   battle part by the existing rules. Nothing is applied unless the whole file is
   valid; messages name the field (`playthrough.roster[2].level: value 0 is outside 1..1000000`).

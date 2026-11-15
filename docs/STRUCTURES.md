@@ -29,7 +29,10 @@ Contract for the structure layer. Owner decisions (2026-11-14):
     "capturePoints": 20,                        // > 0 = can be captured
     "income": { "funds": 1000 },                // per turn to the owner
     "produces": ["infantry", "tank"],           // unit types the owner can build here
-    "tags": ["hq"] } ] }                        // "hq" = headquarters
+    "tags": ["hq"],                             // "hq" = headquarters
+    "research": true,                           // optional: owners may research here (docs/ECONOMY.md)
+    "upgrades": [ { "to": "town", "cost": { "funds": 3000 }, "requires": "masonry" } ] } ] }
+                                                // optional: kinds it can become (same size); docs/ECONOMY.md
 ```
 
 Ids are unique among structures. `name` defaults to the id.
@@ -116,6 +119,8 @@ terrain and structure by hand):
   that square. The new unit appears on the chosen square.
 - **Headquarters**: a side "has an HQ" while it owns at least one structure
   tagged `hq`; the lost-HQ defeat rule works as before.
+- **Upgrades**: a structure's kind can change during play (`UpgradeStructure`, docs/ECONOMY.md): everything above
+  then follows the new kind. The kind is `StructureState::type`; `mapType` is the one the map placed.
 - **Defeated side**: its structures become neutral (as its squares did).
 - Events: `CellCaptured` becomes `StructureCaptured` (a = structure index,
   b = new owner, c = previous owner). `CaptureProgress` keeps a = unit,
