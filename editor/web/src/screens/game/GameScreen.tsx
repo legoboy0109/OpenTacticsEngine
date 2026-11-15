@@ -1,4 +1,5 @@
 import { setGameText, setView } from '../../model/game'
+import { gridLabel, gridOfGame } from '../../model/gridSpec'
 import { Needs } from '../../shell/Blocked'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid, PageHeader } from '../../ui/Card'
@@ -35,6 +36,10 @@ function GameForm() {
             <TextInput value={game.author ?? ''} onChange={(v) => edit((d) => setGameText(d, 'author', v), 'game:author')} />
           </Field>
         </div>
+      </Card>
+      <Card title={T.gridTitle} help={T.gridHelp}>
+        <div className="label-sm">{T.gridLabel}</div>
+        <strong data-testid="game-grid">{gridLabel(gridOfGame(game))}</strong>
       </Card>
       <FontCard />
       <StylesCard />

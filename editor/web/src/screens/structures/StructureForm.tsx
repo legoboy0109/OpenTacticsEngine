@@ -2,9 +2,10 @@ import { hasPrice } from '../../model/items'
 import { suggestedTerrainProps } from '../../model/formulas'
 import { defeatConditions, featureEnabled } from '../../model/rules'
 import {
-  SIZE_MAX, SIZE_MIN, isHeadquarters, setCapturePoints, setHeadquarters, setProduces, setSize, setStructureIncome, setStructureNumber,
+  SIZE_MAX, SIZE_MIN, isHeadquarters, ringsOf, setCapturePoints, setHeadquarters, setProduces, setRings, setSize, setStructureIncome, setStructureNumber,
   setSells, setStructureTags, sizeOf, updateStructure,
 } from '../../model/structures'
+import { gridOfGame, isHex } from '../../model/gridSpec'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
@@ -19,7 +20,7 @@ import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
 import { repairOn } from '../../model/supplyRules'
 import { GroundSightCard } from '../fog/GroundSightCard'
-import { Footprint } from './Footprint'
+import { Footprint, HexFootprint } from './Footprint'
 import { MovingThrough } from './MovingThrough'
 import { RepairsCard, ResearchHereCard } from './RepairsCard'
 import { UpgradesCard } from './UpgradesCard'
@@ -36,6 +37,8 @@ export function StructureForm({ id }: { id: string }) {
   if (!s) return null
   const key = `structure:${id}`
   const { w, h } = sizeOf(s)
+  const hex = isHex(gridOfGame(game))
+  const rings = ringsOf(s)
   const suggested = suggestedTerrainProps(game)
   const labelOf = new Map(suggested.map((x) => [x.id, x.label]))
   const propRows = [...new Set([...suggested.map((x) => x.id), ...Object.keys(s.props ?? {})])].map((k) => ({ key: k, label: labelOf.get(k) ?? titleCase(k) }))
@@ -78,23 +81,42 @@ export function StructureForm({ id }: { id: string }) {
         </FormGrid>
       </Card>
 
-      <Card title={T.size} help={T.sizeHelp} id={`${key}:size`}>
-        <div className="size-row">
-          <FormGrid>
-            <Field label={T.width}>
-              <NumberInput value={w} min={SIZE_MIN} max={SIZE_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setSize(d, id, v, h), `${key}:w`) }} />
-            </Field>
-            <Field label={T.height}>
-              <NumberInput value={h} min={SIZE_MIN} max={SIZE_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setSize(d, id, w, v), `${key}:h`) }} />
-            </Field>
-          </FormGrid>
-          <div className="stack tight">
-            <Footprint w={w} h={h} color={s.color} />
-            <p className="help">{T.footprint(w, h)}</p>
+      {hex ? (
+        // Hexagon games: one hexagon, or a hexagon and the six around it ("rings"); there is no width and height.
+        <Card title={T.size} help={T.sizeHelpHex} id={`${key}:size`}>
+          <div className="size-row">
+            <div className="stack tight">
+              <div className="kind-row" role="radiogroup" aria-label={T.covers}>
+                {([[0, T.coversOne], [1, T.coversSeven]] as const).map(([n, label]) => (
+                  <button key={n} type="button" role="radio" aria-checked={rings === n} className="pick pick-inline" onClick={() => edit((d) => setRings(d, id, n))}>
+                    <span className="pick-name">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <HexFootprint s={s} />
           </div>
-        </div>
-        <p className="help">{T.sizeChanged}</p>
-      </Card>
+          <p className="help">{T.sizeChangedHex}</p>
+        </Card>
+      ) : (
+        <Card title={T.size} help={T.sizeHelp} id={`${key}:size`}>
+          <div className="size-row">
+            <FormGrid>
+              <Field label={T.width}>
+                <NumberInput value={w} min={SIZE_MIN} max={SIZE_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setSize(d, id, v, h), `${key}:w`) }} />
+              </Field>
+              <Field label={T.height}>
+                <NumberInput value={h} min={SIZE_MIN} max={SIZE_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setSize(d, id, w, v), `${key}:h`) }} />
+              </Field>
+            </FormGrid>
+            <div className="stack tight">
+              <Footprint w={w} h={h} color={s.color} />
+              <p className="help">{T.footprint(w, h)}</p>
+            </div>
+          </div>
+          <p className="help">{T.sizeChanged}</p>
+        </Card>
+      )}
 
       <PictureCard kind="structures" id={id} name={s.name} />
 

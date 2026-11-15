@@ -18,6 +18,14 @@ export const T = {
   sizeHelp: 'How many squares it covers. Big structures such as a castle can cover up to 8 × 8.',
   width: 'Width (squares)',
   height: 'Height (squares)',
+  sizeHelpHex: 'How many hexagons it covers: one, or a hexagon and the six around it.',
+  covers: 'Covers',
+  coversOne: '1 hexagon',
+  coversSeven: '7 hexagons (a hexagon and its ring)',
+  footprintHexLabel: (rings: number) => (rings === 1 ? 'Footprint: a hexagon and the six around it' : 'Footprint: one hexagon'),
+  sizeChangedHex: 'Structures of this kind that are already on a map keep their middle hexagon. The map editor points out any that no longer fit.',
+  upgradeSizeHex: 'Only kinds that cover the same number of hexagons can be chosen, so the buildings fit where they stand.',
+  upgradeNoTargetHex: (size: string) => `No other structure kind covers ${size}, so there is nothing to upgrade to. Add one with that size.`,
   footprint: (w: number, h: number) => `Covers ${w} × ${h} square${w * h === 1 ? '' : 's'}`,
   footprintLabel: (w: number, h: number) => `Footprint: ${w} squares wide and ${h} squares high`,
   sizeChanged: 'Structures of this kind that are already on a map keep their top-left corner. The map editor points out any that no longer fit.',
@@ -109,6 +117,7 @@ export const T = {
   idHelp: 'Made when the structure was created and never changed by renaming.',
 
   deleteWhat: (n: string) => `the structure “${n}”`,
+  subtitleHex: (rings: number, glyph?: string) => `${rings === 1 ? '7 hexagons' : '1 hexagon'}${glyph ? ` · letter ${glyph}` : ''}`,
   subtitle: (w: number, h: number, glyph?: string) => `${w} × ${h}${glyph ? ` · letter ${glyph}` : ''}`,
 
   blockedTitle: 'This section can’t be opened: data/structures.json could not be read.',

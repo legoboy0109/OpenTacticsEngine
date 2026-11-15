@@ -1,6 +1,7 @@
 // The Structures section: cities, forts, factories... (list + form, like Terrain).
 import { useState } from 'react'
-import { addStructure, deleteStructure, duplicateStructure, moveStructureKind, newStructureId, sizeOf } from '../../model/structures'
+import { addStructure, deleteStructure, duplicateStructure, moveStructureKind, newStructureId, ringsOf, sizeOf } from '../../model/structures'
+import { gridOfGame, isHex } from '../../model/gridSpec'
 import { structureUsageLines } from '../../model/structuresRefs'
 import { navigate, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
@@ -42,6 +43,7 @@ function StructureList({ itemId }: { itemId?: string }) {
   const edit = useEdit()
   const store = useStore()
   const list = doc.structures ?? []
+  const hex = isHex(gridOfGame(doc.game))
   const [naming, setNaming] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const go = (id?: string) => navigate(projectPath(store.id, 'structures', id))
@@ -52,7 +54,7 @@ function StructureList({ itemId }: { itemId?: string }) {
       <ItemChecks section="structures" />
       <EconomyChecks section="structures" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} note={T.intro} selectedId={itemId}
-        items={list.map((s) => ({ id: s.id, label: s.name, sub: T.subtitle(sizeOf(s).w, sizeOf(s).h, s.glyph), swatch: s.color }))}
+        items={list.map((s) => ({ id: s.id, label: s.name, sub: hex ? T.subtitleHex(ringsOf(s), s.glyph) : T.subtitle(sizeOf(s).w, sizeOf(s).h, s.glyph), swatch: s.color }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}
         onDuplicate={(id) => {
           const src = list.find((s) => s.id === id)!

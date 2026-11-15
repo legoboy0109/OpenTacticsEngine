@@ -26,6 +26,12 @@ ApiResult listTemplates(const Config& cfg) {
     o.set("id", Json::makeString(id));
     o.set("name", Json::makeString(ok ? game["name"].asString(id) : id));
     o.set("description", Json::makeString(ok ? game["description"].asString() : ""));
+    // The grid the template's game.json asks for (docs/HEX.md): shown on the new-game cards. Missing = squares.
+    Json grid = Json::makeObject();
+    const Json& g = game["grid"];
+    grid.set("type", Json::makeString(ok && g["type"].isString() ? g["type"].asString() : "square"));
+    if (ok && g["layout"].isString()) grid.set("layout", g["layout"]);
+    o.set("grid", grid);
     arr.push(o);
   }
   Json body;

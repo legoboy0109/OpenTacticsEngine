@@ -20,9 +20,10 @@ type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; mess
 /** Picker value for "the campaign from chapter 1" (no map id can be this: ids have no '*'). */
 export const PLAY_CAMPAIGN = '*campaign'
 
-/** `showAll` adds `showall=1`: the player draws without fog of war (the maker's view; docs/ECONOMY.md "Fog of war"). */
-export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}`
+/** `showAll` adds `showall=1`: the player draws without fog of war (the maker's view; docs/ECONOMY.md "Fog of war").
+ *  `muted` adds `noaudio=1`: the player starts without a sound device. */
+export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean, muted?: boolean): string =>
+  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}${muted ? '&noaudio=1' : ''}`
 
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -51,6 +52,15 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
     if (!(await saveFirst())) return
     setStatus({ state: 'loading' })
     setStoredAll(on)
+  }
+
+  // Sound: on unless the maker turned it off (remembered like the panel's other choices).
+  const [storedSound, setStoredSound] = useStored<boolean>(`ote.playSound.${store.id}`, true)
+  const sound = storedSound !== false
+  const switchSound = async (on: boolean) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setStoredSound(on)
   }
 
   useEffect(() => {
@@ -107,13 +117,17 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
             <span>{T.showAll}</span>
           </label>
         )}
+        <label className="play-all" title={T.soundTitle}>
+          <input type="checkbox" checked={sound} onChange={(e) => void switchSound(e.target.checked)} />
+          <span>{T.sound}</span>
+        </label>
         <div className="play-actions">
           <button type="button" className="btn" onClick={() => void restart()} title={T.restartTitle}><Icon name="restart" />{T.restart}</button>
           <button type="button" className="btn" onClick={onClose}><Icon name="close" />{T.close}</button>
         </div>
       </header>
       <div className="play-stage">
-        <iframe key={`${map}:${style}:${showAll}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll)} title="Game preview" className="play-frame"
+        <iframe key={`${map}:${style}:${showAll}:${sound}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll, !sound)} title="Game preview" className="play-frame"
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (

@@ -27,6 +27,7 @@
 .template-card input { position: absolute; left: 14px; top: 16px; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 .template-card:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 .template-name { font-weight: 650; }
+.template-cells { align-self: flex-start; font-size: 0.78rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 0.5rem; }
 .template-desc { color: var(--muted); font-size: 0.9rem; }
 
 /* ---- rules ---- */

@@ -13,7 +13,7 @@
 <script src="player.js"></script>
 <script>
 // Embedded player for the editor's Play button (see docs/ARCHITECTURE.md "Web").
-//   embed.html?project=<id>[&map=<mapId> | &campaign=1][&api=<base>][&font=<id>][&style=<id>][&showall=1]
+//   embed.html?project=<id>[&map=<mapId> | &campaign=1][&api=<base>][&font=<id>][&style=<id>][&showall=1][&noaudio=1]
 // campaign=1 starts a New game of the project's campaign instead of one map (nothing is saved either way).
 // Loads the project from <api>/api/projects/<id>/files and .../file/<path>
 // (api defaults to this page's origin), plus the fonts from <api>/assets/fonts/,
@@ -45,6 +45,7 @@
       if (q.get('font')) a.push('--font', q.get('font'));
       if (q.get('style')) a.push('--style', q.get('style'));
       if (q.get('showall')) a.push('--show-all');  // fog of war drawn as if there were none (the rules still apply)
+      if (q.get('noaudio')) a.push('--no-audio');
       return a;
     })(),
     prepare: function (api_) {

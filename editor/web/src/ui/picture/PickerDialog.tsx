@@ -6,6 +6,8 @@ import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
 import { emptyPick, lookFromPick, MAX_BLOCKS, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
 import { gridInfo } from '../../model/gridGuess'
+import { gridOfGame, isHex, layoutOf } from '../../model/gridSpec'
+import { joinBlockSide } from '../../model/pickCell'
 import type { CellRef, Look, LookKind, ProjectDoc } from '../../model/types'
 import { useDoc, useStore } from '../../store/context'
 import { Advanced } from '../Card'
@@ -44,6 +46,10 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
   const store = useStore()
   useArtState() // re-render when an image finishes loading
   const sheets = sheetsOf(doc)
+  // Join blocks are 4 x 4 pieces on squares and 8 x 8 on a hexagon game.
+  const grid = gridOfGame(doc.game)
+  const hex = isHex(grid)
+  const blockSide = joinBlockSide(hex)
   const [pick, setPick] = useState<Pick>(() => {
     const p = pickFromLook(current, sheets[0]?.id ?? '')
     return findSheet(doc, p.sheet) ? p : { ...emptyPick(sheets[0]?.id ?? ''), kind: p.kind }
@@ -70,7 +76,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
       }
       case 'animation': if (pick.cells.length < MAX_PIECES) set({ cells: [...pick.cells, c] }); break
       case 'join':
-        if (!info || col + 4 > info.cols || row + 4 > info.rows) setWarn(true)
+        if (!info || col + blockSide > info.cols || row + blockSide > info.rows) setWarn(true)
         else if (pick.cells.length < MAX_BLOCKS) set({ cells: [...pick.cells, c] })
         break
     }
@@ -87,9 +93,9 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
     })
     return [...byCell.values()]
   }, [pick.kind, pick.cells])
-  const blocks = useMemo(() => (pick.kind === 'join' ? pick.cells.map(([col, row]) => ({ col, row, size: 4 })) : []), [pick.kind, pick.cells])
+  const blocks = useMemo(() => (pick.kind === 'join' ? pick.cells.map(([col, row]) => ({ col, row, size: blockSide })) : []), [pick.kind, pick.cells, blockSide])
 
-  const hint = pick.kind === 'one' ? (kind === 'terrain' ? P.pickHintOne : kind === 'structures' ? P.pickHintStructureOne : P.pickHintUnitOne) : pick.kind === 'mix' ? P.pickHintMix : pick.kind === 'animation' ? P.pickHintAnimation : P.pickHintJoin
+  const hint = pick.kind === 'one' ? (kind === 'terrain' ? P.pickHintOne : kind === 'structures' ? P.pickHintStructureOne : P.pickHintUnitOne) : pick.kind === 'mix' ? P.pickHintMix : pick.kind === 'animation' ? P.pickHintAnimation : hex ? P.pickHintJoinHex : P.pickHintJoin
   const speedKey = (Object.entries(SPEEDS).find(([, ms]) => ms === pick.frameMs)?.[0] ?? 'custom') as keyof typeof SPEEDS | 'custom'
   const others = (doc.terrain ?? []).filter((t) => t.id !== thingId)
 
@@ -116,13 +122,13 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
                 </button>
               ))}
             </div>
-            <p className="help">{(kind === 'terrain' ? P.kindHelp : kind === 'structures' ? P.structureKindHelp : P.unitKindHelp)[pick.kind as 'one']}</p>
+            <p className="help">{hex && pick.kind === 'join' ? P.joinHexHelp : (kind === 'terrain' ? P.kindHelp : kind === 'structures' ? P.structureKindHelp : P.unitKindHelp)[pick.kind as 'one']}</p>
           </fieldset>
           <p className="help">{hint}</p>
-          {warn && <p className="error-text" role="alert">{P.blockOutside}</p>}
+          {warn && <p className="error-text" role="alert">{hex ? P.blockOutsideHex : P.blockOutside}</p>}
           {sheet && img?.status === 'ready' && info && (
             <PieceGrid key={sheet.id + sheet.file} image={img.img} width={img.width} height={img.height} cellWidth={sheet.cellWidth} cellHeight={sheet.cellHeight}
-              marks={marks} blocks={blocks} hoverBlock={pick.kind === 'join' ? 4 : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
+              marks={marks} blocks={blocks} hoverBlock={pick.kind === 'join' ? blockSide : undefined} onPick={clickPiece} label={P.gridLabel(sheet.name || artBase(sheet.file))} />
           )}
           {sheet && img?.status === 'loading' && <p className="help" role="status">Loading the image…</p>}
           {sheet && img?.status === 'error' && <p className="error-text" role="alert">The image file could not be opened.</p>}
@@ -132,7 +138,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           <section aria-label={P.chosen}>
             <h3>{P.chosen}</h3>
             <p className="help" data-testid="chosen-summary">
-              {pick.cells.length === 0 ? P.chosenNone : pick.kind === 'join' ? (pick.cells.length === 1 ? P.pieceAt(pick.cells[0][0], pick.cells[0][1]) : P.chosenBlocks(pick.cells.length)) : P.chosenPieces(pick.cells.length)}
+              {pick.cells.length === 0 ? P.chosenNone : pick.kind === 'join' ? (pick.cells.length === 1 ? P.pieceAt(pick.cells[0][0], pick.cells[0][1]) : (hex ? P.chosenBlocksHex : P.chosenBlocks)(pick.cells.length)) : P.chosenPieces(pick.cells.length)}
             </p>
             {pick.cells.length > 0 && (
               <div className="row">
@@ -174,7 +180,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
                   onChange={(v) => set({ joinExcept: v })} />
               )}
               <Check label={P.joinEdge} help={P.joinEdgeHelp} checked={pick.joinEdge} onChange={(v) => set({ joinEdge: v })} />
-              {sheet && <JoinGuide pieceW={sheet.cellWidth} pieceH={sheet.cellHeight} />}
+              {sheet && <JoinGuide pieceW={sheet.cellWidth} pieceH={sheet.cellHeight} hex={hex ? layoutOf(grid) : undefined} />}
             </>
           )}
 

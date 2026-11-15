@@ -7,6 +7,9 @@ export const T = {
   nameHelp: 'Shown in the game list and on the title of your game.',
   description: 'Description',
   descriptionHelp: 'One or two lines that tell people what the game is.',
+  gridTitle: 'Grid',
+  gridHelp: 'The grid is chosen when the game is made and cannot be changed later.',
+  gridLabel: 'Map cells',
   author: 'Author',
   authorHelp: 'Who made it. Optional.',
 
@@ -41,6 +44,8 @@ export const T = {
   terrainDefault: 'standard',
   view: 'Kind of view',
   viewHelp: 'How the battle is drawn in this style. Top-down looks straight down on the map; isometric looks at it from an angle, and shows heights as raised blocks; 3D isometric does the same with blocks you can turn around.',
+  viewNotHex: 'not for hexagon games yet',
+  viewHexHelp: 'A game with hexagons can only be shown from above for now. The other kinds of view need a game with squares.',
   viewTopDown: 'Top-down',
   viewIsometric: 'Isometric',
   viewIsometric3d: '3D isometric',

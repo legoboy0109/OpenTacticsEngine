@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type TemplateInfo } from '../../api/client'
+import { gridLabel, gridOfGame } from '../../model/gridSpec'
 import { projectSlug } from '../../model/ids'
 import { navigate, projectPath } from '../../router'
 import { Advanced } from '../../ui/Card'
@@ -85,6 +86,7 @@ function Form({ existing, onClose }: Omit<Props, 'open'>) {
               <label key={t.id} className="template-card" data-selected={t.id === template}>
                 <input type="radio" name="template" value={t.id} checked={t.id === template} onChange={() => setTemplate(t.id)} />
                 <span className="template-name">{t.name}</span>
+                <span className="template-cells" data-testid="template-cells">{gridLabel(gridOfGame({ grid: t.grid }))}</span>
                 <span className="template-desc">{t.description}</span>
               </label>
             ))}
