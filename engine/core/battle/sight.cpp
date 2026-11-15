@@ -5,19 +5,22 @@
 // hide). Both are recomputed from scratch when something that matters changed (markSight() drops them; the next
 // query rebuilds them): about (units x area) work, deterministic, no randomness, no iteration over hash maps.
 //
-// The ONLY memory fog adds is `seenOwners_` (the last owner of each structure that each team saw); it is refreshed
-// by the same pass and is what saves keep.
+// The ONLY memory fog adds is `seenOwners_` and `seenKinds_` (the last owner and the last kind of each structure
+// that each team saw); both are refreshed by the same pass and are what saves keep.
 #include "core/battle/battle.h"
 
 namespace ote {
 
-int Battle::visionOf(const Unit& u) const {
+int Battle::visionAt(const UnitTypeDef& type, Cell c) const {
   // Vision is a property of the unit's type plus the square it stands on. It is deliberately not a stat, so
-  // research and accessories do not change it.
-  int bonus = terrainAt(u.cell).visionBonus;
-  if (const StructureDef* s = structureDefAt(u.cell)) bonus += s->visionBonus;
-  return typeOf(u).vision + bonus;
+  // research and accessories do not change it. A square's bonus may be limited to some unit types.
+  const TerrainDef& t = terrainAt(c);
+  int bonus = visionBonusFor(t.visionBonus, t.visionUnits, type);
+  if (const StructureDef* s = structureDefAt(c)) bonus += visionBonusFor(s->visionBonus, s->visionUnits, type);
+  return type.vision + bonus;
 }
+
+int Battle::visionOf(const Unit& u) const { return visionAt(typeOf(u), u.cell); }
 
 void Battle::computeTeamSight(int team) const {
   const size_t n = (size_t)grid.cellCount();
@@ -64,15 +67,22 @@ void Battle::computeTeamSight(int team) const {
       if (hides(nb[i])) seen[(size_t)nb[i]] = unitSeen[(size_t)nb[i]] = 1;  // even a unit with vision 0 sees its neighbours' hideouts
   }
 
-  // Remember the owner of every structure the team can see now.
+  // Remember the owner and the kind of every structure the team can see now.
   if (seenOwners_.size() != (size_t)teamCount) seenOwners_.resize((size_t)teamCount);
+  if (seenKinds_.size() != (size_t)teamCount) seenKinds_.resize((size_t)teamCount);
   std::vector<int>& known = seenOwners_[(size_t)team];
+  std::vector<int>& knownKind = seenKinds_[(size_t)team];
   if (known.size() != structures.size()) known.assign(structures.size(), -1);
+  if (knownKind.size() != structures.size()) {
+    knownKind.resize(structures.size());
+    for (size_t s = 0; s < structures.size(); ++s) knownKind[s] = structures[s].mapType;
+  }
   for (size_t s = 0; s < structures.size(); ++s) {
     structureCells((int)s, footprint);
     for (Cell f : footprint)
       if (seen[(size_t)f]) {
         known[s] = structures[s].owner;
+        knownKind[s] = structures[s].type;
         break;
       }
   }
@@ -133,6 +143,14 @@ int Battle::seenOwner(int team, int structure) const {
   return seenOwners_[(size_t)team][(size_t)structure];
 }
 
+int Battle::seenKind(int team, int structure) const {
+  if (structure < 0 || structure >= (int)structures.size()) return -1;
+  if (!fog) return structures[(size_t)structure].type;
+  if (team < 0 || team >= teamCount) return structures[(size_t)structure].mapType;
+  ensureSight();  // also brings the memory up to date
+  return seenKinds_[(size_t)team][(size_t)structure];
+}
+
 void Battle::learnOwner(int structure, uint32_t teams) {
   if (!fog) return;
   for (int t = 0; t < teamCount && t < kMaxFogTeams; ++t)
@@ -140,6 +158,13 @@ void Battle::learnOwner(int structure, uint32_t teams) {
       if (seenOwners_.size() != (size_t)teamCount) seenOwners_.resize((size_t)teamCount);
       if (seenOwners_[(size_t)t].size() != structures.size()) seenOwners_[(size_t)t].assign(structures.size(), -1);
       seenOwners_[(size_t)t][(size_t)structure] = structures[(size_t)structure].owner;
+      // The kind is remembered together with the owner (a capture shows both).
+      if (seenKinds_.size() != (size_t)teamCount) seenKinds_.resize((size_t)teamCount);
+      if (seenKinds_[(size_t)t].size() != structures.size()) {
+        seenKinds_[(size_t)t].resize(structures.size());
+        for (size_t s = 0; s < structures.size(); ++s) seenKinds_[(size_t)t][s] = structures[s].mapType;
+      }
+      seenKinds_[(size_t)t][(size_t)structure] = structures[(size_t)structure].type;
     }
 }
 

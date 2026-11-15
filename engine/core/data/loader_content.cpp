@@ -149,7 +149,7 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
     for (const std::string& tag : t.tags)
       if (tag == "hq")
         return c.fail(where, "the tag \"hq\" now belongs to structures (data/structures.json), see docs/STRUCTURES.md");
-    if (!readSquareVision(c, e, where, t.visionBonus, t.hides)) return false;
+    if (!readSquareVision(c, db, e, where, t.visionBonus, t.visionUnits, t.hides)) return false;
     db.terrains.push_back(t);
   }
   return true;
@@ -221,7 +221,7 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     }
     if (!c.stringList(e, "tags", where, s.tags)) return false;
     if (!c.boolean(e, "research", where, s.research)) return false;
-    if (!readStructureRepairs(c, db, e, where, s) || !readSquareVision(c, e, where, s.visionBonus, s.hides)) return false;
+    if (!readStructureRepairs(c, db, e, where, s) || !readSquareVision(c, db, e, where, s.visionBonus, s.visionUnits, s.hides)) return false;
     db.structures.push_back(s);
   }
   return loadStructureUpgrades(c, *list, db);

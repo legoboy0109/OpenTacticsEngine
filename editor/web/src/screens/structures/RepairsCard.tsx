@@ -1,5 +1,5 @@
 // "Research can be done here" and "Repairs" on a structure kind (docs/ECONOMY.md).
-import { allTags } from '../../model/units'
+import { unitKeyOptions } from '../../model/unitKeys'
 import { repairOn } from '../../model/supplyRules'
 import { repairsAll, setRepairs, setResearchHere } from '../../model/structuresEconomy'
 import { Link, projectPath } from '../../router'
@@ -38,15 +38,7 @@ export function RepairsCard({ id }: { id: string }) {
   const on = repairOn(doc)
   const all = repairsAll(s)
   const list = s.repairs ?? []
-  const unitIds = new Set((doc.units ?? []).map((u) => u.id))
-  const tags = allTags(doc).filter((t) => !unitIds.has(t))
-  const known = new Set([...unitIds, ...tags])
-  const options = [
-    ...(doc.units ?? []).map((u) => ({ value: u.id, label: u.name })),
-    ...tags.map((t) => ({ value: t, label: T.repairsTag(t) })),
-    // Entries the game no longer has stay visible so they can be un-ticked (the checks name them).
-    ...list.filter((e) => !known.has(e)).map((e) => ({ value: e, label: T.missing(e) })),
-  ]
+  const options = unitKeyOptions(doc, list, T.repairsTag, T.missing)
   return (
     <Card>
       <div className="stack">

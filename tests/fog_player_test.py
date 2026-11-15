@@ -63,7 +63,15 @@ def make_map(name, tiles, units, structures=(), sides=None, fog=True):
 
 
 def make_games(out):
-    g = os.path.join(out, 'fog')
+    g = write_game(out, 'fog', ('hide', 'ambush', 'capture', 'wander', 'approach', 'seat'))
+    write_upgrade_game(out)
+    write_json(os.path.join(out, 'index.json'), {'games': ['fog', 'fogup']})
+    make_maps(g)
+
+
+def write_game(out, gid, map_ids, economy=False):
+    """The game folder `gid` with the shared rules and data; `economy` adds funds and structure upgrades."""
+    g = os.path.join(out, gid)
     shutil.rmtree(g, ignore_errors=True)
     write_json(g + '/game.json', {
         'formatVersion': 1, 'name': 'Fog Player Test',
@@ -75,11 +83,15 @@ def make_games(out):
         'stats': [{'id': 'hp', 'name': 'HP'}, {'id': 'mov', 'name': 'Move'}],
         'roles': {'hp': 'hp', 'move': 'mov'},
         'moveTypes': [{'id': 'foot', 'name': 'Foot'}],
-        'rules': {'turnOrder': 'sides', 'counterAttacks': True, 'defeat': ['noUnits'],
-                  'capture': {'enabled': True, 'amount': 'a.hp / 10'}},
+        'rules': dict({'turnOrder': 'sides', 'counterAttacks': True, 'defeat': ['noUnits'],
+                       'capture': {'enabled': True, 'amount': 'a.hp / 10'}},
+                      **({'economy': {'enabled': True}} if economy else {})),
         'formulas': {'damage': 'vs * (a.hp / a.maxhp)'},
-        'maps': [{'id': m, 'name': m, 'file': 'maps/%s.json' % m}
-                 for m in ('hide', 'ambush', 'capture', 'wander', 'approach', 'seat')]})
+        'maps': [{'id': m, 'name': m, 'file': 'maps/%s.json' % m} for m in map_ids]})
+    if economy:
+        game = json.load(open(g + '/game.json'))
+        game['resources'] = [{'id': 'funds', 'name': 'Funds'}]
+        write_json(g + '/game.json', game)
     write_json(g + '/data/terrain.json', {'terrain': [
         {'id': 'plain', 'name': 'Plain', 'color': '#9ccc65', 'glyph': '.', 'props': {'defense': 1}},
         {'id': 'forest', 'name': 'Forest', 'color': '#2e7d32', 'glyph': 'f', 'hides': True, 'moveCost': {'foot': 1},
@@ -95,9 +107,30 @@ def make_games(out):
          'weapons': ['rifle'], 'vision': 1}]})
     write_json(g + '/data/weapons.json', {'weapons': [
         {'id': 'rifle', 'name': 'Rifle', 'versus': {'infantry': 55, 'scout': 55, 'blind': 55}}]})
-    write_json(g + '/data/structures.json', {'structures': [
-        {'id': 'town', 'name': 'Town', 'color': '#b7a58a', 'glyph': 't', 'capturePoints': 10}]})
+    structures = [{'id': 'town', 'name': 'Town', 'color': '#b7a58a', 'glyph': 't', 'capturePoints': 10}]
+    if economy:  # a camp that red upgrades into a fort: different colours, same 1 x 1 footprint
+        structures += [{'id': 'camp', 'name': 'Camp', 'color': '#808080', 'glyph': 'c', 'capturePoints': 10,
+                        'upgrades': [{'to': 'fort', 'cost': {'funds': 100}}]},
+                       {'id': 'fort', 'name': 'Fort', 'color': '#ffd600', 'glyph': 'F', 'capturePoints': 20}]
+    write_json(g + '/data/structures.json', {'structures': structures})
+    return g
 
+
+def write_upgrade_game(out, funds=1000):
+    """'fogup': red owns a camp four squares from blue's scout and upgrades it on its first turn (when it has `funds`), out of
+    blue's sight; blue's scout can reach a square from which the camp is in sight in one move."""
+    g = write_game(out, 'fogup', ('upgrade', 'noupgrade'), economy=True)
+    for name, red_funds in (('upgrade', funds), ('noupgrade', 0)):
+        m = make_map(name, {}, [unit('scout', 'blue', 0, 5), unit('infantry', 'red', 9, 0)],
+                     [{'type': 'camp', 'x': 4, 'y': 5, 'side': 'red'}],
+                     sides=[{'id': 'blue', 'name': 'Blue Army', 'color': '#3d85c6', 'controller': 'human',
+                             'resources': {'funds': 0}},
+                            {'id': 'red', 'name': 'Red Army', 'color': '#cc0000', 'controller': 'ai',
+                             'resources': {'funds': red_funds}}])
+        write_json(g + '/maps/%s.json' % name, m)
+
+
+def make_maps(g):
     def maps(name, obj):
         write_json(g + '/maps/%s.json' % name, obj)
 
@@ -123,15 +156,14 @@ def make_games(out):
                           sides=[{'id': 'blue', 'name': 'Blue Army', 'color': '#3d85c6', 'controller': 'human', 'team': 'a'},
                                  {'id': 'green', 'name': 'Green Army', 'color': '#2e9e44', 'controller': 'human', 'team': 'b'},
                                  {'id': 'red', 'name': 'Red Army', 'color': '#cc0000', 'controller': 'ai', 'team': 'c'}]))
-    write_json(os.path.join(out, 'index.json'), {'games': ['fog']})
 
 
 # ---- running the player
 
-def play(args, saves=None, frames=300, interval=4, inp=None, shot=None, style='classic', dt=0.016):
+def play(args, saves=None, frames=300, interval=4, inp=None, shot=None, style='classic', dt=0.016, game='fog'):
     """Runs the player windowless; returns (exit code, log text)."""
     cmd = [PLAYER, '--games', GAMES, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-settings',
-           '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', str(dt), '--game', 'fog',
+           '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', str(dt), '--game', game,
            '--style', style, '--3d', 'software']
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
@@ -242,11 +274,11 @@ def lum_box(img, box):
 END_TURN = 'menu,confirm,wait:40'
 
 
-def shots(tmp, name, style, args, inp, frames, saves=None, dt=0.016):
+def shots(tmp, name, style, args, inp, frames, saves=None, dt=0.016, game='fog'):
     """Two pictures of the same moment: with fog and with --show-all. Returns (fog image, all image, fog log)."""
     a, b = os.path.join(tmp, '%s_%s_fog.bmp' % (name, style)), os.path.join(tmp, '%s_%s_all.bmp' % (name, style))
-    _, log = play(args, saves=saves, frames=frames, inp=inp, shot=a, style=style, dt=dt)
-    _, log2 = play(args + ['--show-all'], frames=frames, inp=inp, shot=b, style=style, dt=dt)
+    _, log = play(args, saves=saves, frames=frames, inp=inp, shot=a, style=style, dt=dt, game=game)
+    _, log2 = play(args + ['--show-all'], frames=frames, inp=inp, shot=b, style=style, dt=dt, game=game)
     if SHOTS:
         shutil.copy(a, os.path.join(SHOTS, os.path.basename(a)))
         shutil.copy(b, os.path.join(SHOTS, os.path.basename(b)))
@@ -258,6 +290,7 @@ def scenarios(tmp):
         hide(tmp, style, label)
         ambush(tmp, style, label)
         capture(tmp, style, label)
+        upgrade(tmp, style, label)
     wander(tmp)
     approach(tmp)
     hardware(tmp)
@@ -315,6 +348,24 @@ def capture(tmp, style, label):
     check('%s: the AI turn is over and blue plays again' % label, len(lines(log, 'turn:')) >= 2, str(lines(log, 'turn:')))
     check('%s: without fog the town shows red\'s frame' % label, count_color(full, RED)[0] > 30, str(count_color(full, RED)))
     check('%s: with fog the unseen capture changes nothing (no red anywhere)' % label, count_color(fog, RED)[0] == 0, str(count_color(fog, RED)))
+
+
+def upgrade(tmp, style, label):
+    # Red upgrades its camp into a fort during its turn, out of blue's sight. Judged by comparing with the same
+    # battle where red could not afford the upgrade (so nothing depends on colours or the camera): out of sight the
+    # two pictures are the same, in sight they differ at the structure, and the later sighting shows no animation.
+    wait = 'wait:20,' + END_TURN + ',wait:80'
+    inp = wait + ',confirm,' + 'right,' * 2 + 'confirm,wait:20,confirm,wait:40'  # the scout walks to (2,5), 2 squares from the camp
+    up, up_all, log = shots(tmp, 'up_hidden', style, ['--map', 'upgrade'], wait, 520, game='fogup')
+    no, no_all, _ = shots(tmp, 'noup_hidden', style, ['--map', 'noupgrade'], wait, 520, game='fogup')
+    box = (0, 0, up.map_width(), up.h - 12)
+    check('%s: red upgraded its camp (the maker sees the change)' % label, differ_count(up_all, no_all, box) > 60, str(differ_count(up_all, no_all, box)))
+    check('%s: an upgrade out of sight is not drawn (the picture is the one without it)' % label, differ_count(up, no, box) < 8, str(differ_count(up, no, box)))
+    check('%s: the upgrade out of sight is not announced' % label, not lines(log, 'upgrade:'), str(lines(log, 'upgrade:')))
+    up2, _, log2 = shots(tmp, 'up_seen', style, ['--map', 'upgrade'], inp, 800, game='fogup')
+    no2, _, _ = shots(tmp, 'noup_seen', style, ['--map', 'noupgrade'], inp, 800, game='fogup')
+    check('%s: a unit that comes into sight of the structure shows the new kind' % label, differ_count(up2, no2, box) > 60, str(differ_count(up2, no2, box)))
+    check('%s: and learns it without an animation or a message' % label, not lines(log2, 'upgrade:'), str(lines(log2, 'upgrade:')))
 
 
 def ai_turn_seconds(log):

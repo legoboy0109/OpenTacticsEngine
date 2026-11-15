@@ -3,7 +3,7 @@
 // on the square grid is |dx| + |dy|; a unit sees `vision + terrain bonus + structure bonus` squares around it; every
 // structure the team owns sees one square around each square of its footprint; and a unit next to a square that hides
 // is always able to see that square. Nothing blocks sight (no line of sight yet). Pure.
-import { visionOf } from './fog'
+import { bonusFor, visionOf } from './fog'
 import { terrainAt } from './mapGrid'
 import { placedOf, rectOf, structureAt } from './mapStructures'
 import type { MapFile, ProjectDoc } from './types'
@@ -44,7 +44,10 @@ export function seenAtStart(doc: ProjectDoc, map: MapFile, sideId: string): Uint
     const type = typeById.get(u.type)
     if (!type) continue
     const st = structureAt(map, ctx, u.x, u.y)
-    const bonus = (terrainById.get(terrainAt(map, u.x, u.y) ?? '')?.visionBonus ?? 0) + (st ? structById.get(st.type)?.visionBonus ?? 0 : 0)
+    // Each square's bonus may be limited to some unit types (by id or label), as in Battle::visionAt.
+    const ground = terrainById.get(terrainAt(map, u.x, u.y) ?? '')
+    const stDef = st ? structById.get(st.type) : undefined
+    const bonus = (ground ? bonusFor(ground, type) : 0) + (stDef ? bonusFor(stDef, type) : 0)
     mark(u.x, u.y, visionOf(type) + bonus)
   }
   for (const s of placedOf(map)) {

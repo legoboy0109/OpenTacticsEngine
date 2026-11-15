@@ -297,6 +297,12 @@ class Battle {
   const Props& numbersAt(Cell c, Props& scratch) const {
     return squareNumbers(*db, cells[c].terrain, structureTypeAt(c), scratch);
   }
+  // The same as `team` believes it to be: a structure it does not see counts as the kind it last saw (an upgrade done
+  // out of sight must not show in what a viewer reads off a square). Without fog identical to numbersAt.
+  const Props& numbersAtSeen(int team, Cell c, Props& scratch) const {
+    const int si = structureIndexAt(c);
+    return squareNumbers(*db, cells[c].terrain, si < 0 ? -1 : seenKind(team, si), scratch);
+  }
   // Every square covered by structure `s`, row by row.
   void structureCells(int s, std::vector<Cell>& out) const;
   const UnitTypeDef& typeOf(const Unit& u) const { return db->unitTypes[u.type]; }
@@ -393,6 +399,12 @@ class Battle {
   // The owner (side index, -1 = nobody) the team believes the structure has: the true one while it sees it,
   // else the last one it saw (the map's starting owner until then).
   int seenOwner(int team, int structure) const;
+  // The kind (index into db->structures) the team believes the structure is: the true one while it sees it, else
+  // the last one it saw (the map's kind until then; an upgrade done out of sight stays hidden). Without fog the
+  // true kind. Everything a viewer or the AI learns about a structure it does not see goes through this.
+  int seenKind(int team, int structure) const;
+  const StructureDef& seenDef(int team, int structure) const { return db->structures[(size_t)seenKind(team, structure)]; }
+  int seenKindForSide(int side, int structure) const { return seenKind(sides[(size_t)side].team, structure); }
   // The same asked for a side (its team).
   bool visibleToSide(int side, Cell cell) const { return visibleTo(sides[(size_t)side].team, cell); }
   bool unitVisibleToSide(int side, int unit) const { return unitVisibleTo(sides[(size_t)side].team, unit); }
@@ -402,6 +414,11 @@ class Battle {
   void refreshSight() const { sight_.valid = false; }
   // For loading a save: the last seen owners, one list per team with one entry per structure (checked by the caller).
   void setSeenOwners(const std::vector<std::vector<int>>& owners) { seenOwners_ = owners; sight_.valid = false; }
+  // How far a unit of this type standing on `cell` sees: its vision plus what the square gives it (terrain and
+  // structure bonuses, each possibly limited to some unit types). The one place that rule lives.
+  int visionAt(const UnitTypeDef& type, Cell cell) const;
+  // The same for the last seen kinds (indices into db->structures).
+  void setSeenKinds(const std::vector<std::vector<int>>& kinds) { seenKinds_ = kinds; sight_.valid = false; }
 
   // ---- items (items.cpp; docs/ITEMS.md) ----
   const ItemDef& itemOf(const ItemStack& s) const { return db->items[(size_t)s.item]; }
@@ -555,6 +572,8 @@ class Battle {
   mutable SightCache sight_;
   // Last seen owner per team and structure; the only part of fog that is state (saved). Updated by sight.
   mutable std::vector<std::vector<int>> seenOwners_;
+  // Last seen kind per team and structure, refreshed under exactly the same conditions as the owner.
+  mutable std::vector<std::vector<int>> seenKinds_;
   // While apply() / start() run: where events go and from which index they are not stamped with `seen` yet.
   std::vector<Event>* sightEvents_ = nullptr;
   size_t stampFrom_ = 0;

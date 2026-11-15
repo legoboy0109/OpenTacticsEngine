@@ -105,7 +105,8 @@ Every `rules` block and key is optional; defaults are shown above
     "props": { "defense": 2 },                 // free-form numbers for formulas
     "tags": ["open"],                          // free-form labels
     "visionBonus": 2,                          // optional (fog of war, docs/ECONOMY.md): 0..10, added to the
-                                               // vision of a unit standing here
+                                               // vision of a unit standing here; or for some unit types only:
+                                               // { "amount": 2, "units": ["infantry", "<tag>"] } (ids or tags)
     "hides": true }                            // optional: a unit standing here is seen only from next to it
 ] }
 ```

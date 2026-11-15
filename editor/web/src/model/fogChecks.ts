@@ -10,11 +10,19 @@ const isInt = (n: unknown): n is number => typeof n === 'number' && Number.isInt
 const bad = (v: unknown, max: number): boolean => v !== undefined && (!isInt(v) || v < 0 || v > max)
 
 function groundChecks(doc: ProjectDoc, out: FogCheck[]): void {
-  const lists: Array<[Section, Array<{ name: string; visionBonus?: number; hides?: unknown }>]> = [['terrain', doc.terrain ?? []], ['structures', doc.structures ?? []]]
+  const lists: Array<[Section, Array<{ name: string; visionBonus?: unknown; hides?: unknown }>]> = [['terrain', doc.terrain ?? []], ['structures', doc.structures ?? []]]
+  const unitIds = new Set((doc.units ?? []).map((u) => u.id))
+  const tags = new Set((doc.units ?? []).flatMap((u) => u.tags ?? []))
   for (const [section, list] of lists)
     for (const g of list) {
       const say = (text: string) => out.push({ section, text: `${g.name}: ${text}` })
-      if (bad(g.visionBonus, BONUS_MAX)) say(`the extra sight must be a whole number from 0 to ${BONUS_MAX}.`)
+      const b = g.visionBonus
+      if (typeof b === 'object' && b !== null && !Array.isArray(b)) {
+        const o = b as { amount?: unknown; units?: unknown }
+        if (bad(o.amount ?? 0, BONUS_MAX) || o.amount === undefined) say(`the extra sight must be a whole number from 0 to ${BONUS_MAX}.`)
+        if (!Array.isArray(o.units) || o.units.length === 0) say('the extra sight is for “only these” units, but none is ticked. Tick at least one, or choose “For all units”.')
+        else for (const e of o.units) if (typeof e !== 'string' || (!unitIds.has(e) && !tags.has(e))) say(`the extra sight names “${String(e)}”, which is neither a unit type nor a label of any unit type.`)
+      } else if (bad(b, BONUS_MAX)) say(`the extra sight must be a whole number from 0 to ${BONUS_MAX}.`)
       if (g.hides !== undefined && typeof g.hides !== 'boolean') say('“hides” must be on or off.')
     }
 }

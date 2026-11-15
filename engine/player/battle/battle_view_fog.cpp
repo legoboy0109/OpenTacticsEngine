@@ -163,8 +163,7 @@ void BattleView::updateShown(const Battle& b) {
   std::vector<Cell> area;
   for (size_t i = 0; i < mine.size(); ++i) {
     const Cell c = (Cell)key[i * 2 + 1];
-    int radius = b.typeOf(*mine[i]).vision + b.terrainAt(c).visionBonus;
-    if (const StructureDef* sd = b.structureDefAt(c)) radius += sd->visionBonus;
+    const int radius = b.visionAt(b.typeOf(*mine[i]), c);  // the same rule as the rules core's sight
     b.grid.within(c, radius, area);
     for (Cell a : area) shown_[(size_t)a] = 1;
   }

@@ -193,6 +193,15 @@ editor has no switch for it yet (step 5).
   It is not a stat: research and accessories do not change it.
 - terrain.json and structures.json `"visionBonus": 2` (0 to 10, default 0): added to the vision of a unit standing on
   the square (a mountain). A unit on a structure square gets the terrain's and the structure's bonus **added**.
+  The bonus can be limited to some unit types ("infantry on mountains see further"):
+  `"visionBonus": { "amount": 2, "units": ["infantry", "<tag>"] }`. `units` takes unit type ids and tags, matched like a
+  weapon's `versus` keys and a structure's `repairs` list (an entry that is neither an id nor a tag some unit type
+  carries is refused, and so is an empty list: use the plain number for "every unit"); `amount` is 0 to 10 and both
+  keys are required, any other key is refused. The plain number stays valid and means every unit. A terrain's and a
+  structure's bonus are each judged on their own: on a mountain with a tower a unit can get one, both or neither.
+  The rule lives in one place (`Battle::visionAt(type, cell)`), used by sight, the AI (it uses the same sight) and the
+  player's own estimate while units walk. The format is unchanged for games using the plain form: the hash, the saves
+  and the sim numbers are byte for byte what they were.
 - terrain.json and structures.json `"hides": true` (default false): see "Hiding" below. Either one hiding is enough.
 - Every refusal names the file, the entry and the key (`units.json: unit "scout": "vision" must be from 0 to 20`).
 
@@ -231,6 +240,17 @@ editor has no switch for it yet (step 5).
   square of the structure, otherwise the last one it saw; the map's starting owners are known to everybody at the start.
   A change of owner is learned by every team that saw the `StructureCaptured` event (rules below) including the
   old and the new owner's team; a defeated side's structures turn neutral for **every** team (`SideDefeated` is public).
+  **Last seen kind** (`seenKind(team, structure)`, side form `seenKindForSide`, and `seenDef(team, structure)` for its
+  `StructureDef`): the same memory for the structure's kind (an upgrade changes it, docs/STRUCTURES.md). It is the true
+  kind while the team sees any square of the structure, else the last one it saw (the map's kind until then), updated
+  under exactly the same conditions as the owner (the same sight pass, the same capture learning). So an upgrade done out
+  of a team's sight stays unknown to it until a unit or structure of the team sees the structure again; that sighting
+  updates the picture silently (the `StructureUpgraded` event is masked to the teams that saw it happen and is not
+  replayed later). With fog off it answers the true kind. Everything a viewer or the AI learns about a structure it
+  does not currently see goes through it: the drawing (sprite, model, footprint tint, letter), the info panel (name,
+  swatch, picture and the numbers `Battle::numbersAtSeen(team, cell, scratch)`), and the AI's `knownDef`. The rules stay
+  on the truth: movement cost, props and formulas of the real kind, capture points, production, income, repair; the
+  footprint never changes with a kind (the loader checks it), so where a structure is is not hidden.
   Capture progress is not remembered: a view shows a structure's capture points only for a structure it currently sees
   (`structureVisibleTo`); `CaptureProgress` events are seen only by teams that see the capturer.
 - **The truth decides**: defeat and victory rules, objectives and story events (including triggers by unseen units and
@@ -240,8 +260,8 @@ editor has no switch for it yet (step 5).
 
 **Queries** (`Battle`, with fog off they answer "everything visible" and the true owner, so callers need no special
 case): `fogOn()`, `visibleTo(team, cell)`, `unitVisibleTo(team, unit)` (a unit id or a `Unit`), `structureVisibleTo(team,
-structure)`, `seenOwner(team, structure)`, the side forms `visibleToSide`, `unitVisibleToSide`, `seenOwnerForSide`,
-`refreshSight()`.
+structure)`, `seenOwner(team, structure)`, `seenKind(team, structure)`, the side forms `visibleToSide`,
+`unitVisibleToSide`, `seenOwnerForSide`, `seenKindForSide`, `refreshSight()`.
 
 **Event visibility.** Every `Event` has `uint32_t seen` (bit `t` = team `t` saw it; all bits without fog and for the
 public events, so nothing changes for existing consumers) and, for `UnitMoved` with fog, `seenSteps`: per team (index =
@@ -266,10 +286,11 @@ The state of a battle is always the truth and is already updated when the events
 the stream is decided by the player from these masks.
 
 **AI** (`ai/ai_knowledge.cpp`): it reads enemy units, structure owners and capture state only through one small set of
-helpers (`knownEnemy`, `knownOwner`, `knownCapturable`, `enemyGoals`) that answer from its team's sight and memory; without fog
+helpers (`knownEnemy`, `knownOwner`, `knownDef`, `knownCapturable`, `enemyGoals`) that answer from its team's sight and memory; without fog
 they answer from the truth, so decisions are bit-for-bit what they were (checked with the sim's verbose output).
-Under fog: danger and exposure only count enemies it sees; capture targets are judged on the owner it last saw
-(a structure it believes its own is not a target); what to build counts only the unit types of enemies in sight (with
+Under fog: danger and exposure only count enemies it sees; capture targets are judged on the owner and the kind it
+last saw (a structure it believes its own is not a target; the value of a target and whether it counts at all follow the
+kind it believes: income, production, capture points, the `hq` tag); what to build counts only the unit types of enemies in sight (with
 none in sight every type counts as a possible target, which is data a human also has); advancing goes to the
 enemy units in sight, else to the structures it last saw in enemy hands (the enemy HQ is one), else to the unseen square
 farthest from everything it has. It never plans a move the rules refuse; a move that is ambushed ends like any
@@ -294,7 +315,9 @@ prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
   batch as the move highlights, so no mesh is rebuilt and the shader / material interface is unchanged; structure pictures,
   boxes and models are tinted / `ModelTint.dim`). Units the viewer cannot see are not drawn (the view's `UnitView::visible`),
   so they are not hoverable and the info panel shows only the terrain and structure. Structures are drawn with
-  `seenOwner`; the panel shows a structure's capture points only while the structure is in sight. A tall sprite of a unit
+  `seenOwner` and `seenKind` (sprite, model, placeholder colour and letter, the info panel's name, swatch and numbers), so
+  an upgrade done out of sight is not drawn until a unit sees the structure; the panel shows a structure's capture
+  points only while the structure is in sight. A tall sprite of a unit
   can overhang a dimmed square above it in the top-down view (the veil is per square).
 - **Sight follows the animation** for the viewer's own units: while events play, the dimmed squares are worked out from where
   its units are drawn (re-flooded when one changes square), when the view is idle from the Battle.
@@ -310,8 +333,8 @@ prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
   last one shown, and when a battle starts or resumes on a human turn, the whole screen is covered with "Pass the device to
   <side>" (nothing of the map is drawn, input goes to the cover); Confirm or a tap lowers it and the map is drawn for that
   side. The Continue save made at a turn start resumes into the cover. Logged as `fog: cover up: ...` / `fog: cover down: ...`.
-- Not hidden yet: the kind a structure was upgraded to (it is drawn as it is); there are no minimap, unit lists or objective
-  markers in the player, so nothing else needed filtering.
+- There are no minimap, unit lists or objective markers in the player, so nothing else needed filtering. The menus of
+  an own structure (build, upgrade, research) read the truth: a side always sees its own structures.
 Story events: unaffected (they act on the truth); dialogue always shows.
 
 ## Editor
@@ -322,7 +345,7 @@ Story events: unaffected (they act on the truth); dialogue always shows.
   prerequisites, unlocks, bonus.
 - Rules: Supply group (repair amount / cost share, structures resupply).
 - Units: vision, fuel, fuel per turn, supplies. Weapons: ammunition.
-  Terrain: vision bonus, hides.
+  Terrain: vision bonus (for all units or only some unit types), hides.
 - Map settings: Fog of war checkbox.
 - Play panel: with fog, a "show everything" toggle for the maker.
 

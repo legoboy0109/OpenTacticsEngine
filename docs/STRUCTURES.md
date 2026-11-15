@@ -37,6 +37,7 @@ Contract for the structure layer. Owner decisions (2026-11-14):
                                                 // needs rules.supply.repair; docs/ECONOMY.md "Repair and supply"
                                                 // fog of war (docs/ECONOMY.md "Fog of war"), both optional:
     "visionBonus": 3, "hides": true }           // 0..10 added to the vision of a unit on its squares (to the terrain's);
+                                                // or { "amount": 3, "units": ["infantry", "<tag>"] } for those unit types only;
                                                 // a unit on its squares is seen only from next to it
 ```
 
@@ -129,8 +130,10 @@ terrain and structure by hand):
 - **Defeated side**: its structures become neutral (as its squares did).
 - **Fog of war** (docs/ECONOMY.md): a structure sees for its owner's team, one square around every square of its
   footprint; `visionBonus` and `hides` are added to / combined with the terrain's for the unit standing on it. What a
-  team believes about who owns a structure out of its sight is the last owner it saw (`Battle::seenOwner`); the true
-  owner and capture progress are in `StructureState`.
+  team believes about who owns a structure out of its sight is the last owner it saw (`Battle::seenOwner`) and the
+  last kind it saw (`Battle::seenKind`: an upgrade done out of its sight stays hidden, the footprint never changes);
+  the true owner, kind and capture progress are in `StructureState`. `visionBonus` may be limited to some unit types
+  (`{ "amount": 2, "units": [...] }`, ids or tags, like `repairs`).
 - Events: `CellCaptured` becomes `StructureCaptured` (a = structure index,
   b = new owner, c = previous owner). `CaptureProgress` keeps a = unit,
   b = the unit's cell, c = points remaining, and gains d = structure index.

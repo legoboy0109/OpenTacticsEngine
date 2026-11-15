@@ -74,11 +74,12 @@ void Map3D::drawTops(const DrawCtx& c) {
 void Map3D::drawStructures(const DrawCtx& c) {
   const Battle& b = c.battle;
   const MapProj& g = *c.proj;
-  for (const StructureState& st : b.structures) {
+  for (int index = 0; index < (int)b.structures.size(); ++index) {
+    const StructureState st = shownStructure(c, index);  // fog: kind and owner as the viewer last saw them
     const StructureDef& def = b.defOf(st);
     float Y = structureElev(c, st, def) * g.stepY();
-    // Fog: the owner the viewer last saw; a structure out of its sight is darker (the ground under it gets the veil).
-    const int index = (int)(&st - &b.structures[0]), owner = shownOwner(c, index);
+    // A structure out of the viewer's sight is darker (the ground under it gets the veil).
+    const int owner = st.owner;
     const bool dim = structureDimmed(c, index);
     const uint8_t k = dim ? (uint8_t)(255 * kFogDim) : 255;
     if (owner >= 0) {
@@ -119,8 +120,10 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
   auto topOf = [&](Cell cell, int x, int y) {
     int si = b.structureAt[cell];
     const ModelAsset* asset = nullptr;
-    if (si >= 0 && !structureArt(c, b.structures[(size_t)si]) && !structureModel(c, b.structures[(size_t)si], asset))
-      return structureElev(c, b.structures[(size_t)si], b.defOf(b.structures[(size_t)si])) * g.stepY() + kWall;
+    if (si >= 0) {
+      const StructureState st = shownStructure(c, si);
+      if (!structureArt(c, st) && !structureModel(c, st, asset)) return structureElev(c, st, b.defOf(st)) * g.stepY() + kWall;
+    }
     return c.proj->elevation(x, y) * g.stepY();
   };
   if (c.view.fogged()) {
@@ -177,7 +180,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
   Cell under = b.grid.at(std::max(0, std::min((int)gx, b.grid.width() - 1)), std::max(0, std::min((int)gy, b.grid.height() - 1)));
   int si = under == kNoCell ? -1 : b.structureAt[under];
   if (si >= 0) {
-    const StructureState& st = b.structures[(size_t)si];
+    const StructureState st = shownStructure(c, si);
     const StructureDef& def = b.defOf(st);
     const Look* sa = structureArt(c, st);
     const ModelAsset* sm = nullptr;
@@ -267,7 +270,8 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
         Color gc = mix(col, readableOn(col), 0.28f);
         drawGlyphCentered(r, sx, sy, td.glyph, c.view.dimmed(cell) ? fogDim(gc) : gc, glyphPx(k));
       }
-    for (const StructureState& st : b.structures) {
+    for (int index = 0; index < (int)b.structures.size(); ++index) {
+      const StructureState st = shownStructure(c, index);
       const StructureDef& def = b.defOf(st);
       const Look* art = structureArt(c, st);
       const ModelAsset* asset = nullptr;
@@ -275,7 +279,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
       int sx, sy;
       if (!screen(st.x + def.width * 0.5f, st.y + def.height * 0.5f, structureElev(c, st, def) * g.stepY() + kWall, sx, sy, k)) continue;
       Color gc = readableOn(Color::rgb(structureRgb(c, st.type)));
-      drawGlyphCentered(r, sx, sy, def.glyph, structureDimmed(c, (int)(&st - &b.structures[0])) ? fogDim(gc) : gc,
+      drawGlyphCentered(r, sx, sy, def.glyph, structureDimmed(c, index) ? fogDim(gc) : gc,
                         glyphPx(k) * std::min(def.width, def.height));
     }
   }

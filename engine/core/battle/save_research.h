@@ -25,6 +25,8 @@ bool readTechList(Reader& rd, const Database& db, const Json& o, const char* key
 // A structure's saved kind: "type" is written only when it differs from the map's, and read back with a
 // check that the kind has the map kind's footprint and can be reached from it through upgrades.
 void writeStructureKind(const StructureState& s, Json& out);
+// The checks alone: kind `type` has the footprint of `mapType` and is reachable from it through upgrades.
+bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, const std::string& at);
 bool readStructureKind(Reader& rd, const Database& db, const Json& j, const std::string& where, StructureState& st);
 
 }  // namespace savejson

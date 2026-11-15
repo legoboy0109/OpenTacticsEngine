@@ -62,9 +62,8 @@ bool chooseBuild(const Battle& b, Cell& outCell, int& outType) {
   }
   if (db.rules.capture) {
     for (size_t si = 0; si < b.structures.size(); ++si) {
-      const StructureState& st = b.structures[si];
       int owner = knownOwner(b, side, (int)si);  // the owner it believes, not the true one
-      if (b.defOf(st).capturePoints > 0 && (owner < 0 || b.sides[owner].team != b.sides[side].team)) ++targets;
+      if (knownDef(b, side, (int)si).capturePoints > 0 && (owner < 0 || b.sides[owner].team != b.sides[side].team)) ++targets;
     }
   }
   int wanted = std::min(kWantedCapturers, targets);

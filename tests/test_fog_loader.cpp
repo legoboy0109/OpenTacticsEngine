@@ -143,6 +143,57 @@ REFUSES(fog_loader_refuses_structure_bonus_above_10, withStructure("\"visionBonu
 REFUSES(fog_loader_refuses_negative_structure_bonus, withStructure("\"visionBonus\": -3"), "\"visionBonus\"", "0 to 10")
 REFUSES(fog_loader_refuses_structure_hides_that_is_not_true_or_false, withStructure("\"hides\": 1"), "\"hides\"", "true or false")
 
+// ---- the sight bonus for some unit types only: {"amount": N, "units": [...]} ----
+
+namespace {
+
+Parts withLimits(const char* terrainExtra, const char* structureExtra = "") {
+  Parts p;
+  p.units = R"({ "units": [
+      {"id":"grunt","moveType":"foot","stats":{"hp":5,"str":2,"mov":3},"tags":["legs"]},
+      {"id":"cart","moveType":"foot","stats":{"hp":5,"str":2,"mov":3}} ] })";
+  p.terrain = std::string(R"({ "terrain": [ {"id":"plain"}, {"id":"hill",)") + terrainExtra + " } ] }";
+  p.structures = std::string(R"({ "structures": [ {"id":"tower",)") + structureExtra + " } ] }";
+  return p;
+}
+
+}  // namespace
+
+TEST(fog_loader_reads_a_bonus_limited_to_some_units) {
+  Parts p = withLimits(R"("visionBonus": {"amount": 2, "units": ["grunt", "legs"]})", R"("visionBonus": {"amount": 0, "units": ["cart"]})");
+  Database db;
+  std::string err;
+  CHECK(loadGame(makeGame("limited_ok", p), db, err));
+  const TerrainDef& hill = db.terrains[(size_t)db.findTerrain("hill")];
+  CHECK_EQ(hill.visionBonus, 2);
+  CHECK_EQ(hill.visionUnits.size(), size_t(2));
+  CHECK_STR(hill.visionUnits[1], "legs");
+  CHECK_EQ(db.terrains[0].visionUnits.size(), size_t(0));  // the plain form leaves the list empty (= every unit)
+  CHECK_EQ(db.structures[0].visionBonus, 0);
+  CHECK_EQ(db.structures[0].visionUnits.size(), size_t(1));
+  // The plain number stays "all units".
+  CHECK_STR(problem("limited_plain", withLimits(R"("visionBonus": 3)")), "");
+}
+
+TEST(fog_loader_the_limited_bonus_limits_are_fine) {
+  CHECK_STR(problem("limited_max", withLimits(R"("visionBonus": {"amount": 10, "units": ["cart"]})")), "");
+  CHECK_STR(problem("limited_min", withLimits(R"("visionBonus": {"amount": 0, "units": ["cart"]})")), "");
+}
+
+REFUSES(fog_loader_refuses_a_limited_bonus_above_10, withLimits(R"("visionBonus": {"amount": 11, "units": ["cart"]})"), "terrain.json", "hill", "visionBonus", "\"amount\"", "0 to 10")
+REFUSES(fog_loader_refuses_a_limited_negative_bonus, withLimits(R"("visionBonus": {"amount": -1, "units": ["cart"]})"), "\"amount\"", "0 to 10")
+REFUSES(fog_loader_refuses_a_limited_fractional_bonus, withLimits(R"("visionBonus": {"amount": 1.5, "units": ["cart"]})"), "\"amount\"", "whole number")
+REFUSES(fog_loader_refuses_a_limited_bonus_without_amount, withLimits(R"("visionBonus": {"units": ["cart"]})"), "visionBonus", "needs \"amount\"")
+REFUSES(fog_loader_refuses_a_limited_bonus_without_units, withLimits(R"("visionBonus": {"amount": 2})"), "visionBonus", "needs \"units\"")
+REFUSES(fog_loader_refuses_an_empty_units_list, withLimits(R"("visionBonus": {"amount": 2, "units": []})"), "visionBonus", "\"units\" is empty", "plain number")
+REFUSES(fog_loader_refuses_units_that_is_not_a_list, withLimits(R"("visionBonus": {"amount": 2, "units": "cart"})"), "\"units\"")
+REFUSES(fog_loader_refuses_a_units_entry_that_is_not_text, withLimits(R"("visionBonus": {"amount": 2, "units": [3]})"), "\"units\" entry 1", "string")
+REFUSES(fog_loader_refuses_an_unknown_unit_in_units, withLimits(R"("visionBonus": {"amount": 2, "units": ["cart", "knight"]})"), "\"units\" entry \"knight\"", "neither a unit type id nor a tag")
+REFUSES(fog_loader_refuses_an_unknown_key_in_a_limited_bonus, withLimits(R"("visionBonus": {"amount": 2, "units": ["cart"], "extra": 1})"), "unknown key \"extra\"")
+REFUSES(fog_loader_refuses_a_structure_limited_bonus_above_10, withLimits(R"("visionBonus": 1)", R"("visionBonus": {"amount": 12, "units": ["cart"]})"), "structures.json", "tower", "\"amount\"", "0 to 10")
+REFUSES(fog_loader_refuses_an_unknown_unit_in_a_structure_bonus, withLimits(R"("visionBonus": 1)", R"("visionBonus": {"amount": 2, "units": ["nobody"]})"), "structures.json", "\"units\" entry \"nobody\"")
+REFUSES(fog_loader_refuses_a_visionBonus_that_is_a_list, withLimits(R"("visionBonus": [2])"), "\"visionBonus\"", "whole number")
+
 TEST(fog_loader_refuses_fog_that_is_not_true_or_false) {
   Parts p;
   p.fog = ", \"fog\": \"yes\"";

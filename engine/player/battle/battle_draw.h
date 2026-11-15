@@ -68,9 +68,23 @@ inline bool structureDimmed(const DrawCtx& c, int structure) {
     }
   return true;
 }
+// Which kind a structure is drawn as: for a viewer the kind it last saw (an upgrade done out of its sight stays
+// hidden), else the true one.
+inline int shownKind(const DrawCtx& c, int structure) {
+  return c.view.fogged() ? c.battle.seenKind(c.view.viewerTeam(), structure) : c.battle.structures[(size_t)structure].type;
+}
 // Whose colours a structure is drawn in: for a viewer the owner it last saw (not the truth), else its owner.
 inline int shownOwner(const DrawCtx& c, int structure) {
   return c.view.fogged() ? c.battle.seenOwner(c.view.viewerTeam(), structure) : c.battle.structures[(size_t)structure].owner;
+}
+
+// The structure as the viewer pictures it: position as it is, kind and owner as last seen. Drawing code reads
+// everything that looks like the structure (art, model, colour, name) from this copy, never from the truth.
+inline StructureState shownStructure(const DrawCtx& c, int structure) {
+  StructureState s = c.battle.structures[(size_t)structure];
+  s.type = shownKind(c, structure);
+  s.owner = shownOwner(c, structure);
+  return s;
 }
 
 // Fill colour of a terrain under the visual style in use (the terrain's own colour unless the style recolors it).

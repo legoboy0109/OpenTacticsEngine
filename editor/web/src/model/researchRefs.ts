@@ -6,11 +6,12 @@
 //  - "used by" lines for a delete confirmation and the line on the Research form.
 // Only what was there BEFORE and is gone AFTER is touched: a name that was already dangling stays, so the checks can
 // point at it instead of the editor silently deleting something.
+import { bonusUnits } from './fog'
 import { scrubMaps, storyUsages } from './storyRefs'
 import { walkStory } from './storyWalk'
 import { dropKey } from './util'
 import type { Usage } from './references'
-import type { ProjectDoc, Structure, Technology, Upgrade } from './types'
+import type { ProjectDoc, Structure, Technology, Terrain, Upgrade } from './types'
 
 interface Gone { techs: Set<string>; units: Set<string>; structures: Set<string>; resources: Set<string>; stats: Set<string> }
 
@@ -80,9 +81,24 @@ function cleanUpgrade(u: Upgrade, g: Gone): Upgrade {
   return c as unknown as Upgrade
 }
 
-function cleanStructure(s: Structure, g: Gone, tagsAfter: Set<string>): Structure {
+/** A sight bonus limited to unit types (visionBonus.units) without the ones that were deleted. A list that loses ALL its
+ *  unit types must not turn into "every unit": the bonus goes instead. */
+function cleanVision<T extends Terrain | Structure>(x: T, g: Gone, tagsAfter: Set<string>): T {
+  const b = x.visionBonus
+  if (typeof b !== 'object' || b === null || !Array.isArray(b.units)) return x
+  const gone = (e: string) => g.units.has(e) && !tagsAfter.has(e)
+  if (!b.units.some(gone)) return x
+  const units = b.units.filter((e) => !gone(e))
+  const c: Record<string, unknown> = { ...x }
+  if (units.length) c.visionBonus = { ...b, units }
+  else delete c.visionBonus
+  return c as unknown as T
+}
+
+function cleanStructure(s0: Structure, g: Gone, tagsAfter: Set<string>): Structure {
+  const s = cleanVision(s0, g, tagsAfter)
   const c: Record<string, unknown> = { ...s }
-  let changed = false
+  let changed = s !== s0
   if (s.upgrades?.length) {
     const kept = s.upgrades.filter((u) => !g.structures.has(u.to))
     const next = mapSame(kept, (u) => cleanUpgrade(u, g))
@@ -105,10 +121,11 @@ export function reconcileEconomy(before: ProjectDoc, after: ProjectDoc): Project
   const tagsAfter = new Set((after.units ?? []).flatMap((u) => u.tags ?? []))
   const research = after.research ? mapSame(after.research, (t) => cleanTechnology(t, g)) : after.research
   const structures = after.structures ? mapSame(after.structures, (s) => cleanStructure(s, g, tagsAfter)) : after.structures
-  const next: ProjectDoc = { ...after, research, structures }
+  const terrain = after.terrain && g.units.size ? mapSame(after.terrain, (t) => cleanVision(t, g, tagsAfter)) : after.terrain
+  const next: ProjectDoc = { ...after, research, structures, terrain }
   // Events that check for or give a deleted technology go with it (the same walk the other story clean-ups use).
   const maps = g.techs.size ? scrubMaps(next, [...g.techs].map((id) => ({ kind: 'tech' as const, id }))) : next.maps
-  const out = research === after.research && structures === after.structures && maps === after.maps ? after : { ...next, maps }
+  const out = research === after.research && structures === after.structures && terrain === after.terrain && maps === after.maps ? after : { ...next, maps }
   return out
 }
 
@@ -157,6 +174,14 @@ export function economyUsageLines(doc: ProjectDoc, kind: 'unit' | 'resource' | '
         if (t.bonus?.types?.includes(id)) out.push({ section: 'research', text: t.bonus.types.length === 1 ? `Technology “${t.name}” gives it a bonus (the bonus is removed)` : `Technology “${t.name}” gives it a bonus (it is taken off that list)` })
       }
       for (const s of doc.structures ?? []) if (s.repairs?.includes(id)) out.push({ section: 'structures', text: `Structure “${s.name}” repairs it (it is taken off that list)` })
+      // Extra sight limited to some unit types: it is taken off the list; a list that empties takes the bonus with it.
+      for (const [section, list] of [['terrain', doc.terrain], ['structures', doc.structures]] as const)
+        for (const x of list ?? []) {
+          const only = bonusUnits(x)
+          if (!only?.includes(id)) continue
+          const kind = section === 'terrain' ? 'Terrain' : 'Structure'
+          out.push({ section, text: only.length === 1 ? `${kind} “${x.name}” gives extra sight to it only (the extra sight is removed)` : `${kind} “${x.name}” gives it extra sight (it is taken off that list)` })
+        }
       break
     case 'resource':
       for (const t of doc.research ?? []) if (t.cost && id in t.cost) out.push({ section: 'research', text: `Technology “${t.name}” has a cost in it` })
