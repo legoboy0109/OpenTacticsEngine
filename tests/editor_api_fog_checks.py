@@ -41,6 +41,9 @@ def run_fog_checks(api, tmp, games, templates, check, get_project, put_project):
     structures[0]["visionBonus"] = 10
     structures[0]["hides"] = True
     structures[0]["futureKey"] = {"keep": [1]}
+    # The object form: extra sight for some unit types only (ids and labels), next to a plain number on another kind.
+    terrain[1]["visionBonus"] = {"amount": 2, "units": [units[0]["id"], units[1]["id"]]}
+    structures[1]["visionBonus"] = {"amount": 0, "units": [units[2]["id"]]}
     m["fog"] = True
     m["units"][0]["id"] = "scout"
     m["events"] = [{"id": "spotted", "when": {"turn": "every"},
@@ -62,6 +65,10 @@ def run_fog_checks(api, tmp, games, templates, check, get_project, put_project):
     after = {f: raw(f) for f in files}
     check("fog: open + save keeps every file byte for byte", st == 200 and after == before, [f for f in files if after[f] != before[f]])
     check("fog: unknown key on a structure survives", b'"futureKey"' in after["data/structures.json"])
+    check("fog: the object form of visionBonus is written as it came (terrain and structure)",
+          json.loads(after["data/terrain.json"])["terrain"][1]["visionBonus"] == terrain[1]["visionBonus"]
+          and json.loads(after["data/structures.json"])["structures"][1]["visionBonus"] == structures[1]["visionBonus"]
+          and b'"visionBonus": 3' in after["data/terrain.json"] and b'"visionBonus": 10' in after["data/structures.json"])
 
     # An edit elsewhere in a file keeps the fog keys (also a vision of 0 and an explicit hides: false).
     d["units"][0]["name"] = "Renamed"
@@ -82,6 +89,10 @@ def run_fog_checks(api, tmp, games, templates, check, get_project, put_project):
     refused("vision 21", lambda b: b["units"][0].__setitem__("vision", 21), "vision")
     refused("vision -1", lambda b: b["units"][0].__setitem__("vision", -1), "vision")
     refused("visionBonus 11", lambda b: b["terrain"][0].__setitem__("visionBonus", 11), "visionBonus")
+    refused("a limited bonus above 10", lambda b: b["terrain"][1].__setitem__("visionBonus", {"amount": 11, "units": [units[0]["id"]]}), "amount")
+    refused("a limited bonus with an empty list", lambda b: b["terrain"][1].__setitem__("visionBonus", {"amount": 2, "units": []}), "units")
+    refused("a limited bonus naming an unknown unit", lambda b: b["structures"][1].__setitem__("visionBonus", {"amount": 2, "units": ["nobody"]}), "nobody")
+    refused("a limited bonus without units", lambda b: b["terrain"][1].__setitem__("visionBonus", {"amount": 2}), "units")
     refused("hides as text", lambda b: b["structures"][0].__setitem__("hides", "yes"), "hides")
 
     def many_sides(b):

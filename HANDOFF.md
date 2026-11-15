@@ -481,6 +481,22 @@ fuel / supplies on Units, ammunition on Weapons, story condition `researched` an
 "Economy options". Helper: `data/research.json` as `research` (empty list removes the file). Tests: `tests/editor_api_economy_checks.py`,
 `editor/web/tests/unit/economy.test.ts`, `tests/e2e/economy.spec.ts`. `demo-economy` content is still open.
 
+## Fog: hidden upgrades and sight bonus for some unit types (2026-11-14)
+
+Two follow-ups to fog, built end to end (rules core, player, editor, docs, `demo-economy`). (1) A team remembers the **last
+seen kind** of every structure next to the last seen owner (`Battle::seenKind` / `seenKindForSide` / `seenDef`,
+`numbersAtSeen`; refreshed in `sight.cpp` and `learnOwner` under the same conditions); the player draws and describes
+structures through `shownStructure` / `shownKind` (`battle_draw.h`), the AI through `ai::knownDef`. Saves: `"seenKinds"` is
+written only for a fog battle where some team believes a kind other than the map's, and is optional on read (absent = map
+kinds), so fog saves of games that never upgraded stay byte-identical. (2) `visionBonus` may be `{ "amount": N, "units":
+[ids or tags] }` (`TerrainDef` / `StructureDef::visionUnits`, empty = every unit; `Battle::visionAt` is the one rule, the
+player's walking estimate uses it too). Editor: `GroundSightCard`, `model/fog.ts` (`bonusFor`, `setVisionUnits`),
+`researchRefs.ts` cleans the lists when a unit type is deleted. `demo-economy` mountain: infantry and mech (only foot units
+can enter it anyway, so the sim numbers did not move; its old saves are refused as the data changed). Tests:
+`tests/test_fog_kinds.cpp`, `fog_player_test.py` (upgrade scenario, game `fogup`), `fogLimited.test.ts` / `fogLimited.spec.ts`.
+Not seen in a real window. Terrain / structure props of a hidden structure still apply for the AI's defence estimate of a
+square it could move to (`terrainDefense` reads the truth); it stays on the truth for rules as designed.
+
 ## Fog of war in the editor (2026-11-14)
 
 Map settings "Fog of war" (disabled above 32 sides) and the canvas aid "Show what a side sees" (`model/fogSight.ts`, drawn by `drawFog.ts`, `data-fog` on the canvas); Units "Sight" (default 2, never written), Terrain / Structures "Extra sight" and "Hides" (`screens/fog/`); story condition `sees` (`model/story*.ts`, not in scenes); checks `model/fogChecks.ts` (banner via `EconomyChecks`, map ones in `mapWarnings`); Play panel "Show everything" adds `showall=1` (`ote.playShowAll.<project>`). The helper already passed every fog key through (tests/editor_api_fog_checks.py). Tests: `tests/unit/fog.test.ts`, `tests/e2e/fog.spec.ts`. Aid ignores line of sight (the engine has none yet).

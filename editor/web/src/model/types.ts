@@ -78,10 +78,13 @@ export interface Game extends Extra {
   variables?: Named[]
 }
 
+/** Extra sight for some unit types only (docs/ECONOMY.md "Fog of war"): unit type ids or tags, never empty in a good file. */
+export interface VisionLimit { amount: number; units: string[] }
 export interface Terrain extends Named {
   color?: string; glyph?: string; moveCost?: NumMap; props?: NumMap; tags?: string[]
-  /** Fog of war: extra sight (0 to 10, missing = 0) for a unit standing here; a unit here is seen only from next to it. */
-  visionBonus?: number; hides?: boolean
+  /** Fog of war: extra sight (0 to 10, missing = 0) for a unit standing here (a plain number: every unit; or an
+   *  object: those unit types only); a unit here is seen only from next to it. */
+  visionBonus?: number | VisionLimit; hides?: boolean
   // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
   // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
   capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]
@@ -101,7 +104,7 @@ export interface Structure extends Named {
   /** A side owning one may research (docs/ECONOMY.md). */
   research?: boolean
   /** Fog of war, as on terrain; they add up with the terrain's. */
-  visionBonus?: number; hides?: boolean
+  visionBonus?: number | VisionLimit; hides?: boolean
   /** Kinds it can be built up into. */
   upgrades?: Upgrade[]
   /** Unit type ids or tags it repairs; missing = all, [] = nothing. */
