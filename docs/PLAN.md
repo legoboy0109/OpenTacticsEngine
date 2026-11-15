@@ -140,6 +140,17 @@ goal (demos only exercise features).
       Owner (2026-11-15): teaches the editor; hands-on steps that tick
       themselves; "Your first game" plus topic lessons; offered once,
       then behind a Learn button. Contract: docs/TUTORIAL.md.
+   k. Strategy-RPG feature set (owner, 2026-11-15: wants the features a
+      GBA-era strategy RPG fan project needs; reference point named by
+      the owner: the fan game "Vision Quest"). After the tutorial.
+      Wanted: unit skills and abilities (passive and activated), shove
+      and other moves that push or reposition units, summoning, support
+      conversations and bonuses, rescue / carry, class promotion; close-up
+      battle scenes stay low priority. Generic engine features only.
+      Rebuilding that fan game's own story, maps and characters needs its
+      authors' permission first (theirs, not ours); no Nintendo names,
+      characters, maps, art or music in any case. Design questions to
+      the owner when it starts.
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
