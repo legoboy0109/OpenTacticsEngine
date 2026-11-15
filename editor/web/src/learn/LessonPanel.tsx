@@ -13,8 +13,9 @@ import { T } from './text'
 import { useLearn } from './useLearn'
 import type { Lesson, Step } from './types'
 
-/** Wide enough for a side panel next to the screen's content; below this the panel is a bottom sheet. */
-const DOCK_QUERY = '(min-width: 1000px)'
+/** Wide enough for a side panel next to the screen's content: the map editor needs about 1200 px beside the sidebar and its
+ *  own options panel, so the dock (340 px) only appears from 1800 px. Below that the panel is a bottom sheet. */
+const DOCK_QUERY = '(min-width: 1800px)'
 
 export function LessonPanel() {
   const snap = useLearn()
@@ -58,7 +59,7 @@ export function LessonPanel() {
   return (
     <>
       <Highlight name={collapsed ? undefined : target} />
-      <aside ref={el} className="learn-panel" data-collapsed={collapsed || undefined} data-wide={wide || undefined} aria-label={T.panelLabel}>
+      <aside ref={el} className="learn-panel" data-collapsed={collapsed || undefined} data-dock={wide || undefined} aria-label={T.panelLabel}>
         {collapsed ? (
           <button type="button" className="learn-bar" aria-expanded="false" onClick={() => setCollapsed(false)} title={T.show}>
             <span className="learn-bar-text">{bar}</span>
@@ -69,7 +70,7 @@ export function LessonPanel() {
             <header className="learn-head">
               <div className="learn-head-text">
                 <p className="learn-lesson">{lesson.title}</p>
-                <p className="learn-progress-text">{gone ? T.goneTitle : atEnd ? T.endTitle : T.stepOf(progress.step + 1, lesson.steps.length)}</p>
+                <p className="learn-progress-text">{atEnd ? T.progressLabel(doneCount, lesson.steps.length) : T.stepOf(Math.min(progress.step + 1, lesson.steps.length), lesson.steps.length)}</p>
               </div>
               <button type="button" className="btn ghost sm" aria-expanded="true" onClick={() => setCollapsed(true)} title={T.hide}>
                 <Icon name="down" /><span className="learn-hide-text">{T.hide}</span>

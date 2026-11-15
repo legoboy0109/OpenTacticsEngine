@@ -23,11 +23,17 @@ export function Highlight({ name }: { name: string | undefined }) {
     if (!name || !node) return
     let raf = 0
     let last = ''
+    // A control found below or above the window is scrolled into view once, so the ring is never pointing at nothing.
+    let scrolled: HTMLElement | null = null
     const frame = () => {
       const el = findTarget(name)
       const r = el?.getBoundingClientRect()
       // Off screen counts as absent, so a ring never hangs at the edge pointing at nothing.
       const visible = !!r && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth
+      if (el && r && !visible && scrolled !== el && r.width > 0) {
+        scrolled = el
+        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+      }
       const key = visible && r ? `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}` : ''
       if (key !== last) {
         last = key

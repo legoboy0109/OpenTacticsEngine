@@ -5,17 +5,26 @@
    --learn-h is the panel's measured height (set by LessonPanel). */
 html[data-learn-layout='dock'] #root { margin-right: var(--learn-w); }
 html[data-learn-layout='sheet'] #root { padding-bottom: var(--learn-h, 0px); }
+/* Something scrolled or tabbed into view stops above the sheet, never under it. */
+html[data-learn-layout='sheet'] { scroll-padding-bottom: calc(var(--learn-h, 0px) + 8px); }
+/* Parts that stay in place while the page scrolls (sidebar, lists, the map's options) end above the sheet, so nothing of them
+   hides under it. (On phones those parts scroll with the page.) */
+@media (min-width: 720px) {
+  html[data-learn-layout='sheet'] .sidebar { height: calc(100vh - var(--topbar-h) - var(--learn-h, 0px)); overflow-y: auto; }
+  html[data-learn-layout='sheet'] .map-panel { max-height: calc(100vh - var(--topbar-h) - 24px - var(--learn-h, 0px)); }
+  html[data-learn-layout='sheet'] .md-list { max-height: calc(100vh - var(--topbar-h) - 40px - var(--learn-h, 0px)); }
+}
 
 .learn-panel {
   position: fixed; z-index: 40; display: flex; flex-direction: column; background: var(--surface); color: var(--text);
   border: 1px solid var(--border-strong); box-shadow: 0 -4px 24px rgba(20, 30, 50, 0.18);
 }
 /* wide and open: a column at the right edge */
-.learn-panel[data-wide]:not([data-collapsed]) {
+.learn-panel[data-dock]:not([data-collapsed]) {
   top: 0; right: 0; bottom: 0; width: var(--learn-w); border-width: 0 0 0 1px; box-shadow: -4px 0 24px rgba(20, 30, 50, 0.12);
 }
 /* narrow and open: a sheet at the bottom */
-.learn-panel:not([data-wide]):not([data-collapsed]) {
+.learn-panel:not([data-dock]):not([data-collapsed]) {
   left: 0; right: 0; bottom: 0; max-height: min(52vh, 460px); border-width: 1px 0 0; border-radius: var(--radius) var(--radius) 0 0;
 }
 /* folded: a slim bar at the bottom, any width */
