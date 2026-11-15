@@ -316,6 +316,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadItems(root + "/data/items.json", db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
+  if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;

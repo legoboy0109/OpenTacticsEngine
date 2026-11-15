@@ -35,6 +35,13 @@ struct TerrainDef {
   std::vector<std::string> tags;  // free-form labels (the "hq" tag moved to structures)
 };
 
+// One way a structure kind can be built up into another (docs/ECONOMY.md "Upgradable structures").
+struct UpgradeDef {
+  int to = -1;                 // index into Database::structures; same footprint (checked by the loader)
+  std::vector<Amount> cost;
+  int needs = -1;           // index into Database::research, -1 = none
+};
+
 // A building-like thing standing on top of terrain squares (docs/STRUCTURES.md).
 // It replaces only the rules it sets; everything else comes from the terrain
 // under each of its squares. Capture, income, production and the "hq" tag
@@ -52,6 +59,8 @@ struct StructureDef {
   std::vector<int> produces;   // unit type indices buildable on its squares
   std::vector<int> sells;      // item indices a unit standing here can buy (docs/ITEMS.md "Shops")
   std::vector<std::string> tags;  // e.g. "hq"
+  std::vector<UpgradeDef> upgrades;  // kinds it can be built up into (the structure changes kind during play)
+  bool research = false;       // a side owning one may research (docs/ECONOMY.md "Research")
 };
 
 const int kMaxStructureSize = 8;
@@ -121,6 +130,18 @@ struct UnitTypeDef {
   std::vector<std::string> tags;
   bool canCapture = false;
 };
+
+// One technology (data/research.json, docs/ECONOMY.md "Research").
+struct TechnologyDef {
+  std::string id, name, description;
+  std::vector<Amount> cost;    // paid when research starts
+  int turns = 1;               // 0..99 of the side's own turns; 0 = finished at once
+  std::vector<int> needs;   // technologies that must be finished first (all of them)
+  std::vector<int> unlocksUnits;  // unit types: with any technology listing a type, a side needs one of them to build it
+  std::vector<int> bonusTypes;    // unit types the bonus is for; empty = every unit of the side
+  std::vector<int> bonus;         // per stat index, added to those units; empty = no bonus
+};
+const int kMaxResearchTurns = 99;
 
 enum class TurnOrder { Sides /*, Speed (planned: per-unit, FFT style) */ };
 
@@ -218,6 +239,7 @@ struct Database {
   std::vector<StructureDef> structures;  // data/structures.json (optional)
   std::vector<WeaponDef> weapons;
   std::vector<ItemDef> items;            // data/items.json (optional)
+  std::vector<TechnologyDef> research;   // data/research.json (optional)
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
@@ -235,6 +257,7 @@ struct Database {
   int findStructure(const std::string& id) const;
   int findWeapon(const std::string& id) const;
   int findItem(const std::string& id) const;
+  int findTechnology(const std::string& id) const;
   // Carried weapons: may a unit of this type use this weapon?
   bool canWield(int unitType, int weapon) const;
   int findUnitType(const std::string& id) const;

@@ -8,6 +8,8 @@ namespace ote {
 bool loadWeapons(const std::string& path, Database& db, std::string& err);
 // Optional data/items.json (docs/ITEMS.md); needs the rules, stats, resources and weapons.
 bool loadItems(const std::string& path, Database& db, std::string& err);
+// Optional data/research.json (docs/ECONOMY.md "Research"); needs stats, resources and unit types.
+bool loadResearch(const std::string& path, Database& db, std::string& err);
 bool loadUnitTypes(const std::string& path, Database& db, std::string& err);
 bool loadTerrain(const std::string& path, Database& db, std::string& err);
 // Optional data/structures.json (docs/STRUCTURES.md); needs move types, unit
@@ -21,6 +23,9 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err);
 
 class LoadCtx;
 class Json;
+// The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
+// "structures" array of data/structures.json; db.structures already holds its entries in the same order.
+bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db);
 // The side index of a map side id, -1 if there is none (map_loader.cpp).
 int findMapSide(const MapDef& m, const std::string& id);
 // A unit entry of a map or of the addUnit command, in two halves (map_loader.cpp): what it is and

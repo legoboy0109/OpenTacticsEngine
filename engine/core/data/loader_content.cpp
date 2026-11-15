@@ -217,9 +217,10 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
       s.sells.push_back(it);
     }
     if (!c.stringList(e, "tags", where, s.tags)) return false;
+    if (!c.boolean(e, "research", where, s.research)) return false;
     db.structures.push_back(s);
   }
-  return true;
+  return loadStructureUpgrades(c, *list, db);
 }
 
 bool checkVersusKeys(const std::string& weaponsPath, const Database& db, std::string& err) {
