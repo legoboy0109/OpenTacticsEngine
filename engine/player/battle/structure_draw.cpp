@@ -33,8 +33,9 @@ void drawStructure(Renderer& r, const DrawCtx& c, int index, int camX, int camY,
   }
 
   // Owner: a frame in the owner's colour around the whole footprint.
-  if (st.owner >= 0) {
-    Color oc = Color::rgb(b.sides[(size_t)st.owner].color);
+  const int owner = shownOwner(c, index);  // fog: the owner the viewer last saw
+  if (owner >= 0) {
+    Color oc = Color::rgb(b.sides[(size_t)owner].color);
     r.fillRect(sx, sy, fw, 2, oc);
     r.fillRect(sx, sy + fh - 2, fw, 2, oc);
     r.fillRect(sx, sy + 2, 2, fh - 4, oc);

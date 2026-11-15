@@ -28,6 +28,7 @@ struct Args {
                                 // hardware where it works, but software when --headless (repeatable pictures)
   std::string res3d = "auto";   // --3d-res auto|display|game: how big the 3D picture is (docs/RENDER3D.md "Resolution")
   int scale3d = 1;              // --3d-scale N (1..8, needs --headless): the headless "display" is N times the logical size
+  bool showAll = false;   // --show-all: draw a fog-of-war battle without fog (the rules still apply; for the maker's Play panel)
   bool autoplay = false;
   unsigned seed = 1;
   bool headless = false;

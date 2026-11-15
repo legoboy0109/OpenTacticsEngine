@@ -24,6 +24,7 @@ BattleScene::BattleScene(SceneHost& host)
   proj_.init(battle_, &session_.db.styles[styleIdx_], layout_.tile);
   if (proj_.view3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
+  initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
   view_.push(session_.startEvents);  // first TurnStarted + income (empty when the battle was resumed from a save)
   // A new battle says what it is about under its first banner (nothing when the map has no objective text).
   if (!session_.startEvents.empty() && !battle_.objectiveText().empty()) view_.announceObjective();
@@ -95,13 +96,8 @@ void BattleScene::enterResult() {
   OTE_INFO("battle over: %s", resultText_.c_str());
 }
 
-void BattleScene::aiStep() {
-  events_.clear();
-  aiTakeStep(battle_, events_);
-  view_.push(events_);
-}
-
 void BattleScene::beginHumanTurn() {
+  OTE_INFO("turn: %s, round %d t=%.2f", battle_.sides[(size_t)battle_.activeSide].name.c_str(), battle_.round, time_);
   mode_ = Mode::Idle;
   menu_.close();
   sel_ = -1;
@@ -154,12 +150,14 @@ void BattleScene::followCamera(double dt) {
 
 void BattleScene::update(double dt) {
   time_ += (float)dt;
+  if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.update(dt, battle_);
   updateDialogue(dt);
   if (mode_ != Mode::Result && !view_.busy()) {
     updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
     if (battle_.over) enterResult();
     else if (!humanTurn()) aiStep();
+    else if (fogTurnGate()) return;  // the cover went up (hot-seat): the turn begins when it comes down
     else if (turnKey_ != battle_.round * 1000 + battle_.activeSide) {
       turnKey_ = battle_.round * 1000 + battle_.activeSide;
       beginHumanTurn();
@@ -231,6 +229,10 @@ std::string BattleScene::hint() const {
 }
 
 void BattleScene::draw(Renderer& r) {
+  if (covered_) {  // nothing of the map is drawn under the cover
+    cover_.draw(r);
+    return;
+  }
   ensureLayout(r);
   DrawCtx ctx{battle_, view_, layout_, cam_, time_, &session_.db.styles[styleIdx_], host_.sprites(), styleIdx_,
               &proj_, host_.isoTiles(), map3d_.get()};

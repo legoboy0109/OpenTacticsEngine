@@ -41,7 +41,7 @@ bool BattleView::beginStory(const Battle& b) {
       if (e.b >= 0 && (size_t)e.b < units.size() && units[(size_t)e.b].visible) {
         stickyX_ = units[(size_t)e.b].px + tile_ / 2.0f;
         stickyY_ = units[(size_t)e.b].py + tile_ / 2.0f;
-      } else if (b.grid.valid(e.a)) {
+      } else if (b.grid.valid(e.a) && !dimmed(e.a)) {  // (fog: the camera does not go to a square the viewer cannot see)
         cellPos(b, e.a, stickyX_, stickyY_);
         stickyX_ += tile_ / 2.0f;
         stickyY_ += tile_ / 2.0f;

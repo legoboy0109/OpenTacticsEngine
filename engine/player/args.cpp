@@ -13,6 +13,7 @@ const char* usageText() {
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N | --campaign] [--test-3d]\n"
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
+         "                  [--show-all]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
@@ -27,6 +28,7 @@ const char* usageText() {
          "      auto = display with the hardware drawer, game size with the software one. Beats the option.\n"
          "--3d-scale N (1..8, with --headless): there is no display, so the 3D picture is N times the logical size and\n"
          "      the screenshot is written at that size too (check detailed art without a window).\n"
+         "--show-all: draw a battle with fog of war as if there were none (the rules still apply); for makers testing a map.\n"
          "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip wait wait:N tap:X:Y\n";
 }
 
@@ -63,6 +65,7 @@ Args parseArgs(int argc, char** argv) {
     double d = 0;
     if (!strcmp(arg, "--help") || !strcmp(arg, "-h")) a.help = true;
     else if (!strcmp(arg, "--autoplay")) a.autoplay = true;
+    else if (!strcmp(arg, "--show-all")) a.showAll = true;
     else if (!strcmp(arg, "--headless")) a.headless = true;
     else if (!strcmp(arg, "--test-3d")) a.test3d = true;
     else if (!strcmp(arg, "--no-settings")) a.noSettings = true;

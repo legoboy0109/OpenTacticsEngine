@@ -145,6 +145,13 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
     if (it.kind == 0) drawStructure(r, c, it.index, cx, cy, ov);
     else drawUnit(r, c, b.units[it.index], c.view.units[it.index], cx, cy);
   }
+  if (c.view.fogged()) {
+    // Squares the viewer does not see: a dark veil over the ground and the structures (no unit the viewer could see
+    // stands there, so none is dimmed by mistake); the capture numbers and the cursor come after, on top.
+    for (int y = y0; y <= y1; ++y)
+      for (int x = x0; x <= x1; ++x)
+        if (c.view.dimmed(b.grid.at(x, y))) r.fillRect(x * t - cx, y * t - cy, t, t, Color(0, 0, 0, (uint8_t)kFogDimAlpha));
+  }
   for (const StructureState& st : b.structures) drawCapture(r, c, st, cx, cy);
   if (showCursor && b.grid.valid(cursor)) {
     int sx = b.grid.x(cursor) * t - cx, sy = b.grid.y(cursor) * t - cy;

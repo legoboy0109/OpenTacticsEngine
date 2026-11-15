@@ -77,12 +77,13 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
   }
   if (si >= 0) {
     const StructureState& st = b.structures[(size_t)si];
-    if (st.owner >= 0) {
-      row(r, x, y, w, "Owner", b.sides[st.owner].name, kLabel, Color::rgb(b.sides[st.owner].color));
+    const int owner = shownOwner(c, si);  // fog: the owner the viewer last saw
+    if (owner >= 0) {
+      row(r, x, y, w, "Owner", b.sides[owner].name, kLabel, Color::rgb(b.sides[owner].color));
       y += rh;
     }
     int pts = b.defOf(st).capturePoints;
-    if (pts > 0) {
+    if (pts > 0 && !structureDimmed(c, si)) {  // fog: capture progress only of a structure in sight
       row(r, x, y, w, "Capture", intStr(st.capture) + "/" + intStr(pts));
       y += rh;
     }
@@ -202,7 +203,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   bool shops = false;
   for (const StructureDef& sd : db.structures) shops |= !sd.sells.empty();
   if (!db.resources.empty() && (db.rules.economy || shops)) {
-    const SideState& vs = b.sides[viewSide(b, autoplay)];
+    const SideState& vs = b.sides[c.view.shownSide(b, autoplay)];
     rule(r, x, y, w);
     for (size_t i = 0; i < db.resources.size(); ++i) {
       row(r, x, y, w, db.resources[i].name, intStr(vs.resources[i]), kLabel, Color(255, 225, 120));
@@ -211,7 +212,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   }
 
   // Research under way for the side being looked at ("Masonry   2": name and the turns left, or "paused").
-  const int rs = viewSide(b, autoplay);
+  const int rs = c.view.shownSide(b, autoplay);
   if (b.researching(rs) >= 0) {
     rule(r, x, y, w);
     const bool paused = !b.canResearch(rs);

@@ -445,6 +445,24 @@ everyone; `Focus` is a public event (the player decides what to do with a focus 
 unit type as a possible target when none is in sight. Not verified: nothing in a real window (no drawing exists); the player
 was only compiled and run headless (campaign test, 3D backends test) with the new event skipped.
 
+## Fog of war, player (2026-11-14)
+
+docs/ECONOMY.md build order step 4 (fog part): the player draws what the viewer's team sees; the rules core was not touched
+(vision for the "as drawn" dimming is worked out in the player from public data). Details and behaviour in docs/ECONOMY.md
+"Fog of war > Player". Where things are: `battle/battle_view_fog.cpp` (viewer, unseen events, partial walks, ambush, shown
+squares), `battle/battle_fog.cpp` (viewer choice, AI step loop, hot-seat cover), `ui/pass_device.*` (the cover), wording in
+`battle/fog_text.h`; dimming in `battle_draw.cpp` (top-down), `iso_draw.cpp`, `map3d_things.cpp` / `map3d_models.cpp` (3D: a
+blended black quad per unseen square in the highlight batch, tinted structures); helpers `fogDim`, `structureDimmed`,
+`shownOwner` in `battle_draw.h`. `--show-all` / embed `showall=1` draws without fog (for the editor's Play panel; the editor
+page has to pass the parameter, nothing in `editor/` was touched). Without fog every screenshot is byte-identical to a build of
+`main` (checked on both demos in all four kinds of view). New log lines (the tests read them): `fog: viewer ...`, `fog: cover
+up/down ...`, `ambush: ...`, `fog: <unit> seen on squares ...`, `turn: <side>, round N t=...`, `ai: <side> acts ... t=...`.
+Test: `tests/fog_player_test.py` (57 checks; top-down and 3D isometric by pixels against the same state with `--show-all`, the
+hardware 3D backend when it exists). Not verified: a real window, WebGL, gamepad, touch (the cover takes Confirm or any tap, the
+rest is the shared input code). Known gaps: the kind a structure was upgraded to is not hidden; a unit sprite taller than a tile
+can overhang a dimmed square in the top-down view; the "vanish when a walk ends unseen" path has no test of its own (the walk
+into view has); everything the AI does is silent for the viewer, so the only sign of it is what appears afterwards.
+
 ## Story events in the editor (2026-11-14)
 
 Build order step 3 of docs/EVENTS.md (inside one map; the Campaign screen is step 5). Model: `editor/web/src/model/story*.ts`

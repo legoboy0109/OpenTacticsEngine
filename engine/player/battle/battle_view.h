@@ -50,6 +50,10 @@ struct LevelUpPanel {
   std::vector<std::string> lines;
 };
 
+// Side whose resources the panel shows: the active side if it is human,
+// else the first human side (autoplay: the active side). Fog: see BattleView::shownSide.
+int viewSide(const Battle& b, bool autoplay);
+
 class BattleView {
  public:
   void init(const Battle& b, int tileSize, bool autoplay);
@@ -71,6 +75,20 @@ class BattleView {
   }
   // The first TurnStarted entry of this view also shows the objective text under its banner.
   void announceObjective() { announce_ = true; }
+
+  // ---- fog of war (battle_view_fog.cpp; docs/ECONOMY.md "Fog of war > Player")
+  // Who the view is drawn for: a team (and the side whose resources the panel shows), or -1 = everyone sees
+  // everything (no fog, --show-all, autoplay). Resyncs the view.
+  void setViewer(const Battle& b, int side, int team);
+  bool fogged() const { return viewerTeam_ >= 0; }
+  int viewerTeam() const { return viewerTeam_; }
+  // The side whose resources the panel shows.
+  int shownSide(const Battle& b, bool autoplay) const { return viewerSide_ >= 0 ? viewerSide_ : viewSide(b, autoplay); }
+  // Is the square dimmed (the viewer does not see it, as far as the animation has got)?
+  bool dimmed(Cell c) const { return viewerTeam_ >= 0 && (size_t)c < shown_.size() && !shown_[(size_t)c]; }
+  // Plays every event at the head of the queue that the viewer did not see (they take no time and show nothing),
+  // so a run of unseen AI steps costs no frames. Does nothing while something is playing.
+  void flushUnseen(const Battle& b);
 
   std::vector<UnitView> units;  // indexed by unit id
   std::vector<FloatText> floats;
@@ -94,6 +112,7 @@ class BattleView {
     std::vector<Cell> path;
     int hpFrom = 0, hpTo = 0;
     float dirX = 0, dirY = 0;  // attack lunge direction
+    bool hideAtEnd = false;    // fog: a walk that ends out of the viewer's sight (the unit vanishes at its last seen square)
   };
   void ensureUnits(const Battle& b);
   void startNext(const Battle& b);
@@ -109,6 +128,11 @@ class BattleView {
   bool beginEconomy(const Battle& b);
   bool progressEconomy(const Battle& b);
   bool finishEconomy(const Battle& b);
+  // Fog of war: battle_view_fog.cpp. beginFog returns true for the entries it fully set up (a partly seen walk, an ambush).
+  bool unseenByViewer(const Event& e) const;
+  void applyUnseen(const Battle& b, const Event& e);  // the effect on the view's own copy of the state, at once, silently
+  bool beginFog(const Battle& b);
+  void updateShown(const Battle& b);
   void addFloat(const std::string& text, float x, float y, Color c, float life = 0.9f, bool screen = false);
   void clampHpTo(const Battle& b, int unit);
   std::string itemName(const Battle& b, int item) const;
@@ -122,6 +146,9 @@ class BattleView {
   bool wasBusy_ = false;
   int resX_ = 0, resY_ = 0;
   int resFloats_ = 0;  // stagger counter for resource floats
+  int viewerTeam_ = -1, viewerSide_ = -1;  // see setViewer()
+  std::vector<uint8_t> shown_;             // per square: the viewer sees it (while events play: from where its units are drawn)
+  std::vector<int> shownKey_;              // the squares of the viewer's units shown_ was last worked out for
   bool skipping_ = false;  // dialogue skipping is on for the rest of this run
   bool announce_ = false;  // see announceObjective()
   // A Focus entry keeps the camera on its spot until the run of events is over (else the camera
@@ -129,9 +156,5 @@ class BattleView {
   bool stickyFocus_ = false;
   float stickyX_ = 0, stickyY_ = 0;
 };
-
-// Side whose resources the panel shows: the active side if it is human,
-// else the first human side (autoplay: the active side).
-int viewSide(const Battle& b, bool autoplay);
 
 }  // namespace ote

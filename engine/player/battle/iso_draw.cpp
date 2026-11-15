@@ -66,19 +66,23 @@ void drawSquare(const Iso& I, Cell cell, int x, int y) {
 
   // Side faces down to the tops of the two squares in front of this one.
   int seen = std::min(elevOr(I.p, b.grid, x + 1, y), elevOr(I.p, b.grid, x, y + 1));
+  // Fog: a square the viewer does not see is drawn darker, sides and letter included.
+  const bool dim = I.c.view.dimmed(cell);
+  const Color mod = dim ? shade(kFogDim) : Color(255, 255, 255);
   int sliceH = std::min(dh, g.tileH / 2 + g.step);
   int srcSlice = std::max(1, sliceH * src.h / dh);
   for (int level = std::max(seen + 1, 0); level < e; ++level) {
     int by = bottom + (e - level) * g.step;
-    I.r.drawTexture(src.tex, src.x, src.y + src.h - srcSlice, src.w, srcSlice, left, by - sliceH, dw, sliceH);
+    I.r.drawTexture(src.tex, src.x, src.y + src.h - srcSlice, src.w, srcSlice, left, by - sliceH, dw, sliceH, mod);
   }
-  I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, left, bottom - dh, dw, dh);
+  I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, left, bottom - dh, dw, dh, mod);
   if (!art) {
     const TerrainDef& td = b.terrainAt(cell);
     const StyleDef* st = I.c.style;
     if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {
       Color col = Color::rgb(terrainRgb(I.c, cs.terrain));
-      drawGlyphCentered(I.r, nx, ny + g.tileH / 2, td.glyph, mix(col, readableOn(col), 0.28f), g.tileH * 9 / 20);
+      Color gc = mix(col, readableOn(col), 0.28f);
+      drawGlyphCentered(I.r, nx, ny + g.tileH / 2, td.glyph, dim ? fogDim(gc) : gc, g.tileH * 9 / 20);
     }
   }
 }
@@ -120,8 +124,12 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
 
   // The owner's frame around the footprint, on the ground: all of it under the
   // structure, then its two near edges again on top (the body hides the far ones).
-  Color owner = st.owner >= 0 ? Color::rgb(b.sides[(size_t)st.owner].color) : Color(0, 0, 0, 0);
-  if (st.owner >= 0) {
+  const bool dim = structureDimmed(I.c, index);  // fog: nothing of it is in the viewer's sight now
+  const Color mod = dim ? shade(kFogDim) : Color(255, 255, 255);
+  const int ownerSide = shownOwner(I.c, index);  // fog: the owner the viewer last saw
+  Color owner = ownerSide >= 0 ? Color::rgb(b.sides[(size_t)ownerSide].color) : Color(0, 0, 0, 0);
+  if (dim) owner = fogDim(owner);
+  if (ownerSide >= 0) {
     IsoPicture ring = I.c.tiles->diamond(I.r, g, def.width, def.height, IsoTiles::Outline);
     I.r.drawTexture(ring.tex, 0, 0, ring.w, ring.h, left, ny, ring.w, ring.h, owner);
   }
@@ -130,18 +138,19 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
     // Across the footprint's full width, standing on its nearest corner.
     SpriteSrc src = lookSrc(I.c, *art);
     int dh = std::max(1, fw * src.h / std::max(1, src.w));
-    I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, left, ny + fh - dh, fw, dh);
+    I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, left, ny + fh - dh, fw, dh, mod);
   } else {
     int wall = g.tileH * 3 / 4;  // a low box, so what stands behind it stays visible
     lift = wall + e * g.step;
     IsoPicture pic = I.c.tiles->block(I.r, g, def.width, def.height, wall, structureRgb(I.c, st.type));
-    I.r.drawTexture(pic.tex, 0, 0, pic.w, pic.h, left, ny - wall, pic.w, pic.h);
+    I.r.drawTexture(pic.tex, 0, 0, pic.w, pic.h, left, ny - wall, pic.w, pic.h, mod);
     const StyleDef* style = I.c.style;
     if (def.glyph != ' ' && !(style && style->showGlyphs == 0))
-      drawGlyphCentered(I.r, left + fw / 2, ny - wall + fh / 2, def.glyph, readableOn(Color::rgb(structureRgb(I.c, st.type))),
+      drawGlyphCentered(I.r, left + fw / 2, ny - wall + fh / 2, def.glyph,
+                        dim ? fogDim(readableOn(Color::rgb(structureRgb(I.c, st.type)))) : readableOn(Color::rgb(structureRgb(I.c, st.type))),
                         g.tileH * 9 / 20 * std::min(def.width, def.height));
   }
-  if (st.owner >= 0) {
+  if (ownerSide >= 0) {
     IsoPicture ring = I.c.tiles->diamond(I.r, g, def.width, def.height, IsoTiles::FrontOutline);
     I.r.drawTexture(ring.tex, 0, 0, ring.w, ring.h, left, ny, ring.w, ring.h, owner);
   }

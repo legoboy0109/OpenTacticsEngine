@@ -144,8 +144,10 @@ void Map3D::drawStructureModel(const DrawCtx& c, int index, const ModelLook& loo
                Mat4::scale(Vec3(size, size, size));
   ModelTint tint;
   // Nobody's: a pale neutral colour where the owner's would be.
-  tint.side = st.owner >= 0 ? rgba(Color::rgb(b.sides[(size_t)st.owner].color)) : Rgba3D(0.82f, 0.82f, 0.8f);
+  const int owner = shownOwner(c, index);  // fog: the owner the viewer last saw
+  tint.side = owner >= 0 ? rgba(Color::rgb(b.sides[(size_t)owner].color)) : Rgba3D(0.82f, 0.82f, 0.8f);
   tint.sideMaterial = look.sideMaterial;
+  if (structureDimmed(c, index)) tint.dim = kFogDim;  // fog: out of the viewer's sight
   drawModel(r3d_, asset, a, place, tint);
 }
 

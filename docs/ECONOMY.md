@@ -19,7 +19,7 @@ and makers is placeholder until the owner approves it.
 Status: upgradable structures and research (build order step 1), repair and supply (step 2) and fog of war (step 3)
 are built in the rules core (done 2026-11-14, the sections below describe what the core does). The player has the
 menus, the research panel, the info-panel lines and the event banners for upgrades, research, repair and supply
-(step 4, see "Player"); fog drawing in the player is not done; no editor screens and no demo content yet (step 5).
+(step 4, see "Player") and draws fog of war in all four kinds of view; no editor screens and no demo content yet (step 5).
 
 A game that uses none of this behaves exactly as today and keeps its save
 hash. Each part is switched on by its own data, not by one big switch.
@@ -183,8 +183,8 @@ Unknown keys inside `supply` / `repair` are refused. A game without the block re
 ## Fog of war
 
 Map file: `"fog": true` (default false; a boolean, anything else is refused). At most 32 sides on a fog map (an
-event's "seen by" is a 32-bit mask with one bit per team). Built in the rules core (2026-11-14); the player does not
-draw fog yet and the editor has no switch for it (steps 4 and 5).
+event's "seen by" is a 32-bit mask with one bit per team). Built in the rules core and the player (2026-11-14); the
+editor has no switch for it yet (step 5).
 
 **Data.**
 - units.json `"vision": 3` (whole number 0 to 20, default 2): how many squares the unit's team sees from where it
@@ -281,11 +281,36 @@ recomputed on load.
 **Tools**: `ote-sim <game> <map> --force-fog` plays a map with fog on whatever the file says (single maps only), and
 prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
 
-**Player** (step 4): unseen squares dimmed; hidden units not drawn; structures show the last seen owner; works in all
-four kinds of view. What a human sees of the event stream is filtered by `Event::seen` for the human's team (an unseen
-enemy move is not animated; a walk into view starts at `seenSteps`' first index; a `MoveBlocked` of the human's own
-unit is animated as the walk, then a short "stopped" cue). Hot-seat (two humans on one device): the screen is covered
-between turns ("Pass the device to <side>") when fog is on.
+**Player** (step 4, built 2026-11-14; code `battle/battle_fog.cpp`, `battle_view_fog.cpp`, `ui/pass_device.*`, words in
+`battle/fog_text.h`; test `tests/fog_player_test.py`).
+- **The viewer** (`BattleView::setViewer`): the team of the human side whose turn it is; during AI turns the team of the
+  human side that played last (at the start: the first human side). With fog off, with `--show-all` (the embed page's
+  `showall=1`), with no human side (autoplay, all AI): no viewer, every picture is exactly what it was before fog.
+  The log says `fog: viewer <side> (team N)`.
+- **Drawing**, all four kinds of view and both 3D backends: squares the viewer does not see are dimmed to 55 % (top-down:
+  a black veil of alpha 115 per square, under the capture numbers and the cursor; 2D isometric: the square's picture, its
+  side faces and its letter are tinted; 3D: one blended black quad per unseen square plus the lower side faces, in the same
+  batch as the move highlights, so no mesh is rebuilt and the shader / material interface is unchanged; structure pictures,
+  boxes and models are tinted / `ModelTint.dim`). Units the viewer cannot see are not drawn (the view's `UnitView::visible`),
+  so they are not hoverable and the info panel shows only the terrain and structure. Structures are drawn with
+  `seenOwner`; the panel shows a structure's capture points only while the structure is in sight. A tall sprite of a unit
+  can overhang a dimmed square above it in the top-down view (the veil is per square).
+- **Sight follows the animation** for the viewer's own units: while events play, the dimmed squares are worked out from where
+  its units are drawn (re-flooded when one changes square), when the view is idle from the Battle.
+- **Events**: played only when `seen` has the viewer's bit; an unseen one changes the view's own copy at once, silently (no
+  camera, banner, float, wait), so an AI turn nobody sees costs only the banners of the turn change (`TurnStarted` is
+  public) and runs in a single frame (`BattleScene::aiStep` loops over unseen steps). A partly seen walk appears at the
+  first seen square, walks to the last and vanishes when it goes on unseen (`seenSteps`; logged as `fog: <unit> seen on
+  squares a..b of its n-square walk`). A seen fight shows both fighters, also a hidden attacker, until the run is over. A
+  `MoveBlocked` shows an "Ambush!" float on the stopped unit, brings in the revealed enemy and the camera, and ends the
+  unit's turn (no action menu, no undo). A `Focus` event on a square the viewer does not see is ignored. Nobody gets a
+  banner about research, upgrades or resources of another team: those events are masked to their own team.
+- **Hot-seat** (two or more human sides of different teams, fog on): before each human turn of another team than the
+  last one shown, and when a battle starts or resumes on a human turn, the whole screen is covered with "Pass the device to
+  <side>" (nothing of the map is drawn, input goes to the cover); Confirm or a tap lowers it and the map is drawn for that
+  side. The Continue save made at a turn start resumes into the cover. Logged as `fog: cover up: ...` / `fog: cover down: ...`.
+- Not hidden yet: the kind a structure was upgraded to (it is drawn as it is); there are no minimap, unit lists or objective
+  markers in the player, so nothing else needed filtering.
 Story events: unaffected (they act on the truth); dialogue always shows.
 
 ## Editor
@@ -308,7 +333,7 @@ Story events: unaffected (they act on the truth); dialogue always shows.
 - Info panel: fuel and ammunition when the unit has them; research in
   progress under the side's resources.
 - Fog: see "Fog of war > Player" above (dimmed unseen squares, hidden units not drawn, last seen owners, the event
-  stream filtered by `Event::seen`, hot-seat cover). Not built yet.
+  stream filtered by `Event::seen`, hot-seat cover). Built (2026-11-14).
 - Action menu: **Supply** for supplier units (the units it would fill are tinted while the entry is selected).
 - Built (2026-11-14): a structure that offers one thing opens it at once, several open a menu first; greyed entries show
   their reason (upgrade / build: in place of the price; research: in the panel's detail lines); locked unit types are
@@ -326,6 +351,6 @@ stealth abilities beyond `hides`; several research queues.
 1. Core: upgradable structures + research (data, rules, saves, AI, tests). **Done.**
 2. Core: repair and supply. **Done.**
 3. Core: fog of war (the biggest: sight, per-team event visibility, AI). **Done.**
-4. Player: menus and panel for 1 and 2; fog drawing in every kind of view.
+4. Player: menus and panel for 1 and 2; fog drawing in every kind of view. **Done.**
 5. Editor: all screens; `demo-economy` content (a town upgrade, two
    technologies, repair, one fog map).
