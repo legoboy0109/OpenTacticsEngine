@@ -1,6 +1,7 @@
 // Changing a map's size. The anchor is where the existing map stays.
 import { MAP_MAX, readGrid, writeGrid } from './mapGrid'
-import { rectOf } from './mapStructures'
+import { footprint } from './mapStructures'
+import type { GridSpec } from './gridSpec'
 import type { MapFile, MapStructure, MapUnit, Structure, Terrain } from './types'
 
 export type Anchor = 'nw' | 'n' | 'ne' | 'w' | 'c' | 'e' | 'sw' | 's' | 'se'
@@ -19,20 +20,19 @@ export const validSize = (w: number, h: number): boolean =>
   Number.isInteger(w) && Number.isInteger(h) && w >= 1 && h >= 1 && w <= MAP_MAX && h <= MAP_MAX
 
 /** What a resize would remove: units outside, and structures that no longer fit completely inside. */
-export function resizeLoss(map: MapFile, structureTypes: Structure[], newW: number, newH: number, anchor: Anchor): ResizeLoss {
+/** `grid` = the game's grid (hexagon structures cover a middle hexagon and maybe its ring; squares when missing). */
+export function resizeLoss(map: MapFile, structureTypes: Structure[], newW: number, newH: number, anchor: Anchor, grid?: GridSpec): ResizeLoss {
   const { dx, dy } = resizeOffset(map.grid.width, map.grid.height, newW, newH, anchor)
   const out = (x: number, y: number) => x + dx < 0 || y + dy < 0 || x + dx >= newW || y + dy >= newH
   return {
     units: (map.units ?? []).filter((u) => out(u.x, u.y)),
-    structures: (map.structures ?? []).filter((s) => {
-      const r = rectOf(structureTypes.find((t) => t.id === s.type), s.x, s.y)
-      return out(r.x, r.y) || out(r.x + r.w - 1, r.y + r.h - 1)
-    }),
+    // Squares: the footprint's two corners decide (a rectangle); hexagons: every covered hexagon must stay.
+    structures: (map.structures ?? []).filter((s) => footprint(grid, structureTypes.find((t) => t.id === s.type), s.x, s.y).some((c) => out(c.x, c.y))),
   }
 }
 
 /** Resizes and removes what falls outside; new squares are the first terrain. Heights (when present) follow. */
-export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Structure[], newW: number, newH: number, anchor: Anchor): MapFile {
+export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Structure[], newW: number, newH: number, anchor: Anchor, grid?: GridSpec): MapFile {
   if (!validSize(newW, newH) || (newW === map.grid.width && newH === map.grid.height)) return map
   const old = readGrid(map, terrain)
   const { dx, dy } = resizeOffset(old.width, old.height, newW, newH, anchor)
@@ -48,7 +48,7 @@ export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Stru
   const next = writeGrid(map, { width: newW, height: newH, cells }, terrain)
   if (map.units) next.units = map.units.filter((u) => inside(u.x, u.y)).map((u) => ({ ...u, x: u.x + dx, y: u.y + dy }))
   if (map.structures) {
-    const lost = new Set(resizeLoss(map, structureTypes, newW, newH, anchor).structures)
+    const lost = new Set(resizeLoss(map, structureTypes, newW, newH, anchor, grid).structures)
     next.structures = map.structures.filter((s) => !lost.has(s)).map((s) => ({ ...s, x: s.x + dx, y: s.y + dy }))
   }
   if (map.heights) {

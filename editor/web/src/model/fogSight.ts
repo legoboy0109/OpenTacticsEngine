@@ -1,11 +1,12 @@
 // What a side's team sees at the start of a battle on a map with fog, worked out in the browser for the map editor's
 // "Show what a side sees" aid. It follows engine/core/battle/sight.cpp (computeTeamSight) and Grid::within: grid distance
-// on the square grid is |dx| + |dy|; a unit sees `vision + terrain bonus + structure bonus` squares around it; every
+// on the square grid is |dx| + |dy|, on hexagons the number of steps (model/hex.ts); a unit sees `vision + terrain bonus + structure bonus` squares around it; every
 // structure the team owns sees one square around each square of its footprint; and a unit next to a square that hides
 // is always able to see that square. Nothing blocks sight (no line of sight yet). Pure.
 import { bonusFor, visionOf } from './fog'
 import { terrainAt } from './mapGrid'
-import { placedOf, rectOf, structureAt } from './mapStructures'
+import { footprint, placedOf, structureAt } from './mapStructures'
+import { gridOfGame, neighboursOf, withinOf } from './gridSpec'
 import type { MapFile, ProjectDoc } from './types'
 
 /** The team a side plays for: its `team`, or the side itself when it has none (as the loader does). */
@@ -24,14 +25,12 @@ export function seenAtStart(doc: ProjectDoc, map: MapFile, sideId: string): Uint
   const terrainById = new Map((doc.terrain ?? []).map((t) => [t.id, t]))
   const typeById = new Map((doc.units ?? []).map((u) => [u.id, u]))
   const structById = new Map(structureTypes.map((s) => [s.id, s]))
-  const ctx = { structureTypes }
+  const grid = gridOfGame(doc.game)
+  const ctx = { structureTypes, grid }
 
   const inMap = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < width && y < height
   const mark = (cx: number, cy: number, radius: number): void => {
-    for (let y = Math.max(0, cy - radius); y <= Math.min(height - 1, cy + radius); y++) {
-      const span = radius - Math.abs(y - cy)
-      for (let x = Math.max(0, cx - span); x <= Math.min(width - 1, cx + span); x++) seen[y * width + x] = 1
-    }
+    for (const c of withinOf(grid, width, height, { x: cx, y: cy }, radius)) seen[c.y * width + c.x] = 1
   }
   const hides = (x: number, y: number): boolean => {
     if (terrainById.get(terrainAt(map, x, y) ?? '')?.hides === true) return true
@@ -52,15 +51,11 @@ export function seenAtStart(doc: ProjectDoc, map: MapFile, sideId: string): Uint
   }
   for (const s of placedOf(map)) {
     if (!s.side || !mine.has(s.side)) continue
-    const r = rectOf(structById.get(s.type), s.x, s.y)
-    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) mark(x, y, 1)
+    for (const c of footprint(grid, structById.get(s.type), s.x, s.y)) mark(c.x, c.y, 1)
   }
   for (const u of map.units ?? []) {
     if (!mine.has(u.side) || !inMap(u.x, u.y)) continue
-    for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-      const x = u.x + dx, y = u.y + dy
-      if (inMap(x, y) && hides(x, y)) seen[y * width + x] = 1
-    }
+    for (const { x, y } of neighboursOf(grid, width, height, u)) if (hides(x, y)) seen[y * width + x] = 1
   }
   return seen
 }

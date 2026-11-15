@@ -1,5 +1,6 @@
 // Who uses which image, which files nobody uses, which pictures would fall outside an image, and the sides of a game.
-import { lookCells } from './pickCell'
+import { gridOfGame, isHex } from './gridSpec'
+import { joinBlockSide, lookCells } from './pickCell'
 import { lookUsesSheet, sheetsOf } from './graphics'
 import type { Look, LookKind, ProjectDoc } from './types'
 
@@ -43,9 +44,11 @@ export const unusedFiles = (doc: ProjectDoc, files: Array<{ file: string }>): st
 export function outsideUsers(doc: ProjectDoc, sheetId: string, cols: number, rows: number): ArtUser[] {
   const seen = new Set<string>()
   const out: ArtUser[] = []
+  // A joining picture uses a block of 4 x 4 pieces (squares) or 8 x 8 (a hexagon game).
+  const side = joinBlockSide(isHex(gridOfGame(doc.game)))
   const bad = (look: Look): boolean => {
     const join = !!look.join
-    const own = look.sheet === sheetId && lookCells(look).some(([c, r]) => c + (join ? 4 : 1) > cols || r + (join ? 4 : 1) > rows)
+    const own = look.sheet === sheetId && lookCells(look).some(([c, r]) => c + (join ? side : 1) > cols || r + (join ? side : 1) > rows)
     return own || Object.values(look.sides ?? {}).some(bad)
   }
   for (const { kind, id, look } of allLooks(doc)) {

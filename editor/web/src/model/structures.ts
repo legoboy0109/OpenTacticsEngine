@@ -15,6 +15,17 @@ const PALETTE = ['#b7b7b7', '#9a9a9a', '#d4af37', '#a8784a', '#7d6fa8', '#4a7fc1
 export const newStructureId = (doc: ProjectDoc, name: string): string => makeId(name, ids(doc.structures), { fallback: 'structure' })
 
 export const sizeOf = (s: Structure | undefined): { w: number; h: number } => ({ w: clampSize(s?.width), h: clampSize(s?.height) })
+/** Hexagon games: `rings` 1 = a hexagon and the six around it, anything else (missing = 0) = one hexagon. */
+export const ringsOf = (s: Structure | undefined): 0 | 1 => (s?.rings === 1 ? 1 : 0)
+
+/** "Covers" in plain words for a hexagon game. */
+export const hexCoverText = (s: Structure | undefined): string => (ringsOf(s) === 1 ? '7 hexagons' : '1 hexagon')
+
+/** Hexagon games: the size control. 1 hexagon removes the key (0 is the default and is not written). */
+export function setRings(doc: ProjectDoc, id: string, rings: 0 | 1): ProjectDoc {
+  return updateStructure(doc, id, { rings: rings === 1 ? 1 : undefined })
+}
+
 function clampSize(n: number | undefined): number {
   return typeof n === 'number' && Number.isInteger(n) ? Math.min(SIZE_MAX, Math.max(SIZE_MIN, n)) : 1
 }
