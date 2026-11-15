@@ -1,4 +1,5 @@
 // The selected unit's details: type, side, name, level, leader and its own stats.
+import { gridOfGame } from '../../../../model/gridSpec'
 import { ctxOfParts, editMap } from '../../../../model/mapCtx'
 import { changeUnitType, setUnitStat, unitAt, updateMapUnit } from '../../../../model/mapUnits'
 import { idProblem, suggestUnitId, takenUnitIds } from '../../../../model/storyIds'
@@ -41,7 +42,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
     ? (unit.id && storyIdUsages(doc, mapId, unit.id).length ? S.nameInUse : null)
     : idProblem(text, takenUnitIds(map, unit)))
   const typeError = (id: string) => {
-    const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? []), cell.x, cell.y, id)
+    const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? [], gridOfGame(doc.game)), cell.x, cell.y, id)
     if (r.error) { say(r.error); return }
     edit((d) => editMap(d, mapId, (m, c) => changeUnitType(m, c, cell.x, cell.y, id).map))
   }
