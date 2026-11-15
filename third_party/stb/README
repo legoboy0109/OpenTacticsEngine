@@ -5,3 +5,9 @@ stb_image.h     v2.32   image decoder; compiled PNG-only (STBI_ONLY_PNG) by
                         engine/platform/common/stb_image_impl.cpp
                         sha256 deb4f18c9ca21b751a1323019031c94c0bf5ca1d2929ef5913cc56f00aab6e91
                         (downloaded 2026-11-13 from the master branch of the stb repository, raw file stb_image.h)
+stb_vorbis.c    v1.24   Ogg Vorbis decoder (sound and music); compiled as C in
+                        engine/audio/stb_vorbis_impl.c (no stdio, no push-data API)
+                        public domain / MIT (dual licence stated at the end of the file)
+                        sha256 b52cf518355f7b2d181f18b97b812f361ffeb26299d935c8cf29e842401d60a6
+                        (downloaded 2026-11-14 from the master branch of the stb repository, raw file stb_vorbis.c;
+                        unmodified)
