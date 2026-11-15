@@ -662,11 +662,13 @@ Story events, dialogue and the campaign are built (docs/EVENTS.md) and
 page). Economy options (docs/PLAN.md 3g, docs/ECONOMY.md) are done end to end: rules core, player menus and fog
 drawing, editor screens (Research, upgrades, repair and supply, fog settings, sight aid, "Show everything" in Play),
 and `demo-economy` content (town upgrades, three technologies, supply, fog map `misty_ford`; the frozen plain copy
-for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window. Next:
-sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end): step 1 (engine: decoders, mixer, device,
-options, audio log, self-test) and the player part (audio.json loader, standard set wired to battle events and menus, music
-director, story commands, campaign scenes) and starter audio in the demos and templates are built, see "Sound, step 1", "Sound, step 2" and "Sound, step 3" above; next is
-step 4 (the editor's Sound screen).
+for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window.
+Sound and music (docs/PLAN.md 3h, docs/SOUND.md) are done end to end: engine, player, starter audio in the demos and
+templates, the editor's Sound screen (see "Sound, step 1" to "step 4" above). Nobody has listened to any of it yet.
+Shipped audio file names must be lower case (the editor's rule, `validAudioName`): the cues `itemUse` / `turnStart`
+use the sounds `item_use` / `turn_start` (`tools/audio/targets.py` STEMS; `tests/starter_audio_test.py` checks names).
+Next: hexagonal grids (PLAN 3i): put the design questions to the owner through the question dialog first, then
+write the contract doc and build. After that: a tutorial workflow for the editor (PLAN 3j).
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

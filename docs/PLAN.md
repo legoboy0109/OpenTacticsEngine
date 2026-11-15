@@ -129,8 +129,8 @@ goal (demos only exercise features).
       per weapon, unit type and item. Starter audio: both a generated
       retro set (default for new projects) and a CC0 set (for the
       Detailed 3D demo style / as an alternative).
-      Contract: docs/SOUND.md (steps 1 to 3 built: engine, player, starter audio in the demos and templates; the editor is next).
-   i. Hexagonal grids (owner, 2026-11-14: next after sound and music).
+      Contract: docs/SOUND.md. DONE (engine, player, starter audio, the editor's Sound screen).
+   i. Hexagonal grids (owner, 2026-11-14: next after sound and music). NEXT.
       Design questions to put to the owner when it starts.
    j. A tutorial workflow for the editor (owner, 2026-11-14: after hex
       grids).
