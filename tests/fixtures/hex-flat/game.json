@@ -1,0 +1,25 @@
+// Hexagon test game (flat-top): small economy game with capture, production and a structure with rings.
+{
+  "formatVersion": 1,
+  "name": "Hex Fixture (flat)",
+  "grid": { "type": "hex", "layout": "flat" },
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "funds", "name": "Funds" } ],
+  "moveTypes": [
+    { "id": "foot", "name": "Foot" },
+    { "id": "tread", "name": "Tread" },
+    { "id": "wheels", "name": "Wheels" }
+  ],
+  "rules": {
+    "turnOrder": "sides",
+    "counterAttacks": true,
+    "defeat": ["noUnits", "lostHq"],
+    "economy": { "enabled": true },
+    "production": { "enabled": true, "builtUnitsCanAct": false },
+    "capture": { "enabled": true, "amount": "a.hp / 10" }
+  },
+  "formulas": { "damage": "vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))" },
+  "maps": [ { "id": "skirmish", "name": "Skirmish", "file": "maps/skirmish.json" } ]
+}
