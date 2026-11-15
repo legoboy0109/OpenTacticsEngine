@@ -6,6 +6,8 @@
 // 3D isometric: core/view/iso3d.h (the view can turn: setTurn).
 // Full 3D: core/view/free3d.h (world pixels = viewport pixels; the camera's
 // focus moves instead of the 2D scrolling camera: cam3()).
+// Hexagon maps (docs/HEX.md) are top-down only: world pixels = flat map pixels, where a cell is its hexagon's
+// middle (core/view/hex_geo.h); the map size, pick() and cellBox() follow the hexagons.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -14,6 +16,7 @@
 #include "core/battle/battle.h"
 #include "core/view/free3d.h"
 #include "core/view/iso.h"
+#include "core/view/hex_geo.h"
 #include "core/view/iso3d.h"
 
 namespace ote {
@@ -34,10 +37,16 @@ class MapProj {
   Free3DGeometry& cam3() { return free_; }
   const Free3DGeometry& cam3() const { return free_; }
   void setViewport(int w, int h) { free_.viewW = w; free_.viewH = h; }
+  bool hex() const { return hex_; }  // a hexagon map
+  const HexGeo& hexGeo() const { return hexGeo_; }
   int tile() const { return tile_; }
   int unitW() const { return unitW_; }
-  int worldW() const { return free3d_ ? free_.viewW : iso3d_ ? geo3_.size() : iso_ ? geo_.worldW() : gridW_ * tile_; }
-  int worldH() const { return free3d_ ? free_.viewH : iso3d_ ? geo3_.size() : iso_ ? geo_.worldH() : gridH_ * tile_; }
+  int worldW() const {
+    return free3d_ ? free_.viewW : iso3d_ ? geo3_.size() : iso_ ? geo_.worldW() : hex_ ? hexGeo_.mapW() : gridW_ * tile_;
+  }
+  int worldH() const {
+    return free3d_ ? free_.viewH : iso3d_ ? geo3_.size() : iso_ ? geo_.worldH() : hex_ ? hexGeo_.mapH() : gridH_ * tile_;
+  }
 
   // --- The 3D kinds (3D isometric and full 3D) share one 3D space, in squares
   // (core/view/iso3d.h); these hide which camera looks at it.
@@ -79,6 +88,8 @@ class MapProj {
 
  private:
   bool iso_ = false, iso3d_ = false, free3d_ = false;
+  bool hex_ = false;  // a hexagon map (always top-down)
+  HexGeo hexGeo_;
   int tile_ = 24, unitW_ = 24, gridW_ = 0, gridH_ = 0;
   IsoGeometry geo_;
   Iso3DGeometry geo3_;

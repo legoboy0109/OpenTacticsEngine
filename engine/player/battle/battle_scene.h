@@ -52,6 +52,8 @@ class BattleScene : public Scene {
   Cell cellAt(int x, int y) const;
   // Box around a square on screen (its top face in the isometric view).
   void cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const;
+  // Fills a cell's screen box (from cellScreenBox) in a colour: the box, or the hexagon inside it on a hexagon map.
+  void fillCellBox(Renderer& r, int x, int y, int w, int h, Color col) const;
 
   // --- battle_fog.cpp: fog of war (docs/ECONOMY.md "Fog of war > Player")
   void initFog();

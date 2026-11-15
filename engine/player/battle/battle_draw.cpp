@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/hex_draw.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -37,7 +38,9 @@ void drawCapture(Renderer& r, const DrawCtx& c, const StructureState& st, int ca
   if (st.capturer < 0 || pts <= 0 || st.capture >= pts) return;
   const Unit& u = c.battle.units[st.capturer];
   if (!u.alive || u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) return;
-  int sx = c.battle.grid.x(u.cell) * c.layout.tile - camX, sy = c.battle.grid.y(u.cell) * c.layout.tile - camY;
+  float fx, fy;  // the unit's tile box (on a hexagon map: centred on the hexagon's middle)
+  cellTopLeft(c.battle.grid, c.layout.tile, u.cell, fx, fy);
+  int sx = (int)std::lround(fx) - camX, sy = (int)std::lround(fy) - camY;
   std::string n = intStr(st.capture);
   int w = textW(r, n), x = sx + c.layout.tile - w - 2, y = sy + c.layout.tile / 6;
   r.fillRect(x - 1, y - 1, w + 2, c.layout.lh + 2, Color(0, 0, 0, 190));
@@ -88,6 +91,13 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
   r.fillRect(bx, barY, fill, 2, scaled(hpColor(v.hp, mx), al));
 }
 
+// The pixel row of the bottom edge of a structure's footprint or picture box (what it sorts with units by).
+int structureBottom(const Battle& b, int t, const StructureState& st) {
+  int bx, by, bw, bh;
+  structureBox(b.grid, t, st.x, st.y, b.defOf(st), bx, by, bw, bh);
+  return by + bh;
+}
+
 }  // namespace
 
 void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
@@ -105,16 +115,27 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
   // Behind a map smaller than the viewport (the style may pick the colour).
   r.fillRect(0, 0, L.vw, L.vh, c.style && c.style->hasBackground ? Color::rgb(c.style->background) : Color(10, 10, 16));
   int gw = b.grid.width(), gh = b.grid.height();
+  const CellShape shape = CellShape::of(b.grid, t);  // squares or hexagons (hex_draw.h)
   int x0 = std::max(0, cx / t), x1 = std::min(gw - 1, (cx + L.vw) / t);
   int y0 = std::max(0, cy / t), y1 = std::min(gh - 1, (cy + L.vh) / t);
+  if (shape.hex) {  // the cells whose box meets the viewport (a box is at most one step wider than the step)
+    const int step = 3 * shape.geo.quarter();
+    const int stepX = shape.geo.pointy ? t : step, stepY = shape.geo.pointy ? step : t;
+    x0 = std::max(0, cx / stepX - 1);
+    x1 = std::min(gw - 1, (cx + L.vw) / stepX + 1);
+    y0 = std::max(0, cy / stepY - 1);
+    y1 = std::min(gh - 1, (cy + L.vh) / stepY + 1);
+  }
   for (int y = y0; y <= y1; ++y)
     for (int x = x0; x <= x1; ++x) {
       Cell cell = b.grid.at(x, y);
-      int sx = x * t - cx, sy = y * t - cy;
-      drawTerrain(r, c, cell, sx, sy);
+      int sx, sy;
+      shape.origin(b.grid, cell, cx, cy, sx, sy);
+      if (shape.hex) drawTerrainHex(r, c, shape.geo, cell, sx, sy);
+      else drawTerrain(r, c, cell, sx, sy);
       if (ov.any()) {
-        if (ov.reach[cell]) r.fillRect(sx, sy, t, t, Color(50, 110, 255, 105));
-        else if (ov.attack[cell]) r.fillRect(sx, sy, t, t, Color(255, 50, 50, 105));
+        if (ov.reach[cell]) shape.fill(r, sx, sy, Color(50, 110, 255, 105));
+        else if (ov.attack[cell]) shape.fill(r, sx, sy, Color(255, 50, 50, 105));
       }
     }
   // Structures and units share one pass, sorted by the pixel row of their bottom
@@ -126,16 +147,16 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
   std::vector<Item> items;
   for (size_t i = 0; i < b.structures.size(); ++i) {
     const StructureState& st = b.structures[i];
-    const StructureDef& def = b.defOf(st);
-    items.push_back({(st.y + def.height) * t, 0, (int)i});
+    items.push_back({structureBottom(b, t, st), 0, (int)i});
   }
   for (const Unit& u : b.units) {
     if (u.id >= (int)c.view.units.size() || !c.view.units[u.id].visible) continue;
     const UnitView& v = c.view.units[u.id];
     int key = (int)std::lround(v.py) + t;
-    Cell under = b.grid.at(((int)std::lround(v.px) + t / 2) / t, ((int)std::lround(v.py) + t / 2) / t);
+    Cell under = shape.hex ? cellNearPos(b.grid, t, v.px, v.py)
+                           : b.grid.at(((int)std::lround(v.px) + t / 2) / t, ((int)std::lround(v.py) + t / 2) / t);
     int si = under == kNoCell ? -1 : b.structureAt[under];
-    if (si >= 0) key = std::max(key, (b.structures[si].y + b.defOf(b.structures[si]).height) * t);
+    if (si >= 0) key = std::max(key, structureBottom(b, t, b.structures[si]));
     items.push_back({key, 1, u.id});
   }
   std::stable_sort(items.begin(), items.end(), [](const Item& a, const Item& b2) {
@@ -150,14 +171,24 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
     // stands there, so none is dimmed by mistake); the capture numbers and the cursor come after, on top.
     for (int y = y0; y <= y1; ++y)
       for (int x = x0; x <= x1; ++x)
-        if (c.view.dimmed(b.grid.at(x, y))) r.fillRect(x * t - cx, y * t - cy, t, t, Color(0, 0, 0, (uint8_t)kFogDimAlpha));
+        if (c.view.dimmed(b.grid.at(x, y))) {
+          int sx, sy;
+          shape.origin(b.grid, b.grid.at(x, y), cx, cy, sx, sy);
+          shape.fill(r, sx, sy, Color(0, 0, 0, (uint8_t)kFogDimAlpha));
+        }
   }
   for (const StructureState& st : b.structures) drawCapture(r, c, st, cx, cy);
   if (showCursor && b.grid.valid(cursor)) {
-    int sx = b.grid.x(cursor) * t - cx, sy = b.grid.y(cursor) * t - cy;
+    int sx, sy;
+    shape.origin(b.grid, cursor, cx, cy, sx, sy);
     int a = 200 + (int)(55 * std::sin(c.time * 6.0f));
-    r.drawRect(sx, sy, t, t, Color(255, 240, 120, (uint8_t)a));
-    r.drawRect(sx + 1, sy + 1, t - 2, t - 2, Color(255, 255, 255, (uint8_t)a));
+    if (shape.hex) {  // two rings: yellow outside, white inside
+      hexEdges(r, shape.geo, sx, sy, Color(255, 255, 255, (uint8_t)a), 2);
+      hexEdges(r, shape.geo, sx, sy, Color(255, 240, 120, (uint8_t)a), 1);
+    } else {
+      r.drawRect(sx, sy, t, t, Color(255, 240, 120, (uint8_t)a));
+      r.drawRect(sx + 1, sy + 1, t - 2, t - 2, Color(255, 255, 255, (uint8_t)a));
+    }
   }
 }
 

@@ -25,9 +25,15 @@ int viewSide(const Battle& b, bool autoplay) {
   return b.activeSide;
 }
 
-void BattleView::cellPos(const Battle& b, Cell c, float& x, float& y) const {
-  x = (float)(b.grid.x(c) * tile_);
-  y = (float)(b.grid.y(c) * tile_);
+// Where a unit's tile box is for a cell (squares: the square; hexagons: centred on the hexagon's middle).
+void BattleView::cellPos(const Battle& b, Cell c, float& x, float& y) const { cellTopLeft(b.grid, tile_, c, x, y); }
+
+// Middle of the top edge of a structure's picture box: where its floating texts start.
+void BattleView::structureTop(const Battle& b, const StructureState& st, float& x, float& y) const {
+  int bx, by, bw, bh;
+  structureBox(b.grid, tile_, st.x, st.y, b.defOf(st), bx, by, bw, bh);
+  x = bx + bw / 2.0f;
+  y = (float)by;
 }
 
 void BattleView::init(const Battle& b, int tileSize, bool autoplay) {
@@ -160,8 +166,9 @@ void BattleView::begin(const Battle& b) {
     case EventType::StructureCaptured: {
       // Once per structure, over the middle of its footprint's top edge.
       const StructureState& st = b.structures[(size_t)e.a];
-      float x = (float)(st.x * tile_), y = (float)(st.y * tile_);
-      addFloat("Captured!", x + b.defOf(st).width * tile_ / 2.0f, y, Color(255, 240, 140), 1.2f);
+      float x, y;
+      structureTop(b, st, x, y);
+      addFloat("Captured!", x, y, Color(255, 240, 140), 1.2f);
       cur_.dur = 0.35f;
       break;
     }
