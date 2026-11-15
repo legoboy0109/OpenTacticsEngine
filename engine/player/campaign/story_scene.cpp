@@ -19,11 +19,31 @@ StoryScene::StoryScene(SceneHost& host, const std::string& heading, const std::s
                        const std::vector<SceneLine>& lines)
     : host_(host), heading_(heading), title_(title), lines_(lines) {
   bg_ = storyBackground(host);
+  consumeAudio();  // music asked for at the very top (a scene's "music") starts with the card
   onCard_ = hasCard();
   if (!onCard_) openLine();
 }
 
+// Sound requests (docs/SOUND.md) sit between the lines: they act when reached. Before the scene has been on screen
+// for a frame the music director does not know about it yet, so they wait for the first update().
+void StoryScene::consumeAudio() {
+  using K = SceneLine::Kind;
+  while (next_ < lines_.size() && lines_[next_].kind != K::Say) {
+    const SceneLine& l = lines_[next_++];
+    if (!entered_) queued_.push_back(l);
+    else playAudio(l);
+  }
+}
+
+void StoryScene::playAudio(const SceneLine& l) {
+  GameAudio& a = host_.gameAudio();
+  if (l.kind == SceneLine::Kind::PlayMusic) a.music().story(l.text, l.fadeMs);
+  else if (l.kind == SceneLine::Kind::StopMusic) a.music().story("", l.fadeMs);
+  else if (l.kind == SceneLine::Kind::PlaySound) a.sound(l.text);
+}
+
 void StoryScene::openLine() {
+  consumeAudio();
   if (next_ >= lines_.size()) { finish(); return; }
   const SceneLine& l = lines_[next_++];
   DialogueLine d;
@@ -68,6 +88,11 @@ void StoryScene::onInput(const InputEvent& e) {
 }
 
 void StoryScene::update(double dt) {
+  if (!entered_) {  // the first frame: the director now knows this scene
+    entered_ = true;
+    for (const SceneLine& l : queued_) playAudio(l);
+    queued_.clear();
+  }
   if (finished_) return;
   const bool autoplay = host_.args().autoplay;
   if (onCard_) {

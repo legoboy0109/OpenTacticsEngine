@@ -11,6 +11,7 @@ class HomeScene : public Scene {
   explicit HomeScene(SceneHost& host);
   void onInput(const InputEvent& e) override;
   void draw(Renderer& r) override;
+  SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Silent; return a; }  // the launcher is silent
 
  private:
   void layout(const Renderer& r);

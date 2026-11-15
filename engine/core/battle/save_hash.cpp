@@ -33,13 +33,17 @@ bool mixFile(Fnv& f, const std::string& root, const std::string& rel, std::strin
 // when these change, so a maker can rename things, recolour them or pick
 // another font without locking players out of their saves.
 bool cosmeticKey(const std::string& k) {
-  return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph";
+  return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph" ||
+         // Sound (docs/SOUND.md) is presentation, like graphics.json: which sound or track plays never changes a rule.
+         k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic";
 }
 
 // Wording of story events (docs/EVENTS.md): what is said and how things are labelled. Like names,
 // it does not count; but the key stays (with empty text) so that adding or removing a line, or
 // turning one into another kind of command, still does.
-bool wordingKey(const std::string& k) { return k == "say" || k == "speakerName" || k == "label" || k == "text"; }
+bool wordingKey(const std::string& k) {
+  return k == "say" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound";
+}
 
 // A copy without cosmetic keys, at any depth. Formula numbers ("props",
 // "versus", stat tables...) are kept whole: a number called "name" is a rule.
@@ -51,6 +55,10 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
     return out;
   }
   if (j.isObject()) {
+    // A campaign scene written as { "music": "id", "commands": [...] } (docs/SOUND.md) counts as the plain list of
+    // its commands: adding music to a scene must not change the hash of the story.
+    if (mapFile && j.size() <= 2 && j.has("commands") && j["commands"].isArray() && (j.size() == 1 || j.has("music")))
+      return rulesOnly(j["commands"], mapFile);
     Json out = Json::makeObject();
     for (const Json::Member& m : j.members()) {
       if (!numbersTable && cosmeticKey(m.first)) continue;

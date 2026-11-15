@@ -6,7 +6,8 @@ namespace ote {
 
 namespace {
 
-constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVariable", "giveResource", "if", "goto"};
+constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVariable", "giveResource", "if", "goto",
+                                       "playMusic", "stopMusic", "playSound"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -138,6 +139,26 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
     return scene(e["then"], at + ": \"then\"", allowGoto, out.thenDo) &&
            (!e.has("else") || scene(e["else"], at + ": \"else\"", allowGoto, out.elseDo));
   }
+  if (k == "playMusic" || k == "stopMusic" || k == "playSound") {
+    // Same shapes and meaning as the event commands (loader_story_commands.cpp); the id is checked by the player.
+    const bool sound = k == "playSound", stop = k == "stopMusic";
+    out.kind = sound ? K::PlaySound : stop ? K::StopMusic : K::PlayMusic;
+    if (!onlyKeys(e, sound ? std::initializer_list<const char*>{kind} : std::initializer_list<const char*>{kind, "fade"}, at))
+      return false;
+    if (stop) {
+      if (!v.isBool() || !v.asBool()) return fail(at, "write { \"stopMusic\": true }");
+    } else if (!v.isString() || !isStoryId(v.asString())) {
+      return fail(at, "\"" + k + "\" must name " + (sound ? "a sound" : "a music track") +
+                          " of data/audio.json (letters, digits, \"_\" and \"-\")");
+    } else {
+      out.text = text(v.asString());
+    }
+    double fade = -1;  // not given: the player cross-fades (0.5 s); 0 = a cut
+    if (!sound && e.has("fade") && !c_.num(e, "fade", at, fade)) return false;
+    if (e.has("fade") && (fade < 0 || fade > 60)) return fail(at, "\"fade\" is seconds, between 0 and 60");
+    out.value = e.has("fade") ? (int)(fade * 1000 + 0.5) : -1;
+    return true;
+  }
   // goto
   out.kind = K::Goto;
   if (!onlyKeys(e, {"goto"}, at)) return false;
@@ -145,6 +166,21 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   if (!v.isString()) return fail(at, "\"goto\" must be a chapter id");
   out.chapter = v.asString();  // checked once all chapters are known
   return true;
+}
+
+bool CampaignLoader::chapterScene(const Json& v, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out) {
+  if (!v.isObject()) return scene(v, where, allowGoto, out);
+  if (!onlyKeys(v, {"music", "commands"}, where)) return false;
+  if (v.has("music")) {
+    if (!v["music"].isString() || !isStoryId(v["music"].asString()))
+      return fail(where, "\"music\" must name a music track of data/audio.json (letters, digits, \"_\" and \"-\")");
+    SceneCommand play;
+    play.kind = SceneCommand::Kind::PlayMusic;
+    play.text = text(v["music"].asString());
+    play.value = -1;
+    out.push_back(play);
+  }
+  return !v.has("commands") || scene(v["commands"], where + ": \"commands\"", allowGoto, out);
 }
 
 bool CampaignLoader::scene(const Json& list, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out) {

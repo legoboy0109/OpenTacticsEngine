@@ -134,6 +134,9 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "if": [conditions], "then": [commands], "else": [commands] }` | `then` required, `else` optional |
 | `{ "endTurn": true }` | only in an event whose trigger is `talk` (a loader error anywhere else): the talking unit's turn ends |
 | `{ "focus": { "x": 3, "y": 4 } }` or `{ "focus": "eirik" }` | the view moves there before the next entry (a unit that is not on the map: nothing) |
+| `{ "playMusic": "boss", "fade": 1.0 }` | sound (docs/SOUND.md): the track `boss` of `data/audio.json` plays until another command changes it or the battle ends; `fade` seconds (0..60, optional: not given = the player's 0.5 s cross-fade, 0 = a cut). Presentation only: entry `MusicChanged`; the core keeps only "the music the story asked for" (saved with the battle, docs/SAVES.md). The id is opaque to the core (it goes into the text table, so which track it is does not count for the save hash, but the command does); the player refuses a game whose ids are not in `audio.json` |
+| `{ "stopMusic": true, "fade": 1.0 }` | silence until a later `playMusic` or the end of the battle (entry `MusicChanged` with no track) |
+| `{ "playSound": "thunder" }` | one sound effect (entry `SoundRequested`) |
 
 **Running.** Events run in file order for one occurrence, and an event that
 fires while another runs (a `reach` caused by `moveUnit`, a `won` event caused
@@ -154,9 +157,11 @@ indices for `Battle::storyText(i)`):
 | `UnitRelocated` | a = unit, b = cell it left, c = cell it reached |
 | `SideChanged` | a = unit, b = old side, c = new side |
 | `ObjectiveChanged` | a = text of the new objective (-1 none), b = objective set |
+| `MusicChanged` | a = text index of the track id (-1 = the story stopped the music), b = fade in milliseconds (-1 = not given) |
+| `SoundRequested` | a = text index of the sound id |
 
 With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
-objective changes are seen by every team; the others by the teams that saw the unit or the square, see
+objective changes and the two sound entries are seen by every team; the others by the teams that saw the unit or the square, see
 docs/ECONOMY.md "Fog of war") and the stream gains `MoveBlocked`.
 
 Gifts use the existing item and resource entries. The speaker's name for a
@@ -279,13 +284,17 @@ loader error naming the file, the chapter and the command
 nobody can reach is **not** an error. `name` of the campaign and the chapters
 is wording (default: "Campaign" / the chapter id).
 
-**Scenes** are lists of a subset of the event commands, same JSON shapes: `say`
+**Scenes** are lists of a subset of the event commands, same JSON shapes: `playMusic`, `stopMusic` and `playSound`
+(as in the map events, docs/SOUND.md; they come back between the `say` lines as `SceneLine`s of kind `PlayMusic` / `StopMusic` / `PlaySound`
+with `text` = the id and `fadeMs`, and the player acts on them when it reaches them; nothing in the playthrough changes), `say`
 (`speaker` = a roster unit id, only checked for being a well-formed id since the
 unit may join later; or `speakerName`; optional `portrait`), `setSwitch`,
 `setVariable`, `addVariable`, `giveResource` (`"side": "<side id>"`: added to what that
 side carries; a side id is only checked for being well-formed because scenes
 know no map), `if` with the conditions `switch`, `variable`, `alive` / `dead` (a
 roster id) and `{ "goto": "<chapter id>" }` (`after` only, also inside `if`).
+A chapter's `before` / `after` may also be written `{ "music": "scene_theme", "commands": [ ... ] }`: the same
+scene with a `playMusic` in front (`commands` optional; the data hash sees the plain list, so adding music to a scene changes no save).
 Refined: `alive` = the id is in the roster and not gone, `dead` = it is in the
 roster and gone (a unit that never joined is neither). A scene runs at once
 with no input: state changes apply immediately and the `say` lines come back in

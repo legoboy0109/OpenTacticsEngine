@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "campaign/campaign_logic.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
@@ -78,7 +79,7 @@ SlotPanel::Result SlotPanel::activate(int row) {
     confirm_.open("Replace the save in slot " + std::to_string(n) + "?", "Replace", "Cancel");
     return None;
   }
-  if (s.state != SaveInfo::Ok) return None;  // greyed out: the reason is on screen
+  if (s.state != SaveInfo::Ok) { uiCue(Cue::Error); return None; }  // greyed out: the reason is on screen
   picked_ = n;
   if (loadWarning_.empty() || (warnOnlyForCampaign_ && !s.campaign)) return Picked;
   pending_ = row;
@@ -103,11 +104,11 @@ SlotPanel::Result SlotPanel::onInput(const InputEvent& e, const Renderer& r) {
   } else if (e.type == InputEvent::PointerDown) {
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0) { list_.sel = row; return activate(row); }
-    if (e.x < ax_ || e.y < ay_ || e.x >= ax_ + aw_ || e.y >= ay_ + ah_) return Back;
+    if (e.x < ax_ || e.y < ay_ || e.x >= ax_ + aw_ || e.y >= ay_ + ah_) { uiCue(Cue::Cancel); return Back; }
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) return None;
     if (e.button == Button::Confirm) return activate(list_.sel);
-    if (e.button == Button::Cancel || e.button == Button::Menu) return Back;
+    if (e.button == Button::Cancel || e.button == Button::Menu) { uiCue(Cue::Cancel); return Back; }
   }
   return None;
 }

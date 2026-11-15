@@ -76,8 +76,8 @@ bool readChapter(CampaignLoader& L, const Database& db, const Json& e, size_t in
   ch.map = db.findMap(map);
   if (ch.map < 0) return L.fail(where, "\"map\" names unknown map " + quoted(map));
   if (!L.ctx().str(e, "next", where, ch.next)) return false;  // checked once every chapter is known
-  if (e.has("before") && !L.scene(e["before"], where + ": \"before\"", false, ch.before)) return false;
-  if (e.has("after") && !L.scene(e["after"], where + ": \"after\"", true, ch.after)) return false;
+  if (e.has("before") && !L.chapterScene(e["before"], where + ": \"before\"", false, ch.before)) return false;
+  if (e.has("after") && !L.chapterScene(e["after"], where + ": \"after\"", true, ch.after)) return false;
   out.chapters.push_back(ch);
   return true;
 }

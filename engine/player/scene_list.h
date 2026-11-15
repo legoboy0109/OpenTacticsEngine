@@ -19,6 +19,7 @@ class ListScene : public Scene {
   ListScene(SceneHost& host, std::string title, std::vector<ListEntry> entries, std::string footer);
   void onInput(const InputEvent& e) override;
   void draw(Renderer& r) override;
+  SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Title; return a; }  // the game's title music
 
  protected:
   virtual void onChoose(int index) = 0;

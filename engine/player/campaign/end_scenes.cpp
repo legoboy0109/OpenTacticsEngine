@@ -1,4 +1,5 @@
 #include "campaign/end_scenes.h"
+#include "sound/cue_sink.h"
 
 #include <algorithm>
 
@@ -74,6 +75,7 @@ void RetryScene::layout(const Renderer& r) {
 void RetryScene::choose(int row) {
   if (left_) return;
   left_ = true;
+  uiCue(row == 0 ? Cue::Confirm : Cue::Cancel);
   if (row == 0) host_.campaignNext();  // the playthrough is still in its battle phase: a new battle starts
   else host_.showGame(host_.currentGameId());
 }

@@ -1,6 +1,7 @@
 #include "scene_options.h"
 
 #include <cstring>
+#include "sound/cue_sink.h"
 
 #include "core/base/log.h"
 #include "core/data/loader.h"
@@ -113,6 +114,7 @@ void OptionsScene::leave() {
 }
 
 void OptionsScene::activate(int row) {
+  uiCue(row == backRow() ? Cue::Cancel : Cue::Confirm);
   if (row < defCount()) change(row, 1);
   else if (row == resetRow()) resetAll();
   else leave();
@@ -136,7 +138,7 @@ void OptionsScene::onInput(const InputEvent& e) {
     if (e.button == Button::Left && row < defCount()) change(row, -1);
     else if (e.button == Button::Right && row < defCount()) change(row, 1);
     else if (e.button == Button::Confirm) activate(row);
-    else if (e.button == Button::Cancel) leave();
+    else if (e.button == Button::Cancel) { uiCue(Cue::Cancel); leave(); }
   }
 }
 

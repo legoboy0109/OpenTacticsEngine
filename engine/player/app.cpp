@@ -15,10 +15,13 @@
 
 namespace ote {
 
-PlayerApp::PlayerApp(const Args& args) : args_(args) {}
+PlayerApp::PlayerApp(const Args& args) : args_(args) { cueSinkSlot() = &cues_; }
 
 // Last chance to keep changes when the window is closed or the process ends normally.
-PlayerApp::~PlayerApp() { flushSettings(); }
+PlayerApp::~PlayerApp() {
+  if (cueSinkSlot() == &cues_) cueSinkSlot() = nullptr;
+  flushSettings();
+}
 
 // The software backend works on every platform; the platform's hardware
 // backend takes its place where there is one (docs/RENDER3D.md). The choice
@@ -107,6 +110,7 @@ void PlayerApp::runPending() {
   pending_ = nullptr;
   fn();
   flushSettings();  // every scene switch is a good moment to save
+  syncAudio();
 }
 
 void PlayerApp::onInput(const InputEvent& e) {
@@ -118,6 +122,8 @@ void PlayerApp::onInput(const InputEvent& e) {
 }
 
 void PlayerApp::update(double dt) {
+  gameAudio_.beginFrame();
+  syncAudio();
   if (script_.active()) {
     std::vector<InputEvent> injected;
     script_.tick(injected);
@@ -214,6 +220,12 @@ bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
   }
   OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
   if (session_->db.graphics.any()) sprites_.load(*renderer_, session_->dir, session_->db.graphics);
+  // The game's sound data (docs/SOUND.md): a wrong audio.json or a damaged sound file is a load error, like a bad
+  // graphics.json. Off mode reads nothing.
+  if (audio_.mode() != AudioService::Mode::Off && !gameAudio_.load(session_->dir, gameId, &session_->db, err)) {
+    dropSession();
+    return false;
+  }
   return true;
 }
 

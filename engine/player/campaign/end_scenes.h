@@ -16,6 +16,7 @@ class EndScene : public Scene {
   void onInput(const InputEvent& e) override;
   void update(double dt) override;
   void draw(Renderer& r) override;
+  SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Title; return a; }  // the game's title music
 
  private:
   void leave();

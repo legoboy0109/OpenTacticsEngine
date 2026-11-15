@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "sound/cue_sink.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -68,7 +69,11 @@ DialogueBox::Result DialogueBox::advance() {
 DialogueBox::Result DialogueBox::update(double dt) {
   if (!open_) return None;
   time_ += (float)dt;
-  if (!pageDone()) letters_ += (float)dt * kDialogueLettersPerSecond;
+  if (!pageDone()) {
+    const int before = (int)letters_;
+    letters_ += (float)dt * kDialogueLettersPerSecond;
+    if ((int)letters_ != before) uiCue(Cue::Dialogue);  // typing (never when the page is shown at once); rate-limited by GameAudio
+  }
   if (held_) {
     heldFor_ += (float)dt;
     if (heldFor_ >= kDialogueHoldToSkip) {

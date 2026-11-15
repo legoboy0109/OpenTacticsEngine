@@ -14,15 +14,28 @@
 #include "saves.h"
 #include "show3d.h"
 #include "sound/audio_service.h"
+#include "sound/game_audio.h"
 
 namespace ote {
 
 class Scene {
  public:
+  Scene() : audioId_(nextAudioId()) {}
   virtual ~Scene() {}
   virtual void onInput(const InputEvent& e) = 0;
   virtual void update(double dt) {}
   virtual void draw(Renderer& r) = 0;
+  // What the music should do while this scene is on screen (docs/SOUND.md). The App asks once per new scene.
+  virtual SceneAudio audioContext() const { return SceneAudio(); }
+  // Unique per scene object (an address can be reused by the next scene, this cannot).
+  unsigned audioId() const { return audioId_; }
+
+ private:
+  static unsigned nextAudioId() {
+    static unsigned n = 0;
+    return ++n;
+  }
+  unsigned audioId_;
 };
 
 // Scene switches are deferred by the App (a scene must not be destroyed while
@@ -42,6 +55,7 @@ class SceneHost {
   virtual Renderer& renderer() = 0;     // for measuring text outside draw()
   virtual Settings& settings() = 0;     // options + remembered UI state (saved by the App)
   virtual AudioService& audio() = 0;    // sound and music (docs/SOUND.md); safe to call without a sound device
+  virtual GameAudio& gameAudio() = 0;   // the open game's sounds, cues and music; does nothing when the game has none
   virtual const std::vector<GameEntry>& games() const = 0;
   virtual const std::string& notice() const = 0;  // one-line problem to show on the home screen, or ""
   virtual const std::string& currentGameId() const = 0;  // last game opened, or ""

@@ -165,6 +165,11 @@ static std::string describeEventText(const Battle& b, const Event& e) {
     case EventType::MoveBlocked:
       return fmt("%s is stopped at %s by %s at %s", unitName(b, e.a).c_str(), cellName(b, e.c).c_str(),
                  unitName(b, e.b).c_str(), cellName(b, e.d).c_str());
+    case EventType::MusicChanged:
+      if (e.a < 0) return fmt("the story stops the music (fade %d ms)", e.b);
+      return fmt("the story plays music '%s' (fade %d ms)", b.storyText(e.a).c_str(), e.b);
+    case EventType::SoundRequested:
+      return fmt("the story plays sound '%s'", b.storyText(e.a).c_str());
   }
   return "?";
 }

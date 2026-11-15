@@ -28,6 +28,7 @@ class BattleScene : public Scene {
   void onInput(const InputEvent& e) override;
   void update(double dt) override;
   void draw(Renderer& r) override;
+  SceneAudio audioContext() const override;  // battle_sound.cpp
 
  private:
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result };
@@ -58,6 +59,10 @@ class BattleScene : public Scene {
   void raiseCover(int side);      // hot-seat: "Pass the device to <side>"
   bool fogTurnGate();             // a human turn is about to begin: true = the cover went up and the turn waits
   void coverConfirmed();
+
+  // --- battle_sound.cpp: sound (docs/SOUND.md)
+  void soundCue(Cue cue, int unit = -1);  // a menu / map cue with the unit's type for the lookup
+  void soundResult(bool anyHuman, bool humanWon);  // the victory / defeat jingle
 
   // --- battle_input.cpp: the human state machine
   void handleButton(Button b);

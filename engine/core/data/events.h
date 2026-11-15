@@ -54,11 +54,12 @@ struct Trigger {
 struct Command {
   enum class Kind {
     Say, AddUnit, RemoveUnit, MoveUnit, ChangeSide, GiveItem, GiveResource, SetSwitch, SetVariable,
-    AddVariable, Objective, Win, Lose, If, EndTurn, Focus, GrantResearch
+    AddVariable, Objective, Win, Lose, If, EndTurn, Focus, GrantResearch,
+    PlayMusic, StopMusic, PlaySound  // presentation only (docs/SOUND.md): the id is opaque text here
   };
   Kind kind = Kind::Say;
   // Say
-  int text = -1, speakerName = -1, portrait = -1;  // indices into StoryData::texts (-1 = none)
+  int text = -1, speakerName = -1, portrait = -1;  // indices into StoryData::texts (-1 = none); PlayMusic / PlaySound: `text` is the track / sound id
   std::string unit;      // Say: speaker unit id; MoveUnit / Focus: the unit ("" = a square)
   MapUnitDef newUnit;    // AddUnit
   UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem: which units
@@ -69,7 +70,7 @@ struct Command {
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
   bool on = false;       // SetSwitch
-  int value = 0;         // SetVariable / AddVariable
+  int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If

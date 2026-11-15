@@ -4,6 +4,7 @@
 // onInput), so state can change the moment apply() is called.
 #include "battle/battle_scene.h"
 #include "core/base/log.h"
+#include "sound/cue_sink.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -14,6 +15,7 @@ bool BattleScene::submit(const Action& a) {
   if (!battle_.apply(a, events_, &why)) {
     // A rejected action means the UI offered something the rules forbid.
     OTE_WARN("UI bug: action type %d rejected: %s", (int)a.type, why.c_str());
+    uiCue(Cue::Error);
     return false;
   }
   view_.push(events_);
@@ -147,6 +149,7 @@ void BattleScene::moveCursor(int dx, int dy) {
     dy = -t;
   }
   Cell c = g.at(g.x(cursor_) + dx, g.y(cursor_) + dy);
+  if (c != kNoCell && c != cursor_) uiCue(Cue::Cursor);
   if (c != kNoCell) cursor_ = c;
 }
 
@@ -164,6 +167,7 @@ void BattleScene::cycleUnit(int dir) {
     }
   }
   int pick = best >= 0 ? best : wrap;
+  if (pick >= 0 && battle_.units[pick].cell != cursor_) uiCue(Cue::Cursor);
   if (pick >= 0) cursor_ = battle_.units[pick].cell;
 }
 
@@ -182,6 +186,7 @@ void BattleScene::idleButton(Button b) {
         selectUnit(uid);
         return;
       }
+      uiCue(Cue::Confirm);
       if (!openStructureAt(cursor_)) openEndMenu();  // Build / Upgrade / Research of an own structure (battle_economy.cpp)
       break;
     }
@@ -190,6 +195,7 @@ void BattleScene::idleButton(Button b) {
 }
 
 void BattleScene::selectUnit(int unit) {
+  soundCue(Cue::Select, unit);
   sel_ = unit;
   hasUndo_ = false;
   itemsUsed_ = false;
@@ -230,6 +236,7 @@ void BattleScene::selectedButton(Button b) {
     case Button::Left: moveCursor(-1, 0); break;
     case Button::Right: moveCursor(1, 0); break;
     case Button::Cancel:
+      uiCue(Cue::Cancel);
       cursor_ = battle_.units[sel_].cell;
       mode_ = Mode::Idle;
       overlay_ = Overlay();
@@ -237,11 +244,13 @@ void BattleScene::selectedButton(Button b) {
     case Button::Confirm: {
       const Unit& u = battle_.units[sel_];
       if (cursor_ == u.cell) {  // stay put
+        uiCue(Cue::Confirm);
         openActionMenu();
       } else if (reach_.canStop(cursor_)) {
         undo_ = battle_;  // copy BEFORE the move: Cancel restores it
         undoCell_ = u.cell;
         const Cell wanted = cursor_;
+        uiCue(Cue::Confirm);
         if (!submit(Action::move(sel_, cursor_))) return;
         if (battle_.units[sel_].done) {  // fog: an ambush ended its turn; nothing to undo to (that would show what was hidden)
           dirty_ = true;
@@ -257,7 +266,7 @@ void BattleScene::selectedButton(Button b) {
         openActionMenu();
       } else {
         int t = battle_.unitAt(cursor_);
-        if (t < 0 || !battle_.isEnemy(u, battle_.units[t])) break;
+        if (t < 0 || !battle_.isEnemy(u, battle_.units[t])) { uiCue(Cue::Error); break; }  // nowhere to go there
         std::vector<AttackOption> opts;
         battle_.attackOptions(sel_, u.cell, opts);
         for (const AttackOption& o : opts)
@@ -311,13 +320,15 @@ void BattleScene::beginTargeting(int preferTarget) {
 
 void BattleScene::targetingButton(Button b) {
   int n = (int)targets_.size();
-  if (b == Button::Right || b == Button::Down || b == Button::Next) targetIdx_ = (targetIdx_ + 1) % n;
-  else if (b == Button::Left || b == Button::Up || b == Button::Prev) targetIdx_ = (targetIdx_ + n - 1) % n;
+  if (b == Button::Right || b == Button::Down || b == Button::Next) { targetIdx_ = (targetIdx_ + 1) % n; uiCue(Cue::Cursor); }
+  else if (b == Button::Left || b == Button::Up || b == Button::Prev) { targetIdx_ = (targetIdx_ + n - 1) % n; uiCue(Cue::Cursor); }
   else if (b == Button::Cancel) {
+    uiCue(Cue::Cancel);
     cursor_ = battle_.units[sel_].cell;
     openActionMenu();
     return;
   } else if (b == Button::Confirm) {
+    uiCue(Cue::Confirm);
     const AttackOption& t = targets_[targetIdx_];
     if (submit(Action::attack(sel_, t.target, t.weapon))) finishOrder();
     return;

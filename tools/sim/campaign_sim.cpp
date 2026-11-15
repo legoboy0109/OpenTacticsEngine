@@ -18,7 +18,12 @@ namespace {
 constexpr int kMaxAttempts = 3;  // a lost chapter ("retry") is tried this often, with other seeds
 
 void printScene(const std::vector<SceneLine>& lines, const char* indent) {
-  for (const SceneLine& l : lines) std::printf("%s%s%s%s\n", indent, l.speaker.c_str(), l.speaker.empty() ? "" : ": ", l.text.c_str());
+  for (const SceneLine& l : lines) {
+    if (l.kind == SceneLine::Kind::PlayMusic) std::printf("%s[music '%s', fade %d ms]\n", indent, l.text.c_str(), l.fadeMs);
+    else if (l.kind == SceneLine::Kind::StopMusic) std::printf("%s[music stops, fade %d ms]\n", indent, l.fadeMs);
+    else if (l.kind == SceneLine::Kind::PlaySound) std::printf("%s[sound '%s']\n", indent, l.text.c_str());
+    else std::printf("%s%s%s%s\n", indent, l.speaker.c_str(), l.speaker.empty() ? "" : ": ", l.text.c_str());
+  }
 }
 
 // Plays the started battle to its end; false when the AI misbehaved. `decided` = false: no winner in time.

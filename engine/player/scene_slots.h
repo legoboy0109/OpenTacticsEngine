@@ -10,6 +10,7 @@ class SlotScene : public Scene {
   SlotScene(SceneHost& host, const GameEntry& game);
   void onInput(const InputEvent& e) override;
   void draw(Renderer& r) override;
+  SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Title; return a; }  // the game's title music
 
  private:
   SceneHost& host_;

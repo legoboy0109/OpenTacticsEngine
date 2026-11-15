@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "sound/cue_sink.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -49,6 +50,7 @@ void HomeScene::layout(const Renderer& r) {
 
 void HomeScene::activate(int row) {
   if (row < 0 || row >= list_.count) return;
+  uiCue(Cue::Confirm);
   if (row < gameCount()) {
     const GameEntry& g = host_.games()[row];
     host_.settings().setState("lastGame", g.id);

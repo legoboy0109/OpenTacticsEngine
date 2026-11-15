@@ -109,6 +109,17 @@ struct SceneRun {
         break;
       }
       case K::Goto: gotoChapter = c.chapter; break;
+      case K::PlayMusic:
+      case K::StopMusic:
+      case K::PlaySound: {  // presentation only: nothing in the playthrough changes
+        SceneLine l;
+        l.kind = c.kind == K::PlayMusic ? SceneLine::Kind::PlayMusic
+                 : c.kind == K::StopMusic ? SceneLine::Kind::StopMusic : SceneLine::Kind::PlaySound;
+        l.fadeMs = c.value;
+        if (c.text >= 0) l.text = texts[(size_t)c.text];
+        lines.push_back(l);
+        break;
+      }
     }
   }
 };

@@ -40,6 +40,7 @@ class PlayerApp : public App, public SceneHost {
   Renderer& renderer() override { return *renderer_; }
   Settings& settings() override { return settings_; }
   AudioService& audio() override { return audio_; }
+  GameAudio& gameAudio() override { return gameAudio_; }
   const std::vector<GameEntry>& games() const override { return games_; }
   const std::string& notice() const override { return notice_; }
   const std::string& currentGameId() const override { return gameId_; }
@@ -84,6 +85,7 @@ class PlayerApp : public App, public SceneHost {
   // app_audio.cpp: choosing the sound device (docs/SOUND.md "Engine design")
   void startAudio();
   void openAudioDevice();
+  void syncAudio();  // a new scene is on screen: load the game's sound data, pick its music
 
   // app_look.cpp: settings file and the look derived from the options.
   void loadSettings();
@@ -97,6 +99,10 @@ class PlayerApp : public App, public SceneHost {
   Renderer* renderer_ = nullptr;
   Settings settings_;
   AudioService audio_;
+  GameAudio gameAudio_{audio_};
+  GameAudioCues cues_{gameAudio_};  // installed as the sink of uiCue() in onStart
+  unsigned audioScene_ = 0;         // Scene::audioId() of the scene the music was last told about
+  std::string audioFailed_;         // a game whose audio.json could not be loaded for its page (warned once)
   std::string settingsPath_;  // empty = in-memory only
   bool saveWarned_ = false;
   std::string savesRoot_;  // folder holding <game>/continue.json and slotN.json; empty = no saving this run

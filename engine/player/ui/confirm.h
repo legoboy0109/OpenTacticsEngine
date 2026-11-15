@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "platform/platform.h"
+#include "sound/cue_sink.h"
 
 namespace ote {
 
@@ -31,7 +32,10 @@ class ConfirmBox {
   };
   void layout(const Renderer& r);
   int buttonAt(int px, int py) const;
-  Result answer(const Choice& b) const { return b.yes ? Yes : No; }
+  Result answer(const Choice& b) const {
+    uiCue(b.yes ? Cue::Confirm : Cue::Cancel);
+    return b.yes ? Yes : No;
+  }
 
   bool open_ = false;
   std::string message_;
