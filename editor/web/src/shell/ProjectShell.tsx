@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Route } from '../router'
 import { Link } from '../router'
 import { GameScreen } from '../screens/game/GameScreen'
+import { CampaignScreen } from '../screens/campaign/CampaignScreen'
 import { ArtScreen } from '../screens/art/ArtScreen'
 import { ItemsScreen } from '../screens/items/ItemsScreen'
 import { MapsScreen } from '../screens/maps/MapsScreen'
@@ -31,6 +32,7 @@ function Screen({ route }: { route: ProjectRoute }) {
     case 'structures': return <StructuresScreen itemId={route.itemId} />
     case 'art': return <ArtScreen itemId={route.itemId} />
     case 'maps': return <MapsScreen itemId={route.itemId} />
+    case 'campaign': return <CampaignScreen itemId={route.itemId} />
   }
 }
 

@@ -26,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'items', 'weapons', 'units', 'graphics'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'weapons', 'units', 'graphics', 'campaign'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -39,7 +39,9 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
     // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
     const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
       : (k === 'structures' || k === 'items') && doc[k] === null && saved[k] !== null ? []
-        : doc[k]
+        // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
+        : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
+          : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}

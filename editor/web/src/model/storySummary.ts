@@ -1,5 +1,6 @@
 // Plain sentences for triggers, conditions, commands, objectives and whole events, so a list shows what happens
 // without opening anything. Squares are shown 1-based (like the map editor's status line); the file stores 0-based.
+import { chapterName } from './campaignTypes'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
 import {
   asFilter, commandKind, conditionKind, filterKind, rectOf, ruleKind, triggerKind,
@@ -35,6 +36,12 @@ export function unitText(c: SumCtx, id: string): string {
   const placed = c.map.units?.find((u) => u.id === id)
   if (placed) return unitDisplayName(c.doc, placed)
   return known.label.replace(/ \([^)]*\)$/, '')
+}
+
+/** A chapter's name (campaign scenes only; an id nothing knows is shown as typed). */
+const chapterLabel = ({ doc }: SumCtx, id: string): string => {
+  const ch = doc.campaign?.chapters.find((x) => x.id === id)
+  return ch ? chapterName(ch) : id
 }
 
 const teamText = (c: SumCtx, id: string) => teamsOf(c.map).find((t) => t.id === id)?.label ?? id
@@ -126,6 +133,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
       return `If ${conditionsText(c, cmd.if)}: ${n} ${n === 1 ? 'command' : 'commands'}${m ? `, otherwise ${m}` : ''}`
     }
     case 'endTurn': return 'Ends the talking unit’s turn'
+    case 'goto': return `Goes on to chapter ${q(chapterLabel(c, cmd.goto ?? ''))}`
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
     default: return 'Does something'
   }
@@ -152,10 +160,14 @@ export function objectivesText(c: SumCtx, o: Objectives | undefined): string {
 
 /** "Turn 4, Red’s turn → Gorm says “Now!…”, adds a Soldier (Red) at 10, 2 and 1 more". */
 export function eventSummary(c: SumCtx, e: StoryEvent): string {
-  const first = (e.do ?? []).slice(0, 2).map((cmd, i) => (i === 0 || commandKind(cmd) === 'say' ? commandText(c, cmd) : lowerFirst(commandText(c, cmd))))
-  const more = (e.do?.length ?? 0) - first.length
-  const doing = first.length ? `${first.join(', ')}${more > 0 ? ` and ${more} more` : ''}` : 'nothing yet'
-  return `${triggerText(c, e.when ?? {})} → ${doing}`
+  return `${triggerText(c, e.when ?? {})} → ${commandsSummary(c, e.do, 'nothing yet')}`
+}
+
+/** "Gorm says “Now!…”, adds a Soldier (Red) at 10, 2 and 1 more": the first two commands, then how many are left. */
+export function commandsSummary(c: SumCtx, list: Command[] | undefined, none: string): string {
+  const first = (list ?? []).slice(0, 2).map((cmd, i) => (i === 0 || commandKind(cmd) === 'say' ? commandText(c, cmd) : lowerFirst(commandText(c, cmd))))
+  const more = (list?.length ?? 0) - first.length
+  return first.length ? `${first.join(', ')}${more > 0 ? ` and ${more} more` : ''}` : none
 }
 
 /** The sentences the clean-up lists use for what it removes. */

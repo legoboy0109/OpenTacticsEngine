@@ -1,5 +1,6 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
+import type { Campaign } from './campaignTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
 export interface Extra { [key: string]: unknown }
@@ -207,6 +208,8 @@ export interface ProjectDoc {
   scripts: Record<string, string>
   /** null = the game has no art yet (the first art edit creates it). */
   graphics: Graphics | null
+  /** null = the game has no campaign (single battles). Removing it is written as `campaign: false` (see autosave). */
+  campaign: Campaign | null
 }
 
 export interface Problem { file: string; message: string }
@@ -218,5 +221,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'art' | 'maps'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'art', 'maps']
+export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'art' | 'maps' | 'campaign'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'art', 'maps', 'campaign']

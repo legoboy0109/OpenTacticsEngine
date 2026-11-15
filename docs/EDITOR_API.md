@@ -68,6 +68,7 @@ dropped (the document is strict JSON).
   "graphics": { …contents of data/graphics.json… },
   "structures": [ …the "structures" list of data/structures.json… ],
   "items": [ …the "items" list of data/items.json… ],
+  "campaign": { …contents of data/campaign.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
 `maps` is keyed by the map id from `game.maps`. `scripts` holds the text
@@ -80,23 +81,26 @@ that exists but is not a JSON object is `null` plus a problem on
 `data/structures.json` gives `"structures": null` and no problem; a file that
 is not valid JSON or has no `structures` list gives `null` plus a problem on
 `data/structures.json`. `items` (`data/items.json`, docs/ITEMS.md) behaves exactly
-like `structures`. `revision` identifies the on-disk state (a hash of the
+like `structures`. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is the file's one object; no file gives
+`"campaign": null` and no problem, a file that is not a JSON object gives `null` plus a problem on
+`data/campaign.json`. `revision` identifies the on-disk state (a hash of the
 project's files).
 
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,
 "units": …, "maps": { … }, "scripts": { … }, "graphics": { … },
-"structures": [ … ], "items": [ … ] }` (same shapes as GET; a section that is absent or `null`
+"structures": [ … ], "items": [ … ], "campaign": { … } }` (same shapes as GET; a section that is absent or `null`
 is left untouched on disk; `graphics` must be an object and `structures` and `items` a
 list, anything else is `400`; `structures` is written as `{ "structures": [ … ] }`,
-`items` as `{ "items": [ … ] }`, and an empty list is valid). Art image files are
+`items` as `{ "items": [ … ] }`, and an empty list is valid). `campaign` is an object, written as it is; **`false` removes
+`data/campaign.json`** (the game goes back to single battles) and any other value is `400`. Art image files are
 not part of this call: they have their own endpoints below.
 
 - If `baseRevision` is not the current on-disk revision → `409
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/campaign.json`, each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and

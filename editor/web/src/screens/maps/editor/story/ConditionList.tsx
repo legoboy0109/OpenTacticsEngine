@@ -2,11 +2,11 @@
 // always showing; add, reorder and delete like every list.
 import { listAdd, listMove, listPatch, listRemove, listReplace } from '../../../../model/storyEdit'
 import { newCondition } from '../../../../model/storyDefaults'
-import { COMPARE_OPS, CONDITION_KINDS, conditionKind, type CompareOp, type Condition, type ConditionKind } from '../../../../model/storyTypes'
+import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, type Condition, type ConditionKind } from '../../../../model/storyTypes'
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
-import { FilterPicker, ItemPick, PickSelect, SwitchPick, VariablePick } from './pickers'
+import { FilterPicker, ItemPick, PickSelect, SwitchPick, UnitPick, VariablePick } from './pickers'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
 import { S } from './text'
@@ -18,10 +18,14 @@ interface Props {
   name: string
 }
 
+/** A campaign scene can only test these (the loader refuses the others there). */
+const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead']
+
 const OPS = COMPARE_OPS.map((o) => ({ value: o, label: S.ops[o] }))
 
 export function ConditionList({ conditions, onChange, name }: Props) {
   const story = useStory()
+  const kinds = story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS
   const patch = (i: number, p: Record<string, unknown>, key?: string) => onChange(listPatch(conditions, i, p), key && `${key}:${i}`)
   return (
     <div className="story-list conditions" data-testid={`conditions-${name}`}>
@@ -32,7 +36,7 @@ export function ConditionList({ conditions, onChange, name }: Props) {
           <div className="story-row condition" role="group" aria-label={`${name}: ${S.conditionN(i + 1)}`} key={i}>
             <div className="story-row-head">
               <Field label={S.conditionKind}>
-                <Select value={kind ?? 'switch'} options={CONDITION_KINDS.map((k) => ({ value: k, label: S.conditionKinds[k] }))}
+                <Select value={kind ?? 'switch'} options={kinds.map((k) => ({ value: k, label: S.conditionKinds[k] }))}
                   onChange={(k) => onChange(listReplace(conditions, i, newCondition(story, k as ConditionKind)))} />
               </Field>
               <RowButtons index={i} count={conditions.length} up={`Move ${S.conditionN(i + 1)} up`} down={`Move ${S.conditionN(i + 1)} down`} del={`Delete ${S.conditionN(i + 1)}`}
@@ -52,8 +56,11 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <Field label={S.conditionValue}><NumberInput value={c.value ?? 0} onChange={(v) => { if (v !== undefined) patch(i, { value: v }, 'value') }} /></Field>
               </>
             )}
-            {(kind === 'alive' || kind === 'dead') && (
-              <FilterPicker label={S.conditionWho} value={c[kind]} onChange={(f) => patch(i, { [kind]: f ?? {} })} />
+            {(kind === 'alive' || kind === 'dead') && story.scene && (
+              <UnitPick label={S.conditionWho} value={typeof c[kind] === 'string' ? (c[kind] as string) : ''} onChange={(v) => patch(i, { [kind]: v })} />
+            )}
+            {(kind === 'alive' || kind === 'dead') && !story.scene && (
+              <FilterPicker label={S.conditionWho} value={asFilter(c[kind])} onChange={(f) => patch(i, { [kind]: f ?? {} })} />
             )}
             {kind === 'round' && (
               <>
@@ -72,7 +79,7 @@ export function ConditionList({ conditions, onChange, name }: Props) {
           </div>
         )
       })}
-      <Select aria-label={`${name}: ${S.addCondition}`} value="" placeholder={S.addCondition} options={CONDITION_KINDS.map((k) => ({ value: k, label: S.conditionKinds[k] }))}
+      <Select aria-label={`${name}: ${S.addCondition}`} value="" placeholder={S.addCondition} options={kinds.map((k) => ({ value: k, label: S.conditionKinds[k] }))}
         onChange={(k) => onChange(listAdd(conditions, newCondition(story, k as ConditionKind)))} />
     </div>
   )

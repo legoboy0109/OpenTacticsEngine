@@ -2,6 +2,7 @@
 // side. Each is ONE edit, so a single Undo restores the units and everything the clean-up removed.
 import { removeMapUnit, unitAt } from './mapUnits'
 import { removeSide } from './mapSides'
+import { followUnitRename } from './campaignRefs'
 import { idProblem, takenUnitIds } from './storyIds'
 import { setUnitStoryId } from './storyEdit'
 import { scrubMap, storyIdUsages, storyUsages } from './storyRefs'
@@ -24,7 +25,9 @@ export function changeUnitStoryId(doc: ProjectDoc, mapId: string, x: number, y: 
     const error = idProblem(to, takenUnitIds(map, unit))
     if (error) return { doc, error }
   }
-  return { doc: withMap(doc, mapId, setUnitStoryId(map, x, y, to)), error: null }
+  const next = withMap(doc, mapId, setUnitStoryId(map, x, y, to))
+  // The campaign's scenes that named the old story name follow it (unless another map still has that name).
+  return { doc: unit.id ? followUnitRename(doc, next, unit.id, to) : next, error: null }
 }
 
 /** What deleting the unit at (x, y) would remove from the events and objectives. */

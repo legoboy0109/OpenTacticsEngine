@@ -2,6 +2,7 @@
 // history, the revision on disk and the save status. No React in here; the
 // context module wraps it for components.
 import type { Api } from '../api/client'
+import { reconcileCampaign } from '../model/campaignRefs'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
 import { ModelLibrary } from './models'
@@ -24,7 +25,7 @@ export interface StoreState {
   notice: string | null
 }
 
-const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null }
+const EMPTY: ProjectDoc = { game: null, terrain: null, structures: null, items: null, weapons: null, units: null, maps: {}, scripts: {}, graphics: null, campaign: null }
 
 export class DocumentStore {
   private state: StoreState
@@ -78,7 +79,10 @@ export class DocumentStore {
    *  (typing in one field) become one undo step. */
   edit = (fn: (doc: ProjectDoc) => ProjectDoc, key?: string): void => {
     if (this.state.phase !== 'ready') return
-    const next = fn(this.history.present)
+    const prev = this.history.present
+    // The campaign follows the rest of the game: a switch, side, map or story name that this edit removed is taken out
+    // of the scenes in the same undo step (model/campaignRefs.ts).
+    const next = reconcileCampaign(prev, fn(prev))
     const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
     if (h === this.history) return
     this.history = h

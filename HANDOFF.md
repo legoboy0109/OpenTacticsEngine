@@ -363,7 +363,11 @@ from CC0 packs (`games/demo-srpg/CREDITS.md`,
 Story events, dialogue and the campaign are built (docs/EVENTS.md) and
 `demo-srpg` has a story and the two-chapter campaign "The Ford War"
 (`data/campaign.json`, `maps/north_road.json`; `ote-sim games/demo-srpg
---campaign`). Still to do there: the editor's Campaign screen. Next:
+--campaign`). The editor's Campaign screen is built (`editor/web/src/screens/campaign/`, model
+`model/campaign*.ts`; scenes reuse the story command list through a made-up "scene map"; the store's `edit` runs
+`reconcileCampaign` so deletes of switches / sides / maps / story names clean the scenes in the same undo step;
+`"campaign": false` in the PUT removes the file). Not done: a Play-from-chapter-1 button (needs a `campaign` query
+parameter in `engine/platform/web/embed.html`). Next:
 economy options (owner decisions in docs/PLAN.md 3g, contract in
 docs/ECONOMY.md, build order at its end), then sound and music.
 Close-up battle scenes: low priority.

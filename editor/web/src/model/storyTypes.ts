@@ -39,8 +39,9 @@ export interface Condition extends Extra {
   variable?: string
   op?: CompareOp
   value?: number
-  alive?: Filter
-  dead?: Filter
+  /** In a map: which unit(s). In a campaign scene: a roster unit id (a plain string). */
+  alive?: Filter | string
+  dead?: Filter | string
   round?: { op: CompareOp; value: number }
   carries?: string
   unit?: Filter
@@ -76,14 +77,16 @@ export interface Command extends Extra {
   else?: Command[]
   endTurn?: boolean
   focus?: { x: number; y: number } | string
+  /** Campaign "after" scenes only: the chapter that comes next (docs/EVENTS.md "Campaign"). */
+  goto?: string
 }
 export type CommandKind =
   | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'giveItem' | 'giveResource'
-  | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus'
-/** In the order the loader looks for them. */
+  | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto'
+/** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'giveItem', 'giveResource',
-  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus',
+  'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto',
 ]
 
 export interface StoryEvent extends Extra {

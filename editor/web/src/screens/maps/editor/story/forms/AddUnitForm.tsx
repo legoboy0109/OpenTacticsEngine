@@ -1,5 +1,7 @@
 // "Add a unit": the same fields as a placed unit (type, side, square, name, level, leader, story name, items).
+import { followUnitRename } from '../../../../../model/campaignRefs'
 import { clone } from '../../../../../model/doc'
+import { editMap } from '../../../../../model/mapCtx'
 import { inventorySize } from '../../../../../model/itemRules'
 import { idProblem, suggestUnitId, takenUnitIds } from '../../../../../model/storyIds'
 import { setAddedUnitId } from '../../../../../model/storyEdit'
@@ -20,12 +22,16 @@ import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
 export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
-  const { doc, map, mapId, apply } = useStory()
+  const { doc, map, mapId, applyDoc } = useStory()
   const { patch } = useCommandEdit(at)
   const u: MapUnit = cmd.addUnit ?? { type: '', side: '', x: 0, y: 0 }
   const set = (p: Record<string, unknown>, k?: string) => patch({ addUnit: patchObj(u, p) }, k)
   const base = doc.units?.find((t) => t.id === u.type)
-  const setId = (id: string) => apply((m) => setAddedUnitId(m, at.eventId, at.path, at.index, id), `cmd:${at.eventId}:${JSON.stringify(at.path)}:${at.index}:id`)
+  // A document edit (not just the map) so the campaign's scenes that named the old story name follow the rename.
+  const setId = (id: string) => applyDoc((d) => {
+    const next = editMap(d, mapId, (m) => setAddedUnitId(m, at.eventId, at.path, at.index, id))
+    return u.id ? followUnitRename(d, next, u.id, id) : next
+  }, `cmd:${at.eventId}:${JSON.stringify(at.path)}:${at.index}:id`)
   const validate = (text: string) => {
     if (text === '') return u.id && storyIdUsages(doc, mapId, u.id).length ? S.nameInUse : null
     return idProblem(text, takenUnitIds(map, u))

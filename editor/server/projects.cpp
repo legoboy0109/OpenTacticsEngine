@@ -226,6 +226,26 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   }
   doc.set("items", items);
 
+  // campaign.json is optional (docs/EVENTS.md "Campaign"): absent = null with no problem; a file that is not a JSON
+  // object is null plus a problem on the file (the Campaign screen then refuses to edit, like Items).
+  Json campaign;
+  {
+    fs::path cfull;
+    std::string cwhy;
+    std::error_code cec;
+    bool absent = resolveInside(dir, "data/campaign.json", cfull, cwhy) && !fs::exists(cfull, cec);
+    if (!absent) {
+      Json c;
+      Problem cpb;
+      if (readJsonRel(dir, "data/campaign.json", c, cpb) && c.isObject()) campaign = c;
+      else {
+        if (cpb.message.empty()) cpb = {"data/campaign.json", "the file must contain a JSON object at the top level"};
+        readProbs.push_back(cpb);
+      }
+    }
+  }
+  doc.set("campaign", campaign);
+
   Json maps, scripts;  // stay null when game.json is unusable
   if (game.isObject()) {
     maps = Json::makeObject();

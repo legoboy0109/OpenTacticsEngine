@@ -46,5 +46,6 @@ function loadFrom(root: string, name: string): ProjectDoc {
     scripts: {},
     // Art is optional: a game without data/graphics.json has none.
     graphics: existsSync(path.join(root, name, 'data/graphics.json')) ? read(name, 'data/graphics.json') : null,
+    campaign: existsSync(path.join(root, name, 'data/campaign.json')) ? read(name, 'data/campaign.json') : null,
   }
 }

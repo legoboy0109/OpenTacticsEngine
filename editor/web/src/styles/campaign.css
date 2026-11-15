@@ -1,0 +1,14 @@
+/* The Campaign screen: the settings and flow side by side, the flow rows, the scene cards. */
+.campaign-top { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.flow-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); min-width: 0; }
+.flow-row[data-unreached] { border-color: var(--warn); }
+.flow-chapter { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; padding: 2px 0; text-align: left; overflow-wrap: anywhere; }
+.flow-chapter:hover { text-decoration: underline; }
+.flow-number { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--surface-2); font-size: 0.85rem; flex: none; }
+.flow-flag { font-size: 0.85rem; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 1px 8px; }
+.flow-arrows { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-left: auto; color: var(--muted); }
+.flow-goto { font-style: italic; }
+.scene-card .command-list { margin-bottom: 8px; }
+@media (max-width: 1100px) { .campaign-top { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 719.98px) { .flow-arrows { margin-left: 0; width: 100%; } }

@@ -26,6 +26,8 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'resource': return missing('a resource') ?? (known(doc.game?.resources) ? null : `“${r.id}” is not a resource of this game.`)
     case 'switch': return missing('a switch') ?? (known(doc.game?.switches) ? null : `“${r.id}” is not a switch of this game.`)
     case 'variable': return missing('a variable') ?? (known(doc.game?.variables) ? null : `“${r.id}” is not a variable of this game.`)
+    case 'chapter':
+    case 'map': return null // only campaigns name these (campaignChecks.ts)
   }
 }
 

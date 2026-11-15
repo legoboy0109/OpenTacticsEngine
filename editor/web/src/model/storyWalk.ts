@@ -11,12 +11,13 @@ import type { Command, Condition, Filter, ObjectiveRule, Objectives, StoryEvent,
 import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
-export type RefKind = 'unit' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable'
+/** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
+export type RefKind = 'unit' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
 
-export interface Dropping { what: 'event' | 'command' | 'rule' | 'resource' | 'item'; text: string; where: string }
+export interface Dropping { what: 'event' | 'command' | 'rule' | 'resource' | 'item' | 'chapterMap' | 'link' | 'freeBattle'; text: string; where: string }
 
 export interface Walk {
   /** Called for every place that names something. Return the id to keep there (the same, or a new one) or DROP. */
@@ -27,7 +28,7 @@ export interface Walk {
 }
 
 /** Copy of `o` with key `k` set, or `o` itself when the value is already that. */
-function put<T extends object>(o: T, k: string, v: unknown): T {
+export function put<T extends object>(o: T, k: string, v: unknown): T {
   const rec = o as Record<string, unknown>
   return rec[k] === v ? o : ({ ...rec, [k]: v } as T)
 }
@@ -51,7 +52,7 @@ function withFilter<T extends object>(o: T, key: string, w: Walk, where: string)
   return r === DROP ? DROP : put(o, key, r)
 }
 
-function withRef<T extends object>(o: T, key: string, kind: RefKind, w: Walk, where: string): T | Dropped {
+export function withRef<T extends object>(o: T, key: string, kind: RefKind, w: Walk, where: string): T | Dropped {
   const v = (o as Record<string, unknown>)[key]
   if (typeof v !== 'string') return o
   const r = w.ref({ kind, id: v }, where)
@@ -59,7 +60,7 @@ function withRef<T extends object>(o: T, key: string, kind: RefKind, w: Walk, wh
 }
 
 /** Runs the steps in order on `o`; stops at the first DROP. */
-function chain<T extends object>(o: T, steps: Array<(x: T) => T | Dropped>): T | Dropped {
+export function chain<T extends object>(o: T, steps: Array<(x: T) => T | Dropped>): T | Dropped {
   let cur = o
   for (const s of steps) {
     const r = s(cur)
@@ -192,11 +193,12 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'win', 'teamOrSide', w, where),
     (x) => withRef(x, 'lose', 'teamOrSide', w, where),
     (x) => (typeof x.focus === 'string' ? withRef(x, 'focus', 'unit', w, where) : x),
+    (x) => withRef(x, 'goto', 'chapter', w, where),
   ])
 }
 
 /** `trail` numbers the commands of a nested list after the `if` they sit in: "3" at the top, "3.1" inside it. */
-function mapCommands(list: Command[], w: Walk, where: string, trail = ''): Command[] {
+export function mapCommands(list: Command[], w: Walk, where: string, trail = ''): Command[] {
   const out: Command[] = []
   let changed = false
   list.forEach((c, i) => {
