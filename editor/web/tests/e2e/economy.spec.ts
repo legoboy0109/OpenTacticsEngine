@@ -28,13 +28,13 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
   test.setTimeout(180_000)
   const id = await game.create('economy-tactics', 'Economy')
 
-  // --- Research is empty at first: it explains itself and points at Structures. Nothing is written.
+  // --- Research is empty at first: it explains itself. Nothing is written.
   await open(page, id, 'research')
   await expect(page.getByText('No technologies yet.').first()).toBeVisible()
   await expect(page.getByText(/Research lets a side pay and wait/)).toBeVisible()
   await shot(page, 'research-empty')
-  await page.getByRole('link', { name: 'Open Structures' }).click()
-  await expect(page).toHaveURL(new RegExp(`/p/${id}/structures`))
+  await expect(page.getByRole('link', { name: 'Open Structures' })).toHaveCount(0) // research needs no structure by default
+  await open(page, id, 'structures')
   await expect(page.getByRole('heading', { name: 'Structures', level: 1 })).toBeVisible()
 
   // --- Structures: a Town, and a Library where research is done.
@@ -223,7 +223,7 @@ test('the two option rules: the Research group follows the game, the flag on a s
   await open(page, id, 'structures', doc.structures[0].id)
   await expect(page.getByTestId('research-rule-off')).toBeVisible()
   await expect(page.getByRole('checkbox', { name: /Research can be done here/ })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Open Rules' }).click()
+  await page.getByTestId('research-rule-off').getByRole('link', { name: 'Open Rules' }).click()
   await expect(page).toHaveURL(new RegExp(`/p/${id}/rules`))
   // Now the game has technologies: the Research group shows. On: the checkbox is back and ticked; off again: key gone, flag kept.
   const needs = page.getByRole('checkbox', { name: /Research needs a structure/ })
