@@ -17,6 +17,7 @@ import cmath
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -30,7 +31,7 @@ from wavio import read_wav  # noqa: E402
 CONTRACT_KEYS = ['cursor', 'confirm', 'cancel', 'error', 'step', 'hit', 'miss', 'critical',
                  'heal', 'defeated', 'capture', 'build', 'itemUse', 'gold', 'dialogue',
                  'turnStart', 'upgrade', 'research', 'repair', 'supply']
-EFFECTS = [k for k in CONTRACT_KEYS if k != 'step'] + [
+EFFECTS = [{'itemUse': 'item_use', 'turnStart': 'turn_start'}.get(k, k) for k in CONTRACT_KEYS if k != 'step'] + [
     'step1', 'step2', 'sword_hit', 'bow_shot', 'magic_cast', 'cannon_shot', 'hooves',
     'tank_move', 'potion', 'ambush', 'levelup_tick']
 # id -> (min s, max s, loops)
@@ -115,6 +116,9 @@ def shipped_checks():
         wavs = [os.path.join(gdir, 'audio', f) for f in os.listdir(os.path.join(gdir, 'audio')) if f.endswith('.wav')]
         total = sum(os.path.getsize(w) for w in wavs)
         check(total < EFFECT_BUDGET, '%s: effects are %d KB, budget %d KB' % (rel, total // 1024, EFFECT_BUDGET // 1024))
+        # The editor only lists, plays and removes lower-case names (editor/server/audio.cpp validAudioName).
+        for f in os.listdir(os.path.join(gdir, 'audio')):
+            check(re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,39}\.(wav|ogg)', f) is not None, '%s: audio/%s is not a name the editor accepts' % (rel, f))
         want = {s + '.wav' for s in targets.profile_sounds(targets.TARGETS[rel])}
         check({os.path.basename(w) for w in wavs} == want, rel + ': effect files differ from targets.py')
         for w in wavs:

@@ -66,8 +66,8 @@
     "build": {
       "file": "audio/build.wav"
     },
-    "itemUse": {
-      "file": "audio/itemUse.wav"
+    "item_use": {
+      "file": "audio/item_use.wav"
     },
     "gold": {
       "file": "audio/gold.wav"
@@ -75,8 +75,8 @@
     "dialogue": {
       "file": "audio/dialogue.wav"
     },
-    "turnStart": {
-      "file": "audio/turnStart.wav"
+    "turn_start": {
+      "file": "audio/turn_start.wav"
     },
     "upgrade": {
       "file": "audio/upgrade.wav"
@@ -122,10 +122,10 @@
       "defeated": "defeated",
       "capture": "capture",
       "build": "build",
-      "itemUse": "itemUse",
+      "itemUse": "item_use",
       "gold": "gold",
       "dialogue": "dialogue",
-      "turnStart": "turnStart",
+      "turnStart": "turn_start",
       "upgrade": "upgrade",
       "research": "research",
       "repair": "repair",

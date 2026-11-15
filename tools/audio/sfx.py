@@ -194,7 +194,7 @@ EFFECTS = {
     'cursor': cursor, 'confirm': confirm, 'cancel': cancel, 'error': error,
     'step1': step1, 'step2': step2, 'hit': hit, 'miss': miss, 'critical': critical,
     'heal': heal, 'defeated': defeated, 'capture': capture, 'build': build,
-    'itemUse': itemUse, 'gold': gold, 'dialogue': dialogue, 'turnStart': turnStart,
+    'item_use': itemUse, 'gold': gold, 'dialogue': dialogue, 'turn_start': turnStart,
     'upgrade': upgrade, 'research': research, 'repair': repair, 'supply': supply,
     'sword_hit': sword_hit, 'bow_shot': bow_shot, 'magic_cast': magic_cast,
     'cannon_shot': cannon_shot, 'hooves': hooves, 'tank_move': tank_move,

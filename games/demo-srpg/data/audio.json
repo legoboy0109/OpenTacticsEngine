@@ -111,8 +111,8 @@
     "build": {
       "file": "audio/build.ogg"
     },
-    "itemUse": {
-      "file": "audio/itemUse.ogg"
+    "item_use": {
+      "file": "audio/item_use.ogg"
     },
     "potion": {
       "file": "audio/potion.ogg"
@@ -123,8 +123,8 @@
     "gold": {
       "file": "audio/gold.ogg"
     },
-    "turnStart": {
-      "file": "audio/turnStart.ogg"
+    "turn_start": {
+      "file": "audio/turn_start.ogg"
     },
     "upgrade": {
       "file": "audio/upgrade.ogg"
@@ -167,10 +167,10 @@
       "defeated": "defeated",
       "capture": "capture",
       "build": "build",
-      "itemUse": "itemUse",
+      "itemUse": "item_use",
       "gold": "gold",
       "dialogue": "dialogue",
-      "turnStart": "turnStart",
+      "turnStart": "turn_start",
       "upgrade": "upgrade",
       "research": "research",
       "repair": "repair",

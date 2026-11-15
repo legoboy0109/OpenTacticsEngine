@@ -171,7 +171,7 @@ def run_all(tmp):
     code, out, seq, _ = go(['--map', 'duel'], DUEL + ',confirm,wait:20')
     shown('duel', seq)
     check('duel: exact sequence (music, turn chime, select, cursor, move + step, attack menu, hit, defeat, victory jingle, title)',
-          seq == ['M:battle', 'turnStart', 'confirm', 'cursor', 'confirm', 'step1', 'confirm', 'confirm', 'sword_hit', 'defeated',
+          seq == ['M:battle', 'turn_start', 'confirm', 'cursor', 'confirm', 'step1', 'confirm', 'confirm', 'sword_hit', 'defeated',
                   'M:victory once cut', 'M:title'], str(seq))
 
     # --- 3. A miss, a critical hit, a refused move.
@@ -183,35 +183,35 @@ def run_all(tmp):
     check('critical: the critical sound replaces the hit sound', seq[-1:] == ['critical'] and 'hit' not in seq, str(seq))
     code, out, seq, _ = go(['--map', 'duel'], OPEN + 'confirm,right,right,right,right,right,right,confirm,wait:30')
     shown('refused', seq)
-    check('a move to a square out of reach gives the error sound', seq == ['M:battle', 'turnStart', 'confirm'] + ['cursor'] * 6 + ['error'], str(seq))
+    check('a move to a square out of reach gives the error sound', seq == ['M:battle', 'turn_start', 'confirm'] + ['cursor'] * 6 + ['error'], str(seq))
 
     # --- 4. A capture, a build, an item.
     code, out, seq, _ = go(['--map', 'cap'], OPEN + 'confirm,confirm,confirm,wait:60')
     shown('capture', seq)
-    check('capture: the capture sound', seq == ['M:battle', 'turnStart', 'confirm', 'confirm', 'confirm', 'capture'], str(seq))
+    check('capture: the capture sound', seq == ['M:battle', 'turn_start', 'confirm', 'confirm', 'confirm', 'capture'], str(seq))
     code, out, seq, _ = go(['--map', 'build'], OPEN + 'left,left,left,left,confirm,confirm,wait:60')
     shown('build', seq)
-    check('build: the build sound', seq == ['M:battle', 'turnStart'] + ['cursor'] * 4 + ['confirm', 'confirm', 'build'], str(seq))
+    check('build: the build sound', seq == ['M:battle', 'turn_start'] + ['cursor'] * 4 + ['confirm', 'confirm', 'build'], str(seq))
     code, out, seq, _ = go(['--map', 'potion'], OPEN + 'confirm,confirm,confirm,confirm,confirm,wait:60')
     shown('potion', seq)
-    check('item: the item\'s own use sound (override on the item)', seq == ['M:battle', 'turnStart'] + ['confirm'] * 5 + ['potion'], str(seq))
+    check('item: the item\'s own use sound (override on the item)', seq == ['M:battle', 'turn_start'] + ['confirm'] * 5 + ['potion'], str(seq))
 
     # --- 5. Turn phases: the enemy's turn music and back (also with a map's own player-turn music).
     code, out, seq, _ = go(['--map', 'turn'], OPEN + END_TURN)
     shown('turn', seq)
     check('turn: enemy music on the enemy\'s turn, the map\'s music again on ours; the AI\'s steps take turns (step1, step2)',
-          seq == ['M:battle', 'turnStart', 'confirm', 'M:enemy', 'turnStart', 'step1', 'step2', 'M:battle', 'turnStart'], str(seq))
+          seq == ['M:battle', 'turn_start', 'confirm', 'M:enemy', 'turn_start', 'step1', 'step2', 'M:battle', 'turn_start'], str(seq))
     code, out, seq, _ = go(['--map', 'quiet'], OPEN + END_TURN)
     shown('quiet', seq)
     check('quiet: the map\'s player-turn music, the game\'s enemy-turn music, back',
-          seq == ['M:calm', 'turnStart', 'confirm', 'M:enemy', 'turnStart', 'step1', 'step2', 'M:calm', 'turnStart'], str(seq))
+          seq == ['M:calm', 'turn_start', 'confirm', 'M:enemy', 'turn_start', 'step1', 'step2', 'M:calm', 'turn_start'], str(seq))
 
     # --- 6. The story: playMusic (with a fade) overrides, playSound plays, stopMusic releases.
     code, out, seq, _ = go(['--map', 'story'], OPEN + END_TURN)
     shown('story', seq)
     check('story: playMusic overrides the map music (1 s fade), playSound plays, no enemy music while the story holds the music, '
           'stopMusic (0.25 s) releases it to silence',
-          seq == ['M:battle', 'M:boss f=1', 'thunder', 'turnStart', 'confirm', 'turnStart', 'step1', 'step2', 'turnStart', 'M- f=0.25'],
+          seq == ['M:battle', 'M:boss f=1', 'thunder', 'turn_start', 'confirm', 'turn_start', 'step1', 'step2', 'turn_start', 'M- f=0.25'],
           str(seq))
 
     # --- 7. Level up: a jingle over the music (it pauses it).
@@ -225,7 +225,7 @@ def run_all(tmp):
     code, out, seq, _ = go(['--map', 'ride'], OPEN + 'confirm,right,right,right,confirm,confirm,wait:60')
     shown('ride', seq)
     check('overrides: the rider\'s own select and step sounds (the sword\'s hit sound is in the duel above)',
-          seq == ['M:battle', 'turnStart', 'neigh', 'cursor', 'cursor', 'cursor', 'confirm', 'hooves', 'hooves', 'confirm'], str(seq))
+          seq == ['M:battle', 'turn_start', 'neigh', 'cursor', 'cursor', 'cursor', 'confirm', 'hooves', 'hooves', 'confirm'], str(seq))
     sv, sg = variant(tmp, starter, aj, 'games_silent_hit')
     edit_json(os.path.join(sg, 'data', 'weapons.json'), lambda d: d['weapons'][0]['sounds'].update({'hit': ''}))
     code, out, seq, _ = go(['--map', 'duel'], DUEL, g=sv)
@@ -246,7 +246,7 @@ def run_all(tmp):
     code, out, seq, _ = go(['--map', 'fogwalk'], OPEN + END_TURN)
     shown('fog', seq)
     check('fog: the enemy rider walks out of sight: no hooves, the (public) turn start and music still change',
-          'hooves' not in seq and 'M:enemy' in seq and seq.count('turnStart') == 3, str(seq))
+          'hooves' not in seq and 'M:enemy' in seq and seq.count('turn_start') == 3, str(seq))
     code, out, seq, _ = go(['--map', 'fogwalk', '--show-all'], OPEN + END_TURN)
     shown('fog off', seq)
     walked = seq.count('hooves')
@@ -379,7 +379,7 @@ def shipped_games(tmp, demos):
     OPEN = 'wait:60,'
     code, out, seq, raw = play(tmp, demos, ['--map', 'twin_rivers'], OPEN + 'right,confirm,right,right,confirm,wait:60', 0, game='demo-economy')
     clean('demo-economy twin_rivers', out, code)
-    check('demo-economy: a battle starts with the battle music and the turn chime', seq[:2] == ['M:battle', 'turnStart'], str(seq))
+    check('demo-economy: a battle starts with the battle music and the turn chime', seq[:2] == ['M:battle', 'turn_start'], str(seq))
     check('demo-economy: a tank moving plays tank_move, not the footstep', 'tank_move' in seq and 'step1' not in seq and 'step2' not in seq, str(seq))
     check('demo-economy: picking and moving use the standard menu sounds', 'cursor' in seq and 'confirm' in seq, str(seq))
     code, out, seq, raw = play(tmp, demos, ['--map', 'twin_rivers'], OPEN + 'menu,confirm,wait:300', 0, game='demo-economy')
@@ -435,7 +435,7 @@ def shipped_games(tmp, demos):
         shutil.copytree(os.path.join(REPO, 'editor', 'templates', tpl), os.path.join(games, 'mine'))
         code, out, seq, raw = play(tmp, games, ['--map', map_id], 'wait:30', 100, game='mine')
         clean('template %s (a new project)' % tpl, out, code)
-        check('template %s: a battle plays the battle music and the chime' % tpl, seq[:2] == ['M:battle', 'turnStart'], str(seq[:4]))
+        check('template %s: a battle plays the battle music and the chime' % tpl, seq[:2] == ['M:battle', 'turn_start'], str(seq[:4]))
         code, out, seq, raw = play(tmp, games, [], 'wait:10,confirm,wait:10', 300, game='')
         check('template %s: its game page plays the title music' % tpl, 'M:title' in seq, str(seq))
 

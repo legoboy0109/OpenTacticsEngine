@@ -14,6 +14,8 @@ gets the CC0 set instead).
 STANDARD_KEYS = ['cursor', 'confirm', 'cancel', 'error', 'step', 'hit', 'miss', 'critical',
                  'heal', 'defeated', 'capture', 'build', 'itemUse', 'gold', 'dialogue',
                  'turnStart', 'upgrade', 'research', 'repair', 'supply']
+# Cue key -> file stem / sound id where they differ: file names are lower case (the editor refuses others).
+STEMS = {'itemUse': 'item_use', 'turnStart': 'turn_start'}
 EXTRA_SOUNDS = ['sword_hit', 'bow_shot', 'magic_cast', 'cannon_shot', 'hooves', 'tank_move',
                 'potion', 'ambush', 'levelup_tick']
 BASE_MUSIC = ['title', 'battle', 'enemy', 'victory', 'defeat', 'levelup']
@@ -33,7 +35,7 @@ def profile_sounds(profile):
     """Effect file stems a target ships (the standard `step` has two variants)."""
     out = []
     for k in STANDARD_KEYS:
-        out += ['step1', 'step2'] if k == 'step' else [k]
+        out += ['step1', 'step2'] if k == 'step' else [STEMS.get(k, k)]
     out += profile['extras']
     out += [s for s in profile.get('use_extra', {}).values() if s not in out]
     return out
@@ -60,7 +62,7 @@ def audio_json(music_tracks, loops, sound_stems, use_extra=None, ext='.ogg', sce
             sounds['step'] = {'files': ['audio/step1.wav', 'audio/step2.wav']}
         else:
             sounds[stem] = {'file': 'audio/%s.wav' % stem}
-    use_sounds = {k: k for k in STANDARD_KEYS}
+    use_sounds = {k: STEMS.get(k, k) for k in STANDARD_KEYS}
     use_sounds.update(use_extra or {})
     return {
         'music': music,

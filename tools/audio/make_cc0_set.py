@@ -88,11 +88,11 @@ SFX = {
     'heal': dict(layers=[('interface-sounds', 'maximize_005', 0), ('interface-sounds', 'glass_001', 0.1)], max=1.0),
     'capture': dict(layers=[('rpg-audio', 'doorOpen_2', 0), ('rpg-audio', 'metalLatch', 0.35)], max=1.0),
     'build': dict(layers=[('impact-sounds', 'impactPlank_medium_001', 0), ('impact-sounds', 'impactWood_heavy_001', 0.2)], max=0.9),
-    'itemUse': dict(layers=[('rpg-audio', 'handleSmallLeather', 0)], max=0.7),
+    'item_use': dict(layers=[('rpg-audio', 'handleSmallLeather', 0)], max=0.7),
     'potion': dict(layers=[('interface-sounds', 'glass_001', 0), ('interface-sounds', 'maximize_006', 0.08)], max=0.8),
     'magic': dict(layers=[('interface-sounds', 'glass_004', 0), ('interface-sounds', 'maximize_004', 0)], max=0.8),
     'gold': dict(layers=[('rpg-audio', 'handleCoins2', 0)], max=0.8),
-    'turnStart': dict(layers=[('impact-sounds', 'impactBell_heavy_000', 0)], max=1.2),
+    'turn_start': dict(layers=[('impact-sounds', 'impactBell_heavy_000', 0)], max=1.2),
     'upgrade': dict(layers=[('impact-sounds', 'impactMetal_light_002', 0), ('interface-sounds', 'confirmation_003', 0.1)], max=0.9),
     'research': dict(layers=[('rpg-audio', 'bookFlip2', 0)], max=0.9),
     'repair': dict(layers=[('impact-sounds', 'impactMetal_light_001', 0), ('impact-sounds', 'impactMetal_light_004', 0.16)], max=0.7),
@@ -105,7 +105,7 @@ USE_SOUNDS = {
     'cursor': 'cursor', 'confirm': 'confirm', 'cancel': 'cancel', 'error': 'error',
     'step': ['step1', 'step2', 'step3'], 'hit': 'hit', 'miss': 'miss', 'critical': 'critical',
     'heal': 'heal', 'defeated': 'defeated', 'capture': 'capture', 'build': 'build',
-    'itemUse': 'itemUse', 'gold': 'gold', 'dialogue': 'dialogue', 'turnStart': 'turnStart',
+    'itemUse': 'item_use', 'gold': 'gold', 'dialogue': 'dialogue', 'turnStart': 'turn_start',
     'upgrade': 'upgrade', 'research': 'research', 'repair': 'repair', 'supply': 'supply',
     'ambush': 'ambush', 'select': 'select',
 }
@@ -115,7 +115,7 @@ VARIANTS = {'step': ['step1', 'step2', 'step3'], 'hooves': ['hooves1', 'hooves2'
 HIDDEN = {s for v in VARIANTS.values() for s in v}   # files that are only listed as variants
 SOUND_IDS = ['cursor', 'confirm', 'cancel', 'error', 'select', 'dialogue', 'step', 'hooves', 'plate_step',
              'flutter', 'hit', 'sword_hit', 'lance_hit', 'axe_hit', 'bow_hit', 'miss', 'critical', 'defeated',
-             'heal', 'capture', 'build', 'itemUse', 'potion', 'magic', 'gold', 'turnStart', 'upgrade',
+             'heal', 'capture', 'build', 'item_use', 'potion', 'magic', 'gold', 'turn_start', 'upgrade',
              'research', 'repair', 'supply', 'ambush', 'alarm']
 
 # Music: id -> how the original becomes the track. loop = (start, end, cross-fade seconds): the stretch

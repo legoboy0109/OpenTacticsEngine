@@ -107,7 +107,7 @@ def run_out(out, ogg):
         rows.append((path, secs, 'music'))
     stems = []
     for k in targets.STANDARD_KEYS:
-        stems += ['step1', 'step2'] if k == 'step' else [k]
+        stems += ['step1', 'step2'] if k == 'step' else [targets.STEMS.get(k, k)]
     stems += targets.EXTRA_SOUNDS
     cfg = targets.audio_json(list(tracks.TRACKS), loops_table(), stems, scene=True,
                              ext='.ogg' if ogg else '.wav')

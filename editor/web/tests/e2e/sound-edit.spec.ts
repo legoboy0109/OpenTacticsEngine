@@ -1,6 +1,6 @@
 // Changing sound that is already there: rename and delete with "used by" and one Undo, the upload refusals, deleting a sound
 // FILE that is used, the amber checks, a broken audio.json, removing all sound, the unused files, and the sidebar entry.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { diskPath, editorUrl, expect, readDisk, saved, test } from './fixtures'
 import { audioDisk, openSound, playerBin, playerClean, runPlayer, silentGame, soundGame, wav } from './soundkit'
 
@@ -92,7 +92,8 @@ test('@smoke a file that is not a sound, a sound that is really another kind, an
   await expect(page.getByText('“huge.wav” is larger than 8 MB')).toBeVisible()
   // nothing was named, uploaded or saved
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  expect(existsSync(diskPath(id, 'audio'))).toBe(false)
+  // (a game made from a template that ships starter sounds keeps its emptied audio folder)
+  expect(existsSync(diskPath(id, 'audio')) ? readdirSync(diskPath(id, 'audio')) : []).toEqual([])
   expect(existsSync(diskPath(id, 'data/audio.json'))).toBe(false)
   await expect(page.getByTestId('no-sound')).toBeVisible()
   // the helper refuses the same things on its own (a client that skipped the checks)
