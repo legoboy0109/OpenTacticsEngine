@@ -7,6 +7,7 @@ export type SignalName =
   | 'played' // the Play panel reported that the embedded player is ready
   | 'saved' // the game was written to disk (autosave or Play)
   | 'problemsChecked' // the Problems list was opened
+  | 'soundPreviewed' // a play button on the Sound screen was pressed (the editor tried to play a track or a sound)
 
 type Listener = (name: SignalName) => void
 

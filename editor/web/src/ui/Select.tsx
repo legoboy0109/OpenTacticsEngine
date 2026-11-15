@@ -10,6 +10,8 @@ interface Props {
   options: Array<Option | OptionGroup>
   disabled?: boolean
   'aria-label'?: string
+  /** Names the control for the lessons' pointer (learn/Highlight.tsx). */
+  'data-learn'?: string
   className?: string
   /** Shown as a disabled first choice when nothing is selected. */
   placeholder?: string

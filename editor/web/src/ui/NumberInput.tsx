@@ -16,6 +16,8 @@ interface Props {
   suffix?: string
   disabled?: boolean
   'aria-label'?: string
+  /** Names the control for the lessons' pointer (learn/Highlight.tsx). */
+  'data-learn'?: string
   className?: string
 }
 

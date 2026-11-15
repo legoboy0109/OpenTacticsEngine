@@ -20,6 +20,7 @@ interface Props {
   value: string | undefined
   onChange: (v: string | undefined) => void
   'aria-label'?: string
+  'data-learn'?: string
 }
 
 export function AudioChoice({ kind, mode, value, onChange, ...rest }: Props) {
