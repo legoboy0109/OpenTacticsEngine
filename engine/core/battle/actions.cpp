@@ -187,7 +187,9 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   }
   noticeAlong(action.unit, path, stop);
   u.moved = true;
-  if (blocker >= 0) u.done = true;  // ambushed: the unit's turn is over
+  // Ambushed: by default the unit's turn is over; with "rules.fog.ambush": "canAct" it only counts as having moved
+  // (it cannot move again, may do anything else it could do after a normal move to this square).
+  if (blocker >= 0 && db->rules.ambush == AmbushRule::EndsTurn) u.done = true;
 
   if (stop > 0) {  // the unit has ended its move: events waiting for it to arrive here may run
     StoryOccurrence o;

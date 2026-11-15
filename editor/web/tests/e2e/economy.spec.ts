@@ -28,13 +28,13 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
   test.setTimeout(180_000)
   const id = await game.create('economy-tactics', 'Economy')
 
-  // --- Research is empty at first: it explains itself and points at Structures. Nothing is written.
+  // --- Research is empty at first: it explains itself. Nothing is written.
   await open(page, id, 'research')
   await expect(page.getByText('No technologies yet.').first()).toBeVisible()
   await expect(page.getByText(/Research lets a side pay and wait/)).toBeVisible()
   await shot(page, 'research-empty')
-  await page.getByRole('link', { name: 'Open Structures' }).click()
-  await expect(page).toHaveURL(new RegExp(`/p/${id}/structures`))
+  await expect(page.getByRole('link', { name: 'Open Structures' })).toHaveCount(0) // research needs no structure by default
+  await open(page, id, 'structures')
   await expect(page.getByRole('heading', { name: 'Structures', level: 1 })).toBeVisible()
 
   // --- Structures: a Town, and a Library where research is done.
@@ -46,14 +46,15 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
   await expect(up.getByRole('option', { name: 'Headquarters' })).toHaveCount(0) // a different footprint cannot be picked
   await up.getByLabel('Funds Cost').fill('3000')
   await create(page, 'structure', 'Library')
-  await page.getByRole('checkbox', { name: /Research can be done here/ }).check()
-  await expect(page.getByTestId('research-here-none')).toBeVisible() // no technology yet
+  // Research needs no structure by default: no checkbox, one line that points at the rule.
+  await expect(page.getByRole('checkbox', { name: /Research can be done here/ })).toHaveCount(0)
+  await expect(page.getByTestId('research-rule-off')).toBeVisible()
   await saved(page)
   expect(await game.problems(id)).toEqual([]) // an upgrade with no technology needed is fine on its own
 
   // --- Research: Tools (free of turns, a bonus) and Masonry (needs Tools, unlocks the Tank).
   await open(page, id, 'research')
-  await expect(page.getByTestId('no-research-structure')).toHaveCount(0) // the Library allows it
+  await expect(page.getByTestId('no-research-structure')).toHaveCount(0) // the default rule needs no structure
   await create(page, 'technology', 'Tools')
   await page.getByLabel('Description').fill('Basic tools.')
   await page.getByLabel('Funds Cost').fill('1000')
@@ -97,6 +98,17 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
   await page.getByLabel('Share of the unit’s price paid').fill('50')
   await page.getByRole('checkbox', { name: /Own structures also refill fuel and ammunition/ }).check()
   await shot(page, 'rules-supply')
+  // The Research group appears now that the game has technologies; this game wants a structure for research.
+  await expect(page.getByTestId('research-rule')).toBeVisible()
+  await page.getByRole('checkbox', { name: /Research needs a structure/ }).check()
+  await page.getByLabel('When a unit walks into a hidden enemy').selectOption({ label: 'It can still act' })
+  await shot(page, 'rules-research-fog')
+  await open(page, id, 'research')
+  await expect(page.getByTestId('no-research-structure')).toBeVisible() // rule on, and no kind allows it yet
+  await open(page, id, 'structures', 'library')
+  await page.getByRole('checkbox', { name: /Research can be done here/ }).check()
+  await open(page, id, 'research')
+  await expect(page.getByTestId('no-research-structure')).toHaveCount(0)
   await open(page, id, 'structures', 'city')
   await expect(page.getByTestId('hidden-settings')).toHaveCount(0)
   await page.getByLabel('Repairs', { exact: true }).selectOption({ label: 'Only these' })
@@ -149,6 +161,8 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
     ],
   })
   expect(readDisk(id, 'game.json').rules.supply).toEqual({ repair: { amount: 25, costShare: 50 }, structures: true })
+  expect(readDisk(id, 'game.json').rules.research).toEqual({ needsStructure: true })
+  expect(readDisk(id, 'game.json').rules.fog).toEqual({ ambush: 'canAct' })
   const units = readDisk(id, 'data/units.json').units as Array<Record<string, any>>
   expect(units.find((u) => u.id === 'tank')).toMatchObject({ fuel: 60, fuelPerTurn: 5 })
   expect(units.find((u) => u.id === 'supply_truck')).toMatchObject({ supplies: true })
@@ -184,6 +198,48 @@ test('@smoke a town that becomes a city with a technology, research, repair, fue
 })
 
 const kind2 = (list: Array<Record<string, any>>, k: string) => list.find((s) => s.id === k)!
+
+test('the two option rules: the Research group follows the game, the flag on a structure is kept, defaults are not written', async ({ page, game }) => {
+  const id = await game.create('economy-tactics', 'Options')
+  // A game with no technologies and no rule: no Research group; the Fog group is always there.
+  await open(page, id, 'rules')
+  await expect(page.getByTestId('research-rule')).toHaveCount(0)
+  await expect(page.getByTestId('fog-rule')).toBeVisible()
+  await expect(page.getByLabel('When a unit walks into a hidden enemy')).toHaveValue('endsTurn')
+  expect(readDisk(id, 'game.json').rules).not.toHaveProperty('fog')
+  // Choosing the non-default writes the one key; choosing the default again removes the block.
+  await page.getByLabel('When a unit walks into a hidden enemy').selectOption({ label: 'It can still act' })
+  await saved(page)
+  expect(readDisk(id, 'game.json').rules.fog).toEqual({ ambush: 'canAct' })
+  await page.getByLabel('When a unit walks into a hidden enemy').selectOption({ label: 'Its turn ends' })
+  await saved(page)
+  expect(readDisk(id, 'game.json').rules).not.toHaveProperty('fog')
+  // A structure that already says research: true keeps it while the rule is off; the checkbox is hidden then.
+  const doc = await (await page.request.get(`/api/projects/${id}`)).json()
+  doc.structures[0].research = true
+  doc.research = [{ id: 'tools', name: 'Tools' }]
+  const res = await page.request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, structures: doc.structures, research: doc.research } })
+  expect(res.ok()).toBeTruthy()
+  await open(page, id, 'structures', doc.structures[0].id)
+  await expect(page.getByTestId('research-rule-off')).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: /Research can be done here/ })).toHaveCount(0)
+  await page.getByTestId('research-rule-off').getByRole('link', { name: 'Open Rules' }).click()
+  await expect(page).toHaveURL(new RegExp(`/p/${id}/rules`))
+  // Now the game has technologies: the Research group shows. On: the checkbox is back and ticked; off again: key gone, flag kept.
+  const needs = page.getByRole('checkbox', { name: /Research needs a structure/ })
+  await expect(needs).not.toBeChecked()
+  await needs.check()
+  await saved(page)
+  expect(readDisk(id, 'game.json').rules.research).toEqual({ needsStructure: true })
+  await open(page, id, 'structures', doc.structures[0].id)
+  await expect(page.getByRole('checkbox', { name: /Research can be done here/ })).toBeChecked()
+  await open(page, id, 'rules')
+  await page.getByRole('checkbox', { name: /Research needs a structure/ }).uncheck()
+  await saved(page)
+  expect(readDisk(id, 'game.json').rules).not.toHaveProperty('research')
+  expect(readDisk(id, 'data/structures.json').structures[0].research).toBe(true)
+  expect(await game.problems(id)).toEqual([])
+})
 
 test('the checks name everything the loader would refuse, at once, on the screen that holds it', async ({ page, game }) => {
   const id = await game.create('economy-tactics', 'Checks')

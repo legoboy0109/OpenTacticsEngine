@@ -15,6 +15,7 @@ namespace {
 bool has(const std::string& hay, const char* needle) { return hay.find(needle) != std::string::npos; }
 
 struct Parts {
+  std::string rules;  // the inside of game.json "rules": { ... }, or empty for none
   std::string research =
       R"({ "technologies": [
         { "id": "tools", "name": "Tools", "description": "Better hammers.", "cost": {"gold": 100}, "turns": 1,
@@ -40,7 +41,7 @@ std::string makeGame(const char* name, const Parts& p) {
                       "{ \"formatVersion\": 1, \"name\": \"G\", \"stats\": [{\"id\":\"hp\"},{\"id\":\"str\"},{\"id\":\"mov\"}],"
                       " \"roles\": {\"hp\":\"hp\",\"move\":\"mov\"}, \"moveTypes\": [{\"id\":\"foot\"}],"
                       " \"resources\": [{\"id\":\"gold\"}], \"formulas\": {\"damage\":\"a.str\"},"
-                      " \"switches\": [{\"id\":\"s\"}],"
+                      " \"switches\": [{\"id\":\"s\"}]," + (p.rules.empty() ? std::string() : " \"rules\": {" + p.rules + "},") +
                       " \"maps\": [{\"id\":\"m\",\"file\":\"maps/m.json\"}] }"));
   CHECK(writeTextFile(root + "/data/terrain.json", "{ \"terrain\": [ {\"id\":\"plain\"} ] }"));
   CHECK(writeTextFile(root + "/data/weapons.json", "{ \"weapons\": [{\"id\":\"sword\"}] }"));
@@ -209,3 +210,41 @@ TEST(upgrade_loader_accepts_a_target_that_comes_later_and_chains) {
   CHECK_STR(problem("chain", withStructures(R"({ "structures": [
     {"id":"a","upgrades":[{"to":"b"}]}, {"id":"b","upgrades":[{"to":"c"}]}, {"id":"c"} ] })")), "");
 }
+
+// ---- game.json "rules.research" and "rules.fog" (loader_options.cpp) ----
+
+namespace {
+Parts withRules(const char* text) {
+  Parts p;
+  p.rules = text;
+  return p;
+}
+}  // namespace
+
+TEST(option_rules_default_to_no_structure_needed_and_ambush_ends_the_turn) {
+  Database db;
+  std::string err;
+  CHECK(loadGame(makeGame("opt_default", Parts()), db, err));
+  CHECK(!db.rules.researchNeedsStructure);
+  CHECK(db.rules.ambush == AmbushRule::EndsTurn);
+}
+
+TEST(option_rules_are_read) {
+  Database db;
+  std::string err;
+  CHECK(loadGame(makeGame("opt_read", withRules(R"("research": {"needsStructure": true}, "fog": {"ambush": "canAct"})")), db, err));
+  CHECK(db.rules.researchNeedsStructure);
+  CHECK(db.rules.ambush == AmbushRule::CanAct);
+  Database db2;
+  CHECK(loadGame(makeGame("opt_read2", withRules(R"("research": {"needsStructure": false}, "fog": {"ambush": "endsTurn"})")), db2, err));
+  CHECK(!db2.rules.researchNeedsStructure);
+  CHECK(db2.rules.ambush == AmbushRule::EndsTurn);
+  Database db3;
+  CHECK(loadGame(makeGame("opt_read3", withRules(R"("research": {}, "fog": {})")), db3, err));
+}
+
+REFUSES(option_rules_refuse_unknown_research_key, withRules(R"("research": {"needsBuilding": true})"), "rules.research", "needsBuilding")
+REFUSES(option_rules_refuse_a_research_flag_that_is_not_a_boolean, withRules(R"("research": {"needsStructure": "yes"})"), "needsStructure")
+REFUSES(option_rules_refuse_unknown_fog_key, withRules(R"("fog": {"ambushes": "canAct"})"), "rules.fog", "ambushes")
+REFUSES(option_rules_refuse_an_unknown_ambush_value, withRules(R"("fog": {"ambush": "never"})"), "ambush", "endsTurn", "canAct", "never")
+REFUSES(option_rules_refuse_a_research_block_that_is_not_an_object, withRules(R"("research": true)"), "research")

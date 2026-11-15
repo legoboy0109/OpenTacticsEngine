@@ -193,6 +193,7 @@ void BattleScene::selectUnit(int unit) {
   sel_ = unit;
   hasUndo_ = false;
   itemsUsed_ = false;
+  ambushed_ = false;
   if (battle_.units[unit].moved) {  // already moved this turn: only the action is left
     openActionMenu();
     return;
@@ -240,13 +241,19 @@ void BattleScene::selectedButton(Button b) {
       } else if (reach_.canStop(cursor_)) {
         undo_ = battle_;  // copy BEFORE the move: Cancel restores it
         undoCell_ = u.cell;
+        const Cell wanted = cursor_;
         if (!submit(Action::move(sel_, cursor_))) return;
         if (battle_.units[sel_].done) {  // fog: an ambush ended its turn; nothing to undo to (that would show what was hidden)
           dirty_ = true;
           finishOrder();
           return;
         }
-        hasUndo_ = true;
+        // Fog, ambush "canAct": the unit stopped short and may still act. The move stays (undoing it would show what
+        // was hidden): Cancel in the menu only closes it, and the unit can be picked again for its action menu.
+        ambushed_ = battle_.units[sel_].cell != wanted;
+        hasUndo_ = !ambushed_;
+        if (ambushed_) OTE_INFO("ambushed: %s may still act from %d,%d", battle_.units[sel_].name.c_str(),
+                                battle_.grid.x(battle_.units[sel_].cell), battle_.grid.y(battle_.units[sel_].cell));
         openActionMenu();
       } else {
         int t = battle_.unitAt(cursor_);
@@ -268,6 +275,7 @@ void BattleScene::finishOrder() {
   overlay_ = Overlay();
   hasUndo_ = false;
   itemsUsed_ = false;
+  ambushed_ = false;
   if (sel_ >= 0 && battle_.units[sel_].alive) cursor_ = battle_.units[sel_].cell;
   sel_ = -1;
 }

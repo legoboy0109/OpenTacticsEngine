@@ -89,7 +89,7 @@ TEST(demo_economy_tank_needs_research_and_cities_upgrade) {
   for (size_t i = 0; i < d.db.research.size(); ++i)
     if (d.db.research[i].id == "armor") armor = int(i);
   CHECK(armor >= 0);
-  // The factory's tank is locked until Armor Doctrine is finished; a side can research at its HQ.
+  // The factory's tank is locked until Armor Doctrine is finished; research needs no building (the default).
   Cell factory = b.grid.at(2, 3);
   CHECK(!b.canBuild(factory, tank) && !b.unitUnlocked(0, tank));
   CHECK(b.canResearch(0));

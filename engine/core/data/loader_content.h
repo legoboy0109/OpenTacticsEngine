@@ -24,6 +24,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err);
 class LoadCtx;
 class Json;
 // Repair and supply (loader_supply.cpp; docs/ECONOMY.md): the pieces of the data files, each optional.
+bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db);  // "rules.research" and "rules.fog" (loader_options.cpp)
 bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db);  // game.json "rules.supply"
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);

@@ -27,6 +27,8 @@ def run_economy_checks(api, tmp, games, templates, check, get_project, put_proje
     with open(os.path.join(root, "game.json")) as f:
         game = json.load(f)
     game["rules"]["supply"] = {"repair": {"amount": 20, "costShare": 50}, "structures": True}
+    game["rules"]["research"] = {"needsStructure": True}      # the two option rules: kept, in this order, byte for byte
+    game["rules"]["fog"] = {"ambush": "canAct"}
     structures = [
         {"id": "city", "name": "City", "color": "#b7b7b7", "glyph": "c", "props": {"defense": 3}, "capturePoints": 20,
          "income": {"funds": 1000}, "research": True,
@@ -60,6 +62,16 @@ def run_economy_checks(api, tmp, games, templates, check, get_project, put_proje
     # (the template map may use structure kinds the test list leaves out: only the economy files matter here)
     econ = [p for p in pr["problems"] if p["file"] in ("game.json", "data/structures.json", "data/units.json", "data/weapons.json", "data/research.json")]
     check("economy: the game files load with no problems", econ == [], econ)
+    # The loader refuses a wrong option rule and the editor shows its message in the Problems list.
+    bad = json.loads(json.dumps(game))
+    bad["rules"]["fog"] = {"ambush": "never"}
+    st, d0 = get_project(api, pid)
+    st, res = put_project(api, pid, d0, d0["revision"], game=bad)
+    st, pr = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("economy: a wrong rules.fog.ambush is reported with the allowed values",
+          any(p["file"] == "game.json" and "ambush" in p["message"] and "canAct" in p["message"] for p in pr["problems"]), pr["problems"])
+    st, d0 = get_project(api, pid)
+    st, res = put_project(api, pid, d0, d0["revision"], game=game)
 
     files = ["game.json", "data/structures.json", "data/units.json", "data/weapons.json", "data/research.json"]
     before = {f: rawb(os.path.join(root, f)) for f in files}
@@ -67,6 +79,9 @@ def run_economy_checks(api, tmp, games, templates, check, get_project, put_proje
     check("economy: GET returns the keys as written",
           d["structures"] == structures and d["units"] == units and d["weapons"] == weapons and d["research"] == research
           and d["game"]["rules"]["supply"] == game["rules"]["supply"], (d["structures"], d["research"]))
+    check("economy: rules.research and rules.fog come back as written",
+          d["game"]["rules"]["research"] == {"needsStructure": True} and d["game"]["rules"]["fog"] == {"ambush": "canAct"}
+          and list(d["game"]["rules"].keys()) == list(game["rules"].keys()), d["game"]["rules"])
     check("economy: key order is kept in GET",
           list(d["structures"][0].keys()) == list(structures[0].keys()) and list(d["units"][1].keys()) == list(units[1].keys())
           and list(d["research"][1].keys()) == list(research[1].keys()))

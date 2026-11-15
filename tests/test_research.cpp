@@ -71,6 +71,7 @@ TEST(research_with_zero_turns_finishes_at_once) {
 
 TEST(research_waits_without_a_research_structure_and_keeps_its_progress) {
   ResearchWorld w;
+  w.db.rules.researchNeedsStructure = true;
   CHECK(w.begin());
   w.battle.sides[0].researched[Tools] = 1;
   CHECK(w.act(Action::research(Masonry)));  // 2 turns
@@ -91,6 +92,7 @@ TEST(research_waits_without_a_research_structure_and_keeps_its_progress) {
 
 TEST(research_refusals_each_have_a_reason) {
   ResearchWorld w;
+  w.db.rules.researchNeedsStructure = true;
   CHECK(w.begin());
   CHECK_STR(w.refused(Action::research(Masonry)), "needs Tools");
   CHECK_STR(w.refused(Action::research(99)), "no such technology");
@@ -310,4 +312,48 @@ TEST(research_is_deterministic) {
     if (run == 0) first = sig;
     else CHECK_STR(sig, first);
   }
+}
+
+// Default rule (docs/ECONOMY.md "Research"): no building needed; the countdown never pauses.
+TEST(research_needs_no_structure_by_default) {
+  ResearchWorld w;
+  CHECK(!w.db.rules.researchNeedsStructure);
+  CHECK(w.begin());
+  for (size_t s = 0; s < w.battle.structures.size(); ++s)
+    if (w.battle.structures[s].owner == 0) w.battle.structures[s].owner = -1;  // blue owns nothing at all
+  CHECK(w.battle.canResearch(0));
+  CHECK(w.battle.canResearch(1));
+  std::vector<ResearchOption> options;
+  w.battle.researchOptions(0, options);
+  CHECK(!options.empty());
+  for (const ResearchOption& o : options)
+    CHECK(!has(o.why, "structure"));
+  w.battle.sides[0].researched[Tools] = 1;
+  CHECK(w.act(Action::research(Masonry)));  // 2 turns, no building anywhere
+  CHECK(w.nextTurn());
+  CHECK_EQ(w.battle.researchTurnsLeft(0), 1);  // counted
+  CHECK(w.nextTurn());
+  CHECK(w.battle.hasTechnology(0, Masonry));
+}
+
+TEST(research_with_needs_structure_follows_the_structures_flag) {
+  ResearchWorld w;
+  w.db.rules.researchNeedsStructure = true;
+  CHECK(w.begin());
+  CHECK(w.battle.canResearch(0));
+  w.battle.structures[(size_t)w.structure(0, 0)].owner = -1;
+  CHECK(!w.battle.canResearch(0));
+  std::vector<ResearchOption> options;
+  w.battle.researchOptions(0, options);
+  for (const ResearchOption& o : options) {
+    CHECK(!o.ok);
+    CHECK_STR(o.why, "needs a structure that can research");
+  }
+}
+
+TEST(a_game_without_technologies_cannot_research_either_way) {
+  ResearchWorld w;
+  w.db.research.clear();
+  CHECK(w.begin());
+  CHECK(!w.battle.canResearch(0));
 }

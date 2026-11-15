@@ -107,7 +107,7 @@ class BattleScene : public Scene {
   void openResearchPanel();
   void economyMenuChosen(int id);          // an entry of the structure or upgrade menu
   void researchInput(const InputEvent& e);
-  void backToStructure();                  // Cancel in Build / Upgrade / Research: the structure menu, or the map
+  void backToStructure();                  // Cancel in Build / Upgrade: the structure menu, or the map
   Overlay supplyOverlay() const;           // the units a Supply would fill, while that entry is selected
   void logInspected();                     // [info] line for the unit under the cursor when it has fuel / ammunition
   std::string economyHint() const;
@@ -172,6 +172,7 @@ class BattleScene : public Scene {
   Battle undo_;          // copy taken before the unit's Move
   bool hasUndo_ = false;
   bool itemsUsed_ = false;  // an item action was done in this order: the move can no longer be undone
+  bool ambushed_ = false;   // fog, "canAct": the order was stopped by an ambush, the unit may still act, the move stays
   Cell undoCell_ = kNoCell;
   std::vector<AttackOption> targets_;
   int targetIdx_ = 0;
@@ -182,7 +183,7 @@ class BattleScene : public Scene {
   ItemPanel itemPanel_;
   ItemPanel researchPanel_;       // Mode::Research
   std::vector<int> techRows_;     // technology of each row of researchPanel_
-  bool structureMenuBack_ = false;  // Build / Upgrade / Research was opened from the structure menu: Cancel goes back
+  bool structureMenuBack_ = false;  // Build / Upgrade was opened from the structure menu: Cancel goes back
   int upgradeStructure_ = -1;     // the structure of the open Upgrade menu
   std::string inspectedLine_;     // the last logInspected() line
   TradePanel tradePanel_;

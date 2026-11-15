@@ -5,7 +5,7 @@
   python3 tests/demo_economy_player_test.py ./build/engine/player/ote-player . --shots OUT_DIR   # keeps the screenshots
 
 economy_player_test.py and fog_player_test.py check the player's features on small games made for the test; this
-one only checks that the shipped demo shows them: the structure menus, the research panel, a locked unit type in
+one only checks that the shipped demo shows them: the structure menus, the research panel (from the battle menu), a locked unit type in
 the Build menu, fuel and ammunition in the info panel, and the fog map dimmed where the viewer cannot see (top-down
 and one 3D style). The player runs with --headless --no-settings --no-saving, never a window.
 
@@ -104,11 +104,14 @@ def main():
     return 1 if failures else 0
 
 
+RESEARCH = 'menu,down,confirm,wait:5'
+
+
 def scenarios(tmp):
-    # 1. Research at the headquarters: it offers only Research, so the panel opens at once.
-    log = play('twin_rivers', 'wait:30,left,left,confirm,wait:5,cancel,wait:3')
+    # 1. Research from the battle menu (End Turn, Research, Abandon battle, Cancel): no building needed.
+    log = play('twin_rivers', 'wait:30,' + RESEARCH + ',cancel,wait:3')
     rp = lines(log, 'research panel:')
-    check('hq: Research panel lists the three technologies, Plating greyed until Armor is done',
+    check('battle menu: Research panel lists the three technologies, Plating greyed until Armor is done',
           bool(rp) and rp[0] == 'research panel: Armor Doctrine (4000 Funds, 2 turns); '
           'Reinforced Plating (5000 Funds, 2 turns) [greyed]; Urbanism (6000 Funds, 2 turns)', str(rp))
 
@@ -132,7 +135,7 @@ def scenarios(tmp):
     # 5. Armor Doctrine bought and finished on the real map: the tank is no longer greyed (two own turns later; the
     # cursor is sent to the corner first because it does not stay where it was after a turn change).
     end_turn = 'menu,confirm,wait:60'
-    log = play('twin_rivers', 'wait:30,left,left,confirm,wait:2,confirm,wait:30,' + end_turn + ',' + end_turn +
+    log = play('twin_rivers', 'wait:30,' + RESEARCH + ',confirm,wait:30,' + end_turn + ',' + end_turn +
                ',left,left,left,left,left,left,up,up,up,up,up,up,right,right,down,down,down,confirm,wait:5,cancel,wait:3', frames=3000)
     bm = lines(log, 'build menu:')
     check('research: after Armor Doctrine the factory offers the tank without a note',

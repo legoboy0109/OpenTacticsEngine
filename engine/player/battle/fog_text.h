@@ -11,6 +11,9 @@ struct FogWords {
   // An ambush: the move was stopped by an enemy nobody had seen.
   static constexpr const char* kFloatAmbush = "Ambush!";
   static constexpr const char* kNoticeStopped = "Stopped: an enemy was in the way";
+  // Ambush rule "canAct": the unit stopped but may still act; the move cannot be undone.
+  static constexpr const char* kNoticeCanAct = "Stopped: an enemy was in the way. The unit can still act";
+  static constexpr const char* kHintAmbushed = "Up/Down + Z:choose  X:close (the move stays)";
 };
 
 }  // namespace ote

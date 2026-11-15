@@ -3,9 +3,10 @@
 export const T = {
   title: 'Research',
   noun: 'technology',
-  intro: 'Technologies a side can research: pay, wait, and get something in return. Research is done at a structure that allows it.',
+  intro: 'Technologies a side can research: pay, wait, and get something in return. Players start research from the battle menu.',
   empty: 'No technologies yet.',
-  emptyExplain: 'Research lets a side pay and wait to unlock unit types, build structures up into better ones, or make its units stronger. Add a technology here, then tick “Research can be done here” on a structure kind.',
+  emptyExplain: 'Research lets a side pay and wait to unlock unit types, build structures up into better ones, or make its units stronger. Add a technology here.',
+  emptyExplainStructure: 'This game needs a structure for research: tick “Research can be done here” on a structure kind.',
   emptyStructures: 'Open Structures',
   noResearchStructure: 'No structure kind allows research yet, so nobody can research these. Tick “Research can be done here” on a structure kind.',
   newTitle: 'New technology',

@@ -10,6 +10,8 @@ import { ItemsCard } from './ItemsCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { SavingCard } from './SavingCard'
+import { FogRuleCard } from './FogRuleCard'
+import { ResearchRuleCard } from './ResearchRuleCard'
 import { SupplyCard } from './SupplyCard'
 import { SwitchesCard, VariablesCard } from './StoryListsCards'
 import { StatsCard } from './StatsCard'
@@ -40,6 +42,8 @@ function RulesForm() {
       <BattleCard />
       <FeaturesCard />
       <SupplyCard />
+      <ResearchRuleCard />
+      <FogRuleCard />
       <ItemsCard />
       <SavingCard />
       <SwitchesCard />

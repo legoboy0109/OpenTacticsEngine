@@ -25,9 +25,15 @@ export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; invent
 /** docs/ECONOMY.md `rules.supply`; no block = nothing is repaired or resupplied. */
 export interface RepairRules extends Extra { amount?: number; costShare?: number }
 export interface SupplyRules extends Extra { repair?: RepairRules; structures?: boolean }
+/** docs/ECONOMY.md `rules.research` (needsStructure, default false) and `rules.fog` (ambush, default "endsTurn"). */
+export type AmbushRule = 'endsTurn' | 'canAct'
+export interface ResearchRules extends Extra { needsStructure?: boolean }
+export interface FogRules extends Extra { ambush?: AmbushRule }
 export interface Rules extends Extra {
   items?: ItemRules
   supply?: SupplyRules
+  research?: ResearchRules
+  fog?: FogRules
   turnOrder?: string
   counterAttacks?: boolean
   defeat?: string[]
