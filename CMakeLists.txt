@@ -62,7 +62,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
                  engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp
                  engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
                  engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
-                 engine/player/args.cpp engine/player/options/option_defs.cpp)
+                 engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp)
   # The player's sound data, cue lookup and music director (docs/SOUND.md step 2).
   target_sources(ote_tests PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp engine/player/sound/sound_bank.cpp
                  engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp)
@@ -109,6 +109,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME fog_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/fog_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Hexagon maps in the top-down view (docs/HEX.md), windowless.
+    add_test(NAME hex_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/hex_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
