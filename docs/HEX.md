@@ -17,7 +17,9 @@ Rules never look at coordinates: everything in `engine/core` goes through
 `Grid::neighbors / distance / within` (engine/core/grid/grid.h). Hexagons are
 a new case there plus drawing, input, art and the editor.
 
-Status: contract written; nothing built yet. Build order at the end.
+Status: step 1 (core) done: grid, loader, structures with rings, join mask, `ote-sim`, tests and two fixture games.
+Nothing is drawn yet (the player draws a hexagon map as if it were squares until step 2). Build order at the end;
+what step 1 built is under "Implementation notes (core)".
 
 ## Data
 
@@ -159,3 +161,47 @@ that changes its grid refuses its old saves like any other rules change.
 4. **Editor**: everything under "Editor" above.
 
 Steps 2, 3 and 4 only depend on step 1.
+
+## Implementation notes (core)
+
+What step 1 built, for the player, art and editor steps.
+
+- **Grid** (`engine/core/grid/grid.h`): `GridType::Hex`, `HexLayout::{Pointy, Flat}`; `Grid(type, w, h, layout)`,
+  `grid.isHex()`, `grid.layout()`. Rules and the player use only these, never offset arithmetic:
+  - `directionCount()` (4 or 6), `neighbor(cell, dir)` (kNoCell off the map), `directionTo(from, to)` (-1 if not
+    adjacent). Direction `i` is the contract's neighbour order; squares are N, E, S, W. Opposite of `i` is `(i + 3) % 6`
+    on hexagons. Use these (not pixels) for join bits, edge drawing and anything that needs "the neighbour on the right".
+  - `neighbors()`, `distance()`, `within()` as before (`neighbors` skips off-map cells, keeping the order).
+  - `ringCells(middle, rings, out)`: the middle hexagon, then its six neighbours in direction order; false when any is
+    off the map.
+- **Where the grid comes from**: `Database::gridType` / `hexLayout` (game.json `grid`, read by `readGameGrid` in
+  `data/loader_grid.cpp`), copied into every `MapDef` (`gridType`, `hexLayout`) and into `Battle::grid`. The launcher
+  gets `GameInfo::gridType` / `hexLayout`. Games without `grid` are square, exactly as before.
+- **Structures**: `StructureDef::rings` (0 or 1; `width`/`height` stay 1 on hexagon games). The cells a structure covers
+  come from ONE function, `structureFootprint(grid, def, x, y, out)` (`core/data/footprint.h`): used by the map loader,
+  `Battle::init`, `Battle::structureCells` (fog, AI, events all go through that) and tests. For squares the order is
+  row by row from the top-left corner (as before); for hexagons the middle hexagon comes first (`out[0]`, which is the
+  cell of the structure's `x`, `y`), then its neighbours 0..5. Anything that draws a structure needs `x`, `y` (middle)
+  and `rings`; the covered cells are `Battle::structureCells(i, out)` or `structureAt`.
+- **Join pieces** (`core/data/graphics.h`): `joinMaskHex(look, grid, cell, terrainAt)` gives the 6-bit mask (bit `i` =
+  neighbour `i`; `terrainAt` takes a `Cell`); `pickCell(look, x, y, mask, timeMs, blockSide)` takes `blockSide` 8 for
+  hexagon games (piece `n` at column `n % 8`, row `n / 8`; default 4 keeps squares as they were);
+  `joinBlockSide(grid)` returns 4 or 8. The loader checks join blocks against the sheet as 8 x 8 on hexagon games.
+  The player's existing square code (`sprites.cpp joinMaskOf`) still calls the four-neighbour version: harmless on a
+  hexagon game (the piece stays inside the block) but wrong; step 2 must switch to `joinMaskHex`.
+- **Rules hash**: `game.json` is hashed key by key (rules keys only); `grid` was added to those keys, so a hexagon game
+  hashes its kind and layout and an old save of a game whose grid changed is refused. `grid` missing and
+  `{ "type": "square" }` hash alike (skipped), so square games keep their hash. `structures.json` (`rings`) and map files
+  (`grid.type`) are hashed whole already.
+- **Loader messages**: `game.json: grid: ...` (unknown key, `layout` with square, missing `layout`, bad `type`/`layout`),
+  `game.json: style "iso": the "isometric" view is not available for hexagon games yet (only "top-down")` (the view name is
+  the one in the file), `maps/x.json: grid: this is a hexagon game (game.json "grid"), but the map's type is "square"` (and
+  the reverse), `structure "fort": "width" is for square games; a hexagon game uses "rings"` (same for `height`),
+  `"rings" must be 0 or 1`, `"rings" is for hexagon games; a square game uses "width" and "height"`; an upgrade must keep
+  the `rings`; map structures: `covers its hexagon and the six around it (rings 1) but they do not all fit inside the map`,
+  `is outside the map`, `overlaps structures[n] (...) on hexagon x,y`. Tests: `tests/test_hex_*.cpp`.
+- **Not touched on purpose**: story rectangles (`reach`, area conditions, `loader_story_refs.cpp`) stay column/row
+  rectangles; `core/view/` (isometric and 3D projections) is square-only and untouched; the editor has not been taught
+  `rings` yet (editor step; its server uses the engine loader, so hexagon games already validate there).
+- **Fixtures**: `tests/fixtures/hex-pointy` and `hex-flat` (no art; map `skirmish`, 12 x 9, 2 AI sides, an HQ with
+  `"rings": 1`, factories, cities). `ote-sim tests/fixtures/hex-pointy skirmish` works; results are deterministic.

@@ -22,6 +22,9 @@ Contract for the structure layer. Owner decisions (2026-11-14):
   { "id": "city", "name": "City",
     "color": "#b7b7b7", "glyph": "c",          // placeholder look
     "width": 1, "height": 1,                    // squares, 1..8, default 1
+    // "rings": 1,                              // hexagon games only (docs/HEX.md): 0 = one hexagon, 1 = it and its six
+                                                // neighbours. Replaces width/height there (they must be 1 or absent);
+                                                // refused in square games. Upgrades keep the same rings.
     "moveCost": { "treads": 2, "ship": 0 },    // optional. Listed movement types replace
                                                 // the terrain's cost; 0 = cannot enter
     "props": { "defense": 3 },                 // optional. Listed numbers replace the

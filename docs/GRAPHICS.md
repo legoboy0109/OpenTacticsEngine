@@ -86,8 +86,8 @@ units do, drawn across their whole footprint.
     same one (chosen from its position), so fields do not look like
     wallpaper and do not flicker.
   - `frames`: cells played in a loop, `frameMs` each (default 400).
-  - `join` (terrain only): top-left cell of a 4 x 4 block of 16 pieces, see
-    below. It may also be a list of such cells, `[[0,2],[4,2]]`: the blocks
+  - `join` (terrain only): top-left cell of a 4 x 4 block of 16 pieces (8 x 8 block of 64 on a
+    hexagon game, see docs/HEX.md "Join pieces on hexagons"), see below. It may also be a list of such cells, `[[0,2],[4,2]]`: the blocks
     are then played as an animation (`frameMs` each, up to 16), so water or
     lava can shimmer AND join. `joinWith` lists other terrain ids that count as "the same" when
     choosing a piece; or use `joinExcept` instead to join with EVERY terrain
@@ -112,6 +112,8 @@ Loader: `engine/core/data/loader_graphics.cpp` (errors read
 to choose the cell for a square.
 
 ### The 16 join pieces
+
+(Hexagon games use six neighbours and an 8 x 8 block of 64 pieces: docs/HEX.md "Join pieces on hexagons".)
 
 A piece is chosen by which of the four neighbours count as the same
 terrain: **N = 1, E = 2, S = 4, W = 8**, added up to a number 0..15. Piece
