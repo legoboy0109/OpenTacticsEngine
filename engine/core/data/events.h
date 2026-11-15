@@ -70,7 +70,7 @@ struct Command {
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
   bool on = false;       // SetSwitch
-  int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds
+  int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If

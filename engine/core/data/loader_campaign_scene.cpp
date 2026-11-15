@@ -153,10 +153,10 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
     } else {
       out.text = text(v.asString());
     }
-    double fade = 0;
-    if (!sound && !c_.num(e, "fade", at, fade)) return false;
-    if (fade < 0 || fade > 60) return fail(at, "\"fade\" is seconds, between 0 and 60");
-    out.value = (int)(fade * 1000 + 0.5);
+    double fade = -1;  // not given: the player cross-fades (0.5 s); 0 = a cut
+    if (!sound && e.has("fade") && !c_.num(e, "fade", at, fade)) return false;
+    if (e.has("fade") && (fade < 0 || fade > 60)) return fail(at, "\"fade\" is seconds, between 0 and 60");
+    out.value = e.has("fade") ? (int)(fade * 1000 + 0.5) : -1;
     return true;
   }
   // goto
@@ -177,6 +177,7 @@ bool CampaignLoader::chapterScene(const Json& v, const std::string& where, bool 
     SceneCommand play;
     play.kind = SceneCommand::Kind::PlayMusic;
     play.text = text(v["music"].asString());
+    play.value = -1;
     out.push_back(play);
   }
   return !v.has("commands") || scene(v["commands"], where + ": \"commands\"", allowGoto, out);

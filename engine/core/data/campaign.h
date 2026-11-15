@@ -28,7 +28,7 @@ struct SceneCommand {
   int text = -1, speakerName = -1, portrait = -1;
   std::string unit;
   int index = -1;   // SetSwitch / SetVariable / AddVariable
-  // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms
+  // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms (-1 = not given)
   bool on = false;  // SetSwitch
   int value = 0;    // SetVariable / AddVariable
   std::string side;              // GiveResource: the side id the amounts go to

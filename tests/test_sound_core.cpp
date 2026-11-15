@@ -81,7 +81,7 @@ TEST(scene_with_music_loads_as_the_same_scene_plus_a_playMusic_line) {
   CHECK(r.scene(SceneKind::Before));
   CHECK_EQ(r.lines.size(), size_t(5));
   if (r.lines.size() == 5) {
-    CHECK(r.lines[0].kind == SceneLine::Kind::PlayMusic && r.lines[0].text == "story" && r.lines[0].fadeMs == 0);
+    CHECK(r.lines[0].kind == SceneLine::Kind::PlayMusic && r.lines[0].text == "story" && r.lines[0].fadeMs == -1);
     CHECK(r.lines[1].kind == SceneLine::Kind::Say && r.lines[1].text == "We hold the ford.");
     CHECK(r.lines[2].kind == SceneLine::Kind::PlaySound && r.lines[2].text == "thunder");
     CHECK(r.lines[3].kind == SceneLine::Kind::Say);
