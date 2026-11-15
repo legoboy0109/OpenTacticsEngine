@@ -193,7 +193,8 @@ def run_checks(api, port, tmp, games, sentinel, proc):
 
     st, doc = api.json("GET", "/api/templates")
     ids = sorted(t["id"] for t in (doc or {}).get("templates", []))
-    check("templates list has the three ids", st == 200 and ids == ["blank", "economy-tactics", "strategy-rpg"], doc)
+    check("templates list has the five ids", st == 200 and ids == ["blank", "economy-tactics", "hex-tactics-flat",
+                                                                    "hex-tactics-pointy", "strategy-rpg"], doc)
     check("templates have name and description",
           all(t.get("name") and t.get("description") for t in doc["templates"]))
 

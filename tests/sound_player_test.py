@@ -411,8 +411,9 @@ def shipped_games(tmp, demos):
     check('demo-srpg: the level-up jingle plays through to its own track', 'M:levelup once cut' in music, str(music))
 
     # Every file named by every shipped audio.json exists, and every file in audio/ is named (nothing unused).
-    for rel in ('games/demo-srpg', 'games/demo-economy', 'editor/templates/blank', 'editor/templates/economy-tactics',
-                'editor/templates/strategy-rpg'):
+    for rel in ('games/demo-srpg', 'games/demo-economy', 'games/demo-hex', 'editor/templates/blank',
+                'editor/templates/economy-tactics', 'editor/templates/hex-tactics-pointy',
+                'editor/templates/hex-tactics-flat', 'editor/templates/strategy-rpg'):
         gdir = os.path.join(REPO, rel)
         cfg = json.load(open(os.path.join(gdir, 'data', 'audio.json')))
         named = [t['file'] for t in cfg['music'].values()]
@@ -430,7 +431,8 @@ def shipped_games(tmp, demos):
 
     # A project made from each template (copied the way the editor's server does: the whole folder) loads cleanly
     # and plays its music; the retro set comes with a new project.
-    for tpl, map_id in (('blank', 'start'), ('economy-tactics', 'crossroads'), ('strategy-rpg', 'ford')):
+    for tpl, map_id in (('blank', 'start'), ('economy-tactics', 'crossroads'), ('strategy-rpg', 'ford'),
+                        ('hex-tactics-pointy', 'crossing'), ('hex-tactics-flat', 'crossing')):
         games = games_folder(tmp, 'tpl_' + tpl)
         shutil.copytree(os.path.join(REPO, 'editor', 'templates', tpl), os.path.join(games, 'mine'))
         code, out, seq, raw = play(tmp, games, ['--map', map_id], 'wait:30', 100, game='mine')

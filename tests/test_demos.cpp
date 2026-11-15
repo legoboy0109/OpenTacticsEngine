@@ -112,3 +112,40 @@ TEST(demo_economy_tank_needs_research_and_cities_upgrade) {
   CHECK_STR(b.defOf(b.structures[size_t(cityIdx)]).id, "town");
   CHECK_EQ(before - b.sides[0].resources[0], 2000);
 }
+
+// The hexagon demo and the two hexagon templates (docs/HEX.md "Starter content"): every map loads and starts, the
+// fortress covers its hexagon and the six around it, and each side has an HQ and a factory to build at.
+TEST(hex_demo_and_templates_load_and_start) {
+  struct Case { const char* dir; const char* map; HexLayout layout; bool fog; };
+  const Case cases[] = {
+      {"games/demo-hex", "fortress_ford", HexLayout::Pointy, false},
+      {"games/demo-hex", "foggy_hills", HexLayout::Pointy, true},
+      {"editor/templates/hex-tactics-pointy", "crossing", HexLayout::Pointy, false},
+      {"editor/templates/hex-tactics-flat", "crossing", HexLayout::Flat, false},
+  };
+  for (const Case& c : cases) {
+    Database db;
+    MapDef map;
+    Formulas formulas;
+    Battle battle;
+    std::vector<Event> events;
+    std::string err;
+    bool ok = loadGame(ote_test::sourceDir() + "/" + c.dir, db, err) && loadMap(db, c.map, map, err) &&
+              formulas.init(db, err) && battle.init(db, map, formulas, 7, err);
+    if (!ok) std::printf("  %s %s: %s\n", c.dir, c.map, err.c_str());
+    CHECK(ok);
+    if (!ok) continue;
+    battle.start(events);
+    CHECK(db.gridType == GridType::Hex && db.hexLayout == c.layout);
+    CHECK(battle.grid.isHex());
+    CHECK_EQ(map.fog, c.fog);
+    CHECK(battle.sides[0].hadHq && battle.sides[1].hadHq);
+    int fortress = db.findStructure("fortress");
+    CHECK(fortress >= 0 && db.structures[size_t(fortress)].rings == 1);
+    for (size_t i = 0; i < battle.structures.size(); ++i) {
+      std::vector<Cell> cells;
+      battle.structureCells(int(i), cells);
+      CHECK_EQ(cells.size(), battle.structures[i].type == fortress ? size_t(7) : size_t(1));
+    }
+  }
+}
