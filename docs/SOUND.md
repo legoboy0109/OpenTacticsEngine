@@ -126,6 +126,10 @@ the player's settings; default 7). 0 does not decode music at all. Flags
   loops (title, battle, enemy turn, victory, defeat) plus a level-up
   jingle. Output is committed; effects as WAV, music as OGG (encoded by
   ffmpeg at generation time only, never needed to build or play).
+  **Generator built** (`tools/audio/`, checked by `tests/starter_audio_test.py`):
+  30 effects, four loops (title, battle, enemy, scene) and three jingles
+  (victory, defeat, levelup), plus a ready `audio.json.example`. Not yet
+  generated into the games.
 - The **CC0 set**: chosen from public CC0 libraries, trimmed, credited in
   the game's `CREDITS.md` like the 3D art.
 - New projects from a template get the retro set and a filled `use` block.
@@ -152,6 +156,6 @@ audio in hot-seat.
    audio log, volumes in Options.
 2. Player: audio.json loader, standard set and overrides wired to battle
    events and menus, music director, story commands, campaign scenes.
-3. Starter audio: generator + retro set in the demos and templates; CC0
-   set for the Detailed 3D style.
+3. Starter audio: generator (built, `tools/audio/`); retro set generated
+   into the demos and templates; CC0 set for the Detailed 3D style.
 4. Editor: Sound screen, pickers, uploads.
