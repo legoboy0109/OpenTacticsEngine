@@ -157,7 +157,7 @@ def cannon_shot():
 
 def hooves():
     out = []
-    for i in range(4):
+    for i in range(2):   # one step of a mounted unit: two clops (the walk plays one per square)
         out += mix([(0, burst(0.06, 2000, 700, 0.015), 0.8),
                     (0, tone('triangle', 0.06, 260 - 50 * (i % 2), 150, env=(0.001, 0.02, 0.3, 0.03)), 0.8)])
         out += silence(0.06 if i % 2 == 0 else 0.1)
@@ -165,8 +165,10 @@ def hooves():
 
 
 def tank_move():
-    rumble = tone('noise', 0.75, 140, 120, env=(0.1, 0.1, 0.9, 0.15), short=True)
-    drone = tone('saw', 0.75, 48, env=(0.1, 0.1, 0.8, 0.15), vib=(14, 0.8, 0))
+    # One square of a tread unit's walk (a step sound plays once per square, about every 0.1 s):
+    # short, so a long move is a steady rumble and not a pile of overlapping tails.
+    rumble = tone('noise', 0.22, 140, 120, env=(0.02, 0.04, 0.9, 0.06), short=True)
+    drone = tone('saw', 0.22, 48, env=(0.02, 0.04, 0.8, 0.06), vib=(14, 0.8, 0))
     return mix([(0, rumble, 0.5), (0, drone, 0.5)])
 
 
@@ -200,5 +202,22 @@ EFFECTS = {
 }
 
 
+TAIL_FLOOR = 0.004   # about -48 dB: a tail quieter than this is inaudible next to the game's own noise
+TAIL_KEEP = 0.012    # seconds kept after the last audible sample
+
+
+def trim_tail(buf, fade=0.010):
+    """Cuts silence and inaudible decay off the end (the files are stored as 16-bit PCM, so every
+    10 ms of tail costs 441 bytes), then fades the new end so it does not click."""
+    last = len(buf) - 1
+    while last > 0 and abs(buf[last]) < TAIL_FLOOR:
+        last -= 1
+    out = buf[:min(len(buf), last + 1 + int(TAIL_KEEP * RATE))]
+    n = min(int(fade * RATE), len(out))
+    for i in range(n):
+        out[-1 - i] *= i / n
+    return out
+
+
 def build_effect(name):
-    return master(EFFECTS[name](), TARGET_RMS)
+    return trim_tail(master(EFFECTS[name](), TARGET_RMS))
