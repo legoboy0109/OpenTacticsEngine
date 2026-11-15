@@ -48,6 +48,7 @@ def make_map(name, blue, red, gold, storage, events):
         {'id': 'red', 'name': 'Red Warband', 'color': '#cc0000', 'controller': 'ai'}]
     m['units'] = blue + red
     m['events'] = events
+    m.pop('objectives', None)  # the demo's own story: these games decide battles by their events
     return m
 
 
