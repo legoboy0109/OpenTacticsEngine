@@ -43,6 +43,19 @@ struct Context {
   const std::vector<int>& goalFieldFor(int moveType, Cell goal);
 };
 
+// ---- ai_knowledge.cpp ----
+// What the side knows (docs/ECONOMY.md "Fog of war"). Everything in the AI that reads an enemy unit, a structure's
+// owner or capture state goes through these; without fog they answer from the truth.
+// An enemy of `side`'s team that its team sees now.
+bool knownEnemy(const Battle& b, int side, const Unit& other);
+// The owner the side's team believes the structure has.
+int knownOwner(const Battle& b, int side, int structure);
+// Battle::canCaptureAt, but for a structure the team cannot see judged on the owner it last saw.
+bool knownCapturable(const Battle& b, const Unit& u, Cell at);
+// Where the side should head to find the enemy: the enemy units it sees; with none in sight (and fog on) the
+// structures it last saw in enemy hands, else the unseen square farthest from all of its own.
+void enemyGoals(const Battle& b, int side, std::vector<Cell>& out);
+
 // ---- ai_goals.cpp ----
 // Travel cost from every cell to the nearest goal, summing terrain entry
 // costs for `moveType` and ignoring units (so a blocked chokepoint still
