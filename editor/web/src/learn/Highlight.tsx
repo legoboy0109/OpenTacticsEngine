@@ -55,11 +55,13 @@ export function Highlight({ name }: { name: string | undefined }) {
       const bottom = sheet ? Math.min(window.innerHeight, sheet.getBoundingClientRect().top) : window.innerHeight
       const visible = !!r && r.bottom > 0 && r.right > 0 && r.top < bottom && r.left < window.innerWidth
       const now = performance.now()
+      // Only hidden by the sheet (still inside the window): jump, so the control is where the ring says at once and a click never lands on a moving page.
+      const underSheet = !!r && r.top < window.innerHeight && r.bottom > 0
       if (el && r && !visible && r.width > 0 && (scrolled !== el || (tries < 4 && now - lastTry > 900))) {
         tries = scrolled === el ? tries + 1 : 0
         scrolled = el
         lastTry = now
-        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches || underSheet ? 'auto' : 'smooth' })
       }
       const key = visible && r ? `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}` : ''
       if (key !== last) {
