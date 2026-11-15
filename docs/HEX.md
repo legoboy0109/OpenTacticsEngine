@@ -205,3 +205,49 @@ What step 1 built, for the player, art and editor steps.
   `rings` yet (editor step; its server uses the engine loader, so hexagon games already validate there).
 - **Fixtures**: `tests/fixtures/hex-pointy` and `hex-flat` (no art; map `skirmish`, 12 x 9, 2 AI sides, an HQ with
   `"rings": 1`, factories, cities). `ote-sim tests/fixtures/hex-pointy skirmish` works; results are deterministic.
+
+## Implementation notes (starter content)
+
+What step 3 built: hexagon starter art (generated), two editor templates and a demo. Everything is top-down, T = 24
+(pointy cells 24 x 28, flat cells 28 x 24).
+
+- **Generator** (`tools/art/`, Python 3 + Pillow, deterministic): `hex_geom.py` (the one place with the geometry: cell size,
+  `inside(x, y)`, corners, neighbour order and offsets, where a box sits on a map, the ring picture size), `art_hex_tiles.py`
+  (terrain), `art_hex_structures.py` (structures), `make_hex_art.py` (sheets and `data/graphics.json`),
+  `preview_hex.py` (composites a map from a game's sheets with the contract's geometry, for looking and for the test).
+  Regenerate: `python3 tools/art/make_hex_art.py .` (all three games; extra arguments name game folders). It never touches the
+  square games; `make_starter_art.py` still reports no changes.
+- **Hexagon test**: a pixel belongs to a hexagon by its centre; no centre can lie on an edge, so neighbouring hexagons
+  partition the pixel grid exactly (no gap, no overlap) and the art needs no clipping or overdraw. Corners outside the
+  hexagon are transparent in every terrain cell; inside it every pixel is opaque.
+- **`art/tiles.png`** (16 x 26 cells): row 0 plain variants (cols 0-2), forest (3), mountain (4); rows 2-9 the road block at
+  column 0; rows 10-17 water, frame 0 at column 0 and frame 1 at column 8; rows 18-25 the bridge, same two frames. Join piece
+  `n` (bit `i` = neighbour `i`, the order above) is at column `n % 8`, row `n / 8` of its block.
+  - Roads: from the middle a 8 px wide arm runs toward every set bit and ends exactly on the shared edge; two pieces across an
+    edge compute the same line, so roads meet without a seam. No bit set is a small round patch.
+  - Water (`joinWith` the bridge, `joinEdge` true): a sand bank with a foam line on every side whose bit is clear; the water
+    "core" is the hexagon cut back by 4 px on those sides and the bank is graded by distance from it (corners round off).
+    Shores bend by 60 degrees at hexagon corners, which is how a hexagon coast looks. Bank and foam outline are identical in
+    both frames; only the foam gaps and the shimmer move.
+  - Bridge (`joinExcept` water, `joinEdge` false): water with banks on the sides that have an arm and a plank deck running
+    toward every non-water neighbour (on a diagonal river the deck therefore forks toward both bank hexagons).
+- **Structures**: `art/structures.png` (one-hexagon: city, factory, hq, cells box width x (box height + 4), the box on the
+  bottom, the square set's buildings on a paving shaped like the lower part of the hexagon) and `art/structures_ring.png`
+  (`fortress`, one cell 72 x 70 pointy / 70 x 72 flat across the seven hexagons: paving in exactly their shape, six towers on
+  the outer hexagons joined by walls, a keep with a flag on the middle one). The picture's middle is the middle hexagon's
+  middle; its box starts `(picture - box) / 2` up and left of the picture's corner. No per-side pictures: like the square
+  starter set, the owner shows through the engine's owner frame.
+- **Units**: `art/units.png` is the square set's sprites, unchanged (24 x 24, drawn on the hexagon's middle).
+- **Games**: `editor/templates/hex-tactics-pointy` and `hex-tactics-flat` (the `economy-tactics` rules and roster; one 12 x 9 map
+  `crossing` with two rivers, bridges, a fortress between them, two sides, funds 3000) and `games/demo-hex` (pointy; the same
+  rules with mech and recon added; maps `fortress_ford`, 19 x 13, a river that splits around a fortress island with five
+  bridges, mirrored sides, and `foggy_hills`, 13 x 9, `"fog": true`, forests that hide). All use the retro sound set
+  (`tools/audio/targets.py`, `python3 tools/audio/make_starter_audio.py .`; the demo also ships `ambush`). `ote-sim` finishes
+  every map without a stall (the sim is deterministic, so each map has one fixed winner, as with the square demos).
+- **Tests**: `tests/hex_content_test.py REPO [OTE_SIM]` (generator determinism and "committed = generated", sheet sizes and
+  cells, transparent corners, all 64 pieces of each block, seamless tiling, structure picture sizes, every file named exists,
+  sims finish; `ctest -R hex_content`), `tests/test_demos.cpp` (`hex_demo_and_templates_load_and_start`), `tests/test_art.cpp`
+  (complete art), plus the template lists in `tests/editor_api_test.py` and `tests/sound_player_test.py`.
+- **Not done / for later**: no sea or beach terrain (the demo uses a river), no tinted style sheets, no per-side structure
+  pictures. The player draws hexagon games as squares until its own step lands; `preview_hex.py` is the reference for how
+  the sheets are meant to be laid out.

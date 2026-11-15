@@ -410,6 +410,12 @@ the contract above.
   and `styles.<id>.structures`. The tile sheet no longer has building tiles. Roads
   are not joined into buildings any more (buildings are not terrain); maps put
   road terrain under the structures a road leads into instead.
+- **Hexagon starter art.** `python3 tools/art/make_hex_art.py` (Pillow) draws the same retro set on hexagons
+  for `games/demo-hex` and the two hexagon templates (docs/HEX.md "Implementation notes (starter content)"): a
+  tile sheet of hexagon cells (24 x 28 pointy, 28 x 24 flat) with transparent corners, roads as an 8 x 8 join block,
+  water and the bridge as animated joins of two 8 x 8 blocks, one-hexagon structures (box width by box height + 4)
+  and the fortress (`"rings": 1`) as one picture across its seven hexagons. Units are the square set's sprites.
+  Original art, generated, GPL-3.0 like the rest of `tools/art/`; no third-party material.
 - **Web.** Nothing special was needed: the pages already fetch and write
   every file as bytes, and `make_manifest.py` lists the PNGs. `tools/webtest`
   (standalone and embed suites) now fails when terrain art is not drawn.

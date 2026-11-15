@@ -16,8 +16,8 @@ on or off. Work in progress.
   isometric today, 3D kinds planned.
 - **Editor** (`editor/`): a browser-based editor for people who never
   script: units, weapons, terrain, structures, art, maps, and Play.
-- **Games** (`games/`): two small demos, both with sound and music (the
-  demo-srpg set is CC0, credited in its `CREDITS.md`). A game is a folder of
+- **Games** (`games/`): three small demos (one on hexagons), all with sound and
+  music (the demo-srpg set is CC0, credited in its `CREDITS.md`). A game is a folder of
   JSON files, pictures, optional sound (`docs/SOUND.md`) and optional Lua
   formulas (`docs/GAME_FORMAT.md`). New projects from the editor's templates
   come with the generated retro sound set (`tools/audio/`).
