@@ -35,6 +35,9 @@ Contract for the structure layer. Owner decisions (2026-11-14):
                                                 // optional: kinds it can become (same size); docs/ECONOMY.md
     "repairs": ["air", "tank"] } ] }            // optional: unit type ids or tags it repairs (default all);
                                                 // needs rules.supply.repair; docs/ECONOMY.md "Repair and supply"
+                                                // fog of war (docs/ECONOMY.md "Fog of war"), both optional:
+    "visionBonus": 3, "hides": true }           // 0..10 added to the vision of a unit on its squares (to the terrain's);
+                                                // a unit on its squares is seen only from next to it
 ```
 
 Ids are unique among structures. `name` defaults to the id.
@@ -124,6 +127,10 @@ terrain and structure by hand):
 - **Upgrades**: a structure's kind can change during play (`UpgradeStructure`, docs/ECONOMY.md): everything above
   then follows the new kind. The kind is `StructureState::type`; `mapType` is the one the map placed.
 - **Defeated side**: its structures become neutral (as its squares did).
+- **Fog of war** (docs/ECONOMY.md): a structure sees for its owner's team, one square around every square of its
+  footprint; `visionBonus` and `hides` are added to / combined with the terrain's for the unit standing on it. What a
+  team believes about who owns a structure out of its sight is the last owner it saw (`Battle::seenOwner`); the true
+  owner and capture progress are in `StructureState`.
 - Events: `CellCaptured` becomes `StructureCaptured` (a = structure index,
   b = new owner, c = previous owner). `CaptureProgress` keeps a = unit,
   b = the unit's cell, c = points remaining, and gains d = structure index.

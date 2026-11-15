@@ -36,7 +36,7 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
   has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 588 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 717 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
@@ -366,6 +366,59 @@ own side (not allies of another side); fuel and ammunition are not carried betwe
 running dry is destroyed by `fuelPerTurn` only (others just cannot move); the AI's thresholds (40% HP, a quarter of the
 tank, out of every usable weapon) are constants in `ai_supply.cpp`; wording of every loader message is placeholder.
 
+## Fog of war, rules core (2026-11-14)
+
+docs/ECONOMY.md build order step 3, done in `engine/core` only (no player drawing, no editor screens, no demo content:
+steps 4 and 5 are open; the player keeps showing everything and just skips the new `MoveBlocked` event). Without fog
+nothing changed: `ote-sim` bridge Blue 17 / Red 13, twin_rivers Red 30, campaign finished 5, the pinned demo hash and save
+fnv unchanged, and the verbose event output of all three runs is byte for byte the old one. Where things are: data
+`data/loader_fog.cpp` (`vision`, `visionBonus`, `hides`, the map's `fog`); battle `battle/sight.cpp` (per-team sight, queries,
+last seen owners), `fog_rules.cpp` (ambush: `pathStop`, `noticeAlong`), `event_visibility.cpp` (the masks; the table of what
+"saw" means per event is at its top and in docs/ECONOMY.md), `save_fog.*`; AI `ai/ai_knowledge.cpp` (`knownEnemy`,
+`knownOwner`, `knownCapturable`, `enemyGoals`; every AI read of an enemy unit, owner or capture state goes through it);
+`Grid::within(cell, radius, out)`; story condition `sees` (`Condition::Kind::Sees`). Tests: `tests/test_fog_*.cpp`,
+`fog_fixture.h` (`FogWorld`, with the extra unit type "blind", vision 0).
+
+What the player and the editor need (all on `Battle` / `Database`):
+- Queries, all answering "everything visible / the true owner" without fog so no special case is needed: `fogOn()`,
+  `visibleTo(team, cell)`, `unitVisibleTo(team, unit)`, `structureVisibleTo(team, structure)`, `seenOwner(team, structure)`,
+  side forms `visibleToSide`, `unitVisibleToSide`, `seenOwnerForSide`. Teams are `sides[i].team`. A viewer (the human, or in
+  hot-seat the side about to play) draws: squares with `!visibleTo` dimmed; units only when `unitVisibleTo`; structures
+  with the owner `seenOwner` (not `structures[i].owner`, which is the truth); capture points only when
+  `structureVisibleTo`; a "show everything" toggle for the maker simply uses the viewer-less path (ignore the queries).
+  Everything that lists units or owners (info panel, unit lists, forecasts, objectives) must be filtered the same way:
+  `Battle` itself never hides anything.
+- The state of the Battle is the truth and is already updated when events are animated. Every `Event` has `seen` (bit `t` =
+  team `t` saw it; `kSeenByAll` without fog and for public events) and `UnitMoved` has `seenSteps` (per team two indices into
+  `data`: first and last square where that team saw the mover, -1 -1 = never). A view for team `v` animates an event only when
+  `(e.seen >> v) & 1`; an event whose bit is clear still has its effect on the view's own copy of the state, applied at once
+  without animation (a hidden enemy simply "is" somewhere else when it next becomes visible). A partially seen move: the
+  unit appears at `data[seenSteps[2v]]` and walks to `data[seenSteps[2v+1]]`; if it ends out of sight it vanishes there. A
+  walk into view of a unit that was hidden: the same. `MoveBlocked` (a = unit, b = the unit in the way, c = square it stopped on,
+  d = the enemy's square) follows the `UnitMoved` of the squares walked (none when it never left): show a short "stopped" cue
+  and the revealed enemy.
+- Hot-seat ("Pass the device to <side>"): between two human sides' turns cover the screen before drawing anything for the
+  next side; draw with `v` = the next side's team. AI turns of other teams are shown only through their `seen` bits.
+- The play menus need no new query: `attackOptions`, `forecast`, `reachable`, `talkOptions` already leave out unseen units
+  (a `forecast` / `Attack` on an unseen unit is refused with "that attack is not possible"). The unit's turn ends after an
+  ambush (`moved` and `done` set), so an action menu after `MoveBlocked` offers nothing for it.
+- Editor: new keys: map `"fog": true`; units `"vision"` (0 to 20, default 2); terrain and structures `"visionBonus"` (0 to
+  10) and `"hides"`; the story condition `{ "sees": <filter>, "team": ... }`. The helper validates through the real loader
+  (messages name the file, the entry and the key); the helper's model and the web model were not taught the new keys and
+  `storyChecks.ts` does not know `sees` (nothing in `editor/` was touched). Fog map: at most 32 sides (the loader says so).
+- AI behaviour under fog (documented in docs/ECONOMY.md): plays on its team's sight and memory only; with no enemy in sight it
+  heads for the structures it last saw in enemy hands, else the unseen square farthest from its own units. Forced-fog sim
+  (`ote-sim <game> <map> --force-fog`): bridge 30 runs Blue 16 / Red 14 (avg 4.3 rounds), north_road Blue 10 / Red 20 (6.0),
+  twin_rivers Blue 30 (9.0 rounds, avg 7 captures, 13 builds); no stalls anywhere.
+Decisions the owner can change: vision is a plain per-type number (not a stat, research does not touch it); terrain and structure
+bonuses add up; `hides` shows a unit to adjacent units only (an adjacent unit with vision 0 still notices it); there is no
+line-of-sight blocking by terrain or height yet; the ambush ends the unit's turn even when it stopped on its own square and
+even when the enemy was visible by then (the plan is fixed at the order); a defender still counterattacks an attacker its team
+cannot see; the old owner of a captured structure always learns of it; a defeated side's structures become known neutral to
+everyone; `Focus` is a public event (the player decides what to do with a focus on a hidden square); the AI treats every
+unit type as a possible target when none is in sight. Not verified: nothing in a real window (no drawing exists); the player
+was only compiled and run headless (campaign test, 3D backends test) with the new event skipped.
+
 ## Story events in the editor (2026-11-14)
 
 Build order step 3 of docs/EVENTS.md (inside one map; the Campaign screen is step 5). Model: `editor/web/src/model/story*.ts`
@@ -402,7 +455,8 @@ Story events, dialogue and the campaign are built (docs/EVENTS.md) and
 `"campaign": false` in the PUT removes the file). Not done: a Play-from-chapter-1 button (needs a `campaign` query
 parameter in `engine/platform/web/embed.html`). Next:
 economy options (owner decisions in docs/PLAN.md 3g, contract in
-docs/ECONOMY.md, build order at its end), then sound and music.
+docs/ECONOMY.md, build order at its end: steps 1 to 3 are done in the rules core, steps 4 (player menus and fog drawing)
+and 5 (editor screens, demo content) are open), then sound and music.
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

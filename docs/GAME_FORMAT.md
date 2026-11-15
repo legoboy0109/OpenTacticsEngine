@@ -103,7 +103,10 @@ Every `rules` block and key is optional; defaults are shown above
     "color": "#b7b7b7", "glyph": "c",          // placeholder look
     "moveCost": { "foot": 1, "tread": 1 },     // missing type = 1; 0 or less = impassable
     "props": { "defense": 2 },                 // free-form numbers for formulas
-    "tags": ["open"] }                         // free-form labels
+    "tags": ["open"],                          // free-form labels
+    "visionBonus": 2,                          // optional (fog of war, docs/ECONOMY.md): 0..10, added to the
+                                               // vision of a unit standing here
+    "hides": true }                            // optional: a unit standing here is seen only from next to it
 ] }
 ```
 
@@ -181,7 +184,9 @@ and gets `vs = 1`.
     "canCapture": false,
     "fuel": 60, "fuelPerTurn": 5,                            // optional (docs/ECONOMY.md): tank 1..999; burn per turn
                                                              // (needs fuel, less than fuel)
-    "supplies": false }                                      // optional: refills adjacent units of its side
+    "supplies": false,                                       // optional: refills adjacent units of its side
+    "vision": 3 }                                            // optional (fog of war, docs/ECONOMY.md): how many squares
+                                                             // its team sees from where it stands, 0..20, default 2
 ] }
 ```
 
@@ -213,6 +218,8 @@ Everything is in docs/ECONOMY.md.
              "rrrr",
              "f..." ],                   // exactly height rows of width chars
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
+  "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
+                                                           // at most 32 sides then
   "sides": [
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
       "controller": "human",             // or "ai"

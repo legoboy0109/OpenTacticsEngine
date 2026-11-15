@@ -102,11 +102,16 @@ variable). Messages name the map, the event and the command:
 `{ "variable": id, "op": "=", "value": 3 }` (`= != < <= > >=`, `==` also
 accepted), `{ "alive": <filter> }` / `{ "dead": <filter> }`,
 `{ "round": { "op": ">=", "value": 5 } }`,
-`{ "carries": "vulnerary", "unit": <filter> }` (`unit` default any).
+`{ "carries": "vulnerary", "unit": <filter> }` (`unit` default any),
+`{ "sees": <unit filter>, "team": "<team>" }` (fog of war, docs/ECONOMY.md; `team` is required: a team name or a side id
+for that side's team).
 Refined: `alive` = some living unit matches; `dead` = a unit that matches
 exists (or existed, also when it was removed) and none is alive, so a unit
 that an event has not added yet is neither. `carries` = a living matching
-unit has the item in its inventory (not the storage).
+unit has the item in its inventory (not the storage). `sees` = the team sees at least one living unit that
+matches the filter: a unit of the team itself counts, a unit on a hiding square counts only with a unit of the team
+next to it, and without fog on the map every living matching unit counts. It is judged on the team's sight at the
+moment the event is about to run; story events and objectives otherwise act on the truth, not on what a team has seen.
 
 Conditions are judged when the event is **about to run**, so an event sees
 what earlier ones did. An event whose condition fails is not used up: a
@@ -149,6 +154,10 @@ indices for `Battle::storyText(i)`):
 | `UnitRelocated` | a = unit, b = cell it left, c = cell it reached |
 | `SideChanged` | a = unit, b = old side, c = new side |
 | `ObjectiveChanged` | a = text of the new objective (-1 none), b = objective set |
+
+With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
+objective changes are seen by every team; the others by the teams that saw the unit or the square, see
+docs/ECONOMY.md "Fog of war") and the stream gains `MoveBlocked`.
 
 Gifts use the existing item and resource entries. The speaker's name for a
 unit is `units[a].name`. Queries: `talkOptions(unit, fromCell)` returns
