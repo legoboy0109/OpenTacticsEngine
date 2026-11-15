@@ -678,6 +678,14 @@ Code: `editor/web/src/learn/`. Wording: `learn/text.ts` (the framework) and `lea
   current step is tested, a step already true is ticked at once, nothing is ever unticked. `settleMs` makes a typing step wait for a pause.
 - **Signals** (`signals.ts`): `played` (PlayPanel's `ote-player-ready`), `saved` (the game's revision changed on disk), `problemsChecked` (the Problems
   list opened), `pictureChooser` (the "Choose picture" dialog opened). Remembered with the lesson's progress.
+  list opened). Remembered with the lesson's progress.
+- **Topic lessons items, story, sound** (`learn/lessons/{items,story,sound}.ts`, helpers in `learn/helpers/`): more `data-learn` names (`item-heal`,
+  `unit-start-items`, `map-tab-<tab>`, `add-event`, `events-back`, `event-open`, `event-when`, `pick-area`, `add-command`, `say-text`, `objective-text`,
+  `add-win`, `sound-play`, `track-volume`, `map-music`, `sound-event-<event>`, `own-sound-<event>`, `list-item`); the signal `soundPreviewed` (a play
+  button of the Sound screen was pressed); and **alternatives** in a step's `point`: `'add-event|map-tab-events'` rings the first name that is on screen
+  (the tab until it is open, then the button in it). While the lesson is a bottom sheet the ring treats a control under the sheet as hidden and scrolls it
+  up (tried again a few times). Known limit on phones and narrow windows: the map editor's own options sheet and the end of a long page can stay under
+  the lesson sheet; folding the lesson ("Hide lesson") shows them.
 - **State**: `GET`/`PUT /api/learn` (docs/EDITOR_API.md), every change is sent at once; `learn/state.ts` reads it tolerantly.
 - **Tests.** Unit: `learnHelpers`, `learnRunner` (runner, state, practice names), `learnController` (fake helper), `learnFirstGame`, `learnStructures`, `learnEconomy`, `learnArt`, `learnHexagons` (every done test of
   a lesson, true and false; `learnTopicKit` has the shared checks). API: `tests/editor_api_learn_checks.py`. e2e: `learn-lesson`, `learn-structures`, `learn-economy`, `learn-art`, `learn-hexagons` (the whole lesson, step by step, ends with the real

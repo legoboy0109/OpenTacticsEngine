@@ -65,7 +65,7 @@ export function MasterDetail({ title, noun, items, selectedId, onSelect, onBack,
         <ul className="md-items" aria-label={title}>
           {items.map((i) => (
             <li key={i.id}>
-              <button type="button" className="md-item" aria-current={i.id === current ? 'true' : undefined} onClick={() => onSelect(i.id)}>
+              <button type="button" className="md-item" data-learn="list-item" aria-current={i.id === current ? 'true' : undefined} onClick={() => onSelect(i.id)}>
                 {i.swatch && <span className="swatch" style={{ background: i.swatch }} aria-hidden="true" />}
                 {i.thumb}
                 <span className="md-item-text">

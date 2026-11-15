@@ -29,7 +29,7 @@ export function ObjectiveEditor({ value, onChange, name }: Props) {
   return (
     <div className="stack tight" data-testid={`objectives-${name}`}>
       <Field label={S.objectiveText} help={S.objectiveTextHelp}>
-        <TextInput multiline rows={2} value={value.text ?? ''} onChange={(v) => onChange({ ...value, text: v }, 'text')} />
+        <TextInput data-learn="objective-text" multiline rows={2} value={value.text ?? ''} onChange={(v) => onChange({ ...value, text: v }, 'text')} />
       </Field>
       <RuleList win value={value.win ?? []} onChange={(l, k) => onChange({ ...value, win: l }, k)} name={name} />
       <RuleList win={false} value={value.lose ?? []} onChange={(l, k) => onChange({ ...value, lose: l }, k)} name={name} />
@@ -79,7 +79,7 @@ function RuleList({ win, value, onChange, name }: ListProps) {
             </div>
           )
         })}
-        <Select aria-label={`${name}: ${win ? S.addWin : S.addLose}`} value="" placeholder={win ? S.addWin : S.addLose}
+        <Select data-learn={win ? 'add-win' : undefined} aria-label={`${name}: ${win ? S.addWin : S.addLose}`} value="" placeholder={win ? S.addWin : S.addLose}
           options={kinds.map((k) => ({ value: k, label: S.ruleKinds[k] }))} onChange={(k) => onChange(listAdd(value, newRule(story, k as RuleKind)))} />
       </div>
     </FieldGroup>

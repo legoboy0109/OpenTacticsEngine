@@ -23,7 +23,7 @@ export interface Step {
   text: string
   where?: Where
   /** `data-learn` name of the control to ring while the maker is on `where`. Elsewhere the panel rings the sidebar link. */
-  point?: string
+  point?: string // alternatives: 'a|b' rings a when it is on screen, else b (docs/TUTORIAL.md)
   done: DoneTest
   /** For steps done by typing: the test must stay true this many milliseconds before the step ticks. */
   settleMs?: number

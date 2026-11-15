@@ -18,7 +18,7 @@ function Rows({ owner, id }: { owner: OverrideOwner; id: string }) {
       <FormGrid>
         {OVERRIDE_KEYS[owner].map((key) => (
           <Field key={key} label={labels[key] ?? key}>
-            <AudioChoice kind="sound" mode="game" value={overrideOf(doc, owner, id, key)} aria-label={`${T.soundsGroup}: ${labels[key] ?? key}`}
+            <AudioChoice data-learn={`own-sound-${key}`} kind="sound" mode="game" value={overrideOf(doc, owner, id, key)} aria-label={`${T.soundsGroup}: ${labels[key] ?? key}`}
               onChange={(v) => edit((d) => setOverride(d, owner, id, key, v))} />
           </Field>
         ))}

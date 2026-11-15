@@ -29,7 +29,7 @@ export function EventEditor({ event, checks, onBack }: { event: StoryEvent; chec
 
   return (
     <div className="event-editor stack tight" data-testid="event-editor">
-      <button type="button" className="btn ghost sm back-link" onClick={onBack}><Icon name="back" />{S.allEvents}</button>
+      <button type="button" className="btn ghost sm back-link" data-learn="events-back" onClick={onBack}><Icon name="back" />{S.allEvents}</button>
       <Field label={S.eventName} help={S.eventNameHelp}>
         <IdInput value={event.id} validate={(t) => idProblem(t, others)} onChange={(v) => apply((m) => renameEvent(m, event.id, v), `event:${event.id}:name`)} />
       </Field>

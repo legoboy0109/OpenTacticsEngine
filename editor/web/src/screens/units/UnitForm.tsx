@@ -74,7 +74,7 @@ export function UnitForm({ id }: { id: string }) {
       {(items.length > 0 || (unit.items?.length ?? 0) > 0) && (
         <Card>
           <ItemListEditor label={T.startItems} help={T.startItemsHelp} entries={unit.items ?? []} items={items} allowDrop max={inventorySize(doc)}
-            testId="unit-start-items" onChange={(next, k) => edit((d) => setUnitItems(d, id, next), k && `${key}:${k}`)} />
+            testId="unit-start-items" learn="unit-start-items" onChange={(next, k) => edit((d) => setUnitItems(d, id, next), k && `${key}:${k}`)} />
         </Card>
       )}
 

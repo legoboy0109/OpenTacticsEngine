@@ -34,7 +34,7 @@ function SoundRow({ doc, event }: { doc: ProjectDoc; event: StandardSoundKey }) 
   return (
     <li className="slot-row" data-testid={`slot-${event}`}>
       <span className="slot-label">{SOUND_KEY_LABEL[event]}</span>
-      <AudioChoice kind="sound" mode="nothing" value={value} aria-label={SOUND_KEY_LABEL[event]} onChange={(v) => edit((d) => setUseSound(d, event, v))} />
+      <AudioChoice data-learn={`sound-event-${event}`} kind="sound" mode="nothing" value={value} aria-label={SOUND_KEY_LABEL[event]} onChange={(v) => edit((d) => setUseSound(d, event, v))} />
       {sound && value !== undefined
         ? <SoundPlay id={value} sound={sound} playKey={`slot:${event}`} />
         : <span className="play-gap" aria-hidden="true" />}

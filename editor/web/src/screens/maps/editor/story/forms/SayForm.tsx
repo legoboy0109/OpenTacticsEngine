@@ -40,7 +40,7 @@ export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
         <datalist id={list}>{portraitList(doc).map((p) => <option key={p.id} value={p.id} />)}</datalist>
       </Field>
       <Field label={S.sayText} help={S.sayTextHelp}>
-        <TextInput multiline rows={4} value={String(cmd.say ?? '')} onChange={(v) => patch({ say: v }, 'say')} />
+        <TextInput data-learn="say-text" multiline rows={4} value={String(cmd.say ?? '')} onChange={(v) => patch({ say: v }, 'say')} />
       </Field>
     </div>
   )

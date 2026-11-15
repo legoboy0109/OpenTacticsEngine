@@ -8,6 +8,7 @@ export type SignalName =
   | 'saved' // the game was written to disk (autosave or Play)
   | 'problemsChecked' // the Problems list was opened
   | 'pictureChooser' // the "Choose a picture" dialog was opened (Terrain, Units or Structures screen)
+  | 'soundPreviewed' // a play button on the Sound screen was pressed (the editor tried to play a track or a sound)
 
 type Listener = (name: SignalName) => void
 

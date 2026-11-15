@@ -76,7 +76,7 @@ export function AreaField({ label, value, onChange, mode, help }: Props) {
               <button type="button" className="btn sm" onClick={() => stopPicking(vs)}>{S.cancelPick}</button>
             </>
           )
-          : <button type="button" className="btn sm" aria-label={`${label}: ${S.pickOnMap}`} onClick={start}>{S.pickOnMap}</button>}
+          : <button type="button" className="btn sm" data-learn="pick-area" aria-label={`${label}: ${S.pickOnMap}`} onClick={start}>{S.pickOnMap}</button>}
         <span className="help area-readout">{words(square ? `Square ${squareText(value.x, value.y)}` : areaText(value))}</span>
       </div>
       <p className="help">{words(help ?? (square ? S.squareHelp : S.areaHelp))}</p>

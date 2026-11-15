@@ -44,7 +44,7 @@ export function ItemForm({ id }: { id: string }) {
           </FormGrid>
           {!carried && <p className="help" data-testid="weapon-kind-locked">{T.kindWeaponLocked} <Link to={projectPath(store.id, 'rules')}>{T.rulesLink}</Link></p>}
           <Field label={T.description} help={T.descriptionHelp}>
-            <TextInput value={item.description ?? ''} onChange={(v) => edit((d) => updateItem(d, id, { description: v === '' ? undefined : v }), `${key}:description`)} />
+            <TextInput data-learn="item-description" value={item.description ?? ''} onChange={(v) => edit((d) => updateItem(d, id, { description: v === '' ? undefined : v }), `${key}:description`)} />
           </Field>
         </div>
       </Card>

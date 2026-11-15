@@ -27,7 +27,7 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
   return (
     <div className="stack tight" data-testid="trigger-form">
       <Field label={S.when} help={S.whenHelp}>
-        <Select value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => ({ value: k, label: S.triggerKinds[k] })) }))}
+        <Select data-learn="event-when" value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => ({ value: k, label: S.triggerKinds[k] })) }))}
           onChange={(k) => apply((m) => setTriggerKind(m, event.id, k as TriggerKind, story))} />
       </Field>
       {(kind === 'turn' || kind === 'everyTurn') && (

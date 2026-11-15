@@ -30,7 +30,7 @@ export function PlayButton({ playKey, what, playable, source, why }: Props) {
   const blocked = !on && !playable
   return (
     <button type="button" className={`btn sm icon play-button ${on ? 'primary' : ''}`} aria-label={on ? T.stopLabel(what) : T.playLabel(what)} aria-pressed={on}
-      title={blocked ? why ?? T.noFileToPlay : on ? T.stop : T.play} disabled={blocked} data-testid={`play-${playKey}`} onClick={toggle}>
+      title={blocked ? why ?? T.noFileToPlay : on ? T.stop : T.play} disabled={blocked} data-testid={`play-${playKey}`} data-learn="sound-play" onClick={toggle}>
       <Icon name={on ? 'stop' : 'play'} />
     </button>
   )

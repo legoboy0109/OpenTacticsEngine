@@ -5,13 +5,17 @@ import { useEffect, useRef } from 'react'
 
 const PAD = 4
 
-/** The first element with this name that is actually shown. */
+/** The first element with this name that is actually shown. `name` may list alternatives ("add-event|map-tab-events"):
+ *  the first name that has a shown element wins, so one step can ring the tab until the maker has opened it and the
+ *  button inside the tab after that. */
 function findTarget(name: string): HTMLElement | null {
-  const all = document.querySelectorAll<HTMLElement>(`[data-learn="${name.replace(/["\\]/g, '')}"]`)
-  for (const el of all) {
-    if (el.closest('.learn-panel')) continue
-    const r = el.getBoundingClientRect()
-    if (r.width > 0 && r.height > 0) return el
+  for (const one of name.split('|')) {
+    const all = document.querySelectorAll<HTMLElement>(`[data-learn="${one.replace(/["\\]/g, '')}"]`)
+    for (const el of all) {
+      if (el.closest('.learn-panel')) continue
+      const r = el.getBoundingClientRect()
+      if (r.width > 0 && r.height > 0) return el
+    }
   }
   return null
 }

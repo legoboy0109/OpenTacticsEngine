@@ -1,6 +1,8 @@
 // Listening to a sound in the editor: ONE shared <audio> element, so a second play button stops the first. Music that
 // repeats starts again from its "Repeat from" time when it ends, like the game does (a simple `ended` loop is enough
 // for a preview). The element sits in the page (hidden) so tests and assistive tools can find it.
+import { emitSignal } from '../learn/signals'
+
 export interface PreviewState {
   /** Which play button is on (a key the caller chose), or null. */
   key: string | null
@@ -45,6 +47,7 @@ class SoundPreview {
   }
 
   async play(key: string, url: string, opts: PlayOptions = {}): Promise<void> {
+    emitSignal('soundPreviewed')
     const el = this.element()
     this.opts = opts
     el.pause()

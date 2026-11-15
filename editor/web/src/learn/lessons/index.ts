@@ -3,14 +3,20 @@
 import type { Lesson } from '../types'
 import { firstGame } from './first-game'
 import { structures } from './structures'
+import { items } from './items'
+import { story } from './story'
 import { economy } from './economy'
+import { sound } from './sound'
 import { art } from './art'
 import { hexagons } from './hexagons'
 
 export const LESSONS: Lesson[] = [
   firstGame,
   structures,
+  items,
+  story,
   economy,
+  sound,
   art,
   hexagons,
 ]
