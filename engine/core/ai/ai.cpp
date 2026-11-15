@@ -54,9 +54,16 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
 
   // 2. Everyone has acted: spend money (units standing on factories have
   //    left or finished, so their cells are free or deliberately blocked).
+  //    Research comes first so that it keeps enough back to still build; upgrades come last, from what is left.
+  int tech;
+  if (ai::chooseResearch(battle, tech) && battle.apply(Action::research(tech), events))
+    return stillMyTurn(battle, side, round);
   Cell cell;
   int type;
   if (ai::chooseBuild(battle, cell, type) && battle.apply(Action::build(cell, type), events))
+    return stillMyTurn(battle, side, round);
+  int structure, to;
+  if (ai::chooseUpgrade(battle, structure, to) && battle.apply(Action::upgrade(structure, to), events))
     return stillMyTurn(battle, side, round);
 
   // 3. Nothing left to do.
