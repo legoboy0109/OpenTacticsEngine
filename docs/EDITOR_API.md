@@ -70,6 +70,7 @@ dropped (the document is strict JSON).
   "items": [ …the "items" list of data/items.json… ],
   "research": [ …the "technologies" list of data/research.json… ],
   "campaign": { …contents of data/campaign.json… },
+  "audio": { …contents of data/audio.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
 `maps` is keyed by the map id from `game.maps`. `scripts` holds the text
@@ -86,26 +87,30 @@ like `structures`. `research` (`data/research.json`, docs/ECONOMY.md "Research")
 file calls its list `technologies`; a broken file is `null` plus a problem on `data/research.json` and blocks only the
 Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is the file's one object; no file gives
 `"campaign": null` and no problem, a file that is not a JSON object gives `null` plus a problem on
-`data/campaign.json`. `revision` identifies the on-disk state (a hash of the
+`data/campaign.json`. `audio` (`data/audio.json`, docs/SOUND.md) is the same: the file's one object, `null` when there is no file
+(a silent game), and a file that is not a JSON object is `null` plus a problem on `data/audio.json`; a broken file blocks only
+the Sound screen. `revision` identifies the on-disk state (a hash of the
 project's files).
 
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,
 "units": …, "maps": { … }, "scripts": { … }, "graphics": { … },
-"structures": [ … ], "items": [ … ], "research": [ … ], "campaign": { … } }` (same shapes as GET; a section that is absent or `null`
+"structures": [ … ], "items": [ … ], "research": [ … ], "campaign": { … }, "audio": { … } }` (same shapes as GET; a section that is absent or `null`
 is left untouched on disk; `graphics` must be an object and `structures` and `items` a
 list, anything else is `400`; `structures` is written as `{ "structures": [ … ] }`,
 `items` as `{ "items": [ … ] }`, and an empty list is valid). `research` is a list too, written as
 `{ "technologies": [ … ] }`; **an empty `research` list removes `data/research.json`** instead (the loader refuses an
 empty technology list, so writing one would break the game; the project then reads back `"research": null`). `campaign` is an object, written as it is; **`false` removes
-`data/campaign.json`** (the game goes back to single battles) and any other value is `400`. Art image files are
-not part of this call: they have their own endpoints below.
+`data/campaign.json`** (the game goes back to single battles) and any other value is `400`. `audio` works like `campaign`: an
+object is written as it is (key order and unknown keys kept), **`false` removes `data/audio.json`** ("remove all sound": the
+`audio/` files stay) and any other value is `400`. Nothing is validated on write; `/problems` runs the player's sound loader.
+Art, model and audio files are not part of this call: they have their own endpoints below.
 
 - If `baseRevision` is not the current on-disk revision → `409
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, `data/audio.json`, each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and
@@ -150,8 +155,9 @@ first error per file group, so fixing one problem can reveal the next.
 file in the project, for loading the project into the embedded player.
 
 ### GET /api/projects/:id/file/<path>
-Raw bytes of one project file: `image/png` for `.png` files, otherwise
-`application/octet-stream` (so `file/models/knight.glb` reads a model).
+Raw bytes of one project file: `image/png` for `.png` files, `audio/wav` for `.wav` and `audio/ogg` for `.ogg` files
+(the Sound screen plays them from here), otherwise `application/octet-stream` (so `file/models/knight.glb` reads a model).
+A `Range` request is answered by the HTTP library as usual; nothing depends on it.
 
 ### GET /api/projects/:id/art
 Every `.png` in the project's `art/` folder, sorted by name (plain files
@@ -193,6 +199,52 @@ nothing behind (no partial or temp file).
 The project `revision` covers every file in the project including art and
 `data/graphics.json`, so uploads and deletes change it. A `PUT
 /api/projects/:id` that carries an older `baseRevision` gets `409`.
+
+### Sound data and audio files (docs/SOUND.md)
+
+Sound needs nothing new on the wire beyond `audio` above: a weapon / unit / item `sounds` block, a map's `music` /
+`playerTurnMusic` / `enemyTurnMusic`, a campaign scene written as `{ "music": …, "commands": [ … ] }` and the story commands
+`playMusic` / `stopMusic` / `playSound` are keys of the sections they sit in and pass through with key order and unknown keys
+kept (tests/editor_api_sound_checks.py proves that file by file, byte for byte). `GET .../problems` runs the **player's own**
+sound loader after the core one (`engine/player/sound/audio_data.cpp`, in silent mode: files are really decoded, nothing is
+played): a wrong `audio.json` (unknown key, bad id, a looping jingle, a volume outside 0..100, a `files` list that is empty or
+longer than 16, a path that is not a `.wav` / `.ogg` inside the game), an unknown sound or track id in an override, a map, a
+scene or a story command, a story sound command in a game without `audio.json`, a sound file that is damaged or an effect longer
+than 10 seconds are reported with `file: "data/audio.json"` (or the file that names it). A sound file that is only missing is a
+warning in the player (the game starts without that sound) and is **not** reported here.
+
+**"Remove all audio"** is written as `"audio": false` (the file goes, the files in `audio/` stay). Deleting the last track and the
+last sound leaves `{ "music": {}, "sounds": {} }`, which is valid.
+
+### GET /api/projects/:id/audio
+Every `.wav` and `.ogg` in the project's `audio/` folder (same name rule as art, plain files only), sorted by name. No `audio/`
+folder gives an empty list. The kind is told by the file's first bytes, never by its name.
+```json
+{ "audio": [ { "file": "audio/hit.wav", "size": 22094, "format": "wav", "rate": 22050, "channels": 1, "seconds": 0.5,
+               "usedBy": [ { "kind": "sounds", "id": "hit" } ] } ] }
+```
+`usedBy` = the tracks (`"music"`) and sounds (`"sounds"`) of the SAVED `data/audio.json` that name the file. A WAV gives rate,
+channels and length from its header; an Ogg Vorbis file gives rate and channels from its first page and the length from the last
+page's granule position (when found). A file whose header cannot be read is still listed, with an `"error"` text and no length.
+
+### PUT /api/projects/:id/audio/<name>
+Uploads a sound. The body is the raw file. `<name>` must match `[a-z0-9][a-z0-9_-]{0,39}\.(wav|ogg)`; checked before anything
+touches the disk. The bytes are sniffed: a WAV starts with `RIFF` (and `WAVE` at byte 8), an Ogg file with `OggS`, and the name's
+extension must say the same. Written atomically to `audio/<name>` (folder created if needed); `?overwrite=1` replaces a file.
+
+- `201 { "file", "size", "format", "rate", "channels", "seconds", "revision" }` (the facts as in the list; an unreadable header
+  gives `"error"` instead of rate, channels and length, and the file is still stored).
+- `400` bad name; empty body; not a sound file; a WAV named `.ogg` or the other way round; `audio/` or the file is a link.
+  `404` unknown project. `409` the file exists and `?overwrite=1` was not given. `413` body larger than 8 MB (music and effects
+  alike; a body over 16 MB is refused earlier by the global limit, also `413`).
+
+The engine's limits (an effect of at most 10 s, 8000..48000 Hz, mono or stereo, 8 / 16-bit PCM) are not checked here, because the
+same file may be music; the loader reports them in `/problems` where the file is used as an effect.
+
+### DELETE /api/projects/:id/audio/<name>
+- `200 { "revision": "<new>" }` after deleting the file.
+- `409 { "error": …, "usedBy": [ { "kind", "id" } ] }` while the SAVED `data/audio.json` uses the file. Nothing is deleted.
+- `404` no such file; `400` bad name.
 
 ### GET /api/projects/:id/models
 Every `.glb` and `.gltf` in the project's `models/` folder (same name rule as

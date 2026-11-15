@@ -119,7 +119,14 @@ endif()
 if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
   file(GLOB EDITOR_SRC CONFIGURE_DEPENDS editor/server/*.cpp)
   add_executable(ote-editor ${EDITOR_SRC})
-  target_link_libraries(ote-editor PRIVATE ote_core)
+  target_link_libraries(ote-editor PRIVATE ote_core ote_audio)
+  # The player's sound loader and service (decoders, silent mode, no device): /problems runs the same checks as the
+  # player so an unknown sound id or an over-long effect is reported before Play (docs/SOUND.md).
+  target_sources(ote-editor PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp
+                 engine/player/sound/sound_bank.cpp engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp
+                 engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp engine/player/sound/audio_files.cpp
+                 engine/platform/common/null_audio.cpp)
+  target_include_directories(ote-editor PRIVATE engine/player)
   # httplib as SYSTEM include: its warnings are not ours to fix.
   target_include_directories(ote-editor SYSTEM PRIVATE third_party/httplib)
   target_compile_options(ote-editor PRIVATE ${OTE_WARN})

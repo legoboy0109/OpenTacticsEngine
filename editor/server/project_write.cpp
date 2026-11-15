@@ -31,7 +31,8 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
          rel == "data/units.json" || rel == "data/graphics.json" ||
-         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/campaign.json";
+         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/campaign.json" ||
+         rel == "data/audio.json";
 }
 
 struct PendingWrite {
@@ -65,6 +66,10 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (!body["campaign"].isNull() && !body["campaign"].isObject() &&
       !(body["campaign"].type() == Json::Type::Bool && !body["campaign"].asBool()))
     return apiError(400, "\"campaign\" must be an object, or false to remove the campaign");
+  // audio: an object is written; `false` removes data/audio.json (null / absent leave it alone).
+  if (!body["audio"].isNull() && !body["audio"].isObject() &&
+      !(body["audio"].type() == Json::Type::Bool && !body["audio"].asBool()))
+    return apiError(400, "\"audio\" must be an object, or false to remove all sound");
   if (badType(body["graphics"], Json::Type::Object)) return apiError(400, "\"graphics\" must be an object");
   if (badType(maps, Json::Type::Object)) return apiError(400, "\"maps\" must be an object of objects");
   if (badType(scripts, Json::Type::Object)) return apiError(400, "\"scripts\" must be an object of strings");
@@ -141,6 +146,14 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
     std::error_code cec;
     if (!resolveInside(dir, "data/campaign.json", full, why)) return apiError(400, escape);
     if (fs::is_regular_file(full, cec)) deletions.push_back(full);
+  }
+
+  if (body["audio"].isObject()) {
+    if (!add("data/audio.json", body["audio"].dump(2) + "\n")) return apiError(400, escape);
+  } else if (body["audio"].type() == Json::Type::Bool) {
+    std::error_code aec;
+    if (!resolveInside(dir, "data/audio.json", full, why)) return apiError(400, escape);
+    if (fs::is_regular_file(full, aec)) deletions.push_back(full);
   }
 
   std::set<std::string> writtenMapFiles;
