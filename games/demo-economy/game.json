@@ -2,7 +2,7 @@
 {
   "formatVersion": 1,
   "name": "Wars Demo",
-  "description": "A small Advance Wars-style battle: capture cities, earn funds, build an army.",
+  "description": "A small Advance Wars-style battle: capture cities, earn funds, build an army; build cities up, research, repair and resupply, and fight in the fog.",
   "styles": [
     { "id": "classic", "name": "Classic" },
     { "id": "night", "name": "Night Ops", "background": "#05060f",
@@ -33,7 +33,10 @@
     "defeat": ["noUnits", "lostHq"],
     "economy": { "enabled": true },
     "production": { "enabled": true, "builtUnitsCanAct": false },
-    "capture": { "enabled": true, "amount": "a.hp / 10" }
+    "capture": { "enabled": true, "amount": "a.hp / 10" },
+    // Hurt units on their own structures heal 20% of max HP a turn for that share of their price; the same
+    // structures refill fuel and ammunition (units.json, weapons.json).
+    "supply": { "repair": { "amount": 20, "costShare": 100 }, "structures": true }
   },
 
   // Damage = chart value (weapon "versus") scaled by attacker health and
@@ -42,5 +45,8 @@
     "damage": "vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))"
   },
 
-  "maps": [ { "id": "twin_rivers", "name": "Twin Rivers", "file": "maps/twin_rivers.json" } ]
+  "maps": [
+    { "id": "twin_rivers", "name": "Twin Rivers", "file": "maps/twin_rivers.json" },
+    { "id": "misty_ford", "name": "Misty Ford", "file": "maps/misty_ford.json" }
+  ]
 }
