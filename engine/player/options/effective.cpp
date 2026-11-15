@@ -66,6 +66,10 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
     out.draw3d = l->draw3d;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.res3d == "display" || x.res3d == "game"; }))
     out.res3d = l->res3d;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.musicVolume >= 0; }))
+    out.musicVolume = l->musicVolume > 10 ? 10 : l->musicVolume;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.soundVolume >= 0; }))
+    out.soundVolume = l->soundVolume > 10 ? 10 : l->soundVolume;
   return out;
 }
 

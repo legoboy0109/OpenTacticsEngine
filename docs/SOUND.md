@@ -15,7 +15,7 @@ Contract for PLAN item 3h. Owner decisions (2026-11-14):
 Everything below is engine design and may change; wording shown to players
 and makers is placeholder until the owner approves it.
 
-Status: design only; see "Build order".
+Status: build order step 1 (the engine) is done; the rest is design, see "Build order" and "Step 1 as built".
 
 A game without `data/audio.json` is silent and behaves exactly as today.
 Audio never changes rules, saves or the save hash: it is presentation, like
@@ -119,6 +119,56 @@ the player's settings; default 7). 0 does not decode music at all. Flags
   mixer was asked to play (`--audio-log FILE` writes one line per music
   change and effect) instead of listening.
 
+## Step 1 as built
+
+Where it lives: `engine/audio/` (portable: `wav`, `vorbis` + `third_party/stb/stb_vorbis.c`, `decode`, `mixer`,
+`synth`), `engine/player/sound/` (the player's `AudioService`, the audio log, the self-test and offline render),
+`engine/platform/{sdl3,sdl2}/*audio.cpp` and `platform/common/null_audio.cpp` (the device). The API step 2 uses is in
+HANDOFF.md "Sound, step 1". Refinements of the contract above:
+
+- **Limits.** Effects: at most 10 s (checked from the header before anything is allocated for WAV); the 2 MB decoded
+  limit is kept but cannot bind first for the allowed formats (10 s of 48 kHz stereo is 1.92 MB). Music has no limit.
+  Both refuse with a plain message ("the sound is longer than 10 seconds ...").
+- **WAV.** 8-bit unsigned and 16-bit, mono / stereo, 8000..48000 Hz, also WAVE_FORMAT_EXTENSIBLE PCM. A truncated
+  file (or a recorder that left the data size at 0 / 0xFFFFFFFF) keeps the whole frames that are really there; every
+  other damage is a message, never an over-read (tests cut a file at every byte and mutate headers; the audio tests
+  also pass under AddressSanitizer + UBSan; the service tests were not run under them).
+- **Formats are told by the first bytes** (RIFF / OggS), not by the file name. Ogg with more than two channels is refused.
+- **Volume curve.** Level 0..10 gives gain (level / 10)^2: 10 = 1, 7 = 0.49, 5 = 0.25, 0 = silent. A track's own
+  `volume` (percent) multiplies on top.
+- **Level 0.** Sound level 0 starts no effects. Music level 0 freezes the music voices without decoding anything, and the
+  service opens no music file at all; if the level is raised later the asked-for music starts then (fading in 0.3 s),
+  unless it was stopped on purpose.
+- **Cross-fade** is equal power (sin / cos), counted in output frames, so two different tracks stay at the same loudness
+  through the fade. A change with no fade cuts the old music at once. `stopMusic(fade)` fades out.
+- **Jingles.** `MusicParams::pauseCurrent` pauses the playing music (a 20 ms ramp) on its own voice and plays the jingle on the
+  other; when the jingle ends by itself the music resumes. Any other `playMusic` drops a held track. A jingle must not loop.
+- **Looping.** At the end of a looping source the mixer seeks to `loopStart` and keeps appending frames behind the ones
+  still being interpolated, so a loop of whole periods has no click (tested on a synthetic file, also across 22.05 -> 44.1 kHz).
+- **Latency.** What is asked at time t is heard about 80 ms later (the player keeps 80 ms queued in the device) plus the device's own
+  buffer (SDL is asked for 1024 frames, about 23 ms). A frame that took long refills the queue to 80 ms, never more than 250 ms at once.
+- **Three modes**, so a machine without sound behaves like one with: *Off* (`--no-audio`, or the device failed: one warning,
+  never an error; nothing is read or decoded), *Silent* (`--headless`: effects are decoded and music files opened so damaged
+  files show up in tests, nothing is mixed), *Live*. All three write the audio log.
+- **Web.** The device is opened on the first key press or tap (not at start), so nothing touches the browser's audio before
+  then; SDL's own code resumes the AudioContext. The browser prints one deprecation warning for SDL's ScriptProcessorNode.
+- **Options.** "Music volume" and "Sound volume" are ordinary options (global, per game as "Use global", settings keys
+  `musicVolume` / `soundVolume`, numbers 0..10; "Default (7)" is the unset choice). Moving one plays the built-in tick: on
+  the music slider it follows the music level, on the sound slider the sound level.
+- **Audio log.** `--audio-log FILE`, one line per request and per change, times from the service's clock (exact with `--fixed-dt`,
+  which headless runs have by default):
+  ```
+  t=0.000 volumes music=7 sound=7                    first line, and again whenever a level changes
+  t=1.000 sound chime vol=100 level=7                an effect: name (the path as given), requested volume in percent, sound level
+  t=0.917 sound tick vol=100 bus=music level=0       the options tick (bus=music|sound, the level of that bus)
+  t=0.000 music play melody fade=0 loop=1 level=7    name, fade seconds, loop, music level
+  t=3.000 music stop fade=0.5
+  ```
+- **Self-test.** `ote-player --audio-test` plays a synthesized melody (looping) with two chimes at 1 s and 2 s, fades the music
+  out at 3 s and exits at 3.8 s; `--audio-file FILE` plays that .ogg / .wav as the music instead. `--audio-render FILE.wav --seconds N`
+  writes the same script through the real service and mixer into a 16-bit stereo 44.1 kHz WAV with no window and no device
+  (identical bytes on every run); tests/audio_player_test.py measures those files.
+
 ## Starter audio
 
 - `tools/audio/make_starter_audio.py` synthesizes the **retro set**
@@ -152,8 +202,8 @@ audio in hot-seat.
 
 ## Build order
 
-1. Engine: decoders, mixer, `AudioOut` on SDL3 / SDL2 / web, null device,
-   audio log, volumes in Options.
+1. **Done (2026-11-14).** Engine: decoders, mixer, `AudioOut` on SDL3 / SDL2 / web, null device,
+   audio log, volumes in Options. See "Step 1 as built".
 2. Player: audio.json loader, standard set and overrides wired to battle
    events and menus, music director, story commands, campaign scenes.
 3. Starter audio: generator (built, `tools/audio/`); retro set generated

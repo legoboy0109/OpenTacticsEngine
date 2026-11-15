@@ -154,6 +154,7 @@ int runApp(App& app, const PlatformConfig& config) {
 #endif
   }
 
+  app.onStop();          // the player lets go of the audio device while SDL is still up
   shutdownHardware3D();  // its GL context must go before SDL does
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);

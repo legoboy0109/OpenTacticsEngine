@@ -28,6 +28,14 @@ struct Args {
                                 // hardware where it works, but software when --headless (repeatable pictures)
   std::string res3d = "auto";   // --3d-res auto|display|game: how big the 3D picture is (docs/RENDER3D.md "Resolution")
   int scale3d = 1;              // --3d-scale N (1..8, needs --headless): the headless "display" is N times the logical size
+  int musicVolume = -1;   // --music-volume 0..10: beats the option; -1 = not given
+  int soundVolume = -1;   // --sound-volume 0..10
+  bool noAudio = false;   // --no-audio: the null device (headless runs always use it)
+  std::string audioLog;   // --audio-log FILE: one line per sound / music request (docs/SOUND.md "Audio log")
+  bool audioTest = false; // --audio-test: play a synthesized melody and an effect, then exit
+  std::string audioRender;  // --audio-render FILE: write what the mixer would play for --seconds to a WAV; no device
+  double seconds = 4;     // --seconds N: length of the --audio-render file
+  std::string audioFile;  // --audio-file FILE: --audio-test / --audio-render play this .ogg/.wav as the music
   bool showAll = false;   // --show-all: draw a fog-of-war battle without fog (the rules still apply; for the maker's Play panel)
   bool autoplay = false;
   unsigned seed = 1;

@@ -44,6 +44,8 @@ LookLayer argsLayer(const Args& a) {
   l.uiScale = a.uiScale;
   l.style = a.style;
   l.draw3d = a.draw3d == "hardware" ? "opengl" : a.draw3d == "software" ? "software" : "";
+  l.musicVolume = a.musicVolume;
+  l.soundVolume = a.soundVolume;
   l.res3d = a.res3d == "display" || a.res3d == "game" ? a.res3d : "";
   // A headless run asked to draw 3D bigger has no display to follow: that is the point of --3d-scale.
   if (l.res3d.empty() && a.headless && a.scale3d > 1) l.res3d = "display";
@@ -56,6 +58,7 @@ void PlayerApp::applyLook(const std::string& gameId, const GameLook& game, int w
   look_ = resolveLook(args_.assetsDir, argsLayer(args_), perGame, globalLayer(settings_), game);
   renderer_->setLogicalSize(w, h);
   show3d_.setResolution(look_.res3d);
+  audio_.setVolumes(look_.musicVolume, look_.soundVolume);
   // Another 3D drawer was chosen: the next user of the 3D layer gets a new
   // one. Nothing holds 3D things here (looks are applied between scenes and
   // on the options screen, which have none).

@@ -8,6 +8,7 @@
 // backends can add optional capabilities without changing these calls.
 #pragma once
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -115,6 +116,9 @@ class App {
   // the first frame (set the font / logical size here, load content).
   virtual void onStart(Renderer& renderer) {}
   virtual bool wantsQuit() const = 0;
+  // Called once by the backend after the main loop ends and before the window / SDL go away (never
+  // on the web, where the page stays up): release anything that needs the device (the audio output).
+  virtual void onStop() {}
 };
 
 struct PlatformConfig {
@@ -133,6 +137,37 @@ struct PlatformConfig {
 // Runs the main loop until app.wantsQuit() / window close / maxFrames.
 // Implemented by the active backend. Returns a process exit code.
 int runApp(App& app, const PlatformConfig& config);
+
+// ---- Audio output (implemented by the backend; docs/SOUND.md) ----
+
+// Where mixed sound goes: 16-bit interleaved samples at the rate it was opened with. The player
+// mixes on its main loop and pushes what the device is missing, so there are no threads and no
+// callbacks into the player; a port only has to play the buffers it is given.
+class AudioOut {
+ public:
+  virtual ~AudioOut() {}
+  // false = the null device: nothing is played (headless runs, --no-audio, no sound hardware).
+  virtual bool available() const = 0;
+  virtual int rate() const = 0;      // frames per second the device wants pushed
+  virtual int channels() const = 0;  // 2 (stereo) for every real device
+  // Frames pushed but not yet played. Never blocks.
+  virtual int queuedFrames() const = 0;
+  // Adds `frames` frames (frames * channels() samples) to the end of the queue. Never blocks.
+  virtual void push(const int16_t* samples, int frames) = 0;
+  virtual const char* name() const = 0;  // for the log, e.g. "SDL3 audio"
+};
+
+// Plays nothing; queuedFrames() is always 0. Portable (platform/common/null_audio.cpp).
+std::unique_ptr<AudioOut> createNullAudioOut(int rate);
+
+// Opens the default output device at `rate`, stereo (the backend converts if the hardware wants
+// something else). Null with a plain reason in `why` when there is no usable device: a missing
+// sound card is not an error, the caller then falls back to the null device.
+std::unique_ptr<AudioOut> openAudioOut(int rate, std::string& why);
+
+// True where the system only lets sound start after the user's first key press or tap (the web):
+// the player then opens the device on its first input instead of at start-up.
+bool audioWaitsForUserInput();
 
 // ---- Files (implemented by the backend) ----
 

@@ -13,7 +13,8 @@ const char* usageText() {
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N | --campaign] [--test-3d]\n"
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
-         "                  [--show-all]\n"
+         "                  [--show-all] [--music-volume 0..10] [--sound-volume 0..10] [--no-audio] [--audio-log FILE]\n"
+         "                  [--audio-test | --audio-render FILE.wav [--seconds N=4]] [--audio-file FILE.ogg|.wav]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
@@ -29,6 +30,10 @@ const char* usageText() {
          "--3d-scale N (1..8, with --headless): there is no display, so the 3D picture is N times the logical size and\n"
          "      the screenshot is written at that size too (check detailed art without a window).\n"
          "--show-all: draw a battle with fog of war as if there were none (the rules still apply); for makers testing a map.\n"
+         "sound: --music-volume / --sound-volume beat the options for one run; --no-audio and --headless use no sound device at all.\n"
+         "--audio-log FILE writes one line per sound / music request (docs/SOUND.md, Audio log), so tests can see what would be heard.\n"
+         "--audio-test plays a synthesized melody and a chime through the real sound device (or --audio-file's music) and exits.\n"
+         "--audio-render FILE.wav writes --seconds of what the mixer would play for that same test to a 16-bit stereo WAV, with no device.\n"
          "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip wait wait:N tap:X:Y\n";
 }
 
@@ -50,6 +55,7 @@ bool toDouble(const char* s, double& out) {
 
 Args parseArgs(int argc, char** argv) {
   Args a;
+  bool secondsGiven = false;
   for (int i = 1; i < argc; ++i) {
     const char* arg = argv[i];
     auto value = [&](const char*& out) {
@@ -69,6 +75,21 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--headless")) a.headless = true;
     else if (!strcmp(arg, "--test-3d")) a.test3d = true;
     else if (!strcmp(arg, "--no-settings")) a.noSettings = true;
+    else if (!strcmp(arg, "--no-audio")) a.noAudio = true;
+    else if (!strcmp(arg, "--audio-test")) a.audioTest = true;
+    else if (!strcmp(arg, "--audio-log")) { if (value(v)) a.audioLog = v; }
+    else if (!strcmp(arg, "--audio-render")) { if (value(v)) a.audioRender = v; }
+    else if (!strcmp(arg, "--audio-file")) { if (value(v)) a.audioFile = v; }
+    else if (!strcmp(arg, "--music-volume")) {
+      if (value(v)) { if (toLong(v, n) && n >= 0 && n <= 10) a.musicVolume = (int)n; else a.error = "bad --music-volume (0..10)"; }
+    }
+    else if (!strcmp(arg, "--sound-volume")) {
+      if (value(v)) { if (toLong(v, n) && n >= 0 && n <= 10) a.soundVolume = (int)n; else a.error = "bad --sound-volume (0..10)"; }
+    }
+    else if (!strcmp(arg, "--seconds")) {
+      secondsGiven = true;
+      if (value(v)) { if (toDouble(v, d) && d >= 0.1 && d <= 600) a.seconds = d; else a.error = "bad --seconds (0.1..600)"; }
+    }
     else if (!strcmp(arg, "--no-saving")) a.noSaving = true;
     else if (!strcmp(arg, "--continue")) a.continueSave = true;
     else if (!strcmp(arg, "--campaign")) a.campaign = true;
@@ -125,6 +146,9 @@ Args parseArgs(int argc, char** argv) {
     a.error = "--campaign needs --game and cannot be combined with --map, --continue or --load-slot";
   else if (a.continueSave && a.loadSlot > 0) a.error = "use either --continue or --load-slot, not both";
   else if ((a.continueSave || a.loadSlot > 0) && a.game.empty()) a.error = "--continue and --load-slot need --game";
+  if (a.audioTest && !a.audioRender.empty()) a.error = "use either --audio-test or --audio-render, not both";
+  else if (secondsGiven && a.audioRender.empty()) a.error = "--seconds only works with --audio-render";
+  else if (!a.audioFile.empty() && !a.audioTest && a.audioRender.empty()) a.error = "--audio-file needs --audio-test or --audio-render";
   if (a.scale3d > 1 && !a.headless) a.error = "--3d-scale only works with --headless (a real window has its own size)";
   // Headless runs are tests: deterministic time unless told otherwise.
   if (a.headless && a.fixedDt <= 0) a.fixedDt = 1.0 / 60.0;

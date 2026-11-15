@@ -36,11 +36,11 @@ lands; never force-push. Commits use the account's GitHub no-reply address
   a computer side and is recruited by an event is dressed from the roster only from the next chapter on; carried storage
   has no size limit; Retry starts the battle with a new seed.
 - Rules core (`engine/core`): JSON, loader, grid, battle, Lua formulas, AI;
-  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 717 green (SDL3 and
+  `ote-sim` plays both demos AI-vs-AI. `ote_tests`: 759 green (SDL3 and
   SDL2 builds).
 - Player (`ote-player`): launcher, options with per-game overrides, real
   fonts; SDL3 and SDL2 backends; web build (Emscripten). Webtest:
-  Chromium 126, Firefox 59.
+  Chromium 134 (incl. the new audio suite), Firefox 59.
 - Editor: helper `ote-editor` (API test 250 green) and the browser UI with
   every screen incl. map editor, Play, Art and Structures (258 unit tests,
   171 e2e in Chromium + Firefox smoke, 15 screenshot specs skipped unless
@@ -499,6 +499,41 @@ and removing the tanks did not flip it. Test: `tests/demo_economy_player_test.py
 (need the web build); they reference demo-economy only in `art-play.spec.ts` (opens it, expects "no problems" and unchanged graphics.json) and
 `editing.spec.ts` ("Wars Demo" link).
 
+## Sound, step 1: the audio foundation (2026-11-14)
+
+docs/SOUND.md build order step 1, as built ("Step 1 as built" there has the refinements). No game content, no
+`audio.json`, nothing wired to events yet: that is step 2. Tests: `ote_tests` `audio_*` (decoders incl. damaged and
+truncated files, mixer, service; decoder and mixer tests also clean under ASan + UBSan), `tests/audio_player_test.py` (flags, options, null device,
+`--audio-render` measurements), `tools/webtest/suites/audio.mjs`. **Real sound output was never heard here** (no device is opened
+on this machine by rule): run `ote-player --audio-test` on a desktop, and open the web build, press a key, and move the
+Music / Sound volume sliders in Options (each step ticks).
+
+API for step 2 (`#include "sound/audio_service.h"`; scenes call `host.audio()`, the App owns it):
+```
+SoundId id = audio.loadSound(path, err);          // read + decode once, cached by path; 0 + message on damage / limits
+audio.playSound(id, volume01);                    // logs "sound <path> vol=<percent> level=<n>"
+MusicParams p; p.fadeSeconds = 0.5f; p.loop = true; p.loopStartSeconds = 2.5; p.volume = 0.8f; p.pauseCurrent = false;
+audio.playMusicFile(path, p, err);                // false + message when it cannot be opened; level 0 opens nothing
+audio.stopMusic(fadeSeconds);
+audio.setVolumes(musicLevel, soundLevel);         // 0..10; PlayerApp::applyLook does this from the options
+audio.addSound(name, pcmBuffer) / audio.playMusic(name, musicSource, p)   // in-memory (tests, synthesized)
+audio.update(dt)                                  // PlayerApp::update calls it once per frame
+audio.mixer()                                     // musicPlaying(), activeSounds() for tests
+```
+Jingles: `p.pauseCurrent = true; p.loop = false;` pauses the current track and resumes it when the jingle ends. "Same track
+asked again keeps playing" is the music director's job (step 2): the service always restarts. The clock for the log is the
+sum of the `dt`s, so a headless run is exact. Off / Silent / Live modes: Silent (headless) decodes effects and opens music
+files (so a broken file is a test failure) but mixes nothing; Off (`--no-audio`, no device) reads nothing, so `loadSound`
+returns an id for any path there: a loader that wants to report missing files must not run in Off mode (or use
+`audio.mode()`). Platform side: `AudioOut` / `openAudioOut` / `createNullAudioOut` / `audioWaitsForUserInput` in
+`platform.h`, `App::onStop()` (called by both backends before SDL shuts down; releases the device).
+Build the offline checks with `--audio-render x.wav --seconds N [--music-volume N] [--audio-file F]`.
+
+Known limits: effects and music are linearly resampled (fine for game sound, not hi-fi); one music track is read through a
+2048-frame block; the web build uses SDL3's ScriptProcessorNode (Chromium logs one deprecation warning, harmless); the
+sound rate is fixed at 44.1 kHz (device rates are converted by SDL), a "lower rate on weak targets" setting is not built;
+stepping a volume slider from "Default" goes to Off first (the unset choice is element 0 of every option).
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
@@ -526,7 +561,9 @@ page). Economy options (docs/PLAN.md 3g, docs/ECONOMY.md) are done end to end: r
 drawing, editor screens (Research, upgrades, repair and supply, fog settings, sight aid, "Show everything" in Play),
 and `demo-economy` content (town upgrades, three technologies, supply, fog map `misty_ford`; the frozen plain copy
 for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window. Next:
-sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end; nothing built yet).
+sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end): step 1 (engine: decoders, mixer, device,
+options, audio log, self-test) is built, see "Sound, step 1" above; next is step 2 (audio.json loader, standard set wired to
+battle events and menus, music director, story commands, campaign scenes).
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

@@ -42,6 +42,15 @@ add_library(ote_gfx3d STATIC ${GFX3D_SRC})
 target_link_libraries(ote_gfx3d PUBLIC ote_core)
 target_compile_options(ote_gfx3d PRIVATE ${OTE_WARN})
 
+# --- Audio: decoders (WAV, Ogg Vorbis through stb_vorbis), the software mixer, built-in synthesized
+# sounds. Portable: memory buffers in, samples out; no device, no file or backend headers (docs/SOUND.md).
+file(GLOB AUDIO_SRC CONFIGURE_DEPENDS engine/audio/*.cpp)
+add_library(ote_audio STATIC ${AUDIO_SRC} engine/audio/stb_vorbis_impl.c)
+target_link_libraries(ote_audio PUBLIC ote_core)
+target_compile_options(ote_audio PRIVATE ${OTE_WARN})
+# Third-party C: warnings off for this file only.
+set_source_files_properties(engine/audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-w")
+
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
   file(GLOB TEST_SRC CONFIGURE_DEPENDS tests/*.cpp)
@@ -51,8 +60,10 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
                  engine/player/saves.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
                  engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp
-                 engine/player/show3d.cpp)
-  target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d)
+                 engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
+                 engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
+                 engine/player/args.cpp engine/player/options/option_defs.cpp)
+  target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
@@ -84,6 +95,9 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME demo_economy_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/demo_economy_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    add_test(NAME audio_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/audio_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME fog_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/fog_player_test.py

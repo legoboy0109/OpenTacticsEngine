@@ -9,6 +9,7 @@
 #include "gfx3d/soft3d.h"
 #include "platform/platform3d.h"
 #include "scene_test3d.h"
+#include "scene_audio_test.h"
 #include "scene_options.h"
 #include "scene_select.h"
 
@@ -88,11 +89,13 @@ void viewSize(const Database& db, int& w, int& h) {
 void PlayerApp::onStart(Renderer& r) {
   renderer_ = &r;
   loadSettings();
+  startAudio();
   std::string warning;
   games_ = discoverGames(args_.gamesDir, warning);
   if (notice_.empty()) notice_ = warning;
   findSavesFolder();
   if (args_.test3d) { applyLauncherLook(); scene_.reset(new Test3DScene(*this)); }
+  else if (args_.audioTest) { applyLauncherLook(); scene_.reset(new AudioTestScene(*this)); }
   else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
@@ -107,6 +110,8 @@ void PlayerApp::runPending() {
 }
 
 void PlayerApp::onInput(const InputEvent& e) {
+  // The web only lets sound start after a key press or tap: the device is opened on the first one.
+  if (audio_.devicePending() && (e.type == InputEvent::ButtonDown || e.type == InputEvent::PointerDown)) openAudioDevice();
   if (e.type == InputEvent::Quit) { quit_ = true; flushSettings(); }
   else if (scene_) scene_->onInput(e);
   runPending();
@@ -121,6 +126,7 @@ void PlayerApp::update(double dt) {
   }
   if (scene_) scene_->update(dt);
   runPending();
+  audio_.update(dt);  // after the scenes: what they asked for this frame is mixed at once
 }
 
 void PlayerApp::draw(Renderer& r) {

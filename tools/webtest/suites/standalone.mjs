@@ -66,7 +66,7 @@ export async function run(env) {
     C.check(`DPR ${dpr}: backing store is ${960 * dpr}x${540 * dpr}`, info.backing[0] === 960 * dpr && info.backing[1] === 540 * dpr, JSON.stringify(info));
     C.check(`DPR ${dpr}: canvas CSS size is the viewport`, info.css[0] === 960 && info.css[1] === 540);
     // First sample-text line of the options screen (screenshot pixels).
-    const r = await edgeSteepness(env.analysisPage, png, { x: 48 * dpr, y: 300 * dpr, w: 440 * dpr, h: 22 * dpr });
+    const r = await edgeSteepness(env.analysisPage, png, { x: 48 * dpr, y: 430 * dpr, w: 440 * dpr, h: 22 * dpr });
     ratios[dpr] = r.steepness;
     C.note(`DPR ${dpr}: text edge steepness ${(r.steepness * 100).toFixed(0)}% of contrast (${r.edges} edge steps)`);
     C.check(`DPR ${dpr}: smooth font in use`, s.logs.some((l) => /AtkinsonHyperlegible.*smooth/.test(l)));
