@@ -89,14 +89,21 @@ export interface Command extends Extra {
   goto?: string
   /** A technology id: `side` has it at once, free (docs/ECONOMY.md). Map events only. */
   grantResearch?: string
+  /** Sound (docs/SOUND.md): a music track id (+ optional `fade` seconds), `stopMusic: true` (+ `fade`), a sound id. */
+  playMusic?: string
+  stopMusic?: boolean
+  fade?: number
+  playSound?: string
 }
 export type CommandKind =
   | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'giveItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
+  | 'playMusic' | 'stopMusic' | 'playSound'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'giveItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
+  'playMusic', 'stopMusic', 'playSound',
 ]
 
 export interface StoryEvent extends Extra {

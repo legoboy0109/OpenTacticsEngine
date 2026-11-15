@@ -258,6 +258,26 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   }
   doc.set("campaign", campaign);
 
+  // audio.json is optional (docs/SOUND.md): absent = null with no problem; a file that is not a JSON object is null
+  // plus a problem on the file (the Sound screen then refuses to edit, like Items).
+  Json audio;
+  {
+    fs::path afull;
+    std::string awhy;
+    std::error_code aec;
+    bool absent = resolveInside(dir, "data/audio.json", afull, awhy) && !fs::exists(afull, aec);
+    if (!absent) {
+      Json a;
+      Problem apb;
+      if (readJsonRel(dir, "data/audio.json", a, apb) && a.isObject()) audio = a;
+      else {
+        if (apb.message.empty()) apb = {"data/audio.json", "the file must contain a JSON object at the top level"};
+        readProbs.push_back(apb);
+      }
+    }
+  }
+  doc.set("audio", audio);
+
   Json maps, scripts;  // stay null when game.json is unusable
   if (game.isObject()) {
     maps = Json::makeObject();

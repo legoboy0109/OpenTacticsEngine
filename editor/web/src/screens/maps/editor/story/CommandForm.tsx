@@ -6,6 +6,7 @@ import { AddUnitForm } from './forms/AddUnitForm'
 import { GiveItemForm, GiveResourceForm, GrantResearchForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
+import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { AddVariableForm, EndTurnForm, FocusForm, SetSwitchForm, SetVariableForm, WinLoseForm } from './forms/StoryForms'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
@@ -43,6 +44,9 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
         </div>
       )
     case 'goto': return <GotoForm cmd={cmd} at={at} />
+    case 'playMusic': return <PlayMusicForm cmd={cmd} at={at} />
+    case 'stopMusic': return <StopMusicForm cmd={cmd} at={at} />
+    case 'playSound': return <PlaySoundForm cmd={cmd} at={at} />
     case 'endTurn': return <EndTurnForm />
     case 'focus': return <FocusForm cmd={cmd} at={at} />
     default: return <p className="help">This command is not one the editor knows. It is kept as it is.</p>

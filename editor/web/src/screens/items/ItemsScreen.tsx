@@ -9,6 +9,7 @@ import { Banner } from '../../ui/Banner'
 import { DeleteConfirm } from '../../ui/DeleteConfirm'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
+import { AudioChecks } from '../sound/AudioChecks'
 import { ItemChecks } from './ItemChecks'
 import { ItemForm } from './ItemForm'
 import { T } from './text'
@@ -49,6 +50,7 @@ function ItemList({ itemId }: { itemId?: string }) {
   return (
     <>
       <ItemChecks section="items" />
+      <AudioChecks section="items" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} note={T.intro} selectedId={itemId}
         items={list.map((i) => ({ id: i.id, label: i.name, sub: T.subtitle(i.kind, i.uses) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

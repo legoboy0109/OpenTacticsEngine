@@ -255,6 +255,7 @@ function storeFor(doc: ProjectDoc) {
     putProject: async () => ({ ok: true, value: { revision: 'r1', problems: [] } }) as Result<PutResult>,
     listArt: async () => ({ ok: true, value: [] }),
     listModels: async () => ({ ok: true, value: [] }),
+    listAudio: async () => ({ ok: true, value: [] }),
   } as unknown as Api
   return new DocumentStore(api, 'g', { now: () => 0 })
 }

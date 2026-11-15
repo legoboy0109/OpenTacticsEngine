@@ -5,6 +5,7 @@
 #include "core/battle/battle.h"
 #include "core/data/loader.h"
 #include "core/script/formulas.h"
+#include "audio_check.h"
 #include "log.h"
 
 namespace ote_editor {
@@ -36,6 +37,15 @@ std::vector<Problem> validateProject(const fs::path& dir) {
   if (!ote::loadGame(root, db, err)) {
     out.push_back(problemFromMessage(dir, err));
     return out;
+  }
+
+  // The player's sound loader: ids in audio.json, the overrides, the story commands, sound files. It does not stop the
+  // other checks. The player only warns about a missing sound file; that warning is dropped here (not a problem).
+  {
+    const size_t before = capture.lines.size();
+    std::string audioErr = checkAudio(root, db);
+    capture.lines.resize(before);
+    if (!audioErr.empty()) out.push_back(problemFromMessage(dir, audioErr));
   }
 
   std::vector<ote::MapDef> maps(db.maps.size());

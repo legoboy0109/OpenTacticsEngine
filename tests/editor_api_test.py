@@ -26,6 +26,7 @@ from editor_api_campaign_checks import run_campaign_checks
 from editor_api_structures_checks import run_structures_checks
 from editor_api_economy_checks import run_economy_checks
 from editor_api_fog_checks import run_fog_checks
+from editor_api_sound_checks import run_sound_checks
 
 PASSED = 0
 FAILED = 0
@@ -144,6 +145,7 @@ def main():
         run_campaign_checks(api, tmp, games, templates, check, get_project, put_project)
         run_economy_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fog_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_sound_checks(api, tmp, games, templates, check, get_project, put_project)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")
         check("helper still alive after all checks", proc.poll() is None and st == 200)

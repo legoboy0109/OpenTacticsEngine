@@ -8,6 +8,7 @@
 
 #include "httplib.h"
 #include "art.h"
+#include "audio.h"
 #include "models.h"
 #include "log.h"
 #include "projects.h"
@@ -204,8 +205,9 @@ struct EditorServer::Impl {
       else {
         std::string rel = lower(req.matches[2].str());
         bool png = rel.size() > 4 && rel.compare(rel.size() - 4, 4, ".png") == 0;
+        std::string audio = audioContentType(rel);  // audio/wav, audio/ogg: the Sound screen's preview plays these
         res.status = 200;
-        res.set_content(f.bytes, png ? "image/png" : "application/octet-stream");
+        res.set_content(f.bytes, png ? "image/png" : !audio.empty() ? audio : "application/octet-stream");
       }
     }, true));
     svr.Get("/api/projects/:id/art", api([this](const httplib::Request& req) {
@@ -217,6 +219,16 @@ struct EditorServer::Impl {
     }));
     svr.Delete(R"(/api/projects/([^/]+)/art/(.+))", api([this](const httplib::Request& req) {
       return deleteArt(cfg, req.matches[1].str(), req.matches[2].str());
+    }));
+    svr.Get("/api/projects/:id/audio", api([this](const httplib::Request& req) {
+      return listAudioFiles(cfg, req.path_params.at("id"));
+    }));
+    svr.Put(R"(/api/projects/([^/]+)/audio/(.+))", api([this](const httplib::Request& req) {
+      return putAudioFile(cfg, req.matches[1].str(), req.matches[2].str(), req.body,
+                          req.get_param_value("overwrite") == "1");
+    }));
+    svr.Delete(R"(/api/projects/([^/]+)/audio/(.+))", api([this](const httplib::Request& req) {
+      return deleteAudioFile(cfg, req.matches[1].str(), req.matches[2].str());
     }));
     svr.Get("/api/projects/:id/models", api([this](const httplib::Request& req) {
       return listModels(cfg, req.path_params.at("id"));

@@ -101,6 +101,9 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'endTurn': return { endTurn: true }
     case 'focus': return { focus: { x: 0, y: 0 } }
     case 'goto': return { goto: c.doc.campaign?.chapters[0]?.id ?? '' }
+    case 'playMusic': return { playMusic: Object.keys(c.doc.audio?.music ?? {})[0] ?? '' }
+    case 'stopMusic': return { stopMusic: true }
+    case 'playSound': return { playSound: Object.keys(c.doc.audio?.sounds ?? {})[0] ?? '' }
   }
 }
 

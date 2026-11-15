@@ -2,6 +2,7 @@
 // and loader_story_*.cpp), so a maker sees them in the editor before pressing Play. The wording is plain; the loader's
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
+import { audioRefProblem } from './audioChecks'
 import { inventorySize } from './itemRules'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
 import { conditionKind, rectOf, commandKind, triggerKind, type Command, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
@@ -27,6 +28,8 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'switch': return missing('a switch') ?? (known(doc.game?.switches) ? null : `“${r.id}” is not a switch of this game.`)
     case 'variable': return missing('a variable') ?? (known(doc.game?.variables) ? null : `“${r.id}” is not a variable of this game.`)
     case 'tech': return missing('a technology') ?? (known(doc.research ?? undefined) ? null : `“${r.id}” is not a technology of this game${doc.research?.length ? '' : ' (the game has no research yet)'}.`)
+    case 'music':
+    case 'sound': return audioRefProblem(doc, r.kind, r.id)
     case 'chapter':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
   }
@@ -82,6 +85,10 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     case 'setVariable':
     case 'addVariable':
       if (Math.abs(Number(c.to ?? c.by ?? 0)) > BIG) say(where, 'the number is unreasonably large.')
+      break
+    case 'playMusic':
+    case 'stopMusic':
+      if (c.fade !== undefined && (typeof c.fade !== 'number' || c.fade < 0 || c.fade > 60)) say(where, 'the fade is a number of seconds from 0 to 60.')
       break
     case 'endTurn':
       if (!talk) say(where, '“End the turn” only works in an event whose “When” is two units talking.')

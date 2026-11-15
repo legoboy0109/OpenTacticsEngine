@@ -163,6 +163,7 @@ describe('clean-up when a unit type is deleted', () => {
     putProject: vi.fn(async (_id: string, body: PutBody) => put(body)),
     listArt: vi.fn(async () => ({ ok: true, value: [] })),
     listModels: vi.fn(async () => ({ ok: true, value: [] })),
+    listAudio: vi.fn(async () => ({ ok: true, value: [] })),
   }) as unknown as Api
   it('is one undo step through the store', async () => {
     const d = doc()

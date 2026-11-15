@@ -31,10 +31,11 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
+  { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` only in an "after" scene). */
-const SCENE_KINDS: CommandKind[] = ['say', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto']
+const SCENE_KINDS: CommandKind[] = ['say', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
 function menu(story: Story, talk: boolean): OptionGroup[] {
@@ -48,6 +49,8 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     addVariable: doc.game?.variables?.length ? null : 'no variables yet',
     endTurn: talk ? null : S.endTurnTalkOnly,
     goto: doc.campaign && doc.campaign.chapters.length > 0 ? null : 'no chapters yet',
+    playMusic: doc.audio?.music && Object.keys(doc.audio.music).length ? null : 'no music yet',
+    playSound: doc.audio?.sounds && Object.keys(doc.audio.sounds).length ? null : 'no sounds yet',
   }
   const allowed = (k: CommandKind) => (story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')
   return GROUPS.map((g) => ({

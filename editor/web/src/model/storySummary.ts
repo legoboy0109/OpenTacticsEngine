@@ -107,6 +107,10 @@ function amountsText(c: SumCtx, amounts: Record<string, number> | undefined): st
   return parts.length ? parts.join(', ') : 'nothing'
 }
 
+/** " (fades in over 2 seconds)"; nothing when no fade is given (the player's default cross-fade), " (at once)" for 0. */
+const fadeText = (fade: number | undefined, dir: 'in' | 'out'): string =>
+  (typeof fade !== 'number' ? '' : fade === 0 ? ' (at once)' : ` (fades ${dir} over ${fade} ${fade === 1 ? 'second' : 'seconds'})`)
+
 export function commandText(c: SumCtx, cmd: Command): string {
   switch (commandKind(cmd)) {
     case 'say': {
@@ -138,6 +142,9 @@ export function commandText(c: SumCtx, cmd: Command): string {
     }
     case 'endTurn': return 'Ends the talking unit’s turn'
     case 'goto': return `Goes on to chapter ${q(chapterLabel(c, cmd.goto ?? ''))}`
+    case 'playMusic': return `Plays the music ${q(cmd.playMusic ?? '')}${fadeText(cmd.fade, 'in')}`
+    case 'stopMusic': return `Stops the music${fadeText(cmd.fade, 'out')}`
+    case 'playSound': return `Plays the sound ${q(cmd.playSound ?? '')}`
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
     default: return 'Does something'
   }

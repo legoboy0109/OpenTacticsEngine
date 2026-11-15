@@ -586,3 +586,16 @@ Rules ("Repair and supply"). Story: condition "A side has researched a technolog
 ## Fog of war
 
 Map tab: "Fog of war" (`fog: true`; off removes the key; disabled with the reason above 32 sides) and, while on, "Show what a side sees" (a drawing aid, nothing saved). Units: "Sight" (`vision`, 0 to 20, default 2 is not written). Terrain and Structures: "Extra sight for a unit standing here" (`visionBonus`, 0 to 10, 0 not written), "Who gets the extra sight" ("For all units" writes the plain number; "Only for these" writes `{ "amount": N, "units": [...] }` and shows the unit types and labels to tick, the same picking as a structure's Repairs; nothing ticked is flagged because the loader refuses an empty list; a deleted unit type is taken off the lists, and a list that empties removes the bonus, in the same undo step) and "Hides" (`hides`). The map aid "Show what a side sees" applies the limit. Events: condition "A team sees a unit" (`sees` + `team`), map events only. Play panel: "Show everything" (`showall=1`) when the played map (or any chapter's map) has fog.
+
+## Sound (docs/SOUND.md step 4)
+
+Sidebar entry "Sound" after Art. Three parts on one page: **Music** (tracks: file, play / stop, volume, Repeats, Repeat from with
+"use the playing position"), **Sounds** (effects: one file or variants, play picks one at random, volume) and **When things
+happen** (the standard set as labelled pickers with play buttons: music slots, then Menus / Moving and fighting / Economy / Story),
+then **Sound files** (every file with length, rate, what uses it, "Not used yet", use as music or a sound, delete) and "Remove all
+sound". No sound yet: an explanation and "Add music" / "Add a sound". Adding = choose a file (checked here: 8 MB, first bytes), upload,
+name it. Small "Sounds" groups on Weapons / Items (cards) and Units (folded), "Music" on the map's Map tab, "Music for this scene"
+on the campaign scenes, and Play music / Stop the music / Play a sound among the story commands (map events and scenes); all shown only
+when the game has sounds or music. "Same as the game" = no key, "Silent" / "No music" = "". Delete and rename follow everywhere in one
+undo step; deleting a file that is used asks first. Amber checks mirror the player's loader (`model/audioChecks.ts`). Wording:
+`screens/sound/text.ts` and `model/audioLabels.ts`.

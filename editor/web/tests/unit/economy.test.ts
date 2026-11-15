@@ -304,6 +304,7 @@ describe('one undo step through the store', () => {
     putProject: vi.fn(async (_id: string, body: PutBody) => put(body)),
     listArt: vi.fn(async () => ({ ok: true, value: [] })),
     listModels: vi.fn(async () => ({ ok: true, value: [] })),
+    listAudio: vi.fn(async () => ({ ok: true, value: [] })),
   }) as unknown as Api
 
   it('deleting a used technology cleans everything, and one undo brings it all back', async () => {

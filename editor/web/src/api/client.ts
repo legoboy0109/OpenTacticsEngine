@@ -1,5 +1,6 @@
 // The only place that calls fetch. Every endpoint of docs/EDITOR_API.md is
 // one typed function returning a Result (never throws).
+import type { AudioFile } from '../model/audioTypes'
 import type { ProjectDoc, Problem, ServerProject } from '../model/types'
 
 export interface ApiError {
@@ -11,6 +12,8 @@ export interface ApiError {
   revision?: string
   /** Present on a 409 when deleting an image that the saved game still uses: the image entries (sheet ids). */
   usedBy?: string[]
+  /** Present on a 409 when deleting a sound file that the saved sound settings still use: the tracks and sounds. */
+  uses?: Array<{ kind: string; id: string }>
 }
 export type Result<T> = { ok: true; value: T } | ApiError
 
@@ -19,13 +22,15 @@ export interface TemplateInfo { id: string; name: string; description: string }
 export interface FontInfo { id: string; name: string; size: number; smooth: boolean }
 export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number }
 export interface FileInfo { path: string; size: number }
-/** `campaign: false` removes data/campaign.json (null / absent leave it alone). */
-export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign'>> { baseRevision: string; campaign?: ProjectDoc['campaign'] | false }
+/** `campaign: false` removes data/campaign.json, `audio: false` removes data/audio.json (null / absent leave them alone). */
+export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign' | 'audio'>> { baseRevision: string; campaign?: ProjectDoc['campaign'] | false; audio?: ProjectDoc['audio'] | false }
 export interface PutResult { revision: string; problems: Problem[] }
 /** One PNG in the game's art/ folder (width/height 0 + error when it cannot be read). */
 export interface ArtFile { file: string; width: number; height: number; size: number; error?: string }
 /** One model file in the game's models/ folder; `usedBy` = the saved graphics entries that name it. */
 export interface ModelFile { file: string; size: number; usedBy: Array<{ style: string; kind: string; id: string }> }
+/** The helper's answer to a sound upload: the file's facts and the new revision. */
+export type AudioUploadResult = AudioFile & { revision: string }
 export interface UploadResult { file: string; width: number; height: number; size: number; revision: string }
 
 async function request<T>(method: string, path: string, body?: unknown, keepalive = false): Promise<Result<T>> {
@@ -44,8 +49,11 @@ async function request<T>(method: string, path: string, body?: unknown, keepaliv
   let data: unknown = null
   try { data = await res.json() } catch { /* non-JSON error page */ }
   if (res.ok) return { ok: true, value: data as T }
-  const obj = (data ?? {}) as { error?: string; revision?: string; usedBy?: string[] }
-  return { ok: false, status: res.status, error: obj.error ?? `Request failed (${res.status}).`, revision: obj.revision, usedBy: obj.usedBy }
+  const obj = (data ?? {}) as { error?: string; revision?: string; usedBy?: unknown[] }
+  // Images name the sheets that use them (strings); sound files name tracks and sounds ({ kind, id }).
+  const names = Array.isArray(obj.usedBy) && obj.usedBy.every((u) => typeof u === 'string') ? (obj.usedBy as string[]) : undefined
+  const uses = Array.isArray(obj.usedBy) && obj.usedBy.every((u) => typeof u === 'object' && u !== null) ? (obj.usedBy as Array<{ kind: string; id: string }>) : undefined
+  return { ok: false, status: res.status, error: obj.error ?? `Request failed (${res.status}).`, revision: obj.revision, usedBy: names, uses }
 }
 
 const enc = encodeURIComponent
@@ -68,6 +76,10 @@ export interface Api {
   /** `name` is the file name without folder and extension ("tiles" -> art/tiles.png). */
   uploadArt(id: string, name: string, png: Blob, overwrite: boolean): Promise<Result<UploadResult>>
   deleteArt(id: string, name: string): Promise<Result<{ revision: string }>>
+  listAudio(id: string): Promise<Result<AudioFile[]>>
+  /** `name` is the file name with its extension ("hit.wav" -> audio/hit.wav). */
+  uploadAudio(id: string, name: string, bytes: Blob, overwrite: boolean): Promise<Result<AudioUploadResult>>
+  deleteAudio(id: string, name: string): Promise<Result<{ revision: string }>>
   listModels(id: string): Promise<Result<ModelFile[]>>
   /** `name` is the file name without folder and extension ("knight" -> models/knight.glb). */
   uploadModel(id: string, name: string, glb: Blob, overwrite: boolean): Promise<Result<{ file: string; size: number; revision: string }>>
@@ -89,6 +101,9 @@ export const api: Api = {
   listArt: (id) => unwrap(request<{ art: ArtFile[] }>('GET', `/api/projects/${enc(id)}/art`), 'art'),
   uploadArt: (id, name, png, overwrite) => request('PUT', `/api/projects/${enc(id)}/art/${enc(name)}.png${overwrite ? '?overwrite=1' : ''}`, png),
   deleteArt: (id, name) => request('DELETE', `/api/projects/${enc(id)}/art/${enc(name)}.png`),
+  listAudio: (id) => unwrap(request<{ audio: AudioFile[] }>('GET', `/api/projects/${enc(id)}/audio`), 'audio'),
+  uploadAudio: (id, name, bytes, overwrite) => request('PUT', `/api/projects/${enc(id)}/audio/${enc(name)}${overwrite ? '?overwrite=1' : ''}`, bytes),
+  deleteAudio: (id, name) => request('DELETE', `/api/projects/${enc(id)}/audio/${enc(name)}`),
   listModels: (id) => unwrap(request<{ models: ModelFile[] }>('GET', `/api/projects/${enc(id)}/models`), 'models'),
   uploadModel: (id, name, glb, overwrite) => request('PUT', `/api/projects/${enc(id)}/models/${enc(name)}.glb${overwrite ? '?overwrite=1' : ''}`, glb),
 }

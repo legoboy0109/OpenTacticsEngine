@@ -52,5 +52,7 @@ function loadFrom(root: string, name: string): ProjectDoc {
     // Art is optional: a game without data/graphics.json has none.
     graphics: existsSync(path.join(root, name, 'data/graphics.json')) ? read(name, 'data/graphics.json') : null,
     campaign: existsSync(path.join(root, name, 'data/campaign.json')) ? read(name, 'data/campaign.json') : null,
+    // Sound is optional too (the demos and templates may or may not have it: tests must not rely on either).
+    audio: existsSync(path.join(root, name, 'data/audio.json')) ? read(name, 'data/audio.json') : null,
   }
 }

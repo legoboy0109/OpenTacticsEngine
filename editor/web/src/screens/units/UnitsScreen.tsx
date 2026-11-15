@@ -9,6 +9,7 @@ import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
 import { ItemChecks } from '../items/ItemChecks'
 import { EconomyChecks } from '../research/EconomyChecks'
+import { AudioChecks } from '../sound/AudioChecks'
 import { UnitForm } from './UnitForm'
 import { T } from './text'
 
@@ -35,6 +36,7 @@ function UnitsList({ itemId }: { itemId?: string }) {
     <>
       <ItemChecks section="units" />
       <EconomyChecks section="units" />
+      <AudioChecks section="units" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} selectedId={itemId}
         items={units.map((u) => ({ id: u.id, label: u.name, sub: T.subtitle(u.glyph, moveName(u.moveType)) }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

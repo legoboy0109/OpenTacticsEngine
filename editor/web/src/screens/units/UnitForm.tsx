@@ -3,6 +3,7 @@ import { featureEnabled } from '../../model/rules'
 import { allTags, setUnitItems, setUnitNumber, setUnitTags, setUnitWeapons, setUnitWields, updateUnit, weaponGroups } from '../../model/units'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
+import { SoundsGroup } from '../sound/SoundsGroup'
 import { Field } from '../../ui/Field'
 import { ChipsInput } from '../../ui/ChipsInput'
 import { KeyNumberTable } from '../../ui/KeyNumberTable'
@@ -101,6 +102,8 @@ export function UnitForm({ id }: { id: string }) {
           <ChipsInput value={unit.tags ?? []} suggestions={allTags(doc)} onChange={(v) => edit((d) => setUnitTags(d, id, v))} />
         </Field>
       </Card>
+
+      <SoundsGroup owner="units" id={id} collapsed />
 
       <Advanced label={T.advanced}>
         <Field label={T.id} help={T.idHelp}><TextInput value={unit.id} readOnly mono /></Field>

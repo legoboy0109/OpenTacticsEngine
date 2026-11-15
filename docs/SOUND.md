@@ -15,7 +15,7 @@ Contract for PLAN item 3h. Owner decisions (2026-11-14):
 Everything below is engine design and may change; wording shown to players
 and makers is placeholder until the owner approves it.
 
-Status: build order steps 1 (the engine) and 2 (the player: data, events, music) are done; the rest is design, see "Build order",
+Status: build order steps 1 (the engine), 2 (the player: data, events, music) and 4 (the editor) are done; the rest is design, see "Build order",
 "Step 1 as built" and "Step 2 as built".
 
 A game without `data/audio.json` is silent and behaves exactly as today.
@@ -257,6 +257,19 @@ design decision for the owner.
 **Story commands.** `{ "playMusic": id, "fade": seconds }` (fade optional: not given = the 0.5 s cross-fade, 0 = a cut, up to 60),
 `{ "stopMusic": true, "fade": s }`, `{ "playSound": id }` in map events and campaign scenes (docs/EVENTS.md).
 
+## Step 4 as built
+
+Where it lives: server `editor/server/audio*.cpp` (files, header facts, the player's loader run by `/problems`), docs/EDITOR_API.md
+"Sound data and audio files"; web `editor/web/src/screens/sound/` (the Sound screen, `SoundsGroup` for weapons / units / items,
+`MapMusic`, `AudioChoice`), `src/model/audio*.ts` and `campaignScene.ts`, `src/audio/preview.ts` (the play buttons: one shared
+`<audio>` element). Tests: `tests/editor_api_sound_checks.py`, `editor/web/tests/unit/audio.test.ts`, `tests/e2e/sound*.spec.ts`.
+Decisions: "remove all sound" is `"audio": false` (the file goes, `audio/` stays); the editor writes a scene as the object form only
+while it has music, a sound with one file as `file`, several as `files`, defaults (volume 100, loop on, loopStart 0) as no key; a track or
+sound is named by its id; deleting or renaming one rewrites every place that names it in the same undo step (`model/audioRefs.ts`, run
+by the document store after every edit); a sound FILE is not part of Undo. A missing file is a hint in the editor and not a problem in
+`/problems`. The Play panel has no sound toggle: the embed page would need `if (q.get('noaudio')) a.push('--no-audio');` in
+`engine/platform/web/embed.html`.
+
 ## Starter audio
 
 - `tools/audio/make_starter_audio.py` synthesizes the **retro set**
@@ -296,4 +309,4 @@ audio in hot-seat.
    events and menus, music director, story commands, campaign scenes. See "Step 2 as built".
 3. Starter audio: generator (built, `tools/audio/`); retro set generated
    into the demos and templates; CC0 set for the Detailed 3D style.
-4. Editor: Sound screen, pickers, uploads.
+4. **Done.** Editor: Sound screen, pickers, uploads. See "Step 4 as built".

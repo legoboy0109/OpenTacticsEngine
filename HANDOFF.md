@@ -614,6 +614,14 @@ choice is a design decision for the owner. The same sound at most once per frame
 (0.045 s) and `cursor` (0.03 s) are code constants (`game_audio.cpp`); the dialogue blip fires per typed letter, which may want a
 slower rate once heard.
 
+## Sound, step 4: the editor (2026-11-14)
+
+docs/SOUND.md "Step 4 as built". Helper: `audio` section (`data/audio.json`, `false` removes it), `/audio` file endpoints, the player's
+loader in `/problems` (`editor/server/audio_check.cpp`; the ote-editor target now links `ote_audio` and the player's `sound/` sources).
+Web: Sound screen, pickers, story commands, scene music. Tests: `tests/editor_api_sound_checks.py`, `tests/unit/audio.test.ts`,
+`tests/e2e/sound*.spec.ts` (the main one also runs the real `ote-player --headless` on the result; `OTE_PLAYER_BIN` overrides its path).
+Open: Play panel sound toggle (needs one line in `embed.html`), no starter-set installer on the empty screen (step 3's files).
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining

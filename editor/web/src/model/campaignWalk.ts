@@ -8,6 +8,7 @@
 // The scene commands are walked by storyWalk's own `mapCommands`, so a command is understood in one place only.
 // Returns the very same object when nothing changed.
 import { chapterName, type Campaign, type Chapter, type SceneKey } from './campaignTypes'
+import { isSceneObject, sceneCommands, sceneMusic, withSceneCommands, withSceneMusic, type Scene } from './campaignScene'
 import { DROP, mapCommands, put, type Walk } from './storyWalk'
 
 export const SCENE_TITLE: Record<SceneKey, string> = { before: 'Before the battle', after: 'After the battle' }
@@ -30,10 +31,23 @@ function walkChapter(ch: Chapter, w: Walk): Chapter {
     } else out = put(out, 'next', r)
   }
   for (const key of ['before', 'after'] as const) {
-    const list = ch[key]
-    if (!Array.isArray(list)) continue
-    const next = mapCommands(list, w, `${label}, “${SCENE_TITLE[key]}”`)
-    if (next !== list) out = put(out, key, next)
+    const scene = ch[key]
+    if (scene === undefined || (!Array.isArray(scene) && !isSceneObject(scene))) continue
+    const where = `${label}, “${SCENE_TITLE[key]}”`
+    let next: Scene | undefined = scene
+    // The music of the object form is a name of a track, like a `playMusic` command at the start of the scene.
+    const music = sceneMusic(scene)
+    if (music !== undefined) {
+      const r = w.ref({ kind: 'music', id: music }, where)
+      if (r === DROP) {
+        w.dropped?.({ what: 'setting', text: 'its music is taken off', where })
+        next = withSceneMusic(next, undefined)
+      } else if (r !== music) next = withSceneMusic(next, r)
+    }
+    const list = sceneCommands(next)
+    const mapped = mapCommands(list, w, where)
+    if (mapped !== list) next = isSceneObject(next) ? withSceneCommands(next, mapped) : mapped
+    if (next !== scene) out = put(out, key, next)
   }
   return out
 }

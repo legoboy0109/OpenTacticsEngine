@@ -32,6 +32,7 @@ function fakeHelper() {
     }),
     listArt: vi.fn(async () => ({ ok: true, value: [] }) as Result<never[]>),
     listModels: vi.fn(async () => ({ ok: true, value: [] }) as Result<never[]>),
+    listAudio: vi.fn(async () => ({ ok: true, value: [] }) as Result<never[]>),
     uploadArt: vi.fn(async (_id: string, name: string, _b: Blob, overwrite: boolean): Promise<Result<UploadResult>> => {
       state.order.push('upload')
       if (gates.upload) await gates.upload()
