@@ -227,17 +227,18 @@ TEST(story_hash_of_a_game_without_a_story_is_exactly_what_it_was) {
   // Computed before story events existed. A game without events, objectives, switches or variables
   // must keep its hash, or every save made so far would be refused.
   struct Golden { const char* game; const char* map; const char* hash; };
-  // (demo-srpg had "5d561ac273e900ee" until it got a story of its own; demo-economy has none.)
-  const Golden golden[] = {{"demo-economy", "twin_rivers", "1e44dae676a88a38"}};
+  // The frozen copy of the old demo-economy (the live demo uses the optional features now). (demo-srpg had
+  // "5d561ac273e900ee" until it got a story of its own.)
+  const Golden golden[] = {{"plain-economy", "twin_rivers", "1e44dae676a88a38"}};
   for (const Golden& g : golden) {
     Database db;
     std::string err, hash;
-    CHECK(loadGame(ote_test::sourceDir() + "/games/" + g.game, db, err));
+    CHECK(loadGame(ote_test::sourceDir() + "/tests/fixtures/" + g.game, db, err));
     CHECK(computeDataHash(db, g.map, hash, err));
     CHECK_STR(hash, g.hash);
     // And their saves carry nothing new.
     savetest::Rig rig;
-    CHECK(rig.loadDemo(g.game, g.map));
+    CHECK(rig.loadPlain(g.map));
     rig.start();
     Json saved;
     saveBattleState(rig.battle, saved);

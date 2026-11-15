@@ -23,9 +23,9 @@ std::string hex(uint64_t v) {
 }
 
 // A battle played 60 AI steps, saved as text.
-std::string playedSave(const char* game, const char* map, unsigned seed) {
+std::string playedSave(const char* map, unsigned seed) {
   savetest::Rig rig;
-  if (!rig.loadDemo(game, map, seed)) return "load failed";
+  if (!rig.loadPlain(map, seed)) return "load failed";
   rig.start();
   std::vector<Event> ev;
   savetest::playAi(rig.battle, 60, ev);
@@ -35,6 +35,7 @@ std::string playedSave(const char* game, const char* map, unsigned seed) {
 }  // namespace
 
 TEST(campaign_games_without_one_keep_their_battle_saves_byte_for_byte) {
+  // The frozen plain game (tests/fixtures/plain-economy) stands for a game without the optional features.
   // demo-srpg was pinned here too ("1af1975f86935fd8") until it got a story and a campaign.
-  CHECK_STR(hex(fnv(playedSave("demo-economy", "twin_rivers", 7))), "7bd8c1c0aa74081e");
+  CHECK_STR(hex(fnv(playedSave("twin_rivers", 7))), "7bd8c1c0aa74081e");
 }

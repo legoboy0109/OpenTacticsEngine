@@ -1,0 +1,15 @@
+// "versus" is the damage chart: base damage (out of 100 hp) per target type.
+// There is no versusDefault, so a weapon can only hit types listed here.
+{ "weapons": [
+  { "id": "rifle", "name": "Rifle",
+    "versus": { "infantry": 55, "mech": 45, "recon": 12, "tank": 5, "artillery": 15 } },
+  { "id": "bazooka", "name": "Bazooka",
+    "versus": { "infantry": 65, "mech": 55, "recon": 85, "tank": 55, "artillery": 70 } },
+  { "id": "machine_gun", "name": "Machine Gun",
+    "versus": { "infantry": 70, "mech": 65, "recon": 35, "tank": 6, "artillery": 45 } },
+  { "id": "tank_cannon", "name": "Tank Cannon",
+    "versus": { "infantry": 75, "mech": 70, "recon": 85, "tank": 55, "artillery": 70 } },
+  { "id": "cannon", "name": "Artillery Cannon", "range": [2, 3],
+    "counter": false, "afterMove": false,
+    "versus": { "infantry": 90, "mech": 85, "recon": 80, "tank": 70, "artillery": 75 } }
+] }

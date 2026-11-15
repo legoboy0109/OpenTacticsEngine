@@ -40,6 +40,10 @@ struct Rig {
   bool loadDemo(const char* game, const char* map_, unsigned seed = 7) {
     return load(ote_test::sourceDir() + "/games/" + game, map_, seed);
   }
+  // The frozen plain game (tests/fixtures/plain-economy): no research, supply, fog, story or campaign.
+  bool loadPlain(const char* map_, unsigned seed = 7) {
+    return load(ote_test::sourceDir() + "/tests/fixtures/plain-economy", map_, seed);
+  }
   void start() {
     std::vector<Event> ev;
     battle.start(ev);

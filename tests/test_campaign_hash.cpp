@@ -92,10 +92,10 @@ TEST(campaign_hash_of_a_single_battle_includes_the_file_only_when_it_exists) {
 }
 
 TEST(campaign_a_demo_without_one_has_no_campaign) {
-  for (const char* demo : {"demo-economy"}) {  // demo-srpg has a campaign of its own
+  for (const char* demo : {"plain-economy"}) {  // frozen fixture; demo-srpg has a campaign of its own
     Database db;
     std::string err;
-    CHECK(loadGame(ote_test::sourceDir() + "/games/" + demo, db, err));
+    CHECK(loadGame(ote_test::sourceDir() + "/tests/fixtures/" + demo, db, err));
     CHECK(db.campaign == nullptr);
     std::string h;
     CHECK(computeDataHash(db, db.maps[0].id, h, err));  // pinned in test_story_save.cpp: unchanged

@@ -1,0 +1,48 @@
+// Mirror-symmetric: blue holds the west, red the east, five neutral cities
+// between them. Each side starts with an HQ (a 2 x 2 structure), a factory and
+// a city. Buildings are structures standing on ordinary ground; roads run
+// underneath the ones they lead into.
+{
+  "name": "Twin Rivers",
+  "grid": { "type": "square", "width": 15, "height": 10 },
+  "legend": { ".": "plain", "r": "road", "f": "forest", "m": "mountain", "~": "sea" },
+  "tiles": [
+    "..ff..m.m..ff..",
+    "....f..r..f....",
+    "...r...r...r...",
+    "..rrrrrrrrrrr..",
+    "....f..r..f....",
+    "..r.m..r..m.r..",
+    "....~~.~.~~....",
+    "...rr..r..rr...",
+    ".f..rr.r.rr..f.",
+    "~~..ff...ff..~~"
+  ],
+  "sides": [
+    { "id": "blue", "name": "Blue Army", "color": "#3d85c6", "controller": "human",
+      "resources": { "funds": 3000 } },
+    { "id": "red",  "name": "Red Army",  "color": "#cc0000", "controller": "ai",
+      "resources": { "funds": 3000 } }
+  ],
+  "structures": [
+    { "type": "city", "x": 1, "y": 1 },
+    { "type": "city", "x": 13, "y": 1 },
+    { "type": "factory", "x": 2, "y": 3, "side": "blue" },
+    { "type": "factory", "x": 12, "y": 3, "side": "red" },
+    { "type": "city", "x": 7, "y": 5 },
+    { "type": "city", "x": 1, "y": 6, "side": "blue" },
+    { "type": "city", "x": 13, "y": 6, "side": "red" },
+    { "type": "city", "x": 4, "y": 7 },
+    { "type": "city", "x": 10, "y": 7 },
+    { "type": "hq", "x": 0, "y": 4, "side": "blue" },
+    { "type": "hq", "x": 13, "y": 4, "side": "red" }
+  ],
+  "units": [
+    { "type": "infantry", "side": "blue", "x": 2,  "y": 4 },
+    { "type": "infantry", "side": "blue", "x": 2,  "y": 5 },
+    { "type": "tank",     "side": "blue", "x": 3,  "y": 4 },
+    { "type": "infantry", "side": "red",  "x": 12, "y": 4 },
+    { "type": "infantry", "side": "red",  "x": 12, "y": 5 },
+    { "type": "tank",     "side": "red",  "x": 11, "y": 4 }
+  ]
+}
