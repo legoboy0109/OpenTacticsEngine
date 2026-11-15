@@ -5,6 +5,7 @@
 
 #include "battle/economy_text.h"
 #include "battle/fog_text.h"
+#include "battle/hex_draw.h"
 #include "core/ai/ai.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -65,6 +66,11 @@ void BattleScene::cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const {
   proj_.cellBox(battle_.grid.x(c), battle_.grid.y(c), x, y, w, h);
   x -= cam_.ix();
   y -= cam_.iy();
+}
+
+void BattleScene::fillCellBox(Renderer& r, int x, int y, int w, int h, Color col) const {
+  if (proj_.hex()) fillHex(r, proj_.hexGeo(), x, y, col);
+  else r.fillRect(x, y, w, h, col);
 }
 
 void BattleScene::enterResult() {
@@ -135,8 +141,7 @@ void BattleScene::followCamera(double dt) {
     fy = view_.focusY;
   } else {
     Cell c = battle_.grid.valid(cursor_) ? cursor_ : 0;
-    fx = (battle_.grid.x(c) + 0.5f) * layout_.tile;
-    fy = (battle_.grid.y(c) + 0.5f) * layout_.tile;
+    cellCentre(battle_.grid, layout_.tile, c, fx, fy);  // (a hexagon's middle on a hexagon map)
   }
   if (proj_.free3d()) {  // this view has no scrolling: its own camera keeps the spot in the picture
     float gx = fx / layout_.tile, gy = fy / layout_.tile;

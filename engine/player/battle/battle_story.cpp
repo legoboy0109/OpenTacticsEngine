@@ -113,7 +113,7 @@ void BattleScene::drawStory(Renderer& r) {
       y -= proj_.unitW();
       h += proj_.unitW();
     }
-    r.fillRect(x, y, w, h, Color(255, 255, 255, (uint8_t)(170 * std::min(1.0f, v.flash))));
+    fillCellBox(r, x, y, w, h, Color(255, 255, 255, (uint8_t)(170 * std::min(1.0f, v.flash))));
   }
 }
 

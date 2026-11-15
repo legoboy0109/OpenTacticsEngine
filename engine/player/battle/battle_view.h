@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core/battle/battle.h"
+#include "core/view/hex_geo.h"
 #include "platform/platform.h"
 #include "ui/dialogue_text.h"
 
@@ -145,6 +146,7 @@ class BattleView {
   void clampHpTo(const Battle& b, int unit);
   std::string itemName(const Battle& b, int item) const;
   void cellPos(const Battle& b, Cell c, float& x, float& y) const;
+  void structureTop(const Battle& b, const StructureState& st, float& x, float& y) const;
   bool showsResources(const Battle& b, int side) const;
 
   Current cur_;

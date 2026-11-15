@@ -18,7 +18,7 @@ function walk(dir, base = dir) {
   return out;
 }
 
-function addProject(root, id, srcDir, mutate) {
+export function addProject(root, id, srcDir, mutate) {
   const files = walk(srcDir).map((p) => ({ path: p, bytes: fs.readFileSync(path.join(srcDir, p)) }));
   if (mutate) mutate(files);
   const apiDir = path.join(root, 'api/projects', id);

@@ -181,7 +181,7 @@ void BattleScene::drawEconomy(Renderer& r) {
     for (Cell c : cells) {
       int x, y, w, h;
       cellScreenBox(c, x, y, w, h);
-      r.fillRect(x, y, w, h, Color(255, 255, 255, (uint8_t)(170 * std::min(1.0f, f))));
+      fillCellBox(r, x, y, w, h, Color(255, 255, 255, (uint8_t)(170 * std::min(1.0f, f))));
     }
   }
 }

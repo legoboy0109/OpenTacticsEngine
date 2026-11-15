@@ -59,13 +59,10 @@ inline Color fogDim(Color c) {
 // A structure none of whose squares the viewer sees (so its picture is dimmed too).
 inline bool structureDimmed(const DrawCtx& c, int structure) {
   if (!c.view.fogged()) return false;
-  const StructureState& st = c.battle.structures[(size_t)structure];
-  const StructureDef& def = c.battle.defOf(st);
-  for (int dy = 0; dy < def.height; ++dy)
-    for (int dx = 0; dx < def.width; ++dx) {
-      Cell cell = c.battle.grid.at(st.x + dx, st.y + dy);
-      if (cell != kNoCell && !c.view.dimmed(cell)) return false;
-    }
+  std::vector<Cell> cells;
+  c.battle.structureCells(structure, cells);  // every square / hexagon it covers
+  for (Cell cell : cells)
+    if (cell != kNoCell && !c.view.dimmed(cell)) return false;
   return true;
 }
 // Which kind a structure is drawn as: for a viewer the kind it last saw (an upgrade done out of its sight stays

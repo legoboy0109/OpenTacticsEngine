@@ -75,7 +75,9 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   int ty = 0;
   if (targetCell >= 0) {
     int tx;
-    c.toScreen((b.grid.x(targetCell) + 0.5f) * L.tile, (b.grid.y(targetCell) + 0.5f) * L.tile, tx, ty);
+    float fx, fy;
+    cellCentre(b.grid, L.tile, targetCell, fx, fy);
+    c.toScreen(fx, fy, tx, ty);
   }
   int y = ty < L.vh / 2 ? L.vh - h - 6 : 6;  // opposite half from the target
   r.fillRect(x + 2, y + 2, w, h, Color(0, 0, 0, 110));

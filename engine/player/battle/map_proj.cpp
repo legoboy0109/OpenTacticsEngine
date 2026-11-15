@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "core/base/log.h"
+
 namespace ote {
 
 void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
@@ -13,6 +15,13 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   iso3d_ = style && style->view == StyleView::Isometric3D;
   free3d_ = style && style->view == StyleView::Full3D;
   unitW_ = tile;
+  hex_ = b.grid.isHex();
+  if (hex_) {
+    // The loader refuses other views for hexagon games (docs/HEX.md); anything else must not get further.
+    if (iso_ || iso3d_ || free3d_) OTE_WARN("hexagon maps are drawn top-down only; ignoring the style's view");
+    iso_ = iso3d_ = free3d_ = false;
+    hexGeo_ = HexGeo::of(b.grid, tile);
+  }
   elev_.assign((size_t)(gridW_ * gridH_), 0);
   if (!raised()) return;
   // Heights count from the lowest square; a wild value in a map file must not
@@ -93,6 +102,7 @@ Cell MapProj::pick(int wx, int wy) const {
     int c = geo_.pick(wx + 0.5f, wy + 0.5f, elev_);
     return c < 0 ? kNoCell : (Cell)c;
   }
+  if (hex_) return hexGeo_.pick(wx + 0.5f, wy + 0.5f);  // the nearest hexagon middle to the pixel's middle
   if (wx < 0 || wy < 0 || wx >= gridW_ * tile_ || wy >= gridH_ * tile_) return kNoCell;
   return (Cell)((wy / tile_) * gridW_ + wx / tile_);
 }
@@ -112,6 +122,12 @@ void MapProj::cellBox(int x, int y, int& bx, int& by, int& bw, int& bh) const {
     by = (int)std::lround(lo[1]);
     bw = (int)std::lround(hi[0]) - bx;
     bh = (int)std::lround(hi[1]) - by;
+    return;
+  }
+  if (hex_) {  // the hexagon's box (the hexagon touches it on all four sides)
+    hexGeo_.box(x, y, bx, by);
+    bw = hexGeo_.boxW();
+    bh = hexGeo_.boxH();
     return;
   }
   if (!iso_) {

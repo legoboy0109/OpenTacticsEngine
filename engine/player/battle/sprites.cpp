@@ -95,6 +95,9 @@ SpriteSrc srcOf(const DrawCtx& c, const Look& look, SpriteCell cell) {
 int joinMaskOf(const DrawCtx& c, const Look& look, int x, int y) {
   if (look.kind != Look::Join) return 0;
   const Grid& g = c.battle.grid;
+  // Hexagons: one bit per neighbour in the grid's own direction order (docs/HEX.md "Join pieces on hexagons").
+  if (g.isHex())
+    return joinMaskHex(look, g, g.at(x, y), [&](Cell nb) { return (int)c.battle.cells[(size_t)nb].terrain; });
   return joinMaskAt(look, x, y, g.width(), g.height(),
                     [&](int nx, int ny) { return (int)c.battle.cells[(size_t)g.at(nx, ny)].terrain; });
 }
@@ -102,7 +105,7 @@ int joinMaskOf(const DrawCtx& c, const Look& look, int x, int y) {
 
 SpriteSrc terrainSrc(const DrawCtx& c, const Look& look, Cell cell) {
   int x = c.battle.grid.x(cell), y = c.battle.grid.y(cell);
-  return srcOf(c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c)));
+  return srcOf(c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c), joinBlockSide(c.battle.grid)));
 }
 
 SpriteSrc lookSrc(const DrawCtx& c, const Look& look) { return srcOf(c, look, pickCell(look, 0, 0, 0, timeMs(c))); }
@@ -116,7 +119,8 @@ void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, i
 void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, int dx, int dy, int dw, int dh) {
   const Grid& g = c.battle.grid;
   int x = g.x(cell), y = g.y(cell);
-  blit(r, c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c)), dx, dy, dw, dh, Color(255, 255, 255));
+  blit(r, c, look, pickCell(look, x, y, joinMaskOf(c, look, x, y), timeMs(c), joinBlockSide(g)), dx, dy, dw, dh,
+       Color(255, 255, 255));
 }
 
 void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u, int sx, int sy, float scale,

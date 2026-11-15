@@ -151,8 +151,7 @@ void BattleView::updateShown(const Battle& b) {
   for (const Unit& u : b.units) {
     if ((size_t)u.id >= units.size() || b.teamOf(u) != viewerTeam_ || !units[(size_t)u.id].visible) continue;
     const UnitView& v = units[(size_t)u.id];
-    Cell c = b.grid.at(std::max(0, std::min((int)std::lround(v.px / tile_), b.grid.width() - 1)),
-                       std::max(0, std::min((int)std::lround(v.py / tile_), b.grid.height() - 1)));
+    Cell c = cellNearPos(b.grid, tile_, v.px, v.py);
     key.push_back(u.id);
     key.push_back((int)c);
     mine.push_back(&u);
