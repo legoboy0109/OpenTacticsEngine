@@ -88,12 +88,18 @@ state" and is never an error. Tests point the server at a temporary file.
    give a unit a weapon; press Play and move a unit; look at "No problems".
 2. **Structures**: make a structure kind that can be captured and earns
    funds; place it; give one to a side; Play.
-3. **Items**: a usable item, give it to a unit, a shop or drop.
-4. **Story events**: an opening dialogue, an event when a unit reaches a
-   place, an objective.
+3. **Items** (template: blank): make a usable item that heals and set how
+   much; give it to the Soldier as a starting item; let it drop when the
+   Soldier is defeated (the way of getting items in play: a shop needs
+   resources and structures, so it is not in this lesson); Play; check for
+   problems.
+4. **Story events** (template: blank): an opening dialogue said when the
+   battle starts; a second event for a unit reaching an area picked on the
+   map, with its own line; an objective (text and a way to win); Play.
 5. **Economy**: building units at a structure, an upgrade or a research
    topic, fog of war on a map.
-6. **Sound**: map music and replacing one sound.
+6. **Sound** (template: blank; no file of the maker's own is needed, it works with the music and sounds the template already has): listen to a
+   track, turn a track's volume down, pick music for the map, change the sound of an event, give the Sword a sound of its own, Play.
 7. **Art**: give a terrain and a unit a picture; a joined road.
 8. **Hexagons**: start from a hexagon template, paint, place a
    seven-hexagon structure.
