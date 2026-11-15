@@ -8,7 +8,12 @@ import {
 } from './storyTypes'
 import type { MapFile, MapUnit, ProjectDoc } from './types'
 
-export interface DefCtx { doc: ProjectDoc; map: MapFile }
+export interface DefCtx {
+  doc: ProjectDoc
+  map: MapFile
+  /** Set while a campaign scene is edited (campaignRoster.ts): fewer kinds, roster ids instead of unit filters. */
+  scene?: { goto: boolean }
+}
 
 const firstUnit = (c: DefCtx) => namedUnits(c.doc, c.map)[0]?.id ?? ''
 const firstSide = (c: DefCtx) => c.map.sides?.[0]?.id ?? ''
@@ -55,8 +60,9 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
   switch (kind) {
     case 'switch': return { switch: c.doc.game?.switches?.[0]?.id ?? '' }
     case 'variable': return { variable: c.doc.game?.variables?.[0]?.id ?? '', op: '=', value: 0 }
-    case 'alive': return { alive: defaultFilter(c) }
-    case 'dead': return { dead: defaultFilter(c) }
+    // A scene names a roster unit by a plain id; a map event takes any unit filter.
+    case 'alive': return { alive: c.scene ? firstUnit(c) : defaultFilter(c) }
+    case 'dead': return { dead: c.scene ? firstUnit(c) : defaultFilter(c) }
     case 'round': return { round: { op: '>=', value: 2 } }
     case 'carries': return { carries: c.doc.items?.[0]?.id ?? '' }
   }
@@ -87,9 +93,10 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'objective': return { objective: {} }
     case 'win': return { win: teamsOf(c.map)[0]?.id ?? '' }
     case 'lose': return { lose: teamsOf(c.map)[0]?.id ?? '' }
-    case 'if': return { if: [newCondition(c, 'round')], then: [] }
+    case 'if': return { if: [newCondition(c, c.scene ? 'switch' : 'round')], then: [] }
     case 'endTurn': return { endTurn: true }
     case 'focus': return { focus: { x: 0, y: 0 } }
+    case 'goto': return { goto: c.doc.campaign?.chapters[0]?.id ?? '' }
   }
 }
 

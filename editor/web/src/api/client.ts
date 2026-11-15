@@ -19,7 +19,8 @@ export interface TemplateInfo { id: string; name: string; description: string }
 export interface FontInfo { id: string; name: string; size: number; smooth: boolean }
 export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number }
 export interface FileInfo { path: string; size: number }
-export interface PutBody extends Partial<ProjectDoc> { baseRevision: string }
+/** `campaign: false` removes data/campaign.json (null / absent leave it alone). */
+export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign'>> { baseRevision: string; campaign?: ProjectDoc['campaign'] | false }
 export interface PutResult { revision: string; problems: Problem[] }
 /** One PNG in the game's art/ folder (width/height 0 + error when it cannot be read). */
 export interface ArtFile { file: string; width: number; height: number; size: number; error?: string }

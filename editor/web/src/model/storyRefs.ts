@@ -2,6 +2,7 @@
 //  - renaming a unit's story id (every place that names it follows),
 //  - asking "what uses this?" before a delete (the "used by" lines),
 //  - cleaning up when something is deleted (what cannot work any more is removed, all in the same undo step).
+import { campaignUsages } from './campaignRefs'
 import { definedUnitIds } from './storyIds'
 import { describeFor } from './storySummary'
 import { DROP, walkStory, type Ref, type Walk } from './storyWalk'
@@ -74,6 +75,8 @@ export function storyUsages(doc: ProjectDoc, gone: Ref[], only?: string): Usage[
       },
     } satisfies Walk)
   }
+  // The campaign's scenes name switches, variables, resources, sides and roster units too.
+  out.push(...campaignUsages(doc, gone, only))
   return out
 }
 

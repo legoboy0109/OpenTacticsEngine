@@ -1,4 +1,5 @@
 // Section helpers: an edit on a section that failed to load (null) is a no-op.
+import type { Campaign } from './campaignTypes'
 import type { Game, Item, ProjectDoc, Structure, Terrain, Unit, Weapon } from './types'
 
 export const withGame = (doc: ProjectDoc, fn: (g: Game) => Game): ProjectDoc => (doc.game ? { ...doc, game: fn(doc.game) } : doc)
@@ -16,6 +17,13 @@ export const withStructures = (doc: ProjectDoc, fn: (s: Structure[]) => Structur
 export const withItems = (doc: ProjectDoc, fn: (i: Item[]) => Item[]): ProjectDoc => {
   const next = fn(doc.items ?? [])
   return next === doc.items ? doc : { ...doc, items: next }
+}
+
+/** Applies `fn` to the campaign (an edit while there is none is a no-op: creating one is `createCampaign`). */
+export const withCampaign = (doc: ProjectDoc, fn: (c: Campaign) => Campaign): ProjectDoc => {
+  if (!doc.campaign) return doc
+  const next = fn(doc.campaign)
+  return next === doc.campaign ? doc : { ...doc, campaign: next }
 }
 
 export const ids = (list: Array<{ id: string }> | null | undefined): string[] => (list ?? []).map((x) => x.id)
