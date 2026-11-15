@@ -29,12 +29,13 @@ class BattleScene : public Scene {
   void draw(Renderer& r) override;
 
  private:
-  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, Result };
+  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result };
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry,
                 kTalkBase = 1000 };  // kTalkBase + n = the n-th Talk entry of the action menu
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -90,6 +91,19 @@ class BattleScene : public Scene {
   void itemActionDone();            // after an action that does not end the turn: back to the action menu
   bool submitItem(const Action& a); // submit() for those; then itemActionDone()
   std::string itemsHint() const;
+
+  // --- battle_economy.cpp: structure menu, Upgrade, Research panel, Supply (docs/ECONOMY.md "Player")
+  bool openStructureAt(Cell cell);         // the menu / list of an own structure; false = nothing to offer there
+  void openStructureMenu(Cell cell);
+  void openUpgradeMenu(int structure);
+  void openResearchPanel();
+  void economyMenuChosen(int id);          // an entry of the structure or upgrade menu
+  void researchInput(const InputEvent& e);
+  void backToStructure();                  // Cancel in Build / Upgrade / Research: the structure menu, or the map
+  Overlay supplyOverlay() const;           // the units a Supply would fill, while that entry is selected
+  void logInspected();                     // [info] line for the unit under the cursor when it has fuel / ammunition
+  std::string economyHint() const;
+  void drawEconomy(Renderer& r);           // under the panel: the flash of an upgraded structure
 
   // --- battle_story.cpp: story events in the player (docs/EVENTS.md): dialogue box, Talk, objectives
   void updateDialogue(double dt);
@@ -151,6 +165,11 @@ class BattleScene : public Scene {
   int turnKey_ = -1;
   ItemScreen itemScreen_ = ItemScreen::List;
   ItemPanel itemPanel_;
+  ItemPanel researchPanel_;       // Mode::Research
+  std::vector<int> techRows_;     // technology of each row of researchPanel_
+  bool structureMenuBack_ = false;  // Build / Upgrade / Research was opened from the structure menu: Cancel goes back
+  int upgradeStructure_ = -1;     // the structure of the open Upgrade menu
+  std::string inspectedLine_;     // the last logInspected() line
   TradePanel tradePanel_;
   ConfirmBox confirm_;
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)

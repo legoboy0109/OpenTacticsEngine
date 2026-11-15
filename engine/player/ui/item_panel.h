@@ -33,6 +33,10 @@ class ItemPanel {
   void open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,
             const std::string& emptyText, int sel = 0);
   void close() { open_ = false; }
+  // Lines of explanation under the rows (default 2; the research panel wants more).
+  void setDetailLines(int n) { detailLines_ = n; }
+  // Width wanted (default: three quarters of the area, at most 260; rows with a price and turns want more).
+  void setMaxWidth(int w) { maxW_ = w; }
   bool isOpen() const { return open_; }
   // The rectangle the panel centres itself in (the map view).
   void setArea(int x, int y, int w, int h) { ax_ = x; ay_ = y; aw_ = w; ah_ = h; }
@@ -51,6 +55,7 @@ class ItemPanel {
   std::string title_, head_, empty_;
   std::vector<PanelRow> rows_;
   RowList list_;
+  int maxW_ = 0;  // 0 = the usual width
   int ax_ = 0, ay_ = 0, aw_ = 0, ah_ = 0;
   int x_ = 0, y_ = 0, w_ = 0, h_ = 0, detailY_ = 0, detailLines_ = 2;
 };

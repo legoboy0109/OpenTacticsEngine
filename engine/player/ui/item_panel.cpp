@@ -44,7 +44,7 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
 
 void ItemPanel::layout(const Renderer& r) {
   const int lh = r.lineHeight(), rowH = lh + 4;
-  w_ = std::min(aw_ - 8, std::max(150, std::min(260, aw_ * 3 / 4)));
+  w_ = std::min(aw_ - 8, std::max(150, maxW_ > 0 ? maxW_ : std::min(260, aw_ * 3 / 4)));
   int fixedTop = kPad + lh + 4 + (head_.empty() ? 0 : lh + 2);
   int fixedBottom = detailLines_ * lh + 4 + kPad;
   int maxH = ah_ - 8;

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "battle/economy_text.h"
 #include "core/ai/ai.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -190,6 +191,7 @@ void BattleScene::update(double dt) {
     resultTime_ += (float)dt;
     if (resultTime_ >= 1.5f) leaveResult();
   }
+  logInspected();
   followCamera(dt);
   if (mode_ == Mode::ActionMenu) anchorActionMenu();
 }
@@ -208,13 +210,22 @@ std::string BattleScene::hint() const {
       return proj_.free3d() ? "Arrows  Z:select  ,.:turn  RF:tilt  -=:zoom  M:menu"
              : map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
                     : "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
-    case Mode::Selected: return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
+    case Mode::Selected: {
+      // A tank too empty for the full move: the blue range is already cut by the core, say why.
+      const Unit& su = battle_.units[(size_t)sel_];
+      if (battle_.maxFuel(sel_) > 0 && battle_.fuel(sel_) < battle_.stat(su, session_.db.rules.statMove))
+        return EconomyWords::kLowFuel + intStr(battle_.fuel(sel_)) + "  Z:move  X:cancel";
+      return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
+    }
     case Mode::ActionMenu: return itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
     case Mode::Items: return itemsHint();
     case Mode::Objective: return "Z / X / tap: close";
+    case Mode::StructureMenu:
+    case Mode::UpgradeMenu:
+    case Mode::Research: return economyHint();
     default: return "";
   }
 }
@@ -226,9 +237,10 @@ void BattleScene::draw(Renderer& r) {
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));
-  drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : Overlay(), cursor_, human);
+  drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : supplyOverlay(), cursor_, human);
   drawFloats(r, ctx, false);
   drawStory(r);
+  drawEconomy(r);
   if (map3d_) {  // the camera buttons, for pointer and touch
     static const char* const kLabels[6] = {"<", ">", "^", "v", "+", "-"};
     for (int i = 0; i < cameraButtons(); ++i) {
@@ -251,6 +263,7 @@ void BattleScene::draw(Renderer& r) {
       drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
     if (mode_ == Mode::Items) drawItems(r);
+    else if (mode_ == Mode::Research) researchPanel_.draw(r);
     else menu_.draw(r);
     if (mode_ == Mode::Objective) drawObjectiveBox(r);
   }
