@@ -366,6 +366,32 @@ own side (not allies of another side); fuel and ammunition are not carried betwe
 running dry is destroyed by `fuelPerTurn` only (others just cannot move); the AI's thresholds (40% HP, a quarter of the
 tank, out of every usable weapon) are constants in `ai_supply.cpp`; wording of every loader message is placeholder.
 
+## Economy in the player: upgrades, research, repair, supply (2026-11-14)
+
+Build order step 4 of docs/ECONOMY.md, the part for upgrades, research, repair and supply (fog drawing is separate).
+Files: `battle/battle_economy.cpp` (structure menu, Upgrade list, research panel, Supply highlight, `[info]` line for a
+hovered unit with fuel / ammunition, upgrade flash), `battle/economy_text.*` (ALL wording of this part: `EconomyWords`
+plus the text builders, like `item_text` for items), `battle/battle_view_economy.cpp` (events), small edits in
+`battle_scene.*`, `battle_menus.cpp`, `battle_input.cpp`, `panel.cpp`, `ui/menu.h` (`selectedId`), `ui/item_panel.*`
+(`setDetailLines`, `setMaxWidth`) and four one-line hooks in `battle_view.cpp`. Test: `python3 tests/economy_player_test.py
+./build/engine/player/ote-player .` (24 checks on a generated game; `--shots DIR` keeps its screenshots; `--make-games
+DIR` only writes the game). It reads the `[info]` lines the player logs: `structure menu:`, `build menu:`, `upgrade menu:`,
+`research panel:` (every row with price / turns / `[greyed]`), `info:` (hovered unit's fuel and ammunition), `upgrade:`,
+`research started:`, `research finished:`, `repair:`, `resupply:`.
+Behaviour: a structure that offers only one thing (a plain factory) opens that screen at once, as before; two or more open
+the structure menu (Build / Upgrade / Research); Cancel in a sub-screen goes back to it. A unit that can still act and stands
+on the structure takes the Confirm (select it first, or let it act). Greyed entries show their reason where the price is
+(a greyed row cannot be selected, so a hint line would never show it); the research panel shows the reason in its detail
+lines. Build menu shows locked unit types greyed with "needs <tech>". Supply is in the action menu; while it is the
+highlighted entry the units it would fill are tinted (the move-range overlay, so all four kinds of view draw it). Info panel:
+a "Fuel" row (red at a quarter or less), fixed weapons show "3/6 r1" and a weapon out of ammunition shows "EMPTY" in red
+(it is not in `weaponsOf`, so the panel walks the type's weapons); the side's research shows under its resources ("Armor   1",
+"paused" when no research structure). The hint line says "Low fuel: move limited to N" when the tank is the limit of a move.
+Events: banner "Blue Army: Armor researched" (+ what it gives), started banner, "+N" heal number for a repair, "Resupplied"
+float, white flash on the squares of an upgraded structure; 1.3 s for the viewed side, 0.5 s / 0.1 s for others.
+Not checked: a real window, gamepad, touch (hit testing is the shared Menu / ItemPanel / RowList code). The old comments in
+`battle_view.cpp` ("no player UI yet") on the event list are stale; left alone to keep the merge with the fog branch clean.
+
 ## Story events in the editor (2026-11-14)
 
 Build order step 3 of docs/EVENTS.md (inside one map; the Campaign screen is step 5). Model: `editor/web/src/model/story*.ts`
