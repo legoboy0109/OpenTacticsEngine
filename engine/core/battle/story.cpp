@@ -103,6 +103,8 @@ bool Battle::conditionHolds(const Condition& c) const {
       // "dead" needs a unit that exists (or existed): a unit not added yet is neither.
       return c.kind == Condition::Kind::Alive ? alive : (any && !alive);
     }
+    case Condition::Kind::Researched:
+      return hasTechnology(c.side, c.index);
     case Condition::Kind::Carries:
       for (const Unit& u : units) {
         if (!u.alive || !unitMatches(c.filter, u)) continue;
