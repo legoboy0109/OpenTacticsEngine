@@ -129,7 +129,7 @@ goal (demos only exercise features).
       per weapon, unit type and item. Starter audio: both a generated
       retro set (default for new projects) and a CC0 set (for the
       Detailed 3D demo style / as an alternative).
-      Contract: docs/SOUND.md (design only so far).
+      Contract: docs/SOUND.md (steps 1 and 2 built: engine, player; starter audio in the games and the editor are next).
    Not yet ordered: speed-based turns (FFT), height rules, hex grid,
    isometric view.
    Editor wording decided: "style" (never "look"); terrain lists keep the

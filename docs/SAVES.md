@@ -55,7 +55,10 @@ is put on top.
   the scripts listed in `game.json`, and the map file. Things that only
   change how the game is called or drawn do not count (owner decision
   2026-11-14): names, descriptions, the author, colours, letters, fonts,
-  visual styles, screen size, the saving setting, art, and the layout and
+  visual styles, screen size, the saving setting, art, sound (`"sounds"` blocks, `"music"`,
+  `"playerTurnMusic"` and `"enemyTurnMusic"` keys, data/audio.json, which is not read at all, a scene's
+  `{ "music", "commands" }` shape; docs/SOUND.md; the story commands `playMusic` / `playSound` keep their
+  place in the hash but not which track or sound), and the layout and
   comments of the files. A maker can rename and restyle a game without
   locking players out of their saves.
 - **A save whose `dataHash` does not match the game as it is now is not
@@ -77,6 +80,12 @@ bool computeDataHash(const Database& db, const std::string& mapId, std::string& 
 ```
 Round trip is exact: save → restore into a fresh battle → the two battles
 behave identically from then on (same events for the same actions).
+
+**Story music (docs/SOUND.md).** The `story` object gets an optional `"music"` string (a track id, `""` = the story stopped the
+music) only once a `playMusic` / `stopMusic` command has run in the battle, so every other save is byte for byte what it was. A
+resumed battle plays that track (or stays silent); the key must be absent or a string of letters, digits, `_`, `-` (or `""`),
+anything else refuses the save (`battle.story.music`). The player checks nothing else about it: an id the game no longer has is a
+warning and silence.
 
 ## Where saves live
 

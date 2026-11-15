@@ -534,6 +534,52 @@ Known limits: effects and music are linearly resampled (fine for game sound, not
 sound rate is fixed at 44.1 kHz (device rates are converted by SDL), a "lower rate on weak targets" setting is not built;
 stepping a volume slider from "Default" goes to Off first (the unset choice is element 0 of every option).
 
+## Sound, step 2: the player plays sound (2026-11-14)
+
+docs/SOUND.md build order step 2, as built ("Step 2 as built" there has the full tables). No shipped game has an
+`audio.json` yet, so nothing is heard from `games/` until step 3; the demos behave exactly as before (a test asserts their audio
+log has no sound or music lines). **Real sound was never heard here** (no device is opened on this machine by rule): everything is
+checked through `--audio-log` and offline.
+
+What it is: `data/audio.json` (+ `"sounds"` on weapons / units / items, `"music"` / `"playerTurnMusic"` / `"enemyTurnMusic"` on maps, a
+scene `{ "music", "commands" }`) loaded strictly by the player (`engine/player/sound/audio_data.*`); the core only lets the keys
+pass and gained the story commands `playMusic` / `stopMusic` / `playSound` (events `MusicChanged`, `SoundRequested`, the saved story
+music key). Sounds come from `GameAudio` (`game_audio.*`, owned by `PlayerApp`, reached as `host.gameAudio()`): the cue lookup
+(`sound_bank.*`), the music director (`music_director.*`), `uiCue()` (`cue_sink.h`) for widgets, `BattleView::soundStarted /
+soundImpact / soundStep` (`battle/battle_view_sound.cpp`) for events, `Scene::audioContext()` for music. Tests: `ote_tests`
+(775: `test_sound_core.cpp` core + hash / save neutrality, `test_audio_data.cpp` loader, lookup, director), `tests/sound_player_test.py`
+(48, ctest `sound_player`; it builds a game in a temp folder with `tests/sound_game.py` and the generator's audio).
+
+**Step 3 (starter audio into the demos and templates) needs:**
+- `python3 tools/audio/make_starter_audio.py --out DIR --ogg` writes `DIR/audio/*` and `DIR/audio.json.example`; copy `audio/` into
+  the game and the example to `data/audio.json`. The example is accepted as it is. The shape the loader accepts (strictly):
+  `{ "music": { id: { "file", "loopStart"?, "volume"? (0..100), "loop"? } }, "sounds": { id: { "file" | "files": [1..16], "volume"? } },
+  "use": { "titleMusic", "mapMusic", "playerTurnMusic", "enemyTurnMusic", "sceneMusic", "victory", "defeat", "levelUp" (music ids,
+  "" = none; the three jingles need `"loop": false`), "sounds": { cue: sound id } } }`; cues: cursor confirm cancel error step hit miss
+  critical heal defeated capture build itemUse gold dialogue turnStart upgrade research repair supply ambush select. Ids are letters,
+  digits, `_`, `-`; files are `.ogg` / `.wav` inside the game folder.
+- Optional per-game flavour: `"sounds"` blocks (weapons: hit miss critical; units: step hit miss critical defeated select heal; items: use),
+  map `"music"` keys, a scene `{ "music": ..., "commands": [...] }`, the story commands. The generator also makes `sword_hit`,
+  `bow_shot`, `magic_cast`, `cannon_shot`, `hooves`, `tank_move`, `potion`, `ambush`, `levelup_tick` for them.
+- The web build copies `games/` as it is, so audio files grow the web download: check sizes. `games/demo-srpg/CREDITS.md` /
+  the CC0 set need their credits file. The demos' existing player tests assume silence (`tests/sound_player_test.py` "demo ..." checks
+  must be updated, and a real listening pass done: `ote-player --game demo-srpg --map bridge` on a desktop with the sound on).
+- Every `games/` content change that touches `weapons.json` / `units.json` / `items.json` / maps with sound keys keeps the save hash
+  (the keys are cosmetic to it); a `playMusic` / `playSound` command in a map does change it (the command exists), the track does not.
+
+**Step 4 (editor) needs:** the Sound screen reads / writes exactly the audio.json shape above (keep key order; `files` for several
+variants; `""` for "none" in `use`); pickers for the override keys listed in the tables of docs/SOUND.md "Step 2 as built"; the scene
+object form for the campaign editor (`{ "music", "commands" }`; a plain list stays valid and is what an editor writes when there is
+no music); the three story commands (`playMusic` string + optional `fade` seconds, `stopMusic: true` + `fade`, `playSound` string). The
+editor's "problems" check runs the real core loader, which accepts all of these without checking the ids (the ids are checked
+by the player's `loadAudioFile` / `loadAudioOverrides` / `checkStoryAudio`, `engine/player/sound/audio_data.cpp`: the editor server would
+need that code or a port of it for "unknown sound id" problems). Play in the editor runs the web player, which checks them.
+
+Open points: the launcher's home list and the global options have no sounds (no game is open); a built-in set or a per-launcher
+choice is a design decision for the owner. The same sound at most once per frame and a minimum gap for `step` (0.1 s), `dialogue`
+(0.045 s) and `cursor` (0.03 s) are code constants (`game_audio.cpp`); the dialogue blip fires per typed letter, which may want a
+slower rate once heard.
+
 ## Next concrete step
 
 Owner's order (docs/PLAN.md item 3): a structures, b animated joining
@@ -562,8 +608,9 @@ drawing, editor screens (Research, upgrades, repair and supply, fog settings, si
 and `demo-economy` content (town upgrades, three technologies, supply, fog map `misty_ford`; the frozen plain copy
 for "untouched game" pins is `tests/fixtures/plain-economy/`). Nothing of it was checked in a real window. Next:
 sound and music (docs/PLAN.md 3h, contract docs/SOUND.md, build order at its end): step 1 (engine: decoders, mixer, device,
-options, audio log, self-test) is built, see "Sound, step 1" above; next is step 2 (audio.json loader, standard set wired to
-battle events and menus, music director, story commands, campaign scenes).
+options, audio log, self-test) and the player part (audio.json loader, standard set wired to battle events and menus, music
+director, story commands, campaign scenes) are built, see "Sound, step 1" and "Sound, step 2" above; next is step 3 (starter audio into
+the demos and templates).
 Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;

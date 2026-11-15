@@ -85,7 +85,7 @@ only the automatic Continue save (no Save/Load in the menus, so a bad dice
 roll cannot be undone by reloading); `"off"` = nothing is saved. Any other
 value is a loader error (`game.json: "saving" must be "any", "continue" or
 "off"`). A save is only loadable while the rules files it was made with
-(game.json, `data/*.json` except graphics.json, the scripts, the map) are
+(game.json, `data/*.json` except graphics.json and audio.json, the scripts, the map) are
 unchanged; art and fonts may change freely.
 
 `switches` and `variables` are what the events of the maps read and set
@@ -158,7 +158,8 @@ the ground's movement costs. Ids are unique among structures.
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
-    "damage": "a.str + w.might"   // optional override of formulas.damage
+    "damage": "a.str + w.might",  // optional override of formulas.damage
+    "sounds": { "hit": "sword_hit", "miss": "whiff", "critical": "crit" }   // optional (docs/SOUND.md): sound ids of data/audio.json
   }
 ] }
 ```
@@ -185,8 +186,10 @@ and gets `vs = 1`.
     "fuel": 60, "fuelPerTurn": 5,                            // optional (docs/ECONOMY.md): tank 1..999; burn per turn
                                                              // (needs fuel, less than fuel)
     "supplies": false,                                       // optional: refills adjacent units of its side
-    "vision": 3 }                                            // optional (fog of war, docs/ECONOMY.md): how many squares
+    "vision": 3,                                             // optional (fog of war, docs/ECONOMY.md): how many squares
                                                              // its team sees from where it stands, 0..20, default 2
+    "sounds": { "step": "hooves", "defeated": "horse_fall", "select": "neigh" } }   // optional (docs/SOUND.md): step, hit, miss,
+                                                             // critical, defeated, select, heal
 ] }
 ```
 
@@ -197,7 +200,7 @@ optional limited uses and prices. A game without this file has no items.
 The switch between fixed and carried weapons, the inventory size and the
 shared storage are in `game.json` under `rules.items`. A map can give each
 unit its own `"items"` and each side a starting `"storage"`. Everything is
-in docs/ITEMS.md.
+in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md).
 
 ## data/research.json (optional)
 
@@ -220,6 +223,8 @@ Everything is in docs/ECONOMY.md.
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
   "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
                                                            // at most 32 sides then
+  "music": "boss",                                         // optional (docs/SOUND.md): music ids of data/audio.json for this map
+  "playerTurnMusic": "calm", "enemyTurnMusic": "tense",    // (each optional; "" = none on this map)
   "sides": [
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
       "controller": "human",             // or "ai"
@@ -258,6 +263,27 @@ square) must lie inside the map, and structures may not overlap. The type
 and side must exist. The old `owners` list is refused: ownership now
 belongs to structures (their `side`). Only the owner of a structure changes
 during a battle.
+
+## data/audio.json (optional)
+
+Sound and music (docs/SOUND.md, built): tracks and sound effects by id and the game's standard set. A game without the
+file is silent. Presentation only: not read by the rules core, not part of the save hash. Unknown keys and unknown ids are loader
+errors (the player's loader, like graphics.json); a missing audio file is a warning and silence.
+
+```jsonc
+{ "music":  { "title":  { "file": "audio/title.ogg", "loopStart": 2.5 },        // loopStart seconds, optional
+              "battle": { "file": "audio/battle.ogg", "volume": 80 },           // percent of the music volume, optional
+              "win":    { "file": "audio/win.ogg", "loop": false } },           // a jingle
+  "sounds": { "hit":  { "file": "audio/hit.wav" },
+              "step": { "files": ["audio/step1.wav", "audio/step2.wav"] } },    // played in turn
+  "use": { "titleMusic": "title", "mapMusic": "battle", "playerTurnMusic": "", "enemyTurnMusic": "",
+           "sceneMusic": "", "victory": "win", "defeat": "lose", "levelUp": "levelup",
+           "sounds": { "cursor": "tick", "hit": "hit", "step": "step" } } }     // event -> sound id, every key optional
+```
+
+Files are `.ogg` (Vorbis) or `.wav` inside the game folder. The event keys, the overrides (`"sounds"` on weapons, units and items,
+`"music"` / `"playerTurnMusic"` / `"enemyTurnMusic"` on a map file, `"music"` on a campaign scene), the story commands
+`playMusic` / `stopMusic` / `playSound` and what each message looks like are in docs/SOUND.md "Step 2 as built".
 
 ## data/campaign.json (optional)
 
