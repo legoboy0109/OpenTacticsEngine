@@ -80,6 +80,8 @@ export interface Game extends Extra {
 
 export interface Terrain extends Named {
   color?: string; glyph?: string; moveCost?: NumMap; props?: NumMap; tags?: string[]
+  /** Fog of war: extra sight (0 to 10, missing = 0) for a unit standing here; a unit here is seen only from next to it. */
+  visionBonus?: number; hides?: boolean
   // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
   // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
   capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]
@@ -98,6 +100,8 @@ export interface Structure extends Named {
   sells?: string[]
   /** A side owning one may research (docs/ECONOMY.md). */
   research?: boolean
+  /** Fog of war, as on terrain; they add up with the terrain's. */
+  visionBonus?: number; hides?: boolean
   /** Kinds it can be built up into. */
   upgrades?: Upgrade[]
   /** Unit type ids or tags it repairs; missing = all, [] = nothing. */
@@ -135,6 +139,8 @@ export interface Unit extends Named {
   fuelPerTurn?: number
   /** Refills the units of its side next to it. */
   supplies?: boolean
+  /** How far its team sees on a map with fog of war, 0 to 20 (missing = 2). */
+  vision?: number
 }
 
 export type ItemKind = 'usable' | 'weapon' | 'accessory'
@@ -180,6 +186,8 @@ export interface MapFile extends Extra {
   owners?: Array<{ x: number; y: number; side: string } & Extra>
   structures?: MapStructure[]
   units?: MapUnit[]
+  /** Fog of war (docs/ECONOMY.md): missing = off. */
+  fog?: boolean
   /** Story events and objectives (docs/EVENTS.md); model/storyTypes.ts. */
   events?: StoryEvent[]
   objectives?: Objectives

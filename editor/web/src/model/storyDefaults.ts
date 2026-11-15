@@ -66,6 +66,8 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'round': return { round: { op: '>=', value: 2 } }
     case 'carries': return { carries: c.doc.items?.[0]?.id ?? '' }
     case 'researched': return { researched: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
+    // The first team looking for the second side's units (a team always sees its own, so that would say nothing).
+    case 'sees': return { sees: { side: c.map.sides?.[1]?.id ?? firstSide(c) }, team: teamsOf(c.map)[0]?.id ?? '' }
   }
 }
 
