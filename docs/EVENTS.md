@@ -20,11 +20,9 @@ Contract for PLAN item 3f. Owner decisions (2026-11-14):
 Everything below is engine design and may change; all wording shown to
 players and makers is placeholder until the owner approves it.
 
-Status: steps 1 and 2 of the "Build order" (the rules core: data, loader,
-battle, saves, `ote-sim`; and the player's part inside one battle: dialogue
-box, Talk, objectives) and the core part of step 4 (the campaign: roster,
-scenes, saves) are built and tested; the player's campaign flow and the
-editor are still design only. Where building step 1
+Status: steps 1 to 4 of the "Build order" are built and tested, and
+`demo-srpg` has a story and a two-chapter campaign; still to do: the
+editor's Campaign screen (the rest of step 5). Where building step 1
 refined or corrected the first contract, the text below is the corrected
 version and says so ("refined").
 
@@ -395,8 +393,11 @@ commands; voice.
 2. Player: dialogue box, Talk, objective display. **Done** (see "Dialogue
    (player)"; tests `test_dialogue_text.cpp`, `test_dialogue_box.cpp`,
    `test_portraits.cpp`).
-3. Editor: events, objectives, switches / variables, portraits.
+3. Editor: events, objectives, switches / variables, portraits. **Done**
+   (docs/EDITOR_API.md "Story data"; `editor/web/src/screens/maps/editor/story/`).
 4. Campaign: core roster and progress, saves (**done**: engine/core/campaign/, tests/test_campaign_*.cpp,
    `ote-sim --campaign`), and the player (game page, scenes, chapter flow, campaign saves; see "Campaign (player)").
-5. Editor: Campaign screen; demo content (`demo-srpg`: an opening scene, a
-   boss line, a Talk, reinforcements, a second chapter).
+5. Editor: Campaign screen (not built yet); demo content **done**
+   (`demo-srpg`: opening scene, reinforcements, a recruit by Talk, a fort
+   reward, boss lines, and the campaign "The Ford War" with a second
+   chapter, `maps/north_road.json`, `data/campaign.json`).

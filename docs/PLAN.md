@@ -105,7 +105,10 @@ goal (demos only exercise features).
       items or resources, set win / lose conditions, switches and
       variables; the first version includes a campaign (chapters in
       order, surviving units with levels and items carried over, scenes
-      between maps).
+      between maps); dialogue = bottom box with portrait; dialogue
+      choices later; fallen units and free battles are the maker's
+      settings. DONE 2026-11-14 (docs/EVENTS.md) except the editor's
+      Campaign screen.
    g. More economy options. Owner decisions 2026-11-14: all four in the
       first version: fog of war (the maker switches it on per map;
       Advance Wars kind: the map is known, enemy units and far-away

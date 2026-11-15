@@ -327,10 +327,13 @@ resolution with smooth textures (docs/RENDER3D.md "Resolution"; option
 screenshots at N times the size) plus `demo-srpg`'s "Detailed 3D" style
 from CC0 packs (`games/demo-srpg/CREDITS.md`,
 `tools/art/make_detailed_style.py`). Not checked in a real window.
-Then story events and dialogue including a
-campaign (owner decisions in docs/PLAN.md 3f; write docs/EVENTS.md
-first), economy options, sound and music. Close-up battle scenes: low
-priority.
+Story events, dialogue and the campaign are built (docs/EVENTS.md) and
+`demo-srpg` has a story and the two-chapter campaign "The Ford War"
+(`data/campaign.json`, `maps/north_road.json`; `ote-sim games/demo-srpg
+--campaign`). Still to do there: the editor's Campaign screen. Next:
+economy options (owner decisions in docs/PLAN.md 3g, contract in
+docs/ECONOMY.md, build order at its end), then sound and music.
+Close-up battle scenes: low priority.
 Small leftovers: README; heights editing in the map editor; arrow-key
 navigation inside the editor's option groups; "+N Funds" toast overlap;
 night style does not darken unit sprites; editor paint stroke with art
