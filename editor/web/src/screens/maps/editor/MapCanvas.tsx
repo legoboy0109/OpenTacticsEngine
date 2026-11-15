@@ -10,7 +10,7 @@ import { drawMap, type Scene } from './drawMap'
 import { useCanvasInput, type InputProps } from './useCanvasInput'
 import { T } from './text'
 
-interface Props extends Omit<InputProps, 'mapSize' | 'size'> {
+interface Props extends Omit<InputProps, 'size'> {
   map: MapFile
   terrain: Terrain[]
   unitTypes: Unit[]
@@ -23,7 +23,7 @@ interface Props extends Omit<InputProps, 'mapSize' | 'size'> {
 }
 
 export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights, ...input }: Props) {
-  const { vs } = input
+  const { vs, geo } = input
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
   const dpr = useRef(1)
@@ -31,20 +31,20 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
   const reducedMotion = useReducedMotion()
   const reduced = useRef(reducedMotion)
   reduced.current = reducedMotion
-  const mapW = map.grid.width, mapH = map.grid.height
+  const unitsW = geo.uw, unitsH = geo.uh
 
   const scene = useMemo<Scene>(() => ({
     map,
     terrain: new Map(terrain.map((t) => [t.id, t])),
     types: new Map(unitTypes.map((u) => [u.id, u])),
     structures: new Map(structureTypes.map((s) => [s.id, s])),
-    flagged, art, style, showHeights,
-  }), [map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights])
+    flagged, art, style, showHeights, grid: geo.grid, geo,
+  }), [map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights, geo])
   const sceneRef = useRef(scene)
   sceneRef.current = scene
 
   // Where a structure would go (placing with the pointer or keyboard cursor, or dragging one), and whether it fits.
-  const ctx = useMemo(() => ctxOfParts(terrain, structureTypes, unitTypes), [terrain, structureTypes, unitTypes])
+  const ctx = useMemo(() => ctxOfParts(terrain, structureTypes, unitTypes, geo.grid), [terrain, structureTypes, unitTypes, geo.grid])
   const ghostOf = useCallback((): StructureGhost | null => {
     const m = sceneRef.current.map
     if (vs.dragS) {
@@ -67,7 +67,7 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     const g = c?.getContext('2d')
     if (!c || !g) return
     const sg = ghostRef.current()
-    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, time: clockNow(reduced.current), overlays: vs.overlays, pickRect: vs.pickRect, fogSeen: vs.fogSeen })
+    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, selCells: vs.selCells, time: clockNow(reduced.current), overlays: vs.overlays, pickRect: vs.pickRect, fogSeen: vs.fogSeen })
     // What the structure ghost shows (for tests and curious people): "kind,x,y,ok|bad", empty when there is none.
     c.dataset.ghost = sg ? `${sg.type},${sg.x},${sg.y},${sg.ok ? 'ok' : 'bad'}` : ''
     // Lets tests (and curious people) find a square on screen without guessing.
@@ -88,7 +88,7 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
       const c = cv.current!
       c.width = Math.max(1, Math.round(r.width * dpr.current)); c.height = Math.max(1, Math.round(r.height * dpr.current))
       vs.set({ size: { w: r.width, h: r.height } })
-      if (vs.autoFit) vs.fit(sceneRef.current.map.grid.width, sceneRef.current.map.grid.height)
+      if (vs.autoFit) vs.fit(sceneRef.current.geo!.uw, sceneRef.current.geo!.uh)
       schedule()
     }
     const ro = new ResizeObserver(measure)
@@ -102,9 +102,9 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
   useAnimationClock(useAnimating(!!art?.animated), schedule)
   useEffect(schedule, [scene, schedule])
   // A resized map is shown whole again.
-  useEffect(() => { vs.fit(mapW, mapH) }, [vs, mapW, mapH])
+  useEffect(() => { vs.fit(unitsW, unitsH) }, [vs, unitsW, unitsH])
 
-  useCanvasInput(cv, { ...input, mapSize: { w: mapW, h: mapH }, size: () => vs.size })
+  useCanvasInput(cv, { ...input, size: () => vs.size })
 
   return (
     <div className="map-canvas-wrap" ref={wrap}>

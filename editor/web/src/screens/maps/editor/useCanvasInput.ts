@@ -1,6 +1,7 @@
 // Pointer, touch, wheel and keyboard handling for the map canvas. It only knows
 // about squares and strokes; what a stroke does is decided by tools.ts.
 import { useEffect, useRef, type RefObject } from 'react'
+import type { Geo } from '../../../model/mapGeo'
 import type { Cell } from '../../../model/mapGrid'
 import { cellAt, clampPan, reveal, zoomAt, type View } from './geometry'
 import type { Stroke } from './tools'
@@ -8,7 +9,8 @@ import type { MapViewState } from './viewState'
 
 export interface InputProps {
   vs: MapViewState
-  mapSize: { w: number; h: number }
+  /** Where cells are on the picture: squares and hexagons answer the same questions (model/mapGeo.ts). */
+  geo: Geo
   begin: (cell: Cell, opts: { alt: boolean }) => Stroke
   /** Touch: a long press on the terrain tool picks the terrain (returns whether it did). */
   longPress: (cell: Cell) => boolean
@@ -42,11 +44,11 @@ export function useCanvasInput(ref: RefObject<HTMLCanvasElement | null>, props: 
     let hovering = false
 
     const local = (e: PointerEvent): Pt => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
-    const cellOf = (p: Pt) => { const { vs, mapSize } = latest.current; return cellAt(vs.view, p.x, p.y, mapSize.w, mapSize.h) }
+    const cellOf = (p: Pt) => { const { vs, geo } = latest.current; return cellAt(vs.view, p.x, p.y, geo) }
     const setView = (v: View) => {
-      const { vs, mapSize, size } = latest.current
+      const { vs, geo, size } = latest.current
       const s = size()
-      vs.set({ view: clampPan(v, s.w, s.h, mapSize.w, mapSize.h), autoFit: false })
+      vs.set({ view: clampPan(v, s.w, s.h, geo.uw, geo.uh), autoFit: false })
     }
     const cancelPending = () => { if (pending) { clearTimeout(pending.timer); pending = null } }
     const endStroke = (at: Cell | null) => { stroke?.end(at); stroke = null }
@@ -140,16 +142,16 @@ export function useCanvasInput(ref: RefObject<HTMLCanvasElement | null>, props: 
 
     const keydown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return
-      const { vs, mapSize, act, remove, escape, size } = latest.current
+      const { vs, geo, act, remove, escape, size } = latest.current
       const arrows: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
       const d = arrows[e.key]
       if (d) {
         e.preventDefault()
         const from = vs.cursor ?? vs.selected ?? { x: 0, y: 0 }
         const step = e.shiftKey ? 5 : 1
-        const c = { x: Math.min(mapSize.w - 1, Math.max(0, from.x + d[0] * step)), y: Math.min(mapSize.h - 1, Math.max(0, from.y + d[1] * step)) }
+        const c = { x: Math.min(geo.w - 1, Math.max(0, from.x + d[0] * step)), y: Math.min(geo.h - 1, Math.max(0, from.y + d[1] * step)) }
         const s = size()
-        vs.set({ cursor: c, cursorVisible: true, view: vs.autoFit ? vs.view : reveal(vs.view, c, s.w, s.h) })
+        vs.set({ cursor: c, cursorVisible: true, view: vs.autoFit ? vs.view : reveal(vs.view, c, s.w, s.h, geo) })
       } else if (e.key === 'Enter' || (e.key === ' ' && !hovering)) {
         e.preventDefault()
         const c = vs.cursor

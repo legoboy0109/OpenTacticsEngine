@@ -3,7 +3,8 @@ import { ctxOf, editMap } from '../../../../model/mapCtx'
 import type { Cell } from '../../../../model/mapGrid'
 import { changeStructureKind, removeStructureAt, setStructureOwner, structureAt } from '../../../../model/mapStructures'
 import { sideOf } from '../../../../model/mapSides'
-import { ownershipMatters, sizeOf } from '../../../../model/structures'
+import { gridOfGame, isHex } from '../../../../model/gridSpec'
+import { ownershipMatters, ringsOf, sizeOf } from '../../../../model/structures'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
 import { Field } from '../../../../ui/Field'
@@ -26,10 +27,11 @@ interface Props {
 export function StructureTool({ doc, map, mapId, state, cell, onChange, say }: Props) {
   const kinds = doc.structures ?? []
   const sides = map.sides ?? []
+  const hex = isHex(gridOfGame(doc.game))
   return (
     <div className="stack tight">
       <h3>{T.structuresTitle}</h3>
-      <p className="help">{T.structuresHelp}</p>
+      <p className="help">{hex ? T.structuresHelpHex : T.structuresHelp}</p>
       <SidePicker sides={sides} value={state.structureSide} onChange={(id) => onChange({ structureSide: id })} neutral={T.neutral} label={T.ownerLabel} />
       {kinds.length === 0 && <p className="help">{T.noStructureKinds}</p>}
       <StructurePicker kinds={kinds} value={state.structureType} side={sideOf(map, state.structureSide)} onChange={(id) => onChange({ structureType: id })} />
@@ -47,6 +49,7 @@ export function StructureProps({ doc, map, mapId, cell, say }: { doc: ProjectDoc
   if (!ctx || !s) return <p className="help">{T.structureNone}</p>
   const def = ctx.structureTypes.find((d) => d.id === s.type)
   const { w, h } = sizeOf(def)
+  const hex = isHex(ctx.grid)
   const at = { x: s.x, y: s.y }
   const changeKind = (type: string) => {
     const r = changeStructureKind(map, ctx, at, type)
@@ -55,8 +58,8 @@ export function StructureProps({ doc, map, mapId, cell, say }: { doc: ProjectDoc
   }
   return (
     <div className="stack tight" data-testid="structure-props">
-      <h3>{T.structureTitle} <span className="help inline">{T.structureFrom(s.x, s.y)}</span></h3>
-      <p className="help">{T.footprint(w, h)}</p>
+      <h3>{T.structureTitle} <span className="help inline">{hex ? T.structureFromHex(s.x, s.y) : T.structureFrom(s.x, s.y)}</span></h3>
+      <p className="help">{hex ? T.footprintHex(ringsOf(def)) : T.footprint(w, h)}</p>
       <div className="form-grid panel-form">
         <Field label={T.structureKind}>
           <Select value={s.type} onChange={changeKind} options={ctx.structureTypes.map((k) => ({ value: k.id, label: k.name }))} />

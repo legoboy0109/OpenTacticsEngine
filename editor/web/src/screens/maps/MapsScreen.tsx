@@ -2,10 +2,12 @@
 import { useState } from 'react'
 import { addMap, deleteMap, duplicateMap, mapRemovalBlock, mapSize, moveMap, newMapId } from '../../model/maps'
 import { mapDeleteUsages } from '../../model/campaignRefs'
+import { gridOfGame, isHex } from '../../model/gridSpec'
 import { navigate, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
 import { useDoc, useEdit, useStore } from '../../store/context'
 import { Banner } from '../../ui/Banner'
+import { cellWords } from '../../ui/cellWords'
 import { ConfirmDialog } from '../../ui/Dialog'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
@@ -36,7 +38,8 @@ function MapsList({ itemId }: { itemId?: string }) {
   const block = target ? mapRemovalBlock(doc) : null
   // What the campaign (if the game has one) would lose with this map: its chapters' map is cleared, scenes are kept.
   const usages = target && !block ? mapDeleteUsages(doc, target.id) : []
-  const sizeText = (id: string) => { const s = mapSize(doc, id); return s ? T.size(s.width, s.height) : T.unreadable }
+  const words = cellWords(isHex(gridOfGame(doc.game)))
+  const sizeText = (id: string) => { const s = mapSize(doc, id); return s ? words(T.size(s.width, s.height)) : T.unreadable }
 
   return (
     <>

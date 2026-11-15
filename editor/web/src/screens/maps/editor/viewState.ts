@@ -7,7 +7,7 @@ import type { Overlay } from '../../../model/storyOverlays'
 import type { Rect } from '../../../model/storyTypes'
 import { fitView, zoomAt, type View } from './geometry'
 
-type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'picking' | 'pickRect' | 'fogSeen' | 'fogSide'>
+type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'selCells' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'picking' | 'pickRect' | 'fogSeen' | 'fogSide'>
 
 /** The Events / Objectives panels asking for a square or an area on the map: the next click (or drag) answers it. */
 export interface PickRequest {
@@ -29,6 +29,8 @@ export class MapViewState {
   selected: Cell | null = null
   /** Footprint of the selected structure (null = the selection is one square). */
   selSize: { w: number; h: number } | null = null
+  /** Hexagon maps: every hexagon of the selected structure (null = the selection is one hexagon). */
+  selCells: Cell[] | null = null
   ghost: { from: Cell; to: Cell } | null = null
   /** The Structures tool is active with this kind and owner ('' = nobody): a footprint follows the pointer. */
   placing: { type: string; side: string } | null = null
@@ -49,6 +51,7 @@ export class MapViewState {
   set(patch: Partial<Fields>): void {
     // Selecting another square forgets the old structure footprint unless the caller gives one.
     if ('selected' in patch && !('selSize' in patch)) this.selSize = null
+    if ('selected' in patch && !('selCells' in patch)) this.selCells = null
     Object.assign(this, patch)
     this.listeners.forEach((l) => l())
   }

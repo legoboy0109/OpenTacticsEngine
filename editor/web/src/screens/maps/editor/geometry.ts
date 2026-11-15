@@ -1,6 +1,7 @@
-// View maths for the map canvas: `view` maps a square (cx, cy) to the CSS pixel
-// (x + cx * scale, y + cy * scale).
+// View maths for the map canvas: `view` maps a point of the map picture, in tiles (a square's unit, see model/mapGeo.ts), to
+// the CSS pixel (x + ux * scale, y + uy * scale). On square maps a tile is one square.
 import type { Cell } from '../../../model/mapGrid'
+import type { Geo } from '../../../model/mapGeo'
 
 export interface View { scale: number; x: number; y: number }
 export const MIN_SCALE = 2
@@ -13,10 +14,8 @@ export function fitView(w: number, h: number, mapW: number, mapH: number, pad = 
   return { scale, x: (w - mapW * scale) / 2, y: (h - mapH * scale) / 2 }
 }
 
-export function cellAt(v: View, px: number, py: number, mapW: number, mapH: number): Cell | null {
-  const x = Math.floor((px - v.x) / v.scale)
-  const y = Math.floor((py - v.y) / v.scale)
-  return x >= 0 && y >= 0 && x < mapW && y < mapH ? { x, y } : null
+export function cellAt(v: View, px: number, py: number, geo: Geo): Cell | null {
+  return geo.at((px - v.x) / v.scale, (py - v.y) / v.scale)
 }
 
 /** Zoom by `factor` keeping the map point under (px, py) where it is. */
@@ -36,14 +35,15 @@ export function clampPan(v: View, w: number, h: number, mapW: number, mapH: numb
   }
 }
 
-/** Pans the view just enough to show square `c`. */
-export function reveal(v: View, c: Cell, w: number, h: number): View {
+/** Pans the view just enough to show cell `c`. */
+export function reveal(v: View, c: Cell, w: number, h: number, geo: Geo): View {
   const m = v.scale
+  const b = geo.box(c.x, c.y)
   let { x, y } = v
-  if (x + c.x * m < 0) x = -c.x * m + m
-  else if (x + (c.x + 1) * m > w) x = w - (c.x + 1) * m - m
-  if (y + c.y * m < 0) y = -c.y * m + m
-  else if (y + (c.y + 1) * m > h) y = h - (c.y + 1) * m - m
+  if (x + b.x * m < 0) x = -b.x * m + m
+  else if (x + (b.x + b.w) * m > w) x = w - (b.x + b.w) * m - m
+  if (y + b.y * m < 0) y = -b.y * m + m
+  else if (y + (b.y + b.h) * m > h) y = h - (b.y + b.h) * m - m
   return { scale: m, x, y }
 }
 
