@@ -3,21 +3,21 @@
 .sound-item { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); min-width: 0; }
 .sound-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .sound-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.05rem; }
-.play-button { flex: none; width: 34px; padding-inline: 0; justify-content: center; }
-.play-gap { display: inline-block; width: 34px; flex: none; }
+.btn.sm.icon.play-button { flex: none; width: 36px; min-height: 36px; justify-content: center; }  /* a play button is tapped often: full size */
+.play-gap { display: inline-block; width: 36px; flex: none; }
 .variant-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .variant-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .variant-pick { flex: 1; min-width: 0; }
 .slot-group { display: grid; gap: 8px; }
 .slot-group h3 { font-size: 1rem; }
 .slot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.slot-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 34px; gap: 10px; align-items: center; }
+.slot-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 10px; align-items: center; }
 .slot-label { overflow-wrap: anywhere; }
 .slot-note { white-space: nowrap; }
 .sound-card .unused-list { margin-top: 4px; }
 
 @media (max-width: 719.98px) {
-  .slot-row { grid-template-columns: minmax(0, 1fr) 34px; }
+  .slot-row { grid-template-columns: minmax(0, 1fr) 36px; }
   .slot-label { grid-column: 1 / -1; font-weight: 500; }
   .sound-item { padding: 10px; }
   .sound-head { flex-wrap: wrap; }

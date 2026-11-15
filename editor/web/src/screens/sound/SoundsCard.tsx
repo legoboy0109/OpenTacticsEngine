@@ -1,7 +1,7 @@
 // The Sounds part: the sound effects of the game. Each is one file or several variants (one is picked each time).
 import { MAX_VARIANTS, filesOfSound, setSoundFiles, setSoundVolume } from '../../model/audio'
 import type { SoundEffect } from '../../model/audioTypes'
-import { useEdit } from '../../store/context'
+import { useDoc, useEdit } from '../../store/context'
 import { Card, FormGrid } from '../../ui/Card'
 import { Field } from '../../ui/Field'
 import { Icon } from '../../ui/Icon'
@@ -11,13 +11,17 @@ import { FilePlay, SoundPlay, useAudioFileList } from './sources'
 import { T } from './text'
 
 function SoundItem({ id, sound, onRename, onDelete }: { id: string; sound: SoundEffect; onRename: () => void; onDelete: () => void }) {
+  const doc = useDoc()
   const edit = useEdit()
   const { files: folder } = useAudioFileList()
   const list = filesOfSound(sound)
   const shown = list.length ? list : ['']
   const setList = (next: string[]) => edit((d) => setSoundFiles(d, id, next.filter((f) => f !== '')))
   const addVariant = () => {
-    const fresh = folder.find((f) => !list.includes(f.file))?.file ?? list[list.length - 1]
+    // A file this sound does not use yet, preferring one that is not a music track's (it is probably an effect); else the last one again.
+    const free = folder.filter((f) => !list.includes(f.file))
+    const asMusic = new Set(Object.values(doc.audio?.music ?? {}).map((t) => t?.file))
+    const fresh = (free.find((f) => !asMusic.has(f.file)) ?? free[0])?.file ?? list[list.length - 1]
     if (fresh) setList([...list, fresh])
   }
   return (

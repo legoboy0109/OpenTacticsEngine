@@ -5,14 +5,14 @@ import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fix
 test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })
 test.skip(({ browserName }) => browserName !== 'chromium', 'touch emulation is Chromium-only')
 
-test('the section switcher still fits with Items, Structures, Research, Art and Campaign in it: every label is whole', async ({ page, game }) => {
+test('the section switcher still fits with Items, Structures, Research, Art, Sound and Campaign in it: every label is whole', async ({ page, game }) => {
   const id = await game.create('strategy-rpg', 'Phone Art Nav')
   await page.goto(editorUrl(id, 'game'))
   await expectNoHScroll(page)
   const links = page.getByRole('navigation', { name: 'Sections' }).getByRole('link')
   await expect(links.first()).toBeVisible()
-  expect(await links.count()).toBe(11)
-  for (let i = 0; i < 11; i++) {
+  expect(await links.count()).toBe(12)
+  for (let i = 0; i < 12; i++) {
     const clipped = await links.nth(i).evaluate((el) => el.scrollWidth > el.clientWidth + 1)
     expect(clipped, await links.nth(i).innerText()).toBe(false)
   }
