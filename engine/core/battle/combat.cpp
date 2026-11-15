@@ -39,6 +39,7 @@ bool Battle::strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell
                             int weapon, StrikeForecast& out) const {
   out = StrikeForecast();
   FormulaCtx ctx;
+  ctx.sides = &sides;
   if (!versusValue(weapon, def, ctx.vs)) return false;
   ctx.a = &atk;
   ctx.b = &def;
@@ -194,6 +195,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
 
   if (db->rules.progression) {
     FormulaCtx ctx;
+    ctx.sides = &sides;
     // Attacker's reward.
     if (units[a].alive && units[d].hp < hpD) {
       ctx.a = &units[a];

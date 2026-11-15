@@ -34,6 +34,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
     }
     for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, income[r], events);
   }
+  researchTurn(events);
 
   StoryOccurrence o;
   o.kind = Trigger::Kind::Turn;

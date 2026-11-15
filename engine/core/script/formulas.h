@@ -16,6 +16,7 @@ namespace ote {
 
 struct Database;
 struct Unit;
+struct SideState;
 struct WeaponDef;
 
 // Inputs a formula can see. Null pointers become nil / empty tables.
@@ -28,6 +29,8 @@ struct FormulaCtx {
   const Props* tb = nullptr;
   int dist = 0;
   double vs = 1;
+  // The battle's sides: a unit's stats then include its side's research bonuses (null = items only).
+  const std::vector<SideState>* sides = nullptr;
 };
 
 class Formulas {
@@ -53,7 +56,7 @@ class Formulas {
  private:
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
   double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def);
-  void pushUnit(const Unit* u);
+  void pushUnit(const Unit* u, const FormulaCtx& ctx);
 
   const Database* db_ = nullptr;
   lua_State* L_ = nullptr;

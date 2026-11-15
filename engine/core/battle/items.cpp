@@ -25,7 +25,7 @@ Event event(EventType t, int a, int b, int c = -1, int d = -1, int flags = 0) {
 }
 }  // namespace
 
-int Battle::stat(const Unit& u, int index) const { return unitStat(*db, u, index); }
+int Battle::stat(const Unit& u, int index) const { return unitStat(*db, u, index, &sides); }
 
 void Battle::clampHp(Unit& u) {
   if (!u.alive) return;

@@ -225,7 +225,11 @@ void BattleView::begin(const Battle& b) {
     case EventType::SideChanged:
     case EventType::ObjectiveChanged:
     case EventType::UnitRemoved:
-    case EventType::UnitRelocated: break;
+    case EventType::UnitRelocated:
+    // Upgrades and research (docs/ECONOMY.md): no player UI yet; the new structure kind shows by itself.
+    case EventType::StructureUpgraded:
+    case EventType::ResearchStarted:
+    case EventType::ResearchFinished: break;
   }
 }
 

@@ -58,6 +58,14 @@ std::string gains(const Battle& b, const std::vector<int>& data) {
   return s.empty() ? "nothing" : s;
 }
 
+// Ids from event indices, checked so a bad event cannot crash the printer.
+std::string techName(const Battle& b, int tech) {
+  return tech >= 0 && tech < (int)b.db->research.size() ? b.db->research[(size_t)tech].id : "technology?";
+}
+std::string techKind(const Battle& b, int kind) {
+  return kind >= 0 && kind < (int)b.db->structures.size() ? b.db->structures[(size_t)kind].id : "structure?";
+}
+
 std::string gained(const Battle& b, const Event& e) {
   std::string how = (e.flags & kDropped) ? " (dropped)" : (e.flags & kBought) ? " (bought)" : "";
   std::string who = e.a >= 0 ? unitName(b, e.a) : "storage of " + b.sides[(size_t)e.c].name;
@@ -138,6 +146,14 @@ std::string describeEvent(const Battle& b, const Event& e) {
                  b.sides[(size_t)e.b].name.c_str());
     case EventType::ObjectiveChanged:
       return "new objective: " + (e.a >= 0 ? b.storyText(e.a) : std::string("(none)"));
+    case EventType::StructureUpgraded:
+      return fmt("structure at %s upgraded: %s -> %s",
+                 e.a >= 0 && e.a < (int)b.structures.size() ? cellName(b, b.grid.at(b.structures[(size_t)e.a].x, b.structures[(size_t)e.a].y)).c_str() : "(?)",
+                 techKind(b, e.b).c_str(), techKind(b, e.c).c_str());
+    case EventType::ResearchStarted:
+      return fmt("%s starts researching %s (%d turns)", b.sides[(size_t)e.a].name.c_str(), techName(b, e.b).c_str(), e.c);
+    case EventType::ResearchFinished:
+      return fmt("%s has researched %s", b.sides[(size_t)e.a].name.c_str(), techName(b, e.b).c_str());
   }
   return "?";
 }
