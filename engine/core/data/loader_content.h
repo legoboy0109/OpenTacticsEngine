@@ -23,6 +23,13 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err);
 
 class LoadCtx;
 class Json;
+// Repair and supply (loader_supply.cpp; docs/ECONOMY.md): the pieces of the data files, each optional.
+bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db);  // game.json "rules.supply"
+bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
+bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
+bool readStructureRepairs(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, StructureDef& s);
+// After items: "ammo" on a weapon that is carried as an item is an error.
+bool checkAmmoNotItems(const std::string& weaponsPath, const Database& db, std::string& err);
 // The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
 // "structures" array of data/structures.json; db.structures already holds its entries in the same order.
 bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db);

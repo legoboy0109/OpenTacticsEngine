@@ -61,6 +61,10 @@ struct StructureDef {
   std::vector<std::string> tags;  // e.g. "hq"
   std::vector<UpgradeDef> upgrades;  // kinds it can be built up into (the structure changes kind during play)
   bool research = false;       // a side owning one may research (docs/ECONOMY.md "Research")
+  // Repair (docs/ECONOMY.md "Repair and supply"): which units it repairs. Entries are unit type ids or tags
+  // (like "versus" keys); repairsAll = no "repairs" key = every unit.
+  bool repairsAll = true;
+  std::vector<std::string> repairs;
 };
 
 const int kMaxStructureSize = 8;
@@ -79,6 +83,7 @@ struct WeaponDef {
   double versusDefault = 1;
   std::string damageFormula;  // optional per-weapon override (Lua expr)
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
+  int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
 };
 
 // ---- Items (docs/ITEMS.md) ----
@@ -129,6 +134,10 @@ struct UnitTypeDef {
   std::vector<Amount> cost;  // production cost
   std::vector<std::string> tags;
   bool canCapture = false;
+  // Fuel (docs/ECONOMY.md "Repair and supply"): 0 = the type uses none.
+  int fuel = 0;           // full tank (1..999)
+  int fuelPerTurn = 0;    // lost at the start of each of its side's turns; 0 = only moving costs fuel
+  bool supplies = false;  // refills fuel and ammunition of adjacent units of its side
 };
 
 // One technology (data/research.json, docs/ECONOMY.md "Research").
@@ -144,6 +153,14 @@ struct TechnologyDef {
 const int kMaxResearchTurns = 99;
 
 enum class TurnOrder { Sides /*, Speed (planned: per-unit, FFT style) */ };
+
+// game.json "rules.supply" (docs/ECONOMY.md "Repair and supply"); everything off when the block is missing.
+struct SupplyRules {
+  bool repair = false;        // own structures repair units at the start of the side's turn
+  int repairAmount = 0;       // percent of max HP per turn (1..100)
+  int repairCostShare = 100;  // percent of the proportional unit cost paid (0..100)
+  bool structures = false;    // own structures also refill fuel and ammunition
+};
 
 // Rule switches. Each genre is a different combination of these.
 struct RulesConfig {
@@ -162,6 +179,7 @@ struct RulesConfig {
   bool builtUnitsCanAct = false;
   bool capture = false;      // units may capture capturable structures
   ItemRules items;           // docs/ITEMS.md
+  SupplyRules supply;        // docs/ECONOMY.md "Repair and supply"
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
   int maxLevel = 20;

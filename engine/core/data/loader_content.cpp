@@ -53,6 +53,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     }
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
     if (!c.str(e, "group", where, w.group)) return false;
+    if (!readWeaponAmmo(c, e, where, w)) return false;
     db.weapons.push_back(w);
   }
   return true;
@@ -97,6 +98,7 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!c.amounts(db, e, "cost", where, u.cost)) return false;
     if (!c.stringList(e, "tags", where, u.tags)) return false;
     if (!c.boolean(e, "canCapture", where, u.canCapture)) return false;
+    if (!readUnitSupply(c, e, where, u)) return false;
     db.unitTypes.push_back(u);
   }
   return true;
@@ -218,6 +220,7 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     }
     if (!c.stringList(e, "tags", where, s.tags)) return false;
     if (!c.boolean(e, "research", where, s.research)) return false;
+    if (!readStructureRepairs(c, db, e, where, s)) return false;
     db.structures.push_back(s);
   }
   return loadStructureUpgrades(c, *list, db);
