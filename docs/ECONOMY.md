@@ -19,7 +19,8 @@ and makers is placeholder until the owner approves it.
 Status: upgradable structures and research (build order step 1), repair and supply (step 2) and fog of war (step 3)
 are built in the rules core (done 2026-11-14, the sections below describe what the core does). The player has the
 menus, the research panel, the info-panel lines and the event banners for upgrades, research, repair and supply
-(step 4, see "Player") and draws fog of war in all four kinds of view; no editor screens and no demo content yet (step 5).
+(step 4, see "Player") and draws fog of war in all four kinds of view; `games/demo-economy` uses all of it (step 5's demo
+content, see "Build order"); the editor screens are the other half of step 5.
 
 A game that uses none of this behaves exactly as today and keeps its save
 hash. Each part is switched on by its own data, not by one big switch.
@@ -352,5 +353,18 @@ stealth abilities beyond `hides`; several research queues.
 2. Core: repair and supply. **Done.**
 3. Core: fog of war (the biggest: sight, per-team event visibility, AI). **Done.**
 4. Player: menus and panel for 1 and 2; fog drawing in every kind of view. **Done.**
-5. Editor: all screens; `demo-economy` content (a town upgrade, two
-   technologies, repair, one fog map).
+5. Editor: all screens (see docs/EDITOR_UI.md "Economy options"). `demo-economy` content: **done** (2026-11-14), placeholder
+   numbers for the owner to judge:
+   - City -> Town (2000 Funds, income 1000 -> 2000) -> Metropolis (4000 Funds, income 3000, needs the technology Urbanism).
+   - The HQ researches (`"research": true`): Armor Doctrine (4000, 2 turns; unlocks the Tank), Reinforced Plating (5000, 2 turns,
+     needs Armor; Tanks and APCs +20 HP), Urbanism (6000, 2 turns).
+   - `rules.supply`: repair 20 % of max HP per turn at the full proportional price, own structures also refill fuel and
+     ammunition. Fuel on Recon 80, Tank 70, Artillery 50, APC 70 (no `fuelPerTurn`: the demo has no aircraft or ships); ammunition
+     on the Tank Gun (9) and the Howitzer (6). New unit type APC (5000 Funds, `supplies`, no weapon, so the AI never buys one).
+   - Second map `misty_ford` (11 x 8, `"fog": true`, mirror-symmetric, river with two fords): forests hide, the two mountains
+     by the river see 2 further, vision Recon 5, Tank 3, the rest 2. `twin_rivers` has no fog.
+   - Art: starter pictures for Town, Metropolis and APC in `tools/art` (generated into the game, never hand-edited).
+   - Tests that need "a game without the optional features" use the frozen copy `tests/fixtures/plain-economy`
+     (save bytes and data hash pinned there); `tests/demo_economy_player_test.py` checks the demo in the player.
+   ote-sim (deterministic: every seed plays the same): twin_rivers Red 30 of 30 (10 rounds; before the content 15), misty_ford
+   Blue 30 of 30 (11 rounds); the AI researches all three, upgrades, repairs, resupplies, and walks into ambushes on the fog map.

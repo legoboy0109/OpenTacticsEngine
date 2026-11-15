@@ -242,7 +242,7 @@ Decisions where the contract was silent
   error messages say `structure "x"` / `structures can only use "cell" or "frames"`; `GraphicsSet::structures`
   is a `std::vector<UnitLook>`.
 - **Shipped games.** demo-economy and the economy-tactics template: city, factory (1 x 1) and a
-  2 x 2 `hq` (blue at 0,4 / red at 13,4 in demo-economy). Under each building the ground is
+  2 x 2 `hq` (blue at 0,4 / red at 13,4 in demo-economy; demo-economy also has the city's upgrades town and metropolis, 1 x 1). Under each building the ground is
   plain, or road where a road led into the old building tile (roads no longer join buildings).
   demo-srpg: five 1 x 1 forts on plain, no cost overrides (they set defense and avoid only).
   `games/test`, the blank and strategy-rpg templates have no buildings and kept their data; their
