@@ -1,6 +1,7 @@
 // The Play overlay: the embedded web player in an iframe, with a map picker, Restart and Close.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { campaignMapHasFog, mapHasFog } from '../model/fog'
+import { emitSignal } from '../learn/signals'
 import { useDoc } from '../store/context'
 import type { DocumentStore } from '../store/documentStore'
 import { useStored } from '../ui/hooks'
@@ -73,7 +74,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow || !e.data) return
-      if (e.data.type === 'ote-player-ready') { setStatus({ state: 'ready' }); frame.current?.focus() }
+      if (e.data.type === 'ote-player-ready') { setStatus({ state: 'ready' }); frame.current?.focus(); emitSignal('played') }
       else if (e.data.type === 'ote-player-error') setStatus({ state: 'error', message: String(e.data.message ?? 'Unknown error') })
     }
     window.addEventListener('message', onMessage)

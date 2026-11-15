@@ -35,9 +35,9 @@ export function Field({ label, help, error, children, className }: Props) {
 }
 
 /** Like Field but for groups of controls (a checkbox list, a table): the label is a legend. */
-export function FieldGroup({ label, help, children, className }: { label: string; help?: ReactNode; children: ReactNode; className?: string }) {
+export function FieldGroup({ label, help, children, className, learn }: { label: string; help?: ReactNode; children: ReactNode; className?: string; learn?: string }) {
   return (
-    <fieldset className={`fieldset ${className ?? ''}`}>
+    <fieldset className={`fieldset ${className ?? ''}`} data-learn={learn}>
       <legend>{label}</legend>
       {help && <p className="help">{help}</p>}
       {children}

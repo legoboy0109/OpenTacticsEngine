@@ -8,11 +8,13 @@ interface Props {
   value: string[]
   onChange: (v: string[]) => void
   emptyText?: string
+  /** Names the control for the lessons' pointer (learn/Highlight.tsx). */
+  learn?: string
 }
 
 /** A checkbox list; the order of `value` follows the order of `options`. An option marked `disabled` cannot be ticked
  *  (the caller puts the reason in its label); one that is already ticked can always be unticked. */
-export function MultiSelect({ label, help, options, value, onChange, emptyText }: Props) {
+export function MultiSelect({ label, help, options, value, onChange, emptyText, learn }: Props) {
   const toggle = (v: string, on: boolean) => {
     const set = new Set(value)
     if (on) set.add(v); else set.delete(v)
@@ -22,7 +24,7 @@ export function MultiSelect({ label, help, options, value, onChange, emptyText }
     onChange([...known, ...unknown])
   }
   return (
-    <FieldGroup label={label} help={help}>
+    <FieldGroup label={label} help={help} learn={learn}>
       {options.length === 0 && <p className="help">{emptyText ?? 'Nothing to choose from yet.'}</p>}
       <div className="check-list">
         {options.map((o) => (

@@ -1,9 +1,19 @@
+import { LearnHost } from './learn/LearnHost'
 import { PickerScreen } from './screens/picker/PickerScreen'
 import { Link, useRoute } from './router'
 import { ProjectShell } from './shell/ProjectShell'
 import { ProjectProvider } from './store/context'
 
 export function App() {
+  return (
+    <>
+      <Screens />
+      <LearnHost />
+    </>
+  )
+}
+
+function Screens() {
   const route = useRoute()
   if (route.kind === 'picker') return <PickerScreen />
   if (route.kind === 'project') {

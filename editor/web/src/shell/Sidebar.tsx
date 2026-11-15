@@ -32,7 +32,7 @@ export function Sidebar({ current }: { current: Section }) {
       <ul>
         {SECTIONS.map((s) => (
           <li key={s}>
-            <Link to={projectPath(store.id, s)} className="nav-link" aria-current={s === current ? 'page' : undefined}>
+            <Link to={projectPath(store.id, s)} className="nav-link" data-learn={`nav-${s}`} aria-current={s === current ? 'page' : undefined}>
               {SECTION_LABEL[s]}
               {counts[s] ? <span className="nav-dot" title={`${counts[s]} to look at`}><span className="sr-only">{counts[s]} problems</span></span> : null}
             </Link>

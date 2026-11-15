@@ -13,7 +13,7 @@ const ink = (c: string | undefined) => `rgb(${readableOn(parseHex(c)).join(',')}
 
 export function TerrainPicker({ terrain, value, onChange }: { terrain: Terrain[]; value: string; onChange: (id: string) => void }) {
   return (
-    <div className="pick-grid" role="radiogroup" aria-label="Terrain">
+    <div className="pick-grid" role="radiogroup" aria-label="Terrain" data-learn="terrain-picker">
       {terrain.map((t) => (
         <button key={t.id} type="button" role="radio" aria-checked={t.id === value} className="pick" onClick={() => onChange(t.id)} title={t.name}>
           <TerrainChip terrain={t} />
