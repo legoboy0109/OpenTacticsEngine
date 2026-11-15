@@ -3,11 +3,13 @@
 import type { Lesson } from '../types'
 import { firstGame } from './first-game'
 import { items } from './items'
+import { story } from './story'
 
 // Order of the Learn list: first-game, structures, items, story, economy, sound, art, hexagons.
 export const LESSONS: Lesson[] = [
   firstGame,
   items,
+  story,
 ]
 
 /** The beginner lesson the first-run offer shows. */

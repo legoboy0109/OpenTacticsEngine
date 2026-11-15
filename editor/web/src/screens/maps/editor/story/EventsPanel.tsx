@@ -31,7 +31,7 @@ function EventsBody() {
     <div className="stack tight" data-testid="events-panel">
       <div className="row space-between">
         <h3>{S.eventsTitle}</h3>
-        <button type="button" className="btn sm" onClick={() => { apply((m) => addEvent(m, story)); setOpen(events.length) }}><Icon name="plus" />{S.addEvent}</button>
+        <button type="button" className="btn sm" data-learn="add-event" onClick={() => { apply((m) => addEvent(m, story)); setOpen(events.length) }}><Icon name="plus" />{S.addEvent}</button>
       </div>
       <p className="help">{S.eventsHelp}</p>
       <StoryChecks checks={checks} />
@@ -39,7 +39,7 @@ function EventsBody() {
       <ul className="event-list" aria-label={S.eventsTitle}>
         {events.map((e, i) => (
           <li key={i} className="event-item" data-testid={`event-${e.id}`}>
-            <button type="button" className="event-open" aria-label={S.openEvent(e.id)} onClick={() => setOpen(i)}>
+            <button type="button" className="event-open" data-learn="event-open" aria-label={S.openEvent(e.id)} onClick={() => setOpen(i)}>
               <strong className="event-name">{e.id}{checks.some((c) => c.eventId === e.id) && <Icon name="warn" className="event-warn" />}</strong>
               <span className="event-summary">{eventSummary(story, e)}</span>
             </button>

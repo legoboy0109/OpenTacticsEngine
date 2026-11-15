@@ -109,7 +109,7 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
           )
         })}
       </ol>
-      <Select aria-label={`${name}: ${S.addCommand}`} value="" placeholder={S.addCommand} options={menu(story, talk)} onChange={add} />
+      <Select data-learn="add-command" aria-label={`${name}: ${S.addCommand}`} value="" placeholder={S.addCommand} options={menu(story, talk)} onChange={add} />
     </div>
   )
 }
