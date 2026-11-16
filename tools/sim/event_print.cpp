@@ -170,8 +170,12 @@ static std::string describeEventText(const Battle& b, const Event& e) {
       return fmt("the story plays music '%s' (fade %d ms)", b.storyText(e.a).c_str(), e.b);
     case EventType::SoundRequested:
       return fmt("the story plays sound '%s'", b.storyText(e.a).c_str());
+    default:
+      break;
   }
-  return "?";
+  // The strategy-RPG entries (docs/SRPG.md) are worded in event_print_srpg.cpp.
+  std::string text;
+  return describeSrpgEvent(b, e, text) ? text : "?";
 }
 
 std::string describeEvent(const Battle& b, const Event& e) {

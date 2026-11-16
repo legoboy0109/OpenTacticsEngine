@@ -90,6 +90,11 @@ void considerHealing(const Battle& b, const Unit& u, Order& order);
 // point, or by a Supply action of a supplier unit. `stops` are the squares the unit may end on (from `reach`).
 void considerSupply(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& order);
 
+// ---- ai_srpg.cpp (docs/SRPG.md "AI"; filled and called by step AI1) ----
+// May replace `order` by an action of the strategy-RPG features: an offered promotion, a summon or a heal ability.
+// `stops` are the squares the unit may end on (from `reach`).
+void considerSrpg(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& order);
+
 // ---- ai_build.cpp ----
 bool chooseBuild(const Battle& b, Cell& cell, int& unitType);
 
