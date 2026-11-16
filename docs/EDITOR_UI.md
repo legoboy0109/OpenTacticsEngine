@@ -837,6 +837,23 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
 - **Model**: `model/locks.ts` (edit, clean-up on delete / rename / switch-off, "used by" line) and `lockChecks.ts`; `cleanCharacter` drops the character from the lists.
 - **Tests**: unit `tests/unit/locks.test.ts`; e2e `srpg-locks.spec.ts` (with Play and the 360 px check).
 
+## Staves (editor step of docs/SRPG.md section 8)
+
+A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: the editor, as built"). No helper change: `items` carries every staff key.
+
+- **Items screen**: kind "Staff" in the kind choice. `screens/items/staff/`: `StaffUseCard` (group with the game's groups suggested, who it can be used on, reach as "up to N squares" /
+  "from N to M squares" / "a formula", area as one unit / within N squares of the unit picked / everyone in reach), `StaffEffectCard` (healing as a number / a percentage / all HP / a
+  formula, "It can miss" with a chance box, experience for the user), a numbers table (`props`, the weapons' `KeyNumberTable`), then after the uses and price: `WeaponRankCard` and
+  `WeaponLockCard` with `owner="item"` (the weapons' own cards, same conditions and checks), the abilities' `AbilityConditions` card (given `title` / `help`, fed the staff's `if`), and a
+  "Worth a look" banner. Words in `screens/items/staff/text.ts`.
+- **Units / Characters**: `UnitForm` offers every group of a weapon or a staff under "Can wield groups" (shown when weapons are carried **or** the game has a staff); starting and personal ranks and
+  the map override list groups through `groupsOf`, which now covers staves. The Characters "locked" card (`CharacterLockedWeapons`) lists staves too, linking to the Items screen.
+- **Model**: `model/gear.ts` (weapons and staves as one "gear" list: `allGear`, `patchGear`, `editGear`), used by `ranks.ts`, `rankRefs.ts`, `locks.ts`, `rankChecks.ts`, `lockChecks.ts`, so rank id
+  rename / removal, ranks off, character delete / rename, characters off and the "last of a group" clean-up cover both. `model/staff.ts` (edits and limits: reach 1-20, radius 1-10, xp 0-1000, heal 1-1000000),
+  `staffChecks.ts` (loader mirror, `blocks: true` = shown in the Items screen's "will not load" banner via `itemChecks`; the rest, "nobody can use it yet", on the staff's form). `setItemKind` (`items.ts`)
+  gives a new staff a group, reach 2 and a heal of 10, and removes the staff keys when leaving (one Undo step). Keys the form does not show (stage-2/3 effects, `zzz`) are kept.
+- **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` (with Play and the 360 px check).
+
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
 Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.

@@ -109,7 +109,7 @@ that exists but is not a JSON object is `null` plus a problem on
 `data/structures.json` gives `"structures": null` and no problem; a file that
 is not valid JSON or has no `structures` list gives `null` plus a problem on
 `data/structures.json`. `items` (`data/items.json`, docs/ITEMS.md) behaves exactly
-like `structures`. `research` (`data/research.json`, docs/ECONOMY.md "Research") behaves the same way, except that the
+like `structures`; an item of kind `"staff"` (docs/SRPG.md section 8) is just an item: every key of it comes back on GET and is written on PUT as the client sent it (the editor edits the ones its form shows and leaves any other, such as a later stage's effects, alone), and the loader's refusals about a staff reach `/problems` on `data/items.json`. No API change. `research` (`data/research.json`, docs/ECONOMY.md "Research") behaves the same way, except that the
 file calls its list `technologies`; a broken file is `null` plus a problem on `data/research.json` and blocks only the
 Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is the file's one object; no file gives
 `"campaign": null` and no problem, a file that is not a JSON object gives `null` plus a problem on

@@ -116,7 +116,7 @@ describe('weapon groups', () => {
     // Both weapons moved to a name that already exists: "bow" is gone, its entries are left for the check to name.
     const e = setWeaponGroup(setWeaponGroup(d, 'long_bow', 'archery'), 'short_bow', 'archery')
     expect(e.units!.find((u) => u.id === 'archer')!.ranks).toEqual({ bow: 'd' })
-    expect(rankChecks(e).some((c) => c.text.includes('no weapon is in that group'))).toBe(true)
+    expect(rankChecks(e).some((c) => c.text.includes('no weapon or staff is in that group'))).toBe(true)
   })
   it('a group with a single weapon: typing a new name carries the ranks and the wielding class', () => {
     let d = fx()
@@ -133,7 +133,7 @@ describe('weapon groups', () => {
     d = setWeaponGroup(d, 'short_bow', '')
     expect(d.units!.find((u) => u.id === 'archer')!.ranks).toEqual({ bow: 'd' })
     expect(groupsOf(d)).not.toContain('bow')
-    expect(rankChecks(d).some((c) => c.text.includes('no weapon is in that group'))).toBe(true)
+    expect(rankChecks(d).some((c) => c.text.includes('no weapon or staff is in that group'))).toBe(true)
   })
   it('deleting the last weapon of a group takes the ranks in it away; the question says so', () => {
     let d = fx()
@@ -260,7 +260,7 @@ describe('checks', () => {
     expect(texts({ ...d, weapons: d.weapons!.map((w) => (w.id === 'war_sword' ? { ...w, rank: 'zz' } : w)) })).toContain('not in the ladder')
     expect(texts({ ...d, ranks: { ...d.ranks!, ranks: [{ id: 'e', name: 'E', xp: 5 }, { id: 'd', name: 'D', xp: 5 }] } })).toContain('needs 0 experience')
     expect(texts({ ...d, ranks: { ...d.ranks!, ranks: [{ id: 'e', name: 'E', xp: 0 }, { id: 'd', name: 'D', xp: 0 }] } })).toContain('Experience must rise')
-    expect(texts({ ...d, units: d.units!.map((u) => (u.id === 'fighter' ? { ...u, ranks: { axe: 'e' } } : u)) })).toContain('no weapon is in that group')
+    expect(texts({ ...d, units: d.units!.map((u) => (u.id === 'fighter' ? { ...u, ranks: { axe: 'e' } } : u)) })).toContain('no weapon or staff is in that group')
     expect(texts({ ...d, units: d.units!.map((u) => (u.id === 'fighter' ? { ...u, ranks: { sword: 'q' } } : u)) })).toContain('not in the ladder')
     expect(texts({ ...d, units: d.units!.map((u) => (u.id === 'fighter' ? { ...u, ranks: { sword: 99 } } : u)) })).toContain('between 0 and 12')
     expect(capChecks({ ...d, caps: { caps: { str: 0, nope: 3 } } }).map((c) => c.text).join('\n')).toMatch(/must be from 1 to 99999[\s\S]*not a stat/)

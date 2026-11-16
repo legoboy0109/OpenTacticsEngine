@@ -3,6 +3,7 @@ import { charactersOfType } from './characters'
 import { clone, ids, withUnits } from './doc'
 import { makeId } from './ids'
 import { copyArtOf } from './graphicsClean'
+import { groupsOf } from './ranks'
 import { cleanUnit } from './references'
 import { deleteCharacter } from './srpgRefs'
 import { moveItem, patchObj, setNum, updateById } from './util'
@@ -87,7 +88,7 @@ export function setUnitItems(doc: ProjectDoc, id: string, items: ItemEntry[]): P
   return updateUnit(doc, id, { items: items.length ? items : undefined })
 }
 
-/** Every group some weapon belongs to: what a unit type can be told to wield. */
+/** Every group some weapon or staff belongs to: what a unit type can be told to wield. */
 export function weaponGroups(doc: ProjectDoc): string[] {
-  return [...new Set((doc.weapons ?? []).flatMap((w) => (w.group ? [w.group] : [])))].sort()
+  return [...groupsOf(doc)].sort()
 }

@@ -1,3 +1,4 @@
+import { staffItems } from '../../model/gear'
 import { carriedWeapons, inventorySize } from '../../model/itemRules'
 import { featureEnabled } from '../../model/rules'
 import { allTags, setUnitItems, setUnitNumber, setUnitTags, setUnitWeapons, setUnitWields, updateUnit, weaponGroups } from '../../model/units'
@@ -29,6 +30,8 @@ export function UnitForm({ id }: { id: string }) {
   const production = featureEnabled(doc, 'production') && (game.resources ?? []).length > 0
   const carried = carriedWeapons(doc)
   const items = doc.items ?? []
+  // A staff is wielded by group whether or not weapons are carried, so its group is offered either way.
+  const hasStaves = staffItems(doc).length > 0
   const groups = [...new Set([...weaponGroups(doc), ...(unit.wields ?? [])])]
   const statRows = game.stats.map((s) => ({ key: s.id, label: s.name }))
 
@@ -65,8 +68,8 @@ export function UnitForm({ id }: { id: string }) {
           <MultiSelect learn="unit-weapons" label={carried ? T.weaponsCarried : T.weapons} help={carried ? T.weaponsCarriedHelp : T.weaponsHelp} emptyText={T.noWeapons} value={unit.weapons ?? []}
             options={(doc.weapons ?? []).map((w) => ({ value: w.id, label: w.name }))}
             onChange={(v) => edit((d) => setUnitWeapons(d, id, v))} />
-          {(carried || (unit.wields?.length ?? 0) > 0) && (
-            <MultiSelect label={T.wields} help={carried ? T.wieldsHelp : T.wieldsOff} emptyText={T.noGroups} value={unit.wields ?? []}
+          {(carried || hasStaves || (unit.wields?.length ?? 0) > 0) && (
+            <MultiSelect label={T.wields} help={carried ? (hasStaves ? T.wieldsHelpBoth : T.wieldsHelp) : hasStaves ? T.wieldsHelpStaves : T.wieldsOff} emptyText={T.noGroups} value={unit.wields ?? []}
               options={groups.map((g) => ({ value: g, label: g }))} onChange={(v) => edit((d) => setUnitWields(d, id, v))} />
           )}
         </div>

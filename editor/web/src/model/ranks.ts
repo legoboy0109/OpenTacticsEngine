@@ -6,7 +6,7 @@ import { cleanAllCaps, cleanAllRanks, rankRefsOnRemove, renameRankRefs } from '.
 import type { Caps, Rank, RankGrowth, RankMap, RankValue, Ranks } from './srpgTypes'
 import type { NumMap, ProjectDoc } from './types'
 import { makeId } from './ids'
-import { patchObj } from './util'
+import { allGear, patchGear, type GearOwner } from './gear'
 
 export const MAX_RANKS = 12
 export const MAX_RANK_XP = 9999
@@ -33,8 +33,8 @@ export const rankName = (doc: ProjectDoc, id: string): string => ladderOf(doc).f
 /** Weapon ranks need weapons the units carry (the loader refuses a ladder otherwise). */
 export const canSwitchOnRanks = (doc: ProjectDoc): boolean => carriedWeapons(doc)
 
-/** Every group some weapon belongs to, in the order of the weapons (the engine's order). */
-export const groupsOf = (doc: ProjectDoc): string[] => [...new Set((doc.weapons ?? []).flatMap((w) => (w.group ? [w.group] : [])))]
+/** Every group some weapon or staff belongs to: the weapons' first, then the staves' (the engine's order). */
+export const groupsOf = (doc: ProjectDoc): string[] => [...new Set(allGear(doc).flatMap((g) => (g.keys.group ? [g.keys.group] : [])))]
 
 /** The game-wide cap of a stat, or undefined (no cap). */
 export const gameCap = (doc: ProjectDoc, stat: string): number | undefined => doc.caps?.caps?.[stat]
@@ -143,13 +143,12 @@ export function setRankXp(doc: ProjectDoc, id: string, xp: number): ProjectDoc {
 
 // --- weapons, classes, characters, placed units ---------------------------------------------------------------------
 
-/** The weapon needs this rank (undefined = any); the experience per use is only kept when it is not the default. */
-export function setWeaponRank(doc: ProjectDoc, weapon: string, rank: string | undefined): ProjectDoc {
-  return { ...doc, weapons: doc.weapons && doc.weapons.map((w) => (w.id === weapon ? patchObj(w, { rank }) : w)) }
-}
-export function setWeaponRankXp(doc: ProjectDoc, weapon: string, xp: number | undefined): ProjectDoc {
-  return { ...doc, weapons: doc.weapons && doc.weapons.map((w) => (w.id === weapon ? patchObj(w, { rankXp: xp === DEFAULT_USE_XP ? undefined : xp }) : w)) }
-}
+/** The weapon or staff needs this rank (undefined = any); the experience per use is only kept when it is not the default. */
+export const setGearRank = (doc: ProjectDoc, owner: GearOwner, id: string, rank: string | undefined): ProjectDoc => patchGear(doc, owner, id, { rank })
+export const setGearRankXp = (doc: ProjectDoc, owner: GearOwner, id: string, xp: number | undefined): ProjectDoc =>
+  patchGear(doc, owner, id, { rankXp: xp === DEFAULT_USE_XP ? undefined : xp })
+export const setWeaponRank = (doc: ProjectDoc, weapon: string, rank: string | undefined): ProjectDoc => setGearRank(doc, 'weapon', weapon, rank)
+export const setWeaponRankXp = (doc: ProjectDoc, weapon: string, xp: number | undefined): ProjectDoc => setGearRankXp(doc, 'weapon', weapon, xp)
 
 /** One group's starting value in a ranks map; undefined removes it, and an emptied map is dropped (undefined). */
 export function setRankIn(map: RankMap | undefined, group: string, value: RankValue | undefined): RankMap | undefined {

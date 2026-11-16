@@ -7,6 +7,7 @@ import { cleanStatSkills, skillsUseStat } from './skillStatRefs'
 import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
+import { allGear } from './gear'
 import { cleanStatCaps, groupRankUsageLines, statCapUsageLines } from './rankRefs'
 import { readGrid, writeGrid } from './mapGrid'
 import { scrubMap, storyUsages } from './storyRefs'
@@ -80,7 +81,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       {
         // The last weapon of a group takes the starting ranks in that group with it (docs/SRPG.md section 7).
         const group = (doc.weapons ?? []).find((w) => w.id === id)?.group
-        if (group && !(doc.weapons ?? []).some((w) => w.id !== id && w.group === group)) out.push(...groupRankUsageLines(doc, group))
+        if (group && !allGear(doc).some((g) => !(g.owner === 'weapon' && g.id === id) && g.keys.group === group)) out.push(...groupRankUsageLines(doc, group))
       }
       break
     case 'terrain':

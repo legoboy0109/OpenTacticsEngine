@@ -2,12 +2,14 @@
 // step fills its own file here and never edits the form.
 import { ItemSkillsCard } from './ItemSkillsCard'
 import { ItemPromotionCard } from './ItemPromotionCard'
+import { StaffExtraCards } from '../staff/StaffCards'
 
 export function ItemSrpgCards({ id }: { id: string }) {
   return (
     <>
       <ItemSkillsCard id={id} />
       <ItemPromotionCard id={id} />
+      <StaffExtraCards id={id} />
     </>
   )
 }

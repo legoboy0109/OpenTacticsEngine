@@ -13,6 +13,7 @@ import { TextInput } from '../../ui/TextInput'
 import { Toggle } from '../../ui/Toggle'
 import { ItemKindFields } from './ItemKindFields'
 import { ItemSrpgCards } from './srpg/ItemSrpgCards'
+import { StaffMainCards } from './staff/StaffCards'
 import { T } from './text'
 
 export function ItemForm({ id }: { id: string }) {
@@ -29,6 +30,7 @@ export function ItemForm({ id }: { id: string }) {
     { value: 'usable', label: T.kindUsable },
     { value: 'weapon', label: T.kindWeapon, disabled: !carried && item.kind !== 'weapon' },
     { value: 'accessory', label: T.kindAccessory },
+    { value: 'staff', label: T.kindStaff },
   ]
 
   return (
@@ -50,9 +52,11 @@ export function ItemForm({ id }: { id: string }) {
         </div>
       </Card>
 
-      <Card>
-        <ItemKindFields id={id} />
-      </Card>
+      {item.kind === 'staff' ? <StaffMainCards id={id} /> : (
+        <Card>
+          <ItemKindFields id={id} />
+        </Card>
+      )}
 
       {item.kind !== 'accessory' && (
         <Card>
