@@ -29,7 +29,8 @@ bool BattleView::beginAbilities(const Battle& b) {
   if (blocked && !e.data.empty() && e.data[0] >= 0 && (size_t)e.data[0] < b.units.size() && b.units[(size_t)e.data[0]].alive) {
     float x, y;
     cellPos(b, b.units[(size_t)e.data[0]].cell, x, y);
-    addFloat(AbilityWords::kBlocked, x + tile_ / 2.0f, y - 2, Color(255, 170, 90), 1.1f);
+    // Under the square, not above it: the ability's name floats above its user, and the two are often two squares apart.
+    addFloat(AbilityWords::kBlocked, x + tile_ / 2.0f, y + tile_, Color(255, 170, 90), 1.1f);
   }
   OTE_INFO("ability: %s uses %s on unit %d square %d%s", b.units[(size_t)e.a].name.c_str(), name.c_str(), e.c, e.d,
            blocked ? " (blocked)" : "");

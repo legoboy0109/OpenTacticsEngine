@@ -37,7 +37,9 @@ void BattleScene::addAbilityEntries(std::vector<MenuItem>& items) {
     const AbilityOption& o = opts[i];
     std::string extra = abilityMenuExtra(battle_, u, o);
     if (textW(r, extra) > maxExtra) extra = abilityShortReason(extra);
-    if (!extra.empty()) extra = fitText(r, extra, maxExtra);
+    // Still too long: cut off with "..", but a stump of a word ("no..") says nothing, so with no room at all the
+    // entry stays greyed without a reason (the phone-sized screen; the Abilities page of Unit details has the words).
+    if (textW(r, extra) > maxExtra) extra = maxExtra >= textW(r, "xxxxxx") ? fitText(r, extra, maxExtra) : "";
     items.push_back({battle_.db->abilities[(size_t)o.ability].name, extra, o.ok, kAbilityBase + (int)i});
   }
 }
@@ -83,6 +85,7 @@ bool BattleScene::abilityChosen(int id) {
     if (cells.empty()) { say(AbilityWords::kNothingToTarget); return true; }
     // The new unit's square is the one under the cursor: mark it like an end square.
     beginPickCell(cells, [use](Cell c) { use(-1, c); }, [sayHint](int cand, Overlay& ov) {
+      ov.reach[(size_t)cand] = 0;  // (the hexagon drawing lets blue win over red on one square)
       ov.attack[(size_t)cand] = 1;
       sayHint();
     });
@@ -93,7 +96,7 @@ bool BattleScene::abilityChosen(int id) {
     auto mark = [this, user, ability, candidateCells, sayHint](int target, Overlay& ov) {
       for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
       for (const AbilityMovePreview& m : previewAbilityMoves(battle_, user, ability, target))
-        for (Cell c : m.path) ov.attack[(size_t)c] = 1;  // where the units would end up (and pass, for a push)
+        for (Cell c : m.path) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }  // where the units would end up (and pass, for a push)
       sayHint();
     };
     beginPickUnit(units, [use](int t) { use(t, kNoCell); }, mark);

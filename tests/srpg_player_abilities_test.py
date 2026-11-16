@@ -215,7 +215,8 @@ def square_checks():
     # ---- summon: Call Wisp is free; the menu opens again with the limit as the reason
     img, log, _ = run('sq_summon_pick', kind, 'summon', IDLE + ',' + SELECT + ',down,confirm,wait:2')
     check('square: Call Wisp opens a square pick', 'pick square:' in log and listed(log, 'Call Wisp'), log[-300:])
-    reds = [(x, y) for x in range(MAP_W) for y in range(MAP_H) if redness(img, x, y) > plain + 40]
+    units_at = {(2, 2), (7, 6)}  # the red unit block covers its whole square: not a mark
+    reds = [(x, y) for x in range(MAP_W) for y in range(MAP_H) if (x, y) not in units_at and redness(img, x, y) > plain + 40]
     check('square: the pick marks exactly one square red (where the new unit would stand)', len(reds) == 1 and reds[0] != (2, 2), reds)
     img, log, save = run('sq_summon_done', kind, 'summon', IDLE + ',' + SELECT + ',down,confirm,confirm,wait:25', saves=True)
     check('square: the summon is logged and the unit exists', 'ability: Hero uses Call Wisp' in log and save is not None and
@@ -238,6 +239,8 @@ def square_checks():
     pos = cells_of(save) if save else {}
     check('square fog: the push is blocked by the hidden unit', 'ability: Hero uses Shove on unit 1' in log and '(blocked)' in log, log[-300:])
     check('square fog: the shoved unit did not move through it', pos.get(1) == line(kind, 1) and pos.get(2) == line(kind, 2), pos)
+    # the same moment with the animation still playing (for a look: "Blocked!" floats over the hidden unit's square)
+    run('sq_fog_blocked_floating', kind, 'fogpush', IDLE + ',' + SELECT + ',down,confirm,confirm,wait:3', tail=0)
 
 
 def hex_checks(kind):
