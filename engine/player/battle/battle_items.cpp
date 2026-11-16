@@ -150,6 +150,7 @@ void BattleScene::openShop() {
 // ---- input
 
 void BattleScene::chooseUseTarget(int slot) {
+  if (promotionItemUse(slot)) return;  // a promotion item: the question / promotion screen (battle_menu_promotion.cpp)
   std::vector<int> targets;
   battle_.useTargets(sel_, slot, targets);
   if (targets.empty()) return;

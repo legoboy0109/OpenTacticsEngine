@@ -71,6 +71,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   file(GLOB PLAYER_SRPG_TEST_SRC CONFIGURE_DEPENDS engine/player/battle/srpg_pick.cpp engine/player/battle/unit_info*.cpp
        engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp)
   target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
+  target_sources(ote_tests PRIVATE engine/player/battle/promotion_text.cpp)  # step U2: what a promotion gives, as text
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
@@ -125,6 +126,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # The same maps in the 2D isometric view (docs/HEX.md "2D isometric").
     add_test(NAME hex_iso_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/hex_iso_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # The strategy-RPG player: promotion (docs/SRPG.md step U2).
+    add_test(NAME srpg_promotion_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_promotion_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
