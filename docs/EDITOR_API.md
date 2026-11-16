@@ -270,7 +270,8 @@ art, plain files only), sorted by name, with the entries of the SAVED
 { "models": [ { "file": "models/knight.glb", "size": 1234,
                 "usedBy": [ { "style": "solid", "kind": "units", "id": "knight" } ] } ] }
 ```
-`kind` is `"units"` or `"structures"`.
+`kind` is `"units"`, `"structures"` or `"terrain"` (a terrain's standing part names the file in its `stand`, as `model` or in
+`variants`, docs/GRAPHICS.md "Standing terrain").
 
 ### PUT /api/projects/:id/models/<name>.glb
 Uploads a model. The body is the raw `.glb` file. Only `.glb` can be uploaded
@@ -291,7 +292,7 @@ a model it cannot read when a battle starts.
 ### DELETE /api/projects/:id/models/<name>.glb
 - `200 { "revision": "<new>" }`.
 - `409 { "error": "…", "usedBy": [ … ] }` while the SAVED `data/graphics.json`
-  names the file (`usedBy` as in the list). Nothing is deleted.
+  names the file in a unit, a structure or a terrain's standing part (`usedBy` as in the list). Nothing is deleted.
 - `404` no such file; `400` bad name.
 
 ### GET /api/learn, PUT /api/learn

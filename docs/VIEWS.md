@@ -154,6 +154,10 @@ top-down):
   1.15 x the average of the footprint's sides wide (in square edges), on the
   highest of its squares. A unit on one of its squares is drawn just in
   front of the picture; a unit behind it is covered (turn the view).
+- **Standing terrain**: a terrain can also have something standing on its ground, an upright picture that faces the
+  camera or 3D models, chosen per terrain like a unit's picture or model (`"stand"`, docs/GRAPHICS.md "Standing
+  terrain"). The flat ground picture stays underneath. See "Standing terrain" below for where it stands and what
+  happens to units, the cursor and the highlights on it.
 - Sheets become textures of the 3D layer: sides are padded to powers of two
   and a sheet larger than the backend's limit (1024) is refused there with a
   logged error; what uses it keeps the placeholder look in this view.
@@ -178,6 +182,29 @@ top-down):
   blocks is drawn again faintly over everything (`Material3D::depthTest`
   off), as in the 2D isometric view; turning the view is the real answer.
 
+**Standing terrain** (engine/player/battle/map3d_stand.cpp; both 3D kinds, both backends). A terrain's `stand` is drawn
+on the ground of every square of that terrain, at the square's height, after the flat ground pictures:
+- **Picture**: an upright quad like a unit's, facing the camera, feet on the ground, width one square (or `width`),
+  height in proportion. It stands towards the BACK of its square as the camera sees it (0.3 squares behind the middle),
+  so a unit in the middle of the square is in front of it and always visible. Each square picks its piece the way
+  terrain variants do (a stable pick from the position); frames play with the battle's time. Cut out (see-through
+  pixels show what is behind), not lit.
+- **Model**: lit like a structure or unit model, in the middle of the square, `height` squares tall (default 1), turned
+  by `turn`. A unit on such a square is moved towards the camera, in front of the model (about the model's half width,
+  never past 0.62 squares), and its letter and HP bar go with it, like a unit on a model structure.
+- `scatter` shifts each square's standing part a little (up to 0.18 squares; pictures sideways only) and turns each
+  model, the same way every time (`standScatter`, a hash of the position).
+- **Depth**: the depth picture sorts it with everything else, so standing parts cover what is behind them (units, the
+  cursor, structures), as a building does. A unit or the cursor behind a square with a standing part (one of the
+  squares nearest the camera: straight ahead, or the three ahead on a diagonal view) is drawn again over it, a bit
+  stronger than behind raised blocks (60 %, the cursor 40 %), and the cursor of a square that has a standing part is
+  always drawn again over it.
+- **Fog**: dimmed to 55 % like the ground under the veil. **Move and attack range**: the standing part of a square in
+  range is tinted blue (62 % red, 76 % green) or red, so the highlight on the ground, which trees can hide, still reads.
+- It does not change `hidden` (what covers a square's middle): only raised blocks do, as before.
+- Only squares that can be in the picture are drawn (a 30 x 20 map of forest costs about 2 ms a frame more in the
+  software backend with pictures, 3-6 ms with models of ~150 triangles).
+
 **Turning.** `Button::TurnLeft` / `TurnRight`: keys `,` and `.` (also `[`
 and `]`), gamepad west and north face buttons, and two on-screen buttons in
 the map's bottom-left corner for pointer and touch. Allowed at any time,
@@ -195,8 +222,8 @@ close-up battle scenes come later (owner decision).
 **Data and art.** Nothing but `"view": "3d"`; the `"isometric"` block is not
 used. One height level is half a square. Art is exactly that of the 3D
 isometric kind (a style of this kind starts with no art): terrain pictures
-flat on the block tops, units and structures as upright pictures or as glTF
-models (docs/GRAPHICS.md "Models"). A unit picture is 0.75 squares wide; an
+flat on the block tops (with a standing part where a terrain has one), units and structures as upright pictures or as
+glTF models (docs/GRAPHICS.md "Models"). A unit picture is 0.75 squares wide; an
 upright picture is drawn taller the more the camera looks from above (up to
 twice), so it does not look squashed.
 
@@ -241,8 +268,7 @@ resolution", `--3d-res`, `--3d-scale` for headless runs), and a graphics.json
 sheet with `"smooth": true` is sampled with blending and mipmaps there
 (docs/GRAPHICS.md). The 2D views do not use `smooth` yet: not yet.
 
-**Not yet**: close-up battle scenes; slopes or modelled terrain (the map is
-blocks); remembering the camera; touch gestures (pinch, two-finger turn;
+**Not yet**: close-up battle scenes; slopes (the map is blocks; things only stand on them); remembering the camera; touch gestures (pinch, two-finger turn;
 the on-screen buttons work); per-style camera settings (start angle,
 limits, field of view); smooth art in the 2D views.
 
@@ -251,9 +277,10 @@ limits, field of view); smooth art in the 2D views.
 Both demos have an "Isometric" style with generated art
 (`tools/art/art_iso.py`: terrain blocks, the buildings on stone plinths,
 the unit sprites cut under their feet) and a "3D Isometric" style that
-reuses the top-down tiles on the block tops, the standing unit sprites and
-the top-down structure pictures, and a "Full 3D" style with the same art as
-the 3D isometric one (in `demo-srpg`: the unit and fort models).
+reuses the top-down tiles on the block tops (a plain ground picture under the forest and mountain), the standing unit
+sprites, the top-down structure pictures and upright pictures of trees and peaks standing on the forest and mountain
+squares, and a "Full 3D" style with the same art as the 3D isometric one (in `demo-srpg`: the unit and fort models).
+`demo-srpg`'s "Detailed 3D" style has generated low-poly models of trees and peaks standing on its ground textures.
 `demo-srpg`'s map has heights (hills under
 the mountains, a sunken river bed).
 
