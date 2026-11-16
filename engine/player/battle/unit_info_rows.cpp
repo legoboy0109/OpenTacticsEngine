@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "battle/item_text.h"
+#include "battle/rank_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -12,7 +13,7 @@ namespace {
 bool has(const std::vector<int>& v, int x) { return std::find(v.begin(), v.end(), x) != v.end(); }
 
 const Color kText(228, 230, 240), kLabel(150, 158, 190), kSmall(128, 136, 170), kName(255, 235, 130);
-const Color kUp(130, 235, 150), kDown(255, 140, 120);
+const Color kUp(130, 235, 150), kDown(255, 140, 120), kMax(255, 225, 110), kGreyed(110, 114, 140);
 
 void more(Renderer& r, int x, int y, size_t n) { r.drawText(x, y, ("+" + intStr((int)n) + " more").c_str(), kLabel); }
 
@@ -73,8 +74,15 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
       row.note = "(" + std::string(now > own ? "+" : "") + intStr(now - own) + ")";
       row.noteColor = row.valueColor = now > own ? kUp : kDown;
     }
+    const int cap = b.statCap(u, (int)s);  // the highest the permanent stat can grow to (docs/SRPG.md section 7)
+    if (cap >= 0) {
+      const bool atCap = own >= cap;
+      row.cap = atCap ? "MAX" : "cap " + intStr(cap);
+      row.capColor = atCap ? kMax : kSmall;
+    }
     rows.push_back(row);
   }
+  for (const InfoRow& r : rankRows(b, u)) rows.push_back(r);  // weapon ranks: under the stats
   return rows;
 }
 
@@ -87,6 +95,8 @@ std::vector<ItemRow> itemRows(const Battle& b, const Unit& u) {
     row.uses = usesText(b, u.items[i]);
     row.detail = itemDetail(b, u.items[i]);
     row.equipped = (int)i == eq;
+    row.blocked = weaponBlockReason(b, u, u.items[i]);
+    if (!row.blocked.empty()) row.detail = row.blocked;
     out.push_back(row);
   }
   return out;
@@ -102,13 +112,15 @@ void drawStatRows(Renderer& r, int x, int y, int w, int h, int lineH, const std:
     if (col >= cols) { more(r, x + (cols - 1) * (cw + gap), y + (perCol - 1) * rh, rows.size() - i + 1); break; }
     const InfoRow& row = rows[i];
     const int cx = x + col * (cw + gap), cy = y + ((int)i % perCol) * rh;
+    const std::string cap = row.cap.empty() ? "" : " " + row.cap;
     const std::string note = row.note.empty() ? "" : " " + row.note;
-    const int nw = textW(r, note);
+    const int kw = textW(r, cap), nw = textW(r, note);
     const std::string v = fitText(r, row.value, cw * 3 / 5);
     const int vw = textW(r, v);
-    r.drawText(cx, cy, fitText(r, row.label, cw - vw - nw - 6).c_str(), kLabel);
-    r.drawText(cx + cw - vw - nw, cy, v.c_str(), row.valueColor);
-    if (!note.empty()) r.drawText(cx + cw - nw, cy, note.c_str(), row.noteColor);
+    r.drawText(cx, cy, fitText(r, row.label, cw - vw - nw - kw - 6).c_str(), kLabel);
+    r.drawText(cx + cw - vw - nw - kw, cy, v.c_str(), row.valueColor);
+    if (!note.empty()) r.drawText(cx + cw - nw - kw, cy, note.c_str(), row.noteColor);
+    if (!cap.empty()) r.drawText(cx + cw - kw, cy, cap.c_str(), row.capColor);
   }
 }
 
@@ -145,9 +157,10 @@ void drawItemRows(Renderer& r, int x, int y, int w, int h, int lineH, const std:
     if (need > room) { more(r, x, cy, rows.size() - i); return; }
     if (it.equipped) r.fillRect(x, cy + (lineH - sq) / 2, sq, sq, Color(255, 220, 90));
     const int tx = x + sq + 4, tw = w - sq - 4, uw = textW(r, it.uses);
-    r.drawText(tx, cy, fitText(r, it.name, tw - uw - 8).c_str(), kText);
+    const bool blocked = !it.blocked.empty();  // greyed, with the reason in place of the description
+    r.drawText(tx, cy, fitText(r, it.name, tw - uw - 8).c_str(), blocked ? kGreyed : kText);
     if (!it.uses.empty()) r.drawText(x + w - uw, cy, it.uses.c_str(), kSmall);
-    if (!it.detail.empty()) r.drawText(tx + 6, cy + rh, fitText(r, it.detail, tw - 6).c_str(), kLabel);
+    if (!it.detail.empty()) r.drawText(tx + 6, cy + rh, fitText(r, it.detail, tw - 6).c_str(), blocked ? kDown : kLabel);
     cy += need + 3;
   }
 }

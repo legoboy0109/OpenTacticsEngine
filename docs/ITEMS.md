@@ -168,6 +168,15 @@ Accessories can carry skills, a usable item can be a promotion item (`promotes`)
 can start with its own items instead of its class's. These keys, their checks and the items of the demo and template are in
 docs/SRPG.md (sections 1 to 3 and "Demo and template content").
 
+## Weapon ranks
+
+A weapon item can require a **rank** in its group (`"rank"` on the weapon, `"ranks"` on unit types, characters and map units, the ladder in
+`data/ranks.json`; docs/SRPG.md section 7). A unit that does not have the rank can carry, trade, store and buy the weapon but cannot
+equip or attack with it: `Battle::weaponsOf`, `weaponSlot`, `equippedSlot` and the `Equip` action all use `Battle::canWieldNow`
+(the class can wield it **and** the rank is high enough), the refusal reads "Needs rank B", and the computer opponent never picks it.
+Stat-raising items (`raise`) respect stat caps (docs/SRPG.md section 7): a raise is cut at the cap, and one that could change nothing is
+refused like a heal at full HP.
+
 ## Editor
 
 - **Items** screen (list, add, rename, delete with "used by" check, like
@@ -181,8 +190,8 @@ docs/SRPG.md (sections 1 to 3 and "Demo and template content").
 ## Not in this version
 
 Selling items; chests and items lying on the map; stealing; item effects by
-formula or script (status effects, damage items, staves at range); weapon
-ranks; forging/repair; a preparations screen before battle; carrying items
+formula or script (status effects, damage items, staves at range); ranks for
+fixed weapons (carried weapons have them, see above); forging/repair; a preparations screen before battle; carrying items
 from one map to the next (needs the campaign layer, PLAN 3f); AI that
 trades or shops.
 

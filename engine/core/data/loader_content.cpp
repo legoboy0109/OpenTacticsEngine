@@ -3,6 +3,7 @@
 #include <cctype>
 
 #include "core/data/loader.h"
+#include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -56,6 +57,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!c.str(e, "group", where, w.group)) return false;
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
+    if (!readWeaponRank(c, db, e, where, w)) return false;    // "rank", "rankXp" (docs/SRPG.md section 7)
     db.weapons.push_back(w);
   }
   return true;
@@ -103,7 +105,8 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!readUnitSupply(c, e, where, u) || !readUnitVision(c, e, where, u)) return false;
     // Strategy-RPG features (docs/SRPG.md): each area reads its own keys of a unit type.
     if (!readUnitSkills(c, db, e, where, u) || !readUnitAbilities(c, db, e, where, u) ||
-        !readUnitPromotions(c, db, e, where, u) || !readUnitPairBonus(c, db, e, where, u))
+        !readUnitPromotions(c, db, e, where, u) || !readUnitPairBonus(c, db, e, where, u) ||
+        !readUnitRanks(c, db, e, where, u))  // "ranks", "caps" (docs/SRPG.md section 7)
       return false;
     db.unitTypes.push_back(u);
   }

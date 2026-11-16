@@ -64,6 +64,8 @@ data/characters.json   characters                                            (op
 data/skills.json       skills made of blocks                                 (optional file)
 data/abilities.json    menu abilities, summons                               (optional file)
 data/supports.json     support rules, pairs, levels, conversations           (optional file; needs characters)
+data/ranks.json        weapon rank ladder and growth                         (optional file; section 7)
+data/caps.json         game-wide stat caps                                   (optional file; section 7)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
 data/weapons.json      per weapon: skills
 data/items.json        accessory: skills; usable: promotes
@@ -971,6 +973,180 @@ bool playSupport(const Database& db, Playthrough& pt, int pair, std::vector<Scen
 
 ---
 
+## 7. Weapon ranks and stat caps
+
+Two optional features, each switched on by its own data file. Owner decisions (2026-11-16): a unit has a **rank per
+weapon group**; a weapon may **require a rank**; the **ladder is the maker's** (new games start with E, D, C, B, A,
+S); growth is **per game either fixed or by use**; a weapon whose rank the unit lacks can be carried, traded, stored
+and bought but **cannot be equipped or attacked with**, and the computer never picks it. **Stat caps** are the
+highest a permanent stat can reach: a game-wide cap per stat, overridden by the class, plus a character's personal
+adjustment. A game with neither file plays, saves and hashes exactly as before.
+
+### Weapon ranks
+
+**Scope.** Ranks belong to the weapons a unit *wields*: they need `rules.items.weapons` = `"carried"` (a game with
+fixed weapons has no choice to restrict; the loader refuses a ladder there). A weapon takes part when it has a
+`group` (docs/ITEMS.md "Who can wield what"); a weapon without one never needs a rank and never trains one. Usable
+items are not wielded things in this engine (there are no staves), so a rank is a key of weapon items only.
+
+**Data: data/ranks.json** (optional; refuses unknown keys)
+```jsonc
+{ "growth": "use",             // "fixed" (default) | "use"
+  "ranks": [                   // the ladder, lowest first; 1..12 entries
+    { "id": "e", "name": "E", "xp": 0 },     // the first must have xp 0
+    { "id": "d", "name": "D", "xp": 30 },    // weapon experience needed; strictly rising, 0..9999
+    { "id": "c", "name": "C", "xp": 70 },
+    { "id": "b", "name": "B", "xp": 120 },
+    { "id": "a", "name": "A", "xp": 180 },
+    { "id": "s", "name": "S", "xp": 250 } ] }
+```
+Ids are lowercase letters, digits, `_`, `-`. A file whose `ranks` list is empty is the same game as no file (the
+editor writes one to remember the feature was switched on), whatever else it says. Core: `Database::ranks`
+(`RankRules`: `ladder`, `growByUse`, `groups`).
+
+**Weapon groups** are the distinct `group` strings of data/weapons.json, in file order; a unit's ranks are indexed by
+that list (`RankRules::groups`).
+
+**Data: weapons.json** (per weapon; both keys need a `group`, and the game needs the ladder)
+```jsonc
+{ "id": "steel_sword", "group": "sword", "rank": "d", "rankXp": 2 }
+```
+`rank`: the lowest rank that may wield it (an id of the ladder); missing = any. `rankXp`: weapon experience the user
+gains in the group per use when growth is `"use"`, 1..99, default 1.
+
+**Data: starting ranks.** A value is a rank id (the experience that rank starts at) or a whole number of weapon
+experience (0 .. the top rank's `xp`); the group must be one some weapon has.
+```jsonc
+// units.json, per unit type: what a unit of this class starts with
+{ "id": "lancer", "ranks": { "lance": "c", "sword": 45 } }
+// characters.json, per character: personal ranks
+{ "id": "kell", "ranks": { "lance": "b" } }
+// maps/*.json, per unit (and in an addUnit command): replaces that group's starting value
+{ "character": "kell", "ranks": { "lance": "a" } }
+```
+A unit holds one number per group, its **weapon experience** (`Unit::weaponXp`, indexed like `RankRules::groups`);
+its **rank** in a group is the highest ladder entry whose `xp` is not above that number. A group nobody gave a value
+is at the lowest rank. Both growth modes use this one number; with `"fixed"` it never changes except as below.
+
+**Rules (decisions where the owner was silent)**
+- *Class and character:* a unit starts with, per group, the **higher** of its class's value and its character's
+  value. Characters stack on classes by adding elsewhere (stats, growths), but a rank is a level, not an amount, and
+  "the higher wins" never lets a personal entry lower a class. A map unit's `ranks` then **replaces** the value of
+  the groups it names (a map may place a weak lancer on purpose).
+- *Promotion:* the unit keeps its experience and is raised, per group, to the new class's value where that is higher
+  (the same "raise to the class's value" that runs when a unit is built, added or dressed from a roster, so it is
+  idempotent and never lowers anything); a `RankUp` is emitted for each group whose rank rose.
+- *Growth `"use"`:* once per combat, after the experience awards, each fighter that **struck at least once** with a
+  weapon that has a group gains that weapon's `rankXp` in the group (the counterattacker too; a unit that died gains
+  nothing; a missed strike counts). Experience stops at the top rank's `xp`. When it crosses a ladder entry the unit
+  ranks up: event `RankUp`. Crossing several entries at once gives one event with the final rank.
+- *Growth `"fixed"`:* nothing is gained by use.
+- *Equip check:* a unit **can wield** a weapon when its class can (`Database::canWield`) **and** its rank in the
+  weapon's group is at least the weapon's `rank`. `weaponsOf`, `weaponSlot`, `equippedSlot` and the `Equip`
+  action use this one test (`Battle::canWieldNow`), so attack options, forecasts, counterattacks, the equipped
+  weapon (the first inventory weapon the unit can wield *now*) and the AI all follow. Giving, taking, storing,
+  buying and discarding never check ranks. The refusal text is `Needs rank B` (the ladder's display name).
+  Nothing about "wieldable now" is stored: a rank-up makes a carried weapon usable at once.
+- *Formulas:* unit tables gain `rank`, a table of group id to rank index (0 = lowest), only in a game with ranks:
+  `a.rank.sword >= 2`.
+- *Story commands:* none in this version (see "Not in this version").
+
+**Events.** `RankUp`: a = unit, b = weapon group (index into `RankRules::groups`), c = new rank (index into the
+ladder), d = old rank. Seen by the unit's own team.
+
+### Stat caps
+
+**Data: data/caps.json** (optional; refuses unknown keys): the game-wide cap per stat.
+```jsonc
+{ "caps": { "strength": 30, "speed": 30, "hp": 60 } }   // stat ids; 1..99999; a stat not listed has no game-wide cap
+```
+An empty `caps` object (or no file) is the same game as no file. Core: `Database::statCaps` (per stat index, -1 =
+none).
+
+**Class: units.json** `"caps": { "strength": 40 }` overrides the game-wide cap of those stats for the class (higher
+or lower; a class cap is a cap even where the game has none). Core: `UnitTypeDef::caps`.
+
+**Character: characters.json** `"capAdjust": { "strength": 3, "speed": -2 }` is added to whatever cap the unit's
+class or game gives that stat (a stat with no cap anywhere stays uncapped; the result is never below 0). Core:
+`CharacterDef::capAdjust`.
+
+**The rule.** `Battle::statCap(unit, stat)` = (class cap, else game cap) + the character's adjustment; -1 = none.
+It acts where a **permanent** stat (`Unit::stats`) rises: level-ups (growth gains), promotion gains and
+stat-raising items (`raise`); no story command raises a stat today. One function, `Battle::raiseStat`, applies a
+gain: a positive gain is cut to what room is left under the cap, a gain never pushes a stat that is already at or
+over its cap lower (a unit the map places above its cap stays there), negative gains always apply in full. The
+events carry what really happened (`LevelUp` data, `StatsRaised` data, `UnitPromoted` change). Dice are rolled as
+before, so a capped stat costs the same random numbers. A promotion judges the cap of the **new** class. HP: the
+max-HP stat can be capped like any other; current HP is clamped to the maximum as today and gains of the HP stat
+still arrive filled. An item whose `raise` could change nothing (every listed stat at its cap) counts as doing
+nothing, like a heal at full HP.
+
+**Temporary bonuses are not capped**: accessories, research, skills, supports, pair-up, carrying, terrain and
+wielded-weapon bonuses are added on top of the permanent stat by `Battle::stat`, which never looks at caps. The cap
+limits *growing*, not *being*.
+
+### Saves and hash
+- Battle save, only in a game with ranks: `units[i].ranks` = `{ "sword": 120 }`, group id to weapon experience, only
+  the groups above 0; every key a group of the game, every value 0 .. the top rank's `xp`. Roster entries of a
+  playthrough get the same `ranks` key. Refused in a game without ranks.
+- Caps add no state. Hash: `data/ranks.json` (only with a non-empty ladder) and `data/caps.json` (only with a
+  non-empty `caps`) are mixed after the supports file; a rank's `name` is a cosmetic key. Everything on units,
+  weapons, characters and maps is already hashed whole.
+
+### AI
+Nothing to decide: the AI picks from `weaponsOf`, which only holds weapons it may wield now. A unit that carries
+only weapons above its rank has no attack and behaves like an unarmed one.
+
+### Player
+- **Unit details, Stats page:** a capped stat shows `MAX` when it is at its cap. **Items page:** a weapon the unit
+  cannot wield now is greyed with its reason (`Needs rank B`). A **Ranks** block (only in a game with ranks): per
+  group the rank's display name and, with growth `"use"`, the experience towards the next rank (`Sword  C  45/70`;
+  the top rank shows `MAX`).
+- **Item menu / equip / attack picks:** an unwieldable weapon is listed greyed with `Needs rank B` and cannot be
+  chosen.
+- **Level-up box:** a stat that is at its cap shows `MAX` next to the gain.
+- **`RankUp`:** a floating label over the unit, `Sword rank C`, like `SkillLearned` outside a level-up box.
+
+### Editor (not built in this step)
+Screens: a **Weapon ranks** section in Rules (growth mode, the ladder as an editable list with id / name /
+experience; a "default E to S ladder" button), the weapon form (`rank`, `rankXp`), the unit type form (`ranks` per
+group, `caps`), the character form (`ranks`, `capAdjust`), the map unit form (`ranks`), and **Stat caps** in Rules
+(one optional number per stat). Problems to report: a rank id not in the ladder, a group no weapon has, `rank`
+without a `group`, an `xp` that is not rising, a ladder with fixed weapons. The editor must keep the keys it does
+not edit (see "as built").
+
+### Not in this version
+Story commands that set or raise a rank or a cap; experience from healing or other non-combat use; ranks for fixed
+weapons; rank-gated skills.
+
+### Weapon ranks and stat caps: as built
+
+Core: `engine/core/data/ranks.h` (`RankRules`, limits), `loader_ranks.cpp` (`ranks.json`, `caps.json`, the keys of weapons, unit types,
+characters and map units; loaded before the weapons, groups built right after them), `engine/core/battle/ranks.cpp` (`weaponRank`,
+`meetsRank`, `canWieldNow`, `rankRaiseToClass`, `rankOverride`, `ranksAfterCombat`), `caps.cpp` (`statCap`, `raiseStat`, `canRaiseAny`),
+`save_ranks.cpp` (`ranks` key of a unit and a roster entry). Differences from the text above, and what the text left open:
+
+- `Unit::weaponXp` / `RosterUnit::weaponXp` / `MapUnitDef::weaponXp` (-1 = not said) hold the experience; `dressUnit` calls
+  `rankRaiseToClass` (so building, adding, summoning and a roster all get the class's ranks), `makeUnit` applies the map's override after it.
+- Experience from use is given **after the XP awards** of the same combat (a level-up box comes first) and before the end-of-combat skills;
+  the strikes are read off the combat's `Attack` events, so a weapon that broke during the fight still counts.
+- A rank-up by promotion is emitted right after `UnitPromoted`. A unit that dressed from a roster or was built is raised silently.
+- The refusal text of `Equip` is `Needs rank B` (the rank's display `name`); `validate` of a weapon the class cannot wield at all still says
+  "the unit cannot wield that".
+- Caps: `statCap` is cached nowhere; `raiseStat` is the only place a permanent stat grows (`progression.cpp`, `promotion.cpp`, `items.cpp`).
+  Item `raise` events report the real gain for positive amounts and the written amount for negative ones (as before).
+- The loader refuses `rank` / `rankXp` without a `group`, ranks without carried weapons, and a ladder whose first `xp` is not 0, with messages
+  that name the file and the entry (tests: `tests/test_srpg_ranks_loader.cpp`).
+- Not built: story commands (see "Not in this version" above), and no editor screens. The editor helper passes the new keys on units,
+  weapons, characters and map units through untouched and reads neither `data/ranks.json` nor `data/caps.json`: it neither shows, rewrites
+  nor deletes them, and the engine loader's refusals reach its Problems list as for any other file.
+- Player: `engine/player/battle/rank_text.*` (words), `battle_view_ranks.cpp` (the `RankUp` label), cap and rank rows in
+  `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
+  Tests: `tests/test_srpg_ranks*.cpp`, `tests/test_srpg_caps.cpp`, `tests/test_srpg_player_ranks.cpp`, `tests/srpg_player_ranks_test.py`, the
+  fixture `tests/fixtures/srpg-ranks`.
+
+---
+
 ## Events (what the player animates)
 
 Appended to `EventType` in this order (existing values keep their numbers):
@@ -988,6 +1164,7 @@ Appended to `EventType` in this order (existing values keep their numbers):
 | `PairSwitched` | a = now behind, b = now in front, c = the square | the units' team and the teams that see the square |
 | `SupportPoints` | a = unit of `a`, b = unit of `b`, c = pair, d = points now, flags `kReady` | the units' own team |
 | `SupportReached` | a = unit of `a` (-1 off the board), b = unit of `b`, c = pair, d = new level | the units' own team |
+| `RankUp` | a = unit, b = weapon group, c = new rank, d = old rank (section 7) | the unit's own team |
 
 New flag bits (after `kBought = 32`): `kSurvived = 64`, `kBlocked = 128`, `kPaired = 256`, `kForced = 512`,
 `kReady = 1024`. `Attack` events may carry `kSurvived`. Existing entries reused: `UnitRelocated` (pushes, pulls,

@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "battle/item_text.h"
+#include "battle/rank_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
 
@@ -152,8 +153,14 @@ void BattleView::begin(const Battle& b) {
       levelUp.autoContinue = autoplay_ || b.sides[u.side].ai;
       levelUp.title = u.name + " reached Lv " + intStr(e.b);
       levelUp.lines.clear();
-      for (size_t s = 0; s < e.data.size() && s < b.db->stats.size(); ++s)
-        if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
+      for (size_t s = 0; s < e.data.size() && s < b.db->stats.size(); ++s) {
+        const std::string capped = capLine(b, u, (int)s, e.data[s]);  // a stat at its cap says so (docs/SRPG.md section 7)
+        if (!capped.empty()) {
+          levelUp.lines.push_back(capped);
+          OTE_INFO("level-up box: %s", capped.c_str());
+        }
+        else if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
+      }
       if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
       addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
       cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
@@ -260,7 +267,8 @@ void BattleView::begin(const Battle& b) {
     case EventType::UnitHanded:
     case EventType::PairSwitched:
     case EventType::SupportPoints:
-    case EventType::SupportReached: break;
+    case EventType::SupportReached:
+    case EventType::RankUp: break;
   }
 }
 

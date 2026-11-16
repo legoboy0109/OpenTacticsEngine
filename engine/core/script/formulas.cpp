@@ -141,6 +141,16 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
     lua_pushstring(L_, db_->characters[(size_t)u->character].id.c_str());
     lua_setfield(L_, -2, "character");
   }
+  // Weapon ranks (docs/SRPG.md section 7): a.rank.sword = the rank's index (0 = lowest); absent in a game without ranks.
+  if (db_->ranks.on()) {
+    lua_createtable(L_, 0, (int)db_->ranks.groups.size());
+    for (size_t g = 0; g < db_->ranks.groups.size(); ++g) {
+      const int xp = g < u->weaponXp.size() ? u->weaponXp[g] : 0;
+      lua_pushinteger(L_, db_->ranks.rankAt(xp));
+      lua_setfield(L_, -2, db_->ranks.groups[g].c_str());
+    }
+    lua_setfield(L_, -2, "rank");
+  }
   lua_pushinteger(L_, u->hp); lua_setfield(L_, -2, "hp");
   lua_pushinteger(L_, u->level); lua_setfield(L_, -2, "level");
   lua_pushinteger(L_, u->xp); lua_setfield(L_, -2, "xp");

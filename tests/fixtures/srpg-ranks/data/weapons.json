@@ -1,0 +1,7 @@
+{ "weapons": [
+  { "id": "bronze_sword", "name": "Bronze Sword", "group": "sword", "props": { "might": 2 } },
+  { "id": "steel_sword",  "name": "Steel Sword",  "group": "sword", "rank": "d", "rankXp": 2, "props": { "might": 4 } },
+  { "id": "war_sword",    "name": "War Sword",    "group": "sword", "rank": "b", "rankXp": 3, "props": { "might": 7 } },
+  { "id": "short_bow",    "name": "Short Bow",    "group": "bow", "range": [2, 2], "props": { "might": 2 } },
+  { "id": "long_bow",     "name": "Long Bow",     "group": "bow", "rank": "c", "range": [2, 3], "props": { "might": 5 } },
+  { "id": "stick",        "name": "Stick",        "props": { "might": 1 } } ] }

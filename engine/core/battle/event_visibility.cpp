@@ -23,7 +23,7 @@
 //   Resources and items of a side (ResourceChanged, ItemGained, ItemMoved, ResearchStarted, ResearchFinished): only
 //   the side's own team.
 //   Strategy-RPG features (docs/SRPG.md "Events"):
-//   SkillLearned, SupportPoints, SupportReached: only the units' own team.
+//   SkillLearned, RankUp, SupportPoints, SupportReached: only the units' own team.
 //   SkillActivated, UnitHurt, UnitPromoted: the unit's team and the teams that see it.
 //   AbilityUsed: the user's team and the teams that see the user or the target unit.
 //   UnitRescued, UnitHanded: the units' teams and the teams that see either of the two (a, b) before it happens.
@@ -127,6 +127,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::ItemMoved:
       return sideTeam(e.d);
     case EventType::SkillLearned:
+    case EventType::RankUp:
       return unitTeam(e.a);
     case EventType::SupportPoints:
     case EventType::SupportReached:

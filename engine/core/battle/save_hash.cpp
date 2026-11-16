@@ -68,7 +68,8 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
         out.set(m.first, Json::makeString(""));
         continue;
       }
-      bool table = m.first == "props" || m.first == "versus" || m.first == "stats" || m.first == "growths" ||
+      bool table = m.first == "props" || m.first == "versus" || m.first == "stats" || m.first == "growths" || m.first == "caps" ||
+                   m.first == "capAdjust" ||
                    m.first == "moveCost" || m.first == "income" || m.first == "cost" || m.first == "resources";
       out.set(m.first, rulesOnly(m.second, mapFile, table && m.second.isObject()));
     }
@@ -88,6 +89,14 @@ bool holdsNothing(const std::string& text, const char* list) {
     else if (!(m.second.isObject() || m.second.isArray()) || m.second.size() > 0) return false;
   }
   return true;
+}
+
+// data/ranks.json with an empty (or missing) ladder is the same game as no file, whatever its "growth" says.
+bool holdsNoRanks(const std::string& text) {
+  Json doc;
+  std::string perr;
+  if (!Json::parse(text, doc, perr) || !doc.isObject()) return false;
+  return !doc.has("ranks") || (doc["ranks"].isArray() && doc["ranks"].size() == 0);
 }
 
 // Mixes the rules content of a JSON file: layout, comments and cosmetic keys
@@ -169,6 +178,14 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
     if (!readTextFile(root + "/" + sf.rel, probe) || holdsNothing(probe, sf.list)) continue;
     if (!mixJson(f, root, sf.rel, false, nullptr, err, sf.mapFile)) return false;
   }
+  // Weapon ranks and stat caps (docs/SRPG.md section 7): only a file with something in it counts (an empty ladder /
+  // an empty "caps" is the same game as no file).
+  if (readTextFile(root + "/data/ranks.json", probe) && !holdsNoRanks(probe) &&
+      !mixJson(f, root, "data/ranks.json", false, nullptr, err))
+    return false;
+  if (readTextFile(root + "/data/caps.json", probe) && !holdsNothing(probe, "") &&
+      !mixJson(f, root, "data/caps.json", false, nullptr, err))
+    return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   return true;

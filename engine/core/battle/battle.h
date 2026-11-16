@@ -83,6 +83,9 @@ enum class EventType {
   PairSwitched,       // a=the unit that went behind, b=the unit now in front, c=the square
   SupportPoints,      // a=unit of the pair's `a`, b=unit of `b`, c=pair, d=points now, flags=kReady
   SupportReached,     // a=unit of `a` (-1 = off the board), b=unit of `b`, c=pair, d=new level
+  // Weapon ranks (docs/SRPG.md section 7): a=unit, b=weapon group (index into db->ranks.groups), c=new rank, d=old rank
+  // (indices into db->ranks.ladder).
+  RankUp,
 };
 
 enum : int {
@@ -150,6 +153,8 @@ struct Unit {
   int moveSpent = 0;       // movement points spent on moves this turn
   bool acted = false;      // has used its action; only a move (or Wait) is left
   bool refreshed = false;  // "act again" has been used this turn
+  // Weapon ranks (docs/SRPG.md section 7): weapon experience per RankRules::groups index; empty in a game without ranks.
+  std::vector<int> weaponXp;
 };
 
 struct CellState {

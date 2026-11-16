@@ -1,0 +1,9 @@
+{ "name": "Field", "grid": { "type": "square", "width": 9, "height": 4 }, "legend": { ".": "plain" },
+  "tiles": [".........", ".........", ".........", "........."],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "kell", "side": "blue", "x": 0, "y": 1, "leader": true },
+    { "character": "mara", "side": "blue", "x": 0, "y": 2 },
+    { "type": "grunt", "side": "red", "x": 8, "y": 1 },
+    { "type": "grunt", "side": "red", "x": 8, "y": 2, "ranks": { "sword": "e" } },
+    { "type": "archer", "side": "red", "x": 7, "y": 3 } ] }

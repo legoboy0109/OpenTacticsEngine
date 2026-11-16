@@ -9,10 +9,12 @@ void writeUnitSrpg(const Battle& b, const Unit& u, Json& j) {
   writeUnitSkills(b, u, j);
   writeUnitAbilities(b, u, j);
   writeUnitRescue(b, u, j);
+  writeRankXp(*b.db, u.weaponXp, j);
 }
 
 bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u) {
-  return readUnitSkills(rd, b, j, where, u) && readUnitAbilities(rd, b, j, where, u) && readUnitRescue(rd, b, j, where, u);
+  return readUnitSkills(rd, b, j, where, u) && readUnitAbilities(rd, b, j, where, u) && readUnitRescue(rd, b, j, where, u) &&
+         readRankXp(rd, *b.db, j, where, u.weaponXp);
 }
 
 bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }
@@ -20,9 +22,12 @@ bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) &
 void writeBattleSrpg(const Battle& b, Json& out) { writeBattleSupports(b, out); }
 bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b) { return readBattleSupports(rd, saved, b); }
 
-void writeRosterSrpg(const Database& db, const RosterUnit& r, Json& j) { writeRosterSkills(db, r, j); }
+void writeRosterSrpg(const Database& db, const RosterUnit& r, Json& j) {
+  writeRosterSkills(db, r, j);
+  writeRankXp(db, r.weaponXp, j);
+}
 bool readRosterSrpg(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r) {
-  return readRosterSkills(rd, db, j, where, r);
+  return readRosterSkills(rd, db, j, where, r) && readRankXp(rd, db, j, where, r.weaponXp);
 }
 
 void writePlaythroughSrpg(const Database& db, const Playthrough& pt, Json& out) { writePlaythroughSupports(db, pt, out); }

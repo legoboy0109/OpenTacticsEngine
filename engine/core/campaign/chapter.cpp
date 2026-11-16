@@ -53,6 +53,7 @@ RosterUnit rosterEntry(const Battle& b, const Unit& u) {
   r.xp = u.xp;
   r.stats = u.stats;
   r.items = grants(u.items);
+  r.weaponXp = u.weaponXp;  // weapon ranks travel with the unit (docs/SRPG.md section 7)
   r.skills = u.learned;  // skills learned for good travel with the unit (docs/SRPG.md)
   r.side = b.sides[(size_t)u.side].id;
   return r;

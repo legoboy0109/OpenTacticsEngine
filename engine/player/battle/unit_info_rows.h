@@ -14,6 +14,9 @@ namespace ote {
 struct InfoRow {
   std::string label, value, note;
   Color valueColor, noteColor;
+  // A stat cap (docs/SRPG.md section 7): "cap 12" below the cap, "MAX" at it; empty = no cap.
+  std::string cap = "";
+  Color capColor = Color(150, 158, 190);
 };
 std::vector<InfoRow> statRows(const Battle& b, const Unit& u);
 
@@ -30,6 +33,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u);
 struct ItemRow {
   std::string name, uses, detail;
   bool equipped = false;  // the weapon in hand (carried weapons)
+  std::string blocked;    // "Needs rank B": a weapon the unit's rank does not allow (shown greyed; also in `detail`)
 };
 std::vector<ItemRow> itemRows(const Battle& b, const Unit& u);
 

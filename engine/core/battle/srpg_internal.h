@@ -235,3 +235,15 @@ bool summonIgnored(const UnitFilter& filter, const Unit& u) const {
 }
 // Notes that the unit used the ability (count, cooldown, once per turn).
 void noteAbilityUse(int unit, int ability);
+
+// ---- weapon ranks and stat caps (ranks.cpp, caps.cpp; docs/SRPG.md section 7) ----
+// Raises the unit's weapon experience, per group, to what its class and character give (never lowers). `events`
+// (optional) gets a RankUp for each group whose rank rose. Called from dressUnit (silent) and promote.
+void rankRaiseToClass(Unit& u, int unit, std::vector<Event>* events) const;
+// A map unit's own "ranks": values >= 0 replace the group's experience.
+void rankOverride(Unit& u, const std::vector<int>& values) const;
+// After a combat's strikes (growth "use"): experience for each fighter that struck with a weapon that has a group;
+// `from` = index into `events` where the combat's events start.
+void ranksAfterCombat(std::vector<Event>& events, size_t from, int attacker, int defender);
+// The one place a permanent stat grows: a positive `amount` is cut by the cap; returns the change that happened.
+int raiseStat(Unit& u, int stat, int amount) const;

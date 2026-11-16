@@ -176,6 +176,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
     u.items.push_back(s);
   }
   dressUnit(u);  // its character and learned skills, before the hit points (a standing skill may raise the maximum)
+  rankOverride(u, ud.weaponXp);  // a map unit's own ranks replace those of its class (docs/SRPG.md section 7)
   u.hp = maxHp(u);
   stockUnit(u);
   return u;
