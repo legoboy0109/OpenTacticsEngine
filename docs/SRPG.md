@@ -1802,6 +1802,68 @@ unit as dead (`!u.alive`), so it needs `exists` / `carriedBy` where it lists uni
 - **Owns.** Those files. **Must not touch.** skills files, the player.
 - **Accept.** The Supports tests; campaign save pins of games without supports unchanged.
 
+#### S1 as built
+
+Supports work as section 6 says. A game without `data/supports.json` is untouched (every entry point returns at
+once on an empty pair list; `test_srpg_compat.cpp`, the golden fights and all `ote-sim` summaries are identical).
+
+**Where things are.**
+- `core/battle/support_rules.h/.cpp`: the rules that need no battle, used by `Battle` and by the camp alike:
+  `startingSupports`, `supportReady`, `supportTalkPending`, `supportAddPoints`, `supportSettle`, `supportStateFits`,
+  `supportLevelsHeld`, `supportLevelName(rules, level)` ("1", "2", ... unless `levelNames`).
+- `core/battle/supports.cpp` (state, sources, bonus), `supports_action.cpp` (Support action, options, story command
+  and condition). Helper declarations are in the supports section of `srpg_internal.h` (`supportUnit`,
+  `supportNear`, `supportWhy`, `supportGain`, ...).
+- `core/data/loader_supports.cpp` (the file), `loader_supports_story.cpp` (command / condition / trigger of map events
+  and the scene versions, plus `resolveSupportRefs`). `campaign.json` is read before `supports.json`, so a scene's
+  pair is only checked at the end (`data/campaign.json: chapter "ch1": "after": command 1 (addSupport): ... are not
+  a support pair`); `SceneCommand` / `SceneCondition` store the two character ids (`unit`, `with`) and look the
+  pair up when they run.
+- `core/campaign/supports_campaign.cpp`: `beginSupports`, `takeSupports`, `pendingSupports`, `playSupport`, and
+  `sceneAddSupport` (declared in `playthrough.h`).
+- `core/battle/save_supports.cpp`. Tests: `test_srpg_supports*.cpp`, `srpg_supports_fixture.h` (`SupWorld`: a battle
+  with characters and pairs made in code); `campaign_fixture.h` gained `charactersJson`, `supportsJson`, `fordJson`,
+  `millJson`. `test_srpg_stubs.cpp` lost the support refusals.
+
+**What the player (U5) and the editor (E4) build against.** `Battle::supportOptions(unit, from, out)`,
+`Action::support(unit, target)`, `Battle::supports`, the events `SupportPoints` / `SupportReached` / `Dialogue`
+(text index at or above `kSupportTextBase`, `Battle::storyText` resolves it), `supportLevelName`,
+`supportReady` / `supportTalkPending`, `pendingSupports` / `playSupport` (lines come back as `SceneLine`s),
+`Database::supports`.
+
+**Readings of the contract (keep to these).**
+- Levels without a conversation are gained at once and several in a row if the points allow (one `SupportReached`
+  each); at the start of a battle or playthrough the ones the `start` points already reach are gained silently.
+  A level with a conversation is gained only when it is played, one at a time.
+- `kReady` is set on the `SupportPoints` of the gain that made a conversation ready (not for levels gained at once).
+- A negative `by` can take points below a level's: the level is then lost (it never stands above what the points
+  allow, which is what the save check demands). No extra event; the `SupportPoints` carries the new points.
+  `addSupport` of a pair whose gain changes nothing (at 0 or at the limit) makes no event.
+- "Near": the two units of a pair-up pair always are; otherwise both are on the board, on one team, and within the
+  range (1 for ending a turn). A carried unit (carry mode) or anybody defeated is not near anybody. The bonus is
+  judged where the unit fights from (`CombatSetup::from`), so the forecast of a move not yet made is right.
+- `endTurnAdjacent` pairs are those whose character `a` is on the side that ends its turn; both must be on one team.
+- `heal` is paid by `supportsHealed(healer, target, events)`. The item call in `items.cpp` moved to after the item is
+  spent (a level gained by it may run story events that add units, which would leave `u` / `t` dangling); events order
+  in games with pairs only. A1's heal ability must call it too.
+- `addSupport` in a battle works on any pair (a character defeated in the battle included); in a scene it does nothing
+  when one of the two fell for good (`gone`). A scene's points to a pair not yet in the roster are kept.
+- Speaker of a conversation line: its unit when on the board, else `Dialogue.c` holds the name (copied from
+  `characters.json` into `supports.texts` at load; `speakerName` lines use theirs).
+- Refusals of the Support action: `those two are not a support pair`, `those two have no support conversation
+  waiting`, `those two are not on the same team`, `those two are not next to each other`, `that is not a unit to talk
+  to`, `support conversations are played between chapters in this game` (`conversations: "camp"`), and F1's `this game
+  has no supports`. The unit checks of `validate` come first (a unit that has acted cannot).
+- Loader limits not spelled out in the contract: `pairs` is required (may be empty), a level's `points` 0..1,000,000,
+  `rules.points.*` 0..1,000,000, `levelNames` at most 5 names (more names than a pair has levels is fine), a bonus
+  number within +-1,000,000, a `support` condition's `value` 0..5, a trigger's `level` 1..the pair's levels, `by`
+  within +-1,000,000.
+- Saves: `supports` is written only when it differs from the starting state; a missing key reads as that state.
+  Messages are `battle.supports.points[2]: ...` / `playthrough.supports.levels: has 2 entries, expected 3`.
+- `pendingSupports` is empty when `conversations` is `"battle"`.
+
+**Left for others.** The player's menu entry, the camp screen and the editor form (U5, E4). Nothing else is open.
+
 ### AI1. Computer opponent — depends on P1, A1, R1 (and K1 for `acted`)
 - **Scope.** The section "AI": `ai_srpg.cpp` and its two call sites in `ai.cpp` / `ai_order.cpp`.
 - **Accept.** The AI tests; 200-turn sims on every fixture never hang; sims of existing games unchanged.
