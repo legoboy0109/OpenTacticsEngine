@@ -7,6 +7,8 @@ import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
 import { ConfirmDialog } from '../../../ui/Dialog'
 import { Toggle } from '../../../ui/Toggle'
+import { lockCount } from '../../../model/locks'
+import { L } from '../../weapons/srpg/lockText'
 import { T } from '../../srpg/text'
 import { RankSwitches } from './RankSwitches'
 
@@ -34,6 +36,7 @@ export function FeatureSwitchesCard() {
       <ConfirmDialog open={asking !== null} title={asking ? T.offTitle(T.what[asking]) : ''} confirmLabel={T.offConfirm} danger
         onCancel={() => setAsking(null)} onConfirm={() => { if (asking) edit((d) => switchOffFeature(d, asking)); setAsking(null) }}>
         {asking && <p>{T.offBody(T.what[asking], featureCount(doc, asking))}</p>}
+        {asking === 'characters' && lockCount(doc) > 0 && <p data-testid="off-locks">{L.offNote(lockCount(doc))}</p>}
       </ConfirmDialog>
     </Card>
   )

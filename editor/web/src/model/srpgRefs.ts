@@ -4,6 +4,7 @@
 // support points) add their own references to `storyRefs.ts` when they exist.
 import { ids } from './doc'
 import { makeId } from './ids'
+import { dropCharacterLocks, lockUsageLines } from './locks'
 import type { Usage } from './references'
 import { walkCampaign } from './campaignWalk'
 import { scrubDoc, scrubMap, scrubMaps, storyUsages } from './storyRefs'
@@ -39,6 +40,7 @@ export function characterUsageLines(doc: ProjectDoc, id: string): Usage[] {
     const n = (m.units ?? []).filter((u) => u.character === id).length
     if (n) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: it is placed on the map (the unit goes with it)` })
   }
+  out.push(...lockUsageLines(doc, id))
   out.push(...storyUsages(doc, [{ kind: 'unit', id }, { kind: 'character', id }]))
   for (const p of doc.supports?.pairs ?? []) if (p.a === id || p.b === id) out.push({ section: 'supports', text: `Supports: the pair “${p.a}” and “${p.b}” (the pair goes with it)` })
   return out
@@ -119,6 +121,7 @@ export function cleanAbility(doc: ProjectDoc, id: string): ProjectDoc {
 
 /** Takes the character's placed units off every map and its pairs out of the supports. */
 export function cleanCharacter(doc: ProjectDoc, id: string): ProjectDoc {
+  doc = dropCharacterLocks(doc, id)
   const maps: ProjectDoc['maps'] = {}
   // The units go, and with them what events and objectives said about the character's id (it is the unit's story name).
   for (const [mid, m] of Object.entries(doc.maps)) {
