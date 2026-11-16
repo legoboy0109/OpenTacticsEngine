@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "battle/item_text.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -153,6 +154,7 @@ void BattleView::begin(const Battle& b) {
       for (size_t s = 0; s < e.data.size() && s < b.db->stats.size(); ++s)
         if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
       if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
+      addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
       cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
       break;
     }
@@ -270,6 +272,10 @@ void BattleView::impact(const Battle& b) {
   if (e.flags & kHit) {
     addFloat(intStr(e.d), x, y, Color(255, 245, 210), 0.9f);
     if (e.flags & kCrit) addFloat("CRIT!", x, y - 9, Color(255, 215, 60), 1.0f);
+    if (e.flags & kSurvived) {  // a skill kept it at 1 HP
+      addFloat("Survived!", x, y - 18, Color(255, 150, 120), 1.2f);
+      OTE_INFO("Survived! %s", b.units[(size_t)e.b].name.c_str());
+    }
   } else {
     addFloat("MISS", x, y, Color(190, 195, 215), 0.9f);
   }

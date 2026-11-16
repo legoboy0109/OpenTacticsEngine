@@ -115,16 +115,50 @@ void drawCarried(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, in
   }
 }
 
+// A small gold tag with an "S" at the right end of the name row: a support conversation is ready for this unit.
+const int kTagW = 9;
+bool supportReady(const Battle& b, const Unit& u) {
+  if (b.db->supports.pairs.empty() || u.side != b.activeSide || !u.alive) return false;
+  std::vector<int> partners;
+  b.supportOptions(u.id, u.cell, partners);
+  return !partners.empty();
+}
+
+// Up to three skill names in gold (nothing else on the panel is gold), then "+2 more". Rows that do not fit are dropped.
+void drawSkillNames(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w, int bottom) {
+  if (c.battle.db->skills.empty()) return;
+  std::vector<int> list;
+  c.battle.skillsOf(u, -1, list);
+  const size_t shown = std::min<size_t>(list.size(), 3);
+  for (size_t i = 0; i < shown && y <= bottom; ++i) {
+    r.drawText(x, y, fitText(r, c.battle.db->skills[(size_t)list[i]].name, w).c_str(), Color(255, 235, 130));
+    y += c.layout.row;
+  }
+  if (list.size() > shown && y <= bottom) {
+    r.drawText(x, y, ("+" + intStr((int)(list.size() - shown)) + " more").c_str(), kLabel);
+    y += c.layout.row;
+  }
+}
+
 void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w) {
   const Battle& b = c.battle;
   const Database& db = *b.db;
   const int rh = c.layout.row, lh = c.layout.lh;
   Color sc = Color::rgb(b.sides[u.side].color);
   r.fillRect(x, y + 1, 3, lh - 1, sc);
-  r.drawText(x + 6, y, fitText(r, u.name, w - 6).c_str(), kText);
+  const bool ready = supportReady(b, u);
+  r.drawText(x + 6, y, fitText(r, u.name, w - 6 - (ready ? kTagW + 3 : 0)).c_str(), kText);
+  if (ready) {
+    r.fillRect(x + w - kTagW, y + 1, kTagW, lh - 1, Color(255, 200, 80));
+    drawGlyphCentered(r, x + w - kTagW / 2, y + lh / 2, 'S', Color(40, 30, 10), lh - 2);
+  }
   y += rh;
   if (b.typeOf(u).name != u.name) {  // unnamed units would just repeat the type
     r.drawText(x, y, fitText(r, b.typeOf(u).name, w).c_str(), kLabel);
+    y += rh;
+  }
+  if (u.carrying >= 0 && (size_t)u.carrying < b.units.size()) {  // who it has: carried (rescue) or paired up behind it
+    row(r, x, y, w, db.rules.rescue.mode == RescueMode::PairUp ? "With" : "Carrying", b.units[(size_t)u.carrying].name);
     y += rh;
   }
   if (db.rules.progression) {
@@ -171,6 +205,7 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
     }
     y += rh;
   }
+  drawSkillNames(r, c, u, x, y, w, bottom);
   drawCarried(r, c, u, x, y, w);
 }
 

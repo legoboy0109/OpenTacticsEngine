@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -16,7 +17,12 @@ UnitInfoPages buildUnitInfoPages(const Battle& b, int unit) {
   return pages;
 }
 
-void UnitInfoView::open(const Battle& b, int unit) { openPages(unit, buildUnitInfoPages(b, unit)); }
+void UnitInfoView::open(const Battle& b, int unit) {
+  openPages(unit, buildUnitInfoPages(b, unit));
+  std::string titles;
+  for (const UnitInfoPage& p : pages_) titles += (titles.empty() ? "" : ", ") + p.title;
+  OTE_INFO("unit details: %s (%s)", b.units[(size_t)unit].name.c_str(), titles.c_str());
+}
 
 void UnitInfoView::openPages(int unit, UnitInfoPages pages) {
   open_ = true;

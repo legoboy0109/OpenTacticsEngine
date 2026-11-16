@@ -143,6 +143,7 @@ class BattleView {
   bool beginSkills(const Battle& b);       // battle_view_skills.cpp     SkillLearned, SkillActivated, UnitHurt   (U1)
   bool progressSkills(const Battle& b);
   bool finishSkills(const Battle& b);
+  void addLearnedToBox(const Battle& b, int unit);  // a level-up box also lists the skills learned right after it (U1)
   bool beginPromotion(const Battle& b);    // battle_view_promotion.cpp  UnitPromoted                              (U2)
   bool progressPromotion(const Battle& b);
   bool finishPromotion(const Battle& b);

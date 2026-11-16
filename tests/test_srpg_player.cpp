@@ -76,15 +76,15 @@ TEST(srpg_menu_ids_never_collide_and_ranges_map_to_their_group) {
 TEST(srpg_unit_info_turns_pages_and_closes) {
   fixture::World w({"...."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 3, 0, false}});
   CHECK(w.begin());
-  // U0 ships no page: opening shows the empty overlay, which still closes with Cancel.
+  // This game has no skills and no inventory: the details have the Stats page only (U1); other steps add theirs.
   UnitInfoView v;
   v.open(w.battle, 0);
   CHECK(v.isOpen());
-  CHECK_EQ(v.pageCount(), 0);
+  CHECK_EQ(v.pageCount(), 1);
   CHECK(v.onInput(press(Button::Right)) == UnitInfoView::None);
   CHECK_EQ(v.page(), 0);
   ote_test::FakeRenderer r;
-  v.draw(r, w.battle, 8);  // draws the frame without pages
+  v.draw(r, w.battle, 8);  // draws the frame and the page
   CHECK(v.onInput(press(Button::Cancel)) == UnitInfoView::Closed);
   CHECK(!v.isOpen());
   CHECK(v.onInput(press(Button::Cancel)) == UnitInfoView::None);  // closed: ignores input
@@ -142,8 +142,9 @@ TEST(srpg_view_plays_every_new_event_as_a_no_op_that_ends_at_once) {
     events.push_back(e);
   }
   view.push(events);
-  view.update(0.0, w.battle);
-  CHECK(!view.busy());  // nothing to wait for
+  // The skill entries (U1) play for a moment (a label); the others end at once. All of it ends by itself.
+  for (int i = 0; i < 200 && (i == 0 || view.busy()); ++i) view.update(0.05, w.battle);
+  CHECK(!view.busy());
   CHECK(view.banner.empty());
 }
 
