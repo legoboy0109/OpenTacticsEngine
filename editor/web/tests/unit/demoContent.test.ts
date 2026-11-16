@@ -10,13 +10,13 @@ describe('strategy-RPG content', () => {
     expect(d.skills).toHaveLength(33)
     expect(d.abilities).toHaveLength(5)
     expect(d.supports?.pairs).toHaveLength(4)
-    expect(d.game.rules.rescue.mode).toBe('carry')
+    expect((d.game as any).rules.rescue.mode).toBe('carry')
   })
 
   it('the template has the thirty starter skills, pair up and one support pair', () => {
     const t = loadTemplate('strategy-rpg')
     expect(t.skills).toHaveLength(30)
-    expect(t.game.rules.rescue.mode).toBe('pairUp')
+    expect((t.game as any).rules.rescue.mode).toBe('pairUp')
     expect(t.supports?.pairs).toHaveLength(1)
     expect(t.abilities?.map((a: any) => a.id)).toEqual(['shove'])
   })
