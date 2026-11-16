@@ -72,6 +72,27 @@ void collectUses(const Json& styles, const std::string& kind, const std::string&
   }
 }
 
+// The same for a terrain's standing part ("stand": a "model" or a list of model "variants"), reported as kind "terrain".
+void collectStandUses(const Json& styles, const std::string& styleId, const std::string& file, Json& out) {
+  const Json& group = styles[styleId]["terrain"];
+  if (!group.isObject()) return;
+  for (const auto& e : group.members()) {
+    if (!e.second.isObject()) continue;
+    const Json& stand = e.second["stand"];
+    if (!stand.isObject()) continue;
+    bool uses = stand["model"].isString() && stand["model"].asString() == file;
+    const Json& list = stand["variants"];
+    if (list.isArray())
+      for (size_t i = 0; i < list.size(); ++i) uses = uses || (list[i].isString() && list[i].asString() == file);
+    if (!uses) continue;
+    Json u = Json::makeObject();
+    u.set("style", jstr(styleId));
+    u.set("kind", jstr("terrain"));
+    u.set("id", jstr(e.first));
+    out.push(u);
+  }
+}
+
 // Entries of the SAVED data/graphics.json that name `file` ("models/x.glb").
 Json entriesUsing(const fs::path& dir, const std::string& file) {
   Json out = Json::makeArray();
@@ -83,6 +104,7 @@ Json entriesUsing(const fs::path& dir, const std::string& file) {
   for (const auto& s : styles.members()) {
     collectUses(styles, "units", s.first, file, out);
     collectUses(styles, "structures", s.first, file, out);
+    collectStandUses(styles, s.first, file, out);
   }
   return out;
 }
@@ -193,7 +215,7 @@ ApiResult deleteModel(const Config& cfg, const std::string& id, const std::strin
 
   Json used = entriesUsing(dir, "models/" + name);
   if (used.size() > 0) {
-    ApiResult r = apiError(409, "models/" + name + " is still used by a unit or structure in the saved art "
+    ApiResult r = apiError(409, "models/" + name + " is still used by a unit, structure or terrain in the saved art "
                                     "settings; change that style (and save) first");
     r.body.set("usedBy", used);
     return r;
