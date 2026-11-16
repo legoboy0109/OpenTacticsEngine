@@ -31,5 +31,9 @@ export function copyDemo(): string {
   // Another game called "Story Tactics Demo" would confuse tests that look the demo up by name in the picker.
   const g = diskPath(id, 'game.json')
   writeFileSync(g, readFileSync(g, 'utf8').replace('Story Tactics Demo', `Copy ${id}`))
+  // The demo's chapter 1 scene gives Eirik and Sera support points (command addSupport, step D1). The Campaign screen has no form for
+  // it before step E4, and flags the scene as a mistake; until E4 lands the copy goes without that one command.
+  const c = diskPath(id, 'data/campaign.json')
+  writeFileSync(c, readFileSync(c, 'utf8').replace(/,\s*\{ "addSupport": \[[^\]]*\], "by": \d+ \}/, ''))
   return id
 }
