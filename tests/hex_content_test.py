@@ -10,6 +10,9 @@ usage: python3 tests/hex_content_test.py REPO_ROOT [OTE_SIM]
   for the road and for both frames of water and bridge; neighbouring hexagons tile seamlessly (the hexagons partition
   the pixel grid; a composited map has no unpainted pixel inside the map's hexagons);
 - the structure pictures have the contract's sizes; the ring picture is opaque on the seven hexagons only;
+- the isometric starter art (tools/art/art_hex_iso.py, geometry hex_iso_geom.py): the squashed hexagons tile exactly for many
+  tile widths, every style of view "isometric" has a complete set, terrain cells are the documented size with the top face
+  opaque exactly on the squashed hexagon and `step` rows of side faces under it, all 64 join pieces, structure pictures;
 - both templates and the demo load and their sims finish without a stall (needs ote-sim, default build/ote-sim);
 """
 import json
@@ -26,6 +29,7 @@ sys.path.insert(0, os.path.join(root, 'tools', 'art'))
 from PIL import Image  # noqa: E402
 
 import hex_geom  # noqa: E402
+import hex_iso_geom  # noqa: E402
 import make_hex_art as gen  # noqa: E402
 import preview_hex  # noqa: E402
 
@@ -108,6 +112,108 @@ def geometry_checks():
             nx, ny = g.neighbor(mx, my, d)
             nbx, nby = g.box_origin(nx, ny)
             check((nbx - bx, nby - by) == tuple(int(v) for v in g.dirs[d]), '%s: neighbour %d offset' % (layout, d))
+
+
+def iso_geometry_checks():
+    """The squashed hexagons (hex_iso_geom.IsoGeom) tile exactly, whatever the tile width."""
+    for layout in ('pointy', 'flat'):
+        for tile in (16, 24, 32):
+            for tw in list(range(8, 42, 2)) + [48, 56, 64, 72, 96]:
+                ig = hex_iso_geom.IsoGeom(layout, tile, tw)
+                owner = {}
+                for y in range(6):
+                    for x in range(6):
+                        ox, oy = ig.box_origin(x, y)
+                        for py in range(ig.h):
+                            l, r = ig.row_span(py)
+                            check(0 <= l < r <= ig.w, '%s %d/%d: row span' % (layout, tile, tw))
+                            for px in range(ox + l, ox + r):
+                                owner[(px, oy + py)] = owner.get((px, oy + py), 0) + 1
+                check(all(v == 1 for v in owner.values()), '%s tile %d width %d: squashed hexagons overlap' % (layout, tile, tw))
+                if layout == 'pointy':
+                    x0, x1, y0, y1 = ig.w, 5 * ig.w, ig.h, 5 * ig.pitch
+                else:
+                    x0, x1, y0, y1 = ig.w, 5 * ig.pitch, ig.h, 5 * ig.h
+                gaps = sum(1 for y in range(y0, y1) for x in range(x0, x1) if (x, y) not in owner)
+                check(gaps == 0, '%s tile %d width %d: %d gaps between squashed hexagons' % (layout, tile, tw, gaps))
+    p, f = hex_iso_geom.IsoGeom('pointy'), hex_iso_geom.IsoGeom('flat')
+    check((p.w, p.h) == (48, 28) and (f.w, f.h) == (56, 24), 'default squashed boxes are 48x28 (pointy) and 56x24 (flat)')
+    check(p.cell == (48, 60) and f.cell == (56, 56), 'terrain art cells are 48x60 and 56x56')
+
+
+def iso_art_checks(rel, layout):
+    path = os.path.join(root, rel)
+    game = gen.load_json(os.path.join(path, 'game.json'))
+    styles = [s for s in game.get('styles', []) if s.get('view') == 'isometric']
+    check(len(styles) == 1, '%s: wants exactly one "isometric" style' % rel)
+    if not styles:
+        return
+    check('tileHeight' not in styles[0].get('isometric', {}), '%s: tileHeight is refused on hexagon games' % rel)
+    ig = hex_iso_geom.IsoGeom(layout, game['view']['tileSize'], styles[0].get('isometric', {}).get('tileWidth'))
+    doc = gen.load_json(os.path.join(path, 'data/graphics.json'))
+    look_set = doc.get('styles', {}).get(styles[0]['id'])
+    check(look_set is not None, '%s: graphics.json has no art for the isometric style' % rel)
+    if look_set is None:
+        return
+    terrain_ids = [t['id'] for t in gen.load_json(os.path.join(path, 'data/terrain.json'))['terrain']]
+    structs = gen.load_json(os.path.join(path, 'data/structures.json'))['structures']
+    units = [u['id'] for u in gen.load_json(os.path.join(path, 'data/units.json'))['units']]
+    sheets = {}
+    for s in doc['sheets']:
+        sheets[s['id']] = (Image.open(os.path.join(path, s['file'])).convert('RGBA'), s['cellWidth'], s['cellHeight'])
+    for t in terrain_ids:
+        check(t in look_set['terrain'], '%s: isometric terrain %s has no look' % (rel, t))
+    for s in structs:
+        check(s['id'] in look_set.get('structures', {}), '%s: isometric structure %s has no look' % (rel, s['id']))
+    for u in units:
+        check(u in look_set.get('units', {}), '%s: isometric unit %s has no look' % (rel, u))
+
+    def cell(sheet, col, row):
+        im, cw, ch = sheets[sheet]
+        return im.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch))
+
+    def terrain_cell_ok(im, what):
+        bad_top = bad_face = bad_out = 0
+        for x in range(ig.w):
+            last = ig.last_row(x)
+            for y in range(im.height):
+                a = im.getpixel((x, y))[3]
+                ty = y - ig.rise
+                if 0 <= ty < ig.h and ig.inside(x, ty):
+                    bad_top += a != 255
+                elif last >= 0 and ig.rise + last < y <= ig.rise + last + ig.step:
+                    bad_face += a != 255
+                elif last >= 0 and y > ig.rise + last + ig.step:
+                    bad_out += a != 0          # nothing under the side faces
+        check(bad_top == 0, '%s: %s has %d see-through pixels on its top face' % (rel, what, bad_top))
+        check(bad_face == 0, '%s: %s has %d see-through pixels on its side faces' % (rel, what, bad_face))
+        check(bad_out == 0, '%s: %s has %d painted pixels under its side faces' % (rel, what, bad_out))
+
+    for tid, look in look_set['terrain'].items():
+        sheet = look['sheet']
+        check(sheet in sheets and sheets[sheet][1:] == ig.cell, '%s: isometric %s sheet cell size %s, want %s' % (
+            rel, tid, sheets.get(sheet, (0, 0, 0))[1:], ig.cell))
+        cells = [tuple(c) for c in look['variants']] if 'variants' in look else [tuple(look['cell'])] if 'cell' in look else []
+        for c, r in cells:
+            terrain_cell_ok(cell(sheet, c, r), 'iso %s %s' % (tid, (c, r)))
+        if 'join' in look:
+            blocks = look['join'] if isinstance(look['join'][0], list) else [look['join']]
+            for c0, r0 in blocks:
+                for n in range(64):
+                    terrain_cell_ok(cell(sheet, c0 + n % 8, r0 + n // 8), 'iso %s piece %d' % (tid, n))
+    for s in structs:
+        look = look_set['structures'][s['id']]
+        im, cw, ch = sheets[look['sheet']]
+        want = ig.ring_size() if s.get('rings') else ig.single_size()
+        check((cw, ch) == want, '%s: isometric structure %s picture is %dx%d, want %s' % (rel, s['id'], cw, ch, want))
+        pic = cell(look['sheet'], *look['cell'])
+        check(pic.getchannel('A').getbbox() is not None, '%s: isometric structure %s is empty' % (rel, s['id']))
+        # stands on the front edge: something is painted in the last rows of the picture
+        check(pic.getchannel('A').crop((0, ch - 3, cw, ch)).getbbox() is not None,
+              '%s: isometric structure %s does not reach the bottom' % (rel, s['id']))
+    for u in units:
+        look = look_set['units'][u]
+        check(look['sheet'] in sheets and sheets[look['sheet']][1] == 24, '%s: isometric unit %s cell width' % (rel, u))
 
 
 def art_checks(rel, layout):
@@ -210,7 +316,8 @@ def game_checks(rel):
     game = gen.load_json(os.path.join(path, 'game.json'))
     check(game.get('name') and game.get('description'), '%s: name and description' % rel)
     check(game['grid']['type'] == 'hex', '%s: not a hexagon game' % rel)
-    check(all(s.get('view', 'top-down') == 'top-down' for s in game.get('styles', [])), '%s: only top-down styles' % rel)
+    check(all(s.get('view', 'top-down') in ('top-down', 'isometric') for s in game.get('styles', [])),
+          '%s: only top-down and isometric styles (3D comes later)' % rel)
     if not os.path.isfile(sim):
         print('no ote-sim at %s: skipping the sim checks' % sim)
         return
@@ -224,8 +331,10 @@ def game_checks(rel):
 def main():
     generator_checks()
     geometry_checks()
+    iso_geometry_checks()
     for rel, layout in GAMES.items():
         art_checks(rel, layout)
+        iso_art_checks(rel, layout)
         composite_checks(rel, layout)
         game_checks(rel)
     for m in failures:

@@ -20,6 +20,9 @@ struct HexGeo {
   static int longSide(int tile);
   // Geometry of a hexagon grid at a tile size. (For a square grid it is not meaningful.)
   static HexGeo of(const Grid& g, int tile);
+  // The same lattice with the box sizes given: `shortSide` (T) and `longSide` (L). Pointy: T wide, L tall (L a
+  // multiple of 4, T even); flat: L wide, T tall. The 2D isometric view lays its squashed hexagons out with it.
+  static HexGeo ofBox(const Grid& g, int shortSide, int longSide);
 
   // Box of one hexagon: pointy T wide and L tall, flat L wide and T tall. A quarter of the long side is the
   // step that rows (pointy) or columns (flat) overlap by: rows/columns are 3 * quarter() apart.

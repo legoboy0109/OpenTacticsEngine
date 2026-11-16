@@ -26,7 +26,8 @@
     "damage": "vs * (a.hp / a.maxhp) * (1 - 0.1 * (tb.defense or 0))"
   },
   "styles": [
-    { "id": "classic", "name": "Classic" }
+    { "id": "classic", "name": "Classic" },
+    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" }
   ],
   "scripts": [],
   "maps": [

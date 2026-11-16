@@ -6,6 +6,19 @@ import type { Game, IsoSizes, Style } from './types'
 /** '3d' = full 3D (file value "3d"). */
 export type ViewKind = 'top-down' | 'isometric' | 'isometric-3d' | '3d'
 
+/** Every kind of view, in the order the Game screen lists them. */
+export const ALL_KINDS: ViewKind[] = ['top-down', 'isometric', 'isometric-3d', '3d']
+/** What a hexagon game may use when the helper does not say (an older build): top-down only. */
+export const HEX_TOP_DOWN_ONLY: string[] = ['top-down']
+
+/** The kinds of view a game's styles can use. A square game: all four. A hexagon game: those the engine the editor runs with
+ *  draws for hexagons (docs/HEX.md; `hexViews` from the helper's /api/info), so the list follows the build. */
+export function allowedKinds(hex: boolean, hexViews: readonly string[] | undefined): ViewKind[] {
+  if (!hex) return ALL_KINDS
+  const offered = hexViews ?? HEX_TOP_DOWN_ONLY
+  return ALL_KINDS.filter((k) => offered.includes(k))
+}
+
 /** The kinds a style can be switched between here. */
 export type EditableKind = ViewKind
 /** Only the two isometric kinds have the isometric measures; full 3D does not use them. */
@@ -20,6 +33,8 @@ export const inheritsGeneralArt = (game: Game | null, styleId: string | undefine
 
 export type IsoKey = 'tileWidth' | 'tileHeight' | 'heightStep' | 'unitWidth'
 export const ISO_KEYS: IsoKey[] = ['tileWidth', 'tileHeight', 'heightStep', 'unitWidth']
+/** The sizes offered for a game: on a hexagon game the squash is fixed, so there is no tileHeight (the loader refuses it). */
+export const isoKeysFor = (hex: boolean): IsoKey[] => (hex ? ISO_KEYS.filter((k) => k !== 'tileHeight') : ISO_KEYS)
 /** Allowed range of each size; `even` = must be an even number. */
 export const ISO_RANGE: Record<IsoKey, { min: number; max: number; even: boolean }> = {
   tileWidth: { min: 8, max: 512, even: true },
@@ -28,11 +43,13 @@ export const ISO_RANGE: Record<IsoKey, { min: number; max: number; even: boolean
   unitWidth: { min: 4, max: 512, even: false },
 }
 
-/** The size used when a key is empty, from the sizes around it (loader: 2 x tile size, then halves). */
-export function isoDefaults(game: Game | null, iso: IsoSizes | undefined): Required<IsoSizes> {
+/** The size used when a key is empty, from the sizes around it (loader: 2 x tile size, then halves). On a hexagon game the
+ *  height step is a quarter of the width (docs/HEX.md) and tileHeight is not used (its value is the squares' one, ignored). */
+export function isoDefaults(game: Game | null, iso: IsoSizes | undefined, hex = false): Required<IsoSizes> {
   const tileWidth = iso?.tileWidth ?? 2 * (game?.view?.tileSize ?? 24)
   const tileHeight = iso?.tileHeight ?? Math.floor(tileWidth / 2)
-  return { tileWidth, tileHeight, heightStep: iso?.heightStep ?? Math.floor(tileHeight / 2), unitWidth: iso?.unitWidth ?? Math.floor(tileWidth / 2) }
+  const heightStep = iso?.heightStep ?? (hex ? Math.floor(tileWidth / 4) : Math.floor(tileHeight / 2))
+  return { tileWidth, tileHeight, heightStep, unitWidth: iso?.unitWidth ?? Math.floor(tileWidth / 2) }
 }
 
 /** True for the kinds that start with no art and can show units and structures as 3D models. */

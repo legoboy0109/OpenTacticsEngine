@@ -35,6 +35,12 @@ HexGeo HexGeo::of(const Grid& g, int tile) {
   return h;
 }
 
+HexGeo HexGeo::ofBox(const Grid& g, int shortSide, int longSide) {
+  HexGeo h = of(g, shortSide);
+  h.L = longSide;
+  return h;
+}
+
 void HexGeo::box(int x, int y, int& bx, int& by) const {
   const int step = 3 * quarter();
   if (pointy) {

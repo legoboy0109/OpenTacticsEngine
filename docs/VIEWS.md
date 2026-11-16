@@ -23,6 +23,8 @@ Contract for how a visual style draws the battle. Owner decisions
 Rules never depend on the style: a save, the AI and the editor's checks are
 the same in every kind of view.
 
+Hexagon games (docs/HEX.md): top-down and 2D isometric are built; the two 3D kinds follow.
+
 Status: all four kinds are built. The 3D kinds draw through the 3D drawing
 layer (docs/RENDER3D.md). Still to come for full 3D: separate close-up
 battle scenes.
@@ -53,6 +55,9 @@ Core: `StyleDef::view` (`StyleView`), `StyleDef::iso` (`IsoConfig`);
 not top-down starts with no art at all** instead of inheriting the general
 (top-down) pictures: a picture made for one kind of view is wrong in
 another. Whatever such a style does not define keeps its placeholder.
+
+Isometric pictures on a hexagon game (docs/HEX.md "2D isometric": the cell is the top face with the front faces
+under it, hexagon sized) follow the same rules otherwise.
 
 Isometric pictures (sheets, cells, `variants`, `frames`, `sides` all work
 as usual; `join` pieces are chosen the same way but are not used by the

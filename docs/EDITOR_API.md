@@ -39,7 +39,11 @@ an HTTP status and `{ "error": "human readable message" }`.
 ## Endpoints
 
 ### GET /api/info
-`{ "engine": "OpenTacticsEngine", "apiVersion": 1, "formatVersion": 1 }`
+`{ "engine": "OpenTacticsEngine", "apiVersion": 1, "formatVersion": 1, "hexViews": ["top-down", "isometric"] }`
+
+`hexViews` lists the kinds of view (`"view"` of a style in game.json) a hexagon game may use with the engine this helper is built
+from (docs/HEX.md "Editor"): the loader accepts exactly these for hexagon games. The editor offers only these on the Game screen, so
+its list follows the build; a helper that does not send the field means top-down only.
 
 ### GET /api/projects
 Every sub-folder of the games folder that contains a `game.json`.
@@ -86,7 +90,7 @@ dropped (the document is strict JSON).
 `game.grid` (docs/HEX.md) is passed through untouched: missing or `{ "type": "square" }` is a square game, `{ "type": "hex",
 "layout": "pointy" | "flat" }` a hexagon game, whose maps carry `"grid": { "type": "hex", ... }` and whose structures may have
 `"rings": 0 | 1`. The helper adds no hexagon rules of its own: everything about hexagon games (a map of the wrong type, `width` /
-`height` on a hexagon structure, `rings` on a square game, an isometric style, a ring that does not fit the map, overlapping
+`height` on a hexagon structure, `rings` on a square game, a 3D style or an isometric `tileHeight`, a ring that does not fit the map, overlapping
 structures) is reported by the engine loader in `problems`, in the loader's own words. Saving a hexagon game keeps `grid`,
 `rings` and every unknown key exactly as received (an unknown key inside `grid` is saved and reported, never dropped).
 `maps` is keyed by the map id from `game.maps`. `scripts` holds the text

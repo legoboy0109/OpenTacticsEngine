@@ -6,8 +6,9 @@
 // 3D isometric: core/view/iso3d.h (the view can turn: setTurn).
 // Full 3D: core/view/free3d.h (world pixels = viewport pixels; the camera's
 // focus moves instead of the 2D scrolling camera: cam3()).
-// Hexagon maps (docs/HEX.md) are top-down only: world pixels = flat map pixels, where a cell is its hexagon's
-// middle (core/view/hex_geo.h); the map size, pick() and cellBox() follow the hexagons.
+// Hexagon maps (docs/HEX.md) are top-down or 2D isometric. Top-down: world pixels = flat map pixels, where a cell is
+// its hexagon's middle (core/view/hex_geo.h); the map size, pick() and cellBox() follow the hexagons. 2D isometric
+// (iso() is true, hex() too): core/view/hex_iso.h, hexIso(); the 3D kinds are not drawn for hexagons yet.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -17,6 +18,7 @@
 #include "core/view/free3d.h"
 #include "core/view/iso.h"
 #include "core/view/hex_geo.h"
+#include "core/view/hex_iso.h"
 #include "core/view/iso3d.h"
 
 namespace ote {
@@ -30,6 +32,9 @@ class MapProj {
   bool view3d() const { return iso3d_ || free3d_; }  // drawn through the 3D layer
   bool raised() const { return iso_ || view3d(); }  // squares are shown at their heights
   const IsoGeometry& geo() const { return geo_; }
+  const HexIsoGeometry& hexIso() const { return hexIso_; }  // the 2D isometric view of a hexagon map
+  // Hexagon map, 2D isometric: the cells back to front (the order to draw them in).
+  const std::vector<Cell>& hexDrawOrder() const { return hexOrder_; }
   const Iso3DGeometry& geo3() const { return geo3_; }
   // 3D isometric only: where the camera is, in quarter turns (fractions while it turns).
   void setTurn(float quarterTurns) { geo3_.yaw = Iso3DGeometry::yawOfTurn(quarterTurns); }
@@ -42,10 +47,10 @@ class MapProj {
   int tile() const { return tile_; }
   int unitW() const { return unitW_; }
   int worldW() const {
-    return free3d_ ? free_.viewW : iso3d_ ? geo3_.size() : iso_ ? geo_.worldW() : hex_ ? hexGeo_.mapW() : gridW_ * tile_;
+    return free3d_ ? free_.viewW : iso3d_ ? geo3_.size() : iso_ ? (hex_ ? hexIso_.worldW() : geo_.worldW()) : hex_ ? hexGeo_.mapW() : gridW_ * tile_;
   }
   int worldH() const {
-    return free3d_ ? free_.viewH : iso3d_ ? geo3_.size() : iso_ ? geo_.worldH() : hex_ ? hexGeo_.mapH() : gridH_ * tile_;
+    return free3d_ ? free_.viewH : iso3d_ ? geo3_.size() : iso_ ? (hex_ ? hexIso_.worldH() : geo_.worldH()) : hex_ ? hexGeo_.mapH() : gridH_ * tile_;
   }
 
   // --- The 3D kinds (3D isometric and full 3D) share one 3D space, in squares
@@ -76,6 +81,9 @@ class MapProj {
   // spot between squares (gx, gy in squares, measured at square middles).
   int elevation(int x, int y) const { return elev_[(size_t)(y * gridW_ + x)]; }
   float elevationAt(float gx, float gy) const;
+  // The same for a hexagon map, at a spot in flat map pixels: the nearest hexagon's, eased towards the next nearest
+  // one (units walk from one hexagon to the next at different heights).
+  float hexElevationAt(float fx, float fy) const;
   const std::vector<int>& elevations() const { return elev_; }
 
   // A spot in flat map pixels -> world pixels. In the isometric view the spot
@@ -90,6 +98,9 @@ class MapProj {
   bool iso_ = false, iso3d_ = false, free3d_ = false;
   bool hex_ = false;  // a hexagon map (always top-down)
   HexGeo hexGeo_;
+  HexIsoGeometry hexIso_;
+  std::vector<Cell> hexOrder_;
+  Grid grid_;  // a copy, for the neighbours of a hexagon (elevation blending)
   int tile_ = 24, unitW_ = 24, gridW_ = 0, gridH_ = 0;
   IsoGeometry geo_;
   Iso3DGeometry geo3_;

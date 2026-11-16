@@ -6,9 +6,9 @@ Contract for hexagon maps. Owner decisions (2026-11-14):
   **flat-top**.
 - **One grid per game**: a game is a square game or a hexagon game; its maps
   cannot mix.
-- Hexagon games work in the **top-down view first**. 2D isometric, 3D
-  isometric and full 3D follow as later steps; until then a hexagon game
-  cannot have styles of those kinds.
+- Hexagon games work in the **top-down view first**. 2D isometric is built; 3D
+  isometric and full 3D follow as a later step; until then a hexagon game
+  cannot have styles of those two kinds.
 - On hexagon maps a structure covers **one hexagon, or a hexagon and its
   ring of six** ("big structures" from the start). Roads, rivers and coasts
   join with a hexagon set of pieces.
@@ -17,9 +17,9 @@ Rules never look at coordinates: everything in `engine/core` goes through
 `Grid::neighbors / distance / within` (engine/core/grid/grid.h). Hexagons are
 a new case there plus drawing, input, art and the editor.
 
-Status: built for the top-down view: rules core, player, starter art with two templates and `games/demo-hex`,
-and the editor (the four "Implementation notes" sections at the end). Not built: hexagons in the 2D isometric,
-3D isometric and full 3D views. Nobody has tried it in a real window yet.
+Status: built for the top-down and the 2D isometric view: rules core, player, starter art with two templates and
+`games/demo-hex`, and the editor (the "Implementation notes" sections at the end). Not built: hexagons in the 3D
+isometric and full 3D views. Nobody has tried it in a real window yet.
 
 ## Data
 
@@ -31,9 +31,10 @@ and the editor (the four "Implementation notes" sections at the end). Not built:
 
 Optional. Missing, or `{ "type": "square" }`, is a square game (every existing
 game). `layout` is required with `hex` and refused with `square`; unknown keys
-are refused. A hexagon game may only have styles whose view is `top-down`
-(the default); another view is refused:
-`style "iso": the "isometric" view is not available for hexagon games yet (only "top-down")`.
+are refused. A hexagon game may have styles whose view is `top-down` (the default) or `isometric`; the 3D kinds are
+refused until their step lands:
+`style "iso": the "isometric-3d" view is not available for hexagon games yet (only "top-down" and "isometric")`.
+An `isometric` block on a hexagon game may not have `tileHeight` (see "2D isometric").
 
 ### maps/*.json
 
@@ -125,8 +126,9 @@ around the covered hexagons.
 
 ## The other three views (owner, 2026-11-15: go ahead)
 
-Hexagon games may have styles of every kind of view. Built in two steps: **2D isometric** first, then the **two 3D
-kinds** together. Until a step lands the loader keeps refusing that kind for hexagon games, with the message above.
+Hexagon games may have styles of every kind of view. Built in two steps: **2D isometric** first (built: "Implementation
+notes (2D isometric)" at the end), then the **two 3D kinds** together. Until a step lands the loader keeps refusing that
+kind for hexagon games, with the message above.
 
 Common to all three: rules, picking by nearest hexagon, direction buttons by column and row, highlights shaped like
 the hexagon as that view shows it, units drawn as that view draws them on squares, heights raise a hexagon as a
@@ -138,19 +140,65 @@ The top-down picture seen from the view's one fixed angle: every top-down positi
 is drawn at (x * sx, y * sy) with the vertical squash `sy = sx / 2`, and a height level lifts a hexagon by the
 style's `heightStep`. `isometric.tileWidth` is the drawn width of one top-down `T` (default `2 * T`, so `sx = 2`);
 `tileHeight` is not used on hexagon games (refused if present: the squash is fixed); `heightStep` defaults to
-`tileWidth / 4`; `unitWidth` as on squares. All positions are whole pixels (the step states its rounding rule and
-tests that neighbouring hexagons share edges exactly, as the top-down drawing does).
+`tileWidth / 4`; `unitWidth` as on squares (default `tileWidth / 2`). All positions are whole pixels.
 
-- A hexagon's **top face** is the squashed hexagon; its **side faces** are the three (pointy) or the visible lower
-  faces (flat) of the six-sided block, drawn only where the neighbour in front is lower.
-- Terrain art: one sheet cell holding the top face and the block's front faces below it (the step defines the cell
-  size from `tileWidth` and `heightStep` and documents it here), transparent outside. Without art: the top in the
-  terrain's colour, the faces darker, as on squares. Join pieces: the same 8 x 8 block of 64 cells of that size.
-- Structures: the picture stands on the front edge of its hexagon (or of the seven); placeholder as top-down but
-  as blocks.
-- Draw order: back to front by screen position, so nearer hexagons, units and structures cover farther ones.
+**Rounding rule** (built, tools/art/hex_iso_geom.py, engine/core/view/hex_iso.h). The squashed hexagons are a hexagon
+lattice of their own with whole-pixel boxes, laid out exactly like the top-down one (rows or columns 3/4 of the long
+side apart, odd ones half a box over). With `W` = `tileWidth`, `T` = `view.tileSize`, `L` as in "Top-down picture":
+
+- pointy: the box is `W` wide and `Hs` tall, `Hs` = the multiple of 4 nearest to `L * W / (2T)` (halves go up);
+- flat: the box is `Wf` wide, the multiple of 4 nearest to `L * W / T`, and `W / 2` tall (rounded up to an even number);
+- if that long side would leave a one pixel seam between neighbours (the slanted edge's number of pixel rows odd and its
+  rise odd as well; only unusual widths such as 36 over a tile of 24), the nearer multiple of 4 that does not is used;
+- a hexagon is filled by the same row spans as in the top-down picture (`HexGeo::rowSpan`), so neighbouring hexagons
+  share their edges exactly (no gap, no overlap, for every `tileWidth`: `tests/test_hex_iso.cpp`,
+  `tests/hex_content_test.py`, `tests/hex_iso_player_test.py`);
+- a cell's middle is exactly its top-down middle scaled by (box width / top-down box width, box height / top-down box
+  height), so a unit standing on a hexagon is on the middle of its top face, and units walking between hexagons are placed
+  by the same straight scaling (their height eases from one hexagon's level to the next's).
+
+At the defaults (`T` = 24, `tileWidth` 48, `heightStep` 12): pointy boxes 48 x 28, rows 21 apart; flat boxes 56 x 24,
+columns 42 apart. World pixels: x as in the lattice; y = lattice y - level * `heightStep` + (highest level) * `heightStep` +
+headroom, headroom = the largest of the box height, `tileWidth` and 2 x `unitWidth`; the map is the box around the lattice plus that
+room above and `heightStep` rows of side faces below the lowest hexagons.
+
+- A hexagon's **top face** is the squashed hexagon; its **side faces** are the ones a viewer in front sees under the
+  lower edges of the six-sided block: pointy the two slanted ones (lower left, lower right; the vertical edges are seen
+  edge-on and show nothing), flat the three lower ones (lower left, bottom, lower right). A face is drawn only where the
+  neighbour in that direction is lower (or off the map: the rim shows the side of the lowest level), from the neighbour's
+  level up to the hexagon's; an equal or higher neighbour hides it.
+- **Terrain art cell** (decided here): as wide as the top face's box (`W` pointy, `Wf` flat) and tall enough for, from the top,
+  anything that sticks up (trees, peaks: any number of rows), the top face's box (`Hs` / `W/2` rows) and `heightStep` rows of
+  front faces. The picture is drawn that wide, as tall as its proportions make it, its bottom edge `heightStep` rows under the top
+  face's box (as on squares). So the smallest cell is `W x (Hs + heightStep)` = 48 x 40 pointy, 56 x 36 flat at the
+  defaults; the starter art has 20 rows of room above: 48 x 60 and 56 x 56. The art's own transparent pixels cut it; the
+  engine does not. Where a hexagon is higher than the neighbour in front, the bottom `box height / 2 + heightStep` rows of
+  the same picture are repeated once per level under that face's columns (so a face's texture runs down to the neighbour).
+  Without art: the top in the terrain's colour (its lowest pixel row a shade darker), the faces darker, lit on the left
+  (0.70), shaded on the right (0.52), the flat bottom in between (0.61), as on squares. Join pieces: the same 8 x 8 block of
+  64 cells of that size, animated joins as frames.
+- **Structures**: a one-hexagon picture is drawn as wide as the hexagon's top-face box, as tall as its proportions make it, its
+  bottom edge on the box's bottom (the front point of a pointy hexagon, the front edge of a flat one), standing at the height of
+  its hexagon; with rings across the box of the seven (pointy `3W` wide, `5Hs/2` tall, flat `5Wf/2` wide, `3 * W/2` tall) at its
+  own proportions, bottom edge on that box's bottom, at the height of the highest of the seven. The picture of the starter art
+  stands on a stone plinth hexagon (3 rows deep) and is taller than the box (single: 15 rows, with rings: 26). Placeholder (no
+  art): every covered hexagon a low block (3/4 of the box height) in the structure's colour, drawn back to front, the letter on the
+  middle one. The owner frame is the outline of the covered hexagons on the ground (two pixels, outer edges only); the edges facing
+  the viewer are drawn once more over the picture.
+- **Draw order**: back to front by the pixel row of a hexagon's front point on the ground (the bottom of its top-face box before
+  lifting; equal rows left to right, which cannot overlap). A structure is drawn after every hexagon up to its frontmost covered one,
+  a unit after the hexagons up to the row of its feet's hexagon (a unit on a structure after that structure), so nearer
+  hexagons, units and structures cover farther ones; units and the cursor behind higher ground are drawn again faintly on top.
+- **Picking** (decided here): a pixel belongs to the hexagon nearest the viewer whose top face or side faces contain it, found as
+  on squares: for every level the pixel is looked at as a spot of that level's plane (unsquashed back to the top-down picture) and
+  the hexagon whose middle is nearest there counts if it is at least that high; the nearest to the viewer wins. On flat
+  ground this is the nearest middle.
+- **Units** are drawn `unitWidth` wide on the middle of the hexagon's top face, the feet a quarter of the box height in front of
+  the middle; with `unitMarker` a small flat hexagon in the side's colour under the feet. **Highlights** (move and attack range)
+  are the filled hexagon on the top face (on a placeholder structure: on top of its blocks), the cursor a two pixel outline; **fog**
+  darkens the whole hexagon, sides included, as on squares.
 - Starter art for both layouts from `tools/art/` (generated); `games/demo-hex` and the two hexagon templates gain an
-  "Isometric" style.
+  "Isometric" style (the demo's maps got heights: mountains 2, the hexagons around them 1).
 
 ### 3D isometric and full 3D
 
@@ -186,7 +234,8 @@ that changes its grid refuses its old saves like any other rules change.
 - Structures screen: on a hexagon game the size control offers "1 hexagon" or
   "7 hexagons" instead of width and height.
 - Graphics: join blocks are 8 x 8 on a hexagon game; previews are hexagons.
-- Styles: on a hexagon game only the top-down kind of view can be chosen.
+- Styles: on a hexagon game only the kinds of view the engine draws for hexagons can be chosen (top-down and 2D isometric
+  today; the 3D kinds when their step lands).
 - Play runs the real player as before.
 
 ## Starter content
@@ -241,8 +290,8 @@ What step 1 built, for the player, art and editor steps.
   `{ "type": "square" }` hash alike (skipped), so square games keep their hash. `structures.json` (`rings`) and map files
   (`grid.type`) are hashed whole already.
 - **Loader messages**: `game.json: grid: ...` (unknown key, `layout` with square, missing `layout`, bad `type`/`layout`),
-  `game.json: style "iso": the "isometric" view is not available for hexagon games yet (only "top-down")` (the view name is
-  the one in the file), `maps/x.json: grid: this is a hexagon game (game.json "grid"), but the map's type is "square"` (and
+  `game.json: style "iso": the "isometric-3d" view is not available for hexagon games yet (only "top-down" and "isometric")` (the view
+  name is the one in the file), `maps/x.json: grid: this is a hexagon game (game.json "grid"), but the map's type is "square"` (and
   the reverse), `structure "fort": "width" is for square games; a hexagon game uses "rings"` (same for `height`),
   `"rings" must be 0 or 1`, `"rings" is for hexagon games; a square game uses "width" and "height"`; an upgrade must keep
   the `rings`; map structures: `covers its hexagon and the six around it (rings 1) but they do not all fit inside the map`,
@@ -296,8 +345,8 @@ What step 3 built: hexagon starter art (generated), two editor templates and a d
   sims finish; `ctest -R hex_content`), `tests/test_demos.cpp` (`hex_demo_and_templates_load_and_start`), `tests/test_art.cpp`
   (complete art), plus the template lists in `tests/editor_api_test.py` and `tests/sound_player_test.py`.
 - **Not done / for later**: no sea or beach terrain (the demo uses a river), no tinted style sheets, no per-side structure
-  pictures. The player draws hexagon games as squares until its own step lands; `preview_hex.py` is the reference for how
-  the sheets are meant to be laid out.
+  pictures. `preview_hex.py` is the reference for how the top-down sheets are meant to be laid out (the isometric ones: see the
+  last section).
 
 ## Implementation notes (player)
 
@@ -317,7 +366,7 @@ What step 2 built (top-down view only), for the art, editor and later view steps
   outside the isometric and 3D code, which never see a hexagon map).
 - **`MapProj`**: `hex()`, `hexGeo()`; `worldW/H` are the real map size (camera limits, scrolling, centring follow);
   `pick` = nearest middle of the pixel's centre; `cellBox` = the hexagon's box (menus, the white flashes). A hexagon map
-  forces the top-down view (a warning if a style asks for another; the loader already refuses such styles).
+  is drawn top-down or 2D isometric (a warning and top-down for a 3D style; the loader already refuses such styles).
 - **Drawing** is in `battle/hex_draw.h|cpp` and `structure_draw.cpp` (the square code paths are untouched): `fillHex`
   (rows of equal width merged: about 15 `fillRect` calls), `hexEdges(color, width, edgeMask)` (the border of the
   rows, only the edges whose direction bit is set), `outerEdges(grid, cell, covered)` (what an owner frame draws),
@@ -370,3 +419,42 @@ What step 4 built (details and wording in docs/EDITOR_UI.md "Hexagon games"). Co
   checks were added beyond the existing ones, which now know rings (`misfits`, units on a structure, upgrade sizes).
 - **Tests.** The editor's unit and e2e tests above, `tests/editor_api_hex_checks.py`. Play is checked only for "starts and reports ready" (the player draws
   hexagon games in its own step).
+
+## Implementation notes (2D isometric)
+
+What the second view step built, for the 3D step and for art makers.
+
+- **Geometry** is `engine/core/view/hex_iso.h|cpp` (`HexIsoGeometry`, no drawing; tests `tests/test_hex_iso.cpp`): `td` is the top-down
+  lattice, `sq` the squashed one (a `HexGeo` built with `HexGeo::ofBox(grid, shortSide, longSide)`), `topBox`, `project` /
+  `unproject` (flat map pixels <-> world pixels at a level), `visibleFaces` / `faceSpan` (which edges show a face and the columns
+  under them), `sortKey`, `pick`, `hidden`. Its twin for art and tests is `tools/art/hex_iso_geom.py` (`IsoGeom`); the player test
+  checks the twin against the engine's real pixels. `hidden` is defined through `pick` (a cell is hidden when a pointer on the middle of
+  its top face would pick another).
+- **Player**: `MapProj` takes the hexagon isometric case (`iso()` and `hex()` both true; `hexIso()`, `hexElevationAt(fx, fy)` blends the
+  nearest hexagon's level with the next nearest's for walking units, `hexDrawOrder()`, `cellBox` = the top face's box, `pick`).
+  Drawing is `battle/hex_iso_draw.cpp` (`drawMapHexIso`, called from `drawMapIso` for hexagon maps), placeholder blocks are
+  `IsoTiles::hexBlock` (`iso_tiles_hex.cpp`), and the unit figure is shared with squares (`iso_unit.cpp`, `drawIsoUnitFigure`; the
+  marker is the only difference). Floats start above the unit's hexagon; the story's white flash is a box over the unit.
+- **Loader**: `hexGameAllowsView(StyleView)` in `core/data/database.h` is the one list of the kinds a hexagon game may use (top-down
+  and isometric today); the loader refuses the rest with the message above and refuses `tileHeight` on a hexagon game
+  (`style "iso" "isometric": "tileHeight" is not used on hexagon games ...`). The editor helper reports the list in `GET /api/info`
+  (`hexViews`) and the editor offers exactly it; it hides `tileHeight` and shows a quarter of the width as the Height step default.
+- **Starter art**: `tools/art/art_hex_iso.py` (called by `make_hex_art.py` for every style whose view is `isometric`; the art is drawn
+  for the default measures, a game with other measures needs its own): `art/iso_tiles.png` (16 x 26 cells in the layout of `tiles.png`,
+  48 x 60 pointy / 56 x 56 flat: the top-down piece of the same terrain squashed onto the squashed hexagon, so all 64 pieces of
+  road, water and bridge keep their meaning and still meet across edges; forest and mountain are drawn standing up; earth, rock,
+  water and plank side faces), `art/iso_structures.png`, `art/iso_structures_ring.png` (the fortress on its plinth with towers and
+  walls), `art/iso_units.png` (the square isometric set's sprites). They are the style's own art (`styles.<id>` in graphics.json).
+- **Tests**: `tests/test_hex_iso.cpp` (rounding rule, exact tiling for every tile width, faces, picking and hiding with heights,
+  `MapProj` on the fixtures), `tests/hex_iso_player_test.py` (registered `hex_iso_player`: exact top faces by pixel, heights and faces,
+  picking by taps through the Continue save, highlights, cursor, fog, structures, units on raised ground, and art cells drawn as
+  documented), the isometric part of `tests/hex_content_test.py`, `editor/web/tests/unit/views.test.ts` and the Game screen's e2e
+  spec `hex-screens.spec.ts`.
+- **Flat hexagons at the defaults** are 56 x 24 and the rounding of the shared row spans leaves the leftmost and rightmost pixel
+  column of the box empty (the tips are one pixel in); the lattice still tiles exactly and the art's cell is as wide as the box.
+- **Decisions where the contract was silent**: the rounding rule and the terrain art cell (above); that the pointy block shows two
+  side faces (the contract said three: the third, the vertical edge, is edge-on and has no width); that the starter art is
+  drawn for the default measures; that the unit's marker is a flat hexagon; that the repeated faces use the bottom
+  `box height / 2 + heightStep` rows of the cell; picking and draw order as above.
+- **Not done**: the 3D kinds; art made for other `tileWidth` values; the editor's map canvas stays top-down by design (Play shows the
+  real thing); nobody has looked at it in a real window.

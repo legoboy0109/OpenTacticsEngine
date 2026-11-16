@@ -69,7 +69,7 @@ void BattleScene::cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const {
 }
 
 void BattleScene::fillCellBox(Renderer& r, int x, int y, int w, int h, Color col) const {
-  if (proj_.hex()) fillHex(r, proj_.hexGeo(), x, y, col);
+  if (proj_.hex() && !proj_.iso()) fillHex(r, proj_.hexGeo(), x, y, col);  // (isometric: the box over the unit)
   else r.fillRect(x, y, w, h, col);
 }
 

@@ -10,6 +10,7 @@
 #include "art.h"
 #include "audio.h"
 #include "models.h"
+#include "core/data/database.h"
 #include "learn.h"
 #include "log.h"
 #include "projects.h"
@@ -180,6 +181,14 @@ struct EditorServer::Impl {
       o.set("engine", Json::makeString("OpenTacticsEngine"));
       o.set("apiVersion", Json::makeNumber(1));
       o.set("formatVersion", Json::makeNumber(1));
+      // Which kinds of view ("view" in game.json styles) a hexagon game may use: what this build's loader accepts.
+      Json hexViews = Json::makeArray();
+      using ote::StyleView;
+      const std::pair<StyleView, const char*> kinds[] = {{StyleView::TopDown, "top-down"}, {StyleView::Isometric, "isometric"},
+                                                         {StyleView::Isometric3D, "isometric-3d"}, {StyleView::Full3D, "3d"}};
+      for (const auto& k : kinds)
+        if (ote::hexGameAllowsView(k.first)) hexViews.push(Json::makeString(k.second));
+      o.set("hexViews", hexViews);
       return apiOk(o);
     }));
     svr.Get("/api/learn", api([this](const httplib::Request&) { return getLearn(cfg); }));

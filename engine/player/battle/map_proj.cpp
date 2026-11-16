@@ -17,10 +17,11 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   unitW_ = tile;
   hex_ = b.grid.isHex();
   if (hex_) {
-    // The loader refuses other views for hexagon games (docs/HEX.md); anything else must not get further.
-    if (iso_ || iso3d_ || free3d_) OTE_WARN("hexagon maps are drawn top-down only; ignoring the style's view");
-    iso_ = iso3d_ = free3d_ = false;
+    // The loader refuses the 3D kinds for hexagon games (docs/HEX.md); anything else must not get further.
+    if (iso3d_ || free3d_) OTE_WARN("hexagon maps are not drawn in 3D yet; ignoring the style's view");
+    iso3d_ = free3d_ = false;
     hexGeo_ = HexGeo::of(b.grid, tile);
+    grid_ = b.grid;
   }
   elev_.assign((size_t)(gridW_ * gridH_), 0);
   if (!raised()) return;
@@ -45,6 +46,21 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
     return;
   }
   const IsoConfig& ic = style->iso;
+  if (hex_) {  // the squash is fixed on hexagons (tileHeight is refused by the loader)
+    int tw = ic.tileWidth > 0 ? ic.tileWidth : tile * 2;
+    hexIso_ = HexIsoGeometry::make(b.grid, tile, tw, ic.heightStep >= 0 ? ic.heightStep : tw / 4);
+    hexIso_.levels = std::min(hi - lo, kMaxLevels);
+    unitW_ = ic.unitWidth > 0 ? ic.unitWidth : tw / 2;
+    // A taller unit picture needs more room above the top row.
+    hexIso_.headroom = std::max(hexIso_.headroom, unitW_ * 2);
+    hexOrder_.resize(elev_.size());
+    for (size_t i = 0; i < hexOrder_.size(); ++i) hexOrder_[i] = (Cell)i;
+    std::stable_sort(hexOrder_.begin(), hexOrder_.end(), [&](Cell a, Cell b2) {
+      int ka = hexIso_.sortKey(grid_.x(a), grid_.y(a)), kb = hexIso_.sortKey(grid_.x(b2), grid_.y(b2));
+      return ka != kb ? ka < kb : grid_.x(a) < grid_.x(b2);
+    });
+    return;
+  }
   geo_ = IsoGeometry();
   geo_.tileW = ic.tileWidth > 0 ? ic.tileWidth : tile * 2;
   geo_.tileH = ic.tileHeight > 0 ? ic.tileHeight : geo_.tileW / 2;
@@ -62,6 +78,27 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
   geo3_.gridH = gridH_;
   geo3_.levels = geo_.levels;
   geo3_.headroom = geo_.headroom;
+}
+
+float MapProj::hexElevationAt(float fx, float fy) const {
+  if (!raised() || !hex_ || elev_.empty()) return 0;
+  Cell a = hexGeo_.nearestCell(fx, fy);
+  int ax, ay;
+  hexGeo_.middle(grid_.x(a), grid_.y(a), ax, ay);
+  float da = std::hypot(ax - fx, ay - fy), db = 1e30f;
+  Cell nb = kNoCell;
+  for (int d = 0; d < grid_.directionCount(); ++d) {
+    Cell n = grid_.neighbor(a, d);
+    if (n == kNoCell) continue;
+    int nx, ny;
+    hexGeo_.middle(grid_.x(n), grid_.y(n), nx, ny);
+    float dist = std::hypot(nx - fx, ny - fy);
+    if (dist < db) { db = dist; nb = n; }
+  }
+  float ea = (float)elev_[(size_t)a];
+  if (nb == kNoCell || da + db <= 0) return ea;
+  float t = da / (da + db);  // 0 on the middle of `a`, one half on the line between the two
+  return ea * (1 - t) + (float)elev_[(size_t)nb] * t;
 }
 
 float MapProj::elevationAt(float gx, float gy) const {
@@ -83,6 +120,10 @@ void MapProj::toWorld(float fx, float fy, float& wx, float& wy) const {
     wy = fy;
     return;
   }
+  if (hex_) {  // 2D isometric on hexagons
+    hexIso_.project(fx, fy, hexElevationAt(fx, fy), wx, wy);
+    return;
+  }
   float gx = fx / tile_, gy = fy / tile_;
   if (free3d_) free_.project(gx, gy, elevationAt(gx, gy), wx, wy);
   else if (iso3d_) geo3_.project(gx, gy, elevationAt(gx, gy), wx, wy);
@@ -96,6 +137,10 @@ Cell MapProj::pick(int wx, int wy) const {
   }
   if (iso3d_) {
     int c = geo3_.pick(wx + 0.5f, wy + 0.5f, elev_);
+    return c < 0 ? kNoCell : (Cell)c;
+  }
+  if (iso_ && hex_) {
+    int c = hexIso_.pick(wx + 0.5f, wy + 0.5f, elev_);
     return c < 0 ? kNoCell : (Cell)c;
   }
   if (iso_) {
@@ -122,6 +167,12 @@ void MapProj::cellBox(int x, int y, int& bx, int& by, int& bw, int& bh) const {
     by = (int)std::lround(lo[1]);
     bw = (int)std::lround(hi[0]) - bx;
     bh = (int)std::lround(hi[1]) - by;
+    return;
+  }
+  if (iso_ && hex_) {  // the top face's box
+    hexIso_.topBox(x, y, elevation(x, y), bx, by);
+    bw = hexIso_.boxW();
+    bh = hexIso_.boxH();
     return;
   }
   if (hex_) {  // the hexagon's box (the hexagon touches it on all four sides)

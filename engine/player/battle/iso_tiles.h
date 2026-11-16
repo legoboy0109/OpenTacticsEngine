@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 
+#include "core/view/hex_geo.h"
 #include "core/view/iso.h"
 #include "platform/platform.h"
 
@@ -29,6 +30,9 @@ class IsoTiles {
   IsoPicture diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, bool outline) {
     return diamond(r, g, wCells, hCells, outline ? Outline : Fill);
   }
+  // The placeholder block of a hexagon (iso_tiles_hex.cpp): its top face is the squashed hexagon `sq` (a box
+  // sq.boxW() x sq.boxH()), with side faces `sideH` pixels high below the lower edges. Size: boxW x (boxH + sideH).
+  IsoPicture hexBlock(Renderer& r, const HexGeo& sq, int sideH, uint32_t rgb);
   void release(Renderer& r);
 
  private:

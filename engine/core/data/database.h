@@ -265,11 +265,15 @@ struct FontConfig {
 // will hang off the same ids later. Index 0 is always the default style.
 // The kind of view a visual style draws the battle with (docs/VIEWS.md).
 enum class StyleView { TopDown, Isometric, Isometric3D, Full3D };
+// The kinds of view a hexagon game may use (docs/HEX.md "The other three views"): the loader refuses the others and the
+// editor's helper reports these. The 3D kinds join later.
+inline bool hexGameAllowsView(StyleView v) { return v == StyleView::TopDown || v == StyleView::Isometric; }
 
 // Sizes of the isometric kinds of view, in logical pixels.
 struct IsoConfig {
   int tileWidth = 0, tileHeight = 0;  // the diamond of one square; 0 = from the game's tileSize
-  int heightStep = -1;                // pixels per height level; -1 = half the diamond's height
+                                      // (hexagon games: tileWidth is one top-down tileSize drawn; no tileHeight)
+  int heightStep = -1;                // pixels per height level; -1 = half the diamond's height (hexagons: tileWidth / 4)
   int unitWidth = 0;                  // width unit pictures are drawn at; 0 = half the diamond's width
 };
 

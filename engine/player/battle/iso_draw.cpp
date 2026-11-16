@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/iso_unit.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -30,7 +31,6 @@ struct Iso {
   }
 };
 
-Color scaled(Color col, float alpha) { return withAlpha(col, (int)(col.a * alpha)); }
 Color shade(float k, int a = 255) { return Color((uint8_t)(255 * k), (uint8_t)(255 * k), (uint8_t)(255 * k), (uint8_t)a); }
 
 // Elevation of the square at (x, y); outside the map -1, so the map's rim
@@ -162,7 +162,6 @@ void drawStructureIso(const Iso& I, int index, const Overlay& ov) {
 }
 
 void drawUnitIso(const Iso& I, const Unit& u, const UnitView& v, float fade) {
-  const Battle& b = I.c.battle;
   const IsoGeometry& g = I.g;
   int t = I.p.tile(), uw = I.p.unitW();
   // The unit's spot in squares (BattleView animates flat map pixels), lifted to the ground there.
@@ -171,44 +170,12 @@ void drawUnitIso(const Iso& I, const Unit& u, const UnitView& v, float fade) {
   I.at(gx, gy, I.p.elevationAt(gx, gy), cx, cy);
   int foot = cy + g.tileH / 4;  // the feet stand a little in front of the square's middle
   if (I.offScreen(cx - uw, foot - uw * 3, uw * 2, uw * 3 + 8)) return;
-  float al = v.alpha * fade;
-  int a = std::max(0, std::min(255, (int)(al * 255.0f + 0.5f)));
-  Color side = Color::rgb(b.sides[(size_t)shownSide(I.c, u)].color);
-  if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
-  const Look* art = unitArt(I.c, u);
-  int bodyTop;
-  if (art) {
-    if (b.db->graphics.unitMarker) {
-      // A flat diamond in the side's colour under the feet, dark rim first.
-      IsoPicture d = I.c.tiles->diamond(I.r, g, 1, 1, false);
-      int mw = std::max(6, (int)(uw * v.scale)), mh = std::max(3, mw / 2);
-      I.r.drawTexture(d.tex, 0, 0, d.w, d.h, cx - mw / 2 - 1, cy - mh / 2 - 1, mw + 2, mh + 2, Color(20, 20, 28, (uint8_t)(a * 200 / 255)));
-      I.r.drawTexture(d.tex, 0, 0, d.w, d.h, cx - mw / 2, cy - mh / 2, mw, mh, withAlpha(side, a));
-    }
-    SpriteSrc src = lookSrc(I.c, *art);
-    int w = std::max(1, (int)(uw * v.scale)), h = std::max(1, w * src.h / std::max(1, src.w));
-    Color mod = shade(u.done ? 0.55f : 1.0f, a);
-    I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, cx - w / 2, foot - h, w, h, mod);
-    bodyTop = foot - h;
-  } else {
-    // Placeholder: an upright block in the side's colour with the unit's letter.
-    int bw = std::max(2, (int)(uw * 3 / 4 * v.scale)), bh = bw;
-    int bx = cx - bw / 2, by = foot - bh;
-    I.r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
-    I.r.fillRect(bx, by, bw, bh, scaled(side, al));
-    I.r.fillRect(bx, by, bw, 1, scaled(mix(side, Color(255, 255, 255), 0.35f), al));
-    drawGlyphCentered(I.r, bx + bw / 2, by + bh / 2, b.typeOf(u).glyph, scaled(readableOn(side), al), std::max(1, bw * 3 / 4));
-    bodyTop = by;
-  }
-  if (u.leader) {
-    I.r.fillRect(cx - uw / 2, bodyTop - 1, 5, 5, scaled(Color(0, 0, 0, 220), al));
-    I.r.fillRect(cx - uw / 2 + 1, bodyTop, 3, 3, scaled(Color(255, 210, 40), al));
-  }
-  // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
-  int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = cx - barW / 2, barY = foot + 1;
-  I.r.fillRect(barX - 1, barY - 1, barW + 2, 4, scaled(Color(0, 0, 0, 200), al));
-  int fill = mx > 0 ? std::max(v.hp > 0 ? 1 : 0, barW * std::min(v.hp, mx) / mx) : 0;
-  I.r.fillRect(barX, barY, fill, 2, scaled(hpColor(v.hp, mx), al));
+  // The marker under the feet is a diamond (a shared figure drawer: iso_unit.cpp).
+  auto marker = [&](int x, int y, int w, int h, Color col) {
+    IsoPicture d = I.c.tiles->diamond(I.r, g, 1, 1, false);
+    I.r.drawTexture(d.tex, 0, 0, d.w, d.h, x, y, w, h, col);
+  };
+  drawIsoUnitFigure(I.r, I.c, u, v, fade, cx, cy, foot, uw, marker);
 }
 
 // The square a unit is drawn on right now (it may be between two while moving).
@@ -236,6 +203,10 @@ void drawCaptureIso(const Iso& I, const StructureState& st) {
 }  // namespace
 
 void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
+  if (c.proj->hex()) {  // hexagons have their own geometry and drawing
+    drawMapHexIso(r, c, ov, cursor, showCursor);
+    return;
+  }
   const Battle& b = c.battle;
   const Layout& L = c.layout;
   const MapProj& p = *c.proj;
