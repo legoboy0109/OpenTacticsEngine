@@ -17,9 +17,8 @@ int& failures();
 
 struct Registrar {
   Registrar(const char* name, void (*fn)()) {
-    static Case pool[1024];
-    static int used = 0;
-    Case* c = &pool[used++];
+    // One small allocation per test, never freed: a fixed pool overflowed silently once the suite passed 1024 tests.
+    Case* c = new Case;
     c->name = name;
     c->fn = fn;
     c->next = head();

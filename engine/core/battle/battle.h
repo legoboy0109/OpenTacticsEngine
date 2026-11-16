@@ -546,11 +546,8 @@ class Battle {
  private:
   // combat.cpp
   bool versusValue(int weapon, const Unit& target, double& vs) const;
-  bool strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell defCell,
-                      int weapon, StrikeForecast& out) const;
   int counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell atkCell) const;
   bool weaponInRange(int weapon, int dist) const;
-  void doStrike(int atk, int def, int weapon, int baseFlags, std::vector<Event>& events);
   void applyAttack(const Action& action, std::vector<Event>& events);
   // `killer` = the unit that struck it down (-1 = nobody): handed to srpgUnitGone.
   void killUnit(int unit, std::vector<Event>& events, int killer = -1);
