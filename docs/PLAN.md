@@ -198,6 +198,11 @@ goal (demos only exercise features).
       itself contains no art. Engine side: check what the dialogue box does with `portrait` today (step 2
       already writes the character id) and build what is missing (picture beside the box, left / right slots,
       a placeholder when a game has none) as an ordinary engine feature with the engine's own placeholder art.
+      13 sound effects for the private port (owner, 2026-11-16: after portraits). Assistant's default, for
+      the owner to correct: wire the engine's own starter sound set (tools/audio/make_starter_audio.py: menu,
+      move, hit, miss, crit, heal, level-up, defeat...) into the converted game's data/audio.json, and convert
+      the scripts' sound commands (dropped in step 3) where a starter sound fits. Not extracting the ROM's own
+      effects: they are the base game's samples and synthesizer patches, hard to rebuild faithfully.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
