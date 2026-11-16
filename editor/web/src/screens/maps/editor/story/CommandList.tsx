@@ -27,7 +27,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
@@ -42,6 +42,8 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
   const { doc } = story
   const why: Partial<Record<CommandKind, string | null>> = {
     promote: (doc.units?.length ?? 0) > 1 ? null : 'needs two unit types',
+    teachSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
+    forgetSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
     giveItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',
     grantResearch: doc.research?.length ? null : 'no technologies yet',

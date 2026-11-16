@@ -1,0 +1,17 @@
+/* Styles of the Skills screen: the rule cards, the installer and the Skills cards. */
+.skill-rules-title { margin: 8px 0 0; font-size: 1.1rem; }
+.skill-rule { border-left: 4px solid var(--accent, #4a7cff); }
+.skill-rule .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.skill-rule .card-head h3 { margin: 0; font-size: 1rem; }
+.skill-part { margin: 6px 0 0; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted, #666); }
+.skill-option { display: grid; gap: 10px; min-width: 0; }
+.skill-sentence { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg); border: 1px dashed var(--border); overflow-wrap: anywhere; }
+.skill-rule .story-row { min-width: 0; }
+.stat-rows { display: grid; gap: 8px; min-width: 0; }
+.starter-list { display: grid; gap: 4px 16px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin: 8px 0; max-height: 40vh; overflow: auto; padding: 4px; }
+.starter-stats { display: grid; gap: 8px 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 8px 0; }
+.starter-actions { display: flex; gap: 8px; }
+.learn-row { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.learn-row > .field { flex: 1 1 120px; min-width: 0; }
+.learn-row .item-row-buttons { margin-left: auto; }
+.starter-bar { margin: 0 0 12px; }

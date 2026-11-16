@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound'
+export type RefKind = 'unit' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -93,6 +93,7 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'team', 'teamOrSide', w, where), // only a `sees` condition has one (a side id means that side's team)
     (x) => withRef(x, 'carries', 'item', w, where),
     (x) => withRef(x, 'researched', 'tech', w, where),
+    (x) => withRef(x, 'hasSkill', 'skill', w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one
     (x) => withFilter(x, 'unit', w, where),
   ])
@@ -191,6 +192,9 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withFilter(x, 'changeSide', w, where),
     (x) => withRef(x, 'promote', 'unit', w, where),
     (x) => (x.promote !== undefined ? withRef(x, 'to', 'type', w, where) : x), // promote's `to` is a unit type id
+    (x) => withRef(x, 'teachSkill', 'skill', w, where),
+    (x) => withRef(x, 'forgetSkill', 'skill', w, where),
+    (x) => withFilter(x, 'from', w, where),
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
