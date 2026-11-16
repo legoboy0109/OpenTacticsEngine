@@ -1,4 +1,5 @@
 // The map editor: warnings, toolbar, canvas and the options panel for one map.
+import { placedCharacterIds, withResolvedTypes } from '../../../model/characterUnits'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styleView } from '../../../art/scene'
 import { useArtScene } from '../../../art/useArt'
@@ -56,6 +57,8 @@ function Editor({ id }: { id: string }) {
   const terrain = doc.terrain!
   const unitTypes = doc.units!
   const structureTypes = useMemo(() => doc.structures ?? [], [doc.structures])
+  // A unit placed as a character has no `type` in the file: the canvas and status line draw it with the character's.
+  const shownMap = useMemo(() => withResolvedTypes(map, doc.characters), [map, doc.characters])
   const sides = map.sides ?? []
   const vs = useMemo(() => new MapViewState(), [])
   // Where cells are on the picture (squares or hexagons); one object for the canvas, the input and the view maths.
@@ -83,6 +86,9 @@ function Editor({ id }: { id: string }) {
     tool: TOOLS.includes(stored.tool) ? stored.tool : 'terrain',
     terrainId: terrain.some((t) => t.id === stored.terrainId) ? stored.terrainId : terrain[0].id,
     unitType: unitTypes.some((u) => u.id === stored.unitType) ? stored.unitType : unitTypes[0]?.id ?? '',
+    unitTab: doc.characters !== null && stored.unitTab === 'characters' ? 'characters' : 'types',
+    // A character stands on a map once: the choice moves on to one that is not placed yet.
+    unitCharacter: [stored.unitCharacter, ...(doc.characters ?? []).map((c) => c.id)].find((id) => id && doc.characters?.some((c) => c.id === id) && !placedCharacterIds(map).includes(id)) ?? '',
     unitSide: sides.some((s) => s.id === stored.unitSide) ? stored.unitSide : sides[0]?.id ?? '',
     structureType: structureTypes.some((s) => s.id === stored.structureType) ? stored.structureType : structureTypes[0]?.id ?? '',
     structureSide: sides.some((s) => s.id === stored.structureSide) ? stored.structureSide : '',
@@ -163,7 +169,7 @@ function Editor({ id }: { id: string }) {
           looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
         {big && <p className="help">{words(T.big(map.grid.width, map.grid.height))}</p>}
         <div className="map-stage">
-          <MapCanvas map={map} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} geo={geo} showHeights={ts.tool === 'heights'}
+          <MapCanvas map={shownMap} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} geo={geo} showHeights={ts.tool === 'heights'}
             begin={(cell, o) => (vs.picking ? pickStroke(vs, vs.picking, cell) : beginStroke(env, cell, o))}
             longPress={(cell) => {
               if (vs.picking || tsRef.current.tool !== 'terrain') return false
@@ -175,7 +181,7 @@ function Editor({ id }: { id: string }) {
             remove={removeAt}
             escape={() => { stopPicking(vs); vs.set({ selected: null }); setNotice(null) }} />
         </div>
-        <StatusLine vs={vs} map={map} terrain={terrain} structureTypes={structureTypes} unitTypes={unitTypes} notice={notice} />
+        <StatusLine vs={vs} map={shownMap} terrain={terrain} structureTypes={structureTypes} unitTypes={unitTypes} notice={notice} />
         <p className="help map-keys">{T.shortcuts}</p>
         <p className="help map-view-note">{T.mapViewNote}</p>
       </div>

@@ -151,7 +151,8 @@ describe('ids and references', () => {
     expect(sk).toMatch(/Weapon .* gives it/)
     expect(abilityUsageLines(d, 'shove').map((u) => u.text).join('|')).toMatch(/Skill “Pusher” grants it/)
     expect(characterUsageLines(d, 'lyra').map((u) => u.section)).toEqual(['supports'])
-    expect(characterUsageLines(d, 'eirik').map((u) => u.section).sort()).toEqual(['maps', 'supports'])
+    // (the demo's own events and scenes name Eirik too: those lines come with it)
+    expect(new Set(characterUsageLines(d, 'eirik').map((u) => u.section))).toEqual(new Set(['maps', 'supports', 'campaign']))
     expect(skillUsageLines(d, 'pusher')).toEqual([])
   })
   it('deleting cleans every reference in the same edit and leaves untouched lists the same objects', () => {

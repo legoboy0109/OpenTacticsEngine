@@ -1,5 +1,6 @@
 // Resize with an anchor, and an honest list of what would be lost.
 import { useState } from 'react'
+import { typeIdOf } from '../../../../model/characterUnits'
 import { editMap } from '../../../../model/mapCtx'
 import { gridOfGame, isHex } from '../../../../model/gridSpec'
 import { MAP_MAX } from '../../../../model/mapGrid'
@@ -28,7 +29,7 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
   const lossCount = loss.units.length + loss.structures.length
   const changed = w !== map.grid.width || h !== map.grid.height
   const unitName = (u: MapFile['units'] extends (infer U)[] | undefined ? U : never) =>
-    `${u.name ? `${u.name} (${typeName(u.type)})` : typeName(u.type)} at ${u.x + 1}, ${u.y + 1}`
+    `${u.name ? `${u.name} (${typeName(typeIdOf(doc.characters, u))})` : typeName(typeIdOf(doc.characters, u))} at ${u.x + 1}, ${u.y + 1}`
   const typeName = (id: string) => doc.units?.find((x) => x.id === id)?.name ?? id
   const listed = loss.units.slice(0, MAX_LISTED).map(unitName)
   const apply = () => {

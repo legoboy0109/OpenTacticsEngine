@@ -759,7 +759,23 @@ E3 (abilities, promotion, carrying) and E4 (supports), each in its own files, so
 - **References** (`model/srpgRefs.ts`): `newCharacterId` (also avoids the story ids of map units), `newSkillId`, `newAbilityId`;
   `characterUsageLines` / `skillUsageLines` / `abilityUsageLines` for the delete question; `deleteCharacter` / `deleteSkill` / `deleteAbility` clean
   every reference in the same edit. Story commands that name these (teach / forget a skill, promote, support points) are added to `storyRefs.ts` by
-  the step that adds the form. Not done in E0: deleting a unit type does not yet look at characters of that type or promotions into it (E1 / E3).
+  the step that adds the form. Deleting a unit type also deletes the characters of that type (E1); promotions into it are E3's.
 - **Problems**: the loader's refusals for the four files reach the Problems panel as they are. The editor-side checks of the contract (unused skill,
   promotion item nobody hands out, ...) belong to the steps that own the data (E1 to E4).
 - **Tests**: unit `tests/unit/srpg.test.ts`; API `tests/editor_api_srpg_checks.py`; e2e `tests/e2e/srpg-skeleton.spec.ts`.
+
+## Characters (editor step E1 of docs/SRPG.md)
+
+- **Screen** `screens/characters/`: list + form (like Units) inside the E0 frame. Cards: name / class / "Joins at level" (progression on) /
+  description; Portrait (Art's picker, keyed by the character id); Stats and Growth tables with three columns *class | Personal | Total*
+  (`table.three-col`, fixed layout so it fits 360 px); "Starts with its own items"; slots `CharacterSkillsCard` (E2), `CharacterAbilitiesCard` (E3).
+  Checks (`model/characterChecks.ts`): "Not used on any map." in a banner with links.
+- **Class wording**: `classWord(doc)` is "class" once the game has a character, else "unit type"; used on the Characters screen and the map editor's
+  Units picker / unit form. Other screens keep "unit type" for now.
+- **Map editor**: with the feature on, the Units tool shows tabs *Classes | Characters* (`panels/UnitPicker.tsx`; `ToolState.unitTab`,
+  `unitCharacter`, remembered per game). A character already on the map is greyed ("On the map"). A placed character is
+  `{ character, side, x, y }`, `MapUnit.type` is optional; `model/characterUnits.ts` (`typeIdOf`, `storyIdOf`, `withResolvedTypes`) is the one
+  place that resolves it, and `MapCtx.characters` carries the list. The unit form shows the character with "Open character", hides the story name,
+  and the class select stores `type` only when it differs from the character's.
+- **Tests**: unit `tests/unit/characters.test.ts`; API `tests/editor_api_characters_checks.py`; e2e `characters.spec.ts`, `characters-phone.spec.ts`
+  (360 px), screenshots `screenshots-characters.spec.ts` (`SHOTS=1`).

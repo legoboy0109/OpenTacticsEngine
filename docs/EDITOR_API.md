@@ -154,6 +154,8 @@ removes `data/supports.json`**; any other value is `400`. Absent or `null` leave
 these four file names as its `file`.
 Art, model and audio files are not part of this call: they have their own endpoints below.
 
+A map unit placed as a character is `{ "character", "side", "x", "y" }` (no `type`); maps are stored as sent, and `GET .../problems` gives the loader's words for it (`tests/editor_api_characters_checks.py`).
+
 - If `baseRevision` is not the current on-disk revision → `409
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).

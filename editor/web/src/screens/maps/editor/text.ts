@@ -48,6 +48,7 @@ export const T = {
   // units panel
   unitsTitle: 'Units',
   unitsHelp: 'Pick a side and a unit type, then click an empty square to place one. Click a unit to select it; drag it to move it.',
+  unitsHelpCharacters: 'Pick a side, then a class or a character, and click an empty square to place one. Click a unit to select it; drag it to move it.',
   sideLabel: 'Side',
   unitTypeLabel: 'Unit type',
   noUnitsTypes: 'This game has no unit types yet. Add some under Units.',

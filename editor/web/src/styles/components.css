@@ -70,7 +70,7 @@
 .md-item-label { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md-item-sub { color: var(--muted); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.25); flex: none; }
-.md-detail { min-width: 0; display: grid; gap: 16px; }
+.md-detail { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; } /* the column may shrink below a long unbreakable title */
 .md-detail-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .md-detail-title { flex: 1; min-width: 0; font-size: 1.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md-detail-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -117,3 +117,11 @@ table.kv .input-wrap { flex-wrap: wrap; }
 .item-row > .select { flex: 1 1 160px; min-width: 0; }
 .item-row > .input-wrap { flex: 0 0 9em; }
 .item-row-buttons { display: flex; margin-left: auto; }
+
+/* Characters: class value (greyed) | personal bonus | total. Fixed layout so it fits 360 px without scrolling. */
+table.three-col { table-layout: fixed; }
+table.three-col thead th:first-child { width: 34%; }
+table.three-col .input-wrap { flex-wrap: nowrap; gap: 3px; }
+table.three-col .input-wrap > .input { flex: 1 1 0; width: 100%; min-width: 0; max-width: none; padding-inline: 6px; }
+table.three-col td { padding-right: 6px; }
+table.three-col .muted-cell { color: var(--muted); }

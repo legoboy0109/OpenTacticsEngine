@@ -7,7 +7,8 @@ import { Toggle } from '../../../../ui/Toggle'
 import type { Tool, ToolState } from '../tools'
 import { T } from '../text'
 import { Inspect } from './Inspect'
-import { SidePicker, TerrainPicker, UnitTypePicker } from './pickers'
+import { SidePicker, TerrainPicker } from './pickers'
+import { UnitPicker } from './UnitPicker'
 import { HeightsTool } from './HeightsTool'
 import { StructureTool } from './StructureTool'
 import { UnitProps } from './UnitProps'
@@ -45,10 +46,10 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
       return (
         <div className="stack tight">
           <h3>{T.unitsTitle}</h3>
-          <p className="help">{words(T.unitsHelp)}</p>
+          <p className="help">{words(doc.characters === null ? T.unitsHelp : T.unitsHelpCharacters)}</p>
           <SidePicker sides={sides} value={state.unitSide} onChange={(id) => onChange({ unitSide: id })} />
           {(doc.units?.length ?? 0) === 0 && <p className="help">{T.noUnitsTypes}</p>}
-          <UnitTypePicker types={doc.units ?? []} value={state.unitType} color={sideOf(map, state.unitSide)?.color} sideId={state.unitSide} onChange={(id) => onChange({ unitType: id })} />
+          <UnitPicker doc={doc} map={map} state={state} color={sideOf(map, state.unitSide)?.color} onChange={onChange} />
           <hr className="rule" />
           {cell ? <UnitProps mapId={mapId} cell={cell} say={say} /> : <p className="help">{T.unitNone}</p>}
         </div>

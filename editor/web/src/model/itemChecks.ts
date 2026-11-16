@@ -1,5 +1,6 @@
 // Checks that mirror what the game loader refuses about items (engine/core/data/loader_items.cpp), so a maker sees
 // them before pressing Play. The wording is plain; the loader's own messages still show in the Problems list after a save.
+import { typeIdOf } from './characterUnits'
 import { entryId, entryUses } from './itemGrants'
 import { carriedWeapons, inventorySize, storageMode } from './itemRules'
 import type { Item, ItemEntry, ProjectDoc, Section } from './types'
@@ -60,7 +61,7 @@ export function itemChecks(doc: ProjectDoc): ItemCheck[] {
   for (const [mapId, m] of Object.entries(doc.maps)) {
     if (!m) continue
     for (const u of m.units ?? [])
-      out.push(...grantChecks(doc, u.items, { section: 'maps', mapId, who: `${doc.units?.find((t) => t.id === u.type)?.name ?? u.type} at ${u.x + 1},${u.y + 1}`, max }))
+      out.push(...grantChecks(doc, u.items, { section: 'maps', mapId, who: `${doc.units?.find((t) => t.id === typeIdOf(doc.characters, u))?.name ?? typeIdOf(doc.characters, u)} at ${u.x + 1},${u.y + 1}`, max }))
     for (const s of m.sides ?? []) {
       if (s.storage?.length && storageOff) out.push({ section: 'maps', mapId, text: `${s.name || s.id}: has starting storage, but the game’s shared storage is Off (Rules screen).` })
       out.push(...grantChecks(doc, s.storage, { section: 'maps', mapId, who: `${s.name || s.id} storage` }))

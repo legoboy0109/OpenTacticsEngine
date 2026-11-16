@@ -23,6 +23,9 @@ export interface ToolState {
   terrainId: string
   fill: boolean
   unitType: string
+  /** The Units tool places unit types or, in a game with characters, characters (the picker's tab). Older saved states have neither. */
+  unitTab?: 'types' | 'characters'
+  unitCharacter?: string
   unitSide: string
   structureType: string
   /** Owner of newly placed structures; '' = nobody. */
@@ -162,9 +165,12 @@ function placeAt(env: StrokeEnv, cell: Cell, t: ToolState): Stroke {
   const ctx = ctxOf(doc)
   const map = currentMap(env)!
   if (!ctx) return NOOP
-  const r = placeUnit(map, ctx, { type: t.unitType, side: t.unitSide, x: cell.x, y: cell.y })
+  const spec = t.unitTab === 'characters' && doc.characters !== null
+    ? { character: t.unitCharacter ?? '', side: t.unitSide, x: cell.x, y: cell.y }
+    : { type: t.unitType, side: t.unitSide, x: cell.x, y: cell.y }
+  const r = placeUnit(map, ctx, spec)
   if (r.error) { env.say(r.error); return NOOP }
-  env.store.edit((d) => editMap(d, env.mapId, (m, c) => placeUnit(m, c, { type: t.unitType, side: t.unitSide, x: cell.x, y: cell.y }).map))
+  env.store.edit((d) => editMap(d, env.mapId, (m, c) => placeUnit(m, c, spec).map))
   return NOOP
 }
 

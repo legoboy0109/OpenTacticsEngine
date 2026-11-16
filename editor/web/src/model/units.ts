@@ -1,8 +1,10 @@
 // Unit types (classes): what the player picks to place or build.
+import { charactersOfType } from './characters'
 import { clone, ids, withUnits } from './doc'
 import { makeId } from './ids'
 import { copyArtOf } from './graphicsClean'
 import { cleanUnit } from './references'
+import { deleteCharacter } from './srpgRefs'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { ItemEntry, NumMap, ProjectDoc, Unit } from './types'
 
@@ -43,7 +45,8 @@ export function unitRemovalBlock(doc: ProjectDoc): string | null {
 /** Removes the unit and every reference to it (build lists, effectiveness rows, placed units). */
 export function deleteUnit(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.units || unitRemovalBlock(doc)) return doc
-  const cleaned = cleanUnit(doc, id)
+  // A character of this type cannot stand without it: the people go too, with their placed units, pairs and story lines.
+  const cleaned = charactersOfType(doc, id).reduce((d, c) => deleteCharacter(d, c.id), cleanUnit(doc, id))
   return { ...cleaned, units: doc.units.filter((u) => u.id !== id) }
 }
 

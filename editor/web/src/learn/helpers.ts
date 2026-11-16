@@ -55,7 +55,7 @@ export function unitsOnMap(doc: ProjectDoc, filter: UnitFilter = {}, mapId?: str
   return (mapOf(doc, mapId)?.units ?? []).filter((u) =>
     (filter.side === undefined || u.side === filter.side) &&
     (filter.type === undefined || u.type === filter.type) &&
-    !(filter.notTypes ?? []).includes(u.type)).length
+    !(filter.notTypes ?? []).includes(u.type ?? '')).length
 }
 
 /** Structures placed on the map, optionally of one kind and/or owned by one side. */

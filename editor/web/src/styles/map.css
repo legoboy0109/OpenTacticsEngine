@@ -121,3 +121,7 @@
 .footprint { display: grid; gap: 2px; padding: 6px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); width: max-content; max-width: 100%; }
 .footprint span { border: 1px solid rgba(0, 0, 0, 0.3); border-radius: 2px; }
 @media (max-width: 719.98px) { .size-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* the Units tool's "Classes | Characters" tabs; a character already on the map is greyed */
+.unit-tabs { border-bottom: 1px solid var(--border); }
+.pick:disabled { opacity: 0.55; cursor: not-allowed; }

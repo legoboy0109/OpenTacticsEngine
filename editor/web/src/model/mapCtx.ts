@@ -1,6 +1,7 @@
 // What the map edits need to know about the rest of the game.
 import { gridOfGame, SQUARE, type GridSpec } from './gridSpec'
 import { dropEmptyOwners } from './structuresConvert'
+import type { Character } from './srpgTypes'
 import type { MapFile, ProjectDoc, Structure, Terrain, Unit } from './types'
 
 export interface MapCtx {
@@ -8,17 +9,19 @@ export interface MapCtx {
   /** The game's structure kinds (empty when it has none). */
   structureTypes: Structure[]
   unitTypes: Unit[]
+  /** The game's characters (empty when it has none): a unit placed as one takes its type from it. */
+  characters: Character[]
   resources: string[]
   /** The game's grid (squares unless game.json says hexagons): footprints, neighbours and distances depend on it. */
   grid: GridSpec
 }
 
 /** A context from loose parts (the canvas has them as props, not as a document). */
-export const ctxOfParts = (terrain: Terrain[], structureTypes: Structure[], unitTypes: Unit[], grid: GridSpec = SQUARE): MapCtx => ({ terrain, structureTypes, unitTypes, resources: [], grid })
+export const ctxOfParts = (terrain: Terrain[], structureTypes: Structure[], unitTypes: Unit[], grid: GridSpec = SQUARE, characters: Character[] = []): MapCtx => ({ terrain, structureTypes, unitTypes, characters, resources: [], grid })
 
 export function ctxOf(doc: ProjectDoc): MapCtx | null {
   if (!doc.terrain || !doc.units) return null
-  return { terrain: doc.terrain, structureTypes: doc.structures ?? [], unitTypes: doc.units, resources: (doc.game?.resources ?? []).map((r) => r.id), grid: gridOfGame(doc.game) }
+  return { terrain: doc.terrain, structureTypes: doc.structures ?? [], unitTypes: doc.units, characters: doc.characters ?? [], resources: (doc.game?.resources ?? []).map((r) => r.id), grid: gridOfGame(doc.game) }
 }
 
 /** Applies a map edit to doc.maps[id]; a no-op when the map or the game data did not load. */

@@ -206,7 +206,8 @@ export interface MapSide extends Extra {
   storage?: ItemEntry[]
 }
 export interface MapUnit extends Extra {
-  type: string; side: string; x: number; y: number
+  /** Missing only for a unit placed as a character: its type is then the character's (docs/SRPG.md section 1). */
+  type?: string; side: string; x: number; y: number
   name?: string; level?: number; leader?: boolean; stats?: NumMap
   /** The story name events and objectives point at (letters, digits, _ and -; unique in the map). */
   id?: string

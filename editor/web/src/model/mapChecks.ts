@@ -2,6 +2,7 @@
 // the helper reports what stops the game loading, these point at things that
 // load fine but are probably not what the author meant.
 import { audioChecks } from './audioChecks'
+import { typeIdOf } from './characterUnits'
 import { fogChecks } from './fogChecks'
 import { itemChecks } from './itemChecks'
 import { storyChecks } from './storyChecks'
@@ -27,9 +28,10 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   for (const u of units) {
     const t = tOf(terrainAt(map, u.x, u.y))
     const st = sOf(structureAt(map, c, u.x, u.y)?.type)
-    const type = c.unitTypes.find((x) => x.id === u.type)
+    const typeId = typeIdOf(c.characters, u)
+    const type = c.unitTypes.find((x) => x.id === typeId)
     // Judged the way the game does: the structure's movement costs replace the terrain's where it sets them.
-    if (!canEnter(t, st, type)) out.push({ key: `blocked:${u.x},${u.y}`, cell: { x: u.x, y: u.y }, text: `${type?.name ?? u.type} at ${u.x + 1},${u.y + 1} stands on ${st ? `a ${st.name}` : t?.name ?? 'terrain'}, which it cannot enter. The game will not load until it is moved or the ${st ? 'structure' : 'terrain'} changed.` })
+    if (!canEnter(t, st, type)) out.push({ key: `blocked:${u.x},${u.y}`, cell: { x: u.x, y: u.y }, text: `${type?.name ?? typeId} at ${u.x + 1},${u.y + 1} stands on ${st ? `a ${st.name}` : t?.name ?? 'terrain'}, which it cannot enter. The game will not load until it is moved or the ${st ? 'structure' : 'terrain'} changed.` })
   }
   for (const i of misfits(map, c)) {
     const s = placedOf(map)[i]

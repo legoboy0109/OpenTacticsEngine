@@ -11,7 +11,7 @@ export const glyphOfType = (u: Unit | undefined, fallback: string): string => (u
 
 /** A unit with a picture is drawn from it; every other unit keeps the coloured block with its letter. */
 export function drawAnyUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: number, cy: number, cw: number, ch: number, side: Rgb, alpha: number, glyph: boolean, time: number): void {
-  const pic = unitPicture(scene.art ?? null, u.type, u.side)
+  const pic = unitPicture(scene.art ?? null, u.type ?? '', u.side)
   if (pic && drawUnitArt(g, pic, { on: scene.art!.marker, color: css(side) }, time, cx, cy, cw, ch, alpha)) {
     if (u.leader) drawLeaderPip(g, cx, cy, cw, alpha)
     return
@@ -42,7 +42,7 @@ function drawUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUnit, cx: num
   if (glyph) {
     g.fillStyle = css(readableOn(side), alpha)
     g.font = `bold ${Math.round(Math.min(bw, bh) * 0.75)}px ${FONT}`
-    g.fillText(glyphOfType(scene.types.get(u.type), '?'), bx + bw / 2, by + bh / 2 + 1)
+    g.fillText(glyphOfType(scene.types.get(u.type ?? ''), '?'), bx + bw / 2, by + bh / 2 + 1)
   }
   if (u.leader) {
     const m = Math.max(3, Math.round(5 * k))

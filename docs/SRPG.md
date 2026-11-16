@@ -2400,6 +2400,39 @@ skeleton" and docs/EDITOR_API.md; the short version for the steps that follow:
 ### E1. Editor: Characters and map placement — depends on E0 (C1 for Problems)
 The Characters screen, the map editor's Characters tab and unit form, checks.
 
+#### E1 as built
+
+The Characters screen, characters on the map and the "class" wording are in; the helper needed no change (E0's
+`characters` section and the loader's problems already carry everything; `tests/editor_api_characters_checks.py` proves it).
+
+- **Screen** (`screens/characters/`): list + form like Units inside E0's frame. Form cards: name / class / "Joins at level" (only when
+  progression is on) / description; **Portrait** (Art's own `PortraitPicker`, keyed by the character's id); **Stats** with columns
+  *class | Personal | Total* (class value greyed; personal may be negative; total never below 0) and the same for **Growth % each level**
+  (progression on); **Starts with its own items** (off = the class's items, shown greyed in the help; on = a list that replaces them,
+  an empty list allowed); Advanced: internal name. Duplicate puts a copy after the original (not placed anywhere); delete asks, lists
+  the maps, events and campaign scenes that name the character and removes them in one undo step.
+- **Slots for the next steps** (empty files, mounted by `screens/characters/srpg/CharacterSrpgCards.tsx`): `CharacterSkillsCard` (E2: `skills`,
+  `learns`), `CharacterAbilitiesCard` (E3: `abilities`). Edit with `updateCharacter` in `model/characters.ts`. E4 reads `doc.characters`
+  and `classWord`; `charactersInUse` / `characterChecks` (`model/characterChecks.ts`) are where a support check can start.
+- **Map**: `MapUnit.type` is optional. A character is placed as `{ "character", "side", "x", "y" }`; the unit's type is
+  `typeIdOf(characters, unit)` (`model/characterUnits.ts`), its story id `storyIdOf(unit)` (the character id). `MapCtx` gained `characters`.
+  Events, objectives and campaign scenes see a placed character as a named unit. Unit form for a character: its name with "Open character", no
+  story-name field, name / level boxes show the character's as placeholders, "Own stats" start from class + personal bonus. Picking another
+  class stores `type` (this map only); picking its own class removes the key again.
+- **Deleting a unit type** now also deletes the characters of that type (named in the question) with their placed units, pairs and story lines.
+- **Checks**: "Not used on any map." (no map places it, no event adds it); a banner on the Characters screen, one line per character with a link.
+  Skipped while any map is unreadable. The loader's refusals reach the Problems panel as before.
+- **Wording** (placeholders): screen intro "Named people with their own stats, skills and story."; empty "No characters yet. Add one, such as the hero of your
+  story."; "New character" / "Name of the character"; "Class" (the word is "class" once the game has a character, else "unit type"; the map picker tab
+  reads "Classes" / "Unit types"); "Joins at level"; "Personal" / "Total"; "Growth % each level"; "Starts with its own items"; "Portrait" /
+  "Add a portrait" / "Choose picture…" / "Remove portrait"; map: tab "Characters", "On the map", "Open character", "Its own" (the class), "Pick a
+  character that is not on this map yet.", "This character is already on the map."; check "Not used on any map."; unit-type delete line
+  "Character “X” has this class (the character goes with it)".
+- **Readings of the contract.** (1) "Class" is applied on the Characters screen, the map's Units picker and unit form, and the unit-type delete
+  line; other screens (Units, story forms, Rules) still say "unit type". (2) The story `addUnit` form does not offer characters yet (its
+  `character` key is kept and counts for the check). (3) Personal skills / abilities pickers are E2 / E3's slots. (4) A deleted character's portrait
+  entry stays in Art. (5) Level shows only with progression on. (6) Shared CSS: `.md-detail` column may shrink (a long name overflowed at 360 px).
+
 ### E2. Editor: Skills — depends on E1; parallel with E3, E4
 The Skills screen with the block builder and summaries, the starter set and its installer, the Skills cards on
 units, characters, items and weapons, story forms for teach / forget / has skill.

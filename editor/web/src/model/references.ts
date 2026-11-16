@@ -1,5 +1,6 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
+import { typeIdOf } from './characterUnits'
 import { dropArtOf } from './graphicsClean'
 import { economyUsageLines } from './researchRefs'
 import { deleteItem } from './items'
@@ -36,7 +37,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         if (names.length) out.push({ section: 'units', text: `${names.length} unit${names.length === 1 ? '' : 's'} ${names.length === 1 ? 'has' : 'have'} a value for it: ${names.slice(0, 5).join(', ')}${names.length > 5 ? ` and ${names.length - 5} more` : ''}` })
       }
       for (const [mid, m] of mapEntries(doc))
-        for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, mu.type)} has its own value` })
+        for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, typeIdOf(doc.characters, mu))} has its own value` })
       for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
       out.push(...economyUsageLines(doc, 'stat', id))
       break
@@ -61,6 +62,8 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         const n = (m.units ?? []).filter((u) => u.type === id).length
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
       }
+      // A character of this type cannot exist without it: it goes too (with its placed units and pairs; see deleteUnit).
+      for (const c of doc.characters ?? []) if (c.type === id) out.push({ section: 'characters', text: `Character “${c.name}” has this ${doc.characters!.length ? 'class' : 'unit type'} (the character goes with it)` })
       out.push(...economyUsageLines(doc, 'unit', id))
       out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))
       if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })

@@ -46,9 +46,9 @@ export function SidePicker({ sides, value, onChange, neutral, label = 'Side', le
   )
 }
 
-export function UnitTypePicker({ types, value, color, sideId, onChange }: { types: Unit[]; value: string; color: string | undefined; sideId?: string; onChange: (id: string) => void }) {
+export function UnitTypePicker({ types, value, color, sideId, label = 'Unit type', onChange }: { types: Unit[]; value: string; color: string | undefined; sideId?: string; label?: string; onChange: (id: string) => void }) {
   return (
-    <div className="pick-grid" role="radiogroup" aria-label="Unit type">
+    <div className="pick-grid" role="radiogroup" aria-label={label}>
       {types.map((u) => (
         <button key={u.id} type="button" role="radio" aria-checked={u.id === value} className="pick" onClick={() => onChange(u.id)} title={u.name}>
           <UnitChip unit={u} sideId={sideId} color={color} />
@@ -67,7 +67,7 @@ function TerrainChip({ terrain: t }: { terrain: Terrain }) {
   return <span className="pick-chip" style={{ background: rgb(t.color), color: ink(t.color) }} aria-hidden="true">{t.glyph?.trim()}</span>
 }
 
-function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color: string | undefined }) {
+export function UnitChip({ unit, sideId, color }: { unit: Unit; sideId?: string; color: string | undefined }) {
   const look = useLook()
   const side = useMemo(() => ({ id: sideId ?? 'preview', name: '', color: color ?? '#888888' }), [sideId, color])
   const spec = useUnitThumb(unit.id, side, look)

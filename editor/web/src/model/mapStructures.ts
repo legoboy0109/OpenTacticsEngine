@@ -3,6 +3,7 @@
 // enter once the structure's movement costs apply. `x`, `y` of a placed structure is its top-left square
 // (hexagon games: its middle hexagon; it covers that hexagon and, with `rings`, the six around it).
 // Placing never touches the terrain underneath.
+import { typeIdOf } from './characterUnits'
 import type { MapCtx } from './mapCtx'
 import { inBounds, terrainAt, type Cell } from './mapGrid'
 import { isHex, layoutOf, SQUARE, type GridSpec } from './gridSpec'
@@ -79,7 +80,7 @@ export function fitProblem(map: MapFile, c: MapCtx, type: string, x: number, y: 
   }
   for (const u of map.units ?? []) {
     if (!taken.has(`${u.x},${u.y}`)) continue
-    const unit = c.unitTypes.find((t) => t.id === u.type)
+    const unit = c.unitTypes.find((t) => t.id === typeIdOf(c.characters, u))
     if (!canEnter(c.terrain.find((t) => t.id === terrainAt(map, u.x, u.y)), def, unit)) {
       return `${unit?.name ?? 'A unit'} stands on a ${unitWord(c)} of it and could not enter a ${def.name}. Move the unit first.`
     }
