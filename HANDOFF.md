@@ -14,7 +14,9 @@ tests played sound; Playwright config and `tools/webtest/run.mjs`). docs/SRPG.md
   started from the blank template; document pointers) last. Demo saves on the owner's machine are refused again
   (D1 changed demo-srpg). D1: ids `sky_rider`, `salve`, `mending_salve`; e2e `game.create('strategy-rpg')` strips
   the template's D1 content unless `{ srpgContent: true }`; helper checks use `tests/editor_api_plain_units.py`.
-  Not done: art for Captain, Lancer, Outrider, Marksman, Brute, Houndmaster, Hound (drawn as their source types).
+  The seven new unit types have their own art in every style (2026-11-16; `tools/art/*_promoted.py`, `glb_gear.py`,
+  `tests/srpg_art_test.py`; `make_detailed_style.py` needs `--hound DIR` with the CC0 Husky.glb, see CREDITS). The
+  promotion screen of a model style borrows the picture of a sprite style. Weak: Detailed 3D Outrider.
   Owner decided (2026-11-15): the strategy-RPG template keeps the 30 starter skills in its list.
   Known nits: the
   empty Skills / Supports screens show the empty text twice; E2 did not replace E3's own "Only if" rows; characters'
