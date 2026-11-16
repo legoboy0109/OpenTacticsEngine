@@ -314,11 +314,8 @@ UNITS = {
     'infantry': infantry, 'mech': mech, 'recon': recon, 'tank': tank, 'artillery': artillery,
     'apc': apc,
 }
-# Strategy-RPG unit types that have no picture of their own yet draw as the type they grew out of (docs/SRPG.md D1:
-# "no new art is required"). make_starter_art.py gives them the same model file as their source, if there is one.
-ALIASES = {
-    'captain': 'lord', 'lancer': 'cavalier', 'outrider': 'cavalier', 'marksman': 'archer', 'brute': 'fighter',
-    'houndmaster': 'soldier', 'hound': 'fighter',
-}
-UNITS.update({new: UNITS[old] for new, old in ALIASES.items()})
+# The promoted and summoned unit types of the story demo have pictures of their own (art_units_promoted.py);
+# they come after the others so that the sheet rows of every other game stay where they were.
+from art_units_promoted import PROMOTED  # noqa: E402  (needs the palette and drawing helpers above)
+UNITS.update(PROMOTED)
 ORDER = list(UNITS.keys())

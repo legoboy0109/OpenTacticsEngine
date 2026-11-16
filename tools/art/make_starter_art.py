@@ -24,6 +24,7 @@ import art_stand as stand  # noqa: E402
 import art_structures as st  # noqa: E402
 import art_tiles as tl  # noqa: E402
 import art_units as un  # noqa: E402
+import make_unit_models as um  # noqa: E402
 from pix import Pix  # noqa: E402
 
 GAMES = [
@@ -253,11 +254,11 @@ def make_game(root, repo):
     def with_models(looks):
         out = dict(looks)
         for thing in looks:
-            for name in (thing, un.ALIASES.get(thing)):  # an aliased unit type shares its source's model
-                rel = 'models/%s.glb' % name
-                if name and os.path.exists(os.path.join(path, rel)):
-                    out[thing] = {'model': rel}
-                    break
+            rel = 'models/%s.glb' % thing
+            if os.path.exists(os.path.join(path, rel)):
+                out[thing] = {'model': rel}
+                if thing in um.promoted.SIZE:  # the engine fits a whole model to one height: bigger / smaller kinds say so
+                    out[thing]['height'] = um.promoted.model_height(thing)
         return out
     # In the 3D kinds a forest and a mountain stand up from their ground (docs/GRAPHICS.md "Standing
     # terrain"): an upright picture on a plain ground picture (sheets "stand" and "ground3d").
