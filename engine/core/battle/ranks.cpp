@@ -45,23 +45,28 @@ bool Battle::canWieldNow(const Unit& u, int weapon, std::string* why) const {
   return meetsRank(u, weapon, why);
 }
 
-// The weapon's "wieldedBy" list (docs/SRPG.md "Character-locked weapons"): no list = open to everyone. A generic unit
-// (character -1) is never on a list. The words are a placeholder: one or two names, then "and others".
 bool Battle::meetsCharacterLock(const Unit& u, int weapon, std::string* why) const {
   if (weapon < 0 || (size_t)weapon >= db->weapons.size()) return true;
   return meetsLockFor(u, db->weapons[(size_t)weapon], why);
 }
 
+// The weapon's lock (docs/SRPG.md "Character-locked weapons"): "wieldedBy" characters and "wieldedByTypes" unit types. No
+// list at all = open to everyone; otherwise the unit's character OR its unit type must be on a list. A generic unit
+// (character -1) is never on the character list. The words are a placeholder: one or two names (characters first, then
+// types), then "and others".
 bool Battle::meetsLockFor(const Unit& u, const WeaponDef& w, std::string* why) const {
-  const std::vector<int>& list = w.wielders;
-  if (list.empty()) return true;
-  for (int ch : list)
+  if (w.wielders.empty() && w.wielderTypes.empty()) return true;
+  for (int ch : w.wielders)
     if (ch == u.character) return true;
+  for (int t : w.wielderTypes)
+    if (t == u.type) return true;
   if (why) {
-    auto name = [&](size_t i) { return db->characters[(size_t)list[i]].name; };
-    *why = "Only " + name(0);
-    if (list.size() == 2) *why += " and " + name(1);
-    else if (list.size() > 2) *why += ", " + name(1) + " and others";
+    std::vector<std::string> names;
+    for (int ch : w.wielders) names.push_back(db->characters[(size_t)ch].name);
+    for (int t : w.wielderTypes) names.push_back(db->unitTypes[(size_t)t].name);
+    *why = "Only " + names[0];
+    if (names.size() == 2) *why += " and " + names[1];
+    else if (names.size() > 2) *why += ", " + names[1] + " and others";
     *why += " can wield this";
   }
   return false;

@@ -106,6 +106,9 @@ struct WeaponDef {
   // Character lock (docs/SRPG.md "Character-locked weapons"): empty = anyone whose class can wield it.
   std::vector<std::string> wielderIds;  // weapons.json "wieldedBy", as written
   std::vector<int> wielders;            // the same as indices into Database::characters (filled once characters are loaded)
+  // Unit-type lock (same section): "wieldedByTypes". With either list non-empty the unit's character OR its unit type must be on one.
+  std::vector<std::string> wielderTypeIds;  // weapons.json "wieldedByTypes", as written
+  std::vector<int> wielderTypes;            // the same as indices into Database::unitTypes (filled with `wielders`)
 };
 
 // ---- Items (docs/ITEMS.md) ----

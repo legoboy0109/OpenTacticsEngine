@@ -64,8 +64,8 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
     Json out = Json::makeObject();
     for (const Json::Member& m : j.members()) {
       if (!numbersTable && cosmeticKey(m.first)) continue;
-      // A weapon's empty "wieldedBy" is the same game as none (docs/SRPG.md character-locked weapons).
-      if (m.first == "wieldedBy" && m.second.isArray() && m.second.size() == 0) continue;
+      // A weapon's empty "wieldedBy" / "wieldedByTypes" is the same game as none (docs/SRPG.md character-locked weapons).
+      if ((m.first == "wieldedBy" || m.first == "wieldedByTypes") && m.second.isArray() && m.second.size() == 0) continue;
       if (!numbersTable && mapFile && wordingKey(m.first) && m.second.isString()) {
         out.set(m.first, Json::makeString(""));
         continue;

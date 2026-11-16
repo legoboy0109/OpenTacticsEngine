@@ -1098,11 +1098,20 @@ can wield what"); there is no list of classes on the weapon. The character lock 
 { "id": "dawn_blade", "name": "Dawn Blade", "group": "sword", "wieldedBy": ["kell", "mara"], "props": { "might": 9 } }
 ```
 `"wieldedBy"` is a list of character ids (docs/SRPG.md "Characters"). Absent or an empty list = no lock (the same game as
-without the key).
+without the key). Next to it, `"wieldedByTypes"` (optional, needs nothing else) is a list of **unit type ids** (data/units.json):
+```jsonc
+{ "id": "knight_lance", "group": "lance", "wieldedByTypes": ["knight", "paladin"], "props": { "might": 8 } }
+{ "id": "dawn_blade",   "group": "sword", "wieldedBy": ["kell"], "wieldedByTypes": ["paladin"], "props": { "might": 9 } }
+```
 
 **The rule.** `canWield` is the class test (`Database::canWield`). A unit may wield the weapon now when
 
-    class can wield  AND  (no character list  OR  the unit's character is on it)  AND  rank is enough
+    class can wield  AND  (no list  OR  the unit's character is on `wieldedBy`  OR  its unit type is on `wieldedByTypes`)
+                     AND  rank is enough
+
+A weapon with either list is locked; a unit passes it if it matches **either** one (so the dawn blade above is for Kell and for
+every paladin). A unit's type is its current one: a promotion that changes the class changes the answer at once. Both lists empty
+or absent = no lock.
 
 | class can wield | weapon has a list | unit's character          | result                                   |
 |-----------------|-------------------|---------------------------|------------------------------------------|
@@ -1119,20 +1128,24 @@ without the key).
   attack options, forecasts, counterattacks, the equipped weapon, the `Equip` action and the AI all follow. Carrying,
   trading, storing and buying never check it.
 - The refusal text is `Only Kell can wield this`; with two names `Only Kell and Mara can wield this`; with more, the first two then
-  "and others": `Only Kell, Mara and others can wield this`. A character's display name is used. The wording is a placeholder
-  the owner may change. When the lock and the rank both refuse, the lock is said.
+  "and others": `Only Kell, Mara and others can wield this`. A character's display name is used; with both lists the characters
+  come first, then the unit types' display names (`Only Kell and Paladin can wield this`; the same short forms in the player).
+  The wording is a placeholder the owner may change. When the lock and the rank both refuse, the lock is said.
 - The player greys such a weapon like a rank-locked one and shows the reason (item screens, Equip entry).
 - Generic units (no character) never match a list. The unit's character is the one its story id names (`Unit::character`).
 - Loader errors (weapons.json, `weapon "dawn_blade"`): `"wieldedBy" must be a list of character ids`;
   `"wieldedBy" is given but this game has no characters (data/characters.json)`; `"wieldedBy" names unknown character "x"`;
-  a character named twice.
+  a character named twice. `weapon "x": "wieldedByTypes" must be a list of unit type ids`;
+  `"wieldedByTypes" names unknown unit type "x" (data/units.json)`; a type named twice. The same on a staff (`item "x": ...`).
 - Off unless used: no key, same game; the rules fingerprint changes only when a weapon has a non-empty list.
 
 **As built.** Core: `WeaponDef::wielderIds` / `wielders` (database.h), `engine/core/data/loader_weapon_locks.cpp`
 (`readWeaponWielders` reads the shape while weapons load; `resolveWeaponWielders` turns ids into indices as the first step of
 `resolveSrpgRefs`, because characters.json loads after weapons.json), `Battle::meetsCharacterLock` and `canWieldNow`
 (ranks.cpp; the order is class, then lock, then rank). `Unit::character` is what "the unit's character" means. The fingerprint
-reads weapons.json whole, so a used key changes it by itself; `rulesOnly` (save_hash.cpp) skips an empty `"wieldedBy": []`.
+reads weapons.json whole, so a used key changes it by itself; `rulesOnly` (save_hash.cpp) skips an empty `"wieldedBy": []` and `"wieldedByTypes": []`.
+`wielderTypeIds` / `wielderTypes` (database.h) are filled in the same step as `wielders` (`resolveGearWielders`, which staves share); `meetsLockFor` holds the OR rule. The
+player needed no change: it shows the core's reason text. Tests: tests/test_srpg_locks_types.cpp.
 Player: `weaponBlockReason` (rank_text.cpp) now answers from `canWieldNow`, so the Items screen, its choice menu (Equip greyed with
 the reason), the unit details' Items page and the side panel need no code of their own; `Menu::draw` shortens an `extra` that is
 wider than the box (a phone: "Equip  Only .."; the full words are on the Items list and the details page, which also shortens
@@ -1304,6 +1317,7 @@ staff as `w`.
   "group": "staff",                            // required: what a class lists in "wields" (units.json) and ranks are kept in
   "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp 0..99, default 1
   "wieldedBy": ["mara"],                       // optional character lock, as on a weapon (needs characters)
+  "wieldedByTypes": ["cleric"],                // optional unit type lock, as on a weapon (character OR type)
   "props": { "power": 6 },                     // optional numbers a formula reads as w.power
   "uses": 8, "price": { "gold": 400 },         // as every item; no "uses" = unlimited
   "range": "1 + a.mag / 3",                    // reach, see below. Default [1, 1]

@@ -75,7 +75,7 @@ list (as before: now "can use", not "has"), or if the weapon's optional
 A weapon can also be limited to named people with weapons.json `"wieldedBy": ["kell"]` (characters, docs/SRPG.md "Character-locked
 weapons"): the class test above must still pass, then the unit's character must be on the list. The weapon can be carried, traded
 and stored by anyone; it is greyed ("Only Kell can wield this") for everyone else. Core: `WeaponDef::wielders`,
-`Battle::meetsCharacterLock`.
+`Battle::meetsCharacterLock`. `"wieldedByTypes": ["knight"]` limits it to unit types the same way; with both keys a unit passes by either.
 
 ### Starting items
 
@@ -175,7 +175,7 @@ docs/SRPG.md (sections 1 to 3 and "Demo and template content").
 
 ## Staves
 
-An item of `"kind": "staff"` is a staff: a unit **wields** it by group and rank like a weapon (`"group"`, `"rank"`, `"wieldedBy"`, the unit
+An item of `"kind": "staff"` is a staff: a unit **wields** it by group and rank like a weapon (`"group"`, `"rank"`, `"wieldedBy"`, `"wieldedByTypes"`, the unit
 type's `"wields"`) and **uses it on another unit at range** as its action (`"range"`, `"target"`, `"area"`, `"effects"` such as a heal, an
 optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and saves are the item's own (everything above). Stage 1
 (healing) is built; the whole contract, including the later stages, is docs/SRPG.md section 8. It is not a `usable` item: the Items
