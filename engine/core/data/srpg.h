@@ -65,6 +65,7 @@ struct CharacterDef {
   bool hasItems = false;          // "items" was written: replaces the unit type's starting items
   std::vector<ItemGrant> items;
   // Weapon ranks and stat caps (docs/SRPG.md section 7); empty when the character says nothing.
+  std::vector<std::string> wields;  // extra weapon groups it can wield beyond its class's (docs/SRPG.md section 7); only ever adds
   std::vector<int> rankStart;     // per RankRules::groups index: personal weapon experience (the higher of it and the class's wins)
   std::vector<int> capAdjust;     // per stat index: added to the cap the class / game gives (may be negative)
 };

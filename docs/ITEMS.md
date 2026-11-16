@@ -70,7 +70,8 @@ A unit type can wield a weapon if the weapon is in the type's `weapons`
 list (as before: now "can use", not "has"), or if the weapon's optional
 `"group"` (weapons.json, e.g. `"sword"`) is in the type's optional
 `"wields"` list (units.json). Core: `WeaponDef::group`,
-`UnitTypeDef::wields`, `Database::canWield(unitType, weapon)`.
+`UnitTypeDef::wields`, `Database::canWield(unitType, weapon, character)`. A character (data/characters.json) may also list
+`"wields": ["bow"]`: extra groups for that person only, on top of the class's (docs/SRPG.md section 7).
 
 A weapon can also be limited to named people with weapons.json `"wieldedBy": ["kell"]` (characters, docs/SRPG.md "Character-locked
 weapons"): the class test above must still pass, then the unit's character must be on the list. The weapon can be carried, traded

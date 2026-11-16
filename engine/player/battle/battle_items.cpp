@@ -90,7 +90,7 @@ void BattleScene::openChoiceMenu() {
   std::vector<MenuItem> items;
   if (!targets.empty()) items.push_back({"Use", "", true, kUse});
   if (session_.db.rules.items.carriedWeapons && d.kind == ItemKind::Weapon &&
-      session_.db.canWield(u.type, d.weapon) && itemSlot_ != battle_.equippedSlot(u)) {
+      session_.db.canWield(u.type, d.weapon, u.character) && itemSlot_ != battle_.equippedSlot(u)) {
     const std::string why = weaponBlockReason(battle_, u, u.items[(size_t)itemSlot_]);  // "Needs rank B": greyed, not chosen
     items.push_back({"Equip", why, why.empty(), kEquip});
   }

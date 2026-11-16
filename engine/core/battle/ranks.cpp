@@ -37,7 +37,7 @@ bool Battle::meetsRankFor(const Unit& u, const WeaponDef& w, std::string* why) c
 }
 
 bool Battle::canWieldNow(const Unit& u, int weapon, std::string* why) const {
-  if (!db->canWield(u.type, weapon)) {
+  if (!db->canWield(u.type, weapon, u.character)) {
     if (why) *why = "the unit cannot wield that";
     return false;
   }

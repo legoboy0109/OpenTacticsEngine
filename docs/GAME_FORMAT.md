@@ -327,7 +327,7 @@ docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
 
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a
-weapon (needs a `group`), `"ranks"` and `"caps"` on a unit type, `"ranks"` and `"capAdjust"` on a character, `"ranks"` on a map unit.
+weapon (needs a `group`), `"ranks"` and `"caps"` on a unit type, `"ranks"`, `"capAdjust"` and `"wields"` (extra weapon groups) on a character, `"ranks"` on a map unit.
 A unit whose rank is too low carries a weapon but cannot equip or attack with it. A file with an empty ladder / empty `caps` is the
 same game as no file.
 

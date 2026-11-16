@@ -159,6 +159,7 @@ identity that events, the campaign roster and supports use.
     "skills": ["quick_study"],                    // optional: personal skills (section 3)
     "learns": [ { "level": 8, "skill": "heavy_blow" } ],   // optional: personal skills learned at a level
     "abilities": ["shove"],                       // optional: personal menu abilities (section 4)
+    "wields": ["bow"],                            // optional: weapon groups it can wield beyond its class's (section 7)
     "items": ["iron_sword", "salve"] }        // optional: replaces the unit type's starting items
 ] }
 ```
@@ -1080,6 +1081,13 @@ is at the lowest rank. Both growth modes use this one number; with `"fixed"` it 
   weapon (the first inventory weapon the unit can wield *now*) and the AI all follow. Giving, taking, storing,
   buying and discarding never check ranks. The refusal text is `Needs rank B` (the ladder's display name).
   Nothing about "wieldable now" is stored: a rank-up makes a carried weapon usable at once.
+- *A character's own groups:* `characters.json` `"wields": ["bow"]` (the same list of group names as a unit type's `wields`,
+  docs/ITEMS.md "Who can wield what") lets that character wield those groups **in addition** to whatever its class can; it never
+  removes one. A unit takes it with its character (so after a promotion too), a generic unit has none. It is part of the class
+  side of the one wield test (`Database::canWield(type, weapon, character)`, used by `Battle::canWieldNow` and `canWieldStaff`), so
+  locks and ranks still apply on top, and attack options, forecasts, counters, the equipped weapon, `Equip`, the AI and the player's
+  greyed rows all follow. A staff group works the same (`"wields": ["staff"]`). Like the class key, group names are not checked
+  against the weapons (a misspelt group simply grants nothing).
 - *Formulas:* unit tables gain `rank`, a table of group id to rank index (0 = lowest), only in a game with ranks:
   `a.rank.sword >= 2`.
 - *Story commands:* none in this version (see "Not in this version").

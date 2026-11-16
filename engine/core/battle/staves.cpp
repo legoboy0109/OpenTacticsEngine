@@ -31,7 +31,7 @@ bool Battle::canWieldStaff(const Unit& u, int item, std::string* why) const {
     if (why) *why = "that is not a staff";
     return false;
   }
-  if (!db->canWieldGroup(u.type, s->gear.group)) {
+  if (!db->canWieldGroup(u.type, s->gear.group, u.character)) {
     if (why) *why = "the unit cannot wield that";
     return false;
   }

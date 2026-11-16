@@ -27,16 +27,19 @@ int Database::findStructure(const std::string& id) const { return findById(struc
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }
 int Database::findItem(const std::string& id) const { return findById(items, id); }
 int Database::findTechnology(const std::string& id) const { return findById(research, id); }
-bool Database::canWield(int unitType, int weapon) const {
+bool Database::canWield(int unitType, int weapon, int character) const {
   const UnitTypeDef& t = unitTypes[(size_t)unitType];
   for (int w : t.weapons)
     if (w == weapon) return true;
-  return canWieldGroup(unitType, weapons[(size_t)weapon].group);
+  return canWieldGroup(unitType, weapons[(size_t)weapon].group, character);
 }
-bool Database::canWieldGroup(int unitType, const std::string& group) const {
+bool Database::canWieldGroup(int unitType, const std::string& group, int character) const {
   if (group.empty()) return false;
   for (const std::string& g : unitTypes[(size_t)unitType].wields)
     if (g == group) return true;
+  if (character >= 0)
+    for (const std::string& g : characters[(size_t)character].wields)
+      if (g == group) return true;
   return false;
 }
 int Database::findUnitType(const std::string& id) const { return findById(unitTypes, id); }
