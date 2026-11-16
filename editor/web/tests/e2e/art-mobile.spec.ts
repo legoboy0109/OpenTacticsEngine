@@ -4,15 +4,17 @@ import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fix
 
 test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })
 test.skip(({ browserName }) => browserName !== 'chromium', 'touch emulation is Chromium-only')
+const NAV = 16 // every section the editor has, the four strategy-RPG ones included
 
-test('the section switcher still fits with Skills, Items, Structures, Research, Art, Sound and Campaign in it: every label is whole', async ({ page, game }) => {
-  const id = await game.create('strategy-rpg', 'Phone Art Nav')
+test('the section switcher still fits with every section in it (the real strategy-rpg template: Characters, Skills, Abilities, Supports too): every label is whole', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'Phone Art Nav', { srpgContent: true })
   await page.goto(editorUrl(id, 'game'))
   await expectNoHScroll(page)
   const links = page.getByRole('navigation', { name: 'Sections' }).getByRole('link')
   await expect(links.first()).toBeVisible()
-  expect(await links.count()).toBe(13)
-  for (let i = 0; i < 13; i++) {
+  const n = await links.count()
+  expect(n).toBe(NAV)
+  for (let i = 0; i < n; i++) {
     const clipped = await links.nth(i).evaluate((el) => el.scrollWidth > el.clientWidth + 1)
     expect(clipped, await links.nth(i).innerText()).toBe(false)
   }
