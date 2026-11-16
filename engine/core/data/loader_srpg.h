@@ -49,7 +49,15 @@ bool resolveSkillRefs(const std::string& root, Database& db, std::string& err); 
 bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err);    // loader_abilities.cpp (A1)
 bool resolvePromotionRefs(const std::string& root, Database& db, std::string& err);  // loader_promotion.cpp (P1)
 bool resolveCharacterRefs(const std::string& root, Database& db, std::string& err);  // loader_characters.cpp (C1)
-bool resolveSupportRefs(const std::string& root, Database& db, std::string& err);    // loader_supports.cpp (S1)
+bool resolveSupportRefs(const std::string& root, Database& db, std::string& err);    // loader_supports_story.cpp (S1)
+
+// ---- supports in stories and scenes (loader_supports_story.cpp, step S1) ----
+// `v` = ["eirik", "lyra"]: two known characters; `pair` = their support pair when `db.supports` has it, else -1
+// (`known` = false then; the message says which). `what` names the key in messages.
+bool readSupportCharacters(const LoadCtx& c, const Database& db, const Json& v, const std::string& where, const char* what,
+                           std::string& a, std::string& b);
+std::string notASupportPair(const std::string& a, const std::string& b);
+bool parseCmpOp(const std::string& text, CmpOp& op);  // = == != < <= > >=
 
 // ---- skill blocks (loader_skill_blocks.cpp, step K1) ----
 // Where a condition list is read decides which conditions it may hold: `foe` = "who": "foe" is allowed, `foePoint` =

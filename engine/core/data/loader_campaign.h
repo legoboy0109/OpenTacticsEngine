@@ -38,6 +38,10 @@ class CampaignLoader {
  private:
   bool command(const Json& e, const std::string& where, bool allowGoto, SceneCommand& out);
   bool condition(const Json& e, const std::string& where, SceneCondition& out) const;
+  // Strategy-RPG supports (docs/SRPG.md), loader_supports_story.cpp. The pair is only checked once supports.json is
+  // loaded (resolveSupportRefs), because campaign.json is read before it.
+  bool supportCommand(const Json& e, const std::string& where, SceneCommand& out);
+  bool supportCondition(const Json& e, const std::string& where, SceneCondition& out) const;
 
   const Database& db_;
   LoadCtx c_;

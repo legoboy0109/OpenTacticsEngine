@@ -61,6 +61,10 @@ struct SceneRun {
         const RosterUnit* r = pt.findUnit(c.unit);
         return r && r->gone;
       }
+      case SceneCondition::Kind::Support: {
+        const int pair = db.findSupportPair(db.findCharacter(c.unit), db.findCharacter(c.with));
+        return pair >= 0 && (size_t)pair < pt.supports.level.size() && compare(c.op, pt.supports.level[(size_t)pair], c.value);
+      }
     }
     return false;
   }
@@ -109,6 +113,7 @@ struct SceneRun {
         break;
       }
       case K::Goto: gotoChapter = c.chapter; break;
+      case K::AddSupport: sceneAddSupport(db, pt, db.findSupportPair(db.findCharacter(c.unit), db.findCharacter(c.with)), c.value); break;
       case K::PlayMusic:
       case K::StopMusic:
       case K::PlaySound: {  // presentation only: nothing in the playthrough changes

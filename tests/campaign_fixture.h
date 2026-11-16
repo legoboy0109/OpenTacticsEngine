@@ -128,7 +128,9 @@ struct Game {
   Formulas formulas;
   std::string dir;
   std::string keepJson;  // replaces the keep map when set
+  std::string fordJson, millJson;  // replace the ford / mill maps when set (maps whose units are characters, docs/SRPG.md)
   std::string researchJson;  // data/research.json when set (else the game has no research)
+  std::string charactersJson, supportsJson;  // data/characters.json / data/supports.json when set (docs/SRPG.md)
 
   static bool write(const std::string& path, const std::string& text) { return writeTextFile(path, text); }
 
@@ -138,12 +140,18 @@ struct Game {
     makeDir(dir + "/maps");
     bool ok = write(dir + "/game.json", kGameJson) && write(dir + "/data/weapons.json", kWeapons) &&
               write(dir + "/data/terrain.json", kTerrain) && write(dir + "/data/units.json", kUnits) &&
-              write(dir + "/data/items.json", kItems) && write(dir + "/maps/ford.json", fordMap()) &&
-              write(dir + "/maps/mill.json", millMap()) && write(dir + "/maps/keep.json", keepJson.empty() ? keepMap() : keepJson) &&
+              write(dir + "/data/items.json", kItems) && write(dir + "/maps/ford.json", fordJson.empty() ? fordMap() : fordJson) &&
+              write(dir + "/maps/mill.json", millJson.empty() ? millMap() : millJson) && write(dir + "/maps/keep.json", keepJson.empty() ? keepMap() : keepJson) &&
               write(dir + "/maps/skirmish.json", skirmishMap());
     std::string researchPath = dir + "/data/research.json";
     if (researchJson.empty()) removeFile(researchPath);
     else ok = ok && write(researchPath, researchJson);
+    for (const char* name : {"characters", "supports"}) {
+      const std::string& text = name[0] == 'c' ? charactersJson : supportsJson;
+      const std::string path = dir + "/data/" + name + ".json";
+      if (text.empty()) removeFile(path);
+      else ok = ok && write(path, text);
+    }
     std::string campPath = dir + "/data/campaign.json";
     if (campaign.empty()) removeFile(campPath);
     else ok = ok && write(campPath, campaign);
