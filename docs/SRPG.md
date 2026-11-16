@@ -98,6 +98,11 @@ A unit table gains one field: `character` (the character id, `nil` for a unit wi
 run time counts as 0 / false and is logged once, like the others. A syntax error is a load error naming the place:
 `data/skills.json: skill "heavy_blow": block 1: "chance": <Lua message>`.
 
+**A weapon's id and group.** Besides its `props` (numbers), `w` and `fw` carry the weapon's `id` and `group` as
+text, so a formula can write `w.group == "sword"` or `fw.id == "iron_lance"` without a number prop per kind. A weapon
+without a group has `group = ""`; the empty `fw` (below) has `id = ""` and `group = ""`, so such comparisons are simply
+false. A prop a game named `id` or `group` itself wins over these.
+
 **`fw`, the foe's weapon** (an eighth variable, after `vs`): the numbers (`props`) of the weapon the *other* fighter
 fights with, in the same shape as `w`. In a strike `a` makes, `w` is `a`'s weapon and `fw` the weapon `b` answers
 with (its answering weapon, "Combat pipeline" step 1); in the counterattack the roles swap: `a` is the defender,

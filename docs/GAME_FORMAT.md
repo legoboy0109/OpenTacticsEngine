@@ -329,8 +329,8 @@ Formulas are Lua expressions. Variables:
 |--------|---------|
 | `a`    | acting unit: every stat by id, plus `hp` (current), `maxhp`, `level`, `xp`, `type`, `name`, `tags.<tag>` |
 | `b`    | the other unit (same fields); nil for `capture.amount` |
-| `w`    | the weapon's `props` |
-| `fw`   | the `props` of the weapon the other fighter fights with (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). Weapon triangle example: docs/SRPG.md "Formulas in this document" |
+| `w`    | the weapon: its `props` as numbers, plus `id` and `group` as text (`w.group == "sword"`; group `""` when it has none) |
+| `fw`   | the weapon the other fighter fights with, shaped like `w`: its `props` as numbers plus `id` and `group` as text (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). Weapon triangle example: docs/SRPG.md "Formulas in this document" |
 | `ta`, `tb` | the numbers of the square under `a` / `b`: the terrain's `props`, with the `props` of a structure standing there replacing numbers of the same name and adding the others |
 | `dist` | grid distance between them |
 | `vs`   | the weapon's `versus` value for `b` |

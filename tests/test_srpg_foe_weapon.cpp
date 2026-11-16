@@ -91,6 +91,19 @@ TEST(foe_weapon_a_formula_can_index_the_empty_table_freely) {
   CHECK_EQ(g.attack.damage, 5 + 5 - 2 + 6 * 2);
 }
 
+TEST(weapon_id_and_group_are_text_in_formulas) {
+  // `w` and `fw` carry the weapon's id and group as text; the empty `fw` has both as "" (so a comparison is false).
+  World w("duel", [](const std::string& dir) {
+    swapText(dir + "/game.json", "\"damage\":  \"a.str + w.might - b.def + 3 * tri(w, fw)\"",
+             "\"damage\":  \"(w.group == 'sword' and 1 or 0) + (w.id == 'iron_sword' and 10 or 0) + (fw.group == 'axe' and 100 or 0)"
+             " + (fw.id == 'iron_lance' and 1000 or 0) + (fw.group == '' and 10000 or 0)\"");
+  });
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").attack.damage, 1 + 10 + 100);
+  CHECK_EQ(w.forecast("sw", "la", "iron_sword").attack.damage, 1 + 10 + 1000);
+  CHECK_EQ(w.forecast("sw", "mk", "iron_sword").attack.damage, 1 + 10 + 10000);  // the monk answers with nothing
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").counter.damage, 0 + 0 + 0 + 0 + 0);  // the axe's turn: w = axe, fw = sword
+}
+
 TEST(foe_weapon_skill_conditions_and_chances_see_it) {
   World w("duel", [](const std::string& dir) {
     writeTextFile(dir + "/data/skills.json", R"({ "skills": [

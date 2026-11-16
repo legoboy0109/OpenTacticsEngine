@@ -116,13 +116,28 @@ static void pushProps(lua_State* L, const Props* props) {
   }
 }
 
+// A weapon as formulas see it (`w`, `fw`): its props as numbers, plus `id` and `group` as text (group "" when the
+// weapon has none), so a formula can ask `w.group == "sword"`. A prop the maker named "id" or "group" wins, as before.
+static void pushWeapon(lua_State* L, const WeaponDef* w) {
+  if (!w) { pushProps(L, nullptr); return; }
+  lua_createtable(L, 0, (int)w->props.size() + 2);
+  lua_pushstring(L, w->id.c_str()); lua_setfield(L, -2, "id");
+  lua_pushstring(L, w->group.c_str()); lua_setfield(L, -2, "group");
+  for (const NamedNumber& n : w->props) {
+    lua_pushnumber(L, n.value);
+    lua_setfield(L, -2, n.key.c_str());
+  }
+}
+
 // `fw`: the props of the foe's weapon like `w`; without one an empty table marked `none = 1` whose missing numbers
 // read 0 (see emptyWeaponMeta_), so a formula can test `fw.none` or just compute with it.
 void Formulas::pushFoeWeapon(const WeaponDef* fw) {
-  if (fw) { pushProps(L_, &fw->props); return; }
-  lua_createtable(L_, 0, 1);
+  if (fw) { pushWeapon(L_, fw); return; }
+  lua_createtable(L_, 0, 3);
   lua_pushinteger(L_, 1);
   lua_setfield(L_, -2, "none");
+  lua_pushstring(L_, ""); lua_setfield(L_, -2, "id");     // strings, so `fw.group == "sword"` is simply false
+  lua_pushstring(L_, ""); lua_setfield(L_, -2, "group");
   lua_rawgeti(L_, LUA_REGISTRYINDEX, emptyWeaponMeta_);
   lua_setmetatable(L_, -2);
 }
@@ -185,7 +200,7 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_rawgeti(L_, LUA_REGISTRYINDEX, ref);
   pushUnit(ctx.a, ctx, ctx.bonusA);
   pushUnit(ctx.b, ctx, ctx.bonusB);
-  pushProps(L_, ctx.w ? &ctx.w->props : nullptr);
+  pushWeapon(L_, ctx.w);
   pushProps(L_, ctx.ta);
   pushProps(L_, ctx.tb);
   lua_pushinteger(L_, ctx.dist);
