@@ -2553,7 +2553,7 @@ Each E step's acceptance is its vitest and Playwright tests of "Tests" and scree
 
 ### D1. Demo and template content — depends on K2, P1, A1, R1, S1, AI1 (content), U1–U5 (player tests)
 The section "Demo and template content", the fixtures not yet made, the sims, updating the demo's pins, CREDITS
-unchanged (no new art is required: new unit types reuse existing sprites until art is made).
+unchanged (D1 needed no new art: the new unit types reused existing sprites; they have art of their own now, see docs/GRAPHICS.md).
 
 #### D1 as built
 
@@ -2587,8 +2587,9 @@ names only). The prose "pegasus knight" is "sky rider".
 - `data/supports.json`: four pairs, two levels each, `levelNames` C/B/A, `maxLevels` 3, all three point sources on
   (5 / 3 / 4), `conversations: "both"`; Eirik and Kell start at 10 points. Chapter 1's after scene adds 15 points for Eirik
   and Sera when she joined; chapter 2 has a `support` trigger event (Eirik and Kell).
-- Graphics: the new unit types draw as the type they grow from (`tools/art/art_units.py` `ALIASES`, models too); portraits
-  follow map units with a `character`. `make_starter_art.py` was re-run (only `games/demo-srpg` and the template changed).
+- Graphics: the new unit types first drew as the type they grow from (`art_units.py` `ALIASES`); they now have art of
+  their own in every style (docs/GRAPHICS.md "Unit pictures and models of the story demo"), and `ALIASES` is gone.
+  Portraits follow map units with a `character`. `make_starter_art.py` was re-run (only `games/demo-srpg` and the template changed).
 
 **Template (`editor/templates/strategy-rpg`).** `data/skills.json` is the thirty starter skills, exactly as the table of
 section 3 (stats `str`, `skl`, `spd`, `def`; `hp` and `mov` for Tough and Light Step) with a description each; Lord has

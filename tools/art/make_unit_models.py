@@ -853,6 +853,11 @@ UNIT_BUILDERS = {
     'soldier': (soldier, lambda M: foot_clips(M, style='spear', alpha=15, shield=True)),
     'sky_rider': (sky_rider, lambda M: mount_clips(M, 40, wings=True)),
 }
+# The promoted and summoned types live in unit_models_promoted.py, which builds on everything above. When this
+# file runs as a script it is "__main__": register it under its own name so that module's import finds this one.
+sys.modules.setdefault('make_unit_models', sys.modules[__name__])
+import unit_models_promoted as promoted  # noqa: E402
+UNIT_BUILDERS.update(promoted.BUILDERS)
 UNIT_ORDER = list(UNIT_BUILDERS)
 
 
@@ -981,14 +986,16 @@ def check_file(path, uid):
         assert 'skins' not in doc and 'animations' not in doc and len(doc['nodes']) == 1
         assert 60 <= tris <= 600, tris
     else:
-        assert 150 <= tris <= 600, 'triangle count %d' % tris
+        assert 150 <= tris <= 800, 'triangle count %d' % tris
         assert len(doc['skins']) == 1
         names = [n['name'] for n in doc['nodes']]
         skin = doc['skins'][0]
         ibm = read_acc(doc, binary, skin['inverseBindMatrices'])
         assert len(ibm) == len(skin['joints'])
         assert doc['nodes'][-1].get('skin') == 0 and 'mesh' in doc['nodes'][-1]
-        for need in ('root', 'spine', 'head', 'arm_l', 'arm_r'):
+        quad = uid in promoted.QUADRUPEDS
+        for need in (('root', 'spine', 'head', 'tail', 'leg_fl', 'leg_fr', 'leg_bl', 'leg_br') if quad else
+                     ('root', 'spine', 'head', 'arm_l', 'arm_r')):
             assert need in names
         clips = {a['name']: a for a in doc['animations']}
         assert set(clips) == {'Idle', 'Move', 'Attack', 'Die'}, set(clips)
@@ -1032,14 +1039,18 @@ def check_file(path, uid):
     hj = skin['joints'][names.index('head')]
     eyes = [v for v in verts if v[1] == hj and v[2] == EYE]
     hz = [v[0][2] for v in verts if v[1] == hj]
+    if quad:      # a dog's head is long: its eyes sit in the front half of the animal instead
+        assert eyes and sum(v[0][2] for v in eyes) / len(eyes) > 0.3, 'face does not look to +Z'
+        assert height < 0.95 and wid < 0.7 and 0.9 < dep < 1.4, (height, wid, dep)
+        return dict(tris=tris, height=height, width=wid, depth=dep, joints=names[:-1], clips=dur, side=side / len(verts))
     assert eyes and sum(v[0][2] for v in eyes) / len(eyes) > sum(hz) / len(hz), 'face does not look to +Z'
     if 'neck' in names:       # mounted: the horse's head is in front of its body
         nj = names.index('neck')
         nz = [v[0][2] for v in verts if v[1] == nj]
         assert sum(nz) / len(nz) > 0.2
-        assert height < 2.1 and (max(v[0][2] for v in body) - min(v[0][2] for v in body)) < 1.85
+        assert height < 2.2 and (max(v[0][2] for v in body) - min(v[0][2] for v in body)) < 1.85
     else:
-        assert height < 1.75 and wid < 1.1 and dep < 1.0, (height, wid, dep)
+        assert height < 1.9 and wid < 1.3 and dep < 1.2, (height, wid, dep)
     wj = names.index('weapon') if 'weapon' in names else names.index('bow')
     wz = [v[0][2] for v in verts if v[1] == wj]
     # the held thing is in front of the torso's back

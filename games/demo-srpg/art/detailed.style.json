@@ -117,38 +117,38 @@
           "sideMaterial": ""
         },
         "captain": {
-          "model": "models/detailed/lord.glb",
-          "height": 1.15,
-          "sideMaterial": ""
-        },
-        "lancer": {
-          "model": "models/detailed/cavalier.glb",
-          "height": 1.532,
-          "sideMaterial": ""
-        },
-        "outrider": {
-          "model": "models/detailed/cavalier.glb",
-          "height": 1.532,
-          "sideMaterial": ""
-        },
-        "marksman": {
-          "model": "models/detailed/archer.glb",
-          "height": 1.15,
+          "model": "models/detailed/captain.glb",
+          "height": 1.626,
           "sideMaterial": ""
         },
         "brute": {
-          "model": "models/detailed/fighter.glb",
-          "height": 1.15,
+          "model": "models/detailed/brute.glb",
+          "height": 1.742,
           "sideMaterial": ""
         },
         "houndmaster": {
-          "model": "models/detailed/soldier.glb",
-          "height": 1.515,
+          "model": "models/detailed/houndmaster.glb",
+          "height": 1.241,
+          "sideMaterial": ""
+        },
+        "marksman": {
+          "model": "models/detailed/marksman.glb",
+          "height": 1.329,
+          "sideMaterial": ""
+        },
+        "lancer": {
+          "model": "models/detailed/lancer.glb",
+          "height": 1.764,
+          "sideMaterial": ""
+        },
+        "outrider": {
+          "model": "models/detailed/outrider.glb",
+          "height": 1.478,
           "sideMaterial": ""
         },
         "hound": {
-          "model": "models/detailed/fighter.glb",
-          "height": 1.15,
+          "model": "models/detailed/hound.glb",
+          "height": 0.78,
           "sideMaterial": ""
         }
       }
