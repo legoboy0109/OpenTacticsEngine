@@ -1,0 +1,4 @@
+{ "items": [
+  { "id": "potion", "name": "Potion", "kind": "usable", "uses": 3, "heal": 5 },
+  { "id": "charm",  "name": "Charm",  "kind": "accessory", "skills": ["lucky_charm"] },
+  { "id": "amulet", "name": "Amulet", "kind": "accessory", "bonus": { "hp": 2 }, "skills": ["tough", "lucky_charm"] } ] }

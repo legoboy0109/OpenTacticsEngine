@@ -1,0 +1,5 @@
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "type": "hero", "level": 3, "skills": ["bold"],
+    "learns": [ { "level": 3, "skill": "gifted" }, { "level": 4, "skill": "heavy_blow" } ] },
+  { "id": "gorm", "name": "Gorm", "type": "grunt" },
+  { "id": "lyra", "name": "Lyra", "type": "hero" } ] }

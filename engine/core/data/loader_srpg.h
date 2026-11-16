@@ -51,4 +51,22 @@ bool resolvePromotionRefs(const std::string& root, Database& db, std::string& er
 bool resolveCharacterRefs(const std::string& root, Database& db, std::string& err);  // loader_characters.cpp (C1)
 bool resolveSupportRefs(const std::string& root, Database& db, std::string& err);    // loader_supports.cpp (S1)
 
+// ---- skill blocks (loader_skill_blocks.cpp, step K1) ----
+// Where a condition list is read decides which conditions it may hold: `foe` = "who": "foe" is allowed, `foePoint` =
+// "initiating" and "distance" are (there is a combat), `formula` = "formula" is. `place` finishes the message
+// "... cannot be used <place>". A menu ability's "if" (A1) uses the same reader with its own scope.
+struct SkillCondScope {
+  bool foe, foePoint, formula;
+  const char* place;
+};
+// Reads a list of conditions into `out`. `where` names the owner (`skill "x": block 1`); `labelPrefix` starts the
+// label of a formula ("data/skills.json: "), see ExprDef.
+bool readSkillConds(const LoadCtx& c, Database& db, const Json& list, const std::string& where, const SkillCondScope& scope,
+                    const std::string& labelPrefix, std::vector<SkillCond>& out);
+// One block of a skill. `where` is `skill "x": block 2`.
+bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::string& where, const std::string& labelPrefix,
+                    SkillBlock& out);
+// After everything is loaded: do the weapon, terrain, structure and unit keys of the conditions exist?
+bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& where, const std::vector<SkillCond>& conds);
+
 }  // namespace ote

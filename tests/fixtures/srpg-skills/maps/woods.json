@@ -1,0 +1,7 @@
+{ "name": "Woods", "grid": { "type": "square", "width": 7, "height": 3 }, "legend": { ".": "plain", "f": "forest", "#": "wall" },
+  "tiles": [".f.....", ".fff...", ".f....#"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [ { "type": "fort", "x": 6, "y": 0 } ],
+  "units": [
+    { "id": "scout", "type": "hero", "side": "blue", "x": 0, "y": 1 },
+    { "type": "grunt", "side": "red", "x": 6, "y": 1 } ] }

@@ -1,0 +1,9 @@
+{ "units": [
+  { "id": "hero", "name": "Hero", "moveType": "foot", "stats": { "hp": 20, "atk": 6, "skl": 4, "def": 3, "mov": 4 },
+    "growths": { "hp": 100, "atk": 40 }, "weapons": ["sword"], "tags": ["lord"],
+    "skills": ["steady_recovery"],
+    "learns": [ { "level": 3, "skill": "light_step" }, { "level": 2, "skill": "fast_learner" } ] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 8, "atk": 3, "skl": 1, "def": 1, "mov": 3 },
+    "growths": { "hp": 50 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 10, "atk": 4, "skl": 3, "def": 1, "mov": 3 },
+    "weapons": ["bow"] } ] }
