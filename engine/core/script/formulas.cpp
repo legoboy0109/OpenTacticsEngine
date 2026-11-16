@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -63,6 +63,10 @@ bool Formulas::init(const Database& db, std::string& err) {
   L_ = luaL_newstate();
   if (!L_) { err = "out of memory creating Lua state"; return false; }
   openSandboxedLibs(L_);
+  // Metatable of an empty `fw`: `fw.might + 1` must not raise, so a missing number reads 0. (A real weapon's table
+  // has no metatable: a prop it lacks is nil, like in `w`.)
+  luaL_dostring(L_, "return { __index = function() return 0 end }");
+  emptyWeaponMeta_ = luaL_ref(L_, LUA_REGISTRYINDEX);
 
   for (const std::string& rel : db.scripts) {
     std::string path = db.rootPath + "/" + rel;
@@ -110,6 +114,17 @@ static void pushProps(lua_State* L, const Props* props) {
     lua_pushnumber(L, n.value);
     lua_setfield(L, -2, n.key.c_str());
   }
+}
+
+// `fw`: the props of the foe's weapon like `w`; without one an empty table marked `none = 1` whose missing numbers
+// read 0 (see emptyWeaponMeta_), so a formula can test `fw.none` or just compute with it.
+void Formulas::pushFoeWeapon(const WeaponDef* fw) {
+  if (fw) { pushProps(L_, &fw->props); return; }
+  lua_createtable(L_, 0, 1);
+  lua_pushinteger(L_, 1);
+  lua_setfield(L_, -2, "none");
+  lua_rawgeti(L_, LUA_REGISTRYINDEX, emptyWeaponMeta_);
+  lua_setmetatable(L_, -2);
 }
 
 void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus) {
@@ -175,8 +190,9 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   pushProps(L_, ctx.tb);
   lua_pushinteger(L_, ctx.dist);
   lua_pushnumber(L_, ctx.vs);
+  pushFoeWeapon(ctx.fw);
   double result = def;
-  if (lua_pcall(L_, 7, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 8, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

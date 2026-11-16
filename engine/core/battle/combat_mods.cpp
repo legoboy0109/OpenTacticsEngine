@@ -110,6 +110,9 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   if (!own.stats.empty()) ctx.bonusA = &own.stats;
   if (!foe.stats.empty()) ctx.bonusB = &foe.stats;
   ctx.w = &db->weapons[weapon];
+  // The other fighter's weapon: the answering weapon when attacking, the attacker's weapon in a counter (-1 = none).
+  const int foeWeapon = counter ? setup.weaponA : setup.weaponD;
+  if (foeWeapon >= 0) ctx.fw = &db->weapons[(size_t)foeWeapon];
   Props scratchA, scratchB;  // outlive the formula calls below
   ctx.ta = &numbersAt(atkCell, scratchA);
   ctx.tb = &numbersAt(defCell, scratchB);

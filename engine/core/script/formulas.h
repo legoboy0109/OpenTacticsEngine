@@ -25,6 +25,10 @@ struct FormulaCtx {
   const Unit* a = nullptr;
   const Unit* b = nullptr;
   const WeaponDef* w = nullptr;
+  // The weapon the OTHER fighter fights with (`fw` in a formula, docs/SRPG.md "Foe's weapon"): its answering weapon
+  // when `a` strikes, the attacker's weapon in a counter. Null = none (unarmed, cannot wield, out of ammunition) or
+  // a context without a fight: the formula then sees the "empty" table (`fw.none`), never nil.
+  const WeaponDef* fw = nullptr;
   // Numbers of the square under `a` / `b` (Battle::numbersAt: terrain merged with structure).
   const Props* ta = nullptr;
   const Props* tb = nullptr;
@@ -70,10 +74,12 @@ class Formulas {
  private:
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
   double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def, bool nilIsZero = false);
+  void pushFoeWeapon(const WeaponDef* fw);
   void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus);
 
   const Database* db_ = nullptr;
   lua_State* L_ = nullptr;
+  int emptyWeaponMeta_ = 0;     // registry ref: metatable of an empty `fw` (every missing number reads 0)
   int refs_[kSlotCount];        // 0 = not defined
   bool warned_[kSlotCount];
   std::vector<int> weaponRefs_; // per weapon; 0 = no override

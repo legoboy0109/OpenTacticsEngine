@@ -98,6 +98,33 @@ A unit table gains one field: `character` (the character id, `nil` for a unit wi
 run time counts as 0 / false and is logged once, like the others. A syntax error is a load error naming the place:
 `data/skills.json: skill "heavy_blow": block 1: "chance": <Lua message>`.
 
+**`fw`, the foe's weapon** (an eighth variable, after `vs`): the numbers (`props`) of the weapon the *other* fighter
+fights with, in the same shape as `w`. In a strike `a` makes, `w` is `a`'s weapon and `fw` the weapon `b` answers
+with (its answering weapon, "Combat pipeline" step 1); in the counterattack the roles swap: `a` is the defender,
+`w` its weapon and `fw` the attacker's. It is set in the strike formulas (`damage`, weapon `damage`, `hit`, `crit`,
+`strikes`) so the forecast, the fight and the computer opponent agree, and in a skill's `formula` condition and
+`chance` expression of a combat (it is the foe's weapon in use there). Everywhere else (xp, capture, rescue, a
+condition judged outside a fight) there is no foe weapon and `fw` is empty.
+
+**No weapon** (unarmed, only a weapon it cannot wield yet - "Needs rank B" -, nothing that answers, or no fight):
+`fw` is still a table, never `nil`. It holds `none = 1`, and every other number reads 0 (`fw.might`, `fw.weight`),
+so a formula may test `fw.none` or just compute with it; with a real weapon `fw.none` is `nil` and a prop it lacks is
+`nil` like in `w`. A weapon triangle (props `kind` = 1 sword, 2 axe, 3 lance; sword beats axe beats lance beats sword):
+
+```lua
+function tri(w, fw)                         -- +1 advantage, -1 disadvantage, 0 neutral or no foe weapon
+  if fw.none or not w.kind then return 0 end
+  local d = (fw.kind - w.kind) % 3
+  return d == 1 and 1 or (d == 2 and -1 or 0)
+end
+```
+```jsonc
+"damage":  "a.str + w.might - b.def + 3 * tri(w, fw)",
+"hit":     "70 + 2 * (a.spd - b.spd) + 15 * tri(w, fw) + 2 * fw.weight",   // the foe's heavy weapon is easier to hit
+"strikes": "(a.spd - w.weight >= b.spd - fw.weight + 5) and 2 or 1"        // its weight slows the foe's attack speed
+```
+A game that never writes `fw` computes exactly as before (the extra variable costs nothing it can see).
+
 Unit stats inside every formula are the stats **as the rules see them** (`Battle::stat`): own value, accessories,
 research, standing skill bonuses, carry penalty and pair bonus; inside a combat also the combat bonuses to stats
 (see "Combat pipeline").
@@ -1144,6 +1171,22 @@ characters and map units; loaded before the weapons, groups built right after th
   `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
   Tests: `tests/test_srpg_ranks*.cpp`, `tests/test_srpg_caps.cpp`, `tests/test_srpg_player_ranks.cpp`, `tests/srpg_player_ranks_test.py`, the
   fixture `tests/fixtures/srpg-ranks`.
+
+### The foe's weapon in formulas (`fw`): as built
+
+`FormulaCtx::fw` (`formulas.h`) is pushed as the eighth chunk argument (`Formulas::pushFoeWeapon`); an empty one is a table with
+`none = 1` and a shared metatable (`emptyWeaponMeta_`) whose `__index` returns 0. Set in `Battle::strikeForecast` (the one place the
+forecast, `doStrike` and every AI score go through; foe weapon = `counter ? setup.weaponA : setup.weaponD`) and in the skill
+`formula` condition and `chance` expression (`skill_cond.cpp`, `skill_fx.cpp`, from `SkillCtx::foeWeapon`, which was already there).
+- `fw` is the foe's **answering** weapon: the first of its weapons with `counter` that may target `a` (the equipped one with carried
+  weapons, which `canWieldNow` already filters), also when it is out of range. A foe holding only a non-`counter` weapon (a bow with
+  `counter: false`) counts as having none.
+- The xp, capture and `canCarry` formulas do not have `w` either, so `fw` is empty there. Passing the fight's two weapons to the xp
+  formulas was left out.
+- Prop table only, like `w`: no `id` or `group` of the weapon is exposed (neither is for `w`).
+- The editor has no list of formula variable names (checked `editor/web/src`: no help or hint list enumerates `a`, `b`, `w`), so
+  nothing there changed.
+- Tests: `tests/test_srpg_foe_weapon.cpp`, `tests/srpg_triangle_fixture.h`, the fixture `tests/fixtures/srpg-triangle`.
 
 ---
 
