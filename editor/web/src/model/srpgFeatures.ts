@@ -1,19 +1,15 @@
 // Which strategy-RPG features a game has (docs/SRPG.md "Editor"), and how a feature is switched on or off.
-// A feature is "on" when its list / file exists in the document; switching on creates it EMPTY. An empty list is never
-// written (it removes the file, so opening a screen can not change a game's data hash), which means a feature that
-// has nothing in it yet is forgotten when the page is reloaded; that is the contract's own rule ("a game without the
-// file and a game with an empty list are the same game").
+// A feature is "on" when its list / file exists in the document; switching on creates it EMPTY, and the empty file is
+// written, so the switch stays on after a reload (owner, 2026-11-15). The engine treats an empty list as no file at
+// all (the contract's rule; `save_hash.cpp` skips it), so switching a feature on never makes a save invalid.
+// Switching off deletes the file (`false` in the save body).
 import { cleanAbility, cleanCharacter, cleanSkill } from './srpgRefs'
 import type { ProjectDoc, Section } from './types'
-import type { SrpgFeature, Supports } from './srpgTypes'
+import type { SrpgFeature } from './srpgTypes'
 
 export const SRPG_FEATURES: SrpgFeature[] = ['characters', 'skills', 'abilities', 'supports']
 
 export const srpgFeatureOn = (doc: ProjectDoc, f: SrpgFeature): boolean => doc[f] !== null
-
-/** Supports with no pair and no setting are the same as no file (see above); anything else is written. */
-export const supportsEmpty = (s: Supports): boolean =>
-  (s.pairs?.length ?? 0) === 0 && Object.entries(s).every(([k, v]) => k === 'pairs' || (k === 'rules' && Object.keys((v ?? {}) as object).length === 0))
 
 /** Supports need characters: two characters make a pair. */
 export const canSwitchOn = (doc: ProjectDoc, f: SrpgFeature): boolean => f !== 'supports' || doc.characters !== null

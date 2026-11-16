@@ -1,6 +1,7 @@
 """Strategy-RPG data checks of the ote-editor API test (docs/SRPG.md "Editor", docs/EDITOR_API.md): the sections
-characters / skills / abilities (lists, like items, but an empty list removes the file) and supports (one object, false
+characters / skills / abilities (lists, like items; an empty list is written, false removes the file) and supports (one object, false
 removes the file). Called from editor_api_test.py; uses its helpers."""
+import json as _json
 import os
 
 LISTS = {
@@ -93,13 +94,18 @@ def run_srpg_checks(api, tmp, games, templates, check, get_project, put_project)
         st, d = get_project(api, pid)
         check("srpg %s: PUT repairs a broken file" % key, st == 200 and d[key] == lst, d[key])
 
-        # an empty list removes the file; with no file it is a no-op
+        # an empty list is written (the switch stays on: owner, 2026-11-15); false removes the file
         st, res = put_project(api, pid, d, d["revision"], **{key: []})
-        check("srpg %s: PUT empty list removes the file" % key, st == 200 and not os.path.exists(path(rel)), res)
+        check("srpg %s: PUT empty list writes an empty file" % key,
+              st == 200 and os.path.exists(path(rel)) and _json.loads(raw(rel).decode()) == {key: []}, res)
+        st, d = get_project(api, pid)
+        check("srpg %s: afterwards GET is an empty list" % key, d[key] == [], d[key])
+        st, res = put_project(api, pid, d, d["revision"], **{key: False})
+        check("srpg %s: PUT false removes the file" % key, st == 200 and not os.path.exists(path(rel)), res)
         st, d = get_project(api, pid)
         check("srpg %s: afterwards GET is null (the same game as before)" % key, d[key] is None and not has_problem(d, rel), d[key])
-        st, res = put_project(api, pid, d, d["revision"], **{key: []})
-        check("srpg %s: PUT empty list with no file is fine" % key, st == 200 and not os.path.exists(path(rel)), res)
+        st, res = put_project(api, pid, d, d["revision"], **{key: False})
+        check("srpg %s: PUT false with no file is fine" % key, st == 200 and not os.path.exists(path(rel)), res)
 
         # a map may not use the file's name
         st, d = get_project(api, pid)

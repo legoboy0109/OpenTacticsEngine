@@ -1125,9 +1125,10 @@ references in the same undo step) and reordering. New sidebar entries, after Uni
 
 **Helper API** (docs/EDITOR_API.md): four new document sections, each exactly like `items`: `characters` (list;
 file `{ "characters": [...] }`), `skills` (`{ "skills": [...] }`), `abilities` (`{ "abilities": [...] }`), and
-`supports` (the file's one object, like `campaign`; `false` removes the file). An empty list removes the list file
-(a game without the file and a game with an empty list are the same game, and the hash must not change by opening a
-screen). Unknown keys and key order are kept. `GET .../problems` runs the real loader, so every refusal in this
+`supports` (the file's one object, like `campaign`; `false` removes the file). An empty list is written as an empty file and
+`false` removes a list file (owner, 2026-11-15: a feature switched on in the editor stays on; the empty file is what
+remembers it). A game without the file and a game with an empty list are still the same game: the data hash skips a
+file that holds nothing, so switching a feature on never makes a save invalid. Unknown keys and key order are kept. `GET .../problems` runs the real loader, so every refusal in this
 document reaches the Problems panel in the loader's words.
 
 **Rules screen**, card **Strategy-RPG features**: switches "This game has characters", "…skills", "…abilities",

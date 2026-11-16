@@ -147,9 +147,9 @@ empty technology list, so writing one would break the game; the project then rea
 `data/campaign.json`** (the game goes back to single battles) and any other value is `400`. `audio` works like `campaign`: an
 object is written as it is (key order and unknown keys kept), **`false` removes `data/audio.json`** ("remove all sound": the
 `audio/` files stay) and any other value is `400`. Nothing is validated on write; `/problems` runs the player's sound loader.
-**`characters`, `skills`, `abilities`** (lists; anything else is `400`) are written as `{ "<key>": [ … ] }`, but **an empty
-list removes the file** (a game without the file and a game with an empty list are the same game, and opening a screen must not
-change the data hash; removing a file that is not there is fine). **`supports`** is an object, written as it is; **`false`
+**`characters`, `skills`, `abilities`** (lists; anything else is `400`) are written as `{ "<key>": [ … ] }`, also when the list is
+empty (the editor's way of remembering that the feature is switched on; the engine's data hash skips a file that holds nothing, so
+it is still the same game as one without the file). **`false` removes the file** (removing a file that is not there is fine). **`supports`** is an object, written as it is; **`false`
 removes `data/supports.json`**; any other value is `400`. Absent or `null` leaves each file alone. A map may not use one of
 these four file names as its `file`.
 Art, model and audio files are not part of this call: they have their own endpoints below.

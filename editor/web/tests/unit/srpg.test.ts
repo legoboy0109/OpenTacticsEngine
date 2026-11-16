@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 import { problemTarget } from '../../src/model/problems'
 import type { Character } from '../../src/model/srpgTypes'
-import { canSwitchOn, featureCount, srpgSectionShown, supportsEmpty, switchOffFeature, switchOnFeature } from '../../src/model/srpgFeatures'
+import { canSwitchOn, featureCount, srpgSectionShown, switchOffFeature, switchOnFeature } from '../../src/model/srpgFeatures'
 import {
   abilityUsageLines, characterUsageLines, deleteAbility, deleteCharacter, deleteSkill, newAbilityId, newCharacterId, newSkillId,
   skillUsageLines,
@@ -46,32 +46,32 @@ describe('strategy-RPG sections in the document', () => {
     const body = buildBody(d, d, 'r', true)!
     for (const k of ['characters', 'skills', 'abilities', 'supports']) expect(body).not.toHaveProperty(k)
   })
-  it('sends a list when it changed and an empty list (= remove the file) when it went back to none', () => {
+  it('sends a list when it changed and false (= remove the file) when it went back to none', () => {
     const a = base()
     const b = withCharacters(a, (l) => [...l, chars[0]])
     expect(buildBody(b, a, 'r', false)!.characters).toEqual([chars[0]])
-    expect(buildBody(a, b, 'r', false)!.characters).toEqual([])
+    expect(buildBody(a, b, 'r', false)!.characters).toBe(false)
     expect(buildBody(a, b, 'r', false)).not.toHaveProperty('skills')
   })
-  it('switching a feature on sends an empty list, which the helper turns into "no file"', () => {
+  it('switching a feature on sends an empty list, which the helper writes so the switch is remembered', () => {
     const a = base()
     const on = switchOnFeature(a, 'skills')
     expect(on.skills).toEqual([])
     expect(buildBody(on, a, 'r', false)!.skills).toEqual([])
   })
-  it('supports: the object when it has content, false when removed or empty', () => {
+  it('supports: the object while switched on (also when empty), false when removed', () => {
     const a = base()
     const withPair = { ...a, supports: { pairs: [{ a: 'x', b: 'y' }] } }
     expect(buildBody(withPair, a, 'r', false)!.supports).toEqual({ pairs: [{ a: 'x', b: 'y' }] })
     expect(buildBody(a, withPair, 'r', false)!.supports).toBe(false)
-    expect(buildBody(switchOnFeature({ ...a, characters: [] }, 'supports'), a, 'r', false)!.supports).toBe(false) // nothing in it yet
+    expect(buildBody(switchOnFeature({ ...a, characters: [] }, 'supports'), a, 'r', false)!.supports).toEqual({ pairs: [] }) // nothing in it yet: still written
   })
   it('one undo step removes a feature again and the save body follows', () => {
     const start = full()
     let h = initHistory(start)
     h = pushEdit(h, switchOffFeature(h.present, 'skills'), undefined, 0)
     expect(h.present.skills).toBeNull()
-    expect(buildBody(h.present, start, 'r', false)!.skills).toEqual([])
+    expect(buildBody(h.present, start, 'r', false)!.skills).toBe(false)
     h = undo(h)
     expect(h.present).toBe(start)
   })
@@ -92,12 +92,6 @@ describe('switches', () => {
     expect(canSwitchOn(a, 'supports')).toBe(false)
     expect(switchOnFeature(a, 'supports')).toBe(a)
     expect(switchOnFeature(switchOnFeature(a, 'characters'), 'supports').supports).toEqual({ pairs: [] })
-  })
-  it('supportsEmpty: no pairs and no settings', () => {
-    expect(supportsEmpty({ pairs: [] })).toBe(true)
-    expect(supportsEmpty({ rules: {}, pairs: [] })).toBe(true)
-    expect(supportsEmpty({ rules: { range: 2 }, pairs: [] })).toBe(false)
-    expect(supportsEmpty({ pairs: [{ a: 'a', b: 'b' }] })).toBe(false)
   })
   it('switching off removes the list and everything that named its items', () => {
     const d = full()

@@ -216,3 +216,22 @@ TEST(chars_the_hash_changes_only_when_the_file_exists) {
   back.swap("data/characters.json", "\"hp\": 4,", "\"hp\": 5,");
   CHECK(hashOf(back, "plain") != with);
 }
+
+// The editor writes an empty file to remember that a feature is switched on: that is the same game as no file.
+TEST(srpg_an_empty_feature_file_is_the_same_game_as_no_file) {
+  Copy c("srpg_empty_files");
+  c.drop("data/characters.json");
+  c.drop("data/skills.json");  // the temp folder outlives a run
+  std::string without = hashOf(c, "plain");
+  CHECK(without.size() == 16);
+  c.put("data/characters.json", "{ \"characters\": [] }");
+  CHECK_STR(c.gameError(), "");
+  CHECK_STR(hashOf(c, "plain"), without);
+  c.put("data/skills.json", "{ \"skills\": [] }");
+  CHECK_STR(c.gameError(), "");
+  CHECK_STR(hashOf(c, "plain"), without);
+  // Something in the file counts again.
+  c.put("data/skills.json", "{ \"skills\": [ { \"id\": \"tough\", \"blocks\": [ { \"when\": \"always\", \"do\": [ { \"stats\": { \"hp\": 2 } } ] } ] } ] }");
+  CHECK_STR(c.gameError(), "");
+  CHECK(hashOf(c, "plain") != without);
+}

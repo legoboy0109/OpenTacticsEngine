@@ -1,9 +1,9 @@
-// E0 of docs/SRPG.md: the strategy-RPG switches on Rules, the sidebar entries that follow them, and the rule that an
-// empty feature writes no file. (The screens themselves are empty frames until steps E1 to E4.)
+// E0 of docs/SRPG.md: the strategy-RPG switches on Rules, the sidebar entries that follow them, and the rule that a
+// feature switched on is remembered (an empty file) and one switched off leaves no file. (The screens themselves are empty frames until steps E1 to E4.)
 import { readFileSync } from 'node:fs'
 import { diskPath, editorUrl, expect, saved, section, test, writeDisk } from './fixtures'
 
-test('switches add and remove the screens; nothing is written until there is something to write', async ({ page, game }) => {
+test('switches add and remove the screens; a switch stays on after a reload, and off removes the file', async ({ page, game }) => {
   const id = await game.create('blank', 'Skeleton')
   await page.goto(editorUrl(id, 'rules'))
   const switches = page.getByTestId('srpg-switches')
@@ -18,8 +18,15 @@ test('switches add and remove the screens; nothing is written until there is som
   await switches.getByRole('switch', { name: 'This game has skills' }).check()
   await expect(section(page, 'Skills')).toBeVisible()
   await saved(page)
-  // An empty list is the same game as no file: none is written.
-  for (const f of ['characters', 'skills', 'abilities', 'supports']) expect(() => readFileSync(diskPath(id, `data/${f}.json`))).toThrow()
+  // The switch is remembered as an empty file (the engine treats it as no file); features left off have none.
+  expect(JSON.parse(readFileSync(diskPath(id, 'data/characters.json'), 'utf8'))).toEqual({ characters: [] })
+  expect(JSON.parse(readFileSync(diskPath(id, 'data/skills.json'), 'utf8'))).toEqual({ skills: [] })
+  for (const f of ['abilities', 'supports']) expect(() => readFileSync(diskPath(id, `data/${f}.json`))).toThrow()
+  expect(await game.problems(id)).toEqual([])
+  await page.reload()
+  await expect(switches.getByRole('switch', { name: 'This game has skills' })).toBeChecked()
+  await expect(switches.getByRole('switch', { name: 'This game has characters' })).toBeChecked()
+  await expect(section(page, 'Skills')).toBeVisible()
 
   // The empty frame of a screen, and the way back.
   await section(page, 'Skills').click()
@@ -30,7 +37,11 @@ test('switches add and remove the screens; nothing is written until there is som
   await section(page, 'Rules').click()
   await switches.getByRole('switch', { name: 'This game has skills' }).uncheck()
   await expect(section(page, 'Skills')).toHaveCount(0)
+  await saved(page)
+  expect(() => readFileSync(diskPath(id, 'data/skills.json'))).toThrow()
   expect(await game.problems(id)).toEqual([])
+  await page.reload()
+  await expect(switches.getByRole('switch', { name: 'This game has skills' })).not.toBeChecked()
 })
 
 test('a game that has the files shows the screens; saving something else leaves them alone; a screen of a switched-off feature says so', async ({ page, game }) => {

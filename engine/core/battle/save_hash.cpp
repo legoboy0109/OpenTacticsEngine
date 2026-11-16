@@ -77,6 +77,19 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
   return j;
 }
 
+// True for a strategy-RPG data file with nothing in it: an object whose `list` is empty or missing and whose other
+// members are all empty objects or lists. A file that does not parse is not "nothing": it is mixed (and fails) as before.
+bool holdsNothing(const std::string& text, const char* list) {
+  Json doc;
+  std::string perr;
+  if (!Json::parse(text, doc, perr) || !doc.isObject()) return false;
+  for (const Json::Member& m : doc.members()) {
+    if (m.first == list) { if (!m.second.isArray() || m.second.size() > 0) return false; }
+    else if (!(m.second.isObject() || m.second.isArray()) || m.second.size() > 0) return false;
+  }
+  return true;
+}
+
 // Mixes the rules content of a JSON file: layout, comments and cosmetic keys
 // do not count. `only` (optional) limits the top-level keys that count.
 bool mixJson(Fnv& f, const std::string& root, const std::string& rel, bool optional,
@@ -147,11 +160,15 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   // The strategy-RPG files (docs/SRPG.md), in this order and each only when the game has it: a game without them
   // keeps its hash. Names and descriptions are cosmetic keys; a support conversation's wording is blanked like a
   // map's (the map-file treatment), so rewriting it keeps saves valid.
-  static const char* const kSrpg[] = {"data/characters.json", "data/skills.json", "data/abilities.json"};
-  for (const char* rel : kSrpg)
-    if (readTextFile(root + "/" + rel, probe) && !mixJson(f, root, rel, false, nullptr, err)) return false;
-  if (readTextFile(root + "/data/supports.json", probe) && !mixJson(f, root, "data/supports.json", false, nullptr, err, true))
-    return false;
+  // A file that holds nothing (an empty list; supports with no pair and no setting) is the same game as no file: the
+  // editor writes one to remember that the maker switched the feature on, and that must not make a save invalid.
+  struct SrpgFile { const char* rel; const char* list; bool mapFile; };
+  static const SrpgFile kSrpg[] = {{"data/characters.json", "characters", false}, {"data/skills.json", "skills", false},
+                                   {"data/abilities.json", "abilities", false}, {"data/supports.json", "pairs", true}};
+  for (const SrpgFile& sf : kSrpg) {
+    if (!readTextFile(root + "/" + sf.rel, probe) || holdsNothing(probe, sf.list)) continue;
+    if (!mixJson(f, root, sf.rel, false, nullptr, err, sf.mapFile)) return false;
+  }
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   return true;

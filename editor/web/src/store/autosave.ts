@@ -2,7 +2,6 @@
 // conflict state that stops everything until the user decides.
 import type { Api, PutBody, Result } from '../api/client'
 import { dropEmptyOwners } from '../model/structuresConvert'
-import { supportsEmpty } from '../model/srpgFeatures'
 import type { Problem, ProjectDoc } from '../model/types'
 
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
@@ -40,13 +39,14 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
     // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
     // For research an empty list removes data/research.json (the loader refuses an empty one).
     const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
-      : (k === 'structures' || k === 'items' || k === 'research' || k === 'characters' || k === 'skills' || k === 'abilities') && doc[k] === null && saved[k] !== null ? []
+      : (k === 'structures' || k === 'items' || k === 'research') && doc[k] === null && saved[k] !== null ? []
+        // A strategy-RPG feature switched off: `false` deletes its file. Switched on and still empty, the empty list is
+        // written, so the switch is remembered (model/srpgFeatures.ts).
+        : (k === 'characters' || k === 'skills' || k === 'abilities' || k === 'supports') && doc[k] === null && saved[k] !== null ? false
         // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
         : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
           // Removing all sound (or undoing past the first track) likewise deletes data/audio.json.
           : k === 'audio' && doc.audio === null && saved.audio !== null ? false
-            // Supports: removed (`false`) when gone or when nothing is in it (model/srpgFeatures.ts).
-            : k === 'supports' ? (!doc.supports ? (saved.supports ? false : null) : supportsEmpty(doc.supports) ? false : doc.supports)
               : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }

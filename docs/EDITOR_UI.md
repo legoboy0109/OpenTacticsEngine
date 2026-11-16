@@ -740,12 +740,13 @@ E3 (abilities, promotion, carrying) and E4 (supports), each in its own files, so
 - **Document**: `ProjectDoc` gains `characters`, `skills`, `abilities` (lists) and `supports` (object), each `null` when the game has no file
   (`model/srpgTypes.ts`; helpers `withCharacters` / `withSkills` / `withAbilities` / `withSupports` in `model/doc.ts`). Unit types, weapons, items and
   game rules gain the optional keys of the contract in `model/types.ts`; map units gain `character`. **Saving** (`store/autosave.ts`): a list that
-  changed is sent; an empty list means "remove the file" (the helper does it), and so does `supports: false`. So an empty feature is never a file, and a
-  game that does not use the features never gets one. Supports with no pair and no setting count as empty too (`supportsEmpty`).
+  changed is sent; a feature that is switched on and still empty is sent as its empty list (or `{ "pairs": [] }`) and the helper writes that file;
+  `false` removes the file (the feature was switched off). A game that never switches a feature on never gets a file.
 - **Switches** (`model/srpgFeatures.ts`, Rules card "Strategy-RPG features" in `screens/rules/srpg/FeatureSwitchesCard.tsx`): a feature is on when its
   list or file exists in the document. Switching on creates it empty and the screen appears in the sidebar after Units; switching off asks first when
   something is in it, and removes the feature's items from everything that names them (`switchOffFeature`, in one undo step). Supports need characters.
-  Known limit, by the contract's own rule above: a feature that is on but still empty is forgotten when the page is reloaded.
+  The switch sticks (owner, 2026-11-15): the empty file is what remembers it across reloads and devices. The engine treats a file that holds nothing
+  as no file (`engine/core/battle/save_hash.cpp` `holdsNothing`), so switching a feature on never makes a save invalid.
 - **Sidebar and routes**: `Section` gains `characters`, `skills`, `abilities`, `supports` (`/p/<id>/characters/<item>` etc.), listed only when the
   feature is on or the screen is the open one (`srpgSectionShown`). A problem in one of the four files goes to its screen's dot (`model/problems.ts`).
   The screens are empty frames (`screens/srpg/SrpgScreen.tsx`): switched off (link to Rules), unreadable file (the loader's words), or the screen

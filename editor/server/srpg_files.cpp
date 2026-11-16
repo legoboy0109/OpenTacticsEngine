@@ -56,7 +56,8 @@ void readSrpgSections(const fs::path& dir, Json& doc, std::vector<Problem>& prob
 std::string checkSrpgBody(const Json& body) {
   for (const ListFile& l : kLists) {
     const Json& v = body[l.key];
-    if (!v.isNull() && !v.isArray()) return std::string("\"") + l.key + "\" must be an array";
+    if (!v.isNull() && !v.isArray() && !isFalse(v))
+      return std::string("\"") + l.key + "\" must be an array, or false to remove the file";
   }
   const Json& s = body["supports"];
   if (!s.isNull() && !s.isObject() && !isFalse(s)) return "\"supports\" must be an object, or false to remove the supports";
@@ -68,7 +69,9 @@ SrpgFileOps planSrpgFiles(const Json& body) {
   for (const ListFile& l : kLists) {
     const Json& v = body[l.key];
     if (v.isNull()) continue;
-    if (v.size() == 0) { ops.removals.push_back(l.file); continue; }
+    // `false` switches the feature off. An empty list is written: the file is how the editor remembers that the
+    // maker switched the feature on before adding anything (the engine treats an empty list as no file at all).
+    if (isFalse(v)) { ops.removals.push_back(l.file); continue; }
     Json wrap = Json::makeObject();
     wrap.set(l.key, v);
     ops.writes.push_back({l.file, wrap.dump(2) + "\n"});
