@@ -6,6 +6,7 @@
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
+#include "core/data/loader_weapon_locks.h"
 
 namespace ote {
 
@@ -58,6 +59,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
     if (!readWeaponRank(c, db, e, where, w)) return false;    // "rank", "rankXp" (docs/SRPG.md section 7)
+    if (!readWeaponWielders(c, e, where, w)) return false;    // "wieldedBy" (docs/SRPG.md character-locked weapons)
     db.weapons.push_back(w);
   }
   return true;

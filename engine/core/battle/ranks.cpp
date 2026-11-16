@@ -36,7 +36,26 @@ bool Battle::canWieldNow(const Unit& u, int weapon, std::string* why) const {
     if (why) *why = "the unit cannot wield that";
     return false;
   }
+  if (!meetsCharacterLock(u, weapon, why)) return false;
   return meetsRank(u, weapon, why);
+}
+
+// The weapon's "wieldedBy" list (docs/SRPG.md "Character-locked weapons"): no list = open to everyone. A generic unit
+// (character -1) is never on a list. The words are a placeholder: one or two names, then "and others".
+bool Battle::meetsCharacterLock(const Unit& u, int weapon, std::string* why) const {
+  if (weapon < 0 || (size_t)weapon >= db->weapons.size()) return true;
+  const std::vector<int>& list = db->weapons[(size_t)weapon].wielders;
+  if (list.empty()) return true;
+  for (int ch : list)
+    if (ch == u.character) return true;
+  if (why) {
+    auto name = [&](size_t i) { return db->characters[(size_t)list[i]].name; };
+    *why = "Only " + name(0);
+    if (list.size() == 2) *why += " and " + name(1);
+    else if (list.size() > 2) *why += ", " + name(1) + " and others";
+    *why += " can wield this";
+  }
+  return false;
 }
 
 // A class's and a character's value per group: the higher wins; a unit is raised to it, never lowered (so this is safe

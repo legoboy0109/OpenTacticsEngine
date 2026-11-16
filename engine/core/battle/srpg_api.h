@@ -17,6 +17,9 @@ int characterOf(const Unit& u) const;
 int weaponRank(const Unit& u, int group) const;
 // Does the unit's rank in the weapon's group reach the weapon's "rank"? False with "Needs rank B" in `why` (optional).
 bool meetsRank(const Unit& u, int weapon, std::string* why = nullptr) const;
+// Is the unit's character on the weapon's "wieldedBy" list (true when the weapon has none)? False with "Only Kell can
+// wield this" in `why` (optional). Character-locked weapons: docs/SRPG.md.
+bool meetsCharacterLock(const Unit& u, int weapon, std::string* why = nullptr) const;
 // May the unit wield this weapon NOW: its class can (Database::canWield) and its rank is high enough. Weapons that
 // fail only on rank can still be carried, traded and stored. The one test weaponsOf / weaponSlot / equippedSlot / Equip use.
 bool canWieldNow(const Unit& u, int weapon, std::string* why = nullptr) const;

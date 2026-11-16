@@ -33,7 +33,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u);
 struct ItemRow {
   std::string name, uses, detail;
   bool equipped = false;  // the weapon in hand (carried weapons)
-  std::string blocked;    // "Needs rank B": a weapon the unit's rank does not allow (shown greyed; also in `detail`)
+  std::string blocked;    // "Needs rank B" / "Only Kell can wield this": a weapon the unit may not wield now (shown greyed; also in `detail`)
 };
 std::vector<ItemRow> itemRows(const Battle& b, const Unit& u);
 
