@@ -9,6 +9,7 @@ import { economy } from './economy'
 import { sound } from './sound'
 import { art } from './art'
 import { hexagons } from './hexagons'
+import { characters } from './characters'
 
 export const LESSONS: Lesson[] = [
   firstGame,
@@ -19,6 +20,7 @@ export const LESSONS: Lesson[] = [
   sound,
   art,
   hexagons,
+  characters,
 ]
 
 /** The beginner lesson the first-run offer shows. */
