@@ -20,7 +20,7 @@ export function UnitPicker({ doc, map, state, color, onChange }: Props) {
     <div className="stack tight">
       <div className="tabs unit-tabs" role="tablist" aria-label={C.pickerLabel}>
         <button type="button" role="tab" aria-selected={!characterTab} className="tab" onClick={() => onChange({ unitTab: 'types' })}>{cap(word)}</button>
-        <button type="button" role="tab" aria-selected={characterTab} className="tab" onClick={() => onChange({ unitTab: 'characters' })}>{C.pickerCharacters}</button>
+        <button type="button" role="tab" aria-selected={characterTab} className="tab" data-learn="unit-characters-tab" onClick={() => onChange({ unitTab: 'characters' })}>{C.pickerCharacters}</button>
       </div>
       {!characterTab && types}
       {characterTab && characters.length === 0 && <p className="help">{C.noCharacters}</p>}

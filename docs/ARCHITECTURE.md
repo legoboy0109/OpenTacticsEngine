@@ -183,6 +183,14 @@ Contract and decisions: docs/SAVES.md. Layers:
   `--saves` is given. On the web the standalone page keeps saves in the same
   IDBFS mount as settings; the embed page passes `--no-saving`.
 
+## Strategy-RPG features
+
+Characters, promotion, skills, menu abilities and summoning, rescue / pair up and supports are optional rule switches of the one engine
+(not a second mode): `Battle` gains the state and functions for each, the data loader reads their files, the save and data hash add
+keys only when a game uses a feature, the combat pipeline is shared by skills, supports and auras, and the player and the editor get
+their screens. The design, the layering of the code and where each step landed are in docs/SRPG.md; the Learn lesson "Characters and
+skills" (docs/TUTORIAL.md) teaches the editor side.
+
 ## Web
 
 `emcmake cmake` builds `ote-player` with Emscripten's SDL3 port into

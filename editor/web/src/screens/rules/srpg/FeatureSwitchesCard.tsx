@@ -24,7 +24,7 @@ export function FeatureSwitchesCard() {
       <div className="features" data-testid="srpg-switches">
         {SRPG_FEATURES.map((f) => (
           <div className="feature" key={f}>
-            <Toggle label={T[f]} help={!srpgFeatureOn(doc, f) && !canSwitchOn(doc, f) ? T.supportsNeedCharacters : T[`${f}Help`]}
+            <Toggle learn={`srpg-${f}`} label={T[f]} help={!srpgFeatureOn(doc, f) && !canSwitchOn(doc, f) ? T.supportsNeedCharacters : T[`${f}Help`]}
               checked={srpgFeatureOn(doc, f)} disabled={!srpgFeatureOn(doc, f) && !canSwitchOn(doc, f)} onChange={(v) => flip(f, v)} />
           </div>
         ))}

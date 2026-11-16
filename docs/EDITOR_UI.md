@@ -725,9 +725,15 @@ Code: `editor/web/src/learn/`. Wording: `learn/text.ts` (the framework) and `lea
   (the tab until it is open, then the button in it). While the lesson is a bottom sheet the ring treats a control under the sheet as hidden and scrolls it
   up (tried again a few times). Known limit on phones and narrow windows: the map editor's own options sheet and the end of a long page can stay under
   the lesson sheet; folding the lesson ("Hide lesson") shows them.
+- **Lesson "Characters and skills"** (`learn/lessons/characters.ts`, helpers in `learn/helpers/characters.ts`; step T1 of docs/SRPG.md, which holds the
+  contract and the "T1 as built" note): starts from the blank template (nothing of the strategy-RPG parts exists there, so every step is real work) and
+  takes the maker through the Rules switches, a character, the map's Characters tab, the starter skills, a personal and a learned skill, and a skill of
+  their own. New `data-learn` names: `srpg-<feature>` and `progression` (the Rules switches; `Toggle` now takes `learn`), `character-stats`,
+  `unit-characters-tab`, `starter-open`, `<card>-add` / `<card>-learns` (the Skills card, e.g. `character-skills-add`), `skill-rule` (the When box of
+  the first rule of a skill that is not in the starter set).
 - **State**: `GET`/`PUT /api/learn` (docs/EDITOR_API.md), every change is sent at once; `learn/state.ts` reads it tolerantly.
-- **Tests.** Unit: `learnHelpers`, `learnRunner` (runner, state, practice names), `learnController` (fake helper), `learnFirstGame`, `learnStructures`, `learnEconomy`, `learnArt`, `learnHexagons` (every done test of
-  a lesson, true and false; `learnTopicKit` has the shared checks). API: `tests/editor_api_learn_checks.py`. e2e: `learn-lesson`, `learn-structures`, `learn-economy`, `learn-art`, `learn-hexagons` (the whole lesson, step by step, ends with the real
+- **Tests.** Unit: `learnHelpers`, `learnRunner` (runner, state, practice names), `learnController` (fake helper), `learnFirstGame`, `learnStructures`, `learnEconomy`, `learnArt`, `learnHexagons`, `learnCharacters` (every done test of
+  a lesson, true and false; `learnTopicKit` has the shared checks). API: `tests/editor_api_learn_checks.py`. e2e: `learn-lesson`, `learn-structures`, `learn-economy`, `learn-art`, `learn-hexagons`, `learn-characters` (the whole lesson, step by step, ends with the real
   engine loading the game; helpers in `learntopic.ts`), `learn-ring-room` (the ring above a dialog, the map options above the phone sheet), `learn-state` (offer, resume, stop and continue, skip, deleted game, numbering, no lesson = as before), `learn-layout`
   (phone, laptop, wide window, the ring). Every Learn spec starts its own helper with an empty temporary `--learn-file` (`tests/e2e/learnkit.ts`);
   the shared helper starts with "offer answered" so the game list looks as before for every other spec.

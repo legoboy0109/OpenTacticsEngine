@@ -122,6 +122,13 @@ Play panel never saves (it passes a flag that turns saving off).
 - Command line: `--continue` starts the Continue save of `--game` directly;
   `--load-slot N` loads a slot (both for tests and shortcuts).
 
+## Strategy-RPG state
+
+Skills learned for good, promotions, carried units (rescue and pair up) and support points and levels are saved too, each only in a game
+that uses the feature and only when not at its default, so older saves stay valid and `saveVersion` stays 1. Characters add nothing to a
+save. What is stored, how the data hash and the campaign save treat these files, and the rules for adding keys are in docs/SRPG.md
+(the "Saves" part of each section and "Save format summary and versioning").
+
 ## Editor
 
 Rules screen, a small **Saving** card: "Players can save: Any time / Only

@@ -383,6 +383,13 @@ docs/SAVES.md "Campaign saves in the player". All wording below is placeholder.
 - **Web**: the same code; `tools/webtest/suites/campaign.mjs` plays New game -> scene -> battle -> reload -> Continue on
   the test game in a temp folder that serves the web build with its own `games/`.
 
+## Strategy-RPG additions
+
+A unit placed as a character is known to events and objectives by the character's id, so conditions and commands that name a unit work
+for characters without change. New commands and conditions (promote, teach or forget a skill, "has skill", "is promoted"), a `support`
+trigger and support points as a campaign effect, summons and promotion in the event stream the player animates, and campaign roster
+behaviour for characters are specified in docs/SRPG.md (the "Story" part of each section, "Events (what the player animates)").
+
 ## Editor
 
 - Map editor: unit **id** field; an **Events** panel (list; per event the

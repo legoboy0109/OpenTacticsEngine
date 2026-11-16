@@ -2670,6 +2670,37 @@ docs/EVENTS.md, docs/ITEMS.md, docs/EDITOR_UI.md and docs/ARCHITECTURE.md (one p
 | D1 Demo and template | K2, P1, A1, R1, S1, AI1; U1 to U5 for its player tests | E steps |
 | T1 Tutorial lesson, document sync | E1, E2, D1 | nothing |
 
+#### T1 as built
+
+The lesson "Characters and skills" (`editor/web/src/learn/lessons/characters.ts`, helpers `learn/helpers/characters.ts`, unit test
+`tests/unit/learnCharacters.test.ts`, e2e `tests/e2e/learn-characters.spec.ts`, tagged `@smoke`; text in docs/EDITOR_UI.md "Learn" and
+docs/TUTORIAL.md) and the document pointers.
+
+- **Starting point: the blank template**, like the Items lesson. It has no characters or skills files, one class (Soldier), the stats HP and
+  Move, levelling up off and one map with a blue and a red soldier, so every step is real work. The strategy-rpg template ships all of it
+  (D1), which would leave nothing to do. Cost: with only HP and Move the starter installer skips the skills that need attack, skill, speed or
+  defense (it lists them); the ones the lesson uses (Tough, Light Step) need only HP and Move.
+- **Ten steps**, each ticking from the game's data (or the Play signal) and never from a click: switch on characters (Rules);
+  make a character and give it a personal bonus (a number other than 0, after a typing pause); put it on the map from the Characters tab
+  (a plain soldier from the Classes tab does not count); switch on skills; add the starter skills; give the character a skill; switch on
+  levelling up; give it a skill learned at a level; make a skill of your own (a new skill is valid at once, so the step needs its rule changed
+  from the one a new skill starts with, and valid); Play (the player reported ready; opening the unit's details is in the text but cannot be seen
+  from the editor).
+- **Interpretations.** (1) "Learned at a level" needs levelling up, which the blank template lacks, so it is its own step (the arc had nine).
+  (2) A character's class is not a step of its own: the Soldier is the only one. (3) The own-skill step needs a changed rule, not just a new skill.
+  (4) No "check for problems" step (the lesson is about the screens it uses); Play is the last step.
+- **Shared files touched (small `data-learn` hooks, no behaviour change):** `ui/Toggle.tsx` (it took a `learn` prop and ignored it; now it sets
+  `data-learn`), `FeatureSwitchesCard`, `FeaturesCard` (progression switch), `UnitPicker` (Characters tab), `CharacterStatsCard` (first personal
+  box), `SkillsCard` (add box, learns block), `SkillsScreen` (starter button), `SkillForm` / `BlockCard` (the When box of the first rule, only for a
+  skill that is not in the starter set, so the ring never points at Tough while the maker should edit their own). Helper C++, templates, engine
+  and games: untouched.
+- **Known limit (as in the Story lesson):** on a phone the map editor's Characters tab sits in the options sheet under the sticky canvas and the
+  lesson sheet; folding the lesson ("Hide lesson") shows it.
+- **Document sync.** One paragraph each, pointing here and repeating nothing, in docs/GAME_FORMAT.md ("Strategy-RPG data (optional)"),
+  docs/SAVES.md ("Strategy-RPG state"), docs/EVENTS.md ("Strategy-RPG additions"), docs/ITEMS.md ("Strategy-RPG additions") and
+  docs/ARCHITECTURE.md ("Strategy-RPG features"). docs/EDITOR_UI.md already had a section per step; it gained the lesson's bullet in "Learn".
+  docs/TUTORIAL.md lists the lesson as number 9.
+
 ---
 
 ## Interpretations
