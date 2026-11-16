@@ -1119,6 +1119,32 @@ not edit (see "as built").
 Story commands that set or raise a rank or a cap; experience from healing or other non-combat use; ranks for fixed
 weapons; rank-gated skills.
 
+### Weapon ranks and stat caps: as built
+
+Core: `engine/core/data/ranks.h` (`RankRules`, limits), `loader_ranks.cpp` (`ranks.json`, `caps.json`, the keys of weapons, unit types,
+characters and map units; loaded before the weapons, groups built right after them), `engine/core/battle/ranks.cpp` (`weaponRank`,
+`meetsRank`, `canWieldNow`, `rankRaiseToClass`, `rankOverride`, `ranksAfterCombat`), `caps.cpp` (`statCap`, `raiseStat`, `canRaiseAny`),
+`save_ranks.cpp` (`ranks` key of a unit and a roster entry). Differences from the text above, and what the text left open:
+
+- `Unit::weaponXp` / `RosterUnit::weaponXp` / `MapUnitDef::weaponXp` (-1 = not said) hold the experience; `dressUnit` calls
+  `rankRaiseToClass` (so building, adding, summoning and a roster all get the class's ranks), `makeUnit` applies the map's override after it.
+- Experience from use is given **after the XP awards** of the same combat (a level-up box comes first) and before the end-of-combat skills;
+  the strikes are read off the combat's `Attack` events, so a weapon that broke during the fight still counts.
+- A rank-up by promotion is emitted right after `UnitPromoted`. A unit that dressed from a roster or was built is raised silently.
+- The refusal text of `Equip` is `Needs rank B` (the rank's display `name`); `validate` of a weapon the class cannot wield at all still says
+  "the unit cannot wield that".
+- Caps: `statCap` is cached nowhere; `raiseStat` is the only place a permanent stat grows (`progression.cpp`, `promotion.cpp`, `items.cpp`).
+  Item `raise` events report the real gain for positive amounts and the written amount for negative ones (as before).
+- The loader refuses `rank` / `rankXp` without a `group`, ranks without carried weapons, and a ladder whose first `xp` is not 0, with messages
+  that name the file and the entry (tests: `tests/test_srpg_ranks_loader.cpp`).
+- Not built: story commands (see "Not in this version" above), and no editor screens. The editor helper passes the new keys on units,
+  weapons, characters and map units through untouched and reads neither `data/ranks.json` nor `data/caps.json`: it neither shows, rewrites
+  nor deletes them, and the engine loader's refusals reach its Problems list as for any other file.
+- Player: `engine/player/battle/rank_text.*` (words), `battle_view_ranks.cpp` (the `RankUp` label), cap and rank rows in
+  `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
+  Tests: `tests/test_srpg_ranks*.cpp`, `tests/test_srpg_caps.cpp`, `tests/test_srpg_player_ranks.cpp`, `tests/srpg_player_ranks_test.py`, the
+  fixture `tests/fixtures/srpg-ranks`.
+
 ---
 
 ## Events (what the player animates)

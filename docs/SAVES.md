@@ -129,6 +129,11 @@ that uses the feature and only when not at its default, so older saves stay vali
 save. What is stored, how the data hash and the campaign save treat these files, and the rules for adding keys are in docs/SRPG.md
 (the "Saves" part of each section and "Save format summary and versioning").
 
+Weapon ranks add one optional key, `ranks` (`{ "sword": 120 }`, weapon experience per weapon group, only groups above 0), to a battle
+save's units and to a campaign roster entry, written only in a game with `data/ranks.json`; stat caps add no state. The data hash covers
+`data/ranks.json` and `data/caps.json` only when they hold something (an empty ladder / empty `caps` is the same game as no file). See
+docs/SRPG.md section 7 "Saves and hash".
+
 ## Editor
 
 Rules screen, a small **Saving** card: "Players can save: Any time / Only
