@@ -1976,6 +1976,35 @@ once on an empty pair list; `test_srpg_compat.cpp`, the golden fights and all `o
 - **Scope.** The section "AI": `ai_srpg.cpp` and its two call sites in `ai.cpp` / `ai_order.cpp`.
 - **Accept.** The AI tests; 200-turn sims on every fixture never hang; sims of existing games unchanged.
 
+#### AI1 as built
+
+The computer opponent follows the section "AI". Games without promotions, abilities, move-again skills or rescue play
+exactly as before (all eight reference sims print the same text, compat and golden pins untouched).
+
+**Where things are.** `ai_srpg.cpp` (`considerSrpg`, promotion; called from `bestOrder` in `ai_order.cpp` after the
+healing-item rule and before supply), `ai_abilities.cpp` (summon and heal), `ai_again.cpp` (`moveAgainOrder`).
+`Order` gained `ability` and `cell`; `aiTakeStep` (`ai.cpp`) applies `Promote` and `Ability` orders. Tests:
+`tests/test_srpg_ai.cpp`.
+
+**What the AI does.** Promotion: the first offered type, in place, instead of a plain Wait or advance (an attack,
+capture, item or supply order is kept; no promotion items). Heal ability: the unit itself or an adjacent ally below half
+HP, lowest share first, unless the planned attack kills; it replaces an attack or a Wait. Summon: instead of a plain
+Wait or advance, from where the unit would stand after the advance it planned (else where it stands), on the legal
+square nearest the nearest known enemy (lowest cell number on a tie). Move again (`acted`): a step to the square with
+the fewest known enemies able to reach it (walk plus longest weapon), better cover on a tie, only if strictly better
+than staying; else Wait. Act again needs nothing: the unit is planned afresh. Never used: push, pull, swap, moveBehind,
+rescue, drop, give, take, pair up, switch, `Support`.
+
+**Where the contract was silent.**
+- A summoned unit never summons (each summoner has its own limit, so summons of summons would otherwise grow without end).
+- A free ability is used where the unit stands, before any move, so the unit is then planned afresh with its turn open
+  (once per turn by rule, so it cannot loop); an action ability may follow the advance the unit planned.
+- A heal takes the place of an attack that does not kill (the same as the healing-item rule); a summon never replaces
+  an attack. Healing only looks at the moment the unit is planned: an ally that walks off first is not healed.
+- Units are planned best order first, so a wounded ally may leave before a healer plans; nothing is held back for it.
+- An `acted` unit no longer plans attacks or captures (it cannot act); before AI1 it could pick an attack square and
+  merely walk there.
+
 ### U0. Player skeleton — depends on F1; parallel with all core steps
 - **Scope.** The action menu's new entry groups as hooks into new files (`battle/battle_srpg_menu.cpp`: id ranges
   `kAbilityBase`, `kSupportBase`, fixed ids for the carry / pair / promote / info entries; each group's builder and

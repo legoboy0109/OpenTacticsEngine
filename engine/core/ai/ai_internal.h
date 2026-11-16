@@ -18,6 +18,9 @@ struct Order {
   ActionType kind = ActionType::Wait;  // Attack, Capture, UseItem, Supply or Wait
   int target = -1, weapon = -1;        // Attack only
   int slot = -1;                       // UseItem only: the inventory slot (target = the unit itself)
+  int ability = -1;                    // Ability only: index into db->abilities (target = unit or -1, cell = square or kNoCell)
+  Cell cell = kNoCell;                 // Ability only: the target square of a "cell" ability
+  // Kinds added by AI1 besides the ones above: Promote (takes the first offered promotion, in place) and Ability.
 };
 
 // Cached data shared by all unit evaluations of ONE aiTakeStep call.
@@ -90,10 +93,14 @@ void considerHealing(const Battle& b, const Unit& u, Order& order);
 // point, or by a Supply action of a supplier unit. `stops` are the squares the unit may end on (from `reach`).
 void considerSupply(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& order);
 
-// ---- ai_srpg.cpp (docs/SRPG.md "AI"; filled and called by step AI1) ----
+// ---- ai_srpg.cpp (docs/SRPG.md "AI"; step AI1) ----
 // May replace `order` by an action of the strategy-RPG features: an offered promotion, a summon or a heal ability.
-// `stops` are the squares the unit may end on (from `reach`).
-void considerSrpg(const Battle& b, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& order);
+void considerSrpg(const Battle& b, const Unit& u, Order& order);
+// ---- ai_abilities.cpp ---- (called by considerSrpg) summon and heal abilities; the only ones the AI uses.
+void considerAbilities(const Battle& b, const Unit& u, Order& order);
+// ---- ai_again.cpp ---- A unit that has used its action but has movement left ("move again"): the order for the rest
+// of its turn, a step away from the enemies that could reach it, or a plain Wait.
+Order moveAgainOrder(const Battle& b, const Unit& u, const std::vector<Cell>& stops);
 
 // ---- ai_build.cpp ----
 bool chooseBuild(const Battle& b, Cell& cell, int& unitType);
