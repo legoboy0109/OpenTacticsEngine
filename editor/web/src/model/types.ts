@@ -2,7 +2,7 @@
 // signature so keys the UI does not know about survive load -> edit -> save.
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
-import type { Ability, Character, Learn, Promotion, PromotionRules, RescueRules, Skill, Supports } from './srpgTypes'
+import type { Ability, Caps, Character, Learn, Promotion, PromotionRules, RankMap, Ranks, RescueRules, Skill, Supports } from './srpgTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
 export interface Extra { [key: string]: unknown }
@@ -150,6 +150,9 @@ export interface Weapon extends Named {
   sounds?: Record<string, string>
   /** Skills while this is the weapon in use (docs/SRPG.md section 3). */
   skills?: string[]
+  /** docs/SRPG.md section 7: the lowest rank that may wield it (a rank id) and the weapon experience it earns per use. */
+  rank?: string
+  rankXp?: number
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
@@ -165,6 +168,9 @@ export interface Unit extends Named {
   abilities?: string[]
   promotions?: Promotion[]
   pairBonus?: NumMap
+  /** docs/SRPG.md section 7: starting ranks per weapon group, and the class's own stat caps. */
+  ranks?: RankMap
+  caps?: NumMap
   /** Tank size; missing = no fuel. */
   fuel?: number
   fuelPerTurn?: number
@@ -215,6 +221,8 @@ export interface MapUnit extends Extra {
   items?: ItemEntry[]
   /** A character placed on the map (docs/SRPG.md section 1); then `type`, `name`, `level` are optional overrides. */
   character?: string
+  /** Replaces the starting value of the weapon groups it names (docs/SRPG.md section 7). */
+  ranks?: RankMap
 }
 export interface MapFile extends Extra {
   name: string
@@ -320,6 +328,10 @@ export interface ProjectDoc {
   skills: Skill[] | null
   abilities: Ability[] | null
   supports: Supports | null
+  /** Weapon ranks and stat caps (section 7): the file's object, null = no file. An empty ladder / empty caps are written
+   *  as they are, so a switch that is on stays on after a reload; `false` on the wire removes the file. */
+  ranks: Ranks | null
+  caps: Caps | null
 }
 
 export interface Problem { file: string; message: string }

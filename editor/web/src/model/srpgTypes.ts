@@ -19,6 +19,9 @@ export interface Character extends Named {
   learns?: Learn[]
   abilities?: string[]
   items?: ItemEntry[]
+  /** Personal starting ranks per weapon group, and cap adjustments per stat (section 7). */
+  ranks?: RankMap
+  capAdjust?: NumMap
 }
 
 /** data/skills.json entry (section 3); the blocks are E2's to type. */
@@ -57,6 +60,16 @@ export interface SupportRules extends Extra {
 }
 /** data/supports.json (section 6). */
 export interface Supports extends Extra { rules?: SupportRules; pairs: SupportPair[] }
+
+/** data/ranks.json (section 7): the ladder, lowest first. An empty `ranks` list = the feature is on but nothing is made yet. */
+export interface Rank extends Extra { id: string; name: string; xp: number }
+export type RankGrowth = 'fixed' | 'use'
+export interface Ranks extends Extra { growth?: RankGrowth; ranks: Rank[] }
+/** data/caps.json (section 7): the game-wide cap per stat id. */
+export interface Caps extends Extra { caps: NumMap }
+/** A starting rank in a group: a rank id, or a number of weapon experience. */
+export type RankValue = string | number
+export type RankMap = Record<string, RankValue>
 
 /** The four optional features that have a file of their own. */
 export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'supports'

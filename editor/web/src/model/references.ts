@@ -7,6 +7,7 @@ import { cleanStatSkills, skillsUseStat } from './skillStatRefs'
 import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
+import { cleanStatCaps, groupRankUsageLines, statCapUsageLines } from './rankRefs'
 import { readGrid, writeGrid } from './mapGrid'
 import { scrubMap, storyUsages } from './storyRefs'
 import { cleanMoveTypeInStructures, cleanResourceInStructures, cleanUnitInStructures } from './structuresRefs'
@@ -42,6 +43,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, typeIdOf(doc.characters, mu))} has its own value` })
       for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
       { const sk = skillsUseStat(doc, id); if (sk.length) out.push({ section: 'skills', text: `${sk.length} skill${sk.length === 1 ? '' : 's'} use${sk.length === 1 ? 's' : ''} it: ${sk.slice(0, 5).join(', ')}${sk.length > 5 ? ` and ${sk.length - 5} more` : ''} (it is taken out of them; a rule or skill left empty goes)` }) }
+      out.push(...statCapUsageLines(doc, id))
       out.push(...economyUsageLines(doc, 'stat', id))
       break
     case 'resource':
@@ -75,6 +77,11 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
     case 'weapon':
       for (const u of units) if (u.weapons?.includes(id)) out.push({ section: 'units', text: `Unit "${u.name}" carries it` })
       for (const i of doc.items ?? []) if (i.kind === 'weapon' && i.weapon === id) out.push({ section: 'items', text: `Item "${i.name}" is this weapon (the item is deleted too)` })
+      {
+        // The last weapon of a group takes the starting ranks in that group with it (docs/SRPG.md section 7).
+        const group = (doc.weapons ?? []).find((w) => w.id === id)?.group
+        if (group && !(doc.weapons ?? []).some((w) => w.id !== id && w.group === group)) out.push(...groupRankUsageLines(doc, group))
+      }
       break
     case 'terrain':
       for (const [mid, m] of mapEntries(doc))
@@ -99,14 +106,14 @@ const tagStillUsed = (units: Unit[], key: string, removedUnit: string) => units.
 
 export function cleanStat(doc: ProjectDoc, id: string): ProjectDoc {
   const has = (m?: Record<string, number>) => !!m && id in m
-  return cleanStatSkills(cleanStatPromotions({
+  return cleanStatCaps(cleanStatSkills(cleanStatPromotions({
     ...doc,
     units: doc.units && doc.units.map((u) => (has(u.stats) || has(u.growths)
       ? stripKey(stripKey(u, 'stats', dropKey(u.stats, id)), 'growths', dropKey(u.growths, id)) : u)),
     items: cleanStatInItems(doc, id),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => has(u.stats))
       ? { ...m, units: m.units.map((u) => (has(u.stats) ? stripKey(u, 'stats', dropKey(u.stats, id)) : u)) } : m)),
-  }, id), id)
+  }, id), id), id)
 }
 
 /** Objects with an emptied optional map lose the key rather than keep `{}`. */

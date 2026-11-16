@@ -41,6 +41,8 @@ export function loadLiveDemoSrpg(): ProjectDoc { return loadFrom(games, 'demo-sr
 export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plain-economy') }
 /** The engine's hexagon test games (tests/fixtures/hex-pointy, hex-flat; no art): a 12 x 9 map with an HQ of seven hexagons at (1,4) and (10,4). */
 export function loadHexFixture(layout: 'pointy' | 'flat'): ProjectDoc { return loadFrom(fixtures, `hex-${layout}`) }
+/** The engine's weapon ranks and stat caps test game (tests/fixtures/srpg-ranks): a ladder E-B, weapons with ranks, classes with ranks and caps. */
+export function loadRanksFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-ranks') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 /** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */
@@ -71,5 +73,7 @@ function loadFrom(root: string, name: string): ProjectDoc {
     skills: existsSync(path.join(root, name, 'data/skills.json')) ? read(name, 'data/skills.json').skills : null,
     abilities: existsSync(path.join(root, name, 'data/abilities.json')) ? read(name, 'data/abilities.json').abilities : null,
     supports: existsSync(path.join(root, name, 'data/supports.json')) ? read(name, 'data/supports.json') : null,
+    ranks: existsSync(path.join(root, name, 'data/ranks.json')) ? read(name, 'data/ranks.json') : null,
+    caps: existsSync(path.join(root, name, 'data/caps.json')) ? read(name, 'data/caps.json') : null,
   }
 }

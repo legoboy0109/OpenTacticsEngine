@@ -26,7 +26,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign', 'audio', 'characters', 'skills', 'abilities', 'supports'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign', 'audio', 'characters', 'skills', 'abilities', 'supports', 'ranks', 'caps'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -42,7 +42,7 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
       : (k === 'structures' || k === 'items' || k === 'research') && doc[k] === null && saved[k] !== null ? []
         // A strategy-RPG feature switched off: `false` deletes its file. Switched on and still empty, the empty list is
         // written, so the switch is remembered (model/srpgFeatures.ts).
-        : (k === 'characters' || k === 'skills' || k === 'abilities' || k === 'supports') && doc[k] === null && saved[k] !== null ? false
+        : (k === 'characters' || k === 'skills' || k === 'abilities' || k === 'supports' || k === 'ranks' || k === 'caps') && doc[k] === null && saved[k] !== null ? false
         // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
         : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
           // Removing all sound (or undoing past the first track) likewise deletes data/audio.json.
