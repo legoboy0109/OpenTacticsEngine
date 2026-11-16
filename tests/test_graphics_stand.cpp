@@ -232,3 +232,16 @@ TEST(stand_choice_is_stable_and_mixes_variants) {
     CHECK_EQ((int)picked.size(), 2);
   }
 }
+
+TEST(stand_works_with_joined_and_animated_ground) {
+  // The ground keeps joining; the standing part is per square on top of it.
+  Database db;
+  std::string body = std::string("{ ") + kSheets + ", \"styles\": { \"solid\": { \"terrain\": { \"forest\": "
+      "{\"sheet\":\"tiles\",\"join\":[[0,0],[4,0]],\"frameMs\":300,\"joinWith\":[\"plain\"],"
+      "\"stand\":{\"sheet\":\"trees\",\"cell\":[2,1]}} } } } }";
+  if (loads("join", body, db)) {
+    const GraphicsSet& s = db.graphics.styles[1];
+    CHECK(s.terrain[1].kind == Look::Join && s.terrain[1].cells.size() == 2);
+    CHECK(s.stands[1].picture.kind == Look::Still && s.stands[1].picture.cells[0] == (SpriteCell{2, 1}));
+  }
+}
