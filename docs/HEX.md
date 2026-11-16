@@ -123,6 +123,54 @@ the box's bottom. Placeholder (no art): each covered hexagon filled in the
 structure's colour, the letter on the middle one. Owner frame: the outline
 around the covered hexagons.
 
+## The other three views (owner, 2026-11-15: go ahead)
+
+Hexagon games may have styles of every kind of view. Built in two steps: **2D isometric** first, then the **two 3D
+kinds** together. Until a step lands the loader keeps refusing that kind for hexagon games, with the message above.
+
+Common to all three: rules, picking by nearest hexagon, direction buttons by column and row, highlights shaped like
+the hexagon as that view shows it, units drawn as that view draws them on squares, heights raise a hexagon as a
+**six-sided block**, fog, structures of one hexagon and of seven, both layouts. The editor's map canvas stays top-down.
+
+### 2D isometric
+
+The top-down picture seen from the view's one fixed angle: every top-down position (x, y) of "Top-down picture"
+is drawn at (x * sx, y * sy) with the vertical squash `sy = sx / 2`, and a height level lifts a hexagon by the
+style's `heightStep`. `isometric.tileWidth` is the drawn width of one top-down `T` (default `2 * T`, so `sx = 2`);
+`tileHeight` is not used on hexagon games (refused if present: the squash is fixed); `heightStep` defaults to
+`tileWidth / 4`; `unitWidth` as on squares. All positions are whole pixels (the step states its rounding rule and
+tests that neighbouring hexagons share edges exactly, as the top-down drawing does).
+
+- A hexagon's **top face** is the squashed hexagon; its **side faces** are the three (pointy) or the visible lower
+  faces (flat) of the six-sided block, drawn only where the neighbour in front is lower.
+- Terrain art: one sheet cell holding the top face and the block's front faces below it (the step defines the cell
+  size from `tileWidth` and `heightStep` and documents it here), transparent outside. Without art: the top in the
+  terrain's colour, the faces darker, as on squares. Join pieces: the same 8 x 8 block of 64 cells of that size.
+- Structures: the picture stands on the front edge of its hexagon (or of the seven); placeholder as top-down but
+  as blocks.
+- Draw order: back to front by screen position, so nearer hexagons, units and structures cover farther ones.
+- Starter art for both layouts from `tools/art/` (generated); `games/demo-hex` and the two hexagon templates gain an
+  "Isometric" style.
+
+### 3D isometric and full 3D
+
+The ground is six-sided blocks in the 3D space of docs/RENDER3D.md (one top-down `T` = one unit, as for squares).
+
+- The **top** of a block is textured with the terrain's **top-down hexagon picture** (the same sheet cell, mapped
+  onto the hexagon), so a hexagon game's top-down art works in 3D unchanged; a 3D style may give its own pictures.
+  Sides take the style's side material or the darkened terrain colour, as on squares.
+- Join pieces, variants and animation as in the top-down view. Standing terrain (docs/VIEWS.md) works on hexagons.
+- Units (pictures or models), structures (one hexagon, seven), highlights lying on the blocks' tops as hexagons.
+- **3D isometric turns in sixths** (60 degrees) on hexagon maps, where square maps turn in quarters; the turn
+  buttons and the camera rules are otherwise the same. Full 3D: the free camera, unchanged.
+- Software and OpenGL / WebGL backends; `games/demo-hex` gains "3D Isometric" and "Full 3D" styles.
+
+### Editor
+
+The Kind of view choice on a hexagon game offers each kind as soon as the engine does (the editor asks the helper
+which kinds a hexagon game may use, so it follows the build it runs with). The isometric settings hide
+`tileHeight` on a hexagon game. Art screens preview pieces at the style's cell size.
+
 ## What does not change
 
 Rules, formulas, AI, saves, fog, items, story, economy, sound. A save made on

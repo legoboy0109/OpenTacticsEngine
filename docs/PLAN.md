@@ -183,8 +183,9 @@ goal (demos only exercise features).
       mount, Archer with a bow, Soldier with a lance, from further CC0
       packs combined with the current characters and credited. Starts
       after l is merged (same files).
-   n. Hexagons in the other three views: not ordered yet (owner asked
-      2026-11-15; today hexagon games are top-down only).
+   n. Hexagons in the other three views (owner, 2026-11-15: go ahead).
+      Contract: docs/HEX.md "The other three views". 2D isometric first;
+      the two 3D kinds after l (same drawing files).
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
