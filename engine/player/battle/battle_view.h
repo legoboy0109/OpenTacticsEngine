@@ -133,6 +133,28 @@ class BattleView {
   bool beginEconomy(const Battle& b);
   bool progressEconomy(const Battle& b);
   bool finishEconomy(const Battle& b);
+  // Strategy-RPG events (docs/SRPG.md "Events"): battle_view_srpg.cpp dispatches the eleven new entries to one file
+  // per area, each with the same contract as the story hooks: return true when the entry was one of its own (and so
+  // fully handled there). While an area's functions return false the entry is a logged no-op (plus the minimal state
+  // change for carried units, see battle_view_srpg.cpp).
+  bool beginSrpg(const Battle& b);
+  bool progressSrpg(const Battle& b);
+  bool finishSrpg(const Battle& b);
+  bool beginSkills(const Battle& b);       // battle_view_skills.cpp     SkillLearned, SkillActivated, UnitHurt   (U1)
+  bool progressSkills(const Battle& b);
+  bool finishSkills(const Battle& b);
+  bool beginPromotion(const Battle& b);    // battle_view_promotion.cpp  UnitPromoted                              (U2)
+  bool progressPromotion(const Battle& b);
+  bool finishPromotion(const Battle& b);
+  bool beginAbilities(const Battle& b);    // battle_view_abilities.cpp  AbilityUsed                               (U3)
+  bool progressAbilities(const Battle& b);
+  bool finishAbilities(const Battle& b);
+  bool beginRescue(const Battle& b);       // battle_view_rescue.cpp     UnitRescued, UnitDropped, UnitHanded, PairSwitched (U4)
+  bool progressRescue(const Battle& b);
+  bool finishRescue(const Battle& b);
+  bool beginSupports(const Battle& b);     // battle_view_supports.cpp   SupportPoints, SupportReached             (U5)
+  bool progressSupports(const Battle& b);
+  bool finishSupports(const Battle& b);
   // Fog of war: battle_view_fog.cpp. beginFog returns true for the entries it fully set up (a partly seen walk, an ambush).
   bool unseenByViewer(const Event& e) const;
   void applyUnseen(const Battle& b, const Event& e);  // the effect on the view's own copy of the state, at once, silently
