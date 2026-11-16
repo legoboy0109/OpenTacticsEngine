@@ -1229,6 +1229,8 @@ characters and map units; loaded before the weapons, groups built right after th
   Item `raise` events report the real gain for positive amounts and the written amount for negative ones (as before).
 - The loader refuses `rank` / `rankXp` without a `group`, ranks without carried weapons, and a ladder whose first `xp` is not 0, with messages
   that name the file and the entry (tests: `tests/test_srpg_ranks_loader.cpp`).
+- An `addUnit` command reads `ranks` exactly like a placed unit (`readUnitBody`, so the same group / rank / experience checks and
+  messages, also inside `if` / `then` / `else`); the added unit is dressed from its class and then takes the command's values.
 - Not built: story commands (see "Not in this version" above). The editor screens came later ("editor as built" below).
 - Player: `engine/player/battle/rank_text.*` (words), `battle_view_ranks.cpp` (the `RankUp` label), cap and rank rows in
   `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
