@@ -23,7 +23,8 @@ Contract for how a visual style draws the battle. Owner decisions
 Rules never depend on the style: a save, the AI and the editor's checks are
 the same in every kind of view.
 
-Hexagon games (docs/HEX.md): top-down and 2D isometric are built; the two 3D kinds follow.
+Hexagon games (docs/HEX.md): all four kinds are built. In the two 3D kinds the ground is six-sided blocks (the top-down hexagon picture on top),
+and 3D isometric turns in sixths (60 degrees); turn 0 is the 2D isometric picture.
 
 Status: all four kinds are built. The 3D kinds draw through the 3D drawing
 layer (docs/RENDER3D.md). Still to come for full 3D: separate close-up
