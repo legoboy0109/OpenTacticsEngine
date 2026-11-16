@@ -5,6 +5,7 @@
 // scene that asked for it is still on the stack.
 #include "app.h"
 #include "battle/battle_scene.h"
+#include "campaign/camp_scene.h"
 #include "campaign/campaign_logic.h"
 #include "campaign/end_scenes.h"
 #include "campaign/story_scene.h"
@@ -88,6 +89,9 @@ void PlayerApp::doCampaignNext() {
   std::vector<SceneLine> lines;
   switch (next) {
     case Next::BeforeScene: {
+      // The camp (support conversations) comes first, from the second chapter on, when anything is pending.
+      if (std::unique_ptr<Scene> camp = campStep(*this)) { scene_ = std::move(camp); break; }
+      run.campDone = false;
       runScene(db, pt, SceneKind::Before, lines);  // applies at once; the screen only shows it
       const ChapterDef* ch = currentChapter(db, pt);
       scene_.reset(new StoryScene(*this, chapterHeading(pt.chapter), ch ? ch->name : "", lines));
