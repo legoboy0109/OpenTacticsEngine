@@ -169,7 +169,9 @@ bool loadSupports(const std::string& path, Database& db, std::string& err) {
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
-  if (db.characters.empty()) return c.fail("", "the game has no characters (data/characters.json)");
+  // A file without pairs needs no characters: the editor writes one to remember that supports are switched on.
+  if (db.characters.empty() && root["pairs"].isArray() && root["pairs"].size() > 0)
+    return c.fail("", "the game has no characters (data/characters.json)");
   if (!onlyKeys(c, root, {"rules", "pairs"}, "") || !readRules(c, root, db.supports.rules)) return false;
   const Json* list;
   if (!c.array(root, "pairs", "", list, true)) return false;
