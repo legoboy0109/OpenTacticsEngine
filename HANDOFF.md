@@ -4,7 +4,23 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## In progress (2026-11-15, evening) — read this first
+## Latest (2026-11-16) — read this first
+
+Merged, fully checked (ote_tests 1321 both builds, editor_api 758, vitest 897, webtest 152/59, e2e 427 passed / 29
+skipped, demo sims line-for-line identical) and pushed: weapon ranks and stat caps (rules, player, editor screens;
+docs/SRPG.md section 7), the foe's weapon in formulas (`fw`) plus a weapon's `id` / `group` as text in `w` and `fw`,
+character-locked weapons (`wieldedBy`, rules and player only).
+
+Queue, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): the `wieldedBy` field on the
+editor's Weapons screen; staves and status conditions in stages; doors, keys, chests and visiting; dialogue choices;
+battle and death quotes; preparation / deployment screen. Placeholders awaiting the owner: default ladder numbers
+(0, 30, 70, 120, 180, 250), new-rank step 50, all new wording, a shorter lock reason for phone widths.
+
+Private Vision Quest port (`~/Projects/VisionQuestPort`, never in this repo; installed copy in git-ignored
+`games/vision-quest`): steps 1-3 done (data, story, music + carried army); step 4 (ranks, caps, triangle, locks) is
+being converted. Reinstall = delete `games/vision-quest`, copy `out/game/vision-quest` over.
+
+## Earlier (2026-11-15, evening)
 
 Pushed up to `82ed289` (2026-11-15 night): the rules core, AI1, U1–U5, E1–E4, hexagons in the 3D kinds, the 3D unit
 models, standing pictures moved onto their tiles in 3D (owner's report), and muted test browsers (owner's report:
