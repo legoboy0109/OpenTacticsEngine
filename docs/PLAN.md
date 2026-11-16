@@ -169,6 +169,12 @@ goal (demos only exercise features).
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
       "falls" and "retreats" when the game keeps defeated characters alive), and a boss's defeat line; shown in
       the dialogue box before / after the fight; edited on the Characters screen; skipped by the simulator.
+      8 preparation / deployment screen (after quotes). Owner's answers (2026-11-16): the screen lets the
+      player pick who fights (map's slots and limit; maker-marked required units always in), swap starting
+      positions, manage items (trade between units and shared storage), view the map and enemies, and buy from
+      a preparation shop when the maker gave the chapter one. The maker chooses per map whether it has the
+      screen; maps without one start as today. Needs the roster to supply units not placed on the map
+      (Vision Quest converter gap: "the roster dresses only placed units").
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
