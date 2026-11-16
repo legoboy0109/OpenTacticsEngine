@@ -9,7 +9,7 @@
 //  * All randomness comes from `rng`. Queries (forecast, reachable...) are
 //    const and never consume randomness.
 //  * Genre features (economy, production, capture, progression) are gated
-//    by db->rules flags, so one engine runs Fire Emblem-like and Advance
+//    by db->rules flags, so one engine runs strategy-RPG-like and Advance
 //    Wars-like games.
 #pragma once
 #include <memory>

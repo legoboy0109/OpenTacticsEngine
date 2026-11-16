@@ -7,7 +7,7 @@ TEST(game_info_reads_demo_launcher_fields) {
   GameInfo gi;
   std::string err;
   CHECK(loadGameInfo(ote_test::sourceDir() + "/games/demo-srpg", gi, err));
-  CHECK_STR(gi.name, "Emblem Demo");
+  CHECK_STR(gi.name, "Story Tactics Demo");
   CHECK(!gi.description.empty());
   CHECK(gi.mapCount >= 1);
   CHECK_EQ((int)gi.styles.size(), 6);

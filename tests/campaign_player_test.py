@@ -121,7 +121,7 @@ def build(folder, title, on_defeat, fallen, free, lose_first):
     for name, m in maps(lose_first).items():
         json.dump(m, open(dst + '/maps/%s.json' % name, 'w'), indent=1)
     g = open(dst + '/game.json').read()
-    g = g.replace('"name": "Emblem Demo"', '"name": "%s"' % title)
+    g = g.replace('"name": "Story Tactics Demo"', '"name": "%s"' % title)
     g = g.replace('"roles": { "hp": "hp", "move": "mov" },',
                   '"roles": { "hp": "hp", "move": "mov" },\n  "switches": [ { "id": "met_wanderer", "name": "Met" } ],\n'
                   '  "variables": [ { "id": "chapters", "name": "Chapters" } ],')

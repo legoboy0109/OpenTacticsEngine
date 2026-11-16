@@ -47,7 +47,7 @@ describe('the demo campaign', () => {
 describe('create and remove', () => {
   it('creates a one-chapter campaign on the first map, and only when there is none', () => {
     const d = createCampaign(bare())
-    expect(d.campaign).toEqual({ name: 'Emblem Demo', chapters: [{ id: 'chapter_1', name: 'Chapter 1', map: d.game!.maps[0].id }] })
+    expect(d.campaign).toEqual({ name: 'Story Tactics Demo', chapters: [{ id: 'chapter_1', name: 'Chapter 1', map: d.game!.maps[0].id }] })
     expect(campaignChecks(d)).toEqual([])
     expect(createCampaign(d)).toBe(d)
   })

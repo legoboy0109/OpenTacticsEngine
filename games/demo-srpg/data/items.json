@@ -6,7 +6,7 @@
   { "id": "iron_axe",   "name": "Iron Axe",   "kind": "weapon", "weapon": "iron_axe",   "uses": 40, "price": { "gold": 400 } },
   { "id": "iron_bow",   "name": "Iron Bow",   "kind": "weapon", "weapon": "iron_bow",   "uses": 40, "price": { "gold": 450 } },
 
-  { "id": "vulnerary", "name": "Vulnerary", "description": "Restores 10 HP.",
+  { "id": "vulnerary", "name": "Salve", "description": "Restores 10 HP.",
     "kind": "usable", "uses": 3, "price": { "gold": 300 }, "heal": 10,
     "sounds": { "use": "potion" } },
   { "id": "salve", "name": "Salve", "description": "Fully heals a neighbouring ally.",

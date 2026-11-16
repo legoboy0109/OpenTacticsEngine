@@ -38,7 +38,7 @@ export async function run(env) {
   await s.page.reload();
   await s.waitReady();
   await s.page.waitForTimeout(300);
-  await s.keys(['Enter']);  // Home -> Emblem Demo's page
+  await s.keys(['Enter']);  // Home -> Story Tactics Demo's page
   await s.page.waitForTimeout(300);
   const gamePage = await s.shot('game-page');
   await s.keys(['Enter']);  // the first row is Continue

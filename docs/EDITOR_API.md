@@ -45,7 +45,7 @@ an HTTP status and `{ "error": "human readable message" }`.
 Every sub-folder of the games folder that contains a `game.json`.
 ```json
 { "projects": [
-  { "id": "demo-srpg", "name": "Emblem Demo", "description": "...",
+  { "id": "demo-srpg", "name": "Story Tactics Demo", "description": "...",
     "author": "", "maps": 1, "ok": true, "error": "" } ] }
 ```
 `ok` is false (with `error`) when the project does not load; it is still

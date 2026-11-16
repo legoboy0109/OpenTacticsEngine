@@ -206,7 +206,7 @@ void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
   StructureState& st = structures[si];
   int points = defOf(st).capturePoints;
 
-  int amount = points;  // default: instant (Fire Emblem "seize")
+  int amount = points;  // default: instant ("seize" in strategy RPGs)
   if (formulas->has(Formulas::CaptureAmount)) {
     FormulaCtx ctx;
     ctx.sides = &sides;

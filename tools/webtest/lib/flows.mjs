@@ -24,7 +24,7 @@ export async function skipStory(s) {
   await s.page.waitForTimeout(2600);  // the turn banner with the objective (2.4 s) follows the story
 }
 
-// Home -> Emblem Demo -> New game -> chapter 1's title card and opening scene -> battle, by keyboard.
+// Home -> Story Tactics Demo -> New game -> chapter 1's title card and opening scene -> battle, by keyboard.
 export async function keyboardToBattle(s) {
   await s.keys(['Enter', 'Enter'], 200);  // the game's page, then "New game" (its first row without a save)
   await s.page.waitForTimeout(400);
@@ -39,7 +39,7 @@ export async function keyboardToBattle(s) {
 // Home -> battle by mouse / touch (tap = true).
 export async function pointerToBattle(s, tap = false) {
   const hit = tap ? (x, y, p) => s.tapL(x, y, p) : (x, y, p) => s.clickL(x, y, p);
-  await hit(90, 46);        // "Emblem Demo" in the list
+  await hit(90, 46);        // "Story Tactics Demo" in the list
   await hit(240, 46, 500);  // "New game"
   await hit(240, 100, 500); // the chapter's title card
   await hit(458, 200, 1800); // "Skip" on the scene before the battle; then the battle opens

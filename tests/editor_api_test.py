@@ -192,7 +192,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           st == 200 and projs.get("demo-srpg", {}).get("ok") is True and projs.get("demo-economy", {}).get("ok") is True,
           doc)
     check("project list names and map counts",
-          projs.get("demo-srpg", {}).get("name") == "Emblem Demo" and projs["demo-srpg"].get("maps") == 2 and
+          projs.get("demo-srpg", {}).get("name") == "Story Tactics Demo" and projs["demo-srpg"].get("maps") == 2 and
           projs.get("demo-economy", {}).get("name") == "Wars Demo" and projs["demo-economy"].get("maps") == 2)  # twin_rivers + misty_ford
     check("project list entries have all fields",
           all(set(p) == {"id", "name", "description", "author", "maps", "ok", "error"} for p in projs.values()))
@@ -244,7 +244,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           list(srpg["maps"].keys()) == ["bridge", "north_road"] and "srpg_damage" in srpg["scripts"].get("scripts/formulas.lua", ""))
     check("GET demo-srpg: revision non-empty, problems empty", bool(srpg["revision"]) and srpg["problems"] == [])
     check("GET demo-srpg: comments are gone (strict JSON data)",
-          "Emblem Demo" == srpg["game"]["name"] and len(srpg["units"]) == 7)
+          "Story Tactics Demo" == srpg["game"]["name"] and len(srpg["units"]) == 7)
     st, doc = get_project(api, "nope-x")
     check("GET unknown project -> 404", st == 404 and "error" in doc)
     st, doc = get_project(api, "Bad%20Id")

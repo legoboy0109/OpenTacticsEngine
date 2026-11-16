@@ -28,8 +28,8 @@ export async function openChapter(page: Page, name: string): Promise<void> {
 export function copyDemo(): string {
   const id = `demo${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
   cpSync(diskPath('demo-srpg', ''), diskPath(id, ''), { recursive: true })
-  // Another game called "Emblem Demo" would confuse tests that look the demo up by name in the picker.
+  // Another game called "Story Tactics Demo" would confuse tests that look the demo up by name in the picker.
   const g = diskPath(id, 'game.json')
-  writeFileSync(g, readFileSync(g, 'utf8').replace('Emblem Demo', `Copy ${id}`))
+  writeFileSync(g, readFileSync(g, 'utf8').replace('Story Tactics Demo', `Copy ${id}`))
   return id
 }

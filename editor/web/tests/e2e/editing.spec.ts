@@ -4,12 +4,12 @@ import { readFileSync } from 'node:fs'
 test('@smoke picker lists the demo games', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Emblem Demo/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Story Tactics Demo/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Wars Demo/ })).toHaveCount(2)  // Wars Demo and Hex Wars Demo
   await expect(page.getByRole('link', { name: /Hex Wars Demo/ })).toBeVisible()
-  await page.getByRole('link', { name: /Emblem Demo/ }).click()
+  await page.getByRole('link', { name: /Story Tactics Demo/ }).click()
   await expect(page).toHaveURL(/\/p\/demo-srpg\/game/)
-  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Emblem Demo')
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Story Tactics Demo')
 })
 
 for (const template of ['strategy-rpg', 'economy-tactics', 'blank']) {

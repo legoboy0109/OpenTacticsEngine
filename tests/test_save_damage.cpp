@@ -238,13 +238,13 @@ TEST(save_data_hash_follows_rules_and_map_but_not_art) {
   // Cosmetic changes: names, descriptions, colours, letters, fonts, styles,
   // screen size, the saving setting, comments and layout. Saves stay valid.
   const Edit cosmetic[] = {
-      {"game.json", "\"name\": \"Emblem Demo\"", "\"name\": \"Renamed\", \"author\": \"Me\", \"saving\": \"continue\""},
+      {"game.json", "\"name\": \"Story Tactics Demo\"", "\"name\": \"Renamed\", \"author\": \"Me\", \"saving\": \"continue\""},
       {"game.json", "\"description\": \"A short", "\"font\": { \"name\": \"sans\" }, \"description\": \"A long"},
       {"game.json", "\"name\": \"Classic\"", "\"name\": \"Plain\", \"background\": \"#000000\""},
       {"game.json", "\"tileSize\": 24", "\"tileSize\": 32"},
       {"game.json", "\"name\": \"Strength\"", "\"name\": \"Power\""},
       {"data/weapons.json", "\"name\": \"Iron Sword\"", "\"name\": \"Old Sword\""},
-      {"data/items.json", "\"name\": \"Vulnerary\"", "\"name\": \"Herb\""},
+      {"data/items.json", "\"name\": \"Salve\"", "\"name\": \"Herb\""},
       {"data/units.json", "\"name\": \"Lord\", \"glyph\": \"L\"", "\"name\": \"Hero\", \"glyph\": \"H\""},
       {"data/terrain.json", "\"color\": \"#8fbf6a\", \"glyph\": \".\"", "\"color\": \"#123456\",   \"glyph\": \",\""},
       {"data/structures.json", "{ \"structures\"", "// another note\n{   \"structures\""},

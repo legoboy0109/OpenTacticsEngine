@@ -38,7 +38,7 @@ Core: `RulesConfig::items` (`ItemRules`).
 
 ```jsonc
 { "items": [
-  { "id": "vulnerary", "name": "Vulnerary",
+  { "id": "vulnerary", "name": "Salve",
     "description": "Restores 10 HP.",       // optional, one line
     "kind": "usable",                       // "usable" | "weapon" | "accessory"
     "uses": 3,                              // optional, 1..999; missing = unlimited

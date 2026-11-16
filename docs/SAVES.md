@@ -31,7 +31,7 @@ is put on top.
 ```jsonc
 { "saveVersion": 1,
   "game": "demo-srpg",            // game folder name
-  "gameName": "Emblem Demo", "map": "bridge", "mapName": "Skirmish at the Ford",
+  "gameName": "Story Tactics Demo", "map": "bridge", "mapName": "Skirmish at the Ford",
   "dataHash": "9f3c…",            // see below
   "savedAt": 1794651000,          // seconds since 1970 (UTC), for display
   "round": 3, "activeSide": 0,    // also inside "battle"; repeated here so lists need not parse it all

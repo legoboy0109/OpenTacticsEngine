@@ -27,7 +27,7 @@
     "stats":   { "hp": 18, "str": 5, "skl": 3, "spd": 3, "def": 4, "mov": 5 },
     "growths": { "hp": 70, "str": 40, "skl": 30, "spd": 30, "def": 30 },
     "wields": ["lance"], "items": ["iron_lance"] },
-  { "id": "pegasus", "name": "Pegasus Knight", "glyph": "P", "moveType": "fly",
+  { "id": "pegasus", "name": "Sky Rider", "glyph": "P", "moveType": "fly",
     "stats":   { "hp": 16, "str": 4, "skl": 5, "spd": 8, "def": 2, "mov": 7 },
     "growths": { "hp": 60, "str": 40, "skl": 50, "spd": 55, "def": 20 },
     "wields": ["lance"], "items": ["iron_lance"], "tags": ["flier"],

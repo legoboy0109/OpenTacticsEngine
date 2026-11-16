@@ -49,7 +49,7 @@ TEST(loader_demo_srpg_game) {
   std::string err;
   CHECK(loadGame(game("demo-srpg"), db, err));
   CHECK_STR(err, "");
-  CHECK_STR(db.name, "Emblem Demo");
+  CHECK_STR(db.name, "Story Tactics Demo");
   CHECK(db.rootPath.size() > 0 && db.rootPath.back() != '/');
   CHECK_EQ(db.stats.size(), size_t(6));
   CHECK_EQ(db.rules.statHp, db.findStat("hp"));

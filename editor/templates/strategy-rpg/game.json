@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "name": "Strategy RPG",
-  "description": "A small Fire Emblem-style skirmish: named heroes, experience and level-ups.",
+  "description": "A small strategy-RPG skirmish: named heroes, experience and level-ups.",
   "view": { "width": 480, "height": 270, "tileSize": 24 },
   "stats": [
     { "id": "hp", "name": "HP" },
