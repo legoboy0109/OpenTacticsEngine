@@ -29,6 +29,7 @@ from editor_api_fog_checks import run_fog_checks
 from editor_api_sound_checks import run_sound_checks
 from editor_api_hex_checks import run_hex_checks
 from editor_api_learn_checks import run_learn_checks
+from editor_api_srpg_checks import run_srpg_checks
 
 PASSED = 0
 FAILED = 0
@@ -151,6 +152,7 @@ def main():
         run_fog_checks(api, tmp, games, templates, check, get_project, put_project)
         run_sound_checks(api, tmp, games, templates, check, get_project, put_project)
         run_hex_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_srpg_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")

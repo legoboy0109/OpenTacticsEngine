@@ -1,5 +1,6 @@
 // Read-side project operations: list, create, get, problems, files.
 #include "projects.h"
+#include "srpg_files.h"
 
 #include <algorithm>
 
@@ -277,6 +278,9 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
     }
   }
   doc.set("audio", audio);
+
+  // characters / skills / abilities / supports (docs/SRPG.md "Editor"): each optional, null when the file is absent.
+  readSrpgSections(dir, doc, readProbs);
 
   Json maps, scripts;  // stay null when game.json is unusable
   if (game.isObject()) {

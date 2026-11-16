@@ -81,6 +81,10 @@ dropped (the document is strict JSON).
   "research": [ …the "technologies" list of data/research.json… ],
   "campaign": { …contents of data/campaign.json… },
   "audio": { …contents of data/audio.json… },
+  "characters": [ …the "characters" list of data/characters.json… ],
+  "skills": [ …the "skills" list of data/skills.json… ],
+  "abilities": [ …the "abilities" list of data/abilities.json… ],
+  "supports": { …contents of data/supports.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
 `game.grid` (docs/HEX.md) is passed through untouched: missing or `{ "type": "square" }` is a square game, `{ "type": "hex",
@@ -108,6 +112,13 @@ Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is
 the Sound screen. `revision` identifies the on-disk state (a hash of the
 project's files).
 
+**Strategy-RPG sections** (docs/SRPG.md "Editor"; `editor/server/srpg_files.cpp`). `characters`, `skills` and `abilities` are
+lists exactly like `items` (each file is `{ "<key>": [ … ] }`; `null` when the file is absent, no problem; a file that is
+unreadable, not an object, or without its list is `null` plus a problem on that file). `supports` is the file's one object, like
+`campaign` (`null` when absent; a file that is not a JSON object is `null` plus a problem on `data/supports.json`). Entries
+are passed through untouched: unknown keys and key order are kept. The engine loader checks the contents; its refusals come in
+`problems` with the file name.
+
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,
 "units": …, "maps": { … }, "scripts": { … }, "graphics": { … },
@@ -120,13 +131,18 @@ empty technology list, so writing one would break the game; the project then rea
 `data/campaign.json`** (the game goes back to single battles) and any other value is `400`. `audio` works like `campaign`: an
 object is written as it is (key order and unknown keys kept), **`false` removes `data/audio.json`** ("remove all sound": the
 `audio/` files stay) and any other value is `400`. Nothing is validated on write; `/problems` runs the player's sound loader.
+**`characters`, `skills`, `abilities`** (lists; anything else is `400`) are written as `{ "<key>": [ … ] }`, but **an empty
+list removes the file** (a game without the file and a game with an empty list are the same game, and opening a screen must not
+change the data hash; removing a file that is not there is fine). **`supports`** is an object, written as it is; **`false`
+removes `data/supports.json`**; any other value is `400`. Absent or `null` leaves each file alone. A map may not use one of
+these four file names as its `file`.
 Art, model and audio files are not part of this call: they have their own endpoints below.
 
 - If `baseRevision` is not the current on-disk revision → `409
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, `data/audio.json`, each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, `data/audio.json`, `data/characters.json`, `data/skills.json`, `data/abilities.json`, `data/supports.json` (the last four as described above), each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and
