@@ -104,6 +104,9 @@ state" and is never an error. Tests point the server at a temporary file.
 7. **Art**: give a terrain and a unit a picture; a joined road.
 8. **Hexagons**: start from a hexagon template, paint, place a
    seven-hexagon structure.
+9. **Characters and skills** (template: blank, so nothing of it exists yet): switch on characters, make one with a personal bonus and put it
+   on the map, switch on skills, add the starter skills, give the character a skill and one learned at a level (which needs levelling up
+   switched on), make a skill of your own with the rule builder, Play. See docs/SRPG.md "T1 as built".
 
 Every lesson is short (about 5 to 10 steps) and its text is plain language
 for people who do not program. Lesson texts are reviewed by the owner.

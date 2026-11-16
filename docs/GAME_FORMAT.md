@@ -307,6 +307,14 @@ Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
 Unknown keys, unknown maps / chapters and bad rule values are loader errors. The
 file counts for the save hash except its wording (docs/SAVES.md).
 
+## Strategy-RPG data (optional)
+
+Games can add named characters (`data/characters.json`), skills (`data/skills.json`), menu abilities (`data/abilities.json`) and
+supports (`data/supports.json`), a `rules.promotion` and a `rules.rescue` block, extra keys on unit types, weapons and items (skills,
+learned skills, promotions, abilities), and map units placed as a character (`"character"` in place of `"type"`). Every one is optional,
+a game that uses none of them loads and plays exactly as before, and the files, keys, limits and loader refusals are specified in
+docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
+
 ## Formulas
 
 Formulas are Lua expressions. Variables:

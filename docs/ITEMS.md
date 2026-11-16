@@ -162,6 +162,12 @@ uses left; the equipped weapon is marked. With carried weapons, targeting
 cycles through weapon and target as before; the forecast names the weapon
 and its uses left.
 
+## Strategy-RPG additions
+
+Accessories can carry skills, a usable item can be a promotion item (`promotes`), a weapon can give skills while wielded, and a character
+can start with its own items instead of its class's. These keys, their checks and the items of the demo and template are in
+docs/SRPG.md (sections 1 to 3 and "Demo and template content").
+
 ## Editor
 
 - **Items** screen (list, add, rename, delete with "used by" check, like
