@@ -58,7 +58,8 @@ export async function run(env) {
           `${(movedTo * 100).toFixed(1)}% / ${(freshThere * 100).toFixed(1)}% / ${(movedFrom * 100).toFixed(1)}%`);
 
   // ---- manual slot: Save, reload, Load ----
-  await s.keys(['m', 'ArrowDown', 'ArrowDown', 'Enter']);  // End Turn menu: End Turn, Objective, Save
+  // End Turn menu: End Turn, Objective, Unit (the demo has skills since D1), Save
+  await s.keys(['m', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'Enter']);
   await s.page.waitForTimeout(300);
   const slotList = await s.shot('save-list');
   const panel = await colorShare(env.analysisPage, slotList, [18, 20, 32]);
