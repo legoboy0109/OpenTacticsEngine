@@ -144,7 +144,9 @@ bool StoryLoader::rect(const Json& j, const std::string& where, Rect& out) const
 
 bool StoryLoader::condition(const Json& e, const std::string& where, Condition& out) const {
   if (!e.isObject()) return fail(where, "a condition must be an object");
-  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched", "sees"};
+  // "hasSkill" and "support" are the strategy-RPG conditions (docs/SRPG.md), read by their own areas below.
+  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched", "sees",
+                                       "hasSkill", "support"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
@@ -154,6 +156,14 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
   if (!kind) return fail(where, "is not a condition: it needs one of switch, variable, alive, dead, round, carries, researched, sees");
   std::string k = kind;
   const Json& v = e[kind];
+  if (k == "hasSkill") {
+    out.kind = Condition::Kind::HasSkill;
+    return hasSkillCondition(e, where, out);
+  }
+  if (k == "support") {
+    out.kind = Condition::Kind::Support;
+    return supportCondition(e, where, out);
+  }
   if (k == "switch") {
     if (!onlyKeys(e, {"switch", "is"}, where)) return false;
     out.kind = Condition::Kind::Switch;

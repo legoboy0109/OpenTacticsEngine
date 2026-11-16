@@ -6,6 +6,7 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -100,6 +101,8 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
 
   if (!loadSupplyRules(c, *rules, db)) return false;
   if (!loadOptionRules(c, *rules, db)) return false;
+  // Strategy-RPG features (docs/SRPG.md): "rules.rescue" and "rules.promotion", each optional.
+  if (!loadRescueRules(c, *rules, db) || !loadPromotionRules(c, *rules, db)) return false;
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
@@ -319,17 +322,24 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   const std::string weaponsPath = root + "/data/weapons.json";
   // Order matters: each step resolves ids defined by the previous ones.
   if (!loadGameFile(root + "/game.json", db, err)) return false;
+  // Strategy-RPG features (docs/SRPG.md "Load order"): skills and abilities first (ids and shapes only), because
+  // weapons, items and unit types name them; what they name themselves is resolved at the very end.
+  if (!loadSkills(root + "/data/skills.json", db, err)) return false;
+  if (!loadAbilities(root + "/data/abilities.json", db, err)) return false;
   if (!loadWeapons(weaponsPath, db, err)) return false;
   if (!loadItems(root + "/data/items.json", db, err)) return false;
   if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
+  if (!loadCharacters(root + "/data/characters.json", db, err)) return false;  // needs unit types, items, skills, abilities
   if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
   if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;
   if (!loadCampaign(root + "/data/campaign.json", db, err)) return false;
+  if (!loadSupports(root + "/data/supports.json", db, err)) return false;  // needs the characters
+  if (!resolveSrpgRefs(root, db, err)) return false;  // last: every cross reference of the new data
 
   out = db;
   err.clear();

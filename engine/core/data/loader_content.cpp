@@ -3,6 +3,7 @@
 #include <cctype>
 
 #include "core/data/loader.h"
+#include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -54,6 +55,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
     if (!c.str(e, "group", where, w.group)) return false;
     if (!readWeaponAmmo(c, e, where, w)) return false;
+    if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
     db.weapons.push_back(w);
   }
   return true;
@@ -99,6 +101,10 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!c.stringList(e, "tags", where, u.tags)) return false;
     if (!c.boolean(e, "canCapture", where, u.canCapture)) return false;
     if (!readUnitSupply(c, e, where, u) || !readUnitVision(c, e, where, u)) return false;
+    // Strategy-RPG features (docs/SRPG.md): each area reads its own keys of a unit type.
+    if (!readUnitSkills(c, db, e, where, u) || !readUnitAbilities(c, db, e, where, u) ||
+        !readUnitPromotions(c, db, e, where, u) || !readUnitPairBonus(c, db, e, where, u))
+      return false;
     db.unitTypes.push_back(u);
   }
   return true;

@@ -26,7 +26,8 @@ void collectAddedIds(const Json& commands, std::vector<std::string>& out) {
 // The trigger: exactly one of battle / turn / reach / defeated / fight / talk, plus its extras.
 static bool readTrigger(StoryLoader& L, const Json& w, const std::string& where, Trigger& t) {
   if (!w.isObject()) return L.fail(where, "\"when\" must be an object such as { \"battle\": \"start\" }");
-  static const char* const kKinds[] = {"battle", "turn", "reach", "defeated", "fight", "talk"};
+  // "promoted" and "support" are the strategy-RPG triggers (docs/SRPG.md), read by their own areas below.
+  static const char* const kKinds[] = {"battle", "turn", "reach", "defeated", "fight", "talk", "promoted", "support"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (w.has(k)) {
@@ -39,6 +40,14 @@ static bool readTrigger(StoryLoader& L, const Json& w, const std::string& where,
   const LoadCtx& c = L.ctx();
   using K = Trigger::Kind;
   std::string at = where + ": \"when\"";
+  if (k == "promoted") {
+    t.kind = K::Promoted;
+    return L.promotedTrigger(w, at, t);
+  }
+  if (k == "support") {
+    t.kind = K::Support;
+    return L.supportTrigger(w, at, t);
+  }
   if (k == "battle") {
     if (!L.onlyKeys(w, {"battle"}, at)) return false;
     std::string s = v.asString();
