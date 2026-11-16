@@ -96,3 +96,23 @@ void supportsHealed(int healer, int target, std::vector<Event>& events);
 void supportCombatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& defender) const;
 void storyAddSupport(const Command& c, std::vector<Event>& events);
 bool storySupportHolds(const Condition& c) const;
+
+// ---- combat pipeline (combat_mods.cpp, combat.cpp, step F2) ----
+// These replace two older declarations in battle.h, strikeForecast(atk, atkCell, def, defCell, weapon, out) and
+// doStrike(atk, def, weapon, baseFlags, events), which are no longer defined or called. counterWeapon (battle.h)
+// is now setting up step 1: the weapon the defender fights with, in range or not (see combat_mods.cpp).
+// Setting up, steps 1 to 3: the answering weapon, both fighters' modifiers, and whether the defender counters.
+// The caller has checked that the attack itself is allowed.
+void setUpCombat(int attacker, int defender, int weapon, Cell from, CombatSetup& setup, CombatMods& modsA,
+                 CombatMods& modsD) const;
+// One side's strike numbers (`counter` = the defender's) with `own` = its modifiers and `foe` = the other's.
+// False when that side's weapon cannot hurt the other at all.
+bool strikeForecast(const CombatSetup& setup, bool counter, const CombatMods& own, const CombatMods& foe,
+                    StrikeForecast& out) const;
+// Adds one strike's hit, avoid, crit, critAvoid, damage and damageTaken to strike numbers (not its percents: in a
+// real strike a critical multiplies between the two).
+void foldStrikeMods(const StrikeMods& mods, StrikeForecast& numbers) const;
+// Battle::forecast after its checks, also handing back the setup (applyAttack fights with it).
+bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup) const;
+// One strike, steps 1 to 8 of the contract. `extra` = the strike a "strikeAgain" gave (it cannot give another).
+void doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events);
