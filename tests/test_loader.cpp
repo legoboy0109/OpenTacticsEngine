@@ -55,8 +55,8 @@ TEST(loader_demo_srpg_game) {
   CHECK_EQ(db.rules.statHp, db.findStat("hp"));
   CHECK_EQ(db.rules.statMove, db.findStat("mov"));
   CHECK_EQ(db.moveTypes.size(), size_t(3));
-  CHECK_EQ(db.unitTypes.size(), size_t(7));
-  CHECK_EQ(db.weapons.size(), size_t(4));
+  CHECK_EQ(db.unitTypes.size(), size_t(14));
+  CHECK_EQ(db.weapons.size(), size_t(6));
   CHECK_EQ(db.terrains.size(), size_t(5));  // the fort is a structure now
   CHECK_EQ(db.structures.size(), size_t(1));
   CHECK_EQ(db.scripts.size(), size_t(1));
@@ -91,7 +91,7 @@ TEST(loader_demo_srpg_game) {
   CHECK_EQ(peg.stats[size_t(db.findStat("mov"))], 7);
   CHECK_EQ(peg.growths[size_t(db.findStat("spd"))], 55);
   CHECK_EQ(peg.growths[size_t(db.findStat("mov"))], 0);  // missing = 0
-  CHECK_EQ(peg.tags.size(), size_t(1));
+  CHECK_EQ(peg.tags.size(), size_t(2));
   // Weapons are carried in this game: the type says what it can wield and what it starts with.
   CHECK(db.rules.items.carriedWeapons);
   CHECK(peg.wields.size() == 1 && peg.wields[size_t(0)] == "lance");

@@ -111,6 +111,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME hex_content
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/hex_content_test.py ${CMAKE_SOURCE_DIR}
                      $<TARGET_FILE:ote-sim>)
+    # The strategy-RPG content (demo, template, fixtures): sims without stalls, determinism, event printer (docs/SRPG.md D1).
+    add_test(NAME srpg_content
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_content_test.py ${CMAKE_SOURCE_DIR}
+                     $<TARGET_FILE:ote-sim>)
     add_test(NAME audio_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/audio_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

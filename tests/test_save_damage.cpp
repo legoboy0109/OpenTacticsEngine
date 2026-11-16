@@ -169,6 +169,7 @@ struct HashGame {
     tempFolder("save_hash_game/scripts");
     const char* files[] = {"game.json", "data/weapons.json", "data/units.json", "data/terrain.json",
                            "data/structures.json", "data/items.json", "data/graphics.json", "data/campaign.json",
+                           "data/skills.json", "data/abilities.json", "data/characters.json", "data/supports.json",
                            "maps/bridge.json", "maps/north_road.json", "scripts/formulas.lua"};
     for (const char* f : files)
       if (!copyFile(src + "/" + f, dir + "/" + f)) return false;

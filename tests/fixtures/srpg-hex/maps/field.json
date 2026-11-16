@@ -1,0 +1,10 @@
+// Seven columns by five rows of pointy hexagons, open ground except one wall. Eirik stands in the middle with Bram and a
+// grunt beside him, so every direction of an ability has a neighbour to act on.
+{ "name": "Field", "grid": { "type": "hex", "width": 7, "height": 5 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": [ ".......", ".......", "...#...", ".......", "......." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "eirik", "side": "blue", "x": 3, "y": 1, "leader": true },
+    { "character": "bram", "side": "blue", "x": 2, "y": 1 },
+    { "character": "gorm", "side": "red", "x": 4, "y": 1, "leader": true },
+    { "type": "grunt", "side": "red", "x": 6, "y": 4 } ] }

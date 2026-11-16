@@ -63,15 +63,17 @@ struct Golden {
   const char* want;
 };
 
+// The demo-srpg lines were re-taken by step D1 (docs/SRPG.md): the demo got characters, skills, promotions, abilities,
+// carrying and supports, so its battles and saves changed on purpose. The other games' lines are untouched.
 const Golden kGoldens[] = {
     {"tests/fixtures/plain-economy", "twin_rivers", 7, 60, "7bd8c1c0aa74081e 54e6cde857e7133a 3cbce4c25ee130dc"},
     {"tests/fixtures/plain-economy", "twin_rivers", 11, 200, "ae9930f575d28df2 c6c9ec072b46fec9 2323f84c5a8f2068"},
     {"tests/fixtures/plain-economy", "twin_rivers", 23, 2000, "de4a61837a815c28 dd223047f4e5d54d c1dc2797283923cc"},
-    {"games/demo-srpg", "bridge", 7, 12, "f692674fccbef1d8 ec06ebf070eb8c1c fb3c194038081104"},
-    {"games/demo-srpg", "bridge", 11, 40, "a3d6e1a8cb3a8e0c 2f9c80b4748f6273 3be74f6c0f73f357"},
-    {"games/demo-srpg", "bridge", 23, 2000, "16966dfb9b92d8b0 8799248a3bddf077 60dd66bcad3c8250"},
-    {"games/demo-srpg", "north_road", 7, 25, "48c8b8a666f818d4 6a3f11bc09065a37 8066885ce777d0b1"},
-    {"games/demo-srpg", "north_road", 11, 2000, "affa6a218b3e7755 da87c644d32fccc5 de65284903666a6d"},
+    {"games/demo-srpg", "bridge", 7, 12, "e2aac7e2051bd3df b66a1627a49a8401 6da9c7684e0905be"},
+    {"games/demo-srpg", "bridge", 11, 40, "1f91277e5cb73d36 d5bbba7c42b6d31c 28397f7b4288c54b"},
+    {"games/demo-srpg", "bridge", 23, 2000, "4bf106ae60c0dcb3 274d3e2c4369d4ad edebd6fa6591d66c"},
+    {"games/demo-srpg", "north_road", 7, 25, "f979a20e0ba33047 1acb654a62c4069d 1d5ec5791c2bd32f"},
+    {"games/demo-srpg", "north_road", 11, 2000, "7f6bbe8f4aae0a8a 528620809c9faec6 32f8851296a2f62f"},
     {"games/demo-economy", "twin_rivers", 7, 150, "0a96109ba014b641 5e26a207d7e93500 3cbce4c25ee130dc"},
     {"games/demo-economy", "misty_ford", 11, 150, "90bee29c0d453f9a 308853d97fefb07d 2323f84c5a8f2068"},
     {"games/demo-hex", "fortress_ford", 7, 150, "0ae9c4eef41c3b84 9c098ccf301b69d2 3cbce4c25ee130dc"},
@@ -89,14 +91,14 @@ TEST(srpg_skeleton_keeps_battles_and_saves_byte_for_byte) {
 
 TEST(srpg_skeleton_keeps_data_hashes) {
   CHECK_STR(dataHash("tests/fixtures/plain-economy", "twin_rivers"), "1e44dae676a88a38");
-  CHECK_STR(dataHash("games/demo-srpg", "bridge"), "424b5fd70a0bf539");
+  CHECK_STR(dataHash("games/demo-srpg", "bridge"), "97b4001954d2bcf9");
   CHECK_STR(dataHash("games/demo-economy", "twin_rivers"), "89beafac5e6893cf");
   CHECK_STR(dataHash("games/demo-hex", "fortress_ford"), "2bfa51f67465e668");  // re-taken when the demo maps gained heights (2D isometric hexagons)
   Database db;
   std::string err, out;
   CHECK(loadGame(ote_test::sourceDir() + "/games/demo-srpg", db, err));
   CHECK(computeCampaignHash(db, out, err));
-  CHECK_STR(out, "e4f411e0ca888510");
+  CHECK_STR(out, "3453e134072a2766");
 }
 
 // The demo's campaign: a chapter battle under way saved as a whole campaign save file, and the playthrough after
@@ -117,11 +119,11 @@ TEST(srpg_skeleton_keeps_campaign_saves_byte_for_byte) {
   CHECK(!b.over);
   Json file;
   CHECK(buildCampaignSave(db, "demo-srpg", pt, &b, 0, file, err));
-  CHECK_STR(hex(fnv(file.dump(0))), "4899cc10dbbb4724");
+  CHECK_STR(hex(fnv(file.dump(0))), "751f8eb40ef07113");
   b.over = true;
   b.winnerTeam = b.humanTeam();
   CHECK(finishChapterBattle(db, pt, b) == ChapterResult::Won);
   Json after;
   savePlaythrough(db, pt, after);
-  CHECK_STR(hex(fnv(after.dump(0))), "71019abb4e87edfc");
+  CHECK_STR(hex(fnv(after.dump(0))), "1b37c1ef7391fe0d");
 }

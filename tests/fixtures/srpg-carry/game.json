@@ -1,0 +1,13 @@
+// Frozen fixture (docs/SRPG.md D1): carrying. A mounted unit cannot be carried; a carrier's Speed is halved and Move is one less.
+{
+  "formatVersion": 1, "name": "Carry Fixture",
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "rescue": { "mode": "carry", "canCarry": "a.str >= b.def and not b.tags.mounted",
+                         "carrierStats": { "spd": { "percent": 50 }, "mov": -1 } },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"field","name":"Field","file":"maps/field.json"} ]
+}

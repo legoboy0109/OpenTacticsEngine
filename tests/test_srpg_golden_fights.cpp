@@ -81,7 +81,7 @@ void probe(const Battle& b, Digest& dg, Counts& n) {
 }
 
 // "digest forecasts fights" of one battle played by the computer for up to `steps` decisions.
-std::string fought(const std::string& dir, const char* map, unsigned seed, int steps) {
+std::string fought(const std::string& dir, const char* map, unsigned seed, int steps, bool requirePlain = true) {
   savetest::Rig rig;
   if (!rig.load(ote_test::sourceDir() + "/" + dir, map, seed)) return "load failed";
   std::vector<Event> ev;
@@ -93,7 +93,7 @@ std::string fought(const std::string& dir, const char* map, unsigned seed, int s
     aiTakeStep(rig.battle, ev);
   }
   dg.add(hex(rig.battle.rng.state));
-  CHECK(n.plain);
+  if (requirePlain) CHECK(n.plain);
   return hex(dg.h) + " " + std::to_string(n.forecasts) + " " + std::to_string(n.fights);
 }
 
@@ -106,12 +106,6 @@ struct Golden {
 };
 
 const Golden kGoldens[] = {
-    {"games/demo-srpg", "bridge", 7, 400, "5563fd35e1b7ef17 938 85"},
-    {"games/demo-srpg", "bridge", 11, 400, "4d1a23b460c3b490 393 14"},
-    {"games/demo-srpg", "bridge", 23, 400, "308e32698d705b7c 940 58"},
-    {"games/demo-srpg", "north_road", 7, 400, "60daa8b2b8fc9b4c 647 14"},
-    {"games/demo-srpg", "north_road", 11, 400, "cc43d516d94a94bc 494 11"},
-    {"games/demo-srpg", "north_road", 23, 400, "ce7eaf42efa80ccd 618 17"},
     {"games/demo-economy", "twin_rivers", 7, 300, "ed33a86d3439d235 1510 54"},
     {"games/demo-economy", "twin_rivers", 11, 300, "60794d2e778e55d9 1510 54"},
     {"games/demo-economy", "misty_ford", 7, 300, "2157d1d063775c95 2834 160"},
@@ -129,11 +123,30 @@ const Golden kGoldens[] = {
     {"tests/fixtures/hex-flat", "skirmish", 23, 300, "a40feb19d66a1b17 1031 57"},
 };
 
+// demo-srpg has modifier sources since step D1 (skills, supports), so it cannot be "as before the pipeline"; its digests are
+// pinned here instead (re-taken by D1, with the forecasts' notes and multi-strikes allowed).
+const Golden kDemoGoldens[] = {
+    {"games/demo-srpg", "bridge", 7, 400, "6c5430b94ee3bf56 1277 131"},
+    {"games/demo-srpg", "bridge", 11, 400, "8b749efa389ed9b3 541 25"},
+    {"games/demo-srpg", "bridge", 23, 400, "68d9df917e5a3549 224 5"},
+    {"games/demo-srpg", "north_road", 7, 400, "9fffbe708d19fdcb 1759 137"},
+    {"games/demo-srpg", "north_road", 11, 400, "6e82e9c2756cfd9d 972 92"},
+    {"games/demo-srpg", "north_road", 23, 400, "a3a6cc2f5a7c495a 1964 161"},
+};
+
 }  // namespace
 
 TEST(golden_fights_forecast_and_fight_as_before_the_pipeline) {
   for (const Golden& g : kGoldens) {
     std::string got = fought(g.dir, g.map, g.seed, g.steps);
+    if (got != g.want) std::printf("    {\"%s\", \"%s\", %u, %d, \"%s\"},\n", g.dir, g.map, g.seed, g.steps, got.c_str());
+    CHECK_STR(got, g.want);
+  }
+}
+
+TEST(golden_fights_demo_srpg_with_its_skills_and_supports) {
+  for (const Golden& g : kDemoGoldens) {
+    std::string got = fought(g.dir, g.map, g.seed, g.steps, false);
     if (got != g.want) std::printf("    {\"%s\", \"%s\", %u, %d, \"%s\"},\n", g.dir, g.map, g.seed, g.steps, got.c_str());
     CHECK_STR(got, g.want);
   }

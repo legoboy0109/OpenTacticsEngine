@@ -1,0 +1,5 @@
+{ "abilities": [
+  { "id": "shove", "name": "Shove", "target": "unit", "effect": { "push": 2 }, "cost": "action" },
+  { "id": "pull_back", "name": "Pull Back", "target": "ally", "effect": { "pull": true }, "cost": "free", "uses": 2 },
+  { "id": "swap", "name": "Swap", "target": "ally", "effect": { "swap": true }, "cost": "free", "cooldown": 2 },
+  { "id": "behind", "name": "Behind", "target": "unit", "effect": { "moveBehind": true }, "cost": "action" } ] }

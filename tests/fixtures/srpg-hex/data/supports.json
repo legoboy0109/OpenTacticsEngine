@@ -1,0 +1,2 @@
+{ "rules": { "points": { "endTurnAdjacent": 5, "fightTogether": 2 }, "range": 3 },
+  "pairs": [ { "a": "eirik", "b": "bram", "levels": [ { "points": 10, "bonus": { "hit": 5 } } ] } ] }

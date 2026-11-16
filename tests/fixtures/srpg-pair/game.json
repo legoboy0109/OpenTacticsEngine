@@ -1,0 +1,12 @@
+// Frozen fixture (docs/SRPG.md D1): pair up. A unit that joins a neighbour stands behind it and adds its bonus.
+{
+  "formatVersion": 1, "name": "Pair Fixture",
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "rescue": { "mode": "pairUp", "pairBonus": { "str": 2, "def": 2 } },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"field","name":"Field","file":"maps/field.json"} ]
+}
