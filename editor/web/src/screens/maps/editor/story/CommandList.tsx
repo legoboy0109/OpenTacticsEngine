@@ -27,7 +27,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'addSupport'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
@@ -35,13 +35,14 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` only in an "after" scene). */
-const SCENE_KINDS: CommandKind[] = ['say', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
+const SCENE_KINDS: CommandKind[] = ['say', 'addSupport', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
 function menu(story: Story, talk: boolean): OptionGroup[] {
   const { doc } = story
   const why: Partial<Record<CommandKind, string | null>> = {
     promote: (doc.units?.length ?? 0) > 1 ? null : 'needs two unit types',
+    addSupport: doc.supports?.pairs?.length ? null : 'no support pairs yet',
     giveItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',
     grantResearch: doc.research?.length ? null : 'no technologies yet',
@@ -53,7 +54,8 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     playMusic: doc.audio?.music && Object.keys(doc.audio.music).length ? null : 'no music yet',
     playSound: doc.audio?.sounds && Object.keys(doc.audio.sounds).length ? null : 'no sounds yet',
   }
-  const allowed = (k: CommandKind) => (story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')
+  // A support conversation (`scene.only`) takes the listed kinds and nothing else.
+  const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')
   return GROUPS.map((g) => ({
     group: g.group,
     options: g.kinds.filter(allowed).map((k) => ({ value: k, label: why[k] ? `${S.commandKinds[k]} (${why[k]})` : S.commandKinds[k], disabled: !!why[k] })),

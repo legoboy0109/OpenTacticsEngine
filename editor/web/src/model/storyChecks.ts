@@ -4,6 +4,7 @@
 // picture, an `if` with no conditions).
 import { audioRefProblem } from './audioChecks'
 import { inventorySize } from './itemRules'
+import { addSupportChecks, supportConditionChecks, supportTriggerChecks } from './supportStoryChecks'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
 import { conditionKind, rectOf, commandKind, triggerKind, type Command, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
 import { forEachCommand, walkStory, type Ref } from './storyWalk'
@@ -30,6 +31,8 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'tech': return missing('a technology') ?? (known(doc.research ?? undefined) ? null : `“${r.id}” is not a technology of this game${doc.research?.length ? '' : ' (the game has no research yet)'}.`)
     case 'music':
     case 'sound': return audioRefProblem(doc, r.kind, r.id)
+    case 'pair': return null // supportStoryChecks.ts says it in plainer words
+    case 'character': return missing('a character') ?? (known(doc.characters ?? undefined) ? null : `“${r.id}” is not a character of this game.`)
     case 'chapter':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
   }
@@ -99,6 +102,9 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     case 'if':
       if (!c.if?.length) say(where, 'this “If” has no conditions, so it always happens.')
       break
+    case 'addSupport':
+      addSupportChecks(doc, c, where, say)
+      break
   }
 }
 
@@ -153,6 +159,9 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids))
     seesChecks(map, e.if, `${where}, “Only if”`, say)
     forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
+    supportTriggerChecks(doc, trig, `${where}, “When”`, say)
+    supportConditionChecks(doc, e.if, `${where}, “Only if”`, say)
+    forEachCommand(e.do, where, (c, w) => supportConditionChecks(doc, c.if, w, say))
   }
 
   // Do the names these events point at exist? (one walk for every kind of name)

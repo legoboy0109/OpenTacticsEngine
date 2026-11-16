@@ -32,7 +32,7 @@ function full(): ProjectDoc {
       { id: 'pusher', name: 'Pusher', blocks: [{ when: 'always', do: [{ ability: 'shove' }] }, { when: 'combat', do: [{ crit: 5 }] }] },
     ],
     abilities: [{ id: 'shove', name: 'Shove' }],
-    supports: { pairs: [{ a: 'eirik', b: 'lyra' }] },
+    supports: { pairs: [{ a: 'eirik', b: 'lyra', levels: [{ points: 20 }] }] },
     maps: Object.fromEntries(Object.entries(d.maps).map(([k, m], i) => [k, i === 0 && m ? { ...m, units: [...(m.units ?? []), { character: 'eirik', side: 'blue', x: 0, y: 0, type: '' }] } : m])),
   }
 }
@@ -61,8 +61,8 @@ describe('strategy-RPG sections in the document', () => {
   })
   it('supports: the object while switched on (also when empty), false when removed', () => {
     const a = base()
-    const withPair = { ...a, supports: { pairs: [{ a: 'x', b: 'y' }] } }
-    expect(buildBody(withPair, a, 'r', false)!.supports).toEqual({ pairs: [{ a: 'x', b: 'y' }] })
+    const withPair = { ...a, supports: { pairs: [{ a: 'x', b: 'y', levels: [{ points: 20 }] }] } }
+    expect(buildBody(withPair, a, 'r', false)!.supports).toEqual({ pairs: [{ a: 'x', b: 'y', levels: [{ points: 20 }] }] })
     expect(buildBody(a, withPair, 'r', false)!.supports).toBe(false)
     expect(buildBody(switchOnFeature({ ...a, characters: [] }, 'supports'), a, 'r', false)!.supports).toEqual({ pairs: [] }) // nothing in it yet: still written
   })

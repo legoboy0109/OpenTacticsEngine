@@ -27,13 +27,16 @@ export interface Trigger extends Extra {
   with?: Filter
   /** A unit matching this promoted (docs/SRPG.md "Promotion"). */
   promoted?: Filter
+  /** Two characters of a support pair reach `level` (any level when it is left out); docs/SRPG.md "Supports". */
+  support?: [string, string]
+  level?: number
   talk?: string
   to?: string
   label?: string
 }
 /** The kinds the editor offers (the file has six keys; battle and turn split in more). */
-export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted'
-export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted']
+export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted' | 'support'
+export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted', 'support']
 
 export interface Condition extends Extra {
   switch?: string
@@ -55,9 +58,11 @@ export interface Condition extends Extra {
   sees?: Filter
   /** The team that must see it (a `sees` condition): a team name, or a side id for that side's team. */
   team?: string
+  /** The support level of a pair of characters compared with `value` (`op`, default >=); docs/SRPG.md "Supports". */
+  support?: [string, string]
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support']
 
 /** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
 export interface Command extends Extra {
@@ -77,6 +82,8 @@ export interface Command extends Extra {
   to?: Filter | boolean | number | string
   /** A unit's story id: it becomes the unit type `to` (docs/SRPG.md "Promotion"). */
   promote?: string
+  /** Support points for a pair of characters (`by` may be negative); docs/SRPG.md "Supports". */
+  addSupport?: [string, string]
   giveResource?: Record<string, number>
   setSwitch?: string
   setVariable?: string
@@ -103,12 +110,12 @@ export interface Command extends Extra {
 export type CommandKind =
   | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'giveItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
-  | 'playMusic' | 'stopMusic' | 'playSound'
+  | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'giveItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
-  'playMusic', 'stopMusic', 'playSound',
+  'playMusic', 'stopMusic', 'playSound', 'addSupport',
 ]
 
 export interface StoryEvent extends Extra {
@@ -132,7 +139,7 @@ const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 export function triggerKind(t: Trigger): TriggerKind | null {
   if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' ? t.battle : 'start'
   if (has(t, 'turn')) return t.turn === 'every' ? 'everyTurn' : 'turn'
-  for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted'] as const) if (has(t, k)) return k
+  for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support'] as const) if (has(t, k)) return k
   return null
 }
 

@@ -5,7 +5,10 @@
 import { ids } from './doc'
 import { makeId } from './ids'
 import type { Usage } from './references'
-import { scrubMap, storyUsages } from './storyRefs'
+import { walkCampaign } from './campaignWalk'
+import { scrubDoc, scrubMap, storyUsages } from './storyRefs'
+import { pairId, walkStory, type Ref } from './storyWalk'
+import { deletePair, pairsOf, setPairCharacter } from './supports'
 import type { Learn } from './srpgTypes'
 import type { Extra, MapFile, ProjectDoc } from './types'
 
@@ -36,7 +39,7 @@ export function characterUsageLines(doc: ProjectDoc, id: string): Usage[] {
     const n = (m.units ?? []).filter((u) => u.character === id).length
     if (n) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: it is placed on the map (the unit goes with it)` })
   }
-  out.push(...storyUsages(doc, [{ kind: 'unit', id }]))
+  out.push(...storyUsages(doc, [{ kind: 'unit', id }, { kind: 'character', id }]))
   for (const p of doc.supports?.pairs ?? []) if (p.a === id || p.b === id) out.push({ section: 'supports', text: `Supports: the pair “${p.a}” and “${p.b}” (the pair goes with it)` })
   return out
 }
@@ -118,7 +121,7 @@ export function cleanCharacter(doc: ProjectDoc, id: string): ProjectDoc {
   // The units go, and with them what events and objectives said about the character's id (it is the unit's story name).
   for (const [mid, m] of Object.entries(doc.maps)) {
     const kept = m && m.units?.some((u) => u.character === id) ? { ...m, units: m.units.filter((u) => u.character !== id) } : m
-    maps[mid] = kept && scrubMap(doc, kept, [{ kind: 'unit', id }])
+    maps[mid] = kept && scrubMap(doc, kept, [{ kind: 'unit', id }, { kind: 'character', id }])
   }
   const pairs = doc.supports?.pairs
   const keepPairs = pairs?.filter((p) => p.a !== id && p.b !== id)
@@ -135,3 +138,28 @@ const removeFrom = <K extends 'characters' | 'skills' | 'abilities'>(doc: Projec
 export const deleteCharacter = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanCharacter(doc, id), 'characters', id)
 export const deleteSkill = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanSkill(doc, id), 'skills', id)
 export const deleteAbility = (doc: ProjectDoc, id: string): ProjectDoc => removeFrom(cleanAbility(doc, id), 'abilities', id)
+
+// --- support pairs -------------------------------------------------------------------------------------------------------
+
+/** Story events and scenes that name the pair (for the delete question). */
+export const pairUsageLines = (doc: ProjectDoc, a: string, b: string): Usage[] => storyUsages(doc, [{ kind: 'pair', id: pairId(a, b) }])
+
+/** Deletes pair `index` and the events, scene commands and conditions that were about it, in one edit. */
+export function deletePairClean(doc: ProjectDoc, index: number): ProjectDoc {
+  const p = pairsOf(doc)[index]
+  if (!p) return doc
+  return deletePair(scrubDoc(doc, [{ kind: 'pair', id: pairId(p.a, p.b) }]), index)
+}
+
+/** Gives pair `index` another character in `slot`; what the story said about the pair follows it (same commands, new pair). */
+export function retargetPair(doc: ProjectDoc, index: number, slot: 'a' | 'b', id: string): ProjectDoc {
+  const p = pairsOf(doc)[index]
+  if (!p || p[slot] === id) return doc
+  const from = pairId(p.a, p.b)
+  const to = slot === 'a' ? pairId(id, p.b) : pairId(p.a, id)
+  const follow = { ref: (r: Ref) => (r.kind === 'pair' && r.id === from ? to : r.id) }
+  const maps: ProjectDoc['maps'] = {}
+  for (const [mid, m] of Object.entries(doc.maps)) maps[mid] = m && walkStory(m, follow)
+  const campaign = doc.campaign && walkCampaign(doc.campaign, follow)
+  return setPairCharacter({ ...doc, maps, campaign: campaign ?? doc.campaign }, index, slot, id)
+}

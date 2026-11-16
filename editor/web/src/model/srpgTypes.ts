@@ -1,6 +1,7 @@
 // Strategy-RPG data (docs/SRPG.md). Only what E0 itself needs is spelled out; every shape keeps the `Extra` index
 // signature, so keys a screen does not know yet survive load -> edit -> save. E1 (characters), E2 (skills), E3
 // (abilities, promotion, carrying) and E4 (supports) add the fields of their own list here, each in their own block.
+import type { Command } from './storyTypes'
 import type { Extra, ItemEntry, Named, NumMap } from './types'
 
 /** "learns" entry on a unit type or a character: the skill is learned at that level. */
@@ -43,8 +44,19 @@ export interface Ability extends Named {
   if?: Extra[]
 }
 
-/** data/supports.json (section 6): `rules`, `pairs`; E4 types them. */
-export interface Supports extends Extra { rules?: Extra; pairs?: Array<{ a: string; b: string } & Extra> }
+/** The combat numbers of a support level (section 6): a level states its whole bonus; `stats` never holds HP or move. */
+export interface SupportBonus extends Extra { hit?: number; avoid?: number; crit?: number; critAvoid?: number; damage?: number; damageTaken?: number; stats?: NumMap }
+/** One level of a pair: the points it needs, what it gives and the conversation that unlocks it (`say` commands only). */
+export interface SupportLevel extends Extra { points: number; bonus?: SupportBonus; talk?: Command[] }
+export interface SupportPair extends Extra { a: string; b: string; start?: number; levels: SupportLevel[] }
+export type SupportTalks = 'battle' | 'camp' | 'both'
+export interface SupportRules extends Extra {
+  levelNames?: string[]
+  points?: { endTurnAdjacent?: number; fightTogether?: number; heal?: number }
+  range?: number; maxLevels?: number; conversations?: SupportTalks
+}
+/** data/supports.json (section 6). */
+export interface Supports extends Extra { rules?: SupportRules; pairs: SupportPair[] }
 
 /** The four optional features that have a file of their own. */
 export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'supports'

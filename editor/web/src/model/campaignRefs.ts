@@ -10,7 +10,7 @@ import type { Usage } from './references'
 import { walkCampaign } from './campaignWalk'
 import { allSideIds, definedStoryIds, sceneMap } from './campaignRoster'
 import { commandText } from './storySummary'
-import { DROP, type Dropping, type Ref } from './storyWalk'
+import { DROP, pairId, type Dropping, type Ref } from './storyWalk'
 import type { ProjectDoc } from './types'
 
 const ids = (list: Array<{ id: string }> | undefined): Set<string> => new Set((list ?? []).map((x) => x.id))
@@ -26,6 +26,10 @@ export function goneRefs(before: ProjectDoc, after: ProjectDoc): Ref[] {
   lost('map', ids(before.game.maps), ids(after.game.maps))
   lost('side', allSideIds(before), allSideIds(after))
   lost('unit', definedStoryIds(before), definedStoryIds(after))
+  // Support pairs in scenes name characters, whether or not a map places them.
+  lost('character', ids(before.characters ?? undefined), ids(after.characters ?? undefined))
+  const pairs = (d: ProjectDoc) => new Set((d.supports?.pairs ?? []).map((p) => pairId(p.a, p.b)))
+  lost('pair', pairs(before), pairs(after))
   return out
 }
 
@@ -34,7 +38,7 @@ const hit = (gone: Ref[], r: Ref) => gone.some((g) => g.kind === r.kind && g.id 
 /** Removes what the campaign names that `before` had and `after` no longer has. Same object when nothing is lost. */
 export function reconcileCampaign(before: ProjectDoc, after: ProjectDoc): ProjectDoc {
   if (!after.campaign || before === after) return after
-  if (before.maps === after.maps && before.game === after.game) return after
+  if (before.maps === after.maps && before.game === after.game && before.characters === after.characters && before.supports === after.supports) return after
   const gone = goneRefs(before, after)
   if (!gone.length) return after
   const next = walkCampaign(after.campaign, { ref: (r) => (hit(gone, r) ? DROP : r.id) })
