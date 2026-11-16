@@ -105,6 +105,23 @@ void supportsHealed(int healer, int target, std::vector<Event>& events);
 void supportCombatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& defender) const;
 void storyAddSupport(const Command& c, std::vector<Event>& events);
 bool storySupportHolds(const Condition& c) const;
+// Helpers of the supports (supports.cpp, supports_action.cpp), kept in this section so other steps' appends at the
+// end of the file do not meet them.
+// The unit id of a character that still exists (on the board or paired behind a partner), -1 = none.
+int supportUnit(int character) const;
+// Are the two on one team and "near": a pair-up pair always is; otherwise both are on the board and within `range`
+// squares. `uCell` is where `u` stands for this question (a forecast: where it would fight from; kNoCell = its own).
+bool supportNear(const Unit& u, Cell uCell, const Unit& v, int range) const;
+// Why `unit` cannot have the ready conversation with `target` while standing on `from` (null = it can).
+const char* supportWhy(int unit, Cell from, int target) const;
+// Adds points to a pair, makes the SupportPoints event, then gains the levels that need no conversation.
+void supportGain(int pair, int by, std::vector<Event>& events);
+// Gains the ready levels without a conversation, one SupportReached event (and story trigger) each.
+void supportSettleLevels(std::vector<Event>& events);
+// The event and the "support" story trigger of a level just gained.
+void supportReached(int pair, int level, std::vector<Event>& events);
+// One fighter's bonus from its partners (supportCombatMods asks it for each fighter).
+void supportBonusFor(const Unit& u, Cell cell, CombatMods& out) const;
 
 // ---- combat pipeline (combat_mods.cpp, combat.cpp, step F2) ----
 // These replace two older declarations in battle.h, strikeForecast(atk, atkCell, def, defCell, weapon, out) and

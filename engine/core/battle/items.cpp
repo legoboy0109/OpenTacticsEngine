@@ -252,15 +252,17 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
         if (maxHp(t) > before) t.hp += maxHp(t) - before;  // new hit points arrive filled
         clampHp(t);
       }
+      bool healedAnother = false;  // supports earn after the item is spent: their story events may add units
       if (d.heal > 0 && t.hp < maxHp(t)) {
         int amount = std::min(d.heal, maxHp(t) - t.hp);
         t.hp += amount;
         events.push_back(event(EventType::UnitHealed, a.target, amount));
-        if (a.target != a.unit) supportsHealed(a.unit, a.target, events);  // supports: one healed the other
+        healedAnother = a.target != a.unit;
       }
       const int usedItem = u.items[(size_t)a.slot].item;
       spendUse(a.unit, a.slot, events);
       endOrder(a.unit);
+      if (healedAnother) supportsHealed(a.unit, a.target, events);  // supports: one healed the other
       // A promotion item promotes its user last (heal and raise came first); story events it starts may add units,
       // so nothing below this line touches `u` or `t`.
       if (d.promotes && a.target == a.unit) promoteByItem(a.unit, usedItem, a.unitType, events);
