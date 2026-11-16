@@ -6,12 +6,14 @@ ground pictures and animated character models. The source packs are not in
 this repository; download them (see games/demo-srpg/CREDITS.md) and point
 this script at the folders:
 
-  make_detailed_style.py --kaykit DIR --textures DIR [repo]
+  make_detailed_style.py --kaykit DIR --animals DIR --weapons DIR --textures DIR [repo]
 
   DIR for --kaykit:   holds Knight.glb, Barbarian.glb, Mage.glb, Rogue_Hooded.glb
+  DIR for --animals:  holds Horse.glb (Quaternius "Low Poly Animals")
+  DIR for --weapons:  holds Spear.glb, Bow.glb (Quaternius "Low Poly Weapons", the Wooden Bow)
   DIR for --textures: holds the *_Color.jpg files of the ambientCG materials below
 
-It writes art/detailed_tiles.png, models/detailed/*.glb (the units cut from the packs, and the
+It writes art/detailed_tiles.png, models/detailed/*.glb (the units cut from the packs and combined with weapons, mounts and wings (make_detailed_units.py), and the
 standing forest and mountain models, which make_terrain_models.py generates) and
 art/detailed.style.json (the piece of graphics.json for the style, which
 make_starter_art.py merges in), then runs make_starter_art.py.
@@ -26,8 +28,8 @@ import sys
 
 from PIL import Image, ImageFilter
 
+import make_detailed_units
 import make_terrain_models
-import trim_glb
 
 GAME = 'games/demo-srpg'
 STYLE = 'detailed-3d'
@@ -46,26 +48,6 @@ TERRAIN = {
     'water': {'cell': [2, 1]},
     'bridge': {'cell': [3, 1]},
 }
-
-# unit type -> (source model, parts left out, animations as state=clip)
-UNITS = {
-    'lord': ('Knight', ['1H_Sword_Offhand', 'Rectangle_Shield', 'Round_Shield', 'Spike_Shield', '2H_Sword', 'Knight_Helmet'],
-             {'Idle': 'Idle', 'Move': 'Walking_A', 'Attack': '1H_Melee_Attack_Chop', 'Die': 'Death_A'}),
-    'knight': ('Knight', ['1H_Sword_Offhand', 'Badge_Shield', 'Round_Shield', 'Spike_Shield', '2H_Sword'],
-               {'Idle': 'Idle', 'Move': 'Walking_A', 'Attack': '1H_Melee_Attack_Stab', 'Die': 'Death_A'}),
-    'cavalier': ('Knight', ['1H_Sword_Offhand', 'Badge_Shield', 'Rectangle_Shield', 'Round_Shield', 'Spike_Shield',
-                            '1H_Sword', 'Knight_Cape'],
-                 {'Idle': '2H_Melee_Idle', 'Move': 'Running_A', 'Attack': '2H_Melee_Attack_Slice', 'Die': 'Death_A'}),
-    'fighter': ('Barbarian', ['1H_Axe_Offhand', 'Barbarian_Round_Shield', '1H_Axe', 'Mug'],
-                {'Idle': '2H_Melee_Idle', 'Move': 'Walking_A', 'Attack': '2H_Melee_Attack_Chop', 'Die': 'Death_B'}),
-    'soldier': ('Barbarian', ['1H_Axe_Offhand', '2H_Axe', 'Mug', 'Barbarian_Hat', 'Barbarian_Cape'],
-                {'Idle': 'Idle', 'Move': 'Walking_A', 'Attack': '1H_Melee_Attack_Slice_Diagonal', 'Die': 'Death_A'}),
-    'archer': ('Rogue_Hooded', ['Knife_Offhand', '1H_Crossbow', 'Knife', 'Throwable'],
-               {'Idle': 'Idle', 'Move': 'Walking_A', 'Attack': '2H_Ranged_Shoot', 'Die': 'Death_A'}),
-    'pegasus': ('Mage', ['Spellbook', 'Spellbook_open', '1H_Wand'],
-                {'Idle': 'Idle', 'Move': 'Running_A', 'Attack': 'Spellcast_Shoot', 'Die': 'Death_A'}),
-}
-
 
 def water(size, seed=7):
     """A calm blue surface with soft light streaks; wraps around at the edges."""
@@ -118,6 +100,8 @@ def ground_sheet(tex_dir):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--kaykit', required=True)
+    ap.add_argument('--animals', required=True)
+    ap.add_argument('--weapons', required=True)
     ap.add_argument('--textures', required=True)
     ap.add_argument('repo', nargs='?', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
     args = ap.parse_args()
@@ -127,14 +111,10 @@ def main():
 
     out_dir = os.path.join(game, 'models', 'detailed')
     os.makedirs(out_dir, exist_ok=True)
-    units = {}
-    for uid, (source, drop, clips) in UNITS.items():
-        doc, blob = trim_glb.read_glb(os.path.join(args.kaykit, source + '.glb'))
-        doc, blob = trim_glb.trim(doc, blob, list(clips.items()), set(drop))
-        trim_glb.write_glb(os.path.join(out_dir, uid + '.glb'), doc, blob)
-        # These models have one material for everything, so nothing takes the side's colour;
-        # the marker under the unit's feet shows the side.
-        units[uid] = {'model': 'models/detailed/%s.glb' % uid, 'height': 1.15, 'sideMaterial': ''}
+    # These models have one material for everything, so nothing takes the side's colour;
+    # the marker under the unit's feet shows the side.
+    units = {uid: {'model': 'models/detailed/%s.glb' % uid, 'height': height, 'sideMaterial': ''}
+             for uid, height in make_detailed_units.build_all(args.kaykit, args.animals, args.weapons, out_dir).items()}
 
     piece = {
         'sheets': [{'id': 'detailed_tiles', 'file': 'art/detailed_tiles.png', 'cellWidth': CELL, 'cellHeight': CELL,

@@ -379,6 +379,15 @@ to cut a model file down to chosen parts and animations) into
 `art/detailed.style.json`; `make_starter_art.py` merges every
 `art/*.style.json` of a game into its `data/graphics.json`.
 
+Models can also be **combined** by the art tools (`tools/art/glb_merge.py`, `glb_attach.py`, `glb_pose.py`; recipes in
+`make_detailed_units.py`): a rigid model (a weapon) is hung on a character's hand joint, and a rider's whole skeleton
+is made a child of a mount's body joint, so one file holds two skeletons and one clip (`Idle`, `Move`, `Attack`, `Die`)
+animates both. The loader needs nothing new for this (several skins, rigid meshes under joints and clips over any node
+are standard glTF it already reads). Two things to know when making such models: the engine scales a unit by its
+rest-pose bounds measured from the raw vertices, so a combined model must have its rest pose (and the bind pose of its
+skins) be what it should look like (`Glb.rebind_rest()`); and a rigid weapon turns with the wrist, so
+`steer_weapon()` keys the weapon's own pivot to keep it pointing the way the picture needs in every clip.
+
 ## Editor helper API additions (docs/EDITOR_API.md is updated to match)
 
 - `GET /api/projects/:id` gains `"graphics"`: the contents of
