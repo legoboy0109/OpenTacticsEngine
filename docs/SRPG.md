@@ -1455,6 +1455,83 @@ handled in its switch (F1 may not touch the player; U0 adds the cases). Nothing 
 - **Accept.** Golden fights (events and final rng state, three seeds, `demo-srpg` and `plain-economy`) identical to
   before; each mod field, order and counter rule tested through injection; `ote-sim` numbers unchanged.
 
+#### F2 as built
+
+The pipeline is in place and inert: with no source of modifiers a fight computes the same numbers, rolls the same
+random numbers and makes the same events as before. `tests/test_srpg_golden_fights.cpp` pins that (21 battles on
+`demo-srpg`, `demo-economy`, `demo-hex`, `plain-economy`, `hex-pointy` and `hex-flat`, several seeds: every attack
+the side to move could make is forecast and fought on a copy; taken from the build before this step), next to the
+pins of `test_srpg_compat.cpp`; all `ote-sim` summaries and verbose logs are identical.
+
+**Where things are.**
+- `core/battle/combat_mods.h`: `CombatMods` (the fields of the contract; `addStat(stat, by)`,
+  `raiseMultiStrike(n)`), `StrikeMods`, `applyPercents`, `rollActivation`, `kMaxStrikeDamage`, `CombatTestMods`.
+  Sources include this header (it includes `battle.h`).
+- `core/battle/combat_mods.cpp`: `combatMods`, `counterWeapon` (now setting up step 1), `setUpCombat` (steps 1 to
+  3), `strikeForecast(setup, counter, own, foe, out)` (one side's numbers), `foldStrikeMods`, `strikeOrder`.
+- `core/battle/combat.cpp`: `forecast` / `forecastFight`, `doStrike(setup, counter, extra, events)` (steps 1 to 8),
+  `applyAttack`.
+- New private declarations are at the end of `srpg_internal.h`; `Battle::testMods` at the end of `srpg_api.h`;
+  `struct CombatTestMods;` at the end of `srpg_state.h`.
+- **Two declarations in `battle.h` are now dead** (F2 may not edit that file): `strikeForecast(atk, atkCell, def,
+  defCell, weapon, out)` and `doStrike(atk, def, weapon, baseFlags, events)`. Nothing defines or calls them; whoever
+  next has `battle.h` open should delete the two lines.
+
+**What K2 and S1 build against.**
+- `skillCombatMods`, `auraCombatMods`, `supportCombatMods(setup, attacker, defender)`: add to the two bags;
+  `combatMods` clears them first and calls the three in that order. They run for every forecast **and again before
+  every strike**, so they must be cheap and must not roll or change anything. `setup.counters` is not yet known
+  when they run for the set-up itself (it depends on what they return): do not read it there.
+- `strikeActivations(setup, counter, out, strikeEvents, struckEvents)`: one `StrikeMods` bag for the strike, holding
+  the striker's "strike" effects and the struck unit's "struck" effects together. Roll each activation with
+  `rollActivation(rng, chance)` (the no-roll rule at 0 and 100 lives there). `strikePassives` fills the same bag
+  from the blocks without a chance, `forecastNotes` lists the others. F1's signatures are unchanged.
+- The same bag fields are asked for on the extra strike of a `strikeAgain`; its `strikeAgain` is ignored.
+- `setup.weaponD` is the defender's weapon in use even when it does not answer (out of range): -1 only when it
+  has no weapon that may ever answer this attacker.
+- `afterCombatHooks` of the scope is `srpgAfterCombat` (F1's name), called where the contract says.
+
+**`Battle::testMods`** is a pointer to a `CombatTestMods` (four optional `std::function`s: `combat`, `strike`,
+`passive`, `notes`), called right after the real sources. It is always compiled (the core library is built once
+for the programs and the tests, so a member that exists only in tests would give the class two layouts); nothing
+but the unit tests sets it, it is never saved, and a copied battle shares it. `tests/srpg_combat_fixture.h` wraps
+it (`Duel`).
+
+**Readings of the contract (keep to these).**
+- **Limits apply to formula plus modifiers.** The formula's value is rounded down but not cut to its range before
+  the modifiers are added: a hit formula giving 130 with 20 avoid against it is 100; a damage formula giving -1
+  with +3 damage is 2. Without modifiers this equals the old clamping. A formula that returns "not a number" now
+  counts as 0 (it used to be undefined).
+- **A strike's own effects are added to the numbers of step 1 after their limits**: `hit` / `avoid` and `crit` /
+  `critAvoid` are added to the 0..100 value and limited again; `damage` / `damageTaken` to the damage after the
+  combat's percents (not below 0), then a critical multiplies, then the strike's `damagePercent` and after them
+  its `damageTakenPercent`. The forecast does the same without the critical.
+- Percents: the striker's `damagePercent` list first, then the struck unit's `damageTakenPercent`; a percent
+  below 0 counts as 0; a strike never does more than 1,000,000. `multi` is kept within 1..4.
+- `drain` of several blocks adds up; the heal is limited to the missing HP and makes no event when that is 0; it
+  comes after the `Attack` event and before the weapon's wear. It needs damage dealt (a miss or 0 damage: none).
+- `strikeAgain` gives its extra strike after a miss too, and not when either fighter has fallen. The extra strike
+  is not counted against the fighter's strikes, wears the weapon, spends no ammunition.
+- `survive` sets `kSurvived` only when it really cut the damage.
+- `strikeFirst` on the attacker, or on both, or on a defender that does not counter, changes nothing
+  (`defenderFirst` false). `noCounter` on the defender and `counterAnyRange` on the attacker mean nothing in that
+  fight.
+- `counterAnyRange` still needs `rules.counterAttacks`, a weapon with `counter`, ammunition for it and a weapon
+  that may hurt the attacker.
+- Whether the defender counters, the order and the counts come from the forecast made after the story's "before a
+  fight" events; modifiers that appear during the fight only change the numbers of later strikes.
+- Ammunition: one per fighter, at its first strike that is really made (a defender that strikes first spends its
+  own first; an attacker struck down before its first strike spends none).
+- `StrikeStep::count` is the number of strikes in a row for that turn; fewer are made when a fighter falls.
+
+**Tests.** `test_srpg_golden_fights.cpp`, `test_srpg_combat_mods.cpp` (each field), `test_srpg_combat_order.cpp`
+(order, counter rules, ammunition, carried weapons), `test_srpg_combat_strike.cpp` (one strike: survive, drain,
+strikeAgain, events), `test_srpg_combat_rolls.cpp` (no roll at 0 and 100, roll order, activations before the hit
+roll). The activation tests use stand-in skills through `testMods`; K2 repeats them with real skills.
+
+**Left for others.** Nothing in the pipeline is open. The player's forecast panel does not show `multi`,
+`defenderFirst` or `notes` yet (U1).
+
 ### C1. Characters (core) — depends on F1; parallel with F2
 - **Scope.** Section 1: `loader_characters.cpp`, the map / `addUnit` `character` key (`map_loader.cpp`
   `readUnitHead` / `readUnitBody`, `loader_story_commands.cpp` key list), `characters.cpp` (`dressUnit`, `growthOf`),
