@@ -164,7 +164,7 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
     float Y = topOf(cursor, x, y) + 0.024f;
     frame(batch_.mesh(flat(Blend3D::Blend)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)pulse));
     // Behind higher blocks: again, faintly, over everything.
-    if (hidden_[(size_t)cursor])
+    if (hidden_[(size_t)cursor] || standAt(cursor) || standInFront(c, x, y))
       frame(batch_.mesh(flat(Blend3D::Blend, false)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)(pulse * 2 / 5)));
   }
 }
@@ -192,6 +192,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
       if (ahead < 0.06f) towards = 0.06f - ahead;
     }
   }
+  towards = std::max(towards, standAhead(c, under));  // in front of a standing terrain model
   float al = v.alpha * fade;
   // Solid things are cut out against the depth picture; fading ones are blended in afterwards.
   Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;

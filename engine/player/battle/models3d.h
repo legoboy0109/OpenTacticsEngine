@@ -52,6 +52,7 @@ struct ModelTint {
   std::string sideMaterial;       // its name ("" = none)
   float dim = 1;                  // multiplies every colour (a unit that has acted)
   float alpha = 1;
+  Rgba3D wash = Rgba3D(1, 1, 1);  // multiplies every colour (terrain in reach / in attack range)
   bool depthTest = true;
 };
 

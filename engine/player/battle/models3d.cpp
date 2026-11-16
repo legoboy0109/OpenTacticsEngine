@@ -118,6 +118,9 @@ void drawModel(Renderer3D& r3d, const ModelAsset& asset, const ModelActor& actor
         col.b *= tint.side.b;
       }
     }
+    col.r *= tint.wash.r;
+    col.g *= tint.wash.g;
+    col.b *= tint.wash.b;
     if (tint.alpha < 0.999f) mat.blend = Blend3D::Blend;
     mat.color = col;
     // A rigid piece follows its node; a bent one is already in the model's space.

@@ -7,4 +7,7 @@ const float kWall = 0.45f;             // height of a placeholder structure's bo
 const float kUnitModelHeight = 1.0f;   // a unit model without a "height" stands this tall
 const float kStructureModelFit = 0.92f; // a structure model without a "height" fills this share of its footprint's shorter side
 
+const float kStandBack = 0.3f;         // a standing picture of terrain stands this far behind its cell's middle (towards the back, from the camera)
+const float kModelAhead = 0.4f;        // a unit on a cell with a standing terrain model is moved this far towards the camera
+
 }  // namespace ote
