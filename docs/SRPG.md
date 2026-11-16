@@ -1465,6 +1465,30 @@ handled in its switch (F1 may not touch the player; U0 adds the cases). Nothing 
 - **Must not touch.** `combat.cpp`, skills, saves' format.
 - **Accept.** The Characters tests of "Tests"; the campaign suite unchanged.
 
+#### C1 as built
+
+Characters load, dress units and level up as section 1 says; games without `data/characters.json` are unchanged
+(pins in `tests/test_srpg_compat.cpp` untouched, sims identical).
+
+- `loader_characters.cpp`: `loadCharacters` (all refusals of the contract, worded as written; `unknown key` has no
+  "expected ..." tail) and `resolveCharacterRefs` (called from `resolveSrpgRefs` as before). Skill and ability ids
+  are resolved for real with `findSkill` / `findAbility`: until K1 / A1 land those lists are empty, so any id is
+  refused as `"skills" names unknown skill "<x>" (data/skills.json)` (not "not supported yet"); K1 / A1 need to
+  change nothing here. `"learns"` entries are numbered from 1 in messages.
+- Map units and `addUnit` are resolved at load time in `readUnitHead` / `readUnitBody` into the plain
+  `MapUnitDef` they stand for (story id = character id; type / name / level default to the character's; stats =
+  this map's unit type + the character's `stats`, floored at 0, then the map's `stats`; items = map, else the
+  character's, else the type's). `MapUnitDef` and `database.h` gained nothing. The `addUnit` key list has
+  `character`. An `addUnit` of a character skips the "id already used" load check (a repeated add is legal) and
+  `Battle::storyAddUnit` adds nothing, with an info log, when that character is already in the battle (dead or alive).
+- `characters.cpp`: `characterOf` (story id lookup, -1 without characters), `characterDress`, `growthOf` = type
+  growth + character growth, 0 if negative. K1 adds the skills' growth bonus at the marked line. A game without
+  characters returns the raw type growth as before.
+- Roster identity needed no code: `applyRoster` keys on the story id, `dressUnit` runs after it and re-derives the
+  character. Nothing about characters is saved; the hash already mixed `characters.json` in (F1).
+- Tests: `tests/test_srpg_characters_loader.cpp`, `test_srpg_characters.cpp`, helper `srpg_chars_fixture.h` (a
+  writable copy of `tests/fixtures/srpg-chars`). The stub test for `characters.json` was removed (it now loads).
+
 ### K1. Skills: data, sources, standing effects, learning (core) — depends on C1; parallel with F2, P1
 - **Scope.** Section 3 except the combat and timed blocks: `loader_skills.cpp` + `loader_skill_blocks.cpp` (the whole
   format, every refusal, all seven `when`s parsed), references from units, characters, items, weapons;
