@@ -42,6 +42,13 @@ void BattleScene::openActionMenu() {
   std::vector<AttackOption> opts;
   battle_.attackOptions(sel_, u.cell, opts);
   std::vector<MenuItem> items;
+  if (u.acted) {  // "move again": its action is used up, only Info and Wait are left (docs/SRPG.md "Player UI")
+    addSrpgInfoEntry(items);
+    items.push_back({"Wait", "", true, kWait});
+    menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
+    anchorActionMenu();
+    return;
+  }
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
   addTalkEntries(items);  // story: one entry per partner / event (docs/EVENTS.md)

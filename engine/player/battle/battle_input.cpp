@@ -210,7 +210,9 @@ void BattleScene::selectUnit(int unit) {
   hasUndo_ = false;
   itemsUsed_ = false;
   ambushed_ = false;
-  if (battle_.units[unit].moved) {  // already moved this turn: only the action is left
+  // Moved this turn: only the action is left. (Not for a unit that has acted: it may still move, so it shows its
+  // remaining range like a fresh unit; its menu holds Info and Wait only.)
+  if (battle_.units[unit].moved && !battle_.units[unit].acted) {
     openActionMenu();
     return;
   }
@@ -225,6 +227,7 @@ void BattleScene::computeOverlay() {
   overlay_.reach.assign(n, 0);
   overlay_.attack.assign(n, 0);
   for (Cell s : reach_.stops) overlay_.reach[s] = 1;
+  if (u.acted) return;  // it cannot attack any more: no red squares
   std::vector<int> weapons;  // what it can use now (carried weapons: the ones in its inventory)
   battle_.weaponsOf(u, weapons);
   for (Cell s : reach_.stops) {
@@ -276,6 +279,7 @@ void BattleScene::selectedButton(Button b) {
         openActionMenu();
       } else {
         int t = battle_.unitAt(cursor_);
+        if (u.acted) { uiCue(Cue::Error); break; }  // no attack left
         if (t < 0 || !battle_.isEnemy(u, battle_.units[t])) { uiCue(Cue::Error); break; }  // nowhere to go there
         std::vector<AttackOption> opts;
         battle_.attackOptions(sel_, u.cell, opts);
