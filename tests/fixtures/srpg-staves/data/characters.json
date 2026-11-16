@@ -1,0 +1,5 @@
+{ "characters": [
+  { "id": "wen", "name": "Wen", "description": "A calm healer.", "type": "cleric", "level": 3,
+    "ranks": { "staff": "c" }, "items": ["mend_staff", "rally_staff", "high_staff", "kin_staff", "chorus_staff"] },
+  { "id": "tarn", "name": "Tarn", "description": "A sturdy fighter.", "type": "fighter", "level": 2 },
+  { "id": "brae", "name": "Brae", "description": "A slow knight.", "type": "knight", "level": 2 } ] }

@@ -1,0 +1,13 @@
+{ "units": [
+  { "id": "cleric", "name": "Cleric", "glyph": "C", "moveType": "foot",
+    "stats": { "hp": 18, "str": 2, "def": 2, "mag": 6, "mov": 4 }, "growths": { "hp": 40, "mag": 60 },
+    "weapons": ["stick"], "wields": ["staff"], "ranks": { "staff": "d" } },
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot",
+    "stats": { "hp": 24, "str": 7, "def": 3, "mag": 0, "mov": 4 }, "growths": { "hp": 50, "str": 100 },
+    "wields": ["sword"], "items": ["short_sword"] },
+  { "id": "knight", "name": "Knight", "glyph": "K", "moveType": "foot",
+    "stats": { "hp": 30, "str": 8, "def": 5, "mag": 0, "mov": 3 }, "growths": { "hp": 40, "str": 100 },
+    "wields": ["sword"], "items": ["short_sword"] },
+  { "id": "raider", "name": "Raider", "glyph": "R", "moveType": "foot",
+    "stats": { "hp": 22, "str": 6, "def": 2, "mag": 0, "mov": 4 }, "growths": { "hp": 30, "str": 40 },
+    "wields": ["sword"], "items": ["short_sword"] } ] }

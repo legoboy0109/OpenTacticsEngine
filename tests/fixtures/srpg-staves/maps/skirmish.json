@@ -1,0 +1,12 @@
+{ "name": "Skirmish", "grid": { "type": "square", "width": 10, "height": 6 }, "legend": { ".": "plain" },
+  "tiles": ["..........", "..........", "..........", "..........", "..........", ".........."],
+  "sides": [ { "id": "blue", "controller": "ai" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "wen", "side": "blue", "x": 1, "y": 2, "leader": true },
+    { "character": "tarn", "side": "blue", "x": 2, "y": 1 },
+    { "character": "brae", "side": "blue", "x": 2, "y": 3 },
+    { "type": "raider", "id": "r1", "side": "red", "x": 8, "y": 1 },
+    { "type": "raider", "id": "r2", "side": "red", "x": 8, "y": 3 },
+    { "type": "knight", "id": "r3", "side": "red", "x": 8, "y": 2 },
+    { "type": "cleric", "id": "rp", "name": "Priest", "side": "red", "x": 9, "y": 2, "leader": true,
+      "items": ["mend_staff", "chorus_staff"] } ] }
