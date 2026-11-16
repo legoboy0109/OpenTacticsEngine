@@ -167,12 +167,24 @@ goal (demos only exercise features).
       - Rescue: both classic carry and pair up; each game picks one.
       - Promotion: by item, on reaching a level, by story event, with a
         choice when a class has several promotions.
-      Contract: docs/SRPG.md (being written).
+      Contract: docs/SRPG.md (written; build order F1, F2, C1, K1...).
+      Owner (2026-11-15, later): the editor says "class" once a game has
+      a character, "unit type" otherwise. The demo and template drop the
+      commercial series' name: neutral placeholder names chosen by the
+      assistant (demo "Story Tactics Demo", "Sky Rider", "Salve").
+      The other open questions of the contract run on its defaults.
    l. Standing terrain in the 3D views (owner, 2026-11-15: mountains and
       forests are flat pictures on top of the ground in 3D). A terrain
       in a 3D style can have a standing part on its ground: an upright
       picture facing the camera, or a 3D model; the maker picks per
       terrain, as for units. In progress alongside k.
+   m. Proper models for the Detailed 3D style's stand-ins (owner,
+      2026-11-15): Cavalier with a horse, the flying rider with a winged
+      mount, Archer with a bow, Soldier with a lance, from further CC0
+      packs combined with the current characters and credited. Starts
+      after l is merged (same files).
+   n. Hexagons in the other three views: not ordered yet (owner asked
+      2026-11-15; today hexagon games are top-down only).
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
