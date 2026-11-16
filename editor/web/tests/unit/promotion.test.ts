@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { addItem, deleteItem, setItemKind } from '../../src/model/items'
 import { itemChecks } from '../../src/model/itemChecks'
 import { cleanStat, cleanUnit, findUsages } from '../../src/model/references'
+import { deleteUnit } from '../../src/model/units'
 import {
   addPromotion, baseDifference, gameLevelAfter, movePromotion, patchPromotion, promotionItems, promotionPatches, promotionsOf, removePromotion,
   setGain, setItemPromotes, setLevelAfterRule,
@@ -113,6 +114,10 @@ describe('deleting what a promotion or an ability names', () => {
     expect(lines).toContain('Ability “Call” summons it (the ability is deleted too)')
     const e = cleanUnit(d, B)
     expect(unit(e, A)).not.toHaveProperty('promotions')
+    // The delete itself (the screen's path) keeps that clean-up and removes the type.
+    const gone = deleteUnit(d, B)
+    expect(gone.units!.some((u) => u.id === B)).toBe(false)
+    expect(unit(gone, A)).not.toHaveProperty('promotions')
     expect(e.abilities).toEqual([])
     expect(unit(e, C)).not.toHaveProperty('abilities')
   })

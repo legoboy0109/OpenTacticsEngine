@@ -763,3 +763,18 @@ E3 (abilities, promotion, carrying) and E4 (supports), each in its own files, so
 - **Problems**: the loader's refusals for the four files reach the Problems panel as they are. The editor-side checks of the contract (unused skill,
   promotion item nobody hands out, ...) belong to the steps that own the data (E1 to E4).
 - **Tests**: unit `tests/unit/srpg.test.ts`; API `tests/editor_api_srpg_checks.py`; e2e `tests/e2e/srpg-skeleton.spec.ts`.
+
+## Strategy-RPG: abilities, promotion, carrying (editor step E3 of docs/SRPG.md)
+
+Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change: the files are the ones of docs/EDITOR_API.md.
+
+- **Abilities screen** (`screens/abilities/`): list + form like Items. Pickers only offer what the loader accepts (`model/abilities.ts` `TARGETS_FOR`):
+  changing the effect repairs the target and the range; a default is never written (cost "action", afterMove true, summon limit 1 ...); unknown keys stay.
+  The summon has its own card. "Only if" rows (`abilityConditions.ts`) cover hit points, units nearby, type or tag, carrying and round; others are kept and shown.
+  The sentence under the form is `abilityText.ts`. A banner lists `abilityChecks.ts` (nobody has it; the loader's refusals in plain words).
+- **Unit type**: cards Abilities (order = menu order, shown when the game has abilities), Promotion (rows; checks inside the card), Gives when behind
+  (pair-up games). **Item**: "Promotion item" switch on usable items. **Rules**: cards Carrying and Promotion. Mode changes that drop settings ask first.
+- **Delete clean-up** (`promotionRefs.ts`, called from `references.ts` and `itemRefs.ts`): unit type (promotions into it; abilities that summon it are deleted),
+  item (promotions drop it), stat (changes, bonuses, carrying rows), all in one undo step.
+- **Story**: command "Promote a unit" and trigger "A unit is promoted" (`forms/PromoteForm.tsx`, `TriggerForm.tsx`); `storyWalk.ts` knows their references.
+- **Tests**: unit `abilities`, `promotion`, `rescue`; API `tests/editor_api_abilities_checks.py`; e2e `srpg-abilities.spec.ts`, `srpg-promotion.spec.ts`.

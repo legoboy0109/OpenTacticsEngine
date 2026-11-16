@@ -44,7 +44,8 @@ export function unitRemovalBlock(doc: ProjectDoc): string | null {
 export function deleteUnit(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.units || unitRemovalBlock(doc)) return doc
   const cleaned = cleanUnit(doc, id)
-  return { ...cleaned, units: doc.units.filter((u) => u.id !== id) }
+  // `cleaned.units` already lost promotions into this type (promotionRefs.ts); the type itself goes here.
+  return { ...cleaned, units: (cleaned.units ?? doc.units).filter((u) => u.id !== id) }
 }
 
 export function updateUnit(doc: ProjectDoc, id: string, patch: Partial<Omit<Unit, 'id'>>): ProjectDoc {
