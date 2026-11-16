@@ -61,8 +61,8 @@
     "skills": ["slip_through"],
     "learns": [ { "level": 3, "skill": "light_step" }, { "level": 5, "skill": "gifted" } ] },
 
-  // ---- What the promotions above lead to. They reuse the picture of the type they grow out of
-  // (tools/art/art_units.py ALIASES) until art of their own is made.
+  // ---- What the promotions above lead to. Each has art of its own in every style (tools/art/art_units_promoted.py,
+  // unit_models_promoted.py, make_detailed_promoted.py).
   { "id": "captain", "name": "Captain", "glyph": "L", "moveType": "foot",
     "stats":   { "hp": 25, "str": 8, "skl": 8, "spd": 8, "def": 6, "mov": 5 },
     "growths": { "hp": 70, "str": 50, "skl": 55, "spd": 55, "def": 40 },
