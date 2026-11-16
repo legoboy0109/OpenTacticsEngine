@@ -226,6 +226,9 @@ std::string BattleScene::hint() const {
     case Mode::ActionMenu:
       return ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
+    case Mode::PickUnit:
+    case Mode::PickCell:
+    case Mode::UnitInfo: return srpgHint();
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
     case Mode::Items: return itemsHint();
@@ -248,7 +251,7 @@ void BattleScene::draw(Renderer& r) {
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));
-  drawMap(r, ctx, mode_ == Mode::Selected ? overlay_ : supplyOverlay(), cursor_, human);
+  drawMap(r, ctx, mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell ? overlay_ : supplyOverlay(), cursor_, human);
   drawFloats(r, ctx, false);
   drawStory(r);
   drawEconomy(r);
@@ -284,6 +287,7 @@ void BattleScene::draw(Renderer& r) {
     slots_.draw(r);
   }
   if (!view_.banner.empty()) drawBanner(r, layout_, view_.banner, view_.bannerColor, 2, view_.bannerSub);
+  if (mode_ == Mode::UnitInfo && idleView && human) drawUnitInfoOverlay(r);
   if (view_.dialogue.active) dialogue_.draw(r);
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);

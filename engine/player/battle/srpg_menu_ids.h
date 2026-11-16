@@ -1,0 +1,39 @@
+// Menu entry ids of the strategy-RPG groups in the battle menus (docs/SRPG.md "Player UI", step U0).
+// Free of any scene or SDL type so a unit test can use it.
+//
+// The ids of one action menu never collide: kAttack.. are the small enum of BattleScene (1..~25), the fixed ids
+// below start at 100, Talk entries are kTalkBase (1000) + n, and the ranges sit above that. A group with many
+// entries owns a range (base + n); a group with a few has fixed ids.
+#pragma once
+
+namespace ote {
+
+constexpr int kTalkBase = 1000;      // + n: the n-th Talk entry (BattleScene::MenuId uses this value)
+constexpr int kAbilityBase = 2000;   // + n: the n-th ability entry of the menu now open (U3)
+constexpr int kSupportBase = 3000;   // + n: the n-th "Support: <partner>" entry (U5)
+constexpr int kSrpgRangeEnd = 4000;  // first id past the ranges
+
+enum SrpgMenuId : int {
+  kRescue = 100, kDrop, kGive, kTake,  // carry (U4)
+  kPairUp, kSwitch,                    // pair up (U4); Drop is shared with carry
+  kPromote,                            // U2
+  kInfo,                               // action menu "Info": the unit details (U1)
+  kUnitEntry                           // battle (End Turn) menu "Unit": the details of the unit under the cursor (U1)
+};
+
+// Which group an id of the action menu belongs to (the dispatcher of battle_srpg_menu.cpp sends it there).
+enum class SrpgGroup { None, Talk, Ability, Support, Rescue, Promote, Info };
+
+inline SrpgGroup srpgGroupOf(int id) {
+  if (id >= kTalkBase && id < kAbilityBase) return SrpgGroup::Talk;
+  if (id >= kAbilityBase && id < kSupportBase) return SrpgGroup::Ability;
+  if (id >= kSupportBase && id < kSrpgRangeEnd) return SrpgGroup::Support;
+  switch (id) {
+    case kRescue: case kDrop: case kGive: case kTake: case kPairUp: case kSwitch: return SrpgGroup::Rescue;
+    case kPromote: return SrpgGroup::Promote;
+    case kInfo: return SrpgGroup::Info;
+    default: return SrpgGroup::None;
+  }
+}
+
+}  // namespace ote
