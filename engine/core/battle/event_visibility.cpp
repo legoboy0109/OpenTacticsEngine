@@ -26,6 +26,7 @@
 //   SkillLearned, RankUp, SupportPoints, SupportReached: only the units' own team.
 //   SkillActivated, UnitHurt, UnitPromoted: the unit's team and the teams that see it.
 //   AbilityUsed: the user's team and the teams that see the user or the target unit.
+//   StaffUsed (docs/SRPG.md section 8): the same; StaffMissed: the teams that see either of the two units.
 //   UnitRescued, UnitHanded: the units' teams and the teams that see either of the two (a, b) before it happens.
 //   UnitDropped, PairSwitched: the unit's team and the teams that see the square (c).
 #include "core/battle/battle.h"
@@ -137,7 +138,10 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::UnitPromoted:
       return unitSeenBy(e.a);
     case EventType::AbilityUsed:
+    case EventType::StaffUsed:
       return unitSeenBy(e.a) | unitSeenBy(e.c);
+    case EventType::StaffMissed:
+      return unitSeenBy(e.a) | unitSeenBy(e.b);
     case EventType::UnitRescued:
     case EventType::UnitHanded:
       return unitSeenBy(e.a) | unitSeenBy(e.b);

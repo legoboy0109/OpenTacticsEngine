@@ -1,0 +1,66 @@
+// How the computer opponent uses staves (docs/SRPG.md section 8 "AI"). Stateless like the rest of the AI: every call looks at
+// the squares the unit may stand on and the staves it carries and keeps the best use if it beats the order already chosen.
+//
+// Stage 1 knows only healing. A use is worth the HP it would really restore, as a share of the target's maximum, times the
+// target's value (what attacks are worth, ai_score.cpp: production cost, default 1000), times the hit chance, summed over the
+// units it hits. A leader whose death ends the game counts double. A unit above half HP that would get less than half of what
+// the staff nominally gives is not worth a use (the staff has limited uses). Only a unit that would change is a legal target
+// (Battle::staffTargets), so a use is never wasted on an unhurt unit.
+#include <algorithm>
+
+#include "core/ai/ai_internal.h"
+
+namespace ote {
+namespace ai {
+
+namespace {
+
+constexpr double kAttackBase = 200;       // as an attack's (ai_order.cpp): any worthwhile use outranks plain advancing
+constexpr double kMoveCostWeight = 0.5;   // prefer the shorter trip between equal uses
+constexpr double kLeaderHeal = 2.0;       // a leader that decides the game is healed first
+
+double healValue(const Battle& b, const StaffForecast& f) {
+  double value = 0;
+  for (const StaffHit& h : f.hits) {
+    const Unit& t = b.units[(size_t)h.unit];
+    const int max = std::max(1, b.maxHp(t));
+    if (h.amount <= 0) continue;
+    if (t.hp * 2 > max && h.amount * 2 < h.nominal) continue;  // a scratch: keep the use for someone who needs it
+    double v = h.amount / (double)max * typeValue(*b.db, t.type) * (h.hit / 100.0);
+    if (t.leader && b.db->rules.defeatLeaderDead) v *= kLeaderHeal;
+    value += v;
+  }
+  return value;
+}
+
+}  // namespace
+
+void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best) {
+  if (b.db->staves.empty()) return;
+  std::vector<StaffOption> options;
+  b.staffOptions(u.id, s, options);
+  for (const StaffOption& o : options) {
+    if (!o.ok) continue;
+    std::vector<int> targets;
+    b.staffTargets(u.id, o.slot, s, targets);
+    for (int t : targets) {
+      StaffForecast f;
+      if (!b.staffForecast(u.id, o.slot, t, s, f)) continue;
+      double sc = healValue(b, f);
+      if (sc <= 0) continue;
+      sc -= exposureCost(b, u, s);
+      if (sc <= 0) continue;
+      sc += kAttackBase - kMoveCostWeight * travel;
+      if (sc <= best.score) continue;
+      best = Order();
+      best.score = sc;
+      best.kind = ActionType::UseStaff;
+      best.moveTo = s == u.cell ? kNoCell : s;
+      best.slot = o.slot;
+      best.target = f.needsPick ? t : -1;
+    }
+  }
+}
+
+}  // namespace ai
+}  // namespace ote

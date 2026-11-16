@@ -247,3 +247,16 @@ void rankOverride(Unit& u, const std::vector<int>& values) const;
 void ranksAfterCombat(std::vector<Event>& events, size_t from, int attacker, int defender);
 // The one place a permanent stat grows: a positive `amount` is cut by the cap; returns the change that happened.
 int raiseStat(Unit& u, int stat, int amount) const;
+
+// ---- staves (staves.cpp; docs/SRPG.md section 8) ----
+bool validateStaff(const Action& action, std::string* why) const;
+void applyStaff(const Action& action, std::vector<Event>& events);
+// The units (ascending id) the staff would really affect for the picked unit `center` (-1 = nobody picked) with the user
+// on `from`: the target rule, the area, the conditions, and "would change" (a heal needs a hurt unit).
+void staffAffected(const Unit& user, int item, int center, Cell from, std::vector<int>& out) const;
+// A staff formula (`expr` of Database::exprs): a = user, b = `target` (null = none), w = the staff, the user on `from`.
+double staffEval(int expr, const Unit& user, const Unit* target, const StaffDef& d, Cell from, double def) const;
+// What one effect would restore to `t` before the unit's maximum caps it (0 = nothing).
+int staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffect& fx, const Unit& t, Cell from) const;
+// Adds weapon experience in `group` (never above the top rank's); the rank before and after.
+void addRankXp(Unit& u, int group, int amount, int& before, int& after) const;

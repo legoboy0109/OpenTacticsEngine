@@ -86,6 +86,9 @@ enum class EventType {
   // Weapon ranks (docs/SRPG.md section 7): a=unit, b=weapon group (index into db->ranks.groups), c=new rank, d=old rank
   // (indices into db->ranks.ladder).
   RankUp,
+  // Staves (docs/SRPG.md section 8): a=user, b=item, c=the picked unit or -1, d=units really affected / a=the unit missed, b=user, c=item.
+  StaffUsed,
+  StaffMissed,
 };
 
 enum : int {
@@ -210,7 +213,8 @@ enum class ActionType {
   TakeUnit,    // carry: `unit` takes over the unit `target` carries; free
   PairUp,      // pair up: `unit` leaves the board and stands behind `target`; ends its turn
   SwitchPair,  // pair up: the unit behind `unit` comes forward; free
-  Support      // `unit` has its ready support conversation with `target`; free
+  Support,     // `unit` has its ready support conversation with `target`; free
+  UseStaff     // `unit` uses the staff in inventory `slot` on `target` (docs/SRPG.md section 8); ends its turn
 };
 
 struct Action {
@@ -265,6 +269,8 @@ struct Action {
   static Action pairUp(int unit, int target) { return unitAction(ActionType::PairUp, unit, target); }
   static Action switchPair(int unit) { return unitAction(ActionType::SwitchPair, unit); }
   static Action support(int unit, int target) { return unitAction(ActionType::Support, unit, target); }
+  // `target` is the picked unit; a staff that picks nobody (area "all", target "self") takes -1.
+  static Action useStaff(int unit, int slot, int target) { Action a = unitAction(ActionType::UseStaff, unit, target); a.slot = slot; return a; }
 };
 
 // Result of a movement search for one unit.
@@ -635,7 +641,8 @@ class Battle {
   // Everything that can end a battle after a change: defeat rules, then objectives.
   void settle(std::vector<Event>& events);
   // progression.cpp
-  void awardXp(int unit, int amount, std::vector<Event>& events);
+  // `fromCombat` false: not a fight, so a summon's "givesXp" does not apply (a staff's experience).
+  void awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat = true);
 
   // ---- strategy-RPG features: hooks and private functions (docs/SRPG.md). Later steps append there, not here. ----
 #include "core/battle/srpg_internal.h"

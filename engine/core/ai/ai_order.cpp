@@ -123,6 +123,13 @@ void considerAdvance(Context& cx, const Unit& u,
 
 }  // namespace
 
+double exposureCost(const Battle& b, const Unit& u, Cell c) {
+  const double fade = fadeFactor(b);
+  double cost = outnumbered(b, u, c) * kExposure * typeValue(*b.db, u.type) * fade * (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
+  if (u.leader && b.db->rules.defeatLeaderDead) cost += outnumbered(b, u, c) * kLeaderExposure * fade;
+  return cost;
+}
+
 Order bestOrder(Context& cx, const Unit& u) {
   const Battle& b = cx.b;
   Reach reach;
@@ -147,6 +154,8 @@ Order bestOrder(Context& cx, const Unit& u) {
         best.moveTo = s == u.cell ? kNoCell : s;
       }
     }
+
+    considerStaves(b, u, s, travel, best);  // a staff beats an attack only by its own worth (ai_staves.cpp)
 
     b.attackOptions(u.id, s, options);
     for (const AttackOption& o : options) {

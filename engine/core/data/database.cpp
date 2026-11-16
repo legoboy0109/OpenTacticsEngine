@@ -31,9 +31,11 @@ bool Database::canWield(int unitType, int weapon) const {
   const UnitTypeDef& t = unitTypes[(size_t)unitType];
   for (int w : t.weapons)
     if (w == weapon) return true;
-  const std::string& group = weapons[(size_t)weapon].group;
+  return canWieldGroup(unitType, weapons[(size_t)weapon].group);
+}
+bool Database::canWieldGroup(int unitType, const std::string& group) const {
   if (group.empty()) return false;
-  for (const std::string& g : t.wields)
+  for (const std::string& g : unitTypes[(size_t)unitType].wields)
     if (g == group) return true;
   return false;
 }

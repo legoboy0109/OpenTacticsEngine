@@ -88,3 +88,36 @@ struct AbilityPlan {
 };
 
 }  // namespace ote
+
+namespace ote {
+
+// ---- staves (docs/SRPG.md section 8) ----
+// One entry of a unit's staff list: usable now, or the plain reason it is not.
+struct StaffOption {
+  int slot = -1;  // position in the unit's inventory
+  int item = -1;  // index into db->items
+  bool ok = false;
+  std::string why;  // when !ok: "Needs rank C", "Only Mara can wield this", "nobody in reach needs that", ...
+};
+// What a staff would do to one unit.
+struct StaffHit {
+  int unit = -1;
+  int amount = 0;   // HP it would restore (all effects together, capped by the unit's maximum)
+  int nominal = 0;  // what the staff gives before that cap (the AI judges a small heal against it)
+  int hpBefore = 0, hpAfter = 0;
+  int hit = 100;   // percent chance; 100 when the staff cannot miss
+};
+// A forecast of one use (Battle::staffForecast): no randomness is consumed.
+struct StaffForecast {
+  int slot = -1, item = -1;
+  int center = -1;             // the picked unit (-1 = nothing is picked)
+  std::vector<StaffHit> hits;  // the units really affected, ascending id
+  bool canMiss = false;
+  int xp = 0;                  // experience the user gets (before skills' xpPercent)
+  int usesLeft = -1;           // -1 = unlimited
+  bool breaks = false;         // this is its last use
+  int minRange = 1, maxRange = 1;
+  bool needsPick = true;
+};
+
+}  // namespace ote

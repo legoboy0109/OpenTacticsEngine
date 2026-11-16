@@ -11,22 +11,25 @@ bool readWeaponWielders(const LoadCtx& c, const Json& e, const std::string& wher
   return c.stringList(e, "wieldedBy", where, w.wielderIds);
 }
 
+bool resolveGearWielders(const LoadCtx& c, const Database& db, const std::string& where, WeaponDef& w) {
+  w.wielders.clear();
+  if (w.wielderIds.empty()) return true;
+  if (db.characters.empty())
+    return c.fail(where, "\"wieldedBy\" is given but this game has no characters (data/characters.json)");
+  for (const std::string& id : w.wielderIds) {
+    const int ch = db.findCharacter(id);
+    if (ch < 0) return c.fail(where, "\"wieldedBy\" names unknown character \"" + id + "\" (data/characters.json)");
+    for (int seen : w.wielders)
+      if (seen == ch) return c.fail(where, "\"wieldedBy\" names character \"" + id + "\" twice");
+    w.wielders.push_back(ch);
+  }
+  return true;
+}
+
 bool resolveWeaponWielders(const std::string& root, Database& db, std::string& err) {
   LoadCtx c(err, root + "/data/weapons.json");
-  for (WeaponDef& w : db.weapons) {
-    w.wielders.clear();
-    if (w.wielderIds.empty()) continue;
-    const std::string where = "weapon \"" + w.id + "\"";
-    if (db.characters.empty())
-      return c.fail(where, "\"wieldedBy\" is given but this game has no characters (data/characters.json)");
-    for (const std::string& id : w.wielderIds) {
-      const int ch = db.findCharacter(id);
-      if (ch < 0) return c.fail(where, "\"wieldedBy\" names unknown character \"" + id + "\" (data/characters.json)");
-      for (int seen : w.wielders)
-        if (seen == ch) return c.fail(where, "\"wieldedBy\" names character \"" + id + "\" twice");
-      w.wielders.push_back(ch);
-    }
-  }
+  for (WeaponDef& w : db.weapons)
+    if (!resolveGearWielders(c, db, "weapon \"" + w.id + "\"", w)) return false;
   return true;
 }
 

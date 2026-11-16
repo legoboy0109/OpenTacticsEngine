@@ -25,7 +25,12 @@ int Battle::weaponRank(const Unit& u, int group) const {
 
 bool Battle::meetsRank(const Unit& u, int weapon, std::string* why) const {
   if (!db->ranks.on() || weapon < 0 || (size_t)weapon >= db->weapons.size()) return true;
-  const WeaponDef& w = db->weapons[(size_t)weapon];
+  return meetsRankFor(u, db->weapons[(size_t)weapon], why);
+}
+
+// The test itself on a weapon-like record: a weapon's data, or a staff's `gear` (docs/SRPG.md section 8).
+bool Battle::meetsRankFor(const Unit& u, const WeaponDef& w, std::string* why) const {
+  if (!db->ranks.on()) return true;
   if (w.rankNeed < 0 || weaponRank(u, w.rankGroup) >= w.rankNeed) return true;
   if (why) *why = "Needs rank " + db->ranks.ladder[(size_t)w.rankNeed].name;
   return false;
@@ -44,7 +49,11 @@ bool Battle::canWieldNow(const Unit& u, int weapon, std::string* why) const {
 // (character -1) is never on a list. The words are a placeholder: one or two names, then "and others".
 bool Battle::meetsCharacterLock(const Unit& u, int weapon, std::string* why) const {
   if (weapon < 0 || (size_t)weapon >= db->weapons.size()) return true;
-  const std::vector<int>& list = db->weapons[(size_t)weapon].wielders;
+  return meetsLockFor(u, db->weapons[(size_t)weapon], why);
+}
+
+bool Battle::meetsLockFor(const Unit& u, const WeaponDef& w, std::string* why) const {
+  const std::vector<int>& list = w.wielders;
   if (list.empty()) return true;
   for (int ch : list)
     if (ch == u.character) return true;
@@ -86,6 +95,14 @@ void Battle::rankOverride(Unit& u, const std::vector<int>& values) const {
     if (values[g] >= 0) u.weaponXp[g] = values[g];
 }
 
+void Battle::addRankXp(Unit& u, int group, int amount, int& before, int& after) const {
+  u.weaponXp.resize(db->ranks.groups.size(), 0);
+  int& xp = u.weaponXp[(size_t)group];
+  before = db->ranks.rankAt(xp);
+  xp = std::min(xp + amount, std::max(xp, db->ranks.topXp()));
+  after = db->ranks.rankAt(xp);
+}
+
 // After a combat (growth "use"): each fighter that struck at least once with a weapon of a group gains the weapon's
 // experience. The strikes are read off the events of this combat, so a weapon that broke or a strike that missed is
 // counted exactly as it happened. A fighter that did not survive gains nothing.
@@ -99,12 +116,8 @@ void Battle::ranksAfterCombat(std::vector<Event>& events, size_t from, int attac
     if (weapon < 0 || (size_t)unit >= units.size() || !units[(size_t)unit].alive) continue;
     const WeaponDef& w = db->weapons[(size_t)weapon];
     if (w.rankGroup < 0) continue;
-    Unit& u = units[(size_t)unit];
-    u.weaponXp.resize(db->ranks.groups.size(), 0);
-    int& xp = u.weaponXp[(size_t)w.rankGroup];
-    const int before = db->ranks.rankAt(xp);
-    xp = std::min(xp + w.rankXp, std::max(xp, db->ranks.topXp()));
-    const int after = db->ranks.rankAt(xp);
+    int before = 0, after = 0;
+    addRankXp(units[(size_t)unit], w.rankGroup, w.rankXp, before, after);
     if (after > before) ups.push_back(rankUpEvent(unit, w.rankGroup, after, before));
   }
   events.insert(events.end(), ups.begin(), ups.end());

@@ -91,3 +91,21 @@ const AbilityUse* abilityUseOf(const Unit& u, int ability) const;
 int summonCount(int summoner, int ability) const;
 // Is the unit a summoned unit (it does not keep its side in the battle)?
 bool isSummoned(const Unit& u) const { return u.summoner >= 0; }
+
+// ---- staves (staves.cpp; docs/SRPG.md section 8) ----
+// May the unit use the staff (an index into db->items) now: its class has the staff's group, the character lock, the rank.
+// False with the plain reason ("Needs rank C", "Only Mara can wield this", "the unit cannot wield that").
+bool canWieldStaff(const Unit& u, int item, std::string* why = nullptr) const;
+// The rank and lock tests of a weapon-like record (a weapon's data, or a staff's `gear`): the weapon-index versions above
+// and canWieldNow delegate to these.
+bool meetsRankFor(const Unit& u, const WeaponDef& w, std::string* why = nullptr) const;
+bool meetsLockFor(const Unit& u, const WeaponDef& w, std::string* why = nullptr) const;
+// The reach of the staff for this unit: min 1 .. max (a formula's value is clamped to 0..20; max 0 = nobody in reach).
+void staffRange(const Unit& u, int item, int& minRange, int& maxRange) const;
+// One entry per staff the unit carries, in inventory order, if it stood on `from`.
+void staffOptions(int unit, Cell from, std::vector<StaffOption>& out) const;
+// The units that may be picked for the staff in `slot` if the unit stood on `from`; a staff that picks nobody (area
+// "all", target "self") returns the user alone when it would do something, meaning "confirm". Empty = unusable now.
+void staffTargets(int unit, int slot, Cell from, std::vector<int>& out) const;
+// What the use would do (no randomness). False when it is not legal (see validate).
+bool staffForecast(int unit, int slot, int target, Cell from, StaffForecast& out) const;

@@ -27,6 +27,7 @@ std::string skill(const Battle& b, int i) { return i >= 0 && i < (int)b.db->skil
 std::string ability(const Battle& b, int i) {
   return i >= 0 && i < (int)b.db->abilities.size() ? b.db->abilities[(size_t)i].id : "ability?";
 }
+std::string item(const Battle& b, int i) { return i >= 0 && i < (int)b.db->items.size() ? b.db->items[(size_t)i].id : "item?"; }
 std::string type(const Battle& b, int i) {
   return i >= 0 && i < (int)b.db->unitTypes.size() ? b.db->unitTypes[(size_t)i].id : "type?";
 }
@@ -94,6 +95,12 @@ bool describeSrpgEvent(const Battle& b, const Event& e, std::string& out) {
       return true;
     case EventType::SupportReached:
       out = "support " + pairName(b, e.c) + " reaches level " + std::to_string(e.d);
+      return true;
+    case EventType::StaffUsed:
+      out = unit(b, e.a) + " uses " + item(b, e.b) + (e.c >= 0 ? " on " + unit(b, e.c) : std::string(" on its area")) + " (" + std::to_string(e.d) + " affected)";
+      return true;
+    case EventType::StaffMissed:
+      out = item(b, e.c) + " of " + unit(b, e.b) + " misses " + unit(b, e.a);
       return true;
     default:
       return false;
