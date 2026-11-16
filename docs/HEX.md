@@ -290,8 +290,8 @@ What step 1 built, for the player, art and editor steps.
   `{ "type": "square" }` hash alike (skipped), so square games keep their hash. `structures.json` (`rings`) and map files
   (`grid.type`) are hashed whole already.
 - **Loader messages**: `game.json: grid: ...` (unknown key, `layout` with square, missing `layout`, bad `type`/`layout`),
-  `game.json: style "iso": the "isometric" view is not available for hexagon games yet (only "top-down")` (the view name is
-  the one in the file), `maps/x.json: grid: this is a hexagon game (game.json "grid"), but the map's type is "square"` (and
+  `game.json: style "iso": the "isometric-3d" view is not available for hexagon games yet (only "top-down" and "isometric")` (the view
+  name is the one in the file), `maps/x.json: grid: this is a hexagon game (game.json "grid"), but the map's type is "square"` (and
   the reverse), `structure "fort": "width" is for square games; a hexagon game uses "rings"` (same for `height`),
   `"rings" must be 0 or 1`, `"rings" is for hexagon games; a square game uses "width" and "height"`; an upgrade must keep
   the `rings`; map structures: `covers its hexagon and the six around it (rings 1) but they do not all fit inside the map`,
@@ -345,8 +345,8 @@ What step 3 built: hexagon starter art (generated), two editor templates and a d
   sims finish; `ctest -R hex_content`), `tests/test_demos.cpp` (`hex_demo_and_templates_load_and_start`), `tests/test_art.cpp`
   (complete art), plus the template lists in `tests/editor_api_test.py` and `tests/sound_player_test.py`.
 - **Not done / for later**: no sea or beach terrain (the demo uses a river), no tinted style sheets, no per-side structure
-  pictures. The player draws hexagon games as squares until its own step lands; `preview_hex.py` is the reference for how
-  the sheets are meant to be laid out.
+  pictures. `preview_hex.py` is the reference for how the top-down sheets are meant to be laid out (the isometric ones: see the
+  last section).
 
 ## Implementation notes (player)
 
@@ -366,7 +366,7 @@ What step 2 built (top-down view only), for the art, editor and later view steps
   outside the isometric and 3D code, which never see a hexagon map).
 - **`MapProj`**: `hex()`, `hexGeo()`; `worldW/H` are the real map size (camera limits, scrolling, centring follow);
   `pick` = nearest middle of the pixel's centre; `cellBox` = the hexagon's box (menus, the white flashes). A hexagon map
-  forces the top-down view (a warning if a style asks for another; the loader already refuses such styles).
+  is drawn top-down or 2D isometric (a warning and top-down for a 3D style; the loader already refuses such styles).
 - **Drawing** is in `battle/hex_draw.h|cpp` and `structure_draw.cpp` (the square code paths are untouched): `fillHex`
   (rows of equal width merged: about 15 `fillRect` calls), `hexEdges(color, width, edgeMask)` (the border of the
   rows, only the edges whose direction bit is set), `outerEdges(grid, cell, covered)` (what an owner frame draws),
