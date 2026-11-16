@@ -64,7 +64,7 @@ export const firstGame: Lesson = {
     {
       id: 'give-weapon',
       title: 'Give your unit the weapon',
-      text: 'A unit can only attack with the weapons it has. On the Units screen, pick your new unit and tick a weapon for it.',
+      text: 'A unit can only attack with the weapons it has. On the Units screen, click your new unit in the list (not the Soldier), then tick a weapon for it.',
       where: { section: 'units', item: (doc) => doc.units?.find((u) => !START.units.includes(u.id))?.id },
       point: 'unit-weapons',
       done: (doc) => unitTypesWithWeapon(doc, START.units) >= 1,

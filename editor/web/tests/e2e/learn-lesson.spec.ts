@@ -66,7 +66,28 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   await expectTicked(page, 'Make a weapon', 'Give your unit the weapon')
 
   // 6. Give the weapon: "Take me there" opens the new unit (not the soldier); the ring is on the Weapons list.
-  await page.getByRole('button', { name: 'Take me there' }).click()
+  // Trap: with the Soldier open the ring is on the new unit in the list, not on the Soldier's weapons, and a weapon ticked
+  // for the Soldier does not count.
+  await sectionLink(page, 'Units').click()
+  await page.getByRole('button', { name: /^Soldier/ }).click()
+  await expect(page).toHaveURL(/\/units\/soldier$/)
+  await expect(ring(page)).toHaveAttribute('data-entry', 'archer')
+  await expect.poll(async () => {
+    const [r, t] = await Promise.all([ring(page).boundingBox(), page.locator('[data-learn-item="archer"]').boundingBox()])
+    return !!r && !!t && Math.abs(r.x - (t.x - 4)) <= 1.5 && Math.abs(r.y - (t.y - 4)) <= 1.5
+  }).toBe(true)
+  await page.locator('[data-learn="unit-weapons"]').getByRole('checkbox', { name: 'Bow' }).check()
+  await expectCurrent(page, 'Give your unit the weapon')
+  await page.locator('[data-learn="unit-weapons"]').getByRole('checkbox', { name: 'Bow' }).uncheck()
+  // The same with no unit in the address: the screen opens the first one (the Soldier) by itself.
+  await sectionLink(page, 'Game').click()
+  await sectionLink(page, 'Units').click()
+  await expect(page).toHaveURL(/\/units$/)
+  await expect.poll(async () => {
+    const [r, t] = await Promise.all([ring(page).boundingBox(), page.locator('[data-learn-item="archer"]').boundingBox()])
+    return !!r && !!t && Math.abs(r.x - (t.x - 4)) <= 1.5 && Math.abs(r.y - (t.y - 4)) <= 1.5
+  }).toBe(true)
+  await page.locator('[data-learn-item="archer"]').click()
   await expect(page).toHaveURL(/\/units\/archer$/)
   await expectRingOn(page, 'unit-weapons')
   await expectCurrent(page, 'Give your unit the weapon')

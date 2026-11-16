@@ -1,6 +1,7 @@
 // The lesson panel: docked at the side on wide windows, a bottom sheet on narrow ones (both can fold into a slim bar).
 // It stays while a lesson runs, across screens and reloads. Layout room is made by CSS on <html data-learn-layout>.
 import { useEffect, useRef } from 'react'
+import { useRoute } from '../router'
 import { SECTION_LABEL } from '../shell/Sidebar'
 import { useMediaQuery, useStored } from '../ui/hooks'
 import { Icon } from '../ui/Icon'
@@ -19,6 +20,7 @@ const DOCK_QUERY = '(min-width: 1800px)'
 
 export function LessonPanel() {
   const snap = useLearn()
+  const route = useRoute()
   const wide = useMediaQuery(DOCK_QUERY)
   const [collapsed, setCollapsed] = useStored('ote.learnCollapsed', false)
   const el = useRef<HTMLElement>(null)
@@ -52,7 +54,13 @@ export function LessonPanel() {
   const gone = snap.gone === id
   const onScreen = inPractice && (!step?.where || snap.section === step.where.section)
   // The control to ring: the step's own once its screen is open, otherwise the sidebar link that gets there.
+  // A step that happens on one entry of its screen (the new unit, not the Soldier): while another entry is open the ring is on
+  // the right one in the list, never on the same control of the wrong entry. With no entry in the address the screen may be
+  // showing the right one by itself (a game with one map), so the step's control is the fallback there.
+  const want = onScreen && step?.where?.item ? learn.wantedItem() : undefined
+  const open = route.kind === 'project' ? route.itemId : undefined
   const target = !inPractice || atEnd || gone ? undefined : onScreen || !step?.where ? step?.point : `nav-${step.where.section}`
+  const entry = target && want ? { id: want, only: !!open && open !== want } : undefined
   const doneCount = marks(lesson, progress).filter((m) => m === 'done' || m === 'skipped').length
   const bar = gone ? T.goneTitle : atEnd ? T.endTitle : `${T.stepOf(progress.step + 1, lesson.steps.length)}: ${step?.title ?? ''}`
 
@@ -60,7 +68,7 @@ export function LessonPanel() {
     <>
       {/* The ring stays while the lesson is folded: on a phone the open sheet covers the map editor's own controls, so folding is how
           the maker gets at them, and that is when the ring is needed most. */}
-      <Highlight name={target} />
+      <Highlight name={target} entry={entry} />
       <aside ref={el} className="learn-panel" data-collapsed={collapsed || undefined} data-dock={wide || undefined} aria-label={T.panelLabel}>
         {collapsed ? (
           <button type="button" className="learn-bar" aria-expanded="false" onClick={() => setCollapsed(false)} title={T.show}>

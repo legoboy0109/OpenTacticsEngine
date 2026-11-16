@@ -247,6 +247,16 @@ export class LearnController {
   }
 
   /** Opens the screen the current step happens on (in the practice game). */
+  /** The entry of the current step's screen it happens on (a unit, a map...), or undefined when the step names none. */
+  wantedItem(): string | undefined {
+    const run = this.running()
+    if (!run) return undefined
+    const p = this.snap.state.lessons[run.id]
+    const item = currentStep(run.lesson, p)?.where?.item
+    const doc = this.ctx?.projectId === p.game ? this.ctx.doc : null
+    return item && doc ? item(doc) : undefined
+  }
+
   takeMeThere(): void {
     const run = this.running()
     if (!run) return

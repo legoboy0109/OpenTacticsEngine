@@ -1,7 +1,7 @@
 // Starts the real ote-editor helper on a temp copy of the repo's games and templates.
 // Used by global-setup (the main helper) and by the one test that needs a helper without a web player.
 import { spawn, type ChildProcess } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -43,7 +43,17 @@ export async function startHelper(player: string, learn: 'answered' | 'empty' = 
   if (!existsSync(bin)) throw new Error(`ote-editor binary not found at ${bin}. Build it, or set OTE_EDITOR_BIN.`)
   if (!existsSync(path.join(webDir, 'dist/index.html'))) throw new Error('editor/web/dist is missing: run "npm run build" first.')
   const tmp = mkdtempSync(path.join(tmpdir(), 'ote-e2e-'))
-  cpSync(path.join(repo, 'games'), path.join(tmp, 'games'), { recursive: true })
+  // Only the games the repository ships (demo-*) and its loose files: the maker's own games and practice games in games/ would
+  // change what tests see (a "Practice: ..." name already taken, an extra row in the list).
+  const gamesDir = path.join(repo, 'games')
+  cpSync(gamesDir, path.join(tmp, 'games'), {
+    recursive: true,
+    filter: (src) => {
+      const rel = path.relative(gamesDir, src)
+      const top = rel.split(path.sep)[0]
+      return rel === '' || top.startsWith('demo-') || (rel === top && !statSync(src).isDirectory())
+    },
+  })
   cpSync(path.join(repo, 'editor/templates'), path.join(tmp, 'templates'), { recursive: true })
   const learnFile = path.join(tmp, 'learn', 'learn.json')
   if (learn === 'answered') { mkdirSync(path.dirname(learnFile), { recursive: true }); writeFileSync(learnFile, JSON.stringify({ version: 1, offerAnswered: true, lessons: {} })) }

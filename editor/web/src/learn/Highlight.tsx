@@ -8,19 +8,35 @@ const PAD = 4
 /** The first element with this name that is actually shown. `name` may list alternatives ("add-event|map-tab-events"):
  *  the first name that has a shown element wins, so one step can ring the tab until the maker has opened it and the
  *  button inside the tab after that. */
-function findTarget(name: string): HTMLElement | null {
-  for (const one of name.split('|')) {
-    const all = document.querySelectorAll<HTMLElement>(`[data-learn="${one.replace(/["\\]/g, '')}"]`)
-    for (const el of all) {
-      if (el.closest('.learn-panel')) continue
-      const r = el.getBoundingClientRect()
-      if (r.width > 0 && r.height > 0) return el
-    }
+function shown(sel: string): HTMLElement | null {
+  for (const el of document.querySelectorAll<HTMLElement>(sel)) {
+    if (el.closest('.learn-panel')) continue
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) return el
   }
   return null
 }
 
-export function Highlight({ name }: { name: string | undefined }) {
+/** The entry of a screen's list a step happens on (the new unit, not the Soldier). While the list shows another entry open, the
+ *  ring is on this entry in the list: the step's control would be the wrong entry's. With the list hidden (a phone's detail view, an
+ *  opened map) the control is ringed, unless the address says another entry is open (`only`): then nothing is. */
+export interface Entry { id: string; only: boolean }
+
+function findTarget(name: string, entry?: Entry): HTMLElement | null {
+  if (entry) {
+    const el = shown(`[data-learn="list-item"][data-learn-item="${entry.id.replace(/["\\]/g, '')}"]`)
+    // The list shows which entry is open (aria-current), also when the address names none and the screen opened the first one.
+    if (el && el.getAttribute('aria-current') !== 'true') return el
+    if (!el && entry.only) return null
+  }
+  for (const one of name.split('|')) {
+    const el = shown(`[data-learn="${one.replace(/["\\]/g, '')}"]`)
+    if (el) return el
+  }
+  return null
+}
+
+export function Highlight({ name, entry }: { name: string | undefined; entry?: Entry }) {
   const ring = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const node = ring.current
@@ -50,7 +66,7 @@ export function Highlight({ name }: { name: string | undefined }) {
     let lastTry = 0
     const frame = () => {
       syncLayer()
-      const el = findTarget(name)
+      const el = findTarget(name, entry)
       const r = el?.getBoundingClientRect()
       // Off screen counts as absent, so a ring never hangs at the edge pointing at nothing.
       // On a phone the lesson is a sheet over the lower part of the window: a control hidden under it counts as off screen too (and is
@@ -82,6 +98,6 @@ export function Highlight({ name }: { name: string | undefined }) {
     }
     frame()
     return () => { cancelAnimationFrame(raf); node.style.display = 'none'; try { if (node.matches(':popover-open')) node.hidePopover() } catch { /* not a popover */ } node.removeAttribute('popover') }
-  }, [name])
-  return name ? <div ref={ring} className="learn-ring" aria-hidden="true" data-testid="learn-ring" data-target={name} style={{ display: 'none' }} /> : null
+  }, [name, entry?.id, entry?.only])
+  return name ? <div ref={ring} className="learn-ring" aria-hidden="true" data-testid="learn-ring" data-target={name} data-entry={entry?.id} style={{ display: 'none' }} /> : null
 }
