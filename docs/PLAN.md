@@ -186,6 +186,12 @@ goal (demos only exercise features).
       is a private-converter step: read the ROM's support table (pairs, growth rates, bonuses by affinity) and
       the support scripts into data/supports.json. If something the original does is not expressible (affinity
       bonus tables, the limit of supports per character, paired endings) record it and build it then.
+      11 skills conversion (owner, 2026-11-16: "go ahead ... after support conversations"). Private-converter
+      step: find the hack's skill system in the ROM (which skills each class / character has and learns by
+      level, skill names and descriptions from the text table), and express each with the engine's skill
+      blocks (docs/SRPG.md skills). Skills whose behaviour is custom code cannot be read from data: map the
+      ones that match a known effect, list the rest with their names as "not converted" (name and description
+      shown, no effect), and record missing engine blocks to build.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
