@@ -53,6 +53,7 @@ RosterUnit rosterEntry(const Battle& b, const Unit& u) {
   r.xp = u.xp;
   r.stats = u.stats;
   r.items = grants(u.items);
+  r.skills = u.learned;  // skills learned for good travel with the unit (docs/SRPG.md)
   r.side = b.sides[(size_t)u.side].id;
   return r;
 }
@@ -110,6 +111,7 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
   battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
+  battle.setStartingSupports(pt.supports);  // the closeness the campaign carries (docs/SRPG.md); empty = nothing
   if (!battle.setStartingStory(pt.switches, pt.variables)) {
     err = "the playthrough's switches and variables do not fit the game";
     return false;
@@ -146,6 +148,7 @@ ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Bat
   }
   pt.switches = battle.storyState.switches;
   pt.variables = battle.storyState.variables;
+  takeSupports(db, pt, battle);  // only a won battle changes the closeness (a retry starts from the same)
   pt.phase = Phase::After;
   return ChapterResult::Won;
 }

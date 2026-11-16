@@ -154,6 +154,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
         return false;
       }
   }
+  supportsInit();  // a single battle starts every support pair at its "start" points (docs/SRPG.md); none = nothing
   return true;
 }
 
@@ -174,6 +175,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
     s.drop = g.drop;
     u.items.push_back(s);
   }
+  dressUnit(u);  // its character and learned skills, before the hit points (a standing skill may raise the maximum)
   u.hp = maxHp(u);
   stockUnit(u);
   return u;

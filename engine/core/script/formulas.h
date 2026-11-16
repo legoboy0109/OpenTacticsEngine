@@ -15,6 +15,7 @@ struct lua_State;
 namespace ote {
 
 struct Database;
+class Battle;
 struct Unit;
 struct SideState;
 struct WeaponDef;
@@ -31,6 +32,14 @@ struct FormulaCtx {
   double vs = 1;
   // The battle's sides: a unit's stats then include its side's research bonuses (null = items only).
   const std::vector<SideState>* sides = nullptr;
+  // The battle the units are in: their stats are then the stats as the rules see them (Battle::stat: accessories,
+  // research, standing skills, carry penalty / pair bonus; docs/SRPG.md). Every caller inside a battle sets it;
+  // null = no battle (unitStat with `sides`, as before).
+  const Battle* battle = nullptr;
+  // Per stat index, added to the stats of `a` / `b` for this evaluation (the combat bonuses of skills, auras and
+  // supports); null = nothing. A stat with a bonus does not go below 0.
+  const std::vector<int>* bonusA = nullptr;
+  const std::vector<int>* bonusB = nullptr;
 };
 
 class Formulas {
@@ -52,11 +61,16 @@ class Formulas {
   double eval(Slot slot, const FormulaCtx& ctx, double def);
   // Damage using the weapon's own formula if it has one, else Slot Damage.
   double evalDamage(int weaponIndex, const FormulaCtx& ctx);
+  // Evaluates expression `index` of Database::exprs (docs/SRPG.md "Formulas in this document"): a number, or
+  // 1 / 0 for true / false; nil counts as 0 (so `b.tags.flier` works as a yes/no). Returns def for an index
+  // out of range and on a run-time error (logged once per expression).
+  double evalExpr(int index, const FormulaCtx& ctx, double def);
+  int exprCount() const { return (int)exprRefs_.size(); }
 
  private:
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
-  double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def);
-  void pushUnit(const Unit* u, const FormulaCtx& ctx);
+  double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def, bool nilIsZero = false);
+  void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus);
 
   const Database* db_ = nullptr;
   lua_State* L_ = nullptr;
@@ -64,6 +78,8 @@ class Formulas {
   bool warned_[kSlotCount];
   std::vector<int> weaponRefs_; // per weapon; 0 = no override
   std::vector<char> weaponWarned_;
+  std::vector<int> exprRefs_;   // per Database::exprs
+  std::vector<char> exprWarned_;
 };
 
 }  // namespace ote

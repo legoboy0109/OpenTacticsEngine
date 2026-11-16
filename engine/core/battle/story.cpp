@@ -37,6 +37,11 @@ const std::string kNoText;
 }  // namespace
 
 const std::string& Battle::storyText(int index) const {
+  // The lines of support conversations have their own table (docs/SRPG.md "Levels and conversations").
+  if (index >= kSupportTextBase) {
+    const std::vector<std::string>& texts = db->supports.texts;
+    return index - kSupportTextBase < (int)texts.size() ? texts[(size_t)(index - kSupportTextBase)] : kNoText;
+  }
   if (!story || index < 0 || index >= (int)story->texts.size()) return kNoText;
   return story->texts[(size_t)index];
 }
@@ -117,6 +122,10 @@ bool Battle::conditionHolds(const Condition& c) const {
           if (s.item == c.index) return true;
       }
       return false;
+    case Condition::Kind::HasSkill:
+      return storyHasSkill(c);
+    case Condition::Kind::Support:
+      return storySupportHolds(c);
   }
   return false;
 }
@@ -148,6 +157,10 @@ bool Battle::triggerMatches(const Trigger& t, const StoryOccurrence& o) const {
       // Either one may be the unit meant; "with" is then the other.
       return (unitMatches(t.who, a) && unitMatches(t.other, b)) || (unitMatches(t.who, b) && unitMatches(t.other, a));
     }
+    case K::Promoted:  // docs/SRPG.md: fired by Battle::promote with the unit
+      return o.unit >= 0 && unitMatches(t.who, units[(size_t)o.unit]);
+    case K::Support:   // fired when a pair gains a level; "level" left out = any level
+      return t.pair == o.pair && (t.level == 0 || t.level == o.level);
     default:
       return true;  // battle start / won / lost / end: the kind says it all
   }

@@ -19,6 +19,7 @@ struct RosterUnit {
   std::vector<ItemGrant> items;  // the inventory with the uses left
   std::string side;              // id of the side it fought on last (informational)
   bool gone = false;             // fell in an earlier chapter ("fallen": "gone"): never placed again
+  std::vector<int> skills;       // skills learned for good (Unit::learned; docs/SRPG.md), empty in a game without skills
 };
 
 using Roster = std::vector<RosterUnit>;

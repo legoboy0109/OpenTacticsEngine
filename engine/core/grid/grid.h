@@ -48,6 +48,12 @@ class Grid {
   // The neighbour of `c` in direction `dir` (0..directionCount()-1), or kNoCell when it is off the map
   // (or `dir`/`c` is out of range).
   Cell neighbor(Cell c, int dir) const;
+  // The direction straight across from `dir`: square N-S and E-W, hexagon the facing side. Directions are listed
+  // in geometric order on both grids (docs/HEX.md), so neighbor(c, dir) repeated and neighbor(c, opposite(dir))
+  // walk one straight line in both ways. -1 when `dir` is out of range.
+  int opposite(int dir) const {
+    return dir < 0 || dir >= directionCount() ? -1 : (dir + directionCount() / 2) % directionCount();
+  }
   // The direction in which `to` is a neighbour of `from`, or -1 when it is not adjacent.
   int directionTo(Cell from, Cell to) const;
   // Steps between two cells ignoring terrain (used for attack ranges).

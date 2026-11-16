@@ -90,6 +90,16 @@ bool Formulas::init(const Database& db, std::string& err) {
     std::string label = "weapon '" + db.weapons[i].id + "' damage";
     if (!compile(db.weapons[i].damageFormula, label, weaponRefs_[i], err)) return false;
   }
+  // The expressions the strategy-RPG data registered (docs/SRPG.md): a syntax error names the place it was written.
+  exprRefs_.assign(db.exprs.size(), 0);
+  exprWarned_.assign(db.exprs.size(), 0);
+  for (size_t i = 0; i < db.exprs.size(); ++i) {
+    if (db.exprs[i].text.empty()) {
+      err = db.exprs[i].label + ": the formula is empty";
+      return false;
+    }
+    if (!compile(db.exprs[i].text, db.exprs[i].label, exprRefs_[i], err)) return false;
+  }
   return true;
 }
 
@@ -102,19 +112,34 @@ static void pushProps(lua_State* L, const Props* props) {
   }
 }
 
-void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx) {
+void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus) {
   if (!u) { lua_pushnil(L_); return; }
   const UnitTypeDef& type = db_->unitTypes[u->type];
-  lua_createtable(L_, 0, (int)db_->stats.size() + 7);
+  // A stat as the rules see it: through the battle when there is one (skills, carrying), else its own value with
+  // what its accessories and research add; plus this evaluation's bonus.
+  auto statOf = [&](int index) {
+    int v = ctx.battle ? ctx.battle->stat(*u, index) : unitStat(*db_, *u, index, ctx.sides);
+    if (bonus && (size_t)index < bonus->size() && (*bonus)[(size_t)index] != 0) {
+      v += (*bonus)[(size_t)index];
+      if (v < 0) v = 0;
+    }
+    return v;
+  };
+  lua_createtable(L_, 0, (int)db_->stats.size() + 8);
   for (size_t i = 0; i < db_->stats.size() && i < u->stats.size(); ++i) {
-    lua_pushinteger(L_, unitStat(*db_, *u, (int)i, ctx.sides));  // with what its accessories and research add
+    lua_pushinteger(L_, statOf((int)i));
     lua_setfield(L_, -2, db_->stats[i].id.c_str());
   }
   // Set after the stats on purpose: if the hp stat is literally named
   // "hp", a.hp must be the CURRENT value and a.maxhp the maximum.
   if (db_->rules.statHp >= 0) {
-    lua_pushinteger(L_, unitStat(*db_, *u, db_->rules.statHp, ctx.sides));
+    lua_pushinteger(L_, statOf(db_->rules.statHp));
     lua_setfield(L_, -2, "maxhp");
+  }
+  // The character id (docs/SRPG.md); the field is simply absent (nil) for a unit without one.
+  if (u->character >= 0 && (size_t)u->character < db_->characters.size()) {
+    lua_pushstring(L_, db_->characters[(size_t)u->character].id.c_str());
+    lua_setfield(L_, -2, "character");
   }
   lua_pushinteger(L_, u->hp); lua_setfield(L_, -2, "hp");
   lua_pushinteger(L_, u->level); lua_setfield(L_, -2, "level");
@@ -130,11 +155,11 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx) {
 }
 
 double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx& ctx,
-                      double def) {
+                      double def, bool nilIsZero) {
   if (!ref) return def;
   lua_rawgeti(L_, LUA_REGISTRYINDEX, ref);
-  pushUnit(ctx.a, ctx);
-  pushUnit(ctx.b, ctx);
+  pushUnit(ctx.a, ctx, ctx.bonusA);
+  pushUnit(ctx.b, ctx, ctx.bonusB);
   pushProps(L_, ctx.w ? &ctx.w->props : nullptr);
   pushProps(L_, ctx.ta);
   pushProps(L_, ctx.tb);
@@ -148,6 +173,8 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
     result = lua_tonumber(L_, -1);
   } else if (lua_isboolean(L_, -1)) {
     result = lua_toboolean(L_, -1) ? 1 : 0;
+  } else if (nilIsZero && lua_isnil(L_, -1)) {
+    result = 0;  // a yes/no expression such as `a.level >= 10 and b.tags.flier`
   } else {
     if (!warned) OTE_ERROR("%s did not return a number (got %s)", label, luaL_typename(L_, -1));
     warned = true;
@@ -158,6 +185,14 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
 
 double Formulas::eval(Slot slot, const FormulaCtx& ctx, double def) {
   return call(refs_[slot], warned_[slot], kSlotNames[slot], ctx, def);
+}
+
+double Formulas::evalExpr(int index, const FormulaCtx& ctx, double def) {
+  if (index < 0 || index >= (int)exprRefs_.size()) return def;
+  bool warned = exprWarned_[(size_t)index] != 0;
+  double v = call(exprRefs_[(size_t)index], warned, db_->exprs[(size_t)index].label.c_str(), ctx, def, true);
+  exprWarned_[(size_t)index] = warned;
+  return v;
 }
 
 double Formulas::evalDamage(int weaponIndex, const FormulaCtx& ctx) {

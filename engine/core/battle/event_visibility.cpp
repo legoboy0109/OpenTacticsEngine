@@ -22,6 +22,12 @@
 //   UnitRepaired, UnitResupplied): only the unit's own team.
 //   Resources and items of a side (ResourceChanged, ItemGained, ItemMoved, ResearchStarted, ResearchFinished): only
 //   the side's own team.
+//   Strategy-RPG features (docs/SRPG.md "Events"):
+//   SkillLearned, SupportPoints, SupportReached: only the units' own team.
+//   SkillActivated, UnitHurt, UnitPromoted: the unit's team and the teams that see it.
+//   AbilityUsed: the user's team and the teams that see the user or the target unit.
+//   UnitRescued, UnitHanded: the units' teams and the teams that see either of the two (a, b) before it happens.
+//   UnitDropped, PairSwitched: the unit's team and the teams that see the square (c).
 #include "core/battle/battle.h"
 
 namespace ote {
@@ -120,6 +126,24 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
       return sideTeam(e.c);
     case EventType::ItemMoved:
       return sideTeam(e.d);
+    case EventType::SkillLearned:
+      return unitTeam(e.a);
+    case EventType::SupportPoints:
+    case EventType::SupportReached:
+      return unitTeam(e.a) | unitTeam(e.b);
+    case EventType::SkillActivated:
+    case EventType::UnitHurt:
+    case EventType::UnitPromoted:
+      return unitSeenBy(e.a);
+    case EventType::AbilityUsed:
+      return unitSeenBy(e.a) | unitSeenBy(e.c);
+    case EventType::UnitRescued:
+    case EventType::UnitHanded:
+      return unitSeenBy(e.a) | unitSeenBy(e.b);
+    case EventType::UnitDropped:
+      return unitTeam(e.b) | cellSeenBy(e.c);
+    case EventType::PairSwitched:
+      return unitTeam(e.a) | cellSeenBy(e.c);
   }
   return kSeenByAll;
 }

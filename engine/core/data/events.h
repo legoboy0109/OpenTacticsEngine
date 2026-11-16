@@ -25,10 +25,15 @@ struct Rect {
   int x = 0, y = 0, w = 1, h = 1;
 };
 
-enum class CmpOp { Eq, Ne, Lt, Le, Gt, Ge };
+// CmpOp (= != < <= > >=) lives in core/data/srpg.h: skill conditions use it too.
 
 struct Condition {
-  enum class Kind { Switch, Variable, Alive, Dead, Round, Carries, Researched, Sees };
+  enum class Kind {
+    Switch, Variable, Alive, Dead, Round, Carries, Researched, Sees,
+    // docs/SRPG.md: HasSkill = a living unit matching `filter` has skill `index`; Support = the level of support
+    // pair `index` compared (`op`) with `value`.
+    HasSkill, Support
+  };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
   int side = -1;      // Researched: the side
@@ -40,8 +45,14 @@ struct Condition {
 };
 
 struct Trigger {
-  enum class Kind { BattleStart, BattleWon, BattleLost, BattleEnd, Turn, Reach, Defeated, Fight, Talk };
+  enum class Kind {
+    BattleStart, BattleWon, BattleLost, BattleEnd, Turn, Reach, Defeated, Fight, Talk,
+    // docs/SRPG.md: Promoted = a unit matching `who` promoted; Support = support pair `pair` gained `level`.
+    Promoted, Support
+  };
   Kind kind = Kind::BattleStart;
+  int pair = -1;       // Support: index into Database::supports.pairs
+  int level = 0;       // Support: the level gained; 0 = any level
   int round = 0;       // Turn: the round; 0 = every round
   int side = 0;        // Turn: whose turn (default: the first side)
   Rect rect;           // Reach
@@ -55,7 +66,10 @@ struct Command {
   enum class Kind {
     Say, AddUnit, RemoveUnit, MoveUnit, ChangeSide, GiveItem, GiveResource, SetSwitch, SetVariable,
     AddVariable, Objective, Win, Lose, If, EndTurn, Focus, GrantResearch,
-    PlayMusic, StopMusic, PlaySound  // presentation only (docs/SOUND.md): the id is opaque text here
+    PlayMusic, StopMusic, PlaySound,  // presentation only (docs/SOUND.md): the id is opaque text here
+    // docs/SRPG.md. Promote: `unit` becomes unit type `index` (-1 = its type's only promotion). TeachSkill /
+    // ForgetSkill: skill `index`, units matching `filter`. AddSupport: support pair `index` gains `value` points.
+    Promote, TeachSkill, ForgetSkill, AddSupport
   };
   Kind kind = Kind::Say;
   // Say

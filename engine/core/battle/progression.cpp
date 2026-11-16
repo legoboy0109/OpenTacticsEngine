@@ -5,18 +5,21 @@ namespace ote {
 
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events) {
   const RulesConfig& rules = db->rules;
-  Unit& u = units[unit];
-  if (!rules.progression || amount <= 0 || !u.alive || u.level >= rules.maxLevel) return;
+  if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= rules.maxLevel) return;
+  amount = skillXp(units[(size_t)unit], amount);  // "xpPercent" skills (docs/SRPG.md); unchanged without any
+  if (amount <= 0) return;
 
-  u.xp += amount;
+  units[(size_t)unit].xp += amount;
   Event gained;
   gained.type = EventType::XpGained;
   gained.a = unit;
   gained.b = amount;
   events.push_back(gained);
 
-  const UnitTypeDef& type = typeOf(u);
-  while (u.xp >= rules.xpPerLevel && u.level < rules.maxLevel) {
+  // The unit is looked up again in every round: srpgLevelUp may promote it, and a promotion's story events may
+  // add units (which moves `units`).
+  while (units[(size_t)unit].xp >= rules.xpPerLevel && units[(size_t)unit].level < rules.maxLevel) {
+    Unit& u = units[(size_t)unit];
     u.xp -= rules.xpPerLevel;
     ++u.level;
     Event up;
@@ -25,8 +28,9 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events) {
     up.b = u.level;
     up.data.assign(u.stats.size(), 0);
     for (size_t s = 0; s < u.stats.size(); ++s) {
-      // A growth of 130 means +1 guaranteed and a 30% chance of +2.
-      int growth = s < type.growths.size() ? type.growths[s] : 0;
+      // A growth of 130 means +1 guaranteed and a 30% chance of +2. growthOf is the one place that says what a
+      // unit's growth is (its type's, plus its character's and its skills': docs/SRPG.md "Characters").
+      int growth = growthOf(u, (int)s);
       int gain = growth / 100;
       if (growth % 100 > 0 && rng.chance(growth % 100)) ++gain;
       u.stats[s] += gain;
@@ -34,8 +38,9 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events) {
       if ((int)s == rules.statHp) u.hp += gain;
     }
     events.push_back(up);
+    srpgLevelUp(unit, events);  // skills learned at the new level, an automatic promotion; `u` is stale after this
   }
-  if (u.level >= rules.maxLevel) u.xp = 0;
+  if (units[(size_t)unit].level >= rules.maxLevel) units[(size_t)unit].xp = 0;
 }
 
 }  // namespace ote

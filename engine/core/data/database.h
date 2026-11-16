@@ -97,6 +97,7 @@ struct WeaponDef {
   std::string damageFormula;  // optional per-weapon override (Lua expr)
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
+  std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
 };
 
 // ---- Items (docs/ITEMS.md) ----
@@ -116,6 +117,9 @@ struct ItemDef {
   int weapon = -1;             // index into Database::weapons
   // Accessory:
   std::vector<int> bonus;      // per stat index: added while carried
+  // Strategy-RPG features (docs/SRPG.md):
+  bool promotes = false;       // usable: a promotion item
+  std::vector<int> skills;     // accessory: skills it gives while carried (indices into Database::skills)
 };
 const int kHealFull = 1000000000;
 
@@ -135,6 +139,11 @@ struct ItemRules {
 };
 const int kMaxInventory = 20;
 
+}  // namespace ote
+// The strategy-RPG data structs (docs/SRPG.md). Here, not at the top: they hold ItemGrant lists.
+#include "core/data/srpg.h"
+namespace ote {
+
 struct UnitTypeDef {
   std::string id, name;
   char glyph = '?';
@@ -153,6 +162,13 @@ struct UnitTypeDef {
   bool supplies = false;  // refills fuel and ammunition of adjacent units of its side
   // Fog of war: how far its team sees from the square it stands on (grid distance), 0..kMaxVision.
   int vision = 2;
+  // Strategy-RPG features (docs/SRPG.md); all empty in a game that uses none.
+  std::vector<int> skills;               // skills a unit has while it is of this type (indices into Database::skills)
+  std::vector<LearnDef> learns;          // skills learned for good at a level
+  std::vector<int> abilities;            // menu abilities (indices into Database::abilities)
+  std::vector<PromotionDef> promotions;  // the unit types it can become
+  std::vector<int> pairBonus;            // pair up: per stat index, what a unit of this type gives when it is behind;
+                                         // empty = rules.rescue.pairBonus
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
 inline bool unitTypeMatchesKey(const UnitTypeDef& t, const std::string& key) {
@@ -220,6 +236,8 @@ struct RulesConfig {
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
   int maxLevel = 20;
+  RescueRules rescue;        // "rules.rescue" (docs/SRPG.md "Rescue and pair up"); mode Off when the block is missing
+  PromotionRules promotion;  // "rules.promotion" (docs/SRPG.md "Promotion")
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.
@@ -303,6 +321,17 @@ struct Database {
   std::vector<StyleDef> styles;  // never empty after loading; [0] = default
   Graphics graphics;             // art (data/graphics.json); empty = placeholders
   std::shared_ptr<const CampaignDef> campaign;  // data/campaign.json; null = no campaign (docs/EVENTS.md)
+  // Strategy-RPG features (docs/SRPG.md); each empty when the game has no such file.
+  std::vector<CharacterDef> characters;  // data/characters.json
+  std::vector<SkillDef> skills;          // data/skills.json
+  std::vector<AbilityDef> abilities;     // data/abilities.json
+  SupportData supports;                  // data/supports.json (rules, pairs, texts)
+  // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
+  // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
+  std::vector<ExprDef> exprs;
+  // Some skill has the effect moveAgain or actAgain: only then the turn flags moveSpent / acted / refreshed are
+  // part of a save (set by resolveSrpgRefs).
+  bool turnFlagSkills = false;
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;
@@ -320,6 +349,13 @@ struct Database {
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
   int findStyle(const std::string& id) const;
+  int findCharacter(const std::string& id) const;
+  int findSkill(const std::string& id) const;
+  int findAbility(const std::string& id) const;
+  // The support pair of two characters (indices into `characters`, either order); -1 = they are not a pair.
+  int findSupportPair(int characterA, int characterB) const;
+  // Registers a formula expression; returns its index for Formulas::evalExpr.
+  int addExpr(const std::string& text, const std::string& label);
 };
 
 // ---- A square = terrain + (optionally) the structure standing on it ----

@@ -43,6 +43,7 @@ struct Playthrough {
   std::vector<CarriedSide> sides;
   std::vector<uint8_t> switches;    // per Database::switches
   std::vector<int> variables;       // per Database::variables
+  SupportState supports;            // closeness of the support pairs (docs/SRPG.md); empty in a game without pairs
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.
   bool begin(const Database& db);
@@ -100,5 +101,15 @@ enum class ChapterResult {
 
 // Takes the result of a decided chapter battle over into the playthrough (rules in docs/EVENTS.md).
 ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Battle& battle);
+
+// ---- supports between chapters (supports_campaign.cpp; docs/SRPG.md "Story and campaign") ----
+// A new playthrough: every pair at its "start" points and level 0 (called by Playthrough::begin).
+void beginSupports(const Database& db, Playthrough& pt);
+// After a won battle: the playthrough takes the battle's closeness (called by finishChapterBattle).
+void takeSupports(const Database& db, Playthrough& pt, const Battle& battle);
+// Pairs with a ready conversation whose two characters are in the roster and not gone, in pair order.
+void pendingSupports(const Database& db, const Playthrough& pt, std::vector<int>& pairs);
+// Plays it: the level is gained and the lines come back like a scene's. False if it is not pending.
+bool playSupport(const Database& db, Playthrough& pt, int pair, std::vector<SceneLine>& lines);
 
 }  // namespace ote

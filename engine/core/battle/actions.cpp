@@ -73,10 +73,13 @@ bool Battle::validate(const Action& action, std::string* why) const {
   if (!canAct(action.unit)) return fail(why, "that unit cannot act now");
   const Unit& u = units[action.unit];
   if (u.done) return fail(why, "that unit has already acted");
+  // "Move again" (docs/SRPG.md "Turn flags"): the action is used up, only the rest of its movement is left.
+  if (u.acted && action.type != ActionType::Move && action.type != ActionType::Wait)
+    return fail(why, "that unit can only move or wait now");
 
   switch (action.type) {
     case ActionType::Move: {
-      if (u.moved) return fail(why, "that unit has already moved");
+      if (u.moved && !u.acted) return fail(why, "that unit has already moved");
       if (action.cell == u.cell) return fail(why, "the unit is already there");
       Reach reach;
       reachable(action.unit, reach);
@@ -105,6 +108,20 @@ bool Battle::validate(const Action& action, std::string* why) const {
         if (o.target == action.target && (action.slot < 0 || action.slot == o.event)) return true;
       return fail(why, "there is nobody here to talk to");
     }
+    // Strategy-RPG features (docs/SRPG.md): each area judges its own actions.
+    case ActionType::Promote:
+      return validatePromote(action, why);
+    case ActionType::Ability:
+      return validateAbility(action, why);
+    case ActionType::Rescue:
+    case ActionType::Drop:
+    case ActionType::GiveUnit:
+    case ActionType::TakeUnit:
+    case ActionType::PairUp:
+    case ActionType::SwitchPair:
+      return validateRescue(action, why);
+    case ActionType::Support:
+      return validateSupport(action, why);
     default:
       return validateItemAction(action, why);
   }
@@ -123,7 +140,17 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::StartResearch: applyResearch(action, events); break;
     case ActionType::Supply: applySupply(action, events); break;
     case ActionType::Talk: applyTalk(action, events); break;
+    case ActionType::Promote: applyPromote(action, events); break;
+    case ActionType::Ability: applyAbility(action, events); break;
+    case ActionType::Rescue:
+    case ActionType::Drop:
+    case ActionType::GiveUnit:
+    case ActionType::TakeUnit:
+    case ActionType::PairUp:
+    case ActionType::SwitchPair: applyRescue(action, events); break;
+    case ActionType::Support: applySupport(action, events); break;
     case ActionType::EndTurn:
+      srpgTurnEnd(events);  // what ending a turn earns (supports), before the next side's turn begins
       advanceTurn(events);
       // Without a story nothing can have changed since the last action's check.
       if (!story) return true;
@@ -187,6 +214,8 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   }
   noticeAlong(action.unit, path, stop);
   u.moved = true;
+  u.moveSpent += reach.cost[(size_t)dest];  // what "move again" has left is the unit's movement minus this
+  if (u.acted) u.done = true;               // the move that was left after its action: now its turn is over
   // Ambushed: by default the unit's turn is over; with "rules.fog.ambush": "canAct" it only counts as having moved
   // (it cannot move again, may do anything else it could do after a normal move to this square).
   if (blocker >= 0 && db->rules.ambush == AmbushRule::EndsTurn) u.done = true;
@@ -213,6 +242,7 @@ void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
     ctx.a = &u;
     Props scratch;
     ctx.ta = &numbersAt(u.cell, scratch);
+    ctx.battle = this;
     amount = (int)std::floor(formulas->eval(Formulas::CaptureAmount, ctx, points));
   }
   if (amount < 1) amount = 1;
@@ -243,7 +273,7 @@ void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
     st.capturer = -1;
     learnOwner(si, events.back().seen);  // every team that saw it happen now believes the new owner
   }
-  u.done = true;
+  endOrder(action.unit);
 }
 
 void Battle::applyBuild(const Action& action, std::vector<Event>& events) {
@@ -265,6 +295,7 @@ void Battle::applyBuild(const Action& action, std::vector<Event>& events) {
     s.drop = g.drop;
     u.items.push_back(s);
   }
+  dressUnit(u);  // before the hit points: a standing skill of its type may raise the maximum
   u.hp = maxHp(u);
   stockUnit(u);
   u.moved = u.done = !db->rules.builtUnitsCanAct;

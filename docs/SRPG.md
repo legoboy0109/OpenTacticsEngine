@@ -1369,6 +1369,82 @@ finds it needs a new shared declaration adds it in `core/data/srpg.h` / `core/ba
   hexagon layouts, a save of `plain-economy` and of `demo-srpg` byte-identical to the build before, every new
   action refused with its message.
 
+#### F1 as built
+
+Everything in the scope is in place and inert: the existing games load, play and save exactly as before
+(`tests/test_srpg_compat.cpp` pins save text, event streams, random state and data hashes taken from the build
+before this step; all `ote-sim` summaries and verbose logs are identical).
+
+**Where things are (read these, not `battle.h`).**
+- `core/data/srpg.h`: all data structs, the limits, `CmpOp` (moved here from `events.h`), `kSupportTextBase`.
+  References are kept twice: the id as written (`toId`, `typeId`, `skillId`, `abilityId`, `itemIds`) and the index
+  that `resolveSrpgRefs` fills.
+- `core/battle/srpg_state.h`: `AbilityUse`, `SupportState`, `AbilityOption`, `ForecastNote`, `CombatSetup`,
+  `StrikeStep`, `SkillCtx`; `CombatMods` / `StrikeMods` are only forward declared (F2 defines them in
+  `combat_mods.h`).
+- `core/battle/srpg_api.h` (public) and `core/battle/srpg_internal.h` (private) are fragments included inside
+  `class Battle`. **A later step that needs one more member function appends it there** (append only) and never
+  edits `battle.h`. This is a reading of "declared in `battle.h`": the declarations are part of the class, the text
+  lives in two files that many steps can append to without conflicts.
+- `core/battle/srpg_hooks.cpp`: the shared hooks and the order in which they ask the areas. `srpgStat` = base +
+  `skillStatBonus`, then `rescueStat`, never below 0 (returns the base untouched when the game has no skills and
+  rescue is off); `dressUnit` = `characterDress`, `learnUpTo`; `srpgTurnStart` = abilities, promotion, skills;
+  `srpgUnitGone` = rescue, summons; `srpgLevelUp` = skills, promotion; `srpgAfterCombat` = skills, supports.
+- `core/battle/save_srpg.h/.cpp`: the save hooks and their fixed order (skills, abilities, rescue per unit; supports
+  per battle and per playthrough; skills per roster entry). Stubs per area: `save_skills.cpp`, `save_abilities.cpp`,
+  `save_rescue.cpp`, `save_supports.cpp` (not named in the scope; one file per owner instead of one shared file).
+- `core/data/loader_srpg.h`: every loader entry point. `loader_promotion.cpp` was added beside the files of the
+  scope (P1's `promotions` / `promotes` keys, the `promote` command and the `promoted` trigger).
+  `loader_srpg_rules.cpp` has two owners: R1 (`loadRescueRules`, `readUnitPairBonus`) and P1 (`loadPromotionRules`).
+- Story loader: the per-area readers are `StoryLoader` methods declared in `loader_events.h` (`promoteCommand`,
+  `promotedTrigger`, `skillCommand`, `hasSkillCondition`, `supportCommand`, `supportCondition`, `supportTrigger`);
+  each gets the whole command / condition / "when" object and reads all its keys. The "is not a command" message
+  still lists only the old commands (the new ones are in a list of their own, `kSrpgCommandKeys`).
+- `tools/sim/event_print_srpg.cpp`: wording of the new events. `core/ai/ai_srpg.cpp`: `ai::considerSrpg`, declared
+  in `ai_internal.h`, called by nothing yet (AI1 adds the call).
+
+**Readings of the contract (keep to these).**
+- `Action::ability` is the member; the factory is `Action::useAbility(unit, ability, target = -1, cell = kNoCell)`
+  (a member and a static function cannot share a name). The other factories: `unitAction`, `promote(unit, type =
+  -1)`, `rescue`, `drop(unit, cell)`, `giveUnit`, `takeUnit`, `pairUp`, `switchPair`, `support(unit, target)`.
+- Refusals of the stubs: `this game has no promotions`, `this game has no abilities`, `this game has no rescue or
+  pair up`, `this game has no supports`. The usual unit checks come first (`that unit cannot act now`, ...).
+- `endOrder(u)`: `acted` when the unit is alive, `hasMoveAgain(u)` and `moveSpent < its movement points`, else
+  `done`. In `applyAttack` it is only called when the attacker is still alive: a fallen attacker was never marked
+  done, and marking it would change saves. `endOrder` is used by capture, attack, use item, supply and the story's
+  `endTurn` (talk). Still direct, on purpose: wait, an ambush that ends the turn, a built unit, `beginTurn`.
+- A unit with `acted` may only move or wait (`that unit can only move or wait now`); its move ends it. The movement
+  budget of that second move (movement points minus `moveSpent`) is not enforced in `movement.cpp` yet: K1.
+- `killUnit(unit, events, killer = -1)` gained the killer; `srpgUnitGone` runs at its end and in `removeUnit`.
+- `Unit::character` is never saved: `Battle::characterOf(u)` derives it from the story id (added to `srpg_api.h`),
+  and `readUnit` sets it before the save hooks. Maximum HP in `readUnit` is now `b.stat`, read after the hooks.
+- `growthOf` returns the type's growth as it is (no clamping); C1 / K1 add theirs.
+- `skillsOf`, `abilitiesOf`, `growthOf`, `hasSkill` take `const Unit&`; the options queries take a unit id and the
+  cell it would act from.
+- The signatures of `strikeActivations`, `strikePassives`, `forecastNotes`, `CombatSetup`, `StrikeStep` and
+  `SkillCtx` are F1's own (the contract gives their meaning, not their shape). F2 and K2 may change them; nothing
+  else depends on them.
+- `evalExpr(index, ctx, def)`: a result of nil or false is 0, true is 1; a bad index or a run-time error gives
+  `def`. An expression with empty text is a load error ("the formula is empty"); errors start with the label given
+  to `Database::addExpr(text, label)`.
+- Hash: `characters.json`, `skills.json`, `abilities.json`, `supports.json` are mixed in after `research.json`,
+  each only when the file exists; `supports.json` gets the map-file treatment (wording blanked) and `levelNames`
+  is a cosmetic key.
+- New in loading, and a change for hand-made games: the keys `skills`, `learns`, `abilities`, `promotions`,
+  `pairBonus` on a unit type, `skills` on a weapon and `skills` / `promotes` on an item were ignored before and are
+  refused now (`"skills" is not supported by this build yet`). No game, fixture or template in the repository
+  uses them.
+
+**Formula call sites (all set `ctx.battle`).** `actions.cpp` `applyCapture` (capture amount); `combat.cpp`
+`strikeForecast` (damage, hit, crit, strikes) and the XP awards of `applyAttack`. The player, the computer opponent
+and the editor server never evaluate a formula themselves (the editor only calls `Formulas::init`).
+
+**`Battle::exists`** is defined and tested; nothing calls it yet. R1 switches the "is it still there" tests over
+(`checkDefeat`, story conditions and commands, objectives, `takeUnits` in `chapter.cpp`, saves).
+
+**Left for others.** `engine/player/battle/battle_view.cpp:112` now warns that the new `EventType` values are not
+handled in its switch (F1 may not touch the player; U0 adds the cases). Nothing else is open.
+
 ### F2. Combat pipeline (core) — depends on F1; parallel with C1, K1
 - **Scope.** The section "Combat pipeline": `core/battle/combat_mods.{h,cpp}` (`CombatMods`, `combatMods` asking the
   three stubbed sources `skillCombatMods`, `auraCombatMods`, `supportCombatMods`; `strikeOrder`), and `combat.cpp`

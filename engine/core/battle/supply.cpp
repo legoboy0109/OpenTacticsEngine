@@ -77,7 +77,7 @@ void Battle::applySupply(const Action& action, std::vector<Event>& events) {
   std::vector<int> targets;
   supplyTargetsFrom(action.unit, units[(size_t)action.unit].cell, targets);
   for (int t : targets) refill(t, events);
-  units[(size_t)action.unit].done = true;
+  endOrder(action.unit);
 }
 
 }  // namespace ote

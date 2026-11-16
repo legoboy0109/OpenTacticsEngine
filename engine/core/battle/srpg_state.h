@@ -1,0 +1,75 @@
+// Small state and query types of the strategy-RPG features (contract: docs/SRPG.md) that Battle and its users
+// share. Included by battle.h before Unit is defined, so nothing here may need Battle.
+//
+// APPEND ONLY for the steps after F1: add fields at the end of a struct and new types at the end of the file.
+#pragma once
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include "core/base/types.h"
+
+namespace ote {
+
+// One ability a unit has used this battle (Unit::abilityUses; docs/SRPG.md "Cost, uses, cooldown").
+struct AbilityUse {
+  int ability = -1;   // index into db->abilities
+  int used = 0;       // times this battle
+  int wait = 0;       // turns of its side still to wait
+  bool turn = false;  // used this turn (a free ability: once per turn)
+};
+
+// Closeness of the support pairs: one entry per pair of db->supports.pairs, in file order. Empty in a game
+// without pairs.
+struct SupportState {
+  std::vector<int> points;     // 0..kMaxSupportPoints
+  std::vector<uint8_t> level;  // 0 = none .. the number of the pair's levels
+};
+
+// One entry of a unit's ability menu: usable now, or the plain reason it is not.
+struct AbilityOption {
+  int ability = -1;
+  bool ok = false;
+  std::string why;  // when !ok: "ready in 2 turns", "no uses left this battle", ...
+};
+
+// An activation that could fire in a forecast fight (Forecast::notes), in roll order.
+struct ForecastNote {
+  int unit = -1;
+  int skill = -1;
+  int chance = 0;  // percent, judged on the state before the fight
+};
+
+// Who fights whom with what (docs/SRPG.md "Combat pipeline"): what the sources of combat modifiers are asked with.
+struct CombatSetup {
+  int attacker = -1, defender = -1;  // unit ids
+  int weaponA = -1;                  // the attacker's weapon (index into db->weapons)
+  int weaponD = -1;                  // the defender's answering weapon, -1 = none
+  Cell from = kNoCell;               // the square the attacker fights from (a forecast: may differ from its own)
+  bool counters = false;             // the defender counterattacks (set once the modifiers are known)
+};
+
+// What one fighter gets for one combat, and for one strike: defined by the combat pipeline
+// (core/battle/combat_mods.h, step F2).
+struct CombatMods;
+struct StrikeMods;
+
+// One step of a fight's order (Battle::strikeOrder): who strikes and how many times in a row.
+struct StrikeStep {
+  bool counter = false;  // false = the attacker strikes, true = the defender
+  int count = 1;
+};
+
+// What a skill condition is judged for (Battle::skillCondHolds): the skill's owner, and the foe where there is one.
+struct SkillCtx {
+  int unit = -1;             // the owner (unit id)
+  Cell cell = kNoCell;       // the square it stands on (a forecast: would stand on); kNoCell = its own
+  int weapon = -1;           // its weapon in use (index into db->weapons), -1 = none
+  int foe = -1;              // the other fighter / an ability's target unit, -1 = none
+  Cell foeCell = kNoCell;    // kNoCell = the foe's own square
+  int foeWeapon = -1;
+  bool combat = false;       // a foe point: "initiating" and "distance" have a meaning
+  bool initiating = false;   // the owner started this combat
+};
+
+}  // namespace ote

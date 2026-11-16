@@ -13,6 +13,10 @@ std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit", "moveUnit",   "changeSide", "giveItem",
                                         "giveResource", "setSwitch", "setVariable", "addVariable", "objective", "win",
                                         "lose",      "if",          "endTurn",    "focus",      "grantResearch", "playMusic", "stopMusic", "playSound"};
+// The commands of the strategy-RPG features (docs/SRPG.md), read by their own areas (loader_promotion.cpp,
+// loader_skills.cpp, loader_supports.cpp). A list of their own so that the "is not a command" message keeps naming
+// only what every game can use until those areas exist.
+constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport"};
 
 }  // namespace
 
@@ -41,6 +45,11 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kSrpgCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   if (!kind) {
     std::string list;
     for (const char* k : kCommandKeys) list += (list.empty() ? "" : ", ") + std::string(k);
@@ -51,6 +60,18 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   const Json& v = e[kind];
   using K = Command::Kind;
 
+  if (k == "promote") {
+    out.kind = K::Promote;
+    return promoteCommand(e, at, out);
+  }
+  if (k == "teachSkill" || k == "forgetSkill") {
+    out.kind = k == "teachSkill" ? K::TeachSkill : K::ForgetSkill;
+    return skillCommand(e, at, k == "teachSkill", out);
+  }
+  if (k == "addSupport") {
+    out.kind = K::AddSupport;
+    return supportCommand(e, at, out);
+  }
   if (k == "say") {
     out.kind = K::Say;
     if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;

@@ -40,6 +40,23 @@ bool Database::canWield(int unitType, int weapon) const {
 int Database::findUnitType(const std::string& id) const { return findById(unitTypes, id); }
 int Database::findMap(const std::string& id) const { return findById(maps, id); }
 int Database::findStyle(const std::string& id) const { return findById(styles, id); }
+int Database::findCharacter(const std::string& id) const { return findById(characters, id); }
+int Database::findSkill(const std::string& id) const { return findById(skills, id); }
+int Database::findAbility(const std::string& id) const { return findById(abilities, id); }
+int Database::findSupportPair(int a, int b) const {
+  for (size_t i = 0; i < supports.pairs.size(); ++i) {
+    const SupportPairDef& p = supports.pairs[i];
+    if ((p.a == a && p.b == b) || (p.a == b && p.b == a)) return static_cast<int>(i);
+  }
+  return -1;
+}
+int Database::addExpr(const std::string& text, const std::string& label) {
+  ExprDef e;
+  e.text = text;
+  e.label = label;
+  exprs.push_back(e);
+  return static_cast<int>(exprs.size()) - 1;
+}
 
 int enterCostOf(const Database& db, int terrain, int structure, int moveType) {
   if (structure >= 0) {

@@ -54,6 +54,16 @@ class StoryLoader {
   // -- objectives (loader_story_objectives.cpp) --
   bool objectiveSet(const Json& o, const std::string& where, ObjectiveSet& out);
 
+  // -- strategy-RPG features (docs/SRPG.md): each area reads its own commands, conditions and triggers. `e` / `w`
+  //    is the whole command / condition / "when" object, `at` names it in messages. --
+  bool promoteCommand(const Json& e, const std::string& at, Command& out);             // loader_promotion.cpp
+  bool promotedTrigger(const Json& w, const std::string& at, Trigger& out);            // loader_promotion.cpp
+  bool skillCommand(const Json& e, const std::string& at, bool teach, Command& out);   // loader_skills.cpp: teachSkill / forgetSkill
+  bool hasSkillCondition(const Json& e, const std::string& at, Condition& out) const;  // loader_skills.cpp
+  bool supportCommand(const Json& e, const std::string& at, Command& out);             // loader_supports.cpp: addSupport
+  bool supportCondition(const Json& e, const std::string& at, Condition& out) const;   // loader_supports.cpp
+  bool supportTrigger(const Json& w, const std::string& at, Trigger& out);             // loader_supports.cpp
+
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);
   bool addUnitCommand(const Json& e, const std::string& where, Command& out);
