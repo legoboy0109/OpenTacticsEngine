@@ -1,0 +1,7 @@
+{ "name": "Choice", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "axeman", "id": "bx", "side": "blue", "x": 3, "y": 0 },
+    { "type": "lancer", "id": "bl", "side": "blue", "x": 3, "y": 2 },
+    { "type": "swordsman", "id": "rs", "side": "red", "x": 3, "y": 1 } ] }

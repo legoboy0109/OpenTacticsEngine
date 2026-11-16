@@ -1,0 +1,10 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "swordsman", "id": "sw", "side": "blue", "x": 1, "y": 1 },
+    { "type": "scout", "id": "sc", "side": "blue", "x": 5, "y": 0 },
+    { "type": "axeman", "id": "ax", "side": "red", "x": 2, "y": 1 },
+    { "type": "lancer", "id": "la", "side": "red", "x": 1, "y": 2 },
+    { "type": "monk", "id": "mk", "side": "red", "x": 1, "y": 0 },
+    { "type": "brute", "id": "br", "side": "red", "x": 0, "y": 1 } ] }

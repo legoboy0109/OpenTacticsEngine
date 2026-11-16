@@ -98,6 +98,7 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
       fc.a = &a;
       fc.b = b;
       if (ctx.weapon >= 0) fc.w = &db->weapons[(size_t)ctx.weapon];
+      if (ctx.foeWeapon >= 0) fc.fw = &db->weapons[(size_t)ctx.foeWeapon];
       if (ca != kNoCell) fc.ta = &numbersAt(ca, scratchA);
       if (cb != kNoCell) fc.tb = &numbersAt(cb, scratchB);
       if (ca != kNoCell && cb != kNoCell) fc.dist = grid.distance(ca, cb);

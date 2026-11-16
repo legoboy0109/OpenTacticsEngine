@@ -1,0 +1,18 @@
+{ "units": [
+  { "id": "swordsman", "name": "Swordsman", "glyph": "S", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 6, "mov": 4 },
+    "wields": ["sword"], "ranks": { "sword": "e" }, "items": ["iron_sword"] },
+  { "id": "scout", "name": "Scout", "glyph": "s", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 12, "mov": 5 },
+    "wields": ["sword"], "ranks": { "sword": "e" }, "items": ["iron_sword"] },
+  { "id": "axeman", "name": "Axeman", "glyph": "A", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 6, "mov": 4 },
+    "wields": ["axe"], "ranks": { "axe": "e" }, "items": ["iron_axe"] },
+  { "id": "lancer", "name": "Lancer", "glyph": "L", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 6, "mov": 4 },
+    "wields": ["lance"], "ranks": { "lance": "e" }, "items": ["iron_lance"] },
+  { "id": "brute", "name": "Brute", "glyph": "B", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 6, "mov": 4 },
+    "wields": ["axe"], "ranks": { "axe": "e" }, "items": ["great_axe"] },
+  { "id": "monk", "name": "Monk", "glyph": "M", "moveType": "foot",
+    "stats": { "hp": 30, "str": 5, "def": 2, "spd": 6, "mov": 4 } } ] }

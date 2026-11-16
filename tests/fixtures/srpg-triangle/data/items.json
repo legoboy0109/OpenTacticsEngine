@@ -1,0 +1,5 @@
+{ "items": [
+  { "id": "iron_sword", "name": "Iron Sword", "kind": "weapon", "weapon": "iron_sword" },
+  { "id": "iron_axe",   "name": "Iron Axe",   "kind": "weapon", "weapon": "iron_axe" },
+  { "id": "iron_lance", "name": "Iron Lance", "kind": "weapon", "weapon": "iron_lance" },
+  { "id": "great_axe",  "name": "Great Axe",  "kind": "weapon", "weapon": "great_axe" } ] }

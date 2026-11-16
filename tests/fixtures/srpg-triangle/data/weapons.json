@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "props": { "might": 5, "weight": 3, "kind": 1 } },
+  { "id": "iron_axe",   "name": "Iron Axe",   "group": "axe",   "props": { "might": 6, "weight": 5, "kind": 2 } },
+  { "id": "iron_lance", "name": "Iron Lance", "group": "lance", "props": { "might": 5, "weight": 3, "kind": 3 } },
+  { "id": "great_axe",  "name": "Great Axe",  "group": "axe",   "rank": "b", "props": { "might": 10, "weight": 12, "kind": 2 } } ] }

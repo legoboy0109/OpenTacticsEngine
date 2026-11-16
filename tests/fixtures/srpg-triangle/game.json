@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1, "name": "Triangle Fixture",
+  "description": "Test game for the foe's weapon (`fw`) in combat formulas: a sword > axe > lance > sword triangle and weapon weight against hit and doubling. Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "spd", "name": "Speed" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 5 } },
+  "formulas": {
+    "damage":  "a.str + w.might - b.def + 3 * tri(w, fw)",
+    "hit":     "70 + 2 * (a.spd - b.spd) + 15 * tri(w, fw) + 2 * fw.weight",
+    "strikes": "(a.spd - w.weight >= b.spd - fw.weight + 5) and 2 or 1"
+  },
+  "scripts": ["scripts/triangle.lua"],
+  "maps": [ { "id": "duel", "name": "Duel", "file": "maps/duel.json" },
+            { "id": "choice", "name": "Choice", "file": "maps/choice.json" } ]
+}
