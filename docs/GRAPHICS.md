@@ -379,14 +379,38 @@ to cut a model file down to chosen parts and animations) into
 `art/detailed.style.json`; `make_starter_art.py` merges every
 `art/*.style.json` of a game into its `data/graphics.json`.
 
+**Unit pictures and models of the story demo.** Every unit type of `demo-srpg` has art of its own in every style (the
+seven promoted and summoned types, Captain, Lancer, Outrider, Marksman, Brute, Houndmaster and Hound, are no longer drawn
+as the type they grow from; the template's Outrider has its own row too):
+
+| Style | Where a unit's picture comes from | Made by |
+|---|---|---|
+| Classic, Parchment | sheet `units` (24 x 24, two idle frames per row; Parchment has no unit art of its own) | `art_units.py` (the older types) and `art_units_promoted.py` (the seven) |
+| Isometric | sheet `iso_units` (the same sprites cut under the feet) | `art_iso.py` from the same drawing functions |
+| 3D isometric, Full 3D | `models/<unit>.glb`, generated low-poly block figures with Idle / Move / Attack / Die | `make_unit_models.py`, the seven in `unit_models_promoted.py`; `height` in `graphics.json` makes the bigger (Brute, Lancer) and the smaller (Hound) kinds stand at their size, because the engine fits a model's whole rest pose to one height |
+| Detailed 3D | `models/detailed/<unit>.glb`, CC0 character packs cut down and dressed | `make_detailed_style.py` (the older seven: `make_detailed_units.py`; the new seven: `make_detailed_promoted.py`, with `glb_gear.py` for parts of other models, generated blocks and tints) |
+
+The Hound is a four-legged dog in every style (its own skeleton: spine, head, tail, four legs; in Detailed 3D the CC0
+"Husky" model). A promoted type is drawn as a grander or lighter version of its source: the Captain has a plumed helm,
+gold and a long cape; the Lancer is plated on an armoured horse with a long pennant lance; the Outrider a hooded light
+rider with a sword; the Marksman an archer with a tall bow and a full quiver; the Brute a horned fighter with a great
+axe; the Houndmaster wears a fur collar and cap and has a whistle, a sword and a leash. In the 3D styles the promotion
+screen still shows a unit type's letter on a side-coloured block (a look is either a picture or a model, and the screen
+draws pictures only); in Classic, Parchment and Isometric it shows the new sprite. `tests/srpg_art_test.py` checks that no
+two unit types of a style share a look.
+
 Models can also be **combined** by the art tools (`tools/art/glb_merge.py`, `glb_attach.py`, `glb_pose.py`; recipes in
-`make_detailed_units.py`): a rigid model (a weapon) is hung on a character's hand joint, and a rider's whole skeleton
+`make_detailed_units.py`, `make_detailed_promoted.py`): a rigid model (a weapon) is hung on a character's hand joint, and a rider's whole skeleton
 is made a child of a mount's body joint, so one file holds two skeletons and one clip (`Idle`, `Move`, `Attack`, `Die`)
 animates both. The loader needs nothing new for this (several skins, rigid meshes under joints and clips over any node
 are standard glTF it already reads). Two things to know when making such models: the engine scales a unit by its
 rest-pose bounds measured from the raw vertices, so a combined model must have its rest pose (and the bind pose of its
 skins) be what it should look like (`Glb.rebind_rest()`); and a rigid weapon turns with the wrist, so
 `steer_weapon()` keys the weapon's own pivot to keep it pointing the way the picture needs in every clip.
+`glb_gear.py` adds three more: `load_part()` / `attach_part()` take one rigid part (a sword, a shield, a helmet) out of
+a pack and hang it on another model's joint where the pack had it (the KayKit characters share one skeleton),
+`add_blocks()` adds generated boxes (a plume, a collar, horse barding) that follow a joint, and `tint()` multiplies a
+material's colour.
 
 ## Editor helper API additions (docs/EDITOR_API.md is updated to match)
 
