@@ -5,6 +5,10 @@
   { "id": "iron_lance", "name": "Iron Lance", "kind": "weapon", "weapon": "iron_lance", "uses": 40, "price": { "gold": 400 } },
   { "id": "iron_axe",   "name": "Iron Axe",   "kind": "weapon", "weapon": "iron_axe",   "uses": 40, "price": { "gold": 400 } },
   { "id": "iron_bow",   "name": "Iron Bow",   "kind": "weapon", "weapon": "iron_bow",   "uses": 40, "price": { "gold": 450 } },
+  // A sword that carries a skill (data/weapons.json "skills": Sword Dancer, while it is the weapon in hand).
+  { "id": "keen_blade", "name": "Keen Blade", "description": "A sword that lets its wielder dance.", "kind": "weapon", "weapon": "keen_blade", "uses": 30, "price": { "gold": 600 } },
+  // The Hound's teeth: not for sale, and they never wear out.
+  { "id": "fangs",      "name": "Fangs",      "kind": "weapon", "weapon": "fangs" },
 
   { "id": "salve", "name": "Salve", "description": "Restores 10 HP.",
     "kind": "usable", "uses": 3, "price": { "gold": 300 }, "heal": 10,
@@ -16,6 +20,14 @@
     "kind": "usable", "uses": 1, "raise": { "str": 2 },
     "sounds": { "use": "magic" } },
 
+  // A promotion item (docs/SRPG.md section 2): used on a Cavalier of level 2 or more, who then chooses what to become.
+  { "id": "officers_writ", "name": "Officer's Writ", "description": "Promotes a Cavalier.",
+    "kind": "usable", "uses": 1, "promotes": true,
+    "sounds": { "use": "magic" } },
+
   { "id": "shield_ring", "name": "Shield Ring", "description": "Defense +2 while carried.",
-    "kind": "accessory", "bonus": { "def": 2 } }
+    "kind": "accessory", "bonus": { "def": 2 } },
+  // An accessory that grants a skill instead of a stat bonus.
+  { "id": "runners_charm", "name": "Runner's Charm", "description": "Grants Light Step while carried.",
+    "kind": "accessory", "skills": ["light_step"], "price": { "gold": 500 } }
 ] }

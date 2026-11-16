@@ -45,6 +45,15 @@
     // Items (docs/ITEMS.md): weapons are carried and wear out; each unit holds up to 5 things;
     // the company's shared storage is reached by the leader and whoever stands next to them.
     "items": { "weapons": "carried", "inventorySize": 5, "storage": "leader" },
+    // Promotion (docs/SRPG.md section 2): after promoting a unit starts again at level 1 (a promotion can say "keep").
+    "promotion": { "levelAfter": "reset" },
+    // Carrying (section 5): a unit lifts a neighbouring ally off the board and carries it. Not a mounted ally, and
+    // only if the carrier's Strength is at least the ally's Defense; the carrier's Skill and Speed are halved meanwhile.
+    "rescue": {
+      "mode": "carry",
+      "canCarry": "a.str >= b.def and not b.tags.mounted",
+      "carrierStats": { "skl": { "percent": 50 }, "spd": { "percent": 50 } }
+    },
     "progression": {
       "enabled": true,
       "xpPerLevel": 100,

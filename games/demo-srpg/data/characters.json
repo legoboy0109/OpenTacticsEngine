@@ -1,0 +1,35 @@
+// The named people of the story (docs/SRPG.md section 1). Maps place them with "character": "<id>".
+// "stats" and "growths" are ADDED to the unit type's; the numbers that used to be map overrides live here now.
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "description": "Captain of the Blue Company.",
+    "type": "lord", "level": 3,
+    "stats": { "hp": 4, "str": 1, "def": 1 }, "growths": { "hp": 10, "str": 5 },
+    "skills": ["rallying_presence"], "abilities": ["rally"],
+    "items": ["keen_blade", "iron_sword", "salve"] },
+  { "id": "kell", "name": "Kell", "description": "Eirik's oldest friend and the company's rider.",
+    "type": "cavalier", "level": 2,
+    "stats": { "hp": 3 }, "growths": { "spd": 10 },
+    "skills": ["second_charge"],
+    "items": ["iron_lance", "iron_sword", "runners_charm"] },
+  { "id": "lyra", "name": "Lyra", "description": "A quiet archer who counts every arrow.",
+    "type": "archer", "level": 2,
+    "growths": { "skl": 10, "spd": 5 },
+    "skills": ["steady_aim"] },
+  { "id": "bram", "name": "Bram", "description": "A farmhand turned fighter, hard to knock down.",
+    "type": "fighter", "level": 2,
+    "stats": { "hp": 3 }, "growths": { "hp": 10, "str": 5 },
+    "skills": ["hang_on"] },
+  { "id": "sera", "name": "Sera", "description": "A sky rider who never wanted this war.",
+    "type": "sky_rider", "level": 2,
+    "growths": { "spd": 10 },
+    "skills": ["catch_breath"], "abilities": ["pull_back"] },
+
+  { "id": "gorm", "name": "Gorm", "description": "The Red Warband's captain at the ford.",
+    "type": "knight", "level": 3,
+    "stats": { "hp": 6, "str": 1 },
+    "skills": ["heavy_blow"] },
+  { "id": "hald", "name": "Hald", "description": "Holds the northern pass.",
+    "type": "knight", "level": 4,
+    "stats": { "hp": 8, "str": 2, "def": 1 },
+    "skills": ["back_to_the_wall"] }
+] }

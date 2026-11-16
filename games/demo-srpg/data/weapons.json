@@ -3,6 +3,10 @@
   // weapon plays when it hits (docs/SOUND.md); a miss, or a weapon without it, uses the game's standard set (audio.json).
   { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "sounds": { "hit": "sword_hit" }, "props": { "might": 6, "hit": 90 } },
   { "id": "iron_lance", "name": "Iron Lance", "group": "lance", "sounds": { "hit": "lance_hit" }, "props": { "might": 7, "hit": 80 } },
+  // Carries a skill (Sword Dancer) while it is the weapon in hand.
+  { "id": "keen_blade", "name": "Keen Blade", "group": "sword", "skills": ["sword_dancer"], "sounds": { "hit": "sword_hit" }, "props": { "might": 6, "hit": 95 } },
+  // The Hound's teeth.
+  { "id": "fangs",      "name": "Fangs",      "group": "fang", "sounds": { "hit": "hit" }, "props": { "might": 4, "hit": 85 } },
   { "id": "iron_axe",   "name": "Iron Axe",   "group": "axe", "sounds": { "hit": "axe_hit" }, "props": { "might": 8, "hit": 75 } },
   // Bows hit fliers hard (x3 might); everything else is normal (x1).
   { "id": "iron_bow",   "name": "Iron Bow",   "group": "bow", "range": [2, 2], "sounds": { "hit": "bow_hit" },

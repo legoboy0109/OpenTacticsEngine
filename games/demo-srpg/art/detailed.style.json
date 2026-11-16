@@ -115,6 +115,41 @@
           "model": "models/detailed/sky_rider.glb",
           "height": 1.474,
           "sideMaterial": ""
+        },
+        "captain": {
+          "model": "models/detailed/lord.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "lancer": {
+          "model": "models/detailed/cavalier.glb",
+          "height": 1.532,
+          "sideMaterial": ""
+        },
+        "outrider": {
+          "model": "models/detailed/cavalier.glb",
+          "height": 1.532,
+          "sideMaterial": ""
+        },
+        "marksman": {
+          "model": "models/detailed/archer.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "brute": {
+          "model": "models/detailed/fighter.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "houndmaster": {
+          "model": "models/detailed/soldier.glb",
+          "height": 1.515,
+          "sideMaterial": ""
+        },
+        "hound": {
+          "model": "models/detailed/fighter.glb",
+          "height": 1.15,
+          "sideMaterial": ""
         }
       }
     }

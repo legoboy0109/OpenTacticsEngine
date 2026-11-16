@@ -1,0 +1,50 @@
+// Supports (docs/SRPG.md section 6): pairs of characters who grow closer, and fight better side by side.
+// Points come from standing together, fighting near each other and healing each other (and from story commands).
+{
+  "rules": {
+    "levelNames": ["C", "B", "A"],
+    "points": { "endTurnAdjacent": 5, "fightTogether": 3, "heal": 4 },
+    "range": 3,
+    "maxLevels": 3,
+    "conversations": "both"
+  },
+  "pairs": [
+    { "a": "eirik", "b": "kell", "start": 10,
+      "levels": [
+        { "points": 20, "bonus": { "hit": 5, "avoid": 5 },
+          "talk": [ { "say": "You are standing in the sun again. Every archer on the ridge can see that helmet.", "speaker": "kell" },
+                    { "say": "Then they will aim at me, and not at you.", "speaker": "eirik" },
+                    { "say": "That is not the comfort you think it is.", "speaker": "kell" } ] },
+        { "points": 60, "bonus": { "hit": 10, "avoid": 10, "damage": 1 },
+          "talk": [ { "say": "Do you remember the well behind your father's barn? We swore we would never march for anyone else's quarrel.", "speaker": "kell" },
+                    { "say": "And here we are, marching for our own. I never thought it would feel so heavy.", "speaker": "eirik" },
+                    { "say": "Heavy, yes. But I would not carry it with anyone else.", "speaker": "kell" } ] } ] },
+    { "a": "eirik", "b": "lyra",
+      "levels": [
+        { "points": 20, "bonus": { "hit": 5, "crit": 5 },
+          "talk": [ { "say": "You count your arrows before every fight. Why?", "speaker": "eirik" },
+                    { "say": "So I know how many mistakes I am allowed.", "speaker": "lyra" } ] },
+        { "points": 60, "bonus": { "hit": 10, "crit": 10, "stats": { "skl": 1 } },
+          "talk": [ { "say": "You have not missed since the ford. Is the counting working?", "speaker": "eirik" },
+                    { "say": "I stopped counting. I watch where you are looking instead.", "speaker": "lyra" } ] } ] },
+    { "a": "lyra", "b": "bram",
+      "levels": [
+        { "points": 20, "bonus": { "avoid": 5, "damageTaken": -1 },
+          "talk": [ { "say": "Stand a little to my left. The wind carries the arrows that way.", "speaker": "lyra" },
+                    { "say": "To your left. Right. Which one is left, again?", "speaker": "bram" },
+                    { "say": "The side without the axe.", "speaker": "lyra" } ] },
+        { "points": 70, "bonus": { "avoid": 10, "damageTaken": -2, "stats": { "def": 1 } },
+          "talk": [ { "say": "I brought you bread. You forgot to eat before the last fight.", "speaker": "bram" },
+                    { "say": "You noticed that? In the middle of a battle?", "speaker": "lyra" },
+                    { "say": "I notice everything about people who stand behind me.", "speaker": "bram" } ] } ] },
+    { "a": "eirik", "b": "sera", "start": 0,
+      "levels": [
+        { "points": 15, "bonus": { "avoid": 5, "critAvoid": 5 },
+          "talk": [ { "say": "Why did you really change sides? Not the village. The real reason.", "speaker": "eirik" },
+                    { "say": "You looked at me as if I could still choose. Nobody had done that in a long time.", "speaker": "sera" } ] },
+        { "points": 50, "bonus": { "avoid": 10, "critAvoid": 10, "stats": { "spd": 1 } },
+          "talk": [ { "say": "From up there the whole war looks like a handful of campfires.", "speaker": "sera" },
+                    { "say": "And from down here?", "speaker": "eirik" },
+                    { "say": "Like the only campfire that has room for one more.", "speaker": "sera" } ] } ] }
+  ]
+}
