@@ -91,7 +91,7 @@ TEST(srpg_skeleton_keeps_data_hashes) {
   CHECK_STR(dataHash("tests/fixtures/plain-economy", "twin_rivers"), "1e44dae676a88a38");
   CHECK_STR(dataHash("games/demo-srpg", "bridge"), "424b5fd70a0bf539");
   CHECK_STR(dataHash("games/demo-economy", "twin_rivers"), "89beafac5e6893cf");
-  CHECK_STR(dataHash("games/demo-hex", "fortress_ford"), "b44fd3b7730564a8");
+  CHECK_STR(dataHash("games/demo-hex", "fortress_ford"), "2bfa51f67465e668");  // re-taken when the demo maps gained heights (2D isometric hexagons)
   Database db;
   std::string err, out;
   CHECK(loadGame(ote_test::sourceDir() + "/games/demo-srpg", db, err));
