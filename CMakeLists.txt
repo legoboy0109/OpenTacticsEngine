@@ -66,6 +66,11 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # The player's sound data, cue lookup and music director (docs/SOUND.md step 2).
   target_sources(ote_tests PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp engine/player/sound/sound_bank.cpp
                  engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp)
+  # The player's strategy-RPG shared places (docs/SRPG.md step U0): the pick list, the unit details frame and the
+  # battle view with its event hooks, all of it free of SDL.
+  file(GLOB PLAYER_SRPG_TEST_SRC CONFIGURE_DEPENDS engine/player/battle/srpg_pick.cpp engine/player/battle/unit_info*.cpp
+       engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp)
+  target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})

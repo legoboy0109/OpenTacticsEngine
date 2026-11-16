@@ -45,6 +45,7 @@ void BattleScene::openActionMenu() {
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
   addTalkEntries(items);  // story: one entry per partner / event (docs/EVENTS.md)
+  addSrpgEntries(items);  // strategy-RPG groups (battle_srpg_menu.cpp); none in a game without those features
   // Item entries (docs/ITEMS.md "Player"); none of them exist in a game without items.
   if (!u.items.empty()) items.push_back({"Items", "", true, kItems});
   std::vector<int> partners, shop;
@@ -56,6 +57,7 @@ void BattleScene::openActionMenu() {
   battle_.shopItems(sel_, shop);
   if (!shop.empty()) items.push_back({"Shop", "", true, kShop});
   if (battle_.canSupply(sel_)) items.push_back({EconomyWords::kSupply, "", true, kSupply});
+  addSrpgInfoEntry(items);  // Info (U1)
   items.push_back({"Wait", "", true, kWait});
   menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
   anchorActionMenu();
@@ -96,6 +98,7 @@ void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
   std::vector<MenuItem> items = {{"End Turn", "", true, kEndTurn}};
   if (!battle_.objectiveText().empty()) items.push_back({"Objective", "", true, kObjective});  // only when the map has one
+  addSrpgEndEntries(items);  // Unit (U1)
   // Research (docs/ECONOMY.md "Player"): whenever the game has technologies. With "needsStructure" and no research
   // structure it still opens; the panel greys its rows with the reason.
   if (!session_.db.research.empty() && humanTurn()) items.push_back({EconomyWords::kResearch, "", true, kResearchEntry});
@@ -125,7 +128,8 @@ void BattleScene::menuInput(const InputEvent& e) {
       return;
     }
     if (id == kAttack) beginTargeting(-1);
-    else if (id >= kTalkBase) talkChosen(id - kTalkBase);
+    else if (srpgGroupOf(id) == SrpgGroup::Talk) talkChosen(id - kTalkBase);
+    else if (srpgGroupOf(id) != SrpgGroup::None && srpgMenuChosen(id)) {}  // a strategy-RPG group took it
     else if (id == kItems) openItems();
     else if (id == kTrade) openTrade();
     else if (id == kStorage) openStorage();
@@ -149,6 +153,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
     else if (res == Menu::Chosen && id == kObjective) openObjective();
     else if (res == Menu::Chosen && id == kResearchEntry) openResearchPanel();
+    else if (res == Menu::Chosen && srpgEndMenuChosen(id)) {}
     else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
     else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
     else if (res == Menu::Chosen && id == kLeave) {

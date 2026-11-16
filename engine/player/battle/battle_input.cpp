@@ -94,6 +94,10 @@ void BattleScene::onInput(const InputEvent& e) {
     return;
   }
   if (mode_ == Mode::Objective && objectiveInput(e)) return;
+  if (mode_ == Mode::UnitInfo) {
+    unitInfoInput(e);
+    return;
+  }
   if (mode_ == Mode::Research) {
     researchInput(e);
     return;
@@ -106,7 +110,7 @@ void BattleScene::onInput(const InputEvent& e) {
   if (e.type == InputEvent::ButtonDown) handleButton(e.button);
   else if (e.type == InputEvent::PointerMove) {
     Cell c = cellAt(e.x, e.y);
-    if (c != kNoCell && mode_ != Mode::Targeting) cursor_ = c;
+    if (c != kNoCell && mode_ != Mode::Targeting && mode_ != Mode::PickUnit && mode_ != Mode::PickCell) cursor_ = c;
   } else if (e.type == InputEvent::PointerDown) handlePointerDown(e.x, e.y);
 }
 
@@ -115,6 +119,8 @@ void BattleScene::handleButton(Button b) {
     case Mode::Idle: idleButton(b); break;
     case Mode::Selected: selectedButton(b); break;
     case Mode::Targeting: targetingButton(b); break;
+    case Mode::PickUnit:
+    case Mode::PickCell: pickButton(b); break;
     default: break;
   }
 }
@@ -122,6 +128,10 @@ void BattleScene::handleButton(Button b) {
 void BattleScene::handlePointerDown(int x, int y) {
   Cell c = cellAt(x, y);
   if (c == kNoCell) return;  // panel / outside the map
+  if (mode_ == Mode::PickUnit || mode_ == Mode::PickCell) {
+    pickPointer(x, y);
+    return;
+  }
   if (mode_ == Mode::Targeting) {
     // Tapping a target selects it; tapping the selected one fires.
     for (size_t i = 0; i < targets_.size(); ++i) {

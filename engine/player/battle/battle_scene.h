@@ -2,6 +2,7 @@
 // input into Actions via a small state machine (Idle -> Selected ->
 // ActionMenu -> Targeting ...). AI turns are driven from update().
 #pragma once
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -10,6 +11,9 @@
 #include "battle/battle_draw.h"
 #include "battle/battle_view.h"
 #include "battle/layout.h"
+#include "battle/srpg_menu_ids.h"
+#include "battle/srpg_pick.h"
+#include "battle/unit_info.h"
 #include "scene.h"
 #include "saves.h"
 #include "ui/confirm.h"
@@ -31,14 +35,15 @@ class BattleScene : public Scene {
   SceneAudio audioContext() const override;  // battle_sound.cpp
 
  private:
-  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result };
+  enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result,
+              PickUnit, PickCell, UnitInfo };  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
                 kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry,
-                kTalkBase = 1000 };  // kTalkBase + n = the n-th Talk entry of the action menu
+                kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
   void ensureLayout(const Renderer& r);
@@ -89,6 +94,45 @@ class BattleScene : public Scene {
   void finishOrder();
   void anchorActionMenu();
   bool submit(const Action& a);
+
+  // --- battle_srpg_menu.cpp: the strategy-RPG entry groups of the menus (docs/SRPG.md "Player UI"; step U0).
+  // The dispatcher calls one function pair per group, each group in its own file so later steps do not collide.
+  // A builder appends its entries (none when it does not apply); a handler returns true when it took the id.
+  void addSrpgEntries(std::vector<MenuItem>& items);     // action menu, after Talk: Support, abilities, Rescue.., Promote
+  void addSrpgInfoEntry(std::vector<MenuItem>& items);   // action menu, before Wait: Info
+  void addSrpgEndEntries(std::vector<MenuItem>& items);  // battle menu, after Objective: Unit
+  bool srpgMenuChosen(int id);                           // an id of the action menu outside the old ones
+  bool srpgEndMenuChosen(int id);
+  void addSupportEntries(std::vector<MenuItem>& items);    // battle_menu_supports.cpp (U5)
+  bool supportChosen(int id);
+  void addAbilityEntries(std::vector<MenuItem>& items);    // battle_menu_abilities.cpp (U3)
+  bool abilityChosen(int id);
+  void addRescueEntries(std::vector<MenuItem>& items);     // battle_menu_rescue.cpp (U4): Rescue / Drop / Give / Take / Pair up / Switch
+  bool rescueChosen(int id);
+  void addPromotionEntries(std::vector<MenuItem>& items);  // battle_menu_promotion.cpp (U2)
+  bool promotionChosen(int id);
+  void addInfoEntry(std::vector<MenuItem>& items);         // battle_menu_info.cpp (U1): Info (action menu) and Unit (battle menu)
+  bool infoChosen(int id);
+  void addUnitEntry(std::vector<MenuItem>& items);
+  bool unitEntryChosen(int id);
+
+  // --- battle_srpg_target.cpp: pick a unit / pick a square, for every group. The caller opens it from a menu handler
+  // (the action menu is closed by then); Cancel goes back to the action menu; Confirm clears the mode and calls
+  // `chosen`, which normally submits an Action and calls finishOrder() (or opens another menu).
+  // `mark` is called for the highlighted candidate and may fill the overlay: `reach` = legal squares are drawn by the
+  // pick itself, `attack` = what the choice would do (e.g. the squares two units would end on).
+  using PickMark = std::function<void(int candidate, Overlay& overlay)>;
+  void beginPickUnit(std::vector<int> units, std::function<void(int)> chosen, PickMark mark = PickMark());
+  void beginPickCell(std::vector<Cell> cells, std::function<void(Cell)> chosen, PickMark mark = PickMark());
+  void pickButton(Button b);
+  void pickPointer(int x, int y);
+  void pickMoved();   // cursor, overlay and the sound after the highlight changed
+  std::string srpgHint() const;  // the hint line of PickUnit / PickCell / UnitInfo
+
+  // --- battle_srpg_unitinfo.cpp: Mode::UnitInfo (the pages are in unit_info*.cpp)
+  void openUnitInfo(int unit);
+  void unitInfoInput(const InputEvent& e);
+  void drawUnitInfoOverlay(Renderer& r);
 
   // --- battle_items.cpp: the item screens (Items, Trade, Storage, Shop; docs/ITEMS.md "Player")
   void openItems(int selectSlot = 0);
@@ -195,6 +239,12 @@ class BattleScene : public Scene {
   std::string inspectedLine_;     // the last logInspected() line
   TradePanel tradePanel_;
   ConfirmBox confirm_;
+  PickList pick_;                         // Mode::PickUnit / PickCell (battle_srpg_target.cpp)
+  bool pickCells_ = false;                // the candidates are squares (else unit ids)
+  std::function<void(int)> pickChosen_;
+  PickMark pickMark_;
+  UnitInfoView unitInfo_;                 // Mode::UnitInfo
+  bool unitInfoFromAction_ = false;       // opened from the action menu: Cancel returns there (else to the map)
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
   int partner_ = -1;         // trade partner unit
   std::vector<int> shopList_;   // item indexes in the shop panel's rows

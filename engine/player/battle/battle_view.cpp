@@ -47,7 +47,7 @@ void BattleView::resync(const Battle& b) {
   units.assign(b.units.size(), UnitView());
   for (const Unit& u : b.units) {
     UnitView& v = units[u.id];
-    v.visible = u.alive;
+    v.visible = u.alive && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
     v.hp = u.hp;
     if (u.alive) cellPos(b, u.cell, v.px, v.py);
   }
@@ -108,7 +108,7 @@ void BattleView::begin(const Battle& b) {
   cur_.fired = false;
   cur_.hideAtEnd = false;
   float cx = tile_ / 2.0f;
-  if (beginStory(b) || beginEconomy(b) || beginFog(b)) return;
+  if (beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
@@ -246,6 +246,18 @@ void BattleView::begin(const Battle& b) {
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
     case EventType::UnitResupplied:
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
+    // Strategy-RPG entries: beginSrpg (battle_view_srpg.cpp) took them above.
+    case EventType::SkillLearned:
+    case EventType::SkillActivated:
+    case EventType::UnitHurt:
+    case EventType::UnitPromoted:
+    case EventType::AbilityUsed:
+    case EventType::UnitRescued:
+    case EventType::UnitDropped:
+    case EventType::UnitHanded:
+    case EventType::PairSwitched:
+    case EventType::SupportPoints:
+    case EventType::SupportReached: break;
   }
 }
 
@@ -267,7 +279,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressStory(b) || progressEconomy(b)) return;
+  if (progressStory(b) || progressEconomy(b) || progressSrpg(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -325,7 +337,7 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
-  if (finishStory(b) || finishEconomy(b)) {
+  if (finishStory(b) || finishEconomy(b) || finishSrpg(b)) {
     cur_.active = false;
     return;
   }
