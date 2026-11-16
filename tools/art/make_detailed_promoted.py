@@ -184,7 +184,8 @@ def build_hound(hound_dir):
     g = ga.load_trimmed(os.path.join(hound_dir, 'Husky.glb'), keep=HUSKY_CLIPS)
     gear.add_blocks(g, 'Neck2', [((0.01, 2.2, 1.52), (0.66, 0.24, 0.66), CRIMSON, (-35, 0, 0)),
                                  ((0.01, 2.0, 1.82), (0.1, 0.16, 0.06), GOLD, (-35, 0, 0))], 'collar')
-    gear.tint(g, 'Material.001', (1.7, 1.15, 0.7))        # the grey fur turns tan, the white parts cream
+    gear.tint(g, 'Material', (3.4, 2.4, 1.5))             # the black coat turns dark brown, the grey fur tan, the white cream
+    gear.tint(g, 'Material.001', (1.7, 1.15, 0.7))
     gear.tint(g, 'Material.003', (1.0, 0.92, 0.78))
     return mdu.finish(g, [k for k, _ in HUSKY_CLIPS])
 
