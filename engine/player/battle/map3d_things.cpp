@@ -11,6 +11,13 @@
 
 namespace ote {
 
+// A structure picture's lower edge sits near the front of its footprint (see map3d_sizes.h): the footprint's size in
+// squares (a group of seven hexagons is about 2.5 squares across), times kStructureAhead.
+float Map3D::structurePictureAhead(const DrawCtx& c, const StructureDef& def) const {
+  const float size = c.proj->hex() ? (def.rings > 0 ? 2.5f : 1.0f) : 0.5f * (float)(def.width + def.height);
+  return kStructureAhead * size;
+}
+
 namespace {
 
 
@@ -116,7 +123,7 @@ void Map3D::drawStructures(const DrawCtx& c) {
       float wPx = (def.width + def.height) * 0.5f * g.artPixels() * 1.15f;
       Spot feet = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
       feet.Y = Y;
-      upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(k, k, k, 255), uv);
+      upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), structurePictureAhead(c, def), Tint3D(k, k, k, 255), uv);
     } else {
       // Placeholder: a low lit box in the structure's colour.
       Spot a = spot(c, st.x + 0.08f, st.y + 0.08f, 0), z = spot(c, st.x + def.width - 0.08f, st.y + def.height - 0.08f, 0);
@@ -212,7 +219,8 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
       else { mgx = st.x + def.width * 0.5f; mgy = st.y + def.height * 0.5f; }
       Spot mid = spot(c, mgx, mgy, 0);
       float ahead = (feet.X - mid.X) * cx_ + (feet.Z - mid.Z) * cz_;  // how far in front of the picture's plane
-      if (ahead < 0.06f) towards = 0.06f - ahead;
+      const float plane = structurePictureAhead(c, def);  // where the picture stands, in front of the middle
+      if (ahead < plane + 0.06f) towards = plane + 0.06f - ahead;
     }
   }
   towards = std::max(towards, standAhead(c, under));  // in front of a standing terrain model (the 2D overlays follow: drawOnTop)

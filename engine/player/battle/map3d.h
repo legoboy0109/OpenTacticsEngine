@@ -58,6 +58,8 @@ class Map3D {
   bool standAt(Cell cell) const;
   bool standInFront(const DrawCtx& c, int x, int y) const;
   float standAhead(const DrawCtx& c, Cell cell);
+  // How far in front of its footprint's middle a structure's standing picture stands (map3d_things.cpp).
+  float structurePictureAhead(const DrawCtx& c, const StructureDef& def) const;
   void drawStands(const DrawCtx& c, const Overlay& ov);
   ModelActor* standActor(const ModelAsset* asset);
   // map3d_hex.cpp: hexagon maps (docs/HEX.md); the twins of the square drawing above

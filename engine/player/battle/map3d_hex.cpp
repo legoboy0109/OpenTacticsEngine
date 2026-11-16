@@ -234,7 +234,7 @@ void Map3D::drawStructureHex(const DrawCtx& c, int index) {
     float mx, mz;
     g.hexSpace().middle(st.x, st.y, mx, mz);
     Spot feet{mx, Y, mz};
-    upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), 0, Tint3D(k, k, k, 255), uv);
+    upright(batch_.mesh(m), feet, wPx, wPx * src.h / std::max(1, src.w), structurePictureAhead(c, def), Tint3D(k, k, k, 255), uv);
     return;
   }
   Color base = Color::rgb(structureRgb(c, st.type));

@@ -3,8 +3,9 @@
 // flat ground picture are drawn by Map3D::drawTops as before; this adds what stands on them.
 //
 // Placement rule (so a unit on a forest or a mountain stays readable):
-//  - a standing PICTURE faces the camera like a unit does and stands towards the BACK of its cell (kStandBack
-//    squares behind the middle, as seen from the camera), so a unit in the middle of the cell is in front of it;
+//  - a standing PICTURE faces the camera like a unit does and stands a little in FRONT of its cell's middle
+//    (kStandAhead, as seen from the camera) so its lower edge sits on the tile, not above it; a unit on that cell
+//    is moved further towards the camera (kStandUnitAhead), in front of the picture;
 //  - a standing MODEL stands in the middle of the cell and a unit on that cell is moved towards the camera, in front
 //    of it (about the model's half width, at most to the cell's front edge, kModelAheadMax), like a unit on a model
 //    structure;
@@ -84,12 +85,13 @@ bool Map3D::standInFront(const DrawCtx& c, int x, int y) const {
   return (dx && at(x + dx, y)) || (dy && at(x, y + dy)) || (dx && dy && at(x + dx, y + dy));
 }
 
-// How far towards the camera a unit standing on this cell is moved: in front of a standing model (its half width as drawn,
-// plus a margin, but never further than the cell's front edge).
+// How far towards the camera a unit standing on this cell is moved: in front of a standing picture, or of a standing
+// model (its half width as drawn, plus a margin, but never further than the cell's front edge).
 float Map3D::standAhead(const DrawCtx& c, Cell cell) {
   if (!standAt(cell)) return 0;
   const StandLook* s = standOf(c, c.battle.cells[cell].terrain);
-  if (!s || !s->isModel()) return 0;
+  if (!s) return 0;
+  if (!s->isModel()) return kStandUnitAhead;  // in front of the standing picture
   const int x = c.battle.grid.x(cell), y = c.battle.grid.y(cell);
   const ModelLook& ml = s->models[(size_t)pickStandModel(*s, x, y)];
   const ModelAsset* asset = models_.get(r3d_, ml.file);
@@ -159,9 +161,9 @@ void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {
       float wSquares = s.width > 0 ? s.width / (float)std::max(1, g.tile()) : 1.0f;
       float wPx = wSquares * pixels_;
       Spot feet = mid;
-      // Towards the back of the cell as the camera sees it; scatter slides it sideways only.
-      feet.X += -cx_ * kStandBack + rx_ * sx;
-      feet.Z += -cz_ * kStandBack + rz_ * sx;
+      // A little in front of the middle as the camera sees it; scatter slides it sideways only.
+      feet.X += cx_ * kStandAhead + rx_ * sx;
+      feet.Z += cz_ * kStandAhead + rz_ * sx;
       uint8_t r = (uint8_t)(255 * k * wash.r), gg = (uint8_t)(255 * k * wash.g), bb = (uint8_t)(255 * k * wash.b);
       upright(batch_.mesh(m), feet, wPx, wPx * sh.cellH / std::max(1, sh.cellW), 0, Tint3D(r, gg, bb, 255), uv);
     }

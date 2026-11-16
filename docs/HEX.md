@@ -483,7 +483,7 @@ What the third view step built (3D isometric and full 3D on hexagons), for art m
   - *Structures*: a picture or model stands on the middle hexagon facing the camera, as wide as its top-down box (one hexagon: 1.15 x the box); with
     `rings` as wide as the seven-hexagon box. A placeholder is a low block (0.45 squares) per covered hexagon: a lone block pulled in 8 % from the edge with
     the owner's frame on the ground round it, a group of seven fills its hexagons with the frame on the outer edges of its top.
-  - *Standing terrain*: as on squares. A picture stands towards the back of its hexagon's middle; a model stands on the middle and a unit on that
+  - *Standing terrain*: as on squares. A picture stands a little in front of its hexagon's middle (its lower edge on the tile, the unit on that hexagon in front of it; structure pictures likewise stand in the front part of their footprint); a model stands on the middle and a unit on that
     hexagon moves in front of it; "units in front of a standing part" looks at the neighbours whose middles lie within about 63 degrees of the camera.
   - *Heights under units*: a walking unit's height is eased between the nearest hexagon and the next nearest (`hexElevationAt`), as in 2D isometric.
 - **Starter art** (`tools/art/art_hex_3d.py`, called by `make_hex_art.py` for styles of the two 3D kinds): `art/ground3d.png` (leafy floor and rock floor as
