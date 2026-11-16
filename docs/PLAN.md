@@ -181,6 +181,11 @@ goal (demos only exercise features).
       `wieldedBy`; `rankXp: 0` allowed; a per-unit exception to its class's weapon groups; `fw` for a foe
       that cannot counter at this range (currently still its weapon - decide and document); reaver-style
       triangle doubling needs nothing new (formulas can do it with a prop).
+      10 support conversations (owner, 2026-11-16: "go ahead ... after the deployment screen"). The engine
+      already has them (docs/SRPG.md supports: pairs, levels, conversations in battle / camp / both), so this
+      is a private-converter step: read the ROM's support table (pairs, growth rates, bonuses by affinity) and
+      the support scripts into data/supports.json. If something the original does is not expressible (affinity
+      bonus tables, the limit of supports per character, paired endings) record it and build it then.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
