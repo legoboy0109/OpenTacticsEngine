@@ -1705,6 +1705,67 @@ Where the contract was silent:
 - **Owns.** Those files and the three small summon exceptions. **Must not touch.** `combat.cpp`, rescue files.
 - **Accept.** The Abilities tests on square and both hexagon layouts, with and without fog.
 
+#### A1 as built
+
+Section 4 is implemented as written. Every earlier game loads, plays, saves and hashes as before (the compatibility
+and golden pins are untouched; the four sims print the same text as the build before this step).
+
+**Where things are.** `data/loader_abilities.cpp` (file, unit types, late references); `battle/abilities.cpp`
+(`abilitiesOf`, `abilityOptions`, `abilityTargets`, `validateAbility`, `noteAbilityUse`, the turn tick),
+`ability_target.cpp` (`abilityStateOk` = the unit's own state, `abilityTargetOk` = one target; both are what validation
+and the menu queries share), `ability_apply.cpp` (`applyAbility`), `ability_moves.cpp` (`planAbilityMove`,
+`doAbilityMoves`), `summons.cpp` (`summonUnit`, `removeSummon`, `summonsUnitGone`), `save_abilities.cpp`. Added
+declarations (appended): `abilityUseOf`, `summonCount`, `isSummoned` in `srpg_api.h`; the helpers above,
+`squareFreeFor`, `summonIgnored`, `summonGivesNoXp` in `srpg_internal.h`; `AbilityMove` / `AbilityPlan` in
+`srpg_state.h`. The three exceptions are one line each: `turn.cpp` `checkDefeat` (`!isSummoned(u)`), `objectives.cpp`
+`Defeated` and `story.cpp` `alive` / `dead` (`summonIgnored(filter, u)`); `progression.cpp` `awardXp` gained one line
+for `givesXp` (see below). `combat.cpp` and the rescue files are untouched.
+
+**What the menu queries mean (for the computer opponent and the player).** `abilityOptions(unit, from, out)` lists every
+ability the unit has, in `abilitiesOf` order. A reason is one of: `can only be used before moving` (`afterMove: false`
+and the unit has moved, or `from` is not its square), `no uses left this battle`, `ready in N turn(s)` ("1 turn" in the
+singular), `already used this turn`, `already has N summoned <Type>(s)` (the type's name; "Hounds" from two), `cannot be
+used now` (an `if` condition about the user), `nothing to target`. `abilityTargets` judges geometry, fog and the
+conditions about the target only, not uses or cooldown, and returns nothing for an ability the unit does not have.
+`validate` gives the first reason that applies, in the order of section 4's list, then target reasons (`that unit is out
+of range`, `you cannot see that unit`, `there is no room to push it`, `there is no room behind the user`, `that square is
+occupied`, `that unit is at full health`, ...). A "self" ability takes target -1 or the unit itself; its event names the
+unit in `c`.
+
+**Interpretations where the contract was silent.**
+- Extra loader refusals (all start `data/abilities.json: ability "x": `): `"target"` and `"effect"` are required;
+  `"range"` must be `[min, max]` with whole numbers from 1 to 20 and min not above max, and is refused with `"self"`;
+  push / pull / swap / moveBehind need `"target"` ally, enemy or unit; `"push"` is 1 to 5, `"heal"` 1 to 999 or `"full"`,
+  `"pull"`, `"swap"`, `"moveBehind"` must be `true`; unknown keys in the ability, its effect and its summon. A
+  condition's `"who": "foe"` is refused in an ability that targets a square; `initiating` and `distance` are refused (no
+  combat); `formula` is allowed. A summon's unit type and the unit / terrain keys of an `if` are checked last (the
+  summoned type may be defined after the ability).
+- `kBlocked` means "the unit in the way was one the user's team could not see". A push stopped by a unit everybody sees
+  (the second square of a push of 3) is the normal end of a push, no flag. A blocked push keeps the squares it already
+  moved; a blocked pull, moveBehind or summon does nothing.
+- `free` abilities do not set `moved`; only they carry the `turn` flag (an `action` ability ends the turn anyway).
+- Order inside `applyAbility`: `AbilityUsed`, the effect's events, the use / cooldown and `endOrder`, and last the
+  story's `reach` events for moved units (target first). A heal calls `supportsHealed` (S1's hook) for another unit.
+- A summon is made with the type's base stats at the chosen level (no growth is rolled for the levels above 1), the
+  type's items with `drop` cleared, no name of its own (the type's), `moved` and `done` set unless `canAct`.
+- `lifetime: n`: `summonLeft` starts at n; at each start of its side's turn it drops by one, and a summon that finds it
+  at 0 leaves (`UnitRemoved`), so n = 1 gives one turn of its own. A summon that is being carried vanishes out of its
+  carrier as a story `removeUnit` would.
+- `givesXp: false` is applied in `awardXp` (the one place both fighters' awards pass) by reading the last `Attack` event
+  of the action for the foe, because `combat.cpp` may not be touched. The only caller of `awardXp` is the fight, so no
+  other award can be mistaken for it. If a later step awards XP from somewhere else it must pass the foe a better way.
+- Summoned units are ignored for "side", "team" and "any" in `defeated` objectives and `alive` / `dead` conditions;
+  `defeated` triggers and every other filter use are unchanged.
+- Saves: `summon.left` must be present exactly when the ability has a `lifetime`; `used` stops counting at 999.
+
+**Tests.** `tests/test_abilities_{loader,rules,moves,fog,summons,summons_rules,save}.cpp` with `abilities_fixture.h`
+(square, pointy and flat, fog on or off, abilities in code), `abilities_summons_fixture.h`, `abilities_files_fixture.h`
+and the game `tests/fixtures/srpg-abilities`. `test_srpg_stubs.cpp` lost the two refusals that are real now.
+
+**Left for others.** The computer opponent (AI1) and the player (U3) do not use any of this yet. The editor's ability
+screen is E3. Summons are not handled in `changeSide` (a summon whose summoner changes side keeps its own side), and no
+story trigger or condition names "summoned".
+
 ### R1. Rescue and pair up (core) — depends on F1; parallel with everything after F1
 - **Scope.** Section 5: `loader_srpg_rules.cpp` (`rules.rescue`; shared file with P1: each owns its own function),
   `pairBonus` on unit types, `rescue.cpp` (carry actions, `carrierStats`, the carrier falls), `pair_up.cpp` (PairUp,
