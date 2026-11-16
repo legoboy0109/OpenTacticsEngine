@@ -149,10 +149,12 @@ void drawStructureHexIso(const HI& I, int index, const Overlay& ov) {
       hexEdges(I.r, g.sq, sx, sy, owner, 2, outerEdges(b.grid, cell, cells) & only);
     }
   };
-  if (ownerSide >= 0) frame(63u);
+  const Look* art = structureArt(I.c, st);
+  // (A placeholder block covers the whole ground hexagon, so only its front edges below are of use.)
+  if (ownerSide >= 0 && art) frame(63u);
 
   int lift = 0;  // where the move/attack highlight goes: on a placeholder block's top
-  if (const Look* art = structureArt(I.c, st)) {
+  if (art) {
     // Across the box of the covered hexagons, standing on its front edge.
     SpriteSrc src = lookSrc(I.c, *art);
     int dh = std::max(1, bw * src.h / std::max(1, src.w));
