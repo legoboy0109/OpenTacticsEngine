@@ -25,7 +25,16 @@ bool readUnitPairBonus(const LoadCtx& c, const Database&, const Json& e, const s
 
 bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db) {
   db.rules.promotion = PromotionRules();
-  if (rules.has("promotion")) return c.fail("rules.promotion", "is not supported by this build yet");
+  if (!rules.has("promotion")) return true;
+  const Json& p = rules["promotion"];
+  if (!p.isObject()) return c.fail("rules.promotion", "must be an object such as { \"levelAfter\": \"reset\" }");
+  for (const Json::Member& m : p.members())
+    if (m.first != "levelAfter") return c.fail("rules.promotion", "unknown key \"" + m.first + "\"");
+  if (p.has("levelAfter")) {
+    const std::string v = p["levelAfter"].isString() ? p["levelAfter"].asString() : "";
+    if (v != "reset" && v != "keep") return c.fail("rules.promotion", "\"levelAfter\" must be \"reset\" or \"keep\"");
+    db.rules.promotion.keepLevel = v == "keep";
+  }
   return true;
 }
 

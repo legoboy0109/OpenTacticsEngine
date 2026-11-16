@@ -65,21 +65,17 @@ TEST(srpg_stub_refuses_the_new_data_files) {
 TEST(srpg_stub_refuses_the_new_rules_blocks) {
   refused(loadWith("game.json", swapped(camptest::kGameJson, "\"counterAttacks\": true", "\"counterAttacks\": true, \"rescue\": {\"mode\":\"rescue\"}")),
           "rules.rescue");
-  refused(loadWith("game.json", swapped(camptest::kGameJson, "\"counterAttacks\": true", "\"counterAttacks\": true, \"promotion\": {\"keepLevel\":true}")),
-          "rules.promotion");
 }
 
 TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
   const std::string hero = "\"id\":\"hero\",\"name\":\"Hero\"";
-  for (const char* key : {"skills", "learns", "abilities", "promotions", "pairBonus"})
+  for (const char* key : {"skills", "learns", "abilities", "pairBonus"})
     refused(loadWith("data/units.json", swapped(camptest::kUnits, hero, hero + ",\"" + key + "\":[]")), "unit \"hero\"",
             std::string("\"") + key + "\" " + kNotYet);
   refused(loadWith("data/weapons.json", swapped(camptest::kWeapons, "\"id\":\"sword\"", "\"id\":\"sword\",\"skills\":[]")),
           "weapon \"sword\"", std::string("\"skills\" ") + kNotYet);
   refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"ring\"", "\"id\":\"ring\",\"skills\":[]")), "\"ring\"",
           std::string("\"skills\" ") + kNotYet);
-  refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"tonic\"", "\"id\":\"tonic\",\"promotes\":true")), "\"tonic\"",
-          std::string("\"promotes\" ") + kNotYet);
   // The keys belong to one kind of item each; that check comes first and stays.
   refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"ring\"", "\"id\":\"ring\",\"promotes\":true")), "\"ring\"", "usable");
   refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"tonic\"", "\"id\":\"tonic\",\"skills\":[]")), "\"tonic\"", "accessory");
@@ -89,7 +85,6 @@ TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
 
 TEST(srpg_stub_refuses_the_new_story_commands_conditions_and_triggers) {
   auto command = [](const std::string& c) { return eventError("{\"id\":\"ev\",\"when\":{\"battle\":\"start\"},\"do\":[" + c + "]}"); };
-  refused(command(R"({"promote":"eirik"})"), "event \"ev\"", std::string("\"promote\" ") + kNotYet);
   refused(command(R"({"teachSkill":"eirik","skill":"vantage"})"), "event \"ev\"", std::string("\"teachSkill\" ") + kNotYet);
   refused(command(R"({"forgetSkill":"eirik","skill":"vantage"})"), "event \"ev\"", std::string("\"forgetSkill\" ") + kNotYet);
   refused(command(R"({"addSupport":["eirik","gorm"],"points":10})"), "event \"ev\"", std::string("\"addSupport\" ") + kNotYet);
@@ -98,7 +93,6 @@ TEST(srpg_stub_refuses_the_new_story_commands_conditions_and_triggers) {
           std::string("\"hasSkill\" ") + kNotYet);
   refused(eventError(R"({"id":"ev","when":{"battle":"start"},"if":[{"support":["eirik","gorm"],"level":1}],"do":[]})"), "event \"ev\"",
           std::string("\"support\" ") + kNotYet);
-  refused(eventError(R"({"id":"ev","when":{"promoted":"eirik"},"do":[]})"), "event \"ev\"", std::string("\"promoted\" ") + kNotYet);
   refused(eventError(R"({"id":"ev","when":{"support":["eirik","gorm"]},"do":[]})"), "event \"ev\"", std::string("\"support\" ") + kNotYet);
   // What is still not a command, condition or trigger keeps its message.
   refused(command(R"({"dance":1})"), "event \"ev\"", "is not a command");
