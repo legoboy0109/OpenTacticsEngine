@@ -12,21 +12,23 @@
 namespace ote {
 
 struct SceneCondition {
-  enum class Kind { Switch, Variable, Alive, Dead };
+  enum class Kind { Switch, Variable, Alive, Dead, Support };  // Support: docs/SRPG.md (the pair's level)
   Kind kind = Kind::Switch;
   int index = -1;        // switch / variable index
   bool is = true;        // Switch
   CmpOp op = CmpOp::Eq;  // Variable
   int value = 0;         // Variable
-  std::string unit;      // Alive, Dead: a roster id
+  std::string unit;      // Alive, Dead: a roster id; Support: the pair's character `a`
+  std::string with;      // Support: character `b` (the pair is looked up when it runs; the loader has checked it exists)
 };
 
 struct SceneCommand {
-  enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound };
+  enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound,
+                    AddSupport };  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
   Kind kind = Kind::Say;
   // Say: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
-  std::string unit;
+  std::string unit, with;
   int index = -1;   // SetSwitch / SetVariable / AddVariable
   // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms (-1 = not given)
   bool on = false;  // SetSwitch

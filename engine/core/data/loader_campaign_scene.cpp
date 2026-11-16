@@ -9,6 +9,11 @@ namespace {
 constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVariable", "giveResource", "if", "goto",
                                        "playMusic", "stopMusic", "playSound"};
 
+// The strategy-RPG scene commands and conditions (read in loader_supports_story.cpp). Listed apart so that the
+// "is not a scene command" message keeps naming only the old ones.
+constexpr const char* kSrpgSceneKeys[] = {"addSupport"};
+constexpr const char* kSrpgConditionKeys[] = {"support"};
+
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
   else if (t == "!=") op = CmpOp::Ne;
@@ -31,9 +36,15 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
       if (kind) return fail(where, std::string("has two conditions (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kSrpgConditionKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two conditions (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead");
   std::string k = kind;
   const Json& v = e[kind];
+  if (k == "support") return supportCondition(e, where, out);
   if (k == "switch") {
     if (!onlyKeys(e, {"switch", "is"}, where)) return false;
     out.kind = SceneCondition::Kind::Switch;
@@ -68,6 +79,11 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kSrpgSceneKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   if (!kind) {
     std::string list;
     for (const char* k : kSceneKeys) list += (list.empty() ? "" : ", ") + std::string(k);
@@ -78,6 +94,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   const Json& v = e[kind];
   using K = SceneCommand::Kind;
 
+  if (k == "addSupport") return supportCommand(e, at, out);
   if (k == "say") {
     out.kind = K::Say;
     if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;

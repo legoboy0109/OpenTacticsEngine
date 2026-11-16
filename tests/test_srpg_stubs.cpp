@@ -58,9 +58,9 @@ TEST(srpg_stub_a_game_without_the_new_files_loads) { CHECK_STR(loadWith("data/te
 
 TEST(srpg_stub_refuses_the_new_data_files) {
   refused(loadWith("data/abilities.json", R"({ "abilities": [] })"), "data/abilities.json");
-  refused(loadWith("data/supports.json", R"({ "pairs": [] })"), "data/supports.json");
 }
 
+// data/supports.json and its story commands are real since step S1 (test_srpg_supports_loader.cpp).
 // rules.rescue is real since step R1 (test_rescue_loader.cpp), rules.promotion since P1 (test_srpg_promotion_loader.cpp).
 
 TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
@@ -77,11 +77,7 @@ TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
 
 TEST(srpg_stub_refuses_the_new_story_commands_conditions_and_triggers) {
   auto command = [](const std::string& c) { return eventError("{\"id\":\"ev\",\"when\":{\"battle\":\"start\"},\"do\":[" + c + "]}"); };
-  refused(command(R"({"addSupport":["eirik","gorm"],"points":10})"), "event \"ev\"", std::string("\"addSupport\" ") + kNotYet);
   refused(command(R"({"promote":"eirik","teachSkill":"eirik"})"), "event \"ev\"", "has two commands");
-  refused(eventError(R"({"id":"ev","when":{"battle":"start"},"if":[{"support":["eirik","gorm"],"level":1}],"do":[]})"), "event \"ev\"",
-          std::string("\"support\" ") + kNotYet);
-  refused(eventError(R"({"id":"ev","when":{"support":["eirik","gorm"]},"do":[]})"), "event \"ev\"", std::string("\"support\" ") + kNotYet);
   // What is still not a command, condition or trigger keeps its message.
   refused(command(R"({"dance":1})"), "event \"ev\"", "is not a command");
 }

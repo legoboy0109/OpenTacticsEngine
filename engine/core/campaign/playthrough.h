@@ -111,5 +111,7 @@ void takeSupports(const Database& db, Playthrough& pt, const Battle& battle);
 void pendingSupports(const Database& db, const Playthrough& pt, std::vector<int>& pairs);
 // Plays it: the level is gained and the lines come back like a scene's. False if it is not pending.
 bool playSupport(const Database& db, Playthrough& pt, int pair, std::vector<SceneLine>& lines);
+// A scene's addSupport command: `by` points (may be negative) to the pair; nothing if one of them fell for good.
+void sceneAddSupport(const Database& db, Playthrough& pt, int pair, int by);
 
 }  // namespace ote
