@@ -33,7 +33,7 @@ Map3D::~Map3D() {
 
 Map3D::Spot Map3D::spot(const DrawCtx& c, float gx, float gy, float elevation) const {
   const MapProj& g = *c.proj;
-  return Spot{gx - g.gridW() * 0.5f, elevation * g.stepY(), gy - g.gridH() * 0.5f};
+  return Spot{gx - g.spaceW() * 0.5f, elevation * g.stepY(), gy - g.spaceH() * 0.5f};
 }
 
 // The 3D texture and texture positions of a piece of a look's sheet; false = not usable in 3D.
@@ -77,6 +77,10 @@ void Map3D::upright(MeshData& m, Spot feet, float wPx, float hPx, float towards,
 // usable picture. Fixed for the whole battle (terrain does not change).
 void Map3D::buildGround(const DrawCtx& c) {
   built_ = true;
+  if (c.proj->hex()) {
+    buildGroundHex(c);
+    return;
+  }
   const Battle& b = c.battle;
   const MapProj& p = *c.proj;
   const MapProj& g = p;
@@ -191,6 +195,11 @@ void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, 
       if (pass == 0) { drawUnit(c, u, v, 1.0f, false); continue; }
       int ux = std::max(0, std::min((int)std::lround(v.px / t), b.grid.width() - 1));
       int uy = std::max(0, std::min((int)std::lround(v.py / t), b.grid.height() - 1));
+      if (c.proj->hex()) {  // the hexagon whose middle the unit's box is nearest to
+        Cell near = cellNearPos(b.grid, t, v.px, v.py);
+        ux = b.grid.x(near);
+        uy = b.grid.y(near);
+      }
       // Behind higher blocks: faint. Behind standing terrain (trees, a peak): a little stronger, a unit in a forest
       // is where the player is looking.
       if (hidden_[(size_t)(uy * b.grid.width() + ux)]) drawUnit(c, u, v, 0.45f, true);

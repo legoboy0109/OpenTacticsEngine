@@ -56,6 +56,12 @@ float Map3D::unitFacing(const DrawCtx& c, const Unit& u) const {
     if (d < bestD) { bestD = d; best = o.id; }
   }
   if (best < 0) return 0;
+  if (c.proj->hex()) {  // between the hexagons' middles (flat map pixels), the same angle as on squares
+    float ax, ay, bx, by;
+    cellCentre(b.grid, c.proj->tile(), u.cell, ax, ay);
+    cellCentre(b.grid, c.proj->tile(), b.units[best].cell, bx, by);
+    return std::atan2(bx - ax, by - ay);
+  }
   return std::atan2((float)(b.grid.x(b.units[best].cell) - b.grid.x(u.cell)), (float)(b.grid.y(b.units[best].cell) - b.grid.y(u.cell)));
 }
 
@@ -138,8 +144,15 @@ void Map3D::drawStructureModel(const DrawCtx& c, int index, const ModelLook& loo
   if (structureActors_.size() <= (size_t)index) structureActors_.resize((size_t)index + 1);
   ModelActor& a = structureActors_[(size_t)index];
   poseActor(r3d_, asset, a, asset.model.findClip(look.clips[AnimIdle]), c.time, true);
-  float size = look.height > 0 ? look.height / asset.height : kStructureModelFit * std::min(def.width, def.height) / asset.width;
-  Spot mid = spot(c, st.x + def.width * 0.5f, st.y + def.height * 0.5f, 0);
+  float fitW = (float)std::min(def.width, def.height), mgx = st.x + def.width * 0.5f, mgy = st.y + def.height * 0.5f;
+  if (c.proj->hex()) {  // the footprint is the hexagon (or the seven) as the top-down view's box measures it
+    int bx, by, bw, bh;
+    c.proj->hexGeo().structureBox(st.x, st.y, def.rings, bx, by, bw, bh);
+    fitW = (float)std::min(bw, bh) / (float)c.proj->tile();
+    c.proj->cellMid(st.x, st.y, mgx, mgy);
+  }
+  float size = look.height > 0 ? look.height / asset.height : kStructureModelFit * fitW / asset.width;
+  Spot mid = spot(c, mgx, mgy, 0);
   Mat4 place = Mat4::translate(Vec3(mid.X, Y, mid.Z)) * Mat4::rotate(Quat::axisAngle(Vec3(0, 1, 0), look.turn * kPi / 180.0f)) *
                Mat4::scale(Vec3(size, size, size));
   ModelTint tint;

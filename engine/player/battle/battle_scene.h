@@ -82,7 +82,12 @@ class BattleScene : public Scene {
   bool turnInput(const InputEvent& e);  // moving the camera (the 3D kinds of view); true = the event was used
   void turnButtonBox(int which, int& x, int& y, int& w, int& h) const;  // the on-screen camera buttons
   int cameraButtons() const { return proj_.free3d() ? 6 : 2; }  // turn left/right; full 3D adds tilt and zoom
-  int quarterTurns() const { return proj_.free3d() ? proj_.cam3().quarter() : ((turn_ % 4) + 4) % 4; }
+  // Whole quarter turns of the camera, which way the arrow keys go; a hexagon map's sixths count as the nearest quarter.
+  int quarterTurns() const {
+    if (proj_.free3d()) return proj_.cam3().quarter();
+    const int n = proj_.turnCount(), t = ((turn_ % n) + n) % n;
+    return n == 4 ? t : (t * 4 + n / 2) / n % 4;
+  }
   void cycleUnit(int dir);
   void selectUnit(int unit);
   void computeOverlay();
@@ -202,7 +207,7 @@ class BattleScene : public Scene {
   MapProj proj_;  // where squares are on screen in the style in use
   std::unique_ptr<Map3D> map3d_;  // the drawer of the 3D kinds of view (only in those)
   FreeCam freeCam_;     // full 3D: the player's camera
-  int turn_ = 0;        // 3D isometric: quarter turns of the camera asked for
+  int turn_ = 0;        // 3D isometric: turns of the camera asked for (quarters; sixths on hexagon maps)
   float turnPos_ = 0;   // where the camera is now (eases towards turn_)
   Overlay overlay_;
   Menu menu_;
