@@ -253,9 +253,11 @@ def make_game(root, repo):
     def with_models(looks):
         out = dict(looks)
         for thing in looks:
-            rel = 'models/%s.glb' % thing
-            if os.path.exists(os.path.join(path, rel)):
-                out[thing] = {'model': rel}
+            for name in (thing, un.ALIASES.get(thing)):  # an aliased unit type shares its source's model
+                rel = 'models/%s.glb' % name
+                if name and os.path.exists(os.path.join(path, rel)):
+                    out[thing] = {'model': rel}
+                    break
         return out
     # In the 3D kinds a forest and a mountain stand up from their ground (docs/GRAPHICS.md "Standing
     # terrain"): an upright picture on a plain ground picture (sheets "stand" and "ground3d").
@@ -310,14 +312,18 @@ def make_game(root, repo):
     # Portraits for the dialogue box: every named unit on the game's maps (docs/EVENTS.md) gets
     # its unit type's picture as its face, until a game brings real portraits.
     portraits = {}
+    # A map unit that says "character" has the character's id (and, unless it names a type, the character's type).
+    chars_path = os.path.join(path, 'data/characters.json')
+    chars = {c['id']: c for c in load_json(chars_path)['characters']} if os.path.exists(chars_path) else {}
     maps_dir = os.path.join(path, 'maps')
     for name in sorted(os.listdir(maps_dir)) if os.path.isdir(maps_dir) else []:
         if not name.endswith('.json'):
             continue
         for u in load_json(os.path.join(maps_dir, name)).get('units', []):
-            look = unit_looks.get(u.get('type'))
-            if u.get('id') and look:
-                portraits[u['id']] = {'sheet': look['sheet'], 'cell': look['frames'][0]}
+            who = u.get('id') or u.get('character')
+            look = unit_looks.get(u.get('type') or chars.get(u.get('character'), {}).get('type'))
+            if who and look:
+                portraits[who] = {'sheet': look['sheet'], 'cell': look['frames'][0]}
     if portraits:
         doc['portraits'] = portraits
     if styles:
