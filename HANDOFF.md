@@ -11,8 +11,11 @@ skipped, demo sims line-for-line identical) and pushed: weapon ranks and stat ca
 docs/SRPG.md section 7), the foe's weapon in formulas (`fw`) plus a weapon's `id` / `group` as text in `w` and `fw`,
 character-locked weapons (`wieldedBy`, rules and player only).
 
-Queue, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): the `wieldedBy` field on the
-editor's Weapons screen; staves and status conditions in stages; doors, keys, chests and visiting; dialogue choices;
+Also pushed since: the `wieldedBy` card on the editor's Weapons screen; staves stage 1 (healing staves, rules and
+player, docs/SRPG.md section 8; ote_tests 1352, e2e 432). Editor form for staves: job in progress.
+
+Queue, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): small rule gaps found by the
+converter; staves stages 2 and 3 (status conditions); doors, keys, chests and visiting; dialogue choices;
 battle and death quotes; preparation / deployment screen. Placeholders awaiting the owner: default ladder numbers
 (0, 30, 70, 120, 180, 250), new-rank step 50, all new wording, a shorter lock reason for phone widths.
 
