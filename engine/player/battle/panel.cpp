@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "battle/battle_draw.h"
+#include "battle/carrier_marker.h"
 #include "battle/economy_text.h"
 #include "battle/item_text.h"
 #include "ui/text.h"
@@ -157,10 +158,7 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
     r.drawText(x, y, fitText(r, b.typeOf(u).name, w).c_str(), kLabel);
     y += rh;
   }
-  if (u.carrying >= 0 && (size_t)u.carrying < b.units.size()) {  // who it has: carried (rescue) or paired up behind it
-    row(r, x, y, w, db.rules.rescue.mode == RescueMode::PairUp ? "With" : "Carrying", b.units[(size_t)u.carrying].name);
-    y += rh;
-  }
+  drawRescueRow(r, c, u, x, y, w);  // "Carrying: Bram" (rescue.cpp / panel_rescue.cpp)
   if (db.rules.progression) {
     row(r, x, y, w, "Lv " + intStr(u.level), "XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel));
     y += rh;

@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/carrier_marker.h"
 #include "battle/hex_draw.h"
 #include "ui/text.h"
 
@@ -77,6 +78,7 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
     r.fillRect(bx - 1, by - 1, 5, 5, scaled(Color(0, 0, 0, 220), al));
     r.fillRect(bx, by, 3, 3, scaled(Color(255, 210, 40), al));
   }
+  drawCarrierMarker(r, c, u, bx + bw, by, bw, al);  // top right corner: a unit with someone off the board (rescue / pair up)
   // HP bar under the block, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barY = sy + t - inset - 2, barW = t - 2 * inset;
   const Look* art = unitArt(c, u);

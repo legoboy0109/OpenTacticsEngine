@@ -2127,6 +2127,67 @@ Abilities page of Unit details.
 ### U4. Player: rescue and pair up — depends on R1, U0
 The six entries, targeting, the four events' animations, the carrier marker, the panel row.
 
+#### U4 as built
+
+Carrying and pair up are playable in all four kinds of view and with hexagons. Games without `rules.rescue` look and
+play as before (no entry, no marker, no row, no log line).
+
+**Where things are.** `battle/rescue_menu.*` (no SDL, unit tested: which entries a unit gets, the pick candidates, the
+panel row text); `battle_menu_rescue.cpp` (items, picks, what each action does next); `battle_view_rescue.cpp` (the four
+animations); `carrier_marker.*` (the marker, one function for every kind of view, and the declaration of the panel row);
+`panel_rescue.cpp` (the row). One-line additions elsewhere: a call to `drawCarrierMarker` in `battle_draw.cpp` (top-down
+and hexagons), `iso_unit.cpp` (2D isometric, squares and hexagons) and `map3d_things.cpp` (3D kinds); a call to
+`drawRescueRow` in `panel.cpp`; three cases in `battle_view_fog.cpp` `applyUnseen` (below); one line in `CMakeLists.txt`
+(`rescue_menu.cpp` into `ote_tests`) and the ctest entry `srpg_player_rescue`. The tests: `tests/test_srpg_player_rescue.cpp`
+(menu, row text and the view's animations) and `tests/srpg_player_rescue_test.py` with its games in
+`tests/srpg_rescue_games.py`.
+
+**Menu.** Carry: `Rescue` (a unit with nobody, when a neighbour can be rescued), `Take` (when a neighbour carries someone
+this unit can carry); a unit that carries: `Drop`, `Give` (when a neighbour can receive it). Pair up: `Pair up` (the unit
+goes behind the partner it picks), `Switch` (the unit in front of a pair), `Drop` (the unit behind steps out). Order as in
+the contract: Rescue, Take / Drop, Give / Pair up / Switch, Drop. Targets are picked with the generic unit pick (Rescue,
+Give, Take, Pair up) and square pick (Drop) of U0; the hint lines are U0's. The log line the script tests read:
+`rescue entries of Ann: Drop (no room), Give` (the entries of one menu, in order; a greyed entry shows its reason).
+
+**What happens after.** Rescue, Pair up and Drop end the order (back to the map). Give, Take and Switch are free: the
+action menu comes back (rebuilt, the cursor on the acting unit), the move can no longer be undone (the existing refusal
+"Cannot undo after using items" is reused). After Switch the menu is that of the unit now in front, whose turn flags the
+core has handed over.
+
+**Marker.** A small tab in the carried unit's side colour with a dark rim at the top right corner of the carrier (the
+leader mark is top left): a third of the unit's picture wide (at least 4 x 5 pixels), 5/12 high. Shown while the view no
+longer draws the other unit, so it appears when a rescue animation ends and goes when a drop starts.
+
+**Animations** (`battle_view_rescue.cpp`). `UnitRescued`: the unit slides from its square onto the carrier in 0.28 s and
+fades out in the last 40 per cent. `UnitDropped`: it slides out of the carrier's spot (a fall: from where the carrier
+lay) onto the square in 0.28 s. A blocked drop (fog): half way out and back in 0.5 s, "Blocked!" over the carrier, the
+unit in the way is shown until the run of events ends; the unit stays carried. `UnitHanded`: the carried unit slides
+from the unit that gave to the one that took, 0.28 s. `PairSwitched`: the two sprites cross-fade in 0.3 s. The camera
+follows each. With fog, an unseen drop or switch still puts the unit's remembered spot on the right square
+(`applyUnseen`), so it is where it should be when seen again.
+
+**Panel row** (under the unit's type, over the level / HP rows; dropped when it does not fit): `Carrying: Bram` in carry
+mode, `With: Bram` in pair up. With fog, for a unit of another team: `Carrying: someone` / `With: someone`.
+
+**New wording (placeholder).** `Rescue`, `Drop`, `Give`, `Take`, `Pair up`, `Switch`, the reason `no room`, the float
+`Blocked!`, the rows `Carrying: <name>`, `With: <name>`, `Carrying: someone`, `With: someone`.
+
+**Readings of the contract.**
+- `Drop` is offered, greyed with `no room`, to a carrier with no free square (the contract says each entry only when it
+  applies; a vanished Drop would look like a bug). The other entries are left out when they have no target. `Switch` is
+  left out when the core says it cannot (the unit behind could not stand on that square).
+- A unit that has `acted` gets none of the entries (U1's rule: only Info and Wait).
+- Pair up: the unit whose menu it is goes behind the one it picks (the core's `PairUp(unit, target)`); the front unit
+  keeps its turn.
+- The marker is also shown on a visible enemy carrier (that a unit carries somebody is on show); only the name is hidden.
+- The player's unit lists (`!u.alive` in `battle_input.cpp`, `battle_scene.cpp`, `battle_story.cpp`, the panel, the menu
+  anchoring, `battle_view_fog.cpp`) all mean "on the board and can act" and were left on `alive`: a carried unit must not
+  be cycled to, ordered, shown or seen; nothing needed `exists`.
+- The two U0 view tests that expected the four events to be instant no-ops (`srpg_view_plays_every_new_event_as_a_no_op...`
+  and `srpg_view_hides_a_rescued_unit...`) were narrowed / replaced by the animation tests of `test_srpg_player_rescue.cpp`.
+- On a phone-sized window the hint line of the pick modes (U0's text) is cut with `..`; the menus, the panel row and the
+  marker fit.
+
 ### U5. Player: supports and camp — depends on S1, U0
 Support entry and conversation, labels and banner, the Supports page, `campaign/camp_scene.*` and its place in
 `app_campaign.cpp` (`doCampaignNext`), saving after a camp conversation, `--autoplay`.
