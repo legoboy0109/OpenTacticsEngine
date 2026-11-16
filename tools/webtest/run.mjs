@@ -30,7 +30,10 @@ const only = opt('only', browserName === 'firefox' ? 'smoke,saves,campaign,views
 
 const checks = new Checks();
 const server = await startServer(build);
-const browser = await (browserName === 'firefox' ? firefox : chromium).launch();
+// Muted: the web player really plays its music and effects, and a headless browser still reaches the speakers.
+const browser = await (browserName === 'firefox'
+  ? firefox.launch({ firefoxUserPrefs: { 'media.volume_scale': '0.0' } })
+  : chromium.launch({ args: ['--mute-audio'] }));
 const analysisPage = await browser.newPage();
 const contexts = [];
 

@@ -14,8 +14,14 @@ export default defineConfig({
   reporter: [['list']],
   use: { trace: 'off', screenshot: 'off', locale: 'en-US' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // The test browsers are MUTED: the Sound screen's previews and the web player (Play) really play, and a headless
+    // browser still reaches the machine's speakers. The tests judge sound by what the page reports, never by ear.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--mute-audio'] } } },
     // The owner uses Firefox: it runs the scenarios tagged @smoke.
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, grep: /@smoke/ },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'], launchOptions: { firefoxUserPrefs: { 'media.volume_scale': '0.0' } } },
+      grep: /@smoke/,
+    },
   ],
 })
