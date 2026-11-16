@@ -58,6 +58,10 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
       ok = battle.apply(Action::useItem(bestUnit, best.slot, best.target), events);
     else if (best.kind == ActionType::Supply)
       ok = battle.apply(Action::supply(bestUnit), events);
+    else if (best.kind == ActionType::Promote)
+      ok = battle.apply(Action::promote(bestUnit), events);
+    else if (best.kind == ActionType::Ability)
+      ok = battle.apply(Action::useAbility(bestUnit, best.ability, best.target, best.cell), events);
     // Whatever happened, never leave the unit ready: that is what
     // guarantees every turn terminates.
     if (!ok && battle.units[bestUnit].alive && !battle.units[bestUnit].done &&

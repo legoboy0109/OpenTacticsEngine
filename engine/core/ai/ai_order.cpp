@@ -128,8 +128,9 @@ Order bestOrder(Context& cx, const Unit& u) {
   Reach reach;
   b.reachable(u.id, reach);
   std::vector<Cell> stops;
-  if (u.moved) stops.push_back(u.cell);  // already moved (human handover): cannot move again
-  else stops = reach.stops;
+  if (u.moved && !u.acted) stops.push_back(u.cell);  // already moved (human handover): cannot move again
+  else stops = reach.stops;  // (an acted unit's reach is what its "move again" has left)
+  if (u.acted) return moveAgainOrder(b, u, stops);   // action used up: only the rest of its movement
 
   const double fade = fadeFactor(b);
   Order best;  // default: Wait in place, score 0
@@ -169,6 +170,7 @@ Order bestOrder(Context& cx, const Unit& u) {
 
   if (!u.moved) considerAdvance(cx, u, stops, best);
   considerHealing(b, u, best);
+  considerSrpg(b, u, best);
   considerSupply(b, u, reach, stops, best);
   return best;
 }
