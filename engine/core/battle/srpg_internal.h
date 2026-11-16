@@ -72,6 +72,15 @@ void applyPromote(const Action& action, std::vector<Event>& events);
 void promotionLevelUp(int unit, std::vector<Event>& events);   // "atLevel": "auto"
 void promotionTurnStart(std::vector<Event>& events);            // automatic promotions that had to wait
 void storyPromote(const Command& c, std::vector<Event>& events);
+// Helpers of promotion.cpp. A unit's promotions that fit now by level and by the way it is asked for: through the
+// item `item` (index into db->items), or (`item` = -1) offered at its level. `needStand`: only those whose unit type
+// the unit could stand as on its square.
+void promotionCandidates(const Unit& u, int item, bool needStand, std::vector<const PromotionDef*>& out) const;
+bool canStandAs(const Unit& u, int type) const;
+// The promotion that would happen (`unitType` -1 = the first that fits), or null with the reason in `why`.
+const PromotionDef* chosenPromotion(const Unit& u, int item, int unitType, std::string* why) const;
+// The item path of UseItem: promotes the unit that has just used `item` on itself.
+void promoteByItem(int unit, int item, int unitType, std::vector<Event>& events);
 
 // ---- menu abilities and summons (abilities.cpp and friends, step A1) ----
 bool validateAbility(const Action& action, std::string* why) const;

@@ -1591,6 +1591,52 @@ Characters load, dress units and level up as section 1 says; games without `data
 - **Owns.** `loader_promotion.cpp`, `promotion.cpp`. **Must not touch.** skills, combat.
 - **Accept.** The Promotion tests.
 
+#### P1 as built
+
+Promotion loads and plays as section 2 says; games without `promotions` / `promotes` are unchanged (compat pins
+untouched, sims identical).
+
+- Loading: `loader_promotion.cpp` (`readUnitPromotions`, `readItemPromotes`, `resolvePromotionRefs`, the story
+  command `promote` and trigger `promoted`), `loadPromotionRules` in `loader_srpg_rules.cpp`. Every refusal of the
+  contract is worded as written; the message of an entry starts `"promotions" entry N: `. `"to"` is checked in
+  `resolvePromotionRefs` (it may name a type further down), the other checks while reading. An item named in `items`
+  that does not exist is refused with the same "not a promotion item" message. More than 8 entries (`kMaxPromotions`):
+  `too many "promotions" (at most 8)`. `rules.promotion` has one key (`levelAfter`); any other is `unknown key`. The
+  "this game has no promotions" refusal of F1 stays for a game none of whose types promote.
+- Running: `promotion.cpp`. `promote` follows the eight steps of the contract in order; the event's `data` is the real
+  change per stat after the floor at 0. The shared questions are `promotionCandidates` (by level and by item or offer)
+  and `chosenPromotion` (adds the choice by type and the "could stand" check, and says why not): `promotionOptions`,
+  the Promote action and the item path all use them. The item path is three small edits in `items.cpp` (`useTargets`
+  counts a promotion as a use, the validator names the reason, `applyItemAction` calls `promoteByItem` after the
+  heal / raise and the use is spent).
+- Refusal wording: `that item cannot promote this unit now`, `that unit has no promotion on offer`, `that promotion is
+  not on offer`, `a <Type name> could not stand on this square`.
+- Tests: `tests/test_srpg_promotion_loader.cpp`, `tests/test_srpg_promotion.cpp`, helper `srpg_promo_fixture.h` (a
+  small game written into a temp folder). The promotion lines of `test_srpg_stubs.cpp` were removed (they now load).
+
+Where the contract was silent:
+
+- **Automatic retry is stateless** (nothing new is saved): at the start of a side's turn every unit of that side that
+  meets an `auto` entry (level at or above `fromLevel`, can stand there) promotes. So a unit that begins a battle
+  already at that level promotes at its side's first turn start, not only one that just levelled up. The first
+  `auto` entry that fits wins; one promotion per unit per pass (a new type's own `auto` entries wait for the next
+  level up or turn start).
+- **Order inside an action:** an item or an offer ends the unit's turn (`endOrder`) before the promotion runs, so the
+  story events a promotion starts see a finished unit; for an item the use is spent and `ItemBroke` comes before
+  `UnitPromoted`.
+- **A promotion item on an ally** is never a promotion (only the unit using it on itself promotes); `target: "ally"`
+  items are not refused for having `promotes`, they just heal or raise.
+- **`unitType` that is not on offer** is refused even if the item would otherwise be drunk for its heal; with `-1` a
+  `heal + promotes` item used by a unit that cannot promote just heals.
+- **Story `promote` without `to`:** the one-promotion rule is a load error only for a unit the map places itself;
+  for one an `addUnit` brings in, a type with a different count logs a warning and does nothing when it runs. A
+  story promotion needs no level and does not use `fromLevel` / `items` / `atLevel`; a listed pair still gives its
+  `gains` and `levelAfter`.
+- `promotionOptions` leaves out types the unit could not stand as (the Promote action and item then say why); two
+  entries with the same `to` give it once.
+- Vision: a promotion stamps earlier events with the old sight first (`markSight`), like a move, since the new type
+  may see differently.
+
 ### A1. Abilities and summons (core) — depends on K1 (conditions); parallel with K2, P1, R1, S1
 - **Scope.** Section 4: `loader_abilities.cpp`, `abilities.cpp` (options, targets, validate, apply, costs, turn
   ticks), `ability_moves.cpp` (push, pull, swap, moveBehind through `Grid`), `summons.cpp` (create, limit, vanish,

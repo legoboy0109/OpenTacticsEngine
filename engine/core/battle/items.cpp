@@ -108,7 +108,13 @@ void Battle::useTargets(int unit, int slot, std::vector<int>& targets) const {
   const ItemDef& d = itemOf(u.items[(size_t)slot]);
   if (d.kind != ItemKind::Usable) return;
   // Using an item that would change nothing is not offered.
-  auto helps = [&](const Unit& t) { return !d.raise.empty() || (d.heal > 0 && t.hp < maxHp(t)); };
+  // A promotion item also counts when the unit using it on itself could promote now (promotion.cpp).
+  auto helps = [&](const Unit& t) {
+    if (!d.raise.empty() || (d.heal > 0 && t.hp < maxHp(t))) return true;
+    std::vector<const PromotionDef*> fits;
+    if (d.promotes && t.id == unit) promotionCandidates(t, u.items[(size_t)slot].item, true, fits);
+    return !fits.empty();
+  };
   if (!d.targetAlly) {
     if (helps(u)) targets.push_back(unit);
     return;
@@ -139,10 +145,24 @@ bool Battle::validateItemAction(const Action& a, std::string* why) const {
     case ActionType::UseItem: {
       if (!ownSlot()) return fail(why, "the unit does not carry that item");
       if (itemOf(u.items[(size_t)a.slot]).kind != ItemKind::Usable) return fail(why, "that item cannot be used like this");
+      const ItemDef& d = itemOf(u.items[(size_t)a.slot]);
+      const int item = u.items[(size_t)a.slot].item;
+      // Promotion (docs/SRPG.md): a promotion that was asked for by type must be possible; when the item would
+      // otherwise do nothing, say why the promotion cannot happen.
+      std::string promoWhy;
+      if (d.promotes && a.target == a.unit && a.unitType >= 0 && !chosenPromotion(u, item, a.unitType, &promoWhy)) {
+        if (why) *why = promoWhy;
+        return false;
+      }
       std::vector<int> targets;
       useTargets(a.unit, a.slot, targets);
-      if (std::find(targets.begin(), targets.end(), a.target) == targets.end())
+      if (std::find(targets.begin(), targets.end(), a.target) == targets.end()) {
+        if (d.promotes && a.target == a.unit && !chosenPromotion(u, item, -1, &promoWhy) && why) {
+          *why = promoWhy;
+          return false;
+        }
         return fail(why, "the item would do nothing there");
+      }
       return true;
     }
     case ActionType::Equip: {
@@ -238,8 +258,12 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
         events.push_back(event(EventType::UnitHealed, a.target, amount));
         if (a.target != a.unit) supportsHealed(a.unit, a.target, events);  // supports: one healed the other
       }
+      const int usedItem = u.items[(size_t)a.slot].item;
       spendUse(a.unit, a.slot, events);
       endOrder(a.unit);
+      // A promotion item promotes its user last (heal and raise came first); story events it starts may add units,
+      // so nothing below this line touches `u` or `t`.
+      if (d.promotes && a.target == a.unit) promoteByItem(a.unit, usedItem, a.unitType, events);
       break;
     }
     case ActionType::Equip: {
