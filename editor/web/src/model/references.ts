@@ -2,6 +2,7 @@
 // clean-up that removes those references in the same edit as the delete.
 import { dropArtOf } from './graphicsClean'
 import { economyUsageLines } from './researchRefs'
+import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { readGrid, writeGrid } from './mapGrid'
@@ -62,6 +63,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         if (n) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}" has ${n} of them placed` })
       }
       out.push(...economyUsageLines(doc, 'unit', id))
+      out.push(...unitPromotionUsageLines(doc, id))
       out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))
       if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
@@ -92,14 +94,14 @@ const tagStillUsed = (units: Unit[], key: string, removedUnit: string) => units.
 
 export function cleanStat(doc: ProjectDoc, id: string): ProjectDoc {
   const has = (m?: Record<string, number>) => !!m && id in m
-  return {
+  return cleanStatPromotions({
     ...doc,
     units: doc.units && doc.units.map((u) => (has(u.stats) || has(u.growths)
       ? stripKey(stripKey(u, 'stats', dropKey(u.stats, id)), 'growths', dropKey(u.growths, id)) : u)),
     items: cleanStatInItems(doc, id),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => has(u.stats))
       ? { ...m, units: m.units.map((u) => (has(u.stats) ? stripKey(u, 'stats', dropKey(u.stats, id)) : u)) } : m)),
-  }
+  }, id)
 }
 
 /** Objects with an emptied optional map lose the key rather than keep `{}`. */
@@ -137,7 +139,7 @@ export function cleanMoveType(doc: ProjectDoc, id: string, reassignTo: string): 
 
 export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
   const remaining = (doc.units ?? []).filter((u) => u.id !== id)
-  return dropArtOf({
+  return cleanUnitPromotions(dropArtOf({
     ...doc,
     weapons: doc.weapons && doc.weapons.map((w) => (w.versus && id in w.versus && !tagStillUsed(remaining, id, id)
       ? stripKey(w, 'versus', dropKey(w.versus, id)) : w)),
@@ -150,7 +152,7 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
       const gone = m.units.filter((u) => u.type === id && u.id).map((u) => ({ kind: 'unit' as const, id: u.id! }))
       return scrubMap(doc, { ...m, units: m.units.filter((u) => u.type !== id) }, [{ kind: 'type', id }, ...gone])
     }),
-  }, 'units', id)
+  }, 'units', id), id)
 }
 
 /** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */

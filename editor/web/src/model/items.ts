@@ -4,6 +4,7 @@ import { clone, ids, withItems } from './doc'
 import { makeId } from './ids'
 import { cleanItem } from './itemRefs'
 import { carriedWeapons } from './itemRules'
+import { unlistPromotionItem } from './promotion'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { Item, ItemKind, ProjectDoc } from './types'
 
@@ -45,12 +46,13 @@ export function moveItemInList(doc: ProjectDoc, from: number, to: number): Proje
 }
 
 /** Fields that only make sense for one kind; the loader refuses them on the others. */
-const KIND_FIELDS: Record<ItemKind, string[]> = { usable: ['target', 'heal', 'raise'], weapon: ['weapon'], accessory: ['bonus'] }
+const KIND_FIELDS: Record<ItemKind, string[]> = { usable: ['target', 'heal', 'raise', 'promotes'], weapon: ['weapon'], accessory: ['bonus'] }
 
 /** Switches the kind and drops what belonged to the old one. The new kind starts with what makes it valid where that
  *  can be guessed (a heal amount, the first weapon); an accessory's bonus is left for the maker to fill in. */
 export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): ProjectDoc {
-  return withItems(doc, (list) => updateById(list, id, (x) => {
+  const wasPromotion = doc.items?.find((x) => x.id === id)?.promotes === true
+  const next = withItems(doc, (list) => updateById(list, id, (x) => {
     if (x.kind === kind) return x
     const patch: Record<string, unknown> = { kind }
     for (const [k, fields] of Object.entries(KIND_FIELDS)) if (k !== kind) for (const f of fields) patch[f] = undefined
@@ -61,6 +63,8 @@ export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): Projec
     else if (kind === 'weapon' && x.uses === undefined) patch.uses = DEFAULT_USES.weapon
     return patchObj(x, patch)
   }))
+  // Only a usable item can be a promotion item: promotions that listed it let go of it.
+  return wasPromotion && kind !== 'usable' ? unlistPromotionItem(next, id) : next
 }
 
 /** undefined = unlimited (key removed). */
