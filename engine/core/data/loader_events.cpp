@@ -16,6 +16,7 @@ void collectAddedIds(const Json& commands, std::vector<std::string>& out) {
     if (!c.isObject()) continue;
     const Json& u = c["addUnit"];
     if (u.isObject() && u["id"].isString()) out.push_back(u["id"].asString());
+    if (u.isObject() && u["character"].isString()) out.push_back(u["character"].asString());  // a character's id
     collectAddedIds(c["then"], out);
     collectAddedIds(c["else"], out);
   }

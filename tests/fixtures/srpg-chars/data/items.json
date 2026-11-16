@@ -1,0 +1,2 @@
+{ "items": [ { "id":"potion","name":"Potion","kind":"usable","uses":3,"heal":5 },
+             { "id":"ring","name":"Ring","kind":"accessory","bonus":{"hp":4} } ] }

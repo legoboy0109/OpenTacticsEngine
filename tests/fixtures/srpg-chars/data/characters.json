@@ -1,0 +1,7 @@
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "description": "Captain of the Blue Company.", "type": "hero", "level": 3,
+    "stats": { "hp": 4, "atk": 1, "def": -1 }, "growths": { "hp": 10, "atk": 5 }, "items": ["potion"] },
+  { "id": "gorm", "name": "Gorm", "type": "grunt",
+    "stats": { "def": -5 }, "growths": { "hp": -80, "atk": 20 } },
+  { "id": "lyra", "type": "hero" }
+] }

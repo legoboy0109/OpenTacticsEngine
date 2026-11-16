@@ -1,17 +1,30 @@
-// Characters in a battle (docs/SRPG.md "Characters"): a unit's identity and personal growths.
-// STUB (step F1): no game has characters yet (data/characters.json is refused by the loader), so a unit never has
-// one and growths are the unit type's. Step C1 fills this file.
+// Characters in a battle (docs/SRPG.md "Characters"): a unit's identity and its personal growths. The rest of a
+// character (starting stats, items, name, level) is resolved when a map unit is loaded (map_loader.cpp), so a
+// battle only needs to know WHO a unit is, which comes from its story id and is never saved.
 #include "core/battle/battle.h"
 
 namespace ote {
 
-int Battle::characterOf(const Unit&) const { return -1; }
+int Battle::characterOf(const Unit& u) const {
+  if (u.storyId.empty() || db->characters.empty()) return -1;
+  return db->findCharacter(u.storyId);
+}
 
 void Battle::characterDress(Unit& u) const { u.character = characterOf(u); }
 
+// The chance in percent: the unit type's growth + the character's (a negative total counts as 0).
+// Step K1 adds the growth bonuses of standing skills at the marked line.
 int Battle::growthOf(const Unit& u, int stat) const {
+  if (stat < 0) return 0;
   const std::vector<int>& growths = typeOf(u).growths;
-  return stat >= 0 && (size_t)stat < growths.size() ? growths[(size_t)stat] : 0;
+  int g = (size_t)stat < growths.size() ? growths[(size_t)stat] : 0;
+  if (u.character >= 0 && (size_t)u.character < db->characters.size()) {
+    const std::vector<int>& own = db->characters[(size_t)u.character].growths;
+    if ((size_t)stat < own.size()) g += own[(size_t)stat];
+  }
+  // (K1: g += skill growth bonuses here)
+  // A game without characters keeps the raw type growth exactly as before (it was never clamped).
+  return u.character >= 0 && g < 0 ? 0 : g;
 }
 
 }  // namespace ote
