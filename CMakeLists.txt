@@ -138,6 +138,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # Supports and the camp between chapters (docs/SRPG.md step U5).
     add_test(NAME srpg_supports_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_supports_test.py
+                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Strategy-RPG step U3: abilities and summons in the battle (docs/SRPG.md), windowless.
+    add_test(NAME srpg_player_abilities
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_abilities_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
