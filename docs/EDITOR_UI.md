@@ -810,3 +810,18 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
 - **Edits** (`model/supports.ts`) keep the file loadable: levels always rise, names cover every level, defaults are not written. Delete / retarget with story
   follow-up are in `srpgRefs.ts` (`deletePairClean`, `retargetPair`, `pairUsageLines`).
 - **Tests**: unit `tests/unit/supports.test.ts`; API `tests/editor_api_supports_checks.py`; e2e `srpg-supports.spec.ts`.
+## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
+
+Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.
+
+- **Skills screen** (`screens/skills/`): list + form like Abilities, plus a bar with "Add starter skills…" above the list. A skill is a column of rule cards
+  (`BlockCard`): When, Only if (`ConditionRows` / `ConditionFields`), Chance and Reaches (`BlockOptions`, shown only where the contract allows them), Then
+  (`EffectRows` / `EffectFields` / `StatRows`), and the sentence of the rule (`model/skillText.ts`). The tables of section 3 are data in `model/skillRules.ts`
+  and the only thing the pickers read, so a refused choice is never offered. Changing When repairs the rule (`skillBlocks.ts` `setWhen`): what the new point does
+  not allow is removed (Undo brings it back). A rule the file holds in a refused shape shows "Not valid yet" with plain messages (`skillChecks.ts` `ruleIssues`).
+- **Installer** (`StarterDialog.tsx`, data in `model/starterSkills.ts`, the same list as `editor/templates/strategy-rpg/data/skills.json`; a unit test compares them).
+- **Cards**: unit type and character (Skills + Learns at a level), accessory item (only the accessory kind), weapon: all through `screens/skills/SkillsCard.tsx`.
+  An accessory needs a bonus or a skill (the check and help text say so). Changing an item away from accessory drops its skills.
+- **Story**: commands "Teach a skill" / "Make units forget a skill" (`forms/SkillForms.tsx`), condition "A unit has a skill"; `storyWalk.ts` has the `skill` reference kind, so
+  deleting a skill removes those commands and conditions (listed in the delete question, one undo step).
+- **Tests**: unit `skills`, `skillsStarter`; API `tests/editor_api_skills_checks.py`; e2e `srpg-skills.spec.ts`, `srpg-skills-cards.spec.ts` (with the 360 px check).

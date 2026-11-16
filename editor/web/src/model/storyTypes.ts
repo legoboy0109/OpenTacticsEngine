@@ -52,6 +52,8 @@ export interface Condition extends Extra {
   unit?: Filter
   /** A technology id: true once `side` has finished it (docs/ECONOMY.md). */
   researched?: string
+  /** A skill id: true when a matching living unit has the skill (docs/SRPG.md "Skills"). `unit` says which units. */
+  hasSkill?: string
   /** The side that must have it (a `researched` condition). */
   side?: string
   /** Fog of war: the team sees at least one living unit matching this filter (needs `team`). Map events only. */
@@ -61,8 +63,8 @@ export interface Condition extends Extra {
   /** The support level of a pair of characters compared with `value` (`op`, default >=); docs/SRPG.md "Supports". */
   support?: [string, string]
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill']
 
 /** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
 export interface Command extends Extra {
@@ -84,6 +86,10 @@ export interface Command extends Extra {
   promote?: string
   /** Support points for a pair of characters (`by` may be negative); docs/SRPG.md "Supports". */
   addSupport?: [string, string]
+  /** A skill id taught to (`to` filter) or forgotten by (`from` filter) every matching unit (docs/SRPG.md "Skills"). */
+  teachSkill?: string
+  forgetSkill?: string
+  from?: Filter
   giveResource?: Record<string, number>
   setSwitch?: string
   setVariable?: string
@@ -108,12 +114,12 @@ export interface Command extends Extra {
   playSound?: string
 }
 export type CommandKind =
-  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'giveItem' | 'giveResource'
+  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'giveItem', 'giveResource',
+  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport',
 ]

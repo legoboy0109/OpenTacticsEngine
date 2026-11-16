@@ -6,7 +6,7 @@ import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, 
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
-import { FilterPicker, ItemPick, PickSelect, SidePick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
+import { FilterPicker, ItemPick, PickSelect, SidePick, SkillPick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
 import { PairPick } from './forms/SupportForms'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
@@ -29,7 +29,10 @@ export function ConditionList({ conditions, onChange, name }: Props) {
   const story = useStory()
   // "Support level" needs a pair to be about: it is offered once the game has one.
   const hasPairs = (story.doc.supports?.pairs?.length ?? 0) > 0
-  const kinds = (story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS).filter((k) => k !== 'support' || hasPairs || conditions.some((c) => conditionKind(c) === 'support'))
+  // "A unit has a skill" needs a skill to name (the loader refuses an unknown one).
+  const kinds = (story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS)
+    .filter((k) => k !== 'support' || hasPairs || conditions.some((c) => conditionKind(c) === 'support'))
+    .filter((k) => k !== 'hasSkill' || story.doc.skills?.length)
   const patch = (i: number, p: Record<string, unknown>, key?: string) => onChange(listPatch(conditions, i, p), key && `${key}:${i}`)
   return (
     <div className="story-list conditions" data-testid={`conditions-${name}`}>
@@ -93,6 +96,13 @@ export function ConditionList({ conditions, onChange, name }: Props) {
               <>
                 <FilterPicker label={S.conditionSees} value={c.sees} onChange={(f) => patch(i, { sees: f ?? {} })} />
                 <TeamPick label={S.conditionSeesTeam} value={c.team ?? ''} onChange={(v) => patch(i, { team: v })} help={S.conditionSeesHelp} />
+              </>
+            )}
+            {kind === 'hasSkill' && (
+              <>
+                <SkillPick label={S.conditionSkill} value={c.hasSkill ?? ''} onChange={(v) => patch(i, { hasSkill: v })} />
+                <FilterPicker label={S.conditionSkillWho} mode="optional" value={c.unit} onChange={(f) => patch(i, { unit: f })} />
+                <p className="help">{S.conditionSkillHelp}</p>
               </>
             )}
             {kind === 'carries' && (

@@ -2437,6 +2437,36 @@ The Characters screen, characters on the map and the "class" wording are in; the
 The Skills screen with the block builder and summaries, the starter set and its installer, the Skills cards on
 units, characters, items and weapons, story forms for teach / forget / has skill.
 
+#### E2 as built
+
+The Skills screen, the starter set and its installer, the Skills cards and the story forms are in; the helper needed no change (`tests/editor_api_skills_checks.py`
+saves every kind of rule and the whole set and checks the loader and `ote-sim`). Details in docs/EDITOR_UI.md "Strategy-RPG: skills (E2)".
+
+- **Where**: model `skillRules.ts` (the tables of section 3 as data), `skillBlocks.ts`, `skillChance.ts`, `skillText.ts`, `skillChecks.ts`, `skills.ts`, `starterSkills.ts`;
+  screens `screens/skills/*`; the E0 / E1 slots `UnitSkillsCard`, `CharacterSkillsCard`, `ItemSkillsCard`, `WeaponSkillsCard`; story `forms/SkillForms.tsx`.
+- **Shared files touched** (small): `srpgRefs.ts` (a deleted skill also scrubs events; "used by" names them), `items.ts` (skills leave with the accessory kind),
+  `itemChecks.ts` and `screens/items/text.ts` (accessory wording), story files (`storyTypes`, `storyDefaults`, `storyWalk`, `storySummary`, `storyChecks`, `CommandForm`,
+  `CommandList`, `ConditionList`, `pickers`, `story/text.ts`), `tests/editor_api_test.py` (one import and call), `tests/editor_api_srpg_checks.py` (its "plain game" now starts
+  from `economy-tactics`, since the strategy-rpg template has skills), and the template file below.
+- **Template**: `editor/templates/strategy-rpg/data/skills.json` is the starter set with the template's stat ids (the contract names it); so new strategy-RPG games have the
+  skills feature on with thirty skills nobody has yet (D1 gives them out).
+- **Readings of the contract.** (1) The contract says the thirty use every effect except `ability`; `critAvoid` is not among them (the test says so). (2) A skill whose stat
+  is unset is skipped, so with "skill" left at none, Gifted, Heavy Blow and Draining Blow are skipped (Gifted needs all four); Tough and Light Step use the game's hit points
+  and movement roles. (3) Changing "When" removes what the new point cannot have instead of refusing the change. (4) The last effect of a rule may be deleted (the rule then says
+  "It does nothing yet"); the last rule of a skill cannot. (5) Pickers for weapon, terrain, structure and unit conditions list the game's ids and then its tags / groups; a kind the game
+  cannot fill (no weapon yet) is shown disabled. (6) "Learns at a level" shows only when levelling up is on in Rules. (7) E3's own "Only if" rows in the ability form were NOT swapped for
+  this builder (abilities allow a narrower set). (8) Many unused skills are one line in the check banner ("N skills are not given to anyone yet"); a skill an event teaches counts as used.
+  (9) Stat chance is written `a.<stat>` or `a.<stat> * N`; anything else shows as a custom formula (Advanced). (10) The story commands are not offered in campaign scenes.
+- **Wording** (placeholders): screen "Skills"; "Add starter skills…" (installer: "Which of your stats…", "Is attack? / skill? / speed? / defense?", "None (skip skills that need it)",
+  "Add N skills", "Starter skills added", "Skipped because you already have a skill with that name: …"); "What it does", "Rule N", "Add a rule", "When" (Always / At the start of its turn /
+  In combat / When it strikes / When it is struck / After defeating a foe / After combat), "Only if", "Chance" (Every time / A percent chance / A stat as a percent / A custom formula (advanced)),
+  "Reaches" (The unit itself / Allies within reach / Enemies within reach), "Then", "Add an effect…"; effects "Stat bonus, Growth bonus, Squares cost at most, Move through enemy units, Move again
+  after acting, Experience gained, Gives a menu ability, Hit chance, Critical chance, Damage, Avoid, Critical avoid, Damage taken, Damage dealt as a percent, Damage taken as a percent, Strikes,
+  Each strike repeated, Strikes first when defending, Counterattacks from any distance, The foe cannot counterattack, Heals itself from the damage, Strikes once more, Survives a deadly strike,
+  Heals, Hurts, Move and act again"; conditions "Hit points, Units nearby, Weapon, Terrain, Structure, Unit type or tag, Carrying someone, The round, Who started the fight, Distance between the
+  fighters, A custom formula (advanced)"; "In words"; "Not valid yet"; card "Skills" / "Learns at a level" / "Add a learned skill"; story "Teach a skill", "Make units forget a skill",
+  "A unit has a skill"; accessory check "an accessory needs a bonus to at least one stat, or at least one skill."
+
 ### E3. Editor: Abilities, Promotion, Carrying — depends on E0; parallel with E1, E2, E4
 The Abilities screen, the Abilities and Promotion cards, the Rules cards for carrying and promotion, the story
 forms for Promote and "is promoted".

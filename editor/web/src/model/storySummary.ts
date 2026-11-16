@@ -26,6 +26,7 @@ export const sideName = ({ map }: SumCtx, id: string): string => map.sides?.find
 const typeName = ({ doc }: SumCtx, id: string) => doc.units?.find((u) => u.id === id)?.name ?? id
 export const itemLabel = ({ doc }: SumCtx, id: string): string => doc.items?.find((i) => i.id === id)?.name ?? id
 export const techLabel = ({ doc }: SumCtx, id: string): string => doc.research?.find((t) => t.id === id)?.name ?? id
+export const skillLabel = ({ doc }: SumCtx, id: string): string => doc.skills?.find((s) => s.id === id)?.name ?? id
 const resourceName = ({ doc }: SumCtx, id: string) => doc.game?.resources?.find((r) => r.id === id)?.name ?? id
 export const switchName = ({ doc }: SumCtx, id: string): string => doc.game?.switches?.find((s) => s.id === id)?.name ?? id
 export const variableName = ({ doc }: SumCtx, id: string): string => doc.game?.variables?.find((v) => v.id === id)?.name ?? id
@@ -98,6 +99,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'support': return `${pairText(c, k.support)}’s support level ${opWords(k.op ?? '>=')} ${k.value ?? 0}`
     case 'sees': return `team ${teamText(c, k.team ?? '')} sees ${filterText(c, k.sees)}`
     case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
+    case 'hasSkill': return `${filterText(c, k.unit)} has the skill ${q(skillLabel(c, k.hasSkill ?? ''))}`
     default: return 'something is true'
   }
 }
@@ -139,6 +141,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'promote': return typeof cmd.to === 'string' && cmd.to ? `Promotes ${unitText(c, cmd.promote ?? '')} into ${aOrAn(typeName(c, cmd.to))}` : `Promotes ${unitText(c, cmd.promote ?? '')} (its only promotion)`
     case 'giveItem': return `Gives ${itemLabel(c, cmd.giveItem ?? '')} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
+    case 'teachSkill': return `Teaches the skill ${q(skillLabel(c, cmd.teachSkill ?? ''))} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
+    case 'forgetSkill': return `Makes ${filterText(c, cmd.from)} forget the skill ${q(skillLabel(c, cmd.forgetSkill ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`
     case 'setSwitch': return `Turns the switch ${q(switchName(c, cmd.setSwitch ?? ''))} ${cmd.to === false ? 'off' : 'on'}`
     case 'setVariable': return `Sets the variable ${q(variableName(c, cmd.setVariable ?? ''))} to ${typeof cmd.to === 'number' ? cmd.to : 0}`

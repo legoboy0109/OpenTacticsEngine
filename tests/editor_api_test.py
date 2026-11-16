@@ -34,6 +34,7 @@ from editor_api_learn_checks import run_learn_checks
 from editor_api_characters_checks import run_characters_checks
 from editor_api_abilities_checks import run_abilities_checks
 from editor_api_supports_checks import run_supports_checks
+from editor_api_skills_checks import run_skills_checks
 from editor_api_srpg_checks import run_srpg_checks
 
 PASSED = 0
@@ -163,6 +164,7 @@ def main():
         run_characters_checks(api, tmp, games, templates, check, get_project, put_project)
         run_abilities_checks(api, tmp, games, templates, check, get_project, put_project)
         run_supports_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_skills_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")

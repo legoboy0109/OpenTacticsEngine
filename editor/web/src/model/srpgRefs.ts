@@ -6,7 +6,7 @@ import { ids } from './doc'
 import { makeId } from './ids'
 import type { Usage } from './references'
 import { walkCampaign } from './campaignWalk'
-import { scrubDoc, scrubMap, storyUsages } from './storyRefs'
+import { scrubDoc, scrubMap, scrubMaps, storyUsages } from './storyRefs'
 import { pairId, walkStory, type Ref } from './storyWalk'
 import { deletePair, pairsOf, setPairCharacter } from './supports'
 import type { Learn } from './srpgTypes'
@@ -51,6 +51,7 @@ export function skillUsageLines(doc: ProjectDoc, id: string): Usage[] {
   for (const c of doc.characters ?? []) if (isIn(c.skills, id) || learnsIn(c.learns, id)) out.push({ section: 'characters', text: `Character “${c.name}” has it` })
   for (const w of doc.weapons ?? []) if (isIn(w.skills, id)) out.push({ section: 'weapons', text: `Weapon “${w.name}” gives it` })
   for (const i of doc.items ?? []) if (isIn(i.skills, id)) out.push({ section: 'items', text: `Item “${i.name}” gives it` })
+  out.push(...storyUsages(doc, [{ kind: 'skill', id }]))
   return out
 }
 
@@ -88,10 +89,11 @@ function mapKeep<T>(list: T[] | null, fn: (t: T) => T): T[] | null {
   return next.some((x, i) => x !== list[i]) ? next : list
 }
 
-/** Takes the skill out of every unit type, character, weapon and item. */
+/** Takes the skill out of every unit type, character, weapon and item, and the events that teach, forget or ask for it. */
 export function cleanSkill(doc: ProjectDoc, id: string): ProjectDoc {
   return {
     ...doc,
+    maps: scrubMaps(doc, [{ kind: 'skill', id }]),
     units: mapKeep(doc.units, (u) => dropLearn(dropId(u, 'skills', id), id)),
     characters: mapKeep(doc.characters, (c) => dropLearn(dropId(c, 'skills', id), id)),
     weapons: mapKeep(doc.weapons, (w) => dropId(w, 'skills', id)),

@@ -29,6 +29,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'switch': return missing('a switch') ?? (known(doc.game?.switches) ? null : `“${r.id}” is not a switch of this game.`)
     case 'variable': return missing('a variable') ?? (known(doc.game?.variables) ? null : `“${r.id}” is not a variable of this game.`)
     case 'tech': return missing('a technology') ?? (known(doc.research ?? undefined) ? null : `“${r.id}” is not a technology of this game${doc.research?.length ? '' : ' (the game has no research yet)'}.`)
+    case 'skill': return missing('a skill') ?? (known(doc.skills ?? undefined) ? null : `“${r.id}” is not a skill of this game${doc.skills?.length ? '' : ' (the game has no skills yet)'}.`)
     case 'music':
     case 'sound': return audioRefProblem(doc, r.kind, r.id)
     case 'pair': return null // supportStoryChecks.ts says it in plainer words

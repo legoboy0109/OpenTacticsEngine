@@ -10,6 +10,7 @@ import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { AddVariableForm, EndTurnForm, FocusForm, SetSwitchForm, SetVariableForm, WinLoseForm } from './forms/StoryForms'
 import { PromoteForm } from './forms/PromoteForm'
 import { AddSupportForm } from './forms/SupportForms'
+import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
@@ -25,6 +26,8 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
     case 'promote': return <PromoteForm cmd={cmd} at={at} />
     case 'addSupport': return <AddSupportForm cmd={cmd} at={at} />
+    case 'teachSkill': return <TeachSkillForm cmd={cmd} at={at} />
+    case 'forgetSkill': return <ForgetSkillForm cmd={cmd} at={at} />
     case 'giveItem': return <GiveItemForm cmd={cmd} at={at} />
     case 'giveResource': return <GiveResourceForm cmd={cmd} at={at} />
     case 'grantResearch': return <GrantResearchForm cmd={cmd} at={at} />

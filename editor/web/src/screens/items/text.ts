@@ -19,7 +19,7 @@ export const T = {
   checksTitle: 'The game will not load until these are fixed',
 
   kind: 'Kind',
-  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus to whoever carries them.',
+  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus or skills to whoever carries them.',
   kindUsable: KIND_LABEL.usable,
   kindWeapon: KIND_LABEL.weapon,
   kindAccessory: KIND_LABEL.accessory,
@@ -56,7 +56,7 @@ export const T = {
   noWeapons: 'There are no weapons yet. Create some on the Weapons screen.',
 
   bonus: 'Bonus while carried',
-  bonusHelp: 'Added to the unit’s stats while it carries this. An accessory needs a bonus to at least one stat.',
+  bonusHelp: 'Added to the unit’s stats while it carries this. An accessory needs a bonus to at least one stat, or at least one skill.',
   bonusCol: 'Bonus',
 
   advanced: 'Advanced',
