@@ -13,7 +13,7 @@ tests played sound; Playwright config and `tools/webtest/run.mjs`). docs/SRPG.md
 - **Strategy-RPG feature set** (PLAN k, docs/SRPG.md "Build order"). Left: D1 demo/template content (agent
   running; renames ids pegasus/vulnerary; template pair up, demo carry) → T1 tutorial lesson and document sync.
   Open with the owner: the strategy-RPG template now ships the 30 starter skills (E2 followed the contract; asked
-  whether an empty list is preferred). Known nits: a skill's sentence shows the stat id ("skl") not its name; the
+  whether an empty list is preferred). Known nits: the
   empty Skills / Supports screens show the empty text twice; E2 did not replace E3's own "Only if" rows; characters'
   personal stat bonuses are not cleaned when a stat is deleted; F2's `Battle::testMods` is always compiled; A1 left
   summons out of `changeSide`. Player loose ends: the promotion banner covers the promoted unit; at phone size
