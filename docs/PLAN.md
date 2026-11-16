@@ -192,6 +192,12 @@ goal (demos only exercise features).
       blocks (docs/SRPG.md skills). Skills whose behaviour is custom code cannot be read from data: map the
       ones that match a known effect, list the rest with their names as "not converted" (name and description
       shown, no effect), and record missing engine blocks to build.
+      12 portraits (owner, 2026-11-16: after skills conversion; source "From the ROM, all of them"). Private-
+      converter step: read every portrait from the owner's patched ROM (the hack artists' and any reused from
+      the base game) into the private game folder only - never the public repo, never shared; the converter
+      itself contains no art. Engine side: check what the dialogue box does with `portrait` today (step 2
+      already writes the character id) and build what is missing (picture beside the box, left / right slots,
+      a placeholder when a game has none) as an ordinary engine feature with the engine's own placeholder art.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
