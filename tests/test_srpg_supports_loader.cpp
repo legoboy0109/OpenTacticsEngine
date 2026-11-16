@@ -183,7 +183,14 @@ TEST(supports_hash_of_a_game_without_the_file_is_unchanged_by_the_feature) {
   CHECK(k.load("sup_hash_none3"));
   std::string c;
   CHECK(computeDataHash(k.db, "ford", c, err));
-  CHECK(c != b);  // the file, once present, is mixed in
+  CHECK_STR(c, b);  // a file that holds nothing is the same game as no file (the editor's remembered switch)
+  Game m;
+  m.charactersJson = suptest::kCharacters;
+  m.supportsJson = R"({ "rules": { "range": 2 }, "pairs": [] })";
+  CHECK(m.load("sup_hash_none4"));
+  std::string d;
+  CHECK(computeDataHash(m.db, "ford", d, err));
+  CHECK(d != b);  // a setting counts
 }
 
 // ---- campaign scenes ----

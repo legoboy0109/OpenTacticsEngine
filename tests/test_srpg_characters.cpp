@@ -222,6 +222,8 @@ TEST(srpg_an_empty_feature_file_is_the_same_game_as_no_file) {
   Copy c("srpg_empty_files");
   c.drop("data/characters.json");
   c.drop("data/skills.json");  // the temp folder outlives a run
+  c.drop("data/abilities.json");
+  c.drop("data/supports.json");
   std::string without = hashOf(c, "plain");
   CHECK(without.size() == 16);
   c.put("data/characters.json", "{ \"characters\": [] }");
@@ -230,6 +232,12 @@ TEST(srpg_an_empty_feature_file_is_the_same_game_as_no_file) {
   c.put("data/skills.json", "{ \"skills\": [] }");
   CHECK_STR(c.gameError(), "");
   CHECK_STR(hashOf(c, "plain"), without);
+  c.put("data/abilities.json", "{ \"abilities\": [] }");
+  c.put("data/supports.json", "{ \"pairs\": [] }");
+  CHECK_STR(c.gameError(), "");
+  CHECK_STR(hashOf(c, "plain"), without);
+  c.drop("data/abilities.json");
+  c.drop("data/supports.json");
   // Something in the file counts again.
   c.put("data/skills.json", "{ \"skills\": [ { \"id\": \"tough\", \"blocks\": [ { \"when\": \"always\", \"do\": [ { \"stats\": { \"hp\": 2 } } ] } ] } ] }");
   CHECK_STR(c.gameError(), "");
