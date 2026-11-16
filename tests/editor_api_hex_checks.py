@@ -55,13 +55,13 @@ def run_hex_checks(api, tmp, games, templates, check, get_project, put_project):
 
         # the engine loader judges hexagon rules (the helper adds nothing of its own)
         bad = copy.deepcopy(d2)
-        bad["game"]["styles"] = [{"id": "iso", "name": "Iso", "view": "isometric-3d"}]
+        bad["game"]["styles"] = [{"id": "iso", "name": "Iso", "view": "sideways"}]
         st, res = put_project(api, pid, bad, d2["revision"])
-        check("hex %s: a 3D style is reported by the loader" % layout,
-              st == 200 and any("not available for hexagon games yet" in m for m in problems_of(res)), res)
+        check("hex %s: a bad style is reported by the loader" % layout,
+              st == 200 and any('"view" must be' in m for m in problems_of(res)), res)
         st, d3 = get_project(api, pid)
         check("hex %s: the refused style is still saved (work in progress is never lost)" % layout,
-              d3["game"]["styles"][0]["view"] == "isometric-3d")
+              d3["game"]["styles"][0]["view"] == "sideways")
 
         bad = copy.deepcopy(d2)
         st, res = put_project(api, pid, bad, d3["revision"], structures=[dict(s, width=2) if s["id"] == "city" else s for s in d2["structures"]])

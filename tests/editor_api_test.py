@@ -191,7 +191,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
     st, doc = api.json("GET", "/api/info")
     check("info: engine, apiVersion, formatVersion",
           st == 200 and doc == {"engine": "OpenTacticsEngine", "apiVersion": 1, "formatVersion": 1,
-                        "hexViews": ["top-down", "isometric"]}, doc)
+                        "hexViews": ["top-down", "isometric", "isometric-3d", "3d"]}, doc)
 
     st, doc = api.json("GET", "/api/projects")
     projs = {p["id"]: p for p in (doc or {}).get("projects", [])}
