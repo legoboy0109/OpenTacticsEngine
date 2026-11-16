@@ -1,0 +1,21 @@
+/* Weapon ranks and stat caps (docs/SRPG.md section 7). */
+.rank-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rank-row { display: grid; grid-template-columns: 1.6rem minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px 10px; align-items: end; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+.rank-no { align-self: center; color: var(--muted); font-weight: 600; text-align: center; }
+.rank-cell { display: grid; gap: 2px; min-width: 0; }
+.rank-cell > span { font-size: 0.78rem; color: var(--muted); }
+.rank-cell .input-wrap { flex-wrap: wrap; }
+.rank-cell .input.num { max-width: none; width: 100%; }
+.rank-row .item-row-buttons { align-self: center; margin-left: 0; }
+.rank-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rank-map th[scope='row'] { width: 38%; }
+.rank-map .error-text { display: block; font-weight: 400; }
+.cap-rows .input.num { max-width: none; }
+
+/* Phone: the number and the name share the first line, the id and the buttons the second. */
+@media (max-width: 719.98px) {
+  .rank-row { grid-template-columns: 1.6rem minmax(0, 1fr) minmax(0, 1fr); }
+  .rank-row .rank-cell:nth-of-type(3) { grid-column: 2 / 3; }
+  .rank-row .item-row-buttons { grid-column: 3 / 4; justify-self: end; }
+}

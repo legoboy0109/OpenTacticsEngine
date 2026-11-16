@@ -1,5 +1,5 @@
 import { suggestedWeaponProps } from '../../model/formulas'
-import { setWeaponProp, setWeaponRange, updateWeapon } from '../../model/weapons'
+import { setWeaponGroup, setWeaponProp, setWeaponRange, updateWeapon } from '../../model/weapons'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
 import { Field, FieldGroup } from '../../ui/Field'
@@ -40,7 +40,7 @@ export function WeaponForm({ id }: { id: string }) {
           </Field>
           <Field label={T.group} help={T.groupHelp}>
             <TextInput value={weapon.group ?? ''} placeholder={T.groupPlaceholder}
-              onChange={(v) => edit((d) => updateWeapon(d, id, { group: v.trim() === '' ? undefined : v }), `${key}:group`)} />
+              onChange={(v) => edit((d) => setWeaponGroup(d, id, v), `${key}:group`)} />
           </Field>
         </div>
       </Card>

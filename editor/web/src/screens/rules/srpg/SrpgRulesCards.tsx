@@ -2,7 +2,9 @@
 // the later steps fill their own file (E3: CarryingCard, PromotionRulesCard) and never edit RulesScreen.
 import { CarryingCard } from './CarryingCard'
 import { FeatureSwitchesCard } from './FeatureSwitchesCard'
+import { CapsCard } from './CapsCard'
 import { PromotionRulesCard } from './PromotionRulesCard'
+import { RanksCard } from './RanksCard'
 
 export function SrpgRulesCards() {
   return (
@@ -10,6 +12,8 @@ export function SrpgRulesCards() {
       <FeatureSwitchesCard />
       <CarryingCard />
       <PromotionRulesCard />
+      <RanksCard />
+      <CapsCard />
     </>
   )
 }
