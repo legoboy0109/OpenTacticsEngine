@@ -166,3 +166,24 @@ int moveCostCap(const Unit& u) const;                 // the lowest "maxMoveCost
 bool passesEnemies(const Unit& u) const;              // has "pass": enemies
 // Adds `skill` to Unit::learned unless it is there; true when it was added.
 bool learnSkill(Unit& u, int skill) const;
+
+// ---- skills, step K2 (skill_fx.cpp, skill_combat.cpp, skill_strike.cpp, skill_timed.cpp) ----
+// What a skill block of a fighter is judged with in this combat: where it stands (the attacker: `setup.from`), the
+// weapon it fights with, the foe, and whether it started the fight.
+SkillCtx skillCombatCtx(const CombatSetup& setup, int unit) const;
+// A fighter's skill list for this combat (weapon skills of the weapon it fights with; a defender with nothing that
+// can answer has none).
+void skillCombatList(const CombatSetup& setup, int unit, std::vector<int>& out) const;
+bool skillBlockHolds(const SkillBlock& block, const SkillCtx& ctx) const;  // all its conditions hold
+// The block's chance in percent, 0..100 (formula: a = owner, b = foe). Never rolls.
+int skillChance(const SkillBlock& block, const SkillCtx& ctx) const;
+// One strike's blocks (the striker's "strike", then the struck unit's "struck"). `rng` set = judge activations
+// (roll them and hand back events); null with `notes` set = list the activations that could fire; both null = only
+// the blocks without a chance (the forecast's passives). Never changes the battle.
+void gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, StrikeMods& out, std::vector<Event>* strikeEvents,
+                  std::vector<Event>* struckEvents, std::vector<ForecastNote>* notes) const;
+// A timed block (turnStart / defeat / afterCombat) of `owner` whose conditions hold: rolls its chance, applies its
+// effects and makes the events. `foe` = the other fighter or -1.
+void runTimedBlock(int owner, int foe, int skill, const SkillBlock& block, const SkillCtx& ctx, std::vector<Event>& events);
+// "actAgain" was given to the attacker during a combat's after-hooks: endOrder must not end its turn again.
+int actAgainPending_ = -1;

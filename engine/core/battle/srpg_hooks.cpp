@@ -21,6 +21,11 @@ void Battle::dressUnit(Unit& u) const {
 
 void Battle::endOrder(int unit) {
   Unit& u = units[(size_t)unit];
+  // A skill gave this unit "act again" during the combat that is ending: its flags were cleared on purpose.
+  if (actAgainPending_ == unit) {
+    actAgainPending_ = -1;
+    return;
+  }
   // "Move again": the action is used up but the movement that is left may still be walked.
   if (u.alive && hasMoveAgain(u) && u.moveSpent < movePoints(u)) u.acted = true;
   else u.done = true;
