@@ -112,7 +112,11 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       break;
     case K::RemoveUnit:
       for (int i = 0; i < unitCount; ++i) {
-        if (!units[(size_t)i].alive || !unitMatches(c.filter, units[(size_t)i])) continue;
+        if (!exists(units[(size_t)i]) || !unitMatches(c.filter, units[(size_t)i])) continue;  // R1: a carried unit matches
+        if (units[(size_t)i].carriedBy >= 0) {  // taken out of its carrier (docs/SRPG.md "Carry": Story)
+          storyRemoveCarried(i, events);
+          continue;
+        }
         Cell cell = units[(size_t)i].cell;
         events.push_back(makeEvent(EventType::UnitRemoved, i, cell));
         markSight();
@@ -127,12 +131,16 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::MoveUnit: {
       int u = unitByStoryId(c.unit);
       if (u >= 0 && units[(size_t)u].alive) storyRelocate(u, grid.at(c.x, c.y), events);
+      else if (u >= 0 && units[(size_t)u].carriedBy >= 0) storyMoveCarried(u, grid.at(c.x, c.y), events);  // R1: dropped there
       break;
     }
     case K::ChangeSide:
       for (int i = 0; i < unitCount; ++i) {
+        if (!exists(units[(size_t)i]) || units[(size_t)i].side == c.side || !unitMatches(c.filter, units[(size_t)i])) continue;
+        // R1: a carrier, or a unit that is carried, first puts the carried unit down; if there is no square for it
+        // the command leaves both units as they are.
+        if (!storySeparate(i, events)) continue;
         Unit& u = units[(size_t)i];
-        if (!u.alive || u.side == c.side || !unitMatches(c.filter, u)) continue;
         events.push_back(makeEvent(EventType::SideChanged, i, u.side, c.side));
         markSight();
         releaseCapture(i, kNoCell);  // a capture belongs to its capturer's side
