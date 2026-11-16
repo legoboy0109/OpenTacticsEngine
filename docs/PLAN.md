@@ -152,6 +152,14 @@ goal (demos only exercise features).
         (with staves that cure them); utility (open doors/chests from afar, repair uses, temporary stat boost,
         light in fog). Conditions are built by the maker from blocks like skills, with a starter set. Whether a
         staff can miss is the maker's choice per staff (healing defaults to certain, hostile to a hit chance).
+      5 doors, keys, chests and visiting (after staves). Owner's answers (2026-11-16):
+      - A locked door opens by: a key item used next to it (maker decides which keys fit, and whether used up);
+        a unit trait (thief-style, optionally needing a lockpick item with limited uses); a story event; or by
+        being broken down (doors with hit points that can be attacked).
+      - Chests and villages: the maker chooses per game between explicit Open / Visit actions in the unit's
+        menu (uses the turn) and the current "stand on it" trigger.
+      - Computer opponent: the maker marks per placed unit whether it goes for chests (taking the item),
+        destroys villages, or opens doors with its own keys; unmarked units ignore them.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
