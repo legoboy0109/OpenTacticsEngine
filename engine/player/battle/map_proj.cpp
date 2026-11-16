@@ -59,6 +59,7 @@ void MapProj::init(const Battle& b, const StyleDef* style, int tile) {
     geo3_.levels = std::min(hi - lo, kMaxLevels);
     geo3_.headroom = unitW_ * 2;  // room for a unit or a tall picture on the top row
     geo3_.hex = HexSpace::make(hexGeo_);
+    geo3_.yaw = Iso3DGeometry::yawOfHexTurn(0);  // turn 0: the top-down map squashed, rows straight across
     return;
   }
   if (hex_) {  // the squash is fixed on hexagons (tileHeight is refused by the loader)

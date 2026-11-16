@@ -206,13 +206,17 @@ void Map3D::drawStructureHex(const DrawCtx& c, int index) {
   const float Y = structureElev(c, st, def) * g.stepY();
   const bool dim = structureDimmed(c, index);
   const uint8_t k = dim ? (uint8_t)(255 * kFogDim) : 255;
+  // The owner frame lies on the ground round the covered hexagons; a placeholder group of seven fills its hexagons, so
+  // there the frame goes on the blocks' tops (a lone block is pulled in from the edges and leaves the ground band free).
+  const ModelAsset* asset = nullptr;
+  const bool placeholder = !structureModel(c, st, asset) && !structureArt(c, st);
   if (st.owner >= 0) {
     Color oc = Color::rgb(b.sides[(size_t)st.owner].color);
     MeshData& m = batch_.mesh(flatMat());
+    const float frameY = Y + 0.012f + (placeholder && def.rings > 0 ? kWall : 0.0f);
     for (Cell cell : cells)
-      hexBand(m, c, b.grid.x(cell), b.grid.y(cell), Y + 0.012f, 0.07f, tintOf(dim ? fogDim(oc) : oc), outerEdges(b.grid, cell, cells));
+      hexBand(m, c, b.grid.x(cell), b.grid.y(cell), frameY, 0.07f, tintOf(dim ? fogDim(oc) : oc), outerEdges(b.grid, cell, cells));
   }
-  const ModelAsset* asset = nullptr;
   if (const ModelLook* ml = structureModel(c, st, asset)) {
     drawStructureModel(c, index, *ml, *asset, Y);
     return;
@@ -236,7 +240,7 @@ void Map3D::drawStructureHex(const DrawCtx& c, int index) {
   Color base = Color::rgb(structureRgb(c, st.type));
   const Tint3D col = tintOf(dim ? fogDim(base) : base);
   MeshData& lit = batch_.mesh(Material3D());
-  const float scale = def.rings > 0 ? 1.0f : 0.92f;  // a lone block leaves a margin, a group is one piece
+  const float scale = def.rings > 0 ? 1.0f : 0.84f;  // a lone block leaves a margin (0.08 squares, as on squares), a group is one piece
   for (Cell cell : cells) {
     const int x = b.grid.x(cell), y = b.grid.y(cell);
     hexFill(lit, c, x, y, Y + kWall, scale, col);
