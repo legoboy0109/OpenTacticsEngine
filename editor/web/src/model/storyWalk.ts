@@ -77,6 +77,7 @@ function mapTrigger(t: Trigger, w: Walk, where: string): Trigger | Dropped {
     (x) => withFilter(x, 'defeated', w, where),
     (x) => withFilter(x, 'fight', w, where),
     (x) => withFilter(x, 'with', w, where),
+    (x) => withFilter(x, 'promoted', w, where),
     (x) => withRef(x, 'talk', 'unit', w, where),
     (x) => withRef(x, 'to', 'unit', w, where),
   ])
@@ -188,6 +189,8 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withFilter(x, 'removeUnit', w, where),
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
+    (x) => withRef(x, 'promote', 'unit', w, where),
+    (x) => (x.promote !== undefined ? withRef(x, 'to', 'type', w, where) : x), // promote's `to` is a unit type id
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),
     (x) => withRef(x, 'grantResearch', 'tech', w, where),

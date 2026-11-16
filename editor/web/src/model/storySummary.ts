@@ -73,6 +73,7 @@ export function triggerText(c: SumCtx, t: Trigger): string {
     case 'defeated': return `${cap(filterText(c, t.defeated))} is defeated${t.by ? ` by ${filterText(c, t.by)}` : ''}`
     case 'fight': return `A fight begins: ${filterText(c, t.fight)}${t.with ? ` against ${filterText(c, t.with)}` : ''}`
     case 'talk': return `${unitText(c, t.talk ?? '')} talks to ${unitText(c, t.to ?? '')}`
+    case 'promoted': return `${cap(filterText(c, t.promoted))} is promoted`
     default: return 'Something happens'
   }
 }
@@ -127,6 +128,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'removeUnit': return `Removes ${filterText(c, cmd.removeUnit)}`
     case 'moveUnit': return `Moves ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`
+    case 'promote': return typeof cmd.to === 'string' && cmd.to ? `Promotes ${unitText(c, cmd.promote ?? '')} into ${aOrAn(typeName(c, cmd.to))}` : `Promotes ${unitText(c, cmd.promote ?? '')} (its only promotion)`
     case 'giveItem': return `Gives ${itemLabel(c, cmd.giveItem ?? '')} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`

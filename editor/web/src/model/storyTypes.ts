@@ -25,13 +25,15 @@ export interface Trigger extends Extra {
   defeated?: Filter
   fight?: Filter
   with?: Filter
+  /** A unit matching this promoted (docs/SRPG.md "Promotion"). */
+  promoted?: Filter
   talk?: string
   to?: string
   label?: string
 }
 /** The kinds the editor offers (the file has six keys; battle and turn split in more). */
-export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk'
-export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk']
+export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted'
+export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted']
 
 export interface Condition extends Extra {
   switch?: string
@@ -71,7 +73,10 @@ export interface Command extends Extra {
   changeSide?: Filter
   side?: string
   giveItem?: string
-  to?: Filter | boolean | number
+  /** A filter (giveItem), true / false (setSwitch), a number (setVariable) or a unit type id (promote). */
+  to?: Filter | boolean | number | string
+  /** A unit's story id: it becomes the unit type `to` (docs/SRPG.md "Promotion"). */
+  promote?: string
   giveResource?: Record<string, number>
   setSwitch?: string
   setVariable?: string
@@ -96,12 +101,12 @@ export interface Command extends Extra {
   playSound?: string
 }
 export type CommandKind =
-  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'giveItem' | 'giveResource'
+  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'giveItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'giveItem', 'giveResource',
+  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'giveItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound',
 ]
@@ -127,7 +132,7 @@ const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 export function triggerKind(t: Trigger): TriggerKind | null {
   if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' ? t.battle : 'start'
   if (has(t, 'turn')) return t.turn === 'every' ? 'everyTurn' : 'turn'
-  for (const k of ['reach', 'defeated', 'fight', 'talk'] as const) if (has(t, k)) return k
+  for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted'] as const) if (has(t, k)) return k
   return null
 }
 
