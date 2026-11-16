@@ -43,6 +43,8 @@ export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plai
 export function loadHexFixture(layout: 'pointy' | 'flat'): ProjectDoc { return loadFrom(fixtures, `hex-${layout}`) }
 /** The engine's weapon ranks and stat caps test game (tests/fixtures/srpg-ranks): a ladder E-B, weapons with ranks, classes with ranks and caps. */
 export function loadRanksFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-ranks') }
+/** The engine's character-locked weapons test game (tests/fixtures/srpg-locks): three characters, weapons locked to one to three of them. */
+export function loadLocksFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-locks') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 /** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */

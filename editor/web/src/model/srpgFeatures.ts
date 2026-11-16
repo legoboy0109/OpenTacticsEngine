@@ -3,6 +3,7 @@
 // written, so the switch stays on after a reload (owner, 2026-11-15). The engine treats an empty list as no file at
 // all (the contract's rule; `save_hash.cpp` skips it), so switching a feature on never makes a save invalid.
 // Switching off deletes the file (`false` in the save body).
+import { cleanAllLocks } from './locks'
 import { cleanAbility, cleanCharacter, cleanSkill } from './srpgRefs'
 import type { ProjectDoc, Section } from './types'
 import type { SrpgFeature } from './srpgTypes'
@@ -28,6 +29,7 @@ export function switchOffFeature(doc: ProjectDoc, f: SrpgFeature): ProjectDoc {
   if (list === null) return doc
   let out = doc
   if (f === 'characters') for (const c of doc.characters ?? []) out = cleanCharacter(out, c.id)
+  if (f === 'characters') out = cleanAllLocks(out)
   if (f === 'skills') for (const sk of doc.skills ?? []) out = cleanSkill(out, sk.id)
   if (f === 'abilities') for (const ab of doc.abilities ?? []) out = cleanAbility(out, ab.id)
   return { ...out, [f]: null, ...(f === 'characters' ? { supports: null } : {}) }

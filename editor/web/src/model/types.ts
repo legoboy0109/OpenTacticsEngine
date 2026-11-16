@@ -153,6 +153,8 @@ export interface Weapon extends Named {
   /** docs/SRPG.md section 7: the lowest rank that may wield it (a rank id) and the weapon experience it earns per use. */
   rank?: string
   rankXp?: number
+  /** docs/SRPG.md "Character-locked weapons": ids of the characters that may wield it (needs characters; absent or empty = no lock). */
+  wieldedBy?: string[]
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
