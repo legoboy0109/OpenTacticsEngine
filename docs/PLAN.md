@@ -203,6 +203,14 @@ goal (demos only exercise features).
       move, hit, miss, crit, heal, level-up, defeat...) into the converted game's data/audio.json, and convert
       the scripts' sound commands (dropped in step 3) where a starter sound fits. Not extracting the ROM's own
       effects: they are the base game's samples and synthesizer patches, hard to rebuild faithfully.
+      14 map sprites and battle animations for the private port (owner, 2026-11-16: after sound effects).
+      Map sprites: read each class's standing and moving map sprite from the owner's ROM into the engine's
+      sprite-style unit art (assistant's assumption, following the portraits answer "From the ROM, all of
+      them": private folder only, never shared; confirm when starting). Battle animations: the engine has no
+      battle scene yet (owner earlier: "Battle scenes are low priority for now") - this is a large ENGINE
+      feature first (a fight shown on its own screen: two fighters, attack / hit / miss / crit / magic
+      animations, HP bars, a setting to turn it off), needing the owner's design answers (question dialog when
+      reached), then the converter reads the ROM's animation frames and scripts into it.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
