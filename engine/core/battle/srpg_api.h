@@ -61,3 +61,9 @@ void strikeOrder(const Forecast& forecast, std::vector<StrikeStep>& out) const;
 // Test-only: when set, its functions run after the real sources of modifiers and may change what they gave
 // (core/battle/combat_mods.h). Null everywhere outside the unit tests; never saved; a copied battle shares it.
 const CombatTestMods* testMods = nullptr;
+
+// ---- skills, step K1 (skills.cpp, skill_standing.cpp) ----
+// The weapon a unit has in use outside a combat: the equipped weapon (carried weapons) or the type's first weapon
+// (fixed weapons); -1 = unarmed. `skillsOf(u, -1, ...)` uses it. In `skillsOf` the weapon value -2 means "no weapon
+// at all" (a defender with no answering weapon): no weapon skills.
+int restingWeapon(const Unit& u) const;

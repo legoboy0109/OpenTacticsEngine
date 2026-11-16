@@ -1,0 +1,10 @@
+{ "name": "Story", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "lyra", "side": "blue", "x": 0, "y": 0 },
+    { "character": "gorm", "side": "red", "x": 5, "y": 2 } ],
+  "events": [
+    { "id": "teach", "when": { "battle": "start" }, "do": [ { "teachSkill": "heavy_blow", "to": "lyra" } ] },
+    { "id": "check", "when": { "battle": "start" }, "if": [ { "hasSkill": "heavy_blow", "unit": "lyra" } ], "do": [ { "setSwitch": "hasHeavy", "to": true } ] },
+    { "id": "both", "when": { "battle": "start" }, "if": [ { "hasSkill": "heavy_blow" }, { "hasSkill": "bold" } ], "do": [ { "setSwitch": "bothHave", "to": true } ] } ] }

@@ -1,0 +1,22 @@
+{ "skills": [
+  { "id": "tough", "name": "Tough", "blocks": [ { "when": "always", "do": [ { "stats": { "hp": 5 } } ] } ] },
+  { "id": "light_step", "name": "Light Step", "blocks": [ { "when": "always", "do": [ { "stats": { "mov": 1 } } ] } ] },
+  { "id": "sure_footing", "name": "Sure Footing", "blocks": [ { "when": "always", "do": [ { "maxMoveCost": 1 } ] } ] },
+  { "id": "slip_through", "name": "Slip Through", "blocks": [ { "when": "always", "do": [ { "pass": "enemies" } ] } ] },
+  { "id": "strike_and_move", "name": "Strike and Move", "blocks": [ { "when": "always", "do": [ { "moveAgain": true } ] } ] },
+  { "id": "fast_learner", "name": "Fast Learner", "blocks": [ { "when": "always", "do": [ { "xpPercent": 150 } ] } ] },
+  { "id": "slow_learner", "name": "Slow Learner", "blocks": [ { "when": "always", "do": [ { "xpPercent": 50 } ] } ] },
+  { "id": "gifted", "name": "Gifted", "blocks": [ { "when": "always", "do": [ { "growths": { "atk": 10, "skl": 20 } } ] } ] },
+  { "id": "bold", "name": "Bold", "blocks": [ { "when": "always", "if": [ { "hp": { "op": "<=", "percent": 50 } } ],
+                                               "do": [ { "stats": { "atk": 3 } } ] } ] },
+  { "id": "rooted", "name": "Rooted", "blocks": [ { "when": "always", "if": [ { "terrain": "cover" } ], "do": [ { "stats": { "def": 2 } } ] } ] },
+  { "id": "fort_guard", "name": "Fort Guard", "blocks": [ { "when": "always", "if": [ { "structure": "stronghold" } ], "do": [ { "stats": { "def": 3 } } ] } ] },
+  { "id": "blade_focus", "name": "Blade Focus", "blocks": [ { "when": "always", "do": [ { "stats": { "atk": 1 } } ] } ] },
+  { "id": "lucky_charm", "name": "Lucky Charm", "blocks": [ { "when": "always", "do": [ { "stats": { "def": 1 } } ] } ] },
+  { "id": "heavy_blow", "name": "Heavy Blow", "description": "A chance of double damage.",
+    "blocks": [ { "when": "strike", "chance": "a.skl", "do": [ { "damagePercent": 200 } ] } ] },
+  { "id": "steady_recovery", "name": "Steady Recovery",
+    "blocks": [ { "when": "turnStart", "do": [ { "heal": { "percent": 10 } } ] } ] },
+  { "id": "back_to_the_wall", "name": "Back to the Wall",
+    "blocks": [ { "when": "combat", "if": [ { "hp": { "op": "<=", "percent": 50 } } ], "do": [ { "crit": 25 } ] } ] }
+] }

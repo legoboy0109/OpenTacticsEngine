@@ -156,3 +156,13 @@ bool storySeparate(int unit, std::vector<Event>& events);
 // run later, from settle(), because killUnit may be inside a sweep. {unit, killer}.
 void flushLostCarried(std::vector<Event>& events);
 std::vector<std::pair<int, int>> lostCarried_;
+
+// ---- skills, step K1 (skills.cpp, skill_standing.cpp) ----
+// The effects of the unit's "always" blocks whose conditions hold, in skill-list order. `unconditionedOnly` looks only
+// at blocks without conditions: what the HP stat asks, so that judging an `hp` condition never asks for itself.
+void standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out) const;
+int skillGrowthBonus(const Unit& u, int stat) const;  // the "growths" effects of its skills, in % points
+int moveCostCap(const Unit& u) const;                 // the lowest "maxMoveCost" it has, 0 = none
+bool passesEnemies(const Unit& u) const;              // has "pass": enemies
+// Adds `skill` to Unit::learned unless it is there; true when it was added.
+bool learnSkill(Unit& u, int skill) const;

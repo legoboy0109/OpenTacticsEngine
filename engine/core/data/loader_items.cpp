@@ -125,7 +125,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!c.statMap(db, e, "bonus", where, it.bonus)) return false;
       bool any = false;
       for (int v : it.bonus) any = any || v != 0;
-      if (!any && it.skills.empty()) return c.fail(where, "an accessory needs a \"bonus\" that changes at least one stat");
+      if (!any && it.skills.empty()) return c.fail(where, "an accessory needs a \"bonus\" that changes at least one stat, or \"skills\"");
     }
     db.items.push_back(it);
   }
