@@ -72,12 +72,28 @@ TEST(hex_loader_refuses_bad_game_grids) {
   CHECK(has(e, "grid"));
 }
 
-TEST(hex_loader_refuses_styles_that_are_not_top_down) {
-  const char* kinds[] = {"isometric", "isometric-3d", "3d"};
+TEST(hex_loader_refuses_the_3d_styles_and_a_tile_height) {
+  const char* kinds[] = {"isometric-3d", "3d"};
   for (const char* k : kinds) {
     std::string e = refusal("st", hexGrid("pointy"), "", okMap(), std::string("\"styles\": [{\"id\":\"iso\",\"view\":\"") + k + "\"}],");
-    CHECK(has(e, std::string("game.json: style \"iso\": the \"") + k + "\" view is not available for hexagon games yet (only \"top-down\")"));
+    CHECK(has(e, std::string("game.json: style \"iso\": the \"") + k + "\" view is not available for hexagon games yet (only \"top-down\" and \"isometric\")"));
   }
+  // 2D isometric works on hexagons; its squash is fixed, so tileHeight is refused (tileWidth, heightStep, unitWidth stay).
+  std::string e = refusal("st3", hexGrid("flat"), "", okMap(),
+                          "\"styles\": [{\"id\":\"iso\",\"view\":\"isometric\",\"isometric\":{\"tileWidth\":48,\"tileHeight\":24}}],");
+  CHECK(has(e, "game.json: style \"iso\" \"isometric\": \"tileHeight\" is not used on hexagon games"));
+  Database dbi;
+  MapDef mi;
+  CHECK_STR(tryLoad(makeGame("st4", hexGrid("pointy"), "", okMap(),
+                             "\"styles\": [{\"id\":\"iso\",\"view\":\"isometric\",\"isometric\":{\"tileWidth\":40,\"heightStep\":6,\"unitWidth\":20}}],"),
+                    dbi, mi), "");
+  CHECK(dbi.styles[0].view == StyleView::Isometric && dbi.styles[0].iso.tileWidth == 40 && dbi.styles[0].iso.tileHeight == 0);
+  // The same block on a square game keeps tileHeight.
+  Database dbs;
+  MapDef ms;
+  CHECK_STR(tryLoad(makeGame("st5", "", "", okMap("square"),
+                             "\"styles\": [{\"id\":\"iso\",\"view\":\"isometric\",\"isometric\":{\"tileHeight\":24}}],"),
+                    dbs, ms), "");
   Database db;
   MapDef m;
   CHECK_STR(tryLoad(makeGame("st2", hexGrid("pointy"), "", okMap(), "\"styles\": [{\"id\":\"a\"},{\"id\":\"b\",\"view\":\"top-down\"}],"), db, m), "");

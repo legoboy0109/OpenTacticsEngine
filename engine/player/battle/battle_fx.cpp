@@ -18,11 +18,21 @@ void drawFloats(Renderer& r, const DrawCtx& c, bool screenSpace) {
       // The float belongs to the square under it: start above the unit standing
       // there, keeping the few pixels by which stacked floats are spread.
       int t = c.layout.tile;
-      float row = std::floor((f.y + t * 0.5f) / t);
       int sx, sy;
-      c.toScreen(f.x, (row + 0.5f) * t, sx, sy);
+      float spread;  // where the float is, measured from the top of the unit's tile box on that square
+      if (c.battle.grid.isHex()) {  // the hexagon under it: floats start 2 pixels above the unit's tile box
+        Cell cell = cellNearPos(c.battle.grid, t, f.x - t * 0.5f, f.y + 2);
+        float mx, my;
+        cellCentre(c.battle.grid, t, cell, mx, my);
+        c.toScreen(f.x, my, sx, sy);
+        spread = f.y - (my - t * 0.5f);
+      } else {
+        float row = std::floor((f.y + t * 0.5f) / t);
+        c.toScreen(f.x, (row + 0.5f) * t, sx, sy);
+        spread = f.y - row * t;
+      }
       x = sx;
-      y = sy - c.proj->unitW() - c.layout.lh + (int)(f.y - row * t) - rise;
+      y = sy - c.proj->unitW() - c.layout.lh + (int)spread - rise;
     }
     Color col = f.color;
     if (k > 0.7f) col.a = (uint8_t)(255 * (1 - (k - 0.7f) / 0.3f));  // fade out at the end

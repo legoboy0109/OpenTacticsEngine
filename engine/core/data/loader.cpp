@@ -254,8 +254,9 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     else if (view == "isometric-3d") st.view = StyleView::Isometric3D;
     else if (view == "3d") st.view = StyleView::Full3D;
     else return c.fail(where, "\"view\" must be \"top-down\", \"isometric\", \"isometric-3d\" or \"3d\"");
-    if (db.gridType == GridType::Hex && st.view != StyleView::TopDown)  // later steps of docs/HEX.md lift this
-      return c.fail(where, "the \"" + view + "\" view is not available for hexagon games yet (only \"top-down\")");
+    // The 3D kinds on hexagons are a later step of docs/HEX.md (hexGameAllowsView lists what is built).
+    if (db.gridType == GridType::Hex && !hexGameAllowsView(st.view))
+      return c.fail(where, "the \"" + view + "\" view is not available for hexagon games yet (only \"top-down\" and \"isometric\")");
     const Json* iso;
     if (!c.object(j, "isometric", where, iso)) return false;
     if (j.has("isometric")) {
@@ -265,6 +266,8 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
         return false;
       if (iso->has("tileWidth") && (st.iso.tileWidth < 8 || st.iso.tileWidth > 512 || st.iso.tileWidth % 2))
         return c.fail(iw, "\"tileWidth\" must be an even number from 8 to 512");
+      if (iso->has("tileHeight") && db.gridType == GridType::Hex)  // the squash of a hexagon is fixed (docs/HEX.md)
+        return c.fail(iw, "\"tileHeight\" is not used on hexagon games (the squash is fixed; \"tileWidth\" sets the size)");
       if (iso->has("tileHeight") && (st.iso.tileHeight < 4 || st.iso.tileHeight > 256 || st.iso.tileHeight % 2))
         return c.fail(iw, "\"tileHeight\" must be an even number from 4 to 256");
       if (iso->has("heightStep") && (st.iso.heightStep < 0 || st.iso.heightStep > 128))

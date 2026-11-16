@@ -21,7 +21,8 @@ export interface ProjectInfo { id: string; name: string; description: string; au
 /** `grid` = the template's grid (game.json): { type: 'square' } or { type: 'hex', layout: 'pointy' | 'flat' }. */
 export interface TemplateInfo { id: string; name: string; description: string; grid?: { type: string; layout?: string } }
 export interface FontInfo { id: string; name: string; size: number; smooth: boolean }
-export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number }
+/** `hexViews` = the kinds of view a hexagon game may use with this build (absent on older helpers: top-down only). */
+export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number; hexViews?: string[] }
 export interface FileInfo { path: string; size: number }
 /** `campaign: false` removes data/campaign.json, `audio: false` removes data/audio.json (null / absent leave them alone). */
 export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign' | 'audio'>> { baseRevision: string; campaign?: ProjectDoc['campaign'] | false; audio?: ProjectDoc['audio'] | false }

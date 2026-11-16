@@ -114,6 +114,9 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor,
 // The same for the isometric kind of view (iso_draw.cpp; rules: docs/VIEWS.md).
 void drawMapIso(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor, bool showCursor);
 
+// The same for a hexagon map (hex_iso_draw.cpp; rules: docs/HEX.md "2D isometric").
+void drawMapHexIso(Renderer& r, const DrawCtx& c, const Overlay& overlay, Cell cursor, bool showCursor);
+
 // One structure (picture or placeholder block, owner frame, highlight re-tint on
 // its footprint). Lives in structure_draw.cpp; drawMap calls it in sorted order.
 void drawStructure(Renderer& r, const DrawCtx& c, int structure, int camX, int camY, const Overlay& overlay);
