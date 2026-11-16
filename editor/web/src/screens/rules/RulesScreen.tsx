@@ -13,6 +13,7 @@ import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
 import { ResearchRuleCard } from './ResearchRuleCard'
 import { SupplyCard } from './SupplyCard'
+import { SrpgRulesCards } from './srpg/SrpgRulesCards'
 import { SwitchesCard, VariablesCard } from './StoryListsCards'
 import { StatsCard } from './StatsCard'
 import { T } from './text'
@@ -41,6 +42,7 @@ function RulesForm() {
       <MoveTypesCard />
       <BattleCard />
       <FeaturesCard />
+      <SrpgRulesCards />
       <SupplyCard />
       <ResearchRuleCard />
       <FogRuleCard />

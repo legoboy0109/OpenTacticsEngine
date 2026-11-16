@@ -692,3 +692,34 @@ Code: `editor/web/src/learn/`. Wording: `learn/text.ts` (the framework) and `lea
   engine loading the game; helpers in `learntopic.ts`), `learn-ring-room` (the ring above a dialog, the map options above the phone sheet), `learn-state` (offer, resume, stop and continue, skip, deleted game, numbering, no lesson = as before), `learn-layout`
   (phone, laptop, wide window, the ring). Every Learn spec starts its own helper with an empty temporary `--learn-file` (`tests/e2e/learnkit.ts`);
   the shared helper starts with "offer answered" so the game list looks as before for every other spec.
+
+## Strategy-RPG skeleton (editor step E0 of docs/SRPG.md)
+
+Contract: docs/SRPG.md "Editor". E0 only lays the shared places; the screens and cards are filled by E1 (characters), E2 (skills),
+E3 (abilities, promotion, carrying) and E4 (supports), each in its own files, so the steps can run side by side.
+
+- **Document**: `ProjectDoc` gains `characters`, `skills`, `abilities` (lists) and `supports` (object), each `null` when the game has no file
+  (`model/srpgTypes.ts`; helpers `withCharacters` / `withSkills` / `withAbilities` / `withSupports` in `model/doc.ts`). Unit types, weapons, items and
+  game rules gain the optional keys of the contract in `model/types.ts`; map units gain `character`. **Saving** (`store/autosave.ts`): a list that
+  changed is sent; an empty list means "remove the file" (the helper does it), and so does `supports: false`. So an empty feature is never a file, and a
+  game that does not use the features never gets one. Supports with no pair and no setting count as empty too (`supportsEmpty`).
+- **Switches** (`model/srpgFeatures.ts`, Rules card "Strategy-RPG features" in `screens/rules/srpg/FeatureSwitchesCard.tsx`): a feature is on when its
+  list or file exists in the document. Switching on creates it empty and the screen appears in the sidebar after Units; switching off asks first when
+  something is in it, and removes the feature's items from everything that names them (`switchOffFeature`, in one undo step). Supports need characters.
+  Known limit, by the contract's own rule above: a feature that is on but still empty is forgotten when the page is reloaded.
+- **Sidebar and routes**: `Section` gains `characters`, `skills`, `abilities`, `supports` (`/p/<id>/characters/<item>` etc.), listed only when the
+  feature is on or the screen is the open one (`srpgSectionShown`). A problem in one of the four files goes to its screen's dot (`model/problems.ts`).
+  The screens are empty frames (`screens/srpg/SrpgScreen.tsx`): switched off (link to Rules), unreadable file (the loader's words), or the screen
+  itself, which E1 to E4 put in the frame (`screens/<name>/<Name>Screen.tsx`).
+- **Where later steps plug in** (each a file of its own that currently renders nothing): Rules `screens/rules/srpg/CarryingCard.tsx`,
+  `PromotionRulesCard.tsx` (E3); unit type `screens/units/srpg/UnitSkillsCard.tsx` (E2), `UnitAbilitiesCard.tsx`, `UnitPromotionCard.tsx`,
+  `UnitPairBonusCard.tsx` (E3); weapon `screens/weapons/srpg/WeaponSkillsCard.tsx` (E2); item `screens/items/srpg/ItemSkillsCard.tsx` (E2),
+  `ItemPromotionCard.tsx` (E3). The forms mount only the group file (`UnitSrpgCards`, `WeaponSrpgCards`, `ItemSrpgCards`, `SrpgRulesCards`).
+  Shared wording is in `screens/srpg/text.ts`; each screen adds its own `text.ts`.
+- **References** (`model/srpgRefs.ts`): `newCharacterId` (also avoids the story ids of map units), `newSkillId`, `newAbilityId`;
+  `characterUsageLines` / `skillUsageLines` / `abilityUsageLines` for the delete question; `deleteCharacter` / `deleteSkill` / `deleteAbility` clean
+  every reference in the same edit. Story commands that name these (teach / forget a skill, promote, support points) are added to `storyRefs.ts` by
+  the step that adds the form. Not done in E0: deleting a unit type does not yet look at characters of that type or promotions into it (E1 / E3).
+- **Problems**: the loader's refusals for the four files reach the Problems panel as they are. The editor-side checks of the contract (unused skill,
+  promotion item nobody hands out, ...) belong to the steps that own the data (E1 to E4).
+- **Tests**: unit `tests/unit/srpg.test.ts`; API `tests/editor_api_srpg_checks.py`; e2e `tests/e2e/srpg-skeleton.spec.ts`.

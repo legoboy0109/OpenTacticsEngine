@@ -8,6 +8,10 @@ export function problemTarget(file: string, doc: ProjectDoc | null): ProblemTarg
   if (file === 'data/weapons.json') return { section: 'weapons' }
   if (file === 'data/terrain.json') return { section: 'terrain' }
   if (file === 'data/items.json') return { section: 'items' }
+  if (file === 'data/characters.json') return { section: 'characters' }
+  if (file === 'data/skills.json') return { section: 'skills' }
+  if (file === 'data/abilities.json') return { section: 'abilities' }
+  if (file === 'data/supports.json') return { section: 'supports' }
   if (file === 'data/research.json') return { section: 'research' }
   if (file === 'data/campaign.json') return { section: 'campaign' }
   if (file === 'data/structures.json') return { section: 'structures' }

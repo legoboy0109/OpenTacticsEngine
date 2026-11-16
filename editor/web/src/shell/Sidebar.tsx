@@ -1,4 +1,5 @@
 import { problemTarget } from '../model/problems'
+import { srpgSectionShown } from '../model/srpgFeatures'
 import { SECTIONS, type Section } from '../model/types'
 import { Link, projectPath } from '../router'
 import { useProject, useStore } from '../store/context'
@@ -7,6 +8,10 @@ export const SECTION_LABEL: Record<Section, string> = {
   game: 'Game',
   rules: 'Rules',
   units: 'Units',
+  characters: 'Characters',
+  skills: 'Skills',
+  abilities: 'Abilities',
+  supports: 'Supports',
   weapons: 'Weapons',
   items: 'Items',
   terrain: 'Terrain',
@@ -30,7 +35,7 @@ export function Sidebar({ current }: { current: Section }) {
   return (
     <nav className="sidebar" aria-label="Sections">
       <ul>
-        {SECTIONS.map((s) => (
+        {SECTIONS.filter((s) => srpgSectionShown(doc, s, current)).map((s) => (
           <li key={s}>
             <Link to={projectPath(store.id, s)} className="nav-link" data-learn={`nav-${s}`} aria-current={s === current ? 'page' : undefined}>
               {SECTION_LABEL[s]}

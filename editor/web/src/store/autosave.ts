@@ -2,6 +2,7 @@
 // conflict state that stops everything until the user decides.
 import type { Api, PutBody, Result } from '../api/client'
 import { dropEmptyOwners } from '../model/structuresConvert'
+import { supportsEmpty } from '../model/srpgFeatures'
 import type { Problem, ProjectDoc } from '../model/types'
 
 export type SaveState = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
@@ -26,7 +27,7 @@ interface Deps {
 /** Browsers cap keepalive request bodies at 64 KB. */
 const KEEPALIVE_LIMIT = 60_000
 
-const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign', 'audio'] as const
+const SECTIONS = ['game', 'terrain', 'structures', 'items', 'research', 'weapons', 'units', 'graphics', 'campaign', 'audio', 'characters', 'skills', 'abilities', 'supports'] as const
 
 /** Only what changed since the last save goes over the wire; sections that
  *  failed to load (null) are never sent. `all` sends every loadable part. */
@@ -39,12 +40,14 @@ export function buildBody(doc: ProjectDoc, saved: ProjectDoc, baseRevision: stri
     // Structures can go back to "none" the same way (undo past the first structure or past Convert): an empty list.
     // For research an empty list removes data/research.json (the loader refuses an empty one).
     const value = k === 'graphics' && doc.graphics === null && saved.graphics !== null ? { sheets: [] }
-      : (k === 'structures' || k === 'items' || k === 'research') && doc[k] === null && saved[k] !== null ? []
+      : (k === 'structures' || k === 'items' || k === 'research' || k === 'characters' || k === 'skills' || k === 'abilities') && doc[k] === null && saved[k] !== null ? []
         // The campaign likewise (Remove the campaign, or undo past Create): `false` deletes the file.
         : k === 'campaign' && doc.campaign === null && saved.campaign !== null ? false
           // Removing all sound (or undoing past the first track) likewise deletes data/audio.json.
           : k === 'audio' && doc.audio === null && saved.audio !== null ? false
-            : doc[k]
+            // Supports: removed (`false`) when gone or when nothing is in it (model/srpgFeatures.ts).
+            : k === 'supports' ? (!doc.supports ? (saved.supports ? false : null) : supportsEmpty(doc.supports) ? false : doc.supports)
+              : doc[k]
     if (value !== null && (all || doc[k] !== saved[k])) { (body as unknown as Record<string, unknown>)[k] = value; any = true }
   }
   const maps: Record<string, NonNullable<ProjectDoc['maps'][string]>> = {}

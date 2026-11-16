@@ -3,6 +3,10 @@ import type { Route } from '../router'
 import { Link } from '../router'
 import { GameScreen } from '../screens/game/GameScreen'
 import { CampaignScreen } from '../screens/campaign/CampaignScreen'
+import { AbilitiesScreen } from '../screens/abilities/AbilitiesScreen'
+import { CharactersScreen } from '../screens/characters/CharactersScreen'
+import { SkillsScreen } from '../screens/skills/SkillsScreen'
+import { SupportsScreen } from '../screens/supports/SupportsScreen'
 import { ArtScreen } from '../screens/art/ArtScreen'
 import { SoundScreen } from '../screens/sound/SoundScreen'
 import { ItemsScreen } from '../screens/items/ItemsScreen'
@@ -30,6 +34,10 @@ function Screen({ route }: { route: ProjectRoute }) {
     case 'game': return <GameScreen />
     case 'rules': return <RulesScreen />
     case 'units': return <UnitsScreen itemId={route.itemId} />
+    case 'characters': return <CharactersScreen itemId={route.itemId} />
+    case 'skills': return <SkillsScreen itemId={route.itemId} />
+    case 'abilities': return <AbilitiesScreen itemId={route.itemId} />
+    case 'supports': return <SupportsScreen itemId={route.itemId} />
     case 'weapons': return <WeaponsScreen itemId={route.itemId} />
     case 'items': return <ItemsScreen itemId={route.itemId} />
     case 'terrain': return <TerrainScreen itemId={route.itemId} />

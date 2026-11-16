@@ -24,7 +24,13 @@ export interface FontInfo { id: string; name: string; size: number; smooth: bool
 export interface ApiInfo { engine: string; apiVersion: number; formatVersion: number }
 export interface FileInfo { path: string; size: number }
 /** `campaign: false` removes data/campaign.json, `audio: false` removes data/audio.json (null / absent leave them alone). */
-export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign' | 'audio'>> { baseRevision: string; campaign?: ProjectDoc['campaign'] | false; audio?: ProjectDoc['audio'] | false }
+export interface PutBody extends Partial<Omit<ProjectDoc, 'campaign' | 'audio' | 'supports'>> {
+  baseRevision: string
+  campaign?: ProjectDoc['campaign'] | false
+  audio?: ProjectDoc['audio'] | false
+  /** `false` removes data/supports.json; an empty list of characters / skills / abilities removes its file. */
+  supports?: ProjectDoc['supports'] | false
+}
 export interface PutResult { revision: string; problems: Problem[] }
 /** One PNG in the game's art/ folder (width/height 0 + error when it cannot be read). */
 export interface ArtFile { file: string; width: number; height: number; size: number; error?: string }
