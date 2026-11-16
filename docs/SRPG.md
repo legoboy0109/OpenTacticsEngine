@@ -1529,6 +1529,47 @@ handled in its switch (F1 may not touch the player; U0 adds the cases). Nothing 
 - **Owns.** Those files; one round of edits to `battle_scene.h`, `battle_menus.cpp`, `battle_input.cpp`,
   `battle_view.cpp`. **Accept.** Existing player tests unchanged; the new modes reachable in a unit test with fakes.
 
+#### U0 as built
+
+Inert: no game gains an entry, a mode change or a log line (a game that never emits the new events plays as before;
+all player tests are unchanged). Everything is under `engine/player/battle/` plus `tests/test_srpg_player.cpp`.
+
+**Where each later step plugs in (each in its own small file; nobody edits another step's file).**
+- Menu entries (`BattleScene` members, declared once in `battle_scene.h`): `battle_srpg_menu.cpp` only fixes the
+  order and sends an id to its group; the groups are `battle_menu_supports.cpp` (U5), `battle_menu_abilities.cpp`
+  (U3), `battle_menu_rescue.cpp` (U4), `battle_menu_promotion.cpp` (U2), `battle_menu_info.cpp` (U1: Info in the
+  action menu and Unit in the battle menu). Each file has `add...Entries(items)` (builder) and `...Chosen(id)`
+  (handler, true = taken). Ids are in `srpg_menu_ids.h` (`kAbilityBase` 2000 + n, `kSupportBase` 3000 + n, fixed
+  `kRescue`..`kSwitch`, `kPromote`, `kInfo`, `kUnitEntry`; Talk stays 1000 + n and is now limited to 1000..1999).
+  `battle_menus.cpp` calls the builders after Talk (`addSrpgEntries`), before Wait (`addSrpgInfoEntry`) and in the
+  battle menu after Objective (`addSrpgEndEntries`).
+- Targeting: `beginPickUnit(units, chosen, mark)` and `beginPickCell(cells, chosen, mark)` (`battle_srpg_target.cpp`,
+  logic in `srpg_pick.*`). Cancel returns to the action menu; Confirm clears the mode and calls `chosen` (which
+  normally submits and calls `finishOrder()`). `mark(candidate, overlay)` fills the overlay for the highlighted
+  candidate (`reach` = blue, `attack` = red); square picks mark all legal squares themselves.
+- Unit details: `openUnitInfo(unit)` (`battle_srpg_unitinfo.cpp`); the frame and tabs are `UnitInfoView`
+  (`unit_info.*`). A page is one function `add<Name>Page(pages, battle, unit)` in `unit_info_stats / _skills /
+  _items.cpp` (U1), `_abilities.cpp` (U3), `_supports.cpp` (U5); it adds a `UnitInfoPage` (tab title and a draw
+  function) or nothing. Tab order is fixed in `buildUnitInfoPages`: Stats, Skills, Abilities, Supports, Items.
+- View: `battle_view_srpg.cpp` dispatches the eleven new events to `beginX / progressX / finishX` of one file per
+  area: `battle_view_skills.cpp` (SkillLearned, SkillActivated, UnitHurt; U1), `_promotion.cpp` (U2),
+  `_abilities.cpp` (U3), `_rescue.cpp` (UnitRescued, UnitDropped, UnitHanded, PairSwitched; U4), `_supports.cpp` (U5).
+  Same contract as the story hooks: return true when the entry was yours. An entry nobody took logs
+  `srpg event (not shown yet): <Name> a= b= c= d= flags=` and takes no time.
+
+**Readings of the contract.**
+- The contract names one file per kind of thing (`battle_srpg_menu.cpp`, `battle_view_srpg.cpp`); the per-area files
+  above are the split asked for by "so the later steps can run in parallel". `battle_scene.cpp` got three one-line
+  edits (hint, overlay choice while picking, drawing the details overlay) and the root `CMakeLists.txt` a block that
+  adds the SDL-free player files to `ote_tests`; neither was named in "Owns".
+- Two new `Mode`s instead of one: `PickUnit` and `PickCell`; plus `Mode::UnitInfo`.
+- Carried units: `BattleView::resync` draws a unit only when `alive && carriedBy < 0`. Without a step-U4 animation,
+  `UnitRescued` hides the carried unit and `UnitDropped` / `PairSwitched` show the one that comes back, at the square
+  of the event (done in `battle_view_srpg.cpp` when no area took the entry).
+- The tests reach the new modes through the pure parts (`PickList`, `UnitInfoView` with fake pages and a fake
+  renderer, `srpgGroupOf`, a `BattleView` fed all eleven events); the scene itself needs a window and is covered by
+  the unchanged player scripts.
+
 ### U1. Player: skills and unit details — depends on K2, U0
 Forecast rows and notes, activation labels, `SkillLearned` in the level-up box, the info panel rows, the Unit
 details overlay (Stats, Skills, Items pages; the other pages are added by U3 and U5 as their own files in
