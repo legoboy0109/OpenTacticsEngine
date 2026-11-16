@@ -123,14 +123,14 @@ TEST(srpg_unit_info_with_fake_pages_turns_with_left_right) {
   CHECK(v.onInput(tap) == UnitInfoView::Closed);
 }
 
-TEST(srpg_view_plays_every_new_event_as_a_no_op_that_ends_at_once) {
+TEST(srpg_view_plays_the_unanimated_new_events_as_a_no_op_that_ends_at_once) {
   fixture::World w({"...."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 3, 0, false}});
   CHECK(w.begin());
   BattleView view;
   view.init(w.battle, 24, true);
+  // (the four rescue / pair up entries are animated since step U4: tests/test_srpg_player_rescue.cpp)
   const EventType types[] = {EventType::SkillLearned, EventType::SkillActivated, EventType::UnitHurt,
-                             EventType::UnitPromoted, EventType::AbilityUsed, EventType::UnitRescued,
-                             EventType::UnitDropped, EventType::UnitHanded, EventType::PairSwitched,
+                             EventType::UnitPromoted, EventType::AbilityUsed,
                              EventType::SupportPoints, EventType::SupportReached};
   std::vector<Event> events;
   for (EventType t : types) {
@@ -145,31 +145,6 @@ TEST(srpg_view_plays_every_new_event_as_a_no_op_that_ends_at_once) {
   view.update(0.0, w.battle);
   CHECK(!view.busy());  // nothing to wait for
   CHECK(view.banner.empty());
-}
-
-TEST(srpg_view_hides_a_rescued_unit_and_shows_it_when_dropped) {
-  fixture::World w({"...."}, {{"soldier", 0, 0, 0, false}, {"soldier", 0, 1, 0, false}});
-  CHECK(w.begin());
-  BattleView view;
-  view.init(w.battle, 24, true);
-  CHECK(view.units[1].visible);
-  Event rescued;
-  rescued.type = EventType::UnitRescued;
-  rescued.a = 0;
-  rescued.b = 1;
-  rescued.c = w.at(1, 0);
-  view.push({rescued});
-  view.update(0.0, w.battle);
-  CHECK(!view.units[1].visible);
-  Event dropped;
-  dropped.type = EventType::UnitDropped;
-  dropped.a = 0;
-  dropped.b = 1;
-  dropped.c = w.at(2, 0);
-  view.push({dropped});
-  view.update(0.0, w.battle);
-  // (the rules state still has unit 1 alive and on the board here, so the view shows it where the event says)
-  CHECK(view.units[1].visible);
 }
 
 TEST(srpg_view_resync_does_not_draw_a_carried_unit) {

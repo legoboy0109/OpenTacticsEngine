@@ -69,7 +69,8 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # The player's strategy-RPG shared places (docs/SRPG.md step U0): the pick list, the unit details frame and the
   # battle view with its event hooks, all of it free of SDL.
   file(GLOB PLAYER_SRPG_TEST_SRC CONFIGURE_DEPENDS engine/player/battle/srpg_pick.cpp engine/player/battle/unit_info*.cpp
-       engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp)
+       engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp
+       engine/player/battle/rescue_menu.cpp)
   target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
@@ -125,6 +126,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # The same maps in the 2D isometric view (docs/HEX.md "2D isometric").
     add_test(NAME hex_iso_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/hex_iso_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Carrying and pair up through the real player (docs/SRPG.md step U4).
+    add_test(NAME srpg_player_rescue
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_rescue_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
