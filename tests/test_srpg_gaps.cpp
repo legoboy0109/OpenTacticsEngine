@@ -1,6 +1,7 @@
 // Five small rule gaps of weapon ranks, weapon locks and the foe's weapon (docs/SRPG.md section 7, "Formulas in this
 // document"): addUnit "ranks", "rankXp": 0, "wieldedByTypes", a character's "wields", and `fw.answers`.
 #include "srpg_staves_fixture.h"
+#include "srpg_triangle_fixture.h"
 
 using namespace ote;
 using namespace rankstest;
@@ -78,4 +79,47 @@ TEST(gaps_rank_xp_absent_keeps_the_default_and_bad_values_are_still_refused) {
     c.swap("data/weapons.json", "\"rankXp\": 2", std::string("\"rankXp\": ") + bad);
     CHECK(saysIn(c.gameError(), "\"rankXp\" must be from 1 to 99, or 0 for a weapon that trains nothing"));
   }
+}
+
+// ---- fw.answers ---------------------------------------------------------------------------------------------------------
+
+namespace {
+// The triangle fixture with the damage formula `expr` and the lance reaching only 2 squares (so the lancer cannot answer a
+// neighbour: it holds an answering weapon, out of range).
+tritest::World answersWorld(const char* damage, bool counterRule = true) {
+  return tritest::World("duel", [=](const std::string& dir) {
+    tritest::swapText(dir + "/game.json", "\"damage\":  \"a.str + w.might - b.def + 3 * tri(w, fw)\"", std::string("\"damage\":  \"") + damage + "\"");
+    tritest::swapText(dir + "/data/weapons.json", "\"group\": \"lance\",", "\"group\": \"lance\", \"range\": [2, 2],");
+    if (!counterRule) tritest::swapText(dir + "/game.json", "\"counterAttacks\": true", "\"counterAttacks\": false");
+  });
+}
+}  // namespace
+
+TEST(gaps_fw_answers_is_set_only_when_the_foe_really_answers) {
+  // base 5 + 5 - 2 = 8; +100 when fw.answers; +1000 when it is nil (not merely 0).
+  const char* f = "a.str + w.might - b.def + (fw.answers and 100 or 0) + (fw.answers == nil and 1000 or 0)";
+  tritest::World w = answersWorld(f);
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").attack.damage, 8 + 100);   // the axeman answers at range 1
+  CHECK_EQ(w.forecast("sw", "la", "iron_sword").attack.damage, 8 + 1000);  // the lancer holds a lance, out of range: fw is it, no answer
+  CHECK(!w.forecast("sw", "la", "iron_sword").counter.can);
+  CHECK_EQ(w.forecast("sw", "mk", "iron_sword").attack.damage, 8 + 1000);  // the empty fw: answers is nil, not a truthy 0
+  // The default of fw itself is unchanged: out of range it is still the lance.
+  tritest::World g = answersWorld("(fw.id == 'iron_lance' and 7 or 0)");
+  CHECK_EQ(g.forecast("sw", "la", "iron_sword").attack.damage, 7);
+  // A counter: the foe is the attacker, whose weapon is certainly in use.
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").counter.damage, 5 + 6 - 2 + 100);
+}
+
+TEST(gaps_fw_answers_follows_the_counter_rule) {
+  tritest::World w = answersWorld("a.str + w.might - b.def + (fw.answers and 100 or 0)", false);
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").attack.damage, 8);  // counterAttacks off: nobody answers
+}
+
+TEST(gaps_fw_answers_a_weapon_prop_of_that_name_wins) {
+  tritest::World w("duel", [](const std::string& dir) {
+    tritest::swapText(dir + "/game.json", "\"damage\":  \"a.str + w.might - b.def + 3 * tri(w, fw)\"", "\"damage\": \"fw.answers or -1\"");
+    tritest::swapText(dir + "/data/weapons.json", "\"might\": 6, \"weight\": 5", "\"might\": 6, \"answers\": 42, \"weight\": 5");
+  });
+  CHECK_EQ(w.forecast("sw", "ax", "iron_sword").attack.damage, 42);  // the game's own prop
+  CHECK_EQ(w.forecast("sw", "la", "iron_sword").attack.damage, 1);   // nil -> -1, clamped to the least damage
 }

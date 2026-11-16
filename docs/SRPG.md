@@ -130,6 +130,18 @@ end
 ```
 A game that never writes `fw` computes exactly as before (the extra variable costs nothing it can see).
 
+**`fw.answers`: does the foe really answer?** `fw` is the foe's answering weapon even when it is out of range for a counter
+(the default, unchanged). In the strike formulas (`damage`, a weapon's `damage`, `hit`, `crit`, `strikes`) `fw` also carries
+`answers = 1` when the foe can actually counter in this fight with it (the rule `counterAttacks` is on, the weapon is in range,
+and nothing like a "cannot be countered" skill stops it: the very answer the combat pipeline already judged, `CombatSetup::counters`).
+When the foe cannot answer, `fw.answers` is `nil` (false) - also on the empty `fw` (`fw.none`), where it is not the 0 that
+every other missing number reads. In the counterattack, where the foe is the attacker, whose weapon is in use by definition, it
+is `1`. A weapon prop of the same name wins, like `id` and `group`. It is not set in skills' `formula` conditions and `chance`
+expressions (they are judged while the combat's answer is still being worked out) nor outside a fight.
+```jsonc
+"damage": "a.str + w.might - b.def + ((fw.answers or fw.none) and 0 or 3)"   // +3 against a foe that holds a weapon but cannot use it at this range
+```
+
 Unit stats inside every formula are the stats **as the rules see them** (`Battle::stat`): own value, accessories,
 research, standing skill bonuses, carry penalty and pair bonus; inside a combat also the combat bonuses to stats
 (see "Combat pipeline").
@@ -1266,7 +1278,8 @@ characters and map units; loaded before the weapons, groups built right after th
 forecast, `doStrike` and every AI score go through; foe weapon = `counter ? setup.weaponA : setup.weaponD`) and in the skill
 `formula` condition and `chance` expression (`skill_cond.cpp`, `skill_fx.cpp`, from `SkillCtx::foeWeapon`, which was already there).
 - `fw` is the foe's **answering** weapon: the first of its weapons with `counter` that may target `a` (the equipped one with carried
-  weapons, which `canWieldNow` already filters), also when it is out of range. A foe holding only a non-`counter` weapon (a bow with
+  weapons, which `canWieldNow` already filters), also when it is out of range; `fw.answers` (`FormulaCtx::fwAnswers`, set in
+  `strikeForecast` from `CombatSetup::counters`, so no extra pass) says whether it really can answer. A foe holding only a non-`counter` weapon (a bow with
   `counter: false`) counts as having none.
 - The xp, capture and `canCarry` formulas do not have `w` either, so `fw` is empty there. Passing the fight's two weapons to the xp
   formulas was left out.

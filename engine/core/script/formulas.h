@@ -29,6 +29,10 @@ struct FormulaCtx {
   // when `a` strikes, the attacker's weapon in a counter. Null = none (unarmed, cannot wield, out of ammunition) or
   // a context without a fight: the formula then sees the "empty" table (`fw.none`), never nil.
   const WeaponDef* fw = nullptr;
+  // `fw.answers = 1`: the foe really answers with `fw` in this fight (in range, may counter). Only the strike formulas set it
+  // (Battle::strikeForecast, from CombatSetup::counters); everywhere else `fw.answers` is absent. A prop of the weapon named
+  // "answers" wins, like "id" and "group".
+  bool fwAnswers = false;
   // Numbers of the square under `a` / `b` (Battle::numbersAt: terrain merged with structure).
   const Props* ta = nullptr;
   const Props* tb = nullptr;
@@ -74,7 +78,7 @@ class Formulas {
  private:
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
   double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def, bool nilIsZero = false);
-  void pushFoeWeapon(const WeaponDef* fw);
+  void pushFoeWeapon(const WeaponDef* fw, bool answers);
   void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus);
 
   const Database* db_ = nullptr;
