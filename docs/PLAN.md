@@ -160,6 +160,10 @@ goal (demos only exercise features).
         menu (uses the turn) and the current "stand on it" trigger.
       - Computer opponent: the maker marks per placed unit whether it goes for chests (taking the item),
         destroys villages, or opens doors with its own keys; unmarked units ignore them.
+      6 dialogue choices (after doors; owner, 2026-11-16: "go ahead"). Assistant's default scope, for the
+      owner to correct: a story command that asks a question with two to four answers, in campaign scenes and
+      map events; each answer runs its own commands (lines, switches, items, joining units); a campaign can
+      branch to a different chapter on an answer; the answer is saved; the simulator takes the first answer.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
