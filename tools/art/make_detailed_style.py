@@ -6,11 +6,12 @@ ground pictures and animated character models. The source packs are not in
 this repository; download them (see games/demo-srpg/CREDITS.md) and point
 this script at the folders:
 
-  make_detailed_style.py --kaykit DIR --animals DIR --weapons DIR --textures DIR [repo]
+  make_detailed_style.py --kaykit DIR --animals DIR --weapons DIR --hound DIR --textures DIR [repo]
 
   DIR for --kaykit:   holds Knight.glb, Barbarian.glb, Mage.glb, Rogue_Hooded.glb
   DIR for --animals:  holds Horse.glb (Quaternius "Low Poly Animals")
   DIR for --weapons:  holds Spear.glb, Bow.glb (Quaternius "Low Poly Weapons", the Wooden Bow)
+  DIR for --hound:    holds Husky.glb (Quaternius "Husky", poly.pizza/m/wcWiuEqwzq)
   DIR for --textures: holds the *_Color.jpg files of the ambientCG materials below
 
 It writes art/detailed_tiles.png, models/detailed/*.glb (the units cut from the packs and combined with weapons, mounts and wings (make_detailed_units.py), and the
@@ -28,6 +29,7 @@ import sys
 
 from PIL import Image, ImageFilter
 
+import make_detailed_promoted
 import make_detailed_units
 import make_terrain_models
 
@@ -102,6 +104,7 @@ def main():
     ap.add_argument('--kaykit', required=True)
     ap.add_argument('--animals', required=True)
     ap.add_argument('--weapons', required=True)
+    ap.add_argument('--hound', required=True)
     ap.add_argument('--textures', required=True)
     ap.add_argument('repo', nargs='?', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
     args = ap.parse_args()
@@ -113,8 +116,10 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     # These models have one material for everything, so nothing takes the side's colour;
     # the marker under the unit's feet shows the side.
+    heights = make_detailed_units.build_all(args.kaykit, args.animals, args.weapons, out_dir)
+    heights.update(make_detailed_promoted.build_all(args.kaykit, args.animals, args.weapons, args.hound, out_dir))
     units = {uid: {'model': 'models/detailed/%s.glb' % uid, 'height': height, 'sideMaterial': ''}
-             for uid, height in make_detailed_units.build_all(args.kaykit, args.animals, args.weapons, out_dir).items()}
+             for uid, height in heights.items()}
 
     piece = {
         'sheets': [{'id': 'detailed_tiles', 'file': 'art/detailed_tiles.png', 'cellWidth': CELL, 'cellHeight': CELL,

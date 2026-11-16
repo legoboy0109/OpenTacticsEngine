@@ -96,8 +96,10 @@ def build_armed(kaykit, weapons, uid):
     return finish(g, list(r['clips']))
 
 
-def build_rider(kaykit, animals, uid):
-    r = RIDERS[uid]
+def build_rider(kaykit, animals, uid, r=None):
+    """A rider on the horse. `r` is the recipe (default: RIDERS[uid]); its optional `extra(g, rider_lo, rider_hi)` runs
+    once the rider is seated (dress it: parts, blocks, tints) and `late(g)` once the clips exist (steer a hung weapon)."""
+    r = r or RIDERS[uid]
     horse = ga.load_trimmed(os.path.join(animals, 'Horse.glb'), keep=[(k, ga.HORSE_PREFIX + v) for k, v in HORSE_CLIPS.items()])
     rider = ga.load_trimmed(os.path.join(kaykit, r['char'] + '.glb'), r['drop'],
                             [('Sit', 'Sit_Chair_Pose'), ('Hold', r['hold']), ('Attack', r['attack'])])
@@ -117,6 +119,8 @@ def build_rider(kaykit, animals, uid):
     for side, sign in (('l', 1), ('r', -1)):
         ga.rotate_joint(g, 'upperleg.' + side, (0, 0, 1), sign * 38, off, hi)
     ga.seat_rider(g, roots[0], off, hi, 'Body', r['seat'], r['size'])
+    if r.get('extra'):
+        r['extra'](g, off, hi)
     # clips: horse's own, plus the rider's arms for the attack
     horse_nodes = lambda n: n < off
     rider_upper = lambda n: n >= off and g.doc['nodes'][n].get('name') in UPPER
@@ -135,6 +139,8 @@ def build_rider(kaykit, animals, uid):
         g.new_clip(state, pieces, dur)
     g.doc['animations'] = g.doc['animations'][base:]
     g.rebind_rest()
+    if r.get('late'):
+        r['late'](g)
     return finish(g, list(states))
 
 
