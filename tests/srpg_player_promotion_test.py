@@ -140,9 +140,14 @@ def main():
               and hue_count(r.pic, C['captain'], 80, 200, 90, 160) < 50)
         r = R('screen_cancel', 'choose', base + ',cancel,wait:2')
         check('Cancel on the screen goes back to the action menu', len(r.lines('promote entry for Kell')) == 2, r.log[-400:])
+        r = R('tap_select', 'choose', base + ',tap:40:118,wait:2')  # (the Scout row; a first tap only selects)
+        check('a first tap on a row only selects it', r.pic and hue_count(r.pic, C['scout'], 80, 200, 90, 160) > 400 and not r.lines('promotion plays'))
+        r = R('tap_pick', 'choose', base + ',tap:40:118,tap:40:118,wait:5')
+        check('a second tap on the selected row picks it', r.lines('promotion plays: Kell, Recruit to Scout'), r.log[-300:])
+        r = R('tap_outside', 'choose', base + ',tap:300:20,wait:2')
+        check('a tap outside the screen goes back', len(r.lines('promote entry for Kell')) == 2, r.log[-300:])
         r = R('scout_pick', 'choose', base + ',down,confirm,wait:5')
         check('Confirm on the scout plays the promotion', r.lines('promotion plays: Kell, Recruit to Scout, level 3'), r.log[-400:])
-        check('the unit is still drawn as a recruit while it flashes?', r.pic is not None)
         r = R('scout_done', 'choose', base + ',down,confirm' + done_pause)
         check('the save has Kell as a scout at level 3 (this promotion keeps the level)',
               types_of(r).get('kell') == T['scout'] and r.unit('kell').get('level') == 3, r.unit('kell'))
@@ -153,7 +158,6 @@ def main():
         base = START + ',next,' + PICK
         r = R('question', 'choose', base + ',confirm,wait:2')
         check('Promote with one type asks', r.lines('promotion question: Rider'), r.log[-400:])
-        check('the question box is drawn (a dim veil over the map)', r.pic is not None)
         r = R('question_no', 'choose', base + ',confirm,confirm,wait:2')
         check('No (the first button) goes back to the action menu', len(r.lines('promote entry for Bram')) == 2, r.log[-400:])
         r = R('question_cancel', 'choose', base + ',confirm,cancel,wait:2')

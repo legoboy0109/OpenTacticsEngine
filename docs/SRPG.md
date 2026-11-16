@@ -2035,6 +2035,64 @@ details overlay (Stats, Skills, Items pages; the other pages are added by U3 and
 Promote entry, the question box, the promotion screen (`battle/promotion_screen.cpp`), `UnitPromoted` animation
 and banner, sprite change.
 
+#### U2 as built
+
+Promotion plays in the player as "Player UI > Promotion" says; a game without promotions shows nothing new (the
+player scripts of every other game are unchanged).
+
+- **Files.** `battle_menu_promotion.cpp` (the Promote entry, the question box, opening and answering the screen, the
+  picture of a type), `promotion_screen.*` (the screen: list and details, keyboard, pointer, touch), `promotion_text.*`
+  (SDL-free: what a promotion gives as text, `previewPromotion`, the question, the banner), `battle_view_promotion.cpp`
+  (`UnitPromoted`). Tests: `tests/test_srpg_player_promotion.cpp` (text and view timing), `tests/srpg_player_promotion_test.py`
+  with its games in `tests/srpg_promo_games.py` (ctest `srpg_promotion_player`).
+- **Flow.** Promote (an offer at a level) or a promotion item in the item list, used on the unit itself, both go
+  through `openPromotion(slot, types)` with `Battle::promotionOptions`: one type asks, several open the screen
+  (new `Mode::Promotion`). Confirm submits `Action::promote(unit, to)` or `Action::useItem(unit, slot, unit)` with
+  `unitType = to`, then `finishOrder()`. Cancel / No / a tap outside go back to the action menu (Promote) or the item
+  list (item). The screen's list answers like the item panel: a first tap selects, a tap on the selected row picks.
+- **Animation.** `UnitPromoted`: the unit flashes white (the same wash as a side change); at the brightest moment its
+  picture changes to the new type (`UnitView::type` holds the OLD type from `push` until then and every drawer reads
+  it through `shownType`: sprite, placeholder letter, 3D model in both 3D views, 2D isometric); then the banner for
+  0.9 s; then the stat box until Confirm (an AI side and autoplay: 1.2 s). An automatic promotion is the same entry
+  right after its level-up box, so its banner follows that box.
+- **Log lines the script tests read:** `promote entry for Kell: Captain, Scout`, `promotion question: Captain` /
+  `promotion screen: Captain, Scout`, `promotion plays: Kell, Recruit to Scout, level 3`.
+
+New wording (all placeholder): entry **Promote**; question `Promote Kell to Captain?` then the changes (`+6 hp, +3
+atk, +2 def`, or `No stat changes`) and, when the level resets, `Back to level 1`, with buttons **Yes** / **No**;
+screen title `Promote Kell`, details `Gains: +3 hp, +1 mov` (or `No stat changes`), `Back to level 1`, `Skills:
+Tough, Light Step`, `Cannot wield: Blade`; hints `Left/Right + Z:answer  X:no` (question) and `Up/Down + Z:choose
+X:back` (screen); banner `Kell is now a Captain` (`an` before a vowel); stat box title `Stat changes` with lines like
+`+3 hp` / `-1 mov` (`No stat changes`).
+
+Where the contract was silent:
+
+- **The Promote entry is shown only when the promotion can be done now** (`validate` passes); there is no greyed
+  entry with a reason. A unit that may only move or wait (`acted`) therefore has none.
+- **The question box always asks, even for an item.** A promotion item used by a unit that could promote with it (and
+  where "itself" is among its targets) goes straight to the question / screen instead of the "Use on" list, so such
+  an item's heal on another unit cannot be chosen from the item list. Used by a unit that cannot promote with it,
+  the item behaves as before.
+- **The question shows the same facts as the screen** (changes, level reset) but not skills or lost weapons.
+- **"Skills" on the screen** lists the new type's own skills the old type did not have, plus what it learns at or
+  below the level the unit will have; a skill the unit already learned is listed too. **"Cannot wield"** lists
+  carried weapons the old type could wield and the new one cannot (only with carried weapons).
+- **The picture** on the screen is the unit sprite of the style in use in the unit's side colours; a style with only
+  3D models (or a type with no art) shows the side-coloured block with the type's letter.
+- **Order:** flash first, then the banner (the banner covers the middle of the screen, where the unit usually is).
+- The info panel and the unit's details show the new type at once (they read the rules state, not the animation).
+- No new sound cue (the sound tables belong to docs/SOUND.md). Events the viewer's team does not see are not shown
+  (as for every event).
+- A phone-width screen (under 300 px wide, a phone held upright) stacks the list above the details.
+
+Shared files touched (smallest possible edits): `battle_scene.h` (`Mode::Promotion`, seven declarations, four
+members, one include), `battle_input.cpp` (three lines: send input to the screen), `battle_scene.cpp` (a hint case and
+a draw case), `battle_items.cpp` (one line at the top of `chooseUseTarget`), `battle_view.h` / `battle_view.cpp`
+(`UnitView::type`, `pushPromotion`, one call in `push`), `battle_draw.h` (`shownType`) and the five drawers that read
+a unit's type (`sprites.cpp`, `map3d_models.cpp`, `battle_draw.cpp`, `iso_unit.cpp`, `map3d_things.cpp`), root
+`CMakeLists.txt` (`promotion_text.cpp` into `ote_tests`, one ctest), `tests/test_srpg_player.cpp` (UnitPromoted is no
+longer in the list of events that are no-ops).
+
 ### U3. Player: abilities and summons — depends on A1, U0
 Ability entries with reasons, targeting with the end squares marked, `AbilityUsed` / blocked animation, the
 Abilities page of Unit details.
