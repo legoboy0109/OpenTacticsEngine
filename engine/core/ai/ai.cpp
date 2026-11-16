@@ -56,6 +56,8 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
       ok = battle.apply(Action::capture(bestUnit), events);
     else if (best.kind == ActionType::UseItem)
       ok = battle.apply(Action::useItem(bestUnit, best.slot, best.target), events);
+    else if (best.kind == ActionType::UseStaff)
+      ok = battle.apply(Action::useStaff(bestUnit, best.slot, best.target), events);
     else if (best.kind == ActionType::Supply)
       ok = battle.apply(Action::supply(bestUnit), events);
     else if (best.kind == ActionType::Promote)

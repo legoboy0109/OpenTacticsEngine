@@ -11,27 +11,31 @@ namespace ote {
 constexpr int kTalkBase = 1000;      // + n: the n-th Talk entry (BattleScene::MenuId uses this value)
 constexpr int kAbilityBase = 2000;   // + n: the n-th ability entry of the menu now open (U3)
 constexpr int kSupportBase = 3000;   // + n: the n-th "Support: <partner>" entry (U5)
-constexpr int kSrpgRangeEnd = 4000;  // first id past the ranges
+constexpr int kStaffBase = 4000;     // + n: the staff in inventory slot n, in the Staff list (docs/SRPG.md section 8)
+constexpr int kSrpgRangeEnd = 5000;  // first id past the ranges
 
 enum SrpgMenuId : int {
   kRescue = 100, kDrop, kGive, kTake,  // carry (U4)
   kPairUp, kSwitch,                    // pair up (U4); Drop is shared with carry
   kPromote,                            // U2
   kInfo,                               // action menu "Info": the unit details (U1)
-  kUnitEntry                           // battle (End Turn) menu "Unit": the details of the unit under the cursor (U1)
+  kUnitEntry,                          // battle (End Turn) menu "Unit": the details of the unit under the cursor (U1)
+  kStaffEntry                          // action menu "Staff": opens the list of the staves carried
 };
 
 // Which group an id of the action menu belongs to (the dispatcher of battle_srpg_menu.cpp sends it there).
-enum class SrpgGroup { None, Talk, Ability, Support, Rescue, Promote, Info };
+enum class SrpgGroup { None, Talk, Ability, Support, Rescue, Promote, Info, Staff };
 
 inline SrpgGroup srpgGroupOf(int id) {
   if (id >= kTalkBase && id < kAbilityBase) return SrpgGroup::Talk;
   if (id >= kAbilityBase && id < kSupportBase) return SrpgGroup::Ability;
-  if (id >= kSupportBase && id < kSrpgRangeEnd) return SrpgGroup::Support;
+  if (id >= kSupportBase && id < kStaffBase) return SrpgGroup::Support;
+  if (id >= kStaffBase && id < kSrpgRangeEnd) return SrpgGroup::Staff;
   switch (id) {
     case kRescue: case kDrop: case kGive: case kTake: case kPairUp: case kSwitch: return SrpgGroup::Rescue;
     case kPromote: return SrpgGroup::Promote;
     case kInfo: return SrpgGroup::Info;
+    case kStaffEntry: return SrpgGroup::Staff;
     default: return SrpgGroup::None;
   }
 }

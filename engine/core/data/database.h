@@ -110,7 +110,7 @@ struct WeaponDef {
 
 // ---- Items (docs/ITEMS.md) ----
 
-enum class ItemKind { Usable, Weapon, Accessory };
+enum class ItemKind { Usable, Weapon, Accessory, Staff };  // Staff: docs/SRPG.md section 8
 
 struct ItemDef {
   std::string id, name, description;
@@ -128,6 +128,7 @@ struct ItemDef {
   // Strategy-RPG features (docs/SRPG.md):
   bool promotes = false;       // usable: a promotion item
   std::vector<int> skills;     // accessory: skills it gives while carried (indices into Database::skills)
+  int staff = -1;              // staff: index into Database::staves (docs/SRPG.md section 8)
 };
 const int kHealFull = 1000000000;
 
@@ -150,6 +151,7 @@ const int kMaxInventory = 20;
 }  // namespace ote
 // The strategy-RPG data structs (docs/SRPG.md). Here, not at the top: they hold ItemGrant lists.
 #include "core/data/srpg.h"
+#include "core/data/staff.h"
 namespace ote {
 
 struct UnitTypeDef {
@@ -346,6 +348,7 @@ struct Database {
   SupportData supports;                  // data/supports.json (rules, pairs, texts)
   RankRules ranks;                       // data/ranks.json (weapon rank ladder); empty ladder = no ranks
   std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
+  std::vector<StaffDef> staves;          // the staves of data/items.json (an item of kind "staff" points here)
   // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
   // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
   std::vector<ExprDef> exprs;
@@ -366,6 +369,7 @@ struct Database {
   int findTechnology(const std::string& id) const;
   // Carried weapons: may a unit of this type use this weapon?
   bool canWield(int unitType, int weapon) const;
+  bool canWieldGroup(int unitType, const std::string& group) const;  // the class side only (a staff's group)
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
   int findStyle(const std::string& id) const;

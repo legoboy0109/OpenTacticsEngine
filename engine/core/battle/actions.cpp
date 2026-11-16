@@ -122,6 +122,8 @@ bool Battle::validate(const Action& action, std::string* why) const {
       return validateRescue(action, why);
     case ActionType::Support:
       return validateSupport(action, why);
+    case ActionType::UseStaff:
+      return validateStaff(action, why);
     default:
       return validateItemAction(action, why);
   }
@@ -149,6 +151,7 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
     case ActionType::PairUp:
     case ActionType::SwitchPair: applyRescue(action, events); break;
     case ActionType::Support: applySupport(action, events); break;
+    case ActionType::UseStaff: applyStaff(action, events); break;
     case ActionType::EndTurn:
       srpgTurnEnd(events);  // what ending a turn earns (supports), before the next side's turn begins
       advanceTurn(events);

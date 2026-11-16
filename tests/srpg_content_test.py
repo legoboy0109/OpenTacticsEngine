@@ -29,7 +29,8 @@ def run(*args):
 
 BATTLES = [('games/demo-srpg', 'bridge'), ('games/demo-srpg', 'north_road'), ('editor/templates/strategy-rpg', 'ford'),
            ('tests/fixtures/srpg-carry', 'field'), ('tests/fixtures/srpg-pair', 'field'), ('tests/fixtures/srpg-hex', 'field'),
-           ('tests/fixtures/srpg-supports', 'ch1'), ('tests/fixtures/srpg-supports', 'ch2')]
+           ('tests/fixtures/srpg-supports', 'ch1'), ('tests/fixtures/srpg-supports', 'ch2'),
+           ('tests/fixtures/srpg-staves', 'skirmish'), ('tests/fixtures/srpg-staves', 'clinic')]
 for game, map_id in BATTLES:
     code, out = run(os.path.join(root, game), map_id, '--runs', '20')
     last = out.strip().split('\n')[-1]
@@ -52,5 +53,14 @@ for seed in range(1, 21):
 for what in ('is promoted from lord to captain', 'uses call_hound', 'appears at', 'second_charge activates', 'learns ',
              'support eirik and kell', 'a conversation is ready'):
     check('the event printer names: ' + what, what in text)
+
+# Staves (docs/SRPG.md section 8): the healers of the staves fixture heal, the same seed plays the same twice, and the event
+# printer names a use.
+staves = os.path.join(root, 'tests/fixtures/srpg-staves')
+a = run(staves, 'skirmish', '--seed', '3', '--verbose')[1]
+b = run(staves, 'skirmish', '--seed', '3', '--verbose')[1]
+check('staves skirmish: same seed twice, same text', a == b and len(a) > 500)
+text = ''.join(run(staves, 'skirmish', '--seed', str(seed), '--verbose')[1] for seed in range(1, 11))
+check('the event printer names a staff use', ' uses mend_staff on ' in text and ' heals ' in text)
 
 sys.exit(1 if failures else 0)

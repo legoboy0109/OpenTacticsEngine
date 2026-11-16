@@ -216,7 +216,9 @@ optional limited uses and prices. A game without this file has no items.
 The switch between fixed and carried weapons, the inventory size and the
 shared storage are in `game.json` under `rules.items`. A map can give each
 unit its own `"items"` and each side a starting `"storage"`. Everything is
-in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md).
+in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md). An item of `"kind": "staff"` (a staff a unit wields by
+group and rank and uses on another unit at range: healing in a first stage) has its own keys (`group`, `range`, `target`, `area`,
+`effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md section 8 "Staves".
 
 ## data/research.json (optional)
 

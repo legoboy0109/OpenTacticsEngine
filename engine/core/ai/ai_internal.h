@@ -15,9 +15,9 @@ constexpr int kFar = 1 << 28;  // "unreachable" in a distance field
 struct Order {
   double score = 0;
   Cell moveTo = kNoCell;               // kNoCell = act from the current cell
-  ActionType kind = ActionType::Wait;  // Attack, Capture, UseItem, Supply or Wait
+  ActionType kind = ActionType::Wait;  // Attack, Capture, UseItem, UseStaff, Supply or Wait
   int target = -1, weapon = -1;        // Attack only
-  int slot = -1;                       // UseItem only: the inventory slot (target = the unit itself)
+  int slot = -1;                       // UseItem / UseStaff: the inventory slot (UseItem: target = the unit itself)
   int ability = -1;                    // Ability only: index into db->abilities (target = unit or -1, cell = square or kNoCell)
   Cell cell = kNoCell;                 // Ability only: the target square of a "cell" ability
   // Kinds added by AI1 besides the ones above: Promote (takes the first offered promotion, in place) and Ability.
@@ -83,6 +83,14 @@ double terrainDefense(const Battle& b, Cell c);
 
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);
+
+// The score a square costs a unit that does something there while enemies could gang up on it (an attack's own terms).
+double exposureCost(const Battle& b, const Unit& u, Cell c);
+
+// ---- ai_staves.cpp (docs/SRPG.md section 8 "AI") ----
+// Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use
+// beats it.
+void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
 
 // ---- ai_items.cpp ----
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.

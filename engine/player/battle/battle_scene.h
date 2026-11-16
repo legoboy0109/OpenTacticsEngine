@@ -113,6 +113,10 @@ class BattleScene : public Scene {
   bool supportChosen(int id);
   void addAbilityEntries(std::vector<MenuItem>& items);    // battle_menu_abilities.cpp (U3)
   bool abilityChosen(int id);
+  void addStaffEntries(std::vector<MenuItem>& items);      // battle_menu_staves.cpp (docs/SRPG.md section 8): Staff, its list and target pick
+  bool staffChosen(int id);
+  void openStaffList();
+  void staffListChosen(int slot);
   void addRescueEntries(std::vector<MenuItem>& items);     // battle_menu_rescue.cpp (U4): Rescue / Drop / Give / Take / Pair up / Switch
   bool rescueChosen(int id);
   void addPromotionEntries(std::vector<MenuItem>& items);  // battle_menu_promotion.cpp (U2)
@@ -261,6 +265,9 @@ class BattleScene : public Scene {
   bool promoAsk_ = false;                 // one type: confirm_ asks "Promote ...?" instead of the screen
   int promoSlot_ = -1;                    // the promotion item's slot, -1 = the Promote entry
   int promoType_ = -1;                    // the type the question is about
+  bool staffList_ = false;                // the open menu is the Staff list (Cancel goes back to the action menu)
+  bool staffFcOn_ = false;                // a staff target is being picked: staffFc_ is drawn as the forecast box
+  StaffForecast staffFc_;
   bool unitInfoFromAction_ = false;       // opened from the action menu: Cancel returns there (else to the map)
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
   int partner_ = -1;         // trade partner unit

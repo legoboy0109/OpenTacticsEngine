@@ -1,0 +1,12 @@
+{ "name": "Clinic", "grid": { "type": "square", "width": 8, "height": 5 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........", "........", "........"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "wen", "side": "blue", "x": 3, "y": 2, "leader": true },
+    { "character": "tarn", "side": "blue", "x": 5, "y": 2 },
+    { "character": "brae", "side": "blue", "x": 3, "y": 4 },
+    { "type": "fighter", "id": "ola", "name": "Ola", "side": "blue", "x": 2, "y": 1 },
+    { "type": "fighter", "id": "dax", "name": "Dax", "side": "blue", "x": 5, "y": 3 },
+    { "type": "cleric", "id": "mira", "name": "Mira", "side": "blue", "x": 1, "y": 3,
+      "items": ["kin_staff", "mend_staff", "rest_staff"] },
+    { "type": "raider", "id": "g1", "side": "red", "x": 7, "y": 0 } ] }

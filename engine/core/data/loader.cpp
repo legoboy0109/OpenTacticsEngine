@@ -8,6 +8,7 @@
 #include "core/data/loader_content.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
+#include "core/data/loader_staves.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -337,6 +338,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadWeapons(weaponsPath, db, err)) return false;
   buildRankGroups(db);
   if (!loadItems(root + "/data/items.json", db, err)) return false;
+  addStaffRankGroups(db);  // staff groups after the weapons' (docs/SRPG.md section 8)
   if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;

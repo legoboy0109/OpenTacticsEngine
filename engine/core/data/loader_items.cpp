@@ -1,6 +1,7 @@
 // data/items.json and the item lists other files carry (docs/ITEMS.md).
 #include "core/data/loader_content.h"
 #include "core/data/loader_srpg.h"
+#include "core/data/loader_staves.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -48,6 +49,7 @@ bool readItemGrants(const LoadCtx& c, const Database& db, const Json& o, const c
 
 bool loadItems(const std::string& path, Database& db, std::string& err) {
   db.items.clear();
+  db.staves.clear();
   if (!fileExists(path)) return true;
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
@@ -71,7 +73,8 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     if (kind == "usable") it.kind = ItemKind::Usable;
     else if (kind == "weapon") it.kind = ItemKind::Weapon;
     else if (kind == "accessory") it.kind = ItemKind::Accessory;
-    else return c.fail(where, "\"kind\" must be \"usable\", \"weapon\" or \"accessory\", not \"" + kind + "\"");
+    else if (kind == "staff") it.kind = ItemKind::Staff;  // docs/SRPG.md section 8
+    else return c.fail(where, "\"kind\" must be \"usable\", \"weapon\", \"accessory\" or \"staff\", not \"" + kind + "\"");
 
     if (e.has("uses")) {
       if (!c.integer(e, "uses", where, it.uses)) return false;
@@ -86,7 +89,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!e.has(key) || it.kind == k) return true;
       return c.fail(where, std::string("\"") + key + "\" belongs to items of kind \"" + kindName + "\"");
     };
-    if (!only("target", ItemKind::Usable, "usable") || !only("heal", ItemKind::Usable, "usable") ||
+    if (!(it.kind == ItemKind::Staff || only("target", ItemKind::Usable, "usable")) || !only("heal", ItemKind::Usable, "usable") ||
         !only("raise", ItemKind::Usable, "usable") || !only("weapon", ItemKind::Weapon, "weapon") ||
         !only("bonus", ItemKind::Accessory, "accessory") || !only("promotes", ItemKind::Usable, "usable") ||
         !only("skills", ItemKind::Accessory, "accessory"))
@@ -120,6 +123,8 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!c.str(e, "weapon", where, wid, true)) return false;
       it.weapon = db.findWeapon(wid);
       if (it.weapon < 0) return c.fail(where, "unknown weapon \"" + wid + "\" (data/weapons.json)");
+    } else if (it.kind == ItemKind::Staff) {
+      if (!readStaffItem(c, db, e, where, it)) return false;
     } else {
       it.bonus.assign(db.stats.size(), 0);
       if (!c.statMap(db, e, "bonus", where, it.bonus)) return false;

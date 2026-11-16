@@ -144,4 +144,7 @@ void panelResourceAnchor(const Layout& L, int resourceCount, int& x, int& y);
 // Combat forecast box for attacker -> defender.
 void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int weapon, Cell targetCell);
 
+// The forecast box of a staff (staff_forecast.cpp; docs/SRPG.md section 8): what the use would do to each unit hit.
+void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Cell targetCell);
+
 }  // namespace ote
