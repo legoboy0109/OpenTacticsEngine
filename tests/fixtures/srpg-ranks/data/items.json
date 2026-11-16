@@ -1,0 +1,10 @@
+{ "items": [
+  { "id": "bronze_sword", "name": "Bronze Sword", "kind": "weapon", "weapon": "bronze_sword" },
+  { "id": "steel_sword",  "name": "Steel Sword",  "kind": "weapon", "weapon": "steel_sword" },
+  { "id": "war_sword",    "name": "War Sword",    "kind": "weapon", "weapon": "war_sword" },
+  { "id": "short_bow",    "name": "Short Bow",    "kind": "weapon", "weapon": "short_bow" },
+  { "id": "long_bow",     "name": "Long Bow",     "kind": "weapon", "weapon": "long_bow" },
+  { "id": "stick",        "name": "Stick",        "kind": "weapon", "weapon": "stick" },
+  { "id": "might_draught", "name": "Might Draught", "kind": "usable", "uses": 1, "raise": { "str": 3 } },
+  { "id": "salve", "name": "Salve", "kind": "usable", "uses": 2, "heal": 10 },
+  { "id": "power_ring", "name": "Power Ring", "kind": "accessory", "bonus": { "str": 3 } } ] }

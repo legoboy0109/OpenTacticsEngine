@@ -12,6 +12,19 @@ int growthOf(const Unit& u, int stat) const;
 // value, derived whenever a unit is created, dressed from a roster or restored from a save.
 int characterOf(const Unit& u) const;
 
+// ---- weapon ranks and stat caps (ranks.cpp, caps.cpp; docs/SRPG.md section 7) ----
+// The unit's rank in a weapon group (index into db->ranks.ladder, 0 = lowest; 0 in a game without ranks).
+int weaponRank(const Unit& u, int group) const;
+// Does the unit's rank in the weapon's group reach the weapon's "rank"? False with "Needs rank B" in `why` (optional).
+bool meetsRank(const Unit& u, int weapon, std::string* why = nullptr) const;
+// May the unit wield this weapon NOW: its class can (Database::canWield) and its rank is high enough. Weapons that
+// fail only on rank can still be carried, traded and stored. The one test weaponsOf / weaponSlot / equippedSlot / Equip use.
+bool canWieldNow(const Unit& u, int weapon, std::string* why = nullptr) const;
+// The highest this unit's permanent stat can grow to (class cap, else game cap, plus the character's adjustment); -1 = none.
+int statCap(const Unit& u, int stat) const;
+// Would these per-stat gains change anything (stats at their cap do not rise)?
+bool canRaiseAny(const Unit& u, const std::vector<int>& gains) const;
+
 // ---- "does this unit still exist" (docs/SRPG.md "off the board") ----
 // Not defeated: on the board, or carried / behind a partner (alive == false but it keeps its HP).
 bool exists(const Unit& u) const { return u.alive || u.carriedBy >= 0; }

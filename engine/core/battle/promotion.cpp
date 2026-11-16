@@ -86,7 +86,7 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
   u.type = toType;
   for (size_t s = 0; s < u.stats.size(); ++s) {
     int gain = def && def->hasGains ? def->gains[s] : to.stats[s] - from.stats[s];
-    u.stats[s] = std::max(0, u.stats[s] + gain);
+    raiseStat(u, (int)s, gain);  // the NEW type's cap judges a positive gain (docs/SRPG.md section 7)
   }
   // Hit points rise with a positive HP gain; either way they stay within 1..maximum.
   const int hpStat = db->rules.statHp;
@@ -106,6 +106,7 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
   std::vector<int> change(u.stats.size(), 0);
   for (size_t s = 0; s < u.stats.size(); ++s) change[s] = u.stats[s] - before[s];
   events.push_back(promotedEvent(unit, oldType, toType, u.level, change));
+  rankRaiseToClass(u, unit, &events);  // weapon ranks: raised to the new class's where that is higher (docs/SRPG.md section 7)
 
   // Events waiting for a promotion; they may add units, so `u` is not used after this.
   StoryOccurrence o;

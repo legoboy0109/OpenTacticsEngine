@@ -44,7 +44,7 @@ void Battle::weaponsOf(const Unit& u, std::vector<int>& out) const {
   }
   for (const ItemStack& s : u.items) {
     const ItemDef& d = itemOf(s);
-    if (d.kind != ItemKind::Weapon || !db->canWield(u.type, d.weapon)) continue;
+    if (d.kind != ItemKind::Weapon || !canWieldNow(u, d.weapon)) continue;
     if (std::find(out.begin(), out.end(), d.weapon) == out.end()) out.push_back(d.weapon);
   }
 }
@@ -52,7 +52,7 @@ void Battle::weaponsOf(const Unit& u, std::vector<int>& out) const {
 int Battle::weaponSlot(const Unit& u, int weapon) const {
   for (size_t i = 0; i < u.items.size(); ++i) {
     const ItemDef& d = itemOf(u.items[i]);
-    if (d.kind == ItemKind::Weapon && d.weapon == weapon && db->canWield(u.type, weapon)) return (int)i;
+    if (d.kind == ItemKind::Weapon && d.weapon == weapon && canWieldNow(u, weapon)) return (int)i;
   }
   return -1;
 }
@@ -60,7 +60,7 @@ int Battle::weaponSlot(const Unit& u, int weapon) const {
 int Battle::equippedSlot(const Unit& u) const {
   for (size_t i = 0; i < u.items.size(); ++i) {
     const ItemDef& d = itemOf(u.items[i]);
-    if (d.kind == ItemKind::Weapon && db->canWield(u.type, d.weapon)) return (int)i;
+    if (d.kind == ItemKind::Weapon && canWieldNow(u, d.weapon)) return (int)i;
   }
   return -1;
 }
@@ -110,7 +110,7 @@ void Battle::useTargets(int unit, int slot, std::vector<int>& targets) const {
   // Using an item that would change nothing is not offered.
   // A promotion item also counts when the unit using it on itself could promote now (promotion.cpp).
   auto helps = [&](const Unit& t) {
-    if (!d.raise.empty() || (d.heal > 0 && t.hp < maxHp(t))) return true;
+    if ((!d.raise.empty() && canRaiseAny(t, d.raise)) || (d.heal > 0 && t.hp < maxHp(t))) return true;
     std::vector<const PromotionDef*> fits;
     if (d.promotes && t.id == unit) promotionCandidates(t, u.items[(size_t)slot].item, true, fits);
     return !fits.empty();
@@ -169,7 +169,8 @@ bool Battle::validateItemAction(const Action& a, std::string* why) const {
       if (!db->rules.items.carriedWeapons) return fail(why, "weapons are not carried in this game");
       if (!ownSlot()) return fail(why, "the unit does not carry that item");
       const ItemDef& d = itemOf(u.items[(size_t)a.slot]);
-      if (d.kind != ItemKind::Weapon || !db->canWield(u.type, d.weapon)) return fail(why, "the unit cannot wield that");
+      if (d.kind != ItemKind::Weapon) return fail(why, "the unit cannot wield that");
+      if (!canWieldNow(u, d.weapon, why)) return false;  // the class cannot, or (ranks) "Needs rank B"
       if (a.slot == equippedSlot(u)) return fail(why, "that is already equipped");
       return true;
     }
@@ -245,8 +246,8 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
         Event e = event(EventType::StatsRaised, a.target, -1);
         int before = maxHp(t);
         for (size_t s = 0; s < d.raise.size() && s < t.stats.size(); ++s) {
-          t.stats[s] = std::max(0, t.stats[s] + d.raise[s]);
-          e.data.push_back(d.raise[s]);
+          const int applied = raiseStat(t, (int)s, d.raise[s]);  // a stat cap may cut a gain (docs/SRPG.md section 7)
+          e.data.push_back(d.raise[s] > 0 ? applied : d.raise[s]);
         }
         events.push_back(e);
         if (maxHp(t) > before) t.hp += maxHp(t) - before;  // new hit points arrive filled

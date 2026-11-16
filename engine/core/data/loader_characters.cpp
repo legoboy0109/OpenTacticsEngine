@@ -3,6 +3,7 @@
 // resolved last, in resolveCharacterRefs, once those lists exist.
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
+#include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -12,7 +13,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -64,6 +65,7 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
   if (!c.stringList(e, "skills", where, ch.skillIds) || !readLearns(c, db, e, where, ch) ||
       !c.stringList(e, "abilities", where, ch.abilityIds))
     return false;
+  if (!readCharacterRanks(c, db, e, where, ch)) return false;  // "ranks", "capAdjust" (docs/SRPG.md section 7)
   ch.hasItems = e.has("items");
   return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, ch.items);
 }

@@ -38,6 +38,11 @@ bool readRosterSrpg(Reader& rd, const Database& db, const Json& j, const std::st
 void writePlaythroughSrpg(const Database& db, const Playthrough& pt, Json& out);
 bool readPlaythroughSrpg(Reader& rd, const Database& db, const Json& saved, Playthrough& pt);
 
+// ---- weapon ranks (save_ranks.cpp, docs/SRPG.md section 7): "ranks" of a unit and of a roster entry ----
+void writeRankXp(const Database& db, const std::vector<int>& xp, Json& j);
+// `out` ends up sized to the game's weapon groups (empty without ranks); a missing key = all 0.
+bool readRankXp(Reader& rd, const Database& db, const Json& j, const std::string& where, std::vector<int>& out);
+
 // ---- skills (save_skills.cpp, step K1): units[i] "skills", "moveSpent", "acted", "refreshed"; roster "skills" ----
 void writeUnitSkills(const Battle& b, const Unit& u, Json& j);
 bool readUnitSkills(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);

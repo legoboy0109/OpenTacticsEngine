@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "core/data/graphics.h"
+#include "core/data/ranks.h"
 #include "core/base/types.h"
 #include "core/grid/grid.h"
 
@@ -98,6 +99,10 @@ struct WeaponDef {
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
+  // Weapon ranks (docs/SRPG.md section 7); both -1 / 1 in a game without ranks.
+  int rankGroup = -1;         // index into RankRules::groups (-1 = no group, or no ranks)
+  int rankNeed = -1;          // lowest ladder index that may wield it; -1 = any
+  int rankXp = 1;             // experience the user gains per use (growth "use")
 };
 
 // ---- Items (docs/ITEMS.md) ----
@@ -169,6 +174,9 @@ struct UnitTypeDef {
   std::vector<PromotionDef> promotions;  // the unit types it can become
   std::vector<int> pairBonus;            // pair up: per stat index, what a unit of this type gives when it is behind;
                                          // empty = rules.rescue.pairBonus
+  // Weapon ranks and stat caps (docs/SRPG.md section 7); empty when the unit type says nothing.
+  std::vector<int> rankStart;            // per RankRules::groups index: starting weapon experience
+  std::vector<int> caps;                 // per stat index: this class's cap, -1 = none (overrides the game-wide one)
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
 inline bool unitTypeMatchesKey(const UnitTypeDef& t, const std::string& key) {
@@ -333,6 +341,8 @@ struct Database {
   std::vector<SkillDef> skills;          // data/skills.json
   std::vector<AbilityDef> abilities;     // data/abilities.json
   SupportData supports;                  // data/supports.json (rules, pairs, texts)
+  RankRules ranks;                       // data/ranks.json (weapon rank ladder); empty ladder = no ranks
+  std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
   // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
   // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
   std::vector<ExprDef> exprs;
@@ -403,6 +413,9 @@ struct MapUnitDef {
   std::vector<int> stats;  // final per-stat values (type base + overrides)
   bool hasItems = false;         // the map gives this unit its own items (else the type's)
   std::vector<ItemGrant> items;
+  // Weapon ranks: per RankRules::groups index the weapon experience this unit REPLACES its class's with; -1 = not
+  // said. Empty = the map says nothing (docs/SRPG.md section 7).
+  std::vector<int> weaponXp;
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).

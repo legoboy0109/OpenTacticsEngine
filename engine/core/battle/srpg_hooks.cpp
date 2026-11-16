@@ -16,6 +16,7 @@ int Battle::srpgStat(const Unit& u, int stat, int base) const {
 
 void Battle::dressUnit(Unit& u) const {
   characterDress(u);  // first: the skills learned by its level include the character's
+  rankRaiseToClass(u, u.id, nullptr);  // weapon ranks its class and character give (silent; docs/SRPG.md section 7)
   learnUpTo(u);
 }
 

@@ -34,7 +34,7 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events) {
       int growth = growthOf(u, (int)s);
       int gain = growth / 100;
       if (growth % 100 > 0 && rng.chance(growth % 100)) ++gain;
-      u.stats[s] += gain;
+      gain = raiseStat(u, (int)s, gain);  // a stat cap may cut it (docs/SRPG.md section 7); without caps unchanged
       up.data[s] = gain;
       if ((int)s == rules.statHp) u.hp += gain;
     }

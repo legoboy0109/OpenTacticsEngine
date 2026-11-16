@@ -24,6 +24,7 @@ int Battle::applyRoster(Unit& u) const {
     }
     // The skills it learned in earlier chapters, then what its (possibly new) type and level add (docs/SRPG.md).
     u.learned = r.skills;
+    u.weaponXp = r.weaponXp;  // dressUnit raises it to what the (possibly new) class gives, never lowers it
     dressUnit(u);
     u.hp = maxHp(u);  // a chapter always begins at full strength
     stockUnit(u);     // ... and with full fuel and ammunition (the roster does not carry them)

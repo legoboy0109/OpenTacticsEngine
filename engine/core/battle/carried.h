@@ -20,6 +20,7 @@ struct RosterUnit {
   std::string side;              // id of the side it fought on last (informational)
   bool gone = false;             // fell in an earlier chapter ("fallen": "gone"): never placed again
   std::vector<int> skills;       // skills learned for good (Unit::learned; docs/SRPG.md), empty in a game without skills
+  std::vector<int> weaponXp;     // weapon experience per RankRules::groups index (Unit::weaponXp); empty in a game without ranks
 };
 
 using Roster = std::vector<RosterUnit>;

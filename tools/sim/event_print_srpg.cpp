@@ -46,6 +46,13 @@ bool describeSrpgEvent(const Battle& b, const Event& e, std::string& out) {
     case EventType::SkillLearned:
       out = unit(b, e.a) + " learns " + skill(b, e.b);
       return true;
+    case EventType::RankUp: {
+      const RankRules& r = b.db->ranks;
+      auto rank = [&](int i) { return i >= 0 && i < (int)r.ladder.size() ? r.ladder[(size_t)i].id : std::string("?"); };
+      out = unit(b, e.a) + " ranks up in " + (e.b >= 0 && e.b < (int)r.groups.size() ? r.groups[(size_t)e.b] : std::string("?")) +
+            ": " + rank(e.d) + " to " + rank(e.c);
+      return true;
+    }
     case EventType::SkillActivated:
       out = unit(b, e.a) + ": " + skill(b, e.b) + " activates" + (e.c >= 0 ? " against " + unit(b, e.c) : "");
       return true;

@@ -6,6 +6,7 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -329,7 +330,12 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   // weapons, items and unit types name them; what they name themselves is resolved at the very end.
   if (!loadSkills(root + "/data/skills.json", db, err)) return false;
   if (!loadAbilities(root + "/data/abilities.json", db, err)) return false;
+  // Weapon ranks and stat caps (docs/SRPG.md section 7): the ladder before the weapons that name a rank; the groups
+  // after them, because unit types, characters and map units name groups.
+  if (!loadRanks(root + "/data/ranks.json", db, err)) return false;
+  if (!loadStatCaps(root + "/data/caps.json", db, err)) return false;
   if (!loadWeapons(weaponsPath, db, err)) return false;
+  buildRankGroups(db);
   if (!loadItems(root + "/data/items.json", db, err)) return false;
   if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;

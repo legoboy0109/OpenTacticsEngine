@@ -214,6 +214,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   std::vector<StrikeStep> order;
   strikeOrder(f, order);
   bool ammoA = false, ammoD = false;
+  const size_t combatFrom = events.size();  // weapon ranks read this combat's strikes off the events
   for (const StrikeStep& step : order) {
     for (int i = 0; i < step.count; ++i) {
       if (!units[a].alive || !units[d].alive) break;
@@ -244,6 +245,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       awardXp(d, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
     }
   }
+  ranksAfterCombat(events, combatFrom, a, d);  // weapon ranks, growth "use" (docs/SRPG.md section 7); nothing otherwise
   // After the experience: "defeat" / "afterCombat" skills and supports' "fought together" (docs/SRPG.md "Combat
   // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
   // its flags as they were.
