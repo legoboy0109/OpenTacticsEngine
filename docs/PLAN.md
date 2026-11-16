@@ -168,6 +168,11 @@ goal (demos only exercise features).
       - Promotion: by item, on reaching a level, by story event, with a
         choice when a class has several promotions.
       Contract: docs/SRPG.md (being written).
+   l. Standing terrain in the 3D views (owner, 2026-11-15: mountains and
+      forests are flat pictures on top of the ground in 3D). A terrain
+      in a 3D style can have a standing part on its ground: an upright
+      picture facing the camera, or a 3D model; the maker picks per
+      terrain, as for units. In progress alongside k.
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
