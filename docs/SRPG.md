@@ -1283,7 +1283,7 @@ counters, `weaponsOf`, `Attack` events) and not an ability (abilities belong to 
 gets, with no new code, everything items already have: uses and breaking (`ItemStack::uses`, `ItemBroke`), price, shops,
 starting items, drops, trading, the shared storage, the campaign roster and the save format. What it takes from the other two:
 the **group, rank, rank experience and character lock** of a weapon (it is wielded), and the **conditions** of an ability
-(it acts on a unit). Both are reused, not copied: the staff carries a small `WeaponDef` of its own (`ItemDef::gear`: id, group,
+(it acts on a unit). Both are reused, not copied: the staff carries a small `WeaponDef` of its own (`StaffDef::gear`: id, group,
 props, rank fields) that is never in `Database::weapons`, so the same rank and lock code answers for both and a formula sees the
 staff as `w`.
 
@@ -1373,9 +1373,11 @@ would get, the hit chance, the experience, the uses left, whether it breaks) and
 - **Menu.** The action menu gains **Staff** (placeholder) after the abilities when the unit carries any staff, greyed with the
   reason of the first staff when none can be used now. It opens a list of the staves carried: name, uses left ("3/8"), and the
   reason when one cannot be used (`Needs rank C`, `Only Mara can wield this`, `Cannot wield`, `Nobody in reach needs it`).
-  Cancel returns to the action menu.
+  Cancel returns to the action menu. A reason that does not fit a narrow menu (the phone) is shortened in two steps ("Nobody needs it",
+  "No one"; "Only Mara", "Locked"; "Rank C"; "Class") and left out when even that does not fit; the Items screen says it in full.
 - **Picking.** Choosing a staff shows its **range** (every square in reach in the blue mask) and picks a unit like Attack
-  (arrows, Tab, a tap); the area of the highlighted unit is marked red (a radius, or everyone for `"all"`).
+  (arrows, Tab, a tap); the area of the highlighted unit is marked red (a radius, or everyone for `"all"`). Cancel goes back to the
+  action menu.
 - **Forecast box**, the look of the attack forecast: the staff's name and uses left, one line per unit hit ("Kell  HP 7 > 17"), a
   "Hit 80%" line only when the staff can miss, "Exp 15" when it gives any, "Breaks" on its last use; at most four unit lines,
   then "+N more".
@@ -1417,6 +1419,42 @@ What the effects did arrives as the existing entries: `UnitHealed` (a = unit, b 
   **only in a game that has them** (a name and description are cosmetic keys). Nothing else is mixed in.
 - **Off unless used.** No staff, no staff group, no extra event, no random number: every existing game, save and sim stays byte
   for byte the same.
+
+### Staves: as built (stage 1)
+
+Core: `engine/core/data/staff.h` (`StaffDef`, `StaffEffect`; `Database::staves`, `ItemDef::staff` = the index), `loader_staves.cpp`
+(the item's own keys, the staff groups appended to `RankRules::groups`, `"wieldedBy"` and `"if"` resolved in `resolveSrpgRefs`),
+`engine/core/battle/staves.cpp` (wield test, range, `staffAffected`, `staffTargets`, `staffOptions`, `staffForecast`) and
+`staves_apply.cpp` (`validateStaff`, `applyStaff`), `ranks.cpp` (`meetsRankFor`, `meetsLockFor`, `addRankXp`, the weapon-index
+functions now delegate), `ai/ai_staves.cpp`. `awardXp` gained a `fromCombat` flag (a summon's `givesXp` is about fights). Events
+`StaffUsed`, `StaffMissed` (visibility in `event_visibility.cpp`; the sim's event printer names them). Player:
+`battle_menu_staves.cpp` (the entry, the list, the pick), `staff_forecast.cpp`, `staff_text.*` (all the words), `battle_view_staves.cpp`,
+`rank_text.cpp` (`weaponBlockReason` also answers for staves, so the Items screen, the unit details and the side panel grey them).
+Tests: `tests/test_srpg_staves*.cpp`, `tests/srpg_player_staves_test.py`, the fixture `tests/fixtures/srpg-staves` (maps `clinic` and
+`skirmish`), `tests/srpg_content_test.py` (no stalls, same seed twice).
+
+What the contract above left open, and how it was settled (the owner may change any of these):
+- *Ends the turn.* A staff use ends the unit's turn like an attack; it can follow a move but not another action (`acted`).
+- *Nothing to do is refused*, not offered: a heal needs a hurt unit in the area. A picked unit of an area may itself be whole when a
+  neighbour in the area is hurt.
+- *Uses*: one per use, whatever number of units it reached or whether it missed. A staff whose last use is spent breaks (`ItemBroke`).
+- *Experience*: none unless the staff says `xp`; then once per use, also on a miss (the casting is the work), through the normal award.
+  Rank experience (growth `"use"`) is the staff's `rankXp` per use, also on a miss, stopping at the top rank's number.
+- *Range*: a number is 1 to n; a formula is the maximum, minimum 1, taken on the user's stats (not the square's). `"self"` staves take
+  no range and no area. Reach is measured from the square the unit would use it from.
+- *Heal amount*: a formula's number is rounded down, never below 0; `"percent"` is of the receiver's maximum, at least 1; the heal never
+  exceeds the maximum; several `heal` effects add up and are capped together.
+- *Supports*: healing another unit counts for supports like a heal item or ability does (`supportsHealed`), once per unit healed.
+- *Ranks need carried weapons* (section 7): a game with fixed weapons has staves without ranks (`wields` still decides the class).
+- *Fog*: units of a foe or `"any"` staff must be seen by the user's team; allies always are. Events: `StaffUsed` is seen like an
+  ability use, `StaffMissed` by the teams that see either unit; the experience and rank events stay the user's team's.
+- *Greyed reasons*: the first reason that applies, in this order: the class ("the unit cannot wield that"), the lock, the rank, then
+  "nobody in reach needs that".
+- *AI*: as in the AI section; the value of a heal is its share of the target's HP times the target's value, doubled for a game-ending
+  leader, times the hit chance; the AI heals before it advances and compares fairly with an attack through the same `kAttackBase`.
+  It does not move towards the wounded (a healer with nothing to heal behaves like any unit with no attack: it advances).
+- *Not built in stage 1*: foe-targeting effects (nothing but the heal exists), the `"cell"` target, picking among several items,
+  staff sounds, the editor screens (a separate step). The wording of every player text is placeholder (`staff_text.h`).
 
 ### Stages 2 and 3 (outline only, NOT BUILT)
 

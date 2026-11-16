@@ -173,6 +173,14 @@ Accessories can carry skills, a usable item can be a promotion item (`promotes`)
 can start with its own items instead of its class's. These keys, their checks and the items of the demo and template are in
 docs/SRPG.md (sections 1 to 3 and "Demo and template content").
 
+## Staves
+
+An item of `"kind": "staff"` is a staff: a unit **wields** it by group and rank like a weapon (`"group"`, `"rank"`, `"wieldedBy"`, the unit
+type's `"wields"`) and **uses it on another unit at range** as its action (`"range"`, `"target"`, `"area"`, `"effects"` such as a heal, an
+optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and saves are the item's own (everything above). Stage 1
+(healing) is built; the whole contract, including the later stages, is docs/SRPG.md section 8. It is not a `usable` item: the Items
+screen offers no Use for it; the action menu has a Staff entry.
+
 ## Weapon ranks
 
 A weapon item can require a **rank** in its group (`"rank"` on the weapon, `"ranks"` on unit types, characters and map units, the ladder in
