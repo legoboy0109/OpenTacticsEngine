@@ -40,7 +40,7 @@ export function FeaturesCard() {
         </div>
 
         <div className="feature">
-          <Toggle label={T.progression} help={T.progressionHelp} checked={on('progression')} onChange={flip('progression')} />
+          <Toggle learn="progression" label={T.progression} help={T.progressionHelp} checked={on('progression')} onChange={flip('progression')} />
           {on('progression') && (
             <div className="feature-body stack">
               <div className="form-grid cols-2">

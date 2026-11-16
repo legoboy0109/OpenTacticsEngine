@@ -22,9 +22,11 @@ interface Props {
   edit: (fn: (b: Extra) => Extra, key?: string) => void
   onMove: (delta: number) => void
   onDelete: () => void
+  /** `data-learn` name for the tutorial's pointing ring. */
+  learn?: string
 }
 
-export function BlockCard({ doc, block, index, count, edit, onMove, onDelete }: Props) {
+export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, learn }: Props) {
   const when = whenOf(block)
   const issues = ruleIssues(doc, block)
   const n = index + 1
@@ -44,7 +46,7 @@ export function BlockCard({ doc, block, index, count, edit, onMove, onDelete }: 
           </Banner>
         )}
         <Field label={T.when} help={when ? T.whenHelps[when] : T.whenHelp}>
-          <Select value={when ?? 'always'} options={WHENS.map((w) => ({ value: w, label: T.whens[w] }))} onChange={(w) => edit((b) => setWhen(b, w as When, doc))} />
+          <Select data-learn={learn} value={when ?? 'always'} options={WHENS.map((w) => ({ value: w, label: T.whens[w] }))} onChange={(w) => edit((b) => setWhen(b, w as When, doc))} />
         </Field>
         <h4 className="skill-part">{T.onlyIf}</h4>
         <ConditionRows doc={doc} block={block} setBlock={edit} />

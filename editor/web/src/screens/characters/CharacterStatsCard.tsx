@@ -20,9 +20,11 @@ interface TableProps {
   /** Names the personal box for screen readers and tests: "Strength personal bonus" / "Strength personal growth bonus". */
   boxName: string
   onChange: (key: string, v: number | undefined) => void
+  /** `data-learn` name for the tutorial's pointing ring. */
+  learn?: string
 }
 
-function ThreeColumns({ label, help, word, rows, base, bonus, suffix, boxName, onChange }: TableProps) {
+function ThreeColumns({ label, help, word, rows, base, bonus, suffix, boxName, onChange, learn }: TableProps) {
   return (
     <FieldGroup label={label} help={help}>
       <table className="kv three-col">
@@ -35,12 +37,12 @@ function ThreeColumns({ label, help, word, rows, base, bonus, suffix, boxName, o
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {rows.map((r, i) => (
             <tr key={r.key}>
               <th scope="row">{r.label}</th>
               <td className="muted-cell" data-testid={`base-${r.key}`}>{base?.[r.key] ?? 0}{suffix}</td>
               <td>
-                <NumberInput value={bonus?.[r.key]} allowEmpty placeholder="0" suffix={suffix} aria-label={`${r.label} ${boxName}`}
+                <NumberInput data-learn={i === 0 ? learn : undefined} value={bonus?.[r.key]} allowEmpty placeholder="0" suffix={suffix} aria-label={`${r.label} ${boxName}`}
                   onChange={(v) => onChange(r.key, v)} />
               </td>
               <td className="total-cell" data-testid={`total-${r.key}`}><strong>{totalStat(base?.[r.key], bonus?.[r.key])}{suffix}</strong></td>
@@ -65,7 +67,7 @@ export function CharacterStatsCard({ id, word }: { id: string; word: string }) {
       <div className="stack">
         {statRows.length === 0 && <p className="help">{T.noStats}</p>}
         {statRows.length > 0 && (
-          <ThreeColumns label={T.statsTitle} help={T.statsHelp(word)} word={word} rows={statRows} base={base?.stats} bonus={c.stats} boxName="personal bonus"
+          <ThreeColumns label={T.statsTitle} help={T.statsHelp(word)} word={word} rows={statRows} base={base?.stats} bonus={c.stats} boxName="personal bonus" learn="character-stats"
             onChange={(k, v) => edit((d) => setCharacterNumber(d, id, 'stats', k, v), `${key}:stat:${k}`)} />
         )}
         {statRows.length > 0 && featureEnabled(doc, 'progression') && (

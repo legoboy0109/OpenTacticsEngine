@@ -44,7 +44,7 @@ function SkillList({ itemId }: { itemId?: string }) {
           <ul className="usage-list" data-testid="skill-checks">{lines.map((t, i) => <li key={i}>{t}</li>)}</ul>
         </Banner>
       )}
-      <div className="starter-bar"><button type="button" className="btn" data-testid="starter-open" onClick={() => setInstalling(true)}>{T.installButton}</button></div>
+      <div className="starter-bar"><button type="button" className="btn" data-testid="starter-open" data-learn="starter-open" onClick={() => setInstalling(true)}>{T.installButton}</button></div>
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} heading="h2" selectedId={itemId}
         items={list.map((s) => ({ id: s.id, label: s.name, sub: blocksOf(s)[0] ? blockSummary(doc, blocksOf(s)[0]).replace(/\.$/, '') : '' }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

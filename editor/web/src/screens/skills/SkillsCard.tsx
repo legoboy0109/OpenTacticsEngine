@@ -35,7 +35,7 @@ export function SkillsCard({ testId, help, skills, onSkills, learns, onLearns }:
   const set = (next: string[]) => onSkills(next.length ? next : undefined)
 
   return (
-    <Card title={T.cardTitle} help={help} id={testId}>
+    <Card title={T.cardTitle} help={help} id={testId} learn={testId}>
       <div className="item-rows" data-testid={testId}>
         {have.length === 0 && <p className="help">{defined.length === 0 ? T.cardNoneDefined : T.cardNone}</p>}
         {have.map((sid, i) => {
@@ -50,7 +50,7 @@ export function SkillsCard({ testId, help, skills, onSkills, learns, onLearns }:
           )
         })}
         {addable.length > 0 && (
-          <Select aria-label={`${T.cardTitle}: ${T.cardAdd}`} value="" placeholder={T.cardAdd} options={addable.map((s) => ({ value: s.id, label: s.name }))}
+          <Select data-learn={`${testId}-add`} aria-label={`${T.cardTitle}: ${T.cardAdd}`} value="" placeholder={T.cardAdd} options={addable.map((s) => ({ value: s.id, label: s.name }))}
             onChange={(v) => set([...have, v])} />
         )}
         {onLearns && <LearnRows learns={learns} onLearns={onLearns} testId={testId} />}
@@ -69,7 +69,7 @@ function LearnRows({ learns, onLearns, testId }: { learns: Learn[] | undefined; 
   // The loader refuses levels outside 2..max level, and levels only exist when the game levels up at all.
   if (!progression && rows.length === 0) return <><h4 className="skill-part">{T.learnsTitle}</h4><p className="help">{T.learnsNoLevels}</p></>
   return (
-    <div className="stack" data-testid={`${testId}-learns`}>
+    <div className="stack" data-testid={`${testId}-learns`} data-learn={`${testId}-learns`}>
       <h4 className="skill-part">{T.learnsTitle}</h4>
       {rows.length === 0 && <p className="help">{T.learnsNone}</p>}
       {rows.map((l, i) => {

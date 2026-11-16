@@ -2,6 +2,7 @@
 import { addBlock, blocksOf, moveBlock, removeBlock, updateBlock, updateSkill } from '../../model/skills'
 import { MAX_BLOCKS } from '../../model/skillRules'
 import { skillSummary } from '../../model/skillText'
+import { STARTER_SKILLS } from '../../model/starterSkills'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
 import { Field } from '../../ui/Field'
@@ -9,6 +10,8 @@ import { TextInput } from '../../ui/TextInput'
 import { BlockCard } from './BlockCard'
 import { T } from './text'
 import './skills.css'
+
+const STARTER_IDS = new Set(STARTER_SKILLS.map((s) => s.id))
 
 export function SkillForm({ id }: { id: string }) {
   const doc = useDoc()
@@ -34,7 +37,8 @@ export function SkillForm({ id }: { id: string }) {
       <h2 className="skill-rules-title">{T.rulesCard}</h2>
       <p className="help">{T.rulesHelp}</p>
       {blocks.map((b, i) => (
-        <BlockCard key={i} doc={doc} block={b} index={i} count={blocks.length}
+        // The lesson "Characters and skills" points at the first rule of a skill the maker made, never at a starter skill's.
+        <BlockCard key={i} doc={doc} block={b} index={i} count={blocks.length} learn={i === 0 && !STARTER_IDS.has(id) ? 'skill-rule' : undefined}
           edit={(fn, k) => edit((d) => updateBlock(d, id, i, fn), k && `${key}:${i}:${k}`)}
           onMove={(delta) => edit((d) => moveBlock(d, id, i, i + delta))}
           onDelete={() => edit((d) => removeBlock(d, id, i))} />

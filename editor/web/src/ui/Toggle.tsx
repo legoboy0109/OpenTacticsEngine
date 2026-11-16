@@ -10,10 +10,10 @@ interface Props {
   learn?: string
 }
 
-export function Toggle({ checked, onChange, label, help, disabled }: Props) {
+export function Toggle({ checked, onChange, label, help, disabled, learn }: Props) {
   const helpId = useId()
   return (
-    <label className="toggle">
+    <label className="toggle" data-learn={learn}>
       <input type="checkbox" role="switch" checked={checked} disabled={disabled} aria-describedby={help ? helpId : undefined}
         onChange={(e) => onChange(e.target.checked)} />
       <span className="track" aria-hidden="true" />
