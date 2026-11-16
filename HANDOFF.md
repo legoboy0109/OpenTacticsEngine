@@ -4,6 +4,36 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
+## In progress (2026-11-15, evening) — read this first
+
+Merged on local `main` today (see `git log`); pushed up to `957d276`, the rest waits for the full check to finish:
+tutorial ring fix, neutral demo names ("Story Tactics Demo", "Sky Rider", "Salve": display names only, ids change in
+D1), standing terrain in the 3D views (docs/GRAPHICS.md "Standing terrain"), hexagons in 2D isometric (docs/HEX.md
+"Implementation notes (2D isometric)"), editor **Delete game** (owner: delete for good after typing the name, demos
+protected; `editor/server/project_delete.cpp`, `screens/picker/DeleteGameDialog.tsx`), and the strategy-RPG steps
+F1, F2, C1, K1, P1, R1, U0, E0 (docs/SRPG.md has an "as built" note per step: read those, not the reports).
+
+- **Strategy-RPG feature set** (PLAN k, docs/SRPG.md "Build order"). Running in worktrees: K2 (skills in combat),
+  A1 (abilities, summons), S1 (supports). Then: AI1 (needs P1, A1, R1) → U1–U5 player (each has its own files, see
+  "U0 as built") → E1–E4 editor ("E0 as built") → D1 demo/template content (also renames ids pegasus/vulnerary) →
+  T1 tutorial lesson. Open points handed forward: E0's feature switches switch themselves off on reload while a list
+  is empty (ask the owner whether a persistent flag is wanted); the editor's accessory wording copy
+  (`itemChecks.ts`, `text.ts`) still says the pre-K1 sentence (E2); "class" wording once a game has a character (E1);
+  player unit lists treat a carried unit as dead (U4); F2's `Battle::testMods` is always compiled (null outside tests).
+- **Hexagons in the 3D kinds** (PLAN n): agent running; contract docs/HEX.md "3D isometric and full 3D".
+- **3D unit models** (PLAN m): not started. Find CC0 packs (horse, winged mount, bow, lance), combine with the
+  KayKit characters through `tools/art/make_detailed_style.py`, credit in `games/demo-srpg/CREDITS.md`.
+- **Verifying a merge**: both builds + `ote_tests` (1079 after K1), sims (table in docs/PLAN or the last report),
+  `tests/*_player_test.py`, `render3d_backends_test.py`, `hex_content_test.py`, `editor_api_test.py`, editor
+  typecheck/build/unit, web build + `tools/webtest`, full e2e. With several agents building, e2e times out at random
+  (30 s `saved()` waits, mostly Firefox): re-run the failed specs alone before believing a failure.
+- Pins that follow demo data: `tests/test_srpg_compat.cpp` holds the demo-hex data hash and the demo-srpg campaign
+  save hash; both were re-taken today for deliberate data changes (map heights, the demo's name).
+- Owner's own games (`games/test`, `games/practice-*`) are untracked: never touch. Demo saves on the owner's machine
+  are refused after today's data changes (demo-srpg names, demo-hex heights).
+- Vision Quest rebuild: only if its team gives permission (owner is asking on the Fire Emblem Universe forum); it
+  would live in a git-ignored game folder, never in this repository, with no Nintendo assets or names.
+
 ## State (2026-11-14)
 
 Everything below is merged on `main`, which is also on GitHub:
