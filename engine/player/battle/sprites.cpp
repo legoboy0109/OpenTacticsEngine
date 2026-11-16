@@ -64,9 +64,10 @@ const Look* unitArt(const DrawCtx& c, const Unit& u) {
   if (!c.sprites) return nullptr;
   const GraphicsSet* set = c.battle.db->graphics.set(c.styleIndex);
   int side = shownSide(c, u);
-  if (!set || u.type < 0 || (size_t)u.type >= set->units.size() || side < 0 || (size_t)side >= c.battle.sides.size())
+  const int type = shownType(c, u);
+  if (!set || type < 0 || (size_t)type >= set->units.size() || side < 0 || (size_t)side >= c.battle.sides.size())
     return nullptr;
-  const Look& look = set->units[(size_t)u.type].forSide(c.battle.sides[(size_t)side].id);
+  const Look& look = set->units[(size_t)type].forSide(c.battle.sides[(size_t)side].id);
   return c.sprites->has(look) ? &look : nullptr;
 }
 

@@ -26,6 +26,7 @@ struct UnitView {
   bool visible = true;
   int side = -1;         // side whose colour is drawn; -1 = the unit's own (differs while a SideChanged entry waits to play)
   float flash = 0;       // 0..1: the short flash of a unit that changed sides
+  int type = -1;         // unit type to draw it as; -1 = the unit's own (the old type while a UnitPromoted entry waits to play)
 };
 
 struct FloatText {
@@ -143,6 +144,7 @@ class BattleView {
   bool beginSkills(const Battle& b);       // battle_view_skills.cpp     SkillLearned, SkillActivated, UnitHurt   (U1)
   bool progressSkills(const Battle& b);
   bool finishSkills(const Battle& b);
+  void pushPromotion(const Event& e);      // from push(): keeps the old type drawn until the entry plays
   bool beginPromotion(const Battle& b);    // battle_view_promotion.cpp  UnitPromoted                              (U2)
   bool progressPromotion(const Battle& b);
   bool finishPromotion(const Battle& b);

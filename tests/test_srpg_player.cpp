@@ -123,13 +123,13 @@ TEST(srpg_unit_info_with_fake_pages_turns_with_left_right) {
   CHECK(v.onInput(tap) == UnitInfoView::Closed);
 }
 
-TEST(srpg_view_plays_every_new_event_as_a_no_op_that_ends_at_once) {
+TEST(srpg_view_plays_the_events_nobody_shows_yet_as_no_ops_that_end_at_once) {  // (UnitPromoted is U2's: test_srpg_player_promotion.cpp)
   fixture::World w({"...."}, {{"soldier", 0, 0, 0, false}, {"soldier", 1, 3, 0, false}});
   CHECK(w.begin());
   BattleView view;
   view.init(w.battle, 24, true);
   const EventType types[] = {EventType::SkillLearned, EventType::SkillActivated, EventType::UnitHurt,
-                             EventType::UnitPromoted, EventType::AbilityUsed, EventType::UnitRescued,
+                             EventType::AbilityUsed, EventType::UnitRescued,
                              EventType::UnitDropped, EventType::UnitHanded, EventType::PairSwitched,
                              EventType::SupportPoints, EventType::SupportReached};
   std::vector<Event> events;
