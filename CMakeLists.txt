@@ -115,6 +115,9 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_content
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_content_test.py ${CMAKE_SOURCE_DIR}
                      $<TARGET_FILE:ote-sim>)
+    # The unit art of the story demo and the template: every unit type has its own picture / model in every style.
+    add_test(NAME srpg_art
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_art_test.py ${CMAKE_SOURCE_DIR})
     add_test(NAME audio_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/audio_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
