@@ -16,6 +16,10 @@ struct Tint3D {
 void addQuad(MeshData& m, Vec3 bottomLeft, Vec3 bottomRight, Vec3 topRight, Vec3 topLeft, Tint3D tint = Tint3D(),
              float u0 = 0, float v0 = 0, float u1 = 1, float v1 = 1);
 
+// A flat convex polygon (a hexagon's top): `n` corners counter-clockwise seen from the front as a fan of triangles
+// round their average. `uv` is two floats per corner (null = none); the normal comes from the first three corners.
+void addFan(MeshData& m, const Vec3* ring, int n, Tint3D tint = Tint3D(), const float* uv = nullptr);
+
 // A box from `lo` to `hi`. The top takes `top`, the four sides `side`; the
 // underside is left out (map blocks stand on something). Each face shows the
 // whole texture; sides repeat it once per unit of height.

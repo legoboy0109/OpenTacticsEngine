@@ -72,12 +72,23 @@ TEST(hex_loader_refuses_bad_game_grids) {
   CHECK(has(e, "grid"));
 }
 
-TEST(hex_loader_refuses_the_3d_styles_and_a_tile_height) {
-  const char* kinds[] = {"isometric-3d", "3d"};
-  for (const char* k : kinds) {
-    std::string e = refusal("st", hexGrid("pointy"), "", okMap(), std::string("\"styles\": [{\"id\":\"iso\",\"view\":\"") + k + "\"}],");
-    CHECK(has(e, std::string("game.json: style \"iso\": the \"") + k + "\" view is not available for hexagon games yet (only \"top-down\" and \"isometric\")"));
+TEST(hex_loader_allows_every_kind_of_view_and_refuses_a_tile_height) {
+  // All four kinds of view work on hexagons (the 3D ones since docs/HEX.md "Implementation notes (3D)").
+  const char* kinds[] = {"top-down", "isometric", "isometric-3d", "3d"};
+  const StyleView views[] = {StyleView::TopDown, StyleView::Isometric, StyleView::Isometric3D, StyleView::Full3D};
+  for (int i = 0; i < 4; ++i) {
+    CHECK(hexGameAllowsView(views[i]));
+    for (const char* layout : {"pointy", "flat"}) {
+      Database db3;
+      MapDef m3;
+      CHECK_STR(tryLoad(makeGame("st", hexGrid(layout), "", okMap(), std::string("\"styles\": [{\"id\":\"v\",\"view\":\"") + kinds[i] + "\"}],"), db3, m3), "");
+      CHECK(db3.styles[0].view == views[i]);
+    }
   }
+  // The isometric measures of the 3D isometric kind follow the 2D rules: no tileHeight on a hexagon game.
+  std::string e3 = refusal("st6", hexGrid("pointy"), "", okMap(),
+                           "\"styles\": [{\"id\":\"iso\",\"view\":\"isometric-3d\",\"isometric\":{\"tileWidth\":48,\"tileHeight\":24}}],");
+  CHECK(has(e3, "\"tileHeight\" is not used on hexagon games"));
   // 2D isometric works on hexagons; its squash is fixed, so tileHeight is refused (tileWidth, heightStep, unitWidth stay).
   std::string e = refusal("st3", hexGrid("flat"), "", okMap(),
                           "\"styles\": [{\"id\":\"iso\",\"view\":\"isometric\",\"isometric\":{\"tileWidth\":48,\"tileHeight\":24}}],");

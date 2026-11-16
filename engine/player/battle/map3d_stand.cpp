@@ -64,6 +64,21 @@ bool Map3D::standAt(Cell cell) const { return cell >= 0 && (size_t)cell < standA
 bool Map3D::standInFront(const DrawCtx& c, int x, int y) const {
   if (!anyStand_) return false;
   const Grid& g = c.battle.grid;
+  if (g.isHex()) {  // the neighbours whose middles lie towards the camera (within about 63 degrees of it)
+    const HexSpace& hs = c.proj->hexSpace();
+    float mx, mz;
+    hs.middle(x, y, mx, mz);
+    const Cell cell = g.at(x, y);
+    for (int d = 0; d < g.directionCount(); ++d) {
+      const Cell n = g.neighbor(cell, d);
+      if (n == kNoCell || !standAt(n)) continue;
+      float nx, nz;
+      hs.middle(g.x(n), g.y(n), nx, nz);
+      const float len = std::max(1e-6f, std::hypot(nx - mx, nz - mz));
+      if (((nx - mx) * cx_ + (nz - mz) * cz_) / len > 0.45f) return true;
+    }
+    return false;
+  }
   int dx = cx_ > 0.38f ? 1 : cx_ < -0.38f ? -1 : 0, dy = cz_ > 0.38f ? 1 : cz_ < -0.38f ? -1 : 0;
   auto at = [&](int ax, int ay) { return ax >= 0 && ay >= 0 && ax < g.width() && ay < g.height() && standAt(g.at(ax, ay)); };
   return (dx && at(x + dx, y)) || (dy && at(x, y + dy)) || (dx && dy && at(x + dx, y + dy));
@@ -97,7 +112,9 @@ void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {
       // Out of the picture (with room for tall things): nothing to draw. Matters on big maps and for models.
       {
         float wx, wy;
-        const float X = x + 0.5f - g.gridW() * 0.5f, Z = y + 0.5f - g.gridH() * 0.5f, Y = g.elevation(x, y) * g.stepY();
+        float cgx, cgy;
+        g.cellMid(x, y, cgx, cgy);
+        const float X = cgx - g.spaceW() * 0.5f, Z = cgy - g.spaceH() * 0.5f, Y = g.elevation(x, y) * g.stepY();
         if (!g.project3(X, Y, Z, wx, wy)) continue;
         const float room = g.pixelsAt(X, Y, Z) * 2.5f;
         const float px = wx - c.cam.ix(), py = wy - c.cam.iy();
@@ -111,7 +128,9 @@ void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {
       else if (!ov.attack.empty() && ov.attack[cell]) wash = Rgba3D(1.0f, 0.6f, 0.6f);
       float sx = 0, sz = 0, turn = 0;
       if (s.scatter) standScatter(x, y, sx, sz, turn);
-      Spot mid = spot(c, x + 0.5f, y + 0.5f, 0);
+      float mgx, mgy;
+      g.cellMid(x, y, mgx, mgy);
+      Spot mid = spot(c, mgx, mgy, 0);
       mid.Y = g.elevation(x, y) * g.stepY();
 
       if (s.isModel()) {

@@ -106,7 +106,27 @@ bool Free3DGeometry::groundAt(float sx, float sy, float Y, float& X, float& Z) c
   return true;
 }
 
+namespace {
+// Samples of a line over hexagon blocks are this far apart over the ground, in squares (as iso3d.cpp).
+const float kHexStride = 0.05f;
+}  // namespace
+
 int Free3DGeometry::pick(float sx, float sy, const std::vector<int>& elev) const {
+  if (hex.on) {  // the sight line sampled from the highest block's top plane down to the underside
+    if (elev.size() < (size_t)(hex.geo.cols * hex.geo.rows)) return -1;
+    float ex, ey, ez, dx, dy, dz;
+    eye(ex, ey, ez);
+    ray(sx, sy, dx, dy, dz);
+    if (dy > -1e-5f) return -1;
+    const float top = levels * stepY, bottom = -stepY, ground = std::sqrt(dx * dx + dz * dz);
+    float t = std::max(0.0f, (top - ey) / dy);  // where the line comes down to the highest top
+    const float dt = std::min(kHexStride / std::max(ground, 1e-6f), kHexStride / -dy);
+    for (; ey + dy * t >= bottom; t += dt) {
+      int c = hex.cellAt(ex + dx * t, ez + dz * t);
+      if (c >= 0 && ey + dy * t <= elev[(size_t)c] * stepY + 1e-4f) return c;
+    }
+    return -1;
+  }
   if (gridW <= 0 || gridH <= 0 || elev.size() < (size_t)(gridW * gridH)) return -1;
   float ex, ey, ez, dx, dy, dz;
   eye(ex, ey, ez);
@@ -122,6 +142,23 @@ int Free3DGeometry::pick(float sx, float sy, const std::vector<int>& elev) const
 }
 
 bool Free3DGeometry::hidden(int x, int y, const std::vector<int>& elev) const {
+  if (hex.on) {  // from just above the middle of the top face to the eye
+    if (x < 0 || y < 0 || x >= hex.geo.cols || y >= hex.geo.rows || elev.size() < (size_t)(hex.geo.cols * hex.geo.rows)) return false;
+    float ox, oz, ex, ey, ez;
+    hex.middle(x, y, ox, oz);
+    const int self = y * hex.geo.cols + x;
+    const float oy = elev[(size_t)self] * stepY + 0.02f;
+    eye(ex, ey, ez);
+    const float dx = ex - ox, dz = ez - oz, dy = ey - oy, ground = std::sqrt(dx * dx + dz * dz);
+    const float dt = std::min(1.0f, kHexStride / std::max(ground, 1e-6f));
+    for (float t = dt; t < 1.0f; t += dt) {
+      const float Y = oy + dy * t;
+      if (dy > 0 && Y > levels * stepY) break;  // above everything from here on
+      int c = hex.cellAt(ox + dx * t, oz + dz * t);
+      if (c >= 0 && c != self && Y < elev[(size_t)c] * stepY - 1e-3f) return true;
+    }
+    return false;
+  }
   if (x < 0 || y < 0 || x >= gridW || y >= gridH || elev.size() < (size_t)(gridW * gridH)) return false;
   // From just above the middle of the top face to the eye.
   float ox = x + 0.5f, oz = y + 0.5f, oy = elev[(size_t)(y * gridW + x)] * stepY + 0.02f;
@@ -167,7 +204,7 @@ void Free3DGeometry::clamp() {
   // The focus stays a little inside the map's outline (more when zoomed out),
   // so the picture is not half empty at an edge; the edge squares are still
   // well inside the picture from there.
-  float inset = distance * 0.2f, hx = std::max(0.0f, gridW * 0.5f - inset), hz = std::max(0.0f, gridH * 0.5f - inset);
+  float inset = distance * 0.2f, hx = std::max(0.0f, spaceW() * 0.5f - inset), hz = std::max(0.0f, spaceH() * 0.5f - inset);
   focusX = std::max(-hx, std::min(focusX, hx));
   focusZ = std::max(-hz, std::min(focusZ, hz));
 }

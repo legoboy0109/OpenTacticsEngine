@@ -145,7 +145,7 @@ void BattleScene::followCamera(double dt) {
   }
   if (proj_.free3d()) {  // this view has no scrolling: its own camera keeps the spot in the picture
     float gx = fx / layout_.tile, gy = fy / layout_.tile;
-    freeCam_.update(dt, proj_.cam3(), gx - proj_.gridW() * 0.5f, proj_.elevationAt(gx, gy) * proj_.stepY(), gy - proj_.gridH() * 0.5f);
+    freeCam_.update(dt, proj_.cam3(), gx - proj_.spaceW() * 0.5f, proj_.elevationAt(gx, gy) * proj_.stepY(), gy - proj_.spaceH() * 0.5f);
     cam_.x = cam_.y = 0;
     cam_.placed = true;
     return;
@@ -171,16 +171,18 @@ void BattleScene::update(double dt) {
       beginHumanTurn();
     }
   }
-  if (turnPos_ != (float)turn_) {  // a quarter turn takes a quarter of a second
-    float d = (float)turn_ - turnPos_, step = (float)dt * 4.0f;
+  if (turnPos_ != (float)turn_) {  // a quarter turn takes a quarter of a second (a sixth on hexagon maps: as fast)
+    const int steps = proj_.turnCount();
+    float d = (float)turn_ - turnPos_, step = (float)dt * (float)steps;
     turnPos_ = std::fabs(d) <= step ? (float)turn_ : turnPos_ + (d > 0 ? step : -step);
     if (turnPos_ == (float)turn_) {  // keep the numbers small: whole turns change nothing
-      turn_ = ((turn_ % 4) + 4) % 4;
+      turn_ = ((turn_ % steps) + steps) % steps;
       turnPos_ = (float)turn_;
     }
-    // The square under the cursor keeps its place on screen while the map turns about it.
+    // The cell under the cursor keeps its place on screen while the map turns about it.
     Cell c = battle_.grid.valid(cursor_) ? cursor_ : 0;
-    float fx = (battle_.grid.x(c) + 0.5f) * layout_.tile, fy = (battle_.grid.y(c) + 0.5f) * layout_.tile, ax, ay, bx, by;
+    float fx, fy, ax, ay, bx, by;
+    cellCentre(battle_.grid, layout_.tile, c, fx, fy);
     proj_.toWorld(fx, fy, ax, ay);
     proj_.setTurn(turnPos_);
     proj_.toWorld(fx, fy, bx, by);

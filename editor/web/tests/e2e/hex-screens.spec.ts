@@ -29,9 +29,9 @@ for (const layout of LAYOUTS) {
     await saved(page)
     const kind = page.getByLabel('Night: Kind of view')
     await expect(kind).toHaveValue('top-down')
-    await expect(page.getByTestId('view-hex-help')).toBeVisible()
-    // only the kinds the engine draws for hexagons are offered (the helper says which): the 3D ones are not in the list
-    await expect(kind.locator('option')).toHaveText(['Top-down', 'Isometric'])
+    // every kind is offered for hexagons now (the helper says which): no note about missing kinds
+    await expect(page.getByTestId('view-hex-help')).toHaveCount(0)
+    await expect(kind.locator('option')).toHaveText(['Top-down', 'Isometric', '3D isometric', 'Full 3D'])
     await expect(kind.locator('option', { hasText: /^Isometric$/ })).toBeEnabled()
 
     // Isometric: its settings have no square height (the angle of a hexagon is fixed)

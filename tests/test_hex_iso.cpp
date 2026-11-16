@@ -275,11 +275,11 @@ TEST(hex_iso_map_proj_on_the_fixture_games) {
     MapProj p2;
     p2.init(rig.battle, &st2, 24);
     CHECK(p2.hexIso().tileW == 36 && p2.hexIso().step == 6 && p2.unitW() == 20);
-    // a 3D style on a hexagon game is not drawn in 3D here (the loader refuses it; the projection stays safe)
+    // a 3D style on a hexagon game is 3D (tests/test_hex3d.cpp), not the 2D isometric view
     StyleDef st3;
     st3.view = StyleView::Isometric3D;
     MapProj p3;
     p3.init(rig.battle, &st3, 24);
-    CHECK(p3.hex() && !p3.view3d() && !p3.iso());
+    CHECK(p3.hex() && p3.iso3d() && p3.view3d() && !p3.iso());
   }
 }

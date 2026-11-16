@@ -667,7 +667,7 @@ behave exactly as before; everything below only happens when `game.json` has `"g
   rectangles of columns and rows (picked by dragging between two hexagons) and are drawn as the set of hexagons they contain. "Show what a side sees"
   uses hexagon steps (`withinOf`).
 - **Screens.** Game: a "Grid" card shows "Squares", "Hexagons, pointy-top" or "Hexagons, flat-top" (read only) with one sentence; a style's Kind of
-  view lists only the kinds the engine draws for hexagons (Top-down and Isometric today; the helper says which: `GET /api/info` `hexViews`, asked once
+  view lists only the kinds the engine draws for hexagons (all four today; the helper says which: `GET /api/info` `hexViews`, asked once
   at start, `api/hexViews.ts`); a style that somehow has another kind keeps it in the list, greyed with "not for hexagon games yet". The
   isometric settings of a hexagon game have no "Square height" (the angle is fixed), "Tile width" instead of "Square width", and the Height step
   placeholder is a quarter of the width. Structures: the size control is "Covers" with "1 hexagon" /

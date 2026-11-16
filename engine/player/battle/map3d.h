@@ -18,6 +18,13 @@ namespace ote {
 
 struct DrawCtx;
 struct Overlay;
+struct StructureState;
+struct StructureDef;
+
+// Elevation (levels) a structure stands at: the highest of its squares / hexagons. (map3d_things.cpp)
+int structureElev(const DrawCtx& c, const StructureState& st, const StructureDef& def);
+// The hexagons a structure covers on a hexagon map: the middle one first, then the ring if its kind has one.
+void hexStructureCells(const DrawCtx& c, const StructureState& st, const StructureDef& def, std::vector<Cell>& out);
 struct UnitView;
 class Show3D;
 
@@ -53,6 +60,16 @@ class Map3D {
   float standAhead(const DrawCtx& c, Cell cell);
   void drawStands(const DrawCtx& c, const Overlay& ov);
   ModelActor* standActor(const ModelAsset* asset);
+  // map3d_hex.cpp: hexagon maps (docs/HEX.md); the twins of the square drawing above
+  void hexCorners(const DrawCtx& c, int x, int y, float Y, float scale, Vec3 (&p)[6]) const;
+  void hexFill(MeshData& m, const DrawCtx& c, int x, int y, float Y, float scale, Tint3D tint, const float* uvRect = nullptr);
+  void hexBand(MeshData& m, const DrawCtx& c, int x, int y, float Y, float thick, Tint3D tint, unsigned edges = 63);
+  void hexSide(MeshData& m, const DrawCtx& c, int x, int y, int dir, float lo, float hi, float scale, float eps, Tint3D tint);
+  void hexMarker(MeshData& m, const DrawCtx& c, const Spot& feet, float half, float lift, Tint3D tint) const;
+  void buildGroundHex(const DrawCtx& c);
+  void drawTopsHex(const DrawCtx& c);
+  void drawHighlightsHex(const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor);
+  void drawStructureHex(const DrawCtx& c, int index);
   // map3d_models.cpp
   const ModelLook* unitModel(const DrawCtx& c, const Unit& u, const ModelAsset*& asset);
   const ModelLook* structureModel(const DrawCtx& c, const StructureState& st, const ModelAsset*& asset);

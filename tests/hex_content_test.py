@@ -13,6 +13,9 @@ usage: python3 tests/hex_content_test.py REPO_ROOT [OTE_SIM]
 - the isometric starter art (tools/art/art_hex_iso.py, geometry hex_iso_geom.py): the squashed hexagons tile exactly for many
   tile widths, every style of view "isometric" has a complete set, terrain cells are the documented size with the top face
   opaque exactly on the squashed hexagon and `step` rows of side faces under it, all 64 join pieces, structure pictures;
+- the 3D starter art (tools/art/art_hex_3d.py): every style of view "isometric-3d" / "3d" has a complete set (top-down
+  terrain, structures, isometric units), the ground cells under forest and mountain are the hexagon's box and opaque
+  exactly inside the hexagon, the standing pictures are 24 x 32 and drawn;
 - both templates and the demo load and their sims finish without a stall (needs ote-sim, default build/ote-sim);
 """
 import json
@@ -311,13 +314,72 @@ def composite_checks(rel, layout):
         check(holes == 0, '%s map %s: %d background pixels showing inside the hexagons' % (rel, entry['id'], holes))
 
 
+def art3d_checks(rel, layout):
+    """The 3D styles of a hexagon game: what art_hex_3d.py writes (the templates have no 3D style: nothing to check)."""
+    path = os.path.join(root, rel)
+    game = gen.load_json(os.path.join(path, 'game.json'))
+    styles = [s for s in game.get('styles', []) if s.get('view') in ('isometric-3d', '3d')]
+    if not styles:
+        return
+    doc = gen.load_json(os.path.join(path, 'data/graphics.json'))
+    terrain_ids = [t['id'] for t in gen.load_json(os.path.join(path, 'data/terrain.json'))['terrain']]
+    structs = gen.load_json(os.path.join(path, 'data/structures.json'))['structures']
+    units = [u['id'] for u in gen.load_json(os.path.join(path, 'data/units.json'))['units']]
+    sheets = {}
+    for sh in doc['sheets']:
+        sheets[sh['id']] = (Image.open(os.path.join(path, sh['file'])).convert('RGBA'), sh['cellWidth'], sh['cellHeight'])
+    g = hex_geom.Geom(layout, game['view']['tileSize'])
+    for st in styles:
+        look_set = doc.get('styles', {}).get(st['id'])
+        check(look_set is not None, '%s: graphics.json has no art for the 3D style %s' % (rel, st['id']))
+        if look_set is None:
+            continue
+        for t in terrain_ids:
+            check(t in look_set['terrain'], '%s: 3D terrain %s has no look' % (rel, t))
+        for sd in structs:
+            check(sd['id'] in look_set.get('structures', {}), '%s: 3D structure %s has no look' % (rel, sd['id']))
+        for u in units:
+            check(u in look_set.get('units', {}), '%s: 3D unit %s has no look' % (rel, u))
+
+        def in_sheet(look):
+            im, cw, ch = sheets[look['sheet']]
+            if 'join' in look:  # the far corner of each 8 x 8 block of pieces
+                j = look['join']
+                cells = [(c + 7, r + 7) for c, r in ([j] if isinstance(j[0], int) else j)]
+            else:
+                cells = look.get('variants') or look.get('frames') or [look['cell']]
+            return all((c + 1) * cw <= im.width and (r + 1) * ch <= im.height for c, r in cells)
+        for t, look in look_set['terrain'].items():
+            check(in_sheet(look), '%s: 3D terrain %s cell outside its sheet' % (rel, t))
+            if 'stand' in look:
+                check(in_sheet(look['stand']) and sheets[look['stand']['sheet']][1:] == (24, 32), '%s: standing picture of %s' % (rel, t))
+                gim, gw, gh = sheets[look['sheet']]
+                check((gw, gh) == (g.w, g.h), '%s: ground cell of %s is %dx%d, want the hexagon box %dx%d' % (rel, t, gw, gh, g.w, g.h))
+                c, r = look['cell']
+                cellim = gim.crop((c * gw, r * gh, (c + 1) * gw, (r + 1) * gh))
+                bad = [(x, y) for y in range(gh) for x in range(gw) if (cellim.getpixel((x, y))[3] == 255) != g.inside(x, y)]
+                check(not bad, '%s: ground cell of %s is not opaque exactly inside the hexagon: %s' % (rel, t, bad[:3]))
+                for sc, sr in look['stand'].get('variants', []):
+                    sim, sw, sh_ = sheets[look['stand']['sheet']]
+                    check(sim.crop((sc * sw, sr * sh_, (sc + 1) * sw, (sr + 1) * sh_)).getchannel('A').getbbox() is not None,
+                          '%s: standing picture %s of %s is empty' % (rel, (sc, sr), t))
+        for sd in structs:
+            sl = look_set['structures'].get(sd['id'])
+            check(sl is not None and in_sheet(sl), '%s: 3D structure %s cell outside its sheet' % (rel, sd['id']))
+        for u, look in look_set.get('units', {}).items():
+            check(in_sheet(look) and sheets[look['sheet']][1] == 24, '%s: 3D unit %s' % (rel, u))
+
+
 def game_checks(rel):
     path = os.path.join(root, rel)
     game = gen.load_json(os.path.join(path, 'game.json'))
     check(game.get('name') and game.get('description'), '%s: name and description' % rel)
     check(game['grid']['type'] == 'hex', '%s: not a hexagon game' % rel)
-    check(all(s.get('view', 'top-down') in ('top-down', 'isometric') for s in game.get('styles', [])),
-          '%s: only top-down and isometric styles (3D comes later)' % rel)
+    check(all(s.get('view', 'top-down') in ('top-down', 'isometric', 'isometric-3d', '3d') for s in game.get('styles', [])),
+          '%s: a style with an unknown kind of view' % rel)
+    if rel == 'games/demo-hex':  # the demo has a style of every kind of view
+        check({s.get('view', 'top-down') for s in game.get('styles', [])} == {'top-down', 'isometric', 'isometric-3d', '3d'},
+              '%s: wants a style of each of the four kinds of view' % rel)
     if not os.path.isfile(sim):
         print('no ote-sim at %s: skipping the sim checks' % sim)
         return
@@ -335,6 +397,7 @@ def main():
     for rel, layout in GAMES.items():
         art_checks(rel, layout)
         iso_art_checks(rel, layout)
+        art3d_checks(rel, layout)
         composite_checks(rel, layout)
         game_checks(rel)
     for m in failures:

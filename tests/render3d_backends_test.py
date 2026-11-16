@@ -27,6 +27,13 @@ SCENES = [
                                                  '--autoplay', '--seed', '2', '--frames', '500']),
     ('demo-economy', ['--game', 'demo-economy', '--map', 'twin_rivers', '--style', 'isometric-3d',
                       '--autoplay', '--seed', '2', '--frames', '500']),
+    # Hexagon maps (docs/HEX.md): six-sided blocks, standing trees and peaks, the seven-hexagon fortress.
+    ('demo-hex, 3D isometric, turned a sixth', ['--game', 'demo-hex', '--map', 'fortress_ford', '--style', 'isometric-3d',
+                                                 '--input', 'wait:14,turnright,wait:30,confirm,wait:10']),
+    ('demo-hex, 3D isometric, battle', ['--game', 'demo-hex', '--map', 'fortress_ford', '--style', 'isometric-3d',
+                                         '--autoplay', '--seed', '2', '--frames', '500']),
+    ('demo-hex, full 3D, fog', ['--game', 'demo-hex', '--map', 'foggy_hills', '--style', 'full-3d',
+                                 '--input', 'wait:14,confirm,wait:10,turnright,turnright,tiltdown,wait:30']),
 ]
 MAX_DIFFERENT = 0.002   # share of pixels with a channel more than TOLERANCE apart
 TOLERANCE = 8

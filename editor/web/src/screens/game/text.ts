@@ -46,7 +46,7 @@ export const T = {
   viewHelp: 'How the battle is drawn in this style. Top-down looks straight down on the map; isometric looks at it from an angle, and shows heights as raised blocks; 3D isometric does the same with blocks you can turn around.',
   viewNotHex: 'not for hexagon games yet',
   viewHexHelp: 'A game with hexagons can only be shown from above for now. The other kinds of view need a game with squares.',
-  viewHexIsoHelp: 'A game with hexagons can be shown from above or at an angle (isometric, with heights as six-sided blocks). The 3D kinds of view need a game with squares for now.',
+  viewHexIsoHelp: 'A game with hexagons can be shown from above or at an angle (isometric, with heights as six-sided blocks).',
   viewHexIsoSizesHelp: 'Hexagons are drawn at a fixed angle, so there is no square height: only the width, the height step and the unit width can be set.',
   viewTopDown: 'Top-down',
   viewIsometric: 'Isometric',

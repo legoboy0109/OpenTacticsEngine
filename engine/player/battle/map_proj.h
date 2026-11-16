@@ -6,9 +6,11 @@
 // 3D isometric: core/view/iso3d.h (the view can turn: setTurn).
 // Full 3D: core/view/free3d.h (world pixels = viewport pixels; the camera's
 // focus moves instead of the 2D scrolling camera: cam3()).
-// Hexagon maps (docs/HEX.md) are top-down or 2D isometric. Top-down: world pixels = flat map pixels, where a cell is
+// Hexagon maps (docs/HEX.md) can be shown in every kind. Top-down: world pixels = flat map pixels, where a cell is
 // its hexagon's middle (core/view/hex_geo.h); the map size, pick() and cellBox() follow the hexagons. 2D isometric
-// (iso() is true, hex() too): core/view/hex_iso.h, hexIso(); the 3D kinds are not drawn for hexagons yet.
+// (iso() is true, hex() too): core/view/hex_iso.h, hexIso(). The 3D kinds (view3d() and hex()): the same geometry
+// classes with their `hex` space on (core/view/hex3d.h): space is the top-down picture in squares, so units (which
+// live in flat map pixels) keep working, the 3D isometric view turns in sixths, elevations are per hexagon.
 #pragma once
 #include <algorithm>
 #include <cmath>
@@ -36,14 +38,18 @@ class MapProj {
   // Hexagon map, 2D isometric: the cells back to front (the order to draw them in).
   const std::vector<Cell>& hexDrawOrder() const { return hexOrder_; }
   const Iso3DGeometry& geo3() const { return geo3_; }
-  // 3D isometric only: where the camera is, in quarter turns (fractions while it turns).
-  void setTurn(float quarterTurns) { geo3_.yaw = Iso3DGeometry::yawOfTurn(quarterTurns); }
+  // 3D isometric only: where the camera is, in steps of a turn (fractions while it turns): quarters on square maps,
+  // sixths on hexagon maps (turnCount() steps make a whole circle).
+  void setTurn(float steps) { geo3_.yaw = hex_ ? Iso3DGeometry::yawOfHexTurn(steps) : Iso3DGeometry::yawOfTurn(steps); }
+  int turnCount() const { return hex_ ? 6 : 4; }
   // Full 3D only: the camera (the scene moves it), and the viewport it draws into.
   Free3DGeometry& cam3() { return free_; }
   const Free3DGeometry& cam3() const { return free_; }
   void setViewport(int w, int h) { free_.viewW = w; free_.viewH = h; }
   bool hex() const { return hex_; }  // a hexagon map
   const HexGeo& hexGeo() const { return hexGeo_; }
+  // The 3D space of a hexagon map (the 3D kinds only; `on` is false otherwise).
+  const HexSpace& hexSpace() const { return hexSpace_; }
   int tile() const { return tile_; }
   int unitW() const { return unitW_; }
   int worldW() const {
@@ -57,6 +63,12 @@ class MapProj {
   // (core/view/iso3d.h); these hide which camera looks at it.
   int gridW() const { return gridW_; }
   int gridH() const { return gridH_; }
+  // The ground's size in squares (the grid on squares, the top-down picture over tileSize on hexagon maps): what the
+  // 3D space is centred on.
+  float spaceW() const { return hex_ ? hexGeo_.mapW() / (float)tile_ : (float)gridW_; }
+  float spaceH() const { return hex_ ? hexGeo_.mapH() / (float)tile_ : (float)gridH_; }
+  // The middle of a cell in squares of that space ((x + 0.5, y + 0.5) on squares; the hexagon's middle over tileSize).
+  void cellMid(int x, int y, float& gx, float& gy) const;
   float stepY() const { return free3d_ ? free_.stepY : geo3_.stepY; }  // height of one level
   float yaw() const { return free3d_ ? free_.yaw : geo3_.yaw; }
   // A point in 3D space -> world pixels; false = behind the camera.
@@ -78,7 +90,8 @@ class MapProj {
   bool hidden3(int x, int y) const { return free3d_ ? free_.hidden(x, y, elev_) : geo3_.hidden(x, y, elev_); }
 
   // Elevation (levels above the map's lowest square) of a square, and of a
-  // spot between squares (gx, gy in squares, measured at square middles).
+  // spot between squares (gx, gy in squares, measured at square middles; on a hexagon map the spot is in squares
+  // of the 3D space, and the height is hexElevationAt's).
   int elevation(int x, int y) const { return elev_[(size_t)(y * gridW_ + x)]; }
   float elevationAt(float gx, float gy) const;
   // The same for a hexagon map, at a spot in flat map pixels: the nearest hexagon's, eased towards the next nearest
@@ -98,6 +111,7 @@ class MapProj {
   bool iso_ = false, iso3d_ = false, free3d_ = false;
   bool hex_ = false;  // a hexagon map (always top-down)
   HexGeo hexGeo_;
+  HexSpace hexSpace_;
   HexIsoGeometry hexIso_;
   std::vector<Cell> hexOrder_;
   Grid grid_;  // a copy, for the neighbours of a hexagon (elevation blending)

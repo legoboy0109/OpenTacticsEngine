@@ -257,9 +257,9 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
     else if (view == "isometric-3d") st.view = StyleView::Isometric3D;
     else if (view == "3d") st.view = StyleView::Full3D;
     else return c.fail(where, "\"view\" must be \"top-down\", \"isometric\", \"isometric-3d\" or \"3d\"");
-    // The 3D kinds on hexagons are a later step of docs/HEX.md (hexGameAllowsView lists what is built).
+    // hexGameAllowsView lists the kinds hexagon games may use (all four today; a future kind stays refused until built).
     if (db.gridType == GridType::Hex && !hexGameAllowsView(st.view))
-      return c.fail(where, "the \"" + view + "\" view is not available for hexagon games yet (only \"top-down\" and \"isometric\")");
+      return c.fail(where, "the \"" + view + "\" view is not available for hexagon games yet");
     const Json* iso;
     if (!c.object(j, "isometric", where, iso)) return false;
     if (j.has("isometric")) {

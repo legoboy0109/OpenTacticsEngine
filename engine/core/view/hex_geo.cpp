@@ -52,6 +52,18 @@ void HexGeo::box(int x, int y, int& bx, int& by) const {
   }
 }
 
+void HexGeo::corners(int x, int y, float (&out)[6][2]) const {
+  int bx, by;
+  box(x, y, bx, by);
+  const float q = (float)quarter(), w = (float)boxW(), h = (float)boxH();
+  const float pointyC[6][2] = {{w / 2, 0}, {w, q}, {w, 3 * q}, {w / 2, h}, {0, 3 * q}, {0, q}};
+  const float flatC[6][2] = {{q, 0}, {3 * q, 0}, {w, h / 2}, {3 * q, h}, {q, h}, {0, h / 2}};
+  for (int i = 0; i < 6; ++i) {
+    out[i][0] = (float)bx + (pointy ? pointyC[i][0] : flatC[i][0]);
+    out[i][1] = (float)by + (pointy ? pointyC[i][1] : flatC[i][1]);
+  }
+}
+
 void HexGeo::middle(int x, int y, int& mx, int& my) const {
   box(x, y, mx, my);
   mx += boxW() / 2;

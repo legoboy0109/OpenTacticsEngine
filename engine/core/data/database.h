@@ -266,8 +266,11 @@ struct FontConfig {
 // The kind of view a visual style draws the battle with (docs/VIEWS.md).
 enum class StyleView { TopDown, Isometric, Isometric3D, Full3D };
 // The kinds of view a hexagon game may use (docs/HEX.md "The other three views"): the loader refuses the others and the
-// editor's helper reports these. The 3D kinds join later.
-inline bool hexGameAllowsView(StyleView v) { return v == StyleView::TopDown || v == StyleView::Isometric; }
+// editor's helper reports these. Every kind is built (the 3D kinds: docs/HEX.md "Implementation notes (3D)"); a kind that
+// is added to StyleView later stays refused here until its drawing exists.
+inline bool hexGameAllowsView(StyleView v) {
+  return v == StyleView::TopDown || v == StyleView::Isometric || v == StyleView::Isometric3D || v == StyleView::Full3D;
+}
 
 // Sizes of the isometric kinds of view, in logical pixels.
 struct IsoConfig {
