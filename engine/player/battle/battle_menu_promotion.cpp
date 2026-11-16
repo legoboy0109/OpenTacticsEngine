@@ -100,26 +100,28 @@ void BattleScene::promotionInput(const InputEvent& e) {
   else promotionBack();
 }
 
-// The picture of a unit type in the promotion screen: its art in the unit's side colours, else the placeholder
-// (side-coloured block with the type's letter), like the map draws a unit without art. A 3D game's units are drawn here
-// as that placeholder too (the models only exist inside the 3D scene).
+// The picture of a unit type in the promotion screen: its art in the unit's side colours. A style whose units are
+// models has no picture for it (the models only exist inside the 3D scene), so the first other style of the game
+// that has a picture of the type lends its own (the game's first style first: normally the plain top-down one).
+// Only a game without any picture of the type shows the placeholder (side-coloured block with the type's letter).
 void BattleScene::drawPromotionPicture(Renderer& r, int type, int x, int y, int w, int h) {
   const Unit& u = battle_.units[(size_t)sel_];
   const Database& db = session_.db;
   DrawCtx ctx{battle_, view_, layout_, cam_, time_, &db.styles[styleIdx_], host_.sprites(), styleIdx_, &proj_, host_.isoTiles(), map3d_.get()};
   Color side = Color::rgb(battle_.sides[(size_t)u.side].color);
-  if (const GraphicsSet* set = db.graphics.set(styleIdx_)) {
-    if (type >= 0 && (size_t)type < set->units.size()) {
-      const Look& look = set->units[(size_t)type].forSide(battle_.sides[(size_t)u.side].id);
-      if (ctx.sprites && ctx.sprites->has(look)) {
-        SpriteSrc s = lookSrc(ctx, look);
-        int dw = w - 4, dh = std::max(1, dw * s.h / std::max(1, s.w));  // keep the cell's proportions
-        if (dh > h - 4) { dh = h - 4; dw = std::max(1, dh * s.w / std::max(1, s.h)); }
-        r.fillRect(x + 2, y + h - 4, w - 4, 2, side);  // the side marker under the feet
-        r.drawTexture(s.tex, s.x, s.y, s.w, s.h, x + (w - dw) / 2, y + h - 3 - dh, dw, dh, Color(255, 255, 255));
-        return;
-      }
-    }
+  for (int k = -1; k < (int)db.styles.size(); ++k) {  // -1 = the style being played
+    const int style = k < 0 ? styleIdx_ : k;
+    if (k == styleIdx_) continue;
+    const GraphicsSet* set = db.graphics.set(style);
+    if (!set || type < 0 || (size_t)type >= set->units.size()) continue;
+    const Look& look = set->units[(size_t)type].forSide(battle_.sides[(size_t)u.side].id);
+    if (!ctx.sprites || !ctx.sprites->has(look)) continue;
+    SpriteSrc s = lookSrc(ctx, look);
+    int dw = w - 4, dh = std::max(1, dw * s.h / std::max(1, s.w));  // keep the cell's proportions
+    if (dh > h - 4) { dh = h - 4; dw = std::max(1, dh * s.w / std::max(1, s.h)); }
+    r.fillRect(x + 2, y + h - 4, w - 4, 2, side);  // the side marker under the feet
+    r.drawTexture(s.tex, s.x, s.y, s.w, s.h, x + (w - dw) / 2, y + h - 3 - dh, dw, dh, Color(255, 255, 255));
+    return;
   }
   r.fillRect(x + 4, y + 4, w - 8, h - 8, side);
   drawGlyphCentered(r, x + w / 2, y + h / 2, db.unitTypes[(size_t)type].glyph, readableOn(side), std::max(1, (w - 8) * 3 / 4));

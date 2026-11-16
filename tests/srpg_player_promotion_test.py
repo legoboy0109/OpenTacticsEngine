@@ -186,6 +186,13 @@ def main():
         r = R('story', 'story', START + done_pause)
         check('a promotion from the story plays', r.lines('promotion plays: Wren, Recruit to Captain'), r.log[-400:])
 
+        # -- a style whose units are models borrows the picture of another style for the screen (not the letter block)
+        for style in ('isometric-3d', 'full-3d'):
+            r = R('screen_' + style, 'choose', START + ',' + PICK + ',confirm,wait:2', style=style)
+            check('%s: the promotion screen shows the captain\'s picture from the sprite style' % style,
+                  r.pic and hue_count(r.pic, C['captain'], 80, 200, 90, 160) > 400,
+                  hue_count(r.pic, C['captain'], 80, 200, 90, 160) if r.pic else r.log[-300:])
+
         # -- every kind of picture changes
         for style, tolerance_min in (('classic', 150), ('isometric', 60), ('isometric-3d', 40), ('full-3d', 25)):
             base = START + ',' + PICK + ',confirm,confirm,wait:30,confirm,wait:12'  # first type of the screen: the captain

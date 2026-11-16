@@ -2635,9 +2635,8 @@ types: Houndmaster, Hound (contract); ids `sky_rider`, `mending_salve`, `keen_bl
 and the lines "The company has chosen: you lead us as Captain now, Eirik." and "Whatever the pass throws at us, I ride at your
 side."
 
-**Not done.** No new art (Captain, Lancer, Outrider, Marksman, Brute, Houndmaster and Hound draw as their source type: the
-Hound as a Fighter). In `detailed-3d` the promotion screen's preview shows a letter box for a model-only type (a U2
-behaviour, not a content issue). Playtest of Rally and of Brute's automatic promotion was not reached by input scripts.
+**Not done.** (Since then: the seven new types have their own art in every style, docs/GRAPHICS.md, and the promotion
+screen of a model style borrows the picture of a sprite style.) Playtest of Rally and of Brute's automatic promotion was not reached by input scripts.
 
 ### T1. Tutorial lesson and document sync — depends on E1, E2, D1
 The lesson "Characters and skills"; pointers to this contract from docs/GAME_FORMAT.md, docs/SAVES.md,
