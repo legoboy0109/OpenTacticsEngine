@@ -203,8 +203,10 @@ TEST(abilities_player_page_lists_the_abilities_and_fits_the_box) {
   rest.cooldown = 2;
   p.w.give("soldier", rest);  // the pages are built from the type's list when the details open
   UnitInfoView v;
-  v.open(p.w.battle, 0);
-  CHECK_EQ(v.pageCount(), 1);  // no other page exists in this build; a unit with no ability gets none (below)
+  UnitInfoPages only;
+  addAbilitiesPage(only, p.w.battle, 0);
+  CHECK_EQ((int)only.size(), 1);  // a unit with no ability gets none (below)
+  v.openPages(0, only);  // the page alone: the other steps' pages stand before it in the real details
   RecordingRenderer r;
   v.draw(r, p.w.battle, 8);
   CHECK(r.has("Abilities"));
