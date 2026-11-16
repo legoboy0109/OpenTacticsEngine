@@ -13,7 +13,11 @@ struct ListFile { const char* key; const char* file; };
 // The list sits under the same key inside the file as in the API.
 const ListFile kLists[] = {
     {"characters", "data/characters.json"}, {"skills", "data/skills.json"}, {"abilities", "data/abilities.json"}};
-const char* const kSupportsFile = "data/supports.json";
+// One JSON object per file, in the API under the key shown; `false` in the PUT body removes the file. Weapon ranks and
+// stat caps (docs/SRPG.md section 7) are two of these: `ranks` is the file's whole object ({growth, ranks}), `caps`
+// likewise ({caps}). An empty ladder / empty caps object is written like an empty list: the loader treats it as no
+// file at all, and the file is how the editor remembers that the maker switched the feature on.
+const ListFile kObjects[] = {{"supports", "data/supports.json"}, {"ranks", "data/ranks.json"}, {"caps", "data/caps.json"}};
 
 bool isFalse(const Json& v) { return v.type() == Json::Type::Bool && !v.asBool(); }
 
@@ -40,17 +44,19 @@ void readSrpgSections(const fs::path& dir, Json& doc, std::vector<Problem>& prob
     }
     doc.set(l.key, list);
   }
-  Json supports;
-  if (!fileAbsent(dir, kSupportsFile)) {
-    Json s;
-    Problem p;
-    if (readJsonRel(dir, kSupportsFile, s, p) && s.isObject()) supports = s;
-    else {
-      if (p.message.empty()) p = {kSupportsFile, "the file must contain a JSON object at the top level"};
-      probs.push_back(p);
+  for (const ListFile& o : kObjects) {
+    Json obj;
+    if (!fileAbsent(dir, o.file)) {
+      Json s;
+      Problem p;
+      if (readJsonRel(dir, o.file, s, p) && s.isObject()) obj = s;
+      else {
+        if (p.message.empty()) p = {o.file, "the file must contain a JSON object at the top level"};
+        probs.push_back(p);
+      }
     }
+    doc.set(o.key, obj);
   }
-  doc.set("supports", supports);
 }
 
 std::string checkSrpgBody(const Json& body) {
@@ -59,8 +65,11 @@ std::string checkSrpgBody(const Json& body) {
     if (!v.isNull() && !v.isArray() && !isFalse(v))
       return std::string("\"") + l.key + "\" must be an array, or false to remove the file";
   }
-  const Json& s = body["supports"];
-  if (!s.isNull() && !s.isObject() && !isFalse(s)) return "\"supports\" must be an object, or false to remove the supports";
+  for (const ListFile& o : kObjects) {
+    const Json& v = body[o.key];
+    if (!v.isNull() && !v.isObject() && !isFalse(v))
+      return std::string("\"") + o.key + "\" must be an object, or false to remove the file";
+  }
   return "";
 }
 
@@ -76,16 +85,20 @@ SrpgFileOps planSrpgFiles(const Json& body) {
     wrap.set(l.key, v);
     ops.writes.push_back({l.file, wrap.dump(2) + "\n"});
   }
-  const Json& s = body["supports"];
-  if (s.isObject()) ops.writes.push_back({kSupportsFile, s.dump(2) + "\n"});
-  else if (isFalse(s)) ops.removals.push_back(kSupportsFile);
+  for (const ListFile& o : kObjects) {
+    const Json& v = body[o.key];
+    if (v.isObject()) ops.writes.push_back({o.file, v.dump(2) + "\n"});
+    else if (isFalse(v)) ops.removals.push_back(o.file);
+  }
   return ops;
 }
 
 bool isSrpgFile(const std::string& rel) {
   for (const ListFile& l : kLists)
     if (rel == l.file) return true;
-  return rel == kSupportsFile;
+  for (const ListFile& o : kObjects)
+    if (rel == o.file) return true;
+  return false;
 }
 
 }  // namespace ote_editor
