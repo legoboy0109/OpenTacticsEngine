@@ -122,7 +122,7 @@ test('@smoke a pair with levels, a bonus and a conversation: the file is exactly
   await expect(page.getByTestId('support-checks')).toContainText('Lyra and Bram: These two never meet')
   await expect(page.getByTestId('support-checks')).not.toContainText('Eirik and Lyra')
 
-  // --- The game runs: the engine loads what the editor wrote (the loader's Problems are empty above).
+  await shot(page, 'supports-checks')
 })
 
 test('the story pieces: Add support points, the support level condition and the trigger, on a map and in a scene', async ({ page, game, request }) => {
@@ -161,7 +161,13 @@ test('the story pieces: Add support points, the support level condition and the 
   expect(ev.do[0]).toEqual({ addSupport: ['eirik', 'lyra'], by: -5 })
   expect(ev.if).toEqual([{ support: ['eirik', 'lyra'], op: '>', value: 0 }])
   expect(await game.problems(id)).toEqual([])
-  await shot(page, 'supports-story-forms')
+  // The event panel scrolls inside the page: bring the forms into view, then take the window.
+  if (process.env.OTE_SHOT_DIR) {
+    await editor(page).getByTestId('trigger-form').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${process.env.OTE_SHOT_DIR}/supports-story-trigger.png` })
+    await cond.scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${process.env.OTE_SHOT_DIR}/supports-story-condition.png` })
+  }
 
   // --- A campaign scene offers the command and the condition, nothing else new.
   await page.goto(editorUrl(id, 'campaign'))

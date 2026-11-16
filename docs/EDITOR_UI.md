@@ -794,3 +794,19 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
   item (promotions drop it), stat (changes, bonuses, carrying rows), all in one undo step.
 - **Story**: command "Promote a unit" and trigger "A unit is promoted" (`forms/PromoteForm.tsx`, `TriggerForm.tsx`); `storyWalk.ts` knows their references.
 - **Tests**: unit `abilities`, `promotion`, `rescue`; API `tests/editor_api_abilities_checks.py`; e2e `srpg-abilities.spec.ts`, `srpg-promotion.spec.ts`.
+
+## Supports (editor step E4 of docs/SRPG.md)
+
+- **Screen** `screens/supports/`, inside the E0 frame: a **Settings** card (`SupportRulesCard`: level names, the three point sources as "empty = off", how
+  close is near, most levels, where conversations are played), a banner of checks (`model/supportChecks.ts`), then the pairs as list + form. A pair's form
+  (`PairForm`): its two characters (a slot never offers the other character or a partner that makes an existing pair), starting points, and a `LevelCard`
+  per level: points needed, bonus rows (`KeyNumberTable`: the combat numbers and the game's stats except HP and move), and the conversation.
+- **Conversation**: `screens/campaign/SceneCommands.tsx` is the command list of a scene, extracted from `SceneEditor` so another source can use it: a
+  `SceneSource` says how to read and write the commands, which kinds are offered (`only: ['say']`) and which map the forms see (`talkBase`: every character
+  as a named unit). Support levels use it; a chapter's Before / After scenes use it as before.
+- **Story**: command `addSupport`, condition `support`, trigger `support` (`storyTypes`, `storyDefaults`, `storySummary`, `forms/SupportForms.tsx`). A pair
+  in a command is `[a, b]`; `storyWalk` names its characters with ref kind `character` and the pair itself with `pair` (`pairId`: alphabetical, dot-joined),
+  so a deleted character or pair removes what was about it (maps, and scenes through `reconcileCampaign`) and a retargeted pair is followed.
+- **Edits** (`model/supports.ts`) keep the file loadable: levels always rise, names cover every level, defaults are not written. Delete / retarget with story
+  follow-up are in `srpgRefs.ts` (`deletePairClean`, `retargetPair`, `pairUsageLines`).
+- **Tests**: unit `tests/unit/supports.test.ts`; API `tests/editor_api_supports_checks.py`; e2e `srpg-supports.spec.ts`.

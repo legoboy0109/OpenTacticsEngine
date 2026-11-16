@@ -2481,6 +2481,44 @@ documents already carried every key). Details in docs/EDITOR_UI.md "Strategy-RPG
 ### E4. Editor: Supports — depends on E1; parallel with E2, E3
 The Supports screen (reusing `SceneEditor`), story and scene forms for support points, condition and trigger.
 
+#### E4 as built
+
+The Supports screen and the story pieces about supports are editable; the helper and the engine needed no change (E0's `supports`
+section and the loader's problems carry everything; `tests/editor_api_supports_checks.py` proves it). Details in docs/EDITOR_UI.md
+"Supports (E4)".
+
+- **Where**: model `supports.ts` (edits), `supportChecks.ts`, `supportStoryChecks.ts`, `supportTalk.ts`; screens `screens/supports/*`; story
+  `forms/SupportForms.tsx`; `screens/campaign/SceneCommands.tsx` (the command list of `SceneEditor`, now shared).
+- **Shared files touched** (small): `srpgTypes.ts` (typed `Supports`), `storyTypes.ts` / `storyDefaults.ts` / `storySummary.ts` / `storyWalk.ts` (command
+  `addSupport`, condition and trigger `support`; ref kinds `character` and `pair`), `storyRefs.ts` unchanged, `storyChecks.ts`, `campaignChecks.ts`,
+  `campaignRefs.ts` (a deleted character or pair is cleaned out of scenes), `srpgRefs.ts` (pair delete / retarget / usage lines; character delete also
+  names the character in story clean-up), `CommandList.tsx`, `CommandForm.tsx`, `ConditionList.tsx`, `TriggerForm.tsx`, `story/text.ts`, `SceneEditor.tsx`
+  (its body moved to `SceneCommands.tsx`), `tests/unit/srpg.test.ts` (pair fixtures gained `levels`), `tests/editor_api_test.py` (one import and call).
+- **Readings of the contract.** (1) A pair has no id: the screen addresses it as `<a>.<b>` (`/p/<id>/supports/eirik.lyra`); a pair is "the same" in
+  either order. (2) **New pair** adds the first two characters that are not a pair yet with one level of 20 points; there is no name dialog and no Duplicate.
+  (3) Levels always rise: typing a value not above the level before raises it, and later levels move up with it; the last level cannot be removed; adding a
+  level asks 20 more; names in `levelNames` grow with the biggest pair. (4) Defaults are never written: range 3, conversations "both", a point source of 0 / empty,
+  no `start`, no `maxLevels`; an empty `rules` is removed. (5) The conversation reuses the scene editor through `SceneCommands`, offering only "Say something"; the
+  speakers are all characters of the game (not the campaign's roster). (6) "Support level" condition and "Add support points" are offered in map events and in
+  campaign scenes once the game has a pair (greyed "no support pairs yet" otherwise); the trigger "A support level is reached" in map events. (7) Choosing another
+  character for a pair makes it a different pair and the events and scenes that named the old pair follow it; deleting a pair removes the commands, conditions
+  and triggers about it (an event whose trigger or condition names it goes whole) and lists them in the question. (8) Checks: "These two never meet: no map has
+  both of them" (placed or added by an event; skipped while a map cannot be read); "Level N can never be reached" when no point source is on, no story gives
+  the pair positive points and the start points do not reach it; and "Conversations are only played between chapters, and this game has no campaign". The
+  story checks add "X and Y are not a support pair" and a level / number range check, in map events and scenes.
+- **Wording** (placeholders): screen "Supports" / "Pairs", "New pair", "No pairs yet. A pair is two characters who can grow closer."; card "Settings": "What the
+  levels are called", "Ways to earn points" ("Next to each other at the end of a turn", "Fighting side by side", "One heals the other", "Off", "points"), "How close
+  counts as near" ("squares"), "Most levels one character can hold" ("No limit"), "Conversations are played" ("In battle" / "Between chapters" / "Both"); pair:
+  "The pair", "First character", "Second character", "Points at the start", "Level C" (or its number), "Points needed", "Add a level", "Remove", "Bonus while at
+  this level" ("Hit chance", "Avoid chance", "Critical chance", "Critical avoid", "Damage dealt", "Damage taken", and the game's stats; "Add a bonus"),
+  "Conversation" ("No conversation: this level is gained as soon as the points are reached."); check "These two never meet: no map has both of them."; story:
+  "Add support points" (Which pair, Points to add), "A support level compares to a number" (Their support level, Level), "A support level is reached" (Which
+  pair, Which level, Any level).
+- **Tests**: vitest `supports.test.ts`; `tests/editor_api_supports_checks.py` (a full set loads, `ote-sim` plays it, the sticky switch); Playwright
+  `srpg-supports.spec.ts` (with the 360 px check and the sticky-switch follow-up).
+- **Not done**: the camp / battle player screens are the player's; no check that a level's conversation fits the pair (any character may speak); the
+  `Learn` tutorial has no support lesson.
+
 Each E step's acceptance is its vitest and Playwright tests of "Tests" and screenshots for the owner.
 
 ### D1. Demo and template content — depends on K2, P1, A1, R1, S1, AI1 (content), U1–U5 (player tests)
