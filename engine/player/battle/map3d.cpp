@@ -171,11 +171,15 @@ void Map3D::beginFrame(Renderer& r, const DrawCtx& c) {
 }
 
 void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
-  if (!built_) buildGround(c);
+  if (!built_) {
+    buildGround(c);
+    markStands(c);
+  }
   updateHidden(c);
   beginFrame(r, c);
   if (ground_) r3d_.draw(ground_, Mat4(), Material3D());
   drawTops(c);
+  drawStands(c, ov);
   drawStructures(c);
   drawHighlights(c, ov, cursor, showCursor);
   const Battle& b = c.battle;
@@ -187,7 +191,10 @@ void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, 
       if (pass == 0) { drawUnit(c, u, v, 1.0f, false); continue; }
       int ux = std::max(0, std::min((int)std::lround(v.px / t), b.grid.width() - 1));
       int uy = std::max(0, std::min((int)std::lround(v.py / t), b.grid.height() - 1));
+      // Behind higher blocks: faint. Behind standing terrain (trees, a peak): a little stronger, a unit in a forest
+      // is where the player is looking.
       if (hidden_[(size_t)(uy * b.grid.width() + ux)]) drawUnit(c, u, v, 0.45f, true);
+      else if (standInFront(c, ux, uy)) drawUnit(c, u, v, 0.6f, true);
     }
   batch_.flush(r3d_);
   r3d_.end();

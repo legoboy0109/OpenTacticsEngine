@@ -20,6 +20,7 @@ import time
 
 from editor_api_graphics_checks import run_graphics_checks
 from editor_api_models_checks import run_models_checks
+from editor_api_stand_checks import run_stand_checks
 from editor_api_items_checks import run_items_checks
 from editor_api_events_checks import run_events_checks
 from editor_api_campaign_checks import run_campaign_checks
@@ -143,6 +144,7 @@ def main():
         run_checks(api, port, tmp, games, sentinel, proc)
         run_graphics_checks(api, tmp, games, templates, check, get_project, put_project)
         run_models_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_stand_checks(api, tmp, games, templates, check, get_project, put_project)
         run_structures_checks(api, tmp, games, templates, check, get_project, put_project)
         run_items_checks(api, tmp, games, templates, check, get_project, put_project)
         run_events_checks(api, tmp, games, templates, check, get_project, put_project)

@@ -51,7 +51,7 @@ export function setUnitMarker(doc: ProjectDoc, on: boolean): ProjectDoc {
 /** True when `look` (or one of its per-side pictures) draws from the image. */
 export function lookUsesSheet(look: Look | null | undefined, sheetId: string): boolean {
   if (!look) return false
-  return look.sheet === sheetId || Object.values(look.sides ?? {}).some((l) => l.sheet === sheetId)
+  return look.sheet === sheetId || Object.values(look.sides ?? {}).some((l) => l.sheet === sheetId) || look.stand?.sheet === sheetId
 }
 
 /** Keeps the entries of a looks map that do not draw from `sheetId`; a unit entry that does (its own picture) goes
@@ -62,6 +62,8 @@ function sweepMap(m: Record<string, Look | null> | undefined, sheetId: string, k
   for (const [k, v] of Object.entries(m)) {
     if (v === null) { if (keepNull) out[k] = v; continue }
     if (v.sheet === sheetId) continue
+    // A standing picture drawn from the image goes (the ground picture stays); a standing model stays.
+    if (v.stand?.sheet === sheetId) { out[k] = patchObj(v, { stand: undefined }); continue }
     const kept = v.sides ? Object.fromEntries(Object.entries(v.sides).filter(([, l]) => l.sheet !== sheetId)) : undefined
     const lost = v.sides && Object.keys(kept!).length !== Object.keys(v.sides).length
     out[k] = lost ? patchObj(v, { sides: Object.keys(kept!).length ? kept : undefined }) : v

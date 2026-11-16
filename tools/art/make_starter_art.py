@@ -20,6 +20,7 @@ sys.dont_write_bytecode = True  # keep tools/art free of __pycache__
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import art_iso as iso  # noqa: E402
+import art_stand as stand  # noqa: E402
 import art_structures as st  # noqa: E402
 import art_tiles as tl  # noqa: E402
 import art_units as un  # noqa: E402
@@ -246,7 +247,7 @@ def make_game(root, repo):
         iso_units = {uid: {'sheet': 'iso_units', 'frames': [[0, row], [1, row]], 'frameMs': 600}
                      for row, uid in enumerate(units_here)}
     # The 3D isometric view lays a terrain picture flat on top of its block, so the top-down
-    # tiles fit as they are; units are the standing ones; structures stand up as pictures.
+    # tiles fit as they are (a forest and a mountain get plain ground and a standing picture, below); units are the standing ones; structures stand up as pictures.
     # A unit or structure with a model file (models/<id>.glb, from make_unit_models.py) is shown
     # as that model instead of a picture.
     def with_models(looks):
@@ -256,8 +257,18 @@ def make_game(root, repo):
             if os.path.exists(os.path.join(path, rel)):
                 out[thing] = {'model': rel}
         return out
+    # In the 3D kinds a forest and a mountain stand up from their ground (docs/GRAPHICS.md "Standing
+    # terrain"): an upright picture on a plain ground picture (sheets "stand" and "ground3d").
+    terrain3d = dict(terrain)
+    stand_looks = stand.terrain_looks(terrain_ids) if iso3d_ids else {}
+    if stand_looks:
+        terrain3d.update(stand_looks)
+        stand.stand_sheet().image().save(os.path.join(art_dir, 'stand.png'))
+        stand.ground_sheet().image().save(os.path.join(art_dir, 'ground3d.png'))
+        sheets.append({'id': 'stand', 'file': 'art/stand.png', 'cellWidth': stand.SW, 'cellHeight': stand.SH})
+        sheets.append({'id': 'ground3d', 'file': 'art/ground3d.png', 'cellWidth': stand.T, 'cellHeight': stand.T})
     for sid in iso3d_ids:
-        styles[sid] = {'terrain': terrain}
+        styles[sid] = {'terrain': terrain3d}
         if iso_units:
             styles[sid]['units'] = with_models(iso_units)
         if structure_looks:

@@ -564,6 +564,37 @@ Contract: `docs/VIEWS.md`. The engine loader (`loadStyles`, `loader_graphics.cpp
   round trip, the template check and the Heights drag/undo are `@smoke`), `views-mobile.spec.ts`. Screenshots 73-75
   (`screenshots-views.spec.ts`).
 
+## Standing terrain (docs/GRAPHICS.md "Standing terrain")
+
+A terrain in a style of a 3D kind can have something standing on its ground. Code: pure edits in `editor/web/src/model/stand.ts`
+(`standKind`, `setStandPicture`, `setStandModels` / `addStandModel` / `removeStandModel`, `setStandWidth` / `Height` / `Turn` /
+`Scatter`), the section in `src/ui/picture/StandEditor.tsx` (wording `standText.ts`), the type `Look.stand` / `Stand` in `model/types.ts`.
+The loader stays the source of truth for the ranges and the refusals; the helper reports them as problems on `data/graphics.json`.
+
+- **Where.** On the Terrain screen, in the Picture card, after the style's picture controls, when "For style:" names a style whose kind
+  of view is 3D (Isometric 3D or Full 3D). It is not there for "All styles" or for the top-down and 2D isometric styles (they refuse a
+  standing part). The section is named **Standing part**, with the line "In 3D styles a terrain can have something standing on its
+  ground, like trees or a peak. The ground picture stays underneath." A terrain with no picture of its own in that style only shows
+  "First give this terrain a picture of its own in this style. The standing part stands on it."
+- **Choice** ("What stands here"): *Nothing* (the key is removed), *An upright picture*, *A 3D model*. Choosing a kind writes nothing
+  until a picture or a file is chosen; switching between the two kinds removes the other kind's settings (the file format does not mix them).
+- **A picture**: "Choose picture…" opens the usual piece picker (Choose a picture for Forest, standing part) with *One piece*, *Random mix*
+  and *Animation* (no joining pieces); the preview there and beside the button is the chosen piece as it is in its image
+  (`standPreview`, like any picture of a style that is not top-down). A random mix is how a forest gets variants. "Picture width (pixels)"
+  (empty = one square). One piece is written as `cell`, a mix as `variants`, an animation as `frames` + `frameMs`.
+- **A 3D model**: "Model files" lists the files (each with Remove), "Add a model file…" picks another file of the game, "Upload a model…" is
+  the unit models' upload (`.glb`, up to 8 MB, name made from the file's, shared `ModelLibrary`). One file is written as `model`, several as
+  `variants`. "Model height (squares)" (empty = 1) and "Model turn (degrees)". No preview (the editor shows none for models: Play does).
+- **Vary position and turn** (`scatter`) for both. Unknown keys of a stand survive every edit; changing the ground picture keeps the
+  standing part (`setLook` carries `stand` like a unit's per-side pictures); removing an image removes only a standing picture drawn
+  from it (the ground stays) and a ground picture's removal takes the whole entry; a standing picture counts as using its image in
+  "Used by" and in the check for pieces outside a smaller image. Deleting a terrain or a style removes its standing part with its pictures.
+- **Models in use.** `GET .../models` lists a terrain's stand under `usedBy` with `kind: "terrain"`; deleting a model a saved stand names is
+  refused with the same `409`.
+- **Map editor and canvas** stay top-down and show no standing part; Play shows the real thing.
+- **Tests.** Unit: `tests/unit/stand.test.ts`. E2E: `terrain-stand.spec.ts` (a picture mix with width and scatter, models with upload and
+  Play, hidden for 2D styles, unknown keys). API: `tests/editor_api_stand_checks.py`.
+
 ## Economy options: Research, upgrades, repair, fuel, ammunition, supply
 
 Contract: docs/ECONOMY.md. Model `editor/web/src/model/research*.ts`, `structuresEconomy.ts`, `supplyRules.ts`, `supplyUnits.ts`,

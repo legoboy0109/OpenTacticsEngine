@@ -45,6 +45,14 @@ class Map3D {
   void drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor);
   void drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float fade, bool through);
   void drawOnTop(Renderer& r, const DrawCtx& c);
+  // map3d_stand.cpp: what stands on the ground of a terrain (docs/GRAPHICS.md "Standing terrain")
+  const StandLook* standOf(const DrawCtx& c, int terrain) const;
+  void markStands(const DrawCtx& c);
+  bool standAt(Cell cell) const;
+  bool standInFront(const DrawCtx& c, int x, int y) const;
+  float standAhead(const DrawCtx& c, Cell cell);
+  void drawStands(const DrawCtx& c, const Overlay& ov);
+  ModelActor* standActor(const ModelAsset* asset);
   // map3d_models.cpp
   const ModelLook* unitModel(const DrawCtx& c, const Unit& u, const ModelAsset*& asset);
   const ModelLook* structureModel(const DrawCtx& c, const StructureState& st, const ModelAsset*& asset);
@@ -60,6 +68,9 @@ class Map3D {
   Batch3D batch_;
   Models3D models_;
   std::vector<ModelActor> unitActors_, structureActors_;  // by unit id / structure index
+  std::vector<std::pair<const ModelAsset*, ModelActor>> standActors_;  // one per standing model file (they do not animate)
+  std::vector<uint8_t> standAt_;  // per cell: the terrain has a standing part
+  bool anyStand_ = false;
   MeshId ground_ = 0;
   bool built_ = false;
   std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle

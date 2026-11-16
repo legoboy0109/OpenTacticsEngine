@@ -205,6 +205,7 @@ style.
   name the file does not have means the rest pose for that state.
 - A unit faces the way it moves and strikes; when first seen it faces the
   nearest enemy. A unit that has acted is drawn darker.
+- A terrain can have a standing part too: "Standing terrain" below.
 - Errors: outside a 3D style (`a "model" can only be used in a style whose
   kind of view is 3D`), a missing file, a wrong extension and unknown
   animation states are refused when the game loads. A file that exists but
@@ -214,6 +215,65 @@ style.
 In memory: `UnitLook::model` (`ModelLook`). Player:
 `engine/player/battle/models3d.*` (loading, posing, drawing) and
 `map3d_models.cpp` (which animation, facing).
+
+## Standing terrain (3D kinds of view only)
+
+In the two 3D kinds of view a terrain's picture is laid flat on the top of its block. A terrain can also have
+a **standing part** on that ground: an upright picture that faces the camera, or 3D models. The maker chooses
+per terrain, the way units choose between a picture and a model; the ground picture (the terrain's own `sheet`
+and `cell` / `variants` / `frames` / `join`) stays underneath and keeps joining, the standing part is per square.
+
+```jsonc
+"styles": {
+  "solid": {                                  // a style with "view": "isometric-3d" or "3d"
+    "terrain": {
+      "forest": { "sheet": "ground", "cell": [0, 0],          // the flat ground picture, as always
+                  "stand": { "sheet": "trees", "variants": [[0,0],[1,0],[2,0]],   // an upright picture, a random mix
+                             "width": 30, "scatter": true } },
+      "mountain": { "sheet": "ground", "cell": [1, 0],
+                    "stand": { "variants": ["models/peak_a.glb", "models/peak_b.glb"],   // models, one per square by position
+                               "height": 1.3, "turn": 20, "scatter": true } },
+      "wall": { "sheet": "ground", "cell": [2, 0],
+                "stand": { "model": "models/wall.glb" } }
+    }
+  }
+}
+```
+
+- **A picture** needs `sheet` and exactly one of `cell`, `variants` (1 to 64 pieces; each square always shows the
+  same one, chosen from its position by the same hash terrain variants use, so a forest is not a row of identical
+  trees and nothing flickers) or `frames` (played in a loop, `frameMs` each, default 400). `width` (whole number,
+  1 to 512) is how wide it is drawn in the game's tile pixels (`tileSize` = one square); empty = one square. Height
+  keeps the piece's proportions. Pieces are cut out: transparent pixels show what is behind.
+- **Models** need either `model` (one `.glb` / `.gltf` file) or `variants` (a list of 1 to 64 such files, each
+  square picks one by its position), never both. `height` (0.1 to 16 squares, default 1) is how tall they stand
+  and `turn` (-360 to 360 degrees) is added to the way they face; both apply to every file of the entry. The same
+  rules as unit models otherwise (docs/GRAPHICS.md "Models": origin on the ground in the middle, +Y up, lit by
+  the map's sun; a file that exists but cannot be read is logged when the battle starts and that terrain keeps its
+  ground picture only). Terrain has no side colour and no animations: models stand in their rest pose.
+- `scatter` (true / false, default false) gives every square a small fixed shift (and each model its own turn),
+  worked out from the square's position, so it is the same every frame, on every platform and after a save.
+- The terrain still needs a ground picture of its own (`sheet` etc.): the standing part stands on it. A style that
+  gives a terrain `null` (no art) has no standing part either, and so does a terrain with no entry.
+- **Only in a style of a 3D kind** (`isometric-3d`, `3d`). A `stand` anywhere else (the general art, a top-down
+  or 2D isometric style) is refused when the game loads: `data/graphics.json: style "day": terrain "forest" stand:
+  a "stand" can only be used in a style whose kind of view is 3D ("isometric-3d" or "3d"); other styles draw a terrain
+  as its picture only`. Those two 2D kinds draw exactly as before, whether or not another style of the game has one.
+- **Strict**: a `stand` has only the keys above (and `null` = none). Refusals read `data/graphics.json: <where> stand:
+  <message>`: `needs a "sheet" (an upright picture) or a "model" (a 3D model)`; `has an unknown key "colour"`;
+  `is a picture, so it cannot have "turn"` / `has a "model", so it cannot also have "sheet"` (picture keys are
+  `sheet cell frames variants frameMs width`, model keys `model variants height turn`); `needs exactly one of "cell",
+  "variants" or "frames"`; `needs exactly one of "model" (one file) or "variants" (a list of model files)`;
+  `unknown sheet "x"`; `cell [9, 9] is outside sheet "trees" (4 x 2 cells)`; `"width" must be between 1 and 512 ...`;
+  `"height" must be between 0.1 and 16 (squares)`; `"turn" must be between -360 and 360 (degrees)`; `"variants" must list
+  between 1 and 64 model files` / `"variants" must list model files (text)`; `model file "models/x.glb" does not exist`; `a
+  model must be a .glb or .gltf file inside the game folder ...`. Games without a `stand` load, draw and save exactly as before
+  (art is never hashed or saved: rules never see it).
+- **Where it stands** and what happens to units, the cursor, ranges and fog: docs/VIEWS.md "Standing terrain".
+
+In memory: `GraphicsSet::stands` (per terrain index, `StandLook`: `picture` (a `Look`), `width`, `models`
+(`ModelLook`, one per variant), `scatter`), chosen with `pickStandCell`, `pickStandModel` and `standScatter`
+(`engine/core/data/graphics.*`, tests in `tests/test_graphics_stand.cpp`). Player: `engine/player/battle/map3d_stand.cpp`.
 
 ## Drawing rules (player and editor canvas must match)
 
@@ -303,9 +363,17 @@ define, and must exercise every feature: variants (plain), join
 per-style override in a demo that has styles. Re-running the script
 reproduces identical files.
 
+In the pixel-art 3D styles of both demos (`isometric-3d`, `full-3d`) the forest and the mountain have plain ground
+pictures (a leafy floor and bare rock, sheet `ground3d`, 24 x 24 cells) with an upright picture standing on them
+(sheet `stand`, 24 x 32 cells: three clumps of trees as a random mix, two sets of peaks), drawn by
+`tools/art/art_stand.py` into `art/stand.png` and `art/ground3d.png` and written into `data/graphics.json` by
+`make_starter_art.py`. The templates have no 3D styles and no standing parts.
+
 `demo-srpg` also has a "Detailed 3D" style for trying the 3D views with
 detailed art: smooth 512-pixel ground pictures and animated character
-models from public-domain packs (`games/demo-srpg/CREDITS.md`). It is built
+models from public-domain packs (`games/demo-srpg/CREDITS.md`); its forest and mountain squares have
+standing models (`models/detailed/forest_{a,b,c}.glb`, `mountain_{a,b}.glb`, generated low-poly trees and
+peaks written by `tools/art/make_terrain_models.py`, no downloads) on the flat ground textures. It is built
 by `tools/art/make_detailed_style.py` (which uses `tools/art/trim_glb.py`
 to cut a model file down to chosen parts and animations) into
 `art/detailed.style.json`; `make_starter_art.py` merges every
@@ -339,7 +407,7 @@ to cut a model file down to chosen parts and animations) into
 
 ## Editor UI
 
-Specified in docs/EDITOR_UI.md ("Art"). In short: a new **Art** section to
+Specified in docs/EDITOR_UI.md ("Art", "Standing terrain"). In short: a new **Art** section to
 import images and set how they are cut into cells; a **Picture** part on
 each terrain and unit to choose cells with a click; and the map canvas
 draws with the art using the rules above.

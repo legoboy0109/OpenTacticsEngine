@@ -2,6 +2,7 @@
 // look different from the canvas. A preview may use a draft look (what the picker has chosen so far) via `doc`.
 import { effectiveLook, sideLook } from '../model/graphicsLooks'
 import { pickCell } from '../model/pickCell'
+import { standPictureLook } from '../model/stand'
 import { inheritsGeneralArt } from '../model/styleView'
 import { drawPiece } from './draw'
 import { gameSides } from '../model/graphicsUsage'
@@ -29,6 +30,15 @@ function pieceSpec(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId:
   if (inheritsGeneralArt(doc.game, styleId)) return null
   const look = effectiveLook(doc.graphics, kind, id, styleId, false)
   const r = resolveLook(doc, src, sideId ? sideLook(look, sideId) : look)
+  if (!r) return null
+  const scale = Math.min(PIECE_BOX / Math.max(r.cw, r.ch), 4)
+  const scene = sceneFor(doc, src, style, styleId, mapOf(1, 1, { a: doc.terrain?.[0]?.id ?? '' }, ['a']))
+  return { scene, cols: r.cw, rows: r.ch, scale: scale >= 1 ? Math.floor(scale) : scale, origin: { x: 0, y: 0 }, piece: r }
+}
+
+/** A terrain's standing picture (3D styles): the chosen piece as it is in its image, or null while it has none. */
+export function standPreview(doc: ProjectDoc, src: ImageSource, style: StyleView, styleId: string | undefined, id: string): PreviewSpec | null {
+  const r = resolveLook(doc, src, standPictureLook(effectiveLook(doc.graphics, 'terrain', id, styleId, false)?.stand))
   if (!r) return null
   const scale = Math.min(PIECE_BOX / Math.max(r.cw, r.ch), 4)
   const scene = sceneFor(doc, src, style, styleId, mapOf(1, 1, { a: doc.terrain?.[0]?.id ?? '' }, ['a']))

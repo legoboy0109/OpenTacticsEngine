@@ -1,7 +1,7 @@
 // Memoised preview specs for the open game. They only rebuild when pictures, terrain, units, the look or an image changed
 // (not on every paint stroke), so a palette full of thumbnails stays cheap while painting.
 import { createContext, useContext, useMemo } from 'react'
-import { structurePreview, structureThumb, terrainPreview, terrainThumb, unitPreview, unitThumb, type PreviewSpec } from '../../art/preview'
+import { standPreview, structurePreview, structureThumb, terrainPreview, terrainThumb, unitPreview, unitThumb, type PreviewSpec } from '../../art/preview'
 import { PLAIN_STYLE, type StyleView } from '../../art/scene'
 import { useArtState } from '../../art/useArt'
 import type { MapSide, ProjectDoc } from '../../model/types'
@@ -38,4 +38,12 @@ export const useStructureThumb = (id: string, side: MapSide | undefined, look: L
 export function useStructureSample(id: string, look: LookChoice, doc?: ProjectDoc, sideIds?: Array<string | undefined>): PreviewSpec {
   const maps = useDoc().maps // side colours come from the maps
   return useSpec((d, a) => structurePreview(doc ?? d, a, look.view, look.id, id, 40, sideIds), [id, look, doc, sideIds?.join(','), maps])
+}
+/** The chosen standing picture of a terrain, as the piece it is in its image; null while none is chosen. */
+export function useStandSample(id: string, look: LookChoice): PreviewSpec | null {
+  const doc = useDoc()
+  const store = useStore()
+  const { version } = useArtState()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => standPreview(doc, store.art, look.view, look.id, id), [doc.graphics, doc.terrain, doc.game, store, version, id, look])
 }

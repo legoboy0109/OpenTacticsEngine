@@ -52,6 +52,23 @@ SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeM
   }
 }
 
+SpriteCell pickStandCell(const StandLook& look, int x, int y, uint32_t timeMs) {
+  return pickCell(look.picture, x, y, 0, timeMs);
+}
+
+int pickStandModel(const StandLook& look, int x, int y) {
+  if (look.models.empty()) return 0;
+  return (int)(cellHash(x, y) % look.models.size());
+}
+
+void standScatter(int x, int y, float& dx, float& dz, float& turnDeg) {
+  // Different bits of one hash, so the three values are unrelated to each other and to the variant choice.
+  uint32_t h = cellHash(x + 101, y - 37);
+  dx = ((int)(h & 0xFF) - 128) / 128.0f * 0.18f;
+  dz = ((int)((h >> 8) & 0xFF) - 128) / 128.0f * 0.18f;
+  turnDeg = (float)((h >> 16) % 360u);
+}
+
 bool readPngSize(const std::string& path, int& width, int& height, std::string& err) {
   FILE* f = std::fopen(path.c_str(), "rb");
   if (!f) {
