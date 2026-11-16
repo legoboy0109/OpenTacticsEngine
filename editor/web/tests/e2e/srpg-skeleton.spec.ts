@@ -31,7 +31,7 @@ test('switches add and remove the screens; a switch stays on after a reload, and
   // The empty frame of a screen, and the way back.
   await section(page, 'Skills').click()
   await expect(page.getByRole('heading', { name: 'Skills', level: 1 })).toBeVisible()
-  await expect(page.getByTestId('srpg-empty')).toBeVisible()
+  await expect(page.getByText('No skills yet').first()).toBeVisible() // E2 filled the Skills screen
 
   // Off again (nothing inside, so no question) and the entry goes.
   await section(page, 'Rules').click()

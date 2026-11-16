@@ -12,6 +12,7 @@ import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { deleteSkill, skillUsageLines } from '../../src/model/srpgRefs'
 import { itemChecks } from '../../src/model/itemChecks'
 import type { Extra, ProjectDoc } from '../../src/model/types'
+import { cleanStat } from '../../src/model/references'
 import { loadDemo } from './fixtures'
 
 const base = (): ProjectDoc => switchOnFeature(loadDemo('demo-srpg'), 'skills')
@@ -239,3 +240,16 @@ describe('skills: delete takes the skill from everything that names it', () => {
 
 import { switchOffFeature } from '../../src/model/srpgFeatures'
 const switchOffSkills = (d: ProjectDoc) => switchOffFeature(d, 'skills')
+
+describe('skills: deleting a stat', () => {
+  it('takes the stat out of bonuses, drops what is left empty, zeroes a chance that reads it and deletes a skill with no rule left', () => {
+    let d = base()
+    d = { ...d, skills: [
+      { id: 'a', name: 'A', blocks: [{ when: 'always', do: [{ stats: { str: 1, skl: 2 } }, { growths: { skl: 5 } }] }, { when: 'strike', chance: 'a.skl * 2', do: [{ drain: 50 }] }] },
+      { id: 'b', name: 'B', blocks: [{ when: 'always', do: [{ growths: { skl: 5 } }] }] },
+    ] }
+    const out = cleanStat(d, 'skl')
+    expect(out.skills!.map((s) => s.id)).toEqual(['a'])
+    expect(out.skills![0].blocks).toEqual([{ when: 'always', do: [{ stats: { str: 1 } }] }, { when: 'strike', chance: 0, do: [{ drain: 50 }] }])
+  })
+})
