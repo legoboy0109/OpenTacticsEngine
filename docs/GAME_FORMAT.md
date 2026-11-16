@@ -167,6 +167,7 @@ the ground's movement costs. Ids are unique among structures.
     "versus": { "flier": 3 },     // key = target unit type id or tag
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
+    "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
     "damage": "a.str + w.might",  // optional override of formulas.damage
     "sounds": { "hit": "sword_hit", "miss": "whiff", "critical": "crit" }   // optional (docs/SOUND.md): sound ids of data/audio.json
@@ -177,6 +178,11 @@ the ground's movement costs. Ids are unique among structures.
 `versus` lookup order: target's unit type id, then its tags in listed order,
 then `versusDefault`. A weapon without a `versus` table can target anything
 and gets `vs = 1`.
+
+`wieldedBy` (carried weapons; needs data/characters.json) lists the character ids that may wield the weapon, on top of the class
+rules (`group` / `wields`) and any weapon rank: someone else, or a unit without a character, can carry it but not use it
+("Only Kell can wield this"). An absent or empty list means no lock. The rule, the wording and the loader errors are in docs/SRPG.md
+"Character-locked weapons".
 
 ## data/units.json
 

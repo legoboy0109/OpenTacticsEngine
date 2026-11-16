@@ -72,6 +72,11 @@ list (as before: now "can use", not "has"), or if the weapon's optional
 `"wields"` list (units.json). Core: `WeaponDef::group`,
 `UnitTypeDef::wields`, `Database::canWield(unitType, weapon)`.
 
+A weapon can also be limited to named people with weapons.json `"wieldedBy": ["kell"]` (characters, docs/SRPG.md "Character-locked
+weapons"): the class test above must still pass, then the unit's character must be on the list. The weapon can be carried, traded
+and stored by anyone; it is greyed ("Only Kell can wield this") for everyone else. Core: `WeaponDef::wielders`,
+`Battle::meetsCharacterLock`.
+
 ### Starting items
 
 - units.json, per unit type: `"items": ["iron_sword", "salve"]`: what a

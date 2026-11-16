@@ -1122,6 +1122,17 @@ without the key).
   a character named twice.
 - Off unless used: no key, same game; the rules fingerprint changes only when a weapon has a non-empty list.
 
+**As built.** Core: `WeaponDef::wielderIds` / `wielders` (database.h), `engine/core/data/loader_weapon_locks.cpp`
+(`readWeaponWielders` reads the shape while weapons load; `resolveWeaponWielders` turns ids into indices as the first step of
+`resolveSrpgRefs`, because characters.json loads after weapons.json), `Battle::meetsCharacterLock` and `canWieldNow`
+(ranks.cpp; the order is class, then lock, then rank). `Unit::character` is what "the unit's character" means. The fingerprint
+reads weapons.json whole, so a used key changes it by itself; `rulesOnly` (save_hash.cpp) skips an empty `"wieldedBy": []`.
+Player: `weaponBlockReason` (rank_text.cpp) now answers from `canWieldNow`, so the Items screen, its choice menu (Equip greyed with
+the reason), the unit details' Items page and the side panel need no code of their own; `Menu::draw` shortens an `extra` that is
+wider than the box (a phone: "Equip  Only .."; the full words are on the Items list and the details page, which also shortens
+with ".." at 270 px). Promotion previews (`cannotWield`) look at the class only and do not mention locks. Tests:
+tests/test_srpg_locks.cpp, tests/srpg_player_locks_test.py, fixture tests/fixtures/srpg-locks.
+
 ### Stat caps
 
 **Data: data/caps.json** (optional; refuses unknown keys): the game-wide cap per stat.
