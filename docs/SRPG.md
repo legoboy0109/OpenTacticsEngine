@@ -68,7 +68,7 @@ data/ranks.json        weapon rank ladder and growth                         (op
 data/caps.json         game-wide stat caps                                   (optional file; section 7)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
 data/weapons.json      per weapon: skills
-data/items.json        accessory: skills; usable: promotes
+data/items.json        accessory: skills; usable: promotes; staves (section 8)
 maps/*.json            per unit: character; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
 ```
@@ -1264,6 +1264,184 @@ The editor screens are in; the helper only gained two sections. Details for the 
   kept and shown ("N experience (kept)"). (8) Checks ("Worth a look", beside the loader's own words in Problems): ladder shape, a weapon rank without a group or naming an unknown
   rank, a starting rank in a group no weapon has or an unknown rank id or a number above the top, a cap that is not 1 to 99999, a ladder that no weapon asks for.
 - **Tests**: vitest `ranks.test.ts`; `tests/editor_api_ranks_checks.py`; Playwright `srpg-ranks.spec.ts` (build a ladder, Play, sticky switches) and `srpg-ranks-screens.spec.ts`.
+
+---
+
+## 8. Staves
+
+A **staff** is an item a unit carries, wields by group and rank like a weapon, and **uses on another unit at range** as its
+action. Owner's answers (PLAN item 3l, 2026-11-16): staves come in **stages** (ranged and area healing; moving units; utility;
+then status conditions built by the maker from blocks, with a starter set and curing staves); whether a staff can miss is **the
+maker's choice per staff** (healing defaults to certain, a hostile one gets a hit chance). This section is the contract for
+**all** stages, so the later ones fit without rework. Stage 1 (healing) is built; stages 2 and 3 are written in outline only
+and marked "not built". A game with no staff plays, saves and hashes exactly as before.
+
+### Where a staff is defined, and why
+
+A staff is an **item of kind `"staff"` in `data/items.json`**. Not a weapon (weapons are shaped around strikes: damage formulas,
+counters, `weaponsOf`, `Attack` events) and not an ability (abilities belong to the unit: no inventory, no wear). As an item it
+gets, with no new code, everything items already have: uses and breaking (`ItemStack::uses`, `ItemBroke`), price, shops,
+starting items, drops, trading, the shared storage, the campaign roster and the save format. What it takes from the other two:
+the **group, rank, rank experience and character lock** of a weapon (it is wielded), and the **conditions** of an ability
+(it acts on a unit). Both are reused, not copied: the staff carries a small `WeaponDef` of its own (`ItemDef::gear`: id, group,
+props, rank fields) that is never in `Database::weapons`, so the same rank and lock code answers for both and a formula sees the
+staff as `w`.
+
+```jsonc
+{ "id": "mend_staff", "name": "Mend Staff", "kind": "staff",
+  "description": "Heals an ally.",             // optional, one line
+  "group": "staff",                            // required: what a class lists in "wields" (units.json) and ranks are kept in
+  "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp default 1
+  "wieldedBy": ["mara"],                       // optional character lock, as on a weapon (needs characters)
+  "props": { "power": 6 },                     // optional numbers a formula reads as w.power
+  "uses": 8, "price": { "gold": 400 },         // as every item; no "uses" = unlimited
+  "range": "1 + a.mag / 3",                    // reach, see below. Default [1, 1]
+  "target": "ally",                            // who it works on, see below. Default "ally"
+  "area": "single",                            // "single" (default) | { "radius": 2 } | "all"
+  "effects": [ { "heal": "w.power + a.mag / 2" } ],   // 1..4 effects, run in order on each unit hit
+  "hit": "80 + a.skill - b.res",               // optional percent chance per unit. Missing = always works
+  "xp": 15,                                    // optional experience for the user: a number or a formula. Missing = none
+  "if": [ { "hp": { "op": "<=", "percent": 50 }, "who": "foe" } ] }   // optional: the conditions of ability `if`
+```
+
+- **`range`**: a whole number `n` = reach 1 to n; a list `[min, max]`; or a **formula** (text) giving the **maximum** (the minimum
+  is 1): `a` = the user, `w` = the staff, `b` = nil. Rounded down, 0 to 20; 0 = nobody is in reach. Judged on the user's stats as
+  the rules see them now, so a promotion or a boost changes it. Distance is the grid distance (squares and hexagons alike) from
+  the square the unit would use it on.
+- **`target`**: `"ally"` (another unit of the user's team), `"self"` (the user; no range, nothing to pick), `"team"` (an ally or
+  the user), `"foe"` (a unit of another team the user's team sees), `"any"` (any other unit the team sees). A stage's effect may
+  refuse some (healing refuses `"foe"`).
+- **`area`**: `"single"` = the picked unit only; `{ "radius": n }` (1 to 10) = the picked unit and everyone that fits `target`
+  within that distance of it (the picked unit must itself be a legal target in range); `"all"` = every unit that fits `target`
+  and is in range, nothing is picked. In an area each unit is judged on its own (a healthy ally in it is simply not affected,
+  gets no roll and no event). The user is in an area only when `target` lets it be (`"team"`).
+- **`effects`**: the engine's existing effect vocabulary, in the shape of the skill effect blocks (section 3) and abilities
+  (section 4); a staff adds no second language. Stage 1: `{ "heal": 10 }`, `{ "heal": "full" }`, `{ "heal": { "percent": 30 } }`
+  and `{ "heal": "<formula>" }` (a number; `a` = user, `b` = the unit healed, `w` = the staff, `dist` = distance between them,
+  `ta` / `tb` the squares). A formula that fails counts as 0. Later stages append `warp`, `pull`, `swap`, `repair`, `light`,
+  `status`, `cure` (below).
+- **`hit`**: a formula, a percent (rounded, 0 to 100), same variables as `heal`. Rolled **once per unit in the area**, in
+  ascending unit id, with `Battle::rng` (`rng.chance`), so a battle replays from its seed. Absent = no roll at all (no random
+  number is spent). A miss still spends the use and earns the experience. Queries never roll.
+- **`xp`**: experience for the **user**, once per use (not per unit), also when it missed. A number (0 to 1000) or a formula
+  (`a`, `b` = the picked unit or nil for `"all"`, `w`, `dist`), through the normal award (`xpPercent` skills, level-ups,
+  promotion). No `xp` = none. Needs `rules.progression` (the loader says so).
+- **`if`**: the conditions of an ability (section 3: CONDITIONS), judged for the picked unit and each unit of an area (`"who":
+  "foe"` = that unit, as in abilities; without it, the user).
+- Loader refusals follow the existing style, e.g. `data/items.json: item "mend_staff": "group" is required for a staff`,
+  `"range" must be a whole number from 0 to 20, a list [min, max] or a formula`, `"target" must be "ally", "self", "team", "foe"
+  or "any"`, `"area": "radius" must be from 1 to 10`, `"effects" needs 1 to 4 effects`, `"heal" cannot target "foe"`, `"hit":
+  <Lua message>`, `"rank" is given but this game has no weapon ranks (data/ranks.json)`, `"xp" needs rules.progression`.
+
+**Groups.** The weapon groups of a game are the distinct `group` strings of weapons.json, in file order; **the groups of staves
+are added after them**, so no existing index moves. A staff's group is a normal group: `ranks` maps of classes, characters and
+map units name it (`"ranks": { "staff": "c" }`), `Unit::weaponXp` holds its experience, the ladder and the growth are the
+game's. A game without ranks needs no rank anywhere.
+
+### Who can use it (the one wield test)
+
+`Battle::canWieldStaff(unit, item, why)` is the staff's twin of `canWieldNow`, with the same three steps and the same words:
+the **class** can (`"staff"` in the unit type's `wields`; a staff is never in a `weapons` list), the **character lock**
+(`wieldedBy`: `Only Mara can wield this`) and the **rank** (`Needs rank C`). A staff that fails can still be carried, traded,
+stored and bought; it is shown greyed with the reason. The lock and rank tests are the very functions of section 7, now taking
+the weapon data (`meetsRankFor`, `meetsLockFor`), so one change is a change in both.
+
+### How it is used
+
+One new action, `ActionType::UseStaff` (`Action::useStaff(unit, slot, target)`), appended at the end of the enum.
+
+1. The unit can act, has not finished (`done`) and has not used its action (`acted`). It may have moved first, like an attack.
+   Using a staff **ends the unit's turn** (`endOrder`), like Attack; the player's "undo move" is gone after it.
+2. The slot holds a staff the unit can wield now.
+3. The target is legal: alive, on the map, **seen by the user's team**, a legal `target` kind, within range, passes `if`, and
+   **at least one unit in the area would really change** (for healing: is hurt). A staff that would do nothing is refused:
+   `nobody in reach needs that`. This keeps the AI from wasting uses and is what greys the entry. `"all"` ignores `target`
+   (the action carries -1 or the user).
+4. Carrying out: `StaffUsed`; for each unit in the area, ascending unit id: the `hit` roll, then the effects (`UnitHealed`, or
+   `StaffMissed`); supports (`supportsHealed`, per healed ally); then **the use is spent** (`spendUse`; at 0 the staff breaks,
+   `ItemBroke`); then the user's experience (`xp`, the normal award); then the rank experience (growth `"use"`: the staff's
+   `rankXp` into its group, one `RankUp` if a rank is crossed); then `endOrder`. Story events that add units run last, so
+   nothing reads a unit after them.
+
+**Queries** (never roll, change nothing; `from` = where the unit would stand, a menu after a move): `staffOptions(unit, from, out)`
+(one entry per staff carried: usable now or the plain reason), `staffTargets(unit, slot, from, out)` (the units that may be
+picked; `"all"` returns the user alone, meaning "confirm"), `staffForecast(unit, slot, target, from, out)` (units hit, what each
+would get, the hit chance, the experience, the uses left, whether it breaks) and `staffRange(unit, slot, min, max)`.
+
+### Player
+
+- **Menu.** The action menu gains **Staff** (placeholder) after the abilities when the unit carries any staff, greyed with the
+  reason of the first staff when none can be used now. It opens a list of the staves carried: name, uses left ("3/8"), and the
+  reason when one cannot be used (`Needs rank C`, `Only Mara can wield this`, `Cannot wield`, `Nobody in reach needs it`).
+  Cancel returns to the action menu.
+- **Picking.** Choosing a staff shows its **range** (every square in reach in the blue mask) and picks a unit like Attack
+  (arrows, Tab, a tap); the area of the highlighted unit is marked red (a radius, or everyone for `"all"`).
+- **Forecast box**, the look of the attack forecast: the staff's name and uses left, one line per unit hit ("Kell  HP 7 > 17"), a
+  "Hit 80%" line only when the staff can miss, "Exp 15" when it gives any, "Breaks" on its last use; at most four unit lines,
+  then "+N more".
+- **Playing it.** `StaffUsed` floats the staff's name over the user (like an ability) and the camera looks at the user; each
+  `UnitHealed` is the usual green "+N" with the HP bar filling; `StaffMissed` floats "Missed" over the unit; `ItemBroke` says
+  "broke"; `XpGained`, `LevelUp`, `RankUp` are as after a fight. Each use writes `[info]` lines the windowless tests read.
+- **Everything else follows.** The Items screen, the unit details and the info panel list staves like any item (the Items
+  screen greys one the unit cannot wield, with the reason).
+
+### AI
+
+Stateless like the rest. For every square a unit may stand on this turn (the stops of its reach) the AI asks `staffOptions`,
+`staffTargets` and `staffForecast`, scores each usable staff, and keeps the best if it **beats the unit's best attack, capture or
+advance** on the same scale (`kAttackBase` + value). A **heal's value** is the share of the target's HP it would really restore
+times the target's value (production cost, default 1000; a leader whose death ends the game counts double), times the hit
+chance, summed over the units the area hits. A heal that would restore less than half of the staff's nominal amount to a unit
+above half HP is **not worth a use** (it keeps the staff for a wounded one). Only a unit that would change is a legal target, so
+it never spends a use on an unhurt unit. The exposure of the square it would stand on is subtracted as for an attack. It never
+uses a staff it cannot wield or that reaches nobody, and (stage 1) never one on foes. The unit order is the existing one (best
+score first), so a healer that must walk to the wounded goes by its score like any other unit.
+
+### Events
+
+Appended to `EventType` (existing numbers keep their values):
+
+| Entry | a, b, c, d | Seen by (fog) |
+|---|---|---|
+| `StaffUsed` | a = user, b = item, c = the picked unit or -1 (`"all"`), d = units that were really affected | the user's team and the teams that see the user or the picked unit |
+| `StaffMissed` | a = the unit missed, b = user, c = item | the teams that see either unit |
+
+What the effects did arrives as the existing entries: `UnitHealed` (a = unit, b = amount), `ItemBroke`, `XpGained`, `LevelUp`,
+`RankUp`. Stage 2 will use `UnitRelocated`; stage 3 gets its own status events.
+
+### Saves, hash, campaign
+
+- **No new saved state in stage 1.** A staff's uses are the item's (`ItemStack::uses`: saved and restored like a weapon's, in a
+  battle's units, the storage and a campaign roster entry); its experience is `Unit::weaponXp` (`ranks`, section 7).
+- **Hash.** `data/items.json` is hashed whole when it exists, so staff keys are part of a game's rules and change its fingerprint
+  **only in a game that has them** (a name and description are cosmetic keys). Nothing else is mixed in.
+- **Off unless used.** No staff, no staff group, no extra event, no random number: every existing game, save and sim stays byte
+  for byte the same.
+
+### Stages 2 and 3 (outline only, NOT BUILT)
+
+**Stage 2: moving units and utility.** Same item, action, wield test, forecast, uses, events and AI hooks; new effects and one new
+target kind (`"cell"`, as abilities have it, for a two-step pick).
+- `{ "warp": { "range": 6 } }`: send the picked ally to a free square chosen next, within `range` of the user, that the ally can
+  stand on. `{ "pull": true }` (the rescue staff: the picked unit lands on the free square next to the user nearest to where it
+  was) and `{ "swap": true }`. They reuse the ability machinery (`planAbilityMove`, `doAbilityMoves`, `UnitRelocated`, the
+  capture release, the story `reach` events, the fog rule that a square holding an unseen enemy blocks it while the use is
+  still spent).
+- `{ "repair": 10 }` / `"full"`: restores uses of an item the picked unit carries (the player asks which); never above the item's
+  maximum; refused when nothing is worn. `{ "unlock": true }`: opens a door or chest within reach (**needs doors, PLAN item 5**;
+  until then the loader refuses it). `{ "light": { "radius": 3, "turns": 2 } }`: the user's team sees that area for those turns in
+  fog (extra sight on the same cache as `visionAt`; saved while it lasts).
+
+**Stage 3: status conditions.** A new optional file `data/statuses.json`, blocks like skills (section 3): `{ "id", "name",
+"turns", "stack": "refresh" | "add" | "none", "tags": [...], "perTurn": [ turn-start effects: hurt / heal ], "restrict": [
+"move", "attack", "staff", "item" ], "controlledBy": "foe" (acts for the other side), "stats": { ... } }`. A **starter set** of
+neutral ones (poison, stun, silence, rooted, frenzy, bless, sap) is offered like the skills' starter set; the maker may change or
+delete them. Staves and usable items apply a status with `{ "status": "poison", "turns": 3 }` and remove it with `{ "cure":
+["poison", "stun"] }` / `"all"` / a tag. The staff's `hit` formula then sees **both units** (`a`, `b`) and, `fw`-style, the
+weapon or staff the target holds, so resistance is the maker's formula. State: per unit a saved list `{ status, turns }`
+(written only when not empty; refused in a game without the file); hash: `data/statuses.json` only when present; events
+`StatusApplied`, `StatusEnded`, `StatusTick`; forecast lines; and an AI that uses hostile staves on the most dangerous foe and
+curing staves on afflicted allies.
 
 ---
 
