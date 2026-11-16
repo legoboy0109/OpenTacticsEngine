@@ -828,6 +828,15 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
   where a group is typed (see docs/SRPG.md section 7 "Editor: as built" for what follows what). A stat delete also clears caps (`cleanStat`).
 - **Tests**: unit `tests/unit/ranks.test.ts`; API `tests/editor_api_ranks_checks.py`; e2e `srpg-ranks.spec.ts`, `srpg-ranks-screens.spec.ts` (with the 360 px check).
 
+## Character-locked weapons (editor step of docs/SRPG.md "Character-locked weapons")
+
+- **Weapons**: `WeaponLockCard` (`screens/weapons/srpg/`, words in `lockText.ts`): "Only these characters can wield it", a `MultiSelect` checkbox list of the characters, a
+  one-line summary and "Worth a look" checks. Shown only when weapons are carried and the game has characters; written only when non-empty; a hidden card leaves the key alone.
+- **Characters**: `CharacterLockedWeapons`, a read-only card with links to the weapons locked to the character (nothing when none). **Rules**: the confirmation for switching
+  Characters off adds a line when weapons are locked.
+- **Model**: `model/locks.ts` (edit, clean-up on delete / rename / switch-off, "used by" line) and `lockChecks.ts`; `cleanCharacter` drops the character from the lists.
+- **Tests**: unit `tests/unit/locks.test.ts`; e2e `srpg-locks.spec.ts` (with Play and the 360 px check).
+
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
 Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.

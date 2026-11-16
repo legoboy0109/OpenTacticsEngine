@@ -1138,6 +1138,14 @@ wider than the box (a phone: "Equip  Only .."; the full words are on the Items l
 with ".." at 270 px). Promotion previews (`cannotWield`) look at the class only and do not mention locks. Tests:
 tests/test_srpg_locks.cpp, tests/srpg_player_locks_test.py, fixture tests/fixtures/srpg-locks.
 
+**Editor as built.** No helper change (the helper keeps `wieldedBy` and the loader reports its errors). Weapons screen: the card "Only these characters can wield it"
+(`WeaponLockCard`, a checkbox list of the characters; one column at 360 px), shown only when weapons are carried and the game has characters; the key is written only
+when the list is not empty, and left untouched while the card is hidden. Follow-through (`model/locks.ts`): deleting a character takes it off every list (named in the
+delete question, one Undo step); an emptied list loses its key; switching Characters off removes all lists (the confirmation says how many weapons had one); renaming a
+character id is `renameCharacterLocks` (the editor has no screen that renames a character id yet, so nothing calls it). Checks (`model/lockChecks.ts`, "Worth a look" on the
+card): a name that is no character, and a list where no character's class can use the weapon (class `weapons` or `wields` of the weapon's group). Characters screen: a
+read-only card "Weapons locked to this character". Tests: `tests/unit/locks.test.ts`, `editor/web/tests/e2e/srpg-locks.spec.ts`.
+
 ### Stat caps
 
 **Data: data/caps.json** (optional; refuses unknown keys): the game-wide cap per stat.
