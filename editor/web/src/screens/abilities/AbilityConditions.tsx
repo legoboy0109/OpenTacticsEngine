@@ -15,7 +15,8 @@ import { T } from './text'
 
 const opOptions = OPS.map((o) => ({ value: o, label: T.ops[o] }))
 
-export function AbilityConditions({ ability, change }: FormProps) {
+/** `title` / `help` let another owner of the same conditions (a staff, docs/SRPG.md section 8) use its own words. */
+export function AbilityConditions({ ability, change, title, help }: FormProps & { title?: string; help?: string }) {
   const list = (ability.if ?? []) as Extra[]
   const set = (next: Extra[], key?: string) => change((a) => setConditions(a, next), key)
   const patch = (i: number, c: Extra, key?: string) => set(list.map((x, j) => (j === i ? c : x)), key && `${key}:${i}`)
@@ -23,8 +24,8 @@ export function AbilityConditions({ ability, change }: FormProps) {
   const canTarget = targetOf(ability) !== 'cell'
 
   return (
-    <Card title={T.condCard} help={T.condHelp}>
-      <div className="story-list conditions" data-testid="ability-conditions">
+    <Card title={title ?? T.condCard} help={help ?? T.condHelp}>
+      <div className="story-list conditions" data-testid={title ? 'staff-conditions' : 'ability-conditions'}>
         {list.length === 0 && <p className="help">{T.condNone}</p>}
         {list.map((c, i) => {
           const kind = condKind(c)
