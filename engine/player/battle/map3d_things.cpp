@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/carrier_marker.h"
 #include "battle/map3d.h"
 #include "battle/map3d_sizes.h"
 #include "ui/text.h"
@@ -313,6 +314,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
       r.fillRect(sx - uw / 2, sy - body - 1, 5, 5, a(Color(0, 0, 0, 220)));
       r.fillRect(sx - uw / 2 + 1, sy - body, 3, 3, a(Color(255, 210, 40)));
     }
+    drawCarrierMarker(r, c, u, sx + uw / 2, sy - body, uw, al);  // top right corner: a unit with someone off the board
     // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
     int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = sx - barW / 2, barY = sy + 2;
     r.fillRect(barX - 1, barY - 1, barW + 2, 4, a(Color(0, 0, 0, 200)));
