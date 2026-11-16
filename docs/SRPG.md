@@ -2031,6 +2031,62 @@ Forecast rows and notes, activation labels, `SkillLearned` in the level-up box, 
 details overlay (Stats, Skills, Items pages; the other pages are added by U3 and U5 as their own files in
 `battle/unit_info_*.cpp`), `acted` units' menu and range. Owns `forecast.cpp`, `panel.cpp`, `unit_info*.cpp`.
 
+#### U1 as built
+
+Skills and unit details are in the player. Games with no strategy-RPG data look and play as before (every other player
+test is unchanged). Files: `battle/unit_info_rows.*` (the rows of the three pages, built from the `Battle` with no
+renderer, and their drawing), `unit_info_stats / _skills / _items.cpp` (one `add...Page` each), `battle_menu_info.cpp`,
+`battle_view_skills.cpp`, `forecast.cpp`, `panel.cpp`. Tests: `tests/test_srpg_player_skills.cpp` (rows, pages, view
+hooks), `tests/srpg_player_skills_test.py` (ctest `srpg_player_skills`: U1's part of the player test; headless scripts
+that read the log lines below and the pixels of the screenshots, at 480 x 270 and 320 x 480).
+
+**Wording (placeholder).** Forecast: "Strikes first"; a note "Heavy Blow 40%"; "+2 more" after three notes of a column;
+strikes "Dmg 7 x2 x2" (strikes, then in a row), "Dmg 7 x1 x2" for one strike that lands twice. Fight: the skill's name
+floats over its owner; "-3" over a unit a skill hurt; "Survived!" over a unit a `survive` skill kept up; a skill
+learned outside a level-up (a story's `teachSkill`) floats "Learned Heavy Blow". Level-up box: a line "New skill:
+Heavy Blow" under the stat lines. Panel: skill names in gold (three, then "+2 more"), "Carrying: Bram" / "With: Bram"
+(pair up), a small gold "S" tag at the right end of the name row when a support conversation is ready. Menus: **Info**
+(action menu, before Wait) and **Unit** (battle menu, after Objective). Unit details: tabs **Stats**, **Skills**,
+**Items**; Stats rows "Class", "Level" (with XP), then every stat, "12/14" for hit points, and "(+2)" / "(-1)" after a
+value that skills, items or partners raised or lowered (green / red); Skills: name, "Class" / "Learned" / "Personal" /
+"Item" / "Weapon" in small print at the right, the description under it, "No skills"; Items: name, uses left ("3/3"), a
+small gold square for the weapon in hand, the accessory's bonus or the description under it, "No items"; a list that
+does not fit ends with "+N more".
+
+**Log lines the script tests read** (`OTE_INFO`): `action menu: Attack, Items, Info, Wait` (when the game has Info),
+`unit details: Eirik (Stats, Skills, Items)`, `forecast: <lines of the left column>; | <right column>; |` (once per
+change), `skill activated: Eirik - Sure Strike`, `unit hurt: Grunt -2`, `skill learned: ...`, `level-up box: New skill:
+...`, `Survived! Grunt`.
+
+**Readings of the contract (keep to these).**
+- **Info and Unit exist only in a game that uses strategy-RPG data** (skills, characters, abilities, supports pairs, a
+  promotion, or `rules.rescue.mode`); any other game keeps its menus exactly as they were. The pages follow what there
+  is to show: Skills only with a skills file, Items only when the game has items (or the unit carries some).
+- **Unit** is offered over a unit that is alive and visible to the viewing team (the panel's own test); it opens the
+  details of that unit, whoever's it is. Cancel goes back to the map; from Info it goes back to the action menu.
+- **Strikes**: the forecast's damage per strike times `strikes` times `multi` gives the hit points shown after the fight.
+  "Strikes first" is written under the defender's column. The forecast box may grow over the info panel on a narrow
+  window (up to the whole screen width), so a note's name is not cut.
+- **Notes** are listed under the fighter that owns the skill, in roll order, at most three per column; a chance of
+  100 is written "100%".
+- **`SkillLearned` in the level-up box**: the box (`BattleView::addLearnedToBox`, called from the one line of
+  `LevelUp` in `battle_view.cpp`) takes the `SkillLearned` entries of the same unit that follow the `LevelUp` entry out
+  of the queue and lists them; a promotion that teaches skills makes no entries (the core's `learnUpTo`).
+- **`UnitHurt`** shows "-N" over the unit and runs its displayed hit points down; the label of the skill that did it
+  was announced just before by its `SkillActivated`.
+- **A unit that has acted** (`acted`, not `done`): picking it shows its remaining move range (blue squares, no red
+  attack squares), Confirm on a reachable square moves it (which ends its turn), on its own square opens a menu of **Info**
+  and **Wait** only; a tap or Confirm on an enemy does nothing (an error cue).
+- **Not covered by a screenshot**: the "Carrying" / "With" row and the support tag (their data needs a rescue or
+  supports game; the rows are written against `Unit::carrying` and `supportOptions`); the stats page of a game with
+  more stats than fit (it flows into up to three columns, covered by a unit test).
+
+**Edits outside U1's files** (each the smallest possible): `battle_menus.cpp` (the `acted` branch at the top of
+`openActionMenu`), `battle_input.cpp` (`selectUnit` and `computeOverlay` for an `acted` unit, one guard on attacking from the
+selected mode), `battle_view.cpp` (the `addLearnedToBox` call, the "Survived!" label in `impact`, a `log.h` include),
+`battle_view.h` (one declaration), `CMakeLists.txt` (the ctest entry), `tests/test_srpg_player.cpp` (two expectations that
+U0 wrote for empty hooks: the details of a game without skills have the Stats page; the skill entries play for a moment).
+
 ### U2. Player: promotion — depends on P1, U0; parallel with U1, U3, U4, U5
 Promote entry, the question box, the promotion screen (`battle/promotion_screen.cpp`), `UnitPromoted` animation
 and banner, sprite change.
