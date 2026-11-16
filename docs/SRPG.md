@@ -2039,6 +2039,64 @@ and banner, sprite change.
 Ability entries with reasons, targeting with the end squares marked, `AbilityUsed` / blocked animation, the
 Abilities page of Unit details.
 
+#### U3 as built
+
+A game without abilities looks and plays as before (no entry, no page, no log line). The files, all under
+`engine/player/battle/`: `battle_menu_abilities.cpp` (entries and targeting), `battle_view_abilities.cpp` (the
+`AbilityUsed` hooks), `unit_info_abilities.cpp` (the page), and three pure helpers: `ability_text.h` with
+`unit_info_abilities_text.cpp` (all the wording), `ability_preview.h` with `battle_view_abilities_preview.cpp` (where
+units end up). The two helper `.cpp` files carry `unit_info_` / `battle_view_` in their names only so the existing
+source globs of `ote_tests` pick them up (no CMake edit). Tests: `tests/test_srpg_player_abilities.cpp` (words,
+preview against the core's real result on all three grids in every direction, the view, the page with a recording
+renderer) and `tests/srpg_player_abilities_test.py` (registered as `srpg_player_abilities`: the menu, targeting,
+every ability kind on square, pointy and flat maps, a blocked push in fog, the phone-sized screen).
+
+**Menu.** One entry per ability the unit has, in `abilityOptions` order, after Talk / Support and before Rescue.
+A usable one shows its uses left on the right when it has a limit ("2 left"); one that cannot be used stays in the
+menu, greyed, with the core's reason on the right (the menu cannot select a greyed entry). When the full reason does
+not fit next to the widest label, a short form is shown ("before moving", "no uses left", "used this turn", "not now",
+"no target", "limit reached"; "ready in N turns" is already short); when not even that fits (the phone-sized screen)
+the entry is greyed without a reason. A free ability (`cost: free`) leaves the unit its turn: the menu opens again with
+the new reasons. An action ability finishes the order like Wait.
+
+**Targeting.** `self`: used at once. `unit` targets: `beginPickUnit`; every legal unit's square is blue, and for the
+highlighted one the squares the units would end on (and, for a push, pass) are red: push, pull (the user's step back;
+the target's end is the user's own square), swap (both squares, under the units), moveBehind. `cell` targets:
+`beginPickCell`; the legal squares are blue, the highlighted one red. The preview is worked out on what the user's team
+sees: a hidden unit never shows in it, so in fog the use can still turn out blocked. While a target is picked the hint
+line says what the ability does ("Pushes it 2 squares away  Z:use  X:back"), since swap and pull end squares are
+hidden under units.
+
+**Animation.** `AbilityUsed`: the ability's name floats over its user (light blue) for 0.45 s with the camera on the
+user; a blocked one (`kBlocked`) lasts 0.2 s longer and also floats "Blocked!" (orange) under the square of the unit in
+the way, which is how a player in fog learns something stands there. The moves, heal, summon and vanish arrive as the
+events the core already emits (`UnitRelocated`, `UnitHealed`, `UnitAdded`, `UnitRemoved`) and are played by the
+existing code. One `[info]` line per use: `ability: <user> uses <ability> on unit <id> square <cell>` plus ` (blocked)`,
+and `ability chosen: <ability> by <user>` when the menu entry is taken (the windowless tests read them).
+
+**Abilities page.** One block per ability: its name; what it does; "Use on <target>, range <r>; <ends the turn | free>";
+its limits; what is left now (uses left, cooldown, used this turn); the game's description. No page for a unit without
+abilities. A block is drawn whole; when the rest does not fit the box the page ends with "+N more...".
+
+**New wording (placeholder, for the owner's review; all in `ability_text.h` / `unit_info_abilities_text.cpp`).**
+"2 left"; "Nothing to target" (hint line, if a pick has no candidate); "Blocked!"; "+N more..."; the hint line
+"<effect>  Z:use  X:back"; effects: "Pushes it N square(s) away", "Pulls it next to you", "Swaps places with it", "Moves
+it behind you", "Heals N HP", "Heals all HP", "Calls a <Type> (level N | your level, up to N at a time[, lasts N
+turn(s)][, waits a turn])"; targets: "yourself", "an ally", "an enemy", "any unit", "a square"; "range N" / "range
+N-M"; "ends the turn" / "free"; limits: "N use(s) per battle", "ready again after N turn(s)", "only before moving";
+status: "N of M uses left", "ready in N turn(s)", "used this turn"; the short reasons listed above. The core's own
+reasons are shown as the core words them.
+
+**Readings of the contract.**
+- The Abilities page cannot be reached from the battle until step U1 adds the Info entry (`battle_menu_info.cpp`);
+  until then it is tested through `UnitInfoView` with a recording renderer, and was looked at with a local, uncommitted
+  Info entry.
+- Greyed entries show the reason in the entry itself (not only in a hint line) because the menu never highlights a
+  greyed entry.
+- Pull's second end square (the user stepping back) is marked as well as the target's.
+- Nothing is played for sound (no cue for abilities exists yet).
+- A summon that runs out (`lifetime`) or vanishes with its summoner uses the existing `UnitRemoved` fade.
+
 ### U4. Player: rescue and pair up — depends on R1, U0
 The six entries, targeting, the four events' animations, the carrier marker, the panel row.
 
