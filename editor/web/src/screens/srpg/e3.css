@@ -1,0 +1,8 @@
+/* Styles of the E3 screens and cards (abilities, promotion, carrying). Imported by the components that use them. */
+.promotion-row { display: grid; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); min-width: 0; }
+.promotion-row .story-row-head { align-items: center; }
+.item-row .grow { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.carrier-row { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.carrier-row > .field { flex: 1 1 140px; min-width: 0; }
+.carrier-row .item-row-buttons { margin-left: auto; }
+.carry-preset { display: grid; gap: 10px; }
