@@ -72,4 +72,7 @@ struct SkillCtx {
   bool initiating = false;   // the owner started this combat
 };
 
+// A test-only source of combat modifiers (Battle::testMods; defined in core/battle/combat_mods.h, step F2).
+struct CombatTestMods;
+
 }  // namespace ote

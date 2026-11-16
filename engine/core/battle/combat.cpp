@@ -1,17 +1,13 @@
-// Combat: targeting, forecasts and resolving an Attack action.
+// Combat: targeting, forecasts and resolving an Attack action. The numbers (modifiers, one side's strike numbers,
+// the order of strikes) live in combat_mods.cpp; this file runs the fight (docs/SRPG.md "Combat pipeline").
 #include <algorithm>
 #include <cmath>
 
 #include "core/battle/battle.h"
+#include "core/battle/combat_mods.h"
 #include "core/script/formulas.h"
 
 namespace ote {
-
-static int clampInt(double v, int lo, int hi) {
-  if (v < lo) return lo;
-  if (v > hi) return hi;
-  return (int)std::floor(v);
-}
 
 // Looks up the weapon's effectiveness against a target. Returns false when
 // the weapon cannot target that unit at all.
@@ -33,50 +29,6 @@ bool Battle::versusValue(int weapon, const Unit& target, double& vs) const {
 bool Battle::weaponInRange(int weapon, int dist) const {
   const WeaponDef& w = db->weapons[weapon];
   return dist >= w.minRange && dist <= w.maxRange;
-}
-
-bool Battle::strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell defCell,
-                            int weapon, StrikeForecast& out) const {
-  out = StrikeForecast();
-  FormulaCtx ctx;
-  ctx.sides = &sides;
-  ctx.battle = this;  // stats as the rules see them (Battle::stat); the combat bonuses of step F2 go in bonusA / bonusB
-  if (!versusValue(weapon, def, ctx.vs)) return false;
-  ctx.a = &atk;
-  ctx.b = &def;
-  ctx.w = &db->weapons[weapon];
-  Props scratchA, scratchB;  // outlive the formula calls below
-  ctx.ta = &numbersAt(atkCell, scratchA);
-  ctx.tb = &numbersAt(defCell, scratchB);
-  ctx.dist = grid.distance(atkCell, defCell);
-
-  out.can = true;
-  out.weapon = weapon;
-  out.damage = clampInt(formulas->evalDamage(weapon, ctx), 0, 1000000);
-  out.hit = formulas->has(Formulas::Hit) ? clampInt(formulas->eval(Formulas::Hit, ctx, 100), 0, 100) : 100;
-  out.crit = formulas->has(Formulas::Crit) ? clampInt(formulas->eval(Formulas::Crit, ctx, 0), 0, 100) : 0;
-  out.strikes = formulas->has(Formulas::Strikes) ? clampInt(formulas->eval(Formulas::Strikes, ctx, 1), 1, 8) : 1;
-  return true;
-}
-
-// First weapon the defender can answer with, or -1.
-int Battle::counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell atkCell) const {
-  if (!db->rules.counterAttacks) return -1;
-  int dist = grid.distance(defCell, atkCell);
-  double vs;
-  if (db->rules.items.carriedWeapons) {  // only what is in hand answers (docs/ITEMS.md)
-    int slot = equippedSlot(def);
-    if (slot < 0) return -1;
-    int w = itemOf(def.items[(size_t)slot]).weapon;
-    return db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs) ? w : -1;
-  }
-  const std::vector<int>& list = typeOf(def).weapons;
-  for (size_t i = 0; i < list.size(); ++i) {
-    int w = list[i];
-    if (!def.ammo.empty() && i < def.ammo.size() && def.ammo[i] == 0) continue;  // out of ammunition: the next weapon answers
-    if (db->weapons[w].counter && weaponInRange(w, dist) && versusValue(w, atk, vs)) return w;
-  }
-  return -1;
 }
 
 void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) const {
@@ -101,6 +53,12 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
 }
 
 bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecast& out) const {
+  CombatSetup setup;
+  return forecastFight(attacker, defender, weapon, from, out, setup);
+}
+
+bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out,
+                           CombatSetup& setup) const {
   out = Forecast();
   if (attacker < 0 || attacker >= (int)units.size() || defender < 0 ||
       defender >= (int)units.size() || !grid.valid(from))
@@ -113,20 +71,53 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
   if ((a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
   if (!weaponInRange(weapon, grid.distance(from, d.cell))) return false;
-  if (!strikeForecast(a, from, d, d.cell, weapon, out.attack)) return false;
-  int cw = counterWeapon(d, d.cell, a, from);
-  if (cw >= 0) strikeForecast(d, d.cell, a, from, cw, out.counter);
+
+  CombatMods modsA, modsD;
+  setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
+  if (!strikeForecast(setup, false, modsA, modsD, out.attack)) return false;
+  if (setup.counters && !strikeForecast(setup, true, modsD, modsA, out.counter)) setup.counters = false;
+  out.defenderFirst = setup.counters && modsD.strikeFirst && !modsA.strikeFirst;
+
+  // "strike" / "struck" blocks without a chance are certain, so they are part of the numbers; activations are
+  // only listed (docs/SRPG.md "Forecast").
+  for (int side = 0; side < 2; ++side) {
+    bool counter = side == 1;
+    StrikeForecast& numbers = counter ? out.counter : out.attack;
+    if (!numbers.can) continue;
+    StrikeMods strike;
+    strikePassives(setup, counter, strike);
+    if (testMods && testMods->passive) testMods->passive(*this, setup, counter, strike);
+    foldStrikeMods(strike, numbers);
+    numbers.damage = applyPercents(applyPercents(numbers.damage, strike.damagePercent), strike.damageTakenPercent);
+  }
+  forecastNotes(setup, out.notes);
+  if (testMods && testMods->notes) testMods->notes(*this, setup, out.notes);
   return true;
 }
 
-void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<Event>& events) {
-  // Recomputed per strike on purpose: earlier strikes change hp, and many
-  // formulas (Advance Wars style) scale damage with current hp.
+// One strike: steps 1 to 8 of docs/SRPG.md "Combat pipeline". With no source of modifiers this makes exactly the
+// random rolls and events it made before the pipeline: at most one for the hit and one for the critical.
+void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events) {
+  int atk = counter ? setup.defender : setup.attacker;
+  int def = counter ? setup.attacker : setup.defender;
+  int weapon = counter ? setup.weaponD : setup.weaponA;
+  // 1. The numbers. Recomputed per strike on purpose: earlier strikes change hp, many formulas (Advance Wars
+  // style) scale damage with current hp, and "combat" skill blocks may depend on it too.
+  CombatMods modsA, modsD;
+  combatMods(setup, modsA, modsD);
   StrikeForecast f;
-  if (!strikeForecast(units[atk], units[atk].cell, units[def], units[def].cell, weapon, f)) return;
+  if (!strikeForecast(setup, counter, counter ? modsD : modsA, counter ? modsA : modsD, f)) return;
   // A carried weapon: gone (broken earlier in this fight) means no strike.
   int slot = -1;
   if (db->rules.items.carriedWeapons && (slot = weaponSlot(units[atk], weapon)) < 0) return;
+
+  // 2. This strike's own effects: the striker's "strike" blocks, then the struck unit's "struck" blocks.
+  // Activations among them are rolled here, before the hit roll.
+  StrikeMods strike;
+  std::vector<Event> strikeEvents, struckEvents;
+  strikeActivations(setup, counter, strike, strikeEvents, struckEvents);
+  if (testMods && testMods->strike) testMods->strike(*this, setup, counter, strike, strikeEvents, struckEvents);
+  foldStrikeMods(strike, f);
 
   Event e;
   e.type = EventType::Attack;
@@ -134,22 +125,46 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
   e.b = def;
   e.c = weapon;
   e.d = 0;
-  e.flags = baseFlags;
+  e.flags = counter ? kCounter : 0;
+  // 3. Hit. (A hit of 0 still rolls, as it always did.)
   bool hit = f.hit >= 100 || rng.chance(f.hit);
   if (hit) {
+    // 4. Damage: a critical multiplies first, then this strike's percents, then "survive".
     int damage = f.damage;
     if (f.crit > 0 && rng.chance(f.crit)) {
       damage = (int)std::floor(damage * db->rules.critMultiplier);
       e.flags |= kCrit;
     }
+    damage = applyPercents(applyPercents(damage, strike.damagePercent), strike.damageTakenPercent);
     Unit& target = units[def];
+    if (strike.survive && target.hp > 1 && damage >= target.hp) {
+      damage = target.hp - 1;
+      e.flags |= kSurvived;
+    }
     damage = std::min(damage, target.hp);
     target.hp -= damage;
     e.d = damage;
     e.flags |= kHit;
     if (target.hp <= 0) e.flags |= kKill;
   }
+  // 5. The events: what activated for the striker, for the struck unit (only when it was struck), the strike.
+  events.insert(events.end(), strikeEvents.begin(), strikeEvents.end());
+  if (hit) events.insert(events.end(), struckEvents.begin(), struckEvents.end());
   events.push_back(e);
+  // 6. Drain: the striker heals a share of the damage it dealt (at least 1), up to its maximum.
+  if (strike.drain > 0 && e.d > 0) {
+    Unit& striker = units[atk];
+    int heal = std::min(std::max(1, (int)((long long)e.d * strike.drain / 100)), maxHp(striker) - striker.hp);
+    if (heal > 0) {
+      striker.hp += heal;
+      Event h;
+      h.type = EventType::UnitHealed;
+      h.a = atk;
+      h.b = heal;
+      events.push_back(h);
+    }
+  }
+  // 7. Wear, drops, defeat.
   if (slot >= 0) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
   if (e.flags & kKill) {
     // What the fallen unit was marked to drop goes to the one who struck it down.
@@ -160,12 +175,16 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
     unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
   }
+  // 8. "Strike again": one more strike through the same steps, hit or miss; that one cannot give another.
+  if (strike.strikeAgain && !extra && !over && units[atk].alive && units[def].alive)
+    doStrike(setup, counter, true, events);
 }
 
 void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   int a = action.unit, d = action.target;
   Forecast f;
-  forecast(a, d, action.weapon, units[a].cell, f);  // validated by caller
+  CombatSetup setup;
+  forecastFight(a, d, action.weapon, units[a].cell, f, setup);  // validated by caller
 
   // "Just before a fight": story events may change things, even take a fighter off the map or end
   // the battle, in which case there is no fight.
@@ -174,7 +193,8 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   fight.unit = a;
   fight.other = d;
   fireStory(fight, events);
-  if (over || !units[a].alive || !units[d].alive || !forecast(a, d, action.weapon, units[a].cell, f)) {
+  if (over || !units[a].alive || !units[d].alive ||
+      !forecastFight(a, d, action.weapon, units[a].cell, f, setup)) {
     if (units[a].alive) endOrder(a);
     return;
   }
@@ -189,16 +209,19 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
     }
   }
   int hpA = units[a].hp, hpD = units[d].hp;
-  int rounds = std::max(f.attack.strikes, f.counter.can ? f.counter.strikes : 0);
-  for (int i = 0; i < rounds; ++i) {
-    // Ammunition: one per attack, spent when its first strike is made (a counter that never comes costs nothing).
-    if (i < f.attack.strikes && units[a].alive && units[d].alive) {
-      if (i == 0) spendAmmo(a, action.weapon);
-      doStrike(a, d, action.weapon, 0, events);
-    }
-    if (f.counter.can && i < f.counter.strikes && units[a].alive && units[d].alive) {
-      if (i == 0) spendAmmo(d, f.counter.weapon);
-      doStrike(d, a, f.counter.weapon, kCounter, events);
+  // Who strikes when, how often, and whether the defender answers are fixed now; only the numbers of each strike
+  // are worked out again when it is made.
+  std::vector<StrikeStep> order;
+  strikeOrder(f, order);
+  bool ammoA = false, ammoD = false;
+  for (const StrikeStep& step : order) {
+    for (int i = 0; i < step.count; ++i) {
+      if (!units[a].alive || !units[d].alive) break;
+      // Ammunition: one per fight, spent when its first strike is made (a counter that never comes costs nothing).
+      bool& spent = step.counter ? ammoD : ammoA;
+      if (!spent) spendAmmo(step.counter ? d : a, step.counter ? setup.weaponD : setup.weaponA);
+      spent = true;
+      doStrike(setup, step.counter, false, events);
     }
   }
 

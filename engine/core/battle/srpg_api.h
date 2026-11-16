@@ -58,3 +58,6 @@ void setStartingSupports(const SupportState& carried);
 void combatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& defender) const;
 // The order of strikes of a forecast fight (for the player's forecast and for applyAttack).
 void strikeOrder(const Forecast& forecast, std::vector<StrikeStep>& out) const;
+// Test-only: when set, its functions run after the real sources of modifiers and may change what they gave
+// (core/battle/combat_mods.h). Null everywhere outside the unit tests; never saved; a copied battle shares it.
+const CombatTestMods* testMods = nullptr;
