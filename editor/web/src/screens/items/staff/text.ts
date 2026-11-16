@@ -20,7 +20,7 @@ export const S = {
   reachFrom: 'From (squares)',
   reachTo: 'To (squares)',
   reachFormula: 'Formula for the farthest square',
-  reachFormulaHelp: (example: string) => `The user’s stats are a, so a.mag is its Magic. The result is rounded down. Example: ${example}`,
+  reachFormulaHelp: (example: string) => `The user’s stats are read as a.name, such as a.str for Strength. The result is rounded down. Example: ${example}`,
   reachSelf: 'Used on its user, so it needs no reach.',
 
   area: 'What it affects',

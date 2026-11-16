@@ -16,7 +16,7 @@ async function createStaff(page: Page, name: string): Promise<void> {
   await dlg.getByLabel('Name of the item').fill(name)
   await dlg.getByRole('button', { name: 'Create' }).click()
   await expect(page.getByRole('heading', { name, level: 2 })).toBeVisible()
-  await page.getByLabel('Kind').selectOption('staff')
+  await page.getByLabel('Kind', { exact: true }).selectOption('staff')
   await expect(page.getByTestId('staff-use')).toBeVisible()
 }
 
@@ -140,7 +140,7 @@ test('a rank and a lock on a staff use the weapons’ cards; Staff to Usable rem
   await expect(page.getByTestId('character-locked-weapons')).toContainText('Rank Staff')
   await page.goto(editorUrl(id, 'items', 'rank_staff'))
 
-  await page.getByLabel('Kind').selectOption('usable')
+  await page.getByLabel('Kind', { exact: true }).selectOption('usable')
   await saved(page)
   const u = staff(id, 'rank_staff')
   expect(u).toMatchObject({ kind: 'usable', heal: 10 })
