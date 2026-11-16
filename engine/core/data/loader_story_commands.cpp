@@ -24,12 +24,13 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   const Json& u = e["addUnit"];
   if (!u.isObject()) return fail(where, "\"addUnit\" must be a unit: { \"type\": ..., \"side\": ..., \"x\": ..., \"y\": ... }");
   if (!onlyKeys(e, {"addUnit"}, where) ||
-      !onlyKeys(u, {"id", "type", "side", "x", "y", "name", "level", "leader", "stats", "items"}, where + ": \"addUnit\""))
+      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
   if (!readUnitHead(c_, db_, map_, u, at, out.newUnit)) return false;
   if (!readUnitBody(c_, db_, u, at, out.newUnit)) return false;
-  if (!out.newUnit.id.empty()) {
+  // A character already placed (map or an earlier addUnit) is not an error: the second add does nothing at run time.
+  if (!out.newUnit.id.empty() && !u.has("character")) {
     if (std::find(usedIds.begin(), usedIds.end(), out.newUnit.id) != usedIds.end())
       return fail(at, "\"id\" " + quoted(out.newUnit.id) + " is already used by another unit of the map");
     usedIds.push_back(out.newUnit.id);

@@ -185,19 +185,43 @@ int findMapSide(const MapDef& m, const std::string& id) { return findSide(m, id)
 // `where` ends up naming the unit for later messages.
 bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, std::string& where,
                   MapUnitDef& u) {
-  std::string type, side;
-  if (!c.str(e, "type", where, type, true) || !c.str(e, "side", where, side, true) ||
+  // A unit that is a character (docs/SRPG.md "Characters") is resolved here into the plain unit it stands for: its
+  // story id is the character id, and type / name / level default to the character's. Nothing else downstream
+  // needs to know about the "character" key (readUnitBody adds its stats and items).
+  std::string type, side, character;
+  if (!c.str(e, "character", where, character)) return false;
+  const bool isCharacter = e.has("character");
+  const CharacterDef* ch = nullptr;
+  if (isCharacter) {
+    if (db.characters.empty()) return c.fail(where, "\"character\" is given but the game has no characters (data/characters.json)");
+    int ci = db.findCharacter(character);
+    if (ci < 0) return c.fail(where, "unknown character \"" + character + "\" (data/characters.json)");
+    ch = &db.characters[(size_t)ci];
+  }
+  if (!c.str(e, "type", where, type, !isCharacter) || !c.str(e, "side", where, side, true) ||
       !c.integer(e, "x", where, u.x, true) || !c.integer(e, "y", where, u.y, true))
     return false;
   if (!c.str(e, "name", where, u.name) || !c.integer(e, "level", where, u.level) ||
       !c.boolean(e, "leader", where, u.leader) || !c.str(e, "id", where, u.id))
     return false;
+  if (isCharacter) {
+    if (type.empty()) type = db.unitTypes[(size_t)ch->type].id;
+    if (!e.has("level")) u.level = ch->level;
+    if (u.name.empty()) u.name = ch->name;
+  }
   u.type = db.findUnitType(type);
   if (u.type < 0) return c.fail(where, "unknown unit type \"" + type + "\"");
   u.side = findSide(m, side);
   if (u.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
   where += " (" + type + (u.name.empty() ? "" : " \"" + u.name + "\"") + " at " +
            std::to_string(u.x) + "," + std::to_string(u.y) + ")";
+  if (isCharacter) {
+    if (e.has("id"))
+      return c.fail(where, "a unit with a \"character\" is known to events by the character's id; remove \"id\"");
+    u.id = character;
+  } else if (e.has("id") && db.findCharacter(u.id) >= 0) {
+    return c.fail(where, "\"id\" \"" + u.id + "\" is a character (data/characters.json); write \"character\": \"" + u.id + "\"");
+  }
   if (e.has("id") && !isStoryId(u.id))
     return c.fail(where, "\"id\" must be letters, digits, \"_\" and \"-\" (got \"" + u.id + "\")");
   if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
@@ -209,9 +233,15 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
 // The second half: stats and items.
 bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u) {
   u.stats = db.unitTypes[static_cast<size_t>(u.type)].stats;
+  const CharacterDef* ch = e.has("character") ? &db.characters[(size_t)db.findCharacter(e["character"].asString())] : nullptr;
+  if (ch)  // the unit type of THIS map plus the character's own stats (never below 0); the map's "stats" replace single values
+    for (size_t s = 0; s < u.stats.size() && s < ch->stats.size(); ++s) u.stats[s] = std::max(0, u.stats[s] + ch->stats[s]);
   if (!c.statMap(db, e, "stats", where, u.stats)) return false;
   u.hasItems = e.has("items");
-  return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items);
+  if (u.hasItems || !ch || !ch->hasItems) return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items);
+  u.hasItems = true;  // the character's items replace the unit type's
+  u.items = ch->items;
+  return true;
 }
 
 namespace {
@@ -228,6 +258,8 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     MapUnitDef u;
     if (!readUnitHead(c, db, m, e, where, u)) return false;
     if (!u.id.empty()) {
+      if (ids.count(u.id) && e.has("character"))
+        return c.fail(where, "\"character\" \"" + u.id + "\" is already placed by units[" + std::to_string(ids[u.id]) + "]");
       if (ids.count(u.id))
         return c.fail(where, "\"id\" \"" + u.id + "\" is already used by units[" + std::to_string(ids[u.id]) + "]");
       ids[u.id] = static_cast<int>(i);
