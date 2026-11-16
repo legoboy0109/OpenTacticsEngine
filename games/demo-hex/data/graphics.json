@@ -48,6 +48,18 @@
       "file": "art/iso_units.png",
       "cellWidth": 24,
       "cellHeight": 22
+    },
+    {
+      "id": "ground3d",
+      "file": "art/ground3d.png",
+      "cellWidth": 24,
+      "cellHeight": 28
+    },
+    {
+      "id": "stand",
+      "file": "art/stand.png",
+      "cellWidth": 24,
+      "cellHeight": 32
     }
   ],
   "unitMarker": true,
@@ -335,6 +347,430 @@
         },
         "fortress": {
           "sheet": "iso_structures_ring",
+          "cell": [
+            0,
+            0
+          ]
+        }
+      },
+      "units": {
+        "infantry": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "frameMs": 600
+        },
+        "mech": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "frameMs": 600
+        },
+        "recon": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "frameMs": 600
+        },
+        "tank": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ]
+          ],
+          "frameMs": 600
+        },
+        "artillery": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              4
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "frameMs": 600
+        }
+      }
+    },
+    "isometric-3d": {
+      "terrain": {
+        "plain": {
+          "sheet": "tiles",
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "road": {
+          "sheet": "tiles",
+          "join": [
+            0,
+            2
+          ],
+          "joinWith": [],
+          "joinEdge": true
+        },
+        "forest": {
+          "sheet": "ground3d",
+          "cell": [
+            0,
+            0
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ]
+          }
+        },
+        "mountain": {
+          "sheet": "ground3d",
+          "cell": [
+            1,
+            0
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ]
+          }
+        },
+        "water": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              10
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
+        },
+        "bridge": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              18
+            ],
+            [
+              8,
+              18
+            ]
+          ],
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
+          ],
+          "joinEdge": false
+        }
+      },
+      "structures": {
+        "city": {
+          "sheet": "structures",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "structures",
+          "cell": [
+            1,
+            0
+          ]
+        },
+        "hq": {
+          "sheet": "structures",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "fortress": {
+          "sheet": "structures_ring",
+          "cell": [
+            0,
+            0
+          ]
+        }
+      },
+      "units": {
+        "infantry": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "frameMs": 600
+        },
+        "mech": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "frameMs": 600
+        },
+        "recon": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "frameMs": 600
+        },
+        "tank": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ]
+          ],
+          "frameMs": 600
+        },
+        "artillery": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              4
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "frameMs": 600
+        }
+      }
+    },
+    "full-3d": {
+      "terrain": {
+        "plain": {
+          "sheet": "tiles",
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "road": {
+          "sheet": "tiles",
+          "join": [
+            0,
+            2
+          ],
+          "joinWith": [],
+          "joinEdge": true
+        },
+        "forest": {
+          "sheet": "ground3d",
+          "cell": [
+            0,
+            0
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ]
+          }
+        },
+        "mountain": {
+          "sheet": "ground3d",
+          "cell": [
+            1,
+            0
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ]
+          }
+        },
+        "water": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              10
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
+        },
+        "bridge": {
+          "sheet": "tiles",
+          "join": [
+            [
+              0,
+              18
+            ],
+            [
+              8,
+              18
+            ]
+          ],
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
+          ],
+          "joinEdge": false
+        }
+      },
+      "structures": {
+        "city": {
+          "sheet": "structures",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "structures",
+          "cell": [
+            1,
+            0
+          ]
+        },
+        "hq": {
+          "sheet": "structures",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "fortress": {
+          "sheet": "structures_ring",
           "cell": [
             0,
             0
