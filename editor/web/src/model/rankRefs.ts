@@ -2,9 +2,10 @@
 // group, a stat or a whole feature goes: weapons that need a rank, starting ranks on unit types, characters and placed units, caps and
 // cap adjustments. Pure functions returning new documents, so a delete and its clean-up are one undo step. An untouched part keeps
 // its identity (so it is not saved again).
+import { allGear, editGear } from './gear'
 import type { Usage } from './references'
 import type { RankMap } from './srpgTypes'
-import type { MapFile, NumMap, ProjectDoc, Weapon } from './types'
+import type { MapFile, NumMap, ProjectDoc } from './types'
 
 const mapName = (doc: ProjectDoc, id: string) => doc.game?.maps.find((m) => m.id === id)?.name ?? id
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
@@ -49,17 +50,15 @@ const dropWhere = (m: RankMap | undefined, gone: (group: string, v: RankMap[stri
 
 // --- a rank goes or changes its id -------------------------------------------------------------------------------------
 
-const editWeapons = (doc: ProjectDoc, fn: (w: Weapon) => Weapon): ProjectDoc => ({ ...doc, weapons: mapKeep(doc.weapons, fn) })
-
-/** The rank is removed: a weapon that needed it needs nothing; a class, character or placed unit that started in it loses that entry
+/** The rank is removed: a weapon or staff that needed it needs nothing; a class, character or placed unit that started in it loses that entry
  *  (so it starts at the lowest rank, or at what the class says). */
 export function rankRefsOnRemove(doc: ProjectDoc, id: string): ProjectDoc {
-  return everyRankMap(editWeapons(doc, (w) => (w.rank === id ? withKey(w, 'rank', undefined) : w)), (m) => dropWhere(m, (_g, v) => v === id))
+  return everyRankMap(editGear(doc, (w) => (w.rank === id ? withKey(w, 'rank', undefined) : w)), (m) => dropWhere(m, (_g, v) => v === id))
 }
 
 /** The rank's id changes: everything that named it follows. */
 export function renameRankRefs(doc: ProjectDoc, from: string, to: string): ProjectDoc {
-  const moved = editWeapons(doc, (w) => (w.rank === from ? { ...w, rank: to } : w))
+  const moved = editGear(doc, (w) => (w.rank === from ? { ...w, rank: to } : w))
   return everyRankMap(moved, (m) => (m && Object.values(m).includes(from) ? Object.fromEntries(Object.entries(m).map(([g, v]) => [g, v === from ? to : v])) : m))
 }
 
@@ -78,9 +77,9 @@ export function renameGroupRefs(doc: ProjectDoc, from: string, to: string): Proj
 
 // --- a feature goes -------------------------------------------------------------------------------------------------------
 
-/** Weapon ranks switched off: no weapon needs a rank, no starting ranks are left. */
+/** Weapon ranks switched off: no weapon or staff needs a rank, no starting ranks are left. */
 export function cleanAllRanks(doc: ProjectDoc): ProjectDoc {
-  const noWeaponRanks = editWeapons(doc, (w) => (w.rank !== undefined || w.rankXp !== undefined ? withKey(withKey(w, 'rank', undefined), 'rankXp', undefined) : w))
+  const noWeaponRanks = editGear(doc, (w) => (w.rank !== undefined || w.rankXp !== undefined ? withKey(withKey(w, 'rank', undefined), 'rankXp', undefined) : w))
   return everyRankMap(noWeaponRanks, () => undefined)
 }
 
@@ -119,13 +118,13 @@ function rankLines(doc: ProjectDoc, test: (m: RankMap) => boolean, verb: string)
 
 /** Who needs this rank or starts in it. */
 export function rankUsageLines(doc: ProjectDoc, id: string): Usage[] {
-  const out: Usage[] = (doc.weapons ?? []).filter((w) => w.rank === id).map((w) => ({ section: 'weapons' as const, text: `Weapon “${w.name}” needs this rank (it then needs none)` }))
+  const out: Usage[] = allGear(doc).filter((g) => g.keys.rank === id).map((g) => ({ section: g.section, text: `${g.owner === 'weapon' ? 'Weapon' : 'Staff'} “${g.name}” needs this rank (it then needs none)` }))
   return [...out, ...rankLines(doc, (m) => Object.values(m).includes(id), 'starts in this rank (it then starts at the lowest rank)')]
 }
 
-/** Who has a starting rank in a weapon group: shown when the last weapon of the group is deleted. */
+/** Who has a starting rank in a weapon group: shown when the last weapon or staff of the group goes. */
 export function groupRankUsageLines(doc: ProjectDoc, group: string): Usage[] {
-  return rankLines(doc, (m) => group in m, `has a starting rank in “${group}” (it goes, since no weapon is left in that group)`)
+  return rankLines(doc, (m) => group in m, `has a starting rank in “${group}” (it goes, since nothing is left in that group)`)
 }
 
 /** Who has a cap for the stat (all go when the stat is deleted). */

@@ -1,7 +1,7 @@
 // All wording on the Items screen (placeholders: the project owner reviews them).
 import type { ItemKind } from '../../model/types'
 
-export const KIND_LABEL: Record<ItemKind, string> = { usable: 'Usable', weapon: 'Weapon', accessory: 'Accessory' }
+export const KIND_LABEL: Record<ItemKind, string> = { usable: 'Usable', weapon: 'Weapon', accessory: 'Accessory', staff: 'Staff' }
 
 export const T = {
   title: 'Items',
@@ -19,10 +19,11 @@ export const T = {
   checksTitle: 'The game will not load until these are fixed',
 
   kind: 'Kind',
-  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus or skills to whoever carries them.',
+  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus or skills to whoever carries them. Staves are used on other units from a distance, to heal them.',
   kindUsable: KIND_LABEL.usable,
   kindWeapon: KIND_LABEL.weapon,
   kindAccessory: KIND_LABEL.accessory,
+  kindStaff: KIND_LABEL.staff,
   kindWeaponLocked: 'Weapon items need weapons to be carried as items. Change that under Items on the Rules screen.',
   rulesLink: 'Open Rules',
 

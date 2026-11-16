@@ -184,7 +184,10 @@ export interface Unit extends Named {
   sounds?: Record<string, string>
 }
 
-export type ItemKind = 'usable' | 'weapon' | 'accessory'
+export type ItemKind = 'usable' | 'weapon' | 'accessory' | 'staff'
+/** Who a staff works on (docs/SRPG.md section 8); a usable item only has 'self' and 'ally'. */
+export type ItemTarget = 'self' | 'ally' | 'team' | 'foe' | 'any'
+export type StaffArea = 'single' | 'all' | { radius: number }
 /** One item of data/items.json (docs/ITEMS.md). Fields of another kind than `kind` are refused by the loader. */
 export interface Item extends Named {
   description?: string
@@ -193,7 +196,7 @@ export interface Item extends Named {
   uses?: number
   /** Per resource; missing = not for sale. */
   price?: NumMap
-  target?: 'self' | 'ally'
+  target?: ItemTarget
   heal?: number | 'full'
   raise?: NumMap
   weapon?: string
@@ -201,6 +204,19 @@ export interface Item extends Named {
   /** Accessories only: skills while carried. Usable items only: `promotes` makes it a promotion item (docs/SRPG.md). */
   skills?: string[]
   promotes?: boolean
+  /** Staves only (docs/SRPG.md section 8). `group`, `rank`, `rankXp`, `wieldedBy` and `props` are a weapon's, so the weapon rank and
+   *  lock code serves both (model/gear.ts). `effects`, `if` and anything a later stage adds are kept as the file has them. */
+  group?: string
+  rank?: string
+  rankXp?: number
+  wieldedBy?: string[]
+  props?: NumMap
+  range?: number | [number, number] | string
+  area?: StaffArea
+  effects?: Extra[]
+  hit?: number | string
+  xp?: number | string
+  if?: Extra[]
   /** Sound overrides: use (docs/SOUND.md). */
   sounds?: Record<string, string>
 }

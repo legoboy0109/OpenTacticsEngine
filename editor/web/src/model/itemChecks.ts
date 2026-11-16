@@ -3,6 +3,7 @@
 import { typeIdOf } from './characterUnits'
 import { entryId, entryUses } from './itemGrants'
 import { carriedWeapons, inventorySize, storageMode } from './itemRules'
+import { staffChecks } from './staffChecks'
 import type { Item, ItemEntry, ProjectDoc, Section } from './types'
 
 export interface ItemCheck { section: Section; text: string; mapId?: string }
@@ -47,6 +48,8 @@ function grantChecks(doc: ProjectDoc, list: ItemEntry[] | undefined, opts: { sec
 
 export function itemChecks(doc: ProjectDoc): ItemCheck[] {
   const out = itemListChecks(doc)
+  // A staff the loader would refuse (the "nobody can use it yet" note is not one: it shows on the staff's own form).
+  for (const c of staffChecks(doc)) if (c.blocks) out.push({ section: c.section, text: c.text })
   const max = inventorySize(doc)
   for (const u of doc.units ?? [])
     out.push(...grantChecks(doc, u.items, { section: 'units', who: `${u.name} starts with`, max }))

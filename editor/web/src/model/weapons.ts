@@ -2,6 +2,7 @@
 import { clone, ids, withWeapons } from './doc'
 import { suggestedWeaponProps } from './formulas'
 import { makeId } from './ids'
+import { groupsOf } from './ranks'
 import { dropGroupRanks, renameGroupRefs } from './rankRefs'
 import { cleanWeapon } from './references'
 import { dropKey, moveItem, patchObj, setNum, updateById } from './util'
@@ -26,7 +27,8 @@ export function duplicateWeapon(doc: ProjectDoc, id: string, newId?: string): Pr
   })
 }
 
-const groupsLeft = (doc: ProjectDoc): Set<string> => new Set((doc.weapons ?? []).flatMap((w) => (w.group ? [w.group] : [])))
+/** The groups still in use by a weapon or a staff (a group is only gone when neither has it). */
+const groupsLeft = (doc: ProjectDoc): Set<string> => new Set(groupsOf(doc))
 
 /** Removes the weapon and takes it off every unit that carried it. When it was the last weapon of its group, starting ranks in
  *  that group go too (the loader refuses a rank in a group no weapon has). */

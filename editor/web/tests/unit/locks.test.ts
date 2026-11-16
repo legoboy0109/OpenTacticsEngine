@@ -2,7 +2,7 @@
 // switching characters off does to the lists, the delete question, and the checks. Uses the engine's fixture tests/fixtures/srpg-locks.
 import { describe, expect, it } from 'vitest'
 import { lockChecks } from '../../src/model/lockChecks'
-import { cleanAllLocks, lockCount, locksShown, renameCharacterLocks, setWielders, weaponsLockedTo, wieldersOf } from '../../src/model/locks'
+import { cleanAllLocks, gearLockedTo, lockCount, locksShown, renameCharacterLocks, setWielders, wieldersOf } from '../../src/model/locks'
 import { characterUsageLines, deleteCharacter } from '../../src/model/srpgRefs'
 import { switchOffFeature } from '../../src/model/srpgFeatures'
 import { initHistory, pushEdit, undo } from '../../src/store/history'
@@ -27,8 +27,8 @@ describe('the list', () => {
     expect('wieldedBy' in none.weapons!.find((w) => w.id === 'steel_sword')!).toBe(false)
   })
   it('the weapons locked to a character', () => {
-    expect(weaponsLockedTo(fx(), 'kell').map((w) => w.id)).toEqual(['dawn_blade', 'pair_blade', 'trio_blade'])
-    expect(weaponsLockedTo(fx(), 'mara').map((w) => w.id)).toEqual(['trio_blade'])
+    expect(gearLockedTo(fx(), 'kell').map((w) => w.id)).toEqual(['dawn_blade', 'pair_blade', 'trio_blade'])
+    expect(gearLockedTo(fx(), 'mara').map((w) => w.id)).toEqual(['trio_blade'])
   })
 })
 

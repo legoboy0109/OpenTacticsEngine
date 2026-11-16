@@ -54,10 +54,10 @@ export const R = {
   // Units (classes)
   unitRanksTitle: 'Starting ranks',
   unitRanksHelp: 'The rank a unit of this class starts with, for each kind of weapon it can use. A character can start higher, and a placed unit can differ.',
-  noGroups: 'This class cannot use any kind of weapon yet. Pick the groups it can use above.',
+  noGroups: 'This class cannot use any kind of weapon or staff yet. Pick the groups it can use above.',
   noneRank: 'None',
   expKept: (n: number) => `${n} experience (kept)`,
-  groupGone: (g: string) => `No weapon is in the group “${g}” any more.`,
+  groupGone: (g: string) => `No weapon or staff is in the group “${g}” any more.`,
   forgetRank: 'Remove',
   unitCapsTitle: 'Stat caps of this class',
   unitCapsHelp: 'Leave a box empty to use the game’s cap, shown in grey. A class cap replaces the game’s, higher or lower.',
@@ -81,6 +81,10 @@ export const R = {
   needsGroup: 'Give the weapon a group first (above): ranks are kept per group of weapons.',
   rankXpPerUse: 'Experience per use',
   rankXpPerUseHelp: 'Weapon experience a unit earns in this weapon’s group each time it fights with it. Usually 1.',
+  staffTitle: 'Staff rank',
+  staffHelp: 'A unit whose rank in this staff’s group is lower cannot use it. It can still carry, trade and store it.',
+  staffNeedsGroup: 'Give the staff a group first (above): ranks are kept per group.',
+  staffRankXpPerUseHelp: 'Experience a unit earns in this staff’s group each time it uses the staff. Usually 1.',
 
   // Placed units (map)
   mapRanksTitle: 'Starting ranks on this map',
