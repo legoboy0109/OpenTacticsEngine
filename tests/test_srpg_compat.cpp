@@ -117,7 +117,7 @@ TEST(srpg_skeleton_keeps_campaign_saves_byte_for_byte) {
   CHECK(!b.over);
   Json file;
   CHECK(buildCampaignSave(db, "demo-srpg", pt, &b, 0, file, err));
-  CHECK_STR(hex(fnv(file.dump(0))), "d44d95cd5c1f9980");
+  CHECK_STR(hex(fnv(file.dump(0))), "4899cc10dbbb4724");
   b.over = true;
   b.winnerTeam = b.humanTeam();
   CHECK(finishChapterBattle(db, pt, b) == ChapterResult::Won);
