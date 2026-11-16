@@ -2,6 +2,7 @@
 // exists is picked), so the files stay loadable while the maker fills the form in. Changing a kind starts again
 // from the new kind's default.
 import { namedUnits, teamsOf } from './storyIds'
+import { pairsOf } from './supports'
 import {
   filterKind, type Command, type CommandKind, type Condition, type ConditionKind, type Filter, type FilterKind,
   type ObjectiveRule, type RuleKind, type Trigger, type TriggerKind,
@@ -12,10 +13,15 @@ export interface DefCtx {
   doc: ProjectDoc
   map: MapFile
   /** Set while a campaign scene is edited (campaignRoster.ts): fewer kinds, roster ids instead of unit filters. */
-  scene?: { goto: boolean }
+  scene?: { goto: boolean; /** Only these kinds of command may be added (a support conversation takes `say` only). */ only?: CommandKind[] }
 }
 
 const firstUnit = (c: DefCtx) => namedUnits(c.doc, c.map)[0]?.id ?? ''
+/** The first declared support pair (empty ids when there is none yet). */
+const firstPair = (doc: ProjectDoc): [string, string] => {
+  const p = pairsOf(doc)[0]
+  return p ? [p.a, p.b] : ['', '']
+}
 const firstSide = (c: DefCtx) => c.map.sides?.[0]?.id ?? ''
 
 /** A filter of the given kind pointing at the first thing of that kind (empty text when there is none yet). */
@@ -54,6 +60,7 @@ export function newTrigger(c: DefCtx, kind: TriggerKind): Trigger {
       return { talk: units[0]?.id ?? '', to: units[1]?.id ?? '' }
     }
     case 'promoted': return { promoted: defaultFilter(c) }
+    case 'support': return { support: firstPair(c.doc) }
   }
 }
 
@@ -68,6 +75,7 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'carries': return { carries: c.doc.items?.[0]?.id ?? '' }
     case 'researched': return { researched: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
     // The first team looking for the second side's units (a team always sees its own, so that would say nothing).
+    case 'support': return { support: firstPair(c.doc), op: '>=', value: 1 }
     case 'sees': return { sees: { side: c.map.sides?.[1]?.id ?? firstSide(c) }, team: teamsOf(c.map)[0]?.id ?? '' }
   }
 }
@@ -86,6 +94,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'removeUnit': return { removeUnit: defaultFilter(c) }
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
+    case 'addSupport': return { addSupport: firstPair(c.doc), by: 10 }
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'grantResearch': return { grantResearch: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }

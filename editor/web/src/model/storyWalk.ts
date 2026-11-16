@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -78,6 +78,7 @@ function mapTrigger(t: Trigger, w: Walk, where: string): Trigger | Dropped {
     (x) => withFilter(x, 'fight', w, where),
     (x) => withFilter(x, 'with', w, where),
     (x) => withFilter(x, 'promoted', w, where),
+    (x) => withPair(x, 'support', w, where),
     (x) => withRef(x, 'talk', 'unit', w, where),
     (x) => withRef(x, 'to', 'unit', w, where),
   ])
@@ -90,6 +91,7 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withFilter(x, 'alive', w, where),
     (x) => withFilter(x, 'dead', w, where),
     (x) => withFilter(x, 'sees', w, where),
+    (x) => withPair(x, 'support', w, where),
     (x) => withRef(x, 'team', 'teamOrSide', w, where), // only a `sees` condition has one (a side id means that side's team)
     (x) => withRef(x, 'carries', 'item', w, where),
     (x) => withRef(x, 'researched', 'tech', w, where),
@@ -97,6 +99,26 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withFilter(x, 'unit', w, where),
   ])
 }
+
+/** A pair of characters (`[a, b]`, as `addSupport` and the `support` condition / trigger hold it): both must stay. Characters are
+ *  named by their own kind of reference ('character'): a pair is not about units standing on this map. */
+function withPair<T extends object>(o: T, key: string, w: Walk, where: string): T | Dropped {
+  const v = (o as Record<string, unknown>)[key]
+  if (!Array.isArray(v) || v.length !== 2 || typeof v[0] !== 'string' || typeof v[1] !== 'string') return o
+  const a = w.ref({ kind: 'character', id: v[0] }, where)
+  const b = a === DROP ? DROP : w.ref({ kind: 'character', id: v[1] }, where)
+  if (a === DROP || b === DROP) return DROP
+  // The pair itself: its id is the two characters in alphabetical order, so either order of the file names the same pair. A walk
+  // may drop it (the pair was deleted) or answer with another pair's id (the pair now has other characters).
+  const id = pairId(a, b)
+  const p = w.ref({ kind: 'pair', id }, where)
+  if (p === DROP) return DROP
+  if (p !== id) { const [x, y] = p.split('.'); return put(o, key, [x, y]) }
+  return a === v[0] && b === v[1] ? o : put(o, key, [a, b])
+}
+
+/** The id of a support pair as the walk's 'pair' reference names it: both character ids, alphabetical, joined by a dot (ids hold no dot). */
+export const pairId = (a: string, b: string): string => (a < b ? `${a}.${b}` : `${b}.${a}`)
 
 /** All conditions must survive: a condition that cannot be kept takes the whole list (and its owner) with it. */
 function mapConditions(list: Condition[], w: Walk, where: string): Condition[] | Dropped {
@@ -190,6 +212,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
     (x) => withRef(x, 'promote', 'unit', w, where),
+    (x) => withPair(x, 'addSupport', w, where),
     (x) => (x.promote !== undefined ? withRef(x, 'to', 'type', w, where) : x), // promote's `to` is a unit type id
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),

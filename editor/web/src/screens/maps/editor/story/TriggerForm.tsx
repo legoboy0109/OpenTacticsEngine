@@ -7,6 +7,7 @@ import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import { AreaField } from './AreaField'
+import { PairPick, SupportLevelPick } from './forms/SupportForms'
 import { FilterPicker, SidePick, UnitPick } from './pickers'
 import { useStory } from './StoryContext'
 import { S } from './text'
@@ -14,7 +15,7 @@ import { S } from './text'
 const GROUPS: Array<{ group: string; kinds: TriggerKind[] }> = [
   { group: S.triggerGroups.battle, kinds: ['start', 'won', 'lost', 'end'] },
   { group: S.triggerGroups.turns, kinds: ['turn', 'everyTurn'] },
-  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted'] },
+  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support'] },
 ]
 
 export function TriggerForm({ event }: { event: StoryEvent }) {
@@ -27,7 +28,7 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
   return (
     <div className="stack tight" data-testid="trigger-form">
       <Field label={S.when} help={S.whenHelp}>
-        <Select data-learn="event-when" value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => ({ value: k, label: S.triggerKinds[k] })) }))}
+        <Select data-learn="event-when" value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => (k === 'support' && !story.doc.supports?.pairs?.length ? { value: k, label: `${S.triggerKinds[k]} (no support pairs yet)`, disabled: true } : { value: k, label: S.triggerKinds[k] })) }))}
           onChange={(k) => apply((m) => setTriggerKind(m, event.id, k as TriggerKind, story))} />
       </Field>
       {(kind === 'turn' || kind === 'everyTurn') && (
@@ -60,6 +61,12 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
         </>
       )}
       {kind === 'promoted' && <FilterPicker label={S.promotedWho} value={when.promoted} onChange={(f) => setWhen({ promoted: f ?? {} })} />}
+      {kind === 'support' && (
+        <>
+          <PairPick value={when.support} onChange={(pair) => setWhen({ support: pair, level: undefined })} />
+          <SupportLevelPick pair={when.support} value={when.level} onChange={(l) => setWhen({ level: l })} />
+        </>
+      )}
       {kind === 'talk' && (
         <>
           <UnitPick label={S.talkWho} value={when.talk ?? ''} onChange={(v) => setWhen({ talk: v })} help={S.talkHelp} />

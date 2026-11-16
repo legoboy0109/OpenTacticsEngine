@@ -1,57 +1,41 @@
-// One scene (Before / After the battle) of a chapter, edited with the SAME command list and forms as a map's events.
-// Those forms work on "a map with an event": here the map is the made-up scene map (model/campaignRoster.ts), its one
-// event is the scene, and `apply` writes the result back into the chapter, as one undo step per edit.
-import { useMemo, useState } from 'react'
-import { sceneAsMap, setSceneMusic, withScene } from '../../model/campaign'
+// One scene (Before / After the battle) of a chapter, edited with the SAME command list and forms as a map's events
+// (SceneCommands.tsx holds the shared part; here only what is about a chapter: its title, music and speakers help).
+import { useMemo } from 'react'
+import { sceneAsMap, sceneOf, setSceneMusic, withScene } from '../../model/campaign'
 import { sceneMusic } from '../../model/campaignScene'
 import { hasMusic } from '../../model/audio'
 import { sceneEventId } from '../../model/campaignRoster'
 import { SCENE_TITLE } from '../../model/campaignWalk'
 import type { SceneKey } from '../../model/campaignTypes'
-import { namedUnits } from '../../model/storyIds'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { AudioChoice } from '../sound/AudioChoice'
 import { T as SoundT } from '../sound/text'
 import { Field } from '../../ui/Field'
-import { CommandList } from '../maps/editor/story/CommandList'
-import { StoryScope, type Story } from '../maps/editor/story/StoryContext'
-import { MapViewState } from '../maps/editor/viewState'
+import { SceneCommands, type SceneSource } from './SceneCommands'
 import { C } from './text'
 
 export function SceneEditor({ chapterId, which }: { chapterId: string; which: SceneKey }) {
   const doc = useDoc()
   const edit = useEdit()
-  const [selected, setSelected] = useState<string | null>(null)
-  // Never used by scene commands (no squares to pick); the story forms just expect the field.
-  const vs = useMemo(() => new MapViewState(), [])
-  const eventId = sceneEventId(chapterId, which)
-  const story = useMemo<Story>(() => {
-    const map = sceneAsMap(doc, chapterId, which)
-    return {
-      doc, map, mapId: '', vs, units: namedUnits(doc, map), teams: [], tags: [],
-      scene: { goto: which === 'after' },
-      apply: (fn, key) => edit((d) => {
-        const m = sceneAsMap(d, chapterId, which)
-        const next = fn(m)
-        return next === m ? d : withScene(d, chapterId, which, next)
-      }, key),
-      applyDoc: (fn, key) => edit(fn, key),
-    }
-  }, [doc, chapterId, which, edit, vs])
-  const commands = story.map.events![0].do
+  const source = useMemo<SceneSource>(() => ({
+    eventId: sceneEventId(chapterId, which),
+    read: (d) => sceneOf(d, chapterId, which),
+    // `withScene` takes the scene map's edited event back out; the made-up map is rebuilt around the new list.
+    write: (d, list) => withScene(d, chapterId, which, { ...sceneAsMap(d, chapterId, which), events: [{ id: sceneEventId(chapterId, which), when: { battle: 'start' }, do: list }] }),
+    goto: which === 'after',
+  }), [chapterId, which])
+  const music = sceneMusic(doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which])
   return (
     <Card title={SCENE_TITLE[which]} help={which === 'before' ? C.beforeHelp : C.afterHelp} className="scene-card">
       <div data-testid={`scene-${which}`}>
-        {(hasMusic(doc) || sceneMusic(doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which]) !== undefined) && (
+        {(hasMusic(doc) || music !== undefined) && (
           <Field label={SoundT.sceneMusic} help={SoundT.sceneMusicHelp}>
-            <AudioChoice kind="music" mode="scene" value={sceneMusic(doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which])}
+            <AudioChoice kind="music" mode="scene" value={music}
               aria-label={`${SCENE_TITLE[which]}: ${SoundT.sceneMusic}`} onChange={(v) => edit((d) => setSceneMusic(d, chapterId, which, v))} />
           </Field>
         )}
-        <StoryScope value={story}>
-          <CommandList eventId={eventId} path={[]} commands={commands} talk={false} selected={selected} onSelect={setSelected} name={SCENE_TITLE[which]} />
-        </StoryScope>
+        <SceneCommands source={source} name={SCENE_TITLE[which]} />
       </div>
       <p className="help">{C.speakersHelp}</p>
     </Card>

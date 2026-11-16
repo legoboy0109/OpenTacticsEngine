@@ -2,6 +2,7 @@
 // without opening anything. Squares are shown 1-based (like the map editor's status line); the file stores 0-based.
 import { chapterName } from './campaignTypes'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
+import { levelName, pairLabel } from './supports'
 import {
   asFilter, commandKind, conditionKind, filterKind, rectOf, ruleKind, triggerKind,
   type Command, type CompareOp, type Condition, type Filter, type ObjectiveRule, type Objectives, type StoryEvent, type Trigger,
@@ -45,6 +46,10 @@ const chapterLabel = ({ doc }: SumCtx, id: string): string => {
   return ch ? chapterName(ch) : id
 }
 
+/** "Eirik and Lyra": the two characters of a support pair, as people know them. */
+const pairText = ({ doc }: SumCtx, pair: unknown): string =>
+  (Array.isArray(pair) && typeof pair[0] === 'string' && typeof pair[1] === 'string' && pair[0] !== '' ? pairLabel(doc, { a: pair[0], b: pair[1] }) : 'two characters')
+
 const teamText = (c: SumCtx, id: string) => teamsOf(c.map).find((t) => t.id === id)?.label ?? id
 
 export function filterText(c: SumCtx, f: Filter | string | undefined): string {
@@ -74,6 +79,7 @@ export function triggerText(c: SumCtx, t: Trigger): string {
     case 'fight': return `A fight begins: ${filterText(c, t.fight)}${t.with ? ` against ${filterText(c, t.with)}` : ''}`
     case 'talk': return `${unitText(c, t.talk ?? '')} talks to ${unitText(c, t.to ?? '')}`
     case 'promoted': return `${cap(filterText(c, t.promoted))} is promoted`
+    case 'support': return `${cap(pairText(c, t.support))} reach ${t.level === undefined ? 'a support level' : `support level ${levelName(c.doc.supports?.rules, t.level - 1)}`}`
     default: return 'Something happens'
   }
 }
@@ -89,6 +95,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'dead': return `${filterText(c, k.dead)} is defeated`
     case 'round': return `the round ${opWords(k.round?.op)} ${k.round?.value ?? 0}`
     case 'carries': return `${filterText(c, k.unit)} carries ${itemLabel(c, k.carries!)}`
+    case 'support': return `${pairText(c, k.support)}’s support level ${opWords(k.op ?? '>=')} ${k.value ?? 0}`
     case 'sees': return `team ${teamText(c, k.team ?? '')} sees ${filterText(c, k.sees)}`
     case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
     default: return 'something is true'
@@ -128,6 +135,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'removeUnit': return `Removes ${filterText(c, cmd.removeUnit)}`
     case 'moveUnit': return `Moves ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`
+    case 'addSupport': return `${(cmd.by ?? 0) < 0 ? 'Takes' : 'Gives'} ${Math.abs(cmd.by ?? 0)} support ${Math.abs(cmd.by ?? 0) === 1 ? 'point' : 'points'} ${(cmd.by ?? 0) < 0 ? 'from' : 'to'} ${pairText(c, cmd.addSupport)}`
     case 'promote': return typeof cmd.to === 'string' && cmd.to ? `Promotes ${unitText(c, cmd.promote ?? '')} into ${aOrAn(typeName(c, cmd.to))}` : `Promotes ${unitText(c, cmd.promote ?? '')} (its only promotion)`
     case 'giveItem': return `Gives ${itemLabel(c, cmd.giveItem ?? '')} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`

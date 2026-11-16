@@ -7,6 +7,7 @@ import { allSideIds, definedStoryIds } from './campaignRoster'
 import { chapterName, type Campaign, type Chapter } from './campaignTypes'
 import { SCENE_TITLE, walkCampaign } from './campaignWalk'
 import { sceneCommands } from './campaignScene'
+import { addSupportChecks, supportConditionChecks } from './supportStoryChecks'
 import { audioRefProblem } from './audioChecks'
 import { isStoryId } from './storyIds'
 import { commandKind, type Command } from './storyTypes'
@@ -42,6 +43,10 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
       if (r.id === '') return { topic: 'unit', level: 'error', text: 'pick a unit.' }
       if (!isStoryId(r.id)) return { topic: 'unit', level: 'error', text: 'a unit’s story name may use only letters, digits, _ and - (up to 64).' }
       return definedStoryIds(doc).has(r.id) ? null : { topic: 'unit', level: 'hint', text: `no map has a unit with the story name “${r.id}” (give a unit that story name in the map editor).` }
+    case 'pair': return null
+    case 'character':
+      if (r.id === '') return { topic: 'unit', level: 'error', text: 'pick a character.' }
+      return known(doc.characters ?? undefined) ? null : { topic: 'unit', level: 'error', text: `“${r.id}” is not a character of this game.` }
     case 'music':
     case 'sound': {
       const text = audioRefProblem(doc, r.kind, r.id)
@@ -51,7 +56,7 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
   }
 }
 
-function commandChecks(c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, allowGoto: boolean): void {
+function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, allowGoto: boolean): void {
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say('error', 'general', where, 'the text to say is empty.')
@@ -77,6 +82,9 @@ function commandChecks(c: Command, where: string, say: (level: CampaignCheck['le
     case 'setSwitch':
     case 'playSound':
       break
+    case 'addSupport':
+      addSupportChecks(doc, c, where, (w, t) => say('error', 'unit', w, t))
+      break
     default:
       // Only reachable from a hand-edited file: the Campaign screen offers nothing else.
       say('error', 'general', where, 'a scene cannot use this command.')
@@ -100,7 +108,10 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
     if (seen.has(ch.id)) say('error', 'chapter', where, 'another chapter has the same internal name.', ch.id)
     seen.add(ch.id)
     for (const key of ['before', 'after'] as const) {
-      forEachCommand(sceneCommands(ch[key]), `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => commandChecks(cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'after'))
+      forEachCommand(sceneCommands(ch[key]), `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => {
+        commandChecks(doc, cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'after')
+        supportConditionChecks(doc, cmd.if, w, (ww, tx) => say('error', 'unit', ww, tx, ch.id))
+      })
     }
   })
 

@@ -7,6 +7,7 @@ import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
 import { FilterPicker, ItemPick, PickSelect, SidePick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
+import { PairPick } from './forms/SupportForms'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
 import { S } from './text'
@@ -20,13 +21,15 @@ interface Props {
 
 /** A campaign scene can only test these (the loader refuses the others there). */
 /** (a scene has no fog: `sees` is for map events only) */
-const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead']
+const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'support']
 
 const OPS = COMPARE_OPS.map((o) => ({ value: o, label: S.ops[o] }))
 
 export function ConditionList({ conditions, onChange, name }: Props) {
   const story = useStory()
-  const kinds = story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS
+  // "Support level" needs a pair to be about: it is offered once the game has one.
+  const hasPairs = (story.doc.supports?.pairs?.length ?? 0) > 0
+  const kinds = (story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS).filter((k) => k !== 'support' || hasPairs || conditions.some((c) => conditionKind(c) === 'support'))
   const patch = (i: number, p: Record<string, unknown>, key?: string) => onChange(listPatch(conditions, i, p), key && `${key}:${i}`)
   return (
     <div className="story-list conditions" data-testid={`conditions-${name}`}>
@@ -68,6 +71,15 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <PickSelect label={S.conditionCompare} value={c.round?.op ?? '>='} options={OPS} onChange={(v) => patch(i, { round: { op: v as CompareOp, value: c.round?.value ?? 1 } })} />
                 <Field label={S.conditionRound}>
                   <NumberInput value={c.round?.value ?? 1} min={0} onChange={(v) => { if (v !== undefined) patch(i, { round: { op: c.round?.op ?? '>=', value: v } }, 'round') }} />
+                </Field>
+              </>
+            )}
+            {kind === 'support' && (
+              <>
+                <PairPick value={c.support} onChange={(pair) => patch(i, { support: pair })} />
+                <PickSelect label={S.supportLevelCompare} value={c.op ?? '>='} options={OPS} onChange={(v) => patch(i, { op: v as CompareOp })} />
+                <Field label={S.supportLevelNumber} help={S.supportLevelNumberHelp}>
+                  <NumberInput value={c.value ?? 1} min={0} max={5} onChange={(v) => { if (v !== undefined) patch(i, { value: v }, 'value') }} />
                 </Field>
               </>
             )}

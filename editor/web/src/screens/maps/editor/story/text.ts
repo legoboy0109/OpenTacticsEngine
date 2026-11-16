@@ -48,6 +48,7 @@ export const S = {
     fight: 'A fight begins',
     talk: 'Two units talk',
     promoted: 'A unit is promoted',
+    support: 'A support level is reached',
   } as Record<TriggerKind, string>,
   turnNumber: 'Turn number',
   turnSide: 'On the turn of',
@@ -112,6 +113,7 @@ export const S = {
     carries: 'A unit carries an item',
     researched: 'A side has researched a technology',
     sees: 'A team sees a unit (fog of war)',
+    support: 'A support level compares to a number',
   } as Record<ConditionKind, string>,
   conditionN: (n: number) => `Condition ${n}`,
   conditionKind: 'Kind',
@@ -158,6 +160,7 @@ export const S = {
     moveUnit: 'Move a unit',
     changeSide: 'Change a unit’s side',
     promote: 'Promote a unit',
+    addSupport: 'Add support points',
     giveItem: 'Give an item',
     giveResource: 'Give resources',
     grantResearch: 'Give a technology',
@@ -230,6 +233,19 @@ export const S = {
   promoteOwn: 'Its only promotion',
   promoteHelp: 'Any unit type will do, even one its own type does not list. “Its only promotion” works for a unit whose type has exactly one. Nothing happens if the unit is gone or could not stand on its square as the new type.',
   promotedWho: 'Which unit',
+
+  // --- supports (E4) ---
+  supportPair: 'Which pair',
+  supportPairHelp: 'Pairs are made on the Supports screen.',
+  supportNoPairs: 'No pairs yet. Make one on the Supports screen.',
+  supportBy: 'Points to add',
+  supportByHelp: 'A negative number takes points away. Points stay between 0 and 1,000,000.',
+  supportLevelCompare: 'Their support level',
+  supportLevelNumber: 'Level',
+  supportLevelNumberHelp: '0 means no level yet.',
+  supportTriggerLevel: 'Which level',
+  supportAnyLevel: 'Any level',
+  supportTriggerHelp: 'Happens when the two reach that level during the battle.',
 
   // --- give ---
   grantTech: 'Technology',
