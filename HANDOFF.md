@@ -10,8 +10,11 @@ Pushed up to `82ed289` (2026-11-15 night): the rules core, AI1, U1–U5, E1–E4
 models, standing pictures moved onto their tiles in 3D (owner's report), and muted test browsers (owner's report:
 tests played sound; Playwright config and `tools/webtest/run.mjs`). docs/SRPG.md has an "as built" note per step.
 
-- **Strategy-RPG feature set** (PLAN k, docs/SRPG.md "Build order"). Left: D1 demo/template content (agent
-  running; renames ids pegasus/vulnerary; template pair up, demo carry) → T1 tutorial lesson and document sync.
+- **Strategy-RPG feature set** (PLAN k, docs/SRPG.md): every step is merged, T1 (lesson "Characters and skills",
+  started from the blank template; document pointers) last. Demo saves on the owner's machine are refused again
+  (D1 changed demo-srpg). D1: ids `sky_rider`, `salve`, `mending_salve`; e2e `game.create('strategy-rpg')` strips
+  the template's D1 content unless `{ srpgContent: true }`; helper checks use `tests/editor_api_plain_units.py`.
+  Not done: art for Captain, Lancer, Outrider, Marksman, Brute, Houndmaster, Hound (drawn as their source types).
   Owner decided (2026-11-15): the strategy-RPG template keeps the 30 starter skills in its list.
   Known nits: the
   empty Skills / Supports screens show the empty text twice; E2 did not replace E3's own "Only if" rows; characters'

@@ -141,7 +141,13 @@ goal (demos only exercise features).
       themselves; "Your first game" plus topic lessons; offered once,
       then behind a Learn button. Contract: docs/TUTORIAL.md. DONE (lesson texts
       to be reviewed by the owner).
-   k. Strategy-RPG feature set (owner, 2026-11-15: wants the features a
+   k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
+      player, editor screens, demo and template content, the lesson
+      "Characters and skills"; contract and per-step "as built" notes:
+      docs/SRPG.md). Open: wording and names are placeholders for the owner
+      to review; new unit kinds reuse existing pictures (the Hound needs
+      art); loose ends listed in HANDOFF.md.
+      (owner, 2026-11-15: wants the features a
       GBA-era strategy RPG fan project needs; reference point named by
       the owner: the fan game "Vision Quest"). After the tutorial.
       Wanted: unit skills and abilities (passive and activated), shove
