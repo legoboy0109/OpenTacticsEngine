@@ -34,13 +34,12 @@ export type HealKind = 'number' | 'percent' | 'full' | 'formula'
 const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)))
 const statIds = (doc: ProjectDoc): string[] => (doc.game?.stats ?? []).map((s) => s.id)
 
-/** A formula to start from: the staff's user (a), their second-best-known stat or "mag". Shown as the example too. */
-export const reachExample = (doc: ProjectDoc): string => `1 + a.${statIds(doc).find((s) => s === 'mag') ?? statIds(doc)[0] ?? 'mag'} / 3`
-export const healExample = (doc: ProjectDoc): string => `w.power + a.${statIds(doc).find((s) => s === 'mag') ?? statIds(doc)[0] ?? 'mag'} / 2`
-export const hitExample = (doc: ProjectDoc): string => {
-  const s = statIds(doc)
-  return `80 + a.${s.find((x) => x === 'skill') ?? s[0] ?? 'skill'} - b.${s.find((x) => x === 'res') ?? s[1] ?? s[0] ?? 'res'}`
-}
+/** The first of the game's stats that has one of these usual names (else the first stat, else the first name): examples read as the game's own. */
+const pickStat = (doc: ProjectDoc, names: string[]): string => names.find((n) => statIds(doc).includes(n)) ?? statIds(doc)[0] ?? names[0]
+/** Example formulas shown under the boxes, and what a mode starts with: a = the user, b = the unit hit, w = the staff. */
+export const reachExample = (doc: ProjectDoc): string => `1 + a.${pickStat(doc, ['mag', 'int', 'res', 'skl'])} / 3`
+export const healExample = (doc: ProjectDoc): string => `w.power + a.${pickStat(doc, ['mag', 'int', 'res', 'str'])} / 2`
+export const hitExample = (doc: ProjectDoc): string => `80 + a.${pickStat(doc, ['skill', 'skl', 'mag'])} - b.${pickStat(doc, ['res', 'def'])}`
 export const xpExample = 'a.level + 5'
 
 // --- the group ----------------------------------------------------------------------------------------------------------

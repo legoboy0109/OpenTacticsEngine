@@ -1464,6 +1464,23 @@ What the contract above left open, and how it was settled (the owner may change 
 - *Not built in stage 1*: foe-targeting effects (nothing but the heal exists), the `"cell"` target, picking among several items,
   staff sounds, the editor screens (a separate step). The wording of every player text is placeholder (`staff_text.h`).
 
+### Staves: the editor, as built
+
+The Items screen has the kind **Staff** (editor step; no engine or helper change). Cards: *How it is used* (group; who it can be used on: another unit on the user's side / only the user /
+anyone on the user's side including the user / any other unit the user's side can see; reach: up to N squares, from N to M squares, or a formula, with an example; area: one unit, everyone within N
+squares of the unit picked, everyone in reach), *What it does* (healing as a number, a percentage, all HP or a formula; "It can miss" off = no `hit` key, on = a chance box taking a percent or a formula;
+experience for the user, a number or a formula), *Numbers for formulas* (`props`), then the weapons' rank card and character-lock card, the abilities' "Only if" condition editor (`if`), and a "Worth a look"
+banner. How it was settled where the owner was silent (any can be changed):
+- *Weapons fixed*: a staff is wielded by group whether or not weapons are carried, so its lock card shows whenever the game has characters and a class can be given its group (Units: "Can wield groups").
+  The rank card follows the weapons' rule (shown once the game has a ladder). The ladder itself still needs carried weapons (existing check).
+- *Healing only*: the form edits the **first** effect, which must be a heal; further effects, and any key a hand-edited file carries (stage 2 and 3 included), are kept untouched. "An enemy" is offered
+  as a target only when the file already has it (healing refuses it).
+- *Only the user* has no reach and no area (the loader refuses both), so choosing it removes them in the same step.
+- *Kind switch*: a new staff gets a group (one an existing staff has, else "staff"), reach 2, a heal of 10 and 8 uses. Leaving the kind removes `group`, `rank`, `rankXp`, `wieldedBy`, `props`,
+  `range`, `target`, `area`, `effects`, `hit`, `xp` and `if`, and starting ranks in a group nothing has any more.
+- *Checks* mirror the loader (group, reach 1 to 20 and min not above max, radius 1 to 10, heal numbers, hit, xp needing experience on, a rank with no ladder, a lock with no characters, a heal on foes) and add
+  "nobody can use it yet: no class can wield its group". Code: `editor/web/src/model/staff.ts`, `staffChecks.ts`, `gear.ts`; screens `screens/items/staff/`. See docs/EDITOR_UI.md "Staves".
+
 ### Stages 2 and 3 (outline only, NOT BUILT)
 
 **Stage 2: moving units and utility.** Same item, action, wield test, forecast, uses, events and AI hooks; new effects and one new
