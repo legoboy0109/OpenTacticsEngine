@@ -3,6 +3,7 @@
 // on the square grid is |dx| + |dy|, on hexagons the number of steps (model/hex.ts); a unit sees `vision + terrain bonus + structure bonus` squares around it; every
 // structure the team owns sees one square around each square of its footprint; and a unit next to a square that hides
 // is always able to see that square. Nothing blocks sight (no line of sight yet). Pure.
+import { typeIdOf } from './characterUnits'
 import { bonusFor, visionOf } from './fog'
 import { terrainAt } from './mapGrid'
 import { footprint, placedOf, structureAt } from './mapStructures'
@@ -40,7 +41,7 @@ export function seenAtStart(doc: ProjectDoc, map: MapFile, sideId: string): Uint
 
   for (const u of map.units ?? []) {
     if (!mine.has(u.side) || !inMap(u.x, u.y)) continue
-    const type = typeById.get(u.type)
+    const type = typeById.get(typeIdOf(doc.characters, u))
     if (!type) continue
     const st = structureAt(map, ctx, u.x, u.y)
     // Each square's bonus may be limited to some unit types (by id or label), as in Battle::visionAt.

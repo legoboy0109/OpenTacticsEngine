@@ -5,6 +5,7 @@
 import { ids } from './doc'
 import { makeId } from './ids'
 import type { Usage } from './references'
+import { scrubMap, storyUsages } from './storyRefs'
 import type { Learn } from './srpgTypes'
 import type { Extra, MapFile, ProjectDoc } from './types'
 
@@ -35,6 +36,7 @@ export function characterUsageLines(doc: ProjectDoc, id: string): Usage[] {
     const n = (m.units ?? []).filter((u) => u.character === id).length
     if (n) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: it is placed on the map (the unit goes with it)` })
   }
+  out.push(...storyUsages(doc, [{ kind: 'unit', id }]))
   for (const p of doc.supports?.pairs ?? []) if (p.a === id || p.b === id) out.push({ section: 'supports', text: `Supports: the pair “${p.a}” and “${p.b}” (the pair goes with it)` })
   return out
 }
@@ -113,8 +115,11 @@ export function cleanAbility(doc: ProjectDoc, id: string): ProjectDoc {
 /** Takes the character's placed units off every map and its pairs out of the supports. */
 export function cleanCharacter(doc: ProjectDoc, id: string): ProjectDoc {
   const maps: ProjectDoc['maps'] = {}
-  for (const [mid, m] of Object.entries(doc.maps))
-    maps[mid] = m && m.units?.some((u) => u.character === id) ? { ...m, units: m.units.filter((u) => u.character !== id) } : m
+  // The units go, and with them what events and objectives said about the character's id (it is the unit's story name).
+  for (const [mid, m] of Object.entries(doc.maps)) {
+    const kept = m && m.units?.some((u) => u.character === id) ? { ...m, units: m.units.filter((u) => u.character !== id) } : m
+    maps[mid] = kept && scrubMap(doc, kept, [{ kind: 'unit', id }])
+  }
   const pairs = doc.supports?.pairs
   const keepPairs = pairs?.filter((p) => p.a !== id && p.b !== id)
   return { ...doc, maps, supports: doc.supports && pairs && keepPairs && keepPairs.length !== pairs.length ? { ...doc.supports, pairs: keepPairs } : doc.supports }

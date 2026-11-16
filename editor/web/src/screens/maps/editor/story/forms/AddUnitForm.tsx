@@ -38,7 +38,7 @@ export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   }
   return (
     <div className="stack tight" data-testid="add-unit-form">
-      <TypePick label={S.unitType} value={u.type} onChange={(v) => set({ type: v })} />
+      <TypePick label={S.unitType} value={u.type ?? ''} onChange={(v) => set({ type: v })} />
       <SidePick label={S.unitSide} value={u.side} onChange={(v) => set({ side: v })} />
       <AreaField label={S.unitSquare} mode="square" value={{ x: u.x, y: u.y, w: 1, h: 1 }} help={S.unitSquareHelp} onChange={(r) => set({ x: r.x, y: r.y })} />
       <Field label={S.unitName} help={S.unitNameHelp}>

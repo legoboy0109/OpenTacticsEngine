@@ -2,10 +2,11 @@
 // and a unit may not start on terrain its movement type cannot enter.
 import type { MapCtx } from './mapCtx'
 import { inBounds, terrainAt } from './mapGrid'
+import { typeIdOf } from './characterUnits'
 import { structureAt } from './mapStructures'
 import { canEnter } from './structuresEffective'
 import { patchObj } from './util'
-import type { ItemEntry, MapFile, MapUnit, Unit } from './types'
+import type { ItemEntry, MapFile, MapUnit } from './types'
 
 export interface UnitEdit {
   map: MapFile
@@ -37,15 +38,21 @@ function blockedReason(c: MapCtx, map: MapFile, type: string, x: number, y: numb
   return `${u?.name ?? 'This unit'} cannot stand on ${sd ? `a ${sd.name}` : t?.name ?? 'that terrain'}: its movement type cannot enter it.`
 }
 
-export function placeUnit(map: MapFile, c: MapCtx, spec: { type: string; side: string; x: number; y: number }): UnitEdit {
-  const { type, side, x, y } = spec
+/** `type` places a plain unit; `character` places that character instead (`{ character, side, x, y }`: the type comes
+ *  from the character, and a character can stand on a map once). */
+export function placeUnit(map: MapFile, c: MapCtx, spec: { type?: string; character?: string; side: string; x: number; y: number }): UnitEdit {
+  const { character, side, x, y } = spec
+  const person = character === undefined ? undefined : c.characters.find((p) => p.id === character)
+  const type = person ? person.type : spec.type ?? ''
   if (!inBounds(map, x, y)) return refuse(map, 'That square is outside the map.')
-  if (!typeOf(c, type)) return refuse(map, 'Pick a unit type first.')
+  if (character !== undefined && !person) return refuse(map, 'Pick a character that is not on this map yet.')
+  if (character === undefined && !typeOf(c, type)) return refuse(map, 'Pick a unit type first.')
   if (!map.sides?.some((s) => s.id === side)) return refuse(map, 'Pick a side first.')
+  if (character !== undefined && map.units?.some((u) => u.character === character)) return refuse(map, 'This character is already on the map.')
   if (unitAt(map, x, y)) return refuse(map, 'There is already a unit here.', { x, y })
   const why = blockedReason(c, map, type, x, y)
   if (why) return refuse(map, why)
-  const unit: MapUnit = { type, side, x, y }
+  const unit: MapUnit = character !== undefined ? { character, side, x, y } : { type, side, x, y }
   return { map: { ...map, units: [...(map.units ?? []), unit] }, error: null }
 }
 
@@ -55,7 +62,7 @@ export function moveMapUnit(map: MapFile, c: MapCtx, from: { x: number; y: numbe
   if (!inBounds(map, to.x, to.y)) return refuse(map, 'That square is outside the map.')
   if (unitAt(map, to.x, to.y)) return refuse(map, 'There is already a unit there.')
   const u = map.units![i]
-  const why = blockedReason(c, map, u.type, to.x, to.y)
+  const why = blockedReason(c, map, typeIdOf(c.characters, u), to.x, to.y)
   if (why) return refuse(map, why)
   const units = map.units!.slice()
   units[i] = { ...u, x: to.x, y: to.y }
@@ -89,19 +96,35 @@ export function changeUnitType(map: MapFile, c: MapCtx, x: number, y: number, ty
   const next = typeOf(c, type)
   if (i < 0 || !next) return { map, error: null }
   if (map.units![i].type === type) return { map, error: null }
+  if (map.units![i].character !== undefined && type === typeIdOf(c.characters, { character: map.units![i].character })) {
+    // Back to the character's own class: the map says nothing about it again.
+    const u = map.units![i]
+    const units = map.units!.slice()
+    units[i] = patchObj(u, { type: undefined, stats: minimiseStats(u.stats, startStats(c, u, type)) })
+    return { map: { ...map, units }, error: null }
+  }
   const why = blockedReason(c, map, type, x, y)
   if (why) return refuse(map, why)
   const u = map.units![i]
-  const stats = minimiseStats(u.stats, next)
+  const stats = minimiseStats(u.stats, startStats(c, u, type))
   const units = map.units!.slice()
   units[i] = patchObj(u, { type, stats })
   return { map: { ...map, units }, error: null }
 }
 
-function minimiseStats(stats: Record<string, number> | undefined, base: Unit): Record<string, number> | undefined {
+function minimiseStats(stats: Record<string, number> | undefined, base: Record<string, number>): Record<string, number> | undefined {
   if (!stats) return undefined
-  const kept = Object.entries(stats).filter(([k, v]) => v !== (base.stats?.[k] ?? 0))
+  const kept = Object.entries(stats).filter(([k, v]) => v !== (base[k] ?? 0))
   return kept.length ? Object.fromEntries(kept) : undefined
+}
+
+/** What a placed unit starts with when the map says nothing: its type's stats, and for a character plus the
+ *  character's own (never below 0), as the loader works them out. `type` = the type the unit will have. */
+export function startStats(c: MapCtx, u: Pick<MapUnit, 'character'>, type: string): Record<string, number> {
+  const base = { ...(typeOf(c, type)?.stats ?? {}) }
+  const person = u.character === undefined ? undefined : c.characters.find((p) => p.id === u.character)
+  for (const [k, v] of Object.entries(person?.stats ?? {})) base[k] = Math.max(0, (base[k] ?? 0) + v)
+  return base
 }
 
 /** Sets one stat override; a value equal to the unit type's own (or undefined) removes the key. */
@@ -109,10 +132,10 @@ export function setUnitStat(map: MapFile, c: MapCtx, x: number, y: number, stat:
   const i = unitIndexAt(map, x, y)
   if (i < 0) return map
   const u = map.units![i]
-  const base = typeOf(c, u.type)
+  const type = typeIdOf(c.characters, u)
   const next = { ...(u.stats ?? {}) }
   if (value === undefined) delete next[stat]; else next[stat] = value
-  const stats = base ? minimiseStats(next, base) : (Object.keys(next).length ? next : undefined)
+  const stats = typeOf(c, type) ? minimiseStats(next, startStats(c, u, type)) : (Object.keys(next).length ? next : undefined)
   const units = map.units!.slice()
   units[i] = patchObj(u, { stats })
   return { ...map, units }

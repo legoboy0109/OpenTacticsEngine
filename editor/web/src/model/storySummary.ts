@@ -121,7 +121,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'addUnit': {
       const u = cmd.addUnit
       if (!u) return 'Adds a unit'
-      const name = u.name?.trim() ? `${u.name}, ${aOrAn(typeName(c, u.type))}` : aOrAn(typeName(c, u.type))
+      const name = u.name?.trim() ? `${u.name}, ${aOrAn(typeName(c, u.type ?? ''))}` : aOrAn(typeName(c, u.type ?? ''))
       return `Adds ${name} (${sideName(c, u.side)}) at ${squareText(u.x, u.y)}`
     }
     case 'removeUnit': return `Removes ${filterText(c, cmd.removeUnit)}`

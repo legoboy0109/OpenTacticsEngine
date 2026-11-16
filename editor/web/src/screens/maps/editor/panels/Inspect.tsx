@@ -1,5 +1,6 @@
 // The Select tool's panel: what a square is, with the ground AND the structure on it, and what that does to movement and
 // combat numbers (the engine's combination rule, model/structuresEffective.ts).
+import { typeIdOf } from '../../../../model/characterUnits'
 import { ctxOf } from '../../../../model/mapCtx'
 import { heightAt } from '../../../../model/mapHeights'
 import { terrainAt, type Cell } from '../../../../model/mapGrid'
@@ -36,7 +37,7 @@ export function Inspect({ doc, map, mapId, cell, say }: { doc: ProjectDoc; map: 
         <div><dt>{T.heightOf}</dt><dd data-testid="square-height">{heightAt(map, cell.x, cell.y)}</dd></div>
         <div><dt>{T.structureOf}</dt><dd>{placed ? `${s?.name ?? placed.type}${sizeText}` : T.noStructure}</dd></div>
         {placed && <div><dt>{T.ownerOf}</dt><dd>{placed.side ? sideOf(map, placed.side)?.name ?? placed.side : T.noOwner}</dd></div>}
-        <div><dt>{T.unitOf}</dt><dd>{unit ? doc.units?.find((u) => u.id === unit.type)?.name ?? unit.type : T.noUnit}</dd></div>
+        <div><dt>{T.unitOf}</dt><dd>{unit ? (unit.character !== undefined ? doc.characters?.find((c) => c.id === unit.character)?.name : undefined) ?? doc.units?.find((u) => u.id === typeIdOf(doc.characters, unit))?.name ?? typeIdOf(doc.characters, unit) : T.noUnit}</dd></div>
       </dl>
       {costs.length > 0 && (
         <p className="help" data-testid="effective-costs">{T.moveCostsTitle}: {costs.map((c) => `${c.name} ${c.cost > 0 ? c.cost : T.cannotEnter}${s && c.from === 'structure' ? ` (${from(c.from)})` : ''}`).join(', ')}</p>

@@ -1,4 +1,5 @@
 // Story names ("ids") of units, events, switches and variables, and which names a map offers to events.
+import { storyIdOf, typeIdOf } from './characterUnits'
 import { makeId } from './ids'
 import { forEachCommand } from './storyWalk'
 import type { MapFile, MapUnit, ProjectDoc } from './types'
@@ -24,7 +25,12 @@ export function idProblem(text: string, taken: Iterable<string>): string | null 
 const typeName = (doc: ProjectDoc, type: string) => doc.units?.find((u) => u.id === type)?.name ?? type
 
 /** A unit's name as people see it: its own name, else its type's. */
-export const unitDisplayName = (doc: ProjectDoc, u: Pick<MapUnit, 'type' | 'name'>): string => (u.name?.trim() ? u.name : typeName(doc, u.type))
+export const unitDisplayName = (doc: ProjectDoc, u: Pick<MapUnit, 'type' | 'name' | 'character'>): string => {
+  if (u.name?.trim()) return u.name
+  // A character is known by its own name, whatever class the map gives it.
+  const person = u.character === undefined ? undefined : doc.characters?.find((c) => c.id === u.character)
+  return person?.name ?? typeName(doc, typeIdOf(doc.characters, u))
+}
 
 export interface NamedUnit { id: string; label: string; source: 'placed' | 'added' }
 
@@ -33,9 +39,10 @@ export function namedUnits(doc: ProjectDoc, map: MapFile): NamedUnit[] {
   const out: NamedUnit[] = []
   const seen = new Set<string>()
   const add = (u: MapUnit, source: NamedUnit['source']) => {
-    if (typeof u.id !== 'string' || u.id === '' || seen.has(u.id)) return
-    seen.add(u.id)
-    out.push({ id: u.id, label: `${unitDisplayName(doc, u)} (${u.id})`, source })
+    const id = storyIdOf(u)
+    if (id === undefined || seen.has(id)) return
+    seen.add(id)
+    out.push({ id, label: `${unitDisplayName(doc, u)} (${id})`, source })
   }
   for (const u of map.units ?? []) add(u, 'placed')
   for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { if (c.addUnit && typeof c.addUnit === 'object') add(c.addUnit, 'added') })
@@ -48,7 +55,7 @@ export const definedUnitIds = (doc: ProjectDoc, map: MapFile): string[] => named
 /** The names taken by units other than `except` (a placed unit or an added unit, compared by identity). */
 export const takenUnitIds = (map: MapFile, except?: MapUnit): string[] => {
   const out: string[] = []
-  for (const u of map.units ?? []) if (u !== except && u.id) out.push(u.id)
+  for (const u of map.units ?? []) { const id = u !== except ? storyIdOf(u) : undefined; if (id) out.push(id) }
   for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { const u = c.addUnit; if (u && u !== except && typeof u === 'object' && u.id) out.push(u.id) })
   return out
 }

@@ -29,7 +29,7 @@ export function StatusLine({ vs, map, terrain, structureTypes, unitTypes, notice
       if (st.side) parts.push(T.statusOwner(sideOf(map, st.side)?.name ?? st.side))
     }
     const u = unitAt(map, x, y)
-    if (u) parts.push(T.statusUnit(unitTypes.find((t) => t.id === u.type)?.name ?? u.type, sideOf(map, u.side)?.name ?? u.side, u.name))
+    if (u) parts.push(T.statusUnit(unitTypes.find((t) => t.id === u.type)?.name ?? u.type ?? '', sideOf(map, u.side)?.name ?? u.side, u.name))
     text = parts.join(' · ')
   }
   return (
