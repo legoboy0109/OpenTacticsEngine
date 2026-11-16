@@ -736,7 +736,7 @@
         },
         "cavalier": {
           "model": "models/detailed/cavalier.glb",
-          "height": 1.15,
+          "height": 1.532,
           "sideMaterial": ""
         },
         "archer": {
@@ -756,12 +756,12 @@
         },
         "soldier": {
           "model": "models/detailed/soldier.glb",
-          "height": 1.15,
+          "height": 1.515,
           "sideMaterial": ""
         },
         "pegasus": {
           "model": "models/detailed/pegasus.glb",
-          "height": 1.15,
+          "height": 1.474,
           "sideMaterial": ""
         }
       },
