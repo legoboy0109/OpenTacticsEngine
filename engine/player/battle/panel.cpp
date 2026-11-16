@@ -7,6 +7,7 @@
 #include "battle/carrier_marker.h"
 #include "battle/economy_text.h"
 #include "battle/item_text.h"
+#include "battle/rank_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -107,7 +108,8 @@ void drawCarried(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, in
   for (int i = 0; i < shown; ++i) {
     const ItemStack& s = u.items[(size_t)i];
     if (i == eq) r.fillRect(x, y + (lh - sq) / 2, sq, sq, Color(255, 220, 90));
-    row(r, x + sq + 3, y, w - sq - 3, b.itemOf(s).name, s.uses >= 0 ? intStr(s.uses) : "", kText, kLabel);  // the narrow panel: uses left only
+    const bool blocked = !weaponBlockReason(b, u, s).empty();  // a weapon its rank does not allow is greyed (docs/SRPG.md section 7)
+    row(r, x + sq + 3, y, w - sq - 3, b.itemOf(s).name, s.uses >= 0 ? intStr(s.uses) : "", blocked ? Color(110, 114, 140) : kText, kLabel);  // the narrow panel: uses left only
     y += rh;
   }
   if (shown < n && fit > 0) {

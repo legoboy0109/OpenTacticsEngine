@@ -5,17 +5,25 @@
 // view animates the events and the Continue save is written.
 #include "battle/battle_scene.h"
 #include "battle/item_text.h"
+#include "battle/rank_text.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
 namespace {
 
-PanelRow stackRow(const Battle& b, const ItemStack& s, bool equipped) {
+// `holder` (optional) is the unit that carries it: a weapon its rank does not allow is greyed with the reason.
+PanelRow stackRow(const Battle& b, const ItemStack& s, bool equipped, const Unit* holder = nullptr) {
   PanelRow row;
   row.label = b.itemOf(s).name;
   row.extra = usesText(b, s);
   row.detail = itemDetail(b, s);
   row.mark = equipped;
+  const std::string blocked = holder ? weaponBlockReason(b, *holder, s) : "";
+  if (!blocked.empty()) {  // docs/SRPG.md section 7: carried, traded and stored, but not wielded
+    row.dim = true;
+    row.detail = blocked;
+  }
   return row;
 }
 
@@ -23,7 +31,7 @@ PanelRow stackRow(const Battle& b, const ItemStack& s, bool equipped) {
 std::vector<PanelRow> inventoryRows(const Battle& b, const Unit& u, int padTo) {
   std::vector<PanelRow> rows;
   int eq = b.db->rules.items.carriedWeapons ? b.equippedSlot(u) : -1;
-  for (size_t i = 0; i < u.items.size(); ++i) rows.push_back(stackRow(b, u.items[i], (int)i == eq));
+  for (size_t i = 0; i < u.items.size(); ++i) rows.push_back(stackRow(b, u.items[i], (int)i == eq, &u));
   while ((int)rows.size() < padTo) {
     PanelRow free;
     free.label = "-";
@@ -65,7 +73,11 @@ void BattleScene::openItems(int slot) {
   menu_.close();
   const Unit& u = battle_.units[sel_];
   std::string title = u.name + " - Items " + intStr((int)u.items.size()) + "/" + intStr(session_.db.rules.items.inventorySize);
-  itemPanel_.open(title, "", inventoryRows(battle_, u, 0), "No items.", slot);
+  const std::vector<PanelRow> rows = inventoryRows(battle_, u, 0);
+  itemPanel_.open(title, "", rows, "No items.", slot);
+  std::string log;  // the screen tests read this; a weapon the rank does not allow carries its reason
+  for (const PanelRow& r : rows) log += (log.empty() ? "" : ", ") + r.label + (r.dim ? " [" + r.detail + "]" : "");
+  OTE_INFO("items: %s", log.c_str());
 }
 
 void BattleScene::openChoiceMenu() {
@@ -78,8 +90,10 @@ void BattleScene::openChoiceMenu() {
   std::vector<MenuItem> items;
   if (!targets.empty()) items.push_back({"Use", "", true, kUse});
   if (session_.db.rules.items.carriedWeapons && d.kind == ItemKind::Weapon &&
-      session_.db.canWield(u.type, d.weapon) && itemSlot_ != battle_.equippedSlot(u))
-    items.push_back({"Equip", "", true, kEquip});
+      session_.db.canWield(u.type, d.weapon) && itemSlot_ != battle_.equippedSlot(u)) {
+    const std::string why = weaponBlockReason(battle_, u, u.items[(size_t)itemSlot_]);  // "Needs rank B": greyed, not chosen
+    items.push_back({"Equip", why, why.empty(), kEquip});
+  }
   if (battle_.storageOpen(u)) items.push_back({"Store", "", true, kStore});
   items.push_back({"Discard", "", true, kDiscard});
   Renderer& r = host_.renderer();
@@ -87,6 +101,9 @@ void BattleScene::openChoiceMenu() {
   int x, y, w, h;
   itemPanel_.selectedBox(r, x, y, w, h);
   menu_.place(x + w - menu_.w(), y + h, layout_.vw, layout_.vh);  // under the row, so the row stays readable
+  std::string log;
+  for (const MenuItem& m : items) log += (log.empty() ? "" : ", ") + m.label + (m.enabled ? "" : " [" + m.extra + "]");
+  OTE_INFO("item menu: %s - %s", d.name.c_str(), log.c_str());
 }
 
 void BattleScene::openTrade() {

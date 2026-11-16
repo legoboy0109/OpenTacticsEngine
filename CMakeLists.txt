@@ -73,6 +73,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
        engine/player/battle/rescue_menu.cpp engine/player/battle/support_text.cpp)
   target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
   target_sources(ote_tests PRIVATE engine/player/battle/promotion_text.cpp)  # step U2: what a promotion gives, as text
+  target_sources(ote_tests PRIVATE engine/player/battle/rank_text.cpp)  # weapon ranks and stat caps in words (docs/SRPG.md section 7)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
