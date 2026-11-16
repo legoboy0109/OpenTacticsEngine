@@ -240,6 +240,24 @@ export interface Look extends Extra {
   joinEdge?: boolean
   /** Units and structures only: a different picture for particular sides (by map side id). */
   sides?: Record<string, Look>
+  /** Terrain in a style of a 3D kind only: what stands on its ground (model/stand.ts). */
+  stand?: Stand
+}
+/** A terrain's standing part: an upright picture (`sheet` with cell / variants / frames) or 3D models (`model`, or `variants`
+ *  as a list of files). docs/GRAPHICS.md "Standing terrain". */
+export interface Stand extends Extra {
+  sheet?: string
+  cell?: CellRef
+  variants?: CellRef[] | string[]
+  frames?: CellRef[]
+  frameMs?: number
+  /** Picture: how wide it is drawn, in tile-size pixels (empty = one square). */
+  width?: number
+  model?: string
+  /** Models: how tall it stands, in squares (empty = 1). */
+  height?: number
+  turn?: number
+  scatter?: boolean
 }
 /** A visual style's overrides; `null` = no picture in that style. */
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }

@@ -17,6 +17,7 @@ import { ArtCanvas } from './ArtCanvas'
 import { ModelEditor } from './ModelEditor'
 import { M } from './modelText'
 import { PickerDialog } from './PickerDialog'
+import { StandEditor } from './StandEditor'
 import { P } from './text'
 import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
 
@@ -39,6 +40,8 @@ export function PictureCard({ kind, id, name }: Props) {
   const key = `picture:${kind}:${id}`
   // A 3D isometric or full 3D style can show a thing as a 3D model instead of a picture (units and structures only).
   const can3d = kind !== 'terrain' && !!style && is3dKind(viewKind(styles.find((s) => s.id === style)))
+  // A terrain in a 3D style can have something standing on its ground (docs/GRAPHICS.md "Standing terrain").
+  const canStand = kind === 'terrain' && !!style && is3dKind(viewKind(styles.find((s) => s.id === style)))
   const [modelPicked, setModelPicked] = useState<string | null>(null) // "Shown as 3D model" chosen, no file yet
   const modelMode = can3d && (isModelEntry(entry) || modelPicked === `${id}:${style}`)
 
@@ -90,6 +93,7 @@ export function PictureCard({ kind, id, name }: Props) {
               </div>
             </div>
           )}
+        {canStand && <StandEditor slot={slot} entry={entry} id={id} name={name} choice={choice} />}
         {kind !== 'terrain' && hasImages && !modelMode && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
       </div>
       {open && (

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { emitSignal } from '../../learn/signals'
 import { useArtState } from '../../art/useArt'
+import { standPreview } from '../../art/preview'
 import { artBase } from '../../model/artFiles'
 import { findSheet, sheetsOf } from '../../model/graphics'
 import { emptyPick, lookFromPick, MAX_BLOCKS, MAX_PIECES, pickFromLook, SPEEDS, type Pick, type PickKind } from '../../model/graphicsLooks'
@@ -35,14 +36,17 @@ interface Props {
   look: LookChoice
   /** For a picture of one side of a unit: that side's id (the preview shows its colour). */
   side?: string
+  /** The picture of a terrain's standing part (3D styles): no joining pieces, and the preview shows the piece itself. */
+  standing?: boolean
   onChoose: (look: Look) => void
   onClose: () => void
 }
 
 const KINDS: Record<LookKind, PickKind[]> = { terrain: ['one', 'mix', 'animation', 'join'], units: ['one', 'animation'], structures: ['one', 'animation'] }
+const STAND_KINDS: PickKind[] = ['one', 'mix', 'animation']
 const same = (a: CellRef, b: CellRef) => a[0] === b[0] && a[1] === b[1]
 
-export function PickerDialog({ kind, thingId, what, current, apply, look, side, onChoose, onClose }: Props) {
+export function PickerDialog({ kind, thingId, what, current, apply, look, side, standing, onChoose, onClose }: Props) {
   const doc = useDoc()
   const store = useStore()
   useArtState() // re-render when an image finishes loading
@@ -118,7 +122,7 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           <fieldset className="fieldset" data-learn="picker-kind">
             <legend>{P.kind}</legend>
             <div className="kind-row" role="radiogroup" aria-label={P.kind}>
-              {KINDS[kind].map((k) => (
+              {(standing ? STAND_KINDS : KINDS[kind]).map((k) => (
                 <button key={k} type="button" role="radio" aria-checked={pick.kind === k} className="pick pick-inline" onClick={() => changeKind(k)}>
                   <span className="pick-name">{P.kindNames[k]}</span>
                 </button>
@@ -189,7 +193,9 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
           <section aria-label={P.preview}>
             <h3>{P.preview}</h3>
             <p className="help">{P.previewHelp}</p>
-            {kind === 'terrain'
+            {standing
+              ? <StandDraft id={thingId} look={look} doc={draftDoc} what={what} />
+              : kind === 'terrain'
               ? <TerrainDraft id={thingId} look={look} doc={draftDoc} what={what} />
               : kind === 'structures'
                 ? <StructureDraft id={thingId} look={look} doc={draftDoc} what={what} side={side} />
@@ -201,6 +207,12 @@ export function PickerDialog({ kind, thingId, what, current, apply, look, side, 
   )
 }
 
+function StandDraft({ id, look, doc, what }: { id: string; look: LookChoice; doc: ProjectDoc; what: string }) {
+  const store = useStore()
+  const { version } = useArtState()
+  const spec = useMemo(() => standPreview(doc, store.art, look.view, look.id, id), [doc, store, version, id, look])
+  return spec ? <ArtCanvas spec={spec} label={P.previewStand(what)} /> : <p className="help">{P.chosenNone}</p>
+}
 function TerrainDraft({ id, look, doc, what }: { id: string; look: LookChoice; doc: ProjectDoc; what: string }) {
   return <ArtCanvas spec={useTerrainSample(id, look, doc)} label={P.previewTerrain(what)} />
 }

@@ -2,6 +2,7 @@
 import { gridOfGame, isHex } from './gridSpec'
 import { joinBlockSide, lookCells } from './pickCell'
 import { lookUsesSheet, sheetsOf } from './graphics'
+import { standPictureLook } from './stand'
 import type { Look, LookKind, ProjectDoc } from './types'
 
 export interface ArtUser { kind: LookKind; id: string; name: string }
@@ -49,7 +50,8 @@ export function outsideUsers(doc: ProjectDoc, sheetId: string, cols: number, row
   const bad = (look: Look): boolean => {
     const join = !!look.join
     const own = look.sheet === sheetId && lookCells(look).some(([c, r]) => c + (join ? side : 1) > cols || r + (join ? side : 1) > rows)
-    return own || Object.values(look.sides ?? {}).some(bad)
+    const stand = standPictureLook(look.stand)  // a standing picture too
+    return own || Object.values(look.sides ?? {}).some(bad) || (!!stand && bad(stand))
   }
   for (const { kind, id, look } of allLooks(doc)) {
     const key = `${kind}:${id}`

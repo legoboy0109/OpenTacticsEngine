@@ -41,6 +41,9 @@ export function setLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined)
   return writeLook(doc, s, look, true)
 }
 
+/** Like setLook, but carries nothing over from the old entry (per-side pictures, a terrain's standing part): the look is stored as given. */
+export const setLookExact = (doc: ProjectDoc, s: Slot, look: Look | null | undefined): ProjectDoc => writeLook(doc, s, look, false)
+
 function writeLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined, carrySides: boolean): ProjectDoc {
   const base = s.style === undefined
   const value = base && look === null ? undefined : look
@@ -51,7 +54,9 @@ function writeLook(doc: ProjectDoc, s: Slot, look: Look | null | undefined, carr
     if (value === undefined) delete cur[s.id]
     else {
       const old = cur[s.id]
-      cur[s.id] = carrySides && value && s.kind !== 'terrain' && value.sides === undefined && old?.sides ? { ...value, sides: old.sides } : value
+      // Changing a picture keeps what hangs on it: a unit's per-side pictures, a terrain's standing part.
+      const carried = carrySides && value ? (s.kind !== 'terrain' ? (value.sides === undefined && old?.sides ? { sides: old.sides } : null) : (value.stand === undefined && old?.stand ? { stand: old.stand } : null)) : null
+      cur[s.id] = carried ? { ...value!, ...carried } : value
     }
     return writeMap(g, s, cur)
   })

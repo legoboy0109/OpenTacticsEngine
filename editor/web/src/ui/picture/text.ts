@@ -12,6 +12,7 @@ export const P = {
   none: 'No picture yet.',
   noImages: 'There are no images yet. Add one on the Art screen first.',
   goToArt: 'Go to Art',
+  previewStand: (n: string) => `The picture standing on ${n}, as it is in its image`,
   previewTerrain: (n: string) => `How ${n} looks on a map`,
   previewUnit: (n: string) => `${n} on its coloured base, for two sides`,
   previewStructure: (n: string) => `${n} on the ground, with an owner frame and without`,
