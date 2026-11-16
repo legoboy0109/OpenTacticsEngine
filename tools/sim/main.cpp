@@ -118,7 +118,7 @@ RunResult playOne(const Database& db, const MapDef& map, Formulas& formulas, uns
   for (size_t s = 0; s < battle.sides.size(); ++s) {
     int alive = 0;
     for (const Unit& u : battle.units)
-      if (u.alive && u.side == (int)s) ++alive;
+      if (battle.exists(u) && u.side == (int)s) ++alive;
     r.survivors.push_back(alive);
     if (r.won && battle.sides[s].team == battle.winnerTeam && !battle.sides[s].defeated) {
       if (!r.winners.empty()) r.winners += "+";

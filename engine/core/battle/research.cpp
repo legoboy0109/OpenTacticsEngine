@@ -113,7 +113,7 @@ void Battle::finishResearch(int side, int tech, std::vector<Event>& events) {
   }
   // A bonus may be negative: keep hit points within the new maximum, as an accessory does.
   for (Unit& u : units)
-    if (u.alive && u.side == side) clampHp(u);
+    if (exists(u) && u.side == side) clampHp(u);  // R1: a carried unit keeps a valid hp too
   Event e;
   e.type = EventType::ResearchFinished;
   e.a = side;
@@ -134,7 +134,7 @@ void Battle::setStartingResearch(int side, const std::vector<int>& techs) {
   for (int t : techs)
     if (t >= 0 && t < (int)db->research.size()) sides[(size_t)side].researched[(size_t)t] = 1;
   for (Unit& u : units)
-    if (u.alive && u.side == side) u.hp = maxHp(u);  // nothing has happened yet: everybody is at full strength
+    if (exists(u) && u.side == side) u.hp = maxHp(u);  // nothing has happened yet: everybody is at full strength
 }
 
 }  // namespace ote

@@ -44,7 +44,7 @@ bool Battle::objectiveHolds(const ObjectiveRule& r, bool win) const {
       bool any = false;
       for (const Unit& u : units) {
         if (!unitMatches(r.filter, u)) continue;
-        if (u.alive) return false;
+        if (exists(u)) return false;  // R1: a carried unit is not defeated
         any = true;
       }
       return any;
@@ -81,6 +81,7 @@ void Battle::checkObjectives(std::vector<Event>& events) {
 }
 
 void Battle::settle(std::vector<Event>& events) {
+  flushLostCarried(events);  // R1: story events of carried units that were lost with their carrier
   checkDefeat(events);
   checkObjectives(events);
 }

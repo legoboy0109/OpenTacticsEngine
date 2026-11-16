@@ -15,7 +15,7 @@ bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string&
   return readUnitSkills(rd, b, j, where, u) && readUnitAbilities(rd, b, j, where, u) && readUnitRescue(rd, b, j, where, u);
 }
 
-bool checkUnitsSrpg(Reader& rd, const Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }
+bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }
 
 void writeBattleSrpg(const Battle& b, Json& out) { writeBattleSupports(b, out); }
 bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b) { return readBattleSupports(rd, saved, b); }

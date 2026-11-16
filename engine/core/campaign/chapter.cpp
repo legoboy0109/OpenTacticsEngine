@@ -81,7 +81,7 @@ void takeUnits(const Database& db, Playthrough& pt, const Battle& b) {
         }
       continue;
     }
-    if (u.alive) {
+    if (b.exists(u)) {  // R1: a carried unit goes to the roster as living
       putUnit(pt.roster, rosterEntry(b, u));
     } else if (!db.campaign->fallenReturn) {
       RosterUnit r = rosterEntry(b, u);

@@ -116,3 +116,34 @@ void foldStrikeMods(const StrikeMods& mods, StrikeForecast& numbers) const;
 bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup) const;
 // One strike, steps 1 to 8 of the contract. `extra` = the strike a "strikeAgain" gave (it cannot give another).
 void doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events);
+
+// ---- rescue and pair up helpers (rescue.cpp, pair_up.cpp, step R1; append only) ----
+bool carryAllowed(const Unit& stays, const Unit& leaves) const;  // rules.rescue.canCarry(a = stays, b = leaves)
+// Why the order is not allowed (null = allowed), judged as if the unit stood on `from`. Rescue and PairUp share one.
+const char* rescueWhy(const Unit& u, Cell from, int target) const;
+const char* handWhy(const Unit& u, Cell from, int target, bool give) const;  // GiveUnit (give) / TakeUnit
+const char* dropWhy(const Unit& u, Cell from, Cell cell) const;
+const char* switchWhy(const Unit& u) const;
+void applyRescueAction(const Action& action, std::vector<Event>& events);   // Rescue / PairUp
+void applyDrop(const Action& action, std::vector<Event>& events);
+void applyHand(const Action& action, std::vector<Event>& events);           // GiveUnit / TakeUnit
+void applySwitchPair(const Action& action, std::vector<Event>& events);
+// `leaves` goes off the board behind `stays` (links, square, capture); `carried` stands on `cell` again with its
+// turn finished (links cleared). Callers push their events and call markSight() around them as event_visibility.cpp says.
+void linkCarried(int stays, int leaves);
+void unlinkCarried(int carried, Cell cell);
+// Puts a unit someone carries down on the free square nearest to `around`; false (nothing changed) if there is none.
+// Used when the carrier changes side (story) and for `moveUnit` on a carried unit.
+bool putDownCarried(int carried, Cell around, std::vector<Event>& events);
+// The unit a defeated side was carrying goes with it: killed where its carrier stood, no story event (checkDefeat
+// does those after its sweep). Safe to call for every carried unit of the side.
+void defeatCarried(int carried, std::vector<Event>& events);
+// `moveUnit` / `removeUnit` on a carried unit (story_commands.cpp).
+void storyMoveCarried(int carried, Cell to, std::vector<Event>& events);
+void storyRemoveCarried(int carried, std::vector<Event>& events);
+// changeSide on a carrier or a carried unit: puts the carried unit down first; false = no square, leave both as they are.
+bool storySeparate(int unit, std::vector<Event>& events);
+// A carried unit that was lost because there was no square for it (the carrier fell): its "defeated" story events
+// run later, from settle(), because killUnit may be inside a sweep. {unit, killer}.
+void flushLostCarried(std::vector<Event>& events);
+std::vector<std::pair<int, int>> lostCarried_;

@@ -1608,6 +1608,85 @@ Characters load, dress units and level up as section 1 says; games without `data
   it edits the same functions as A1 (`checkDefeat`, `objectives.cpp`), each change is one clearly marked line.
 - **Accept.** The Rescue / pair up tests; an audit note listing every `.alive` use it looked at and why it is right.
 
+#### R1 as built
+
+Carry and pair up are in, tested and inert for every game without `rules.rescue` (the compat pins, all sims and all
+player / editor suites are unchanged).
+
+**Where things are.** `data/loader_srpg_rules.cpp` (`loadRescueRules`, `readUnitPairBonus`); `battle/rescue.cpp`
+(queries, refusals, Rescue / Drop / Give / Take, the carrier falling, `rescueStat`); `battle/pair_up.cpp`
+(`SwitchPair`, `canSwitchPair`); `battle/save_rescue.cpp`. New private members were appended to
+`srpg_internal.h` (the `*Why` refusal functions, `linkCarried` / `unlinkCarried`, `putDownCarried`, `defeatCarried`,
+`storySeparate`, `storyMoveCarried`, `storyRemoveCarried`, `flushLostCarried`, `lostCarried_`); nothing was added to
+`srpg_api.h`, the public queries were already declared. `checkUnitsSrpg` / `checkUnitsRescue` now take a non-const
+`Battle&` because the check also derives `Unit::carriedBy` (the contract's header comment already said so).
+
+**Readings of the contract (keep to these).**
+- Refusal wording (the contract fixes none): `this game uses pair up, not carrying` / `this game uses carrying, not
+  pair up` for an action of the other mode (`Drop` is shared); then per action `that unit is not on the board`, `a
+  unit cannot rescue itself` / `... pair up with itself`, `only a unit of the same side can be rescued` / `... paired
+  with`, `that unit is not next to it`, `that unit already carries somebody` / `that unit is already in a pair`, `it
+  cannot carry that unit` (Rescue, TakeUnit) / `that unit cannot carry it` (GiveUnit) / `that unit cannot take it
+  behind` (PairUp), `that unit is not carrying anybody` / `that unit has nobody behind it`, `that square is not next
+  to the unit`, `the unit could not stand on that square`, `that square is occupied`, `the unit behind could not stand
+  on this square`. The unit checks of `validate` (`that unit cannot act now`, `already acted`, ...) come first, so a
+  game without rescue still answers `this game has no rescue or pair up`.
+- `canCarry` is evaluated with `a` = the unit that stays on the board and `b` = the one that leaves it; for `PairUp`
+  that is `a` = the partner in front, `b` = the unit that goes behind; for `GiveUnit` / `TakeUnit` `a` = the unit
+  that would receive, `b` = the carried unit (no square, so no `tb`; `dist` is 0). A formula that fails means no.
+- Stats: `carrierStats` first (percent, then the added number, never below 0), then the pair bonus is added; the
+  health stat is never touched by either (the loader also refuses `hp` in `pairBonus`, a case the contract's list did
+  not name). A unit type's `pairBonus` is always stored with one entry per stat, so `{}` is a real zero bonus that
+  replaces the game's; no key = the game's bonus.
+- Every action that ends a turn goes through `endOrder`. `PairUp` ends the turn of the unit that goes behind (the
+  contract's "ends `unit`'s turn"); the unit in front keeps its turn. Give / Take set `moved` on the acting unit and
+  nothing else; they can be repeated without limit (an AI must not loop on them: AI1).
+- A unit put down (`Drop`, forced) gets `done` and `moved`; `SwitchPair` also hands over `refreshed` with the three
+  flags the contract names, and is refused when the unit behind could not stand on the front unit's square
+  (`canSwitchPair` is false then, and also for a unit that has acted).
+- `Drop` onto a square an unseen enemy holds (fog): `UnitDropped` with `kBlocked`, the blocker's unit id in `d`, the
+  action is spent and nothing else changes. Without fog an occupied square is refused. A voluntary `Drop` (and the
+  story's `moveUnit` on a carried unit) fires the story's "reach" trigger for the unit that was put down; a forced
+  drop does not.
+- The carrier falls: `rescueUnitGone` reads the square it fell on from the `UnitDied` / `UnitRemoved` event just
+  pushed (`killUnit` has cleared the cell already), then `nearestFreeCell`. A unit with no square is killed through
+  `killUnit` (so `UnitDied`, the leader rule and its own summons follow) and its `drop` items go to the killer; its
+  story `defeated` events run from `settle()` (`flushLostCarried`), not inside `killUnit`, which may be in the
+  middle of a sweep.
+- A defeated side takes the units it carries along: `checkDefeat` kills them (`defeatCarried`, `UnitDied` on the
+  carrier's square, no `UnitDropped`) before it kills the carriers, and their `defeated` events run after the sweep
+  like everybody's.
+- Story: `changeSide` on a carrier or a carried unit puts the carried unit down on the nearest free square to the
+  carrier first (`UnitDropped`, `kForced`); no square = neither unit changes (logged). `removeUnit` on a carried unit
+  is `UnitRemoved` from the carrier's square (the carrier is unharmed). `giveItem`, `focus` and the talk menu keep
+  skipping a carried unit (they need a square).
+- `restoreBattleState` also refuses (in every game, not only with rescue) a unit that is not alive but has hit points
+  and nobody carries it. Existing saves never have one.
+
+**The `.alive` audit.** About 90 uses in `engine/core`, `tools` (the player's 17 are U0's / U4's). Changed to
+`Battle::exists` (a carried unit counts): `turn.cpp` `checkDefeat` (the `noUnits` rule); `objectives.cpp` kind
+`defeated`; `story.cpp` conditions `alive` / `dead` and `carries` (a carried unit keeps its items; the contract names
+only alive / dead and the filter commands, this one is the same question); `story_commands.cpp` `removeUnit`,
+`moveUnit`, `changeSide`; `campaign/chapter.cpp` `takeUnits` (a carried unit goes to the roster as living);
+`research.cpp` `finishResearch` / `setStartingResearch` (a carried unit's hit points must stay within a maximum that
+research changes, or the next save would be refused); `tools/sim/main.cpp` (survivor count). Left on `alive`, because
+a carried unit must not take part: `canAct`, movement / reach, `attackOptions`, `forecast`, `applyAttack` and
+`doStrike`, `killUnit` (a no-op for a carried unit, which is why the lost / defeated paths set `alive` for a moment),
+`awardXp`, sight (`computeTeamSight`, `unitVisibleTo`), items (use, give, trade, equip: nobody trades with a carried
+unit), supply, repair, fuel, capture (`canCaptureAt`, a capture is abandoned on rescue), `beginTurn` flags (all
+units are reset, no `alive` test), `endOrder`, the story's `sees` condition and the talk menu / `focus`, `giveItem`,
+the `EndTurn` talker, the saves (`alive` / `cell` / `hp` / capturer checks: a carried unit is saved as not alive with
+its hit points and no cell), the scene conditions `alive` / `dead` of the campaign (they read the roster, not units),
+and the whole computer opponent (`ai*.cpp`: a carried unit is not a target, a threat or an actor; AI1 adds rescue
+moves). Both build trees compile with no new warning.
+
+**Left for others.** AI1: `rescueTargets` / `dropCells` / `giveTargets` / `takeTargets` / `canSwitchPair` are the
+queries to build on (they judge as if the unit stood on `from`, ignore whose turn it is, and are fog-aware only in
+`dropCells`); the actions are `Action::rescue / drop / giveUnit / takeUnit / pairUp / switchPair`. U4: the events are
+as the contract says, with `UnitDropped::d` (blocker) and the order `UnitDied`, then `UnitDropped` for a fall;
+`Unit::carrying` / `carriedBy` tell the player which units to draw behind another; the player still treats a carried
+unit as dead (`!u.alive`), so it needs `exists` / `carriedBy` where it lists units. No game turns rescue on yet.
+
 ### S1. Supports (core and campaign) — depends on C1 and F2; parallel with K1, K2, P1, A1, R1
 - **Scope.** Section 6: `loader_supports.cpp`, `supports.cpp` (state, point sources at `srpgTurnEnd`, after combat
   and on heals, levels, the Support action, `supportCombatMods`, `storyText` base), story command / condition /

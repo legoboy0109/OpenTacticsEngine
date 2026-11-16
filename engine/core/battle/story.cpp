@@ -103,7 +103,7 @@ bool Battle::conditionHolds(const Condition& c) const {
       for (const Unit& u : units) {
         if (!unitMatches(c.filter, u)) continue;
         any = true;
-        alive = alive || u.alive;
+        alive = alive || exists(u);  // R1: a carried unit exists
       }
       // "dead" needs a unit that exists (or existed): a unit not added yet is neither.
       return c.kind == Condition::Kind::Alive ? alive : (any && !alive);
@@ -117,7 +117,7 @@ bool Battle::conditionHolds(const Condition& c) const {
       return false;
     case Condition::Kind::Carries:
       for (const Unit& u : units) {
-        if (!u.alive || !unitMatches(c.filter, u)) continue;
+        if (!exists(u) || !unitMatches(c.filter, u)) continue;  // R1: a carried unit keeps its items
         for (const ItemStack& s : u.items)
           if (s.item == c.index) return true;
       }

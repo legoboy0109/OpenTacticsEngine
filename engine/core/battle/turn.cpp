@@ -99,7 +99,7 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     if (!lost && rules.defeatNoUnits && side.everHadUnits) {
       bool any = false;
       for (const Unit& u : units)
-        if (u.alive && u.side == s) { any = true; break; }
+        if (exists(u) && u.side == s) { any = true; break; }  // R1: a unit being carried still counts
       if (!any) lost = true;
     }
     if (!lost && rules.defeatLostHq && side.hadHq && !ownsHq(s)) lost = true;
@@ -110,7 +110,13 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     e.type = EventType::SideDefeated;
     e.a = s;
     events.push_back(e);
-    // A defeated side leaves the field entirely.
+    // A defeated side leaves the field entirely. R1: what it was carrying goes with it (before its carriers, whose
+    // fall would otherwise put the carried unit back on the board).
+    for (size_t i = 0; i < units.size(); ++i)
+      if (units[i].carriedBy >= 0 && units[i].side == s) {
+        defeatCarried((int)i, events);
+        fallen.push_back((int)i);
+      }
     for (size_t i = 0; i < units.size(); ++i)
       if (units[i].alive && units[i].side == s) {
         killUnit((int)i, events);

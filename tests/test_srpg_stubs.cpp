@@ -62,16 +62,15 @@ TEST(srpg_stub_refuses_the_new_data_files) {
   refused(loadWith("data/supports.json", R"({ "pairs": [] })"), "data/supports.json");
 }
 
+// rules.rescue is real since step R1 (test_rescue_loader.cpp); promotion is still a stub.
 TEST(srpg_stub_refuses_the_new_rules_blocks) {
-  refused(loadWith("game.json", swapped(camptest::kGameJson, "\"counterAttacks\": true", "\"counterAttacks\": true, \"rescue\": {\"mode\":\"rescue\"}")),
-          "rules.rescue");
   refused(loadWith("game.json", swapped(camptest::kGameJson, "\"counterAttacks\": true", "\"counterAttacks\": true, \"promotion\": {\"keepLevel\":true}")),
           "rules.promotion");
 }
 
 TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
   const std::string hero = "\"id\":\"hero\",\"name\":\"Hero\"";
-  for (const char* key : {"skills", "learns", "abilities", "promotions", "pairBonus"})
+  for (const char* key : {"skills", "learns", "abilities", "promotions"})
     refused(loadWith("data/units.json", swapped(camptest::kUnits, hero, hero + ",\"" + key + "\":[]")), "unit \"hero\"",
             std::string("\"") + key + "\" " + kNotYet);
   refused(loadWith("data/weapons.json", swapped(camptest::kWeapons, "\"id\":\"sword\"", "\"id\":\"sword\",\"skills\":[]")),
