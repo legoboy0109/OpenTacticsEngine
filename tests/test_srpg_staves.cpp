@@ -299,6 +299,24 @@ TEST(staves_a_formula_heal_reads_the_users_stats_and_the_staffs_numbers) {
   CHECK_EQ(f.hits[0].amount, 7);
 }
 
+TEST(staves_with_fog_the_events_are_seen_by_the_teams_that_see_the_units) {
+  // The map has fog; the red raider is far from everybody, so only blue sees a heal among its units.
+  Clinic w("staves_fog", "clinic", [](Copy& c) { c.swap("maps/clinic.json", "\"name\": \"Clinic\",", "\"name\": \"Clinic\", \"fog\": true,"); });
+  CHECK(w.b().fogOn());
+  w.hurt("tarn", 5);
+  CHECK(w.use("wen", "mend_staff", "tarn"));
+  const uint32_t blue = 1u << w.b().teamOf(w.unit("wen")), red = 1u << w.b().teamOf(w.unit("g1"));
+  CHECK(!w.b().unitVisibleTo(w.b().teamOf(w.unit("g1")), w.unit("wen")));
+  for (const Event& e : w.events) {
+    if (e.type != EventType::StaffUsed && e.type != EventType::UnitHealed) continue;
+    CHECK((e.seen & blue) != 0);
+    CHECK((e.seen & red) == 0);
+  }
+  // Experience stays the user's team's own business.
+  const Event* xp = w.first(EventType::XpGained);
+  CHECK(xp && (xp->seen & red) == 0);
+}
+
 TEST(staves_a_game_without_staves_has_none_of_it) {
   savetest::Rig rig;
   CHECK(rig.loadDemo("demo-srpg", "bridge"));
