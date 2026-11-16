@@ -155,6 +155,9 @@ class BattleView {
   bool beginRescue(const Battle& b);       // battle_view_rescue.cpp     UnitRescued, UnitDropped, UnitHanded, PairSwitched (U4)
   bool progressRescue(const Battle& b);
   bool finishRescue(const Battle& b);
+  bool beginStaves(const Battle& b);       // battle_view_staves.cpp     StaffUsed, StaffMissed (docs/SRPG.md section 8)
+  bool progressStaves(const Battle& b);
+  bool finishStaves(const Battle& b);
   bool beginRanks(const Battle& b);        // battle_view_ranks.cpp      RankUp (docs/SRPG.md section 7)
   bool progressRanks(const Battle& b);
   bool finishRanks(const Battle& b);

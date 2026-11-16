@@ -226,7 +226,7 @@ std::string BattleScene::hint() const {
       return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
     }
     case Mode::ActionMenu:
-      return ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
+      return staffList_ ? "Up/Down + Z:choose  X:back" : ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
     case Mode::PickUnit:
     case Mode::PickCell:
@@ -279,6 +279,7 @@ void BattleScene::draw(Renderer& r) {
       const AttackOption& t = targets_[targetIdx_];
       drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
+    if (mode_ == Mode::PickUnit && staffFcOn_) drawStaffForecast(r, ctx, staffFc_, cursor_);
     if (mode_ == Mode::Items) drawItems(r);
     else if (mode_ == Mode::Research) researchPanel_.draw(r);
     else if (mode_ == Mode::Promotion) drawPromotion(r);

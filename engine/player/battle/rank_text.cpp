@@ -13,6 +13,10 @@ std::string groupLabel(const std::string& group) {
 
 std::string weaponBlockReason(const Battle& b, const Unit& u, const ItemStack& s) {
   const ItemDef& d = b.itemOf(s);
+  if (d.kind == ItemKind::Staff) {  // a staff the unit cannot wield (docs/SRPG.md section 8): the class's own refusal is said too
+    std::string why;
+    return b.canWieldStaff(u, s.item, &why) ? "" : why;
+  }
   if (d.kind != ItemKind::Weapon || !b.db->canWield(u.type, d.weapon)) return "";
   std::string why;  // the character lock ("Only Kell can wield this") or the rank ("Needs rank B")
   return b.canWieldNow(u, d.weapon, &why) ? "" : why;

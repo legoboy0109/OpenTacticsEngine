@@ -38,6 +38,8 @@ void BattleScene::anchorActionMenu() {
 void BattleScene::openActionMenu() {
   mode_ = Mode::ActionMenu;
   overlay_ = Overlay();
+  staffList_ = false;
+  staffFcOn_ = false;
   const Unit& u = battle_.units[sel_];
   std::vector<AttackOption> opts;
   battle_.attackOptions(sel_, u.cell, opts);
@@ -128,6 +130,10 @@ void BattleScene::menuInput(const InputEvent& e) {
   if (res == Menu::None) return;
   int id = menu_.chosenId();
   if (mode_ == Mode::ActionMenu) {
+    if (res == Menu::Cancelled && staffList_) {  // the Staff list: back to the action menu, nothing undone
+      openActionMenu();
+      return;
+    }
     if (res == Menu::Cancelled) {
       // An item action cannot be undone, and the walk back would undo it with the move.
       if (itemsUsed_) say("Cannot undo after using items");

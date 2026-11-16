@@ -268,7 +268,9 @@ void BattleView::begin(const Battle& b) {
     case EventType::PairSwitched:
     case EventType::SupportPoints:
     case EventType::SupportReached:
-    case EventType::RankUp: break;
+    case EventType::RankUp:
+    case EventType::StaffUsed:
+    case EventType::StaffMissed: break;
   }
 }
 
