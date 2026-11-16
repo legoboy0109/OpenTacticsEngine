@@ -150,8 +150,24 @@ goal (demos only exercise features).
       battle scenes stay low priority. Generic engine features only.
       Rebuilding that fan game's own story, maps and characters needs its
       authors' permission first (theirs, not ours); no Nintendo names,
-      characters, maps, art or music in any case. Design questions to
-      the owner when it starts.
+      characters, maps, art or music in any case.
+      Owner's answers (2026-11-15):
+      - Skills come from the class, the character (so characters become
+        their own thing: personal stats and growths on top of the class),
+        weapons and items, and are learned at levels. Makers build skills
+        from blocks (when / condition / effect); new games get a starter
+        set made of those blocks.
+      - Menu abilities (shove, swap, pull, summon...): the maker chooses
+        per ability whether it uses the action, limited uses, a wait.
+      - Summons: per ability the maker sets how many at once (default
+        one), vanish with the summoner (default yes), optional lifetime.
+      - Supports: closeness from ending turns side by side, fighting
+        together, and story events; conversations in battle, between
+        chapters, or both, chosen per game.
+      - Rescue: both classic carry and pair up; each game picks one.
+      - Promotion: by item, on reaching a level, by story event, with a
+        choice when a class has several promotions.
+      Contract: docs/SRPG.md (being written).
    Not yet ordered: speed-based turns (FFT), height rules.
    Editor wording decided: "style" (never "look"); terrain lists keep the
    flat colour chip.
