@@ -1,12 +1,12 @@
 // Kinds of view (docs/VIEWS.md) and heights: the model the Game screen, the picture cards and the map editor build on.
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildArtScene, type ImageSource } from '../../src/art/scene'
 import { updateStyle, updateStyleWith } from '../../src/model/game'
 import { effectiveLook } from '../../src/model/graphicsLooks'
 import { applyHeights, clampHeight, heightAt } from '../../src/model/mapHeights'
 import { repairMap, gridProblems } from '../../src/model/mapGrid'
 import { resizeMap } from '../../src/model/mapResize'
-import { inheritsGeneralArt, isoDefaults, ISO_RANGE, viewKind, withIsoSize, withView } from '../../src/model/styleView'
+import { allowedKinds, inheritsGeneralArt, isoDefaults, isoKeysFor, ISO_RANGE, viewKind, withIsoSize, withView } from '../../src/model/styleView'
 import type { Graphics, ProjectDoc, Style } from '../../src/model/types'
 import { beginStroke, type StrokeEnv, type ToolState } from '../../src/screens/maps/editor/tools'
 import { MapViewState } from '../../src/screens/maps/editor/viewState'
@@ -188,5 +188,55 @@ describe('a Heights drag', () => {
     beginStroke(f.env({ heightMode: 'lower' }), { x: 1, y: 1 }).end({ x: 1, y: 1 })
     expect(heightAt(f.hist().present.maps[f.id]!, 1, 1)).toBe(3)
     expect(f.hist().past).toHaveLength(2)
+  })
+})
+
+describe('kinds of view on a hexagon game (docs/HEX.md "Editor")', () => {
+  it('a square game may use every kind; a hexagon game only what the helper reports, top-down if it does not say', () => {
+    expect(allowedKinds(false, undefined)).toEqual(['top-down', 'isometric', 'isometric-3d', '3d'])
+    expect(allowedKinds(false, ['top-down'])).toHaveLength(4)
+    expect(allowedKinds(true, undefined)).toEqual(['top-down'])
+    expect(allowedKinds(true, ['top-down', 'isometric'])).toEqual(['top-down', 'isometric'])
+    // the list follows the build: the 3D kinds appear on their own once the engine draws them for hexagons
+    expect(allowedKinds(true, ['top-down', 'isometric', 'isometric-3d', '3d'])).toHaveLength(4)
+    expect(allowedKinds(true, ['3d', 'isometric'])).toEqual(['isometric', '3d']) // always in the screen's order
+  })
+  it('hexagons have no tileHeight: the squash is fixed; the height step defaults to a quarter of the width', () => {
+    expect(isoKeysFor(true)).toEqual(['tileWidth', 'heightStep', 'unitWidth'])
+    expect(isoKeysFor(false)).toEqual(['tileWidth', 'tileHeight', 'heightStep', 'unitWidth'])
+    expect(isoDefaults({ view: { tileSize: 24 } } as never, undefined, true)).toMatchObject({ tileWidth: 48, heightStep: 12, unitWidth: 24 })
+    expect(isoDefaults(null, { tileWidth: 64 }, true)).toMatchObject({ tileWidth: 64, heightStep: 16, unitWidth: 32 })
+    expect(isoDefaults(null, { tileWidth: 40 }, true).heightStep).toBe(10)
+    expect(isoDefaults(null, { tileWidth: 36 }, true).heightStep).toBe(9)
+  })
+  it('switching a hexagon game\'s style to Isometric writes only view', () => {
+    expect(withView({ id: 'iso', name: 'Isometric' }, 'isometric')).toEqual({ id: 'iso', name: 'Isometric', view: 'isometric' })
+  })
+})
+
+describe('the helper tells which kinds of view hexagon games may use (GET /api/info hexViews)', () => {
+  const answer = (body: unknown, ok = true) =>
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok, status: ok ? 200 : 500, json: async () => body, text: async () => JSON.stringify(body) })))
+  afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
+  const fresh = async () => { vi.resetModules(); return import('../../src/api/hexViews') }
+  const info = { engine: 'OpenTacticsEngine', apiVersion: 1, formatVersion: 1 }
+
+  it('uses the list the helper reports, and asks only once', async () => {
+    answer({ ...info, hexViews: ['top-down', 'isometric'] })
+    const m = await fresh()
+    expect(await m.loadHexViews()).toEqual(['top-down', 'isometric'])
+    expect(await m.loadHexViews()).toEqual(['top-down', 'isometric'])
+    expect((globalThis.fetch as unknown as { mock: { calls: unknown[] } }).mock.calls).toHaveLength(1)
+  })
+  it('an older helper that does not know the field means top-down only', async () => {
+    answer(info)
+    expect(await (await fresh()).loadHexViews()).toEqual(['top-down'])
+  })
+  it('a failed request means top-down only and is asked again next time', async () => {
+    answer({ error: 'down' }, false)
+    const m = await fresh()
+    expect(await m.loadHexViews()).toEqual(['top-down'])
+    answer({ ...info, hexViews: ['top-down', 'isometric'] })
+    expect(await m.loadHexViews()).toEqual(['top-down', 'isometric'])
   })
 })

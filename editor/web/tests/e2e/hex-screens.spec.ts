@@ -15,7 +15,7 @@ const GRID_TEXT: Record<Layout, string> = { pointy: 'Hexagons, pointy-top', flat
 const BOX: Record<Layout, [number, number]> = { pointy: [24, 28], flat: [28, 24] }
 
 for (const layout of LAYOUTS) {
-  test(`@smoke ${layout}: the Game screen shows the grid (read only) and a style can only be top-down`, async ({ page }) => {
+  test(`@smoke ${layout}: the Game screen shows the grid (read only) and a style can be top-down or isometric`, async ({ page }) => {
     const id = hexGame(layout)
     await page.goto(editorUrl(id, 'game'))
     await expect(page.getByTestId('game-grid')).toHaveText(GRID_TEXT[layout])
@@ -30,16 +30,29 @@ for (const layout of LAYOUTS) {
     const kind = page.getByLabel('Night: Kind of view')
     await expect(kind).toHaveValue('top-down')
     await expect(page.getByTestId('view-hex-help')).toBeVisible()
-    for (const name of ['Isometric', '3D isometric', 'Full 3D']) {
-      const option = kind.locator('option', { hasText: new RegExp(`^${name} \\(`) })
-      await expect(option).toHaveText(`${name} (not for hexagon games yet)`)
-      await expect(option).toBeDisabled()
-    }
-    await expect(kind.locator('option', { hasText: /^Top-down$/ })).toBeEnabled()
-    // a try to choose one anyway changes nothing on disk
+    // only the kinds the engine draws for hexagons are offered (the helper says which): the 3D ones are not in the list
+    await expect(kind.locator('option')).toHaveText(['Top-down', 'Isometric'])
+    await expect(kind.locator('option', { hasText: /^Isometric$/ })).toBeEnabled()
+
+    // Isometric: its settings have no square height (the angle of a hexagon is fixed)
+    await kind.selectOption({ label: 'Isometric' })
+    await saved(page)
+    expect(readDisk(id, 'game.json').styles[0].view).toBe('isometric')
+    await page.locator('.subcard').getByText('Advanced').click()
+    await expect(page.getByLabel('Night: Tile width')).toBeVisible()
+    await expect(page.getByLabel('Night: Height step')).toHaveAttribute('placeholder', '12')
+    await expect(page.getByLabel('Night: Unit width')).toBeVisible()
+    await expect(page.getByLabel('Night: Square height')).toHaveCount(0)
+    await expect(page.getByLabel('Night: Square width')).toHaveCount(0)
+    await page.getByLabel('Night: Tile width').fill('64')
+    await saved(page)
+    expect(readDisk(id, 'game.json').styles[0].isometric).toEqual({ tileWidth: 64 })
+
+    // and back: the kind and its sizes leave the file
     await kind.selectOption({ label: 'Top-down' })
     await saved(page)
     expect(readDisk(id, 'game.json').styles[0].view).toBeUndefined()
+    expect(readDisk(id, 'game.json').styles[0].isometric).toBeUndefined()
     expect(readDisk(id, 'game.json').grid).toEqual({ type: 'hex', layout })
   })
 
