@@ -46,6 +46,11 @@ Cell Battle::nearestFreeCell(Cell target, int moveType) const {
 
 void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   Unit u = makeUnit(def);
+  if (u.character >= 0 && unitByStoryId(u.storyId) >= 0) {
+    // A character is one person: adding one that is already in the battle (alive or not) adds nothing.
+    OTE_INFO("story: addUnit: character '%s' is already in the battle; not added", u.storyId.c_str());
+    return;
+  }
   if (!u.storyId.empty() && unitByStoryId(u.storyId) >= 0) {
     // Ids stay unique: a repeating event adds a second one without the id.
     OTE_WARN("story: addUnit: a unit with id '%s' already exists; the new one gets no id", u.storyId.c_str());
