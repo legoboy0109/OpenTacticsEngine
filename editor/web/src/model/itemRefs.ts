@@ -1,7 +1,9 @@
 // What other parts of a game hold about items, and the clean-up when an item (or a stat, resource or weapon an item
 // points at) is deleted. Pure functions returning new documents, so a delete and its clean-up are one undo step.
+import { allGear } from './gear'
 import { entryId, withoutItem } from './itemGrants'
 import { cleanItemPromotions, itemPromotionUsageLines } from './promotionRefs'
+import { groupRankUsageLines } from './rankRefs'
 import { scrubMap, storyUsages } from './storyRefs'
 import { dropKey } from './util'
 import type { Usage } from './references'
@@ -23,6 +25,9 @@ export function itemUsageLines(doc: ProjectDoc, id: string): Usage[] {
     for (const s of m.sides ?? []) if (holds(s.storage, id)) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: side “${s.name || s.id}” starts with it in storage` })
   }
   out.push(...itemPromotionUsageLines(doc, id))
+  // The last staff of a group takes the starting ranks in that group with it (docs/SRPG.md section 8).
+  const group = doc.items?.find((i) => i.id === id && i.kind === 'staff')?.group
+  if (group && !allGear(doc).some((g) => !(g.owner === 'item' && g.id === id) && g.keys.group === group)) out.push(...groupRankUsageLines(doc, group))
   // Events and objectives that give it, check for it or add units carrying it.
   out.push(...storyUsages(doc, [{ kind: 'item', id }]))
   return out

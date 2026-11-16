@@ -10,6 +10,7 @@ import { reachOf, setAreaMode, setHealKind, setHealNumber, setHit, setRadius, se
 import { staffChecks } from '../../src/model/staffChecks'
 import { itemChecks } from '../../src/model/itemChecks'
 import { deleteCharacter } from '../../src/model/srpgRefs'
+import { itemUsageLines } from '../../src/model/itemRefs'
 import { switchOffFeature } from '../../src/model/srpgFeatures'
 import { initHistory, pushEdit, undo } from '../../src/store/history'
 import type { ProjectDoc } from '../../src/model/types'
@@ -119,6 +120,12 @@ describe('the kind', () => {
     for (const id of d.items!.filter((i) => i.kind === 'staff').map((i) => i.id)) d = deleteItem(d, id)
     expect(d.units!.find((u) => u.id === 'cleric')!).not.toHaveProperty('ranks')
     expect(d.characters!.find((c) => c.id === 'wen')!).not.toHaveProperty('ranks')
+  })
+  it('the delete question of the last staff of a group names the starting ranks that go', () => {
+    const d = fx()
+    expect(itemUsageLines(d, 'mend_staff').some((u) => u.text.includes('starting rank in “staff”'))).toBe(false)
+    const last = { ...d, items: d.items!.filter((i) => i.kind !== 'staff' || i.id === 'mend_staff') }
+    expect(itemUsageLines(last, 'mend_staff').some((u) => u.text.includes('starting rank in “staff”'))).toBe(true)
   })
   it('renaming the group of the only staves follows into classes and ranks when it is the only one; else leaves them', () => {
     let d = fx()
