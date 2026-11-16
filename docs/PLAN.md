@@ -141,6 +141,17 @@ goal (demos only exercise features).
       themselves; "Your first game" plus topic lessons; offered once,
       then behind a Learn button. Contract: docs/TUTORIAL.md. DONE (lesson texts
       to be reviewed by the owner).
+   l. More strategy-RPG rules (owner, 2026-11-16; found while converting a private fan-game port, which stays
+      outside this repository). Order: 1 weapon ranks and stat caps (rules + player, then editor screens);
+      2 the defender's weapon visible to combat formulas; 3 character-locked weapons; 4 staves and status conditions.
+      Owner's answers:
+      - Ranks: the maker defines the ladder (E, D, C, B, A, S by default); growth with use is the maker's choice
+        per game; a rank too low = the weapon cannot be equipped.
+      - Stat caps: game default per stat, overridden by the class, adjusted by the character; no cap = uncapped.
+      - Staves: ranged and area healing; moving units (send an ally away, pull one close); status conditions
+        (with staves that cure them); utility (open doors/chests from afar, repair uses, temporary stat boost,
+        light in fog). Conditions are built by the maker from blocks like skills, with a starter set. Whether a
+        staff can miss is the maker's choice per staff (healing defaults to certain, hostile to a hit chance).
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
