@@ -56,6 +56,18 @@
       "cellHeight": 22
     },
     {
+      "id": "stand",
+      "file": "art/stand.png",
+      "cellWidth": 24,
+      "cellHeight": 32
+    },
+    {
+      "id": "ground3d",
+      "file": "art/ground3d.png",
+      "cellWidth": 24,
+      "cellHeight": 24
+    },
+    {
       "id": "iso_city",
       "file": "art/iso_city.png",
       "cellWidth": 48,
@@ -395,18 +407,48 @@
           "joinEdge": true
         },
         "forest": {
-          "sheet": "tiles",
+          "sheet": "ground3d",
           "cell": [
-            3,
+            0,
             0
-          ]
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ]
+          }
         },
         "mountain": {
-          "sheet": "tiles",
+          "sheet": "ground3d",
           "cell": [
-            4,
+            1,
             0
-          ]
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ]
+          }
         },
         "sea": {
           "sheet": "tiles",
@@ -578,18 +620,48 @@
           "joinEdge": true
         },
         "forest": {
-          "sheet": "tiles",
+          "sheet": "ground3d",
           "cell": [
-            3,
+            0,
             0
-          ]
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ]
+          }
         },
         "mountain": {
-          "sheet": "tiles",
+          "sheet": "ground3d",
           "cell": [
-            4,
+            1,
             0
-          ]
+          ],
+          "stand": {
+            "sheet": "stand",
+            "variants": [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ]
+            ]
+          }
         },
         "sea": {
           "sheet": "tiles",
