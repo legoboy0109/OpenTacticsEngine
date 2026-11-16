@@ -69,6 +69,19 @@ struct ModelLook {
   bool any() const { return !file.empty(); }
 };
 
+// The standing part of a terrain in a 3D style (docs/GRAPHICS.md "Standing terrain"): trees, a peak, a wall
+// standing on the cell's ground. Either an upright picture that faces the camera or 3D models; the ground
+// picture (the terrain's own Look) stays underneath. The core only describes it; the 3D map draws it.
+struct StandLook {
+  Look picture;                  // an upright picture (cell, variants or frames); kind None = not a picture
+  float width = 0;               // picture: how wide, in the game's tile pixels (tileSize = one square); 0 = one square
+  std::vector<ModelLook> models; // models: one per variant (all share height and turn); empty = not a model
+  bool scatter = false;          // a small deterministic shift of every cell's standing part (and, for models, a turn)
+
+  bool isModel() const { return !models.empty(); }
+  bool any() const { return picture.any() || isModel(); }
+};
+
 struct UnitLook {
   Look base;
   ModelLook model;  // when set, `base` and `sides` are empty
@@ -85,6 +98,7 @@ struct UnitLook {
 // One complete set of looks.
 struct GraphicsSet {
   std::vector<Look> terrain;        // per terrain index
+  std::vector<StandLook> stands;    // per terrain index: what stands on the ground (3D styles only; else none)
   std::vector<UnitLook> units;      // per unit type index
   std::vector<UnitLook> structures; // per structure type index (same shape as a unit's look)
   // Portraits of the dialogue box (docs/EVENTS.md): id -> one cell (Look::Still). The id is the
@@ -174,6 +188,16 @@ inline int joinBlockSide(const Grid& grid) { return grid.isHex() ? 8 : 4; }
 // blockSide 8: piece n (0..63) at column n % 8, row n / 8.
 // Must not be called for Look::None.
 SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs, int blockSide = 4);
+
+// The standing part of terrain on map square (x, y), chosen exactly like terrain variants (a stable pick from the
+// position, so a forest is not a row of identical trees and nothing flickers).
+//   pictures: the sheet cell (variants by position, frames by time);
+//   models:   the index into look.models.
+SpriteCell pickStandCell(const StandLook& look, int x, int y, uint32_t timeMs);
+int pickStandModel(const StandLook& look, int x, int y);
+// The deterministic scatter of square (x, y): a shift on the ground in squares (-0.18 .. 0.18 each way) and a
+// turn in degrees (0 .. 360). Only meaningful for a look with `scatter`.
+void standScatter(int x, int y, float& dx, float& dz, float& turnDeg);
 
 // Reads the pixel size from a PNG file's header. False (with a reason in
 // err, no file name) if the file is missing or is not a PNG.

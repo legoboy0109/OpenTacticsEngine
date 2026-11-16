@@ -154,6 +154,84 @@ bool readModelLook(const LoadCtx& c, const Database& db, const Json& j, const st
   return true;
 }
 
+// A terrain's "stand": what stands on its ground in a 3D style, a picture or models (docs/GRAPHICS.md
+// "Standing terrain"). Strict: every key is known, the picture keys and the model keys do not mix.
+bool readStand(const LoadCtx& c, const Database& db, const Json& j, const std::string& terrainWhere, bool view3d,
+               StandLook& out) {
+  out = StandLook();
+  const std::string where = terrainWhere + " stand";
+  if (j.isNull()) return true;
+  if (!view3d)
+    return c.fail(where, "a \"stand\" can only be used in a style whose kind of view is 3D "
+                         "(\"isometric-3d\" or \"3d\"); other styles draw a terrain as its picture only");
+  if (!j.isObject()) return c.fail(where, "must be an object (or null for nothing standing on the ground)");
+  static const char* const kPicture[] = {"sheet", "cell", "frames", "variants", "frameMs", "width"};
+  static const char* const kModel[] = {"model", "variants", "height", "turn"};
+  auto in = [](const char* const* list, size_t n, const std::string& key) {
+    for (size_t i = 0; i < n; ++i)
+      if (key == list[i]) return true;
+    return false;
+  };
+  // Which kind: a "model", else a "sheet", else "variants" that name files (a list of models).
+  const bool modelVariants = j.has("variants") && j["variants"].isArray() && j["variants"].size() > 0 && j["variants"][0].isString();
+  const bool model = j.has("model") || (!j.has("sheet") && modelVariants);
+  if (!model && !j.has("sheet")) return c.fail(where, "needs a \"sheet\" (an upright picture) or a \"model\" (a 3D model)");
+  for (const Json::Member& m : j.members()) {
+    if (m.first == "scatter") continue;
+    const bool mine = model ? in(kModel, 4, m.first) : in(kPicture, 6, m.first);
+    if (mine) continue;
+    const bool other = model ? in(kPicture, 6, m.first) : in(kModel, 4, m.first);
+    if (other)
+      return c.fail(where, std::string(model ? "has a \"model\", so it cannot also have " : "is a picture, so it cannot have ") + q(m.first));
+    return c.fail(where, "has an unknown key " + q(m.first));
+  }
+  if (!c.boolean(j, "scatter", where, out.scatter)) return false;
+
+  if (!model) {
+    int kinds = (j.has("cell") ? 1 : 0) + (j.has("variants") ? 1 : 0) + (j.has("frames") ? 1 : 0);
+    if (kinds != 1) return c.fail(where, "needs exactly one of \"cell\", \"variants\" or \"frames\"");
+    if (!readLook(c, db, j, where, true, -1, out.picture)) return false;
+    int width = 0;
+    if (!c.integer(j, "width", where, width)) return false;
+    if (j.has("width") && (width < 1 || width > 512)) return c.fail(where, "\"width\" must be between 1 and 512 (pixels; the tile size is one square)");
+    out.width = (float)width;
+    return true;
+  }
+
+  if (j.has("model") && j.has("variants"))
+    return c.fail(where, "needs exactly one of \"model\" (one file) or \"variants\" (a list of model files)");
+  std::vector<std::string> files;
+  if (j.has("model")) {
+    std::string f;
+    if (!c.str(j, "model", where, f, true)) return false;
+    files.push_back(f);
+  } else {
+    const Json* list;
+    if (!c.array(j, "variants", where, list)) return false;
+    if (list->size() < 1 || list->size() > 64) return c.fail(where, "\"variants\" must list between 1 and 64 model files");
+    for (size_t i = 0; i < list->size(); ++i) {
+      if (!(*list)[i].isString()) return c.fail(where, "\"variants\" must list model files (text)");
+      files.push_back((*list)[i].asString());
+    }
+  }
+  double height = 1.0, turn = 0;
+  if (!c.num(j, "height", where, height) || !c.num(j, "turn", where, turn)) return false;
+  if (j.has("height") && (height < 0.1 || height > 16)) return c.fail(where, "\"height\" must be between 0.1 and 16 (squares)");
+  if (turn < -360 || turn > 360) return c.fail(where, "\"turn\" must be between -360 and 360 (degrees)");
+  for (const std::string& f : files) {
+    if (!goodModelPath(f))
+      return c.fail(where, "a model must be a .glb or .gltf file inside the game folder (for example \"models/tree.glb\"), not " + q(f));
+    if (!fileExists(db.rootPath + "/" + f)) return c.fail(where, "model file " + q(f) + " does not exist");
+    ModelLook ml;
+    ml.file = f;
+    ml.height = (float)height;
+    ml.turn = (float)turn;
+    ml.sideMaterial.clear();  // terrain belongs to nobody: no side colour
+    out.models.push_back(ml);
+  }
+  return true;
+}
+
 // The "units" or "structures" map of the file root or of one style: id -> look
 // (+ optional per-side looks). `find` maps an id to an index into `out`, or -1.
 template <class Find>
@@ -222,11 +300,13 @@ bool readSet(const LoadCtx& c, const Database& db, const Json& o, const std::str
     int t = db.findTerrain(e.first);
     std::string where = prefix + (prefix.empty() ? "" : ": ") + "terrain " + q(e.first);
     if (t < 0) return c.fail(where, "there is no terrain with this id");
+    set.stands[(size_t)t] = StandLook();
     if (e.second.isNull()) {
       set.terrain[(size_t)t] = Look();
       continue;
     }
     if (!readLook(c, db, e.second, where, true, t, set.terrain[(size_t)t])) return false;
+    if (e.second.has("stand") && !readStand(c, db, e.second["stand"], where, view3d, set.stands[(size_t)t])) return false;
   }
   if (!readThingLooks(c, db, o, prefix, "units", "unit", [&](const std::string& id) { return db.findUnitType(id); },
                       view3d, set.units))
@@ -294,6 +374,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
 
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());
+  base.stands.assign(db.terrains.size(), StandLook());
   base.units.assign(db.unitTypes.size(), UnitLook());
   base.structures.assign(db.structures.size(), UnitLook());
   if (!readSet(c, db, root, "", false, base)) return false;
@@ -303,6 +384,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   // for one kind of view are wrong in another (docs/VIEWS.md).
   GraphicsSet none = base;
   none.terrain.assign(db.terrains.size(), Look());
+  none.stands.assign(db.terrains.size(), StandLook());
   none.units.assign(db.unitTypes.size(), UnitLook());
   none.structures.assign(db.structures.size(), UnitLook());
   std::vector<GraphicsSet> sets;
@@ -321,6 +403,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   for (const GraphicsSet& set : sets) {
     for (const UnitLook& u : set.units) models |= u.model.any();
     for (const UnitLook& u : set.structures) models |= u.model.any();
+    for (const StandLook& s : set.stands) models |= s.isModel();
   }
   // A file with no sheets and no models cannot draw anything; keep "no art" cheap to test.
   if (!db.graphics.sheets.empty() || models) db.graphics.styles = sets;
