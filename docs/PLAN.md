@@ -175,6 +175,12 @@ goal (demos only exercise features).
       a preparation shop when the maker gave the chapter one. The maker chooses per map whether it has the
       screen; maps without one start as today. Needs the roster to supply units not placed on the map
       (Vision Quest converter gap: "the roster dresses only placed units").
+      9 small rule gaps found by the private converter (2026-11-16; do after staves stage 1 lands, they
+      touch the same core files): `addUnit` does not accept `ranks` although docs/SRPG.md section 7 says it
+      does (bug: fix code to match the doc); a weapon lock that names classes (`wieldedByTypes`?) next to
+      `wieldedBy`; `rankXp: 0` allowed; a per-unit exception to its class's weapon groups; `fw` for a foe
+      that cannot counter at this range (currently still its weapon - decide and document); reaver-style
+      triangle doubling needs nothing new (formulas can do it with a prop).
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
