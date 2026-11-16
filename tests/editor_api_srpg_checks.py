@@ -149,8 +149,8 @@ def run_srpg_checks(api, tmp, games, templates, check, get_project, put_project)
     check("srpg: a stale revision is a 409", st == 409, (st, res))
 
     # an existing game without the files opens and saves byte-identically and gains none
-    st, doc = api.json("POST", "/api/projects", {"id": "srpg-plain", "name": "Plain", "template": "strategy-rpg"})
-    check("srpg: create a game from the strategy-rpg template", st == 201, (st, doc))
+    st, doc = api.json("POST", "/api/projects", {"id": "srpg-plain", "name": "Plain", "template": "economy-tactics"})
+    check("srpg: create a game from a template without the strategy-RPG files (the strategy-rpg template has the starter skills since E2)", st == 201, (st, doc))
     snap = snapshot(os.path.join(games, "srpg-plain"))
     st, d = get_project(api, "srpg-plain")
     # (Sections the editor does send are re-serialised, as for every other section; the web client only sends

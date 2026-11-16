@@ -136,7 +136,7 @@ describe('skills: the sentence', () => {
   it('reads like the contract examples', () => {
     expect(blockSummary(d, { when: 'combat', if: [{ initiating: true }], do: [{ damage: 3 }] })).toBe('In combat, if it started the fight: damage +3.')
     expect(blockSummary(d, { when: 'combat', if: [{ hp: { op: '<=', percent: 50 } }], do: [{ crit: 25 }] })).toBe('In combat, if its HP is at most 50%: critical +25.')
-    expect(blockSummary(d, { when: 'strike', chance: 'a.skl', do: [{ damagePercent: 200 }] })).toBe('When it strikes, with a chance of its skl percent: damage dealt 200%.')
+    expect(blockSummary(d, { when: 'strike', chance: 'a.skl', do: [{ damagePercent: 200 }] })).toBe('When it strikes, with a chance of its Skill percent: damage dealt 200%.')
     expect(blockSummary(d, { when: 'strike', chance: 30, do: [{ strikeAgain: true }] })).toBe('When it strikes, with a 30% chance: strikes once more.')
     expect(blockSummary(d, { when: 'combat', aura: { to: 'allies', within: 2 }, do: [{ hit: 10 }, { avoid: 10 }] })).toBe('In combat: allies within 2 squares get hit +10, avoid +10.')
     expect(blockSummary(d, { when: 'combat', if: [{ near: 'ally', within: 2, op: '=', count: 0 }], do: [{ damage: 3 }] })).toContain('no ally is within 2 squares')

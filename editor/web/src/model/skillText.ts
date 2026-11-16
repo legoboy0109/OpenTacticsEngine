@@ -96,10 +96,10 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
   }
 }
 
-export function chanceText(chance: unknown): string {
+export function chanceText(doc: ProjectDoc, chance: unknown): string {
   if (typeof chance === 'number') return `with a ${chance}% chance`
   const [stat, times] = statChance(chance)
-  return stat ? `with a chance of its ${stat}${times === 1 ? '' : ` times ${times}`} percent` : 'with a chance from a custom formula'
+  return stat ? `with a chance of its ${statName(doc, stat)}${times === 1 ? '' : ` times ${times}`} percent` : 'with a chance from a custom formula'
 }
 
 /** The sentence of one rule. */
@@ -108,7 +108,7 @@ export function blockSummary(doc: ProjectDoc, b: Extra): string {
   const conds = (Array.isArray(b.if) ? (b.if as Extra[]) : []).map((c) => conditionText(doc, c))
   const effects = (Array.isArray(b.do) ? (b.do as Extra[]) : []).map((e) => effectText(doc, e, when ?? undefined)).join(', ')
   const aura = b.aura as Extra | undefined
-  const head = [when ? WHEN_LEAD[when] : 'At an unknown time', conds.length ? `if ${conds.join(' and ')}` : '', b.chance !== undefined ? chanceText(b.chance) : ''].filter(Boolean).join(', ')
+  const head = [when ? WHEN_LEAD[when] : 'At an unknown time', conds.length ? `if ${conds.join(' and ')}` : '', b.chance !== undefined ? chanceText(doc, b.chance) : ''].filter(Boolean).join(', ')
   const gives = aura ? `${aura.to === 'enemies' ? 'enemies' : 'allies'} within ${squares(aura.within ?? 1)} get ${effects}` : effects
   return `${head}: ${gives || 'nothing'}.`
 }
