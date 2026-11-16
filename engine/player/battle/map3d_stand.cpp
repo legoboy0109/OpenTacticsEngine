@@ -5,8 +5,9 @@
 // Placement rule (so a unit on a forest or a mountain stays readable):
 //  - a standing PICTURE faces the camera like a unit does and stands towards the BACK of its cell (kStandBack
 //    squares behind the middle, as seen from the camera), so a unit in the middle of the cell is in front of it;
-//  - a standing MODEL stands in the middle of the cell and a unit on that cell is moved kModelAhead squares
-//    towards the camera (like a unit on a model structure), so it stands in front of the model;
+//  - a standing MODEL stands in the middle of the cell and a unit on that cell is moved towards the camera, in front
+//    of it (about the model's half width, at most to the cell's front edge, kModelAheadMax), like a unit on a model
+//    structure;
 //  - the depth buffer sorts everything else (units behind a forest are covered by it, as behind a building;
 //    they are drawn again faintly over it, like units behind higher blocks);
 //  - fog dims it like the ground, and cells in move / attack range tint it blue / red so the highlight that
@@ -68,11 +69,19 @@ bool Map3D::standInFront(const DrawCtx& c, int x, int y) const {
   return (dx && at(x + dx, y)) || (dy && at(x, y + dy)) || (dx && dy && at(x + dx, y + dy));
 }
 
-// How far towards the camera a unit standing on this cell is moved: in front of a standing model.
-float Map3D::standAhead(const DrawCtx& c, Cell cell) const {
+// How far towards the camera a unit standing on this cell is moved: in front of a standing model (its half width as drawn,
+// plus a margin, but never further than the cell's front edge).
+float Map3D::standAhead(const DrawCtx& c, Cell cell) {
   if (!standAt(cell)) return 0;
   const StandLook* s = standOf(c, c.battle.cells[cell].terrain);
-  return s && s->isModel() ? kModelAhead : 0;
+  if (!s || !s->isModel()) return 0;
+  const int x = c.battle.grid.x(cell), y = c.battle.grid.y(cell);
+  const ModelLook& ml = s->models[(size_t)pickStandModel(*s, x, y)];
+  const ModelAsset* asset = models_.get(r3d_, ml.file);
+  if (!asset) return 0;
+  // Half the model's width as drawn, widened (a square model’s corner points at a diagonal camera, about 1.41 x its half width), plus a margin.
+  const float half = 0.5f * asset->width * ml.height / asset->height;
+  return std::max(0.3f, std::min(kModelAheadMax, half * 1.35f + 0.1f));
 }
 
 void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {

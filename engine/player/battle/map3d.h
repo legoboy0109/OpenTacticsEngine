@@ -50,7 +50,7 @@ class Map3D {
   void markStands(const DrawCtx& c);
   bool standAt(Cell cell) const;
   bool standInFront(const DrawCtx& c, int x, int y) const;
-  float standAhead(const DrawCtx& c, Cell cell) const;
+  float standAhead(const DrawCtx& c, Cell cell);
   void drawStands(const DrawCtx& c, const Overlay& ov);
   ModelActor* standActor(const ModelAsset* asset);
   // map3d_models.cpp
