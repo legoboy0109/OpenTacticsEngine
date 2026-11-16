@@ -1,0 +1,4 @@
+{ "terrain": [
+  { "id": "plain",  "name": "Plain" },
+  { "id": "forest", "name": "Forest", "moveCost": { "foot": 3 } },
+  { "id": "wall",   "name": "Wall",   "moveCost": { "foot": 0 } } ] }

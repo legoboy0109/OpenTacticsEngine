@@ -1,0 +1,8 @@
+{ "units": [
+  { "id": "hero", "name": "Hero", "moveType": "foot", "stats": { "hp": 20, "atk": 6, "def": 3, "mov": 4 },
+    "growths": { "hp": 100 }, "weapons": ["sword"], "abilities": ["shove", "call_hound", "call_wisp"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 8, "atk": 3, "def": 1, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 10, "atk": 4, "def": 1, "mov": 3 },
+    "weapons": ["bow"], "abilities": ["mend", "rest"] },
+  { "id": "hound", "name": "Hound", "moveType": "foot", "stats": { "hp": 6, "atk": 3, "def": 1, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "wisp", "name": "Wisp", "moveType": "foot", "stats": { "hp": 4, "atk": 2, "def": 0, "mov": 4 }, "weapons": ["sword"] } ] }
