@@ -166,3 +166,34 @@ int moveCostCap(const Unit& u) const;                 // the lowest "maxMoveCost
 bool passesEnemies(const Unit& u) const;              // has "pass": enemies
 // Adds `skill` to Unit::learned unless it is there; true when it was added.
 bool learnSkill(Unit& u, int skill) const;
+
+// ---- menu abilities and summons, step A1 (abilities.cpp and friends; append only) ----
+// Why the unit cannot use the ability now, whatever the target: as if it stood on `from` (`from` other than its own
+// square counts as having moved). False = cannot; `why` gets the reason. Uses, cooldown, once per turn, the summon
+// limit and the conditions that are about the user.
+bool abilityStateOk(const Unit& u, int ability, Cell from, std::string* why) const;
+// Is this target legal for the ability if the unit stood on `from`: in range, seen, of the right side, the squares
+// the effect needs free (judged on what the unit's team sees), the conditions about the target. A unit target is
+// `target` (a "self" ability: -1 or the unit itself), a square target is `cell`.
+bool abilityTargetOk(const Unit& u, int ability, Cell from, int target, Cell cell, std::string* why) const;
+// A square `moveType` could stand on: on the map, enterCost > 0, and no unit on it that `viewTeam` sees (-1 = the
+// truth: no unit at all). `ignore` = a unit that is about to leave (counts as not there).
+bool squareFreeFor(Cell c, int moveType, int viewTeam, int ignore) const;
+// Ability moves (ability_moves.cpp). plan: on the truth, from the user's own square; do: puts the units on their
+// squares (a capture they leave is dropped), UnitRelocated for each; story "reach" events are left to the caller.
+void planAbilityMove(const Unit& user, const AbilityDef& def, int target, AbilityPlan& out) const;
+void doAbilityMoves(const AbilityPlan& plan, std::vector<Event>& events);
+// Summons (summons.cpp). summonUnit: the new unit appears on `cell` (UnitAdded), false if it could not. removeSummon:
+// a summon leaves the board for good (UnitRemoved: no defeat, no drops, no XP) and, in turn, its own summons.
+bool summonUnit(int summoner, int ability, Cell cell, std::vector<Event>& events);
+void removeSummon(int unit, std::vector<Event>& events);
+// "givesXp": false: the foe of this experience award is a summon that gives none (the last Attack event of the
+// fight names the fighters).
+bool summonGivesNoXp(int unit, const std::vector<Event>& events) const;
+// Objectives and story conditions "defeated" / "dead" / "alive": a filter by side, team or "any" does not see a summon.
+bool summonIgnored(const UnitFilter& filter, const Unit& u) const {
+  return u.summoner >= 0 && (filter.kind == UnitFilter::Kind::Any || filter.kind == UnitFilter::Kind::Side ||
+                             filter.kind == UnitFilter::Kind::Team);
+}
+// Notes that the unit used the ability (count, cooldown, once per turn).
+void noteAbilityUse(int unit, int ability);
