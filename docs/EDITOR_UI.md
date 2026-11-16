@@ -816,6 +816,18 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
 - **Edits** (`model/supports.ts`) keep the file loadable: levels always rise, names cover every level, defaults are not written. Delete / retarget with story
   follow-up are in `srpgRefs.ts` (`deletePairClean`, `retargetPair`, `pairUsageLines`).
 - **Tests**: unit `tests/unit/supports.test.ts`; API `tests/editor_api_supports_checks.py`; e2e `srpg-supports.spec.ts`.
+## Weapon ranks and stat caps (editor step of docs/SRPG.md section 7)
+
+- **Rules** (`screens/rules/srpg/`): two more switches in the Strategy-RPG features card (`RankSwitches`; ranks are disabled with a reason until weapons are
+  carried), then the cards **Weapon ranks** (`RanksCard`: growth, the ladder in `LadderRows`, "Use the default ranks" while the ladder is empty, "Worth a look")
+  and **Stat caps** (`CapsCard`: one optional number per stat). A switch that is on stays on after a reload: the empty file is written.
+- **Units** (classes): `UnitRanksCard` (a rank per wielded group, "None" removes the entry) and `UnitCapsCard` (empty = the game's cap, shown as the placeholder).
+  **Characters**: `CharacterRanksCard` and `CharacterCapsCard` (cap | adjust | result). **Weapons**: `WeaponRankCard` (needed rank; experience per use only when growth
+  is "use"). **Map**: `UnitRankOverride` in the placed unit's panel. Shared: `screens/ranks/` (`RankMapTable`, `CapRows`, `text.ts`, `ranks.css`).
+- **Model**: `model/ranks.ts` (ladder and picker edits), `rankRefs.ts` (clean-up, renames, "used by" lines), `rankChecks.ts`. `setWeaponGroup` in `weapons.ts` is
+  where a group is typed (see docs/SRPG.md section 7 "Editor: as built" for what follows what). A stat delete also clears caps (`cleanStat`).
+- **Tests**: unit `tests/unit/ranks.test.ts`; API `tests/editor_api_ranks_checks.py`; e2e `srpg-ranks.spec.ts`, `srpg-ranks-screens.spec.ts` (with the 360 px check).
+
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
 Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.

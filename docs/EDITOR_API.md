@@ -89,6 +89,8 @@ dropped (the document is strict JSON).
   "skills": [ …the "skills" list of data/skills.json… ],
   "abilities": [ …the "abilities" list of data/abilities.json… ],
   "supports": { …contents of data/supports.json… },
+  "ranks": { …contents of data/ranks.json… },
+  "caps": { …contents of data/caps.json… },
   "problems": [ { "file": "data/units.json", "message": "unit \"x\": …" } ] }
 ```
 `game.grid` (docs/HEX.md) is passed through untouched: missing or `{ "type": "square" }` is a square game, `{ "type": "hex",
@@ -119,7 +121,7 @@ project's files).
 **Strategy-RPG sections** (docs/SRPG.md "Editor"; `editor/server/srpg_files.cpp`). `characters`, `skills` and `abilities` are
 lists exactly like `items` (each file is `{ "<key>": [ … ] }`; `null` when the file is absent, no problem; a file that is
 unreadable, not an object, or without its list is `null` plus a problem on that file). `supports` is the file's one object, like
-`campaign` (`null` when absent; a file that is not a JSON object is `null` plus a problem on `data/supports.json`). Entries
+`campaign` (`null` when absent; a file that is not a JSON object is `null` plus a problem on `data/supports.json`). `ranks` and `caps` (weapon ranks and stat caps, docs/SRPG.md section 7) are two more such objects (`{ growth, ranks }` and `{ caps }`; `null` when absent). Entries
 are passed through untouched: unknown keys and key order are kept. The engine loader checks the contents; its refusals come in
 `problems` with the file name.
 
@@ -149,9 +151,9 @@ object is written as it is (key order and unknown keys kept), **`false` removes 
 `audio/` files stay) and any other value is `400`. Nothing is validated on write; `/problems` runs the player's sound loader.
 **`characters`, `skills`, `abilities`** (lists; anything else is `400`) are written as `{ "<key>": [ … ] }`, also when the list is
 empty (the editor's way of remembering that the feature is switched on; the engine's data hash skips a file that holds nothing, so
-it is still the same game as one without the file). **`false` removes the file** (removing a file that is not there is fine). **`supports`** is an object, written as it is; **`false`
-removes `data/supports.json`**; any other value is `400`. Absent or `null` leaves each file alone. A map may not use one of
-these four file names as its `file`.
+it is still the same game as one without the file). **`false` removes the file** (removing a file that is not there is fine). **`supports`**, **`ranks`** and **`caps`** are objects, written as they are (an empty ladder `{ "growth": "fixed", "ranks": [] }` and `{ "caps": {} }` too: the switch stays on, and the engine reads them as no file); **`false`
+removes the file**; any other value is `400`. Absent or `null` leaves each file alone. A map may not use one of
+these file names as its `file`.
 Art, model and audio files are not part of this call: they have their own endpoints below.
 
 A map unit placed as a character is `{ "character", "side", "x", "y" }` (no `type`); maps are stored as sent, and `GET .../problems` gives the loader's words for it (`tests/editor_api_characters_checks.py`).

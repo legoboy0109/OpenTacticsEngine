@@ -1107,7 +1107,7 @@ only weapons above its rank has no attack and behaves like an unarmed one.
 - **Level-up box:** a stat that is at its cap shows `MAX` next to the gain.
 - **`RankUp`:** a floating label over the unit, `Sword rank C`, like `SkillLearned` outside a level-up box.
 
-### Editor (not built in this step)
+### Editor (built later, see "Editor: as built" below)
 Screens: a **Weapon ranks** section in Rules (growth mode, the ladder as an editable list with id / name /
 experience; a "default E to S ladder" button), the weapon form (`rank`, `rankXp`), the unit type form (`ranks` per
 group, `caps`), the character form (`ranks`, `capAdjust`), the map unit form (`ranks`), and **Stat caps** in Rules
@@ -1137,13 +1137,33 @@ characters and map units; loaded before the weapons, groups built right after th
   Item `raise` events report the real gain for positive amounts and the written amount for negative ones (as before).
 - The loader refuses `rank` / `rankXp` without a `group`, ranks without carried weapons, and a ladder whose first `xp` is not 0, with messages
   that name the file and the entry (tests: `tests/test_srpg_ranks_loader.cpp`).
-- Not built: story commands (see "Not in this version" above), and no editor screens. The editor helper passes the new keys on units,
-  weapons, characters and map units through untouched and reads neither `data/ranks.json` nor `data/caps.json`: it neither shows, rewrites
-  nor deletes them, and the engine loader's refusals reach its Problems list as for any other file.
+- Not built: story commands (see "Not in this version" above). The editor screens came later ("editor as built" below).
 - Player: `engine/player/battle/rank_text.*` (words), `battle_view_ranks.cpp` (the `RankUp` label), cap and rank rows in
   `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
   Tests: `tests/test_srpg_ranks*.cpp`, `tests/test_srpg_caps.cpp`, `tests/test_srpg_player_ranks.cpp`, `tests/srpg_player_ranks_test.py`, the
   fixture `tests/fixtures/srpg-ranks`.
+
+### Weapon ranks and stat caps: editor as built
+
+The editor screens are in; the helper only gained two sections. Details for the editor are in docs/EDITOR_UI.md "Weapon ranks and stat caps".
+
+- **Helper/API**: `ranks` and `caps` are two more optional object sections beside `supports` (`editor/server/srpg_files.cpp`): GET gives the file's object or `null`,
+  PUT writes the object (an empty ladder and empty `caps` too, so a switch that is on stays on; the engine reads them as no file), `false` removes the file.
+  `tests/editor_api_ranks_checks.py` starts from `tests/fixtures/srpg-ranks`.
+- **Screens**: Rules switches and the two cards; class (starting ranks, caps), character (personal ranks, cap adjustment with the resulting cap), weapon (needed rank,
+  experience per use when growth is "use"), placed unit (rank override). Everything fits 360 px.
+- **Readings of the contract.** (1) *Ladder editing*: the first rank is always 0; a number that is not above the rank before is refused with "At least N."; raising a
+  rank moves the ones above up; moving a rank moves its id and name while the experience numbers stay at their steps. At most 12 ranks. The default ladder button only
+  shows while the ladder is empty. (2) *Switch on*: ranks need carried weapons (the switch is disabled with the reason; if weapons are set back to fixed later a check says
+  so). (3) *Removing a rank* takes it off weapons that needed it and drops starting entries naming it (those units start at the lowest rank); a rank id change follows
+  everywhere. (4) *Groups*: typing a new group on the only weapon of a group is a rename (classes that wield it and starting ranks follow); clearing or merging a group keeps
+  the entries and the checks name them (nothing is lost while typing); deleting the last weapon of a group drops its starting ranks (the delete question lists them).
+  (5) *Deleting a stat* removes its game cap, class caps and character adjustments. (6) *Switching ranks off* asks first (when a ladder exists) and removes every weapon
+  `rank` / `rankXp` and every `ranks` map; *switching caps off* removes the file, every class `caps` and every `capAdjust` (a class cap works without the file in the engine, so
+  it is treated as part of the feature). `rankXp` is kept when growth goes back to "fixed" (hidden, harmless). (7) Starting ranks written as experience numbers in a file are
+  kept and shown ("N experience (kept)"). (8) Checks ("Worth a look", beside the loader's own words in Problems): ladder shape, a weapon rank without a group or naming an unknown
+  rank, a starting rank in a group no weapon has or an unknown rank id or a number above the top, a cap that is not 1 to 99999, a ladder that no weapon asks for.
+- **Tests**: vitest `ranks.test.ts`; `tests/editor_api_ranks_checks.py`; Playwright `srpg-ranks.spec.ts` (build a ladder, Play, sticky switches) and `srpg-ranks-screens.spec.ts`.
 
 ---
 
