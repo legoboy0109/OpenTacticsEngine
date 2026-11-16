@@ -50,6 +50,10 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
     // Ids stay unique: a repeating event adds a second one without the id.
     OTE_WARN("story: addUnit: a unit with id '%s' already exists; the new one gets no id", u.storyId.c_str());
     u.storyId.clear();
+    // Without the id it is nobody in particular (docs/SRPG.md "Characters"): dressed again as a plain unit.
+    u.learned.clear();
+    dressUnit(u);
+    u.hp = maxHp(u);
   }
   if (applyRoster(u) == 0) {  // a campaign's unit that fell for good does not come back
     OTE_INFO("story: addUnit '%s': the campaign roster says it is gone; not added", u.storyId.c_str());
@@ -117,6 +121,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         units[(size_t)i].alive = false;  // gone, but not "defeated": no drops, no defeat events
         units[(size_t)i].hp = 0;
         units[(size_t)i].cell = kNoCell;
+        srpgUnitGone(i, -1, events);  // its summons vanish, a unit it carried is put down (docs/SRPG.md)
       }
       break;
     case K::MoveUnit: {
@@ -179,8 +184,10 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       runCommands(conditionsHold(c.cond) ? c.thenDo : c.elseDo, events);
       break;
     case K::EndTurn:
-      if (storyRun_.talker >= 0 && units[(size_t)storyRun_.talker].alive)
-        units[(size_t)storyRun_.talker].moved = units[(size_t)storyRun_.talker].done = true;
+      if (storyRun_.talker >= 0 && units[(size_t)storyRun_.talker].alive) {
+        units[(size_t)storyRun_.talker].moved = true;
+        endOrder(storyRun_.talker);  // like every action that ends a unit's turn
+      }
       break;
     case K::PlayMusic:
       storyState.musicAsked = true;
@@ -194,6 +201,19 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       break;
     case K::PlaySound:
       events.push_back(makeEvent(EventType::SoundRequested, c.text));
+      break;
+    // Strategy-RPG features (docs/SRPG.md): each area runs its own commands.
+    case K::Promote:
+      storyPromote(c, events);
+      break;
+    case K::TeachSkill:
+      storyTeachSkill(c, events);
+      break;
+    case K::ForgetSkill:
+      storyForgetSkill(c, events);
+      break;
+    case K::AddSupport:
+      storyAddSupport(c, events);
       break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);

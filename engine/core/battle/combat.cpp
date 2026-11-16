@@ -40,6 +40,7 @@ bool Battle::strikeForecast(const Unit& atk, Cell atkCell, const Unit& def, Cell
   out = StrikeForecast();
   FormulaCtx ctx;
   ctx.sides = &sides;
+  ctx.battle = this;  // stats as the rules see them (Battle::stat); the combat bonuses of step F2 go in bonusA / bonusB
   if (!versusValue(weapon, def, ctx.vs)) return false;
   ctx.a = &atk;
   ctx.b = &def;
@@ -155,7 +156,7 @@ void Battle::doStrike(int atk, int def, int weapon, int baseFlags, std::vector<E
     std::vector<ItemStack> drops;
     for (const ItemStack& s : units[def].items)
       if (s.drop) drops.push_back(s);
-    killUnit(def, events);
+    killUnit(def, events, atk);
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
     unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
   }
@@ -174,7 +175,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   fight.other = d;
   fireStory(fight, events);
   if (over || !units[a].alive || !units[d].alive || !forecast(a, d, action.weapon, units[a].cell, f)) {
-    if (units[a].alive) units[a].done = true;
+    if (units[a].alive) endOrder(a);
     return;
   }
 
@@ -200,11 +201,11 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       doStrike(d, a, f.counter.weapon, kCounter, events);
     }
   }
-  if (units[a].alive) units[a].done = true;
 
   if (db->rules.progression) {
     FormulaCtx ctx;
     ctx.sides = &sides;
+    ctx.battle = this;
     // Attacker's reward.
     if (units[a].alive && units[d].hp < hpD) {
       ctx.a = &units[a];
@@ -220,9 +221,14 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       awardXp(d, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
     }
   }
+  // After the experience: "defeat" / "afterCombat" skills and supports' "fought together" (docs/SRPG.md "Combat
+  // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
+  // its flags as they were.
+  srpgAfterCombat(a, d, hpA, hpD, events);
+  if (units[a].alive) endOrder(a);
 }
 
-void Battle::killUnit(int unit, std::vector<Event>& events) {
+void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
   Unit& u = units[unit];
   if (!u.alive) return;
   releaseCapture(unit, kNoCell);  // a dead capturer abandons the capture
@@ -237,6 +243,8 @@ void Battle::killUnit(int unit, std::vector<Event>& events) {
   u.hp = 0;
   u.cell = kNoCell;
   if (u.leader) sides[u.side].leaderLost = true;
+  // Last, and `u` is not used after it: its summons vanish, a unit it carried is put down (docs/SRPG.md).
+  srpgUnitGone(unit, killer, events);
 }
 
 }  // namespace ote

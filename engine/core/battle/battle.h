@@ -17,6 +17,7 @@
 #include "core/base/rng.h"
 #include "core/base/types.h"
 #include "core/battle/carried.h"
+#include "core/battle/srpg_state.h"
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
 #include "core/data/events.h"
@@ -70,9 +71,25 @@ enum class EventType {
   // opaque text (Battle::storyText), only the player knows what they name.
   MusicChanged,       // a=text index of the track id (-1 = the story stopped the music), b=fade in milliseconds
   SoundRequested,     // a=text index of the sound id
+  // Strategy-RPG features (docs/SRPG.md "Events"). "skill" / "ability" are indices into db->skills / db->abilities.
+  SkillLearned,       // a=unit, b=skill
+  SkillActivated,     // a=unit, b=skill, c=the foe or -1
+  UnitHurt,           // a=unit, b=HP lost, c=the unit whose skill did it
+  UnitPromoted,       // a=unit, b=old type, c=new type, d=new level, data=change per stat index
+  AbilityUsed,        // a=unit, b=ability, c=target unit or -1, d=target square or -1, flags=kBlocked (then data[0]=the unit in the way)
+  UnitRescued,        // a=the unit that stays, b=the unit that leaves the board, c=the square it left, flags=kPaired
+  UnitDropped,        // a=carrier, b=the unit, c=its square, flags=kForced|kBlocked
+  UnitHanded,         // a=from, b=to, c=the unit handed over
+  PairSwitched,       // a=the unit that went behind, b=the unit now in front, c=the square
+  SupportPoints,      // a=unit of the pair's `a`, b=unit of `b`, c=pair, d=points now, flags=kReady
+  SupportReached,     // a=unit of `a` (-1 = off the board), b=unit of `b`, c=pair, d=new level
 };
 
-enum : int { kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32 };
+enum : int {
+  kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32,
+  // docs/SRPG.md: Attack may carry kSurvived; the others belong to the new entries above.
+  kSurvived = 64, kBlocked = 128, kPaired = 256, kForced = 512, kReady = 1024
+};
 
 // Bit `t` of Event::seen = team `t` saw the event (docs/ECONOMY.md "Fog of war"). Without fog every event has all bits.
 const uint32_t kSeenByAll = 0xffffffffu;
@@ -117,6 +134,22 @@ struct Unit {
   // weapon is unlimited. Filled by Battle::stockUnit.
   int fuel = -1;
   std::vector<int> ammo;
+  // ---- strategy-RPG features (docs/SRPG.md); all at these defaults in a game that uses none ----
+  int character = -1;            // index into db->characters, derived from storyId (dressUnit); never saved
+  std::vector<int> learned;      // skills learned for good, oldest first (indices into db->skills)
+  std::vector<AbilityUse> abilityUses;  // one entry per ability it has used this battle
+  // A summoned unit: who summoned it (unit id), with which ability, and the turns of lifetime left (-1 = no limit).
+  int summoner = -1;
+  int summonAbility = -1;
+  int summonLeft = -1;
+  // Rescue / pair up: `carrying` on the unit that stays on the board, `carriedBy` on the one that left it. A
+  // carried unit has alive == false and no cell but KEEPS its hp (a defeated unit has 0): see Battle::exists.
+  int carrying = -1;
+  int carriedBy = -1;
+  // Turn flags of "move again" / "act again", cleared with `moved` and `done` at the start of the side's turn.
+  int moveSpent = 0;       // movement points spent on moves this turn
+  bool acted = false;      // has used its action; only a move (or Wait) is left
+  bool refreshed = false;  // "act again" has been used this turn
 };
 
 struct CellState {
@@ -162,7 +195,17 @@ enum class ActionType {
   UpgradeStructure,  // structure -> kind `to`
   StartResearch,     // technology `tech` for the active side
   // Repair and supply: a supplier unit (UnitTypeDef::supplies) refills the adjacent units of its side; ends its turn.
-  Supply
+  Supply,
+  // Strategy-RPG features (docs/SRPG.md). The target unit is in `target`, a square in `cell`.
+  Promote,     // `unit` takes an offered promotion to `unitType` (-1 = the first offered); ends its turn
+  Ability,     // `unit` uses menu ability `ability` on `target` / `cell`
+  Rescue,      // carry: `unit` takes the neighbour `target` off the board; ends its turn
+  Drop,        // carry / pair up: `unit` puts the unit it has on `cell`; ends its turn
+  GiveUnit,    // carry: `unit` hands the unit it carries to `target`; free
+  TakeUnit,    // carry: `unit` takes over the unit `target` carries; free
+  PairUp,      // pair up: `unit` leaves the board and stands behind `target`; ends its turn
+  SwitchPair,  // pair up: the unit behind `unit` comes forward; free
+  Support      // `unit` has its ready support conversation with `target`; free
 };
 
 struct Action {
@@ -177,6 +220,7 @@ struct Action {
   int structure = -1;   // UpgradeStructure: index into Battle::structures
   int to = -1;          // UpgradeStructure: the kind it becomes (index into db->structures)
   int tech = -1;        // StartResearch: index into db->research
+  int ability = -1;     // Ability: index into db->abilities
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
   static Action attack(int unit, int target, int weapon) { Action a; a.type = ActionType::Attack; a.unit = unit; a.target = target; a.weapon = weapon; return a; }
@@ -200,6 +244,22 @@ struct Action {
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
   static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
+  // Strategy-RPG features (docs/SRPG.md).
+  static Action unitAction(ActionType t, int unit, int target = -1, Cell cell = kNoCell) {
+    Action a; a.type = t; a.unit = unit; a.target = target; a.cell = cell; return a;
+  }
+  static Action promote(int unit, int to = -1) { Action a = unitAction(ActionType::Promote, unit); a.unitType = to; return a; }
+  // Named useAbility, not ability as docs/SRPG.md writes it: a member and a function cannot share the name `ability`.
+  static Action useAbility(int unit, int ability, int target, Cell cell = kNoCell) {
+    Action a = unitAction(ActionType::Ability, unit, target, cell); a.ability = ability; return a;
+  }
+  static Action rescue(int unit, int target) { return unitAction(ActionType::Rescue, unit, target); }
+  static Action drop(int unit, Cell cell) { return unitAction(ActionType::Drop, unit, -1, cell); }
+  static Action giveUnit(int unit, int target) { return unitAction(ActionType::GiveUnit, unit, target); }
+  static Action takeUnit(int unit, int target) { return unitAction(ActionType::TakeUnit, unit, target); }
+  static Action pairUp(int unit, int target) { return unitAction(ActionType::PairUp, unit, target); }
+  static Action switchPair(int unit) { return unitAction(ActionType::SwitchPair, unit); }
+  static Action support(int unit, int target) { return unitAction(ActionType::Support, unit, target); }
 };
 
 // Result of a movement search for one unit.
@@ -237,9 +297,12 @@ struct StrikeForecast {
   int hit = 100;     // percent
   int crit = 0;      // percent
   int strikes = 0;
+  int multi = 1;     // strikes in a row per strike (docs/SRPG.md "multiStrike"); 1 = none
 };
 struct Forecast {
   StrikeForecast attack, counter;
+  bool defenderFirst = false;       // the defender strikes before the attacker in each exchange
+  std::vector<ForecastNote> notes;  // activations that could fire, in roll order (not folded into the numbers)
 };
 
 // What a repair would do to one unit (repairPreview): HP restored and the price per resource index.
@@ -274,6 +337,8 @@ class Battle {
   // A campaign's roster as it was when the chapter began (null = none): named units of human sides
   // take its version of themselves (setStartingRoster). Copies share it; it is not saved.
   std::shared_ptr<const Roster> roster;
+  // Closeness of the support pairs (docs/SRPG.md "Supports"); empty in a game without pairs.
+  SupportState supports;
 
   // ---- setup ----
   bool init(const Database& database, const MapDef& map, Formulas& formulaHost,
@@ -313,7 +378,9 @@ class Battle {
   int unitAt(Cell c) const { return grid.valid(c) ? occupant[c] : -1; }
   int teamOf(const Unit& u) const { return sides[u.side].team; }
   bool isEnemy(const Unit& a, const Unit& b) const { return teamOf(a) != teamOf(b); }
-  // A unit's stat as the rules see it: its own value plus what its accessories add.
+  // A unit's stat as the rules see it: its own value plus what its accessories and its side's research add, the
+  // standing bonuses of its skills and the carry penalty / pair bonus (docs/SRPG.md). Everything that needs a stat
+  // asks here (formulas too, through FormulaCtx::battle).
   int stat(const Unit& u, int index) const;
   int maxHp(const Unit& u) const { return stat(u, db->rules.statHp); }
   int movePoints(const Unit& u) const { return stat(u, db->rules.statMove); }
@@ -473,6 +540,9 @@ class Battle {
   // untouched) if invalid.
   bool apply(const Action& action, std::vector<Event>& events, std::string* why = nullptr);
 
+  // ---- strategy-RPG features: public queries (docs/SRPG.md). Later steps append there, not here. ----
+#include "core/battle/srpg_api.h"
+
  private:
   // combat.cpp
   bool versusValue(int weapon, const Unit& target, double& vs) const;
@@ -482,7 +552,8 @@ class Battle {
   bool weaponInRange(int weapon, int dist) const;
   void doStrike(int atk, int def, int weapon, int baseFlags, std::vector<Event>& events);
   void applyAttack(const Action& action, std::vector<Event>& events);
-  void killUnit(int unit, std::vector<Event>& events);
+  // `killer` = the unit that struck it down (-1 = nobody): handed to srpgUnitGone.
+  void killUnit(int unit, std::vector<Event>& events, int killer = -1);
   // After a unit fell (killUnit already ran): story events waiting for it. killer -1 = nobody.
   void unitDefeated(int unit, int killer, std::vector<Event>& events);
   // turn.cpp
@@ -563,6 +634,9 @@ class Battle {
   void settle(std::vector<Event>& events);
   // progression.cpp
   void awardXp(int unit, int amount, std::vector<Event>& events);
+
+  // ---- strategy-RPG features: hooks and private functions (docs/SRPG.md). Later steps append there, not here. ----
+#include "core/battle/srpg_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
 

@@ -25,7 +25,8 @@ Event event(EventType t, int a, int b, int c = -1, int d = -1, int flags = 0) {
 }
 }  // namespace
 
-int Battle::stat(const Unit& u, int index) const { return unitStat(*db, u, index, &sides); }
+// Own value, accessories and research (unitStat), then what skills and carrying change (srpgStat; docs/SRPG.md).
+int Battle::stat(const Unit& u, int index) const { return srpgStat(u, index, unitStat(*db, u, index, &sides)); }
 
 void Battle::clampHp(Unit& u) {
   if (!u.alive) return;
@@ -235,9 +236,10 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
         int amount = std::min(d.heal, maxHp(t) - t.hp);
         t.hp += amount;
         events.push_back(event(EventType::UnitHealed, a.target, amount));
+        if (a.target != a.unit) supportsHealed(a.unit, a.target, events);  // supports: one healed the other
       }
       spendUse(a.unit, a.slot, events);
-      u.done = true;
+      endOrder(a.unit);
       break;
     }
     case ActionType::Equip: {

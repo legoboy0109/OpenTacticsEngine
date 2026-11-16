@@ -22,6 +22,9 @@ int Battle::applyRoster(Unit& u) const {
       s.drop = g.drop;
       u.items.push_back(s);
     }
+    // The skills it learned in earlier chapters, then what its (possibly new) type and level add (docs/SRPG.md).
+    u.learned = r.skills;
+    dressUnit(u);
     u.hp = maxHp(u);  // a chapter always begins at full strength
     stockUnit(u);     // ... and with full fuel and ammunition (the roster does not carry them)
     return 1;

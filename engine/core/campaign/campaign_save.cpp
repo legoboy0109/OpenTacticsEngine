@@ -6,6 +6,7 @@
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
+#include "core/battle/save_srpg.h"
 #include "core/campaign/campaign_save.h"
 
 namespace ote {
@@ -82,6 +83,7 @@ bool readUnit(Reader& rd, const Database& db, const Json& j, size_t index, Roste
   std::vector<ItemStack> items;
   if (!savejson::readItems(rd, db, j, "items", where, db.rules.items.inventorySize, items)) return false;
   r.items = grantsOf(items);
+  if (!savejson::readRosterSrpg(rd, db, j, where, r)) return false;
   return rd.boolean(j, "gone", where, r.gone);
 }
 
@@ -116,6 +118,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
     if (!r.items.empty()) j.set("items", savejson::itemsJson(stacks(r.items)));
     j.set("side", Json::makeString(r.side));
     j.set("gone", Json::makeBool(r.gone));
+    savejson::writeRosterSrpg(db, r, j);  // docs/SRPG.md: learned skills, only when there are any
     roster.push(j);
   }
   out.set("roster", roster);
@@ -133,6 +136,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
   for (uint8_t b : pt.switches) sw.push(Json::makeBool(b != 0));
   out.set("switches", sw);
   out.set("variables", intList(pt.variables));
+  savejson::writePlaythroughSrpg(db, pt, out);  // docs/SRPG.md: supports, only in a game with support pairs
 }
 
 bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out, std::string& err) {
@@ -182,6 +186,7 @@ bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out,
     pt.switches.push_back((*sw)[i].asBool() ? 1 : 0);
   }
   if (!readInts(rd, saved, "variables", top, (int)db.variables.size(), kMaxStoryNumber, pt.variables)) return false;
+  if (!savejson::readPlaythroughSrpg(rd, db, saved, pt)) return false;
   out = pt;
   return true;
 }

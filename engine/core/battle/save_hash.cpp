@@ -34,6 +34,8 @@ bool mixFile(Fnv& f, const std::string& root, const std::string& rel, std::strin
 // another font without locking players out of their saves.
 bool cosmeticKey(const std::string& k) {
   return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph" ||
+         // What support levels are called (data/supports.json "levelNames"; docs/SRPG.md).
+         k == "levelNames" ||
          // Sound (docs/SOUND.md) is presentation, like graphics.json: which sound or track plays never changes a rule.
          k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic";
 }
@@ -142,6 +144,14 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   if (readTextFile(root + "/data/items.json", probe) && !mixJson(f, root, "data/items.json", false, nullptr, err)) return false;
   // Research likewise: only a game that has the file mixes it in (its names and descriptions are cosmetic keys).
   if (readTextFile(root + "/data/research.json", probe) && !mixJson(f, root, "data/research.json", false, nullptr, err)) return false;
+  // The strategy-RPG files (docs/SRPG.md), in this order and each only when the game has it: a game without them
+  // keeps its hash. Names and descriptions are cosmetic keys; a support conversation's wording is blanked like a
+  // map's (the map-file treatment), so rewriting it keeps saves valid.
+  static const char* const kSrpg[] = {"data/characters.json", "data/skills.json", "data/abilities.json"};
+  for (const char* rel : kSrpg)
+    if (readTextFile(root + "/" + rel, probe) && !mixJson(f, root, rel, false, nullptr, err)) return false;
+  if (readTextFile(root + "/data/supports.json", probe) && !mixJson(f, root, "data/supports.json", false, nullptr, err, true))
+    return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   return true;

@@ -17,7 +17,12 @@ void Battle::changeResource(int side, int resource, int delta, std::vector<Event
 
 void Battle::beginTurn(std::vector<Event>& events) {
   for (Unit& u : units)
-    if (u.side == activeSide) u.moved = u.done = false;
+    if (u.side == activeSide) {
+      u.moved = u.done = false;
+      // The turn flags of "move again" / "act again" (docs/SRPG.md) start over with them.
+      u.moveSpent = 0;
+      u.acted = u.refreshed = false;
+    }
 
   Event e;
   e.type = EventType::TurnStarted;
@@ -42,6 +47,9 @@ void Battle::beginTurn(std::vector<Event>& events) {
   burnFuel(events);
   if (over) return;  // running dry ended the battle: nothing else happens this turn
   repairTurn(events);
+  // Strategy-RPG features (docs/SRPG.md): ability waits, summon lifetimes, postponed promotions and "turnStart"
+  // skills, after repair and supply and before the story's turn events.
+  srpgTurnStart(events);
 
   StoryOccurrence o;
   o.kind = Trigger::Kind::Turn;

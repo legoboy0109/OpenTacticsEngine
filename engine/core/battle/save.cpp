@@ -10,9 +10,9 @@
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
+#include "core/battle/save_srpg.h"
 #include "core/battle/save_story.h"
 #include "core/battle/save_supply.h"
-#include "core/battle/unit_stats.h"
 
 #include <cmath>
 #include <cstdio>
@@ -102,7 +102,11 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   }
   if (!readItems(rd, db, j, "items", where, db.rules.items.inventorySize, u.items)) return false;
   if (!savejson::readUnitSupply(rd, db, j, where, u)) return false;
-  int maxHp = unitStat(db, u, db.rules.statHp, &b.sides);  // with what its accessories and research add
+  // Strategy-RPG features (docs/SRPG.md): who the unit is (derived from its id, never saved), then its own keys.
+  // Before the hit points: learned skills may raise the maximum.
+  u.character = b.characterOf(u);
+  if (!savejson::readUnitSrpg(rd, b, j, where, u)) return false;
+  int maxHp = b.stat(u, db.rules.statHp);  // as the rules see it: accessories, research, standing skills
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
   return rd.boolean(j, "moved", where, u.moved) && rd.boolean(j, "done", where, u.done) &&
@@ -178,6 +182,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("leader", boolean(u.leader));
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
     savejson::writeUnitSupply(*b.db, u, j);
+    savejson::writeUnitSrpg(b, u, j);  // docs/SRPG.md: only what the game uses and is not the default
     units.push(j);
   }
   out.set("units", units);
@@ -195,6 +200,7 @@ void saveBattleState(const Battle& b, Json& out) {
   savejson::writeSeenOwners(b, out);
   savejson::writeSeenKinds(b, out);
   saveStoryState(b, out);
+  savejson::writeBattleSrpg(b, out);
 }
 
 bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
@@ -247,6 +253,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
     }
     b.units.push_back(u);
   }
+  if (!savejson::checkUnitsSrpg(rd, b)) return false;  // carry links, summoners: rules that tie units together
 
   const Json* structures;
   if (!rd.array(saved, "structures", top, (int)b.structures.size(), 0, structures)) return false;
@@ -256,6 +263,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   if (!savejson::readSeenOwners(rd, saved, b)) return false;
   if (!savejson::readSeenKinds(rd, saved, b)) return false;
   if (!restoreStoryState(rd, saved, b)) return false;
+  if (!savejson::readBattleSrpg(rd, saved, b)) return false;
 
   battle = b;
   return true;
