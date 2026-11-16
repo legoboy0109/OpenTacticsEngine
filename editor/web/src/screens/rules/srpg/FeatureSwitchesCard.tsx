@@ -8,6 +8,7 @@ import { Card } from '../../../ui/Card'
 import { ConfirmDialog } from '../../../ui/Dialog'
 import { Toggle } from '../../../ui/Toggle'
 import { T } from '../../srpg/text'
+import { RankSwitches } from './RankSwitches'
 
 export function FeatureSwitchesCard() {
   const doc = useDoc()
@@ -28,6 +29,7 @@ export function FeatureSwitchesCard() {
               checked={srpgFeatureOn(doc, f)} disabled={!srpgFeatureOn(doc, f) && !canSwitchOn(doc, f)} onChange={(v) => flip(f, v)} />
           </div>
         ))}
+        <RankSwitches />
       </div>
       <ConfirmDialog open={asking !== null} title={asking ? T.offTitle(T.what[asking]) : ''} confirmLabel={T.offConfirm} danger
         onCancel={() => setAsking(null)} onConfirm={() => { if (asking) edit((d) => switchOffFeature(d, asking)); setAsking(null) }}>

@@ -24,6 +24,7 @@ import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import type { Cell } from '../../../../model/mapGrid'
+import { UnitRankOverride } from './UnitRankOverride'
 import { T } from '../text'
 
 interface Props { mapId: string; cell: Cell; say: (m: string | null) => void }
@@ -104,6 +105,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
           )}
         </div>
       )}
+      <UnitRankOverride mapId={mapId} cell={cell} classId={typeId} />
       <FieldGroup label={T.statsTitle} help={T.statsHelp}>
         <table className="kv">
           <tbody>

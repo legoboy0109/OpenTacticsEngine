@@ -2,6 +2,7 @@
 import { clone, ids, withWeapons } from './doc'
 import { suggestedWeaponProps } from './formulas'
 import { makeId } from './ids'
+import { dropGroupRanks, renameGroupRefs } from './rankRefs'
 import { cleanWeapon } from './references'
 import { dropKey, moveItem, patchObj, setNum, updateById } from './util'
 import type { NumMap, ProjectDoc, Weapon } from './types'
@@ -25,10 +26,26 @@ export function duplicateWeapon(doc: ProjectDoc, id: string, newId?: string): Pr
   })
 }
 
-/** Removes the weapon and takes it off every unit that carried it. */
+const groupsLeft = (doc: ProjectDoc): Set<string> => new Set((doc.weapons ?? []).flatMap((w) => (w.group ? [w.group] : [])))
+
+/** Removes the weapon and takes it off every unit that carried it. When it was the last weapon of its group, starting ranks in
+ *  that group go too (the loader refuses a rank in a group no weapon has). */
 export function deleteWeapon(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.weapons) return doc
-  return { ...cleanWeapon(doc, id), weapons: doc.weapons.filter((w) => w.id !== id) }
+  const group = doc.weapons.find((w) => w.id === id)?.group
+  const out = { ...cleanWeapon(doc, id), weapons: doc.weapons.filter((w) => w.id !== id) }
+  return group && !groupsLeft(out).has(group) ? dropGroupRanks(out, group) : out
+}
+
+/** The weapon's group (blank = none). When this was the only weapon of its group and the new name is not a group yet, it is a
+ *  rename: the classes that wield the group and every starting rank in it follow. Anything else (a group that disappears, one that
+ *  merges into another) leaves them alone: the rank checks name what no longer fits, and nothing is lost while someone is typing. */
+export function setWeaponGroup(doc: ProjectDoc, id: string, text: string): ProjectDoc {
+  const old = doc.weapons?.find((w) => w.id === id)?.group
+  const group = text.trim() === '' ? undefined : text
+  if (old === group) return doc
+  const out = updateWeapon(doc, id, { group })
+  return old && group && !groupsLeft(out).has(old) && !groupsLeft(doc).has(group) ? renameGroupRefs(out, old, group) : out
 }
 
 export function updateWeapon(doc: ProjectDoc, id: string, patch: Partial<Omit<Weapon, 'id'>>): ProjectDoc {

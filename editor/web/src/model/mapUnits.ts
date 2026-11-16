@@ -6,6 +6,7 @@ import { typeIdOf } from './characterUnits'
 import { structureAt } from './mapStructures'
 import { canEnter } from './structuresEffective'
 import { patchObj } from './util'
+import type { RankMap } from './srpgTypes'
 import type { ItemEntry, MapFile, MapUnit } from './types'
 
 export interface UnitEdit {
@@ -75,7 +76,7 @@ export function removeMapUnit(map: MapFile, x: number, y: number): MapFile {
 }
 
 /** `items`: a list (even an empty one) replaces the unit type's starting items; undefined removes the key = uses the type's. */
-type UnitPatch = { side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[] }
+type UnitPatch = { side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap }
 
 /** Name, level and leader are stored only when they mean something; clearing removes the key. */
 export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPatch): MapFile {
