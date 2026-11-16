@@ -111,8 +111,8 @@
           "height": 1.532,
           "sideMaterial": ""
         },
-        "pegasus": {
-          "model": "models/detailed/pegasus.glb",
+        "sky_rider": {
+          "model": "models/detailed/sky_rider.glb",
           "height": 1.474,
           "sideMaterial": ""
         }

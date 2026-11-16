@@ -6,7 +6,7 @@ units add pieces from other packs with glb_attach / glb_merge:
   archer    Rogue_Hooded + Quaternius "Wooden Bow" hung on the left hand joint
   soldier   Barbarian + Quaternius "Spear" hung on the right hand joint
   cavalier  Knight seated on the Quaternius "Horse" (the rider's skeleton is a child of the horse's Body joint)
-  pegasus   Mage seated on the same horse, with generated wings (glb_wings.py) that flap
+  sky_rider Mage seated on the same horse, with generated wings (glb_wings.py) that flap
 
 One clip animates both skeletons of a rider model: the mount's own clip, plus (for the attack) the rider's
 arm and chest tracks. Idle and move leave the rider in its seated pose and let the horse's body carry it.
@@ -46,7 +46,7 @@ HORSE_CLIPS = {'Idle': 'Idle', 'Walk': 'Walk', 'Run': 'Run', 'Attack': 'Headbutt
 RIDERS = {
     'cavalier': dict(char='Knight', drop=_SWORDS + ['1H_Sword', 'Knight_Cape'], move='Run', hold='2H_Melee_Idle',
                      attack='2H_Melee_Attack_Slice', seat=(0.0, 1.72, -0.25), size=1.05, wings=False),
-    'pegasus': dict(char='Mage', drop=['Spellbook', 'Spellbook_open', '1H_Wand'], move='Fly', hold='Idle',
+    'sky_rider': dict(char='Mage', drop=['Spellbook', 'Spellbook_open', '1H_Wand'], move='Fly', hold='Idle',
                     attack='Spellcast_Shoot', seat=(0.0, 1.72, -0.25), size=1.05, wings=True),
 }
 

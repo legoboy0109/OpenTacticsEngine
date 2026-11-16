@@ -294,7 +294,7 @@ closest was used: the bow is a string pluck plus a soft thud, the potion and mag
 CC0 set is filled from the retro generator. The loops of the long tracks (battle, enemy, boss) were found by comparing
 the sound of the two ends and cross-fading 2 s (`LOOPS` in the script); **that was checked by numbers, never by ear**.
 `demo-srpg` overrides: sword / lance / axe / bow `hit` sounds, `step` for the cavalier (`hooves`), the knight (`plate_step`) and the
-pegasus knight (`flutter`), `potion` for the vulnerary and salve, `magic` for the energy drop, `scene` under all campaign scenes
+sky rider (`flutter`), `potion` for the salve and mending salve, `magic` for the energy drop, `scene` under all campaign scenes
 (the `sceneMusic` default), and in the bridge map's events: `playSound alarm` when the reinforcements come, `playMusic boss` (1 s fade)
 when Gorm is fought, `stopMusic` (1 s) when the battle is won. The demo's campaign file is unchanged (the editor's campaign screen
 does not yet read the object form of a scene).

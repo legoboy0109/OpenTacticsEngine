@@ -51,7 +51,7 @@
 
     { "type": "knight",   "side": "red", "x": 5, "y": 1, "id": "hald", "name": "Hald", "level": 4, "leader": true,
       "stats": { "hp": 28, "str": 9, "def": 7 },
-      "items": ["iron_lance", { "item": "salve", "drop": true }] },
+      "items": ["iron_lance", { "item": "mending_salve", "drop": true }] },
     { "type": "soldier",  "side": "red", "x": 4, "y": 3, "name": "Ro",   "level": 2 },
     { "type": "soldier",  "side": "red", "x": 6, "y": 3, "name": "Iss",  "level": 2 },
     { "type": "archer",   "side": "red", "x": 5, "y": 2, "name": "Marn", "level": 2 },
@@ -68,7 +68,7 @@
     // Sera rides with the company only if Eirik won her over at the ford.
     { "id": "sera_arrives", "when": { "battle": "start" },
       "if": [ { "switch": "sera_joined", "is": true } ],
-      "do": [ { "addUnit": { "type": "pegasus", "side": "blue", "x": 4, "y": 9, "id": "sera", "name": "Sera", "level": 2 } },
+      "do": [ { "addUnit": { "type": "sky_rider", "side": "blue", "x": 4, "y": 9, "id": "sera", "name": "Sera", "level": 2 } },
               { "say": "I can cross the stream wherever I like. Tell me where you want me.", "speaker": "sera" } ] },
     { "id": "opening", "when": { "battle": "start" },
       "do": [ { "focus": "hald" },

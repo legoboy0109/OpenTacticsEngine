@@ -622,8 +622,8 @@ def cavalier():
     return M
 
 
-def pegasus():
-    M = Model('pegasus')
+def sky_rider():
+    M = Model('sky_rider')
     hand = mount_base(M, WHITE, PEG_SHADE, GREY, PEG_SHADE)
     M.joint('weapon', 'arm_r', hand)
     M.joint('wing_l', 'root', (0.25, 1.2, 0.1))
@@ -851,7 +851,7 @@ UNIT_BUILDERS = {
     'fighter': (fighter, lambda M: foot_clips(M, style='axe', alpha=20)),
     'knight': (knight, lambda M: foot_clips(M, style='spear', alpha=12, shield=True)),
     'soldier': (soldier, lambda M: foot_clips(M, style='spear', alpha=15, shield=True)),
-    'pegasus': (pegasus, lambda M: mount_clips(M, 40, wings=True)),
+    'sky_rider': (sky_rider, lambda M: mount_clips(M, 40, wings=True)),
 }
 UNIT_ORDER = list(UNIT_BUILDERS)
 

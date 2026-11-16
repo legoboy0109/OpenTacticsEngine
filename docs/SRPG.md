@@ -125,7 +125,7 @@ identity that events, the campaign roster and supports use.
     "skills": ["quick_study"],                    // optional: personal skills (section 3)
     "learns": [ { "level": 8, "skill": "heavy_blow" } ],   // optional: personal skills learned at a level
     "abilities": ["shove"],                       // optional: personal menu abilities (section 4)
-    "items": ["iron_sword", "vulnerary"] }        // optional: replaces the unit type's starting items
+    "items": ["iron_sword", "salve"] }        // optional: replaces the unit type's starting items
 ] }
 ```
 
@@ -1227,7 +1227,7 @@ game.
   **Pull Back** (Sera, personal; free, 2 uses per battle), **Rally** (Eirik, personal; heal 5 to an ally next to
   him, uses the action), and for the enemy a new unit type Houndmaster with **Call Hound** (summons a Hound; limit
   2, vanish, lifetime 3), so a computer side summons in chapter 2.
-- `rules.rescue`: `carry`, `canCarry`: not units tagged `mounted` (Cavalier and the pegasus rider get the tag) and
+- `rules.rescue`: `carry`, `canCarry`: not units tagged `mounted` (Cavalier and the sky rider get the tag) and
   the carrier's Strength at least the other's Defense; `carrierStats`: Skill and Speed halved.
 - `data/supports.json`: pairs Eirik–Kell, Eirik–Lyra, Lyra–Bram, Eirik–Sera; two levels each with short
   conversations; all three point sources on; `conversations: "both"`; `maxLevels: 3`. Chapter 1's after scene gives

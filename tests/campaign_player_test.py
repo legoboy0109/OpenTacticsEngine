@@ -68,7 +68,7 @@ def maps(lose_first):
         [U('knight', 'red', 11, 4, 'Gorm', 'gorm', level=3, leader=True),
          U('soldier', 'red', 9, 4, 'Tane', level=1),
          U('soldier', 'red', 8, 3, 'Wanderer', 'wanderer', level=5)],
-        700, ['salve'],
+        700, ['mending_salve'],
         [{'id': 'recruit', 'when': {'battle': 'start'}, 'do': [{'changeSide': 'wanderer', 'side': 'blue'}]},
          end_event(lose_first, [] if lose_first else [{'removeUnit': 'bram'}])])
     # Chapters 2 and 3 name their heroes at level 1: what the party carries (levels, stats) must override that.

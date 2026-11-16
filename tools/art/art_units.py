@@ -162,7 +162,7 @@ def soldier(b):
     return p
 
 
-def pegasus(b):
+def sky_rider(b):
     p = Pix(T, T)
     horse(p, 3, 9, b)
     p.ellipse(9, 12, 6.5, 3.2, WHITE)
@@ -310,7 +310,7 @@ def apc(b):
 # Unit type id -> drawing function. The sheet row of a unit is its position in ORDER.
 UNITS = {
     'lord': lord, 'cavalier': cavalier, 'archer': archer, 'fighter': fighter, 'knight': knight,
-    'soldier': soldier, 'pegasus': pegasus,
+    'soldier': soldier, 'sky_rider': sky_rider,
     'infantry': infantry, 'mech': mech, 'recon': recon, 'tank': tank, 'artillery': artillery,
     'apc': apc,
 }

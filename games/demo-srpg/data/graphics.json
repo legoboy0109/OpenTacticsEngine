@@ -224,7 +224,7 @@
       ],
       "frameMs": 600
     },
-    "pegasus": {
+    "sky_rider": {
       "sheet": "units",
       "frames": [
         [
@@ -520,8 +520,8 @@
         "soldier": {
           "model": "models/soldier.glb"
         },
-        "pegasus": {
-          "model": "models/pegasus.glb"
+        "sky_rider": {
+          "model": "models/sky_rider.glb"
         }
       },
       "structures": {
@@ -649,8 +649,8 @@
         "soldier": {
           "model": "models/soldier.glb"
         },
-        "pegasus": {
-          "model": "models/pegasus.glb"
+        "sky_rider": {
+          "model": "models/sky_rider.glb"
         }
       },
       "structures": {
@@ -759,8 +759,8 @@
           "height": 1.515,
           "sideMaterial": ""
         },
-        "pegasus": {
-          "model": "models/detailed/pegasus.glb",
+        "sky_rider": {
+          "model": "models/detailed/sky_rider.glb",
           "height": 1.474,
           "sideMaterial": ""
         }
@@ -911,7 +911,7 @@
           ],
           "frameMs": 600
         },
-        "pegasus": {
+        "sky_rider": {
           "sheet": "iso_units",
           "frames": [
             [

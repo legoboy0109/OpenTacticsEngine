@@ -1,5 +1,5 @@
 // The river splits the map; the bridge at the middle row is the only
-// ground crossing (pegasi ignore it). Blue starts west, red east.
+// ground crossing (fliers ignore it). Blue starts west, red east.
 {
   "name": "Skirmish at the Ford",
   "grid": { "type": "square", "width": 13, "height": 9 },
@@ -36,7 +36,7 @@
   ],
   "sides": [
     { "id": "blue", "name": "Blue Company", "color": "#3d85c6", "controller": "human",
-      "resources": { "gold": 700 }, "storage": ["salve"] },
+      "resources": { "gold": 700 }, "storage": ["mending_salve"] },
     { "id": "red",  "name": "Red Warband",  "color": "#cc0000", "controller": "ai" }
   ],
   "units": [
@@ -56,7 +56,7 @@
     { "type": "fighter",  "side": "red", "x": 9,  "y": 3, "id": "orsk", "name": "Orsk", "level": 2,
       "items": ["iron_axe", { "item": "energy_drop", "drop": true }] },
     { "type": "archer",   "side": "red", "x": 10, "y": 5, "id": "vex", "name": "Vex",  "level": 2 },
-    { "type": "pegasus",  "side": "red", "x": 8,  "y": 2, "id": "sera", "name": "Sera", "level": 2 }
+    { "type": "sky_rider",  "side": "red", "x": 8,  "y": 2, "id": "sera", "name": "Sera", "level": 2 }
   ],
 
   // The story of this battle (docs/EVENTS.md). Units are pointed at by their "id".
@@ -69,7 +69,7 @@
     { "id": "opening", "when": { "battle": "start" },
       "do": [ { "focus": "eirik" },
               { "say": "The ford is the only way across for a day's march. We take the bridge, and we bring down Gorm.", "speaker": "eirik" },
-              { "say": "Their pegasus knight keeps looking back at her own lines. Sera never wanted this war. Let me speak to her, if I can get close.", "speaker": "eirik" },
+              { "say": "Their sky rider keeps looking back at her own lines. Sera never wanted this war. Let me speak to her, if I can get close.", "speaker": "eirik" },
               { "focus": "gorm" },
               { "say": "Blue Company? Here? Sweep them into the river!", "speaker": "gorm" } ] },
 

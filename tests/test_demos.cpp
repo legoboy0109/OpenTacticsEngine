@@ -53,9 +53,9 @@ TEST(demo_srpg_starts_and_forecasts) {
   CHECK_EQ((int)dmg, 11);
   double hit = d.formulas.eval(Formulas::Hit, ctx, -1);
   CHECK(hit > 20 && hit <= 150);
-  // The demo's items: the lord's vulnerary, the storage, a shop on the forts, the enemy leader's drop.
+  // The demo's items: the lord's salve, the storage, a shop on the forts, the enemy leader's drop.
   const Battle& bt = d.battle;
-  CHECK(bt.units[0].items.size() == 2 && bt.itemOf(bt.units[0].items[1]).id == "vulnerary");
+  CHECK(bt.units[0].items.size() == 2 && bt.itemOf(bt.units[0].items[1]).id == "salve");
   CHECK(bt.sides[0].storage.size() == 1 && bt.sides[0].resources[0] == 700);
   CHECK(bt.storageOpen(bt.units[0]) && !bt.storageOpen(bt.units[2]));  // the leader; Lyra is not next to him
   CHECK(bt.units[4].items.size() == 2 && bt.units[4].items[1].drop);
