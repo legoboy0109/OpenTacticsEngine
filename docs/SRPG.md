@@ -2441,6 +2441,43 @@ units, characters, items and weapons, story forms for teach / forget / has skill
 The Abilities screen, the Abilities and Promotion cards, the Rules cards for carrying and promotion, the story
 forms for Promote and "is promoted".
 
+#### E3 as built
+
+Abilities, promotion and carrying are editable; the helper needed no change (the `abilities` section and the game / unit / item
+documents already carried every key). Details in docs/EDITOR_UI.md "Strategy-RPG: abilities, promotion, carrying (E3)".
+
+- **Where**: model `abilities.ts`, `abilityConditions.ts`, `abilityText.ts`, `abilityChecks.ts`, `promotion.ts`, `promotionChecks.ts`,
+  `promotionRefs.ts`, `rescue.ts`, `rescueChecks.ts`; screens `screens/abilities/*`, the E0 slots `UnitAbilitiesCard`, `UnitPromotionCard`,
+  `UnitPairBonusCard`, `ItemPromotionCard`, `CarryingCard`, `PromotionRulesCard`; story `forms/PromoteForm.tsx`.
+- **Shared files touched** (small): `srpgTypes.ts` (Ability, Summon types), `references.ts` / `itemRefs.ts` (one call each: promotions into a deleted
+  unit type, abilities that summon it, promotion items, stat clean-up), `items.ts` (`promotes` leaves with the usable kind), `itemChecks.ts` (a promotion
+  item needs no heal), `units.ts` (`deleteUnit` now keeps the clean-up of `units`: it used the old list), story files (`storyTypes`, `storyDefaults`,
+  `storyWalk`, `storySummary`, `CommandForm`, `CommandList`, `TriggerForm`, `story/text.ts`), `tests/editor_api_test.py` (one import and call).
+- **Readings of the contract.** (1) "The 'is promoted' condition" is the contract's trigger `{ "promoted": <filter> }` (the engine has no such
+  condition): it is the trigger "A unit is promoted". (2) An ability's conditions: E2's skill builder does not exist yet, so the ability has its own
+  small "Only if" rows (hit points, units nearby, unit type or tag, carrying, round; "the target" for hit points and type); any other condition
+  in a file is shown as kept and can be removed. E2 may swap in its builder. (3) Switching Carrying to a mode that refuses settings
+  (pair up to carry, anything to off) asks first and removes them, including every unit type's "Gives when behind". (4) A unit type's Abilities
+  card shows once the game has abilities. (5) A promotion item card shows on usable items only; switching it off or changing the kind removes the
+  item from promotions. (6) Deleting a unit type also deletes abilities that summon it (listed in the question). (7) Checks sit in the card they are
+  about (Units: promotion, pair bonus; Items: promotion item; Rules: carrying; Abilities screen: banner), not in extra banners on the Units / Items screens.
+  (8) "Its only promotion" on the Promote command leaves `to` out; the editor does not check that the unit's type has exactly one promotion (the loader's
+  message shows in Problems).
+- **Wording** (placeholders for the owner): screen "Abilities": effects "Push it away / Pull it back / Swap places / Move it to the other side / Heal /
+  Summon a unit"; targets "Itself / An ally next to it / An enemy next to it / Any unit next to it / A free square within reach"; "Cost and limits":
+  "Uses the unit's action / Free: the unit can still act", "Uses per battle", "Wait between uses", "Only before moving"; "Only if"; "The summoned unit":
+  "Its level: The same as the summoner / A set level", "How many at once", "How long it stays: Until it is defeated / A number of turns",
+  "Vanish when the summoner is defeated", "Can act at once", "Gives experience". Unit type cards "Abilities", "Promotion" (Becomes, From level, By item,
+  On reaching the level: Nothing happens by itself / It is offered to the player / It happens automatically; Level afterwards; Stat changes: The difference
+  between the two unit types / Set by hand), "Gives when behind". Item card "Promotion item". Rules cards "Carrying" (How units help each other: Off / Carry /
+  Pair up; Who can carry whom: Anyone can carry anyone / The carrier's number is at least the other's / Not units with a tag / A custom rule; While carrying:
+  Halved / Minus / Percent of normal / Plus; The partner behind gives) and "Promotion" (After promoting, the level: Starts again at 1 / Stays as it was).
+  Story: "Promote a unit" (Which unit is promoted, It becomes, Its only promotion), trigger "A unit is promoted".
+- **Tests**: vitest `abilities.test.ts`, `promotion.test.ts`, `rescue.test.ts`; `tests/editor_api_abilities_checks.py` (saves all of it and checks the loader and
+  `ote-sim`); Playwright `srpg-abilities.spec.ts`, `srpg-promotion.spec.ts` (with the 360 px checks).
+- **Not done / for others**: no check that a Promote command without `to` fits its unit's type; the summon of a deleted unit type is cleaned, but characters
+  of a deleted unit type (E1) are not.
+
 ### E4. Editor: Supports — depends on E1; parallel with E2, E3
 The Supports screen (reusing `SceneEditor`), story and scene forms for support points, condition and trigger.
 

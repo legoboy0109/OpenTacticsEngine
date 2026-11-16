@@ -23,8 +23,25 @@ export interface Character extends Named {
 /** data/skills.json entry (section 3); the blocks are E2's to type. */
 export interface Skill extends Named { description?: string; blocks?: Extra[] }
 
-/** data/abilities.json entry (section 4); the rest is E3's to type. */
-export interface Ability extends Named { description?: string }
+/** The `summon` effect of an ability (section 4); only `type` is required, a default is never written. */
+export interface Summon extends Extra {
+  type?: string; level?: 'summoner' | number; limit?: number; vanish?: boolean; lifetime?: number; canAct?: boolean; givesXp?: boolean
+}
+/** An ability's one effect: exactly one of these keys. */
+export interface AbilityEffect extends Extra { push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon }
+export type AbilityTarget = 'self' | 'ally' | 'enemy' | 'unit' | 'cell'
+/** data/abilities.json entry (section 4). `if` holds conditions of the skill kind; E3 shows and edits a few of them. */
+export interface Ability extends Named {
+  description?: string
+  target?: AbilityTarget
+  range?: [number, number]
+  effect?: AbilityEffect
+  cost?: 'action' | 'free'
+  uses?: number
+  cooldown?: number
+  afterMove?: boolean
+  if?: Extra[]
+}
 
 /** data/supports.json (section 6): `rules`, `pairs`; E4 types them. */
 export interface Supports extends Extra { rules?: Extra; pairs?: Array<{ a: string; b: string } & Extra> }

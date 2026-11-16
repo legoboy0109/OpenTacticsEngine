@@ -53,6 +53,7 @@ export function newTrigger(c: DefCtx, kind: TriggerKind): Trigger {
       const units = namedUnits(c.doc, c.map)
       return { talk: units[0]?.id ?? '', to: units[1]?.id ?? '' }
     }
+    case 'promoted': return { promoted: defaultFilter(c) }
   }
 }
 
@@ -85,6 +86,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'removeUnit': return { removeUnit: defaultFilter(c) }
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
+    case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'grantResearch': return { grantResearch: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
     case 'giveResource': {

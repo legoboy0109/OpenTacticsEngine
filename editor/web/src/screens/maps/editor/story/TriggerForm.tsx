@@ -14,7 +14,7 @@ import { S } from './text'
 const GROUPS: Array<{ group: string; kinds: TriggerKind[] }> = [
   { group: S.triggerGroups.battle, kinds: ['start', 'won', 'lost', 'end'] },
   { group: S.triggerGroups.turns, kinds: ['turn', 'everyTurn'] },
-  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk'] },
+  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted'] },
 ]
 
 export function TriggerForm({ event }: { event: StoryEvent }) {
@@ -59,6 +59,7 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
           <p className="help">{S.fightHelp}</p>
         </>
       )}
+      {kind === 'promoted' && <FilterPicker label={S.promotedWho} value={when.promoted} onChange={(f) => setWhen({ promoted: f ?? {} })} />}
       {kind === 'talk' && (
         <>
           <UnitPick label={S.talkWho} value={when.talk ?? ''} onChange={(v) => setWhen({ talk: v })} help={S.talkHelp} />

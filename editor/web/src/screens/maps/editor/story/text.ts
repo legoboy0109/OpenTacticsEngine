@@ -47,6 +47,7 @@ export const S = {
     defeated: 'A unit is defeated',
     fight: 'A fight begins',
     talk: 'Two units talk',
+    promoted: 'A unit is promoted',
   } as Record<TriggerKind, string>,
   turnNumber: 'Turn number',
   turnSide: 'On the turn of',
@@ -156,6 +157,7 @@ export const S = {
     removeUnit: 'Remove a unit',
     moveUnit: 'Move a unit',
     changeSide: 'Change a unit’s side',
+    promote: 'Promote a unit',
     giveItem: 'Give an item',
     giveResource: 'Give resources',
     grantResearch: 'Give a technology',
@@ -223,6 +225,11 @@ export const S = {
   changeWho: 'Which units',
   changeTo: 'Join side',
   changeHelp: 'Recruiting: the units change sides.',
+  promoteWho: 'Which unit is promoted',
+  promoteTo: 'It becomes',
+  promoteOwn: 'Its only promotion',
+  promoteHelp: 'Any unit type will do, even one its own type does not list. “Its only promotion” works for a unit whose type has exactly one. Nothing happens if the unit is gone or could not stand on its square as the new type.',
+  promotedWho: 'Which unit',
 
   // --- give ---
   grantTech: 'Technology',

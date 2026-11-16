@@ -1,6 +1,7 @@
 // What other parts of a game hold about items, and the clean-up when an item (or a stat, resource or weapon an item
 // points at) is deleted. Pure functions returning new documents, so a delete and its clean-up are one undo step.
 import { entryId, withoutItem } from './itemGrants'
+import { cleanItemPromotions, itemPromotionUsageLines } from './promotionRefs'
 import { scrubMap, storyUsages } from './storyRefs'
 import { dropKey } from './util'
 import type { Usage } from './references'
@@ -21,6 +22,7 @@ export function itemUsageLines(doc: ProjectDoc, id: string): Usage[] {
     if (carriers) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: ${carriers} placed ${plural(carriers, 'unit carries', 'units carry')} it` })
     for (const s of m.sides ?? []) if (holds(s.storage, id)) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: side “${s.name || s.id}” starts with it in storage` })
   }
+  out.push(...itemPromotionUsageLines(doc, id))
   // Events and objectives that give it, check for it or add units carrying it.
   out.push(...storyUsages(doc, [{ kind: 'item', id }]))
   return out
@@ -28,6 +30,10 @@ export function itemUsageLines(doc: ProjectDoc, id: string): Usage[] {
 
 /** Takes the item out of every list. A placed unit that is left with no items keeps an empty list (it now has none). */
 export function cleanItem(doc: ProjectDoc, id: string): ProjectDoc {
+  return cleanItemPromotions(cleanItemLists(doc, id), id)
+}
+
+function cleanItemLists(doc: ProjectDoc, id: string): ProjectDoc {
   const maps: ProjectDoc['maps'] = {}
   for (const [mid, m] of Object.entries(doc.maps)) maps[mid] = m === null ? null : scrubMap(doc, cleanMap(m, id), [{ kind: 'item', id }])
   return {

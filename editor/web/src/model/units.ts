@@ -47,7 +47,8 @@ export function deleteUnit(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.units || unitRemovalBlock(doc)) return doc
   // A character of this type cannot stand without it: the people go too, with their placed units, pairs and story lines.
   const cleaned = charactersOfType(doc, id).reduce((d, c) => deleteCharacter(d, c.id), cleanUnit(doc, id))
-  return { ...cleaned, units: doc.units.filter((u) => u.id !== id) }
+  // `cleaned.units` already lost promotions into this type (promotionRefs.ts); the type itself goes here.
+  return { ...cleaned, units: (cleaned.units ?? doc.units).filter((u) => u.id !== id) }
 }
 
 export function updateUnit(doc: ProjectDoc, id: string, patch: Partial<Omit<Unit, 'id'>>): ProjectDoc {

@@ -8,6 +8,7 @@ import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
 import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { AddVariableForm, EndTurnForm, FocusForm, SetSwitchForm, SetVariableForm, WinLoseForm } from './forms/StoryForms'
+import { PromoteForm } from './forms/PromoteForm'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
@@ -21,6 +22,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'removeUnit': return <RemoveUnitForm cmd={cmd} at={at} />
     case 'moveUnit': return <MoveUnitForm cmd={cmd} at={at} />
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
+    case 'promote': return <PromoteForm cmd={cmd} at={at} />
     case 'giveItem': return <GiveItemForm cmd={cmd} at={at} />
     case 'giveResource': return <GiveResourceForm cmd={cmd} at={at} />
     case 'grantResearch': return <GrantResearchForm cmd={cmd} at={at} />
