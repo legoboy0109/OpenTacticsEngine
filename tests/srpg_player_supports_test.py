@@ -82,6 +82,8 @@ def build(src, dst, title, mode, with_supports=True):
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
+    # D1: the demo has supports of its own; each game below gets the test's or none (characters.json is replaced below)
+    os.remove(dst + "/data/supports.json")
     bridge = jsonc(src + '/maps/bridge.json')
     os.remove(dst + '/maps/bridge.json')
     finish = [{'id': 'finish', 'when': {'turn': 2, 'side': 'blue'}, 'do': [{'win': 'blue'}]}]

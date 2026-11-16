@@ -399,7 +399,8 @@ def shipped_games(tmp, demos):
     check('demo-srpg: the scene is read with dialogue blips', seq[1:11] == ['dialogue'] * 10, str(seq[:12]))
     check('demo-srpg: the battle opening (story lines) blips too', seq.index('M:battle') < len(seq) - 1 and seq[seq.index('M:battle') + 1] == 'dialogue', str(seq))
     # The bridge map on its own, played by the computer: the weapons' sounds, hooves, the story's commands.
-    code, out, seq, raw = play(tmp, demos, ['--map', 'bridge', '--autoplay', '--seed', '2'], 'wait:20', 3000, game='demo-srpg')
+    # (seed 4: since D1 the demo's skills change the fights; this seed still has every sound below and a blue win)
+    code, out, seq, raw = play(tmp, demos, ['--map', 'bridge', '--autoplay', '--seed', '4'], 'wait:20', 3000, game='demo-srpg')
     clean('demo-srpg bridge', out, code)
     kinds = {re.sub(r'\d+$', '', t) for t in seq}   # (variants: step1 step2 step3 -> step)
     for snd in ('sword_hit', 'lance_hit', 'axe_hit', 'bow_hit', 'hooves', 'flutter', 'step', 'miss', 'defeated', 'critical'):
