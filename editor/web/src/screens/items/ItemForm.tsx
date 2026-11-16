@@ -12,6 +12,7 @@ import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Toggle } from '../../ui/Toggle'
 import { ItemKindFields } from './ItemKindFields'
+import { ItemSrpgCards } from './srpg/ItemSrpgCards'
 import { T } from './text'
 
 export function ItemForm({ id }: { id: string }) {
@@ -75,6 +76,8 @@ export function ItemForm({ id }: { id: string }) {
               columns={[{ title: T.priceCol, values: item.price, min: 0, placeholder: '—', onChange: (k, v) => edit((d) => setPrice(d, id, k, v), `${key}:price:${k}`) }]} />
           )}
       </Card>
+
+      <ItemSrpgCards id={id} />
 
       <SoundsGroup owner="items" id={id} />
 

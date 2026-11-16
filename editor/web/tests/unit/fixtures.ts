@@ -59,5 +59,10 @@ function loadFrom(root: string, name: string): ProjectDoc {
     campaign: existsSync(path.join(root, name, 'data/campaign.json')) ? read(name, 'data/campaign.json') : null,
     // Sound is optional too (the demos and templates may or may not have it: tests must not rely on either).
     audio: existsSync(path.join(root, name, 'data/audio.json')) ? read(name, 'data/audio.json') : null,
+    // The strategy-RPG files (docs/SRPG.md) are optional as well.
+    characters: existsSync(path.join(root, name, 'data/characters.json')) ? read(name, 'data/characters.json').characters : null,
+    skills: existsSync(path.join(root, name, 'data/skills.json')) ? read(name, 'data/skills.json').skills : null,
+    abilities: existsSync(path.join(root, name, 'data/abilities.json')) ? read(name, 'data/abilities.json').abilities : null,
+    supports: existsSync(path.join(root, name, 'data/supports.json')) ? read(name, 'data/supports.json') : null,
   }
 }

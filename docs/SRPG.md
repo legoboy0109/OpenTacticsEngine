@@ -1826,6 +1826,30 @@ fields, sidebar entries and routes with empty screens, reference and id helpers 
 (`model/srpgRefs.ts`), empty card slots in `UnitForm`, `ItemForm`, `WeaponForm` and the Rules screen (one component
 file per future card, so later steps do not edit the forms).
 
+#### E0 as built
+
+The shared places are in; every screen is an empty frame. Details for the editor are in docs/EDITOR_UI.md "Strategy-RPG
+skeleton" and docs/EDITOR_API.md; the short version for the steps that follow:
+
+- **Helper**: `editor/server/srpg_files.{h,cpp}` reads and writes the four files; `projects.cpp` and `project_write.cpp` only call it.
+  An empty list removes its file, `supports: false` removes `data/supports.json`, a map may not use these names as its file.
+  `tests/editor_api_srpg_checks.py`.
+- **Web**: `model/srpgTypes.ts` (shapes with the `Extra` index; E1 to E4 type their own list there), `model/srpgFeatures.ts` (switches,
+  sidebar rule), `model/srpgRefs.ts` (ids, "used by", delete clean-up for the three lists), the four sections in `ProjectDoc`,
+  `Section` and the autosave body. Screens: `screens/{characters,skills,abilities,supports}/<Name>Screen.tsx` inside
+  `screens/srpg/SrpgScreen.tsx`. Card slots, one file each: Rules `CarryingCard`, `PromotionRulesCard`; unit type `UnitSkillsCard`
+  (E2), `UnitAbilitiesCard`, `UnitPromotionCard`, `UnitPairBonusCard` (E3); weapon `WeaponSkillsCard` (E2); item `ItemSkillsCard` (E2),
+  `ItemPromotionCard` (E3). The forms mount the group files, so no later step edits `UnitForm`, `WeaponForm`, `ItemForm` or `RulesScreen`.
+- **Readings of the contract.** (1) "Class" wording (open question 1) is not in the E0 section and is not done; it belongs to E1. (2) The four
+  Rules switches are in E0 (the contract lists them with the Rules card, and without them no screen could be reached); the Carrying and
+  Promotion cards are E3's. (3) A feature is "on" when its list or file exists in the editor's document; switching on creates an empty list,
+  which is never written, so an empty feature is forgotten on reload (the contract: an empty list and no file are the same game). Supports
+  with no pair and no setting count as empty. (4) Switching a feature off removes its items from everything that names them (units,
+  characters, weapons, items, skills, map units, pairs) in one undo step; it asks first only when the feature holds something.
+  (5) Map units: only `character?: string` was added to `MapUnit`; `type` is still required in the type, E1 relaxes it with the Characters tab.
+  (6) Problems: the loader's words are shown as they are; the editor-side checks are left to E1 to E4 (they need the data forms).
+  (7) Deleting a unit type does not yet clean characters of that type, promotions into it or summons of it (E1 / E3).
+
 ### E1. Editor: Characters and map placement — depends on E0 (C1 for Problems)
 The Characters screen, the map editor's Characters tab and unit form, checks.
 

@@ -2,6 +2,7 @@
 // signature so keys the UI does not know about survive load -> edit -> save.
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
+import type { Ability, Character, Learn, Promotion, PromotionRules, RescueRules, Skill, Supports } from './srpgTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
 export interface Extra { [key: string]: unknown }
@@ -42,6 +43,9 @@ export interface Rules extends Extra {
   production?: Production
   capture?: Capture
   progression?: Progression
+  /** docs/SRPG.md sections 5 and 2; missing = neither carrying nor a promotion rule. */
+  rescue?: RescueRules
+  promotion?: PromotionRules
 }
 export interface Formulas extends Extra {
   damage?: string; hit?: string; crit?: string; critMultiplier?: number; strikes?: string
@@ -144,6 +148,8 @@ export interface Weapon extends Named {
   ammo?: number
   /** Sound overrides (event -> sound id, "" = silence): hit, miss, critical (docs/SOUND.md). */
   sounds?: Record<string, string>
+  /** Skills while this is the weapon in use (docs/SRPG.md section 3). */
+  skills?: string[]
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
@@ -152,6 +158,13 @@ export interface Unit extends Named {
   wields?: string[]
   /** Starting items. */
   items?: ItemEntry[]
+  /** docs/SRPG.md: skills it always has, skills learned at a level, menu abilities, promotions, and what it gives
+   *  when it is the one behind in a pair. */
+  skills?: string[]
+  learns?: Learn[]
+  abilities?: string[]
+  promotions?: Promotion[]
+  pairBonus?: NumMap
   /** Tank size; missing = no fuel. */
   fuel?: number
   fuelPerTurn?: number
@@ -177,6 +190,9 @@ export interface Item extends Named {
   raise?: NumMap
   weapon?: string
   bonus?: NumMap
+  /** Accessories only: skills while carried. Usable items only: `promotes` makes it a promotion item (docs/SRPG.md). */
+  skills?: string[]
+  promotes?: boolean
   /** Sound overrides: use (docs/SOUND.md). */
   sounds?: Record<string, string>
 }
@@ -196,6 +212,8 @@ export interface MapUnit extends Extra {
   id?: string
   /** Missing = the unit type's starting items; a list (even an empty one) replaces them. */
   items?: ItemEntry[]
+  /** A character placed on the map (docs/SRPG.md section 1); then `type`, `name`, `level` are optional overrides. */
+  character?: string
 }
 export interface MapFile extends Extra {
   name: string
@@ -295,6 +313,12 @@ export interface ProjectDoc {
   campaign: Campaign | null
   /** null = the game has no sound (a silent game). Removing all of it is written as `audio: false` (see autosave). */
   audio: Audio | null
+  /** Strategy-RPG files (docs/SRPG.md). null = the game has none (on screen an empty list can stand for "just turned
+   *  on"; an empty list is never written: it removes the file). `supports` is false on the wire to remove the file. */
+  characters: Character[] | null
+  skills: Skill[] | null
+  abilities: Ability[] | null
+  supports: Supports | null
 }
 
 export interface Problem { file: string; message: string }
@@ -306,5 +330,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'sound' | 'maps' | 'campaign'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'sound', 'maps', 'campaign']
+export type Section = 'game' | 'rules' | 'units' | 'characters' | 'skills' | 'abilities' | 'supports' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'sound' | 'maps' | 'campaign'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'characters', 'skills', 'abilities', 'supports', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'sound', 'maps', 'campaign']

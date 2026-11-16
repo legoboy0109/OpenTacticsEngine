@@ -7,6 +7,7 @@
 #include "paths.h"
 #include "projects.h"
 #include "revision.h"
+#include "srpg_files.h"
 #include "validate.h"
 
 namespace ote_editor {
@@ -32,7 +33,7 @@ bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
          rel == "data/units.json" || rel == "data/graphics.json" ||
          rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/campaign.json" ||
-         rel == "data/audio.json";
+         rel == "data/audio.json" || isSrpgFile(rel);
 }
 
 struct PendingWrite {
@@ -70,6 +71,7 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
   if (!body["audio"].isNull() && !body["audio"].isObject() &&
       !(body["audio"].type() == Json::Type::Bool && !body["audio"].asBool()))
     return apiError(400, "\"audio\" must be an object, or false to remove all sound");
+  if (std::string bad = checkSrpgBody(body); !bad.empty()) return apiError(400, bad);
   if (badType(body["graphics"], Json::Type::Object)) return apiError(400, "\"graphics\" must be an object");
   if (badType(maps, Json::Type::Object)) return apiError(400, "\"maps\" must be an object of objects");
   if (badType(scripts, Json::Type::Object)) return apiError(400, "\"scripts\" must be an object of strings");
@@ -154,6 +156,16 @@ ApiResult putProject(const Config& cfg, const std::string& id, const Json& body)
     std::error_code aec;
     if (!resolveInside(dir, "data/audio.json", full, why)) return apiError(400, escape);
     if (fs::is_regular_file(full, aec)) deletions.push_back(full);
+  }
+
+  // The strategy-RPG files (srpg_files.cpp): an empty list or `supports: false` removes its file.
+  const SrpgFileOps srpg = planSrpgFiles(body);
+  for (const auto& w : srpg.writes)
+    if (!add(w.rel, w.bytes)) return apiError(400, escape);
+  for (const std::string& rel : srpg.removals) {
+    std::error_code sec;
+    if (!resolveInside(dir, rel, full, why)) return apiError(400, escape);
+    if (fs::is_regular_file(full, sec)) deletions.push_back(full);
   }
 
   std::set<std::string> writtenMapFiles;

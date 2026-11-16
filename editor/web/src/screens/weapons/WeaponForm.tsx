@@ -10,6 +10,7 @@ import { Check } from '../../ui/Toggle'
 import { AMMO_MAX, AMMO_START, carriedAsItem, setAmmo } from '../../model/supplyUnits'
 import { SoundsGroup } from '../sound/SoundsGroup'
 import { Effectiveness } from './Effectiveness'
+import { WeaponSrpgCards } from './srpg/WeaponSrpgCards'
 import { T } from './text'
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -86,6 +87,8 @@ export function WeaponForm({ id }: { id: string }) {
       <Card>
         <Effectiveness id={id} />
       </Card>
+
+      <WeaponSrpgCards id={id} />
 
       <SoundsGroup owner="weapons" id={id} />
 

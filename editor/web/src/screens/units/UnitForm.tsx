@@ -15,6 +15,7 @@ import { ItemListEditor } from '../../ui/ItemListEditor'
 import { Check } from '../../ui/Toggle'
 import { SightCard } from '../fog/SightCard'
 import { SupplyCard } from './SupplyCard'
+import { UnitSrpgCards } from './srpg/UnitSrpgCards'
 import { T } from './text'
 
 export function UnitForm({ id }: { id: string }) {
@@ -96,6 +97,8 @@ export function UnitForm({ id }: { id: string }) {
       <SupplyCard id={id} />
 
       <SightCard id={id} />
+
+      <UnitSrpgCards id={id} />
 
       <Card>
         <Field label={T.tags} help={T.tagsHelp}>
