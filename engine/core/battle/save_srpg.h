@@ -27,7 +27,7 @@ namespace savejson {
 void writeUnitSrpg(const Battle& b, const Unit& u, Json& j);
 bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
 // After every unit was read: the rules that tie units together (carry links, summoners).
-bool checkUnitsSrpg(Reader& rd, const Battle& b);
+bool checkUnitsSrpg(Reader& rd, Battle& b);
 // The battle as a whole (`out` / `saved` is the "battle" object).
 void writeBattleSrpg(const Battle& b, Json& out);
 bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b);
@@ -52,7 +52,7 @@ bool checkUnitsAbilities(Reader& rd, const Battle& b);  // "summon.by" names an 
 // ---- rescue and pair up (save_rescue.cpp, step R1): units[i] "carrying" ----
 void writeUnitRescue(const Battle& b, const Unit& u, Json& j);
 bool readUnitRescue(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
-bool checkUnitsRescue(Reader& rd, const Battle& b);     // the carry links; also sets Unit::carriedBy
+bool checkUnitsRescue(Reader& rd, Battle& b);     // the carry links; also sets Unit::carriedBy
 
 // ---- supports (save_supports.cpp, step S1): "supports" of a battle and of a playthrough ----
 void writeBattleSupports(const Battle& b, Json& out);
