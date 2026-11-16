@@ -8,6 +8,7 @@
 // chapter other than the first, whether to show it. --autoplay never does.
 #pragma once
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "battle/support_text.h"
@@ -25,11 +26,13 @@ class CampScene : public Scene {
 
  private:
   void layout(const Renderer& r);
+  int linesPerRow(const Renderer& r) const;
   void choose(int row);  // row == rows_.size() is "Continue the story"
   SceneHost& host_;
   std::vector<CampRow> rows_;
   Color bg_;
   RowList list_;
+  std::vector<std::string> subtitle_;  // the explanation under the title, wrapped by layout()
   bool left_ = false;
 };
 

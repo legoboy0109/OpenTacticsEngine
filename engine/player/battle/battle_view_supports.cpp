@@ -20,11 +20,13 @@ bool BattleView::beginSupports(const Battle& b) {
     cur_.dur = 0;
     if (!(e.flags & kReady)) return true;  // a plain gain: nothing to show
     OTE_INFO("support ready: %s", supportPairName(*b.db, e.c).c_str());
+    float lift = 0;  // the pair stands side by side and the label is wider than a square: the second sits higher
     for (int id : {e.a, e.b}) {
       // A unit that is off the board or hidden (fog, carried) gets no label.
       if (id < 0 || (size_t)id >= units.size() || !units[(size_t)id].visible) continue;
       const UnitView& v = units[(size_t)id];
-      addFloat(supportReadyLabel(), v.px + tile_ / 2.0f, v.py - 2, Color(255, 220, 90), 1.2f);
+      addFloat(supportReadyLabel(), v.px + tile_ / 2.0f, v.py - 2 - lift, Color(255, 220, 90), 1.2f);
+      lift += 10;
     }
     cur_.dur = kLabelSeconds;
     return true;

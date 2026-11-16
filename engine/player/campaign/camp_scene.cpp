@@ -12,17 +12,37 @@
 
 namespace ote {
 
+namespace {
+const char* const kContinue = "Continue the story";
+
+void drawWrapped(Renderer& r, const std::string& text, int x, int y, int w, Color c) {
+  for (const std::string& line : wrapText(r, text, w)) {
+    r.drawText(x, y, line.c_str(), c);
+    y += r.lineHeight();
+  }
+}
+}  // namespace
+
 CampScene::CampScene(SceneHost& host, std::vector<CampRow> rows)
     : host_(host), rows_(std::move(rows)), bg_(storyBackground(host)) {
   list_.count = (int)rows_.size() + 1;
 }
 
+// A label that does not fit the row's width goes on a second line (narrow screens, large text); all rows then have
+// the same height so the list keeps working.
+int CampScene::linesPerRow(const Renderer& r) const {
+  size_t n = wrapText(r, kContinue, list_.w - 16).size();
+  for (const CampRow& row : rows_) n = std::max(n, wrapText(r, row.label, list_.w - 16).size());
+  return (int)std::max<size_t>(1, n);
+}
+
 void CampScene::layout(const Renderer& r) {
   const int lh = r.lineHeight();
-  list_.rowH = lh + 10;
-  list_.w = std::min(r.width() - 16, 260);
+  list_.w = std::min(r.width() - 16, 400);
   list_.x = (r.width() - list_.w) / 2;
-  list_.y = 2 * lh + 22;  // below the title and the one-line explanation
+  list_.rowH = linesPerRow(r) * lh + 10;
+  subtitle_ = wrapText(r, "Conversations waiting", r.width() - 24);
+  list_.y = lh + 8 + (int)subtitle_.size() * (lh + 2) + 8;  // below the title and the explanation
   list_.h = std::max(list_.rowH, r.height() - footerHeight(r) - list_.y - 4);
 }
 
@@ -57,23 +77,26 @@ void CampScene::draw(Renderer& r) {
   r.clear(bg_);
   const int lh = r.lineHeight(), w = r.width();
   drawTextCentered(r, w / 2, 4, fitText(r, "Camp", w - 24), chrome::kTitle);
-  drawTextCentered(r, w / 2, 4 + lh + 4, fitText(r, "Conversations waiting", w - 24), chrome::kDim);
+  for (size_t i = 0; i < subtitle_.size(); ++i)
+    drawTextCentered(r, w / 2, 4 + lh + 4 + (int)i * (lh + 2), subtitle_[i], chrome::kDim);
   for (int i = list_.first(); i < list_.count && i < list_.first() + list_.visible(); ++i) {
     int ry = list_.rowY(i);
     bool sel = i == list_.sel, last = i == (int)rows_.size();
     drawRowBox(r, list_.x, ry, list_.w, list_.rowH - 3, sel);
     Color c = sel ? chrome::kTextSel : chrome::kText;
     if (last) {
-      r.drawText(list_.x + 8, ry + 3, fitText(r, "Continue the story", list_.w - 16).c_str(), c);
+      drawWrapped(r, kContinue, list_.x + 8, ry + 3, list_.w - 16, c);
       continue;
     }
     const CampRow& row = rows_[(size_t)i];
+    // The level the conversation unlocks sits on the right when both fit; on a narrow screen the names win.
     const int extraW = textW(r, row.extra);
-    r.drawText(list_.x + 8, ry + 3, fitText(r, row.label, list_.w - 24 - extraW).c_str(), c);
-    r.drawText(list_.x + list_.w - 8 - extraW, ry + 3, row.extra.c_str(), chrome::kDim);
+    const bool both = textW(r, row.label) + extraW + 24 <= list_.w;
+    drawWrapped(r, row.label, list_.x + 8, ry + 3, list_.w - 16, c);
+    if (both) r.drawText(list_.x + list_.w - 8 - extraW, ry + 3, row.extra.c_str(), chrome::kDim);
   }
   list_.drawMore(r, chrome::kDim);
-  drawFooter(r, "Up/Down: choose   Confirm: select");
+  drawFooter(r, "Up/Down + Z: choose");
 }
 
 std::unique_ptr<Scene> campStep(SceneHost& host) {
