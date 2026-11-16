@@ -203,6 +203,15 @@ def run_repo(root):
                 changed.append('data/audio.json')
             print('%-36s %7.0f K %7.0f K  %s' % (path, sfx_bytes / 1024, mus_bytes / 1024,
                                                   ', '.join(changed) if changed else 'unchanged'))
+        changed = []   # the player's own menu sounds (no game open)
+        ldir = os.path.join(root, targets.LAUNCHER_DIR)
+        for stem in targets.LAUNCHER_SOUNDS:
+            data = effects.get(stem) or wav_bytes(sfx.build_effect(stem))
+            if write_if_changed(os.path.join(ldir, 'audio', stem + '.wav'), data):
+                changed.append(stem + '.wav')
+        if write_if_changed(os.path.join(ldir, 'data', 'audio.json'), json_bytes(targets.launcher_json())):
+            changed.append('data/audio.json')
+        print('%-36s %s' % (targets.LAUNCHER_DIR, ', '.join(changed) if changed else 'up to date'))
         manifest.update({n: wavs[n][1] for n in wavs if stale[n]})
         if json.dumps(manifest, sort_keys=True) != old_manifest:
             write_if_changed(MANIFEST, json_bytes(dict(sorted(manifest.items()))))

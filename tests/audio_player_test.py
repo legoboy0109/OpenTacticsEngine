@@ -66,6 +66,9 @@ def headless(tmp, settings, extra, log=None):
             '--games', demo_games(tmp), '--assets', os.path.join(REPO, 'assets')] + extra
     code, out = run(args)
     lines = open(log).read().splitlines() if os.path.exists(log) else []
+    # The launcher's own menu sounds (assets/launcher; tests/sound_player_test.py checks them) are left out: these
+    # tests are about the volumes, the ticks and the mixer.
+    lines = [l for l in lines if '/assets/launcher/audio/' not in l]
     return code, out, lines
 
 

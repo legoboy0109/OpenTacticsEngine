@@ -28,6 +28,11 @@ void PlayerApp::syncAudio() {
   if (id == audioScene_) return;
   audioScene_ = id;
   if (audio_.mode() == AudioService::Mode::Off) return;
+  if (!launcherAudioTried_) {  // the player's own menu sounds, for the screens without a game
+    launcherAudioTried_ = true;
+    std::string err;
+    if (!launcherAudio_.load(args_.assetsDir + "/launcher", "launcher", nullptr, err)) OTE_WARN("audio: launcher sounds: %s", err.c_str());
+  }
   if (gameId_.empty()) {
     if (gameAudio_.loaded()) gameAudio_.unload();
   } else if (gameAudio_.gameId() != gameId_ || (session_ && !gameAudio_.full())) {

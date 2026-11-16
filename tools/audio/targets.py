@@ -34,6 +34,16 @@ TARGETS = {
     'editor/templates/strategy-rpg': dict(extras=['sword_hit', 'bow_shot', 'hooves']),
 }
 
+# The player's own menu sounds, for the screens where no game is open (the launcher's home list and the global
+# options; docs/SOUND.md "The launcher's own sounds"). Same layout as a game: data/audio.json + audio/.
+LAUNCHER_DIR = 'assets/launcher'
+LAUNCHER_SOUNDS = ['cursor', 'confirm', 'cancel', 'error']
+
+
+def launcher_json():
+    return {'music': {}, 'sounds': {s: {'file': 'audio/%s.wav' % s} for s in LAUNCHER_SOUNDS},
+            'use': {'sounds': {s: s for s in LAUNCHER_SOUNDS}}}
+
 
 def profile_sounds(profile):
     """Effect file stems a target ships (the standard `step` has two variants)."""

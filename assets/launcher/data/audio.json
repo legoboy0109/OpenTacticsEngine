@@ -1,0 +1,25 @@
+{
+  "music": {},
+  "sounds": {
+    "cursor": {
+      "file": "audio/cursor.wav"
+    },
+    "confirm": {
+      "file": "audio/confirm.wav"
+    },
+    "cancel": {
+      "file": "audio/cancel.wav"
+    },
+    "error": {
+      "file": "audio/error.wav"
+    }
+  },
+  "use": {
+    "sounds": {
+      "cursor": "cursor",
+      "confirm": "confirm",
+      "cancel": "cancel",
+      "error": "error"
+    }
+  }
+}

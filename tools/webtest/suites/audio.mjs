@@ -61,7 +61,9 @@ export async function run(env) {
   await page.waitForTimeout(500);
   const before = await states(page);
   C.check('no AudioContext before the first key press', before.length === 0, JSON.stringify(before));
-  C.check('no audio line in the log before the first key press', !s.logs.some((l) => /audio/i.test(l)), s.logs.filter((l) => /audio/i.test(l)).join(' | '));
+  // (Reading the launcher's own menu sounds is not opening a device: that one line is allowed.)
+  const early = s.logs.filter((l) => /audio/i.test(l) && !/audio: 'launcher'/.test(l));
+  C.check('no audio line in the log before the first key press (but for loading the launcher sounds)', early.length === 0, early.join(' | '));
 
   await s.keys(['ArrowDown']);  // the first input opens the sound device
   await page.waitForTimeout(800);

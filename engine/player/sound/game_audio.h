@@ -60,14 +60,19 @@ class GameAudio {
   bool played_[kCueCount] = {};
 };
 
-// What uiCue() calls land on: the open game's cue lookup (installed by PlayerApp).
+// What uiCue() calls land on (installed by PlayerApp): the open game's cue lookup, or, while no game is open
+// (the launcher's home list, the global options), the player's own menu sounds from <assets>/launcher.
+// `gameId` is the app's open game: a game that is open but has no sounds stays silent, as its maker left it.
 class GameAudioCues : public CueSink {
  public:
-  explicit GameAudioCues(GameAudio& game) : game_(game) {}
-  void onCue(Cue cue) override { game_.cue(cue); }
+  GameAudioCues(GameAudio& game, GameAudio& launcher, const std::string& gameId)
+      : game_(game), launcher_(launcher), gameId_(gameId) {}
+  void onCue(Cue cue) override { (gameId_.empty() ? launcher_ : game_).cue(cue); }
 
  private:
   GameAudio& game_;
+  GameAudio& launcher_;
+  const std::string& gameId_;
 };
 
 }  // namespace ote

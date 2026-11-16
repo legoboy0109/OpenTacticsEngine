@@ -643,8 +643,8 @@ editor's "problems" check runs the real core loader, which accepts all of these 
 by the player's `loadAudioFile` / `loadAudioOverrides` / `checkStoryAudio`, `engine/player/sound/audio_data.cpp`: the editor server would
 need that code or a port of it for "unknown sound id" problems). Play in the editor runs the web player, which checks them.
 
-Open points: the launcher's home list and the global options have no sounds (no game is open); a built-in set or a per-launcher
-choice is a design decision for the owner. The same sound at most once per frame and a minimum gap for `step` (0.1 s), `dialogue`
+The launcher's home list and global options play the player's own menu sounds (`assets/launcher`, owner's choice
+2026-11-16: built-in set, no home music; docs/SOUND.md "The launcher's own sounds"). Open points: the same sound at most once per frame and a minimum gap for `step` (0.1 s), `dialogue`
 (0.045 s) and `cursor` (0.03 s) are code constants (`game_audio.cpp`); the dialogue blip fires per typed letter, which may want a
 slower rate once heard.
 

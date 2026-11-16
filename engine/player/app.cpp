@@ -123,6 +123,7 @@ void PlayerApp::onInput(const InputEvent& e) {
 
 void PlayerApp::update(double dt) {
   gameAudio_.beginFrame();
+  launcherAudio_.beginFrame();
   syncAudio();
   if (script_.active()) {
     std::vector<InputEvent> injected;

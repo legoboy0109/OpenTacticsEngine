@@ -151,21 +151,27 @@ def run_all(tmp):
     END_TURN = 'menu,confirm,wait:200'
     DUEL = OPEN + 'confirm,right,confirm,confirm,confirm,wait:200'
 
-    # --- 1. The launcher: the home list is silent; a game's page has its title music and its menu sounds.
+    # --- 1. The launcher: the home list has the player's own menu sounds (assets/launcher) and no music; a game's page
+    #        has the game's title music and the game's menu sounds.
     code, out, seq, _ = go([], 'wait:10,confirm,wait:5,down,wait:5,up,wait:5,confirm,wait:5,down,wait:5,cancel,wait:5,cancel,wait:5',
                            frames=700, game='')
     shown('launcher', seq)
     check('launcher: runs', code == 0, out[-300:])
-    check('launcher: the game page starts the title music, its menus give cursor / confirm / cancel, going home stops it',
-          seq == ['M:title', 'cursor', 'cursor', 'confirm', 'cursor', 'cancel', 'cancel', 'M-'], str(seq))
+    check('launcher: choosing a game confirms with the player\'s own sound; the page starts the title music, its menus give cursor / confirm / cancel, going home stops it',
+          seq == ['confirm', 'M:title', 'cursor', 'cursor', 'confirm', 'cursor', 'cancel', 'cancel', 'M-'], str(seq))
     code, out, seq, _ = go([], 'wait:10,confirm,wait:5,down,wait:5,confirm,wait:5,down,wait:5,cancel,wait:5,cancel,wait:5',
                            frames=700, game='')
     shown('game options', seq)
     check('launcher: a game\'s options screen keeps the title music and has the menu sounds',
-          seq == ['M:title', 'cursor', 'confirm', 'cursor', 'cancel', 'cancel', 'M-'], str(seq))
-    code, out, seq, _ = go([], 'wait:10,down,wait:5,confirm,wait:5,down,wait:5,cancel,wait:5', frames=400, game='')
+          seq == ['confirm', 'M:title', 'cursor', 'confirm', 'cursor', 'cancel', 'cancel', 'M-'], str(seq))
+    code, out, seq, raw = go([], 'wait:10,down,wait:5,confirm,wait:5,down,wait:5,cancel,wait:5', frames=400, game='')
     shown('home options', seq)
-    check('launcher: the home list and the global options are silent', seq == [], str(seq))
+    check('launcher: the home list and the global options have the menu sounds and no music',
+          seq == ['cursor', 'confirm', 'cursor', 'cancel'], str(seq))
+    check('launcher: those are the player\'s own files, not a game\'s',
+          all('/assets/launcher/audio/' in ln for ln in raw if ' sound ' in ln), str(raw[:5]))
+    code, out, seq, _ = go(['--assets', os.path.join(tmp, 'no-such-assets')], 'wait:10,down,wait:5,confirm,wait:5,cancel,wait:5', frames=300, game='')
+    check('launcher: without the launcher sounds the player still runs, silent', code == 0 and seq == [], str(seq) + out[-200:])
 
     # --- 2. A move, a hit, a defeat, the victory jingle, then back out to the map list (title music).
     code, out, seq, _ = go(['--map', 'duel'], DUEL + ',confirm,wait:20')
@@ -372,8 +378,8 @@ def shipped_games(tmp, demos):
 
     # The launcher: a game's page plays the title music.
     code, out, seq, raw = play(tmp, demos, [], 'wait:10,confirm,wait:10', 500, game='')
-    check('demos launcher: a game page plays its title music', seq == ['M:title'] and 'title.ogg' in raw[1], str(raw[:3]))
-    check('demos launcher: the home list itself is silent (nothing before the page opens)', raw[0].startswith('t=0.000 volumes'), raw[0])
+    check('demos launcher: a game page plays its title music', seq == ['confirm', 'M:title'] and 'title.ogg' in raw[2], str(raw[:3]))
+    check('demos launcher: the home list plays no music (only the confirm before the page opens)', raw[0].startswith('t=0.000 volumes') and '/assets/launcher/' in raw[1], raw[1])
 
     # demo-economy: battle music, a tank's step, the enemy's turn and back.
     OPEN = 'wait:60,'
