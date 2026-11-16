@@ -13,6 +13,11 @@ namespace ote {
 struct CampaignRun {
   Playthrough pt;
   bool battleInHand = false;  // a loaded save brought a battle under way (consumed by the next step)
+  // The camp between chapters (campaign/camp_scene.h): the pair chosen to talk (-1 = none) and "Continue the
+  // story" chosen. The flow runs doCampaignNext again after each, so these carry the choice; campDone is cleared
+  // when the chapter's before scene starts.
+  int campPlay = -1;
+  bool campDone = false;
   int battlesStarted = 0;     // every start of a chapter battle (also a retry) gets its own seed
 
   uint32_t nextSeed(uint32_t base) { return base + (uint32_t)battlesStarted++; }
