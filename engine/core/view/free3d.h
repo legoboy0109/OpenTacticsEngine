@@ -15,11 +15,18 @@
 #include <cmath>
 #include <vector>
 
+#include "core/view/hex3d.h"
+
 namespace ote {
 
 struct Free3DGeometry {
   int gridW = 0, gridH = 0;
   int levels = 0;         // highest elevation on the map (>= 0)
+  // A hexagon map (docs/HEX.md): the space is the top-down picture in squares (core/view/hex3d.h); pick / hidden work
+  // on hexagon blocks and `elev` is one value per hexagon.
+  HexSpace hex;
+  float spaceW() const { return hex.on ? hex.width() : (float)gridW; }  // the ground's extent in squares
+  float spaceH() const { return hex.on ? hex.height() : (float)gridH; }
   float stepY = 0.5f;     // height of one level, in squares
   int viewW = 352, viewH = 259;
   float fovY = 0.6108652f;  // full vertical angle (35 degrees)
@@ -48,7 +55,7 @@ struct Free3DGeometry {
   bool projectPoint(float X, float Y, float Z, float& sx, float& sy, float* depth = nullptr) const;
   // A grid spot (in squares) at an elevation (in levels).
   bool project(float gx, float gy, float elevation, float& sx, float& sy) const {
-    return projectPoint(gx - gridW * 0.5f, elevation * stepY, gy - gridH * 0.5f, sx, sy);
+    return projectPoint(gx - spaceW() * 0.5f, elevation * stepY, gy - spaceH() * 0.5f, sx, sy);
   }
   // Screen pixels one square's length covers at a point (0 behind the camera).
   float pixelsAt(float X, float Y, float Z) const;

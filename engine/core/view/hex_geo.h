@@ -35,6 +35,10 @@ struct HexGeo {
   // Size of the whole map picture.
   int mapW() const;
   int mapH() const;
+  // The six corners of cell (x, y)'s hexagon in flat map pixels, clockwise as seen from above (y down), starting at the
+  // top corner (pointy) or the top-left one (flat). Edge i runs from corner i to corner i + 1 and faces direction i of
+  // the contract's neighbour order (both layouts), so the corners of neighbours coincide exactly.
+  void corners(int x, int y, float (&out)[6][2]) const;
   // The box around a structure whose middle hexagon is (x, y): one hexagon's box, or with rings the box across
   // all seven (pointy 3T x 5L/2, flat 5L/2 x 3T). The bottom edge of the picture sits on its bottom.
   void structureBox(int x, int y, int rings, int& bx, int& by, int& bw, int& bh) const;

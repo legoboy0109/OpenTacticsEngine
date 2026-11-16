@@ -16,6 +16,8 @@
 #include <cmath>
 #include <vector>
 
+#include "core/view/hex3d.h"
+
 namespace ote {
 
 struct Iso3DGeometry {
@@ -26,6 +28,11 @@ struct Iso3DGeometry {
   int levels = 0;        // highest elevation on the map (>= 0)
   float yaw = 0.7853982f;  // quarter-turn n: (n + 0.5) * pi/2
   int headroom = 0;      // free pixels kept around the map (tall pictures)
+  // A hexagon map (docs/HEX.md): the space is the top-down picture in squares (core/view/hex3d.h), turns are sixths
+  // of a circle (yawOfHexTurn) and pick / hidden work on hexagon blocks; `elev` is then one value per hexagon.
+  HexSpace hex;
+  float spaceW() const { return hex.on ? hex.width() : (float)gridW; }  // the ground's extent in squares
+  float spaceH() const { return hex.on ? hex.height() : (float)gridH; }
 
   // From the measures of the 2D isometric view (diamond tileW x tileH, a level
   // raises a square `step` pixels), so both kinds line up at turn 0.
@@ -35,11 +42,13 @@ struct Iso3DGeometry {
     stepY = step / (pixels * cosPitch());
   }
   static float yawOfTurn(float quarterTurns) { return (quarterTurns + 0.5f) * 1.5707963f; }
+  // Hexagon maps turn in sixths; turn 0 is the picture of the 2D isometric view (the top-down map squashed).
+  static float yawOfHexTurn(float sixthTurns) { return sixthTurns * 1.0471976f; }
   float cosPitch() const { return std::sqrt(1.0f - sinPitch * sinPitch); }
 
   // Half the side of the world box, in pixels.
   float radius() const {
-    float h = (levels + 1) * stepY, r = std::sqrt(gridW * gridW * 0.25f + gridH * gridH * 0.25f + h * h);
+    float h = (levels + 1) * stepY, r = std::sqrt(spaceW() * spaceW() * 0.25f + spaceH() * spaceH() * 0.25f + h * h);
     return std::ceil(r * pixels) + (float)headroom;
   }
   int size() const { return (int)radius() * 2; }
@@ -52,14 +61,14 @@ struct Iso3DGeometry {
   }
   // A grid spot (in squares, like iso.h) at an elevation (in levels).
   void project(float gx, float gy, float elevation, float& wx, float& wy) const {
-    projectPoint(gx - gridW * 0.5f, elevation * stepY, gy - gridH * 0.5f, wx, wy);
+    projectPoint(gx - spaceW() * 0.5f, elevation * stepY, gy - spaceH() * 0.5f, wx, wy);
   }
   // Grid position of a world pixel, assuming it lies on a surface at height Y (in squares).
   void unprojectAt(float wx, float wy, float Y, float& gx, float& gy) const {
     float s = std::sin(yaw), c = std::cos(yaw), R = radius();
     float a = (wx - R) / pixels, d = ((wy - R) / pixels + Y * cosPitch()) / sinPitch;
-    gx = c * a + s * d + gridW * 0.5f;
-    gy = -s * a + c * d + gridH * 0.5f;
+    gx = c * a + s * d + spaceW() * 0.5f;
+    gy = -s * a + c * d + spaceH() * 0.5f;
   }
 
   // The square under a world pixel, or -1: the block nearest the camera whose
