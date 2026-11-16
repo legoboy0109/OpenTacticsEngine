@@ -2046,6 +2046,61 @@ The six entries, targeting, the four events' animations, the carrier marker, the
 Support entry and conversation, labels and banner, the Supports page, `campaign/camp_scene.*` and its place in
 `app_campaign.cpp` (`doCampaignNext`), saving after a camp conversation, `--autoplay`.
 
+#### U5 as built
+
+Supports and the camp work as "Player UI" says; a game without `data/supports.json` (or a campaign without pairs)
+looks and plays as before (no entry, no camp, no log line).
+
+**Where things are.**
+- `battle/battle_menu_supports.cpp`: one entry per partner, ids `kSupportBase + n`, from `Battle::supportOptions`. The
+  partner is fixed by the entry, so there is no target to pick (`beginPickUnit` is not used). Choosing submits
+  `Action::support` through `submit` and then rebuilds the action menu like after an item (free: the unit still acts, the
+  move can no longer be taken back). The partners are asked for again when an entry is chosen (same list, same order).
+- `battle/battle_view_supports.cpp`: `SupportPoints` with `kReady` makes a "Support!" float over each unit that is
+  drawn (the second one 10 pixels higher, the pair stands side by side); other gains take no time and show nothing.
+  `SupportReached` shows the banner for 1.4 seconds. The conversation lines are plain `Dialogue` events, which
+  `battle_view_story.cpp` and the scene already show. An event whose pair is not one of the game's (the U0 test feeds
+  made-up events) stays a logged no-op.
+- `battle/unit_info_supports.cpp`: the Supports page (none for a game without pairs or a unit in no pair).
+- `battle/support_text.*`: every wording and the numbers behind the page and the camp list, free of windows (unit tests).
+- `campaign/camp_scene.*`: `CampScene` and `campStep()`. `app_campaign.cpp` calls `campStep` first in the
+  `BeforeScene` case of `doCampaignNext`; it returns the camp, or the conversation just chosen (a `StoryScene` without a
+  title card), or nothing (go on to the before scene). `CampaignRun` got `campPlay` (the pair chosen, -1 = none) and
+  `campDone` ("Continue the story" was chosen; cleared when the before scene starts). The camp is not a phase: choosing a
+  pair sets `campPlay` and calls `campaignNext()`; the conversation scene ends in `campaignSceneDone()` (which saves
+  the playthrough like after any scene) and so brings the camp back with the pair gone.
+- Tests: `tests/test_srpg_player_supports.cpp` (words, rows, page, view), `tests/srpg_player_supports_test.py`
+  (games for `conversations` battle, camp and both, built from `games/demo-srpg` in a temp folder; menu, conversation,
+  banner, camp, saves after a camp conversation, `--autoplay`, a game without supports) and ctest `srpg_supports_player`.
+
+**New wording (placeholder).** Action menu: "Support: Lyra". Label over both units: "Support!". Banner: "Eirik and Lyra:
+support level 1" (the level's own name: `levelNames` or "1", "2"...). Supports page: tab "Supports"; "Level B" /
+"No support yet" per partner; "Conversation ready"; "Highest level"; "+2 more" when the page is too short. Camp: title
+"Camp", under it "Conversations waiting", rows "Eirik and Lyra" with "Level C" (the level the conversation unlocks) on
+the right when it fits, and "Continue the story" last; footer "Up/Down + Z: choose". Log lines the tests read:
+`support entries: Support: Lyra` (or `none`, only in a game with pairs), `support: Eirik talks with Lyra`,
+`support ready: Eirik and Kell`, `support level: <banner>`, `camp: <rows>`, `camp: playing <pair>`.
+
+**Readings of the contract (keep to these).**
+- The camp shows before the title card of every chapter after the first, whenever `pendingSupports` is not empty, also
+  when a Continue save is loaded in phase Before (a pair left unplayed asks again at the next chapter). Nothing pending =
+  no camp at all (it is skipped, no "nothing to do" screen). `--autoplay` skips it entirely (also nothing saved, as
+  `saveAfterScene` never writes then).
+- Cancel (or Skip) in the camp is "Continue the story"; the camp opens on the first pair. After a conversation the
+  list starts at the top again.
+- A camp conversation is a `StoryScene` of the lines `playSupport` returns; it has no title card, so the first line opens
+  at once. The level it gains is not announced by a banner (the camp list shows the next level instead).
+- The level column of a Supports row is "Level " + the level's name; the bar runs from the points of the current level to
+  those of the next, full at the top level, and is drawn in the accent colour while a conversation is ready.
+- Narrow screens: labels wrap and the camp rows grow to two lines; the Supports page puts "Conversation ready" under the
+  bar when it does not fit beside it; the banner wraps (existing banner code).
+- The support mark in the info panel (contract line "a support mark next to the name when a conversation is ready") is
+  `panel.cpp`, which U1 owns; not done here. The Supports page is reachable only through U1's Info / Unit entries
+  (`openUnitInfo`); until U1 lands it can only be seen with a temporary entry.
+
+**Edits outside the owned files.** Root `CMakeLists.txt` (`support_text.cpp` into the unit tests' player sources; ctest
+`srpg_supports_player`), `campaign/campaign_run.h` (the two camp fields), `app_campaign.cpp` (the camp's place).
+
 Each U step's acceptance is its part of `tests/srpg_player_test.py` plus screenshots for the owner (desktop and
 phone size).
 
