@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1, "name": "Locks Fixture",
+  "description": "Small test game for character-locked weapons (docs/SRPG.md, Character-locked weapons). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 5 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "60", "xpKill": "100" } },
+  "formulas": { "damage": "a.str + w.might - b.def", "hit": "90" },
+  "maps": [ { "id": "duel", "name": "Duel", "file": "maps/duel.json" } ]
+}

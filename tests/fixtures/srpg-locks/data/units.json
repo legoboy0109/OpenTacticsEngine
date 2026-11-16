@@ -1,0 +1,14 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot",
+    "stats": { "hp": 20, "str": 6, "def": 3, "mov": 4 }, "growths": { "hp": 50, "str": 100 },
+    "weapons": ["stick"], "wields": ["sword"], "ranks": { "sword": "e" }, "items": ["bronze_sword"],
+    "promotions": [ { "to": "knight", "fromLevel": 1, "atLevel": "offer" } ] },
+  { "id": "knight", "name": "Knight", "glyph": "K", "moveType": "foot",
+    "stats": { "hp": 26, "str": 8, "def": 5, "mov": 4 }, "growths": { "hp": 40, "str": 100 },
+    "wields": ["sword"], "ranks": { "sword": "c" }, "caps": { "str": 14 } },
+  { "id": "archer", "name": "Archer", "glyph": "A", "moveType": "foot",
+    "stats": { "hp": 16, "str": 5, "def": 2, "mov": 4 }, "growths": { "hp": 40, "str": 100 },
+    "wields": ["bow"], "ranks": { "bow": "d" }, "items": ["short_bow"] },
+  { "id": "grunt", "name": "Grunt", "glyph": "g", "moveType": "foot",
+    "stats": { "hp": 14, "str": 4, "def": 1, "mov": 4 }, "growths": { "hp": 30, "str": 40 },
+    "wields": ["sword"], "ranks": { "sword": "d" }, "items": ["bronze_sword", "steel_sword"] } ] }
