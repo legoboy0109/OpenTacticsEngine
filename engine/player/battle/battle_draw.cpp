@@ -71,7 +71,7 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
     r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
     r.fillRect(bx, by, bw, bh, scaled(base, al));
     r.fillRect(bx, by, bw, 1, scaled(mix(base, Color(255, 255, 255), 0.35f), al));  // soft top highlight
-    drawGlyphCentered(r, bx + bw / 2, by + bh / 2, b.typeOf(u).glyph, scaled(readableOn(base), al),
+    drawGlyphCentered(r, bx + bw / 2, by + bh / 2, b.db->unitTypes[(size_t)shownType(c, u)].glyph, scaled(readableOn(base), al),
                       std::max(1, std::min(bw, bh) * 3 / 4));
   }
   if (u.leader) {

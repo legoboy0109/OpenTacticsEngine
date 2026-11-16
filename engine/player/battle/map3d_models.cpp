@@ -29,8 +29,9 @@ Rgba3D rgba(Color c) { return Rgba3D(c.r / 255.0f, c.g / 255.0f, c.b / 255.0f); 
 
 const ModelLook* Map3D::unitModel(const DrawCtx& c, const Unit& u, const ModelAsset*& asset) {
   const GraphicsSet* set = c.battle.db->graphics.set(c.styleIndex);
-  if (!set || u.type < 0 || (size_t)u.type >= set->units.size()) return nullptr;
-  const ModelLook& look = set->units[(size_t)u.type].model;
+  const int type = shownType(c, u);
+  if (!set || type < 0 || (size_t)type >= set->units.size()) return nullptr;
+  const ModelLook& look = set->units[(size_t)type].model;
   if (!look.any()) return nullptr;
   asset = models_.get(r3d_, look.file);
   return asset ? &look : nullptr;

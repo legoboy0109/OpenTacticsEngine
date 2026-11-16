@@ -308,7 +308,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     if (!model && !(art && sheets_.texture(r3d_, art->sheet))) {
       Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
       if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
-      drawGlyphCentered(r, sx, sy - body / 2, b.typeOf(u).glyph, a(readableOn(side)), std::max(1, body * 3 / 4));
+      drawGlyphCentered(r, sx, sy - body / 2, b.db->unitTypes[(size_t)shownType(c, u)].glyph, a(readableOn(side)), std::max(1, body * 3 / 4));
     }
     if (u.leader) {
       r.fillRect(sx - uw / 2, sy - body - 1, 5, 5, a(Color(0, 0, 0, 220)));

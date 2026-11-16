@@ -229,6 +229,7 @@ std::string BattleScene::hint() const {
     case Mode::PickUnit:
     case Mode::PickCell:
     case Mode::UnitInfo: return srpgHint();
+    case Mode::Promotion: return promotionHint();
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
     case Mode::Items: return itemsHint();
@@ -278,6 +279,7 @@ void BattleScene::draw(Renderer& r) {
     }
     if (mode_ == Mode::Items) drawItems(r);
     else if (mode_ == Mode::Research) researchPanel_.draw(r);
+    else if (mode_ == Mode::Promotion) drawPromotion(r);
     else menu_.draw(r);
     if (mode_ == Mode::Objective) drawObjectiveBox(r);
   }

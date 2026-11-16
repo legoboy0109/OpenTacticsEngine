@@ -11,6 +11,7 @@
 #include "battle/battle_draw.h"
 #include "battle/battle_view.h"
 #include "battle/layout.h"
+#include "battle/promotion_screen.h"
 #include "battle/srpg_menu_ids.h"
 #include "battle/srpg_pick.h"
 #include "battle/unit_info.h"
@@ -36,7 +37,7 @@ class BattleScene : public Scene {
 
  private:
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result,
-              PickUnit, PickCell, UnitInfo };  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
+              PickUnit, PickCell, UnitInfo, Promotion };  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
@@ -111,6 +112,13 @@ class BattleScene : public Scene {
   bool rescueChosen(int id);
   void addPromotionEntries(std::vector<MenuItem>& items);  // battle_menu_promotion.cpp (U2)
   bool promotionChosen(int id);
+  bool promotionItemUse(int slot);                         // a promotion item picked in the item list (battle_items.cpp calls it)
+  void openPromotion(int slot, const std::vector<int>& types);  // slot -1 = the Promote entry; Mode::Promotion
+  void promotionInput(const InputEvent& e);
+  void promotionBack();
+  void drawPromotion(Renderer& r);
+  void drawPromotionPicture(Renderer& r, int type, int x, int y, int w, int h);
+  std::string promotionHint() const;
   void addInfoEntry(std::vector<MenuItem>& items);         // battle_menu_info.cpp (U1): Info (action menu) and Unit (battle menu)
   bool infoChosen(int id);
   void addUnitEntry(std::vector<MenuItem>& items);
@@ -244,6 +252,10 @@ class BattleScene : public Scene {
   std::function<void(int)> pickChosen_;
   PickMark pickMark_;
   UnitInfoView unitInfo_;                 // Mode::UnitInfo
+  PromotionScreen promoScreen_;           // Mode::Promotion with several types (battle_menu_promotion.cpp)
+  bool promoAsk_ = false;                 // one type: confirm_ asks "Promote ...?" instead of the screen
+  int promoSlot_ = -1;                    // the promotion item's slot, -1 = the Promote entry
+  int promoType_ = -1;                    // the type the question is about
   bool unitInfoFromAction_ = false;       // opened from the action menu: Cancel returns there (else to the map)
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
   int partner_ = -1;         // trade partner unit

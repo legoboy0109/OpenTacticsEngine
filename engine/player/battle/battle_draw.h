@@ -49,6 +49,13 @@ inline int shownSide(const DrawCtx& c, const Unit& u) {
   return u.side;
 }
 
+// The unit type a unit is drawn as: its own, except while the view has not yet played the UnitPromoted entry that
+// changed it (the sprite changes in the middle of that animation; battle_view_promotion.cpp).
+inline int shownType(const DrawCtx& c, const Unit& u) {
+  if ((size_t)u.id < c.view.units.size() && c.view.units[(size_t)u.id].type >= 0) return c.view.units[(size_t)u.id].type;
+  return u.type;
+}
+
 // ---- Fog of war (docs/ECONOMY.md "Fog of war > Player"). The view knows who the screen is drawn for; with no fog
 // (or the maker's show-all) none of these changes anything.
 constexpr float kFogDim = 0.55f;  // brightness of a square the viewer does not see (the 2D veil is black with alpha 115)

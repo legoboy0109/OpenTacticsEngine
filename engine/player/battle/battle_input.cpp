@@ -98,6 +98,10 @@ void BattleScene::onInput(const InputEvent& e) {
     unitInfoInput(e);
     return;
   }
+  if (mode_ == Mode::Promotion) {
+    promotionInput(e);
+    return;
+  }
   if (mode_ == Mode::Research) {
     researchInput(e);
     return;
