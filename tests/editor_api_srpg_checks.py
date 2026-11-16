@@ -149,14 +149,14 @@ def run_srpg_checks(api, tmp, games, templates, check, get_project, put_project)
     check("srpg: a stale revision is a 409", st == 409, (st, res))
 
     # an existing game without the files opens and saves byte-identically and gains none
-    st, doc = api.json("POST", "/api/projects", {"id": "srpg-plain", "name": "Plain", "template": "strategy-rpg"})
-    check("srpg: create a game from the strategy-rpg template", st == 201, (st, doc))
+    st, doc = api.json("POST", "/api/projects", {"id": "srpg-plain", "name": "Plain", "template": "blank"})
+    check("srpg: create a game from the blank template (the strategy-rpg template has the new files since D1)", st == 201, (st, doc))
     snap = snapshot(os.path.join(games, "srpg-plain"))
     st, d = get_project(api, "srpg-plain")
     # (Sections the editor does send are re-serialised, as for every other section; the web client only sends
     # what changed. What matters here: the four new sections as null touch nothing and create nothing.)
     full = {k: d[k] for k in ALL_KEYS}
-    check("srpg: the template has none of the new files", all(d[k] is None for k in ALL_KEYS), [d[k] for k in ALL_KEYS])
+    check("srpg: the blank template has none of the new files", all(d[k] is None for k in ALL_KEYS), [d[k] for k in ALL_KEYS])
     st, res = put_project(api, "srpg-plain", {"revision": d["revision"]}, d["revision"], **full)
     after = snapshot(os.path.join(games, "srpg-plain"))
     check("srpg: saving a game without the files changes nothing and adds nothing",
