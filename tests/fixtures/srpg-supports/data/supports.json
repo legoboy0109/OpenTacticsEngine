@@ -1,0 +1,10 @@
+// Eirik and Bram: level 1 has a conversation (played in battle or at camp), level 2 has none (gained as soon as the points are there).
+// Eirik and Kell: one level, no conversation. maxLevels 2 caps what Eirik can hold over all his pairs.
+{ "rules": { "points": { "endTurnAdjacent": 5, "fightTogether": 2, "heal": 3 }, "range": 3, "maxLevels": 2, "conversations": "both" },
+  "pairs": [
+    { "a": "eirik", "b": "bram",
+      "levels": [
+        { "points": 10, "bonus": { "hit": 5, "avoid": 5 },
+          "talk": [ { "say": "Walk beside me.", "speaker": "eirik" }, { "say": "Always.", "speaker": "bram" } ] },
+        { "points": 30, "bonus": { "damage": 1 } } ] },
+    { "a": "eirik", "b": "kell", "levels": [ { "points": 10, "bonus": { "avoid": 10 } } ] } ] }

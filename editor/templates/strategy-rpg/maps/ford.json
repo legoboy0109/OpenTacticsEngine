@@ -17,9 +17,11 @@
     { "id": "red", "name": "Red Warband", "color": "#cc0000", "controller": "ai" }
   ],
   "units": [
-    { "type": "lord", "side": "blue", "x": 1, "y": 3, "name": "Eirik", "level": 2, "leader": true },
-    { "type": "cavalier", "side": "blue", "x": 1, "y": 4, "name": "Kell", "level": 1 },
-    { "type": "soldier", "side": "red", "x": 8, "y": 4, "name": "Gorm", "level": 2, "leader": true },
-    { "type": "archer", "side": "red", "x": 8, "y": 3, "name": "Vex", "level": 1 }
+    { "character": "eirik", "side": "blue", "x": 1, "y": 3, "leader": true },
+    { "character": "kell", "side": "blue", "x": 1, "y": 4 },
+    { "character": "bram", "side": "blue", "x": 0, "y": 3 },
+    { "character": "gorm", "side": "red", "x": 8, "y": 4, "leader": true },
+    { "character": "vex", "side": "red", "x": 8, "y": 3 },
+    { "type": "soldier", "side": "red", "x": 8, "y": 5, "name": "Tane", "level": 1 }
   ]
 }

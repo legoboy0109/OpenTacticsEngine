@@ -20,7 +20,8 @@ def run_abilities_checks(api, tmp, games, templates, check, get_project, put_pro
             u["pairBonus"] = {"str": 2}
         if u["id"] == "archer":
             u["items"] = ["writ"]
-    items = [{"id": "writ", "name": "Writ", "kind": "usable", "heal": 5, "promotes": True}]
+    # The template has an Officer's Writ of its own (its cavalier promotes with it): keep it, add this test's.
+    items = (d.get("items") or []) + [{"id": "writ", "name": "Writ", "kind": "usable", "heal": 5, "promotes": True}]
     abilities = [
         {"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 2}, "cost": "free", "uses": 3, "cooldown": 2,
          "afterMove": False, "if": [{"hp": {"op": ">", "percent": 50}}]},
@@ -33,7 +34,7 @@ def run_abilities_checks(api, tmp, games, templates, check, get_project, put_pro
     game["rules"]["promotion"] = {"levelAfter": "keep"}
     maps = d["maps"]
     mid = game["maps"][0]["id"]
-    maps[mid]["units"][0]["id"] = "eirik"
+    # (the template's first unit is the character "eirik" since D1: it is already known to events by that id)
     maps[mid]["events"] = [{"id": "rise", "when": {"battle": "start"}, "do": [{"promote": "eirik", "to": "cavalier"}]},
                            {"id": "cheer", "when": {"promoted": {}}, "do": [{"say": "Well done!"}]}]
     st, res = put_project(api, pid, d, d["revision"], units=units, game=game, maps=maps, items=items, abilities=abilities)

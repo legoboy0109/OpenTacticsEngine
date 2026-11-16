@@ -76,10 +76,19 @@ TEST(srpg_expr_battle_stats_equal_unit_stats_when_nothing_is_added) {
     with.a = without.a = &u;
     with.sides = without.sides = &b.sides;
     with.battle = &b;
+    std::vector<int> skills;
+    b.skillsOf(u, -1, skills);
     for (size_t s = 0; s < db.stats.size(); ++s) {
-      CHECK_EQ(b.stat(u, (int)s), unitStat(db, u, (int)s, &b.sides));
-      CHECK_EQ((int)formulas.evalExpr(exprs[s], with, -1), unitStat(db, u, (int)s, &b.sides));
-      CHECK_EQ((int)formulas.evalExpr(exprs[s], with, -1), (int)formulas.evalExpr(exprs[s], without, -2));
+      // The demo has skills since D1: the only thing the battle adds to the raw numbers are the standing stat bonuses
+      // of the unit's skills (none of the demo's has a condition).
+      int expected = unitStat(db, u, (int)s, &b.sides);
+      for (int k : skills)
+        for (const SkillBlock& blk : db.skills[(size_t)k].blocks)
+          if (blk.when == SkillWhen::Always && blk.conds.empty())
+            for (const SkillEffect& e : blk.effects)
+              if (e.kind == SkillEffect::Kind::Stats) expected += e.stats[s];
+      CHECK_EQ(b.stat(u, (int)s), expected);
+      CHECK_EQ((int)formulas.evalExpr(exprs[s], with, -1), expected);
     }
     CHECK_EQ((int)formulas.evalExpr(maxhp, with, -1), b.maxHp(u));
   }

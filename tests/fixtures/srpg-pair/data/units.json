@@ -1,0 +1,9 @@
+// The Brute gives more when it stands behind someone (its own "pairBonus" replaces the game's); everyone else gives the game's.
+{ "units": [
+  { "id": "hero", "name": "Hero", "moveType": "foot", "stats": { "hp": 20, "str": 6, "def": 3, "spd": 6, "mov": 4 },
+    "growths": { "hp": 100 }, "weapons": ["sword"] },
+  { "id": "brute", "name": "Brute", "moveType": "foot", "stats": { "hp": 24, "str": 8, "def": 4, "spd": 4, "mov": 4 },
+    "weapons": ["sword"], "pairBonus": { "str": 3, "spd": 1 } },
+  { "id": "rider", "name": "Rider", "moveType": "foot", "stats": { "hp": 18, "str": 5, "def": 2, "spd": 8, "mov": 6 },
+    "weapons": ["sword"], "tags": ["mounted"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 10, "str": 4, "def": 1, "spd": 3, "mov": 3 }, "weapons": ["sword"] } ] }

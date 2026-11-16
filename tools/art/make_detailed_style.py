@@ -28,6 +28,7 @@ import sys
 
 from PIL import Image, ImageFilter
 
+import art_units
 import make_detailed_units
 import make_terrain_models
 
@@ -115,6 +116,10 @@ def main():
     # the marker under the unit's feet shows the side.
     units = {uid: {'model': 'models/detailed/%s.glb' % uid, 'height': height, 'sideMaterial': ''}
              for uid, height in make_detailed_units.build_all(args.kaykit, args.animals, args.weapons, out_dir).items()}
+    # Unit types without art of their own share their source's model (art_units.ALIASES).
+    for new, old in art_units.ALIASES.items():
+        if old in units:
+            units[new] = dict(units[old])
 
     piece = {
         'sheets': [{'id': 'detailed_tiles', 'file': 'art/detailed_tiles.png', 'cellWidth': CELL, 'cellHeight': CELL,

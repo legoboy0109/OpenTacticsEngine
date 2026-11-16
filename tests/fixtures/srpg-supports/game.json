@@ -1,0 +1,11 @@
+// Frozen fixture (docs/SRPG.md D1): supports in a two-chapter campaign.
+{
+  "formatVersion": 1, "name": "Supports Fixture",
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"ch1","name":"First Field","file":"maps/ch1.json"}, {"id":"ch2","name":"Second Field","file":"maps/ch2.json"} ]
+}

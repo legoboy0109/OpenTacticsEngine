@@ -1,0 +1,68 @@
+// Strategy-RPG demo: small squads, counterattacks, levels and XP.
+{
+  "formatVersion": 1,
+  "name": "Story Tactics Demo",
+  "description": "A short strategy-RPG story in two chapters: named heroes, items, dialogue, experience and level-ups.",
+  "styles": [
+    { "id": "classic", "name": "Classic" },
+    { "id": "parchment", "name": "Parchment", "background": "#2b2118", "showGlyphs": false,
+      "terrainColors": { "plain": "#d9c79a", "forest": "#9aa66a", "mountain": "#a08a6a", "water": "#7f9fb0", "bridge": "#b89868" },
+      "structureColors": { "fort": "#c4a070" } },
+    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" },
+    { "id": "isometric-3d", "name": "3D Isometric", "view": "isometric-3d", "background": "#161a24" },
+    { "id": "full-3d", "name": "Full 3D", "view": "3d", "background": "#161a24" },
+    // Detailed test art from CC0 packs (CREDITS.md); built by tools/art/make_detailed_style.py.
+    { "id": "detailed-3d", "name": "Detailed 3D", "view": "3d", "background": "#1c2430" }
+  ],
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+
+  "stats": [
+    { "id": "hp",  "name": "HP" },
+    { "id": "str", "name": "Strength" },
+    { "id": "skl", "name": "Skill" },
+    { "id": "spd", "name": "Speed" },
+    { "id": "def", "name": "Defense" },
+    { "id": "mov", "name": "Move" }
+  ],
+  "roles": { "hp": "hp", "move": "mov" },
+
+  // Gold buys items at forts (data/structures.json "sells").
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+
+  // On / off facts the story remembers (docs/EVENTS.md).
+  "switches": [ { "id": "sera_joined", "name": "Sera joined" } ],
+
+  "moveTypes": [
+    { "id": "foot",  "name": "Foot" },
+    { "id": "horse", "name": "Horse" },
+    { "id": "fly",   "name": "Flying" }
+  ],
+
+  "rules": {
+    "turnOrder": "sides",
+    "counterAttacks": true,
+    "defeat": ["noUnits", "leaderDead"],
+    // Items (docs/ITEMS.md): weapons are carried and wear out; each unit holds up to 5 things;
+    // the company's shared storage is reached by the leader and whoever stands next to them.
+    "items": { "weapons": "carried", "inventorySize": 5, "storage": "leader" },
+    "progression": {
+      "enabled": true,
+      "xpPerLevel": 100,
+      "maxLevel": 20,
+      "xpHit": "10 + math.max(0, b.level - a.level) * 3",
+      "xpKill": "40 + math.max(0, b.level - a.level) * 10"
+    }
+  },
+
+  "formulas": {
+    "damage": "srpg_damage(a, b, w, tb, vs)",
+    "hit": "w.hit + a.skl * 2 - b.spd * 2 - (tb.avoid or 0)",
+    "crit": "a.skl / 2",
+    "critMultiplier": 3,
+    "strikes": "(a.spd - b.spd >= 4) and 2 or 1"
+  },
+
+  "scripts": ["scripts/formulas.lua"],
+  "maps": [ { "id": "bridge", "name": "Skirmish at the Ford", "file": "maps/bridge.json" },
+            { "id": "north_road", "name": "The North Road", "file": "maps/north_road.json" } ]
+}

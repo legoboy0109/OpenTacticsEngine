@@ -162,7 +162,7 @@ def soldier(b):
     return p
 
 
-def pegasus(b):
+def sky_rider(b):
     p = Pix(T, T)
     horse(p, 3, 9, b)
     p.ellipse(9, 12, 6.5, 3.2, WHITE)
@@ -310,8 +310,15 @@ def apc(b):
 # Unit type id -> drawing function. The sheet row of a unit is its position in ORDER.
 UNITS = {
     'lord': lord, 'cavalier': cavalier, 'archer': archer, 'fighter': fighter, 'knight': knight,
-    'soldier': soldier, 'pegasus': pegasus,
+    'soldier': soldier, 'sky_rider': sky_rider,
     'infantry': infantry, 'mech': mech, 'recon': recon, 'tank': tank, 'artillery': artillery,
     'apc': apc,
 }
+# Strategy-RPG unit types that have no picture of their own yet draw as the type they grew out of (docs/SRPG.md D1:
+# "no new art is required"). make_starter_art.py gives them the same model file as their source, if there is one.
+ALIASES = {
+    'captain': 'lord', 'lancer': 'cavalier', 'outrider': 'cavalier', 'marksman': 'archer', 'brute': 'fighter',
+    'houndmaster': 'soldier', 'hound': 'fighter',
+}
+UNITS.update({new: UNITS[old] for new, old in ALIASES.items()})
 ORDER = list(UNITS.keys())

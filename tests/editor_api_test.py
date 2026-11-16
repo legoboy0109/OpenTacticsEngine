@@ -259,7 +259,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           list(srpg["maps"].keys()) == ["bridge", "north_road"] and "srpg_damage" in srpg["scripts"].get("scripts/formulas.lua", ""))
     check("GET demo-srpg: revision non-empty, problems empty", bool(srpg["revision"]) and srpg["problems"] == [])
     check("GET demo-srpg: comments are gone (strict JSON data)",
-          "Story Tactics Demo" == srpg["game"]["name"] and len(srpg["units"]) == 7)
+          "Story Tactics Demo" == srpg["game"]["name"] and len(srpg["units"]) == 14)
     st, doc = get_project(api, "nope-x")
     check("GET unknown project -> 404", st == 404 and "error" in doc)
     st, doc = get_project(api, "Bad%20Id")

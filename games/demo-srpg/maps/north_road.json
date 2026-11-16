@@ -41,22 +41,19 @@
   "units": [
     // Named blue units come from the party as it left chapter 1 (level, items, who is still alive);
     // what is written here is only used when this map is played on its own.
-    { "type": "lord",     "side": "blue", "x": 5, "y": 9, "id": "eirik", "name": "Eirik", "level": 3, "leader": true,
-      "stats": { "hp": 24, "str": 7, "def": 5 } },
-    { "type": "cavalier", "side": "blue", "x": 4, "y": 8, "id": "kell", "name": "Kell", "level": 2,
-      "stats": { "hp": 23 } },
-    { "type": "archer",   "side": "blue", "x": 6, "y": 9, "id": "lyra", "name": "Lyra", "level": 2 },
-    { "type": "fighter",  "side": "blue", "x": 6, "y": 8, "id": "bram", "name": "Bram", "level": 2,
-      "stats": { "hp": 25 } },
+    { "character": "eirik", "side": "blue", "x": 5, "y": 9, "leader": true },
+    { "character": "kell",  "side": "blue", "x": 4, "y": 8 },
+    { "character": "lyra",  "side": "blue", "x": 6, "y": 9 },
+    { "character": "bram",  "side": "blue", "x": 6, "y": 8 },
 
-    { "type": "knight",   "side": "red", "x": 5, "y": 1, "id": "hald", "name": "Hald", "level": 4, "leader": true,
-      "stats": { "hp": 28, "str": 9, "def": 7 },
-      "items": ["iron_lance", { "item": "salve", "drop": true }] },
+    { "character": "hald", "side": "red", "x": 5, "y": 1, "leader": true,
+      "items": ["iron_lance", { "item": "mending_salve", "drop": true }] },
     { "type": "soldier",  "side": "red", "x": 4, "y": 3, "name": "Ro",   "level": 2 },
     { "type": "soldier",  "side": "red", "x": 6, "y": 3, "name": "Iss",  "level": 2 },
     { "type": "archer",   "side": "red", "x": 5, "y": 2, "name": "Marn", "level": 2 },
     { "type": "fighter",  "side": "red", "x": 8, "y": 2, "name": "Ulf",  "level": 3 },
-    { "type": "soldier",  "side": "red", "x": 2, "y": 2, "name": "Brun", "level": 2 }
+    // Calls Hounds to the fight (data/abilities.json "Call Hound"): the computer side summons.
+    { "type": "houndmaster", "side": "red", "x": 2, "y": 2, "name": "Brun", "level": 2 }
   ],
 
   "objectives": {
@@ -68,8 +65,15 @@
     // Sera rides with the company only if Eirik won her over at the ford.
     { "id": "sera_arrives", "when": { "battle": "start" },
       "if": [ { "switch": "sera_joined", "is": true } ],
-      "do": [ { "addUnit": { "type": "pegasus", "side": "blue", "x": 4, "y": 9, "id": "sera", "name": "Sera", "level": 2 } },
+      "do": [ { "addUnit": { "character": "sera", "side": "blue", "x": 4, "y": 9 } },
               { "say": "I can cross the stream wherever I like. Tell me where you want me.", "speaker": "sera" } ] },
+    // Eirik's promotion by the story (docs/SRPG.md section 2): from here on he is a Captain and keeps his level.
+    { "id": "captaincy", "when": { "battle": "start" },
+      "do": [ { "promote": "eirik", "to": "captain" },
+              { "say": "The company has chosen: you lead us as Captain now, Eirik.", "speaker": "kell" } ] },
+    // Fires when a support conversation raises Eirik and Kell to a new level during this battle.
+    { "id": "kell_bond", "when": { "support": ["eirik", "kell"] },
+      "do": [ { "say": "Whatever the pass throws at us, I ride at your side.", "speaker": "kell" } ] },
     { "id": "opening", "when": { "battle": "start" },
       "do": [ { "focus": "hald" },
               { "say": "So Gorm fell. No matter. Nobody takes this pass from me.", "speaker": "hald" } ] },

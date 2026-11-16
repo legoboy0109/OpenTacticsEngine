@@ -1,0 +1,5 @@
+{ "units": [
+  { "id": "hero", "name": "Hero", "moveType": "foot", "stats": { "hp": 20, "str": 6, "def": 3, "spd": 6, "mov": 4 },
+    "growths": { "hp": 100 }, "weapons": ["sword"], "abilities": ["shove", "pull_back", "swap", "behind"], "skills": ["steady"] },
+  { "id": "brute", "name": "Brute", "moveType": "foot", "stats": { "hp": 24, "str": 8, "def": 4, "spd": 4, "mov": 4 }, "weapons": ["sword"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 10, "str": 4, "def": 1, "spd": 3, "mov": 3 }, "weapons": ["sword"] } ] }

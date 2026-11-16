@@ -55,8 +55,8 @@ TEST(loader_demo_srpg_game) {
   CHECK_EQ(db.rules.statHp, db.findStat("hp"));
   CHECK_EQ(db.rules.statMove, db.findStat("mov"));
   CHECK_EQ(db.moveTypes.size(), size_t(3));
-  CHECK_EQ(db.unitTypes.size(), size_t(7));
-  CHECK_EQ(db.weapons.size(), size_t(4));
+  CHECK_EQ(db.unitTypes.size(), size_t(14));
+  CHECK_EQ(db.weapons.size(), size_t(6));
   CHECK_EQ(db.terrains.size(), size_t(5));  // the fort is a structure now
   CHECK_EQ(db.structures.size(), size_t(1));
   CHECK_EQ(db.scripts.size(), size_t(1));
@@ -85,18 +85,18 @@ TEST(loader_demo_srpg_game) {
   CHECK(sword.counter && sword.afterMove && !sword.hasVersusDefault);
   CHECK_EQ(sword.maxRange, 1);
 
-  const UnitTypeDef& peg = db.unitTypes[size_t(db.findUnitType("pegasus"))];
+  const UnitTypeDef& peg = db.unitTypes[size_t(db.findUnitType("sky_rider"))];
   CHECK_EQ(peg.moveType, db.findMoveType("fly"));
   CHECK_EQ(peg.stats.size(), db.stats.size());
   CHECK_EQ(peg.stats[size_t(db.findStat("mov"))], 7);
   CHECK_EQ(peg.growths[size_t(db.findStat("spd"))], 55);
   CHECK_EQ(peg.growths[size_t(db.findStat("mov"))], 0);  // missing = 0
-  CHECK_EQ(peg.tags.size(), size_t(1));
+  CHECK_EQ(peg.tags.size(), size_t(2));
   // Weapons are carried in this game: the type says what it can wield and what it starts with.
   CHECK(db.rules.items.carriedWeapons);
   CHECK(peg.wields.size() == 1 && peg.wields[size_t(0)] == "lance");
-  CHECK(db.canWield(db.findUnitType("pegasus"), db.findWeapon("iron_lance")));
-  CHECK(!db.canWield(db.findUnitType("pegasus"), db.findWeapon("iron_bow")));
+  CHECK(db.canWield(db.findUnitType("sky_rider"), db.findWeapon("iron_lance")));
+  CHECK(!db.canWield(db.findUnitType("sky_rider"), db.findWeapon("iron_bow")));
   CHECK_EQ(peg.items.size(), size_t(1));
   CHECK_EQ(db.items[size_t(peg.items[size_t(0)].item)].weapon, db.findWeapon("iron_lance"));
   CHECK(db.unitTypes[size_t(db.findUnitType("knight"))].tags[size_t(0)] == "armored");

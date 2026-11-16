@@ -1,0 +1,6 @@
+{
+  "abilities": [
+    { "id": "shove", "name": "Shove", "description": "Pushes a neighbour one square away.",
+      "target": "unit", "effect": { "push": 1 }, "cost": "action" }
+  ]
+}

@@ -1,0 +1,14 @@
+// Frozen fixture (docs/SRPG.md D1): the strategy-RPG parts on a pointy-top hexagon map (directions of push, pull, swap and
+// moveBehind), with characters, a skill, supports and pair up on a grid with six neighbours.
+{
+  "formatVersion": 1, "name": "Hex Strategy Fixture",
+  "grid": { "type": "hex", "layout": "pointy" },
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "rescue": { "mode": "pairUp", "pairBonus": { "str": 1, "def": 1 } },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"field","name":"Field","file":"maps/field.json"} ]
+}

@@ -102,7 +102,7 @@ variable). Messages name the map, the event and the command:
 `{ "variable": id, "op": "=", "value": 3 }` (`= != < <= > >=`, `==` also
 accepted), `{ "alive": <filter> }` / `{ "dead": <filter> }`,
 `{ "round": { "op": ">=", "value": 5 } }`,
-`{ "carries": "vulnerary", "unit": <filter> }` (`unit` default any),
+`{ "carries": "salve", "unit": <filter> }` (`unit` default any),
 `{ "sees": <unit filter>, "team": "<team>" }` (fog of war, docs/ECONOMY.md; `team` is required: a team name or a side id
 for that side's team).
 Refined: `alive` = some living unit matches; `dead` = a unit that matches
@@ -126,7 +126,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "removeUnit": <filter> }` | leaves the map (not a defeat: no drops, no defeat events; the defeat rules still apply, so removing a side's last unit ends it like any other loss) |
 | `{ "moveUnit": "eirik", "x": 3, "y": 4 }` | refined: the unit is put there (no path is walked; the entry gives the squares it left and reached, the player may animate it); if the square is taken, the nearest free one as for `addUnit`. Does not spend its move. Fires `reach` events |
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
-| `{ "giveItem": "vulnerary", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
+| `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "giveResource": { "gold": 500 }, "side": "blue" }` | may be negative; a side's funds never go below zero |
 | `{ "setSwitch": id, "to": true }`, `{ "setVariable": id, "to": 3 }`, `{ "addVariable": id, "by": 1 }` | |
 | `{ "objective": { … } }` | replaces the current objectives (below) |

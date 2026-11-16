@@ -125,7 +125,7 @@ identity that events, the campaign roster and supports use.
     "skills": ["quick_study"],                    // optional: personal skills (section 3)
     "learns": [ { "level": 8, "skill": "heavy_blow" } ],   // optional: personal skills learned at a level
     "abilities": ["shove"],                       // optional: personal menu abilities (section 4)
-    "items": ["iron_sword", "vulnerary"] }        // optional: replaces the unit type's starting items
+    "items": ["iron_sword", "salve"] }        // optional: replaces the unit type's starting items
 ] }
 ```
 
@@ -1227,7 +1227,7 @@ game.
   **Pull Back** (Sera, personal; free, 2 uses per battle), **Rally** (Eirik, personal; heal 5 to an ally next to
   him, uses the action), and for the enemy a new unit type Houndmaster with **Call Hound** (summons a Hound; limit
   2, vanish, lifetime 3), so a computer side summons in chapter 2.
-- `rules.rescue`: `carry`, `canCarry`: not units tagged `mounted` (Cavalier and the pegasus rider get the tag) and
+- `rules.rescue`: `carry`, `canCarry`: not units tagged `mounted` (Cavalier and the sky rider get the tag) and
   the carrier's Strength at least the other's Defense; `carrierStats`: Skill and Speed halved.
 - `data/supports.json`: pairs Eirik–Kell, Eirik–Lyra, Lyra–Bram, Eirik–Sera; two levels each with short
   conversations; all three point sources on; `conversations: "both"`; `maxLevels: 3`. Chapter 1's after scene gives
@@ -2554,6 +2554,89 @@ Each E step's acceptance is its vitest and Playwright tests of "Tests" and scree
 ### D1. Demo and template content — depends on K2, P1, A1, R1, S1, AI1 (content), U1–U5 (player tests)
 The section "Demo and template content", the fixtures not yet made, the sims, updating the demo's pins, CREDITS
 unchanged (no new art is required: new unit types reuse existing sprites until art is made).
+
+#### D1 as built
+
+`games/demo-srpg` and `editor/templates/strategy-rpg` carry the strategy-RPG parts; four more frozen fixtures exist; the
+demo's pins were re-taken. Games and fixtures D1 did not touch give identical sims (demo-economy, demo-hex, hex-pointy,
+hex-flat, 30 seeds each, compared line by line).
+
+**Renames.** The unit type `pegasus` is `sky_rider` (name "Sky Rider", glyph `R`, tags `flier` and `mounted`), the item
+`vulnerary` is `salve` ("Salve"). The item that was called `salve` ("Fully heals a neighbouring ally") is now
+`mending_salve`, "Mending Salve" (two items cannot share an id; the contract gave no name for it). Changed everywhere: data,
+maps, campaign, graphics and style files, models (`models/sky_rider.glb`, `models/detailed/sky_rider.glb`), the sound and
+item docs, `tests/test_loader.cpp`, `tests/test_demos.cpp`, `tests/campaign_player_test.py`, `tools/art/*`, CREDITS (file
+names only). The prose "pegasus knight" is "sky rider".
+
+**Demo content (`games/demo-srpg`).**
+- `data/characters.json`: Eirik, Kell, Lyra, Bram, Sera (company) and Gorm, Hald (bosses): the old map overrides moved in
+  as personal stats, personal growths, one personal skill each (Eirik Rallying Presence, Kell Second Charge, Lyra Steady Aim,
+  Bram Hang On, Sera Catch Breath, Gorm Heavy Blow, Hald Back to the Wall), Eirik also Rally, Sera also Pull Back. Eirik
+  starts with the new Keen Blade, Kell with the new Runner's Charm. The maps place everyone with `"character"`.
+- `data/skills.json`: the thirty starter skills (generated from one table, identical to the template's) plus Armor
+  Breaker, Woodcraft, Sword Dancer. Every unit type has one or two skills and `learns` at levels 3 and 5. New items:
+  `keen_blade` (sword, carries Sword Dancer), `runners_charm` (accessory, Light Step), both sold at the forts,
+  `officers_writ` (promotion item, dropped by Gorm with the ring), `fangs`.
+- Promotion: Captain (Lord, by the story command at the start of chapter 2, level kept), Lancer and Outrider (Cavalier,
+  Officer's Writ from level 2), Marksman (Archer, offered at level 4), Brute (Fighter, automatic at level 5).
+  `rules.promotion.levelAfter: "reset"`.
+- `data/abilities.json`: Shove (Fighter, Knight, Brute; action), Swap (Cavalier, Lancer, Outrider; free, cooldown 2), Pull
+  Back (Sera; free, 2 uses), Rally (Eirik; heals 5; action), Call Hound (new enemy unit type Houndmaster; limit 2, vanish,
+  lifetime 3, **4 uses per battle**). Chapter 2's Brun is a Houndmaster now.
+- `rules.rescue`: `carry`, `canCarry: "a.str >= b.def and not b.tags.mounted"`, carrier Skill and Speed halved.
+- `data/supports.json`: four pairs, two levels each, `levelNames` C/B/A, `maxLevels` 3, all three point sources on
+  (5 / 3 / 4), `conversations: "both"`; Eirik and Kell start at 10 points. Chapter 1's after scene adds 15 points for Eirik
+  and Sera when she joined; chapter 2 has a `support` trigger event (Eirik and Kell).
+- Graphics: the new unit types draw as the type they grow from (`tools/art/art_units.py` `ALIASES`, models too); portraits
+  follow map units with a `character`. `make_starter_art.py` was re-run (only `games/demo-srpg` and the template changed).
+
+**Template (`editor/templates/strategy-rpg`).** `data/skills.json` is the thirty starter skills, exactly as the table of
+section 3 (stats `str`, `skl`, `spd`, `def`; `hp` and `mov` for Tough and Light Step) with a description each; Lord has
+Opening Blow, Archer Steady Aim. Characters Eirik, Kell, Gorm, Vex and a new Bram (a Fighter, so Shove has a bearer; the
+template had none) plus a plain red soldier to keep the sides even. Pair up with `pairBonus` Strength +1, Defense +1.
+`rules.items` (fixed weapons, three slots) and `data/items.json` with the Officer's Writ: Kell carries it and a Cavalier
+becomes an Outrider with it. `abilities.json` holds only Shove. One support pair, Eirik and Kell, one level.
+
+**Fixtures.** `srpg-carry`, `srpg-pair`, `srpg-supports` (a two-chapter campaign), `srpg-hex` (pointy; abilities in six
+directions), `tests/test_srpg_fixtures.cpp`; `plain-srpg` is a frozen copy of the pre-D1 demo (data only) for the editor's
+unit tests, like `plain-economy`.
+
+**Interpretations.** (1) "not units tagged mounted" in `canCarry` is about the unit being carried (`b`). (2) Captain's
+promotion entry says `levelAfter: "keep"` so Eirik does not drop to level 1 at the start of chapter 2. (3) A game with skills
+gets a "Unit" entry second in the battle menu (U1), so menu scripts of older tests moved one down. (4) Knights have On My Own
+and Hald Back to the Wall, not defensive skills: with Hold the Line and a fort the computer's lone leader could not hurt
+Hald and nobody could finish the battle. (5) Call Hound has 4 uses: without a limit a summoner and a lone leader that will
+not walk into a crowd made 10 of 30 sims of chapter 2 stall (a hound is killed every turn for ever). (6) Marksman and Brute
+are reachable in a long game only (level 4 and 5; the campaign reaches about level 4).
+
+**Pins re-taken, and why** (the demo's data changed on purpose): `tests/test_srpg_compat.cpp` the demo-srpg golden
+battles (5 lines), the demo-srpg data hash (`424b5fd70a0bf539` to `97b4001954d2bcf9`), its campaign hash (`e4f411e0ca888510`
+to `3453e134072a2766`) and its campaign save hashes (`4899cc10dbbb4724` to `751f8eb40ef07113`, `71019abb4e87edfc` to
+`1b37c1ef7391fe0d`); `tests/test_srpg_golden_fights.cpp` the six demo-srpg digests moved to their own table (the demo has
+modifier sources now, so it cannot be "as before the pipeline"); `tests/test_loader.cpp` (14 unit types, 6 weapons, sky rider
+has 2 tags), `tests/test_demos.cpp` (Eirik carries 3 items, Gorm drops 2), `tests/test_srpg_skeleton.cpp` (stat equality
+adds the skills' standing bonuses), `tests/test_save_damage.cpp` and `tests/test_views.cpp` (their demo copies take the new
+data files). All other pins are untouched. Player tests: `campaign_player_test.py`, `srpg_player_supports_test.py` (copies of
+the demo drop its characters / supports), `sound_player_test.py` (autoplay seed 2 to 4), `tools/webtest/suites/saves.mjs`
+(menu index). Editor tests: `tests/editor_api_*` (14 demo unit types; the template now has the new files, so the
+"nothing there" checks use the blank template; the E3 test keeps the template's own writ), vitest `fixtures.ts`
+(`loadDemo('demo-srpg')` reads `plain-srpg`; `loadLiveDemoSrpg` the real one) and `demoContent.test.ts`.
+
+**Sims** (30 seeds unless noted; before to after). bridge: Blue 17 / Red 13, 6.9 rounds to Blue 19 / Red 11, 6.0; north_road:
+Blue 19 / Red 11 to Blue 21 / Red 9, 12.0 rounds; campaign (20): 5 finished to 19; template ford (20): Blue 18 / Red 2 to Blue
+18 / Red 2 (28 of 30 for 30 seeds); the four new fixtures: 20 of 20 each. No stalls anywhere. `tests/srpg_content_test.py`
+(ctest `srpg_content`) runs these, checks determinism and that the event printer names promotion, summons, skills and
+supports.
+
+**Names invented here.** Items: Mending Salve, Keen Blade, Runner's Charm, Fangs (Officer's Writ is the contract's). Unit
+types: Houndmaster, Hound (contract); ids `sky_rider`, `mending_salve`, `keen_blade`, `runners_charm`, `fangs`,
+`officers_writ`, weapon group `fang`; support level names C, B, A; every character description, every support conversation
+and the lines "The company has chosen: you lead us as Captain now, Eirik." and "Whatever the pass throws at us, I ride at your
+side."
+
+**Not done.** No new art (Captain, Lancer, Outrider, Marksman, Brute, Houndmaster and Hound draw as their source type: the
+Hound as a Fighter). In `detailed-3d` the promotion screen's preview shows a letter box for a model-only type (a U2
+behaviour, not a content issue). Playtest of Rally and of Brute's automatic promotion was not reached by input scripts.
 
 ### T1. Tutorial lesson and document sync — depends on E1, E2, D1
 The lesson "Characters and skills"; pointers to this contract from docs/GAME_FORMAT.md, docs/SAVES.md,

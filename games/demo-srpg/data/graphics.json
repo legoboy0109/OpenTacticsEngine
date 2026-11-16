@@ -224,7 +224,7 @@
       ],
       "frameMs": 600
     },
-    "pegasus": {
+    "sky_rider": {
       "sheet": "units",
       "frames": [
         [
@@ -234,6 +234,104 @@
         [
           1,
           6
+        ]
+      ],
+      "frameMs": 600
+    },
+    "captain": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          7
+        ]
+      ],
+      "frameMs": 600
+    },
+    "lancer": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          8
+        ],
+        [
+          1,
+          8
+        ]
+      ],
+      "frameMs": 600
+    },
+    "outrider": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          9
+        ],
+        [
+          1,
+          9
+        ]
+      ],
+      "frameMs": 600
+    },
+    "marksman": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          10
+        ],
+        [
+          1,
+          10
+        ]
+      ],
+      "frameMs": 600
+    },
+    "brute": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          11
+        ],
+        [
+          1,
+          11
+        ]
+      ],
+      "frameMs": 600
+    },
+    "houndmaster": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          12
+        ],
+        [
+          1,
+          12
+        ]
+      ],
+      "frameMs": 600
+    },
+    "hound": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          13
+        ],
+        [
+          1,
+          13
         ]
       ],
       "frameMs": 600
@@ -520,8 +618,29 @@
         "soldier": {
           "model": "models/soldier.glb"
         },
-        "pegasus": {
-          "model": "models/pegasus.glb"
+        "sky_rider": {
+          "model": "models/sky_rider.glb"
+        },
+        "captain": {
+          "model": "models/lord.glb"
+        },
+        "lancer": {
+          "model": "models/cavalier.glb"
+        },
+        "outrider": {
+          "model": "models/cavalier.glb"
+        },
+        "marksman": {
+          "model": "models/archer.glb"
+        },
+        "brute": {
+          "model": "models/fighter.glb"
+        },
+        "houndmaster": {
+          "model": "models/soldier.glb"
+        },
+        "hound": {
+          "model": "models/fighter.glb"
         }
       },
       "structures": {
@@ -649,8 +768,29 @@
         "soldier": {
           "model": "models/soldier.glb"
         },
-        "pegasus": {
-          "model": "models/pegasus.glb"
+        "sky_rider": {
+          "model": "models/sky_rider.glb"
+        },
+        "captain": {
+          "model": "models/lord.glb"
+        },
+        "lancer": {
+          "model": "models/cavalier.glb"
+        },
+        "outrider": {
+          "model": "models/cavalier.glb"
+        },
+        "marksman": {
+          "model": "models/archer.glb"
+        },
+        "brute": {
+          "model": "models/fighter.glb"
+        },
+        "houndmaster": {
+          "model": "models/soldier.glb"
+        },
+        "hound": {
+          "model": "models/fighter.glb"
         }
       },
       "structures": {
@@ -759,9 +899,44 @@
           "height": 1.515,
           "sideMaterial": ""
         },
-        "pegasus": {
-          "model": "models/detailed/pegasus.glb",
+        "sky_rider": {
+          "model": "models/detailed/sky_rider.glb",
           "height": 1.474,
+          "sideMaterial": ""
+        },
+        "captain": {
+          "model": "models/detailed/lord.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "lancer": {
+          "model": "models/detailed/cavalier.glb",
+          "height": 1.532,
+          "sideMaterial": ""
+        },
+        "outrider": {
+          "model": "models/detailed/cavalier.glb",
+          "height": 1.532,
+          "sideMaterial": ""
+        },
+        "marksman": {
+          "model": "models/detailed/archer.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "brute": {
+          "model": "models/detailed/fighter.glb",
+          "height": 1.15,
+          "sideMaterial": ""
+        },
+        "houndmaster": {
+          "model": "models/detailed/soldier.glb",
+          "height": 1.515,
+          "sideMaterial": ""
+        },
+        "hound": {
+          "model": "models/detailed/fighter.glb",
+          "height": 1.15,
           "sideMaterial": ""
         }
       },
@@ -911,7 +1086,7 @@
           ],
           "frameMs": 600
         },
-        "pegasus": {
+        "sky_rider": {
           "sheet": "iso_units",
           "frames": [
             [
@@ -921,6 +1096,104 @@
             [
               1,
               6
+            ]
+          ],
+          "frameMs": 600
+        },
+        "captain": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              7
+            ],
+            [
+              1,
+              7
+            ]
+          ],
+          "frameMs": 600
+        },
+        "lancer": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              8
+            ],
+            [
+              1,
+              8
+            ]
+          ],
+          "frameMs": 600
+        },
+        "outrider": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              9
+            ],
+            [
+              1,
+              9
+            ]
+          ],
+          "frameMs": 600
+        },
+        "marksman": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              10
+            ],
+            [
+              1,
+              10
+            ]
+          ],
+          "frameMs": 600
+        },
+        "brute": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              11
+            ],
+            [
+              1,
+              11
+            ]
+          ],
+          "frameMs": 600
+        },
+        "houndmaster": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              12
+            ],
+            [
+              1,
+              12
+            ]
+          ],
+          "frameMs": 600
+        },
+        "hound": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              13
+            ],
+            [
+              1,
+              13
             ]
           ],
           "frameMs": 600

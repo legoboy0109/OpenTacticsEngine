@@ -13,8 +13,10 @@
       ],
       "after": [
         { "if": [ { "switch": "sera_joined", "is": true } ],
-          "then": [ { "say": "You kept your word about my village. I will keep mine.", "speaker": "sera" } ],
-          "else": [ { "say": "Their pegasus knight is gone. A pity; we could have used her.", "speaker": "kell" } ] },
+          // Sera's joining brings her closer to Eirik (data/supports.json): the camp offers their first conversation.
+          "then": [ { "say": "You kept your word about my village. I will keep mine.", "speaker": "sera" },
+                    { "addSupport": ["eirik", "sera"], "by": 15 } ],
+          "else": [ { "say": "Their sky rider is gone. A pity; we could have used her.", "speaker": "kell" } ] },
         { "say": "The garrison's stores are ours. Share them out.", "speaker": "eirik" },
         { "giveResource": { "gold": 200 }, "side": "blue" }
       ] },

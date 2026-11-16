@@ -20,6 +20,10 @@
     "turnOrder": "sides",
     "counterAttacks": true,
     "defeat": ["noUnits", "leaderDead"],
+    // Units carry up to three things (data/items.json); weapons stay fixed per unit type.
+    "items": { "weapons": "fixed", "inventorySize": 3 },
+    // Pair up (docs/SRPG.md section 5): a unit can join a neighbour and stand behind it, adding its bonus. The demo uses "carry".
+    "rescue": { "mode": "pairUp", "pairBonus": { "str": 1, "def": 1 } },
     "progression": {
       "enabled": true,
       "xpPerLevel": 100,

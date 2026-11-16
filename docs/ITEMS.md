@@ -38,7 +38,7 @@ Core: `RulesConfig::items` (`ItemRules`).
 
 ```jsonc
 { "items": [
-  { "id": "vulnerary", "name": "Salve",
+  { "id": "salve", "name": "Salve",
     "description": "Restores 10 HP.",       // optional, one line
     "kind": "usable",                       // "usable" | "weapon" | "accessory"
     "uses": 3,                              // optional, 1..999; missing = unlimited
@@ -74,18 +74,18 @@ list (as before: now "can use", not "has"), or if the weapon's optional
 
 ### Starting items
 
-- units.json, per unit type: `"items": ["iron_sword", "vulnerary"]`: what a
+- units.json, per unit type: `"items": ["iron_sword", "salve"]`: what a
   unit of this type starts with (built units, and map units that say
   nothing).
 - Map file, per unit: `"items": [...]` replaces the type's list. An entry is
-  an id or `{ "item": "vulnerary", "uses": 2, "drop": true }` (`uses`: what
+  an id or `{ "item": "salve", "uses": 2, "drop": true }` (`uses`: what
   is left; `drop`: goes to whoever defeats the unit).
 - Map file, per side: `"storage": [...]` (same entries, no `drop`).
 - More entries than `inventorySize` is a loader error.
 
 ### Shops
 
-structures.json: `"sells": ["vulnerary", "iron_sword"]`. Every listed item
+structures.json: `"sells": ["salve", "iron_sword"]`. Every listed item
 needs a `price`. Core: `StructureDef::sells`.
 
 ## State (Battle)
@@ -184,5 +184,5 @@ trades or shops.
 
 1. Core: data, loader, state, rules, saves, tests. 
 2. Player menus and panel; AI's simple use.
-3. Editor screens; demo content (`demo-srpg`: carried weapons, a vulnerary,
+3. Editor screens; demo content (`demo-srpg`: carried weapons, a salve,
    a shop, a drop).

@@ -141,7 +141,7 @@ without this file simply has no structures. Full rules: docs/STRUCTURES.md.
     "capturePoints": 20,                           // > 0 = can be captured
     "income": { "funds": 1000 },                  // per turn to the owner, once per structure
     "produces": ["infantry", "tank"],             // unit types the owner can build on its squares
-    "sells": ["vulnerary"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)
+    "sells": ["salve"],                       // optional: a shop; each item needs a price (docs/ITEMS.md)
     "tags": ["hq"],                               // "hq" = headquarters (defeat: lostHq)
     "research": true,                             // optional: only counts while rules.research.needsStructure is on (docs/ECONOMY.md)
     "upgrades": [ { "to": "town", "cost": { "funds": 3000 },   // optional: kinds it can be built up into (same
@@ -189,7 +189,7 @@ and gets `vs = 1`.
     "weapons": ["lance"],                                    // fixed weapons: what it fights with.
                                                              // carried weapons: what it can wield
     "wields": ["lance"],                                     // optional: weapon groups it can wield (carried)
-    "items": ["iron_lance", "vulnerary"],                    // optional: what it starts with (docs/ITEMS.md)
+    "items": ["iron_lance", "salve"],                    // optional: what it starts with (docs/ITEMS.md)
     "cost": { "funds": 3000 },
     "tags": ["armored"],
     "canCapture": false,

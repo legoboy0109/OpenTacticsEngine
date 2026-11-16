@@ -1,0 +1,5 @@
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "type": "hero" },
+  { "id": "bram", "name": "Bram", "type": "brute" },
+  { "id": "kell", "name": "Kell", "type": "rider" },
+  { "id": "gorm", "name": "Gorm", "type": "grunt" } ] }

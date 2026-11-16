@@ -68,7 +68,7 @@ def maps(lose_first):
         [U('knight', 'red', 11, 4, 'Gorm', 'gorm', level=3, leader=True),
          U('soldier', 'red', 9, 4, 'Tane', level=1),
          U('soldier', 'red', 8, 3, 'Wanderer', 'wanderer', level=5)],
-        700, ['salve'],
+        700, ['mending_salve'],
         [{'id': 'recruit', 'when': {'battle': 'start'}, 'do': [{'changeSide': 'wanderer', 'side': 'blue'}]},
          end_event(lose_first, [] if lose_first else [{'removeUnit': 'bram'}])])
     # Chapters 2 and 3 name their heroes at level 1: what the party carries (levels, stats) must override that.
@@ -117,6 +117,10 @@ def build(folder, title, on_defeat, fallen, free, lose_first):
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
+    # D1: the demo's characters would own the ids these test maps use (eirik, kell, ...) and its supports need them;
+    # this test is about the campaign flow, so the copy goes without both.
+    for f in ('characters', 'supports'):
+        os.remove(dst + '/data/%s.json' % f)
     os.remove(dst + '/maps/bridge.json')
     for name, m in maps(lose_first).items():
         json.dump(m, open(dst + '/maps/%s.json' % name, 'w'), indent=1)
@@ -252,7 +256,8 @@ def scenarios(tmp):
     # 5. Leave battle, then --continue picks the battle up; a slot save + --load-slot.
     sv5 = fresh('s_leave')
     shutil.copytree(sv, sv5)
-    code, log = play(['--game', 'camp', '--continue'], saves=sv5, inp='wait:30,cancel,menu,down,confirm,confirm,wait:10,menu,down,down,down,confirm,wait:10', frames=400)
+    # (the battle menu has a "Unit" entry second since the demo has skills (D1), so each index below is one more than before)
+    code, log = play(['--game', 'camp', '--continue'], saves=sv5, inp='wait:30,cancel,menu,down,down,confirm,confirm,wait:10,menu,down,down,down,down,confirm,wait:10', frames=400)
     s = save_of(sv5, 'camp')
     check('leave battle writes the continue save with the battle', phase(s) == 'battle' and 'battle' in s)
     s1 = save_of(sv5, 'camp', 'slot1')

@@ -28,7 +28,14 @@ const readIn = (root: string) => (name: string, rel: string) => parseLoose(readF
 
 export const TEMPLATES = ['strategy-rpg', 'economy-tactics', 'blank'] as const
 
-export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc { return loadFrom(games, name) }
+/** demo-economy as it is. demo-srpg is the FROZEN copy from before step D1 (tests/fixtures/plain-srpg, no art files): since D1 the live
+ *  demo has characters, skills, promotions, abilities, carrying and supports, and these tests are about a game that has none of them
+ *  (use loadLiveDemoSrpg for the real one). */
+export function loadDemo(name: 'demo-srpg' | 'demo-economy'): ProjectDoc {
+  return name === 'demo-srpg' ? loadFrom(fixtures, 'plain-srpg') : loadFrom(games, name)
+}
+/** The real, current games/demo-srpg with all its strategy-RPG content. */
+export function loadLiveDemoSrpg(): ProjectDoc { return loadFrom(games, 'demo-srpg') }
 /** The frozen copy of demo-economy from before it used upgrades, research, supply and fog (tests/fixtures/plain-economy,
  *  no art): the editor tests that need "a game with none of the optional economy data" use it, the live demo has some. */
 export function loadPlainEconomy(): ProjectDoc { return loadFrom(fixtures, 'plain-economy') }

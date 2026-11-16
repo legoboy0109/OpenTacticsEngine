@@ -1,0 +1,10 @@
+// Blue (Eirik, Bram, Kell) in the west, red in the east; a wall column in the middle with a gap in row 1.
+{ "name": "Field", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": ["...#....", "........", "...#...."],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "eirik", "side": "blue", "x": 1, "y": 1, "leader": true },
+    { "character": "bram", "side": "blue", "x": 1, "y": 0 },
+    { "character": "kell", "side": "blue", "x": 1, "y": 2 },
+    { "character": "gorm", "side": "red", "x": 6, "y": 1, "leader": true },
+    { "type": "grunt", "side": "red", "x": 6, "y": 0 } ] }
