@@ -1,0 +1,8 @@
+{ "name": "Field", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "eirik", "side": "blue", "x": 0, "y": 0, "leader": true },
+    { "character": "gorm", "side": "red", "x": 5, "y": 0 },
+    { "character": "lyra", "side": "blue", "x": 0, "y": 2 },
+    { "type": "hero", "side": "red", "x": 5, "y": 2 } ] }

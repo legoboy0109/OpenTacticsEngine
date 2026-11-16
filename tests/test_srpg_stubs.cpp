@@ -59,7 +59,6 @@ TEST(srpg_stub_a_game_without_the_new_files_loads) { CHECK_STR(loadWith("data/te
 TEST(srpg_stub_refuses_the_new_data_files) {
   refused(loadWith("data/skills.json", R"({ "skills": [] })"), "data/skills.json");
   refused(loadWith("data/abilities.json", R"({ "abilities": [] })"), "data/abilities.json");
-  refused(loadWith("data/characters.json", R"({ "characters": [] })"), "data/characters.json");
   refused(loadWith("data/supports.json", R"({ "pairs": [] })"), "data/supports.json");
 }
 

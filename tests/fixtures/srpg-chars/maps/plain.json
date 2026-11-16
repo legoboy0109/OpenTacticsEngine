@@ -1,0 +1,6 @@
+{ "name": "Plain", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "id": "scout", "type": "hero", "side": "blue", "x": 0, "y": 0 },
+    { "type": "grunt", "side": "red", "x": 5, "y": 0 } ] }
