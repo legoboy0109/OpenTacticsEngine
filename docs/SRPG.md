@@ -1499,6 +1499,66 @@ Characters load, dress units and level up as section 1 says; games without `data
 - **Owns.** Those files; the `movement.cpp` change. **Must not touch.** `combat.cpp`, `combat_mods.*`.
 - **Accept.** Loader, standing, learning, movement and move-again tests; saves of skill-less games unchanged.
 
+#### K1 as built
+
+Skills load, give their standing effects and are learned; games without `data/skills.json` are unchanged (every pin in
+`tests/test_srpg_compat.cpp` untouched, the four sims identical to the build before).
+
+**Where things are.**
+- Loader: `loader_skills.cpp` (the file, `skills` / `learns` on unit types, `skills` on weapons and items, the story's
+  `teachSkill` / `forgetSkill` / `hasSkill`, `resolveSkillRefs`) and `loader_skill_blocks.cpp` (a block: `when`, `if`,
+  `chance`, `aura`, `do`; every refusal for all seven `when`s). A menu ability's `if` (A1) reuses
+  `readSkillConds(c, db, list, where, SkillCondScope, labelPrefix, out)` and `resolveSkillConds`, both declared in
+  `loader_srpg.h`; the scope says whether `"who": "foe"`, `initiating` / `distance` and `formula` are allowed.
+- Battle: `skills.cpp` (`skillsOf`, `hasSkill`, learning, the story commands), `skill_cond.cpp` (`skillCondHolds`, all
+  eleven conditions), `skill_standing.cpp` (`standingEffects` and what is built on it: stat and growth bonuses, move
+  cost cap, `pass`, `moveAgain`, `xpPercent`), `save_skills.cpp`. `skill_combat.cpp` and `skill_timed.cpp` hold the
+  stubs K2 replaces (K2 owns both; `skills.cpp` has nothing of K2 left in it).
+- Fixture `tests/fixtures/srpg-skills`, helper `tests/srpg_skills_fixture.h` (`Copy`, `World`), tests
+  `test_srpg_skills*.cpp` (27 tests; 968 in the whole suite, and the registrar of `tests/test.h` holds at most 1024).
+
+**For the steps after.** K2: `Battle::skillCondHolds(cond, SkillCtx)` judges one condition (`SkillCtx::combat` and
+`initiating` give the foe points a meaning; `cell` / `foeCell` / `weapon` / `foeWeapon` override where and with what
+a fighter is judged); `skillsOf(u, weapon, out)` takes a weapon index, `-1` = the weapon in use outside a combat
+(`restingWeapon(u)`, public) or `-2` = no weapon at all (a defender with no answering weapon); the parsed blocks are in
+`SkillBlock` as F1 declared them (`aura`, `hasChance` / `chance` / `chanceExpr`, effects with `to` / `within`).
+A1: abilities from skills arrive through `SkillEffect::Kind::Ability` (`ability` is resolved against
+`db.abilities` in `resolveSkillRefs`, so `loadAbilities` must fill `db.abilities` before it, as the load order says).
+P1: `learnUpTo(unit)` is as F1 declared it. U1 / E2: skills on a unit are read with `skillsOf`; `Unit::acted`,
+`moveSpent` and `Database::turnFlagSkills` are what the player needs for "move again".
+
+**Readings of the contract (keep to these).**
+- Learning order. `learnUpTo` adds every entry at or below the level, lowest level first, the type's before the
+  character's on a tie ("oldest first"). A new unit therefore has the learned skills of its level, and a roster
+  unit gets back what it forgot by story if the entry is at or below its level.
+- A maximum HP that changes because a skill is learned or forgotten (level up, `teachSkill`, `forgetSkill`) raises the
+  current HP by the gain, or cuts it down to the new maximum (never below 1). Items and equipment keep their old rule.
+- A unit that is not in `Battle::units` yet (being made, or read from a save) only has its blocks without conditions
+  looked at; its HP stat only ever does.
+- `teachSkill` / `forgetSkill` need their `to` / `from` filter (`{}` = every unit). `forgetSkill` makes no event.
+  `hasSkill`'s `unit` defaults to any unit.
+- Conditions. `"who": "foe"` is accepted on `hp`, `weapon`, `terrain`, `structure`, `unit` and `carrying` only; `near`,
+  `round`, `initiating`, `distance` and `formula` are owner / battle wide. `structure: false` = on no structure.
+  A `formula` in an aura block is allowed (`b` is nil there). `near` counts nobody for a unit off the board.
+- Effects. Ranges: a number of hit, crit, damage, avoid, critAvoid, damageTaken and each stat bonus or growth is
+  -1000..1000, percents 0..1000 (`xpPercent` 1..1000), `strikes` -7..7, `multiStrike` 2..4, `drain` 1..100,
+  `maxMoveCost` 1..100, `heal` and `hurt` 1..1,000,000 (`heal` percent 1..100). `to` / `within` where the table allows
+  them; `within` defaults to 1; `hurt` defaults to `foe` in `afterCombat` and to `enemies` in `turnStart`. Flags must be
+  `true`. A `combat` block's `stats` may not change the HP or the move stat, whoever receives them. `chance` is any
+  whole number (clamped to 0..100 when rolled).
+- Formulas are registered with `Database::addExpr` and compiled by `Formulas::init`, like every formula, so a syntax
+  error appears there (`data/skills.json: skill "x": block 1: condition 2: "formula": <Lua message>`), not in `loadGame`.
+- `maxMoveCost` lowers what a square costs after the impassable test (a wall stays a wall) and `pass` leaves enemies
+  out of the walls; with fog `pathStop` (in `fog_rules.cpp`, the one line of another area K1 touched) lets a walk
+  through an unseen enemy go on unless that enemy is on the last square. A unit with `acted` has the budget
+  `movePoints - moveSpent` (`movement.cpp`); fuel still limits it.
+- Saves. `moveSpent` / `acted` / `refreshed` are written only in a game where `turnFlagSkills` is set, and refused
+  elsewhere (`... this game has no "moveAgain" or "actAgain" skills`; in a game without any skill: `this game has no
+  skills`). `moveSpent` is written only above 0. A skill list must name valid skills, none twice.
+- The accessory rule now says `an accessory needs a "bonus" that changes at least one stat, or "skills"`.
+- `hasMoveAgain` stays private (only `endOrder` asks); the combat and timed effects (K2) parse and load but do nothing
+  in a fight yet.
+
 ### K2. Skills: combat and timed effects (core) — depends on K1 and F2
 - **Scope.** `skill_combat.cpp` (`skillCombatMods`, `auraCombatMods`, `strikeActivations`, forecast notes),
   `skill_timed.cpp` (`turnStart`, `defeat`, `afterCombat`, `actAgain`, `UnitHurt`), `SkillActivated` events.
