@@ -7,13 +7,16 @@ import os
 import subprocess
 
 
+from editor_api_plain_units import plain_units
+
+
 def run_supports_checks(api, tmp, games, templates, check, get_project, put_project):
     # --- The sticky switch: both features on, nothing added.
     pid = "supports-e4-empty"
     st, doc = api.json("POST", "/api/projects", {"id": pid, "name": "E4 empty", "template": "strategy-rpg"})
     check("e4: create project", st == 201, (st, doc))
     st, d = get_project(api, pid)
-    st, res = put_project(api, pid, d, d["revision"], characters=[], supports={"pairs": []})
+    st, res = put_project(api, pid, d, d["revision"], characters=[], supports={"pairs": []}, maps=plain_units(d))
     check("e4: PUT empty characters and supports -> 200", st == 200, (st, res))
     st, p = api.json("GET", "/api/projects/%s/problems" % pid)
     check("e4: empty characters and supports: Problems is empty", st == 200 and p["problems"] == [], p)
@@ -27,7 +30,7 @@ def run_supports_checks(api, tmp, games, templates, check, get_project, put_proj
     st, d = get_project(api, pid)
     game = d["game"]
     mid = game["maps"][0]["id"]
-    maps = d["maps"]
+    maps = plain_units(d)
     characters = [{"id": "eirik", "name": "Eirik", "type": "lord"}, {"id": "lyra", "name": "Lyra", "type": "archer"},
                   {"id": "bram", "name": "Bram", "type": "soldier"}]
     maps[mid]["units"] = [{"character": "eirik", "side": "blue", "x": 1, "y": 3}, {"character": "lyra", "side": "blue", "x": 1, "y": 4}] + \

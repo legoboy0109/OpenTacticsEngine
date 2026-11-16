@@ -28,6 +28,9 @@ def _no_events(maps):
     return maps
 
 
+from editor_api_plain_units import plain_units
+
+
 def run_skills_checks(api, tmp, games, templates, check, get_project, put_project):
     pid = "skills-e2"
     st, doc = api.json("POST", "/api/projects", {"id": pid, "name": "E2", "template": "strategy-rpg"})
@@ -42,19 +45,19 @@ def run_skills_checks(api, tmp, games, templates, check, get_project, put_projec
     for w in d["weapons"]:
         if w["id"] == "iron_sword":
             w["skills"] = ["opening_blow"]
-    items = [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"]}]
+    items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"]}]  # the template's own stay
     abilities = [{"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 1}}]
     chars = [{"id": "eirik", "name": "Eirik", "type": "lord", "skills": ["on_my_own"], "learns": [{"level": 2, "skill": "gifted"}]}]
     game = d["game"]
     mid = game["maps"][0]["id"]
-    maps = d["maps"]
+    maps = plain_units(d)
     maps[mid]["units"][0]["id"] = "hero"
     maps[mid]["events"] = [
         {"id": "teach", "when": {"battle": "start"}, "if": [{"hasSkill": "tough"}],
          "do": [{"teachSkill": "heavy_blow", "to": {"unit": "hero"}}, {"forgetSkill": "heavy_blow", "from": {}}]},
     ]
     st, res = put_project(api, pid, d, d["revision"], units=d["units"], weapons=d["weapons"], items=items, abilities=abilities,
-                          skills=skills, characters=chars, maps=maps)
+                          skills=skills, characters=chars, maps=maps, supports={"pairs": []})  # the template's pair names its own people
     check("e2: PUT skills, sources and story forms -> 200", st == 200, (st, res))
     st, p = api.json("GET", "/api/projects/%s/problems" % pid)
     check("e2: the real loader accepts all of it (no problems)", st == 200 and p["problems"] == [], p)
