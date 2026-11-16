@@ -1,0 +1,4 @@
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "type": "hero", "level": 3, "abilities": ["flank"], "skills": ["gripping"] },
+  { "id": "gorm", "name": "Gorm", "type": "grunt" },
+  { "id": "mira", "name": "Mira", "type": "archer", "abilities": ["trade", "mend"] } ] }

@@ -101,7 +101,7 @@ bool Battle::conditionHolds(const Condition& c) const {
     case Condition::Kind::Dead: {
       bool any = false, alive = false;
       for (const Unit& u : units) {
-        if (!unitMatches(c.filter, u)) continue;
+        if (!unitMatches(c.filter, u) || summonIgnored(c.filter, u)) continue;  // A1: summons are not counted by side / team / any
         any = true;
         alive = alive || exists(u);  // R1: a carried unit exists
       }

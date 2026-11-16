@@ -6,6 +6,7 @@ namespace ote {
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events) {
   const RulesConfig& rules = db->rules;
   if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= rules.maxLevel) return;
+  if (summonGivesNoXp(unit, events)) return;  // the foe was a summon that gives no experience (docs/SRPG.md "Summoning")
   amount = skillXp(units[(size_t)unit], amount);  // "xpPercent" skills (docs/SRPG.md); unchanged without any
   if (amount <= 0) return;
 

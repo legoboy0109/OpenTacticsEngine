@@ -43,7 +43,7 @@ bool Battle::objectiveHolds(const ObjectiveRule& r, bool win) const {
       // Everything the filter names is gone; something has to exist (or have existed) for that.
       bool any = false;
       for (const Unit& u : units) {
-        if (!unitMatches(r.filter, u)) continue;
+        if (!unitMatches(r.filter, u) || summonIgnored(r.filter, u)) continue;  // A1: summons are not counted by side / team / any
         if (exists(u)) return false;  // R1: a carried unit is not defeated
         any = true;
       }

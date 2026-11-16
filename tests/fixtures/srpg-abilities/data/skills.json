@@ -1,0 +1,3 @@
+{ "skills": [
+  { "id": "gripping", "name": "Gripping", "blocks": [ { "when": "always", "do": [ { "ability": "yank" } ] } ] }
+] }

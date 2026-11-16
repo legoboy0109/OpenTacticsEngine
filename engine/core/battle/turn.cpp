@@ -99,7 +99,7 @@ void Battle::checkDefeat(std::vector<Event>& events) {
     if (!lost && rules.defeatNoUnits && side.everHadUnits) {
       bool any = false;
       for (const Unit& u : units)
-        if (exists(u) && u.side == s) { any = true; break; }  // R1: a unit being carried still counts
+        if (exists(u) && u.side == s && !isSummoned(u)) { any = true; break; }  // R1: a carried unit counts; A1: a summon does not
       if (!any) lost = true;
     }
     if (!lost && rules.defeatLostHq && side.hadHq && !ownsHq(s)) lost = true;

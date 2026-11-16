@@ -1,0 +1,11 @@
+{
+  "formatVersion": 1, "name": "Abilities Fixture",
+  "stats": [ {"id":"hp"}, {"id":"atk"}, {"id":"def"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.atk - b.def" },
+  "maps": [ {"id":"field","name":"Field","file":"maps/field.json"} ]
+}

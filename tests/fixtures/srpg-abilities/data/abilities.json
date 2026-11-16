@@ -1,0 +1,16 @@
+{ "abilities": [
+  { "id": "shove", "name": "Shove", "description": "Pushes a neighbour one square away.",
+    "target": "unit", "range": [1, 1], "effect": { "push": 1 }, "cost": "action", "uses": 2, "cooldown": 3,
+    "afterMove": true, "if": [ { "hp": { "op": ">", "percent": 50 }, "who": "foe" } ] },
+  { "id": "yank", "name": "Yank", "target": "enemy", "effect": { "pull": true }, "cost": "free" },
+  { "id": "trade", "name": "Trade Places", "target": "ally", "effect": { "swap": true }, "afterMove": false },
+  { "id": "flank", "name": "Flank", "target": "unit", "effect": { "moveBehind": true } },
+  { "id": "mend", "name": "Mend", "target": "ally", "range": [1, 2], "effect": { "heal": 10 } },
+  { "id": "rest", "name": "Rest", "target": "self", "effect": { "heal": "full" }, "cost": "free", "cooldown": 2 },
+  { "id": "call_hound", "name": "Call Hound", "target": "cell", "range": [1, 2],
+    "effect": { "summon": { "type": "hound", "level": "summoner", "limit": 1, "vanish": true,
+                            "lifetime": 0, "canAct": false, "givesXp": true } },
+    "cost": "action", "cooldown": 2 },
+  { "id": "call_wisp", "name": "Call Wisp", "target": "cell",
+    "effect": { "summon": { "type": "wisp", "level": 4, "limit": 2, "vanish": false, "lifetime": 3, "canAct": true, "givesXp": false } } }
+] }

@@ -75,4 +75,16 @@ struct SkillCtx {
 // A test-only source of combat modifiers (Battle::testMods; defined in core/battle/combat_mods.h, step F2).
 struct CombatTestMods;
 
+// What an ability that moves units will do, worked out on the truth before anything changes (step A1,
+// ability_moves.cpp): the units to put on squares, the target first. `blocker` = the unit that stopped or prevented
+// the move (-1 = none).
+struct AbilityMove {
+  int unit = -1;
+  Cell to = kNoCell;
+};
+struct AbilityPlan {
+  std::vector<AbilityMove> moves;
+  int blocker = -1;
+};
+
 }  // namespace ote

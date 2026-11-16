@@ -67,3 +67,11 @@ const CombatTestMods* testMods = nullptr;
 // (fixed weapons); -1 = unarmed. `skillsOf(u, -1, ...)` uses it. In `skillsOf` the weapon value -2 means "no weapon
 // at all" (a defender with no answering weapon): no weapon skills.
 int restingWeapon(const Unit& u) const;
+
+// ---- menu abilities and summons, step A1 (abilities.cpp, summons.cpp) ----
+// What the unit has used of an ability this battle (null = never used it).
+const AbilityUse* abilityUseOf(const Unit& u, int ability) const;
+// The living summons (on the board or carried) the unit made with this ability.
+int summonCount(int summoner, int ability) const;
+// Is the unit a summoned unit (it does not keep its side in the battle)?
+bool isSummoned(const Unit& u) const { return u.summoner >= 0; }

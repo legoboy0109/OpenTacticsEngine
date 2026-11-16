@@ -56,18 +56,11 @@ std::string eventError(const std::string& event) {
 
 TEST(srpg_stub_a_game_without_the_new_files_loads) { CHECK_STR(loadWith("data/terrain.json", camptest::kTerrain), ""); }
 
-TEST(srpg_stub_refuses_the_new_data_files) {
-  refused(loadWith("data/abilities.json", R"({ "abilities": [] })"), "data/abilities.json");
-}
-
-// data/supports.json and its story commands are real since step S1 (test_srpg_supports_loader.cpp).
-// rules.rescue is real since step R1 (test_rescue_loader.cpp), rules.promotion since P1 (test_srpg_promotion_loader.cpp).
+// All four data files load since their steps landed (K1 skills, C1 characters, A1 abilities, S1 supports); so do
+// rules.rescue (R1) and rules.promotion (P1). What stays here: the keys that belong to one kind of item, and the
+// story and save refusals below.
 
 TEST(srpg_stub_refuses_the_new_keys_of_units_weapons_and_items) {
-  const std::string hero = "\"id\":\"hero\",\"name\":\"Hero\"";
-  for (const char* key : {"abilities"})
-    refused(loadWith("data/units.json", swapped(camptest::kUnits, hero, hero + ",\"" + key + "\":[]")), "unit \"hero\"",
-            std::string("\"") + key + "\" " + kNotYet);
   // The keys belong to one kind of item each; that check comes first and stays.
   refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"ring\"", "\"id\":\"ring\",\"promotes\":true")), "\"ring\"", "usable");
   refused(loadWith("data/items.json", swapped(camptest::kItems, "\"id\":\"tonic\"", "\"id\":\"tonic\",\"skills\":[]")), "\"tonic\"", "accessory");
