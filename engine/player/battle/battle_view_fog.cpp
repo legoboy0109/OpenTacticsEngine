@@ -85,6 +85,10 @@ void BattleView::applyUnseen(const Battle& b, const Event& e) {
     case EventType::SideChanged:
       if (v) v->side = e.c;
       break;
+    case EventType::UnitDropped:  // rescue / pair up: the unit stands where it was put down (it is drawn when seen again)
+    case EventType::PairSwitched:
+      if (UnitView* d = unit(e.b)) cellPos(b, e.c, d->px, d->py);
+      break;
     default: break;  // everything else is bookkeeping of a side the viewer is not (research, resources, xp ...)
   }
 }
