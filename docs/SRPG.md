@@ -1081,6 +1081,47 @@ is at the lowest rank. Both growth modes use this one number; with `"fixed"` it 
 **Events.** `RankUp`: a = unit, b = weapon group (index into `RankRules::groups`), c = new rank (index into the
 ladder), d = old rank. Seen by the unit's own team.
 
+### Character-locked weapons
+
+A weapon can be meant for named people ("only Kell can wield the Dawn Blade"). The class side stays what it is today: a
+class can wield a weapon when the weapon is in its `weapons` list or its `group` is in its `wields` list (docs/ITEMS.md "Who
+can wield what"); there is no list of classes on the weapon. The character lock is a second, narrowing check on top.
+
+**Data: weapons.json** (optional key, needs data/characters.json)
+```jsonc
+{ "id": "dawn_blade", "name": "Dawn Blade", "group": "sword", "wieldedBy": ["kell", "mara"], "props": { "might": 9 } }
+```
+`"wieldedBy"` is a list of character ids (docs/SRPG.md "Characters"). Absent or an empty list = no lock (the same game as
+without the key).
+
+**The rule.** `canWield` is the class test (`Database::canWield`). A unit may wield the weapon now when
+
+    class can wield  AND  (no character list  OR  the unit's character is on it)  AND  rank is enough
+
+| class can wield | weapon has a list | unit's character          | result                                   |
+|-----------------|-------------------|---------------------------|------------------------------------------|
+| no              | any               | any                       | no (the class, as before)                |
+| yes             | no                | any, or none              | rank decides, as before                  |
+| yes             | yes               | on the list               | rank decides                             |
+| yes             | yes               | not on the list           | no: "Only Kell and Mara can wield this"  |
+| yes             | yes               | none (a generic unit)     | no: the same words                       |
+
+- A lock never **grants**: a named character whose class cannot wield the weapon still cannot (so a character-only sword
+  needs a `group` or `weapons` entry its wearer's class already has). A lock does **not bypass ranks**: rank is checked
+  after it, as in section 7 (a one-person weapon normally has no `rank`).
+- Everything that asks "can this unit fight with this weapon now" already goes through `Battle::canWieldNow`, so
+  attack options, forecasts, counterattacks, the equipped weapon, the `Equip` action and the AI all follow. Carrying,
+  trading, storing and buying never check it.
+- The refusal text is `Only Kell can wield this`; with two names `Only Kell and Mara can wield this`; with more, the first two then
+  "and others": `Only Kell, Mara and others can wield this`. A character's display name is used. The wording is a placeholder
+  the owner may change. When the lock and the rank both refuse, the lock is said.
+- The player greys such a weapon like a rank-locked one and shows the reason (item screens, Equip entry).
+- Generic units (no character) never match a list. The unit's character is the one its story id names (`Unit::character`).
+- Loader errors (weapons.json, `weapon "dawn_blade"`): `"wieldedBy" must be a list of character ids`;
+  `"wieldedBy" is given but this game has no characters (data/characters.json)`; `"wieldedBy" names unknown character "x"`;
+  a character named twice.
+- Off unless used: no key, same game; the rules fingerprint changes only when a weapon has a non-empty list.
+
 ### Stat caps
 
 **Data: data/caps.json** (optional; refuses unknown keys): the game-wide cap per stat.
