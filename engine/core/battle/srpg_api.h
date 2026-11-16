@@ -58,3 +58,9 @@ void setStartingSupports(const SupportState& carried);
 void combatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& defender) const;
 // The order of strikes of a forecast fight (for the player's forecast and for applyAttack).
 void strikeOrder(const Forecast& forecast, std::vector<StrikeStep>& out) const;
+
+// ---- skills, step K1 (skills.cpp, skill_standing.cpp) ----
+// The weapon a unit has in use outside a combat: the equipped weapon (carried weapons) or the type's first weapon
+// (fixed weapons); -1 = unarmed. `skillsOf(u, -1, ...)` uses it. In `skillsOf` the weapon value -2 means "no weapon
+// at all" (a defender with no answering weapon): no weapon skills.
+int restingWeapon(const Unit& u) const;

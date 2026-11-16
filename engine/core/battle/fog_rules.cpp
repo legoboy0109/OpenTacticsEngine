@@ -17,9 +17,11 @@ int Battle::pathStop(int unit, const std::vector<Cell>& path, int& blocker, Cell
   int stop = (int)path.size() - 1;
   if (!fog) return stop;  // without fog the planner never walks through an enemy
   const Unit& u = units[(size_t)unit];
+  const bool pass = passesEnemies(u);  // "pass": enemies (docs/SRPG.md): only the square it ends on can stop it
   for (size_t i = 1; i < path.size(); ++i) {
     int occ = occupant[(size_t)path[i]];
     if (occ == -1 || occ == unit || !isEnemy(u, units[(size_t)occ])) continue;
+    if (pass && i + 1 < path.size()) continue;
     blocker = occ;
     blockedAt = path[i];
     stop = (int)i - 1;
