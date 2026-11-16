@@ -10,6 +10,10 @@ namespace ote_editor {
 ApiResult listProjects(const Config& cfg);                                      // GET /api/projects
 ApiResult createProject(const Config& cfg, const ote::Json& body);              // POST /api/projects
 ApiResult getProject(const Config& cfg, const std::string& id);                 // GET /api/projects/:id
+// DELETE /api/projects/:id?confirm=<id>: removes the game's folder for good (project_delete.cpp).
+ApiResult deleteProject(const Config& cfg, const std::string& id, const std::string& confirm);
+// The demo games that come with the engine: they can be opened and changed, never deleted through the API.
+bool protectedProject(const std::string& id);
 ApiResult putProject(const Config& cfg, const std::string& id, const ote::Json& body);  // PUT
 ApiResult getProblems(const Config& cfg, const std::string& id);                // .../problems
 ApiResult getProjectFiles(const Config& cfg, const std::string& id);            // .../files

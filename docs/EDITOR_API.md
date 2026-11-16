@@ -30,8 +30,8 @@ Safety rules (it writes files, so these are not optional):
   escapes are rejected with 400.
 - Request bodies are limited to 16 MB (art uploads: 8 MB, see below).
 - Files are written atomically (temp file in the same folder + rename).
-- Nothing is ever deleted outside a project folder; version 1 has no
-  "delete project".
+- Nothing is ever deleted outside a project folder. A whole project is
+  deleted only by `DELETE /api/projects/:id` (below), never as a side effect.
 
 All API responses are JSON (`Content-Type: application/json`). Errors use
 an HTTP status and `{ "error": "human readable message" }`.
@@ -107,6 +107,18 @@ Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is
 (a silent game), and a file that is not a JSON object is `null` plus a problem on `data/audio.json`; a broken file blocks only
 the Sound screen. `revision` identifies the on-disk state (a hash of the
 project's files).
+
+### DELETE /api/projects/:id?confirm=<id>
+
+Deletes the game's folder for good (there is no trash). `confirm` must repeat
+the id. `200 { "deleted": "<id>" }`.
+
+- `400` when `confirm` is missing or differs; `404` unknown game.
+- `403` for the demos that come with the engine (`demo-srpg`, `demo-economy`,
+  `demo-hex`); `GET /api/projects` marks them `"protected": true`.
+- `409` when `games/<id>` is itself a link to another folder. Links inside
+  the folder are removed, never followed.
+- The player's saves for that game (in the user data folder) are not touched.
 
 ### PUT /api/projects/:id
 Body: `{ "baseRevision": "…", "game": …, "terrain": …, "weapons": …,

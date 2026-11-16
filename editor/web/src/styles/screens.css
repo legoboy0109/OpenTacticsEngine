@@ -16,6 +16,12 @@
 .game-card-error { color: var(--warn); font-size: 0.88rem; }
 .game-card-meta { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
 .game-card[data-ok='false'] { border-color: var(--warn); }
+/* Delete sits in the card's lower right corner; the card keeps room for it so text never runs under it. */
+.game-grid > li { position: relative; }
+.game-grid > li:has(.game-card-delete) .game-card { padding-bottom: 52px; }
+.game-card-delete { position: absolute; right: 12px; bottom: 12px; color: var(--danger); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--surface); }
+.btn.danger:disabled { opacity: 0.5; }
 
 .template-grid { display: grid; gap: 10px; }
 .template-card {

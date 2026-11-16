@@ -79,6 +79,7 @@ ApiResult listProjects(const Config& cfg) {
     o.set("description", jstr(parsed ? game["description"].asString() : ""));
     o.set("author", jstr(parsed ? game["author"].asString() : ""));
     o.set("maps", Json::makeNumber(parsed ? (double)game["maps"].size() : 0));
+    o.set("protected", Json::makeBool(protectedProject(id)));
     o.set("ok", Json::makeBool(problems.empty()));
     o.set("error", jstr(describeFirst(problems)));
     arr.push(o);

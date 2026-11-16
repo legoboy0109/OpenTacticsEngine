@@ -193,6 +193,9 @@ struct EditorServer::Impl {
     svr.Get("/api/projects/:id", api([this](const httplib::Request& req) {
       return getProject(cfg, req.path_params.at("id"));
     }));
+    svr.Delete("/api/projects/:id", api([this](const httplib::Request& req) {
+      return deleteProject(cfg, req.path_params.at("id"), req.get_param_value("confirm"));
+    }));
     svr.Put("/api/projects/:id", apiWithBody([this](const httplib::Request& req, const Json& body) {
       return putProject(cfg, req.path_params.at("id"), body);
     }));

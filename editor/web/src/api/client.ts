@@ -17,7 +17,7 @@ export interface ApiError {
 }
 export type Result<T> = { ok: true; value: T } | ApiError
 
-export interface ProjectInfo { id: string; name: string; description: string; author: string; maps: number; ok: boolean; error: string }
+export interface ProjectInfo { id: string; name: string; description: string; author: string; maps: number; ok: boolean; error: string; /** A demo that comes with the editor: it cannot be deleted. */ protected?: boolean }
 /** `grid` = the template's grid (game.json): { type: 'square' } or { type: 'hex', layout: 'pointy' | 'flat' }. */
 export interface TemplateInfo { id: string; name: string; description: string; grid?: { type: string; layout?: string } }
 export interface FontInfo { id: string; name: string; size: number; smooth: boolean }
@@ -70,6 +70,8 @@ export interface Api {
   listTemplates(): Promise<Result<TemplateInfo[]>>
   listFonts(): Promise<Result<FontInfo[]>>
   createProject(body: { id: string; name: string; template: string }): Promise<Result<{ id: string }>>
+  /** Removes the game's folder for good. The helper refuses the demos and a request that does not repeat the id. */
+  deleteProject(id: string): Promise<Result<{ deleted: string }>>
   getProject(id: string): Promise<Result<ServerProject>>
   putProject(id: string, body: PutBody, opts?: { keepalive?: boolean }): Promise<Result<PutResult>>
   getProblems(id: string): Promise<Result<Problem[]>>
@@ -102,6 +104,7 @@ export const api: Api = {
   listTemplates: () => unwrap(request<{ templates: TemplateInfo[] }>('GET', '/api/templates'), 'templates'),
   listFonts: () => unwrap(request<{ fonts: FontInfo[] }>('GET', '/api/fonts'), 'fonts'),
   createProject: (body) => request('POST', '/api/projects', body),
+  deleteProject: (id) => request('DELETE', `/api/projects/${enc(id)}?confirm=${enc(id)}`),
   getProject: (id) => request('GET', `/api/projects/${enc(id)}`),
   putProject: (id, body, opts) => request('PUT', `/api/projects/${enc(id)}`, body, opts?.keepalive),
   getProblems: (id) => unwrap(request<{ problems: Problem[] }>('GET', `/api/projects/${enc(id)}/problems`), 'problems'),

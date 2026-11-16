@@ -46,6 +46,11 @@ pure functions `doc -> doc` so undo/redo is a snapshot stack (cap 200).
 a warning mark if it has problems) and **New game**: name + choose a
 starting point (the templates, as cards with their descriptions) → creates
 the project (id = slug of the name) and opens it.
+Each card of the maker's own games has **Delete** (owner, 2026-11-15: delete
+for good, demos protected): a dialog says what goes and that it cannot be
+undone, and the button works only once the game's name is typed (capitals
+forgiven). The demos that come with the engine have no Delete. Files:
+`screens/picker/DeleteGameDialog.tsx`, helper `project_delete.cpp`.
 
 **Shell** (`/p/<id>/<section>`): top bar = game name (back to picker),
 save status, undo/redo, problems badge, **Play**. Left sidebar = Game,

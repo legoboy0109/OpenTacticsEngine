@@ -24,5 +24,13 @@ export const T = {
   cancel: 'Cancel',
   creating: 'Creating…',
   taken: (name: string) => `You already have a game called “${name}”.`,
+  deleteGame: 'Delete',
+  deleteLabel: (name: string) => `Delete ${name}`,
+  deleteTitle: (name: string) => `Delete “${name}”?`,
+  deleteBody: (folder: string) => `This removes the whole game from your computer: its maps, units, pictures, sounds and everything else in the folder “${folder}”. It cannot be undone.`,
+  deleteConfirmLabel: 'Type the game’s name to confirm',
+  deleteConfirmHelp: (name: string) => `Type “${name}” exactly.`,
+  deleteNow: 'Delete for good',
+  deleting: 'Deleting…',
   useSuggestion: (name: string) => `Call it “${name}” instead`,
 }

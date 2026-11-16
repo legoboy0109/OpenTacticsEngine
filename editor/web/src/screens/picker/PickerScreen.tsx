@@ -5,6 +5,7 @@ import { LearnButton } from '../../learn/LearnButton'
 import { Link, projectPath } from '../../router'
 import { Banner } from '../../ui/Banner'
 import { Icon } from '../../ui/Icon'
+import { DeleteGameDialog } from './DeleteGameDialog'
 import { NewGameDialog } from './NewGameDialog'
 import { T } from './text'
 
@@ -13,6 +14,7 @@ type Load = { state: 'loading' } | { state: 'failed'; error: string } | { state:
 export function PickerScreen() {
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState<ProjectInfo | null>(null)
 
   const refresh = useCallback(async () => {
     setLoad({ state: 'loading' })
@@ -56,11 +58,18 @@ export function PickerScreen() {
                 {!p.ok && <span className="game-card-error">{T.problemHelp}</span>}
                 <span className="game-card-meta">{T.maps(p.maps)}</span>
               </Link>
+              {/* Beside the card, not inside it: a button inside a link is not valid and would open the game. The demos have none. */}
+              {!p.protected && (
+                <button type="button" className="btn sm game-card-delete" aria-label={T.deleteLabel(p.name || p.id)} onClick={() => setDeleting(p)}>
+                  <Icon name="trash" />{T.deleteGame}
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
+      <DeleteGameDialog game={deleting} onClose={() => setDeleting(null)} onDeleted={() => void refresh()} />
       <NewGameDialog open={creating} existing={load.state === 'ready' ? load.projects.map((p) => p.id) : []} onClose={() => setCreating(false)} />
     </div>
   )

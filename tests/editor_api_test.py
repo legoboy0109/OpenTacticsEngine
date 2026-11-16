@@ -20,6 +20,7 @@ import time
 
 from editor_api_graphics_checks import run_graphics_checks
 from editor_api_models_checks import run_models_checks
+from editor_api_delete_checks import run_delete_checks
 from editor_api_stand_checks import run_stand_checks
 from editor_api_items_checks import run_items_checks
 from editor_api_events_checks import run_events_checks
@@ -145,6 +146,7 @@ def main():
         run_graphics_checks(api, tmp, games, templates, check, get_project, put_project)
         run_models_checks(api, tmp, games, templates, check, get_project, put_project)
         run_stand_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_delete_checks(api, games, check)
         run_structures_checks(api, tmp, games, templates, check, get_project, put_project)
         run_items_checks(api, tmp, games, templates, check, get_project, put_project)
         run_events_checks(api, tmp, games, templates, check, get_project, put_project)
@@ -197,7 +199,7 @@ def run_checks(api, port, tmp, games, sentinel, proc):
           projs.get("demo-srpg", {}).get("name") == "Story Tactics Demo" and projs["demo-srpg"].get("maps") == 2 and
           projs.get("demo-economy", {}).get("name") == "Wars Demo" and projs["demo-economy"].get("maps") == 2)  # twin_rivers + misty_ford
     check("project list entries have all fields",
-          all(set(p) == {"id", "name", "description", "author", "maps", "ok", "error"} for p in projs.values()))
+          all(set(p) == {"id", "name", "description", "author", "maps", "protected", "ok", "error"} for p in projs.values()))
 
     st, doc = api.json("GET", "/api/templates")
     ids = sorted(t["id"] for t in (doc or {}).get("templates", []))
