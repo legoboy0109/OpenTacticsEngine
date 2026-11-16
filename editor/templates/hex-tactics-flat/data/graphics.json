@@ -24,6 +24,30 @@
       "file": "art/units.png",
       "cellWidth": 24,
       "cellHeight": 24
+    },
+    {
+      "id": "iso_tiles",
+      "file": "art/iso_tiles.png",
+      "cellWidth": 56,
+      "cellHeight": 56
+    },
+    {
+      "id": "iso_structures",
+      "file": "art/iso_structures.png",
+      "cellWidth": 56,
+      "cellHeight": 42
+    },
+    {
+      "id": "iso_structures_ring",
+      "file": "art/iso_structures_ring.png",
+      "cellWidth": 140,
+      "cellHeight": 98
+    },
+    {
+      "id": "iso_units",
+      "file": "art/iso_units.png",
+      "cellWidth": 24,
+      "cellHeight": 22
     }
   ],
   "unitMarker": true,
@@ -177,6 +201,162 @@
         0,
         0
       ]
+    }
+  },
+  "styles": {
+    "isometric": {
+      "terrain": {
+        "plain": {
+          "sheet": "iso_tiles",
+          "variants": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ]
+        },
+        "road": {
+          "sheet": "iso_tiles",
+          "join": [
+            0,
+            2
+          ],
+          "joinWith": [],
+          "joinEdge": true
+        },
+        "forest": {
+          "sheet": "iso_tiles",
+          "cell": [
+            3,
+            0
+          ]
+        },
+        "mountain": {
+          "sheet": "iso_tiles",
+          "cell": [
+            4,
+            0
+          ]
+        },
+        "water": {
+          "sheet": "iso_tiles",
+          "join": [
+            [
+              0,
+              10
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "frameMs": 500,
+          "joinWith": [
+            "bridge"
+          ],
+          "joinEdge": true
+        },
+        "bridge": {
+          "sheet": "iso_tiles",
+          "join": [
+            [
+              0,
+              18
+            ],
+            [
+              8,
+              18
+            ]
+          ],
+          "frameMs": 500,
+          "joinExcept": [
+            "water"
+          ],
+          "joinEdge": false
+        }
+      },
+      "structures": {
+        "city": {
+          "sheet": "iso_structures",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "factory": {
+          "sheet": "iso_structures",
+          "cell": [
+            1,
+            0
+          ]
+        },
+        "hq": {
+          "sheet": "iso_structures",
+          "cell": [
+            2,
+            0
+          ]
+        },
+        "fortress": {
+          "sheet": "iso_structures_ring",
+          "cell": [
+            0,
+            0
+          ]
+        }
+      },
+      "units": {
+        "infantry": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "frameMs": 600
+        },
+        "tank": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ]
+          ],
+          "frameMs": 600
+        },
+        "artillery": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ]
+          ],
+          "frameMs": 600
+        }
+      }
     }
   }
 }

@@ -5,7 +5,8 @@
   "description": "A small Advance Wars-style battle on hexagons: capture cities, earn funds, build an army, cross the river by its bridges and fight over the fortress; the second map is fought in the fog.",
   "grid": { "type": "hex", "layout": "pointy" },
   "styles": [
-    { "id": "classic", "name": "Classic" }
+    { "id": "classic", "name": "Classic" },
+    { "id": "isometric", "name": "Isometric", "view": "isometric", "background": "#161a24" }
   ],
   "view": { "width": 480, "height": 270, "tileSize": 24 },
 
