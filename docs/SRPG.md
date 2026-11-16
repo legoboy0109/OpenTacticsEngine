@@ -1642,6 +1642,52 @@ P1: `learnUpTo(unit)` is as F1 declared it. U1 / E2: skills on a unit are read w
 - **Owns.** Those two files. **Must not touch.** `combat.cpp` beyond bug fixes agreed with F2's notes.
 - **Accept.** The Skills combat tests, roll-order test, the fixture `srpg-skills` sim on 20 seeds.
 
+#### K2 as built
+
+The combat and timed effects work. Games without skills are untouched (every pin of `test_srpg_compat.cpp` and
+`test_srpg_golden_fights.cpp` unchanged, the four sims identical, saves unchanged: K2 adds no saved state).
+
+**Where things are.** `skill_combat.cpp` (`skillCombatMods`, `auraCombatMods`), `skill_strike.cpp` (`strikeActivations`,
+`strikePassives`, `forecastNotes`, all three on one function `gatherStrike`), `skill_timed.cpp` (`skillsTurnStart`,
+`skillsAfterCombat`, `runTimedBlock`), `skill_fx.cpp` (the context a fighter's blocks are judged with, conditions,
+chance). Declarations are appended to `srpg_internal.h` under "skills, step K2". Tests: `test_srpg_skills_combat.cpp`,
+`_strike.cpp` (roll order, no roll at 0 / 100, events before `Attack`, with real skills), `_timed.cpp`, `_sim.cpp` (20
+seeds, AI on both sides, never hangs, same seed gives the same battle), `_promotion.cpp` (a promotion teaches the new
+type's entries through `learnUpTo`); helper `tests/srpg_skills_duel.h`.
+
+**What the player (U1) builds against.**
+- `Forecast::notes`: one `ForecastNote {unit, skill, chance}` per activation that could fire, in roll order (the
+  attacker's strike blocks, the defender's struck blocks, then, if it counters, the defender's strike blocks and the
+  attacker's struck blocks). A chance of 0 is not listed; 100 is. `strike` / `struck` blocks without a chance are
+  already in the forecast numbers, so do not list them again.
+- `SkillActivated` (a = owner, b = skill, c = foe or -1) before `Attack` (strike and, on a hit, struck activations); after
+  a combat: the attacker's, then the defender's, each followed by the `UnitHealed` / `UnitHurt` it caused. `UnitHurt`:
+  a = receiver, b = HP lost (real, never to below 1), c = the owner. `SkillLearned` is as K1.
+- `actAgain` makes no event of its own beyond its `SkillActivated`; the unit's flags are cleared (`Unit::refreshed`).
+
+**Readings of the contract (keep to these).**
+- **`actAgain` and `endOrder`.** F2 runs `srpgAfterCombat` and then `endOrder(attacker)`, which would end the turn the
+  skill just gave back. `actAgain` therefore clears the flags and records the unit in `Battle::actAgainPending_`;
+  `endOrder` (`srpg_hooks.cpp`, one added early return) skips the unit once and forgets it. `combat.cpp` is untouched.
+  A `defeat` block of the defender never refreshes (it is not its side's turn).
+- **The weapon in use after a combat** (`defeat` / `afterCombat` conditions): the weapon of the unit's last `Attack`
+  event in the action's events; without a strike the attacker's resting weapon and no weapon for the defender.
+  `distance` and `who: foe` terrain / structure conditions are false for a foe that has fallen (it has no square).
+- **Auras**: the owner never receives its own aura; the owner's conditions use the weapon it fights with if it is a
+  fighter, else its resting weapon; distance is measured from the attacker's `setup.from`. Auras of units off the board
+  do nothing; owners more than 10 steps from both fighters are skipped before their skills are read.
+- **Order**: a fighter's own `combat` blocks go into the bags in the order attacker, defender; `to: foe` effects go
+  into the other bag at the moment their block is read.
+- **Strike blocks** use the weapon the striker fights with (a defender with no answering weapon has none). The extra
+  strike of `strikeAgain` judges and rolls its blocks again (its `strikeAgain` is ignored), so it can show its own
+  `SkillActivated`.
+- **Chance blocks** that fire make a `SkillActivated` even when the effect changes nothing (a heal at full HP); blocks
+  without a chance make one only when something changed. `heal` / `hurt` never go past the missing HP / 1 HP and make
+  no event for 0. Heal to allies and `hurt` to enemies need the owner on the board; allies are other units of its team,
+  enemies those its team sees. Units off the board get no `turnStart` blocks.
+- `heal` by a skill does not call the supports' "healed" hook (S1 owns it for items).
+- Formula chances (`"a.skl"`) read stats as the rules see them, with `b` = the foe (nil in `turnStart`).
+
 ### P1. Promotion (core) — depends on C1; parallel with K1, K2, A1, R1, S1
 - **Scope.** Section 2: `loader_srpg_rules.cpp` (`rules.promotion`), promotions on unit types and `promotes` on
   items (`loader_content.cpp` calls a reader in `loader_promotion.cpp`), `promotion.cpp` (`promote`,
