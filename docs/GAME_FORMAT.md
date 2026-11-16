@@ -168,6 +168,7 @@ the ground's movement costs. Ids are unique among structures.
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
+    "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
     "damage": "a.str + w.might",  // optional override of formulas.damage
     "sounds": { "hit": "sword_hit", "miss": "whiff", "critical": "crit" }   // optional (docs/SOUND.md): sound ids of data/audio.json
@@ -181,7 +182,8 @@ and gets `vs = 1`.
 
 `wieldedBy` (carried weapons; needs data/characters.json) lists the character ids that may wield the weapon, on top of the class
 rules (`group` / `wields`) and any weapon rank: someone else, or a unit without a character, can carry it but not use it
-("Only Kell can wield this"). An absent or empty list means no lock. The rule, the wording and the loader errors are in docs/SRPG.md
+("Only Kell can wield this"). `wieldedByTypes` does the same with unit type ids; with both lists a unit passes by either one. An absent
+or empty list means no lock. The rule, the wording and the loader errors are in docs/SRPG.md
 "Character-locked weapons".
 
 ## data/units.json
@@ -325,7 +327,7 @@ docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
 
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a
-weapon (needs a `group`), `"ranks"` and `"caps"` on a unit type, `"ranks"` and `"capAdjust"` on a character, `"ranks"` on a map unit.
+weapon (needs a `group`), `"ranks"` and `"caps"` on a unit type, `"ranks"`, `"capAdjust"` and `"wields"` (extra weapon groups) on a character, `"ranks"` on a map unit.
 A unit whose rank is too low carries a weapon but cannot equip or attack with it. A file with an empty ladder / empty `caps` is the
 same game as no file.
 
@@ -338,7 +340,7 @@ Formulas are Lua expressions. Variables:
 | `a`    | acting unit: every stat by id, plus `hp` (current), `maxhp`, `level`, `xp`, `type`, `name`, `tags.<tag>` |
 | `b`    | the other unit (same fields); nil for `capture.amount` |
 | `w`    | the weapon: its `props` as numbers, plus `id` and `group` as text (`w.group == "sword"`; group `""` when it has none) |
-| `fw`   | the weapon the other fighter fights with, shaped like `w`: its `props` as numbers plus `id` and `group` as text (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). Weapon triangle example: docs/SRPG.md "Formulas in this document" |
+| `fw`   | the weapon the other fighter fights with, shaped like `w`: its `props` as numbers plus `id` and `group` as text (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). In the strike formulas `fw.answers` is 1 when the foe can really counter in this fight, else nil. Weapon triangle example: docs/SRPG.md "Formulas in this document" |
 | `ta`, `tb` | the numbers of the square under `a` / `b`: the terrain's `props`, with the `props` of a structure standing there replacing numbers of the same name and adding the others |
 | `dist` | grid distance between them |
 | `vs`   | the weapon's `versus` value for `b` |

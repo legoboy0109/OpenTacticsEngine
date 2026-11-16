@@ -93,8 +93,9 @@ bool readWeaponRank(const LoadCtx& c, const Database& db, const Json& e, const s
     if (w.rankNeed < 0) return c.fail(where, "\"rank\" names unknown rank \"" + id + "\" (data/ranks.json)");
   }
   if (!c.integer(e, "rankXp", where, w.rankXp)) return false;
-  if (w.rankXp < 1 || w.rankXp > kMaxRankUseXp)
-    return c.fail(where, "\"rankXp\" must be from 1 to " + std::to_string(kMaxRankUseXp));
+  // 0 is allowed: a weapon that trains nothing (the key absent keeps the default 1). The message keeps the "1 to 99" words.
+  if (w.rankXp < 0 || w.rankXp > kMaxRankUseXp)
+    return c.fail(where, "\"rankXp\" must be from 1 to " + std::to_string(kMaxRankUseXp) + ", or 0 for a weapon that trains nothing");
   return true;
 }
 

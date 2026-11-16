@@ -13,7 +13,7 @@ namespace {
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
-  static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy",
+  static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy", "wieldedByTypes",
                                      "props", "range", "target", "area", "effects", "hit", "xp", "if"};
   for (const Json::Member& m : o.members()) {
     bool known = false;

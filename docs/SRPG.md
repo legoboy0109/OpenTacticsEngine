@@ -130,6 +130,18 @@ end
 ```
 A game that never writes `fw` computes exactly as before (the extra variable costs nothing it can see).
 
+**`fw.answers`: does the foe really answer?** `fw` is the foe's answering weapon even when it is out of range for a counter
+(the default, unchanged). In the strike formulas (`damage`, a weapon's `damage`, `hit`, `crit`, `strikes`) `fw` also carries
+`answers = 1` when the foe can actually counter in this fight with it (the rule `counterAttacks` is on, the weapon is in range,
+and nothing like a "cannot be countered" skill stops it: the very answer the combat pipeline already judged, `CombatSetup::counters`).
+When the foe cannot answer, `fw.answers` is `nil` (false) - also on the empty `fw` (`fw.none`), where it is not the 0 that
+every other missing number reads. In the counterattack, where the foe is the attacker, whose weapon is in use by definition, it
+is `1`. A weapon prop of the same name wins, like `id` and `group`. It is not set in skills' `formula` conditions and `chance`
+expressions (they are judged while the combat's answer is still being worked out) nor outside a fight.
+```jsonc
+"damage": "a.str + w.might - b.def + ((fw.answers or fw.none) and 0 or 3)"   // +3 against a foe that holds a weapon but cannot use it at this range
+```
+
 Unit stats inside every formula are the stats **as the rules see them** (`Battle::stat`): own value, accessories,
 research, standing skill bonuses, carry penalty and pair bonus; inside a combat also the combat bonuses to stats
 (see "Combat pipeline").
@@ -159,6 +171,7 @@ identity that events, the campaign roster and supports use.
     "skills": ["quick_study"],                    // optional: personal skills (section 3)
     "learns": [ { "level": 8, "skill": "heavy_blow" } ],   // optional: personal skills learned at a level
     "abilities": ["shove"],                       // optional: personal menu abilities (section 4)
+    "wields": ["bow"],                            // optional: weapon groups it can wield beyond its class's (section 7)
     "items": ["iron_sword", "salve"] }        // optional: replaces the unit type's starting items
 ] }
 ```
@@ -1044,7 +1057,8 @@ that list (`RankRules::groups`).
 { "id": "steel_sword", "group": "sword", "rank": "d", "rankXp": 2 }
 ```
 `rank`: the lowest rank that may wield it (an id of the ladder); missing = any. `rankXp`: weapon experience the user
-gains in the group per use when growth is `"use"`, 1..99, default 1.
+gains in the group per use when growth is `"use"`, 0..99, default 1 (when the key is absent). `0` is allowed: a weapon (or
+staff) that trains nothing.
 
 **Data: starting ranks.** A value is a rank id (the experience that rank starts at) or a whole number of weapon
 experience (0 .. the top rank's `xp`); the group must be one some weapon has.
@@ -1079,6 +1093,13 @@ is at the lowest rank. Both growth modes use this one number; with `"fixed"` it 
   weapon (the first inventory weapon the unit can wield *now*) and the AI all follow. Giving, taking, storing,
   buying and discarding never check ranks. The refusal text is `Needs rank B` (the ladder's display name).
   Nothing about "wieldable now" is stored: a rank-up makes a carried weapon usable at once.
+- *A character's own groups:* `characters.json` `"wields": ["bow"]` (the same list of group names as a unit type's `wields`,
+  docs/ITEMS.md "Who can wield what") lets that character wield those groups **in addition** to whatever its class can; it never
+  removes one. A unit takes it with its character (so after a promotion too), a generic unit has none. It is part of the class
+  side of the one wield test (`Database::canWield(type, weapon, character)`, used by `Battle::canWieldNow` and `canWieldStaff`), so
+  locks and ranks still apply on top, and attack options, forecasts, counters, the equipped weapon, `Equip`, the AI and the player's
+  greyed rows all follow. A staff group works the same (`"wields": ["staff"]`). Like the class key, group names are not checked
+  against the weapons (a misspelt group simply grants nothing).
 - *Formulas:* unit tables gain `rank`, a table of group id to rank index (0 = lowest), only in a game with ranks:
   `a.rank.sword >= 2`.
 - *Story commands:* none in this version (see "Not in this version").
@@ -1097,11 +1118,20 @@ can wield what"); there is no list of classes on the weapon. The character lock 
 { "id": "dawn_blade", "name": "Dawn Blade", "group": "sword", "wieldedBy": ["kell", "mara"], "props": { "might": 9 } }
 ```
 `"wieldedBy"` is a list of character ids (docs/SRPG.md "Characters"). Absent or an empty list = no lock (the same game as
-without the key).
+without the key). Next to it, `"wieldedByTypes"` (optional, needs nothing else) is a list of **unit type ids** (data/units.json):
+```jsonc
+{ "id": "knight_lance", "group": "lance", "wieldedByTypes": ["knight", "paladin"], "props": { "might": 8 } }
+{ "id": "dawn_blade",   "group": "sword", "wieldedBy": ["kell"], "wieldedByTypes": ["paladin"], "props": { "might": 9 } }
+```
 
 **The rule.** `canWield` is the class test (`Database::canWield`). A unit may wield the weapon now when
 
-    class can wield  AND  (no character list  OR  the unit's character is on it)  AND  rank is enough
+    class can wield  AND  (no list  OR  the unit's character is on `wieldedBy`  OR  its unit type is on `wieldedByTypes`)
+                     AND  rank is enough
+
+A weapon with either list is locked; a unit passes it if it matches **either** one (so the dawn blade above is for Kell and for
+every paladin). A unit's type is its current one: a promotion that changes the class changes the answer at once. Both lists empty
+or absent = no lock.
 
 | class can wield | weapon has a list | unit's character          | result                                   |
 |-----------------|-------------------|---------------------------|------------------------------------------|
@@ -1118,20 +1148,24 @@ without the key).
   attack options, forecasts, counterattacks, the equipped weapon, the `Equip` action and the AI all follow. Carrying,
   trading, storing and buying never check it.
 - The refusal text is `Only Kell can wield this`; with two names `Only Kell and Mara can wield this`; with more, the first two then
-  "and others": `Only Kell, Mara and others can wield this`. A character's display name is used. The wording is a placeholder
-  the owner may change. When the lock and the rank both refuse, the lock is said.
+  "and others": `Only Kell, Mara and others can wield this`. A character's display name is used; with both lists the characters
+  come first, then the unit types' display names (`Only Kell and Paladin can wield this`; the same short forms in the player).
+  The wording is a placeholder the owner may change. When the lock and the rank both refuse, the lock is said.
 - The player greys such a weapon like a rank-locked one and shows the reason (item screens, Equip entry).
 - Generic units (no character) never match a list. The unit's character is the one its story id names (`Unit::character`).
 - Loader errors (weapons.json, `weapon "dawn_blade"`): `"wieldedBy" must be a list of character ids`;
   `"wieldedBy" is given but this game has no characters (data/characters.json)`; `"wieldedBy" names unknown character "x"`;
-  a character named twice.
+  a character named twice. `weapon "x": "wieldedByTypes" must be a list of unit type ids`;
+  `"wieldedByTypes" names unknown unit type "x" (data/units.json)`; a type named twice. The same on a staff (`item "x": ...`).
 - Off unless used: no key, same game; the rules fingerprint changes only when a weapon has a non-empty list.
 
 **As built.** Core: `WeaponDef::wielderIds` / `wielders` (database.h), `engine/core/data/loader_weapon_locks.cpp`
 (`readWeaponWielders` reads the shape while weapons load; `resolveWeaponWielders` turns ids into indices as the first step of
 `resolveSrpgRefs`, because characters.json loads after weapons.json), `Battle::meetsCharacterLock` and `canWieldNow`
 (ranks.cpp; the order is class, then lock, then rank). `Unit::character` is what "the unit's character" means. The fingerprint
-reads weapons.json whole, so a used key changes it by itself; `rulesOnly` (save_hash.cpp) skips an empty `"wieldedBy": []`.
+reads weapons.json whole, so a used key changes it by itself; `rulesOnly` (save_hash.cpp) skips an empty `"wieldedBy": []` and `"wieldedByTypes": []`.
+`wielderTypeIds` / `wielderTypes` (database.h) are filled in the same step as `wielders` (`resolveGearWielders`, which staves share); `meetsLockFor` holds the OR rule. The
+player needed no change: it shows the core's reason text. Tests: tests/test_srpg_locks_types.cpp.
 Player: `weaponBlockReason` (rank_text.cpp) now answers from `canWieldNow`, so the Items screen, its choice menu (Equip greyed with
 the reason), the unit details' Items page and the side panel need no code of their own; `Menu::draw` shortens an `extra` that is
 wider than the box (a phone: "Equip  Only .."; the full words are on the Items list and the details page, which also shortens
@@ -1229,6 +1263,8 @@ characters and map units; loaded before the weapons, groups built right after th
   Item `raise` events report the real gain for positive amounts and the written amount for negative ones (as before).
 - The loader refuses `rank` / `rankXp` without a `group`, ranks without carried weapons, and a ladder whose first `xp` is not 0, with messages
   that name the file and the entry (tests: `tests/test_srpg_ranks_loader.cpp`).
+- An `addUnit` command reads `ranks` exactly like a placed unit (`readUnitBody`, so the same group / rank / experience checks and
+  messages, also inside `if` / `then` / `else`); the added unit is dressed from its class and then takes the command's values.
 - Not built: story commands (see "Not in this version" above). The editor screens came later ("editor as built" below).
 - Player: `engine/player/battle/rank_text.*` (words), `battle_view_ranks.cpp` (the `RankUp` label), cap and rank rows in
   `unit_info_rows.cpp`, greyed weapons in `battle_items.cpp` / `panel.cpp`, the cap line of the level-up box in `battle_view.cpp`.
@@ -1242,7 +1278,8 @@ characters and map units; loaded before the weapons, groups built right after th
 forecast, `doStrike` and every AI score go through; foe weapon = `counter ? setup.weaponA : setup.weaponD`) and in the skill
 `formula` condition and `chance` expression (`skill_cond.cpp`, `skill_fx.cpp`, from `SkillCtx::foeWeapon`, which was already there).
 - `fw` is the foe's **answering** weapon: the first of its weapons with `counter` that may target `a` (the equipped one with carried
-  weapons, which `canWieldNow` already filters), also when it is out of range. A foe holding only a non-`counter` weapon (a bow with
+  weapons, which `canWieldNow` already filters), also when it is out of range; `fw.answers` (`FormulaCtx::fwAnswers`, set in
+  `strikeForecast` from `CombatSetup::counters`, so no extra pass) says whether it really can answer. A foe holding only a non-`counter` weapon (a bow with
   `counter: false`) counts as having none.
 - The xp, capture and `canCarry` formulas do not have `w` either, so `fw` is empty there. Passing the fight's two weapons to the xp
   formulas was left out.
@@ -1299,8 +1336,9 @@ staff as `w`.
 { "id": "mend_staff", "name": "Mend Staff", "kind": "staff",
   "description": "Heals an ally.",             // optional, one line
   "group": "staff",                            // required: what a class lists in "wields" (units.json) and ranks are kept in
-  "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp default 1
+  "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp 0..99, default 1
   "wieldedBy": ["mara"],                       // optional character lock, as on a weapon (needs characters)
+  "wieldedByTypes": ["cleric"],                // optional unit type lock, as on a weapon (character OR type)
   "props": { "power": 6 },                     // optional numbers a formula reads as w.power
   "uses": 8, "price": { "gold": 400 },         // as every item; no "uses" = unlimited
   "range": "1 + a.mag / 3",                    // reach, see below. Default [1, 1]

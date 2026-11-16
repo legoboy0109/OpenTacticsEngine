@@ -122,7 +122,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | Command | What |
 |---|---|
 | `{ "say": "text", "speaker": "eirik" }` | a line of dialogue (entry `Dialogue`); `speaker` is a unit id or a free name (`"speakerName": "Villager"`, not both); optional `"portrait"` id (just text for the player to look up) |
-| `{ "addUnit": { …a map unit… } }` | places a unit (keys as in the map's `units`, including `id`); if the square is taken or the unit cannot stand there, the nearest free square it can stand on (grid distance, the lowest cell number on a tie). A repeated `addUnit` with an id that a unit already has creates the unit without the id (logged). No free square at all: nothing is added (logged) |
+| `{ "addUnit": { …a map unit… } }` | places a unit (keys as in the map's `units`, including `id` and `ranks`); if the square is taken or the unit cannot stand there, the nearest free square it can stand on (grid distance, the lowest cell number on a tie). A repeated `addUnit` with an id that a unit already has creates the unit without the id (logged). No free square at all: nothing is added (logged) |
 | `{ "removeUnit": <filter> }` | leaves the map (not a defeat: no drops, no defeat events; the defeat rules still apply, so removing a side's last unit ends it like any other loss) |
 | `{ "moveUnit": "eirik", "x": 3, "y": 4 }` | refined: the unit is put there (no path is walked; the entry gives the squares it left and reached, the player may animate it); if the square is taken, the nearest free one as for `addUnit`. Does not spend its move. Fires `reach` events |
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |

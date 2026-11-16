@@ -60,7 +60,7 @@ PromotionPreview previewPromotion(const Battle& b, int unit, int slot, int to) {
   if (db.rules.items.carriedWeapons)
     for (const ItemStack& st : u.items) {
       const ItemDef& d = db.items[(size_t)st.item];
-      if (d.kind == ItemKind::Weapon && db.canWield(u.type, d.weapon) && !db.canWield(to, d.weapon)) p.cannotWield.push_back(d.name);
+      if (d.kind == ItemKind::Weapon && db.canWield(u.type, d.weapon, u.character) && !db.canWield(to, d.weapon, u.character)) p.cannotWield.push_back(d.name);
     }
   return p;
 }

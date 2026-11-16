@@ -113,6 +113,9 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   // The other fighter's weapon: the answering weapon when attacking, the attacker's weapon in a counter (-1 = none).
   const int foeWeapon = counter ? setup.weaponA : setup.weaponD;
   if (foeWeapon >= 0) ctx.fw = &db->weapons[(size_t)foeWeapon];
+  // `fw.answers`: the foe's weapon really is used against this strike. In a counter that is the attacker's weapon (the fight is
+  // its doing); in the attacker's strike it is the defender's answer, which setUpCombat judged (range, rule, skills): no new pass.
+  ctx.fwAnswers = foeWeapon >= 0 && (counter || setup.counters);
   Props scratchA, scratchB;  // outlive the formula calls below
   ctx.ta = &numbersAt(atkCell, scratchA);
   ctx.tb = &numbersAt(defCell, scratchB);

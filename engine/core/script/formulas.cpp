@@ -65,7 +65,8 @@ bool Formulas::init(const Database& db, std::string& err) {
   openSandboxedLibs(L_);
   // Metatable of an empty `fw`: `fw.might + 1` must not raise, so a missing number reads 0. (A real weapon's table
   // has no metatable: a prop it lacks is nil, like in `w`.)
-  luaL_dostring(L_, "return { __index = function() return 0 end }");
+  // The one exception is `answers`: `fw.answers` must be nil (false), not a truthy 0, when there is no foe weapon.
+  luaL_dostring(L_, "return { __index = function(_, k) if k == 'answers' then return nil end return 0 end }");
   emptyWeaponMeta_ = luaL_ref(L_, LUA_REGISTRYINDEX);
 
   for (const std::string& rel : db.scripts) {
@@ -118,11 +119,13 @@ static void pushProps(lua_State* L, const Props* props) {
 
 // A weapon as formulas see it (`w`, `fw`): its props as numbers, plus `id` and `group` as text (group "" when the
 // weapon has none), so a formula can ask `w.group == "sword"`. A prop the maker named "id" or "group" wins, as before.
-static void pushWeapon(lua_State* L, const WeaponDef* w) {
+// `answers` (only `fw` in a fight where the foe really answers) is set before the props, so a prop of that name wins.
+static void pushWeapon(lua_State* L, const WeaponDef* w, bool answers = false) {
   if (!w) { pushProps(L, nullptr); return; }
-  lua_createtable(L, 0, (int)w->props.size() + 2);
+  lua_createtable(L, 0, (int)w->props.size() + 3);
   lua_pushstring(L, w->id.c_str()); lua_setfield(L, -2, "id");
   lua_pushstring(L, w->group.c_str()); lua_setfield(L, -2, "group");
+  if (answers) { lua_pushinteger(L, 1); lua_setfield(L, -2, "answers"); }
   for (const NamedNumber& n : w->props) {
     lua_pushnumber(L, n.value);
     lua_setfield(L, -2, n.key.c_str());
@@ -131,8 +134,8 @@ static void pushWeapon(lua_State* L, const WeaponDef* w) {
 
 // `fw`: the props of the foe's weapon like `w`; without one an empty table marked `none = 1` whose missing numbers
 // read 0 (see emptyWeaponMeta_), so a formula can test `fw.none` or just compute with it.
-void Formulas::pushFoeWeapon(const WeaponDef* fw) {
-  if (fw) { pushWeapon(L_, fw); return; }
+void Formulas::pushFoeWeapon(const WeaponDef* fw, bool answers) {
+  if (fw) { pushWeapon(L_, fw, answers); return; }
   lua_createtable(L_, 0, 3);
   lua_pushinteger(L_, 1);
   lua_setfield(L_, -2, "none");
@@ -205,7 +208,7 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   pushProps(L_, ctx.tb);
   lua_pushinteger(L_, ctx.dist);
   lua_pushnumber(L_, ctx.vs);
-  pushFoeWeapon(ctx.fw);
+  pushFoeWeapon(ctx.fw, ctx.fwAnswers);
   double result = def;
   if (lua_pcall(L_, 8, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));

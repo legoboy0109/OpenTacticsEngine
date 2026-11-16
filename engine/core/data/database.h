@@ -106,6 +106,9 @@ struct WeaponDef {
   // Character lock (docs/SRPG.md "Character-locked weapons"): empty = anyone whose class can wield it.
   std::vector<std::string> wielderIds;  // weapons.json "wieldedBy", as written
   std::vector<int> wielders;            // the same as indices into Database::characters (filled once characters are loaded)
+  // Unit-type lock (same section): "wieldedByTypes". With either list non-empty the unit's character OR its unit type must be on one.
+  std::vector<std::string> wielderTypeIds;  // weapons.json "wieldedByTypes", as written
+  std::vector<int> wielderTypes;            // the same as indices into Database::unitTypes (filled with `wielders`)
 };
 
 // ---- Items (docs/ITEMS.md) ----
@@ -368,8 +371,10 @@ struct Database {
   int findItem(const std::string& id) const;
   int findTechnology(const std::string& id) const;
   // Carried weapons: may a unit of this type use this weapon?
-  bool canWield(int unitType, int weapon) const;
-  bool canWieldGroup(int unitType, const std::string& group) const;  // the class side only (a staff's group)
+  // The class side of "can this unit wield it": the class's `weapons` / `wields`, plus (when `character` >= 0) the groups of the
+  // character's own `wields`, which only add (docs/SRPG.md "Weapon ranks"). Locks and ranks are Battle::canWieldNow's.
+  bool canWield(int unitType, int weapon, int character = -1) const;
+  bool canWieldGroup(int unitType, const std::string& group, int character = -1) const;  // also a staff's group
   int findUnitType(const std::string& id) const;
   int findMap(const std::string& id) const;
   int findStyle(const std::string& id) const;

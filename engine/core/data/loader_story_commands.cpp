@@ -24,7 +24,7 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   const Json& u = e["addUnit"];
   if (!u.isObject()) return fail(where, "\"addUnit\" must be a unit: { \"type\": ..., \"side\": ..., \"x\": ..., \"y\": ... }");
   if (!onlyKeys(e, {"addUnit"}, where) ||
-      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items"}, where + ": \"addUnit\""))
+      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items", "ranks"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
   if (!readUnitHead(c_, db_, map_, u, at, out.newUnit)) return false;
