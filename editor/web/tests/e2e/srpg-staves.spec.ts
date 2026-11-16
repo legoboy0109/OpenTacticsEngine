@@ -106,11 +106,19 @@ test('every reach, healing and miss mode writes what it says; checks name what t
   await expect(page.getByTestId('staff-checks')).toContainText('no class can wield its group')
   expect(await game.problems(id)).toEqual([])
   await shotEl(page.getByTestId('staff-checks'), 'checks-nobody-can-use')
-  // Reach above the limit: the loader would refuse it, the screen says so.
-  await page.getByLabel('How far it reaches').selectOption('upto')
-  await page.getByLabel('Squares', { exact: true }).fill('20')
+  // A hand-edited file the loader would refuse (the boxes cannot make these): the screen says so in plain words, and the keys are kept.
   await saved(page)
-  await expect(page.getByTestId('item-checks')).toHaveCount(0)
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  const bad = doc.items.map((i: any) => (i.id === 'odd_staff' ? { ...i, range: [5, 2], area: { radius: 11 }, zzz_later: 7 } : i))
+  const res = await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, items: bad } })
+  expect(res.ok(), await res.text()).toBeTruthy()
+  await page.reload()
+  await expect(page.getByTestId('item-checks')).toContainText('“from” cannot be above “to”')
+  await expect(page.getByTestId('item-checks')).toContainText('radius must be a whole number from 1 to 10')
+  await shotEl(page.getByTestId('item-checks'), 'checks-loader-refusals')
+  await page.getByLabel('Experience for the user').fill('20')
+  await saved(page)
+  expect(staff(id, 'odd_staff')).toMatchObject({ zzz_later: 7, range: [5, 2], xp: 20 }) // what the form does not show stays
 })
 
 test('a rank and a lock on a staff use the weapons’ cards; Staff to Usable removes the staff keys in one Undo step', async ({ page, game, request }) => {
