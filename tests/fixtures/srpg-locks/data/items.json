@@ -1,0 +1,8 @@
+{ "items": [
+  { "id": "bronze_sword", "name": "Bronze Sword", "kind": "weapon", "weapon": "bronze_sword" },
+  { "id": "steel_sword",  "name": "Steel Sword",  "kind": "weapon", "weapon": "steel_sword" },
+  { "id": "short_bow",    "name": "Short Bow",    "kind": "weapon", "weapon": "short_bow" },
+  { "id": "dawn_blade",   "name": "Dawn Blade",   "kind": "weapon", "weapon": "dawn_blade" },
+  { "id": "pair_blade",   "name": "Pair Blade",   "kind": "weapon", "weapon": "pair_blade" },
+  { "id": "trio_blade",   "name": "Trio Blade",   "kind": "weapon", "weapon": "trio_blade" },
+  { "id": "stick",        "name": "Stick",        "kind": "weapon", "weapon": "stick" } ] }

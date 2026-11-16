@@ -115,9 +115,16 @@ void Menu::draw(Renderer& r) const {
     Color c = it.enabled ? Color(240, 240, 245) : Color(110, 112, 125);
     if (sel) r.drawText(x_ + 3, ry + 1, ">", Color(255, 220, 90));
     int tx = x_ + kPad + arrowW_;
-    int extraW = it.extra.empty() ? 0 : textW(r, it.extra);
+    // A long reason ("Only Ser Ovan can wield this") on a narrow screen: the menu is clamped to the screen, so the
+    // extra text is shortened to what is left after the label instead of running out of the box on the left.
+    std::string extra = it.extra;
+    if (!extra.empty()) {
+      const int room = w_ - kPad - (tx - x_) - textW(r, it.label) - textW(r, "  ");
+      if (textW(r, extra) > room) extra = fitText(r, extra, std::max(0, room));
+    }
+    int extraW = extra.empty() ? 0 : textW(r, extra);
     r.drawText(tx, ry + 1, fitText(r, it.label, w_ - kPad - (tx - x_) - (extraW ? extraW + 4 : 0)).c_str(), c);
-    if (extraW) r.drawText(x_ + w_ - kPad - extraW, ry + 1, it.extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
+    if (extraW) r.drawText(x_ + w_ - kPad - extraW, ry + 1, extra.c_str(), it.enabled ? Color(255, 220, 120) : c);
   }
 }
 

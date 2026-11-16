@@ -1,0 +1,10 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "kell", "side": "blue", "x": 1, "y": 1, "leader": true },
+    { "character": "ser", "side": "blue", "x": 1, "y": 2 },
+    { "character": "mara", "side": "blue", "x": 1, "y": 0 },
+    { "type": "grunt", "id": "g1", "side": "red", "x": 2, "y": 1, "items": ["dawn_blade", "bronze_sword"],
+      "stats": { "hp": 60, "str": 1, "def": 1 } },
+    { "type": "grunt", "id": "g2", "side": "red", "x": 5, "y": 2, "items": ["dawn_blade"] } ] }

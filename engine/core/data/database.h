@@ -103,6 +103,9 @@ struct WeaponDef {
   int rankGroup = -1;         // index into RankRules::groups (-1 = no group, or no ranks)
   int rankNeed = -1;          // lowest ladder index that may wield it; -1 = any
   int rankXp = 1;             // experience the user gains per use (growth "use")
+  // Character lock (docs/SRPG.md "Character-locked weapons"): empty = anyone whose class can wield it.
+  std::vector<std::string> wielderIds;  // weapons.json "wieldedBy", as written
+  std::vector<int> wielders;            // the same as indices into Database::characters (filled once characters are loaded)
 };
 
 // ---- Items (docs/ITEMS.md) ----

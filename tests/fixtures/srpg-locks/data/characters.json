@@ -1,0 +1,7 @@
+{ "characters": [
+  { "id": "kell", "name": "Kell", "description": "A young swordfighter.", "type": "fighter", "level": 2,
+    "ranks": { "sword": 4 }, "items": ["bronze_sword", "dawn_blade", "pair_blade"] },
+  { "id": "ser", "name": "Ser Ovan", "description": "A veteran knight.", "type": "knight", "level": 3,
+    "items": ["dawn_blade", "bronze_sword", "pair_blade"] },
+  { "id": "mara", "name": "Mara", "description": "An archer from the hills.", "type": "archer",
+    "items": ["short_bow", "dawn_blade"] } ] }

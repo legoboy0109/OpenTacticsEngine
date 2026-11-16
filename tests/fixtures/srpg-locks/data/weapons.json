@@ -1,0 +1,8 @@
+{ "weapons": [
+  { "id": "bronze_sword", "name": "Bronze Sword", "group": "sword", "props": { "might": 2 } },
+  { "id": "steel_sword",  "name": "Steel Sword",  "group": "sword", "rank": "d", "props": { "might": 4 } },
+  { "id": "short_bow",    "name": "Short Bow",    "group": "bow", "range": [2, 2], "props": { "might": 2 } },
+  { "id": "dawn_blade",   "name": "Dawn Blade",   "group": "sword", "wieldedBy": ["kell"], "props": { "might": 9 } },
+  { "id": "pair_blade",   "name": "Pair Blade",   "group": "sword", "rank": "b", "wieldedBy": ["kell", "ser"], "props": { "might": 8 } },
+  { "id": "trio_blade",   "name": "Trio Blade",   "group": "sword", "wieldedBy": ["kell", "ser", "mara"], "props": { "might": 5 } },
+  { "id": "stick",        "name": "Stick",        "props": { "might": 1 } } ] }

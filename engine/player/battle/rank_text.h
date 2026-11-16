@@ -12,8 +12,8 @@ struct InfoRow;
 
 // "Sword": a weapon group's id with a capital.
 std::string groupLabel(const std::string& group);
-// "Needs rank B" for a weapon item the unit's class can wield but whose rank it lacks; "" for everything else
-// (a weapon it can wield, another kind of item, a game without ranks).
+// "Needs rank B" or "Only Kell can wield this" for a weapon item the unit's class can wield but whose rank it lacks or
+// whose character list does not name it; "" for everything else (a weapon it can wield, another kind of item).
 std::string weaponBlockReason(const Battle& b, const Unit& u, const ItemStack& s);
 // "Sword rank C": the label that floats over a unit that ranked up (a RankUp event).
 std::string rankUpText(const Battle& b, const Event& e);

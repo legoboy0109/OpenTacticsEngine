@@ -19,7 +19,8 @@ using namespace ote;
 struct Copy {
   std::string dir;
 
-  explicit Copy(const std::string& name) {
+  // `fixture`: another folder under tests/fixtures with the same file names (srpg-locks; files it lacks are skipped).
+  explicit Copy(const std::string& name, const char* fixture = "srpg-ranks") {
     dir = savetest::tempFolder(name);
     makeDir(dir + "/data");
     makeDir(dir + "/maps");
@@ -28,7 +29,7 @@ struct Copy {
                                         "maps/field.json",   "maps/duel.json"};
     for (const char* f : files) {
       std::string text;
-      if (readTextFile(ote_test::sourceDir() + "/tests/fixtures/srpg-ranks/" + f, text)) writeTextFile(dir + "/" + f, text);
+      if (readTextFile(ote_test::sourceDir() + "/tests/fixtures/" + fixture + "/" + f, text)) writeTextFile(dir + "/" + f, text);
     }
   }
   void put(const std::string& rel, const std::string& text) { writeTextFile(dir + "/" + rel, text); }
@@ -72,8 +73,9 @@ struct World {
   Copy copy;
   savetest::Rig rig;
   std::vector<Event> events;
-  explicit World(const char* name, const char* map = "duel", const std::function<void(Copy&)>& tweak = nullptr)
-      : copy(name) {
+  explicit World(const char* name, const char* map = "duel", const std::function<void(Copy&)>& tweak = nullptr,
+                 const char* fixture = "srpg-ranks")
+      : copy(name, fixture) {
     if (tweak) tweak(copy);
     CHECK(rig.load(copy.dir, map));
     rig.battle.start(events);

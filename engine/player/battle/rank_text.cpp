@@ -12,12 +12,10 @@ std::string groupLabel(const std::string& group) {
 }
 
 std::string weaponBlockReason(const Battle& b, const Unit& u, const ItemStack& s) {
-  const Database& db = *b.db;
-  if (!db.ranks.on()) return "";
   const ItemDef& d = b.itemOf(s);
-  if (d.kind != ItemKind::Weapon || !db.canWield(u.type, d.weapon)) return "";
-  std::string why;
-  return b.meetsRank(u, d.weapon, &why) ? "" : why;
+  if (d.kind != ItemKind::Weapon || !b.db->canWield(u.type, d.weapon)) return "";
+  std::string why;  // the character lock ("Only Kell can wield this") or the rank ("Needs rank B")
+  return b.canWieldNow(u, d.weapon, &why) ? "" : why;
 }
 
 std::string rankUpText(const Battle& b, const Event& e) {
