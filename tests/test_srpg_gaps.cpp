@@ -1,9 +1,10 @@
 // Five small rule gaps of weapon ranks, weapon locks and the foe's weapon (docs/SRPG.md section 7, "Formulas in this
 // document"): addUnit "ranks", "rankXp": 0, "wieldedByTypes", a character's "wields", and `fw.answers`.
-#include "srpg_ranks_fixture.h"
+#include "srpg_staves_fixture.h"
 
 using namespace ote;
 using namespace rankstest;
+using stavestest::Clinic;
 
 namespace {
 // The duel map with an event that adds a unit through addUnit (`unitJson` is the command's unit), once, at battle start;
@@ -43,4 +44,38 @@ TEST(gaps_add_unit_ranks_refusals_are_the_map_units) {
   CHECK(saysIn(err("{ \"sword\": \"z\" }"), "names unknown rank \"z\""));
   CHECK(saysIn(err("{ \"sword\": 5000 }"), "must be a rank id or weapon experience from 0 to"));
   CHECK(saysIn(err("[1]"), "\"ranks\""));
+}
+
+// ---- "rankXp": 0 -------------------------------------------------------------------------------------------------------
+
+TEST(gaps_rank_xp_zero_trains_nothing_on_a_weapon_and_a_staff) {
+  World w("gaps_xp0", "duel", [](Copy& c) {
+    c.swap("game.json", "\"hit\": \"90\"", "\"hit\": \"100\"");
+    c.swap("data/weapons.json", "\"rankXp\": 2", "\"rankXp\": 0");  // the steel sword
+  });
+  CHECK_EQ(w.rig.db.weapons[(size_t)w.weapon("steel_sword")].rankXp, 0);
+  const int sword = w.group("sword");
+  CHECK(w.run(Action::attack(w.id("kell"), w.id("g1"), w.weapon("steel_sword"))));
+  CHECK_EQ(w.unit("kell").weaponXp[(size_t)sword], 4);  // unchanged (it was 6 with rankXp 2)
+  CHECK_EQ(w.unit("g1").weaponXp[(size_t)sword], 4);    // the grunt's bronze sword (default 1) still trains: 3 -> 4
+  CHECK_EQ(w.count(EventType::RankUp), 0);
+
+  Clinic s("gaps_xp0_staff", "clinic", [](Copy& c) {
+    c.swap("data/items.json", "\"group\": \"staff\", \"rankXp\": 2", "\"group\": \"staff\", \"rankXp\": 0");
+  });
+  const int staff = s.rig.db.ranks.findGroup("staff");
+  const int before = s.unit("wen").weaponXp[(size_t)staff];
+  s.hurt("tarn", 5);
+  CHECK(s.use("wen", "mend_staff", "tarn"));
+  CHECK_EQ(s.unit("wen").weaponXp[(size_t)staff], before);
+}
+
+TEST(gaps_rank_xp_absent_keeps_the_default_and_bad_values_are_still_refused) {
+  World w("gaps_xp_default");
+  CHECK_EQ(w.rig.db.weapons[(size_t)w.weapon("bronze_sword")].rankXp, 1);
+  for (const char* bad : {"100", "-1"}) {
+    Copy c("gaps_xp_bad");
+    c.swap("data/weapons.json", "\"rankXp\": 2", std::string("\"rankXp\": ") + bad);
+    CHECK(saysIn(c.gameError(), "\"rankXp\" must be from 1 to 99, or 0 for a weapon that trains nothing"));
+  }
 }

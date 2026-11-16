@@ -1044,7 +1044,8 @@ that list (`RankRules::groups`).
 { "id": "steel_sword", "group": "sword", "rank": "d", "rankXp": 2 }
 ```
 `rank`: the lowest rank that may wield it (an id of the ladder); missing = any. `rankXp`: weapon experience the user
-gains in the group per use when growth is `"use"`, 1..99, default 1.
+gains in the group per use when growth is `"use"`, 0..99, default 1 (when the key is absent). `0` is allowed: a weapon (or
+staff) that trains nothing.
 
 **Data: starting ranks.** A value is a rank id (the experience that rank starts at) or a whole number of weapon
 experience (0 .. the top rank's `xp`); the group must be one some weapon has.
@@ -1301,7 +1302,7 @@ staff as `w`.
 { "id": "mend_staff", "name": "Mend Staff", "kind": "staff",
   "description": "Heals an ally.",             // optional, one line
   "group": "staff",                            // required: what a class lists in "wields" (units.json) and ranks are kept in
-  "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp default 1
+  "rank": "d", "rankXp": 2,                    // optional, as on a weapon (needs data/ranks.json); rankXp 0..99, default 1
   "wieldedBy": ["mara"],                       // optional character lock, as on a weapon (needs characters)
   "props": { "power": 6 },                     // optional numbers a formula reads as w.power
   "uses": 8, "price": { "gold": 400 },         // as every item; no "uses" = unlimited
