@@ -1,0 +1,14 @@
+{
+  "characters": [
+    { "id": "eirik", "name": "Eirik", "description": "Captain of the Blue Company.",
+      "type": "lord", "level": 2, "growths": { "hp": 10 } },
+    { "id": "kell", "name": "Kell", "description": "A rider with an Officer's Writ in his pack.",
+      "type": "cavalier", "level": 2, "items": ["officers_writ"] },
+    { "id": "bram", "name": "Bram", "description": "A farmhand turned fighter.",
+      "type": "fighter", "level": 1 },
+    { "id": "gorm", "name": "Gorm", "description": "Leads the Red Warband.",
+      "type": "soldier", "level": 2 },
+    { "id": "vex", "name": "Vex", "description": "Archer of the Red Warband.",
+      "type": "archer", "level": 1 }
+  ]
+}

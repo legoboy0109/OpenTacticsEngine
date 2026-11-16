@@ -1,0 +1,7 @@
+// Things units carry. The Officer's Writ is a promotion item: a Cavalier of level 2 or more uses it (Items action) and becomes an Outrider.
+{
+  "items": [
+    { "id": "officers_writ", "name": "Officer's Writ", "description": "Promotes a Cavalier.",
+      "kind": "usable", "uses": 1, "promotes": true }
+  ]
+}

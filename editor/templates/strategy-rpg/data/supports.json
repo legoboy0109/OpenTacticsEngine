@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "points": { "endTurnAdjacent": 5, "fightTogether": 3 },
+    "range": 3,
+    "conversations": "both"
+  },
+  "pairs": [
+    { "a": "eirik", "b": "kell",
+      "levels": [
+        { "points": 20, "bonus": { "hit": 5, "avoid": 5 },
+          "talk": [ { "say": "Stay close. The ford is wider than it looks.", "speaker": "eirik" },
+                    { "say": "I always do.", "speaker": "kell" } ] }
+      ] }
+  ]
+}

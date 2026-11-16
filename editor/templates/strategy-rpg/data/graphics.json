@@ -119,7 +119,7 @@
       ],
       "frameMs": 600
     },
-    "soldier": {
+    "fighter": {
       "sheet": "units",
       "frames": [
         [
@@ -132,6 +132,71 @@
         ]
       ],
       "frameMs": 600
+    },
+    "soldier": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ]
+      ],
+      "frameMs": 600
+    },
+    "outrider": {
+      "sheet": "units",
+      "frames": [
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "frameMs": 600
+    }
+  },
+  "portraits": {
+    "eirik": {
+      "sheet": "units",
+      "cell": [
+        0,
+        0
+      ]
+    },
+    "kell": {
+      "sheet": "units",
+      "cell": [
+        0,
+        1
+      ]
+    },
+    "bram": {
+      "sheet": "units",
+      "cell": [
+        0,
+        3
+      ]
+    },
+    "gorm": {
+      "sheet": "units",
+      "cell": [
+        0,
+        4
+      ]
+    },
+    "vex": {
+      "sheet": "units",
+      "cell": [
+        0,
+        2
+      ]
     }
   },
   "styles": {
@@ -226,7 +291,7 @@
           ],
           "frameMs": 600
         },
-        "soldier": {
+        "fighter": {
           "sheet": "iso_units",
           "frames": [
             [
@@ -236,6 +301,34 @@
             [
               1,
               3
+            ]
+          ],
+          "frameMs": 600
+        },
+        "soldier": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              4
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "frameMs": 600
+        },
+        "outrider": {
+          "sheet": "iso_units",
+          "frames": [
+            [
+              0,
+              5
+            ],
+            [
+              1,
+              5
             ]
           ],
           "frameMs": 600
