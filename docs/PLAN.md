@@ -164,6 +164,11 @@ goal (demos only exercise features).
       owner to correct: a story command that asks a question with two to four answers, in campaign scenes and
       map events; each answer runs its own commands (lines, switches, items, joining units); a campaign can
       branch to a different chapter on an answer; the answer is saved; the simulator takes the first answer.
+      7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
+      scope, for the owner to correct: per character, lines said when it first fights (optionally only against
+      a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
+      "falls" and "retreats" when the game keeps defeated characters alive), and a boss's defeat line; shown in
+      the dialogue box before / after the fight; edited on the Characters screen; skipped by the simulator.
    k. Strategy-RPG feature set. DONE 2026-11-15 (rules, computer opponent,
       player, editor screens, demo and template content, the lesson
       "Characters and skills"; contract and per-step "as built" notes:
