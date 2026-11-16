@@ -158,7 +158,7 @@ def carry_flow():
     log, units, _ = played('carry_tight', 'carry', ','.join([
         IDLE, SELECT, FIRST, END_TURN,                    # Ann rescues Bram, the enemy turn passes
         'next,next,confirm', 'up,confirm',                     # Dan (the third unit left) steps onto the freed square
-        'down,confirm,next,confirm,confirm,wait:20']), map_id='tight')  # Wait; then Ann's menu
+        'up,confirm,next,confirm,confirm,wait:20']), map_id='tight')  # Wait (the last entry: Up wraps to it, whatever stands before it); then Ann's menu
     check('carry: a Drop with no room is greyed with the reason', entries(log, 'Ann') == 'Drop (no room), Give', entries(log, 'Ann'))
 
 
