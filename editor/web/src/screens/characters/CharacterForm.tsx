@@ -33,22 +33,24 @@ export function CharacterForm({ id, word }: { id: string; word: string }) {
   return (
     <div className="stack">
       <Card>
-        <FormGrid>
-          <Field label={T.name} help={T.nameHelp}>
-            <TextInput value={c.name} onChange={(v) => edit((d) => updateCharacter(d, id, { name: v }), `${key}:name`)} />
-          </Field>
-          <Field label={cap(word)} help={T.classHelp(word)}>
-            <Select value={c.type} options={options.map((u) => ({ value: u.id, label: u.name }))} onChange={(v) => edit((d) => updateCharacter(d, id, { type: v }))} />
-          </Field>
-          {progression && (
-            <Field label={T.level} help={T.levelHelp(maxLevel(doc))}>
-              <NumberInput value={c.level} min={1} max={maxLevel(doc)} allowEmpty placeholder="1" onChange={(v) => edit((d) => setCharacterLevel(d, id, v), `${key}:level`)} />
+        <div className="stack">
+          <FormGrid>
+            <Field label={T.name} help={T.nameHelp}>
+              <TextInput value={c.name} onChange={(v) => edit((d) => updateCharacter(d, id, { name: v }), `${key}:name`)} />
             </Field>
-          )}
-        </FormGrid>
-        <Field label={T.description} help={T.descriptionHelp}>
-          <TextInput value={c.description ?? ''} onChange={(v) => edit((d) => updateCharacter(d, id, { description: v.trim() ? v : undefined }), `${key}:description`)} />
-        </Field>
+            <Field label={cap(word)} help={T.classHelp(word)}>
+              <Select value={c.type} options={options.map((u) => ({ value: u.id, label: u.name }))} onChange={(v) => edit((d) => updateCharacter(d, id, { type: v }))} />
+            </Field>
+            {progression && (
+              <Field label={T.level} help={T.levelHelp(maxLevel(doc))}>
+                <NumberInput value={c.level} min={1} max={maxLevel(doc)} allowEmpty placeholder="1" onChange={(v) => edit((d) => setCharacterLevel(d, id, v), `${key}:level`)} />
+              </Field>
+            )}
+          </FormGrid>
+          <Field label={T.description} help={T.descriptionHelp}>
+            <TextInput value={c.description ?? ''} onChange={(v) => edit((d) => updateCharacter(d, id, { description: v.trim() ? v : undefined }), `${key}:description`)} />
+          </Field>
+        </div>
       </Card>
 
       <CharacterPortraitCard id={id} name={c.name} />
