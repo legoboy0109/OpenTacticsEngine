@@ -9,6 +9,9 @@
 .flow-flag { font-size: 0.85rem; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 1px 8px; }
 .flow-arrows { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-left: auto; color: var(--muted); }
 .flow-goto { font-style: italic; }
+.party-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.party-row { display: flex; align-items: flex-end; gap: 8px; min-width: 0; }
+.party-row > :first-child { flex: 1 1 auto; min-width: 0; }
 .scene-card .command-list { margin-bottom: 8px; }
 @media (max-width: 1100px) { .campaign-top { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 719.98px) { .flow-arrows { margin-left: 0; width: 100%; } }

@@ -37,7 +37,9 @@ struct SceneCommand {
                     Choice,      // Choice: see above
                     TakeItem,    // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`
                     Fx,          // Fx: scene presentation (docs/EVENTS.md "Scene presentation"): `fx`
-                    StoreItems };  // StoreItems: `unit` = the roster unit, `keep` = item indices that stay
+                    StoreItems,  // StoreItems: `unit` = the roster unit, `keep` = item indices that stay
+                    SwitchParty,   // SwitchParty: `party` = the party id that becomes the active one (docs/EVENTS.md "Parties")
+                    MergeParties };  // MergeParties: `parties` = the party ids that join `party` (the "into" one)
   Kind kind = Kind::Say;
   // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
@@ -49,6 +51,8 @@ struct SceneCommand {
   int value = 0;    // SetVariable / AddVariable
   UnitReading reading;  // SetVariable / AddVariable: the number comes from a roster unit when its kind is not None
   std::vector<int> keep;         // StoreItems
+  std::string party;             // SwitchParty: the party to switch to; MergeParties: the party that takes the others in ("into")
+  std::vector<std::string> parties;  // MergeParties: the parties that are merged away
   std::string side;              // GiveResource: the side id the amounts go to
   std::vector<Amount> amounts;   // GiveResource
   std::vector<SceneCondition> cond;           // If
@@ -63,6 +67,12 @@ struct ChapterDef {
   int map = -1;  // index into Database::maps
   std::vector<SceneCommand> before, after;
   std::string next;  // chapter id; "" = the following one in the list
+  std::string party;  // "" = none; else the party that becomes active when the chapter starts (before its "before" scene runs)
+};
+
+// A party of the campaign (docs/EVENTS.md "Parties"): its own roster, carried storage and resources, the same story.
+struct PartyDef {
+  std::string id, name;
 };
 
 struct CampaignDef {
@@ -76,7 +86,14 @@ struct CampaignDef {
   // All wording (dialogue, speaker names, portrait ids) lives here; commands carry indices, as
   // in StoryData, and the wording stays out of the save hash.
   std::vector<std::string> texts;
+  // The parties, the first being the one the campaign starts with. Empty = the campaign has no parties (one roster).
+  std::vector<PartyDef> parties;
 
+  int findParty(const std::string& id) const {
+    for (size_t i = 0; i < parties.size(); ++i)
+      if (parties[i].id == id) return (int)i;
+    return -1;
+  }
   int findChapter(const std::string& id) const {
     for (size_t i = 0; i < chapters.size(); ++i)
       if (chapters[i].id == id) return (int)i;

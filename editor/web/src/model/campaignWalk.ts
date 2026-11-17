@@ -30,6 +30,13 @@ function walkChapter(ch: Chapter, w: Walk): Chapter {
       out = put(out, 'next', undefined)
     } else out = put(out, 'next', r)
   }
+  if (typeof ch.party === 'string' && ch.party !== '') {
+    const r = w.ref({ kind: 'party', id: ch.party }, label)
+    if (r === DROP) {
+      w.dropped?.({ what: 'setting', text: 'it no longer starts a party', where: label })
+      out = put(out, 'party', undefined)
+    } else out = put(out, 'party', r)
+  }
   for (const key of ['before', 'after'] as const) {
     const scene = ch[key]
     if (scene === undefined || (!Array.isArray(scene) && !isSceneObject(scene))) continue

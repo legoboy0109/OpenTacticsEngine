@@ -343,7 +343,7 @@ A campaign strings maps together as chapters with scenes between them and carrie
 surviving named units (levels, items), storage, resources, switches and variables
 from chapter to chapter. A game without the file plays single maps as before.
 Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
-`freeBattles` and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`). Scenes may ask questions (`choice`) and
+`freeBattles`, optional `parties` (docs/EVENTS.md "Parties": `[ { "id", "name" } ]`, the first one starts the story) and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`, optional `party`). The scene commands `{ "switchParty": "id" }` and `{ "mergeParties": ["id"], "into": "id" }` change the active party. Scenes may ask questions (`choice`) and
 branch with `goto` (also from a before scene, which skips that chapter's battle), and use the scene presentation commands
 (`background`, `fade`, `wait`, `shake`, `leave`, `clearStage`, `narrate`, and `position` / `auto` on a `say`; docs/EVENTS.md "Scene
 presentation"; not `weather`, `focus` or a walked `moveUnit`, which need a map).

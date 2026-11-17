@@ -69,13 +69,14 @@ bool readChapter(CampaignLoader& L, const Database& db, const Json& e, size_t in
   for (const ChapterDef& o : out.chapters)
     if (o.id == ch.id) return L.fail("chapter " + quoted(ch.id), "duplicate chapter id");
   where = "chapter " + quoted(ch.id);
-  if (!L.onlyKeys(e, {"id", "name", "map", "before", "after", "next"}, where)) return false;
+  if (!L.onlyKeys(e, {"id", "name", "map", "before", "after", "next", "party"}, where)) return false;
   ch.name = ch.id;
   std::string map;
   if (!L.ctx().str(e, "name", where, ch.name) || !L.ctx().str(e, "map", where, map, true)) return false;
   ch.map = db.findMap(map);
   if (ch.map < 0) return L.fail(where, "\"map\" names unknown map " + quoted(map));
   if (!L.ctx().str(e, "next", where, ch.next)) return false;  // checked once every chapter is known
+  if (e.has("party") && !L.partyRef(e["party"], where, "party", ch.party)) return false;  // docs/EVENTS.md "Parties"
   if (e.has("before") && !L.chapterScene(e["before"], where + ": \"before\"", true, ch.before)) return false;
   if (e.has("after") && !L.chapterScene(e["after"], where + ": \"after\"", true, ch.after)) return false;
   out.chapters.push_back(ch);
@@ -119,10 +120,11 @@ bool loadCampaign(const std::string& path, Database& db, std::string& err) {
   if (!loadObjectFile(path, root, err)) return false;
   auto def = std::make_shared<CampaignDef>();
   CampaignLoader L(db, err, path, *def);
-  if (!L.onlyKeys(root, {"name", "rules", "freeBattles", "chapters"}, "")) return false;
+  if (!L.onlyKeys(root, {"name", "rules", "freeBattles", "parties", "chapters"}, "")) return false;
   def->name = "Campaign";
   if (!L.ctx().str(root, "name", "", def->name)) return false;
   if (!readRules(L, root, *def) || !readFreeBattles(L, db, root, *def)) return false;
+  if (!L.readParties(root)) return false;  // before the chapters: they and their commands name parties
   const Json* chapters;
   if (!L.ctx().array(root, "chapters", "", chapters, true)) return false;
   if (chapters->size() == 0) return L.fail("", "\"chapters\" must not be empty (a campaign needs at least one chapter)");

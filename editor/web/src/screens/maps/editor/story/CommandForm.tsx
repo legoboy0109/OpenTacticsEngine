@@ -15,6 +15,7 @@ import { PlaceCommandForm } from './forms/PlaceForms'
 import { ChangeCommandForm, SetFogForm, SetTerrainForm, SetVisionForm } from './forms/MapChangeForms'
 import { PromoteForm } from './forms/PromoteForm'
 import { StoreItemsForm } from './forms/StoreItemsForm'
+import { MergePartiesForm, SwitchPartyForm } from './forms/PartyForms'
 import { AddSupportForm } from './forms/SupportForms'
 import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
 import { AddConditionForm, RemoveConditionForm } from './forms/ConditionForms'
@@ -83,6 +84,8 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'weather': return <WeatherForm cmd={cmd} at={at} />
     case 'narrate': return <NarrateForm cmd={cmd} at={at} />
     case 'storeItems': return <StoreItemsForm cmd={cmd} at={at} />
+    case 'switchParty': return <SwitchPartyForm cmd={cmd} at={at} />
+    case 'mergeParties': return <MergePartiesForm cmd={cmd} at={at} />
     case 'endTurn': return <EndTurnForm />
     case 'focus': return <FocusForm cmd={cmd} at={at} />
     default: return <p className="help">This command is not one the editor knows. It is kept as it is.</p>

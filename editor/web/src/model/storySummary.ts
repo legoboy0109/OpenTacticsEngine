@@ -60,6 +60,12 @@ const chapterLabel = ({ doc }: SumCtx, id: string): string => {
   return ch ? chapterName(ch) : id
 }
 
+/** A party's name (campaign scenes only; an id nothing knows is shown as typed). */
+const partyLabel = ({ doc }: SumCtx, id: string): string => {
+  const p = doc.campaign?.parties?.find((x) => x.id === id)
+  return p ? (p.name?.trim() ? p.name : p.id) : id
+}
+
 /** "Eirik and Lyra": the two characters of a support pair, as people know them. */
 const pairText = ({ doc }: SumCtx, pair: unknown): string =>
   (Array.isArray(pair) && typeof pair[0] === 'string' && typeof pair[1] === 'string' && pair[0] !== '' ? pairLabel(doc, { a: pair[0], b: pair[1] }) : 'two characters')
@@ -213,6 +219,11 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
     case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof (cmd as Record<string, unknown>).by === 'string' ? `, the contents go to ${unitText(c, String((cmd as Record<string, unknown>).by))}` : ''}`
     case 'storeItems': return storeItemsText(c, cmd)
+    case 'switchParty': return `Switches to the party ${q(partyLabel(c, cmd.switchParty ?? ''))}`
+    case 'mergeParties': {
+      const from = (Array.isArray(cmd.mergeParties) ? cmd.mergeParties : []).map((id) => q(partyLabel(c, id)))
+      return `Merges ${from.length ? from.join(' and ') : 'no party'} into ${q(partyLabel(c, cmd.into ?? ''))}`
+    }
     case 'focus': return `${typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`}${typeof cmd.ms === 'number' ? (cmd.ms === 0 ? ' at once' : ` over ${cmd.ms} ms`) : ''}`
     case 'background':
       return cmd.background === null || cmd.background === undefined ? `Takes the background away${cmd.transition === 'fade' ? ' with a fade' : ''}` : `Shows the background ${q(String(cmd.background))}${cmd.transition === 'fade' ? ` with a fade over ${cmd.ms ?? 500} ms` : ''}`

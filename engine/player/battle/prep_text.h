@@ -9,6 +9,8 @@ namespace ote {
 struct PrepWords {
   // Main menu
   static constexpr const char* kTitle = "Preparation";
+  // The screen's title; a campaign with parties adds the active party's name ("Preparation - The northern road").
+  static std::string title(const std::string& party) { return party.empty() ? std::string(kTitle) : std::string(kTitle) + " - " + party; }
   static constexpr const char* kUnits = "Units";
   static constexpr const char* kPositions = "Positions";
   static constexpr const char* kItems = "Items";

@@ -369,6 +369,16 @@ hashes are byte for byte as before (pinned by tests).
   "battle": { … } }                         // exactly a battle save's "battle"; present only while a battle is under way
 ```
 
+- **Parties** (docs/EVENTS.md "Parties"): only a campaign whose `data/campaign.json` has `parties` writes these optional keys into `playthrough`;
+  every other campaign saves exactly as above. `"party": "main"` is the active party's id; `roster`, `sides`, `lastDeployed` and `prep` are THAT
+  party's data. `"parties": [ { "id": "north", "roster": [...], "sides": [...], "lastDeployed": [...], "prep": {...} } ]` holds the other parties that
+  have been used (`lastDeployed` / `prep` only when set; a party never switched to is absent and starts empty); `"mergedParties": ["north"]` lists
+  the ones merged away. `switches`, `variables`, supports and the quote memory are shared and written once. Restoring checks that every id is one of
+  the campaign's parties, that no party is listed twice or is both active and parked / merged, reads each party's roster and sides by the same rules
+  as the active one (messages name `playthrough.parties[0].roster[1].level` and so on), and refuses the keys in a campaign without parties
+  (`playthrough.party: the campaign has no parties`). A save without `"party"` in a campaign that has parties plays the first one. The data hash
+  covers the new keys of `data/campaign.json` (a party's `name` is wording and does not count), so saves from before `parties` existed are refused
+  by the usual hash rule for such a campaign, while every campaign without `parties` keeps its saves and hashes byte for byte.
 - The top-level fields are the existing ones (a list needs no more than `game`,
   `map`, `mapName`, `dataHash`, `savedAt`, `saveVersion`); a campaign save is told
   apart by the `playthrough` key (`isCampaignSave`). `round` / `activeSide` and

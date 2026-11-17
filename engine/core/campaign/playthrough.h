@@ -49,6 +49,17 @@ struct PrepState {
   bool any() const { return open || folded || !deployed.empty(); }
 };
 
+// A party that is not the active one: what it keeps while the story follows another (docs/EVENTS.md "Parties"). The active
+// party's own data lives in Playthrough::roster / sides / lastDeployed / prep, so everything that reads those works on
+// the active party without knowing about parties; a switch swaps the two.
+struct ParkedParty {
+  std::string id;
+  Roster roster;
+  std::vector<CarriedSide> sides;
+  std::vector<std::string> lastDeployed;
+  PrepState prep;
+};
+
 struct Playthrough {
   int chapter = 0;  // index into CampaignDef::chapters; once Finished / Over, the last one played
   Phase phase = Phase::Before;
@@ -60,6 +71,12 @@ struct Playthrough {
   PrepState prep;                   // the preparation of the current chapter, see PrepState
   std::vector<std::string> lastDeployed;  // ids deployed in the last chapter that had a preparation, in order (the default pick uses it)
   std::vector<uint8_t> quotesSaid;  // per battle quote (BattleQuote::flat): said already; only "campaign" quotes are kept (docs/EVENTS.md)
+  // Parties (campaign.json "parties"; all empty in a campaign without them). `party` is the active one's id: `roster`,
+  // `sides`, `lastDeployed` and `prep` above are ITS data. `parked` holds the other parties that have been used (a party
+  // never switched to is not in the list: it starts empty), `merged` the ones merged away (they no longer exist).
+  std::string party;
+  std::vector<ParkedParty> parked;
+  std::vector<std::string> merged;
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.
   bool begin(const Database& db);
@@ -138,6 +155,20 @@ enum class ChapterResult {
 
 // Takes the result of a decided chapter battle over into the playthrough (rules in docs/EVENTS.md).
 ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Battle& battle);
+
+// ---- parties (parties.cpp; docs/EVENTS.md "Parties") ----
+// A new playthrough starts with the campaign's first party (nothing without parties). Called by Playthrough::begin.
+void beginParties(const Database& db, Playthrough& pt);
+// Makes `id` the active party: the active one's data is put aside and the other's taken up; a party used for the first
+// time starts EMPTY (no units, no storage, no resources). Nothing happens for the active party, an unknown id or a party
+// that was merged away. Returns whether the active party is now `id`.
+bool switchParty(const Database& db, Playthrough& pt, const std::string& id);
+// Merges every party of `from` into `into`, which becomes the active one: units move over (a character the target has
+// already keeps the target's copy; the other copy's items go to the target's storage), storages are combined, resources
+// added, research united. Merged parties cease to exist. Unknown ids, `into` itself and parties already merged are skipped.
+void mergeParties(const Database& db, Playthrough& pt, const std::vector<std::string>& from, const std::string& into);
+// The name of the active party ("" when the campaign has no parties).
+std::string activePartyName(const Database& db, const Playthrough& pt);
 
 // ---- supports between chapters (supports_campaign.cpp; docs/SRPG.md "Story and campaign") ----
 // A new playthrough: every pair at its "start" points and level 0 (called by Playthrough::begin).

@@ -8,7 +8,8 @@ import type { Markers } from './timelineTypes'
 export const noMarkers = (): Markers => ({ join: 0, leave: 0, items: 0, shop: 0, flags: 0, questions: 0 })
 
 export function addMarkers(a: Markers, b: Markers): Markers {
-  return { join: a.join + b.join, leave: a.leave + b.leave, items: a.items + b.items, shop: a.shop + b.shop, flags: a.flags + b.flags, questions: a.questions + b.questions }
+  const party = (a.party ?? 0) + (b.party ?? 0)
+  return { join: a.join + b.join, leave: a.leave + b.leave, items: a.items + b.items, shop: a.shop + b.shop, flags: a.flags + b.flags, questions: a.questions + b.questions, ...(party > 0 ? { party } : {}) }
 }
 
 /** Counts through `if` branches and every answer (a nested question counts too). */
@@ -21,6 +22,7 @@ export function countMarkers(list: Command[] | undefined): Markers {
       case 'giveItem': m.items++; break
       case 'setSwitch': case 'setVariable': case 'addVariable': m.flags++; break
       case 'choice': m.questions++; break
+      case 'switchParty': case 'mergeParties': m.party = (m.party ?? 0) + 1; break
       default: break
     }
   })
@@ -34,4 +36,4 @@ export function shopCount(doc: ProjectDoc, map: MapFile | null): number {
   return map.structures.filter((s) => sells.has(s.type)).length
 }
 
-export const hasMarkers = (m: Markers): boolean => Object.values(m).some((n) => n > 0)
+export const hasMarkers = (m: Markers): boolean => Object.values(m).some((n) => (n ?? 0) > 0)

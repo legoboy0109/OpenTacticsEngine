@@ -17,7 +17,7 @@ constexpr const char* kSrpgConditionKeys[] = {"support"};
 // Scene presentation (docs/EVENTS.md "Scene presentation"); "weather" is listed so that a scene says why it cannot use it.
 constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_campaign_extras.cpp.
-constexpr const char* kExtrasSceneKeys[] = {"storeItems"};
+constexpr const char* kExtrasSceneKeys[] = {"storeItems", "switchParty", "mergeParties"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -133,6 +133,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
     }
   if (k == "addSupport") return supportCommand(e, at, out);
   if (k == "storeItems") return storeItemsCommand(e, at, out);
+  if (k == "switchParty" || k == "mergeParties") return partyCommand(e, at, out);
   if (k == "choice") {
     out.kind = K::Choice;
     return choiceCommand(e, at, allowGoto, out);

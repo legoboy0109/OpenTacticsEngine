@@ -12,6 +12,7 @@ import { CommandForm } from './CommandForm'
 import { P } from './forms/placeText'
 import { MC } from './forms/mapChangeText'
 import { EX } from './forms/extrasText'
+import { PT } from './forms/partyText'
 import { storageMode } from '../../../../model/itemRules'
 import { changeIds } from '../../../../model/mapChanges'
 import { RowButtons } from '../../../../ui/RowButtons'
@@ -44,11 +45,12 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
   { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
   { group: EX.group, kinds: ['storeItems'] },
+  { group: PT.group, kinds: ['switchParty', 'mergeParties'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
 const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
-  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate', 'storeItems']
+  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate', 'storeItems', 'switchParty', 'mergeParties']
 
 /** A door / chest command needs such a place with a story name on this map. */
 const placeWhy = (story: Story, kind: CommandKind): string | null => (placesForCommand(story.doc, story.map, kind).length > 0 ? null : P.noneYetShort)
@@ -78,11 +80,13 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     background: backgroundIds(doc).length ? null : 'no backgrounds yet',
     openDoor: placeWhy(story, 'openDoor'), closeDoor: placeWhy(story, 'closeDoor'), lockDoor: placeWhy(story, 'lockDoor'),
     unlockDoor: placeWhy(story, 'unlockDoor'), openChest: placeWhy(story, 'openChest'),
+    switchParty: doc.campaign?.parties?.length ? null : PT.noParties,
+    mergeParties: (doc.campaign?.parties?.length ?? 0) > 1 ? null : PT.noParties,
     storeItems: storageMode(doc) === 'off' ? EX.noStorage : doc.items?.length ? null : 'no items yet',
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.
-  const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')
+  const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto' && k !== 'switchParty' && k !== 'mergeParties')
   return GROUPS.map((g) => ({
     group: g.group,
     options: g.kinds.filter(allowed).map((k) => ({ value: k, label: why[k] ? `${S.commandKinds[k]} (${why[k]})` : S.commandKinds[k], disabled: !!why[k] })),

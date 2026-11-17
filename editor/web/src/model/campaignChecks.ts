@@ -12,6 +12,7 @@ import { addSupportChecks, supportConditionChecks } from './supportStoryChecks'
 import { audioRefProblem } from './audioChecks'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { isStoryId } from './storyIds'
+import { partiesOf, partyHints } from './parties'
 import { commandKind, type Command } from './storyTypes'
 import { readingProblems } from './readingChecks'
 import { forEachCommand, type Ref } from './storyWalk'
@@ -34,6 +35,7 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
   const known = (list: Array<{ id: string }> | undefined) => !!list?.some((x) => x.id === r.id)
   const pick = (what: string, topic: CampaignCheck['topic']) => (r.id === '' ? { topic, level: 'error' as const, text: `pick ${what}.` } : null)
   switch (r.kind) {
+    case 'party': return pick('a party', 'general') ?? (partiesOf(c).some((x) => x.id === r.id) ? null : { topic: 'general', level: 'error', text: partiesOf(c).length === 0 ? 'this campaign has no parties yet: add some in “The parties”.' : `“${r.id}” is not a party of this campaign.` })
     case 'map': return pick('a map', 'map') ?? (known(doc.game?.maps) ? null : { topic: 'map', level: 'error', text: `“${r.id}” is not a map of this game.` })
     case 'chapter': return pick('a chapter', 'chapter') ?? (c.chapters.some((x) => x.id === r.id) ? null : { topic: 'chapter', level: 'error', text: `“${r.id}” is not a chapter of this campaign.` })
     case 'switch': return pick('a switch', 'switch') ?? (known(doc.game?.switches) ? null : { topic: 'switch', level: 'error', text: `“${r.id}” is not a switch of this game.` })
@@ -105,6 +107,15 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
     case 'addSupport':
       addSupportChecks(doc, c, where, (w, t) => say('error', 'unit', w, t))
       break
+    case 'switchParty':
+      break  // (the party's name is checked with the other names, below)
+    case 'mergeParties':
+      if (!Array.isArray(c.mergeParties) || c.mergeParties.length === 0) say('error', 'general', where, 'choose the parties to merge.')
+      else {
+        if (new Set(c.mergeParties).size !== c.mergeParties.length) say('error', 'general', where, 'a party is listed twice.')
+        if (c.into !== undefined && c.mergeParties.includes(c.into)) say('error', 'general', where, 'a party cannot be merged into itself.')
+      }
+      break
     default:
       // Only reachable from a hand-edited file: the Campaign screen offers nothing else.
       say('error', 'general', where, 'a scene cannot use this command.')
@@ -149,6 +160,16 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
       return r.id
     },
   })
+
+  // Parties: what the loader accepts but is probably not meant (a party switched to and never merged or ended on, a merge of a party never used, ...).
+  const parties = partiesOf(c)
+  const partySeen = new Set<string>()
+  parties.forEach((p, i) => {
+    if (!isStoryId(p.id ?? '')) say('error', 'general', `party ${i + 1}`, 'the internal name may use only letters, digits, _ and - (up to 64).')
+    if (partySeen.has(p.id)) say('error', 'general', `party “${p.name?.trim() ? p.name : p.id}”`, 'another party has the same internal name.')
+    partySeen.add(p.id)
+  })
+  for (const text of partyHints(doc)) say('hint', 'general', '', text)
 
   // Hints: a chapter no chapter leads to (the first one is where the story starts).
   for (const id of unreachedChapters(c)) {

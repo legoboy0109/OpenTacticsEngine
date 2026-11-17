@@ -5,8 +5,12 @@ import type { SceneKey } from './campaignTypes'
 import type { TriggerKind } from './storyTypes'
 
 /** "What changes" counts of a list of commands (all branches of ifs and answers counted). Zero = not shown. */
-export interface Markers { join: number; leave: number; items: number; shop: number; flags: number; questions: number }
-export const MARKER_KEYS: Array<keyof Markers> = ['join', 'leave', 'items', 'shop', 'flags', 'questions']
+export interface Markers { join: number; leave: number; items: number; shop: number; flags: number; questions: number
+  /** Party switches and merges (docs/EVENTS.md "Parties"). Left out (not 0) while there are none, so a campaign without parties has the markers it always had. */
+  party?: number }
+export const MARKER_KEYS: Array<keyof Markers> = ['join', 'leave', 'items', 'shop', 'flags', 'questions', 'party']
+/** One marker's count (0 for the optional `party` while it is not set). */
+export const markerCount = (m: Markers, k: keyof Markers): number => m[k] ?? 0
 
 /** Where an in-map event sits in the rough order: start of battle, turn numbers, then conditional ones by kind. */
 export type EventGroup = 'start' | 'turn' | 'reach' | 'talk' | 'defeated' | 'fight' | 'promoted' | 'support' | 'won' | 'lost' | 'end' | 'other'

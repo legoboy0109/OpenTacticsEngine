@@ -9,6 +9,7 @@ bool Playthrough::begin(const Database& db) {
   switches.assign(db.switches.size(), 0);
   variables.assign(db.variables.size(), 0);
   quotesSaid.assign((size_t)db.quotes.count, 0);  // no quote said yet (empty in a game without quotes)
+  beginParties(db, *this);  // the first party is active (nothing without parties)
   beginSupports(db, *this);  // every support pair at its "start" points (docs/SRPG.md); nothing without pairs
   return true;
 }

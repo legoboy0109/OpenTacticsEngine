@@ -98,6 +98,7 @@ export const TL = {
     shop: (c: number) => `${n(c, 'shop', 'shops')} on the map`,
     flags: (c: number) => `${n(c, 'switch or variable set', 'switches or variables set')}`,
     questions: (c: number) => `${n(c, 'question asked', 'questions asked')}`,
+    party: (c: number) => `${n(c, 'party switch or merge', 'party switches or merges')}`,
   } as Record<keyof Markers, (c: number) => string>,
 
   legendTitle: 'What the signs mean',
@@ -109,6 +110,7 @@ export const TL = {
     shop: 'A shop is on the map',
     flags: 'Switches or variables are set',
     questions: 'A question is asked',
+    party: 'The party changes: a switch to another party, or a merge',
   } as Record<keyof Markers, string>,
   legendArrows: 'Arrows:',
   legendOrder: 'The story goes on in order',

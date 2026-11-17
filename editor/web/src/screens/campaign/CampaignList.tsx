@@ -12,6 +12,7 @@ import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
 import { ChapterForm } from './ChapterForm'
 import { FlowCard } from './FlowCard'
+import { PartiesCard } from './PartiesCard'
 import { SettingsCard } from './SettingsCard'
 import { C } from './text'
 
@@ -38,6 +39,7 @@ export function CampaignList({ itemId }: { itemId?: string }) {
         <SettingsCard />
         <FlowCard />
       </div>
+      <PartiesCard />
       <MasterDetail heading="h2" title={C.chaptersTitle} noun={C.chapterNoun} emptyText={C.chaptersEmpty} selectedId={itemId}
         newLabel={C.newChapter}
         items={chapters.map((c) => ({ id: c.id, label: chapterName(c), sub: sub(c.id) }))}

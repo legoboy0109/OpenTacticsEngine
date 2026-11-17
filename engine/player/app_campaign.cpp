@@ -50,7 +50,7 @@ void PlayerApp::campaignBattleOver(ChapterResult result) {
     const Playthrough& pt = session_->campaign->pt;
     const ChapterDef* ch = currentChapter(session_->db, pt);
     scene_.reset();
-    scene_.reset(new RetryScene(*this, chapterHeading(pt.chapter), ch ? ch->name : ""));
+    scene_.reset(new RetryScene(*this, chapterHeading(pt.chapter, activePartyName(session_->db, pt)), ch ? ch->name : ""));
   });
 }
 
@@ -141,7 +141,7 @@ void PlayerApp::doCampaignNext() {
       const Playthrough before = pt;
       SceneResolver again = runSceneFor(SceneKind::Before, before, lines);  // applies at once; the screen only shows it
       const ChapterDef* ch = currentChapter(db, pt);
-      scene_.reset(new StoryScene(*this, chapterHeading(pt.chapter), ch ? ch->name : "", lines, again));
+      scene_.reset(new StoryScene(*this, chapterHeading(pt.chapter, activePartyName(db, pt)), ch ? ch->name : "", lines, again));
       break;
     }
     case Next::AfterScene: {
@@ -157,6 +157,7 @@ void PlayerApp::doCampaignNext() {
     }
     case Next::StartBattle: {
       session_->battle = Battle();
+      if (!pt.party.empty()) OTE_INFO("campaign: chapter %d is played by party '%s' (%s)", pt.chapter + 1, pt.party.c_str(), activePartyName(db, pt).c_str());
       session_->battle.setAskChoices(session_->askChoices);  // before start: a question may come with the first events
       session_->startEvents.clear();
       std::string err;

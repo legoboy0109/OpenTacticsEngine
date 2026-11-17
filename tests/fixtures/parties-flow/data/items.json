@@ -1,0 +1,1 @@
+{ "items": [ { "id": "potion", "name": "Potion", "kind": "usable", "uses": 3, "heal": 5 } ] }
