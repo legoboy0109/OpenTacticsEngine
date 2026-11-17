@@ -3,7 +3,7 @@
 // campaign scenes (weather is for map events only, so a scene's list never offers it).
 import { backgroundIds } from '../../../../../model/backgrounds'
 import { MAX_AUTO_MS, MAX_SCENE_MS, MAX_SHAKE_STRENGTH, MAX_WAIT_MS } from '../../../../../model/sceneChecks'
-import type { Command } from '../../../../../model/storyTypes'
+import { STAGE_POSITIONS, type Command, type StagePosition } from '../../../../../model/storyTypes'
 import { ColorInput } from '../../../../../ui/ColorInput'
 import { Field } from '../../../../../ui/Field'
 import { NumberInput } from '../../../../../ui/NumberInput'
@@ -85,17 +85,78 @@ export function ShakeForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   )
 }
 
-export function LeaveForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+/** The "how" of a stage command: a cut (the default) or a fade for enter / leave / clear; a slide (the default) or a jump for move. */
+function StageHow({ cmd, at, kind }: { cmd: Command; at: CommandRef; kind: 'enter' | 'leave' | 'move' }) {
   const { patch } = useCommandEdit(at)
+  const move = kind === 'move'
+  const fading = move ? cmd.transition !== 'cut' : cmd.transition === 'fade'
+  const fadeLabel = move ? S.sceneTransitionMoveSlide : kind === 'enter' ? S.sceneTransitionEnterFade : S.sceneTransitionLeaveFade
+  const cutLabel = move ? S.sceneTransitionMoveCut : S.sceneTransitionEnterCut
   return (
-    <Field label={S.sceneLeave} help={S.sceneLeaveHelp}>
-      <TextInput value={cmd.leave ?? ''} onChange={(v) => patch({ leave: v }, 'leave')} />
-    </Field>
+    <>
+      <PickSelect label={S.sceneTransitionOnStage} value={fading ? 'fade' : 'cut'} options={[{ value: 'cut', label: cutLabel }, { value: 'fade', label: fadeLabel }]}
+        onChange={(v) => patch(move ? (v === 'cut' ? { transition: 'cut' } : { transition: undefined, ms: undefined }) : (v === 'fade' ? { transition: 'fade' } : { transition: undefined, ms: undefined }))} />
+      {fading && <MsField label={S.sceneTransitionStageMs} value={cmd.ms} allowEmpty placeholder={move ? '400' : '500'} max={MAX_SCENE_MS} onChange={(v) => patch({ ms: v }, 'ms')} />}
+    </>
   )
 }
 
-export function ClearStageForm() {
-  return <p className="help">{S.sceneClearStageHelp}</p>
+export function LeaveForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <Field label={S.sceneLeave} help={S.sceneLeaveHelp}>
+        <TextInput value={cmd.leave ?? ''} onChange={(v) => patch({ leave: v }, 'leave')} />
+      </Field>
+      <StageHow cmd={cmd} at={at} kind="leave" />
+    </div>
+  )
+}
+
+export function ClearStageForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  return (
+    <div className="stack tight">
+      <p className="help">{S.sceneClearStageHelp}</p>
+      <StageHow cmd={cmd} at={at} kind="leave" />
+    </div>
+  )
+}
+
+const POSITION_LABEL: Record<StagePosition, string> = {
+  farLeft: S.scenePositionFarLeft, left: S.scenePositionLeft, midLeft: S.scenePositionMidLeft, center: S.scenePositionCenter,
+  midRight: S.scenePositionMidRight, right: S.scenePositionRight, farRight: S.scenePositionFarRight,
+}
+const positionOptions = () => STAGE_POSITIONS.map((p) => ({ value: p, label: POSITION_LABEL[p] }))
+
+/** enter: a speaker comes on stage without a line. */
+export function EnterForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <Field label={S.sceneEnter} help={S.sceneEnterHelp}>
+        <TextInput value={cmd.enter ?? ''} onChange={(v) => patch({ enter: v }, 'enter')} />
+      </Field>
+      <PickSelect label={S.scenePlace} help={S.scenePlaceHelp} value={cmd.position ?? 'midLeft'} options={positionOptions()} onChange={(v) => patch({ position: v as StagePosition })} />
+      <Field label={S.sceneEnterPortrait} help={S.sceneEnterPortraitHelp}>
+        <TextInput value={cmd.portrait ?? ''} onChange={(v) => patch({ portrait: v === '' ? undefined : v }, 'portrait')} />
+      </Field>
+      <StageHow cmd={cmd} at={at} kind="enter" />
+    </div>
+  )
+}
+
+/** move: a speaker on the stage slides to another place. */
+export function MoveStageForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <Field label={S.sceneMove} help={S.sceneMoveHelp}>
+        <TextInput value={cmd.move ?? ''} onChange={(v) => patch({ move: v }, 'move')} />
+      </Field>
+      <PickSelect label={S.scenePlace} help={S.scenePlaceHelp} value={cmd.position ?? 'right'} options={positionOptions()} onChange={(v) => patch({ position: v as StagePosition })} />
+      <StageHow cmd={cmd} at={at} kind="move" />
+    </div>
+  )
 }
 
 export function WeatherForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
@@ -130,18 +191,26 @@ export function PositionField({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
   return (
     <PickSelect label={S.scenePosition} help={S.scenePositionHelp} value={cmd.position ?? 'box'}
-      options={[{ value: 'box', label: S.scenePositionBox }, { value: 'left', label: S.scenePositionLeft }, { value: 'right', label: S.scenePositionRight }, { value: 'center', label: S.scenePositionCenter }]}
-      onChange={(v) => patch({ position: v === 'box' ? undefined : v })} />
+      options={[{ value: 'box', label: S.scenePositionBox }, ...positionOptions()]}
+      onChange={(v) => patch({ position: v === 'box' ? undefined : (v as StagePosition) })} />
   )
 }
 
 /** focus: how long the scroll takes, and whether the next command waits for it. */
 export function FocusExtras({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
+  const how = cmd.speed !== undefined ? 'speed' : cmd.ms !== undefined ? 'time' : 'usual'
   return (
     <>
-      <MsField label={S.focusMs} help={S.focusMsHelp} value={cmd.ms} max={MAX_SCENE_MS} allowEmpty placeholder="Usual" onChange={(v) => patch({ ms: v }, 'ms')} />
-      {cmd.ms !== undefined && <Check label={S.focusWait} checked={cmd.wait !== false} onChange={(v) => patch({ wait: v ? undefined : false })} />}
+      <PickSelect label={S.focusHow} value={how} options={[{ value: 'usual', label: S.focusHowUsual }, { value: 'time', label: S.focusHowTime }, { value: 'speed', label: S.focusHowSpeed }]}
+        onChange={(v) => patch(v === 'time' ? { ms: cmd.ms ?? 600, speed: undefined } : v === 'speed' ? { speed: cmd.speed ?? 4, ms: undefined } : { ms: undefined, speed: undefined, wait: undefined })} />
+      {how === 'time' && <MsField label={S.focusMs} help={S.focusMsHelp} value={cmd.ms} max={MAX_SCENE_MS} allowEmpty placeholder="Usual" onChange={(v) => patch({ ms: v }, 'ms')} />}
+      {how === 'speed' && (
+        <Field label={S.focusSpeed} help={S.focusSpeedHelp}>
+          <NumberInput value={cmd.speed ?? 4} min={0.1} max={100} integer={false} suffix="squares a second" onChange={(v) => patch({ speed: v ?? 4 }, 'speed')} />
+        </Field>
+      )}
+      {how !== 'usual' && <Check label={S.focusWait} checked={cmd.wait !== false} onChange={(v) => patch({ wait: v ? undefined : false })} />}
     </>
   )
 }

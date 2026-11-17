@@ -6,6 +6,7 @@
 import { JINGLE_SLOTS, MAP_MUSIC_KEYS, MAP_MUSIC_LABEL, MUSIC_SLOT_LABEL, MUSIC_SLOTS, OVERRIDE_KEY_LABEL, OVERRIDE_KEYS, SOUND_KEY_LABEL, STANDARD_SOUND_KEYS, UNIT_KEY_LABEL, type StandardSoundKey } from './audioLabels'
 import { MAX_VARIANTS, SOUND_EFFECT_SECONDS, filesOfSound, musicOf, soundsOf } from './audio'
 import type { AudioFile } from './audioTypes'
+import { situationProblems } from './audioSituations'
 import { isStoryId } from './storyIds'
 import type { ProjectDoc, Section } from './types'
 
@@ -49,6 +50,7 @@ export function audioChecks(doc: ProjectDoc, files: Map<string, AudioFile> | nul
   if (a) structureChecks(doc, say)
   overrideChecks(doc, say)
   mapChecks(doc, say)
+  for (const p of situationProblems(doc)) say(p.section, p.text, 'error', p.mapId)  // music by situation, movement-type steps, animation sounds (audioSituations.ts)
   return out
 }
 
@@ -91,7 +93,7 @@ function useChecks(doc: ProjectDoc, say: Say): void {
   const use = doc.audio!.use
   if (use === undefined) return
   if (!isObject(use)) { say('sound', 'The standard set is not a list of settings.'); return }
-  for (const k of onlyKeys(use, [...MUSIC_SLOTS, 'sounds'])) say('sound', `The standard set has something this game does not know (${q(k)}).`)
+  for (const k of onlyKeys(use, [...MUSIC_SLOTS, 'sounds', 'phaseMusic', 'fewEnemies'])) say('sound', `The standard set has something this game does not know (${q(k)}).`)
   for (const slot of MUSIC_SLOTS) {
     const v = use[slot]
     if (v === undefined || v === '') continue
@@ -150,6 +152,7 @@ function overrideChecks(doc: ProjectDoc, say: Say): void {
       const at = `${e.name || e.id}`
       if (!isObject(e.sounds)) { say(owner, `${at}: its sounds are not a list of settings.`); continue }
       for (const [k, v] of Object.entries(e.sounds)) {
+        if (owner === 'units' && k === 'stepInterval') continue  // seconds between steps: checked in audioSituations.ts
         if (!OVERRIDE_KEYS[owner].includes(k)) { say(owner, `${at}: a ${noun.toLowerCase()} cannot have a sound for ${q(k)}.`); continue }
         const label = (owner === 'units' ? UNIT_KEY_LABEL[k] : OVERRIDE_KEY_LABEL[k]) ?? k
         if (typeof v !== 'string') { say(owner, `${at}: ${q(label)}: pick a sound, “Same as the game” or “Silent”.`); continue }

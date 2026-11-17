@@ -60,6 +60,13 @@ export const T = {
   msMixed: 'Frame times differ (written by hand); typing a number here sets them all.',
   hit: 'Hit on frame',
   hitHelp: 'The frame where the blow lands: the damage number, the flash and the sound come on it. Empty = the last frame.',
+  sounds: 'Sounds on frames',
+  soundsHelp: 'A sound that plays when a frame begins, such as a swing or a clang. The sounds are the ones on the Sound screen.',
+  soundFrame: 'Frame',
+  soundWhich: (frame: number) => `Sound on frame ${frame}`,
+  soundMissing: (id: string) => `${id} (not there any more)`,
+  soundRemove: (frame: number) => `Remove the sound on frame ${frame}`,
+  soundAdd: 'Add a sound',
   customFrames: (list: string) => `These frames were written by hand (${list}). Changing the row or the number of frames replaces them.`,
   noImage: 'This animation uses an image that is no longer in the game.',
 

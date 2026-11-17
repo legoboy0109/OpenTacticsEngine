@@ -7,6 +7,7 @@ import { useDoc, useEdit } from '../../../store/context'
 import { Field } from '../../../ui/Field'
 import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
+import { AnimSounds } from './AnimSounds'
 import { T } from './text'
 
 interface Props { setId: string; animKey: AnimKey; anim: BattleAnimDef | undefined }
@@ -67,6 +68,7 @@ export function AnimRow({ setId, animKey, anim }: Props) {
           </Field>
         )}
       </div>
+      <AnimSounds setId={setId} animKey={animKey} label={info.label} anim={anim} />
       {!run && <p className="help">{T.customFrames(anim.frames.slice(0, 8).map(([c, r]) => `${c + 1},${r + 1}`).join(' ') + (anim.frames.length > 8 ? ' …' : ''))}</p>}
     </div>
   )

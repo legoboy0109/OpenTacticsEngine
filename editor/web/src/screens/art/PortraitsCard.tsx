@@ -1,17 +1,39 @@
 // "Portraits": the pictures shown beside dialogue. Each has a name (what a Say command's "Portrait" refers to) and a
 // piece of one of the game's images. The story names of the units in the maps are offered as quick starts.
 import { useState } from 'react'
-import { addPortrait, movePortrait, portraitIdProblem, portraitList, portraitSuggestions, removePortrait, renamePortrait, setPortraitPicture } from '../../model/portraits'
+import { addPortrait, framesText, movePortrait, parseFrames, portraitIdProblem, portraitList, portraitSuggestions, removePortrait, renamePortrait, setPortraitFacing, setPortraitFrames, setPortraitPicture, type PortraitFacing } from '../../model/portraits'
 import { sheetsOf } from '../../model/graphics'
 import { tidyId } from '../../model/storyIds'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { Icon } from '../../ui/Icon'
 import { RowButtons } from '../../ui/RowButtons'
+import { Field } from '../../ui/Field'
 import { IdInput } from '../../ui/IdInput'
+import { Select } from '../../ui/Select'
+import { TextInput } from '../../ui/TextInput'
 import { PortraitPicker } from './PortraitPicker'
 import { PortraitThumb } from './PortraitThumb'
 import { T } from './text'
+
+/** A list of pieces typed as "2,1  3,1"; what cannot be read is said under the box and not saved. */
+function FramesField({ label, help, name, value, onCommit }: { label: string; help: string; name: string; value: string; onCommit: (cells: Array<[number, number]>) => void }) {
+  const [text, setText] = useState(value)
+  const [error, setError] = useState('')
+  const [seen, setSeen] = useState(value)
+  if (value !== seen) { setSeen(value); setText(value); setError('') }  // the document changed (Undo, another edit)
+  return (
+    <Field label={label} help={help}>
+      <TextInput aria-label={name} value={text} onChange={(v) => {
+        setText(v)
+        const r = parseFrames(v)
+        if ('error' in r) setError(r.error)
+        else { setError(''); onCommit(r.cells) }
+      }} />
+      {error && <p className="error-text" role="alert">{error}</p>}
+    </Field>
+  )
+}
 
 export function PortraitsCard() {
   const doc = useDoc()
@@ -36,6 +58,14 @@ export function PortraitsCard() {
               <div className="portrait-fields">
                 <IdInput aria-label={T.portraitName(i + 1)} value={p.id} validate={(t) => portraitIdProblem(doc, t, p.id)} onChange={(v) => edit((d) => renamePortrait(d, p.id, v), `portrait:${p.id}:name`)} />
                 <button type="button" className="btn sm" onClick={() => setChoosing(p.id)}>{T.portraitChoose}</button>
+                <Field label={T.portraitFaces} help={T.portraitFacesHelp}>
+                  <Select aria-label={`${p.id}: ${T.portraitFaces}`} value={p.portrait.faces ?? ''} options={[{ value: '', label: T.portraitFacesNone }, { value: 'left', label: T.portraitFacesLeft }, { value: 'right', label: T.portraitFacesRight }]}
+                    onChange={(v) => edit((d) => setPortraitFacing(d, p.id, v === '' ? undefined : (v as PortraitFacing)))} />
+                </Field>
+                {(['talk', 'blink'] as const).map((key) => (
+                  <FramesField key={key} label={key === 'talk' ? T.portraitTalk : T.portraitBlink} help={key === 'talk' ? T.portraitTalkHelp : T.portraitBlinkHelp} name={`${p.id}: ${key === 'talk' ? T.portraitTalk : T.portraitBlink}`}
+                    value={framesText(p.portrait[key])} onCommit={(cells) => edit((d) => setPortraitFrames(d, p.id, key, cells), `portrait:${p.id}:${key}`)} />
+                ))}
               </div>
               <RowButtons index={i} count={list.length} up={T.portraitUp(p.id)} down={T.portraitDown(p.id)} del={T.portraitDelete(p.id)}
                 onUp={() => edit((d) => movePortrait(d, i, i - 1))} onDown={() => edit((d) => movePortrait(d, i, i + 1))} onDelete={() => edit((d) => removePortrait(d, p.id))} />

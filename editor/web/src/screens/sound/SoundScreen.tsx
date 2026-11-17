@@ -16,6 +16,7 @@ import { AudioChecks } from './AudioChecks'
 import { EventsCard } from './EventsCard'
 import { FilesCard } from './FilesCard'
 import { MusicCard } from './MusicCard'
+import { SituationsCard } from './SituationsCard'
 import { SoundsCard } from './SoundsCard'
 import { T } from './text'
 import { UploadProvider, useAudioUpload } from './useAudioUpload'
@@ -119,6 +120,7 @@ function SoundBody() {
               <MusicCard tracks={tracks} onAdd={() => musicInput.current?.click()} onRename={(id) => setRenaming({ kind: 'music', id })} onDelete={(id) => setDeleting({ kind: 'music', id })} />
               <SoundsCard sounds={sounds} onAdd={() => soundInput.current?.click()} onRename={(id) => setRenaming({ kind: 'sound', id })} onDelete={(id) => setDeleting({ kind: 'sound', id })} />
               <EventsCard />
+              <SituationsCard />
             </>
           )}
         <FilesCard say={say} onUse={(kind, file) => setNaming({ kind, file, stem: displayStem(file.replace(/^audio\//, '')) })} />

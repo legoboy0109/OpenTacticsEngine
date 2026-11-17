@@ -60,6 +60,24 @@ export function withRef<T extends object>(o: T, key: string, kind: RefKind, w: W
   return r === DROP ? DROP : put(o, key, r)
 }
 
+/** setPhaseMusic's side and track: both follow a rename; a deleted track or side takes the command away. */
+function withPhaseMusic<T extends { setPhaseMusic?: { side?: string; music?: string | null } }>(x: T, w: Walk, where: string): T | Dropped {
+  const p = x.setPhaseMusic
+  if (!p || typeof p !== 'object') return x
+  let next = p
+  if (typeof p.side === 'string' && p.side !== '') {
+    const r = w.ref({ kind: 'side', id: p.side }, where)
+    if (r === DROP) return DROP
+    if (r !== p.side) next = { ...next, side: r }
+  }
+  if (typeof p.music === 'string' && p.music !== '') {
+    const r = w.ref({ kind: 'music', id: p.music }, where)
+    if (r === DROP) return DROP
+    if (r !== p.music) next = { ...next, music: r }
+  }
+  return next === p ? x : { ...x, setPhaseMusic: next }
+}
+
 /** Runs the steps in order on `o`; stops at the first DROP. */
 export function chain<T extends object>(o: T, steps: Array<(x: T) => T | Dropped>): T | Dropped {
   let cur = o
@@ -306,6 +324,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
     (x) => withRef(x, 'playMusic', 'music', w, where),
     (x) => withRef(x, 'playSound', 'sound', w, where),
+    (x) => withPhaseMusic(x, w, where), // setPhaseMusic: the side and the track ("" and null name nothing)
     (x) => withRef(x, 'background', 'background', w, where), // a scene background (null = clear it: not a name)
     (x) => (x.giveItem !== undefined || x.teachSkill !== undefined || (typeof x.to === 'object' && x.to !== null) ? withFilter(x, 'to', w, where) : x), // giveItem's and teachSkill's `to` is a filter: a bare unit id or { unit / side / team / type }
     (x) => withRef(x, 'setSwitch', 'switch', w, where),

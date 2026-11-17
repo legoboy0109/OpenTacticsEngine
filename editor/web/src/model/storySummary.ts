@@ -166,7 +166,7 @@ function amountsText(c: SumCtx, amounts: Record<string, number> | undefined): st
 const fadeText = (fade: number | undefined, dir: 'in' | 'out'): string =>
   (typeof fade !== 'number' ? '' : fade === 0 ? ' (at once)' : ` (fades ${dir} over ${fade} ${fade === 1 ? 'second' : 'seconds'})`)
 
-const PLACE_WORDS: Record<string, string> = { left: 'on the left', right: 'on the right', center: 'in the middle' }
+const PLACE_WORDS: Record<string, string> = { farLeft: 'at the far left', left: 'on the left', midLeft: 'left of the middle', center: 'in the middle', midRight: 'right of the middle', right: 'on the right', farRight: 'at the far right' }
 /** "Sends Eirik's items to the storage, except Potion" (docs/EVENTS.md "Sending a unit's items to storage"). */
 function storeItemsText(c: SumCtx, cmd: Command): string {
   const keep = (Array.isArray(cmd.keep) ? cmd.keep : []).map((id) => itemLabel(c, id))
@@ -234,13 +234,16 @@ export function commandText(c: SumCtx, cmd: Command): string {
       const from = (Array.isArray(cmd.mergeParties) ? cmd.mergeParties : []).map((id) => q(partyLabel(c, id)))
       return `Merges ${from.length ? from.join(' and ') : 'no party'} into ${q(partyLabel(c, cmd.into ?? ''))}`
     }
-    case 'focus': return `${typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`}${typeof cmd.ms === 'number' ? (cmd.ms === 0 ? ' at once' : ` over ${cmd.ms} ms`) : ''}`
+    case 'focus': return `${typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`}${typeof cmd.ms === 'number' ? (cmd.ms === 0 ? ' at once' : ` over ${cmd.ms} ms`) : typeof cmd.speed === 'number' ? ` at ${cmd.speed} squares a second` : ''}`
     case 'background':
       return cmd.background === null || cmd.background === undefined ? `Takes the background away${cmd.transition === 'fade' ? ' with a fade' : ''}` : `Shows the background ${q(String(cmd.background))}${cmd.transition === 'fade' ? ` with a fade over ${cmd.ms ?? 500} ms` : ''}`
     case 'fade': return cmd.fade === 'in' ? `Fades the screen back in over ${cmd.ms ?? 500} ms` : `Fades the screen out to ${cmd.color ?? '#000000'} over ${cmd.ms ?? 500} ms`
     case 'wait': return `Waits ${typeof cmd.wait === 'number' ? cmd.wait : 0} ms`
     case 'shake': return `Shakes the screen for ${cmd.shake?.ms ?? 400} ms (strength ${cmd.shake?.strength ?? 3})`
-    case 'leave': return `${q(cmd.leave ?? '')} leaves the stage`
+    case 'leave': return `${q(cmd.leave ?? '')} leaves the stage${cmd.transition === 'fade' ? ' with a fade' : ''}`
+    case 'enter': return `${q(cmd.enter ?? '')} comes on stage ${PLACE_WORDS[cmd.position ?? ''] ?? ''}${cmd.transition === 'fade' ? ' with a fade' : ''}`
+    case 'move': return `${q(cmd.move ?? '')} moves ${PLACE_WORDS[cmd.position ?? ''] ?? ''}${cmd.transition === 'cut' ? ' at once' : ''}`
+    case 'setPhaseMusic': return !cmd.setPhaseMusic || cmd.setPhaseMusic.music === null ? `Takes the changed music of ${sideName(c, cmd.setPhaseMusic?.side ?? '')}’s turn away` : cmd.setPhaseMusic.music === '' ? `Gives ${sideName(c, cmd.setPhaseMusic.side ?? '')}’s turn no music of its own` : `Changes the music of ${sideName(c, cmd.setPhaseMusic.side ?? '')}’s turn to ${q(cmd.setPhaseMusic.music ?? '')}`
     case 'clearStage': return 'Clears the stage'
     case 'weather': return cmd.weather === 'rain' ? 'Makes it rain' : cmd.weather === 'snow' ? 'Makes it snow' : 'Clears the weather'
     case 'narrate': return `Narrates ${q(clip(String(cmd.narrate ?? '')))}`

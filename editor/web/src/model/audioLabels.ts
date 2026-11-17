@@ -2,12 +2,12 @@
 // decides). The key lists mirror engine/player/sound/cues.cpp; the groups are only how the Sound screen lays them out.
 // Kept here, not in a screen, because the model's "used by" sentences and the checks use the same names.
 
-export type MusicSlot = 'titleMusic' | 'mapMusic' | 'playerTurnMusic' | 'enemyTurnMusic' | 'sceneMusic' | 'victory' | 'defeat' | 'levelUp'
+export type MusicSlot = 'titleMusic' | 'mapMusic' | 'playerTurnMusic' | 'enemyTurnMusic' | 'sceneMusic' | 'victory' | 'defeat' | 'levelUp' | 'prepMusic' | 'promotion' | 'chapterCard'
 
 /** In the order the Sound screen lists them. */
-export const MUSIC_SLOTS: MusicSlot[] = ['titleMusic', 'mapMusic', 'playerTurnMusic', 'enemyTurnMusic', 'sceneMusic', 'victory', 'defeat', 'levelUp']
-/** These three play once: the loader refuses a track that loops. */
-export const JINGLE_SLOTS: MusicSlot[] = ['victory', 'defeat', 'levelUp']
+export const MUSIC_SLOTS: MusicSlot[] = ['titleMusic', 'mapMusic', 'playerTurnMusic', 'enemyTurnMusic', 'sceneMusic', 'victory', 'defeat', 'levelUp', 'prepMusic', 'promotion', 'chapterCard']
+/** These play once: the loader refuses a track that loops. */
+export const JINGLE_SLOTS: MusicSlot[] = ['victory', 'defeat', 'levelUp', 'promotion', 'chapterCard']
 
 export const MUSIC_SLOT_LABEL: Record<MusicSlot, string> = {
   titleMusic: 'Title screen',
@@ -18,6 +18,9 @@ export const MUSIC_SLOT_LABEL: Record<MusicSlot, string> = {
   victory: 'You win',
   defeat: 'You lose',
   levelUp: 'A unit levels up',
+  prepMusic: 'Preparation screen',
+  promotion: 'A unit is promoted',
+  chapterCard: 'A chapter’s title card',
 }
 
 /** The 22 event keys of `use.sounds`. */
@@ -76,6 +79,6 @@ export const UNIT_KEY_LABEL: Record<string, string> = {
   step: 'Walking', hit: 'Its attack hits', miss: 'Its attack misses', critical: 'Its critical hit', defeated: 'Being defeated', select: 'Being picked', heal: 'Being healed',
 }
 
-export type MapMusicKey = 'music' | 'playerTurnMusic' | 'enemyTurnMusic'
-export const MAP_MUSIC_KEYS: MapMusicKey[] = ['music', 'playerTurnMusic', 'enemyTurnMusic']
-export const MAP_MUSIC_LABEL: Record<MapMusicKey, string> = { music: 'Music', playerTurnMusic: 'Music on your turn', enemyTurnMusic: 'Music on the enemy’s turn' }
+export type MapMusicKey = 'music' | 'playerTurnMusic' | 'enemyTurnMusic' | 'prepMusic'
+export const MAP_MUSIC_KEYS: MapMusicKey[] = ['music', 'playerTurnMusic', 'enemyTurnMusic', 'prepMusic']
+export const MAP_MUSIC_LABEL: Record<MapMusicKey, string> = { music: 'Music', playerTurnMusic: 'Music on your turn', enemyTurnMusic: 'Music on the enemy’s turn', prepMusic: 'Music on the preparation screen' }
