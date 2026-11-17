@@ -39,6 +39,7 @@ from editor_api_staves_checks import run_staves_checks
 from editor_api_conditions_checks import run_conditions_checks
 from editor_api_skills_checks import run_skills_checks
 from editor_api_srpg_checks import run_srpg_checks
+from editor_api_doors_checks import run_doors_checks
 
 PASSED = 0
 FAILED = 0
@@ -171,6 +172,7 @@ def main():
         run_ranks_checks(api, tmp, games, templates, check, get_project, put_project)
         run_staves_checks(api, tmp, games, templates, check, get_project, put_project)
         run_conditions_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_doors_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")

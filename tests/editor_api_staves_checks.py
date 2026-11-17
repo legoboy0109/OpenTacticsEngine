@@ -150,7 +150,7 @@ def run_staves_checks(api, tmp, games, templates, check, get_project, put_projec
     refuse2("a repair of half", "fix_staff", {"effects": [{"repair": "half"}]}, "\"repair\" must be \"full\" or a whole number")
     refuse2("a light with no radius", "lantern_staff", {"effects": [{"light": {"turns": 2}}]}, "\"light\": \"radius\" must be a whole number from 1 to 10")
     refuse2("a light of 0 turns", "lantern_staff", {"effects": [{"light": {"radius": 2, "turns": 0}}]}, "\"light\": \"turns\" must be a whole number from 1 to 10")
-    refuse2("an unknown effect", "mend_staff", {"effects": [{"unlock": "door"}]}, "unknown effect \"unlock\"")
+    refuse2("an unknown effect", "mend_staff", {"effects": [{"glow": "door"}]}, "unknown effect \"glow\"")
     refuse2("two moves", "recall_staff", {"effects": [{"pull": True}, {"swap": True}]}, "only one of \"warp\", \"pull\" and \"swap\"")
     refuse2("two repairs", "fix_staff", {"effects": [{"repair": 1}, {"repair": 2}]}, "only one \"repair\"")
     refuse2("two lights", "lantern_staff", {"effects": [{"light": {"radius": 1}}, {"light": {"radius": 2}}]}, "only one \"light\"")
