@@ -152,17 +152,17 @@ test('choices the loader would refuse cannot be made, and what the form does not
 
   // A file with an effect the form does not know (and the loader does not either): it is kept, said so, and light cannot be switched on.
   const doc = await (await request.get(`/api/projects/${id}`)).json()
-  const odd = doc.items.map((i: any) => (i.id === 'rule_staff' ? { ...i, effects: [{ heal: 4 }, { unlock: 'door' }, { pull: true }] } : i))
+  const odd = doc.items.map((i: any) => (i.id === 'rule_staff' ? { ...i, effects: [{ heal: 4 }, { wizardry: 'door' }, { pull: true }] } : i))
   const res = await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, items: odd } })
   expect(res.ok(), await res.text()).toBeTruthy()
   await page.reload()
   await expect(page.getByTestId('staff-more-effects')).toContainText('One more effect')
   await expect(check(page, 'It lights up an area')).toBeDisabled()
-  await expect(page.getByTestId('item-checks')).toContainText('“unlock”, which a staff cannot do')
+  await expect(page.getByTestId('item-checks')).toContainText('“wizardry”, which a staff cannot do')
   await page.getByLabel('Experience for the user').fill('12')
   await page.getByLabel('Healing', { exact: true }).selectOption('full')
   await saved(page)
-  expect(staff(id, 'rule_staff').effects).toEqual([{ heal: 'full' }, { unlock: 'door' }, { pull: true }])
+  expect(staff(id, 'rule_staff').effects).toEqual([{ heal: 'full' }, { wizardry: 'door' }, { pull: true }])
   expect(staff(id, 'rule_staff').xp).toBe(12)
 
   // A hand-edited file the form cannot make: two moves. The Problems list says so.

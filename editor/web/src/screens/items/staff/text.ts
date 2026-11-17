@@ -71,7 +71,7 @@ export const S = {
   lightTurns: 'Turns it lasts',
   lightTurnsHelp: 'Counted in the user’s side’s turns: 1 lasts until that side’s next turn starts.',
   unlockOn: 'It unlocks doors and chests',
-  unlockOnHelp: 'Used on a square of a door or chest, not on a unit. It opens it without a key. A staff that unlocks does nothing else: switching it on removes the other effects, who it is used on, what it affects and the conditions (Undo brings them back).',
+  unlockOnHelp: 'Used on a square of a door or chest, not on a unit. It opens it without a key. A staff that unlocks does nothing else: switching it on removes the other effects, the target, the area and the conditions (Undo brings them back).',
   unlockUnknown: 'It cannot be switched on while the staff has an effect the editor cannot show, because a staff that unlocks has no other effects.',
   unlockKinds: 'What it unlocks',
   unlockBoth: 'Doors and chests',
