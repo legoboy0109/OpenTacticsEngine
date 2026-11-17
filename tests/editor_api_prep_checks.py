@@ -54,3 +54,34 @@ def run_prep_checks(api, tmp, games, templates, check, get_project, put_project)
     bad("a required character fixed to a slot that does not exist", lambda b: b.update(required=[{"character": "sera", "slot": 8}]), "does not exist")
     bad("a shop item without a price", lambda b: b.update(shop={"sells": ["token"]}), "has no \"price\"")
     bad("a fixed unit the map does not place", lambda b: b.update(fixed=["nobody"]), "does not place a unit with that id")
+    bad("a shop's \"buys\" that is not on or off", lambda b: b.update(shop={"sells": ["potion"], "buys": "yes"}), "buys")
+
+    # Selling: "buys": false, an item's "sellable" and rules.items.sellPercent travel through the helper untouched, and the loader
+    # refuses a bad value in plain words.
+    st, d4 = get_project(api, pid)
+    d4["maps"]["orchard"]["prep"]["shop"]["buys"] = False
+    for it in d4["items"]:
+        if it["id"] == "ring":
+            it["sellable"] = False
+    d4["game"]["rules"]["items"]["sellPercent"] = 30
+    st, res = put_project(api, pid, d4, d4["revision"], items=d4["items"])
+    check("prep: the selling edit is saved", st == 200, (st, res))
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("prep: a shop that does not buy, an unsellable item and a sell share of 30 are accepted", st == 200 and p["problems"] == [], p)
+    check("prep: ... and written as such", read("maps/orchard.json")["prep"]["shop"] == {"sells": ["potion", "tonic"], "buys": False}
+          and read("game.json")["rules"]["items"]["sellPercent"] == 30
+          and [i for i in read("data/items.json")["items"] if i["id"] == "ring"][0].get("sellable") is False,
+          read("data/items.json")["items"][2])
+    st, d5 = get_project(api, pid)
+    d5["game"]["rules"]["items"]["sellPercent"] = 130
+    put_project(api, pid, d5, d5["revision"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("prep: a sell share of 130 is a problem", any("sellPercent" in x["message"] for x in p["problems"]), p)
+    st, d6 = get_project(api, pid)
+    d6["game"]["rules"]["items"]["sellPercent"] = 30
+    for it in d6["items"]:
+        if it["id"] == "ring":
+            it["sellable"] = "no"
+    put_project(api, pid, d6, d6["revision"], items=d6["items"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("prep: an item's sellable that is not true or false is a problem", any("sellable" in x["message"] for x in p["problems"]), p)

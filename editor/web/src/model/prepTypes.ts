@@ -11,7 +11,8 @@ export interface MapPrep {
   forbidden?: string[]
   /** Placed units that stay where the map puts them and are not part of the choice. */
   fixed?: string[]
-  shop?: { sells: string[] }
+  /** `buys: false` = the shop only sells; missing = it also buys the party's items back (default true). */
+  shop?: { sells: string[]; buys?: boolean }
   /** The side the deployed characters join (missing = the first human side). */
   side?: string
 }

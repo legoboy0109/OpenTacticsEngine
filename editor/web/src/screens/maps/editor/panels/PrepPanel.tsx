@@ -8,6 +8,7 @@ import {
   setLimit, setRequiredSlot, setShop, setSide,
 } from '../../../../model/prep'
 import { prepChecks } from '../../../../model/prepChecks'
+import { setShopBuys, shopBuys } from '../../../../model/sell'
 import { peopleOf } from '../../../../model/prepRoster'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
 import { useEdit } from '../../../../store/context'
@@ -104,6 +105,7 @@ export function PrepPanel({ doc, map, mapId, onSlots, say }: Props) {
           <Toggle label={P.shopSwitch} help={P.shopHelp} checked={!!prep.shop} onChange={(v) => apply((m) => setShop(m, v ? [] : null))} />
           {prep.shop && (
             <>
+              <Toggle label={P.shopBuys} help={P.shopBuysHelp} checked={shopBuys(map)} onChange={(v) => apply((m) => setShopBuys(m, v))} />
               {prep.shop.sells.length === 0 && <p className="help">{P.shopNone}</p>}
               {prep.shop.sells.map((id) => (
                 <div className="row" key={id} data-testid={`prep-shop-${id}`}>

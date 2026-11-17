@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../ui/Dialog'
 import { Field } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
+import { SellPercentField } from './SellPercentField'
 import { T } from './text'
 
 const STORAGE: Array<{ value: StorageMode; label: string }> = [
@@ -42,6 +43,7 @@ export function ItemsCard() {
         <Field label={T.storage} help={T.storageHelp}>
           <Select value={storageMode(doc)} options={STORAGE} onChange={(v) => edit((d) => setStorageMode(d, v as StorageMode))} />
         </Field>
+        <SellPercentField />
       </div>
       <ConfirmDialog open={asking} title={T.fixedAskTitle} confirmLabel={T.fixedAskConfirm} danger
         onCancel={() => setAsking(false)}

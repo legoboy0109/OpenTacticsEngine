@@ -67,6 +67,7 @@ export function prepChecks(doc: ProjectDoc, mapId: string): PrepCheck[] {
   if (!sideDef || sideDef.controller === 'ai') out.push({ text: 'The preparation needs a side that a person plays. The game will not load without one.' })
 
   if (prep.shop) {
+    if (prep.shop.buys !== undefined && typeof prep.shop.buys !== 'boolean') out.push({ text: 'Whether the preparation shop also buys items must be on or off. The game will not load until it is.' })
     if (prep.shop.sells.length === 0) out.push({ text: 'The preparation shop sells nothing. The game will not load until it sells something or is removed.' })
     for (const id of prep.shop.sells) {
       const item = doc.items?.find((i) => i.id === id)
