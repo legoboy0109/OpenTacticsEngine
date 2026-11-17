@@ -80,15 +80,25 @@ TEST(walls_the_hook_is_the_place_trigger_no_extra_key_exists) {
   CHECK_STR(w.terrainAtXY(4, 2), "rubble");
 }
 
+TEST(walls_a_wall_that_only_attacks_open_has_no_greyed_open_entry) {
+  World w("walls_menu", "cracked");
+  std::vector<PlaceOption> opts;
+  w.b().placeOptions(w.id("hero"), w.unit("hero").cell, opts);
+  CHECK(opts.empty());  // only "Break wall" (placeAttackOptions) is offered
+  std::vector<PlaceAttack> atk;
+  w.b().placeAttackOptions(w.id("hero"), w.unit("hero").cell, atk);
+  CHECK_EQ((int)atk.size(), 1);
+  CHECK_STR(w.b().placeOf(w.place("w1")).word.c_str(), "wall");
+}
+
 TEST(walls_loader_checks_the_word_and_the_marker) {
   MCopy a("walls_l1");
-  a.swap("data/structures.json", "\"from\": \"next\" }", "\"from\": \"next\", \"word\": \"wall\" }");
   CHECK_STR(a.loadError("cracked"), "");
   MCopy b("walls_l2");
-  b.swap("data/structures.json", "\"from\": \"next\" }", "\"from\": \"next\", \"word\": 5 }");
+  b.swap("data/structures.json", "\"word\": \"wall\"", "\"word\": 5");
   CHECK(has(b.loadError("cracked"), "\"word\" must be a short word"));
   MCopy c("walls_l3");
-  c.swap("data/structures.json", "\"from\": \"next\" }", "\"from\": \"next\", \"word\": \"far too long a word for a menu\" }");
+  c.swap("data/structures.json", "\"word\": \"wall\"", "\"word\": \"far too long a word for a menu\"");
   CHECK(has(c.loadError("cracked"), "\"word\" must be a short word"));
   MCopy d("walls_l4");
   marked(d);

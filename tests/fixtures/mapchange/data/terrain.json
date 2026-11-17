@@ -1,7 +1,7 @@
 { "terrain": [
-  { "id": "plain",  "name": "Plain" },
-  { "id": "wall",   "name": "Wall",   "moveCost": { "foot": 0, "fly": 0 }, "blocksSight": true },
-  { "id": "river",  "name": "River",  "moveCost": { "foot": 0 } },
-  { "id": "bridge", "name": "Bridge" },
-  { "id": "rubble", "name": "Rubble", "moveCost": { "foot": 2 } },
-  { "id": "thicket", "name": "Thicket", "blocksSight": true } ] }
+  { "id": "plain",  "name": "Plain",  "color": "#9ccc65" },
+  { "id": "wall",   "name": "Wall",   "color": "#4a4a4a", "moveCost": { "foot": 0, "fly": 0 }, "blocksSight": true },
+  { "id": "river",  "name": "River",  "color": "#3d85c6", "moveCost": { "foot": 0 } },
+  { "id": "bridge", "name": "Bridge", "color": "#a0522d" },
+  { "id": "rubble", "name": "Rubble", "color": "#d2b48c", "moveCost": { "foot": 2 } },
+  { "id": "thicket", "name": "Thicket", "color": "#1b5e20", "blocksSight": true } ] }

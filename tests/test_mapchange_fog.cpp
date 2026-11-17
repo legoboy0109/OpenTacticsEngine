@@ -48,16 +48,16 @@ TEST(fogopts_loader_checks_the_new_keys) {
   f.swap("data/structures.json", "\"light\": 2", "\"light\": 11");
   CHECK(has(f.loadError("dark"), "\"light\" must be from 1 to 10"));
   MCopy g("fo_l7");
-  g.swap("data/items.json", "\"light\": { \"radius\": 2, \"turns\": 2 }", "\"light\": { \"radius\": 2, \"oops\": 2 }");
+  g.swap("data/items.json", "\"light\": { \"radius\": 3, \"turns\": 2 }", "\"light\": { \"radius\": 3, \"oops\": 2 }");
   CHECK(has(g.loadError("dark"), "unknown key \"oops\""));
   MCopy h("fo_l8");
-  h.swap("data/items.json", "\"light\": { \"radius\": 2, \"turns\": 2 }", "\"light\": { \"turns\": 2 }");
+  h.swap("data/items.json", "\"light\": { \"radius\": 3, \"turns\": 2 }", "\"light\": { \"turns\": 2 }");
   CHECK(has(h.loadError("dark"), "needs \"radius\""));
   MCopy i("fo_l9");
   i.swap("data/items.json", "\"light\": { \"radius\": 3, \"shrink\": 1 }", "\"light\": { \"radius\": 3, \"shrink\": 3 }");
   CHECK(has(i.loadError("dark"), "less than the radius"));
   MCopy j("fo_l10");
-  j.swap("data/items.json", "\"light\": { \"radius\": 2, \"turns\": 2 }", "\"light\": { \"radius\": 2, \"turns\": 2 }, \"target\": \"ally\"");
+  j.swap("data/items.json", "\"light\": { \"radius\": 3, \"turns\": 2 }", "\"light\": { \"radius\": 3, \"turns\": 2 }, \"target\": \"ally\"");
   CHECK(has(j.loadError("dark"), "must be \"self\""));
   MCopy k("fo_l11");
   k.swap("data/skills.json", "{ \"vision\": 2 }", "{ \"vision\": 0 }");
@@ -128,7 +128,7 @@ TEST(fogopts_a_torch_item_lights_the_square_its_user_stands_on_for_a_few_turns) 
   const Event* lit = w.first(EventType::AreaLit);
   CHECK_EQ(lit->a, w.id("hero"));
   CHECK_EQ(lit->b, (int)w.at(2, 4));
-  CHECK_EQ(lit->c, 2);
+  CHECK_EQ(lit->c, 3);
   CHECK_EQ(lit->d, 2);
   CHECK_EQ((int)w.b().lights.size(), 1);
   // The torch stays where it was lit: with the hero 2 squares away from it, its squares are still in sight.

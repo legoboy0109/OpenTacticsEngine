@@ -1,7 +1,7 @@
 { "structures": [
   { "id": "crack", "name": "Cracked Wall", "width": 3, "height": 1, "color": "#665544", "glyph": "X", "blocksSight": true,
     "moveCost": { "foot": 0, "fly": 0 },
-    "door": { "opens": "crack_open", "hp": 12, "by": ["break"], "stats": { "def": 1 }, "from": "next" } },
+    "door": { "opens": "crack_open", "hp": 12, "by": ["break"], "stats": { "def": 1 }, "from": "next", "word": "wall" } },
   { "id": "crack_open", "name": "Broken Wall", "width": 3, "height": 1, "color": "#aa9977", "glyph": "x" },
   { "id": "portcullis", "name": "Portcullis", "color": "#555555", "glyph": "P", "blocksSight": true, "moveCost": { "foot": 0, "fly": 0 } },
   { "id": "portcullis_up", "name": "Raised Portcullis", "color": "#999999", "glyph": "p" },
