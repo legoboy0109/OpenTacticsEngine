@@ -11,6 +11,7 @@ import './styles/art.css'
 import './styles/story.css'
 import './styles/sound.css'
 import './styles/campaign.css'
+import './styles/timeline.css'
 import './styles/play.css'
 import './styles/learn.css'
 

@@ -1,22 +1,15 @@
 // The Campaign section: no campaign yet (what it is, and a button), or the story's settings, its flow and its chapters.
-import { useState } from 'react'
-import { addChapter, deleteChapter, moveChapter, newChapterId, createCampaign, sceneOf } from '../../model/campaign'
-import { campaignUsagesOf } from '../../model/campaignRefs'
-import { chapterName } from '../../model/campaignTypes'
-import { commandsSummary } from '../../model/storySummary'
-import { sceneMap } from '../../model/campaignRoster'
-import { navigate, projectPath } from '../../router'
+import { createCampaign } from '../../model/campaign'
 import { Needs } from '../../shell/Blocked'
-import { useDoc, useEdit, useProject, useStore } from '../../store/context'
+import { useDoc, useEdit, useProject } from '../../store/context'
 import { Banner } from '../../ui/Banner'
 import { Card, PageHeader } from '../../ui/Card'
-import { DeleteConfirm } from '../../ui/DeleteConfirm'
-import { MasterDetail } from '../../ui/MasterDetail'
-import { NameDialog } from '../../ui/NameDialog'
+import { useStored } from '../../ui/hooks'
 import { CampaignChecks } from './CampaignChecks'
-import { ChapterForm } from './ChapterForm'
-import { FlowCard } from './FlowCard'
-import { SettingsCard } from './SettingsCard'
+import { CampaignList } from './CampaignList'
+import { TimelineChapter } from './timeline/TimelineChapter'
+import { TimelineView } from './timeline/TimelineView'
+import { ViewSwitch, VIEW_KEY, type CampaignView } from './timeline/ViewSwitch'
 import { C } from './text'
 
 export function CampaignScreen({ itemId }: { itemId?: string }) {
@@ -61,44 +54,13 @@ function NoCampaign() {
 }
 
 function CampaignEditor({ itemId }: { itemId?: string }) {
-  const doc = useDoc()
-  const edit = useEdit()
-  const store = useStore()
-  const campaign = doc.campaign!
-  const chapters = campaign.chapters
-  const [naming, setNaming] = useState(false)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const go = (id?: string) => navigate(projectPath(store.id, 'campaign', id))
-  const target = chapters.find((c) => c.id === deleting)
-  const ctx = { doc, map: sceneMap(doc) }
-  const mapName = (id: string) => doc.game?.maps.find((m) => m.id === id)?.name ?? (id || C.noMapChosen)
-  const sub = (id: string) => {
-    const ch = chapters.find((c) => c.id === id)!
-    const text = commandsSummary(ctx, sceneOf(doc, id, 'before'), '') || commandsSummary(ctx, sceneOf(doc, id, 'after'), '') || C.noScenes
-    return C.chapterListSub(mapName(ch.map), text)
-  }
+  const [view, setView] = useStored<CampaignView>(VIEW_KEY, 'list')
   return (
     <>
       <PageHeader title={C.title} help={C.intro} />
       <CampaignChecks />
-      <div className="campaign-top">
-        <SettingsCard />
-        <FlowCard />
-      </div>
-      <MasterDetail heading="h2" title={C.chaptersTitle} noun={C.chapterNoun} emptyText={C.chaptersEmpty} selectedId={itemId}
-        newLabel={C.newChapter}
-        items={chapters.map((c) => ({ id: c.id, label: chapterName(c), sub: sub(c.id) }))}
-        onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}
-        onDelete={setDeleting}
-        onMove={(id, delta) => { const i = chapters.findIndex((x) => x.id === id); edit((d) => moveChapter(d, i, i + delta)) }}>
-        {(id) => <ChapterForm id={id} />}
-      </MasterDetail>
-      <NameDialog open={naming} title={C.newChapterTitle} label={C.newChapterLabel} help={C.newChapterHelp} onCancel={() => setNaming(false)}
-        onSubmit={(name) => { const id = newChapterId(doc, name); edit((d) => addChapter(d, name, id)); setNaming(false); go(id) }} />
-      <DeleteConfirm open={!!target} what={target ? C.deleteChapterWhat(chapterName(target)) : ''}
-        usages={target ? campaignUsagesOf(doc, [{ kind: 'chapter', id: target.id }]) : []}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() => { if (target) { edit((d) => deleteChapter(d, target.id)); go() } setDeleting(null) }} />
+      <ViewSwitch view={view} onChange={setView} />
+      {view === 'timeline' ? (itemId ? <TimelineChapter id={itemId} /> : <TimelineView />) : <CampaignList itemId={itemId} />}
     </>
   )
 }
