@@ -33,6 +33,8 @@ class GameSession {
   MapDef map;
   Battle battle;
   std::vector<Event> startEvents;
+  // Dialogue choices wait for a person (Battle::setAskChoices): on except in --autoplay, where the first answer is taken.
+  bool askChoices = false;
   std::string dir;
   // The story being played, when one is (null for a free battle and for games without a campaign).
   // Its chapter battle is `battle` above; it is set up by the App, not by startMap / resume.

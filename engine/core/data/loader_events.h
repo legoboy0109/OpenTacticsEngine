@@ -26,6 +26,8 @@ class StoryLoader {
   std::vector<std::string> unitIds;
   // Ids already taken by units (map units first, then each addUnit as it is read).
   std::vector<std::string> usedIds;
+  // Variables that a choice command of this map already writes ("store"): a second one may not (loader_story_choice.cpp).
+  std::vector<int> choiceStores;
 
   bool fail(const std::string& where, const std::string& msg) const { return c_.fail(where, msg); }
   // Adds a piece of wording to the text table; returns its index.
@@ -66,6 +68,7 @@ class StoryLoader {
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);
+  bool choiceCommand(const Json& e, const std::string& at, bool talk, Command& out, bool& usesEndTurn);  // loader_story_choice.cpp
   bool addUnitCommand(const Json& e, const std::string& where, Command& out);
   bool condition(const Json& e, const std::string& where, Condition& out) const;
   bool rules(const Json& list, const char* key, const std::string& where, bool win, std::vector<ObjectiveRule>& out) const;

@@ -128,6 +128,12 @@ export function commandText(c: SumCtx, cmd: Command): string {
       const text = clip(String(cmd.say ?? ''))
       return who ? `${who} says ${q(text)}` : `Says ${q(text)}`
     }
+    case 'choice': {
+      const who = cmd.speaker ? unitText(c, cmd.speaker) : cmd.speakerName ? cmd.speakerName : ''
+      const n = cmd.answers?.length ?? 0
+      const asks = `asks ${q(clip(String(cmd.choice ?? '')))} (${n} ${n === 1 ? 'answer' : 'answers'}${cmd.store ? `, saved in ${q(variableName(c, cmd.store))}` : ''})`
+      return who ? `${who} ${asks}` : cap(asks)
+    }
     case 'addUnit': {
       const u = cmd.addUnit
       if (!u) return 'Adds a unit'

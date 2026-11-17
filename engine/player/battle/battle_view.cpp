@@ -243,6 +243,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::BattleEnded: break;
     // Story entries are handled by beginStory() above (battle_view_story.cpp).
     case EventType::Dialogue:
+    case EventType::Choice:
     case EventType::Focus:
     case EventType::SideChanged:
     case EventType::ObjectiveChanged:

@@ -12,7 +12,9 @@ static bool hasTag(const std::vector<std::string>& tags, const char* tag) {
 
 bool Battle::init(const Database& database, const MapDef& map, Formulas& formulaHost,
                   uint32_t seed, std::string& err) {
+  const bool askChoices = choice_.ask;  // the caller's choice of asking survives a new battle
   *this = Battle();
+  choice_.ask = askChoices;
   db = &database;
   formulas = &formulaHost;
   rng.seed(seed);
@@ -191,6 +193,14 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
 }
 
 void Battle::start(std::vector<Event>& events) {
+  if (askingChoices()) {  // a question may stop the start half way (story_choice.cpp)
+    runAsking(true, Action(), nullptr, {}, 0, events);
+    return;
+  }
+  startNow(events);
+}
+
+void Battle::startNow(std::vector<Event>& events) {
   EventScope scope(*this, events);
   sight_.valid = false;  // state may have been set up by hand since init (roster, research, tests)
   activeSide = 0;

@@ -3,6 +3,7 @@
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
 import { audioRefProblem } from './audioChecks'
+import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
 import { addSupportChecks, supportConditionChecks, supportTriggerChecks } from './supportStoryChecks'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
@@ -59,12 +60,20 @@ function objectivesChecks(map: MapFile, o: Objectives, where: string, say: (w: s
     (o[k] ?? []).forEach((r, i) => ruleChecks(map, r, `${where}, “${k === 'win' ? 'Win' : 'Lose'}” entry ${i + 1}`, k === 'win', say))
 }
 
-function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, ids: Map<string, number>): void {
+function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, ids: Map<string, number>, stores: Map<string, number>): void {
   const talk = triggerKind(e.when ?? {}) === 'talk'
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say(where, 'the text to say is empty.')
       if (typeof c.portrait === 'string' && c.portrait && !doc.graphics?.portraits?.[c.portrait]) say(where, `the portrait “${c.portrait}” has no picture yet (Art, Portraits).`)
+      break
+    case 'choice':
+      choiceChecks(c, where, stores, say)
+      if (typeof c.portrait === 'string' && c.portrait && !doc.graphics?.portraits?.[c.portrait]) say(where, `the portrait “${c.portrait}” has no picture yet (Art, Portraits).`)
+      ;(c.answers ?? []).forEach((a, i) => {
+        seesChecks(map, a.if, `${where}, answer ${i + 1}`, say)
+        supportConditionChecks(doc, a.if, `${where}, answer ${i + 1}`, say)
+      })
       break
     case 'addUnit': {
       const u = c.addUnit
@@ -140,6 +149,7 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     else if ((ids.get(u.id) ?? 0) > 1) say(where, `the story name “${u.id}” is used by more than one unit.`)
   }
 
+  const stores = storeCounts((map.events ?? []).map((ev) => ev.do))
   const defined = new Set(definedUnitIds(doc, map))
   const seen = new Set<string>()
   for (const e of map.events ?? []) {
@@ -157,7 +167,7 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
       if (a.w < 1 || a.h < 1 || outside(map, a)) say(`${where}, “When”`, 'the area does not fit inside the map.')
     }
     if (kind === 'talk' && trig.talk && trig.talk === trig.to) say(`${where}, “When”`, 'a unit cannot talk to itself.')
-    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids))
+    forEachCommand(e.do, where, (c, w) => commandChecks(doc, map, e, c, w, say, ids, stores))
     seesChecks(map, e.if, `${where}, “Only if”`, say)
     forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
     supportTriggerChecks(doc, trig, `${where}, “When”`, say)

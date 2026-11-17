@@ -162,6 +162,10 @@ bool SaveStore::remove(int slot, std::string& err) const {
 
 bool buildSaveFile(const Battle& battle, const Database& db, const std::string& gameId,
                    const std::string& mapId, long long savedAt, Json& out, std::string& err) {
+  if (battle.choiceWaiting()) {  // the state would be half way through an action (docs/EVENTS.md "Dialogue choices")
+    err = "a question is waiting for its answer";
+    return false;
+  }
   std::string hash;
   if (!computeDataHash(db, mapId, hash, err)) return false;
   int mi = db.findMap(mapId);

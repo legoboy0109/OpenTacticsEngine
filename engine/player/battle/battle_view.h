@@ -44,6 +44,7 @@ struct DialogueState {
   bool active = false;
   int serial = 0;
   DialogueLine line;
+  std::vector<std::string> answers;  // not empty = the line is a question with these answers (a Choice entry)
 };
 
 struct LevelUpPanel {

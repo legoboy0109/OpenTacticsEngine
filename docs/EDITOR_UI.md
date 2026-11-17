@@ -871,3 +871,24 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
 - **Story**: commands "Teach a skill" / "Make units forget a skill" (`forms/SkillForms.tsx`), condition "A unit has a skill"; `storyWalk.ts` has the `skill` reference kind, so
   deleting a skill removes those commands and conditions (listed in the delete question, one undo step).
 - **Tests**: unit `skills`, `skillsStarter`; API `tests/editor_api_skills_checks.py`; e2e `srpg-skills.spec.ts`, `srpg-skills-cards.spec.ts` (with the 360 px check).
+
+## Dialogue choices (docs/EVENTS.md "Dialogue choices")
+
+All wording below is placeholder. No helper (API) change: the loader already checks maps and the campaign.
+
+- **Command "Ask a question"** (group Dialogue, map events and campaign scenes; `forms/ChoiceForm.tsx`). Form: the speaker and portrait fields shared with
+  "Say something" (`SpeakerFields` in `forms/SayForm.tsx`), "The question", "Remember the answer in" (a game variable or "Do not remember it"), then
+  "Answers": per answer "Words of the answer (answer N)", up / down / delete buttons (delete greyed at two answers), "Only offered if (optional)" (the
+  same condition list as "Only if"; a scene offers the scene kinds) and "Add an answer" (greyed at four, with a note). A new question starts with
+  "Yes" / "No". Reordering moves an answer with its commands.
+- **What each answer does** is its own command list, shown under the question like the branches of an If ("Answer 1: “Open it”", add box named
+  "Question 1: Answer 1: Add a command…"); any command legal there works, including another question (lists nest, the path in `model/storyEdit.ts` is
+  `[index, 'answerN']`, rows are keyed `…a<N>`). `forEachCommand` / `mapCommands` (storyWalk.ts) walk answers, so renaming a unit, deleting a switch,
+  variable, item, chapter... cleans them in the same undo step (a hiding condition that cannot stay removes its answer; the Problems then say the question is
+  short of answers).
+- **Problems** (`model/choiceChecks.ts`, used by `storyChecks.ts` and `campaignChecks.ts`): empty question; fewer than two / more than four answers; empty or
+  repeated answer text; two questions of one map / one scene saving in the same variable; plus the usual unknown-name checks inside answers.
+- **Campaign**: "Go to a chapter" is now offered in the Before scene too (it skips that chapter's battle; the check refuses the scene's own chapter); the
+  flow card shows such a jump (`campaignFlow.ts`).
+- **Tests**: unit `choices.test.ts` (+ the changed line in `campaign.test.ts`); e2e `choices.spec.ts` (desktop: a question with a hidden answer, nested
+  question, reorder, limits, duplicate store; a scene question that jumps to chapters; 360 px phone with four long answers).

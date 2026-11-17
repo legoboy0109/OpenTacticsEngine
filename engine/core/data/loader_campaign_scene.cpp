@@ -11,7 +11,7 @@ constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVar
 
 // The strategy-RPG scene commands and conditions (read in loader_supports_story.cpp). Listed apart so that the
 // "is not a scene command" message keeps naming only the old ones.
-constexpr const char* kSrpgSceneKeys[] = {"addSupport"};
+constexpr const char* kSrpgSceneKeys[] = {"addSupport", "choice"};
 constexpr const char* kSrpgConditionKeys[] = {"support"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
@@ -95,6 +95,10 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   using K = SceneCommand::Kind;
 
   if (k == "addSupport") return supportCommand(e, at, out);
+  if (k == "choice") {
+    out.kind = K::Choice;
+    return choiceCommand(e, at, allowGoto, out);
+  }
   if (k == "say") {
     out.kind = K::Say;
     if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;
@@ -186,6 +190,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
 }
 
 bool CampaignLoader::chapterScene(const Json& v, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out) {
+  beginScene();
   if (!v.isObject()) return scene(v, where, allowGoto, out);
   if (!onlyKeys(v, {"music", "commands"}, where)) return false;
   if (v.has("music")) {

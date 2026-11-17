@@ -16,7 +16,7 @@ constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit"
 // The commands of the strategy-RPG features (docs/SRPG.md), read by their own areas (loader_promotion.cpp,
 // loader_skills.cpp, loader_supports.cpp). A list of their own so that the "is not a command" message keeps naming
 // only what every game can use until those areas exist.
-constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport"};
+constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport", "choice"};
 
 }  // namespace
 
@@ -72,6 +72,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "addSupport") {
     out.kind = K::AddSupport;
     return supportCommand(e, at, out);
+  }
+  if (k == "choice") {
+    out.kind = K::Choice;
+    return choiceCommand(e, at, talk, out, usesEndTurn);
   }
   if (k == "say") {
     out.kind = K::Say;

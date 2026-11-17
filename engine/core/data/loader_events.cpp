@@ -19,6 +19,7 @@ void collectAddedIds(const Json& commands, std::vector<std::string>& out) {
     if (u.isObject() && u["character"].isString()) out.push_back(u["character"].asString());  // a character's id
     collectAddedIds(c["then"], out);
     collectAddedIds(c["else"], out);
+    for (const Json& a : c["answers"].items()) collectAddedIds(a["do"], out);  // a choice's answers
   }
 }
 

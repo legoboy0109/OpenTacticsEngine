@@ -156,6 +156,7 @@ export const S = {
   commandGroups: { dialogue: 'Dialogue', units: 'Units', give: 'Give', story: 'Story', flow: 'Flow', sound: 'Sound' },
   commandKinds: {
     say: 'Say something',
+    choice: 'Ask a question',
     addUnit: 'Add a unit',
     removeUnit: 'Remove a unit',
     moveUnit: 'Move a unit',
@@ -194,8 +195,29 @@ export const S = {
 
   // --- campaign scenes ---
   gotoChapter: 'Next chapter',
-  gotoHelp: 'After this scene the story continues with that chapter instead of the usual one. The last “go to” that runs wins.',
+  gotoHelp: 'After this scene the story continues with that chapter instead of the usual one. The last “go to” that runs wins. In a “Before the battle” scene it skips this chapter’s battle and starts the chosen chapter (with its own “Before the battle” scene).',
   gotoNone: 'The campaign has no chapters yet.',
+
+  // --- ask a question (dialogue choices) ---
+  choiceQuestion: 'The question',
+  choiceQuestionHelp: 'It is shown like a line of dialogue; the answers appear above it. The player cannot skip it or back out of it.',
+  choiceStore: 'Remember the answer in',
+  choiceStoreNone: 'Do not remember it',
+  choiceStoreHelp: 'The variable gets the number of the answer picked (1 = the first answer written). Test it later with an “If” on that variable.',
+  answersTitle: 'Answers',
+  answersHelp: 'Two to four. Each answer has its own commands, listed under the question.',
+  answerN: (n: number) => `answer ${n}`,
+  answerText: 'Words of the answer',
+  answerOnlyIf: 'Only offered if (optional)',
+  answerOnlyIfHelp: 'The answer is left out while these are not all true. If fewer than two answers are offered the question is not asked: the one left is taken, or none.',
+  addAnswer: 'Add an answer',
+  answersFull: 'A question has at most four answers.',
+  answersLeast: 'A question needs at least two answers.',
+  answerPart: (n: number, text: string) => `Answer ${n}${text.trim() ? `: “${text.trim().length > 28 ? `${text.trim().slice(0, 27)}…` : text.trim()}”` : ''}`,
+  moveAnswerUp: (n: number) => `Move answer ${n} up`,
+  moveAnswerDown: (n: number) => `Move answer ${n} down`,
+  deleteAnswer: (n: number) => `Delete answer ${n}`,
+  noAnswerCommands: 'Nothing happens for this answer yet.',
 
   // --- say ---
   sayText: 'What is said',

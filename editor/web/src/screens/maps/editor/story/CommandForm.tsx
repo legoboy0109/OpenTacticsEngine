@@ -3,6 +3,7 @@ import { commandKind, type Command } from '../../../../model/storyTypes'
 import { ObjectiveEditor } from './ObjectiveEditor'
 import { tidyObjectives } from '../../../../model/storyEdit'
 import { AddUnitForm } from './forms/AddUnitForm'
+import { ChoiceForm } from './forms/ChoiceForm'
 import { GiveItemForm, GiveResourceForm, GrantResearchForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
@@ -20,6 +21,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
   switch (commandKind(cmd)) {
     case 'say': return <SayForm cmd={cmd} at={at} />
+    case 'choice': return <ChoiceForm cmd={cmd} at={at} />
     case 'addUnit': return <AddUnitForm cmd={cmd} at={at} />
     case 'removeUnit': return <RemoveUnitForm cmd={cmd} at={at} />
     case 'moveUnit': return <MoveUnitForm cmd={cmd} at={at} />

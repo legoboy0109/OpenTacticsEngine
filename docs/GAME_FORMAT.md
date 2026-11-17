@@ -269,7 +269,7 @@ Everything is in docs/ECONOMY.md.
 
 `events` and `objectives` are specified in docs/EVENTS.md: triggers,
 conditions, the list of commands (dialogue, adding / removing / moving
-units, items, resources, switches and variables, win / lose) and the
+units, items, resources, switches and variables, win / lose, and questions with two to four answers: `choice`, docs/EVENTS.md "Dialogue choices") and the
 objective kinds. Every id they name (units, sides, teams, types, items,
 resources, switches, variables) must exist and unknown keys are refused, with
 a message naming the map, the event and the command. A map without them
@@ -315,7 +315,8 @@ A campaign strings maps together as chapters with scenes between them and carrie
 surviving named units (levels, items), storage, resources, switches and variables
 from chapter to chapter. A game without the file plays single maps as before.
 Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
-`freeBattles` and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`).
+`freeBattles` and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`). Scenes may ask questions (`choice`) and
+branch with `goto` (also from a before scene, which skips that chapter's battle).
 Unknown keys, unknown maps / chapters and bad rule values are loader errors. The
 file counts for the save hash except its wording (docs/SAVES.md).
 

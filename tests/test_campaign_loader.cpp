@@ -92,10 +92,13 @@ TEST(campaign_loader_refuses_bad_rule_values) {
 }
 
 TEST(campaign_loader_refuses_goto_mistakes) {
+  // A before scene may jump forward, but not to its own chapter (its scene would run for ever).
   std::string e = refuse(one(R"("before": [ {"goto":"a"} ])"));
-  CHECK(has(e, "\"before\"") && has(e, "command 1 (goto)") && has(e, "only works in a chapter's \"after\""));
+  CHECK(has(e, "\"before\"") && has(e, "\"goto\" names its own chapter \"a\""));
   e = refuse(one(R"("before": [ {"if":[{"switch":"bridge_cut"}],"then":[{"goto":"a"}]} ])"));
-  CHECK(has(e, "\"then\"") && has(e, "only works in a chapter's \"after\""));
+  CHECK(has(e, "names its own chapter"));
+  e = refuse(one(R"("before": [ {"goto":"zzz"} ])"));
+  CHECK(has(e, "\"before\"") && has(e, "\"goto\" names unknown chapter \"zzz\""));
   e = refuse(one(R"("after": [ {"goto":"zzz"} ])"));
   CHECK(has(e, "\"goto\" names unknown chapter \"zzz\""));
   e = refuse(one(R"("after": [ {"if":[{"dead":"x"}],"then":[],"else":[{"goto":"zzz"}]} ])"));

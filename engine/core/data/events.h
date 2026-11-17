@@ -62,6 +62,16 @@ struct Trigger {
   int label = -1;      // Talk: index into StoryData::texts
 };
 
+struct Command;
+
+// One answer of a Choice command (docs/EVENTS.md "Dialogue choices"): its wording, an optional condition that hides
+// it, and the commands that run when it is picked.
+struct ChoiceAnswer {
+  int text = -1;                 // index into StoryData::texts
+  std::vector<Condition> cond;   // all must hold for the answer to be offered ("if"); empty = always
+  std::vector<Command> commands;
+};
+
 struct Command {
   enum class Kind {
     Say, AddUnit, RemoveUnit, MoveUnit, ChangeSide, GiveItem, GiveResource, SetSwitch, SetVariable,
@@ -69,10 +79,13 @@ struct Command {
     PlayMusic, StopMusic, PlaySound,  // presentation only (docs/SOUND.md): the id is opaque text here
     // docs/SRPG.md. Promote: `unit` becomes unit type `index` (-1 = its type's only promotion). TeachSkill /
     // ForgetSkill: skill `index`, units matching `filter`. AddSupport: support pair `index` gains `value` points.
-    Promote, TeachSkill, ForgetSkill, AddSupport
+    Promote, TeachSkill, ForgetSkill, AddSupport,
+    // docs/EVENTS.md "Dialogue choices": asks the question `text` (speaker as in Say) and runs the commands of the
+    // picked answer; `index` = the variable that receives the picked answer's number (1 = the first answer), -1 = none.
+    Choice
   };
   Kind kind = Kind::Say;
-  // Say
+  // Say, Choice
   int text = -1, speakerName = -1, portrait = -1;  // indices into StoryData::texts (-1 = none); PlayMusic / PlaySound: `text` is the track / sound id
   std::string unit;      // Say: speaker unit id; MoveUnit / Focus: the unit ("" = a square)
   MapUnitDef newUnit;    // AddUnit
@@ -88,6 +101,7 @@ struct Command {
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If
+  std::vector<ChoiceAnswer> answers;          // Choice: two to four
 };
 
 struct StoryEvent {
@@ -121,11 +135,15 @@ struct StoryData {
   std::vector<StoryEvent> events;
   // [0] is the map's own objectives (possibly empty); one more for each `objective` command.
   std::vector<ObjectiveSet> objectives;
+  bool hasChoice = false;  // some event has a Choice command (the Battle only needs its question machinery then)
   StoryData() : objectives(1) {}
 };
 
 // Story variables and gifts of resources stay within +-this, so saves can check them (docs/SAVES.md).
 constexpr int kMaxStoryNumber = 1000000000;
+
+// A question has two to four answers (docs/EVENTS.md "Dialogue choices"); shared by the event and scene loaders.
+constexpr int kMinChoiceAnswers = 2, kMaxChoiceAnswers = 4;
 
 // True for an id made of letters, digits, '_' and '-' (units, events, switches...).
 bool isStoryId(const std::string& id);

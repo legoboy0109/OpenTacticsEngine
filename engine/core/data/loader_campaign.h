@@ -42,10 +42,16 @@ class CampaignLoader {
   // loaded (resolveSupportRefs), because campaign.json is read before it.
   bool supportCommand(const Json& e, const std::string& where, SceneCommand& out);
   bool supportCondition(const Json& e, const std::string& where, SceneCondition& out) const;
+  bool choiceCommand(const Json& e, const std::string& at, bool allowGoto, SceneCommand& out);  // loader_campaign_choice.cpp
 
   const Database& db_;
   LoadCtx c_;
   CampaignDef& def_;
+  std::vector<int> choiceStores_;  // variables the choices of the scene being read write (one choice each; loader_campaign_choice.cpp)
+
+ public:
+  // Starts a new scene (a chapter's "before" or "after"): its choices may reuse variables other scenes use.
+  void beginScene() { choiceStores_.clear(); }
 };
 
 }  // namespace ote

@@ -417,3 +417,9 @@ windowless on a three-chapter game), `tools/webtest/suites/campaign.mjs`.
   combined with `--map`, `--continue` or `--load-slot`. `--autoplay --campaign` plays the whole story with the computer
   on the human side (title cards, scene lines, results and the retry choice pass by themselves; nothing is saved); with
   `--frames N` it stops as before.
+
+## Dialogue choices (docs/EVENTS.md "Dialogue choices")
+
+Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a
+battle save and `playthrough.variables` of a campaign save. A Battle with a question waiting cannot be saved (`buildSaveFile` and
+`buildCampaignSave` refuse it); the player never offers a save then. Games and maps without a choice keep their save bytes and hashes.

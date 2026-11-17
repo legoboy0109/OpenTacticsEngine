@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "name": "Crossroads Tale",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "switches": [ { "id": "crossed", "name": "Stranger crossed" }, { "id": "gate_open", "name": "Gate opened" } ],
+  "variables": [ { "id": "stranger", "name": "Stranger" }, { "id": "gate", "name": "Gate" },
+                 { "id": "pack", "name": "Pack" }, { "id": "road", "name": "Road" }, { "id": "mood", "name": "Mood" } ],
+  "rules": { "defeat": ["noUnits"] },
+  "formulas": { "damage": "0" },
+  "maps": [ { "id": "ridge", "name": "The Ridge", "file": "maps/ridge.json" },
+            { "id": "vale", "name": "The Vale", "file": "maps/vale.json" },
+            { "id": "summit", "name": "The Summit", "file": "maps/summit.json" } ]
+}

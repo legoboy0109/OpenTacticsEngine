@@ -139,3 +139,127 @@ TEST(dialogue_box_portrait_has_a_fixed_size_and_a_name_row_is_optional) {
   DialogueBox nameless = open(r, line("Hi", ""));
   CHECK(nameless.top() > noFace.top());
 }
+
+// ---- questions (docs/EVENTS.md "Dialogue choices") ----
+
+namespace {
+
+InputEvent move(int x, int y) {
+  InputEvent e;
+  e.type = InputEvent::PointerMove;
+  e.x = x;
+  e.y = y;
+  return e;
+}
+
+// A question box on a screen of the given size (the hint strip is 11 px) with the answers up.
+DialogueBox question(const ote_test::FakeRenderer& r, const std::vector<std::string>& answers, int w = 480, int h = 270) {
+  DialogueBox box;
+  box.open(r, w, h, h - 11, line("Which road do we take?"), PortraitArt());
+  box.setAnswers(r, answers);
+  return box;
+}
+
+// Reads the question: Confirm shows it whole, Confirm again brings up the answers.
+void readQuestion(DialogueBox& box) {
+  CHECK(box.onInput(button(Button::Confirm)) == DialogueBox::None);
+  CHECK(!box.choosing());
+  CHECK(box.onInput(button(Button::Confirm)) == DialogueBox::None);
+  CHECK(box.choosing());
+}
+
+}  // namespace
+
+TEST(dialogue_question_shows_its_answers_only_after_it_was_read) {
+  ote_test::FakeRenderer r;
+  DialogueBox box = question(r, {"The valley road", "The summit path"});
+  CHECK(box.isQuestion() && !box.choosing() && box.answerCount() == 2);
+  readQuestion(box);
+  CHECK_EQ(box.highlighted(), 0);
+  // The panel stands right above the question's box, inside the screen.
+  DialogueBox::Rows p = box.panel();
+  CHECK(p.y >= 0 && p.y + p.h <= box.top() && p.x >= 0 && p.x + p.w <= 480);
+}
+
+TEST(dialogue_question_keyboard_moves_wraps_and_confirms) {
+  ote_test::FakeRenderer r;
+  DialogueBox box = question(r, {"One", "Two", "Three"});
+  readQuestion(box);
+  CHECK(box.onInput(button(Button::Down)) == DialogueBox::None && box.highlighted() == 1);
+  box.onInput(button(Button::Down));
+  box.onInput(button(Button::Down));
+  CHECK_EQ(box.highlighted(), 0);  // wraps past the last
+  box.onInput(button(Button::Up));
+  CHECK_EQ(box.highlighted(), 2);  // and back
+  CHECK(box.onInput(button(Button::Confirm)) == DialogueBox::Chosen);
+  CHECK_EQ(box.chosen(), 2);
+}
+
+TEST(dialogue_question_has_no_way_out) {
+  ote_test::FakeRenderer r;
+  DialogueBox box = question(r, {"One", "Two"});
+  // Before the answers are up: Skip (button, script, tab) and holding Cancel / Menu only read the question at once.
+  CHECK(box.onInput(button(Button::Skip)) == DialogueBox::None && box.choosing());
+  DialogueBox held = question(r, {"One", "Two"});
+  held.onInput(button(Button::Cancel));
+  CHECK(held.update(kDialogueHoldToSkip + 0.1f) == DialogueBox::None && held.choosing());
+  DialogueBox tab = question(r, {"One", "Two"});
+  CHECK(tab.onInput(tap(470, tab.top() - 4)) == DialogueBox::None && tab.choosing());
+  // With the answers up nothing but a pick ends it.
+  for (Button b : {Button::Cancel, Button::Menu, Button::Skip, Button::Left, Button::Right})
+    CHECK(box.onInput(button(b)) == DialogueBox::None);
+  box.onInput(button(Button::Cancel));
+  CHECK(box.update(5.0) == DialogueBox::None && box.choosing());
+  CHECK(box.onInput(tap(5, 5)) == DialogueBox::None);  // a tap away from the answers
+}
+
+TEST(dialogue_question_pointer_hover_highlights_and_a_second_tap_picks) {
+  ote_test::FakeRenderer r;
+  DialogueBox box = question(r, {"One", "Two", "Three"});
+  readQuestion(box);
+  DialogueBox::Rows two = box.answerRow(1), three = box.answerRow(2);
+  CHECK(box.onInput(move(two.x + 10, two.y + 2)) == DialogueBox::None && box.highlighted() == 1);
+  // Hovered: one click picks (the mouse moved there first).
+  CHECK(box.onInput(tap(two.x + 10, two.y + 2)) == DialogueBox::Chosen && box.chosen() == 1);
+  // A touch screen has no hover: the first tap highlights, the second picks.
+  DialogueBox touch = question(r, {"One", "Two", "Three"});
+  readQuestion(touch);
+  CHECK(touch.onInput(tap(three.x + 10, three.y + 2)) == DialogueBox::None && touch.highlighted() == 2);
+  CHECK(touch.onInput(tap(three.x + 10, three.y + 2)) == DialogueBox::Chosen && touch.chosen() == 2);
+}
+
+TEST(dialogue_question_four_long_answers_fit_a_phone_sized_screen) {
+  ote_test::FakeRenderer r;  // 6 x 8 px letters
+  const std::string longA = "Take the old road through the marsh, even though everyone says that nobody ever comes back from it";
+  const std::vector<std::string> four = {longA, "Wait here until the others have caught up with us and then decide together", longA + " twice", "No"};
+  // Logical sizes of a phone held upright (the game may set any "view" size): 200 x 360, 240 x 426, 160 x 288.
+  const int sizes[][2] = {{200, 360}, {240, 426}, {160, 288}, {480, 270}};
+  for (const auto& sz : sizes) {
+    DialogueBox box = question(r, four, sz[0], sz[1]);
+    readQuestion(box);
+    DialogueBox::Rows p = box.panel();
+    CHECK(p.y >= 0 && p.y + p.h <= box.top() && p.x >= 0 && p.x + p.w <= sz[0]);  // the panel sits above the box, on the screen
+    int prevEnd = p.y;
+    for (int i = 0; i < 4; ++i) {
+      DialogueBox::Rows row = box.answerRow(i);
+      CHECK(box.answerLines(i) >= 1);
+      CHECK(row.y >= prevEnd && row.y + row.h <= p.y + p.h);  // rows in order, inside the panel, not overlapping
+      prevEnd = row.y + row.h;
+    }
+    if (sz[0] >= 480) CHECK(box.answerLines(0) <= 3);
+  }
+  // A short answer stays on one line.
+  DialogueBox box = question(r, four, 200, 360);
+  CHECK_EQ(box.answerLines(3), 1);
+}
+
+TEST(dialogue_a_line_that_is_not_a_question_is_unchanged_and_close_clears_the_answers) {
+  ote_test::FakeRenderer r;
+  DialogueBox box = question(r, {"One", "Two"});
+  box.close();
+  CHECK(!box.isQuestion() && !box.choosing());
+  DialogueBox plain = open(r, line("No question here"));
+  CHECK(!plain.isQuestion());
+  plain.onInput(button(Button::Confirm));
+  CHECK(plain.onInput(button(Button::Confirm)) == DialogueBox::Finished);
+}

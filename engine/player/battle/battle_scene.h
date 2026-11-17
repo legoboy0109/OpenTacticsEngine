@@ -196,6 +196,7 @@ class BattleScene : public Scene {
   // --- battle_story.cpp: story events in the player (docs/EVENTS.md): dialogue box, Talk, objectives
   void updateDialogue(double dt);
   void dialogueResult(DialogueBox::Result res);
+  void answerChosen(int pick);  // a question's answer: the core goes on and the view plays what follows
   PortraitArt portraitFor(const std::string& id) const;
   void addTalkEntries(std::vector<MenuItem>& items);
   void talkChosen(int index);

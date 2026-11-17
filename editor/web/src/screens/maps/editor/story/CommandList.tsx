@@ -1,7 +1,7 @@
 // The list of commands ("Then"): one plain sentence each; selecting one opens its form under it; add, reorder, delete.
 // An "If" shows its own "Then" and "Otherwise" lists indented under it, so nesting reads as an outline.
 import { newCommand } from '../../../../model/storyDefaults'
-import { addCommand, moveCommand, removeCommand, type Branch, type ListPath } from '../../../../model/storyEdit'
+import { addCommand, answerOf, moveCommand, removeCommand, type ListPath } from '../../../../model/storyEdit'
 import { commandText } from '../../../../model/storySummary'
 import { commandKind, type Command, type CommandKind } from '../../../../model/storyTypes'
 import { Select, type OptionGroup } from '../../../../ui/Select'
@@ -11,7 +11,7 @@ import { useStory, type Story } from './StoryContext'
 import { S } from './text'
 
 /** Which row is open: the path to its list plus its index. */
-export const cmdKey = (path: ListPath, i: number): string => `${path.map(([n, b]) => `${n}${b[0]}`).join('/')}#${i}`
+export const cmdKey = (path: ListPath, i: number): string => `${path.map(([n, b]) => `${n}${b === 'then' ? 't' : b === 'else' ? 'e' : `a${answerOf(b)}`}`).join('/')}#${i}`
 
 interface Props {
   eventId: string
@@ -26,7 +26,7 @@ interface Props {
 }
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
-  { group: S.commandGroups.dialogue, kinds: ['say'] },
+  { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
   { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addSupport'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
@@ -34,8 +34,8 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
 ]
 
-/** A campaign scene knows no map, so it can only use these (`goto` only in an "after" scene). */
-const SCENE_KINDS: CommandKind[] = ['say', 'addSupport', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
+/** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
+const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
 function menu(story: Story, talk: boolean): OptionGroup[] {
@@ -99,9 +99,20 @@ export function CommandList({ eventId, path, commands, talk, selected, onSelect,
                   onUp={() => move(i, i - 1)} onDown={() => move(i, i + 1)} onDelete={() => remove(i)} />
               </div>
               {open && <div className="command-form"><CommandForm cmd={c} at={{ eventId, path, index: i }} /></div>}
+              {kind === 'choice' && (
+                <div className="command-nested">
+                  {(c.answers ?? []).map((a, k) => (
+                    <div key={k} className="nested-part" data-testid={`answer-${k + 1}`}>
+                      <h4>{S.answerPart(k + 1, a.text ?? '')}</h4>
+                      <CommandList eventId={eventId} path={[...path, [i, `answer${k}`]]} commands={a.do ?? []} talk={talk} selected={selected} onSelect={onSelect}
+                        name={`${name === S.then ? '' : `${name}, `}Question ${i + 1}: Answer ${k + 1}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
               {kind === 'if' && (
                 <div className="command-nested">
-                  {(['then', 'else'] as Branch[]).map((b) => (
+                  {(['then', 'else'] as const).map((b) => (
                     <div key={b} className="nested-part">
                       <h4>{b === 'then' ? S.thenPart : S.elsePart}</h4>
                       <CommandList eventId={eventId} path={[...path, [i, b]]} commands={c[b] ?? []} talk={talk} selected={selected} onSelect={onSelect}

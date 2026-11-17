@@ -42,9 +42,9 @@ bool cosmeticKey(const std::string& k) {
 
 // Wording of story events (docs/EVENTS.md): what is said and how things are labelled. Like names,
 // it does not count; but the key stays (with empty text) so that adding or removing a line, or
-// turning one into another kind of command, still does.
+// turning one into another kind of command, still does. ("choice" = a dialogue choice's question.)
 bool wordingKey(const std::string& k) {
-  return k == "say" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound";
+  return k == "say" || k == "choice" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound";
 }
 
 // A copy without cosmetic keys, at any depth. Formula numbers ("props",

@@ -22,11 +22,21 @@ struct SceneCondition {
   std::string with;      // Support: character `b` (the pair is looked up when it runs; the loader has checked it exists)
 };
 
+struct SceneCommand;
+
+// One answer of a scene's Choice command (docs/EVENTS.md "Dialogue choices"): wording, optional hiding condition, commands.
+struct SceneAnswer {
+  int text = -1;                      // index into CampaignDef::texts
+  std::vector<SceneCondition> cond;   // all must hold for the answer to be offered; empty = always
+  std::vector<SceneCommand> commands;
+};
+
 struct SceneCommand {
   enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound,
-                    AddSupport };  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
+                    AddSupport,  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
+                    Choice };    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
   Kind kind = Kind::Say;
-  // Say: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
+  // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
   std::string unit, with;
   int index = -1;   // SetSwitch / SetVariable / AddVariable
@@ -38,6 +48,7 @@ struct SceneCommand {
   std::vector<SceneCondition> cond;           // If
   std::vector<SceneCommand> thenDo, elseDo;   // If
   std::string chapter;                        // Goto: a chapter id
+  std::vector<SceneAnswer> answers;           // Choice: two to four
 };
 
 struct ChapterDef {

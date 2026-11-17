@@ -71,8 +71,8 @@ export const C = {
 
   before: 'Before the battle',
   after: 'After the battle',
-  beforeHelp: 'Played when the chapter begins, before the battle. Speakers can be any named unit of the game.',
-  afterHelp: 'Played after the battle is won. It can also send the story to another chapter.',
+  beforeHelp: 'Played when the chapter begins, before the battle. Speakers can be any named unit of the game. It can also ask a question, and an answer can jump to another chapter (skipping this chapter’s battle).',
+  afterHelp: 'Played after the battle is won. It can also ask a question and send the story to another chapter.',
   summaryNone: 'Nothing happens.',
   speakersHelp: 'To make a unit available as a speaker, give it a story name in the map editor (Units tool, “Story name”) on one of the player’s sides.',
   sceneCommands: (which: string) => `${which}: commands`,
