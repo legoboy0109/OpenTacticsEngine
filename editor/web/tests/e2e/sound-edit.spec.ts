@@ -240,6 +240,21 @@ test('the standard weapon, unit and item sounds: "Same as the game" by default, 
   }
 })
 
+test('a staff has the same Sounds card as other items, and the key it writes is one the loader accepts', async ({ page, request, game }) => {
+  const id = await soundGame(request, game, 'Staff Sound')
+  const doc = await (await request.get(`/api/projects/${id}`)).json()
+  await request.put(`/api/projects/${id}`, { data: { baseRevision: doc.revision, items: [{ id: 'mend', name: 'Mend', kind: 'staff', group: 'staff', range: 2, target: 'ally', effects: [{ heal: 10 }] }] } })
+  await page.goto(editorUrl(id, 'items', 'mend'))
+  await page.getByTestId('sounds-items').getByLabel('Sounds: When it is used').selectOption('hit')
+  await saved(page)
+  expect(readDisk(id, 'data/items.json').items[0].sounds).toEqual({ use: 'hit' })
+  expect(await game.problems(id)).toEqual([]) // the core loader no longer refuses "sounds" on a staff
+  await page.getByTestId('sounds-items').getByLabel('Sounds: When it is used').selectOption({ label: 'Silent' })
+  await saved(page)
+  expect(readDisk(id, 'data/items.json').items[0].sounds).toEqual({ use: '' })
+  expect(await game.problems(id)).toEqual([])
+})
+
 test('a game with audio saves and reloads without a byte changing', async ({ page, request, game }) => {
   const id = await soundGame(request, game, 'Same Bytes')
   const files = ['data/audio.json', 'data/weapons.json', 'data/units.json', 'maps/ford.json', 'data/campaign.json']

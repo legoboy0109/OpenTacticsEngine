@@ -22,19 +22,18 @@ export function itemCureOf(item: Item): ItemCure {
   return { mode: 'none', ids: [] }
 }
 
-/** "Cures": nothing / these conditions (starting with the game's first) / every condition. */
-export function setItemCureMode(doc: ProjectDoc, id: string, mode: CureMode): ProjectDoc {
+/** "Cures": nothing / every condition. ("The conditions I pick" is only written with the first pick, `setItemCureIds`: the loader refuses an
+ *  empty list, so the form keeps that choice unsaved until something is ticked.) */
+export function setItemCureMode(doc: ProjectDoc, id: string, mode: 'none' | 'all'): ProjectDoc {
   const item = itemOf(doc, id)
   if (!item || itemCureOf(item).mode === mode) return doc
-  if (mode === 'none') return patchItem(doc, id, { cure: undefined })
-  if (mode === 'all') return patchItem(doc, id, { cure: 'all' })
-  const first = conditionList(doc)[0]
-  return first ? patchItem(doc, id, { cure: [first.id] }) : doc
+  return patchItem(doc, id, { cure: mode === 'all' ? 'all' : undefined })
 }
-/** The listed conditions in the game's order; unticking the last one switches curing off. */
+/** The listed conditions in the game's order (from any mode: the first pick starts the list); unticking the last one switches curing off. */
 export function setItemCureIds(doc: ProjectDoc, id: string, ids: string[]): ProjectDoc {
   const item = itemOf(doc, id)
-  if (!item || itemCureOf(item).mode !== 'list') return doc
+  if (!item) return doc
+  if (itemCureOf(item).mode !== 'list' && ids.length === 0) return doc
   return patchItem(doc, id, { cure: ids.length ? ids : undefined })
 }
 

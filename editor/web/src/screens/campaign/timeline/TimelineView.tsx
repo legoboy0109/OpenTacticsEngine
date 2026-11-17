@@ -164,6 +164,13 @@ export function TimelineView() {
       if (to) focusBox(to)
     }
   }
+  // The tab stop follows the focus, however it got there (Tab, a click, a script). Boxes far from the screen are not in the page, and the
+  // one that is the tab stop always is: without this a box focused by Tab was not it, so when a keyboard move ([ or ]) reshuffled the
+  // layout for a frame the focused box could leave the page and its focus was lost.
+  const onFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    const id = (e.target as HTMLElement).dataset.nodeOpen
+    if (id && id !== focusId) setFocusId(id)
+  }
   // Space activates a button on key release: stop that for the select shortcut.
   const onKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === ' ' && (e.target as HTMLElement).matches('.tl-open')) e.preventDefault() }
 
@@ -182,7 +189,7 @@ export function TimelineView() {
       <Legend />
       <p className="help tl-hint" id="timeline-hint">{TL.regionHelp}</p>
       <div className="tl-view" ref={pz.viewportRef} role="region" aria-label={TL.region} aria-describedby="timeline-hint" data-testid="timeline-view"
-        data-dragging={gestures.drag ? '' : undefined} onKeyDown={onKeyDown} onKeyUp={onKeyUp} {...gestures.handlers}>
+        data-dragging={gestures.drag ? '' : undefined} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onFocus={onFocus} {...gestures.handlers}>
         <div className="tl-world" ref={pz.worldRef} style={{ width: layout.width, height: layout.height, transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})` }}>
           {band && (
             <div className="tl-band" style={{ top: band.y, height: band.h, width: layout.width }} data-testid="timeline-unreached">

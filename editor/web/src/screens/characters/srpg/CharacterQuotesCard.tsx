@@ -16,14 +16,16 @@ import { QT } from './quotesText'
 import './quotes.css'
 
 /** The line editor of one list of lines; the list is found again by its place at every edit, so an edit lands on the right one. */
-function Lines({ eventId, read, write, name }: { eventId: string; read: SceneSource['read']; write: SceneSource['write']; name: string }) {
-  const source = useMemo<SceneSource>(() => ({ eventId, read, write, goto: false, only: ['say'], base: talkBase }), [eventId, read, write])
+function Lines({ eventId, read, write, name, owner }: { eventId: string; read: SceneSource['read']; write: SceneSource['write']; name: string; owner: string }) {
+  // A line with no speaker is said by the character the quote belongs to, so the empty speaker choice says so.
+  const source = useMemo<SceneSource>(() => ({ eventId, read, write, goto: false, only: ['say'], base: talkBase, emptySpeaker: QT.thisCharacter(owner) }), [eventId, read, write, owner])
   return <SceneCommands source={source} name={name} />
 }
 
 function BattleQuote({ id, index, count }: { id: string; index: number; count: number }) {
   const doc = useDoc()
   const edit = useEdit()
+  const owner = doc.characters?.find((c) => c.id === id)?.name ?? id
   const q = battleQuotes(doc, id)[index]
   const read = useMemo<SceneSource['read']>(() => (d) => battleQuotes(d, id)[index]?.lines ?? [], [id, index])
   const write = useMemo<SceneSource['write']>(() => (d, l) => setQuoteLines(d, id, index, l), [id, index])
@@ -56,7 +58,7 @@ function BattleQuote({ id, index, count }: { id: string; index: number; count: n
       </div>
       <h4 className="quote-lines-title">{QT.lines}</h4>
       <div data-testid={`battle-quote-lines-${n}`}>
-        <Lines eventId={key} read={read} write={write} name={QT.linesName(n)} />
+        <Lines eventId={key} read={read} write={write} name={QT.linesName(n)} owner={owner} />
       </div>
     </div>
   )
@@ -65,13 +67,14 @@ function BattleQuote({ id, index, count }: { id: string; index: number; count: n
 function DefeatSet({ id, set, title, help, name }: { id: string; set: 'falls' | 'retreats'; title: string; help: string; name: string }) {
   const doc = useDoc()
   const lines = defeatLines(doc, id, set)
+  const owner = doc.characters?.find((c) => c.id === id)?.name ?? id
   const read = useMemo<SceneSource['read']>(() => (d) => defeatLines(d, id, set), [id, set])
   const write = useMemo<SceneSource['write']>(() => (d, l) => setDefeatLines(d, id, set, l), [id, set])
   return (
     <div className="quote-block" data-testid={`defeat-quote-${set}`}>
       <h3 className="sub-title">{title}</h3>
       <p className="help">{lines.length ? help : `${QT.noLines} ${help}`}</p>
-      <Lines eventId={`quote:${id}:${set}`} read={read} write={write} name={name} />
+      <Lines eventId={`quote:${id}:${set}`} read={read} write={write} name={name} owner={owner} />
     </div>
   )
 }

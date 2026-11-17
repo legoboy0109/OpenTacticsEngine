@@ -2,10 +2,10 @@
 // action the step is the current one (not ticked); after it, it is ticked and the next one is current. Ends with the practice
 // game on disk loading in the real engine.
 import { clickCell, dragThrough, pickSide, pickTerrain, pickUnitType, row, tool } from './mapkit'
-import { requirePlayer, saved } from './fixtures'
+import { gotoSection, requirePlayer, saved } from './fixtures'
 import {
   expect, expectCurrent, expectLoadsInEngine, expectRingOn, expectTicked, learnButton, learnList, learnState, LESSON, panel, PRACTICE, PRACTICE_NAME, readGame,
-  ring, sectionLink, startFromOffer, stepTitle, test,
+  ring, startFromOffer, stepTitle, test,
 } from './learnkit'
 
 // A wide window: the panel docks at the side (below 1800 px it is a bottom sheet, tested in learn-layout.spec.ts).
@@ -30,7 +30,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
 
   // 2. New terrain: the ring first points at the sidebar link, then at "New terrain" once the screen is open.
   await expectRingOn(page, 'nav-terrain')
-  await sectionLink(page, 'Terrain').click()
+  await gotoSection(page, 'Terrain')
   await expectRingOn(page, 'new-item')
   await page.getByRole('button', { name: 'New terrain' }).click()
   await expectCurrent(page, 'Add a new kind of ground') // the dialog is open, nothing made yet
@@ -50,7 +50,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   await expectTicked(page, 'Paint it on the map', 'Make a new unit')
 
   // 4. A new unit type.
-  await sectionLink(page, 'Units').click()
+  await gotoSection(page, 'Units')
   await page.getByRole('button', { name: 'New unit' }).click()
   await expectCurrent(page, 'Make a new unit')
   await page.getByRole('dialog').getByRole('textbox').fill('Archer')
@@ -58,7 +58,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   await expectTicked(page, 'Make a new unit', 'Make a weapon')
 
   // 5. A new weapon.
-  await sectionLink(page, 'Weapons').click()
+  await gotoSection(page, 'Weapons')
   await page.getByRole('button', { name: 'New weapon' }).click()
   await page.getByRole('dialog').getByRole('textbox').fill('Bow')
   await expectCurrent(page, 'Make a weapon')
@@ -68,7 +68,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   // 6. Give the weapon: "Take me there" opens the new unit (not the soldier); the ring is on the Weapons list.
   // Trap: with the Soldier open the ring is on the new unit in the list, not on the Soldier's weapons, and a weapon ticked
   // for the Soldier does not count.
-  await sectionLink(page, 'Units').click()
+  await gotoSection(page, 'Units')
   await page.getByRole('button', { name: /^Soldier/ }).click()
   await expect(page).toHaveURL(/\/units\/soldier$/)
   await expect(ring(page)).toHaveAttribute('data-entry', 'archer')
@@ -80,8 +80,8 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   await expectCurrent(page, 'Give your unit the weapon')
   await page.locator('[data-learn="unit-weapons"]').getByRole('checkbox', { name: 'Bow' }).uncheck()
   // The same with no unit in the address: the screen opens the first one (the Soldier) by itself.
-  await sectionLink(page, 'Game').click()
-  await sectionLink(page, 'Units').click()
+  await gotoSection(page, 'Game')
+  await gotoSection(page, 'Units')
   await expect(page).toHaveURL(/\/units$/)
   await expect.poll(async () => {
     const [r, t] = await Promise.all([ring(page).boundingBox(), page.locator('[data-learn-item="archer"]').boundingBox()])

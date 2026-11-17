@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs'
-import { diskPath, editorUrl, expect, expectNoHScroll, readDisk, saved, section, test, writeDisk } from './fixtures'
+import { gotoSection, diskPath, editorUrl, expect, expectNoHScroll, readDisk, saved, test, writeDisk } from './fixtures'
 
 test('@smoke a change on disk shows the conflict banner; Reload shows the disk state', async ({ page, game }) => {
   const id = await game.create('strategy-rpg', 'Conflict')
@@ -47,13 +47,13 @@ test('@smoke a broken file blocks only its section and is never written back', a
   await expect(page.getByRole('button', { name: 'New unit' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /problem/ })).toBeVisible()
 
-  await section(page, 'Terrain').click()
+  await gotoSection(page, 'Terrain')
   await page.getByRole('button', { name: /^Plain/ }).click()
   await page.getByLabel('Name', { exact: true }).fill('Meadow')
   await saved(page)
   expect(readDisk(id, 'data/terrain.json').terrain[0].name).toBe('Meadow')
   expect(readFileSync(diskPath(id, 'data/units.json'), 'utf8')).toBe(corrupt)
-  await section(page, 'Rules').click()
+  await gotoSection(page, 'Rules')
   await expect(page.getByLabel('Name of stat 1')).toBeVisible()
   await page.getByLabel('Add a resource').fill('Gold')
   await page.getByLabel('Add a resource').press('Enter')
@@ -74,7 +74,7 @@ test.describe('phone', () => {
     await expectNoHScroll(page)
     await page.goto(editorUrl(id, 'game'))
     for (const section of ['Game', 'Rules', 'Units', 'Weapons', 'Terrain', 'Maps']) {
-      await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: section }).click()
+      await gotoSection(page, section)
       await expect(page).toHaveURL(new RegExp(`/${section.toLowerCase()}$`))
       await expectNoHScroll(page)
       if (['Units', 'Weapons', 'Terrain', 'Maps'].includes(section)) {
@@ -88,7 +88,7 @@ test.describe('phone', () => {
         await expect(page.locator('.md-items')).toBeVisible()
       }
     }
-    await section(page, 'Units').click()
+    await gotoSection(page, 'Units')
     await page.getByRole('button', { name: /^Archer/ }).click()
     await page.getByLabel('Name', { exact: true }).fill('Longbow Archer')
     await page.getByLabel('Strength Value').fill('11')

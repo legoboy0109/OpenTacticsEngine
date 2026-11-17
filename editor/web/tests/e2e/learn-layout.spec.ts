@@ -1,10 +1,11 @@
 // Where the lesson panel sits and how the pointing ring behaves: docked at the side on wide windows, a bottom sheet that
 // folds into a slim bar below that (phones included), room made for it, and a ring that follows, ignores clicks and
 // respects reduced motion.
-import { expectNoHScroll } from './fixtures'
+import { gotoSection, expectNoHScroll } from './fixtures'
+import { expectRingOnOneOf } from './learnstart'
 import { canvas, openMap } from './mapkit'
 import {
-  expect, expectRingOn, learnButton, learnList, panel, PRACTICE, ring, sectionLink, startFromOffer, stepTitle, test,
+  expect, expectRingOn, learnButton, learnList, panel, PRACTICE, ring, startFromOffer, stepTitle, test,
 } from './learnkit'
 
 const box = async (loc: import('@playwright/test').Locator) => (await loc.boundingBox())!
@@ -52,7 +53,8 @@ test.describe('phone (390 x 844)', () => {
     await startFromOffer(page)
     await expectRingOn(page, 'game-name')
     await page.getByRole('button', { name: 'Skip this step' }).click()
-    await expectRingOn(page, 'nav-terrain')
+    // On a phone the section links sit in the closed menu: the ring (still aimed at the Terrain link) rests on the menu button.
+    await expectRingOnOneOf(page, 'nav-terrain', 'nav-menu')
     await learnButton(page).click()
     await expect(learnList(page)).toBeVisible()
     const l = await box(learnList(page))
@@ -148,7 +150,7 @@ test.describe('the pointing ring', () => {
     await expect(page.locator('[data-learn="game-name"]')).toBeFocused()
     // The ring can point at a control that is not shown yet: nothing breaks and no ring hangs in the air.
     await page.getByRole('button', { name: 'Skip this step' }).click() // step 2: terrain, ring on the sidebar link
-    await sectionLink(page, 'Terrain').click()
+    await gotoSection(page, 'Terrain')
     await expectRingOn(page, 'new-item')
     await page.getByRole('button', { name: 'Skip this step' }).click() // step 3: maps; its terrain list is not on the Terrain screen
     await expect(stepTitle(page)).toHaveText('Paint it on the map')

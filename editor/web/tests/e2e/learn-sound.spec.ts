@@ -2,9 +2,9 @@
 // the step is the current one (not ticked); after it, it is ticked and the next one is current. It needs no sound file of its own:
 // everything is chosen among the music and sounds the blank template comes with. Ends with the practice game loading in the
 // real engine. (Headless browsers play no real audio: a play button is pressed, and the lesson only cares that it was.)
-import { requirePlayer, saved } from './fixtures'
+import { gotoSection, requirePlayer, saved } from './fixtures'
 import {
-  expect, expectCurrent, expectLoadsInEngine, expectRingOn, expectTicked, learnState, panel, readGame, ring, sectionLink, stepTitle, test,
+  expect, expectCurrent, expectLoadsInEngine, expectRingOn, expectTicked, learnState, panel, readGame, ring, stepTitle, test,
 } from './learnkit'
 import { shot, startLesson, expectRingOnOneOf } from './learnstart'
 import { canvas, tab } from './mapkit'
@@ -39,7 +39,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
 
   // 3. Map music: the ring goes to the sidebar link, then the Map tab, then the Music box. A turn music is not the map's music.
   await expectRingOn(page, 'nav-maps')
-  await sectionLink(page, 'Maps').click()
+  await gotoSection(page, 'Maps')
   await expect(canvas(page)).toBeVisible()
   await expectRingOnOneOf(page, 'map-music|map-tab-map|list-item', 'map-tab-map')
   await tab(page, 'Map').click()
@@ -55,7 +55,7 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
 
   // 4. Event sound: silence for a hit is not a different sound.
   await expectRingOn(page, 'nav-sound')
-  await sectionLink(page, 'Sound').click()
+  await gotoSection(page, 'Sound')
   await expectRingOn(page, 'sound-event-hit')
   await shot(page, 'sound-4')
   await expectCurrent(page, 'Change what a hit sounds like')

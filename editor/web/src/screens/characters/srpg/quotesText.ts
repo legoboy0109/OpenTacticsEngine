@@ -3,7 +3,8 @@ import type { QuoteOnce } from '../../../model/quotes'
 
 export const QT = {
   title: 'Quotes',
-  help: 'What this person says in a fight. The lines show in the dialogue box, with the speaker’s name and picture. A line with no speaker is said by this character; pick someone else to let a friend answer.',
+  help: 'What this person says in a fight. The lines show in the dialogue box, with the speaker’s name and picture. A line left on “This character” is said by them; pick someone else to let a friend answer.',
+  thisCharacter: (name: string) => `This character (${name})`,
 
   battleTitle: 'When it fights',
   battleHelp: 'Said when this character is in a fight on a map, before the first blow. A quote against one character wins over a quote against anyone. When both sides of a fight have a quote, the one attacked speaks first.',

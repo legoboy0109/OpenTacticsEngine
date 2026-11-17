@@ -2,7 +2,7 @@
 // pieces about supports (command, condition, trigger, in a map's events and in a campaign scene), through the real editor. The proof
 // that matters: the exact JSON the editor wrote, and that the game loader accepts it (/problems is empty).
 import type { APIRequestContext, Page } from '@playwright/test'
-import { expectNoHScroll, editorUrl, expect, readDisk, saved, section, test } from './fixtures'
+import { gotoSection, expectNoHScroll, editorUrl, expect, readDisk, saved, test } from './fixtures'
 import { newCharacter, switchOn } from './characterskit'
 import { openCampaign, openChapter, addSceneCommand, sceneForm } from './campaignkit'
 import { openMap } from './mapkit'
@@ -22,9 +22,9 @@ const shot = async (page: Page, name: string) => {
 /** A strategy-rpg game with characters and supports switched on and three characters, two of them placed on the map. */
 async function setup(page: Page, request: APIRequestContext, id: string): Promise<void> {
   await switchOn(page, id) // Rules -> characters on -> the Characters screen
-  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Rules', exact: true }).click()
+  await gotoSection(page, 'Rules')
   await page.getByTestId('srpg-switches').getByRole('switch', { name: 'This game has supports' }).check()
-  await section(page, 'Characters').click()
+  await gotoSection(page, 'Characters')
   for (const n of ['Eirik', 'Lyra', 'Bram']) await newCharacter(page, n)
   await saved(page)
   const doc = await (await request.get(`/api/projects/${id}`)).json()
@@ -226,7 +226,7 @@ test('@smoke the sticky switch: characters and supports on with nothing added, P
   await page.reload()
   await expect(sw.getByRole('switch', { name: 'This game has characters' })).toBeChecked()
   await expect(sw.getByRole('switch', { name: 'This game has supports' })).toBeChecked()
-  await section(page, 'Supports').click()
+  await gotoSection(page, 'Supports')
   await expect(page.getByText('No pairs yet').first()).toBeVisible()
   // With no characters a pair cannot be made: the screen says what to do first.
   await expect(page.getByText('A pair needs two characters')).toBeVisible()

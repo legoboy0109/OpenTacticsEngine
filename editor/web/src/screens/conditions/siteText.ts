@@ -19,6 +19,7 @@ export const C = {
   staffCureWhich: 'It cures',
   staffCureKinds: { list: 'The conditions I pick', all: 'Every condition' },
   staffCureList: 'Conditions it cures',
+  cureNeedsOne: 'It cures nothing yet. Pick at least one condition, or choose every condition. Until then this part is not saved.',
   staffCureOther: 'This is written in a way the editor cannot show. It is kept as it is.',
   staffLight: 'A light staff does nothing else, so it cannot inflict or cure.',
   staffFull: 'A staff has at most four effects.',

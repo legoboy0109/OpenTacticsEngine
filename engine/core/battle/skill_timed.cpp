@@ -141,6 +141,18 @@ void Battle::skillsStaffUse(int unit, const std::string& group, std::vector<Even
       if (units[(size_t)unit].alive && b.when == SkillWhen::StaffUse && skillBlockHolds(b, ctx)) runTimedBlock(unit, -1, s, b, ctx, events);
 }
 
+// True when `skill` is the hidden skill of a condition that the unit does not have (any more).
+bool Battle::conditionSkillGone(const Unit& u, int skill) const {
+  bool owned = false;
+  for (size_t c = 0; c < db->conditions.size(); ++c) {
+    if (db->conditions[c].skill != skill) continue;
+    owned = true;
+    for (const ConditionState& cs : u.conditions)
+      if (cs.condition == (int)c) return false;
+  }
+  return owned;
+}
+
 // The start of the active side's turn: its units in id order, each one's blocks in skill-list order.
 void Battle::skillsTurnStart(std::vector<Event>& events) {
   if (db->skills.empty()) return;
@@ -152,9 +164,13 @@ void Battle::skillsTurnStart(std::vector<Event>& events) {
     SkillCtx ctx;
     ctx.unit = u.id;
     ctx.weapon = restingWeapon(u);
-    for (int s : list)
+    for (int s : list) {
+      // The list was made before any block ran. A condition a block of this pass already cured (a skill's "cure" that came earlier
+      // in the list) must not tick now: its hidden skill is skipped once the unit no longer has the condition (docs/SRPG.md section 9).
+      if (conditionSkillGone(units[i], s)) continue;
       for (const SkillBlock& b : db->skills[(size_t)s].blocks)
         if (units[i].alive && b.when == SkillWhen::TurnStart && skillBlockHolds(b, ctx)) runTimedBlock(u.id, -1, s, b, ctx, events);
+    }
   }
 }
 

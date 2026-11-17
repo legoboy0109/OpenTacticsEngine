@@ -1,7 +1,7 @@
 // Helpers for driving the Campaign screen like a person would: through labels, pickers and the sidebar.
 import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import type { Locator, Page } from '@playwright/test'
-import { diskPath, expect } from './fixtures'
+import { gotoSection, diskPath, expect } from './fixtures'
 
 export const scene = (page: Page, which: 'before' | 'after'): Locator => page.getByTestId(`scene-${which}`)
 /** The open command's form in a scene. */
@@ -14,7 +14,7 @@ export async function addSceneCommand(page: Page, which: 'before' | 'after', lis
 
 export async function openCampaign(page: Page): Promise<void> {
   // (the link gains a "2 problems" note when the campaign has problems, so match the start of its name)
-  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: /^Campaign/ }).click()
+  await gotoSection(page, /^Campaign/)
   await expect(page.getByRole('heading', { name: 'Campaign', level: 1 })).toBeVisible()
 }
 

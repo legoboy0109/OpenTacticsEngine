@@ -1,23 +1,71 @@
 // Art on a phone (360 x 740, touch): the screens fit, the picker works with taps.
 import { addImages, openArt, png, picker, pickerGrid, piecePoint, seedArt, sheetPng, tilesGraphics } from './artkit'
-import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
+import { editorUrl, expect, expectNoHScroll, readDisk, saved, sectionMenu, test } from './fixtures'
 
 test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })
 test.skip(({ browserName }) => browserName !== 'chromium', 'touch emulation is Chromium-only')
 const NAV = 17 // every section the editor has, the five strategy-RPG ones (Conditions too) included
 
-test('the section switcher still fits with every section in it (the real strategy-rpg template: Characters, Skills, Abilities, Conditions, Supports too): every label is whole', async ({ page, game }) => {
+test('the section switcher on a phone: one row that fits, a menu panel that lists every section (the real strategy-rpg template: Characters, Skills, Abilities, Conditions, Supports too) without sideways scroll', async ({ page, game }) => {
   const id = await game.create('strategy-rpg', 'Phone Art Nav', { srpgContent: true })
   await page.goto(editorUrl(id, 'game'))
   await expectNoHScroll(page)
-  const links = page.getByRole('navigation', { name: 'Sections' }).getByRole('link')
-  await expect(links.first()).toBeVisible()
-  const n = await links.count()
-  expect(n).toBe(NAV)
-  for (let i = 0; i < n; i++) {
+  const nav = page.getByRole('navigation', { name: 'Sections' })
+  const bar = sectionMenu(page)
+  // Closed: one row, showing the current section; the links are out of the tab order and the accessibility tree.
+  await expect(bar).toBeVisible()
+  await expect(bar).toContainText('Game')
+  await expect(bar).toHaveAttribute('aria-expanded', 'false')
+  expect((await bar.boundingBox())!.height).toBeLessThan(60)
+  expect(await bar.evaluate((el) => el.scrollWidth > el.clientWidth + 1), 'the row is whole').toBe(false)
+  await expect(nav).toBeHidden()
+  await expect(nav.getByRole('link')).toHaveCount(0)
+  // Open: every section is listed, whole, in the window, without sideways scroll; the panel scrolls itself when it is taller than the window.
+  await bar.click()
+  await expect(bar).toHaveAttribute('aria-expanded', 'true')
+  const links = nav.getByRole('link')
+  await expect(links).toHaveCount(NAV)
+  await expectNoHScroll(page)
+  for (let i = 0; i < NAV; i++) {
     const clipped = await links.nth(i).evaluate((el) => el.scrollWidth > el.clientWidth + 1)
     expect(clipped, await links.nth(i).innerText()).toBe(false)
   }
+  const panel = await nav.evaluate((el) => ({ over: el.scrollHeight > el.clientHeight, canScroll: getComputedStyle(el).overflowY, h: el.getBoundingClientRect().bottom, win: window.innerHeight, sideways: el.scrollWidth > el.clientWidth }))
+  expect(panel.sideways).toBe(false)
+  expect(panel.h).toBeLessThanOrEqual(panel.win + 1)
+  if (panel.over) expect(panel.canScroll).toBe('auto')
+  // The last link is reachable in the panel, and choosing it goes there and closes the panel.
+  await links.last().scrollIntoViewIfNeeded()
+  await links.last().click()
+  await expect(page).toHaveURL(/\/campaign$/)
+  await expect(nav).toBeHidden()
+  await expect(bar).toContainText('Campaign')
+  await expect(bar).toBeFocused()
+})
+
+test('the phone section menu: focus moves in and back; Escape, the button and a tap outside close it; the top bar stays uncovered', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'Phone Menu Keys')
+  await page.goto(editorUrl(id, 'game'))
+  const nav = page.getByRole('navigation', { name: 'Sections' })
+  const bar = sectionMenu(page)
+  await bar.click()
+  await expect(nav.getByRole('link', { name: 'Game', exact: true })).toBeFocused() // the current section's link
+  await page.keyboard.press('Tab')
+  await expect(nav.getByRole('link', { name: 'Rules', exact: true })).toBeFocused()
+  // the panel starts under the row, so the top bar is never covered
+  const top = await page.locator('.topbar').boundingBox()
+  expect((await nav.boundingBox())!.y).toBeGreaterThanOrEqual(top!.y + top!.height - 1)
+  await page.keyboard.press('Escape')
+  await expect(nav).toBeHidden()
+  await expect(bar).toBeFocused()
+  await bar.click()
+  await expect(nav).toBeVisible()
+  await bar.click()
+  await expect(nav).toBeHidden()
+  await bar.click()
+  await expect(nav).toBeVisible()
+  await page.mouse.click(180, 700) // outside the panel (a tap on the page behind it)
+  await expect(nav).toBeHidden()
 })
 
 test('Art screen at 360 px: list, details and unused files fit; adding works', async ({ page, request, game }) => {

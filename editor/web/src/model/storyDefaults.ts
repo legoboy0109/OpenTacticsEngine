@@ -13,7 +13,13 @@ export interface DefCtx {
   doc: ProjectDoc
   map: MapFile
   /** Set while a campaign scene is edited (campaignRoster.ts): fewer kinds, roster ids instead of unit filters. */
-  scene?: { goto: boolean; /** Only these kinds of command may be added (a support conversation takes `say` only). */ only?: CommandKind[] }
+  scene?: {
+    goto: boolean
+    /** Only these kinds of command may be added (a support conversation takes `say` only). */
+    only?: CommandKind[]
+    /** The label of the speaker choice "nobody" when a line with no speaker is said by someone (a character's quotes: "This character (Eirik)"). */
+    emptySpeaker?: string
+  }
 }
 
 const firstUnit = (c: DefCtx) => namedUnits(c.doc, c.map)[0]?.id ?? ''

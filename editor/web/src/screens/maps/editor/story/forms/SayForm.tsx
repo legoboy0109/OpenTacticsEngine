@@ -15,13 +15,13 @@ const OTHER = '__other__'
 
 /** Who speaks and the portrait: the first two fields of a line and of a question. */
 export function SpeakerFields({ cmd, at }: { cmd: Command; at: CommandRef }) {
-  const { doc, units } = useStory()
+  const { doc, units, scene } = useStory()
   const { patch } = useCommandEdit(at)
   const list = useId()
   const speaker = cmd.speaker !== undefined ? cmd.speaker : cmd.speakerName !== undefined ? OTHER : NOBODY
   const known = units.some((u) => u.id === speaker)
   const options = [
-    { value: NOBODY, label: S.speakerNobody },
+    { value: NOBODY, label: scene?.emptySpeaker ?? S.speakerNobody },
     ...(speaker !== NOBODY && speaker !== OTHER && !known ? [{ value: speaker, label: S.missing(speaker) }] : []),
     ...units.map((u) => ({ value: u.id, label: u.label })),
     { value: OTHER, label: S.speakerOther },
