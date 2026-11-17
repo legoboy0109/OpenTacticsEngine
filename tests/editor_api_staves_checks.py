@@ -96,3 +96,29 @@ def run_staves_checks(api, tmp, games, templates, check, get_project, put_projec
     put_project(api, pid, d, d["revision"], items=on_disk, ranks={"growth": "use", "ranks": [
         {"id": "e", "name": "E", "xp": 0}, {"id": "d", "name": "D", "xp": 10}, {"id": "c", "name": "C", "xp": 25}, {"id": "b", "name": "B", "xp": 45}]})
     check("staves: back to no problems", problems() == [], problems())
+
+    # Stage two (warp, pull, swap, repair, light, an item's "repairable"): the editor form does not cover these kinds yet, so the
+    # helper must hand them through GET and PUT untouched, and the loader must accept them (no problems).
+    pid2 = "staves2-api"
+    shutil.copytree(os.path.join(os.path.dirname(FIXTURE), "srpg-staves2"), os.path.join(games, pid2))
+    root2 = os.path.join(games, pid2)
+    with open(os.path.join(root2, ITEMS), "rb") as f:
+        on_disk2 = _json.loads(f.read().decode())["items"]
+    st, d2 = get_project(api, pid2)
+    check("staves 2: the fixture with warp, pull, swap, repair and light loads (no problems)", st == 200 and d2["problems"] == [], d2.get("problems"))
+    check("staves 2: GET returns every item, the new effect kinds and \"repairable\" untouched", d2["items"] == on_disk2, d2["items"])
+    kinds = {k for i in d2["items"] if i["kind"] == "staff" for e in i["effects"] for k in e}
+    check("staves 2: the fixture uses every new effect kind", {"warp", "pull", "swap", "repair", "light", "heal"} <= kinds, sorted(kinds))
+    st, res = put_project(api, pid2, d2, d2["revision"], items=d2["items"])
+    with open(os.path.join(root2, ITEMS), "rb") as f:
+        after = _json.loads(f.read().decode())["items"]
+    check("staves 2: PUT the items back keeps every new effect and flag", st == 200 and after == on_disk2, res)
+    # An edit of a staff's uses leaves its later effect of another kind alone.
+    st, d2 = get_project(api, pid2)
+    edited = [dict(i) for i in d2["items"]]
+    next(i for i in edited if i["id"] == "kindly_pull_staff")["uses"] = 9
+    put_project(api, pid2, d2, d2["revision"], items=edited)
+    st, d2 = get_project(api, pid2)
+    got = next(i for i in d2["items"] if i["id"] == "kindly_pull_staff")
+    check("staves 2: editing a staff's uses keeps its pull effect", got["uses"] == 9 and got["effects"] == [{"heal": 6}, {"pull": True}], got)
+    check("staves 2: and the game still loads without problems", d2["problems"] == [], d2.get("problems"))
