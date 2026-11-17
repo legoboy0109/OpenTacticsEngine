@@ -28,9 +28,11 @@ interface Props {
   forCondition?: boolean
   /** The card's number as the maker sees it (the Conditions form hides the blocks it shows as switches). */
   shownNumber?: number
+  /** Show the delete button even when this is the only card shown (the Conditions form keeps other blocks out of sight). */
+  canDelete?: boolean
 }
 
-export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, learn, forCondition, shownNumber }: Props) {
+export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, learn, forCondition, shownNumber, canDelete }: Props) {
   const when = whenOf(block)
   const issues = ruleIssues(doc, block, forCondition)
   const n = shownNumber ?? index + 1
@@ -38,7 +40,7 @@ export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, le
     <section className="card skill-rule" role="group" aria-label={T.rule(n)} data-testid="skill-rule">
       <header className="card-head">
         <h3>{T.rule(n)}</h3>
-        {count > 1 && (
+        {(count > 1 || canDelete) && (
           <RowButtons index={index} count={count} up={T.moveRuleUp(n)} down={T.moveRuleDown(n)} del={T.deleteRule(n)}
             onUp={() => onMove(-1)} onDown={() => onMove(1)} onDelete={onDelete} />
         )}

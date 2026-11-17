@@ -11,6 +11,7 @@ import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
 import { TextInput } from '../../../ui/TextInput'
 import { Check } from '../../../ui/Toggle'
+import { StaffConditionParts } from './StaffConditionParts'
 import { StaffLightPart, StaffMovePart, StaffRepairPart } from './StaffOtherParts'
 import { S } from './text'
 
@@ -60,6 +61,7 @@ export function StaffEffectCard({ id }: { id: string }) {
             )}
             <StaffMovePart id={id} />
             <StaffRepairPart id={id} />
+            <StaffConditionParts id={id} />
             <StaffLightPart id={id} />
           </>
         )}

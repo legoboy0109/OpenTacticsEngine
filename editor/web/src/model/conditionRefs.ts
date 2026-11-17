@@ -21,6 +21,10 @@ const asksAbout = (c: Extra, id: string): boolean => c.condition === id
 
 // --- what uses it -------------------------------------------------------------------------------------------------------------
 
+/** A usable item with no heal, raise, cure, inflict or promotion does nothing (the loader refuses it). */
+const usableDoesNothing = (i: Item): boolean =>
+  i.heal === undefined && !(i.raise && Object.values(i.raise).some((v) => v !== 0)) && !i.promotes && i.cure === undefined && i.inflict === undefined
+
 function staffLeftEmpty(i: Item, id: string): boolean {
   const left = fxList(i).filter((e) => {
     const k = fxKind(e)
@@ -43,8 +47,10 @@ export function conditionUsageLines(doc: ProjectDoc, id: string): Usage[] {
       if (cures) out.push({ section: 'items', text: `Staff “${i.name}” cures it (it is taken off the list)${tail}` })
       if (list(i.if).some((c) => asksAbout(c, id))) out.push({ section: 'items', text: `Staff “${i.name}” only works when the unit has it (that requirement is removed)` })
     } else if (i.kind === 'usable') {
-      if (Array.isArray(i.cure) && i.cure.includes(id)) out.push({ section: 'items', text: `Item “${i.name}” cures it (it is taken off the list)` })
-      if (i.inflict?.condition === id) out.push({ section: 'items', text: `Item “${i.name}” puts it on the unit that uses it (that part is removed)` })
+      const nothingLeft = usableDoesNothing(cleanItem(i, id))
+      const tail = nothingLeft ? ' (the item then does nothing: give it an effect, or delete it)' : ''
+      if (Array.isArray(i.cure) && i.cure.includes(id)) out.push({ section: 'items', text: `Item “${i.name}” cures it (it is taken off the list)${tail}` })
+      if (i.inflict?.condition === id) out.push({ section: 'items', text: `Item “${i.name}” puts it on the unit that uses it (that part is removed)${tail}` })
     }
   }
   for (const w of doc.weapons ?? []) if (w.inflict?.condition === id) out.push({ section: 'weapons', text: `Weapon “${w.name}” may inflict it on a hit (that part is removed)` })

@@ -49,6 +49,8 @@ export function loadLocksFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg
 export function loadStavesFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-staves') }
 /** The engine's staves stage-two test game (tests/fixtures/srpg-staves2): warp, pull, swap, repair and light staves, a heal + pull staff, a map with fog. */
 export function loadStaves2Fixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-staves2') }
+/** The engine's status conditions test game (tests/fixtures/srpg-conditions): 19 conditions using every block, every duration form, staves / items / weapons that inflict and cure. */
+export function loadConditionsFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-conditions') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 /** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */

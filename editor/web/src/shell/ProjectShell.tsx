@@ -4,6 +4,7 @@ import { Link } from '../router'
 import { GameScreen } from '../screens/game/GameScreen'
 import { CampaignScreen } from '../screens/campaign/CampaignScreen'
 import { AbilitiesScreen } from '../screens/abilities/AbilitiesScreen'
+import { ConditionsScreen } from '../screens/conditions/ConditionsScreen'
 import { CharactersScreen } from '../screens/characters/CharactersScreen'
 import { SkillsScreen } from '../screens/skills/SkillsScreen'
 import { SupportsScreen } from '../screens/supports/SupportsScreen'
@@ -38,6 +39,7 @@ function Screen({ route }: { route: ProjectRoute }) {
     case 'characters': return <CharactersScreen itemId={route.itemId} />
     case 'skills': return <SkillsScreen itemId={route.itemId} />
     case 'abilities': return <AbilitiesScreen itemId={route.itemId} />
+    case 'conditions': return <ConditionsScreen itemId={route.itemId} />
     case 'supports': return <SupportsScreen itemId={route.itemId} />
     case 'weapons': return <WeaponsScreen itemId={route.itemId} />
     case 'items': return <ItemsScreen itemId={route.itemId} />
