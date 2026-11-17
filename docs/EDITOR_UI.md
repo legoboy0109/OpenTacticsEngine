@@ -1208,3 +1208,38 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
   Problems the loader would refuse (no direction, frames outside the image, bad time) show in red inside the card. Removing the image drops only the walk.
 - Code: `model/walking.ts`, `screens/art/walking/*`, `model/battleArt.ts`, `model/battleChecks.ts`. Tests: unit `walking.test.ts`, `battleArtFollowup.test.ts`;
   e2e `battle-followup.spec.ts` (desktop and 360 px).
+
+## Map changes and fog options
+
+Built for the engine's map changes (docs/EVENTS.md "Changing the map") and the fog options (docs/ECONOMY.md "Fog of war"). Wording is placeholder and lives in
+`screens/maps/editor/story/forms/mapChangeText.ts`; the model is `model/mapChanges.ts` (edits, follow-through), `mapChangeChecks.ts` and
+`fogOptionChecks.ts` (checks), `mapChangeStory.ts` (command sentences and checks), `mapChangeRefs.ts` (deleting a terrain or a kind), `lightParts.ts`.
+
+- **Changes tab** (the map editor's last tab). "New change" makes a named change (letters, digits, `_`, `-`; a taken or bad name is refused with the
+  reason). The panel has a change picker, Rename, a "Paint into this change" switch, a terrain picker, a Before / After switch, "Clear its squares",
+  "Delete change", and "Structures that change kind" (pick a placed structure that has a story name and another kind of the same size; one swap per
+  structure). While painting is on the Terrain tool records squares in the change and the map itself is not touched; painting a square with the terrain
+  it already has takes it out of the change; Fill is refused with a message. The change's squares are outlined (pink) on the canvas
+  (`data-change-cells`), and After draws the map with the change applied (`data-change-view`); nothing is saved by the view. Closing the tab ends
+  painting and the view.
+- **Follow-through.** Renaming a change rewrites every `applyChange` / `revertChange` of the map's events (one undo step). Deleting asks (the usual
+  "used by" list) and removes those commands with it. Deleting a terrain drops the change squares that give it and the `setTerrain` commands that name it;
+  deleting a structure kind drops swaps into it.
+- **Events tab.** Group "Map and fog" in the command picker: Change terrain (terrain + area picker; a hand-written `cells` list is kept and can be
+  switched to an area), Apply a map change, Take back a map change (pickers of the map's changes; disabled with "no changes yet" when there are none), Fog on or off,
+  Change everyone's vision (-10 to 10). The recipe for a wall that changes the map when it breaks is an event "A door, chest or place is used: opened"
+  for the door, then "Apply a map change"; there is no separate hook key.
+- **Map tab, fog.** With fog on: "Extra vision" (-10 to 10) and "The computer sees everything". Switching fog off removes both keys (the loader refuses them
+  without fog). **Sides tab:** a computer side while fog is on has "Sees through fog": as the map says / bound by fog / sees everything (`aiSeesAll` on the side).
+  Making a side human removes its `aiSeesAll`.
+- **Data screens.** Structures: "Gives light" (0 to 10) and, on a breakable door, "What it is called when attacked" (`door.word`, shown as "Break wall"). Terrain: "Blocks sight".
+  Items: usable items get "It gives light" (radius, turns, "Shrinks by"); an item with only a light is valid. Unit placement: "Goes for" has Walls. The unit type's
+  Sight was already on the Units screen.
+- **Not offered:** the skill effect `{ "vision": n }` is not in the Skills screen's effect list (two existing tests pin that list: `tests/unit/skills.test.ts` "offers
+  the effects of each when" and `tests/unit/skillsStarter.test.ts` "uses every when ..."); a file that has it is kept as written, and `fogOptionChecks.ts` judges it.
+  Structure add / remove is not a change part (the engine only swaps a placed structure's kind).
+- **Checks** (above the canvas, with the others): an empty change (the loader refuses it), a change nobody applies (note), squares outside the map, twice in one
+  change, unknown terrain, a swap of another size or naming no structure, `applyChange` / `revertChange` of a change that is gone, `setTerrain` area / cells / terrain
+  mistakes, `setVision` out of range, `fogVision` / `aiSeesAll` without fog, `aiSeesAll` on a human side, light out of range, a torch with `target` ally,
+  and a note when a change would leave a placed unit on ground it cannot enter (the game moves it to the nearest square it can).
+- **Tests.** `tests/unit/mapChanges.test.ts`, `tests/editor_api_mapchange_checks.py`, `editor/web/tests/e2e/mapchange.spec.ts` (desktop and 360 px).

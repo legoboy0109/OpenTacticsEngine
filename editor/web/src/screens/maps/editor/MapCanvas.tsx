@@ -78,6 +78,9 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     c.dataset.areas = vs.overlays.map((o) => `${o.tone}:${o.x},${o.y},${o.w},${o.h}`).join(';')
     // The preparation's deployment squares in slot order ("x,y;x,y"), for tests and curious people.
     c.dataset.slots = vs.slots.map((o) => `${o.x},${o.y}`).join(';')
+    // The Changes tab: the squares of the selected change ("x,y;x,y") and whether the canvas shows the map before or after it.
+    c.dataset.changeCells = vs.changeOutline.map((o) => `${o.x},${o.y}`).join(';')
+    c.dataset.changeView = vs.changeSel ? vs.changeView : ''
   }, [vs])
   const schedule = useCallback(() => { if (!raf.current) raf.current = requestAnimationFrame(draw) }, [draw])
 
