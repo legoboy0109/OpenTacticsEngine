@@ -201,6 +201,11 @@ goal (demos only exercise features).
       door, chest and village kinds with two keys (simple drawn pictures kept unless the owner says glyph-only).
       Private port: the goal is closeness to the original, not balance in the simulator. Next engine work, chosen
       for the port: story scene presentation (backgrounds, fades, camera, waits) and map tile changes / fog pieces.
+      6i owner's answers, 2026-11-17 (later): difficulty options = full toolkit (enemy levels/stats per game and per
+      map, only-on units, experience and resource percents, a value events and formulas read), chosen at New Game, the
+      game decides whether it can change later (never / lower only (default) / freely). Campaign parties: a switch
+      starts "a whole new game" with its own characters, items, convoy and funds, merged later. Music and sound of
+      the private port come from the ROM. New on-screen wording stays placeholder for now.
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for

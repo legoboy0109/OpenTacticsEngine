@@ -25,20 +25,32 @@ weapon and side, 512 frames, ranged and miss slots; walking animations for map u
 per-unit behaviour for computer units (docs/AI.md); renaming a character's id; doors, chests and villages in the
 strategy-RPG template; staff sounds.
 
-In progress (2026-11-17): private converter (separate folder, never public) step 14 (battle art on by default, side
-colours, weapon animations, walking sprites, bounded tries at character palettes and backgrounds) and step 15
-(research only, new files only: decoding the hack's custom code and the constants earlier steps assumed; findings
-in its docs/ASM_NOTES.md, to be applied to the converter after step 14). Engine jobs being started: story scene
-presentation (backgrounds, fades, camera, waits) and map tile changes / fog pieces.
+Pushed later on 2026-11-17 (origin/main = 04c3c47, every merge fully checked): map changes (`setTerrain`, named
+`changes`, breakable walls for the computer, fog options: docs/EVENTS.md "Changing the map", docs/ECONOMY.md "Fog
+options"); story scene presentation (docs/EVENTS.md "Scene presentation"); the `actor` condition, `storeItems`,
+fading conditions (`scale: turnsLeft`) and strike marks; campaign parties (campaign doc "Parties"); difficulty options
+(docs/DIFFICULTY.md).
 
-Queue after those: converter uses scene presentation, tile changes and fog; fix its unreachable chapters; reinstall
-the port into the git-ignored `games/vision-quest` (regenerate WITH music first). Small engine items: a named
-`character` on the Add a unit form; walking in the 3D views is coded but untested; the phone trade panel truncates
-item names.
+In progress: two engine jobs in worktrees — (1) rules batch: `average2` hit roll, formula `side`/`human`, experience
+extras, per-type `maxLevel`, computer stat caps, ability `inflict`, roster conditions in map events, hide/show a unit,
+ballista-style structure weapons; (2) presentation and sound: seven stage slots, `enter`/`move`, per-side and
+few-enemies music, phase-music override, missing jingle keys, step sounds by move type, difficulty row on the game page,
+`focus` speed, maybe talk/blink portraits. Merge one at a time with `scratchpad/fullcheck.sh` (or the command list in
+the summary), re-run e2e failures alone (Firefox smoke tests time out under load), then push.
 
-Open with the owner: one headless player run without `--no-audio` to confirm the port's sounds fire (was denied to
-an agent; needs the owner's yes). All new wording is placeholder. Agents must not leave `until … sleep` wait loops
-(several hung and made an agent re-report endlessly); briefs now forbid them.
+Private converter (separate folder, never public): steps 14-21 done (battle art by default with side sheets, walking
+sprites, native code decoded in docs/ASM_NOTES.md and ASM_FINDINGS2.md, scenes/map changes/walls/fog, enemy stats and
+experience and supports from the ROM's routines at NORMAL difficulty, music and effects rendered from the ROM by its
+own synthesizer: docs/AUDIO_NOTES.md). Step 22 running: the three difficulties as engine difficulties (default normal,
+change never), the part-3 party switch and part-4 merge, one-command conversion including the ROM audio. The port
+installed in the git-ignored `games/vision-quest` is the step 21 state (reinstall = `python3 -I tools/convert.py`,
+`python3 -I tools/check_game.py`, then `tools/install_audio_rom.py` until step 22 wires it in; then replace the folder).
+
+Owner decisions today: port goal is closeness to the original, not balance; difficulty is the full toolkit, chosen at
+New Game, each game says whether it can change later; Vision Quest: normal default, never changeable; a party switch is
+"a whole new game" (own characters, items, convoy, funds) merged later; all new wording stays placeholder for now.
+Open with the owner: listen to the ROM audio in the installed port (loudness, brightness, loop clicks, title tune);
+"Only on" difficulty limited to computer-side units (confirm).
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
