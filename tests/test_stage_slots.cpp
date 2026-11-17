@@ -217,3 +217,24 @@ TEST(stage_layout_phone_shows_the_speaker_and_its_neighbours) {
   CHECK(p2[0].shown && p2[1].shown && p2[0].x < p2[1].x);
   CHECK(overlapOk(two, p2, 0.40f));
 }
+
+// ---- the camera's "speed" (docs/EVENTS.md "The camera") ----
+
+TEST(focus_speed_loads_is_refused_and_rides_on_the_entry) {
+  Scene w;
+  CHECK_STR(w.err(R"([{"focus":{"x":3,"y":1},"speed":4},{"focus":"eirik","speed":0.5,"wait":false},{"focus":"gorm","speed":100}])"), std::string());
+  CHECK(has(w.err(R"([{"focus":"eirik","speed":2,"ms":500}])"), "give \"ms\" (how long the scroll takes) or \"speed\""));
+  CHECK(has(w.err(R"([{"focus":"eirik","speed":0}])"), "\"speed\" is squares per second, from 0.1 to 100"));
+  CHECK(has(w.err(R"([{"focus":"eirik","speed":101}])"), "\"speed\" is squares per second"));
+  CHECK(has(w.err(R"([{"focus":"eirik","speed":"fast"}])"), "\"speed\" is squares per second"));
+  CHECK(w.play(R"([{"id":"a","when":{"battle":"start"},"do":[{"focus":{"x":4,"y":1},"speed":2.5},{"focus":{"x":5,"y":1},"ms":700},{"focus":{"x":6,"y":1}}]}])"));
+  std::vector<const Event*> f;
+  for (const Event& e : w.events)
+    if (e.type == EventType::Focus) f.push_back(&e);
+  CHECK_EQ(f.size(), size_t(3));
+  if (f.size() == 3) {
+    CHECK(f[0]->c == -1 && f[0]->data.size() == 1 && f[0]->data[0] == 2500);  // squares per second x 1000; no ms
+    CHECK(f[1]->c == 700 && f[1]->data.empty());                              // unchanged
+    CHECK(f[2]->c == -1 && f[2]->data.empty());                               // a plain focus is exactly what it was
+  }
+}

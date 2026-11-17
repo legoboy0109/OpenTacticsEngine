@@ -319,6 +319,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         f = makeEvent(EventType::Focus, grid.at(c.x, c.y), -1);
       }
       f.c = c.fx.ms;  // scroll milliseconds (-1 = not given: the player's usual half second); "wait": false in the flags
+      if (c.fx.speedMilli > 0) f.data.push_back(c.fx.speedMilli);  // "speed": the player works the time out from the distance
       f.flags = c.fx.wait == 0 ? kFocusNoWait : 0;
       events.push_back(f);
       break;

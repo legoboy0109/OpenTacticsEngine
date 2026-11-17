@@ -325,7 +325,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   // focus
   out.kind = K::Focus;
-  if (!onlyKeys(e, {"focus", "ms", "wait"}, at) || !readerFor(*this).focusExtras(e, at, out.fx)) return false;
+  if (!onlyKeys(e, {"focus", "ms", "speed", "wait"}, at) || !readerFor(*this).focusExtras(e, at, out.fx)) return false;
   if (v.isString()) return unitId(v, at, "\"focus\"", out.unit);
   if (!v.isObject()) return fail(at, "\"focus\" must be a unit id or a square { \"x\": 3, \"y\": 4 }");
   if (!onlyKeys(v, {"x", "y"}, at + ": \"focus\"") || !c_.integer(v, "x", at, out.x, true) || !c_.integer(v, "y", at, out.y, true))

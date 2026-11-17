@@ -212,6 +212,12 @@ bool SceneFxReader::sayExtras(const Json& e, const std::string& at, SceneFx& out
 
 bool SceneFxReader::focusExtras(const Json& e, const std::string& at, SceneFx& out) const {
   if (!ms(e, "ms", at, 0, kMaxSceneMs, out.ms)) return false;
+  if (e.has("speed")) {  // the scroll takes as long as its distance needs at this speed (docs/EVENTS.md "The camera")
+    if (e.has("ms")) return c.fail(at, "give \"ms\" (how long the scroll takes) or \"speed\" (how fast it goes), not both");
+    if (!e["speed"].isNumber() || e["speed"].asNumber() < kMinFocusSpeed || e["speed"].asNumber() > kMaxFocusSpeed)
+      return c.fail(at, "\"speed\" is squares per second, from 0.1 to 100");
+    out.speedMilli = (int)(e["speed"].asNumber() * 1000 + 0.5);
+  }
   if (e.has("wait")) {
     if (!e["wait"].isBool()) return c.fail(at, "\"wait\" must be true or false");
     out.wait = e["wait"].asBool() ? 1 : 0;

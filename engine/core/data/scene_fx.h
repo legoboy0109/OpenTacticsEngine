@@ -26,6 +26,7 @@ struct SceneFx {
   bool out = false;              // Fade: out (true) or in
   bool fadeTransition = false;   // Background / Enter / Leave: "transition": "fade" (else a cut)
   int portrait = -1;             // Enter: text index of the "portrait" art id (-1 = the speaker key itself)
+  int speedMilli = 0;            // Focus: "speed" in squares per second x 1000 (0 = not given; then "ms" or the usual ease)
   int wait = -1;                 // Focus / MoveUnit: "wait" -1 = not given, 0 = false, 1 = true
   bool walk = false;             // MoveUnit: "walk": true
   int position = 0;              // Say / Enter / Move: 0 = none (today's look), kPos* (seven slots)
@@ -51,6 +52,7 @@ constexpr int kMaxSceneMs = 10000;   // fade, background transition, shake, focu
 constexpr int kMaxWaitMs = 60000;    // wait
 constexpr int kMaxAutoMs = 60000;    // a line's "auto"
 constexpr int kMaxShakeStrength = 32;
+constexpr double kMinFocusSpeed = 0.1, kMaxFocusSpeed = 100;  // squares per second, a focus "speed"
 constexpr int kDefaultFadeMs = 500;
 constexpr int kDefaultSlideMs = 400;  // a portrait moving to another slot
 

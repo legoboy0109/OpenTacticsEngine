@@ -171,6 +171,14 @@ def run():
           and not any(g.startswith(('scene: enter', 'scene: move')) for g in got), '\n'.join(got))
 
 
+    # The camera's "speed": the scroll takes as long as its distance needs (from the last focus; the first from the map's middle).
+    code, log, _ = play(solo, 'stage-solo', ['--map', 'camera'], '', 200)
+    got = lines(log, 'scene: focus')
+    check('focus speed: 637 ms for 2.55 squares at 4 squares per second, then 791 ms at 8 (no wait), the plain ms one unchanged, 51 ms at 100',
+          got == ['scene: focus 6,1 637 ms (speed 4)', 'scene: focus 0,3 791 ms (speed 8) (no wait)', 'scene: focus 7,1 300 ms',
+                  'scene: focus 2,2 51 ms (speed 100)'], '\n'.join(got))
+
+
 run()
 print('%d passed, %d failed' % (passed, len(failures)))
 shutil.rmtree(TMP, ignore_errors=True)
