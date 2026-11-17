@@ -1,0 +1,32 @@
+// Status conditions (docs/SRPG.md section 9): the starter set. Each one is made only of blocks (the same blocks skills use, plus
+// cannotAct, cannotMove, forbid and berserk); the maker may change or delete any of them. "turns" counts the afflicted unit's own turns.
+// Staves, usable items and weapons inflict them ("inflict": { "condition": "poison" }) and cure them ("cure": ["poison"] or "all").
+// All names and numbers are placeholders.
+{
+  "conditions": [
+    { "id": "poison", "name": "Poison", "tag": "Po", "turns": 3,
+      "description": "Loses a little HP at the start of each of its turns. Never defeats a unit.",
+      "blocks": [ { "when": "turnStart", "do": [ { "hurt": { "percent": 10 }, "to": "self" } ] } ] },
+
+    { "id": "sleep", "name": "Sleep", "tag": "Zz", "turns": 3, "endsWhenStruck": true,
+      "description": "Cannot act or move. Wakes up when it is struck.",
+      "blocks": [ { "when": "always", "do": [ { "cannotAct": true }, { "cannotMove": true } ] } ] },
+
+    // Add "groups": ["tome"] (any weapon group of the game) to silence magic weapons too.
+    { "id": "silence", "name": "Silence", "tag": "Si", "turns": 3,
+      "description": "Cannot use staves.",
+      "blocks": [ { "when": "always", "do": [ { "forbid": { "kinds": ["staff"] } } ] } ] },
+
+    { "id": "berserk", "name": "Berserk", "tag": "Br", "turns": 3,
+      "description": "Out of control: attacks the nearest unit, friend or foe, on its own.",
+      "blocks": [ { "when": "always", "do": [ { "berserk": true } ] } ] },
+
+    { "id": "stun", "name": "Stun", "tag": "St", "turns": 2,
+      "description": "Cannot move, but can still act.",
+      "blocks": [ { "when": "always", "do": [ { "cannotMove": true } ] } ] },
+
+    { "id": "curse", "name": "Curse", "tag": "Cu", "turns": 3,
+      "description": "Strength and defense are lowered.",
+      "blocks": [ { "when": "always", "do": [ { "stats": { "str": -2, "def": -2 } } ] } ] }
+  ]
+}

@@ -91,14 +91,14 @@ TEST(srpg_skeleton_keeps_battles_and_saves_byte_for_byte) {
 
 TEST(srpg_skeleton_keeps_data_hashes) {
   CHECK_STR(dataHash("tests/fixtures/plain-economy", "twin_rivers"), "1e44dae676a88a38");
-  CHECK_STR(dataHash("games/demo-srpg", "bridge"), "97b4001954d2bcf9");
+  CHECK_STR(dataHash("games/demo-srpg", "bridge"), "c132befec099e173");  // re-taken: the demo gained data/conditions.json and an antidote (docs/SRPG.md section 9)
   CHECK_STR(dataHash("games/demo-economy", "twin_rivers"), "89beafac5e6893cf");
   CHECK_STR(dataHash("games/demo-hex", "fortress_ford"), "2bfa51f67465e668");  // re-taken when the demo maps gained heights (2D isometric hexagons)
   Database db;
   std::string err, out;
   CHECK(loadGame(ote_test::sourceDir() + "/games/demo-srpg", db, err));
   CHECK(computeCampaignHash(db, out, err));
-  CHECK_STR(out, "3453e134072a2766");
+  CHECK_STR(out, "5030f4330be6ff58");
 }
 
 // The demo's campaign: a chapter battle under way saved as a whole campaign save file, and the playthrough after
@@ -119,7 +119,7 @@ TEST(srpg_skeleton_keeps_campaign_saves_byte_for_byte) {
   CHECK(!b.over);
   Json file;
   CHECK(buildCampaignSave(db, "demo-srpg", pt, &b, 0, file, err));
-  CHECK_STR(hex(fnv(file.dump(0))), "751f8eb40ef07113");
+  CHECK_STR(hex(fnv(file.dump(0))), "949cbeded6bee2d2");  // (only the data hash inside the file changed: the conditions file and an antidote in the shop)
   b.over = true;
   b.winnerTeam = b.humanTeam();
   CHECK(finishChapterBattle(db, pt, b) == ChapterResult::Won);
