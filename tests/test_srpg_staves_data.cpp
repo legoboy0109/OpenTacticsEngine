@@ -59,7 +59,7 @@ TEST(staves_loader_refusals_name_the_file_the_item_and_the_key) {
   CHECK(saysIn(itemsError("staves_l6", "\"area\": { \"radius\": 1 }", "\"area\": { \"radius\": 11 }"), "\"area\": \"radius\" must be a whole number from 1 to 10"));
   CHECK(saysIn(itemsError("staves_l7", "\"area\": { \"radius\": 1 }", "\"area\": \"wide\""), "\"area\" must be \"single\", \"all\" or { \"radius\": n }"));
   CHECK(saysIn(itemsError("staves_l8", "[ { \"heal\": \"w.power + a.mag / 2\" } ]", "[]"), "\"effects\" needs 1 to 4 effects"));
-  CHECK(saysIn(itemsError("staves_l9", "{ \"heal\": \"w.power + a.mag / 2\" }", "{ \"warp\": 3 }"), "\"effects\" entry 1: unknown effect \"warp\""));
+  CHECK(saysIn(itemsError("staves_l9", "{ \"heal\": \"w.power + a.mag / 2\" }", "{ \"teleport\": 3 }"), "\"effects\" entry 1: unknown effect \"teleport\""));
   CHECK(saysIn(itemsError("staves_l10", "{ \"heal\": \"w.power + a.mag / 2\" }", "{ \"heal\": 0 }"), "\"heal\" must be from 1 to 1000000"));
   CHECK(saysIn(itemsError("staves_l11", "\"xp\": 15", "\"xp\": -3"), "\"xp\" must be a whole number from 0 to 1000 or a formula"));
   CHECK(saysIn(itemsError("staves_l12", "\"props\": { \"power\": 5 }", "\"props\": { \"power\": \"x\" }"), "\"props\".\"power\" must be a number"));
