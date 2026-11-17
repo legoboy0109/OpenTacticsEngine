@@ -11,9 +11,7 @@
 namespace ote {
 
 struct ConditionWords {
-  static constexpr const char* kHeading = "Conditions";           // the info panel's row above the list
   static constexpr const char* kPage = "Status";                   // the unit details page
-  static constexpr const char* kNone = "No conditions";
   static constexpr const char* kImmune = "Immune";                 // floats over a unit that resisted a condition
   static constexpr const char* kUntilCured = "Until cured";       // unit details
   static constexpr const char* kUntilMapEnd = "Until the map ends";
