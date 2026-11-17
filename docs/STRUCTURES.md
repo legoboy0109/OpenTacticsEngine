@@ -253,7 +253,7 @@ Decisions where the contract was silent
   2 x 2 `hq` (blue at 0,4 / red at 13,4 in demo-economy; demo-economy also has the city's upgrades town and metropolis, 1 x 1). Under each building the ground is
   plain, or road where a road led into the old building tile (roads no longer join buildings).
   demo-srpg: five 1 x 1 forts on plain, no cost overrides (they set defense and avoid only).
-  `games/test`, the blank and strategy-rpg templates have no buildings and kept their data; their
+  `games/test` and the blank template have no buildings and kept their data (the strategy-rpg template has none of these either, but later got doors, chests and villages: docs/SRPG.md section 10); their
   art was regenerated (tile sheet no longer carries building tiles). `games/index.json` unchanged.
 - **ote-sim** prints captures and builds per run and their averages in the summary.
 - **Existing tests changed on purpose** (rules moved, intent kept): `test_battle` (capture, income and

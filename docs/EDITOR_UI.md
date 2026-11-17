@@ -957,8 +957,8 @@ ruined) is a structure kind of its own with its own size-matching footprint, pic
   kind switches off the Door / Chest part of kinds that open into it, clears a place's `becomes` / `ruin`, and takes the kind off keys' `opens`; deleting an item takes it out of a door's / chest's key list,
   out of placed chests, and clears an unlock ability's lockpick; deleting a resource takes its amounts out of chests. The delete confirmations list each of these. A story name that goes with a deleted
   placed structure is **not** scrubbed from the events (that would silently delete a maker's events): the checks flag an event that names a place that is no longer there.
-- **Not in the editor**: nothing of this part now (`goesFor` on an `addUnit` command is built, see "Editor gaps"); the template (`editor/templates/strategy-rpg`) has no structures at all, so it was left alone (a starter set would change the "no structures
-  yet" starting point of many specs and lessons).
+- **Not in the editor**: nothing of this part now (`goesFor` on an `addUnit` command is built, see "Editor gaps"); the template (`editor/templates/strategy-rpg`) now starts with a door, a chest and a village (seven kinds, each look its own kind), a door key and a chest key, nothing placed on its map
+  (docs/SRPG.md "Doors, chests and villages in the template"). Specs that need the old empty Structures list or make the first kinds themselves create the game with `{ starterPlaces: false }` (`tests/e2e/fixtures.ts`).
 - **Tests**: unit `tests/unit/places.test.ts` (on `tests/fixtures/srpg-doors`); API `tests/editor_api_doors_checks.py` (the shapes the forms write, and three refusals); e2e `places-forms.spec.ts` (every
   form, the placed details, an event, the saved JSON against the docs, Play, and the 360 px phone). The API test suite now sends the helper's log to a file: nothing read the pipe, and the helper blocked
   on its next log line once 64 KB had piled up.

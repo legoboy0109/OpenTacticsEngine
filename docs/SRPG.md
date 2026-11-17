@@ -4108,6 +4108,17 @@ template had none) plus a plain red soldier to keep the sides even. Pair up with
 `rules.items` (fixed weapons, three slots) and `data/items.json` with the Officer's Writ: Kell carries it and a Cavalier
 becomes an Outrider with it. `abilities.json` holds only Shove. One support pair, Eirik and Kell, one level.
 
+**Doors, chests and villages in the template.** `data/structures.json` holds seven kinds, every look its own kind: `door` (a closed
+door: `door.opens` = `door_open`, no movement for foot or horse, locked by default) and `door_open`; `chest` (`chest.opens` =
+`chest_open`) and `chest_open`; `village` (`visit`: becomes `village_visited` after one visit, can be destroyed into `village_ruin`) with
+`village_visited` and `village_ruin`. Glyph D / d, C / c, V / v / x and a colour each, and a picture each (a 24 x 28 top-down picture
+and an isometric one, drawn by `tools/art/art_places.py` through `make_starter_art.py`; the shipped-games test needs a picture
+for every structure). `data/items.json` gains two keys, `door_key` ("Door Key", opens `["door"]`) and `chest_key` ("Chest Key", opens
+`["chest"]`), one use each. Nothing is placed on the starter map (The Ford is a plain skirmish, not a showcase: a door or chest there
+would change how it plays and what every test expects of it), `rules.places.actions` stays at its default (the unit's menu), and no
+unlock ability was added (the template has no thief-like class; Shove is the only ability and belongs to the Fighter). The editor
+therefore shows two "this key opens nothing placed yet" notes on a new game's Items screen until the maker places a door or chest.
+
 **Fixtures.** `srpg-carry`, `srpg-pair`, `srpg-supports` (a two-chapter campaign), `srpg-hex` (pointy; abilities in six
 directions), `tests/test_srpg_fixtures.cpp`; `plain-srpg` is a frozen copy of the pre-D1 demo (data only) for the editor's
 unit tests, like `plain-economy`.

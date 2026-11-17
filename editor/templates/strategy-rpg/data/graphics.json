@@ -8,6 +8,12 @@
       "cellHeight": 24
     },
     {
+      "id": "structures",
+      "file": "art/structures.png",
+      "cellWidth": 24,
+      "cellHeight": 28
+    },
+    {
       "id": "units",
       "file": "art/units.png",
       "cellWidth": 24,
@@ -24,6 +30,48 @@
       "file": "art/iso_units.png",
       "cellWidth": 24,
       "cellHeight": 22
+    },
+    {
+      "id": "iso_door",
+      "file": "art/iso_door.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_door_open",
+      "file": "art/iso_door_open.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_chest",
+      "file": "art/iso_chest.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_chest_open",
+      "file": "art/iso_chest_open.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_village",
+      "file": "art/iso_village.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_village_visited",
+      "file": "art/iso_village_visited.png",
+      "cellWidth": 48,
+      "cellHeight": 48
+    },
+    {
+      "id": "iso_village_ruin",
+      "file": "art/iso_village_ruin.png",
+      "cellWidth": 48,
+      "cellHeight": 48
     }
   ],
   "unitMarker": true,
@@ -160,6 +208,57 @@
         ]
       ],
       "frameMs": 600
+    }
+  },
+  "structures": {
+    "door": {
+      "sheet": "structures",
+      "cell": [
+        0,
+        0
+      ]
+    },
+    "door_open": {
+      "sheet": "structures",
+      "cell": [
+        1,
+        0
+      ]
+    },
+    "chest": {
+      "sheet": "structures",
+      "cell": [
+        2,
+        0
+      ]
+    },
+    "chest_open": {
+      "sheet": "structures",
+      "cell": [
+        3,
+        0
+      ]
+    },
+    "village": {
+      "sheet": "structures",
+      "cell": [
+        4,
+        0
+      ]
+    },
+    "village_visited": {
+      "sheet": "structures",
+      "cell": [
+        5,
+        0
+      ]
+    },
+    "village_ruin": {
+      "sheet": "structures",
+      "cell": [
+        6,
+        0
+      ]
     }
   },
   "portraits": {
@@ -332,6 +431,57 @@
             ]
           ],
           "frameMs": 600
+        }
+      },
+      "structures": {
+        "door": {
+          "sheet": "iso_door",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "door_open": {
+          "sheet": "iso_door_open",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "chest": {
+          "sheet": "iso_chest",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "chest_open": {
+          "sheet": "iso_chest_open",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "village": {
+          "sheet": "iso_village",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "village_visited": {
+          "sheet": "iso_village_visited",
+          "cell": [
+            0,
+            0
+          ]
+        },
+        "village_ruin": {
+          "sheet": "iso_village_ruin",
+          "cell": [
+            0,
+            0
+          ]
         }
       }
     }

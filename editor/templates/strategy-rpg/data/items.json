@@ -1,7 +1,12 @@
 // Things units carry. The Officer's Writ is a promotion item: a Cavalier of level 2 or more uses it (Items action) and becomes an Outrider.
+// The two keys open doors and chests (see structures.json): using one next to a locked one opens it, and the key's single use is spent.
 {
   "items": [
     { "id": "officers_writ", "name": "Officer's Writ", "description": "Promotes a Cavalier.",
-      "kind": "usable", "uses": 1, "promotes": true }
+      "kind": "usable", "uses": 1, "promotes": true },
+    { "id": "door_key", "name": "Door Key", "description": "Opens a locked door.",
+      "kind": "usable", "uses": 1, "opens": ["door"] },
+    { "id": "chest_key", "name": "Chest Key", "description": "Opens a locked chest.",
+      "kind": "usable", "uses": 1, "opens": ["chest"] }
   ]
 }

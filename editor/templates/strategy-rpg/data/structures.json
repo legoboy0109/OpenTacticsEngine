@@ -1,0 +1,18 @@
+// Doors, chests and villages (docs/SRPG.md section 10). Every look is a structure kind of its own: opening or visiting one
+// swaps it for the next kind. Each has starter art (made by tools/art, see art_places.py); none is placed on the starter map.
+{
+  "structures": [
+    // A shut door blocks every way of moving (0) until it is opened with a door key. It opens into a kind of the same size.
+    { "id": "door", "name": "Door", "color": "#7a5a3a", "glyph": "D", "moveCost": { "foot": 0, "horse": 0 },
+      "door": { "opens": "door_open" } },
+    { "id": "door_open", "name": "Open Door", "color": "#b59a78", "glyph": "d" },
+    // A locked chest gives its contents (set per placed chest) to whoever opens it with a chest key.
+    { "id": "chest", "name": "Chest", "color": "#b08040", "glyph": "C", "chest": { "opens": "chest_open" } },
+    { "id": "chest_open", "name": "Open Chest", "color": "#6e4f22", "glyph": "c" },
+    // A village is visited once (it then turns into the visited kind) and can be destroyed by the owner's enemies (it becomes the ruin).
+    { "id": "village", "name": "Village", "color": "#c9a45c", "glyph": "V",
+      "visit": { "becomes": "village_visited", "ruin": "village_ruin" } },
+    { "id": "village_visited", "name": "Visited Village", "color": "#8c7a52", "glyph": "v" },
+    { "id": "village_ruin", "name": "Ruined Village", "color": "#4a3a2a", "glyph": "x" }
+  ]
+}

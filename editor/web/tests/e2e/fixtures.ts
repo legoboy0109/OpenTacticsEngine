@@ -1,5 +1,5 @@
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test'
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 export { expect }
@@ -12,18 +12,37 @@ export const test = base.extend<{ game: GameFactory }>({
 
 let counter = 0
 
+/** Reads a game file that may start with comment lines, lets `fn` change it, writes it back as plain JSON. */
+function editGameFile(id: string, rel: string, fn: (doc: any) => void): void {
+  const file = path.join(process.env.OTE_E2E_GAMES!, id, rel)
+  const doc = JSON.parse(readFileSync(file, 'utf8').replace(/^\s*\/\/.*$/gm, ''))  // (graphics.json starts with a comment line)
+  fn(doc)
+  writeFileSync(file, JSON.stringify(doc, null, 2))
+}
+
+/** The strategy-rpg template's starter doors, chests and villages: data/structures.json, their pictures and the two keys in
+ *  data/items.json. A spec that makes the first ones itself, or needs an empty Structures list, asks for `{ starterPlaces: false }`
+ *  and this takes them out again on disk. */
+function dropStarterPlaces(id: string): void {
+  const root = path.join(process.env.OTE_E2E_GAMES!, id)
+  rmSync(path.join(root, 'data/structures.json'), { force: true })
+  editGameFile(id, 'data/graphics.json', (d) => {
+    delete d.structures
+    for (const st of Object.values<any>(d.styles ?? {})) delete st.structures
+  })
+  if (existsSync(path.join(root, 'data/items.json')))
+    editGameFile(id, 'data/items.json', (d) => { d.items = d.items.filter((i: any) => !['door_key', 'chest_key'].includes(i.id)) })
+}
+
 /** Since step D1 the strategy-rpg template carries characters, skills, an ability, pair up, a promotion item and a support pair
- *  (and two more unit types and units). Almost every spec was written for the template as it was before, so `create` takes the new
- *  content out again on disk; pass `{ srpgContent: true }` to get the real template. */
+ *  (and two more unit types and units), and since the doors-chests-villages starter set its structure kinds and keys. Almost every
+ *  spec was written for the template as it was before, so `create` takes the new content out again on disk; pass
+ *  `{ srpgContent: true }` to get the real template (still without the starter places when `{ starterPlaces: false }`). */
 function stripSrpgContent(id: string): void {
   const root = path.join(process.env.OTE_E2E_GAMES!, id)
   for (const f of ['characters', 'skills', 'abilities', 'supports', 'items']) rmSync(path.join(root, `data/${f}.json`), { force: true })
-  const edit = (rel: string, fn: (doc: any) => void): void => {
-    const file = path.join(root, rel)
-    const doc = JSON.parse(readFileSync(file, 'utf8').replace(/^\s*\/\/.*$/gm, ''))  // (graphics.json starts with a comment line)
-    fn(doc)
-    writeFileSync(file, JSON.stringify(doc, null, 2))
-  }
+  dropStarterPlaces(id)
+  const edit = (rel: string, fn: (doc: any) => void): void => editGameFile(id, rel, fn)
   edit('data/units.json', (d) => {
     d.units = d.units.filter((u: any) => !['fighter', 'outrider'].includes(u.id))
     for (const u of d.units) for (const k of ['skills', 'promotions', 'abilities']) delete u[k]
@@ -50,11 +69,12 @@ export class GameFactory {
   constructor(private request: APIRequestContext) {}
 
   /** POST /api/projects with a unique id; returns the id. */
-  async create(template: string, name = 'Test Game', opts: { srpgContent?: boolean } = {}): Promise<string> {
+  async create(template: string, name = 'Test Game', opts: { srpgContent?: boolean; starterPlaces?: boolean } = {}): Promise<string> {
     const id = `t${Date.now().toString(36)}${(counter++).toString(36)}${Math.random().toString(36).slice(2, 6)}`
     const res = await this.request.post('/api/projects', { data: { id, name, template } })
     expect(res.status(), await res.text()).toBe(201)
     if (template === 'strategy-rpg' && !opts.srpgContent) stripSrpgContent(id)
+    else if (template === 'strategy-rpg' && opts.starterPlaces === false) dropStarterPlaces(id)
     return id
   }
 
