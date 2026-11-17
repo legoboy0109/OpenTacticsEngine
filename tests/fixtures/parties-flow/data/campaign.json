@@ -1,0 +1,17 @@
+{
+  "name": "Two Roads",
+  "rules": { "fallen": "gone", "onDefeat": "retry" },
+  "parties": [ { "id": "main", "name": "The Company" }, { "id": "north", "name": "The Northern Road" } ],
+  "chapters": [
+    { "id": "ch1", "name": "The Road", "map": "road",
+      "before": [ { "say": "The company sets out.", "speakerName": "Narrator" } ],
+      "after": [ { "giveResource": { "gold": 10 }, "side": "blue" } ] },
+    { "id": "ch2", "name": "The Pass", "map": "pass",
+      "before": [ { "say": "The pass is open.", "speakerName": "Narrator" } ] },
+    { "id": "ch3", "name": "The Forest", "map": "forest",
+      "before": [ { "switchParty": "north" }, { "say": "Meanwhile, in the north.", "speakerName": "Narrator" } ],
+      "after": [ { "giveResource": { "gold": 5 }, "side": "blue" } ] },
+    { "id": "ch4", "name": "The Reunion", "map": "reunion",
+      "before": [ { "mergeParties": ["north"], "into": "main" }, { "say": "The roads meet.", "speakerName": "Narrator" } ] }
+  ]
+}

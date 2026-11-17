@@ -107,7 +107,7 @@ void BattleScene::prepMainMenu() {
   for (const MenuItem& it : items) log += (log.empty() ? "" : ", ") + it.label;
   OTE_INFO("prep menu: %s", log.c_str());
   Renderer& r = host_.renderer();
-  menu_.open(r, PrepWords::kTitle, items, 0, 0, layout_.vw, layout_.vh);
+  menu_.open(r, PrepWords::title(p.campaign ? activePartyName(session_.db, *p.pt) : std::string()), items, 0, 0, layout_.vw, layout_.vh);
   int cx, cy, cw, ch;
   cellScreenBox(cursor_, cx, cy, cw, ch);  // on the side of the screen away from the cursor, so the slots stay visible
   menu_.place(cx > layout_.vw / 2 ? 4 : layout_.vw - menu_.w() - 4, 4, layout_.vw, layout_.vh);
@@ -482,7 +482,7 @@ void BattleScene::prepDrawSlots(Renderer& r) {
 void BattleScene::prepDrawPanelHead(Renderer& r) {
   const int x = layout_.vw + 4, w = layout_.panelW - 8, y = layout_.panelTop();
   r.fillRect(x, y, w, layout_.lh + 2, Color(20, 23, 38));
-  const std::string left = PrepWords::kTitle, right = intStr((int)prep_->pt->prep.deployed.size()) + "/" + intStr(prep_->map.prep->limit);
+  const std::string left = PrepWords::title(prep_->campaign ? activePartyName(session_.db, *prep_->pt) : std::string()), right = intStr((int)prep_->pt->prep.deployed.size()) + "/" + intStr(prep_->map.prep->limit);
   r.drawText(x, y, fitText(r, left, w - textW(r, right) - 6).c_str(), Color(150, 158, 190));
   r.drawText(x + w - textW(r, right), y, right.c_str(), Color(228, 230, 240));
 }

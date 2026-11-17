@@ -32,7 +32,7 @@ Next nextAfterBattle(ChapterResult result);
 bool continueIsWritten(bool savingOn, bool campaignGame, bool campaignBattle);
 
 // "Chapter 2" for the chapter at `index` (position in the list).
-std::string chapterHeading(int index);
+std::string chapterHeading(int index, const std::string& party = std::string());  // party: the active party's name, "" = none
 
 // Rows of the Continue line and the slot lists. Title = the map's name, or a campaign save's chapter
 // name; detail = "Turn N" mid-battle, else a word for the phase.

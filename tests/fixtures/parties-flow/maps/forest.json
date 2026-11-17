@@ -1,0 +1,92 @@
+{
+ "name": "The Forest",
+ "grid": {
+  "type": "square",
+  "width": 6,
+  "height": 3
+ },
+ "legend": {
+  ".": "plain"
+ },
+ "tiles": [
+  "......",
+  "......",
+  "......"
+ ],
+ "sides": [
+  {
+   "id": "blue",
+   "name": "Travellers",
+   "controller": "human",
+   "resources": {
+    "gold": 30
+   },
+   "storage": [
+    "potion"
+   ]
+  },
+  {
+   "id": "red",
+   "name": "Wardens",
+   "controller": "ai"
+  }
+ ],
+ "units": [
+  {
+   "id": "kara",
+   "type": "walker",
+   "side": "blue",
+   "x": 0,
+   "y": 0,
+   "name": "Kara"
+  },
+  {
+   "id": "ivo",
+   "type": "walker",
+   "side": "blue",
+   "x": 0,
+   "y": 1,
+   "name": "Ivo"
+  },
+  {
+   "type": "warden",
+   "side": "red",
+   "x": 5,
+   "y": 1
+  },
+  {
+   "id": "fenn",
+   "type": "walker",
+   "side": "red",
+   "x": 5,
+   "y": 2,
+   "name": "Fenn"
+  }
+ ],
+ "events": [
+  {
+   "id": "recruit",
+   "when": {
+    "battle": "start"
+   },
+   "do": [
+    {
+     "changeSide": "fenn",
+     "side": "blue"
+    }
+   ]
+  },
+  {
+   "id": "finish",
+   "when": {
+    "turn": 2,
+    "side": "blue"
+   },
+   "do": [
+    {
+     "win": "blue"
+    }
+   ]
+  }
+ ]
+}

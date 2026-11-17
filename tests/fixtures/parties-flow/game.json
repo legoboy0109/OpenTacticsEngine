@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1,
+  "name": "Two Roads",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "rules": { "defeat": ["noUnits"], "items": { "inventorySize": 3, "storage": "anywhere" } },
+  "formulas": { "damage": "0" },
+  "maps": [ { "id": "road", "name": "The Road", "file": "maps/road.json" },
+            { "id": "pass", "name": "The Pass", "file": "maps/pass.json" },
+            { "id": "forest", "name": "The Forest", "file": "maps/forest.json" },
+            { "id": "reunion", "name": "The Reunion", "file": "maps/reunion.json" } ]
+}

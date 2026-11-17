@@ -26,7 +26,9 @@ bool continueIsWritten(bool savingOn, bool campaignGame, bool campaignBattle) {
   return savingOn && (!campaignGame || campaignBattle);
 }
 
-std::string chapterHeading(int index) { return "Chapter " + std::to_string(index + 1); }
+std::string chapterHeading(int index, const std::string& party) {
+  return "Chapter " + std::to_string(index + 1) + (party.empty() ? "" : " - " + party);
+}
 
 std::string phaseWords(const std::string& phase) {
   if (phase == "before") return "Chapter begins";

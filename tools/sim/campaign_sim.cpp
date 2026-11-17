@@ -81,6 +81,7 @@ RunOutcome playRun(const Database& db, Formulas& formulas, const CampaignSimOpti
       std::printf("-- chapter %d: %s\n", pt.chapter + 1, ch.name.c_str());
       lines.clear();
       runScene(db, pt, SceneKind::Before, lines);
+      if (!pt.party.empty()) std::printf("  party: %s\n", activePartyName(db, pt).c_str());  // only a campaign with parties
       printScene(lines, "  ");
     } else if (pt.phase == Phase::After) {
       lines.clear();
