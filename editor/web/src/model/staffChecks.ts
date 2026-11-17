@@ -86,10 +86,14 @@ function effectProblem(doc: ProjectDoc, i: Item, e: unknown, n: number): string 
       if (turns !== undefined && (!whole(turns) || turns < 1 || turns > STAFF_LIGHT_TURNS_MAX)) return `the light’s turns must be a whole number from 1 to ${STAFF_LIGHT_TURNS_MAX} (leave it out for 1).`
       return undefined
     }
+    case 'unlock': {
+      const ok = v === true || (Array.isArray(v) && v.length > 0 && v.every((x) => x === 'door' || x === 'chest'))
+      return ok ? undefined : 'unlocking must be for doors, chests or both.'
+    }
     case 'inflict': return inflictProblem(doc, v, at)
     case 'cure': return cureProblem(doc, v, at)
     default:
-      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair, light, inflict a condition or cure).`
+      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair, light, inflict a condition, cure or unlock).`
   }
 }
 
@@ -127,7 +131,15 @@ function cureProblem(doc: ProjectDoc, v: unknown, at: string): string | undefine
 function combinationProblem(i: Item, fx: unknown[]): string | undefined {
   const kinds = fx.map(fxKind)
   const count = (set: readonly string[]) => kinds.filter((k) => !!k && set.includes(k)).length
-  const moves = count(MOVE_KINDS), repairs = count(['repair']), lights = count(['light'])
+  const moves = count(MOVE_KINDS), repairs = count(['repair']), lights = count(['light']), unlocks = count(['unlock'])
+  if (unlocks > 1) return 'a staff can have only one unlock.'
+  if (unlocks) {
+    if (fx.length !== 1) return 'unlocking picks a door or chest, not a unit, so it cannot be put together with another effect.'
+    if (i.target !== undefined) return 'unlocking picks a square of a door or chest, so the staff cannot say who it is used on. Remove the target.'
+    if (i.area !== undefined) return 'unlocking opens the one door or chest picked, so the staff has no area. Remove the area.'
+    if (i.if !== undefined) return 'unlocking picks a door or chest, so there is no unit for “Only if” to judge. Remove the conditions.'
+    return undefined
+  }
   if (moves > 1) return 'a staff can have only one of warp, pull and swap (each one decides where the unit ends up).'
   if (repairs > 1) return 'a staff can have only one repair.'
   if (lights > 1) return 'a staff can have only one light.'
@@ -153,7 +165,7 @@ function combinationProblem(i: Item, fx: unknown[]): string | undefined {
 /** Each effect by itself first; when all are fine, what they are put together with. */
 function effectProblems(doc: ProjectDoc, i: Item): string[] {
   const fx = i.effects as unknown[] | undefined
-  if (!Array.isArray(fx) || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return [`a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal, move a unit, repair an item, light an area, inflict a condition or cure).`]
+  if (!Array.isArray(fx) || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return [`a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal, move a unit, repair an item, light an area, inflict a condition, cure or unlock).`]
   const each = fx.map((e, n) => effectProblem(doc, i, e, n + 1)).filter((p): p is string => !!p)
   if (each.length > 0) return each
   const combo = combinationProblem(i, fx)

@@ -1,5 +1,5 @@
 // The number an effect needs: how far a push goes, how much a heal gives.
-import { HEAL_MAX, PUSH_MAX, REFRESH_MAX, effectKind, refreshPerTurn, setCure, setEffectAmount, setRefreshPerTurn, setSteal, stealOf } from '../../model/abilities'
+import { HEAL_MAX, PUSH_MAX, REFRESH_MAX, effectKind, refreshPerTurn, setCure, setEffectAmount, setRefreshPerTurn, setSteal, setUnlock, stealOf, unlockOf, type UnlockKinds } from '../../model/abilities'
 import { useDoc } from '../../store/context'
 import { MultiSelect } from '../../ui/MultiSelect'
 import { Select } from '../../ui/Select'
@@ -24,6 +24,23 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
         </Field>
         <Check label={T.stealWeapons} help={T.stealWeaponsHelp} checked={s.weapons === true} onChange={(v) => change((a) => setSteal(a, { weapons: v }))} />
         {s.weapons === true && <Check label={T.stealEquipped} checked={s.equipped === true} onChange={(v) => change((a) => setSteal(a, { equipped: v }))} />}
+      </div>
+    )
+  }
+  if (kind === 'unlock') {
+    const u = unlockOf(ability)
+    const picks = (doc.items ?? []).filter((i) => i.uses !== undefined || i.id === u.needs)
+    const options = [{ value: '', label: T.unlockNeedsNone }, ...picks.map((i) => ({ value: i.id, label: i.uses === undefined ? `${i.name} (unlimited uses: not usable)` : i.name }))]
+    if (u.needs && !picks.some((i) => i.id === u.needs)) options.push({ value: u.needs, label: `${u.needs} (not an item of this game)` })
+    return (
+      <div className="stack tight" data-testid="ability-unlock">
+        <Field label={T.unlockKinds}>
+          <Select value={u.kinds} options={[{ value: 'both', label: T.unlockBoth }, { value: 'door', label: T.unlockDoor }, { value: 'chest', label: T.unlockChest }]}
+            onChange={(v) => change((a) => setUnlock(a, { kinds: v as UnlockKinds }))} />
+        </Field>
+        <Field label={T.unlockNeeds} help={picks.length === 0 && !u.needs ? T.unlockNeedsNoItems : T.unlockNeedsHelp}>
+          <Select value={u.needs} options={options} onChange={(v) => change((a) => setUnlock(a, { needs: v }))} />
+        </Field>
       </div>
     )
   }

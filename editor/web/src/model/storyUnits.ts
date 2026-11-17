@@ -1,5 +1,6 @@
 // Document-level edits where a map's units or sides meet its events: a unit's story id, deleting a unit, deleting a
 // side. Each is ONE edit, so a single Undo restores the units and everything the clean-up removed.
+import { renameVisitUnit } from './mapPlaces'
 import { removeMapUnit, unitAt } from './mapUnits'
 import { removeSide } from './mapSides'
 import { followUnitRename } from './campaignRefs'
@@ -25,7 +26,8 @@ export function changeUnitStoryId(doc: ProjectDoc, mapId: string, x: number, y: 
     const error = idProblem(to, takenUnitIds(map, unit))
     if (error) return { doc, error }
   }
-  const next = withMap(doc, mapId, setUnitStoryId(map, x, y, to))
+  const renamed = setUnitStoryId(map, x, y, to)
+  const next = withMap(doc, mapId, unit.id && to ? renameVisitUnit(renamed, unit.id, to) : renamed) // a place that lists it as a visitor follows too
   // The campaign's scenes that named the old story name follow it (unless another map still has that name).
   return { doc: unit.id ? followUnitRename(doc, next, unit.id, to) : next, error: null }
 }

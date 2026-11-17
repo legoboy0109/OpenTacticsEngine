@@ -3,7 +3,7 @@
 // the choices the loader would refuse are greyed out here, with the reason beside them. Effects the editor cannot show are kept.
 import { STAFF_HEAL_MAX, hitExample, hitText, healExample, setHit, setStaffXp, xpExample, xpText } from '../../../model/staff'
 import { canDropEffect, healBlock, healOf, setHealFormula, setHealKind, setHealNumber, setHealOn, setHealPercent, type HealKind } from '../../../model/staffEffects'
-import { isLightStaff, keptEffectCount } from '../../../model/staffFx'
+import { isLightStaff, isUnlockStaff, keptEffectCount } from '../../../model/staffFx'
 import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
 import { Field } from '../../../ui/Field'
@@ -13,6 +13,7 @@ import { TextInput } from '../../../ui/TextInput'
 import { Check } from '../../../ui/Toggle'
 import { StaffConditionParts } from './StaffConditionParts'
 import { StaffLightPart, StaffMovePart, StaffRepairPart } from './StaffOtherParts'
+import { StaffUnlockPart } from './StaffUnlockPart'
 import { S } from './text'
 
 export function StaffEffectCard({ id }: { id: string }) {
@@ -23,6 +24,7 @@ export function StaffEffectCard({ id }: { id: string }) {
   const key = `item:${id}`
   const heal = healOf(item)
   const light = isLightStaff(item)
+  const unlock = isUnlockStaff(item)
   const canMiss = item.hit !== undefined
   const kept = keptEffectCount(item)
   const block = healBlock(item)
@@ -30,7 +32,7 @@ export function StaffEffectCard({ id }: { id: string }) {
   return (
     <Card title={S.healTitle} help={S.effectsHelp} id="staff-effect">
       <div className="stack" data-testid="staff-effect">
-        {light ? <StaffLightPart id={id} /> : (
+        {light ? <StaffLightPart id={id} /> : unlock ? <StaffUnlockPart id={id} /> : (
           <>
             <Check label={S.healOn} checked={heal.on} disabled={heal.on ? !canDropEffect(item) : block !== ''}
               help={!heal.on && block === 'foe' ? S.healNoFoe : !heal.on && block === 'full' ? S.fourMax : undefined}
@@ -63,6 +65,7 @@ export function StaffEffectCard({ id }: { id: string }) {
             <StaffRepairPart id={id} />
             <StaffConditionParts id={id} />
             <StaffLightPart id={id} />
+            <StaffUnlockPart id={id} />
           </>
         )}
         {kept > 0 && <p className="help" data-testid="staff-more-effects">{S.keptEffects(kept)}</p>}

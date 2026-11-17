@@ -11,6 +11,7 @@ import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
+import { PlacesRuleCard } from './PlacesRuleCard'
 import { ResearchRuleCard } from './ResearchRuleCard'
 import { SupplyCard } from './SupplyCard'
 import { SrpgRulesCards } from './srpg/SrpgRulesCards'
@@ -47,6 +48,7 @@ function RulesForm() {
       <ResearchRuleCard />
       <FogRuleCard />
       <ItemsCard />
+      <PlacesRuleCard />
       <SavingCard />
       <SwitchesCard />
       <VariablesCard />

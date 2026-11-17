@@ -3,7 +3,7 @@
 // checkCombination) are kept here as refusals: an edit that would make a file the loader refuses simply is not made, and the form greys
 // the same choices out (so the model and the screen agree). The order of the effects in a file never matters: each part is found by its
 // kind, replaced where it stands, and an effect this file does not know stays exactly as it is.
-import { MOVE_KINDS, STAFF_EFFECT_KINDS, fxIndex, fxKind, fxList, hasFx, isLightStaff, type MoveKind } from './staffFx'
+import { MOVE_KINDS, STAFF_EFFECT_KINDS, fxIndex, fxKind, fxList, hasFx, isLightStaff, isSquareStaff, type MoveKind } from './staffFx'
 import { STAFF_EFFECTS_MAX, STAFF_HEAL_MAX, STAFF_RADIUS_MAX, healExample, patchItem, reachOfValue, reachWithMax, reachWithMin, reachWithMode, type Reach, type ReachMode } from './staff'
 import type { Extra, Item, ProjectDoc } from './types'
 
@@ -51,7 +51,7 @@ export function healOf(item: Item): Heal {
 
 /** Why healing cannot be switched on now, or '' when it can. */
 export function healBlock(item: Item): string {
-  if (isLightStaff(item)) return 'light'
+  if (isSquareStaff(item)) return 'light'
   if (item.target === 'foe') return 'foe'
   return room(item) ? '' : 'full'
 }
@@ -86,7 +86,7 @@ export function moveOf(item: Item): Move {
 /** What stops this kind of move now: 'repair' (a repair is there), 'self' (pull and swap need another unit), 'light', 'full' (4 effects
  *  already), or '' when it can be chosen. */
 export function moveBlock(item: Item, kind: MoveKind): string {
-  if (isLightStaff(item)) return 'light'
+  if (isSquareStaff(item)) return 'light'
   if (hasFx(item, ['repair'])) return 'repair'
   if ((kind === 'pull' || kind === 'swap') && item.target === 'self') return 'self'
   return hasFx(item, MOVE_KINDS) || room(item) ? '' : 'full'
@@ -124,7 +124,7 @@ export function repairOf(item: Item): Repair {
 
 /** What stops repairing from being switched on: 'move', 'light', 'full', or ''. */
 export function repairBlock(item: Item): string {
-  if (isLightStaff(item)) return 'light'
+  if (isSquareStaff(item)) return 'light'
   if (hasFx(item, MOVE_KINDS)) return 'move'
   return room(item) ? '' : 'full'
 }

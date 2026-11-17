@@ -1,10 +1,10 @@
 // Editor-side checks for abilities (docs/SRPG.md "Checks / Problems"): an ability nobody has, plus the loader's refusals
 // said in plain words, so a maker sees them before pressing Play. (The loader's own messages still reach the Problems list.)
-import { TARGETS_FOR, effectKind, hasFixedRange, stealOf, targetOf, summonOf } from './abilities'
+import { TARGETS_FOR, effectKind, hasFixedRange, stealOf, targetOf, summonOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc, Section } from './types'
 
-const EFFECT_WORDS = { push: 'push', pull: 'pull', swap: 'swap places', moveBehind: 'move to the other side', movePast: 'move past', heal: 'heal', summon: 'summon', steal: 'steal', refresh: 'refresh', cure: 'cure' } as const
+const EFFECT_WORDS = { push: 'push', pull: 'pull', swap: 'swap places', moveBehind: 'move to the other side', movePast: 'move past', heal: 'heal', summon: 'summon', steal: 'steal', refresh: 'refresh', cure: 'cure', unlock: 'unlock' } as const
 
 /** `ids`: the unit types, items or abilities the message is about, so a card can show only what concerns its own. */
 export interface SrpgCheck { section: Section; text: string; ids?: string[] }
@@ -27,6 +27,7 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     else if (kind === 'steal') out.push(`${a.name}: stealing works on an enemy next to the unit.`)
     else if (kind === 'refresh') out.push(`${a.name}: refreshing works on an ally.`)
     else if (kind === 'cure') out.push(`${a.name}: curing works on the unit itself or an ally.`)
+    else if (kind === 'unlock') out.push(`${a.name}: unlocking works on a square of a door or chest.`)
     else out.push(`${a.name}: “${EFFECT_WORDS[kind]}” needs a unit next to it as its target.`)
   }
   if (kind === 'summon') {
@@ -52,6 +53,19 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
       if (ids.length === 0) out.push(`${a.name}: it cures nothing yet. Pick at least one condition, or all of them.`)
       for (const id of ids) if (!doc.conditions?.some((x) => x.id === id)) out.push(`${a.name}: the condition “${id}” does not exist.`)
     }
+  }
+  if (kind === 'unlock') {
+    const u = a.effect?.unlock
+    const okShape = u === true || (Array.isArray(u) && u.length > 0 && u.every((x) => x === 'door' || x === 'chest')) ||
+      (!!u && typeof u === 'object' && !Array.isArray(u) && (u.kinds === undefined || (Array.isArray(u.kinds) && u.kinds.length > 0 && u.kinds.every((x) => x === 'door' || x === 'chest'))))
+    if (!okShape) out.push(`${a.name}: unlocking must be for doors, chests or both.`)
+    const needs = unlockOf(a).needs
+    if (needs) {
+      const item = doc.items?.find((i) => i.id === needs)
+      if (!item) out.push(`${a.name}: the lockpick “${needs}” is not an item of this game.`)
+      else if (item.uses === undefined) out.push(`${a.name}: the lockpick ${item.name} has unlimited uses. A lockpick that wears out needs a number of uses (Items screen).`)
+    }
+    if (!doc.structures?.some((s) => s.door || s.chest)) out.push(`${a.name}: this game has no door or chest yet, so there is nothing to unlock (Structures screen).`)
   }
   return out
 }

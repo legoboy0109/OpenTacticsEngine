@@ -12,6 +12,7 @@ import { MasterDetail } from '../../ui/MasterDetail'
 import { NameDialog } from '../../ui/NameDialog'
 import { ItemChecks } from '../items/ItemChecks'
 import { EconomyChecks } from '../research/EconomyChecks'
+import { PlaceChecks } from './PlaceChecks'
 import { StructureForm } from './StructureForm'
 import { T } from './text'
 
@@ -53,6 +54,7 @@ function StructureList({ itemId }: { itemId?: string }) {
     <>
       <ItemChecks section="structures" />
       <EconomyChecks section="structures" />
+      <PlaceChecks section="structures" />
       <MasterDetail title={T.title} noun={T.noun} emptyText={T.empty} note={T.intro} selectedId={itemId}
         items={list.map((s) => ({ id: s.id, label: s.name, sub: hex ? T.subtitleHex(ringsOf(s), s.glyph) : T.subtitle(sizeOf(s).w, sizeOf(s).h, s.glyph), swatch: s.color }))}
         onSelect={go} onBack={() => go()} onNew={() => setNaming(true)}

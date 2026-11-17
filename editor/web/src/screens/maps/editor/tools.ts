@@ -7,6 +7,7 @@ import { terrainAt, type Cell } from '../../../model/mapGrid'
 import { fillFrom, lineCells, paintCells } from '../../../model/mapPaint'
 import { applyHeights, clampHeight, type HeightMode } from '../../../model/mapHeights'
 import { footprint, moveStructureBy, placeStructure, rectOf, structureIndexAt, placedOf } from '../../../model/mapStructures'
+import { fitPlaceKeys } from '../../../model/mapPlaces'
 import { moveMapUnit, placeUnit, unitAt } from '../../../model/mapUnits'
 import { toggleSlot } from '../../../model/prep'
 import { STROKE_PREFIX } from '../../../store/history'
@@ -132,7 +133,8 @@ function structureStroke(env: StrokeEnv, cell: Cell, t: ToolState): Stroke {
   const spec = { type: t.structureType, side: t.structureSide, x: cell.x, y: cell.y }
   const r = placeStructure(map, ctx, spec)
   if (r.error) { env.say(r.error); return NOOP }
-  env.store.edit((d) => editMap(d, env.mapId, (m, c) => placeStructure(m, c, spec).map))
+  // A new chest starts with something inside so the game loads (model/mapPlaces.ts).
+  env.store.edit((d) => editMap(d, env.mapId, (m, c) => { const p = placeStructure(m, c, spec).map; return p === m ? m : fitPlaceKeys(d, p, cell) }))
   env.view.set({ selected: cell, ...selectionOf(ctx, t.structureType, cell.x, cell.y) })
   return NOOP
 }
