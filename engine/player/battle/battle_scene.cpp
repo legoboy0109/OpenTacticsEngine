@@ -162,7 +162,9 @@ void BattleScene::followCamera(double dt) {
 void BattleScene::update(double dt) {
   time_ += (float)dt;
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
+  view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);
+  updateFight(dt);
   updateDialogue(dt);
   if (mode_ != Mode::Result && !view_.busy() && !prep_) {  // (the preparation has no turns to begin and no AI)
     updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
@@ -304,6 +306,7 @@ void BattleScene::draw(Renderer& r) {
   if (view_.dialogue.active) dialogue_.draw(r);
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);
+  fightScene_.draw(r);  // the battle scene covers everything while a fight plays
 }
 
 }  // namespace ote

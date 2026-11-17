@@ -11,6 +11,14 @@ namespace ote {
 
 void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
   tex_.assign(g.sheets.size(), 0);
+  mir_.assign(g.sheets.size(), 0);
+  // Sheets the battle scene draws mirrored (docs/BATTLE_SCENE.md): its animation sets and effects.
+  std::vector<char> mirrorIt(g.sheets.size(), 0);
+  for (const BattleSet& s : g.battle.sets)
+    for (const BattleAnim& a : s.anims)
+      if (a.sheet >= 0 && (size_t)a.sheet < mirrorIt.size() && s.mirror) mirrorIt[(size_t)a.sheet] = 1;
+  for (const BattleEffect& e : g.battle.effects)
+    if (e.anim.sheet >= 0 && (size_t)e.anim.sheet < mirrorIt.size()) mirrorIt[(size_t)e.anim.sheet] = 1;
   for (size_t i = 0; i < g.sheets.size(); ++i) {
     const SheetDef& s = g.sheets[i];
     Image img;
@@ -27,13 +35,26 @@ void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
       continue;
     }
     tex_[i] = r.createTexture(img.rgba.data(), img.width, img.height);  // logs its own failure
+    if (tex_[i] && mirrorIt[i]) {
+      // A copy of the whole cells with every row reversed, for the fighter that faces the other way.
+      const int w = s.cols * s.cellW, h = img.height;
+      std::vector<uint8_t> flipped((size_t)w * (size_t)h * 4);
+      for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+          for (int k = 0; k < 4; ++k)
+            flipped[((size_t)y * w + (size_t)(w - 1 - x)) * 4 + (size_t)k] = img.rgba[((size_t)y * img.width + (size_t)x) * 4 + (size_t)k];
+      mir_[i] = r.createTexture(flipped.data(), w, h);
+    }
   }
 }
 
 void Sprites::release(Renderer& r) {
   for (TextureId t : tex_)
     if (t) r.destroyTexture(t);
+  for (TextureId t : mir_)
+    if (t) r.destroyTexture(t);
   tex_.clear();
+  mir_.clear();
 }
 
 namespace {

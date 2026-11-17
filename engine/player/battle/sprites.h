@@ -26,11 +26,18 @@ class Sprites {
   TextureId texture(int sheet) const {
     return sheet >= 0 && (size_t)sheet < tex_.size() ? tex_[(size_t)sheet] : 0;
   }
+  // The sheet drawn from right to left (the battle scene's fighter on the right-hand side), only for the sheets the battle
+  // scene's animation sets and effects use; 0 when there is none. Whole cells only: cell column c of the sheet is column
+  // (cols - 1 - c) here, and the pixels right of the last whole cell are not part of it.
+  TextureId mirrored(int sheet) const {
+    return sheet >= 0 && (size_t)sheet < mir_.size() ? mir_[(size_t)sheet] : 0;
+  }
   bool any() const { return !tex_.empty(); }
   bool has(const Look& look) const { return look.any() && texture(look.sheet) != 0; }
 
  private:
   std::vector<TextureId> tex_;
+  std::vector<TextureId> mir_;
 };
 
 // The look of a terrain / of a unit in the style being drawn, or null when it

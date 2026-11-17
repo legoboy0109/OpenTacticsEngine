@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "battle/fight_scene.h"
 #include "battle/free_cam.h"
 #include "core/campaign/playthrough.h"
 #include "battle/battle_draw.h"
@@ -63,6 +64,10 @@ class BattleScene : public Scene {
   void cellScreenBox(Cell c, int& x, int& y, int& w, int& h) const;
   // Fills a cell's screen box (from cellScreenBox) in a colour: the box, or the hexagon inside it on a hexagon map.
   void fillCellBox(Renderer& r, int x, int y, int w, int h, Color col) const;
+
+  // --- battle_fight.cpp: the side-view battle scene (docs/BATTLE_SCENE.md)
+  void updateFight(double dt);  // starts the scene when the view holds a fight, plays it, hands the result back
+  void startFight();
 
   // --- battle_fog.cpp: fog of war (docs/ECONOMY.md "Fog of war > Player")
   void initFog();
@@ -269,6 +274,8 @@ class BattleScene : public Scene {
   GameSession& session_;
   Battle& battle_;  // lives in the session; undo assigns into it
   BattleView view_;
+  FightScene fightScene_;
+  int fightSerial_ = -1;  // the view's fight (BattleView::FightRun::serial) the scene was started for
   Layout layout_;
   Camera cam_;
   MapProj proj_;  // where squares are on screen in the style in use

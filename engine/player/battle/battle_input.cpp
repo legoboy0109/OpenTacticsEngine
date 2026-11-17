@@ -72,6 +72,11 @@ void BattleScene::onInput(const InputEvent& e) {
     if (dialogue_.isOpen()) dialogueResult(dialogue_.onInput(e));
     return;
   }
+  if (fightScene_.active()) {  // the battle scene takes every input: confirm / cancel / tap skip to the result of this fight
+    if (e.type == InputEvent::PointerDown || (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel)))
+      fightScene_.skip();
+    return;
+  }
   if (turnInput(e)) return;
   bool confirmish = e.type == InputEvent::PointerDown ||
                     (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
