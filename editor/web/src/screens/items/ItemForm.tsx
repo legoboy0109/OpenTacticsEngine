@@ -1,5 +1,6 @@
 import { setItemKind, setPrice, setUnlimited, setUses, updateItem } from '../../model/items'
 import { carriedWeapons } from '../../model/itemRules'
+import { repairableShown, setRepairable } from '../../model/staffEffects'
 import type { ItemKind } from '../../model/types'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -66,6 +67,9 @@ export function ItemForm({ id }: { id: string }) {
               <Field label={T.usesCount} help={T.usesHelp}>
                 <NumberInput value={item.uses} min={1} max={999} onChange={(v) => { if (v !== undefined) edit((d) => setUses(d, id, v), `${key}:uses`) }} />
               </Field>
+            )}
+            {repairableShown(doc, item) && (
+              <Toggle label={T.repairable} help={T.repairableHelp} checked={item.repairable !== false} onChange={(v) => edit((d) => setRepairable(d, id, v))} />
             )}
           </div>
         </Card>

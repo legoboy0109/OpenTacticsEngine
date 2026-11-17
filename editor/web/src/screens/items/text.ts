@@ -19,7 +19,7 @@ export const T = {
   checksTitle: 'The game will not load until these are fixed',
 
   kind: 'Kind',
-  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus or skills to whoever carries them. Staves are used on other units from a distance, to heal them.',
+  kindHelp: 'Usable items are used up on a unit. Weapon items are carried and fought with. Accessories give a bonus or skills to whoever carries them. Staves are used on other units from a distance, to heal them, move them, repair their items or light up an area.',
   kindUsable: KIND_LABEL.usable,
   kindWeapon: KIND_LABEL.weapon,
   kindAccessory: KIND_LABEL.accessory,
@@ -32,6 +32,8 @@ export const T = {
   unlimited: 'Unlimited',
   unlimitedHelp: 'It never wears out.',
   usesCount: 'Number of uses',
+  repairable: 'A repair staff can mend it',
+  repairableHelp: 'Off: a staff that repairs items never offers this one.',
 
   price: 'Price',
   priceHelp: 'What a shop charges. Leave every box empty if shops cannot sell it.',

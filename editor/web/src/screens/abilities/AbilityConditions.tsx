@@ -15,8 +15,8 @@ import { T } from './text'
 
 const opOptions = OPS.map((o) => ({ value: o, label: T.ops[o] }))
 
-/** `title` / `help` let another owner of the same conditions (a staff, docs/SRPG.md section 8) use its own words. */
-export function AbilityConditions({ ability, change, title, help }: FormProps & { title?: string; help?: string }) {
+/** `title` / `help` / `userLabel` let another owner of the same conditions (a staff, docs/SRPG.md section 8) use its own words. */
+export function AbilityConditions({ ability, change, title, help, userLabel }: FormProps & { title?: string; help?: string; userLabel?: string }) {
   const list = (ability.if ?? []) as Extra[]
   const set = (next: Extra[], key?: string) => change((a) => setConditions(a, next), key)
   const patch = (i: number, c: Extra, key?: string) => set(list.map((x, j) => (j === i ? c : x)), key && `${key}:${i}`)
@@ -44,7 +44,7 @@ export function AbilityConditions({ ability, change, title, help }: FormProps & 
               </div>
               {kind && canJudgeTarget(kind) && canTarget && (
                 <Field label={T.condWho}>
-                  <Select value={c.who === 'foe' ? 'foe' : 'self'} options={[{ value: 'self', label: T.condWhoSelf }, { value: 'foe', label: T.condWhoTarget }]}
+                  <Select value={c.who === 'foe' ? 'foe' : 'self'} options={[{ value: 'self', label: userLabel ?? T.condWhoSelf }, { value: 'foe', label: T.condWhoTarget }]}
                     onChange={(v) => patch(i, setWho(c, v === 'foe'))} />
                 </Field>
               )}

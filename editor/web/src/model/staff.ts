@@ -1,14 +1,16 @@
 // The settings of a staff (an item of kind "staff", docs/SRPG.md section 8), as the Items form edits them: reach, who it works on, area,
-// healing, a hit chance, experience. Pure functions on the document. Every edit leaves what the form does not show (a stage-2 or
-// stage-3 effect, any key a hand-edited file has) exactly as it is.
+// a hit chance, experience. (The effects are staffEffects.ts.) Pure functions on the document. Every edit leaves what the form does not
+// show (an effect of a later stage, any key a hand-edited file has) exactly as it is.
 import { groupsOf } from './ranks'
 import { dropGroupRanks, renameGroupRefs } from './rankRefs'
-import type { Extra, Item, ItemTarget, ProjectDoc, StaffArea } from './types'
+import { MOVE_KINDS, hasFx, isLightStaff } from './staffFx'
+import type { Item, ItemTarget, ProjectDoc, StaffArea } from './types'
 import { withItems } from './doc'
 import { patchObj, setNum, updateById } from './util'
 
 /** (Not items.ts's updateItem: that file imports this one.) */
 const updateItem = (doc: ProjectDoc, id: string, patch: Partial<Omit<Item, 'id'>>): ProjectDoc => withItems(doc, (list) => updateById(list, id, (x) => patchObj(x, patch)))
+export const patchItem = updateItem
 
 // Limits of the loader (engine/core/data/staff.h).
 export const STAFF_RANGE_MAX = 20
@@ -29,7 +31,6 @@ export const newStaffDefaults = (doc: ProjectDoc): Partial<Item> => ({
 
 export type ReachMode = 'upto' | 'between' | 'formula'
 export type AreaMode = 'single' | 'radius' | 'all'
-export type HealKind = 'number' | 'percent' | 'full' | 'formula'
 
 const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)))
 const statIds = (doc: ProjectDoc): string[] => (doc.game?.stats ?? []).map((s) => s.id)
@@ -64,43 +65,55 @@ export const dropGroupIfGone = (before: ProjectDoc, after: ProjectDoc): ProjectD
 // --- reach ----------------------------------------------------------------------------------------------------------------
 
 export interface Reach { mode: ReachMode; min: number; max: number; text: string }
-export function reachOf(item: Item): Reach {
-  const r = item.range
+/** Reads a reach value as the staff's `range` and a warp's `range` have it: a number, [min, max] or a formula. */
+export function reachOfValue(r: unknown): Reach {
   if (typeof r === 'string') return { mode: 'formula', min: 1, max: 1, text: r }
   if (Array.isArray(r) && r.length === 2) return { mode: 'between', min: Number(r[0]), max: Number(r[1]), text: '' }
   return { mode: 'upto', min: 1, max: typeof r === 'number' ? r : 1, text: '' }
 }
+export const reachOf = (item: Item): Reach => reachOfValue(item.range)
+
+type ReachValue = number | [number, number] | string
+/** The reach value after a change of mode / farthest / nearest square; the same rules for the staff's reach and a warp's. */
+export function reachWithMode(doc: ProjectDoc, cur: Reach, mode: ReachMode): ReachValue {
+  const max = clampInt(cur.mode === 'formula' ? 3 : cur.max, 1, STAFF_RANGE_MAX)
+  if (mode === 'upto') return max
+  if (mode === 'between') return [Math.min(cur.min, max), Math.max(2, max)]
+  return reachExample(doc)
+}
+export function reachWithMax(cur: Reach, n: number): ReachValue {
+  const max = clampInt(n, 1, STAFF_RANGE_MAX)
+  return cur.mode === 'between' ? [Math.min(cur.min, max), max] : max
+}
+export function reachWithMin(cur: Reach, n: number): ReachValue {
+  const min = clampInt(n, 1, STAFF_RANGE_MAX)
+  return [min, Math.max(min, cur.max)]
+}
 
 export function setReachMode(doc: ProjectDoc, id: string, mode: ReachMode): ProjectDoc {
   const item = doc.items?.find((x) => x.id === id)
-  if (!item) return doc
-  const cur = reachOf(item)
-  if (cur.mode === mode) return doc
-  const max = clampInt(cur.mode === 'formula' ? 3 : cur.max, 1, STAFF_RANGE_MAX)
-  if (mode === 'upto') return updateItem(doc, id, { range: max })
-  if (mode === 'between') return updateItem(doc, id, { range: [Math.min(cur.min, max), Math.max(2, max)] })
-  return updateItem(doc, id, { range: reachExample(doc) })
+  if (!item || reachOf(item).mode === mode) return doc
+  return updateItem(doc, id, { range: reachWithMode(doc, reachOf(item), mode) })
 }
 export function setReachMax(doc: ProjectDoc, id: string, n: number): ProjectDoc {
   const item = doc.items?.find((x) => x.id === id)
-  if (!item) return doc
-  const cur = reachOf(item)
-  const max = clampInt(n, 1, STAFF_RANGE_MAX)
-  return updateItem(doc, id, { range: cur.mode === 'between' ? [Math.min(cur.min, max), max] : max })
+  return item ? updateItem(doc, id, { range: reachWithMax(reachOf(item), n) }) : doc
 }
 export function setReachMin(doc: ProjectDoc, id: string, n: number): ProjectDoc {
   const item = doc.items?.find((x) => x.id === id)
-  if (!item) return doc
-  const cur = reachOf(item)
-  const min = clampInt(n, 1, STAFF_RANGE_MAX)
-  return updateItem(doc, id, { range: [min, Math.max(min, cur.max)] })
+  return item ? updateItem(doc, id, { range: reachWithMin(reachOf(item), n) }) : doc
 }
 export const setReachFormula = (doc: ProjectDoc, id: string, text: string): ProjectDoc => updateItem(doc, id, { range: text })
 
 // --- who it works on, the area ----------------------------------------------------------------------------------------------
 
-/** "Yourself" takes no reach and no area (the loader refuses both), so choosing it drops them in the same step. */
+/** "Yourself" takes no reach and no area (the loader refuses both), so choosing it drops them in the same step. Two choices the loader
+ *  refuses are not made at all: "yourself" for a staff that pulls or swaps (it needs another unit), "an enemy" for one that heals. */
 export function setStaffTarget(doc: ProjectDoc, id: string, target: ItemTarget): ProjectDoc {
+  const cur = doc.items?.find((x) => x.id === id)
+  if (isLightStaff(cur)) return doc // a light picks a square: it has no target
+  if (target === 'self' && hasFx(cur, ['pull', 'swap'])) return doc
+  if (target === 'foe' && hasFx(cur, ['heal'])) return doc
   return updateItem(doc, id, target === 'self' ? { target, range: undefined, area: undefined } : { target: target === 'ally' ? undefined : target })
 }
 
@@ -110,46 +123,23 @@ export function areaModeOf(item: Item): AreaMode {
 }
 export const radiusOf = (item: Item): number => (item.area && typeof item.area === 'object' ? Number(item.area.radius) : 1)
 
+/** A warp, pull, swap or repair works on the one unit picked: the loader refuses any other area. */
+export const needsSingleArea = (item: Item | undefined): boolean => hasFx(item, [...MOVE_KINDS, 'repair'])
+
 export function setAreaMode(doc: ProjectDoc, id: string, mode: AreaMode): ProjectDoc {
+  const cur = doc.items?.find((x) => x.id === id)
+  if (mode !== 'single' && (needsSingleArea(cur) || isLightStaff(cur))) return doc
   const area: StaffArea | undefined = mode === 'single' ? undefined : mode === 'all' ? 'all' : { radius: 1 }
   return areaModeOf(doc.items?.find((x) => x.id === id) ?? ({} as Item)) === mode ? doc : updateItem(doc, id, { area })
 }
 export const setRadius = (doc: ProjectDoc, id: string, n: number): ProjectDoc => updateItem(doc, id, { area: { radius: clampInt(n, 1, STAFF_RADIUS_MAX) } })
-
-// --- healing (the first effect; further effects and later-stage effects are kept) ---------------------------------------------
-
-export interface Heal { kind: HealKind; value: number; text: string; /** The first effect is a heal the form can edit. */ editable: boolean; /** More effects follow. */ more: number }
-export function healOf(item: Item): Heal {
-  const fx = item.effects ?? []
-  const first = fx[0] as Extra | undefined
-  const more = Math.max(0, fx.length - 1)
-  if (!first || !('heal' in first)) return { kind: 'number', value: 10, text: '', editable: !first, more }
-  const h = first.heal
-  if (h === 'full') return { kind: 'full', value: 100, text: '', editable: true, more }
-  if (typeof h === 'string') return { kind: 'formula', value: 0, text: h, editable: true, more }
-  if (typeof h === 'number') return { kind: 'number', value: h, text: '', editable: true, more }
-  if (h && typeof h === 'object' && typeof (h as Extra).percent === 'number') return { kind: 'percent', value: (h as { percent: number }).percent, text: '', editable: true, more }
-  return { kind: 'number', value: 10, text: '', editable: false, more }
-}
-
-/** Replaces the first effect by a heal (the others stay behind it). */
-function setHealValue(doc: ProjectDoc, id: string, heal: unknown): ProjectDoc {
-  return updateItem(doc, id, { effects: [{ heal }, ...(doc.items?.find((x) => x.id === id)?.effects ?? []).slice(1)] })
-}
-export function setHealKind(doc: ProjectDoc, id: string, kind: HealKind): ProjectDoc {
-  const item = doc.items?.find((x) => x.id === id)
-  if (!item || healOf(item).kind === kind) return doc
-  return setHealValue(doc, id, kind === 'number' ? 10 : kind === 'percent' ? { percent: 25 } : kind === 'full' ? 'full' : healExample(doc))
-}
-export const setHealNumber = (doc: ProjectDoc, id: string, n: number): ProjectDoc => setHealValue(doc, id, clampInt(n, 1, STAFF_HEAL_MAX))
-export const setHealPercent = (doc: ProjectDoc, id: string, n: number): ProjectDoc => setHealValue(doc, id, { percent: clampInt(n, 1, 100) })
-export const setHealFormula = (doc: ProjectDoc, id: string, text: string): ProjectDoc => setHealValue(doc, id, text)
 
 // --- hit chance, experience, numbers ------------------------------------------------------------------------------------------
 
 /** A formula box also takes a plain number; a whole number the loader accepts as a percent is stored as a number. */
 export function setHit(doc: ProjectDoc, id: string, text: string | undefined): ProjectDoc {
   if (text === undefined) return updateItem(doc, id, { hit: undefined })
+  if (isLightStaff(doc.items?.find((x) => x.id === id))) return doc // a light has no unit to roll for
   return updateItem(doc, id, { hit: /^\d+$/.test(text.trim()) && Number(text) <= 100 ? Number(text) : text })
 }
 export function setStaffXp(doc: ProjectDoc, id: string, text: string): ProjectDoc {

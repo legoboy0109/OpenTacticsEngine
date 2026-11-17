@@ -64,7 +64,7 @@ export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): Projec
     if (kind === 'staff') Object.assign(patch, newStaffDefaults(doc), { target: undefined })
     if (kind === 'weapon') patch.weapon = doc.weapons?.[0]?.id
     // An accessory is worn, never used up.
-    if (kind === 'accessory') patch.uses = undefined
+    if (kind === 'accessory') { patch.uses = undefined; patch.repairable = undefined }
     else if (x.uses === undefined && (kind === 'weapon' || kind === 'staff')) patch.uses = DEFAULT_USES[kind]
     return patchObj(x, patch)
   }))
@@ -76,7 +76,8 @@ export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): Projec
 
 /** undefined = unlimited (key removed). */
 export function setUses(doc: ProjectDoc, id: string, uses: number | undefined): ProjectDoc {
-  return updateItem(doc, id, { uses: uses === undefined ? undefined : Math.min(USES_MAX, Math.max(1, Math.round(uses))) })
+  // `repairable` means nothing on an item that never wears (the loader refuses it), so it goes with the uses.
+  return updateItem(doc, id, uses === undefined ? { uses: undefined, repairable: undefined } : { uses: Math.min(USES_MAX, Math.max(1, Math.round(uses))) })
 }
 
 export function setUnlimited(doc: ProjectDoc, id: string, unlimited: boolean): ProjectDoc {

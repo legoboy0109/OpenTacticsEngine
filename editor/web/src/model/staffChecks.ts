@@ -4,7 +4,10 @@
 import { staffItems } from './gear'
 import { featureEnabled } from './rules'
 import { hasLadder } from './ranks'
+import { mapHasFog } from './fog'
 import { STAFF_EFFECTS_MAX, STAFF_HEAL_MAX, STAFF_RADIUS_MAX, STAFF_RANGE_MAX, STAFF_XP_MAX } from './staff'
+import { STAFF_LIGHT_TURNS_MAX, STAFF_REPAIR_MAX, repairableItems } from './staffEffects'
+import { MOVE_KINDS, fxKind, hasFx } from './staffFx'
 import type { Extra, Item, ProjectDoc } from './types'
 
 export interface StaffCheck { section: 'items'; ids: string[]; text: string; blocks: boolean }
@@ -37,23 +40,89 @@ function areaProblem(i: Item): string | undefined {
   return 'the area must be one unit, everyone in reach, or everyone within some squares.'
 }
 
-function healProblem(i: Item): string | undefined {
-  const fx = i.effects as Extra[] | undefined
-  if (!fx || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return `a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal).`
-  for (const e of fx) {
-    if (!e || typeof e !== 'object' || !('heal' in e)) return 'a staff can only heal for now: this effect is not a heal.'
-    if (i.target === 'foe') return 'healing cannot be used on foes. Pick who it can be used on.'
-    const h = e.heal
-    if (typeof h === 'string') { if (h.trim() === '') return 'the healing formula is empty.'; continue }
-    if (whole(h)) { if (h < 1 || h > STAFF_HEAL_MAX) return `healing must be from 1 to ${STAFF_HEAL_MAX}.`; continue }
-    if (h && typeof h === 'object') {
-      const p = (h as { percent?: unknown }).percent
-      if (!whole(p) || p < 1 || p > 100) return 'a healing percentage must be a whole number from 1 to 100.'
-      continue
+/** One effect on its own (kind and value); `n` numbers it the way the loader's "effects entry N" does. */
+function effectProblem(i: Item, e: unknown, n: number): string | undefined {
+  const at = `effect ${n}`
+  const kind = fxKind(e)
+  if (!kind) return `${at} must be one thing, such as healing for 10.`
+  const v = (e as Extra)[kind]
+  switch (kind) {
+    case 'heal': {
+      if (i.target === 'foe') return 'healing cannot be used on foes. Pick who it can be used on.'
+      if (typeof v === 'string') return v.trim() === '' ? 'the healing formula is empty.' : undefined
+      if (whole(v)) return v < 1 || v > STAFF_HEAL_MAX ? `healing must be from 1 to ${STAFF_HEAL_MAX}.` : undefined
+      if (v && typeof v === 'object') {
+        const p = (v as { percent?: unknown }).percent
+        return whole(p) && p >= 1 && p <= 100 ? undefined : 'a healing percentage must be a whole number from 1 to 100.'
+      }
+      return 'healing must be a number, a percentage, “full” or a formula.'
     }
-    return 'healing must be a number, a percentage, “full” or a formula.'
+    case 'warp': {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return `${at}: a warp needs how far from the user the unit can land.`
+      const extra = Object.keys(v).find((k) => k !== 'range')
+      if (extra) return `${at}: a warp has no “${extra}”, only how far it reaches.`
+      if (!('range' in v)) return `${at}: a warp needs how far from the user the unit can land.`
+      const r = (v as { range?: unknown }).range
+      if (typeof r === 'string') return r.trim() === '' ? 'the warp’s reach formula is empty.' : undefined
+      if (whole(r)) return r < 1 || r > STAFF_RANGE_MAX ? `the warp’s reach must be from 1 to ${STAFF_RANGE_MAX} squares.` : undefined
+      if (Array.isArray(r)) {
+        if (r.length !== 2 || !whole(r[0]) || !whole(r[1])) return 'the warp’s reach must be two whole numbers: from and to.'
+        return r[0] < 1 || r[1] < r[0] || r[1] > STAFF_RANGE_MAX ? `the warp’s reach must go from 1 or more up to ${STAFF_RANGE_MAX} squares, and “from” cannot be above “to”.` : undefined
+      }
+      return 'the warp’s reach must be a number, two numbers (from and to) or a formula.'
+    }
+    case 'pull':
+    case 'swap':
+      return v === true ? undefined : `${at}: “${kind}” must be switched on, not changed.`
+    case 'repair':
+      return v === 'full' || (whole(v) && v >= 1 && v <= STAFF_REPAIR_MAX) ? undefined : `repairing must be all uses or a number of uses from 1 to ${STAFF_REPAIR_MAX}.`
+    case 'light': {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return 'a light needs a radius and a number of turns.'
+      const extra = Object.keys(v).find((k) => k !== 'radius' && k !== 'turns')
+      if (extra) return `a light has no “${extra}”, only a radius and a number of turns.`
+      const { radius, turns } = v as { radius?: unknown; turns?: unknown }
+      if (!whole(radius) || radius < 1 || radius > STAFF_RADIUS_MAX) return `the light’s radius must be a whole number from 1 to ${STAFF_RADIUS_MAX} squares.`
+      if (turns !== undefined && (!whole(turns) || turns < 1 || turns > STAFF_LIGHT_TURNS_MAX)) return `the light’s turns must be a whole number from 1 to ${STAFF_LIGHT_TURNS_MAX} (leave it out for 1).`
+      return undefined
+    }
+    default:
+      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair or light).`
+  }
+}
+
+/** What the effects may be put together with (the loader's checkCombination). */
+function combinationProblem(i: Item, fx: unknown[]): string | undefined {
+  const kinds = fx.map(fxKind)
+  const count = (set: readonly string[]) => kinds.filter((k) => !!k && set.includes(k)).length
+  const moves = count(MOVE_KINDS), repairs = count(['repair']), lights = count(['light'])
+  if (moves > 1) return 'a staff can have only one of warp, pull and swap (each one decides where the unit ends up).'
+  if (repairs > 1) return 'a staff can have only one repair.'
+  if (lights > 1) return 'a staff can have only one light.'
+  if (repairs && moves) return 'repairing cannot be put together with warp, pull or swap (each one asks the player for a second pick).'
+  if (lights) {
+    if (fx.length !== 1) return 'a light picks a square, not a unit, so it cannot be put together with another effect.'
+    if (i.target !== undefined) return 'a light picks a square, so the staff cannot say who it is used on. Remove the target.'
+    if (i.area !== undefined) return 'a light picks a square, so the staff has no area (the light has its own radius). Remove the area.'
+    if (i.hit !== undefined) return 'a light picks a square, so there is no unit to roll a chance of missing for. Remove the chance.'
+    if (i.if !== undefined) return 'a light picks a square, so there is no unit for “Only if” to judge. Remove the conditions.'
+    return undefined
+  }
+  if (moves || repairs) {
+    const what = repairs ? 'repairing' : kinds.includes('warp') ? 'a warp' : kinds.includes('pull') ? 'a pull' : 'a swap'
+    if (i.area !== undefined && i.area !== 'single') return `${what} works on the one unit picked, so what it affects must be “one unit”.`
+    if ((kinds.includes('pull') || kinds.includes('swap')) && i.target === 'self') return `${what} needs another unit, so it cannot be used only on the user.`
   }
   return undefined
+}
+
+/** Each effect by itself first; when all are fine, what they are put together with. */
+function effectProblems(i: Item): string[] {
+  const fx = i.effects as unknown[] | undefined
+  if (!Array.isArray(fx) || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return [`a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal, move a unit, repair an item or light an area).`]
+  const each = fx.map((e, n) => effectProblem(i, e, n + 1)).filter((p): p is string => !!p)
+  if (each.length > 0) return each
+  const combo = combinationProblem(i, fx)
+  return combo ? [combo] : []
 }
 
 function hitXpProblems(doc: ProjectDoc, i: Item): string[] {
@@ -70,16 +139,22 @@ function hitXpProblems(doc: ProjectDoc, i: Item): string[] {
 
 export function staffChecks(doc: ProjectDoc): StaffCheck[] {
   const out: StaffCheck[] = []
+  const anyFog = Object.keys(doc.maps).some((m) => mapHasFog(doc, m))
   for (const i of staffItems(doc)) {
     const ids = [i.id]
     const say = (text: string, blocks = true) => out.push({ section: 'items', ids, text: `${i.name}: ${text}`, blocks })
     if (!i.group || i.group.trim() === '') say('a staff needs a group (the kind of staff a class can use, such as “staff”).')
-    for (const p of [rangeProblem(i), areaProblem(i), healProblem(i), ...hitXpProblems(doc, i)]) if (p) say(p)
+    for (const p of [rangeProblem(i), areaProblem(i), ...effectProblems(i), ...hitXpProblems(doc, i)]) if (p) say(p)
     if ((i.rank !== undefined || i.rankXp !== undefined) && !hasLadder(doc)) say('it needs a rank, but the game has no weapon ranks. Add them on the Rules screen, or clear the rank.')
     if (i.wieldedBy?.length && (doc.characters?.length ?? 0) === 0) say('it is locked to characters, but the game has none.')
     // Loads fine, can never be used: no class lists its group.
     if (i.group && (doc.units?.length ?? 0) > 0 && !doc.units!.some((u) => u.wields?.includes(i.group!)))
       say(`nobody can use it yet: no class can wield its group (“${i.group}”). Tick the group for a class on the Units screen.`, false)
+    // Loads fine, but the staff can never do anything in this game.
+    if (hasFx(i, ['light']) && !anyFog)
+      say('it lights up squares in fog of war, but no map of this game has fog, so it can never be used. Switch fog of war on for a map.', false)
+    if (hasFx(i, ['repair']) && repairableItems(doc).length === 0)
+      say('it repairs items, but the game has no item that can be repaired (an item needs a limited number of uses and must not be marked as not repairable).', false)
   }
   return out
 }

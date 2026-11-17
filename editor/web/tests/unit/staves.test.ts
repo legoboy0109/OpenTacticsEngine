@@ -6,7 +6,9 @@ import { rankChecks } from '../../src/model/rankChecks'
 import { lockChecks } from '../../src/model/lockChecks'
 import { deleteItem, setItemKind, updateItem } from '../../src/model/items'
 import { cleanAllLocks, gearLockedTo, lockCount, setGearWielders, locksShown } from '../../src/model/locks'
-import { reachOf, setAreaMode, setHealKind, setHealNumber, setHit, setRadius, setReachFormula, setReachMax, setReachMin, setReachMode, setStaffGroup, setStaffProp, setStaffTarget, setStaffXp, healOf } from '../../src/model/staff'
+import { reachOf, setAreaMode, setHit, setRadius, setReachFormula, setReachMax, setReachMin, setReachMode, setStaffGroup, setStaffProp, setStaffTarget, setStaffXp } from '../../src/model/staff'
+import { healOf, setHealKind, setHealNumber } from '../../src/model/staffEffects'
+import { keptEffectCount } from '../../src/model/staffFx'
 import { staffChecks } from '../../src/model/staffChecks'
 import { itemChecks } from '../../src/model/itemChecks'
 import { deleteCharacter } from '../../src/model/srpgRefs'
@@ -74,7 +76,7 @@ describe('the edits', () => {
     const d = setHealKind(base, 'mend_staff', 'percent')
     expect(item(d, 'mend_staff').effects).toEqual([{ heal: { percent: 25 } }, { warp: { range: 3 } }])
     expect(item(setHealNumber(d, 'mend_staff', 7), 'mend_staff').effects![0]).toEqual({ heal: 7 })
-    expect(healOf(item(base, 'mend_staff')).more).toBe(1)
+    expect(keptEffectCount(item(base, 'mend_staff'))).toBe(0)
   })
   it('can miss on / off; experience; numbers', () => {
     let d = setHit(fx(), 'mend_staff', '70')

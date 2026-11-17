@@ -839,7 +839,7 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
 
 ## Staves (editor step of docs/SRPG.md section 8)
 
-A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: the editor, as built"). No helper change: `items` carries every staff key.
+A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: the editor, as built"). No helper change (stage two included): `items` carries every staff key.
 
 - **Items screen**: kind "Staff" in the kind choice. `screens/items/staff/`: `StaffUseCard` (group with the game's groups suggested, who it can be used on, reach as "up to N squares" /
   "from N to M squares" / "a formula", area as one unit / within N squares of the unit picked / everyone in reach), `StaffEffectCard` (healing as a number / a percentage / all HP / a
@@ -852,9 +852,17 @@ A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: t
   rename / removal, ranks off, character delete / rename, characters off and the "last of a group" clean-up cover both. `model/staff.ts` (edits and limits: reach 1-20, radius 1-10, xp 0-1000, heal 1-1000000),
   `staffChecks.ts` (loader mirror, `blocks: true` = shown in the Items screen's "will not load" banner via `itemChecks`; the rest, "nobody can use it yet", on the staff's form). `setItemKind` (`items.ts`)
   gives a new staff a group, reach 2 and a heal of 10, and removes the staff keys when leaving (one Undo step). Keys the form does not show (stage-2/3 effects, `zzz`) are kept.
-- **Stage two** (warp, pull, swap, repair, light, an item's `repairable`; docs/SRPG.md "Staves: stage two, as built"): **not in the form yet**. The form shows a first effect that is not a heal as "not
-  editable" and keeps it; the helper keeps every key through GET and PUT (checked in `tests/editor_api_staves_checks.py` on `tests/fixtures/srpg-staves2`). The editor's own checks still mirror stage 1 only.
-- **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` (with Play and the 360 px check).
+- **Stage two** (warp, pull, swap, repair, light, an item's `repairable`; docs/SRPG.md "Staves: stage two, as built" and "the editor, stage two"): in the form. "What it does" is a set of parts
+  (`StaffEffectCard`: "It heals" with its kinds; `StaffOtherParts`: "Moving a unit" none / warp (with its reach: up to / from-to / formula) / pull / swap, "It repairs an item" all uses or a number,
+  "It lights up an area" with a radius and turns). Each part is found by its kind, so the file's effect order never matters; an effect the form does not know is kept and said so (`staff-more-effects`).
+  Choices the loader refuses are **greyed out with the reason beside them** (move with repair, pull / swap with "Only the user", a wider area with a move or repair, an enemy with healing, light with an
+  unknown effect) and the model refuses them too (`model/staffEffects.ts`). "It lights up an area" replaces the other effects and removes target, area, chance of missing and conditions in the same step
+  (one Undo), the way "Only the user" removes reach and area; the form then hides those. Items screen: the uses card has "A repair staff can mend it" (`repairable`; key absent = on, off = `false`),
+  shown only for an item with uses when the game has a repair staff or the item already has the key. The conditions box says "The unit using the staff" (`AbilityConditions` takes `userLabel`).
+  Checks (`staffChecks.ts`, `itemChecks.ts`) mirror every stage-two refusal; "worth a look": a light staff when no map has fog, a repair staff when no item can be repaired. Model files:
+  `staffFx.ts` (reading the effects list), `staffEffects.ts` (the parts), `staff.ts` (reach, target, area, hit, xp).
+- **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`) and `staves2.test.ts` (on `srpg-staves2`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` and
+  `srpg-staves2.spec.ts` (each with Play and the 360 px check).
 
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
