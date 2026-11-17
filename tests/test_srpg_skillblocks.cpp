@@ -1,5 +1,6 @@
 // Docs/SRPG.md "More skill blocks": the general blocks added after the first skill set. Each section: the rule, the forecast equal to
 // the real fight where it matters, the loader's refusals. A duel (tests/srpg_skills_duel.h): ua attacks ub for 4 damage, 100 % hit.
+#include "core/ai/ai.h"
 #include "core/script/formulas.h"
 #include "srpg_skills_duel.h"
 
@@ -213,4 +214,40 @@ TEST(skillblocks_formula_amount_refusals) {
   CHECK(saysIn(refusal(block("always", "{ \"stats\": { \"atk\": \"turn\" } }")), "must be a whole number"));
   CHECK_STR(refusal(C("{ \"stats\": { \"atk\": \"turn\" } }")), "");
   CHECK(saysIn(refusal(C("{ \"strikes\": \"1\" }")), "must be a whole number"));  // only combat numbers take a formula
+}
+
+// ---- the computer opponent plays whole battles with the new blocks ----
+
+TEST(skillblocks_the_ai_plays_battles_with_every_new_block) {
+  const std::string general =
+      skill("g1", "{ \"when\": \"combat\", \"if\": [ { \"turn\": { \"even\": true } }, { \"inventory\": \"notFull\" } ], "
+                  "\"do\": [ { \"damage\": \"turn\" }, { \"hit\": \"-b.atk\" }, { \"followUp\": \"force\" }, { \"followShift\": 3 }, "
+                  "{ \"trianglePercent\": 150 }, { \"stats\": { \"atk\": \"turn\" }, \"to\": \"foe\" } ] }") + "," +
+      skill("g2", "{ \"when\": \"combat\", \"aura\": { \"to\": \"allies\", \"within\": 3, \"match\": \"scout\" }, \"do\": [ { \"avoid\": \"turn\" } ] }") + "," +
+      skill("g3", "{ \"when\": \"strike\", \"if\": [ { \"counterattack\": false } ], \"do\": [ { \"damage\": 2 } ] }") + "," +
+      skill("g4", "{ \"when\": \"combat\", \"if\": [ { \"weaponKind\": \"magic\", \"who\": \"foe\" } ], \"do\": [ { \"followUp\": \"forbid\" } ] }") + "," +
+      skill("g5", "{ \"when\": \"always\", \"do\": [ { \"moveAgain\": { \"notAfterAttack\": true } }, { \"cancelEffective\": true }, { \"noCarryPenalty\": true } ] }");
+  for (uint32_t seed = 1; seed <= 10; ++seed) {
+    Options o;
+    o.seed = seed;
+    o.aSkills = "\"g1\", \"g3\", \"g5\"";
+    o.dSkills = "\"g2\", \"g4\", \"g1\"";
+    o.aTags = "\"scout\"";
+    o.dTags = "\"scout\"";
+    o.extraWeapons = "{ \"id\": \"fire_tome\", \"name\": \"Fire Tome\", \"damageKind\": \"magic\", \"range\": [1, 2] },";
+    o.dWeapon = "fire_tome";
+    o.extraUnits = ", { \"type\": \"ua\", \"side\": \"blue\", \"x\": 0, \"y\": 0 }, { \"type\": \"ub\", \"side\": \"red\", \"x\": 7, \"y\": 0 }";
+    o.gap = 6;
+    Duel d(general, o);
+    Battle& b = d.b();
+    std::vector<Event> events;
+    const long limit = 10L * (long)b.units.size() + 100;
+    bool hung = false;
+    while (!b.over && b.round <= 40 && !hung) {
+      long steps = 0;
+      while (aiTakeStep(b, events))
+        if (++steps > limit) { hung = true; break; }
+    }
+    CHECK(!hung);
+  }
 }
