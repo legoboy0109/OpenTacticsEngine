@@ -17,8 +17,9 @@ int placeDistance(int structure, Cell from) const;
 void placeOptions(int unit, Cell from, std::vector<PlaceOption>& out) const;
 // The inventory slots of the unit's items that open this structure (door or chest), in inventory order.
 void placeKeySlots(int unit, int structure, std::vector<int>& out) const;
-// May this unit visit the place (and, if not, destroy it)? The rule: the placement's "visitSides" / "visitUnits" when it has any;
-// otherwise a place with an owner is visited by the owner's team and destroyed by the others; a neutral place is anybody's.
+// May this unit visit the place? The placement's "visitSides" / "visitUnits" when it has any; otherwise a place with an owner is
+// visited by the owner's team, a neutral place by anybody. May it destroy it? Only a place whose kind has a "ruin" and that has an
+// owner, and only units of another team than the owner's (it makes no difference who else may visit).
 bool visitAllowed(const Unit& u, int structure) const;
 bool destroyAllowed(const Unit& u, int structure) const;
 // A chest's items need room: the unit's inventory, or the side's storage. Without either the chest cannot be opened (drop something).

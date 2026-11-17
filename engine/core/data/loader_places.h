@@ -18,6 +18,8 @@ bool loadStructurePlaces(const LoadCtx& c, const Json& list, Database& db);
 // this once the structure's kind is known and its footprint checked).
 bool readPlacedPlace(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, const std::string& where,
                      const std::vector<Cell>& cells, MapStructureDef& s);
+// After the map's units are loaded: every "visitUnits" id names one of them (or a character).
+bool checkPlaceVisitors(const LoadCtx& c, const Database& db, const MapDef& m);
 // "goesFor" of a map unit / addUnit: ["chests", "villages", "doors"].
 bool readUnitGoals(const LoadCtx& c, const MapDef& m, const Json& e, const std::string& where, MapUnitDef& u);
 // The ability effect "unlock" and the staff effect "unlock" share this reading: true | ["door", "chest"] | (ability only)

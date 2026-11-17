@@ -296,12 +296,7 @@ bool readPlacedPlace(const LoadCtx& c, const Database& db, const MapDef& m, cons
       if (side < 0) return c.fail(where, "\"visitSides\" names unknown side " + q(id));
       s.visitSides.push_back(side);
     }
-    if (!c.stringList(e, "visitUnits", where, s.visitUnits)) return false;
-    for (const std::string& u : s.visitUnits) {
-      bool known = db.findCharacter(u) >= 0;
-      for (const MapUnitDef& mu : m.units) known = known || mu.id == u;
-      if (!known) return c.fail(where, "\"visitUnits\" names " + q(u) + ", which is neither a unit of this map (give it an \"id\") nor a character");
-    }
+    if (!c.stringList(e, "visitUnits", where, s.visitUnits)) return false;  // the ids are checked once the units are loaded (checkPlaceVisitors)
   }
   // A door that opens onto squares nothing can enter is a mistake: judge the opened kind on every square it covers.
   if (p.isDoor() && p.to >= 0) {
@@ -311,6 +306,20 @@ bool readPlacedPlace(const LoadCtx& c, const Database& db, const MapDef& m, cons
       for (size_t mt = 0; mt < db.moveTypes.size(); ++mt) any = any || enterCostOf(db, terrain, p.to, (int)mt) > 0;
       if (!any)
         return c.fail(where, "the door opens onto terrain " + q(db.terrains[(size_t)terrain].id) + " that no movement type can enter, so opening it would lead nowhere");
+    }
+  }
+  return true;
+}
+
+bool checkPlaceVisitors(const LoadCtx& c, const Database& db, const MapDef& m) {
+  for (size_t i = 0; i < m.structures.size(); ++i) {
+    const MapStructureDef& s = m.structures[i];
+    for (const std::string& u : s.visitUnits) {
+      bool known = db.findCharacter(u) >= 0;
+      for (const MapUnitDef& mu : m.units) known = known || mu.id == u;
+      if (!known)
+        return c.fail("structures[" + std::to_string(i) + "] (" + db.structures[(size_t)s.type].id + " at " + std::to_string(s.x) + "," + std::to_string(s.y) + ")",
+                      "\"visitUnits\" names " + q(u) + ", which is neither a unit of this map (give it an \"id\") nor a character");
     }
   }
   return true;

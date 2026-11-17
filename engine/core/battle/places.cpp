@@ -68,8 +68,9 @@ bool Battle::visitAllowed(const Unit& u, int structure) const {
 
 bool Battle::destroyAllowed(const Unit& u, int structure) const {
   const StructureState& st = structures[(size_t)structure];
-  if (placeOf(structure).destroyedTo < 0 || visitAllowed(u, structure)) return false;
-  return st.owner >= 0 || !st.visitSides.empty() || !st.visitUnits.empty();
+  // Only the enemies of a place's owner destroy it (a neutral place cannot be destroyed, whoever may visit it).
+  if (placeOf(structure).destroyedTo < 0 || st.owner < 0) return false;
+  return sides[(size_t)st.owner].team != teamOf(u);
 }
 
 void Battle::placeKeySlots(int unit, int structure, std::vector<int>& out) const {

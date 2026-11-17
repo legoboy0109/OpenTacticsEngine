@@ -44,10 +44,7 @@ bool readStructurePlace(Reader& rd, const Battle& b, const Json& j, const std::s
     if (!p.isDoor() || p.hp <= 0) return rd.fail(where + ".hp", "this structure is not a door with hit points");
     if (!rd.integer(j, "hp", where, 1, p.hp, st.hp)) return false;
   }
-  if (j.has("used")) {
-    if (!p.isVisit()) return rd.fail(where + ".used", "this structure is not a place that can be visited");
-    if (!rd.boolean(j, "used", where, st.used)) return false;
-  }
+  if (j.has("used") && !rd.boolean(j, "used", where, st.used)) return false;  // (a visited place has often become another kind)
   if (j.has("loot")) {
     if (!p.isChest()) return rd.fail(where + ".loot", "this structure is not a chest");
     const Json* list;
