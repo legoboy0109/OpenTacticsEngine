@@ -3,6 +3,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/item_text.h"
+#include "battle/mapweapon_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
 
@@ -29,11 +30,14 @@ Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int 
     col.push_back({"No counter", kGrey});
   } else {
     std::string name = b.db->weapons[sf.weapon].name;
-    if (b.db->rules.items.carriedWeapons) {  // the weapon item's uses left, "Iron Sword 12"
+    const int mapStructure = b.mapWeaponUsedBy(u, u.cell, sf.weapon);  // fired from the structure it stands on (docs/SRPG.md "Map weapons")
+    if (mapStructure >= 0) name = mapWeaponForecastName(b, mapStructure);
+    else if (b.db->rules.items.carriedWeapons) {  // the weapon item's uses left, "Iron Sword 12"
       int slot = b.weaponSlot(u, sf.weapon);
       if (slot >= 0 && u.items[(size_t)slot].uses >= 0) name += " " + intStr(u.items[(size_t)slot].uses);
     }
     col.push_back({name, kGrey});
+    if (mapStructure >= 0) col.push_back({mapWeaponForecastFrom(b, mapStructure), kNote});
   }
   col.push_back({"HP " + intStr(u.hp) + " > " + intStr(hpAfter), hpAfter <= 0 ? Color(255, 110, 100) : kText});
   if (!counterMissing) {

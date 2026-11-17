@@ -12,5 +12,7 @@ int mapWeaponStructure(const Unit& u, Cell cell, std::string* why = nullptr) con
 // Every weapon the unit may attack with from `from`: weaponsOf plus the weapon of the structure there. A weapon the unit carries
 // anyway is listed once and counts as the carried one. `mapStructure` (optional) gets the structure whose weapon was added, else -1.
 void attackWeaponsAt(const Unit& u, Cell from, std::vector<int>& out, int* mapStructure = nullptr) const;
+// The structure whose weapon `u` fires when it attacks with `weapon` standing on `from`; -1 for a carried or fixed weapon (or none).
+int mapWeaponUsedBy(const Unit& u, Cell from, int weapon) const;
 // A strike made with the structure's weapon: one use gone; at 0 it is spent, and a kind with "becomes" turns into that kind.
 void spendMapWeapon(int structure, std::vector<Event>& events);

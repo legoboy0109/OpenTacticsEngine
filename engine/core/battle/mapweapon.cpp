@@ -55,6 +55,13 @@ void Battle::attackWeaponsAt(const Unit& u, Cell from, std::vector<int>& out, in
   if (mapStructure) *mapStructure = si;
 }
 
+int Battle::mapWeaponUsedBy(const Unit& u, Cell from, int weapon) const {
+  std::vector<int> own;
+  int si = -1;
+  attackWeaponsAt(u, from, own, &si);
+  return si >= 0 && mapWeaponOf(si) == weapon ? si : -1;
+}
+
 void Battle::spendMapWeapon(int structure, std::vector<Event>& events) {
   StructureState& st = structures[(size_t)structure];
   const MapWeaponDef& m = defOf(st).mapWeapon;

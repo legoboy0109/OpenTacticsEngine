@@ -266,9 +266,9 @@ void BattleScene::computeOverlay() {
   overlay_.attack.assign(n, 0);
   for (Cell s : reach_.stops) overlay_.reach[s] = 1;
   if (u.acted) return;  // it cannot attack any more: no red squares
-  std::vector<int> weapons;  // what it can use now (carried weapons: the ones in its inventory)
-  battle_.weaponsOf(u, weapons);
   for (Cell s : reach_.stops) {
+    std::vector<int> weapons;  // what it could use from there: carried weapons, and the weapon of a structure standing there
+    battle_.attackWeaponsAt(u, s, weapons);
     for (int wi : weapons) {
       const WeaponDef& w = battle_.db->weapons[wi];
       if (s != u.cell && !w.afterMove) continue;
