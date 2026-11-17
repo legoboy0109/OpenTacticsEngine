@@ -931,6 +931,16 @@ ruined) is a structure kind of its own with its own size-matching footprint, pic
   resource; a new chest starts with the game's first item, or 10 of its first resource, so it loads) and, for a place, **who may visit** (sides and units by story name). Changing a placed structure's kind
   drops the keys of another kind (`fitPlaceKeys`). A **computer** unit's panel has "Goes for" (chests, villages, doors, steal; each with the docs' meaning); a human side's unit has no such control.
   A unit's story-name rename also renames it in a place's `visitUnits`; removing a side takes it out of `visitSides`.
+- **Behaviour** (docs/AI.md; `panels/BehaviourEditor.tsx`, `UnitBehaviour.tsx`, `behaviourText.ts`; `model/behaviour.ts`): a computer unit's panel (not a human side's) has a "Behaviour" group under "Goes for":
+  "What it does" ("Advances and attacks", "Stays where it is", "Waits until someone comes into its range" (with "Never goes after anyone" = `wake: "react"`),
+  "Waits until someone comes near or into an area" (an area in squares counted from 1, and / or "within this many squares"), "Heads for…" (a unit, a place or a square, each from a picker of what the
+  map has; a unit or structure needs a story name)), "Wakes with its group" (a group name with a list of the map's groups to pick from), "Does nothing before turn" and "Favourite target" (most hurt, nearest, a named
+  unit, a unit type, a tag). It writes the shortest JSON (nothing for the default, `"hold"` / `"guard"` when the mode is all there is). A unit that is not "Advances and attacks" or starts late wears a
+  letter in the corner of its square on the canvas: **H** holds, **G** waits (guard or guard area), **S** seeks, **T** only starts late. The same control sits in the `addUnit` form (computer sides), and
+  the new commands "Change units’ behaviour" (a unit filter plus the same control) and "Wake a group" are in the Units group of the command picker (the second is greyed until some unit has a group).
+  Checks: a seek of a unit or place that is not there, a square or area outside the map, `fromTurn` outside 1 to 99, a behaviour on a person's unit, a `wakeGroup` of a group nobody is in; notes: a group with
+  one member, a start turn past 30, a unit that holds with no weapon, staff or ability. Renaming a unit or a structure follows into the blocks that head for or prefer it; deleting a unit sends its seekers
+  back to advancing and drops preferences for it (a `setBehaviour` / `addUnit` command that names it goes, like any command naming a deleted unit). Tests: `tests/unit/behaviour.test.ts`, `tests/e2e/ai-behaviour.spec.ts`.
 - **Events** (`screens/maps/editor/story/forms/PlaceForms.tsx`, `model/placeStory.ts`): the trigger "A door, chest or place is used" (opened / visited / destroyed, optional "Done by") and the commands
   "Open a door", "Shut a door", "Lock a door", "Unlock a door or chest", "Open a chest" (with an optional unit who gets the contents) in a new "Doors and chests" group of the command picker. The place
   pickers list only the map's structures that **have a story name** and fit (a chest for "open a chest", a place with a ruin for "destroyed"); a name that is gone stays visible as "(not there any more)".

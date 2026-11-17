@@ -150,6 +150,10 @@ The second set of skill and ability blocks (docs/SRPG.md section 3 "Skill and ab
 A unit's `goes` (section 10) may now include the bit 8 (the computer opponent's steal marker). Steal, move past, cure, nullify, staff range and carry bonus
 add no state. Old saves load unchanged; the data hash is unchanged for a game that uses none of the new keys.
 
+The computer unit's behaviour (docs/AI.md) adds two optional keys to a battle save's units: `behaviour` (the block as the map writes it, only when it is not the default)
+and `awake` (`true` only for a waiting guard that has woken). A damaged block is refused with the usual plain words naming `units[n].behaviour`. A battle of a map that uses none of it saves exactly as
+before, and old saves load. Behaviour is not part of a campaign save (it is per map unit); the data hash needs nothing (the map files are hashed whole).
+
 Battle quotes (docs/EVENTS.md "Battle and defeat quotes") add one optional key, `"quotes": { "said": [n, ...] }` (the positions, in file
 order of `data/characters.json`, of the "map" and "campaign" quotes already said; ascending, each once; "always" quotes are never kept), to a
 battle save and, for the "campaign" quotes only, to a campaign playthrough. Written only when something was said; refused in a game with
