@@ -85,6 +85,7 @@ export const sectionMenu = (page: Page) => page.locator('.section-bar-button')
 /** Open the phone's section menu when it is shown and closed (nothing on desktop, where the list is always there). */
 export async function openSectionMenu(page: Page): Promise<void> {
   const button = sectionMenu(page)
+  await page.locator('nav[aria-label="Sections"]').waitFor({ state: 'attached' }) // the game may still be opening
   if (await button.isVisible() && (await button.getAttribute('aria-expanded')) !== 'true') {
     await button.click()
     await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible()

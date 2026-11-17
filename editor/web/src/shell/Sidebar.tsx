@@ -72,7 +72,7 @@ export function Sidebar({ current }: { current: Section }) {
       <button type="button" ref={button} className="section-bar-button" aria-expanded={open} aria-controls="section-panel"
         data-learn="nav-menu" onClick={() => setOpen(!open)}>
         <span className="section-bar-name">{SECTION_LABEL[current]}</span>
-        {total ? <span className="nav-dot" title={`${total} to look at`}><span className="sr-only">{total} problems</span></span> : null}
+        {total ? <span className="nav-dot" aria-hidden="true" /> : null}
         <span className="section-bar-menu"><Icon name="list" />{MENU_LABEL}</span>
       </button>
       <nav className="sidebar" id="section-panel" ref={nav} aria-label="Sections" hidden={phone && !open}
