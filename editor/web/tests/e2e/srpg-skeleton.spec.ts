@@ -74,3 +74,16 @@ test('a game that has the files shows the screens; saving something else leaves 
   await page.goto(editorUrl(id, 'characters'))
   await expect(page.getByTestId('srpg-off')).toContainText('switched off')
 })
+
+// The sidebar scrolls (overflow-y: auto): with all 17 sections a short desktop window used to cut the list off, and the last link was unreachable.
+test('a short desktop window: the sidebar scrolls and the last section ("Campaign") can still be opened', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'Short Window', { srpgContent: true })
+  await page.setViewportSize({ width: 1280, height: 600 })
+  await page.goto(editorUrl(id, 'game'))
+  const nav = page.getByRole('navigation', { name: 'Sections' })
+  await expect(nav.getByRole('link')).toHaveCount(17)
+  expect(await nav.evaluate((el) => el.scrollHeight > el.clientHeight), 'the list really is taller than the window').toBe(true)
+  await gotoSection(page, 'Campaign') // Playwright scrolls the sidebar to reach it
+  await expect(page).toHaveURL(/\/campaign$/)
+  await expect(nav.getByRole('link', { name: 'Campaign', exact: true })).toHaveAttribute('aria-current', 'page')
+})
