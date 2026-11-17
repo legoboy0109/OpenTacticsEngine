@@ -75,6 +75,7 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'carries': return { carries: c.doc.items?.[0]?.id ?? '' }
     case 'researched': return { researched: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
     case 'hasSkill': return { hasSkill: c.doc.skills?.[0]?.id ?? '' }
+    case 'hasCondition': return { hasCondition: c.doc.conditions?.[0]?.id ?? '' }
     // The first team looking for the second side's units (a team always sees its own, so that would say nothing).
     case 'support': return { support: firstPair(c.doc), op: '>=', value: 1 }
     case 'sees': return { sees: { side: c.map.sides?.[1]?.id ?? firstSide(c) }, team: teamsOf(c.map)[0]?.id ?? '' }
@@ -100,6 +101,8 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }
     case 'teachSkill': return { teachSkill: c.doc.skills?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'forgetSkill': return { forgetSkill: c.doc.skills?.[0]?.id ?? '', from: defaultFilter(c) }
+    case 'addCondition': return { addCondition: c.doc.conditions?.[0]?.id ?? '', to: defaultFilter(c) }
+    case 'removeCondition': return { removeCondition: c.doc.conditions?.[0]?.id ?? '', from: defaultFilter(c) }
     case 'takeItem': return { takeItem: c.doc.items?.[0]?.id ?? '', from: c.scene ? firstUnit(c) : defaultFilter(c) }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'grantResearch': return { grantResearch: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }

@@ -1,4 +1,4 @@
-// The four optional strategy-RPG data files (docs/SRPG.md "Editor"): data/characters.json, skills.json, abilities.json
+// The optional strategy-RPG data files (docs/SRPG.md "Editor"): data/characters.json, skills.json, abilities.json, conditions.json
 // (each `{ "<key>": [...] }`) and data/supports.json (one object). Kept apart from projects.cpp / project_write.cpp so
 // those files only gain one call each.
 #pragma once

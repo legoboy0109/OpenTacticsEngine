@@ -6,6 +6,7 @@ import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
+import { ItemConditionFields } from './ItemConditionFields'
 import { T } from './text'
 
 export function ItemKindFields({ id }: { id: string }) {
@@ -30,6 +31,7 @@ export function ItemKindFields({ id }: { id: string }) {
         <Check label={T.healsAll} checked={full} onChange={(v) => edit((d) => setHeal(d, id, v ? 'full' : undefined))} />
         <KeyNumberTable label={T.raises} help={T.raisesHelp} rows={statRows}
           columns={[{ title: T.raisesCol, values: item.raise, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'raise', k, v), `${key}:raise:${k}`) }]} />
+        <ItemConditionFields id={id} />
       </div>
     )
   }

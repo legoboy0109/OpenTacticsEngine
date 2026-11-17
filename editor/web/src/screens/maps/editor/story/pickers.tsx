@@ -66,6 +66,12 @@ export function SkillPick({ label, value, onChange, help }: { label: string; val
   return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noSkills} options={byName(doc.skills ?? undefined)} />
 }
 
+export function ConditionPick({ label, value, onChange, help, withAll }: { label: string; value: string; onChange: (v: string) => void; help?: string; withAll?: boolean }) {
+  const { doc } = useStory()
+  const options = byName(doc.conditions ?? undefined)
+  return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noConditions2} options={withAll ? [{ value: 'all', label: S.removeConditionAll }, ...options] : options} />
+}
+
 export function TechPick({ label, value, onChange, help }: { label: string; value: string; onChange: (v: string) => void; help?: string }) {
   const { doc } = useStory()
   return <PickSelect label={label} value={value} onChange={onChange} help={help} empty={S.noTechnologies} options={byName(doc.research)} />

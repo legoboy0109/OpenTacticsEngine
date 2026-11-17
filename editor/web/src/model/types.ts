@@ -2,7 +2,7 @@
 // signature so keys the UI does not know about survive load -> edit -> save.
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
-import type { Ability, Caps, Character, Learn, Promotion, PromotionRules, RankMap, Ranks, RescueRules, Skill, Supports } from './srpgTypes'
+import type { Ability, Caps, Character, Condition, Learn, Promotion, PromotionRules, RankMap, Ranks, RescueRules, Skill, Supports } from './srpgTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
 export interface Extra { [key: string]: unknown }
@@ -155,6 +155,8 @@ export interface Weapon extends Named {
   rankXp?: number
   /** docs/SRPG.md "Character-locked weapons": ids of the characters that may wield it (needs characters; absent or empty = no lock). */
   wieldedBy?: string[]
+  /** docs/SRPG.md section 9: a chance, on a hit, to put a condition on the unit struck (`chance`: a percent or a formula, default every hit). */
+  inflict?: { condition: string; chance?: number | string; turns?: number } & Extra
 }
 export interface Unit extends Named {
   glyph?: string; moveType: string; stats?: NumMap; growths?: NumMap
@@ -219,6 +221,9 @@ export interface Item extends Named {
   hit?: number | string
   xp?: number | string
   if?: Extra[]
+  /** Usable items (docs/SRPG.md section 9): conditions it cures (a list of ids or "all") and the one it puts on the unit it is used on. */
+  cure?: string[] | 'all'
+  inflict?: { condition: string; turns?: number } & Extra
   /** Sound overrides: use (docs/SOUND.md). */
   sounds?: Record<string, string>
 }
@@ -347,6 +352,8 @@ export interface ProjectDoc {
   characters: Character[] | null
   skills: Skill[] | null
   abilities: Ability[] | null
+  /** Status conditions (docs/SRPG.md section 9, data/conditions.json). */
+  conditions: Condition[] | null
   supports: Supports | null
   /** Weapon ranks and stat caps (section 7): the file's object, null = no file. An empty ladder / empty caps are written
    *  as they are, so a switch that is on stays on after a reload; `false` on the wire removes the file. */
@@ -363,5 +370,5 @@ export interface ServerProject extends ProjectDoc {
   problems: Problem[]
 }
 
-export type Section = 'game' | 'rules' | 'units' | 'characters' | 'skills' | 'abilities' | 'supports' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'sound' | 'maps' | 'campaign'
-export const SECTIONS: Section[] = ['game', 'rules', 'units', 'characters', 'skills', 'abilities', 'supports', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'sound', 'maps', 'campaign']
+export type Section = 'game' | 'rules' | 'units' | 'characters' | 'skills' | 'abilities' | 'conditions' | 'supports' | 'weapons' | 'items' | 'terrain' | 'structures' | 'research' | 'art' | 'sound' | 'maps' | 'campaign'
+export const SECTIONS: Section[] = ['game', 'rules', 'units', 'characters', 'skills', 'abilities', 'conditions', 'supports', 'weapons', 'items', 'terrain', 'structures', 'research', 'art', 'sound', 'maps', 'campaign']

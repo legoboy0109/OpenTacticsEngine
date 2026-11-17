@@ -3,7 +3,7 @@
 import { typeIdOf } from './characterUnits'
 import { dropArtOf } from './graphicsClean'
 import { economyUsageLines } from './researchRefs'
-import { cleanStatSkills, skillsUseStat } from './skillStatRefs'
+import { cleanStatConditions, cleanStatSkills, conditionsUseStat, skillsUseStat } from './skillStatRefs'
 import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
@@ -44,6 +44,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
         for (const mu of m.units ?? []) if (mu.stats && id in mu.stats) out.push({ section: 'maps', text: `Map "${mapName(doc, mid)}": a ${nameOfUnit(units, typeIdOf(doc.characters, mu))} has its own value` })
       for (const i of doc.items ?? []) if ((i.raise && id in i.raise) || (i.bonus && id in i.bonus)) out.push({ section: 'items', text: `Item "${i.name}" changes it` })
       { const sk = skillsUseStat(doc, id); if (sk.length) out.push({ section: 'skills', text: `${sk.length} skill${sk.length === 1 ? '' : 's'} use${sk.length === 1 ? 's' : ''} it: ${sk.slice(0, 5).join(', ')}${sk.length > 5 ? ` and ${sk.length - 5} more` : ''} (it is taken out of them; a rule or skill left empty goes)` }) }
+      { const cn = conditionsUseStat(doc, id); if (cn.length) out.push({ section: 'conditions', text: `${cn.length} condition${cn.length === 1 ? '' : 's'} use${cn.length === 1 ? 's' : ''} it: ${cn.slice(0, 5).join(', ')}${cn.length > 5 ? ` and ${cn.length - 5} more` : ''} (it is taken out of them; a rule or condition left empty goes)` }) }
       out.push(...statCapUsageLines(doc, id))
       out.push(...economyUsageLines(doc, 'stat', id))
       out.push(...storyUsages(doc, [{ kind: 'stat', id }]))
@@ -108,14 +109,14 @@ const tagStillUsed = (units: Unit[], key: string, removedUnit: string) => units.
 
 export function cleanStat(doc: ProjectDoc, id: string): ProjectDoc {
   const has = (m?: Record<string, number>) => !!m && id in m
-  return cleanStatCaps(cleanStatSkills(cleanStatPromotions({
+  return cleanStatCaps(cleanStatConditions(cleanStatSkills(cleanStatPromotions({
     ...doc,
     units: doc.units && doc.units.map((u) => (has(u.stats) || has(u.growths)
       ? stripKey(stripKey(u, 'stats', dropKey(u.stats, id)), 'growths', dropKey(u.growths, id)) : u)),
     items: cleanStatInItems(doc, id),
     maps: mapMembers(doc, (m) => (m.units?.some((u) => has(u.stats))
       ? { ...m, units: m.units.map((u) => (has(u.stats) ? stripKey(u, 'stats', dropKey(u.stats, id)) : u)) } : m)),
-  }, id), id), id)
+  }, id), id), id), id)
 }
 
 /** Objects with an emptied optional map lose the key rather than keep `{}`. */

@@ -341,7 +341,8 @@ docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
 
 **Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
-staff, and the skill effect `immune`. A game without the file loads, plays, saves and hashes exactly as before.
+staff, and the skill effect `immune`. Map events can give and take conditions (`addCondition`, `removeCondition`) and ask (`hasCondition`, docs/EVENTS.md
+"Status conditions"); campaign scenes cannot. A game without the file loads, plays, saves and hashes exactly as before.
 
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a

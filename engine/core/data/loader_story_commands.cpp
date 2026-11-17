@@ -19,6 +19,8 @@ constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit"
 constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport", "choice"};
 // Doors and chests (docs/SRPG.md section 10), read by loader_places_story.cpp.
 constexpr const char* kPlaceCommandKeys[] = {"openDoor", "closeDoor", "lockDoor", "unlockDoor", "openChest"};
+// Status conditions (docs/SRPG.md section 9), read in loader_story_conditions.cpp.
+constexpr const char* kConditionCommandKeys[] = {"addCondition", "removeCondition"};
 
 }  // namespace
 
@@ -58,6 +60,11 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kConditionCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   for (const char* k : kPlaceCommandKeys)
     if (kind && std::string(kind) == k) return placeCommand(e, kind, where + " (" + kind + ")", out);
   if (!kind) {
@@ -77,6 +84,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "teachSkill" || k == "forgetSkill") {
     out.kind = k == "teachSkill" ? K::TeachSkill : K::ForgetSkill;
     return skillCommand(e, at, k == "teachSkill", out);
+  }
+  if (k == "addCondition" || k == "removeCondition") {
+    out.kind = k == "addCondition" ? K::AddCondition : K::RemoveCondition;
+    return conditionCommand(e, at, k == "addCondition", out);
   }
   if (k == "addSupport") {
     out.kind = K::AddSupport;

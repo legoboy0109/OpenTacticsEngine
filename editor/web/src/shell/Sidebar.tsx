@@ -11,6 +11,7 @@ export const SECTION_LABEL: Record<Section, string> = {
   characters: 'Characters',
   skills: 'Skills',
   abilities: 'Abilities',
+  conditions: 'Conditions',
   supports: 'Supports',
   weapons: 'Weapons',
   items: 'Items',

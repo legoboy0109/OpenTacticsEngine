@@ -15,3 +15,6 @@
 .learn-row > .field { flex: 1 1 120px; min-width: 0; }
 .learn-row .item-row-buttons { margin-left: auto; }
 .starter-bar { margin: 0 0 12px; }
+
+/* The sub-choices of a switch on the Conditions form and the condition parts of the staff, item and weapon forms. */
+.indent { margin-left: 18px; padding-left: 12px; border-left: 2px solid var(--border); min-width: 0; }

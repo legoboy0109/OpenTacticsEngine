@@ -41,6 +41,8 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
       if (kind) return fail(where, std::string("has two conditions (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  if (!kind && e.has("hasCondition"))
+    return fail(where, "\"hasCondition\" is for map events only: status conditions end when the map ends, so a campaign scene cannot ask about one");
   if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead");
   std::string k = kind;
   const Json& v = e[kind];
@@ -84,6 +86,10 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  // Status conditions end with the map (docs/SRPG.md section 9): a scene says so in its own words.
+  for (const char* k : {"addCondition", "removeCondition"})
+    if (!kind && e.has(k))
+      return fail(where, std::string("\"") + k + "\" is for map events only: status conditions end when the map ends, so a campaign scene cannot give or take one");
   if (!kind) {
     std::string list;
     for (const char* k : kSceneKeys) list += (list.empty() ? "" : ", ") + std::string(k);

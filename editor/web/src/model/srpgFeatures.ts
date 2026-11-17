@@ -8,7 +8,7 @@ import { cleanAbility, cleanCharacter, cleanSkill } from './srpgRefs'
 import type { ProjectDoc, Section } from './types'
 import type { SrpgFeature } from './srpgTypes'
 
-export const SRPG_FEATURES: SrpgFeature[] = ['characters', 'skills', 'abilities', 'supports']
+export const SRPG_FEATURES: SrpgFeature[] = ['characters', 'skills', 'abilities', 'conditions', 'supports']
 
 export const srpgFeatureOn = (doc: ProjectDoc, f: SrpgFeature): boolean => doc[f] !== null
 

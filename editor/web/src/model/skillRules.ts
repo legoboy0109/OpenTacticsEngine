@@ -11,10 +11,10 @@ export const MAX_BLOCKS = 8
 export const MAX_CONDITIONS = 8
 export const MAX_EFFECTS = 8
 
-export type CondKind = 'hp' | 'near' | 'weapon' | 'terrain' | 'structure' | 'unit' | 'carrying' | 'round' | 'initiating' | 'distance' | 'formula'
-export const COND_KINDS: CondKind[] = ['hp', 'near', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'initiating', 'distance', 'formula']
+export type CondKind = 'hp' | 'near' | 'weapon' | 'terrain' | 'structure' | 'unit' | 'carrying' | 'round' | 'initiating' | 'distance' | 'formula' | 'condition'
+export const COND_KINDS: CondKind[] = ['hp', 'near', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'initiating', 'distance', 'formula', 'condition']
 /** Conditions that may say `"who": "foe"` (the foe points only). */
-export const FOEABLE: CondKind[] = ['hp', 'weapon', 'terrain', 'structure', 'unit', 'carrying']
+export const FOEABLE: CondKind[] = ['hp', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'condition']
 /** Conditions that need a combat. */
 export const FOE_POINT_ONLY: CondKind[] = ['initiating', 'distance']
 
@@ -23,6 +23,8 @@ export type EffectKind =
   | 'hit' | 'crit' | 'damage' | 'avoid' | 'critAvoid' | 'damageTaken' | 'damagePercent' | 'damageTakenPercent'
   | 'strikes' | 'multiStrike' | 'strikeFirst' | 'counterAnyRange' | 'noCounter' | 'drain' | 'strikeAgain' | 'survive'
   | 'heal' | 'hurt' | 'actAgain'
+  // Status conditions (docs/SRPG.md section 9): the first four belong to the blocks of a condition only.
+  | 'cannotAct' | 'cannotMove' | 'forbid' | 'berserk' | 'immune' | 'inflict'
 const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat'
 /** Every effect and the `when` points it is allowed in, in the order the contract lists them. */
 export const EFFECT_WHENS: Record<EffectKind, When[]> = {
@@ -30,14 +32,17 @@ export const EFFECT_WHENS: Record<EffectKind, When[]> = {
   hit: [C, S], crit: [C, S], damage: [C, S], avoid: [C, R], critAvoid: [C, R], damageTaken: [C, R],
   damagePercent: [C, S], damageTakenPercent: [C, R], strikes: [C], multiStrike: [C], strikeFirst: [C], counterAnyRange: [C], noCounter: [C],
   drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F], hurt: [T, F], actAgain: [D, F],
+  cannotAct: [A], cannotMove: [A], forbid: [A], berserk: [A], immune: [A], inflict: [S, R],
 }
+/** Effects only the blocks of a condition may have (the loader says they "belong to the blocks of a condition"). */
+export const CONDITION_ONLY: EffectKind[] = ['cannotAct', 'cannotMove', 'forbid', 'berserk']
 export const EFFECT_KINDS = Object.keys(EFFECT_WHENS) as EffectKind[]
 /** What an aura may give. */
 export const AURA_EFFECTS: EffectKind[] = ['stats', 'hit', 'avoid', 'crit', 'critAvoid', 'damage', 'damageTaken']
 /** Effects that may be aimed at the foe (`"to": "foe"`, combat blocks only, never in an aura). */
 export const FOE_EFFECTS: EffectKind[] = ['stats', 'hit', 'avoid', 'crit', 'critAvoid', 'damage', 'damageTaken', 'strikes']
 /** Effects without a number: they are written as `true`. */
-export const FLAG_EFFECTS: EffectKind[] = ['moveAgain', 'strikeFirst', 'counterAnyRange', 'noCounter', 'strikeAgain', 'survive', 'actAgain']
+export const FLAG_EFFECTS: EffectKind[] = ['moveAgain', 'strikeFirst', 'counterAnyRange', 'noCounter', 'strikeAgain', 'survive', 'actAgain', 'cannotMove', 'berserk']
 /** Whole-number effects and the loader's range. */
 export const NUMBER_RANGE: Partial<Record<EffectKind, [number, number]>> = {
   maxMoveCost: [1, 100], xpPercent: [1, 1000], hit: [-1000, 1000], crit: [-1000, 1000], damage: [-1000, 1000], avoid: [-1000, 1000],
@@ -54,8 +59,8 @@ export function condsFor(w: When, aura: boolean): CondKind[] {
 }
 /** Can this condition say "the foe"? Only where there is a foe, and never for an aura. */
 export const canJudgeFoe = (k: CondKind, w: When, aura: boolean): boolean => FOEABLE.includes(k) && !aura && w !== 'always' && w !== 'turnStart'
-export function effectsFor(w: When, aura: boolean): EffectKind[] {
-  return EFFECT_KINDS.filter((k) => EFFECT_WHENS[k].includes(w) && (!aura || AURA_EFFECTS.includes(k)))
+export function effectsFor(w: When, aura: boolean, forCondition = false): EffectKind[] {
+  return EFFECT_KINDS.filter((k) => EFFECT_WHENS[k].includes(w) && (!aura || AURA_EFFECTS.includes(k)) && (forCondition || !CONDITION_ONLY.includes(k)))
 }
 
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)

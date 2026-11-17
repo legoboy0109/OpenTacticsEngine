@@ -12,7 +12,7 @@ import { PageHeader } from '../../ui/Card'
 import { T } from './text'
 
 export const SRPG_FILE: Record<SrpgFeature, string> = {
-  characters: 'data/characters.json', skills: 'data/skills.json', abilities: 'data/abilities.json', supports: 'data/supports.json',
+  characters: 'data/characters.json', skills: 'data/skills.json', abilities: 'data/abilities.json', conditions: 'data/conditions.json', supports: 'data/supports.json',
 }
 
 export function SrpgScreen({ feature, children }: { feature: SrpgFeature; children?: ReactNode }) {

@@ -69,6 +69,8 @@ class StoryLoader {
   // closeDoor, lockDoor, unlockDoor, openChest (`kind` = the command's key).
   bool placeTrigger(const Json& w, const std::string& at, Trigger& out);
   bool placeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);
+  bool conditionCommand(const Json& e, const std::string& at, bool add, Command& out);           // loader_story_conditions.cpp: addCondition / removeCondition
+  bool hasConditionCondition(const Json& e, const std::string& at, Condition& out) const;      // loader_story_conditions.cpp
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);

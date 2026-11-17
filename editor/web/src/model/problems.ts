@@ -11,6 +11,7 @@ export function problemTarget(file: string, doc: ProjectDoc | null): ProblemTarg
   if (file === 'data/characters.json') return { section: 'characters' }
   if (file === 'data/skills.json') return { section: 'skills' }
   if (file === 'data/abilities.json') return { section: 'abilities' }
+  if (file === 'data/conditions.json') return { section: 'conditions' }
   if (file === 'data/supports.json') return { section: 'supports' }
   if (file === 'data/ranks.json' || file === 'data/caps.json') return { section: 'rules' }
   if (file === 'data/research.json') return { section: 'research' }

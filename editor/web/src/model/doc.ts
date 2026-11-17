@@ -1,6 +1,6 @@
 // Section helpers: an edit on a section that failed to load (null) is a no-op.
 import type { Campaign } from './campaignTypes'
-import type { Ability, Character, Skill, Supports } from './srpgTypes'
+import type { Ability, Character, Condition, Skill, Supports } from './srpgTypes'
 import type { Game, Item, ProjectDoc, Structure, Technology, Terrain, Unit, Weapon } from './types'
 
 export const withGame = (doc: ProjectDoc, fn: (g: Game) => Game): ProjectDoc => (doc.game ? { ...doc, game: fn(doc.game) } : doc)
@@ -37,7 +37,7 @@ export const withCampaign = (doc: ProjectDoc, fn: (c: Campaign) => Campaign): Pr
 
 /** The strategy-RPG lists (docs/SRPG.md). Like items: the first edit creates the list (`null` = "none yet"). An empty
  *  list stays on screen (a just-switched-on feature) but is never written: it removes the file (see autosave). */
-const withList = <K extends 'characters' | 'skills' | 'abilities', T>(key: K) => (doc: ProjectDoc, fn: (l: T[]) => T[]): ProjectDoc => {
+const withList = <K extends 'characters' | 'skills' | 'abilities' | 'conditions', T>(key: K) => (doc: ProjectDoc, fn: (l: T[]) => T[]): ProjectDoc => {
   const cur = doc[key] as T[] | null
   const next = fn(cur ?? [])
   return next === cur ? doc : { ...doc, [key]: next }
@@ -45,6 +45,7 @@ const withList = <K extends 'characters' | 'skills' | 'abilities', T>(key: K) =>
 export const withCharacters = withList<'characters', Character>('characters')
 export const withSkills = withList<'skills', Skill>('skills')
 export const withAbilities = withList<'abilities', Ability>('abilities')
+export const withConditions = withList<'conditions', Condition>('conditions')
 
 /** Applies `fn` to the supports (an edit while there is none is a no-op: switching the feature on is `setSrpgFeature`). */
 export const withSupports = (doc: ProjectDoc, fn: (s: Supports) => Supports): ProjectDoc => {

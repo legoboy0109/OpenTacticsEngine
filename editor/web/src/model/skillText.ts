@@ -1,6 +1,7 @@
 // The plain sentence a rule of a skill adds up to: "In combat, if it started the fight: damage +3." Shown under every rule
 // and as the skill's second line in the list. Wording is a placeholder for the owner to review (docs/SRPG.md "E2 as built").
 import { condKindOf, effectKindOf, whenOf, type When } from './skillRules'
+import { amountOf } from './skillAmount'
 import { statChance } from './skillChance'
 import { blocksOf } from './skills'
 import type { Skill } from './srpgTypes'
@@ -43,10 +44,12 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
     case 'initiating': return v === false ? 'it is defending' : 'it started the fight'
     case 'distance': return `the foe is ${o.op === '=' || o.op === '==' ? 'exactly' : opWords(o.op)} ${squares(o.value ?? 1)} away`
     case 'formula': return 'a custom rule holds'
+    case 'condition': return `${who} has the condition ${conditionNameOf(doc, String(v ?? ''))}`
     default: return 'a condition the editor does not show (kept as it is)'
   }
 }
 
+const conditionNameOf = (doc: ProjectDoc, id: string): string => doc.conditions?.find((c) => c.id === id)?.name ?? id
 const nameOfTypeOrTag = (doc: ProjectDoc, key: string, article = false): string => {
   const t = doc.units?.find((u) => u.id === key)
   if (t) return article ? `a ${t.name}` : t.name
@@ -87,11 +90,32 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
     case 'strikeAgain': return 'strikes once more'
     case 'survive': return 'survives a deadly strike with 1 HP'
     case 'heal': {
-      const amount = v && typeof v === 'object' ? `${(v as Extra).percent}% of its HP` : `${v} HP`
+      const a = amountOf(e, 'heal')
+      const amount = a.kind === 'percent' ? `${a.value}% of its HP` : a.kind === 'formula' ? `an amount from the formula ${a.text}` : `${a.value} HP`
       return e.to === 'allies' ? `heals allies within ${squares(e.within ?? 1)} by ${amount.replace('of its HP', 'of their HP')}` : `heals ${amount}`
     }
-    case 'hurt': return e.to === 'enemies' || (e.to === undefined && when === 'turnStart') ? `hurts enemies within ${squares(e.within ?? 1)} for ${v} HP (never below 1)` : `hurts the foe for ${v} HP (never below 1)`
+    case 'hurt': {
+      const a = amountOf(e, 'hurt')
+      const amount = a.kind === 'percent' ? `${a.value}% of its maximum HP` : a.kind === 'formula' ? `an amount from the formula ${a.text}` : `${a.value} HP`
+      const end = a.canKill ? ' (can defeat it)' : ' (never below 1)'
+      if (e.to === 'self') return `loses ${amount}${end}`
+      return e.to === 'enemies' || (e.to === undefined && when === 'turnStart') ? `hurts enemies within ${squares(e.within ?? 1)} for ${amount}${end}` : `hurts the foe for ${amount}${end}`
+    }
     case 'actAgain': return 'can move and act again'
+    case 'cannotAct': return `cannot act${e.cannotAct && typeof e.cannotAct === 'object' ? ` (${[(e.cannotAct as Extra).counter ? 'can still counterattack' : '', (e.cannotAct as Extra).dodge ? 'can still dodge' : ''].filter(Boolean).join(', ')})` : ''}`
+    case 'cannotMove': return 'cannot move'
+    case 'berserk': return 'acts on its own'
+    case 'forbid': {
+      const f = (v && typeof v === 'object' ? v : {}) as Extra
+      const kinds = ((f.kinds as string[] | undefined) ?? []).map((k) => (k === 'staff' ? 'staves' : k === 'usable' ? 'usable items' : 'weapons'))
+      const groups = ((f.groups as string[] | undefined) ?? []).map((g) => `“${g}”`)
+      return `cannot use ${[...kinds, ...(groups.length ? [`the groups ${groups.join(', ')}`] : [])].join(' or ') || 'anything yet'}`
+    }
+    case 'immune': return `cannot get ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' or ') || 'any condition'}`
+    case 'inflict': {
+      const o = (v && typeof v === 'object' ? v : {}) as Extra
+      return `${when === 'struck' ? 'puts the one who struck it' : 'puts the unit it struck'} in ${conditionNameOf(doc, String(o.condition ?? ''))}${o.turns ? ` for ${o.turns} turns` : ''}`
+    }
     default: return 'an effect the editor does not show (kept as it is)'
   }
 }

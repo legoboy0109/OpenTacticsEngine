@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -96,6 +96,7 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'carries', 'item', w, where),
     (x) => withRef(x, 'researched', 'tech', w, where),
     (x) => withRef(x, 'hasSkill', 'skill', w, where),
+    (x) => withRef(x, 'hasCondition', 'condition', w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one
     (x) => withFilter(x, 'unit', w, where),
   ])
@@ -218,6 +219,9 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => (x.promote !== undefined ? withRef(x, 'to', 'type', w, where) : x), // promote's `to` is a unit type id
     (x) => withRef(x, 'teachSkill', 'skill', w, where),
     (x) => withRef(x, 'forgetSkill', 'skill', w, where),
+    (x) => withRef(x, 'addCondition', 'condition', w, where),
+    (x) => (x.removeCondition === 'all' ? x : withRef(x, 'removeCondition', 'condition', w, where)),
+    (x) => (typeof x.addCondition === 'string' && typeof x.to === 'string' ? withRef(x, 'to', 'unit', w, where) : x), // addCondition's `to`: a unit id
     (x) => withFilter(x, 'from', w, where),
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),

@@ -864,20 +864,38 @@ A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: t
 - **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`) and `staves2.test.ts` (on `srpg-staves2`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` and
   `srpg-staves2.spec.ts` (each with Play and the 360 px check).
 
-## Conditions (docs/SRPG.md section 9): no forms yet
+## Conditions (docs/SRPG.md section 9)
 
-The editor has **no forms for status conditions**. Nothing in the editor breaks: the helper (`ote-editor`) does not know `data/conditions.json`, so GET never
-returns it, PUT never writes or removes it, and it stays byte for byte as it is; every key that names a condition (a staff's `inflict` / `cure` effects, a
-usable item's `cure` / `inflict`, a weapon's `inflict`, a skill's `immune` / `inflict` blocks and the `condition` test) travels through GET and PUT untouched
-(`tests/editor_api_conditions_checks.py`), and the real loader's refusals about them reach Problems in the engine's words. What a maker must **hand-edit**:
+All wording is placeholder (`screens/conditions/text.ts`, `siteText.ts`). The helper serves and saves `data/conditions.json` as a section like skills (`conditions`
+in docs/EDITOR_API.md; absent file = `null`, nothing written until the maker switches the feature on or adds one; `tests/editor_api_conditions_checks.py`).
+`conditions` is a strategy-RPG feature (`model/srpgFeatures.ts`): the Rules card "Strategy-RPG features" has "This game has status conditions", the sidebar entry
+"Conditions" (after Abilities) shows while it is on, and the template's file already has the starter set. Saving drops the comment header of the template's file.
 
-- `data/conditions.json` (the whole file; new games made from the strategy-RPG template already have the six starter conditions in it, with a comment
-  header explaining the keys);
-- on a weapon: `"inflict": { "condition": "poison", "chance": 30 }`; on a usable item: `"cure"` / `"inflict"`; in a staff's `"effects"`: `{ "inflict": ... }` and
-  `{ "cure": ... }` (a staff whose first effect is not a heal shows as "not editable" in the Items form, as the stage-two effects do, and is kept as it is);
-- in a skill: the `immune` and `inflict` effects and the `condition` test (the Skills form keeps blocks and effects it does not know).
-
-The Problems list shows an unknown condition id anywhere it is named, in plain words (`names unknown condition "poison" (data/conditions.json)`).
+- **Screen** (`screens/conditions/`): list + form like Skills (New, Duplicate, Delete with a used-by question, reorder, phone layout). A bar "Add the starter set"
+  (always there; one Undo step; ids already in the game are skipped and listed; the curse needs an attack and a defense stat, the game's own are guessed like
+  the starter skills) (`model/starterConditions.ts`, a unit test compares it with the template's file). The form: name, description, map tag (1-4 characters),
+  "How long it lasts" (own turns / until cured / until the map ends, `wearOff`, "ends when struck", "replaces"), the card "What it stops and forces"
+  (`BehaviourCard`: cannot act with "still counterattack / dodge", cannot move, forbid with kinds and the game's groups, acts on its own; found in any `always`
+  block by `model/conditionBehaviour.ts`, written into a block that holds only such effects; cannot act and acts-on-its-own are greyed against each other, the
+  last effect cannot be switched off), "Other rules" (the Skills screen's `BlockCard`, with `forCondition`: no hit-point stat bonus, the same hurt / heal amount
+  forms), a sentence (`model/conditionText.ts`) and checks. Ids are read only (as for skills), so there is no rename.
+- **Shared block editor** (`screens/skills/`): new effect kinds `immune` (pick conditions) and `inflict` (condition + optional turns, strike / struck), the
+  `condition` test ("Has a status condition", with "the foe"), hurt "to itself", percent / formula amounts and "can defeat" (`model/skillAmount.ts`), heal formula.
+  `cannotAct` / `cannotMove` / `forbid` / `berserk` are never offered to a skill (rule issue "belongs to a status condition").
+- **Where conditions are used**: a staff's "It inflicts a condition" and "It cures" (`StaffConditionParts`, `model/staffConditions.ts`; area allowed, with heal /
+  repair / move, never with light, at most four effects; an unknown effect is kept); a usable item's "Cures" and "It puts a condition on the unit it is used on"
+  (`ItemConditionFields`, `model/conditionSites.ts`); a weapon's "May inflict a condition on a hit" (`WeaponConditionCard`: every hit / percent / formula, turns).
+  The staff's chance-of-working help shows a formula that reads both units in the game's own stat names (`hitExample`).
+- **Story** (map events only): commands "Put a condition on units" (`addCondition`, optional turns) and "Cure units of a condition" (`removeCondition`, one or "Every
+  condition"), condition "A unit has a status condition" (`hasCondition`): `forms/ConditionForms.tsx`, `ConditionList`, `storyTypes` / `storyDefaults` / `storySummary`.
+- **References**: `storyWalk` has the `condition` reference kind; `model/conditionRefs.ts` lists the uses and cleans them on delete in one step (a staff left with no
+  effect heals 10 instead, an `immune` / `inflict` entry goes, a rule that asked about the condition goes whole, a test in an ability's or staff's "Only if" goes,
+  "replaces" entries go, events and commands about it go); deleting a stat also cleans conditions' rules.
+- **Checks** (`model/conditionChecks.ts`, `staffChecks.ts`, `skillChecks.ts`, `storyChecks.ts`): every loader refusal in plain words (duration, turns, wear-off, tag,
+  replaces, 1-8 rules, hit-point stat, cannot act with berserk, forbid kinds / groups, unknown conditions at every site, turns on a condition that does not count them,
+  two inflicts / cures in a staff, a cure list that is empty or repeats); worth a look: a condition nothing can inflict, an "until cured" condition nothing cures
+  (a cure staff / item, "replaces" or an event counts).
+- **Tests**: unit `conditions`, `conditionStory`; API `editor_api_conditions_checks.py`; e2e `srpg-conditions.spec.ts` (with Play and the 360 px check).
 
 ## Doors, chests and places (docs/SRPG.md section 10): no forms yet
 

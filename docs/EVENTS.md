@@ -105,7 +105,8 @@ accepted), `{ "alive": <filter> }` / `{ "dead": <filter> }`,
 `{ "round": { "op": ">=", "value": 5 } }`,
 `{ "carries": "salve", "unit": <filter> }` (`unit` default any),
 `{ "sees": <unit filter>, "team": "<team>" }` (fog of war, docs/ECONOMY.md; `team` is required: a team name or a side id
-for that side's team).
+for that side's team), `{ "hasCondition": "poison", "unit": <filter> }` (a status condition, docs/SRPG.md section 9; `unit` default any;
+map events only).
 Refined: `alive` = some living unit matches; `dead` = a unit that matches
 exists (or existed, also when it was removed) and none is alive, so a unit
 that an event has not added yet is neither. `carries` = a living matching
@@ -130,6 +131,8 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
 | `{ "openDoor": "d1" }`, `{ "closeDoor": "d1" }`, `{ "lockDoor": "d1" }`, `{ "unlockDoor": "d1" }`, `{ "openChest": "c1", "by": "tink" }` | doors and chests by their map `id` (docs/SRPG.md section 10): open a shut door, shut an open one (skipped while a unit stands in it), shut-and-lock / lock a door, take the lock off a door or chest (it stays shut), open a chest (the contents go to `by`, else to the first human side's storage / funds) |
+| `{ "addCondition": "poison", "to": <filter>, "turns": 2 }` | gives a status condition to every matching living unit: see "Status conditions" below (map events only) |
+| `{ "removeCondition": "poison" \| "all", "from": <filter> }` | takes one (or every) status condition off the matching units (map events only) |
 | `{ "giveResource": { "gold": 500 }, "side": "blue" }` | may be negative; a side's funds never go below zero |
 | `{ "setSwitch": id, "to": true }`, `{ "setVariable": id, "to": 3 }`, `{ "addVariable": id, "by": 1 }` | the number may instead be read from a unit: `{ "setVariable": id, "level": "eirik" }` (see "Reading a unit's numbers" below) |
 | `{ "objective": { … } }` | replaces the current objectives (below) |
@@ -211,6 +214,31 @@ Three uses (neutral names):
 { "id": "strip", "when": { "battle": "start" }, "do": [ { "takeItem": "healing_herb", "from": { "side": "blue" }, "all": true } ] }  // all of one item removed at battle start
 { "id": "return", "when": { "turn": 4 }, "do": [ { "giveItem": "healing_herb", "to": { "side": "blue" } } ] }     // ... given back later
 ```
+
+### Status conditions
+
+Three pieces for the conditions of `data/conditions.json` (docs/SRPG.md section 9); they work in **map events only**, because a condition ends
+when the map ends and a campaign scene has no map: the campaign loader refuses all three with `"addCondition" is for map events only: status
+conditions end when the map ends, so a campaign scene cannot give or take one` (likewise `removeCondition` and the test).
+
+```json
+{ "addCondition": "poison", "to": <unit filter>, "turns": 2 }
+{ "removeCondition": "poison", "from": <unit filter> }        // or "removeCondition": "all"
+{ "hasCondition": "poison", "unit": <unit filter> }          // a condition (`if`); `unit` default: any unit
+```
+
+- `addCondition` goes to every **living** unit the filter matches (the filter is required, `{}` = every unit) through the same code as a staff, a
+  weapon or an item: an **immune** unit resists (`ConditionResisted`, nothing else), `replaces` is honoured, a unit that has it already has it
+  start over (never summed), and the events are the usual `ConditionApplied` / `ConditionResisted` (the giver, `d`, is -1: the story).
+  `turns` (1 to 99, optional) overrides the condition's own number of turns and is refused for a condition that does not count turns. A condition
+  given by a battle-start event has its first turn counted at once (the first turn of the battle starts after the event), like one applied at
+  the start of any turn.
+- `removeCondition` takes the named condition (`"all"` = every condition) off every living matching unit: `ConditionEnded` with reason "cured".
+  A unit that does not have it is left alone, silently.
+- `hasCondition` is true when some living unit matching `unit` has the condition. Like `hasSkill` it is judged on the truth, not on what a team sees.
+- Loader refusals: an unknown condition id (`"addCondition" names unknown condition "x" (data/conditions.json)`, or `... but the game has no
+  conditions` when there is no file), a missing `to` / `from`, `turns` outside 1 to 99, `turns` on a condition that does not count turns, an
+  unknown key, an id that is not text. Tests: `tests/test_story_conditions.cpp`.
 
 ### What the player gets (event stream)
 

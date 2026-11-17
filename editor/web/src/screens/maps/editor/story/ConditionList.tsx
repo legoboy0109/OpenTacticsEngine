@@ -6,7 +6,7 @@ import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, 
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
-import { FilterPicker, ItemPick, PickSelect, SidePick, SkillPick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
+import { ConditionPick, FilterPicker, ItemPick, PickSelect, SidePick, SkillPick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
 import { PairPick } from './forms/SupportForms'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
@@ -33,6 +33,7 @@ export function ConditionList({ conditions, onChange, name }: Props) {
   const kinds = (story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS)
     .filter((k) => k !== 'support' || hasPairs || conditions.some((c) => conditionKind(c) === 'support'))
     .filter((k) => k !== 'hasSkill' || story.doc.skills?.length)
+    .filter((k) => k !== 'hasCondition' || story.doc.conditions?.length || conditions.some((c) => conditionKind(c) === 'hasCondition'))
   const patch = (i: number, p: Record<string, unknown>, key?: string) => onChange(listPatch(conditions, i, p), key && `${key}:${i}`)
   return (
     <div className="story-list conditions" data-testid={`conditions-${name}`}>
@@ -103,6 +104,13 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <SkillPick label={S.conditionSkill} value={c.hasSkill ?? ''} onChange={(v) => patch(i, { hasSkill: v })} />
                 <FilterPicker label={S.conditionSkillWho} mode="optional" value={c.unit} onChange={(f) => patch(i, { unit: f })} />
                 <p className="help">{S.conditionSkillHelp}</p>
+              </>
+            )}
+            {kind === 'hasCondition' && (
+              <>
+                <ConditionPick label={S.conditionHasCondition} value={c.hasCondition ?? ''} onChange={(v) => patch(i, { hasCondition: v })} />
+                <FilterPicker label={S.conditionHasConditionWho} mode="optional" value={c.unit} onChange={(f) => patch(i, { unit: f })} />
+                <p className="help">{S.conditionHasConditionHelp}</p>
               </>
             )}
             {kind === 'carries' && (
