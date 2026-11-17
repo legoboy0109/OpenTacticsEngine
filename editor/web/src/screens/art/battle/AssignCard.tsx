@@ -1,5 +1,6 @@
 // "Who uses which set": rules that give an animation set to a unit type, optionally for one character or one weapon group.
-import { addAssign, assignList, removeAssign, setList, updateAssign, weaponGroups } from '../../../model/battleArt'
+import { addAssign, assignList, removeAssign, setList, updateAssign, weaponChoices, weaponGroups } from '../../../model/battleArt'
+import { gameSides } from '../../../model/graphicsUsage'
 import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
 import { Field } from '../../../ui/Field'
@@ -15,6 +16,8 @@ export function AssignCard() {
   const units = doc.units ?? []
   const characters = doc.characters ?? []
   const groups = weaponGroups(doc)
+  const weapons = weaponChoices(doc)
+  const sides = gameSides(doc)
   if (sets.length === 0) return <Card title={T.assignTitle} help={T.assignHelp} id="battle-assign"><p className="help">{T.assignNeedSet}</p></Card>
   return (
     <Card title={T.assignTitle} help={T.assignHelp} id="battle-assign">
@@ -37,7 +40,15 @@ export function AssignCard() {
                 </Field>
                 <Field label={T.assignGroup}>
                   <Select aria-label={`${T.assignRule(i + 1)}: ${T.assignGroup}`} value={r.group ?? ''} options={[{ value: '', label: T.anyGroup }, ...groups.map((g) => ({ value: g, label: g }))]}
-                    onChange={(v) => edit((d) => updateAssign(d, i, { group: v === '' ? undefined : v }))} />
+                    onChange={(v) => edit((d) => updateAssign(d, i, { group: v === '' ? undefined : v, weapon: v === '' ? r.weapon : undefined }))} />
+                </Field>
+                <Field label={T.assignWeapon} help={r.weapon && r.group ? T.assignWeaponOrGroup : undefined}>
+                  <Select aria-label={`${T.assignRule(i + 1)}: ${T.assignWeapon}`} value={r.weapon ?? ''} options={[{ value: '', label: T.anyWeapon }, ...weapons.map((w) => ({ value: w.id, label: w.name }))]}
+                    onChange={(v) => edit((d) => updateAssign(d, i, { weapon: v === '' ? undefined : v, group: v === '' ? r.group : undefined }))} />
+                </Field>
+                <Field label={T.assignSide}>
+                  <Select aria-label={`${T.assignRule(i + 1)}: ${T.assignSide}`} value={r.side ?? ''} options={[{ value: '', label: T.anySide }, ...sides.map((s) => ({ value: s.id, label: s.name }))]}
+                    onChange={(v) => edit((d) => updateAssign(d, i, { side: v === '' ? undefined : v }))} />
                 </Field>
               </div>
               <button type="button" className="btn sm" aria-label={T.assignDelete(i + 1)} onClick={() => edit((d) => removeAssign(d, i))}><Icon name="trash" />{T.assignDelete(i + 1)}</button>

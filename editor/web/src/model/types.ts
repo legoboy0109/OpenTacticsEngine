@@ -337,6 +337,19 @@ export interface Look extends Extra {
   sides?: Record<string, Look>
   /** Terrain in a style of a 3D kind only: what stands on its ground (model/stand.ts). */
   stand?: Stand
+  /** Units only: frames shown while the unit moves (docs/GRAPHICS.md "Walking"). */
+  walk?: WalkDef
+}
+/** Walking frames of a unit picture: lists of cells of `sheet` (default: the picture's own image) per direction; `side` faces right and
+ *  the opposite direction is it turned round unless `left` and `right` are both given. */
+export interface WalkDef extends Extra {
+  sheet?: string
+  down?: CellRef[]
+  up?: CellRef[]
+  side?: CellRef[]
+  left?: CellRef[]
+  right?: CellRef[]
+  frameMs?: number
 }
 /** A terrain's standing part: an upright picture (`sheet` with cell / variants / frames) or 3D models (`model`, or `variants`
  *  as a list of files). docs/GRAPHICS.md "Standing terrain". */
@@ -359,11 +372,13 @@ export interface StyleArt extends Extra { terrain?: Record<string, Look | null>;
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
 export interface Portrait extends Extra { sheet: string; cell: CellRef }
 /** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */
-export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number }
+export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef> }
+/** Another image with the same layout, drawn by the fighters of one side (a map side id). */
+export interface SideSheetDef extends Extra { sheet: string }
 /** A fighter's animation set: `stand` is required, the other animations are optional (the map picture moves instead). */
-export interface BattleSetDef extends Extra { anchor?: [number, number]; faces?: 'right' | 'left'; mirror?: boolean; animations: Record<string, BattleAnimDef> }
-/** Who uses a set: a unit type, a character and/or a weapon group (the most specific rule wins). */
-export interface BattleAssignDef extends Extra { set: string; type?: string; character?: string; group?: string }
+export interface BattleSetDef extends Extra { anchor?: [number, number]; faces?: 'right' | 'left'; mirror?: boolean; animations: Record<string, BattleAnimDef>; sides?: Record<string, SideSheetDef> }
+/** Who uses a set: a unit type, a character, a weapon group or one weapon, a side (the most specific rule wins). */
+export interface BattleAssignDef extends Extra { set: string; type?: string; character?: string; group?: string; weapon?: string; side?: string }
 export interface BattleBackgroundDef extends Extra { sheet: string; cell: CellRef }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {

@@ -1,6 +1,9 @@
 // The details of one animation set: which way it faces, mirroring, the foot point, every animation, and the live preview.
 import { useState } from 'react'
-import { ANIM_KEYS, assignList, deleteSet, renameSet, setAnchor, setFaces, setIdProblem, setList, setMirror, type AnimKey } from '../../../model/battleArt'
+import { ANIM_KEYS, assignList, deleteSet, renameSet, setAnchor, setFaces, setIdProblem, setList, setMirror, setSideSheet, updateSideSheet, type AnimKey } from '../../../model/battleArt'
+import { artBase } from '../../../model/artFiles'
+import { sheetsOf } from '../../../model/graphics'
+import { gameSides } from '../../../model/graphicsUsage'
 import type { BattleSetDef } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
 import { ConfirmDialog } from '../../../ui/Dialog'
@@ -14,6 +17,34 @@ import { BattlePreview, type PreviewMode } from './BattlePreview'
 import { T } from './text'
 
 interface Props { id: string; set: BattleSetDef; onGone: () => void }
+
+/** One row per side of the game: another image the fighters of that side draw the whole set from (the same layout). */
+function SideSheets({ id, set }: { id: string; set: BattleSetDef }) {
+  const doc = useDoc()
+  const edit = useEdit()
+  const sides = gameSides(doc)
+  const stand = set.animations.stand
+  const sheets = sheetsOf(doc).filter((s) => s.id !== stand?.sheet)
+  return (
+    <section className="stack tight" aria-label={T.sidesTitle} data-testid="battle-sides">
+      <h3>{T.sidesTitle}</h3>
+      <p className="help">{T.sidesHelp}</p>
+      {sides.length === 0 && <p className="help">{T.sidesNone}</p>}
+      {sides.length > 0 && sheets.length === 0 && <p className="help">{T.sideNeedImage}</p>}
+      {sides.length > 0 && sheets.length > 0 && (
+        <div className="battle-fields">
+          {sides.map((s) => (
+            <Field key={s.id} label={s.name}>
+              <Select aria-label={T.sideImage(s.name)} value={setSideSheet(set, s.id)}
+                options={[{ value: '', label: T.sideSame }, ...sheets.map((x) => ({ value: x.id, label: x.name || artBase(x.file) }))]}
+                onChange={(v) => edit((d) => updateSideSheet(d, id, s.id, v))} />
+            </Field>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 export function SetEditor({ id, set, onGone }: Props) {
   const doc = useDoc()
@@ -67,6 +98,7 @@ export function SetEditor({ id, set, onGone }: Props) {
         </Field>
       </div>
       <Toggle label={T.mirror} help={T.mirrorHelp} checked={set.mirror !== false} onChange={(v) => edit((d) => setMirror(d, id, v))} />
+      <SideSheets id={id} set={set} />
       <h3>{T.animations}</h3>
       <div className="stack tight">
         {ANIM_KEYS.map((k) => <AnimRow key={k} setId={id} animKey={k} anim={set.animations[k]} />)}

@@ -28,14 +28,26 @@ export const T = {
 
   anim: {
     stand: { label: 'Stand', help: 'Waiting. Required. Loops.' },
+    standRanged: { label: 'Stand, ranged fight', help: 'Waiting while the foe is more than one square away (an archer with the bow drawn). Missing: the stand plays. Loops.' },
     attack: { label: 'Attack', help: 'A blow. Mark the frame where the weapon hits.' },
+    miss: { label: 'Missed attack', help: 'A blow that does not land (a whiff). Missing: the attack plays.' },
     crit: { label: 'Critical hit', help: 'A stronger blow. Missing: the attack plays.' },
+    critRanged: { label: 'Critical hit, ranged', help: 'A stronger blow from a distance. Missing: the critical hit plays.' },
     ranged: { label: 'Ranged attack', help: 'Used when the foe is more than one square away. Missing: the attack plays.' },
     cast: { label: 'Cast', help: 'Used for weapons that have a spell or arrow effect. Missing: the attack plays.' },
     dodge: { label: 'Dodge', help: 'Avoiding a blow. Missing: a small sidestep.' },
+    dodgeRanged: { label: 'Dodge, ranged', help: 'Avoiding a blow from a distance. Missing: the dodge plays.' },
     hurt: { label: 'Hurt', help: 'Taking a hit. Missing: a shake with a red tint.' },
     defeat: { label: 'Defeat', help: 'Falling. Missing: it fades away.' },
   } as Record<AnimKey, { label: string; help: string }>,
+
+  // a different image for a side
+  sidesTitle: 'A different image for a side',
+  sidesHelp: 'Fighters of a side can draw this set from another image (an enemy in other colours). The other image must be laid out the same way: the same piece size and the pictures in the same places. “Same image” uses the one the animations name.',
+  sidesNone: 'No map has sides yet.',
+  sideSame: 'Same image',
+  sideImage: (side: string) => `Image for ${side}`,
+  sideNeedImage: 'Add a second image on this page first.',
   addAnim: (label: string) => `Add ${label}`,
   removeAnim: (label: string) => `Remove ${label}`,
   removeShort: 'Remove',
@@ -67,7 +79,12 @@ export const T = {
 
   // who uses a set
   assignTitle: 'Who uses which set',
-  assignHelp: 'Give a set to a unit type. A rule for a character, or for a weapon group (a knight with a sword or with a lance), is more specific and wins over the plain unit type. A unit with no rule shows its map picture.',
+  assignHelp: 'Give a set to a unit type. A rule for a character, a weapon or a weapon group (a knight with a sword or with a lance) is more specific and wins over the plain unit type. Most specific first: character with a weapon, character with a group, character, unit type with a weapon, unit type with a group, a weapon, a group, a unit type, a side. A side only decides between rules that are otherwise equal. A unit with no rule shows its map picture.',
+  assignWeapon: 'Weapon',
+  anyWeapon: 'Any weapon',
+  assignSide: 'Side',
+  anySide: 'Any side',
+  assignWeaponOrGroup: 'A rule names a weapon or a weapon group, not both.',
   assignNone: 'No rules yet.',
   assignNeedSet: 'Make an animation set first.',
   assignAdd: 'Add a rule',
