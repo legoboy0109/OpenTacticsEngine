@@ -190,7 +190,7 @@ TEST(battle_art_refusals_are_readable) {
   expectError("b_anim", "{ \"sets\": {\"s\": {\"animations\": {\"jump\": {\"sheet\":\"fighters\",\"frames\":[[0,0]]}}}} }", "unknown animation \"jump\"");
   expectError("b_sheet", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"nope\",\"frames\":[[0,0]]}}}} }", "unknown sheet \"nope\"");
   expectError("b_outside", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[[0,0],[8,0]]}}}} }", "frame [8, 0] is outside sheet \"fighters\"");
-  expectError("b_empty", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[]}}}} }", "between 1 and 64");
+  expectError("b_empty", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[]}}}} }", "between 1 and 512");
   expectError("b_msLen", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[[0,0],[1,0]],\"ms\":[100]}}}} }", "\"ms\" lists 1 times");
   expectError("b_msRange", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[[0,0]],\"ms\":5}}}} }", "\"ms\" must be between 10 and 10000");
   expectError("b_hit", "{ \"sets\": {\"s\": {\"animations\": {\"stand\": {\"sheet\":\"fighters\",\"frames\":[[0,0]]},"
