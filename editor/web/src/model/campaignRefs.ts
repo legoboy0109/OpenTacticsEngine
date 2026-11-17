@@ -22,6 +22,7 @@ export function goneRefs(before: ProjectDoc, after: ProjectDoc): Ref[] {
   const lost = (kind: Ref['kind'], a: Set<string>, b: Set<string>) => { for (const id of a) if (!b.has(id)) out.push({ kind, id }) }
   lost('switch', ids(before.game.switches), ids(after.game.switches))
   lost('variable', ids(before.game.variables), ids(after.game.variables))
+  lost('item', ids(before.items ?? undefined), ids(after.items ?? undefined))
   lost('stat', ids(before.game.stats), ids(after.game.stats))
   lost('resource', ids(before.game.resources), ids(after.game.resources))
   lost('map', ids(before.game.maps), ids(after.game.maps))
@@ -39,7 +40,7 @@ const hit = (gone: Ref[], r: Ref) => gone.some((g) => g.kind === r.kind && g.id 
 /** Removes what the campaign names that `before` had and `after` no longer has. Same object when nothing is lost. */
 export function reconcileCampaign(before: ProjectDoc, after: ProjectDoc): ProjectDoc {
   if (!after.campaign || before === after) return after
-  if (before.maps === after.maps && before.game === after.game && before.characters === after.characters && before.supports === after.supports) return after
+  if (before.maps === after.maps && before.game === after.game && before.items === after.items && before.characters === after.characters && before.supports === after.supports) return after
   const gone = goneRefs(before, after)
   if (!gone.length) return after
   const next = walkCampaign(after.campaign, { ref: (r) => (hit(gone, r) ? DROP : r.id) })

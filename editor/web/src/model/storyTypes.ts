@@ -104,7 +104,11 @@ export interface Command extends Extra {
   /** A skill id taught to (`to` filter) or forgotten by (`from` filter) every matching unit (docs/SRPG.md "Skills"). */
   teachSkill?: string
   forgetSkill?: string
-  from?: Filter
+  /** Who loses it: a filter (forgetSkill; takeItem in a map event) or a roster id (takeItem in a campaign scene). */
+  from?: Filter | string
+  /** takeItem: an item id; `from` says who loses it, `all: true` takes every copy (else one). */
+  takeItem?: string
+  all?: boolean
   giveResource?: Record<string, number>
   setSwitch?: string
   setVariable?: string
@@ -136,12 +140,12 @@ export interface Command extends Extra {
   playSound?: string
 }
 export type CommandKind =
-  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'giveResource'
+  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'giveResource',
+  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport',
 ]

@@ -221,6 +221,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withFilter(x, 'from', w, where),
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),
+    (x) => withRef(x, 'takeItem', 'item', w, where),
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
     (x) => withRef(x, 'playMusic', 'music', w, where),
     (x) => withRef(x, 'playSound', 'sound', w, where),

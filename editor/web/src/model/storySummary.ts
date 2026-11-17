@@ -156,6 +156,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'addSupport': return `${(cmd.by ?? 0) < 0 ? 'Takes' : 'Gives'} ${Math.abs(cmd.by ?? 0)} support ${Math.abs(cmd.by ?? 0) === 1 ? 'point' : 'points'} ${(cmd.by ?? 0) < 0 ? 'from' : 'to'} ${pairText(c, cmd.addSupport)}`
     case 'promote': return typeof cmd.to === 'string' && cmd.to ? `Promotes ${unitText(c, cmd.promote ?? '')} into ${aOrAn(typeName(c, cmd.to))}` : `Promotes ${unitText(c, cmd.promote ?? '')} (its only promotion)`
     case 'giveItem': return `Gives ${itemLabel(c, cmd.giveItem ?? '')} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
+    case 'takeItem': return `Takes ${cmd.all ? 'every' : 'one'} ${q(itemLabel(c, cmd.takeItem ?? ''))} from ${filterText(c, cmd.from)}`
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
     case 'teachSkill': return `Teaches the skill ${q(skillLabel(c, cmd.teachSkill ?? ''))} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'forgetSkill': return `Makes ${filterText(c, cmd.from)} forget the skill ${q(skillLabel(c, cmd.forgetSkill ?? ''))}`

@@ -1,6 +1,6 @@
 // "Teach a skill" and "Make units forget a skill" (E2 of docs/SRPG.md). Both name a skill and which units; the loader needs
 // the unit filter ({} = every unit), so "anyone" is written as {} and never left out.
-import type { Command } from '../../../../../model/storyTypes'
+import { asFilter, type Command } from '../../../../../model/storyTypes'
 import { FilterPicker, SkillPick } from '../pickers'
 import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
@@ -21,7 +21,7 @@ export function ForgetSkillForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <SkillPick label={S.forgetSkillPick} value={cmd.forgetSkill ?? ''} onChange={(v) => patch({ forgetSkill: v })} />
-      <FilterPicker label={S.forgetWho} value={cmd.from ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
+      <FilterPicker label={S.forgetWho} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />
       <p className="help">{S.forgetHelp}</p>
     </div>
   )

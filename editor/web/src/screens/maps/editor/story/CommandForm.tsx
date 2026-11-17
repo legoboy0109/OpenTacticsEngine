@@ -4,7 +4,7 @@ import { ObjectiveEditor } from './ObjectiveEditor'
 import { tidyObjectives } from '../../../../model/storyEdit'
 import { AddUnitForm } from './forms/AddUnitForm'
 import { ChoiceForm } from './forms/ChoiceForm'
-import { GiveItemForm, GiveResourceForm, GrantResearchForm } from './forms/GiveForms'
+import { GiveItemForm, GiveResourceForm, GrantResearchForm, TakeItemForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
 import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
@@ -32,6 +32,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'teachSkill': return <TeachSkillForm cmd={cmd} at={at} />
     case 'forgetSkill': return <ForgetSkillForm cmd={cmd} at={at} />
     case 'giveItem': return <GiveItemForm cmd={cmd} at={at} />
+    case 'takeItem': return <TakeItemForm cmd={cmd} at={at} />
     case 'giveResource': return <GiveResourceForm cmd={cmd} at={at} />
     case 'grantResearch': return <GrantResearchForm cmd={cmd} at={at} />
     case 'setSwitch': return <SetSwitchForm cmd={cmd} at={at} />

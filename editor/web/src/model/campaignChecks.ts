@@ -46,6 +46,7 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
       if (!isStoryId(r.id)) return { topic: 'unit', level: 'error', text: 'a unit’s story name may use only letters, digits, _ and - (up to 64).' }
       return definedStoryIds(doc).has(r.id) ? null : { topic: 'unit', level: 'hint', text: `no map has a unit with the story name “${r.id}” (give a unit that story name in the map editor).` }
     case 'pair': return null
+    case 'item': return pick('an item', 'general') ?? (known(doc.items ?? undefined) ? null : { topic: 'general', level: 'error', text: `“${r.id}” is not an item of this game.` })
     case 'stat': return pick('a stat', 'general') ?? (known(doc.game?.stats) ? null : { topic: 'general', level: 'error', text: `“${r.id}” is not a stat of this game.` })
     case 'character':
       if (r.id === '') return { topic: 'unit', level: 'error', text: 'pick a character.' }
@@ -89,6 +90,7 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
       if (c.fade !== undefined && (typeof c.fade !== 'number' || c.fade < 0 || c.fade > 60)) say('error', 'general', where, 'the fade is a number of seconds from 0 to 60.')
       break
     case 'setSwitch':
+    case 'takeItem':
     case 'playSound':
       break
     case 'addSupport':
