@@ -4,7 +4,7 @@
 // condition and a "give a technology" command. The proof that matters: the exact files the editor wrote, and that the real
 // game loader accepts all of it (/problems is empty). Then deleting a technology that is used, and a phone.
 import type { Page } from '@playwright/test'
-import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
+import { openSectionMenu, editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
 import { openMap } from './mapkit'
 import { addCommand, editor, eventsTab, form, newEvent, shot } from './storykit'
 
@@ -304,9 +304,11 @@ test.describe('on a phone', () => {
     await expect(page.getByText('No technologies yet.').first()).toBeVisible()
   await expect(page.getByText(/Research lets a side pay and wait/)).toBeVisible()
     await expectNoHScroll(page)
+    await openSectionMenu(page)
     const link = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Research', exact: true })
     await expect(link).toBeVisible()
     expect(await link.evaluate((el) => el.scrollWidth > el.clientWidth + 1), 'the "Research" label is whole').toBe(false)
+    await page.keyboard.press('Escape')
     await shot(page, 'research-phone-empty')
     await create(page, 'technology', 'Armor Plating With A Rather Long Name')
     await page.getByRole('switch', { name: /Makes units stronger/ }).check()

@@ -25,6 +25,8 @@ export interface SceneSource {
   only?: CommandKind[]
   /** The map the story forms see (who can speak, which sides exist); default: the campaign's roster. */
   base?: (doc: ProjectDoc) => MapFile
+  /** What the empty speaker choice is called (default "Nobody (a narrator)"): in a character's quotes a line with no speaker is that character's. */
+  emptySpeaker?: string
 }
 
 export function SceneCommands({ source, name }: { source: SceneSource; name: string }) {
@@ -38,7 +40,7 @@ export function SceneCommands({ source, name }: { source: SceneSource; name: str
     const map = asMap(doc)
     return {
       doc, map, mapId: '', vs, units: namedUnits(doc, map), teams: [], tags: [],
-      scene: { goto: source.goto, only: source.only },
+      scene: { goto: source.goto, only: source.only, emptySpeaker: source.emptySpeaker },
       apply: (fn, key) => edit((d) => {
         const m = asMap(d)
         const next = fn(m)

@@ -18,23 +18,30 @@ before scenes); story commands reading a unit's numbers into a variable and `tak
 Conditions screen and story commands; doors, keys, chests and visiting (section 10, no editor forms yet); a sidebar
 fix (the section list scrolls on a short window).
 
-Merged on local `main`, full check running, NOT pushed yet (2026-11-16 evening): battle and defeat quotes
-(docs/EVENTS.md), more skill blocks (docs/SRPG.md "More skill blocks").
+Also pushed (origin/main = 123fe57, full check passed: ote_tests 1676-ish both builds, vitest 1151, e2e 489): battle
+and defeat quotes (docs/EVENTS.md); more skill blocks, both batches (docs/SRPG.md "More skill blocks": steal,
+refresh, move past, nullifySkills, staffUse, staffRange, cure ability, carryBonus; `terrainBonus` test not built);
+the preparation / deployment screen (map `prep` block, roster keeps benched characters, player screen, editor
+Preparation tab and Slots tool; buy only, no equip button in the player).
 
-In progress (worktree jobs): preparation / deployment screen (PLAN item 8); skill blocks follow-up (steal, refresh,
-move past, switch off foe's skills, staffUse moment, staff range, cure ability, editor fields for character tags /
-map unit skills / promotion classSkills).
+In progress (worktree jobs, 2026-11-16 night):
+- Battle scene and animations (PLAN 6f: scene or on-map, maker default + player setting; per-class animation
+  sheets with enlarged-map-sprite fallback). Screenshots land in scratchpad `battle-scene-shots/`.
+- Phone section menu (PLAN 6g) plus small fixes: sidebar regression test, cure-at-turn-start should stop that
+  turn's tick, staves accept `sounds`, quotes speaker label, new-quote empty-line flag, flaky timeline keyboard
+  e2e, "It cures" starting ticked.
+- Private converter step 11 (separate folder, never public): doors, chests, visits, AI markers, yes/no choices,
+  battle/death quotes, prep screen and roster. Step 10 (real staves, conditions, drain, 26 more skills) is done
+  and installed in the git-ignored `games/vision-quest`.
 
-Queue after those (owner's answers in docs/PLAN.md item k): map sprites and battle animations (ask the owner first:
-sprite source, and a question dialog for the battle scene); editor forms for doors / chests / places; editor forms
-for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks. Private converter (separate folder, never
-public) is at step 9 (supports, skills, portraits, starter sounds done); next there: move it onto real staves,
-conditions, doors, quotes, choices and the new skill blocks.
+Queue after those: converter map sprites and battle animations from the ROM (owner: "From the ROM, all of them",
+private only) once the battle scene format exists; editor forms for doors / chests / places and `goesFor`;
+editor forms for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks; selling and an equip button on
+the preparation screen if the owner wants them.
 
 Open with the owner: one headless player run without `--no-audio` to confirm the port's sounds fire (was denied to
-an agent; needs the owner's yes). Placeholders awaiting the owner: all new wording; default ladder numbers (0, 30,
-70, 120, 180, 250), new-rank step 50; starter condition numbers; the phone section switcher is now 17 entries
-(five rows) and wants a design decision; timeline arrows crowd on busy branches.
+an agent; needs the owner's yes). Placeholders awaiting the owner: all new wording; default ladder numbers; starter
+condition numbers; timeline arrows crowd on busy branches.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).

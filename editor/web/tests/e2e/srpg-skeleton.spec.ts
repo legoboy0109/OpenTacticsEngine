@@ -1,7 +1,7 @@
 // E0 of docs/SRPG.md: the strategy-RPG switches on Rules, the sidebar entries that follow them, and the rule that a
 // feature switched on is remembered (an empty file) and one switched off leaves no file. (The screens themselves are empty frames until steps E1 to E4.)
 import { readFileSync } from 'node:fs'
-import { diskPath, editorUrl, expect, saved, section, test, writeDisk } from './fixtures'
+import { gotoSection, diskPath, editorUrl, expect, saved, section, test, writeDisk } from './fixtures'
 
 test('switches add and remove the screens; a switch stays on after a reload, and off removes the file', async ({ page, game }) => {
   const id = await game.create('blank', 'Skeleton')
@@ -29,12 +29,12 @@ test('switches add and remove the screens; a switch stays on after a reload, and
   await expect(section(page, 'Skills')).toBeVisible()
 
   // The empty frame of a screen, and the way back.
-  await section(page, 'Skills').click()
+  await gotoSection(page, 'Skills')
   await expect(page.getByRole('heading', { name: 'Skills', level: 1 })).toBeVisible()
   await expect(page.getByText('No skills yet').first()).toBeVisible() // E2 filled the Skills screen
 
   // Off again (nothing inside, so no question) and the entry goes.
-  await section(page, 'Rules').click()
+  await gotoSection(page, 'Rules')
   await switches.getByRole('switch', { name: 'This game has skills' }).uncheck()
   await expect(section(page, 'Skills')).toHaveCount(0)
   await saved(page)
@@ -73,4 +73,17 @@ test('a game that has the files shows the screens; saving something else leaves 
   // The address of a switched-off screen still opens and says what to do.
   await page.goto(editorUrl(id, 'characters'))
   await expect(page.getByTestId('srpg-off')).toContainText('switched off')
+})
+
+// The sidebar scrolls (overflow-y: auto): with all 17 sections a short desktop window used to cut the list off, and the last link was unreachable.
+test('a short desktop window: the sidebar scrolls and the last section ("Campaign") can still be opened', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'Short Window', { srpgContent: true })
+  await page.setViewportSize({ width: 1280, height: 600 })
+  await page.goto(editorUrl(id, 'game'))
+  const nav = page.getByRole('navigation', { name: 'Sections' })
+  await expect(nav.getByRole('link')).toHaveCount(17)
+  expect(await nav.evaluate((el) => el.scrollHeight > el.clientHeight), 'the list really is taller than the window').toBe(true)
+  await gotoSection(page, 'Campaign') // Playwright scrolls the sidebar to reach it
+  await expect(page).toHaveURL(/\/campaign$/)
+  await expect(nav.getByRole('link', { name: 'Campaign', exact: true })).toHaveAttribute('aria-current', 'page')
 })

@@ -2,8 +2,8 @@
 // before its action and ticked after it; near misses must not tick. Ends with the game loading in the real engine.
 import { clickPiece, picker, pickerGrid } from './artkit'
 import { clickCell, dragThrough, pickSide, pickTerrain, pickUnitType, row, tool } from './mapkit'
-import { requirePlayer, saved } from './fixtures'
-import { expect, expectCurrent, expectRingOn, expectTicked, panel, readGame, sectionLink, test } from './learnkit'
+import { gotoSection, requirePlayer, saved } from './fixtures'
+import { expect, expectCurrent, expectRingOn, expectTicked, panel, readGame, test } from './learnkit'
 import { finish, playAndClose, practiceOf, shot, startLesson } from './learntopic'
 
 test.use({ viewport: process.env.LEARN_PHONE ? { width: 390, height: 844 } : { width: 1920, height: 1080 } })
@@ -30,7 +30,7 @@ test('@smoke Art: every step ticks only after its action, and the practice game 
   // 2. Open the chooser. Trap: visiting the Art screen is not opening the chooser.
   await expectRingOn(page, 'picture-choose')
   await shot(page, 'art-2')
-  await sectionLink(page, 'Art').click()
+  await gotoSection(page, 'Art')
   await expectCurrent(page, 'Open the picture chooser')
   await page.getByRole('button', { name: 'Take me there' }).click()
   await expect(page).toHaveURL(/\/terrain\/road$/)

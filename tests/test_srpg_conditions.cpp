@@ -115,6 +115,26 @@ TEST(conditions_a_condition_can_heal_each_turn_and_a_damage_can_be_a_formula) {
 
 // ---- cannot act, cannot move ----
 
+TEST(conditions_a_cure_at_turn_start_stops_that_turns_tick_and_the_unit_may_act) {
+  // A skill's "turnStart" cure runs before the condition's own block (skills first), so the cured condition must not tick in the same pass.
+  Field w("c_cure_first");
+  w.unit("r1").learned.push_back(w.skill("purge"));
+  w.give("r1", "poison");
+  w.give("r1", "sleep");
+  CHECK_EQ(w.hp("r1"), 22);
+  w.endTurn();  // red's turn starts: purge cures both before they act
+  CHECK(!w.has("r1", "poison"));
+  CHECK(!w.has("r1", "sleep"));
+  CHECK_EQ(w.hp("r1"), 22);  // no poison tick
+  CHECK(!w.unit("r1").done);  // and not put to sleep for the turn
+  CHECK_EQ(countOf(w.events, EventType::ConditionEnded), 2);
+  // Without the skill the same unit is poisoned as before.
+  Field v("c_cure_none");
+  v.give("r1", "poison");
+  v.endTurn();
+  CHECK_EQ(v.hp("r1"), 20);
+}
+
 TEST(conditions_a_sleeping_unit_is_finished_at_the_start_of_its_turn_and_takes_no_orders) {
   Field w("c_sleep");
   w.give("r1", "sleep", 2);

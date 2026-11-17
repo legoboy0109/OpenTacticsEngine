@@ -16,7 +16,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
   static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy", "wieldedByTypes",
-                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable"};
+                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable", "sounds"};  // "sounds": read by the player (docs/SOUND.md)
   for (const Json::Member& m : o.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;

@@ -1,4 +1,4 @@
-import { diskPath, editorUrl, expect, readDisk, saved, section, test } from './fixtures'
+import { gotoSection, diskPath, editorUrl, expect, readDisk, saved, test } from './fixtures'
 import { readFileSync } from 'node:fs'
 
 test('@smoke picker lists the demo games', async ({ page }) => {
@@ -87,13 +87,13 @@ test('@smoke a weapon used by a unit: deleting asks, lists the unit, cleans up',
   await page.getByLabel('Name of the weapon').fill('Plasma Rod')
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/weapons\/plasma_rod/)
-  await section(page, 'Units').click()
+  await gotoSection(page, 'Units')
   await page.getByRole('button', { name: /^Lord/ }).click()
   await page.getByLabel('Plasma Rod').check()
   await saved(page)
   expect(readDisk(id, 'data/units.json').units[0].weapons).toContain('plasma_rod')
 
-  await section(page, 'Weapons').click()
+  await gotoSection(page, 'Weapons')
   await page.getByRole('button', { name: /^Plasma Rod/ }).click()
   await page.getByRole('button', { name: 'Delete', exact: true }).click()
   const dialog = page.getByRole('dialog')

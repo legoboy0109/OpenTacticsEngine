@@ -33,6 +33,8 @@ function findTarget(name: string, entry?: Entry): HTMLElement | null {
     const el = shown(`[data-learn="${one.replace(/["\\]/g, '')}"]`)
     if (el) return el
   }
+  // On a phone the section links are in a closed menu: a ring on a sidebar link goes to the menu button until the menu is open.
+  if (name.startsWith('nav-')) return shown('[data-learn="nav-menu"]')
   return null
 }
 

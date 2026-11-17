@@ -1,11 +1,11 @@
 // Helpers for the Characters screen's tests.
 import type { Page } from '@playwright/test'
-import { editorUrl, section } from './fixtures'
+import { gotoSection, editorUrl } from './fixtures'
 
 export async function switchOn(page: Page, id: string): Promise<void> {
   await page.goto(editorUrl(id, 'rules'))
   await page.getByTestId('srpg-switches').getByRole('switch', { name: 'This game has characters' }).check()
-  await section(page, 'Characters').click()
+  await gotoSection(page, 'Characters')
 }
 
 export async function newCharacter(page: Page, name: string): Promise<void> {

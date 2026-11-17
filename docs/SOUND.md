@@ -194,7 +194,7 @@ dialogue turnStart upgrade research repair supply ambush select`. `ambush` (a mo
 |---|---|---|
 | `data/weapons.json`, per weapon | `"sounds"` | `hit`, `miss`, `critical` |
 | `data/units.json`, per unit type | `"sounds"` | `step`, `hit`, `miss`, `critical`, `defeated`, `select`, `heal` |
-| `data/items.json`, per item | `"sounds"` | `use` (the cue `itemUse`) |
+| `data/items.json`, per item (a staff too) | `"sounds"` | `use` (the cue `itemUse`) |
 | `maps/*.json` | `"music"`, `"playerTurnMusic"`, `"enemyTurnMusic"` (music ids) | |
 | `data/campaign.json`, a chapter's `before` / `after` | the scene as `{ "music": "id", "commands": [ ... ] }` | |
 
@@ -224,6 +224,7 @@ nothing and checks nothing; a headless run (Silent) loads everything, so tests f
 | `StructureCaptured` | `capture` | |
 | `UnitBuilt` | `build` | |
 | `ItemUsed` | `itemUse` | the item's override first |
+| `StaffUsed` | `itemUse` (not played yet) | A staff accepts `"sounds": { "use": ... }` and the player stores it like an item's, but nothing in the battle view plays a sound for `StaffUsed` / `StaffMissed` yet (`battle_view_sound.cpp` has no case for them). Intended when it is: the staff's `use` override, else the game's `heal` for a staff with a heal effect when the game defines it, else `itemUse`; a miss plays `miss` |
 | `ResourceChanged` (gain, of the viewer's side) | `gold` | the same entries that float "+N" over the panel |
 | `TurnStarted` | `turnStart` | also moves the turn-phase music |
 | `StructureUpgraded` | `upgrade` | |

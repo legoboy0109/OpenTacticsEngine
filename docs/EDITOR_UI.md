@@ -54,8 +54,10 @@ forgiven). The demos that come with the engine have no Delete. Files:
 
 **Shell** (`/p/<id>/<section>`): top bar = game name (back to picker),
 save status, undo/redo, problems badge, **Play**. Left sidebar = Game,
-Rules, Units, Weapons, Terrain, Maps. Below 720 px the sidebar becomes a
-compact section switcher and forms go single-column. Every list screen is
+Rules, Units, Weapons, Terrain, Maps. Below 720 px the sidebar becomes one
+sticky row (the current section's name + a "Menu" button) that opens the full list as a
+panel under the row (two columns, scrolls inside itself; Escape / outside tap / the button close it; focus moves in and back;
+the same `nav` "Sections", `hidden` while closed, so tests use `gotoSection(page, name)` from `fixtures.ts`), and forms go single-column. Every list screen is
 "list on the left, form for the selected item on the right" with **New**,
 **Duplicate**, **Delete** and drag-or-buttons reordering.
 
@@ -318,7 +320,7 @@ Code: pure edits in `editor/web/src/model/structures*.ts` (kinds, `structuresEff
 - **Select tool and checks.** "Ground", "Structure", "Owner" and "Unit" of a square, then the movement costs and numbers as the game will use them, each
   marked "(the structure)" where the structure sets it; the checks judge units with the same rule, flag structures that no longer fit, and look for
   an owned structure that builds units / the headquarters.
-- **Phone.** With eight sections the switcher is two rows of four (one row clipped "Structures").
+- **Phone.** The section list is a menu panel (see Shell) because 17 entries no longer fit a grid.
 - **Other.** A tool remembered by an older editor under the name "owners" falls back to the Terrain tool. `MasterDetail` got an optional `note`
   (the one-line explanation under the Structures list). `LookKind` is `'terrain' | 'units' | 'structures'`.
 - **Perf.** A 200-square stroke on a 64 x 64 map with 84 structures on it: 34 to 37 ms with placeholder blocks and 43 to 48 ms with pictures on
