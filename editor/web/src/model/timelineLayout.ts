@@ -86,7 +86,7 @@ export function layoutTimeline(g: TimelineGraph, expanded: ReadonlySet<string> =
   for (const c of g.chapters) {
     const x0 = layerX[p.layer[c.index]], y0 = laneTop.get(`${groupOf(c.index)}/${laneRel(c.index)}`)!
     c.nodes.forEach((id, i) => { rect[id] = { x: x0 + i * (BOX_W + BOX_GAP), y: y0, w: BOX_W, h: boxHeight(nodeBy.get(id)!, expanded.has(c.id)) } })
-    strips.push({ chapterId: c.id, rect: { x: x0, y: y0 - CHIP_H, w: c.nodes.length * BOX_W + (c.nodes.length - 1) * BOX_GAP, h: boxHeight(nodeBy.get(c.nodes[c.nodes.length - 1])!, expanded.has(c.id)) + CHIP_H } })
+    strips.push({ chapterId: c.id, rect: { x: x0, y: y0 - CHIP_H, w: c.nodes.length * BOX_W + (c.nodes.length - 1) * BOX_GAP, h: Math.max(...c.nodes.map((id) => rect[id].h)) + CHIP_H } })
   }
 
   const tails = new Set(g.chapters.map((c) => c.tail))

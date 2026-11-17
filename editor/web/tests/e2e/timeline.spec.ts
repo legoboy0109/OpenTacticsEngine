@@ -3,7 +3,7 @@
 // a level's events, problem badges, the keyboard, and a phone. Every change is checked in the saved campaign.json and by the real
 // game loader (/problems is empty).
 import type { Locator, Page } from '@playwright/test'
-import { diskPath, expect, expectNoHScroll, readDisk, saved, test, writeDisk } from './fixtures'
+import { expect, expectNoHScroll, readDisk, saved, test, writeDisk } from './fixtures'
 import { branchingCampaign, box, chip, edge, openTimeline, timelineGame, timelineTab, view } from './timelinekit'
 
 const order = (id: string): string[] => readDisk(id, 'data/campaign.json').chapters.map((c: any) => c.id)

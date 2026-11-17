@@ -64,7 +64,7 @@ export function TimelineView() {
     if (!layout || mem.placed || size.w === 0) return
     mem.placed = true
     const f = fitView(size, layout)
-    pz.set(f.k >= 0.55 ? f : { k: 0.8, x: 0, y: 12 })
+    pz.set(f.k >= 0.55 ? f : { k: 0.8, x: -50, y: 12 })
   }, [layout, size, mem, pz])
 
   /** Brings a rectangle into view (after a keyboard move, or a chapter was added or moved). */
@@ -203,7 +203,7 @@ export function TimelineView() {
                 {chipVisible && (
                   <button type="button" className="tl-chip" data-drag-chapter={c.id} data-testid={`chip-${c.id}`} aria-pressed={c.id === selectedId} tabIndex={-1}
                     aria-label={TL.chipSelect(c.name)} data-unreached={c.unreached || undefined}
-                    style={{ left: strip.rect.x, top: strip.rect.y, maxWidth: strip.rect.w }} onClick={() => select(c.id === selectedId ? null : c.id)}>
+                    style={{ left: strip.rect.x, top: strip.rect.y, maxWidth: Math.max(strip.rect.w, 330) }} onClick={() => select(c.id === selectedId ? null : c.id)}>
                     {TL.chip(c.index + 1, c.name)}{c.unreached && <span className="tl-chip-note"> · {TL.unreached}</span>}
                   </button>
                 )}

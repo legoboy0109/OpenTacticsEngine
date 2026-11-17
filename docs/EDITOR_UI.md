@@ -900,3 +900,50 @@ All wording below is placeholder. No helper (API) change: the loader already che
   flow card shows such a jump (`campaignFlow.ts`).
 - **Tests**: unit `choices.test.ts` (+ the changed line in `campaign.test.ts`); e2e `choices.spec.ts` (desktop: a question with a hidden answer, nested
   question, reorder, limits, duplicate store; a scene question that jumps to chapters; 360 px phone with four long answers).
+
+## Campaign timeline (PLAN 6c)
+
+All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API) change. The Campaign screen has two views, **List** (the original) and **Timeline**
+(tabs; the last one chosen is kept in `localStorage` key `ote.campaignView`, default List).
+
+**What it shows.** A flowchart reading left to right: per chapter its before scene (if it has one), its level, its after scene (if any), then the next chapter.
+A scene "exists" when it is a list (even `[]`) or the object form; "Add a scene" writes `[]`, which disappears again when the scene is emptied or removed.
+Level boxes show a small picture of the map (the map editor's own `drawMap`, plain look, drawn once on an off-screen canvas and cached per map object;
+`mapThumb.ts`; if drawing throws, a one-pixel-per-square terrain-colour miniature), chapter name and map name. Every box shows a problems badge, and
+"what changes" signs with counts: units join / leave (`addUnit` / `removeUnit`), items given, switches or variables set, questions asked, and for levels
+a shop (a placed structure whose kind sells items). A level's signs add up all its events. Scenes show no summary of what is said. A legend explains the signs.
+
+**How branches are derived** (`model/timelineGraph.ts`, `timelineFlow.ts`). Arrows: *order* (before to level to after, and a chapter's last box to the next
+chapter's first box), *next* (the chapter's own "Next chapter" when it is not the following one), *goto* (every `goto` of a scene, bare, in an `if` / `else`, or
+in an answer, to the first box of the chapter it names). A goto arrow is labelled with the answer's words (nested answers joined with ›), a short "if ..." /
+"otherwise", or nothing. A goto does not end a scene (the last one that ran wins), so the plain order arrow out of a scene is dropped only when every way
+through the scene runs a goto (a bare goto, a question whose answers all jump, an `if` with an `else` where both sides jump). A question whose answers do not
+jump is only a marker. If a before scene always jumps, the chapter's level and after scene are drawn dashed and dimmed ("never played"). A goto to a chapter that
+does not exist draws nothing (the Campaign checks report it). Reach is worked out from chapter 1's first box along all arrows; chapters not reached are
+drawn dashed in a separate band below the story with a note.
+
+**Layout** (`timelineLayer.ts`, `timelineLayout.ts`, `timelineRoute.ts`; pure, unit tested). Columns = one after the latest chapter that leads to it, over forward
+arrows; a loop (an arrow to a chapter still being walked in a depth-first walk) is left out of the columns and drawn as a wrap-around arrow under the boxes, so loops
+never break the picture. Rows: a chapter keeps the row of the chapter that leads to it by the normal order (the main story stays on one line), a chapter reached
+only by a goto takes the nearest free row. Arrows that skip columns, loops, and arrows leaving a box that has another box on its right run along the free
+band between rows. A long story is folded: columns that would pass 3400 px start a new line below (still left to right; the arrow across the fold runs under the line and
+comes in from the left). Only boxes and arrows near the screen are in the page; the view is moved on the element and handed to React once a frame.
+
+**Controls.** Drag empty space, or one finger, to move; wheel scrolls, Ctrl + wheel or pinch zooms; buttons Zoom in / out, Fit all. A chapter's name above its
+boxes selects it (shown in the bar: Move earlier / later, Add a chapter before / after, add or remove its before / after scene, Chapter settings, Remove the chapter).
+Dragging any box (mouse or pen) moves that chapter (nearest chapter decides, left half = before it); touch uses the buttons. "+" on an order arrow between two
+neighbours adds a chapter there; if the chapter before had "Next chapter" set to the one after, it now points at the new one, so the story goes through it.
+Removing a chapter uses the usual confirmation with where it is used (`campaignUsagesOf`); removing a scene that has commands asks first. Every change goes through
+`edit` (Undo, saving, Problems). Clicking a scene box opens the chapter's page scrolled to that scene; a level box opens that map in the map editor (a level with no
+map opens the chapter's settings); the small button on a level opens its events (collapsed by default, remembered per chapter while the editor is open), ordered:
+start of battle, turn numbers ascending, every turn, then conditional ones grouped by trigger kind; an event opens in the map editor's Events tab
+(`maps/editor/openRequest.ts`). The chapter page has "Back to the timeline"; the view, selection, expanded levels and the box left from are remembered per project in
+memory (`timeline/memory.ts`, not saved). Keyboard: arrows move between boxes (Left / Right in play order, Up / Down to the next row), Home / End, Enter opens, Space selects the
+chapter, `[` `]` move it, Delete removes it (asks), `e` opens / closes a level's events, `+` `-` `0` zoom / fit; listed under "Keys".
+
+**Problem badges** (`timelineProblems.ts`). Scene box: Campaign checks naming that scene. Level box: the chapter's other checks and the map's event / objective checks (the
+ones the Events tab shows). They are live; the helper's list (last save) is used for a box only when the live checks have nothing for it, so nothing is counted twice.
+The badge (count, tooltip and accessible name list the messages) opens the Problems list.
+
+**Limits.** No dependency was added. Scene text is never edited inline. The edge labels are nudged apart but can still overlap in very busy pictures; arrows that
+share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.ts`, `timelineLayout.test.ts`; e2e `timeline.spec.ts` (+ `timeline-shots.spec.ts`, SHOTS=1).
