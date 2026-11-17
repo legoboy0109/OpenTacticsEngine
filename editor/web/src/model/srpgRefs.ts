@@ -2,6 +2,7 @@
 // abilities. Pure functions returning new documents, so a delete and its clean-up are one undo step. What the data
 // shapes of the contract hold is covered here; the story forms of later steps (teach / forget a skill, promote,
 // support points) add their own references to `storyRefs.ts` when they exist.
+import { dropBattleOf } from './battleArt'
 import { ids } from './doc'
 import { makeId } from './ids'
 import { dropCharacterLocks, lockUsageLines } from './locks'
@@ -139,7 +140,7 @@ export function cleanAbility(doc: ProjectDoc, id: string): ProjectDoc {
 
 /** Takes the character's placed units off every map and its pairs out of the supports. */
 export function cleanCharacter(doc: ProjectDoc, id: string): ProjectDoc {
-  doc = cleanQuotes(dropCharacterLocks(doc, id), id)  // other characters' quotes against it, and the lines it speaks
+  doc = dropBattleOf(cleanQuotes(dropCharacterLocks(doc, id), id), 'character', id)  // other characters' quotes against it, and the lines it speaks
   const maps: ProjectDoc['maps'] = {}
   // The units go, and with them what events and objectives said about the character's id (it is the unit's story name).
   for (const [mid, m] of Object.entries(doc.maps)) {

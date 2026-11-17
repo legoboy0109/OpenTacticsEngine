@@ -89,6 +89,8 @@ export interface Game extends Extra {
   editor?: EditorData
   /** Who may save (docs/SAVES.md): missing = 'any'. */
   saving?: SavingMode
+  /** How fights are shown unless the player chose otherwise (docs/BATTLE_SCENE.md): missing = 'map' (quick fights on the map). */
+  battleScene?: 'scene' | 'map'
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
   switches?: Named[]
   variables?: Named[]
@@ -324,8 +326,26 @@ export interface Stand extends Extra {
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
 export interface Portrait extends Extra { sheet: string; cell: CellRef }
+/** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */
+export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number }
+/** A fighter's animation set: `stand` is required, the other animations are optional (the map picture moves instead). */
+export interface BattleSetDef extends Extra { anchor?: [number, number]; faces?: 'right' | 'left'; mirror?: boolean; animations: Record<string, BattleAnimDef> }
+/** Who uses a set: a unit type, a character and/or a weapon group (the most specific rule wins). */
+export interface BattleAssignDef extends Extra { set: string; type?: string; character?: string; group?: string }
+export interface BattleBackgroundDef extends Extra { sheet: string; cell: CellRef }
+/** data/graphics.json "battle". */
+export interface BattleSection extends Extra {
+  sets?: Record<string, BattleSetDef>
+  effects?: Extra[]
+  assign?: BattleAssignDef[]
+  backgrounds?: Record<string, BattleBackgroundDef>
+  terrainBackground?: Record<string, string>
+  defaultBackground?: string
+}
 export interface Graphics extends Extra {
   sheets: Sheet[]
+  /** The side-view battle scene's animation sets, rules and backgrounds. */
+  battle?: BattleSection
   /** Portrait id -> picture; the id is what a `say` command's "portrait" names. */
   portraits?: Record<string, Portrait>
   unitMarker?: boolean

@@ -1,6 +1,7 @@
 // Who uses a stat / resource / move type / unit / weapon / terrain, and the
 // clean-up that removes those references in the same edit as the delete.
 import { typeIdOf } from './characterUnits'
+import { dropBattleOf } from './battleArt'
 import { dropArtOf } from './graphicsClean'
 import { economyUsageLines } from './researchRefs'
 import { cleanStatConditions, cleanStatSkills, conditionsUseStat, skillsUseStat } from './skillStatRefs'
@@ -154,7 +155,7 @@ export function cleanMoveType(doc: ProjectDoc, id: string, reassignTo: string): 
 
 export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
   const remaining = (doc.units ?? []).filter((u) => u.id !== id)
-  return cleanUnitPromotions(dropArtOf({
+  return cleanUnitPromotions(dropBattleOf(dropArtOf({
     ...doc,
     weapons: doc.weapons && doc.weapons.map((w) => (w.versus && id in w.versus && !tagStillUsed(remaining, id, id)
       ? stripKey(w, 'versus', dropKey(w.versus, id)) : w)),
@@ -167,7 +168,7 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
       const gone = m.units.filter((u) => u.type === id && u.id).map((u) => ({ kind: 'unit' as const, id: u.id! }))
       return scrubMap(doc, { ...m, units: m.units.filter((u) => u.type !== id) }, [{ kind: 'type', id }, ...gone])
     }),
-  }, 'units', id), id)
+  }, 'units', id), 'type', id), id)
 }
 
 /** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */
@@ -185,7 +186,7 @@ export function cleanTerrain(doc: ProjectDoc, id: string, replacement: string): 
   const game = doc.game && doc.game.styles?.some((s) => s.terrainColors && id in s.terrainColors)
     ? { ...doc.game, styles: updateStyles(doc.game.styles, id) } : doc.game
   const remaining = (doc.terrain ?? []).filter((t) => t.id !== id)
-  return dropArtOf({
+  return dropBattleOf(dropArtOf({
     ...doc,
     game,
     maps: mapMembers(doc, (m) => {
@@ -193,7 +194,7 @@ export function cleanTerrain(doc: ProjectDoc, id: string, replacement: string): 
       const swapped = { ...m, legend: Object.fromEntries(Object.entries(m.legend).map(([ch, t]) => [ch, t === id ? replacement : t])) }
       return remaining.length ? writeGrid(swapped, readGrid(swapped, remaining), remaining) : swapped
     }),
-  }, 'terrain', id)
+  }, 'terrain', id), 'terrain', id)
 }
 
 function updateStyles(styles: NonNullable<ProjectDoc['game']>['styles'], id: string) {
