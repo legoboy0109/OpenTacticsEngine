@@ -357,6 +357,9 @@ struct ConditionDef {
   ConditionUntil until = ConditionUntil::Turns;
   int turns = 3;                     // Turns: the afflicted unit's own turns it lasts (1..99)
   int wearOff = 0;                   // percent chance each own turn that it ends early (0 = never)
+  // "scale": "turnsLeft" (docs/SRPG.md "Effects that fade"): the numbers of its "always" blocks (stats, growths, vision, staffRange,
+  // carryBonus) are multiplied by the turns it has left. Counted conditions only.
+  bool scale = false;
   bool endsWhenStruck = false;       // a strike that does damage to the unit ends it
   std::vector<std::string> replaceIds;
   std::vector<int> replaces;         // applying this removes these

@@ -7,8 +7,19 @@
 
 namespace ote {
 
-void Battle::standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out) const {
+// A fading condition ("scale": "turnsLeft"): its blocks' plain amounts count as many times as it has turns left (0 on its last turn).
+int Battle::conditionScale(const Unit& u, int skill) const {
+  if (!db->scaledConditions || !db->skills[(size_t)skill].hidden) return 1;
+  for (const ConditionState& cs : u.conditions) {
+    const ConditionDef& d = db->conditions[(size_t)cs.condition];
+    if (d.skill == skill && d.scale) return std::max(0, cs.left);
+  }
+  return 1;
+}
+
+void Battle::standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out, std::vector<int>* scales) const {
   out.clear();
+  if (scales) scales->clear();
   if (db->skills.empty()) return;
   std::vector<int> list;
   skillsOf(u, -1, list);
@@ -19,6 +30,7 @@ void Battle::standingEffects(const Unit& u, bool unconditionedOnly, std::vector<
   ctx.unit = u.id;
   ctx.weapon = restingWeapon(u);
   for (int s : list) {
+    const int scale = scales && db->scaledConditions ? conditionScale(u, s) : 1;
     for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
       if (b.when != SkillWhen::Always) continue;
       bool holds = true;
@@ -31,7 +43,10 @@ void Battle::standingEffects(const Unit& u, bool unconditionedOnly, std::vector<
           }
       }
       if (!holds) continue;
-      for (const SkillEffect& e : b.effects) out.push_back(&e);
+      for (const SkillEffect& e : b.effects) {
+        out.push_back(&e);
+        if (scales && db->scaledConditions) scales->push_back(scale);  // left empty in a game with no fading condition
+      }
     }
   }
 }
@@ -41,10 +56,11 @@ void Battle::standingEffects(const Unit& u, bool unconditionedOnly, std::vector<
 int Battle::skillStatBonus(const Unit& u, int stat) const {
   if (db->skills.empty() || stat < 0) return 0;
   std::vector<const SkillEffect*> fx;
-  standingEffects(u, stat == db->rules.statHp, fx);
+  std::vector<int> scale;
+  standingEffects(u, stat == db->rules.statHp, fx, &scale);
   int sum = 0;
-  for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::Stats && (size_t)stat < e->stats.size()) sum += e->stats[(size_t)stat];
+  for (size_t i = 0; i < fx.size(); ++i)
+    if (fx[i]->kind == SkillEffect::Kind::Stats && (size_t)stat < fx[i]->stats.size()) sum += fx[i]->stats[(size_t)stat] * (scale.empty() ? 1 : scale[i]);
   return sum;
 }
 
@@ -52,20 +68,22 @@ int Battle::skillStatBonus(const Unit& u, int stat) const {
 int Battle::skillGrowthBonus(const Unit& u, int stat) const {
   if (db->skills.empty() || stat < 0) return 0;
   std::vector<const SkillEffect*> fx;
-  standingEffects(u, true, fx);
+  std::vector<int> scale;
+  standingEffects(u, true, fx, &scale);
   int sum = 0;
-  for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::Growths && (size_t)stat < e->stats.size()) sum += e->stats[(size_t)stat];
+  for (size_t i = 0; i < fx.size(); ++i)
+    if (fx[i]->kind == SkillEffect::Kind::Growths && (size_t)stat < fx[i]->stats.size()) sum += fx[i]->stats[(size_t)stat] * (scale.empty() ? 1 : scale[i]);
   return sum;
 }
 
 int Battle::carryBonusOf(const Unit& u) const {
   if (!db->carryBonusSkills) return 0;
   std::vector<const SkillEffect*> fx;
-  standingEffects(u, false, fx);
+  std::vector<int> scale;
+  standingEffects(u, false, fx, &scale);
   int sum = 0;
-  for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::CarryBonus) sum += e->value;
+  for (size_t i = 0; i < fx.size(); ++i)
+    if (fx[i]->kind == SkillEffect::Kind::CarryBonus) sum += fx[i]->value * (scale.empty() ? 1 : scale[i]);
   return sum;
 }
 

@@ -193,6 +193,7 @@ bool Battle::inflictCondition(int unit, int condition, int turns, int source, st
   // A unit that cannot act loses what is left of its own turn.
   if (u.side == activeSide && u.cell != kNoCell && conditionBlock(u, ConditionBlock::Act) == condition) u.done = true;
   clampHp(u);
+  if (fog && db->visionSkills) markSight();  // a condition may add vision (a torch): who sees what changes
   return true;
 }
 
@@ -211,6 +212,7 @@ int Battle::cureConditions(int unit, const std::vector<int>& ids, bool all, int 
     ++removed;
   }
   if (removed) clampHp(u);
+  if (removed && fog && db->visionSkills) markSight();
   return removed;
 }
 
@@ -230,6 +232,7 @@ void Battle::conditionsTurnStart(std::vector<Event>& events) {
       ++k;
     }
   }
+  if (fog && db->visionSkills && db->scaledConditions) markSight();  // a fading light shrinks with the count
 }
 
 void Battle::conditionsPrevent(std::vector<Event>& events) {

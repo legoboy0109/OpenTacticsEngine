@@ -403,6 +403,7 @@ struct Database {
   // Fog options in use (set by the loaders; they keep sight.cpp from looking when a game has none): a "vision" skill effect, a terrain
   // that blocks sight, a structure kind with a fixed "light".
   bool visionSkills = false, terrainBlocksSight = false, structureLights = false;
+  bool scaledConditions = false;  // some condition has "scale": "turnsLeft" (docs/SRPG.md "Effects that fade")
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 

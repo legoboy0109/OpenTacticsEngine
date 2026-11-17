@@ -185,7 +185,10 @@ std::vector<std::pair<int, int>> lostCarried_;
 // ---- skills, step K1 (skills.cpp, skill_standing.cpp) ----
 // The effects of the unit's "always" blocks whose conditions hold, in skill-list order. `unconditionedOnly` looks only
 // at blocks without conditions: what the HP stat asks, so that judging an `hp` condition never asks for itself.
-void standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out) const;
+// `scales` (optional): one number per effect, what its plain amount is multiplied by (1 unless a fading condition's block, below).
+void standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out, std::vector<int>* scales = nullptr) const;
+// The turns left of the unit's scaling condition whose hidden skill is `skill`; 1 for any other skill (skill_standing.cpp).
+int conditionScale(const Unit& u, int skill) const;
 int skillGrowthBonus(const Unit& u, int stat) const;  // the "growths" effects of its skills, in % points
 int moveCostCap(const Unit& u) const;                 // the lowest "maxMoveCost" it has, 0 = none
 bool passesEnemies(const Unit& u) const;              // has "pass": enemies
