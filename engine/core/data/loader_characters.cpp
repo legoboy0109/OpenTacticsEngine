@@ -13,7 +13,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "tags"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -66,6 +66,7 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
       !c.stringList(e, "abilities", where, ch.abilityIds))
     return false;
   if (!readCharacterRanks(c, db, e, where, ch)) return false;  // "ranks", "capAdjust" (docs/SRPG.md section 7)
+  if (!c.stringList(e, "tags", where, ch.tags)) return false;  // docs/SRPG.md "Tags"
   if (!c.stringList(e, "wields", where, ch.wields)) return false;  // extra weapon groups, same shape as a unit type's "wields"
   ch.hasItems = e.has("items");
   return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, ch.items);

@@ -49,7 +49,7 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
         if (o.id == u.id || !o.alive || o.cell == kNoCell) continue;
         if (grid.distance(cell, o.cell) > cond.within) continue;
         if (cond.enemy ? (isEnemy(u, o) && unitVisibleTo(team, o)) : teamOf(o) == team) {
-          if (cond.key.empty() || unitTypeMatchesKey(typeOf(o), cond.key)) ++count;
+          if (cond.key.empty() || unitHasKey(o, cond.key)) ++count;
         }
       }
       return cmp(cond.op, count, cond.value);
@@ -69,7 +69,17 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
       return s.id == cond.key || hasKey(s.tags, cond.key);
     }
     case Kind::Unit:
-      return unitTypeMatchesKey(typeOf(u), cond.key);
+      return unitHasKey(u, cond.key);
+    case Kind::WeaponKind:
+      return weapon >= 0 && db->weapons[(size_t)weapon].damageKind == cond.key;
+    case Kind::Turn:
+      switch (cond.turnMode) {
+        case SkillCond::TurnMode::Odd: return round % 2 == 1;
+        case SkillCond::TurnMode::Even: return round % 2 == 0;
+        case SkillCond::TurnMode::Range: return round >= cond.turnA && round <= cond.turnB;
+        case SkillCond::TurnMode::Every: return cond.turnA > 0 && round % cond.turnA == cond.turnB;
+      }
+      return false;
     case Kind::Carrying:
       return (u.carrying >= 0) == cond.flag;
     case Kind::Round:
@@ -86,30 +96,8 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
     }
     case Kind::Condition:
       return hasCondition(u, db->findCondition(cond.key));
-    case Kind::Formula: {
-      if (!formulas || ctx.unit < 0 || ctx.unit >= (int)units.size()) return false;
-      // a = the owner, b = the foe (nil without one), the usual seven variables (docs/SRPG.md "Formulas").
-      const Unit& a = units[(size_t)ctx.unit];
-      const Unit* b = ctx.foe >= 0 && ctx.foe < (int)units.size() ? &units[(size_t)ctx.foe] : nullptr;
-      const Cell ca = ctx.cell == kNoCell ? a.cell : ctx.cell;
-      const Cell cb = !b ? kNoCell : (ctx.foeCell == kNoCell ? b->cell : ctx.foeCell);
-      Props scratchA, scratchB;
-      FormulaCtx fc;
-      fc.sides = &sides;
-      fc.battle = this;
-      fc.a = &a;
-      fc.b = b;
-      if (ctx.weapon >= 0) fc.w = &db->weapons[(size_t)ctx.weapon];
-      if (ctx.foeWeapon >= 0) fc.fw = &db->weapons[(size_t)ctx.foeWeapon];
-      if (ca != kNoCell) fc.ta = &numbersAt(ca, scratchA);
-      if (cb != kNoCell) fc.tb = &numbersAt(cb, scratchB);
-      if (ca != kNoCell && cb != kNoCell) fc.dist = grid.distance(ca, cb);
-      if (b && ctx.weapon >= 0) {
-        double vs = 1;
-        if (versusValue(ctx.weapon, *b, vs)) fc.vs = vs;
-      }
-      return formulas->evalExpr(cond.expr, fc, 0) != 0;
-    }
+    case Kind::Formula:
+      return skillExpr(cond.expr, ctx, 0) != 0;
   }
   return false;
 }

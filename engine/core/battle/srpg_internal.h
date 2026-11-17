@@ -194,6 +194,13 @@ void skillCombatList(const CombatSetup& setup, int unit, std::vector<int>& out) 
 bool skillBlockHolds(const SkillBlock& block, const SkillCtx& ctx) const;  // all its conditions hold
 // The block's chance in percent, 0..100 (formula: a = owner, b = foe). Never rolls.
 int skillChance(const SkillBlock& block, const SkillCtx& ctx) const;
+// A formula of a skill block (Database::exprs index) judged for ctx.unit (`a`) and ctx.foe (`b`); `def` when it cannot run.
+double skillExpr(int expr, const SkillCtx& ctx, double def) const;
+// The number a combat effect gives: its whole number, or its formula's result (floored, kept within +-kMaxStrikeDamage /
+// 0..1000 for percents). For `Stats` effects `stats` is filled with the per-stat numbers; otherwise it is left alone.
+int skillEffectNumber(const SkillEffect& e, const SkillCtx& ctx, std::vector<int>& stats) const;
+// Does the unit match a tag key: its type's id or tags, or its character's tags (docs/SRPG.md "Tags").
+bool unitHasKey(const Unit& u, const std::string& key) const;
 // One strike's blocks (the striker's "strike", then the struck unit's "struck"). `rng` set = judge activations
 // (roll them and hand back events); null with `notes` set = list the activations that could fire; both null = only
 // the blocks without a chance (the forecast's passives). Never changes the battle.

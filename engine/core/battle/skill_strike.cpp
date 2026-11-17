@@ -7,20 +7,23 @@ namespace ote {
 namespace {
 
 // The effects a "strike" block (the striker's) or a "struck" block (the struck unit's) has on this one strike.
-void applyStrikeEffects(const SkillBlock& b, StrikeMods& m, bool strikersBlock) {
+// `numbers[i]` is effect i's number (a formula amount already worked out: `a` = the owner, `b` = the foe).
+void applyStrikeEffects(const SkillBlock& b, const std::vector<int>& numbers, StrikeMods& m, bool strikersBlock) {
   using K = SkillEffect::Kind;
-  for (const SkillEffect& e : b.effects) {
+  for (size_t i = 0; i < b.effects.size(); ++i) {
+    const SkillEffect& e = b.effects[i];
+    const int v = numbers[i];
     switch (e.kind) {
-      case K::Hit: m.hit += e.value; break;
-      case K::Crit: m.crit += e.value; break;
-      case K::Damage: m.damage += e.value; break;
-      case K::DamagePercent: m.damagePercent.push_back(e.value); break;
+      case K::Hit: m.hit += v; break;
+      case K::Crit: m.crit += v; break;
+      case K::Damage: m.damage += v; break;
+      case K::DamagePercent: m.damagePercent.push_back(v); break;
       case K::Drain: m.drain += e.value; break;
       case K::StrikeAgain: m.strikeAgain = true; break;
-      case K::Avoid: m.avoid += e.value; break;
-      case K::CritAvoid: m.critAvoid += e.value; break;
-      case K::DamageTaken: m.damageTaken += e.value; break;
-      case K::DamageTakenPercent: m.damageTakenPercent.push_back(e.value); break;
+      case K::Avoid: m.avoid += v; break;
+      case K::CritAvoid: m.critAvoid += v; break;
+      case K::DamageTaken: m.damageTaken += v; break;
+      case K::DamageTakenPercent: m.damageTakenPercent.push_back(v); break;
       case K::Survive: m.survive = true; break;
       case K::Inflict: (strikersBlock ? m.inflictOnStruck : m.inflictOnStriker).push_back(&e); break;
       default: break;  // the loader keeps other effects out of these blocks
@@ -36,7 +39,7 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, Stri
   if (db->skills.empty()) return;
   const int striker = counter ? setup.defender : setup.attacker;
   const int struck = counter ? setup.attacker : setup.defender;
-  std::vector<int> list;
+  std::vector<int> list, numbers, scratch;
   for (int side = 0; side < 2; ++side) {  // roll order: the striker's blocks, then the struck unit's
     const int owner = side == 0 ? striker : struck;
     const SkillWhen when = side == 0 ? SkillWhen::Strike : SkillWhen::Struck;
@@ -61,7 +64,9 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, Stri
         } else if (notes) {
           continue;  // a list of notes only wants the activations
         }
-        applyStrikeEffects(b, out, side == 0);
+        numbers.clear();
+        for (const SkillEffect& e : b.effects) numbers.push_back(skillEffectNumber(e, ctx, scratch));
+        applyStrikeEffects(b, numbers, out, side == 0);
       }
     }
   }

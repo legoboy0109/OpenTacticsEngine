@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -125,6 +125,7 @@ static void pushWeapon(lua_State* L, const WeaponDef* w, bool answers = false) {
   lua_createtable(L, 0, (int)w->props.size() + 3);
   lua_pushstring(L, w->id.c_str()); lua_setfield(L, -2, "id");
   lua_pushstring(L, w->group.c_str()); lua_setfield(L, -2, "group");
+  lua_pushstring(L, w->damageKind.c_str()); lua_setfield(L, -2, "damageKind");  // "" when the weapon has none
   if (answers) { lua_pushinteger(L, 1); lua_setfield(L, -2, "answers"); }
   for (const NamedNumber& n : w->props) {
     lua_pushnumber(L, n.value);
@@ -136,9 +137,10 @@ static void pushWeapon(lua_State* L, const WeaponDef* w, bool answers = false) {
 // read 0 (see emptyWeaponMeta_), so a formula can test `fw.none` or just compute with it.
 void Formulas::pushFoeWeapon(const WeaponDef* fw, bool answers) {
   if (fw) { pushWeapon(L_, fw, answers); return; }
-  lua_createtable(L_, 0, 3);
+  lua_createtable(L_, 0, 4);
   lua_pushinteger(L_, 1);
   lua_setfield(L_, -2, "none");
+  lua_pushstring(L_, ""); lua_setfield(L_, -2, "damageKind");
   lua_pushstring(L_, ""); lua_setfield(L_, -2, "id");     // strings, so `fw.group == "sword"` is simply false
   lua_pushstring(L_, ""); lua_setfield(L_, -2, "group");
   lua_rawgeti(L_, LUA_REGISTRYINDEX, emptyWeaponMeta_);
@@ -194,6 +196,11 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
     lua_pushboolean(L_, 1);
     lua_setfield(L_, -2, tag.c_str());
   }
+  if (u->character >= 0 && (size_t)u->character < db_->characters.size())  // the character's own tags too
+    for (const std::string& tag : db_->characters[(size_t)u->character].tags) {
+      lua_pushboolean(L_, 1);
+      lua_setfield(L_, -2, tag.c_str());
+    }
   lua_setfield(L_, -2, "tags");
 }
 
@@ -209,8 +216,9 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_pushinteger(L_, ctx.dist);
   lua_pushnumber(L_, ctx.vs);
   pushFoeWeapon(ctx.fw, ctx.fwAnswers);
+  lua_pushinteger(L_, ctx.battle ? ctx.battle->round : 0);  // `turn`: the battle's turn (round) number, 0 outside a battle
   double result = def;
-  if (lua_pcall(L_, 8, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 9, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

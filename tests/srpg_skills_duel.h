@@ -18,6 +18,8 @@ struct Options {
   std::string aSkills, dSkills;  // skill ids of the two duelists, as JSON list contents: "\"x\", \"y\""
   std::string extraUnits;        // more map units (JSON objects, each starting with a comma)
   std::string aWeapon = "plain_sword", dWeapon = "plain_sword";
+  std::string aTags, dTags, cTags;  // "tags" of the three unit types, as JSON list contents: "\"scout\""
+  std::string extraWeapons;         // more weapon objects, each followed by a comma
   int gap = 1;                   // the defender's x
   uint32_t seed = 7;
 };
@@ -38,11 +40,12 @@ struct Duel {
       const std::string& list = i == 0 ? o.aSkills : i == 1 ? o.dSkills : std::string();
       types += std::string("{ \"id\": \"") + names[i] + "\", \"name\": \"" + names[i] +
                "\", \"moveType\": \"foot\", \"stats\": { \"hp\": 30, \"atk\": 6, \"skl\": 20, \"def\": 2, \"mov\": 4 }, "
-               "\"weapons\": [\"" + (i == 1 ? o.dWeapon : o.aWeapon) + "\"], \"skills\": [" + list + "] },";
+               "\"weapons\": [\"" + (i == 1 ? o.dWeapon : o.aWeapon) + "\"], \"skills\": [" + list + "], \"tags\": [" +
+               (i == 0 ? o.aTags : i == 1 ? o.dTags : o.cTags) + "] },";
     }
     c.swap("data/units.json", "{ \"units\": [", "{ \"units\": [" + types);
     c.swap("data/weapons.json", "{ \"weapons\": [",
-           "{ \"weapons\": [ { \"id\": \"plain_sword\", \"name\": \"Plain Sword\" },"
+           "{ \"weapons\": [ " + o.extraWeapons + "{ \"id\": \"plain_sword\", \"name\": \"Plain Sword\" },"
            " { \"id\": \"plain_bow\", \"name\": \"Plain Bow\", \"range\": [2, 2], \"counter\": false },"
            " { \"id\": \"hexed_sword\", \"name\": \"Hexed Sword\", \"skills\": [\"weapon_skill\"] },");
     c.put("maps/duel.json",

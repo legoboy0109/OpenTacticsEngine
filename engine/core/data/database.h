@@ -103,6 +103,7 @@ struct WeaponDef {
   double versusDefault = 1;
   std::string damageFormula;  // optional per-weapon override (Lua expr)
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
+  std::string damageKind;     // optional free-form word ("physical", "magic", ...): skill tests `weaponKind`, formulas `w.damageKind`
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
   // Weapon ranks (docs/SRPG.md section 7); both -1 / 1 in a game without ranks.

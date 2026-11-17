@@ -70,6 +70,8 @@ struct CharacterDef {
   std::vector<std::string> wields;  // extra weapon groups it can wield beyond its class's (docs/SRPG.md section 7); only ever adds
   std::vector<int> rankStart;     // per RankRules::groups index: personal weapon experience (the higher of it and the class's wins)
   std::vector<int> capAdjust;     // per stat index: added to the cap the class / game gives (may be negative)
+  // Free-form labels (docs/SRPG.md "Tags"): a character matches `unit` / `near.match` / aura `match` keys by them like its type's tags.
+  std::vector<std::string> tags;
 };
 
 // ---- 3. skills (data/skills.json) ----
@@ -79,7 +81,11 @@ enum class SkillWhen { Always, TurnStart, Combat, Strike, Struck, Defeat, AfterC
 // One entry of a block's "if" (also of an ability's "if"). Which fields count depends on `kind`.
 struct SkillCond {
   enum class Kind { Hp, Near, Weapon, Terrain, Structure, Unit, Carrying, Round, Initiating, Distance, Formula,
-                    Condition };  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
+                    Condition,  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
+                    // Skill blocks, general (docs/SRPG.md "More blocks"): WeaponKind: the weapon's `damageKind` is `key`;
+                    // Turn: the battle's turn number fits `turnMode`.
+                    WeaponKind, Turn };
+  enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
   CmpOp op = CmpOp::Ge;   // Hp, Near, Round, Distance
@@ -90,6 +96,8 @@ struct SkillCond {
   std::string key;        // Near: "match" (a unit type id or tag, "" = any); Weapon: weapon id or group;
                           // Terrain: terrain id or tag; Structure: structure id or tag; Unit: unit type id or tag
   int expr = -1;          // Formula: index into Database::exprs
+  TurnMode turnMode = TurnMode::Odd;  // Turn
+  int turnA = 1, turnB = 1000000;     // Turn: Range = from..to; Every = every `turnA` with remainder `turnB`
 };
 
 // One entry of a block's "do". Which fields count depends on `kind`.
@@ -126,6 +134,9 @@ struct SkillEffect {
   std::vector<std::string> names, kinds;
   std::vector<int> conds;   // Immune / Inflict: the same as indices into Database::conditions
   int turns = 0;            // Inflict: duration override (0 = the condition's own)
+  // A combat number written as a formula (docs/SRPG.md "Formula-sized bonuses"): `expr` >= 0 replaces `value` for Hit, Crit,
+  // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
+  std::vector<int> statExprs;
 };
 
 struct SkillBlock {
@@ -137,6 +148,7 @@ struct SkillBlock {
   bool aura = false;                 // combat blocks only: the effects go to fighters near the owner
   bool auraEnemies = false;          // false = "allies"
   int auraWithin = 1;                // 1..10
+  std::string auraMatch;             // aura: only units whose type or character has this id / tag receive it ("" = all)
   std::vector<SkillEffect> effects;  // "do": at least one
 };
 
