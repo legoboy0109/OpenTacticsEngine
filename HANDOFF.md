@@ -12,16 +12,20 @@ docs/SRPG.md section 7), the foe's weapon in formulas (`fw`) plus a weapon's `id
 character-locked weapons (`wieldedBy`, rules and player only).
 
 Also pushed since: the `wieldedBy` card on the editor's Weapons screen; staves stage 1 (healing staves, rules and
-player, docs/SRPG.md section 8; ote_tests 1352, e2e 432). Editor form for staves: job in progress.
+player, docs/SRPG.md section 8); five small rule gaps (`addUnit` ranks, `rankXp` 0, `wieldedByTypes`, character
+`wields`, `fw.answers`); the editor form for staves (Items screen, kind Staff; ote_tests 1370, editor_api 777,
+vitest 936, e2e 432 passed / 29 skipped with 7 load flakes that pass alone).
 
-Queue, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): small rule gaps found by the
-converter; staves stages 2 and 3 (status conditions); doors, keys, chests and visiting; dialogue choices;
-battle and death quotes; preparation / deployment screen. Placeholders awaiting the owner: default ladder numbers
-(0, 30, 70, 120, 180, 250), new-rank step 50, all new wording, a shorter lock reason for phone widths.
+In progress (2026-11-16, worktree jobs): staves stage 2, rules and player (warp, pull, swap, repair, light);
+dialogue choices (rules, player, simulator, editor). Private converter (separate folder, never public): step 6,
+support conversations.
 
-Private Vision Quest port (`~/Projects/VisionQuestPort`, never in this repo; installed copy in git-ignored
-`games/vision-quest`): steps 1-3 done (data, story, music + carried army); step 4 (ranks, caps, triangle, locks) is
-being converted. Reinstall = delete `games/vision-quest`, copy `out/game/vision-quest` over.
+Queue after those, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): editor form for
+staves stage 2; staves stage 3 (status conditions); doors, keys, chests and visiting; battle and death quotes;
+preparation / deployment screen; then converter steps (skills, portraits, sounds, map sprites) and a battle scene.
+No editor forms yet for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks. Placeholders awaiting
+the owner: default ladder numbers (0, 30, 70, 120, 180, 250), new-rank step 50, all new wording (the staff form's
+"Only if" box still says "ability"), a shorter lock reason for phone widths.
 
 ## Earlier (2026-11-15, evening)
 
