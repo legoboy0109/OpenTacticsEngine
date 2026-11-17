@@ -168,6 +168,9 @@ goal (demos only exercise features).
       right after choices merge, same files): a variable command that adds a unit's current level (missing unit
       adds 0) so sums and comparisons reuse the `variable` condition; map events (live units) and campaign
       scenes (roster levels). Starting shape `{ "addVariable": "bar", "level": "<unit>" }`, free to change.
+      6b2 story command that takes an item from a unit (asked 2026-11-16 by the owner's separate game session,
+      at the owner's request; built together with 6b): one copy or all, the equipped weapon included, map
+      events and campaign scenes.
       6c campaign timeline in the editor (owner, 2026-11-16; build after dialogue choices merge, it draws
       their branches). Owner's answers: a flowchart, boxes joined by arrows left to right, branches drawn as
       separate paths; the maker can drag to reorder chapters, add / remove chapters and scenes, and click a
