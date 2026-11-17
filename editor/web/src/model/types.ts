@@ -174,6 +174,8 @@ export interface Weapon extends Named {
   rankXp?: number
   /** docs/SRPG.md "Character-locked weapons": ids of the characters that may wield it (needs characters; absent or empty = no lock). */
   wieldedBy?: string[]
+  /** …and unit types (class ids of units.json) that may wield it; a unit passes by either list. Needs nothing else. */
+  wieldedByTypes?: string[]
   /** docs/SRPG.md section 9: a chance, on a hit, to put a condition on the unit struck (`chance`: a percent or a formula, default every hit). */
   inflict?: { condition: string; chance?: number | string; turns?: number } & Extra
 }
@@ -235,6 +237,7 @@ export interface Item extends Named {
   rank?: string
   rankXp?: number
   wieldedBy?: string[]
+  wieldedByTypes?: string[]
   props?: NumMap
   range?: number | [number, number] | string
   area?: StaffArea

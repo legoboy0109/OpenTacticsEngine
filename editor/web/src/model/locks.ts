@@ -11,6 +11,14 @@ import type { ProjectDoc, Unit } from './types'
  *  Hidden, the key is left exactly as it is. */
 export const locksShown = (doc: ProjectDoc, owner: GearOwner = 'weapon'): boolean => (owner === 'item' || carriedWeapons(doc)) && (doc.characters?.length ?? 0) > 0
 
+/** The class list needs nothing but carried weapons (a staff: nothing); no characters are required (docs/SRPG.md "Character-locked weapons"). */
+export const typeLocksShown = (doc: ProjectDoc, owner: GearOwner = 'weapon'): boolean => owner === 'item' || carriedWeapons(doc)
+
+export const wielderTypesOf = (w: { wieldedByTypes?: string[] }): string[] => w.wieldedByTypes ?? []
+
+/** Writes the class list (unit type ids); an empty list removes the key. */
+export const setGearWielderTypes = (doc: ProjectDoc, owner: GearOwner, id: string, ids: string[]): ProjectDoc => patchGear(doc, owner, id, { wieldedByTypes: ids.length ? ids : undefined })
+
 export const wieldersOf = (w: { wieldedBy?: string[] }): string[] => w.wieldedBy ?? []
 
 /** Writes the list; an empty list removes the key (absent and empty are the same game). */
@@ -39,6 +47,23 @@ export const dropCharacterLocks = (doc: ProjectDoc, id: string): ProjectDoc => e
 export const renameCharacterLocks = (doc: ProjectDoc, from: string, to: string): ProjectDoc => editLists(doc, (ids) => ids.map((x) => (x === from ? to : x)))
 /** The Characters feature is switched off: nothing keeps a list (the loader refuses a list without characters). */
 export const cleanAllLocks = (doc: ProjectDoc): ProjectDoc => editLists(doc, () => [])
+
+/** A unit type is deleted: it comes off every class list (a list left empty is no lock, so the key goes). */
+export function dropUnitTypeLocks(doc: ProjectDoc, type: string): ProjectDoc {
+  if (!allGear(doc).some((g) => g.keys.wieldedByTypes?.includes(type))) return doc
+  return editGear(doc, <T extends GearKeys>(w: T): T => {
+    if (!w.wieldedByTypes?.includes(type)) return w
+    const next = w.wieldedByTypes.filter((x) => x !== type)
+    const c: T = { ...w }
+    if (next.length) c.wieldedByTypes = next; else delete c.wieldedByTypes
+    return c
+  })
+}
+
+/** Which weapons and staves list this unit type (for the delete question). */
+export const typeLockUsageLines = (doc: ProjectDoc, type: string): Usage[] =>
+  allGear(doc).filter((g) => g.keys.wieldedByTypes?.includes(type))
+    .map((g) => ({ section: g.section, text: `${g.owner === 'weapon' ? 'Weapon' : 'Staff'} “${g.name}” is locked to some classes, and this one is on its list (it comes off the list)` }))
 
 /** How many weapons and staves have a lock (for the "are you sure" question when characters are switched off). */
 export const lockCount = (doc: ProjectDoc): number => allGear(doc).filter((g) => g.keys.wieldedBy?.length).length

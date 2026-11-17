@@ -8,6 +8,7 @@ import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } fro
 import { deleteItem } from './items'
 import { cleanResourceInItems, cleanStatInItems } from './itemRefs'
 import { allGear } from './gear'
+import { dropUnitTypeLocks, typeLockUsageLines } from './locks'
 import { cleanStatCaps, groupRankUsageLines, statCapUsageLines } from './rankRefs'
 import { readGrid, writeGrid } from './mapGrid'
 import { scrubMap, storyUsages } from './storyRefs'
@@ -74,6 +75,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       for (const c of doc.characters ?? []) if (c.type === id) out.push({ section: 'characters', text: `Character “${c.name}” has this ${doc.characters!.length ? 'class' : 'unit type'} (the character goes with it)` })
       out.push(...economyUsageLines(doc, 'unit', id))
       out.push(...unitPromotionUsageLines(doc, id))
+      out.push(...typeLockUsageLines(doc, id))
       out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))
       if (hasPicture(doc, 'units', id)) out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })
       break
@@ -154,7 +156,7 @@ export function cleanMoveType(doc: ProjectDoc, id: string, reassignTo: string): 
 
 export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
   const remaining = (doc.units ?? []).filter((u) => u.id !== id)
-  return cleanUnitPromotions(dropArtOf({
+  return dropUnitTypeLocks(cleanUnitPromotions(dropArtOf({
     ...doc,
     weapons: doc.weapons && doc.weapons.map((w) => (w.versus && id in w.versus && !tagStillUsed(remaining, id, id)
       ? stripKey(w, 'versus', dropKey(w.versus, id)) : w)),
@@ -167,7 +169,7 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
       const gone = m.units.filter((u) => u.type === id && u.id).map((u) => ({ kind: 'unit' as const, id: u.id! }))
       return scrubMap(doc, { ...m, units: m.units.filter((u) => u.type !== id) }, [{ kind: 'type', id }, ...gone])
     }),
-  }, 'units', id), id)
+  }, 'units', id), id), id)
 }
 
 /** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */
