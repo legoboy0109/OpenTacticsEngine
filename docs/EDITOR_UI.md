@@ -1053,6 +1053,16 @@ cannot stand on, a slot nobody can stand on or on a unit that stays, fixed / for
 map with a preparation used outside a campaign (or by no chapter). Strings: `screens/maps/editor/panels/prepText.ts`; model:
 `model/prep.ts`, `prepChecks.ts`, `prepRoster.ts`.
 
+**Selling** (docs/EVENTS.md "Preparation", "Selling"; model `model/sell.ts`, own components so the Items / Rules screens stay untouched):
+the Preparation tab's shop card has the switch **"The shop also buys items"** (on by default; off writes `"buys": false` in the map's
+`shop`, on removes the key; changing the item list keeps it). The item form has **"Can be sold"** (`screens/items/SellableCard.tsx`:
+shown for an item with a price while some map's shop buys, or when the item already says `"sellable": false`; off writes
+`"sellable": false`). The Rules screen's Items card has **"Shops pay back"** (`screens/rules/SellPercentField.tsx`: percent 0 to 100,
+default 50 never written; an all-default `rules.items` block disappears again). Checks (Items screen banner and the Preparation tab)
+mirror the loader: a shop `buys`, an item `sellable` that is not on or off, a `sellPercent` that is not a whole number from 0 to 100.
+Strings: `panels/prepText.ts` (`shopBuys*`), `screens/items/sellText.ts`, `screens/rules/sellText.ts`. **Tests**: unit `sell.test.ts`;
+API `editor_api_prep_checks.py`; e2e `sell.spec.ts`.
+
 ## Campaign timeline (PLAN 6c)
 
 All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API) change. The Campaign screen has two views, **List** (the original) and **Timeline**
