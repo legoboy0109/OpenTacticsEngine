@@ -95,6 +95,7 @@ units do, drawn across their whole footprint.
     bank, but not the water it crosses); `joinEdge` (default true) makes the map edge count too.
 - `units.<id>.sides.<side id>` gives a side its own look (side ids are the
   `id`s in a map's `sides`).
+- `units.<id>.walk` (and the same key in a side's look) gives a unit moving frames: see "Walking" below.
 - `structures.<id>` is exactly like a unit entry (`cell` or `frames`, optional
   `sides`; `variants` and `join` are not allowed). With `sides`, the look of the
   structure's current owner is used (neutral structures use the base look).
@@ -103,6 +104,46 @@ units do, drawn across their whole footprint.
   own pictures, drawn by other rules: docs/VIEWS.md "Art".
   `null` removes the art for that style (placeholder look). Entries not
   mentioned are inherited.
+
+## Walking
+
+A unit picture (`units.<id>`, also in a style, and the look of one side) may have **walking frames**, shown while the unit moves along its
+path. Presentation only; saves, rules and the simulator do not see it.
+
+```jsonc
+"units": { "knight": { "sheet": "men", "cell": [0, 0],                      // standing: 16 x 16 cells
+                       "walk": { "sheet": "men_walk",                         // optional: default is the picture's own sheet
+                                 "down": [[0,0],[1,0],[2,0],[3,0]], "up": [[0,1],[1,1],[2,1],[3,1]],
+                                 "side": [[0,2],[1,2],[2,2],[3,2]],           // faces right; the left is it turned round
+                                 "frameMs": 120 } } }                         // 20..60000, default 150
+```
+
+- Keys of `walk`: `sheet`, `down`, `up`, `side`, `left`, `right`, `frameMs`. Each direction is a list of 1 to 64 `[column, row]` cells of the
+  walk sheet, played in a loop. At least one direction is needed; unknown keys are refused. `side` is the picture facing **right**; the
+  opposite direction is the same frames turned round, **unless** `left` and `right` are both given (then neither is turned) or `left` /
+  `right` is given alone (the other is it turned round). `side` together with `left` or `right` uses the named one for that direction
+  and `side` for the other.
+- **The walk sheet may have another cell size** than the standing picture (a 32 x 32 walker on a 16 x 16 standing picture). **Anchoring and
+  scale:** the picture is drawn with the same number of screen pixels per art pixel as the standing picture's sheet (the standing picture
+  is one square wide, so a pixel is `tile / standing cell width` screen pixels) and therefore is *not* shrunk to fit the square; it is
+  **centred on the square horizontally and its bottom edge sits on the bottom edge of the square** (in the isometric and 3D views: on
+  the same foot point the standing picture uses, centred on it). A walking cell twice as wide is drawn twice as wide.
+- **Direction:** from the current step of the path, as it appears **on the screen**: the direction (`down`, `up`, `right`, `left`) whose
+  way is nearest to the step, by the largest dot product with the step's screen vector (an exact tie goes to down, then up, then
+  right). Squares in the top-down view: the step as it is. Hexagons in the top-down view: pointy-top hexagons step east / west (right / left)
+  and on four diagonals that read as `down` or `up` (60 degrees from the side, 30 from the vertical); flat-top hexagons step north / south
+  and on four diagonals that read as `right` or `left`. 2D isometric: a step towards the map's bottom (+y) goes down-left on the screen
+  and reads as `left`, +x as `right`, -y as `right` (up-right), -x as `left` (up-left), because a 2:1 diamond's diagonals are nearer to the
+  side than to the vertical. The 3D kinds use the screen vector of the step through the camera, so it follows the camera's turn. A direction
+  that is not given is replaced by the nearest given one (with only `side`, a vertical step is a tie and reads as right).
+- It plays only while the unit is moving (the move along its path and a fog move); standing, attacking and waiting show the standing picture. A unit
+  without `walk` (every existing game) is drawn exactly as before. A look with a 3D `model` ignores it (models have their own `Move` clip);
+  in the 3D kinds a unit drawn as a picture is a billboard and uses the walking frames too. A walk sheet that failed to load draws the standing
+  picture. `walk` is refused on terrain and structures. Debug log: with `OTE_LOG_LEVEL=debug` the player prints `[debug] walk: NAME
+  down|up|right|left` once per change of direction (tests read it; nothing is printed at the normal level).
+- Per side: a side's look is a whole look of its own, so it has its own `walk` (or none, and then its units walk as standing pictures). Code:
+  `WalkLook` in `engine/core/data/graphics.h` (`pick`), `unitPic()` in `engine/player/battle/sprites.cpp`; tests `tests/test_battle_followup.cpp`,
+  `tests/walk_player_test.py`.
 
 Loader: `engine/core/data/loader_graphics.cpp` (errors read
 `data/graphics.json: terrain "plain": …`, `structure "city": …`). In memory:
