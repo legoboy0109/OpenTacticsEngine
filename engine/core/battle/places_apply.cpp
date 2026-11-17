@@ -101,7 +101,7 @@ void Battle::giveLoot(int structure, int unit, std::vector<Event>& events) {
         events.push_back(pev(EventType::ItemLost, -1, l.item));
       }
     } else if (l.resource >= 0) {
-      changeResource(side, l.resource, l.amount, events);
+      changeResource(side, l.resource, resourceGain(side, l.amount), events);  // docs/DIFFICULTY.md
       if (!events.empty() && events.back().type == EventType::ResourceChanged) events.back().flags |= kLooted;
     }
   }

@@ -62,6 +62,7 @@ Cell Battle::nearestFreeCell(Cell target, int moveType) const {
 }
 
 void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
+  if (!appearsOnDifficulty(def)) return;  // limited to other difficulties (docs/DIFFICULTY.md)
   Unit u = makeUnit(def);
   if (u.character >= 0 && unitByStoryId(u.storyId) >= 0) {
     // A character is one person: adding one that is already in the battle (alive or not) adds nothing.
@@ -210,7 +211,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       for (const Amount& a : c.amounts) {
         // Funds never go below zero (nor past the save limit).
         long long now = sides[(size_t)c.side].resources[(size_t)a.resource];
-        long long to = std::max(0LL, std::min((long long)kMaxStoryNumber, now + a.amount));
+        long long to = std::max(0LL, std::min((long long)kMaxStoryNumber, now + resourceGain(c.side, a.amount)));  // docs/DIFFICULTY.md: a gain is scaled for a human side
         changeResource(c.side, a.resource, (int)(to - now), events);
       }
       break;

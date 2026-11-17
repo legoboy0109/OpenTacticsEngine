@@ -253,6 +253,7 @@ struct SideState {
   std::vector<uint8_t> researched;
   int researching = -1;  // technology under way (index into db->research), -1 = none
   int researchLeft = 0;  // of the side's own turns still to start before it is finished
+  bool difficultyShift = true;  // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this side (map side key)
 };
 
 enum class ActionType {
@@ -442,6 +443,13 @@ class Battle {
   bool over = false;
   int winnerTeam = -1;
   Rng rng;
+  // Difficulty (docs/DIFFICULTY.md): the difficulty this battle was built with (index into db->difficulties.list, -1 =
+  // the game has none) and the numbers resolved for it (the game's, with the map's override applied). setDifficulty
+  // before init() is kept by init; after init() it changes only what is built from then on.
+  int difficulty = -1;
+  DifficultyEnemy diffEnemy;
+  int diffXpPercent = 100, diffResourcePercent = 100;
+  std::shared_ptr<const std::vector<MapDifficulty>> diffMap;  // the map's own numbers (shared by copies)
   // Fog of war (docs/ECONOMY.md): true from the map's "fog". The queries below answer "everything visible" without it.
   bool fog = false;
   // The map's events and objectives (null = none) and how far they have got. Copies share the data.
@@ -649,6 +657,8 @@ class Battle {
   // question, leaving a Choice entry as their last one; nothing else can be done until answerChoice(). The player
   // turns it on for a person at the screen; ote-sim and --autoplay leave it off.
   void setAskChoices(bool ask) { choice_.ask = ask; }
+  // docs/DIFFICULTY.md (difficulty.cpp): -1 or an index out of range = the game's default (no effect in a game without difficulties).
+  void setDifficulty(int index);
   bool choiceWaiting() const { return choice_.wait != nullptr; }
   // The pick is a position in the Choice entry's answers. Appends the entries that follow the question (up to the
   // next one, if there is another). False (nothing changed) when no question is waiting or the pick is out of range.
@@ -770,6 +780,7 @@ class Battle {
   // ---- strategy-RPG features: hooks and private functions (docs/SRPG.md). Later steps append there, not here. ----
 #include "core/battle/srpg_internal.h"
 #include "core/battle/places_internal.h"
+#include "core/battle/difficulty_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

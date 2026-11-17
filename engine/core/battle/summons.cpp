@@ -17,6 +17,7 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   md.side = units[(size_t)summoner].side;
   md.level = sd.level > 0 ? sd.level : units[(size_t)summoner].level;
   md.stats = type.stats;
+  md.difficultyShift = false;  // a summon is built from the summoner's level, never shifted (docs/DIFFICULTY.md)
   Unit s = makeUnit(md);
   for (ItemStack& item : s.items) item.drop = false;  // its items never drop
   s.summoner = summoner;

@@ -25,6 +25,7 @@ import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import type { Cell } from '../../../../model/mapGrid'
 import { setGoesFor } from '../../../../model/mapPlaces'
+import { DifficultyOnly } from './DifficultyOnly'
 import { GoesFor } from './GoesFor'
 import { UnitBehaviour } from './UnitBehaviour'
 import { UnitRankOverride } from './UnitRankOverride'
@@ -101,6 +102,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
       <Check checked={!!unit.leader} label={T.unitLeader} help={T.unitLeaderHelp} onChange={(v) => patch({ leader: v })} />
       <GoesFor map={map} side={unit.side} value={unit.goesFor} onChange={(goals) => edit((d) => editMap(d, mapId, (m) => setGoesFor(m, unit, goals)))} />
       <UnitBehaviour mapId={mapId} map={map} unit={unit} />
+      <DifficultyOnly doc={doc} unit={unit} ai={map.sides?.find((s) => s.id === unit.side)?.controller === 'ai'} onChange={(p) => patch(p)} />
       {((doc.items?.length ?? 0) > 0 || unit.items !== undefined) && (
         <div className="stack tight" data-testid="unit-own-items">
           <Toggle label={T.ownItems} help={unit.items === undefined ? T.ownItemsOff(typeItems) : T.ownItemsOn}

@@ -8,6 +8,7 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool from
   if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= rules.maxLevel) return;
   if (fromCombat && summonGivesNoXp(unit, events)) return;  // the foe was a summon that gives no experience (docs/SRPG.md "Summoning")
   amount = skillXp(units[(size_t)unit], amount);  // "xpPercent" skills (docs/SRPG.md); unchanged without any
+  amount = xpGain(unit, amount);  // the difficulty's xpPercent for a unit of a human side (docs/DIFFICULTY.md)
   if (amount <= 0) return;
 
   units[(size_t)unit].xp += amount;

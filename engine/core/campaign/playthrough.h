@@ -70,6 +70,7 @@ struct Playthrough {
   SupportState supports;            // closeness of the support pairs (docs/SRPG.md); empty in a game without pairs
   PrepState prep;                   // the preparation of the current chapter, see PrepState
   std::vector<std::string> lastDeployed;  // ids deployed in the last chapter that had a preparation, in order (the default pick uses it)
+  std::string difficulty;           // docs/DIFFICULTY.md: the id chosen at New Game; empty in a game without difficulties
   std::vector<uint8_t> quotesSaid;  // per battle quote (BattleQuote::flat): said already; only "campaign" quotes are kept (docs/EVENTS.md)
   // Parties (campaign.json "parties"; all empty in a campaign without them). `party` is the active one's id: `roster`,
   // `sides`, `lastDeployed` and `prep` above are ITS data. `parked` holds the other parties that have been used (a party

@@ -73,9 +73,11 @@ export interface Condition extends Extra {
   support?: [string, string]
   /** The unit that set the running event off matches this filter (docs/EVENTS.md "Branching on who acted"). Map events only. */
   actor?: Filter
+  /** The battle's / playthrough's difficulty (docs/DIFFICULTY.md): an id (is), or { atLeast: id } / { atMost: id } by list position. */
+  difficulty?: string | { atLeast?: string; atMost?: string }
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition' | 'actor'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition', 'actor']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition' | 'actor' | 'difficulty'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition', 'actor', 'difficulty']
 
 /** One answer of a `choice` command: its words, an optional hiding condition list and the commands it runs (docs/EVENTS.md "Dialogue choices"). */
 export interface ChoiceAnswer extends Extra {

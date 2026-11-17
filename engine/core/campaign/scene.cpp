@@ -2,6 +2,7 @@
 // and leave lines for the player. Nothing waits for input, so a scene is deterministic.
 #include <algorithm>
 
+#include "core/campaign/difficulty.h"
 #include "core/campaign/playthrough.h"
 #include "core/data/loader.h"
 
@@ -82,6 +83,10 @@ struct SceneRun {
       case SceneCondition::Kind::Support: {
         const int pair = db.findSupportPair(db.findCharacter(c.unit), db.findCharacter(c.with));
         return pair >= 0 && (size_t)pair < pt.supports.level.size() && compare(c.op, pt.supports.level[(size_t)pair], c.value);
+      }
+      case SceneCondition::Kind::Difficulty: {  // docs/DIFFICULTY.md: `value` = list position
+        const int now = db.difficulties.find(pt.difficulty);
+        return now >= 0 && compare(c.op, now, c.value);
       }
     }
     return false;
@@ -178,7 +183,7 @@ struct SceneRun {
         CarriedSide& s = pt.sideCarry(c.side, db.resources.size());
         for (const Amount& a : c.amounts) {
           int& r = s.resources[(size_t)a.resource];
-          r = std::max(0, clampStory((long long)r + a.amount));  // funds never go below zero
+          r = std::max(0, clampStory((long long)r + sceneResourceGain(db, pt, a.amount)));  // funds never go below zero; a gain follows the difficulty (docs/DIFFICULTY.md)
         }
         break;
       }

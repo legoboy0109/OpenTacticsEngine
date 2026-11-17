@@ -11,6 +11,7 @@ bool Playthrough::begin(const Database& db) {
   quotesSaid.assign((size_t)db.quotes.count, 0);  // no quote said yet (empty in a game without quotes)
   beginParties(db, *this);  // the first party is active (nothing without parties)
   beginSupports(db, *this);  // every support pair at its "start" points (docs/SRPG.md); nothing without pairs
+  difficulty = db.difficulties.defaultId;  // docs/DIFFICULTY.md: the player's choice replaces it (campaign/difficulty.h); empty without difficulties
   return true;
 }
 

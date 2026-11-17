@@ -53,7 +53,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
       if (st.owner != activeSide) continue;
       for (const Amount& a : defOf(st).income) income[a.resource] += a.amount;
     }
-    for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, income[r], events);
+    for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, resourceGain(activeSide, income[r]), events);  // docs/DIFFICULTY.md
   }
   researchTurn(events);
   // Repair and supply (docs/ECONOMY.md): after income (it can pay for repairs) and research (a finished bonus

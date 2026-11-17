@@ -42,6 +42,8 @@ class GameSession {
   // Dialogue choices wait for a person (Battle::setAskChoices): on except in --autoplay, where the first answer is taken.
   bool askChoices = false;
   std::string dir;
+  // docs/DIFFICULTY.md: the difficulty a free battle is built with (an id; empty = the game's default). Set by the App from --difficulty or the choice screen.
+  std::string difficulty;
   std::unique_ptr<Playthrough> freePrep;  // the preparation screen of a free battle (a scratch playthrough: no roster); else null
   // The story being played, when one is (null for a free battle and for games without a campaign).
   // Its chapter battle is `battle` above; it is set up by the App, not by startMap / resume.

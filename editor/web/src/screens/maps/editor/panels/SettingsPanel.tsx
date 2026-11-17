@@ -10,6 +10,7 @@ import { T } from '../text'
 import type { MapViewState } from '../viewState'
 import { MapMusic } from '../../../sound/MapMusic'
 import { FogSettings } from './FogSettings'
+import { MapDifficulty } from './MapDifficulty'
 import { ResizeDialog } from './ResizeDialog'
 
 export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: MapFile; mapId: string; vs: MapViewState }) {
@@ -30,6 +31,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
       </div>
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
       <MapMusic doc={doc} map={map} mapId={mapId} />
+      <MapDifficulty doc={doc} map={map} mapId={mapId} />
       {resizing && <ResizeDialog doc={doc} map={map} mapId={mapId} onClose={() => setResizing(false)} />}
     </div>
   )

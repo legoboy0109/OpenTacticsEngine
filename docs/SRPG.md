@@ -214,6 +214,9 @@ A map unit (and the `addUnit` story command) may say `"character": "<id>"` inste
 - **Starting stats.** `stat = unit type base + character's "stats"`, then the map unit's own `"stats"` replace single
   values as today. Levels are not simulated: a character placed at level 5 has exactly the stats the data says (as
   for every unit today).
+- **Difficulty.** A difficulty (docs/DIFFICULTY.md) can build an enemy as if it were placed N levels higher or lower: the shift is N level-ups at the
+  average growth (`growth% x N`, rounded, no dice), from `growthOf`; stats written on the placement are exact, `"difficultyShift": false` exempts a boss.
+  It is the only thing that derives stats from a level for a placed unit.
 - **Items.** The map unit's `items`, else the character's `items`, else the unit type's.
 - **Growths.** On a level up the chance for stat `s` is `unit type growth + character growth + growth bonuses of
   standing skills` (section 3), below 0 = 0. `Battle::growthOf(unit, stat)` is the one place this lives;

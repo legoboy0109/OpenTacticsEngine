@@ -86,6 +86,12 @@ class PlayerApp : public App, public SceneHost {
   SceneResolver runSceneFor(SceneKind kind, const Playthrough& before, std::vector<SceneLine>& lines);
   bool resumeCampaignSave(const SaveFile& file, std::string& err);
 
+  // app_difficulty.cpp (docs/DIFFICULTY.md): the choice screen before a new campaign / a free battle, and --difficulty
+  bool difficultyNeeded() const;  // the game has several difficulties and nothing (--difficulty, --autoplay) answers for the player
+  void askDifficulty(const std::string& title, std::function<void(const std::string&)> done);
+  bool checkDifficultyArg(std::string& err) const;
+  bool difficultyAsked_ = false;  // the choice screen was just answered: doStartBattle goes on without asking again
+
   // app_audio.cpp: choosing the sound device (docs/SOUND.md "Engine design")
   void startAudio();
   void openAudioDevice();

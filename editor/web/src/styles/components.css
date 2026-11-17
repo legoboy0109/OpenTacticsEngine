@@ -125,3 +125,9 @@ table.three-col .input-wrap { flex-wrap: nowrap; gap: 3px; }
 table.three-col .input-wrap > .input { flex: 1 1 0; width: 100%; min-width: 0; max-width: none; padding-inline: 6px; }
 table.three-col td { padding-right: 6px; }
 table.three-col .muted-cell { color: var(--muted); }
+
+/* Difficulties (docs/DIFFICULTY.md): one entry of the Rules card = a name row, then a fold-out with its numbers. */
+.difficulty-entry { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; }
+.difficulty-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px; align-items: center; }
+.difficulty-default { margin: 0; }
+.difficulty-body { padding-top: 8px; }

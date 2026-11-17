@@ -225,6 +225,10 @@ bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
     return false;
   }
   OTE_INFO("loaded game '%s' (%s)", gameId.c_str(), session_->db.name.c_str());
+  if (!checkDifficultyArg(err)) {  // --difficulty names something this game does not have: a clear error, nothing starts
+    dropSession();
+    return false;
+  }
   if (session_->db.graphics.any()) sprites_.load(*renderer_, session_->dir, session_->db.graphics);
   // The game's sound data (docs/SOUND.md): a wrong audio.json or a damaged sound file is a load error, like a bad
   // graphics.json. Off mode reads nothing.
@@ -266,6 +270,20 @@ void PlayerApp::doLoadGame(const std::string& gameId) {
 
 void PlayerApp::doStartBattle(const std::string& mapId) {
   scene_.reset();
+  if (!difficultyAsked_) {
+    if (difficultyNeeded()) {  // docs/DIFFICULTY.md: a free battle asks which difficulty first
+      const int at = session_->db.findMap(mapId);
+      askDifficulty(at >= 0 && !session_->db.maps[(size_t)at].name.empty() ? session_->db.maps[(size_t)at].name : mapId,
+                    [this, mapId](const std::string& id) {
+                      session_->difficulty = id;
+                      difficultyAsked_ = true;
+                      doStartBattle(mapId);
+                      difficultyAsked_ = false;
+                    });
+      return;
+    }
+    session_->difficulty = args_.difficulty;  // empty = the game's default
+  }
   std::string err;
   MapDef peek;
   if (!args_.autoplay && loadMap(session_->db, mapId, peek, err) && prepOn(peek)) {  // a preparation screen first (docs/EVENTS.md "Preparation")

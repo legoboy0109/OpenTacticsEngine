@@ -43,7 +43,7 @@ export function removeSide(map: MapFile, id: string): MapFile {
   return next
 }
 
-type SidePatch = { name?: string; color?: string; controller?: 'human' | 'ai'; team?: string; storage?: ItemEntry[]; aiSeesAll?: boolean }
+type SidePatch = { name?: string; color?: string; controller?: 'human' | 'ai'; team?: string; storage?: ItemEntry[]; aiSeesAll?: boolean; difficultyShift?: boolean }
 
 /** The side's id never changes (units and owners point at it). An empty team removes the key (the side is then its own team). */
 export function updateSide(map: MapFile, id: string, patch: SidePatch): MapFile {
@@ -52,7 +52,7 @@ export function updateSide(map: MapFile, id: string, patch: SidePatch): MapFile 
   if ('team' in patch && !patch.team?.trim()) clean.team = undefined
   if ('storage' in patch && !patch.storage?.length) clean.storage = undefined
   // The loader refuses "aiSeesAll" on a side a person plays.
-  if (patch.controller === 'human') clean.aiSeesAll = undefined
+  if (patch.controller === 'human') { clean.aiSeesAll = undefined; clean.difficultyShift = undefined }  // computer sides only
   return { ...map, sides: map.sides!.map((s) => (s.id === id ? patchObj(s, clean) : s)) }
 }
 

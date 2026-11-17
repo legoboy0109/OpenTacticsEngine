@@ -12,7 +12,7 @@
 namespace ote {
 
 struct SceneCondition {
-  enum class Kind { Switch, Variable, Alive, Dead, Support };  // Support: docs/SRPG.md (the pair's level)
+  enum class Kind { Switch, Variable, Alive, Dead, Support, Difficulty };  // Support: docs/SRPG.md (the pair's level)
   Kind kind = Kind::Switch;
   int index = -1;        // switch / variable index
   bool is = true;        // Switch

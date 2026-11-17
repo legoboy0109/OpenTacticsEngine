@@ -105,6 +105,14 @@ both work in map events and in campaign scenes. `{ "storeItems": "eirik", "keep"
 filter in map events, a roster id in scenes; refused when `rules.items.storage` is `off`; docs/EVENTS.md "Sending a unit's items to storage"), and the
 condition `{ "actor": { "unit": "eirik" } }` asks which unit set the running event off (map events only; docs/EVENTS.md "Branching on who acted").
 
+`difficulties` (optional) is the maker's own list of difficulties and the one chosen by default:
+`"difficulties": { "default": "normal", "change": "lowerOnly", "list": [ { "id": "easy", "name": "Easy", "description": "...",
+"enemy": { "levels": -1, "stats": { "def": 0 }, "statsPercent": 100 }, "xpPercent": 150, "resourcePercent": 100 }, ... ] }`: easiest first, enemy level and
+stat shifts, experience and resource multipliers; `change` says whether the player may change it later (`never` / `lowerOnly` (default) / `free`).
+A game without the key has no difficulty anywhere. It is not part of a save's data hash. Everything (who is an enemy, how a level shift builds
+stats, a map's own `"difficulty"` numbers, units limited to some difficulties, the story condition, formulas, saves, the player, the editor) is in
+docs/DIFFICULTY.md.
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -261,6 +269,7 @@ Everything is in docs/ECONOMY.md.
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
   "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
                                                            // at most 32 sides then
+  "difficulty": { "hard": { "enemy": { "levels": 3 } } },  // optional: this map's own numbers per difficulty id; they REPLACE the game's (docs/DIFFICULTY.md)
   "fogVision": -1,                                         // optional (needs fog): added to every unit's vision, -10..10
   "aiSeesAll": false,                                      // optional (needs fog): computer sides see everything; a computer side's
                                                            // own "aiSeesAll" overrides it (default: bound by fog)
@@ -284,7 +293,9 @@ Everything is in docs/ECONOMY.md.
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
       "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
       "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / an object
-      "stats": { "hp": 26 } }            // optional per-unit overrides
+      "difficulty": ["hard"],            // optional, computer sides only: appears only on these difficulties (docs/DIFFICULTY.md)
+      "difficultyShift": false,          // optional: the difficulty's enemy numbers never change this unit (a boss)
+      "stats": { "hp": 26 } }            // optional per-unit overrides (exact: a difficulty never shifts a stat written here)
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)
   "objectives": { … }                    // optional: win / lose conditions and the text shown (docs/EVENTS.md)
@@ -298,6 +309,8 @@ objective kinds. Every id they name (units, sides, teams, types, items,
 resources, switches, variables) must exist and unknown keys are refused, with
 a message naming the map, the event and the command. A map without them
 loads and plays exactly as before.
+
+A side may also say `"difficultyShift": false` (a computer side the difficulty's enemy numbers never touch; docs/DIFFICULTY.md).
 
 Sides take turns in listed order. `x` counts columns from the left, `y`
 rows from the top, both starting at 0. Two units may not share a cell, and

@@ -119,6 +119,15 @@ export function triggerText(c: SumCtx, t: Trigger): string {
 const conditionLabel = (c: SumCtx, id: string): string => c.doc.conditions?.find((x) => x.id === id)?.name ?? id
 
 const OP_WORDS: Record<CompareOp, string> = { '=': 'is', '!=': 'is not', '<': 'is below', '<=': 'is at most', '>': 'is above', '>=': 'is at least' }
+/** "the difficulty is Hard" / "is at least Normal" / "is at most Normal". */
+export function difficultyConditionText(doc: SumCtx['doc'], k: Condition): string {
+  const name = (id: string | undefined) => doc.game?.difficulties?.list.find((d) => d.id === id)?.name ?? id ?? ''
+  const v = k.difficulty
+  if (typeof v === 'string') return `the difficulty is ${q(name(v))}`
+  if (v?.atLeast !== undefined) return `the difficulty is at least ${q(name(v.atLeast))}`
+  return `the difficulty is at most ${q(name(v?.atMost))}`
+}
+
 export const opWords = (op: string | undefined): string => OP_WORDS[(op ?? '=') as CompareOp] ?? 'is'
 
 export function conditionText(c: SumCtx, k: Condition): string {
@@ -135,6 +144,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'hasSkill': return `${filterText(c, k.unit)} has the skill ${q(skillLabel(c, k.hasSkill ?? ''))}`
     case 'hasCondition': return `${filterText(c, k.unit)} has the condition ${q(conditionLabel(c, k.hasCondition ?? ''))}`
     case 'actor': return `${filterText(c, k.actor)} is the unit that set this off`
+    case 'difficulty': return difficultyConditionText(c.doc, k)
     default: return 'something is true'
   }
 }

@@ -17,6 +17,9 @@ import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import { T } from '../text'
 import { MC } from '../story/forms/mapChangeText'
+import { hasDifficulties } from '../../../../model/difficulty'
+import { Check } from '../../../../ui/Toggle'
+import { D } from '../../../rules/difficultyText'
 
 export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile; mapId: string }) {
   const edit = useEdit()
@@ -90,6 +93,10 @@ function SideCard({ fog, side, index, resources, doc, canRemove, onPatch, onReso
             options={[{ value: 'follow', label: MC.sideSeesFollow }, { value: 'bound', label: MC.sideSeesBound }, { value: 'all', label: MC.sideSeesAll }]}
             onChange={(v) => onPatch({ aiSeesAll: v === 'follow' ? undefined : v === 'all' })} />
         </Field>
+      )}
+      {hasDifficulties(doc) && side.controller === 'ai' && (
+        <Check checked={side.difficultyShift !== false} label={D.sideShift} help={D.sideShiftHelp}
+          onChange={(v) => onPatch({ difficultyShift: v ? undefined : false })} />
       )}
       {resources.length > 0 && (
         <FieldGroup label={T.sideResources}>

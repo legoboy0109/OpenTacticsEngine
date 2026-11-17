@@ -163,6 +163,7 @@ Unknown keys inside `supply` / `repair` are refused. A game without the block re
   `"supplies": true`: for the **adjacent units of the same side**, at the start of their side's turn and by the action
   `Supply(unit)` (the supplier must not have acted, needs at least one adjacent unit of its side that lacks
   something; it may move first; it ends the supplier's turn).
+- **Difficulty and income** (docs/DIFFICULTY.md): a human side's per-turn income is scaled by the difficulty's `resourcePercent` (a computer side's never is).
 - **Order at the start of a side's turn** (one place, `Battle::beginTurn`): `TurnStarted`, income, the research
   countdown, **resupply** (structures, then suppliers), **fuel burn** (and its destructions), **repair**, then the
   story's turn events. Income first so it can pay; research before repair so a finished HP bonus counts; resupply

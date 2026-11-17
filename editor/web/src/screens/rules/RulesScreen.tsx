@@ -10,6 +10,7 @@ import { ItemsCard } from './ItemsCard'
 import { FormulaEditor } from './FormulaEditor'
 import { MoveTypesCard, ResourcesCard } from './ListsCards'
 import { BattleViewCard } from './BattleViewCard'
+import { DifficultyCard } from './DifficultyCard'
 import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
 import { PlacesRuleCard } from './PlacesRuleCard'
@@ -52,6 +53,7 @@ function RulesForm() {
       <ItemsCard />
       <PlacesRuleCard />
       <SavingCard />
+      <DifficultyCard />
       <SwitchesCard />
       <VariablesCard />
       <Card title={T.combat} help={T.combatHelp}>

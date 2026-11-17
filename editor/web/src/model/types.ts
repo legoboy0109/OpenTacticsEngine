@@ -1,6 +1,7 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
 import type { Behaviour } from './behaviour'
+import type { DifficultySet, MapDifficulties } from './difficultyTypes'
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
 import type { MapPrep } from './prepTypes'
@@ -100,6 +101,8 @@ export interface Game extends Extra {
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
   switches?: Named[]
   variables?: Named[]
+  /** The maker's own list of difficulties (docs/DIFFICULTY.md; model/difficulty.ts); missing = the game has none. */
+  difficulties?: DifficultySet
 }
 
 /** Extra sight for some unit types only (docs/ECONOMY.md "Fog of war"): unit type ids or tags, never empty in a good file. */
@@ -275,6 +278,8 @@ export interface MapSide extends Extra {
   storage?: ItemEntry[]
   /** Fog, computer sides only: true = sees everything, false = bound by fog; missing = the map's `aiSeesAll`. */
   aiSeesAll?: boolean
+  /** Computer sides: false = the difficulty's enemy numbers never touch this side's units (docs/DIFFICULTY.md). */
+  difficultyShift?: boolean
 }
 export interface MapUnit extends Extra {
   /** Missing only for a unit placed as a character: its type is then the character's (docs/SRPG.md section 1). */
@@ -294,6 +299,10 @@ export interface MapUnit extends Extra {
   goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal' | 'walls'>
   /** Computer-side units only (docs/AI.md): how it moves and when it starts; model/behaviour.ts. */
   behaviour?: Behaviour
+  /** Appears only on these difficulties (docs/DIFFICULTY.md); missing = on all. */
+  difficulty?: string[]
+  /** false = never shifted by the difficulty's enemy numbers (a boss). */
+  difficultyShift?: boolean
 }
 export interface MapFile extends Extra {
   name: string
@@ -322,6 +331,8 @@ export interface MapFile extends Extra {
   objectives?: Objectives
   /** The preparation screen before the battle (docs/EVENTS.md "Preparation"); missing = none. */
   prep?: MapPrep
+  /** This map's own difficulty numbers (docs/DIFFICULTY.md); model/difficulty.ts. */
+  difficulty?: MapDifficulties
 }
 /** `x`, `y` = the top-left square of the footprint (on hexagon maps: the middle hexagon); `side` missing = nobody owns it. */
 export interface MapStructure extends Extra {
