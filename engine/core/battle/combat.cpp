@@ -16,15 +16,31 @@ bool Battle::versusValue(int weapon, const Unit& target, double& vs) const {
   vs = 1;
   if (w.versus.empty()) return true;
   const UnitTypeDef& type = typeOf(target);
+  const std::string* matched = &type.id;  // which key gave the number (null = the weapon's default)
   bool found = propFind(w.versus, type.id, vs);
-  for (size_t i = 0; !found && i < type.tags.size(); ++i) found = propFind(w.versus, type.tags[i], vs);
+  for (size_t i = 0; !found && i < type.tags.size(); ++i) {
+    found = propFind(w.versus, type.tags[i], vs);
+    if (found) matched = &type.tags[i];
+  }
   if (!found && w.hasVersusDefault) {
     vs = w.versusDefault;
+    matched = nullptr;
     found = true;
   }
   if (!found) return false;
-  // "cancelEffective" (a skill of the target): an "effective against" bonus does not apply to it (a malus is kept).
-  if (vs > 1 && hasStanding(target, SkillEffect::Kind::CancelEffective)) vs = 1;
+  // "cancelEffective" (a skill of the target): an "effective against" bonus does not apply to it (a malus is kept). With a list of tags
+  // it cancels only the effectiveness that came from one of them (a weapon's default number never matches a list).
+  if (vs > 1 && db->cancelEffectiveSkills) {
+    std::vector<const SkillEffect*> fx;
+    standingEffects(target, false, fx);
+    for (const SkillEffect* e : fx) {
+      if (e->kind != SkillEffect::Kind::CancelEffective) continue;
+      if (e->names.empty() || (matched && std::find(e->names.begin(), e->names.end(), *matched) != e->names.end())) {
+        vs = 1;
+        break;
+      }
+    }
+  }
   return true;
 }
 
@@ -86,14 +102,33 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
     bool counter = side == 1;
     StrikeForecast& numbers = counter ? out.counter : out.attack;
     if (!numbers.can) continue;
-    StrikeMods strike;
-    strikePassives(setup, counter, strike);
-    if (testMods && testMods->passive) testMods->passive(*this, setup, counter, strike);
-    foldStrikeMods(strike, numbers);
-    noDodge(setup, counter, numbers);
-    numbers.damage = applyPercents(applyPercents(numbers.damage, strike.damagePercent), strike.damageTakenPercent);
+    // The numbers of strike number `no` of this fighter (the first one for the headline numbers).
+    const StrikeForecast base = numbers;
+    auto strikeNumbers = [&](int no, StrikeForecast& into) {
+      StrikeMods strike;
+      strikePassives(setup, counter, no, strike);
+      if (testMods && testMods->passive) testMods->passive(*this, setup, counter, strike);
+      foldStrikeMods(strike, into);
+      noDodge(setup, counter, into);
+      into.damage = applyPercents(applyPercents(into.damage, strike.damagePercent), strike.damageTakenPercent);
+    };
+    strikeNumbers(1, numbers);
+    // A game with blocks that ask which strike it is: each strike's own numbers (docs/SRPG.md "One strike of a fight"). The headline
+    // numbers stay those of the first strike; `each` is only filled when some later strike differs from it.
+    if (db->strikeNoUsed) {
+      const int total = numbers.strikes * std::max(1, numbers.multi);
+      std::vector<StrikeNumbers> list;
+      bool differs = false;
+      for (int no = 1; no <= total; ++no) {
+        StrikeForecast one = base;
+        strikeNumbers(no, one);
+        list.push_back({one.damage, one.hit, one.crit});
+        differs = differs || one.damage != numbers.damage || one.hit != numbers.hit || one.crit != numbers.crit;
+      }
+      if (differs) numbers.each = list;
+    }
   }
-  forecastNotes(setup, out.notes);
+  forecastNotes(setup, out, out.notes);
   if (testMods && testMods->notes) testMods->notes(*this, setup, out.notes);
   return true;
 }
@@ -118,7 +153,8 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   // Activations among them are rolled here, before the hit roll.
   StrikeMods strike;
   std::vector<Event> strikeEvents, struckEvents;
-  strikeActivations(setup, counter, strike, strikeEvents, struckEvents);
+  const int strikeNo = ++fightStrikes_[counter ? 1 : 0];  // every strike a fighter makes counts: repeats and extra strikes too
+  strikeActivations(setup, counter, strikeNo, strike, strikeEvents, struckEvents);
   if (testMods && testMods->strike) testMods->strike(*this, setup, counter, strike, strikeEvents, struckEvents);
   foldStrikeMods(strike, f);
   noDodge(setup, counter, f);
@@ -132,6 +168,10 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   e.flags = counter ? kCounter : 0;
   // 3. Hit. (A hit of 0 still rolls, as it always did.)
   bool hit = f.hit >= 100 || rng.chance(f.hit);
+  // A "recoil" with "instead" (docs/SRPG.md "Skill blocks, third set"): a strike that lands turns on its wielder, who takes the damage
+  // it would have done (`turnedBack`, -1 = nothing turned back); for the foe the strike counts as a miss.
+  int turnedBack = -1;
+  const bool instead = std::any_of(strike.recoils.begin(), strike.recoils.end(), [](const SkillEffect* r) { return r->instead; });
   if (hit) {
     // 4. Damage: a critical multiplies first, then this strike's percents, then "survive".
     int damage = f.damage;
@@ -141,15 +181,21 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
     }
     damage = applyPercents(applyPercents(damage, strike.damagePercent), strike.damageTakenPercent);
     Unit& target = units[def];
-    if (strike.survive && target.hp > 1 && damage >= target.hp) {
-      damage = target.hp - 1;
-      e.flags |= kSurvived;
+    if (instead) {
+      turnedBack = damage;
+      hit = false;
+      e.flags &= ~kCrit;
+    } else {
+      if (strike.survive && target.hp > 1 && damage >= target.hp) {
+        damage = target.hp - 1;
+        e.flags |= kSurvived;
+      }
+      damage = std::min(damage, target.hp);
+      target.hp -= damage;
+      e.d = damage;
+      e.flags |= kHit;
+      if (target.hp <= 0) e.flags |= kKill;
     }
-    damage = std::min(damage, target.hp);
-    target.hp -= damage;
-    e.d = damage;
-    e.flags |= kHit;
-    if (target.hp <= 0) e.flags |= kKill;
   }
   // 5. The events: what activated for the striker, for the struck unit (only when it was struck), the strike.
   events.insert(events.end(), strikeEvents.begin(), strikeEvents.end());
@@ -167,6 +213,27 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       h.b = heal;
       events.push_back(h);
     }
+  }
+  // 6a. Recoil: the wielder is hurt (it may be defeated: below, with the usual defeat flow). Nothing answers it: it is no strike, so it
+  // is never countered, drains nothing and wears nothing. Several recoils each hurt.
+  bool wielderDown = false;
+  for (const SkillEffect* r : strike.recoils) {
+    if (r->instead && turnedBack < 0) continue;  // the strike did not land: nothing to turn back
+    if (!units[atk].alive || units[atk].hp <= 0) break;
+    SkillCtx rc = skillCombatCtx(setup, atk);
+    rc.strikeNo = strikeNo;
+    rc.dealt = r->instead ? turnedBack : e.d;
+    const int amount = r->expr >= 0 ? (int)std::max(0.0, std::min(1000000.0, std::floor(skillExpr(r->expr, rc, 0)))) : r->value;
+    const int loss = std::min(amount, units[atk].hp);
+    if (loss <= 0) continue;
+    units[atk].hp -= loss;
+    Event h;
+    h.type = EventType::UnitHurt;
+    h.a = atk;
+    h.b = loss;
+    h.c = atk;
+    events.push_back(h);
+    wielderDown = wielderDown || units[atk].hp <= 0;
   }
   // 6b. Conditions (docs/SRPG.md section 9), only on a hit: a unit struck loses the conditions that end when it is struck, then
   // the "inflict" effects of the strike's activated blocks take hold (in that order, so a strike that wakes a sleeper can also
@@ -189,6 +256,11 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
     defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events
     unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
+  }
+  if (wielderDown && units[atk].alive) {  // the weapon finished its own wielder: a normal defeat, with no one to credit
+    killUnit(atk, events);
+    defeatQuote(atk, events);
+    unitDefeated(atk, -1, events);
   }
   // 8. "Strike again": one more strike through the same steps, hit or miss; that one cannot give another.
   if (strike.strikeAgain && !extra && !over && units[atk].alive && units[def].alive)
@@ -225,6 +297,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
     }
   }
   int hpA = units[a].hp, hpD = units[d].hp;
+  fightStrikes_[0] = fightStrikes_[1] = 0;
   // Who strikes when, how often, and whether the defender answers are fixed now; only the numbers of each strike
   // are worked out again when it is made.
   std::vector<StrikeStep> order;

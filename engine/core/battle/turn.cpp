@@ -22,7 +22,9 @@ void Battle::lightsTurnStart() {
   for (size_t i = lights.size(); i-- > 0;)
     if (lights[i].side == activeSide) {
       changed = true;
-      if (--lights[i].turns <= 0) lights.erase(lights.begin() + (long)i);
+      LightArea& l = lights[i];
+      if (--l.turns <= 0) lights.erase(lights.begin() + (long)i);
+      else if (l.shrink > 0 && (l.radius -= l.shrink) < 1) lights.erase(lights.begin() + (long)i);  // a torch that burnt down
     }
   if (changed) markSight();
 }

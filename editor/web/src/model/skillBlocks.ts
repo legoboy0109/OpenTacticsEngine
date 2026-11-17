@@ -51,6 +51,7 @@ export function newCondition(kind: CondKind, doc: ProjectDoc): Extra | null {
     case 'counterattack': return { counterattack: false }
     case 'carries': return doc.items?.[0] ? { carries: doc.items[0].id } : null
     case 'inventory': return { inventory: 'full' }
+    case 'strike': return { strike: 'first' }
   }
 }
 
@@ -93,6 +94,7 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'nullifySkills': return { nullifySkills: true }
     case 'staffRange': return { staffRange: 1 }
     case 'carryBonus': return { carryBonus: 1 }
+    case 'recoil': return { recoil: 2 }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
 }
@@ -137,7 +139,15 @@ export const setEffect = (b: Extra, i: number, e: Extra): Extra => patchBlock(b,
 export const setEffects = (b: Extra, next: Extra[]): Extra => patchBlock(b, { do: next })
 
 /** Changing "Reaches": "itself" removes the aura; allies / enemies make an aura and drop what an aura cannot give. */
-export function setAura(b: Extra, aura: { to: 'allies' | 'enemies'; within: number; match?: string } | null, doc: ProjectDoc): Extra {
+export interface AuraSpec { to: 'allies' | 'enemies'; within: number; match?: string; weapon?: string; weaponKind?: string; test?: string }
+/** The aura with the receiver tests it has (docs/SRPG.md "Skill blocks, third set" item 1), empty ones left out. */
+export function auraOf(a: Extra | undefined): AuraSpec {
+  const s = (k: string) => (typeof a?.[k] === 'string' ? (a![k] as string) : undefined)
+  const out: AuraSpec = { to: a?.to === 'enemies' ? 'enemies' : 'allies', within: Number(a?.within ?? 2) }
+  for (const k of ['match', 'weapon', 'weaponKind', 'test'] as const) if (s(k) !== undefined && s(k) !== '') out[k] = s(k)
+  return out
+}
+export function setAura(b: Extra, aura: AuraSpec | null, doc: ProjectDoc): Extra {
   if (aura === null) return patchBlock(b, { aura: undefined })
   const eff = list(b.do).flatMap((e): Extra[] => {
     const k = effectKindOf(e)
@@ -148,7 +158,9 @@ export function setAura(b: Extra, aura: { to: 'allies' | 'enemies'; within: numb
   // An aura's conditions are judged for its owner alone: nothing about a foe or the fight itself.
   const ok = condsFor('combat', true)
   const conds = list(b.if).filter((c) => { const k = condKindOf(c); return (k === null || ok.includes(k)) && c.who !== 'foe' })
-  return patchBlock(b, { aura, if: conds, do: eff.length ? eff : [newEffect('damage', doc, 'combat')!] })
+  const clean: Extra = {}
+  for (const [k, v] of Object.entries(aura)) if (v !== undefined && v !== '') clean[k] = v
+  return patchBlock(b, { aura: clean, if: conds, do: eff.length ? eff : [newEffect('damage', doc, 'combat')!] })
 }
 
 /** The effect with `"to": "foe"` set or cleared (only where the effect may have it). */

@@ -29,7 +29,7 @@ function whatText(doc: ProjectDoc, a: Ability): string {
     case 'steal': {
       const s = stealOf(a)
       const what = s.weapons === true ? (s.equipped === true ? 'any item it carries' : 'an item it carries, weapons too (not the one in hand)') : 'an item it carries (not weapons)'
-      return `takes ${what} from ${whom(a)}${s.if ? ` (only if ${s.if})` : ''}`
+      return `takes ${what} from ${whom(a)}${s.if ? ` (only if ${s.if})` : ''}${s.if && s.reason ? `, otherwise “${s.reason}”` : ''}`
     }
     case 'refresh': { const n = refreshPerTurn(a); return `lets ${whom(a)} act again after it has acted${n > 1 ? ` (a unit can be refreshed ${times(n)} a turn)` : ''}` }
     case 'cure': {

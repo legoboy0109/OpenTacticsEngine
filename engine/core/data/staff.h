@@ -34,6 +34,8 @@ struct StaffEffect {
   int warpExpr = -1;  // formula: the maximum (minimum 1)
   // Light: the squares within `radius` of the picked square are seen for `turns` of the user's side's turns.
   int radius = 0, turns = 1;
+  // Light: the radius goes down by `shrink` squares each time the side's turn starts, until it is gone (0 = it does not shrink; docs/SRPG.md "Skill blocks, third set").
+  int shrink = 0;
   // Inflict: `conds[0]` is the condition and `turns` (above, 0 = its own duration) overrides how long it lasts. Cure: the conditions
   // it removes, or all of them.
   std::vector<int> conds;

@@ -65,7 +65,7 @@ export interface Summon extends Extra {
 }
 /** An ability's one effect: exactly one of these keys. */
 /** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */
-export interface StealOptions extends Extra { if?: string; weapons?: boolean; equipped?: boolean }
+export interface StealOptions extends Extra { if?: string; reason?: string; weapons?: boolean; equipped?: boolean }
 export interface AbilityEffect extends Extra {
   push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon
   steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: string[] | 'all'

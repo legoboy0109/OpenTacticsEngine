@@ -20,7 +20,7 @@ export const STAFF_HEAL_MAX = 1000000
 export const STAFF_EFFECTS_MAX = 4
 
 /** Keys only a staff has; leaving the kind removes them. (`target` is shared with usable items and handled apart.) */
-export const STAFF_KEYS = ['group', 'rank', 'rankXp', 'wieldedBy', 'wieldedByTypes', 'props', 'range', 'area', 'effects', 'hit', 'xp', 'if']
+export const STAFF_KEYS = ['group', 'rank', 'rankXp', 'wieldedBy', 'wieldedByTypes', 'props', 'range', 'area', 'effects', 'hit', 'xp', 'if', 'bonus']
 
 /** What a new staff starts with: a group (one that exists already, else "staff") and a small heal, so the file is valid straight away. */
 export const newStaffDefaults = (doc: ProjectDoc): Partial<Item> => ({

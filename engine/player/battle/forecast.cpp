@@ -41,6 +41,10 @@ Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int 
     // "Dmg 7 x2 x2": the strikes of the exchange, then (skills with multiStrike) the strikes in a row of each.
     if (sf.strikes > 1 || sf.multi > 1) dmg += " x" + intStr(sf.strikes);
     if (sf.multi > 1) dmg += " x" + intStr(sf.multi);
+    if (!sf.each.empty()) {  // strikes that differ (a skill asks which strike it is): each one's damage, "Dmg 9/4"
+      dmg = "Dmg ";
+      for (size_t i = 0; i < sf.each.size(); ++i) dmg += (i ? "/" : "") + intStr(sf.each[i].damage);
+    }
     col.push_back({dmg, kText});
     if (showHit) col.push_back({"Hit " + intStr(sf.hit) + "%", kText});
     if (showCrit) col.push_back({"Crit " + intStr(sf.crit) + "%", kText});
@@ -68,9 +72,9 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   const Unit& a = b.units[attacker];
   const Unit& d = b.units[defender];
 
-  int hpD = std::max(0, d.hp - f.attack.damage * f.attack.strikes * f.attack.multi);
+  int hpD = std::max(0, d.hp - f.attack.allDamage());
   int hpA = a.hp;
-  if (f.counter.can) hpA = std::max(0, a.hp - f.counter.damage * f.counter.strikes * f.counter.multi);
+  if (f.counter.can) hpA = std::max(0, a.hp - f.counter.allDamage());
   // Hide hit/crit rows for games without hit/crit formulas (everything 100% / 0%).
   bool showHit = f.attack.hit < 100 || (f.counter.can && f.counter.hit < 100);
   bool showCrit = f.attack.crit > 0 || (f.counter.can && f.counter.crit > 0);

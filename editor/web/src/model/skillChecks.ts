@@ -37,10 +37,20 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
     const known = (doc.units ?? []).some((u) => u.id === m || u.tags?.includes(m)) || (doc.characters ?? []).some((c) => (c as Extra).tags && ((c as Extra).tags as string[]).includes(m))
     if (!known) out.push(`It reaches only units “${m}”, which is no unit type or tag of this game.`)
   }
+  if (aura) {
+    const a = b.aura as Extra
+    if (a.weapon !== undefined && (typeof a.weapon !== 'string' || a.weapon === '')) out.push('Pick the weapon the receivers must hold, or leave it on any weapon.')
+    else if (typeof a.weapon === 'string' && !(doc.weapons ?? []).some((w) => w.id === a.weapon || w.group === a.weapon))
+      out.push(`It reaches only units wielding “${a.weapon}”, which is no weapon or weapon group of this game.`)
+    if (a.weaponKind !== undefined && (typeof a.weaponKind !== 'string' || a.weaponKind === '')) out.push('Pick the kind of damage the receivers’ weapon must deal, or leave it on any.')
+    else if (typeof a.weaponKind === 'string' && !weaponKinds(doc).includes(a.weaponKind))
+      out.push(`It reaches only units whose weapon deals “${a.weaponKind}” damage, which no weapon has. Give a weapon that kind first.`)
+    if (a.test !== undefined && (typeof a.test !== 'string' || a.test.trim() === '')) out.push('The formula the receivers must pass is empty.')
+  }
   const okConds = condsFor(when, aura)
   for (const c of conds) {
     const k = condKindOf(c)
-    if (k && STRIKE_ONLY.includes(k) && !okConds.includes(k)) out.push('“Only if the foe answers” can only be asked in a rule for when the unit strikes or is struck.')
+    if (k && STRIKE_ONLY.includes(k) && !okConds.includes(k)) out.push(k === 'strike' ? '“Which strike” can only be asked in a rule for when the unit strikes or is struck.' : '“Only if the foe answers” can only be asked in a rule for when the unit strikes or is struck.')
     else if (k && !okConds.includes(k)) out.push(`“Only if” cannot ask that here: ${aura || when === 'turnStart' ? 'there is no fight to ask about.' : 'there is no combat.'}`)
     else if (k && c.who === 'foe' && !canJudgeFoe(k, when, aura)) out.push('There is no foe to ask about here.')
     if (k === 'condition' && !doc.conditions?.some((x) => x.id === c.condition)) out.push(`“Only if” asks about the condition “${String(c.condition)}”, which does not exist.`)
@@ -70,8 +80,9 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
     const r = NUMBER_RANGE[k]
     if (r && FORMULA_EFFECTS.includes(k) && typeof e[k] === 'string') { if ((e[k] as string).trim() === '') out.push('The formula is empty.') }
     else if (r && (typeof e[k] !== 'number' || e[k] < r[0] || e[k] > r[1])) out.push(`That number must be from ${r[0]} to ${r[1]}.`)
+    const cancelList = k === 'cancelEffective' && Array.isArray(e[k])
     const moveAgainOption = k === 'moveAgain' && e[k] && typeof e[k] === 'object' && (e[k] as Extra).notAfterAttack === true
-    if (FLAG_EFFECTS.includes(k) && e[k] !== true && !moveAgainOption) out.push('That effect is either on or not there.')
+    if (FLAG_EFFECTS.includes(k) && e[k] !== true && !moveAgainOption && !cancelList) out.push('That effect is either on or not there.')
     if (k === 'stats' && when !== 'combat' && Object.values((e.stats && typeof e.stats === 'object' ? e.stats : {}) as Record<string, unknown>).some((x) => typeof x !== 'number'))
       out.push('Only a combat bonus to stats may be a formula.')
   }
@@ -92,6 +103,12 @@ function ownCondIssues(doc: ProjectDoc, c: Extra, k: ReturnType<typeof condKindO
     const v = c.inventory
     const o = (v && typeof v === 'object' ? v : null) as Extra | null
     if (v !== 'full' && v !== 'notFull' && !(o && typeof o.value === 'number' && Number.isInteger(o.value) && o.value >= 0 && o.value <= 1000)) out.push('The number of items must be “full”, “not full” or a whole number from 0 to 1000.')
+  }
+  if (k === 'strike') {
+    const v = c.strike
+    const o = (v && typeof v === 'object' ? v : null) as Extra | null
+    const ok = v === 'first' || v === 'followUp' || (isWhole(v) && v >= 1 && v <= 1000) || (o && isWhole(o.value) && o.value >= 1 && o.value <= 1000)
+    if (!ok) out.push('The strike must be the first, a follow-up, or a number from 1 to 1000.')
   }
   if (k === 'turn') {
     const t = (c.turn && typeof c.turn === 'object' ? c.turn : {}) as Extra
@@ -156,6 +173,17 @@ function ownEffectIssues(doc: ProjectDoc, e: Extra, k: EffectKind, when: When): 
     if (!isWhole(amount) || amount < 1 || amount > 10) out.push('The extra reach must be a whole number from 1 to 10.')
     if (typeof v === 'object' && o.group !== undefined && !(typeof o.group === 'string' && doc.items?.some((i) => i.kind === 'staff' && (i as Extra).group === o.group)))
       out.push(`“${String(o.group)}” is no staff group of this game.`)
+  }
+  if (k === 'recoil') {
+    const o = obj(v)
+    const amount = typeof v === 'object' && v !== null && !Array.isArray(v) ? (o.amount === undefined ? 'dealt' : o.amount) : v
+    if (typeof v === 'object' && v !== null && !Array.isArray(v) && o.instead !== undefined && typeof o.instead !== 'boolean') out.push('“Turns on the wielder” is either on or off.')
+    if (typeof amount === 'string' ? amount.trim() === '' : !isWhole(amount) || amount < 1 || amount > 1000000) out.push(typeof amount === 'string' ? 'The recoil formula is empty.' : 'The recoil must be a whole number of 1 or more, or a formula.')
+  }
+  if (k === 'cancelEffective' && Array.isArray(v)) {
+    const tags = new Set((doc.weapons ?? []).flatMap((w) => Object.keys(w.versus ?? {})))
+    if (v.length === 0) out.push('It cancels nothing yet. Pick at least one tag, or all effectiveness.')
+    for (const t of v) if (typeof t !== 'string' || !tags.has(t)) out.push(`“${String(t)}” is no effectiveness tag: no weapon is “effective against” it. Add it under “Extra damage against” on the Weapons screen first.`)
   }
   if (k === 'followUp' && v !== 'force' && v !== 'forbid') out.push('A follow-up strike is either forced or forbidden.')
   if (k === 'cure') {

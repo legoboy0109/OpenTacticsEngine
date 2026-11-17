@@ -145,12 +145,14 @@ export const setRepairUses = (doc: ProjectDoc, id: string, n: number): ProjectDo
 
 // --- lighting an area (a light staff is exactly one light effect: no target, area, chance of missing or conditions) ------------------
 
-export interface Light { on: boolean; radius: number; turns: number }
+export interface Light { on: boolean; radius: number; turns: number; shrink?: number }
 export function lightOf(item: Item): Light {
   const at = fxIndex(item, ['light'])
   if (at < 0) return { on: false, radius: 2, turns: 1 }
-  const l = (fxList(item)[at] as Extra).light as { radius?: unknown; turns?: unknown } | undefined
-  return { on: true, radius: typeof l?.radius === 'number' ? l.radius : 2, turns: typeof l?.turns === 'number' ? l.turns : 1 }
+  const l = (fxList(item)[at] as Extra).light as { radius?: unknown; turns?: unknown; shrink?: unknown } | undefined
+  const out: Light = { on: true, radius: typeof l?.radius === 'number' ? l.radius : 2, turns: typeof l?.turns === 'number' ? l.turns : 1 }
+  if (typeof l?.shrink === 'number') out.shrink = l.shrink
+  return out
 }
 
 /** Effects of a kind the form does not know (an unknown kind, a malformed entry). A light staff has no room for them, and they are never
@@ -171,6 +173,15 @@ function setLightPart(doc: ProjectDoc, id: string, patch: Record<string, number>
   if (!item || !isLightStaff(item)) return doc
   const cur = (fxList(item)[fxIndex(item, ['light'])] as Extra).light
   return putFx(doc, id, ['light'], { light: { ...(cur && typeof cur === 'object' ? cur : {}), ...patch } })
+}
+/** A torch: the radius goes down by this much each turn (docs/SRPG.md "Skill blocks, third set" item 9). Empty / 0 removes it; it must stay below the radius. */
+export function setLightShrink(doc: ProjectDoc, id: string, n: number | undefined): ProjectDoc {
+  const item = itemOf(doc, id)
+  if (!item || !isLightStaff(item)) return doc
+  const cur = { ...((fxList(item)[fxIndex(item, ['light'])] as Extra).light as Record<string, unknown>) }
+  if (n === undefined || n <= 0) delete cur.shrink
+  else cur.shrink = clampInt(n, 1, Math.max(1, lightOf(item).radius - 1))
+  return putFx(doc, id, ['light'], { light: cur })
 }
 export const setLightRadius = (doc: ProjectDoc, id: string, n: number): ProjectDoc => setLightPart(doc, id, { radius: clampInt(n, 1, STAFF_RADIUS_MAX) })
 export const setLightTurns = (doc: ProjectDoc, id: string, n: number): ProjectDoc => setLightPart(doc, id, { turns: clampInt(n, 1, STAFF_LIGHT_TURNS_MAX) })

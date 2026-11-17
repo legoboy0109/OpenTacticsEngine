@@ -29,9 +29,9 @@ describe('the starter set', () => {
     const blocks = STARTER_SKILLS.flatMap(blocksOf)
     expect(new Set(blocks.map((b) => b.when))).toEqual(new Set(WHENS.filter((w) => w !== 'staffUse')))  // "staffUse" came later: the thirty are fixed
     const conds = new Set(blocks.flatMap((b) => ((b.if as object[]) ?? []).map((c) => condKindOf(c as never))))
-    for (const k of COND_KINDS.filter((x) => !['weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'formula', 'condition', 'weaponKind', 'turn', 'counterattack', 'carries', 'inventory'].includes(x))) expect(conds.has(k), k).toBe(true)
+    for (const k of COND_KINDS.filter((x) => !['weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'formula', 'condition', 'weaponKind', 'turn', 'counterattack', 'carries', 'inventory', 'strike'].includes(x))) expect(conds.has(k), k).toBe(true)
     const effects = new Set(blocks.flatMap((b) => (b.do as object[]).map((e) => effectKindOf(e as never))))
-    for (const k of EFFECT_KINDS.filter((x) => x !== 'ability' && x !== 'critAvoid' && !['cannotAct', 'cannotMove', 'forbid', 'berserk', 'immune', 'inflict', 'followUp', 'followShift', 'trianglePercent', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective', 'cure', 'nullifySkills', 'staffRange', 'carryBonus'].includes(x))) expect(effects.has(k), k).toBe(true)
+    for (const k of EFFECT_KINDS.filter((x) => x !== 'ability' && x !== 'critAvoid' && !['cannotAct', 'cannotMove', 'forbid', 'berserk', 'immune', 'inflict', 'recoil', 'followUp', 'followShift', 'trianglePercent', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective', 'cure', 'nullifySkills', 'staffRange', 'carryBonus'].includes(x))) expect(effects.has(k), k).toBe(true)
   })
   it('every skill passes the editor’s checks in the template’s game', () => {
     const d = loadTemplate('strategy-rpg')

@@ -11,6 +11,8 @@
 
 namespace ote {
 
+struct ItemDef;  // core/data/database.h
+
 // One ability a unit has used this battle (Unit::abilityUses; docs/SRPG.md "Cost, uses, cooldown").
 struct AbilityUse {
   int ability = -1;   // index into db->abilities
@@ -38,6 +40,7 @@ struct ForecastNote {
   int unit = -1;
   int skill = -1;
   int chance = 0;  // percent, judged on the state before the fight
+  bool recoil = false;  // the block may hurt its own wielder (a "recoil" effect): the player may mark it
 };
 
 // Who fights whom with what (docs/SRPG.md "Combat pipeline"): what the sources of combat modifiers are asked with.
@@ -71,6 +74,11 @@ struct SkillCtx {
   bool combat = false;       // a foe point: "initiating" and "distance" have a meaning
   bool initiating = false;   // the owner started this combat
   int counters = -1;         // strike / struck blocks: 1 = the fight has a counterattack, 0 = it has none, -1 = not known here
+  const ItemDef* item = nullptr;  // a steal ability's `if`: the item being judged (`it` in the formula), with its uses left
+  int itemUses = -1;
+  int strikeNo = 0;          // strike / struck blocks: which strike of the fight this is for its striker, from 1 (0 = not a strike)
+  int dealt = 0;             // a "recoil" amount: the strike's damage
+  int healed = 0;            // "staffUse" blocks: the HP the staff just healed, all targets together
   const std::string* staffGroup = nullptr;  // a "staffUse" block: the group of the staff that was used (the "weapon" condition tests it)
 };
 
@@ -92,6 +100,8 @@ struct AbilityPlan {
 }  // namespace ote
 
 namespace ote {
+
+struct ItemDef;  // core/data/database.h
 
 // One item of a foe a steal ability could take: its slot in the foe's inventory, and the plain reason it cannot be taken.
 struct StealOption {
@@ -159,11 +169,14 @@ struct LightArea {
   Cell cell = kNoCell;
   int radius = 0;
   int turns = 1;
+  int shrink = 0;  // the radius it loses each time the side's turn starts (a torch); 0 = none
 };
 
 }  // namespace ote
 
 namespace ote {
+
+struct ItemDef;  // core/data/database.h
 
 // ---- conditions (docs/SRPG.md section 9) ----
 // A condition a unit has. `left` = the unit's own turns it still lasts, counted down at the start of each of its side's turns

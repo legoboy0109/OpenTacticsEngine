@@ -68,6 +68,8 @@ export const S = {
   lightOnHelp: 'Used on a square, not a unit, and it only matters on maps with fog of war. A light staff does nothing else and has no target, area, chance of missing or conditions: switching it on removes those and the other effects (Undo brings them back).',
   lightUnknown: 'It cannot be switched on while the staff has an effect the editor cannot show, because a light staff has no other effects.',
   lightRadius: 'Radius of the light (squares)',
+  lightShrink: 'Shrinks by (squares each turn)',
+  lightShrinkHelp: 'Optional, for a torch: the radius goes down by this much every turn of the user’s side until it is gone. With no “Turns it lasts” of your own it burns until nothing is left. Leave empty for a light that keeps its size.',
   lightTurns: 'Turns it lasts',
   lightTurnsHelp: 'Counted in the user’s side’s turns: 1 lasts until that side’s next turn starts.',
   unlockOn: 'It unlocks doors and chests',
@@ -92,6 +94,9 @@ export const S = {
   xpHelp: (example: string) => `Given once per use, even when it misses. A number, or a formula such as ${example}. Leave empty for none. Needs experience to be turned on in the Rules.`,
   xpPlaceholder: 'none',
 
+  bonus: 'Bonus while carried',
+  bonusHelp: 'Optional. Added to the unit’s stats while it carries this staff, like an accessory. Leave empty for none.',
+  bonusCol: 'Bonus',
   numbers: 'Numbers for formulas',
   numbersHelp: 'Named numbers the formulas can read as w.name, such as w.power for the staff’s strength.',
   numbersEmpty: 'None yet.',

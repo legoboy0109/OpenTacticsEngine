@@ -96,11 +96,17 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     const std::string in = "\"steal\": ";
     if (!v.isObject()) return c.fail(where, in + "must be true or { \"if\": \"a.spd > b.spd\", \"weapons\": false, \"equipped\": false }");
     for (const Json::Member& m : v.members())
-      if (m.first != "if" && m.first != "weapons" && m.first != "equipped")
-        return c.fail(where, in + "unknown key " + q(m.first) + " (expected \"if\", \"weapons\", \"equipped\")");
+      if (m.first != "if" && m.first != "weapons" && m.first != "equipped" && m.first != "reason")
+        return c.fail(where, in + "unknown key " + q(m.first) + " (expected \"if\", \"reason\", \"weapons\", \"equipped\")");
     if (v.has("if")) {
       if (!v["if"].isString() || v["if"].asString().empty()) return c.fail(where, in + "\"if\" must be the text of a formula (a = the user, b = the foe)");
       a.stealIf = db.addExpr(v["if"].asString(), "data/abilities.json: " + where + ": \"steal\".\"if\"");
+      a.stealIfItem = formulaReads(v["if"].asString(), "it");
+    }
+    if (v.has("reason")) {  // what an item the formula rules out is greyed with
+      if (!v["reason"].isString() || v["reason"].asString().empty()) return c.fail(where, in + "\"reason\" must be a short plain text such as \"too heavy\"");
+      if (!v.has("if")) return c.fail(where, in + "\"reason\" goes with an \"if\" formula");
+      a.stealWhy = v["reason"].asString();
     }
     if (!c.boolean(v, "weapons", where, a.stealWeapons) || !c.boolean(v, "equipped", where, a.stealEquipped)) return false;
     if (a.stealEquipped && !a.stealWeapons) return c.fail(where, in + "\"equipped\": true needs \"weapons\": true (the equipped weapon is a weapon)");

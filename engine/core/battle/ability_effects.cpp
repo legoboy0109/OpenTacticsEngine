@@ -23,7 +23,6 @@ void Battle::stealOptions(int unit, int ability, Cell from, int target, std::vec
   if (unit < 0 || unit >= (int)units.size() || target < 0 || target >= (int)units.size() || ability < 0 ||
       ability >= (int)db->abilities.size())
     return;
-  (void)from;
   const AbilityDef& d = db->abilities[(size_t)ability];
   if (d.effect != AbilityEffect::Steal) return;
   const Unit& foe = units[(size_t)target];
@@ -35,6 +34,16 @@ void Battle::stealOptions(int unit, int ability, Cell from, int target, std::vec
     if (!it.stealable) o.why = "cannot be stolen";
     else if (it.kind == ItemKind::Weapon && !d.stealWeapons) o.why = "weapons cannot be stolen";
     else if (it.kind == ItemKind::Weapon && (int)i == equipped && !d.stealEquipped) o.why = "the equipped weapon";
+    else if (d.stealIfItem) {  // the maker's condition, judged for this item (`it`): its reason greys the item
+      SkillCtx ctx;
+      ctx.unit = unit;
+      ctx.cell = from;
+      ctx.weapon = restingWeapon(units[(size_t)unit]);
+      ctx.foe = target;
+      ctx.item = &it;
+      ctx.itemUses = foe.items[i].uses;
+      if (skillExpr(d.stealIf, ctx, 0) == 0) o.why = d.stealWhy.empty() ? "cannot be taken" : d.stealWhy;
+    }
     o.ok = o.why.empty();
     out.push_back(o);
   }
@@ -51,7 +60,7 @@ bool Battle::stealRoomOk(const Unit& u, std::string* why) const {
 bool Battle::abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& t, std::string* why) const {
   switch (d.effect) {
     case AbilityEffect::Steal: {
-      if (d.stealIf >= 0) {
+      if (d.stealIf >= 0 && !d.stealIfItem) {  // a formula that reads `it` is judged per item (stealOptions)
         SkillCtx ctx;
         ctx.unit = u.id;
         ctx.cell = from;

@@ -105,6 +105,7 @@ void writeLights(const Battle& b, Json& out) {
     j.set("cell", Json::makeNumber(l.cell));
     j.set("radius", Json::makeNumber(l.radius));
     j.set("turns", Json::makeNumber(l.turns));
+    if (l.shrink > 0) j.set("shrink", Json::makeNumber(l.shrink));  // only a torch has it: saves of other lights stay as they were
     list.push(j);
   }
   out.set("lights", list);
@@ -124,7 +125,7 @@ bool readLights(Reader& rd, const Json& saved, Battle& b) {
     LightArea l;
     if (!rd.integer(j, "side", where, 0, (int)b.sides.size() - 1, l.side) ||
         !rd.integer(j, "cell", where, 0, b.grid.cellCount() - 1, l.cell) || !rd.integer(j, "radius", where, 1, kMaxStaffRadius, l.radius) ||
-        !rd.integer(j, "turns", where, 1, kMaxStaffLightTurns, l.turns))
+        !rd.integer(j, "turns", where, 1, kMaxStaffLightTurns, l.turns) || (j.has("shrink") && !rd.integer(j, "shrink", where, 1, kMaxStaffRadius, l.shrink)))
       return false;
     b.lights.push_back(l);
   }

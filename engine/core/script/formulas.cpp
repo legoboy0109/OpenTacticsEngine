@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -147,6 +147,30 @@ void Formulas::pushFoeWeapon(const WeaponDef* fw, bool answers) {
   lua_setmetatable(L_, -2);
 }
 
+// `it`: an item as a steal condition sees it. A weapon's or staff's numbers (weight and the like) first, then what every item has:
+// `id`, `name` and `kind` as text, `uses` (left; 0 when unlimited, with `unlimited = 1`), `maxUses`, `price` (the first price entry's
+// amount, 0 when it has none). These win over a prop of the same name. No item = an empty table.
+void Formulas::pushItem(const ItemDef* it, int uses) {
+  lua_createtable(L_, 0, 10);
+  if (!it) return;
+  const Props* props = nullptr;
+  if (it->kind == ItemKind::Weapon && it->weapon >= 0) props = &db_->weapons[(size_t)it->weapon].props;
+  else if (it->kind == ItemKind::Staff && it->staff >= 0) props = &db_->staves[(size_t)it->staff].gear.props;
+  else props = &it->props;
+  for (const NamedNumber& n : *props) {
+    lua_pushnumber(L_, n.value);
+    lua_setfield(L_, -2, n.key.c_str());
+  }
+  static const char* const kinds[] = {"usable", "weapon", "accessory", "staff"};
+  lua_pushstring(L_, it->id.c_str()); lua_setfield(L_, -2, "id");
+  lua_pushstring(L_, it->name.c_str()); lua_setfield(L_, -2, "name");
+  lua_pushstring(L_, kinds[(int)it->kind]); lua_setfield(L_, -2, "kind");
+  lua_pushinteger(L_, uses < 0 ? 0 : uses); lua_setfield(L_, -2, "uses");
+  lua_pushinteger(L_, it->uses < 0 ? 0 : it->uses); lua_setfield(L_, -2, "maxUses");
+  lua_pushinteger(L_, uses < 0 ? 1 : 0); lua_setfield(L_, -2, "unlimited");
+  lua_pushinteger(L_, it->price.empty() ? 0 : it->price[0].amount); lua_setfield(L_, -2, "price");
+}
+
 void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus, int follow, int tri) {
   if (!u) { lua_pushnil(L_); return; }
   const UnitTypeDef& type = db_->unitTypes[u->type];
@@ -222,8 +246,12 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_pushnumber(L_, ctx.vs);
   pushFoeWeapon(ctx.fw, ctx.fwAnswers);
   lua_pushinteger(L_, ctx.battle ? ctx.battle->round : 0);  // `turn`: the battle's turn (round) number, 0 outside a battle
+  lua_pushinteger(L_, ctx.strikeNo);
+  lua_pushinteger(L_, ctx.healed);
+  pushItem(ctx.item, ctx.itemUses);
+  lua_pushinteger(L_, ctx.dealt);
   double result = def;
-  if (lua_pcall(L_, 9, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 13, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

@@ -101,6 +101,8 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
 // ---- ai_items.cpp ----
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.
 void considerHealing(const Battle& b, const Unit& u, Order& order);
+// A cure item (itself, or a unit next to it when the unit stays where it is); used instead of a plain Wait or a hit that does not finish its target.
+void considerCuring(const Battle& b, const Unit& u, Order& order);
 
 // ---- ai_supply.cpp ----
 // Repair and supply (docs/ECONOMY.md): may replace `order` by a retreat to a repairing structure or a supply

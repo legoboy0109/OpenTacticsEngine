@@ -79,9 +79,10 @@ function effectProblem(doc: ProjectDoc, i: Item, e: unknown, n: number): string 
       return v === 'full' || (whole(v) && v >= 1 && v <= STAFF_REPAIR_MAX) ? undefined : `repairing must be all uses or a number of uses from 1 to ${STAFF_REPAIR_MAX}.`
     case 'light': {
       if (!v || typeof v !== 'object' || Array.isArray(v)) return 'a light needs a radius and a number of turns.'
-      const extra = Object.keys(v).find((k) => k !== 'radius' && k !== 'turns')
-      if (extra) return `a light has no “${extra}”, only a radius and a number of turns.`
-      const { radius, turns } = v as { radius?: unknown; turns?: unknown }
+      const extra = Object.keys(v).find((k) => k !== 'radius' && k !== 'turns' && k !== 'shrink')
+      if (extra) return `a light has no “${extra}”, only a radius, a number of turns and how much it shrinks each turn.`
+      const { radius, turns, shrink } = v as { radius?: unknown; turns?: unknown; shrink?: unknown }
+      if (shrink !== undefined && (!whole(shrink) || shrink < 1 || !whole(radius) || shrink >= radius)) return 'the light’s shrink must be a whole number of 1 or more and less than its radius (leave it out for a light that does not shrink).'
       if (!whole(radius) || radius < 1 || radius > STAFF_RADIUS_MAX) return `the light’s radius must be a whole number from 1 to ${STAFF_RADIUS_MAX} squares.`
       if (turns !== undefined && (!whole(turns) || turns < 1 || turns > STAFF_LIGHT_TURNS_MAX)) return `the light’s turns must be a whole number from 1 to ${STAFF_LIGHT_TURNS_MAX} (leave it out for 1).`
       return undefined

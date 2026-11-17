@@ -1,6 +1,6 @@
 // The two optional settings of a rule: "Chance" (timed points and strikes only) and "Reaches" (combat only).
 import { chanceMode, setChance, setChanceMode, statChance, statChanceText, type ChanceMode } from '../../model/skillChance'
-import { combatStatIds, setAura } from '../../model/skillBlocks'
+import { auraOf, combatStatIds, setAura, weaponKinds, type AuraSpec } from '../../model/skillBlocks'
 import { hasChance, type When } from '../../model/skillRules'
 import type { Extra, ProjectDoc } from '../../model/types'
 import { Advanced } from '../../ui/Card'
@@ -8,7 +8,7 @@ import { Field } from '../../ui/Field'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Num } from './Num'
-import { unitOptions } from './options'
+import { unitOptions, weaponOptions } from './options'
 import { T } from './text'
 
 interface Props { doc: ProjectDoc; block: Extra; setBlock: (fn: (b: Extra) => Extra, key?: string) => void }
@@ -43,22 +43,39 @@ export function ChanceRow({ doc, block, setBlock }: Props) {
 
 export function ReachesRow({ doc, block, setBlock }: Props) {
   if (block.when !== 'combat') return null
-  const aura = block.aura as Extra | undefined
-  const mode = aura ? (aura.to === 'enemies' ? 'enemies' : 'allies') : 'self'
-  const within = Number(aura?.within ?? 2)
-  const match = typeof aura?.match === 'string' ? aura.match : ''
-  const setMatch = (m: string) => setBlock((b) => setAura(b, { to: mode as 'allies' | 'enemies', within, ...(m ? { match: m } : {}) }, doc), 'match')
+  const raw = block.aura as Extra | undefined
+  const aura = raw ? auraOf(raw) : null
+  const mode = aura ? aura.to : 'self'
+  const put = (patch: Partial<AuraSpec>, key?: string) => setBlock((b) => setAura(b, { ...auraOf(b.aura as Extra | undefined), ...patch }, doc), key)
+  const kinds = weaponKinds(doc)
+  const kindNow = aura?.weaponKind ?? ''
   return (
     <div className="skill-option" data-testid="skill-reaches">
       <Field label={T.reaches} help={aura ? T.auraNote : T.reachesHelp}>
         <Select value={mode} options={[{ value: 'self', label: T.reachSelf }, { value: 'allies', label: T.reachAllies }, { value: 'enemies', label: T.reachEnemies }]}
-          onChange={(m) => setBlock((b) => setAura(b, m === 'self' ? null : { to: m as 'allies' | 'enemies', within, ...(match ? { match } : {}) }, doc))} />
+          onChange={(m) => setBlock((b) => setAura(b, m === 'self' ? null : { ...auraOf(b.aura as Extra | undefined), to: m as 'allies' | 'enemies' }, doc))} />
       </Field>
-      {aura && <Field label={T.reachWithin}><Num value={within} min={1} max={10} onChange={(n) => setBlock((b) => setAura(b, { to: mode as 'allies' | 'enemies', within: n, ...(match ? { match } : {}) }, doc), 'within')} /></Field>}
+      {aura && <Field label={T.reachWithin}><Num value={aura.within} min={1} max={10} onChange={(n) => put({ within: n }, 'within')} /></Field>}
       {aura && (
         <Field label={T.auraMatchPick}>
-          <Select value={match} options={[{ value: '', label: T.auraMatchAny }, ...unitOptions(doc, match)]} onChange={setMatch} />
+          <Select value={aura.match ?? ''} options={[{ value: '', label: T.auraMatchAny }, ...unitOptions(doc, aura.match ?? '')]} onChange={(m) => put({ match: m || undefined })} />
         </Field>
+      )}
+      {aura && (
+        <Field label={T.auraWeaponPick} help={T.auraWeaponHelp}>
+          <Select value={aura.weapon ?? ''} options={[{ value: '', label: T.auraWeaponAny }, ...weaponOptions(doc, aura.weapon ?? '')]} onChange={(m) => put({ weapon: m || undefined })} />
+        </Field>
+      )}
+      {aura && (kinds.length > 0 || kindNow !== '') && (
+        <Field label={T.auraKindPick}>
+          <Select value={kindNow} options={[{ value: '', label: T.auraKindAny }, ...(kinds.includes(kindNow) || kindNow === '' ? kinds : [...kinds, kindNow]).map((k) => ({ value: k, label: kinds.includes(k) ? k : `${k} (no weapon has it)` }))]}
+            onChange={(m) => put({ weaponKind: m || undefined })} />
+        </Field>
+      )}
+      {aura && (
+        <Advanced label={T.advanced} defaultOpen={!!aura.test}>
+          <Field label={T.auraTest} help={T.auraTestHelp}><TextInput mono value={aura.test ?? ''} onChange={(v) => put({ test: v || undefined }, 'auraTest')} /></Field>
+        </Advanced>
       )}
     </div>
   )

@@ -1,3 +1,4 @@
+#include <cctype>
 #include "core/data/database.h"
 
 namespace ote {
@@ -66,7 +67,19 @@ int Database::addExpr(const std::string& text, const std::string& label) {
   e.text = text;
   e.label = label;
   exprs.push_back(e);
+  if (formulaReads(text, "strikeNo")) strikeNoUsed = true;
   return static_cast<int>(exprs.size()) - 1;
+}
+
+bool formulaReads(const std::string& text, const char* word) {
+  const std::string w = word;
+  auto idChar = [](char c) { return std::isalnum((unsigned char)c) || c == '_'; };
+  for (size_t at = text.find(w); at != std::string::npos; at = text.find(w, at + 1)) {
+    const bool before = at > 0 && (idChar(text[at - 1]) || text[at - 1] == '.');
+    const bool after = at + w.size() < text.size() && idChar(text[at + w.size()]);
+    if (!before && !after) return true;
+  }
+  return false;
 }
 
 int enterCostOf(const Database& db, int terrain, int structure, int moveType) {

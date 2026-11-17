@@ -1,5 +1,5 @@
-// Menu abilities (docs/SRPG.md "AI"): the AI only summons and heals, and a unit marked "goesFor": ["steal"] steals. Push, pull, swap, moveBehind,
-// movePast, refresh and cure are never used.
+// Menu abilities (docs/SRPG.md "AI"): the AI summons, heals, cures a condition (itself or an ally next to it), refreshes an ally that has already
+// acted and still has a foe to hit, and a unit marked "goesFor": ["steal"] steals. Push, pull, swap, moveBehind and movePast are never used.
 // A free ability is used at most once per unit per turn by the ability rule itself, so the stateless planner (it plans
 // every unit afresh at each call) cannot loop on it.
 #include <algorithm>
@@ -49,7 +49,7 @@ bool plannedKill(const Battle& b, const Unit& u, const Order& o) {
   Forecast f;
   Cell from = o.moveTo == kNoCell ? u.cell : o.moveTo;
   return b.forecast(u.id, o.target, o.weapon, from, f) &&
-         f.attack.damage * f.attack.strikes >= b.units[(size_t)o.target].hp;
+         f.attack.totalDamage() >= b.units[(size_t)o.target].hp;
 }
 
 // Tries every ability of the unit as if it stood on `from`; fills `order` with the first summon or heal that works.
@@ -117,6 +117,65 @@ bool tryStealFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
   return false;
 }
 
+// Cure (docs/SRPG.md "Cure as an ability"): from `from`, the first cure ability that has a unit to cure: the unit itself, else an ally
+// (unit-id order). What an ability cures is the maker's own list, so like a staff's cure the AI does not ask whether a condition is a curse.
+bool tryCureFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
+  std::vector<AbilityOption> menu;
+  b.abilityOptions(u.id, from, menu);
+  for (const AbilityOption& o : menu) {
+    if (!o.ok) continue;
+    const AbilityDef& d = b.db->abilities[(size_t)o.ability];
+    if (d.effect != AbilityEffect::Cure || (d.free && from != u.cell)) continue;
+    std::vector<int> targets;
+    std::vector<Cell> cells;
+    b.abilityTargets(u.id, o.ability, from, targets, cells);
+    int pick = -1;
+    for (int id : targets)
+      if (b.units[(size_t)id].alive && !b.isEnemy(u, b.units[(size_t)id]) && (pick < 0 || id == u.id)) pick = id;
+    if (pick < 0) continue;
+    Order n;
+    n.score = order.score;
+    n.kind = ActionType::Ability;
+    n.ability = o.ability;
+    n.target = pick;
+    n.moveTo = (from == u.cell || d.free) ? kNoCell : from;
+    order = n;
+    return true;
+  }
+  return false;
+}
+
+// Refresh (docs/SRPG.md "Refresh an ally"): an ally that has used its action and has a foe it could hit from where it stands. The ability's own
+// per-turn limits (a unit is refreshed once, a refresher cannot be refreshed back) keep two of them from looping.
+bool tryRefreshFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
+  std::vector<AbilityOption> menu;
+  b.abilityOptions(u.id, from, menu);
+  for (const AbilityOption& o : menu) {
+    if (!o.ok) continue;
+    const AbilityDef& d = b.db->abilities[(size_t)o.ability];
+    if (d.effect != AbilityEffect::Refresh || (d.free && from != u.cell)) continue;
+    std::vector<int> targets;
+    std::vector<Cell> cells;
+    b.abilityTargets(u.id, o.ability, from, targets, cells);
+    for (int id : targets) {
+      const Unit& t = b.units[(size_t)id];
+      if (id == u.id || !t.alive || t.cell == kNoCell) continue;
+      std::vector<AttackOption> hits;
+      b.attackOptions(id, t.cell, hits);
+      if (hits.empty()) continue;
+      Order n;
+      n.score = order.score;
+      n.kind = ActionType::Ability;
+      n.ability = o.ability;
+      n.target = id;
+      n.moveTo = (from == u.cell || d.free) ? kNoCell : from;
+      order = n;
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 void considerAbilities(const Battle& b, const Unit& u, Order& order) {
@@ -127,6 +186,11 @@ void considerAbilities(const Battle& b, const Unit& u, Order& order) {
 
   // Heal first (an emergency), unless the planned attack finishes its target.
   if (!plannedKill(b, u, order) && tryFrom(b, u, u.cell, order, false)) return;
+  // Cure a unit, or refresh an ally that can still fight, instead of a plain Wait or a hit that does not finish its target.
+  if (!plannedKill(b, u, order)) {
+    const Cell at = order.moveTo == kNoCell ? u.cell : order.moveTo;
+    if (tryCureFrom(b, u, at, order) || tryRefreshFrom(b, u, at, order)) return;
+  }
   // A unit marked "steal" takes something from a neighbouring foe instead of a plain Wait or a hit that does not finish its target.
   if ((u.aiGoals & kAiSteal) && !plannedKill(b, u, order)) {
     const Cell at = order.moveTo == kNoCell ? u.cell : order.moveTo;

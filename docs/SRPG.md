@@ -96,7 +96,7 @@ Wherever a value below is called a **formula** it is a Lua expression in the exi
 is stated where the formula is used; the general rule is `a` = the unit the rule is about, `b` = the other unit
 (`nil` when there is none), `w` = the numbers of `a`'s weapon (empty without one), `ta` / `tb` = the numbers of the
 squares under them, `dist` = grid distance (0 without `b`), `vs` = the weapon's versus value against `b` (1 without).
-A unit table gains one field: `character` (the character id, `nil` for a unit without one). A formula that fails at
+A unit table gains one field: `character` (the character id, `nil` for a unit without one). Four more variables follow `turn`: `strikeNo`, `healed`, `it`, `dealt`, set only where "Skill blocks, third set" says so (0 / an empty table elsewhere). A formula that fails at
 run time counts as 0 / false and is logged once, like the others. A syntax error is a load error naming the place:
 `data/skills.json: skill "heavy_blow": block 1: "chance": <Lua message>`.
 
@@ -347,7 +347,7 @@ must hold), an optional **chance**, and what it **does** (a list of effects).
 ] }
 ```
 
-Block keys: `when` (required), `if` (optional list), `chance` (optional), `aura` (optional, combat blocks only),
+Block keys: `when` (required), `if` (optional list), `chance` (optional), `aura` (optional, combat blocks only; may also say `weapon`, `weaponKind`, `test` about the receiver),
 `do` (required, at least one effect). An aura may add `"match"`; a combat number may be a formula (see "More skill blocks"). Each condition and each effect is an object with **exactly one** kind key
 plus that kind's own parameters.
 
@@ -405,6 +405,7 @@ foe. `op` is one of `= != < <= > >=` (`==` accepted), default `>=`.
 | `{ "distance": { "op": "=", "value": 1 } }` | grid distance between the two fighters. Foe points only |
 | `{ "formula": "a.level >= 10 and b.tags.flier" }` | the formula is true or non-zero: `a` = the owner, `b` = the foe. Not in `always` blocks |
 | `{ "weaponKind": "magic" }`, `{ "turn": { "odd": true } }`, `{ "counterattack": false }`, `{ "carries": "potion" }`, `{ "inventory": "full" }` | see "More skill blocks" below |
+| `{ "strike": "first" }`, `{ "strike": "followUp" }`, `{ "strike": 3 }` | which strike of the fight (`strike` / `struck` blocks only); see "Skill blocks, third set" |
 
 Refused in `always` blocks: `formula`, `initiating`, `distance`, `"who": "foe"` (there is no combat). A block that
 changes the **HP stat** in `always` may have no condition at all (a maximum that flickers would cut current HP):
@@ -448,7 +449,8 @@ roll today).
 | `{ "hurt": 5 }` | the receiver loses HP but never falls below 1. `"to"`: `"foe"` (`afterCombat`, a foe still alive) or `"enemies"` with `"within"` (`turnStart`; enemies the unit's team sees) | `afterCombat`, `turnStart` |
 | `{ "actAgain": true }` | the unit may move and act again this turn. At most once per unit per turn | `defeat`, `afterCombat` (only on its own side's turn) |
 | `{ "followUp": "force" }`, `{ "followShift": 2 }`, `{ "trianglePercent": 200 }` (also `"to": "foe"`) | follow-up control and the triangle multiplier; see "More skill blocks" | `combat` |
-| `{ "weaponXpPercent": 150 }`, `{ "noCarryPenalty": true }`, `{ "cancelEffective": true }`, `{ "moveAgain": { "notAfterAttack": true } }` | see "More skill blocks" | `always` |
+| `{ "weaponXpPercent": 150 }`, `{ "noCarryPenalty": true }`, `{ "cancelEffective": true }`, `{ "moveAgain": { "notAfterAttack": true } }` | see "More skill blocks"; `cancelEffective` may list tags (`["flier"]`) | `always` |
+| `{ "recoil": 3 }`, `{ "recoil": "dealt / 2" }`, `{ "recoil": { "instead": true } }` | the wielder loses HP after the strike (or the strike turns on it); see "Skill blocks, third set" | `strike` |
 | `{ "cure": ["poison"] }` / `{ "cure": "all" }` | cures the owner | `turnStart`, `defeat`, `afterCombat`, `staffUse` |
 | `{ "nullifySkills": true }`, `{ "nullifySkills": ["id"] }`, `{ "nullifySkills": { "tag": "word" } }` | the foe's skills do not apply in this fight; see "Skill and ability blocks, second set" | `combat` |
 | `{ "staffRange": 2 }`, `{ "staffRange": { "amount": 2, "group": "heal" } }` | squares added to the reach of staves the unit uses | `always` |
@@ -603,8 +605,8 @@ entries at or below the new level are added. Skills from the type's `skills`, ac
 
 **Built later** (docs below, "Skill and ability blocks, second set"): steal, refresh an ally, move past a neighbour, switch off the foe's skills, a
 `staffUse` point, a staff range bonus, a list for the `terrain` test, cure as an ability effect and a carry capacity bonus. Summon parameters already exist
-(section 4: the unit type, `level`, `limit`). Still not built: a test for terrain that "grants a bonus" (terrain bonuses are the maker's own numbers; there is no
-fixed notion of one, so only the list form of `terrain` was made).
+(section 4: the unit type, `level`, `limit`). A test for terrain that "grants a bonus" is not a block of its own: terrain numbers are the maker's, so a `formula` condition
+reads them (`(ta.avoid or 0) > 0`; "Skill blocks, third set" item 8).
 
 **The computer opponent.** Every passive block above flows through the existing forecast, so it values them like any other combat bonus. There is no
 new active ability, so nothing new is ignored.
@@ -684,13 +686,105 @@ It is applied in `Battle::staffRange`, the one place reach is worked out, so the
 destination range (`"warp": { "range": ... }`) is the staff's own and is not changed.
 
 **Terrain tests.** `{ "terrain": ["forest", "swamp"] }`: a list of ids and tags, true when any one matches (every entry must exist: `"terrain" names no terrain id or tag "x"`).
-`{ "terrainBonus": true }` was **not built**: terrain numbers (`defense`, `avoid`, ...) are the maker's own formula inputs, with no fixed notion of a bonus.
+`{ "terrainBonus": true }` was **not built**: terrain numbers (`defense`, `avoid`, ...) are the maker's own formula inputs, with no fixed notion of a bonus; the `formula` condition reads them (`{ "formula": "(ta.avoid or 0) > 0" }`, "Skill blocks, third set" item 8).
 
 **Carry capacity.** `{ "carryBonus": 2 }` (always; -100..100): formulas read the sum of a unit's `carryBonus` effects as `a.carryBonus` / `b.carryBonus` (0 for a unit
 without one), so a game's `rules.rescue.canCarry` can say `"a.str + a.carryBonus >= b.weight"`. The engine adds nothing else; a game whose formula never reads it ignores it.
 
 **Saves.** New state: `Unit::refreshedBy` (above) and `goes` may now include the steal marker (8). Old saves load. **Tests.** `tests/test_srpg_skillblocks2_abilities.cpp`,
 `tests/test_srpg_skillblocks2_skills.cpp`, `tests/srpg_player_skillblocks_test.py`.
+
+### Skill blocks, third set
+
+Added after the second set, for a game being ported that needed ten things the blocks could not say. Each one is plain data in the blocks above (or in a
+staff / item / steal ability), judged by the same code, so the forecast, the fight, the saves and the computer opponent agree. A game that does not use
+a new key loads, plays, saves and hashes exactly as before (the shipped demos' `ote-sim` results are line for line the same). Fixture
+`tests/fixtures/srpg-skillblocks2`; tests `tests/test_srpg_skillblocks3.cpp`, `tests/test_srpg_skillblocks3_more.cpp`, `tests/srpg_player_skillblocks2_test.py`.
+
+New formula variables, after `turn` (all of them `0` / an empty table where they have no meaning, so a formula never meets `nil`): `strikeNo`, `healed`,
+`it`, `dealt`. They are read like `turn`; each is set only by the blocks named below.
+
+**1. An aura that asks about its receiver.** An aura's `match` (the receiver's unit type or tag) is joined by three more keys, all about the **receiver**
+(the fighter that would get the effects) and all optional; every one that is given must hold:
+
+```jsonc
+{ "when": "combat", "aura": { "to": "allies", "within": 3, "weapon": "sword" },        // the receiver's weapon in this fight: a weapon id or group
+  "do": [ { "hit": 10 } ] }
+{ "when": "combat", "aura": { "to": "allies", "within": 2, "weaponKind": "magic" }, "do": [ { "damage": 2 } ] }   // its weapon's damageKind
+{ "when": "combat", "aura": { "to": "allies", "within": 2, "test": "b.str >= 8 and b.tags.flier" }, "do": [ { "avoid": 10 } ] }
+```
+
+`test` is a formula with `a` = the aura's owner and `b` = the receiver (the usual variables; the combat's own bonuses are not yet in). The receiver's weapon is
+the one it fights with in this fight (a defender that cannot answer has none, so `weapon` and `weaponKind` do not match it). It is judged per receiver inside
+`Battle::auraCombatMods`, the one function the forecast and the fight both read. Loader: `"aura"."weapon" names no weapon id or group "x"`, `"aura"."weaponKind"
+names no weapon damage kind "x"`, `"aura"."test" must be the text of a formula`.
+
+**2. Effects of one strike of a fight.** In `strike` and `struck` blocks:
+
+- Condition `{ "strike": "first" }` (the striker's first strike of this fight), `{ "strike": "followUp" }` (any strike after the first), `{ "strike": 3 }` (exactly the third)
+  or `{ "strike": { "op": ">=", "value": 2 } }`. Formula variable `strikeNo` (1, 2, 3...; `0` outside a strike) reads the same number: `{ "damage": "strikeNo == 1 and 5 or 0" }`.
+  Asking it in another block is refused: `"strike" can only be asked in "strike" and "struck" blocks`.
+- The number is **the striker's strike count in this fight**, every strike counted: the attacker's, the defender's counterattacks (their own count), the repeats of
+  `multiStrike` and the extra strike of `strikeAgain` (a first-strike bonus is not given twice). A `struck` block sees the number of the strike it is struck by.
+  It restarts for every fight.
+- **Forecast.** The numbers of `Forecast::attack` / `counter` (`damage`, `hit`, `crit`) stay those of the **first strike**. When some later strike differs, the
+  new `StrikeForecast::each` lists the numbers of every strike (`strikes * multi` entries in the order they are made; empty when they are all alike, and always
+  empty in a game that never asks); `totalDamage()` / `allDamage()` add them up. Activations (blocks with a `chance`) are listed as notes once each, also the ones
+  only a later strike could fire. The extra strike of `strikeAgain` is not forecast (as before). The computer opponent scores a fight from `each`. The player's
+  forecast writes `Dmg 9/4 x2` and predicts HP from the list (`engine/player/battle/forecast.cpp`).
+
+**3. A `staffUse` block reads what the staff did.** In a `staffUse` block's formulas (a `heal` amount and a `formula` condition) `healed` is the HP the
+staff just restored, all targets together and counted as really restored (a target missing 5 HP of a 10 HP heal gives 5), and `b` is the unit the staff was used on
+(`nil` for a staff with no unit pick: light, unlock). `a` is the receiver of the amount (the user for the default `to`). "Heals the user by half what it healed":
+`{ "when": "staffUse", "do": [ { "heal": "healed / 2" } ] }`.
+
+**4. A steal condition that reads the item.** A steal ability's `if` formula may read `it`, the item that could be taken: for a weapon or staff its `props` (`it.weight`),
+for a usable item or accessory the new item key `"props": { "weight": 1 }` (items.json; refused on a weapon item, whose numbers live in weapons.json), and for every
+item `it.id`, `it.name`, `it.kind` (`"weapon"`, `"usable"`, `"accessory"`, `"staff"`), `it.uses` (left; 0 when unlimited, with `it.unlimited = 1`), `it.maxUses` and
+`it.price` (the first price entry's amount, 0 without one). A formula that reads `it` is judged **for each item** in `Battle::stealOptions`: an item it rules out is greyed
+in the picker with `"reason"` (a plain text the maker gives, default `cannot be taken`) and cannot be taken (`that item too heavy`); the foe is a target as long as one item passes
+(`there is nothing it can take` otherwise). A formula that does not read `it` is judged for the foe as before (`cannot steal from that unit`). The order of reasons: the item's own
+`"stealable": false`, weapons not allowed, the equipped weapon, then the formula. `{ "steal": { "if": "it.weight < a.str", "reason": "too heavy", "weapons": true } }`.
+`"reason"` needs an `if`. The computer opponent takes the first item that passes.
+
+**5. A strike that harms its wielder.** Effect `recoil` (`strike` blocks): after the strike the owner loses HP. `{ "recoil": 3 }`, `{ "recoil": "w.might" }`, `{ "recoil": "dealt / 2" }`
+(`dealt` = the damage this strike did, 0 on a miss), or `{ "recoil": { "amount": "dealt", "instead": true } }`: with `instead` a strike that lands is turned on its wielder, who takes
+`amount` (default `dealt`, the damage the strike would have done) while the foe takes nothing (the strike counts as a miss for the foe: no hit flag, no crit; a strike that
+misses turns nothing back). The chance is the block's own `chance` (a number or formula) and its conditions apply as for any strike block; as a weapon-level block put the skill in the
+weapon's `skills` (it bites whoever holds that weapon, the defender's counterattack too). Rules:
+- It is not a strike: nothing counters it, it drains nothing, wears nothing, and gives no experience. It is an event `UnitHurt` (a = c = the wielder) after the `Attack` event (no new event type).
+- The loss is capped at the wielder's HP and **can defeat it** with the usual flow: `UnitDied`, the defeat quote, the story's defeated events, summons and rescue; the strikes that were still to come
+  in the fight do not happen. There is no killer to credit.
+- Forecast: a block with a recoil is listed as a note (`ForecastNote::recoil`): with its chance, or `100` when it has none, so the player shows `Cursed Edge 100%` under the wielder.
+- Loader: `"recoil" must be a whole number of 1 or more, a formula such as "dealt / 2", or { "amount": "dealt", "instead": true }`, `"recoil"."instead" must be true or false`,
+  `"recoil" cannot be used in a "combat" block (it belongs to: strike)`.
+- The computer opponent does not weigh a recoil in its scores.
+
+**6. A staff that gives stats while carried.** An item of kind `staff` accepts `"bonus": { "str": 2 }` exactly as an accessory does (a map of stats, at least one non-zero; the
+same item twice counts once; a carried staff counts like a carried accessory in `Battle::stat`, maximum HP included). `"bonus"` is still refused on weapon and usable items.
+
+**7. `cancelEffective` limited to tags.** `{ "cancelEffective": true }` is as before (every "effective against" bonus of a weapon's `versus`); `{ "cancelEffective": ["flier"] }` cancels
+only the bonus that came from one of those keys (the key of the weapon's `versus` that matched the unit: its type id first, then its tags). A `versus` number that came from the weapon's
+default is never cancelled by a list. Each tag must be a key some weapon's `versus` uses: `"cancelEffective" names no effectiveness tag "x" (a key of some weapon's "versus")`.
+
+**8. A terrain test by number: already covered, no new block.** The `{ "formula": "..." }` condition sees the square under the owner as `ta` and the foe's as `tb`, with the terrain's
+(and structure's) numbers as the maker wrote them (`"props": { "avoid": 20 }` in terrain.json). So "the unit stands on a square that grants avoidance":
+`{ "if": [ { "formula": "(ta.avoid or 0) > 0" } ] }` (`ta.avoid` is `nil` on a square that does not set it: `(... or 0)` keeps the formula from failing). Any comparison works: `ta.defense >= 2`,
+`ta.avoid - (tb.avoid or 0) > 10`. The `terrainBonus` key of the old note stays unbuilt, on purpose.
+
+**9. A light that shrinks.** A staff's `{ "light": { "radius": 4, "shrink": 2 } }`: the radius goes down by `shrink` squares each time the side's turn starts, and the light is gone when
+the radius would be below 1 (or its `turns` run out, whichever comes first). With `shrink` and no `turns` the light lasts as long as it takes to burn down (`ceil(radius / shrink)` turns,
+at most 10). `shrink` is a whole number from 1 to the radius minus one. The save keeps `"shrink": n` on the light only when it is not 0 (so every older save and every ordinary light saves as before);
+the `AreaLit` event is unchanged (radius, turns). Loader: `"light": "shrink" must be a whole number of 1 or more and less than the radius`.
+
+**10. The computer opponent cures and refreshes.** Added in the existing AI structure (`ai_abilities.cpp`, `ai_items.cpp`), as a replacement for a plain Wait or an attack that does not
+finish its target (like healing and stealing): a unit with a **cure ability** cures itself or an ally in reach that has a condition the ability cures (the maker's list is the judgment, as for
+staves: the AI does not tell a curse from a blessing); a unit with a **refresh ability** refreshes an ally that has used its action and has a foe it could hit from where it stands (the
+ability's own per-turn limits make a loop impossible); a unit that carries a **cure item** uses it on itself, or on an adjacent unit if it stays where it is. No setting: a game whose
+computer units have none of these (every shipped demo) plays exactly as before, which the sims prove.
+
+**The computer opponent.** Besides 4, 5 and 10 above: everything else is a passive block or a formula, so it flows through the forecast as always. **Saves.** One new key, `shrink` on a light (item 9);
+no new unit state. **Events.** None new (recoil is `UnitHurt`).
 
 ### The starter set
 
@@ -1763,7 +1857,7 @@ stage one edited a first heal only); the editor helper keeps every key of them u
   uses go up by `n` (or to full) and never above the item's own `uses`. A unit with no such item is **not a valid target** (reason `that
   unit carries nothing that needs repair`). `"repairable": false` is a key of **any** item in `data/items.json` (boolean, default true;
   refused on an item without `uses`, which never wears).
-- **`light`**: `{ "light": { "radius": 1 to 10, "turns": 1 to 10 } }`, `turns` default 1. In **fog of war** (docs/ECONOMY.md) the user's
+- **`light`**: `{ "light": { "radius": 1 to 10, "turns": 1 to 10, "shrink": 1 to radius - 1 } }`, `turns` default 1 (with `shrink`: until it burns down; the radius then goes down by `shrink` each turn, "Skill blocks, third set" item 9). A staff may also carry `"bonus": { "str": 2 }` (stats while carried, item 6 there). In **fog of war** (docs/ECONOMY.md) the user's
   **team** sees every square within `radius` of the picked **square** (not a unit; within the staff's `range` of where the user stands,
   and only a square where something is hidden now) for `turns` of **the user's side's** turns: it ends when that side's turn has started
   `turns` times after the use (so 1 = until that side's next turn starts, 2 = through the side's next turn). It is **extra sight on

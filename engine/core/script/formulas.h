@@ -19,6 +19,7 @@ class Battle;
 struct Unit;
 struct SideState;
 struct WeaponDef;
+struct ItemDef;
 
 // Inputs a formula can see. Null pointers become nil / empty tables.
 struct FormulaCtx {
@@ -51,6 +52,15 @@ struct FormulaCtx {
   // This fight's follow-up shift and triangle multiplier (percent) of `a` / `b`: formulas read `a.followShift`, `a.trianglePercent`
   // (docs/SRPG.md "Follow-up strikes"). 0 / 100 outside the strike formulas.
   int followA = 0, followB = 0, triA = 100, triB = 100;
+  // `strikeNo` (docs/SRPG.md "One strike of a fight"): which strike of this fight the strike-time block is judged for, counted per
+  // striker from 1 (0 everywhere else). `healed` (a "staffUse" block): the HP the staff just healed, all targets together (0 elsewhere).
+  int strikeNo = 0, healed = 0;
+  // `dealt` (a "recoil" amount): the damage of the strike that was just made (0 on a miss; with `instead`, what it would have done).
+  int dealt = 0;
+  // `it` (a steal ability's `if`, docs/SRPG.md "Steal"): the item that could be taken, with the number of uses it has left
+  // (-1 = unlimited). Null = no item: `it` is then an empty table.
+  const ItemDef* item = nullptr;
+  int itemUses = -1;
 };
 
 class Formulas {
@@ -81,6 +91,7 @@ class Formulas {
  private:
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
   double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def, bool nilIsZero = false);
+  void pushItem(const ItemDef* it, int uses);
   void pushFoeWeapon(const WeaponDef* fw, bool answers);
   void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus, int follow, int tri);
 

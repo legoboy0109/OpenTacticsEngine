@@ -22,7 +22,7 @@ const EFFECT_TABLE: Record<When, EffectKind[]> = {
   always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective', 'staffRange', 'carryBonus'],
   turnStart: ['heal', 'hurt', 'cure'],
   combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter', 'followUp', 'followShift', 'trianglePercent', 'nullifySkills'],
-  strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain', 'inflict'],
+  strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain', 'inflict', 'recoil'],
   struck: ['avoid', 'critAvoid', 'damageTaken', 'damageTakenPercent', 'survive', 'inflict'],
   defeat: ['heal', 'actAgain', 'cure'],
   afterCombat: ['heal', 'hurt', 'actAgain', 'cure'],
@@ -41,7 +41,7 @@ describe('skills: the pickers follow the contract tables', () => {
   it('offers the conditions of each "when": no formula / foe points where there is no combat', () => {
     const all = sorted(COND_KINDS)
     // "Does the foe answer" is only known where a strike is judged (strike and struck rules).
-    const plain = all.filter((k) => k !== 'counterattack')
+    const plain = all.filter((k) => k !== 'counterattack' && k !== 'strike')
     expect(sorted(condsFor('always', false))).toEqual(sorted(plain.filter((k) => !['formula', 'initiating', 'distance'].includes(k))))
     expect(sorted(condsFor('turnStart', false))).toEqual(sorted(plain.filter((k) => !['initiating', 'distance'].includes(k))))
     expect(sorted(condsFor('combat', true))).toEqual(sorted(plain.filter((k) => !['initiating', 'distance'].includes(k))))

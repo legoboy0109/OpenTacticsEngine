@@ -41,6 +41,8 @@ function shapeChecks(doc: ProjectDoc, a: Ability): string[] {
     if (a.effect?.steal !== true && (typeof a.effect?.steal !== 'object' || a.effect.steal === null)) out.push(`${a.name}: the steal setting is not one the editor can read.`)
     if (s.equipped === true && s.weapons !== true) out.push(`${a.name}: it can take the weapon in hand only if it can take weapons at all.`)
     if (s.if !== undefined && (typeof s.if !== 'string' || s.if.trim() === '')) out.push(`${a.name}: the “only if” formula of the steal is empty.`)
+    if (s.reason !== undefined && (typeof s.reason !== 'string' || s.reason.trim() === '')) out.push(`${a.name}: the reason an item cannot be taken must be a few words, or left out.`)
+    if (s.reason !== undefined && s.if === undefined) out.push(`${a.name}: a reason goes with an “only if” formula. Write the formula, or remove the reason.`)
   }
   if (kind === 'refresh') {
     const r = a.effect?.refresh

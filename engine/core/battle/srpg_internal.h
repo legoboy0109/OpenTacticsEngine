@@ -57,12 +57,12 @@ void auraCombatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& 
 // One strike (doStrike step 2): the striker's "strike" blocks, then the struck unit's "struck" blocks; activations
 // are rolled with `rng`. `counter` = the defender strikes. The SkillActivated events are handed back for the
 // caller to place: `strikeEvents` always come before the Attack event, `struckEvents` only when the strike hits.
-void strikeActivations(const CombatSetup& setup, bool counter, StrikeMods& out, std::vector<Event>& strikeEvents,
+void strikeActivations(const CombatSetup& setup, bool counter, int strikeNo, StrikeMods& out, std::vector<Event>& strikeEvents,
                        std::vector<Event>& struckEvents);
 // The same without randomness, for the forecast: only the "strike" / "struck" blocks that have no chance.
-void strikePassives(const CombatSetup& setup, bool counter, StrikeMods& out) const;
+void strikePassives(const CombatSetup& setup, bool counter, int strikeNo, StrikeMods& out) const;
 // The activations that could fire in this fight, in roll order (Forecast::notes).
-void forecastNotes(const CombatSetup& setup, std::vector<ForecastNote>& out) const;
+void forecastNotes(const CombatSetup& setup, const Forecast& f, std::vector<ForecastNote>& out) const;
 void storyTeachSkill(const Command& c, std::vector<Event>& events);
 void storyForgetSkill(const Command& c, std::vector<Event>& events);
 bool storyHasSkill(const Condition& c) const;
@@ -147,6 +147,9 @@ void foldStrikeMods(const StrikeMods& mods, StrikeForecast& numbers) const;
 bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup) const;
 // One strike, steps 1 to 8 of the contract. `extra` = the strike a "strikeAgain" gave (it cannot give another).
 void doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events);
+// How many strikes each fighter has made in the fight being resolved (index 0 = the attacker, 1 = the defender): the `strikeNo` of the next
+// one. Reset by applyAttack; never saved (a fight is one action).
+int fightStrikes_[2] = {0, 0};
 
 // ---- rescue and pair up helpers (rescue.cpp, pair_up.cpp, step R1; append only) ----
 bool carryAllowed(const Unit& stays, const Unit& leaves) const;  // rules.rescue.canCarry(a = stays, b = leaves)
@@ -210,7 +213,7 @@ bool unitHasKey(const Unit& u, const std::string& key) const;
 // One strike's blocks (the striker's "strike", then the struck unit's "struck"). `rng` set = judge activations
 // (roll them and hand back events); null with `notes` set = list the activations that could fire; both null = only
 // the blocks without a chance (the forecast's passives). Never changes the battle.
-void gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, StrikeMods& out, std::vector<Event>* strikeEvents,
+void gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, Rng* rng, StrikeMods& out, std::vector<Event>* strikeEvents,
                   std::vector<Event>* struckEvents, std::vector<ForecastNote>* notes) const;
 // A timed block (turnStart / defeat / afterCombat) of `owner` whose conditions hold: rolls its chance, applies its
 // effects and makes the events. `foe` = the other fighter or -1.
@@ -270,7 +273,7 @@ void staffAffected(const Unit& user, int item, int slot, int center, Cell from, 
 // Would this one effect change `t` (the user on `from`, the staff in `slot`)? null = yes, else the plain reason it would not.
 const char* staffEffectWhy(const Unit& user, const StaffDef& d, const StaffEffect& fx, int slot, const Unit& t, Cell from) const;
 // The shared tail of a use: the use is spent, then experience and rank experience, then the order ends (staves_apply.cpp).
-void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events);
+void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healed = 0);
 void applyStaffLight(const Action& action, std::vector<Event>& events);
 // Lights whose time is up leave at the start of their side's turn (turn.cpp).
 void lightsTurnStart();
@@ -324,7 +327,9 @@ void noDodge(const CombatSetup& setup, bool counter, StrikeForecast& f) const;
 // The squares the unit's "staffRange" skills add to the reach of a staff of this group (0 = none).
 int staffRangeBonus(const Unit& u, const std::string& group) const;
 // The "staffUse" blocks of the unit's skills, after it used a staff of this group (the staff's use is already spent).
-void skillsStaffUse(int unit, const std::string& group, std::vector<Event>& events);
+// `target` = the unit the staff was used on (-1 = none), `healed` = the HP it restored, all targets together: a block's formulas read them
+// as `b` and `healed`.
+void skillsStaffUse(int unit, const std::string& group, int target, int healed, std::vector<Event>& events);
 // ---- (continued) (ability_effects.cpp; docs/SRPG.md) ----
 // The effect-specific part of abilityTargetOk for steal, refresh and cure (a unit target `t`, the user on `from`); false = refused.
 bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& t, std::string* why) const;

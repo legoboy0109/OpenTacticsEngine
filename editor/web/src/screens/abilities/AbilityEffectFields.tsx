@@ -22,6 +22,11 @@ export function AbilityEffectFields({ ability, change }: FormProps) {
         <Field label={T.stealIf} help={T.stealIfHelp}>
           <TextInput mono value={s.if ?? ''} onChange={(v) => change((a) => setSteal(a, { if: v }), 'stealIf')} />
         </Field>
+        {s.if !== undefined && /\bit\b/.test(s.if) && (
+          <Field label={T.stealReason} help={T.stealReasonHelp}>
+            <TextInput value={s.reason ?? ''} onChange={(v) => change((a) => setSteal(a, { reason: v }), 'stealReason')} />
+          </Field>
+        )}
         <Check label={T.stealWeapons} help={T.stealWeaponsHelp} checked={s.weapons === true} onChange={(v) => change((a) => setSteal(a, { weapons: v }))} />
         {s.weapons === true && <Check label={T.stealEquipped} checked={s.equipped === true} onChange={(v) => change((a) => setSteal(a, { equipped: v }))} />}
       </div>

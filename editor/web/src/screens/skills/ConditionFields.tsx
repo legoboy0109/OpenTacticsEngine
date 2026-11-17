@@ -156,6 +156,23 @@ export function ConditionFields({ doc, cond, change }: Props) {
         </>
       )
     }
+    case 'strike': {
+      const v = cond.strike
+      const mode = v === 'first' ? 'first' : v === 'followUp' ? 'followUp' : typeof v === 'number' ? 'number' : v && typeof v === 'object' ? 'compare' : 'first'
+      const setMode = (m: string) => change({ ...cond, strike: m === 'number' ? 2 : m === 'compare' ? { op: '>=', value: 2 } : m })
+      return (
+        <>
+          <Field label={T.strikePick} help={T.strikeHelp}><Select value={mode} options={Object.entries(T.strikeModes).map(([value, label]) => ({ value, label }))} onChange={setMode} /></Field>
+          {mode === 'number' && <Field label={T.strikeNumber}><Num value={Number(v)} min={1} max={1000} onChange={(n) => change({ ...cond, strike: n }, 'strike')} /></Field>}
+          {mode === 'compare' && (
+            <>
+              <Field label={T.compare}><Select value={String(o.op ?? '>=')} options={opOptions} onChange={(x) => change({ ...cond, strike: { ...o, op: x } })} /></Field>
+              <Field label={T.strikeNumber}><Num value={Number(o.value ?? 2)} min={1} max={1000} onChange={(n) => change({ ...cond, strike: { ...o, value: n } }, 'strike')} /></Field>
+            </>
+          )}
+        </>
+      )
+    }
     case 'formula':
       return <Field label={T.formula} help={T.formulaHelp}><TextInput mono value={String(cond.formula ?? '')} onChange={(v) => change({ ...cond, formula: v }, 'formula')} /></Field>
     default: return <p className="help">{T.condKept}</p>

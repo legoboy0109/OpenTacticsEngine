@@ -94,6 +94,15 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
           fx.foe = target.id;
           fx.foeCell = cells[f];
           fx.foeWeapon = f == 0 ? setup.weaponA : setup.weaponD;
+          // The receiver's own weapon in this fight, its damage kind, and the maker's test: judged per receiver, here, so the forecast
+          // (which comes through this function too) always agrees with the fight.
+          if (!b.auraWeapon.empty() || !b.auraWeaponKind.empty()) {
+            if (fx.foeWeapon < 0) continue;  // no weapon in this fight: nothing to match
+            const WeaponDef& rw = db->weapons[(size_t)fx.foeWeapon];
+            if (!b.auraWeapon.empty() && rw.id != b.auraWeapon && rw.group != b.auraWeapon) continue;
+            if (!b.auraWeaponKind.empty() && rw.damageKind != b.auraWeaponKind) continue;
+          }
+          if (b.auraTest >= 0 && skillExpr(b.auraTest, fx, 0) == 0) continue;
           for (const SkillEffect& e : b.effects) {
             const int v = skillEffectNumber(e, fx, scratch);
             applyCombatEffect(e, v, e.kind == SkillEffect::Kind::Stats ? scratch : e.stats, *bags[f]);

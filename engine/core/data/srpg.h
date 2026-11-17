@@ -122,7 +122,9 @@ struct SkillCond {
                     WeaponKind, Turn,
                     // Counterattack: the fight has a counterattack (strike / struck blocks); Carries: `key` is an item the unit carries;
                     // Inventory: the number of items carried (`op`, `value`), or full / not full (`flag`, `value` = -1).
-                    Counterattack, Carries, Inventory };
+                    Counterattack, Carries, Inventory,
+                    // Strike: which strike of the fight (strike / struck blocks; `op`, `value`; "first" = 1, "followUp" = 2 or more).
+                    Strike };
   enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
@@ -162,7 +164,11 @@ struct SkillEffect {
     // this fight; `value` 0 = all, 1 = the skills `skillIds` (`names` as written), 2 = the skills with the tag `names[0]`.
     // StaffRange (always): `value` added to the reach of staves (only those of the group `names[0]` when it is set).
     // CarryBonus (always): `value` is read by the canCarry formula as `a.carryBonus`.
-    NullifySkills, StaffRange, CarryBonus
+    NullifySkills, StaffRange, CarryBonus,
+    // Third set (docs/SRPG.md "Skill blocks, third set"). Recoil (strike blocks): the wielder is hurt; `expr` >= 0 = a formula amount (`dealt` = the
+    // damage of the strike), else `value`; `instead`: the strike's damage goes to the wielder, not to the foe.
+    // CancelEffective may now list effectiveness tags (`names`); empty = all.
+    Recoil
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -186,6 +192,7 @@ struct SkillEffect {
   // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
   std::vector<int> statExprs;
   bool cureAll = false;     // Cure: every condition
+  bool instead = false;     // Recoil: the strike's damage hits the wielder instead of the foe
   std::vector<int> skillIds;  // NullifySkills (mode 1): indices into Database::skills, resolved last
 };
 
@@ -199,6 +206,9 @@ struct SkillBlock {
   bool auraEnemies = false;          // false = "allies"
   int auraWithin = 1;                // 1..10
   std::string auraMatch;             // aura: only units whose type or character has this id / tag receive it ("" = all)
+  std::string auraWeapon;            // aura: only a receiver whose weapon in this fight has this weapon id or group ("" = any)
+  std::string auraWeaponKind;        // aura: only a receiver whose weapon in this fight has this damage kind ("" = any)
+  int auraTest = -1;                 // aura: a formula the receiver must satisfy (a = the owner, b = the receiver); -1 = none
   std::vector<SkillEffect> effects;  // "do": at least one
 };
 
@@ -247,6 +257,8 @@ struct AbilityDef {
   std::vector<SkillCond> conds;    // "if"; `foe` = the target unit
   // Steal: the maker's condition (a = the user, b = the foe; -1 = always) and which items may be taken.
   int stealIf = -1;
+  bool stealIfItem = false;  // the formula reads `it` (the item): judged for each item, not for the foe as a whole
+  std::string stealWhy;      // the plain reason an item the formula rules out is greyed with
   bool stealWeapons = false, stealEquipped = false;
   // Refresh: how many times a unit can be refreshed per turn (by anyone, with any such ability).
   int refreshPerTurn = 1;

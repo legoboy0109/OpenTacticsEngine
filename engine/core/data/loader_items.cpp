@@ -91,6 +91,9 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!e["stealable"].isBool()) return c.fail(where, "\"stealable\" must be true or false");
       it.stealable = e["stealable"].asBool();
     }
+    if (e.has("props") && it.kind == ItemKind::Weapon)
+      return c.fail(where, "\"props\" belongs to usable, accessory and staff items; a weapon's numbers are its \"props\" in data/weapons.json");
+    if (e.has("props") && (it.kind == ItemKind::Usable || it.kind == ItemKind::Accessory) && !c.props(e, "props", where, it.props)) return false;
     if (!c.amounts(db, e, "price", where, it.price)) return false;
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");
@@ -102,7 +105,7 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     };
     if (!(it.kind == ItemKind::Staff || only("target", ItemKind::Usable, "usable")) || !only("heal", ItemKind::Usable, "usable") ||
         !only("raise", ItemKind::Usable, "usable") || !only("weapon", ItemKind::Weapon, "weapon") ||
-        !only("bonus", ItemKind::Accessory, "accessory") || !only("promotes", ItemKind::Usable, "usable") ||
+        !(it.kind == ItemKind::Staff || only("bonus", ItemKind::Accessory, "accessory")) || !only("promotes", ItemKind::Usable, "usable") ||
         !only("skills", ItemKind::Accessory, "accessory") || !only("cure", ItemKind::Usable, "usable") ||
         !only("inflict", ItemKind::Usable, "usable") || !only("opens", ItemKind::Usable, "usable"))
       return false;
@@ -141,6 +144,13 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (it.weapon < 0) return c.fail(where, "unknown weapon \"" + wid + "\" (data/weapons.json)");
     } else if (it.kind == ItemKind::Staff) {
       if (!readStaffItem(c, db, e, where, it)) return false;
+      if (e.has("bonus")) {  // a staff may give stats while carried, like an accessory (docs/SRPG.md "Skill blocks, third set")
+        it.bonus.assign(db.stats.size(), 0);
+        if (!c.statMap(db, e, "bonus", where, it.bonus)) return false;
+        bool any = false;
+        for (int v : it.bonus) any = any || v != 0;
+        if (!any) return c.fail(where, "a staff's \"bonus\" must change at least one stat (leave it out for none)");
+      }
     } else {
       it.bonus.assign(db.stats.size(), 0);
       if (!c.statMap(db, e, "bonus", where, it.bonus)) return false;

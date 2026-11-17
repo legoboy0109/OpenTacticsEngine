@@ -133,6 +133,7 @@ export function setSteal(a: Ability, patch: Partial<StealOptions>): Ability {
   const cur = a.effect?.steal && typeof a.effect.steal === 'object' ? a.effect.steal : {}
   const next: Record<string, unknown> = { ...cur, ...patch }
   if (next.if === undefined || next.if === '') delete next.if
+  if (next.reason === undefined || next.reason === '' || next.if === undefined) delete next.reason  // the reason goes with a formula
   if (next.weapons !== true) { delete next.weapons; delete next.equipped }  // "equipped" needs weapons
   if (next.equipped !== true) delete next.equipped
   return patchObj(a, { effect: { steal: Object.keys(next).length ? (next as StealOptions) : true } })
