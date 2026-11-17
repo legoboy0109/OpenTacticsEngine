@@ -77,6 +77,8 @@ class StoryLoader {
   bool behaviourCommand(const Json& e, const std::string& at, Command& out);                    // loader_behaviour.cpp: setBehaviour / wakeGroup
   bool mapChangeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);  // loader_story_mapchange.cpp: setTerrain, applyChange, revertChange, setFog, setVision
 
+  bool storeItemsCommand(const Json& e, const std::string& at, Command& out);                    // loader_story_store.cpp
+
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);
   bool choiceCommand(const Json& e, const std::string& at, bool talk, Command& out, bool& usesEndTurn);  // loader_story_choice.cpp

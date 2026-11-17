@@ -13,6 +13,8 @@ constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVar
 // "is not a scene command" message keeps naming only the old ones.
 constexpr const char* kSrpgSceneKeys[] = {"addSupport", "choice"};
 constexpr const char* kSrpgConditionKeys[] = {"support"};
+// Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_campaign_extras.cpp.
+constexpr const char* kExtrasSceneKeys[] = {"storeItems"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -88,6 +90,11 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kExtrasSceneKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   // Status conditions end with the map (docs/SRPG.md section 9): a scene says so in its own words.
   for (const char* k : {"addCondition", "removeCondition"})
     if (!kind && e.has(k))
@@ -103,6 +110,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   using K = SceneCommand::Kind;
 
   if (k == "addSupport") return supportCommand(e, at, out);
+  if (k == "storeItems") return storeItemsCommand(e, at, out);
   if (k == "choice") {
     out.kind = K::Choice;
     return choiceCommand(e, at, allowGoto, out);

@@ -117,7 +117,9 @@ struct Command {
     SetBehaviour, WakeGroup,
     // docs/EVENTS.md "Changing the map": SetTerrain gives the squares `rects` terrain `index`; ApplyChange / RevertChange apply / take back
     // the map's change `index` (MapDef::changes); SetFog switches fog of war on / off (`on`); SetVision sets the map's vision adjustment (`value`).
-    SetTerrain, ApplyChange, RevertChange, SetFog, SetVision
+    SetTerrain, ApplyChange, RevertChange, SetFog, SetVision,
+    // docs/EVENTS.md "Sending a unit's items to storage": every item except those in `keep` goes from each existing human-side unit matching `filter` to its side's storage.
+    StoreItems
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -140,6 +142,7 @@ struct Command {
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
+  std::vector<int> keep;                      // StoreItems: item indices that stay with the unit
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
 };
 

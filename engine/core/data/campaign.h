@@ -35,7 +35,8 @@ struct SceneCommand {
   enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound,
                     AddSupport,  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
                     Choice,      // Choice: see above
-                    TakeItem };  // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
+                    TakeItem,
+                    StoreItems };  // StoreItems: `unit` = the roster unit, `keep` = item indices that stay. // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
   Kind kind = Kind::Say;
   // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
@@ -46,6 +47,7 @@ struct SceneCommand {
   bool on = false;  // SetSwitch; TakeItem: every copy
   int value = 0;    // SetVariable / AddVariable
   UnitReading reading;  // SetVariable / AddVariable: the number comes from a roster unit when its kind is not None
+  std::vector<int> keep;         // StoreItems
   std::string side;              // GiveResource: the side id the amounts go to
   std::vector<Amount> amounts;   // GiveResource
   std::vector<SceneCondition> cond;           // If

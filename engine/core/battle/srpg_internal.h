@@ -342,3 +342,6 @@ void applyAbilityEffect(const AbilityDef& d, int uid, int target, int slot, std:
 int storyActorOf(const StoryOccurrence& o) const;
 // The `actor` condition: the unit `actor` (-1 = nobody, then false) matches the filter.
 bool storyActorHolds(const Condition& c, int actor) const;
+// ---- storeItems (story_store.cpp; docs/EVENTS.md "Sending a unit's items to storage") ----
+// Every item but the kept ones goes from each matching existing human-side unit to its side's storage.
+void storyStoreItems(const Command& c, std::vector<Event>& events);
