@@ -12,7 +12,8 @@ namespace {
 struct ListFile { const char* key; const char* file; };
 // The list sits under the same key inside the file as in the API.
 const ListFile kLists[] = {
-    {"characters", "data/characters.json"}, {"skills", "data/skills.json"}, {"abilities", "data/abilities.json"}};
+    {"characters", "data/characters.json"}, {"skills", "data/skills.json"}, {"abilities", "data/abilities.json"},
+    {"conditions", "data/conditions.json"}};
 // One JSON object per file, in the API under the key shown; `false` in the PUT body removes the file. Weapon ranks and
 // stat caps (docs/SRPG.md section 7) are two of these: `ranks` is the file's whole object ({growth, ranks}), `caps`
 // likewise ({caps}). An empty ladder / empty caps object is written like an empty list: the loader treats it as no

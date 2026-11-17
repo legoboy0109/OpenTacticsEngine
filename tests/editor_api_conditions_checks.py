@@ -1,7 +1,8 @@
-"""Status condition checks of the ote-editor API test (docs/SRPG.md section 9, docs/EDITOR_UI.md "Conditions"): the editor has no forms for
-conditions yet, so the helper must leave data/conditions.json and every key that names a condition untouched through GET and PUT of the
-project (a staff's inflict / cure effects, a usable item's cure / inflict, a weapon's inflict, a skill's immune / inflict blocks), and the
-real loader's refusals about them reach /problems in the engine's words. Called from editor_api_test.py; uses its helpers. Starts from a
+"""Status condition checks of the ote-editor API test (docs/SRPG.md section 9, docs/EDITOR_UI.md "Conditions"): `conditions` is a section like
+skills (GET: the list of data/conditions.json, null without the file; PUT: written when sent, an empty list written too, false removes the
+file, absent leaves it alone); a PUT that does not send it leaves the file byte for byte; every key that names a condition (a staff's inflict /
+cure effects, a usable item's cure / inflict, a weapon's inflict, a skill's immune / inflict blocks) travels through GET and PUT untouched, and
+the real loader's refusals about them reach /problems in the engine's words. Called from editor_api_test.py; uses its helpers. Starts from a
 copy of tests/fixtures/srpg-conditions (it uses every route)."""
 import json as _json
 import os
@@ -53,6 +54,51 @@ def run_conditions_checks(api, tmp, games, templates, check, get_project, put_pr
     check("conditions: editing an item's uses keeps its cure", next(i for i in d["items"] if i["id"] == "antidote")["cure"] == ["poison"] and
           next(i for i in d["items"] if i["id"] == "poison_staff")["effects"] == [{"inflict": {"condition": "poison"}}])
     check("conditions: and the file is still untouched and the game loads", raw(CONDITIONS) == conditions_before and problems() == [], problems())
+
+    # The section itself.
+    st, d = get_project(api, pid)
+    listed = [c["id"] for c in (d.get("conditions") or [])]
+    check("conditions: GET returns the list of the file", st == 200 and "poison" in listed and len(listed) == 19, listed)
+    check("conditions: an entry comes back with every key", next(c for c in d["conditions"] if c["id"] == "chill")["replaces"] == ["ember"], d["conditions"][:1])
+    edited = [dict(c) for c in d["conditions"]]
+    next(c for c in edited if c["id"] == "poison")["name"] = "Venom"
+    st, res = put_project(api, pid, d, d["revision"], conditions=edited)
+    check("conditions: PUT the list -> 200", st == 200, res)
+    on_disk = _json.loads(raw(CONDITIONS).decode())
+    check("conditions: written as { conditions: [...] } with the edit", [c["name"] for c in on_disk["conditions"] if c["id"] == "poison"] == ["Venom"] and len(on_disk["conditions"]) == 19)
+    check("conditions: and the game still loads", problems() == [], problems())
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], conditions="nope")
+    check("conditions: not a list -> 400", st == 400, (st, res))
+    st, res = put_project(api, pid, d, d["revision"], conditions={"conditions": []})
+    check("conditions: an object instead of the list -> 400", st == 400, (st, res))
+    # A game without the file: null, and nothing is written until the maker adds a condition.
+    st, doc = api.json("POST", "/api/projects", {"id": "conditions-none", "name": "N", "template": "strategy-rpg"})
+    check("conditions: a game without the file", st == 201, (st, doc))
+    none_root = os.path.join(games, "conditions-none", CONDITIONS)
+    if os.path.exists(none_root):
+        os.remove(none_root)  # (the template ships the starter set: this game is one that has none)
+    st, d2 = get_project(api, "conditions-none")
+    check("conditions: no file -> null, no problem", st == 200 and d2.get("conditions") is None and not os.path.exists(none_root), d2.get("conditions"))
+    put_project(api, "conditions-none", d2, d2["revision"])
+    check("conditions: saving other parts writes no conditions file", not os.path.exists(none_root))
+    new_cond = [{"id": "dizzy", "name": "Dizzy", "turns": 2, "blocks": [{"when": "always", "do": [{"cannotMove": True}]}]}]
+    st, d2 = get_project(api, "conditions-none")
+    st, res = put_project(api, "conditions-none", d2, d2["revision"], conditions=new_cond)
+    check("conditions: the first condition creates the file", st == 200 and os.path.exists(none_root), (st, res))
+    st, d2 = get_project(api, "conditions-none")
+    check("conditions: and reads back", [c["id"] for c in d2["conditions"]] == ["dizzy"] and d2["problems"] == [], d2.get("problems"))
+    st, res = put_project(api, "conditions-none", d2, d2["revision"], conditions=[])
+    check("conditions: an empty list is written (the switch stays on)", st == 200 and _json.loads(open(none_root).read()) == {"conditions": []})
+    st, d2 = get_project(api, "conditions-none")
+    st, res = put_project(api, "conditions-none", d2, d2["revision"], conditions=False)
+    check("conditions: false removes the file", st == 200 and not os.path.exists(none_root), (st, res))
+    st, d2 = get_project(api, "conditions-none")
+    st, res = put_project(api, "conditions-none", d2, d2["revision"], conditions=[{"id": "x", "name": "X", "blocks": [{"when": "always", "do": [{"cannotMove": True}]}]}])
+    pm = [p["message"] for p in api.json("GET", "/api/projects/conditions-none/problems")[1]["problems"]]
+    check("conditions: no duration is refused in the loader's words", any("needs a duration" in m for m in pm), pm)
+    with open(os.path.join(root, CONDITIONS), "wb") as f:
+        f.write(conditions_before)
 
     # What the loader refuses reaches /problems in its own words (the conditions file is edited by hand: there is no form).
     path = os.path.join(root, CONDITIONS)
