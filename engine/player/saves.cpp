@@ -74,6 +74,8 @@ bool parseFile(const std::string& path, const std::string& gameId, Json& root, S
     info.inBattle = inBattle;
     info.chapterName = root["chapterName"].asString("");
     info.phase = root["playthrough"]["phase"].asString();
+    info.difficulty = root["playthrough"]["difficulty"].asString("");
+    if (inBattle) info.battleDifficulty = root["battle"]["difficulty"].asString("");
   }
   info.savedAt = (long long)root["savedAt"].asNumber(0);
   hash = root["dataHash"].asString();
@@ -97,6 +99,8 @@ SaveInfo SaveStore::inspect(int slot, const Database* db, const std::string& gam
   std::string hash;
   if (!parseFile(path(slot), gameId, root, info, hash)) return info;
   if (db && info.campaign) {  // judged by the campaign's own rules (version, game, hash over every chapter)
+    const int d = db->difficulties.find(info.difficulty);
+    if (d >= 0) info.difficultyName = db->difficulties.list[(size_t)d].name;
     std::string reason;
     if (!campaignSaveUsable(*db, gameId, root, reason)) {
       info.state = SaveInfo::Unusable;

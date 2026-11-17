@@ -29,6 +29,7 @@ GameScene::GameScene(SceneHost& host, const GameEntry& game) : host_(host), game
 }
 
 void GameScene::buildRows() {
+  diffRow_ = Row{kHeading, "", "", false, ""};
   SavingMode mode = game_.info.saving;
   SaveStore store = host_.saveStore(game_.id);
   bool saving = store.enabled() && mode != SavingMode::Off;
@@ -58,6 +59,7 @@ void GameScene::buildRows() {
       continueProblem_ = info.reason;
     }
     rows_.push_back(r);
+    if (campaign && info.state == SaveInfo::Ok && info.campaign) addDifficultyRow(db, info);
   }
   if (campaign) rows_.push_back({kNewGame, "New game", "Begin the story", true, ""});
   else rows_.push_back({kPlay, "Play", "Start a new battle", true, ""});
@@ -66,6 +68,7 @@ void GameScene::buildRows() {
     for (int s = 1; s <= SaveStore::kSlots; ++s) used += store.exists(s) ? 1 : 0;
     rows_.push_back({kLoad, "Load", used == 0 ? "No saved games yet" : std::to_string(used) + " of " + std::to_string(SaveStore::kSlots) + " slots in use", true, ""});
   }
+  if (diffRow_.kind == kDifficulty) rows_.push_back(diffRow_);  // (built with the Continue save above)
   rows_.push_back({kOptions, "Game options", "Font, text size and style", true, ""});
   rows_.push_back({kBack, "Back", "Return to the game list", true, ""});
   if (!campaign) return;
@@ -94,7 +97,7 @@ void GameScene::layout(const Renderer& r) {
 
 void GameScene::activate(int row) {
   const Row& r = rows_[(size_t)row];
-  uiCue(r.kind == kBack ? Cue::Cancel : (r.kind == kContinue && !r.enabled) ? Cue::Error : Cue::Confirm);
+  uiCue(r.kind == kBack ? Cue::Cancel : ((r.kind == kContinue || r.kind == kDifficulty) && !r.enabled) ? Cue::Error : Cue::Confirm);
   switch (r.kind) {
     case kContinue: {
       std::string err;
@@ -108,6 +111,10 @@ void GameScene::activate(int row) {
     case kHeading: break;
     case kLoad: host_.showSlots(game_.id); break;
     case kOptions: host_.showOptions(game_.id); break;
+    case kDifficulty:
+      if (!r.enabled) host_.showError("Difficulty", r.mapId, SceneHost::ToGame);
+      else openDifficultyMenu();
+      break;
     case kBack: host_.showHome(); break;
   }
 }
@@ -129,6 +136,18 @@ void GameScene::skipHeading(Button dir) {
 
 void GameScene::onInput(const InputEvent& e) {
   layout(host_.renderer());
+  if (menu_.isOpen()) {  // the Difficulty row's list
+    const Menu::Result res = menu_.onInput(e);
+    if (res == Menu::Chosen) {
+      const int id = menu_.chosenId();
+      menu_.close();
+      if (id >= 1 && id <= (int)diffChoices_.size()) changeDifficulty(diffChoices_[(size_t)id - 1]);
+    } else if (res == Menu::Cancelled) {
+      uiCue(Cue::Cancel);
+      menu_.close();
+    }
+    return;
+  }
   if (confirm_.isOpen()) {
     ConfirmBox::Result a = confirm_.onInput(e, host_.renderer());
     if (a == ConfirmBox::None) return;
@@ -196,6 +215,7 @@ void GameScene::draw(Renderer& r) {
   }
   drawFooter(r, "Up/Down: choose   Confirm: open   Cancel: back");
   confirm_.draw(r);
+  menu_.draw(r);
 }
 
 }  // namespace ote

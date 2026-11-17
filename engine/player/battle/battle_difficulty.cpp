@@ -4,18 +4,14 @@
 #include "battle/battle_scene.h"
 #include "core/base/log.h"
 #include "core/campaign/difficulty.h"
+#include "difficulty_rows.h"
 #include "ui/text.h"
 
 namespace ote {
 
 namespace {
-// The difficulties the player may move to from `now` under the game's rule, in list order.
-std::vector<int> reachable(const DifficultyRules& rules, int now) {
-  std::vector<int> out;
-  for (size_t i = 0; i < rules.list.size(); ++i)
-    if (rules.mayChange(now, (int)i)) out.push_back((int)i);
-  return out;
-}
+// The difficulties the player may move to from `now` under the game's rule, in list order (difficulty_rows.h).
+std::vector<int> reachable(const DifficultyRules& rules, int now) { return difficultiesReachable(rules, now); }
 }  // namespace
 
 // The setting to show: a campaign's playthrough (it may be ahead of the battle after a change), else the battle's own.
@@ -38,12 +34,9 @@ void BattleScene::addDifficultyEntry(std::vector<MenuItem>& items) {
   if (!session_.campaign) {
     it.enabled = false;
     it.extra += " (this battle)";
-  } else if (db.difficulties.change == DifficultyChange::Never) {
+  } else if (db.difficulties.change == DifficultyChange::Never || reachable(db.difficulties, now).empty()) {
     it.enabled = false;
-    it.extra += " (fixed)";
-  } else if (reachable(db.difficulties, now).empty()) {
-    it.enabled = false;
-    it.extra += db.difficulties.change == DifficultyChange::LowerOnly ? " (lowest)" : "";
+    it.extra += difficultyBlockedNote(db.difficulties, now);
   } else if (now != battle_.difficulty) {
     it.extra += " (next battle)";
   }

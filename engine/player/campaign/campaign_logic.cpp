@@ -45,8 +45,9 @@ std::string saveTitle(const SaveInfo& info) {
 }
 
 std::string saveDetail(const SaveInfo& info) {
-  if (info.campaign && !info.inBattle) return phaseWords(info.phase);
-  return "Turn " + std::to_string(info.round);
+  std::string d = info.campaign && !info.inBattle ? phaseWords(info.phase) : "Turn " + std::to_string(info.round);
+  if (info.campaign && !info.difficultyName.empty()) d += " - " + info.difficultyName;  // only a game with difficulties has one
+  return d;
 }
 
 }  // namespace ote

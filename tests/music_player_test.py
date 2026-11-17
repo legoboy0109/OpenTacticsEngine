@@ -211,7 +211,72 @@ def run_situations():
     check('preparation: beginning the battle goes back to the map music', seq[-2:] == ['M:prep', 'M:battle'], str(seq))
 
 
+def read_save(saves, game):
+    path = os.path.join(saves, game, 'continue.json')
+    return json.load(open(path)) if os.path.exists(path) else None
+
+
+def run_game_page_difficulty():
+    """The game page's Difficulty row (docs/DIFFICULTY.md section 8), with input tokens. The games are the difficulty test's."""
+    dg = os.path.join(TMP, 'dgames')
+    subprocess.run([sys.executable, '-I', os.path.join(HERE, 'difficulty_player_test.py'), '--make-games', dg, REPO], check=True,
+                   stdout=subprocess.DEVNULL)
+    CARD = 'confirm,skip,wait:20'
+    END = 'menu,confirm,wait:60'
+    ch1 = CARD + ',' + END + ',confirm,wait:5'
+    to_page_row = 'down,down,down'  # Continue, New game, Load, Difficulty
+
+    def run(game, args, inp, saves, frames):
+        cmd = [PLAYER, '--games', dg, '--game', game, '--headless', '--no-audio', '--no-settings', '--saves', saves,
+               '--input-interval', '3', '--fixed-dt', '0.016', '--frames', str(frames)] + args
+        if inp:
+            cmd += ['--input', inp]
+        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+        return p.returncode, p.stdout
+
+    # lowerOnly: Hard -> the list offers Easy and Normal; Easy is picked; only the playthrough's difficulty changes in the save.
+    sv = os.path.join(TMP, 'dsv')
+    run('dcamp', ['--campaign', '--difficulty', 'hard'], ch1 + ',confirm,skip,wait:30', sv, 900)
+    before = read_save(sv, 'dcamp')
+    check('game page: the Continue save is chapter 2 on Hard', before and before['chapter'] == 'ch2' and before['playthrough']['difficulty'] == 'hard')
+    code, out = run('dcamp', [], 'wait:5', sv, 60)
+    check('game page: the Difficulty row shows the current difficulty', 'game page: difficulty row "Hard"' in out and 'greyed' not in out, out[-300:])
+    code, out = run('dcamp', [], to_page_row + ',confirm,wait:5,confirm,wait:10', sv, 200)
+    after = read_save(sv, 'dcamp')
+    check('game page: the list offers what the rule allows (easy, normal)', 'game page: difficulty menu offers easy, normal' in out, out[-400:])
+    check('game page: picking Easy writes it into the Continue save\'s playthrough', after and after['playthrough']['difficulty'] == 'easy',
+          json.dumps(after)[:200] if after else 'no save')
+    if before and after:
+        b, a = json.loads(json.dumps(before)), json.loads(json.dumps(after))
+        b['playthrough'].pop('difficulty')
+        a['playthrough'].pop('difficulty')
+        check('game page: nothing else in the save changed (the battle in it keeps Hard)', a == b and after['battle']['difficulty'] == 'hard')
+    check('game page: the row is rebuilt: Easy is the lowest, and it applies from the next battle', 'difficulty row "Easy (lowest) (next battle)" greyed' in out, out[-300:])
+    # The next battle built uses it: chapter 2 is finished (END wins it), chapter 3 is built on Easy.
+    code, out = run('dcamp', ['--continue'], 'wait:30,cancel,' + END + ',confirm,wait:40,confirm,wait:40', sv, 1500)
+    s = read_save(sv, 'dcamp')
+    check('game page: the next battle built (chapter 3) is on Easy', s and s['chapter'] == 'ch3' and s['battle']['difficulty'] == 'easy', out[-300:])
+    # "never" greys the row with the reason; "free" offers every other difficulty.
+    sv2 = os.path.join(TMP, 'dsv-never')
+    run('dcamp_never', ['--campaign', '--difficulty', 'hard'], 'confirm,skip,wait:30', sv2, 300)
+    code, out = run('dcamp_never', [], to_page_row + ',confirm,wait:10', sv2, 200)
+    check('game page: rule "never" greys the row (fixed) and changes nothing',
+          'difficulty row "Hard (fixed)" greyed' in out and 'difficulty menu' not in out and read_save(sv2, 'dcamp_never')['playthrough']['difficulty'] == 'hard',
+          out[-300:])
+    sv3 = os.path.join(TMP, 'dsv-free')
+    run('dcamp_free', ['--campaign', '--difficulty', 'normal'], 'confirm,skip,wait:30', sv3, 300)
+    code, out = run('dcamp_free', [], to_page_row + ',confirm,wait:5,down,confirm,wait:10', sv3, 200)
+    check('game page: rule "free" offers the others and a harder one can be picked',
+          'difficulty menu offers easy, hard' in out and read_save(sv3, 'dcamp_free')['playthrough']['difficulty'] == 'hard', out[-300:])
+    # A game without difficulties has no row.
+    sv4 = os.path.join(TMP, 'dsv-none')
+    run('dnone', ['--map', 'skirmish'], 'wait:20', sv4, 100)
+    code, out = run('dnone', [], 'wait:5', sv4, 60)
+    check('game page: a game without difficulties has no Difficulty row', 'difficulty row' not in out, out[-200:])
+
+
 run_situations()
+run_game_page_difficulty()
 print('%d passed, %d failed' % (passed, len(failures)))
 shutil.rmtree(TMP, ignore_errors=True)
 sys.exit(1 if failures else 0)

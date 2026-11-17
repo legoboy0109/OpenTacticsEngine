@@ -25,6 +25,9 @@ struct SaveInfo {
   bool inBattle = false;     // campaign: the save holds a battle that is under way
   std::string chapterName;   // campaign: the chapter the playthrough is at
   std::string phase;         // campaign: "before" | "battle" | "after" | "finished" | "over"
+  // Campaign saves of a game with difficulties (docs/DIFFICULTY.md): the playthrough's difficulty id and, while a battle is under
+  // way, the one that battle was built with. Empty in every other save. `difficultyName` = the name when the game is known.
+  std::string difficulty, battleDifficulty, difficultyName;
 };
 
 // A save read and checked completely, ready for restoreBattleState.
