@@ -100,6 +100,9 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'hasSkill', 'skill', w, where),
     (x) => withRef(x, 'hasCondition', 'condition', w, where),
     (x) => withFilter(x, 'actor', w, where),
+    (x) => withRef(x, 'rosterAlive', 'character', w, where), // campaign characters (docs/EVENTS.md): follow a rename, go with a deleted character
+    (x) => withRef(x, 'rosterDead', 'character', w, where),
+    (x) => withRef(x, 'inRoster', 'character', w, where),
     (x) => withDifficultyCondition(x, w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one
     (x) => withFilter(x, 'unit', w, where),
@@ -287,6 +290,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'portrait', 'portrait', w, where), // a line's own portrait id (a say or a choice); renaming a character's portrait follows here
     (x) => withRef(x, 'store', 'variable', w, where), // a choice's variable
     (x) => withFilter(x, 'removeUnit', w, where),
+    (x) => withRef(x, 'showUnit', 'unit', w, where), // brings a hidden unit back: the same unit story name
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
     (x) => withRef(x, 'promote', 'unit', w, where),

@@ -2658,8 +2658,8 @@ Rules screen: "Hit roll and experience options" (hit roll, experience for a figh
 Stat caps card, a "Computer-controlled units" table. Units: "Top level". Abilities: "Experience and conditions". Staves: "Experience when it
 misses" (shown when the staff can miss). Map events: the conditions "A campaign character is alive / has fallen / is in the roster" (also in
 scenes), the "Only hide it" box of Remove a unit and the command "Bring a hidden unit back". Each form's checks mirror the loader's refusals
-(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition is not
-renamed when the character is renamed (the id is free text because the character may live in another chapter).
+(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition (`rosterAlive` / `rosterDead` / `inRoster`) or a `showUnit` command follows a rename of the character and goes with a deleted
+character, like every other reference (`model/storyWalk.ts`; tests `tests/unit/rosterStory.test.ts`).
 
 ### Map weapons (a ballista)
 
