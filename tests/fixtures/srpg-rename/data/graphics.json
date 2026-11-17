@@ -1,0 +1,9 @@
+{
+  "sheets": [ { "id": "units", "file": "art/units.png", "cellWidth": 24, "cellHeight": 24 } ],
+  "portraits": { "hero": { "sheet": "units", "cell": [0, 0] }, "ally": { "sheet": "units", "cell": [0, 1] } },
+  "styles": { "night": { "portraits": { "hero": { "sheet": "units", "cell": [1, 0] } } } },
+  "battle": {
+    "sets": { "captain_set": { "animations": { "stand": { "sheet": "units", "frames": [ [0, 0], [1, 0] ], "ms": 400 } } },
+              "plain_set": { "animations": { "stand": { "sheet": "units", "frames": [ [0, 1] ] } } } },
+    "assign": [ { "set": "plain_set", "type": "fighter" }, { "set": "captain_set", "character": "hero" } ] }
+}

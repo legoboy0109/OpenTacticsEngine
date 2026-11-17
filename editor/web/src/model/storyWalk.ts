@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -193,7 +193,7 @@ function mapBehaviour(c: Command, w: Walk, where: string): Command | Dropped { r
 function mapAddUnit(c: Command, w: Walk, where: string): Command | Dropped {
   const u = c.addUnit
   if (!u || typeof u !== 'object') return c
-  const stepped0 = chain(u, [(x) => withRef(x, 'type', 'type', w, where), (x) => withRef(x, 'side', 'side', w, where)])
+  const stepped0 = chain(u, [(x) => withRef(x, 'type', 'type', w, where), (x) => withRef(x, 'side', 'side', w, where), (x) => withRef(x, 'character', 'character', w, where)]) // a character joins by its id
   if (stepped0 === DROP) return DROP
   const stepped = mapBehaviourBlock(stepped0 as Record<string, unknown>, 'behaviour', w, where) as typeof stepped0 | Dropped
   if (stepped === DROP) return DROP
@@ -229,6 +229,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   }
   return chain(c, [
     (x) => withRef(x, 'speaker', 'unit', w, where),
+    (x) => withRef(x, 'portrait', 'portrait', w, where), // a line's own portrait id (a say or a choice); renaming a character's portrait follows here
     (x) => withRef(x, 'store', 'variable', w, where), // a choice's variable
     (x) => withFilter(x, 'removeUnit', w, where),
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
@@ -250,7 +251,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
     (x) => withRef(x, 'playMusic', 'music', w, where),
     (x) => withRef(x, 'playSound', 'sound', w, where),
-    (x) => (typeof x.to === 'object' && x.to !== null ? withFilter(x, 'to', w, where) : x),
+    (x) => (x.giveItem !== undefined || x.teachSkill !== undefined || (typeof x.to === 'object' && x.to !== null) ? withFilter(x, 'to', w, where) : x), // giveItem's and teachSkill's `to` is a filter: a bare unit id or { unit / side / team / type }
     (x) => withRef(x, 'setSwitch', 'switch', w, where),
     (x) => withRef(x, 'level', 'unit', w, where), // a variable command that reads a unit
     (x) => withRef(x, 'hp', 'unit', w, where),

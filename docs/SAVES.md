@@ -61,6 +61,8 @@ is put on top.
   place in the hash but not which track or sound), and the layout and
   comments of the files. A maker can rename and restyle a game without
   locking players out of their saves.
+  The one maker action that does lock them out on purpose is renaming a character's id in the editor (docs/EDITOR_UI.md "Renaming a character's id"): ids are rules, so
+  every earlier save of that game is then listed as "made with a different version" (kept on disk, never deleted).
 - **A save whose `dataHash` does not match the game as it is now is not
   loaded.** It stays on disk and is listed as "made with a different
   version of this game". (Indices inside the save are only meaningful

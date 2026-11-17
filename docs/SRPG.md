@@ -1446,7 +1446,7 @@ tests/test_srpg_locks.cpp, tests/srpg_player_locks_test.py, fixture tests/fixtur
 (`WeaponLockCard`, two checkbox lists, classes and characters; one column at 360 px). The character list shows when weapons are carried (a staff: always) and the game has characters, the class list
 when weapons are carried (a staff: always); each key is written only when its list is not empty, and left untouched while hidden. Deleting a unit type takes it off the class lists. Follow-through (`model/locks.ts`): deleting a character takes it off every list (named in the
 delete question, one Undo step); an emptied list loses its key; switching Characters off removes all lists (the confirmation says how many weapons had one); renaming a
-character id is `renameCharacterLocks` (ids are never renamed in the editor, so nothing calls it). Checks (`model/lockChecks.ts`, "Worth a look" on the
+character id is `renameCharacterLocks` (called by the character rename, docs/EDITOR_UI.md "Renaming a character's id"). Checks (`model/lockChecks.ts`, "Worth a look" on the
 card): a name that is no character, and a list where no character's class can use the weapon (class `weapons` or `wields` of the weapon's group). Characters screen: a
 read-only card "Weapons locked to this character". Tests: `tests/unit/locks.test.ts`, `editor/web/tests/e2e/srpg-locks.spec.ts`.
 

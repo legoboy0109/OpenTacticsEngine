@@ -44,6 +44,7 @@ from editor_api_gaps_checks import run_gaps_checks
 from editor_api_behaviour_checks import run_behaviour_checks
 from editor_api_prep_checks import run_prep_checks
 from editor_api_quotes_checks import run_quotes_checks
+from editor_api_rename_checks import run_rename_checks
 
 PASSED = 0
 FAILED = 0
@@ -183,6 +184,7 @@ def main():
         run_gaps_checks(api, tmp, games, templates, check, get_project, put_project)
         run_behaviour_checks(api, tmp, games, templates, check, get_project, put_project)
         run_quotes_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_rename_checks(api, tmp, games, templates, check, get_project, put_project)
         run_prep_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.

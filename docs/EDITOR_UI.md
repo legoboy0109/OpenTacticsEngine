@@ -1098,9 +1098,28 @@ Wording is placeholder. No helper change: it keeps every key and the loader repo
   - The `character` key of an Add a unit command (a named character joins; the form only offers a unit type). Medium: a picker plus making type / name / level optional and the checks; the key is kept as the file has it.
   - Story commands in campaign scenes (the scene loader refuses the map-only ones; the ones it accepts, such as condition commands, are listed per command in the scene form). Not a missing key.
   - A rank starting value written as weapon experience (a number) is kept and shown, but a maker can only pick rank names (deliberate: ranks are the maker-facing words).
-  - Renaming a character's or unit type's id (ids are read-only everywhere; `renameCharacterLocks` is ready for the day). Small, but a design call (ids are shown read-only on purpose).
+  - Renaming a unit TYPE's id (ids stay read-only there; a character's id can be renamed, see "Renaming a character's id").
   - A player-side equip button and selling on the preparation screen (rules / player, not the editor).
 - **Tests**: unit `tests/unit/editorgaps.test.ts`; e2e `tests/e2e/editor-gaps.spec.ts` (desktop and 360 px: each control set, saved, the JSON compared with the docs, `/problems` empty, Play).
+
+## Renaming a character's id
+
+Characters screen, Advanced, "Internal name" with a **Rename…** button (`RenameCharacterDialog.tsx`; model `model/characterRename.ts`). Ids are still made from the name when a
+thing is created and never follow later name changes (the convention of every screen); Rename is the one deliberate way to change a character's id (the unit type id stays read-only).
+The dialog takes the new id (spaces become `_` as typed; "Make it from the name" fills one), shows the refusal in plain words, lists where the new id will appear, warns about formulas
+and scripts that spell the old id in quotes (never rewritten), says what happens to saves, and renames everything in ONE edit (one Undo); the screen then follows to the new id.
+Refused: empty, over 64 or not letters / digits / `_` / `-`, the id of another character, the story name of a unit on any map (placed with an `id`, or added by an event), a portrait of that name
+already existing when the character has one.
+Followed (every place a loader resolves a character id; `tests/fixtures/srpg-rename` names it in all of them): the character entry; every character's quotes (`against`, a line's
+`speaker` and `portrait`); support pairs and their conversation lines; `wieldedBy` of weapons and staves; portraits (general and per style, with a line's `portrait` of that id when the
+portrait itself moves) and battle animation `assign` rules; map units' `character`; preparation `required` / `forbidden` / `fixed`; places' `visitUnits`; units' behaviour (`unit`,
+`prefer.unit`); events and objectives (every trigger, filter, condition and command naming a unit, including addUnit `character`, giveItem / teachSkill `to` as a bare id, readings, promote,
+conditions, behaviour changes, openChest `by`, pairs); campaign scenes (same commands and conditions). Not followed: Lua scripts and formulas. `storyWalk.ts` gained `addUnit.character`
+(kind `character`), a line's `portrait` (kind `portrait`) and the bare-id `to` of giveItem / teachSkill (a gap that also affected renaming a placed unit's story name).
+**Saves**: a save names units by id and `characters.json` and the maps are hashed, so after a rename every save of that game made before it is refused ("made with a different
+version of this game"; greyed, never deleted, saves made later are fine). Save rules are unchanged.
+Tests: unit `tests/unit/characterRename.test.ts` (the fixture renamed equals a text replacement of the id, nothing keeps the old one, one Undo, refusals), API `tests/editor_api_rename_checks.py`
+(the real loader accepts the game and its renamed twin), e2e `tests/e2e/character-rename.spec.ts` (desktop and 360 px).
 
 ## Campaign timeline (PLAN 6c)
 

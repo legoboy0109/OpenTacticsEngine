@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { clone } from '../../model/doc'
 import { entryId } from '../../model/itemGrants'
 import { inventorySize } from '../../model/itemRules'
 import { maxLevel, setCharacterItems, setCharacterLevel, updateCharacter } from '../../model/characters'
 import { featureEnabled } from '../../model/rules'
-import { useDoc, useEdit } from '../../store/context'
+import { navigate, projectPath } from '../../router'
+import { useDoc, useEdit, useStore } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
 import { allTags } from '../../model/units'
 import { ChipsInput } from '../../ui/ChipsInput'
@@ -16,11 +18,14 @@ import { Toggle } from '../../ui/Toggle'
 import { CharacterPortraitCard } from './CharacterPortraitCard'
 import { CharacterStatsCard } from './CharacterStatsCard'
 import { CharacterSrpgCards } from './srpg/CharacterSrpgCards'
+import { RenameCharacterDialog } from './RenameCharacterDialog'
 import { cap, T } from './text'
 
 export function CharacterForm({ id, word }: { id: string; word: string }) {
   const doc = useDoc()
   const edit = useEdit()
+  const store = useStore()
+  const [renaming, setRenaming] = useState(false)
   const c = doc.characters?.find((x) => x.id === id)
   if (!c) return null
   const key = `character:${id}`
@@ -84,7 +89,13 @@ export function CharacterForm({ id, word }: { id: string; word: string }) {
       )}
 
       <Advanced label={T.advanced}>
-        <Field label={T.id} help={T.idHelp}><TextInput value={c.id} readOnly mono /></Field>
+        <Field label={T.id} help={T.idHelp}>
+          <div className="row">
+            <TextInput value={c.id} readOnly mono />
+            <button type="button" className="btn sm" onClick={() => setRenaming(true)}>{T.renameButton}</button>
+          </div>
+        </Field>
+        {renaming && <RenameCharacterDialog id={id} onClose={() => setRenaming(false)} onRenamed={(nid) => { setRenaming(false); navigate(projectPath(store.id, 'characters', nid)) }} />}
       </Advanced>
     </div>
   )
