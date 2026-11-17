@@ -289,6 +289,8 @@ bool inflictCondition(int unit, int condition, int turns, int source, std::vecto
 int cureConditions(int unit, const std::vector<int>& ids, bool all, int reason, std::vector<Event>& events);
 // The unit's own conditions as hidden skills, in the order applied (skillsOf appends them after the skills it has).
 void conditionSkills(const Unit& u, std::vector<int>& out) const;
+// True when `skill` is the hidden skill of a condition the unit no longer has (skill_timed.cpp: a cured condition does not tick).
+bool conditionSkillGone(const Unit& u, int skill) const;
 // The start of a turn (turn.cpp / srpg_hooks.cpp), in this order: wear-off rolls and the count-down (conditionsTurnStart), then the
 // "turnStart" blocks run with the skills' (skill_timed.cpp), then conditionsPrevent marks units that cannot act as done, then
 // conditionsAct lets berserk units take their own action. conditionsTurnEnd: the end of the side's turn, a condition whose last turn it was goes.

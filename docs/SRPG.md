@@ -1948,6 +1948,9 @@ At the start of **each turn of the afflicted unit's side**, units in id order, e
 2. **Count down.** A counted condition (`turns`) has one fewer turn left (`ConditionState::left`). A fresh condition applied with
    `turns: 3` therefore affects the unit's next three turns: at its first turn start `left` becomes 2, at the second 1, at the third 0.
 3. The skills' and conditions' **`turnStart` blocks run** (poison ticks, regeneration), skills first, then conditions in order.
+   A condition that an earlier block of this same pass **cured** (a skill's `{ "cure": ... }` runs before the condition's own block) is
+   gone for the rest of the pass: its `turnStart` block does not run, and it no longer stops the unit (steps 4 and 5 look at what the
+   unit has now), so a cured poison does not tick and a cured sleep does not end the turn.
 4. A unit that **cannot act** is finished for the turn (`done`, `moved`; `ConditionTick`, kind "cannot act"), so neither the AI nor the
    player's menus offer it.
 5. **Berserk** units take their own action (below).
