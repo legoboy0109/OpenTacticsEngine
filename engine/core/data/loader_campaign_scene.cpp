@@ -43,6 +43,8 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
     }
   if (!kind && e.has("hasCondition"))
     return fail(where, "\"hasCondition\" is for map events only: status conditions end when the map ends, so a campaign scene cannot ask about one");
+  if (!kind && e.has("actor"))
+    return fail(where, "\"actor\" is for map events only: a campaign scene has no unit that set it off");
   if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead");
   std::string k = kind;
   const Json& v = e[kind];

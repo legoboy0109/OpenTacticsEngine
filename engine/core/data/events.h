@@ -34,7 +34,9 @@ struct Condition {
     // pair `index` compared (`op`) with `value`.
     HasSkill, Support,
     // docs/SRPG.md section 9: a living unit matching `filter` has status condition `index`.
-    HasCondition
+    HasCondition,
+    // docs/EVENTS.md "Branching on who acted": the unit that set this event off matches `filter` (false with no acting unit).
+    Actor
   };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
@@ -43,7 +45,7 @@ struct Condition {
   bool is = true;     // Switch
   CmpOp op = CmpOp::Eq;  // Variable, Round
   int value = 0;      // Variable, Round
-  UnitFilter filter;  // Alive, Dead, Carries, Sees
+  UnitFilter filter;  // Alive, Dead, Carries, Sees, Actor
 };
 
 // What a Place trigger waits for (and what a Place occurrence reports).

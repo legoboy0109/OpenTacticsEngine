@@ -732,8 +732,9 @@ class Battle {
   // gone (do not place it), -1 = not concerned.
   int applyRoster(Unit& u) const;
   // story.cpp
-  bool conditionHolds(const Condition& c) const;
-  bool conditionsHold(const std::vector<Condition>& list) const;
+  // `actor`: the unit that set the event off, for the `actor` condition (default -2 = the running event's own).
+  bool conditionHolds(const Condition& c, int actor = -2) const;
+  bool conditionsHold(const std::vector<Condition>& list, int actor = -2) const;
   bool triggerMatches(const Trigger& t, const StoryOccurrence& o) const;
   void fireStory(const StoryOccurrence& o, std::vector<Event>& events);
   void drainStory(std::vector<Event>& events);

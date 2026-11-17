@@ -48,11 +48,12 @@ struct TalkOption {
 // Bookkeeping while events run; empty between actions. Events that fire while another runs
 // wait in `queue` (docs/EVENTS.md).
 struct StoryRun {
-  struct Queued { int event; int talker; };
+  struct Queued { int event; int talker; int actor = -1; };  // actor: the unit that set the event off (-1 = none)
   std::vector<Queued> queue;
   bool running = false;
   int ran = 0;       // events run in this go (the chain limit counts these)
   int talker = -1;   // the unit of the Talk event that is running (for endTurn)
+  int actor = -1;    // the unit that set the running event off, for the `actor` condition (docs/EVENTS.md); -1 = none
 };
 
 struct ChoiceWait;  // story_choice.cpp

@@ -337,3 +337,8 @@ bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& 
 bool stealRoomOk(const Unit& u, std::string* why) const;
 // Carries out steal / refresh / cure (events after AbilityUsed); `slot` = the foe's item slot for a steal.
 void applyAbilityEffect(const AbilityDef& d, int uid, int target, int slot, std::vector<Event>& events);
+// ---- the story's `actor` condition (story_actor.cpp; docs/EVENTS.md "Branching on who acted") ----
+// The unit an occurrence is "about" (the mover, the fallen, the attacker, the opener, the promoted...), -1 for turn and battle events.
+int storyActorOf(const StoryOccurrence& o) const;
+// The `actor` condition: the unit `actor` (-1 = nobody, then false) matches the filter.
+bool storyActorHolds(const Condition& c, int actor) const;
