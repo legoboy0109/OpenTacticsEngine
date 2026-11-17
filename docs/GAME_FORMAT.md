@@ -300,6 +300,9 @@ and side must exist. The old `owners` list is refused: ownership now
 belongs to structures (their `side`). Only the owner of a structure changes
 during a battle.
 
+A map may also have `"prep"`: the preparation screen before its battle (slots, limit, required / forbidden / fixed characters, a shop;
+docs/EVENTS.md "Preparation"). Without it the map starts as placed.
+
 ## data/audio.json (optional)
 
 Sound and music (docs/SOUND.md, built): tracks and sound effects by id and the game's standard set. A game without the

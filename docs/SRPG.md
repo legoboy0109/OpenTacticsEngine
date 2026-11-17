@@ -4027,6 +4027,14 @@ docs/TUTORIAL.md) and the document pointers.
 
 ---
 
+## Preparation and the roster (docs/EVENTS.md "Preparation")
+
+The campaign roster may now hold more characters than a map deploys: a map with a `"prep"` block lets the player choose who fights, swap
+starting squares, trade items between any roster characters and the shared storage, and buy from a preparation shop. Benched
+characters keep everything and join the next chapter; rescue, supports and skills are untouched (a benched unit is simply not on the
+board). Inventory-full handling in the screen: a purchase for a full character goes to the storage when the game has one, else it is
+refused.
+
 ## Interpretations
 
 Where the owner's decisions had to be extended to make a complete design:

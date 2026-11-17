@@ -435,6 +435,15 @@ windowless on a three-chapter game), `tools/webtest/suites/campaign.mjs`.
   on the human side (title cards, scene lines, results and the retry choice pass by themselves; nothing is saved); with
   `--frames N` it stops as before.
 
+## Preparation (docs/EVENTS.md "Preparation")
+
+A playthrough in phase `battle` may carry `"prep": { "open": bool, "folded": bool, "deployed": [ { "id": "sera", "slot": 0 } ] }` (`slot` =
+0-based index into the map's slots; at most 64 entries) and, after a chapter with a preparation, `"lastDeployed": ["sera", ...]`. Both
+are left out when empty, so games without a preparation save byte for byte as before and old saves load. `open` + no `"battle"` =
+restore into the screen; `folded` = the prep side's map allowance is already in `sides[]`. On load the deployment is checked against the
+chapter's map (every id a candidate, slots in range, no repeats, each unit able to stand on its slot, within the limit). The data hash
+is unchanged by the code; a map's `prep` block is part of the map file the campaign hash already covers.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a
