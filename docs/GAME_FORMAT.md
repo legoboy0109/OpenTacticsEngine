@@ -101,7 +101,9 @@ unchanged; art and fonts may change freely.
 list. They count as rules for saves; their names do not. A variable's number may come from a unit instead of being written:
 `{ "setVariable": "bar", "level": "eirik" }` (also `hp`, `maxHp`, `"stat": "str", "of": "eirik"`; docs/EVENTS.md "Reading a unit's
 numbers"), and `{ "takeItem": "salve", "from": "eirik", "all": true }` takes an item away from units (docs/EVENTS.md "Taking an item away");
-both work in map events and in campaign scenes.
+both work in map events and in campaign scenes. `{ "storeItems": "eirik", "keep": ["oak_blade"] }` sends a unit's items to the shared storage (a unit
+filter in map events, a roster id in scenes; refused when `rules.items.storage` is `off`; docs/EVENTS.md "Sending a unit's items to storage"), and the
+condition `{ "actor": { "unit": "eirik" } }` asks which unit set the running event off (map events only; docs/EVENTS.md "Branching on who acted").
 
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
@@ -367,6 +369,11 @@ the skill effect `recoil`; `"bonus"` on a staff item (the player lists it in the
 `addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
 `inventory`, an aura's `match`, formula amounts for combat bonuses, and the effects `followUp`, `followShift`, `trianglePercent`, `weaponXpPercent`,
 `noCarryPenalty`, `cancelEffective`, `cure` and `moveAgain` with `notAfterAttack`.
+
+**Small extras** (docs/SRPG.md section 3 "Linking two strike blocks" and section 9 "Effects that fade", optional): the skill effect `{ "mark": "name" }` (`strike` /
+`struck` blocks) and the skill condition `{ "marked": "name", "is": false }` (`strike`, `struck`, `defeat`, `afterCombat` blocks) let one roll switch on two
+blocks of a fight; a condition's `"scale": "turnsLeft"` (a counted condition) makes the numbers of its `always` blocks (`stats`, `growths`, `vision`,
+`staffRange`, `carryBonus`) count as many times as it has turns left. A game that uses none of the new keys loads, plays, saves and hashes exactly as before.
 
 **Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a

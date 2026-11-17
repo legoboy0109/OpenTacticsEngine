@@ -406,6 +406,7 @@ foe. `op` is one of `= != < <= > >=` (`==` accepted), default `>=`.
 | `{ "formula": "a.level >= 10 and b.tags.flier" }` | the formula is true or non-zero: `a` = the owner, `b` = the foe. Not in `always` blocks |
 | `{ "weaponKind": "magic" }`, `{ "turn": { "odd": true } }`, `{ "counterattack": false }`, `{ "carries": "potion" }`, `{ "inventory": "full" }` | see "More skill blocks" below |
 | `{ "strike": "first" }`, `{ "strike": "followUp" }`, `{ "strike": 3 }` | which strike of the fight (`strike` / `struck` blocks only); see "Skill blocks, third set" |
+| `{ "marked": "hit" }`, `{ "marked": "hit", "is": false }` | the unit has (has not) the mark `hit` in the fight now running (`strike`, `struck`, `defeat`, `afterCombat` blocks); see "Linking two strike blocks" |
 
 Refused in `always` blocks: `formula`, `initiating`, `distance`, `"who": "foe"` (there is no combat). A block that
 changes the **HP stat** in `always` may have no condition at all (a maximum that flickers would cut current HP):
@@ -455,6 +456,7 @@ roll today).
 | `{ "nullifySkills": true }`, `{ "nullifySkills": ["id"] }`, `{ "nullifySkills": { "tag": "word" } }` | the foe's skills do not apply in this fight; see "Skill and ability blocks, second set" | `combat` |
 | `{ "staffRange": 2 }`, `{ "staffRange": { "amount": 2, "group": "heal" } }` | squares added to the reach of staves the unit uses | `always` |
 | `{ "carryBonus": 2 }` | a number the `canCarry` formula reads as `a.carryBonus` | `always` |
+| `{ "mark": "hit" }` | when the block takes effect the unit gets the mark `hit` until the fight is over; see "Linking two strike blocks" | `strike`, `struck` |
 
 An effect in a block whose `when` the table does not list is refused: `skill "x": block 2: "drain" cannot be used in
 a "combat" block (it belongs to: strike)`. A skill may also have `"tags"` (a list of the maker's words, used by `nullifySkills`).
@@ -787,6 +789,44 @@ computer units have none of these (every shipped demo) plays exactly as before, 
 
 **The computer opponent.** Besides 4, 5 and 10 above: everything else is a passive block or a formula, so it flows through the forecast as always. **Saves.** One new key, `shrink` on a light (item 9);
 no new unit state. **Events.** None new (recoil is `UnitHurt`).
+
+### Linking two strike blocks
+
+Two blocks of one unit can share one roll: **"the second strike's effect happens whenever the first one's did"**. The first block sets a **mark** when it
+takes effect, the second asks for it.
+
+```jsonc
+{ "id": "twin_fang", "blocks": [
+  { "when": "strike", "if": [ { "strike": "first" } ], "chance": 30, "do": [ { "damage": 3 }, { "mark": "fang" } ] },
+  { "when": "strike", "if": [ { "strike": 2 }, { "marked": "fang" } ],            "do": [ { "damage": 5 } ] } ] }
+```
+
+- **`{ "mark": "name" }`** (an effect of a `strike` or `struck` block): when the block takes effect (its conditions hold and its chance, if any,
+  was rolled and passed) the **owner** gets the mark `name` (1 to 40 characters, any text) until the fight is over. A block with a mark and no chance
+  always sets it. Setting it again does nothing.
+- **`{ "marked": "name" }`** / **`{ "marked": "name", "is": false }`** (a condition of a `strike`, `struck`, `defeat` or `afterCombat` block; `"who":
+  "foe"` asks about the foe's marks): true when the unit has (does not have) that mark in the fight now running. It is **not** allowed in `always`,
+  `turnStart`, `combat` or `staffUse` blocks (a `combat` block is judged before any strike has happened): `"marked" can only be asked in "strike",
+  "struck", "defeat" and "afterCombat" blocks (marks live for one fight)`; `"mark"` outside `strike` / `struck` is refused by the usual table.
+- **Order.** Blocks are judged in the order of "Evaluation": the striker's `strike` blocks first, then the struck unit's `struck` blocks, skills in skill-list
+  order and blocks in the order written. A mark set by a block is visible to every block judged after it, **in the same strike too** (a `strike` block
+  with `"strike": 1` can read what an earlier block of the same strike set), and in every later strike of the fight, and in the unit's `defeat` and
+  `afterCombat` blocks. Marks belong to the unit that owns the block; a `struck` block can set one for the unit struck, and then its own `strike` block (the
+  counterattack) can read it.
+- **A fight** is one attack with its counterattack, and ends after the `afterCombat` blocks have run: the marks are cleared then (and at the start of the next
+  fight). They are never saved (a save is made between actions), never carried to the next fight, never shown on the map.
+- **Deterministic.** Marking uses no random number of its own: a block with a chance rolls exactly as before and the linked block, which has no chance, adds
+  none. A game that does not use `mark` / `marked` plays, saves and hashes exactly as before (the shipped demos' `ote-sim` results are line for line the same).
+- **Forecast.** Whether the first block fires is a roll, so the forecast cannot say what the linked block does. It lists the first block's chance as a note
+  as for any chance effect ("Twin Fang 30%"), and **leaves out every block that asks about a mark** (also an `"is": false` one) from the numbers, the
+  `each` list and the notes. The computer opponent scores from the same numbers.
+- **Loader refusals:** `"marked"` in a block that cannot ask it (above); `"mark"` / `"marked"` that is not text, empty or longer than 40 characters;
+  `"is"` that is not true / false. Nothing else is checked (a mark nobody sets, or one set by another skill of the unit, is fine).
+- **Already possible without marks:** `strike` / `strikeNo` conditions alone cannot say "the first block's roll succeeded", so the link needed the mark;
+  everything else (a different effect on the second strike whatever the roll: `{ "strike": 2 }`) was already there.
+
+Code: `battle/skill_marks.cpp`, `gatherStrike` in `battle/skill_strike.cpp`, `fightMarks_` cleared in `applyAttack` (`battle/combat.cpp`),
+`data/loader_skill_blocks.cpp`; tests `tests/test_extras_marks.cpp`, `tests/srpg_player_extras_test.py`; editor `tests/unit/extras.test.ts`.
 
 ### The starter set
 
@@ -2150,6 +2190,41 @@ optional), `{ "removeCondition": "poison" | "all", "from": <unit filter> }`, and
 `replaces` runs and the same events come (the giver is -1); removing is "cured". A campaign scene refuses all three (conditions end with the map).
 A skill / staff / ability test `{ "condition": id }` exists too (it lives with the skill conditions). Code: `battle/story_conditions.cpp`,
 `data/loader_story_conditions.cpp`; tests `tests/test_story_conditions.cpp`.
+
+### Effects that fade
+
+`"scale": "turnsLeft"` on a condition that counts turns (`turns`, never `until`) makes the **plain numbers of its `always` blocks** count as many times
+as the condition has turns left. "+7 resistance, one less each turn" is `"turns": 7` with `{ "when": "always", "do": [ { "stats": { "res": 1 } } ] }`;
+a personal torch is `"turns": 4` with `{ "when": "always", "do": [ { "vision": 1 } ] }` (docs/ECONOMY.md "Fog options"):
+
+```jsonc
+{ "id": "ward", "name": "Ward", "turns": 4, "scale": "turnsLeft",
+  "blocks": [ { "when": "always", "do": [ { "stats": { "def": 1 } }, { "vision": 1 } ] } ] }
+```
+
+- **Which numbers.** `stats`, `growths`, `vision`, `staffRange` and `carryBonus` (each stat of a `stats` map, the number of the others). Everything else
+  in the condition is unchanged: combat numbers (`hit`, `damage`...), `hurt` / `heal`, `maxMoveCost`, `xpPercent` and the yes / no effects are not
+  multiplied (a `combat` block inside a fading condition keeps its plain numbers). A condition with `scale` and no such effect in an `always` block is
+  refused.
+- **How many turns are left** is the stored `left` the unit info shows ("Ward 3"): it is **the number of the turn it is** in the rule of
+  "When a turn is counted", so a condition applied with `turns: 4` during its unit's own turn gives x4 that turn, x3 at the unit's next turn start,
+  x2, x1, and **0 on its last turn** (the one the info shows as "ends"), when it wears off at the end of the turn. Applied by a battle-start event
+  (counted at once) it is x3 in the first turn. To have `N` turns of effect from the first full turn, write `turns: N + 1`. (Owner decision to confirm:
+  the count could instead include the current turn, x4 .. x1; it would change one number in `conditionScale`.)
+- **Every reader follows.** The unit's numbers, the unit info, the forecast, the real fight, the AI and the shown sight all call the same functions
+  (`skillStatBonus`, `skillVision`, `staffRangeBonus`, `carryBonusOf`), which multiply by `Battle::conditionScale(unit, skill)` (`battle/skill_standing.cpp`;
+  1 for any skill that is not a fading condition's hidden skill, so a game without one is untouched). With fog the sight is recomputed when the
+  condition is put on, ends or loses a turn (only in a game that has a `vision` effect).
+- **Several fading conditions** add up; a re-applied one starts over (full count).
+- **Saves:** nothing new. `left` is already saved per condition; the hash covers `data/conditions.json` as before, so `scale` counts (it is a rule).
+- **Usable items and staves** inflict conditions already: `{ "kind": "usable", "inflict": { "condition": "ward", "turns": 4 } }` (on the user for
+  `target: "self"`, a neighbouring ally for `"ally"`; "Ways to inflict and cure" above) and a staff effect `{ "inflict": { "condition": "ward" } }`
+  with `target` `"self"`, `"ally"` or `"foe"`. No new key was needed; `tests/test_extras_fading.cpp` shows an item doing it.
+
+Code: `data/loader_conditions.cpp` (`scale`, its refusals), `battle/skill_standing.cpp`, tests `tests/test_extras_fading.cpp`,
+`tests/srpg_player_extras_test.py`, editor `tests/unit/extras.test.ts`. Loader refusals: `"scale" must be "turnsLeft"`, `"scale": "turnsLeft" needs a
+condition that counts turns ("turns": 7), and this one lasts until it is cured or the map ends`, `"scale": "turnsLeft" has nothing to scale: it multiplies
+the numbers of "always" blocks (stats, growths, vision, staffRange, carryBonus), and this condition has none`.
 
 ### Loader refusals
 

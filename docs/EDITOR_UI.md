@@ -1209,6 +1209,28 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
 - Code: `model/walking.ts`, `screens/art/walking/*`, `model/battleArt.ts`, `model/battleChecks.ts`. Tests: unit `walking.test.ts`, `battleArtFollowup.test.ts`;
   e2e `battle-followup.spec.ts` (desktop and 360 px).
 
+## Small extras (the actor condition, storeItems, fading conditions, strike marks)
+
+Built for docs/EVENTS.md "Branching on who acted" and "Sending a unit's items to storage" and docs/SRPG.md "Effects that fade" and "Linking two strike blocks".
+Wording is placeholder: `screens/maps/editor/story/forms/extrasText.ts` (events) and the existing `screens/skills/text.ts`, `screens/conditions/text.ts`; the model is
+`model/storyExtras.ts` (checks, the walk over `keep`), `model/skillRules.ts` / `skillBlocks.ts` / `skillChecks.ts` (marks), `model/conditions.ts` / `conditionChecks.ts` (fading).
+
+- **Events tab.** Condition **The unit that set this off** (the unit filter picker "Which unit", with the help sentence): offered in "Only if", in an If command and on
+  an answer of a question; **not** in a campaign scene (it has no acting unit). Group **Storage** in the command picker: **Send a unit's items to storage**
+  (whose items: a unit filter in a map event, one character of the party in a scene; "Keep these with the unit": a tick list of the game's items, empty = send everything).
+  The entry is greyed with "(no shared storage)" while `rules.items.storage` is off (the loader refuses it), and is kept if a file has it.
+  Checks: a storeItems in a game with no storage (error), an item or unit that is not there (the usual name checks; deleting an item takes it out of `keep` and keeps the
+  command), and a hint when an event whose "When" is a turn, the battle or a support level tests the actor (it can never be true).
+- **Conditions screen.** In the "How long it lasts" card, for a condition that counts turns: the box **Its effects fade as it runs out** (`scale: "turnsLeft"`); the
+  help says which numbers fade. Changing the duration to until cured / until the map ends removes it. A check (error) says when no rule that always applies has a number to
+  fade; the condition's sentence says "Its always-on numbers count as many times as it has turns left".
+- **Skills screen.** Effect **Leaves a mark for this fight** (strike and struck rules: a name box, default `mark`) and condition **Has a mark from this fight** (strike, struck,
+  defeat and after-combat rules: the name, and "has the mark / does not have the mark"). Other rules do not offer them (the loader refuses `marked` in always, turn-start, combat
+  and staff-use rules); a hand-written file that has them is kept and the check says why. The condition is **not** in `COND_KINDS` / `condsFor` (the tests that pin those lists
+  stay as they were): `condsAt` adds it where the loader allows it; the effect `mark` is in `EFFECT_WHENS` (the two pinned effect lists got `mark` appended).
+- **Usable items and staves** inflict conditions on self or a target with the existing forms (an item's "Puts a condition on the unit", a staff's inflict effect).
+- **Tests.** `tests/unit/extras.test.ts`, `tests/editor_api_extras_checks.py`, `editor/web/tests/e2e/extras.spec.ts` (desktop, Firefox, and a 360 px phone with `gotoSection`).
+
 ## Map changes and fog options
 
 Built for the engine's map changes (docs/EVENTS.md "Changing the map") and the fog options (docs/ECONOMY.md "Fog of war"). Wording is placeholder and lives in
