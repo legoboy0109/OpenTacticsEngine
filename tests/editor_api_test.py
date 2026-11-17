@@ -126,13 +126,16 @@ def main():
             f.write("do not touch")
         learn_file = os.path.join(tmp, "work", "userdata", "learn.json")
         port = free_port()
+        # The helper's log goes to a file, not a pipe: nothing reads a pipe while the checks run, and once it holds 64 KB the helper blocks
+        # on its next log line (the suite grew past that when the doors checks were added).
+        helper_log = os.path.join(tmp, "helper-stderr.log")
         proc = subprocess.Popen(
             [binary, "--games", games, "--templates", templates,
              "--assets", os.path.join(repo, "assets"),
              "--web", os.path.join(tmp, "no-web"), "--player", os.path.join(tmp, "no-player"),
              "--learn-file", learn_file,  # never the real user data folder
              "--port", str(port)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            stdout=subprocess.DEVNULL, stderr=open(helper_log, "wb"))
         api = Api(port)
         up = False
         for _ in range(100):
@@ -145,7 +148,7 @@ def main():
             except OSError:
                 time.sleep(0.1)
         if not check("helper starts and answers /api/info", up,
-                     proc.stderr.read().decode("utf-8", "replace") if proc.poll() is not None else ""):
+                     open(helper_log, "rb").read().decode("utf-8", "replace") if proc.poll() is not None else ""):
             return 1
         # A second helper on the same port must fail loudly, not share the port.
         second = subprocess.run([binary, "--games", games, "--templates", templates, "--learn-file", learn_file, "--port", str(port)],
