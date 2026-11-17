@@ -142,6 +142,8 @@ export interface Technology extends Named {
 export interface Weapon extends Named {
   /** Carried weapons only: a unit type that `wields` this group can use the weapon. */
   group?: string
+  /** A free word for the kind of damage it deals ("physical", "magic", ...): skills can test it (docs/SRPG.md "Damage kind"). */
+  damageKind?: string
   range?: [number, number]; counter?: boolean; afterMove?: boolean
   props?: NumMap; versus?: NumMap; versusDefault?: number; damage?: string
   /** Attacks per supply (fixed weapons only); missing = unlimited. */

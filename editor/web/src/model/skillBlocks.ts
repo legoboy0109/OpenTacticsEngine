@@ -46,8 +46,16 @@ export function newCondition(kind: CondKind, doc: ProjectDoc): Extra | null {
     case 'distance': return { distance: { op: '=', value: 1 } }
     case 'formula': return { formula: 'a.level >= 5' }
     case 'condition': return doc.conditions?.[0] ? { condition: doc.conditions[0].id } : null
+    case 'weaponKind': { const k = weaponKinds(doc)[0]; return k ? { weaponKind: k } : null }
+    case 'turn': return { turn: { odd: true } }
+    case 'counterattack': return { counterattack: false }
+    case 'carries': return doc.items?.[0] ? { carries: doc.items[0].id } : null
+    case 'inventory': return { inventory: 'full' }
   }
 }
+
+/** The kinds of damage the game's weapons name (`damageKind`), in the order they first appear. */
+export const weaponKinds = (doc: ProjectDoc): string[] => [...new Set((doc.weapons ?? []).map((w) => w.damageKind).filter((k): k is string => !!k))]
 
 /** A starting effect for the point, or null when there is none to make (no stat, no ability). */
 export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra | null {
@@ -77,6 +85,11 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'inflict': return doc.conditions?.[0] ? { inflict: { condition: doc.conditions[0].id } } : null
     case 'cannotAct': return { cannotAct: true }
     case 'forbid': return { forbid: { kinds: ['staff'] } }
+    case 'followUp': return { followUp: 'force' }
+    case 'followShift': return { followShift: 1 }
+    case 'trianglePercent': return { trianglePercent: 200 }
+    case 'weaponXpPercent': return { weaponXpPercent: 150 }
+    case 'cure': return doc.conditions?.[0] ? { cure: [doc.conditions[0].id] } : { cure: 'all' }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
 }
@@ -121,7 +134,7 @@ export const setEffect = (b: Extra, i: number, e: Extra): Extra => patchBlock(b,
 export const setEffects = (b: Extra, next: Extra[]): Extra => patchBlock(b, { do: next })
 
 /** Changing "Reaches": "itself" removes the aura; allies / enemies make an aura and drop what an aura cannot give. */
-export function setAura(b: Extra, aura: { to: 'allies' | 'enemies'; within: number } | null, doc: ProjectDoc): Extra {
+export function setAura(b: Extra, aura: { to: 'allies' | 'enemies'; within: number; match?: string } | null, doc: ProjectDoc): Extra {
   if (aura === null) return patchBlock(b, { aura: undefined })
   const eff = list(b.do).flatMap((e): Extra[] => {
     const k = effectKindOf(e)

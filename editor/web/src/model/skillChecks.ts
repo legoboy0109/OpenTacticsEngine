@@ -5,8 +5,9 @@ import type { SrpgCheck } from './abilityChecks'
 import { groupsOf } from './ranks'
 import { amountOf } from './skillAmount'
 import { CONDITION_TURNS_MAX } from './conditions'
+import { weaponKinds } from './skillBlocks'
 import {
-  AURA_EFFECTS, CONDITION_ONLY, EFFECT_WHENS, FLAG_EFFECTS, FOE_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, NUMBER_RANGE, canJudgeFoe, condKindOf, condsFor, effectKindOf, hasChance, whenOf,
+  AURA_EFFECTS, CONDITION_ONLY, EFFECT_WHENS, FLAG_EFFECTS, FOE_EFFECTS, FORMULA_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, NUMBER_RANGE, STRIKE_ONLY, canJudgeFoe, condKindOf, condsFor, effectKindOf, hasChance, whenOf,
   type EffectKind, type When,
 } from './skillRules'
 import { blocksOf } from './skills'
@@ -31,12 +32,19 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
   if (conds.length > MAX_CONDITIONS) out.push(`It has more than ${MAX_CONDITIONS} conditions.`)
   if (b.chance !== undefined && !hasChance(when)) out.push(`${WHEN_WORDS[when][0].toUpperCase()}${WHEN_WORDS[when].slice(1)} cannot have a chance: it must be the same every time.`)
   if (aura && when !== 'combat') out.push('Only a rule for combat can reach other units.')
+  if (aura && typeof (b.aura as Extra).match === 'string') {
+    const m = (b.aura as Extra).match as string
+    const known = (doc.units ?? []).some((u) => u.id === m || u.tags?.includes(m)) || (doc.characters ?? []).some((c) => (c as Extra).tags && ((c as Extra).tags as string[]).includes(m))
+    if (!known) out.push(`It reaches only units “${m}”, which is no unit type or tag of this game.`)
+  }
   const okConds = condsFor(when, aura)
   for (const c of conds) {
     const k = condKindOf(c)
-    if (k && !okConds.includes(k)) out.push(`“Only if” cannot ask that here: ${aura || when === 'turnStart' ? 'there is no fight to ask about.' : 'there is no combat.'}`)
+    if (k && STRIKE_ONLY.includes(k) && !okConds.includes(k)) out.push('“Only if the foe answers” can only be asked in a rule for when the unit strikes or is struck.')
+    else if (k && !okConds.includes(k)) out.push(`“Only if” cannot ask that here: ${aura || when === 'turnStart' ? 'there is no fight to ask about.' : 'there is no combat.'}`)
     else if (k && c.who === 'foe' && !canJudgeFoe(k, when, aura)) out.push('There is no foe to ask about here.')
     if (k === 'condition' && !doc.conditions?.some((x) => x.id === c.condition)) out.push(`“Only if” asks about the condition “${String(c.condition)}”, which does not exist.`)
+    out.push(...ownCondIssues(doc, c, k))
   }
   const hp = doc.game?.roles?.hp
   const move = doc.game?.roles?.move
@@ -60,8 +68,37 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
     }
     if (k === 'ability' && !doc.abilities?.some((a) => a.id === e.ability)) out.push(`The ability “${String(e.ability)}” does not exist.`)
     const r = NUMBER_RANGE[k]
-    if (r && (typeof e[k] !== 'number' || e[k] < r[0] || e[k] > r[1])) out.push(`That number must be from ${r[0]} to ${r[1]}.`)
-    if (FLAG_EFFECTS.includes(k) && e[k] !== true) out.push('That effect is either on or not there.')
+    if (r && FORMULA_EFFECTS.includes(k) && typeof e[k] === 'string') { if ((e[k] as string).trim() === '') out.push('The formula is empty.') }
+    else if (r && (typeof e[k] !== 'number' || e[k] < r[0] || e[k] > r[1])) out.push(`That number must be from ${r[0]} to ${r[1]}.`)
+    const moveAgainOption = k === 'moveAgain' && e[k] && typeof e[k] === 'object' && (e[k] as Extra).notAfterAttack === true
+    if (FLAG_EFFECTS.includes(k) && e[k] !== true && !moveAgainOption) out.push('That effect is either on or not there.')
+    if (k === 'stats' && when !== 'combat' && Object.values((e.stats && typeof e.stats === 'object' ? e.stats : {}) as Record<string, unknown>).some((x) => typeof x !== 'number'))
+      out.push('Only a combat bonus to stats may be a formula.')
+  }
+  return out
+}
+
+/** What the loader refuses about the conditions added for the general blocks (docs/SRPG.md "More skill blocks"). */
+function ownCondIssues(doc: ProjectDoc, c: Extra, k: ReturnType<typeof condKindOf>): string[] {
+  const out: string[] = []
+  if (k === 'weaponKind' && !weaponKinds(doc).includes(String(c.weaponKind))) out.push(`“Only if” asks about the kind of damage “${String(c.weaponKind)}”, which no weapon has. Give a weapon that kind first.`)
+  if (k === 'carries' && !doc.items?.some((i) => i.id === c.carries)) out.push(`“Only if” asks about the item “${String(c.carries)}”, which does not exist.`)
+  if (k === 'inventory') {
+    const v = c.inventory
+    const o = (v && typeof v === 'object' ? v : null) as Extra | null
+    if (v !== 'full' && v !== 'notFull' && !(o && typeof o.value === 'number' && Number.isInteger(o.value) && o.value >= 0 && o.value <= 1000)) out.push('The number of items must be “full”, “not full” or a whole number from 0 to 1000.')
+  }
+  if (k === 'turn') {
+    const t = (c.turn && typeof c.turn === 'object' ? c.turn : {}) as Extra
+    const num = (x: unknown, lo: number, hi: number) => typeof x === 'number' && Number.isInteger(x) && x >= lo && x <= hi
+    if (t.odd === true || t.even === true) { /* fine */ }
+    else if (t.from !== undefined || t.to !== undefined) {
+      if ((t.from !== undefined && !num(t.from, 1, 1000000)) || (t.to !== undefined && !num(t.to, 1, 1000000))) out.push('The turn numbers must be whole numbers from 1 up.')
+      else if (typeof t.from === 'number' && typeof t.to === 'number' && t.from > t.to) out.push('The first turn must not be later than the last.')
+    } else if (t.every !== undefined) {
+      if (!num(t.every, 2, 1000)) out.push('“Every” must be a whole number from 2 to 1000.')
+      else if (t.offset !== undefined && (!num(t.offset, 0, 999) || (t.offset as number) >= (t.every as number))) out.push('The offset must be a whole number below “every”.')
+    } else out.push('Pick odd turns, even turns, a range of turns or every few turns.')
   }
   return out
 }
@@ -96,6 +133,14 @@ function ownEffectIssues(doc: ProjectDoc, e: Extra, k: EffectKind, when: When): 
     if (kinds.length === 0 && groups.length === 0) out.push('It forbids nothing yet. Tick an item kind or a group.')
     for (const x of kinds) if (x !== 'weapon' && x !== 'staff' && x !== 'usable') out.push(`“${String(x)}” is not an item kind (weapons, staves or usable items).`)
     for (const g of groups) if (!groupsOf(doc).includes(String(g))) out.push(`“${String(g)}” is no weapon or staff group of this game.`)
+  }
+  if (k === 'followUp' && v !== 'force' && v !== 'forbid') out.push('A follow-up strike is either forced or forbidden.')
+  if (k === 'cure') {
+    if (v !== 'all') {
+      const ids = Array.isArray(v) ? (v as unknown[]) : []
+      if (ids.length === 0) out.push('It cures nothing yet. Pick at least one condition, or all of them.')
+      for (const id of ids) if (!knownCondition(doc, id)) out.push(`The condition “${String(id)}” does not exist.`)
+    }
   }
   if (k === 'immune') {
     const list = Array.isArray(v) ? (v as unknown[]) : []

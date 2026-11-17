@@ -8,6 +8,7 @@ import { Field } from '../../ui/Field'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Num } from './Num'
+import { unitOptions } from './options'
 import { T } from './text'
 
 interface Props { doc: ProjectDoc; block: Extra; setBlock: (fn: (b: Extra) => Extra, key?: string) => void }
@@ -45,13 +46,20 @@ export function ReachesRow({ doc, block, setBlock }: Props) {
   const aura = block.aura as Extra | undefined
   const mode = aura ? (aura.to === 'enemies' ? 'enemies' : 'allies') : 'self'
   const within = Number(aura?.within ?? 2)
+  const match = typeof aura?.match === 'string' ? aura.match : ''
+  const setMatch = (m: string) => setBlock((b) => setAura(b, { to: mode as 'allies' | 'enemies', within, ...(m ? { match: m } : {}) }, doc), 'match')
   return (
     <div className="skill-option" data-testid="skill-reaches">
       <Field label={T.reaches} help={aura ? T.auraNote : T.reachesHelp}>
         <Select value={mode} options={[{ value: 'self', label: T.reachSelf }, { value: 'allies', label: T.reachAllies }, { value: 'enemies', label: T.reachEnemies }]}
-          onChange={(m) => setBlock((b) => setAura(b, m === 'self' ? null : { to: m as 'allies' | 'enemies', within }, doc))} />
+          onChange={(m) => setBlock((b) => setAura(b, m === 'self' ? null : { to: m as 'allies' | 'enemies', within, ...(match ? { match } : {}) }, doc))} />
       </Field>
-      {aura && <Field label={T.reachWithin}><Num value={within} min={1} max={10} onChange={(n) => setBlock((b) => setAura(b, { to: mode as 'allies' | 'enemies', within: n }, doc), 'within')} /></Field>}
+      {aura && <Field label={T.reachWithin}><Num value={within} min={1} max={10} onChange={(n) => setBlock((b) => setAura(b, { to: mode as 'allies' | 'enemies', within: n, ...(match ? { match } : {}) }, doc), 'within')} /></Field>}
+      {aura && (
+        <Field label={T.auraMatchPick}>
+          <Select value={match} options={[{ value: '', label: T.auraMatchAny }, ...unitOptions(doc, match)]} onChange={setMatch} />
+        </Field>
+      )}
     </div>
   )
 }
