@@ -1,0 +1,5 @@
+{ "conditions": [
+  { "id": "poison", "name": "Poison", "tag": "Po", "turns": 3,
+    "blocks": [ { "when": "turnStart", "do": [ { "hurt": 1, "to": "self" } ] } ] },
+  { "id": "curse", "name": "Curse", "tag": "Cu", "turns": 3,
+    "blocks": [ { "when": "always", "do": [ { "stats": { "str": -2 } } ] } ] } ] }

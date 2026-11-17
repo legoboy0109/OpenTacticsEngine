@@ -94,6 +94,8 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
         near(true, e.within, receivers);
         for (int r : receivers) hurt(r, amountOf(r, e), e.kill);
       }
+    } else if (e.kind == K::Cure) {
+      if (units[(size_t)owner].alive && cureConditions(owner, e.conds, e.cureAll, kConditionCured, fx) > 0) changed = true;
     } else if (e.kind == K::ActAgain) {
       // Only on its own side's turn, once a turn. Its flags are cleared now; endOrder (which a combat ends with)
       // is told not to end the turn again.

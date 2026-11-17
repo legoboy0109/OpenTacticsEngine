@@ -45,6 +45,9 @@ bool hasStanding(const Unit& u, SkillEffect::Kind kind) const;      // an "alway
 // Learns every "learns" entry of its type and character at or below its level that it does not know yet (no
 // event): a new unit, a promotion.
 void learnUpTo(Unit& u) const;
+// rules.promotion.classSkills "replace": takes from the learned list the skills the OLD type's "learns" gave, except those the unit's
+// character or its new type teaches too; learnUpTo then adds the new type's.
+void dropOldClassSkills(Unit& u, int oldType);
 void skillsLevelUp(int unit, std::vector<Event>& events);  // the entries for exactly the new level (SkillLearned)
 void skillsTurnStart(std::vector<Event>& events);
 void skillsAfterCombat(int attacker, int defender, int hpA, int hpD, std::vector<Event>& events);

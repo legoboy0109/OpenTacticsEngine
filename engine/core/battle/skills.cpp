@@ -90,6 +90,25 @@ void Battle::learnUpTo(Unit& u) const {
   for (const LearnDef& l : due) learnSkill(u, l.skill);
 }
 
+void Battle::dropOldClassSkills(Unit& u, int oldType) {
+  auto taught = [](const std::vector<LearnDef>& list, int skill) {
+    for (const LearnDef& l : list)
+      if (l.skill == skill) return true;
+    return false;
+  };
+  const std::vector<LearnDef>& old = db->unitTypes[(size_t)oldType].learns;
+  const std::vector<LearnDef>& now = typeOf(u).learns;
+  const bool hasCharacter = u.character >= 0 && (size_t)u.character < db->characters.size();
+  for (size_t i = 0; i < u.learned.size();) {
+    const int s = u.learned[i];
+    const bool fromOld = taught(old, s);
+    const bool stays = taught(now, s) || (hasCharacter && taught(db->characters[(size_t)u.character].learns, s));
+    if (fromOld && !stays) u.learned.erase(u.learned.begin() + (long)i);
+    else ++i;
+  }
+  clampHp(u);  // a skill that raised the maximum may be gone
+}
+
 // The entries for exactly the new level.
 void Battle::skillsLevelUp(int unit, std::vector<Event>& events) {
   if (db->skills.empty()) return;

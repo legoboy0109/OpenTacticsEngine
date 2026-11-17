@@ -120,7 +120,8 @@ struct SkillEffect {
     CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict,
     // General blocks (docs/SRPG.md "More skill blocks"). FollowUp: value 1 force / -1 forbid the unit's follow-up strike;
     // FollowShift: a number the strike formulas read as `a.followShift`; TrianglePercent: read as `a.trianglePercent`.
-    FollowUp, FollowShift, TrianglePercent, WeaponXpPercent, NoCarryPenalty, CancelEffective
+    FollowUp, FollowShift, TrianglePercent, WeaponXpPercent, NoCarryPenalty, CancelEffective,
+    Cure  // timed blocks: the owner is cured of the conditions in `names` / `conds`, or of all (`cureAll`)
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -143,6 +144,7 @@ struct SkillEffect {
   // A combat number written as a formula (docs/SRPG.md "Formula-sized bonuses"): `expr` >= 0 replaces `value` for Hit, Crit,
   // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
   std::vector<int> statExprs;
+  bool cureAll = false;     // Cure: every condition
 };
 
 struct SkillBlock {
@@ -220,6 +222,7 @@ struct PromotionDef {
 
 struct PromotionRules {
   bool keepLevel = false;  // "levelAfter": "keep" (default "reset": level 1, xp 0 after promoting)
+  bool replaceClassSkills = false;  // "classSkills": "replace": skills the old class taught go away when promoting (default "keep")
 };
 
 // ---- 5. rescue and pair up (game.json rules.rescue) ----

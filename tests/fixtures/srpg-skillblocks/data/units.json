@@ -1,6 +1,11 @@
 { "units": [
   { "id": "scout", "name": "Scout", "moveType": "foot", "stats": { "hp": 20, "str": 5, "def": 2, "spd": 8, "mov": 4 },
-    "weapons": ["iron_sword"], "tags": ["scout"] },
+    "weapons": ["iron_sword"], "tags": ["scout"],
+    "learns": [ { "level": 2, "skill": "plain_skill" } ],
+    "promotions": [ { "to": "ranger", "fromLevel": 2, "atLevel": "offer", "levelAfter": "keep" } ] },
+  { "id": "ranger", "name": "Ranger", "moveType": "foot", "stats": { "hp": 24, "str": 6, "def": 3, "spd": 9, "mov": 5 },
+    "weapons": ["iron_sword"], "tags": ["scout"],
+    "learns": [ { "level": 2, "skill": "rank_skill" } ] },
   { "id": "guard", "name": "Guard", "moveType": "foot", "stats": { "hp": 30, "str": 5, "def": 4, "spd": 3, "mov": 3 },
     "weapons": ["iron_sword"], "tags": ["armored"] },
   { "id": "rider", "name": "Rider", "moveType": "foot", "stats": { "hp": 20, "str": 5, "def": 2, "spd": 6, "mov": 5 },

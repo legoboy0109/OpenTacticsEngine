@@ -238,9 +238,9 @@ bool resolveBlockConditions(const LoadCtx& c, const Database& db, const std::str
   }
   for (size_t i = 0; i < block.effects.size(); ++i) {
     SkillEffect& e = block.effects[i];
-    if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict) continue;
+    if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict && e.kind != SkillEffect::Kind::Cure) continue;
     e.conds.clear();
-    const char* key = e.kind == SkillEffect::Kind::Immune ? "immune" : "inflict";
+    const char* key = e.kind == SkillEffect::Kind::Immune ? "immune" : e.kind == SkillEffect::Kind::Cure ? "cure" : "inflict";
     for (const std::string& id : e.names) {
       const int k = db.findCondition(id);
       if (k < 0)

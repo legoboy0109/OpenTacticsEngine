@@ -279,7 +279,8 @@ const EffectSpec kEffects[] = {
     {"berserk", K::Berserk, A},       {"immune", K::Immune, A},            {"inflict", K::Inflict, S | R},
     // General blocks (docs/SRPG.md "More skill blocks").
     {"followUp", K::FollowUp, C},     {"followShift", K::FollowShift, C},  {"trianglePercent", K::TrianglePercent, C},
-    {"weaponXpPercent", K::WeaponXpPercent, A}, {"noCarryPenalty", K::NoCarryPenalty, A}, {"cancelEffective", K::CancelEffective, A}};
+    {"weaponXpPercent", K::WeaponXpPercent, A}, {"noCarryPenalty", K::NoCarryPenalty, A}, {"cancelEffective", K::CancelEffective, A},
+    {"cure", K::Cure, T | D | F}};
 
 // An aura's effects go to other units: only plain numbers that a fighter can carry.
 bool auraKind(K k) {
@@ -502,6 +503,12 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
   if (spec->kind == K::Immune) {
     if (!readNameList(c, v, where, "\"immune\"", out.names)) return false;
     if (out.names.empty()) return c.fail(where, "\"immune\" must name at least one condition");
+    return true;
+  }
+  if (spec->kind == K::Cure) {  // "all", or a list of condition ids
+    if (v.isString() && v.asString() == "all") { out.cureAll = true; return true; }
+    if (!readNameList(c, v, where, "\"cure\"", out.names) || out.names.empty())
+      return c.fail(where, "\"cure\" must be \"all\" or a list of condition ids");
     return true;
   }
   if (spec->kind == K::Inflict) {
