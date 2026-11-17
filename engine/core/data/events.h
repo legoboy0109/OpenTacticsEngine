@@ -62,6 +62,15 @@ struct Trigger {
   int label = -1;      // Talk: index into StoryData::texts
 };
 
+// A number a setVariable / addVariable takes from a unit instead of a written one (docs/EVENTS.md "Reading a unit's
+// numbers"). Shared by event commands and campaign scene commands. Kind::None = the command uses its written number.
+struct UnitReading {
+  enum class Kind { None, Level, Hp, MaxHp, Stat };
+  Kind kind = Kind::None;
+  std::string unit;  // the unit (event: a unit id of the map; scene: a roster id)
+  int stat = -1;     // Stat: index into Database::stats
+};
+
 struct Command;
 
 // One answer of a Choice command (docs/EVENTS.md "Dialogue choices"): its wording, an optional condition that hides
@@ -97,6 +106,7 @@ struct Command {
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
   bool on = false;       // SetSwitch
+  UnitReading reading;   // SetVariable / AddVariable: where the number comes from when it is not `value`
   int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If

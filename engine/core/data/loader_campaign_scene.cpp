@@ -124,13 +124,23 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   if (k == "setSwitch" || k == "setVariable" || k == "addVariable") {
     bool isSwitch = k == "setSwitch";
     const char* extra = k == "addVariable" ? "by" : "to";
-    if (!onlyKeys(e, {kind, extra}, at)) return false;
+    if (!onlyKeys(e, isSwitch ? std::initializer_list<const char*>{kind, extra}
+                              : std::initializer_list<const char*>{kind, extra, "level", "maxHp", "hp", "stat", "of"}, at))
+      return false;
     out.kind = isSwitch ? K::SetSwitch : k == "setVariable" ? K::SetVariable : K::AddVariable;
     out.index = v.isString() ? (isSwitch ? db_.findSwitch(v.asString()) : db_.findVariable(v.asString())) : -1;
     if (out.index < 0)
       return fail(at, std::string("\"") + k + "\" names unknown " + (isSwitch ? "switch " : "variable ") + quoted(v.asString()) +
                           (isSwitch ? " (game.json \"switches\")" : " (game.json \"variables\")"));
     if (isSwitch) return c_.boolean(e, "to", at, out.on, true);
+    bool reads = false;
+    if (!readUnitReading(c_, db_, e, at, extra, false, out.reading, reads)) return false;
+    if (reads) {
+      // The character may join the roster in a later chapter, so only the shape of the id is checked (as alive / dead).
+      if (!isStoryId(out.reading.unit))
+        return fail(at, "the unit to read from must be a roster unit id (letters, digits, \"_\" and \"-\")");
+      return true;
+    }
     if (!c_.integer(e, extra, at, out.value, true)) return false;
     if (out.value < -kMaxStoryNumber || out.value > kMaxStoryNumber) return fail(at, "the number is unreasonably large");
     return true;

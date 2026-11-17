@@ -43,6 +43,7 @@ struct SceneCommand {
   // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms (-1 = not given)
   bool on = false;  // SetSwitch
   int value = 0;    // SetVariable / AddVariable
+  UnitReading reading;  // SetVariable / AddVariable: the number comes from a roster unit when its kind is not None
   std::string side;              // GiveResource: the side id the amounts go to
   std::vector<Amount> amounts;   // GiveResource
   std::vector<SceneCondition> cond;           // If

@@ -171,13 +171,23 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "setSwitch" || k == "setVariable" || k == "addVariable") {
     bool isSwitch = k == "setSwitch";
     const char* extra = k == "addVariable" ? "by" : "to";
-    if (!onlyKeys(e, {kind, extra}, at)) return false;
+    if (!onlyKeys(e, isSwitch ? std::initializer_list<const char*>{kind, extra}
+                              : std::initializer_list<const char*>{kind, extra, "level", "hp", "maxHp", "stat", "of"}, at))
+      return false;
     out.kind = isSwitch ? K::SetSwitch : k == "setVariable" ? K::SetVariable : K::AddVariable;
     out.index = v.isString() ? (isSwitch ? db_.findSwitch(v.asString()) : db_.findVariable(v.asString())) : -1;
     if (out.index < 0)
       return fail(at, std::string("\"") + k + "\" names unknown " + (isSwitch ? "switch " : "variable ") +
                           quoted(v.asString()) + (isSwitch ? " (game.json \"switches\")" : " (game.json \"variables\")"));
     if (isSwitch) return c_.boolean(e, "to", at, out.on, true);
+    bool reads = false;
+    if (!readUnitReading(c_, db_, e, at, extra, true, out.reading, reads)) return false;
+    if (reads) {
+      // The unit must be one the map names (like moveUnit); the number is read when the command runs.
+      const Json& idj = e[out.reading.kind == UnitReading::Kind::Stat ? "of" : out.reading.kind == UnitReading::Kind::Level ? "level" : out.reading.kind == UnitReading::Kind::Hp ? "hp" : "maxHp"];
+      std::string unit;
+      return unitId(idj, at, "the unit to read from", unit);
+    }
     if (!c_.integer(e, extra, at, out.value, true)) return false;
     if (out.value < -kMaxStoryNumber || out.value > kMaxStoryNumber) return fail(at, "the number is unreasonably large");
     return true;

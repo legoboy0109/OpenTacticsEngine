@@ -7,6 +7,7 @@
 
 #include "core/base/json.h"
 #include "core/data/database.h"
+#include "core/data/events.h"
 
 namespace ote {
 
@@ -169,6 +170,13 @@ bool readIdList(const LoadCtx& c, const Json& root, const char* key, bool requir
   }
   return true;
 }
+
+// The reading keys of setVariable / addVariable ("level", "hp", "maxHp", "stat" + "of"), shared by map events and
+// campaign scenes (docs/EVENTS.md "Reading a unit's numbers"). `number` is the written number's key ("to" / "by").
+// Sets `given` when a reading is present (then `out.unit` is the id, shape-checked here as "not empty" only; the
+// caller checks it against its own world); without one nothing changes. `allowHp` = false in scenes.
+bool readUnitReading(const LoadCtx& c, const Database& db, const Json& e, const std::string& at, const char* number,
+                     bool allowHp, UnitReading& out, bool& given);
 
 // True when the file can be opened for reading (optional data files).
 bool fileExists(const std::string& path);
