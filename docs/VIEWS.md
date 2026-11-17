@@ -124,6 +124,10 @@ style the player can draw, and a remembered choice that cannot be drawn
 falls back to that default. A platform without a 3D backend would leave the
 3D kinds out here.
 
+**Map changes** (docs/EVENTS.md "Changing the map"): the 2D kinds redraw terrain from the battle every frame. The 3D kinds draw the ground as one mesh; each frame
+the terrain of every square is compared with what the mesh was built from, and **the whole ground mesh is rebuilt** when one differs (not just the changed
+squares: the renderer has no partial update). Elevations are fixed at the start of the battle, so a map change never changes a height.
+
 ## 3D isometric (`"view": "isometric-3d"`)
 
 The picture of the 2D isometric view, made from real blocks by a camera

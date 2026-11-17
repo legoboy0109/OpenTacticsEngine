@@ -205,10 +205,22 @@ Decisions where the contract was silent, and the few deviations:
   fog (`battle.seenKinds: this battle has no fog of war`), and each entry must be a kind with the footprint of the
   structure's map kind and reachable from it through upgrades (the same checks as a structure's own `type`).
   A fog battle where a staff's `light` still lasts (docs/SRPG.md section 8, stage 2) also has
-  `"lights": [ { "side": 0, "cell": 53, "radius": 2, "turns": 2 } ]`: the side that made it (an index), the centre square, the
+  `"lights": [ { "side": 0, "cell": 53, "radius": 2, "turns": 2 } ]` (a torch item makes the same light): the side that made it (an index), the centre square, the
   radius (1 to 10) and the turns of that side's turns left (1 to 10). Written only when there is a light (so every other save is byte
   for byte what it was), optional when reading (absent = none; an old save loads), refused without fog (`battle.lights: this battle
   has no fog of war`); each entry's side, square, radius and turns are checked with a path in the message.
+  **Map changes** (docs/EVENTS.md "Changing the map", docs/ECONOMY.md "Fog options"): a battle where a story command changed the map or switched fog or vision
+  also has `"mapState": { "terrain": [[square, terrain], ...], "applied": [ { "change": "bridge", "before": [terrain, ...], "kinds": [kind, ...] } ],
+  "fog": true | false, "fogVision": n }`, each member only when it differs from the start of the battle: `terrain` lists every square whose terrain
+  is not what the map placed (square number, terrain index; heights never change), `applied` the named changes applied and not reverted, in order, with
+  the terrain each of the change's squares held before (one per square, in the change's order) and, when the change turns structures into other kinds, the
+  kind each had (`kinds`; structures' present kinds are saved as always, `type`), `fog` the fog state when a story command switched it, `fogVision` the vision
+  adjustment when it is not the map's. Reading refuses (with a path such as `battle.mapState.applied[0].change`) an unknown key, a square or terrain that
+  does not exist, a square listed twice, a change the map does not have or applied twice, a `before` / `kinds` list of the wrong length or with a number that
+  is no terrain / kind, `kinds` for a change with no structure, and `applied` on a map with no changes. A structure's `type` may be any kind its map's changes
+  name for it (besides what upgrades and doors allow). Written only when something differs, so a battle that never changed the map saves byte for byte as
+  before; old saves load. `seenOwners` follows `fog` (a battle where the story lifted the fog has none, one where it came down has them; `lights` are dropped
+  when it lifts).
   Games and maps without fog write and read exactly what they did before (the pinned demo hash and save
   bytes are unchanged); the map's `fog` key and the new unit, terrain and structure keys are part of the data
   hash like any other rule data (those files are hashed whole).

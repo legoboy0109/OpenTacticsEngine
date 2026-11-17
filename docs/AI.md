@@ -103,11 +103,20 @@ still wins, and an attack the AI would not make anyway is not made. Works with e
 - **Conditions** (docs/SRPG.md section 9): a unit that cannot act or move is stopped by the rules as ever. A **berserk** unit takes its own action at the start of its
   turn and ignores its behaviour completely (a `hold` unit that goes berserk walks to the nearest unit and strikes it). Sleeping guards and sleeping
   conditions are different things: a unit can be both.
-- **Fog**: every check (waking, `seek` of a hostile unit, `prefer`) reads only what the unit's team sees.
+- **Fog**: every check (waking, `seek` of a hostile unit, `prefer`) reads only what the unit's team sees. A computer side is bound by fog by default; the map's
+  or the side's `aiSeesAll` (docs/ECONOMY.md "Fog options") makes it see everything.
 - **Carrying / rescue** (docs/SRPG.md section 5): the AI never rescues, and a carried unit is off the board: nothing changes.
 - **Summons and reinforcements**: a unit made by a summon or by production (economy games) has the default behaviour. A unit added by `addUnit` takes the same
   `behaviour` key as a map unit.
 - **Groups across sides**: a group is per side.
+
+### Walls
+
+A unit marked `"goesFor": ["walls"]` (docs/SRPG.md section 10, "Walls that break"; default off, so every unmarked unit plays exactly as before) attacks a breakable
+door (hit points, `by` allows breaking) **only when no enemy can be reached at all** by its move type, i.e. a closed door is in the way: from a square it can stop on
+that is in range it hits with the weapon that does the most damage (score 150 minus half the travel, like opening a door); otherwise it walks toward the
+nearest square from which it could (score about 120). It never breaks a door while an enemy can be reached, and an unmarked unit never touches one. A door opening
+runs the map's `place` events like any other opening (so a wall that turns into rubble does it for the computer's attack too). Code: `ai/ai_walls.cpp`.
 
 ### Story commands
 
