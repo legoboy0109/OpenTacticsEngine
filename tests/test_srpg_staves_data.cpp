@@ -2,6 +2,7 @@
 // formula and the words of the reasons. Game: tests/fixtures/srpg-staves (clinic map).
 #include <algorithm>
 
+#include "sound/audio_data.h"
 #include "srpg_staves_fixture.h"
 
 using namespace ote;
@@ -86,6 +87,32 @@ TEST(staves_loader_refusals_name_the_file_the_item_and_the_key) {
   Copy noChars("staves_l26", "srpg-staves");
   noChars.drop("data/characters.json");
   CHECK(saysIn(noChars.gameError(), "item \"kin_staff\": \"wieldedBy\" is given but this game has no characters (data/characters.json)"));
+}
+
+// "sounds": { "use": ... } is the same key as on a usable item (docs/SOUND.md): the core loader lets it through, the player's audio loader reads it.
+TEST(staves_a_staff_accepts_the_sounds_key_like_a_usable_item) {
+  const char* audio = R"({ "sounds": { "chime": { "file": "audio/chime.wav" } }, "use": {} })";
+  Copy c("staves_sounds", "srpg-staves");
+  c.swap("data/items.json", "\"xp\": 15 },", "\"xp\": 15, \"sounds\": { \"use\": \"chime\" } },");
+  c.put("data/audio.json", audio);
+  CHECK_STR(c.gameError(), "");
+  Database db;
+  std::string err;
+  CHECK(loadGame(c.dir, db, err));
+  AudioData d;
+  CHECK(loadAudioFile(c.dir, d, err));
+  CHECK(loadAudioOverrides(db, d, err));
+  CHECK_EQ(d.items[(size_t)db.findItem("mend_staff")].sound[(int)Cue::ItemUse], d.findSound("chime"));
+  CHECK_EQ(d.items[(size_t)db.findItem("rally_staff")].sound[(int)Cue::ItemUse], kNone);  // the others keep the game's sound
+  // A sound the game does not have is refused with the item named.
+  Copy bad("staves_sounds_bad", "srpg-staves");
+  bad.swap("data/items.json", "\"xp\": 15 },", "\"xp\": 15, \"sounds\": { \"use\": \"nope\" } },");
+  bad.put("data/audio.json", audio);
+  Database db2;
+  CHECK(loadGame(bad.dir, db2, err));
+  AudioData d2;
+  CHECK(loadAudioFile(bad.dir, d2, err));
+  CHECK(!loadAudioOverrides(db2, d2, err) && saysIn(err, "\"use\" names unknown sound \"nope\""));
 }
 
 TEST(staves_a_class_lists_the_staff_group_to_wield_it) {
