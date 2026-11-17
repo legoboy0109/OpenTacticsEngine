@@ -195,6 +195,7 @@ void BattleScene::followCamera(double dt) {
 
 void BattleScene::update(double dt) {
   time_ += (float)dt;
+  host_.gameAudio().music().prep(prep_ != nullptr);  // the preparation screen's music (docs/SOUND.md "Music by situation")
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);

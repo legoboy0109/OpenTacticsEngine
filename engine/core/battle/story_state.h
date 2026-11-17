@@ -31,6 +31,9 @@ struct StoryState {
   std::string background, weather;
   bool faded = false;
   uint32_t fadeColor = 0;
+  // Phase-music overrides set by setPhaseMusic (docs/SOUND.md "Music by situation"): side id -> music id ("" = no phase music for
+  // that side). Presentation only, kept so a resumed battle plays the same music; saved only when not empty.
+  std::vector<std::pair<std::string, std::string>> phaseMusic;
 };
 
 // Something that happened which events can be waiting for.

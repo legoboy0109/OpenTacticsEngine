@@ -39,7 +39,9 @@ bool cosmeticKey(const std::string& k) {
          // The short map marker text of a condition (data/conditions.json "tag").
          k == "tag" ||
          // Sound (docs/SOUND.md) is presentation, like graphics.json: which sound or track plays never changes a rule.
-         k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic";
+         k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic" ||
+         // Music by situation (docs/SOUND.md): a map's side-by-side phase music, its few-enemies track and its preparation music.
+         k == "phaseMusic" || k == "fewEnemies" || k == "prepMusic";
 }
 
 // Wording of story events (docs/EVENTS.md): what is said and how things are labelled. Like names,

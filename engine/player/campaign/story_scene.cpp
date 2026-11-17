@@ -265,6 +265,7 @@ void StoryScene::update(double dt) {
     entered_ = true;
     for (const SceneLine& l : queued_) playAudio(l);
     queued_.clear();
+    if (onCard_) host_.gameAudio().music().jingle(MusicDirector::Jingle::ChapterCard);  // the chapter title card's jingle (docs/SOUND.md)
   }
   if (finished_) return;
   stage_.update(dt);

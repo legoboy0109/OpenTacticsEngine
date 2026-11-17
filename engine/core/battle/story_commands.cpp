@@ -326,6 +326,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::Scene:  // docs/EVENTS.md "Scene presentation" (story_scene_fx.cpp)
       storyScene(c, events);
       break;
+    case K::SetPhaseMusic: storyPhaseMusic(c, events); break;  // story_music.cpp
   }
 }
 

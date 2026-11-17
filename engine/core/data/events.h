@@ -123,7 +123,8 @@ struct Command {
     SetTerrain, ApplyChange, RevertChange, SetFog, SetVision,
     Scene,  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
     // docs/EVENTS.md "Sending a unit's items to storage": every item except those in `keep` goes from each existing human-side unit matching `filter` to its side's storage.
-    StoreItems
+    StoreItems,
+    SetPhaseMusic  // docs/SOUND.md "Music by situation": `side` = the side, `text` = the music id (-1 = clear the override; "" = no phase music)
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -150,6 +151,9 @@ struct Command {
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
   SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };
+
+// MusicChanged entry flag: a setPhaseMusic override (docs/SOUND.md "Music by situation"), not a playMusic / stopMusic.
+enum : int { kMusicPhase = 1 };
 
 // What a Place command does.
 enum : int { kPlaceCmdOpenDoor = 0, kPlaceCmdCloseDoor = 1, kPlaceCmdLockDoor = 2, kPlaceCmdUnlockDoor = 3, kPlaceCmdOpenChest = 4 };

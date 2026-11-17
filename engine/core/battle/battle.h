@@ -72,7 +72,8 @@ enum class EventType {
   MoveBlocked,        // a=unit, b=the unit in the way, c=square the unit stopped on, d=square the enemy stands on
   // Sound (docs/SOUND.md), from the story commands playMusic / stopMusic / playSound. Presentation only; the ids are
   // opaque text (Battle::storyText), only the player knows what they name.
-  MusicChanged,       // a=text index of the track id (-1 = the story stopped the music), b=fade in milliseconds
+  MusicChanged,       // a=text index of the track id (-1 = the story stopped the music), b=fade in milliseconds;
+                      // flags kMusicPhase: a setPhaseMusic override: a=text index of the music (-1 = cleared), c=side
   SoundRequested,     // a=text index of the sound id
   // Strategy-RPG features (docs/SRPG.md "Events"). "skill" / "ability" are indices into db->skills / db->abilities.
   SkillLearned,       // a=unit, b=skill
@@ -762,6 +763,7 @@ class Battle {
   void storyScene(const Command& c, std::vector<Event>& events);
   bool storyWalkPath(int unit, Cell from, Cell to, std::vector<int>& path) const;
   void endStoryRun(std::vector<Event>& events);
+  void storyPhaseMusic(const Command& c, std::vector<Event>& events);  // story_music.cpp
   Cell nearestFreeCell(Cell target, int moveType) const;
   // objectives.cpp
   bool objectiveHolds(const ObjectiveRule& r, bool win) const;

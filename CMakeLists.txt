@@ -72,6 +72,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
        engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp
        engine/player/battle/rescue_menu.cpp engine/player/battle/support_text.cpp)
   target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
+  target_sources(ote_tests PRIVATE engine/player/battle/battle_music.cpp)  # what the music director is told at a turn start (docs/SOUND.md)
   target_sources(ote_tests PRIVATE engine/player/battle/promotion_text.cpp)  # step U2: what a promotion gives, as text
   target_sources(ote_tests PRIVATE engine/player/battle/rank_text.cpp)  # weapon ranks and stat caps in words (docs/SRPG.md section 7)
   target_sources(ote_tests PRIVATE engine/player/battle/staff_text.cpp)  # staves in words (docs/SRPG.md section 8)

@@ -45,6 +45,10 @@ struct CueSet {
 // The music a map file asks for: indices into AudioData::music, kNone / kSilent as above.
 struct MapMusic {
   int music = kNone, playerTurn = kNone, enemyTurn = kNone;
+  // Music by situation (docs/SOUND.md "Music by situation"): a phase's music per side id ("" = none on this map: kSilent),
+  // the few-enemies track and the count it applies at (few = kNone: the game's), and the preparation screen's music.
+  std::vector<std::pair<std::string, int>> phase;
+  int few = kNone, fewCount = 0, prep = kNone;
 };
 
 struct AudioData {
@@ -54,6 +58,11 @@ struct AudioData {
   // `use`: indices into `music`, -1 = none
   int titleMusic = -1, mapMusic = -1, playerTurnMusic = -1, enemyTurnMusic = -1, sceneMusic = -1;
   int victory = -1, defeat = -1, levelUp = -1;
+  // Music by situation: a phase's music per side id, the few-enemies track (while the hostile units left are at most fewCount
+  // at the start of a human side's phase), the preparation screen's music, and two more jingles.
+  std::vector<std::pair<std::string, int>> phaseMusic;
+  int fewMusic = -1, fewCount = 0;
+  int prepMusic = -1, promotion = -1, chapterCard = -1;
   CueSet standard;
   // Overrides, by index into db.weapons / db.unitTypes / db.items / db.maps (empty until loadAudioOverrides).
   std::vector<CueSet> weapons, units, items;

@@ -26,15 +26,43 @@ int MusicDirector::wanted(bool& keep) const {
       return -1;
     case SceneAudio::Battle: {
       if (storyAsked_) return storyTrack_;
-      // The turn phase's music: the map's own first, then the game's; "" on the map = no phase music there.
       const MapMusic mm = map_ >= 0 && (size_t)map_ < data_->maps.size() ? data_->maps[(size_t)map_] : MapMusic();
-      const int phaseMap = enemy_ ? mm.enemyTurn : mm.playerTurn;
-      const int phase = phaseMap != kNone ? phaseMap : enemy_ ? data_->enemyTurnMusic : data_->playerTurnMusic;
+      if (prep_) {  // the preparation screen: the map's, else the game's; none = the battle's own music goes on
+        const int p = mm.prep != kNone ? mm.prep : data_->prepMusic;
+        if (p >= 0) return p;
+      }
+      // The turn phase's music, most specific first: what setPhaseMusic set for this side, the few-enemies track, the map's /
+      // game's music for this side, the map's / game's player or enemy turn music. "" anywhere = no phase music there.
+      int phase = phaseTrack();
       if (phase >= 0) return phase;
       return mm.music != kNone ? (mm.music >= 0 ? mm.music : -1) : data_->mapMusic;
     }
   }
   return -1;
+}
+
+// The few-enemies track: the map's, else the game's (the map's "" turns it off there).
+int MusicDirector::fewTrack() const {
+  const MapMusic mm = map_ >= 0 && (size_t)map_ < data_->maps.size() ? data_->maps[(size_t)map_] : MapMusic();
+  if (mm.few == kSilent) return -1;
+  return mm.few != kNone ? mm.few : data_->fewMusic;
+}
+
+int MusicDirector::phaseTrack() const {
+  const MapMusic mm = map_ >= 0 && (size_t)map_ < data_->maps.size() ? data_->maps[(size_t)map_] : MapMusic();
+  for (const auto& o : overrides_)
+    if (o.first == side_) return o.second >= 0 ? o.second : -1;  // setPhaseMusic: "" = no phase music, nothing below applies
+  if (few_) {
+    const int f = fewTrack();
+    if (f >= 0) return f;
+  }
+  for (const auto& p : mm.phase)
+    if (p.first == side_) return p.second >= 0 ? p.second : -1;
+  for (const auto& p : data_->phaseMusic)
+    if (p.first == side_) return p.second;
+  const int phaseMap = enemy_ ? mm.enemyTurn : mm.playerTurn;
+  const int phase = phaseMap != kNone ? phaseMap : enemy_ ? data_->enemyTurnMusic : data_->playerTurnMusic;
+  return phase >= 0 ? phase : -1;
 }
 
 void MusicDirector::settle(int fadeMs) {
@@ -75,6 +103,10 @@ void MusicDirector::enter(const SceneAudio& scene) {
   kind_ = scene.kind;
   map_ = scene.map;
   enemy_ = scene.kind == SceneAudio::Battle && scene.enemyTurn;
+  side_ = scene.kind == SceneAudio::Battle ? scene.phaseSide : std::string();
+  few_ = false;
+  prep_ = false;
+  overrides_.clear();
   locked_ = false;
   storyAsked_ = false;
   storyTrack_ = -1;
@@ -84,12 +116,62 @@ void MusicDirector::enter(const SceneAudio& scene) {
     if (!scene.storyMusic.empty() && storyTrack_ < 0)
       OTE_WARN("audio: the story asked for unknown music '%s'", scene.storyMusic.c_str());
   }
+  if (kind_ == SceneAudio::Battle && data_) {
+    for (const auto& o : scene.overrides) {
+      int t = o.second.empty() ? kSilent : data_->findMusic(o.second);
+      if (t == -1) OTE_WARN("audio: the story asked for unknown phase music '%s'", o.second.c_str());
+      else overrides_.push_back(std::make_pair(o.first, t));
+    }
+    if (!enemy_ && scene.hostiles >= 0) few_ = fewTrack() >= 0 && scene.hostiles <= fewCount();
+  }
   settle();
 }
 
+int MusicDirector::fewCount() const {
+  const MapMusic mm = map_ >= 0 && (size_t)map_ < data_->maps.size() ? data_->maps[(size_t)map_] : MapMusic();
+  return mm.few != kNone ? mm.fewCount : data_->fewCount;
+}
+
 void MusicDirector::turnPhase(bool enemy) {
-  if (kind_ != SceneAudio::Battle || enemy == enemy_) return;
-  enemy_ = enemy;
+  PhaseInfo p;
+  p.ai = enemy;
+  p.side = side_;
+  p.hostiles = -1;
+  turnPhase(p);
+}
+
+// A turn starts. The few-enemies decision is made here and stays for the whole phase (it never switches mid-phase).
+void MusicDirector::turnPhase(const PhaseInfo& phase) {
+  if (kind_ != SceneAudio::Battle || !data_) return;
+  const bool few = !phase.ai && phase.hostiles >= 0 && fewTrack() >= 0 && phase.hostiles <= fewCount();
+  if (phase.ai == enemy_ && phase.side == side_ && few == few_) return;
+  enemy_ = phase.ai;
+  side_ = phase.side;
+  few_ = few;
+  settle();
+}
+
+void MusicDirector::phaseOverride(const std::string& side, const std::string& id, bool clear) {
+  if (kind_ != SceneAudio::Battle || !data_) return;
+  for (size_t i = 0; i < overrides_.size(); ++i)
+    if (overrides_[i].first == side) {
+      overrides_.erase(overrides_.begin() + (long)i);
+      break;
+    }
+  if (!clear) {
+    const int t = id.empty() ? kSilent : data_->findMusic(id);
+    if (t == -1) {  // the game loader refuses unknown ids; only reachable when audio.json was not loaded
+      OTE_WARN("audio: the story asked for unknown phase music '%s'", id.c_str());
+      return;
+    }
+    overrides_.push_back(std::make_pair(side, t));
+  }
+  if (side == side_) settle();  // it is that side's phase now: the music changes at once; otherwise at the side's next phase
+}
+
+void MusicDirector::prep(bool open) {
+  if (kind_ != SceneAudio::Battle || open == prep_) return;
+  prep_ = open;
   settle();
 }
 
@@ -110,14 +192,15 @@ void MusicDirector::story(const std::string& id, int fadeMs) {
 
 void MusicDirector::jingle(Jingle which) {
   if (!audio_ || !data_) return;
-  const int track = which == Jingle::Victory ? data_->victory : which == Jingle::Defeat ? data_->defeat : data_->levelUp;
+  const int track = which == Jingle::Victory ? data_->victory : which == Jingle::Defeat ? data_->defeat
+                    : which == Jingle::LevelUp ? data_->levelUp : which == Jingle::Promotion ? data_->promotion : data_->chapterCard;
   if (track < 0 || (bank_ && !bank_->musicFileOk(track))) return;
   const MusicDef& m = data_->music[(size_t)track];
   MusicParams p;
   p.loop = false;
   p.loopStartSeconds = 0;
   p.volume = (float)m.volume / 100.0f;
-  if (which == Jingle::LevelUp) {
+  if (which == Jingle::LevelUp || which == Jingle::Promotion || which == Jingle::ChapterCard) {
     p.pauseCurrent = true;  // the track under it resumes when the jingle ends; playing_ stays that track
     p.fadeSeconds = 0;
   } else {
@@ -135,6 +218,9 @@ void MusicDirector::stop() {
   kind_ = SceneAudio::Silent;
   map_ = -1;
   enemy_ = false;
+  side_.clear();
+  few_ = prep_ = false;
+  overrides_.clear();
   storyAsked_ = false;
   storyTrack_ = -1;
   locked_ = false;
