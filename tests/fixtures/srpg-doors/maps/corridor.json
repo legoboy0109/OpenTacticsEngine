@@ -1,0 +1,7 @@
+{ "name": "Corridor", "grid": { "type": "square", "width": 9, "height": 3 }, "legend": { ".": "plain", "w": "wall" },
+  "tiles": [ "....w....", ".........", "....w...." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [ { "type": "cell_door", "x": 4, "y": 1, "id": "d1" } ],
+  "units": [
+    { "type": "fighter", "id": "lord", "name": "Lord", "side": "blue", "x": 7, "y": 1, "leader": true, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "side": "red", "x": 1, "y": 1, "items": ["iron_sword", "brass_key"], "goesFor": ["doors"] } ] }

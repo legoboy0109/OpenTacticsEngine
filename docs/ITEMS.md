@@ -183,6 +183,14 @@ optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and s
 A staff's `repair` skips an item with `"repairable": false` (a key of any item that has `uses`; default true) and items with unlimited uses. It is not a `usable` item: the Items
 screen offers no Use for it; the action menu has a Staff entry.
 
+## Keys
+
+A usable item with `"opens": ["door"]`, `["chest"]`, both and/or structure kind ids (`["strongbox"]`) is a **key**: used next to a locked door or chest
+(the unit's menu: Open; with several fitting keys the first is the default), it opens it and spends one of its `uses` (it breaks at 0; no `uses` =
+unlimited). A structure kind may list the `"keys"` that fit it. A chest's contents go to the opener's inventory, else the shared storage; with neither the
+chest stays shut until the unit drops something. Specified in docs/SRPG.md section 10 "Doors, keys, chests and visiting". The staff effect `unlock`
+and the thief's unlock ability are described there too.
+
 ## Status conditions
 
 A usable item can **cure** conditions (`"cure": ["poison"]` or `"cure": "all"`) and/or **inflict** one on the unit it is used on (`"inflict": { "condition":

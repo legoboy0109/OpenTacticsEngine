@@ -65,6 +65,10 @@ class StoryLoader {
   bool supportCommand(const Json& e, const std::string& at, Command& out);             // loader_supports.cpp: addSupport
   bool supportCondition(const Json& e, const std::string& at, Condition& out) const;   // loader_supports.cpp
   bool supportTrigger(const Json& w, const std::string& at, Trigger& out);             // loader_supports.cpp
+  // Doors, chests and places (docs/SRPG.md section 10), loader_places_story.cpp: the "place" trigger and the commands openDoor,
+  // closeDoor, lockDoor, unlockDoor, openChest (`kind` = the command's key).
+  bool placeTrigger(const Json& w, const std::string& at, Trigger& out);
+  bool placeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);

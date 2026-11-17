@@ -35,6 +35,8 @@ std::string staffEffectText(const Database& db, const ItemDef& item) {
       case StaffEffect::Kind::Swap: return "Swaps places";
       case StaffEffect::Kind::Repair: return fx.amount == StaffEffect::Amount::Full ? "Repairs an item fully" : "Repairs " + intStr(fx.value) + " uses";
       case StaffEffect::Kind::Light: return "Lights an area";
+      case StaffEffect::Kind::Unlock:  // docs/SRPG.md section 10 (placeholder wording)
+        return fx.unlockDoors && fx.unlockChests ? "Opens a door or chest" : fx.unlockDoors ? "Opens a door" : "Opens a chest";
       case StaffEffect::Kind::Inflict: return "Inflicts " + conditionName(db, fx.conds.empty() ? -1 : fx.conds[0]);
       case StaffEffect::Kind::Cure: {
         if (fx.cureAll) return "Cures every condition";

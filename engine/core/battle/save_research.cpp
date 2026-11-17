@@ -94,12 +94,22 @@ bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, c
   std::vector<char> seen(db.structures.size(), 0);
   std::vector<int> todo(1, mapType);
   seen[(size_t)mapType] = 1;
-  for (size_t i = 0; i < todo.size(); ++i)
-    for (const UpgradeDef& up : db.structures[(size_t)todo[i]].upgrades)
-      if (!seen[(size_t)up.to]) {
-        seen[(size_t)up.to] = 1;
-        todo.push_back(up.to);
-      }
+  auto add = [&](int k) {
+    if (k >= 0 && !seen[(size_t)k]) {
+      seen[(size_t)k] = 1;
+      todo.push_back(k);
+    }
+  };
+  for (size_t i = 0; i < todo.size(); ++i) {
+    const StructureDef& from = db.structures[(size_t)todo[i]];
+    for (const UpgradeDef& up : from.upgrades) add(up.to);
+    // Doors, chests and places (docs/SRPG.md section 10): what opening, visiting and destroying turn them into, and the shut door
+    // that a story command (closeDoor) turns an open one back into.
+    add(from.place.to);
+    add(from.place.destroyedTo);
+    for (size_t k = 0; k < db.structures.size(); ++k)
+      if (db.structures[k].place.isDoor() && db.structures[k].place.to == todo[i]) add((int)k);
+  }
   if (!seen[(size_t)type]) return rd.fail(at, "\"" + now.id + "\" cannot be reached from \"" + base.id + "\" by upgrades");
   return true;
 }

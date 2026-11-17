@@ -1,0 +1,11 @@
+{ "name": "Gatehouse in fog", "fog": true, "grid": { "type": "square", "width": 10, "height": 5 }, "legend": { ".": "plain", "w": "wall" },
+  "tiles": [ "..........", "..........", "wwww..wwww", "..........", ".........." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [ { "type": "gate", "x": 4, "y": 2, "id": "g1" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 4, "y": 3, "leader": true, "items": ["iron_sword", "master_key"] },
+    { "type": "fighter", "id": "brute", "name": "Brute", "side": "blue", "x": 5, "y": 3, "items": ["heavy_axe"] },
+    { "type": "thief", "id": "sneak", "name": "Sneak", "side": "blue", "x": 7, "y": 3, "items": ["iron_sword"] },
+    { "type": "mystic", "id": "sage", "name": "Sage", "side": "blue", "x": 2, "y": 4, "items": ["unlock_staff", "wild_staff"] },
+    { "type": "raider", "id": "r1", "side": "red", "x": 5, "y": 0, "items": ["iron_sword"] } ],
+  "events": [ { "id": "e_gate", "when": { "place": "g1", "is": "opened" }, "do": [ { "setSwitch": "opened", "to": true } ] } ] }

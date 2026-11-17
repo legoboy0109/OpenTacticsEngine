@@ -17,6 +17,7 @@
 #include "core/base/rng.h"
 #include "core/base/types.h"
 #include "core/battle/carried.h"
+#include "core/battle/places_state.h"
 #include "core/battle/srpg_state.h"
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
@@ -102,6 +103,14 @@ enum class EventType {
   ConditionResisted,
   // a=unit, b=condition, c=what: kTickActsAlone (berserk, its own action follows), kTickCannotAct (its turn is skipped)
   ConditionTick,
+  // Doors, chests and visiting (docs/SRPG.md section 10). "structure" = an index into Battle::structures; "how" is one of kOpen*.
+  DoorOpened,       // a=structure, b=the unit that did it (-1 = a story command), c=how, d=the kind it was (index into db->structures)
+  DoorClosed,       // a=structure, b=the kind it was, c=the kind it is now, flags=kLocked when it was locked as well
+  ChestOpened,      // a=structure, b=unit (-1 = story), c=how, d=the kind it was; the contents follow as ItemGained / ResourceChanged (flags kLooted)
+  PlaceHit,         // a=unit, b=structure, c=weapon, d=damage, flags=kKill when the door broke (then DoorOpened follows)
+  PlaceVisited,     // a=structure, b=unit, c=the kind it was
+  PlaceDestroyed,   // a=structure, b=unit, c=the kind it was
+  PlaceUnlocked,    // a=structure, b=unit (-1 = story): a story command took the lock off, the door stays shut
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -110,8 +119,12 @@ enum : int {
   kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32,
   // docs/SRPG.md: Attack may carry kSurvived; the others belong to the new entries above.
   kSurvived = 64, kBlocked = 128, kPaired = 256, kForced = 512, kReady = 1024,
-  kRefreshed = 2048  // ConditionApplied: the unit had it already, its duration starts over
+  kRefreshed = 2048,  // ConditionApplied: the unit had it already, its duration starts over
+  kLooted = 4096,     // ItemGained / ResourceChanged: it came out of a chest (docs/SRPG.md section 10)
+  kLocked = 8192      // DoorClosed: the story locked it as well
 };
+// How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
+enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
 enum : int { kConditionRanOut = 0, kConditionWoreOff = 1, kConditionCured = 2, kConditionReplaced = 3, kConditionStruck = 4 };
 enum : int { kTickActsAlone = 1, kTickCannotAct = 2 };
 
@@ -178,6 +191,8 @@ struct Unit {
   std::vector<int> weaponXp;
   // Conditions (docs/SRPG.md section 9), in the order they were applied; empty in a game without conditions.
   std::vector<ConditionState> conditions;
+  // Computer opponent (docs/SRPG.md section 10): what it goes for (kAiChests | kAiPlaces | kAiDoors); 0 = ignores them. Saved when not 0.
+  int aiGoals = 0;
 };
 
 struct CellState {
@@ -194,6 +209,14 @@ struct StructureState {
   int owner = -1;     // side index, -1 neutral
   int capture = 0;    // capture points remaining
   int capturer = -1;  // unit currently capturing; progress resets if it leaves the structure
+  // Doors, chests and visitable places (docs/SRPG.md section 10); at these defaults for any other structure.
+  std::string id;               // the map's story id for it ("" = none); fixed, never saved
+  int hp = -1;                  // a door that can be attacked: hit points left; -1 = none
+  bool locked = false;          // a door / chest: shut and needs its key (or trait, or story)
+  bool used = false;            // a place that was visited (and cannot be again)
+  std::vector<PlaceLoot> loot;  // a chest's contents; empty once opened
+  std::vector<int> visitSides;  // who may visit (see Battle::visitAllowed); empty = the rule of the owner
+  std::vector<std::string> visitUnits;
 };
 
 struct SideState {
@@ -234,7 +257,12 @@ enum class ActionType {
   PairUp,      // pair up: `unit` leaves the board and stands behind `target`; ends its turn
   SwitchPair,  // pair up: the unit behind `unit` comes forward; free
   Support,     // `unit` has its ready support conversation with `target`; free
-  UseStaff     // `unit` uses the staff in inventory `slot` on `target` (docs/SRPG.md section 8); ends its turn
+  UseStaff,    // `unit` uses the staff in inventory `slot` on `target` (docs/SRPG.md section 8); ends its turn
+  // Doors, chests and visiting (docs/SRPG.md section 10). `structure` is the index in Battle::structures. They end the unit's turn
+  // (like Attack) unless the game's "rules.places" says the actions are automatic.
+  OpenPlace,   // `unit` opens a door or chest; `slot` = the inventory slot of the key (-1 = it needs none: not locked)
+  VisitPlace,  // `unit` visits the place, or destroys it when it may not visit
+  BreakPlace   // `unit` attacks the door with weapon `weapon` (index into db->weapons)
 };
 
 struct Action {
@@ -294,6 +322,14 @@ struct Action {
   // `cell`, a light's square too (target -1), and a repair's item in `itemSlot` (docs/SRPG.md section 8, stage 2).
   static Action useStaff(int unit, int slot, int target, Cell cell = kNoCell, int itemSlot = -1) {
     Action a = unitAction(ActionType::UseStaff, unit, target, cell); a.slot = slot; a.itemSlot = itemSlot; return a;
+  }
+  // Doors, chests, visiting (docs/SRPG.md section 10).
+  static Action openPlace(int unit, int structure, int keySlot = -1) {
+    Action a = unitAction(ActionType::OpenPlace, unit); a.structure = structure; a.slot = keySlot; return a;
+  }
+  static Action visitPlace(int unit, int structure) { Action a = unitAction(ActionType::VisitPlace, unit); a.structure = structure; return a; }
+  static Action breakPlace(int unit, int structure, int weapon) {
+    Action a = unitAction(ActionType::BreakPlace, unit); a.structure = structure; a.weapon = weapon; return a;
   }
 };
 
@@ -586,6 +622,7 @@ class Battle {
 
   // ---- strategy-RPG features: public queries (docs/SRPG.md). Later steps append there, not here. ----
 #include "core/battle/srpg_api.h"
+#include "core/battle/places_api.h"
 
  private:
   // combat.cpp
@@ -679,6 +716,7 @@ class Battle {
 
   // ---- strategy-RPG features: hooks and private functions (docs/SRPG.md). Later steps append there, not here. ----
 #include "core/battle/srpg_internal.h"
+#include "core/battle/places_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

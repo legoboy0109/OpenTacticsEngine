@@ -160,6 +160,17 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
       return unitTeam(e.b) | cellSeenBy(e.c);
     case EventType::PairSwitched:
       return unitTeam(e.a) | cellSeenBy(e.c);
+    // Doors, chests and visiting (docs/SRPG.md section 10): the teams that see the structure, and the one that did it.
+    case EventType::DoorOpened:
+    case EventType::ChestOpened:
+    case EventType::PlaceVisited:
+    case EventType::PlaceDestroyed:
+    case EventType::PlaceUnlocked:
+      return footprintSeenBy(e.a) | unitTeam(e.b);
+    case EventType::DoorClosed:
+      return footprintSeenBy(e.a);
+    case EventType::PlaceHit:
+      return unitSeenBy(e.a) | footprintSeenBy(e.b);
   }
   return kSeenByAll;
 }

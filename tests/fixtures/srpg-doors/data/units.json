@@ -1,0 +1,11 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 24, "str": 7, "def": 3, "mag": 0, "mov": 5 }, "wields": ["sword"] },
+  { "id": "thief", "name": "Thief", "glyph": "T", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 18, "str": 4, "def": 1, "mag": 0, "mov": 6 }, "wields": ["sword"], "abilities": ["pick"] },
+  { "id": "tinker", "name": "Tinker", "glyph": "K", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 18, "str": 3, "def": 1, "mag": 0, "mov": 5 }, "wields": ["sword"], "abilities": ["deft"] },
+  { "id": "mystic", "name": "Mystic", "glyph": "M", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 18, "str": 2, "def": 2, "mag": 6, "mov": 4 }, "wields": ["staff"], "weapons": ["stick"] },
+  { "id": "raider", "name": "Raider", "glyph": "R", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 22, "str": 6, "def": 2, "mag": 0, "mov": 5 }, "wields": ["sword"] } ] }

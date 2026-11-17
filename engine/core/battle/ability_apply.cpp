@@ -11,6 +11,10 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
   const int uid = action.unit;
   const int ability = action.ability;
   const AbilityDef& def = db->abilities[(size_t)ability];  // validated
+  if (def.effect == AbilityEffect::Unlock) {  // opens a door or chest (places_unlock.cpp)
+    applyUnlockAbility(action, events);
+    return;
+  }
   const int team = teamOf(units[(size_t)uid]);
   const bool onCell = def.target == AbilityTarget::Cell;
   const int target = def.target == AbilityTarget::Self ? uid : onCell ? -1 : action.target;
@@ -40,6 +44,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
       blocked = plan.blocker >= 0;
       break;
     case AbilityEffect::Heal: break;
+    case AbilityEffect::Unlock: break;
   }
   if (blocked) {
     used.flags = kBlocked;

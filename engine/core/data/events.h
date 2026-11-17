@@ -44,11 +44,16 @@ struct Condition {
   UnitFilter filter;  // Alive, Dead, Carries, Sees
 };
 
+// What a Place trigger waits for (and what a Place occurrence reports).
+enum : int { kPlaceOpened = 0, kPlaceVisited = 1, kPlaceDestroyed = 2 };
+
 struct Trigger {
   enum class Kind {
     BattleStart, BattleWon, BattleLost, BattleEnd, Turn, Reach, Defeated, Fight, Talk,
     // docs/SRPG.md: Promoted = a unit matching `who` promoted; Support = support pair `pair` gained `level`.
-    Promoted, Support
+    Promoted, Support,
+    // docs/SRPG.md section 10: a door, chest or visitable place (named by `place`) was opened / visited / destroyed (`placeIs`).
+    Place
   };
   Kind kind = Kind::BattleStart;
   int pair = -1;       // Support: index into Database::supports.pairs
@@ -59,6 +64,8 @@ struct Trigger {
   UnitFilter who;      // Reach: by; Defeated: the unit; Fight: the unit
   UnitFilter other;    // Defeated: by; Fight: with
   std::string talker, talkee;  // Talk: unit ids
+  std::string place;   // Place: the structure's id (a map structure's "id")
+  int placeIs = 0;     // Place: kPlaceOpened / kPlaceVisited / kPlaceDestroyed (below)
   int label = -1;      // Talk: index into StoryData::texts
 };
 
@@ -94,12 +101,16 @@ struct Command {
     Choice,
     // docs/EVENTS.md "Taking an item away": removes one copy (`on` = every copy) of item `item` from every existing
     // unit matching `filter`; nothing for a unit that carries none.
-    TakeItem
+    TakeItem,
+    // docs/SRPG.md section 10: `place` names a structure of the map; `index` is what to do (a kPlaceCmd value); `unit` = the unit that
+    // gets a chest's contents (OpenChest; "" = the first human side's storage / funds).
+    Place
   };
   Kind kind = Kind::Say;
   // Say, Choice
   int text = -1, speakerName = -1, portrait = -1;  // indices into StoryData::texts (-1 = none); PlayMusic / PlaySound: `text` is the track / sound id
   std::string unit;      // Say: speaker unit id; MoveUnit / Focus: the unit ("" = a square)
+  std::string place;     // Place: the structure's id
   MapUnitDef newUnit;    // AddUnit
   UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem, TakeItem: which units
   int x = 0, y = 0;      // MoveUnit, Focus (a square)
@@ -116,6 +127,9 @@ struct Command {
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
 };
+
+// What a Place command does.
+enum : int { kPlaceCmdOpenDoor = 0, kPlaceCmdCloseDoor = 1, kPlaceCmdLockDoor = 2, kPlaceCmdUnlockDoor = 3, kPlaceCmdOpenChest = 4 };
 
 struct StoryEvent {
   std::string id;

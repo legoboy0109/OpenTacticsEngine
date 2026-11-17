@@ -7,6 +7,7 @@
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_staves.h"
@@ -106,6 +107,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadOptionRules(c, *rules, db)) return false;
   // Strategy-RPG features (docs/SRPG.md): "rules.rescue" and "rules.promotion", each optional.
   if (!loadRescueRules(c, *rules, db) || !loadPromotionRules(c, *rules, db)) return false;
+  if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }

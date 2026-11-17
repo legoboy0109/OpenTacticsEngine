@@ -32,11 +32,31 @@ void Battle::computeTeamSight(int team) const {
   std::vector<uint8_t>& unitSeen = sight_.unitSeen[(size_t)team];
   seen.assign(n, 0);
 
-  std::vector<Cell> area, mine;
+  // Line of sight (docs/SRPG.md section 10): squares of a kind with "blocksSight" (a closed door) hide what is behind them from a
+  // unit that looks along a straight line through them. Only worked out when the map has such a structure; the blocking squares
+  // themselves are seen.
+  std::vector<uint8_t> blocks;
+  for (size_t s = 0; s < structures.size(); ++s) {
+    if (!defOf(structures[s]).blocksSight) continue;
+    if (blocks.empty()) blocks.assign(n, 0);
+    std::vector<Cell> cellsOf;
+    structureCells((int)s, cellsOf);
+    for (Cell c : cellsOf) blocks[(size_t)c] = 1;
+  }
+  std::vector<Cell> area, mine, ray;
   for (const Unit& u : units) {
     if (!u.alive || teamOf(u) != team) continue;
     grid.within(u.cell, visionOf(u), area);
-    for (Cell c : area) seen[(size_t)c] = 1;
+    if (blocks.empty()) {
+      for (Cell c : area) seen[(size_t)c] = 1;
+    } else {
+      for (Cell c : area) {
+        grid.line(u.cell, c, ray);
+        bool clear = true;
+        for (size_t k = 1; k + 1 < ray.size() && clear; ++k) clear = !blocks[(size_t)ray[k]];
+        if (clear) seen[(size_t)c] = 1;
+      }
+    }
     mine.push_back(u.cell);
   }
   // A light a staff made (docs/SRPG.md section 8, stage 2) is extra sight on this same grid: the squares around it are seen

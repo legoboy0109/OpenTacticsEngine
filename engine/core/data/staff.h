@@ -23,7 +23,7 @@ enum class StaffArea { Single, Radius, All };
 // One entry of "effects". Stage 1: Heal. Stage 2 (docs/SRPG.md section 8): the three that move the picked unit, the one
 // that repairs an item it carries, and the one that lights a square. Later stages add kinds at the end.
 struct StaffEffect {
-  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light, Inflict, Cure };  // Inflict, Cure: stage 3 (conditions)
+  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light, Inflict, Cure, Unlock };  // Inflict, Cure: stage 3 (conditions); Unlock: doors (docs/SRPG.md section 10)
   enum class Amount { Fixed, Full, Percent, Formula };
   Kind kind = Kind::Heal;
   Amount amount = Amount::Fixed;  // Heal: any; Repair: Fixed or Full
@@ -38,6 +38,8 @@ struct StaffEffect {
   // it removes, or all of them.
   std::vector<int> conds;
   bool cureAll = false;
+  // Unlock: the kinds of structure it opens from afar (a door, a chest); the picked square is one of the structure's.
+  bool unlockDoors = false, unlockChests = false;
   bool movesUnit() const { return kind == Kind::Warp || kind == Kind::Pull || kind == Kind::Swap; }
 };
 
@@ -67,8 +69,8 @@ struct StaffDef {
     return nullptr;
   }
   bool movesUnit() const { return has(StaffEffect::Kind::Warp) || has(StaffEffect::Kind::Pull) || has(StaffEffect::Kind::Swap); }
-  // A light staff picks a SQUARE, not a unit (the loader allows it nothing else).
-  bool picksSquare() const { return has(StaffEffect::Kind::Light); }
+  // A light staff and an unlock staff pick a SQUARE, not a unit (the loader allows them nothing else).
+  bool picksSquare() const { return has(StaffEffect::Kind::Light) || has(StaffEffect::Kind::Unlock); }
 };
 
 // The plain reason a staff finds nobody in reach (a light has its own reasons, see Battle::staffOptions).
@@ -78,6 +80,7 @@ inline const char* staffNobodyWhy(const StaffDef& d) {
   if (d.has(StaffEffect::Kind::Cure)) return "nobody in reach has anything it cures";
   if (d.has(StaffEffect::Kind::Inflict)) return "nobody in reach can be affected";
   if (d.has(StaffEffect::Kind::Repair)) return "nobody in reach has an item to repair";
+  if (d.has(StaffEffect::Kind::Unlock)) return "nothing in reach can be unlocked";
   return "nobody in reach needs that";
 }
 

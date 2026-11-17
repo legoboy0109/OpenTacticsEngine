@@ -151,7 +151,7 @@ struct SkillDef {
 // ---- 4. menu abilities and summoning (data/abilities.json) ----
 
 enum class AbilityTarget { Self, Ally, Enemy, Unit, Cell };
-enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon };
+enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */ };
 
 struct SummonDef {
   std::string typeId;
@@ -174,6 +174,11 @@ struct AbilityDef {
   bool free = false;               // "cost": "free" (false = "action": ends the unit's turn)
   int uses = 0;                    // times per battle per unit; 0 = unlimited
   int cooldown = 0;                // turns of its side to wait after a use; 0 = none
+  // Unlock (the thief's trait, docs/SRPG.md section 10): which kinds of structure it opens without a key, and the optional
+  // lockpick item it needs (one use is spent each time); target is a square of the door / chest.
+  bool unlockDoors = false, unlockChests = false;
+  std::string unlockNeedsId;       // as written
+  int unlockNeeds = -1;            // index into Database::items (resolved last)
   bool afterMove = true;           // false = only before moving
   std::vector<SkillCond> conds;    // "if"; `foe` = the target unit
 };

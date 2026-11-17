@@ -5,6 +5,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/condition_text.h"
+#include "battle/place_text.h"
 #include "battle/staff_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -31,6 +32,10 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
   if (f.usesLeft >= 0) head += " " + intStr(f.usesLeft);
   lines.push_back({head, kGrey});
   for (const std::string& l : staffLightLines(f)) lines.push_back({l, kGood});
+  if (f.isUnlock && f.unlockStructure >= 0 && (size_t)f.unlockStructure < b.structures.size()) {  // docs/SRPG.md section 10
+    lines.push_back({std::string(PlaceWords::kOpens) + " " + b.defOf(b.structures[(size_t)f.unlockStructure]).name, kGood});
+    if (f.canMiss) lines.push_back({"Hit " + intStr(f.unlockHit) + "%", kText});
+  }
   for (size_t i = 0; i < f.hits.size() && i < kMaxUnits; ++i) {
     const StaffHit& h = f.hits[i];
     const Unit& u = b.units[(size_t)h.unit];
@@ -43,7 +48,7 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
     for (const std::string& l : staffMoveLines(b, f, h)) lines.push_back({l, kGood});
   }
   if (f.hits.size() > kMaxUnits) lines.push_back({"+" + intStr((int)(f.hits.size() - kMaxUnits)) + StaffWords::kMore, kGrey});
-  const std::string hit = staffHitText(f);
+  const std::string hit = f.isUnlock ? std::string() : staffHitText(f);
   if (!hit.empty()) lines.push_back({hit, kText});
   if (f.xp > 0) lines.push_back({"Exp " + intStr(f.xp), kText});
   if (f.breaks) lines.push_back({StaffWords::kBreaks, kNote});

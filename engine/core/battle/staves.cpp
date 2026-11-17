@@ -190,11 +190,12 @@ void Battle::staffOptions(int unit, Cell from, std::vector<StaffOption>& out) co
       const StaffDef& d = *staffDefOf(*db, item);
       std::vector<int> targets;
       std::vector<Cell> cells;
-      if (d.picksSquare()) staffLightCells(unit, (int)i, from, cells);
+      if (d.has(StaffEffect::Kind::Unlock)) staffUnlockCells(unit, (int)i, from, cells);
+      else if (d.picksSquare()) staffLightCells(unit, (int)i, from, cells);
       else staffTargets(unit, (int)i, from, targets);
       if (targets.empty() && cells.empty()) {
         o.ok = false;
-        o.why = !d.picksSquare() ? staffNobodyWhy(d) : !fog ? "this map has no fog of war" : "nothing in reach is hidden";
+        o.why = !d.picksSquare() || d.has(StaffEffect::Kind::Unlock) ? staffNobodyWhy(d) : !fog ? "this map has no fog of war" : "nothing in reach is hidden";
       }
     }
     out.push_back(o);
@@ -217,6 +218,18 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
   out.usesLeft = u.items[(size_t)slot].uses;
   out.breaks = out.usesLeft == 1;
   staffRange(u, item, out.minRange, out.maxRange);
+  if (d.has(StaffEffect::Kind::Unlock)) {  // doors and chests: `target` is a square of the one to open
+    std::vector<Cell> legal;
+    staffUnlockCells(unit, slot, from, legal);
+    if (std::find(legal.begin(), legal.end(), (Cell)target) == legal.end()) return false;
+    out.isUnlock = true;
+    out.needsPick = false;
+    out.unlockCell = (Cell)target;
+    out.unlockStructure = structureAt[(size_t)target];
+    if (d.canMiss()) out.unlockHit = std::max(0, std::min(100, (int)std::lround(staffEval(d.hitExpr, u, nullptr, d, from, 100))));
+    out.xp = d.xpExpr >= 0 ? whole(staffEval(d.xpExpr, u, nullptr, d, from, 0), kMaxStaffXp) : d.xp;
+    return true;
+  }
   if (d.picksSquare()) {  // a light: `target` is the square
     std::vector<Cell> legal;
     staffLightCells(unit, slot, from, legal);

@@ -1,4 +1,5 @@
 #include "core/data/loader_content.h"
+#include "core/data/loader_places.h"
 
 #include <cctype>
 
@@ -170,7 +171,11 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
 
 bool loadStructures(const std::string& path, Database& db, std::string& err) {
   db.structures.clear();
-  if (!fileExists(path)) return true;
+  if (!fileExists(path)) {
+    // No structures: a key item ("opens") then names nothing that exists, which the check says in words.
+    LoadCtx none(err, path);
+    return loadStructurePlaces(none, Json::makeArray(), db);
+  }
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
@@ -247,7 +252,7 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     if (!readStructureRepairs(c, db, e, where, s) || !readSquareVision(c, db, e, where, s.visionBonus, s.visionUnits, s.hides)) return false;
     db.structures.push_back(s);
   }
-  return loadStructureUpgrades(c, *list, db);
+  return loadStructureUpgrades(c, *list, db) && loadStructurePlaces(c, *list, db);  // doors, chests, visits (docs/SRPG.md section 10)
 }
 
 bool checkVersusKeys(const std::string& weaponsPath, const Database& db, std::string& err) {

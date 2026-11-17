@@ -59,6 +59,8 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
   const AbilityDef& d = db->abilities[(size_t)ability];
   const int team = teamOf(u);
 
+  if (d.effect == AbilityEffect::Unlock) return unlockTargetOk(u, ability, from, cell, why);  // doors and chests (docs/SRPG.md section 10)
+
   if (d.target == AbilityTarget::Cell) {
     if (!grid.valid(cell)) return refuse(why, "that square is not on the map");
     const int dist = grid.distance(from, cell);
@@ -107,6 +109,7 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
       if (t->hp >= maxHp(*t)) return refuse(why, "that unit is at full health");
       break;
     case AbilityEffect::Summon: break;
+    case AbilityEffect::Unlock: break;  // handled above (a square, not a unit)
   }
 
   // Conditions about the target unit ("who": "foe").

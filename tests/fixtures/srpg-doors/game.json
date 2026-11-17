@@ -1,0 +1,21 @@
+{
+  "formatVersion": 1, "name": "Doors Fixture",
+  "description": "Small test game for doors, keys, chests and visiting (docs/SRPG.md, section 10). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mag", "name": "Magic" }, { "id": "mov", "name": "Move" } ],
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" }, { "id": "fly", "name": "Fly" } ],
+  "switches": [ { "id": "opened", "name": "Opened" }, { "id": "visited", "name": "Visited" }, { "id": "razed", "name": "Razed" },
+                { "id": "chest_done", "name": "Chest done" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 4 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str + w.might - b.def", "hit": "90" },
+  "maps": [ { "id": "hall", "name": "Hall", "file": "maps/hall.json" },
+            { "id": "gatehouse", "name": "Gatehouse", "file": "maps/gatehouse.json" },
+            { "id": "gatehouse_fog", "name": "Gatehouse in fog", "file": "maps/gatehouse_fog.json" },
+            { "id": "corridor", "name": "Corridor", "file": "maps/corridor.json" },
+            { "id": "market", "name": "Market", "file": "maps/market.json" } ]
+}

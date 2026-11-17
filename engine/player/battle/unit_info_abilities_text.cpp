@@ -20,6 +20,11 @@ std::string abilityEffectText(const Database& db, const AbilityDef& def) {
     case AbilityEffect::MoveBehind: return "Moves it behind you";
     case AbilityEffect::Heal:
       return def.amount >= kHealFull ? "Heals all HP" : "Heals " + num(def.amount) + " HP";
+    case AbilityEffect::Unlock: {
+      std::string t = def.unlockDoors && def.unlockChests ? "Opens a door or chest" : def.unlockDoors ? "Opens a door" : "Opens a chest";
+      if (def.unlockNeeds >= 0 && (size_t)def.unlockNeeds < db.items.size()) t += ", wears a " + db.items[(size_t)def.unlockNeeds].name;
+      return t;
+    }
     case AbilityEffect::Summon: {
       const SummonDef& s = def.summon;
       std::string name = s.type >= 0 && (size_t)s.type < db.unitTypes.size() ? db.unitTypes[(size_t)s.type].name : s.typeId;

@@ -2,6 +2,7 @@
 #include "core/data/loader_staves.h"
 
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -158,13 +159,22 @@ bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const 
 
 // What a staff's effects may be put together with (docs/SRPG.md "Staves: stage two, as built"), refused in plain words.
 bool checkCombination(const LoadCtx& c, const Json& e, const std::string& where, const StaffDef& d) {
-  int moves = 0, repairs = 0, lights = 0, inflicts = 0, cures = 0;
+  int moves = 0, repairs = 0, lights = 0, inflicts = 0, cures = 0, unlocks = 0;
   for (const StaffEffect& fx : d.effects) {
     inflicts += fx.kind == StaffEffect::Kind::Inflict;
     cures += fx.kind == StaffEffect::Kind::Cure;
     moves += fx.movesUnit();
     repairs += fx.kind == StaffEffect::Kind::Repair;
     lights += fx.kind == StaffEffect::Kind::Light;
+    unlocks += fx.kind == StaffEffect::Kind::Unlock;
+  }
+  if (unlocks > 1) return c.fail(where, "a staff can have only one \"unlock\"");
+  if (unlocks) {
+    if (d.effects.size() != 1) return c.fail(where, "\"unlock\" picks a door or chest, not a unit, so it cannot be put together with another effect");
+    if (e.has("target")) return c.fail(where, "\"unlock\" picks a square of a door or chest, so the staff has no \"target\"");
+    if (e.has("area")) return c.fail(where, "\"unlock\" opens the one door or chest picked, so the staff has no \"area\"");
+    if (e.has("if")) return c.fail(where, "\"unlock\" picks a door or chest, so there is no unit for \"if\" to judge");
+    return true;  // "range", "hit" (rolled once), "xp" and the lock / rank fields all apply as for any staff
   }
   if (moves > 1) return c.fail(where, "a staff can have only one of \"warp\", \"pull\" and \"swap\" (each one decides where the picked unit ends up)");
   if (repairs > 1) return c.fail(where, "a staff can have only one \"repair\"");
@@ -217,6 +227,10 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
       if (!readRepair(c, v, where, at, out)) return false;
     } else if (kind == "light") {
       if (!readLight(c, v, where, at, out)) return false;
+    } else if (kind == "unlock") {  // docs/SRPG.md section 10
+      std::string needs;
+      out.kind = StaffEffect::Kind::Unlock;
+      if (!readUnlockKinds(c, v, where + ": " + at, false, out.unlockDoors, out.unlockChests, needs)) return false;
     } else if (kind == "inflict") {  // stage 3, docs/SRPG.md section 9
       InflictSpec spec;
       if (!readInflictSpec(c, db, v, where, at, false, spec)) return false;
@@ -227,7 +241,7 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
       out.kind = StaffEffect::Kind::Cure;
       if (!readCureList(c, db, v, where, at, out.conds, out.cureAll)) return false;
     } else {
-      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light, inflict, cure)");
+      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light, inflict, cure, unlock)");
     }
     d.effects.push_back(out);
   }

@@ -59,7 +59,7 @@ Words used here: a **unit type** is what `data/units.json` defines (the maker ma
 ## Files at a glance
 
 ```
-game.json              rules.rescue, rules.promotion                         (optional blocks)
+game.json              rules.rescue, rules.promotion, rules.places           (optional blocks)
 data/characters.json   characters                                            (optional file)
 data/skills.json       skills made of blocks                                 (optional file)
 data/abilities.json    menu abilities, summons                               (optional file)
@@ -67,10 +67,11 @@ data/supports.json     support rules, pairs, levels, conversations           (op
 data/ranks.json        weapon rank ladder and growth                         (optional file; section 7)
 data/caps.json         game-wide stat caps                                   (optional file; section 7)
 data/conditions.json   status conditions made of blocks                      (optional file; section 9)
+data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
 data/weapons.json      per weapon: skills, inflict (section 9)
-data/items.json        accessory: skills; usable: promotes, cure, inflict; staves (section 8; inflict, cure: section 9)
-maps/*.json            per unit: character; new story commands, conditions and triggers
+data/items.json        accessory: skills; usable: promotes, cure, inflict, opens (keys, section 10); staves (section 8; inflict, cure: section 9; unlock: section 10)
+maps/*.json            per unit: character, goesFor; per structure: id, contents, locked, visitSides, visitUnits; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
 ```
 
@@ -1366,7 +1367,7 @@ staff as `w`.
   (section 4); a staff adds no second language. Stage 1: `{ "heal": 10 }`, `{ "heal": "full" }`, `{ "heal": { "percent": 30 } }`
   and `{ "heal": "<formula>" }` (a number; `a` = user, `b` = the unit healed, `w` = the staff, `dist` = distance between them,
   `ta` / `tb` the squares). A formula that fails counts as 0. Stage 2 adds `warp`, `pull`, `swap`, `repair`, `light` ("Staves: stage
-  two, as built"); stage 3 adds `inflict` and `cure` (section 9). `unlock` waits for doors.
+  two, as built"); stage 3 adds `inflict` and `cure` (section 9), and `unlock` (opens a door or chest at range) came with doors (section 10).
 - **`hit`**: a formula, a percent (rounded, 0 to 100), same variables as `heal`. Rolled **once per unit in the area**, in
   ascending unit id, with `Battle::rng` (`rng.chance`), so a battle replays from its seed. Absent = no roll at all (no random
   number is spent). A miss still spends the use and earns the experience. Queries never roll.
@@ -1547,8 +1548,8 @@ The Staff form's "What it does" card is now a set of parts a maker switches on, 
 ### Staves: stage two, as built (warp, pull, swap, repair, light)
 
 Same item, action (`ActionType::UseStaff`), wield test, uses, `hit`, `xp`, `if`, rank and lock handling as stage 1; five effect kinds
-more, and the action grew three optional fields. `unlock` is **not** part of stage two (it waits for doors, PLAN item 5) and the loader
-still says `unknown effect "unlock"`. The editor form covers these kinds (see "Staves: the editor, stage two, as built" above;
+more, and the action grew three optional fields. `unlock` is **not** part of stage two: it came with doors and keys (section 10), where it
+is described. The editor form covers these kinds (see "Staves: the editor, stage two, as built" above;
 stage one edited a first heal only); the editor helper keeps every key of them untouched through GET and PUT
 (`tests/editor_api_staves_checks.py`), and the loader reads them, so a hand-written file works.
 
@@ -1999,6 +2000,202 @@ all four views, the phone), `tests/editor_api_conditions_checks.py` (the helper 
 
 ---
 
+## 10. Doors, keys, chests and visiting
+
+Built (PLAN item 3l, step 5; staves stage two's `unlock` waited for this). A game with none of it plays, saves and hashes exactly as before:
+every key below is optional, and the demos have no doors.
+
+**Owner's answers** (PLAN, 2026-11-16):
+- "A locked door opens by: a key item used next to it (maker decides which keys fit, and whether used up); a unit trait (thief-style,
+  optionally needing a lockpick item with limited uses); a story event; or by being broken down (doors with hit points that can be attacked)."
+- "Chests and villages: the maker chooses per game between explicit Open / Visit actions in the unit's menu (uses the turn) and the current
+  'stand on it' trigger."
+- "Computer opponent: the maker marks per placed unit whether it goes for chests (taking the item), destroys villages, or opens doors with its
+  own keys; unmarked units ignore them."
+
+"The current 'stand on it' trigger" is the `reach` event (docs/EVENTS.md), which keeps working for any square, structure or not. For the
+built-in doors, chests and places the second choice is `rules.places.actions: "auto"`: the engine does the opening / visiting by itself when a
+unit ends a move there (the same thing a `reach` event would do, without the maker writing it).
+
+### Where they live, and why: structures
+
+A door, a chest and a visitable place are **map structures** (docs/STRUCTURES.md): a structure *kind* with a `"door"`, `"chest"` or
+`"visit"` block. Opening, shutting, visiting and destroying one **changes the structure's kind** (the engine's upgrade mechanism). The other
+two designs were weighed and rejected:
+- *Terrain with state.* Terrain is per square and has no state or id; a wide gate would be several squares that must open together; a
+  chest or village on top of ground would need its own layer anyway.
+- *A new list of map objects.* It would repeat what structures already give for free: a footprint of several squares (a gate is 2 x 1), a
+  movement cost per movement type (a closed door costs 0, the open kind costs what the ground costs), art per kind (the open and shut look
+  are two kinds with their own pictures in every view), the fog memory (`seenKind`: a team remembers the door as it last saw it), the info
+  panel line, the AI's distance fields (a closed door is a wall in them without a single change), saves (`type` is saved when it differs from
+  the map's) and hexagon games (`rings`).
+New state is small and lives on `StructureState`: `id` (the map's name for it), `locked`, `hp` (a door that can be attacked), `used` (a place
+that was visited) and `loot` (a chest's contents), plus `visitSides` / `visitUnits`.
+
+### Data
+
+`data/structures.json`, one block per kind (a kind has at most one of them):
+
+```jsonc
+{ "id": "gate", "width": 2, "height": 1, "moveCost": { "foot": 0, "fly": 0 },   // the closed look blocks; 0 for every type it stops
+  "blocksSight": true,                    // optional (fog): units do not see past its squares in a straight line; the squares themselves are seen
+  "door": {                               // a shut door
+    "opens": "gate_open",                 // required: the kind it becomes (same footprint; the maker picks what it looks like and costs)
+    "locked": true,                       // default true; a map placement may say otherwise
+    "keys": ["brass_key"],                // optional: only these items fit; absent = any item whose "opens" names "door" or this kind
+    "by": ["key", "trait", "break"],      // optional ways it can be opened; default key + trait, plus break when "hp" is given
+    "hp": 20, "stats": { "def": 3 },      // optional: it can be attacked; "stats" are the numbers its damage formula reads as b.<stat>
+    "from": "next" } }                    // "on" | "next" | "either": where a unit may stand to use it; default either
+{ "id": "chest", "chest": { "opens": "chest_open", "locked": true, "keys": [..], "by": ["key", "trait"], "from": "either" } }
+{ "id": "hamlet", "visit": { "becomes": "hamlet_shut",   // optional: the kind after a visit (the "gate shut" look); it then cannot be visited again
+                             "ruin": "hamlet_ruin",       // optional: the kind after it is destroyed; without it it cannot be destroyed
+                             "repeat": false,             // true = may be visited again and again (cannot go with "becomes")
+                             "from": "on" } }             // default "on" (the place's own square); "next" / "either" allowed
+```
+
+A story command and an unlock staff open any door or chest whatever `by` says; a trait (ability) needs `byTrait`, a key `byKey`, an attack `byBreak`.
+
+`data/items.json`: a key is a usable item with `"opens": ["door"]`, `["chest"]`, both, and/or structure kind ids (`["strongbox"]`); it is valid
+without `heal` / `raise`. Its `uses` work as for any item (the opening spends one; at 0 it breaks); no `uses` = unlimited. A *master* key is
+simply `["door", "chest"]`.
+
+`data/abilities.json`: the effect `{ "unlock": ... }`: `true` (doors and chests), `["door"]`, `["chest"]`, or
+`{ "kinds": ["chest"], "needs": "lockpick" }` (the user must carry that item; one use is spent per opening; it must have `uses`). The
+ability has `"target": "cell"` (a square of the door or chest) and its `range` (default `[1, 1]`); `uses`, `cooldown`, `cost` and `if` work as for
+every ability. This is the thief's trait; give it to a unit type or a character like any ability.
+
+`data/items.json`, a staff: the effect `{ "unlock": true | ["door"] | ["chest"] }`; the staff picks a **square** (like `light`), so it has no
+`target`, `area` or `if`; `range`, `hit`, `xp`, `uses`, rank and lock work as for every staff.
+
+`maps/*.json`, a placed structure:
+
+```jsonc
+{ "type": "chest", "x": 2, "y": 0, "id": "c1",                                  // "id": the story name (letters, digits, _ -; unique among structures)
+  "contents": [ "potion", { "item": "heavy_axe", "uses": 8 }, { "resource": "gold", "amount": 50 } ],   // a chest needs 1 to 8
+  "locked": false,                                                              // door / chest: overrides the kind's default
+  "side": "red",                                                                // as every structure: the owner (a place's owner decides who may visit / destroy)
+  "visitSides": ["blue"], "visitUnits": ["tink"] }                              // visit: only these (sides, units by story id) may visit
+```
+
+`maps/*.json`, a unit (and an `addUnit` command): `"goesFor": ["chests", "villages", "doors"]`, only for a unit of a computer side.
+
+`game.json`: `"rules": { "places": { "actions": "menu" | "auto" } }`; default `"menu"`.
+
+### Rules
+
+- **Reach.** A structure is in reach of a unit standing on `from` when `from` is one of its squares (`"on"`) or next to one (`"next"`), as its
+  kind's `from` says (door and chest: either; place: its own square). A multi-square gate is one structure: it is next to the unit from any
+  of its squares' neighbours, and it opens as one.
+- **Open** (`Action::openPlace(unit, structure, keySlot)`). A locked door / chest needs the inventory slot of a key that fits (the first of
+  them is the menu's default); an unlocked one needs none. The key's use is spent, the structure becomes the kind in `opens`, the lock goes,
+  `DoorOpened` / `ChestOpened`, a chest's contents, then the story's `place` events, then the unit's turn ends. Refused with a plain reason
+  (`it is locked and needs a key`, `that key does not fit`, `it is out of reach`, ...).
+- **Visit** (`Action::visitPlace(unit, structure)`). The place must be a visit kind not yet used (or `repeat`). Who may visit: the placement's
+  `visitSides` / `visitUnits` when it has any (a side or a listed unit); else the owner's team when the place has an owner; else anybody.
+  A visit sets `used`, turns the place into `becomes` when it has one, fires `PlaceVisited` and the story's `place ... "visited"` events; the
+  visit's gifts are those events' commands (lines, `giveItem`, `giveResource`, `addUnit`...). Nothing else is a "visit" rule: it is the
+  thinnest layer over events.
+- **Destroy** (the same action, when the unit may not visit). A place with a `ruin` and an owner is destroyed by units of another team than the
+  owner's: it becomes the `ruin` kind (different art), `PlaceDestroyed`, the story's `"destroyed"` events; a destroyed place cannot be visited.
+- **Break** (`Action::breakPlace(unit, structure, weapon)`, the Attack menu). A shut door with `hp` can be attacked with any weapon the unit
+  can use at the distance to the nearest square of the door (`afterMove`, ammunition and wear as for a fight). One strike is the weapon's damage
+  formula with the door as the foe `b` (`b.<stat>` = the kind's `stats`, `b.hp` = its hit points; no skills of the attacker, as the door is
+  not a unit; no dodge, no counter, no experience, no rank growth). `PlaceHit` per strike; at 0 the door opens (`DoorOpened`, how = break).
+  The forecast (`Battle::placeForecast`) gives the damage per strike, the strikes, the hit points before and after and whether it opens.
+- **Trait.** The unlock ability (menu abilities, Cell target) opens a door / chest of its kinds in its range without a key, spending its
+  lockpick use when it has a `needs`. **Staff.** The unlock staff picks a square in its range and, if its `hit` roll succeeds (rolled once with
+  the battle's dice; a miss still spends the use and gives the experience; `StaffMissed` with a = -1), opens the structure; it ignores `by`.
+- **Chests.** The contents go to the opener's inventory, else the side's shared storage (`rules.items.storage`), the engine's existing
+  overflow handling. With no storage a chest with items **cannot be opened** by a unit whose inventory is full (`the unit cannot carry more:
+  drop something first`): it does not destroy the loot (the player discards from the Items menu, then opens). Amounts go to the opener's side.
+  A story command with no unit sends the contents to the first human side's storage / funds (and, with no storage, an item is lost like
+  `giveItem` to a full unit). The chest's `loot` is emptied; a chest cannot be opened twice.
+- **Enemy looting.** A computer unit opens a chest like anyone; what it takes is marked `drop`, so whoever defeats it gets the item (the engine's
+  existing drops).
+- **Movement and sight.** The kind's `moveCost` is what blocks: a closed door's 0 is a wall for pathing, reach, the AI's fields and fog alike.
+  `blocksSight` hides what is behind its squares from a unit in a straight line (`Grid::line`: squares and hexagons); only with fog. Opening
+  changes sight at once (`markSight`) and the events are stamped with the teams that saw them.
+- **Shutting again** is a story matter (below): a door cannot be shut by a unit.
+- **`rules.places.actions`.** `"menu"` (default): the actions above, each ending the unit's turn. `"auto"`: after a unit **ends a move**, every
+  door / chest it could open (an unlocked one, or one it carries a fitting key for) and every place it may visit is done by itself, without ending the
+  turn; destroying and breaking stay explicit, and unlock abilities / staves stay in their menus. A computer unit does only what it is marked for.
+
+### Story: triggers and commands
+
+Trigger (docs/EVENTS.md): `{ "place": "d1", "is": "opened" | "visited" | "destroyed", "by": <unit filter> }` (`by` optional; a story-made opening
+has no unit). Commands: `openDoor`, `closeDoor`, `lockDoor` (shuts it and locks it, or only locks a shut one), `unlockDoor` (a door or chest:
+the lock goes, it stays shut), `openChest` (`"by": "<unit id>"` gets the contents). `closeDoor` goes back to the kind that opens into the present
+one; it is skipped while a unit stands in the doorway. Every id is checked against the map at load.
+
+### Events
+
+Appended before `Choice`: `DoorOpened` (a = structure, b = unit or -1, c = how: `kOpenKey` 0, `kOpenTrait` 1, `kOpenBreak` 2, `kOpenStory` 3,
+`kOpenStaff` 4, `kOpenFree` 5, d = the kind it was), `DoorClosed` (a, b = old kind, c = new kind, flag `kLocked`), `ChestOpened` (as `DoorOpened`),
+`PlaceHit` (a = unit, b = structure, c = weapon, d = damage, flag `kKill`), `PlaceVisited` (a = structure, b = unit, c = old kind), `PlaceDestroyed`,
+`PlaceUnlocked`. New flag `kLooted = 4096` on the `ItemGained` / `ResourceChanged` of a chest's contents. Fog: the teams that see the structure,
+and the one that did it.
+
+### Saves and hash
+
+Battle `structures[i]` gains `locked` (a door / chest kind), `hp` (a door with hit points), `used`, `loot` (a chest: `{item, uses}` /
+`{resource, amount}`); a unit gains `goes` when it is marked. A save of a game without these is unchanged and old saves load (missing keys = the kind's
+defaults); `type` may follow `opens` / `becomes` / `ruin` and the reverse of a door's `opens` (the closed kind). Hash: nothing new: the structure,
+item, ability and map files are hashed whole, so the new keys count only in a game that has them.
+
+### Computer opponent
+
+Only a marked unit does anything here (`ai_places.cpp`). `chests`: it opens one in reach (unlocked, or it has a key and room) and walks toward the
+nearest. `villages`: it visits one it may and destroys one that is its enemy's, and walks toward the nearest. `doors`: only while the enemy cannot
+be reached at all (a closed door is a wall), it opens a door in reach (unlocked, or with a key it carries) and walks toward the nearest. Scores sit
+between advancing and attacking, so a marked unit that can fight, fights. With `"auto"` the move itself does it. An unmarked unit never opens,
+visits or goes toward any of them; a unit that cannot get through simply finds no way and waits (no oscillation). It does not use unlock abilities
+or staves, does not break doors down and does not take a chest it has no room for.
+
+### Player
+
+All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; the plain reasons in `place_text.cpp`), like `staff_text`.
+
+- **Menu** (`"menu"` mode). After the abilities and the Staff entry: **Open**, **Visit**, **Destroy**, one per entry of `Battle::placeOptions`; with
+  several of one verb the label names the structure ("Open Cell Door"). A greyed entry shows a short reason (`Needs a key`, `Locked`, `Pack full`; dropped
+  when it does not fit a narrow menu, the entry stays greyed). Choosing one uses the action and ends the turn. With **two or more fitting keys** a
+  **Which key?** list (name, uses) opens with the first highlighted; Cancel returns to the action menu. In `"auto"` mode there are no Open / Visit /
+  Destroy entries (the move does it); Break door, abilities and staves stay.
+- **Break door** is its own entry (not inside Attack: the Attack picker is built around units), shown when `placeAttackOptions` has something; it picks a
+  square of an attackable door with the weapon that does the most damage. The forecast box: `<door>  <weapon>`, `Damage 13 x2` (the `x2` only with several
+  strikes), `HP 20 > 7`, `Breaks` when it would open.
+- **Unlock ability**: the normal square pick over `abilityTargets`. **Unlock staff**: the light staff's square pick, the whole structure marked; forecast
+  `Opens <name>`, `Hit N%` only when it can miss, `Exp N`. Cancel steps back as for a light.
+- **Result**: floating `<kind> opens` / `<kind> shuts`, `Unlocked`, `Visited`, `Destroyed`, the damage on a door hit, `Missed` over the door square for an
+  unlock staff miss, `Found <item>` / `Found 50 Gold` for a chest's contents (`kLooted`); the camera looks at the structure. One `[info]` line per beat for
+  the windowless tests. The structure's new kind is drawn from the start of the event sequence (the battle is already final when events play), the floats
+  and camera are at their own beat.
+- **Info panel**: after the structure's name a `State` row (`Locked`, `Shut`, `Open`, `Visited`, `Ruined`) and `HP 7/20` for a door with hit points. Out of
+  sight only the remembered kind shows (`Shut`, never the lock or the hit points).
+- **Fog**: the shown sight respects line of sight past `blocksSight` kinds and is recomputed when one changes kind during playback.
+- **Four view kinds**: structures are drawn from the shown kind in 2D, 2D isometric, 3D isometric and full 3D, so the change shows in all four
+  (`tests/srpg_player_doors_test.py` checks the picture changes in each). A distinct 3D door model or opening animation is not practical: structures there
+  are plain blocks per kind with art only through `graphics.json`. No sound cues for the new events.
+
+### Decisions (the owner may change any of these)
+
+- A door / chest is "locked" by default; "not locked" doors open for anyone adjacent (menu: Open, no key).
+- A neutral place cannot be destroyed; only the owner's enemies destroy a place that has a `ruin`.
+- Doors do not give experience and the attacker's skills are not part of the door's damage formula.
+- The AI opens doors only when a door is what keeps it from the enemy.
+- Strings are placeholders (see the Player part).
+
+### Not built
+
+- **Steal** (an ability that takes an unequipped item from an adjacent foe) is **not built**: it needs an item picker for the foe's items and an
+  AI rule of its own, so it is left for a follow-up (PLAN 6e lists it with the missing skill blocks).
+- No editor forms (docs/EDITOR_UI.md says what to hand-edit); the helper keeps the keys.
+- The AI does not use unlock abilities / staves and does not break doors down.
+
+### Tests
+
+`tests/test_srpg_doors.cpp` (rules), `test_srpg_doors_data.cpp` (loader refusals), `test_srpg_doors_ai.cpp`, `tests/srpg_player_doors_test.py`,
+`tests/editor_api_doors_checks.py`; fixture `tests/fixtures/srpg-doors` (layout in `tests/srpg_doors_fixture.h`).
+
 ## Events (what the player animates)
 
 Appended to `EventType` in this order (existing values keep their numbers):
@@ -2019,7 +2216,8 @@ Appended to `EventType` in this order (existing values keep their numbers):
 | `RankUp` | a = unit, b = weapon group, c = new rank, d = old rank (section 7) | the unit's own team |
 
 Section 8 appended `StaffUsed`, `StaffMissed`, `ItemRepaired` and `AreaLit`, and section 9 appends `ConditionApplied`,
-`ConditionEnded`, `ConditionResisted` and `ConditionTick` (with the flag `kRefreshed = 2048`).
+`ConditionEnded`, `ConditionResisted` and `ConditionTick` (with the flag `kRefreshed = 2048`); section 10 appends `DoorOpened`, `DoorClosed`,
+`ChestOpened`, `PlaceHit`, `PlaceVisited`, `PlaceDestroyed` and `PlaceUnlocked` (flags `kLooted = 4096`, `kLocked = 8192`), all before `Choice`.
 
 New flag bits (after `kBought = 32`): `kSurvived = 64`, `kBlocked = 128`, `kPaired = 256`, `kForced = 512`,
 `kReady = 1024`. `Attack` events may carry `kSurvived`. Existing entries reused: `UnitRelocated` (pushes, pulls,
@@ -2036,6 +2234,8 @@ refused by the data hash anyway (the rules changed).
 | Where | Key | Written when |
 |---|---|---|
 | battle `units[i]` | `skills` | the unit has learned skills |
+| | `goes` | the map marked the unit for the computer opponent (section 10) |
+| battle `structures[i]` | `locked`, `hp`, `used`, `loot` | the structure is a door / chest, has hit points, was visited, holds loot (section 10) |
 | | `moveSpent`, `acted`, `refreshed` | the game has `moveAgain` / `actAgain` skills and the value is not 0 / false |
 | | `abilities` | the unit has used an ability this battle |
 | | `summon` | the unit was summoned |

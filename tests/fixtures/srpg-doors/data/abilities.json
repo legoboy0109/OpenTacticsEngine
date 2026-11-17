@@ -1,0 +1,5 @@
+{ "abilities": [
+  { "id": "pick", "name": "Pick Lock", "description": "Opens a door or chest next to the user without a key.",
+    "target": "cell", "range": [1, 1], "effect": { "unlock": ["door", "chest"] } },
+  { "id": "deft", "name": "Deft Hands", "description": "Opens a chest next to the user, wearing a lockpick.",
+    "target": "cell", "range": [1, 2], "effect": { "unlock": { "kinds": ["chest"], "needs": "lockpick" } } } ] }

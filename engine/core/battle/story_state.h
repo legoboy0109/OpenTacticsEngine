@@ -35,6 +35,7 @@ struct StoryOccurrence {
   Cell cell = kNoCell;  // Reach: where it stopped
   int side = -1, round = 0;  // Turn
   int pair = -1, level = 0;  // Support (docs/SRPG.md): the pair and the level it gained
+  int place = -1, placeIs = 0;  // Place (docs/SRPG.md section 10): the structure and what happened (a PlaceTrigger value)
 };
 
 // One entry of the Talk menu: talk to unit `target`, which runs story event `event`.

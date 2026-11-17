@@ -13,6 +13,7 @@ void BattleScene::addSrpgEntries(std::vector<MenuItem>& items) {
   addSupportEntries(items);
   addAbilityEntries(items);
   addStaffEntries(items);
+  addPlaceEntries(items);  // doors, chests and visiting (battle_menu_places.cpp)
   addRescueEntries(items);
   addPromotionEntries(items);
 }
@@ -26,6 +27,7 @@ bool BattleScene::srpgMenuChosen(int id) {
     case SrpgGroup::Support: return supportChosen(id);
     case SrpgGroup::Ability: return abilityChosen(id);
     case SrpgGroup::Staff: return staffChosen(id);
+    case SrpgGroup::Place: return placeChosen(id);
     case SrpgGroup::Rescue: return rescueChosen(id);
     case SrpgGroup::Promote: return promotionChosen(id);
     case SrpgGroup::Info: return infoChosen(id);

@@ -3,6 +3,7 @@
 #include "core/data/loader.h"
 #include "core/data/footprint.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/events.h"
 #include "core/data/loader_util.h"
@@ -172,6 +173,7 @@ bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapD
                                  std::to_string(o.y) + ") on " + (grid.isHex() ? "hexagon " : "square ") +
                                  std::to_string(grid.x(cell)) + "," + std::to_string(grid.y(cell)));
       }
+    if (!readPlacedPlace(c, db, m, e, where, cells, s)) return false;  // id, contents, locked, visitors (docs/SRPG.md section 10)
     for (Cell cell : cells) at[(size_t)cell] = (int)m.structures.size();
     m.structures.push_back(s);
   }
@@ -228,7 +230,7 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
   if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
     return c.fail(where, "position is outside the map");
-  return true;
+  return readUnitGoals(c, m, e, where, u);  // "goesFor" (docs/SRPG.md section 10)
 }
 
 // The second half: stats and items.
@@ -310,7 +312,7 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   std::vector<int> structureAt;
   if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !loadStructures(c, db, root, m, structureAt) ||
-      !loadUnits(c, db, root, m, structureAt) || !loadMapStory(db, root, m, path, err))
+      !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err))
     return false;
   out = m;
   err.clear();
