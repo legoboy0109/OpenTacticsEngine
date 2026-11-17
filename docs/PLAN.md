@@ -188,6 +188,14 @@ goal (demos only exercise features).
       effectiveness, item-count condition, refresh an ally, staff range bonus, status cure, summon
       parameters, bonus-terrain condition, triangle multiplier, move past a neighbour. Also: a map unit with
       a skill of its own, and class skills that go away on promotion.
+      6f battle scene and animations (owner's answers, 2026-11-16): fights can be shown as a separate
+      side-view battle scene or as quick on-map fights; the maker sets the default per game and the player
+      can switch in settings. Fighters are drawn from per-class animation sheets (stand, attack, crit, dodge,
+      hit, cast) with a fallback to the enlarged map sprite with simple motion when a class has none.
+      Private port: map sprites and battle animations "From the ROM, all of them" (private only, never in the
+      public repo or shared).
+      6g phone section switcher (owner, 2026-11-16): one row showing the current section with a menu button
+      that opens the full list as a panel (17 entries no longer fit a grid).
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
