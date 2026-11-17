@@ -24,6 +24,7 @@ struct PrepDef {
   std::vector<std::string> fixed;        // named human-side units placed by the map that stay as placed (not part of the choice)
   bool hasShop = false;                  // a preparation shop
   std::vector<int> shop;                 // item indices it sells (docs/ITEMS.md "Shops"); every one has a price
+  bool buys = true;                      // the shop also buys the party's items (shop "buys"; default true)
   int side = -1;                         // map side the deployed characters join (a human side)
 };
 

@@ -27,6 +27,8 @@ export const P = {
   fixedAdd: 'Add a unit that stays…',
   shopTitle: 'Preparation shop',
   shopSwitch: 'Sell things before the battle',
+  shopBuys: 'The shop also buys items',
+  shopBuysHelp: 'The player can sell their characters’ items and the storage back for resources. Each item’s price and its “Can be sold” switch (Items), and the share paid (Rules, Items), decide what they fetch.',
   shopHelp: 'Bought with what the campaign carries. Only items with a price (Items) can be sold.',
   shopAdd: 'Add an item…',
   shopNone: 'Nothing for sale yet: add an item or switch the shop off.',

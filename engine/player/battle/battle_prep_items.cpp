@@ -10,7 +10,7 @@
 #include "ui/text.h"
 
 namespace ote {
-namespace {
+namespace prepui {
 
 ItemStack stackOf(const ItemGrant& g) {
   ItemStack s;
@@ -20,13 +20,37 @@ ItemStack stackOf(const ItemGrant& g) {
   return s;
 }
 
-// One inventory as rows; `padTo` > 0 adds free slots ("-") up to that many rows.
-std::vector<PanelRow> grantRows(const Battle& b, const std::vector<ItemGrant>& items, int padTo) {
+std::string countText(const Database& db, const RosterUnit& r) {
+  return intStr((int)r.items.size()) + "/" + intStr(db.rules.items.inventorySize);
+}
+
+std::string fundsText(const Database& db, const std::vector<int>& have) {
+  std::string head;
+  for (size_t i = 0; i < db.resources.size() && i < have.size(); ++i)
+    head += (head.empty() ? "" : "  ") + db.resources[i].name + " " + intStr(have[i]);
+  return head;
+}
+
+void logPanel(ItemPanel& panel, Renderer& r, int vw, int vh, const char* what) {
+  int x, y, w, h, tx, ty;
+  panel.setArea(0, 0, vw, vh);
+  panel.selectedBox(r, x, y, w, h);
+  std::string tabs;
+  for (int i = 0; panel.tabCentre(r, i, tx, ty); ++i) tabs += " tab" + intStr(i) + "@" + intStr(tx) + "," + intStr(ty);
+  OTE_INFO("prep panel %s: row0@%d,%d step=%d%s", what, x + w / 2, y + h / 2 - panel.sel() * h, h, tabs.c_str());
+}
+
+}  // namespace prepui
+
+namespace {
+using namespace prepui;
+
+// One inventory as rows; `padTo` > 0 adds free slots ("-") up to that many rows. `holder` = the character who carries
+// them ("" = the storage): the weapon in hand is marked, and a weapon they cannot wield is greyed with the reason.
+std::vector<PanelRow> grantRows(const Battle& b, const Playthrough& pt, const std::string& holder,
+                                const std::vector<ItemGrant>& items, int padTo) {
   std::vector<PanelRow> rows;
-  int equipped = -1;  // with carried weapons the first weapon is the one in hand
-  if (b.db->rules.items.carriedWeapons)
-    for (size_t i = 0; i < items.size() && equipped < 0; ++i)
-      if (b.db->items[(size_t)items[i].item].kind == ItemKind::Weapon) equipped = (int)i;
+  const int equipped = holder.empty() ? -1 : prepEquippedAt(*b.db, pt, holder);
   for (size_t i = 0; i < items.size(); ++i) {
     const ItemStack s = stackOf(items[i]);
     PanelRow row;
@@ -34,6 +58,11 @@ std::vector<PanelRow> grantRows(const Battle& b, const std::vector<ItemGrant>& i
     row.extra = usesText(b, s);
     row.detail = itemDetail(b, s);
     row.mark = (int)i == equipped;
+    std::string why;
+    if (!holder.empty() && b.itemOf(s).kind == ItemKind::Weapon && !prepWieldReason(*b.db, pt, holder, (int)i, why)) {
+      row.dim = true;  // carried and traded all the same, but not wielded
+      row.detail = why;
+    }
     rows.push_back(row);
   }
   while ((int)rows.size() < padTo) {
@@ -48,17 +77,6 @@ std::vector<PanelRow> grantRows(const Battle& b, const std::vector<ItemGrant>& i
 const RosterUnit* member(const Playthrough& pt, const std::string& id) {
   const RosterUnit* r = pt.findUnit(id);
   return r && !r->gone ? r : nullptr;
-}
-
-std::string countText(const Database& db, const RosterUnit& r) {
-  return intStr((int)r.items.size()) + "/" + intStr(db.rules.items.inventorySize);
-}
-
-std::string fundsText(const Database& db, const std::vector<int>& have) {
-  std::string head;
-  for (size_t i = 0; i < db.resources.size() && i < have.size(); ++i)
-    head += (head.empty() ? "" : "  ") + db.resources[i].name + " " + intStr(have[i]);
-  return head;
 }
 
 }  // namespace
@@ -125,11 +143,11 @@ void BattleScene::prepTradeOpen(int col, int row) {
   const RosterUnit* a = member(*p.pt, p.who);
   if (!a) { prepItemsWhoOpen(); return; }
   const int size = db.rules.items.inventorySize;
-  std::vector<PanelRow> left = grantRows(battle_, a->items, size), right;
+  std::vector<PanelRow> left = grantRows(battle_, *p.pt, p.who, a->items, size), right;
   std::string rightName;
   if (p.with.empty()) {
     rightName = PrepWords::kStorage;
-    right = grantRows(battle_, prepStorage(*p.pt, p.map), 0);
+    right = grantRows(battle_, *p.pt, "", prepStorage(*p.pt, p.map), 0);
     if (right.empty()) {
       PanelRow none;
       none.label = PrepWords::kStorageEmpty;
@@ -140,7 +158,7 @@ void BattleScene::prepTradeOpen(int col, int row) {
     const RosterUnit* b = member(*p.pt, p.with);
     if (!b) { prepItemsWhoOpen(); return; }
     rightName = b->name;
-    right = grantRows(battle_, b->items, size);
+    right = grantRows(battle_, *p.pt, p.with, b->items, size);
   }
   tradePanel_.open(a->name, left, rightName, right, col, row);
   std::string log;
@@ -148,7 +166,7 @@ void BattleScene::prepTradeOpen(int col, int row) {
   OTE_INFO("prep trade: %s [%s] with %s", a->name.c_str(), log.c_str(), rightName.c_str());
 }
 
-void BattleScene::prepTradePicked() {
+void BattleScene::prepTradePicked(bool direct) {
   PrepUi& p = *prep_;
   const Database& db = session_.db;
   const int row = tradePanel_.row(), col = tradePanel_.col();
@@ -158,6 +176,7 @@ void BattleScene::prepTradePicked() {
   bool ok;
   if (col == 0) {
     if (row >= (int)a->items.size()) { say(PrepWords::kNothingToHand); return; }
+    if (!direct && prepTradeNeedsChoice(row)) { prepTradeChoiceOpen(row); return; }  // a weapon: Hand over or Equip
     ok = p.with.empty() ? prepStore(db, *p.pt, p.map, p.who, row, why) : prepGive(db, *p.pt, p.map, p.who, row, p.with, why);
   } else if (p.with.empty()) {
     if (row >= (int)prepStorage(*p.pt, p.map).size()) { say(PrepWords::kNothingToTake); return; }
@@ -201,6 +220,8 @@ void BattleScene::prepShopOpen(int sel) {
     rows.push_back(row);
   }
   itemPanel_.open(PrepWords::kShop, fundsText(db, have), rows, PrepWords::kNothingForSale, sel);
+  if (p.map.prep->buys) itemPanel_.setTabs({PrepWords::kBuy, PrepWords::kSell}, 0);  // the shop also buys: Left/Right or a tap
+  logPanel(itemPanel_, host_.renderer(), layout_.vw, layout_.vh, "shop");
   OTE_INFO("prep shop: %s (%s)", fundsText(db, have).c_str(), std::to_string(rows.size()).c_str());
 }
 
@@ -261,6 +282,7 @@ void BattleScene::prepItemsInput(const InputEvent& e) {
     case PrepUi::Screen::Shop: {
       ItemPanel::Result res = itemPanel_.onInput(e, r);
       if (res == ItemPanel::Back) prepMainMenu();
+      else if (res == ItemPanel::Tab) prepShopTab(itemPanel_.tab());
       else if (res == ItemPanel::Picked && itemPanel_.sel() < (int)p.shopItems.size()) {
         p.shopItem = p.shopItems[(size_t)itemPanel_.sel()];
         const ItemDef& d = session_.db.items[(size_t)p.shopItem];
@@ -295,6 +317,9 @@ void BattleScene::prepItemsInput(const InputEvent& e) {
       }
       break;
     }
+    case PrepUi::Screen::TradeChoice:
+    case PrepUi::Screen::SellWho:
+    case PrepUi::Screen::SellItems: prepSellInput(e); break;  // battle_prep_sell.cpp
     default: break;
   }
 }

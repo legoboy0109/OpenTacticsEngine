@@ -13,6 +13,7 @@ import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Toggle } from '../../ui/Toggle'
 import { ItemKindFields } from './ItemKindFields'
+import { SellableCard } from './SellableCard'
 import { ItemSrpgCards } from './srpg/ItemSrpgCards'
 import { StaffMainCards } from './staff/StaffCards'
 import { T } from './text'
@@ -88,6 +89,8 @@ export function ItemForm({ id }: { id: string }) {
           <Toggle label={T.stealable} help={T.stealableHelp} checked={item.stealable !== false} onChange={(v) => edit((d) => setStealable(d, id, v))} />
         </Card>
       )}
+
+      <SellableCard id={id} />
 
       <Card>
         {resources.length === 0

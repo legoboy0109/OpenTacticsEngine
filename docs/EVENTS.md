@@ -498,7 +498,8 @@ as it is placed (data, saves and hashes unchanged). Order: the chapter's `before
   "required": [ "sera", { "character": "tomas", "slot": 2 } ],  // always deployed; "slot" (number from 1) also fixes the square
   "forbidden": [ "wren" ],                                 // cannot take part in this map
   "fixed": [ "guard" ],                                    // placed units that stay where the map puts them, outside the choice
-  "shop": { "sells": [ "potion", "tonic" ] },              // same item ids as a structure's "sells"; each needs a price
+  "shop": { "sells": [ "potion", "tonic" ],                // same item ids as a structure's "sells"; each needs a price
+            "buys": true },                                // optional, default true: the shop also buys the party's items back ("Selling" below)
   "side": "blue" }                                         // the human side the deployed characters join (default: the first one)
 ```
 
@@ -519,11 +520,33 @@ with its own slot takes it first; a unit goes on the first free slot its movemen
 **Rules** (`core/campaign/prep.h`, free functions over a `Playthrough` and the chapter's `MapDef`, each refusing with a plain reason):
 `prepOpen`, `prepDeploy`, `prepBench` (a required character cannot be benched; the limit; forbidden; fallen), `prepMove` (move to a free
 slot or swap two; both must be able to stand there; a required character with its own slot cannot move), `prepGive` / `prepStore` /
-`prepFetch` / `prepEquip` (trade between any two roster characters and the shared storage; the storage exists when `rules.items.storage`
+`prepFetch` (trade between any two roster characters and the shared storage; the storage exists when `rules.items.storage`
 is not `off`; any setting but `off` counts as reachable on this screen), `prepBuy` (the shop; price paid from what the prep side
-carries; into the character's pack, else the storage, else refused; there is no selling), `prepBegin`. `prepOpen` also folds the map's
+carries; into the character's pack, else the storage, else refused), `prepSell` / `prepSellValue` (selling, below), `prepBegin`. `prepOpen` also folds the map's
 allowance for the prep side (resources, storage) into what the campaign carries, so the screen can spend it and the battle starts from
 the carried amounts alone. `prepareChapterBattle` builds the battle from the deployment (`prepApplyToMap`).
+
+**Selling** (owner decision 2026-11-17; in-battle shops did not buy items before and still do not: this is the preparation shop only).
+A shop that has `"buys"` not false lets the player sell a character's items and items in the storage for resources.
+
+- **The rule** (one place, `prepSellValue`): for every resource in the item's `price`, the shop pays
+  `floor(amount * sellPercent / 100 * usesLeft / usesWhenNew)`; an item with unlimited uses is not scaled. So a worn item fetches less, a
+  used-up one (0 uses left) fetches 0 and can still be handed over for nothing. `sellPercent` is `rules.items.sellPercent`, a whole number
+  0 to 100, default **50** (`docs/GAME_FORMAT.md`). Example: a Sword (price 100 gold, 10 uses) with 3 uses left fetches 15 at the default.
+- **Refused, nothing changes, with a plain reason:** an item with no `price` ("Token has no price, so nobody buys it."), an item whose
+  `items.json` entry says `"sellable": false` ("Relic cannot be sold."), a battle without a shop ("This battle has no shop."), a shop with
+  `"buys": false` ("This shop does not buy items."), a position that holds nothing, a character who is not in the party.
+- `prepSell(db, pt, map, id, slot, why)`: `id` = a character, or empty for the storage; `slot` = the item's position in that pack. The
+  money goes to what the prep side carries (the same total the shop spends, the battle starts from, and the save holds), the item leaves
+  the pack. Works with or without `rules.items.storage`.
+- The simulator's default pick does not sell, so `ote-sim` results are unchanged.
+
+**Equip.** `prepEquip(db, pt, map, id, slot, why)` moves the weapon at `slot` to the front of the pack, which is what makes it the one
+in hand (docs/ITEMS.md "State": the equipped weapon is the first item that is a weapon the unit can wield). It is refused, with the
+reason, in a game with fixed weapons, for an item that is no weapon, for a weapon the character cannot wield now (class, character lock
+`wieldedBy` / `wieldedByTypes`, rank: it asks the battle's own `canWieldNow`, so the screen and the battle agree), and for the weapon
+already in hand. `prepEquipReason` is the same test without changing anything, `prepWieldReason` asks only "can they wield it",
+`prepEquippedAt` says which position is in hand (first wieldable, so a leading weapon that cannot be wielded is not the equipped one).
 
 **Free battles** (no roster): the same calls on a scratch playthrough; the pool is the map's named units of the prep side; positions,
 units and the map view only (no items or shop in the player).
@@ -536,7 +559,15 @@ refused with the field named.
 **Player** (Mode::Prep in the battle scene; the Battle is set up but not started): menu Units / Positions / Items / Shop / View map /
 Save / Leave (Abandon in a free battle) / Begin. Units: a list with "Slot N" / "Out", `*` for required, the reason in the detail line,
 "Deployed n / limit". Positions: slots numbered on the map, pick up / put down (swap), tap works, a Back button for pointers. Items:
-whose items, trade with another character or the storage (the battle's trade panel). Shop: the battle's shop list, then who gets it.
+whose items, trade with another character or the storage (the battle's trade panel). In a game with carried weapons the weapon in hand
+is marked, a weapon the character cannot wield is greyed with the reason in the detail line, and choosing a weapon of the character
+on the left that is not in hand opens a small menu under the row: **Hand over** (**Put in storage** when the other side is the storage)
+or **Equip** (greyed, with the reason, when it cannot be wielded; the whole reason also shows in the message line). Choosing the weapon in
+hand, or any other item, hands it over at once as before, so a game with fixed weapons sees no change. Shop: tabs **Buy | Sell** in the
+panel's title row (Left/Right or a tap on a name; shown only when the shop buys). Buy is the battle's shop list, then who gets it.
+Sell asks whose items first (every character, then the Storage; counts shown), then lists that pack with what each item fetches
+("10 Gold"; a greyed "-" and the reason where the item cannot be sold); choosing a row sells it at once (buying has no confirmation
+either), "Sold Potion for 10 Gold" shows, and the Gold in the panel's head and the unit details change live.
 View map: free cursor, unit details, the reach of a visible enemy under the cursor (fog respected). Begin asks "Begin with N of M?"
 when fewer than the limit (and than the available characters) are deployed. After a lost battle the screen comes back with the same
 choice. Works in all four kinds of view (the map parts reuse the battle's drawing).

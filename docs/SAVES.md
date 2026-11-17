@@ -451,7 +451,9 @@ A playthrough in phase `battle` may carry `"prep": { "open": bool, "folded": boo
 are left out when empty, so games without a preparation save byte for byte as before and old saves load. `open` + no `"battle"` =
 restore into the screen; `folded` = the prep side's map allowance is already in `sides[]`. On load the deployment is checked against the
 chapter's map (every id a candidate, slots in range, no repeats, each unit able to stand on its slot, within the limit). The data hash
-is unchanged by the code; a map's `prep` block is part of the map file the campaign hash already covers.
+is unchanged by the code; a map's `prep` block is part of the map file the campaign hash already covers. Selling and equipping add
+no field: a sale changes `sides[].resources` and the pack (`roster[].items` or `sides[].storage`), an equip the order of `roster[].items`,
+all of which a save already holds (`tests/test_prep_sell.cpp` checks the round trip). `sellPercent`, `sellable` and `buys` are game data, covered by the data hash.
 
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 

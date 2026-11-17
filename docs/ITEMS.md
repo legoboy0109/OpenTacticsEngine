@@ -27,6 +27,8 @@ Status: see "Build order" at the end.
   "weapons": "fixed",        // "fixed" (default): a unit type's weapons, as before.
                              // "carried": weapons are items in the inventory.
   "inventorySize": 5,        // items one unit can carry, 1..20. Default 5.
+  "sellPercent": 50,         // 0..100, default 50: what a shop that buys items back pays, as a share of the price
+                             // (scaled by uses left: docs/EVENTS.md "Preparation", "Selling"). In-battle shops do not buy.
   "storage": "anywhere"      // the side's shared storage: "off" (default), "anywhere",
                              // "structure" (standing on a structure of its own side),
                              // "leader" (the unit is a leader or stands next to one of its side).
@@ -42,7 +44,8 @@ Core: `RulesConfig::items` (`ItemRules`).
     "description": "Restores 10 HP.",       // optional, one line
     "kind": "usable",                       // "usable" | "weapon" | "accessory"
     "uses": 3,                              // optional, 1..999; missing = unlimited
-    "price": { "gold": 300 },               // optional; missing = shops cannot sell it
+    "price": { "gold": 300 },               // optional; missing = shops cannot sell it (and none buys it back)
+    "sellable": false,                      // optional, default true: a shop that buys items never takes this one
     "target": "self",                       // usable: "self" (default) or "ally" (a unit of the
                                             // same team on a neighbouring square)
     "heal": 10,                             // usable: HP restored; "full" = all of it

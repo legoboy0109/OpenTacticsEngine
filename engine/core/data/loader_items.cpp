@@ -94,6 +94,10 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
     if (e.has("props") && it.kind == ItemKind::Weapon)
       return c.fail(where, "\"props\" belongs to usable, accessory and staff items; a weapon's numbers are its \"props\" in data/weapons.json");
     if (e.has("props") && (it.kind == ItemKind::Usable || it.kind == ItemKind::Accessory) && !c.props(e, "props", where, it.props)) return false;
+    if (e.has("sellable")) {  // docs/EVENTS.md "Preparation": false = a shop that buys items never takes this one
+      if (!e["sellable"].isBool()) return c.fail(where, "\"sellable\" must be true or false");
+      it.sellable = e["sellable"].asBool();
+    }
     if (!c.amounts(db, e, "price", where, it.price)) return false;
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");

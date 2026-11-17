@@ -25,7 +25,8 @@ export interface Progression extends Feature {
 }
 /** docs/ITEMS.md `rules.items`; every key is optional and a default is never written. */
 export type StorageMode = 'off' | 'anywhere' | 'structure' | 'leader'
-export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode }
+/** `sellPercent`: 0 to 100, default 50: what a shop that buys items back pays (docs/EVENTS.md "Preparation"). */
+export interface ItemRules extends Extra { weapons?: 'fixed' | 'carried'; inventorySize?: number; storage?: StorageMode; sellPercent?: number }
 /** docs/ECONOMY.md `rules.supply`; no block = nothing is repaired or resupplied. */
 export interface RepairRules extends Extra { amount?: number; costShare?: number }
 export interface SupplyRules extends Extra { repair?: RepairRules; structures?: boolean }
@@ -224,6 +225,8 @@ export interface Item extends Named {
   repairable?: boolean
   /** false = a steal ability never takes this item (missing = it can be stolen; docs/SRPG.md "Steal"). */
   stealable?: boolean
+  /** false = a shop that buys items back never takes this item (missing = it can be sold). */
+  sellable?: boolean
   /** Per resource; missing = not for sale. */
   price?: NumMap
   target?: ItemTarget

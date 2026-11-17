@@ -302,7 +302,8 @@ and side must exist. The old `owners` list is refused: ownership now
 belongs to structures (their `side`). Only the owner of a structure changes
 during a battle.
 
-A map may also have `"prep"`: the preparation screen before its battle (slots, limit, required / forbidden / fixed characters, a shop;
+A map may also have `"prep"`: the preparation screen before its battle (slots, limit, required / forbidden / fixed characters, a shop that
+sells and, unless `"buys": false`, also buys items back;
 docs/EVENTS.md "Preparation"). Without it the map starts as placed.
 
 ## data/audio.json (optional)
@@ -347,7 +348,7 @@ docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here. A c
 when it is struck down; docs/EVENTS.md "Battle and defeat quotes"); their wording does not count for the data hash, their rules do.
 
 **Second set of skill and ability blocks** (docs/SRPG.md section 3 "Skill and ability blocks, second set", optional): ability effects `steal`, `refresh`,
-`movePast` and `cure`; an item's `"stealable": false`; a map unit's `"goesFor": ["steal"]`; a skill's `"tags"`; skill effects `nullifySkills`, `staffRange` and
+`movePast` and `cure`; an item's `"stealable": false` and `"sellable": false` (not bought back by a shop that buys items); `rules.items.sellPercent` (0 to 100, default 50); a preparation shop's `"buys"`; a map unit's `"goesFor": ["steal"]`; a skill's `"tags"`; skill effects `nullifySkills`, `staffRange` and
 `carryBonus`; the skill point `"when": "staffUse"`; and a list for the `terrain` condition.
 
 **Third set of skill blocks** (docs/SRPG.md section 3 "Skill blocks, third set", optional): an aura's `weapon`, `weaponKind` and `test` (about the receiver); the strike

@@ -282,6 +282,195 @@ def test_autoplay_and_free_battle(gid):
     check('free battle: --autoplay takes the default pick without the screen', 'prep: opens' not in log and 'UI bug' not in log, log[-300:])
 
 
+# ---- selling and equipping ---------------------------------------------------------------------------------------
+
+def replace_in(path, old, new):
+    with open(path) as f:
+        text = f.read()
+    assert old in text, (path, old)
+    with open(path, 'w') as f:
+        f.write(text.replace(old, new, 1))
+
+
+def carry_weapons(g):
+    """The fixture with weapons carried (as tests/test_prep_sell.cpp): sera [sword_item, axe_item 5 of 10 uses, potion],
+    tomas [sword_item, bow_item], bram [tonic, relic (not sellable)], storage [potion, token, relic]. Gold: 125."""
+    replace_in(g + '/game.json', '"weapons": "fixed"', '"weapons": "carried"')
+    replace_in(g + '/data/weapons.json', '{ "id": "bow"', '{ "id": "axe", "name": "Axe", "props": { "might": 3 } },\n  { "id": "bow"')
+    replace_in(g + '/data/units.json', '"weapons": ["sword"] },\n  { "id": "archer"', '"weapons": ["sword", "axe"] },\n  { "id": "archer"')
+    replace_in(g + '/data/items.json', '{ "id": "token"',
+               '{ "id": "sword_item", "name": "Sword", "kind": "weapon", "weapon": "sword", "uses": 10, "price": { "gold": 100 } },\n'
+               '  { "id": "axe_item", "name": "Axe", "kind": "weapon", "weapon": "axe", "uses": 10, "price": { "gold": 60 } },\n'
+               '  { "id": "bow_item", "name": "Bow", "kind": "weapon", "weapon": "bow", "uses": 10, "price": { "gold": 80 } },\n'
+               '  { "id": "relic", "name": "Relic", "kind": "accessory", "bonus": { "def": 1 }, "price": { "gold": 40 }, "sellable": false },\n'
+               '  { "id": "token"')
+    replace_in(g + '/maps/meadow.json', '"name": "Sera", "items": ["potion", "ring"]',
+               '"name": "Sera", "items": ["sword_item", { "item": "axe_item", "uses": 5 }, "potion"]')
+    replace_in(g + '/maps/meadow.json', '"name": "Tomas" }', '"name": "Tomas", "items": ["sword_item", "bow_item"] }')
+    replace_in(g + '/maps/meadow.json', '"items": ["tonic"]', '"items": ["tonic", "relic"]')
+    replace_in(g + '/maps/meadow.json', '"storage": ["potion"]', '"storage": ["potion", "token", "relic"]')
+
+
+def no_buying(g):
+    replace_in(g + '/maps/orchard.json', '"sells": [ "potion", "tonic" ]', '"sells": [ "potion", "tonic" ], "buys": false')
+
+
+def item_names(gid):
+    """The game's item ids in order: a save names an item by its position in data/items.json."""
+    return [i['id'] for i in read_json(os.path.join(TMP, gid, 'data/items.json'))['items']]
+
+
+def pack_ids(save, who, gid):
+    """Item ids of a roster character in a Continue save made during the preparation."""
+    names = item_names(gid)
+    return [names[i['item']] for i in roster_of(save)[who].get('items', [])]
+
+
+def sell_tabs(log, kind='shop'):
+    """{0: (x, y), 1: (x, y)} of the Buy / Sell tabs from the last panel line of that kind (the panel's height, so the
+    tabs' place, differs from list to list)."""
+    return {int(i): (int(x), int(y)) for i, x, y in re.findall(r' tab(\d)@(\d+),(\d+)', last(log, 'prep panel %s:' % kind))}
+
+
+def row_at(log, kind, n):
+    m = re.search(r'row0@(\d+),(\d+) step=(\d+)', last(log, 'prep panel %s:' % kind))
+    return (int(m.group(1)), int(m.group(2)) + n * int(m.group(3)))
+
+
+def gold_of(save):
+    return save['playthrough']['sides'][0]['resources'][0] if save else None
+
+
+def test_sell(gid, tag):
+    s = fresh_saves('sell_' + tag)
+    log = go(gid, menu_to(3) + ',wait:3', name='shop_tabs_' + tag, saves=s)
+    check(tag + ': a shop that buys has the Buy and Sell tabs', len(sell_tabs(log)) == 2, last(log, 'prep panel shop:'))
+    log = go(gid, menu_to(3) + ',right,wait:3', name='sell_who_' + tag, saves=s)
+    check(tag + ': Right on the shop opens Sell with whose items (everyone, then the storage)',
+          'Gold 125' in last(log, 'prep sell who:') and 'UI bug' not in log, last(log, 'prep sell who:'))
+    log = go(gid, menu_to(3) + ',right,confirm,wait:3', name='sell_items_' + tag, saves=s)
+    check(tag + ': Sera\'s pack with what each item fetches (potion 10, ring 25: half the price, scaled by uses left)',
+          last(log, 'prep sell:') == 'prep sell: Sera [Potion [10 Gold], Ring [25 Gold]] (Gold 125)', last(log, 'prep sell:'))
+    log = go(gid, menu_to(3) + ',right,confirm,confirm,wait:3', name='sold_' + tag, saves=s)
+    check(tag + ': the potion is sold and the total rises at once',
+          bool(lines(log, 'prep: sold potion from sera for 10 Gold')) and last(log, 'prep sell:') == 'prep sell: Sera [Ring [25 Gold]] (Gold 135)',
+          last(log, 'prep sell:'))
+    save = continue_save(s, gid)
+    check(tag + ': the sale is in the save: 135 gold, Sera has only the ring',
+          save is not None and gold_of(save) == 135 and pack_ids(save, 'sera', gid) == ['ring'], str(save and save['playthrough']['sides']))
+    # Wren's token has no price: refused, nothing changes
+    s2 = fresh_saves('sell_token_' + tag)
+    log = go(gid, menu_to(3) + ',right,down,down,confirm,confirm,wait:3', saves=s2)
+    check(tag + ': an item without a price is not bought',
+          bool(lines(log, 'prep refused: Token has no price, so nobody buys it.')), log[-400:])
+    save = continue_save(s2, gid)
+    check(tag + ': ... and Wren keeps it, the gold is as it was', save is not None and pack_ids(save, 'wren', gid) == ['token'] and gold_of(save) == 125, str(save))
+    # the storage (the last row): the potion from chapter 1
+    s3 = fresh_saves('sell_storage_' + tag)
+    log = go(gid, menu_to(3) + ',right,' + ','.join(['down'] * 5) + ',confirm,wait:3', name='sell_storage_' + tag, saves=s3)
+    check(tag + ': the storage can be sold from', last(log, 'prep sell:') == 'prep sell: Storage [Potion [10 Gold]] (Gold 125)', last(log, 'prep sell:'))
+    log = go(gid, menu_to(3) + ',right,' + ','.join(['down'] * 5) + ',confirm,confirm,wait:3', saves=s3)
+    save = continue_save(s3, gid)
+    check(tag + ': ... the storage is empty and the gold 135 in the save',
+          save is not None and gold_of(save) == 135 and not save['playthrough']['sides'][0].get('storage'), str(save and save['playthrough']['sides']))
+    log = go(gid, menu_to(3) + ',right,left,wait:3', saves=s3)
+    check(tag + ': Left returns to the Buy list', len(lines(log, 'prep shop:')) == 2, log[-300:])
+
+
+def test_sell_pointer(gid, tag):
+    s = fresh_saves('sellptr_' + tag)
+    log = go(gid, menu_to(3) + ',wait:3', saves=s)
+    sell_tab = sell_tabs(log)[1]
+    to_sell = menu_to(3) + ',' + tap(sell_tab) + ',wait:3'
+    log = go(gid, to_sell, saves=s)
+    check(tag + ': tapping the Sell tab opens Sell', bool(lines(log, 'prep sell who:')), log[-300:])
+    buy_tab = sell_tabs(log, 'sellwho')[0]  # the tabs sit in the panel's title row: this panel is taller, so they moved
+    sera, wren = row_at(log, 'sellwho', 0), row_at(log, 'sellwho', 2)
+    log = go(gid, to_sell + ',' + tap(wren) + ',wait:3', saves=s)
+    check(tag + ': a first tap only selects a row', not lines(log, 'prep sell:'), log[-300:])
+    log = go(gid, to_sell + ',' + tap(wren) + ',wait:3,' + tap(wren) + ',wait:3', saves=s)
+    check(tag + ': a second tap opens Wren\'s pack', last(log, 'prep sell:') == 'prep sell: Wren [Token [-]] (Gold 125)', last(log, 'prep sell:'))
+    row = row_at(log, 'sell', 0)
+    log = go(gid, to_sell + ',' + tap(wren) + ',wait:3,' + tap(wren) + ',wait:3,' + tap(row) + ',wait:3', saves=s)
+    check(tag + ': tapping the unsellable token is refused', bool(lines(log, 'prep refused: Token has no price')), log[-300:])
+    opened = to_sell + ',' + tap(sera) + ',wait:3'  # Sera is the selected row: one tap opens her pack
+    log = go(gid, opened, saves=s)
+    check(tag + ': Sera\'s pack opens with one tap (her row is already selected)', last(log, 'prep sell:').startswith('prep sell: Sera [Potion'), last(log, 'prep sell:'))
+    row = row_at(log, 'sell', 0)
+    log = go(gid, opened + ',' + tap(row) + ',wait:3', saves=s)
+    check(tag + ': a tap on the potion sells it', bool(lines(log, 'prep: sold potion from sera for 10 Gold')), log[-400:])
+    check(tag + ': ... 135 gold in the save', gold_of(continue_save(s, gid)) == 135)
+    log = go(gid, to_sell + ',' + tap(buy_tab) + ',wait:3')
+    check(tag + ': tapping Buy goes back', len(lines(log, 'prep shop:')) == 2, log[-300:])
+    log = go(gid, to_sell + ',' + tap((3, 3)) + ',wait:3')
+    check(tag + ': a tap outside closes the panel', len(lines(log, 'prep menu:')) == 2, log[-300:])
+
+
+def test_no_buying(gid):
+    log = go(gid, menu_to(3) + ',right,wait:3', name='shop_nobuy')
+    check('shop that does not buy: no tabs and Right does nothing', not sell_tabs(log) and not lines(log, 'prep sell who:') and 'UI bug' not in log,
+          last(log, 'prep panel shop:'))
+    log = go(gid, menu_to(3) + ',confirm,confirm,wait:3')
+    check('shop that does not buy: buying works as before', bool(lines(log, 'prep: bought potion for sera')), log[-300:])
+
+
+def menu_rows(log, key):
+    return {int(i): (int(x), int(y)) for i, x, y in re.findall(r' (\d+)@(\d+),(\d+)', last(log, key))}
+
+
+def battle_pack(save, who, gid):
+    for u in save['battle']['units']:
+        if u.get('id') == who:
+            return [item_names(gid)[i['item']] for i in u.get('items', [])]
+    return None
+
+
+def test_equip(gid, tag):
+    to_trade = menu_to(2) + ',confirm,confirm'  # Items, Sera, trade with Tomas (the first other)
+    log = go(gid, to_trade + ',wait:3', name='equip_trade_' + tag)
+    check(tag + ': the trade panel lists Sera\'s weapons', bool(lines(log, 'prep trade: Sera [Sword, Axe, Potion] with Tomas')), last(log, 'prep trade'))
+    log = go(gid, to_trade + ',confirm,wait:3')
+    check(tag + ': the weapon in hand has nothing to equip: Confirm hands it over at once (no menu)',
+          not lines(log, 'prep item menu:') and bool(lines(log, 'prep trade: Sera [Axe, Potion, -]')), last(log, 'prep'))
+    log = go(gid, to_trade + ',down,confirm,wait:3', name='equip_menu_' + tag)
+    check(tag + ': another wieldable weapon offers Hand over and Equip', last(log, 'prep item menu:') == 'prep item menu: Hand over, Equip', last(log, 'prep item menu:'))
+    log = go(gid, to_trade + ',down,confirm,cancel,wait:3')
+    check(tag + ': cancelling the small menu leaves everything as it was',
+          not lines(log, 'prep: equipped') and 'UI bug' not in log and len(lines(log, 'prep trade:')) == 1, log[-300:])
+    s = fresh_saves('equip_' + tag)
+    log = go(gid, to_trade + ',down,confirm,down,confirm,wait:3', name='equipped_' + tag, saves=s)
+    check(tag + ': Equip moves the axe to the front',
+          bool(lines(log, 'prep: equipped Axe for sera')) and last(log, 'prep trade:').startswith('prep trade: Sera [Axe, Sword, Potion]'), last(log, 'prep trade:'))
+    save = continue_save(s, gid)
+    check(tag + ': ... and it is in the save (axe first, its 5 uses kept)',
+          save is not None and pack_ids(save, 'sera', gid) == ['axe_item', 'sword_item', 'potion'] and roster_of(save)['sera']['items'][0].get('uses') == 5,
+          str(save and roster_of(save)['sera']))
+    # the battle that follows: Begin (3 of 3 deployed starts at once); Sera's weapon in hand is the axe
+    log = go(gid, to_trade + ',down,confirm,down,confirm,cancel,cancel,cancel,' + menu_to(7) + ',wait:40', saves=s)
+    save = continue_save(s, gid)
+    pack = battle_pack(save, 'sera', gid) if save and 'battle' in save else None
+    check(tag + ': the battle starts with the axe in hand', pack is not None and pack[:2] == ['axe_item', 'sword_item'], str(pack))
+    # Tomas (an archer): the sword cannot be wielded, the bow is in hand
+    to_tomas = menu_to(2) + ',down,confirm,confirm'
+    log = go(gid, to_tomas + ',wait:3', name='equip_tomas_' + tag)
+    check(tag + ': Tomas\'s pack is [Sword, Bow]', bool(lines(log, 'prep trade: Tomas [Sword, Bow, -] with Sera')), last(log, 'prep trade'))
+    log = go(gid, to_tomas + ',confirm,wait:3', name='equip_blocked_' + tag)
+    check(tag + ': Equip on a sword the archer cannot wield is greyed with the reason',
+          last(log, 'prep item menu:') == 'prep item menu: Hand over, Equip [Tomas cannot wield that.]', last(log, 'prep item menu:'))
+    s = fresh_saves('equip_blocked_' + tag)
+    log = go(gid, to_tomas + ',confirm,down,confirm,wait:3', saves=s)
+    save = continue_save(s, gid)
+    check(tag + ': choosing the greyed entry changes nothing',
+          save is not None and pack_ids(save, 'tomas', gid) == ['sword_item', 'bow_item'] and not lines(log, 'prep: equipped'), str(save and pack_ids(save, 'tomas', gid)))
+    # touch: select the row, tap it again (the small menu opens), tap Equip
+    log = go(gid, to_trade + ',down,confirm,wait:3')
+    rows = menu_rows(log, 'prep item menu rows:')
+    check(tag + ': the small menu logs where its entries are', len(rows) == 2, str(rows))
+    s = fresh_saves('equip_tap_' + tag)
+    log = go(gid, to_trade + ',down,confirm,wait:3,' + tap(rows[1]) + ',wait:3', saves=s)
+    check(tag + ': tapping Equip equips', bool(lines(log, 'prep: equipped Axe for sera')), log[-300:])
+
+
 def main():
     make_game('desk')
     make_game('phone', 270, 480)
@@ -292,6 +481,15 @@ def main():
         test_items(gid, tag, fresh_saves('main_' + tag))
         test_shop(gid, tag)
         test_view(gid, tag)
+    make_game('carry', tweak=carry_weapons)
+    make_game('carryphone', 270, 480, tweak=carry_weapons)
+    make_game('nobuy', tweak=no_buying)
+    for gid, tag in (('desk', 'desk'), ('phone', 'phone')):
+        test_sell(gid, tag)
+        test_sell_pointer(gid, tag)
+    test_no_buying('nobuy')
+    for gid, tag in (('carry', 'desk'), ('carryphone', 'phone')):
+        test_equip(gid, tag)
     test_begin('desk', 'desk')
     test_save_and_resume('desk')
     test_pointer('desk')

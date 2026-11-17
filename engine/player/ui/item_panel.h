@@ -27,7 +27,12 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
 
 class ItemPanel {
  public:
-  enum Result { None, Back, Picked };
+  enum Result { None, Back, Picked, Tab };  // Tab: another tab was chosen (Left/Right or a tap on its name): see tab()
+
+  // Optional tabs in the title row (the preparation shop's Buy / Sell). Left/Right and a tap switch between them and
+  // report Tab; the rows are the scene's to replace. Empty = no tabs (Left/Right do nothing, as before). Call after open().
+  void setTabs(const std::vector<std::string>& names, int current) { tabs_ = names; tab_ = current; }
+  int tab() const { return tab_; }
 
   // `emptyText` is what an empty list says. `sel` = row to start on.
   void open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,
@@ -47,6 +52,8 @@ class ItemPanel {
   int sel() const { return list_.sel; }
   // The selected row on screen (to put a small menu beside it).
   void selectedBox(const Renderer& r, int& x, int& y, int& w, int& h);
+  // The middle of tab `i` on screen (for tests that tap it); false when there is no such tab.
+  bool tabCentre(const Renderer& r, int i, int& x, int& y);
 
  private:
   void layout(const Renderer& r);
@@ -56,6 +63,10 @@ class ItemPanel {
   std::vector<PanelRow> rows_;
   RowList list_;
   int maxW_ = 0;  // 0 = the usual width
+  std::vector<std::string> tabs_;
+  int tab_ = 0;
+  std::vector<int> tabX_;  // left edge and width of each tab's name on screen (laid out with the panel), top = y_ + kPad
+  std::vector<int> tabW_;
   int ax_ = 0, ay_ = 0, aw_ = 0, ah_ = 0;
   int x_ = 0, y_ = 0, w_ = 0, h_ = 0, detailY_ = 0, detailLines_ = 2;
 };

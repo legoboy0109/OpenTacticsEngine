@@ -102,6 +102,9 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   else return c.fail("rules.items", "\"storage\" must be \"off\", \"anywhere\", \"structure\" or \"leader\"");
   if (r.items.inventorySize < 1 || r.items.inventorySize > kMaxInventory)
     return c.fail("rules.items", "\"inventorySize\" must be from 1 to " + std::to_string(kMaxInventory));
+  if (!c.integer(*blk, "sellPercent", "rules.items", r.items.sellPercent)) return false;  // a buying shop's price
+  if (r.items.sellPercent < 0 || r.items.sellPercent > 100)
+    return c.fail("rules.items", "\"sellPercent\" must be from 0 to 100 (the share of an item's price a shop pays for it)");
 
   if (!loadSupplyRules(c, *rules, db)) return false;
   if (!loadOptionRules(c, *rules, db)) return false;

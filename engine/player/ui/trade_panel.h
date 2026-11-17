@@ -28,6 +28,8 @@ class TradePanel {
 
   int col() const { return col_; }
   int row() const { return list_[col_].sel; }
+  // The selected row on screen (to put a small menu beside it).
+  void selectedBox(const Renderer& r, int& x, int& y, int& w, int& h);
 
  private:
   void layout(const Renderer& r);

@@ -200,7 +200,8 @@ export function setShop(map: MapFile, sells: string[] | null): MapFile {
   const prep = map.prep
   if (!prep) return map
   const { shop: _old, ...rest } = prep
-  return withPrep(map, sells === null ? rest : { ...rest, shop: { sells } })
+  // Keeps the shop's "buys: false" while the list changes.
+  return withPrep(map, sells === null ? rest : { ...rest, shop: prep.shop?.buys === false ? { sells, buys: false } : { sells } })
 }
 
 // ---- what the canvas draws

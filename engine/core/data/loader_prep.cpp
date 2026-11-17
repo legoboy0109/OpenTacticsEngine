@@ -119,7 +119,7 @@ bool readShop(const LoadCtx& c, const Database& db, const Json& prep, PrepDef& o
   if (!prep.has("shop")) return true;
   const Json& s = prep["shop"];
   if (!s.isObject()) return c.fail("prep", "\"shop\" must be an object such as { \"sells\": [\"potion\"] }");
-  if (!onlyKeys(c, s, {"sells"}, "prep: \"shop\"")) return false;
+  if (!onlyKeys(c, s, {"sells", "buys"}, "prep: \"shop\"")) return false;
   std::vector<std::string> ids;
   if (!s.has("sells") || !c.stringList(s, "sells", "prep: \"shop\"", ids) || ids.empty())
     return c.fail("prep: \"shop\"", "\"sells\" must list at least one item id");
@@ -132,6 +132,7 @@ bool readShop(const LoadCtx& c, const Database& db, const Json& prep, PrepDef& o
       return c.fail("prep: \"shop\"", "\"sells\" lists \"" + iid + "\" twice");
     out.shop.push_back(it);
   }
+  if (!c.boolean(s, "buys", "prep: \"shop\"", out.buys)) return false;
   out.hasShop = true;
   return true;
 }
