@@ -48,6 +48,7 @@ int Database::findStyle(const std::string& id) const { return findById(styles, i
 int Database::findCharacter(const std::string& id) const { return findById(characters, id); }
 int Database::findSkill(const std::string& id) const { return findById(skills, id); }
 int Database::findAbility(const std::string& id) const { return findById(abilities, id); }
+int Database::findCondition(const std::string& id) const { return findById(conditions, id); }
 int Database::findSupportPair(int a, int b) const {
   for (size_t i = 0; i < supports.pairs.size(); ++i) {
     const SupportPairDef& p = supports.pairs[i];

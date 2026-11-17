@@ -3,6 +3,7 @@
 #include <cctype>
 
 #include "core/data/loader.h"
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -58,6 +59,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!c.str(e, "group", where, w.group)) return false;
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
+    if (!readWeaponInflict(c, db, e, where, w)) return false;  // "inflict": a condition on the unit struck (docs/SRPG.md section 9)
     if (!readWeaponRank(c, db, e, where, w)) return false;    // "rank", "rankXp" (docs/SRPG.md section 7)
     if (!readWeaponWielders(c, e, where, w)) return false;    // "wieldedBy" (docs/SRPG.md character-locked weapons)
     db.weapons.push_back(w);

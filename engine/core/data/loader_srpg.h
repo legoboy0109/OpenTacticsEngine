@@ -72,8 +72,9 @@ struct SkillCondScope {
 bool readSkillConds(const LoadCtx& c, Database& db, const Json& list, const std::string& where, const SkillCondScope& scope,
                     const std::string& labelPrefix, std::vector<SkillCond>& out);
 // One block of a skill. `where` is `skill "x": block 2`.
+// `forCondition`: the block belongs to a condition (data/conditions.json), which may also use cannotAct, cannotMove, forbid and berserk.
 bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::string& where, const std::string& labelPrefix,
-                    SkillBlock& out);
+                    SkillBlock& out, bool forCondition = false);
 // After everything is loaded: do the weapon, terrain, structure and unit keys of the conditions exist?
 bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& where, const std::vector<SkillCond>& conds);
 

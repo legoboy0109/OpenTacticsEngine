@@ -133,6 +133,12 @@ struct ItemDef {
   std::vector<int> skills;     // accessory: skills it gives while carried (indices into Database::skills)
   int staff = -1;              // staff: index into Database::staves (docs/SRPG.md section 8)
   bool repairable = true;      // false: a staff's "repair" never offers it (docs/SRPG.md section 8, stage 2)
+  // Conditions (docs/SRPG.md section 9), a usable item: "cure": [ids] | "all" and "inflict": { "condition": id, "turns": n }
+  // (on the user: an item that is used on an ally cures the ally, one that inflicts is always on the user).
+  std::vector<int> cures;      // indices into Database::conditions
+  bool cureAll = false;
+  int inflict = -1;            // index into Database::conditions
+  int inflictTurns = 0;        // 0 = the condition's own duration
 };
 const int kHealFull = 1000000000;
 
@@ -353,6 +359,7 @@ struct Database {
   RankRules ranks;                       // data/ranks.json (weapon rank ladder); empty ladder = no ranks
   std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
   std::vector<StaffDef> staves;          // the staves of data/items.json (an item of kind "staff" points here)
+  std::vector<ConditionDef> conditions;  // data/conditions.json (docs/SRPG.md section 9)
   // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
   // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
   std::vector<ExprDef> exprs;
@@ -381,6 +388,7 @@ struct Database {
   int findStyle(const std::string& id) const;
   int findCharacter(const std::string& id) const;
   int findSkill(const std::string& id) const;
+  int findCondition(const std::string& id) const;
   int findAbility(const std::string& id) const;
   // The support pair of two characters (indices into `characters`, either order); -1 = they are not a pair.
   int findSupportPair(int characterA, int characterB) const;

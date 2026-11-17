@@ -23,7 +23,7 @@ enum class StaffArea { Single, Radius, All };
 // One entry of "effects". Stage 1: Heal. Stage 2 (docs/SRPG.md section 8): the three that move the picked unit, the one
 // that repairs an item it carries, and the one that lights a square. Later stages add kinds at the end.
 struct StaffEffect {
-  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light };
+  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light, Inflict, Cure };  // Inflict, Cure: stage 3 (conditions)
   enum class Amount { Fixed, Full, Percent, Formula };
   Kind kind = Kind::Heal;
   Amount amount = Amount::Fixed;  // Heal: any; Repair: Fixed or Full
@@ -34,6 +34,10 @@ struct StaffEffect {
   int warpExpr = -1;  // formula: the maximum (minimum 1)
   // Light: the squares within `radius` of the picked square are seen for `turns` of the user's side's turns.
   int radius = 0, turns = 1;
+  // Inflict: `conds[0]` is the condition and `turns` (above, 0 = its own duration) overrides how long it lasts. Cure: the conditions
+  // it removes, or all of them.
+  std::vector<int> conds;
+  bool cureAll = false;
   bool movesUnit() const { return kind == Kind::Warp || kind == Kind::Pull || kind == Kind::Swap; }
 };
 
@@ -71,6 +75,8 @@ struct StaffDef {
 inline const char* staffNobodyWhy(const StaffDef& d) {
   if (d.has(StaffEffect::Kind::Heal)) return "nobody in reach needs that";
   if (d.movesUnit()) return "nobody in reach can be moved";
+  if (d.has(StaffEffect::Kind::Cure)) return "nobody in reach has anything it cures";
+  if (d.has(StaffEffect::Kind::Inflict)) return "nobody in reach can be affected";
   if (d.has(StaffEffect::Kind::Repair)) return "nobody in reach has an item to repair";
   return "nobody in reach needs that";
 }
