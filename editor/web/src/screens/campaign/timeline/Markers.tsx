@@ -1,5 +1,5 @@
 // The small "what changes" signs of a box: an icon and a count. They carry a text alternative (title and aria-label).
-import { MARKER_KEYS, type Markers } from '../../../model/timelineTypes'
+import { MARKER_KEYS, markerCount, type Markers } from '../../../model/timelineTypes'
 import { TL } from './text'
 
 // Plain stroke icons on a 24 x 24 grid (no emoji, no icon library).
@@ -10,6 +10,7 @@ const ICONS: Record<keyof Markers, string> = {
   shop: 'M3 9l2-5h14l2 5M3 9h18M5 9v11h14V9M10 20v-6h4v6',
   flags: 'M6 21V4M6 5h12l-3 4 3 4H6',
   questions: 'M4 5h16v11H11l-4 4v-4H4zM10 9.5a2 2 0 1 1 3 1.7c-.7.4-1 .8-1 1.5M12 14.8v.01',
+  party: 'M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 19c0-3 2.5-5 6-5M16 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM22 19c0-3-2.5-5-6-5M9 17h6M13 15l2 2-2 2',
 }
 
 export function MarkerIcon({ kind }: { kind: keyof Markers }) {
@@ -21,17 +22,17 @@ export function MarkerIcon({ kind }: { kind: keyof Markers }) {
 
 /** The words for a box's markers, for its accessible name ("2 questions asked, 1 unit joins"). */
 export function markersText(m: Markers): string {
-  return MARKER_KEYS.filter((k) => m[k] > 0).map((k) => TL.marker[k](m[k])).join(', ')
+  return MARKER_KEYS.filter((k) => markerCount(m, k) > 0).map((k) => TL.marker[k](markerCount(m, k))).join(', ')
 }
 
 export function MarkerRow({ markers, only }: { markers: Markers; only?: Array<keyof Markers> }) {
-  const shown = MARKER_KEYS.filter((k) => markers[k] > 0 && (!only || only.includes(k)))
+  const shown = MARKER_KEYS.filter((k) => markerCount(markers, k) > 0 && (!only || only.includes(k)))
   if (shown.length === 0) return null
   return (
     <span className="tl-markers">
       {shown.map((k) => (
-        <span key={k} className="tl-marker" data-marker={k} title={TL.marker[k](markers[k])} aria-label={TL.marker[k](markers[k])} role="img">
-          <MarkerIcon kind={k} /><span aria-hidden="true">{markers[k]}</span>
+        <span key={k} className="tl-marker" data-marker={k} title={TL.marker[k](markerCount(markers, k))} aria-label={TL.marker[k](markerCount(markers, k))} role="img">
+          <MarkerIcon kind={k} /><span aria-hidden="true">{markerCount(markers, k)}</span>
         </span>
       ))}
     </span>

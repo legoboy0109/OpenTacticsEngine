@@ -153,6 +153,8 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'setFog': return { setFog: false }
     case 'setVision': return { setVision: -1 }
     case 'storeItems': return { storeItems: c.scene ? firstUnit(c) : defaultFilter(c) }
+    case 'switchParty': return { switchParty: c.doc.campaign?.parties?.[1]?.id ?? c.doc.campaign?.parties?.[0]?.id ?? '' }
+    case 'mergeParties': return { mergeParties: c.doc.campaign?.parties?.[1] ? [c.doc.campaign.parties[1].id] : [], into: c.doc.campaign?.parties?.[0]?.id ?? '' }
   }
 }
 

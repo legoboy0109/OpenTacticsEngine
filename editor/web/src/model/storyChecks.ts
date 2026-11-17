@@ -43,6 +43,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'pair': return null // supportStoryChecks.ts says it in plainer words
     case 'character': return missing('a character') ?? (known(doc.characters ?? undefined) ? null : `“${r.id}” is not a character of this game.`)
     case 'chapter':
+    case 'party':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
     case 'change': return missing('a change') ?? (Object.keys(map.changes ?? {}).includes(r.id) ? null : `“${r.id}” is not one of this map’s changes.`)
     case 'terrain': return missing('a terrain') ?? (known(doc.terrain ?? undefined) ? null : `“${r.id}” is not a terrain of this game.`)
@@ -152,6 +153,10 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       break
     case 'storeItems':
       for (const t of storeItemsProblems(doc, c)) say(where, t)
+      break
+    case 'switchParty':
+    case 'mergeParties':
+      say(where, 'party commands are for campaign scenes only (a battle on a map knows one party: the one playing it).')
       break
     case 'wakeGroup':
       if (!c.wakeGroup) say(where, 'pick the group to wake.')

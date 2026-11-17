@@ -88,6 +88,8 @@ export const patchChapter = (doc: ProjectDoc, id: string, patch: Record<string, 
 export const setChapterName = (doc: ProjectDoc, id: string, name: string): ProjectDoc => patchChapter(doc, id, { name: name === '' ? undefined : name })
 export const setChapterMap = (doc: ProjectDoc, id: string, map: string): ProjectDoc => patchChapter(doc, id, { map })
 export const setChapterNext = (doc: ProjectDoc, id: string, next: string | undefined): ProjectDoc => patchChapter(doc, id, { next: next || undefined })
+/** The party that becomes active when the chapter starts (docs/EVENTS.md "Parties"); undefined = no key. */
+export const setChapterParty = (doc: ProjectDoc, id: string, party: string | undefined): ProjectDoc => patchChapter(doc, id, { party: party || undefined })
 
 // --- scenes, edited as a "scene map" (see campaignRoster.ts) ---
 export const sceneOf = (doc: ProjectDoc, chapterId: string, which: SceneKey): Command[] =>

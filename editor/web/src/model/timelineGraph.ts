@@ -37,7 +37,7 @@ export function buildTimeline(doc: ProjectDoc): TimelineGraph | null {
       const list = sceneCommands(ch[which])
       nodes.push({
         id: nodeId(ch.id, which), kind: 'scene', chapterId: ch.id, chapterIndex: i, which, chapterName: name,
-        markers: countMarkers(list), commandCount: countAll(list), unreached: false, skipped: false, events: [],
+        markers: which === 'before' && ch.party ? addMarkers(countMarkers(list), { ...noMarkers(), party: 1 }) : countMarkers(list), commandCount: countAll(list), unreached: false, skipped: false, events: [],
       })
       ids.push(nodeId(ch.id, which))
     }
@@ -47,6 +47,7 @@ export function buildTimeline(doc: ProjectDoc): TimelineGraph | null {
     const events = known ? orderedEvents(doc, ch.id, ch.map) : []
     const markers = events.reduce((m, e) => addMarkers(m, e.markers), noMarkers())
     markers.shop = shopCount(doc, map)
+    if (ch.party && !hasScene(ch, 'before')) markers.party = 1  // a chapter that starts a party but has no scene to show it in
     nodes.push({
       id: nodeId(ch.id, 'level'), kind: 'level', chapterId: ch.id, chapterIndex: i, chapterName: name, mapId: ch.map,
       mapName: doc.game?.maps.find((m) => m.id === ch.map)?.name || ch.map, mapKnown: known, hasPrep: !!map?.prep, markers, commandCount: 0,

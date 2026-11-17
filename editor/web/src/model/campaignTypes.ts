@@ -10,6 +10,9 @@ export type FreeBattles = 'none' | 'all' | string[]
 
 export interface CampaignRules extends Extra { fallen?: FallenRule; onDefeat?: DefeatRule }
 
+/** One party of the campaign (docs/EVENTS.md "Parties"): its own roster, storage and funds under the one story. The first is the starting party. */
+export interface Party extends Extra { id: string; name?: string }
+
 export interface Chapter extends Extra {
   id: string
   name?: string
@@ -21,12 +24,16 @@ export interface Chapter extends Extra {
   after?: Scene
   /** Default: the following chapter in the list. */
   next?: string
+  /** A party id: that party becomes the active one when the chapter starts (before its scene). Optional. */
+  party?: string
 }
 
 export interface Campaign extends Extra {
   name?: string
   rules?: CampaignRules
   freeBattles?: FreeBattles
+  /** The campaign's parties (docs/EVENTS.md "Parties"); no key = one roster for the whole story. */
+  parties?: Party[]
   chapters: Chapter[]
 }
 

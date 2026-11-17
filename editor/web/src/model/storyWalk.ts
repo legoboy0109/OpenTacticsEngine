@@ -13,7 +13,7 @@ import { withKeepList } from './storyExtras'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'party' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -214,6 +214,24 @@ function mapGiveResource(c: Command, w: Walk, where: string): Command | Dropped 
   return { ...c, giveResource: Object.fromEntries(kept) }
 }
 
+/** A merge names parties twice: the ones merged away (one that is gone just leaves the list; none left = no merge) and the one they go into
+ *  (gone = no merge). */
+function mapMergeParties(c: Command, w: Walk, where: string): Command | Dropped {
+  if (!Array.isArray(c.mergeParties)) return c
+  const into = withRef(c, 'into', 'party', w, where)
+  if (into === DROP) return DROP
+  const ids = c.mergeParties.filter((id): id is string => typeof id === 'string')
+  const kept: string[] = []
+  for (const id of ids) {
+    const r = w.ref({ kind: 'party', id }, where)
+    if (r !== DROP && !kept.includes(r)) kept.push(r)
+  }
+  if (kept.length === 0) return DROP
+  if (kept.length === c.mergeParties.length && kept.every((id, i) => id === c.mergeParties![i])) return into
+  if (kept.length < c.mergeParties.length) w.dropped?.({ what: 'setting', text: `${w.describe?.command?.(c) ?? 'A merge'} no longer includes it`, where })
+  return { ...into, mergeParties: kept }
+}
+
 /** One command, not looking inside `if` branches (mapCommands does that so each inner command can go on its own). */
 function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   if (c.addUnit !== undefined) return mapAddUnit(c, w, where)
@@ -277,6 +295,8 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'applyChange', 'change', w, where),
     (x) => withRef(x, 'revertChange', 'change', w, where),
     (x) => withFilter(x, 'storeItems', w, where), // a filter in a map event, a roster id in a scene
+    (x) => withRef(x, 'switchParty', 'party', w, where), // campaign scenes only (docs/EVENTS.md "Parties")
+    (x) => mapMergeParties(x, w, where),
     (x) => withKeepList(x, w, where), // the items it leaves with the unit
   ])
 }

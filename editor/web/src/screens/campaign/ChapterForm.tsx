@@ -1,5 +1,6 @@
 // The open chapter: its name, map, next chapter and the two scenes.
-import { setChapterMap, setChapterName, setChapterNext } from '../../model/campaign'
+import { setChapterMap, setChapterName, setChapterNext, setChapterParty } from '../../model/campaign'
+import { partiesOf, partyName } from '../../model/parties'
 import { chapterName } from '../../model/campaignTypes'
 import { Link, projectPath } from '../../router'
 import { useDoc, useEdit, useStore } from '../../store/context'
@@ -33,6 +34,13 @@ export function ChapterForm({ id }: { id: string }) {
     ...(nextKnown ? [] : [{ value: chapter.next!, label: `${chapter.next} (not there any more)` }]),
     ...campaign.chapters.filter((c) => c.id !== id).map((c) => ({ value: c.id, label: chapterName(c) })),
   ]
+  const parties = partiesOf(campaign)
+  const partyKnown = !chapter.party || parties.some((p) => p.id === chapter.party)
+  const partyOptions = [
+    { value: DEFAULT_NEXT, label: C.chapterPartyKeep },
+    ...(partyKnown ? [] : [{ value: chapter.party!, label: `${chapter.party} (not there any more)` }]),
+    ...parties.map((p) => ({ value: p.id, label: partyName(campaign, p.id) })),
+  ]
   return (
     <div className="stack" data-testid="chapter-form">
       <Card>
@@ -51,6 +59,12 @@ export function ChapterForm({ id }: { id: string }) {
               <Select value={chapter.next ? chapter.next : DEFAULT_NEXT} options={nextOptions}
                 onChange={(v) => edit((d) => setChapterNext(d, id, v === DEFAULT_NEXT ? undefined : v))} />
             </Field>
+            {(parties.length > 0 || chapter.party) && (
+              <Field label={C.chapterParty} help={C.chapterPartyHelp}>
+                <Select value={chapter.party ? chapter.party : DEFAULT_NEXT} options={partyOptions}
+                  onChange={(v) => edit((d) => setChapterParty(d, id, v === DEFAULT_NEXT ? undefined : v))} />
+              </Field>
+            )}
           </FormGrid>
         </div>
       </Card>
