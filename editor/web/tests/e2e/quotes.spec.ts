@@ -46,6 +46,10 @@ test('@smoke add battle and defeat quotes: the file is exactly that and the game
   await card(page).getByLabel('How often (Battle quote 1)').selectOption({ label: 'Once in the whole campaign' })
   // The new quote came with one empty line; the list is the story's: open it and write the words.
   await card(page).getByTestId('battle-quote-lines-1').getByRole('button', { name: /^1\./ }).click()
+  // A line with no speaker is the character's own: the empty speaker choice says so (not "Nobody (a narrator)").
+  const speaker = formOf(page, 'Battle quote 1').getByLabel('Who speaks')
+  await expect(speaker.locator('option:checked')).toHaveText('This character (Eirik)')
+  await expect(speaker.locator('option', { hasText: 'narrator' })).toHaveCount(0)
   await formOf(page, 'Battle quote 1').getByLabel('What is said').fill('Gorm! Your raids end today.')
   // A second line, said by a friend, through the "Add a command" list.
   await say(page, 'Battle quote 1', 'Steady, Eirik.', 'Mira (mira)')
