@@ -142,6 +142,24 @@ export interface Command extends Extra {
   else?: Command[]
   endTurn?: boolean
   focus?: { x: number; y: number } | string
+  // ---- Scene presentation (docs/EVENTS.md "Scene presentation"). `fade` is also playMusic's seconds, `wait` is focus's / moveUnit's
+  // boolean, so each is the one type or the other.
+  /** A background id, or null = back to the map / nothing. `transition` and `ms` go with it. */
+  background?: string | null
+  transition?: 'cut' | 'fade'
+  ms?: number
+  /** fade: "out" | "in" (a number is playMusic's fade in seconds). `color` = "#rrggbb". */
+  color?: string
+  shake?: { ms?: number; strength?: number }
+  leave?: string
+  clearStage?: boolean
+  weather?: 'rain' | 'snow' | 'none'
+  narrate?: string
+  /** A line's place on the stage, and "it goes on by itself after this many ms". */
+  position?: 'left' | 'right' | 'center'
+  auto?: number
+  /** moveUnit: the unit walks its way (and, with `wait: false`, the next command does not wait for it). */
+  walk?: boolean
   /** Campaign scenes only: the chapter that comes next after an "after" scene, or the chapter a "before" scene jumps to (docs/EVENTS.md "Campaign"). */
   goto?: string
   /** A technology id: `side` has it at once, free (docs/ECONOMY.md). Map events only. */
@@ -149,7 +167,7 @@ export interface Command extends Extra {
   /** Sound (docs/SOUND.md): a music track id (+ optional `fade` seconds), `stopMusic: true` (+ `fade`), a sound id. */
   playMusic?: string
   stopMusic?: boolean
-  fade?: number
+  fade?: number | 'out' | 'in'
   playSound?: string
   /** Doors and chests by their map story name (docs/SRPG.md section 10); `openChest` may also say who gets the contents in `by` (a unit id). Map events only. */
   openDoor?: string
@@ -161,6 +179,7 @@ export interface Command extends Extra {
   setBehaviour?: Behaviour
   units?: Filter
   wakeGroup?: string
+  wait?: number | boolean
   // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
 export type CommandKind =
@@ -168,13 +187,18 @@ export type CommandKind =
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
+  | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
+  // Scene presentation (appended: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
+  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate',
 ]
+/** The scene presentation commands (the "Scene" group of the command picker). `weather` is for map events only. */
+export const SCENE_FX_KINDS: CommandKind[] = ['background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate']
 /** The commands that name a door, chest or place of the map. */
 export const PLACE_COMMANDS: CommandKind[] = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest']
 

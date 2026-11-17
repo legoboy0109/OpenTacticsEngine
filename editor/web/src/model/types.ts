@@ -374,6 +374,8 @@ export interface Stand extends Extra {
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
 export interface Portrait extends Extra { sheet: string; cell: CellRef }
+/** A full-screen picture of a story scene: the whole image of a sheet, or one piece of it (docs/GRAPHICS.md "Backgrounds"). */
+export interface SceneBackground extends Extra { sheet: string; cell?: CellRef }
 /** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */
 export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef> }
 /** Another image with the same layout, drawn by the fighters of one side (a map side id). */
@@ -398,6 +400,8 @@ export interface Graphics extends Extra {
   battle?: BattleSection
   /** Portrait id -> picture; the id is what a `say` command's "portrait" names. */
   portraits?: Record<string, Portrait>
+  /** Story scene backgrounds: id -> picture; the id is what a `background` command names (not the battle scene's `battle.backgrounds`). */
+  backgrounds?: Record<string, SceneBackground>
   unitMarker?: boolean
   terrain?: Record<string, Look>
   units?: Record<string, Look>

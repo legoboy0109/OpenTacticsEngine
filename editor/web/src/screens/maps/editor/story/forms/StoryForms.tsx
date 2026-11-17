@@ -3,6 +3,7 @@ import { rectOf, type Command } from '../../../../../model/storyTypes'
 import { AreaField } from '../AreaField'
 import { PickSelect, SwitchPick, TeamPick, UnitPick } from '../pickers'
 import { S } from '../text'
+import { FocusExtras } from './SceneForms'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
 export function SetSwitchForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
@@ -37,6 +38,7 @@ export function FocusForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       {unit
         ? <UnitPick label={S.focusUnit} value={cmd.focus as string} onChange={(v) => patch({ focus: v })} />
         : <AreaField label={S.focusSquare} mode="square" value={{ ...rectOf(cmd.focus), w: 1, h: 1 }} onChange={(r) => patch({ focus: { x: r.x, y: r.y } })} />}
+      <FocusExtras cmd={cmd} at={at} />
     </div>
   )
 }

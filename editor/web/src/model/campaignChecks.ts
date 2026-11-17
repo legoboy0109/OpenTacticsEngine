@@ -2,6 +2,7 @@
 // maker sees them before pressing Play, plus a few hints the loader accepts but a maker probably did not mean. Names are
 // checked by the same walk as clean-up and rename (campaignWalk.ts), so the knowledge of where ids sit is written once.
 // The wording is plain; the loader's own message still shows in the Problems list after a save.
+import { sceneProblems } from './sceneChecks'
 import { unreachedChapters } from './campaignFlow'
 import { allSideIds, definedStoryIds } from './campaignRoster'
 import { chapterName, type Campaign, type Chapter } from './campaignTypes'
@@ -62,10 +63,13 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
 
 /** `own`: the chapter's id when the scene is its "before" scene, where a "go to" may name any chapter but this one (its scene would run for ever). */
 function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, own: string | undefined, stores: Map<string, number>): void {
+  for (const t of sceneProblems(doc, c, true)) say('error', 'general', where, t)  // scene presentation (sceneChecks.ts)
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say('error', 'general', where, 'the text to say is empty.')
       break
+    case 'background': case 'fade': case 'wait': case 'shake': case 'leave': case 'clearStage': case 'narrate': case 'weather':
+      break  // (sceneChecks.ts has said what is wrong with them)
     case 'giveResource':
       if (!Object.keys(c.giveResource ?? {}).length) say('error', 'resource', where, 'choose a resource to give.')
       else if (Object.values(c.giveResource!).some((n) => Math.abs(n) > BIG)) say('error', 'resource', where, 'an amount is unreasonably large.')

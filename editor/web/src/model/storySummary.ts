@@ -148,12 +148,15 @@ function amountsText(c: SumCtx, amounts: Record<string, number> | undefined): st
 const fadeText = (fade: number | undefined, dir: 'in' | 'out'): string =>
   (typeof fade !== 'number' ? '' : fade === 0 ? ' (at once)' : ` (fades ${dir} over ${fade} ${fade === 1 ? 'second' : 'seconds'})`)
 
+const PLACE_WORDS: Record<string, string> = { left: 'on the left', right: 'on the right', center: 'in the middle' }
+
 export function commandText(c: SumCtx, cmd: Command): string {
   switch (commandKind(cmd)) {
     case 'say': {
       const who = cmd.speaker ? unitText(c, cmd.speaker) : cmd.speakerName ? cmd.speakerName : ''
       const text = clip(String(cmd.say ?? ''))
-      return who ? `${who} says ${q(text)}` : `Says ${q(text)}`
+      const where = cmd.position ? ` (${PLACE_WORDS[cmd.position] ?? cmd.position})` : ''
+      return who ? `${who} says ${q(text)}${where}` : `Says ${q(text)}${where}`
     }
     case 'choice': {
       const who = cmd.speaker ? unitText(c, cmd.speaker) : cmd.speakerName ? cmd.speakerName : ''
@@ -168,7 +171,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
       return `Adds ${name} (${sideName(c, u.side)}) at ${squareText(u.x, u.y)}`
     }
     case 'removeUnit': return `Removes ${filterText(c, cmd.removeUnit)}`
-    case 'moveUnit': return `Moves ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
+    case 'moveUnit': return `${cmd.walk ? 'Walks' : 'Moves'} ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`
     case 'addSupport': return `${(cmd.by ?? 0) < 0 ? 'Takes' : 'Gives'} ${Math.abs(cmd.by ?? 0)} support ${Math.abs(cmd.by ?? 0) === 1 ? 'point' : 'points'} ${(cmd.by ?? 0) < 0 ? 'from' : 'to'} ${pairText(c, cmd.addSupport)}`
     case 'promote': return typeof cmd.to === 'string' && cmd.to ? `Promotes ${unitText(c, cmd.promote ?? '')} into ${aOrAn(typeName(c, cmd.to))}` : `Promotes ${unitText(c, cmd.promote ?? '')} (its only promotion)`
@@ -194,15 +197,24 @@ export function commandText(c: SumCtx, cmd: Command): string {
     }
     case 'endTurn': return 'Ends the talking unit’s turn'
     case 'goto': return `Goes on to chapter ${q(chapterLabel(c, cmd.goto ?? ''))}`
-    case 'playMusic': return `Plays the music ${q(cmd.playMusic ?? '')}${fadeText(cmd.fade, 'in')}`
-    case 'stopMusic': return `Stops the music${fadeText(cmd.fade, 'out')}`
+    case 'playMusic': return `Plays the music ${q(cmd.playMusic ?? '')}${fadeText(typeof cmd.fade === 'number' ? cmd.fade : undefined, 'in')}`
+    case 'stopMusic': return `Stops the music${fadeText(typeof cmd.fade === 'number' ? cmd.fade : undefined, 'out')}`
     case 'playSound': return `Plays the sound ${q(cmd.playSound ?? '')}`
     case 'openDoor': return `Opens ${placeText(c, cmd.openDoor ?? '')}`
     case 'closeDoor': return `Shuts ${placeText(c, cmd.closeDoor ?? '')}`
     case 'lockDoor': return `Locks ${placeText(c, cmd.lockDoor ?? '')}`
     case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
     case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof (cmd as Record<string, unknown>).by === 'string' ? `, the contents go to ${unitText(c, String((cmd as Record<string, unknown>).by))}` : ''}`
-    case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
+    case 'focus': return `${typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`}${typeof cmd.ms === 'number' ? (cmd.ms === 0 ? ' at once' : ` over ${cmd.ms} ms`) : ''}`
+    case 'background':
+      return cmd.background === null || cmd.background === undefined ? `Takes the background away${cmd.transition === 'fade' ? ' with a fade' : ''}` : `Shows the background ${q(String(cmd.background))}${cmd.transition === 'fade' ? ` with a fade over ${cmd.ms ?? 500} ms` : ''}`
+    case 'fade': return cmd.fade === 'in' ? `Fades the screen back in over ${cmd.ms ?? 500} ms` : `Fades the screen out to ${cmd.color ?? '#000000'} over ${cmd.ms ?? 500} ms`
+    case 'wait': return `Waits ${typeof cmd.wait === 'number' ? cmd.wait : 0} ms`
+    case 'shake': return `Shakes the screen for ${cmd.shake?.ms ?? 400} ms (strength ${cmd.shake?.strength ?? 3})`
+    case 'leave': return `${q(cmd.leave ?? '')} leaves the stage`
+    case 'clearStage': return 'Clears the stage'
+    case 'weather': return cmd.weather === 'rain' ? 'Makes it rain' : cmd.weather === 'snow' ? 'Makes it snow' : 'Clears the weather'
+    case 'narrate': return `Narrates ${q(clip(String(cmd.narrate ?? '')))}`
     default: return 'Does something'
   }
 }

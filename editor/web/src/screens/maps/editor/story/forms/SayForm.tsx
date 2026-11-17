@@ -8,6 +8,7 @@ import { Select } from '../../../../../ui/Select'
 import { TextInput } from '../../../../../ui/TextInput'
 import { useStory } from '../StoryContext'
 import { S } from '../text'
+import { AutoField, PositionField } from './SceneForms'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
 const NOBODY = '__nobody__'
@@ -50,9 +51,11 @@ export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <SpeakerFields cmd={cmd} at={at} />
+      <PositionField cmd={cmd} at={at} />
       <Field label={S.sayText} help={S.sayTextHelp}>
         <TextInput data-learn="say-text" multiline rows={4} value={String(cmd.say ?? '')} onChange={(v) => patch({ say: v }, 'say')} />
       </Field>
+      <AutoField cmd={cmd} at={at} />
     </div>
   )
 }

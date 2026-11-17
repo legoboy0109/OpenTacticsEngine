@@ -29,6 +29,7 @@ from editor_api_structures_checks import run_structures_checks
 from editor_api_economy_checks import run_economy_checks
 from editor_api_fog_checks import run_fog_checks
 from editor_api_sound_checks import run_sound_checks
+from editor_api_scene_checks import run_scene_checks
 from editor_api_hex_checks import run_hex_checks
 from editor_api_learn_checks import run_learn_checks
 from editor_api_characters_checks import run_characters_checks
@@ -171,6 +172,7 @@ def main():
         run_economy_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fog_checks(api, tmp, games, templates, check, get_project, put_project)
         run_sound_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_scene_checks(api, tmp, games, templates, check, get_project, put_project)
         run_hex_checks(api, tmp, games, templates, check, get_project, put_project)
         run_srpg_checks(api, tmp, games, templates, check, get_project, put_project)
         run_characters_checks(api, tmp, games, templates, check, get_project, put_project)

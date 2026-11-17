@@ -12,7 +12,7 @@ function FadeField({ cmd, at, help }: { cmd: Command; at: CommandRef; help: stri
   const { patch } = useCommandEdit(at)
   return (
     <Field label={S.fadeLabel} help={help}>
-      <NumberInput value={cmd.fade} min={0} max={60} integer={false} allowEmpty placeholder="Default" suffix="seconds"
+      <NumberInput value={typeof cmd.fade === 'number' ? cmd.fade : undefined} min={0} max={60} integer={false} allowEmpty placeholder="Default" suffix="seconds"
         onChange={(v) => patch({ fade: v }, 'fade')} />
     </Field>
   )
