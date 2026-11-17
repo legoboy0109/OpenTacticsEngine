@@ -1632,7 +1632,7 @@ has no key and loads with none), refused on a battle without fog (`battle.lights
 (a side, a square on the map, radius 1 to 10, turns 1 to 10) with a path in the message. A light is on the undo copy like the rest of
 the battle. The data hash is `data/items.json` whole, so the new keys change the fingerprint of a game that has them and no other.
 
-**AI.** The computer **ignores every staff that has an effect other than a heal** (a heal + pull staff too): the new effects need a
+**AI.** The computer **ignores every staff that has an effect other than a heal** (a heal + pull staff too; `inflict` and `cure` are the exception, section 9 "Computer opponent"): the new effects need a
 second pick (a square, an item) or change what a whole side sees, and judging them takes a plan the stateless AI does not make; ignoring
 them can never crash or stall it (`ai_staves.cpp`; `tests/srpg_content_test.py` plays a fixture whose two sides carry such staves,
 and the fog map is left out of its stall check because the AI's hunt for units it cannot see stalls there with or without staves). Heal-only

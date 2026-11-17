@@ -46,7 +46,12 @@ int Database::findUnitType(const std::string& id) const { return findById(unitTy
 int Database::findMap(const std::string& id) const { return findById(maps, id); }
 int Database::findStyle(const std::string& id) const { return findById(styles, id); }
 int Database::findCharacter(const std::string& id) const { return findById(characters, id); }
-int Database::findSkill(const std::string& id) const { return findById(skills, id); }
+// A hidden skill (a condition's blocks, a weapon's "inflict") is never found by id: no story command or learn entry can name it.
+int Database::findSkill(const std::string& id) const {
+  for (size_t i = 0; i < skills.size(); ++i)
+    if (!skills[i].hidden && skills[i].id == id) return static_cast<int>(i);
+  return -1;
+}
 int Database::findAbility(const std::string& id) const { return findById(abilities, id); }
 int Database::findCondition(const std::string& id) const { return findById(conditions, id); }
 int Database::findSupportPair(int a, int b) const {

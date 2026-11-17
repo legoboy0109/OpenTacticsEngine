@@ -52,9 +52,9 @@ TEST(conditions_the_fixture_loads_and_a_conditions_blocks_are_hidden_skills) {
   int hidden = 0;
   for (const SkillDef& s : db.skills) hidden += s.hidden;
   CHECK_EQ(hidden, 19 + 2);
-  CHECK_EQ(db.findSkill("condition:poison"), db.conditions[(size_t)db.findCondition("poison")].skill);
-  // A condition cannot be found as a skill by a maker's id.
-  CHECK(db.findSkill("poison") < 0);
+  CHECK_STR(db.skills[(size_t)db.conditions[(size_t)db.findCondition("poison")].skill].id, "condition:poison");
+  // A condition cannot be found as a skill by any id (no story command or learn entry can teach it).
+  CHECK(db.findSkill("poison") < 0 && db.findSkill("condition:poison") < 0 && db.findSkill("weapon:venom_blade") < 0);
   const StaffDef& staff = db.staves[(size_t)db.items[(size_t)db.findItem("sleep_staff")].staff];
   CHECK(staff.effects[0].kind == StaffEffect::Kind::Inflict && staff.effects[0].turns == 2 && staff.area == StaffArea::Radius);
   const StaffDef& cure = db.staves[(size_t)db.items[(size_t)db.findItem("purify_staff")].staff];
