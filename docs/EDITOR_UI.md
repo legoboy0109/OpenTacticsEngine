@@ -880,6 +880,26 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
   deleting a skill removes those commands and conditions (listed in the delete question, one undo step).
 - **Tests**: unit `skills`, `skillsStarter`; API `tests/editor_api_skills_checks.py`; e2e `srpg-skills.spec.ts`, `srpg-skills-cards.spec.ts` (with the 360 px check).
 
+## Reading a unit's numbers and taking an item away (docs/EVENTS.md)
+
+All wording below is placeholder. No helper (API) change: the loader already checks maps and the campaign.
+
+- **"Set a variable" / "Add to a variable"** (`forms/VariableForms.tsx`): below "Variable" a choice **"Take the number from"**: "A number I type" (the old
+  box, "Set it to" / "Add"), "A unit's level", "A unit's hit points now", "A unit's most hit points", "A stat of a unit". Any reading shows "Which unit" (the
+  named units of the map; in a campaign scene the roster ids the scene can name) and, for a stat, "Which stat" (the game's stats first); a line of help says what
+  counts as 0. Choosing another source replaces the keys (`level` / `hp` / `maxHp` / `stat` + `of`, and `to` / `by`) in one undo step. A scene does not
+  offer "hit points now". The command list reads "Sets the variable “Bar” to the level of Edda".
+- **"Take an item away"** (group Give, after "Give an item"; `TakeItemForm` in `forms/GiveForms.tsx`): "Item", "Who loses it" (the usual unit picker; in a scene "Which character loses it"),
+  and the checkbox "Take every copy". Offered in map events and in campaign scenes; greyed with "(no items yet)" in a game without items.
+- **Problems** (`model/readingChecks.ts`, used by `storyChecks.ts` and `campaignChecks.ts`): both a number and a reading; more than one reading; a stat reading without
+  its unit (or a unit key with a stat); "hit points now" in a scene; plus the ordinary missing-name checks (a unit the map does not name, an unknown stat or item, an
+  empty pick).
+- **References**: a reading names a unit (`level` / `hp` / `maxHp` / `of`: ref kind `unit`) and maybe a stat (new ref kind `stat`); `takeItem` names an item and a
+  unit filter or roster id. They go through `storyWalk.ts`, so a unit rename follows, deleting a unit / item / stat removes the command (listed in the delete
+  question: the stat and item "used by" lines now include story commands and scenes, `references.ts` / `itemRefs.ts`; deleting a stat runs `scrubDoc`, scenes follow
+  through `reconcileCampaign`, whose `goneRefs` now also tracks stats and items).
+- **Tests**: unit `unitReading`, `takeItem`; e2e `unitreading.spec.ts` (with the 360 px check; the written JSON is loaded by the real engine through the helper's problems list).
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 All wording below is placeholder. No helper (API) change: the loader already checks maps and the campaign.

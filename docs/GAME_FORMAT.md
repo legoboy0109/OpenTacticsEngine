@@ -97,7 +97,10 @@ unchanged; art and fonts may change freely.
 
 `switches` and `variables` are what the events of the maps read and set
 (docs/EVENTS.md); ids are letters, digits, `_` and `-`, unique within their
-list. They count as rules for saves; their names do not.
+list. They count as rules for saves; their names do not. A variable's number may come from a unit instead of being written:
+`{ "setVariable": "bar", "level": "eirik" }` (also `hp`, `maxHp`, `"stat": "str", "of": "eirik"`; docs/EVENTS.md "Reading a unit's
+numbers"), and `{ "takeItem": "salve", "from": "eirik", "all": true }` takes an item away from units (docs/EVENTS.md "Taking an item away");
+both work in map events and in campaign scenes.
 
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
