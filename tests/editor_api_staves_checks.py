@@ -97,8 +97,8 @@ def run_staves_checks(api, tmp, games, templates, check, get_project, put_projec
         {"id": "e", "name": "E", "xp": 0}, {"id": "d", "name": "D", "xp": 10}, {"id": "c", "name": "C", "xp": 25}, {"id": "b", "name": "B", "xp": 45}]})
     check("staves: back to no problems", problems() == [], problems())
 
-    # Stage two (warp, pull, swap, repair, light, an item's "repairable"): the editor form does not cover these kinds yet, so the
-    # helper must hand them through GET and PUT untouched, and the loader must accept them (no problems).
+    # Stage two (warp, pull, swap, repair, light, an item's "repairable"): the Staff form edits these now; the helper still hands
+    # them through GET and PUT untouched, and the loader must accept them (no problems).
     pid2 = "staves2-api"
     shutil.copytree(os.path.join(os.path.dirname(FIXTURE), "srpg-staves2"), os.path.join(games, pid2))
     root2 = os.path.join(games, pid2)
@@ -122,3 +122,58 @@ def run_staves_checks(api, tmp, games, templates, check, get_project, put_projec
     got = next(i for i in d2["items"] if i["id"] == "kindly_pull_staff")
     check("staves 2: editing a staff's uses keeps its pull effect", got["uses"] == 9 and got["effects"] == [{"heal": 6}, {"pull": True}], got)
     check("staves 2: and the game still loads without problems", d2["problems"] == [], d2.get("problems"))
+
+    # What the editor's Staff form checks mirror (model/staffChecks.ts): each stage-two refusal of the real loader reaches /problems in the
+    # engine's words. The shapes the form writes are built end to end in editor/web/tests/e2e/srpg-staves2.spec.ts; here the refusals.
+    base2 = [dict(i) for i in on_disk2]
+
+    def refuse2(label, staff_id, patch, word):
+        st, d = get_project(api, pid2)
+        items = [dict(i) for i in base2]
+        item = next(i for i in items if i["id"] == staff_id)
+        for k, v in patch.items():
+            if v is None:
+                item.pop(k, None)
+            else:
+                item[k] = v
+        put_project(api, pid2, d, d["revision"], items=items)
+        st, p = api.json("GET", "/api/projects/%s/problems" % pid2)
+        msgs = [x["message"] for x in p["problems"] if x.get("file") == ITEMS]
+        check("staves 2: %s -> a problem on data/items.json" % label, any(word in m for m in msgs), msgs)
+
+    refuse2("a warp with no reach", "warp_staff", {"effects": [{"warp": {}}]}, "\"warp\" needs \"range\"")
+    refuse2("a warp reach above the limit", "warp_staff", {"effects": [{"warp": {"range": 21}}]}, "\"warp\": \"range\" must be a whole number from 1 to 20")
+    refuse2("a warp reach from above to", "warp_staff", {"effects": [{"warp": {"range": [4, 2]}}]}, "min not above max")
+    refuse2("a warp with another key", "warp_staff", {"effects": [{"warp": {"range": 3, "zzz": 1}}]}, "\"warp\": unknown key \"zzz\"")
+    refuse2("a pull that is not true", "recall_staff", {"effects": [{"pull": False}]}, "\"pull\" must be true")
+    refuse2("a repair of 0 uses", "fix_staff", {"effects": [{"repair": 0}]}, "\"repair\" must be a whole number of uses from 1 to 999")
+    refuse2("a repair of half", "fix_staff", {"effects": [{"repair": "half"}]}, "\"repair\" must be \"full\" or a whole number")
+    refuse2("a light with no radius", "lantern_staff", {"effects": [{"light": {"turns": 2}}]}, "\"light\": \"radius\" must be a whole number from 1 to 10")
+    refuse2("a light of 0 turns", "lantern_staff", {"effects": [{"light": {"radius": 2, "turns": 0}}]}, "\"light\": \"turns\" must be a whole number from 1 to 10")
+    refuse2("an unknown effect", "mend_staff", {"effects": [{"unlock": "door"}]}, "unknown effect \"unlock\"")
+    refuse2("two moves", "recall_staff", {"effects": [{"pull": True}, {"swap": True}]}, "only one of \"warp\", \"pull\" and \"swap\"")
+    refuse2("two repairs", "fix_staff", {"effects": [{"repair": 1}, {"repair": 2}]}, "only one \"repair\"")
+    refuse2("two lights", "lantern_staff", {"effects": [{"light": {"radius": 1}}, {"light": {"radius": 2}}]}, "only one \"light\"")
+    refuse2("repair with a move", "fix_staff", {"effects": [{"repair": 1}, {"pull": True}]}, "\"repair\" cannot be put together")
+    refuse2("a light with a heal", "lantern_staff", {"effects": [{"light": {"radius": 1}}, {"heal": 3}]}, "cannot be put together with another effect")
+    refuse2("a light with a target", "lantern_staff", {"target": "ally"}, "has no \"target\"")
+    refuse2("a light with an area", "lantern_staff", {"area": "single"}, "has no \"area\"")
+    refuse2("a light with a chance", "lantern_staff", {"hit": 50}, "no unit to roll \"hit\" for")
+    refuse2("a light with conditions", "lantern_staff", {"if": []}, "no unit for \"if\" to judge")
+    refuse2("a pull with a wide area", "recall_staff", {"area": "all"}, "\"area\" must be \"single\"")
+    refuse2("a pull on the user", "recall_staff", {"target": "self", "range": None}, "needs another unit")
+    refuse2("repairable that is not a boolean", "iron_blade", {"repairable": "no"}, "\"repairable\" must be true or false")
+    refuse2("repairable on an item with no uses", "short_sword", {"repairable": False}, "\"repairable\" only matters for an item with \"uses\"")
+
+    # The shapes the form writes load: heal + swap, a warp with a formula, heal + repair, a light, "repairable" off.
+    st, d = get_project(api, pid2)
+    built = [dict(i) for i in base2]
+    built.append({"id": "built_a", "name": "Built A", "kind": "staff", "group": "staff", "uses": 5, "range": [1, 3], "effects": [{"heal": {"percent": 30}}, {"swap": True}]})
+    built.append({"id": "built_b", "name": "Built B", "kind": "staff", "group": "staff", "uses": 5, "range": "1 + a.mag / 3", "effects": [{"warp": {"range": "2 + a.mag"}}]})
+    built.append({"id": "built_c", "name": "Built C", "kind": "staff", "group": "staff", "uses": 5, "range": 2, "effects": [{"heal": 4}, {"repair": 2}]})
+    built.append({"id": "built_d", "name": "Built D", "kind": "staff", "group": "staff", "uses": 5, "range": 2, "effects": [{"light": {"radius": 2, "turns": 1}}]})
+    next(i for i in built if i["id"] == "iron_blade")["repairable"] = False
+    put_project(api, pid2, d, d["revision"], items=built)
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid2)
+    check("staves 2: the shapes the form writes load without problems", st == 200 and p["problems"] == [], p.get("problems"))
+    put_project(api, pid2, d, d["revision"], items=base2)
