@@ -36,6 +36,11 @@ std::vector<AbilityMovePreview> previewAbilityMoves(const Battle& b, int user, i
     case AbilityEffect::MoveBehind:
       if (b.grid.valid(back) && !seenOccupant(back)) out = {{target, {back}}};
       break;
+    case AbilityEffect::MovePast: {  // the user goes to the far side of the target
+      const Cell far = b.grid.neighbor(t.cell, dir);
+      if (b.grid.valid(far) && !seenOccupant(far)) out = {{user, {far}}};
+      break;
+    }
     default: break;
   }
   return out;

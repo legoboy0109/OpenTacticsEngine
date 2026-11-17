@@ -23,7 +23,8 @@ bool isSrpgEvent(EventType t) {
     case EventType::UnitRescued: case EventType::UnitDropped: case EventType::UnitHanded: case EventType::PairSwitched:
     case EventType::SupportPoints: case EventType::SupportReached: case EventType::RankUp:
     case EventType::StaffUsed: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::AreaLit:
-    case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: case EventType::ConditionTick: return true;
+    case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: case EventType::ConditionTick:
+    case EventType::ItemStolen: case EventType::UnitRefreshed: return true;
     default: return false;
   }
 }
@@ -50,6 +51,8 @@ const char* srpgEventName(EventType t) {
     case EventType::ConditionEnded: return "ConditionEnded";
     case EventType::ConditionResisted: return "ConditionResisted";
     case EventType::ConditionTick: return "ConditionTick";
+    case EventType::ItemStolen: return "ItemStolen";
+    case EventType::UnitRefreshed: return "UnitRefreshed";
     default: return "?";
   }
 }

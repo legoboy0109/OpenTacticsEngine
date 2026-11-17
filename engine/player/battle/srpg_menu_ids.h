@@ -10,6 +10,7 @@ namespace ote {
 
 constexpr int kTalkBase = 1000;      // + n: the n-th Talk entry (BattleScene::MenuId uses this value)
 constexpr int kAbilityBase = 2000;   // + n: the n-th ability entry of the menu now open (U3)
+constexpr int kStealBase = 2500;     // + n: the item in slot n of the foe, in a steal ability's "Steal which?" list (docs/SRPG.md "Steal"), n < 500
 constexpr int kSupportBase = 3000;   // + n: the n-th "Support: <partner>" entry (U5)
 constexpr int kStaffBase = 4000;     // + n: the staff in inventory slot n, in the Staff list (docs/SRPG.md section 8)
 constexpr int kStaffItemBase = 4500; // + n: the item in slot n of the target, in a repair staff's "Repair which?" menu (stage 2)
