@@ -899,25 +899,57 @@ in docs/EDITOR_API.md; absent file = `null`, nothing written until the maker swi
   (a cure staff / item, "replaces" or an event counts).
 - **Tests**: unit `conditions`, `conditionStory`; API `editor_api_conditions_checks.py`; e2e `srpg-conditions.spec.ts` (with Play and the 360 px check).
 
-## Doors, chests and places (docs/SRPG.md section 10): no forms yet
+## Doors, chests and places (editor step of docs/SRPG.md section 10)
 
-The editor has **no forms for doors, keys, chests or visitable places**. Nothing breaks: the helper keeps every key through GET and PUT untouched
-(`tests/editor_api_doors_checks.py`: the `door` / `chest` / `visit` blocks and `blocksSight` of structure kinds, a key item's `opens`, the `unlock` effect of
-an ability and a staff, a map structure's `id` / `contents` / `locked` / `visitSides` / `visitUnits`, a map unit's `goesFor`, `place` triggers and the door
-commands, `rules.places`), the web model keeps keys it does not know, and the real loader's refusals reach Problems in the engine's words. What a maker must
-**hand-edit**:
+Contract: docs/SRPG.md section 10. A door, a chest and a visitable place are **structure kinds** with a `door` / `chest` / `visit` block; every look (shut, open, plundered,
+ruined) is a structure kind of its own with its own size-matching footprint, picture and movement rules. All wording is a placeholder, in `screens/structures/placeText.ts`,
+`screens/items/keyText.ts`, `screens/maps/editor/panels/placeText.ts`, `screens/maps/editor/story/forms/placeText.ts`, `screens/rules/placesRuleText.ts` and the staff / ability text files.
 
-- `data/structures.json`: the open / shut / ruined kinds (each its own structure with its own look and `moveCost`: the shut door's 0 is what blocks) and the
-  `door` / `chest` / `visit` blocks; `blocksSight` for fog;
-- `data/items.json`: a key's `"opens"`; a staff's `{ "unlock": ... }` effect (the Items form shows a staff whose first effect is not a heal as "not editable"
-  and keeps it as it is);
-- `data/abilities.json`: an ability `{ "unlock": ... }` (target `cell`) for the thief's trait;
-- in a map: a placed door / chest / place's `id`, a chest's `contents` (a chest without them is refused), `locked`, `visitSides`, `visitUnits`; a computer
-  unit's `goesFor`; events with `{ "place": ... }` triggers and the commands `openDoor`, `closeDoor`, `lockDoor`, `unlockDoor`, `openChest`;
-- `game.json`: `"rules": { "places": { "actions": "menu" | "auto" } }`.
-
-Placing a structure of such a kind with the map editor's structure tool works, but it writes only `type`, `x`, `y` and `side`: add `id` (and `contents` for a
-chest) by hand, or the map shows a problem.
+- **Structures screen** (`screens/structures/PlaceParts.tsx`, one card "Doors, chests and places"): three parts switched on like the other parts of a form ("It is a door", "It is a chest",
+  "It is a place that can be visited"). A structure is at most one of them (the others are greyed, with the reason), and a door or chest is greyed until another structure kind **of the same size**
+  exists to open into (the loader compares width, height and rings). Door: "When opened it becomes" (only same-size kinds are listed), "Starts locked" (written only when off), "What can open it" as
+  ticks (a key / a unit with a lockpicking ability / breaking it down; none ticked = only an event or an unlock staff; the default list is never written; "breaking" **is** the door's hit points, so
+  switching it on gives 20 hit points and a table of the numbers its damage formula reads as `b.name`, switching it off removes both; a key list goes when "a key" is unticked), "Only these keys fit"
+  (only items that open this kind are offered), where a unit stands to use it (default not written), and "It blocks sight" (`blocksSight`, fog). Switching a door on also sets "Cannot enter" for every
+  movement type that has no rule yet (the loader refuses a door that stops nobody; the maker refines it under "Moving through it"). Chest: the same without hit points. Place: "After a visit it
+  becomes", "When destroyed it becomes" (both optional), "It can be visited again and again" (greyed while a "becomes" is set, and the "becomes" select is disabled while it is on: the loader
+  refuses both), where a unit stands. Model: `model/places.ts` (`partBlock`, `setPlacePart`, `setWays`, `setDoorHp`, `setDoorStat`, `setPlaceKeys`, `setVisit*`, `twinKinds`).
+- **Items screen**: a usable item gets an "It opens doors and chests" part (`screens/items/ItemKeyPart.tsx`, `model/itemKeys.ts`) once the game has a door or chest kind (or the item already has
+  `opens`): ticks for "Any door", "Any chest" and each door / chest kind (an empty list is never written; a master key is door + chest). Switching it on removes a new item's untouched starting heal
+  of 10 (a key is not also a potion; a maker's own numbers stay). `setItemKind` drops `opens` when the kind changes. "Can be stolen" was already there (shown once an ability steals).
+  **Staff**: an "It unlocks doors and chests" part in "What it does" (`StaffUnlockPart.tsx`, `model/staffUnlock.ts`): doors / chests / both, written as `true` / `["door"]` / `["chest"]`. Like a light staff
+  it picks a square, so switching it on replaces the other effects and removes target, area and "Only if" (one Undo brings them back); `isSquareStaff` (light or unlock) drives what is hidden and greyed.
+  Its chance of missing, experience, reach, rank and lock work as for every staff. Checks (`staffChecks.ts`) mirror the loader: one effect, no target / area / `if`, `true` or a list of door / chest.
+- **Abilities screen**: "Unlock a door or chest" is a new effect (`AbilityEffectFields.tsx`, `model/abilities.ts`): doors / chests / both and an optional lockpick (an item with a limited number of
+  uses; one use is spent per opening); target `cell` and the range fields as for a summon. The simplest form that says it is written (`true`, `["chest"]`, or `{ kinds, needs }`). Checks: unknown or
+  unlimited lockpick, a game with no door or chest. `steal`, `refresh`, `movePast` and `cure` already had forms; nothing else was missing.
+- **Rules screen**: a separate card "Doors, chests and places" (`PlacesRuleCard.tsx`, `model/placeRules.ts`): "From the unit's menu" (default, not written) or "Automatically, by moving there"
+  (`rules.places.actions: "auto"`), with a plain explanation of each.
+- **Map editor** (`screens/maps/editor/panels/PlaceProps.tsx`, `ChestContents.tsx`, `GoesFor.tsx`; `model/mapPlaces.ts`): the Structures tool's panel shows, for a door / chest / place, its **story
+  name** (`id`; letters, digits, `_`, `-`; unique among the map's structures; a "Suggest a name" button; renaming follows into every `place` trigger and door command of the map's events in the same edit;
+  clearing a name events still use is refused, as for a unit), **Locked** (like its kind / locked / not locked; `locked`), a chest's **contents** (1 to 8: items with optional uses left, amounts of a
+  resource; a new chest starts with the game's first item, or 10 of its first resource, so it loads) and, for a place, **who may visit** (sides and units by story name). Changing a placed structure's kind
+  drops the keys of another kind (`fitPlaceKeys`). A **computer** unit's panel has "Goes for" (chests, villages, doors, steal; each with the docs' meaning); a human side's unit has no such control.
+  A unit's story-name rename also renames it in a place's `visitUnits`; removing a side takes it out of `visitSides`.
+- **Events** (`screens/maps/editor/story/forms/PlaceForms.tsx`, `model/placeStory.ts`): the trigger "A door, chest or place is used" (opened / visited / destroyed, optional "Done by") and the commands
+  "Open a door", "Shut a door", "Lock a door", "Unlock a door or chest", "Open a chest" (with an optional unit who gets the contents) in a new "Doors and chests" group of the command picker. The place
+  pickers list only the map's structures that **have a story name** and fit (a chest for "open a chest", a place with a ruin for "destroyed"); a name that is gone stays visible as "(not there any more)".
+  Not offered in a campaign scene. `RefKind` `place` in `storyWalk.ts` makes rename follow.
+- **Checks** (`model/placeChecks.ts`, banners on Structures and Items via `PlaceChecks`, map warnings via `mapChecks.ts`, abilities via `abilityChecks.ts`, staves via `staffChecks.ts`): every loader refusal
+  in plain words (more than one block, unknown / same / different-size `opens` / `becomes` / `ruin`, hit points 1-9999, damage numbers without hit points or naming an unknown stat, `by` entries, break
+  without hit points, a door that stops nobody, keys that are unknown / not keys / do not fit / twice / without "a key", `from`, a bad or doubled story name, contents on a non-chest, a chest with none or more
+  than 8 or an unknown item / resource / too many uses, `locked` on something else, visitors that are not sides / units, event places that are missing or of the wrong kind or cannot be destroyed, `goesFor`
+  on a human side) and notes (`note: true`, loads fine): a locked door or chest nothing in the game can open (no fitting key, no unlock ability anyone has, no unlock staff, no breaking, no event), a key that
+  opens no placed door or chest, a key that opens a kind that is not a door or chest, a `goesFor` with nothing of that kind on the map.
+- **Follow-through** (`model/placeRefs.ts`): `reconcilePlaces` runs in the document store after **every** edit (like `reconcileEconomy`), so a delete and its clean-up are one Undo step: deleting a structure
+  kind switches off the Door / Chest part of kinds that open into it, clears a place's `becomes` / `ruin`, and takes the kind off keys' `opens`; deleting an item takes it out of a door's / chest's key list,
+  out of placed chests, and clears an unlock ability's lockpick; deleting a resource takes its amounts out of chests. The delete confirmations list each of these. A story name that goes with a deleted
+  placed structure is **not** scrubbed from the events (that would silently delete a maker's events): the checks flag an event that names a place that is no longer there.
+- **Not in the editor**: `goesFor` on an `addUnit` command; the template (`editor/templates/strategy-rpg`) has no structures at all, so it was left alone (a starter set would change the "no structures
+  yet" starting point of many specs and lessons).
+- **Tests**: unit `tests/unit/places.test.ts` (on `tests/fixtures/srpg-doors`); API `tests/editor_api_doors_checks.py` (the shapes the forms write, and three refusals); e2e `places-forms.spec.ts` (every
+  form, the placed details, an event, the saved JSON against the docs, Play, and the 360 px phone). The API test suite now sends the helper's log to a file: nothing read the pipe, and the helper blocked
+  on its next log line once 64 KB had piled up.
 
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 

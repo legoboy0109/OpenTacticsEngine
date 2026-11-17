@@ -2368,7 +2368,7 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 
 - **Steal** is built (section 3 "Skill and ability blocks, second set", Steal): an ability that takes an item from an adjacent foe. A stolen item is no
   longer in the foe's inventory, so it cannot drop when the foe is defeated.
-- No editor forms (docs/EDITOR_UI.md says what to hand-edit); the helper keeps the keys.
+- Editor forms are built (docs/EDITOR_UI.md "Doors, chests and places"); not in the editor: `goesFor` on an `addUnit` command (hand-edit; the helper keeps it).
 - The AI does not use unlock abilities / staves and does not break doors down.
 
 ### Tests
