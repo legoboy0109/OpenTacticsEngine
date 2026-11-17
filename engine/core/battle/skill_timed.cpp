@@ -35,6 +35,8 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
     fc.sides = &sides;
     fc.battle = this;
     fc.a = &t;
+    if (ctx.foe >= 0 && ctx.foe < (int)units.size()) fc.b = &units[(size_t)ctx.foe];  // a "staffUse" block: the staff's target
+    fc.healed = ctx.healed;
     Props scratch;
     if (t.cell != kNoCell) fc.ta = &numbersAt(t.cell, scratch);
     const double v = formulas ? formulas->evalExpr(e.expr, fc, 0) : 0;
@@ -126,7 +128,7 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
 
 // After the unit used a staff (docs/SRPG.md "A staff used"): its "staffUse" blocks, in skill-list order, judged with the staff's group
 // (the "weapon" condition tests it). They run after the use is spent and the order has ended, like the blocks after a combat.
-void Battle::skillsStaffUse(int unit, const std::string& group, std::vector<Event>& events) {
+void Battle::skillsStaffUse(int unit, const std::string& group, int target, int healed, std::vector<Event>& events) {
   if (db->skills.empty()) return;
   Unit& u = units[(size_t)unit];
   if (!u.alive || u.cell == kNoCell) return;
@@ -136,6 +138,8 @@ void Battle::skillsStaffUse(int unit, const std::string& group, std::vector<Even
   ctx.unit = unit;
   ctx.weapon = restingWeapon(u);
   ctx.staffGroup = &group;
+  ctx.foe = target >= 0 && target < (int)units.size() ? target : -1;  // `b` in the block's formulas: the unit the staff was used on
+  ctx.healed = healed;
   for (int s : list)
     for (const SkillBlock& b : db->skills[(size_t)s].blocks)
       if (units[(size_t)unit].alive && b.when == SkillWhen::StaffUse && skillBlockHolds(b, ctx)) runTimedBlock(unit, -1, s, b, ctx, events);

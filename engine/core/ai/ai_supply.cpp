@@ -24,7 +24,7 @@ bool planKills(const Battle& b, const Unit& u, const Order& order) {
   Cell from = order.moveTo == kNoCell ? u.cell : order.moveTo;
   Forecast f;
   if (!b.forecast(u.id, order.target, order.weapon, from, f)) return false;
-  return f.attack.damage * f.attack.strikes >= b.units[(size_t)order.target].hp;
+  return f.attack.totalDamage() >= b.units[(size_t)order.target].hp;
 }
 
 Order stayOrRetreat(const Unit& u, Cell to, double score) {

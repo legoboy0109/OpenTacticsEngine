@@ -368,6 +368,11 @@ struct AttackOption {
   int weapon = -1;
 };
 
+// One strike's numbers where they differ from strike to strike (StrikeForecast::each).
+struct StrikeNumbers {
+  int damage = 0, hit = 100, crit = 0;
+};
+
 // What one side of a combat would do, before randomness.
 struct StrikeForecast {
   bool can = false;  // false = this side does not attack at all
@@ -377,6 +382,17 @@ struct StrikeForecast {
   int crit = 0;      // percent
   int strikes = 0;
   int multi = 1;     // strikes in a row per strike (docs/SRPG.md "multiStrike"); 1 = none
+  // The numbers of each strike (`strikes * multi` entries, in the order they are made) when they are not all the same: only a game
+  // whose skills ask which strike it is (docs/SRPG.md "One strike of a fight"). Empty = every strike has the numbers above, which
+  // are always those of the first strike.
+  std::vector<StrikeNumbers> each;
+  // The most this side could do to a target with hp to spare, before hit chances: every strike's damage added up.
+  int totalDamage() const {
+    if (each.empty()) return damage * strikes;
+    int sum = 0;
+    for (const StrikeNumbers& n : each) sum += n.damage;
+    return sum;
+  }
 };
 struct Forecast {
   StrikeForecast attack, counter;

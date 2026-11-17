@@ -236,6 +236,16 @@ bool resolveBlockConditions(const LoadCtx& c, const Database& db, const std::str
       found = found || std::find(ch.tags.begin(), ch.tags.end(), block.auraMatch) != ch.tags.end();
     if (!found) return c.fail(where, "\"aura\".\"match\" names no unit type id or tag \"" + block.auraMatch + "\"");
   }
+  if (block.aura && !block.auraWeapon.empty()) {  // the receiver's weapon: an id or a group of some weapon
+    bool found = false;
+    for (const WeaponDef& w : db.weapons) found = found || w.id == block.auraWeapon || w.group == block.auraWeapon;
+    if (!found) return c.fail(where, "\"aura\".\"weapon\" names no weapon id or group \"" + block.auraWeapon + "\"");
+  }
+  if (block.aura && !block.auraWeaponKind.empty()) {
+    bool found = false;
+    for (const WeaponDef& w : db.weapons) found = found || w.damageKind == block.auraWeaponKind;
+    if (!found) return c.fail(where, "\"aura\".\"weaponKind\" names no weapon damage kind \"" + block.auraWeaponKind + "\"");
+  }
   for (size_t i = 0; i < block.effects.size(); ++i) {
     SkillEffect& e = block.effects[i];
     if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict && e.kind != SkillEffect::Kind::Cure) continue;

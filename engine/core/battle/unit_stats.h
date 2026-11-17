@@ -6,12 +6,12 @@
 
 namespace ote {
 
-// What the unit's accessories add to one stat; two of the same item count once.
+// What the unit's accessories (and staves with a "bonus") add to one stat; two of the same item count once.
 inline int itemBonus(const Database& db, const Unit& u, int statIndex) {
   int sum = 0;
   for (size_t i = 0; i < u.items.size(); ++i) {
     const ItemDef& d = db.items[(size_t)u.items[i].item];
-    if (d.kind != ItemKind::Accessory || (size_t)statIndex >= d.bonus.size()) continue;
+    if ((d.kind != ItemKind::Accessory && d.kind != ItemKind::Staff) || (size_t)statIndex >= d.bonus.size()) continue;  // a staff may carry a bonus too
     bool earlier = false;
     for (size_t k = 0; k < i && !earlier; ++k) earlier = u.items[k].item == u.items[i].item;
     if (!earlier) sum += d.bonus[(size_t)statIndex];

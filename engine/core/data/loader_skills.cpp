@@ -132,6 +132,16 @@ bool resolveSkillRefs(const std::string& root, Database& db, std::string& err) {
           for (const StaffDef& st : db.staves) any = any || st.gear.group == e.names[0];
           if (!any) return c.fail(at, "\"staffRange\" names no staff group \"" + e.names[0] + "\"");
         }
+        if (e.kind == SkillEffect::Kind::CancelEffective) {  // each listed tag must be a key some weapon's "versus" uses
+          for (const std::string& tag : e.names) {
+            bool any = false;
+            for (const WeaponDef& w : db.weapons) {
+              double ignored = 0;
+              any = any || propFind(w.versus, tag, ignored);
+            }
+            if (!any) return c.fail(at, "\"cancelEffective\" names no effectiveness tag \"" + tag + "\" (a key of some weapon's \"versus\")");
+          }
+        }
         if (e.kind != SkillEffect::Kind::Ability) continue;
         e.ability = db.findAbility(e.abilityId);
         if (e.ability < 0)

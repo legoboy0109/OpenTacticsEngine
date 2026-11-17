@@ -97,6 +97,8 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
         case SkillCond::TurnMode::Every: return cond.turnA > 0 && round % cond.turnA == cond.turnB;
       }
       return false;
+    case Kind::Strike:
+      return ctx.strikeNo > 0 && cmp(cond.op, ctx.strikeNo, cond.value);
     case Kind::Carrying:
       return (u.carrying >= 0) == cond.flag;
     case Kind::Round:

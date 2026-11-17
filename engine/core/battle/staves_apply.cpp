@@ -94,7 +94,7 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
 }
 
 // The use is spent (the staff may break: the slot is gone after this), then what the user earns, then the order ends.
-void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events) {
+void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healedTotal) {
   Unit& user = units[(size_t)uid];
   const Unit* centerUnit = center >= 0 ? &units[(size_t)center] : nullptr;
   const int xp = d.xpExpr >= 0 ? (int)std::max(0.0, std::min<double>(kMaxStaffXp, std::floor(staffEval(d.xpExpr, user, centerUnit, d, kNoCell, 0)))) : d.xp;
@@ -117,7 +117,7 @@ void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, st
     }
   }
   endOrder(uid);
-  skillsStaffUse(uid, d.gear.group, events);  // docs/SRPG.md "A staff used"
+  skillsStaffUse(uid, d.gear.group, center, healedTotal, events);  // docs/SRPG.md "A staff used"
 }
 
 void Battle::applyStaffLight(const Action& action, std::vector<Event>& events) {
@@ -138,6 +138,7 @@ void Battle::applyStaffLight(const Action& action, std::vector<Event>& events) {
   light.cell = action.cell;
   light.radius = fx.radius;
   light.turns = fx.turns;
+  light.shrink = fx.shrink;
   lights.push_back(light);
   events.push_back(staffEvent(EventType::AreaLit, uid, action.cell, fx.radius, fx.turns));
   finishStaffUse(uid, slot, d, -1, events);
@@ -191,6 +192,7 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
   events.push_back(used);
 
   std::vector<int> healed;
+  int healedTotal = 0;  // everything the staff restored, for the user's "staffUse" blocks (`healed`)
   bool moves = false;
   for (int id : affected) {
     Unit& t = units[(size_t)id];
@@ -210,6 +212,7 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
     if (total > 0) {
       t.hp += total;
       events.push_back(staffEvent(EventType::UnitHealed, id, total));
+      healedTotal += total;
       if (id != uid) healed.push_back(id);
     }
     if (const StaffEffect* fx = d.find(StaffEffect::Kind::Repair)) {
@@ -233,7 +236,7 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
   if (moves) doAbilityMoves(plan, events);  // a miss leaves `moves` false for the one unit: nothing moves
   if (!moves) plan.moves.clear();
 
-  finishStaffUse(uid, slot, d, center, events);
+  finishStaffUse(uid, slot, d, center, events, healedTotal);
   // Supports earn after the order ends: their story events may add units (items do the same).
   for (int id : healed) supportsHealed(uid, id, events);
   // A moved unit has stopped somewhere: events waiting for a unit to arrive on that square may run (as after an ability or a

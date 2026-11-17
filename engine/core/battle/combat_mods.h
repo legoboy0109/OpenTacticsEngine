@@ -61,6 +61,8 @@ struct StrikeMods {
   // Conditions (docs/SRPG.md section 9): "inflict" effects of the activated blocks. `onStruck` goes to the unit this strike hits (the
   // striker's "strike" blocks), `onStriker` to the striker (the struck unit's "struck" blocks); both only when the strike hits.
   std::vector<const SkillEffect*> inflictOnStruck, inflictOnStriker;
+  // "recoil" effects of the striker's activated blocks (docs/SRPG.md "Skill blocks, third set"): the wielder is hurt after the strike.
+  std::vector<const SkillEffect*> recoils;
 };
 
 // The most damage a single strike can do; also keeps the percent arithmetic far from overflowing.

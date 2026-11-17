@@ -98,6 +98,11 @@ double Battle::skillExpr(int expr, const SkillCtx& ctx, double def) const {
     double vs = 1;
     if (versusValue(ctx.weapon, *b, vs)) fc.vs = vs;
   }
+  fc.strikeNo = ctx.strikeNo;
+  fc.healed = ctx.healed;
+  fc.dealt = ctx.dealt;
+  fc.item = ctx.item;
+  fc.itemUses = ctx.itemUses;
   return formulas->evalExpr(expr, fc, def);
 }
 

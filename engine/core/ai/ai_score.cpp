@@ -25,14 +25,22 @@ constexpr double kDefenseBonus = 8;     // per terrain defense point
 // strike must hit.
 double killChance(const StrikeForecast& f, int hp) {
   if (!f.can || f.damage <= 0 || f.strikes <= 0) return 0;
-  int need = (hp + f.damage - 1) / f.damage;
-  if (need > f.strikes) return 0;
+  // Strikes that differ from one another (docs/SRPG.md "One strike of a fight"): their average stands for each of them.
+  const int strikes = f.each.empty() ? f.strikes : (int)f.each.size();
+  const int damage = f.each.empty() ? f.damage : std::max(1, f.totalDamage() / strikes);
+  int need = (hp + damage - 1) / damage;
+  if (need > strikes) return 0;
   return std::pow(f.hit / 100.0, need);
 }
 
 // Expected damage of one side of an exchange, capped at the victim's hp.
 double expectedDamage(const Database& db, const StrikeForecast& f, int hp) {
   if (!f.can) return 0;
+  if (!f.each.empty()) {  // each strike with its own numbers
+    double sum = 0;
+    for (const StrikeNumbers& n : f.each) sum += n.damage * (n.hit / 100.0) * (1 + (db.rules.critMultiplier - 1) * n.crit / 100.0);
+    return std::min<double>(hp, sum);
+  }
   double perStrike = f.damage * (f.hit / 100.0) * (1 + (db.rules.critMultiplier - 1) * f.crit / 100.0);
   return std::min<double>(hp, perStrike * f.strikes);
 }

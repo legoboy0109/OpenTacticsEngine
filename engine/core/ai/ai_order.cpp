@@ -180,6 +180,7 @@ Order bestOrder(Context& cx, const Unit& u) {
   if (!u.moved) considerAdvance(cx, u, stops, best);
   considerPlaces(cx, u, reach, stops, best);  // chests, villages and doors, for a unit the map marked (ai_places.cpp)
   considerHealing(b, u, best);
+  considerCuring(b, u, best);
   considerSrpg(b, u, best);
   considerSupply(b, u, reach, stops, best);
   return best;

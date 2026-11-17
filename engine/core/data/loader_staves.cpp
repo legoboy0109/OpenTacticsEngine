@@ -16,7 +16,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
   static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy", "wieldedByTypes",
-                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable", "sounds"};  // "sounds": read by the player (docs/SOUND.md)
+                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable", "sounds", "bonus"};  // "sounds": read by the player (docs/SOUND.md)
   for (const Json::Member& m : o.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
@@ -143,8 +143,8 @@ bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const 
   out.kind = StaffEffect::Kind::Light;
   if (!v.isObject()) return c.fail(where, at + ": \"light\" must be { \"radius\": n, \"turns\": n }");
   for (const Json::Member& m : v.members())
-    if (m.first != "radius" && m.first != "turns")
-      return c.fail(where, at + ": \"light\": unknown key " + q(m.first) + " (expected \"radius\" or \"turns\")");
+    if (m.first != "radius" && m.first != "turns" && m.first != "shrink")
+      return c.fail(where, at + ": \"light\": unknown key " + q(m.first) + " (expected \"radius\", \"turns\" or \"shrink\")");
   if (!v.has("radius") || !LoadCtx::isWhole(v["radius"]) || v["radius"].asInt() < 1 || v["radius"].asInt() > kMaxStaffRadius)
     return c.fail(where, at + ": \"light\": \"radius\" must be a whole number from 1 to " + std::to_string(kMaxStaffRadius));
   out.radius = v["radius"].asInt();
@@ -153,6 +153,13 @@ bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const 
       return c.fail(where, at + ": \"light\": \"turns\" must be a whole number from 1 to " + std::to_string(kMaxStaffLightTurns) +
                                " (leave it out for 1)");
     out.turns = v["turns"].asInt();
+  }
+  if (v.has("shrink")) {  // a light that burns down: the torch
+    if (!LoadCtx::isWhole(v["shrink"]) || v["shrink"].asInt() < 1 || v["shrink"].asInt() >= out.radius)
+      return c.fail(where, at + ": \"light\": \"shrink\" must be a whole number of 1 or more and less than the radius (the squares it loses each turn; a light that loses its whole radius at once is just \"turns\": 1)");
+    out.shrink = v["shrink"].asInt();
+    // Without "turns" it burns until nothing is left: the turns it takes to lose its whole radius.
+    if (!v.has("turns")) out.turns = std::min(kMaxStaffLightTurns, (out.radius + out.shrink - 1) / out.shrink);
   }
   return true;
 }

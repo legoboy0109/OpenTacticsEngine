@@ -153,6 +153,7 @@ struct ItemDef {
   std::vector<int> opensKinds;
   bool isKey() const { return !opensIds.empty(); }
   bool stealable = true;       // false: a steal ability never takes it (docs/SRPG.md "Steal")
+  Props props;                 // usable / accessory: numbers a steal condition reads as `it.weight` (a weapon or staff has its own props)
 };
 const int kHealFull = 1000000000;
 
@@ -383,7 +384,8 @@ struct Database {
   // part of a save (set by resolveSrpgRefs).
   bool turnFlagSkills = false;
   // Some skill uses these effects (so the shared code can skip their work in a game that does not).
-  bool nullifySkills = false, staffRangeSkills = false, carryBonusSkills = false;
+  bool nullifySkills = false, staffRangeSkills = false, carryBonusSkills = false, cancelEffectiveSkills = false;
+  bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 
   // Index lookups by id; -1 when not found.
@@ -414,6 +416,9 @@ struct Database {
   // Registers a formula expression; returns its index for Formulas::evalExpr.
   int addExpr(const std::string& text, const std::string& label);
 };
+
+// Does the formula text read the variable `word` (a whole name, not part of another name and not a field such as `a.word`)?
+bool formulaReads(const std::string& text, const char* word);
 
 // ---- A square = terrain + (optionally) the structure standing on it ----
 // The ONLY place where terrain and structure rules are combined. Battle's
