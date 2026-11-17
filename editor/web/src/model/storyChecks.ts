@@ -119,6 +119,18 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     case 'addSupport':
       addSupportChecks(doc, c, where, say)
       break
+    case 'addCondition': {
+      if (typeof c.to !== 'object' || c.to === null) say(where, 'pick which units get the condition.')
+      if (c.turns !== undefined) {
+        const def = doc.conditions?.find((x) => x.id === c.addCondition)
+        if (!Number.isInteger(c.turns) || c.turns < 1 || c.turns > 99) say(where, 'the turns must be a whole number from 1 to 99.')
+        else if (def && def.until !== undefined) say(where, `${def.name} does not count turns (it lasts until it is cured or the map ends), so the turns mean nothing. Remove them.`)
+      }
+      break
+    }
+    case 'removeCondition':
+      if (typeof c.from !== 'object' || c.from === null) say(where, 'pick which units are cured.')
+      break
   }
 }
 

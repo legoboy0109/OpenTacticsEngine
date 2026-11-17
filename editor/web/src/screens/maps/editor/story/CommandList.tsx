@@ -27,7 +27,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addSupport'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
@@ -45,6 +45,8 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     addSupport: doc.supports?.pairs?.length ? null : 'no support pairs yet',
     teachSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
     forgetSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
+    addCondition: doc.conditions?.length ? null : S.noConditions2.toLowerCase(),
+    removeCondition: doc.conditions?.length ? null : S.noConditions2.toLowerCase(),
     giveItem: doc.items?.length ? null : 'no items yet',
     takeItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',

@@ -54,6 +54,8 @@ export interface Condition extends Extra {
   researched?: string
   /** A skill id: true when a matching living unit has the skill (docs/SRPG.md "Skills"). `unit` says which units. */
   hasSkill?: string
+  /** A status condition id: true when a matching living unit has it (docs/EVENTS.md "Status conditions"). `unit` says which units. Map events only. */
+  hasCondition?: string
   /** The side that must have it (a `researched` condition). */
   side?: string
   /** Fog of war: the team sees at least one living unit matching this filter (needs `team`). Map events only. */
@@ -63,8 +65,8 @@ export interface Condition extends Extra {
   /** The support level of a pair of characters compared with `value` (`op`, default >=); docs/SRPG.md "Supports". */
   support?: [string, string]
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition']
 
 /** One answer of a `choice` command: its words, an optional hiding condition list and the commands it runs (docs/EVENTS.md "Dialogue choices"). */
 export interface ChoiceAnswer extends Extra {
@@ -104,6 +106,10 @@ export interface Command extends Extra {
   /** A skill id taught to (`to` filter) or forgotten by (`from` filter) every matching unit (docs/SRPG.md "Skills"). */
   teachSkill?: string
   forgetSkill?: string
+  /** A status condition id given to (`to` filter, optional `turns`) or taken from (`from` filter; "all" = every condition) matching units. Map events only. */
+  addCondition?: string
+  removeCondition?: string
+  turns?: number
   /** Who loses it: a filter (forgetSkill; takeItem in a map event) or a roster id (takeItem in a campaign scene). */
   from?: Filter | string
   /** takeItem: an item id; `from` says who loses it, `all: true` takes every copy (else one). */
@@ -142,12 +148,12 @@ export interface Command extends Extra {
 export type CommandKind =
   | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
-  | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
+  | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
-  'playMusic', 'stopMusic', 'playSound', 'addSupport',
+  'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
 ]
 
 export interface StoryEvent extends Extra {

@@ -57,12 +57,13 @@ describe('the fixture', () => {
   })
   it('reads the amounts of every hurt and heal form (number, percent, formula, can defeat)', () => {
     const d = fx()
-    const hurt = (id: string) => amountOf(blocksOfCondition(cond(d, id))[0].do![0] as never, 'hurt')
+    const first = (id: string) => (blocksOfCondition(cond(d, id))[0].do as Array<Record<string, unknown>>)[0]
+    const hurt = (id: string) => amountOf(first(id), 'hurt')
     expect(hurt('fever')).toMatchObject({ kind: 'number', value: 5, canKill: false })
     expect(hurt('poison')).toMatchObject({ kind: 'percent', value: 10, canKill: false })
     expect(hurt('formula_burn')).toMatchObject({ kind: 'formula', text: 'a.mag + 1' })
     expect(hurt('deadly')).toMatchObject({ kind: 'number', value: 100, canKill: true })
-    const e = blocksOfCondition(cond(d, 'poison'))[0].do![0] as never
+    const e = first('poison')
     expect(withAmount(e, 'hurt', { kind: 'number', value: 7, text: '', canKill: false })).toMatchObject({ hurt: 7, to: 'self' })
     expect(withAmount(e, 'hurt', { kind: 'percent', value: 20, text: '', canKill: true })).toMatchObject({ hurt: { percent: 20, canKill: true } })
     expect(withAmount({ heal: 4 }, 'heal', { kind: 'formula', value: 0, text: 'a.level', canKill: false })).toEqual({ heal: 'a.level' })
@@ -204,7 +205,7 @@ describe('the starter set', () => {
     const r = installStarterConditions(empty)
     expect(r.added).toEqual(['Poison', 'Sleep', 'Silence', 'Berserk', 'Stun', 'Curse'])
     expect(r.doc.conditions!.map((c) => c.id)).toEqual(['poison', 'sleep', 'silence', 'berserk', 'stun', 'curse'])
-    let h = initHistory(empty)
+    let h = initHistory<ProjectDoc>(empty)
     h = pushEdit(h, r.doc, undefined, 0)
     expect(undo(h).present.conditions).toEqual([])
     expect(blocking(r.doc)).toEqual([])
@@ -291,7 +292,7 @@ describe('staff parts: inflicts and cures', () => {
     expect(keptEffectCount(item(d, 'cure_staff'))).toBe(1)
   })
   it('mirrors the loader: unknown condition, two of a kind, empty or repeated cure list, turns on a condition that does not count them', () => {
-    const bad = (effects: object[]): string[] => {
+    const bad = (effects: Array<Record<string, unknown>>): string[] => {
       const d = fx()
       return staffChecks({ ...d, items: d.items!.map((i) => (i.id === 'cure_staff' ? { ...i, effects } : i)) }).filter((c) => c.blocks).map((c) => c.text)
     }

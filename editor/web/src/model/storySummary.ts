@@ -95,6 +95,8 @@ export function triggerText(c: SumCtx, t: Trigger): string {
   }
 }
 
+const conditionLabel = (c: SumCtx, id: string): string => c.doc.conditions?.find((x) => x.id === id)?.name ?? id
+
 const OP_WORDS: Record<CompareOp, string> = { '=': 'is', '!=': 'is not', '<': 'is below', '<=': 'is at most', '>': 'is above', '>=': 'is at least' }
 export const opWords = (op: string | undefined): string => OP_WORDS[(op ?? '=') as CompareOp] ?? 'is'
 
@@ -110,6 +112,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'sees': return `team ${teamText(c, k.team ?? '')} sees ${filterText(c, k.sees)}`
     case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
     case 'hasSkill': return `${filterText(c, k.unit)} has the skill ${q(skillLabel(c, k.hasSkill ?? ''))}`
+    case 'hasCondition': return `${filterText(c, k.unit)} has the condition ${q(conditionLabel(c, k.hasCondition ?? ''))}`
     default: return 'something is true'
   }
 }
@@ -160,6 +163,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
     case 'teachSkill': return `Teaches the skill ${q(skillLabel(c, cmd.teachSkill ?? ''))} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'forgetSkill': return `Makes ${filterText(c, cmd.from)} forget the skill ${q(skillLabel(c, cmd.forgetSkill ?? ''))}`
+    case 'addCondition': return `Puts the condition ${q(conditionLabel(c, cmd.addCondition ?? ''))} on ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}${cmd.turns ? ` for ${cmd.turns} ${cmd.turns === 1 ? 'turn' : 'turns'}` : ''}`
+    case 'removeCondition': return cmd.removeCondition === 'all' ? `Cures ${filterText(c, cmd.from)} of every condition` : `Cures ${filterText(c, cmd.from)} of the condition ${q(conditionLabel(c, cmd.removeCondition ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`
     case 'setSwitch': return `Turns the switch ${q(switchName(c, cmd.setSwitch ?? ''))} ${cmd.to === false ? 'off' : 'on'}`
     case 'setVariable': return `Sets the variable ${q(variableName(c, cmd.setVariable ?? ''))} to ${readingText(c, cmd) ?? (typeof cmd.to === 'number' ? cmd.to : 0)}`
