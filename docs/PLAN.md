@@ -179,6 +179,15 @@ goal (demos only exercise features).
       choices) - NOT a scene summary; a level box expands to show its in-map events in rough order.
       6d editor screen for status conditions (owner, 2026-11-16: "after stage three"): build a condition from
       blocks, the six starter conditions, and inflict / cure on staves, items and weapons.
+      6e missing skill blocks (owner, 2026-11-16: "after doors and keys"). List from the private converter's
+      step 7 (37 skills shown without effect), by how many each unlocks: auras limited to a kind of ally or
+      to physical / magical damage (7); turn-number conditions (4); steal and unlock abilities (4, with doors
+      and keys); follow-up strike control, formula-sized combat bonuses, weapon-experience multiplier (2
+      each); then single blocks: move again but not after attacking, no carry penalty, "foe cannot counter"
+      condition, switch off the foe's skills, heal the healer on staff use, ignore defence, cancel
+      effectiveness, item-count condition, refresh an ally, staff range bonus, status cure, summon
+      parameters, bonus-terrain condition, triangle multiplier, move past a neighbour. Also: a map unit with
+      a skill of its own, and class skills that go away on promotion.
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
