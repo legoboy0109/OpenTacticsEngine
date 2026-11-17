@@ -1511,20 +1511,44 @@ experience for the user, a number or a formula), *Numbers for formulas* (`props`
 banner. How it was settled where the owner was silent (any can be changed):
 - *Weapons fixed*: a staff is wielded by group whether or not weapons are carried, so its lock card shows whenever the game has characters and a class can be given its group (Units: "Can wield groups").
   The rank card follows the weapons' rule (shown once the game has a ladder). The ladder itself still needs carried weapons (existing check).
-- *Healing only*: the form edits the **first** effect, which must be a heal; further effects, and any key a hand-edited file carries (stage 2 and 3 included), are kept untouched. "An enemy" is offered
-  as a target only when the file already has it (healing refuses it).
+- *Healing only (stage one; superseded by the stage-two part below)*: the form edited the first effect, which had to be a heal; further effects, and any key a hand-edited file carries, were kept untouched. "An enemy" is offered
+  as a target only to a staff that does not heal, or when the file already has it.
 - *Only the user* has no reach and no area (the loader refuses both), so choosing it removes them in the same step.
 - *Kind switch*: a new staff gets a group (one an existing staff has, else "staff"), reach 2, a heal of 10 and 8 uses. Leaving the kind removes `group`, `rank`, `rankXp`, `wieldedBy`, `props`,
   `range`, `target`, `area`, `effects`, `hit`, `xp` and `if`, and starting ranks in a group nothing has any more.
 - *Checks* mirror the loader (group, reach 1 to 20 and min not above max, radius 1 to 10, heal numbers, hit, xp needing experience on, a rank with no ladder, a lock with no characters, a heal on foes) and add
   "nobody can use it yet: no class can wield its group". Code: `editor/web/src/model/staff.ts`, `staffChecks.ts`, `gear.ts`; screens `screens/items/staff/`. See docs/EDITOR_UI.md "Staves".
 
+### Staves: the editor, stage two, as built
+
+The Staff form's "What it does" card is now a set of parts a maker switches on, matching what the loader allows together; the helper (C++) is unchanged. Placeholder wording throughout (`screens/items/staff/text.ts`).
+- *Parts*: **It heals** (number, percentage, all HP, formula; as before), **Moving a unit** (none / warp with its reach as a number, from-to or formula, measured from the user / pull / swap),
+  **It repairs an item** (all uses or a number of uses, 1 to 999), **It lights up an area** (radius 1 to 10, turns 1 to 10). Heal + move and heal + repair are allowed; a staff needs one effect at least
+  (the last one cannot be switched off) and at most four.
+- *Order*: each part is found by its kind wherever it stands, edited in place, a new one is appended, a removed one only leaves its own place. A file is never rewritten by opening it. Effects the form
+  does not know (an unknown kind, a second heal, a second move, a malformed one) are kept and the card says "N more effects that the editor cannot show are kept as they are".
+- *Illegal combinations are impossible, not just flagged*: with repair on, the move choices are greyed (and the reverse); pull and swap are greyed while "Only the user" is chosen and "Only the user" is
+  greyed while pull or swap is on (warp and repair may use it); a move or repair brings a wider area back to one unit in the same step and greys the wider choices; "An enemy" is offered only to a staff
+  that does not heal and healing cannot be switched on for one; one move kind per staff (choosing another replaces it). The model functions refuse the same edits, so a script cannot make them either.
+  A hand-edited file that has such a combination still opens; the checks name it (the loader's wording style, `blocks`).
+- *Light*: switching it on replaces **all** other effects and removes `target`, `area`, `hit` and `if` in the same step (the pattern of "Only the user"; no question is asked, one Undo brings it all back);
+  `range` and `xp` stay (a staff that had no reach gets 2). The form then hides the target, area, chance of missing and conditions. It is refused while the staff has an effect the form cannot show
+  (nothing is ever dropped). Switching it off leaves a heal of 10.
+- *`repairable`*: the uses card of **any** item with uses shows "A repair staff can mend it" when the game has a staff with a repair effect, or the item already has the key. On = key absent; off =
+  `"repairable": false`. Making an item unlimited (or an accessory) removes the key (the loader refuses it on an item without uses); the item checks name a hand-written one.
+- *Checks* (`staffChecks.ts`, `itemChecks.ts`): every stage-two refusal of the loader (warp reach shapes and keys, `pull` / `swap` not true, `repair` 1 to 999 / full, light radius / turns / keys, unknown
+  effect, 1 to 4 effects, one move / repair / light, repair with a move, light alone with no target / area / hit / if, move or repair needing area "single", pull / swap not on the user, `repairable` not
+  a boolean or on an item with no uses). Worth a look (not blocking): a light staff while no map has `fog`; a repair staff while no item with uses is repairable.
+- *The "Only if" box* of a staff says "The unit using the staff" (the abilities' editor takes a label).
+- Code: `model/staffFx.ts`, `staffEffects.ts`, `staff.ts`, `staffChecks.ts`; screens `screens/items/staff/StaffEffectCard.tsx`, `StaffOtherParts.tsx`. Tests: `tests/unit/staves2.test.ts`,
+  `tests/e2e/srpg-staves2.spec.ts`, `tests/editor_api_staves_checks.py` (stage-two refusals).
+
 ### Staves: stage two, as built (warp, pull, swap, repair, light)
 
 Same item, action (`ActionType::UseStaff`), wield test, uses, `hit`, `xp`, `if`, rank and lock handling as stage 1; five effect kinds
 more, and the action grew three optional fields. `unlock` is **not** part of stage two (it waits for doors, PLAN item 5) and the loader
-still says `unknown effect "unlock"`. The editor form does not cover these kinds yet (a staff whose first effect is not a heal shows
-the heal card as "not editable"); the editor helper keeps every key of them untouched through GET and PUT
+still says `unknown effect "unlock"`. The editor form covers these kinds (see "Staves: the editor, stage two, as built" above;
+stage one edited a first heal only); the editor helper keeps every key of them untouched through GET and PUT
 (`tests/editor_api_staves_checks.py`), and the loader reads them, so a hand-written file works.
 
 ```jsonc
