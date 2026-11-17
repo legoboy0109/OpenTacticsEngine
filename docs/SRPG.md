@@ -373,7 +373,7 @@ the entries of its type and its character for exactly the new level (event `Skil
 list and adds the new type's entries at or below the new level. A skill already in the list is not added twice. The
 campaign roster carries the list.
 
-### WHEN: the seven points
+### WHEN: the eight points
 
 | `when` | The block is judged | Has a foe |
 |---|---|---|
@@ -384,6 +384,7 @@ campaign roster carries the list.
 | `struck` | each time the unit is about to be struck | yes |
 | `defeat` | after a combat in which the unit defeated its foe | yes (fallen) |
 | `afterCombat` | after a combat the unit took part in and survived | yes (may be fallen) |
+| `staffUse` | after the unit used a staff (the use is spent, its order has ended); the `weapon` condition tests the staff's group | no |
 
 ### CONDITIONS (`if`)
 
@@ -395,7 +396,7 @@ foe. `op` is one of `= != < <= > >=` (`==` accepted), default `>=`.
 | `{ "hp": { "op": "<=", "percent": 50 } }` | the unit's HP compared with that share of its maximum (0..100), computed as `hp * 100 <op> percent * maxhp` |
 | `{ "near": "ally", "within": 1, "op": ">=", "count": 1, "match": "knight" }` | counts other units on the board within `within` steps (1..10, default 1): `"ally"` = same team, `"enemy"` = another team **and seen by the unit's team**; `match` (optional) = a unit type id or tag. `count` default 1. "Nobody next to me" = `"op": "=", "count": 0`. Owner only |
 | `{ "weapon": "sword" }` | the unit's weapon in use is that weapon id or has that `group` |
-| `{ "terrain": "forest" }` | the square the unit stands on (in a forecast: would stand on) is that terrain id or has that terrain tag |
+| `{ "terrain": "forest" }`, `{ "terrain": ["forest", "swamp"] }` | the square the unit stands on (in a forecast: would stand on) is that terrain id or has that terrain tag; the list form is true when any one matches (see "Skill and ability blocks, second set") |
 | `{ "structure": true }` / `{ "structure": "fort" }` | the unit stands on a structure / on one with that id or tag |
 | `{ "unit": "armored" }` | the unit's type has that id or tag (`unitTypeMatchesKey`) |
 | `{ "carrying": true }` | the unit carries someone / has a unit behind it (section 5); `false` = it does not |
@@ -443,15 +444,18 @@ roll today).
 | `{ "drain": 50 }` | the unit heals that percent of the damage this strike dealt | `strike` |
 | `{ "strikeAgain": true }` | one more strike straight after this one (the extra strike cannot give another) | `strike` |
 | `{ "survive": true }` | a strike that would defeat the unit leaves it at 1 HP, if it had more than 1 HP | `struck` |
-| `{ "heal": 5 }` / `{ "heal": { "percent": 20 } }` | restores HP (percent of the receiver's maximum, at least 1). `"to"`: `"self"` (default) or `"allies"` with `"within": 1..10` (other units of its team on the board that close) | `turnStart`, `defeat`, `afterCombat` |
+| `{ "heal": 5 }` / `{ "heal": { "percent": 20 } }` | restores HP (percent of the receiver's maximum, at least 1). `"to"`: `"self"` (default) or `"allies"` with `"within": 1..10` (other units of its team on the board that close; not in `staffUse`) | `turnStart`, `defeat`, `afterCombat`, `staffUse` |
 | `{ "hurt": 5 }` | the receiver loses HP but never falls below 1. `"to"`: `"foe"` (`afterCombat`, a foe still alive) or `"enemies"` with `"within"` (`turnStart`; enemies the unit's team sees) | `afterCombat`, `turnStart` |
 | `{ "actAgain": true }` | the unit may move and act again this turn. At most once per unit per turn | `defeat`, `afterCombat` (only on its own side's turn) |
 | `{ "followUp": "force" }`, `{ "followShift": 2 }`, `{ "trianglePercent": 200 }` (also `"to": "foe"`) | follow-up control and the triangle multiplier; see "More skill blocks" | `combat` |
 | `{ "weaponXpPercent": 150 }`, `{ "noCarryPenalty": true }`, `{ "cancelEffective": true }`, `{ "moveAgain": { "notAfterAttack": true } }` | see "More skill blocks" | `always` |
-| `{ "cure": ["poison"] }` / `{ "cure": "all" }` | cures the owner | `turnStart`, `defeat`, `afterCombat` |
+| `{ "cure": ["poison"] }` / `{ "cure": "all" }` | cures the owner | `turnStart`, `defeat`, `afterCombat`, `staffUse` |
+| `{ "nullifySkills": true }`, `{ "nullifySkills": ["id"] }`, `{ "nullifySkills": { "tag": "word" } }` | the foe's skills do not apply in this fight; see "Skill and ability blocks, second set" | `combat` |
+| `{ "staffRange": 2 }`, `{ "staffRange": { "amount": 2, "group": "heal" } }` | squares added to the reach of staves the unit uses | `always` |
+| `{ "carryBonus": 2 }` | a number the `canCarry` formula reads as `a.carryBonus` | `always` |
 
 An effect in a block whose `when` the table does not list is refused: `skill "x": block 2: "drain" cannot be used in
-a "combat" block (it belongs to: strike)`.
+a "combat" block (it belongs to: strike)`. A skill may also have `"tags"` (a list of the maker's words, used by `nullifySkills`).
 
 **Aura.** A `combat` block may have `"aura": { "to": "allies", "within": 2 }` (`"allies"` or `"enemies"`, 1..10):
 its effects then go to every unit of that kind within that distance of the owner **that is fighting**, not to the
@@ -597,10 +601,10 @@ character. They are learned for good when the unit is made (so `forgetSkill` can
 promotion the skills the OLD class's `learns` gave are removed (except ones the character or the new class teaches too), then the new class's
 entries at or below the new level are added. Skills from the type's `skills`, accessories and weapons are always re-derived from the current state.
 
-**Not built from the list** (each would need rules, forecast, editor and tests of its own; PLAN 6e lists them): steal (needs a picker for the foe's
-items), switch off the foe's skills, heal the healer on staff use, staff range bonus, refresh an ally, a carry capacity bonus, a test for standing on
-terrain that gives a bonus (the existing `terrain` test takes an id or tag), and "move past a neighbour" (an ability that puts the *user* beyond
-the unit; `moveBehind` puts the *target* behind the user). Summon parameters already exist (section 4: the unit type, `level`, `limit`).
+**Built later** (docs below, "Skill and ability blocks, second set"): steal, refresh an ally, move past a neighbour, switch off the foe's skills, a
+`staffUse` point, a staff range bonus, a list for the `terrain` test, cure as an ability effect and a carry capacity bonus. Summon parameters already exist
+(section 4: the unit type, `level`, `limit`). Still not built: a test for terrain that "grants a bonus" (terrain bonuses are the maker's own numbers; there is no
+fixed notion of one, so only the list form of `terrain` was made).
 
 **The computer opponent.** Every passive block above flows through the existing forecast, so it values them like any other combat bonus. There is no
 new active ability, so nothing new is ignored.
@@ -609,6 +613,84 @@ new active ability, so nothing new is ignored.
 
 **Tests.** `tests/test_srpg_skillblocks.cpp`, `test_srpg_skillblocks_more.cpp`, `test_srpg_skillblocks_units.cpp` (fixture
 `tests/fixtures/srpg-skillblocks`); editor: `tests/unit/skillblocks.test.ts`, `tests/e2e/srpg-skillblocks.spec.ts`, `tests/editor_api_skills_checks.py`.
+
+### Skill and ability blocks, second set
+
+Added after the general blocks above. Every game that does not use a new key loads, plays, saves and hashes exactly as before (the maker's files are hashed
+whole, so a new key counts only in a game that has it). Fixture `tests/fixtures/srpg-skillblocks2`.
+
+**Steal** (ability effect). `{ "id": "pickpocket", "target": "enemy", "effect": { "steal": { "if": "a.spd > b.spd", "weapons": false, "equipped": false } } }`;
+`"steal": true` is the same with every option at its default. The ability has `"target": "enemy"` and range `[1, 1]`; `uses`, `cooldown`, `cost`, `afterMove` and
+`if` work as for every ability.
+- `if` (optional): a formula (`a` = the user, `b` = the foe). When it is 0, the ability cannot be attempted on that foe at all: `cannot steal from that unit`.
+- `weapons` (default false): carried weapons can be taken. `equipped` (default false; needs `weapons: true`): the weapon the foe holds in hand (its first
+  wieldable weapon) can be taken as well. An item the maker marked `"stealable": false` in `items.json` can never be taken.
+- What can be taken is `Battle::stealOptions(unit, ability, from, foe, out)`: one entry per slot of the foe's inventory with `ok` and the plain reason
+  (`cannot be stolen`, `weapons cannot be stolen`, `the equipped weapon`). A foe with nothing takeable is not a target (`there is nothing it can take`, `it carries nothing`).
+- The action is `Action::useAbility(user, ability, foe)` with `slot` = the item's slot in the foe's inventory (`choose an item to steal` when it is missing,
+  `that item cannot be stolen` and so on when it may not be taken).
+- The user's full inventory follows the rule of the chests (section 10): with no shared storage (`rules.items.storage` off) a full pack greys the ability out
+  (`the unit cannot carry more: drop something first`); with a storage the item goes to the side's storage like any overflow.
+- The foe's inventory loses the item; its equipped weapon falls back to the next one it can wield, as for every removed item (`equippedSlot`), and an accessory
+  that raised its maximum HP is dealt with by `clampHp`. The stack keeps its uses. What a computer unit steals it marks `drop`, like what it loots from a chest.
+- Events: `AbilityUsed`, `ItemStolen` (a = thief, b = the unit robbed, c = item, d = uses left or -1), then `ItemGained` (or into the storage) for the thief.
+- **Computer opponent.** A unit marked `"goesFor": ["steal"]` (map unit and `addUnit`; a computer side only) that has a steal ability, and whose planned order is
+  a plain Wait / advance or an attack that does not defeat its target, steals instead: from where it would stand, the first foe (unit-id order) with the first
+  item (slot order) it may take. It walks to a foe only as far as its normal plan does; it does not seek out foes to rob. An unmarked unit never steals. The
+  ability's own `uses` / `cooldown` / the turn it ends make a loop impossible.
+- **Player.** Choosing the ability picks the foe first (the hint says `Steal: 2 of 3 items can be taken`), then a `Steal which?` list of the foe's items (name and
+  uses left); the ones that cannot be taken are greyed with the reason on the right (`weapons cannot be taken`, `the weapon in hand`, `cannot be taken`; a short
+  form on a narrow screen, none when there is no room). Keys, pointer and touch work as in the other menus; Cancel in the list goes back to the foe pick, Cancel
+  there to the action menu. The thief floats `Stole <item>`.
+
+**Refresh an ally** (ability effect). `{ "refresh": true }` or `{ "refresh": { "perTurn": 2 } }` with `"target": "ally"` (range as the maker likes, default
+[1, 1]). The target must be a unit of the user's own side that has used its action (`done`, or `acted` with move again) and that can act (a condition that
+stops acting is respected: `that unit cannot act`). It gets its `moved`, `done`, `acted` and `moveSpent` cleared. Guards: a unit can be refreshed at most
+`perTurn` times in one turn of its side (default 1: `that unit was already refreshed this turn`), counted over every refresher; and a unit that refreshed you
+this turn cannot be refreshed by you (`that unit refreshed you this turn`), so two refreshers cannot ping-pong. State: `Unit::refreshedBy` (the refreshers'
+unit ids, cleared when the unit's side starts its turn), saved as `"refreshedBy": [ids]` only when not empty and only in a game with a refresh ability.
+Event `UnitRefreshed` (a = refresher, b = the unit, c = ability). The computer opponent never refreshes. Player: the ordinary ally pick; the unit floats `Ready again`.
+
+**Move past a neighbour** (ability effect). `{ "movePast": true }` with `"target"` `ally`, `enemy` or `unit` and range `[1, 1]`: the USER moves to the square on the
+far side of the target (the same direction), if it can stand there (on the map, the user's move type can enter it, nobody on it:
+`there is no room beyond that unit`). It is the fifth member of the reposition family: the same direction maths (`Grid::directionTo` / `neighbor`, so squares and
+both hexagon layouts), the same fog rules (an unseen unit on the square makes the use blocked: paid for, nothing moves, `kBlocked`), `UnitRelocated`, a released
+capture, and the story's `reach` events for the square it ends on. Player: the pick marks the end square red.
+
+**Cure as an ability** (ability effect). `{ "cure": ["poison"] }` or `{ "cure": "all" }` with `"target": "self"` or `"ally"`. A valid target has at least one of the
+listed conditions (`that unit has nothing to cure`, `nothing to cure`). It works like a staff's or item's cure: no immunity or inflict rules, `ConditionEnded`
+with the "cured" reason. A game without `data/conditions.json` refuses it.
+
+**Switch off the foe's skills** (`combat` effect). `{ "nullifySkills": true }` (every skill of the foe), `{ "nullifySkills": ["heavy_blow", "guard"] }` (those skill ids)
+or `{ "nullifySkills": { "tag": "bonus" } }` (the skills whose `"tags"` hold that word). Exactly which blocks are switched off:
+- The foe's skills are not used for this fight in its `combat` blocks (stat bonuses of a combat block included), its `strike` and `struck` blocks, and the
+  auras the foe itself owns. Forecast, strikes, notes and the roll order all read a fighter's skills through one function (`Battle::skillCombatList`), so the
+  forecast always equals the fight. Auras of third units, `always` blocks (they are part of the unit's shown stats: Strength, Move, ...), `turnStart`,
+  `defeat`, `afterCombat` and `staffUse` blocks, supports and the weapon's own numbers are never switched off.
+- Conditions' hidden skills (section 9) are never switched off. The block with the effect is judged normally, for the unit that owns it: its conditions
+  must hold. A skill that itself contains a `nullifySkills` effect is never switched off, so when both fighters have one each loses everything except the
+  nullifying skill. It works for the counterattack as for the attack.
+- Loader: `"nullifySkills" names unknown skill "x"`, `names no skill tag "x" (a skill's "tags")`, `must be true (every skill of the foe), a list of skill ids, or { "tag": "word" }`;
+  only in `combat` blocks, not in auras or conditions.
+
+**A "staff used" moment** (`"when": "staffUse"`). The block runs on the unit that used a staff, after the use is spent and its experience given and its order has
+ended (so it also runs for light and unlock staves). Allowed effects: `heal` (to the user: a number, `{ "percent": n }` or a formula with `a` = the user; `"to":
+"allies"` is refused) and `cure`. Conditions are those of a `turnStart` block; the `weapon` condition tests the group of the staff that was used
+(`{ "weapon": "heal" }`); a `chance` is rolled with the battle's dice. The result is the usual `SkillActivated` and `UnitHealed` events.
+
+**Staff range bonus** (`always` effect). `{ "staffRange": 2 }` or `{ "staffRange": { "amount": 2, "group": "heal" } }` (1..10; with a group only staves of that group
+gain). The number and `[min, max]` forms of a staff's `range` get the bonus on their maximum, a formula form adds it to its result (at most 20, the staff limit).
+It is applied in `Battle::staffRange`, the one place reach is worked out, so the rules, the player's reach display and the computer opponent agree. A warp's
+destination range (`"warp": { "range": ... }`) is the staff's own and is not changed.
+
+**Terrain tests.** `{ "terrain": ["forest", "swamp"] }`: a list of ids and tags, true when any one matches (every entry must exist: `"terrain" names no terrain id or tag "x"`).
+`{ "terrainBonus": true }` was **not built**: terrain numbers (`defense`, `avoid`, ...) are the maker's own formula inputs, with no fixed notion of a bonus.
+
+**Carry capacity.** `{ "carryBonus": 2 }` (always; -100..100): formulas read the sum of a unit's `carryBonus` effects as `a.carryBonus` / `b.carryBonus` (0 for a unit
+without one), so a game's `rules.rescue.canCarry` can say `"a.str + a.carryBonus >= b.weight"`. The engine adds nothing else; a game whose formula never reads it ignores it.
+
+**Saves.** New state: `Unit::refreshedBy` (above) and `goes` may now include the steal marker (8). Old saves load. **Tests.** `tests/test_srpg_skillblocks2_abilities.cpp`,
+`tests/test_srpg_skillblocks2_skills.cpp`, `tests/srpg_player_skillblocks_test.py`.
 
 ### The starter set
 
@@ -755,11 +837,15 @@ once.
 | `{ "pull": true }` | same | the user steps one square straight back and the target takes the square the user left |
 | `{ "swap": true }` | same | user and target exchange squares |
 | `{ "moveBehind": true }` | same | the target is put on the square on the user's opposite side |
+| `{ "movePast": true }` | same | the USER moves to the square on the far side of the target (same line), if it can stand there |
 | `{ "heal": 10 }` / `{ "heal": "full" }` | `self`, `ally`, `unit` | the target regains HP (refused at full HP) |
+| `{ "steal": ... }` | `enemy`, range [1, 1] | takes one item of the target into the user's inventory ("Steal", below) |
+| `{ "refresh": true }` / `{ "refresh": { "perTurn": 2 } }` | `ally` | a unit of the user's side that has acted may act again this turn ("Refresh an ally", below) |
+| `{ "cure": ["poison"] }` / `{ "cure": "all" }` | `self`, `ally` | cures the target; valid targets are units that have something it cures |
 | `{ "summon": { … } }` | `cell` | a new unit appears on the square (below) |
 
 Refusals (all start `data/abilities.json: ability "<id>": `): `"target" must be "self", "ally", "enemy", "unit" or
-"cell"`; `"effect" needs exactly one of push, pull, swap, moveBehind, heal, summon`; `"push" moves a neighbour:
+"cell"`; `"effect" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock, steal, refresh, movePast, cure`; `"push" moves a neighbour:
 "range" must be [1, 1]`; `"summon" needs "target": "cell"`; `"heal" cannot target "enemy" or "cell"`; `"cost" must be
 "action" or "free"`; `"uses" must be from 1 to 99`; `"cooldown" must be from 1 to 99`; `"summon": unknown unit type
 "x"`; `"summon": "limit" must be from 1 to 20`; `"summon": "lifetime" must be from 0 to 99`; `"summon": "level" must
@@ -2167,7 +2253,7 @@ every ability. This is the thief's trait; give it to a unit type or a character 
   "visitSides": ["blue"], "visitUnits": ["tink"] }                              // visit: only these (sides, units by story id) may visit
 ```
 
-`maps/*.json`, a unit (and an `addUnit` command): `"goesFor": ["chests", "villages", "doors"]`, only for a unit of a computer side.
+`maps/*.json`, a unit (and an `addUnit` command): `"goesFor": ["chests", "villages", "doors", "steal"]`, only for a unit of a computer side (`"steal"`: see "Steal").
 
 `game.json`: `"rules": { "places": { "actions": "menu" | "auto" } }`; default `"menu"`.
 
@@ -2276,9 +2362,8 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 
 ### Not built
 
-- **Steal** (an ability that takes an unequipped item from an adjacent foe) is **still not built** (checked again with the general skill blocks,
-  section 3 "More skill blocks"): it needs an item picker for the foe's items with the reasons shown, a rule for a full inventory, and an AI rule
-  of its own, which is more than a small block.
+- **Steal** is built (section 3 "Skill and ability blocks, second set", Steal): an ability that takes an item from an adjacent foe. A stolen item is no
+  longer in the foe's inventory, so it cannot drop when the foe is defeated.
 - No editor forms (docs/EDITOR_UI.md says what to hand-edit); the helper keeps the keys.
 - The AI does not use unlock abilities / staves and does not break doors down.
 
@@ -2360,8 +2445,8 @@ the unit ready" fallback covers the new states: a unit with `acted` is given `Wa
 - **Abilities.** `summon`: used when ready and a legal square exists, as the unit's order when it has no attack worth
   more; the square is the legal one nearest to the nearest known enemy (lowest cell number on a tie). `heal`: used
   like the healing item rule (docs/ITEMS.md "AI"): on itself, or on a neighbouring ally below half HP, when no kill
-  is available. `push`, `pull`, `swap`, `moveBehind`: never used. A free ability is used at most once per unit per
-  turn by rule, so no loop is possible.
+  is available. `push`, `pull`, `swap`, `moveBehind`, `movePast`, `refresh`, `cure`: never used. `steal`: only by a unit
+  marked `"goesFor": ["steal"]` ("Steal", below). A free ability is used at most once per unit per turn by rule, so no loop is possible.
 - **Rescue / pair up.** The AI never rescues, gives, takes, pairs up, switches or drops. Since nothing else can put
   a unit of an AI side into a carried state, it never has to. A side played by `--autoplay` behaves the same. Units
   that carry are attacked like any others.

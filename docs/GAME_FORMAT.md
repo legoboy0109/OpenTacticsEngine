@@ -271,7 +271,7 @@ Everything is in docs/ECONOMY.md.
     { "type": "knight", "side": "blue", "x": 1, "y": 0,
       "name": "Gilda", "level": 3, "leader": true,
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
-      "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors (docs/SRPG.md section 10)
+      "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
       "stats": { "hp": 26 } }            // optional per-unit overrides
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)
@@ -340,6 +340,10 @@ learned skills, promotions, abilities), and map units placed as a character (`"c
 a game that uses none of them loads and plays exactly as before, and the files, keys, limits and loader refusals are specified in
 docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here. A character may carry `"quotes"` (lines said when it fights and
 when it is struck down; docs/EVENTS.md "Battle and defeat quotes"); their wording does not count for the data hash, their rules do.
+
+**Second set of skill and ability blocks** (docs/SRPG.md section 3 "Skill and ability blocks, second set", optional): ability effects `steal`, `refresh`,
+`movePast` and `cure`; an item's `"stealable": false`; a map unit's `"goesFor": ["steal"]`; a skill's `"tags"`; skill effects `nullifySkills`, `staffRange` and
+`carryBonus`; the skill point `"when": "staffUse"`; and a list for the `terrain` condition.
 
 **General skill blocks** (docs/SRPG.md section 3 "More skill blocks", optional): a weapon's `damageKind`, a character's `tags`, `skills` on a map unit and on
 `addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
