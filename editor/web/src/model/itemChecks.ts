@@ -19,7 +19,7 @@ function itemListChecks(doc: ProjectDoc): ItemCheck[] {
   const stats = new Set((doc.game?.stats ?? []).map((s) => s.id))
   const say = (i: Item, text: string) => out.push({ section: 'items', text: `${i.name}: ${text}` })
   for (const i of doc.items ?? []) {
-    if (i.kind === 'usable' && i.heal === undefined && !nonZero(i.raise) && !i.promotes && i.cure === undefined && i.inflict === undefined && i.opens === undefined) say(i, 'a usable item needs to heal or raise something, or cure or inflict a condition, or open doors and chests (or be a promotion item).')
+    if (i.kind === 'usable' && i.heal === undefined && !nonZero(i.raise) && !i.promotes && i.cure === undefined && i.inflict === undefined && i.opens === undefined && i.light === undefined) say(i, 'a usable item needs to heal or raise something, or cure or inflict a condition, or open doors and chests, or give light (or be a promotion item).')
     if (i.kind === 'accessory' && !nonZero(i.bonus) && !i.skills?.length) say(i, 'an accessory needs a bonus to at least one stat, or at least one skill.')
     if (i.kind === 'weapon') {
       if (!carried) say(i, 'weapon items need weapons to be “Carried as items” on the Rules screen.')

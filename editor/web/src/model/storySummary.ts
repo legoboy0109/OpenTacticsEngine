@@ -2,6 +2,7 @@
 // without opening anything. Squares are shown 1-based (like the map editor's status line); the file stores 0-based.
 import { behaviourPhrase } from './behaviour'
 import { chapterName } from './campaignTypes'
+import { mapChangeText } from './mapChangeStory'
 import { placesOf } from './placeStory'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
 import { levelName, pairLabel } from './supports'
@@ -203,7 +204,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
     case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof (cmd as Record<string, unknown>).by === 'string' ? `, the contents go to ${unitText(c, String((cmd as Record<string, unknown>).by))}` : ''}`
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
-    default: return 'Does something'
+    default: return mapChangeText(c.doc, cmd) ?? 'Does something'
   }
 }
 

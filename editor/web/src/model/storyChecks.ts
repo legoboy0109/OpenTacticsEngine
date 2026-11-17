@@ -3,6 +3,7 @@
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
 import { audioRefProblem } from './audioChecks'
+import { mapChangeChecks } from './mapChangeStory'
 import { blockProblems, groupNames } from './behaviour'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
@@ -41,6 +42,8 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'character': return missing('a character') ?? (known(doc.characters ?? undefined) ? null : `“${r.id}” is not a character of this game.`)
     case 'chapter':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
+    case 'change': return missing('a change') ?? (Object.keys(map.changes ?? {}).includes(r.id) ? null : `“${r.id}” is not one of this map’s changes.`)
+    case 'terrain': return missing('a terrain') ?? (known(doc.terrain ?? undefined) ? null : `“${r.id}” is not a terrain of this game.`)
     case 'place': return null // placeChecks.ts says it in plainer words (the loader's rules differ per trigger and command)
     case 'portrait': return null // just text for the player to look up: an id with no picture shows the box without one
   }
@@ -139,6 +142,9 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       if (typeof c.units !== 'object' || c.units === null) say(where, 'pick which units get the behaviour.')
       else if (c.units.side !== undefined && map.sides?.some((s) => s.id === c.units!.side && s.controller !== 'ai')) say(where, 'that side is played by a person; only the computer’s units have a behaviour.')
       blockProblems(c.setBehaviour, doc, map, (t) => say(where, t))
+      break
+    case 'setTerrain': case 'applyChange': case 'revertChange': case 'setFog': case 'setVision':
+      mapChangeChecks(map, c, where, say)
       break
     case 'wakeGroup':
       if (!c.wakeGroup) say(where, 'pick the group to wake.')

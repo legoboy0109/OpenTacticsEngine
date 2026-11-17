@@ -109,6 +109,8 @@ export interface Terrain extends Named {
   /** Fog of war: extra sight (0 to 10, missing = 0) for a unit standing here (a plain number: every unit; or an
    *  object: those unit types only); a unit here is seen only from next to it. */
   visionBonus?: number | VisionLimit; hides?: boolean
+  /** Fog: a unit looking along a line of squares does not see past a square of this terrain (a wall); docs/ECONOMY.md "Fog of war". */
+  blocksSight?: boolean
   // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
   // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
   capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]
@@ -137,6 +139,8 @@ export interface Structure extends Named {
   repairs?: string[]
   /** Doors, chests and visitable places (docs/SRPG.md section 10; model/places.ts). A kind has at most one of the three blocks. */
   blocksSight?: boolean
+  /** Fog: a fixed light (a brazier): every square within this many squares (1 to 10) is in sight of every team. */
+  light?: number
   door?: DoorBlock
   chest?: ChestBlock
   visit?: VisitBlock
@@ -145,7 +149,7 @@ export interface Structure extends Named {
 export type PlaceFrom = 'on' | 'next' | 'either'
 /** Ways a door or chest can be opened by the player's units (a story command and an unlock staff open any). */
 export type OpenWay = 'key' | 'trait' | 'break'
-export interface DoorBlock extends Extra { opens: string; locked?: boolean; keys?: string[]; by?: OpenWay[]; hp?: number; stats?: NumMap; from?: PlaceFrom }
+export interface DoorBlock extends Extra { opens: string; locked?: boolean; keys?: string[]; by?: OpenWay[]; hp?: number; stats?: NumMap; from?: PlaceFrom; /** What the unit's menu calls it when attacked ("door" when missing). */ word?: string }
 export interface ChestBlock extends Extra { opens: string; locked?: boolean; keys?: string[]; by?: OpenWay[]; from?: PlaceFrom }
 export interface VisitBlock extends Extra { becomes?: string; ruin?: string; repeat?: boolean; from?: PlaceFrom }
 /** One way to build a structure up into another kind (same footprint). */
@@ -237,6 +241,8 @@ export interface Item extends Named {
   /** Accessories only: skills while carried. Usable items only: `promotes` makes it a promotion item (docs/SRPG.md). */
   skills?: string[]
   promotes?: boolean
+  /** Usable items only: a torch; lights the square the user stands on (fog of war; docs/ECONOMY.md). Radius 1-10, turns 1-10, shrink 1 to radius - 1. */
+  light?: { radius?: number; turns?: number; shrink?: number }
   /** Staves only (docs/SRPG.md section 8). `group`, `rank`, `rankXp`, `wieldedBy` and `props` are a weapon's, so the weapon rank and
    *  lock code serves both (model/gear.ts). `effects`, `if` and anything a later stage adds are kept as the file has them. */
   group?: string
@@ -267,6 +273,8 @@ export interface MapSide extends Extra {
   controller?: string; resources?: NumMap
   /** The side's shared storage at the start. */
   storage?: ItemEntry[]
+  /** Fog, computer sides only: true = sees everything, false = bound by fog; missing = the map's `aiSeesAll`. */
+  aiSeesAll?: boolean
 }
 export interface MapUnit extends Extra {
   /** Missing only for a unit placed as a character: its type is then the character's (docs/SRPG.md section 1). */
@@ -283,7 +291,7 @@ export interface MapUnit extends Extra {
   /** Skills of its own, learned in addition to those of its type and character (docs/SRPG.md "More skill blocks"). */
   skills?: string[]
   /** Computer-side units only (docs/SRPG.md section 10): what the unit goes for. */
-  goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal'>
+  goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal' | 'walls'>
   /** Computer-side units only (docs/AI.md): how it moves and when it starts; model/behaviour.ts. */
   behaviour?: Behaviour
 }
@@ -300,6 +308,11 @@ export interface MapFile extends Extra {
   units?: MapUnit[]
   /** Fog of war (docs/ECONOMY.md): missing = off. */
   fog?: boolean
+  /** Fog options (docs/ECONOMY.md "Fog of war"): vision added to every unit (-10 to 10) and computer sides that see everything. Only with fog. */
+  fogVision?: number
+  aiSeesAll?: boolean
+  /** Named map changes (docs/EVENTS.md "Changing the map"); model/mapChanges.ts. */
+  changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string }>; structures?: Array<{ id: string; kind: string }> }>
   /** Music (docs/SOUND.md): a track id of data/audio.json, "" = none on this map; missing = the game's. */
   music?: string
   playerTurnMusic?: string

@@ -33,7 +33,7 @@ export function setFog(doc: ProjectDoc, mapId: string, on: boolean): ProjectDoc 
   if (!m || (m.fog === true) === on) return doc
   const next = { ...m }
   if (on) next.fog = true
-  else delete next.fog
+  else { delete next.fog; delete next.fogVision; delete next.aiSeesAll }  // the loader refuses them on a map without fog
   return { ...doc, maps: { ...doc.maps, [mapId]: next } }
 }
 
@@ -90,4 +90,26 @@ export function setVisionUnits(doc: ProjectDoc, kind: Ground, id: string, units:
 export function setHides(doc: ProjectDoc, kind: Ground, id: string, on: boolean): ProjectDoc {
   const patch = { hides: on ? true : undefined }
   return kind === 'terrain' ? updateTerrain(doc, id, patch) : updateStructure(doc, id, patch)
+}
+
+/** The map's extra vision (-10..10, added to every unit); 0 removes the key. */
+export function setFogVision(doc: ProjectDoc, mapId: string, n: number | undefined): ProjectDoc {
+  const m = doc.maps[mapId]
+  if (!m) return doc
+  const v = n === undefined ? 0 : Math.min(10, Math.max(-10, Math.round(n)))
+  if ((m.fogVision ?? 0) === v) return doc
+  const next = { ...m }
+  if (v === 0) delete next.fogVision
+  else next.fogVision = v
+  return { ...doc, maps: { ...doc.maps, [mapId]: next } }
+}
+
+/** Computer sides see everything on this map (off removes the key; a side's own setting overrules it). */
+export function setAiSeesAll(doc: ProjectDoc, mapId: string, on: boolean): ProjectDoc {
+  const m = doc.maps[mapId]
+  if (!m || (m.aiSeesAll === true) === on) return doc
+  const next = { ...m }
+  if (on) next.aiSeesAll = true
+  else delete next.aiSeesAll
+  return { ...doc, maps: { ...doc.maps, [mapId]: next } }
 }
