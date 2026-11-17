@@ -29,6 +29,7 @@ class FightScene {
     int styleIndex = 0;                 // the visual style in use (the fallback picture is the map picture of that style)
     int mapBackground = -1;             // the map's own background (index into Graphics::battle.backgrounds) or -1
     GameAudio* audio = nullptr;         // null = silent
+    const std::map<std::pair<int, int>, Forecast>* forecasts = nullptr;  // by (attacker, defender), taken before the fight
     // Per unit: levels (and maximum hit points) the fight's experience adds after it (BattleView::FightRun).
     std::map<int, int> levelsGained, hpGained;
   };
@@ -54,6 +55,7 @@ class FightScene {
     std::string setName;
     std::string name, weapon;
     int level = 1, maxHp = 1, startHp = 1;
+    int hit = -1, crit = -1;      // the forecast percentages when the game has them to show (-1 = none)
     int type = -1;
     Color color;                  // the side's colour
     char glyph = '?';

@@ -115,6 +115,23 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
       if (env.sprites->has(look)) f.look = &look;
     }
   }
+  // Hit and crit percentages from the forecast of the fight as ordered; a game without hit / crit formulas (everything 100 / 0) shows none.
+  if (env.forecasts) {
+    const int ini = script_.side[script_.initiator].unit, other = script_.side[1 - script_.initiator].unit;
+    auto it = env.forecasts->find(std::make_pair(ini, other));
+    if (it != env.forecasts->end()) {
+      const Forecast& fc = it->second;
+      const bool showHit = fc.attack.hit < 100 || (fc.counter.can && fc.counter.hit < 100);
+      const bool showCrit = fc.attack.crit > 0 || (fc.counter.can && fc.counter.crit > 0);
+      const StrikeForecast* sf[2] = {&fc.attack, &fc.counter};
+      Fighter& fi = fighter_[script_.initiator];
+      Fighter& fo = fighter_[1 - script_.initiator];
+      if (sf[0]->can && showHit) fi.hit = sf[0]->hit;
+      if (sf[0]->can && showCrit) fi.crit = sf[0]->crit;
+      if (sf[1]->can && showHit) fo.hit = sf[1]->hit;
+      if (sf[1]->can && showCrit) fo.crit = sf[1]->crit;
+    }
+  }
   // Effects per strike (a spell or an arrow for the weapon in use).
   effectOfStrike_.clear();
   std::vector<EffectTimes> fx;
@@ -153,6 +170,9 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   OTE_INFO("battle scene: start %s (Lv %d) vs %s (Lv %d), %s, %d strike(s)", fighter_[0].name.c_str(), fighter_[0].level,
            fighter_[1].name.c_str(), fighter_[1].level,
            script_.ranged() ? ("ranged, " + intStr(script_.distance) + " squares").c_str() : "melee", (int)script_.strikes.size());
+  for (int s = 0; s < 2; ++s)
+    if (fighter_[s].hit >= 0 || fighter_[s].crit >= 0)
+      OTE_INFO("battle scene: %s chances: hit %d%% crit %d%%", fighter_[s].name.c_str(), fighter_[s].hit, fighter_[s].crit);
   for (int s = 0; s < 2; ++s)
     OTE_INFO("battle scene: %s art: %s", fighter_[s].name.c_str(),
              fighter_[s].set >= 0 ? ("set \"" + fighter_[s].setName + "\"").c_str() : "map picture");

@@ -44,7 +44,7 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
   const Database& db = *env_.battle->db;
   const int margin = 4;
   g.boxW = (g.W - 3 * margin) / 2;
-  g.boxH = g.rowH * 3 + 8;
+  g.boxH = g.rowH * ((fighter_[0].hit >= 0 || fighter_[0].crit >= 0 || fighter_[1].hit >= 0 || fighter_[1].crit >= 0) ? 4 : 3) + 8;
   g.boxX[0] = margin;
   g.boxX[1] = margin * 2 + g.boxW;
   g.stageTop = g.boxY + g.boxH + 4;
@@ -77,6 +77,11 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
     for (int s = 1; s <= 8; ++s)
       if (s * g.frameH[i] <= room) g.scale[i] = s;
   }
+  while (g.scale[0] * g.frameW[0] + g.scale[1] * g.frameW[1] > g.W - 8 && (g.scale[0] > 1 || g.scale[1] > 1)) {
+    const int big = g.scale[0] * g.frameW[0] >= g.scale[1] * g.frameW[1] ? 0 : 1;
+    if (g.scale[big] > 1) --g.scale[big];
+    else --g.scale[1 - big];
+  }
   // A map picture (the fallback) is drawn as tall as an animated fighter would be: as tall as the other side's set (its stand
   // frame from the foot point up), else about 45% of the stage, whatever small size the map picture has.
   for (int i = 0; i < 2; ++i) {
@@ -91,10 +96,11 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
     for (int s = 1; s <= 8; ++s)
       if (s * g.frameH[i] <= target && s * g.frameH[i] <= room) g.scale[i] = s;
   }
+  // (the widths must still fit after the fallback picture was sized)
   while (g.scale[0] * g.frameW[0] + g.scale[1] * g.frameW[1] > g.W - 8 && (g.scale[0] > 1 || g.scale[1] > 1)) {
-    const int big = g.scale[0] * g.frameW[0] >= g.scale[1] * g.frameW[1] ? 0 : 1;
-    if (g.scale[big] > 1) --g.scale[big];
-    else --g.scale[1 - big];
+    const int i = fighter_[0].set < 0 ? 0 : fighter_[1].set < 0 ? 1 : (g.scale[0] * g.frameW[0] >= g.scale[1] * g.frameW[1] ? 0 : 1);
+    if (g.scale[i] > 1) --g.scale[i];
+    else --g.scale[1 - i];
   }
   const int pw0 = g.scale[0] * g.frameW[0], pw1 = g.scale[1] * g.frameW[1];
   if (script_.ranged()) {  // apart: the distance is the point
@@ -305,6 +311,14 @@ void FightScene::drawBox(Renderer& r, const Geo& g, int side) const {
   ty += g.rowH;
   drawTextShadow(r, tx, ty, f.weapon.empty() ? "-" : fitText(r, f.weapon, w - 8), Color(150, 156, 190));
   ty += g.rowH;
+  if (g.boxH > g.rowH * 3 + 8) {  // hit / crit percentages of the forecast
+    std::string chances, shorter;
+    if (f.hit >= 0) { chances = "Hit " + intStr(f.hit) + "%"; shorter = intStr(f.hit) + "%"; }
+    if (f.crit >= 0) { chances += (chances.empty() ? "" : " ") + std::string("Crit ") + intStr(f.crit) + "%"; shorter += (shorter.empty() ? "" : "/") + intStr(f.crit) + "%"; }
+    if (textW(r, chances) > w - 8) chances = shorter;  // a narrow box: just the numbers
+    drawTextShadow(r, tx, ty, fitText(r, chances.empty() ? "-" : chances, w - 8), Color(200, 206, 235));
+    ty += g.rowH;
+  }
   const int hp = std::max(0, std::min(f.maxHp, tl_.hpAt(side, t_, f.startHp)));
   const std::string nums = intStr(hp) + "/" + intStr(f.maxHp);
   const int numW = textW(r, nums);

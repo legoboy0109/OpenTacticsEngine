@@ -13,6 +13,7 @@ namespace ote {
 bool BattleScene::submit(const Action& a) {
   events_.clear();
   std::string why;
+  if (a.type == ActionType::Attack) noteForecast(battle_, a.unit, a.target, a.weapon);
   if (!battle_.apply(a, events_, &why)) {
     // A rejected action means the UI offered something the rules forbid.
     OTE_WARN("UI bug: action type %d rejected: %s", (int)a.type, why.c_str());

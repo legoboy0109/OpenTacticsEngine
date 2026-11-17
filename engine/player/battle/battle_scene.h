@@ -3,6 +3,7 @@
 // ActionMenu -> Targeting ...). AI turns are driven from update().
 #pragma once
 #include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -275,6 +276,10 @@ class BattleScene : public Scene {
   Battle& battle_;  // lives in the session; undo assigns into it
   BattleView view_;
   FightScene fightScene_;
+  // The forecast of each fight ordered, taken before the rules applied it (the Battle is already post-fight when the scene opens):
+  // key = (attacker, defender); the scene shows hit and crit percentages from it.
+  std::map<std::pair<int, int>, Forecast> forecasts_;
+  void noteForecast(const Battle& before, int attacker, int defender, int weapon);
   int fightSerial_ = -1;  // the view's fight (BattleView::FightRun::serial) the scene was started for
   Layout layout_;
   Camera cam_;

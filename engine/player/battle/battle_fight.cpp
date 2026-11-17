@@ -5,6 +5,12 @@
 
 namespace ote {
 
+void BattleScene::noteForecast(const Battle& before, int attacker, int defender, int weapon) {
+  if (attacker < 0 || (size_t)attacker >= before.units.size() || defender < 0 || (size_t)defender >= before.units.size()) return;
+  Forecast f;
+  if (before.forecast(attacker, defender, weapon, before.units[(size_t)attacker].cell, f)) forecasts_[std::make_pair(attacker, defender)] = f;
+}
+
 void BattleScene::startFight() {
   FightScene::Env env;
   env.battle = &battle_;
@@ -13,6 +19,7 @@ void BattleScene::startFight() {
   env.styleIndex = styleIdx_;
   env.mapBackground = session_.map.battleBackground;
   env.audio = &host_.gameAudio();
+  env.forecasts = &forecasts_;
   env.levelsGained = view_.fight.levelsGained;
   env.hpGained = view_.fight.hpGained;
   fightSerial_ = view_.fight.serial;

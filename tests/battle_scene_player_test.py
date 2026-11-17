@@ -194,6 +194,23 @@ def test_scene_order_quotes_levelup():
     check('the map does not play the strike a second time (no map floats logged as strikes)', log.count('battle scene: start') == 1)
 
 
+def formulas(g):  # hit and crit chances exist in this game: the boxes show them
+    edit(g, 'game.json', lambda gj: gj['formulas'].update({'hit': '80', 'crit': '10'}))
+
+
+def test_chances_from_the_forecast():
+    make_game('s_chance', no_quotes, formulas)
+    log = run('s_chance', ','.join(ATTACK + ['wait:120']))
+    sc = scene_lines(log)
+    check('chances: the player\'s attack shows its hit and crit percentages (taken before the fight was applied)',
+          'Eirik chances: hit 80% crit 10%' in sc and 'Gorm chances: hit 80% crit 10%' in sc, str(sc))
+    make_game('s_chance_ai', no_quotes, formulas)
+    log = run('s_chance_ai', ','.join([IDLE, 'menu', 'confirm', 'wait:400']))
+    check('chances: so does a fight the computer starts', any(s.endswith('chances: hit 80% crit 10%') for s in scene_lines(log)), str(scene_lines(log)))
+    make_game('s_nochance', no_quotes)
+    check('chances: a game without hit / crit formulas shows none', not any('chances' in s for s in scene_lines(run('s_nochance', ','.join(ATTACK + ['wait:120'])))))
+
+
 def test_counter_crit_and_log():
     make_game('s_counter', no_quotes)
     log = run('s_counter', ','.join(ATTACK + ['wait:120']))
@@ -296,12 +313,12 @@ def test_screenshots():
         keep(path, name)
         check('screenshot %s exists' % name, os.path.exists(path))
 
-    make_game('p_land', no_quotes)
-    make_game('p_fall', no_quotes, art=False)
-    make_game('p_ranged', no_quotes, ranged, effects=ARROW)
-    make_game('p_port', no_quotes, phone)
-    make_game('p_portr', no_quotes, ranged, phone, effects=ARROW)
-    make_game('p_portf', no_quotes, phone, art=False)
+    make_game('p_land', no_quotes, formulas)
+    make_game('p_fall', no_quotes, formulas, art=False)
+    make_game('p_ranged', no_quotes, formulas, ranged, effects=ARROW)
+    make_game('p_port', no_quotes, formulas, phone)
+    make_game('p_portr', no_quotes, formulas, ranged, phone, effects=ARROW)
+    make_game('p_portf', no_quotes, formulas, phone, art=False)
     for frames in (int(x) for x in (os.environ.get('SHOT_FRAMES') or '150,175,200').split(',')):
         shot('scene-landscape-%d' % frames, 'p_land', frames)
         shot('scene-landscape-fallback-%d' % frames, 'p_fall', frames)
@@ -313,6 +330,7 @@ def test_screenshots():
 
 try:
     test_scene_order_quotes_levelup()
+    test_chances_from_the_forecast()
     test_counter_crit_and_log()
     test_skip()
     test_computer_turn()
