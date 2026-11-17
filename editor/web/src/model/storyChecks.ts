@@ -40,6 +40,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'character': return missing('a character') ?? (known(doc.characters ?? undefined) ? null : `“${r.id}” is not a character of this game.`)
     case 'chapter':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
+    case 'place': return null // placeChecks.ts says it in plainer words (the loader's rules differ per trigger and command)
   }
 }
 

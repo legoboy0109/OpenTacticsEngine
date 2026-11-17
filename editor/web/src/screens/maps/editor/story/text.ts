@@ -49,6 +49,7 @@ export const S = {
     talk: 'Two units talk',
     promoted: 'A unit is promoted',
     support: 'A support level is reached',
+    place: 'A door, chest or place is used',
   } as Record<TriggerKind, string>,
   turnNumber: 'Turn number',
   turnSide: 'On the turn of',
@@ -154,7 +155,7 @@ export const S = {
 
   // --- commands ---
   addCommand: 'Add a command…',
-  commandGroups: { dialogue: 'Dialogue', units: 'Units', give: 'Give', story: 'Story', flow: 'Flow', sound: 'Sound' },
+  commandGroups: { dialogue: 'Dialogue', units: 'Units', give: 'Give', story: 'Story', flow: 'Flow', sound: 'Sound', places: 'Doors and chests' },
   commandKinds: {
     say: 'Say something',
     choice: 'Ask a question',
@@ -185,6 +186,11 @@ export const S = {
     playMusic: 'Play music',
     stopMusic: 'Stop the music',
     playSound: 'Play a sound',
+    openDoor: 'Open a door',
+    closeDoor: 'Shut a door',
+    lockDoor: 'Lock a door',
+    unlockDoor: 'Unlock a door or chest',
+    openChest: 'Open a chest',
   } as Record<CommandKind, string>,
   endTurnTalkOnly: 'only in a “Two units talk” event',
   commandN: (n: number) => `command ${n}`,

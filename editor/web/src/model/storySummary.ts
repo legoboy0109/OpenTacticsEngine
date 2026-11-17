@@ -1,6 +1,7 @@
 // Plain sentences for triggers, conditions, commands, objectives and whole events, so a list shows what happens
 // without opening anything. Squares are shown 1-based (like the map editor's status line); the file stores 0-based.
 import { chapterName } from './campaignTypes'
+import { placesOf } from './placeStory'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
 import { levelName, pairLabel } from './supports'
 import {
@@ -61,6 +62,13 @@ const chapterLabel = ({ doc }: SumCtx, id: string): string => {
 const pairText = ({ doc }: SumCtx, pair: unknown): string =>
   (Array.isArray(pair) && typeof pair[0] === 'string' && typeof pair[1] === 'string' && pair[0] !== '' ? pairLabel(doc, { a: pair[0], b: pair[1] }) : 'two characters')
 
+/** "the door d1 (Cell Door)": a door, chest or place by its story name; one that is gone is shown as typed. */
+function placeText(c: SumCtx, id: string): string {
+  const p = placesOf(c.doc, c.map).find((x) => x.id === id)
+  const word = p?.kind === 'chest' ? 'chest' : p?.kind === 'visit' ? 'place' : p?.kind === 'door' ? 'door' : 'door or chest'
+  return id === '' ? `a ${word}` : p ? `the ${word} ${q(id)} (${p.kindName})` : `${q(id)}`
+}
+
 const teamText = (c: SumCtx, id: string) => teamsOf(c.map).find((t) => t.id === id)?.label ?? id
 
 export function filterText(c: SumCtx, f: Filter | string | undefined): string {
@@ -91,6 +99,11 @@ export function triggerText(c: SumCtx, t: Trigger): string {
     case 'talk': return `${unitText(c, t.talk ?? '')} talks to ${unitText(c, t.to ?? '')}`
     case 'promoted': return `${cap(filterText(c, t.promoted))} is promoted`
     case 'support': return `${cap(pairText(c, t.support))} reach ${t.level === undefined ? 'a support level' : `support level ${levelName(c.doc.supports?.rules, t.level - 1)}`}`
+    case 'place': {
+      const by = t.by ? ` by ${filterText(c, t.by)}` : ''
+      const what = t.is === 'visited' ? 'is visited' : t.is === 'destroyed' ? 'is destroyed' : 'is opened'
+      return `${cap(placeText(c, t.place ?? ''))} ${what}${by}`
+    }
     default: return 'Something happens'
   }
 }
@@ -181,6 +194,11 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'playMusic': return `Plays the music ${q(cmd.playMusic ?? '')}${fadeText(cmd.fade, 'in')}`
     case 'stopMusic': return `Stops the music${fadeText(cmd.fade, 'out')}`
     case 'playSound': return `Plays the sound ${q(cmd.playSound ?? '')}`
+    case 'openDoor': return `Opens ${placeText(c, cmd.openDoor ?? '')}`
+    case 'closeDoor': return `Shuts ${placeText(c, cmd.closeDoor ?? '')}`
+    case 'lockDoor': return `Locks ${placeText(c, cmd.lockDoor ?? '')}`
+    case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
+    case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof cmd.by === 'string' && cmd.by ? `, the contents go to ${unitText(c, cmd.by)}` : ''}`
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
     default: return 'Does something'
   }

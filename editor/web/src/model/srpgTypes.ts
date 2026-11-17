@@ -67,6 +67,8 @@ export interface StealOptions extends Extra { if?: string; weapons?: boolean; eq
 export interface AbilityEffect extends Extra {
   push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon
   steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: string[] | 'all'
+  /** Doors and chests (docs/SRPG.md section 10): true, ["door"], ["chest"] or { kinds, needs }. */
+  unlock?: true | Array<'door' | 'chest'> | { kinds?: Array<'door' | 'chest'>; needs?: string }
 }
 export type AbilityTarget = 'self' | 'ally' | 'enemy' | 'unit' | 'cell'
 /** data/abilities.json entry (section 4). `if` holds conditions of the skill kind; E3 shows and edits a few of them. */

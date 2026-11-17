@@ -32,7 +32,11 @@ export interface SupplyRules extends Extra { repair?: RepairRules; structures?: 
 export type AmbushRule = 'endsTurn' | 'canAct'
 export interface ResearchRules extends Extra { needsStructure?: boolean }
 export interface FogRules extends Extra { ambush?: AmbushRule }
+/** docs/SRPG.md section 10 `rules.places`: "menu" (default) = explicit Open / Visit entries in the unit's menu, "auto" = it happens when a unit ends a move there. */
+export type PlaceActions = 'menu' | 'auto'
+export interface PlaceRules extends Extra { actions?: PlaceActions }
 export interface Rules extends Extra {
+  places?: PlaceRules
   items?: ItemRules
   supply?: SupplyRules
   research?: ResearchRules
@@ -127,7 +131,19 @@ export interface Structure extends Named {
   upgrades?: Upgrade[]
   /** Unit type ids or tags it repairs; missing = all, [] = nothing. */
   repairs?: string[]
+  /** Doors, chests and visitable places (docs/SRPG.md section 10; model/places.ts). A kind has at most one of the three blocks. */
+  blocksSight?: boolean
+  door?: DoorBlock
+  chest?: ChestBlock
+  visit?: VisitBlock
 }
+/** Where a unit may stand to use a door, chest or place: on it, next to it, or either. */
+export type PlaceFrom = 'on' | 'next' | 'either'
+/** Ways a door or chest can be opened by the player's units (a story command and an unlock staff open any). */
+export type OpenWay = 'key' | 'trait' | 'break'
+export interface DoorBlock extends Extra { opens: string; locked?: boolean; keys?: string[]; by?: OpenWay[]; hp?: number; stats?: NumMap; from?: PlaceFrom }
+export interface ChestBlock extends Extra { opens: string; locked?: boolean; keys?: string[]; by?: OpenWay[]; from?: PlaceFrom }
+export interface VisitBlock extends Extra { becomes?: string; ruin?: string; repeat?: boolean; from?: PlaceFrom }
 /** One way to build a structure up into another kind (same footprint). */
 export interface Upgrade extends Extra { to: string; cost?: NumMap; requires?: string }
 /** One technology of data/research.json (docs/ECONOMY.md "Research"). */
@@ -229,6 +245,8 @@ export interface Item extends Named {
   /** Usable items (docs/SRPG.md section 9): conditions it cures (a list of ids or "all") and the one it puts on the unit it is used on. */
   cure?: string[] | 'all'
   inflict?: { condition: string; turns?: number } & Extra
+  /** Keys (usable items only; docs/SRPG.md section 10): "door", "chest" and/or ids of structure kinds. */
+  opens?: string[]
   /** Sound overrides: use (docs/SOUND.md). */
   sounds?: Record<string, string>
 }
@@ -255,6 +273,8 @@ export interface MapUnit extends Extra {
   ranks?: RankMap
   /** Skills of its own, learned in addition to those of its type and character (docs/SRPG.md "More skill blocks"). */
   skills?: string[]
+  /** Computer-side units only (docs/SRPG.md section 10): what the unit goes for. */
+  goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal'>
 }
 export interface MapFile extends Extra {
   name: string
@@ -280,7 +300,13 @@ export interface MapFile extends Extra {
   prep?: MapPrep
 }
 /** `x`, `y` = the top-left square of the footprint (on hexagon maps: the middle hexagon); `side` missing = nobody owns it. */
-export interface MapStructure extends Extra { type: string; x: number; y: number; side?: string }
+export interface MapStructure extends Extra {
+  type: string; x: number; y: number; side?: string
+  /** Doors, chests and places (docs/SRPG.md section 10): the story name, a lock override, a chest's contents, who may visit. */
+  id?: string; locked?: boolean; contents?: ChestLoot[]; visitSides?: string[]; visitUnits?: string[]
+}
+/** One thing in a chest: an item id, an item with fewer uses left, or an amount of a resource. */
+export type ChestLoot = string | { item: string; uses?: number } | { resource: string; amount: number }
 
 // --- art (docs/GRAPHICS.md, data/graphics.json) ---
 export type CellRef = [number, number]
