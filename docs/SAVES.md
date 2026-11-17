@@ -486,6 +486,18 @@ is unchanged by the code; a map's `prep` block is part of the map file the campa
 no field: a sale changes `sides[].resources` and the pack (`roster[].items` or `sides[].storage`), an equip the order of `roster[].items`,
 all of which a save already holds (`tests/test_prep_sell.cpp` checks the round trip). `sellPercent`, `sellable` and `buys` are game data, covered by the data hash.
 
+## Difficulties (docs/DIFFICULTY.md)
+
+Only a game that has `"difficulties"` writes anything. A battle save gets `"difficulty": "<id>"` (the difficulty the battle was built with;
+free battles too) and a campaign save's `"playthrough"` gets `"difficulty": "<id>"` (what the playthrough is on; a change made in the battle
+menu takes effect from the next battle built, so a campaign save made right after one can hold `playthrough.difficulty` easier than
+`battle.difficulty`). A game without difficulties saves byte for byte as before (pinned by the existing goldens and a test). Loading: an id the
+game no longer has falls back to the game's default with a note in the log (it is data, not a rule: `"difficulties"` is not in the data hash, so
+renaming, retuning or deleting a difficulty never invalidates saves); a value that is not text is refused (`battle.difficulty`,
+`playthrough.difficulty`); a save without the key in a game that now has difficulties loads on the default; the key in a game that has none
+any more is ignored with a note. Units already built are saved as they are (their shifted stats), so changing a difficulty's numbers never
+rewrites a battle in progress. Code: `core/battle/save_difficulty.{h,cpp}`.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

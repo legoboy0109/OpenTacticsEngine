@@ -1300,3 +1300,37 @@ checks them (`tests/editor_api_scene_checks.py`).
   out-of-range values as they are typed; the checks catch hand-written files. The campaign timeline's "What changes" line ignores these commands.
 - **Tests**: unit `scene.test.ts`; API `tests/editor_api_scene_checks.py`; e2e `scene.spec.ts` (the Backgrounds list, a map event with every new command and the
   exact JSON, the checks, rename and delete, a campaign scene, 360 px phone).
+
+## Difficulties (docs/DIFFICULTY.md)
+
+- **Rules screen, card "Difficulty"** (`screens/rules/DifficultyCard.tsx`, `EnemyFields.tsx`, wording in `difficultyText.ts`; model `model/difficulty.ts`):
+  a game without difficulties shows two buttons ("Start with Easy, Normal and Hard", "Start with one difficulty"); with them: "Chosen unless the player
+  picks" (the default, a drop-down), "Can the player change it later?" (Never / Only to an easier one / Any time, each with its sentence), the list
+  easiest first (name box, up / down / delete, and a fold-out "What it changes" with the description, **Enemy levels**, **Enemy stats percent**,
+  **Experience percent**, **Resources percent** and a table "Added to enemy stats" per stat), an add box, a fold-out "Stats the percent applies to"
+  (ticks; none ticked = every stat but movement) and a line on how events and formulas read the difficulty. Defaults are never written (no `change` for
+  lowerOnly, no 0 levels, no 100 percent, no empty `enemy`); ids are made once from the name and never change. Deleting asks first and lists what goes
+  with it (`model/difficultyRefs.ts`): the default moves to the first remaining entry, every map's own numbers for it go, a unit that was limited to it
+  stops being limited (listed as "was only on Hard and now appears on every difficulty"), events that name it in "Only if" are removed whole, commands'
+  `if` conditions that name it take their command, an added unit loses the id from its list; the campaign's scenes follow through
+  `reconcileCampaign` (`goneRefs` knows the kind `difficulty`). Deleting the last one switches difficulties off (the key goes).
+- **Map tab, card "Difficulty on this map"** (`screens/maps/editor/panels/MapDifficulty.tsx`): one fold-out per difficulty of the game with the same
+  number boxes; an empty box shows "Game: ..." and keeps the game's number, a number typed **replaces** it for this map (so "Hard adds 3 enemy levels
+  here" is Hard, Enemy levels 3); "Use the game's numbers" clears it. Written as the map's `"difficulty"`; an emptied block is removed.
+- **Units**: a placed unit of a computer side and the **Add a unit** command show "Only on these difficulties" (one tick per difficulty; every tick = no
+  limit, written as no key; the last tick cannot be cleared into an empty list) and "Keep the same on every difficulty" (`difficultyShift: false`;
+  a boss). A unit of a human side shows neither (the loader refuses it). **Sides tab**: a computer side has "Difficulty changes this side" (off writes
+  `difficultyShift: false`).
+- **Story**: the condition kind "The difficulty is ..." (is / is at least / is at most, then a difficulty) in the event conditions, the `if` command,
+  choice answers and the campaign's scenes (`DifficultyConditionFields.tsx`); only offered when the game has difficulties. Sentences: "the difficulty is
+  at least “Normal”".
+- **Checks** (`model/difficultyChecks.ts`, mirroring `loader_difficulty.cpp`; the Rules card shows the list's, the Map tab's warnings the map's):
+  default missing or not in the list, more than 12, bad change rule, empty names, a level shift outside -98..98, a percent outside 0..1000, an unknown
+  stat, a map's numbers or a placement naming a difficulty that does not exist (the "limited to a deleted difficulty" case of a hand-edited file), an
+  empty "only on" list, a limited unit on a human side, anything of this in a game without difficulties, and a condition or added unit naming an
+  unknown difficulty (`storyChecks.ts`, kind `difficulty`). Notes: only one difficulty (the player is never asked). A difficulty no map or unit refers
+  to is fine: no check.
+- **Play panel**: a "Difficulty" drop-down ("Ask me" = the player's choice screen, or one of the list) appears only for a game that has difficulties;
+  the choice is remembered per game and adds `&difficulty=<id>` to the player's address (`embed.html` turns it into `--difficulty`).
+- **Tests**: unit `difficulty.test.ts`; API `tests/editor_api_difficulty_checks.py`; e2e `difficulty.spec.ts` (the card, the map's numbers and Only on,
+  delete follow-through, the gone-difficulty warning, Play's choice, a 360 px phone).

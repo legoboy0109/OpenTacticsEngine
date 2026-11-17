@@ -106,7 +106,8 @@ accepted), `{ "alive": <filter> }` / `{ "dead": <filter> }`,
 `{ "carries": "salve", "unit": <filter> }` (`unit` default any),
 `{ "sees": <unit filter>, "team": "<team>" }` (fog of war, docs/ECONOMY.md; `team` is required: a team name or a side id
 for that side's team), `{ "hasCondition": "poison", "unit": <filter> }` (a status condition, docs/SRPG.md section 9; `unit` default any;
-map events only), `{ "actor": <unit filter> }` (the unit that set this event off, see "Branching on who acted" below; map events only).
+map events only), `{ "actor": <unit filter> }` (the unit that set this event off, see "Branching on who acted" below; map events only), `{ "difficulty": "hard" }` / `{ "difficulty": { "atLeast": "normal" } }` / `{ "atMost": ... }` (the difficulty the battle was built with,
+compared by position in the game's list; also in campaign scenes, where it reads the playthrough's; docs/DIFFICULTY.md; the game must have difficulties).
 Refined: `alive` = some living unit matches; `dead` = a unit that matches
 exists (or existed, also when it was removed) and none is alive, so a unit
 that an event has not added yet is neither. `carries` = a living matching
@@ -333,6 +334,12 @@ unit is `units[a].name`. Queries: `talkOptions(unit, fromCell)` returns
 performs it (free like the item actions, cannot be undone);
 `objectiveText()` is the text to show (at battle start and in the menu; no
 entry is made at the start); `humanTeam()`; `unitByStoryId(id)`.
+
+### Difficulty in events (docs/DIFFICULTY.md)
+
+The condition above is the only way events read the difficulty. `addUnit` takes `"difficulty": ["hard"]` (it adds the unit only on the listed
+difficulties; computer sides only) and `"difficultyShift": false` (a boss: the enemy numbers never change it); a stat written on the `addUnit` is exact.
+`giveResource` gains for a human side are scaled by the difficulty's `resourcePercent` (in a campaign scene too); a negative amount never is.
 
 ## Changing the map
 
