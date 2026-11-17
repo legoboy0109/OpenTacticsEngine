@@ -72,7 +72,12 @@ export function dropGroupRanks(doc: ProjectDoc, group: string): ProjectDoc {
 /** A group's name changes on its only weapon: units that wield it and every starting rank in it follow. */
 export function renameGroupRefs(doc: ProjectDoc, from: string, to: string): ProjectDoc {
   const renamed = everyRankMap(doc, (m) => (m && from in m ? Object.fromEntries(Object.entries(m).map(([g, v]) => [g === from ? to : g, v])) : m))
-  return { ...renamed, units: mapKeep(renamed.units, (u) => (u.wields?.includes(from) ? { ...u, wields: u.wields.map((g) => (g === from ? to : g)) } : u)) }
+  const rename = (l: string[]) => l.map((g) => (g === from ? to : g))
+  return {
+    ...renamed,
+    units: mapKeep(renamed.units, (u) => (u.wields?.includes(from) ? { ...u, wields: rename(u.wields) } : u)),
+    characters: mapKeep(renamed.characters, (c) => (c.wields?.includes(from) ? { ...c, wields: rename(c.wields) } : c)),
+  }
 }
 
 // --- a feature goes -------------------------------------------------------------------------------------------------------

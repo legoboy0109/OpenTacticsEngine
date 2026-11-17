@@ -36,6 +36,12 @@ export const canSwitchOnRanks = (doc: ProjectDoc): boolean => carriedWeapons(doc
 /** Every group some weapon or staff belongs to: the weapons' first, then the staves' (the engine's order). */
 export const groupsOf = (doc: ProjectDoc): string[] => [...new Set(allGear(doc).flatMap((g) => (g.keys.group ? [g.keys.group] : [])))]
 
+/** The weapon groups a unit can wield: its class's, plus a character's own extra ones (docs/SRPG.md section 7). */
+export function wieldsOf(doc: ProjectDoc, type: string | undefined, character?: string): string[] {
+  const own = character === undefined ? [] : doc.characters?.find((c) => c.id === character)?.wields ?? []
+  return [...new Set([...(doc.units?.find((u) => u.id === type)?.wields ?? []), ...own])]
+}
+
 /** The game-wide cap of a stat, or undefined (no cap). */
 export const gameCap = (doc: ProjectDoc, stat: string): number | undefined => doc.caps?.caps?.[stat]
 /** The cap a unit of this class has before a character's adjustment: the class's own, else the game's. */

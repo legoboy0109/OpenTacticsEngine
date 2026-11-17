@@ -1,7 +1,7 @@
 // The "Personal ranks" card of a character (docs/SRPG.md section 7): a rank per weapon group its class can wield. The character starts
 // with the higher of this and the class's, so a personal rank only raises. Shown once the game has a ladder (or the character has some).
 import { updateCharacter } from '../../../model/characters'
-import { hasLadder, setRankIn } from '../../../model/ranks'
+import { hasLadder, setRankIn, wieldsOf } from '../../../model/ranks'
 import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
 import { RankMapTable } from '../../ranks/RankMapTable'
@@ -12,7 +12,7 @@ export function CharacterRanksCard({ id }: { id: string }) {
   const edit = useEdit()
   const c = doc.characters?.find((x) => x.id === id)
   if (!c || (!hasLadder(doc) && !c.ranks)) return null
-  const groups = doc.units?.find((u) => u.id === c.type)?.wields ?? []
+  const groups = wieldsOf(doc, c.type, c.id)
   return (
     <Card title={R.charRanksTitle} help={R.charRanksHelp} id="character-ranks">
       <div className="stack" data-testid="character-ranks">

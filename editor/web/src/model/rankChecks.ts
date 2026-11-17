@@ -54,7 +54,7 @@ export function rankChecks(doc: ProjectDoc): SrpgCheck[] {
     if (w.rank !== undefined && !w.group) out.push({ section, ids, text: `${name} needs a rank, but it has no group. Ranks are kept per weapon group: give it a group.` })
     else if (w.rank !== undefined && ladder.length > 0 && !ladder.some((r) => r.id === w.rank)) out.push({ section, ids, text: `${name} needs a rank (“${w.rank}”) that is not in the ladder.` })
     if (w.rankXp !== undefined && !w.group) out.push({ section, ids, text: `${name} earns weapon experience, but it has no group.` })
-    if (w.rankXp !== undefined && (w.rankXp < 1 || w.rankXp > MAX_USE_XP)) out.push({ section, ids, text: `${name}: experience per use must be from 1 to ${MAX_USE_XP}.` })
+    if (w.rankXp !== undefined && (w.rankXp < 0 || w.rankXp > MAX_USE_XP)) out.push({ section, ids, text: `${name}: experience per use must be from 0 to ${MAX_USE_XP} (0 trains nothing).` })
   }
   for (const u of doc.units ?? []) out.push(...mapChecks(doc, `${u.name}`, u.ranks, [u.id], 'units'))
   for (const c of doc.characters ?? []) out.push(...mapChecks(doc, `${c.name}`, c.ranks, [c.id], 'characters'))
