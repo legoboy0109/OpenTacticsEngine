@@ -126,8 +126,7 @@ TEST(audio_service_null_device_and_off_mode_are_safe_no_ops) {
   dead->ready = false;
   c.attachDevice(std::unique_ptr<AudioOut>(dead));  // a "device" that says it is unavailable
   CHECK(c.mode() == AudioService::Mode::Off);
-  c.update(0.5);
-  CHECK_EQ(dead->pushes, 0);
+  c.update(0.5);  // must not touch the device: the service dropped (and freed) it, so `dead` is not read again
 }
 
 TEST(audio_service_silent_mode_checks_files_but_plays_nothing) {
