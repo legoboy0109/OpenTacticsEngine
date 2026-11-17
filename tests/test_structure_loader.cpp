@@ -364,7 +364,7 @@ TEST(structures_shipped_games_have_pictures_for_every_structure) {
       CHECK(loadMap(db, ref.id, m, err));
     }
   }
-  CHECK_EQ(withStructures, 3);  // demo-srpg, demo-economy, economy-tactics
+  CHECK_EQ(withStructures, 4);  // demo-srpg, demo-economy, strategy-rpg (doors, chests, villages), economy-tactics
 }
 
 TEST(structures_shipped_maps_use_a_structure_larger_than_one_square) {

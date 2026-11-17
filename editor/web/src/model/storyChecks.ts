@@ -42,6 +42,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'chapter':
     case 'map': return null // only campaigns name these (campaignChecks.ts)
     case 'place': return null // placeChecks.ts says it in plainer words (the loader's rules differ per trigger and command)
+    case 'portrait': return null // just text for the player to look up: an id with no picture shows the box without one
   }
 }
 

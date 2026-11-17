@@ -1,0 +1,14 @@
+{ "name": "Two Places",
+  "chapters": [
+    { "id": "one", "name": "The Field", "map": "field",
+      "before": [
+        { "say": "We march at dawn.", "speaker": "hero", "portrait": "hero" },
+        { "if": [ { "alive": "hero" }, { "dead": "rival" } ], "then": [ { "setVariable": "lvl", "level": "hero" } ] },
+        { "setVariable": "lvl", "stat": "str", "of": "hero" },
+        { "addSupport": ["hero", "ally"], "by": 2 },
+        { "choice": "Who leads?", "speaker": "hero", "portrait": "hero",
+          "answers": [ { "text": "Me", "do": [ { "say": "Then follow.", "speaker": "hero" } ] },
+                       { "text": "You", "if": [ { "support": ["ally", "hero"], "op": ">=", "value": 1 } ], "do": [ { "setSwitch": "met", "to": true } ] } ] } ],
+      "after": [ { "takeItem": "potion", "from": "hero" },
+                 { "if": [ { "dead": "hero" } ], "then": [ { "say": "Lost.", "speakerName": "Narrator" } ], "else": [ { "say": "Won.", "speaker": "ally" } ] } ] },
+    { "id": "two", "name": "The Keep", "map": "keep" } ] }

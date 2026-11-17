@@ -1,0 +1,2 @@
+{ "skills": [
+  { "id": "tough", "name": "Tough", "blocks": [ { "when": "always", "do": [ { "stats": { "hp": 5 } } ] } ] } ] }

@@ -1,0 +1,5 @@
+{ "structures": [
+  { "id": "hamlet", "name": "Hamlet", "color": "#c0a060", "glyph": "H", "visit": { "becomes": "hamlet_shut" } },
+  { "id": "chest", "name": "Chest", "color": "#b08040", "glyph": "C", "chest": { "opens": "chest_open", "locked": false } },
+  { "id": "chest_open", "name": "Open Chest", "color": "#6e4f22", "glyph": "c" },
+  { "id": "hamlet_shut", "name": "Shuttered Hamlet", "color": "#807050", "glyph": "h" } ] }

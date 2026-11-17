@@ -47,7 +47,7 @@ async function addGold(request: APIRequestContext, id: string): Promise<void> {
 test('@smoke build a door, a chest, a place and a key through the forms, place them with contents and a story name, add a place event: the files are what docs/SRPG.md says and the game loads', async ({ page, game, request }) => {
   test.setTimeout(180_000)
   requirePlayer()
-  const id = await game.create('strategy-rpg', 'Places', { srpgContent: true })
+  const id = await game.create('strategy-rpg', 'Places', { srpgContent: true, starterPlaces: false })  // the forms build the first kinds themselves
   await addGold(request, id)
 
   // ===== Structures: the kinds (every look is its own structure kind) =====
@@ -266,7 +266,7 @@ async function placesGame(request: APIRequestContext, id: string): Promise<void>
 test('@smoke on a 360 px phone every new form fits without sideways scrolling', async ({ page, game, request }) => {
   test.setTimeout(120_000)
   await page.setViewportSize({ width: 360, height: 800 })
-  const id = await game.create('strategy-rpg', 'Places Phone', { srpgContent: true })
+  const id = await game.create('strategy-rpg', 'Places Phone', { srpgContent: true, starterPlaces: false })
   await placesGame(request, id)
   expect(await game.problems(id)).toEqual([])
 

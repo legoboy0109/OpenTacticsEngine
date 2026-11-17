@@ -20,12 +20,15 @@ sys.dont_write_bytecode = True  # keep tools/art free of __pycache__
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import art_iso as iso  # noqa: E402
+import art_places  # noqa: E402
 import art_stand as stand  # noqa: E402
 import art_structures as st  # noqa: E402
 import art_tiles as tl  # noqa: E402
 import art_units as un  # noqa: E402
 import make_unit_models as um  # noqa: E402
 from pix import Pix  # noqa: E402
+
+st.PICTURES.update(art_places.PICTURES)  # the template's doors, chests and villages (docs/SRPG.md section 10)
 
 GAMES = [
     'games/demo-srpg', 'games/demo-economy',

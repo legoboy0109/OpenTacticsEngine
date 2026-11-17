@@ -1,0 +1,3 @@
+{ "weapons": [
+  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "wieldedBy": ["hero", "ally"], "props": { "might": 5 } },
+  { "id": "stick", "name": "Stick", "props": { "might": 1 } } ] }

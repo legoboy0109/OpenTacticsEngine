@@ -1,0 +1,5 @@
+{ "items": [
+  { "id": "iron_sword", "name": "Iron Sword", "kind": "weapon", "weapon": "iron_sword" },
+  { "id": "potion", "name": "Potion", "kind": "usable", "heal": 10, "uses": 1 },
+  { "id": "kin_staff", "name": "Kin Staff", "kind": "staff", "description": "Only for two of the company.",
+    "group": "staff", "wieldedBy": ["hero", "ally"], "uses": 5, "range": 2, "effects": [ { "heal": 5 } ] } ] }

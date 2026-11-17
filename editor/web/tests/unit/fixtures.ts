@@ -51,6 +51,8 @@ export function loadStavesFixture(): ProjectDoc { return loadFrom(fixtures, 'srp
 export function loadStaves2Fixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-staves2') }
 /** The engine's status conditions test game (tests/fixtures/srpg-conditions): 19 conditions using every block, every duration form, staves / items / weapons that inflict and cure. */
 export function loadConditionsFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-conditions') }
+/** The editor's own test game for renaming a character (tests/fixtures/srpg-rename): the character `hero` is spelled in every kind of place that names a character. */
+export function loadRenameFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-rename') }
 /** The engine's battle and defeat quotes test game (tests/fixtures/srpg-quotes): five characters, four of them with quotes, a two-chapter campaign (fallen: gone). */
 export function loadQuotesFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-quotes') }
 /** The engine's preparation screen test game (tests/fixtures/srpg-prep): a three-chapter campaign, two maps with a preparation (slots, limit, required, fixed, forbidden, a shop). */
