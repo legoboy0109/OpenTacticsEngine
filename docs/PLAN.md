@@ -168,6 +168,14 @@ goal (demos only exercise features).
       right after choices merge, same files): a variable command that adds a unit's current level (missing unit
       adds 0) so sums and comparisons reuse the `variable` condition; map events (live units) and campaign
       scenes (roster levels). Starting shape `{ "addVariable": "bar", "level": "<unit>" }`, free to change.
+      6c campaign timeline in the editor (owner, 2026-11-16; build after dialogue choices merge, it draws
+      their branches). Owner's answers: a flowchart, boxes joined by arrows left to right, branches drawn as
+      separate paths; the maker can drag to reorder chapters, add / remove chapters and scenes, and click a
+      box to open its normal editor (text editing stays in the existing forms); a box shows a map thumbnail
+      (levels), a problems badge, and "what changes" markers (units joining / leaving, items, shops, switches,
+      choices) - NOT a scene summary; a level box expands to show its in-map events in rough order.
+      6d editor screen for status conditions (owner, 2026-11-16: "after stage three"): build a condition from
+      blocks, the six starter conditions, and inflict / cure on staves, items and weapons.
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
