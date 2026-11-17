@@ -10,6 +10,8 @@
 #include "campaign/end_scenes.h"
 #include "campaign/story_scene.h"
 #include "core/base/log.h"
+#include "core/campaign/prep.h"
+#include "core/data/loader.h"
 
 namespace ote {
 
@@ -44,6 +46,7 @@ void PlayerApp::campaignBattleOver(ChapterResult result) {
   later([this, result] {
     if (!session_ || !session_->campaign) return;
     if (nextAfterBattle(result) != Next::RetryChoice) { doCampaignNext(); return; }
+    session_->campaign->prepDone = false;  // trying again: a chapter with a preparation shows its screen once more
     const Playthrough& pt = session_->campaign->pt;
     const ChapterDef* ch = currentChapter(session_->db, pt);
     scene_.reset();
@@ -100,6 +103,25 @@ SceneResolver PlayerApp::runSceneFor(SceneKind kind, const Playthrough& before, 
   };
 }
 
+void PlayerApp::prepareDone() {
+  later([this] {
+    if (!session_) return;
+    if (session_->campaign) {
+      session_->campaign->prepDone = true;
+      doCampaignNext();
+      return;
+    }
+    scene_.reset();  // the preparation scene's battle must die before the real one replaces it
+    std::string err;
+    if (!session_->startPreparedMap(args_.seed, err)) {
+      showError("Cannot start the battle", err, ToMapSelect);
+      runPending();
+      return;
+    }
+    scene_.reset(new BattleScene(*this));
+  });
+}
+
 void PlayerApp::doCampaignNext() {
   if (!session_ || !session_->campaign) return;
   scene_.reset();  // a battle's scene must die before its Battle is replaced
@@ -115,6 +137,7 @@ void PlayerApp::doCampaignNext() {
       // The camp (support conversations) comes first, from the second chapter on, when anything is pending.
       if (std::unique_ptr<Scene> camp = campStep(*this)) { scene_ = std::move(camp); break; }
       run.campDone = false;
+      run.prepDone = false;
       const Playthrough before = pt;
       SceneResolver again = runSceneFor(SceneKind::Before, before, lines);  // applies at once; the screen only shows it
       const ChapterDef* ch = currentChapter(db, pt);
@@ -137,6 +160,22 @@ void PlayerApp::doCampaignNext() {
       session_->battle.setAskChoices(session_->askChoices);  // before start: a question may come with the first events
       session_->startEvents.clear();
       std::string err;
+      if (!args_.autoplay && !run.prepDone) {  // a chapter whose map has a preparation: the screen first (docs/EVENTS.md "Preparation")
+        const ChapterDef* ch = currentChapter(db, pt);
+        MapDef map;
+        if (ch && loadMap(db, db.maps[(size_t)ch->map].id, map, err) && prepOn(map)) {
+          prepOpen(db, pt, map, true);
+          if (!prepareChapterBattle(db, pt, session_->formulas, args_.seed, session_->battle, err)) {
+            showError("Cannot start the chapter", err, ToGame);
+            runPending();
+            return;
+          }
+          OTE_INFO("prep: the preparation screen of chapter %d opens", pt.chapter + 1);
+          scene_.reset(new BattleScene(*this, true));
+          break;
+        }
+        err.clear();
+      }
       if (!startChapterBattle(db, pt, session_->formulas, run.nextSeed(args_.seed), session_->battle,
                               session_->startEvents, err)) {
         showError("Cannot start the chapter", err, ToGame);

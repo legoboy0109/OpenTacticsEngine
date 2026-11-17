@@ -36,6 +36,19 @@ struct CarriedSide {
                                     // research still in progress is not carried (docs/ECONOMY.md)
 };
 
+// The preparation screen of the current chapter's map (docs/EVENTS.md "Preparation"; core/campaign/prep.h). All of it
+// is empty / false for a chapter whose map has no preparation, and is then left out of the save.
+struct PrepDeploy {
+  std::string id;  // roster / story id of the character
+  int slot = 0;    // index into the map's PrepDef::slots
+};
+struct PrepState {
+  bool open = false;                // the screen is under way (a save made now restores into it)
+  bool folded = false;              // the prep side's map allowance (resources, storage) is already in CarriedSide
+  std::vector<PrepDeploy> deployed; // who is deployed and where, in order; empty = nothing chosen (the default pick applies)
+  bool any() const { return open || folded || !deployed.empty(); }
+};
+
 struct Playthrough {
   int chapter = 0;  // index into CampaignDef::chapters; once Finished / Over, the last one played
   Phase phase = Phase::Before;
@@ -44,6 +57,8 @@ struct Playthrough {
   std::vector<uint8_t> switches;    // per Database::switches
   std::vector<int> variables;       // per Database::variables
   SupportState supports;            // closeness of the support pairs (docs/SRPG.md); empty in a game without pairs
+  PrepState prep;                   // the preparation of the current chapter, see PrepState
+  std::vector<std::string> lastDeployed;  // ids deployed in the last chapter that had a preparation, in order (the default pick uses it)
   std::vector<uint8_t> quotesSaid;  // per battle quote (BattleQuote::flat): said already; only "campaign" quotes are kept (docs/EVENTS.md)
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.

@@ -23,6 +23,12 @@ class GameSession {
   bool load(const std::string& gameDir, std::string& err);
   // Loads a map, builds the battle and runs Battle::start (events -> startEvents).
   bool startMap(const std::string& mapId, unsigned seed, std::string& err);
+  // A free battle of a map with a preparation screen (docs/EVENTS.md "Preparation"): loads the map and opens the screen's
+  // state in `freePrep`; the battle (not started) shows the deployment as it is now. rebuildFreePrep() makes it again after a
+  // change; startPreparedMap() starts the real battle from the final choice.
+  bool startMapPrep(const std::string& mapId, unsigned seed, std::string& err);
+  bool rebuildFreePrep(unsigned seed, std::string& err);
+  bool startPreparedMap(unsigned seed, std::string& err);
 
   // Loads `mapId` and puts a saved battle state (core/battle/save.h) on it, without
   // starting a turn. Everything is checked first; on failure nothing changes.
@@ -36,6 +42,7 @@ class GameSession {
   // Dialogue choices wait for a person (Battle::setAskChoices): on except in --autoplay, where the first answer is taken.
   bool askChoices = false;
   std::string dir;
+  std::unique_ptr<Playthrough> freePrep;  // the preparation screen of a free battle (a scratch playthrough: no roster); else null
   // The story being played, when one is (null for a free battle and for games without a campaign).
   // Its chapter battle is `battle` above; it is set up by the App, not by startMap / resume.
   std::unique_ptr<CampaignRun> campaign;

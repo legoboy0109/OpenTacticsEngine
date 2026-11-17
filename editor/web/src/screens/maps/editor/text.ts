@@ -7,6 +7,7 @@ export const T = {
     units: { label: 'Units', key: 'U', help: 'Place and move units.' },
     structures: { label: 'Structures', key: 'O', help: 'Place and move structures: cities, forts, factories.' },
     heights: { label: 'Heights', key: 'H', help: 'Raise or lower squares.' },
+    slots: { label: 'Slots', key: 'D', help: 'Mark where the player’s units may start (the preparation screen).' },
     select: { label: 'Select', key: 'S', help: 'Look at a square.' },
   },
   zoomIn: 'Zoom in',
@@ -17,7 +18,7 @@ export const T = {
   fit: 'Fit',
   fitHelp: 'Show the whole map',
   mapViewNote: 'This map editor shows the top-down view. Play shows the game in its styles.',
-  shortcuts: 'Keys: T U O H S pick a tool, F fill, + / − zoom, Delete removes the selected unit or structure, Esc deselects, Space + drag pans.',
+  shortcuts: 'Keys: T U O H D S pick a tool, F fill, + / − zoom, Delete removes the selected unit or structure, Esc deselects, Space + drag pans.',
 
   // status line
   statusSquare: (x: number, y: number) => `${x + 1}, ${y + 1}`,
@@ -118,7 +119,7 @@ export const T = {
   noNumbers: 'none',
 
   // panel tabs
-  tabs: { tool: 'Tool', map: 'Map', sides: 'Sides', events: 'Events', objectives: 'Objectives' },
+  tabs: { tool: 'Tool', map: 'Map', sides: 'Sides', prep: 'Preparation', events: 'Events', objectives: 'Objectives' },
   panelLabel: 'Map options',
   sheetOpen: 'Show options',
   sheetClose: 'Hide options',

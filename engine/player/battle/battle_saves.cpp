@@ -22,7 +22,7 @@ bool BattleScene::continueOn() const {
 
 bool BattleScene::buildSave(Json& file, std::string& err) const {
   if (chapterBattle())
-    return buildCampaignSave(session_.db, host_.currentGameId(), session_.campaign->pt, &battle_, nowSeconds(), file, err);
+    return buildCampaignSave(session_.db, host_.currentGameId(), session_.campaign->pt, prep_ ? nullptr : &battle_, nowSeconds(), file, err);  // a preparation has no battle in the file yet
   return buildSaveFile(battle_, session_.db, host_.currentGameId(), session_.map.id, nowSeconds(), file, err);
 }
 
@@ -55,7 +55,7 @@ void BattleScene::clearContinue() {
 
 // Called every frame the view is idle.
 void BattleScene::updateSaves() {
-  if (!continueOn() || mode_ == Mode::Result) return;
+  if (!continueOn() || mode_ == Mode::Result || prep_) return;
   if (battle_.over) {  // a chapter battle's result is handled by chapterDecided() (the story goes on)
     if (!chapterBattle()) clearContinue();
     return;
@@ -84,14 +84,16 @@ void BattleScene::slotInput(const InputEvent& e) {
   SlotPanel::Result res = slots_.onInput(e, r);
   if (res == SlotPanel::Back) {
     slots_.close();
-    mode_ = Mode::Idle;
+    if (prep_) prepMainMenu();
+    else mode_ = Mode::Idle;
   } else if (res == SlotPanel::Picked && slots_.mode() == SlotPanel::Save) {
     Json file;
     std::string err;
     int slot = slots_.slot();
     if (buildSave(file, err) && store_.write(slot, file, err)) {
       slots_.close();
-      mode_ = Mode::Idle;
+      if (prep_) prepMainMenu();
+      else mode_ = Mode::Idle;
       say("Saved to slot " + std::to_string(slot));
     } else {
       OTE_WARN("saving to slot %d failed: %s", slot, err.c_str());

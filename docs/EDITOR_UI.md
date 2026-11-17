@@ -1006,6 +1006,19 @@ never uses them. Deleting a character lists the quotes that name it (a quote aga
 left without lines goes too). Works at 360 px (the fields wrap). Tests: `tests/unit/quotes.test.ts`, `tests/e2e/quotes.spec.ts`,
 `tests/editor_api_quotes_checks.py`.
 
+## Preparation (docs/EVENTS.md "Preparation")
+
+Map editor: a **Preparation** tab (switch, most characters deployed, side when several are human, "Always deployed" list with an
+optional slot each, "Cannot take part", "Stay where they are placed", the preparation shop as an item list, and the list of checks)
+and a **Slots** tool (key D): click an empty square for the next numbered slot, click a slot to remove it (later numbers close up, a
+required character fixed to it becomes "any slot", the limit follows). Switching on turns the squares of the named units of the first
+human side into slots 1..n (limit n). Slots are drawn numbered over the map in every state (`data-slots` on the canvas for tests).
+Resizing the map drops slots that fall outside and says so. Checks (above the canvas and in the tab): no slots, limit above slots,
+more required than the limit, a required character no map places on a human side ("not in the campaign"), a required slot the unit
+cannot stand on, a slot nobody can stand on or on a unit that stays, fixed / forbidden mismatches, a shop item without a price, and a
+map with a preparation used outside a campaign (or by no chapter). Strings: `screens/maps/editor/panels/prepText.ts`; model:
+`model/prep.ts`, `prepChecks.ts`, `prepRoster.ts`.
+
 ## Campaign timeline (PLAN 6c)
 
 All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API) change. The Campaign screen has two views, **List** (the original) and **Timeline**

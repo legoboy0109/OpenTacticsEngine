@@ -1,0 +1,5 @@
+{ "units": [
+  { "id": "soldier", "name": "Soldier", "moveType": "foot", "stats": { "hp": 20, "atk": 6, "def": 3, "mov": 4 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 12, "atk": 5, "def": 1, "mov": 4 }, "weapons": ["bow"] },
+  { "id": "glider", "name": "Glider", "moveType": "wing", "stats": { "hp": 14, "atk": 4, "def": 1, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "raider", "name": "Raider", "moveType": "foot", "stats": { "hp": 4, "atk": 3, "def": 1, "mov": 3 }, "weapons": ["sword"] } ] }

@@ -60,6 +60,7 @@ class PlayerApp : public App, public SceneHost {
   void campaignNext() override;
   void campaignSceneDone() override;
   void campaignBattleOver(ChapterResult result) override;
+  void prepareDone() override;
   void relook(const std::string& gameId) override;
   void quit() override { quit_ = true; flushSettings(); }
   void showError(const std::string& title, const std::string& message, Back back) override;

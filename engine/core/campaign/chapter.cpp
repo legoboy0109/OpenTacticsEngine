@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "core/campaign/playthrough.h"
+#include "core/campaign/prep.h"
 #include "core/data/loader.h"
 #include "core/script/formulas.h"
 
@@ -108,7 +109,10 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   }
   MapDef map;
   if (!loadMap(db, db.maps[(size_t)ch->map].id, map, err)) return false;
-  if (!battle.init(db, map, formulas, seed, err)) return false;
+  // A map with a preparation starts with the deployed characters on their slots (the default pick when none was chosen).
+  MapDef prepared;
+  prepApplyToMap(db, pt, map, prepared);
+  if (!battle.init(db, prepared, formulas, seed, err)) return false;
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
   battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
@@ -137,6 +141,11 @@ ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Bat
       return ChapterResult::Ended;
     }
     return ChapterResult::Retry;
+  }
+  {
+    MapDef map;  // a chapter with a preparation: the roster takes in the characters the map placed (also benched ones), the pick is remembered
+    std::string err;
+    if (loadMap(db, db.maps[(size_t)db.campaign->chapters[(size_t)pt.chapter].map].id, map, err)) prepFinishChapter(db, pt, map, battle);
   }
   takeUnits(db, pt, battle);
   for (const SideState& side : battle.sides) {

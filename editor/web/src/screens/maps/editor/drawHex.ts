@@ -172,7 +172,7 @@ export function drawHexMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawSt
     cellsPath(g, k, dim)
     g.fill()
   }
-  if (st.overlays?.length || st.pickRect) drawOverlaysHex(g, k, mw, mh, st.overlays ?? [], st.pickRect ?? null)
+  if (st.overlays?.length || st.slots?.length || st.pickRect) drawOverlaysHex(g, k, mw, mh, [...(st.slots ?? []), ...(st.overlays ?? [])], st.pickRect ?? null)
 
   const line = Math.max(1, Math.round(dpr * 1.5))
   if (st.hover && !st.structureGhost) { g.fillStyle = 'rgba(255,255,255,0.22)'; cellsPath(g, k, [st.hover]); g.fill() }
@@ -291,7 +291,7 @@ function drawHeightsHex(g: CanvasRenderingContext2D, scene: Scene, k: K, r: { x0
   }
 }
 
-const TONES: Record<Overlay['tone'], string> = { area: '45,212,255', add: '124,211,90', move: '255,176,32', view: '197,140,255', win: '74,222,128', lose: '255,92,92' }
+const TONES: Record<Overlay['tone'], string> = { area: '45,212,255', add: '124,211,90', move: '255,176,32', view: '197,140,255', win: '74,222,128', lose: '255,92,92', slot: '90,170,255' }
 
 /** The hexagons a rectangle of columns and rows contains (story areas stay rectangles of columns and rows, docs/HEX.md). */
 export function rectCells(r: Rect, w: number, h: number): Cell[] {
@@ -314,7 +314,7 @@ function drawOverlaysHex(g: CanvasRenderingContext2D, k: K, mw: number, mh: numb
     g.fill()
     strokeAround(g, k, cells, 'rgba(0,0,0,0.75)', line + 2)
     strokeAround(g, k, cells, `rgb(${rgb})`, line)
-    if (k.S >= 18 * k.dpr) {
+    if (k.S >= 18 * k.dpr) {  // (a deployment slot's number is short enough for any hexagon)
       const b = k.geo.box(cells[0].x, cells[0].y)
       const size = Math.max(9 * k.dpr, Math.min(14 * k.dpr, k.S * 0.36))
       g.font = `bold ${Math.round(size)}px ${FONT}`

@@ -18,6 +18,9 @@ struct CampaignRun {
   // when the chapter's before scene starts.
   int campPlay = -1;
   bool campDone = false;
+  // The chapter's preparation screen (docs/EVENTS.md "Preparation") was answered with Begin: the battle starts now. Cleared when
+  // a chapter's before scene starts and when a lost battle is tried again (the screen comes back, with the same choice).
+  bool prepDone = false;
   int battlesStarted = 0;     // every start of a chapter battle (also a retry) gets its own seed
 
   uint32_t nextSeed(uint32_t base) { return base + (uint32_t)battlesStarted++; }

@@ -480,6 +480,71 @@ docs/SAVES.md "Campaign saves in the player". All wording below is placeholder.
 - **Web**: the same code; `tools/webtest/suites/campaign.mjs` plays New game -> scene -> battle -> reload -> Continue on
   the test game in a temp folder that serves the web build with its own `games/`.
 
+## Preparation
+
+Built (PLAN k item 8; rules `engine/core/campaign/prep*.cpp`, loader `engine/core/data/loader_prep.cpp`, player
+`engine/player/battle/battle_prep*.cpp`, editor Preparation tab and Slots tool; tests `tests/test_prep_*.cpp`,
+`tests/srpg_player_prep_test.py`, `editor/web/tests/unit/prep.test.ts`, `tests/e2e/prep.spec.ts`; fixture `tests/fixtures/srpg-prep`).
+All wording is placeholder (player: `battle/prep_text.h`; editor: `panels/prepText.ts`).
+
+A map may have a **preparation screen** shown before its battle. The maker chooses per map: no `"prep"` key = the map starts exactly
+as it is placed (data, saves and hashes unchanged). Order: the chapter's `before` scene, then the screen, then the battle-start events.
+
+```jsonc
+"prep": {
+  "slots": [ { "x": 0, "y": 1 }, { "x": 0, "y": 2 } ],   // deployment squares, numbered from 1 in this order (required, up to 64)
+  "limit": 3,                                              // most characters deployed, 1 .. slots (default: all slots)
+  "required": [ "sera", { "character": "tomas", "slot": 2 } ],  // always deployed; "slot" (number from 1) also fixes the square
+  "forbidden": [ "wren" ],                                 // cannot take part in this map
+  "fixed": [ "guard" ],                                    // placed units that stay where the map puts them, outside the choice
+  "shop": { "sells": [ "potion", "tonic" ] },              // same item ids as a structure's "sells"; each needs a price
+  "side": "blue" }                                         // the human side the deployed characters join (default: the first one)
+```
+
+**Who is a candidate.** A *candidate* is any living roster character (the party carried between chapters) plus the named units of the
+prep side that the map itself places and the roster does not know yet. A candidate's placed square is ignored: the slots decide where
+it starts. Units that stay where they are placed (computer units, unnamed units, other sides, the `fixed` list) are not candidates and
+do not count against the limit. The old rule "the roster dresses only placed units" no longer limits a chapter: the roster may hold
+more characters than a map deploys. A benched character stays in the roster untouched (level, xp, items, skills) and is available next
+chapter; a map character who is benched (or never opened the screen) still joins the roster when the chapter is won. `fallen: gone`
+affects only units that were in the battle; `changeSide` to a computer side still removes a unit from the roster; `addUnit` joiners
+are written to the roster as before.
+
+**Default pick** (what the simulator, `--autoplay`, the editor's Play-without-interaction and plain `startMap` use, no screen):
+required characters first, then those deployed in the previous chapter that had a preparation (`Playthrough::lastDeployed`, in battle
+order), then the rest in roster order (then the map's own candidates), up to the limit; slots are filled in order (a required character
+with its own slot takes it first; a unit goes on the first free slot its movement type can stand on). The screen opens on this pick.
+
+**Rules** (`core/campaign/prep.h`, free functions over a `Playthrough` and the chapter's `MapDef`, each refusing with a plain reason):
+`prepOpen`, `prepDeploy`, `prepBench` (a required character cannot be benched; the limit; forbidden; fallen), `prepMove` (move to a free
+slot or swap two; both must be able to stand there; a required character with its own slot cannot move), `prepGive` / `prepStore` /
+`prepFetch` / `prepEquip` (trade between any two roster characters and the shared storage; the storage exists when `rules.items.storage`
+is not `off`; any setting but `off` counts as reachable on this screen), `prepBuy` (the shop; price paid from what the prep side
+carries; into the character's pack, else the storage, else refused; there is no selling), `prepBegin`. `prepOpen` also folds the map's
+allowance for the prep side (resources, storage) into what the campaign carries, so the screen can spend it and the battle starts from
+the carried amounts alone. `prepareChapterBattle` builds the battle from the deployment (`prepApplyToMap`).
+
+**Free battles** (no roster): the same calls on a scratch playthrough; the pool is the map's named units of the prep side; positions,
+units and the map view only (no items or shop in the player).
+
+**Saves.** In phase `battle`, `"playthrough": { "prep": { "open", "folded", "deployed": [ { "id", "slot" } ] }, "lastDeployed": [ids] }`,
+written only when there is something to write. A save made during the preparation has no `"battle"` and restores into the screen; a save
+in the battle restores the same battle (the deployment is in the playthrough). Bad ids, slots or a deployment the map cannot take are
+refused with the field named.
+
+**Player** (Mode::Prep in the battle scene; the Battle is set up but not started): menu Units / Positions / Items / Shop / View map /
+Save / Leave (Abandon in a free battle) / Begin. Units: a list with "Slot N" / "Out", `*` for required, the reason in the detail line,
+"Deployed n / limit". Positions: slots numbered on the map, pick up / put down (swap), tap works, a Back button for pointers. Items:
+whose items, trade with another character or the storage (the battle's trade panel). Shop: the battle's shop list, then who gets it.
+View map: free cursor, unit details, the reach of a visible enemy under the cursor (fog respected). Begin asks "Begin with N of M?"
+when fewer than the limit (and than the available characters) are deployed. After a lost battle the screen comes back with the same
+choice. Works in all four kinds of view (the map parts reuse the battle's drawing).
+
+**Checks.** The loader refuses, naming the file and map: an unknown key, no slots, a slot outside / duplicated / on a square nobody can
+stand on / on the square of a unit that stays, a limit of 0 or above the slots, more required characters than the limit, a required slot
+that does not exist or is used twice, a character both required and forbidden / fixed, a fixed id the map does not place, a forbidden
+unit the map places on the prep side, an empty or unknown or unpriced shop item, a computer or unknown `side`.
+
 ## Dialogue choices
 
 PLAN k item 6. All wording is placeholder until the owner approves it.

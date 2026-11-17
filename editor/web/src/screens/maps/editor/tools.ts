@@ -8,15 +8,16 @@ import { fillFrom, lineCells, paintCells } from '../../../model/mapPaint'
 import { applyHeights, clampHeight, type HeightMode } from '../../../model/mapHeights'
 import { footprint, moveStructureBy, placeStructure, rectOf, structureIndexAt, placedOf } from '../../../model/mapStructures'
 import { moveMapUnit, placeUnit, unitAt } from '../../../model/mapUnits'
+import { toggleSlot } from '../../../model/prep'
 import { STROKE_PREFIX } from '../../../store/history'
 import type { DocumentStore } from '../../../store/documentStore'
 import type { MapViewState } from './viewState'
 import { T } from './text'
 
-export type Tool = 'terrain' | 'units' | 'structures' | 'heights' | 'select'
-export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'heights', 'select']
+export type Tool = 'terrain' | 'units' | 'structures' | 'heights' | 'slots' | 'select'
+export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'heights', 'slots', 'select']
 /** O stays the key of the old Owners tool, which the Structures tool replaced. */
-export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', heights: 'h', select: 's' }
+export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', heights: 'h', slots: 'd', select: 's' }
 
 export interface ToolState {
   tool: Tool
@@ -72,10 +73,23 @@ export function beginStroke(env: StrokeEnv, cell: Cell, opts: { alt?: boolean } 
   }
   if (t.tool === 'structures') return structureStroke(env, cell, t)
   if (t.tool === 'heights') return heightStroke(env, cell, t, gridOf(env))
+  if (t.tool === 'slots') return slotStroke(env, cell)
   env.view.set({ selected: cell })
   const unit = unitAt(map, cell.x, cell.y)
   if (t.tool === 'select') return NOOP
   return unit ? dragUnit(env, cell) : placeAt(env, cell, t)
+}
+
+/** Click a square of the preparation: an empty one becomes the next deployment slot, a slot is taken away (one undo step each). */
+function slotStroke(env: StrokeEnv, cell: Cell): Stroke {
+  const ctx = ctxOf(env.store.getState().doc)
+  const map = currentMap(env)
+  if (!ctx || !map) return NOOP
+  const r = toggleSlot(map, ctx, cell.x, cell.y)
+  if (r.error) { env.say(r.error); return NOOP }
+  env.store.edit((d) => editMap(d, env.mapId, (m, c) => toggleSlot(m, c, cell.x, cell.y).map))
+  env.view.set({ selected: cell })
+  return NOOP
 }
 
 /** Paints along the pointer's path; every square of one drag shares one undo step (one coalescing key). */

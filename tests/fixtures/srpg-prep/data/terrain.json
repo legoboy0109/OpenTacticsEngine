@@ -1,0 +1,3 @@
+{ "terrain": [
+  { "id": "plain", "name": "Plain", "color": "#8fbf6a", "glyph": "." },
+  { "id": "pond", "name": "Pond", "color": "#4a7fc1", "glyph": "~", "moveCost": { "foot": 0 } } ] }

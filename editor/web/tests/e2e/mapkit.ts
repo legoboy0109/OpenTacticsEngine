@@ -47,13 +47,13 @@ export async function dragThrough(page: Page, cells: Array<[number, number]>): P
 export const row = (y: number, x0: number, x1: number): Array<[number, number]> =>
   Array.from({ length: x1 - x0 + 1 }, (_, i) => [x0 + i, y] as [number, number])
 
-export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Structures' | 'Heights' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
+export const tool = (page: Page, label: 'Terrain' | 'Units' | 'Structures' | 'Heights' | 'Slots' | 'Select') => page.getByRole('toolbar', { name: 'Map tools' }).getByRole('button', { name: new RegExp(`^${label}`) })
 export const pickTerrain = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Terrain' }).getByRole('radio', { name })
 export const pickUnitType = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Unit type' }).getByRole('radio', { name })
 export const pickStructure = (page: Page, name: string) => page.getByRole('radiogroup', { name: 'Structure' }).getByRole('radio', { name: new RegExp(`^${name}`) })
 export const pickSide = (page: Page, name: string) => page.getByRole('radiogroup', { name: /^(Side|Owner)$/ }).getByRole('radio', { name })
 
-export const tab = (page: Page, name: 'Tool' | 'Map' | 'Sides' | 'Events' | 'Objectives') => page.getByRole('tab', { name, exact: true })
+export const tab = (page: Page, name: 'Tool' | 'Map' | 'Sides' | 'Preparation' | 'Events' | 'Objectives') => page.getByRole('tab', { name, exact: true })
 
 /** The terrain id at a square, read from the saved file (stable, independent of the UI). */
 export function diskCell(game: string, mapFile: string, x: number, y: number): string {

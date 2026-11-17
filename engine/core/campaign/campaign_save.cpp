@@ -8,6 +8,7 @@
 #include "core/battle/save_research.h"
 #include "core/battle/save_srpg.h"
 #include "core/campaign/campaign_save.h"
+#include "core/campaign/prep.h"
 
 namespace ote {
 namespace {
@@ -100,6 +101,60 @@ bool readSide(Reader& rd, const Database& db, const Json& j, size_t index, Carri
   return savejson::readTechList(rd, db, j, "research", where, s.research);
 }
 
+// The preparation screen's state and the last deployment (docs/SAVES.md): written only when there is any, so a game
+// without preparations saves exactly as before.
+void writePrep(const Playthrough& pt, Json& out) {
+  if (pt.prep.any()) {
+    Json p = Json::makeObject();
+    p.set("open", Json::makeBool(pt.prep.open));
+    p.set("folded", Json::makeBool(pt.prep.folded));
+    Json list = Json::makeArray();
+    for (const PrepDeploy& d : pt.prep.deployed) {
+      Json e = Json::makeObject();
+      e.set("id", Json::makeString(d.id));
+      e.set("slot", num(d.slot));
+      list.push(e);
+    }
+    p.set("deployed", list);
+    out.set("prep", p);
+  }
+  if (!pt.lastDeployed.empty()) {
+    Json list = Json::makeArray();
+    for (const std::string& id : pt.lastDeployed) list.push(Json::makeString(id));
+    out.set("lastDeployed", list);
+  }
+}
+
+bool readPrep(Reader& rd, const Json& saved, Playthrough& pt) {
+  if (saved.has("prep")) {
+    const Json& p = saved["prep"];
+    const std::string where = "playthrough.prep";
+    if (!p.isObject()) return rd.fail(where, "not an object");
+    if (!rd.boolean(p, "open", where, pt.prep.open) || !rd.boolean(p, "folded", where, pt.prep.folded)) return false;
+    const Json* list;
+    if (!rd.array(p, "deployed", where, -1, 64, list)) return false;
+    for (size_t i = 0; i < list->size(); ++i) {
+      const std::string w = where + ".deployed[" + std::to_string(i) + "]";
+      const Json& e = (*list)[i];
+      PrepDeploy d;
+      if (!e.isObject()) return rd.fail(w, "not an object");
+      if (!readId(rd, e, "id", w, d.id) || !rd.integer(e, "slot", w, 0, 63, d.slot)) return false;
+      pt.prep.deployed.push_back(d);
+    }
+  }
+  if (saved.has("lastDeployed")) {
+    const Json* list;
+    if (!rd.array(saved, "lastDeployed", "playthrough", -1, 1000, list)) return false;
+    for (size_t i = 0; i < list->size(); ++i) {
+      const Json& v = (*list)[i];
+      if (!v.isString() || !isStoryId(v.asString()))
+        return rd.fail("playthrough.lastDeployed[" + std::to_string(i) + "]", "not an id (letters, digits, _ and -)");
+      pt.lastDeployed.push_back(v.asString());
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
@@ -137,6 +192,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
   out.set("switches", sw);
   out.set("variables", intList(pt.variables));
   savejson::writePlaythroughSrpg(db, pt, out);  // docs/SRPG.md: supports, only in a game with support pairs
+  writePrep(pt, out);
 }
 
 bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out, std::string& err) {
@@ -187,6 +243,8 @@ bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out,
   }
   if (!readInts(rd, saved, "variables", top, (int)db.variables.size(), kMaxStoryNumber, pt.variables)) return false;
   if (!savejson::readPlaythroughSrpg(rd, db, saved, pt)) return false;
+  if (!readPrep(rd, saved, pt)) return false;
+  if (pt.prep.any() && pt.phase != Phase::Battle) return rd.fail("playthrough.prep", "a preparation only exists in the battle phase");
   out = pt;
   return true;
 }

@@ -90,6 +90,10 @@ void BattleScene::onInput(const InputEvent& e) {
     slotInput(e);
     return;
   }
+  if (mode_ == Mode::Prep) {  // the preparation screen (battle_prep*.cpp)
+    prepInput(e);
+    return;
+  }
   if (mode_ == Mode::Items) {
     itemsInput(e);
     return;

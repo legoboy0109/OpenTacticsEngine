@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styleView } from '../../../art/scene'
 import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
+import { slotOverlays } from '../../../model/prep'
 import { seenAtStart } from '../../../model/fogSight'
 import { editMap } from '../../../model/mapCtx'
 import { gridOfGame } from '../../../model/gridSpec'
@@ -110,6 +111,9 @@ function Editor({ id }: { id: string }) {
 
   const warnings = useMemo(() => mapWarnings(doc, map), [doc, map])
   const flagged = useMemo(() => new Set(warnings.filter((w) => w.key.startsWith('blocked:')).map((w) => cellKey(w.cell!)!)), [warnings])
+
+  // The preparation's deployment squares, numbered, over the map.
+  useEffect(() => { vs.set({ slots: slotOverlays(map) }) }, [vs, map.prep, map]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The "Show what a side sees" aid: only while the map has fog and the picked side still exists.
   const fogSide = useViewSlice(vs, (s) => s.fogSide)

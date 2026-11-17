@@ -1,0 +1,17 @@
+{
+  "name": "The Meadow",
+  "grid": { "type": "square", "width": 8, "height": 5 },
+  "legend": { ".": "plain", "~": "pond" },
+  "tiles": [ "........", "........", "...~....", "........", "........" ],
+  "sides": [
+    { "id": "blue", "name": "Company", "controller": "human", "color": "#4a7fc1", "resources": { "gold": 60 }, "storage": ["potion"] },
+    { "id": "red", "name": "Raiders", "controller": "ai", "color": "#c14a4a" } ],
+  "units": [
+    { "id": "sera", "type": "soldier", "side": "blue", "x": 0, "y": 1, "name": "Sera", "items": ["potion", "ring"] },
+    { "id": "tomas", "type": "archer", "side": "blue", "x": 0, "y": 2, "name": "Tomas" },
+    { "id": "wren", "type": "glider", "side": "blue", "x": 0, "y": 3, "name": "Wren", "items": ["token"] },
+    { "id": "bram", "type": "soldier", "side": "blue", "x": 1, "y": 2, "name": "Bram", "items": ["tonic"] },
+    { "type": "raider", "side": "red", "x": 7, "y": 1 },
+    { "type": "raider", "side": "red", "x": 7, "y": 3 } ],
+  "events": [ { "id": "finish", "when": { "turn": 2, "side": "blue" }, "do": [ { "win": "blue" } ] } ]
+}

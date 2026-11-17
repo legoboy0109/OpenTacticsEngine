@@ -19,6 +19,7 @@ void BattleScene::unitInfoInput(const InputEvent& e) {
   if (unitInfo_.onInput(e) != UnitInfoView::Closed) return;
   uiCue(Cue::Cancel);
   if (unitInfoFromAction_) openActionMenu();
+  else if (prep_) mode_ = Mode::Prep;  // back to the preparation's map view
   else mode_ = Mode::Idle;
 }
 

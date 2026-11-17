@@ -29,7 +29,9 @@ namespace ote {
 
 class BattleScene : public Scene {
  public:
-  explicit BattleScene(SceneHost& host);
+  // `preparing` = the preparation screen of a map that has one (docs/EVENTS.md "Preparation"): the Battle in the session has been
+  // set up but not started, and the scene shows the screen first. battle_prep*.cpp.
+  explicit BattleScene(SceneHost& host, bool preparing = false);
   void onInput(const InputEvent& e) override;
   void update(double dt) override;
   void draw(Renderer& r) override;
@@ -37,7 +39,8 @@ class BattleScene : public Scene {
 
  private:
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result,
-              PickUnit, PickCell, UnitInfo, Promotion };  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
+              PickUnit, PickCell, UnitInfo, Promotion,  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
+              Prep };                                   // the preparation screen (battle_prep*.cpp)
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
@@ -216,6 +219,38 @@ class BattleScene : public Scene {
   bool chapterBattle() const { return session_.campaign != nullptr; }
   void chapterDecided();       // the battle is over: take the result into the playthrough and save
   void leaveResult();          // Confirm on the result: on to the next step of the story, or the map list
+
+  // --- battle_prep.cpp, battle_prep_items.cpp: the preparation screen (docs/EVENTS.md "Preparation"). Mode::Prep; its state is PrepUi.
+  struct PrepUi;
+  std::shared_ptr<PrepUi> prep_;  // null in an ordinary battle
+  void prepStart();
+  void prepRebuild();             // the not-yet-started Battle again from the choice made so far (also after a trade or a purchase)
+  void prepChanged();             // after any change: rebuild, redraw the picture, write the Continue save
+  void prepInput(const InputEvent& e);
+  void prepDraw(Renderer& r);     // the open screen, over the map
+  void prepDrawSlots(Renderer& r);  // the numbered deployment squares, over the map
+  void prepDrawPanelHead(Renderer& r);
+  std::string prepHint() const;
+  Overlay prepOverlay() const;
+  void prepMainMenu();
+  void prepMenuChosen(int id);
+  void prepUnitsOpen(int sel = 0);
+  void prepUnitsPicked();
+  void prepPositionsButton(Button b);
+  void prepViewButton(Button b);
+  void prepLogSlots();
+  void prepViewLook();            // the reach of the enemy under the cursor
+  void prepBeginPressed();
+  void prepAskBegin(int deployed, int wanted);
+  void prepItemsWhoOpen(int sel = 0);
+  void prepItemsWithOpen();
+  void prepTradeOpen(int col = 0, int row = 0);
+  void prepTradePicked();
+  void prepShopOpen(int sel = 0);
+  void prepShopForOpen();
+  void prepListInput(const InputEvent& e);
+  void prepItemsInput(const InputEvent& e);
+  void prepCellInput(const InputEvent& e);
 
   // --- battle_saves.cpp: Continue save, manual Save / Load (docs/SAVES.md)
   bool savingOn() const;       // saves usable here: folder, game setting, not autoplay

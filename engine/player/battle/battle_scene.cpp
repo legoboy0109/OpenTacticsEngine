@@ -1,4 +1,5 @@
 #include "battle/battle_scene.h"
+#include "battle/battle_prep_ui.h"
 
 #include <algorithm>
 #include <cmath>
@@ -12,9 +13,10 @@
 
 namespace ote {
 
-BattleScene::BattleScene(SceneHost& host)
+BattleScene::BattleScene(SceneHost& host, bool preparing)
     : host_(host), session_(*host.session()), battle_(host.session()->battle) {
   autoplay_ = host.args().autoplay;
+  if (preparing) prep_.reset(new PrepUi());  // before initFog: a preparation has no turn, so no hot-seat cover
   store_ = host.saveStore(host.currentGameId());
   OTE_INFO("saves: %s", !store_.enabled() ? "not available in this run"
                         : session_.db.saving == SavingMode::Off ? "off for this game"
@@ -34,6 +36,7 @@ BattleScene::BattleScene(SceneHost& host)
   int rx, ry;
   panelResourceAnchor(layout_, (int)session_.db.resources.size(), rx, ry);
   view_.setResourceAnchor(rx, ry);
+  if (prep_) prepStart();  // the preparation screen: the Battle is set up but not started
 }
 
 void BattleScene::ensureLayout(const Renderer& r) {
@@ -161,7 +164,7 @@ void BattleScene::update(double dt) {
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.update(dt, battle_);
   updateDialogue(dt);
-  if (mode_ != Mode::Result && !view_.busy()) {
+  if (mode_ != Mode::Result && !view_.busy() && !prep_) {  // (the preparation has no turns to begin and no AI)
     updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
     if (battle_.over) enterResult();
     else if (!humanTurn()) aiStep();
@@ -207,6 +210,7 @@ void BattleScene::update(double dt) {
 std::string BattleScene::hint() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
   if (view_.dialogue.active) return dialogue_.choosing() ? kChoiceHint : kDialogueHint;
+  if (mode_ == Mode::Prep) return prepHint();
   if (mode_ == Mode::Result)
     return chapterBattle() ? "Confirm / tap: continue"
            : session_.db.campaign ? "Confirm / tap: back to the game page" : "Confirm / tap: back to map select";
@@ -254,7 +258,8 @@ void BattleScene::draw(Renderer& r) {
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));
-  drawMap(r, ctx, mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell ? overlay_ : supplyOverlay(), cursor_, human);
+  drawMap(r, ctx, mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_ : supplyOverlay(), cursor_, human);
+  if (prep_) prepDrawSlots(r);  // the numbered deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);
   drawEconomy(r);
@@ -271,6 +276,7 @@ void BattleScene::draw(Renderer& r) {
   }
   bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
   drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
+  if (prep_) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
   drawHint(r, layout_, hint());
   drawFloats(r, ctx, true);
 
@@ -281,7 +287,8 @@ void BattleScene::draw(Renderer& r) {
     }
     if ((mode_ == Mode::PickUnit || mode_ == Mode::PickCell) && staffFcOn_) drawStaffForecast(r, ctx, staffFc_, cursor_);
     if (mode_ == Mode::PickCell && placeFcOn_) drawPlaceForecast(r, ctx, placeFc_, cursor_);
-    if (mode_ == Mode::Items) drawItems(r);
+    if (mode_ == Mode::Prep) prepDraw(r);
+    else if (mode_ == Mode::Items) drawItems(r);
     else if (mode_ == Mode::Research) researchPanel_.draw(r);
     else if (mode_ == Mode::Promotion) drawPromotion(r);
     else menu_.draw(r);

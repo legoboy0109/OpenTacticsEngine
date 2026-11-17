@@ -47,6 +47,8 @@ export interface DrawState {
   time?: number
   /** Areas / squares of the open event or the objectives, and the rectangle being picked. */
   overlays?: Overlay[]
+  /** The preparation's deployment squares, numbered (model/prep.ts slotOverlays); drawn under the event areas. */
+  slots?: Overlay[]
   pickRect?: Rect | null
   /** Squares with 0 are dimmed (what a side does not see). */
   fogSeen?: Uint8Array | null

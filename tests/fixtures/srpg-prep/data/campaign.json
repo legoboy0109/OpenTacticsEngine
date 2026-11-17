@@ -1,0 +1,12 @@
+{
+  "name": "The Muster",
+  "rules": { "fallen": "gone", "onDefeat": "retry" },
+  "chapters": [
+    { "id": "ch1", "name": "The Meadow", "map": "meadow",
+      "before": [ { "say": "The company gathers in the meadow.", "speakerName": "Narrator" } ],
+      "after": [ { "giveResource": { "gold": 40 }, "side": "blue" } ] },
+    { "id": "ch2", "name": "The Orchard", "map": "orchard",
+      "before": [ { "say": "Pick who goes into the orchard.", "speakerName": "Narrator" } ] },
+    { "id": "ch3", "name": "The Hilltop", "map": "hilltop" }
+  ]
+}
