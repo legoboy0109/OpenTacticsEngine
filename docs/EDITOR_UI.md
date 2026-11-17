@@ -879,6 +879,26 @@ usable item's `cure` / `inflict`, a weapon's `inflict`, a skill's `immune` / `in
 
 The Problems list shows an unknown condition id anywhere it is named, in plain words (`names unknown condition "poison" (data/conditions.json)`).
 
+## Doors, chests and places (docs/SRPG.md section 10): no forms yet
+
+The editor has **no forms for doors, keys, chests or visitable places**. Nothing breaks: the helper keeps every key through GET and PUT untouched
+(`tests/editor_api_doors_checks.py`: the `door` / `chest` / `visit` blocks and `blocksSight` of structure kinds, a key item's `opens`, the `unlock` effect of
+an ability and a staff, a map structure's `id` / `contents` / `locked` / `visitSides` / `visitUnits`, a map unit's `goesFor`, `place` triggers and the door
+commands, `rules.places`), the web model keeps keys it does not know, and the real loader's refusals reach Problems in the engine's words. What a maker must
+**hand-edit**:
+
+- `data/structures.json`: the open / shut / ruined kinds (each its own structure with its own look and `moveCost`: the shut door's 0 is what blocks) and the
+  `door` / `chest` / `visit` blocks; `blocksSight` for fog;
+- `data/items.json`: a key's `"opens"`; a staff's `{ "unlock": ... }` effect (the Items form shows a staff whose first effect is not a heal as "not editable"
+  and keeps it as it is);
+- `data/abilities.json`: an ability `{ "unlock": ... }` (target `cell`) for the thief's trait;
+- in a map: a placed door / chest / place's `id`, a chest's `contents` (a chest without them is refused), `locked`, `visitSides`, `visitUnits`; a computer
+  unit's `goesFor`; events with `{ "place": ... }` triggers and the commands `openDoor`, `closeDoor`, `lockDoor`, `unlockDoor`, `openChest`;
+- `game.json`: `"rules": { "places": { "actions": "menu" | "auto" } }`.
+
+Placing a structure of such a kind with the map editor's structure tool works, but it writes only `type`, `x`, `y` and `side`: add `id` (and `contents` for a
+chest) by hand, or the map shows a problem.
+
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
 Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.

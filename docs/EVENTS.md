@@ -94,6 +94,7 @@ variable). Messages name the map, the event and the command:
 | `{ "reach": { "x": 5, "y": 2, "w": 2, "h": 1 }, "by": <filter> }` | when a matching unit **ends** a move inside the rectangle (`w`, `h` default 1). Walking through does not count. Refined: units moved by a `moveUnit` command also "end a move"; units of the computer's side count like any other |
 | `{ "defeated": <filter> }` | when a matching unit is defeated (including the units that leave with a defeated side); `"by": <filter>` optional = by anything. Refined: a side wiped out by the defeat rules has no killer, so an event with `by` does not fire for those units |
 | `{ "fight": <filter>, "with": <filter> }` | just before a fight begins, when one of the two fighters matches `fight` and the other `with` (`with` optional), whichever one attacks. If the event takes a fighter off the map or ends the battle there is no fight (the attacker's action is spent) |
+| `{ "place": "d1", "is": "opened" \| "visited" \| "destroyed", "by": <filter> }` | a door or chest of the map (its `id` in the map's `structures`) was opened, a place visited or destroyed (docs/SRPG.md section 10); `by` optional = by anyone, also by a story command |
 | `{ "talk": "eirik", "to": "lyra", "label": "Talk" }` | adds **Talk** to the first unit's action menu while the two units (named by id) are alive and next to each other; fires when chosen (does not end the turn unless the event says so). `label` defaults to "Talk". Only the first unit can start it; the computer's side never does |
 
 ### Conditions (`if`, and inside the `if` command)
@@ -128,6 +129,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
+| `{ "openDoor": "d1" }`, `{ "closeDoor": "d1" }`, `{ "lockDoor": "d1" }`, `{ "unlockDoor": "d1" }`, `{ "openChest": "c1", "by": "tink" }` | doors and chests by their map `id` (docs/SRPG.md section 10): open a shut door, shut an open one (skipped while a unit stands in it), shut-and-lock / lock a door, take the lock off a door or chest (it stays shut), open a chest (the contents go to `by`, else to the first human side's storage / funds) |
 | `{ "giveResource": { "gold": 500 }, "side": "blue" }` | may be negative; a side's funds never go below zero |
 | `{ "setSwitch": id, "to": true }`, `{ "setVariable": id, "to": 3 }`, `{ "addVariable": id, "by": 1 }` | the number may instead be read from a unit: `{ "setVariable": id, "level": "eirik" }` (see "Reading a unit's numbers" below) |
 | `{ "objective": { … } }` | replaces the current objectives (below) |

@@ -158,6 +158,11 @@ Everything a structure does not set comes from the terrain underneath each
 of its squares, so one structure can stand on grass, road or sand and keep
 the ground's movement costs. Ids are unique among structures.
 
+A structure kind may also be a **door**, a **chest** or a **visitable place** (a village), with a `"door"`, `"chest"` or `"visit"` block, and may say
+`"blocksSight": true` (fog: units do not see past it). Opening, visiting or destroying one turns it into another kind of the same size.
+Keys, the thief's ability, the unlock staff, the map keys (`id`, `contents`, `locked`, `visitSides`, `visitUnits`) and `"goesFor"` on units are
+specified in docs/SRPG.md section 10; the editor has no forms for them (docs/EDITOR_UI.md).
+
 ## data/weapons.json
 
 ```jsonc
@@ -225,7 +230,8 @@ in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.m
 group and rank and uses on another unit at range: healing, warping, pulling, swapping, repairing an item, lighting a square in fog)
 has its own keys (`group`, `range`, `target`, `area`, `effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md
 section 8 "Staves" (the editor's form covers healing only so far; the other effects are written by hand and kept by the editor). Any item may
-say `"repairable": false` (only with `uses`) so that a staff's `repair` never offers it.
+say `"repairable": false` (only with `uses`) so that a staff's `repair` never offers it. A **key** is a usable item with `"opens": ["door"]`, `["chest"]`,
+both and/or structure kind ids (valid without `heal`); its `uses` are the openings it has (docs/SRPG.md section 10).
 
 ## data/research.json (optional)
 
@@ -258,11 +264,13 @@ Everything is in docs/ECONOMY.md.
   ],
   "structures": [                        // optional; needs data/structures.json
     { "type": "hq", "x": 0, "y": 0, "side": "blue" },   // x, y = top-left square; side optional = neutral
-    { "type": "city", "x": 3, "y": 2 } ],
+    { "type": "city", "x": 3, "y": 2 },
+    { "type": "chest", "x": 5, "y": 1, "id": "c1", "contents": [ "potion" ] } ],   // doors, chests, places: id, contents, locked, visitSides, visitUnits (docs/SRPG.md section 10)
   "units": [
     { "type": "knight", "side": "blue", "x": 1, "y": 0,
       "name": "Gilda", "level": 3, "leader": true,
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
+      "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors (docs/SRPG.md section 10)
       "stats": { "hp": 26 } }            // optional per-unit overrides
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)
