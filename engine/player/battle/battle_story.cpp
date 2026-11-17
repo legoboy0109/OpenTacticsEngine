@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "battle/battle_scene.h"
+#include "core/base/log.h"
 #include "ui/chrome.h"
 #include "ui/dialogue_portrait.h"
 #include "ui/text.h"
@@ -19,9 +20,26 @@ PortraitArt BattleScene::portraitFor(const std::string& id) const {
 
 void BattleScene::dialogueResult(DialogueBox::Result res) {
   if (res == DialogueBox::None) return;
+  if (res == DialogueBox::Chosen) {
+    const int pick = dialogue_.chosen();
+    dialogue_.close();
+    answerChosen(pick);
+    return;
+  }
   dialogue_.close();  // the next line, if any, opens in the next update()
   if (res == DialogueBox::SkipAll) view_.skipDialogues(battle_);
   else view_.skip(battle_);
+}
+
+// The answer goes to the core, which runs the rest of the action that reached the question; the view then plays the
+// entries behind the question. The Continue save comes once everything has played (updateSaves waits for an idle view).
+void BattleScene::answerChosen(int pick) {
+  events_.clear();
+  OTE_INFO("choice: battle answer %d", pick);
+  if (!battle_.answerChoice(pick, events_)) OTE_WARN("UI bug: answer %d refused (no question is waiting)", pick);
+  view_.push(events_);
+  view_.skip(battle_);  // the question's entry ends; the next one starts
+  dirty_ = true;
 }
 
 void BattleScene::updateDialogue(double dt) {
@@ -31,6 +49,10 @@ void BattleScene::updateDialogue(double dt) {
     freeCam_.releaseAll();  // a camera button held down when the line appeared must not keep turning
     Renderer& r = host_.renderer();
     dialogue_.open(r, layout_.W, layout_.H, layout_.vh, d.line, portraitFor(d.line.portrait));
+    if (!d.answers.empty()) {
+      dialogue_.setAnswers(r, d.answers);
+      OTE_INFO("choice: battle question \"%s\": %s", d.line.text.c_str(), dialogue_.describeAnswers().c_str());
+    }
   } else if (!d.active && dialogue_.isOpen()) {
     dialogue_.close();  // the view moved on by itself (autoplay)
   }

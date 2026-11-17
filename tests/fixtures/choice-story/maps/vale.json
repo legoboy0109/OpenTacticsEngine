@@ -1,0 +1,10 @@
+{
+  "name": "The Vale",
+  "grid": { "type": "square", "width": 6, "height": 3 },
+  "legend": { ".": "plain" },
+  "tiles": [ "......", "......", "......" ],
+  "sides": [ { "id": "blue", "name": "Travellers", "controller": "human" }, { "id": "red", "name": "Wardens", "controller": "ai" } ],
+  "units": [ { "id": "mara", "type": "walker", "side": "blue", "x": 0, "y": 1, "name": "Mara" },
+             { "type": "warden", "side": "red", "x": 5, "y": 1 } ],
+  "events": [ { "id": "finish", "when": { "turn": 2, "side": "blue" }, "do": [ { "win": "blue" } ] } ]
+}

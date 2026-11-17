@@ -16,6 +16,7 @@ bool GameSession::load(const std::string& gameDir, std::string& err) {
 
 bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string& err) {
   battle = Battle();
+  battle.setAskChoices(askChoices);  // before init / start: a question may come with the first events
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
@@ -27,6 +28,7 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
 bool GameSession::resume(const std::string& mapId, const Json& state, std::string& err) {
   MapDef newMap;
   Battle fresh;
+  fresh.setAskChoices(askChoices);
   if (!loadMap(db, mapId, newMap, err)) return false;
   if (!fresh.init(db, newMap, formulas, 1, err)) return false;
   std::string detail;

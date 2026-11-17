@@ -77,6 +77,29 @@ void PlayerApp::saveAfterScene() {
   if (!ok) OTE_WARN("campaign: saving after a scene failed: %s", err.c_str());
 }
 
+// Runs a chapter's scene on the playthrough. With a person at the screen a question stops the scene (dialogue choices,
+// docs/EVENTS.md): the playthrough is then as the scene left it up to the question, and the returned function runs the
+// scene again from `before` with the answers so far and stores the result in the playthrough. Null when the scene
+// has no question to wait for (the playthrough is then final) or in --autoplay (the first answer is taken).
+SceneResolver PlayerApp::runSceneFor(SceneKind kind, const Playthrough& before, std::vector<SceneLine>& lines) {
+  Database& db = session_->db;
+  Playthrough& pt = session_->campaign->pt;
+  if (!session_->askChoices) {
+    runScene(db, pt, kind, lines);
+    return nullptr;
+  }
+  runScene(db, pt, kind, lines, {});
+  if (lines.empty() || lines.back().kind != SceneLine::Kind::Choice || !lines.back().waiting) return nullptr;
+  return [this, kind, before](const std::vector<int>& answers, std::vector<SceneLine>& out) {
+    if (!session_ || !session_->campaign) return false;
+    Playthrough again = before;
+    out.clear();
+    if (!runScene(session_->db, again, kind, out, answers)) return false;
+    session_->campaign->pt = again;
+    return true;
+  };
+}
+
 void PlayerApp::doCampaignNext() {
   if (!session_ || !session_->campaign) return;
   scene_.reset();  // a battle's scene must die before its Battle is replaced
@@ -92,23 +115,26 @@ void PlayerApp::doCampaignNext() {
       // The camp (support conversations) comes first, from the second chapter on, when anything is pending.
       if (std::unique_ptr<Scene> camp = campStep(*this)) { scene_ = std::move(camp); break; }
       run.campDone = false;
-      runScene(db, pt, SceneKind::Before, lines);  // applies at once; the screen only shows it
+      const Playthrough before = pt;
+      SceneResolver again = runSceneFor(SceneKind::Before, before, lines);  // applies at once; the screen only shows it
       const ChapterDef* ch = currentChapter(db, pt);
-      scene_.reset(new StoryScene(*this, chapterHeading(pt.chapter), ch ? ch->name : "", lines));
+      scene_.reset(new StoryScene(*this, chapterHeading(pt.chapter), ch ? ch->name : "", lines, again));
       break;
     }
     case Next::AfterScene: {
-      runScene(db, pt, SceneKind::After, lines);
+      const Playthrough before = pt;
+      SceneResolver again = runSceneFor(SceneKind::After, before, lines);
       if (lines.empty()) {  // nothing to show: straight on (the new state is saved all the same)
         saveAfterScene();
         doCampaignNext();
       } else {
-        scene_.reset(new StoryScene(*this, "", "", lines));
+        scene_.reset(new StoryScene(*this, "", "", lines, again));
       }
       break;
     }
     case Next::StartBattle: {
       session_->battle = Battle();
+      session_->battle.setAskChoices(session_->askChoices);  // before start: a question may come with the first events
       session_->startEvents.clear();
       std::string err;
       if (!startChapterBattle(db, pt, session_->formulas, run.nextSeed(args_.seed), session_->battle,
@@ -139,6 +165,7 @@ void PlayerApp::doCampaignNext() {
 bool PlayerApp::resumeCampaignSave(const SaveFile& file, std::string& err) {
   std::unique_ptr<CampaignRun> run(new CampaignRun());
   Battle fresh;
+  fresh.setAskChoices(session_->askChoices);
   bool hasBattle = false;
   std::string detail;
   if (!restoreCampaignSave(session_->db, session_->formulas, gameId_, file.root, run->pt, fresh, hasBattle, detail)) {

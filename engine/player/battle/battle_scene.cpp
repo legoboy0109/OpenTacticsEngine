@@ -206,7 +206,7 @@ void BattleScene::update(double dt) {
 
 std::string BattleScene::hint() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
-  if (view_.dialogue.active) return kDialogueHint;
+  if (view_.dialogue.active) return dialogue_.choosing() ? kChoiceHint : kDialogueHint;
   if (mode_ == Mode::Result)
     return chapterBattle() ? "Confirm / tap: continue"
            : session_.db.campaign ? "Confirm / tap: back to the game page" : "Confirm / tap: back to map select";

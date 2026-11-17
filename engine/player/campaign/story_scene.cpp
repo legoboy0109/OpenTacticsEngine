@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "campaign/end_scenes.h"
+#include "core/base/log.h"
 #include "ui/chrome.h"
 #include "ui/dialogue_portrait.h"
 #include "ui/text.h"
@@ -16,8 +17,8 @@ constexpr float kAutoplayLine = 1.0f;
 }  // namespace
 
 StoryScene::StoryScene(SceneHost& host, const std::string& heading, const std::string& title,
-                       const std::vector<SceneLine>& lines)
-    : host_(host), heading_(heading), title_(title), lines_(lines) {
+                       const std::vector<SceneLine>& lines, SceneResolver resolve)
+    : host_(host), heading_(heading), title_(title), lines_(lines), resolve_(std::move(resolve)) {
   bg_ = storyBackground(host);
   consumeAudio();  // music asked for at the very top (a scene's "music") starts with the card
   onCard_ = hasCard();
@@ -28,7 +29,7 @@ StoryScene::StoryScene(SceneHost& host, const std::string& heading, const std::s
 // for a frame the music director does not know about it yet, so they wait for the first update().
 void StoryScene::consumeAudio() {
   using K = SceneLine::Kind;
-  while (next_ < lines_.size() && lines_[next_].kind != K::Say) {
+  while (next_ < lines_.size() && lines_[next_].kind != K::Say && lines_[next_].kind != K::Choice) {
     const SceneLine& l = lines_[next_++];
     if (!entered_) queued_.push_back(l);
     else playAudio(l);
@@ -46,6 +47,8 @@ void StoryScene::openLine() {
   consumeAudio();
   if (next_ >= lines_.size()) { finish(); return; }
   const SceneLine& l = lines_[next_++];
+  // A question that was answered already (the scene was run again with the answers) is not shown twice.
+  if (l.kind == SceneLine::Kind::Choice && !l.waiting) { openLine(); return; }
   DialogueLine d;
   d.name = l.speaker;
   d.text = l.text;
@@ -54,7 +57,39 @@ void StoryScene::openLine() {
   int style = std::max(0, std::min(host_.styleIndex(), (int)host_.session()->db.styles.size() - 1));
   box_.open(r, r.width(), r.height(), r.height() - footerHeight(r), d,
             portraitArt(host_.session()->db, host_.sprites(), style, d.portrait));
+  if (l.kind == SceneLine::Kind::Choice) {
+    box_.setAnswers(r, l.answers);
+    OTE_INFO("choice: scene question \"%s\": %s", l.text.c_str(), box_.describeAnswers().c_str());
+  }
   lineTime_ = 0;
+}
+
+// The answer goes back to the game: the scene is run again from before it started with every pick so far, which hands
+// back the same lines and then the ones the answer leads to (next_ already stands behind the question).
+void StoryScene::answered(int pick) {
+  picks_.push_back(pick);
+  OTE_INFO("choice: scene answer %d", pick);
+  std::vector<SceneLine> again;
+  if (!resolve_ || !resolve_(picks_, again)) {
+    OTE_WARN("campaign: the scene could not go on after an answer");
+    finish();
+    return;
+  }
+  lines_ = again;
+  box_.close();
+  openLine();
+}
+
+void StoryScene::skipRest() {
+  onCard_ = false;
+  box_.close();
+  for (size_t i = next_; i < lines_.size(); ++i)
+    if (lines_[i].kind == SceneLine::Kind::Choice && lines_[i].waiting) {
+      next_ = i;  // a question is never skipped: it is the next thing shown
+      openLine();
+      return;
+    }
+  finish();
 }
 
 void StoryScene::leaveCard() {
@@ -70,8 +105,9 @@ void StoryScene::finish() {
 }
 
 void StoryScene::lineResult(DialogueBox::Result res) {
-  if (res == DialogueBox::SkipAll) finish();
+  if (res == DialogueBox::SkipAll) skipRest();
   else if (res == DialogueBox::Finished) openLine();
+  else if (res == DialogueBox::Chosen) answered(box_.chosen());
 }
 
 void StoryScene::onInput(const InputEvent& e) {
@@ -80,7 +116,7 @@ void StoryScene::onInput(const InputEvent& e) {
     bool skip = e.type == InputEvent::ButtonDown && e.button == Button::Skip;
     bool next = e.type == InputEvent::PointerDown ||
                 (e.type == InputEvent::ButtonDown && (e.button == Button::Confirm || e.button == Button::Cancel));
-    if (skip) finish();
+    if (skip) skipRest();
     else if (next) leaveCard();
     return;
   }
@@ -123,7 +159,7 @@ void StoryScene::draw(Renderer& r) {
     drawFooter(r, "Z / tap: continue");
     return;
   }
-  drawFooter(r, kDialogueHint);
+  drawFooter(r, box_.choosing() ? kChoiceHint : kDialogueHint);
   box_.draw(r);
 }
 

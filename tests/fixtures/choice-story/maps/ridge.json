@@ -1,0 +1,26 @@
+{
+  "name": "The Ridge",
+  "grid": { "type": "square", "width": 6, "height": 3 },
+  "legend": { ".": "plain" },
+  "tiles": [ "......", "......", "......" ],
+  "sides": [ { "id": "blue", "name": "Travellers", "controller": "human" }, { "id": "red", "name": "Wardens", "controller": "ai" } ],
+  "units": [ { "id": "mara", "type": "walker", "side": "blue", "x": 0, "y": 1, "name": "Mara" },
+             { "id": "tobin", "type": "walker", "side": "blue", "x": 0, "y": 2, "name": "Tobin" },
+             { "type": "warden", "side": "red", "x": 5, "y": 1 } ],
+  "events": [
+    { "id": "stranger", "when": { "battle": "start" }, "do": [
+      { "say": "The ridge is quiet.", "speakerName": "Scout" },
+      { "choice": "A stranger asks to cross. Let them?", "speakerName": "Stranger", "store": "stranger", "answers": [
+        { "text": "Let them cross", "do": [ { "say": "They thank you.", "speakerName": "Stranger" }, { "setSwitch": "crossed", "to": true } ] },
+        { "text": "Turn them away", "do": [ { "say": "They leave in silence.", "speakerName": "Stranger" } ] } ] } ] },
+    { "id": "gate", "when": { "reach": { "x": 2, "y": 1 }, "by": "mara" }, "do": [
+      { "choice": "An old gate blocks the path. What now?", "speaker": "mara", "store": "gate", "answers": [
+        { "text": "Open it", "do": [ { "setSwitch": "gate_open", "to": true }, { "say": "It creaks open.", "speaker": "mara" } ] },
+        { "text": "Go around", "do": [ { "say": "A long way round.", "speaker": "mara" } ] },
+        { "text": "Ask Tobin first", "if": [ { "alive": "tobin" } ], "do": [
+          { "choice": "Tobin shrugs. Trust him?", "speaker": "tobin", "store": "mood", "answers": [
+            { "text": "Yes", "do": [ { "say": "Then it is settled.", "speaker": "tobin" } ] },
+            { "text": "No", "do": [ { "say": "Fair enough.", "speaker": "tobin" } ] } ] } ] } ] } ] },
+    { "id": "finish", "when": { "turn": 2, "side": "blue" }, "do": [ { "win": "blue" } ] }
+  ]
+}

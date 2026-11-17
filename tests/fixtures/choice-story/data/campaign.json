@@ -1,0 +1,29 @@
+{
+  "name": "The Crossroads",
+  "rules": { "fallen": "gone", "onDefeat": "retry" },
+  "chapters": [
+    { "id": "ch1", "name": "The Crossing", "map": "ridge",
+      "before": [
+        { "say": "We reach the ridge at dawn.", "speakerName": "Narrator" },
+        { "choice": "Which pack do we carry?", "speakerName": "Mara", "store": "pack", "answers": [
+          { "text": "The rope", "do": [ { "say": "The rope it is.", "speakerName": "Mara" } ] },
+          { "text": "The lantern", "do": [ { "say": "The lantern it is.", "speakerName": "Mara" } ] } ] },
+        { "say": "Then we move.", "speakerName": "Narrator" } ],
+      "after": [
+        { "say": "The ridge is behind us.", "speakerName": "Narrator" },
+        { "choice": "Which road next?", "speakerName": "Mara", "store": "road", "answers": [
+          { "text": "The valley road", "do": [ { "goto": "ch2" } ] },
+          { "text": "The summit path", "do": [ { "say": "Up we go.", "speakerName": "Mara" }, { "goto": "ch3" } ] } ] } ] },
+    { "id": "ch2", "name": "The Valley", "map": "vale", "next": "ch4", "before": [ { "say": "A green valley.", "speakerName": "Narrator" } ] },
+    { "id": "ch3", "name": "The Summit", "map": "summit", "next": "ch4", "before": [ { "say": "Thin air up here.", "speakerName": "Narrator" } ] },
+    { "id": "ch4", "name": "Home", "map": "vale",
+      "before": [
+        { "if": [ { "variable": "pack", "op": "=", "value": 2 } ], "then": [ { "say": "The lantern lit the last miles.", "speakerName": "Narrator" } ],
+          "else": [ { "say": "The rope was not needed.", "speakerName": "Narrator" } ] },
+        { "if": [ { "switch": "crossed" } ], "then": [ { "say": "The stranger waits at the door.", "speakerName": "Narrator" } ] } ],
+      "after": [
+        { "choice": "Stay or go?", "speakerName": "Mara", "answers": [
+          { "text": "Stay", "do": [ { "say": "Home at last.", "speakerName": "Mara" } ] },
+          { "text": "Go on", "do": [ { "say": "Onward then.", "speakerName": "Mara" } ] } ] } ] }
+  ]
+}

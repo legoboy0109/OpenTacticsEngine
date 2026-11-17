@@ -4,6 +4,7 @@
 // line; holding Cancel or Menu, the Skip tab or the `skip` script token = skip the rest of the scene.
 // In --autoplay the card and every line pass by themselves so smoke tests never hang on a scene.
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -13,12 +14,16 @@
 
 namespace ote {
 
+// Runs the scene again from before it started with the picks made so far (dialogue choices, runScene with answers) and
+// returns all its lines; false = it could not. Null = the scene has no questions to ask.
+using SceneResolver = std::function<bool(const std::vector<int>& answers, std::vector<SceneLine>& lines)>;
+
 class StoryScene : public Scene {
  public:
   // `heading` / `title` = the card ("Chapter 2" / the chapter's name); both empty = no card.
   // At least one of card and lines is expected (an empty scene is not shown at all).
   StoryScene(SceneHost& host, const std::string& heading, const std::string& title,
-             const std::vector<SceneLine>& lines);
+             const std::vector<SceneLine>& lines, SceneResolver resolve = nullptr);
   void onInput(const InputEvent& e) override;
   void update(double dt) override;
   void draw(Renderer& r) override;
@@ -29,6 +34,8 @@ class StoryScene : public Scene {
   void openLine();
   void lineResult(DialogueBox::Result res);
   void leaveCard();
+  void skipRest();  // skip everything that is left, but stop at the next question
+  void answered(int pick);
   void finish();
   void consumeAudio();
   void playAudio(const SceneLine& l);
@@ -43,6 +50,8 @@ class StoryScene : public Scene {
   bool finished_ = false;
   float cardTime_ = 0;    // how long the card has been up
   float lineTime_ = 0;    // autoplay: how long the line has been up
+  SceneResolver resolve_;
+  std::vector<int> picks_;  // the answers given so far (a question's position among the answers offered)
   DialogueBox box_;
   Color bg_;
 };

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "campaign/story_scene.h"
 #include "options/effective.h"
 #include "platform/common/font_registry.h"
 #include "scene.h"
@@ -80,6 +81,7 @@ class PlayerApp : public App, public SceneHost {
   void doStartCampaign();
   void doCampaignNext();
   void saveAfterScene();
+  SceneResolver runSceneFor(SceneKind kind, const Playthrough& before, std::vector<SceneLine>& lines);
   bool resumeCampaignSave(const SaveFile& file, std::string& err);
 
   // app_audio.cpp: choosing the sound device (docs/SOUND.md "Engine design")

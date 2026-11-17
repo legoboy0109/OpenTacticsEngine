@@ -215,6 +215,7 @@ void PlayerApp::dropSession() {
 bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
   dropSession();
   session_.reset(new GameSession());
+  session_->askChoices = !args_.autoplay;
   if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
     dropSession();
     return false;

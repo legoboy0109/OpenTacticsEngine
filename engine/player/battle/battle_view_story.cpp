@@ -37,6 +37,17 @@ bool BattleView::beginStory(const Battle& b) {
       cur_.dur = autoplay_ ? kDialogueAutoSeconds : 1e9f;
       return true;
     }
+    case EventType::Choice: {
+      // A question always waits for the player and is never skipped: a skipped run goes back to showing lines after it.
+      dialogue.line = dialogueLine(b, e);
+      dialogue.answers.clear();
+      for (int t : e.data) dialogue.answers.push_back(b.storyText(t));
+      ++dialogue.serial;
+      dialogue.active = true;
+      skipping_ = false;
+      cur_.dur = 1e9f;  // until the scene has the answer (BattleScene::answerChosen calls skip())
+      return true;
+    }
     case EventType::Focus: {
       if (e.b >= 0 && (size_t)e.b < units.size() && units[(size_t)e.b].visible) {
         stickyX_ = units[(size_t)e.b].px + tile_ / 2.0f;
@@ -91,6 +102,7 @@ bool BattleView::progressStory(const Battle& b) {
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   switch (e.type) {
     case EventType::Dialogue:
+    case EventType::Choice:
     case EventType::ObjectiveChanged: return true;
     case EventType::Focus:
       hasFocus = true;
@@ -125,7 +137,8 @@ bool BattleView::progressStory(const Battle& b) {
 bool BattleView::finishStory(const Battle& b) {
   const Event& e = cur_.ev;
   switch (e.type) {
-    case EventType::Dialogue: dialogue.active = false; return true;
+    case EventType::Dialogue:
+    case EventType::Choice: dialogue.active = false; dialogue.answers.clear(); return true;
     case EventType::Focus: return true;  // the camera stays (stickyFocus_) until the run is over
     case EventType::ObjectiveChanged:
       banner.clear();

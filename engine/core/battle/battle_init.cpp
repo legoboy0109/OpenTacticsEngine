@@ -12,7 +12,9 @@ static bool hasTag(const std::vector<std::string>& tags, const char* tag) {
 
 bool Battle::init(const Database& database, const MapDef& map, Formulas& formulaHost,
                   uint32_t seed, std::string& err) {
+  const bool askChoices = choice_.ask;  // the caller's choice of asking survives a new battle
   *this = Battle();
+  choice_.ask = askChoices;
   db = &database;
   formulas = &formulaHost;
   rng.seed(seed);
