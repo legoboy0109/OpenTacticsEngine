@@ -2,6 +2,7 @@
 import type { Command } from '../../../../../model/storyTypes'
 import { AreaField } from '../AreaField'
 import { FilterPicker, SidePick, UnitPick } from '../pickers'
+import { Check } from '../../../../../ui/Toggle'
 import { S } from '../text'
 import { MoveExtras } from './SceneForms'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
@@ -11,7 +12,18 @@ export function RemoveUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <FilterPicker label={S.removeWho} value={cmd.removeUnit} onChange={(f) => patch({ removeUnit: f ?? {} })} />
+      <Check label={S.hideUnit} help={S.hideUnitHelp} checked={cmd.hide === true} onChange={(v) => patch({ hide: v ? true : undefined })} />
       <p className="help">{S.removeHelp}</p>
+    </div>
+  )
+}
+
+export function ShowUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <UnitPick label={S.showWho} value={cmd.showUnit ?? ''} onChange={(v) => patch({ showUnit: v })} />
+      <AreaField label={S.showTo} mode="square" value={{ x: cmd.x ?? 0, y: cmd.y ?? 0, w: 1, h: 1 }} help={S.showHelp} onChange={(r) => patch({ x: r.x, y: r.y })} />
     </div>
   )
 }

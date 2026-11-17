@@ -2574,6 +2574,111 @@ Checked against the owner's wish ("snag", "cracked wall"): **doors with hit poin
 `tests/test_srpg_doors.cpp` (rules), `test_srpg_doors_data.cpp` (loader refusals), `test_srpg_doors_ai.cpp`, `tests/srpg_player_doors_test.py`,
 `tests/editor_api_doors_checks.py`; fixture `tests/fixtures/srpg-doors` (layout in `tests/srpg_doors_fixture.h`).
 
+## 11. Fidelity options (hit roll, sides in formulas, experience, level and stat caps, ability extras)
+
+A batch of small, independent, opt-in switches for makers who want a game to play like a classic one. A game that writes none of
+these keys loads, plays and saves byte for byte as before (same random numbers, same save bytes). Each was first checked against what
+the engine could already say; the "already possible" recipes are at the end of this section.
+
+### The hit roll: `rules.hitRoll`
+
+```jsonc
+"rules": { "hitRoll": "average2" }     // "single" (default) | "average2"
+```
+`single` is today's roll: one number 0-99, a hit when it is below the hit chance. `average2` rolls **two** numbers from the battle's
+own dice (first, second), and the strike hits when their average, rounded down, is below the chance: `floor((r1 + r2) / 2) < hit`,
+the classic "true hit". It pulls real odds away from the middle: a shown 25 is really 12.75%, 50 is 50.5%, 75 is 87.75%.
+- **Applies to** the hit roll of a strike (attacks and counterattacks). **Not** to the critical roll, a weapon's `inflict` chance,
+  a staff's `hit` or a door's chance: those stay a single number (classic games work like that).
+- A strike whose hit is 100 or more rolls nothing, as before; a hit of 0 still rolls (two numbers now) and never hits.
+- **The forecast and the computer opponent still use the nominal chance** (what the formula says). The editor's Rules screen says so.
+- Deterministic: the numbers come from `Battle::rng` in a fixed order; `single` consumes exactly the numbers it always did.
+Core: `RulesConfig::hitRollAverage`, `Battle::rollHitAverage` (`battle/hit_roll.cpp`). Tests: `tests/test_fidelity_roll.cpp` (an exact
+enumeration of all 10000 pairs, a replay of the dice against real strikes, and a fixed-seed distribution).
+
+### Formulas can see sides
+
+Every unit table in a formula (`a`, `b`, in experience, hit, damage, `canCarry`, skill and staff formulas, ...) gains three fields when
+the battle's sides are known (every formula inside a battle): `side` (the side's id, text), `team` (its team number) and `human`
+(true when the side is not computer-controlled). `a.human and 10 or 0`, `b.side == "red"`. A stat or `character` of the same name
+wins, like the other added fields. Core: `Formulas::pushUnit`. Tests: `tests/test_fidelity_roll.cpp`.
+
+### Experience: options
+
+Keys of `rules.progression` (all optional):
+```jsonc
+"progression": { "enabled": true, "xpHit": "10", "xpKill": "30",
+                 "xpNoDamage": 1,            // a number, or a formula (a = the unit, b = its foe); default: nothing
+                 "computerGains": false }    // default true = today: computer-controlled units gain experience too
+```
+- **`xpNoDamage`** (a): after a fight, a unit that struck at least once but did **no damage** (all its strikes missed, or hit for 0)
+  gets this much. Hit experience (`xpHit` / `xpKill`) is unchanged for a unit that did damage. A defender gets it only if it really
+  struck back (a defender that could not answer gets nothing). Without the key: nothing, as today.
+- **`computerGains`** (d): today computer units gain experience and level up. `false` turns that off for every source (fights, staves,
+  abilities); the units of human sides are unchanged (the difficulty's `xpPercent` still scales them).
+- **A staff's `xpMiss`** (c): `"xpMiss": 2` (number or formula) in a staff that has a `hit`: when the staff **missed every unit** it
+  was used on, the user gets this instead of `xp`. Without it the same `xp` is paid either way, as today. A staff without `hit` cannot
+  miss, so `xpMiss` there is a load error.
+- **An ability's `xp`** (b): `"xp": 10` (or a formula, a = the user, b = the target) in data/abilities.json: any ability (refresh /
+  dance, steal, heal, push, summon, ...) pays its user that much each use (after the effect, like a staff). It follows the same
+  rules as a staff's `xp`: needs `rules.progression`, passes through `xpPercent` skills and the difficulty, never above 1000.
+Tests: `tests/test_fidelity_xp.cpp`, `tests/test_fidelity_data.cpp`. Code: `battle/xp_extras.cpp`, `progression.cpp`.
+
+### Level cap per unit type
+
+`units.json`: `"maxLevel": 10` (a whole number 0-99) caps the type's level whatever the game's `rules.progression.maxLevel` says;
+`0` = a unit of this type never levels and gains no experience (a statue, a monster, a "level-less" class). Without it the game's cap
+applies. The cap belongs to the unit's **current** type: a promotion (which changes the type, and usually resets the level) is judged
+against the new type's own cap, or the game's if the new type has none. A unit placed above its cap stays there. The unit info
+screen adds a "Level cap" row for a type that has its own cap (and none otherwise). Core: `UnitTypeDef::maxLevel`, `Battle::levelCap`.
+
+### Stat caps for computer units
+
+`data/caps.json` gets an optional `"computerCaps"` with the same shape as `"caps"`:
+```jsonc
+{ "caps": { "hp": 80 }, "computerCaps": { "hp": 120 } }   // player units top out at 80 HP, enemies at 120
+```
+A unit of a **computer-controlled side** uses `computerCaps` in place of the game-wide cap for the stats it lists; a class's own cap
+(`units.json caps`) still wins over both, and a character's `capAdjust` is added last. (Per-class caps existed already; this adds
+the "who controls it" dimension without a second copy of every class.) Core: `Database::computerCaps`, `Battle::statCap`.
+
+### Abilities that inflict a condition
+
+`data/abilities.json`: `"inflict": { "condition": "curse", "turns": 2 }` (turns optional, as in a staff). After the effect, the target
+unit gets the condition, by the same route as a staff's or an item's: immunity is respected (`ConditionResisted`), `replaces` runs,
+a target that has it for as long already is left alone. The ability keeps its own effect (a refresh that curses its target is "a dance
+with a price"; a push that poisons). It needs a target unit (`self`, `ally`, `enemy` or `unit`), so not with `summon` or `unlock`, and
+a game with conditions. The target may be an ally or a foe, whichever the ability's `target` says. **The computer opponent** uses abilities
+as before (it does not weigh the condition); the inflict simply happens when it uses one. Core: `AbilityDef::inflictCond`,
+`Battle::abilityInflict`. Saves: nothing new (conditions are saved already).
+
+### Editor
+
+Rules screen: "Hit roll and experience options" (hit roll, experience for a fight that did no damage, computers gain experience) and, in the
+Stat caps card, a "Computer-controlled units" table. Units: "Top level". Abilities: "Experience and conditions". Staves: "Experience when it
+misses" (shown when the staff can miss). Map events: the conditions "A campaign character is alive / has fallen / is in the roster" (also in
+scenes), the "Only hide it" box of Remove a unit and the command "Bring a hidden unit back". Each form's checks mirror the loader's refusals
+(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition is not
+renamed when the character is renamed (the id is free text because the character may live in another chapter).
+
+### Not built: a usable map weapon (ballista)
+
+Design for later: a structure kind gets `"weapon": "<item id>"` and optional `"uses": n`; a unit standing on it (movement types allowed
+as for entering the structure) gets an extra Attack entry whose weapon is that item (its range, might and the unit's own stats by the weapon's
+formulas); uses live on the structure's state (a new saved key, only for such structures); the forecast and battle scene take the weapon
+as if carried (`CombatSetup::weaponA` already names a weapon by index, so the fight code needs the weapon of the structure instead of a
+carried slot); `wieldedByTypes` / a structure-level `"by"` list limits who may use it; the computer opponent uses it when standing on it and
+walks to an empty one only for `goesFor: ["weapons"]`. The work is in `Battle::weaponsOf` (an extra weapon not in the inventory),
+the action validation, the player's menu and the save format; it was left out of this batch to keep the other eight verified.
+
+### Already possible (nothing was added)
+
+- **Per-class stat caps** (`units.json "caps"`) existed already; "enemies cap higher" for a class used by one side only needs no
+  new key, `computerCaps` is for a class both sides share.
+- Nothing else in this section could be said before.
+
+---
+
 ## Events (what the player animates)
 
 Appended to `EventType` in this order (existing values keep their numbers):

@@ -211,6 +211,9 @@ struct Unit {
   // Refresh (docs/SRPG.md "Refresh an ally"): the units that refreshed this one in the present turn of its side, cleared when that turn
   // starts. Its size is the number of refreshes it has had this turn. Saved when not empty.
   std::vector<int> refreshedBy;
+  // Taken off the map by a story `removeUnit` with "hide": true (docs/EVENTS.md): alive == false and no square, like a removed unit, but it
+  // keeps its hit points and everything else and a `showUnit` / `addUnit` brings it back. Saved only when true.
+  bool hidden = false;
 };
 
 struct CellState {
@@ -458,6 +461,8 @@ class Battle {
   // A campaign's roster as it was when the chapter began (null = none): named units of human sides
   // take its version of themselves (setStartingRoster). Copies share it; it is not saved.
   std::shared_ptr<const Roster> roster;
+  // The rosters of the campaign's other (parked) parties, for the `party: any` of the roster conditions (docs/EVENTS.md); null = none. Not saved.
+  std::shared_ptr<const std::vector<Roster>> otherRosters;
   // Closeness of the support pairs (docs/SRPG.md "Supports"); empty in a game without pairs.
   SupportState supports;
 
@@ -668,6 +673,7 @@ class Battle {
   // marks gone is taken off the map; others stay as the map says. Later addUnit events of named units
   // on a human side get the same treatment. Call after init(), before start().
   void setStartingRoster(std::shared_ptr<const Roster> carried);
+  void setStartingOtherRosters(std::shared_ptr<const std::vector<Roster>> others) { otherRosters = others; }
 
   // ---- actions ----
   // why (optional) receives a short human-readable reason on failure.

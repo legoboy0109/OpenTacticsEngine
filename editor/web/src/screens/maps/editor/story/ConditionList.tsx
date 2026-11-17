@@ -7,6 +7,7 @@ import { newCondition } from '../../../../model/storyDefaults'
 import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, type Condition, type ConditionKind } from '../../../../model/storyTypes'
 import { Field } from '../../../../ui/Field'
 import { NumberInput } from '../../../../ui/NumberInput'
+import { TextInput } from '../../../../ui/TextInput'
 import { Select } from '../../../../ui/Select'
 import { ConditionPick, FilterPicker, ItemPick, PickSelect, SidePick, SkillPick, SwitchPick, TeamPick, TechPick, UnitPick, VariablePick } from './pickers'
 import { PairPick } from './forms/SupportForms'
@@ -24,7 +25,7 @@ interface Props {
 
 /** A campaign scene can only test these (the loader refuses the others there). */
 /** (a scene has no fog: `sees` is for map events only) */
-const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'support', 'difficulty']
+const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'support', 'difficulty', 'rosterAlive', 'rosterDead', 'inRoster']
 
 const OPS = COMPARE_OPS.map((o) => ({ value: o, label: S.ops[o] }))
 
@@ -115,6 +116,15 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <ConditionPick label={S.conditionHasCondition} value={c.hasCondition ?? ''} onChange={(v) => patch(i, { hasCondition: v })} />
                 <FilterPicker label={S.conditionHasConditionWho} mode="optional" value={c.unit} onChange={(f) => patch(i, { unit: f })} />
                 <p className="help">{S.conditionHasConditionHelp}</p>
+              </>
+            )}
+            {(kind === 'rosterAlive' || kind === 'rosterDead' || kind === 'inRoster') && (
+              <>
+                <Field label={S.rosterWho} help={S.rosterWhoHelp}>
+                  <TextInput mono value={typeof c[kind] === 'string' ? (c[kind] as string) : ''} onChange={(v) => patch(i, { [kind]: v }, 'roster')} />
+                </Field>
+                <PickSelect label={S.rosterParty} value={c.party ?? 'any'} options={[{ value: 'any', label: S.rosterPartyAny }, { value: 'active', label: S.rosterPartyActive }]}
+                  onChange={(v) => patch(i, { party: v === 'active' ? 'active' : undefined })} />
               </>
             )}
             {kind === 'difficulty' && <DifficultyConditionFields c={c} onChange={(v) => patch(i, { difficulty: v })} />}

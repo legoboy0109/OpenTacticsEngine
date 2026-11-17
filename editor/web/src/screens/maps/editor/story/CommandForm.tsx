@@ -20,7 +20,7 @@ import { AddSupportForm } from './forms/SupportForms'
 import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
 import { AddConditionForm, RemoveConditionForm } from './forms/ConditionForms'
 import { SetBehaviourForm, WakeGroupForm } from './forms/BehaviourForms'
-import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
+import { ChangeSideForm, MoveUnitForm, RemoveUnitForm, ShowUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
 import { S } from './text'
@@ -33,6 +33,7 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'addUnit': return <AddUnitForm cmd={cmd} at={at} />
     case 'removeUnit': return <RemoveUnitForm cmd={cmd} at={at} />
     case 'moveUnit': return <MoveUnitForm cmd={cmd} at={at} />
+    case 'showUnit': return <ShowUnitForm cmd={cmd} at={at} />
     case 'changeSide': return <ChangeSideForm cmd={cmd} at={at} />
     case 'promote': return <PromoteForm cmd={cmd} at={at} />
     case 'addSupport': return <AddSupportForm cmd={cmd} at={at} />

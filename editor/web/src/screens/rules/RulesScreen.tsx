@@ -13,6 +13,7 @@ import { BattleViewCard } from './BattleViewCard'
 import { DifficultyCard } from './DifficultyCard'
 import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
+import { FidelityCard } from './FidelityCard'
 import { PlacesRuleCard } from './PlacesRuleCard'
 import { ResearchRuleCard } from './ResearchRuleCard'
 import { SupplyCard } from './SupplyCard'
@@ -50,6 +51,7 @@ function RulesForm() {
       <SupplyCard />
       <ResearchRuleCard />
       <FogRuleCard />
+      <FidelityCard />
       <ItemsCard />
       <PlacesRuleCard />
       <SavingCard />

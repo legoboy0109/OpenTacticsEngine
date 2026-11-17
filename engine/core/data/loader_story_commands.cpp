@@ -48,7 +48,7 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
   return r.command(e, key, at, out.fx);
 }
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
-constexpr const char* kExtrasCommandKeys[] = {"storeItems"};
+constexpr const char* kExtrasCommandKeys[] = {"storeItems", "showUnit"};
 
 }  // namespace
 
@@ -114,6 +114,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
   if (kind && std::string(kind) == "storeItems") {
     out.kind = Command::Kind::StoreItems;
     return storeItemsCommand(e, where + " (storeItems)", out);
@@ -181,7 +182,8 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   if (k == "removeUnit") {
     out.kind = K::RemoveUnit;
-    return onlyKeys(e, {"removeUnit"}, at) && filter(v, at, "\"removeUnit\"", out.filter);
+    if (!onlyKeys(e, {"removeUnit", "hide"}, at) || !filter(v, at, "\"removeUnit\"", out.filter)) return false;
+    return c_.boolean(e, "hide", at, out.hide);  // "hide": true keeps the unit in the story (docs/EVENTS.md)
   }
   if (k == "moveUnit") {
     out.kind = K::MoveUnit;

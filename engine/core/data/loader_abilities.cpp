@@ -2,6 +2,7 @@
 // summoning": Data). Abilities load before weapons, items and unit types (they name abilities and get indices at
 // once); what an ability itself names (a summoned unit type, the unit and terrain keys of its "if") is checked last,
 // in resolveAbilityRefs.
+#include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_srpg.h"
@@ -140,7 +141,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 }
 
 bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
-  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if"}, where))
+  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict"}, where))
     return false;
   a.name = a.id;
   if (!c.str(e, "name", where, a.name) || !c.str(e, "description", where, a.description)) return false;
@@ -216,6 +217,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   if (e.has("cooldown")) a.cooldown = e["cooldown"].asInt();
   if (!c.boolean(e, "afterMove", where, a.afterMove)) return false;
 
+  if (!readAbilityExtras(c, db, e, where, a)) return false;  // "xp", "inflict" (loader_fidelity.cpp)
   if (e.has("if")) {
     // A condition may judge the target unit ("who": "foe"), but not where there is none (a square). There is no
     // combat, so "initiating" and "distance" are refused; a formula is fine.

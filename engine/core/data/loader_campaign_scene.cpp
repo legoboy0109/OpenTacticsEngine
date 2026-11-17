@@ -1,6 +1,7 @@
 // Campaign loader, part 2: scene commands and their conditions (docs/EVENTS.md "Campaign").
 // Same JSON shapes as the event commands of the same name, minus everything that needs a map.
 #include "core/data/loader_campaign.h"
+#include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
 #include "core/data/loader_scene_fx.h"
 
@@ -35,7 +36,7 @@ bool parseOp(const std::string& t, CmpOp& op) {
 
 bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCondition& out) const {
   if (!e.isObject()) return fail(where, "a condition must be an object");
-  static const char* const kKinds[] = {"switch", "variable", "alive", "dead"};
+  static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "rosterAlive", "rosterDead", "inRoster"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
@@ -55,7 +56,7 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
     return fail(where, "\"hasCondition\" is for map events only: status conditions end when the map ends, so a campaign scene cannot ask about one");
   if (!kind && e.has("actor"))
     return fail(where, "\"actor\" is for map events only: a campaign scene has no unit that set it off");
-  if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead");
+  if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead, rosterAlive, rosterDead, inRoster");
   std::string k = kind;
   const Json& v = e[kind];
   if (k == "support") return supportCondition(e, where, out);
@@ -75,6 +76,10 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
     if (!c_.str(e, "op", where, op) || !c_.integer(e, "value", where, out.value, true)) return false;
     if (!parseOp(op, out.op)) return fail(where, "\"op\" must be one of = != < <= > >=, not " + quoted(op));
     return true;
+  }
+  if (k == "rosterAlive" || k == "rosterDead" || k == "inRoster") {  // docs/EVENTS.md: also reads other parties
+    out.kind = SceneCondition::Kind::Roster;
+    return readRosterCondition(c_, e, where, k, out.rosterMode, out.anyParty, out.unit);
   }
   if (!onlyKeys(e, {kind}, where)) return false;
   out.kind = k == "alive" ? SceneCondition::Kind::Alive : SceneCondition::Kind::Dead;

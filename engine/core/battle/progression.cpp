@@ -5,7 +5,8 @@ namespace ote {
 
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat) {
   const RulesConfig& rules = db->rules;
-  if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= rules.maxLevel) return;
+  if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= levelCap(units[(size_t)unit])) return;
+  if (!rules.computerGains && sides[(size_t)units[(size_t)unit].side].ai) return;  // "computerGains": false (docs/SRPG.md "Experience: options")
   if (fromCombat && summonGivesNoXp(unit, events)) return;  // the foe was a summon that gives no experience (docs/SRPG.md "Summoning")
   amount = skillXp(units[(size_t)unit], amount);  // "xpPercent" skills (docs/SRPG.md); unchanged without any
   amount = xpGain(unit, amount);  // the difficulty's xpPercent for a unit of a human side (docs/DIFFICULTY.md)
@@ -20,7 +21,7 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool from
 
   // The unit is looked up again in every round: srpgLevelUp may promote it, and a promotion's story events may
   // add units (which moves `units`).
-  while (units[(size_t)unit].xp >= rules.xpPerLevel && units[(size_t)unit].level < rules.maxLevel) {
+  while (units[(size_t)unit].xp >= rules.xpPerLevel && units[(size_t)unit].level < levelCap(units[(size_t)unit])) {
     Unit& u = units[(size_t)unit];
     u.xp -= rules.xpPerLevel;
     ++u.level;
@@ -42,7 +43,7 @@ void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool from
     events.push_back(up);
     srpgLevelUp(unit, events);  // skills learned at the new level, an automatic promotion; `u` is stale after this
   }
-  if (units[(size_t)unit].level >= rules.maxLevel) units[(size_t)unit].xp = 0;
+  if (units[(size_t)unit].level >= levelCap(units[(size_t)unit])) units[(size_t)unit].xp = 0;
 }
 
 }  // namespace ote

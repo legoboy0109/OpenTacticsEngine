@@ -9,6 +9,7 @@ import { Field } from '../../ui/Field'
 import { ChipsInput } from '../../ui/ChipsInput'
 import { KeyNumberTable } from '../../ui/KeyNumberTable'
 import { MultiSelect } from '../../ui/MultiSelect'
+import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
@@ -50,6 +51,12 @@ export function UnitForm({ id }: { id: string }) {
             <Select value={unit.moveType} options={game.moveTypes.map((m) => ({ value: m.id, label: m.name }))}
               onChange={(v) => edit((d) => updateUnit(d, id, { moveType: v }))} />
           </Field>
+          {growth && (
+            <Field label={T.topLevel} help={T.topLevelHelp}>
+              <NumberInput value={unit.maxLevel} allowEmpty min={0} max={99} placeholder={T.topLevelGame(game.rules?.progression?.maxLevel ?? 20)}
+                onChange={(v) => edit((d) => updateUnit(d, id, { maxLevel: v }), `${key}:maxLevel`)} />
+            </Field>
+          )}
         </FormGrid>
       </Card>
 

@@ -186,6 +186,17 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
   };
   lua_createtable(L_, 0, (int)db_->stats.size() + 10);
   // Set before the stats, so a stat of that name wins (as with `character`).
+  // `side` (the side's id), `team` and `human` (its side is not computer-controlled; docs/SRPG.md "Formulas: sides"): only where the
+  // battle's sides are known, absent (nil) otherwise.
+  {
+    const std::vector<SideState>* sides = ctx.sides ? ctx.sides : (ctx.battle ? &ctx.battle->sides : nullptr);
+    if (sides && u->side >= 0 && (size_t)u->side < sides->size()) {
+      const SideState& sd = (*sides)[(size_t)u->side];
+      lua_pushstring(L_, sd.id.c_str()); lua_setfield(L_, -2, "side");
+      lua_pushinteger(L_, sd.team); lua_setfield(L_, -2, "team");
+      lua_pushboolean(L_, sd.ai ? 0 : 1); lua_setfield(L_, -2, "human");
+    }
+  }
   lua_pushinteger(L_, follow); lua_setfield(L_, -2, "followShift");
   lua_pushinteger(L_, tri); lua_setfield(L_, -2, "trianglePercent");
   // The sum of the unit's "carryBonus" skills (docs/SRPG.md "Carry capacity"); 0 when none. Only `canCarry` has a use for it.

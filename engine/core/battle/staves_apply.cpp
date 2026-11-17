@@ -94,10 +94,13 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
 }
 
 // The use is spent (the staff may break: the slot is gone after this), then what the user earns, then the order ends.
-void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healedTotal) {
+void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healedTotal, bool allMissed) {
   Unit& user = units[(size_t)uid];
   const Unit* centerUnit = center >= 0 ? &units[(size_t)center] : nullptr;
-  const int xp = d.xpExpr >= 0 ? (int)std::max(0.0, std::min<double>(kMaxStaffXp, std::floor(staffEval(d.xpExpr, user, centerUnit, d, kNoCell, 0)))) : d.xp;
+  // "xpMiss" instead of "xp" when the staff missed everyone (a staff without it earns the same either way).
+  const bool useMiss = allMissed && (d.xpMiss >= 0 || d.xpMissExpr >= 0);
+  const int exprIndex = useMiss ? d.xpMissExpr : d.xpExpr;
+  const int xp = exprIndex >= 0 ? (int)std::max(0.0, std::min<double>(kMaxStaffXp, std::floor(staffEval(exprIndex, user, centerUnit, d, kNoCell, 0)))) : useMiss ? d.xpMiss : d.xp;
   const int group = d.gear.rankGroup;
   const int rankXp = d.gear.rankXp;
   spendUse(uid, slot, events);
@@ -236,7 +239,7 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
   if (moves) doAbilityMoves(plan, events);  // a miss leaves `moves` false for the one unit: nothing moves
   if (!moves) plan.moves.clear();
 
-  finishStaffUse(uid, slot, d, center, events, healedTotal);
+  finishStaffUse(uid, slot, d, center, events, healedTotal, d.canMiss() && !moves && !affected.empty());
   // Supports earn after the order ends: their story events may add units (items do the same).
   for (int id : healed) supportsHealed(uid, id, events);
   // A moved unit has stopped somewhere: events waiting for a unit to arrive on that square may run (as after an ability or a

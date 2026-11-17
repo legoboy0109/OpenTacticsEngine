@@ -1,5 +1,6 @@
 // Rules card "Stat caps" (docs/SRPG.md section 7): one optional number per stat of the game; empty = no cap. Shown while the feature is on.
 import { useMemo } from 'react'
+import { computerCap, computerCapProblems, setComputerCap } from '../../../model/fidelityCaps'
 import { capChecks } from '../../../model/rankChecks'
 import { MAX_CAP, gameCap, setGameCap } from '../../../model/ranks'
 import { useDoc, useEdit } from '../../../store/context'
@@ -34,6 +35,26 @@ export function CapsCard() {
               ))}
             </tbody>
           </table>
+        )}
+        {stats.length > 0 && (
+          <div data-testid="computer-caps">
+            <h4>{R.computerCapsTitle}</h4>
+            <p className="help">{R.computerCapsHelp}</p>
+            <table className="kv three-col cap-rows">
+              <tbody>
+                {stats.map((s) => (
+                  <tr key={s.id}>
+                    <th scope="row">{s.name}</th>
+                    <td>
+                      <NumberInput value={computerCap(doc, s.id)} allowEmpty min={1} max={MAX_CAP} placeholder={R.computerCapSame} aria-label={R.computerCapLabel(s.name)}
+                        onChange={(v) => edit((d) => setComputerCap(d, s.id, v), `ccap:${s.id}`)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {computerCapProblems(doc).map((p) => <Banner key={p} tone="warn" title={p} />)}
+          </div>
         )}
         {checks.length > 0 && <Banner tone="warn" title={R.worthALook}><ul className="usage-list">{checks.map((c, i) => <li key={i}>{c.text}</li>)}</ul></Banner>}
       </div>

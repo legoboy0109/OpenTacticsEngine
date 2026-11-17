@@ -83,7 +83,7 @@ void takeUnits(const Database& db, Playthrough& pt, const Battle& b) {
         }
       continue;
     }
-    if (b.exists(u)) {  // R1: a carried unit goes to the roster as living
+    if (b.exists(u) || u.hidden) {  // R1: a carried unit goes to the roster as living; so does a hidden one (docs/EVENTS.md)
       putUnit(pt.roster, rosterEntry(b, u));
     } else if (!db.campaign->fallenReturn) {
       RosterUnit r = rosterEntry(b, u);
@@ -117,6 +117,11 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
   battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
+  if (!pt.parked.empty()) {  // the other parties' rosters, for the roster conditions' `party: any`
+    std::vector<Roster> others;
+    for (const ParkedParty& p : pt.parked) others.push_back(p.roster);
+    battle.setStartingOtherRosters(std::make_shared<const std::vector<Roster>>(others));
+  }
   battle.setStartingQuotes(pt.quotesSaid);  // the once-per-campaign quotes already said (docs/EVENTS.md)
   battle.setStartingSupports(pt.supports);  // the closeness the campaign carries (docs/SRPG.md); empty = nothing
   if (!battle.setStartingStory(pt.switches, pt.variables)) {

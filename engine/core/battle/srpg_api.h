@@ -153,6 +153,8 @@ int conditionForbidsGroup(const Unit& u, const std::string& group) const;
 int conditionForbidsKind(const Unit& u, ItemKind kind) const;
 // What inflicting `condition` (turns 0 = its own) on the unit would do: 0 = it would take hold (new, or a longer duration), 1 = the unit is
 // immune, 2 = it has it already for as long. Judged now, no randomness.
+// The top level of a unit: its type's "maxLevel" when it has one, else the game's (docs/SRPG.md "Level cap per unit type").
+int levelCap(const Unit& u) const;
 int inflictWhy(const Unit& u, int condition, int turns) const;
 // Would a cure of these conditions (or "all") remove at least one the unit has?
 bool cureWould(const Unit& u, const std::vector<int>& ids, bool all) const;

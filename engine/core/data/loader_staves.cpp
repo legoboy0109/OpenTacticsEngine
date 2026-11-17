@@ -16,7 +16,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
   static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy", "wieldedByTypes",
-                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable", "sounds", "bonus"};  // "sounds": read by the player (docs/SOUND.md)
+                                     "props", "range", "target", "area", "effects", "hit", "xp", "xpMiss", "if", "repairable", "sounds", "bonus"};  // "sounds": read by the player (docs/SOUND.md)
   for (const Json::Member& m : o.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
@@ -268,6 +268,14 @@ bool readHitXpConds(const LoadCtx& c, Database& db, const Json& e, const std::st
     if (x.isString()) d.xpExpr = db.addExpr(x.asString(), "data/items.json: " + where + ": \"xp\"");
     else if (LoadCtx::isWhole(x) && x.asInt() >= 0 && x.asInt() <= kMaxStaffXp) d.xp = x.asInt();
     else return c.fail(where, "\"xp\" must be a whole number from 0 to " + std::to_string(kMaxStaffXp) + " or a formula (text)");
+  }
+  if (e.has("xpMiss")) {  // what the user earns when the staff missed every unit (needs a "hit" and experience)
+    const Json& x = e["xpMiss"];
+    if (!e.has("hit")) return c.fail(where, "\"xpMiss\" needs a \"hit\" (a staff that cannot miss has no miss to reward)");
+    if (!db.rules.progression) return c.fail(where, "\"xpMiss\" needs experience: set \"rules\": { \"progression\": { \"enabled\": true } } in game.json");
+    if (x.isString()) d.xpMissExpr = db.addExpr(x.asString(), "data/items.json: " + where + ": \"xpMiss\"");
+    else if (LoadCtx::isWhole(x) && x.asInt() >= 0 && x.asInt() <= kMaxStaffXp) d.xpMiss = x.asInt();
+    else return c.fail(where, "\"xpMiss\" must be a whole number from 0 to " + std::to_string(kMaxStaffXp) + " or a formula (text)");
   }
   if (e.has("if")) {
     // The conditions of an ability: "who": "foe" is the unit hit; there is no combat (no "initiating" / "distance").

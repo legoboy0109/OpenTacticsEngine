@@ -20,7 +20,7 @@ export const STAFF_HEAL_MAX = 1000000
 export const STAFF_EFFECTS_MAX = 4
 
 /** Keys only a staff has; leaving the kind removes them. (`target` is shared with usable items and handled apart.) */
-export const STAFF_KEYS = ['group', 'rank', 'rankXp', 'wieldedBy', 'wieldedByTypes', 'props', 'range', 'area', 'effects', 'hit', 'xp', 'if', 'bonus']
+export const STAFF_KEYS = ['group', 'rank', 'rankXp', 'wieldedBy', 'wieldedByTypes', 'props', 'range', 'area', 'effects', 'hit', 'xp', 'if', 'bonus', 'xpMiss']
 
 /** What a new staff starts with: a group (one that exists already, else "staff") and a small heal, so the file is valid straight away. */
 export const newStaffDefaults = (doc: ProjectDoc): Partial<Item> => ({
@@ -148,6 +148,12 @@ export function setStaffXp(doc: ProjectDoc, id: string, text: string): ProjectDo
   if (t === '') return updateItem(doc, id, { xp: undefined })
   return updateItem(doc, id, { xp: /^\d+$/.test(t) && Number(t) <= STAFF_XP_MAX ? Number(t) : text })
 }
+export function setStaffXpMiss(doc: ProjectDoc, id: string, text: string): ProjectDoc {
+  const t = text.trim()
+  if (t === '') return updateItem(doc, id, { xpMiss: undefined })
+  return updateItem(doc, id, { xpMiss: /^\d+$/.test(t) && Number(t) <= STAFF_XP_MAX ? Number(t) : text })
+}
+export const xpMissText = (item: Item): string => (item.xpMiss === undefined ? '' : String(item.xpMiss))
 export const xpText = (item: Item): string => (item.xp === undefined ? '' : String(item.xp))
 export const hitText = (item: Item): string => (item.hit === undefined ? '' : String(item.hit))
 

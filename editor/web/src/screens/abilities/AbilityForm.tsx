@@ -13,6 +13,7 @@ import { TextInput } from '../../ui/TextInput'
 import { Check } from '../../ui/Toggle'
 import { AbilityConditions } from './AbilityConditions'
 import { AbilityEffectFields } from './AbilityEffectFields'
+import { AbilityExtras } from './AbilityExtras'
 import { SummonFields } from './SummonFields'
 import { T } from './text'
 
@@ -97,6 +98,8 @@ export function AbilityForm({ id }: { id: string }) {
           <Check label={T.beforeMoving} help={T.beforeMovingHelp} checked={ability.afterMove === false} onChange={(v) => change((a) => setAfterMove(a, !v))} />
         </div>
       </Card>
+
+      <AbilityExtras ability={ability} change={change} />
 
       <AbilityConditions ability={ability} change={change} />
 

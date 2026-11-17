@@ -34,6 +34,13 @@ bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db) {
     else if (ambush == "canAct") db.rules.ambush = AmbushRule::CanAct;
     else return c.fail("rules.fog", "\"ambush\" must be \"endsTurn\" or \"canAct\", not \"" + ambush + "\"");
   }
+  // "rules.hitRoll": "single" (default, one random number per strike) or "average2" (docs/SRPG.md "The hit roll").
+  if (rules.has("hitRoll")) {
+    std::string roll = "single";
+    if (!c.str(rules, "hitRoll", "rules", roll)) return false;
+    if (roll == "average2") db.rules.hitRollAverage = true;
+    else if (roll != "single") return c.fail("rules", "\"hitRoll\" must be \"single\" or \"average2\", not \"" + roll + "\"");
+  }
   return true;
 }
 

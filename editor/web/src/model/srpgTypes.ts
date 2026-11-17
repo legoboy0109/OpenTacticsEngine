@@ -86,6 +86,9 @@ export interface Ability extends Named {
   cooldown?: number
   afterMove?: boolean
   if?: Extra[]
+  /** docs/SRPG.md section 11: experience for the user per use (a number or a formula), and a condition the target gets. */
+  xp?: number | string
+  inflict?: Extra
 }
 
 /** The combat numbers of a support level (section 6): a level states its whole bonus; `stats` never holds HP or move. */

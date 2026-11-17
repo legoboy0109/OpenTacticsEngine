@@ -93,6 +93,9 @@ export const S = {
   xp: 'Experience for the user',
   xpHelp: (example: string) => `Given once per use, even when it misses. A number, or a formula such as ${example}. Leave empty for none. Needs experience to be turned on in the Rules.`,
   xpPlaceholder: 'none',
+  xpMiss: 'Experience when it misses',
+  xpMissHelp: 'What the user earns when the staff missed every unit it was used on, instead of the experience above. A number or a formula. Empty = the same as above.',
+  xpMissPlaceholder: 'same',
 
   bonus: 'Bonus while carried',
   bonusHelp: 'Optional. Added to the unit’s stats while it carries this staff, like an accessory. Leave empty for none.',

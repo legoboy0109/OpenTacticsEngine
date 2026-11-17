@@ -89,6 +89,9 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'hasSkill': return { hasSkill: c.doc.skills?.[0]?.id ?? '' }
     case 'hasCondition': return { hasCondition: c.doc.conditions?.[0]?.id ?? '' }
     case 'actor': return { actor: defaultFilter(c) }
+    case 'rosterAlive': return { rosterAlive: firstUnit(c) }
+    case 'rosterDead': return { rosterDead: firstUnit(c) }
+    case 'inRoster': return { inRoster: firstUnit(c) }
     case 'difficulty': return { difficulty: c.doc.game?.difficulties?.default ?? c.doc.game?.difficulties?.list?.[0]?.id ?? '' }
     // The first team looking for the second side's units (a team always sees its own, so that would say nothing).
     case 'support': return { support: firstPair(c.doc), op: '>=', value: 1 }
@@ -110,6 +113,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'addUnit': return { addUnit: newAddedUnit(c) }
     case 'removeUnit': return { removeUnit: defaultFilter(c) }
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }
+    case 'showUnit': return { showUnit: firstUnit(c), x: 0, y: 0 }
     case 'changeSide': return { changeSide: defaultFilter(c), side: firstSide(c) }
     case 'addSupport': return { addSupport: firstPair(c.doc), by: 10 }
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }

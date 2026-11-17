@@ -276,7 +276,7 @@ void staffAffected(const Unit& user, int item, int slot, int center, Cell from, 
 // Would this one effect change `t` (the user on `from`, the staff in `slot`)? null = yes, else the plain reason it would not.
 const char* staffEffectWhy(const Unit& user, const StaffDef& d, const StaffEffect& fx, int slot, const Unit& t, Cell from) const;
 // The shared tail of a use: the use is spent, then experience and rank experience, then the order ends (staves_apply.cpp).
-void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healed = 0);
+void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events, int healed = 0, bool allMissed = false);
 void applyStaffLight(const Action& action, std::vector<Event>& events);
 // Lights whose time is up leave at the start of their side's turn (turn.cpp).
 void lightsTurnStart();
@@ -355,3 +355,19 @@ bool storyActorHolds(const Condition& c, int actor) const;
 // ---- storeItems (story_store.cpp; docs/EVENTS.md "Sending a unit's items to storage") ----
 // Every item but the kept ones goes from each matching existing human-side unit to its side's storage.
 void storyStoreItems(const Command& c, std::vector<Event>& events);
+
+// ---- fidelity options (hit_roll.cpp, xp_extras.cpp, ...; append only) ----
+// "rules.hitRoll": "average2": two random numbers 0-99, hit when their average (rounded down) is below `percent`.
+bool rollHitAverage(int percent);
+// "rules.progression.xpNoDamage": experience for `unit` (fighting `foe`) when its strikes did no damage; 0 when the game sets none.
+int xpNoDamage(int unit, int foe) const;
+// An ability's own "xp" (a number or a formula; a = the user, b = the target unit, -1 = none), awarded after each use.
+void abilityExperience(const AbilityDef& d, int user, int target, std::vector<Event>& events);
+// An ability's "inflict": the condition goes to the target after the effect.
+void abilityInflict(const AbilityDef& d, int user, int target, std::vector<Event>& events);
+// Roster conditions and hidden units (story_hide.cpp; docs/EVENTS.md). storyRosterHolds: rosterAlive / rosterDead / inRoster.
+// storyHideUnit: `removeUnit` with "hide": the unit leaves the map but is not gone. storyShowUnit: brings a hidden unit back at the
+// free square nearest `want`; false (and a log line) when it cannot.
+bool storyRosterHolds(const Condition& c) const;
+void storyHideUnit(int unit, std::vector<Event>& events);
+bool storyShowUnit(int unit, Cell want, std::vector<Event>& events);

@@ -167,7 +167,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   e.d = 0;
   e.flags = counter ? kCounter : 0;
   // 3. Hit. (A hit of 0 still rolls, as it always did.)
-  bool hit = f.hit >= 100 || rng.chance(f.hit);
+  bool hit = f.hit >= 100 || (db->rules.hitRollAverage ? rollHitAverage(f.hit) : rng.chance(f.hit));
   // A "recoil" with "instead" (docs/SRPG.md "Skill blocks, third set"): a strike that lands turns on its wielder, who takes the damage
   // it would have done (`turnedBack`, -1 = nothing turned back); for the foe the strike counts as a miss.
   int turnedBack = -1;
@@ -327,6 +327,8 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       ctx.b = &units[d];
       Formulas::Slot slot = units[d].alive ? Formulas::XpHit : Formulas::XpKill;
       awardXp(a, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
+    } else if (units[a].alive && fightStrikes_[0] > 0) {
+      awardXp(a, xpNoDamage(a, d), events);  // "xpNoDamage": a fight that did no damage (nothing unless the game sets it)
     }
     // Defender's reward for a successful counter.
     if (units[d].alive && units[a].hp < hpA) {
@@ -334,6 +336,8 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       ctx.b = &units[a];
       Formulas::Slot slot = units[a].alive ? Formulas::XpHit : Formulas::XpKill;
       awardXp(d, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
+    } else if (units[d].alive && fightStrikes_[1] > 0) {
+      awardXp(d, xpNoDamage(d, a), events);  // only a defender that really struck back
     }
   }
   ranksAfterCombat(events, combatFrom, a, d);  // weapon ranks, growth "use" (docs/SRPG.md section 7); nothing otherwise

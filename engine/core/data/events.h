@@ -39,7 +39,10 @@ struct Condition {
     // docs/EVENTS.md "Branching on who acted": the unit that set this event off matches `filter` (false with no acting unit).
     Actor,
     // docs/DIFFICULTY.md: the battle's difficulty compared (`op`: = >= <=) with list position `index`.
-    Difficulty
+    Difficulty,
+    // docs/EVENTS.md "Campaign characters in map events": the character `filter.unit` in the campaign's roster (`rosterMode`: 0 alive, 1 dead,
+    // 2 in the roster); `anyParty` = any party, else the active one.
+    Roster
   };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
@@ -48,7 +51,9 @@ struct Condition {
   bool is = true;     // Switch
   CmpOp op = CmpOp::Eq;  // Variable, Round
   int value = 0;      // Variable, Round
-  UnitFilter filter;  // Alive, Dead, Carries, Sees, Actor
+  UnitFilter filter;  // Alive, Dead, Carries, Sees, Actor; Roster: the character's id in `filter.unit`
+  int rosterMode = 0;      // Roster: 0 = alive, 1 = dead, 2 = inRoster
+  bool anyParty = true;    // Roster: any party's roster (false = the active party's only)
 };
 
 // What a Place trigger waits for (and what a Place occurrence reports).
@@ -123,7 +128,9 @@ struct Command {
     SetTerrain, ApplyChange, RevertChange, SetFog, SetVision,
     Scene,  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
     // docs/EVENTS.md "Sending a unit's items to storage": every item except those in `keep` goes from each existing human-side unit matching `filter` to its side's storage.
-    StoreItems
+    StoreItems,
+    // docs/EVENTS.md "Taking a unit off the map and bringing it back": ShowUnit brings the hidden unit `unit` back at square (x, y).
+    ShowUnit
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -140,6 +147,7 @@ struct Command {
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
   bool on = false;       // SetSwitch; TakeItem: every copy
+  bool hide = false;     // RemoveUnit: "hide": true takes the units off the map without losing them
   UnitReading reading;   // SetVariable / AddVariable: where the number comes from when it is not `value`
   int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
   int objectives = -1;   // Objective: index into StoryData::objectives

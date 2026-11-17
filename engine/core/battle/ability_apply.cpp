@@ -84,6 +84,8 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
       break;
   }
 
+  if (def.inflictCond >= 0 && !blocked) abilityInflict(def, uid, target, events);  // "inflict" (docs/SRPG.md "Abilities: experience and conditions")
+  abilityExperience(def, uid, target, events);  // "xp"; nothing for an ability without it
   noteAbilityUse(uid, ability);
   if (!def.free) endOrder(uid);
 

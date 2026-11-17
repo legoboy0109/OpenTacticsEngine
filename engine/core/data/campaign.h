@@ -12,13 +12,15 @@
 namespace ote {
 
 struct SceneCondition {
-  enum class Kind { Switch, Variable, Alive, Dead, Support, Difficulty };  // Support: docs/SRPG.md (the pair's level)
+  enum class Kind { Switch, Variable, Alive, Dead, Support, Difficulty, Roster };  // Support: docs/SRPG.md (the pair's level)
   Kind kind = Kind::Switch;
   int index = -1;        // switch / variable index
   bool is = true;        // Switch
   CmpOp op = CmpOp::Eq;  // Variable
   int value = 0;         // Variable
   std::string unit;      // Alive, Dead: a roster id; Support: the pair's character `a`
+  int rosterMode = 0;    // Roster (rosterAlive / rosterDead / inRoster): 0 alive, 1 dead, 2 inRoster; `unit` is the id
+  bool anyParty = true;  // Roster: any party (false = the active one)
   std::string with;      // Support: character `b` (the pair is looked up when it runs; the loader has checked it exists)
 };
 

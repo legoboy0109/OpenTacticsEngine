@@ -64,6 +64,13 @@ Cell Battle::nearestFreeCell(Cell target, int moveType) const {
 void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   if (!appearsOnDifficulty(def)) return;  // limited to other difficulties (docs/DIFFICULTY.md)
   Unit u = makeUnit(def);
+  {  // the id of a hidden unit: it comes back (the same unit, with its state) at the square the addUnit names
+    const int hid = unitByStoryId(u.storyId);
+    if (hid >= 0 && units[(size_t)hid].hidden) {
+      storyShowUnit(hid, grid.at(def.x, def.y), events);
+      return;
+    }
+  }
   if (u.character >= 0 && unitByStoryId(u.storyId) >= 0) {
     // A character is one person: adding one that is already in the battle (alive or not) adds nothing.
     OTE_INFO("story: addUnit: character '%s' is already in the battle; not added", u.storyId.c_str());
@@ -146,9 +153,26 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::AddUnit:
       storyAddUnit(c.newUnit, events);
       break;
+    case K::ShowUnit: {
+      const int u = unitByStoryId(c.unit);
+      if (u >= 0 && units[(size_t)u].hidden) storyShowUnit(u, grid.at(c.x, c.y), events);
+      else OTE_INFO("story: showUnit '%s': no such hidden unit", c.unit.c_str());
+      break;
+    }
     case K::RemoveUnit:
       for (int i = 0; i < unitCount; ++i) {
+        if (units[(size_t)i].hidden && !c.hide && unitMatches(c.filter, units[(size_t)i])) {  // a hidden unit that is removed for good is gone now
+          units[(size_t)i].hidden = false;
+          units[(size_t)i].hp = 0;
+          units[(size_t)i].conditions.clear();
+          continue;
+        }
         if (!exists(units[(size_t)i]) || !unitMatches(c.filter, units[(size_t)i])) continue;  // R1: a carried unit matches
+        if (c.hide) {  // docs/EVENTS.md "Taking a unit off the map and bringing it back"
+          if (units[(size_t)i].carriedBy >= 0) OTE_INFO("story: removeUnit hide: '%s' is carried; it cannot be hidden", units[(size_t)i].storyId.c_str());
+          else storyHideUnit(i, events);
+          continue;
+        }
         if (units[(size_t)i].carriedBy >= 0) {  // taken out of its carrier (docs/SRPG.md "Carry": Story)
           storyRemoveCarried(i, events);
           continue;

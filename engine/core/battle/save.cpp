@@ -89,6 +89,10 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   if (!rd.integer(j, "cell", where, -1, b.grid.cellCount() - 1, u.cell)) return false;
   if (u.alive && u.cell == kNoCell) return rd.fail(where + ".cell", "a living unit has no cell");
   if (!u.alive && u.cell != kNoCell) return rd.fail(where + ".cell", "a dead unit still has a cell");
+  if (j.has("hidden")) {  // docs/EVENTS.md: a hidden unit is off the map, alive in the story
+    if (!rd.boolean(j, "hidden", where, u.hidden)) return false;
+    if (u.hidden && u.alive) return rd.fail(where + ".hidden", "a unit on the map is not hidden");
+  }
   if (!j["name"].isString()) return rd.fail(where + ".name", "missing or not text");
   u.name = j["name"].asString();
   if (u.name.size() > 200) return rd.fail(where + ".name", "unreasonably long");
@@ -115,6 +119,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   int maxHp = b.stat(u, db.rules.statHp);  // as the rules see it: accessories, research, standing skills
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
+  if (u.hidden && u.hp < 1) return rd.fail(where + ".hp", "a hidden unit keeps its hit points");
   return rd.boolean(j, "moved", where, u.moved) && rd.boolean(j, "done", where, u.done) &&
          rd.boolean(j, "leader", where, u.leader);
 }
@@ -187,6 +192,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("moved", boolean(u.moved));
     j.set("done", boolean(u.done));
     j.set("alive", boolean(u.alive));
+    if (u.hidden) j.set("hidden", boolean(true));  // docs/SAVES.md: only a hidden unit has the key
     j.set("leader", boolean(u.leader));
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
     savejson::writeUnitSupply(*b.db, u, j);

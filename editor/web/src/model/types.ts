@@ -207,6 +207,8 @@ export interface Unit extends Named {
   /** docs/SRPG.md section 7: starting ranks per weapon group, and the class's own stat caps. */
   ranks?: RankMap
   caps?: NumMap
+  /** docs/SRPG.md section 11: this class's top level (0 = never levels); missing = the game's. */
+  maxLevel?: number
   /** Tank size; missing = no fuel. */
   fuel?: number
   fuelPerTurn?: number
@@ -259,6 +261,8 @@ export interface Item extends Named {
   effects?: Extra[]
   hit?: number | string
   xp?: number | string
+  /** docs/SRPG.md section 11: what the user earns when the staff missed everyone (needs `hit`). */
+  xpMiss?: number | string
   if?: Extra[]
   /** Usable items (docs/SRPG.md section 9): conditions it cures (a list of ids or "all") and the one it puts on the unit it is used on. */
   cure?: string[] | 'all'
