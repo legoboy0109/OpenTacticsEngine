@@ -1,5 +1,6 @@
 // Plain sentences for triggers, conditions, commands, objectives and whole events, so a list shows what happens
 // without opening anything. Squares are shown 1-based (like the map editor's status line); the file stores 0-based.
+import { behaviourPhrase } from './behaviour'
 import { chapterName } from './campaignTypes'
 import { placesOf } from './placeStory'
 import { namedUnits, teamsOf, unitDisplayName } from './storyIds'
@@ -176,6 +177,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'grantResearch': return `Gives side ${sideName(c, cmd.side ?? '')} the technology ${q(techLabel(c, cmd.grantResearch ?? ''))}`
     case 'teachSkill': return `Teaches the skill ${q(skillLabel(c, cmd.teachSkill ?? ''))} to ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}`
     case 'forgetSkill': return `Makes ${filterText(c, cmd.from)} forget the skill ${q(skillLabel(c, cmd.forgetSkill ?? ''))}`
+    case 'setBehaviour': return `Tells ${filterText(c, cmd.units)} to ${behaviourPhrase(cmd.setBehaviour)}`
+    case 'wakeGroup': return `Wakes the group ${q(cmd.wakeGroup ?? '')}`
     case 'addCondition': return `Puts the condition ${q(conditionLabel(c, cmd.addCondition ?? ''))} on ${filterText(c, typeof cmd.to === 'object' ? cmd.to : undefined)}${cmd.turns ? ` for ${cmd.turns} ${cmd.turns === 1 ? 'turn' : 'turns'}` : ''}`
     case 'removeCondition': return cmd.removeCondition === 'all' ? `Cures ${filterText(c, cmd.from)} of every condition` : `Cures ${filterText(c, cmd.from)} of the condition ${q(conditionLabel(c, cmd.removeCondition ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`

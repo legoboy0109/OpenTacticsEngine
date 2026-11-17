@@ -3,6 +3,7 @@
 // hexagon's middle, docs/HEX.md "Units").
 import { drawUnitArt } from '../../../art/draw'
 import { unitPicture } from '../../../art/scene'
+import { behaviourMark } from '../../../model/behaviour'
 import type { MapUnit, Unit } from '../../../model/types'
 import { css, FONT, mix, readableOn, type Rgb } from './drawColors'
 import type { Scene } from './drawTypes'
@@ -14,9 +15,27 @@ export function drawAnyUnit(g: CanvasRenderingContext2D, scene: Scene, u: MapUni
   const pic = unitPicture(scene.art ?? null, u.type ?? '', u.side)
   if (pic && drawUnitArt(g, pic, { on: scene.art!.marker, color: css(side) }, time, cx, cy, cw, ch, alpha)) {
     if (u.leader) drawLeaderPip(g, cx, cy, cw, alpha)
+    drawBehaviourMark(g, u, cx, cy, cw, ch, alpha)
     return
   }
   drawUnit(g, scene, u, cx, cy, cw, ch, side, alpha, glyph)
+  drawBehaviourMark(g, u, cx, cy, cw, ch, alpha)
+}
+
+/** A computer unit that does not simply advance (docs/AI.md) wears a small letter in its bottom right corner: H holds, G guards, S seeks, T starts late. */
+function drawBehaviourMark(g: CanvasRenderingContext2D, u: MapUnit, cx: number, cy: number, cw: number, ch: number, alpha: number): void {
+  const mark = behaviourMark(u.behaviour)
+  if (!mark) return
+  const k = cw / 24
+  const m = Math.max(7, Math.round(10 * k)), inset = Math.max(1, Math.round(2 * k))
+  const bx = cx + cw - m - inset, by = cy + ch - m - inset
+  g.fillStyle = `rgba(0,0,0,${0.86 * alpha})`
+  g.fillRect(bx - 1, by - 1, m + 2, m + 2)
+  g.fillStyle = `rgba(255,255,255,${alpha})`
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.font = `bold ${Math.max(6, Math.round(m * 0.9))}px ${FONT}`
+  g.fillText(mark, bx + m / 2, by + m / 2 + 1)
 }
 
 function drawLeaderPip(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, alpha: number): void {

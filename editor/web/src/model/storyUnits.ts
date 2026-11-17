@@ -1,5 +1,6 @@
 // Document-level edits where a map's units or sides meet its events: a unit's story id, deleting a unit, deleting a
 // side. Each is ONE edit, so a single Undo restores the units and everything the clean-up removed.
+import { dropBehaviourUnit, renameBehaviourUnit } from './behaviour'
 import { renameVisitUnit } from './mapPlaces'
 import { removeMapUnit, unitAt } from './mapUnits'
 import { removeSide } from './mapSides'
@@ -27,7 +28,7 @@ export function changeUnitStoryId(doc: ProjectDoc, mapId: string, x: number, y: 
     if (error) return { doc, error }
   }
   const renamed = setUnitStoryId(map, x, y, to)
-  const next = withMap(doc, mapId, unit.id && to ? renameVisitUnit(renamed, unit.id, to) : renamed) // a place that lists it as a visitor follows too
+  const next = withMap(doc, mapId, unit.id && to ? renameBehaviourUnit(renameVisitUnit(renamed, unit.id, to), unit.id, to) : unit.id ? dropBehaviourUnit(renamed, unit.id) : renamed) // a place that lists it as a visitor follows too
   // The campaign's scenes that named the old story name follow it (unless another map still has that name).
   return { doc: unit.id ? followUnitRename(doc, next, unit.id, to) : next, error: null }
 }
@@ -44,7 +45,7 @@ export function removeUnitAndStory(doc: ProjectDoc, mapId: string, x: number, y:
   const unit = map ? unitAt(map, x, y) : undefined
   if (!map || !unit) return doc
   const removed = removeMapUnit(map, x, y)
-  return withMap(doc, mapId, unit.id ? scrubMap(doc, removed, [{ kind: 'unit', id: unit.id }]) : removed)
+  return withMap(doc, mapId, unit.id ? scrubMap(doc, dropBehaviourUnit(removed, unit.id), [{ kind: 'unit', id: unit.id }]) : removed)
 }
 
 /** The names that go when side `sideId` goes: the side, its team when no other side shares it, and its units' story names. */

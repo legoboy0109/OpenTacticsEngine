@@ -2,6 +2,7 @@
 // objective entry is an object with ONE "kind" key (plus that kind's extras); the editor finds the kind by which key
 // is there. Every interface lists all the keys any kind may use as optional, so the forms stay simple, and carries an
 // index signature so a key the editor does not know survives load -> edit -> save.
+import type { Behaviour } from './behaviour'
 import type { Extra, ItemEntry, MapUnit } from './types'
 
 /** A rectangle of squares, 0-based as stored (the editor shows 1-based numbers). */
@@ -156,19 +157,23 @@ export interface Command extends Extra {
   lockDoor?: string
   unlockDoor?: string
   openChest?: string
+  /** docs/AI.md: a computer unit's behaviour block (a mode name or an object) given to the `units` filter; `wakeGroup` names a guard group. Map events only. */
+  setBehaviour?: Behaviour
+  units?: Filter
+  wakeGroup?: string
   // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
 export type CommandKind =
   | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
-  | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest'
+  | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
-  'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest',
+  'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
 ]
 /** The commands that name a door, chest or place of the map. */
 export const PLACE_COMMANDS: CommandKind[] = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest']

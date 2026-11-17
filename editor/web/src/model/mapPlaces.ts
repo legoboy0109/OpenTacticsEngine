@@ -1,6 +1,7 @@
 // Doors, chests and places as they stand on a map (docs/SRPG.md section 10): the placed structure's story name (`id`), a lock override (`locked`), a chest's
 // `contents`, and who may visit (`visitSides`, `visitUnits`). Plus the computer unit's `goesFor`. Pure functions on a MapFile, or on the document where
 // the story must follow (a story name is pointed at by events). The checks are placeChecks.ts.
+import { renameBehaviourPlace } from './behaviour'
 import { indexByOrigin, placedOf } from './mapStructures'
 import { placeKindOf, type PlaceKind } from './places'
 import { idProblem } from './storyIds'
@@ -38,7 +39,7 @@ export function suggestPlaceId(map: MapFile, kindId: string): string {
 
 /** Every place in the map's events that names `from` names `to` instead. */
 export const renamePlaceRefs = (map: MapFile, from: string, to: string): MapFile =>
-  from === to || (!map.events && !map.objectives) ? map : walkStory(map, { ref: (r) => (r.kind === 'place' && r.id === from ? to : r.id) })
+  from === to ? map : renameBehaviourPlace(!map.events && !map.objectives ? map : walkStory(map, { ref: (r) => (r.kind === 'place' && r.id === from ? to : r.id) }), from, to) // and the units that head for it (docs/AI.md)
 
 /** Does any event of the map point at this story name? */
 export function placeIsNamedByEvents(map: MapFile, id: string): boolean {

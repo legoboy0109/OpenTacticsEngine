@@ -15,6 +15,8 @@ import { NumberInput } from '../../../../../ui/NumberInput'
 import { TextInput } from '../../../../../ui/TextInput'
 import { Check, Toggle } from '../../../../../ui/Toggle'
 import { UnitSkills } from '../../panels/UnitSkills'
+import { BehaviourEditor } from '../../panels/BehaviourEditor'
+import { B } from '../../panels/behaviourText'
 import { AreaField } from '../AreaField'
 import { IdInput } from '../../../../../ui/IdInput'
 import { SidePick, TypePick } from '../pickers'
@@ -56,6 +58,12 @@ export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
         <IdInput value={u.id ?? ''} validate={validate} onChange={setId} placeholder={S.unitStoryPlaceholder} />
       </Field>
       <button type="button" className="btn sm" onClick={() => setId(suggestUnitId(doc, map, u))}>{S.fillFromName}</button>
+      {map.sides?.find((s) => s.id === u.side)?.controller === 'ai' && (
+        <fieldset className="fieldset" data-testid="add-unit-behaviour">
+          <legend>{B.title}</legend>
+          <BehaviourEditor value={u.behaviour} doc={doc} map={map} id="add-unit-behaviour-fields" onChange={(next, k) => set({ behaviour: next }, k && `behaviour:${k}`)} />
+        </fieldset>
+      )}
       {((doc.items?.length ?? 0) > 0 || u.items !== undefined) && (
         <div className="stack tight">
           <Toggle label={S.ownItems} help={S.ownItemsHelp} checked={u.items !== undefined}

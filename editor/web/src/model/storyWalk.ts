@@ -174,10 +174,28 @@ function mapItems(list: ItemEntry[], w: Walk, where: string, owner: Command): It
   return kept.length === list.length ? list : kept
 }
 
+/** A behaviour block's unit and place names (docs/AI.md): the unit it heads for, the one it prefers, the structure it heads for. A name that cannot stay
+ *  takes the command with it, as every other command naming a deleted thing. */
+function mapBehaviourBlock<T extends object>(holder: T, key: string, w: Walk, where: string): T | Dropped {
+  const b = (holder as Record<string, unknown>)[key]
+  if (b === null || typeof b !== 'object' || Array.isArray(b)) return holder
+  const o = b as Record<string, unknown>
+  const stepped = chain(o, [
+    (x) => withRef(x, 'unit', 'unit', w, where),
+    (x) => withRef(x, 'place', 'place', w, where),
+    (x) => { const p = x.prefer; return p !== null && typeof p === 'object' && 'unit' in p ? (() => { const r = withRef(p as Record<string, unknown>, 'unit', 'unit', w, where); return r === DROP ? DROP : put(x, 'prefer', r) })() : x },
+  ])
+  return stepped === DROP ? DROP : put(holder, key, stepped)
+}
+
+function mapBehaviour(c: Command, w: Walk, where: string): Command | Dropped { return mapBehaviourBlock(c, 'setBehaviour', w, where) }
+
 function mapAddUnit(c: Command, w: Walk, where: string): Command | Dropped {
   const u = c.addUnit
   if (!u || typeof u !== 'object') return c
-  const stepped = chain(u, [(x) => withRef(x, 'type', 'type', w, where), (x) => withRef(x, 'side', 'side', w, where)])
+  const stepped0 = chain(u, [(x) => withRef(x, 'type', 'type', w, where), (x) => withRef(x, 'side', 'side', w, where)])
+  if (stepped0 === DROP) return DROP
+  const stepped = mapBehaviourBlock(stepped0 as Record<string, unknown>, 'behaviour', w, where) as typeof stepped0 | Dropped
   if (stepped === DROP) return DROP
   const items = Array.isArray(stepped.items) ? mapItems(stepped.items, w, where, c) : stepped.items
   const next = items === stepped.items ? stepped : { ...stepped, items }
@@ -223,6 +241,8 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'addCondition', 'condition', w, where),
     (x) => (x.removeCondition === 'all' ? x : withRef(x, 'removeCondition', 'condition', w, where)),
     (x) => (typeof x.addCondition === 'string' && typeof x.to === 'string' ? withRef(x, 'to', 'unit', w, where) : x), // addCondition's `to`: a unit id
+    (x) => (x.setBehaviour !== undefined ? mapBehaviour(x, w, where) : x), // docs/AI.md: who it heads for or prefers
+    (x) => (x.setBehaviour !== undefined ? withFilter(x, 'units', w, where) : x),
     (x) => withFilter(x, 'from', w, where),
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),

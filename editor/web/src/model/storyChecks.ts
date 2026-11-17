@@ -3,6 +3,7 @@
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
 import { audioRefProblem } from './audioChecks'
+import { blockProblems, groupNames } from './behaviour'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
 import { readingProblems } from './readingChecks'
@@ -87,6 +88,7 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       else if (u.id && (ids.get(u.id) ?? 0) > 1) say(where, `the story name “${u.id}” is used by more than one unit of the map.`)
       if (Array.isArray(u.items) && u.items.length > inventorySize(doc)) say(where, `${u.items.length} items, but a unit can carry only ${inventorySize(doc)}.`)
       if (typeof u.level === 'number' && u.level < 1) say(where, 'the level must be at least 1.')
+      if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai') })
       break
     }
     case 'moveUnit':
@@ -131,6 +133,15 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     }
     case 'removeCondition':
       if (typeof c.from !== 'object' || c.from === null) say(where, 'pick which units are cured.')
+      break
+    case 'setBehaviour':
+      if (typeof c.units !== 'object' || c.units === null) say(where, 'pick which units get the behaviour.')
+      else if (c.units.side !== undefined && map.sides?.some((s) => s.id === c.units!.side && s.controller !== 'ai')) say(where, 'that side is played by a person; only the computer’s units have a behaviour.')
+      blockProblems(c.setBehaviour, doc, map, (t) => say(where, t))
+      break
+    case 'wakeGroup':
+      if (!c.wakeGroup) say(where, 'pick the group to wake.')
+      else if (!groupNames(map).includes(c.wakeGroup)) say(where, `no unit of this map is in a group called “${c.wakeGroup}”.`)
       break
   }
 }
