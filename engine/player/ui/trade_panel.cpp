@@ -52,6 +52,15 @@ void TradePanel::layout(const Renderer& r) {
   detailY_ = y_ + h_ - fixedBottom + 4;
 }
 
+void TradePanel::selectedBox(const Renderer& r, int& x, int& y, int& w, int& h) {
+  layout(r);
+  const RowList& l = list_[col_];
+  x = l.x;
+  y = l.rowY(l.sel);
+  w = l.w;
+  h = l.rowH;
+}
+
 TradePanel::Result TradePanel::onInput(const InputEvent& e, const Renderer& r) {
   if (!open_) return None;
   layout(r);

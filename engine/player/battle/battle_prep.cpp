@@ -511,8 +511,10 @@ std::string BattleScene::prepHint() const {
     case S::Units: return PrepWords::kHintUnits;
     case S::Positions: return prep_->carrySlot >= 0 ? PrepWords::kHintPlace : PrepWords::kHintPick;
     case S::View: return PrepWords::kHintView;
-    case S::Trade: return PrepWords::kHintTrade;
-    case S::Shop: return PrepWords::kHintBuy;
+    case S::Trade: return session_.db.rules.items.carriedWeapons ? PrepWords::kHintTradeEquip : PrepWords::kHintTrade;
+    case S::Shop: return prep_->map.prep->buys ? PrepWords::kHintBuyTabs : PrepWords::kHintBuy;
+    case S::SellWho: return PrepWords::kHintSellWho;
+    case S::SellItems: return PrepWords::kHintSell;
     case S::Begin: return PrepWords::kHintAsk;
     default: return PrepWords::kHintList;
   }

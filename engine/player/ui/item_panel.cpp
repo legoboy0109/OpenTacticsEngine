@@ -10,6 +10,7 @@ namespace ote {
 namespace {
 constexpr int kPad = 6;
 const Color kMark(255, 220, 90), kGreyed(120, 124, 148);
+constexpr int kTabGap = 10;
 }  // namespace
 
 void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected) {
@@ -38,6 +39,8 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
   head_ = head;
   rows_ = rows;
   empty_ = emptyText;
+  tabs_.clear();
+  tab_ = 0;
   list_ = RowList();
   list_.count = (int)rows_.size();
   list_.sel = std::max(0, std::min(sel, list_.count - 1));
@@ -64,6 +67,16 @@ void ItemPanel::layout(const Renderer& r) {
   list_.y = y_ + fixedTop + mark;
   list_.h = shown * rowH;
   detailY_ = y_ + h_ - fixedBottom + 4;
+  // Tabs sit at the right end of the title row, the last one flush with the panel's padding.
+  tabX_.assign(tabs_.size(), 0);
+  tabW_.assign(tabs_.size(), 0);
+  int tx = x_ + w_ - kPad;
+  for (size_t i = tabs_.size(); i-- > 0;) {
+    tabW_[i] = textW(r, tabs_[i]);
+    tx -= tabW_[i];
+    tabX_[i] = tx;
+    tx -= kTabGap;
+  }
 }
 
 void ItemPanel::selectedBox(const Renderer& r, int& x, int& y, int& w, int& h) {
@@ -74,6 +87,14 @@ void ItemPanel::selectedBox(const Renderer& r, int& x, int& y, int& w, int& h) {
   h = list_.rowH;
 }
 
+bool ItemPanel::tabCentre(const Renderer& r, int i, int& x, int& y) {
+  layout(r);
+  if (i < 0 || i >= (int)tabs_.size()) return false;
+  x = tabX_[(size_t)i] + tabW_[(size_t)i] / 2;
+  y = y_ + kPad + r.lineHeight() / 2;
+  return true;
+}
+
 ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
   if (!open_) return None;
   layout(r);
@@ -81,6 +102,14 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0) list_.sel = row;
   } else if (e.type == InputEvent::PointerDown) {
+    // A tab's name, with a generous target (the whole title row, half a gap each side): a finger is wider than a letter.
+    for (size_t i = 0; i < tabs_.size(); ++i)
+      if (e.x >= tabX_[i] - kTabGap / 2 && e.x < tabX_[i] + tabW_[i] + kTabGap / 2 && e.y >= y_ && e.y < list_.y - 1) {
+        if ((int)i == tab_) return None;
+        tab_ = (int)i;
+        uiCue(Cue::Cursor);
+        return Tab;
+      }
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0) {
       bool again = row == list_.sel;
@@ -90,6 +119,12 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
     }
     if (e.x < x_ || e.y < y_ || e.x >= x_ + w_ || e.y >= y_ + h_) { uiCue(Cue::Cancel); return Back; }
   } else if (e.type == InputEvent::ButtonDown) {
+    if (tabs_.size() > 1 && (e.button == Button::Left || e.button == Button::Right)) {
+      const int n = (int)tabs_.size();
+      tab_ = (tab_ + (e.button == Button::Right ? 1 : n - 1)) % n;
+      uiCue(Cue::Cursor);
+      return Tab;
+    }
     if (list_.step(e.button)) return None;
     if (e.button == Button::Confirm && list_.count > 0) { uiCue(Cue::Confirm); return Picked; }
     if (e.button == Button::Cancel || e.button == Button::Menu) { uiCue(Cue::Cancel); return Back; }
@@ -105,7 +140,14 @@ void ItemPanel::draw(Renderer& r) {
   r.fillRect(x_, y_, w_, h_, chrome::kBg);
   r.drawRect(x_, y_, w_, h_, Color(200, 205, 230));
   int ty = y_ + kPad;
-  r.drawText(x_ + kPad, ty, fitText(r, title_, w_ - 2 * kPad).c_str(), chrome::kAccent);
+  int titleW = w_ - 2 * kPad;
+  if (!tabs_.empty()) titleW = std::max(0, tabX_[0] - kTabGap - (x_ + kPad));
+  r.drawText(x_ + kPad, ty, fitText(r, title_, titleW).c_str(), chrome::kAccent);
+  for (size_t i = 0; i < tabs_.size(); ++i) {  // the current tab is bright and underlined, the others dim
+    const bool on = (int)i == tab_;
+    r.drawText(tabX_[i], ty, tabs_[i].c_str(), on ? chrome::kTextSel : chrome::kDim);
+    if (on) r.fillRect(tabX_[i], ty + lh, tabW_[i], 1, chrome::kAccent);
+  }
   ty += lh + 4;
   if (!head_.empty()) r.drawText(x_ + kPad, ty, fitText(r, head_, w_ - 2 * kPad).c_str(), chrome::kText);
   if (rows_.empty()) {

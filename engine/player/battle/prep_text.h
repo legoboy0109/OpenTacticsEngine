@@ -41,6 +41,17 @@ struct PrepWords {
   static constexpr const char* kNothingForSale = "Nothing for sale.";
   static constexpr const char* kGiveTo = "Give to";
   static constexpr const char* kBought = "Bought ";
+  static constexpr const char* kBuy = "Buy";              // the shop's tabs
+  static constexpr const char* kSell = "Sell";
+  static constexpr const char* kSellFrom = "Sell from";   // whose items (or the storage) to sell
+  static constexpr const char* kSold = "Sold ";           // "Sold Potion for 10 Gold"
+  static constexpr const char* kFor = " for ";
+  static constexpr const char* kNothingToSell = "Nothing to sell.";
+  // Equip, on a character's item list
+  static constexpr const char* kHandOver = "Hand over";
+  static constexpr const char* kPutAway = "Put in storage";
+  static constexpr const char* kEquip = "Equip";
+  static constexpr const char* kEquipped = "Equipped ";   // "Equipped Axe"
   // Begin
   static constexpr const char* kBeginAsk = "Begin with ";  // "Begin with 2 of 3?"
   static constexpr const char* kOf = " of ";
@@ -57,6 +68,10 @@ struct PrepWords {
   static constexpr const char* kHintList = "Up/Down + Z:choose  X:back";
   static constexpr const char* kHintTrade = "Left/Right:unit  Up/Down  Z:hand over  X:back";
   static constexpr const char* kHintBuy = "Up/Down + Z:buy  X:back";
+  static constexpr const char* kHintBuyTabs = "Z:buy  Right:Sell  X:back";
+  static constexpr const char* kHintSellWho = "Z:choose  Left:Buy  X:back";
+  static constexpr const char* kHintSell = "Up/Down + Z:sell  X:back";
+  static constexpr const char* kHintTradeEquip = "Left/Right:unit  Z:hand/equip  X:back";
   static constexpr const char* kHintAsk = "Left/Right + Z:answer  X:back";
 };
 

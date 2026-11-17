@@ -251,9 +251,18 @@ class BattleScene : public Scene {
   void prepItemsWhoOpen(int sel = 0);
   void prepItemsWithOpen();
   void prepTradeOpen(int col = 0, int row = 0);
-  void prepTradePicked();
+  void prepTradePicked(bool direct = false);  // direct: skip the Hand over / Equip menu
   void prepShopOpen(int sel = 0);
   void prepShopForOpen();
+  // battle_prep_sell.cpp: selling at the shop, and Equip on the trade screen
+  void prepShopTab(int tab);                 // 0 = Buy, 1 = Sell (the shop's tabs)
+  void prepSellWhoOpen(int sel = 0);
+  void prepSellItemsOpen(int sel = 0);
+  void prepSellPicked();
+  void prepTradeChoiceOpen(int row);
+  void prepTradeChoice(int id);
+  bool prepTradeNeedsChoice(int row) const;  // the picked item is a weapon: the small menu (Hand over / Equip) opens first
+  void prepSellInput(const InputEvent& e);
   void prepListInput(const InputEvent& e);
   void prepItemsInput(const InputEvent& e);
   void prepCellInput(const InputEvent& e);
