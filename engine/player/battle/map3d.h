@@ -92,6 +92,7 @@ class Map3D {
   bool anyStand_ = false;
   MeshId ground_ = 0;
   bool built_ = false;
+  std::vector<int> terrainKey_;  // the terrain of every square when the ground mesh was built: a change rebuilds it
   std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle
   float hiddenKey_[7] = {-1000, 0, 0, 0, 0, 0, 0};  // the camera hidden_ was worked out for
   // Per frame: the camera's sideways and towards-the-camera directions on the ground, and pixel measures.

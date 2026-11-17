@@ -108,6 +108,9 @@ void Battle::placeOptions(int unit, Cell from, std::vector<PlaceOption>& out) co
     const StructureState& st = structures[s];
     const PlaceDef& p = placeOf(si);
     if (p.isDoor() || p.isChest()) {
+      // A wall that only attacks open (by: ["break"]) has no Open entry while it is locked: a greyed entry that can never turn on
+      // would only be noise next to "Break wall" (docs/SRPG.md section 10, "Walls that break").
+      if (p.isDoor() && st.locked && p.byBreak && !p.byKey && !p.byTrait) continue;
       PlaceOption o;
       o.structure = si;
       o.verb = PlaceOption::Verb::Open;

@@ -118,7 +118,8 @@ Every `rules` block and key is optional; defaults are shown above
     "visionBonus": 2,                          // optional (fog of war, docs/ECONOMY.md): 0..10, added to the
                                                // vision of a unit standing here; or for some unit types only:
                                                // { "amount": 2, "units": ["infantry", "<tag>"] } (ids or tags)
-    "hides": true }                            // optional: a unit standing here is seen only from next to it
+    "hides": true,                             // optional: a unit standing here is seen only from next to it
+    "blocksSight": true }                      // optional (fog): units do not see past a square of this terrain (a wall)
 ] }
 ```
 
@@ -160,7 +161,9 @@ of its squares, so one structure can stand on grass, road or sand and keep
 the ground's movement costs. Ids are unique among structures.
 
 A structure kind may also be a **door**, a **chest** or a **visitable place** (a village), with a `"door"`, `"chest"` or `"visit"` block, and may say
-`"blocksSight": true` (fog: units do not see past it). Opening, visiting or destroying one turns it into another kind of the same size.
+`"blocksSight": true` (fog: units do not see past it) and `"light": 3` (fog: a fixed light, 1..10, in sight of every team: docs/ECONOMY.md "Fog options"). Opening,
+visiting or destroying one turns it into another kind of the same size, and so does a map's named change (docs/EVENTS.md "Changing the map"). A door block may say
+`"word": "wall"` (what the menu calls it when attacked).
 Keys, the thief's ability, the unlock staff, the map keys (`id`, `contents`, `locked`, `visitSides`, `visitUnits`) and `"goesFor"` on units are
 specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR_UI.md).
 
@@ -256,6 +259,11 @@ Everything is in docs/ECONOMY.md.
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
   "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
                                                            // at most 32 sides then
+  "fogVision": -1,                                         // optional (needs fog): added to every unit's vision, -10..10
+  "aiSeesAll": false,                                      // optional (needs fog): computer sides see everything; a computer side's
+                                                           // own "aiSeesAll" overrides it (default: bound by fog)
+  "changes": { "bridge": { "cells": [ { "x": 4, "y": 1, "terrain": "bridge" } ],       // optional: named map changes (docs/EVENTS.md
+                           "structures": [ { "id": "gate", "kind": "gate_open" } ] } },  // "Changing the map"
   "music": "boss",                                         // optional (docs/SOUND.md): music ids of data/audio.json for this map
   "playerTurnMusic": "calm", "enemyTurnMusic": "tense",    // (each optional; "" = none on this map)
   "sides": [

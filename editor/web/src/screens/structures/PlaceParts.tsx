@@ -14,6 +14,7 @@ import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
 import { D } from './placeText'
+import { DoorWord } from '../fog/LightParts'
 
 const PARTS: Array<{ part: PlaceKind; label: string; help: string }> = [
   { part: 'door', label: D.door, help: D.doorHelp },
@@ -102,6 +103,7 @@ function OpeningPart({ s, part }: { s: Structure; part: 'door' | 'chest' }) {
           )}
         </>
       )}
+      {door && ways.includes('break') && typeof s.door?.hp === 'number' && <DoorWord id={s.id} word={s.door.word} />}
       <FromSelect s={s} />
       {door && <Check label={D.blocksSight} help={D.blocksSightHelp} checked={s.blocksSight === true} onChange={(v) => edit((d) => setBlocksSight(d, s.id, v))} />}
     </>

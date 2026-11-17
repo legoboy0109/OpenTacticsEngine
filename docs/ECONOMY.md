@@ -227,6 +227,31 @@ the editor has a switch for it on the map's Map tab (docs/EDITOR_UI.md "Fog of w
   (tests, tools) calls `Battle::refreshSight()` afterwards. It is cheap: about units x area per team, rebuilt only
   when dirty.
 
+**Fog options** (all optional; a map or game that uses none plays, saves and hashes as before; map changes: docs/EVENTS.md "Changing the map").
+- **Vision numbers.** A unit's vision is `vision` of its type (units.json, 0..20: a thief can see further) plus the square's bonuses (above) plus the
+  map's adjustment plus its skills' `vision`, never below 0: `Battle::visionAt` / `unitVision`. The map's adjustment: map `"fogVision": -10..10`
+  (needs `"fog": true`; negative = darkness) and the story command `{ "setVision": n }` (the same range; it sets, it does not add). A skill block
+  `{ "when": "always", "do": [ { "vision": 2 } ] }` (-10..10, not 0) adds to the unit that has it; its conditions are judged when sight is
+  recomputed, so use unconditional ones (or ones that change only through actions). Research and accessories still do not change vision.
+- **Fixed lights.** A structure kind with `"light": 3` (1..10; a brazier) puts every square within that many squares of any of its squares in sight
+  of **every team**, all the time (it belongs to nobody; units standing in it are seen by everybody). Light ignores line of sight, like a staff's light.
+- **Torch items.** A usable item with `"light": { "radius": 3, "turns": 2, "shrink": 1 }` (`turns` 1..10, default 1 or, with `shrink`, until it burns down;
+  `shrink` less than the radius) lights the square **its user stands on** for its side, exactly like the staff effect (docs/SRPG.md section 8, stage 2):
+  the `AreaLit` entry, `Battle::lights`, saved. It needs fog (without fog the item is not offered), its `target` must be `self`, and an item may have
+  nothing but `light`. The light stays where it was lit; the unit may walk away.
+- **Sight-blocking terrain.** Terrain with `"blocksSight": true` (a wall, a thicket) works like a structure kind's `blocksSight`: units do not see past it,
+  the square itself is seen. A unit standing on one still sees around it. A map change that replaces the terrain opens (or closes) the view at once.
+- **Computer sides and fog.** **Default (today's behaviour): a computer side is bound by fog exactly like a person's**: it plans on the enemies its team
+  sees, heads for the nearest unseen square when it sees none (docs/AI.md), and a unit it cannot see cannot be attacked by it. `"aiSeesAll": true` on the map
+  makes every computer side see everything (squares, units, structure owners and kinds; the AI then plans on the truth); a computer side's own
+  `"aiSeesAll": true | false` overrides the map's for that side. A team sees all only when **every** one of its sides is a computer side that does (a
+  human side is never affected). Fixed at the start; not saved (it is data). The loader refuses the map's two keys (`fogVision`, `aiSeesAll`) without `"fog": true`, and a side's `aiSeesAll` on a human side.
+- **Story commands.** `{ "setFog": false }` lifts the fog (everything is seen at once; staff and item lights are dropped, since a save refuses lights without
+  fog), `{ "setFog": true }` brings it down on a map that began without it (every team knows each structure's owner and kind as they are at that moment, like
+  at the start of a fog map). Both work in either direction and any number of times; the player follows (it starts or stops dimming at the next idle moment).
+  Saves: `mapState` (docs/SAVES.md).
+- **Tests:** `tests/test_mapchange_fog.cpp`, `tests/mapchange_player_test.py`.
+
 **Rules with fog on.**
 - **Targeting**: attack options, `forecast` and `apply(Attack)` leave out units the acting team does not see (the same
   refusal as any impossible attack, "that attack is not possible"); Talk is not offered towards an unseen unit. Item

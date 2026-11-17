@@ -17,6 +17,7 @@
 #include "core/base/rng.h"
 #include "core/base/types.h"
 #include "core/battle/carried.h"
+#include "core/battle/mapchange_state.h"
 #include "core/battle/places_state.h"
 #include "core/battle/quotes_state.h"
 #include "core/battle/srpg_state.h"
@@ -116,6 +117,8 @@ enum class EventType {
   // a=the unit that refreshed, b=the unit that may act again, c=ability.
   ItemStolen,
   UnitRefreshed,
+  // Changing the map (docs/EVENTS.md "Changing the map"): a=number of squares, b=the terrain they all got (-1 = not all the same), data=the squares.
+  TerrainChanged,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -235,6 +238,7 @@ struct SideState {
   uint32_t color = 0xffffff;
   int team = 0;
   bool ai = false;
+  bool seesAll = false;        // fog: a computer side that sees everything (map "aiSeesAll"); fixed at the start, not saved
   std::vector<int> resources;  // per resource index
   bool defeated = false;
   bool everHadUnits = false;
@@ -592,7 +596,8 @@ class Battle {
   void setSeenOwners(const std::vector<std::vector<int>>& owners) { seenOwners_ = owners; sight_.valid = false; }
   // How far a unit of this type standing on `cell` sees: its vision plus what the square gives it (terrain and
   // structure bonuses, each possibly limited to some unit types). The one place that rule lives.
-  int visionAt(const UnitTypeDef& type, Cell cell) const;
+  // `unit` (optional) adds what that unit's standing skills give.
+  int visionAt(const UnitTypeDef& type, Cell cell, const Unit* unit = nullptr) const;
   // The same for the last seen kinds (indices into db->structures).
   void setSeenKinds(const std::vector<std::vector<int>>& kinds) { seenKinds_ = kinds; sight_.valid = false; }
 
@@ -661,6 +666,7 @@ class Battle {
 #include "core/battle/srpg_api.h"
 #include "core/battle/places_api.h"
 #include "core/battle/quotes_api.h"
+#include "core/battle/mapchange_api.h"
 
  private:
   // combat.cpp

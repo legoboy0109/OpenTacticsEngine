@@ -1,0 +1,11 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot", "vision": 2,
+    "stats": { "hp": 24, "str": 7, "def": 3, "mov": 5 }, "wields": ["sword"] },
+  { "id": "thief", "name": "Thief", "glyph": "T", "moveType": "foot", "vision": 4,
+    "stats": { "hp": 18, "str": 4, "def": 1, "mov": 6 }, "wields": ["sword"] },
+  { "id": "seer", "name": "Seer", "glyph": "S", "moveType": "foot", "vision": 2, "skills": ["keen_eye"],
+    "stats": { "hp": 18, "str": 3, "def": 1, "mov": 5 }, "wields": ["sword"] },
+  { "id": "bird", "name": "Bird", "glyph": "B", "moveType": "fly", "vision": 2,
+    "stats": { "hp": 12, "str": 3, "def": 0, "mov": 6 }, "wields": ["sword"] },
+  { "id": "raider", "name": "Raider", "glyph": "R", "moveType": "foot", "vision": 3,
+    "stats": { "hp": 22, "str": 6, "def": 2, "mov": 5 }, "wields": ["sword"] } ] }

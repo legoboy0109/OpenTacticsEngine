@@ -80,6 +80,7 @@ void approachCells(const Battle& b, const Unit& u, bool enemyBlocked, std::vecto
 void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& best) {
   const Battle& b = cx.b;
   if (u.aiGoals == 0 || b.structures.empty() || u.acted) return;
+  if (u.aiGoals & kAiWalls) considerWalls(cx, u, reach, stops, best);
   const int mt = b.typeOf(u).moveType;
   const bool enemyBlocked = cx.enemyFieldFor(mt)[(size_t)u.cell] >= kFar;
   const bool automatic = b.db->rules.places.automatic;

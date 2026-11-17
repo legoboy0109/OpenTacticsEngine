@@ -8,6 +8,7 @@ import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
 import { ItemConditionFields } from './ItemConditionFields'
 import { ItemKeyPart } from './ItemKeyPart'
+import { ItemTorch } from '../fog/LightParts'
 import { T } from './text'
 
 export function ItemKindFields({ id }: { id: string }) {
@@ -34,6 +35,7 @@ export function ItemKindFields({ id }: { id: string }) {
           columns={[{ title: T.raisesCol, values: item.raise, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'raise', k, v), `${key}:raise:${k}`) }]} />
         <ItemConditionFields id={id} />
         <ItemKeyPart id={id} />
+        <ItemTorch id={id} />
       </div>
     )
   }

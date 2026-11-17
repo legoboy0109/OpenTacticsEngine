@@ -115,6 +115,8 @@ void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& b
 // A unit the map marked ("goesFor") may replace `order` by opening a chest / door or visiting / destroying a place, or by walking toward the
 // nearest one. Unmarked units do nothing here.
 void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& best);
+// ai_walls.cpp: a unit marked "walls" attacks a breakable door that blocks its way to every enemy, or walks to where it can.
+void considerWalls(Context& cx, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& best);
 
 // ---- ai_items.cpp ----
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.

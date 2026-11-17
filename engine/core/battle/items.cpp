@@ -113,6 +113,7 @@ void Battle::useTargets(int unit, int slot, std::vector<int>& targets) const {
     if ((!d.raise.empty() && canRaiseAny(t, d.raise)) || (d.heal > 0 && t.hp < maxHp(t))) return true;
     if ((d.cureAll || !d.cures.empty()) && cureWould(t, d.cures, d.cureAll)) return true;
     if (d.inflict >= 0 && inflictWhy(t, d.inflict, d.inflictTurns) == 0) return true;
+    if (d.lightRadius > 0 && fog && t.id == unit) return true;  // a torch: offered whenever the map has fog (docs/ECONOMY.md "Fog of war")
     std::vector<const PromotionDef*> fits;
     if (d.promotes && t.id == unit) promotionCandidates(t, u.items[(size_t)slot].item, true, fits);
     return !fits.empty();
@@ -271,6 +272,7 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
       // Conditions (docs/SRPG.md section 9): a cure, then an inflict, after the heal.
       if (d.cureAll || !d.cures.empty()) cureConditions(a.target, d.cures, d.cureAll, kConditionCured, events);
       if (d.inflict >= 0) inflictCondition(a.target, d.inflict, d.inflictTurns, a.unit, events);
+      if (d.lightRadius > 0 && fog) lightWithItem(a.unit, d, events);  // a torch (mapchange.cpp)
       const int usedItem = u.items[(size_t)a.slot].item;
       spendUse(a.unit, a.slot, events);
       endOrder(a.unit);

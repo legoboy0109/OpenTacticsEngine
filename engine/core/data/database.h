@@ -8,6 +8,7 @@
 
 #include "core/data/behaviour.h"
 #include "core/data/graphics.h"
+#include "core/data/map_change.h"
 #include "core/data/places.h"
 #include "core/data/ranks.h"
 #include "core/base/types.h"
@@ -43,6 +44,9 @@ struct TerrainDef {
   // matching as a weapon's "versus" keys). The loader refuses an empty list, so empty always means "all".
   std::vector<std::string> visionUnits;
   bool hides = false;
+  // Fog: a unit looking along a straight line of squares does not see past a square of this terrain (a wall); the square itself is
+  // seen (docs/ECONOMY.md "Fog of war", docs/EVENTS.md "Changing the map"). Only means something with fog.
+  bool blocksSight = false;
 };
 
 // One way a structure kind can be built up into another (docs/ECONOMY.md "Upgradable structures").
@@ -86,6 +90,9 @@ struct StructureDef {
   // Fog: a unit looking along a straight line of squares does not see past the squares of this kind (a closed door); the
   // squares of the kind themselves are seen. Only means something with fog (a map's "fog").
   bool blocksSight = false;
+  // Fog: a fixed light (a brazier): every square within this many squares of the structure's squares is in sight of EVERY team, all
+  // the time. 0 = none, else 1..kMaxStaffRadius (docs/ECONOMY.md "Fog of war").
+  int light = 0;
 };
 
 const int kMaxStructureSize = 8;
@@ -156,6 +163,8 @@ struct ItemDef {
   bool stealable = true;       // false: a steal ability never takes it (docs/SRPG.md "Steal")
   Props props;                 // usable / accessory: numbers a steal condition reads as `it.weight` (a weapon or staff has its own props)
   bool sellable = true;        // false: a shop that buys items never takes it (docs/EVENTS.md "Preparation"); no price = never bought either
+  // A usable item that lights the square its user stands on (a torch; docs/ECONOMY.md "Fog of war"): like a staff's "light". 0 = none.
+  int lightRadius = 0, lightTurns = 1, lightShrink = 0;
 };
 const int kHealFull = 1000000000;
 
@@ -391,6 +400,9 @@ struct Database {
   bool turnFlagSkills = false;
   // Some skill uses these effects (so the shared code can skip their work in a game that does not).
   bool nullifySkills = false, staffRangeSkills = false, carryBonusSkills = false, cancelEffectiveSkills = false;
+  // Fog options in use (set by the loaders; they keep sight.cpp from looking when a game has none): a "vision" skill effect, a terrain
+  // that blocks sight, a structure kind with a fixed "light".
+  bool visionSkills = false, terrainBlocksSight = false, structureLights = false;
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 
@@ -451,6 +463,7 @@ struct MapSideDef {
   bool ai = false;
   std::vector<Amount> resources;  // starting amounts
   std::vector<ItemGrant> storage; // starting contents of the side's shared storage
+  int aiSeesAll = -1;             // fog: -1 = follow the map's "aiSeesAll", 0 = this computer side is bound by fog, 1 = it sees everything
 };
 
 struct MapUnitDef {
@@ -501,6 +514,9 @@ struct MapDef {
   std::vector<MapStructureDef> structures;
   std::vector<MapUnitDef> units;
   bool fog = false;  // fog of war (docs/ECONOMY.md "Fog of war")
+  int fogVision = 0;         // fog: added to every unit's vision (negative = darkness), -10..10 (docs/ECONOMY.md "Fog of war")
+  bool aiSeesAll = false;    // fog: computer sides see everything (a side's own "aiSeesAll" overrides it)
+  std::vector<MapChangeDef> changes;  // named map changes (docs/EVENTS.md "Changing the map"); empty = none
   int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)

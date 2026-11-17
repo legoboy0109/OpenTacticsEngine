@@ -286,6 +286,20 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::WakeGroup:
       wakeGroup(c.unit);
       break;
+    // Changing the map and fog (mapchange.cpp).
+    case K::SetTerrain: {
+      std::vector<Cell> squares;
+      for (const Rect& r : c.rects)
+        for (int y = r.y; y < r.y + r.h; ++y)
+          for (int x = r.x; x < r.x + r.w; ++x)
+            if (grid.at(x, y) != kNoCell) squares.push_back(grid.at(x, y));
+      storySetTerrain(squares, c.index, events);
+      break;
+    }
+    case K::ApplyChange: storyApplyChange(c.index, events); break;
+    case K::RevertChange: storyRevertChange(c.index, events); break;
+    case K::SetFog: storySetFog(c.on); break;
+    case K::SetVision: storySetVision(c.value); break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
       if (!c.unit.empty()) {

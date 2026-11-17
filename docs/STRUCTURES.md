@@ -72,6 +72,12 @@ height keeps the cell's proportions, bottom edge on the footprint's bottom
 edge, so it may stick out above (towers). `GraphicsSet` gains
 `std::vector<UnitLook> structures` (per structure type index).
 
+### Fog and map changes (docs/ECONOMY.md "Fog options", docs/EVENTS.md "Changing the map")
+
+A kind may carry `"light": 1..10` (a brazier: a fixed light in sight of every team) besides `blocksSight`; a door block `"word"`. A map's named change can turn a
+placed structure (by its `id`) into another kind of the **same size**, which is an upgrade-like kind change that needs no payment and no research; saves accept
+it as a reachable kind. Structures are never added or removed during a battle.
+
 ## In memory (core)
 
 ```cpp

@@ -165,6 +165,8 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
       if (tag == "hq")
         return c.fail(where, "the tag \"hq\" now belongs to structures (data/structures.json), see docs/STRUCTURES.md");
     if (!readSquareVision(c, db, e, where, t.visionBonus, t.visionUnits, t.hides)) return false;
+    if (!c.boolean(e, "blocksSight", where, t.blocksSight)) return false;  // fog: a wall (docs/ECONOMY.md "Fog of war")
+    db.terrainBlocksSight = db.terrainBlocksSight || t.blocksSight;
     db.terrains.push_back(t);
   }
   return true;
@@ -251,6 +253,8 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     if (!c.stringList(e, "tags", where, s.tags)) return false;
     if (!c.boolean(e, "research", where, s.research)) return false;
     if (!readStructureRepairs(c, db, e, where, s) || !readSquareVision(c, db, e, where, s.visionBonus, s.visionUnits, s.hides)) return false;
+    if (!readStructureLight(c, e, where, s)) return false;  // fog: a brazier (docs/ECONOMY.md "Fog of war")
+    db.structureLights = db.structureLights || s.light > 0;
     db.structures.push_back(s);
   }
   return loadStructureUpgrades(c, *list, db) && loadStructurePlaces(c, *list, db);  // doors, chests, visits (docs/SRPG.md section 10)

@@ -10,7 +10,7 @@ import { patchObj } from './util'
 import type { ChestLoot, MapFile, MapStructure, MapUnit, ProjectDoc } from './types'
 
 export const MAX_CHEST_LOOT = 8
-export const GOES_FOR: Array<NonNullable<MapUnit['goesFor']>[number]> = ['chests', 'villages', 'doors', 'steal']
+export const GOES_FOR: Array<NonNullable<MapUnit['goesFor']>[number]> = ['chests', 'villages', 'doors', 'steal', 'walls']
 type At = { x: number; y: number }
 
 const kindOfPlaced = (doc: ProjectDoc, s: MapStructure): PlaceKind | null => placeKindOf(doc.structures?.find((k) => k.id === s.type))

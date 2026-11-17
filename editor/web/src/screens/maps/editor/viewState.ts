@@ -7,7 +7,7 @@ import type { Overlay } from '../../../model/storyOverlays'
 import type { Rect } from '../../../model/storyTypes'
 import { fitView, zoomAt, type View } from './geometry'
 
-type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'selCells' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'slots' | 'picking' | 'pickRect' | 'fogSeen' | 'fogSide'>
+type Fields = Pick<MapViewState, 'view' | 'autoFit' | 'hover' | 'cursor' | 'cursorVisible' | 'selected' | 'selSize' | 'selCells' | 'ghost' | 'placing' | 'dragS' | 'size' | 'overlays' | 'slots' | 'picking' | 'pickRect' | 'fogSeen' | 'fogSide' | 'changeSel' | 'paintChange' | 'changeView' | 'changeOutline'>
 
 /** The Events / Objectives panels asking for a square or an area on the map: the next click (or drag) answers it. */
 export interface PickRequest {
@@ -44,6 +44,12 @@ export class MapViewState {
   fogSeen: Uint8Array | null = null
   /** The side picked for that aid (null = the aid is off); the editor turns it into `fogSeen`. */
   fogSide: string | null = null
+  /** The Changes tab (docs/EDITOR_UI.md "Map changes and fog options"): the change being edited, whether the Terrain tool paints into it,
+   *  whether the canvas shows the map before or after it, and its squares (outlined). */
+  changeSel: string | null = null
+  paintChange: string | null = null
+  changeView: 'before' | 'after' = 'before'
+  changeOutline: Overlay[] = []
   /** Set while the person is picking a square or area for a form. */
   picking: PickRequest | null = null
   /** The rectangle being dragged out while picking (drawn dashed). */

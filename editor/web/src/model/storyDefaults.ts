@@ -137,6 +137,11 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'stopMusic': return { stopMusic: true }
     case 'playSound': return { playSound: Object.keys(c.doc.audio?.sounds ?? {})[0] ?? '' }
     case 'openDoor': case 'closeDoor': case 'lockDoor': case 'unlockDoor': case 'openChest': return { [kind]: firstPlaceFor(c.doc, c.map, kind) }
+    case 'setTerrain': return { setTerrain: c.doc.terrain?.[0]?.id ?? '', area: { x: 0, y: 0, w: 1, h: 1 } }
+    case 'applyChange': return { applyChange: Object.keys(c.map.changes ?? {})[0] ?? '' }
+    case 'revertChange': return { revertChange: Object.keys(c.map.changes ?? {})[0] ?? '' }
+    case 'setFog': return { setFog: false }
+    case 'setVision': return { setVision: -1 }
   }
 }
 

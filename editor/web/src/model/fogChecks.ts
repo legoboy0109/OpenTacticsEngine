@@ -2,6 +2,7 @@
 // in the editor before pressing Play. Bad `sees` conditions are in storyChecks.ts (they share its walk). The wording is
 // plain; the loader's own messages still show in the Problems list after a save.
 import { BONUS_MAX, FOG_MAX_SIDES, VISION_MAX } from './fog'
+import { fogOptionChecks } from './fogOptionChecks'
 import type { ProjectDoc, Section } from './types'
 
 export interface FogCheck { section: Section; text: string; mapId?: string }
@@ -33,6 +34,7 @@ export function fogChecks(doc: ProjectDoc): FogCheck[] {
   for (const u of doc.units ?? [])
     if (bad(u.vision, VISION_MAX)) out.push({ section: 'units', text: `${u.name}: the sight must be a whole number from 0 to ${VISION_MAX}.` })
   groundChecks(doc, out)
+  fogOptionChecks(doc, out)
   for (const [mapId, m] of Object.entries(doc.maps)) {
     if (!m) continue
     if (m.fog !== undefined && typeof m.fog !== 'boolean') out.push({ section: 'maps', mapId, text: 'Fog of war must be on or off.' })

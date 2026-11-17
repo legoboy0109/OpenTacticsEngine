@@ -32,6 +32,7 @@ struct PlaceDef {
   bool byTrait = true;       //   a unit's unlock ability,
   bool byBreak = false;      //   being broken down (door, needs hp). A story command and an unlock staff always work.
   int hp = 0;                // door: hit points; 0 = cannot be attacked
+  std::string word;          // door: what the menu calls it when it is attacked ("door" when empty; a cracked wall says "wall")
   std::vector<int> stats;    // door: per stat index the numbers the damage formula reads as `b.<stat>` (defence...)
   bool fromOn = true;        // from which squares a unit may interact: on a square of it,
   bool fromNext = true;      //   next to it. (Both true = either.)
@@ -48,7 +49,7 @@ struct PlaceRules {
 };
 
 // map unit / addUnit "goes for": what the computer opponent does with these (docs/SRPG.md section 10 "Computer opponent").
-enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4, kAiSteal = 8 /* docs/SRPG.md "Steal" */ };
+enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4, kAiSteal = 8 /* docs/SRPG.md "Steal" */, kAiWalls = 16 /* docs/SRPG.md section 10: break a door that has hit points and blocks the way */ };
 
 const int kMaxPlaceHp = 9999;
 const int kMaxChestLoot = 8;

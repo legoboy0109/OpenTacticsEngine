@@ -58,6 +58,9 @@ Core: `RulesConfig::items` (`ItemRules`).
     "bonus": { "defense": 2 } }             // added to the stats of whoever carries it
 ] }
 ```
+A usable item may light the square its user stands on in fog (a torch): `"light": { "radius": 3, "turns": 2, "shrink": 1 }` (docs/ECONOMY.md "Fog options"); it
+may have nothing else, and its `target` must be `self`.
+
 Rules the loader enforces (each with a message naming the item):
 - ids unique; `kind` one of the three; a usable item has `heal` and/or
   `raise`; a weapon item names an existing weapon; an accessory has a

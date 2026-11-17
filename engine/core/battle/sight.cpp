@@ -11,16 +11,23 @@
 
 namespace ote {
 
-int Battle::visionAt(const UnitTypeDef& type, Cell c) const {
+int Battle::visionAt(const UnitTypeDef& type, Cell c, const Unit* unit) const {
   // Vision is a property of the unit's type plus the square it stands on. It is deliberately not a stat, so
   // research and accessories do not change it. A square's bonus may be limited to some unit types.
   const TerrainDef& t = terrainAt(c);
   int bonus = visionBonusFor(t.visionBonus, t.visionUnits, type);
   if (const StructureDef* s = structureDefAt(c)) bonus += visionBonusFor(s->visionBonus, s->visionUnits, type);
-  return type.vision + bonus;
+  int vision = type.vision + bonus;
+  // The map's adjustment (map "fogVision", story "setVision") and the unit's own skills (docs/ECONOMY.md "Fog of war"); a map that
+  // uses neither keeps the plain number above.
+  if (fogVision != 0 || (unit && db->visionSkills)) {
+    vision += fogVision + (unit ? skillVision(*unit) : 0);
+    vision = std::max(0, std::min(vision, kMaxVision + kMaxVisionBonus));
+  }
+  return vision;
 }
 
-int Battle::visionOf(const Unit& u) const { return visionAt(typeOf(u), u.cell); }
+int Battle::visionOf(const Unit& u) const { return visionAt(typeOf(u), u.cell, &u); }
 
 void Battle::computeTeamSight(int team) const {
   const size_t n = (size_t)grid.cellCount();
@@ -42,6 +49,14 @@ void Battle::computeTeamSight(int team) const {
     std::vector<Cell> cellsOf;
     structureCells((int)s, cellsOf);
     for (Cell c : cellsOf) blocks[(size_t)c] = 1;
+  }
+  // Terrain that blocks sight (a wall, "blocksSight" in terrain.json) does the same; a map change that opens it opens the view.
+  if (db->terrainBlocksSight) {
+    for (size_t c = 0; c < n; ++c)
+      if (db->terrains[(size_t)cells[c].terrain].blocksSight) {
+        if (blocks.empty()) blocks.assign(n, 0);
+        blocks[c] = 1;
+      }
   }
   std::vector<Cell> area, mine, ray;
   for (const Unit& u : units) {
@@ -65,6 +80,19 @@ void Battle::computeTeamSight(int team) const {
     if (l.side < 0 || l.side >= (int)sides.size() || sides[(size_t)l.side].team != team) continue;
     grid.within(l.cell, l.radius, area);
     for (Cell c : area) seen[(size_t)c] = 1;
+  }
+  // A fixed light (structure kind "light": a brazier) shows the squares around it to every team.
+  if (db->structureLights) {
+    std::vector<Cell> lit;
+    for (size_t s = 0; s < structures.size(); ++s) {
+      const int radius = defOf(structures[s]).light;
+      if (radius <= 0) continue;
+      structureCells((int)s, lit);
+      for (Cell f : lit) {
+        grid.within(f, radius, area);
+        for (Cell c : area) seen[(size_t)c] = 1;
+      }
+    }
   }
   // A structure of the team sees one square around every square of its footprint (the footprint included).
   std::vector<Cell> footprint;
@@ -134,6 +162,7 @@ void Battle::markSight() {
 bool Battle::visibleTo(int team, Cell cell) const {
   if (!fog) return true;
   if (team < 0 || team >= teamCount || !grid.valid(cell)) return false;
+  if (teamSeesAll(team)) return true;
   ensureSight();
   return sight_.seen[(size_t)team][(size_t)cell] != 0;
 }
@@ -142,7 +171,7 @@ bool Battle::unitVisibleTo(int team, const Unit& u) const {
   if (!u.alive || u.cell == kNoCell) return false;
   if (!fog) return true;
   if (team < 0 || team >= teamCount) return false;
-  if (teamOf(u) == team) return true;
+  if (teamOf(u) == team || teamSeesAll(team)) return true;
   ensureSight();
   return sight_.unitSeen[(size_t)team][(size_t)u.cell] != 0;
 }
@@ -166,6 +195,7 @@ int Battle::seenOwner(int team, int structure) const {
   if (structure < 0 || structure >= (int)structures.size()) return -1;
   if (!fog) return structures[(size_t)structure].owner;
   if (team < 0 || team >= teamCount) return -1;
+  if (teamSeesAll(team)) return structures[(size_t)structure].owner;
   ensureSight();  // also brings the memory up to date
   return seenOwners_[(size_t)team][(size_t)structure];
 }
@@ -174,6 +204,7 @@ int Battle::seenKind(int team, int structure) const {
   if (structure < 0 || structure >= (int)structures.size()) return -1;
   if (!fog) return structures[(size_t)structure].type;
   if (team < 0 || team >= teamCount) return structures[(size_t)structure].mapType;
+  if (teamSeesAll(team)) return structures[(size_t)structure].type;
   ensureSight();  // also brings the memory up to date
   return seenKinds_[(size_t)team][(size_t)structure];
 }

@@ -335,7 +335,7 @@ void BattleScene::staffUnlockPick(int user, int slot) {
 }
 
 void BattleScene::clearStaffHint() {
-  if (notice_ == PlaceWords::kPickUnlock || notice_ == PlaceWords::kPickDoor) noticeTime_ = 0;
+  if (notice_ == PlaceWords::kPickUnlock || notice_.rfind("Pick ", 0) == 0) noticeTime_ = 0;
   if (notice_ == StaffWords::kPickSquare || notice_ == StaffWords::kPickLight || notice_ == StaffWords::kRepairWhich) noticeTime_ = 0;
 }
 

@@ -3,6 +3,7 @@ import { clone, ids, withTerrain } from './doc'
 import { makeId } from './ids'
 import { copyArtOf } from './graphicsClean'
 import { cleanTerrain } from './references'
+import { dropTerrainFromChanges } from './mapChangeRefs'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { ProjectDoc, Terrain } from './types'
 
@@ -37,7 +38,7 @@ export function terrainRemovalBlock(doc: ProjectDoc): string | null {
 export function deleteTerrain(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.terrain || terrainRemovalBlock(doc)) return doc
   const replacement = doc.terrain.find((t) => t.id !== id)!.id
-  return { ...cleanTerrain(doc, id, replacement), terrain: doc.terrain.filter((t) => t.id !== id) }
+  return dropTerrainFromChanges({ ...cleanTerrain(doc, id, replacement), terrain: doc.terrain.filter((t) => t.id !== id) }, id)
 }
 
 export function updateTerrain(doc: ProjectDoc, id: string, patch: Partial<Omit<Terrain, 'id'>>): ProjectDoc {

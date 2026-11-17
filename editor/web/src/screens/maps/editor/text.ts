@@ -119,7 +119,7 @@ export const T = {
   noNumbers: 'none',
 
   // panel tabs
-  tabs: { tool: 'Tool', map: 'Map', sides: 'Sides', prep: 'Preparation', events: 'Events', objectives: 'Objectives' },
+  tabs: { tool: 'Tool', map: 'Map', sides: 'Sides', prep: 'Preparation', events: 'Events', objectives: 'Objectives', changes: 'Changes' },
   panelLabel: 'Map options',
   sheetOpen: 'Show options',
   sheetClose: 'Hide options',

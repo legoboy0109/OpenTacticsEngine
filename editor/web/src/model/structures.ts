@@ -4,6 +4,7 @@ import { clone, ids, withStructures } from './doc'
 import { copyArtOf } from './graphicsClean'
 import { makeId } from './ids'
 import { cleanStructure } from './structuresRefs'
+import { dropKindFromChanges } from './mapChangeRefs'
 import { moveItem, patchObj, setNum, updateById } from './util'
 import type { ProjectDoc, Structure } from './types'
 
@@ -51,7 +52,7 @@ export function duplicateStructure(doc: ProjectDoc, id: string, newId?: string):
 /** Unlike terrain, a game may have no structures at all. Removes the kind, the ones placed on maps, its pictures and style colours. */
 export function deleteStructure(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.structures?.some((s) => s.id === id)) return doc
-  return { ...cleanStructure(doc, id), structures: doc.structures.filter((s) => s.id !== id) }
+  return dropKindFromChanges({ ...cleanStructure(doc, id), structures: doc.structures.filter((s) => s.id !== id) }, id)
 }
 
 export function updateStructure(doc: ProjectDoc, id: string, patch: Partial<Omit<Structure, 'id'>>): ProjectDoc {

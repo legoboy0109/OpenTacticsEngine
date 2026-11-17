@@ -161,6 +161,14 @@ export interface Command extends Extra {
   setBehaviour?: Behaviour
   units?: Filter
   wakeGroup?: string
+  /** Changing the map (docs/EVENTS.md "Changing the map"): terrain id + `area` or `cells`; a named change of the map; fog on / off; the vision adjustment. */
+  setTerrain?: string
+  area?: Rect
+  cells?: Array<[number, number]>
+  applyChange?: string
+  revertChange?: string
+  setFog?: boolean
+  setVision?: number
   // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
 export type CommandKind =
@@ -168,12 +176,14 @@ export type CommandKind =
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
+  | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
+  'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',
 ]
 /** The commands that name a door, chest or place of the map. */
 export const PLACE_COMMANDS: CommandKind[] = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest']

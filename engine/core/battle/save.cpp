@@ -8,6 +8,7 @@
 #include "core/battle/save_behaviour.h"
 
 #include "core/battle/save_fog.h"
+#include "core/battle/save_mapstate.h"
 #include "core/battle/save_items.h"
 #include "core/battle/save_places.h"
 #include "core/battle/save_reader.h"
@@ -120,7 +121,8 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
 bool readStructure(Reader& rd, const Battle& b, const Json& j, int index, StructureState& st) {
   std::string where = "structures[" + std::to_string(index) + "]";
   if (!j.isObject()) return rd.fail(where, "not an object");
-  if (!savejson::readStructureKind(rd, *b.db, j, where, st)) return false;  // before anything that depends on the kind
+  const std::vector<int> extra = b.changeKindsOf(index);
+  if (!savejson::readStructureKind(rd, *b.db, j, where, st, &extra)) return false;  // before anything that depends on the kind
   int points = b.defOf(st).capturePoints;
   if (!rd.integer(j, "owner", where, -1, (int)b.sides.size() - 1, st.owner)) return false;
   if (!rd.integer(j, "capture", where, 0, points > 0 ? points : 0, st.capture)) return false;
@@ -205,6 +207,7 @@ void saveBattleState(const Battle& b, Json& out) {
     structures.push(j);
   }
   out.set("structures", structures);
+  savejson::writeMapState(b, out);  // only after a map change or a fog switch (save_mapstate.cpp)
   savejson::writeSeenOwners(b, out);
   savejson::writeSeenKinds(b, out);
   savejson::writeLights(b, out);
@@ -269,6 +272,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   for (size_t i = 0; i < b.structures.size(); ++i)
     if (!readStructure(rd, b, (*structures)[i], (int)i, b.structures[i])) return false;
 
+  if (!savejson::readMapState(rd, saved, b)) return false;  // before anything that needs to know whether fog is on
   if (!savejson::readSeenOwners(rd, saved, b)) return false;
   if (!savejson::readSeenKinds(rd, saved, b)) return false;
   if (!savejson::readLights(rd, saved, b)) return false;

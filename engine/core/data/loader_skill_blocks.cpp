@@ -313,7 +313,7 @@ const EffectSpec kEffects[] = {
     {"weaponXpPercent", K::WeaponXpPercent, A}, {"noCarryPenalty", K::NoCarryPenalty, A}, {"cancelEffective", K::CancelEffective, A},
     {"cure", K::Cure, T | D | F | SU},
     // Second set (docs/SRPG.md "Skill and ability blocks, second set").
-    {"nullifySkills", K::NullifySkills, C}, {"staffRange", K::StaffRange, A}, {"carryBonus", K::CarryBonus, A},
+    {"nullifySkills", K::NullifySkills, C}, {"staffRange", K::StaffRange, A}, {"carryBonus", K::CarryBonus, A}, {"vision", K::Vision, A},
     // Third set (docs/SRPG.md "Skill blocks, third set").
     {"recoil", K::Recoil, S}};
 
@@ -608,6 +608,12 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     } else {
       return c.fail(where, how);
     }
+    return true;
+  }
+  if (spec->kind == K::Vision) {
+    if (!LoadCtx::isWhole(v) || v.asInt() < -kMaxVisionBonus || v.asInt() > kMaxVisionBonus || v.asInt() == 0)
+      return c.fail(where, "\"vision\" must be a whole number from -10 to 10, not 0 (added to the unit's vision in fog of war)");
+    out.value = v.asInt();
     return true;
   }
   if (spec->kind == K::CarryBonus) {

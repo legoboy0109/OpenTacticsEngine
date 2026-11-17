@@ -67,7 +67,7 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     const g = c?.getContext('2d')
     if (!c || !g) return
     const sg = ghostRef.current()
-    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, selCells: vs.selCells, time: clockNow(reduced.current), overlays: vs.overlays, slots: vs.slots, pickRect: vs.pickRect, fogSeen: vs.fogSeen })
+    drawMap(g, sceneRef.current, { dpr: dpr.current, w: vs.size.w, h: vs.size.h, view: vs.view, hover: vs.hover, cursor: vs.cursorVisible ? vs.cursor : null, selected: vs.selected, ghost: vs.ghost, structureGhost: sg, selSize: vs.selSize, selCells: vs.selCells, time: clockNow(reduced.current), overlays: vs.overlays, slots: vs.changeOutline.length ? [...vs.slots, ...vs.changeOutline] : vs.slots, pickRect: vs.pickRect, fogSeen: vs.fogSeen })
     // What the structure ghost shows (for tests and curious people): "kind,x,y,ok|bad", empty when there is none.
     c.dataset.ghost = sg ? `${sg.type},${sg.x},${sg.y},${sg.ok ? 'ok' : 'bad'}` : ''
     // Lets tests (and curious people) find a square on screen without guessing.
@@ -78,6 +78,9 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     c.dataset.areas = vs.overlays.map((o) => `${o.tone}:${o.x},${o.y},${o.w},${o.h}`).join(';')
     // The preparation's deployment squares in slot order ("x,y;x,y"), for tests and curious people.
     c.dataset.slots = vs.slots.map((o) => `${o.x},${o.y}`).join(';')
+    // The Changes tab: the squares of the selected change ("x,y;x,y") and whether the canvas shows the map before or after it.
+    c.dataset.changeCells = vs.changeOutline.map((o) => `${o.x},${o.y}`).join(';')
+    c.dataset.changeView = vs.changeSel ? vs.changeView : ''
   }, [vs])
   const schedule = useCallback(() => { if (!raf.current) raf.current = requestAnimationFrame(draw) }, [draw])
 

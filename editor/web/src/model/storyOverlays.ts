@@ -3,7 +3,7 @@
 import { rectOf, triggerKind, type Objectives, type StoryEvent } from './storyTypes'
 import { forEachCommand } from './storyWalk'
 
-export type OverlayTone = 'area' | 'add' | 'move' | 'view' | 'win' | 'lose' | 'slot'
+export type OverlayTone = 'area' | 'add' | 'move' | 'view' | 'win' | 'lose' | 'slot' | 'change'
 export interface Overlay { x: number; y: number; w: number; h: number; label: string; tone: OverlayTone }
 
 const num = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n : 0)

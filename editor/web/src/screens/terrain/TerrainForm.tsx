@@ -12,6 +12,8 @@ import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
 import { GroundSightCard } from '../fog/GroundSightCard'
+import { TerrainBlocksSight } from '../fog/LightParts'
+import { MC } from '../maps/editor/story/forms/mapChangeText'
 import { MoveCosts } from './MoveCosts'
 import { T } from './text'
 
@@ -69,6 +71,7 @@ export function TerrainForm({ id }: { id: string }) {
       </Card>
 
       <GroundSightCard kind="terrain" id={id} />
+      <Card title={MC.blocksSightTerrain}><TerrainBlocksSight id={id} /></Card>
 
       <p className="help" data-testid="terrain-structures-note">{T.structuresNote} <Link to={projectPath(store.id, 'structures')}>{T.structuresLink}</Link></p>
 

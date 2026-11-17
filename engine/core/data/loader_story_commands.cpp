@@ -23,6 +23,8 @@ constexpr const char* kPlaceCommandKeys[] = {"openDoor", "closeDoor", "lockDoor"
 constexpr const char* kConditionCommandKeys[] = {"addCondition", "removeCondition"};
 // The computer opponent's behaviour (docs/AI.md), read in loader_behaviour.cpp.
 constexpr const char* kBehaviourCommandKeys[] = {"setBehaviour", "wakeGroup"};
+// Changing the map and fog (docs/EVENTS.md "Changing the map"), read in loader_story_mapchange.cpp.
+constexpr const char* kMapCommandKeys[] = {"setTerrain", "applyChange", "revertChange", "setFog", "setVision"};
 
 }  // namespace
 
@@ -73,6 +75,13 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kMapCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
+  for (const char* k : kMapCommandKeys)
+    if (kind && std::string(kind) == k) return mapChangeCommand(e, kind, where + " (" + kind + ")", out);
   for (const char* k : kBehaviourCommandKeys)
     if (kind && std::string(kind) == k) return behaviourCommand(e, where + " (" + kind + ")", out);
   for (const char* k : kPlaceCommandKeys)

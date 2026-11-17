@@ -112,7 +112,10 @@ struct Command {
     AddCondition, RemoveCondition,
     // docs/AI.md: SetBehaviour gives every living computer unit matching `filter` the block `behaviour` (and puts it back to sleep, for a
     // guard); WakeGroup wakes every unit whose guard group is `unit` (the group name).
-    SetBehaviour, WakeGroup
+    SetBehaviour, WakeGroup,
+    // docs/EVENTS.md "Changing the map": SetTerrain gives the squares `rects` terrain `index`; ApplyChange / RevertChange apply / take back
+    // the map's change `index` (MapDef::changes); SetFog switches fog of war on / off (`on`); SetVision sets the map's vision adjustment (`value`).
+    SetTerrain, ApplyChange, RevertChange, SetFog, SetVision
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -135,6 +138,7 @@ struct Command {
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
+  std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
 };
 
 // What a Place command does.

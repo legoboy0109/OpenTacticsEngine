@@ -74,7 +74,7 @@ void Map3D::upright(MeshData& m, Spot feet, float wPx, float hPx, float towards,
 }
 
 // The blocks: every side face that shows, and the tops of squares without a
-// usable picture. Fixed for the whole battle (terrain does not change).
+// usable picture. Built again as a whole when a square's terrain changed (a map change, docs/EVENTS.md): see draw().
 void Map3D::buildGround(const DrawCtx& c) {
   built_ = true;
   if (c.proj->hex()) {
@@ -175,9 +175,19 @@ void Map3D::beginFrame(Renderer& r, const DrawCtx& c) {
 }
 
 void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool showCursor) {
-  if (!built_) {
+  // The ground is one mesh for the whole map. A story command can change terrain (docs/EVENTS.md "Changing the map"), so the terrain
+  // of every square is compared with what the mesh was built from and the whole ground is rebuilt when one differs (the map is a few
+  // thousand squares at most, so this is cheap, and it is what the renderer supports: there is no partial update of a mesh).
+  const Battle& bt = c.battle;
+  bool stale = !built_ || terrainKey_.size() != bt.cells.size();
+  for (size_t i = 0; i < bt.cells.size() && !stale; ++i) stale = terrainKey_[i] != bt.cells[i].terrain;
+  if (stale) {
+    if (ground_) r3d_.destroyMesh(ground_);
+    ground_ = 0;
     buildGround(c);
     markStands(c);
+    terrainKey_.resize(bt.cells.size());
+    for (size_t i = 0; i < bt.cells.size(); ++i) terrainKey_[i] = bt.cells[i].terrain;
   }
   updateHidden(c);
   beginFrame(r, c);

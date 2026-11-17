@@ -33,7 +33,10 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     return false;
   }
 
-  fog = map.fog;
+  fog = startFog = map.fog;
+  fogVision = startFogVision = map.fogVision;
+  if (!map.changes.empty()) mapChanges = std::make_shared<const std::vector<MapChangeDef>>(map.changes);
+  baseTerrain = std::make_shared<const std::vector<int>>(map.terrain);
   if (map.gridType != db->gridType) {
     err = "map '" + map.id + "' has a different kind of grid than the game";
     return false;
@@ -50,6 +53,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.name = sd.name.empty() ? sd.id : sd.name;
     s.color = sd.color;
     s.ai = sd.ai;
+    s.seesAll = sd.ai && (sd.aiSeesAll >= 0 ? sd.aiSeesAll == 1 : map.aiSeesAll);  // docs/ECONOMY.md "Fog of war"
     std::string team = sd.team.empty() ? sd.id : sd.team;
     int teamIndex = -1;
     for (size_t i = 0; i < teamNames.size(); ++i)
@@ -72,6 +76,13 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     sides.push_back(s);
   }
   teamCount = (int)teamNames.size();
+  // A team sees everything only when every one of its sides is a computer side that does.
+  for (int t = 0; t < teamCount && t < 32; ++t) {
+    bool all = true;
+    for (const SideState& s : sides)
+      if (s.team == t && !s.seesAll) all = false;
+    if (all) seesAllTeams |= 1u << t;
+  }
 
   for (int c = 0; c < cellCount; ++c) {
     CellState& cs = cells[c];

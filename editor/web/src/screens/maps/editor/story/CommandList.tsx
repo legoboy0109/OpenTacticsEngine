@@ -9,6 +9,8 @@ import { commandKind, type Command, type CommandKind } from '../../../../model/s
 import { Select, type OptionGroup } from '../../../../ui/Select'
 import { CommandForm } from './CommandForm'
 import { P } from './forms/placeText'
+import { MC } from './forms/mapChangeText'
+import { changeIds } from '../../../../model/mapChanges'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory, type Story } from './StoryContext'
 import { S } from './text'
@@ -36,6 +38,7 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
+  { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
@@ -68,6 +71,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     playSound: doc.audio?.sounds && Object.keys(doc.audio.sounds).length ? null : 'no sounds yet',
     openDoor: placeWhy(story, 'openDoor'), closeDoor: placeWhy(story, 'closeDoor'), lockDoor: placeWhy(story, 'lockDoor'),
     unlockDoor: placeWhy(story, 'unlockDoor'), openChest: placeWhy(story, 'openChest'),
+    applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.
   const allowed = (k: CommandKind) => (story.scene?.only ? story.scene.only.includes(k) : story.scene ? SCENE_KINDS.includes(k) && (k !== 'goto' || story.scene.goto) : k !== 'goto')

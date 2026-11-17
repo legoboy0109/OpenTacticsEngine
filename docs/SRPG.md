@@ -772,6 +772,8 @@ default is never cancelled by a list. Each tag must be a key some weapon's `vers
 `{ "if": [ { "formula": "(ta.avoid or 0) > 0" } ] }` (`ta.avoid` is `nil` on a square that does not set it: `(... or 0)` keeps the formula from failing). Any comparison works: `ta.defense >= 2`,
 `ta.avoid - (tb.avoid or 0) > 10`. The `terrainBonus` key of the old note stays unbuilt, on purpose.
 
+**A torch item.** The same light is available to a plain usable item: `"light": { "radius": 3, "turns": 2, "shrink": 1 }` (docs/ECONOMY.md "Fog options"), centred on the user's square.
+
 **9. A light that shrinks.** A staff's `{ "light": { "radius": 4, "shrink": 2 } }`: the radius goes down by `shrink` squares each time the side's turn starts, and the light is gone when
 the radius would be below 1 (or its `turns` run out, whichever comes first). With `shrink` and no `turns` the light lasts as long as it takes to burn down (`ceil(radius / shrink)` turns,
 at most 10). `shrink` is a whole number from 1 to the radius minus one. The save keeps `"shrink": n` on the light only when it is not 0 (so every older save and every ordinary light saves as before);
@@ -2436,7 +2438,10 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
   **Which key?** list (name, uses) opens with the first highlighted; Cancel returns to the action menu. In `"auto"` mode there are no Open / Visit /
   Destroy entries (the move does it); Break door, abilities and staves stay.
 - **Break door** is its own entry (not inside Attack: the Attack picker is built around units), shown when `placeAttackOptions` has something; it picks a
-  square of an attackable door with the weapon that does the most damage. The forecast box: `<door>  <weapon>`, `Damage 13 x2` (the `x2` only with several
+  square of an attackable door with the weapon that does the most damage. The word is the kind's `"word"` (see "Walls that break"): `Break door` by default,
+  `Break wall` for a kind that says `"word": "wall"`, plain `Break` when the things in reach are called different words; the pick hint and the "not
+  breakable" reason follow (`Pick a wall to break`, `Not a wall you can break`). A door that opens only by `break` has **no Open entry** while it is locked
+  (a greyed entry that can never turn on would only be noise). The forecast box: `<door>  <weapon>`, `Damage 13 x2` (the `x2` only with several
   strikes), `HP 20 > 7`, `Breaks` when it would open.
 - **Unlock ability**: the normal square pick over `abilityTargets`. **Unlock staff**: the light staff's square pick, the whole structure marked; forecast
   `Opens <name>`, `Hit N%` only when it can miss, `Exp N`. Cancel steps back as for a light.
@@ -2464,7 +2469,24 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 - **Steal** is built (section 3 "Skill and ability blocks, second set", Steal): an ability that takes an item from an adjacent foe. A stolen item is no
   longer in the foe's inventory, so it cannot drop when the foe is defeated.
 - Editor forms are built (docs/EDITOR_UI.md "Doors, chests and places"), `goesFor` on an `addUnit` command included ("Editor gaps").
-- The AI does not use unlock abilities / staves and does not break doors down.
+- The AI does not use unlock abilities / staves. It breaks doors down only when its unit is marked `goesFor: ["walls"]` (below).
+
+### Walls that break (a breakable wall that turns into floor)
+
+Checked against the owner's wish ("snag", "cracked wall"): **doors with hit points already cover it**, with two small additions.
+- **What exists.** A door kind with `"door": { "opens": "crack_open", "hp": 12, "by": ["break"], "stats": { "def": 1 }, "from": "next" }` and
+  `moveCost` 0 for the types it blocks. Its footprint can be any size (`"width": 3`): all its squares break as **one piece**. `by: ["break"]` leaves out
+  keys and the thief's trait (an unlock **staff** and a story `openDoor` always work). `"blocksSight": true` on the closed kind and none on the open
+  one makes opening it open the view. The opened kind should be drawn as rubble or nothing; its squares then have the **terrain beneath** (the loader refuses a
+  door that opens onto terrain no movement type can enter, so put the wall on passable ground).
+- **The hook** ("when it is broken, change the map"). **No new key**: the `place` trigger already allows it, for every way of opening
+  (`{ "place": "w1", "is": "opened" }`; docs/EVENTS.md), so the recipe is `{ "when": { "place": "w1", "is": "opened" }, "do": [ { "applyChange": "rubble" } ] }`
+  with a map change `rubble` that turns the squares under it into rubble (or `setTerrain`). `tests/test_mapchange_walls.cpp` proves it for an attack and for a story command.
+- **Added: `"word"`** in the door block (a short word, letters and spaces, at most 16; default `door`): what the menu calls it. Wording only; saves and rules do not
+  see it.
+- **Added: the computer opponent.** `"goesFor": ["walls"]` (map unit and `addUnit`; value 16 in a save's `goes`): see "Computer opponent" in docs/AI.md. **Decision:**
+  a new value rather than reusing `doors`, because `doors` means "open it with the key I carry" and a unit marked only for that must not start hacking at
+  walls. Default off, so every unit of every shipped game plays as before (the demo simulator results are identical).
 
 ### Tests
 

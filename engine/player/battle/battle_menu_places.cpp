@@ -39,8 +39,9 @@ void BattleScene::addPlaceEntries(std::vector<MenuItem>& items) {
   placeAtk_.clear();
   battle_.placeAttackOptions(sel_, u.cell, placeAtk_);
   if (!placeAtk_.empty()) {
-    items.push_back({PlaceWords::kBreak, "", true, kPlaceBreakEntry});
-    log += (log.empty() ? "" : ", ") + std::string(PlaceWords::kBreak);
+    const std::string breakLabel = placeBreakLabel(placeBreakWord(battle_, placeAtk_));  // "Break door", "Break wall"
+    items.push_back({breakLabel, "", true, kPlaceBreakEntry});
+    log += (log.empty() ? "" : ", ") + breakLabel;
   }
   if (!log.empty()) OTE_INFO("place entries of %s: %s", u.name.c_str(), log.c_str());
 }
@@ -154,9 +155,10 @@ void BattleScene::placeBreakPick() {
     }
     placeSubmit(Action::breakPlace(user, s, f.weapon));
   }, mark);
-  pickWhy_ = [](int) { return std::string(PlaceWords::kNotBreakable); };
-  say(PlaceWords::kPickDoor);
-  OTE_INFO("place hint: %s", PlaceWords::kPickDoor);
+  const std::string word = placeBreakWord(battle_, atk);
+  pickWhy_ = [word](int) { return placeNotBreakableText(word); };
+  say(placePickBreakHint(word));
+  OTE_INFO("place hint: %s", placePickBreakHint(word).c_str());
   OTE_INFO("door break: %d squares to choose from", (int)cells.size());
 }
 

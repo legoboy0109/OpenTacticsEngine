@@ -9,13 +9,14 @@ import { SidesPanel } from './panels/SidesPanel'
 import { ToolPanel } from './panels/ToolPanel'
 import { EventsPanel } from './story/EventsPanel'
 import { ObjectivesPanel } from './story/ObjectivesPanel'
+import { ChangesPanel } from './panels/ChangesPanel'
 import { peekOpenEvent } from './openRequest'
 import type { MapViewState } from './viewState'
 import { T } from './text'
 import type { ToolState } from './tools'
 
-type Tab = 'tool' | 'map' | 'sides' | 'prep' | 'events' | 'objectives'
-const TABS: Tab[] = ['tool', 'map', 'sides', 'prep', 'events', 'objectives']
+type Tab = 'tool' | 'map' | 'sides' | 'prep' | 'events' | 'objectives' | 'changes'
+const TABS: Tab[] = ['tool', 'map', 'sides', 'prep', 'events', 'objectives', 'changes']
 
 interface Props {
   doc: ProjectDoc
@@ -53,6 +54,7 @@ export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say, 
         {tab === 'prep' && <PrepPanel doc={doc} map={map} mapId={mapId} say={say} onSlots={() => { onChange({ tool: 'slots' }); choose('tool') }} />}
         {tab === 'events' && <EventsPanel mapId={mapId} vs={vs} />}
         {tab === 'objectives' && <ObjectivesPanel mapId={mapId} vs={vs} />}
+        {tab === 'changes' && <ChangesPanel doc={doc} map={map} mapId={mapId} vs={vs} state={state} onChange={onChange} />}
       </div>
     </aside>
   )

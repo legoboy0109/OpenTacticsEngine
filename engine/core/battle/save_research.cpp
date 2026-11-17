@@ -85,7 +85,7 @@ void writeStructureKind(const StructureState& s, Json& out) {
   if (s.type != s.mapType) out.set("type", num(s.type));
 }
 
-bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, const std::string& at) {
+bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, const std::string& at, const std::vector<int>* extra) {
   const StructureDef& base = db.structures[(size_t)mapType];
   const StructureDef& now = db.structures[(size_t)type];
   if (now.width != base.width || now.height != base.height || now.rings != base.rings)
@@ -100,6 +100,8 @@ bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, c
       todo.push_back(k);
     }
   };
+  if (extra)
+    for (int k : *extra) add(k);
   for (size_t i = 0; i < todo.size(); ++i) {
     const StructureDef& from = db.structures[(size_t)todo[i]];
     for (const UpgradeDef& up : from.upgrades) add(up.to);
@@ -114,11 +116,11 @@ bool checkStructureKind(Reader& rd, const Database& db, int type, int mapType, c
   return true;
 }
 
-bool readStructureKind(Reader& rd, const Database& db, const Json& j, const std::string& where, StructureState& st) {
+bool readStructureKind(Reader& rd, const Database& db, const Json& j, const std::string& where, StructureState& st, const std::vector<int>* extra) {
   if (!j.has("type")) return true;  // st.type is the map's kind already
   int type = 0;
   if (!rd.integer(j, "type", where, 0, (int)db.structures.size() - 1, type)) return false;
-  if (!checkStructureKind(rd, db, type, st.mapType, where + ".type")) return false;
+  if (!checkStructureKind(rd, db, type, st.mapType, where + ".type", extra)) return false;
   st.type = type;
   return true;
 }

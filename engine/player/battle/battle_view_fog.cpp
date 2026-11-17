@@ -139,8 +139,8 @@ bool BattleView::beginFog(const Battle& b) {
 void BattleView::updateShown(const Battle& b) {
   if (viewerTeam_ < 0) return;
   const size_t n = (size_t)b.grid.cellCount();
-  if (!busy()) {
-    // Nothing playing: the truth, for the squares and for what stands on them.
+  if (!busy() || !b.fogOn()) {
+    // Nothing playing (or no fog any more: a story lifted it): the truth, for the squares and for what stands on them.
     shown_.assign(n, 0);
     for (size_t c = 0; c < n; ++c) shown_[c] = b.visibleTo(viewerTeam_, (Cell)c) ? 1 : 0;
     for (const Unit& u : b.units)
@@ -173,13 +173,21 @@ void BattleView::updateShown(const Battle& b) {
     b.structureCells((int)s, cellsOf);
     for (Cell c : cellsOf) blocks[(size_t)c] = 1;
   }
+  // Terrain that blocks sight (a wall): part of the key, so a change that opens it while events play recomputes what is shown.
+  if (b.db->terrainBlocksSight)
+    for (size_t c = 0; c < n; ++c)
+      if (b.db->terrains[(size_t)b.cells[c].terrain].blocksSight) {
+        if (blocks.empty()) blocks.assign(n, 0);
+        blocks[c] = 1;
+        key.push_back(-1000000 - (int)c);
+      }
   if (shown_.size() == n && key == shownKey_) return;
   shownKey_ = key;
   shown_.assign(n, 0);
   std::vector<Cell> area, ray;
   for (size_t i = 0; i < mine.size(); ++i) {
     const Cell c = (Cell)key[i * 2 + 1];
-    const int radius = b.visionAt(b.typeOf(*mine[i]), c);  // the same rule as the rules core's sight
+    const int radius = b.visionAt(b.typeOf(*mine[i]), c, mine[i]);  // the same rule as the rules core's sight
     b.grid.within(c, radius, area);
     for (Cell a : area) {
       bool clear = true;

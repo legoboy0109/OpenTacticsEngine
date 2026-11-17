@@ -74,7 +74,7 @@ void writeUnitGoals(const Unit& u, Json& out) {
 bool readUnitGoals(Reader& rd, const Json& j, const std::string& where, Unit& u) {
   u.aiGoals = 0;
   if (!j.has("goes")) return true;
-  return rd.integer(j, "goes", where, 1, kAiChests | kAiPlaces | kAiDoors | kAiSteal, u.aiGoals);
+  return rd.integer(j, "goes", where, 1, kAiChests | kAiPlaces | kAiDoors | kAiSteal | kAiWalls, u.aiGoals);
 }
 
 }  // namespace savejson

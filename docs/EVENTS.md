@@ -144,6 +144,9 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "playMusic": "boss", "fade": 1.0 }` | sound (docs/SOUND.md): the track `boss` of `data/audio.json` plays until another command changes it or the battle ends; `fade` seconds (0..60, optional: not given = the player's 0.5 s cross-fade, 0 = a cut). Presentation only: entry `MusicChanged`; the core keeps only "the music the story asked for" (saved with the battle, docs/SAVES.md). The id is opaque to the core (it goes into the text table, so which track it is does not count for the save hash, but the command does); the player refuses a game whose ids are not in `audio.json` |
 | `{ "stopMusic": true, "fade": 1.0 }` | silence until a later `playMusic` or the end of the battle (entry `MusicChanged` with no track) |
 | `{ "playSound": "thunder" }` | one sound effect (entry `SoundRequested`) |
+| `{ "setTerrain": "bridge", "area": { "x": 4, "y": 1, "w": 1, "h": 3 } }` or `{ "setTerrain": "bridge", "cells": [[4, 1], [4, 2]] }` | gives the squares that terrain at once (exactly one of `area` / `cells`): see "Changing the map" below (map events only) |
+| `{ "applyChange": "bridge" }`, `{ "revertChange": "bridge" }` | applies one of the map's named `changes`, or puts back what its squares held before it was applied (map events only) |
+| `{ "setFog": false }`, `{ "setVision": -1 }` | fog of war on / off, and an adjustment added to every unit's vision (-10..10): docs/ECONOMY.md "Fog options" (map events only) |
 
 **Running.** Events run in file order for one occurrence, and an event that
 fires while another runs (a `reach` caused by `moveUnit`, a `won` event caused
@@ -257,6 +260,7 @@ indices for `Battle::storyText(i)`):
 | `ObjectiveChanged` | a = text of the new objective (-1 none), b = objective set |
 | `MusicChanged` | a = text index of the track id (-1 = the story stopped the music), b = fade in milliseconds (-1 = not given) |
 | `SoundRequested` | a = text index of the sound id |
+| `TerrainChanged` | a = number of squares, b = the terrain they all got (-1 = not all the same), data = the squares (cell numbers). Public (every team: terrain is known to all). Comes before `Choice`, which stays the last entry |
 
 With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
 objective changes and the two sound entries are seen by every team; the others by the teams that saw the unit or the square, see
@@ -268,6 +272,59 @@ unit is `units[a].name`. Queries: `talkOptions(unit, fromCell)` returns
 performs it (free like the item actions, cannot be undone);
 `objectiveText()` is the text to show (at battle start and in the menu; no
 entry is made at the start); `humanTeam()`; `unitByStoryId(id)`.
+
+## Changing the map
+
+A battle's terrain is not fixed: a story command can change squares while it is played. The classic uses: a bridge appears, a wall opens, a
+cave-in blocks a road, a gate rises. Everything that is worked out from terrain follows **at once**: movement costs, sight and fog (a wall that
+opens opens the view), the terrain numbers formulas read (`ta`, `tb`), the computer opponent's paths, the squares a unit can stand on, capture and
+visit squares. Heights are **never** changed (a changed square keeps its height; the 3D views fix their elevations at the start of the battle).
+
+**Direct: `setTerrain`.** `{ "setTerrain": "bridge", "area": { "x": 4, "y": 1, "w": 1, "h": 3 } }` or `"cells": [[4, 1], [4, 2]]`. Squares that already
+hold that terrain are left alone; if no square changes there is no entry. The change is permanent (nothing remembers what was there).
+
+**Named changes.** A map may define the changes it will need, prepared in the editor (Changes tab):
+
+```jsonc
+"changes": {
+  "bridge": { "cells": [ { "x": 4, "y": 1, "terrain": "bridge" } ] },
+  "gap":    { "cells": [ { "x": 5, "y": 1, "terrain": "plain" } ],
+              "structures": [ { "id": "gate", "kind": "portcullis_up" } ] }
+}
+```
+`{ "applyChange": "bridge" }` gives the squares their new terrain and turns each listed structure (a structure the map placed, named by its `id`) into
+the given kind (the same size: a structure's footprint never changes; the kind changes like an upgrade does, so art, movement cost and sight follow
+and the structure's capture points, lock and hit points start over for the new kind). `{ "revertChange": "bridge" }` puts back **what those squares
+held when the change was applied** (not "the map's original terrain": if something else changed them in between, the recorded values come back). Applying a
+change that is applied already, or reverting one that is not, does nothing. Several changes may touch the same square; each remembers its own "before".
+Rules the loader enforces (each message names the map, the change and the entry): `changes` is an object, ids are letters, digits, `_` and `-` (at most
+64 changes, at most 4096 squares in one), a change changes something, every square is inside the map and named once per change, the terrain and the
+structure kind exist, a structure `id` is one a placed structure has, the kind has that structure's size, and `applyChange` / `revertChange` name a
+change of this map. **Adding or removing a structure** is not part of a change (indices of structures never change during a battle): turn one into a
+different kind instead (a gate into a raised gate, a wall into rubble); a kind that is drawn as nothing works as "removed".
+
+**A unit on a square it can no longer stand on (the stranded-unit rule).** After a change, a living unit standing on a changed square (or on a structure
+that changed kind) whose move type cannot enter that square (cost 0 or less) is **moved at once to the nearest free square it can stand on** (grid
+distance; the lowest square number, row by row, on a tie), exactly like a story `moveUnit` whose target was taken: a `UnitRelocated` entry follows the
+`TerrainChanged` one and `reach` events fire for the new square. Units are handled in unit order. A unit with no free square to go to stays where it is (it can
+still move off). Units that can still stand there never move: a flyer over a new river stays, a foot soldier on a new bridge stays. This is the least
+surprising rule: nobody is ever left standing inside a wall, and nobody dies of a map change.
+
+**Breakable terrain ("snag", "cracked wall").** Doors with hit points (docs/SRPG.md section 10) already cover it: a door kind with `by: ["break"]`, `hp` and
+any footprint (3 squares wide: it breaks as **one piece**) that opens into a kind drawn as rubble or nothing, so the ground beneath shows. To change the map
+when it breaks there is **no extra key**: the existing `place` trigger is the hook, and it runs for every way of opening (attack, key, staff, story):
+
+```jsonc
+{ "id": "wall_gone", "when": { "place": "w1", "is": "opened" }, "do": [ { "applyChange": "rubble" } ] }
+```
+(see "Walls that break" in docs/SRPG.md section 10; the computer opponent breaks one in its way when its unit is marked `goesFor: ["walls"]`.)
+
+**What the player does.** `TerrainChanged` plays a brief white flash on the changed squares (every kind of view) and the camera looks at them; the squares
+already show their new terrain. In the **3D views the whole ground mesh is rebuilt** the first frame the terrain differs from what it was built from (the renderer
+has no partial mesh update; a map is a few thousand squares at most). Under fog a square the viewer cannot see changes without a flash.
+
+**Saves** (docs/SAVES.md "Map changes"): one optional key, `mapState`, only after something changed; a battle that never changed the map, or switched
+fog, saves byte for byte as before. **Tests:** `tests/test_mapchange.cpp`, `tests/mapchange_player_test.py`; fixture `tests/fixtures/mapchange`.
 
 ## Objectives (map file)
 

@@ -62,6 +62,7 @@ void BattleView::resync(const Battle& b) {
   bannerSub.clear();
   levelUp.active = false;
   structFlash.clear();
+  cellFlash.clear();
   dialogue.active = false;
   hasFocus = false;
   stickyFocus_ = false;
@@ -113,7 +114,7 @@ void BattleView::begin(const Battle& b) {
   cur_.fired = false;
   cur_.hideAtEnd = false;
   float cx = tile_ / 2.0f;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b)) return;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b) || beginMapChange(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
@@ -258,6 +259,7 @@ void BattleView::begin(const Battle& b) {
     // Repair and supply (docs/ECONOMY.md): no player UI yet; the unit's HP shows by itself next time it is drawn.
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
     case EventType::UnitResupplied:
+    case EventType::TerrainChanged:  // beginMapChange (battle_view_mapchange.cpp) took it above
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
     // Strategy-RPG entries: beginSrpg (battle_view_srpg.cpp) took them above.
     case EventType::SkillLearned:
@@ -316,7 +318,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSrpg(b)) return;
+  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSrpg(b) || progressMapChange(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -379,7 +381,7 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
-  if (finishPlaces(b) || finishStory(b) || finishEconomy(b) || finishSrpg(b)) {
+  if (finishPlaces(b) || finishStory(b) || finishEconomy(b) || finishSrpg(b) || finishMapChange(b)) {
     cur_.active = false;
     return;
   }
