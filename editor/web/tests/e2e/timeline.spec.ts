@@ -231,6 +231,7 @@ test('a problem in a scene shows a badge on its box (and on the level for a map 
 })
 
 test('the keyboard: arrow keys move between boxes in play order, Space selects the chapter, [ ] move it, Enter opens', async ({ page, game }) => {
+  test.setTimeout(90_000) // a long walk (two saves, a page change); under a loaded machine the 30 s default ran out, not a wrong answer
   const id = timelineGame()
   await openTimeline(page, id)
   await fit(page)
