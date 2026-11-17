@@ -26,7 +26,7 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
   const grid = gridOfGame(doc.game)
   const words = cellWords(isHex(grid))
   const loss = resizeLoss(map, structureTypes, w, h, anchor, grid)
-  const lossCount = loss.units.length + loss.structures.length
+  const lossCount = loss.units.length + loss.structures.length + loss.slots.length
   const changed = w !== map.grid.width || h !== map.grid.height
   const unitName = (u: MapFile['units'] extends (infer U)[] | undefined ? U : never) =>
     `${u.name ? `${u.name} (${typeName(typeIdOf(doc.characters, u))})` : typeName(typeIdOf(doc.characters, u))} at ${u.x + 1}, ${u.y + 1}`
@@ -67,6 +67,7 @@ export function ResizeDialog({ doc, map, mapId, onClose }: Props) {
             <ul className="usage-list">
               {listed.map((t, i) => <li key={i}>{t}</li>)}
               {loss.units.length > MAX_LISTED && <li>and {loss.units.length - MAX_LISTED} more units</li>}
+              {loss.slots.length > 0 && <li>{`Deployment slot${loss.slots.length === 1 ? '' : 's'} ${loss.slots.join(', ')}`}</li>}
               {loss.structures.map((s, i) => <li key={`s${i}`}>{`${doc.structures?.find((d) => d.id === s.type)?.name ?? s.type} at ${s.x + 1}, ${s.y + 1}`}</li>)}
             </ul>
             <p className="help">{T.resizeUndo}</p>

@@ -111,7 +111,7 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
     }
   }
   if (st.fogSeen && st.fogSeen.length === mw * mh) drawFogDim(g, st.fogSeen, mw, x0, x1, y0, y1, px, py)
-  if (st.overlays?.length || st.pickRect) drawOverlays(g, st.overlays ?? [], st.pickRect ?? null, { px, py, S, dpr, mw, mh })
+  if (st.overlays?.length || st.slots?.length || st.pickRect) drawOverlays(g, [...(st.slots ?? []), ...(st.overlays ?? [])], st.pickRect ?? null, { px, py, S, dpr, mw, mh })
   const ring = (c: Cell, color: string, width: number, inset = 0, size = { w: 1, h: 1 }) => {
     g.strokeStyle = color
     g.lineWidth = width

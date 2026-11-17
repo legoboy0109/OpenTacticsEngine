@@ -53,6 +53,8 @@ export function loadStaves2Fixture(): ProjectDoc { return loadFrom(fixtures, 'sr
 export function loadConditionsFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-conditions') }
 /** The engine's battle and defeat quotes test game (tests/fixtures/srpg-quotes): five characters, four of them with quotes, a two-chapter campaign (fallen: gone). */
 export function loadQuotesFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-quotes') }
+/** The engine's preparation screen test game (tests/fixtures/srpg-prep): a three-chapter campaign, two maps with a preparation (slots, limit, required, fixed, forbidden, a shop). */
+export function loadPrepFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-prep') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 /** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */

@@ -6,6 +6,7 @@ import { typeIdOf } from './characterUnits'
 import { fogChecks } from './fogChecks'
 import { itemChecks } from './itemChecks'
 import { storyChecks } from './storyChecks'
+import { prepChecks } from './prepChecks'
 import { ctxOf } from './mapCtx'
 import { terrainAt } from './mapGrid'
 import { misfits, placedOf, structureAt } from './mapStructures'
@@ -60,5 +61,7 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))
   // What the loader would refuse about this map's story events, objectives and unit story names.
   if (mapId !== undefined) storyChecks(doc, mapId).forEach((x, i) => out.push({ key: `story:${i}`, text: x.text }))
+  // The preparation screen: what the loader refuses about it, and what is probably not meant (docs/EVENTS.md "Preparation").
+  if (mapId !== undefined) prepChecks(doc, mapId).forEach((x, i) => out.push({ key: `prep:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   return out
 }

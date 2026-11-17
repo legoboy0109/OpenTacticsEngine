@@ -11,6 +11,7 @@ const TONES: Record<OverlayTone, string> = {
   view: '197,140,255',
   win: '74,222,128',
   lose: '255,92,92',
+  slot: '90,170,255',
 }
 
 interface Grid { px: (c: number) => number; py: (c: number) => number; S: number; dpr: number; mw: number; mh: number }
@@ -38,7 +39,8 @@ export function drawOverlays(g: CanvasRenderingContext2D, overlays: Overlay[], p
     g.strokeStyle = `rgb(${rgb})`
     g.lineWidth = line
     g.strokeRect(b.x + line / 2, b.y + line / 2, b.w - line, b.h - line)
-    if (k.S >= 18 * k.dpr && b.w >= 36 * k.dpr) {
+    // A deployment slot's number is short: it shows on small squares too.
+    if (k.S >= 18 * k.dpr && (b.w >= 36 * k.dpr || o.tone === 'slot')) {
       const size = Math.max(9 * k.dpr, Math.min(14 * k.dpr, k.S * 0.36))
       g.font = `bold ${Math.round(size)}px ${FONT}`
       g.lineJoin = 'round'

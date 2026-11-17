@@ -10,6 +10,7 @@ import { Inspect } from './Inspect'
 import { SidePicker, TerrainPicker } from './pickers'
 import { UnitPicker } from './UnitPicker'
 import { HeightsTool } from './HeightsTool'
+import { SlotsTool } from './SlotsTool'
 import { StructureTool } from './StructureTool'
 import { UnitProps } from './UnitProps'
 
@@ -58,6 +59,8 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
       return <StructureTool doc={doc} map={map} mapId={mapId} state={state} cell={cell} onChange={onChange} say={say} />
     case 'heights':
       return <HeightsTool state={state} onChange={onChange} />
+    case 'slots':
+      return <SlotsTool doc={doc} map={map} mapId={mapId} />
     case 'select':
       return <Inspect doc={doc} map={map} mapId={mapId} cell={cell} say={say} />
   }

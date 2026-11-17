@@ -1,6 +1,7 @@
 // Changing a map's size. The anchor is where the existing map stays.
 import { MAP_MAX, readGrid, writeGrid } from './mapGrid'
 import { footprint } from './mapStructures'
+import { removeSlot } from './prep'
 import type { GridSpec } from './gridSpec'
 import type { MapFile, MapStructure, MapUnit, Structure, Terrain } from './types'
 
@@ -14,7 +15,7 @@ export function resizeOffset(oldW: number, oldH: number, newW: number, newH: num
   return { dx, dy }
 }
 
-export interface ResizeLoss { units: MapUnit[]; structures: MapStructure[] }
+export interface ResizeLoss { units: MapUnit[]; structures: MapStructure[]; /** Deployment slots (the preparation) outside, as their numbers from 1. */ slots: number[] }
 
 export const validSize = (w: number, h: number): boolean =>
   Number.isInteger(w) && Number.isInteger(h) && w >= 1 && h >= 1 && w <= MAP_MAX && h <= MAP_MAX
@@ -26,6 +27,7 @@ export function resizeLoss(map: MapFile, structureTypes: Structure[], newW: numb
   const out = (x: number, y: number) => x + dx < 0 || y + dy < 0 || x + dx >= newW || y + dy >= newH
   return {
     units: (map.units ?? []).filter((u) => out(u.x, u.y)),
+    slots: (map.prep?.slots ?? []).flatMap((s, i) => (out(s.x, s.y) ? [i + 1] : [])),
     // Squares: the footprint's two corners decide (a rectangle); hexagons: every covered hexagon must stay.
     structures: (map.structures ?? []).filter((s) => footprint(grid, structureTypes.find((t) => t.id === s.type), s.x, s.y).some((c) => out(c.x, c.y))),
   }
@@ -50,6 +52,11 @@ export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Stru
   if (map.structures) {
     const lost = new Set(resizeLoss(map, structureTypes, newW, newH, anchor, grid).structures)
     next.structures = map.structures.filter((s) => !lost.has(s)).map((s) => ({ ...s, x: s.x + dx, y: s.y + dy }))
+  }
+  if (map.prep) {  // the deployment slots that fall outside are removed (later numbers close up), the rest move with the map
+    let p: MapFile = { ...next, prep: map.prep }
+    map.prep.slots.map((s, i) => (inside(s.x, s.y) ? -1 : i)).filter((i) => i >= 0).reverse().forEach((i) => { p = removeSlot(p, i) })
+    next.prep = { ...p.prep!, slots: p.prep!.slots.map((s) => ({ x: s.x + dx, y: s.y + dy })) }
   }
   if (map.heights) {
     next.heights = Array.from({ length: newH }, (_, y) => Array.from({ length: newW }, (_, x) => map.heights![y - dy]?.[x - dx] ?? 0))

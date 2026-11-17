@@ -2,6 +2,7 @@
 // signature so keys the UI does not know about survive load -> edit -> save.
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
+import type { MapPrep } from './prepTypes'
 import type { Ability, Caps, Character, Condition, Learn, Promotion, PromotionRules, RankMap, Ranks, RescueRules, Skill, Supports } from './srpgTypes'
 import type { Objectives, StoryEvent } from './storyTypes'
 
@@ -271,6 +272,8 @@ export interface MapFile extends Extra {
   /** Story events and objectives (docs/EVENTS.md); model/storyTypes.ts. */
   events?: StoryEvent[]
   objectives?: Objectives
+  /** The preparation screen before the battle (docs/EVENTS.md "Preparation"); missing = none. */
+  prep?: MapPrep
 }
 /** `x`, `y` = the top-left square of the footprint (on hexagon maps: the middle hexagon); `side` missing = nobody owns it. */
 export interface MapStructure extends Extra { type: string; x: number; y: number; side?: string }
