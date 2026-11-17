@@ -42,6 +42,10 @@ export function WeaponForm({ id }: { id: string }) {
             <TextInput value={weapon.group ?? ''} placeholder={T.groupPlaceholder}
               onChange={(v) => edit((d) => setWeaponGroup(d, id, v), `${key}:group`)} />
           </Field>
+          <Field label={T.damageKind} help={T.damageKindHelp}>
+            <TextInput value={weapon.damageKind ?? ''} placeholder={T.damageKindPlaceholder}
+              onChange={(v) => edit((d) => updateWeapon(d, id, { damageKind: v.trim() === '' ? undefined : v.trim() }), `${key}:damageKind`)} />
+          </Field>
         </div>
       </Card>
 

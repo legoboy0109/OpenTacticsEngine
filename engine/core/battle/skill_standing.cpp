@@ -78,13 +78,33 @@ bool Battle::passesEnemies(const Unit& u) const {
   return false;
 }
 
-bool Battle::hasMoveAgain(const Unit& u) const {
+// `afterAttack`: a { "notAfterAttack": true } effect (value 1) does not count when the action was a fight.
+bool Battle::hasMoveAgain(const Unit& u, bool afterAttack) const {
   if (db->skills.empty()) return false;
   std::vector<const SkillEffect*> fx;
   standingEffects(u, false, fx);
   for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::MoveAgain) return true;
+    if (e->kind == SkillEffect::Kind::MoveAgain && !(afterAttack && e->value == 1)) return true;
   return false;
+}
+
+bool Battle::hasStanding(const Unit& u, SkillEffect::Kind kind) const {
+  if (db->skills.empty()) return false;
+  std::vector<const SkillEffect*> fx;
+  standingEffects(u, false, fx);
+  for (const SkillEffect* e : fx)
+    if (e->kind == kind) return true;
+  return false;
+}
+
+// Weapon experience gained is multiplied like XP: percents one after another with whole-number division.
+int Battle::skillWeaponXp(const Unit& u, int amount) const {
+  if (db->skills.empty()) return amount;
+  std::vector<const SkillEffect*> fx;
+  standingEffects(u, false, fx);
+  for (const SkillEffect* e : fx)
+    if (e->kind == SkillEffect::Kind::WeaponXpPercent) amount = (int)((long long)amount * e->value / 100);
+  return amount;
 }
 
 // Percents multiply one after another in skill-list order with whole-number division.

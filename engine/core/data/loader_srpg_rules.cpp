@@ -94,7 +94,12 @@ bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db) {
   const Json& p = rules["promotion"];
   if (!p.isObject()) return c.fail("rules.promotion", "must be an object such as { \"levelAfter\": \"reset\" }");
   for (const Json::Member& m : p.members())
-    if (m.first != "levelAfter") return c.fail("rules.promotion", "unknown key \"" + m.first + "\"");
+    if (m.first != "levelAfter" && m.first != "classSkills") return c.fail("rules.promotion", "unknown key \"" + m.first + "\"");
+  if (p.has("classSkills")) {
+    const std::string v = p["classSkills"].isString() ? p["classSkills"].asString() : "";
+    if (v != "keep" && v != "replace") return c.fail("rules.promotion", "\"classSkills\" must be \"keep\" (default) or \"replace\"");
+    db.rules.promotion.replaceClassSkills = v == "replace";
+  }
   if (p.has("levelAfter")) {
     const std::string v = p["levelAfter"].isString() ? p["levelAfter"].asString() : "";
     if (v != "reset" && v != "keep") return c.fail("rules.promotion", "\"levelAfter\" must be \"reset\" or \"keep\"");

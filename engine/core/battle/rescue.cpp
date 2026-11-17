@@ -375,7 +375,8 @@ int Battle::rescueStat(const Unit& u, int stat, int value) const {
   const RescueRules& r = db->rules.rescue;
   if (r.mode == RescueMode::Off || u.carrying < 0 || stat == db->rules.statHp) return value;
   // carrierStats: percent first, then the added number; never below 0 (the loader refuses the health stat).
-  if ((size_t)stat < r.carrierStats.size()) {
+  // "noCarryPenalty" (a skill): the carrier ignores this (not the pair bonus below).
+  if ((size_t)stat < r.carrierStats.size() && !(r.mode == RescueMode::Carry && hasStanding(u, SkillEffect::Kind::NoCarryPenalty))) {
     const StatChange& c = r.carrierStats[(size_t)stat];
     const long long v = (long long)value * c.percent / 100 + c.add;
     value = (int)std::max(0LL, std::min(v, 2000000000LL));

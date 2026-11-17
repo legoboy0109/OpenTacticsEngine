@@ -15,6 +15,8 @@ const OP_WORDS: Record<string, string> = { '=': 'exactly', '==': 'exactly', '!='
 export const opWords = (op: unknown): string => OP_WORDS[String(op ?? '>=')] ?? 'at least'
 const squares = (n: unknown) => `${n} ${n === 1 ? 'square' : 'squares'}`
 const signed = (n: unknown) => (Number(n) >= 0 ? `+${n}` : `${n}`)
+/** A combat number as words: "+3", or "from the formula …" when it is one. */
+const amt = (n: unknown) => (typeof n === 'string' ? `from the formula ${n}` : signed(n))
 
 const statName = (doc: ProjectDoc, id: string) => doc.game?.stats?.find((s) => s.id === id)?.name ?? id
 const statsText = (doc: ProjectDoc, m: unknown): string =>
@@ -45,6 +47,17 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
     case 'distance': return `the foe is ${o.op === '=' || o.op === '==' ? 'exactly' : opWords(o.op)} ${squares(o.value ?? 1)} away`
     case 'formula': return 'a custom rule holds'
     case 'condition': return `${who} has the condition ${conditionNameOf(doc, String(v ?? ''))}`
+    case 'weaponKind': return `${foe ? 'the foe’s' : 'its'} weapon deals ${String(v ?? '')} damage`
+    case 'turn': {
+      if (o.odd) return 'the turn is odd'
+      if (o.even) return 'the turn is even'
+      if (o.every !== undefined) return `the turn is every ${o.every} turns${o.offset ? ` (offset ${o.offset})` : ''}`
+      if (o.from !== undefined && o.to !== undefined) return `the turn is ${o.from} to ${o.to}`
+      return o.from !== undefined ? `the turn is ${o.from} or later` : `the turn is ${o.to} or earlier`
+    }
+    case 'counterattack': return v === false ? 'the foe cannot counterattack' : 'the foe counterattacks'
+    case 'carries': return `${who} carries ${doc.items?.find((i) => i.id === v)?.name ?? String(v ?? '')}`
+    case 'inventory': return v === 'full' ? `${foe ? 'the foe’s' : 'its'} items are full` : v === 'notFull' ? `${foe ? 'the foe’s' : 'its'} items are not full` : `${foe ? 'the foe carries' : 'it carries'} ${opWords(o.op)} ${o.value ?? 0} items`
     default: return 'a condition the editor does not show (kept as it is)'
   }
 }
@@ -70,17 +83,24 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
     case 'growths': return `growth per level: ${statsText(doc, v)}`
     case 'maxMoveCost': return `every square costs at most ${v} movement`
     case 'pass': return 'can move through enemy units'
-    case 'moveAgain': return 'can move again after acting'
+    case 'moveAgain': return v && typeof v === 'object' ? 'can move again after acting, but not after attacking' : 'can move again after acting'
     case 'xpPercent': return `experience gained ${v}%`
     case 'ability': return `has the ability “${doc.abilities?.find((a) => a.id === v)?.name ?? v}”`
-    case 'hit': return `${own}hit ${signed(v)}`
-    case 'crit': return `${own}critical ${signed(v)}`
-    case 'damage': return `${own}damage ${signed(v)}`
-    case 'avoid': return `${own}avoid ${signed(v)}`
-    case 'critAvoid': return `${own}critical avoid ${signed(v)}`
-    case 'damageTaken': return `${own}damage taken ${signed(v)}`
-    case 'damagePercent': return `damage dealt ${v}%`
-    case 'damageTakenPercent': return `damage taken ${v}%`
+    case 'hit': return `${own}hit ${amt(v)}`
+    case 'crit': return `${own}critical ${amt(v)}`
+    case 'damage': return `${own}damage ${amt(v)}`
+    case 'avoid': return `${own}avoid ${amt(v)}`
+    case 'critAvoid': return `${own}critical avoid ${amt(v)}`
+    case 'damageTaken': return `${own}damage taken ${amt(v)}`
+    case 'damagePercent': return typeof v === 'string' ? `damage dealt as a percent from the formula ${v}` : `damage dealt ${v}%`
+    case 'damageTakenPercent': return typeof v === 'string' ? `damage taken as a percent from the formula ${v}` : `damage taken ${v}%`
+    case 'followUp': return foe ? `the foe ${v === 'force' ? 'always' : 'never'} makes a follow-up strike` : `${v === 'force' ? 'always' : 'never'} makes a follow-up strike`
+    case 'followShift': return `${own}follow-up threshold ${signed(v)} (read by the strikes formula)`
+    case 'trianglePercent': return `${own}weapon triangle effect ${v}%`
+    case 'weaponXpPercent': return `weapon experience gained ${v}%`
+    case 'noCarryPenalty': return 'is not slowed by carrying someone'
+    case 'cancelEffective': return 'is not hurt extra by weapons that are effective against it'
+    case 'cure': return v === 'all' ? 'is cured of every condition' : `is cured of ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' and ')}`
     case 'strikes': return `${own}strikes ${signed(v)}`
     case 'multiStrike': return `each strike is made ${v} times in a row`
     case 'strikeFirst': return 'strikes first when defending'
@@ -133,7 +153,8 @@ export function blockSummary(doc: ProjectDoc, b: Extra): string {
   const effects = (Array.isArray(b.do) ? (b.do as Extra[]) : []).map((e) => effectText(doc, e, when ?? undefined)).join(', ')
   const aura = b.aura as Extra | undefined
   const head = [when ? WHEN_LEAD[when] : 'At an unknown time', conds.length ? `if ${conds.join(' and ')}` : '', b.chance !== undefined ? chanceText(doc, b.chance) : ''].filter(Boolean).join(', ')
-  const gives = aura ? `${aura.to === 'enemies' ? 'enemies' : 'allies'} within ${squares(aura.within ?? 1)} get ${effects}` : effects
+  const kind = aura && typeof aura.match === 'string' ? ` that are ${nameOfTypeOrTag(doc, aura.match, true)}` : ''
+  const gives = aura ? `${aura.to === 'enemies' ? 'enemies' : 'allies'}${kind} within ${squares(aura.within ?? 1)} get ${effects}` : effects
   return `${head}: ${gives || 'nothing'}.`
 }
 

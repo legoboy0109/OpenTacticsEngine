@@ -16,7 +16,7 @@ void dressUnit(Unit& u) const;
 // Ends a unit's order. Every action that ends a unit's turn goes through this (never `done = true` by hand,
 // except Wait, an ambush and a story's endTurn): a unit with "move again" that has movement left keeps a move
 // (`acted`) instead of being done.
-void endOrder(int unit);
+void endOrder(int unit, bool afterAttack = false);  // afterAttack: the action was a fight ("moveAgain": notAfterAttack)
 // Start of the active side's turn, after repair and supply and before the story's turn events: ability waits and
 // summon lifetimes, automatic promotions that were postponed, then "turnStart" skill blocks.
 void srpgTurnStart(std::vector<Event>& events);
@@ -39,10 +39,15 @@ void characterDress(Unit& u) const;  // sets Unit::character from the story id
 // ---- skills (skills.cpp and friends, steps K1 / K2) ----
 int skillStatBonus(const Unit& u, int stat) const;  // sum of the "stats" effects of its "always" blocks that hold
 int skillXp(const Unit& u, int amount) const;       // an XP amount passed through its xpPercent effects
-bool hasMoveAgain(const Unit& u) const;             // has a "moveAgain" effect that holds
+bool hasMoveAgain(const Unit& u, bool afterAttack = false) const;  // afterAttack: the action just done was a fight
+int skillWeaponXp(const Unit& u, int amount) const;
+bool hasStanding(const Unit& u, SkillEffect::Kind kind) const;      // an "always" effect of that kind that holds             // has a "moveAgain" effect that holds
 // Learns every "learns" entry of its type and character at or below its level that it does not know yet (no
 // event): a new unit, a promotion.
 void learnUpTo(Unit& u) const;
+// rules.promotion.classSkills "replace": takes from the learned list the skills the OLD type's "learns" gave, except those the unit's
+// character or its new type teaches too; learnUpTo then adds the new type's.
+void dropOldClassSkills(Unit& u, int oldType);
 void skillsLevelUp(int unit, std::vector<Event>& events);  // the entries for exactly the new level (SkillLearned)
 void skillsTurnStart(std::vector<Event>& events);
 void skillsAfterCombat(int attacker, int defender, int hpA, int hpD, std::vector<Event>& events);
@@ -194,6 +199,13 @@ void skillCombatList(const CombatSetup& setup, int unit, std::vector<int>& out) 
 bool skillBlockHolds(const SkillBlock& block, const SkillCtx& ctx) const;  // all its conditions hold
 // The block's chance in percent, 0..100 (formula: a = owner, b = foe). Never rolls.
 int skillChance(const SkillBlock& block, const SkillCtx& ctx) const;
+// A formula of a skill block (Database::exprs index) judged for ctx.unit (`a`) and ctx.foe (`b`); `def` when it cannot run.
+double skillExpr(int expr, const SkillCtx& ctx, double def) const;
+// The number a combat effect gives: its whole number, or its formula's result (floored, kept within +-kMaxStrikeDamage /
+// 0..1000 for percents). For `Stats` effects `stats` is filled with the per-stat numbers; otherwise it is left alone.
+int skillEffectNumber(const SkillEffect& e, const SkillCtx& ctx, std::vector<int>& stats) const;
+// Does the unit match a tag key: its type's id or tags, or its character's tags (docs/SRPG.md "Tags").
+bool unitHasKey(const Unit& u, const std::string& key) const;
 // One strike's blocks (the striker's "strike", then the struck unit's "struck"). `rng` set = judge activations
 // (roll them and hand back events); null with `notes` set = list the activations that could fire; both null = only
 // the blocks without a chance (the forecast's passives). Never changes the battle.

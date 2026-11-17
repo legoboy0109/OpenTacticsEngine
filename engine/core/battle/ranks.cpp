@@ -113,6 +113,7 @@ void Battle::rankOverride(Unit& u, const std::vector<int>& values) const {
 
 void Battle::addRankXp(Unit& u, int group, int amount, int& before, int& after) const {
   u.weaponXp.resize(db->ranks.groups.size(), 0);
+  amount = skillWeaponXp(u, amount);  // "weaponXpPercent" skills
   int& xp = u.weaponXp[(size_t)group];
   before = db->ranks.rankAt(xp);
   xp = std::min(xp + amount, std::max(xp, db->ranks.topXp()));

@@ -229,11 +229,18 @@ bool readItemConditions(const LoadCtx& c, const Database& db, const Json& e, con
 // ---- after everything is loaded ----
 
 bool resolveBlockConditions(const LoadCtx& c, const Database& db, const std::string& where, SkillBlock& block) {
+  if (block.aura && !block.auraMatch.empty()) {  // an aura's "match": a unit type id or tag, or a character tag
+    bool found = false;
+    for (const UnitTypeDef& t : db.unitTypes) found = found || unitTypeMatchesKey(t, block.auraMatch);
+    for (const CharacterDef& ch : db.characters)
+      found = found || std::find(ch.tags.begin(), ch.tags.end(), block.auraMatch) != ch.tags.end();
+    if (!found) return c.fail(where, "\"aura\".\"match\" names no unit type id or tag \"" + block.auraMatch + "\"");
+  }
   for (size_t i = 0; i < block.effects.size(); ++i) {
     SkillEffect& e = block.effects[i];
-    if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict) continue;
+    if (e.kind != SkillEffect::Kind::Immune && e.kind != SkillEffect::Kind::Inflict && e.kind != SkillEffect::Kind::Cure) continue;
     e.conds.clear();
-    const char* key = e.kind == SkillEffect::Kind::Immune ? "immune" : "inflict";
+    const char* key = e.kind == SkillEffect::Kind::Immune ? "immune" : e.kind == SkillEffect::Kind::Cure ? "cure" : "inflict";
     for (const std::string& id : e.names) {
       const int k = db.findCondition(id);
       if (k < 0)

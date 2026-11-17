@@ -58,6 +58,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     }
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
     if (!c.str(e, "group", where, w.group)) return false;
+    if (!c.str(e, "damageKind", where, w.damageKind)) return false;  // docs/SRPG.md "Damage kind": a free word, tested by skills
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
     if (!readWeaponInflict(c, db, e, where, w)) return false;  // "inflict": a condition on the unit struck (docs/SRPG.md section 9)

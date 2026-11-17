@@ -8,26 +8,30 @@ namespace ote {
 namespace {
 
 // One effect of a "combat" block (or an aura) into the bag of whoever receives it.
-void applyCombatEffect(const SkillEffect& e, CombatMods& m) {
+// `v` is the effect's number (a formula's result already worked out by Battle::skillEffectNumber), `stats` the per-stat numbers.
+void applyCombatEffect(const SkillEffect& e, int v, const std::vector<int>& stats, CombatMods& m) {
   using K = SkillEffect::Kind;
   switch (e.kind) {
     case K::Stats:
-      for (size_t i = 0; i < e.stats.size(); ++i)
-        if (e.stats[i] != 0) m.addStat((int)i, e.stats[i]);
+      for (size_t i = 0; i < stats.size(); ++i)
+        if (stats[i] != 0) m.addStat((int)i, stats[i]);
       break;
-    case K::Hit: m.hit += e.value; break;
-    case K::Avoid: m.avoid += e.value; break;
-    case K::Crit: m.crit += e.value; break;
-    case K::CritAvoid: m.critAvoid += e.value; break;
-    case K::Damage: m.damage += e.value; break;
-    case K::DamageTaken: m.damageTaken += e.value; break;
-    case K::DamagePercent: m.damagePercent.push_back(e.value); break;
-    case K::DamageTakenPercent: m.damageTakenPercent.push_back(e.value); break;
+    case K::Hit: m.hit += v; break;
+    case K::Avoid: m.avoid += v; break;
+    case K::Crit: m.crit += v; break;
+    case K::CritAvoid: m.critAvoid += v; break;
+    case K::Damage: m.damage += v; break;
+    case K::DamageTaken: m.damageTaken += v; break;
+    case K::DamagePercent: m.damagePercent.push_back(v); break;
+    case K::DamageTakenPercent: m.damageTakenPercent.push_back(v); break;
     case K::Strikes: m.strikes += e.value; break;
     case K::MultiStrike: m.raiseMultiStrike(e.value); break;
     case K::StrikeFirst: m.strikeFirst = true; break;
     case K::CounterAnyRange: m.counterAnyRange = true; break;
     case K::NoCounter: m.noCounter = true; break;
+    case K::FollowUp: (e.value > 0 ? m.followForce : m.followForbid) = true; break;
+    case K::FollowShift: m.followShift += e.value; break;
+    case K::TrianglePercent: m.trianglePercent = (int)((long long)m.trianglePercent * e.value / 100); break;
     default: break;  // the loader keeps other effects out of "combat" blocks
   }
 }
@@ -37,7 +41,7 @@ void applyCombatEffect(const SkillEffect& e, CombatMods& m) {
 // The attacker's own "combat" blocks, then the defender's; `to: foe` goes into the other fighter's bag.
 void Battle::skillCombatMods(const CombatSetup& setup, CombatMods& attacker, CombatMods& defender) const {
   if (db->skills.empty()) return;
-  std::vector<int> list;
+  std::vector<int> list, scratch;
   for (int side = 0; side < 2; ++side) {
     const int owner = side == 0 ? setup.attacker : setup.defender;
     CombatMods& own = side == 0 ? attacker : defender;
@@ -47,7 +51,10 @@ void Battle::skillCombatMods(const CombatSetup& setup, CombatMods& attacker, Com
     for (int s : list)
       for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
         if (b.when != SkillWhen::Combat || b.aura || !skillBlockHolds(b, ctx)) continue;
-        for (const SkillEffect& e : b.effects) applyCombatEffect(e, e.to == SkillEffect::To::Foe ? foe : own);
+        for (const SkillEffect& e : b.effects) {
+          const int v = skillEffectNumber(e, ctx, scratch);
+          applyCombatEffect(e, v, e.kind == SkillEffect::Kind::Stats ? scratch : e.stats, e.to == SkillEffect::To::Foe ? foe : own);
+        }
       }
   }
 }
@@ -59,7 +66,7 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
   const int fighters[2] = {setup.attacker, setup.defender};
   CombatMods* bags[2] = {&attacker, &defender};
   const Cell cells[2] = {setup.from, units[(size_t)setup.defender].cell};
-  std::vector<int> list;
+  std::vector<int> list, scratch;
   for (const Unit& o : units) {
     if (!o.alive || o.cell == kNoCell) continue;
     const bool isFighter = o.id == setup.attacker || o.id == setup.defender;
@@ -81,7 +88,16 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
           // "enemies" reaches a fighter only if the owner's team sees it.
           if (b.auraEnemies ? !(isEnemy(o, target) && unitVisibleTo(teamOf(o), target)) : teamOf(o) != teamOf(target))
             continue;
-          for (const SkillEffect& e : b.effects) applyCombatEffect(e, *bags[f]);
+          if (!b.auraMatch.empty() && !unitHasKey(target, b.auraMatch)) continue;  // "match": only that kind of unit
+          // A formula amount sees the owner as `a` and the fighter that receives it as `b`.
+          SkillCtx fx = ctx;
+          fx.foe = target.id;
+          fx.foeCell = cells[f];
+          fx.foeWeapon = f == 0 ? setup.weaponA : setup.weaponD;
+          for (const SkillEffect& e : b.effects) {
+            const int v = skillEffectNumber(e, fx, scratch);
+            applyCombatEffect(e, v, e.kind == SkillEffect::Kind::Stats ? scratch : e.stats, *bags[f]);
+          }
         }
       }
   }

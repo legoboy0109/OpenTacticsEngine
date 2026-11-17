@@ -926,6 +926,14 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
   (`EffectRows` / `EffectFields` / `StatRows`), and the sentence of the rule (`model/skillText.ts`). The tables of section 3 are data in `model/skillRules.ts`
   and the only thing the pickers read, so a refused choice is never offered. Changing When repairs the rule (`skillBlocks.ts` `setWhen`): what the new point does
   not allow is removed (Undo brings it back). A rule the file holds in a refused shape shows "Not valid yet" with plain messages (`skillChecks.ts` `ruleIssues`).
+- **General blocks** (docs/SRPG.md "More skill blocks"): the new conditions (kind of damage of the weapon, the turn number, whether the foe answers, carries an
+  item, how many items) have their rows in `ConditionFields.tsx`; "Reaches" has "Only units of this type or tag" for an aura (`BlockOptions.tsx`); the combat
+  numbers (hit, critical, damage, avoid, critical avoid, damage taken and their percents) take "A fixed number" or "A formula" (`EffectFields.tsx`
+  `FormulaNumber`; a combat stat bonus per stat in `StatRows.tsx`); follow-up strike, follow-up threshold, weapon triangle effect, weapon experience,
+  not slowed by carrying, "effective against" cancelled, cures conditions, and "Not after attacking" under move again. `skillRules.ts` holds the tables
+  (`STRIKE_ONLY`: the counterattack test only in strike / struck rules; `FORMULA_EFFECTS`), `skillChecks.ts` mirrors the loader's refusals. The Weapons
+  screen has "Kind of damage". **Not in the editor** (hand-edit; the helper keeps the keys): a character's `tags` (the Characters screen is another job's),
+  `skills` on a map unit or `addUnit`, `rules.promotion.classSkills`.
 - **Installer** (`StarterDialog.tsx`, data in `model/starterSkills.ts`, the same list as `editor/templates/strategy-rpg/data/skills.json`; a unit test compares them).
 - **Cards**: unit type and character (Skills + Learns at a level), accessory item (only the accessory kind), weapon: all through `screens/skills/SkillsCard.tsx`.
   An accessory needs a bonus or a skill (the check and help text say so). Changing an item away from accessory drops its skills.

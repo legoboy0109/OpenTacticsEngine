@@ -93,7 +93,42 @@ const CondSpec kConds[] = {{"hp", SkillCond::Kind::Hp},           {"near", Skill
                            {"structure", SkillCond::Kind::Structure}, {"unit", SkillCond::Kind::Unit},
                            {"carrying", SkillCond::Kind::Carrying}, {"round", SkillCond::Kind::Round},
                            {"initiating", SkillCond::Kind::Initiating}, {"distance", SkillCond::Kind::Distance},
-                           {"formula", SkillCond::Kind::Formula}, {"condition", SkillCond::Kind::Condition}};
+                           {"formula", SkillCond::Kind::Formula}, {"condition", SkillCond::Kind::Condition},
+                           {"weaponKind", SkillCond::Kind::WeaponKind}, {"turn", SkillCond::Kind::Turn},
+                           {"counterattack", SkillCond::Kind::Counterattack}, {"carries", SkillCond::Kind::Carries},
+                           {"inventory", SkillCond::Kind::Inventory}};
+
+// "turn": { "odd": true } | { "even": true } | { "from": 3, "to": 6 } (either alone) | { "every": 3, "offset": 1 }: the battle's turn number
+// (the same number as "round"). Every k with offset j = the turns whose number divided by k leaves j (default 0).
+bool readTurnCond(const LoadCtx& c, const Json& e, const Json& v, const std::string& where, SkillCond& out) {
+  if (!onlyKeys(c, e, {"turn"}, where)) return false;
+  if (!v.isObject()) return c.fail(where, "\"turn\" must be { \"odd\": true }, { \"even\": true }, { \"from\": 3, \"to\": 6 } or { \"every\": 3, \"offset\": 1 }");
+  const std::string at = where + ": \"turn\"";
+  if (!onlyKeys(c, v, {"odd", "even", "from", "to", "every", "offset"}, at)) return false;
+  const int modes = (int)v.has("odd") + (int)v.has("even") + (int)(v.has("from") || v.has("to")) + (int)(v.has("every") || v.has("offset"));
+  if (modes != 1) return c.fail(where, "\"turn\" needs exactly one of \"odd\", \"even\", \"from\" / \"to\" or \"every\" (with \"offset\")");
+  if (v.has("odd") || v.has("even")) {
+    const char* k = v.has("odd") ? "odd" : "even";
+    if (!v[k].isBool() || !v[k].asBool()) return c.fail(where, q(k) + " must be true");
+    out.turnMode = v.has("odd") ? SkillCond::TurnMode::Odd : SkillCond::TurnMode::Even;
+    return true;
+  }
+  if (v.has("from") || v.has("to")) {
+    out.turnMode = SkillCond::TurnMode::Range;
+    out.turnA = 1;
+    out.turnB = 1000000;
+    if (!intIn(c, v, "from", at, 1, 1000000, out.turnA) || !intIn(c, v, "to", at, 1, 1000000, out.turnB)) return false;
+    if (out.turnA > out.turnB) return c.fail(where, "\"turn\": \"from\" is later than \"to\"");
+    return true;
+  }
+  if (!v.has("every")) return c.fail(where, "\"offset\" needs \"every\"");
+  out.turnMode = SkillCond::TurnMode::Every;
+  out.turnA = 0;
+  out.turnB = 0;
+  if (!intIn(c, v, "every", at, 2, 1000, out.turnA, true) || !intIn(c, v, "offset", at, 0, 999, out.turnB)) return false;
+  if (out.turnB >= out.turnA) return c.fail(where, "\"turn\": \"offset\" must be less than \"every\"");
+  return true;
+}
 
 bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& where, const SkillCondScope& scope,
               const std::string& label, SkillCond& out) {
@@ -118,7 +153,8 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
   const bool foeable = out.kind == SkillCond::Kind::Hp || out.kind == SkillCond::Kind::Weapon ||
                        out.kind == SkillCond::Kind::Terrain || out.kind == SkillCond::Kind::Structure ||
                        out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying ||
-                       out.kind == SkillCond::Kind::Condition;
+                       out.kind == SkillCond::Kind::Condition || out.kind == SkillCond::Kind::WeaponKind ||
+                       out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory;
   if (e.has("who")) {
     std::string who;
     if (!c.str(e, "who", where, who)) return false;
@@ -151,6 +187,34 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
     case SkillCond::Kind::Condition:
       if (!onlyKeys(c, e, {"condition", "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"condition\" must be a condition id (data/conditions.json)");
+      out.key = v.asString();
+      return true;
+    case SkillCond::Kind::Turn: return readTurnCond(c, e, v, where, out);
+    case SkillCond::Kind::Counterattack:
+      if (!onlyKeys(c, e, {"counterattack"}, where)) return false;
+      if (!v.isBool()) return c.fail(where, "\"counterattack\" must be true (the foe answers this fight) or false (it does not)");
+      if (!scope.strike)
+        return c.fail(where, "\"counterattack\" can only be asked in \"strike\" and \"struck\" blocks (a \"combat\" block is judged while the answer is still being worked out)");
+      out.flag = v.asBool();
+      return true;
+    case SkillCond::Kind::Carries:
+      if (!onlyKeys(c, e, {"carries", "who"}, where)) return false;
+      if (!v.isString() || v.asString().empty()) return c.fail(where, "\"carries\" must be an item id");
+      out.key = v.asString();
+      return true;
+    case SkillCond::Kind::Inventory:
+      if (!onlyKeys(c, e, {"inventory", "who"}, where)) return false;
+      out.value = -1;
+      if (v.isString()) {
+        if (v.asString() != "full" && v.asString() != "notFull") return c.fail(where, "\"inventory\" must be \"full\", \"notFull\" or { \"op\": \">=\", \"value\": 3 }");
+        out.flag = v.asString() == "full";
+        return true;
+      }
+      if (!v.isObject() || !onlyKeys(c, v, {"op", "value"}, where + ": \"inventory\"")) return c.fail(where, "\"inventory\" must be \"full\", \"notFull\" or { \"op\": \">=\", \"value\": 3 }");
+      return readOp(c, v, where, out.op) && intIn(c, v, "value", where, 0, 1000, out.value, true);
+    case SkillCond::Kind::WeaponKind:
+      if (!onlyKeys(c, e, {"weaponKind", "who"}, where)) return false;
+      if (!v.isString() || v.asString().empty()) return c.fail(where, "\"weaponKind\" must be a damage kind, the word a weapon's \"damageKind\" says");
       out.key = v.asString();
       return true;
     case SkillCond::Kind::Weapon:
@@ -212,7 +276,11 @@ const EffectSpec kEffects[] = {
     {"actAgain", K::ActAgain, D | F},
     // Conditions (docs/SRPG.md section 9).
     {"cannotAct", K::CannotAct, A},   {"cannotMove", K::CannotMove, A},    {"forbid", K::Forbid, A},
-    {"berserk", K::Berserk, A},       {"immune", K::Immune, A},            {"inflict", K::Inflict, S | R}};
+    {"berserk", K::Berserk, A},       {"immune", K::Immune, A},            {"inflict", K::Inflict, S | R},
+    // General blocks (docs/SRPG.md "More skill blocks").
+    {"followUp", K::FollowUp, C},     {"followShift", K::FollowShift, C},  {"trianglePercent", K::TrianglePercent, C},
+    {"weaponXpPercent", K::WeaponXpPercent, A}, {"noCarryPenalty", K::NoCarryPenalty, A}, {"cancelEffective", K::CancelEffective, A},
+    {"cure", K::Cure, T | D | F}};
 
 // An aura's effects go to other units: only plain numbers that a fighter can carry.
 bool auraKind(K k) {
@@ -221,10 +289,16 @@ bool auraKind(K k) {
 }
 
 // "to": "foe" is allowed on these (in a combat block only).
-bool foeKind(K k) { return auraKind(k) || k == K::Strikes; }
+bool foeKind(K k) { return auraKind(k) || k == K::Strikes || k == K::FollowUp || k == K::FollowShift || k == K::TrianglePercent; }
+
+// Combat numbers that may be written as a formula (text) instead of a whole number.
+bool formulaKind(K k) {
+  return k == K::Hit || k == K::Crit || k == K::Damage || k == K::Avoid || k == K::CritAvoid || k == K::DamageTaken ||
+         k == K::DamagePercent || k == K::DamageTakenPercent;
+}
 
 bool isFlag(K k) {
-  return k == K::MoveAgain || k == K::StrikeFirst || k == K::CounterAnyRange || k == K::NoCounter ||
+  return k == K::NoCarryPenalty || k == K::CancelEffective || k == K::StrikeFirst || k == K::CounterAnyRange || k == K::NoCounter ||
          k == K::StrikeAgain || k == K::Survive || k == K::ActAgain || k == K::CannotMove || k == K::Berserk;
 }
 
@@ -241,18 +315,27 @@ bool numberRange(K k, Range& r) {
     case K::Strikes: r = {-7, 7}; return true;
     case K::MultiStrike: r = {2, 4}; return true;
     case K::Drain: r = {1, 100}; return true;
+    case K::FollowShift: r = {-100, 100}; return true;
+    case K::TrianglePercent: r = {0, 1000}; return true;
+    case K::WeaponXpPercent: r = {1, 1000}; return true;
     default: return false;
   }
 }
 
-bool readStatMap(const LoadCtx& c, const Database& db, const Json& v, const char* key, const std::string& where,
-                 std::vector<int>& out) {
+// `exprs` (combat blocks only): a stat may be a formula (text); its slot in `exprs` then holds the expression index.
+bool readStatMap(const LoadCtx& c, Database& db, const Json& v, const char* key, const std::string& where,
+                 std::vector<int>& out, std::vector<int>* exprs = nullptr, const std::string& label = "") {
   if (!v.isObject() || v.size() == 0) return c.fail(where, q(key) + " must name at least one stat: { \"str\": 2 }");
   out.assign(db.stats.size(), 0);
+  if (exprs) exprs->assign(db.stats.size(), -1);
   for (const Json::Member& m : v.members()) {
     int s = db.findStat(m.first);
     if (s < 0) return c.fail(where, q(key) + " names unknown stat " + q(m.first));
-    if (!LoadCtx::isWhole(m.second) || m.second.asInt() < -1000 || m.second.asInt() > 1000)
+    if (exprs && m.second.isString()) {
+      if (m.second.asString().empty()) return c.fail(where, q(key) + "." + q(m.first) + " formula must not be empty");
+      (*exprs)[(size_t)s] = db.addExpr(m.second.asString(), label + ": " + q(key) + "." + q(m.first));
+      continue;
+    }    if (!LoadCtx::isWhole(m.second) || m.second.asInt() < -1000 || m.second.asInt() > 1000)
       return c.fail(where, q(key) + "." + q(m.first) + " must be a whole number from -1000 to 1000");
     out[(size_t)s] = m.second.asInt();
   }
@@ -401,7 +484,9 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 
   Range r;
   if (spec->kind == K::Stats || spec->kind == K::Growths) {
-    if (!readStatMap(c, db, v, spec->key, where, out.stats)) return false;
+    // A combat bonus to stats may be a formula; "always" blocks may not (a stat that asks itself would never settle).
+    const bool formulas = spec->kind == K::Stats && when != SkillWhen::Always;
+    if (!readStatMap(c, db, v, spec->key, where, out.stats, formulas ? &out.statExprs : nullptr, labelPrefix + where)) return false;
     return true;
   }
   if (spec->kind == K::Pass) {
@@ -420,20 +505,45 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     if (out.names.empty()) return c.fail(where, "\"immune\" must name at least one condition");
     return true;
   }
+  if (spec->kind == K::Cure) {  // "all", or a list of condition ids
+    if (v.isString() && v.asString() == "all") { out.cureAll = true; return true; }
+    if (!readNameList(c, v, where, "\"cure\"", out.names) || out.names.empty())
+      return c.fail(where, "\"cure\" must be \"all\" or a list of condition ids");
+    return true;
+  }
   if (spec->kind == K::Inflict) {
     if (!v.isObject() || !onlyKeys(c, v, {"condition", "turns"}, where + ": \"inflict\"") || !v.has("condition") || !v["condition"].isString())
       return c.fail(where, "\"inflict\" must be { \"condition\": \"poison\" } (optionally with \"turns\")");
     out.names.push_back(v["condition"].asString());
     return intIn(c, v, "turns", where, 1, kMaxConditionTurns, out.turns);
   }
+  if (spec->kind == K::FollowUp) {
+    if (!v.isString() || (v.asString() != "force" && v.asString() != "forbid"))
+      return c.fail(where, "\"followUp\" must be \"force\" (the unit always makes a follow-up strike) or \"forbid\" (it never does)");
+    out.value = v.asString() == "force" ? 1 : -1;
+    return true;
+  }
+  if (spec->kind == K::MoveAgain) {  // true, or { "notAfterAttack": true }: no second move after a fight
+    if (v.isBool() && v.asBool()) return true;
+    if (!v.isObject() || !onlyKeys(c, v, {"notAfterAttack"}, where + ": \"moveAgain\"") || !v.has("notAfterAttack") || !v["notAfterAttack"].isBool())
+      return c.fail(where, "\"moveAgain\" must be true or { \"notAfterAttack\": true }");
+    out.value = v["notAfterAttack"].asBool() ? 1 : 0;
+    return true;
+  }
   if (isFlag(spec->kind)) {
     if (!v.isBool() || !v.asBool()) return c.fail(where, q(key) + " must be true (leave the effect out to turn it off)");
     return true;
   }
   if (spec->kind == K::Heal || spec->kind == K::Hurt) return readAmount(c, db, v, where, labelPrefix, spec->key, spec->kind == K::Hurt, out);
+  if (formulaKind(spec->kind) && v.isString()) {
+    if (v.asString().empty()) return c.fail(where, q(key) + " formula must not be empty");
+    out.expr = db.addExpr(v.asString(), labelPrefix + where + ": " + q(key));
+    return true;
+  }
   if (numberRange(spec->kind, r)) {
     if (!LoadCtx::isWhole(v) || v.asInt() < r.lo || v.asInt() > r.hi)
-      return c.fail(where, q(key) + " must be a whole number from " + std::to_string(r.lo) + " to " + std::to_string(r.hi));
+      return c.fail(where, q(key) + " must be a whole number from " + std::to_string(r.lo) + " to " + std::to_string(r.hi) +
+                               (formulaKind(spec->kind) ? ", or a formula (text)" : ""));
     out.value = v.asInt();
   }
   return true;
@@ -473,7 +583,9 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     const Json& a = e["aura"];
     if (w != SkillWhen::Combat) return c.fail(where, "\"aura\" cannot be used in " + std::string(w == SkillWhen::Always ? "an " : "a ") + q(whenName(w)) + " block (it belongs to: combat)");
     if (!a.isObject()) return c.fail(where, "\"aura\" must be { \"to\": \"allies\", \"within\": 2 }");
-    if (!onlyKeys(c, a, {"to", "within"}, where + ": \"aura\"")) return false;
+    if (!onlyKeys(c, a, {"to", "within", "match"}, where + ": \"aura\"")) return false;
+    if (!c.str(a, "match", where + ": \"aura\"", out.auraMatch)) return false;
+    if (a.has("match") && out.auraMatch.empty()) return c.fail(where, "\"aura\".\"match\" must be a unit type id or tag (leave it out for every unit)");
     std::string to;
     if (!c.str(a, "to", where + ": \"aura\"", to, true)) return false;
     if (to != "allies" && to != "enemies") return c.fail(where, "\"aura\".\"to\" must be \"allies\" or \"enemies\"");
@@ -488,7 +600,10 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     if (out.aura) scope = {false, false, true, "in an aura block"};
     else if (w == SkillWhen::Always) scope = {false, false, false, "in an \"always\" block"};
     else if (w == SkillWhen::TurnStart) scope = {false, false, true, "in a \"turnStart\" block"};
-    else scope = {true, true, true, "here"};
+    else {
+      scope = {true, true, true, "here"};
+      scope.strike = w == SkillWhen::Strike || w == SkillWhen::Struck;
+    }
     if (!readSkillConds(c, db, e["if"], where, scope, labelPrefix, out.conds)) return false;
   }
 
@@ -556,7 +671,17 @@ bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& 
       case SkillCond::Kind::Near:
         found = k.key.empty();
         for (const UnitTypeDef& t : db.unitTypes) found = found || unitTypeMatchesKey(t, k.key);
+        for (const CharacterDef& ch : db.characters) found = found || std::find(ch.tags.begin(), ch.tags.end(), k.key) != ch.tags.end();
         what = k.kind == SkillCond::Kind::Unit ? "\"unit\" names no unit type id or tag \"" : "\"match\" names no unit type id or tag \"";
+        break;
+      case SkillCond::Kind::Carries:
+        found = db.findItem(k.key) >= 0;
+        what = "\"carries\" names unknown item \"";
+        break;
+      case SkillCond::Kind::WeaponKind:
+        found = false;
+        for (const WeaponDef& w : db.weapons) found = found || w.damageKind == k.key;
+        what = "\"weaponKind\" names no weapon damage kind \"";
         break;
       case SkillCond::Kind::Condition:
         found = db.findCondition(k.key) >= 0;

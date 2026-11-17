@@ -95,6 +95,8 @@ struct CharacterDef {
   // Quotes (docs/EVENTS.md "Battle and defeat quotes"); empty = none.
   std::vector<BattleQuote> battleQuotes;
   std::vector<QuoteLine> fallsLines, retreatsLines;  // said when the character is struck down (for good / retreating)
+  // Free-form labels (docs/SRPG.md "Tags"): a character matches `unit` / `near.match` / aura `match` keys by them like its type's tags.
+  std::vector<std::string> tags;
 };
 
 // The wording of all quotes (Battle::storyText, from kQuoteTextBase) and how many battle quotes there are.
@@ -113,7 +115,14 @@ enum class SkillWhen { Always, TurnStart, Combat, Strike, Struck, Defeat, AfterC
 // One entry of a block's "if" (also of an ability's "if"). Which fields count depends on `kind`.
 struct SkillCond {
   enum class Kind { Hp, Near, Weapon, Terrain, Structure, Unit, Carrying, Round, Initiating, Distance, Formula,
-                    Condition };  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
+                    Condition,  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
+                    // Skill blocks, general (docs/SRPG.md "More blocks"): WeaponKind: the weapon's `damageKind` is `key`;
+                    // Turn: the battle's turn number fits `turnMode`.
+                    WeaponKind, Turn,
+                    // Counterattack: the fight has a counterattack (strike / struck blocks); Carries: `key` is an item the unit carries;
+                    // Inventory: the number of items carried (`op`, `value`), or full / not full (`flag`, `value` = -1).
+                    Counterattack, Carries, Inventory };
+  enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
   CmpOp op = CmpOp::Ge;   // Hp, Near, Round, Distance
@@ -124,6 +133,8 @@ struct SkillCond {
   std::string key;        // Near: "match" (a unit type id or tag, "" = any); Weapon: weapon id or group;
                           // Terrain: terrain id or tag; Structure: structure id or tag; Unit: unit type id or tag
   int expr = -1;          // Formula: index into Database::exprs
+  TurnMode turnMode = TurnMode::Odd;  // Turn
+  int turnA = 1, turnB = 1000000;     // Turn: Range = from..to; Every = every `turnA` with remainder `turnB`
 };
 
 // One entry of a block's "do". Which fields count depends on `kind`.
@@ -140,7 +151,11 @@ struct SkillEffect {
     Heal, Hurt, ActAgain,
     // conditions (docs/SRPG.md section 9). CannotAct, CannotMove, Forbid and Berserk belong to the blocks of a condition;
     // Immune works in any skill; Inflict is an on-hit effect of "strike" / "struck" blocks (a weapon's "inflict" is one).
-    CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict
+    CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict,
+    // General blocks (docs/SRPG.md "More skill blocks"). FollowUp: value 1 force / -1 forbid the unit's follow-up strike;
+    // FollowShift: a number the strike formulas read as `a.followShift`; TrianglePercent: read as `a.trianglePercent`.
+    FollowUp, FollowShift, TrianglePercent, WeaponXpPercent, NoCarryPenalty, CancelEffective,
+    Cure  // timed blocks: the owner is cured of the conditions in `names` / `conds`, or of all (`cureAll`)
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -160,6 +175,10 @@ struct SkillEffect {
   std::vector<std::string> names, kinds;
   std::vector<int> conds;   // Immune / Inflict: the same as indices into Database::conditions
   int turns = 0;            // Inflict: duration override (0 = the condition's own)
+  // A combat number written as a formula (docs/SRPG.md "Formula-sized bonuses"): `expr` >= 0 replaces `value` for Hit, Crit,
+  // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
+  std::vector<int> statExprs;
+  bool cureAll = false;     // Cure: every condition
 };
 
 struct SkillBlock {
@@ -171,6 +190,7 @@ struct SkillBlock {
   bool aura = false;                 // combat blocks only: the effects go to fighters near the owner
   bool auraEnemies = false;          // false = "allies"
   int auraWithin = 1;                // 1..10
+  std::string auraMatch;             // aura: only units whose type or character has this id / tag receive it ("" = all)
   std::vector<SkillEffect> effects;  // "do": at least one
 };
 
@@ -236,6 +256,7 @@ struct PromotionDef {
 
 struct PromotionRules {
   bool keepLevel = false;  // "levelAfter": "keep" (default "reset": level 1, xp 0 after promoting)
+  bool replaceClassSkills = false;  // "classSkills": "replace": skills the old class taught go away when promoting (default "keep")
 };
 
 // ---- 5. rescue and pair up (game.json rules.rescue) ----

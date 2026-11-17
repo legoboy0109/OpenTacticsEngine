@@ -101,6 +101,7 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
     u.xp = 0;
   }
   stockUnit(u);  // fuel and ammunition as for a new unit of the new type
+  if (db->rules.promotion.replaceClassSkills) dropOldClassSkills(u, oldType);  // "classSkills": "replace"
   learnUpTo(u);  // the new type's "learns" at or below the level it now has (K1; learned skills stay)
 
   std::vector<int> change(u.stats.size(), 0);

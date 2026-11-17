@@ -348,7 +348,7 @@ must hold), an optional **chance**, and what it **does** (a list of effects).
 ```
 
 Block keys: `when` (required), `if` (optional list), `chance` (optional), `aura` (optional, combat blocks only),
-`do` (required, at least one effect). Each condition and each effect is an object with **exactly one** kind key
+`do` (required, at least one effect). An aura may add `"match"`; a combat number may be a formula (see "More skill blocks"). Each condition and each effect is an object with **exactly one** kind key
 plus that kind's own parameters.
 
 ### Where skills come from
@@ -403,6 +403,7 @@ foe. `op` is one of `= != < <= > >=` (`==` accepted), default `>=`.
 | `{ "initiating": true }` | the unit started this combat (`false` = it is defending). Foe points only |
 | `{ "distance": { "op": "=", "value": 1 } }` | grid distance between the two fighters. Foe points only |
 | `{ "formula": "a.level >= 10 and b.tags.flier" }` | the formula is true or non-zero: `a` = the owner, `b` = the foe. Not in `always` blocks |
+| `{ "weaponKind": "magic" }`, `{ "turn": { "odd": true } }`, `{ "counterattack": false }`, `{ "carries": "potion" }`, `{ "inventory": "full" }` | see "More skill blocks" below |
 
 Refused in `always` blocks: `formula`, `initiating`, `distance`, `"who": "foe"` (there is no combat). A block that
 changes the **HP stat** in `always` may have no condition at all (a maximum that flickers would cut current HP):
@@ -445,6 +446,9 @@ roll today).
 | `{ "heal": 5 }` / `{ "heal": { "percent": 20 } }` | restores HP (percent of the receiver's maximum, at least 1). `"to"`: `"self"` (default) or `"allies"` with `"within": 1..10` (other units of its team on the board that close) | `turnStart`, `defeat`, `afterCombat` |
 | `{ "hurt": 5 }` | the receiver loses HP but never falls below 1. `"to"`: `"foe"` (`afterCombat`, a foe still alive) or `"enemies"` with `"within"` (`turnStart`; enemies the unit's team sees) | `afterCombat`, `turnStart` |
 | `{ "actAgain": true }` | the unit may move and act again this turn. At most once per unit per turn | `defeat`, `afterCombat` (only on its own side's turn) |
+| `{ "followUp": "force" }`, `{ "followShift": 2 }`, `{ "trianglePercent": 200 }` (also `"to": "foe"`) | follow-up control and the triangle multiplier; see "More skill blocks" | `combat` |
+| `{ "weaponXpPercent": 150 }`, `{ "noCarryPenalty": true }`, `{ "cancelEffective": true }`, `{ "moveAgain": { "notAfterAttack": true } }` | see "More skill blocks" | `always` |
+| `{ "cure": ["poison"] }` / `{ "cure": "all" }` | cures the owner | `turnStart`, `defeat`, `afterCombat` |
 
 An effect in a block whose `when` the table does not list is refused: `skill "x": block 2: "drain" cannot be used in
 a "combat" block (it belongs to: strike)`.
@@ -523,6 +527,88 @@ same forecast, so it values passive skills and ignores activations.
 - Roster entry: `"skills": [skill indices]` only when not empty.
 - `data/skills.json` is mixed into the data hash only when present (`name` and `description` are cosmetic keys
   already). New keys on units, weapons and items are part of files that are hashed whole.
+
+### More skill blocks
+
+General blocks added after the first set (PLAN 6e). Each one is plain data in the blocks above, judged by the same code, so the forecast, the real
+fight and the computer opponent agree. Every game that does not use a new key loads and plays exactly as before (the data hash is unchanged).
+
+**Tags.** A unit type's `tags` already exist (`units.json`). A **character** may now have `tags` too (`characters.json`, a list of free words): a
+character matches a tag key like its unit type does. Everything that takes "a unit type id or tag" (the `unit` and `near.match` conditions, an
+aura's `match`, below) sees both, and a formula's `a.tags.x` / `b.tags.x` includes the character's tags. (`versus` tables and square bonuses keep
+using the unit type alone.)
+
+**An aura limited to a kind of unit.** `"aura": { "to": "allies", "within": 2, "match": "scout" }`: only units whose type or character has that id /
+tag receive the effects. `match` is about the receiver; the owner's own conditions are unchanged. "+X when fighting a foe with tag T" is the existing
+`{ "unit": "T", "who": "foe" }`. An unknown id: `skill "x": block 1: "aura"."match" names no unit type id or tag "nobody"`.
+
+**The kind of damage a weapon deals.** The engine has no built-in physical / magical (damage is the maker's formula). A weapon may say
+`"damageKind": "magic"` (any word, like `group`; `weapons.json`). Condition `{ "weaponKind": "magic" }` is true when the weapon in use has that kind;
+`"who": "foe"` asks about the foe's weapon in this fight. Usable wherever a skill test works. Formulas read it as `w.damageKind` / `fw.damageKind`
+(`""` when none). A kind no weapon has is refused: `"weaponKind" names no weapon damage kind "x"`.
+
+**Turn-number tests.** `{ "turn": { "odd": true } }`, `{ "even": true }`, `{ "from": 3, "to": 6 }` (either may be left out), `{ "every": 3, "offset": 1 }`
+(turns whose number divided by `every` leaves `offset`; offset default 0, must be below `every`). The turn is the battle's round number (the same
+number as the `round` condition); allowed in every block. Formulas read it as `turn` (a ninth variable after `fw`; 0 outside a battle).
+
+**Formula-sized combat bonuses.** Wherever a combat bonus takes a number, it may be a formula (text) with the usual variables: `hit`, `crit`,
+`damage`, `avoid`, `critAvoid`, `damageTaken`, `damagePercent`, `damageTakenPercent` in `combat`, `strike` and `struck` blocks, and each stat of a
+`combat` block's `stats` (`{ "stats": { "str": "turn" } }`; not in `always` blocks, where a stat would ask itself). `a` = the owner, `b` = the foe;
+in an aura `b` is the fighter that receives it. The result is rounded down (percents kept within 0..1000, numbers within +-1000). The formula reads
+stats as the rules see them but without this combat's own bonuses (no circularity). A scaling bonus: `{ "damage": "turn * 2" }`. **Ignore part of the
+foe's defence** needs no block of its own: `{ "stats": { "def": "-math.floor(b.def * 0.5)" }, "to": "foe" }` lowers the foe's Defense by half for this
+fight, before the damage formula reads it. (Syntax errors name the place: `data/skills.json: skill "x": block 1: effect 1: "damage": ...`.)
+
+**Follow-up strike control** (`combat` blocks). The engine does not decide doubling: the maker's `strikes` formula does (`strikes >= 2` is a
+follow-up). So: `{ "followUp": "force" }` makes the unit's strikes at least 2 after the formula; `{ "followUp": "forbid" }` makes them 1; with `"to":
+"foe"` it is aimed at the foe's strikes (`"forbid"` wins when both are given). `{ "followShift": 2 }` is a number the strikes formula reads as
+`a.followShift` / `b.followShift` (0 when no skill says it): `"strikes": "(a.spd >= b.spd + 5 - a.followShift) and 2 or 1"` moves the threshold
+(`"to": "foe"` shifts the foe's). A game whose formula never reads it ignores it. The forecast and the fight use the same numbers.
+
+**Weapon-triangle multiplier** (`combat`). `{ "trianglePercent": 200 }` (0..1000, percents multiply, `"to": "foe"` allowed) is read by formulas as
+`a.trianglePercent` / `b.trianglePercent` (100 by default): `3 * tri(w, fw) * a.trianglePercent / 100`. Each strike's formula sees its own striker's value
+as `a`, so when both fighters have one each scales its own strikes; a formula that wants the foe's reads `b.trianglePercent`.
+
+**Weapon experience** (`always`). `{ "weaponXpPercent": 150 }` (1..1000): weapon experience the unit gains (section 7: fights and staves) is multiplied.
+
+**Move again, but not after attacking** (`always`). `{ "moveAgain": { "notAfterAttack": true } }`: the unit may still move after any action but a
+fight. (`{ "moveAgain": true }` is as before: after any action.)
+
+**No carry penalty** (`always`). `{ "noCarryPenalty": true }`: the unit carrying someone (`rules.rescue.mode "carry"`) ignores `carrierStats`.
+(Pair up's `pairBonus` still applies. A carry capacity bonus is not built: `canCarry` is the maker's formula, which can read a tag or a skill's stat.)
+
+**Cancel effectiveness** (`always`). `{ "cancelEffective": true }`: weapons' `versus` values above 1 against this unit count as 1 (a `versus` that
+makes the weapon unable to target it is unchanged). It applies in the forecast, the fight and the computer opponent alike.
+
+**The foe answers** (`strike` and `struck` blocks only). `{ "counterattack": false }` is true when this fight has no counterattack (out of range, a
+`noCounter`, an unarmed foe...); `true` is the inverse. A `combat` block cannot ask it (its answer is still being worked out): `"counterattack" can
+only be asked in "strike" and "struck" blocks`. The forecast shows strike blocks without a chance, so it follows.
+
+**Items carried.** `{ "carries": "potion" }` (an item id), `{ "inventory": "full" }`, `{ "inventory": "notFull" }`, `{ "inventory": { "op": ">=", "value": 2 } }`
+(the number of items in the pack; "full" = `rules.items.inventorySize`). `"who": "foe"` allowed.
+
+**Cure** (`turnStart`, `defeat`, `afterCombat`). `{ "cure": ["poison"] }` or `{ "cure": "all" }`: the owner is cured (section 9; no immunity or
+inflict rules apply; event `ConditionEnded`).
+
+**A map unit with skills of its own.** A unit in a map's `units` (and an `addUnit` command) accepts `"skills": ["id"]`, added to those of its type and
+character. They are learned for good when the unit is made (so `forgetSkill` can remove them, they are saved with the unit like any learned skill).
+
+**Class skills that go away on promotion.** `game.json` `rules.promotion.classSkills`: `"keep"` (default, today's behaviour) or `"replace"`: on
+promotion the skills the OLD class's `learns` gave are removed (except ones the character or the new class teaches too), then the new class's
+entries at or below the new level are added. Skills from the type's `skills`, accessories and weapons are always re-derived from the current state.
+
+**Not built from the list** (each would need rules, forecast, editor and tests of its own; PLAN 6e lists them): steal (needs a picker for the foe's
+items), switch off the foe's skills, heal the healer on staff use, staff range bonus, refresh an ally, a carry capacity bonus, a test for standing on
+terrain that gives a bonus (the existing `terrain` test takes an id or tag), and "move past a neighbour" (an ability that puts the *user* beyond
+the unit; `moveBehind` puts the *target* behind the user). Summon parameters already exist (section 4: the unit type, `level`, `limit`).
+
+**The computer opponent.** Every passive block above flows through the existing forecast, so it values them like any other combat bonus. There is no
+new active ability, so nothing new is ignored.
+
+**Saves.** No new state: learned skills (map-unit skills, promotion changes) were already saved. Old saves load.
+
+**Tests.** `tests/test_srpg_skillblocks.cpp`, `test_srpg_skillblocks_more.cpp`, `test_srpg_skillblocks_units.cpp` (fixture
+`tests/fixtures/srpg-skillblocks`); editor: `tests/unit/skillblocks.test.ts`, `tests/e2e/srpg-skillblocks.spec.ts`, `tests/editor_api_skills_checks.py`.
 
 ### The starter set
 
@@ -2190,8 +2276,9 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 
 ### Not built
 
-- **Steal** (an ability that takes an unequipped item from an adjacent foe) is **not built**: it needs an item picker for the foe's items and an
-  AI rule of its own, so it is left for a follow-up (PLAN 6e lists it with the missing skill blocks).
+- **Steal** (an ability that takes an unequipped item from an adjacent foe) is **still not built** (checked again with the general skill blocks,
+  section 3 "More skill blocks"): it needs an item picker for the foe's items with the reasons shown, a rule for a full inventory, and an AI rule
+  of its own, which is more than a small block.
 - No editor forms (docs/EDITOR_UI.md says what to hand-edit); the helper keeps the keys.
 - The AI does not use unlock abilities / staves and does not break doors down.
 

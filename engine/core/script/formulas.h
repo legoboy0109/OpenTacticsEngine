@@ -48,6 +48,9 @@ struct FormulaCtx {
   // supports); null = nothing. A stat with a bonus does not go below 0.
   const std::vector<int>* bonusA = nullptr;
   const std::vector<int>* bonusB = nullptr;
+  // This fight's follow-up shift and triangle multiplier (percent) of `a` / `b`: formulas read `a.followShift`, `a.trianglePercent`
+  // (docs/SRPG.md "Follow-up strikes"). 0 / 100 outside the strike formulas.
+  int followA = 0, followB = 0, triA = 100, triB = 100;
 };
 
 class Formulas {
@@ -79,7 +82,7 @@ class Formulas {
   bool compile(const std::string& expr, const std::string& label, int& ref, std::string& err);
   double call(int ref, bool& warned, const char* label, const FormulaCtx& ctx, double def, bool nilIsZero = false);
   void pushFoeWeapon(const WeaponDef* fw, bool answers);
-  void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus);
+  void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus, int follow, int tri);
 
   const Database* db_ = nullptr;
   lua_State* L_ = nullptr;

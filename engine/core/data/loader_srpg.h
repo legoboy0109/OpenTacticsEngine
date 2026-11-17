@@ -73,6 +73,7 @@ bool parseCmpOp(const std::string& text, CmpOp& op);  // = == != < <= > >=
 struct SkillCondScope {
   bool foe, foePoint, formula;
   const char* place;
+  bool strike = false;  // "counterattack" is allowed (strike / struck blocks: the fight's answer is known there)
 };
 // Reads a list of conditions into `out`. `where` names the owner (`skill "x": block 1`); `labelPrefix` starts the
 // label of a formula ("data/skills.json: "), see ExprDef.

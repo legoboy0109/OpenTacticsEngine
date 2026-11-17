@@ -13,17 +13,19 @@ using namespace ote;
 
 struct Copy {
   std::string dir;
+  std::string fixture;  // the folder under tests/fixtures it was copied from
 
-  explicit Copy(const std::string& name) {
+  // `from`: another fixture with the same file names (srpg-skillblocks); files it lacks are skipped.
+  explicit Copy(const std::string& name, const char* from = "srpg-skills") : fixture(from) {
     dir = savetest::tempFolder(name);
     makeDir(dir + "/data");
     makeDir(dir + "/maps");
     static const char* const files[] = {"game.json",       "data/terrain.json", "data/structures.json", "data/weapons.json",
-                                        "data/items.json", "data/units.json",   "data/characters.json", "data/skills.json",
+                                        "data/items.json", "data/units.json",   "data/characters.json", "data/skills.json", "data/ranks.json", "data/conditions.json",
                                         "maps/field.json", "maps/woods.json",   "maps/story.json"};
     for (const char* f : files) {
       std::string text;
-      if (readTextFile(ote_test::sourceDir() + "/tests/fixtures/srpg-skills/" + f, text)) writeTextFile(dir + "/" + f, text);
+      if (readTextFile(ote_test::sourceDir() + "/tests/fixtures/" + fixture + "/" + f, text)) writeTextFile(dir + "/" + f, text);
     }
   }
   void put(const std::string& rel, const std::string& text) { writeTextFile(dir + "/" + rel, text); }
@@ -44,7 +46,7 @@ struct Copy {
   // items name some of them.
   void skills(const std::string& list) {
     std::string base;
-    readTextFile(ote_test::sourceDir() + "/tests/fixtures/srpg-skills/data/skills.json", base);
+    readTextFile(ote_test::sourceDir() + "/tests/fixtures/" + fixture + "/data/skills.json", base);
     base = base.substr(base.find('[') + 1, base.rfind(']') - base.find('[') - 1);
     put("data/skills.json", "{ \"skills\": [" + base + (list.empty() ? "" : "," + list) + "] }");
   }

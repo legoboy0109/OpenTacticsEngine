@@ -19,6 +19,18 @@ EXTRA = [
         {"when": "always", "do": [{"growths": {"str": 5}}, {"xpPercent": 120}, {"ability": "shove"}]},
         {"when": "combat", "aura": {"to": "allies", "within": 3}, "if": [{"hp": {"op": ">", "percent": 10}}], "do": [{"stats": {"def": 1}}, {"crit": 5}]},
         {"when": "turnStart", "chance": "a.skl * 2", "do": [{"heal": 3}, {"hurt": 1, "to": "enemies", "within": 2}]}]},
+    # The general blocks (docs/SRPG.md "More skill blocks"): turn tests, formula amounts, follow-up control, an aura limited to a kind of unit,
+    # the counterattack / inventory / damage-kind tests, and the single standing effects.
+    {"id": "general_blocks", "name": "General blocks", "blocks": [
+        {"when": "combat", "if": [{"turn": {"odd": True}}, {"turn": {"from": 2, "to": 9}}, {"turn": {"every": 3, "offset": 1}}, {"turn": {"even": True}},
+                                  {"inventory": "notFull"}, {"weaponKind": "magic", "who": "foe"}],
+         "do": [{"damage": "turn * 2"}, {"hit": "a.skl - b.skl"}, {"stats": {"str": "turn"}}, {"followUp": "force"},
+                {"followUp": "forbid", "to": "foe"}, {"followShift": 2}, {"trianglePercent": 200}]},
+        {"when": "combat", "aura": {"to": "allies", "within": 2, "match": "lord"}, "do": [{"hit": "b.str"}]},
+        {"when": "strike", "if": [{"counterattack": False}, {"inventory": {"op": ">=", "value": 1}}], "do": [{"damage": 3}]},
+        {"when": "always", "do": [{"moveAgain": {"notAfterAttack": True}}, {"weaponXpPercent": 150}, {"noCarryPenalty": True},
+                                  {"cancelEffective": True}]},
+        {"when": "turnStart", "do": [{"cure": "all"}]}]},
 ]
 
 
@@ -40,11 +52,12 @@ def run_skills_checks(api, tmp, games, templates, check, get_project, put_projec
     skills = d["skills"] + EXTRA
     for u in d["units"]:
         if u["id"] == "lord":
-            u["skills"] = ["tough", "heavy_blow", "every_condition"]
+            u["skills"] = ["tough", "heavy_blow", "every_condition", "general_blocks"]
             u["learns"] = [{"level": 2, "skill": "catch_breath"}, {"level": 3, "skill": "every_effect"}]
     for w in d["weapons"]:
         if w["id"] == "iron_sword":
             w["skills"] = ["opening_blow"]
+            w["damageKind"] = "magic"  # a weapon's kind of damage, tested by "general_blocks"
     items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"]}]  # the template's own stay
     abilities = [{"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 1}}]
     chars = [{"id": "eirik", "name": "Eirik", "type": "lord", "skills": ["on_my_own"], "learns": [{"level": 2, "skill": "gifted"}]}]

@@ -4,19 +4,22 @@ import type { ProjectDoc } from '../../model/types'
 import { Field } from '../../ui/Field'
 import { Icon } from '../../ui/Icon'
 import { Select } from '../../ui/Select'
+import { TextInput } from '../../ui/TextInput'
 import { Num } from './Num'
 import { T } from './text'
 
 interface Props {
   doc: ProjectDoc
-  value: Record<string, number>
+  value: Record<string, number | string>
+  /** A combat bonus (not growths, not an always bonus) may give a stat as a formula (docs/SRPG.md "Formula-sized bonuses"). */
+  formulas?: boolean
   /** The stats that may be picked. */
   choices: string[]
   label: string
-  onChange: (next: Record<string, number>, key?: string) => void
+  onChange: (next: Record<string, number | string>, key?: string) => void
 }
 
-export function StatRows({ doc, value, choices, label, onChange }: Props) {
+export function StatRows({ doc, value, formulas, choices, label, onChange }: Props) {
   const name = (id: string) => doc.game?.stats?.find((s) => s.id === id)?.name ?? id
   const rows = Object.entries(value)
   const free = choices.filter((s) => !(s in value))
@@ -29,7 +32,15 @@ export function StatRows({ doc, value, choices, label, onChange }: Props) {
           <Field label={`${label} ${i + 1}`}>
             <Select value={k} options={[...new Set([k, ...free])].map((s) => ({ value: s, label: name(s) }))} onChange={(to) => swap(k, to)} />
           </Field>
-          <Field label={`${T.amount} ${i + 1}`}><Num value={n} min={-1000} max={1000} onChange={(x) => onChange({ ...value, [k]: x }, `stat:${k}`)} /></Field>
+          {formulas && (
+            <Field label={`${T.formulaStatKind} ${i + 1}`}>
+              <Select value={typeof n === 'string' ? 'formula' : 'number'} options={Object.entries(T.amountModes).map(([v, l]) => ({ value: v, label: l }))}
+                onChange={(m) => onChange({ ...value, [k]: m === 'formula' ? 'turn' : 0 })} />
+            </Field>
+          )}
+          {typeof n === 'string'
+            ? <Field label={`${T.amountFormula} ${i + 1}`} help={T.amountFormulaHelp}><TextInput mono value={n} onChange={(x) => onChange({ ...value, [k]: x }, `stat:${k}`)} /></Field>
+            : <Field label={`${T.amount} ${i + 1}`}><Num value={n} min={-1000} max={1000} onChange={(x) => onChange({ ...value, [k]: x }, `stat:${k}`)} /></Field>}
           {rows.length > 1 && (
             <button type="button" className="btn ghost sm icon" aria-label={T.removeStat(name(k))}
               onClick={() => onChange(Object.fromEntries(rows.filter(([x]) => x !== k)))}><Icon name="trash" /></button>

@@ -175,6 +175,7 @@ specified in docs/SRPG.md section 10; the editor has no forms for them (docs/EDI
     "versus": { "flier": 3 },     // key = target unit type id or tag
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
+    "damageKind": "magic",        // optional free word (physical, magic...): skills test it, formulas read w.damageKind; docs/SRPG.md "More skill blocks"
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
@@ -340,6 +341,11 @@ a game that uses none of them loads and plays exactly as before, and the files, 
 docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here. A character may carry `"quotes"` (lines said when it fights and
 when it is struck down; docs/EVENTS.md "Battle and defeat quotes"); their wording does not count for the data hash, their rules do.
 
+**General skill blocks** (docs/SRPG.md section 3 "More skill blocks", optional): a weapon's `damageKind`, a character's `tags`, `skills` on a map unit and on
+`addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
+`inventory`, an aura's `match`, formula amounts for combat bonuses, and the effects `followUp`, `followShift`, `trianglePercent`, `weaponXpPercent`,
+`noCarryPenalty`, `cancelEffective`, `cure` and `moveAgain` with `notAfterAttack`.
+
 **Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
 staff, and the skill effect `immune`. Map events can give and take conditions (`addCondition`, `removeCondition`) and ask (`hasCondition`, docs/EVENTS.md
@@ -359,11 +365,12 @@ Formulas are Lua expressions. Variables:
 |--------|---------|
 | `a`    | acting unit: every stat by id, plus `hp` (current), `maxhp`, `level`, `xp`, `type`, `name`, `tags.<tag>` |
 | `b`    | the other unit (same fields); nil for `capture.amount` |
-| `w`    | the weapon: its `props` as numbers, plus `id` and `group` as text (`w.group == "sword"`; group `""` when it has none) |
+| `w`    | the weapon: its `props` as numbers, plus `id`, `group` and `damageKind` as text (`w.group == "sword"`; `""` when it has none) |
 | `fw`   | the weapon the other fighter fights with, shaped like `w`: its `props` as numbers plus `id` and `group` as text (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). In the strike formulas `fw.answers` is 1 when the foe can really counter in this fight, else nil. Weapon triangle example: docs/SRPG.md "Formulas in this document" |
 | `ta`, `tb` | the numbers of the square under `a` / `b`: the terrain's `props`, with the `props` of a structure standing there replacing numbers of the same name and adding the others |
 | `dist` | grid distance between them |
 | `vs`   | the weapon's `versus` value for `b` |
+| `turn` | the battle's turn (round) number; 0 outside a battle. A unit table also has `followShift` and `trianglePercent` (docs/SRPG.md "More skill blocks"), and its `tags` include its character's |
 
 If the hit-point stat is called `hp`, `a.hp` is the *current* value and
 `a.maxhp` the maximum. Results are rounded down; damage below 0 becomes 0.

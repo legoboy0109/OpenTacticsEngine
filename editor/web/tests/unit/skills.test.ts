@@ -19,13 +19,13 @@ const base = (): ProjectDoc => switchOnFeature(loadDemo('demo-srpg'), 'skills')
 
 // The tables of docs/SRPG.md section 3, written out once more by hand: the picker rules must equal them.
 const EFFECT_TABLE: Record<When, EffectKind[]> = {
-  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune'],
-  turnStart: ['heal', 'hurt'],
-  combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter'],
+  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective'],
+  turnStart: ['heal', 'hurt', 'cure'],
+  combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter', 'followUp', 'followShift', 'trianglePercent'],
   strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain', 'inflict'],
   struck: ['avoid', 'critAvoid', 'damageTaken', 'damageTakenPercent', 'survive', 'inflict'],
-  defeat: ['heal', 'actAgain'],
-  afterCombat: ['heal', 'hurt', 'actAgain'],
+  defeat: ['heal', 'actAgain', 'cure'],
+  afterCombat: ['heal', 'hurt', 'actAgain', 'cure'],
 }
 const sorted = <T,>(l: T[]) => [...l].sort()
 
@@ -39,10 +39,13 @@ describe('skills: the pickers follow the contract tables', () => {
   })
   it('offers the conditions of each "when": no formula / foe points where there is no combat', () => {
     const all = sorted(COND_KINDS)
-    expect(sorted(condsFor('always', false))).toEqual(sorted(all.filter((k) => !['formula', 'initiating', 'distance'].includes(k))))
-    expect(sorted(condsFor('turnStart', false))).toEqual(sorted(all.filter((k) => !['initiating', 'distance'].includes(k))))
-    expect(sorted(condsFor('combat', true))).toEqual(sorted(all.filter((k) => !['initiating', 'distance'].includes(k))))
-    for (const w of ['combat', 'strike', 'struck', 'defeat', 'afterCombat'] as const) expect(sorted(condsFor(w, false))).toEqual(all)
+    // "Does the foe answer" is only known where a strike is judged (strike and struck rules).
+    const plain = all.filter((k) => k !== 'counterattack')
+    expect(sorted(condsFor('always', false))).toEqual(sorted(plain.filter((k) => !['formula', 'initiating', 'distance'].includes(k))))
+    expect(sorted(condsFor('turnStart', false))).toEqual(sorted(plain.filter((k) => !['initiating', 'distance'].includes(k))))
+    expect(sorted(condsFor('combat', true))).toEqual(sorted(plain.filter((k) => !['initiating', 'distance'].includes(k))))
+    for (const w of ['combat', 'defeat', 'afterCombat'] as const) expect(sorted(condsFor(w, false))).toEqual(plain)
+    for (const w of ['strike', 'struck'] as const) expect(sorted(condsFor(w, false))).toEqual(all)
   })
   it('offers only what the game can make: a weapon condition needs a weapon, an ability effect needs an ability', () => {
     const d = base()
@@ -62,7 +65,8 @@ describe('skills: the pickers follow the contract tables', () => {
     expect(noConditionsWhy(d, full)).toBe('limit')
   })
   it('every effect and condition the editor can make passes its own checks in a rule that allows it', () => {
-    const d = { ...base(), abilities: [{ id: 'shove', name: 'Shove' }], conditions: [{ id: 'poison', name: 'Poison', turns: 3, blocks: [{ when: 'always', do: [{ cannotMove: true }] }] }] }
+    const b0 = base()
+    const d = { ...b0, weapons: (b0.weapons ?? []).map((w, i) => (i === 0 ? { ...w, damageKind: 'magic' } : w)), abilities: [{ id: 'shove', name: 'Shove' }], conditions: [{ id: 'poison', name: 'Poison', turns: 3, blocks: [{ when: 'always', do: [{ cannotMove: true }] }] }] }
     for (const w of WHENS) for (const k of effectsFor(w, false)) {
       const e = newEffect(k, d, w)
       expect(e, `${w}/${k}`).not.toBeNull()

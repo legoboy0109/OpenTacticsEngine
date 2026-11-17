@@ -1,0 +1,3 @@
+{ "skills": [
+  { "id": "plain_skill", "name": "Plain Skill", "blocks": [ { "when": "combat", "do": [ { "damage": 0 } ] } ] },
+  { "id": "rank_skill", "name": "Rank Skill", "blocks": [ { "when": "combat", "do": [ { "damage": 1 } ] } ] } ] }

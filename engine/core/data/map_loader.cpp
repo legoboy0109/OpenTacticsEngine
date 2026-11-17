@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <map>
 
 #include "core/data/loader.h"
@@ -241,6 +242,13 @@ bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std
     for (size_t s = 0; s < u.stats.size() && s < ch->stats.size(); ++s) u.stats[s] = std::max(0, u.stats[s] + ch->stats[s]);
   if (!c.statMap(db, e, "stats", where, u.stats)) return false;
   if (!readRankMap(c, db, e, where, -1, u.weaponXp)) return false;  // "ranks" replaces the start of the groups it names
+  std::vector<std::string> skillIds;  // "skills": added to those of its type and character
+  if (!c.stringList(e, "skills", where, skillIds)) return false;
+  for (const std::string& id : skillIds) {
+    const int s = db.findSkill(id);
+    if (s < 0) return c.fail(where, "\"skills\" names unknown skill \"" + id + "\" (data/skills.json)");
+    if (std::find(u.skills.begin(), u.skills.end(), s) == u.skills.end()) u.skills.push_back(s);
+  }
   u.hasItems = e.has("items");
   if (u.hasItems || !ch || !ch->hasItems) return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items);
   u.hasItems = true;  // the character's items replace the unit type's
