@@ -50,6 +50,9 @@ test('animation: frames alternate on the canvas, and stay on the first frame whe
   const id = await game.create('strategy-rpg', 'Canvas Anim')
   await seedArt(request, id, { tiles: sheetPng(4, 4) }, tilesGraphics({ terrain: { forest: { sheet: 'tiles', frames: [[0, 0], [1, 0]], frameMs: 100 } } }))
   await openMap(page, id, MAP)
+  // The image loads a moment after the map opens: wait until a frame (either one) is on the canvas before sampling.
+  const frameColors = [hex(pieceColor(0, 0)), hex(pieceColor(1, 0))]
+  await expect.poll(async () => frameColors.includes(hex(await mapPixel(page, 2, 0)))).toBe(true)
   const seen = new Set<string>()
   // Sample often, at a rhythm that does not line up with the 100 ms frames (the default poll is too sparse to be sure).
   for (let i = 0; i < 100 && seen.size < 2; i++) { seen.add(hex(await mapPixel(page, 2, 0))); await page.waitForTimeout(37) }
