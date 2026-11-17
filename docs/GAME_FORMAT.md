@@ -45,7 +45,7 @@ id that does not exist is a load error.
   "roles": { "hp": "hp", "move": "mov" },                     // required
 
   "resources": [ { "id": "funds", "name": "Funds" } ],        // optional
-  "moveTypes": [ { "id": "foot", "name": "Foot" } ],          // at least one
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],          // at least one; a type may add "sounds": { "step": "tread", "stepInterval": 0.25 } (docs/SOUND.md "Step sounds by movement type")
 
   // Story switches (off/on) and variables (whole numbers, start 0) for map events; optional.
   "switches":  [ { "id": "village_saved", "name": "Village saved" } ],
@@ -277,6 +277,7 @@ Everything is in docs/ECONOMY.md.
                            "structures": [ { "id": "gate", "kind": "gate_open" } ] } },  // "Changing the map"
   "music": "boss",                                         // optional (docs/SOUND.md): music ids of data/audio.json for this map
   "playerTurnMusic": "calm", "enemyTurnMusic": "tense",    // (each optional; "" = none on this map)
+  "phaseMusic": { "green": "ally" }, "fewEnemies": { "music": "last", "count": 1 }, "prepMusic": "camp",   // optional: music by situation (docs/SOUND.md)
   "sides": [
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
       "controller": "human",             // or "ai"
@@ -344,11 +345,16 @@ errors (the player's loader, like graphics.json); a missing audio file is a warn
   "use": { "titleMusic": "title", "mapMusic": "battle", "playerTurnMusic": "", "enemyTurnMusic": "",
            "sceneMusic": "", "victory": "win", "defeat": "lose", "levelUp": "levelup",
            "sounds": { "cursor": "tick", "hit": "hit", "step": "step" } } }     // event -> sound id, every key optional
+// "use" also takes "phaseMusic" (side id -> track), "fewEnemies" { "music", "count" }, "prepMusic", and the jingles "promotion" and "chapterCard" (docs/SOUND.md "Music by situation")
 ```
 
 Files are `.ogg` (Vorbis) or `.wav` inside the game folder. The event keys, the overrides (`"sounds"` on weapons, units and items,
 `"music"` / `"playerTurnMusic"` / `"enemyTurnMusic"` on a map file, `"music"` on a campaign scene), the story commands
-`playMusic` / `stopMusic` / `playSound` and what each message looks like are in docs/SOUND.md "Step 2 as built".
+`playMusic` / `stopMusic` / `playSound` (and `setPhaseMusic`, docs/SOUND.md "Music by situation") and what each message looks like are in docs/SOUND.md "Step 2 as built".
+
+**Other presentation keys added to existing files** (all optional, none changes a rule or the data hash): `data/graphics.json` portraits `"faces"`, `"talk"`, `"blink"`
+(docs/GRAPHICS.md "Portraits"); battle scene animations `"sounds": { "<frame>": "<sound>" }` (docs/BATTLE_SCENE.md "Sounds"); story commands `enter`, `move`, `setPhaseMusic`,
+the `transition` of `leave` / `clearStage`, `focus` `"speed"`, and the seven stage places of `say` (docs/EVENTS.md "Scene presentation")).
 
 ## data/campaign.json (optional)
 

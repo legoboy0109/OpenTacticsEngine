@@ -322,7 +322,7 @@ indices for `Battle::storyText(i)`):
 | `MusicChanged` | a = text index of the track id (-1 = the story stopped the music), b = fade in milliseconds (-1 = not given) |
 | `SoundRequested` | a = text index of the sound id |
 | `TerrainChanged` | a = number of squares, b = the terrain they all got (-1 = not all the same), data = the squares (cell numbers). Public (every team: terrain is known to all). Comes before `Choice`, which stays the last entry |
-| `SceneEffect` | "Scene presentation": a = the command (`SceneFx::Kind`: background, fade, wait, shake, leave, weather), b = text index (picture id, speaker, weather; -1 none), c = ms, d = fade colour / shake strength, flags `kSceneOut` / `kSceneFadeTrans` / `kSceneAuto`. A `Dialogue` entry also carries the line's `position` / narrate in its flags and "auto" in `data`; a walked `UnitRelocated` carries the path in `data` |
+| `SceneEffect` | "Scene presentation": a = the command (`SceneFx::Kind`: background, fade, wait, shake, leave, weather, enter, move; enter / move: b = speaker, c = ms, d = place `kPos*`, flags `kSceneFadeTrans` = fade / slide, data = [portrait text index] for an enter that names one), b = text index (picture id, speaker, weather; -1 none), c = ms, d = fade colour / shake strength, flags `kSceneOut` / `kSceneFadeTrans` / `kSceneAuto`. A `Dialogue` entry also carries the line's `position` / narrate in its flags and "auto" in `data`; a walked `UnitRelocated` carries the path in `data` |
 
 With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
 objective changes and the two sound entries are seen by every team; the others by the teams that saw the unit or the square, see
@@ -910,7 +910,7 @@ character) have none. All wording is placeholder.
 
 Built. Code: `engine/core/data/scene_fx.h`, `loader_scene_fx.*`, `loader_scene_backgrounds.cpp`, `engine/core/battle/story_scene_fx.cpp`;
 player `engine/player/ui/scene_stage*.{h,cpp}`, `battle/battle_view_story.cpp`, `campaign/story_scene.cpp`. Tests:
-`tests/test_scene_fx.cpp`, `tests/test_scene_stage.cpp`, `tests/scene_player_test.py` (fixture `tests/fixtures/scene-pres`, its art drawn by
+`tests/test_scene_fx.cpp`, `tests/test_scene_stage.cpp`, `tests/test_stage_slots.cpp` (the seven places, enter / move / leave, the layout maths, the focus speed), `tests/stage_player_test.py` (fixture `tests/fixtures/stage-pres`, art by `tools/art/make_stage_test_art.py`), `tests/scene_player_test.py` (fixture `tests/fixtures/scene-pres`, its art drawn by
 `tools/art/make_scene_test_art.py`), `tests/editor_api_scene_checks.py`, `editor/web/tests/unit/scene.test.ts`,
 `editor/web/tests/e2e/scene.spec.ts`. The classic scene toolkit: a picture behind the dialogue, fades, pauses, a camera that scrolls
 and shakes, characters standing left and right, weather, units that walk in. **All of it is presentation only**: the rules never read
@@ -928,16 +928,19 @@ table says "map only".
 | `{ "wait": 500 }` | a pause in milliseconds (0 to 60000) | both |
 | `{ "shake": { "ms": 400, "strength": 3 } }` | shakes the picture; `ms` 0 to 10000 (default 400), `strength` 1 to 32 logical pixels (default 3) | both |
 | `{ "focus": { "x": 3, "y": 4 }, "ms": 600, "wait": false }` | `focus` as before plus `ms` (the scroll takes that long, 0 to 10000; 0 jumps; left out = the usual quick ease with a half-second wait) and `wait` (default true: the next command waits for the scroll; false: it goes on while the camera still scrolls) | map only |
-| `{ "say": "…", "speaker": "eirik", "position": "left" }` | `say` with a place on the stage: `"left"`, `"right"` or `"center"` (see "Standing portraits"). Without `position` the line looks exactly as it always did | both |
+| `{ "focus": "eirik", "speed": 4 }` | `speed` in squares per second (0.1 to 100) **instead of** `ms` (both is a loader error): the scroll takes as long as its distance needs (see "The camera, per kind of view") | map only |
+| `{ "setPhaseMusic": { "side": "red", "music": "calm" } }` | changes the music a side's turn plays for the rest of the battle (`"music": ""` = no phase music for that side, `null` = take the change away); docs/SOUND.md "Music by situation". Saved with the battle | map only |
+| `{ "say": "…", "speaker": "eirik", "position": "left" }` | `say` with a place on the stage: one of seven slots, `"farLeft"`, `"left"`, `"midLeft"`, `"center"`, `"midRight"`, `"right"`, `"farRight"` (see "Standing portraits"). Without `position` the line looks exactly as it always did | both |
+| `{ "enter": "eirik", "position": "midLeft", "portrait": "eirik_old", "transition": "fade", "ms": 400 }` | puts a portrait **on stage without a line**; `portrait` (optional) names another picture than the speaker's own, `transition` is `"cut"` (default) or `"fade"` (fades in over `ms`, default 500; the commands behind it wait). Nobody is lit until a line of theirs | both |
+| `{ "move": "eirik", "position": "right", "transition": "cut", "ms": 600 }` | slides a speaker who stands on the stage to another slot (a slide by default, 400 ms or `ms`; `"transition": "cut"` jumps). Whoever stands in the new slot leaves. A speaker who is not on the stage: nothing | both |
 | `{ "say": "…", "auto": 800 }` | the line goes on by itself 1 to 60000 ms after its last page is complete (Confirm and Skip still work; a question never does) | both |
 | `{ "narrate": "Night falls." }` | a line with no name and no portrait, the text centred in the box (over the background, if there is one); takes `auto` too | both |
-| `{ "leave": "eirik" }` | takes that speaker's portrait off the stage (the unit's story id, or the free name the line used) | both |
-| `{ "clearStage": true }` | everybody leaves the stage | both |
+| `{ "leave": "eirik", "transition": "fade", "ms": 300 }` | takes that speaker's portrait off the stage (the unit's story id, or the free name the line used); optional `transition` (`"cut"` default, or `"fade"` out over `ms`) | both |
+| `{ "clearStage": true, "transition": "fade" }` | everybody leaves the stage (same optional `transition` / `ms`) | both |
 | `{ "weather": "rain" }` | `"rain"`, `"snow"` or `"none"`: a particle overlay falling until changed. Saved with the battle | map only |
 | `{ "moveUnit": "eirik", "x": 3, "y": 4, "walk": true, "wait": false }` | `moveUnit` as before plus `walk`: the unit **walks** its way at the speed of an ordinary move (with its walking pictures when it has them, docs/GRAPHICS.md "Walking") instead of sliding. `wait` (only with `walk`, default true) says whether the next command waits for the walk | map only |
 
-Everything out of range, an unknown key, a `transition` that is not `cut` / `fade`, a `position` that is not `left` / `right` /
-`center`, a colour that is not `#rgb` / `#rrggbb`, an unknown background id (`"background" names unknown background "swamp"
+Everything out of range, an unknown key, a `transition` that is not `cut` / `fade`, a `position` that is not one of the seven places (`"position" must be "left", "right" or "center" (or "farLeft", "midLeft", "midRight", "farRight")`), an `enter` / `move` without a `position`, a `focus` with both `ms` and `speed`, a colour that is not `#rgb` / `#rrggbb`, an unknown background id (`"background" names unknown background "swamp"
 (data/graphics.json "backgrounds")`, or `this game has no backgrounds`), `weather` in a campaign scene (`"weather" is for map events
 only: a campaign scene has no map to put weather over`) and `focus` / `moveUnit` in a scene (they are not scene commands) is a loader
 error naming the file, the event or chapter and the command. `fade` and `wait` are also modifiers of other commands (`playMusic` /
@@ -967,13 +970,38 @@ new commands.
 ### Standing portraits
 
 The dialogue box shows **one** portrait, beside the box. A line with `position` puts its speaker on the **stage** instead: the portrait
-stands at the left, right or middle of the screen on the top edge of the box, drawn as large as a whole-number scale allows within 55
+stands at one of **seven places** across the screen on the top edge of the box, drawn as large as a whole-number scale allows within 55
 percent of the screen's height and 45 percent of its width (3 times on the 480 x 270 screen with 48 x 48 faces; smaller only when the
-picture cannot fit). The speaker is drawn bright, everybody else on the stage **dimmed**. A portrait stays until `leave` /
+picture cannot fit, or when many portraits share the stage, below). The speaker is drawn bright, everybody else on the stage **dimmed**. A portrait stays until `leave` /
 `clearStage`, or the scene ends (a map event's run of events; a campaign scene). One portrait per place: a newcomer takes the place of
 whoever stood there, and a speaker given a new `position` moves. A line **without** `position` from someone who stands on the stage
 lights that portrait where it stands; from someone who does not, it shows the classic portrait beside the box and the stage stays as it
 is. Whose picture it is follows the line's `portrait` id, else the speaker's unit id, as always. Far / near variants are not built.
+
+**The seven places**, left to right: `farLeft`, `left`, `midLeft`, `center`, `midRight`, `right`, `farRight`. `{ "enter": ... }` puts a portrait on
+a place with no line, `{ "move": ... }` slides it to another one, `leave` / `clearStage` take it off (with an optional fade). A portrait
+that is entered, moved or left is only presentation; nothing about it is saved.
+
+- **Classic layout** (every game before the new places): only `left`, `center` and `right` are on the stage. `left` and `right` stand against the
+  screen's edges and `center` in the middle, exactly as they always did, at the largest whole-number scale that fits.
+- **Wide layout**: as soon as one of the four new places (`farLeft`, `midLeft`, `midRight`, `farRight`) is occupied, the seven places are spread
+  evenly from the left edge (`farLeft`) to the right edge (`farRight`), and the portraits shrink (whole-number scales first, fractions when
+  they must) until portraits on neighbouring places on the stage overlap by **at most 40 percent** of the wider one's width. On 480 x 270 that
+  means 3 times for three portraits spread out, 2 times when all seven stand. The speaker is drawn last, in front where portraits overlap. When
+  the last portrait of the four new places leaves, the classic layout is back.
+- **A phone-shaped screen** (taller than wide, such as 270 x 480) in the wide layout shows **at most three** portraits: the speaker and its
+  neighbours on the stage (the next one on each side in left-to-right order; with nobody speaking, the three in the middle). They are spread to the
+  left edge, the middle and the right edge (two: both edges; one: where its place is); the others stay on the stage, hidden, and come back when
+  the speaker changes. The box always stays clear, because portraits stand on its top edge.
+- **Facing.** A portrait whose graphics entry says which way it looks (`"faces": "left"` or `"right"`, docs/GRAPHICS.md "Portraits") is turned to
+  face the middle of the screen: those on the left half look right, those on the right half look left, `center` is drawn as it is. A portrait that
+  does not say is **never turned** (that is today's look; most classic sets look left, so write `"faces": "left"` to get the classic stage).
+- **The Skip tab.** The box's Skip tab used to sit on the top edge of the box, over the corner of a portrait that stands at the far right.
+  While portraits stand on the stage it now sits **inside** the box, in its top-right corner (the name row; a nameless line keeps that row free).
+  A box with nobody on the stage looks exactly as it always did.
+- **Talk and blink frames.** A portrait may list `"talk"` frames (cells cycled every 140 ms while its speaker's line is being typed, on the stage and
+  beside the box) and `"blink"` frames (shown for 130 ms every 2.8 to 5.4 seconds, the exact times worked out from the clock and the speaker's name,
+  never random). The player has no reduced-motion setting, so there is nothing to respect; a portrait without the keys never changes.
 
 ### Time, skipping, saving
 
@@ -1000,6 +1028,12 @@ is. Whose picture it is follows the line's `portrait` id, else the speaker's uni
 
 ### The camera, per kind of view
 
+`focus` takes **`ms`** (how long) **or `speed`** (squares per second, 0.1 to 100; both together is a loader error: `give "ms" ... or "speed" ..., not both`). With
+`speed` the scroll takes `distance / speed`, the distance being measured **from the previous focus point** (the middle of the map at the start of a run
+of events) to the new one in squares (hexagon and isometric maps measure on the screen's own plane); at most 10 seconds. Everything else (`wait`, a skip jumping)
+is as with `ms`. Example: a focus from the middle of an 8 x 4 map to the square 6,1 at 4 squares per second takes 637 ms. The log line says it:
+`scene: focus 6,1 637 ms (speed 4)`.
+
 | View | `focus` `ms` | `shake` |
 |---|---|---|
 | 2D, 2D isometric, 3D isometric (scrolling camera) | a steady scroll of that length, eased at both ends; 0 jumps; `wait` says whether the commands behind it wait | the map moves for its length (the panels do not) |
@@ -1013,7 +1047,8 @@ move, it only takes its time).
 ### What the player logs
 
 One line per new command, which the tests read: `scene: fade out 300 ms #000000`, `scene: background forest cut` / `... fade 600 ms`,
-`scene: wait 400 ms`, `scene: shake 300 ms strength 3`, `scene: portrait eirik left`, `scene: leave gorm`, `scene: narrate`,
+`scene: wait 400 ms`, `scene: shake 300 ms strength 3`, `scene: portrait eirik left`, `scene: enter Mira farRight fade`, `scene: move Mira midLeft` (` cut` when it jumped),
+`scene: leave gorm` (` fade` when it fades), `scene: narrate`,
 `scene: weather snow`, `scene: focus 6,1 400 ms (no wait)`, `scene: walk lyra 3 steps`, with ` (skipped)` after those a skip made
 instant. A game that uses none of the keys logs exactly what it always did.
 

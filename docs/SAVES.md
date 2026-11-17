@@ -99,6 +99,14 @@ shake or scroll under way, and everything of a **campaign scene** (a scene in pr
 its background, stage and fade end with it). The data hash counts that a scene command exists and its milliseconds, not which picture,
 weather or narrator wording.
 
+## Presentation additions to a battle's `story` object
+
+(docs/SOUND.md "Music by situation".) After a `setPhaseMusic` command ran, the battle's `story` object gets `"phaseMusic": { "red": "calm", "blue": "" }` (side id ->
+music id, `""` = no phase music for that side), only while at least one is set, so every other save is byte for byte what it was. It is checked on load (`battle.story.phaseMusic.purple:
+the map has no side "purple"`, `... not a music id`). The standing portraits of the scene stage are **not** saved (a run of events is over before any save), and a portrait's
+`faces`, `talk` and `blink`, the new music keys, step sounds, animation sounds and the focus `speed` are data, not state. A campaign save of a game with difficulties
+already carried `playthrough.difficulty`; the game page's Difficulty row rewrites only that field.
+
 ## Where saves live
 
 `<user data folder>/saves/<game folder name>/continue.json` and

@@ -199,6 +199,21 @@ so the sheet's `smooth` key has no effect on portraits yet.
 In memory: `GraphicsSet::portraits` and `GraphicsSet::portrait(id)`;
 player: `BattleScene::portraitFor` (battle_story.cpp).
 
+**Which way a face looks, and moving faces** (all optional; a portrait that says none of it is drawn exactly as before):
+
+```jsonc
+"portraits": { "eirik": { "sheet": "faces", "cell": [0, 0], "faces": "left", "talk": [[0, 1], [1, 1]], "blink": [[0, 2]] } }
+```
+
+- `"faces": "left" | "right"` is the way the picture naturally looks. On the scene stage (docs/EVENTS.md "Standing portraits") a portrait on the left half is
+  turned to look right, one on the right half to look left, `center` is left as drawn. Without it the picture is **never turned** (the default for a
+  portrait that says nothing; most classic sets look left, so give those `"faces": "left"`). The picture is mirrored column by column, so every backend
+  draws it the same.
+- `"talk": [[col,row], ...]` (1 to 8 cells of the **same sheet**): frames cycled every 140 ms while the speaker's line is being typed (on the stage and beside the box).
+  `"blink": [[col,row], ...]`: frames shown for 130 ms (split evenly among them) every 2.8 to 5.4 seconds; the moments are worked out from the clock and the speaker's
+  name, so they are the same on every machine and never random. A cell outside the sheet or a list that is empty or longer than 8 is refused (`"talk" must list between 1 and 8 cells of the portrait's sheet`).
+  There is no reduced-motion setting in the player; a face with neither key never changes.
+
 A portrait also stands on the scene **stage** when a line has a `position` (docs/EVENTS.md "Scene presentation": "Standing portraits"):
 there it is drawn bigger (the largest whole-number scale that fits 55 percent of the screen's height and 45 percent of its width, 3 times
 on the 480 x 270 screen with 48 x 48 faces), bright while its speaker talks and dimmed otherwise. The same picture serves both; faces
