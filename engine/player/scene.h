@@ -90,6 +90,9 @@ class SceneHost {
   virtual void campaignNext() = 0;
   // A scene on screen is over: write the Continue save for the new state, then go on.
   virtual void campaignSceneDone() = 0;
+  // The preparation screen (docs/EVENTS.md "Preparation") was answered with Begin: the battle starts from the choice
+  // (a chapter battle through the campaign flow, a free battle from the session).
+  virtual void prepareDone() = 0;
   // The chapter battle on screen has been decided and its result shown; result is what
   // finishChapterBattle said (the playthrough is already updated).
   virtual void campaignBattleOver(ChapterResult result) = 0;

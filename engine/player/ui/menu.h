@@ -31,6 +31,8 @@ class Menu {
   int y() const { return y_; }
   int w() const { return w_; }
   int h() const { return h_; }
+  // The middle of entry `index` on screen (for tests that tap it; the player logs them).
+  void rowCentre(int index, int& x, int& y) const { x = x_ + w_ / 2; y = y_ + 4 + titleH_ + index * rowH_ + rowH_ / 2; }
   void close() { open_ = false; }
   bool isOpen() const { return open_; }
 

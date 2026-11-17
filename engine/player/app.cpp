@@ -1,5 +1,7 @@
 #include "views.h"
 #include "app.h"
+#include "core/campaign/prep.h"
+#include "core/data/loader.h"
 
 #include "battle/battle_scene.h"
 #include "core/base/json.h"
@@ -263,6 +265,17 @@ void PlayerApp::doLoadGame(const std::string& gameId) {
 void PlayerApp::doStartBattle(const std::string& mapId) {
   scene_.reset();
   std::string err;
+  MapDef peek;
+  if (!args_.autoplay && loadMap(session_->db, mapId, peek, err) && prepOn(peek)) {  // a preparation screen first (docs/EVENTS.md "Preparation")
+    if (!session_->startMapPrep(mapId, args_.seed, err)) {
+      showError("Cannot start map '" + mapId + "'", err, ToMapSelect);
+      runPending();
+      return;
+    }
+    scene_.reset(new BattleScene(*this, true));
+    return;
+  }
+  err.clear();
   if (!session_->startMap(mapId, args_.seed, err)) {
     showError("Cannot start map '" + mapId + "'", err, ToMapSelect);
     runPending();

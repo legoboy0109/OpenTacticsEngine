@@ -34,7 +34,7 @@ void BattleScene::initFog() {
   hotSeat_ = humanTeams.size() >= 2;
   const int side = humanTurn() ? battle_.activeSide : firstHuman;
   setViewerSide(side);
-  if (hotSeat_ && humanTurn()) raiseCover(side);  // a game that starts or resumes on a human turn starts with the cover
+  if (hotSeat_ && humanTurn() && !prep_) raiseCover(side);  // a game that starts or resumes on a human turn starts with the cover
 }
 
 void BattleScene::setViewerSide(int side) {

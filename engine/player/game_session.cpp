@@ -32,6 +32,37 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   return true;
 }
 
+bool GameSession::rebuildFreePrep(unsigned seed, std::string& err) {
+  MapDef picked;
+  prepApplyToMap(db, *freePrep, map, picked);
+  battle = Battle();
+  battle.setAskChoices(askChoices);
+  return battle.init(db, picked, formulas, seed, err);
+}
+
+bool GameSession::startMapPrep(const std::string& mapId, unsigned seed, std::string& err) {
+  battle = Battle();
+  startEvents.clear();
+  campaign.reset();
+  if (!loadMap(db, mapId, map, err)) return false;
+  freePrep.reset(new Playthrough());
+  prepOpen(db, *freePrep, map, false);
+  return rebuildFreePrep(seed, err);
+}
+
+bool GameSession::startPreparedMap(unsigned seed, std::string& err) {
+  std::string why;
+  if (!prepBegin(db, *freePrep, map, why)) {
+    err = why;
+    return false;
+  }
+  if (!rebuildFreePrep(seed, err)) return false;
+  startEvents.clear();
+  battle.start(startEvents);
+  freePrep.reset();
+  return true;
+}
+
 bool GameSession::resume(const std::string& mapId, const Json& state, std::string& err) {
   MapDef newMap;
   Battle fresh;
