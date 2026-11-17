@@ -242,7 +242,9 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
     return c.fail(where, "position is outside the map");
   return readUnitGoals(c, m, e, where, u) &&  // "goesFor" (docs/SRPG.md section 10)
          readUnitBehaviour(c, db, m, e, where, u) &&  // "behaviour" (docs/AI.md)
-         readUnitDifficulty(c, db, e, where, u);  // "difficulty", "difficultyShift" (docs/DIFFICULTY.md)
+         readUnitDifficulty(c, db, e, where, u) &&  // "difficulty", "difficultyShift" (docs/DIFFICULTY.md)
+         (u.onlyOn.empty() || m.sides[(size_t)u.side].ai ||
+          c.fail(where, "\"difficulty\" is for units of computer sides: a unit of a human side belongs to the party (roster, preparation screen), so it cannot come and go with a difficulty"));
 }
 
 // The second half: stats and items.

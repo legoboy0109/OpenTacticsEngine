@@ -13,4 +13,8 @@ int playthroughDifficulty(const Database& db, const Playthrough& pt);
 // effect from the next battle built; a battle in progress is never rewritten.
 bool setPlaythroughDifficulty(const Database& db, Playthrough& pt, const std::string& id, bool choosing, std::string& why);
 
+// A scene's gain of resources (giveResource, amounts above 0) scaled by the playthrough's difficulty (resourcePercent; the game's
+// number, a scene has no map). Other amounts and a game without difficulties come back unchanged.
+int sceneResourceGain(const Database& db, const Playthrough& pt, int amount);
+
 }  // namespace ote

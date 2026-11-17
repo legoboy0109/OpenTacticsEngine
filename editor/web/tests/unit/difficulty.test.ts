@@ -222,6 +222,8 @@ describe('checks', () => {
     expect(text).toContain('the experience percent must be a whole number from 0 to 1000')
     expect(text).toContain('limited to the difficulty “ghost”, which does not exist')
     expect(text).toContain('lists no difficulty')
+    const human = withMap(d, (m) => ({ ...m, units: [...(m.units ?? []), { type: d.units![0].id, side: m.sides![0].id, x: 7, y: 7, name: 'Ally', difficulty: ['hard'] }] }))
+    expect(mapDifficultyChecks(human, first(human), human.maps[first(human)]!).map((c) => c.text).join(' ')).toContain('is on a human side')
     expect(mapWarnings(bad, bad.maps[first(bad)]!).some((w) => w.key.startsWith('difficulty:'))).toBe(true)
     const none = withMap(loadDemo('demo-srpg'), (m) => ({ ...m, difficulty: { hard: {} } }))
     expect(mapDifficultyChecks(none, first(none), none.maps[first(none)]!)[0].text).toContain('the game has no difficulties')

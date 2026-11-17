@@ -107,6 +107,10 @@ TEST(difficulty_data_the_map_and_unit_keys_are_checked) {
   ev.replace(ev.find("\"hard\""), 6, "\"extreme\"");
   refusedWith(g.loadError("difficulty_c1", difftest::kDifficulties, camptest::mapJson(8, 3, camptest::sides("0", "[]"), difftest::arenaUnits(), ev)),
               "\"difficulty\" names unknown difficulty \"extreme\"");
+  // a unit of a human side cannot come and go with a difficulty (the party belongs to the roster and the preparation screen)
+  const std::string humanOnly = difftest::arenaUnits(R"(,{"type":"hero","side":"blue","x":1,"y":1,"difficulty":["hard"]})");
+  refusedWith(g.loadError("difficulty_u3", difftest::kDifficulties, camptest::mapJson(8, 3, camptest::sides("0", "[]"), humanOnly)),
+              "is for units of computer sides");
   // in a game without difficulties every difficulty key is refused
   refusedWith(g.loadError("difficulty_n1", "", camptest::mapJson(8, 3, camptest::sides("0", "[]"), difftest::arenaUnits())),
               "the game has no difficulties");

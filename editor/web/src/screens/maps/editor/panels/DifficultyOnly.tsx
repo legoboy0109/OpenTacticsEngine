@@ -8,6 +8,7 @@ import { D } from '../../../rules/difficultyText'
 
 export function DifficultyOnly({ doc, unit, ai, onChange }: { doc: ProjectDoc; unit: Pick<MapUnit, 'difficulty' | 'difficultyShift'>; ai: boolean; onChange: (patch: { difficulty?: string[] | undefined; difficultyShift?: boolean | undefined }) => void }) {
   if (!hasDifficulties(doc) && unit.difficulty === undefined) return null
+  if (!ai && unit.difficulty === undefined) return null  // a unit of a human side belongs to the party: it cannot come and go with a difficulty
   const list = difficultyList(doc)
   const all = list.map((d) => d.id)
   const now = unit.difficulty ?? all

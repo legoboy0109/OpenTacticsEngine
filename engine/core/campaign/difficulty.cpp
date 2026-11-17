@@ -28,4 +28,11 @@ bool setPlaythroughDifficulty(const Database& db, Playthrough& pt, const std::st
   return true;
 }
 
+int sceneResourceGain(const Database& db, const Playthrough& pt, int amount) {
+  const int at = playthroughDifficulty(db, pt);
+  if (at < 0 || amount <= 0) return amount;
+  const int percent = db.difficulties.list[(size_t)at].resourcePercent;
+  return percent == 100 ? amount : (int)(((long long)amount * percent + 50) / 100);
+}
+
 }  // namespace ote

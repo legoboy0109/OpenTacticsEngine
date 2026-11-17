@@ -189,3 +189,24 @@ TEST(difficulty_save_free_battles_use_the_chosen_difficulty_too) {
   saveBattleState(b, j);
   CHECK(j["difficulty"].asString() == "easy");
 }
+
+TEST(difficulty_save_a_scenes_gift_of_resources_follows_the_difficulty) {
+  const char* campaign = R"({ "name": "Arena", "rules": { "onDefeat": "retry" },
+    "chapters": [ { "id": "c1", "name": "One", "map": "skirmish",
+      "before": [ { "giveResource": { "gold": 100 }, "side": "blue" }, { "giveResource": { "gold": -30 }, "side": "blue" } ] } ] })";
+  difftest::Game g;
+  CHECK(g.load("difficulty_scene_gift", difftest::kDifficulties, "", campaign));
+  int gold[3] = {0, 0, 0};
+  const char* ids[3] = {"easy", "normal", "hard"};
+  for (int i = 0; i < 3; ++i) {
+    Playthrough pt;
+    std::string why;
+    CHECK(pt.begin(g.g.db) && setPlaythroughDifficulty(g.g.db, pt, ids[i], true, why));
+    std::vector<SceneLine> lines;
+    CHECK(runScene(g.g.db, pt, SceneKind::Before, lines));
+    gold[i] = pt.sides.empty() ? 0 : pt.sides[0].resources[0];
+  }
+  CHECK_EQ(gold[0], 120);  // +100 x 150% = 150, then -30 (a cost is never scaled)
+  CHECK_EQ(gold[1], 70);
+  CHECK_EQ(gold[2], 20);   // +100 x 50% = 50, -30
+}
