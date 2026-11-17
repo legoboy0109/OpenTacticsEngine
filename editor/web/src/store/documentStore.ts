@@ -6,6 +6,7 @@ import { reconcileAudio } from '../model/audioRefs'
 import { reconcileBackgrounds } from '../model/backgrounds'
 import { reconcileCampaign } from '../model/campaignRefs'
 import { reconcilePlaces } from '../model/placeRefs'
+import { reconcileMapWeapons } from '../model/mapWeaponRefs'
 import { reconcileEconomy } from '../model/researchRefs'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
@@ -97,7 +98,7 @@ export class DocumentStore {
     // and the story commands first (model/audioRefs.ts), also in the same undo step.
     // Doors, chests and keys follow a deleted structure kind, item or resource the same way (model/placeRefs.ts).
     // Story commands that name a scene background this edit deleted go too (model/backgrounds.ts).
-    const edited = reconcilePlaces(prev, reconcileEconomy(prev, reconcileBackgrounds(prev, reconcileAudio(prev, fn(prev)))))
+    const edited = reconcileMapWeapons(prev, reconcilePlaces(prev, reconcileEconomy(prev, reconcileBackgrounds(prev, reconcileAudio(prev, fn(prev))))))
     const next = reconcileCampaign(prev, edited)
     const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
     if (h === this.history) return

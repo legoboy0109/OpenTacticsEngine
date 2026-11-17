@@ -4,6 +4,7 @@ import { typeIdOf } from './characterUnits'
 import { dropBattleOf } from './battleArt'
 import { dropArtOf } from './graphicsClean'
 import { economyUsageLines } from './researchRefs'
+import { mapWeaponUnitUsageLines } from './mapWeaponRefs'
 import { cleanStatConditions, cleanStatSkills, conditionsUseStat, skillsUseStat } from './skillStatRefs'
 import { cleanStatPromotions, cleanUnitPromotions, unitPromotionUsageLines } from './promotionRefs'
 import { deleteItem } from './items'
@@ -75,6 +76,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       // A character of this type cannot exist without it: it goes too (with its placed units and pairs; see deleteUnit).
       for (const c of doc.characters ?? []) if (c.type === id) out.push({ section: 'characters', text: `Character “${c.name}” has this ${doc.characters!.length ? 'class' : 'unit type'} (the character goes with it)` })
       out.push(...economyUsageLines(doc, 'unit', id))
+      out.push(...mapWeaponUnitUsageLines(doc, id))
       out.push(...unitPromotionUsageLines(doc, id))
       out.push(...typeLockUsageLines(doc, id))
       out.push(...storyUsages(doc, [{ kind: 'type', id }, ...placedIdsOfType(doc, id)]))

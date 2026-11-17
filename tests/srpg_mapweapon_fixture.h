@@ -4,7 +4,8 @@
 // Structures: catapult c1 (4,0; bolt, unlimited, anyone), ballista b1 (4,1; bolt, 3 uses, archers only, becomes a wreck),
 // ballista b2 (4,2; the same with its own 1 use), a tower (6,0). Bolt: range 2..6, might 10; damage = str + might - def, hit 100.
 // "siege" (14 x 3): catapult c1 (5,1); blue knight kn (0,1, 60 hit points); red grunt g1 (8,1, leader).
-// "hexfield" (9 x 5 hexagons): ballista b1 (3,2); blue archer ar (2,2); red grunt g1 (7,2).
+// "hexfield" (9 x 5 hexagons; the file is not in game.json: the hexagon test makes the game a hexagon game and lists it): ballista b1 (3,2); blue
+// archer ar (2,2); red grunt g1 (7,2).
 #pragma once
 #include <functional>
 

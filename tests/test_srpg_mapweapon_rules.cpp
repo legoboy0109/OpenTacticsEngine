@@ -230,7 +230,7 @@ TEST(mapweapon_the_weapon_group_earns_experience_as_with_a_carried_weapon) {
 TEST(mapweapon_a_hexagon_game_works_the_same) {
   MapWorld w("mapweapon_hex", "hexfield", [](MCopy& c) {
     c.swap("game.json", "\"formatVersion\": 1,", "\"formatVersion\": 1, \"grid\": { \"type\": \"hex\", \"layout\": \"pointy\" },");
-    c.swap("maps/field.json", "\"grid\": { \"type\": \"square\"", "\"grid\": { \"type\": \"hex\"");
+    c.swap("game.json", "\"maps\": [", "\"maps\": [ { \"id\": \"hexfield\", \"name\": \"Hex field\", \"file\": \"maps/hexfield.json\" },");
   });
   CHECK(w.b().grid.isHex());
   CHECK_EQ(w.options("ar"), 0);

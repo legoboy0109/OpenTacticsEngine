@@ -2,6 +2,7 @@
 // function is pure and returns a new document, so the delete and its clean-up are one undo step.
 import { dropArtOf } from './graphicsClean'
 import { placeKindUsageLines } from './placeRefs'
+import { mapWeaponKindUsageLines } from './mapWeaponRefs'
 import { economyUsageLines } from './researchRefs'
 import { dropKey, without } from './util'
 import type { Usage } from './references'
@@ -48,6 +49,7 @@ export function structureUsageLines(doc: ProjectDoc, id: string): Usage[] {
   for (const s of doc.game?.styles ?? []) if (s.structureColors && id in s.structureColors) out.push({ section: 'game', text: `Style “${s.name}” recolours it` })
   out.push(...economyUsageLines(doc, 'structure', id))
   out.push(...placeKindUsageLines(doc, id))
+  out.push(...mapWeaponKindUsageLines(doc, id))
   const g = doc.graphics
   if (g && (id in (g.structures ?? {}) || Object.values(g.styles ?? {}).some((st) => id in (st.structures ?? {})))) {
     out.push({ section: 'art', text: 'Its picture is cleared (the image file stays, under Art)' })

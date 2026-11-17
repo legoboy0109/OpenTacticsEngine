@@ -144,10 +144,14 @@ export interface Structure extends Named {
   blocksSight?: boolean
   /** Fog: a fixed light (a brazier): every square within this many squares (1 to 10) is in sight of every team. */
   light?: number
+  /** Map weapons (docs/SRPG.md "Map weapons"; model/mapWeapon.ts): the weapon item a unit standing here attacks with, its uses (missing = unlimited), who may use it. */
+  weapon?: string; uses?: number; by?: StructureWeaponBy; ignoreRank?: boolean; becomes?: string
   door?: DoorBlock
   chest?: ChestBlock
   visit?: VisitBlock
 }
+/** Who may use a structure's weapon: these unit types and every type with one of these tags (missing = any unit that can stand there). */
+export interface StructureWeaponBy extends Extra { types?: string[]; tags?: string[] }
 /** Where a unit may stand to use a door, chest or place: on it, next to it, or either. */
 export type PlaceFrom = 'on' | 'next' | 'either'
 /** Ways a door or chest can be opened by the player's units (a story command and an unlock staff open any). */
@@ -300,7 +304,7 @@ export interface MapUnit extends Extra {
   /** Skills of its own, learned in addition to those of its type and character (docs/SRPG.md "More skill blocks"). */
   skills?: string[]
   /** Computer-side units only (docs/SRPG.md section 10): what the unit goes for. */
-  goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal' | 'walls'>
+  goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal' | 'walls' | 'weapons'>
   /** Computer-side units only (docs/AI.md): how it moves and when it starts; model/behaviour.ts. */
   behaviour?: Behaviour
   /** Appears only on these difficulties (docs/DIFFICULTY.md); missing = on all. */
@@ -343,6 +347,8 @@ export interface MapStructure extends Extra {
   type: string; x: number; y: number; side?: string
   /** Doors, chests and places (docs/SRPG.md section 10): the story name, a lock override, a chest's contents, who may visit. */
   id?: string; locked?: boolean; contents?: ChestLoot[]; visitSides?: string[]; visitUnits?: string[]
+  /** A kind with a weapon to use: this placement's own uses (missing = the kind's). */
+  uses?: number
 }
 /** One thing in a chest: an item id, an item with fewer uses left, or an amount of a resource. */
 export type ChestLoot = string | { item: string; uses?: number } | { resource: string; amount: number }

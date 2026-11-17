@@ -27,6 +27,7 @@ import { MovingThrough } from './MovingThrough'
 import { PlacePartsCard } from './PlaceParts'
 import { RepairsCard, ResearchHereCard } from './RepairsCard'
 import { UpgradesCard } from './UpgradesCard'
+import { WeaponCard } from './WeaponCard'
 import { T } from './text'
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -132,6 +133,7 @@ export function StructureForm({ id }: { id: string }) {
       </Card>
 
       <PlacePartsCard id={id} />
+      <WeaponCard id={id} />
 
       {(showCapture || showHq) && (
         <Card>

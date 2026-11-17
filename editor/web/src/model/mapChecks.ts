@@ -9,6 +9,7 @@ import { fogChecks } from './fogChecks'
 import { changeChecks } from './mapChangeChecks'
 import { itemChecks } from './itemChecks'
 import { placeChecks } from './placeChecks'
+import { mapWeaponChecks } from './mapWeapon'
 import { storyChecks } from './storyChecks'
 import { prepChecks } from './prepChecks'
 import { ctxOf } from './mapCtx'
@@ -62,6 +63,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
   // Doors, chests, places and the computer's goals: what the loader refuses and what is probably not meant (docs/SRPG.md section 10).
   placeChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `places:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
+  // Map weapons: a placed structure's own uses (docs/SRPG.md "Map weapons").
+  mapWeaponChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `mapweapon:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   // The computer units' behaviours (docs/AI.md): what the loader refuses and what is probably not meant.
   if (mapId !== undefined) behaviourChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `behaviour:${i}`, text: x.text, cell: x.cell }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))

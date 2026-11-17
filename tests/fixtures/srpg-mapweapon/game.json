@@ -11,6 +11,5 @@
              "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "60", "xpKill": "100" } },
   "formulas": { "damage": "a.str + w.might - b.def", "hit": "100" },
   "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" },
-            { "id": "siege", "name": "Siege", "file": "maps/siege.json" },
-            { "id": "hexfield", "name": "Hex field", "file": "maps/hexfield.json" } ]
+            { "id": "siege", "name": "Siege", "file": "maps/siege.json" } ]
 }
