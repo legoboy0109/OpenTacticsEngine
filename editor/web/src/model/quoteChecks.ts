@@ -15,7 +15,7 @@ export const QUOTE_TEXT = {
   againstSelf: (n: number) => `Battle quote ${n} is against the character itself.`,
   duplicate: (n: number, who: string) => `Battle quote ${n} is a second one ${who}; only the first can ever be said.`,
   unknownSpeaker: (where: string, id: string) => `${where} has a line spoken by “${id}”, who is not a character.`,
-  unusedSet: (set: string) => `The ${set} lines are never used by this game (see the campaign’s “Fallen units” setting).`,
+  unusedSet: (set: string) => `The ${set} lines are never used by this game (see the campaign’s “When a unit is defeated” setting).`,
 }
 
 const blank = (l: Command) => !(typeof l.say === 'string' && l.say.trim() !== '')
