@@ -128,6 +128,8 @@ export function difficultyConditionText(doc: SumCtx['doc'], k: Condition): strin
   return `the difficulty is at most ${q(name(v?.atMost))}`
 }
 
+const partyWords = (k: Condition): string => (k.party === 'active' ? ' (active party)' : '')
+
 export const opWords = (op: string | undefined): string => OP_WORDS[(op ?? '=') as CompareOp] ?? 'is'
 
 export function conditionText(c: SumCtx, k: Condition): string {
@@ -144,6 +146,9 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'hasSkill': return `${filterText(c, k.unit)} has the skill ${q(skillLabel(c, k.hasSkill ?? ''))}`
     case 'hasCondition': return `${filterText(c, k.unit)} has the condition ${q(conditionLabel(c, k.hasCondition ?? ''))}`
     case 'actor': return `${filterText(c, k.actor)} is the unit that set this off`
+    case 'rosterAlive': return `${unitText(c, k.rosterAlive ?? '')} is alive in the campaign${partyWords(k)}`
+    case 'rosterDead': return `${unitText(c, k.rosterDead ?? '')} has fallen in the campaign${partyWords(k)}`
+    case 'inRoster': return `${unitText(c, k.inRoster ?? '')} is in the roster${partyWords(k)}`
     case 'difficulty': return difficultyConditionText(c.doc, k)
     default: return 'something is true'
   }
@@ -193,7 +198,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
       const name = u.name?.trim() ? `${u.name}, ${aOrAn(typeName(c, u.type ?? ''))}` : aOrAn(typeName(c, u.type ?? ''))
       return `Adds ${name} (${sideName(c, u.side)}) at ${squareText(u.x, u.y)}`
     }
-    case 'removeUnit': return `Removes ${filterText(c, cmd.removeUnit)}`
+    case 'removeUnit': return cmd.hide === true ? `Hides ${filterText(c, cmd.removeUnit)} (it can come back)` : `Removes ${filterText(c, cmd.removeUnit)}`
+    case 'showUnit': return `Brings back ${unitText(c, cmd.showUnit ?? '')} at ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'moveUnit': return `${cmd.walk ? 'Walks' : 'Moves'} ${unitText(c, cmd.moveUnit ?? '')} to ${squareText(cmd.x ?? 0, cmd.y ?? 0)}`
     case 'changeSide': return `Moves ${filterText(c, cmd.changeSide)} to side ${sideName(c, cmd.side ?? '')}`
     case 'addSupport': return `${(cmd.by ?? 0) < 0 ? 'Takes' : 'Gives'} ${Math.abs(cmd.by ?? 0)} support ${Math.abs(cmd.by ?? 0) === 1 ? 'point' : 'points'} ${(cmd.by ?? 0) < 0 ? 'from' : 'to'} ${pairText(c, cmd.addSupport)}`

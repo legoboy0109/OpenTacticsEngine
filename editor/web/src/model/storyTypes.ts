@@ -75,9 +75,14 @@ export interface Condition extends Extra {
   actor?: Filter
   /** The battle's / playthrough's difficulty (docs/DIFFICULTY.md): an id (is), or { atLeast: id } / { atMost: id } by list position. */
   difficulty?: string | { atLeast?: string; atMost?: string }
+  /** docs/EVENTS.md "Campaign characters in map events": a character id; `party` says whose roster (default any). */
+  rosterAlive?: string
+  rosterDead?: string
+  inRoster?: string
+  party?: 'any' | 'active'
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition' | 'actor' | 'difficulty'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition', 'actor', 'difficulty']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition' | 'actor' | 'difficulty' | 'rosterAlive' | 'rosterDead' | 'inRoster'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition', 'actor', 'difficulty', 'rosterAlive', 'rosterDead', 'inRoster']
 
 /** One answer of a `choice` command: its words, an optional hiding condition list and the commands it runs (docs/EVENTS.md "Dialogue choices"). */
 export interface ChoiceAnswer extends Extra {
@@ -102,6 +107,10 @@ export interface Command extends Extra {
   portrait?: string
   addUnit?: MapUnit
   removeUnit?: Filter
+  /** removeUnit: true = the unit leaves the map but is not lost (docs/EVENTS.md "Taking a unit off the map and bringing it back"). */
+  hide?: boolean
+  /** The hidden unit that comes back at (x, y). */
+  showUnit?: string
   moveUnit?: string
   x?: number
   y?: number
@@ -208,7 +217,7 @@ export type CommandKind =
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
   | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate'
-  | 'storeItems' | 'switchParty' | 'mergeParties'
+  | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
@@ -216,7 +225,7 @@ export const COMMAND_KINDS: CommandKind[] = [
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
   'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',
-  'storeItems', 'switchParty', 'mergeParties',
+  'storeItems', 'switchParty', 'mergeParties', 'showUnit',
   // Scene presentation (kept LAST: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
   'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate',
 ]

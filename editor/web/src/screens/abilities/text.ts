@@ -157,6 +157,16 @@ export const T = {
   condRoundNumber: 'Round',
   ops: { '<=': 'at most', '>=': 'at least', '<': 'below', '>': 'above', '=': 'exactly', '!=': 'not' } as Record<string, string>,
 
+  extrasCard: 'Experience and conditions',
+  extrasHelp: 'What the unit earns for using it, and a condition (poison, a curse...) its target gets after it works.',
+  xp: 'Experience for the user',
+  xpHelp: 'Each use gives the user this much experience: a number or a formula (a = the user, b = the target). Empty = none.',
+  inflict: 'Gives its target a condition',
+  inflictHelp: 'After the ability works, the target gets this condition (unless it is immune). The target may be an ally or a foe, as the ability says.',
+  inflictNone: 'None',
+  inflictTurns: 'Turns',
+  inflictTurnsHelp: 'How long it lasts. Empty = the condition\'s own duration.',
+  inflictOwn: 'its own',
   summaryTitle: 'In short',
 
   // The Abilities card on a unit type

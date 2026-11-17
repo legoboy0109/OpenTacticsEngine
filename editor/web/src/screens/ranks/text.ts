@@ -50,6 +50,10 @@ export const R = {
   capNone: 'no cap',
   capsNoStats: 'There are no stats yet. Add some above.',
   capLabel: (stat: string) => `${stat} cap`,
+  computerCapsTitle: 'Computer-controlled units',
+  computerCapsHelp: 'A different cap for units the computer plays (for example enemies that may grow stronger than your own). Empty = the cap above. A class\'s own cap still wins.',
+  computerCapSame: 'same as above',
+  computerCapLabel: (stat: string) => `${stat} cap for computer units`,
 
   // Units (classes)
   unitRanksTitle: 'Starting ranks',

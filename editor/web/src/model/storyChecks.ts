@@ -101,6 +101,12 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai') })
       break
     }
+    case 'showUnit':
+      if (typeof c.x !== 'number' || typeof c.y !== 'number' || outside(map, { x: c.x, y: c.y, w: 1, h: 1 })) say(where, 'the square is outside the map.')
+      break
+    case 'removeUnit':
+      if (c.hide !== undefined && typeof c.hide !== 'boolean') say(where, '“Only hide it” must be on or off.')
+      break
     case 'moveUnit':
       if (typeof c.x !== 'number' || typeof c.y !== 'number' || outside(map, { x: c.x, y: c.y, w: 1, h: 1 })) say(where, 'the square is outside the map.')
       break

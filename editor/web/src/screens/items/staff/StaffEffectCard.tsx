@@ -1,7 +1,7 @@
 // The "What it does" card of a staff (docs/SRPG.md section 8): the parts a maker switches on (healing, moving a unit, repairing an item,
 // or being a light staff), whether it can miss, and the experience its user earns. Which parts may go together is model/staffEffects.ts;
 // the choices the loader would refuse are greyed out here, with the reason beside them. Effects the editor cannot show are kept.
-import { STAFF_HEAL_MAX, hitExample, hitText, healExample, setHit, setStaffXp, xpExample, xpText } from '../../../model/staff'
+import { STAFF_HEAL_MAX, hitExample, hitText, healExample, setHit, setStaffXp, setStaffXpMiss, xpExample, xpMissText, xpText } from '../../../model/staff'
 import { canDropEffect, healBlock, healOf, setHealFormula, setHealKind, setHealNumber, setHealOn, setHealPercent, type HealKind } from '../../../model/staffEffects'
 import { isLightStaff, isUnlockStaff, keptEffectCount } from '../../../model/staffFx'
 import { useDoc, useEdit } from '../../../store/context'
@@ -84,6 +84,11 @@ export function StaffEffectCard({ id }: { id: string }) {
         <Field label={S.xp} help={S.xpHelp(xpExample)}>
           <TextInput mono value={xpText(item)} placeholder={S.xpPlaceholder} onChange={(v) => edit((d) => setStaffXp(d, id, v), `${key}:xp`)} />
         </Field>
+        {canMiss && !light && (
+          <Field label={S.xpMiss} help={S.xpMissHelp}>
+            <TextInput mono value={xpMissText(item)} placeholder={S.xpMissPlaceholder} onChange={(v) => edit((d) => setStaffXpMiss(d, id, v), `${key}:xpMiss`)} />
+          </Field>
+        )}
       </div>
     </Card>
   )

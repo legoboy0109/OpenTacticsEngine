@@ -2652,6 +2652,25 @@ a game with conditions. The target may be an ally or a foe, whichever the abilit
 as before (it does not weigh the condition); the inflict simply happens when it uses one. Core: `AbilityDef::inflictCond`,
 `Battle::abilityInflict`. Saves: nothing new (conditions are saved already).
 
+### Editor
+
+Rules screen: "Hit roll and experience options" (hit roll, experience for a fight that did no damage, computers gain experience) and, in the
+Stat caps card, a "Computer-controlled units" table. Units: "Top level". Abilities: "Experience and conditions". Staves: "Experience when it
+misses" (shown when the staff can miss). Map events: the conditions "A campaign character is alive / has fallen / is in the roster" (also in
+scenes), the "Only hide it" box of Remove a unit and the command "Bring a hidden unit back". Each form's checks mirror the loader's refusals
+(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition is not
+renamed when the character is renamed (the id is free text because the character may live in another chapter).
+
+### Not built: a usable map weapon (ballista)
+
+Design for later: a structure kind gets `"weapon": "<item id>"` and optional `"uses": n`; a unit standing on it (movement types allowed
+as for entering the structure) gets an extra Attack entry whose weapon is that item (its range, might and the unit's own stats by the weapon's
+formulas); uses live on the structure's state (a new saved key, only for such structures); the forecast and battle scene take the weapon
+as if carried (`CombatSetup::weaponA` already names a weapon by index, so the fight code needs the weapon of the structure instead of a
+carried slot); `wieldedByTypes` / a structure-level `"by"` list limits who may use it; the computer opponent uses it when standing on it and
+walks to an empty one only for `goesFor: ["weapons"]`. The work is in `Battle::weaponsOf` (an extra weapon not in the inventory),
+the action validation, the player's menu and the save format; it was left out of this batch to keep the other eight verified.
+
 ### Already possible (nothing was added)
 
 - **Per-class stat caps** (`units.json "caps"`) existed already; "enemies cap higher" for a class used by one side only needs no
