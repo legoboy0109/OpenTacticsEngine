@@ -1257,9 +1257,8 @@ Built for the engine's map changes (docs/EVENTS.md "Changing the map") and the f
 - **Data screens.** Structures: "Gives light" (0 to 10) and, on a breakable door, "What it is called when attacked" (`door.word`, shown as "Break wall"). Terrain: "Blocks sight".
   Items: usable items get "It gives light" (radius, turns, "Shrinks by"); an item with only a light is valid. Unit placement: "Goes for" has Walls. The unit type's
   Sight was already on the Units screen.
-- **Not offered:** the skill effect `{ "vision": n }` is not in the Skills screen's effect list (two existing tests pin that list: `tests/unit/skills.test.ts` "offers
-  the effects of each when" and `tests/unit/skillsStarter.test.ts` "uses every when ..."); a file that has it is kept as written, and `fogOptionChecks.ts` judges it.
-  Structure add / remove is not a change part (the engine only swaps a placed structure's kind).
+- **Skills screen:** the skill effect `{ "vision": n }` is offered as "Sight in fog" (always blocks; -10..10, not 0).
+- **Not offered:** structure add / remove is not a change part (the engine only swaps a placed structure's kind).
 - **Checks** (above the canvas, with the others): an empty change (the loader refuses it), a change nobody applies (note), squares outside the map, twice in one
   change, unknown terrain, a swap of another size or naming no structure, `applyChange` / `revertChange` of a change that is gone, `setTerrain` area / cells / terrain
   mistakes, `setVision` out of range, `fogVision` / `aiSeesAll` without fog, `aiSeesAll` on a human side, light out of range, a torch with `target` ally,
