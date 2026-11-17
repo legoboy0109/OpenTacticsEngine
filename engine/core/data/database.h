@@ -348,6 +348,9 @@ struct Database {
   FontConfig font;
   RulesConfig rules;
   SavingMode saving = SavingMode::Any;  // game.json "saving"
+  // game.json "battleScene": "scene" = fights are shown as the side-view battle scene unless the player chose otherwise;
+  // "map" (default) = quick on-map fights (docs/BATTLE_SCENE.md). Presentation only.
+  bool battleSceneDefault = false;
   GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;
@@ -488,6 +491,7 @@ struct MapDef {
   std::vector<MapStructureDef> structures;
   std::vector<MapUnitDef> units;
   bool fog = false;  // fog of war (docs/ECONOMY.md "Fog of war")
+  int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)
 };
