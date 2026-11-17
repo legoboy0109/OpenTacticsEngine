@@ -16,10 +16,12 @@ export type CondKind = 'hp' | 'near' | 'weapon' | 'terrain' | 'structure' | 'uni
   | 'weaponKind' | 'turn' | 'counterattack' | 'carries' | 'inventory'
   // Third set (docs/SRPG.md "Skill blocks, third set"): which strike of the fight (strike / struck blocks).
   | 'strike'
+  // Linking two strike blocks (docs/SRPG.md): the same unit has the mark a "mark" effect set in this fight. Not in COND_KINDS: it is offered by `condsAt`.
+  | 'marked'
 export const COND_KINDS: CondKind[] = ['hp', 'near', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'initiating', 'distance', 'formula', 'condition',
   'weaponKind', 'turn', 'counterattack', 'carries', 'inventory', 'strike']
 /** Conditions that may say `"who": "foe"` (the foe points only). */
-export const FOEABLE: CondKind[] = ['hp', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'condition', 'weaponKind', 'carries', 'inventory']
+export const FOEABLE: CondKind[] = ['hp', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'condition', 'weaponKind', 'carries', 'inventory', 'marked']
 /** Only the "strike" and "struck" points know whether the foe answers and which strike it is. */
 export const STRIKE_ONLY: CondKind[] = ['counterattack', 'strike']
 /** Conditions that need a combat. */
@@ -40,6 +42,8 @@ export type EffectKind =
   | 'recoil'
   // Fog (docs/ECONOMY.md "Fog options"): the unit sees further or less far. Never 0 (the loader refuses it).
   | 'vision'
+  // Linking two strike blocks (docs/SRPG.md): the block leaves a named mark for the unit's other blocks of this fight.
+  | 'mark'
 const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat', U: When = 'staffUse'
 /** Every effect and the `when` points it is allowed in, in the order the contract lists them. */
 export const EFFECT_WHENS: Record<EffectKind, When[]> = {
@@ -49,7 +53,7 @@ export const EFFECT_WHENS: Record<EffectKind, When[]> = {
   drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F, U], hurt: [T, F], actAgain: [D, F],
   cannotAct: [A], cannotMove: [A], forbid: [A], berserk: [A], immune: [A], inflict: [S, R],
   followUp: [C], followShift: [C], trianglePercent: [C], weaponXpPercent: [A], noCarryPenalty: [A], cancelEffective: [A], cure: [T, D, F, U],
-  nullifySkills: [C], staffRange: [A], carryBonus: [A], recoil: [S], vision: [A],
+  nullifySkills: [C], staffRange: [A], carryBonus: [A], recoil: [S], vision: [A], mark: [S, R],
 }
 /** Effects only the blocks of a condition may have (the loader says they "belong to the blocks of a condition"). */
 export const CONDITION_ONLY: EffectKind[] = ['cannotAct', 'cannotMove', 'forbid', 'berserk']
@@ -79,6 +83,15 @@ export function condsFor(w: When, aura: boolean): CondKind[] {
   if (w === 'turnStart' || w === 'staffUse' || aura) return plain.filter((k) => !FOE_POINT_ONLY.includes(k))
   return (w === 'strike' || w === 'struck') ? COND_KINDS : plain
 }
+/** The loader's longest mark name. */
+export const MARK_NAME_MAX = 40
+/** The points whose blocks may ask `marked` (a fight's marks live from its first strike to the end of its afterCombat blocks). */
+export const MARKED_WHENS: When[] = ['strike', 'struck', 'defeat', 'afterCombat']
+/** `condsFor` plus `marked` where the loader allows it (never in an aura). */
+export function condsAt(w: When, aura: boolean): CondKind[] {
+  const base = condsFor(w, aura)
+  return !aura && MARKED_WHENS.includes(w) ? [...base, 'marked'] : base
+}
 /** Can this condition say "the foe"? Only where there is a foe, and never for an aura. */
 export const canJudgeFoe = (k: CondKind, w: When, aura: boolean): boolean => FOEABLE.includes(k) && !aura && w !== 'always' && w !== 'turnStart' && w !== 'staffUse'
 export function effectsFor(w: When, aura: boolean, forCondition = false): EffectKind[] {
@@ -86,6 +99,6 @@ export function effectsFor(w: When, aura: boolean, forCondition = false): Effect
 }
 
 const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
-export const condKindOf = (c: Extra): CondKind | null => COND_KINDS.find((k) => has(c, k)) ?? null
+export const condKindOf = (c: Extra): CondKind | null => COND_KINDS.find((k) => has(c, k)) ?? (has(c, 'marked') ? 'marked' : null)
 export const effectKindOf = (e: Extra): EffectKind | null => EFFECT_KINDS.find((k) => has(e, k)) ?? null
 export const whenOf = (b: Extra): When | null => ((WHENS as string[]).includes(b.when as string) ? (b.when as When) : null)

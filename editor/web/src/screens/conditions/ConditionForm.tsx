@@ -5,7 +5,7 @@ import { conditionChecks } from '../../model/conditionChecks'
 import { ruleIndexes } from '../../model/conditionBehaviour'
 import { conditionSummary } from '../../model/conditionText'
 import {
-  CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, TAG_MAX, addConditionBlock, blocksOfCondition, durationOf, moveConditionBlock, removeConditionBlock, setDuration, setEndsWhenStruck,
+  CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, TAG_MAX, addConditionBlock, blocksOfCondition, durationOf, hasScalableEffect, setScale, moveConditionBlock, removeConditionBlock, setDuration, setEndsWhenStruck,
   setReplaces, setTag, setTurns, setWearOff, tagOf, updateCondition, updateConditionBlock, type Duration,
 } from '../../model/conditions'
 import { MAX_BLOCKS } from '../../model/skillRules'
@@ -70,6 +70,9 @@ export function ConditionForm({ id }: { id: string }) {
             <Field label={T.turns} help={T.turnsHelp}>
               <NumberInput value={c.turns} min={1} max={CONDITION_TURNS_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setTurns(d, id, v), `${key}:turns`) }} />
             </Field>
+          )}
+          {duration === 'turns' && (
+            <Check label={T.scale} help={c.scale === 'turnsLeft' && !hasScalableEffect(c) ? T.scaleNothing : T.scaleHelp} checked={c.scale === 'turnsLeft'} onChange={(on) => edit((d) => setScale(d, id, on))} />
           )}
           <Check label={T.wearOff} help={T.wearOffHelp} checked={c.wearOff !== undefined} onChange={(on) => edit((d) => setWearOff(d, id, on ? 25 : undefined))} />
           {c.wearOff !== undefined && (

@@ -2,7 +2,7 @@
 // engine/core/data/loader_conditions.cpp, so a maker sees it before pressing Play; the loader's own message still shows in Problems after a save);
 // the rest load fine but are worth a look: a condition nothing can inflict, an "until cured" condition nothing cures. The places that use a
 // condition (a usable item, a weapon) have their refusals here too (`siteChecks`); a staff's are in staffChecks.ts and a skill rule's in skillChecks.ts.
-import { blocksOfCondition, CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, MAX_CONDITIONS_LISTED, TAG_MAX } from './conditions'
+import { blocksOfCondition, CONDITION_TURNS_MAX, CONDITION_WEAROFF_MAX, hasScalableEffect, MAX_CONDITIONS_LISTED, TAG_MAX } from './conditions'
 import { isControlBlock } from './conditionBehaviour'
 import { cureOf } from './staffConditions'
 import { fxList, fxKind } from './staffFx'
@@ -70,6 +70,11 @@ function shapeIssues(doc: ProjectDoc, c: Condition): string[] {
   else if (c.until !== undefined && c.until !== 'cured' && c.until !== 'mapEnd') out.push('it lasts “until” cured or until the map ends, nothing else.')
   else if (c.turns !== undefined && (!whole(c.turns) || c.turns < 1 || c.turns > CONDITION_TURNS_MAX)) out.push(`the turns must be a whole number from 1 to ${CONDITION_TURNS_MAX}.`)
   if (c.wearOff !== undefined && (!whole(c.wearOff) || c.wearOff < 1 || c.wearOff > CONDITION_WEAROFF_MAX)) out.push(`the chance to wear off early must be a whole number from 1 to ${CONDITION_WEAROFF_MAX} (leave it out for never).`)
+  if (c.scale !== undefined) {
+    if (c.scale !== 'turnsLeft') out.push('the effects can only fade as the turns left run out (“turnsLeft”).')
+    else if (c.until !== undefined) out.push('the effects can fade only for a condition that counts turns; this one lasts until it is cured or the map ends.')
+    else if (!hasScalableEffect(c)) out.push('the effects are set to fade, but no rule that always applies has a number to fade (a stat bonus, growth, sight in fog, staff reach or carrying bonus).')
+  }
   for (const r of c.replaces ?? []) {
     if (r === c.id) out.push('it replaces itself.')
     else if (!doc.conditions?.some((x) => x.id === r)) out.push(`it replaces “${r}”, which is not a condition of this game.`)

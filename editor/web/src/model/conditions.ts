@@ -67,9 +67,17 @@ export function durationOf(c: Condition): Duration {
 export function setDuration(doc: ProjectDoc, id: string, mode: Duration): ProjectDoc {
   const c = doc.conditions?.find((x) => x.id === id)
   if (!c || durationOf(c) === mode) return doc
-  return updateCondition(doc, id, mode === 'turns' ? { turns: 3, until: undefined } : { turns: undefined, until: mode })
+  return updateCondition(doc, id, mode === 'turns' ? { turns: 3, until: undefined } : { turns: undefined, until: mode, scale: undefined })  // a condition that never counts cannot fade
 }
 export const setTurns = (doc: ProjectDoc, id: string, n: number): ProjectDoc => updateCondition(doc, id, { turns: clampInt(n, 1, CONDITION_TURNS_MAX), until: undefined })
+
+/** The effects of an always rule whose plain number "fades" can multiply (engine: `hasScalable` in loader_conditions.cpp). */
+export const SCALABLE_EFFECTS = ['stats', 'growths', 'vision', 'staffRange', 'carryBonus']
+/** Does an always rule of the condition have a number that fading can multiply? */
+export const hasScalableEffect = (c: Condition): boolean =>
+  blocksOfCondition(c).some((b) => b.when === 'always' && (Array.isArray(b.do) ? (b.do as Extra[]) : []).some((e) => SCALABLE_EFFECTS.some((k) => k in e)))
+/** "The effects fade as it runs out": only a condition that counts turns can. */
+export const setScale = (doc: ProjectDoc, id: string, on: boolean): ProjectDoc => updateCondition(doc, id, { scale: on ? 'turnsLeft' : undefined })
 
 /** "A chance to wear off early each turn": undefined removes it (never). */
 export const setWearOff = (doc: ProjectDoc, id: string, n: number | undefined): ProjectDoc =>

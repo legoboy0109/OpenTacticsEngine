@@ -58,6 +58,7 @@ export function EffectFields({ doc, effect, when, aura, change, forCondition }: 
   }
   if (kind === 'cure') return <CureFields doc={doc} effect={effect} change={change} />
   if (kind === 'recoil') return <RecoilFields effect={effect} change={change} />
+  if (kind === 'mark') return <Field label={T.markName} help={T.markHelp}><TextInput value={String(v ?? '')} onChange={(x) => change({ ...effect, mark: x }, 'mark')} /></Field>
   if (kind === 'cancelEffective') return <CancelFields doc={doc} effect={effect} change={change} />
   if (kind === 'nullifySkills') return <NullifyFields doc={doc} effect={effect} change={change} />
   if (kind === 'staffRange') return <StaffRangeFields doc={doc} effect={effect} change={change} />

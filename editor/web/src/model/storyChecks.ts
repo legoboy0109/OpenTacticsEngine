@@ -4,6 +4,7 @@
 // picture, an `if` with no conditions).
 import { audioRefProblem } from './audioChecks'
 import { mapChangeChecks } from './mapChangeStory'
+import { ACTOR_NOBODY, actorWithoutActor, storeItemsProblems, triggerHasActor } from './storyExtras'
 import { blockProblems, groupNames } from './behaviour'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
@@ -146,6 +147,9 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     case 'setTerrain': case 'applyChange': case 'revertChange': case 'setFog': case 'setVision':
       mapChangeChecks(map, c, where, say)
       break
+    case 'storeItems':
+      for (const t of storeItemsProblems(doc, c)) say(where, t)
+      break
     case 'wakeGroup':
       if (!c.wakeGroup) say(where, 'pick the group to wake.')
       else if (!groupNames(map).includes(c.wakeGroup)) say(where, `no unit of this map is in a group called “${c.wakeGroup}”.`)
@@ -207,6 +211,9 @@ export function storyChecks(doc: ProjectDoc, mapId: string): StoryCheck[] {
     forEachCommand(e.do, where, (c, w) => seesChecks(map, c.if, w, say))
     supportTriggerChecks(doc, trig, `${where}, “When”`, say)
     supportConditionChecks(doc, e.if, `${where}, “Only if”`, say)
+    let asksActor = actorWithoutActor(e.if)
+    forEachCommand(e.do, where, (c) => { if (actorWithoutActor(c.if)) asksActor = true })
+    if (kind && !triggerHasActor(kind) && asksActor) say(where, ACTOR_NOBODY)
     forEachCommand(e.do, where, (c, w) => supportConditionChecks(doc, c.if, w, say))
   }
 

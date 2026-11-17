@@ -128,6 +128,7 @@ export function conditionText(c: SumCtx, k: Condition): string {
     case 'researched': return `side ${sideName(c, k.side ?? '')} has researched ${q(techLabel(c, k.researched!))}`
     case 'hasSkill': return `${filterText(c, k.unit)} has the skill ${q(skillLabel(c, k.hasSkill ?? ''))}`
     case 'hasCondition': return `${filterText(c, k.unit)} has the condition ${q(conditionLabel(c, k.hasCondition ?? ''))}`
+    case 'actor': return `${filterText(c, k.actor)} is the unit that set this off`
     default: return 'something is true'
   }
 }
@@ -148,6 +149,12 @@ function amountsText(c: SumCtx, amounts: Record<string, number> | undefined): st
 /** " (fades in over 2 seconds)"; nothing when no fade is given (the player's default cross-fade), " (at once)" for 0. */
 const fadeText = (fade: number | undefined, dir: 'in' | 'out'): string =>
   (typeof fade !== 'number' ? '' : fade === 0 ? ' (at once)' : ` (fades ${dir} over ${fade} ${fade === 1 ? 'second' : 'seconds'})`)
+
+/** "Sends Eirik's items to the storage, except Potion" (docs/EVENTS.md "Sending a unit's items to storage"). */
+function storeItemsText(c: SumCtx, cmd: Command): string {
+  const keep = (Array.isArray(cmd.keep) ? cmd.keep : []).map((id) => itemLabel(c, id))
+  return `Sends ${typeof cmd.storeItems === 'string' ? unitText(c, cmd.storeItems) : filterText(c, cmd.storeItems)}’s items to the storage${keep.length ? `, except ${keep.join(', ')}` : ''}`
+}
 
 export function commandText(c: SumCtx, cmd: Command): string {
   switch (commandKind(cmd)) {
@@ -203,6 +210,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'lockDoor': return `Locks ${placeText(c, cmd.lockDoor ?? '')}`
     case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
     case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof (cmd as Record<string, unknown>).by === 'string' ? `, the contents go to ${unitText(c, String((cmd as Record<string, unknown>).by))}` : ''}`
+    case 'storeItems': return storeItemsText(c, cmd)
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
     default: return mapChangeText(c.doc, cmd) ?? 'Does something'
   }

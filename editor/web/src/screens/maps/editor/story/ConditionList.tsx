@@ -11,6 +11,7 @@ import { PairPick } from './forms/SupportForms'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory } from './StoryContext'
 import { S } from './text'
+import { EX } from './forms/extrasText'
 
 interface Props {
   conditions: Condition[]
@@ -111,6 +112,12 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <ConditionPick label={S.conditionHasCondition} value={c.hasCondition ?? ''} onChange={(v) => patch(i, { hasCondition: v })} />
                 <FilterPicker label={S.conditionHasConditionWho} mode="optional" value={c.unit} onChange={(f) => patch(i, { unit: f })} />
                 <p className="help">{S.conditionHasConditionHelp}</p>
+              </>
+            )}
+            {kind === 'actor' && (
+              <>
+                <FilterPicker label={EX.actorWho} value={c.actor} onChange={(f) => patch(i, { actor: f ?? {} })} />
+                <p className="help">{EX.actorHelp}</p>
               </>
             )}
             {kind === 'carries' && (
