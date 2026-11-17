@@ -66,6 +66,10 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
     out.draw3d = l->draw3d;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.res3d == "display" || x.res3d == "game"; }))
     out.res3d = l->res3d;
+  // --- battle animations: command line > per-game > global > the game's own default (scene only when it asks for it)
+  out.battleScene = game.present && game.battleScene;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.battleScene == "scene" || x.battleScene == "map"; }))
+    out.battleScene = l->battleScene == "scene";
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.musicVolume >= 0; }))
     out.musicVolume = l->musicVolume > 10 ? 10 : l->musicVolume;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.soundVolume >= 0; }))

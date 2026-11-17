@@ -13,7 +13,7 @@ const char* usageText() {
          "                  [--settings FILE=<user data folder>/settings.json | --no-settings]\n"
          "                  [--saves DIR=<user data folder>/saves | --no-saving] [--continue | --load-slot N | --campaign] [--test-3d]\n"
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
-         "                  [--show-all] [--music-volume 0..10] [--sound-volume 0..10] [--no-audio] [--audio-log FILE]\n"
+         "                  [--show-all] [--battle-scene scene|map] [--music-volume 0..10] [--sound-volume 0..10] [--no-audio] [--audio-log FILE]\n"
          "                  [--audio-test | --audio-render FILE.wav [--seconds N=4]] [--audio-file FILE.ogg|.wav]\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
@@ -30,6 +30,7 @@ const char* usageText() {
          "--3d-scale N (1..8, with --headless): there is no display, so the 3D picture is N times the logical size and\n"
          "      the screenshot is written at that size too (check detailed art without a window).\n"
          "--show-all: draw a battle with fog of war as if there were none (the rules still apply); for makers testing a map.\n"
+         "--battle-scene scene|map: show fights as the side-view battle scene or on the map for one run (beats the option and the game).\n"
          "sound: --music-volume / --sound-volume beat the options for one run; --no-audio and --headless use no sound device at all.\n"
          "--audio-log FILE writes one line per sound / music request (docs/SOUND.md, Audio log), so tests can see what would be heard.\n"
          "--audio-test plays a synthesized melody and a chime through the real sound device (or --audio-file's music) and exits.\n"
@@ -93,6 +94,9 @@ Args parseArgs(int argc, char** argv) {
     else if (!strcmp(arg, "--no-saving")) a.noSaving = true;
     else if (!strcmp(arg, "--continue")) a.continueSave = true;
     else if (!strcmp(arg, "--campaign")) a.campaign = true;
+    else if (!strcmp(arg, "--battle-scene")) {
+      if (value(v)) { a.battleScene = v; if (a.battleScene != "scene" && a.battleScene != "map") a.error = "bad --battle-scene (scene or map)"; }
+    }
     else if (!strcmp(arg, "--saves")) { if (value(v)) a.saves = v; }
     else if (!strcmp(arg, "--games")) { if (value(v)) a.gamesDir = v; }
     else if (!strcmp(arg, "--assets")) { if (value(v)) a.assetsDir = v; }

@@ -22,6 +22,7 @@ struct LookLayer {
   std::string style;  // style id; "" = unset
   std::string draw3d; // what draws 3D: "opengl" or "software"; "" = unset
   std::string res3d;  // how big the 3D picture is: "display" or "game"; "" = unset
+  std::string battleScene;  // "scene" or "map"; "" = unset (the game decides)
   int musicVolume = -1;  // 0..10; -1 = unset
   int soundVolume = -1;  // 0..10; -1 = unset
 };
@@ -36,6 +37,7 @@ struct GameLook {
   // Per style: can this player draw it? (empty = all). A style that cannot be
   // drawn is never picked; the default is then the first one that can.
   std::vector<char> styleUsable;
+  bool battleScene = false;        // game.json "battleScene": the game wants the side-view battle scene by default
 };
 
 struct EffectiveLook {
@@ -44,6 +46,7 @@ struct EffectiveLook {
   int styleIndex = 0;  // index into the game's styles: the chosen one, else the first this player can draw
   std::string draw3d;  // "opengl", "software", or "" = the player decides (docs/RENDER3D.md)
   std::string res3d;   // "display", "game", or "" = automatic (docs/RENDER3D.md "Resolution")
+  bool battleScene = false;  // fights are shown as the side-view battle scene (docs/BATTLE_SCENE.md "Settings")
   int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
   int soundVolume = 7;
 };

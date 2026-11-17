@@ -5,6 +5,7 @@
 // a safety net.
 #pragma once
 #include <deque>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -98,6 +99,22 @@ class BattleView {
   // so a run of unseen AI steps costs no frames. Does nothing while something is playing.
   void flushUnseen(const Battle& b);
 
+  // ---- the side-view battle scene (battle_view_fight.cpp; docs/BATTLE_SCENE.md) ----
+  // While `sceneMode` is on, the run of events of one fight (its skills, strikes, drain, deaths) is not played on the map: the
+  // view holds it in `fight` and waits (busy) until the scene has shown it and called fightFinished(), which applies the run to
+  // the view's state at once and silently (hit points, the fallen unit gone), exactly where the map playback would have left it.
+  struct FightRun {
+    bool active = false;
+    int serial = 0;             // changes with every fight
+    std::vector<Event> events;  // the run, in order
+    // The rules have already applied the experience that follows the fight; the scene shows the fighters as they were when it
+    // began. Per fighter: the levels it gains after the fight and the maximum hit points those levels add.
+    std::map<int, int> levelsGained, hpGained;
+  };
+  FightRun fight;
+  bool sceneMode = false;  // the player wants fights shown as the scene (set by the battle screen every frame)
+  void fightFinished(const Battle& b);
+
   std::vector<UnitView> units;  // indexed by unit id
   std::vector<FloatText> floats;
   LevelUpPanel levelUp;
@@ -128,6 +145,8 @@ class BattleView {
   void progress(const Battle& b);  // applies cur_ at time t
   void finish(const Battle& b);    // final state of cur_
   void impact(const Battle& b);    // attack: spawn numbers
+  bool takeFightRun(const Battle& b);  // battle_view_fight.cpp: cur_.ev starts a fight the scene shows: hold the run
+  bool quiet_ = false;             // fightFinished is replaying a run: no sounds
   // Story entries (docs/EVENTS.md): battle_view_story.cpp. Each returns false for other entries.
   bool beginStory(const Battle& b);
   bool progressStory(const Battle& b);

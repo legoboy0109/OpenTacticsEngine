@@ -20,6 +20,7 @@ struct GameInfo {
   SavingMode saving = SavingMode::Any;  // unknown values read as Any (loadGame rejects them)
   GridType gridType = GridType::Square;     // game.json "grid" (unknown values read as square; loadGame rejects them)
   HexLayout hexLayout = HexLayout::Pointy;  // meaningful when gridType is Hex
+  bool battleScene = false;       // game.json "battleScene": "scene" (docs/BATTLE_SCENE.md)
   FontConfig font;                // the game's own font choice
   std::vector<StyleInfo> styles;  // never empty; [0] is the default style
 };

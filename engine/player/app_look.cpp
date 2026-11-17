@@ -44,6 +44,7 @@ LookLayer argsLayer(const Args& a) {
   l.uiScale = a.uiScale;
   l.style = a.style;
   l.draw3d = a.draw3d == "hardware" ? "opengl" : a.draw3d == "software" ? "software" : "";
+  l.battleScene = a.battleScene;
   l.musicVolume = a.musicVolume;
   l.soundVolume = a.soundVolume;
   l.res3d = a.res3d == "display" || a.res3d == "game" ? a.res3d : "";

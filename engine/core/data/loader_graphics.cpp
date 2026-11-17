@@ -1,5 +1,6 @@
 // Loads data/graphics.json (docs/GRAPHICS.md). The file is optional.
 #include "core/data/loader_content.h"
+#include "core/data/loader_graphics_art.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -407,7 +408,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   }
   // A file with no sheets and no models cannot draw anything; keep "no art" cheap to test.
   if (!db.graphics.sheets.empty() || models) db.graphics.styles = sets;
-  return true;
+  return readBattleArt(c, db, root);  // the battle scene's animation sets and backgrounds (docs/BATTLE_SCENE.md)
 }
 
 }  // namespace ote

@@ -38,6 +38,25 @@ void BattleView::soundStarted(const Battle& b) {
       a.cue(Cue::ItemUse, c);
       break;
     }
+    case EventType::StaffUsed: {  // a=user, b=item: the staff's own "use" sound, else heal (a healing staff, when the game has it), else itemUse
+      CueCtx c;
+      c.item = e.b;
+      c.unitType = typeOf(e.a);
+      const bool own = e.b >= 0 && (size_t)e.b < a.data().items.size() && a.data().items[(size_t)e.b].sound[(int)Cue::ItemUse] != kNone;
+      const ItemDef* it = e.b >= 0 && (size_t)e.b < b.db->items.size() ? &b.db->items[(size_t)e.b] : nullptr;
+      const bool heals = it && it->staff >= 0 && (size_t)it->staff < b.db->staves.size() && b.db->staves[(size_t)it->staff].has(StaffEffect::Kind::Heal);
+      CueCtx plain;
+      plain.unitType = c.unitType;
+      if (!own && heals && a.defines(Cue::Heal, plain)) a.cue(Cue::Heal, plain);
+      else a.cue(Cue::ItemUse, c);
+      break;
+    }
+    case EventType::StaffMissed: {  // a=the unit missed, b=user, c=item
+      CueCtx c;
+      c.unitType = typeOf(e.b);
+      if (a.defines(Cue::Miss, c)) a.cue(Cue::Miss, c);
+      break;
+    }
     case EventType::UnitHealed: {
       CueCtx c;
       c.unitType = typeOf(e.a);

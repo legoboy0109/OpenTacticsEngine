@@ -1,5 +1,6 @@
 // Art in the document: the list of images ("sheets" in the file format) and the section setting.
 // Looks (what each terrain/unit shows) are in graphicsLooks.ts; clean-up on delete in graphicsClean.ts.
+import { dropBattleSheet } from './battleArt'
 import { makeId } from './ids'
 import { patchObj, updateById } from './util'
 import type { Graphics, Look, ProjectDoc, Sheet, StyleArt } from './types'
@@ -93,5 +94,5 @@ export function removeSheet(doc: ProjectDoc, id: string): ProjectDoc {
     // Dialogue portraits drawn from the image go with it.
     portraits: g.portraits && keepPortraits(g.portraits, id),
   })
-  return { ...doc, graphics: next }
+  return { ...doc, graphics: dropBattleSheet(next, id) }  // battle sets, effects and backgrounds that draw from the image go too
 }

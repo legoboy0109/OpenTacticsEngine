@@ -1,5 +1,8 @@
 // All wording on the Terrain screen.
 export const T = {
+  battleBackground: 'Battle background',
+  battleBackgroundHelp: 'The picture behind a fight on this terrain in the battle scene (made in the Art section, “Battle backgrounds”). Default = the game’s default background.',
+  battleBackgroundDefault: 'Default',
   title: 'Terrain',
   noun: 'terrain',
   empty: 'No terrain yet.',

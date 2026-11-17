@@ -1099,3 +1099,19 @@ The badge (count, tooltip and accessible name list the messages) opens the Probl
 
 **Limits.** No dependency was added. Scene text is never edited inline. The edge labels are nudged apart but can still overlap in very busy pictures; arrows that
 share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.ts`, `timelineLayout.test.ts`; e2e `timeline.spec.ts` (+ `timeline-shots.spec.ts`, SHOTS=1).
+
+## Battle animations (docs/BATTLE_SCENE.md)
+
+- **Rules screen**, card "How fights are shown": On the map (default, written as no key) / Battle scene (`game.json` `battleScene`).
+- **Art screen**, cards below Portraits: *Battle animations* (pick / add a set, rename, delete with a question that counts the rules
+  that go with it; faces, "turn it around" switch, foot point; one block per animation: image, row, number of frames, milliseconds per
+  frame, hit frame for attack-type animations; a live preview of one animation, and **Preview a fight**: the set strikes twice
+  against another set or the plain map picture, the first blow hits, the second is dodged, with the game's fallback motion for what
+  is missing), *Who uses which set* (rules: set + unit type + optional character + optional weapon group) and *Battle backgrounds*
+  (named pictures, default). Notes under the set: "Worth a look" (attack without a hit frame, a set nobody uses) and "Needs fixing"
+  (frame outside the image, set given to a deleted unit type / character, unknown weapon group). The game's loader refusals also show in Problems.
+- **Terrain screen**: "Battle background" (when backgrounds exist).
+- Follow-through: removing an image removes sets / effects / backgrounds drawn from it (and rules of sets left without a stand);
+  deleting a unit type, character or terrain removes its rules / choices; renaming a set keeps its rules.
+- Not in the editor yet: frames that are not a run along a row from the left (hand-written ones are kept and shown), per-frame times,
+  the spawn frame, effects (spell / arrow animations), a map's own `battleBackground`, ranges-based preview. Hand-written JSON for them is preserved.

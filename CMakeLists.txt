@@ -77,6 +77,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   target_sources(ote_tests PRIVATE engine/player/battle/staff_text.cpp)  # staves in words (docs/SRPG.md section 8)
   target_sources(ote_tests PRIVATE engine/player/battle/condition_text.cpp)  # status conditions in words (docs/SRPG.md section 9)
   target_sources(ote_tests PRIVATE engine/player/battle/place_text.cpp)  # doors, chests and visiting in words (docs/SRPG.md section 10)
+  target_sources(ote_tests PRIVATE engine/player/battle/fight_script.cpp engine/player/battle/fight_timeline.cpp)  # the battle scene's script of a fight (docs/BATTLE_SCENE.md)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})

@@ -143,6 +143,11 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (!c.str(root, "saving", "", saving)) return false;
   if (!parseSavingMode(saving, db.saving))
     return c.fail("", "\"saving\" must be \"any\", \"continue\" or \"off\" (got \"" + saving + "\")");
+  std::string scene = "map";
+  if (!c.str(root, "battleScene", "", scene)) return false;
+  if (scene != "map" && scene != "scene")
+    return c.fail("", "\"battleScene\" must be \"map\" (quick fights on the map) or \"scene\" (the side-view battle scene), got \"" + scene + "\"");
+  db.battleSceneDefault = scene == "scene";
 
   if (!readGameGrid(c, root, db)) return false;
 

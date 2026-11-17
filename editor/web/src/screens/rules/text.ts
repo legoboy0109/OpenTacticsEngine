@@ -106,6 +106,12 @@ export const T = {
   storageStructure: 'On own structures',
   storageLeader: 'Next to the leader',
 
+  battleView: 'How fights are shown',
+  battleViewHelp: 'The default for this game. Players can change it in the options (“Battle animations”).',
+  battleViewChoices: {
+    map: { label: 'On the map', help: 'Fights play out quickly on the map, as they always did. This is what every game does until you change it.' },
+    scene: { label: 'Battle scene', help: 'Each fight opens a side view with both fighters. Fighters use the animation sets of the Art section; a unit without one is its map picture, enlarged, with simple motion.' },
+  },
   saving: 'Saving',
   savingHelp: 'Whether players can save a battle in this game.',
   savingChoices: {

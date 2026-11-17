@@ -26,6 +26,7 @@ id that does not exist is a load error.
   "description": "A short line shown in the launcher.",      // optional
   "author": "Your Name",                                     // optional
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
+  "battleScene": "map",                                      // optional: "map" (default) | "scene": how fights are shown (docs/BATTLE_SCENE.md)
   "saving": "any",                                           // optional: "any" | "continue" | "off"
   "grid": { "type": "hex", "layout": "pointy" },             // optional: hexagon game, "pointy" | "flat" (docs/HEX.md);
                                                              // missing (or { "type": "square" }) = a square game

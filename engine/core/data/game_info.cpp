@@ -16,6 +16,7 @@ bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err) {
   out.description = root["description"].asString();
   out.author = root["author"].asString();
   parseSavingMode(root["saving"].asString("any"), out.saving);
+  out.battleScene = root["battleScene"].asString() == "scene";
   const Json& grid = root["grid"];
   if (grid["type"].asString() == "hex") {
     out.gridType = GridType::Hex;

@@ -81,7 +81,10 @@ void BattleScene::aiStep() {
   int budget = fogActive_ ? 256 : 1;
   do {
     events_.clear();
+    const Battle before = battle_;  // for the forecast of a fight this step makes (the scene shows hit and crit percentages)
     aiTakeStep(battle_, events_);
+    for (const Event& e : events_)
+      if (e.type == EventType::Attack && !(e.flags & kCounter)) { noteForecast(before, e.a, e.b, e.c); break; }
     view_.push(events_);
     if (fogActive_) view_.flushUnseen(battle_);
   } while (--budget > 0 && !view_.busy() && !battle_.over && !humanTurn());

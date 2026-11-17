@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "core/data/battle_art.h"
+#include "core/data/sprite_cell.h"
 #include "core/grid/grid.h"
 
 namespace ote {
@@ -25,11 +27,6 @@ struct SheetDef {
   int width = 0, height = 0;  // image size in pixels (read from the PNG header)
   int cols = 0, rows = 0;     // whole cells that fit
   bool smooth = false;        // detailed art: the 3D views blend texels (bilinear, mipmaps) instead of hard pixels
-};
-
-struct SpriteCell {
-  int16_t col = 0, row = 0;
-  bool operator==(const SpriteCell& o) const { return col == o.col && row == o.row; }
 };
 
 // How one thing is drawn.
@@ -119,6 +116,8 @@ struct Graphics {
   // Draw a small base in the side's colour under units that have art, so
   // sides can be told apart whatever the art looks like.
   bool unitMarker = true;
+  // The side-view battle scene's art (docs/BATTLE_SCENE.md); empty when the game gives none.
+  BattleArt battle;
   // Per visual style index (same order as Database::styles), already merged:
   // the style's own entries on top of the entries shared by all styles.
   // Empty when the game has no graphics.json.

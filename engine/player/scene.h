@@ -62,6 +62,8 @@ class SceneHost {
   // Index of the visual style in the look last applied (0 = the game's default;
   // meaningful for the game being played or edited in the options).
   virtual int styleIndex() const = 0;
+  // Fights are shown as the side-view battle scene (the player setting "Battle animations", else the game's default; docs/BATTLE_SCENE.md).
+  virtual bool battleScene() const = 0;
 
   // Save files of a game (docs/SAVES.md). Disabled (enabled() false) when saving is
   // off for this run: --no-saving, or a headless / --no-settings run without --saves,

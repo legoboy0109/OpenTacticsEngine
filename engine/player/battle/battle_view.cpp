@@ -56,6 +56,7 @@ void BattleView::resync(const Battle& b) {
   }
   queue_.clear();
   cur_.active = false;
+  fight = FightRun();
   updateShown(b);  // fog: what the viewer cannot see is not drawn (after the queue is empty: the view is idle)
   banner.clear();
   bannerSub.clear();
@@ -296,7 +297,7 @@ void BattleView::begin(const Battle& b) {
 void BattleView::impact(const Battle& b) {
   const Event& e = cur_.ev;
   cur_.fired = true;
-  soundImpact(b);
+  if (!quiet_) soundImpact(b);
   const UnitView& d = units[e.b];
   float x = d.px + tile_ / 2.0f, y = d.py - 2;
   if (e.flags & kHit) {
@@ -440,6 +441,7 @@ void BattleView::startNext(const Battle& b) {
       applyUnseen(b, cur_.ev);
       continue;
     }
+    if (sceneMode && takeFightRun(b)) continue;  // the scene shows this fight; the view waits for it
     cur_.active = true;
     begin(b);
     soundStarted(b);
@@ -448,6 +450,7 @@ void BattleView::startNext(const Battle& b) {
 }
 
 void BattleView::skip(const Battle& b) {
+  if (fight.active) return;  // the scene has its own skip
   if (cur_.active) finish(b);
   startNext(b);
 }
@@ -457,6 +460,10 @@ void BattleView::update(double dt, const Battle& b) {
   for (FloatText& f : floats) f.age += (float)dt;
   floats.erase(std::remove_if(floats.begin(), floats.end(), [](const FloatText& f) { return f.age >= f.life; }),
                floats.end());
+  if (fight.active) {  // the scene is on screen: nothing else plays until it is done
+    wasBusy_ = true;
+    return;
+  }
 
   if (cur_.active) {
     cur_.t += (float)dt;
