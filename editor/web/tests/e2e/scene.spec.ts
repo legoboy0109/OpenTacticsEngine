@@ -7,7 +7,7 @@ import { openArt, seedArt, solidPng } from './artkit'
 import { addSceneCommand, openCampaign, openChapter, scene, sceneForm } from './campaignkit'
 import { expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
 import { openMap, tool } from './mapkit'
-import { addCommand, editor, eventsTab, form, nameUnit, newEvent, shot } from './storykit'
+import { addCommand, editor, eventsTab, form, nameUnit, newEvent, openEvent, shot } from './storykit'
 
 /** A game with two images (a whole-picture backdrop and a sheet of pieces) and no backgrounds yet. */
 async function prepare(game: { create: (t: string, n?: string) => Promise<string> }, request: Parameters<typeof seedArt>[0], name: string): Promise<string> {
@@ -155,7 +155,7 @@ test('@smoke the checks, rename and delete: an unknown background and a wrong pa
 
   await openMap(page, id, 'crossroads')
   await eventsTab(page).click()
-  await page.getByRole('button', { name: 'Open event intro', exact: true }).click()
+  await openEvent(page, 'intro')
   // Rename in Art: both commands follow.
   await openArt(page, id)
   await backgroundsCard(page).getByLabel('Name of background 2').fill('great_hall')
@@ -182,7 +182,7 @@ test('@smoke the checks, rename and delete: an unknown background and a wrong pa
   expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: d2.revision, maps: { crossroads: d2.maps.crossroads } } })).ok()).toBeTruthy()
   await openMap(page, id, 'crossroads')
   await eventsTab(page).click()
-  await page.getByRole('button', { name: 'Open event intro', exact: true }).click()
+  await openEvent(page, 'intro')
   await expect(page.getByTestId('event-checks')).toContainText('the background “swamp” is not one of this game’s')
   await shot(page, 'scene-check')
   // ... and a pause out of range, which the number box itself would not let a person type
@@ -191,11 +191,11 @@ test('@smoke the checks, rename and delete: an unknown background and a wrong pa
   expect((await request.put(`/api/projects/${id}`, { data: { baseRevision: d3.revision, maps: { crossroads: d3.maps.crossroads } } })).ok()).toBeTruthy()
   await openMap(page, id, 'crossroads')
   await eventsTab(page).click()
-  await page.getByRole('button', { name: 'Open event intro', exact: true }).click()
+  await openEvent(page, 'intro')
   await expect(page.getByTestId('event-checks')).toContainText('the wait is milliseconds, a whole number from 0 to 60000')
   // Fixing them in the forms clears the checks.
   await page.getByRole('button', { name: /^2\. / }).click()
-  await form(page).getByLabel('Background', { exact: true }).selectOption({ label: 'hall' })
+  await form(page).getByLabel('Background', { exact: true }).selectOption({ label: 'great_hall' })
   await page.getByRole('button', { name: /^3\. / }).click()
   await form(page).getByLabel('Pause').fill('300')
   await expect(page.getByTestId('event-checks')).toHaveCount(0)
@@ -279,7 +279,7 @@ test('@smoke on a 360px phone the Backgrounds card and the scene forms fit', asy
 
   await openMap(page, id, 'crossroads')
   await eventsTab(page).click()
-  await page.getByRole('button', { name: 'Open event intro', exact: true }).click()
+  await openEvent(page, 'intro')
   for (let n = 1; n <= 7; n++) {
     await page.getByRole('button', { name: new RegExp(`^${n}\\. `) }).click()
     await expectNoHScroll(page)
