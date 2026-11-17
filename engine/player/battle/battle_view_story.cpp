@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "battle/battle_view.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -26,6 +27,8 @@ bool BattleView::beginStory(const Battle& b) {
     case EventType::Dialogue: {
       dialogue.line = dialogueLine(b, e);
       ++dialogue.serial;
+      // For the tests and for whoever debugs a story: which line reaches the player, in which order.
+      OTE_INFO("dialogue: %s | %s%s", dialogue.line.name.c_str(), dialogue.line.text.c_str(), skipping_ ? " (skipped)" : "");
       // An empty line has nothing to show; a skipped run passes every line without showing it.
       if (skipping_ || (dialogue.line.text.empty() && dialogue.line.name.empty())) {
         cur_.dur = 0;
