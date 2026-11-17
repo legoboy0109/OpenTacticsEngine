@@ -1,5 +1,6 @@
 // All wording of the story panels (Events and Objectives) and their forms. Placeholder wording: the owner decides.
 import { MC } from './forms/mapChangeText'
+import { EX } from './forms/extrasText'
 import type { CommandKind, CompareOp, ConditionKind, FilterKind, RuleKind, TriggerKind } from '../../../../model/storyTypes'
 
 export const S = {
@@ -118,6 +119,7 @@ export const S = {
     hasCondition: 'A unit has a status condition',
     sees: 'A team sees a unit (fog of war)',
     support: 'A support level compares to a number',
+    actor: EX.conditionActor,
   } as Record<ConditionKind, string>,
   conditionN: (n: number) => `Condition ${n}`,
   conditionKind: 'Kind',
@@ -203,6 +205,7 @@ export const S = {
     clearStage: 'Clear the stage',
     weather: 'Set the weather',
     narrate: 'Narrate',
+    ...EX.kinds,
   } as Record<CommandKind, string>,
   endTurnTalkOnly: 'only in a “Two units talk” event',
   commandN: (n: number) => `command ${n}`,

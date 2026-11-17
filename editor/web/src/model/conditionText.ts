@@ -17,6 +17,7 @@ export function conditionSummary(doc: ProjectDoc, c: Condition): string {
   const parts = [durationText(c)]
   if (c.wearOff) parts.push(`Each turn there is a ${c.wearOff}% chance it wears off early.`)
   if (c.endsWhenStruck) parts.push('It ends when the unit is struck.')
+  if (c.scale === 'turnsLeft') parts.push('Its always-on numbers count as many times as it has turns left, so they fade as it runs out.')
   if (c.replaces?.length) parts.push(`Putting it on removes ${c.replaces.map((r) => conditionName(doc, r)).join(', ')}.`)
   for (const b of blocksOfCondition(c)) parts.push(blockSummary(doc, b))
   return parts.join(' ')

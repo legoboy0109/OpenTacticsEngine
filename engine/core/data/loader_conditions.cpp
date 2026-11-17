@@ -51,6 +51,17 @@ int addHiddenSkill(Database& db, const std::string& id, const std::string& name,
   return (int)db.skills.size() - 1;
 }
 
+// Does the skill have an "always" effect whose plain number "scale" can multiply?
+bool hasScalable(const SkillDef& s) {
+  for (const SkillBlock& b : s.blocks) {
+    if (b.when != SkillWhen::Always) continue;
+    for (const SkillEffect& e : b.effects)
+      if (e.kind == SkillEffect::Kind::Stats || e.kind == SkillEffect::Kind::Growths || e.kind == SkillEffect::Kind::Vision ||
+          e.kind == SkillEffect::Kind::StaffRange || e.kind == SkillEffect::Kind::CarryBonus) return true;
+  }
+  return false;
+}
+
 bool effectOf(const ConditionDef&, const Database& db, const SkillDef& s, SkillEffect::Kind k) {
   (void)db;
   for (const SkillBlock& b : s.blocks)
@@ -65,6 +76,7 @@ bool effectOf(const ConditionDef&, const Database& db, const SkillDef& s, SkillE
 
 bool loadConditions(const std::string& path, Database& db, std::string& err) {
   db.conditions.clear();
+  db.scaledConditions = false;
   if (!fileExists(path)) return true;  // a game without the file: no conditions
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
@@ -84,7 +96,7 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     where = "condition " + q(d.id);
     for (const ConditionDef& o : db.conditions)
       if (o.id == d.id) return c.fail(where, "duplicate id");
-    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks"}, where))
+    if (!onlyKeys(c, e, {"id", "name", "description", "tag", "turns", "until", "wearOff", "endsWhenStruck", "replaces", "blocks", "scale"}, where))
       return false;
     d.name = d.id;
     if (!c.str(e, "name", where, d.name) || !c.str(e, "description", where, d.description) || !c.str(e, "tag", where, d.tag)) return false;
@@ -118,6 +130,14 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     for (const std::string& r : d.replaceIds)
       if (r == d.id) return c.fail(where, "\"replaces\" lists the condition itself");
 
+    if (e.has("scale")) {
+      if (!e["scale"].isString() || e["scale"].asString() != "turnsLeft")
+        return c.fail(where, "\"scale\" must be \"turnsLeft\" (the numbers of its always blocks count as many times as it has turns left)");
+      if (d.until != ConditionUntil::Turns)
+        return c.fail(where, "\"scale\": \"turnsLeft\" needs a condition that counts turns (\"turns\": 7), and this one lasts until it is cured or the map ends");
+      d.scale = true;
+      db.scaledConditions = true;
+    }
     const Json* blocks;
     if (!c.array(e, "blocks", where, blocks, true)) return false;
     if (blocks->size() == 0) return c.fail(where, "\"blocks\" needs at least one block");
@@ -134,6 +154,8 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     const SkillDef& s = db.skills[(size_t)d.skill];
     if (effectOf(d, db, s, SkillEffect::Kind::CannotAct) && effectOf(d, db, s, SkillEffect::Kind::Berserk))
       return c.fail(where, "\"cannotAct\" and \"berserk\" contradict each other (a unit that cannot act cannot act on its own either); make them two conditions");
+    if (d.scale && !hasScalable(s))
+      return c.fail(where, "\"scale\": \"turnsLeft\" has nothing to scale: it multiplies the numbers of \"always\" blocks (stats, growths, vision, staffRange, carryBonus), and this condition has none");
     db.conditions.push_back(d);
   }
   return true;

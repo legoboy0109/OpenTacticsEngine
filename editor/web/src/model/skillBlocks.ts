@@ -3,7 +3,7 @@
 // thing of the game (a weapon, an ability) is only made when the game has one, and the keys keep the file's usual order.
 // Keys this editor does not know stay (the loader will tell the maker about them).
 import {
-  AURA_EFFECTS, FLAG_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, canJudgeFoe, condKindOf, condsFor, effectKindOf, effectsFor, hasChance,
+  AURA_EFFECTS, FLAG_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, canJudgeFoe, condKindOf, condsAt, condsFor, effectKindOf, effectsFor, hasChance,
   type CondKind, type EffectKind, type When,
 } from './skillRules'
 import type { Extra, ProjectDoc } from './types'
@@ -52,6 +52,7 @@ export function newCondition(kind: CondKind, doc: ProjectDoc): Extra | null {
     case 'carries': return doc.items?.[0] ? { carries: doc.items[0].id } : null
     case 'inventory': return { inventory: 'full' }
     case 'strike': return { strike: 'first' }
+    case 'marked': return { marked: 'mark' }
   }
 }
 
@@ -96,6 +97,7 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'carryBonus': return { carryBonus: 1 }
     case 'vision': return { vision: 1 }
     case 'recoil': return { recoil: 2 }
+    case 'mark': return { mark: 'mark' }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
 }
@@ -111,7 +113,7 @@ export function offeredEffects(doc: ProjectDoc, b: Extra): EffectKind[] {
 
 /** The condition kinds to offer in a block, and why one is missing when it cannot be had (for the picker's help). */
 export function offeredConditions(doc: ProjectDoc, b: Extra): CondKind[] {
-  return condsFor(b.when as When, !!b.aura).filter((k) => newCondition(k, doc) !== null)
+  return condsAt(b.when as When, !!b.aura).filter((k) => newCondition(k, doc) !== null)
 }
 
 /** Why a condition cannot be added now (the block already has what forbids conditions), or null. */
@@ -174,7 +176,7 @@ export function setEffectTarget(e: Extra, foe: boolean): Extra {
  *  conditions about a foe or a combat, effects of another point; a rule left with no effect gets one that fits. */
 export function setWhen(b: Extra, when: When, doc: ProjectDoc): Extra {
   const aura = when === 'combat' && b.aura ? b.aura : undefined
-  const okConds = condsFor(when, !!aura)
+  const okConds = condsAt(when, !!aura)
   const conds = list(b.if).filter((c) => {
     const k = condKindOf(c)
     return k === null || (okConds.includes(k) && (c.who !== 'foe' || canJudgeFoe(k, when, !!aura)))

@@ -15,6 +15,7 @@ import { isStoryId } from './storyIds'
 import { commandKind, type Command } from './storyTypes'
 import { readingProblems } from './readingChecks'
 import { forEachCommand, type Ref } from './storyWalk'
+import { SCENE_ACTOR_PROBLEM, actorWithoutActor, storeItemsProblems } from './storyExtras'
 import type { ProjectDoc } from './types'
 
 /** `error`: the loader refuses the file. `hint`: it loads, but check that this is what you meant. `topic` says which
@@ -88,6 +89,7 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
       break
     case 'if':
       if (!c.if?.length) say('hint', 'general', where, 'this “If” has no conditions, so it always happens.')
+      if (actorWithoutActor(c.if)) say('error', 'general', where, SCENE_ACTOR_PROBLEM)
       break
     case 'playMusic':
     case 'stopMusic':
@@ -96,6 +98,9 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
     case 'setSwitch':
     case 'takeItem':
     case 'playSound':
+      break
+    case 'storeItems':
+      for (const t of storeItemsProblems(doc, c)) say('error', 'general', where, t)
       break
     case 'addSupport':
       addSupportChecks(doc, c, where, (w, t) => say('error', 'unit', w, t))

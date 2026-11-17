@@ -173,6 +173,16 @@ export function ConditionFields({ doc, cond, change }: Props) {
         </>
       )
     }
+    case 'marked':
+      return (
+        <>
+          <Field label={T.markName} help={T.markedHelp}><TextInput value={String(cond.marked ?? '')} onChange={(v) => change({ ...cond, marked: v }, 'marked')} /></Field>
+          <Field label={T.markedIs}>
+            <Select value={cond.is === false ? 'no' : 'yes'} options={[{ value: 'yes', label: T.markedYes }, { value: 'no', label: T.markedNo }]}
+              onChange={(v) => { const { is: _i, ...rest } = cond; change(v === 'no' ? { ...rest, is: false } : rest) }} />
+          </Field>
+        </>
+      )
     case 'formula':
       return <Field label={T.formula} help={T.formulaHelp}><TextInput mono value={String(cond.formula ?? '')} onChange={(v) => change({ ...cond, formula: v }, 'formula')} /></Field>
     default: return <p className="help">{T.condKept}</p>

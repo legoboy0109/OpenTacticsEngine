@@ -43,6 +43,7 @@ class CampaignLoader {
   bool supportCommand(const Json& e, const std::string& where, SceneCommand& out);
   bool supportCondition(const Json& e, const std::string& where, SceneCondition& out) const;
   bool choiceCommand(const Json& e, const std::string& at, bool allowGoto, SceneCommand& out);  // loader_campaign_choice.cpp
+  bool storeItemsCommand(const Json& e, const std::string& at, SceneCommand& out);              // loader_campaign_extras.cpp
 
   const Database& db_;
   LoadCtx c_;

@@ -73,8 +73,11 @@ class StoryLoader {
   bool placeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);
   bool conditionCommand(const Json& e, const std::string& at, bool add, Command& out);           // loader_story_conditions.cpp: addCondition / removeCondition
   bool hasConditionCondition(const Json& e, const std::string& at, Condition& out) const;      // loader_story_conditions.cpp
+  bool actorCondition(const Json& e, const std::string& at, Condition& out) const;                // loader_story_actor.cpp: { "actor": filter }
   bool behaviourCommand(const Json& e, const std::string& at, Command& out);                    // loader_behaviour.cpp: setBehaviour / wakeGroup
   bool mapChangeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);  // loader_story_mapchange.cpp: setTerrain, applyChange, revertChange, setFog, setVision
+
+  bool storeItemsCommand(const Json& e, const std::string& at, Command& out);                    // loader_story_store.cpp
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);

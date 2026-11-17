@@ -7,7 +7,7 @@ import { amountOf } from './skillAmount'
 import { CONDITION_TURNS_MAX } from './conditions'
 import { weaponKinds } from './skillBlocks'
 import {
-  AURA_EFFECTS, CONDITION_ONLY, EFFECT_WHENS, FLAG_EFFECTS, FOE_EFFECTS, FORMULA_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, NUMBER_RANGE, STRIKE_ONLY, canJudgeFoe, condKindOf, condsFor, effectKindOf, hasChance, whenOf,
+  AURA_EFFECTS, CONDITION_ONLY, EFFECT_WHENS, FLAG_EFFECTS, FOE_EFFECTS, FORMULA_EFFECTS, MAX_CONDITIONS, MAX_EFFECTS, NUMBER_RANGE, STRIKE_ONLY, MARK_NAME_MAX, canJudgeFoe, condKindOf, condsAt, effectKindOf, hasChance, whenOf,
   type EffectKind, type When,
 } from './skillRules'
 import { blocksOf } from './skills'
@@ -47,10 +47,11 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
       out.push(`It reaches only units whose weapon deals “${a.weaponKind}” damage, which no weapon has. Give a weapon that kind first.`)
     if (a.test !== undefined && (typeof a.test !== 'string' || a.test.trim() === '')) out.push('The formula the receivers must pass is empty.')
   }
-  const okConds = condsFor(when, aura)
+  const okConds = condsAt(when, aura)
   for (const c of conds) {
     const k = condKindOf(c)
     if (k && STRIKE_ONLY.includes(k) && !okConds.includes(k)) out.push(k === 'strike' ? '“Which strike” can only be asked in a rule for when the unit strikes or is struck.' : '“Only if the foe answers” can only be asked in a rule for when the unit strikes or is struck.')
+    else if (k === 'marked' && !okConds.includes(k)) out.push('“Marked” can only be asked in a rule for when the unit strikes or is struck, after a defeat or after combat (marks live for one fight).')
     else if (k && !okConds.includes(k)) out.push(`“Only if” cannot ask that here: ${aura || when === 'turnStart' ? 'there is no fight to ask about.' : 'there is no combat.'}`)
     else if (k && c.who === 'foe' && !canJudgeFoe(k, when, aura)) out.push('There is no foe to ask about here.')
     if (k === 'condition' && !doc.conditions?.some((x) => x.id === c.condition)) out.push(`“Only if” asks about the condition “${String(c.condition)}”, which does not exist.`)
@@ -80,6 +81,7 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
     const r = NUMBER_RANGE[k]
     if (r && FORMULA_EFFECTS.includes(k) && typeof e[k] === 'string') { if ((e[k] as string).trim() === '') out.push('The formula is empty.') }
     else if (r && (typeof e[k] !== 'number' || e[k] < r[0] || e[k] > r[1])) out.push(`That number must be from ${r[0]} to ${r[1]}.`)
+    if (k === 'mark' && (typeof e.mark !== 'string' || e.mark.trim() === '' || e.mark.length > MARK_NAME_MAX)) out.push(`The mark must have a name of 1 to ${MARK_NAME_MAX} characters.`)
     if (k === 'vision' && e[k] === 0) out.push('Sight in fog cannot be 0: give a number above or below it.')
     const cancelList = k === 'cancelEffective' && Array.isArray(e[k])
     const moveAgainOption = k === 'moveAgain' && e[k] && typeof e[k] === 'object' && (e[k] as Extra).notAfterAttack === true
@@ -104,6 +106,10 @@ function ownCondIssues(doc: ProjectDoc, c: Extra, k: ReturnType<typeof condKindO
     const v = c.inventory
     const o = (v && typeof v === 'object' ? v : null) as Extra | null
     if (v !== 'full' && v !== 'notFull' && !(o && typeof o.value === 'number' && Number.isInteger(o.value) && o.value >= 0 && o.value <= 1000)) out.push('The number of items must be “full”, “not full” or a whole number from 0 to 1000.')
+  }
+  if (k === 'marked') {
+    if (typeof c.marked !== 'string' || c.marked.trim() === '' || c.marked.length > MARK_NAME_MAX) out.push(`The mark must have a name of 1 to ${MARK_NAME_MAX} characters.`)
+    if (c.is !== undefined && typeof c.is !== 'boolean') out.push('“Is marked” must be yes or no.')
   }
   if (k === 'strike') {
     const v = c.strike

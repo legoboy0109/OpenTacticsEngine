@@ -64,6 +64,7 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
       if (typeof v === 'number') return `it is strike number ${v}`
       return `the strike number is ${opWords(o.op)} ${o.value ?? 1}`
     }
+    case 'marked': return c.is === false ? `${who} has not the mark “${String(v ?? '')}”` : `${who} has the mark “${String(v ?? '')}”`
     default: return 'a condition the editor does not show (kept as it is)'
   }
 }
@@ -124,6 +125,7 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
       return o ? `staves of the group “${String(o.group ?? '')}” reach ${squares(o.amount)} further` : `staves reach ${squares(v)} further`
     }
     case 'vision': return `sees ${signed(v)} in fog`
+    case 'mark': return `leaves the mark “${String(v ?? '')}” on it for the rest of this fight`
     case 'carryBonus': return `carrying capacity ${signed(v)} (read by the carrying rule as a.carryBonus)`
     case 'strikes': return `${own}strikes ${signed(v)}`
     case 'multiStrike': return `each strike is made ${v} times in a row`

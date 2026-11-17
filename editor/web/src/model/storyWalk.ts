@@ -9,6 +9,7 @@
 import { entryId } from './itemGrants'
 import type { ChoiceAnswer, Command, Condition, Filter, ObjectiveRule, Objectives, StoryEvent, Trigger } from './storyTypes'
 import type { ItemEntry, MapFile } from './types'
+import { withKeepList } from './storyExtras'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
@@ -98,6 +99,7 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'researched', 'tech', w, where),
     (x) => withRef(x, 'hasSkill', 'skill', w, where),
     (x) => withRef(x, 'hasCondition', 'condition', w, where),
+    (x) => withFilter(x, 'actor', w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one
     (x) => withFilter(x, 'unit', w, where),
   ])
@@ -274,6 +276,8 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'setTerrain', 'terrain', w, where),
     (x) => withRef(x, 'applyChange', 'change', w, where),
     (x) => withRef(x, 'revertChange', 'change', w, where),
+    (x) => withFilter(x, 'storeItems', w, where), // a filter in a map event, a roster id in a scene
+    (x) => withKeepList(x, w, where), // the items it leaves with the unit
   ])
 }
 

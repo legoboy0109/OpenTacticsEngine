@@ -151,4 +151,7 @@ bool playSupport(const Database& db, Playthrough& pt, int pair, std::vector<Scen
 // A scene's addSupport command: `by` points (may be negative) to the pair; nothing if one of them fell for good.
 void sceneAddSupport(const Database& db, Playthrough& pt, int pair, int by);
 
+// A scene's storeItems (scene_extras.cpp): the roster character's items go to the campaign's storage, except those in `c.keep`.
+void sceneStoreItems(const Database& db, Playthrough& pt, const SceneCommand& c);
+
 }  // namespace ote

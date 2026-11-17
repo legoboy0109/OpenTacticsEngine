@@ -152,6 +152,13 @@ written only when it applies; the kind a structure has turned into is the existi
 a story's `closeDoor` goes back to). A game without such structures saves exactly as before, and old saves load (a missing key = the kind's
 default). The data hash needs nothing: the structure, item, ability and map files are hashed whole.
 
+The four small extras (docs/EVENTS.md "Branching on who acted" and "Sending a unit's items to storage", docs/SRPG.md "Effects that fade" and "Linking two
+strike blocks") add **no save key**. `storeItems` only moves items, which a battle save holds already (the units' `items` and the side's `storage`) and a
+campaign save too (the roster's items, the carried storage), so a saved game keeps them gone from the pack and in the storage; a game that has none of it saves
+byte for byte as before. A fading condition (`"scale": "turnsLeft"`) is saved as every condition is, with its `left`; what it does to the numbers is worked out
+from `left` when the save is loaded (`scale` is a rule, so it counts for the data hash like the rest of `data/conditions.json`). A **mark** lives for one fight
+(one attack action) and is never saved: a save is made between actions. The `actor` is only known while an event runs; nothing is kept.
+
 Status conditions (docs/SRPG.md section 9) add one optional key, `conditions` (`[ { "condition": index, "left": turns } ]`, oldest first, `left` only
 for a counted condition), to a battle save's units, written only for a unit that has some and refused in a game without `data/conditions.json`. The
 data hash covers `data/conditions.json` only when it holds something (name, description and tag are cosmetic). Conditions are not part of a campaign

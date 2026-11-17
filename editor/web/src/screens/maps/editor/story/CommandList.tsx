@@ -11,6 +11,8 @@ import { Select, type OptionGroup } from '../../../../ui/Select'
 import { CommandForm } from './CommandForm'
 import { P } from './forms/placeText'
 import { MC } from './forms/mapChangeText'
+import { EX } from './forms/extrasText'
+import { storageMode } from '../../../../model/itemRules'
 import { changeIds } from '../../../../model/mapChanges'
 import { RowButtons } from '../../../../ui/RowButtons'
 import { useStory, type Story } from './StoryContext'
@@ -41,11 +43,12 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
   { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
+  { group: EX.group, kinds: ['storeItems'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
 const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
-  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate']
+  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate', 'storeItems']
 
 /** A door / chest command needs such a place with a story name on this map. */
 const placeWhy = (story: Story, kind: CommandKind): string | null => (placesForCommand(story.doc, story.map, kind).length > 0 ? null : P.noneYetShort)
@@ -75,6 +78,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     background: backgroundIds(doc).length ? null : 'no backgrounds yet',
     openDoor: placeWhy(story, 'openDoor'), closeDoor: placeWhy(story, 'closeDoor'), lockDoor: placeWhy(story, 'lockDoor'),
     unlockDoor: placeWhy(story, 'unlockDoor'), openChest: placeWhy(story, 'openChest'),
+    storeItems: storageMode(doc) === 'off' ? EX.noStorage : doc.items?.length ? null : 'no items yet',
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.

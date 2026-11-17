@@ -299,6 +299,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   }
   int hpA = units[a].hp, hpD = units[d].hp;
   fightStrikes_[0] = fightStrikes_[1] = 0;
+  fightMarks_.clear();  // marks live for one fight (skill_marks.cpp)
   // Who strikes when, how often, and whether the defender answers are fixed now; only the numbers of each strike
   // are worked out again when it is made.
   std::vector<StrikeStep> order;
@@ -340,6 +341,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
   // its flags as they were.
   srpgAfterCombat(a, d, hpA, hpD, events);
+  fightMarks_.clear();  // the afterCombat blocks were the last to ask
   if (units[a].alive) endOrder(a, true);
 }
 

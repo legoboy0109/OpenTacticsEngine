@@ -2,7 +2,7 @@
 // Only conditions the rule's "when" allows are offered (model/skillRules.ts), and a row that already has a refused one
 // stays so the maker can see and remove it.
 import { addCondition, newCondition, noConditionsWhy, offeredConditions, removeCondition, setCondition, setConditions } from '../../model/skillBlocks'
-import { FOEABLE, canJudgeFoe, condKindOf, condsFor, type CondKind, type When } from '../../model/skillRules'
+import { FOEABLE, canJudgeFoe, condKindOf, condsAt, type CondKind, type When } from '../../model/skillRules'
 
 import type { Extra, ProjectDoc } from '../../model/types'
 import { moveItem } from '../../model/util'
@@ -21,7 +21,7 @@ export function ConditionRows({ doc, block, setBlock }: Props) {
   const offered = offeredConditions(doc, block)
   const why = noConditionsWhy(doc, block)
   // The kinds listed in the add box; a kind the game cannot make yet is shown but disabled, with the reason.
-  const addOptions = condsFor(when, aura)
+  const addOptions = condsAt(when, aura)
     .map((k) => ({ value: k, label: offered.includes(k) ? T.condKinds[k] : `${T.condKinds[k]} (${T.condKindsNeed[k]})`, disabled: !offered.includes(k) }))
   const patch = (i: number, c: Extra, key?: string) => setBlock((b) => setCondition(b, i, c), key && `cond:${i}:${key}`)
 

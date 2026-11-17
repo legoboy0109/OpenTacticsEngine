@@ -97,7 +97,8 @@ const CondSpec kConds[] = {{"hp", SkillCond::Kind::Hp},           {"near", Skill
                            {"formula", SkillCond::Kind::Formula}, {"condition", SkillCond::Kind::Condition},
                            {"weaponKind", SkillCond::Kind::WeaponKind}, {"turn", SkillCond::Kind::Turn},
                            {"counterattack", SkillCond::Kind::Counterattack}, {"carries", SkillCond::Kind::Carries},
-                           {"inventory", SkillCond::Kind::Inventory}, {"strike", SkillCond::Kind::Strike}};
+                           {"inventory", SkillCond::Kind::Inventory}, {"strike", SkillCond::Kind::Strike},
+                           {"marked", SkillCond::Kind::Marked}};
 
 // "turn": { "odd": true } | { "even": true } | { "from": 3, "to": 6 } (either alone) | { "every": 3, "offset": 1 }: the battle's turn number
 // (the same number as "round"). Every k with offset j = the turns whose number divided by k leaves j (default 0).
@@ -155,7 +156,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
                        out.kind == SkillCond::Kind::Terrain || out.kind == SkillCond::Kind::Structure ||
                        out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying ||
                        out.kind == SkillCond::Kind::Condition || out.kind == SkillCond::Kind::WeaponKind ||
-                       out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory;
+                       out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory || out.kind == SkillCond::Kind::Marked;
   if (e.has("who")) {
     std::string who;
     if (!c.str(e, "who", where, who)) return false;
@@ -214,6 +215,15 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       db.strikeNoUsed = true;
       return true;
     }
+    case SkillCond::Kind::Marked:  // "name", with "is": false for the opposite (docs/SRPG.md "Linking two strike blocks")
+      if (!onlyKeys(c, e, {"marked", "is", "who"}, where)) return false;
+      if (!scope.marks)
+        return c.fail(where, "\"marked\" can only be asked in \"strike\", \"struck\", \"defeat\" and \"afterCombat\" blocks (marks live for one fight)");
+      if (!v.isString() || v.asString().empty() || v.asString().size() > 40)
+        return c.fail(where, "\"marked\" must be the name of a mark (1 to 40 characters), the name a \"mark\" effect sets");
+      out.key = v.asString();
+      db.marksUsed = true;
+      return c.boolean(e, "is", where, out.flag);
     case SkillCond::Kind::Carries:
       if (!onlyKeys(c, e, {"carries", "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"carries\" must be an item id");
@@ -315,7 +325,9 @@ const EffectSpec kEffects[] = {
     // Second set (docs/SRPG.md "Skill and ability blocks, second set").
     {"nullifySkills", K::NullifySkills, C}, {"staffRange", K::StaffRange, A}, {"carryBonus", K::CarryBonus, A}, {"vision", K::Vision, A},
     // Third set (docs/SRPG.md "Skill blocks, third set").
-    {"recoil", K::Recoil, S}};
+    {"recoil", K::Recoil, S},
+    // Linking two strike blocks (docs/SRPG.md): the block that takes effect leaves a mark for the owner's other blocks of this fight.
+    {"mark", K::Mark, S | R}};
 
 // An aura's effects go to other units: only plain numbers that a fighter can carry.
 bool auraKind(K k) {
@@ -610,6 +622,13 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     }
     return true;
   }
+  if (spec->kind == K::Mark) {
+    if (!v.isString() || v.asString().empty() || v.asString().size() > 40)
+      return c.fail(where, "\"mark\" must be the name of a mark (1 to 40 characters), which a \"marked\" condition of another block can ask");
+    out.names.push_back(v.asString());
+    db.marksUsed = true;
+    return true;
+  }
   if (spec->kind == K::Vision) {
     if (!LoadCtx::isWhole(v) || v.asInt() < -kMaxVisionBonus || v.asInt() > kMaxVisionBonus || v.asInt() == 0)
       return c.fail(where, "\"vision\" must be a whole number from -10 to 10, not 0 (added to the unit's vision in fog of war)");
@@ -722,6 +741,7 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     else {
       scope = {true, true, true, "here"};
       scope.strike = w == SkillWhen::Strike || w == SkillWhen::Struck;
+      scope.marks = scope.strike || w == SkillWhen::Defeat || w == SkillWhen::AfterCombat;
     }
     if (!readSkillConds(c, db, e["if"], where, scope, labelPrefix, out.conds)) return false;
   }

@@ -84,10 +84,11 @@ void Battle::staffRange(const Unit& u, int item, int& minRange, int& maxRange) c
 int Battle::staffRangeBonus(const Unit& u, const std::string& group) const {
   if (!db->staffRangeSkills) return 0;
   std::vector<const SkillEffect*> fx;
-  standingEffects(u, false, fx);
+  std::vector<int> scale;
+  standingEffects(u, false, fx, &scale);
   int sum = 0;
-  for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::StaffRange && (e->names.empty() || e->names[0] == group)) sum += e->value;
+  for (size_t i = 0; i < fx.size(); ++i)
+    if (fx[i]->kind == SkillEffect::Kind::StaffRange && (fx[i]->names.empty() || fx[i]->names[0] == group)) sum += fx[i]->value * (scale.empty() ? 1 : scale[i]);
   return sum;
 }
 

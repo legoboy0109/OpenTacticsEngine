@@ -124,7 +124,9 @@ struct SkillCond {
                     // Inventory: the number of items carried (`op`, `value`), or full / not full (`flag`, `value` = -1).
                     Counterattack, Carries, Inventory,
                     // Strike: which strike of the fight (strike / struck blocks; `op`, `value`; "first" = 1, "followUp" = 2 or more).
-                    Strike };
+                    Strike,
+                    // Marked: the owner (or its foe with "who") has the mark `key` in the fight now running; `flag` false = does not (docs/SRPG.md "Linking two strike blocks").
+                    Marked };
   enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
@@ -169,7 +171,9 @@ struct SkillEffect {
     // damage of the strike), else `value`; `instead`: the strike's damage goes to the wielder, not to the foe.
     // CancelEffective may now list effectiveness tags (`names`); empty = all.
     Recoil,
-    Vision  // standing (fog): `value` (-10..10) is added to the unit's vision (docs/ECONOMY.md "Fog of war")
+    Vision,  // standing (fog): `value` (-10..10) is added to the unit's vision (docs/ECONOMY.md "Fog of war")
+    // strike / struck blocks: when the block takes effect, the owner gets the mark `names[0]` until the fight (and its afterCombat blocks) is over.
+    Mark
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -357,6 +361,9 @@ struct ConditionDef {
   ConditionUntil until = ConditionUntil::Turns;
   int turns = 3;                     // Turns: the afflicted unit's own turns it lasts (1..99)
   int wearOff = 0;                   // percent chance each own turn that it ends early (0 = never)
+  // "scale": "turnsLeft" (docs/SRPG.md "Effects that fade"): the numbers of its "always" blocks (stats, growths, vision, staffRange,
+  // carryBonus) are multiplied by the turns it has left. Counted conditions only.
+  bool scale = false;
   bool endsWhenStruck = false;       // a strike that does damage to the unit ends it
   std::vector<std::string> replaceIds;
   std::vector<int> replaces;         // applying this removes these

@@ -35,7 +35,9 @@ struct Condition {
     // pair `index` compared (`op`) with `value`.
     HasSkill, Support,
     // docs/SRPG.md section 9: a living unit matching `filter` has status condition `index`.
-    HasCondition
+    HasCondition,
+    // docs/EVENTS.md "Branching on who acted": the unit that set this event off matches `filter` (false with no acting unit).
+    Actor
   };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
@@ -44,7 +46,7 @@ struct Condition {
   bool is = true;     // Switch
   CmpOp op = CmpOp::Eq;  // Variable, Round
   int value = 0;      // Variable, Round
-  UnitFilter filter;  // Alive, Dead, Carries, Sees
+  UnitFilter filter;  // Alive, Dead, Carries, Sees, Actor
 };
 
 // What a Place trigger waits for (and what a Place occurrence reports).
@@ -117,7 +119,9 @@ struct Command {
     // docs/EVENTS.md "Changing the map": SetTerrain gives the squares `rects` terrain `index`; ApplyChange / RevertChange apply / take back
     // the map's change `index` (MapDef::changes); SetFog switches fog of war on / off (`on`); SetVision sets the map's vision adjustment (`value`).
     SetTerrain, ApplyChange, RevertChange, SetFog, SetVision,
-    Scene  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
+    Scene,  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
+    // docs/EVENTS.md "Sending a unit's items to storage": every item except those in `keep` goes from each existing human-side unit matching `filter` to its side's storage.
+    StoreItems
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -140,6 +144,7 @@ struct Command {
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
+  std::vector<int> keep;                      // StoreItems: item indices that stay with the unit
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
   SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };

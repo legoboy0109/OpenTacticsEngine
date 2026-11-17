@@ -307,6 +307,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::RevertChange: storyRevertChange(c.index, events); break;
     case K::SetFog: storySetFog(c.on); break;
     case K::SetVision: storySetVision(c.value); break;
+    case K::StoreItems: storyStoreItems(c, events); break;  // story_extras.cpp
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
       Event f;

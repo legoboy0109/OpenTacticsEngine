@@ -106,7 +106,7 @@ accepted), `{ "alive": <filter> }` / `{ "dead": <filter> }`,
 `{ "carries": "salve", "unit": <filter> }` (`unit` default any),
 `{ "sees": <unit filter>, "team": "<team>" }` (fog of war, docs/ECONOMY.md; `team` is required: a team name or a side id
 for that side's team), `{ "hasCondition": "poison", "unit": <filter> }` (a status condition, docs/SRPG.md section 9; `unit` default any;
-map events only).
+map events only), `{ "actor": <unit filter> }` (the unit that set this event off, see "Branching on who acted" below; map events only).
 Refined: `alive` = some living unit matches; `dead` = a unit that matches
 exists (or existed, also when it was removed) and none is alive, so a unit
 that an event has not added yet is neither. `carries` = a living matching
@@ -130,6 +130,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
+| `{ "storeItems": <filter>, "keep": ["salve"] }` | sends every item a unit carries (except the kept ones) to the side's shared storage: see "Sending a unit's items to storage" below |
 | `{ "openDoor": "d1" }`, `{ "closeDoor": "d1" }`, `{ "lockDoor": "d1" }`, `{ "unlockDoor": "d1" }`, `{ "openChest": "c1", "by": "tink" }` | doors and chests by their map `id` (docs/SRPG.md section 10): open a shut door, shut an open one (skipped while a unit stands in it), shut-and-lock / lock a door, take the lock off a door or chest (it stays shut), open a chest (the contents go to `by`, else to the first human side's storage / funds) |
 | `{ "setBehaviour": "hold" \| { "mode": "seek", "unit": "lord" }, "units": <filter> }`, `{ "wakeGroup": "ambush" }` | the computer's per-unit behaviour (docs/AI.md "Story commands", map events only): give matching computer units a new behaviour block (a guard starts asleep again); wake every waiting unit of a group. `addUnit` takes the same `"behaviour"` key as a map unit. To make a unit escape, send it to a square (`seek`) and remove it with a `reach` event |
 | `{ "addCondition": "poison", "to": <filter>, "turns": 2 }` | gives a status condition to every matching living unit: see "Status conditions" below (map events only) |
@@ -218,6 +219,65 @@ Three uses (neutral names):
 { "id": "strip", "when": { "battle": "start" }, "do": [ { "takeItem": "healing_herb", "from": { "side": "blue" }, "all": true } ] }  // all of one item removed at battle start
 { "id": "return", "when": { "turn": 4 }, "do": [ { "giveItem": "healing_herb", "to": { "side": "blue" } } ] }     // ... given back later
 ```
+
+### Branching on who acted
+
+`{ "actor": <unit filter> }` is a condition (an event's `if`, the `if` of an `if` command, the `if` of a question's answer) that is true when **the
+unit that set the running event off** matches the filter. It uses the same unit filter as the triggers (`{ "unit": "eirik" }`, `{ "side": "blue" }`,
+`{ "team": … }`, `{ "type": … }`, `{ "tag": … }`, a bare id, `{}` = any unit). Which unit that is depends on the trigger:
+
+| Trigger | The actor |
+|---|---|
+| `reach` | the unit that ended its move in the area (a `moveUnit` counts too) |
+| `defeated` | the unit that fell (the killer is not an actor; use the trigger's own `by`) |
+| `fight` | the attacker (the one that chose to fight, whichever fighter your `fight` / `with` filters matched) |
+| `place` | the unit that opened, visited or destroyed it; nobody when a story command did |
+| `talk` | the unit that started the talk (the first unit named by the trigger) |
+| `promoted` | the unit that promoted |
+| `battle`, `turn`, `support` | nobody: `actor` is false, whatever the filter (even `{}`) |
+
+The trigger already filters who may start an event, so `actor` is for **branching inside one event**: one `reach` event for a whole area, an
+`if` / `else` command on who arrived. It is judged where the condition sits, at the moment the event runs (a queued event keeps its own actor).
+Recipe:
+
+```json
+{ "id": "gate", "when": { "reach": { "x": 3, "y": 0, "w": 1, "h": 3 } }, "repeat": true, "do": [
+  { "if": [ { "actor": { "unit": "eirik" } } ],
+    "then": [ { "say": "The lord arrives.", "speakerName": "Narrator" }, { "setSwitch": "lord_in", "to": true } ],
+    "else": [ { "say": "Somebody arrives.", "speakerName": "Narrator" } ] } ] }
+```
+
+A campaign scene has no acting unit: the scene loader refuses it (`"actor" is for map events only: a campaign scene has no unit that set it off`).
+Loader refusals are those of a unit filter (`unknown unit "x"`, `unknown side`, `unknown key`, a filter that is not an object or an id). Code:
+`battle/story_actor.cpp` (and `StoryRun::actor` in `story_state.h`), `data/loader_story_actor.cpp`; tests `tests/test_extras_actor.cpp`,
+`tests/srpg_player_extras_test.py`.
+
+### Sending a unit's items to storage
+
+`{ "storeItems": <unit filter>, "keep": ["oak_blade"] }` moves every item each matching unit carries to the shared storage of the unit's side (the
+storage the item menu and the preparation screen show, docs/ITEMS.md), except the items named in `keep` (optional; every copy of a kept item stays).
+It works in map events and in campaign scenes. The items arrive in the storage in the order the unit carried them; the event stream gets one
+`ItemMoved` entry (unit to storage) per item, like the Store action. Decisions:
+
+- **No storage in the game** (`rules.items.storage` is `off`): the **loader refuses** the command in an event and in a scene
+  (`"storeItems" needs a shared storage, and this game has none (game.json rules.items "storage" is "off"): turn the storage on, or leave this
+  command out`). Nothing is silently dropped.
+- **The storage is full:** it cannot be; the storage has no size limit in this engine, so nothing is ever refused for room.
+- **The weapon in hand** goes like every other item. With carried weapons the unit then fights with the next weapon it can wield, or unarmed
+  (docs/ITEMS.md "State": the equipped weapon is the first wieldable item still carried). Name the weapon in `keep` to keep it. An accessory that
+  raised the unit's maximum HP is gone with the rest: the unit's HP is clamped.
+- **Whose items:** a unit that exists on the map (a rescued unit too). Units of a **computer** side are left alone (their storage is not something a
+  story or a player ever reaches). A unit that carries nothing is left alone, silently. The drop mark (`drop`) is cleared.
+- **In a campaign scene** `"storeItems": "eirik"` names a roster id (as the scene's `takeItem` does; only the shape is checked, the character may join
+  later); the items leave the character's carried belongings and go to the campaign's carried storage of the chapter map's preparation side (the
+  `side` of its `prep` block, else its first human side), so the next chapter's battle starts with them in the storage. A character who is not in the roster, or
+  is gone, is left alone.
+- Saved naturally: the units' inventories and the side's storage are already part of a battle save, and the roster and the carried storage part of a
+  campaign save (docs/SAVES.md). A game that does not use the command saves, hashes and plays exactly as before.
+
+Loader refusals: no storage (above); an unknown unit or filter; an unknown item in `keep` (`"keep" names unknown item "x"`); `keep` that is not a list;
+an unknown key; in a scene a `storeItems` that is not a roster id. Code: `battle/story_store.cpp`, `campaign/scene_extras.cpp`,
+`data/loader_story_store.cpp`, `data/loader_campaign_extras.cpp`; tests `tests/test_extras_store.cpp`.
 
 ### Status conditions
 
@@ -899,6 +959,7 @@ behaviour for characters are specified in docs/SRPG.md (the "Story" part of each
 - **Campaign** screen: chapter list in order, each with its map and the
   scenes before and after.
 - Dialogue choices: the command **Ask a question** (docs/EDITOR_UI.md).
+- The condition **The unit that set this off** and the command **Send a unit's items to storage** (docs/EDITOR_UI.md "Small extras").
 - Problems: unknown ids, events that can never fire, a chapter without a
   map.
 

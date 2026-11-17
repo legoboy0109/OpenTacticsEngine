@@ -171,6 +171,7 @@ struct SceneRun {
           }
         }
         break;
+      case K::StoreItems: sceneStoreItems(db, pt, c); break;
       case K::GiveResource: {
         CarriedSide& s = pt.sideCarry(c.side, db.resources.size());
         for (const Amount& a : c.amounts) {

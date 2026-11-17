@@ -47,6 +47,8 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
   out.kind = Command::Kind::Scene;
   return r.command(e, key, at, out.fx);
 }
+// Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
+constexpr const char* kExtrasCommandKeys[] = {"storeItems"};
 
 }  // namespace
 
@@ -102,11 +104,20 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kExtrasCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   for (const char* k : kSceneCommandKeys)
     if (SceneFxReader::isCommandIn(e, k)) {
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  if (kind && std::string(kind) == "storeItems") {
+    out.kind = Command::Kind::StoreItems;
+    return storeItemsCommand(e, where + " (storeItems)", out);
+  }
   for (const char* k : kMapCommandKeys)
     if (kind && std::string(kind) == k) return mapChangeCommand(e, kind, where + " (" + kind + ")", out);
   for (const char* k : kBehaviourCommandKeys)

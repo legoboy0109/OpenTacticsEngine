@@ -55,6 +55,8 @@ export interface Condition extends Named {
   /** Percent chance (1 to 99) each own turn that it ends early. */
   wearOff?: number
   endsWhenStruck?: boolean
+  /** "turnsLeft": the numbers of its always rules (stats, growths, sight, staff reach, carrying) count as many times as it has turns left (docs/SRPG.md "Effects that fade"). */
+  scale?: 'turnsLeft'
   replaces?: string[]
   blocks?: Extra[]
 }

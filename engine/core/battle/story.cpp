@@ -94,7 +94,7 @@ bool Battle::setStartingStory(const std::vector<uint8_t>& switches, const std::v
 
 // ---- conditions ----
 
-bool Battle::conditionHolds(const Condition& c) const {
+bool Battle::conditionHolds(const Condition& c, int actor) const {
   switch (c.kind) {
     case Condition::Kind::Switch:
       return (storyState.switches[(size_t)c.index] != 0) == c.is;
@@ -133,13 +133,15 @@ bool Battle::conditionHolds(const Condition& c) const {
       return storySupportHolds(c);
     case Condition::Kind::HasCondition:
       return storyHasCondition(c);
+    case Condition::Kind::Actor:
+      return storyActorHolds(c, actor < -1 ? storyRun_.actor : actor);
   }
   return false;
 }
 
-bool Battle::conditionsHold(const std::vector<Condition>& list) const {
+bool Battle::conditionsHold(const std::vector<Condition>& list, int actor) const {
   for (const Condition& c : list)
-    if (!conditionHolds(c)) return false;
+    if (!conditionHolds(c, actor)) return false;
   return true;
 }
 
@@ -182,7 +184,7 @@ void Battle::fireStory(const StoryOccurrence& o, std::vector<Event>& events) {
     const StoryEvent& ev = story->events[i];
     if (ev.when.kind == Trigger::Kind::Talk) continue;  // only the Talk action starts these
     if (storyState.fired[i] && !ev.repeat) continue;
-    if (triggerMatches(ev.when, o)) storyRun_.queue.push_back({(int)i, -1});
+    if (triggerMatches(ev.when, o)) storyRun_.queue.push_back({(int)i, -1, storyActorOf(o)});
   }
   drainStory(events);
 }
@@ -201,7 +203,7 @@ void Battle::drainStory(std::vector<Event>& events) {
     if (storyState.fired[(size_t)q.event] && !ev.repeat) continue;  // queued twice in this go
     // Conditions are judged when the event is about to run, so earlier events count; one that
     // fails does not use up a non-repeating event.
-    if (!conditionsHold(ev.cond)) continue;
+    if (!conditionsHold(ev.cond, q.actor)) continue;
     if (run.ran >= kStoryChainLimit) {
       OTE_ERROR("story: more than %d events in one go; cut at event '%s' (an event that sets off itself?)",
                 kStoryChainLimit, ev.id.c_str());
@@ -210,8 +212,10 @@ void Battle::drainStory(std::vector<Event>& events) {
     ++run.ran;
     storyState.fired[(size_t)q.event] = 1;
     run.talker = q.talker;
+    run.actor = q.actor;
     runCommands(ev.commands, events);
     run.talker = -1;
+    run.actor = -1;
   }
   run.queue.clear();
   run.running = false;
@@ -232,7 +236,7 @@ void Battle::talkOptions(int unit, Cell from, std::vector<TalkOption>& out) cons
     int t = unitByStoryId(ev.when.talkee);
     if (t < 0 || !units[(size_t)t].alive || grid.distance(from, units[(size_t)t].cell) != 1) continue;
     if (!unitVisibleTo(teamOf(u), units[(size_t)t])) continue;  // fog: nobody to talk to that the team cannot see
-    if (!conditionsHold(ev.cond)) continue;
+    if (!conditionsHold(ev.cond, unit)) continue;
     TalkOption opt;
     opt.target = t;
     opt.event = (int)i;
@@ -246,7 +250,7 @@ void Battle::applyTalk(const Action& a, std::vector<Event>& events) {
   talkOptions(a.unit, units[(size_t)a.unit].cell, options);
   for (const TalkOption& o : options) {
     if (o.target != a.target || (a.slot >= 0 && a.slot != o.event)) continue;  // validated: one exists
-    storyRun_.queue.push_back({o.event, a.unit});
+    storyRun_.queue.push_back({o.event, a.unit, a.unit});
     drainStory(events);
     return;
   }

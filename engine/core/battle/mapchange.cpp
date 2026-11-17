@@ -204,10 +204,11 @@ void Battle::storySetVision(int amount) {
 int Battle::skillVision(const Unit& u) const {
   if (!db->visionSkills) return 0;
   std::vector<const SkillEffect*> fx;
-  standingEffects(u, false, fx);
+  std::vector<int> scale;
+  standingEffects(u, false, fx, &scale);
   int sum = 0;
-  for (const SkillEffect* e : fx)
-    if (e->kind == SkillEffect::Kind::Vision) sum += e->value;
+  for (size_t i = 0; i < fx.size(); ++i)
+    if (fx[i]->kind == SkillEffect::Kind::Vision) sum += fx[i]->value * (scale.empty() ? 1 : scale[i]);
   return sum;
 }
 

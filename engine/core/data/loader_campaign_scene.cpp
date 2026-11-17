@@ -16,6 +16,8 @@ constexpr const char* kSrpgSceneKeys[] = {"addSupport", "choice"};
 constexpr const char* kSrpgConditionKeys[] = {"support"};
 // Scene presentation (docs/EVENTS.md "Scene presentation"); "weather" is listed so that a scene says why it cannot use it.
 constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
+// Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_campaign_extras.cpp.
+constexpr const char* kExtrasSceneKeys[] = {"storeItems"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -46,6 +48,8 @@ bool CampaignLoader::condition(const Json& e, const std::string& where, SceneCon
     }
   if (!kind && e.has("hasCondition"))
     return fail(where, "\"hasCondition\" is for map events only: status conditions end when the map ends, so a campaign scene cannot ask about one");
+  if (!kind && e.has("actor"))
+    return fail(where, "\"actor\" is for map events only: a campaign scene has no unit that set it off");
   if (!kind) return fail(where, "is not a condition: a scene condition is one of switch, variable, alive, dead");
   std::string k = kind;
   const Json& v = e[kind];
@@ -94,6 +98,11 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kExtrasSceneKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   // Status conditions end with the map (docs/SRPG.md section 9): a scene says so in its own words.
   for (const char* k : {"addCondition", "removeCondition"})
     if (!kind && e.has(k))
@@ -123,6 +132,7 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       return r.sayExtras(e, at, out.fx);
     }
   if (k == "addSupport") return supportCommand(e, at, out);
+  if (k == "storeItems") return storeItemsCommand(e, at, out);
   if (k == "choice") {
     out.kind = K::Choice;
     return choiceCommand(e, at, allowGoto, out);

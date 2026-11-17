@@ -47,6 +47,7 @@ from editor_api_behaviour_checks import run_behaviour_checks
 from editor_api_prep_checks import run_prep_checks
 from editor_api_quotes_checks import run_quotes_checks
 from editor_api_rename_checks import run_rename_checks
+from editor_api_extras_checks import run_extras_checks
 
 PASSED = 0
 FAILED = 0
@@ -190,6 +191,7 @@ def main():
         run_quotes_checks(api, tmp, games, templates, check, get_project, put_project)
         run_rename_checks(api, tmp, games, templates, check, get_project, put_project)
         run_prep_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_extras_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
         st, doc = api.json("GET", "/api/info")

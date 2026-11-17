@@ -71,9 +71,11 @@ export interface Condition extends Extra {
   team?: string
   /** The support level of a pair of characters compared with `value` (`op`, default >=); docs/SRPG.md "Supports". */
   support?: [string, string]
+  /** The unit that set the running event off matches this filter (docs/EVENTS.md "Branching on who acted"). Map events only. */
+  actor?: Filter
 }
-export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition'
-export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition']
+export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill' | 'hasCondition' | 'actor'
+export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill', 'hasCondition', 'actor']
 
 /** One answer of a `choice` command: its words, an optional hiding condition list and the commands it runs (docs/EVENTS.md "Dialogue choices"). */
 export interface ChoiceAnswer extends Extra {
@@ -188,6 +190,9 @@ export interface Command extends Extra {
   setFog?: boolean
   setVision?: number
   wait?: number | boolean
+  /** docs/EVENTS.md "Sending a unit's items to storage": the units (a roster id in a scene) whose items go to the shared storage, and the items that stay. */
+  storeItems?: Filter | string
+  keep?: string[]
   // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
 export type CommandKind =
@@ -197,6 +202,7 @@ export type CommandKind =
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
   | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate'
+  | 'storeItems'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
@@ -204,7 +210,8 @@ export const COMMAND_KINDS: CommandKind[] = [
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
   'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',
-  // Scene presentation (appended: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
+  'storeItems',
+  // Scene presentation (kept LAST: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
   'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate',
 ]
 /** The scene presentation commands (the "Scene" group of the command picker). `weather` is for map events only. */

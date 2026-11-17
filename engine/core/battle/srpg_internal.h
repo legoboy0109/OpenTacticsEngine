@@ -185,7 +185,10 @@ std::vector<std::pair<int, int>> lostCarried_;
 // ---- skills, step K1 (skills.cpp, skill_standing.cpp) ----
 // The effects of the unit's "always" blocks whose conditions hold, in skill-list order. `unconditionedOnly` looks only
 // at blocks without conditions: what the HP stat asks, so that judging an `hp` condition never asks for itself.
-void standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out) const;
+// `scales` (optional): one number per effect, what its plain amount is multiplied by (1 unless a fading condition's block, below).
+void standingEffects(const Unit& u, bool unconditionedOnly, std::vector<const SkillEffect*>& out, std::vector<int>* scales = nullptr) const;
+// The turns left of the unit's scaling condition whose hidden skill is `skill`; 1 for any other skill (skill_standing.cpp).
+int conditionScale(const Unit& u, int skill) const;
 int skillGrowthBonus(const Unit& u, int stat) const;  // the "growths" effects of its skills, in % points
 int moveCostCap(const Unit& u) const;                 // the lowest "maxMoveCost" it has, 0 = none
 bool passesEnemies(const Unit& u) const;              // has "pass": enemies
@@ -337,3 +340,18 @@ bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& 
 bool stealRoomOk(const Unit& u, std::string* why) const;
 // Carries out steal / refresh / cure (events after AbilityUsed); `slot` = the foe's item slot for a steal.
 void applyAbilityEffect(const AbilityDef& d, int uid, int target, int slot, std::vector<Event>& events);
+// ---- marks of a fight (skill_marks.cpp; docs/SRPG.md "Linking two strike blocks"): transient, cleared when the fight is over. `mutable`:
+// the real fight's strike blocks set them from inside the same const gathering code the forecast uses. ----
+mutable std::vector<std::pair<int, std::string>> fightMarks_;
+bool markSet(int unit, const std::string& name) const;
+void setMark(int unit, const std::string& name) const;
+// Does the block ask about marks (forecasts then leave it out: whether the block that sets the mark fires is a roll)?
+static bool blockReadsMarks(const SkillBlock& b);
+// ---- the story's `actor` condition (story_actor.cpp; docs/EVENTS.md "Branching on who acted") ----
+// The unit an occurrence is "about" (the mover, the fallen, the attacker, the opener, the promoted...), -1 for turn and battle events.
+int storyActorOf(const StoryOccurrence& o) const;
+// The `actor` condition: the unit `actor` (-1 = nobody, then false) matches the filter.
+bool storyActorHolds(const Condition& c, int actor) const;
+// ---- storeItems (story_store.cpp; docs/EVENTS.md "Sending a unit's items to storage") ----
+// Every item but the kept ones goes from each matching existing human-side unit to its side's storage.
+void storyStoreItems(const Command& c, std::vector<Event>& events);
