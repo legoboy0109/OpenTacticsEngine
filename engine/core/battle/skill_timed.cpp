@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "core/battle/combat_mods.h"
+#include "core/script/formulas.h"
 
 namespace ote {
 
@@ -23,10 +24,24 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
   if (block.hasChance && !rollActivation(rng, skillChance(block, ctx))) return;
   const Unit& me = units[(size_t)owner];
   std::vector<Event> fx;  // what the effects did; the SkillActivated event goes in front of it
+  std::vector<int> deaths;  // units a "hurt" with "canKill" brought to 0 HP: they fall after the events so far (killUnit pushes UnitDied)
   bool changed = false;
-  auto heal = [&](int target, int amount, bool percent) {
+  // The amount of a heal / hurt for one receiver: a number, a percent of its maximum (at least 1), or a formula (a = the receiver).
+  auto amountOf = [&](int target, const SkillEffect& e) -> int {
+    const Unit& t = units[(size_t)target];
+    if (e.percent) return std::max(1, (int)((long long)maxHp(t) * e.value / 100));
+    if (e.expr < 0) return e.value;
+    FormulaCtx fc;
+    fc.sides = &sides;
+    fc.battle = this;
+    fc.a = &t;
+    Props scratch;
+    if (t.cell != kNoCell) fc.ta = &numbersAt(t.cell, scratch);
+    const double v = formulas ? formulas->evalExpr(e.expr, fc, 0) : 0;
+    return !(v > 0) ? 0 : v >= 1000000 ? 1000000 : (int)v;
+  };
+  auto heal = [&](int target, int amount) {
     Unit& t = units[(size_t)target];
-    if (percent) amount = std::max(1, (int)((long long)maxHp(t) * amount / 100));
     const int gain = std::min(amount, maxHp(t) - t.hp);
     if (gain <= 0) return;
     t.hp += gain;
@@ -37,9 +52,9 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
     fx.push_back(e);
     changed = true;
   };
-  auto hurt = [&](int target, int amount) {
+  auto hurt = [&](int target, int amount, bool kill) {
     Unit& t = units[(size_t)target];
-    const int loss = std::min(amount, t.hp - 1);  // never below 1
+    const int loss = std::min(amount, kill ? t.hp : t.hp - 1);  // never below 1, unless the effect may defeat
     if (loss <= 0) return;
     t.hp -= loss;
     Event e;
@@ -49,6 +64,7 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
     e.c = owner;
     fx.push_back(e);
     changed = true;
+    if (t.hp <= 0) deaths.push_back(target);
   };
   // Units of the owner's team (allies) or the enemies its team sees, within `within` steps of the owner.
   auto near = [&](bool enemies, int within, std::vector<int>& out) {
@@ -65,16 +81,18 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
     if (e.kind == K::Heal) {
       if (e.to == SkillEffect::To::Allies) {
         near(false, e.within, receivers);
-        for (int r : receivers) heal(r, e.value, e.percent);
+        for (int r : receivers) heal(r, amountOf(r, e));
       } else {
-        heal(owner, e.value, e.percent);
+        heal(owner, amountOf(owner, e));
       }
     } else if (e.kind == K::Hurt) {
       if (e.to == SkillEffect::To::Foe) {
-        if (foe >= 0 && units[(size_t)foe].alive) hurt(foe, e.value);
+        if (foe >= 0 && units[(size_t)foe].alive) hurt(foe, amountOf(foe, e), e.kill);
+      } else if (e.to == SkillEffect::To::Self) {
+        if (units[(size_t)owner].alive) hurt(owner, amountOf(owner, e), e.kill);  // a condition's damage over time
       } else {
         near(true, e.within, receivers);
-        for (int r : receivers) hurt(r, e.value);
+        for (int r : receivers) hurt(r, amountOf(r, e), e.kill);
       }
     } else if (e.kind == K::ActAgain) {
       // Only on its own side's turn, once a turn. Its flags are cleared now; endOrder (which a combat ends with)
@@ -96,6 +114,12 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
   a.c = foe;
   events.push_back(a);
   events.insert(events.end(), fx.begin(), fx.end());
+  // Defeated by the effect itself: a normal death (UnitDied, summons, rescue). The story and the win checks wait until the
+  // blocks of the whole turn start have run (conditionsSettleDeaths), because they may add units or end the battle.
+  for (int id : deaths) {
+    killUnit(id, events);
+    condDeaths_.push_back(id);
+  }
 }
 
 // The start of the active side's turn: its units in id order, each one's blocks in skill-list order.
@@ -111,7 +135,7 @@ void Battle::skillsTurnStart(std::vector<Event>& events) {
     ctx.weapon = restingWeapon(u);
     for (int s : list)
       for (const SkillBlock& b : db->skills[(size_t)s].blocks)
-        if (b.when == SkillWhen::TurnStart && skillBlockHolds(b, ctx)) runTimedBlock(u.id, -1, s, b, ctx, events);
+        if (units[i].alive && b.when == SkillWhen::TurnStart && skillBlockHolds(b, ctx)) runTimedBlock(u.id, -1, s, b, ctx, events);
   }
 }
 

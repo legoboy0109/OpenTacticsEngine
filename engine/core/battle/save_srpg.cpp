@@ -10,11 +10,12 @@ void writeUnitSrpg(const Battle& b, const Unit& u, Json& j) {
   writeUnitAbilities(b, u, j);
   writeUnitRescue(b, u, j);
   writeRankXp(*b.db, u.weaponXp, j);
+  writeUnitConditions(b, u, j);
 }
 
 bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u) {
   return readUnitSkills(rd, b, j, where, u) && readUnitAbilities(rd, b, j, where, u) && readUnitRescue(rd, b, j, where, u) &&
-         readRankXp(rd, *b.db, j, where, u.weaponXp);
+         readRankXp(rd, *b.db, j, where, u.weaponXp) && readUnitConditions(rd, b, j, where, u);
 }
 
 bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }

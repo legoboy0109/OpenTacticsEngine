@@ -35,10 +35,19 @@ void Battle::endOrder(int unit) {
 void Battle::srpgTurnStart(std::vector<Event>& events) {
   abilitiesTurnStart(events);  // waits and lifetimes first: a summon whose time is up leaves before anything heals it
   promotionTurnStart(events);  // then promotions, so a promoted unit's new skills count below
+  conditionsTurnStart(events);  // wear-off rolls and the count-down, before the blocks of the conditions that stay run (docs/SRPG.md section 9)
   skillsTurnStart(events);
+  if (db->conditions.empty()) return;
+  conditionsSettleDeaths(events);  // a tick that defeated a unit: its story events and the win checks
+  if (over) return;
+  conditionsPrevent(events);  // a unit that cannot act is finished for the turn
+  conditionsAct(events);      // berserk units take their own action
 }
 
-void Battle::srpgTurnEnd(std::vector<Event>& events) { supportsTurnEnd(events); }
+void Battle::srpgTurnEnd(std::vector<Event>& events) {
+  supportsTurnEnd(events);
+  conditionsTurnEnd(events);  // a condition whose last turn this was wears off
+}
 
 void Battle::srpgUnitGone(int unit, int by, std::vector<Event>& events) {
   if (db->abilities.empty() && db->rules.rescue.mode == RescueMode::Off) return;

@@ -54,6 +54,9 @@ struct StrikeMods {
   int drain = 0;             // the striker heals this percent of the damage dealt (several add up)
   bool strikeAgain = false;  // one more strike straight after this one (ignored on that extra strike)
   bool survive = false;      // a strike that would defeat the struck unit leaves it at 1 HP if it had more
+  // Conditions (docs/SRPG.md section 9): "inflict" effects of the activated blocks. `onStruck` goes to the unit this strike hits (the
+  // striker's "strike" blocks), `onStriker` to the striker (the struck unit's "struck" blocks); both only when the strike hits.
+  std::vector<const SkillEffect*> inflictOnStruck, inflictOnStriker;
 };
 
 // The most damage a single strike can do; also keeps the percent arithmetic far from overflowing.

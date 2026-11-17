@@ -66,7 +66,7 @@ int Battle::counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell a
   for (size_t i = 0; i < list.size(); ++i) {
     int w = list[i];
     if (!def.ammo.empty() && i < def.ammo.size() && def.ammo[i] == 0) continue;  // out of ammunition: the next weapon answers
-    if (!db->weapons[w].counter || !versusValue(w, atk, vs)) continue;
+    if (!db->weapons[w].counter || !versusValue(w, atk, vs) || weaponForbidden(def, w, nullptr)) continue;
     if (weaponInRange(w, dist)) return w;
     if (any < 0) any = w;
   }
@@ -87,7 +87,13 @@ void Battle::setUpCombat(int attacker, int defender, int weapon, Cell from, Comb
   setup.weaponD = counterWeapon(d, d.cell, a, from);
   combatMods(setup, modsA, modsD);
   setup.counters = db->rules.counterAttacks && setup.weaponD >= 0 && !modsA.noCounter &&
-                   (modsD.counterAnyRange || weaponInRange(setup.weaponD, grid.distance(d.cell, from)));
+                   (modsD.counterAnyRange || weaponInRange(setup.weaponD, grid.distance(d.cell, from))) &&
+                   mayCounterWhileStopped(d);  // a unit that cannot act answers nothing unless its condition says it may
+}
+
+void Battle::noDodge(const CombatSetup& setup, bool counter, StrikeForecast& f) const {
+  const Unit& target = units[(size_t)(counter ? setup.attacker : setup.defender)];
+  if (!target.conditions.empty() && !mayDodgeWhileStopped(target)) f.hit = 100;
 }
 
 bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const CombatMods& own, const CombatMods& foe,
@@ -130,6 +136,7 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   out.damage = applyPercents(damage, foe.damageTakenPercent);
   int hit = formulas->has(Formulas::Hit) ? wholeNumber(formulas->eval(Formulas::Hit, ctx, 100)) : 100;
   out.hit = clampInt(hit + own.hit - foe.avoid, 0, 100);
+  noDodge(setup, counter, out);
   int crit = formulas->has(Formulas::Crit) ? wholeNumber(formulas->eval(Formulas::Crit, ctx, 0)) : 0;
   out.crit = clampInt(crit + own.crit - foe.critAvoid, 0, 100);
   int strikes = formulas->has(Formulas::Strikes) ? wholeNumber(formulas->eval(Formulas::Strikes, ctx, 1)) : 1;

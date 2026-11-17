@@ -84,6 +84,8 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
       if (ca == kNoCell || cb == kNoCell) return false;
       return cmp(cond.op, grid.distance(ca, cb), cond.value);
     }
+    case Kind::Condition:
+      return hasCondition(u, db->findCondition(cond.key));
     case Kind::Formula: {
       if (!formulas || ctx.unit < 0 || ctx.unit >= (int)units.size()) return false;
       // a = the owner, b = the foe (nil without one), the usual seven variables (docs/SRPG.md "Formulas").

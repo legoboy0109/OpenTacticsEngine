@@ -267,3 +267,36 @@ double staffEval(int expr, const Unit& user, const Unit* target, const StaffDef&
 int staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffect& fx, const Unit& t, Cell from) const;
 // Adds weapon experience in `group` (never above the top rank's); the rank before and after.
 void addRankXp(Unit& u, int group, int amount, int& before, int& after) const;
+
+// ---- conditions (conditions.cpp; docs/SRPG.md section 9) ----
+// Puts the condition on the unit (replaces first, refresh when it has it), the events; false with `resisted` when the unit is immune
+// (ConditionResisted). `source` = the unit that did it (-1 = none).
+bool inflictCondition(int unit, int condition, int turns, int source, std::vector<Event>& events, bool* resisted = nullptr);
+// Removes the listed conditions ("all" = every one); returns how many went. `reason` is the ConditionEnded `c`.
+int cureConditions(int unit, const std::vector<int>& ids, bool all, int reason, std::vector<Event>& events);
+// The unit's own conditions as hidden skills, in the order applied (skillsOf appends them after the skills it has).
+void conditionSkills(const Unit& u, std::vector<int>& out) const;
+// The start of a turn (turn.cpp / srpg_hooks.cpp), in this order: wear-off rolls and the count-down (conditionsTurnStart), then the
+// "turnStart" blocks run with the skills' (skill_timed.cpp), then conditionsPrevent marks units that cannot act as done, then
+// conditionsAct lets berserk units take their own action. conditionsTurnEnd: the end of the side's turn, a condition whose last turn it was goes.
+void conditionsTurnStart(std::vector<Event>& events);
+void conditionsPrevent(std::vector<Event>& events);
+void conditionsAct(std::vector<Event>& events);
+void conditionsTurnEnd(std::vector<Event>& events);
+// Units a tick (a "hurt" that may kill) defeated while the blocks were still running: their story events and the win checks follow.
+void conditionsSettleDeaths(std::vector<Event>& events);
+// A strike that did damage ends the conditions marked "endsWhenStruck".
+void conditionsStruck(int unit, std::vector<Event>& events);
+// A berserk unit's choice (conditions_berserk.cpp): the square to stand on and the target, or only a square to walk to. False = nothing to do.
+struct BerserkPlan {
+  Cell moveTo = kNoCell;  // kNoCell = stays
+  int target = -1;        // -1 = nobody to hit this turn
+  int weapon = -1;
+};
+bool berserkPlan(const Unit& u, BerserkPlan& out) const;
+// May `a` fight `d`: normally an enemy, but a berserk attacker fights anyone.
+bool mayFight(const Unit& a, const Unit& d) const;
+std::vector<int> condDeaths_;  // see conditionsSettleDeaths
+bool stoppedMay(const Unit& u, bool counter) const;
+// A defender that cannot dodge is always hit: the strike's hit chance becomes 100 (combat_mods.cpp).
+void noDodge(const CombatSetup& setup, bool counter, StrikeForecast& f) const;

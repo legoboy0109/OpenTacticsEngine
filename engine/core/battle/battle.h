@@ -93,13 +93,25 @@ enum class EventType {
   // d=uses it has now / a=user, b=the square lit, c=radius, d=turns.
   ItemRepaired,
   AreaLit,
+  // Conditions (docs/SRPG.md section 9). "condition" is an index into db->conditions.
+  // a=unit, b=condition, c=own turns it lasts (-1 = until cured / the map ends), d=the unit that did it (-1 = none), flags=kRefreshed
+  ConditionApplied,
+  // a=unit, b=condition, c=why: kConditionRanOut, kConditionWoreOff (early), kConditionCured, kConditionReplaced, kConditionStruck
+  ConditionEnded,
+  // a=unit that is immune, b=condition, c=the unit that tried
+  ConditionResisted,
+  // a=unit, b=condition, c=what: kTickActsAlone (berserk, its own action follows), kTickCannotAct (its turn is skipped)
+  ConditionTick,
 };
 
 enum : int {
   kHit = 1, kCrit = 2, kKill = 4, kCounter = 8, kDropped = 16, kBought = 32,
   // docs/SRPG.md: Attack may carry kSurvived; the others belong to the new entries above.
-  kSurvived = 64, kBlocked = 128, kPaired = 256, kForced = 512, kReady = 1024
+  kSurvived = 64, kBlocked = 128, kPaired = 256, kForced = 512, kReady = 1024,
+  kRefreshed = 2048  // ConditionApplied: the unit had it already, its duration starts over
 };
+enum : int { kConditionRanOut = 0, kConditionWoreOff = 1, kConditionCured = 2, kConditionReplaced = 3, kConditionStruck = 4 };
+enum : int { kTickActsAlone = 1, kTickCannotAct = 2 };
 
 // Bit `t` of Event::seen = team `t` saw the event (docs/ECONOMY.md "Fog of war"). Without fog every event has all bits.
 const uint32_t kSeenByAll = 0xffffffffu;
@@ -162,6 +174,8 @@ struct Unit {
   bool refreshed = false;  // "act again" has been used this turn
   // Weapon ranks (docs/SRPG.md section 7): weapon experience per RankRules::groups index; empty in a game without ranks.
   std::vector<int> weaponXp;
+  // Conditions (docs/SRPG.md section 9), in the order they were applied; empty in a game without conditions.
+  std::vector<ConditionState> conditions;
 };
 
 struct CellState {

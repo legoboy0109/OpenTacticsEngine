@@ -65,7 +65,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
     return false;
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
-  if (!a.alive || !d.alive || !isEnemy(a, d) || !unitVisibleTo(teamOf(a), d)) return false;  // fog: not what it cannot see
+  if (!a.alive || !d.alive || !mayFight(a, d) || !unitVisibleTo(teamOf(a), d)) return false;  // fog: not what it cannot see
   std::vector<int> owned;
   weaponsOf(a, owned);
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
@@ -88,6 +88,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
     strikePassives(setup, counter, strike);
     if (testMods && testMods->passive) testMods->passive(*this, setup, counter, strike);
     foldStrikeMods(strike, numbers);
+    noDodge(setup, counter, numbers);
     numbers.damage = applyPercents(applyPercents(numbers.damage, strike.damagePercent), strike.damageTakenPercent);
   }
   forecastNotes(setup, out.notes);
@@ -118,6 +119,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   strikeActivations(setup, counter, strike, strikeEvents, struckEvents);
   if (testMods && testMods->strike) testMods->strike(*this, setup, counter, strike, strikeEvents, struckEvents);
   foldStrikeMods(strike, f);
+  noDodge(setup, counter, f);
 
   Event e;
   e.type = EventType::Attack;
@@ -163,6 +165,16 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       h.b = heal;
       events.push_back(h);
     }
+  }
+  // 6b. Conditions (docs/SRPG.md section 9), only on a hit: a unit struck loses the conditions that end when it is struck, then
+  // the "inflict" effects of the strike's activated blocks take hold (in that order, so a strike that wakes a sleeper can also
+  // put it back to sleep): the striker's on the unit struck, the struck unit's on the striker.
+  if (hit && db->conditions.size()) {
+    if (e.d > 0) conditionsStruck(def, events);
+    for (const SkillEffect* fx : strike.inflictOnStruck)
+      if (units[def].alive) inflictCondition(def, fx->conds[0], fx->turns, atk, events);
+    for (const SkillEffect* fx : strike.inflictOnStriker)
+      if (units[atk].alive) inflictCondition(atk, fx->conds[0], fx->turns, def, events);
   }
   // 7. Wear, drops, defeat.
   if (slot >= 0) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
@@ -267,6 +279,7 @@ void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
   u.alive = false;
   u.hp = 0;
   u.cell = kNoCell;
+  u.conditions.clear();  // a defeated unit has none (docs/SRPG.md section 9)
   if (u.leader) sides[u.side].leaderLost = true;
   // Last, and `u` is not used after it: its summons vanish, a unit it carried is put down (docs/SRPG.md).
   srpgUnitGone(unit, killer, events);

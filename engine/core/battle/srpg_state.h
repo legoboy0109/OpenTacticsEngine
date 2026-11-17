@@ -111,6 +111,10 @@ struct StaffHit {
   // before and after; -1 when no item is chosen yet (or nothing to repair).
   Cell moveTo = kNoCell, userTo = kNoCell;
   int repairItem = -1, usesBefore = -1, usesAfter = -1;
+  // Stage 3 (conditions, docs/SRPG.md section 9): the condition the staff would put on the unit (-1 = none, or it would not take hold:
+  // the unit is immune or has it already) with the own turns it would last (-1 = no count), and the conditions it would remove.
+  int inflict = -1, inflictTurns = -1;
+  std::vector<int> cures;
 };
 // A forecast of one use (Battle::staffForecast): no randomness is consumed.
 struct StaffForecast {
@@ -142,5 +146,20 @@ struct LightArea {
   int radius = 0;
   int turns = 1;
 };
+
+}  // namespace ote
+
+namespace ote {
+
+// ---- conditions (docs/SRPG.md section 9) ----
+// A condition a unit has. `left` = the unit's own turns it still lasts, counted down at the start of each of its side's turns
+// (the turn in which it reaches 0 is the last one; it wears off when that turn ends); -1 = until cured / the map ends.
+struct ConditionState {
+  int condition = -1;  // index into db->conditions
+  int left = -1;
+};
+
+// What a standing condition effect does (Battle::conditionBlock).
+enum class ConditionBlock { Act, Move, Berserk };
 
 }  // namespace ote

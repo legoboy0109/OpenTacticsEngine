@@ -35,6 +35,14 @@ bool Battle::canWieldStaff(const Unit& u, int item, std::string* why) const {
     if (why) *why = "the unit cannot wield that";
     return false;
   }
+  if (!u.conditions.empty()) {  // "silence": a condition that forbids this group or staves at all (docs/SRPG.md section 9)
+    int c = conditionForbidsGroup(u, s->gear.group);
+    if (c < 0) c = conditionForbidsKind(u, ItemKind::Staff);
+    if (c >= 0) {
+      if (why) *why = db->conditions[(size_t)c].name + " stops that";
+      return false;
+    }
+  }
   if (!meetsLockFor(u, s->gear, why)) return false;
   return meetsRankFor(u, s->gear, why);
 }
@@ -250,6 +258,14 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
       h.hpAfter = std::min(maxHp(t), h.hpAfter + give);
     }
     h.amount = h.hpAfter - h.hpBefore;
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Cure))
+      for (const ConditionState& cs : t.conditions)
+        if (fx->cureAll || std::find(fx->conds.begin(), fx->conds.end(), cs.condition) != fx->conds.end()) h.cures.push_back(cs.condition);
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Inflict))
+      if (inflictWhy(t, fx->conds[0], fx->turns) == 0) {
+        h.inflict = fx->conds[0];
+        h.inflictTurns = conditionDuration(fx->conds[0], fx->turns);
+      }
     if (d.has(StaffEffect::Kind::Pull)) h.moveTo = staffPullCell(unit, id, from);
     if (d.has(StaffEffect::Kind::Swap)) {
       h.moveTo = from;

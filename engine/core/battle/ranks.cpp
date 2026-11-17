@@ -36,11 +36,22 @@ bool Battle::meetsRankFor(const Unit& u, const WeaponDef& w, std::string* why) c
   return false;
 }
 
+// A condition that forbids this weapon's group (or weapons at all): "silence" (docs/SRPG.md section 9).
+bool Battle::weaponForbidden(const Unit& u, int weapon, std::string* why) const {
+  if (u.conditions.empty() || weapon < 0 || (size_t)weapon >= db->weapons.size()) return false;
+  int c = conditionForbidsGroup(u, db->weapons[(size_t)weapon].group);
+  if (c < 0) c = conditionForbidsKind(u, ItemKind::Weapon);
+  if (c < 0) return false;
+  if (why) *why = db->conditions[(size_t)c].name + " stops that";
+  return true;
+}
+
 bool Battle::canWieldNow(const Unit& u, int weapon, std::string* why) const {
   if (!db->canWield(u.type, weapon, u.character)) {
     if (why) *why = "the unit cannot wield that";
     return false;
   }
+  if (weaponForbidden(u, weapon, why)) return false;
   if (!meetsCharacterLock(u, weapon, why)) return false;
   return meetsRank(u, weapon, why);
 }

@@ -207,6 +207,11 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
         }
       }
     }
+    // Conditions (docs/SRPG.md section 9): after heal and repair, before the move; a cure first, then an inflict (so "cure all and
+    // inflict X" ends with X). An inflict that would change nothing (the unit has it for as long already) is skipped.
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Cure)) cureConditions(id, fx->conds, fx->cureAll, kConditionCured, events);
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Inflict))
+      if (inflictWhy(t, fx->conds[0], fx->turns) != 2) inflictCondition(id, fx->conds[0], fx->turns, uid, events);
     moves = true;
   }
   if (moves) doAbilityMoves(plan, events);  // a miss leaves `moves` false for the one unit: nothing moves
