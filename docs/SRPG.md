@@ -1318,6 +1318,9 @@ bool playSupport(const Database& db, Playthrough& pt, int pair, std::vector<Scen
 
   The player offers the camp whenever the playthrough is in phase `Before` of a chapter other than the first and
   `pendingSupports` is not empty, before running the chapter's before scene. No new phase exists.
+- **Parties** (docs/EVENTS.md "Parties"): a pair's points and level are **global** (one entry per pair, whichever party the characters are in). The camp only offers a
+  conversation when both characters are in the ACTIVE party's roster, so pairs split across parties do not meet; the points stay and carry on after a merge. A battle only
+  places the characters its map has, so a pair with a character the active party does not have gains nothing there.
 
 ### Saves and hash
 

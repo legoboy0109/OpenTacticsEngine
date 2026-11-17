@@ -1130,6 +1130,28 @@ version of this game"; greyed, never deleted, saves made later are fine). Save r
 Tests: unit `tests/unit/characterRename.test.ts` (the fixture renamed equals a text replacement of the id, nothing keeps the old one, one Undo, refusals), API `tests/editor_api_rename_checks.py`
 (the real loader accepts the game and its renamed twin), e2e `tests/e2e/character-rename.spec.ts` (desktop and 360 px).
 
+## Campaign parties (docs/EVENTS.md "Parties")
+
+All wording is placeholder (`screens/campaign/text.ts`, `screens/maps/editor/story/forms/partyText.ts`). No helper (API) change: `parties`, a chapter's
+`party` and the two commands pass through like every other key of `data/campaign.json`, and the real loader says what it refuses (`tests/editor_api_parties_checks.py`).
+The model is `model/parties.ts` (editing, the static walk of the chapters in list order, the hints), tests `tests/unit/parties.test.ts` and `tests/e2e/parties.spec.ts` (desktop and 360 px).
+
+- **"The parties" card** (list view, under the story / flow cards): one row per party with its name (an empty name shows the id; the id is made when the party is added and
+  never changes, so renaming is safe), up / down buttons (the first row is the starting party and says so) and a delete button. Deleting asks first and lists what goes with the
+  party (`campaignUsagesOf`): a switch to it goes, a merge loses it (a merge with nothing left, or into it, goes), a chapter that started it no longer does; all in the same undo step (`deleteParty`).
+  The list is written only while it has a party; deleting the last one removes the key.
+- **Chapter form**: "Starts with party" (only while the campaign has parties, or the chapter already names one): "Keep the current party" or one of the parties.
+- **Command picker**: group **Party** with "Switch to another party" (one party to pick) and "Merge parties" (tick the parties to merge, pick the one they go into; it starts on the
+  second party into the first). Offered in a campaign's chapter scenes only (not in a map's events, not in a support conversation); greyed with "(no parties yet)" until the campaign has
+  parties (two for a merge). Sentences: "Switches to the party “The northern road”", "Merges “The northern road” into “The company”".
+- **Timeline**: a "party" sign (two people with an arrow) counts the switches and merges in a box, the chapter's own `party` included (on the before scene, or on the level box when the
+  chapter has no scene). The sign is left out of the box data while it is 0, so a campaign without parties keeps its boxes as they were.
+- **Checks** (`campaignChecks`): errors mirror the loader (a party that is not listed, none yet, a merge into itself or listing a party twice, nothing to merge, a bad or duplicate party id).
+  Hints (they load): a party switched to but never merged into another and not the one the story ends with; a merge of a party nothing switched to before it (it is empty); a switch
+  to, or a merge into, a party that was merged away earlier; and a chapter whose map puts a named character on the player's side that so far only another party had (the party being
+  played starts them fresh from the map). The walk is the straight list order with every branch of an `if` and every answer counted, so it can be wrong where a story jumps (`goto`); the
+  notes only ever say "check this".
+
 ## Campaign timeline (PLAN 6c)
 
 All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API) change. The Campaign screen has two views, **List** (the original) and **Timeline**
@@ -1139,7 +1161,7 @@ All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API
 A scene "exists" when it is a list (even `[]`) or the object form; "Add a scene" writes `[]`, which disappears again when the scene is emptied or removed.
 Level boxes show a small picture of the map (the map editor's own `drawMap`, plain look, drawn once on an off-screen canvas and cached per map object;
 `mapThumb.ts`; if drawing throws, a one-pixel-per-square terrain-colour miniature), chapter name and map name. Every box shows a problems badge, and
-"what changes" signs with counts: units join / leave (`addUnit` / `removeUnit`), items given, switches or variables set, questions asked, and for levels
+"what changes" signs with counts: units join / leave (`addUnit` / `removeUnit`), items given, switches or variables set, questions asked, party switches and merges (see "Campaign parties"), and for levels
 a shop (a placed structure whose kind sells items). A level's signs add up all its events. Scenes show no summary of what is said. A legend explains the signs.
 
 **How branches are derived** (`model/timelineGraph.ts`, `timelineFlow.ts`). Arrows: *order* (before to level to after, and a chapter's last box to the next

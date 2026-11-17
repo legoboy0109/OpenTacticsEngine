@@ -568,6 +568,74 @@ unchanged byte for byte.
 campaign; otherwise per `freeBattles`. A free battle is an ordinary `Battle::init` +
 `start` and never touches a playthrough.
 
+### Parties
+
+Built. A campaign can hold several **parties**: each has its own roster of characters (their items, levels and so on), its own carried
+storage (the convoy) and its own funds and research, while the story (switches, variables, the chapter flow) is shared by the whole playthrough.
+One party is active at a time. This is the shape of "part 3 starts a whole new game with its own characters, items, convoy and funds, and part 4
+combines them with the original party". Code: `engine/core/campaign/parties.cpp`, `engine/core/data/loader_campaign_parties.cpp`; tests
+`tests/test_parties.cpp`, `tests/test_parties_prep.cpp`, `tests/parties_player_test.py` (game `tests/fixtures/parties-flow`).
+
+```jsonc
+{ "parties": [ { "id": "main",  "name": "The company" },      // the first is the party the campaign starts with
+               { "id": "north", "name": "The northern road" } ],
+  "chapters": [
+    { "id": "ch1", "map": "road" },                                          // part 1: played by "main"
+    { "id": "ch2", "map": "pass" },                                          // part 2: "main"
+    { "id": "ch3", "map": "forest",                                          // part 3: a whole new game for "north"
+      "before": [ { "switchParty": "north" }, { "say": "Meanwhile, in the north." } ] },
+    { "id": "ch4", "map": "reunion",                                         // part 4: the roads meet
+      "before": [ { "mergeParties": ["north"], "into": "main" } ] } ] }
+```
+
+- **`parties`** (optional): a list of `{ "id", "name" }`; ids are letters, digits, `_` and `-`, unique; `name` is wording (default: the id; it is
+  not part of the save hash, like a chapter's name). No key (or an empty list) = the campaign has one roster, exactly as before: nothing about
+  parties is written to saves, the hash and the sims are unchanged.
+- **`{ "switchParty": "north" }`** (a scene command, in `before` / `after`, also inside `if` and answers): makes that party the active one. A party
+  used for the first time starts **empty**: no characters, empty storage, zero resources, no research, no remembered deployment - "a whole new
+  game". Switching back brings the first party back exactly as it was left. Switching to the party that is already active, or to one that was
+  merged away, does nothing.
+- **`{ "mergeParties": ["north"], "into": "main" }`**: the listed parties join `into`, which becomes (or stays) the active party. Units move over;
+  storages are appended; resources are added (never above one billion); finished research is united; the remembered deployment keeps the target's
+  order and adds the others' characters after it. The merged parties **cease to exist**: a later `switchParty` to one of them does nothing, and a
+  party that was never used is still retired (it had nothing to give).
+- **A character both parties have** (decided; no static check is possible, as it depends on who was recruited): the **target's copy stays as it is**
+  (level, stats, items) and the other copy is dropped, except that **its items go to the target's storage** (the side id it fought on), so nothing
+  is lost. A fallen (`gone`) copy in the target stays gone.
+- **`"party": "north"` on a chapter** is a shorthand for a `switchParty` at the very start of that chapter's `before` scene (it takes effect even
+  when the chapter has no scene). Both forms work; a scene command is the only way to switch at another moment (for example in an `after` scene).
+- **Loader refusals** (`data/campaign.json: ...`): a duplicate or badly formed party id, an unknown key on a party, `parties` that is not a list; a
+  `switchParty`, `mergeParties` or chapter `party` naming a party that is not listed (and a plain "needs the campaign to have parties" when there
+  are none); `mergeParties` that is not a non-empty list, lists a party twice or lists `into` itself, a missing `into`.
+
+**What is per party**: the roster (every named unit with items, level, xp, stats, skills, ranks), each carried side's resources, storage and finished
+research, `lastDeployed` (the default pick of the preparation screen) and the preparation screen's own state. **Shared**: switches, variables, the
+once-per-campaign quotes, the chapter flow and, for **supports**, the pairs' points and levels (they are global: a pair is kept per character pair,
+not per party; pairs whose two characters are not both in the active party simply do not meet at the camp, since a conversation needs both in the
+roster, and a battle only places the pair's characters that exist). Play counters live with the player's own settings, not the playthrough.
+
+**What uses the active party**: the preparation screen (its candidates, items, shop, selling and storage, and the funds it shows),
+`prepareChapterBattle` (map units marked as roster characters are dressed from the active party's roster), `finishChapterBattle` (written back to the
+active party; a recruit joins it; resources, storage and research go to its carried sides), the scene commands `takeItem`, `storeItems`,
+`giveResource` and the `alive` / `dead` conditions or readings of a unit (they look at the active party only), and the camp's pending supports. A
+lost battle (`retry`) leaves the active party as it was. **A map that names a character of another (inactive) party**: that character is created
+fresh from the map's own definition, exactly as if never recruited (no roster entry matches); the editor notes it where it can be seen from the
+chapter order (Campaign screen checks). The loader cannot know who was recruited, so it says nothing.
+
+**Saves** (docs/SAVES.md "Campaign saves"): a campaign that has parties adds `"party"` (the active one's id), `"parties"` (the other parties that
+were used, each with `roster`, `sides` and optional `lastDeployed` / `prep`) and `"mergedParties"`; the active party's own data stays in the usual
+`roster` / `sides` / `lastDeployed` / `prep` keys, so a campaign without parties saves byte for byte as before. The `parties` keys are part of
+`data/campaign.json`, which counts for the save hash (a save from before the parties were added is therefore refused, like any other data change).
+
+**Player**: the chapter's title card reads "Chapter 3 - The northern road" and the preparation screen's title "Preparation - The northern road" when
+the campaign has parties; nothing else changes. The log says `campaign: chapter 3 is played by party 'north' (The northern road)` when a chapter's
+battle starts. `ote-sim <game> --campaign` follows the same rules and prints `party: <name>` after each chapter's before scene.
+
+**Editor**: the Campaign screen has a "The parties" card (add, rename, reorder, delete with a list of what goes with it; the first is the starting
+party), a "Starts with party" choice on each chapter, the two commands in the scene picker under "Party", a party sign on the timeline's boxes
+("What changes"), and checks: the loader's refusals, plus notes for a party switched to but never merged or ended on, a merge of a party nothing
+switched to before, a switch to a merged party and a map that puts characters on the player's side that so far only another party had.
+
 ### Campaign (player)
 
 Built (step 4, player half). Code: `engine/player/app_campaign.cpp` (the flow), `campaign/` (`campaign_logic.*` the
