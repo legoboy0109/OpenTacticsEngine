@@ -58,7 +58,10 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, 
     ctx.strikeNo = strikeNo;  // the striker's strike number, for the struck unit's blocks too
     for (int s : list) {
       for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
-        if (b.when != when || !skillBlockHolds(b, ctx)) continue;
+        if (b.when != when) continue;
+        // A block that asks about marks depends on a roll of another block, so no forecast lists it (the other block's chance is the note).
+        if (!rng && db->marksUsed && blockReadsMarks(b)) continue;
+        if (!skillBlockHolds(b, ctx)) continue;
         if (b.hasChance) {
           const int chance = skillChance(b, ctx);
           if (notes) {
@@ -80,6 +83,9 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, 
         numbers.clear();
         for (const SkillEffect& e : b.effects) numbers.push_back(skillEffectNumber(e, ctx, scratch));
         applyStrikeEffects(b, numbers, out, side == 0);
+        if (rng && db->marksUsed)  // a real fight: the owner now has the marks this block gives (blocks after it see them at once)
+          for (const SkillEffect& e : b.effects)
+            if (e.kind == SkillEffect::Kind::Mark) setMark(owner, e.names[0]);
       }
     }
   }

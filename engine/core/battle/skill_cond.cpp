@@ -115,6 +115,8 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
     }
     case Kind::Condition:
       return hasCondition(u, db->findCondition(cond.key));
+    case Kind::Marked:
+      return markSet(uid, cond.key) == cond.flag;
     case Kind::Formula:
       return skillExpr(cond.expr, ctx, 0) != 0;
   }

@@ -405,6 +405,7 @@ struct Database {
   bool visionSkills = false, terrainBlocksSight = false, structureLights = false;
   bool scaledConditions = false;  // some condition has "scale": "turnsLeft" (docs/SRPG.md "Effects that fade")
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
+  bool marksUsed = false;     // some skill block sets or tests a mark (docs/SRPG.md "Linking two strike blocks")
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 
   // Index lookups by id; -1 when not found.

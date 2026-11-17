@@ -340,6 +340,13 @@ bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& 
 bool stealRoomOk(const Unit& u, std::string* why) const;
 // Carries out steal / refresh / cure (events after AbilityUsed); `slot` = the foe's item slot for a steal.
 void applyAbilityEffect(const AbilityDef& d, int uid, int target, int slot, std::vector<Event>& events);
+// ---- marks of a fight (skill_marks.cpp; docs/SRPG.md "Linking two strike blocks"): transient, cleared when the fight is over. `mutable`:
+// the real fight's strike blocks set them from inside the same const gathering code the forecast uses. ----
+mutable std::vector<std::pair<int, std::string>> fightMarks_;
+bool markSet(int unit, const std::string& name) const;
+void setMark(int unit, const std::string& name) const;
+// Does the block ask about marks (forecasts then leave it out: whether the block that sets the mark fires is a roll)?
+static bool blockReadsMarks(const SkillBlock& b);
 // ---- the story's `actor` condition (story_actor.cpp; docs/EVENTS.md "Branching on who acted") ----
 // The unit an occurrence is "about" (the mover, the fallen, the attacker, the opener, the promoted...), -1 for turn and battle events.
 int storyActorOf(const StoryOccurrence& o) const;

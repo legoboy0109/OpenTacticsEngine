@@ -20,16 +20,19 @@ bool resolveSrpgRefs(const std::string& root, Database& db, std::string& err) {
     for (const SkillBlock& b : s.blocks)
       for (const SkillEffect& e : b.effects)
         if (e.kind == SkillEffect::Kind::MoveAgain || e.kind == SkillEffect::Kind::ActAgain) db.turnFlagSkills = true;
-  db.nullifySkills = db.staffRangeSkills = db.carryBonusSkills = db.cancelEffectiveSkills = db.visionSkills = false;
+  db.nullifySkills = db.staffRangeSkills = db.carryBonusSkills = db.cancelEffectiveSkills = db.visionSkills = db.marksUsed = false;
   for (const SkillDef& s : db.skills)
-    for (const SkillBlock& b : s.blocks)
+    for (const SkillBlock& b : s.blocks) {
+      for (const SkillCond& c : b.conds) db.marksUsed = db.marksUsed || c.kind == SkillCond::Kind::Marked;
       for (const SkillEffect& e : b.effects) {
+        db.marksUsed = db.marksUsed || e.kind == SkillEffect::Kind::Mark;
         db.nullifySkills = db.nullifySkills || e.kind == SkillEffect::Kind::NullifySkills;
         db.staffRangeSkills = db.staffRangeSkills || e.kind == SkillEffect::Kind::StaffRange;
         db.carryBonusSkills = db.carryBonusSkills || e.kind == SkillEffect::Kind::CarryBonus;
         db.cancelEffectiveSkills = db.cancelEffectiveSkills || e.kind == SkillEffect::Kind::CancelEffective;
         db.visionSkills = db.visionSkills || e.kind == SkillEffect::Kind::Vision;
       }
+    }
   return true;
 }
 
