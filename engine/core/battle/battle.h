@@ -89,6 +89,10 @@ enum class EventType {
   // Staves (docs/SRPG.md section 8): a=user, b=item, c=the picked unit or -1, d=units really affected / a=the unit missed, b=user, c=item.
   StaffUsed,
   StaffMissed,
+  // Staves, stage 2 (docs/SRPG.md section 8; a moved unit is UnitRelocated): a=unit, b=item (index into db->items), c=uses restored,
+  // d=uses it has now / a=user, b=the square lit, c=radius, d=turns.
+  ItemRepaired,
+  AreaLit,
 };
 
 enum : int {
@@ -230,6 +234,7 @@ struct Action {
   int to = -1;          // UpgradeStructure: the kind it becomes (index into db->structures)
   int tech = -1;        // StartResearch: index into db->research
   int ability = -1;     // Ability: index into db->abilities
+  int itemSlot = -1;    // UseStaff "repair": the slot in the TARGET's inventory of the item to repair (-1 = none)
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
   static Action attack(int unit, int target, int weapon) { Action a; a.type = ActionType::Attack; a.unit = unit; a.target = target; a.weapon = weapon; return a; }
@@ -269,8 +274,11 @@ struct Action {
   static Action pairUp(int unit, int target) { return unitAction(ActionType::PairUp, unit, target); }
   static Action switchPair(int unit) { return unitAction(ActionType::SwitchPair, unit); }
   static Action support(int unit, int target) { return unitAction(ActionType::Support, unit, target); }
-  // `target` is the picked unit; a staff that picks nobody (area "all", target "self") takes -1.
-  static Action useStaff(int unit, int slot, int target) { Action a = unitAction(ActionType::UseStaff, unit, target); a.slot = slot; return a; }
+  // `target` is the picked unit; a staff that picks nobody (area "all", target "self") takes -1. A warp's destination goes in
+  // `cell`, a light's square too (target -1), and a repair's item in `itemSlot` (docs/SRPG.md section 8, stage 2).
+  static Action useStaff(int unit, int slot, int target, Cell cell = kNoCell, int itemSlot = -1) {
+    Action a = unitAction(ActionType::UseStaff, unit, target, cell); a.slot = slot; a.itemSlot = itemSlot; return a;
+  }
 };
 
 // Result of a movement search for one unit.

@@ -39,6 +39,13 @@ void Battle::computeTeamSight(int team) const {
     for (Cell c : area) seen[(size_t)c] = 1;
     mine.push_back(u.cell);
   }
+  // A light a staff made (docs/SRPG.md section 8, stage 2) is extra sight on this same grid: the squares around it are seen
+  // like squares a unit with that vision sees (a hiding square still hides the units on it from afar).
+  for (const LightArea& l : lights) {
+    if (l.side < 0 || l.side >= (int)sides.size() || sides[(size_t)l.side].team != team) continue;
+    grid.within(l.cell, l.radius, area);
+    for (Cell c : area) seen[(size_t)c] = 1;
+  }
   // A structure of the team sees one square around every square of its footprint (the footprint included).
   std::vector<Cell> footprint;
   for (size_t s = 0; s < structures.size(); ++s) {

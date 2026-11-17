@@ -102,6 +102,12 @@ bool describeSrpgEvent(const Battle& b, const Event& e, std::string& out) {
     case EventType::StaffMissed:
       out = item(b, e.c) + " of " + unit(b, e.b) + " misses " + unit(b, e.a);
       return true;
+    case EventType::ItemRepaired:
+      out = unit(b, e.a) + "'s " + item(b, e.b) + " is repaired by " + std::to_string(e.c) + " (" + std::to_string(e.d) + " uses)";
+      return true;
+    case EventType::AreaLit:
+      out = unit(b, e.a) + " lights " + cell(b, e.b) + " (radius " + std::to_string(e.c) + ", " + std::to_string(e.d) + " turns)";
+      return true;
     default:
       return false;
   }
