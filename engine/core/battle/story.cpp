@@ -106,7 +106,7 @@ bool Battle::conditionHolds(const Condition& c, int actor) const {
     case Condition::Kind::Dead: {
       bool any = false, alive = false;
       for (const Unit& u : units) {
-        if (!unitMatches(c.filter, u) || summonIgnored(c.filter, u)) continue;  // A1: summons are not counted by side / team / any
+        if (u.hidden || !unitMatches(c.filter, u) || summonIgnored(c.filter, u)) continue;  // A1: summons are not counted by side / team / any; a hidden unit is neither alive nor dead
         any = true;
         alive = alive || exists(u);  // R1: a carried unit exists
       }
@@ -137,6 +137,8 @@ bool Battle::conditionHolds(const Condition& c, int actor) const {
       return storyActorHolds(c, actor < -1 ? storyRun_.actor : actor);
     case Condition::Kind::Difficulty:
       return difficulty >= 0 && compare(c.op, difficulty, c.index);  // docs/DIFFICULTY.md
+    case Condition::Kind::Roster:
+      return storyRosterHolds(c);
   }
   return false;
 }

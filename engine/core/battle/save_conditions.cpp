@@ -7,7 +7,7 @@ namespace ote {
 namespace savejson {
 
 void writeUnitConditions(const Battle& b, const Unit& u, Json& j) {
-  if (u.conditions.empty() || !b.exists(u)) return;
+  if (u.conditions.empty() || !(b.exists(u) || u.hidden)) return;
   Json a = Json::makeArray();
   for (const ConditionState& cs : u.conditions) {
     Json e = Json::makeObject();

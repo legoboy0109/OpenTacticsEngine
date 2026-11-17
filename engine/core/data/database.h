@@ -220,6 +220,7 @@ struct UnitTypeDef {
   // Weapon ranks and stat caps (docs/SRPG.md section 7); empty when the unit type says nothing.
   std::vector<int> rankStart;            // per RankRules::groups index: starting weapon experience
   std::vector<int> caps;                 // per stat index: this class's cap, -1 = none (overrides the game-wide one)
+  int maxLevel = -1;                     // units.json "maxLevel": this type's top level (0 = never levels); -1 = rules.progression.maxLevel
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
 inline bool unitTypeMatchesKey(const UnitTypeDef& t, const std::string& key) {
@@ -282,10 +283,13 @@ struct RulesConfig {
   bool capture = false;      // units may capture capturable structures
   ItemRules items;           // docs/ITEMS.md
   SupplyRules supply;        // docs/ECONOMY.md "Repair and supply"
+  bool hitRollAverage = false;  // "rules.hitRoll": "average2" = a strike's hit rolls two numbers and uses their average (docs/SRPG.md "The hit roll")
   bool researchNeedsStructure = false;  // "rules.research.needsStructure": research needs an owned structure that allows it
   AmbushRule ambush = AmbushRule::EndsTurn;  // "rules.fog.ambush"
   bool progression = false;  // XP + level ups
   int xpPerLevel = 100;
+  int xpNoDamageExpr = -1;     // "rules.progression.xpNoDamage" (an index into exprs; -1 = a fight that did no damage gives nothing)
+  bool computerGains = true;   // "rules.progression.computerGains": false = only units of human sides gain experience
   int maxLevel = 20;
   RescueRules rescue;        // "rules.rescue" (docs/SRPG.md "Rescue and pair up"); mode Off when the block is missing
   PromotionRules promotion;  // "rules.promotion" (docs/SRPG.md "Promotion")
@@ -390,6 +394,7 @@ struct Database {
   SupportData supports;                  // data/supports.json (rules, pairs, texts)
   QuoteData quotes;                      // the wording of characters' quotes (data/characters.json "quotes")
   RankRules ranks;                       // data/ranks.json (weapon rank ladder); empty ladder = no ranks
+  std::vector<int> computerCaps;         // data/caps.json "computerCaps": per stat index the cap for computer-controlled units, -1 = the game-wide one; empty = none
   std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
   std::vector<StaffDef> staves;          // the staves of data/items.json (an item of kind "staff" points here)
   std::vector<ConditionDef> conditions;  // data/conditions.json (docs/SRPG.md section 9)

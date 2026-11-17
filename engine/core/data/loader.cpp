@@ -119,6 +119,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.integer(*blk, "maxLevel", "rules.progression", r.maxLevel)) return false;
   if (!c.str(*blk, "xpHit", "rules.progression", r.fXpHit)) return false;
   if (!c.str(*blk, "xpKill", "rules.progression", r.fXpKill)) return false;
+  if (!loadProgressionExtras(c, *blk, db)) return false;
   if (r.xpPerLevel < 1) return c.fail("rules.progression", "\"xpPerLevel\" must be at least 1");
   if (r.maxLevel < 1) return c.fail("rules.progression", "\"maxLevel\" must be at least 1");
 

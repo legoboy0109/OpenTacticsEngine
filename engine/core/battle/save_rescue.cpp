@@ -42,7 +42,7 @@ bool checkUnitsRescue(Reader& rd, Battle& b) {
   }
   // A unit that is not alive but has hit points is carried (a defeated unit has none).
   for (const Unit& u : b.units)
-    if (!u.alive && u.hp > 0 && u.carriedBy < 0)
+    if (!u.alive && !u.hidden && u.hp > 0 && u.carriedBy < 0)
       return rd.fail("units[" + std::to_string(u.id) + "].hp", "the unit is not alive but has hit points, and nobody carries it");
   return true;
 }

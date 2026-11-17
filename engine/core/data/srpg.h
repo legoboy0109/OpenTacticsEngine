@@ -271,6 +271,10 @@ struct AbilityDef {
   std::vector<std::string> cureIds;
   std::vector<int> cures;
   bool cureAll = false;
+  // "xp": experience the user gets for each use (a number or a formula; expression -1 = the number). "inflict": a condition the
+  // target gets after the effect (docs/SRPG.md "Abilities: experience and conditions").
+  int xp = 0, xpExpr = -1;
+  int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----

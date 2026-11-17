@@ -56,6 +56,8 @@ struct StaffDef {
   int hitExpr = -1;                // percent chance per unit; -1 = always works (and no random number is spent)
   int xp = 0;                      // experience for the user per use
   int xpExpr = -1;                 // formula instead of `xp`
+  int xpMiss = -1;                 // "xpMiss": experience when every unit it was used on was missed (-1 = the same as `xp`)
+  int xpMissExpr = -1;             // formula instead of `xpMiss`
   std::vector<SkillCond> conds;    // "if", judged per unit hit ("who": "foe" = that unit)
   bool canMiss() const { return hitExpr >= 0; }
   // Nothing to pick: the user itself, or every unit in range.

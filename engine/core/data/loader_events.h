@@ -78,6 +78,8 @@ class StoryLoader {
   bool mapChangeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);  // loader_story_mapchange.cpp: setTerrain, applyChange, revertChange, setFog, setVision
 
   bool storeItemsCommand(const Json& e, const std::string& at, Command& out);                    // loader_story_store.cpp
+  bool rosterCondition(const Json& e, const std::string& at, const char* kind, Condition& out) const;  // loader_story_roster.cpp: rosterAlive / rosterDead / inRoster
+  bool showUnitCommand(const Json& e, const std::string& at, Command& out);                     // loader_story_roster.cpp
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);

@@ -60,24 +60,37 @@ bool loadRanks(const std::string& path, Database& db, std::string& err) {
 
 bool loadStatCaps(const std::string& path, Database& db, std::string& err) {
   db.statCaps.clear();
+  db.computerCaps.clear();
   if (!fileExists(path)) return true;
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
   LoadCtx c(err, path);
   for (const Json::Member& m : root.members())
-    if (m.first != "caps") return c.fail("", "unknown key \"" + m.first + "\"");
+    if (m.first != "caps" && m.first != "computerCaps") return c.fail("", "unknown key \"" + m.first + "\" (expected \"caps\", \"computerCaps\")");
   const Json* caps;
   if (!c.object(root, "caps", "", caps, true)) return false;
-  if (caps->size() == 0) return true;  // nothing in the file: the same game as no file
-  std::vector<int> out(db.stats.size(), -1);
-  for (const Json::Member& m : caps->members()) {
-    int s = db.findStat(m.first);
-    if (s < 0) return c.fail("caps", "names unknown stat \"" + m.first + "\"");
-    if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 1 || m.second.asInt() > kMaxStatCap)
-      return c.fail("caps", "\"" + m.first + "\" must be a whole number from 1 to " + std::to_string(kMaxStatCap));
-    out[(size_t)s] = m.second.asInt();
+  // One map of stat id -> cap, from "caps" or "computerCaps"; empty when it names nothing.
+  const auto readMap = [&](const Json& map, const char* where, std::vector<int>& dest) {
+    if (map.size() == 0) return true;
+    std::vector<int> out(db.stats.size(), -1);
+    for (const Json::Member& m : map.members()) {
+      int s = db.findStat(m.first);
+      if (s < 0) return c.fail(where, "names unknown stat \"" + m.first + "\"");
+      if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 1 || m.second.asInt() > kMaxStatCap)
+        return c.fail(where, "\"" + m.first + "\" must be a whole number from 1 to " + std::to_string(kMaxStatCap));
+      out[(size_t)s] = m.second.asInt();
+    }
+    dest = out;
+    return true;
+  };
+  if (!readMap(*caps, "caps", db.statCaps)) return false;
+  // "computerCaps": the same list for units of computer-controlled sides (it replaces the game-wide cap for them; a class's own
+  // cap still wins). Docs: docs/SRPG.md "Stat caps".
+  if (root.has("computerCaps")) {
+    const Json* cc;
+    if (!c.object(root, "computerCaps", "", cc)) return false;
+    if (!readMap(*cc, "computerCaps", db.computerCaps)) return false;
   }
-  db.statCaps = out;
   return true;
 }
 

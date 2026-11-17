@@ -221,6 +221,46 @@ Three uses (neutral names):
 { "id": "return", "when": { "turn": 4 }, "do": [ { "giveItem": "healing_herb", "to": { "side": "blue" } } ] }     // ... given back later
 ```
 
+### Campaign characters in map events
+
+A map event can ask about a campaign character who is **not on this map**: `{ "rosterAlive": "kara" }`, `{ "rosterDead": "kara" }`,
+`{ "inRoster": "kara" }`, each with an optional `"party": "any" | "active"` (default `any`; a game without parties has one party, so
+the two are the same). They work wherever conditions do: an event's `if`, an `if` command, an answer's `if`, and campaign scenes
+(where `alive` / `dead` already read the active party; the new ones add `party: any`).
+- The id is a character / unit id (letters, digits, `_`, `-`); it is **not** checked against the map (the character may be elsewhere).
+- **`rosterAlive`**: the character is on this map and alive or hidden (see below); or, if it is not on this map, it is in the
+  roster (as it was when the chapter began) and not gone. **`rosterDead`**: it was on this map and is defeated or removed; or it is in
+  the roster marked gone (and not alive in another party). **`inRoster`**: it is in the roster and not gone - the roster only, whatever the
+  map says.
+- **The map's own unit wins.** A character that stands on this map is read from the map (alive now, defeated now), not from the
+  roster file's start-of-chapter state.
+- **`party`**: `active` looks at the active party's roster only; `any` also at every parked party's.
+- **A free battle (no campaign playthrough)** has no roster: `rosterAlive` / `rosterDead` read the units on the map, `inRoster` is true
+  for a unit that is on the map or hidden, false for any other.
+- Saves: nothing new (the roster is the playthrough's). Code: `battle/story_hide.cpp`, `data/loader_story_roster.cpp`.
+
+### Taking a unit off the map and bringing it back
+
+`{ "removeUnit": <filter> }` makes the campaign count the unit as gone and `addUnit` of its character is refused. To take a unit away
+**and keep it**, add `"hide": true`:
+```jsonc
+{ "removeUnit": { "unit": "lyra" }, "hide": true }        // leaves the map (the usual fade); the unit is still in the story
+{ "showUnit": "lyra", "x": 4, "y": 2 }                     // the same unit comes back (the nearest free square it can stand on)
+{ "addUnit": { "character": "lyra", "side": "blue", "x": 4, "y": 2 } }               // does the same for a hidden character (a plain unit id cannot be added twice: use showUnit)
+```
+- **State kept** while hidden: hit points, items, level, experience, stats, learned skills, weapon ranks and **status conditions** (they do not
+  count down while the unit is away). The `moved` / `done` flags keep whatever they had. A hidden unit's **summons vanish** and a unit it
+  **carried is put down**, as for a removal. A carried unit cannot be hidden.
+- **What hidden units do not do:** they are not on any square, cannot be targeted, do not act, and `alive` / `dead` read them as
+  neither (like a unit not added yet). `removeUnit` / numbers read from them (`setVariable ... readUnit`) see 0. They count for **no defeat rule**
+  (a side whose only units are hidden is defeated) and the objective `defeated` skips them.
+  `rosterAlive` / `inRoster` say they live.
+- **`showUnit`** on a unit that is not hidden does nothing; a side defeated meanwhile cannot get its hidden unit back (it stays hidden, logged).
+  `showUnit` fires `reach` events like any arrival. `removeUnit` **without** `hide` on a hidden unit makes it gone for good.
+- **Campaign:** at the end of a won battle a hidden roster character is written to the roster **alive** (a removal still counts as lost).
+- Saves: a hidden unit has `"hidden": true` in `units[i]` (no key for anyone else, so games that never hide keep their bytes); a save
+  claiming a hidden unit on the map or with no hit points is refused. Tests: `tests/test_fidelity_story.cpp`.
+
 ### Branching on who acted
 
 `{ "actor": <unit filter> }` is a condition (an event's `if`, the `if` of an `if` command, the `if` of a question's answer) that is true when **the

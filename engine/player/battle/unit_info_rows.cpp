@@ -66,6 +66,9 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
   rows.push_back({"Class", b.typeOf(u).name, "", kText, kLabel});
   if (db.rules.progression)
     rows.push_back({"Level", intStr(u.level) + "  XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel), "", kText, kLabel});
+  // A unit type with its own top level (units.json "maxLevel") says so; a game without one shows no extra row.
+  if (db.rules.progression && b.typeOf(u).maxLevel >= 0)
+    rows.push_back({"Level cap", b.typeOf(u).maxLevel == 0 ? std::string("never levels") : intStr(b.typeOf(u).maxLevel), "", kText, kLabel});
   for (size_t s = 0; s < db.stats.size(); ++s) {
     const int own = u.stats[s], now = b.stat(u, (int)s);
     std::string value = intStr(now);

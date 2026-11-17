@@ -10,6 +10,9 @@ int Battle::statCap(const Unit& u, int stat) const {
   if (stat < 0) return -1;
   const size_t s = (size_t)stat;
   int cap = s < db->statCaps.size() ? db->statCaps[s] : -1;
+  // "computerCaps": a unit of a computer-controlled side has its own game-wide cap (a class's cap below still wins).
+  if (s < db->computerCaps.size() && db->computerCaps[s] >= 0 && u.side >= 0 && (size_t)u.side < sides.size() && sides[(size_t)u.side].ai)
+    cap = db->computerCaps[s];
   const std::vector<int>& own = typeOf(u).caps;
   if (s < own.size() && own[s] >= 0) cap = own[s];  // the class's cap overrides the game-wide one
   if (cap < 0) return -1;                           // no cap anywhere: a personal adjustment has nothing to adjust

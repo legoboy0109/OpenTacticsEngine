@@ -25,6 +25,11 @@ class LoadCtx;
 class Json;
 // Repair and supply (loader_supply.cpp; docs/ECONOMY.md): the pieces of the data files, each optional.
 bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db);  // "rules.research" and "rules.fog" (loader_options.cpp)
+// The shared reading of { "rosterAlive": id, "party": "any" | "active" } (also rosterDead, inRoster), for map events and campaign scenes (loader_story_roster.cpp).
+bool readRosterCondition(const LoadCtx& c, const Json& e, const std::string& where, const std::string& kind, int& mode, bool& anyParty,
+                         std::string& id);
+bool loadProgressionExtras(const LoadCtx& c, const Json& block, Database& db);  // "xpNoDamage", "computerGains" (loader_fidelity.cpp)
+bool readAbilityExtras(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a);  // an ability's "xp", "inflict"
 bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db);  // game.json "rules.supply"
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);

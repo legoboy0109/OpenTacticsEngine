@@ -84,6 +84,17 @@ struct SceneRun {
         const int pair = db.findSupportPair(db.findCharacter(c.unit), db.findCharacter(c.with));
         return pair >= 0 && (size_t)pair < pt.supports.level.size() && compare(c.op, pt.supports.level[(size_t)pair], c.value);
       }
+      case SceneCondition::Kind::Roster: {  // rosterAlive / rosterDead / inRoster, in the active party or any (docs/EVENTS.md)
+        bool alive = false, gone = false;
+        const auto look = [&](const Roster& roster) {
+          for (const RosterUnit& r : roster)
+            if (r.id == c.unit) (r.gone ? gone : alive) = true;
+        };
+        look(pt.roster);
+        if (c.anyParty)
+          for (const ParkedParty& p : pt.parked) look(p.roster);
+        return c.rosterMode == 1 ? (gone && !alive) : alive;
+      }
       case SceneCondition::Kind::Difficulty: {  // docs/DIFFICULTY.md: `value` = list position
         const int now = db.difficulties.find(pt.difficulty);
         return now >= 0 && compare(c.op, now, c.value);
