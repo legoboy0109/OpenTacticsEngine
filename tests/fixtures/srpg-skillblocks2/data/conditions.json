@@ -3,5 +3,7 @@
     "blocks": [ { "when": "turnStart", "do": [ { "hurt": 1, "to": "self" } ] } ] },
   { "id": "curse", "name": "Curse", "tag": "Cu", "turns": 3,
     "blocks": [ { "when": "always", "do": [ { "stats": { "str": -2 } } ] } ] },
+  { "id": "rage", "name": "Rage", "tag": "Ra", "turns": 3,
+    "blocks": [ { "when": "combat", "do": [ { "damage": 3 } ] } ] },
   { "id": "stun", "name": "Stun", "tag": "St", "turns": 2,
     "blocks": [ { "when": "always", "do": [ { "cannotAct": { "counter": false, "dodge": false } } ] } ] } ] }

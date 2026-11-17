@@ -163,3 +163,6 @@ int conditionDuration(int condition, int turns) const;
 // The items of `target` (a unit the steal ability could be used on from `from`), one entry per slot in order, each with whether
 // it can be taken now and, when not, the plain reason ("weapons cannot be stolen", "the equipped weapon", "cannot be stolen").
 void stealOptions(int unit, int ability, Cell from, int target, std::vector<StealOption>& out) const;
+
+// What the canCarry formula reads as `a.carryBonus` / `b.carryBonus`: the sum of the unit's "carryBonus" skills (docs/SRPG.md "Carry capacity").
+int carryBonusOf(const Unit& u) const;

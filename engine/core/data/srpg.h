@@ -110,7 +110,8 @@ const int kQuoteTextBase = 1 << 25;
 
 // ---- 3. skills (data/skills.json) ----
 
-enum class SkillWhen { Always, TurnStart, Combat, Strike, Struck, Defeat, AfterCombat };
+enum class SkillWhen { Always, TurnStart, Combat, Strike, Struck, Defeat, AfterCombat,
+                       StaffUse /* after the unit used a staff (docs/SRPG.md "A staff used") */ };
 
 // One entry of a block's "if" (also of an ability's "if"). Which fields count depends on `kind`.
 struct SkillCond {
@@ -130,6 +131,7 @@ struct SkillCond {
   int within = 1;         // Near: steps (1..10)
   bool enemy = false;     // Near: false = "ally", true = "enemy"
   bool flag = true;       // Structure (true = any structure when `key` is empty), Carrying, Initiating
+  std::vector<std::string> keys;  // Terrain: every id or tag it may be (the list form; `key` is the first)
   std::string key;        // Near: "match" (a unit type id or tag, "" = any); Weapon: weapon id or group;
                           // Terrain: terrain id or tag; Structure: structure id or tag; Unit: unit type id or tag
   int expr = -1;          // Formula: index into Database::exprs
@@ -155,7 +157,12 @@ struct SkillEffect {
     // General blocks (docs/SRPG.md "More skill blocks"). FollowUp: value 1 force / -1 forbid the unit's follow-up strike;
     // FollowShift: a number the strike formulas read as `a.followShift`; TrianglePercent: read as `a.trianglePercent`.
     FollowUp, FollowShift, TrianglePercent, WeaponXpPercent, NoCarryPenalty, CancelEffective,
-    Cure  // timed blocks: the owner is cured of the conditions in `names` / `conds`, or of all (`cureAll`)
+    Cure,  // timed blocks: the owner is cured of the conditions in `names` / `conds`, or of all (`cureAll`)
+    // Second set (docs/SRPG.md "Skill and ability blocks, second set"). NullifySkills (combat): the foe's skills do not apply in
+    // this fight; `value` 0 = all, 1 = the skills `skillIds` (`names` as written), 2 = the skills with the tag `names[0]`.
+    // StaffRange (always): `value` added to the reach of staves (only those of the group `names[0]` when it is set).
+    // CarryBonus (always): `value` is read by the canCarry formula as `a.carryBonus`.
+    NullifySkills, StaffRange, CarryBonus
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -179,6 +186,7 @@ struct SkillEffect {
   // Damage, Avoid, CritAvoid, DamageTaken, DamagePercent, DamageTakenPercent; `statExprs[i]` >= 0 replaces `stats[i]` of Stats.
   std::vector<int> statExprs;
   bool cureAll = false;     // Cure: every condition
+  std::vector<int> skillIds;  // NullifySkills (mode 1): indices into Database::skills, resolved last
 };
 
 struct SkillBlock {
@@ -196,6 +204,7 @@ struct SkillBlock {
 
 struct SkillDef {
   std::string id, name, description;
+  std::vector<std::string> tags;  // the maker's labels ("nullifySkills" can name one)
   std::vector<SkillBlock> blocks;
   // Not a skill of the maker's: the blocks of a condition, or what a weapon's "inflict" key turned into. Never shown in a
   // unit's skill list; only the unit's conditions / the weapon reach it (docs/SRPG.md section 9).

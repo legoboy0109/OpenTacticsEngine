@@ -196,6 +196,7 @@ SkillCtx skillCombatCtx(const CombatSetup& setup, int unit) const;
 // A fighter's skill list for this combat (weapon skills of the weapon it fights with; a defender with nothing that
 // can answer has none).
 void skillCombatList(const CombatSetup& setup, int unit, std::vector<int>& out) const;
+void skillsOfFighter(const CombatSetup& setup, int unit, std::vector<int>& out) const;  // the same before "nullifySkills"
 bool skillBlockHolds(const SkillBlock& block, const SkillCtx& ctx) const;  // all its conditions hold
 // The block's chance in percent, 0..100 (formula: a = owner, b = foe). Never rolls.
 int skillChance(const SkillBlock& block, const SkillCtx& ctx) const;
@@ -317,7 +318,12 @@ bool stoppedMay(const Unit& u, bool counter) const;
 // A defender that cannot dodge is always hit: the strike's hit chance becomes 100 (combat_mods.cpp).
 void noDodge(const CombatSetup& setup, bool counter, StrikeForecast& f) const;
 
-// ---- skill and ability blocks, second set (ability_effects.cpp; docs/SRPG.md) ----
+// ---- skill and ability blocks, second set (also: skill_timed.cpp, staves.cpp)
+// The squares the unit's "staffRange" skills add to the reach of a staff of this group (0 = none).
+int staffRangeBonus(const Unit& u, const std::string& group) const;
+// The "staffUse" blocks of the unit's skills, after it used a staff of this group (the staff's use is already spent).
+void skillsStaffUse(int unit, const std::string& group, std::vector<Event>& events);
+// ---- (continued) (ability_effects.cpp; docs/SRPG.md) ----
 // The effect-specific part of abilityTargetOk for steal, refresh and cure (a unit target `t`, the user on `from`); false = refused.
 bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& t, std::string* why) const;
 // Does the steal ability's own state allow it now (the user has room, or storage takes the overflow)?

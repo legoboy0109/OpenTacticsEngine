@@ -59,6 +59,16 @@ int Battle::skillGrowthBonus(const Unit& u, int stat) const {
   return sum;
 }
 
+int Battle::carryBonusOf(const Unit& u) const {
+  if (!db->carryBonusSkills) return 0;
+  std::vector<const SkillEffect*> fx;
+  standingEffects(u, false, fx);
+  int sum = 0;
+  for (const SkillEffect* e : fx)
+    if (e->kind == SkillEffect::Kind::CarryBonus) sum += e->value;
+  return sum;
+}
+
 int Battle::moveCostCap(const Unit& u) const {
   if (db->skills.empty()) return 0;
   std::vector<const SkillEffect*> fx;

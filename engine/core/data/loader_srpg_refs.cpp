@@ -20,6 +20,14 @@ bool resolveSrpgRefs(const std::string& root, Database& db, std::string& err) {
     for (const SkillBlock& b : s.blocks)
       for (const SkillEffect& e : b.effects)
         if (e.kind == SkillEffect::Kind::MoveAgain || e.kind == SkillEffect::Kind::ActAgain) db.turnFlagSkills = true;
+  db.nullifySkills = db.staffRangeSkills = db.carryBonusSkills = false;
+  for (const SkillDef& s : db.skills)
+    for (const SkillBlock& b : s.blocks)
+      for (const SkillEffect& e : b.effects) {
+        db.nullifySkills = db.nullifySkills || e.kind == SkillEffect::Kind::NullifySkills;
+        db.staffRangeSkills = db.staffRangeSkills || e.kind == SkillEffect::Kind::StaffRange;
+        db.carryBonusSkills = db.carryBonusSkills || e.kind == SkillEffect::Kind::CarryBonus;
+      }
   return true;
 }
 

@@ -71,6 +71,7 @@ struct SkillCtx {
   bool combat = false;       // a foe point: "initiating" and "distance" have a meaning
   bool initiating = false;   // the owner started this combat
   int counters = -1;         // strike / struck blocks: 1 = the fight has a counterattack, 0 = it has none, -1 = not known here
+  const std::string* staffGroup = nullptr;  // a "staffUse" block: the group of the staff that was used (the "weapon" condition tests it)
 };
 
 // A test-only source of combat modifiers (Battle::testMods; defined in core/battle/combat_mods.h, step F2).

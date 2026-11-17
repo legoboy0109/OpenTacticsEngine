@@ -117,6 +117,7 @@ void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, st
     }
   }
   endOrder(uid);
+  skillsStaffUse(uid, d.gear.group, events);  // docs/SRPG.md "A staff used"
 }
 
 void Battle::applyStaffLight(const Action& action, std::vector<Event>& events) {

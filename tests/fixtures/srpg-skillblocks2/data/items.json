@@ -4,5 +4,11 @@
   { "id": "potion", "name": "Potion", "kind": "usable", "uses": 3, "heal": 5 },
   { "id": "relic", "name": "Relic", "kind": "usable", "uses": 1, "heal": 1, "stealable": false },
   { "id": "amulet", "name": "Amulet", "kind": "accessory", "bonus": { "hp": 4 } },
+  { "id": "far_staff", "name": "Far Staff", "kind": "staff", "group": "staff", "uses": 5, "range": [1, 2], "target": "ally",
+    "effects": [ { "heal": 10 } ] },
+  { "id": "calc_staff", "name": "Calc Staff", "kind": "staff", "group": "staff", "uses": 5, "range": "1", "target": "ally",
+    "effects": [ { "heal": 10 } ] },
+  { "id": "wand", "name": "Wand", "kind": "staff", "group": "wand", "uses": 5, "range": 1, "target": "ally",
+    "effects": [ { "heal": 10 } ] },
   { "id": "mend_staff", "name": "Mend Staff", "kind": "staff", "group": "staff", "uses": 5, "range": 1, "target": "ally",
     "effects": [ { "heal": 10 } ] } ] }

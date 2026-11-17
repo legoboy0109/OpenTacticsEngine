@@ -382,6 +382,8 @@ struct Database {
   // Some skill has the effect moveAgain or actAgain: only then the turn flags moveSpent / acted / refreshed are
   // part of a save (set by resolveSrpgRefs).
   bool turnFlagSkills = false;
+  // Some skill uses these effects (so the shared code can skip their work in a game that does not).
+  bool nullifySkills = false, staffRangeSkills = false, carryBonusSkills = false;
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 
   // Index lookups by id; -1 when not found.

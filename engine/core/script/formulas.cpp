@@ -164,6 +164,8 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
   // Set before the stats, so a stat of that name wins (as with `character`).
   lua_pushinteger(L_, follow); lua_setfield(L_, -2, "followShift");
   lua_pushinteger(L_, tri); lua_setfield(L_, -2, "trianglePercent");
+  // The sum of the unit's "carryBonus" skills (docs/SRPG.md "Carry capacity"); 0 when none. Only `canCarry` has a use for it.
+  lua_pushinteger(L_, ctx.battle ? ctx.battle->carryBonusOf(*u) : 0); lua_setfield(L_, -2, "carryBonus");
   for (size_t i = 0; i < db_->stats.size() && i < u->stats.size(); ++i) {
     lua_pushinteger(L_, statOf((int)i));
     lua_setfield(L_, -2, db_->stats[i].id.c_str());

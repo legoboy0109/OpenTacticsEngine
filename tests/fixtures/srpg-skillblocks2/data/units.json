@@ -5,5 +5,5 @@
   { "id": "guard", "name": "Guard", "moveType": "foot", "stats": { "hp": 30, "str": 5, "def": 4, "spd": 3, "mov": 3 },
     "wields": ["sword"], "items": ["iron_sword", "potion", "relic"], "tags": ["armored"] },
   { "id": "medic", "name": "Medic", "moveType": "foot", "stats": { "hp": 16, "str": 2, "def": 1, "spd": 5, "mov": 4 },
-    "wields": ["staff"], "items": ["mend_staff"], "tags": ["healer"],
+    "wields": ["staff", "wand"], "items": ["mend_staff"], "tags": ["healer"],
     "abilities": ["refresh", "refresh_two", "purge"] } ] }
