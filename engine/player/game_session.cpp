@@ -2,6 +2,7 @@
 
 #include "core/battle/save.h"
 #include "core/base/log.h"
+#include "core/campaign/prep.h"
 #include "core/data/loader.h"
 
 namespace ote {
@@ -20,6 +21,12 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
+  if (map.prep) {  // no screen on this path (autoplay, the simulator's rules): the default pick, docs/EVENTS.md "Preparation"
+    Playthrough scratch;
+    MapDef picked;
+    prepApplyToMap(db, scratch, map, picked);
+    map = picked;
+  }
   if (!battle.init(db, map, formulas, seed, err)) return false;
   battle.start(startEvents);
   return true;

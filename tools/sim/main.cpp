@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "core/ai/ai.h"
+#include "core/campaign/prep.h"
 #include "core/data/loader.h"
 #include "core/script/formulas.h"
 #include "campaign_sim.h"
@@ -159,6 +160,12 @@ int main(int argc, char** argv) {
   }
 
   if (opt.forceFog) map.fog = true;
+  if (map.prep) {  // a map with a preparation screen: the simulator plays the default pick (docs/EVENTS.md "Preparation")
+    Playthrough scratch;
+    MapDef picked;
+    prepApplyToMap(db, scratch, map, picked);
+    map = picked;
+  }
   std::vector<int> wins(map.sides.size(), 0);
   std::vector<std::string> names;
   int stalls = 0;
