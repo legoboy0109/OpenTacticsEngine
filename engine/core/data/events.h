@@ -9,6 +9,7 @@
 
 #include "core/base/json.h"
 #include "core/data/database.h"
+#include "core/data/scene_fx.h"
 
 namespace ote {
 
@@ -115,7 +116,8 @@ struct Command {
     SetBehaviour, WakeGroup,
     // docs/EVENTS.md "Changing the map": SetTerrain gives the squares `rects` terrain `index`; ApplyChange / RevertChange apply / take back
     // the map's change `index` (MapDef::changes); SetFog switches fog of war on / off (`on`); SetVision sets the map's vision adjustment (`value`).
-    SetTerrain, ApplyChange, RevertChange, SetFog, SetVision
+    SetTerrain, ApplyChange, RevertChange, SetFog, SetVision,
+    Scene  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -139,6 +141,7 @@ struct Command {
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
+  SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };
 
 // What a Place command does.

@@ -297,6 +297,12 @@ class BattleScene : public Scene {
   MapProj proj_;  // where squares are on screen in the style in use
   std::unique_ptr<Map3D> map3d_;  // the drawer of the 3D kinds of view (only in those)
   FreeCam freeCam_;     // full 3D: the player's camera
+  // A story scroll (docs/EVENTS.md "Scene presentation", focus "ms"): from where the camera was to where the focus wants it, over
+  // the Focus entry's milliseconds (battle_scene.cpp followCamera). `scrollSerial_` follows BattleView::focusSerial.
+  struct Scroll { bool active = false; float t = 0, dur = 0, fromX = 0, fromY = 0; };
+  Scroll scroll_;
+  int scrollSerial_ = 0;
+  float sceneHold_ = -1;  // Cancel / Menu held while a scene plays (seconds), -1 = not held: half a second skips the scene
   int turn_ = 0;        // 3D isometric: turns of the camera asked for (quarters; sixths on hexagon maps)
   float turnPos_ = 0;   // where the camera is now (eases towards turn_)
   Overlay overlay_;

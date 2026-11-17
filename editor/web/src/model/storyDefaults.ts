@@ -1,6 +1,7 @@
 // What a new trigger, condition, command or objective entry starts as: valid where it can be (the first thing that
 // exists is picked), so the files stay loadable while the maker fills the form in. Changing a kind starts again
 // from the new kind's default.
+import { backgroundIds } from './backgrounds'
 import { groupNames } from './behaviour'
 import { firstPlaceFor, firstPlaceForEvent } from './placeStory'
 import { namedUnits, teamsOf } from './storyIds'
@@ -132,6 +133,14 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'if': return { if: [newCondition(c, c.scene ? 'switch' : 'round')], then: [] }
     case 'endTurn': return { endTurn: true }
     case 'focus': return { focus: { x: 0, y: 0 } }
+    case 'background': return { background: backgroundIds(c.doc)[0] ?? '' }
+    case 'fade': return { fade: 'out', ms: 500, color: '#000000' }
+    case 'wait': return { wait: 500 }
+    case 'shake': return { shake: { ms: 400, strength: 3 } }
+    case 'leave': return { leave: firstUnit(c) }
+    case 'clearStage': return { clearStage: true }
+    case 'weather': return { weather: 'rain' }
+    case 'narrate': return { narrate: '' }
     case 'goto': return { goto: c.doc.campaign?.chapters[0]?.id ?? '' }
     case 'playMusic': return { playMusic: Object.keys(c.doc.audio?.music ?? {})[0] ?? '' }
     case 'stopMusic': return { stopMusic: true }

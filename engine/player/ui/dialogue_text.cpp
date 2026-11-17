@@ -18,6 +18,11 @@ DialogueLine dialogueLine(const Battle& b, const Event& e) {
   else if (e.c >= 0) line.name = b.storyText(e.c);
   if (e.d >= 0) line.portrait = b.storyText(e.d);
   else if (unit) line.portrait = b.units[(size_t)e.a].storyId;
+  line.key = unit && !b.units[(size_t)e.a].storyId.empty() ? b.units[(size_t)e.a].storyId : e.c >= 0 ? b.storyText(e.c) : std::string();
+  line.position = e.type == EventType::Dialogue ? e.flags & kDialoguePosMask : 0;
+  line.narrate = e.type == EventType::Dialogue && (e.flags & kDialogueNarrate) != 0;
+  if (e.type == EventType::Dialogue && !e.data.empty()) line.autoMs = e.data[0];  // (a Choice entry's data are its answers)
+  if (line.narrate) line.name.clear();
   return line;
 }
 

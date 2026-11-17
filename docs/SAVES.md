@@ -89,6 +89,16 @@ resumed battle plays that track (or stays silent); the key must be absent or a s
 anything else refuses the save (`battle.story.music`). The player checks nothing else about it: an id the game no longer has is a
 warning and silence.
 
+**Scene presentation (docs/EVENTS.md "Scene presentation").** The `story` object gets an optional `"scene"` object only while a story
+command has set something: `"background"` (a background id of data/graphics.json `backgrounds`, from a `background` command) and / or
+`"weather"` (`"rain"` or `"snow"`, from `weather`); each key only while set, so every other save is byte for byte what it was. A resumed
+battle shows that picture and weather at once and replays nothing. Anything else refuses the save (`battle.story.scene`,
+`.scene.background`: not a background id, or one the game no longer has; `.scene.weather`: not rain or snow). **Not saved:** a fade (the
+core ends a run of events that is still faded out with an automatic fade in, so a save is never made faded), the standing portraits, a
+shake or scroll under way, and everything of a **campaign scene** (a scene in progress is never saved, "Campaign saves in the player";
+its background, stage and fade end with it). The data hash counts that a scene command exists and its milliseconds, not which picture,
+weather or narrator wording.
+
 ## Where saves live
 
 `<user data folder>/saves/<game folder name>/continue.json` and

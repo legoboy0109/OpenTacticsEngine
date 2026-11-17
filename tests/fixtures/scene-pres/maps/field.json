@@ -1,0 +1,35 @@
+{
+  "name": "The Field",
+  "grid": { "type": "square", "width": 8, "height": 4 },
+  "legend": { ".": "plain" },
+  "tiles": [ "........", "........", "........", "........" ],
+  "sides": [ { "id": "blue", "name": "Travellers", "controller": "human" }, { "id": "red", "name": "Wardens", "controller": "ai" } ],
+  "units": [ { "id": "eirik", "type": "walker", "side": "blue", "x": 0, "y": 1, "name": "Eirik" },
+             { "id": "lyra", "type": "walker", "side": "blue", "x": 0, "y": 2, "name": "Lyra" },
+             { "id": "gorm", "type": "warden", "side": "red", "x": 7, "y": 1, "name": "Gorm" } ],
+  "events": [
+    { "id": "intro", "when": { "battle": "start" }, "do": [
+      { "fade": "out", "ms": 300, "color": "#000000" },
+      { "background": "forest" },
+      { "fade": "in", "ms": 300 },
+      { "say": "The forest is quiet.", "speaker": "eirik", "position": "left" },
+      { "say": "Too quiet.", "speaker": "lyra", "position": "right" },
+      { "wait": 400 },
+      { "shake": { "ms": 300, "strength": 3 } },
+      { "narrate": "Something stirs in the dark." },
+      { "say": "Who goes there?", "speaker": "gorm", "position": "center", "auto": 600 },
+      { "leave": "gorm" },
+      { "background": null, "transition": "fade", "ms": 300 },
+      { "clearStage": true },
+      { "focus": { "x": 6, "y": 1 }, "ms": 400 },
+      { "weather": "snow" },
+      { "moveUnit": "lyra", "x": 3, "y": 2, "walk": true },
+      { "setSwitch": "seen", "to": true } ] },
+    { "id": "hall", "when": { "turn": 2, "side": "blue" }, "do": [
+      { "weather": "rain" },
+      { "background": "hall" },
+      { "say": "We have come far.", "speaker": "eirik", "position": "left" } ] },
+    { "id": "rest", "when": { "turn": 3, "side": "blue" }, "do": [
+      { "background": null }, { "clearStage": true }, { "weather": "none" }, { "win": "blue" } ] }
+  ]
+}

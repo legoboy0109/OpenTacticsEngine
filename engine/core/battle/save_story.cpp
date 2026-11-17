@@ -29,6 +29,13 @@ void saveStoryState(const Battle& b, Json& out) {
   j.set("objectives", Json::makeNumber(b.storyState.objectives));
   // Only once a playMusic / stopMusic command ran, so every other save stays byte for byte what it was.
   if (b.storyState.musicAsked) j.set("music", Json::makeString(b.storyState.music));
+  // Scene presentation (docs/EVENTS.md): the picture over the map and the weather, only once a command set one.
+  if (!b.storyState.background.empty() || !b.storyState.weather.empty()) {
+    Json s = Json::makeObject();
+    if (!b.storyState.background.empty()) s.set("background", Json::makeString(b.storyState.background));
+    if (!b.storyState.weather.empty()) s.set("weather", Json::makeString(b.storyState.weather));
+    j.set("scene", s);
+  }
   out.set("story", j);
 }
 
@@ -78,6 +85,28 @@ bool restoreStoryState(Reader& rd, const Json& saved, Battle& b) {
       return rd.fail(where + ".music", "not a music id (letters, digits, _ and -) or \"\"");
     b.storyState.musicAsked = true;
     b.storyState.music = m.asString();
+  }
+  // "scene" (docs/SAVES.md): the background and weather a story command set. Absent = the map, clear sky.
+  b.storyState.background.clear();
+  b.storyState.weather.clear();
+  b.storyState.faded = false;
+  if (j->has("scene")) {
+    const Json& s = (*j)["scene"];
+    if (!s.isObject()) return rd.fail(where + ".scene", "not an object");
+    if (s.has("background")) {
+      const Json& v = s["background"];
+      if (!v.isString() || !isStoryId(v.asString()))
+        return rd.fail(where + ".scene.background", "not a background id (letters, digits, _ and -)");
+      if (b.db->graphics.findBackground(v.asString()) < 0)
+        return rd.fail(where + ".scene.background", "the game has no background \"" + v.asString() + "\"");
+      b.storyState.background = v.asString();
+    }
+    if (s.has("weather")) {
+      const Json& v = s["weather"];
+      if (!v.isString() || (v.asString() != "rain" && v.asString() != "snow"))
+        return rd.fail(where + ".scene.weather", "not \"rain\" or \"snow\"");
+      b.storyState.weather = v.asString();
+    }
   }
   return true;
 }

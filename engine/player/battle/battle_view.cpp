@@ -64,6 +64,11 @@ void BattleView::resync(const Battle& b) {
   structFlash.clear();
   cellFlash.clear();
   dialogue.active = false;
+  dialogue.staged = false;
+  // The scene presentation goes back to what the rules say: the saved background and weather, no fade, nobody on stage.
+  walkers_.clear();
+  stage.syncFrom(b.storyState.background, b.storyState.weather);
+  focusMs = -1;
   hasFocus = false;
   stickyFocus_ = false;
   skipping_ = false;
@@ -260,6 +265,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
     case EventType::UnitResupplied:
     case EventType::TerrainChanged:  // beginMapChange (battle_view_mapchange.cpp) took it above
+    case EventType::SceneEffect:     // beginStory (battle_view_story.cpp) took it above
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
     // Strategy-RPG entries: beginSrpg (battle_view_srpg.cpp) took them above.
     case EventType::SkillLearned:
@@ -466,6 +472,7 @@ void BattleView::skip(const Battle& b) {
 
 void BattleView::update(double dt, const Battle& b) {
   ensureUnits(b);
+  updateScene(dt, b);  // the scene stage's clock and the background walkers (battle_view_story.cpp)
   for (FloatText& f : floats) f.age += (float)dt;
   floats.erase(std::remove_if(floats.begin(), floats.end(), [](const FloatText& f) { return f.age >= f.life; }),
                floats.end());

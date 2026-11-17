@@ -1,5 +1,6 @@
 // The list of commands ("Then"): one plain sentence each; selecting one opens its form under it; add, reorder, delete.
 // An "If" shows its own "Then" and "Otherwise" lists indented under it, so nesting reads as an outline.
+import { backgroundIds } from '../../../../model/backgrounds'
 import { groupNames } from '../../../../model/behaviour'
 import { placesForCommand } from '../../../../model/placeStory'
 import { newCommand } from '../../../../model/storyDefaults'
@@ -37,12 +38,14 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
+  { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
   { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
-const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
+const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
+  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate']
 
 /** A door / chest command needs such a place with a story name on this map. */
 const placeWhy = (story: Story, kind: CommandKind): string | null => (placesForCommand(story.doc, story.map, kind).length > 0 ? null : P.noneYetShort)
@@ -69,6 +72,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     goto: doc.campaign && doc.campaign.chapters.length > 0 ? null : 'no chapters yet',
     playMusic: doc.audio?.music && Object.keys(doc.audio.music).length ? null : 'no music yet',
     playSound: doc.audio?.sounds && Object.keys(doc.audio.sounds).length ? null : 'no sounds yet',
+    background: backgroundIds(doc).length ? null : 'no backgrounds yet',
     openDoor: placeWhy(story, 'openDoor'), closeDoor: placeWhy(story, 'closeDoor'), lockDoor: placeWhy(story, 'lockDoor'),
     unlockDoor: placeWhy(story, 'unlockDoor'), openChest: placeWhy(story, 'openChest'),
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,

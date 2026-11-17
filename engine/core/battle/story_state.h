@@ -25,6 +25,12 @@ struct StoryState {
   // only, kept so a resumed battle plays the right track. Saved only when musicAsked (docs/SAVES.md).
   bool musicAsked = false;
   std::string music;              // the track id; empty = the story stopped the music
+  // Scene presentation (docs/EVENTS.md "Scene presentation"). `background` = the picture over the map (a background id of
+  // graphics.json, "" = the map) and `weather` = "rain" / "snow" (""= none): both saved, and only when set. A fade never outlives
+  // a run of events (the core fades in by itself at the end), so `faded` is never true between actions and is not saved.
+  std::string background, weather;
+  bool faded = false;
+  uint32_t fadeColor = 0;
 };
 
 // Something that happened which events can be waiting for.

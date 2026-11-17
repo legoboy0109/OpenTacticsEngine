@@ -6,6 +6,7 @@
 
 #include "battle/battle_view.h"
 #include "core/base/log.h"
+#include "core/data/scene_fx.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -18,6 +19,7 @@ constexpr int kSlideMaxCells = 8;             // a unit moved further than this 
 constexpr float kFlashDur = 0.5f;
 constexpr float kFocusDur = 0.5f;             // the camera has this long to arrive
 constexpr float kNoticeDur = 2.4f;
+constexpr float kWalkSecPerCell = 0.035f;     // a walked moveUnit goes at the speed of an ordinary move (battle_view.cpp kMoveSecPerCell)
 
 }  // namespace
 
@@ -29,6 +31,14 @@ bool BattleView::beginStory(const Battle& b) {
       ++dialogue.serial;
       // For the tests and for whoever debugs a story: which line reaches the player, in which order.
       OTE_INFO("dialogue: %s | %s%s", dialogue.line.name.c_str(), dialogue.line.text.c_str(), skipping_ ? " (skipped)" : "");
+      // Staging (docs/EVENTS.md "Scene presentation"): a positioned line puts its speaker on the stage; the log line only
+      // exists for those, so a game that does not use the keys logs exactly what it always did.
+      const bool staged = stage.say(dialogue.line.key, dialogue.line.portrait, dialogue.line.position);
+      if (dialogue.line.position != 0)
+        OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(),
+                 dialogue.line.position == kPosLeft ? "left" : dialogue.line.position == kPosRight ? "right" : "center");
+      dialogue.staged = staged;
+      if (dialogue.line.narrate) OTE_INFO("scene: narrate");
       // An empty line has nothing to show; a skipped run passes every line without showing it.
       if (skipping_ || (dialogue.line.text.empty() && dialogue.line.name.empty())) {
         cur_.dur = 0;
@@ -64,12 +74,40 @@ bool BattleView::beginStory(const Battle& b) {
         return true;
       }
       stickyFocus_ = true;
-      cur_.dur = kFocusDur;
+      // "ms" / "wait" (docs/EVENTS.md "Scene presentation"): c = scroll milliseconds (-1 = not given: the usual half
+      // second wait and quick ease), flags kFocusNoWait = the next entry does not wait. A skipped run jumps.
+      focusMs = skipping_ ? 0 : e.c;
+      ++focusSerial;
+      cur_.dur = skipping_ ? 0.0f : (e.flags & kFocusNoWait) ? 0.0f : e.c >= 0 ? (float)e.c / 1000.0f : kFocusDur;
+      if (e.c >= 0 || (e.flags & kFocusNoWait))
+        OTE_INFO("scene: focus %d,%d %s ms%s", b.grid.x(e.a), b.grid.y(e.a), e.c >= 0 ? std::to_string(e.c).c_str() : "default",
+                 (e.flags & kFocusNoWait) ? " (no wait)" : "");
       return true;
     }
+    case EventType::SceneEffect: return beginSceneEffect(b);
     case EventType::UnitRemoved: cur_.dur = kRemoveFade; return true;
     case EventType::UnitRelocated: {
       UnitView& v = units[(size_t)e.a];
+      if ((e.flags & kRelocateWalk) && e.data.size() >= 2) {  // "walk": true (docs/EVENTS.md): along the path, at the speed of a move
+        std::vector<Cell> path(e.data.begin(), e.data.end());
+        const float dur = std::max(0.02f, kWalkSecPerCell * (float)(path.size() - 1));
+        OTE_INFO("scene: walk %s %d steps%s", b.units[(size_t)e.a].storyId.c_str(), (int)path.size() - 1,
+                 (e.flags & kFocusNoWait) ? " (no wait)" : "");
+        cellPos(b, path[0], v.px, v.py);
+        if (skipping_) { cellPos(b, path.back(), v.px, v.py); cur_.dur = 0; return true; }
+        if (e.flags & kFocusNoWait) {  // it keeps walking while the next entries play
+          Walker w;
+          w.unit = e.a;
+          w.path = path;
+          w.dur = dur;
+          walkers_.push_back(w);
+          cur_.dur = 0;
+          return true;
+        }
+        cur_.path = path;
+        cur_.dur = dur;
+        return true;
+      }
       cellPos(b, e.b, v.px, v.py);  // starts from the square it left
       int dist = b.grid.distance(e.b, e.c);
       cur_.path.assign({e.b, e.c});
@@ -115,6 +153,13 @@ bool BattleView::progressStory(const Battle& b) {
     case EventType::UnitRemoved: units[(size_t)e.a].alpha = 1 - p; return true;
     case EventType::UnitRelocated: {
       UnitView& v = units[(size_t)e.a];
+      if ((e.flags & kRelocateWalk) && cur_.path.size() >= 2) {  // a walked move: along its path with the walking frames
+        walkStep(b, v, cur_.path, p, true);
+        hasFocus = true;
+        focusX = v.px + tile_ / 2.0f;
+        focusY = v.py + tile_ / 2.0f;
+        return true;
+      }
       float x0, y0, x1, y1;
       cellPos(b, e.b, x0, y0);
       cellPos(b, e.c, x1, y1);
@@ -156,9 +201,14 @@ bool BattleView::finishStory(const Battle& b) {
     }
     case EventType::UnitRelocated: {
       UnitView& v = units[(size_t)e.a];
+      for (const Walker& w : walkers_)
+        if (w.unit == e.a) return true;  // it is still walking in the background ("wait": false): its walker finishes it
       cellPos(b, e.c, v.px, v.py);
+      v.walking = false;
+      v.walkLogged = -1;
       return true;
     }
+    case EventType::SceneEffect: stage.finishNow(); return true;  // the transition / wait / shake this entry started is over
     case EventType::SideChanged: {
       UnitView& v = units[(size_t)e.a];
       v.side = e.c;
@@ -167,6 +217,114 @@ bool BattleView::finishStory(const Battle& b) {
     }
     default: return false;
   }
+}
+
+// ---- scene presentation (docs/EVENTS.md "Scene presentation")
+
+bool BattleView::beginSceneEffect(const Battle& b) {
+  const Event& e = cur_.ev;
+  const std::string text = e.b >= 0 ? b.storyText(e.b) : std::string();
+  // A skipped run (and the simulator, which never gets here) takes no time: every transition is a cut.
+  const int ms = skipping_ ? 0 : std::max(0, e.c);
+  const char* note = skipping_ ? " (skipped)" : "";
+  switch ((SceneFx::Kind)e.a) {
+    case SceneFx::Kind::Background: {
+      const bool fade = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      stage.setBackground(text, fade, ms);
+      cur_.dur = fade ? (float)ms / 1000.0f : 0.0f;
+      const std::string how = (e.flags & kSceneFadeTrans) ? " fade " + std::to_string(e.c) + " ms" : std::string(" cut");
+      OTE_INFO("scene: background %s%s%s", text.empty() ? "(none)" : text.c_str(), how.c_str(), note);
+      break;
+    }
+    case SceneFx::Kind::Fade: {
+      const bool out = (e.flags & kSceneOut) != 0;
+      stage.fade(out, (uint32_t)e.d, ms);
+      cur_.dur = (float)ms / 1000.0f;
+      OTE_INFO("scene: fade %s %d ms #%06x%s%s", out ? "out" : "in", e.c, (unsigned)e.d, (e.flags & kSceneAuto) ? " (automatic)" : "", note);
+      break;
+    }
+    case SceneFx::Kind::Wait:
+      cur_.dur = (float)ms / 1000.0f;
+      OTE_INFO("scene: wait %d ms%s", e.c, note);
+      break;
+    case SceneFx::Kind::Shake:
+      stage.shake(ms, e.d);
+      cur_.dur = (float)ms / 1000.0f;
+      OTE_INFO("scene: shake %d ms strength %d%s", e.c, e.d, note);
+      break;
+    case SceneFx::Kind::Leave:
+      stage.leave(text);
+      OTE_INFO("scene: leave %s", text.empty() ? "(everybody)" : text.c_str());
+      break;
+    case SceneFx::Kind::Weather:
+      stage.setWeather(text);
+      OTE_INFO("scene: weather %s", text.c_str());
+      break;
+    case SceneFx::Kind::None: break;
+  }
+  return true;
+}
+
+// One frame of a walk along `path` at progress p (0..1): the unit's place, the direction of the step under way (the walking
+// frames follow it) and, for the walk the scene waits on, the footstep sound.
+void BattleView::walkStep(const Battle& b, UnitView& v, const std::vector<Cell>& path, float p, bool sound) {
+  const float f = p * (float)(path.size() - 1);
+  const size_t i = std::min((size_t)f, path.size() - 1), j = std::min(i + 1, path.size() - 1);
+  if (sound) soundStep(b, i);
+  float x0, y0, x1, y1;
+  cellPos(b, path[i], x0, y0);
+  cellPos(b, path[j], x1, y1);
+  if (j > i) {
+    v.walkDx = x1 - x0;
+    v.walkDy = y1 - y0;
+  }
+  v.walking = path.size() > 1;
+  const float t = f - (float)i;
+  v.px = x0 + (x1 - x0) * t;
+  v.py = y0 + (y1 - y0) * t;
+}
+
+void BattleView::updateScene(double dt, const Battle& b) {
+  stage.update(dt);
+  for (size_t k = 0; k < walkers_.size();) {
+    Walker& w = walkers_[k];
+    w.t += (float)dt;
+    const float p = std::min(1.0f, w.t / w.dur);
+    UnitView& v = units[(size_t)w.unit];
+    walkStep(b, v, w.path, p, false);
+    if (p >= 1) {
+      cellPos(b, w.path.back(), v.px, v.py);
+      v.walking = false;
+      v.walkLogged = -1;
+      walkers_.erase(walkers_.begin() + (long)k);
+    } else {
+      ++k;
+    }
+  }
+}
+
+// The skip control: every fade, wait, shake, walk and scroll under way completes at once (the entries behind it then take no
+// time either, see skipping_). The end state is the one a played scene reaches.
+void BattleView::skipScene(const Battle& b) {
+  stage.finishNow();
+  for (const Walker& w : walkers_) {
+    UnitView& v = units[(size_t)w.unit];
+    cellPos(b, w.path.back(), v.px, v.py);
+    v.walking = false;
+    v.walkLogged = -1;
+  }
+  walkers_.clear();
+  focusMs = 0;  // a scroll under way jumps
+  ++focusSerial;
+}
+
+bool BattleView::inScene() const {
+  if (!walkers_.empty()) return true;
+  auto sceneEntry = [](const Event& e) { return e.type == EventType::SceneEffect || (e.type == EventType::UnitRelocated && (e.flags & kRelocateWalk)); };
+  if (cur_.active && sceneEntry(cur_.ev)) return true;
+  for (const Event& e : queue_)
+    if (sceneEntry(e)) return true;
+  return false;
 }
 
 }  // namespace ote

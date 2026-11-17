@@ -126,7 +126,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "say": "text", "speaker": "eirik" }` | a line of dialogue (entry `Dialogue`); `speaker` is a unit id or a free name (`"speakerName": "Villager"`, not both); optional `"portrait"` id (just text for the player to look up) |
 | `{ "addUnit": { …a map unit… } }` | places a unit (keys as in the map's `units`, including `id` and `ranks`); if the square is taken or the unit cannot stand there, the nearest free square it can stand on (grid distance, the lowest cell number on a tie). A repeated `addUnit` with an id that a unit already has creates the unit without the id (logged). No free square at all: nothing is added (logged) |
 | `{ "removeUnit": <filter> }` | leaves the map (not a defeat: no drops, no defeat events; the defeat rules still apply, so removing a side's last unit ends it like any other loss) |
-| `{ "moveUnit": "eirik", "x": 3, "y": 4 }` | refined: the unit is put there (no path is walked; the entry gives the squares it left and reached, the player may animate it); if the square is taken, the nearest free one as for `addUnit`. Does not spend its move. Fires `reach` events |
+| `{ "moveUnit": "eirik", "x": 3, "y": 4 }` | refined: the unit is put there (no path is walked; the entry gives the squares it left and reached, the player may animate it); if the square is taken, the nearest free one as for `addUnit`. Does not spend its move. Fires `reach` events. `"walk": true` (with optional `"wait": false`) plays it as a walk along the way ("Scene presentation"; the rules result is the same) |
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
@@ -140,7 +140,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "win": "blue" }` / `{ "lose": "blue" }` | ends the battle for that team (refined: a team name or a side id). `lose` leaves the win to the only other team still in the battle, nobody if there are several. The first decision stands; the rest of the event still runs |
 | `{ "if": [conditions], "then": [commands], "else": [commands] }` | `then` required, `else` optional |
 | `{ "endTurn": true }` | only in an event whose trigger is `talk` (a loader error anywhere else): the talking unit's turn ends |
-| `{ "focus": { "x": 3, "y": 4 } }` or `{ "focus": "eirik" }` | the view moves there before the next entry (a unit that is not on the map: nothing) |
+| `{ "focus": { "x": 3, "y": 4 } }` or `{ "focus": "eirik" }` | the view moves there before the next entry (a unit that is not on the map: nothing); optional `ms` (scroll time) and `wait` ("Scene presentation") |
 | `{ "playMusic": "boss", "fade": 1.0 }` | sound (docs/SOUND.md): the track `boss` of `data/audio.json` plays until another command changes it or the battle ends; `fade` seconds (0..60, optional: not given = the player's 0.5 s cross-fade, 0 = a cut). Presentation only: entry `MusicChanged`; the core keeps only "the music the story asked for" (saved with the battle, docs/SAVES.md). The id is opaque to the core (it goes into the text table, so which track it is does not count for the save hash, but the command does); the player refuses a game whose ids are not in `audio.json` |
 | `{ "stopMusic": true, "fade": 1.0 }` | silence until a later `playMusic` or the end of the battle (entry `MusicChanged` with no track) |
 | `{ "playSound": "thunder" }` | one sound effect (entry `SoundRequested`) |
@@ -252,7 +252,7 @@ indices for `Battle::storyText(i)`):
 | Entry | a, b, c, d |
 |---|---|
 | `Dialogue` | a = speaker unit (-1 none), b = text, c = free speaker name (-1 none), d = portrait id (-1 none) |
-| `Focus` | a = cell, b = the unit followed (-1 just the square) |
+| `Focus` | a = cell, b = the unit followed (-1 just the square), c = scroll ms (-1 = not given), flags `kFocusNoWait` ("Scene presentation") |
 | `UnitAdded` | a = unit, b = cell |
 | `UnitRemoved` | a = unit, b = the cell it stood on |
 | `UnitRelocated` | a = unit, b = cell it left, c = cell it reached |
@@ -261,6 +261,7 @@ indices for `Battle::storyText(i)`):
 | `MusicChanged` | a = text index of the track id (-1 = the story stopped the music), b = fade in milliseconds (-1 = not given) |
 | `SoundRequested` | a = text index of the sound id |
 | `TerrainChanged` | a = number of squares, b = the terrain they all got (-1 = not all the same), data = the squares (cell numbers). Public (every team: terrain is known to all). Comes before `Choice`, which stays the last entry |
+| `SceneEffect` | "Scene presentation": a = the command (`SceneFx::Kind`: background, fade, wait, shake, leave, weather), b = text index (picture id, speaker, weather; -1 none), c = ms, d = fade colour / shake strength, flags `kSceneOut` / `kSceneFadeTrans` / `kSceneAuto`. A `Dialogue` entry also carries the line's `position` / narrate in its flags and "auto" in `data`; a walked `UnitRelocated` carries the path in `data` |
 
 With fog of war every event, these included, also carries `Event::seen` (a bit per team: dialogue, focus and
 objective changes and the two sound entries are seen by every team; the others by the teams that saw the unit or the square, see
@@ -769,6 +770,117 @@ character) have none. All wording is placeholder.
   both`; `only "say" is allowed in a quote`; an unknown key in `quotes`, a quote or `defeat`.
 - Tests: `tests/test_quotes_rules.cpp`, `tests/test_quotes_data.cpp` (fixture `tests/fixtures/srpg-quotes`),
   `tests/srpg_player_quotes_test.py`. The player logs `[info] dialogue: <speaker> | <text>` for each line that reaches the box.
+
+## Scene presentation
+
+Built. Code: `engine/core/data/scene_fx.h`, `loader_scene_fx.*`, `loader_scene_backgrounds.cpp`, `engine/core/battle/story_scene_fx.cpp`;
+player `engine/player/ui/scene_stage*.{h,cpp}`, `battle/battle_view_story.cpp`, `campaign/story_scene.cpp`. Tests:
+`tests/test_scene_fx.cpp`, `tests/test_scene_stage.cpp`, `tests/scene_player_test.py` (fixture `tests/fixtures/scene-pres`, its art drawn by
+`tools/art/make_scene_test_art.py`), `tests/editor_api_scene_checks.py`, `editor/web/tests/unit/scene.test.ts`,
+`editor/web/tests/e2e/scene.spec.ts`. The classic scene toolkit: a picture behind the dialogue, fades, pauses, a camera that scrolls
+and shakes, characters standing left and right, weather, units that walk in. **All of it is presentation only**: the rules never read
+it, a battle ends the same with and without it, `ote-sim` ignores it (the simulator's results are the same to the digit), and every
+wait and fade is skipped by the player's skip control. The commands work in map events **and** in campaign scenes, except where the
+table says "map only".
+
+| Command | What | Where |
+|---|---|---|
+| `{ "background": "forest" }` | shows the full-screen picture `forest` (data/graphics.json `backgrounds`, docs/GRAPHICS.md "Backgrounds") behind the dialogue; in a map event it hides the map and the panels until taken away | both |
+| `{ "background": "hall", "transition": "fade", "ms": 600 }` | the same with a cross-fade (`transition`: `"cut"` (default) or `"fade"`; `ms` 0 to 10000, default 500, used by a fade only) | both |
+| `{ "background": null }` | takes the background away: back to the map (map event) or to the scene's plain colour, which is also what a campaign scene shows when it never had a background (today's look); takes `transition` / `ms` too | both |
+| `{ "fade": "out", "ms": 500, "color": "#000000" }` | fades the whole screen to the colour (`#rrggbb` or `#rgb`, default black; `ms` 0 to 10000, default 500). It **stays faded until faded in** and the commands in between run behind it: adding, removing and moving units, changing the background or the music (the classic "fade out, rearrange, fade in") | both |
+| `{ "fade": "in", "ms": 500 }` | brings it back, from the colour it went out to (a `color` here is ignored) | both |
+| `{ "wait": 500 }` | a pause in milliseconds (0 to 60000) | both |
+| `{ "shake": { "ms": 400, "strength": 3 } }` | shakes the picture; `ms` 0 to 10000 (default 400), `strength` 1 to 32 logical pixels (default 3) | both |
+| `{ "focus": { "x": 3, "y": 4 }, "ms": 600, "wait": false }` | `focus` as before plus `ms` (the scroll takes that long, 0 to 10000; 0 jumps; left out = the usual quick ease with a half-second wait) and `wait` (default true: the next command waits for the scroll; false: it goes on while the camera still scrolls) | map only |
+| `{ "say": "…", "speaker": "eirik", "position": "left" }` | `say` with a place on the stage: `"left"`, `"right"` or `"center"` (see "Standing portraits"). Without `position` the line looks exactly as it always did | both |
+| `{ "say": "…", "auto": 800 }` | the line goes on by itself 1 to 60000 ms after its last page is complete (Confirm and Skip still work; a question never does) | both |
+| `{ "narrate": "Night falls." }` | a line with no name and no portrait, the text centred in the box (over the background, if there is one); takes `auto` too | both |
+| `{ "leave": "eirik" }` | takes that speaker's portrait off the stage (the unit's story id, or the free name the line used) | both |
+| `{ "clearStage": true }` | everybody leaves the stage | both |
+| `{ "weather": "rain" }` | `"rain"`, `"snow"` or `"none"`: a particle overlay falling until changed. Saved with the battle | map only |
+| `{ "moveUnit": "eirik", "x": 3, "y": 4, "walk": true, "wait": false }` | `moveUnit` as before plus `walk`: the unit **walks** its way at the speed of an ordinary move (with its walking pictures when it has them, docs/GRAPHICS.md "Walking") instead of sliding. `wait` (only with `walk`, default true) says whether the next command waits for the walk | map only |
+
+Everything out of range, an unknown key, a `transition` that is not `cut` / `fade`, a `position` that is not `left` / `right` /
+`center`, a colour that is not `#rgb` / `#rrggbb`, an unknown background id (`"background" names unknown background "swamp"
+(data/graphics.json "backgrounds")`, or `this game has no backgrounds`), `weather` in a campaign scene (`"weather" is for map events
+only: a campaign scene has no map to put weather over`) and `focus` / `moveUnit` in a scene (they are not scene commands) is a loader
+error naming the file, the event or chapter and the command. `fade` and `wait` are also modifiers of other commands (`playMusic` /
+`stopMusic` `fade` seconds, `focus` / `moveUnit` `wait`): next to those commands they keep that meaning, on their own they are the
+new commands.
+
+**Example scene** (a map event at the start of a battle; a campaign scene takes the same list without `weather`, `focus` and `walk`):
+
+```json
+{ "id": "ambush", "when": { "battle": "start" }, "do": [
+  { "fade": "out", "ms": 400, "color": "#000000" },
+  { "background": "forest_dusk" },
+  { "fade": "in", "ms": 400 },
+  { "say": "The forest is quiet.", "speaker": "eirik", "position": "left" },
+  { "say": "Too quiet.", "speaker": "lyra", "position": "right" },
+  { "wait": 400 },
+  { "shake": { "ms": 300, "strength": 3 } },
+  { "narrate": "Something stirs in the dark." },
+  { "say": "Who goes there?", "speaker": "gorm", "position": "center", "auto": 1200 },
+  { "leave": "gorm" },
+  { "fade": "out", "ms": 300 },
+  { "background": null },
+  { "clearStage": true },
+  { "fade": "in", "ms": 300 } ] }
+```
+
+### Standing portraits
+
+The dialogue box shows **one** portrait, beside the box. A line with `position` puts its speaker on the **stage** instead: the portrait
+stands at the left, right or middle of the screen on the top edge of the box, drawn as large as a whole-number scale allows within 55
+percent of the screen's height and 45 percent of its width (3 times on the 480 x 270 screen with 48 x 48 faces; smaller only when the
+picture cannot fit). The speaker is drawn bright, everybody else on the stage **dimmed**. A portrait stays until `leave` /
+`clearStage`, or the scene ends (a map event's run of events; a campaign scene). One portrait per place: a newcomer takes the place of
+whoever stood there, and a speaker given a new `position` moves. A line **without** `position` from someone who stands on the stage
+lights that portrait where it stands; from someone who does not, it shows the classic portrait beside the box and the stage stays as it
+is. Whose picture it is follows the line's `portrait` id, else the speaker's unit id, as always. Far / near variants are not built.
+
+### Time, skipping, saving
+
+- **Order.** Commands play in order. `fade`, `wait`, `shake`, a background with `"transition": "fade"`, a `focus` that waits and a
+  `walk` that waits hold the commands behind them until they are over. The rules happen at once in the core (the unit added, moved or
+  removed behind a fade really is), only what the player sees waits. `wait: false` on a `focus` / `walk` lets the next commands run while
+  it goes on; the run does not end before it has finished.
+- **A fade never outlives its scene.** In a map event the core ends a run of events that is still faded out with an automatic
+  `fade in` (500 ms, logged "(automatic)"), so no save is ever made in the dark; a campaign scene that ends faded out fades in (500 ms)
+  before the next screen. A maker who wants the dark to last starts the next scene with the picture they want.
+- **Skipping.** The existing skip control (the Skip tab or button, the `skip` script token, or holding Cancel / Menu for half a second,
+  also while a fade, wait, shake or walk plays with no box up) fast-forwards the whole scene: fades, waits, shakes, transitions and
+  walks take no time, the remaining lines pass, and the end state is exactly what playing reaches (background, fade, who stands on the
+  stage, weather, unit squares, music: a skipped campaign scene still makes its `playMusic` / `stopMusic` changes; one-shot sounds stay
+  silent). A tap or Confirm during a wait ends just that wait. `--autoplay` never waits on a scene.
+- **Saved.** Only the **picture** and the **weather** of a map event are state: the battle's `story` object gets `"scene":
+  { "background": "hall", "weather": "rain" }` (each key only while set; docs/SAVES.md) and a resumed battle shows them at once, with
+  nothing replayed. The fade needs no key (never on at a save), and the stage, a shake and a scroll under way are not saved (a save is
+  made when a run of events is over; the picture and weather stay, the standing portraits go). A **campaign scene is not saved while it
+  plays**: closing the window in a scene leaves the Continue save as it was and the scene plays again from its title card; a scene that
+  has ended leaves its changes (switches, variables, music) as before, but its background, stage and fade end with it.
+- **Hash.** The data hash sees that a command is there (and its milliseconds) but not which picture, which weather, who leaves or what a
+  narrator says (wording, like a `say`).
+
+### The camera, per kind of view
+
+| View | `focus` `ms` | `shake` |
+|---|---|---|
+| 2D, 2D isometric, 3D isometric (scrolling camera) | a steady scroll of that length, eased at both ends; 0 jumps; `wait` says whether the commands behind it wait | the map moves for its length (the panels do not) |
+| Full 3D | 0 puts the camera there at once; more uses the 3D camera's own easing (the length is not exact; the wait still lasts `ms`) | the camera turns a hair left / right and up / down |
+| any, while a background shows | the camera still scrolls, under the picture | the **picture** and the standing portraits shake instead |
+
+Hexagon maps follow their kind of view. A `focus` on a square the fog hides, or on a unit that is not on the map, does nothing (as before).
+In a campaign scene there is no map: a `shake` moves the background and the standing portraits (a scene with neither shows nothing
+move, it only takes its time).
+
+### What the player logs
+
+One line per new command, which the tests read: `scene: fade out 300 ms #000000`, `scene: background forest cut` / `... fade 600 ms`,
+`scene: wait 400 ms`, `scene: shake 300 ms strength 3`, `scene: portrait eirik left`, `scene: leave gorm`, `scene: narrate`,
+`scene: weather snow`, `scene: focus 6,1 400 ms (no wait)`, `scene: walk lyra 3 steps`, with ` (skipped)` after those a skip made
+instant. A game that uses none of the keys logs exactly what it always did.
 
 ## Strategy-RPG additions
 

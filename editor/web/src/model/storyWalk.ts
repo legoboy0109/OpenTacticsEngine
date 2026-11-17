@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -251,6 +251,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
     (x) => withRef(x, 'playMusic', 'music', w, where),
     (x) => withRef(x, 'playSound', 'sound', w, where),
+    (x) => withRef(x, 'background', 'background', w, where), // a scene background (null = clear it: not a name)
     (x) => (x.giveItem !== undefined || x.teachSkill !== undefined || (typeof x.to === 'object' && x.to !== null) ? withFilter(x, 'to', w, where) : x), // giveItem's and teachSkill's `to` is a filter: a bare unit id or { unit / side / team / type }
     (x) => withRef(x, 'setSwitch', 'switch', w, where),
     (x) => withRef(x, 'level', 'unit', w, where), // a variable command that reads a unit

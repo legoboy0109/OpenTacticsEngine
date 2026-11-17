@@ -3,6 +3,7 @@
 
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
+#include "core/data/loader_scene_fx.h"
 
 namespace ote {
 
@@ -25,6 +26,27 @@ constexpr const char* kConditionCommandKeys[] = {"addCondition", "removeConditio
 constexpr const char* kBehaviourCommandKeys[] = {"setBehaviour", "wakeGroup"};
 // Changing the map and fog (docs/EVENTS.md "Changing the map"), read in loader_story_mapchange.cpp.
 constexpr const char* kMapCommandKeys[] = {"setTerrain", "applyChange", "revertChange", "setFog", "setVision"};
+// Scene presentation (docs/EVENTS.md "Scene presentation"), read by loader_scene_fx.cpp (and narrate, a say line).
+constexpr const char* kSceneCommandKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
+
+SceneFxReader readerFor(StoryLoader& L) {
+  return SceneFxReader{L.ctx(), L.db(), true, [&L](const std::string& s) { return L.text(s); }};
+}
+
+// background, fade, wait, shake, leave, clearStage, weather; narrate is a say line with no speaker.
+bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const std::string& at, Command& out) {
+  SceneFxReader r = readerFor(L);
+  if (key == "narrate") {
+    out.kind = Command::Kind::Say;
+    if (!r.onlyKeys(e, {"narrate", "auto"}, at)) return false;
+    if (!e["narrate"].isString()) return L.fail(at, "\"narrate\" must be the text to show");
+    out.text = L.text(e["narrate"].asString());
+    out.fx.narrate = true;
+    return r.sayExtras(e, at, out.fx);
+  }
+  out.kind = Command::Kind::Scene;
+  return r.command(e, key, at, out.fx);
+}
 
 }  // namespace
 
@@ -80,10 +102,17 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kSceneCommandKeys)
+    if (SceneFxReader::isCommandIn(e, k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   for (const char* k : kMapCommandKeys)
     if (kind && std::string(kind) == k) return mapChangeCommand(e, kind, where + " (" + kind + ")", out);
   for (const char* k : kBehaviourCommandKeys)
     if (kind && std::string(kind) == k) return behaviourCommand(e, where + " (" + kind + ")", out);
+  for (const char* k : kSceneCommandKeys)
+    if (kind && std::string(kind) == k) return sceneFxCommand(*this, e, kind, where + " (" + kind + ")", out);
   for (const char* k : kPlaceCommandKeys)
     if (kind && std::string(kind) == k) return placeCommand(e, kind, where + " (" + kind + ")", out);
   if (!kind) {
@@ -118,7 +147,8 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   if (k == "say") {
     out.kind = K::Say;
-    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;
+    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto"}, at)) return false;
+    if (!readerFor(*this).sayExtras(e, at, out.fx)) return false;
     if (!v.isString()) return fail(at, "\"say\" must be the text to show");
     out.text = text(v.asString());
     if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");
@@ -144,7 +174,8 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   if (k == "moveUnit") {
     out.kind = K::MoveUnit;
-    if (!onlyKeys(e, {"moveUnit", "x", "y"}, at) || !unitId(v, at, "\"moveUnit\"", out.unit)) return false;
+    if (!onlyKeys(e, {"moveUnit", "x", "y", "walk", "wait"}, at) || !unitId(v, at, "\"moveUnit\"", out.unit)) return false;
+    if (!readerFor(*this).moveExtras(e, at, out.fx)) return false;
     if (!c_.integer(e, "x", at, out.x, true) || !c_.integer(e, "y", at, out.y, true)) return false;
     if (out.x < 0 || out.y < 0 || out.x >= map_.width || out.y >= map_.height)
       return fail(at, "the square " + std::to_string(out.x) + "," + std::to_string(out.y) + " is outside the map");
@@ -272,7 +303,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   // focus
   out.kind = K::Focus;
-  if (!onlyKeys(e, {"focus"}, at)) return false;
+  if (!onlyKeys(e, {"focus", "ms", "wait"}, at) || !readerFor(*this).focusExtras(e, at, out.fx)) return false;
   if (v.isString()) return unitId(v, at, "\"focus\"", out.unit);
   if (!v.isObject()) return fail(at, "\"focus\" must be a unit id or a square { \"x\": 3, \"y\": 4 }");
   if (!onlyKeys(v, {"x", "y"}, at + ": \"focus\"") || !c_.integer(v, "x", at, out.x, true) || !c_.integer(v, "y", at, out.y, true))

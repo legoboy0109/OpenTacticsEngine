@@ -22,6 +22,7 @@ void printScene(const std::vector<SceneLine>& lines, const char* indent) {
     if (l.kind == SceneLine::Kind::PlayMusic) std::printf("%s[music '%s', fade %d ms]\n", indent, l.text.c_str(), l.fadeMs);
     else if (l.kind == SceneLine::Kind::StopMusic) std::printf("%s[music stops, fade %d ms]\n", indent, l.fadeMs);
     else if (l.kind == SceneLine::Kind::PlaySound) std::printf("%s[sound '%s']\n", indent, l.text.c_str());
+    else if (l.kind == SceneLine::Kind::Fx) continue;  // scene presentation: the simulator shows nothing (docs/EVENTS.md)
     else std::printf("%s%s%s%s\n", indent, l.speaker.c_str(), l.speaker.empty() ? "" : ": ", l.text.c_str());
   }
 }

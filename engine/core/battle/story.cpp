@@ -215,6 +215,7 @@ void Battle::drainStory(std::vector<Event>& events) {
   }
   run.queue.clear();
   run.running = false;
+  endStoryRun(events);  // a fade does not outlive the run (story_scene_fx.cpp)
 }
 
 // ---- Talk ----

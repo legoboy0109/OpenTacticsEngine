@@ -16,6 +16,11 @@ struct DialogueLine {
   std::string name;      // the speaker: the unit's name or the free name; "" = no name row
   std::string text;
   std::string portrait;  // portrait id to look up in the graphics, "" = none
+  // Scene presentation (docs/EVENTS.md): who stands where, a narrator line, a line that moves on by itself.
+  std::string key;       // the speaker as the stage knows it: the unit's story id, else the free name ("" = nobody)
+  int position = 0;      // kPosLeft / kPosRight / kPosCenter; 0 = the classic portrait beside the box
+  bool narrate = false;  // no name, no portrait, the text centred
+  int autoMs = 0;        // > 0: the line goes on by itself this long after its last page is complete
 };
 
 // Reads a `Dialogue` stream entry (a = speaker unit, b = text, c = free name, d = portrait id).

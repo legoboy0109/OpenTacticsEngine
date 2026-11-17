@@ -342,7 +342,9 @@ surviving named units (levels, items), storage, resources, switches and variable
 from chapter to chapter. A game without the file plays single maps as before.
 Specified in docs/EVENTS.md "Campaign": `name`, `rules` (`fallen`, `onDefeat`),
 `freeBattles` and `chapters` (`id`, `name`, `map`, `before` / `after` scenes, `next`). Scenes may ask questions (`choice`) and
-branch with `goto` (also from a before scene, which skips that chapter's battle).
+branch with `goto` (also from a before scene, which skips that chapter's battle), and use the scene presentation commands
+(`background`, `fade`, `wait`, `shake`, `leave`, `clearStage`, `narrate`, and `position` / `auto` on a `say`; docs/EVENTS.md "Scene
+presentation"; not `weather`, `focus` or a walked `moveUnit`, which need a map).
 Unknown keys, unknown maps / chapters and bad rule values are loader errors. The
 file counts for the save hash except its wording (docs/SAVES.md).
 
@@ -454,7 +456,7 @@ Every key except `id` is optional. These keys recolor the placeholder
 graphics (`structureColors` does the same for structure blocks, by structure
 id, like `terrainColors` does for terrain). Real art (sheets, tiles, sprites) lives in the optional
 `data/graphics.json` (unit pictures may carry `walk` frames, docs/GRAPHICS.md "Walking"; the `battle` section gives fighters' animation sets by
-unit type, character, weapon, weapon group and side, with per-side sheets and up to 512 frames per animation, docs/BATTLE_SCENE.md), which can also override art per style id: see
+unit type, character, weapon, weapon group and side, with per-side sheets and up to 512 frames per animation, docs/BATTLE_SCENE.md; the root `backgrounds` list gives story scenes their full-screen pictures, docs/GRAPHICS.md "Backgrounds"), which can also override art per style id: see
 docs/GRAPHICS.md.
 
 ## Player settings (not part of a game)

@@ -22,6 +22,9 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   time_ = 0;
   held_ = false;
   heldFor_ = 0;
+  centred_ = line.narrate;
+  autoMs_ = line.autoMs;
+  autoT_ = 0;
 
   // Everything is measured from the active font, like the other panels.
   lh_ = r.lineHeight();
@@ -172,6 +175,14 @@ DialogueBox::Result DialogueBox::update(double dt) {
     letters_ += (float)dt * kDialogueLettersPerSecond;
     if ((int)letters_ != before) uiCue(Cue::Dialogue);  // typing (never when the page is shown at once); rate-limited by GameAudio
   }
+  // "auto" (docs/EVENTS.md "Scene presentation"): a complete page goes on by itself after autoMs_ (a question never does).
+  if (autoMs_ > 0 && pageDone() && !choosing_ && answers_.empty()) {
+    autoT_ += (float)dt;
+    if (autoT_ * 1000.0f >= (float)autoMs_) {
+      autoT_ = 0;
+      return advance();
+    }
+  }
   if (held_ && !choosing_) {
     heldFor_ += (float)dt;
     if (heldFor_ >= kDialogueHoldToSkip) {
@@ -243,7 +254,8 @@ void DialogueBox::draw(Renderer& r) const {
   }
   std::vector<std::string> shown = revealLetters(pages_[(size_t)page_], (int)letters_);
   for (const std::string& ln : shown) {
-    r.drawText(boxX_ + pad_, y, ln.c_str(), kTextSel);
+    const int x = centred_ ? boxX_ + std::max(pad_, (boxW_ - textW(r, ln)) / 2) : boxX_ + pad_;
+    r.drawText(x, y, ln.c_str(), kTextSel);
     y += step_;
   }
   // "More" mark once the page is fully shown: it blinks, and a last page shows it too (= "continue").

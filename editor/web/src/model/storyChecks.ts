@@ -2,6 +2,7 @@
 // and loader_story_*.cpp), so a maker sees them in the editor before pressing Play. The wording is plain; the loader's
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
+import { sceneProblems } from './sceneChecks'
 import { audioRefProblem } from './audioChecks'
 import { mapChangeChecks } from './mapChangeStory'
 import { blockProblems, groupNames } from './behaviour'
@@ -45,6 +46,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'change': return missing('a change') ?? (Object.keys(map.changes ?? {}).includes(r.id) ? null : `“${r.id}” is not one of this map’s changes.`)
     case 'terrain': return missing('a terrain') ?? (known(doc.terrain ?? undefined) ? null : `“${r.id}” is not a terrain of this game.`)
     case 'place': return null // placeChecks.ts says it in plainer words (the loader's rules differ per trigger and command)
+    case 'background': return null // sceneChecks.ts says it with the command's own words
     case 'portrait': return null // just text for the player to look up: an id with no picture shows the box without one
   }
 }
@@ -71,6 +73,7 @@ function objectivesChecks(map: MapFile, o: Objectives, where: string, say: (w: s
 
 function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command, where: string, say: (w: string, t: string) => void, ids: Map<string, number>, stores: Map<string, number>): void {
   const talk = triggerKind(e.when ?? {}) === 'talk'
+  for (const t of sceneProblems(doc, c, false)) say(where, t)  // scene presentation (sceneChecks.ts)
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say(where, 'the text to say is empty.')

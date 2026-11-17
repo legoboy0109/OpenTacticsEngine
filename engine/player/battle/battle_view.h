@@ -13,6 +13,7 @@
 #include "core/view/hex_geo.h"
 #include "platform/platform.h"
 #include "ui/dialogue_text.h"
+#include "ui/scene_stage.h"
 
 namespace ote {
 
@@ -51,6 +52,7 @@ struct DialogueState {
   int serial = 0;
   DialogueLine line;
   std::vector<std::string> answers;  // not empty = the line is a question with these answers (a Choice entry)
+  bool staged = false;               // the speaker stands on the scene stage (docs/EVENTS.md "Scene presentation"): the box draws no portrait
 };
 
 struct LevelUpPanel {
@@ -70,7 +72,7 @@ class BattleView {
   void init(const Battle& b, int tileSize, bool autoplay);
   // Queue events produced by Battle::apply / start / aiTakeStep.
   void push(const std::vector<Event>& events);
-  bool busy() const { return cur_.active || !queue_.empty(); }
+  bool busy() const { return cur_.active || !queue_.empty() || !walkers_.empty(); }
   void update(double dt, const Battle& b);
   // Finishes the event currently playing (Confirm/Cancel/tap while animating).
   void skip(const Battle& b);
@@ -82,6 +84,7 @@ class BattleView {
   // once (the flag clears when the queue has drained).
   void skipDialogues(const Battle& b) {
     skipping_ = true;
+    skipScene(b);  // fades, waits and walks under way complete at once (battle_view_story.cpp)
     skip(b);
   }
   // The sounds of the events it plays (battle_view_sound.cpp); null = none.
@@ -126,6 +129,15 @@ class BattleView {
   std::string banner;  // centred banner text, empty = none
   std::string bannerSub;  // smaller line under the banner (an objective), empty = none
   DialogueState dialogue;
+  // Scene presentation (docs/EVENTS.md "Scene presentation"; battle_view_story.cpp): the background, fade, shake, weather and
+  // standing portraits, played in order with the other entries. The battle scene draws it.
+  SceneStage stage;
+  // The camera of the latest Focus entry: its scroll time in ms (-1 = not given: the usual quick ease, 0 = jump) and a serial
+  // that changes with every Focus entry, so the battle scene starts a new scroll for each.
+  int focusMs = -1, focusSerial = 0;
+  // True while a scene command (fade, wait, shake, background, walk) is playing or waiting in the queue: the skip control then
+  // has something to fast-forward.
+  bool inScene() const;
   std::vector<float> structFlash;  // per structure: 0..1, the white flash of an upgrade (battle_view_economy.cpp)
   std::vector<float> cellFlash;    // per square: 0..1, the white flash of a changed square (battle_view_mapchange.cpp)
   Color bannerColor;
@@ -153,6 +165,16 @@ class BattleView {
   bool takeFightRun(const Battle& b);  // battle_view_fight.cpp: cur_.ev starts a fight the scene shows: hold the run
   bool quiet_ = false;             // fightFinished is replaying a run: no sounds
   // Story entries (docs/EVENTS.md): battle_view_story.cpp. Each returns false for other entries.
+  struct Walker {  // a walked moveUnit with "wait": false: it goes on while the next commands play
+    int unit = -1;
+    std::vector<Cell> path;
+    float t = 0, dur = 0;
+  };
+  std::vector<Walker> walkers_;
+  void skipScene(const Battle& b);                 // battle_view_story.cpp
+  void updateScene(double dt, const Battle& b);    // stage clock and background walkers
+  void walkStep(const Battle& b, UnitView& v, const std::vector<Cell>& path, float p, bool sound);
+  bool beginSceneEffect(const Battle& b);
   bool beginStory(const Battle& b);
   bool progressStory(const Battle& b);
   bool finishStory(const Battle& b);

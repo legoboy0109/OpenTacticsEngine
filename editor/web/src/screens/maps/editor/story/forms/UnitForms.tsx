@@ -3,6 +3,7 @@ import type { Command } from '../../../../../model/storyTypes'
 import { AreaField } from '../AreaField'
 import { FilterPicker, SidePick, UnitPick } from '../pickers'
 import { S } from '../text'
+import { MoveExtras } from './SceneForms'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
 export function RemoveUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
@@ -21,6 +22,7 @@ export function MoveUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     <div className="stack tight">
       <UnitPick label={S.moveWho} value={cmd.moveUnit ?? ''} onChange={(v) => patch({ moveUnit: v })} />
       <AreaField label={S.moveTo} mode="square" value={{ x: cmd.x ?? 0, y: cmd.y ?? 0, w: 1, h: 1 }} help={S.moveHelp} onChange={(r) => patch({ x: r.x, y: r.y })} />
+      <MoveExtras cmd={cmd} at={at} />
     </div>
   )
 }

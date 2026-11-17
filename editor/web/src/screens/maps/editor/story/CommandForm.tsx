@@ -7,6 +7,7 @@ import { ChoiceForm } from './forms/ChoiceForm'
 import { GiveItemForm, GiveResourceForm, GrantResearchForm, TakeItemForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
+import { BackgroundForm, ClearStageForm, FadeForm, LeaveForm, NarrateForm, ShakeForm, WaitForm, WeatherForm } from './forms/SceneForms'
 import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { EndTurnForm, FocusForm, SetSwitchForm, WinLoseForm } from './forms/StoryForms'
 import { AddVariableForm, SetVariableForm } from './forms/VariableForms'
@@ -72,6 +73,14 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'revertChange': return <ChangeCommandForm cmd={cmd} at={at} apply={false} />
     case 'setFog': return <SetFogForm cmd={cmd} at={at} />
     case 'setVision': return <SetVisionForm cmd={cmd} at={at} />
+    case 'background': return <BackgroundForm cmd={cmd} at={at} />
+    case 'fade': return <FadeForm cmd={cmd} at={at} />
+    case 'wait': return <WaitForm cmd={cmd} at={at} />
+    case 'shake': return <ShakeForm cmd={cmd} at={at} />
+    case 'leave': return <LeaveForm cmd={cmd} at={at} />
+    case 'clearStage': return <ClearStageForm />
+    case 'weather': return <WeatherForm cmd={cmd} at={at} />
+    case 'narrate': return <NarrateForm cmd={cmd} at={at} />
     case 'endTurn': return <EndTurnForm />
     case 'focus': return <FocusForm cmd={cmd} at={at} />
     default: return <p className="help">This command is not one the editor knows. It is kept as it is.</p>

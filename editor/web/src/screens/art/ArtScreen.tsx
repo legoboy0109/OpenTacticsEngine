@@ -13,7 +13,9 @@ import { MasterDetail } from '../../ui/MasterDetail'
 import { Toggle } from '../../ui/Toggle'
 import { ImageDetails } from './ImageDetails'
 import { BattleAnimsCard } from './battle/BattleAnimsCard'
+import { BackgroundsCard } from './BackgroundsCard'
 import { PortraitsCard } from './PortraitsCard'
+import { backgroundsUsingSheet } from '../../model/backgrounds'
 import { portraitsUsingSheet } from '../../model/portraits'
 import { T } from './text'
 import { UnusedFiles } from './UnusedFiles'
@@ -87,13 +89,14 @@ function ArtBody({ itemId }: { itemId?: string }) {
             thumb: <img className="art-thumb" src={store.art.url(s.file)} alt="" />,
           }))}
           onSelect={go} onBack={() => go()} onNew={() => input.current?.click()}
-          onDelete={(id) => { if (sheetUsers(doc, id).length || portraitsUsingSheet(doc, id).length) setRemoving(id); else doRemove(id) }}>
+          onDelete={(id) => { if (sheetUsers(doc, id).length || portraitsUsingSheet(doc, id).length || backgroundsUsingSheet(doc, id).length) setRemoving(id); else doRemove(id) }}>
           {(id) => <ImageDetails id={id} say={say} />}
         </MasterDetail>
         <Card title={T.settingsTitle}>
           <Toggle label={T.marker} help={T.markerHelp} checked={unitMarkerOn(doc)} onChange={(v) => edit((d) => setUnitMarker(d, v))} />
         </Card>
         <PortraitsCard />
+        <BackgroundsCard />
         <BattleAnimsCard />
         <UnusedFiles say={say} />
       </div>
@@ -103,6 +106,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
         <ul className="usage-list">
           {users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}
           {(target ? portraitsUsingSheet(doc, target.id) : []).map((p) => <li key={`portrait:${p}`}>{T.usedByPortrait(p)}</li>)}
+          {(target ? backgroundsUsingSheet(doc, target.id) : []).map((b) => <li key={`background:${b}`}>{T.usedByBackground(b)}</li>)}
         </ul>
         <p className="help">{T.removeUnusedNote}</p>
         <p className="help">{T.removeUndo}</p>

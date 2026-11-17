@@ -46,7 +46,9 @@ bool cosmeticKey(const std::string& k) {
 // it does not count; but the key stays (with empty text) so that adding or removing a line, or
 // turning one into another kind of command, still does. ("choice" = a dialogue choice's question.)
 bool wordingKey(const std::string& k) {
-  return k == "say" || k == "choice" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound";
+  return k == "say" || k == "choice" || k == "speakerName" || k == "label" || k == "text" || k == "playMusic" || k == "playSound" ||
+         // Scene presentation (docs/EVENTS.md): which picture, who leaves the stage, what weather and what a narrator says is wording.
+         k == "narrate" || k == "background" || k == "leave" || k == "weather";
 }
 
 // A copy without cosmetic keys, at any depth. Formula numbers ("props",

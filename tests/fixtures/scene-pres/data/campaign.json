@@ -1,0 +1,23 @@
+{
+  "name": "Lantern Road",
+  "chapters": [
+    { "id": "ch1", "name": "The Field", "map": "field",
+      "before": [
+        { "fade": "out", "ms": 200, "color": "#102040" },
+        { "background": "forest" },
+        { "fade": "in", "ms": 200 },
+        { "say": "We camp here tonight.", "speakerName": "Eirik", "portrait": "eirik", "position": "left" },
+        { "say": "I will keep watch.", "speakerName": "Lyra", "portrait": "lyra", "position": "right" },
+        { "wait": 300 },
+        { "shake": { "ms": 200, "strength": 3 } },
+        { "narrate": "A branch cracks in the dark." },
+        { "say": "Hold!", "speakerName": "Eirik", "portrait": "eirik" },
+        { "background": "hall", "transition": "fade", "ms": 300 },
+        { "leave": "Lyra" },
+        { "say": "Stay behind me.", "speakerName": "Eirik", "portrait": "eirik", "auto": 500 },
+        { "clearStage": true },
+        { "background": null },
+        { "fade": "out", "ms": 200, "color": "#000000" } ],
+      "after": [ { "background": "cellar" }, { "say": "Home at last.", "speakerName": "Eirik", "portrait": "eirik", "position": "center" } ] }
+  ]
+}

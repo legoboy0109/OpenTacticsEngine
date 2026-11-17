@@ -59,7 +59,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # and the 3D picture sizing are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
                  engine/player/saves.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
-                 engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp
+                 engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp engine/player/ui/scene_stage.cpp engine/player/ui/scene_stage_draw.cpp engine/player/ui/dialogue_portrait.cpp
                  engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
                  engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
                  engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp)
@@ -131,6 +131,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME fog_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/fog_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Story scene presentation (docs/EVENTS.md "Scene presentation"), windowless.
+    add_test(NAME scene_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/scene_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Hexagon maps in the top-down view (docs/HEX.md), windowless.
     add_test(NAME hex_player
