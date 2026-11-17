@@ -29,10 +29,16 @@ void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Ce
   std::string head = b.db->items[(size_t)f.item].name;
   if (f.usesLeft >= 0) head += " " + intStr(f.usesLeft);
   lines.push_back({head, kGrey});
+  for (const std::string& l : staffLightLines(f)) lines.push_back({l, kGood});
   for (size_t i = 0; i < f.hits.size() && i < kMaxUnits; ++i) {
     const StaffHit& h = f.hits[i];
     const Unit& u = b.units[(size_t)h.unit];
-    lines.push_back({u.name + "  HP " + intStr(h.hpBefore) + " > " + intStr(h.hpAfter), kGood});
+    // The HP line only when the staff heals (a warp or a repair has no HP to show); then what else it does to the unit.
+    if (h.nominal > 0 || h.moveTo == kNoCell) {
+      const bool other = h.nominal == 0 && (h.repairItem >= 0 || f.needsItem || f.needsDest);
+      if (!other) lines.push_back({u.name + "  HP " + intStr(h.hpBefore) + " > " + intStr(h.hpAfter), kGood});
+    }
+    for (const std::string& l : staffMoveLines(b, f, h)) lines.push_back({l, kGood});
   }
   if (f.hits.size() > kMaxUnits) lines.push_back({"+" + intStr((int)(f.hits.size() - kMaxUnits)) + StaffWords::kMore, kGrey});
   const std::string hit = staffHitText(f);

@@ -117,6 +117,14 @@ class BattleScene : public Scene {
   bool staffChosen(int id);
   void openStaffList();
   void staffListChosen(int slot);
+  // Stage 2 (docs/SRPG.md section 8): the picks that come after the unit, one stage at a time. `back` is what Cancel does at
+  // that stage (the stage before it: the unit pick; for a staff that picks no unit, the action menu).
+  void staffAfterTarget(int user, int slot, int target, std::function<void()> back);
+  void staffWarpPick(int user, int slot, int target, std::function<void()> back);
+  void staffRepairMenu(int user, int slot, int target, std::function<void()> back);
+  void staffLightPick(int user, int slot);
+  void clearStaffHint();  // takes the stage hints ("Pick a square to light") off the hint line once the picking is over
+  void staffUse(int user, int slot, int target, Cell dest, int itemSlot);  // submit, then the usual end of an order
   void addRescueEntries(std::vector<MenuItem>& items);     // battle_menu_rescue.cpp (U4): Rescue / Drop / Give / Take / Pair up / Switch
   bool rescueChosen(int id);
   void addPromotionEntries(std::vector<MenuItem>& items);  // battle_menu_promotion.cpp (U2)
@@ -141,6 +149,10 @@ class BattleScene : public Scene {
   using PickMark = std::function<void(int candidate, Overlay& overlay)>;
   void beginPickUnit(std::vector<int> units, std::function<void(int)> chosen, PickMark mark = PickMark());
   void beginPickCell(std::vector<Cell> cells, std::function<void(Cell)> chosen, PickMark mark = PickMark());
+  // Optional, set by the caller AFTER begin*: Cancel calls `pickBack_` instead of returning to the action menu (a second stage
+  // steps back to the first); `pickWhy_` gives the reason for a tapped unit / square that is not a candidate ("" = none).
+  std::function<void()> pickBack_;
+  std::function<std::string(int)> pickWhy_;
   void pickButton(Button b);
   void pickPointer(int x, int y);
   void pickMoved();   // cursor, overlay and the sound after the highlight changed
@@ -267,6 +279,8 @@ class BattleScene : public Scene {
   int promoType_ = -1;                    // the type the question is about
   bool staffList_ = false;                // the open menu is the Staff list (Cancel goes back to the action menu)
   bool staffFcOn_ = false;                // a staff target is being picked: staffFc_ is drawn as the forecast box
+  std::function<void()> staffBack_;       // the open menu is a staff's second stage ("Repair which?"): Cancel does this
+  int staffItemUser_ = -1, staffItemSlot_ = -1, staffItemTarget_ = -1;  // what that menu is about
   StaffForecast staffFc_;
   bool unitInfoFromAction_ = false;       // opened from the action menu: Cancel returns there (else to the map)
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
