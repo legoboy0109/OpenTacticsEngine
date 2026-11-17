@@ -82,6 +82,24 @@ double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapo
 double scoreCapture(const Battle& b, const Unit& u, Cell at);
 double terrainDefense(const Battle& b, Cell c);
 
+// ---- ai_behaviour.cpp (docs/AI.md): per-unit behaviour; a unit with the default behaviour gets an empty Stance ----
+struct Stance {
+  const AiBehaviour* beh = nullptr;  // null = the default behaviour
+  bool idle = false;                 // does nothing this turn (waiting for its start turn, or asleep)
+  bool stay = false;                 // never changes square (hold)
+  bool noAdvance = false;            // moves only to act, never to approach the enemy
+  bool seeking = false;              // heads for `field`'s goal instead of the nearest enemy
+  std::vector<int> field;            // seeking: distance to the goal for every square
+  int seekTarget = -1;               // seeking a unit: its id
+  int bestGoal = kFar;               // seeking: the smallest goal distance among the squares it may stop on
+};
+// At the start of an AI step: sleeping guards of the active side that have a reason wake up (their groups with them).
+void updateWakes(Battle& b);
+Stance stanceFor(Context& cx, const Unit& u, const std::vector<Cell>& stops);
+// False = this attack is not allowed to the unit; otherwise `score` may be raised (a seeker's target, a favourite target).
+bool adjustAttack(const Battle& b, const Stance& st, const Unit& u, const Unit& target, Cell from, double& score);
+void considerSeek(const Stance& st, Context& cx, const Unit& u, const std::vector<Cell>& stops, Order& best);
+
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);
 

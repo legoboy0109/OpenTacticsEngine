@@ -22,6 +22,7 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
 
   // 1. Best order over all ready units; the single best one goes first so
   //    strong attacks happen early and free up cells for the rest.
+  ai::updateWakes(battle);  // docs/AI.md: guards that have a reason wake up before anyone chooses
   ai::Context cx(battle);
   ai::assignCaptureGoals(cx);
   int bestUnit = -1;

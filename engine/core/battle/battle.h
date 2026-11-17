@@ -198,6 +198,9 @@ struct Unit {
   std::vector<ConditionState> conditions;
   // Computer opponent (docs/SRPG.md section 10): what it goes for (kAiChests | kAiPlaces | kAiDoors | kAiSteal); 0 = ignores them. Saved when not 0.
   int aiGoals = 0;
+  // Computer opponent (docs/AI.md): how it moves, and whether a guard has woken up. Saved only when not the default.
+  AiBehaviour behaviour;
+  bool awake = false;
   // Refresh (docs/SRPG.md "Refresh an ally"): the units that refreshed this one in the present turn of its side, cleared when that turn
   // starts. Its size is the number of refreshes it has had this turn. Saved when not empty.
   std::vector<int> refreshedBy;
@@ -595,6 +598,9 @@ class Battle {
   const std::string& storyText(int index) const;
   // The unit with this story id (the newest if an id was reused), -1 if there is none; dead ones count.
   int unitByStoryId(const std::string& id) const;
+  // Computer opponent (docs/AI.md; battle/ai_wake.cpp): wakes a guard (and its group) / every guard of a group.
+  void wakeUnit(int unit);
+  void wakeGroup(const std::string& group);
   bool unitMatches(const UnitFilter& filter, const Unit& u) const;
   // The Talk menu for `unit` standing on `from`: events whose two named units are alive and next to
   // each other, whose conditions hold and which have not run (or repeat). Empty unless the unit can act.

@@ -137,6 +137,9 @@ Order bestOrder(Context& cx, const Unit& u) {
   std::vector<Cell> stops;
   if (u.moved && !u.acted) stops.push_back(u.cell);  // already moved (human handover): cannot move again
   else stops = reach.stops;  // (an acted unit's reach is what its "move again" has left)
+  const Stance st = stanceFor(cx, u, stops);          // docs/AI.md: the default behaviour gives an empty one
+  if (st.idle || (st.stay && u.acted)) return Order();
+  if (st.stay) stops.assign(1, u.cell);                // hold: acts from where it stands
   if (u.acted) return moveAgainOrder(b, u, stops);   // action used up: only the rest of its movement
 
   const double fade = fadeFactor(b);
@@ -164,7 +167,7 @@ Order bestOrder(Context& cx, const Unit& u) {
       sc -= outnumbered(b, u, s) * kExposure * typeValue(*b.db, u.type) * fade *
             (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
       if (u.leader && b.db->rules.defeatLeaderDead) sc -= outnumbered(b, u, s) * kLeaderExposure * fade;
-      if (sc <= 0) continue;
+      if (sc <= 0 || !adjustAttack(b, st, u, b.units[o.target], s, sc)) continue;
       sc += kAttackBase - kMoveCostWeight * travel;
       if (sc > best.score) {
         best = Order();
@@ -177,7 +180,10 @@ Order bestOrder(Context& cx, const Unit& u) {
     }
   }
 
-  if (!u.moved) considerAdvance(cx, u, stops, best);
+  if (!u.moved && !st.noAdvance) {
+    if (st.seeking) considerSeek(st, cx, u, stops, best);
+    else considerAdvance(cx, u, stops, best);
+  }
   considerPlaces(cx, u, reach, stops, best);  // chests, villages and doors, for a unit the map marked (ai_places.cpp)
   considerHealing(b, u, best);
   considerSrpg(b, u, best);

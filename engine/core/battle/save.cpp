@@ -5,6 +5,7 @@
 // problem produces a readable message, never a crash. The new state is built
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
+#include "core/battle/save_behaviour.h"
 
 #include "core/battle/save_fog.h"
 #include "core/battle/save_items.h"
@@ -108,6 +109,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   u.character = b.characterOf(u);
   if (!savejson::readUnitSrpg(rd, b, j, where, u)) return false;
   if (!savejson::readUnitGoals(rd, j, where, u)) return false;  // docs/SRPG.md section 10
+  if (!savejson::readUnitBehaviour(rd, db, j, where, u)) return false;  // docs/AI.md
   int maxHp = b.stat(u, db.rules.statHp);  // as the rules see it: accessories, research, standing skills
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
@@ -187,6 +189,7 @@ void saveBattleState(const Battle& b, Json& out) {
     savejson::writeUnitSupply(*b.db, u, j);
     savejson::writeUnitSrpg(b, u, j);  // docs/SRPG.md: only what the game uses and is not the default
     savejson::writeUnitGoals(u, j);
+    savejson::writeUnitBehaviour(u, j);
     units.push(j);
   }
   out.set("units", units);
