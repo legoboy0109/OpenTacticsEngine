@@ -20,6 +20,9 @@ Every computer unit that has no `behaviour` block plays like this, and every shi
   summon or heal with an ability; a badly hurt or empty unit may fall back to a repairing structure.
 - **`goesFor`** (docs/SRPG.md section 10 "Computer opponent"): a unit marked `"goesFor": ["chests", "villages", "doors", "steal"]` also opens chests, visits or
   destroys places, opens a door that is in its way or steals. Unmarked units never do.
+- **Map weapons** (docs/SRPG.md "Map weapons"): a computer unit standing on a structure with a weapon it may use counts that weapon among its attacks (same scoring). A unit marked
+  `"goesFor": ["weapons"]` (default off) also walks to a **free** one, but only when from there it can hit a foe this turn and it has no attack of its own that is better
+  (the ballista attack is the fallback; an unmarked unit never walks to one). Code: `ai/ai_order.cpp`.
 
 ## Behaviour: what a maker can change per unit
 

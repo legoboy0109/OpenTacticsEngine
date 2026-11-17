@@ -136,6 +136,8 @@ terrain and structure by hand):
   tagged `hq`; the lost-HQ defeat rule works as before.
 - **Doors, chests and visitable places** are structure kinds with a `"door"`, `"chest"` or `"visit"` block; opening, visiting or destroying one turns it
   into another kind (docs/SRPG.md section 10). `"blocksSight": true` hides what is behind a kind's squares in fog.
+- **Map weapons**: a kind may carry a weapon that a unit standing on it attacks with (`"weapon"`, `"uses"`, `"by"`, `"ignoreRank"`, `"becomes"`; a placed structure may have its own
+  `"uses"`): docs/SRPG.md "Map weapons". `StructureState` gains `weaponUses` / `weaponFor` (uses left, valid for the kind it was set for).
 - **Upgrades**: a structure's kind can change during play (`UpgradeStructure`, docs/ECONOMY.md): everything above
   then follows the new kind. The kind is `StructureState::type`; `mapType` is the one the map placed.
 - **Defeated side**: its structures become neutral (as its squares did).

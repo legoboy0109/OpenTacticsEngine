@@ -171,6 +171,7 @@ of its squares, so one structure can stand on grass, road or sand and keep
 the ground's movement costs. Ids are unique among structures.
 
 A structure kind may also be a **door**, a **chest** or a **visitable place** (a village), with a `"door"`, `"chest"` or `"visit"` block, and may say
+A kind may also carry `"weapon"` (a weapon item), `"uses"`, `"by": { "types", "tags" }`, `"ignoreRank"` and `"becomes"`: a weapon a unit standing on it attacks with, and a map's structure may carry its own `"uses"` (docs/SRPG.md "Map weapons"); a map unit's `"goesFor"` also takes `"weapons"`.
 `"blocksSight": true` (fog: units do not see past it) and `"light": 3` (fog: a fixed light, 1..10, in sight of every team: docs/ECONOMY.md "Fog options"). Opening,
 visiting or destroying one turns it into another kind of the same size, and so does a map's named change (docs/EVENTS.md "Changing the map"). A door block may say
 `"word": "wall"` (what the menu calls it when attacked).
