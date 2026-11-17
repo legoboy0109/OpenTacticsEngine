@@ -47,6 +47,14 @@ struct PlaceWords {
   static constexpr const char* kStHp = "HP";
 };
 
+// The attack wording for what can be broken: "Break door" / "Break wall" (the kind's "word", "door" by default), "Break" when the
+// breakable things in reach are called different words. `word` = "" for that case.
+std::string placeBreakLabel(const std::string& word);
+std::string placePickBreakHint(const std::string& word);
+std::string placeNotBreakableText(const std::string& word);
+// The one word all breakable structures in `list` share ("" = they differ or the list is empty).
+std::string placeBreakWord(const Battle& b, const std::vector<PlaceAttack>& list);
+
 // The short reason for a greyed Open entry from the core's words ("it is locked and needs a key" -> "Needs a key").
 std::string placeReasonText(const std::string& coreReason);
 

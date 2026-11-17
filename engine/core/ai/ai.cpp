@@ -67,7 +67,9 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
       Action use = Action::useAbility(bestUnit, best.ability, best.target, best.cell);
       use.slot = best.slot;  // a steal: which of the foe's items
       ok = battle.apply(use, events);
-    } else if (best.kind == ActionType::OpenPlace)
+    } else if (best.kind == ActionType::BreakPlace)
+      ok = battle.apply(Action::breakPlace(bestUnit, best.structure, best.weapon), events);
+    else if (best.kind == ActionType::OpenPlace)
       ok = battle.apply(Action::openPlace(bestUnit, best.structure, best.slot), events);
     else if (best.kind == ActionType::VisitPlace)
       ok = battle.apply(Action::visitPlace(bestUnit, best.structure), events);

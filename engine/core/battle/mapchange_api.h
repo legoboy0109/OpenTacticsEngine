@@ -40,3 +40,5 @@ void lightWithItem(int unit, const ItemDef& item, std::vector<Event>& events);
 int skillVision(const Unit& u) const;
 // A team that sees everything although the map has fog (a computer side marked "aiSeesAll").
 bool teamSeesAll(int team) const { return team >= 0 && team < 32 && ((seesAllTeams >> team) & 1u); }
+// How far the unit sees now: its type, the square, the map's adjustment and its skills (the rule sight uses).
+int unitVision(const Unit& u) const { return visionOf(u); }

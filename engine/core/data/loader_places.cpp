@@ -107,7 +107,7 @@ bool readDoorOrChest(const LoadCtx& c, Database& db, const Json& v, int index, c
   const bool door = std::string(key) == "door";
   const std::string where = "structure " + q(s.id) + ": \"" + key + "\"";
   if (!v.isObject()) return c.fail(where, "must be an object such as { \"opens\": \"gate_open\" }");
-  if (door ? !onlyKeys(c, v, {"opens", "locked", "keys", "by", "hp", "stats", "from"}, where)
+  if (door ? !onlyKeys(c, v, {"opens", "locked", "keys", "by", "hp", "stats", "from", "word"}, where)
            : !onlyKeys(c, v, {"opens", "locked", "keys", "by", "from"}, where))
     return false;
   PlaceDef p;
@@ -121,6 +121,12 @@ bool readDoorOrChest(const LoadCtx& c, Database& db, const Json& v, int index, c
         return c.fail(where, "\"hp\" must be a whole number from 1 to " + std::to_string(kMaxPlaceHp) + " (leave it out for a door that cannot be attacked)");
       p.hp = v["hp"].asInt();
       p.byBreak = true;
+    }
+    if (v.has("word")) {
+      const bool ok = v["word"].isString() && !v["word"].asString().empty() && v["word"].asString().size() <= 16 &&
+                      v["word"].asString().find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ") == std::string::npos;
+      if (!ok) return c.fail(where, "\"word\" must be a short word (letters, at most 16) such as \"wall\": what the menu calls it when it is attacked");
+      p.word = v["word"].asString();
     }
     if (v.has("stats")) {
       if (p.hp == 0) return c.fail(where, "\"stats\" are the numbers its damage formula reads, so they need \"hp\" (a door that can be attacked)");
@@ -328,7 +334,7 @@ bool checkPlaceVisitors(const LoadCtx& c, const Database& db, const MapDef& m) {
 bool readUnitGoals(const LoadCtx& c, const MapDef& m, const Json& e, const std::string& where, MapUnitDef& u) {
   if (!e.has("goesFor")) return true;
   if (!e["goesFor"].isArray() || e["goesFor"].size() == 0)
-    return c.fail(where, "\"goesFor\" must be a list such as [\"chests\", \"villages\", \"doors\", \"steal\"]");
+    return c.fail(where, "\"goesFor\" must be a list such as [\"chests\", \"villages\", \"doors\", \"steal\", \"walls\"]");
   if (u.side >= 0 && u.side < (int)m.sides.size() && !m.sides[(size_t)u.side].ai)
     return c.fail(where, "\"goesFor\" tells the computer opponent what to do, but this unit is on a side a person plays (controller \"human\")");
   for (size_t i = 0; i < e["goesFor"].size(); ++i) {
@@ -337,7 +343,8 @@ bool readUnitGoals(const LoadCtx& c, const MapDef& m, const Json& e, const std::
     else if (w == "villages") u.aiGoals |= kAiPlaces;
     else if (w == "doors") u.aiGoals |= kAiDoors;
     else if (w == "steal") u.aiGoals |= kAiSteal;  // docs/SRPG.md "Steal"
-    else return c.fail(where, "\"goesFor\" entry " + std::to_string(i + 1) + " must be \"chests\", \"villages\", \"doors\" or \"steal\", not " + q(w));
+    else if (w == "walls") u.aiGoals |= kAiWalls;  // attacks a breakable door / wall in its way (docs/SRPG.md section 10)
+    else return c.fail(where, "\"goesFor\" entry " + std::to_string(i + 1) + " must be \"chests\", \"villages\", \"doors\" or \"steal\", not " + q(w) + " (or \"walls\": breaks a wall in its way)");
   }
   return true;
 }
