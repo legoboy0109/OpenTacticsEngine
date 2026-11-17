@@ -386,7 +386,14 @@ struct StrikeForecast {
   // whose skills ask which strike it is (docs/SRPG.md "One strike of a fight"). Empty = every strike has the numbers above, which
   // are always those of the first strike.
   std::vector<StrikeNumbers> each;
-  // The most this side could do to a target with hp to spare, before hit chances: every strike's damage added up.
+  // Every strike's damage added up, the strikes in a row (`multi`) included (the player's "HP after").
+  int allDamage() const {
+    if (each.empty()) return damage * strikes * multi;
+    int sum = 0;
+    for (const StrikeNumbers& n : each) sum += n.damage;
+    return sum;
+  }
+  // The same without the strikes in a row, as the computer opponent has always counted it (damage * strikes).
   int totalDamage() const {
     if (each.empty()) return damage * strikes;
     int sum = 0;
