@@ -30,8 +30,9 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
       marker(cx - mw / 2 - 1, cy - mh / 2 - 1, mw + 2, mh + 2, Color(20, 20, 28, (uint8_t)(a * 200 / 255)));
       marker(cx - mw / 2, cy - mh / 2, mw, mh, withAlpha(side, a));
     }
-    SpriteSrc src = lookSrc(c, *art);
-    int w = std::max(1, (int)(uw * v.scale)), h = std::max(1, w * src.h / std::max(1, src.w));
+    const UnitPic pic = unitPic(c, *art, u);
+    const SpriteSrc src = drawSrc(c, pic);
+    int w = std::max(1, (int)(uw * v.scale * pic.k)), h = std::max(1, w * src.h / std::max(1, src.w));  // (a walking picture: pic.k wider)
     Color mod = shade(u.done ? 0.55f : 1.0f, a);
     r.drawTexture(src.tex, src.x, src.y, src.w, src.h, cx - w / 2, foot - h, w, h, mod);
     bodyTop = foot - h;

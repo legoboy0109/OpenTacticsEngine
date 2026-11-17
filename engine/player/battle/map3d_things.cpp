@@ -44,8 +44,8 @@ void unitSpot(const DrawCtx& c, const UnitView& v, float& gx, float& gy) {
 int unitBodyPx(const DrawCtx& c, const Unit& u, const UnitView& v) {
   int uw = c.proj->unitW();
   if (const Look* art = unitArt(c, u)) {
-    SpriteSrc src = lookSrc(c, *art);
-    return std::max(1, (int)(uw * v.scale) * src.h / std::max(1, src.w));
+    const UnitPic pic = unitPic(c, *art, u);
+    return std::max(1, (int)(uw * v.scale * pic.k) * pic.src.h / std::max(1, pic.src.w));
   }
   return std::max(2, (int)(uw * 3 / 4 * v.scale));
 }
@@ -235,9 +235,13 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
   const Look* art = model ? nullptr : unitArt(c, u);
   Material3D pm = flat(al < 0.999f ? Blend3D::Blend : Blend3D::Cutout, !through);
   float uv[4];
-  SpriteSrc src;
-  if (art) src = lookSrc(c, *art);
-  if (art && picture(c, *art, src.x, src.y, src.w, src.h, pm, uv)) {
+  UnitPic pic;
+  if (art) pic = unitPic(c, *art, u);
+  const SpriteSrc& src = pic.src;
+  Look picLook;  // (picture() takes the sheet from a look: a walking frame comes from another sheet than the standing picture)
+  if (art) picLook.sheet = pic.sheet;
+  if (art && picture(c, picLook, src.x, src.y, src.w, src.h, pm, uv)) {
+    if (pic.flip) std::swap(uv[0], uv[2]);  // turned round
     if (b.db->graphics.unitMarker && c.proj->hex()) {
       // A flat hexagon in the side's colour under the feet, dark rim first.
       float half = std::max(0.12f, 0.3f * v.scale);
@@ -254,7 +258,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
       addQuad(m, Vec3(feet.X - half, feet.Y + 0.02f, feet.Z + half), Vec3(feet.X + half, feet.Y + 0.02f, feet.Z + half),
               Vec3(feet.X + half, feet.Y + 0.02f, feet.Z - half), Vec3(feet.X - half, feet.Y + 0.02f, feet.Z - half), tintOf(side, al));
     }
-    float w = std::max(1.0f, uw * v.scale);
+    float w = std::max(1.0f, uw * v.scale * pic.k);
     uint8_t k = (uint8_t)(u.done ? 140 : 255);
     upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), towards, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
   } else if (model) {

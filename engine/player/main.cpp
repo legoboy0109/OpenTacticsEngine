@@ -1,5 +1,7 @@
 // ote-player: runs a game folder (see docs/GAME_FORMAT.md) with the platform backend chosen at build time (SDL3 or SDL2).
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "app.h"
 #include "args.h"
@@ -10,6 +12,9 @@
 using namespace ote;
 
 int main(int argc, char** argv) {
+  // OTE_LOG_LEVEL=debug shows the debug lines too (the walk directions; tests read them). Normal runs log info and above only.
+  if (const char* lv = std::getenv("OTE_LOG_LEVEL"))
+    if (!std::strcmp(lv, "debug")) setLogLevel(LogLevel::Debug);
   Args args = parseArgs(argc, argv);
   if (args.help || !args.error.empty()) {
     if (!args.error.empty()) fprintf(stderr, "error: %s\n", args.error.c_str());

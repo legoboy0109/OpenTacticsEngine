@@ -70,6 +70,20 @@ void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, 
 // the battle's running time.
 void drawStructureArt(Renderer& r, const DrawCtx& c, const Look& look, int sx, int sy, int fw, int fh);
 
+// The picture of a unit right now: its walking frame while it moves along its path (and its look has walk frames), else the
+// standing one. `src` is cut from sheet `sheet` (always the normal texture; `flip` = draw it turned round). `k` is the picture's
+// width relative to the standing picture's cell (1 for standing; a walk sheet with bigger cells gives more), so that both are
+// drawn at the same pixels per art pixel and the walking figure is not shrunk. Docs: docs/GRAPHICS.md "Walking".
+struct UnitPic {
+  SpriteSrc src;
+  int sheet = -1;
+  bool flip = false;
+  float k = 1;
+};
+UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u);
+// The texture and source rectangle for drawing `pic` with the 2D renderer (a turned-round picture comes from the sheet's mirrored copy).
+SpriteSrc drawSrc(const DrawCtx& c, const UnitPic& pic);
+
 // Draws a unit with art on the square whose top-left is (sx, sy): side marker,
 // then the sprite. `scale` < 1 is the pop-in; `alpha` 0..1; `done` = has acted.
 void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u, int sx, int sy, float scale,

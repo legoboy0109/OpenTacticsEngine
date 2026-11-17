@@ -29,6 +29,26 @@ struct SheetDef {
   bool smooth = false;        // detailed art: the 3D views blend texels (bilinear, mipmaps) instead of hard pixels
 };
 
+// Walking frames of a unit picture (docs/GRAPHICS.md "Walking"): used while the unit moves along its path in the views that
+// draw pictures. The frames come from their own sheet (its cell size may differ from the standing picture's).
+enum WalkDir { WalkDown, WalkUp, WalkRight, WalkLeft, kWalkDirs };  // (the order breaks ties, see WalkLook::pick)
+struct WalkLook {
+  int sheet = -1;                       // index into Graphics::sheets; -1 = no walking frames
+  std::vector<SpriteCell> frames[kWalkDirs];  // empty = this direction is not given
+  bool mirrored[kWalkDirs] = {};        // the frames are those of the opposite side, drawn turned round
+  int frameMs = 150;                    // time per frame
+
+  bool any() const { return sheet >= 0; }
+  // The direction to show for a step whose way on the screen is (dx, dy) (y grows downwards): the given direction nearest to
+  // it (the largest dot product; a tie goes to the first of down, up, right, left). -1 when none is given.
+  int pick(float dx, float dy) const;
+  // The cell of direction `dir` at running time `timeMs` (the frames loop).
+  SpriteCell cell(int dir, uint32_t timeMs) const {
+    const std::vector<SpriteCell>& f = frames[dir];
+    return f[(timeMs / (uint32_t)(frameMs < 1 ? 1 : frameMs)) % f.size()];
+  }
+};
+
 // How one thing is drawn.
 struct Look {
   enum Kind {
@@ -48,6 +68,7 @@ struct Look {
   // piece (always 1 for the terrain itself).
   std::vector<uint8_t> joinWith;
   bool joinEdge = true;           // Join only: the map edge counts as a neighbour
+  WalkLook walk;                  // units only (2D, 2D isometric and the 3D views' pictures): frames while moving
 
   bool any() const { return kind != None; }
 };

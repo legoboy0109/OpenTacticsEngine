@@ -2,12 +2,15 @@
 """Original pixel art for the battle scene (docs/BATTLE_SCENE.md), drawn by this script. No third-party art, no Pillow:
 the PNG writer is plain zlib, so tests can import this file.
 
-  python3 tools/art/battle_art.py OUT_DIR        # writes battle_knight.png, battle_fx.png, battle_meadow.png
+  python3 tools/art/battle_art.py OUT_DIR        # writes battle_knight.png, battle_knight_red.png, battle_fx.png, battle_meadow.png, walk.png
 
 Sheets (the sheet's cell size is the frame size):
   battle_knight.png   48 x 48 frames, 4 columns x 6 rows: row 0 stand (2), row 1 attack (4, the sword lands on frame 2),
                       row 2 hurt (2), row 3 dodge (2), row 4 defeat (3), row 5 cast (3). No crit row: a crit plays the attack.
                       Foot point (24, 46). The art looks to the right.
+  battle_knight_red.png  the same sheet in red (for a side's own sheet: "sides" of a set).
+  walk.png            32 x 32 frames, 4 columns x 3 rows: a small walking figure, row 0 facing down, row 1 up, row 2 to the right
+                      (the figure's shirt differs per row, so a picture shows which row was drawn). For walking frames of a unit picture.
   battle_fx.png       16 x 16 frames, 4 columns x 1 row: an arrow (2 frames) and a spark (2 frames).
   battle_meadow.png   one 240 x 135 background picture: sky, hills and a meadow.
 `BATTLE_SET` / `BATTLE_SHEETS` are the matching data/graphics.json entries.
@@ -278,9 +281,51 @@ BATTLE_SET = {
 }
 
 
+def red_knight_sheet():
+    sheet = knight_sheet()
+    sheet.tint((214, 40, 40), 0.55)
+    return sheet
+
+
+# One frame of the walking figure: facing "down", "up" or "right"; frame 0..3 swings the legs.
+SHIRTS = {"down": (70, 150, 230, 255), "up": (230, 190, 60, 255), "right": (90, 200, 110, 255)}
+
+
+def walk_figure(facing, frame):
+    c = Canvas(32, 32)
+    swing = (0, 3, 0, -3)[frame % 4]
+    shirt = SHIRTS[facing]
+    if facing == "right":
+        c.rect(13, 12, 19, 22, shirt)
+        c.rect(14 + swing, 23, 17 + swing, 29, (60, 60, 90, 255))
+        c.rect(15 - swing, 23, 18 - swing, 29, (60, 60, 90, 255))
+        c.rect(13, 3, 20, 11, SKIN)
+        c.rect(18, 6, 19, 7, OUTLINE)
+    else:
+        c.rect(11, 12, 21, 22, shirt)
+        c.rect(12, 23, 15, 29 + (1 if swing > 0 else 0), (60, 60, 90, 255))
+        c.rect(17, 23, 20, 29 + (1 if swing < 0 else 0), (60, 60, 90, 255))
+        c.rect(12, 3, 20, 11, SKIN if facing == "down" else (120, 80, 50, 255))
+        if facing == "down":
+            c.rect(14, 6, 15, 7, OUTLINE)
+            c.rect(17, 6, 18, 7, OUTLINE)
+    c.outline()
+    return c
+
+
+def walk_sheet():
+    sheet = Canvas(32 * 4, 32 * 3)
+    for row, facing in enumerate(("down", "up", "right")):
+        for col in range(4):
+            sheet.paste(walk_figure(facing, col), col * 32, row * 32)
+    return sheet
+
+
 def main(out):
     os.makedirs(out, exist_ok=True)
     write_png(os.path.join(out, 'battle_knight.png'), knight_sheet())
+    write_png(os.path.join(out, 'battle_knight_red.png'), red_knight_sheet())
+    write_png(os.path.join(out, 'walk.png'), walk_sheet())
     write_png(os.path.join(out, 'battle_fx.png'), fx_sheet())
     write_png(os.path.join(out, 'battle_meadow.png'), meadow())
 

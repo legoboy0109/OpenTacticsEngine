@@ -29,6 +29,56 @@ bool checkInside(const LoadCtx& c, const SheetDef& sh, SpriteCell at, int w, int
                            std::to_string(sh.rows) + " cells)");
 }
 
+// A unit picture's "walk": frames while it moves (docs/GRAPHICS.md "Walking"). Keys: "sheet" (default: the picture's own), "down", "up",
+// "side" (faces right; the left is it turned round), "left" / "right" (own frames instead), "frameMs". Each direction is a list of
+// [column, row] cells of the walk sheet. At least one direction is needed; one that is not given is not drawn (the nearest given
+// direction is used instead).
+bool readWalk(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, int standSheet, WalkLook& out) {
+  out = WalkLook();
+  const std::string w = where + " walk";
+  if (!j.isObject()) return c.fail(w, "must be an object with \"down\", \"up\", \"side\" (or \"left\" / \"right\") and \"frameMs\"");
+  static const char* const kKnown[] = {"sheet", "down", "up", "side", "left", "right", "frameMs"};
+  for (const Json::Member& m : j.members()) {
+    bool known = false;
+    for (const char* k : kKnown) known |= m.first == k;
+    if (!known) return c.fail(w, "has an unknown key " + q(m.first) + " (use sheet, down, up, side, left, right and frameMs)");
+  }
+  std::string sheetId;
+  if (!c.str(j, "sheet", w, sheetId)) return false;
+  out.sheet = sheetId.empty() ? standSheet : db.graphics.findSheet(sheetId);
+  if (out.sheet < 0) return c.fail(w, "unknown sheet " + q(sheetId));
+  const SheetDef& sh = db.graphics.sheets[(size_t)out.sheet];
+  std::vector<SpriteCell> given[kWalkDirs];
+  bool side = false;
+  static const struct { const char* key; int dir; } kDirs[] = {{"down", WalkDown}, {"up", WalkUp}, {"right", WalkRight}, {"left", WalkLeft}, {"side", -1}};
+  std::vector<SpriteCell> sideFrames;
+  for (const auto& d : kDirs) {
+    if (!j.has(d.key)) continue;
+    const Json* list;
+    if (!c.array(j, d.key, w, list, true)) return false;
+    if (list->size() < 1 || list->size() > 64) return c.fail(w, q(d.key) + " must list between 1 and 64 cells");
+    std::vector<SpriteCell>& cells = d.dir >= 0 ? given[d.dir] : sideFrames;
+    for (size_t i = 0; i < list->size(); ++i) {
+      SpriteCell cell;
+      if (!readCell(c, (*list)[i], w, d.key, cell) || !checkInside(c, sh, cell, 1, 1, w)) return false;
+      cells.push_back(cell);
+    }
+    side |= d.dir < 0;
+  }
+  if (given[WalkDown].empty() && given[WalkUp].empty() && given[WalkLeft].empty() && given[WalkRight].empty() && !side)
+    return c.fail(w, "needs at least one of \"down\", \"up\", \"side\", \"left\" or \"right\"");
+  out.frames[WalkDown] = given[WalkDown];
+  out.frames[WalkUp] = given[WalkUp];
+  // "side" faces right; the left is the same turned round unless "left" is given. "right" / "left" given alone mirror each other.
+  out.frames[WalkRight] = !given[WalkRight].empty() ? given[WalkRight] : side ? sideFrames : given[WalkLeft];
+  out.mirrored[WalkRight] = given[WalkRight].empty() && !side && !given[WalkLeft].empty();
+  out.frames[WalkLeft] = !given[WalkLeft].empty() ? given[WalkLeft] : out.frames[WalkRight];
+  out.mirrored[WalkLeft] = given[WalkLeft].empty() && !out.frames[WalkRight].empty();
+  if (!c.integer(j, "frameMs", w, out.frameMs)) return false;
+  if (out.frameMs < 20 || out.frameMs > 60000) return c.fail(w, "\"frameMs\" must be between 20 and 60000");
+  return true;
+}
+
 // One look object. `terrainLook` allows "variants" and "join".
 bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool terrainLook,
               int selfTerrain, Look& out, const char* subject = "units") {
@@ -106,6 +156,10 @@ bool readLook(const LoadCtx& c, const Database& db, const Json& j, const std::st
   }
   if (!c.integer(j, "frameMs", where, out.frameMs)) return false;
   if (out.frameMs < 20 || out.frameMs > 60000) return c.fail(where, "\"frameMs\" must be between 20 and 60000");
+  if (j.has("walk")) {
+    if (terrainLook || std::string(subject) != "units") return c.fail(where, "only a unit picture can have \"walk\" frames");
+    if (!readWalk(c, db, j["walk"], where, out.sheet, out.walk)) return false;
+  }
   return true;
 }
 
@@ -128,7 +182,7 @@ bool readModelLook(const LoadCtx& c, const Database& db, const Json& j, const st
   if (!view3d)
     return c.fail(where, "a \"model\" can only be used in a style whose kind of view is 3D "
                          "(\"isometric-3d\" or \"3d\"); give other styles a picture");
-  for (const char* key : {"sheet", "cell", "frames", "frameMs", "sides"})
+  for (const char* key : {"sheet", "cell", "frames", "frameMs", "sides", "walk"})
     if (j.has(key)) return c.fail(where, std::string("has a \"model\", so it cannot also have ") + q(key));
   if (!c.str(j, "model", where, out.file, true)) return false;
   if (!goodModelPath(out.file))
