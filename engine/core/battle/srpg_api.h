@@ -128,5 +128,7 @@ std::string staffTargetWhy(int unit, int slot, int target, Cell from) const;
 // May the unit stand on `cell`: on the map and its movement type can enter the terrain (ignores who is there). The one rule
 // every staff move, drop and ability uses for "legal to stand on".
 bool staffCanStand(const Unit& t, Cell cell) const { return grid.valid(cell) && enterCost(cell, typeOf(t).moveType) > 0; }
+// The warp's reach (min .. max) from the user for this staff effect (a formula judged on the user's stats; max 0 = nowhere).
+void staffWarpRange(const Unit& user, const StaffDef& d, const StaffEffect& fx, int& minRange, int& maxRange) const;
 // The lights staves have made and that still last (docs/SRPG.md section 8, stage 2). Saved only when not empty.
 std::vector<LightArea> lights;

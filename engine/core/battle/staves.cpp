@@ -203,6 +203,7 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
   if (!sp || !canWieldStaff(u, item)) return false;
   const StaffDef& d = *sp;
   out.canMiss = d.canMiss();
+  out.user = unit;
   out.slot = slot;
   out.item = item;
   out.usesLeft = u.items[(size_t)slot].uses;

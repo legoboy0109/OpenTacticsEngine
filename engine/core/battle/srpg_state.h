@@ -114,6 +114,7 @@ struct StaffHit {
 };
 // A forecast of one use (Battle::staffForecast): no randomness is consumed.
 struct StaffForecast {
+  int user = -1;               // the unit using the staff
   int slot = -1, item = -1;
   int center = -1;             // the picked unit (-1 = nothing is picked)
   std::vector<StaffHit> hits;  // the units really affected, ascending id

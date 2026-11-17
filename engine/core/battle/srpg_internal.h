@@ -256,8 +256,6 @@ void applyStaff(const Action& action, std::vector<Event>& events);
 void staffAffected(const Unit& user, int item, int slot, int center, Cell from, std::vector<int>& out) const;
 // Would this one effect change `t` (the user on `from`, the staff in `slot`)? null = yes, else the plain reason it would not.
 const char* staffEffectWhy(const Unit& user, const StaffDef& d, const StaffEffect& fx, int slot, const Unit& t, Cell from) const;
-// The warp's reach (min .. max) from the user for this staff effect (the formula judged on the user's stats).
-void staffWarpRange(const Unit& user, const StaffDef& d, const StaffEffect& fx, int& minRange, int& maxRange) const;
 // The shared tail of a use: the use is spent, then experience and rank experience, then the order ends (staves_apply.cpp).
 void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events);
 void applyStaffLight(const Action& action, std::vector<Event>& events);
