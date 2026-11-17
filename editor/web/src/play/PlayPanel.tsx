@@ -1,5 +1,6 @@
 // The Play overlay: the embedded web player in an iframe, with a map picker, Restart and Close.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { difficultyList } from '../model/difficulty'
 import { campaignMapHasFog, mapHasFog } from '../model/fog'
 import { emitSignal } from '../learn/signals'
 import { useDoc } from '../store/context'
@@ -22,9 +23,10 @@ type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; mess
 export const PLAY_CAMPAIGN = '*campaign'
 
 /** `showAll` adds `showall=1`: the player draws without fog of war (the maker's view; docs/ECONOMY.md "Fog of war").
- *  `muted` adds `noaudio=1`: the player starts without a sound device. */
-export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean, muted?: boolean): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}${muted ? '&noaudio=1' : ''}`
+ *  `muted` adds `noaudio=1`: the player starts without a sound device. `difficulty` adds `difficulty=<id>` (docs/DIFFICULTY.md): the
+ *  preview plays at that difficulty without asking; left out, the player shows its choice screen. */
+export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean, muted?: boolean, difficulty?: string): string =>
+  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}${muted ? '&noaudio=1' : ''}${difficulty ? `&difficulty=${encodeURIComponent(difficulty)}` : ''}`
 
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -62,6 +64,16 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
     if (!(await saveFirst())) return
     setStatus({ state: 'loading' })
     setStoredSound(on)
+  }
+
+  // Difficulty (docs/DIFFICULTY.md): only for a game that has some. "Ask me" shows the player's choice screen.
+  const difficulties = difficultyList(doc)
+  const [storedDifficulty, setStoredDifficulty] = useStored<string>(`ote.playDifficulty.${store.id}`, '')
+  const difficulty = difficulties.some((d) => d.id === storedDifficulty) ? storedDifficulty : ''
+  const switchDifficulty = async (id: string) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setStoredDifficulty(id)
   }
 
   useEffect(() => {
@@ -112,6 +124,13 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
             <Select value={style} onChange={(v) => void switchStyle(v)} options={playable.map((s) => ({ value: s.id, label: s.name || s.id }))} aria-label={T.styleLabel} />
           </label>
         )}
+        {difficulties.length > 0 && (
+          <label className="play-map" title={T.difficultyTitle}>
+            <span>{T.difficultyLabel}</span>
+            <Select value={difficulty} onChange={(v) => void switchDifficulty(v)} aria-label={T.difficultyLabel}
+              options={[{ value: '', label: T.difficultyAsk }, ...difficulties.map((d) => ({ value: d.id, label: d.name || d.id }))]} />
+          </label>
+        )}
         {fogHere && (
           <label className="play-all" title={T.showAllTitle}>
             <input type="checkbox" checked={showAll} onChange={(e) => void switchShowAll(e.target.checked)} />
@@ -128,7 +147,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         </div>
       </header>
       <div className="play-stage">
-        <iframe key={`${map}:${style}:${showAll}:${sound}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll, !sound)} title="Game preview" className="play-frame"
+        <iframe key={`${map}:${style}:${showAll}:${sound}:${difficulty}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll, !sound, difficulty || undefined)} title="Game preview" className="play-frame"
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (

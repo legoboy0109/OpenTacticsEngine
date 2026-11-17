@@ -89,6 +89,7 @@ export function newCondition(c: DefCtx, kind: ConditionKind): Condition {
     case 'hasSkill': return { hasSkill: c.doc.skills?.[0]?.id ?? '' }
     case 'hasCondition': return { hasCondition: c.doc.conditions?.[0]?.id ?? '' }
     case 'actor': return { actor: defaultFilter(c) }
+    case 'difficulty': return { difficulty: c.doc.game?.difficulties?.default ?? c.doc.game?.difficulties?.list?.[0]?.id ?? '' }
     // The first team looking for the second side's units (a team always sees its own, so that would say nothing).
     case 'support': return { support: firstPair(c.doc), op: '>=', value: 1 }
     case 'sees': return { sees: { side: c.map.sides?.[1]?.id ?? firstSide(c) }, team: teamsOf(c.map)[0]?.id ?? '' }

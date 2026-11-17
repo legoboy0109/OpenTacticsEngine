@@ -70,6 +70,7 @@ export function storyUsages(doc: ProjectDoc, gone: Ref[], only?: string): Usage[
           : what === 'command' ? `${prefix}, ${where}: “${text}” is removed`
           : what === 'rule' ? `${prefix}, ${where}: “${text}” is removed`
           : what === 'resource' ? `${prefix}, ${where}: “${text}” loses this resource`
+          : what === 'difficulty' ? `${prefix}, ${where}: “${text}” loses this difficulty`
           : `${prefix}, ${where}: “${text}” loses this item`
         out.push({ section: 'maps', text: line })
       },

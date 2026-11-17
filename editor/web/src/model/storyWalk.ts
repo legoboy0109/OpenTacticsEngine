@@ -13,12 +13,12 @@ import { withKeepList } from './storyExtras'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background' | 'difficulty'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
 
-export interface Dropping { what: 'event' | 'command' | 'rule' | 'resource' | 'item' | 'chapterMap' | 'link' | 'freeBattle' | 'setting'; text: string; where: string }
+export interface Dropping { what: 'event' | 'command' | 'rule' | 'resource' | 'item' | 'chapterMap' | 'link' | 'freeBattle' | 'setting' | 'difficulty'; text: string; where: string }
 
 export interface Walk {
   /** Called for every place that names something. Return the id to keep there (the same, or a new one) or DROP. */
@@ -100,9 +100,37 @@ function mapCondition(c: Condition, w: Walk, where: string): Condition | Dropped
     (x) => withRef(x, 'hasSkill', 'skill', w, where),
     (x) => withRef(x, 'hasCondition', 'condition', w, where),
     (x) => withFilter(x, 'actor', w, where),
+    (x) => withDifficultyCondition(x, w, where),
     (x) => withRef(x, 'side', 'side', w, where), // only a `researched` condition has one
     (x) => withFilter(x, 'unit', w, where),
   ])
+}
+
+/** A `difficulty` condition (docs/DIFFICULTY.md): a difficulty id, or { atLeast / atMost: id }. A deleted difficulty takes the condition with it. */
+function withDifficultyCondition<T extends object>(o: T, w: Walk, where: string): T | Dropped {
+  const v = (o as Record<string, unknown>).difficulty
+  if (typeof v === 'string') return withRef(o, 'difficulty', 'difficulty', w, where)
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return o
+  const bound = v as Record<string, unknown>
+  for (const k of ['atLeast', 'atMost']) {
+    const id = bound[k]
+    if (typeof id !== 'string') continue
+    const r = w.ref({ kind: 'difficulty', id }, where)
+    if (r === DROP) return DROP
+    return r === id ? o : put(o, 'difficulty', { ...bound, [k]: r })
+  }
+  return o
+}
+
+/** An added unit's "only on" difficulties: a deleted one leaves the list; a list left empty is no limit any more (the unit stays and
+ *  appears on every difficulty), which the sentence for the delete question says. */
+function mapDifficultyList(list: unknown[], w: Walk, where: string, owner: Command): string[] | undefined {
+  const ids = list.filter((x): x is string => typeof x === 'string')
+  const kept = ids.filter((id) => w.ref({ kind: 'difficulty', id }, where) !== DROP)
+  if (kept.length === ids.length) return list as string[]
+  const base = w.describe?.command?.(owner) ?? 'An added unit'
+  w.dropped?.({ what: 'difficulty', text: kept.length ? base : `${base} (it then appears on every difficulty)`, where })
+  return kept.length ? kept : undefined
 }
 
 /** A pair of characters (`[a, b]`, as `addSupport` and the `support` condition / trigger hold it): both must stay. Characters are
@@ -200,7 +228,14 @@ function mapAddUnit(c: Command, w: Walk, where: string): Command | Dropped {
   const stepped = mapBehaviourBlock(stepped0 as Record<string, unknown>, 'behaviour', w, where) as typeof stepped0 | Dropped
   if (stepped === DROP) return DROP
   const items = Array.isArray(stepped.items) ? mapItems(stepped.items, w, where, c) : stepped.items
-  const next = items === stepped.items ? stepped : { ...stepped, items }
+  let next = items === stepped.items ? stepped : { ...stepped, items }
+  if (Array.isArray(next.difficulty)) {
+    const only = mapDifficultyList(next.difficulty, w, where, c)
+    if (only !== next.difficulty) {
+      const { difficulty: _old, ...rest } = next
+      next = only === undefined ? rest : { ...rest, difficulty: only }
+    }
+  }
   return next === u ? c : { ...c, addUnit: next }
 }
 

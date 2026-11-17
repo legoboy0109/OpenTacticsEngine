@@ -14,6 +14,7 @@ import { ItemListEditor } from '../../../../../ui/ItemListEditor'
 import { NumberInput } from '../../../../../ui/NumberInput'
 import { TextInput } from '../../../../../ui/TextInput'
 import { Check, Toggle } from '../../../../../ui/Toggle'
+import { DifficultyOnly } from '../../panels/DifficultyOnly'
 import { GoesFor } from '../../panels/GoesFor'
 import { UnitSkills } from '../../panels/UnitSkills'
 import { StartingRanksField } from '../../../../ranks/StartingRanksField'
@@ -58,6 +59,7 @@ export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <UnitSkills doc={doc} value={u.skills} onChange={(v) => set({ skills: v }, 'skills')} />
       <StartingRanksField type={u.type ?? ''} character={u.character} value={u.ranks} testId="add-unit-ranks" onChange={(ranks, k) => set({ ranks }, k)} />
       <GoesFor map={map} side={u.side} value={u.goesFor} onChange={(goals) => set({ goesFor: goals.length ? GOES_FOR.filter((g) => goals.includes(g)) : undefined })} />
+      <DifficultyOnly doc={doc} unit={u} ai={map.sides?.find((s) => s.id === u.side)?.controller === 'ai'} onChange={(p) => set(p)} />
       <Check checked={!!u.leader} label={S.unitLeader} onChange={(v) => set({ leader: v ? true : undefined })} />
       <Field label={S.storyName} help={S.storyNameHelp}>
         <IdInput value={u.id ?? ''} validate={validate} onChange={setId} placeholder={S.unitStoryPlaceholder} />

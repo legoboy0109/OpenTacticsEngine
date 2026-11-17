@@ -4,6 +4,7 @@
 import { audioChecks } from './audioChecks'
 import { behaviourChecks } from './behaviour'
 import { typeIdOf } from './characterUnits'
+import { mapDifficultyChecks } from './difficultyChecks'
 import { fogChecks } from './fogChecks'
 import { changeChecks } from './mapChangeChecks'
 import { itemChecks } from './itemChecks'
@@ -64,6 +65,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   // The computer units' behaviours (docs/AI.md): what the loader refuses and what is probably not meant.
   if (mapId !== undefined) behaviourChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `behaviour:${i}`, text: x.text, cell: x.cell }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))
+  // The map's own difficulty numbers and its units' "only on" lists (docs/DIFFICULTY.md).
+  if (mapId !== undefined) mapDifficultyChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `difficulty:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   // Named map changes and the fog options of the map (model/mapChangeChecks.ts); notes the loader does not give are marked as such.
   if (mapId !== undefined) changeChecks(doc, mapId).forEach((x, i) => out.push({ key: `changes:${i}`, text: x.text }))
   // What the player's sound loader would refuse about this map's music keys.

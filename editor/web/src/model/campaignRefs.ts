@@ -26,6 +26,7 @@ export function goneRefs(before: ProjectDoc, after: ProjectDoc): Ref[] {
   lost('stat', ids(before.game.stats), ids(after.game.stats))
   lost('resource', ids(before.game.resources), ids(after.game.resources))
   lost('map', ids(before.game.maps), ids(after.game.maps))
+  lost('difficulty', ids(before.game.difficulties?.list), ids(after.game.difficulties?.list))
   lost('side', allSideIds(before), allSideIds(after))
   lost('unit', definedStoryIds(before), definedStoryIds(after))
   // Support pairs in scenes name characters, whether or not a map places them.
@@ -63,6 +64,7 @@ const sentence = (what: Dropping['what'], text: string, where: string): string =
     case 'freeBattle': return `Campaign: the map is taken off the list of free battles`
     case 'command': return `Campaign, ${where}: “${text}” is removed`
     case 'resource': return `Campaign, ${where}: “${text}” loses this resource`
+    case 'difficulty': return `Campaign, ${where}: “${text}” loses this difficulty`
     default: return `Campaign, ${where}: ${text}`
   }
 }

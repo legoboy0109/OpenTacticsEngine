@@ -1,5 +1,7 @@
 // A list of conditions ("Only if", and the conditions of an If command): each one is a row with its kind and fields
 // always showing; add, reorder and delete like every list.
+import { hasDifficulties } from '../../../../model/difficulty'
+import { DifficultyConditionFields } from './DifficultyConditionFields'
 import { listAdd, listMove, listPatch, listRemove, listReplace } from '../../../../model/storyEdit'
 import { newCondition } from '../../../../model/storyDefaults'
 import { COMPARE_OPS, CONDITION_KINDS, asFilter, conditionKind, type CompareOp, type Condition, type ConditionKind } from '../../../../model/storyTypes'
@@ -22,7 +24,7 @@ interface Props {
 
 /** A campaign scene can only test these (the loader refuses the others there). */
 /** (a scene has no fog: `sees` is for map events only) */
-const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'support']
+const SCENE_CONDITIONS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'support', 'difficulty']
 
 const OPS = COMPARE_OPS.map((o) => ({ value: o, label: S.ops[o] }))
 
@@ -34,6 +36,7 @@ export function ConditionList({ conditions, onChange, name }: Props) {
   const kinds = (story.scene ? CONDITION_KINDS.filter((k) => SCENE_CONDITIONS.includes(k)) : CONDITION_KINDS)
     .filter((k) => k !== 'support' || hasPairs || conditions.some((c) => conditionKind(c) === 'support'))
     .filter((k) => k !== 'hasSkill' || story.doc.skills?.length)
+    .filter((k) => k !== 'difficulty' || hasDifficulties(story.doc) || conditions.some((c) => conditionKind(c) === 'difficulty'))
     .filter((k) => k !== 'hasCondition' || story.doc.conditions?.length || conditions.some((c) => conditionKind(c) === 'hasCondition'))
   const patch = (i: number, p: Record<string, unknown>, key?: string) => onChange(listPatch(conditions, i, p), key && `${key}:${i}`)
   return (
@@ -114,6 +117,7 @@ export function ConditionList({ conditions, onChange, name }: Props) {
                 <p className="help">{S.conditionHasConditionHelp}</p>
               </>
             )}
+            {kind === 'difficulty' && <DifficultyConditionFields c={c} onChange={(v) => patch(i, { difficulty: v })} />}
             {kind === 'actor' && (
               <>
                 <FilterPicker label={EX.actorWho} value={c.actor} onChange={(f) => patch(i, { actor: f ?? {} })} />
