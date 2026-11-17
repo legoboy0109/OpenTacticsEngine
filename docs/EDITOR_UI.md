@@ -978,6 +978,20 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
   - Characters: "Labels" (a character's `tags`). Maps: a placed unit's panel and the "Add a unit" command form have "Skills of its own" (`panels/UnitSkills.tsx`); deleting a
     skill takes it off those too (`srpgRefs.ts` `cleanSkill`). Rules: the Promotion card has "Skills of the old class" (`rules.promotion.classSkills`).
   - Still hand-edit: a map unit's `"goesFor": ["steal"]` (the helper keeps it). **Tests**: unit `skillblocks2`; API `editor_api_skills_checks.py`; e2e `srpg-skillblocks2.spec.ts`.
+- **Third set** (docs/SRPG.md "Skill blocks, third set"; all wording is placeholder):
+  - Skills: the Reaches row of a combat rule, once it reaches allies or enemies, also has "Only units holding this weapon or group", "Only units whose weapon deals" (a kind some weapon
+    has) and, under Advanced, "Only units that pass this formula" (`BlockOptions.tsx` `ReachesRow`, `model/skillBlocks.ts` `auraOf` / `setAura`, empty ones are left out of the file);
+    the condition "Which strike of the fight" (strike and struck rules only: the first, a follow-up, one particular strike, or a range; `ConditionFields.tsx`); the effect "Hurts its own
+    wielder" (strike rules: a number or a formula, and "Turn the strike on the wielder": `EffectFields.tsx` `RecoilFields`); "Not hurt extra by “effective against”" has "Which effectiveness":
+    all of it, or only against the tags some weapon lists under "Extra damage against" (`CancelFields`); the heal formula of a "staffUse" rule says `healed` and `b` in its help.
+    The custom-formula condition's help names `ta` / `tb` and `strikeNo` (the terrain test by number needs no form of its own). Tables in `skillRules.ts` (`STRIKE_ONLY` now also holds
+    `strike`), refusals in `skillChecks.ts`, sentences in `skillText.ts`.
+  - Abilities: when a steal ability's "Only if (formula)" reads `it`, a field "Why an item cannot be taken" appears (`reason`; `model/abilities.ts` `setSteal` keeps it only next to a formula).
+  - Items: a usable item or an accessory has "Numbers for formulas" (`props`, read as `it.weight`) once the game has a steal ability or the item already has some (`setItemNumber`); a staff
+    has "Bonus while carried" (`bonus`, `StaffCards.tsx`); a light staff has "Shrinks by (squares each turn)" (`shrink`; `staffEffects.ts` `setLightShrink` keeps it below the radius,
+    empty removes it). `itemChecks.ts` refuses a weapon item with `props` and a staff bonus that changes no stat; `staffChecks.ts` mirrors the loader's shrink rule.
+  - Maps: the computer unit's "Goes for" already covers `steal` (`panels/GoesFor.tsx`, `GOES_FOR`).
+  - **Tests**: unit `skillblocks3`; API `editor_api_skills_checks.py` (the third-set skill, torch, heavy ring, steal with a reason, and four refusals); e2e `srpg-skillblocks3.spec.ts` (desktop and 360 px).
 - **Installer** (`StarterDialog.tsx`, data in `model/starterSkills.ts`, the same list as `editor/templates/strategy-rpg/data/skills.json`; a unit test compares them).
 - **Cards**: unit type and character (Skills + Learns at a level), accessory item (only the accessory kind), weapon: all through `screens/skills/SkillsCard.tsx`.
   An accessory needs a bonus or a skill (the check and help text say so). Changing an item away from accessory drops its skills.
