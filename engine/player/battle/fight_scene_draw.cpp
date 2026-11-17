@@ -77,6 +77,20 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
     for (int s = 1; s <= 8; ++s)
       if (s * g.frameH[i] <= room) g.scale[i] = s;
   }
+  // A map picture (the fallback) is drawn as tall as an animated fighter would be: as tall as the other side's set (its stand
+  // frame from the foot point up), else about 45% of the stage, whatever small size the map picture has.
+  for (int i = 0; i < 2; ++i) {
+    if (fighter_[i].set >= 0) continue;
+    int target = (g.groundY - g.stageTop) * 45 / 100;
+    const int o = 1 - i;
+    if (fighter_[o].set >= 0) {
+      const BattleSet& bs = db.graphics.battle.sets[(size_t)fighter_[o].set];
+      target = (bs.anchorY >= 0 ? bs.anchorY : g.frameH[o]) * g.scale[o];
+    }
+    g.scale[i] = 1;
+    for (int s = 1; s <= 8; ++s)
+      if (s * g.frameH[i] <= target && s * g.frameH[i] <= room) g.scale[i] = s;
+  }
   while (g.scale[0] * g.frameW[0] + g.scale[1] * g.frameW[1] > g.W - 8 && (g.scale[0] > 1 || g.scale[1] > 1)) {
     const int big = g.scale[0] * g.frameW[0] >= g.scale[1] * g.frameW[1] ? 0 : 1;
     if (g.scale[big] > 1) --g.scale[big];
@@ -342,6 +356,9 @@ void FightScene::draw(Renderer& r) const {
   for (int i = 0; i < 2; ++i) drawFighter(r, g, order[i]);
   drawEffects(r, g);
   drawFloats(r, g);
+  // An opaque band behind the boxes, so the background picture (clouds) never runs into them.
+  r.fillRect(0, 0, g.W, g.stageTop - 2, Color(10, 13, 28));
+  r.fillRect(0, g.stageTop - 2, g.W, 1, Color(70, 76, 110));
   drawBox(r, g, 0);
   drawBox(r, g, 1);
   drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));
