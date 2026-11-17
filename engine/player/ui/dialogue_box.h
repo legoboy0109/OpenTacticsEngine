@@ -32,6 +32,8 @@ struct PortraitArt {
   TextureId tex = 0;
   int sx = 0, sy = 0, sw = 0, sh = 0;
   int faces = 0;  // the way it naturally looks: 0 not said, 1 left, 2 right (docs/GRAPHICS.md "Portraits")
+  // Other frames of the face (the "talk" and "blink" cells of the portrait): source corner in the texture, same size as the first.
+  std::vector<std::pair<int, int>> talk, blink;
   bool any() const { return tex != 0 && sw > 0 && sh > 0; }
 };
 
@@ -53,6 +55,8 @@ class DialogueBox {
   bool isQuestion() const { return !answers_.empty(); }
   void close() { open_ = false; held_ = false; choosing_ = false; answers_.clear(); }
   bool isOpen() const { return open_; }
+  // The line's page is still being typed: the speaker's portrait moves its mouth (the portrait's "talk" frames).
+  bool revealing() const { return open_ && !pageDone(); }
 
   Result update(double dt);
   Result onInput(const InputEvent& e);

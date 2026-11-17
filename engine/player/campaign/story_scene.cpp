@@ -315,7 +315,7 @@ void StoryScene::draw(Renderer& r) {
     return;
   }
   drawStageBackground(r, ctx, stage_);  // nothing when there is none: the scene looks as it always did
-  drawStagePortraits(r, ctx, stage_, box_.isOpen() ? box_.top() : r.height() - footerHeight(r) - 4);
+  drawStagePortraits(r, ctx, stage_, box_.isOpen() ? box_.top() : r.height() - footerHeight(r) - 4, box_.revealing());
   drawFooter(r, box_.choosing() ? kChoiceHint : kDialogueHint);
   box_.draw(r);
   drawStageFade(r, stage_);

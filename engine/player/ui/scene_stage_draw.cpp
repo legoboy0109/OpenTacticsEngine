@@ -100,7 +100,7 @@ void drawMirrored(Renderer& r, const PortraitArt& art, int x, int y, int dw, int
 
 }  // namespace
 
-void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage, int baseY) {
+void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage, int baseY, bool speaking) {
   struct Shown {
     const SceneStage::Portrait* p;
     PortraitArt art;
@@ -128,8 +128,8 @@ void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& 
   for (size_t i : order) {
     const StagePlace& pl = places[i];
     if (!pl.shown) continue;
-    const PortraitArt& art = shown[i].art;
     const SceneStage::Portrait& p = *shown[i].p;
+    const PortraitArt art = portraitFrame(shown[i].art, speaking && items[i].lit, stage.clock(), p.key);  // talk / blink frames, when it has them
     const Color tint = items[i].lit ? Color(255, 255, 255, (uint8_t)std::lround(255.0f * p.alpha)) : Color(105, 105, 120, (uint8_t)std::lround(255.0f * p.alpha));
     // Facing (docs/GRAPHICS.md "Portraits"): the left half looks right, the right half looks left, the middle is left as drawn;
     // only a picture that says which way it looks ("faces") is turned.

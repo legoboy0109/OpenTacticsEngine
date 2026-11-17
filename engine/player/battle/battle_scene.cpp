@@ -356,7 +356,7 @@ void BattleScene::draw(Renderer& r) {
     drawStageBackground(r, sctx, stage);
     drawHint(r, layout_, hint());
   }
-  drawStagePortraits(r, sctx, stage, dialogue_.isOpen() ? dialogue_.top() : layout_.vh);
+  drawStagePortraits(r, sctx, stage, dialogue_.isOpen() ? dialogue_.top() : layout_.vh, dialogue_.revealing());
 
   if (idleView && human) {
     if (mode_ == Mode::Targeting && targetIdx_ < (int)targets_.size()) {

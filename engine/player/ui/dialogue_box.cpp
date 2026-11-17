@@ -5,6 +5,7 @@
 
 #include "sound/cue_sink.h"
 #include "ui/chrome.h"
+#include "ui/dialogue_portrait.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -232,7 +233,8 @@ void DialogueBox::draw(Renderer& r) const {
     int dw = ps_, dh = ps_;
     if (art_.sw >= art_.sh) dh = std::max(1, ps_ * art_.sh / art_.sw);
     else dw = std::max(1, ps_ * art_.sw / art_.sh);
-    r.drawTexture(art_.tex, art_.sx, art_.sy, art_.sw, art_.sh, portraitX_ + (ps_ - dw) / 2, portraitY_ + ps_ - dh,
+    const PortraitArt face = portraitFrame(art_, revealing(), time_, name_);  // talk / blink frames, when the portrait has them
+    r.drawTexture(face.tex, face.sx, face.sy, face.sw, face.sh, portraitX_ + (ps_ - dw) / 2, portraitY_ + ps_ - dh,
                   dw, dh);
     r.drawRect(portraitX_, portraitY_, ps_, ps_, Color(200, 205, 230));
   }

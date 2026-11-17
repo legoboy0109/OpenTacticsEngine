@@ -345,6 +345,18 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
       if (f != "left" && f != "right") return c.fail(where, "\"faces\" must be \"left\" or \"right\": the way the picture looks");
       look.faces = f == "left" ? 1 : 2;
     }
+    for (const char* key : {"talk", "blink"}) {  // other frames of the face (docs/GRAPHICS.md "Portraits")
+      if (!e.second.has(key)) continue;
+      const Json* frames;
+      if (!c.array(e.second, key, where, frames, true)) return false;
+      if (frames->size() < 1 || frames->size() > 8) return c.fail(where, q(key) + " must list between 1 and 8 cells of the portrait's sheet");
+      const SheetDef& sh = db.graphics.sheets[(size_t)look.sheet];
+      for (size_t i = 0; i < frames->size(); ++i) {
+        SpriteCell cell;
+        if (!readCell(c, (*frames)[i], where, key, cell) || !checkInside(c, sh, cell, 1, 1, where)) return false;
+        (std::string(key) == "talk" ? look.talk : look.blink).push_back(cell);
+      }
+    }
     list.push_back(std::make_pair(e.first, look));
   }
   return true;

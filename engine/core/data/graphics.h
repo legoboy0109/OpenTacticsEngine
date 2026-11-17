@@ -72,6 +72,9 @@ struct Look {
   // Portraits only (docs/GRAPHICS.md "Portraits"): which way the picture naturally faces, so the stage can turn it towards
   // the middle of the screen. 0 = not said (drawn as it is), 1 = faces left, 2 = faces right.
   int faces = 0;
+  // Portraits only: other cells of the same sheet, "talk" (cycled while the speaker's line is being typed) and "blink" (shown for a
+  // moment now and then). Empty = the portrait never changes.
+  std::vector<SpriteCell> talk, blink;
 
   bool any() const { return kind != None; }
 };

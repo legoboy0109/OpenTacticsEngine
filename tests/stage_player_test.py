@@ -171,6 +171,17 @@ def run():
           and not any(g.startswith(('scene: enter', 'scene: move')) for g in got), '\n'.join(got))
 
 
+    # Talk and blink frames (docs/GRAPHICS.md "Portraits"): the speaker's mouth is open (the portrait's talk frame) while its line is
+    # typed, and the usual face once the page is complete. Eirik's mouth-open colour is exactly (120, 40, 50) when he is lit.
+    def mouth_open(img):
+        return (120, 40, 50) in [c for _, c in img.getcolors(maxcolors=1 << 20)]
+    for gname, gdir, tag in (('stage-solo', solo, '480x270'), ('stage-phone', phone, '270x480')):
+        _, _, typing = play(gdir, gname, ['--map', 'field'], 'wait:20', 45, shot=os.path.join(TMP, 'talk-typing-%s' % tag))
+        _, _, done = play(gdir, gname, ['--map', 'field'], 'wait:20,confirm,wait:20', 90, shot=os.path.join(TMP, 'talk-done-%s' % tag))
+        if typing is not None and done is not None:
+            check('talk frames %s: the lit speaker\'s mouth is open while the line is typed' % tag, mouth_open(typing))
+            check('talk frames %s: ... and closed again when the page is complete' % tag, not mouth_open(done))
+
     # The camera's "speed": the scroll takes as long as its distance needs (from the last focus; the first from the map's middle).
     code, log, _ = play(solo, 'stage-solo', ['--map', 'camera'], '', 200)
     got = lines(log, 'scene: focus')
