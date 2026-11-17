@@ -291,7 +291,7 @@ function drawHeightsHex(g: CanvasRenderingContext2D, scene: Scene, k: K, r: { x0
   }
 }
 
-const TONES: Record<Overlay['tone'], string> = { area: '45,212,255', add: '124,211,90', move: '255,176,32', view: '197,140,255', win: '74,222,128', lose: '255,92,92', slot: '90,170,255' }
+const TONES: Record<Overlay['tone'], string> = { area: '45,212,255', add: '124,211,90', move: '255,176,32', view: '197,140,255', win: '74,222,128', lose: '255,92,92', slot: '90,170,255', change: '255,120,200' }
 
 /** The hexagons a rectangle of columns and rows contains (story areas stay rectangles of columns and rows, docs/HEX.md). */
 export function rectCells(r: Rect, w: number, h: number): Cell[] {

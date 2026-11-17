@@ -12,6 +12,7 @@ const TONES: Record<OverlayTone, string> = {
   win: '74,222,128',
   lose: '255,92,92',
   slot: '90,170,255',
+  change: '255,120,200',
 }
 
 interface Grid { px: (c: number) => number; py: (c: number) => number; S: number; dpr: number; mw: number; mh: number }

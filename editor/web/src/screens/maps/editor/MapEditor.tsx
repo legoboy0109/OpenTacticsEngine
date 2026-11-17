@@ -5,6 +5,7 @@ import { styleView } from '../../../art/scene'
 import { useArtScene } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { slotOverlays } from '../../../model/prep'
+import { applyToMap, changeOutline } from '../../../model/mapChanges'
 import { seenAtStart } from '../../../model/fogSight'
 import { editMap } from '../../../model/mapCtx'
 import { gridOfGame } from '../../../model/gridSpec'
@@ -59,9 +60,13 @@ function Editor({ id }: { id: string }) {
   const unitTypes = doc.units!
   const structureTypes = useMemo(() => doc.structures ?? [], [doc.structures])
   // A unit placed as a character has no `type` in the file: the canvas and status line draw it with the character's.
-  const shownMap = useMemo(() => withResolvedTypes(map, doc.characters), [map, doc.characters])
-  const sides = map.sides ?? []
   const vs = useMemo(() => new MapViewState(), [])
+  const changeSel = useViewSlice(vs, (s) => s.changeSel)
+  const changeView = useViewSlice(vs, (s) => s.changeView)
+  // The Changes tab can show the map with the selected change applied ("After").
+  const viewMap = useMemo(() => (changeSel && changeView === 'after' ? applyToMap(map, terrain, changeSel) : map), [map, terrain, changeSel, changeView])
+  const shownMap = useMemo(() => withResolvedTypes(viewMap, doc.characters), [viewMap, doc.characters])
+  const sides = map.sides ?? []
   // Where cells are on the picture (squares or hexagons); one object for the canvas, the input and the view maths.
   const grid = useMemo(() => gridOfGame(doc.game), [doc.game?.grid]) // eslint-disable-line react-hooks/exhaustive-deps
   const tile = doc.game?.view?.tileSize ?? 24
@@ -114,6 +119,9 @@ function Editor({ id }: { id: string }) {
 
   // The preparation's deployment squares, numbered, over the map.
   useEffect(() => { vs.set({ slots: slotOverlays(map) }) }, [vs, map.prep, map]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The Changes tab outlines the squares of the change being edited.
+  useEffect(() => { vs.set({ changeOutline: changeSel ? changeOutline(map, changeSel) : [] }) }, [vs, map, changeSel])
 
   // The "Show what a side sees" aid: only while the map has fog and the picked side still exists.
   const fogSide = useViewSlice(vs, (s) => s.fogSide)

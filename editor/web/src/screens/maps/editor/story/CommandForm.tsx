@@ -11,6 +11,7 @@ import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { EndTurnForm, FocusForm, SetSwitchForm, WinLoseForm } from './forms/StoryForms'
 import { AddVariableForm, SetVariableForm } from './forms/VariableForms'
 import { PlaceCommandForm } from './forms/PlaceForms'
+import { ChangeCommandForm, SetFogForm, SetTerrainForm, SetVisionForm } from './forms/MapChangeForms'
 import { PromoteForm } from './forms/PromoteForm'
 import { AddSupportForm } from './forms/SupportForms'
 import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
@@ -66,6 +67,11 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'stopMusic': return <StopMusicForm cmd={cmd} at={at} />
     case 'playSound': return <PlaySoundForm cmd={cmd} at={at} />
     case 'openDoor': case 'closeDoor': case 'lockDoor': case 'unlockDoor': case 'openChest': return <PlaceCommandForm cmd={cmd} at={at} />
+    case 'setTerrain': return <SetTerrainForm cmd={cmd} at={at} />
+    case 'applyChange': return <ChangeCommandForm cmd={cmd} at={at} apply />
+    case 'revertChange': return <ChangeCommandForm cmd={cmd} at={at} apply={false} />
+    case 'setFog': return <SetFogForm cmd={cmd} at={at} />
+    case 'setVision': return <SetVisionForm cmd={cmd} at={at} />
     case 'endTurn': return <EndTurnForm />
     case 'focus': return <FocusForm cmd={cmd} at={at} />
     default: return <p className="help">This command is not one the editor knows. It is kept as it is.</p>

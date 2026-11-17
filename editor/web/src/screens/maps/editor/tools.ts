@@ -8,6 +8,8 @@ import { fillFrom, lineCells, paintCells } from '../../../model/mapPaint'
 import { applyHeights, clampHeight, type HeightMode } from '../../../model/mapHeights'
 import { footprint, moveStructureBy, placeStructure, rectOf, structureIndexAt, placedOf } from '../../../model/mapStructures'
 import { fitPlaceKeys } from '../../../model/mapPlaces'
+import { paintChange } from '../../../model/mapChanges'
+import { MC as CT } from './story/forms/mapChangeText'
 import { moveMapUnit, placeUnit, unitAt } from '../../../model/mapUnits'
 import { toggleSlot } from '../../../model/prep'
 import { STROKE_PREFIX } from '../../../store/history'
@@ -65,6 +67,11 @@ export function beginStroke(env: StrokeEnv, cell: Cell, opts: { alt?: boolean } 
       const id = terrainAt(map, cell.x, cell.y)
       if (id) env.pickTerrain(id)
       return NOOP
+    }
+    if (env.view.paintChange) {  // the Changes tab: the squares go into the change, not into the map
+      const changeId = env.view.paintChange
+      if (t.fill) { env.say(CT.paintFillNote); return NOOP }
+      return paintStroke(cell, gridOf(env), (cells, k) => env.store.edit((d) => editMap(d, env.mapId, (m, c) => paintChange(m, c.terrain, changeId, cells, t.terrainId)), k))
     }
     if (t.fill) {
       env.store.edit((d) => editMap(d, env.mapId, (m, c) => fillFrom(m, c.terrain, cell.x, cell.y, t.terrainId, c.grid)))

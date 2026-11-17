@@ -1,4 +1,5 @@
 // All wording of the story panels (Events and Objectives) and their forms. Placeholder wording: the owner decides.
+import { MC } from './forms/mapChangeText'
 import type { CommandKind, CompareOp, ConditionKind, FilterKind, RuleKind, TriggerKind } from '../../../../model/storyTypes'
 
 export const S = {
@@ -193,6 +194,7 @@ export const S = {
     lockDoor: 'Lock a door',
     unlockDoor: 'Unlock a door or chest',
     openChest: 'Open a chest',
+    ...MC.kinds,
   } as Record<CommandKind, string>,
   endTurnTalkOnly: 'only in a “Two units talk” event',
   commandN: (n: number) => `command ${n}`,

@@ -16,6 +16,7 @@ import { NumberInput } from '../../../../ui/NumberInput'
 import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import { T } from '../text'
+import { MC } from '../story/forms/mapChangeText'
 
 export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile; mapId: string }) {
   const edit = useEdit()
@@ -33,7 +34,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
       </div>
       <p className="help">{T.sidesHelp}</p>
       {sides.map((s, i) => (
-        <SideCard key={s.id} side={s} index={i} resources={doc.game?.resources ?? []} doc={doc} canRemove={canRemoveSide(map)}
+        <SideCard key={s.id} side={s} index={i} fog={map.fog === true} resources={doc.game?.resources ?? []} doc={doc} canRemove={canRemoveSide(map)}
           onPatch={(p, k) => apply((m) => updateSide(m, s.id, p), k && `side:${mapId}:${s.id}:${k}`)}
           onResource={(r, v) => apply((m, c) => setSideResource(m, c, s.id, r, v), `side:${mapId}:${s.id}:res:${r}`)}
           onRemove={() => setRemoving(s.id)} />
@@ -54,6 +55,7 @@ export function SidesPanel({ doc, map, mapId }: { doc: ProjectDoc; map: MapFile;
 }
 
 interface CardProps {
+  fog: boolean
   side: MapSide
   index: number
   resources: Array<{ id: string; name: string }>
@@ -64,7 +66,7 @@ interface CardProps {
   onRemove: () => void
 }
 
-function SideCard({ side, index, resources, doc, canRemove, onPatch, onResource, onRemove }: CardProps) {
+function SideCard({ fog, side, index, resources, doc, canRemove, onPatch, onResource, onRemove }: CardProps) {
   return (
     <div className="subcard side-card" data-testid={`side-${side.id}`}>
       <div className="subcard-head">
@@ -82,6 +84,13 @@ function SideCard({ side, index, resources, doc, canRemove, onPatch, onResource,
         </Field>
         <Field label={T.sideTeam} help={T.sideTeamHelp}><TextInput value={side.team ?? ''} placeholder={side.id} onChange={(v) => onPatch({ team: v }, 'team')} /></Field>
       </div>
+      {fog && side.controller === 'ai' && (
+        <Field label={MC.sideSees} help={MC.sideSeesHelp}>
+          <Select aria-label={`${side.name} ${MC.sideSees}`} value={side.aiSeesAll === undefined ? 'follow' : side.aiSeesAll ? 'all' : 'bound'}
+            options={[{ value: 'follow', label: MC.sideSeesFollow }, { value: 'bound', label: MC.sideSeesBound }, { value: 'all', label: MC.sideSeesAll }]}
+            onChange={(v) => onPatch({ aiSeesAll: v === 'follow' ? undefined : v === 'all' })} />
+        </Field>
+      )}
       {resources.length > 0 && (
         <FieldGroup label={T.sideResources}>
           <table className="kv"><tbody>

@@ -20,6 +20,8 @@ import { PictureCard } from '../../ui/picture/PictureCard'
 import { Check } from '../../ui/Toggle'
 import { repairOn } from '../../model/supplyRules'
 import { GroundSightCard } from '../fog/GroundSightCard'
+import { StructureLight } from '../fog/LightParts'
+import { MC } from '../maps/editor/story/forms/mapChangeText'
 import { Footprint, HexFootprint } from './Footprint'
 import { MovingThrough } from './MovingThrough'
 import { PlacePartsCard } from './PlaceParts'
@@ -189,6 +191,7 @@ export function StructureForm({ id }: { id: string }) {
       <UpgradesCard id={id} />
       {showRepairs && <RepairsCard id={id} />}
       <GroundSightCard kind="structure" id={id} />
+      <Card title={MC.light}><StructureLight id={id} /></Card>
 
       {hidden.length > 0 && (
         <p className="help" data-testid="hidden-settings">{T.hiddenBody(hidden.join(', '))} <Link to={projectPath(store.id, 'rules')}>{T.rulesLink}</Link></p>
