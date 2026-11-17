@@ -66,6 +66,10 @@ struct AudioData {
   CueSet standard;
   // Overrides, by index into db.weapons / db.unitTypes / db.items / db.maps (empty until loadAudioOverrides).
   std::vector<CueSet> weapons, units, items;
+  // Step sounds by movement type (docs/SOUND.md): per db.moveTypes index. And the seconds between two steps (0 = the default,
+  // 0.10) per unit type and per movement type (a unit type's own wins).
+  std::vector<CueSet> moveTypes;
+  std::vector<float> unitStepGap, moveStepGap;
   std::vector<MapMusic> maps;
   bool hasOverrides = false;
 

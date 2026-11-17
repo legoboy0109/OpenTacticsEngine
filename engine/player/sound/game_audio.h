@@ -46,7 +46,7 @@ class GameAudio {
   const SoundBank& bank() const { return bank_; }
 
  private:
-  void playSoundIndex(int index, int cueSlot);  // cueSlot -1: no minimum gap
+  void playSoundIndex(int index, int cueSlot, double gap = -1);  // cueSlot -1: no minimum gap; gap < 0: the cue's own
 
   AudioService& audio_;
   std::string gameId_, dir_;

@@ -108,6 +108,7 @@ void BattleView::soundStep(const Battle& b, size_t index) {
   CueCtx c;
   const int unit = cur_.ev.a;
   c.unitType = unit >= 0 && (size_t)unit < b.units.size() ? b.units[(size_t)unit].type : -1;
+  if (c.unitType >= 0 && (size_t)c.unitType < b.db->unitTypes.size()) c.moveType = b.db->unitTypes[(size_t)c.unitType].moveType;  // its movement type's step sound
   audio_->cue(Cue::Step, c);
 }
 

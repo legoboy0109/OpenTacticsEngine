@@ -56,12 +56,13 @@ bool SoundBank::load(AudioService& audio, const std::string& dir, const AudioDat
 
 int SoundBank::lookup(const AudioData& d, Cue cue, const CueCtx& ctx) {
   const int c = (int)cue;
-  // Weapon, then item (they never both apply to one cue), then the unit type, then the standard set. kSilent in a
+  // Weapon, then item (they never both apply to one cue), then the unit type, its movement type, then the standard set. kSilent in a
   // layer ends the search with nothing; kNone passes it on.
-  const int layers[4] = {
+  const int layers[5] = {
       ctx.weapon >= 0 && (size_t)ctx.weapon < d.weapons.size() ? d.weapons[(size_t)ctx.weapon].sound[c] : kNone,
       ctx.item >= 0 && (size_t)ctx.item < d.items.size() ? d.items[(size_t)ctx.item].sound[c] : kNone,
       ctx.unitType >= 0 && (size_t)ctx.unitType < d.units.size() ? d.units[(size_t)ctx.unitType].sound[c] : kNone,
+      ctx.moveType >= 0 && (size_t)ctx.moveType < d.moveTypes.size() ? d.moveTypes[(size_t)ctx.moveType].sound[c] : kNone,
       d.standard.sound[c]};
   for (int s : layers) {
     if (s == kSilent) return -1;

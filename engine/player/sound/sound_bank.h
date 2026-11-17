@@ -1,5 +1,5 @@
 // The loaded sound effects of one game and the lookup "which sound does this cue play" (docs/SOUND.md):
-//   weapon override / item override, then the unit type's, then the game's standard set, then silence.
+//   weapon override / item override, then the unit type's, then its movement type's, then the game's standard set, then silence.
 // A sound with several files plays them in turn (a fixed sequence, never the rules' random numbers: audio must
 // not touch the game's RNG, and a replay must sound the same).
 #pragma once
@@ -13,7 +13,7 @@ namespace ote {
 
 // What a cue is about, for the lookup: an index into db.weapons / db.items / db.unitTypes, -1 = none.
 struct CueCtx {
-  int weapon = -1, item = -1, unitType = -1;
+  int weapon = -1, item = -1, unitType = -1, moveType = -1;  // moveType: index into db.moveTypes (the step sound of a movement type)
 };
 
 class SoundBank {
