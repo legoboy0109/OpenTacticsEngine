@@ -147,7 +147,7 @@ void Formulas::pushFoeWeapon(const WeaponDef* fw, bool answers) {
   lua_setmetatable(L_, -2);
 }
 
-void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus) {
+void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus, int follow, int tri) {
   if (!u) { lua_pushnil(L_); return; }
   const UnitTypeDef& type = db_->unitTypes[u->type];
   // A stat as the rules see it: through the battle when there is one (skills, carrying), else its own value with
@@ -160,7 +160,10 @@ void Formulas::pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<
     }
     return v;
   };
-  lua_createtable(L_, 0, (int)db_->stats.size() + 8);
+  lua_createtable(L_, 0, (int)db_->stats.size() + 10);
+  // Set before the stats, so a stat of that name wins (as with `character`).
+  lua_pushinteger(L_, follow); lua_setfield(L_, -2, "followShift");
+  lua_pushinteger(L_, tri); lua_setfield(L_, -2, "trianglePercent");
   for (size_t i = 0; i < db_->stats.size() && i < u->stats.size(); ++i) {
     lua_pushinteger(L_, statOf((int)i));
     lua_setfield(L_, -2, db_->stats[i].id.c_str());
@@ -208,8 +211,8 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
                       double def, bool nilIsZero) {
   if (!ref) return def;
   lua_rawgeti(L_, LUA_REGISTRYINDEX, ref);
-  pushUnit(ctx.a, ctx, ctx.bonusA);
-  pushUnit(ctx.b, ctx, ctx.bonusB);
+  pushUnit(ctx.a, ctx, ctx.bonusA, ctx.followA, ctx.triA);
+  pushUnit(ctx.b, ctx, ctx.bonusB, ctx.followB, ctx.triB);
   pushWeapon(L_, ctx.w);
   pushProps(L_, ctx.ta);
   pushProps(L_, ctx.tb);

@@ -115,6 +115,10 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   ctx.b = &def;
   if (!own.stats.empty()) ctx.bonusA = &own.stats;
   if (!foe.stats.empty()) ctx.bonusB = &foe.stats;
+  ctx.followA = own.followShift;
+  ctx.followB = foe.followShift;
+  ctx.triA = own.trianglePercent;
+  ctx.triB = foe.trianglePercent;
   ctx.w = &db->weapons[weapon];
   // The other fighter's weapon: the answering weapon when attacking, the attacker's weapon in a counter (-1 = none).
   const int foeWeapon = counter ? setup.weaponA : setup.weaponD;
@@ -141,6 +145,9 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   out.crit = clampInt(crit + own.crit - foe.critAvoid, 0, 100);
   int strikes = formulas->has(Formulas::Strikes) ? wholeNumber(formulas->eval(Formulas::Strikes, ctx, 1)) : 1;
   out.strikes = clampInt(strikes + own.strikes, 1, 8);
+  // Follow-up control: the first exchange is the unit's one strike; anything beyond it is a follow-up. Forbid beats force.
+  if (own.followForbid) out.strikes = 1;
+  else if (own.followForce && out.strikes < 2) out.strikes = 2;
   out.multi = clampInt(own.multiStrike, 1, 4);
   return true;
 }

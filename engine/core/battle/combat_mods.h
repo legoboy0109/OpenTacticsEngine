@@ -28,6 +28,10 @@ struct CombatMods {
   bool strikeFirst = false;             // when defending, it strikes before the attacker in each exchange
   bool counterAnyRange = false;         // its counterattack ignores its weapon's range
   bool noCounter = false;               // its foe does not counterattack
+  // Follow-up control (docs/SRPG.md "Follow-up strikes"): applied to this fighter's own strike count after the formula.
+  bool followForce = false, followForbid = false;  // forbid wins when both are there
+  int followShift = 0;                  // read by the strike formulas as `a.followShift` (the maker's threshold)
+  int trianglePercent = 100;            // read by the strike formulas as `a.trianglePercent` (percents multiply)
 
   // Adds `by` to one stat (the list grows as needed; indices past the game's stats are simply never read).
   void addStat(int stat, int by) {

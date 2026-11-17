@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "props": { "might": 3 } },
+  { "id": "fire_tome",  "name": "Fire Tome",  "group": "tome", "damageKind": "magic", "range": [1, 2], "props": { "might": 3 } },
+  { "id": "horse_spear", "name": "Horse Spear", "group": "lance", "props": { "might": 2 },
+    "versus": { "mounted": 3 }, "versusDefault": 1 } ] }

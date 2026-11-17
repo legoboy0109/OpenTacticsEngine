@@ -16,7 +16,7 @@ void dressUnit(Unit& u) const;
 // Ends a unit's order. Every action that ends a unit's turn goes through this (never `done = true` by hand,
 // except Wait, an ambush and a story's endTurn): a unit with "move again" that has movement left keeps a move
 // (`acted`) instead of being done.
-void endOrder(int unit);
+void endOrder(int unit, bool afterAttack = false);  // afterAttack: the action was a fight ("moveAgain": notAfterAttack)
 // Start of the active side's turn, after repair and supply and before the story's turn events: ability waits and
 // summon lifetimes, automatic promotions that were postponed, then "turnStart" skill blocks.
 void srpgTurnStart(std::vector<Event>& events);
@@ -39,7 +39,9 @@ void characterDress(Unit& u) const;  // sets Unit::character from the story id
 // ---- skills (skills.cpp and friends, steps K1 / K2) ----
 int skillStatBonus(const Unit& u, int stat) const;  // sum of the "stats" effects of its "always" blocks that hold
 int skillXp(const Unit& u, int amount) const;       // an XP amount passed through its xpPercent effects
-bool hasMoveAgain(const Unit& u) const;             // has a "moveAgain" effect that holds
+bool hasMoveAgain(const Unit& u, bool afterAttack = false) const;  // afterAttack: the action just done was a fight
+int skillWeaponXp(const Unit& u, int amount) const;
+bool hasStanding(const Unit& u, SkillEffect::Kind kind) const;      // an "always" effect of that kind that holds             // has a "moveAgain" effect that holds
 // Learns every "learns" entry of its type and character at or below its level that it does not know yet (no
 // event): a new unit, a promotion.
 void learnUpTo(Unit& u) const;

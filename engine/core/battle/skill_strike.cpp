@@ -44,7 +44,8 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, Stri
     const int owner = side == 0 ? striker : struck;
     const SkillWhen when = side == 0 ? SkillWhen::Strike : SkillWhen::Struck;
     skillCombatList(setup, owner, list);
-    const SkillCtx ctx = skillCombatCtx(setup, owner);
+    SkillCtx ctx = skillCombatCtx(setup, owner);
+    ctx.counters = setup.counters ? 1 : 0;  // known here, unlike while the combat's modifiers are being collected
     for (int s : list) {
       for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
         if (b.when != when || !skillBlockHolds(b, ctx)) continue;

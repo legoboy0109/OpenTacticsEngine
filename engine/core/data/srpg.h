@@ -84,7 +84,10 @@ struct SkillCond {
                     Condition,  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
                     // Skill blocks, general (docs/SRPG.md "More blocks"): WeaponKind: the weapon's `damageKind` is `key`;
                     // Turn: the battle's turn number fits `turnMode`.
-                    WeaponKind, Turn };
+                    WeaponKind, Turn,
+                    // Counterattack: the fight has a counterattack (strike / struck blocks); Carries: `key` is an item the unit carries;
+                    // Inventory: the number of items carried (`op`, `value`), or full / not full (`flag`, `value` = -1).
+                    Counterattack, Carries, Inventory };
   enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
@@ -114,7 +117,10 @@ struct SkillEffect {
     Heal, Hurt, ActAgain,
     // conditions (docs/SRPG.md section 9). CannotAct, CannotMove, Forbid and Berserk belong to the blocks of a condition;
     // Immune works in any skill; Inflict is an on-hit effect of "strike" / "struck" blocks (a weapon's "inflict" is one).
-    CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict
+    CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict,
+    // General blocks (docs/SRPG.md "More skill blocks"). FollowUp: value 1 force / -1 forbid the unit's follow-up strike;
+    // FollowShift: a number the strike formulas read as `a.followShift`; TrianglePercent: read as `a.trianglePercent`.
+    FollowUp, FollowShift, TrianglePercent, WeaponXpPercent, NoCarryPenalty, CancelEffective
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;

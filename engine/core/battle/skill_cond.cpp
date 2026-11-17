@@ -70,6 +70,19 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
     }
     case Kind::Unit:
       return unitHasKey(u, cond.key);
+    case Kind::Counterattack:
+      return ctx.counters >= 0 && (ctx.counters == 1) == cond.flag;
+    case Kind::Carries: {
+      const int item = db->findItem(cond.key);
+      for (const ItemStack& s : u.items)
+        if (s.item == item) return true;
+      return false;
+    }
+    case Kind::Inventory: {
+      const int n = (int)u.items.size();
+      if (cond.value < 0) return (n >= db->rules.items.inventorySize) == cond.flag;  // full / notFull
+      return cmp(cond.op, n, cond.value);
+    }
     case Kind::WeaponKind:
       return weapon >= 0 && db->weapons[(size_t)weapon].damageKind == cond.key;
     case Kind::Turn:

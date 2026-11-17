@@ -29,6 +29,9 @@ void applyCombatEffect(const SkillEffect& e, int v, const std::vector<int>& stat
     case K::StrikeFirst: m.strikeFirst = true; break;
     case K::CounterAnyRange: m.counterAnyRange = true; break;
     case K::NoCounter: m.noCounter = true; break;
+    case K::FollowUp: (e.value > 0 ? m.followForce : m.followForbid) = true; break;
+    case K::FollowShift: m.followShift += e.value; break;
+    case K::TrianglePercent: m.trianglePercent = (int)((long long)m.trianglePercent * e.value / 100); break;
     default: break;  // the loader keeps other effects out of "combat" blocks
   }
 }

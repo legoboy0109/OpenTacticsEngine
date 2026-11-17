@@ -16,14 +16,16 @@ bool Battle::versusValue(int weapon, const Unit& target, double& vs) const {
   vs = 1;
   if (w.versus.empty()) return true;
   const UnitTypeDef& type = typeOf(target);
-  if (propFind(w.versus, type.id, vs)) return true;
-  for (const std::string& tag : type.tags)
-    if (propFind(w.versus, tag, vs)) return true;
-  if (w.hasVersusDefault) {
+  bool found = propFind(w.versus, type.id, vs);
+  for (size_t i = 0; !found && i < type.tags.size(); ++i) found = propFind(w.versus, type.tags[i], vs);
+  if (!found && w.hasVersusDefault) {
     vs = w.versusDefault;
-    return true;
+    found = true;
   }
-  return false;
+  if (!found) return false;
+  // "cancelEffective" (a skill of the target): an "effective against" bonus does not apply to it (a malus is kept).
+  if (vs > 1 && hasStanding(target, SkillEffect::Kind::CancelEffective)) vs = 1;
+  return true;
 }
 
 bool Battle::weaponInRange(int weapon, int dist) const {
@@ -207,7 +209,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   fireStory(fight, events);
   if (over || !units[a].alive || !units[d].alive ||
       !forecastFight(a, d, action.weapon, units[a].cell, f, setup)) {
-    if (units[a].alive) endOrder(a);
+    if (units[a].alive) endOrder(a, true);
     return;
   }
 
@@ -262,7 +264,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
   // its flags as they were.
   srpgAfterCombat(a, d, hpA, hpD, events);
-  if (units[a].alive) endOrder(a);
+  if (units[a].alive) endOrder(a, true);
 }
 
 void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
