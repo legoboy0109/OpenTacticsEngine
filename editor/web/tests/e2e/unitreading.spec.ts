@@ -91,22 +91,26 @@ test('@smoke a scene reads a character and takes an item away: the file is exact
   const id = await prepare(page, game, 'Scene reading')
   await page.goto(editorUrl(id, 'campaign'))
   await page.getByRole('button', { name: 'Create a campaign' }).click()
+  await page.getByRole('button', { name: 'Add a chapter' }).click()
+  await page.getByLabel('Name of the chapter').fill('Opening')
+  await page.keyboard.press('Enter')
   await saved(page)
-  await openChapter(page, 'Chapter 1')
+  await openChapter(page, 'Opening')
   await addSceneCommand(page, 'after', 'After the battle', 'Set a variable')
   await sceneForm(page, 'after').getByLabel('Variable', { exact: true }).selectOption({ label: 'Bar' })
   await sceneForm(page, 'after').getByLabel('Take the number from').selectOption({ label: 'A unit’s level' })
   // A scene cannot read hit points between battles, so that choice is not offered.
   await expect(sceneForm(page, 'after').getByLabel('Take the number from').locator('option', { hasText: 'hit points now' })).toHaveCount(0)
   await sceneForm(page, 'after').getByLabel('Which unit').selectOption('eirik')
+  // (a scene names the player's own characters only: eirik stands on the player's side, gorm does not)
   await addSceneCommand(page, 'after', 'After the battle', 'Take an item away')
   await sceneForm(page, 'after').getByLabel('Item', { exact: true }).selectOption({ label: 'Potion' })
-  await sceneForm(page, 'after').getByLabel('Which character loses it').selectOption('gorm')
+  await sceneForm(page, 'after').getByLabel('Which character loses it').selectOption('eirik')
   await saved(page)
   const campaign = readDisk(id, 'data/campaign.json')
-  expect(campaign.chapters[0].after).toEqual([
+  expect(campaign.chapters.find((c: any) => c.id === 'opening').after).toEqual([
     { setVariable: 'bar', level: 'eirik' },
-    { takeItem: 'potion', from: 'gorm' },
+    { takeItem: 'potion', from: 'eirik' },
   ])
   expect(await game.problems(id)).toEqual([])
 })
