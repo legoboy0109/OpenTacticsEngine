@@ -103,6 +103,9 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
   // Animated pictures: redraw ~20x a second, only while the tab is in front and motion is allowed.
   useAnimationClock(useAnimating(!!art?.animated), schedule)
   useEffect(schedule, [scene, schedule])
+  // Motion switched off (or on) while the map is open: draw once more, so an animated picture goes back to its first
+  // frame instead of staying on whichever frame the clock stopped at.
+  useEffect(schedule, [reducedMotion, schedule])
   // A resized map is shown whole again.
   useEffect(() => { vs.fit(unitsW, unitsH) }, [vs, unitsW, unitsH])
 

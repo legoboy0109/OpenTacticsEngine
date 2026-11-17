@@ -58,6 +58,8 @@ test('animation: frames alternate on the canvas, and stay on the first frame whe
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await openMap(page, id, MAP)
+  // The image loads a moment after the map opens: wait for the first frame before watching that it stays.
+  await expectPixel(page, 2, 0, 0.5, 0.5, hex(pieceColor(0, 0)))
   const still = new Set<string>()
   for (let i = 0; i < 8; i++) { still.add(hex(await mapPixel(page, 2, 0))); await page.waitForTimeout(120) }
   expect([...still]).toEqual([hex(pieceColor(0, 0))])
