@@ -196,6 +196,11 @@ goal (demos only exercise features).
       public repo or shared).
       6g phone section switcher (owner, 2026-11-16): one row showing the current section with a menu button
       that opens the full list as a panel (17 entries no longer fit a grid).
+      6h owner's answers, 2026-11-17: per-unit enemy behaviour built; the preparation screen sells and has an Equip
+      action; character ids can be renamed in the editor (unit type ids stay fixed); the strategy-RPG template ships
+      door, chest and village kinds with two keys (simple drawn pictures kept unless the owner says glyph-only).
+      Private port: the goal is closeness to the original, not balance in the simulator. Next engine work, chosen
+      for the port: story scene presentation (backgrounds, fades, camera, waits) and map tile changes / fog pieces.
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for

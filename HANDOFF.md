@@ -18,30 +18,27 @@ before scenes); story commands reading a unit's numbers into a variable and `tak
 Conditions screen and story commands; doors, keys, chests and visiting (section 10, no editor forms yet); a sidebar
 fix (the section list scrolls on a short window).
 
-Also pushed (origin/main = 123fe57, full check passed: ote_tests 1676-ish both builds, vitest 1151, e2e 489): battle
-and defeat quotes (docs/EVENTS.md); more skill blocks, both batches (docs/SRPG.md "More skill blocks": steal,
-refresh, move past, nullifySkills, staffUse, staffRange, cure ability, carryBonus; `terrainBonus` test not built);
-the preparation / deployment screen (map `prep` block, roster keeps benched characters, player screen, editor
-Preparation tab and Slots tool; buy only, no equip button in the player).
+Also pushed since (2026-11-17, every merge fully checked): battle and defeat quotes; skill blocks (three sets, docs/SRPG.md);
+the preparation screen with selling and Equip; the phone section menu; editor forms for doors, chests, places, class
+locks, character wields, ranks on addUnit; the battle scene (docs/BATTLE_SCENE.md) with per-side sheets, assign by
+weapon and side, 512 frames, ranged and miss slots; walking animations for map units (docs/GRAPHICS.md "Walking");
+per-unit behaviour for computer units (docs/AI.md); renaming a character's id; doors, chests and villages in the
+strategy-RPG template; staff sounds.
 
-In progress (worktree jobs, 2026-11-16 night):
-- Battle scene and animations (PLAN 6f: scene or on-map, maker default + player setting; per-class animation
-  sheets with enlarged-map-sprite fallback). Screenshots land in scratchpad `battle-scene-shots/`.
-- Phone section menu (PLAN 6g) plus small fixes: sidebar regression test, cure-at-turn-start should stop that
-  turn's tick, staves accept `sounds`, quotes speaker label, new-quote empty-line flag, flaky timeline keyboard
-  e2e, "It cures" starting ticked.
-- Private converter step 11 (separate folder, never public): doors, chests, visits, AI markers, yes/no choices,
-  battle/death quotes, prep screen and roster. Step 10 (real staves, conditions, drain, 26 more skills) is done
-  and installed in the git-ignored `games/vision-quest`.
+In progress (2026-11-17): private converter (separate folder, never public) step 14 (battle art on by default, side
+colours, weapon animations, walking sprites, bounded tries at character palettes and backgrounds) and step 15
+(research only, new files only: decoding the hack's custom code and the constants earlier steps assumed; findings
+in its docs/ASM_NOTES.md, to be applied to the converter after step 14). Engine jobs being started: story scene
+presentation (backgrounds, fades, camera, waits) and map tile changes / fog pieces.
 
-Queue after those: converter map sprites and battle animations from the ROM (owner: "From the ROM, all of them",
-private only) once the battle scene format exists; editor forms for doors / chests / places and `goesFor`;
-editor forms for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks; selling and an equip button on
-the preparation screen if the owner wants them.
+Queue after those: converter uses scene presentation, tile changes and fog; fix its unreachable chapters; reinstall
+the port into the git-ignored `games/vision-quest` (regenerate WITH music first). Small engine items: a named
+`character` on the Add a unit form; walking in the 3D views is coded but untested; the phone trade panel truncates
+item names.
 
 Open with the owner: one headless player run without `--no-audio` to confirm the port's sounds fire (was denied to
-an agent; needs the owner's yes). Placeholders awaiting the owner: all new wording; default ladder numbers; starter
-condition numbers; timeline arrows crowd on busy branches.
+an agent; needs the owner's yes). All new wording is placeholder. Agents must not leave `until … sleep` wait loops
+(several hung and made an agent re-report endlessly); briefs now forbid them.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
