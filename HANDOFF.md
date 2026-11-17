@@ -11,21 +11,33 @@ skipped, demo sims line-for-line identical) and pushed: weapon ranks and stat ca
 docs/SRPG.md section 7), the foe's weapon in formulas (`fw`) plus a weapon's `id` / `group` as text in `w` and `fw`,
 character-locked weapons (`wieldedBy`, rules and player only).
 
-Also pushed since: the `wieldedBy` card on the editor's Weapons screen; staves stage 1 (healing staves, rules and
-player, docs/SRPG.md section 8); five small rule gaps (`addUnit` ranks, `rankXp` 0, `wieldedByTypes`, character
-`wields`, `fw.answers`); the editor form for staves (Items screen, kind Staff; ote_tests 1370, editor_api 777,
-vitest 936, e2e 432 passed / 29 skipped with 7 load flakes that pass alone).
+Also pushed since (all on `origin/main` up to bc1421c unless marked): the `wieldedBy` card; staves stage 1, 2
+(warp, pull, swap, repair, light) and their editor forms; five small rule gaps; dialogue choices (`choice`, `goto` in
+before scenes); story commands reading a unit's numbers into a variable and `takeItem`; the campaign timeline
+(Campaign screen, Timeline tab); status conditions (docs/SRPG.md section 9, starter set of six) with the editor's
+Conditions screen and story commands; doors, keys, chests and visiting (section 10, no editor forms yet); a sidebar
+fix (the section list scrolls on a short window).
 
-In progress (2026-11-16, worktree jobs): staves stage 2, rules and player (warp, pull, swap, repair, light);
-dialogue choices (rules, player, simulator, editor). Private converter (separate folder, never public): step 6,
-support conversations.
+Merged on local `main`, full check running, NOT pushed yet (2026-11-16 evening): battle and defeat quotes
+(docs/EVENTS.md), more skill blocks (docs/SRPG.md "More skill blocks").
 
-Queue after those, in order (owner's answers are in docs/PLAN.md, item k's numbered sub-items): editor form for
-staves stage 2; staves stage 3 (status conditions); doors, keys, chests and visiting; battle and death quotes;
-preparation / deployment screen; then converter steps (skills, portraits, sounds, map sprites) and a battle scene.
-No editor forms yet for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks. Placeholders awaiting
-the owner: default ladder numbers (0, 30, 70, 120, 180, 250), new-rank step 50, all new wording (the staff form's
-"Only if" box still says "ability"), a shorter lock reason for phone widths.
+In progress (worktree jobs): preparation / deployment screen (PLAN item 8); skill blocks follow-up (steal, refresh,
+move past, switch off foe's skills, staffUse moment, staff range, cure ability, editor fields for character tags /
+map unit skills / promotion classSkills).
+
+Queue after those (owner's answers in docs/PLAN.md item k): map sprites and battle animations (ask the owner first:
+sprite source, and a question dialog for the battle scene); editor forms for doors / chests / places; editor forms
+for `wieldedByTypes`, character `wields`, `rankXp` 0, `addUnit` ranks. Private converter (separate folder, never
+public) is at step 9 (supports, skills, portraits, starter sounds done); next there: move it onto real staves,
+conditions, doors, quotes, choices and the new skill blocks.
+
+Open with the owner: one headless player run without `--no-audio` to confirm the port's sounds fire (was denied to
+an agent; needs the owner's yes). Placeholders awaiting the owner: all new wording; default ladder numbers (0, 30,
+70, 120, 180, 250), new-rank step 50; starter condition numbers; the phone section switcher is now 17 entries
+(five rows) and wants a design decision; timeline arrows crowd on busy branches.
+
+Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
+A failure that repeats alone is real (the sidebar bug was found that way).
 
 ## Earlier (2026-11-15, evening)
 
