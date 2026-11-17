@@ -164,6 +164,10 @@ goal (demos only exercise features).
       owner to correct: a story command that asks a question with two to four answers, in campaign scenes and
       map events; each answer runs its own commands (lines, switches, items, joining units); a campaign can
       branch to a different chapter on an answer; the answer is saved; the simulator takes the first answer.
+      6b story events read a unit's level (asked 2026-11-16 by the owner's separate game session; small, do
+      right after choices merge, same files): a variable command that adds a unit's current level (missing unit
+      adds 0) so sums and comparisons reuse the `variable` condition; map events (live units) and campaign
+      scenes (roster levels). Starting shape `{ "addVariable": "bar", "level": "<unit>" }`, free to change.
       7 battle and death quotes (after dialogue choices; owner, 2026-11-16: "go ahead"). Assistant's default
       scope, for the owner to correct: per character, lines said when it first fights (optionally only against
       a named character, e.g. boss vs lord, once per pair), lines when it is defeated (different lines for
