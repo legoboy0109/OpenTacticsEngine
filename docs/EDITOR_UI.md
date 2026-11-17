@@ -1109,7 +1109,6 @@ Wording is placeholder. No helper change: it keeps every key and the loader repo
   - Story commands in campaign scenes (the scene loader refuses the map-only ones; the ones it accepts, such as condition commands, are listed per command in the scene form). Not a missing key.
   - A rank starting value written as weapon experience (a number) is kept and shown, but a maker can only pick rank names (deliberate: ranks are the maker-facing words).
   - Renaming a unit TYPE's id (ids stay read-only there; a character's id can be renamed, see "Renaming a character's id").
-  - A player-side equip button and selling on the preparation screen (rules / player, not the editor).
 - **Tests**: unit `tests/unit/editorgaps.test.ts`; e2e `tests/e2e/editor-gaps.spec.ts` (desktop and 360 px: each control set, saved, the JSON compared with the docs, `/problems` empty, Play).
 
 ## Renaming a character's id
