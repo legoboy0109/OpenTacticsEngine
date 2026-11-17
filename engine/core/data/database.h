@@ -132,6 +132,7 @@ struct ItemDef {
   bool promotes = false;       // usable: a promotion item
   std::vector<int> skills;     // accessory: skills it gives while carried (indices into Database::skills)
   int staff = -1;              // staff: index into Database::staves (docs/SRPG.md section 8)
+  bool repairable = true;      // false: a staff's "repair" never offers it (docs/SRPG.md section 8, stage 2)
 };
 const int kHealFull = 1000000000;
 
