@@ -84,7 +84,17 @@ def phone(g):
 ARROW = [{'group': 'blade', 'sheet': 'battle_fx', 'frames': [[0, 0], [1, 0]], 'ms': 80, 'mode': 'travel', 'travelMs': 220}]
 
 
-def make_game(gid, *tweaks, scene=None, art=True, battle=None, effects=None):
+RED_SHEET = {'id': 'battle_knight_red', 'file': 'art/battle_knight_red.png', 'cellWidth': 48, 'cellHeight': 48}
+
+
+def knight_set(**more):
+    """A copy of the demo knight set, with extra keys (a set's "sides", for one)."""
+    s = json.loads(json.dumps(battle_art.BATTLE_SET['sets']['knight']))
+    s.update(more)
+    return s
+
+
+def make_game(gid, *tweaks, scene=None, art=True, battle=None, effects=None, sheets=()):
     g = os.path.join(TMP, gid)
     shutil.copytree(os.path.join(REPO, 'tests/fixtures/srpg-quotes'), g)
     if art:
@@ -99,7 +109,7 @@ def make_game(gid, *tweaks, scene=None, art=True, battle=None, effects=None):
             units.paste(fig, i * 24, 0)
         battle_art.write_png(os.path.join(g, 'art', 'units.png'), units)
         gfx = {
-            'sheets': battle_art.BATTLE_SHEETS + [{'id': 'units', 'file': 'art/units.png', 'cellWidth': 24, 'cellHeight': 24}],
+            'sheets': battle_art.BATTLE_SHEETS + [{'id': 'units', 'file': 'art/units.png', 'cellWidth': 24, 'cellHeight': 24}] + list(sheets),
             'units': {'hero': {'sheet': 'units', 'cell': [0, 0]}, 'brute': {'sheet': 'units', 'cell': [1, 0]},
                       'rider': {'sheet': 'units', 'cell': [2, 0]}, 'grunt': {'sheet': 'units', 'cell': [3, 0]}},
             'battle': battle or {
@@ -248,6 +258,67 @@ def test_ranged_and_effect():
     check('ranged: the scene says it is a ranged fight', sc and 'ranged, 2 squares' in sc[0], str(sc))
 
 
+def with_battle(**parts):
+    """A battle section made of the demo's backgrounds plus `parts` (sets, assign, ...)."""
+    b = {'backgrounds': battle_art.BATTLE_SET['backgrounds'], 'defaultBackground': 'meadow', 'effects': []}
+    b.update(parts)
+    return b
+
+
+def test_side_sheets():
+    # The red side's fighter (Gorm) draws the set from the red sheet; the blue one (Eirik) from the set's own. The log names the
+    # sheet only when a side's own is used, so a game without side sheets logs as before.
+    battle = with_battle(sets={'knight': knight_set(sides={'red': {'sheet': 'battle_knight_red'}})},
+                         assign=[{'set': 'knight', 'type': 'hero'}, {'set': 'knight', 'type': 'brute'}])
+    make_game('b_sides', no_quotes, battle=battle, sheets=[RED_SHEET])
+    sc = scene_lines(run('b_sides', ','.join(ATTACK + ['wait:120'])))
+    check('side sheets: both fighters use the set', 'Eirik art: set "knight"' in sc and 'Gorm art: set "knight"' in sc, str(sc))
+    check('side sheets: the red fighter draws from the red sheet, named in the log', 'Gorm sheet: "battle_knight_red" (side red)' in sc, str(sc))
+    check('side sheets: the blue fighter keeps the set\'s own sheet (no line)', not any(s.startswith('Eirik sheet') for s in sc), str(sc))
+    # One animation of its own for a side, the rest from the set-level entry or the base.
+    battle = with_battle(sets={'knight': knight_set()}, assign=[{'set': 'knight', 'type': 'hero'}, {'set': 'knight', 'type': 'brute'}])
+    battle['sets']['knight']['animations']['stand']['sides'] = {'red': {'sheet': 'battle_knight_red'}}
+    make_game('b_sides_anim', no_quotes, battle=battle, sheets=[RED_SHEET])
+    sc = scene_lines(run('b_sides_anim', ','.join(ATTACK + ['wait:120'])))
+    check('side sheets: an animation\'s own "sides" entry works the same', 'Gorm sheet: "battle_knight_red" (side red)' in sc, str(sc))
+    make_game('b_sides_none', no_quotes, battle=with_battle(sets={'knight': knight_set()}, assign=[{'set': 'knight', 'type': 'brute'}]), sheets=[RED_SHEET])
+    check('side sheets: with none given the log has no sheet line',
+          not any('sheet' in s for s in scene_lines(run('b_sides_none', ','.join(ATTACK + ['wait:120'])))))
+    # Assigning by side: the red side's brute gets its set through a "side" rule (a type rule would lose to nothing here, so use side alone).
+    battle = with_battle(sets={'knight': knight_set(), 'lancer': knight_set()}, assign=[{'set': 'knight', 'type': 'hero'}, {'set': 'lancer', 'side': 'red'}])
+    make_game('b_side_rule', no_quotes, battle=battle)
+    sc = scene_lines(run('b_side_rule', ','.join(ATTACK + ['wait:120'])))
+    check('assign by side: a rule naming only the side gives the red fighter its set', 'Gorm art: set "lancer"' in sc and 'Eirik art: set "knight"' in sc, str(sc))
+
+
+def test_weapon_rule():
+    # Eirik strikes with a sword: the rule for that very weapon beats the plain rule for his unit type.
+    battle = with_battle(sets={'knight': knight_set(), 'swordsman': knight_set()},
+                         assign=[{'set': 'knight', 'type': 'hero'}, {'set': 'swordsman', 'weapon': 'sword'}])
+    make_game('b_weapon', no_quotes, battle=battle)
+    sc = scene_lines(run('b_weapon', ','.join(ATTACK + ['wait:120'])))
+    check('weapon rule: the sword rule wins over the unit type rule (both fighters swing a sword)',
+          'Eirik art: set "swordsman"' in sc and 'Gorm art: set "swordsman"' in sc, str(sc))
+    # A character rule is still stronger than a weapon rule.
+    battle['assign'].append({'set': 'knight', 'character': 'eirik'})
+    make_game('b_weapon2', no_quotes, battle=battle)
+    sc = scene_lines(run('b_weapon2', ','.join(ATTACK + ['wait:120'])))
+    check('weapon rule: a character rule beats it', 'Eirik art: set "knight"' in sc and 'Gorm art: set "swordsman"' in sc, str(sc))
+
+
+def test_long_animation():
+    # An attack of 100 frames at 30 ms is 3 seconds long: its hit frame is the last one, so the hit lands after about 3.4 s of
+    # the scene (the player's clock is fixed at 16 ms per frame, so a run of a given number of frames is exactly that long).
+    battle = with_battle(sets={'knight': knight_set()}, assign=[{'set': 'knight', 'type': 'hero'}])
+    battle['sets']['knight']['animations']['attack'] = {'sheet': 'battle_knight', 'frames': [[i % 4, 1] for i in range(100)], 'ms': 30}
+    make_game('b_long', no_quotes, battle=battle)
+    base = ticks(','.join(ATTACK)) * 4
+    early = scene_lines(run('b_long', ','.join(ATTACK), frames=base + 120))
+    late = scene_lines(run('b_long', ','.join(ATTACK + ['wait:400']), frames=base + 700))
+    check('long animation: 1.9 s into the scene the blow is under way but has not landed', 'strike Eirik -> Gorm' in early and not any(s.startswith('hit ') for s in early), str(early))
+    check('long animation: later it lands and the scene ends', any(s.startswith('hit Eirik -> Gorm') for s in late) and late[-1] == 'end', str(late))
+
+
 def test_phone_and_background():
     make_game('s_phone', no_quotes, phone)
     log = run('s_phone', ','.join(ATTACK + ['wait:120']))
@@ -335,6 +406,9 @@ try:
     test_skip()
     test_computer_turn()
     test_ranged_and_effect()
+    test_side_sheets()
+    test_weapon_rule()
+    test_long_animation()
     test_phone_and_background()
     test_setting()
     test_on_map_unchanged()

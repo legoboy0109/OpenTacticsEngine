@@ -52,7 +52,7 @@ export function setUnitMarker(doc: ProjectDoc, on: boolean): ProjectDoc {
 /** True when `look` (or one of its per-side pictures) draws from the image. */
 export function lookUsesSheet(look: Look | null | undefined, sheetId: string): boolean {
   if (!look) return false
-  return look.sheet === sheetId || Object.values(look.sides ?? {}).some((l) => l.sheet === sheetId) || look.stand?.sheet === sheetId
+  return look.sheet === sheetId || look.walk?.sheet === sheetId || Object.values(look.sides ?? {}).some((l) => l.sheet === sheetId || l.walk?.sheet === sheetId) || look.stand?.sheet === sheetId
 }
 
 /** Keeps the entries of a looks map that do not draw from `sheetId`; a unit entry that does (its own picture) goes
@@ -65,9 +65,13 @@ function sweepMap(m: Record<string, Look | null> | undefined, sheetId: string, k
     if (v.sheet === sheetId) continue
     // A standing picture drawn from the image goes (the ground picture stays); a standing model stays.
     if (v.stand?.sheet === sheetId) { out[k] = patchObj(v, { stand: undefined }); continue }
-    const kept = v.sides ? Object.fromEntries(Object.entries(v.sides).filter(([, l]) => l.sheet !== sheetId)) : undefined
-    const lost = v.sides && Object.keys(kept!).length !== Object.keys(v.sides).length
-    out[k] = lost ? patchObj(v, { sides: Object.keys(kept!).length ? kept : undefined }) : v
+    // Walking frames drawn from the image go (the standing picture stays), also those of a side's own picture.
+    const entry = v.walk?.sheet === sheetId ? patchObj(v, { walk: undefined }) : v
+    const sides = entry.sides
+    const kept = sides ? Object.fromEntries(Object.entries(sides).filter(([, l]) => l.sheet !== sheetId).map(([s, l]) => [s, l.walk?.sheet === sheetId ? patchObj(l, { walk: undefined }) : l])) : undefined
+    const lost = sides && Object.keys(kept!).length !== Object.keys(sides).length
+    const walkLost = sides && Object.entries(kept!).some(([s, l]) => l !== sides[s])
+    out[k] = lost || walkLost ? patchObj(entry, { sides: Object.keys(kept!).length ? kept : undefined }) : entry
   }
   return Object.keys(out).length ? out : undefined
 }

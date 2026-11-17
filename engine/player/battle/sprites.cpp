@@ -15,10 +15,24 @@ void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
   // Sheets the battle scene draws mirrored (docs/BATTLE_SCENE.md): its animation sets and effects.
   std::vector<char> mirrorIt(g.sheets.size(), 0);
   for (const BattleSet& s : g.battle.sets)
-    for (const BattleAnim& a : s.anims)
-      if (a.sheet >= 0 && (size_t)a.sheet < mirrorIt.size() && s.mirror) mirrorIt[(size_t)a.sheet] = 1;
+    for (const BattleAnim& a : s.anims) {
+      if (!s.mirror) continue;
+      if (a.sheet >= 0 && (size_t)a.sheet < mirrorIt.size()) mirrorIt[(size_t)a.sheet] = 1;
+      for (const auto& ss : a.sideSheets)
+        if (ss.second >= 0 && (size_t)ss.second < mirrorIt.size()) mirrorIt[(size_t)ss.second] = 1;
+    }
   for (const BattleEffect& e : g.battle.effects)
     if (e.anim.sheet >= 0 && (size_t)e.anim.sheet < mirrorIt.size()) mirrorIt[(size_t)e.anim.sheet] = 1;
+  // Walking frames of one side drawn as the other (docs/GRAPHICS.md "Walking").
+  for (const GraphicsSet& set : g.styles)
+    for (const UnitLook& ul : set.units) {
+      auto mark = [&](const Look& l) {
+        for (int d = 0; d < kWalkDirs; ++d)
+          if (l.walk.mirrored[d] && l.walk.sheet >= 0 && (size_t)l.walk.sheet < mirrorIt.size()) mirrorIt[(size_t)l.walk.sheet] = 1;
+      };
+      mark(ul.base);
+      for (const auto& s : ul.sides) mark(s.second);
+    }
   for (size_t i = 0; i < g.sheets.size(); ++i) {
     const SheetDef& s = g.sheets[i];
     Image img;
@@ -145,15 +159,70 @@ void drawTerrainArt(Renderer& r, const DrawCtx& c, const Look& look, Cell cell, 
        Color(255, 255, 255));
 }
 
+UnitPic unitPic(const DrawCtx& c, const Look& look, const Unit& u) {
+  UnitPic p;
+  p.src = lookSrc(c, look);
+  p.sheet = look.sheet;
+  const WalkLook& w = look.walk;
+  if ((size_t)u.id >= c.view.units.size()) return p;
+  const UnitView& v = c.view.units[(size_t)u.id];
+  if (!w.any() || !v.walking) {
+    v.walkLogged = -1;
+    return p;
+  }
+  const TextureId tex = c.sprites->texture(w.sheet);
+  if (!tex) return p;
+  // Which way it goes ON THE SCREEN: the step in flat map pixels, through the view's projection (isometric and 3D views turn it).
+  float dx = v.walkDx, dy = v.walkDy;
+  if (c.proj && c.proj->raised()) {
+    float ax, ay, bx, by;
+    c.proj->toWorld(v.px, v.py, ax, ay);
+    c.proj->toWorld(v.px + v.walkDx, v.py + v.walkDy, bx, by);
+    dx = bx - ax;
+    dy = by - ay;
+  }
+  const int dir = w.pick(dx, dy);
+  if (dir < 0) return p;
+  if (v.walkLogged != dir) {  // one debug line per change of direction (tests read it; nothing at the normal log level)
+    static const char* const kNames[kWalkDirs] = {"down", "up", "right", "left"};
+    OTE_DEBUG("walk: %s %s", u.name.c_str(), kNames[dir]);
+    v.walkLogged = dir;
+  }
+  const SheetDef& ws = c.battle.db->graphics.sheets[(size_t)w.sheet];
+  const SheetDef& ss = c.battle.db->graphics.sheets[(size_t)look.sheet];
+  const SpriteCell cell = w.cell(dir, timeMs(c));
+  p.src.tex = tex;
+  p.src.x = cell.col * ws.cellW;
+  p.src.y = cell.row * ws.cellH;
+  p.src.w = ws.cellW;
+  p.src.h = ws.cellH;
+  p.sheet = w.sheet;
+  p.flip = w.mirrored[dir];
+  p.k = (float)ws.cellW / (float)std::max(1, ss.cellW);
+  return p;
+}
+
+SpriteSrc drawSrc(const DrawCtx& c, const UnitPic& pic) {
+  SpriteSrc s = pic.src;
+  if (!pic.flip) return s;
+  const TextureId m = c.sprites->mirrored(pic.sheet);
+  if (!m) return s;  // (no turned-round copy: draw it as it is)
+  const SheetDef& sh = c.battle.db->graphics.sheets[(size_t)pic.sheet];
+  s.tex = m;
+  s.x = (sh.cols - 1) * sh.cellW - pic.src.x;  // column c of the sheet is column cols - 1 - c of its copy
+  return s;
+}
+
 void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u, int sx, int sy, float scale,
                  float alpha, bool done) {
   const int t = c.layout.tile;
-  const SheetDef& sh = c.battle.db->graphics.sheets[(size_t)look.sheet];
+  const UnitPic pic = unitPic(c, look, u);
   int a = std::max(0, std::min(255, (int)(alpha * 255.0f + 0.5f)));
   float k = done ? 0.55f : 1.0f;  // already acted: colour multiply
-  // Width = one square, height keeps the cell's proportions, standing on the bottom edge.
-  int w = t, h = std::max(1, t * sh.cellH / sh.cellW);
-  int x = sx, y = sy + t - h;
+  // Width = one square (a walking picture: that times its cell's width over the standing cell's, so a bigger walking frame is
+  // not shrunk), height keeps the cell's proportions, centred on the square and standing on its bottom edge.
+  int w = std::max(1, (int)std::lround(t * pic.k)), h = std::max(1, w * pic.src.h / std::max(1, pic.src.w));
+  int x = sx + (t - w) / 2, y = sy + t - h;
   if (scale < 1) {  // pop-in: grow from the middle of the sprite
     int nw = std::max(1, (int)(w * scale)), nh = std::max(1, (int)(h * scale));
     x += (w - nw) / 2;
@@ -178,8 +247,8 @@ void drawUnitArt(Renderer& r, const DrawCtx& c, const Look& look, const Unit& u,
   }
   Color mod = darker(Color(255, 255, 255), k);
   mod.a = (uint8_t)a;
-  SpriteCell cell = pickCell(look, 0, 0, 0, timeMs(c));
-  blit(r, c, look, cell, x, y, w, h, mod);
+  const SpriteSrc src = drawSrc(c, pic);
+  r.drawTexture(src.tex, src.x, src.y, src.w, src.h, x, y, w, h, mod);
 }
 
 }  // namespace ote

@@ -1,6 +1,6 @@
 // Checks for the battle scene's art (docs/BATTLE_SCENE.md), in plain words. `blocks` = the game's loader refuses the file for it
 // (this mirrors engine/core/data/loader_battle_art.cpp, so a maker sees it before pressing Play); the rest loads fine but is worth a look.
-import { ANIM_KEYS, HIT_ANIMS, assignList, backgroundList, battleOf, setList, weaponGroups } from './battleArt'
+import { ANIM_KEYS, HIT_ANIMS, MAX_FRAMES, assignKey, assignList, backgroundList, battleOf, setList, weaponGroups } from './battleArt'
 import { findSheet } from './graphics'
 import type { ProjectDoc, Section } from './types'
 
@@ -22,6 +22,25 @@ export function battleChecks(doc: ProjectDoc, dims?: Dims): BattleCheck[] {
       const sheet = findSheet(doc, a.sheet)
       if (!sheet) { add([id], `Set “${id}”: “${key}” uses an image that is not in the game.`, true); continue }
       if (a.frames.length === 0) add([id], `Set “${id}”: “${key}” has no frames.`, true)
+      if (a.frames.length > MAX_FRAMES) add([id], `Set “${id}”: “${key}” has ${a.frames.length} frames; the most an animation can have is ${MAX_FRAMES}.`, true)
+      // A side's own image: the same layout as the one it replaces (the same piece size, every frame inside it).
+      const replacements: Array<[string, string]> = [
+        ...Object.entries(set.sides ?? {}).filter(([side]) => !a.sides?.[side]).map(([side, v]) => [side, v.sheet] as [string, string]),
+        ...Object.entries(a.sides ?? {}).map(([side, v]) => [side, v.sheet] as [string, string]),
+      ]
+      for (const [side, sheetId] of replacements) {
+        const other = findSheet(doc, sheetId)
+        if (!other) { add([id], `Set “${id}”: the image for the side “${side}” is not in the game.`, true); continue }
+        if (other.cellWidth !== sheet.cellWidth || other.cellHeight !== sheet.cellHeight) {
+          add([id], `Set “${id}”: the image for the side “${side}” has pieces of ${other.cellWidth} × ${other.cellHeight} but “${key}” uses pieces of ${sheet.cellWidth} × ${sheet.cellHeight}. A side's image must be laid out the same way.`, true)
+          continue
+        }
+        const od = dims?.(other.file)
+        if (od) {
+          const cols = Math.floor(od.width / other.cellWidth), rows = Math.floor(od.height / other.cellHeight)
+          if (a.frames.some(([c, r]) => c >= cols || r >= rows)) add([id], `Set “${id}”: the image for the side “${side}” is smaller than the one it replaces; some frames of “${key}” are outside it (it has ${cols} × ${rows} pieces).`, true)
+        }
+      }
       const d = dims?.(sheet.file)
       if (d) {
         const cols = Math.floor(d.width / sheet.cellWidth), rows = Math.floor(d.height / sheet.cellHeight)
@@ -39,10 +58,13 @@ export function battleChecks(doc: ProjectDoc, dims?: Dims): BattleCheck[] {
   }
   const groups = weaponGroups(doc)
   assignList(doc).forEach((a, i) => {
-    const who = a.character ? `character “${a.character}”` : a.type ? `unit type “${a.type}”` : 'a rule'
+    const who = a.character ? `character “${a.character}”` : a.type ? `unit type “${a.type}”` : a.weapon ? `weapon “${a.weapon}”` : 'a rule'
     const ids = [a.set]
     if (!b.sets?.[a.set]) add(ids, `A rule gives ${who} the set “${a.set}”, which does not exist.`, true)
-    if (!a.type && !a.character && !a.group) add(ids, `Rule ${i + 1} names no unit type, character or weapon group.`, true)
+    if (!a.type && !a.character && !a.group && !a.weapon && !a.side) add(ids, `Rule ${i + 1} names no unit type, character, weapon, weapon group or side.`, true)
+    if (a.weapon && a.group) add(ids, `Rule ${i + 1} names a weapon and a weapon group; name one of them (a weapon already belongs to its group).`, true)
+    if (a.weapon && !(doc.weapons ?? []).some((w) => w.id === a.weapon)) add(ids, `Set “${a.set}” is given to the weapon “${a.weapon}”, which no longer exists.`, true)
+    if (assignList(doc).some((o, j) => j < i && assignKey(o) === assignKey(a))) add(ids, `Rule ${i + 1} is the same as an earlier rule; the game refuses two rules for the same unit type, character, weapon, weapon group and side.`, true)
     if (a.type && !(doc.units ?? []).some((u) => u.id === a.type)) add(ids, `Set “${a.set}” is given to the unit type “${a.type}”, which no longer exists.`, true)
     if (a.character && !(doc.characters ?? []).some((c) => c.id === a.character)) add(ids, `Set “${a.set}” is given to the character “${a.character}”, who no longer exists.`, true)
     if (a.group && !groups.includes(a.group)) add(ids, `Set “${a.set}” is given to the weapon group “${a.group}”, which no weapon has.`, true)

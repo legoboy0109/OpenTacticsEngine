@@ -1,6 +1,6 @@
 // One animation of a set: its image, the row and number of frames (the frames are made from them), the time per frame and the hit frame.
 import { artBase } from '../../../model/artFiles'
-import { DEFAULT_FRAME_MS, HIT_ANIMS, framesFromRow, msList, setAnim, type AnimKey } from '../../../model/battleArt'
+import { DEFAULT_FRAME_MS, HIT_ANIMS, MAX_FRAMES, framesFromRow, msList, setAnim, type AnimKey } from '../../../model/battleArt'
 import { findSheet, sheetsOf } from '../../../model/graphics'
 import type { BattleAnimDef } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
@@ -53,7 +53,7 @@ export function AnimRow({ setId, animKey, anim }: Props) {
             onChange={(v) => v !== undefined && patch({ frames: framesFromRow(v - 1, anim.frames.length) }, `${setId}:${animKey}:row`)} />
         </Field>
         <Field label={T.frames} help={T.framesHelp}>
-          <NumberInput aria-label={`${info.label}: ${T.frames}`} min={1} max={64} value={anim.frames.length}
+          <NumberInput aria-label={`${info.label}: ${T.frames}`} min={1} max={MAX_FRAMES} value={anim.frames.length}
             onChange={(v) => v !== undefined && patch({ frames: framesFromRow(anim.frames[0][1], v) }, `${setId}:${animKey}:count`)} />
         </Field>
         <Field label={T.ms} help={uniform ? undefined : T.msMixed}>

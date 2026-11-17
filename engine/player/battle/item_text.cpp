@@ -23,6 +23,10 @@ std::string gainsText(const Database& db, const std::vector<int>& perStat) {
 std::string itemDetail(const Battle& b, const ItemStack& s) {
   const ItemDef& d = b.itemOf(s);
   if (d.kind == ItemKind::Accessory) return gainsText(*b.db, d.bonus);
+  if (d.kind == ItemKind::Staff) {  // a staff may give stats while carried ("bonus"): listed like an accessory's, before its description
+    const std::string gains = gainsText(*b.db, d.bonus);
+    if (!gains.empty()) return d.description.empty() ? gains : gains + "  " + d.description;
+  }
   if (!d.description.empty()) return d.description;
   if (d.kind == ItemKind::Weapon && d.weapon >= 0) {
     const WeaponDef& w = b.db->weapons[(size_t)d.weapon];

@@ -23,6 +23,21 @@ static uint32_t cellHash(int x, int y) {
   return h;
 }
 
+int WalkLook::pick(float dx, float dy) const {
+  static const float vx[kWalkDirs] = {0, 0, 1, -1}, vy[kWalkDirs] = {1, -1, 0, 0};
+  int best = -1;
+  float bestDot = 0;
+  for (int d = 0; d < kWalkDirs; ++d) {
+    if (frames[d].empty()) continue;
+    const float dot = vx[d] * dx + vy[d] * dy;
+    if (best < 0 || dot > bestDot) {
+      best = d;
+      bestDot = dot;
+    }
+  }
+  return best;
+}
+
 SpriteCell pickCell(const Look& look, int x, int y, int joinMask, uint32_t timeMs, int blockSide) {
   if (look.cells.empty()) return SpriteCell();
   const SpriteCell first = look.cells[0];

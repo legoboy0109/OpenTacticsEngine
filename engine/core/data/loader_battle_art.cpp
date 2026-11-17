@@ -34,7 +34,8 @@ bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::st
   const SheetDef& sh = db.graphics.sheets[(size_t)out.sheet];
   const Json* frames;
   if (!c.array(j, "frames", where, frames, true)) return false;
-  if (frames->size() < 1 || frames->size() > 64) return c.fail(where, "\"frames\" must list between 1 and 64 cells");
+  if (frames->size() < 1 || frames->size() > (size_t)kMaxBattleFrames)
+    return c.fail(where, "\"frames\" must list between 1 and " + std::to_string(kMaxBattleFrames) + " cells (all from one sheet)");
   for (size_t i = 0; i < frames->size(); ++i) {
     SpriteCell cell;
     if (!readFrameCell(c, sh, (*frames)[i], where, cell)) return false;
@@ -83,6 +84,41 @@ bool readAnchor(const LoadCtx& c, const Json& j, const std::string& where, int& 
   return true;
 }
 
+// "sides": { "<side id>": { "sheet": "<sheet id>" } } of a set or of one animation: another sheet with the same layout (the same
+// cell size, every frame of the animation inside it) that the fighter of that side draws from. Returns the (side, sheet) pairs.
+bool readSideSheets(const LoadCtx& c, const Database& db, const Json& owner, const std::string& where,
+                    std::vector<std::pair<std::string, int>>& out) {
+  if (!owner.has("sides")) return true;
+  const Json& m = owner["sides"];
+  if (!m.isObject()) return c.fail(where, "\"sides\" must be an object: a side id, then { \"sheet\": \"...\" }");
+  for (const Json::Member& e : m.members()) {
+    const std::string w = where + " side " + q(e.first);
+    if (e.first.empty()) return c.fail(where, "\"sides\" has an empty side id");
+    if (!e.second.isObject()) return c.fail(w, "must be an object with a \"sheet\"");
+    std::string sheetId;
+    if (!c.str(e.second, "sheet", w, sheetId, true)) return false;
+    const int idx = db.graphics.findSheet(sheetId);
+    if (idx < 0) return c.fail(w, "unknown sheet " + q(sheetId));
+    out.push_back(std::make_pair(e.first, idx));
+  }
+  return true;
+}
+
+// The per-side sheet must be laid out like the animation's own sheet, or the frames would not match.
+bool checkSideSheet(const LoadCtx& c, const Database& db, const BattleAnim& a, const std::string& side, int sheet, const std::string& where) {
+  const SheetDef& base = db.graphics.sheets[(size_t)a.sheet];
+  const SheetDef& sh = db.graphics.sheets[(size_t)sheet];
+  const std::string w = where + " side " + q(side);
+  if (sh.cellW != base.cellW || sh.cellH != base.cellH)
+    return c.fail(w, "sheet " + q(sh.id) + " has cells of " + std::to_string(sh.cellW) + " x " + std::to_string(sh.cellH) + " but " + q(base.id) +
+                         " has " + std::to_string(base.cellW) + " x " + std::to_string(base.cellH) + " (a side's sheet must have the same layout)");
+  for (const SpriteCell& f : a.frames)
+    if (f.col >= sh.cols || f.row >= sh.rows)
+      return c.fail(w, "frame [" + std::to_string(f.col) + ", " + std::to_string(f.row) + "] is outside sheet " + q(sh.id) + " (" + std::to_string(sh.cols) +
+                           " x " + std::to_string(sh.rows) + " cells; a side's sheet must have the same layout)");
+  return true;
+}
+
 bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
   const Json* sets;
   if (!c.object(b, "sets", "battle", sets)) return false;
@@ -103,10 +139,28 @@ bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
     for (const Json::Member& a : anims->members()) {
       BattleAnimId id;
       if (!battleAnimFromKey(a.first, id))
-        return c.fail(where, "unknown animation " + q(a.first) + " (use stand, attack, crit, ranged, cast, dodge, hurt or defeat)");
+        return c.fail(where, "unknown animation " + q(a.first) +
+                                 " (use stand, attack, crit, ranged, cast, dodge, hurt, defeat, critRanged, dodgeRanged, standRanged or miss)");
       if (a.second.isNull()) continue;
-      if (!readAnim(c, db, a.second, where + ": animation " + q(a.first), id == BaStand, s.anims[id])) return false;
+      const std::string aw = where + ": animation " + q(a.first);
+      if (!readAnim(c, db, a.second, aw, id == BaStand || id == BaStandRanged, s.anims[id])) return false;
+      if (!readSideSheets(c, db, a.second, aw, s.anims[id].sideSheets)) return false;
+      for (const auto& ss : s.anims[id].sideSheets)
+        if (!checkSideSheet(c, db, s.anims[id], ss.first, ss.second, aw)) return false;
     }
+    // A set's own "sides": the sheet a side's fighter uses for every animation that has no sheet of its own for that side.
+    std::vector<std::pair<std::string, int>> setSides;
+    if (!readSideSheets(c, db, e.second, where, setSides)) return false;
+    for (const auto& ss : setSides)
+      for (int ai = 0; ai < kBattleAnims; ++ai) {
+        BattleAnim& an = s.anims[ai];
+        if (!an.any()) continue;
+        bool own = false;
+        for (const auto& o : an.sideSheets) own |= o.first == ss.first;
+        if (own) continue;
+        if (!checkSideSheet(c, db, an, ss.first, ss.second, where + ": animation " + q(battleAnimKey((BattleAnimId)ai)))) return false;
+        an.sideSheets.push_back(ss);
+      }
     if (!s.anims[BaStand].any()) return c.fail(where, "needs a \"stand\" animation (a set without one is not used; leave the unit out of \"assign\" to use its map picture)");
     // An anchor outside the frame would put the fighter's feet in the wrong place.
     const SheetDef& sh = db.graphics.sheets[(size_t)s.anims[BaStand].sheet];
@@ -167,9 +221,9 @@ bool readAssign(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
     const std::string where = "battle assign " + std::to_string(i + 1);
     if (!j.isObject()) return c.fail(where, "must be an object");
     BattleAssign a;
-    std::string set, type, character, group;
+    std::string set, type, character, group, weapon, side;
     if (!c.str(j, "set", where, set, true) || !c.str(j, "type", where, type) || !c.str(j, "character", where, character) ||
-        !c.str(j, "group", where, group))
+        !c.str(j, "group", where, group) || !c.str(j, "weapon", where, weapon) || !c.str(j, "side", where, side))
       return false;
     a.set = art.findSet(set);
     if (a.set < 0) return c.fail(where, "there is no battle set " + q(set));
@@ -185,11 +239,17 @@ bool readAssign(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
       if (!weaponGroupExists(db, group)) return c.fail(where, "no weapon has the group " + q(group));
       a.group = group;
     }
-    if (type.empty() && character.empty() && group.empty())
-      return c.fail(where, "needs at least one of \"type\", \"character\" or \"group\" (who uses the set)");
+    if (!weapon.empty()) {
+      if (!group.empty()) return c.fail(where, "names a \"weapon\" and a \"group\"; use one of them (a weapon already belongs to its group)");
+      a.weapon = db.findWeapon(weapon);
+      if (a.weapon < 0) return c.fail(where, "there is no weapon with the id " + q(weapon));
+    }
+    a.side = side;
+    if (type.empty() && character.empty() && group.empty() && weapon.empty() && side.empty())
+      return c.fail(where, "needs at least one of \"type\", \"character\", \"group\", \"weapon\" or \"side\" (who uses the set)");
     for (const BattleAssign& o : art.assign)
-      if (o.character == a.character && o.type == a.type && o.group == a.group)
-        return c.fail(where, "the same \"type\" / \"character\" / \"group\" is already given to set " + q(art.sets[(size_t)o.set].id));
+      if (o.character == a.character && o.type == a.type && o.group == a.group && o.weapon == a.weapon && o.side == a.side)
+        return c.fail(where, "the same \"type\" / \"character\" / \"group\" / \"weapon\" / \"side\" is already given to set " + q(art.sets[(size_t)o.set].id));
     art.assign.push_back(a);
   }
   return true;

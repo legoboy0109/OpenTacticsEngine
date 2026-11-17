@@ -327,6 +327,11 @@ void BattleView::progress(const Battle& b) {
       float t = f - (float)i, x0, y0, x1, y1;
       cellPos(b, cur_.path[i], x0, y0);
       cellPos(b, cur_.path[j], x1, y1);
+      if (j > i) {  // the way of the step now under way (at the very end it keeps the last one)
+        v.walkDx = x1 - x0;
+        v.walkDy = y1 - y0;
+      }
+      v.walking = cur_.path.size() > 1;
       v.px = x0 + (x1 - x0) * t;
       v.py = y0 + (y1 - y0) * t;
       hasFocus = true;
@@ -387,6 +392,8 @@ void BattleView::finish(const Battle& b) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
       cellPos(b, cur_.path.back(), v.px, v.py);
+      v.walking = false;
+      v.walkLogged = -1;
       if (cur_.hideAtEnd) v.visible = false;  // fog: it walked on out of sight
       break;
     }

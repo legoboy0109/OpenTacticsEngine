@@ -4,13 +4,17 @@
 import { withGraphics, findSheet, sheetsOf } from './graphics'
 import { makeId } from './ids'
 import { patchObj } from './util'
-import type { BattleAnimDef, BattleAssignDef, BattleSection, BattleSetDef, CellRef, Graphics, ProjectDoc } from './types'
+import type { BattleAnimDef, BattleAssignDef, BattleSection, BattleSetDef, CellRef, Graphics, ProjectDoc, SideSheetDef } from './types'
 
 /** The named animations of a fighter, in the order the editor lists them. Only `stand` is required. */
-export const ANIM_KEYS = ['stand', 'attack', 'crit', 'ranged', 'cast', 'dodge', 'hurt', 'defeat'] as const
+export const ANIM_KEYS = ['stand', 'standRanged', 'attack', 'miss', 'crit', 'critRanged', 'ranged', 'cast', 'dodge', 'dodgeRanged', 'hurt', 'defeat'] as const
 export type AnimKey = (typeof ANIM_KEYS)[number]
 /** The animations that deliver a blow: they have a hit frame. */
-export const HIT_ANIMS: AnimKey[] = ['attack', 'crit', 'ranged', 'cast']
+export const HIT_ANIMS: AnimKey[] = ['attack', 'miss', 'crit', 'critRanged', 'ranged', 'cast']
+/** What an animation falls back to when the set has none (docs/BATTLE_SCENE.md "Which animation plays"); the rest play the simple motion. */
+export const ANIM_FALLBACK: Partial<Record<AnimKey, AnimKey>> = { standRanged: 'stand', miss: 'attack', critRanged: 'crit', dodgeRanged: 'dodge' }
+/** The most frames one animation may list (the game's limit; all from one image). */
+export const MAX_FRAMES = 512
 export const DEFAULT_FRAME_MS = 120
 
 export const battleOf = (doc: ProjectDoc): BattleSection => doc.graphics?.battle ?? {}
@@ -51,7 +55,7 @@ export function setIdProblem(doc: ProjectDoc, id: string, except?: string): stri
 
 /** The animation frames of one row of an image: cells [first, row] .. [first + count - 1, row]. */
 export const framesFromRow = (row: number, count: number, first = 0): CellRef[] =>
-  Array.from({ length: Math.max(1, Math.min(64, Math.round(count))) }, (_, i) => [first + i, Math.max(0, Math.round(row))] as CellRef)
+  Array.from({ length: Math.max(1, Math.min(MAX_FRAMES, Math.round(count))) }, (_, i) => [first + i, Math.max(0, Math.round(row))] as CellRef)
 
 /** A new set starts with a `stand` of the first image's first piece (a set without a stand is refused by the game). */
 export function addSet(doc: ProjectDoc, id: string): ProjectDoc {
@@ -149,10 +153,24 @@ export function updateAssign(doc: ProjectDoc, index: number, patch: Partial<Batt
 export function removeAssign(doc: ProjectDoc, index: number): ProjectDoc {
   return setAssign(doc, assignList(doc).filter((_, i) => i !== index))
 }
-/** Who a rule is for, in words for the list: "Knight", "Knight with a sword group weapon", "Eirik". */
-export function assignKey(a: BattleAssignDef): string { return `${a.character ?? ''}|${a.type ?? ''}|${a.group ?? ''}` }
+/** What makes a rule the same as another (the game refuses two rules with the same key). */
+export function assignKey(a: BattleAssignDef): string { return `${a.character ?? ''}|${a.type ?? ''}|${a.group ?? ''}|${a.weapon ?? ''}|${a.side ?? ''}` }
 /** The weapon groups the game's weapons have (what a rule's "weapon group" can name). */
 export const weaponGroups = (doc: ProjectDoc): string[] => Array.from(new Set((doc.weapons ?? []).map((w) => w.group).filter((g): g is string => !!g)))
+/** The weapons a rule can name. */
+export const weaponChoices = (doc: ProjectDoc): Array<{ id: string; name: string }> => (doc.weapons ?? []).map((w) => ({ id: w.id, name: w.name || w.id }))
+
+// --- a different image for a side ------------------------------------------------------------------------------------------------------
+/** The image the fighters of `side` draw the set from (the set's own "sides" entry), or '' = the animations' own images. */
+export const setSideSheet = (set: BattleSetDef, side: string): string => set.sides?.[side]?.sheet ?? ''
+/** Gives a side another image for the whole set ('' = back to the set's own). It must have the same layout: the game checks that. */
+export function updateSideSheet(doc: ProjectDoc, id: string, side: string, sheet: string): ProjectDoc {
+  return mapSet(doc, id, (s) => {
+    const sides = { ...(s.sides ?? {}) }
+    if (sheet === '') delete sides[side]; else sides[side] = { sheet }
+    return patchObj(s, { sides: Object.keys(sides).length ? sides : undefined })
+  })
+}
 
 // --- backgrounds ------------------------------------------------------------------------------------------------------------------------
 export const backgroundList = (doc: ProjectDoc): Array<{ id: string; sheet: string; cell: CellRef }> =>
@@ -195,9 +213,16 @@ export function dropBattleSheet(g: Graphics, sheetId: string): Graphics {
   const sets: Record<string, BattleSetDef> = {}
   const goneSets = new Set<string>()
   for (const [id, s] of Object.entries(b.sets ?? {})) {
-    const anims = Object.fromEntries(Object.entries(s.animations).filter(([, a]) => a.sheet !== sheetId))
+    // A side's own image that is removed only drops that side's entry; the set stays.
+    const dropSides = (m: Record<string, SideSheetDef> | undefined) => {
+      if (!m) return m
+      const kept = Object.fromEntries(Object.entries(m).filter(([, v]) => v.sheet !== sheetId))
+      return Object.keys(kept).length === Object.keys(m).length ? m : prune(kept)
+    }
+    const anims = Object.fromEntries(Object.entries(s.animations).filter(([, a]) => a.sheet !== sheetId).map(([k, a]) => [k, a.sides ? (patchObj(a, { sides: dropSides(a.sides) }) as BattleAnimDef) : a]))
     if (!anims.stand) { goneSets.add(id); continue }
-    sets[id] = Object.keys(anims).length === Object.keys(s.animations).length ? s : { ...s, animations: anims }
+    const sides = dropSides(s.sides)
+    sets[id] = Object.keys(anims).length === Object.keys(s.animations).length && sides === s.sides && Object.entries(anims).every(([k, a]) => a === s.animations[k]) ? s : patchObj({ ...s, animations: anims }, { sides })
   }
   const backgrounds = Object.fromEntries(Object.entries(b.backgrounds ?? {}).filter(([, v]) => v.sheet !== sheetId))
   const goneBg = new Set(Object.keys(b.backgrounds ?? {}).filter((k) => !(k in backgrounds)))

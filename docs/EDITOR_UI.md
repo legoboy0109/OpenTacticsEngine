@@ -1192,3 +1192,19 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
   deleting a unit type, character or terrain removes its rules / choices; renaming a set keeps its rules.
 - Not in the editor yet: frames that are not a run along a row from the left (hand-written ones are kept and shown), per-frame times,
   the spawn frame, effects (spell / arrow animations), a map's own `battleBackground`, ranges-based preview. Hand-written JSON for them is preserved.
+
+### Battle follow-ups and walking pictures
+
+- **Animation list**: four more optional slots after the old ones, each with its own Add button and a help line naming its fall-back: *Stand, ranged fight*,
+  *Missed attack*, *Critical hit, ranged*, *Dodge, ranged*. *Frames* accepts up to 512.
+- **A different image for a side** (inside a set, above the animations): one row per side of the game with a choice of image ("Same image" = none; written as the
+  set's `sides`). The image must be laid out the same way (same piece size; the frames inside it): the notes under the set say "Needs fixing" otherwise.
+- **Who uses which set**: each rule also has *Weapon* (one weapon; choosing it clears the weapon group, and the reverse) and *Side*. The help text lists the order.
+  Checks mirror the loader (a rule naming nothing, a weapon that is gone, two equal rules).
+- **Walking card** on a unit's Picture card (Units screen, only when the unit has a picture, not for a 3D model): *Add walking pictures*, then *Image* (default the
+  standing picture's own), *Piece width / height* (the image's own cut-up; locked while it is the standing picture's image), *Frames*, *Milliseconds per frame*, one
+  *row* for Down / Up / Side (empty = no such direction), the switch *Left and right have rows of their own* (replaces Side), a live preview that goes down, right,
+  up, left beside the standing picture at the same scale, a *For* choice when the unit has per-side pictures (each has its own walk), *Remove walking pictures*.
+  Problems the loader would refuse (no direction, frames outside the image, bad time) show in red inside the card. Removing the image drops only the walk.
+- Code: `model/walking.ts`, `screens/art/walking/*`, `model/battleArt.ts`, `model/battleChecks.ts`. Tests: unit `walking.test.ts`, `battleArtFollowup.test.ts`;
+  e2e `battle-followup.spec.ts` (desktop and 360 px).

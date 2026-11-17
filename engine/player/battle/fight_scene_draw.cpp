@@ -163,7 +163,8 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
   const BattleAnim* anim = nullptr;
   int frame = 0;
   if (set) {
-    BattleAnimId id = BaStand;
+    // Standing in a ranged fight uses standRanged when the set has it.
+    BattleAnimId id = script_.ranged() && set->anims[BaStandRanged].any() ? BaStandRanged : BaStand;
     double local = t_;
     if (pose && set->anims[pose->anim].any()) {
       id = pose->anim;
@@ -180,6 +181,7 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
       case BaAttack:
       case BaCast:
       case BaRanged:
+      case BaMiss:
         offX = dirTo * tri(p, kFallbackAttackHitMs / (double)kFallbackAttackMs) * (script_.ranged() ? 3 : 6) * s;
         break;
       case BaCrit:
@@ -205,22 +207,23 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
   int sx = 0, sy = 0, sw = 0, sh = 0;
   bool glyphBlock = false;
   if (set && anim && anim->any()) {
-    const SheetDef& sheet = db.graphics.sheets[(size_t)anim->sheet];
+    const int sheetIdx = sheetOf(side, *anim);  // the fighter's side may have a sheet of its own
+    const SheetDef& sheet = db.graphics.sheets[(size_t)sheetIdx];
     const bool mirror = set->mirror && ((side == 1) != set->facesLeft);
     const SpriteCell cell = anim->frames[(size_t)std::min(frame, (int)anim->frames.size() - 1)];
     sw = sheet.cellW;
     sh = sheet.cellH;
     sy = cell.row * sh;
-    if (mirror && env_.sprites->mirrored(anim->sheet)) {
-      tex = env_.sprites->mirrored(anim->sheet);
+    if (mirror && env_.sprites->mirrored(sheetIdx)) {
+      tex = env_.sprites->mirrored(sheetIdx);
       sx = (sheet.cols - 1 - cell.col) * sw;
     } else {
-      tex = env_.sprites->texture(anim->sheet);
+      tex = env_.sprites->texture(sheetIdx);
       sx = cell.col * sw;
     }
     ax = set->anchorX >= 0 ? set->anchorX : sw / 2;
     ay = set->anchorY >= 0 ? set->anchorY : sh;
-    if (mirror && tex == env_.sprites->mirrored(anim->sheet)) ax = sw - ax;
+    if (mirror && tex == env_.sprites->mirrored(sheetIdx)) ax = sw - ax;
     w = sw * s;
     h = sh * s;
   } else if (f.look) {
@@ -366,7 +369,7 @@ void FightScene::draw(Renderer& r) const {
   // The one who is striking stands in front.
   int order[2] = {0, 1};
   const FightPose* p0 = tl_.poseAt(0, t_);
-  if (p0 && (p0->anim == BaAttack || p0->anim == BaCrit || p0->anim == BaRanged || p0->anim == BaCast)) std::swap(order[0], order[1]);
+  if (p0 && (p0->anim == BaAttack || p0->anim == BaCrit || p0->anim == BaRanged || p0->anim == BaCast || p0->anim == BaCritRanged || p0->anim == BaMiss)) std::swap(order[0], order[1]);
   for (int i = 0; i < 2; ++i) drawFighter(r, g, order[i]);
   drawEffects(r, g);
   drawFloats(r, g);

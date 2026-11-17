@@ -3,7 +3,8 @@
 namespace ote {
 
 namespace {
-const char* const kKeys[kBattleAnims] = {"stand", "attack", "crit", "ranged", "cast", "dodge", "hurt", "defeat"};
+const char* const kKeys[kBattleAnims] = {"stand", "attack", "crit", "ranged", "cast", "dodge", "hurt", "defeat",
+                                         "critRanged", "dodgeRanged", "standRanged", "miss"};
 }
 
 const char* battleAnimKey(BattleAnimId id) { return kKeys[id]; }
@@ -42,14 +43,21 @@ int BattleArt::findBackground(const std::string& id) const {
   return -1;
 }
 
-int BattleArt::resolveSet(int character, int type, const std::string& group) const {
+int BattleArt::resolveSet(int character, int type, const std::string& group, int weapon, const std::string& side) const {
   int best = -1, bestScore = 0;
   for (const BattleAssign& a : assign) {
     if (a.character >= 0 && a.character != character) continue;
     if (a.type >= 0 && a.type != type) continue;
     if (!a.group.empty() && a.group != group) continue;
-    // character 4 + group 2 + class 1: a character outranks a group, which outranks the class alone.
-    const int score = (a.character >= 0 ? 4 : 0) + (!a.group.empty() ? 2 : 0) + (a.type >= 0 ? 1 : 0);
+    if (a.weapon >= 0 && a.weapon != weapon) continue;
+    if (!a.side.empty() && a.side != side) continue;
+    // The level of the rule (see the header).
+    int level;
+    if (a.character >= 0) level = a.weapon >= 0 ? 9 : !a.group.empty() ? 8 : 7;
+    else if (a.type >= 0) level = a.weapon >= 0 ? 6 : !a.group.empty() ? 5 : 2;
+    else if (a.weapon >= 0 || !a.group.empty()) level = a.weapon >= 0 ? 4 : 3;
+    else level = 1;  // a side alone
+    const int score = level * 4 + (a.character >= 0 && a.type >= 0 ? 2 : 0) + (!a.side.empty() ? 1 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = a.set;

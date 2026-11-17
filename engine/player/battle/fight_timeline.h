@@ -33,9 +33,10 @@ constexpr int kFallbackHurtMs = 320, kFallbackDodgeMs = 380, kFallbackDefeatMs =
 // The pacing around the animations (seconds).
 constexpr double kIntro = 0.40, kOutro = 0.55, kStrikeGap = 0.30, kTagTime = 0.60, kFade = 0.20, kDrainTime = 0.45, kExtraTime = 0.40;
 
-// Which animation the striker plays for a strike: crit (when it has one), else ranged (a ranged fight with a ranged
-// animation), else cast (a weapon with an effect and a cast animation), else attack.
-BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool hasEffect);
+// Which animation the striker plays for a strike: `miss` (a blow that does not land, when the set has one), else
+// critRanged (a ranged crit), else crit (when it has one), else ranged (a ranged fight with a ranged animation), else cast
+// (a weapon with an effect and a cast animation), else attack.
+BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool hasEffect, bool miss = false);
 
 struct FightPose {
   double start = 0, dur = 0;

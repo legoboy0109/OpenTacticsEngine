@@ -17,6 +17,7 @@ import { ArtCanvas } from './ArtCanvas'
 import { ModelEditor } from './ModelEditor'
 import { M } from './modelText'
 import { PickerDialog } from './PickerDialog'
+import { WalkingCard } from '../../screens/art/walking/WalkingCard'
 import { StandEditor } from './StandEditor'
 import { P } from './text'
 import { useStructureSample, useTerrainSample, useUnitSample, type LookChoice } from './usePreview'
@@ -94,6 +95,7 @@ export function PictureCard({ kind, id, name }: Props) {
             </div>
           )}
         {canStand && <StandEditor slot={slot} entry={entry} id={id} name={name} choice={choice} />}
+        {kind === 'units' && hasImages && !modelMode && entry && <WalkingCard slot={slot} entry={entry} />}
         {kind !== 'terrain' && hasImages && !modelMode && <SideList kind={kind} slot={slot} entry={entry} choice={choice} id={id} name={name} onChoose={(side) => setOpen({ side })} />}
       </div>
       {open && (

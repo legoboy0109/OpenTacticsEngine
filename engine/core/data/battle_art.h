@@ -11,13 +11,22 @@ namespace ote {
 
 // The named animations of a fighter. Only `stand` is required; a missing one is played by the fallback motion of the
 // stand picture (docs/BATTLE_SCENE.md "Fallback").
-enum BattleAnimId { BaStand, BaAttack, BaCrit, BaRanged, BaCast, BaDodge, BaHurt, BaDefeat, kBattleAnims };
+// The last four are optional extras that fall back (docs/BATTLE_SCENE.md "Which animation plays"): critRanged -> crit,
+// dodgeRanged -> dodge, standRanged -> stand, miss (the attacker's whiff) -> attack.
+enum BattleAnimId { BaStand, BaAttack, BaCrit, BaRanged, BaCast, BaDodge, BaHurt, BaDefeat, BaCritRanged, BaDodgeRanged, BaStandRanged, BaMiss, kBattleAnims };
 const char* battleAnimKey(BattleAnimId id);  // "stand", "attack", ...
 bool battleAnimFromKey(const std::string& key, BattleAnimId& out);
 
 // One animation: cells of a sheet (the sheet's cell size is the frame size) with a time per frame and marked beats.
+// An animation's frames list may hold this many cells (all of one sheet; a longer animation would not fit a 2048 pixel sheet
+// of small cells anyway). Documented in docs/BATTLE_SCENE.md.
+const int kMaxBattleFrames = 512;
+
 struct BattleAnim {
   int sheet = -1;  // index into Graphics::sheets; -1 = this animation is not given
+  // Per-side sheets: the fighter of that side (map side id) draws the same frames from another sheet of the same layout.
+  // Already merged at load: a set-level "sides" entry is copied into every animation that has none of its own.
+  std::vector<std::pair<std::string, int>> sideSheets;
   std::vector<SpriteCell> frames;
   std::vector<int> ms;  // per frame, milliseconds (same length as frames)
   bool loop = false;
@@ -25,6 +34,12 @@ struct BattleAnim {
   int spawn = -1;  // frame on which a projectile / effect appears (-1 = none given)
 
   bool any() const { return sheet >= 0 && !frames.empty(); }
+  // The sheet the fighter of `sideId` draws this animation from: its side's own sheet, else `sheet`.
+  int sheetFor(const std::string& sideId) const {
+    for (const auto& s : sideSheets)
+      if (s.first == sideId) return s.second;
+    return sheet;
+  }
   int totalMs() const {
     int t = 0;
     for (int m : ms) t += m;
@@ -59,12 +74,14 @@ struct BattleEffect {
   int anchorX = -1, anchorY = -1;  // the point of a frame that sits on the path / target (-1 = its middle)
 };
 
-// Which set a fighter uses. The most specific rule that fits wins: character > weapon group > class (docs/BATTLE_SCENE.md).
+// Which set a fighter uses. The most specific rule that fits wins (the order is in docs/BATTLE_SCENE.md and BattleArt::resolveSet).
 struct BattleAssign {
   int set = -1;
   int character = -1;  // index into Database::characters, or -1
   int type = -1;       // index into Database::unitTypes, or -1
   std::string group;   // weapon group of the weapon in use, or empty
+  int weapon = -1;     // index into Database::weapons: that very weapon in use, or -1 (a rule names a weapon or a group, not both)
+  std::string side;    // map side id of the fighter, or empty
 };
 
 struct BattleBackground {
@@ -85,9 +102,11 @@ struct BattleArt {
   int findSet(const std::string& id) const;
   int findBackground(const std::string& id) const;
   // The set for a fighter: index into `sets`, -1 = none (the fallback picture is used). `character` / `type` as in
-  // BattleAssign, `group` is the weapon group of the weapon in use ("" = none). Priority: character with the weapon
-  // group, character, unit type with the group, the group alone, unit type alone.
-  int resolveSet(int character, int type, const std::string& group) const;
+  // BattleAssign, `group` is the weapon group and `weapon` the index of the weapon in use ("" / -1 = none), `side` the
+  // fighter's map side id. Best to worst: character+weapon, character+group, character (with a type too: a notch
+  // higher), type+weapon, type+group, weapon, group, type, side alone. A `side` on a rule only breaks a tie between
+  // rules of the same level (it never lifts a rule over a more specific one).
+  int resolveSet(int character, int type, const std::string& group, int weapon = -1, const std::string& side = std::string()) const;
   // The effect for a weapon: the weapon's own entry, else its group's; -1 = none.
   int resolveEffect(int weapon, const std::string& group) const;
 };

@@ -353,7 +353,7 @@ when it is struck down; docs/EVENTS.md "Battle and defeat quotes"); their wordin
 
 **Third set of skill blocks** (docs/SRPG.md section 3 "Skill blocks, third set", optional): an aura's `weapon`, `weaponKind` and `test` (about the receiver); the strike
 condition `{ "strike": "first" }` and the formula variable `strikeNo`; `healed` in `staffUse` formulas; `it` (and `"reason"`) in a steal ability's `if`, with `"props"` on usable and accessory items;
-the skill effect `recoil`; `"bonus"` on a staff item; `cancelEffective` with a list of tags; a light's `shrink`; and the computer opponent using cure and refresh abilities and cure items.
+the skill effect `recoil`; `"bonus"` on a staff item (the player lists it in the item info like an accessory's); `cancelEffective` with a list of tags; a light's `shrink`; and the computer opponent using cure and refresh abilities and cure items.
 
 **General skill blocks** (docs/SRPG.md section 3 "More skill blocks", optional): a weapon's `damageKind`, a character's `tags`, `skills` on a map unit and on
 `addUnit`, `rules.promotion.classSkills` (`"keep"` / `"replace"`), and in skill blocks the tests `weaponKind`, `turn`, `counterattack`, `carries`,
@@ -445,7 +445,8 @@ optional sizes under `"isometric"`: see docs/VIEWS.md.
 Every key except `id` is optional. These keys recolor the placeholder
 graphics (`structureColors` does the same for structure blocks, by structure
 id, like `terrainColors` does for terrain). Real art (sheets, tiles, sprites) lives in the optional
-`data/graphics.json`, which can also override art per style id: see
+`data/graphics.json` (unit pictures may carry `walk` frames, docs/GRAPHICS.md "Walking"; the `battle` section gives fighters' animation sets by
+unit type, character, weapon, weapon group and side, with per-side sheets and up to 512 frames per animation, docs/BATTLE_SCENE.md), which can also override art per style id: see
 docs/GRAPHICS.md.
 
 ## Player settings (not part of a game)

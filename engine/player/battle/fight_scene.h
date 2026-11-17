@@ -53,6 +53,7 @@ class FightScene {
     int unit = -1;
     int set = -1;                 // index into Graphics::battle.sets, -1 = the map picture
     std::string setName;
+    std::string sideId;           // the map side the fighter belongs to (picks its set's per-side sheets)
     std::string name, weapon;
     int level = 1, maxHp = 1, startHp = 1;
     int hit = -1, crit = -1;      // the forecast percentages when the game has them to show (-1 = none)
@@ -74,6 +75,11 @@ class FightScene {
   void fire(const FightBeat& b, bool quiet);
   void addFloat(const std::string& text, int side, Color c, double life, bool plate = false, int rise = 0);
   const BattleSet* setOf(int side) const;
+  // The sheet a fighter draws an animation from: its side's own sheet when the set gives one (docs/BATTLE_SCENE.md "By side").
+  int sheetOf(int side, const BattleAnim& a) const {
+    const int s = a.sheetFor(fighter_[side].sideId);
+    return env_.sprites && env_.sprites->texture(s) ? s : a.sheet;  // (a side sheet that failed to load: the set's own)
+  }
 
   // fight_scene_draw.cpp
   struct Geo;  // positions for the size of the screen

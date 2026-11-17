@@ -28,6 +28,10 @@ struct UnitView {
   int side = -1;         // side whose colour is drawn; -1 = the unit's own (differs while a SideChanged entry waits to play)
   float flash = 0;       // 0..1: the short flash of a unit that changed sides
   int type = -1;         // unit type to draw it as; -1 = the unit's own (the old type while a UnitPromoted entry waits to play)
+  // Walking (docs/GRAPHICS.md "Walking"): true while a UnitMoved entry moves it; (walkDx, walkDy) is the current step in flat map pixels.
+  bool walking = false;
+  float walkDx = 0, walkDy = 0;
+  mutable int walkLogged = -1;  // the walk direction the drawing last logged for this move (-1 = none yet); only for the debug log
   std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)
 };
 
