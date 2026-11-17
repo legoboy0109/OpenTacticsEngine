@@ -37,6 +37,16 @@ EXTRA = [
         {"when": "combat", "if": [{"terrain": ["forest", "plain"]}], "do": [{"nullifySkills": ["tough"]}, {"damage": 1}]},
         {"when": "always", "do": [{"staffRange": {"amount": 2}}, {"carryBonus": 2}]},
         {"when": "staffUse", "chance": 50, "do": [{"heal": {"percent": 10}}, {"cure": "all"}]}]},
+    # The third set (docs/SRPG.md "Skill blocks, third set"): an aura that asks about its receiver, the strike number, recoil, cancelEffective with a
+    # list of tags, and what a staff just healed.
+    {"id": "third_set", "name": "Third set", "blocks": [
+        {"when": "combat", "aura": {"to": "allies", "within": 3, "weapon": "iron_sword", "weaponKind": "magic", "test": "b.level >= 1"}, "do": [{"hit": 10}]},
+        {"when": "strike", "if": [{"strike": "first"}], "do": [{"damage": 5}]},
+        {"when": "strike", "if": [{"strike": "followUp"}, {"strike": {"op": "<=", "value": 4}}, {"formula": "strikeNo == 2"}], "chance": 30, "do": [{"recoil": "dealt / 2"}]},
+        {"when": "struck", "if": [{"strike": 3}], "do": [{"damageTaken": "-strikeNo"}]},
+        {"when": "strike", "do": [{"recoil": {"amount": 2, "instead": True}}]},
+        {"when": "always", "do": [{"cancelEffective": ["lord"]}]},
+        {"when": "staffUse", "do": [{"heal": "healed / 2"}]}]},
 ]
 
 
@@ -58,16 +68,21 @@ def run_skills_checks(api, tmp, games, templates, check, get_project, put_projec
     skills = d["skills"] + EXTRA
     for u in d["units"]:
         if u["id"] == "lord":
-            u["skills"] = ["tough", "heavy_blow", "every_condition", "general_blocks", "second_set"]
+            u["skills"] = ["tough", "heavy_blow", "every_condition", "general_blocks", "second_set", "third_set"]
             u["abilities"] = ["pick", "encore", "leap"]
             u["learns"] = [{"level": 2, "skill": "catch_breath"}, {"level": 3, "skill": "every_effect"}]
     for w in d["weapons"]:
         if w["id"] == "iron_sword":
             w["skills"] = ["opening_blow"]
             w["damageKind"] = "magic"  # a weapon's kind of damage, tested by "general_blocks"
-    items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"], "stealable": False}]  # the template's own stay
+            w["versus"] = {"lord": 2}  # an effectiveness tag, listed by "third_set"
+    items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"], "stealable": False},  # the template's own stay
+                                  {"id": "torch", "name": "Torch", "kind": "staff", "group": "staff", "uses": 3, "range": 6, "bonus": {"str": 1},
+                                   "effects": [{"light": {"radius": 4, "shrink": 2}}]},
+                                  {"id": "heavy_ring", "name": "Heavy Ring", "kind": "accessory", "bonus": {"def": 1}, "props": {"weight": 4}}]
     abilities = [{"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 1}},
                  {"id": "pick", "name": "Pick", "target": "enemy", "effect": {"steal": {"if": "a.spd > b.spd", "weapons": True}}},
+                 {"id": "light_hands", "name": "Light Hands", "target": "enemy", "effect": {"steal": {"if": "it.weight < a.str", "reason": "too heavy", "weapons": True}}},
                  {"id": "encore", "name": "Encore", "target": "ally", "effect": {"refresh": {"perTurn": 2}}},
                  {"id": "leap", "name": "Leap", "target": "unit", "effect": {"movePast": True}}]
     chars = [{"id": "eirik", "name": "Eirik", "type": "lord", "tags": ["scout"], "skills": ["on_my_own"], "learns": [{"level": 2, "skill": "gifted"}]}]
@@ -98,3 +113,19 @@ def run_skills_checks(api, tmp, games, templates, check, get_project, put_projec
     st, p = api.json("GET", "/api/projects/%s/problems" % pid)
     check("e2: a chance on an always rule is a problem in the loader's words",
           any("\"chance\" cannot be used in an \"always\" block" in x["message"] for x in p["problems"]), p)
+
+    # The third set's refusals, in the loader's words.
+    bad_blocks = [
+        ("an aura weapon that no weapon has", {"when": "combat", "aura": {"to": "allies", "within": 2, "weapon": "lance_of_nothing"}, "do": [{"hit": 1}]},
+         "\"aura\".\"weapon\" names no weapon id or group \"lance_of_nothing\""),
+        ("a strike condition in a combat rule", {"when": "combat", "if": [{"strike": "first"}], "do": [{"damage": 1}]},
+         "\"strike\" can only be asked in \"strike\" and \"struck\" blocks"),
+        ("a recoil in a combat rule", {"when": "combat", "do": [{"recoil": 2}]}, "\"recoil\" cannot be used in a \"combat\" block (it belongs to: strike)"),
+        ("a cancelEffective tag no weapon lists", {"when": "always", "do": [{"cancelEffective": ["dragon"]}]}, "\"cancelEffective\" names no effectiveness tag \"dragon\""),
+    ]
+    for label, block, needle in bad_blocks:
+        st, d = get_project(api, pid)
+        put_project(api, pid, d, d["revision"], skills=[{"id": "bad", "name": "Bad", "blocks": [block]}], units=[dict(u, skills=[], learns=[]) for u in d["units"]],
+                    weapons=[dict(w, skills=[]) for w in d["weapons"]], items=[{"id": "officers_writ", "name": "Officers Writ", "kind": "usable", "promotes": True, "uses": 1}], characters=[], maps=_no_events(d["maps"]))
+        st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+        check("e2: %s is a problem in the loader's words" % label, any(needle in x["message"] for x in p["problems"]), p)

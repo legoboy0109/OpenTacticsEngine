@@ -62,7 +62,7 @@ export function setItemKind(doc: ProjectDoc, id: string, kind: ItemKind): Projec
     if (kind === 'usable') patch.heal = 10
     // A staff's target has more choices than a usable item's: whatever was there does not carry over either way.
     if (kind === 'staff') Object.assign(patch, newStaffDefaults(doc), { target: undefined })
-    if (kind === 'weapon') patch.weapon = doc.weapons?.[0]?.id
+    if (kind === 'weapon') { patch.weapon = doc.weapons?.[0]?.id; patch.props = undefined }  // a weapon item's numbers are its weapon's
     // An accessory is worn, never used up.
     if (kind === 'accessory') { patch.uses = undefined; patch.repairable = undefined }
     else if (x.uses === undefined && (kind === 'weapon' || kind === 'staff')) patch.uses = DEFAULT_USES[kind]
@@ -103,6 +103,11 @@ export function setHeal(doc: ProjectDoc, id: string, heal: number | 'full' | und
 /** "Itself" is the default and is not written. */
 export function setTarget(doc: ProjectDoc, id: string, target: 'self' | 'ally'): ProjectDoc {
   return updateItem(doc, id, { target: target === 'self' ? undefined : target })
+}
+
+/** A named number of a usable item or accessory (`props`), read by a steal condition as it.name (docs/SRPG.md "Skill blocks, third set" item 4). */
+export function setItemNumber(doc: ProjectDoc, id: string, key: string, value: number | undefined): ProjectDoc {
+  return withItems(doc, (list) => updateById(list, id, (x) => patchObj(x, { props: setNum(x.props, key, value) })))
 }
 
 export function setStatNumber(doc: ProjectDoc, id: string, field: 'raise' | 'bonus', stat: string, value: number | undefined): ProjectDoc {

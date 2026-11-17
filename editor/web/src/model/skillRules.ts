@@ -14,12 +14,14 @@ export const MAX_EFFECTS = 8
 export type CondKind = 'hp' | 'near' | 'weapon' | 'terrain' | 'structure' | 'unit' | 'carrying' | 'round' | 'initiating' | 'distance' | 'formula' | 'condition'
   // General blocks (docs/SRPG.md "More skill blocks"): a weapon's kind of damage, the turn number, "the fight has a counterattack", items carried.
   | 'weaponKind' | 'turn' | 'counterattack' | 'carries' | 'inventory'
+  // Third set (docs/SRPG.md "Skill blocks, third set"): which strike of the fight (strike / struck blocks).
+  | 'strike'
 export const COND_KINDS: CondKind[] = ['hp', 'near', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'initiating', 'distance', 'formula', 'condition',
-  'weaponKind', 'turn', 'counterattack', 'carries', 'inventory']
+  'weaponKind', 'turn', 'counterattack', 'carries', 'inventory', 'strike']
 /** Conditions that may say `"who": "foe"` (the foe points only). */
 export const FOEABLE: CondKind[] = ['hp', 'weapon', 'terrain', 'structure', 'unit', 'carrying', 'condition', 'weaponKind', 'carries', 'inventory']
-/** Only the "strike" and "struck" points know whether the foe answers. */
-export const STRIKE_ONLY: CondKind[] = ['counterattack']
+/** Only the "strike" and "struck" points know whether the foe answers and which strike it is. */
+export const STRIKE_ONLY: CondKind[] = ['counterattack', 'strike']
 /** Conditions that need a combat. */
 export const FOE_POINT_ONLY: CondKind[] = ['initiating', 'distance']
 
@@ -34,6 +36,8 @@ export type EffectKind =
   | 'followUp' | 'followShift' | 'trianglePercent' | 'weaponXpPercent' | 'noCarryPenalty' | 'cancelEffective' | 'cure'
   // Second set (docs/SRPG.md "Skill and ability blocks, second set").
   | 'nullifySkills' | 'staffRange' | 'carryBonus'
+  // Third set: the wielder is hurt by its own strike.
+  | 'recoil'
 const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat', U: When = 'staffUse'
 /** Every effect and the `when` points it is allowed in, in the order the contract lists them. */
 export const EFFECT_WHENS: Record<EffectKind, When[]> = {
@@ -43,7 +47,7 @@ export const EFFECT_WHENS: Record<EffectKind, When[]> = {
   drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F, U], hurt: [T, F], actAgain: [D, F],
   cannotAct: [A], cannotMove: [A], forbid: [A], berserk: [A], immune: [A], inflict: [S, R],
   followUp: [C], followShift: [C], trianglePercent: [C], weaponXpPercent: [A], noCarryPenalty: [A], cancelEffective: [A], cure: [T, D, F, U],
-  nullifySkills: [C], staffRange: [A], carryBonus: [A],
+  nullifySkills: [C], staffRange: [A], carryBonus: [A], recoil: [S],
 }
 /** Effects only the blocks of a condition may have (the loader says they "belong to the blocks of a condition"). */
 export const CONDITION_ONLY: EffectKind[] = ['cannotAct', 'cannotMove', 'forbid', 'berserk']

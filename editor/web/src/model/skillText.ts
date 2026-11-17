@@ -58,6 +58,12 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
     case 'counterattack': return v === false ? 'the foe cannot counterattack' : 'the foe counterattacks'
     case 'carries': return `${who} carries ${doc.items?.find((i) => i.id === v)?.name ?? String(v ?? '')}`
     case 'inventory': return v === 'full' ? `${foe ? 'the foe’s' : 'its'} items are full` : v === 'notFull' ? `${foe ? 'the foe’s' : 'its'} items are not full` : `${foe ? 'the foe carries' : 'it carries'} ${opWords(o.op)} ${o.value ?? 0} items`
+    case 'strike': {
+      if (v === 'first') return 'it is the first strike of the fight'
+      if (v === 'followUp') return 'it is a follow-up strike (not the first)'
+      if (typeof v === 'number') return `it is strike number ${v}`
+      return `the strike number is ${opWords(o.op)} ${o.value ?? 1}`
+    }
     default: return 'a condition the editor does not show (kept as it is)'
   }
 }
@@ -100,7 +106,13 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
     case 'trianglePercent': return `${own}weapon triangle effect ${v}%`
     case 'weaponXpPercent': return `weapon experience gained ${v}%`
     case 'noCarryPenalty': return 'is not slowed by carrying someone'
-    case 'cancelEffective': return 'is not hurt extra by weapons that are effective against it'
+    case 'cancelEffective': return Array.isArray(v) ? `is not hurt extra by weapons that are effective against ${(v as string[]).map((t) => nameOfTypeOrTag(doc, t)).join(' or ')}` : 'is not hurt extra by weapons that are effective against it'
+    case 'recoil': {
+      const o = (v && typeof v === 'object' ? v : null) as Extra | null
+      const amount = o ? (o.amount ?? 'dealt') : v
+      const what = typeof amount === 'string' ? `an amount from the formula ${amount}` : `${amount} HP`
+      return o?.instead === true ? `the strike turns on its wielder, who takes ${what} instead of the foe` : `the wielder loses ${what} (it can be defeated)`
+    }
     case 'cure': return v === 'all' ? 'is cured of every condition' : `is cured of ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' and ')}`
     case 'nullifySkills': {
       if (v === true) return 'the foe’s skills do not work in this fight'
@@ -164,7 +176,8 @@ export function blockSummary(doc: ProjectDoc, b: Extra): string {
   const effects = (Array.isArray(b.do) ? (b.do as Extra[]) : []).map((e) => effectText(doc, e, when ?? undefined)).join(', ')
   const aura = b.aura as Extra | undefined
   const head = [when ? WHEN_LEAD[when] : 'At an unknown time', conds.length ? `if ${conds.join(' and ')}` : '', b.chance !== undefined ? chanceText(doc, b.chance) : ''].filter(Boolean).join(', ')
-  const kind = aura && typeof aura.match === 'string' ? ` that are ${nameOfTypeOrTag(doc, aura.match, true)}` : ''
+  const own = aura ? [typeof aura.match === 'string' ? `are ${nameOfTypeOrTag(doc, aura.match, true)}` : '', typeof aura.weapon === 'string' ? `wield ${weaponWords(doc, aura.weapon)}` : '', typeof aura.weaponKind === 'string' ? `have a weapon dealing ${aura.weaponKind} damage` : '', typeof aura.test === 'string' ? `pass the formula ${aura.test}` : ''].filter(Boolean) : []
+  const kind = own.length ? ` that ${own.join(' and ')}` : ''
   const gives = aura ? `${aura.to === 'enemies' ? 'enemies' : 'allies'}${kind} within ${squares(aura.within ?? 1)} get ${effects}` : effects
   return `${head}: ${gives || 'nothing'}.`
 }

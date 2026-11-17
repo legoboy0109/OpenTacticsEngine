@@ -1,4 +1,4 @@
-import { gameHasSteal, setItemKind, setPrice, setStealable, setUnlimited, setUses, updateItem } from '../../model/items'
+import { gameHasSteal, setItemKind, setItemNumber, setPrice, setStealable, setUnlimited, setUses, updateItem } from '../../model/items'
 import { carriedWeapons } from '../../model/itemRules'
 import { repairableShown, setRepairable } from '../../model/staffEffects'
 import type { ItemKind } from '../../model/types'
@@ -72,6 +72,14 @@ export function ItemForm({ id }: { id: string }) {
               <Toggle label={T.repairable} help={T.repairableHelp} checked={item.repairable !== false} onChange={(v) => edit((d) => setRepairable(d, id, v))} />
             )}
           </div>
+        </Card>
+      )}
+
+      {(item.kind === 'usable' || item.kind === 'accessory') && (gameHasSteal(doc) || item.props !== undefined) && (
+        <Card>
+          <KeyNumberTable label={T.numbers} help={T.numbersHelp} rows={Object.keys(item.props ?? {}).map((k) => ({ key: k, label: k.charAt(0).toUpperCase() + k.slice(1) }))} emptyText={T.numbersEmpty}
+            columns={[{ title: T.numberCol, values: item.props, integer: false, onChange: (k, v) => edit((d) => setItemNumber(d, id, k, v), `${key}:prop:${k}`) }]}
+            onRemove={(k) => edit((d) => setItemNumber(d, id, k, undefined))} addOptions={[]} onAdd={(k) => edit((d) => setItemNumber(d, id, k, 0))} addLabel={T.addNumber} />
         </Card>
       )}
 

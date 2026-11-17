@@ -60,6 +60,11 @@ export const T = {
   weaponNone: 'Pick a weapon',
   noWeapons: 'There are no weapons yet. Create some on the Weapons screen.',
 
+  numbersEmpty: 'No numbers yet.',
+  numberCol: 'Number',
+  numbers: 'Numbers for formulas',
+  numbersHelp: 'Named numbers a steal ability’s “Only if” can read as it.name, such as it.weight. The item’s uses, price and kind are always there as it.uses, it.price and it.kind.',
+  addNumber: 'Add a number (for example weight)',
   bonus: 'Bonus while carried',
   bonusHelp: 'Added to the unit’s stats while it carries this. An accessory needs a bonus to at least one stat, or at least one skill.',
   bonusCol: 'Bonus',

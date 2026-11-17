@@ -57,6 +57,8 @@ export function EffectFields({ doc, effect, when, aura, change, forCondition }: 
     return <Check label={T.moveAgainNot} help={T.moveAgainNotHelp} checked={on} onChange={(c) => change({ ...effect, moveAgain: c ? { notAfterAttack: true } : true })} />
   }
   if (kind === 'cure') return <CureFields doc={doc} effect={effect} change={change} />
+  if (kind === 'recoil') return <RecoilFields effect={effect} change={change} />
+  if (kind === 'cancelEffective') return <CancelFields doc={doc} effect={effect} change={change} />
   if (kind === 'nullifySkills') return <NullifyFields doc={doc} effect={effect} change={change} />
   if (kind === 'staffRange') return <StaffRangeFields doc={doc} effect={effect} change={change} />
   if (FORMULA_EFFECTS.includes(kind) && NUMBER_RANGE[kind]) return <>{target}<FormulaNumber effect={effect} kind={kind} change={change} percent={PERCENT.includes(kind)} /></>
@@ -133,7 +135,7 @@ function HealFields({ effect, when, change }: { effect: Extra; when: When; chang
   return (
     <>
       <AmountFields effect={effect} which="heal" change={change}
-        labels={{ how: T.healAmount, kinds: { number: T.healHp, percent: T.healPercent, formula: T.healFormula }, formula: T.healFormulaLabel, formulaHelp: T.healFormulaHelp }} />
+        labels={{ how: T.healAmount, kinds: { number: T.healHp, percent: T.healPercent, formula: T.healFormula }, formula: T.healFormulaLabel, formulaHelp: when === 'staffUse' ? T.healFormulaHelpStaff : T.healFormulaHelp }} />
       {when !== 'staffUse' && <Field label={T.healTo}>
         <Select value={allies ? 'allies' : 'self'} options={[{ value: 'self', label: T.healSelf }, { value: 'allies', label: T.healAllies }]}
           onChange={(t) => { const { to: _t, within: _w, ...rest } = effect; change(t === 'allies' ? { ...rest, to: 'allies', within: 1 } : rest) }} />
@@ -234,6 +236,49 @@ function StaffRangeFields({ doc, effect, change }: { doc: ProjectDoc; effect: Ex
       <Field label={T.staffRangeGroup}>
         <Select value={group} options={[{ value: '', label: T.staffRangeAnyGroup }, ...[...new Set([...groups, group])].filter(Boolean).map((g) => ({ value: g, label: g }))]} onChange={(g) => put(amount, g)} />
       </Field>
+    </>
+  )
+}
+
+/** "recoil": a number of hit points or a formula, and whether the strike is turned on the wielder instead of the foe. */
+function RecoilFields({ effect, change }: { effect: Extra; change: (e: Extra, key?: string) => void }) {
+  const v = effect.recoil
+  const o = (v && typeof v === 'object' ? v : null) as Extra | null
+  const amount = o ? (o.amount ?? 'dealt') : v
+  const instead = o?.instead === true
+  const isFormula = typeof amount === 'string'
+  // The plain forms are a number or a formula; the object form only when "turn it on the wielder" is on.
+  const put = (nextAmount: number | string, nextInstead: boolean, key?: string) =>
+    change({ ...effect, recoil: nextInstead ? { amount: nextAmount, instead: true } : nextAmount }, key)
+  return (
+    <>
+      <Field label={T.amountMode}>
+        <Select value={isFormula ? 'formula' : 'number'} options={Object.entries(T.amountModes).map(([value, label]) => ({ value, label }))}
+          onChange={(m) => put(m === 'formula' ? 'dealt' : 2, instead)} />
+      </Field>
+      {isFormula
+        ? <Field label={T.amountFormula} help={T.recoilFormulaHelp}><TextInput mono value={amount} onChange={(x) => put(x, instead, 'recoil-formula')} /></Field>
+        : <Field label={T.recoilAmount}><Num value={Number(amount ?? 2)} min={1} max={1000000} onChange={(n) => put(n, instead, 'recoil')} /></Field>}
+      <Check label={T.recoilInstead} help={T.recoilInsteadHelp} checked={instead} onChange={(c) => put(amount as number | string, c)} />
+    </>
+  )
+}
+
+/** "cancelEffective": all effectiveness, or only the tags picked (the keys weapons list under "Extra damage against"). */
+function CancelFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra; change: (e: Extra, key?: string) => void }) {
+  const v = effect.cancelEffective
+  const some = Array.isArray(v)
+  const tags = [...new Set((doc.weapons ?? []).flatMap((w) => Object.keys(w.versus ?? {})))]
+  const list = (some ? v : []) as string[]
+  return (
+    <>
+      <Field label={T.cancelHow}>
+        <Select value={some ? 'some' : 'all'} options={[{ value: 'all', label: T.cancelAll }, { value: 'some', label: T.cancelSome }]}
+          onChange={(m) => change({ ...effect, cancelEffective: m === 'all' ? true : tags[0] ? [tags[0]] : true })} />
+      </Field>
+      {some && (tags.length === 0 && list.length === 0
+        ? <p className="help">{T.cancelNoTags}</p>
+        : <MultiSelect label={T.cancelPick} options={[...tags, ...list.filter((t) => !tags.includes(t))].map((t) => ({ value: t, label: tags.includes(t) ? t : `${t} (not used by a weapon)` }))} value={list} onChange={(l) => change({ ...effect, cancelEffective: l })} />)}
     </>
   )
 }

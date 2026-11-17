@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { staffChecks } from '../../../model/staffChecks'
 import { setStaffProp } from '../../../model/staff'
-import { updateItem } from '../../../model/items'
+import { setStatNumber, updateItem } from '../../../model/items'
 import { isSquareStaff } from '../../../model/staffFx'
 import type { Ability } from '../../../model/srpgTypes'
 import { useDoc, useEdit } from '../../../store/context'
@@ -35,6 +35,10 @@ export function StaffMainCards({ id }: { id: string }) {
           columns={[{ title: S.numberCol, values: item.props, integer: false, onChange: (k, v) => edit((d) => setStaffProp(d, id, k, v), `item:${id}:prop:${k}`) }]}
           onRemove={(k) => edit((d) => setStaffProp(d, id, k, undefined))}
           addOptions={[]} onAdd={(k) => edit((d) => setStaffProp(d, id, k, 0))} addLabel={S.addNumber} />
+      </Card>
+      <Card>
+        <KeyNumberTable label={S.bonus} help={S.bonusHelp} rows={(doc.game?.stats ?? []).map((s) => ({ key: s.id, label: s.name }))}
+          columns={[{ title: S.bonusCol, values: item.bonus, placeholder: '0', onChange: (k, v) => edit((d) => setStatNumber(d, id, 'bonus', k, v), `item:${id}:bonus:${k}`) }]} />
       </Card>
     </>
   )

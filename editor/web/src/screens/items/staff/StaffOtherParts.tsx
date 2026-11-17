@@ -3,8 +3,7 @@
 import { STAFF_RADIUS_MAX, STAFF_RANGE_MAX, reachExample, type ReachMode } from '../../../model/staff'
 import {
   STAFF_LIGHT_TURNS_MAX, STAFF_REPAIR_MAX, canDropEffect, lightOf, moveBlock, moveOf, repairBlock, repairOf, setLightOn, setLightRadius, setLightTurns, setMoveKind,
-  setRepairKind, setRepairOn, setRepairUses, setWarpFormula, setWarpMax, setWarpMin, setWarpMode, unknownEffectCount, type RepairKind,
-} from '../../../model/staffEffects'
+  setRepairKind, setRepairOn, setRepairUses, setWarpFormula, setWarpMax, setWarpMin, setWarpMode, unknownEffectCount, type RepairKind, setLightShrink } from '../../../model/staffEffects'
 import { MOVE_KINDS, isLightStaff, type MoveKind } from '../../../model/staffFx'
 import { useDoc, useEdit } from '../../../store/context'
 import { Field } from '../../../ui/Field'
@@ -110,6 +109,9 @@ export function StaffLightPart({ id }: { id: string }) {
         <>
           <Field label={S.lightRadius}>
             <NumberInput value={light.radius} min={1} max={STAFF_RADIUS_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setLightRadius(d, id, v), `${key}:lightRadius`) }} />
+          </Field>
+          <Field label={S.lightShrink} help={S.lightShrinkHelp}>
+            <NumberInput value={light.shrink} min={1} max={Math.max(1, light.radius - 1)} allowEmpty onChange={(v) => edit((d) => setLightShrink(d, id, v), `${key}:lightShrink`)} />
           </Field>
           <Field label={S.lightTurns} help={S.lightTurnsHelp}>
             <NumberInput value={light.turns} min={1} max={STAFF_LIGHT_TURNS_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setLightTurns(d, id, v), `${key}:lightTurns`) }} />

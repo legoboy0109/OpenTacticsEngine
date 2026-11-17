@@ -24,6 +24,8 @@ function itemListChecks(doc: ProjectDoc): ItemCheck[] {
       if (!carried) say(i, 'weapon items need weapons to be “Carried as items” on the Rules screen.')
       if (!i.weapon || !doc.weapons?.some((w) => w.id === i.weapon)) say(i, i.weapon ? `its weapon “${i.weapon}” does not exist.` : 'pick which weapon it is.')
     }
+    if (i.kind === 'staff' && i.bonus !== undefined && !nonZero(i.bonus)) say(i, 'its bonus while carried changes no stat. Give it a number, or remove the bonus.')
+    if (i.kind === 'weapon' && i.props !== undefined) say(i, 'a weapon item’s numbers belong on the Weapons screen, not on the item.')
     if (i.repairable !== undefined) {
       if (typeof i.repairable !== 'boolean') say(i, 'whether a repair staff can mend it must be on or off.')
       else if (i.uses === undefined) say(i, 'it has unlimited uses, so it never wears and “can be repaired” means nothing. Give it a number of uses, or remove the setting.')
