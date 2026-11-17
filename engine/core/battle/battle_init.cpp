@@ -163,6 +163,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
         return false;
       }
   }
+  quotesInit();  // docs/EVENTS.md "Battle and defeat quotes": nothing said yet (none in a game without quotes)
   supportsInit();  // a single battle starts every support pair at its "start" points (docs/SRPG.md); none = nothing
   return true;
 }

@@ -69,5 +69,11 @@ bool readBattleSupports(Reader& rd, const Json& saved, Battle& b);
 void writePlaythroughSupports(const Database& db, const Playthrough& pt, Json& out);
 bool readPlaythroughSupports(Reader& rd, const Database& db, const Json& saved, Playthrough& pt);
 
+// ---- quotes (save_quotes.cpp): "quotes" of a battle and of a playthrough ----
+void writeBattleQuotes(const Battle& b, Json& out);
+bool readBattleQuotes(Reader& rd, const Json& saved, Battle& b);
+void writePlaythroughQuotes(const Database& db, const Playthrough& pt, Json& out);
+bool readPlaythroughQuotes(Reader& rd, const Database& db, const Json& saved, Playthrough& pt);
+
 }  // namespace savejson
 }  // namespace ote

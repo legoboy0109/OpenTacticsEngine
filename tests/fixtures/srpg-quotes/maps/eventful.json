@@ -1,0 +1,13 @@
+// The first field with two story events: one when Eirik and Gorm fight, one when Gorm is defeated.
+{ "name": "Story Field", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": ["...#....", "........", "...#...."],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "eirik", "side": "blue", "x": 3, "y": 1, "leader": true },
+    { "character": "bram", "side": "blue", "x": 2, "y": 1 },
+    { "character": "mira", "side": "blue", "x": 0, "y": 0 },
+    { "character": "gorm", "side": "red", "x": 4, "y": 1, "leader": true },
+    { "type": "grunt", "side": "red", "x": 5, "y": 2 } ],
+  "events": [
+    { "id": "duel", "when": { "fight": { "unit": "eirik" }, "with": { "unit": "gorm" } }, "do": [ { "say": "The field falls quiet.", "speakerName": "Narrator" } ] },
+    { "id": "gone", "when": { "defeated": { "unit": "gorm" } }, "do": [ { "say": "The raiders scatter.", "speakerName": "Narrator" } ] } ] }

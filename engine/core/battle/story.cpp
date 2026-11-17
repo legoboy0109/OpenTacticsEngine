@@ -37,6 +37,11 @@ const std::string kNoText;
 }  // namespace
 
 const std::string& Battle::storyText(int index) const {
+  // Quote lines (data/characters.json "quotes") have their own table too, above the supports'.
+  if (index >= kQuoteTextBase) {
+    const std::vector<std::string>& texts = db->quotes.texts;
+    return index - kQuoteTextBase < (int)texts.size() ? texts[(size_t)(index - kQuoteTextBase)] : kNoText;
+  }
   // The lines of support conversations have their own table (docs/SRPG.md "Levels and conversations").
   if (index >= kSupportTextBase) {
     const std::vector<std::string>& texts = db->supports.texts;

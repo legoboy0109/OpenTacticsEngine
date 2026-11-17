@@ -44,6 +44,7 @@ struct Playthrough {
   std::vector<uint8_t> switches;    // per Database::switches
   std::vector<int> variables;       // per Database::variables
   SupportState supports;            // closeness of the support pairs (docs/SRPG.md); empty in a game without pairs
+  std::vector<uint8_t> quotesSaid;  // per battle quote (BattleQuote::flat): said already; only "campaign" quotes are kept (docs/EVENTS.md)
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.
   bool begin(const Database& db);

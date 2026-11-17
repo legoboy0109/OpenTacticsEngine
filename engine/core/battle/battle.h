@@ -18,6 +18,7 @@
 #include "core/base/types.h"
 #include "core/battle/carried.h"
 #include "core/battle/places_state.h"
+#include "core/battle/quotes_state.h"
 #include "core/battle/srpg_state.h"
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
@@ -623,6 +624,7 @@ class Battle {
   // ---- strategy-RPG features: public queries (docs/SRPG.md). Later steps append there, not here. ----
 #include "core/battle/srpg_api.h"
 #include "core/battle/places_api.h"
+#include "core/battle/quotes_api.h"
 
  private:
   // combat.cpp

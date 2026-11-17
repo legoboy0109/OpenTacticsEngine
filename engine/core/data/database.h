@@ -369,6 +369,7 @@ struct Database {
   std::vector<SkillDef> skills;          // data/skills.json
   std::vector<AbilityDef> abilities;     // data/abilities.json
   SupportData supports;                  // data/supports.json (rules, pairs, texts)
+  QuoteData quotes;                      // the wording of characters' quotes (data/characters.json "quotes")
   RankRules ranks;                       // data/ranks.json (weapon rank ladder); empty ladder = no ranks
   std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
   std::vector<StaffDef> staves;          // the staves of data/items.json (an item of kind "staff" points here)

@@ -1,0 +1,11 @@
+// The second chapter: the same field as the first.
+{ "name": "Field", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": ["...#....", "........", "...#...."],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "character": "eirik", "side": "blue", "x": 3, "y": 1, "leader": true },
+    { "character": "bram", "side": "blue", "x": 2, "y": 1 },
+    { "character": "mira", "side": "blue", "x": 0, "y": 0 },
+    { "character": "gorm", "side": "red", "x": 4, "y": 1, "leader": true },
+    { "character": "tolly", "side": "red", "x": 5, "y": 0 },
+    { "type": "grunt", "side": "red", "x": 5, "y": 2 } ] }
