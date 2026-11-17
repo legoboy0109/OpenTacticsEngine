@@ -29,17 +29,17 @@ test('@smoke the Backgrounds list: add, name, choose a whole image or one piece,
   await page.goto(`/p/${id}/art`)
   const card = backgroundsCard(page)
   await expect(card).toContainText('No backgrounds yet')
-  await card.getByLabel('Name of a new background').fill('forest_dusk')
-  await card.getByRole('button', { name: 'Add background' }).click()
-  await card.getByLabel('Name of a new background').fill('hall')
-  await card.getByLabel('Name of a new background').press('Enter')
+  await card.getByLabel('Name of a new story background').fill('forest_dusk')
+  await card.getByRole('button', { name: 'Add story background' }).click()
+  await card.getByLabel('Name of a new story background').fill('hall')
+  await card.getByLabel('Name of a new story background').press('Enter')
   await saved(page)
   // A new background is the first image, whole (no "cell" key).
   expect(readDisk(id, 'data/graphics.json').backgrounds).toEqual({ forest_dusk: { sheet: 'forest' }, hall: { sheet: 'forest' } })
   // A bad or repeated name is refused where it is typed.
-  await card.getByLabel('Name of a new background').fill('hall')
+  await card.getByLabel('Name of a new story background').fill('hall')
   await expect(card.getByRole('alert')).toContainText('already a background')
-  await card.getByLabel('Name of a new background').fill('')
+  await card.getByLabel('Name of a new story background').fill('')
   // The second one becomes one piece of the second image.
   await card.getByRole('button', { name: 'Choose picture…' }).nth(1).click()
   const dlg = page.getByRole('dialog', { name: 'Picture for “hall”' })
