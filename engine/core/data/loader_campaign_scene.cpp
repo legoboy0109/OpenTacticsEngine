@@ -1,6 +1,7 @@
 // Campaign loader, part 2: scene commands and their conditions (docs/EVENTS.md "Campaign").
 // Same JSON shapes as the event commands of the same name, minus everything that needs a map.
 #include "core/data/loader_campaign.h"
+#include "core/data/loader_scene_fx.h"
 
 namespace ote {
 
@@ -13,6 +14,8 @@ constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVar
 // "is not a scene command" message keeps naming only the old ones.
 constexpr const char* kSrpgSceneKeys[] = {"addSupport", "choice"};
 constexpr const char* kSrpgConditionKeys[] = {"support"};
+// Scene presentation (docs/EVENTS.md "Scene presentation"); "weather" is listed so that a scene says why it cannot use it.
+constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
 
 bool parseOp(const std::string& t, CmpOp& op) {
   if (t == "=" || t == "==") op = CmpOp::Eq;
@@ -86,6 +89,11 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kSceneFxKeys)
+    if (SceneFxReader::isCommandIn(e, k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   // Status conditions end with the map (docs/SRPG.md section 9): a scene says so in its own words.
   for (const char* k : {"addCondition", "removeCondition"})
     if (!kind && e.has(k))
@@ -100,6 +108,20 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   const Json& v = e[kind];
   using K = SceneCommand::Kind;
 
+  for (const char* fxKey : kSceneFxKeys)
+    if (k == fxKey) {
+      SceneFxReader r{c_, db_, false, [this](const std::string& s) { return text(s); }};
+      if (k != "narrate") {
+        out.kind = K::Fx;
+        return r.command(e, k, at, out.fx);
+      }
+      out.kind = K::Say;
+      if (!r.onlyKeys(e, {"narrate", "auto"}, at)) return false;
+      if (!v.isString()) return fail(at, "\"narrate\" must be the text to show");
+      out.text = text(v.asString());
+      out.fx.narrate = true;
+      return r.sayExtras(e, at, out.fx);
+    }
   if (k == "addSupport") return supportCommand(e, at, out);
   if (k == "choice") {
     out.kind = K::Choice;
@@ -107,7 +129,8 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
   }
   if (k == "say") {
     out.kind = K::Say;
-    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;
+    if (!onlyKeys(e, {"say", "speaker", "speakerName", "portrait", "position", "auto"}, at)) return false;
+    if (!SceneFxReader{c_, db_, false, nullptr}.sayExtras(e, at, out.fx)) return false;
     if (!v.isString()) return fail(at, "\"say\" must be the text to show");
     out.text = text(v.asString());
     if (e.has("speaker") && e.has("speakerName")) return fail(at, "give \"speaker\" or \"speakerName\", not both");

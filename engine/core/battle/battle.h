@@ -116,6 +116,10 @@ enum class EventType {
   // a=the unit that refreshed, b=the unit that may act again, c=ability.
   ItemStolen,
   UnitRefreshed,
+  // Scene presentation (docs/EVENTS.md "Scene presentation"), from the background / fade / wait / shake / leave / weather
+  // commands: a=SceneFx::Kind, b=text index (picture id, speaker key or weather; -1 none), c=ms (-1 not given), d=Fade colour
+  // 0xRRGGBB / Shake strength, flags=kSceneOut / kSceneFadeTrans / kSceneAuto (scene_fx.h). Presentation only.
+  SceneEffect,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -736,7 +740,11 @@ class Battle {
   void runCommands(const std::vector<Command>& list, std::vector<Event>& events);
   void runCommand(const Command& c, std::vector<Event>& events);
   void storyAddUnit(const MapUnitDef& def, std::vector<Event>& events);
-  void storyRelocate(int unit, Cell to, std::vector<Event>& events);
+  void storyRelocate(int unit, Cell to, std::vector<Event>& events, bool walk = false, bool noWait = false);
+  // story_scene_fx.cpp: the scene presentation commands, a walked moveUnit, and the fade that never outlives a run of events.
+  void storyScene(const Command& c, std::vector<Event>& events);
+  bool storyWalkPath(int unit, Cell from, Cell to, std::vector<int>& path) const;
+  void endStoryRun(std::vector<Event>& events);
   Cell nearestFreeCell(Cell target, int moveType) const;
   // objectives.cpp
   bool objectiveHolds(const ObjectiveRule& r, bool win) const;

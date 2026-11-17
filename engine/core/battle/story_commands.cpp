@@ -96,7 +96,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   events.push_back(makeEvent(EventType::UnitAdded, u.id, cell));
 }
 
-void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events) {
+void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events, bool walk, bool noWait) {
   Cell from = units[(size_t)unit].cell;
   occupant[(size_t)from] = -1;  // its own square counts as free for the search
   Cell dest = nearestFreeCell(to, typeOf(units[(size_t)unit]).moveType);
@@ -107,7 +107,11 @@ void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events) {
   occupant[(size_t)from] = -1;
   occupant[(size_t)dest] = unit;
   units[(size_t)unit].cell = dest;
-  events.push_back(makeEvent(EventType::UnitRelocated, unit, from, dest));
+  Event moved = makeEvent(EventType::UnitRelocated, unit, from, dest);
+  if (walk) {  // docs/EVENTS.md "moveUnit": the same relocation, played as a walk along the way (no way found: the usual slide)
+    if (storyWalkPath(unit, from, dest, moved.data)) moved.flags = kRelocateWalk | (noWait ? kFocusNoWait : 0);
+  }
+  events.push_back(moved);
   // The unit has stopped somewhere: events waiting for that unit to arrive there may run.
   StoryOccurrence o;
   o.kind = Trigger::Kind::Reach;
@@ -129,6 +133,9 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
   switch (c.kind) {
     case K::Say: {
       Event e = makeEvent(EventType::Dialogue, c.unit.empty() ? -1 : unitByStoryId(c.unit), c.text, c.speakerName, c.portrait);
+      // The presentation keys ride along: position and narrate in the flags, "auto" in data (docs/EVENTS.md "Scene presentation").
+      e.flags = (c.fx.position & kDialoguePosMask) | (c.fx.narrate ? kDialogueNarrate : 0);
+      if (c.fx.ms > 0) e.data.push_back(c.fx.ms);
       events.push_back(e);
       break;
     }
@@ -158,7 +165,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       break;
     case K::MoveUnit: {
       int u = unitByStoryId(c.unit);
-      if (u >= 0 && units[(size_t)u].alive) storyRelocate(u, grid.at(c.x, c.y), events);
+      if (u >= 0 && units[(size_t)u].alive) storyRelocate(u, grid.at(c.x, c.y), events, c.fx.walk, c.fx.wait == 0);
       else if (u >= 0 && units[(size_t)u].carriedBy >= 0) storyMoveCarried(u, grid.at(c.x, c.y), events);  // R1: dropped there
       break;
     }
@@ -288,13 +295,21 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
+      Event f;
       if (!c.unit.empty()) {
-        if (u >= 0 && units[(size_t)u].alive) events.push_back(makeEvent(EventType::Focus, units[(size_t)u].cell, u));
+        if (u < 0 || !units[(size_t)u].alive) break;
+        f = makeEvent(EventType::Focus, units[(size_t)u].cell, u);
       } else {
-        events.push_back(makeEvent(EventType::Focus, grid.at(c.x, c.y), -1));
+        f = makeEvent(EventType::Focus, grid.at(c.x, c.y), -1);
       }
+      f.c = c.fx.ms;  // scroll milliseconds (-1 = not given: the player's usual half second); "wait": false in the flags
+      f.flags = c.fx.wait == 0 ? kFocusNoWait : 0;
+      events.push_back(f);
       break;
     }
+    case K::Scene:  // docs/EVENTS.md "Scene presentation" (story_scene_fx.cpp)
+      storyScene(c, events);
+      break;
   }
 }
 

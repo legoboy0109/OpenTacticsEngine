@@ -426,6 +426,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
   }
 
   if (!c.boolean(root, "unitMarker", "", db.graphics.unitMarker)) return false;
+  if (!readSceneBackgrounds(c, db, root)) return false;
 
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());

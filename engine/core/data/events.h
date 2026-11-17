@@ -9,6 +9,7 @@
 
 #include "core/base/json.h"
 #include "core/data/database.h"
+#include "core/data/scene_fx.h"
 
 namespace ote {
 
@@ -112,7 +113,8 @@ struct Command {
     AddCondition, RemoveCondition,
     // docs/AI.md: SetBehaviour gives every living computer unit matching `filter` the block `behaviour` (and puts it back to sleep, for a
     // guard); WakeGroup wakes every unit whose guard group is `unit` (the group name).
-    SetBehaviour, WakeGroup
+    SetBehaviour, WakeGroup,
+    Scene  // docs/EVENTS.md "Scene presentation": the command is `fx` (background, fade, wait, shake, leave, weather)
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -135,6 +137,7 @@ struct Command {
   std::vector<Condition> cond;                // If
   std::vector<Command> thenDo, elseDo;        // If
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
+  SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };
 
 // What a Place command does.

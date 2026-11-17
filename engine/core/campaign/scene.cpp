@@ -149,6 +149,9 @@ struct SceneRun {
       case K::Say: {
         SceneLine l;
         speaker(c, l);
+        l.position = c.fx.position;  // the presentation keys (docs/EVENTS.md "Scene presentation")
+        l.narrate = c.fx.narrate;
+        l.autoMs = std::max(0, c.fx.ms);
         lines.push_back(l);
         break;
       }
@@ -180,6 +183,19 @@ struct SceneRun {
         bool all = true;
         for (const SceneCondition& cnd : c.cond) all = all && holds(cnd);
         run(all ? c.thenDo : c.elseDo);
+        break;
+      }
+      case K::Fx: {  // scene presentation: nothing in the playthrough changes, the player acts on the line when it reaches it
+        SceneLine l;
+        l.kind = SceneLine::Kind::Fx;
+        l.fx = c.fx.kind;
+        l.fadeMs = c.fx.ms;
+        l.color = c.fx.color;
+        l.strength = c.fx.strength;
+        l.out = c.fx.out;
+        l.fadeTransition = c.fx.fadeTransition;
+        if (c.fx.text >= 0) l.text = texts[(size_t)c.fx.text];
+        lines.push_back(l);
         break;
       }
       case K::Goto: gotoChapter = c.chapter; break;

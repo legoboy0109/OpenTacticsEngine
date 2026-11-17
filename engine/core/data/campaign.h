@@ -35,7 +35,8 @@ struct SceneCommand {
   enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound,
                     AddSupport,  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
                     Choice,      // Choice: see above
-                    TakeItem };  // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
+                    TakeItem,    // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`
+                    Fx };        // Fx: scene presentation (docs/EVENTS.md "Scene presentation"): `fx`
   Kind kind = Kind::Say;
   // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
@@ -52,6 +53,7 @@ struct SceneCommand {
   std::vector<SceneCommand> thenDo, elseDo;   // If
   std::string chapter;                        // Goto: a chapter id
   std::vector<SceneAnswer> answers;           // Choice: two to four
+  SceneFx fx;                                 // Fx; also the presentation keys of Say (position, auto, narrate)
 };
 
 struct ChapterDef {

@@ -170,6 +170,8 @@ static std::string describeEventText(const Battle& b, const Event& e) {
       return fmt("the story plays music '%s' (fade %d ms)", b.storyText(e.a).c_str(), e.b);
     case EventType::SoundRequested:
       return fmt("the story plays sound '%s'", b.storyText(e.a).c_str());
+    case EventType::SceneEffect:  // presentation only (docs/EVENTS.md "Scene presentation"): the simulator shows no scenes
+      return fmt("scene effect %d '%s' (%d ms)", e.a, e.b >= 0 ? b.storyText(e.b).c_str() : "", e.c);
     default:
       break;
   }

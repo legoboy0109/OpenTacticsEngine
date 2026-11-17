@@ -76,7 +76,9 @@ struct SceneLine {
   // reaches it. `text` is then the music / sound id ("" for StopMusic) and `fadeMs` the fade.
   // Choice (docs/EVENTS.md "Dialogue choices"): `text` is the question, `answers` the offered answers' words; `waiting`
   // = nothing answered it yet, so the scene stops here (runScene with answers).
-  enum class Kind { Say, PlayMusic, StopMusic, PlaySound, Choice };
+  // Fx (docs/EVENTS.md "Scene presentation"): `fx` says which command, `text` is its picture id / speaker key (""= none /
+  // everybody), `fadeMs` its milliseconds, the rest are the extra keys; a Say line carries position / narrate / autoMs.
+  enum class Kind { Say, PlayMusic, StopMusic, PlaySound, Choice, Fx };
   Kind kind = Kind::Say;
   bool waiting = false;
   std::vector<std::string> answers;
@@ -85,6 +87,13 @@ struct SceneLine {
   std::string speaker;    // the name to show ("" = nobody)
   std::string portrait;   // portrait id ("" = none; the player may look up speakerId's instead)
   std::string text;
+  SceneFx::Kind fx = SceneFx::Kind::None;  // Fx lines
+  uint32_t color = 0;                       // Fx Fade: 0xRRGGBB
+  int strength = 3;                         // Fx Shake
+  bool out = false, fadeTransition = false; // Fx Fade out / Background "fade" transition
+  int position = 0;                         // Say: kPosLeft / kPosRight / kPosCenter, 0 = none
+  bool narrate = false;                     // Say
+  int autoMs = 0;                           // Say: the line moves on by itself after this long (0 = never)
 };
 
 enum class SceneKind { Before, After };

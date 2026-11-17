@@ -83,6 +83,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::ObjectiveChanged:
     case EventType::MusicChanged:
     case EventType::SoundRequested:
+    case EventType::SceneEffect:
       return kSeenByAll;
     case EventType::UnitMoved: {
       uint32_t mask = unitTeam(e.a);

@@ -132,8 +132,23 @@ struct GraphicsSet {
   }
 };
 
+// A full-screen picture of a story scene (docs/GRAPHICS.md "Backgrounds"): the whole image of a sheet, or one cell of it.
+struct SceneBackground {
+  std::string id;
+  int sheet = -1;
+  bool whole = true;  // true: the sheet's whole image; false: just `cell`
+  SpriteCell cell;
+};
+
 struct Graphics {
   std::vector<SheetDef> sheets;
+  // Backgrounds of story scenes (root key "backgrounds"; the same for every style). Not the battle scene's (`battle`).
+  std::vector<SceneBackground> backgrounds;
+  int findBackground(const std::string& id) const {
+    for (size_t i = 0; i < backgrounds.size(); ++i)
+      if (backgrounds[i].id == id) return (int)i;
+    return -1;
+  }
   // Draw a small base in the side's colour under units that have art, so
   // sides can be told apart whatever the art looks like.
   bool unitMarker = true;
