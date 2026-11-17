@@ -852,6 +852,8 @@ A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: t
   rename / removal, ranks off, character delete / rename, characters off and the "last of a group" clean-up cover both. `model/staff.ts` (edits and limits: reach 1-20, radius 1-10, xp 0-1000, heal 1-1000000),
   `staffChecks.ts` (loader mirror, `blocks: true` = shown in the Items screen's "will not load" banner via `itemChecks`; the rest, "nobody can use it yet", on the staff's form). `setItemKind` (`items.ts`)
   gives a new staff a group, reach 2 and a heal of 10, and removes the staff keys when leaving (one Undo step). Keys the form does not show (stage-2/3 effects, `zzz`) are kept.
+- **Stage two** (warp, pull, swap, repair, light, an item's `repairable`; docs/SRPG.md "Staves: stage two, as built"): **not in the form yet**. The form shows a first effect that is not a heal as "not
+  editable" and keeps it; the helper keeps every key through GET and PUT (checked in `tests/editor_api_staves_checks.py` on `tests/fixtures/srpg-staves2`). The editor's own checks still mirror stage 1 only.
 - **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` (with Play and the 360 px check).
 
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)

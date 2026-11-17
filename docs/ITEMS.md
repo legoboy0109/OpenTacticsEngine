@@ -178,8 +178,9 @@ docs/SRPG.md (sections 1 to 3 and "Demo and template content").
 
 An item of `"kind": "staff"` is a staff: a unit **wields** it by group and rank like a weapon (`"group"`, `"rank"`, `"wieldedBy"`, `"wieldedByTypes"`, the unit
 type's `"wields"`) and **uses it on another unit at range** as its action (`"range"`, `"target"`, `"area"`, `"effects"` such as a heal, an
-optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and saves are the item's own (everything above). Stage 1
-(healing) is built; the whole contract, including the later stages, is docs/SRPG.md section 8. It is not a `usable` item: the Items
+optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and saves are the item's own (everything above). Stages 1
+(healing) and 2 (`warp`, `pull`, `swap`, `repair`, `light`) are built; the whole contract, including stage 3, is docs/SRPG.md section 8.
+A staff's `repair` skips an item with `"repairable": false` (a key of any item that has `uses`; default true) and items with unlimited uses. It is not a `usable` item: the Items
 screen offers no Use for it; the action menu has a Staff entry.
 
 ## Weapon ranks

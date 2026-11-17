@@ -215,7 +215,8 @@ editor has no switch for it yet (step 5).
 **Sight** (`Battle::visibleTo`), per **team** (sides of a team share everything):
 - A square is in sight when it is within `vision + bonus` of a living unit of the team, or within 1 of any square of
   the footprint of a structure owned by a side of the team (so the whole footprint and one square around it).
-  A neutral structure sees nothing.
+  A neutral structure sees nothing. A **light** made by a staff (docs/SRPG.md section 8, stage 2) adds the squares within its radius
+  for a number of that side's turns; it is saved with the battle (docs/SAVES.md) and a hiding square still hides the units on it.
 - **Hiding**: a unit standing on a square that hides is seen only by a unit of the team standing next to it (grid
   distance 1; even a unit with vision 0 notices a neighbour in a hideout). The hiding square's terrain itself is
   always known, as all terrain, heights and structure positions are. A unit of the team itself is always seen

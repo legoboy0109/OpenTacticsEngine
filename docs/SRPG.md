@@ -1318,8 +1318,8 @@ A **staff** is an item a unit carries, wields by group and rank like a weapon, a
 action. Owner's answers (PLAN item 3l, 2026-11-16): staves come in **stages** (ranged and area healing; moving units; utility;
 then status conditions built by the maker from blocks, with a starter set and curing staves); whether a staff can miss is **the
 maker's choice per staff** (healing defaults to certain, a hostile one gets a hit chance). This section is the contract for
-**all** stages, so the later ones fit without rework. Stage 1 (healing) is built; stages 2 and 3 are written in outline only
-and marked "not built". A game with no staff plays, saves and hashes exactly as before.
+**all** stages, so the later ones fit without rework. Stages 1 (healing) and 2 (moving units: warp, pull, swap; utility: repair, light)
+are built; stage 3 is written in outline only and marked "not built". A game with no staff plays, saves and hashes exactly as before.
 
 ### Where a staff is defined, and why
 
@@ -1364,8 +1364,8 @@ staff as `w`.
 - **`effects`**: the engine's existing effect vocabulary, in the shape of the skill effect blocks (section 3) and abilities
   (section 4); a staff adds no second language. Stage 1: `{ "heal": 10 }`, `{ "heal": "full" }`, `{ "heal": { "percent": 30 } }`
   and `{ "heal": "<formula>" }` (a number; `a` = user, `b` = the unit healed, `w` = the staff, `dist` = distance between them,
-  `ta` / `tb` the squares). A formula that fails counts as 0. Later stages append `warp`, `pull`, `swap`, `repair`, `light`,
-  `status`, `cure` (below).
+  `ta` / `tb` the squares). A formula that fails counts as 0. Stage 2 adds `warp`, `pull`, `swap`, `repair`, `light` ("Staves: stage
+  two, as built"); stage 3 appends `status`, `cure` (below). `unlock` waits for doors.
 - **`hit`**: a formula, a percent (rounded, 0 to 100), same variables as `heal`. Rolled **once per unit in the area**, in
   ascending unit id, with `Battle::rng` (`rng.chance`), so a battle replays from its seed. Absent = no roll at all (no random
   number is spent). A miss still spends the use and earns the experience. Queries never roll.
@@ -1455,11 +1455,11 @@ Appended to `EventType` (existing numbers keep their values):
 | `StaffMissed` | a = the unit missed, b = user, c = item | the teams that see either unit |
 
 What the effects did arrives as the existing entries: `UnitHealed` (a = unit, b = amount), `ItemBroke`, `XpGained`, `LevelUp`,
-`RankUp`. Stage 2 will use `UnitRelocated`; stage 3 gets its own status events.
+`RankUp`, and (stage 2) `UnitRelocated`, with `ItemRepaired` and `AreaLit` appended to the list; stage 3 gets its own status events.
 
 ### Saves, hash, campaign
 
-- **No new saved state in stage 1.** A staff's uses are the item's (`ItemStack::uses`: saved and restored like a weapon's, in a
+- **No new saved state in stage 1** (stage 2 saves the lights that still last, see "Staves: stage two, as built"). A staff's uses are the item's (`ItemStack::uses`: saved and restored like a weapon's, in a
   battle's units, the storage and a campaign roster entry); its experience is `Unit::weaponXp` (`ranks`, section 7).
 - **Hash.** `data/items.json` is hashed whole when it exists, so staff keys are part of a game's rules and change its fingerprint
   **only in a game that has them** (a name and description are cosmetic keys). Nothing else is mixed in.
@@ -1519,19 +1519,159 @@ banner. How it was settled where the owner was silent (any can be changed):
 - *Checks* mirror the loader (group, reach 1 to 20 and min not above max, radius 1 to 10, heal numbers, hit, xp needing experience on, a rank with no ladder, a lock with no characters, a heal on foes) and add
   "nobody can use it yet: no class can wield its group". Code: `editor/web/src/model/staff.ts`, `staffChecks.ts`, `gear.ts`; screens `screens/items/staff/`. See docs/EDITOR_UI.md "Staves".
 
-### Stages 2 and 3 (outline only, NOT BUILT)
+### Staves: stage two, as built (warp, pull, swap, repair, light)
 
-**Stage 2: moving units and utility.** Same item, action, wield test, forecast, uses, events and AI hooks; new effects and one new
-target kind (`"cell"`, as abilities have it, for a two-step pick).
-- `{ "warp": { "range": 6 } }`: send the picked ally to a free square chosen next, within `range` of the user, that the ally can
-  stand on. `{ "pull": true }` (the rescue staff: the picked unit lands on the free square next to the user nearest to where it
-  was) and `{ "swap": true }`. They reuse the ability machinery (`planAbilityMove`, `doAbilityMoves`, `UnitRelocated`, the
-  capture release, the story `reach` events, the fog rule that a square holding an unseen enemy blocks it while the use is
-  still spent).
-- `{ "repair": 10 }` / `"full"`: restores uses of an item the picked unit carries (the player asks which); never above the item's
-  maximum; refused when nothing is worn. `{ "unlock": true }`: opens a door or chest within reach (**needs doors, PLAN item 5**;
-  until then the loader refuses it). `{ "light": { "radius": 3, "turns": 2 } }`: the user's team sees that area for those turns in
-  fog (extra sight on the same cache as `visionAt`; saved while it lasts).
+Same item, action (`ActionType::UseStaff`), wield test, uses, `hit`, `xp`, `if`, rank and lock handling as stage 1; five effect kinds
+more, and the action grew three optional fields. `unlock` is **not** part of stage two (it waits for doors, PLAN item 5) and the loader
+still says `unknown effect "unlock"`. The editor form does not cover these kinds yet (a staff whose first effect is not a heal shows
+the heal card as "not editable"); the editor helper keeps every key of them untouched through GET and PUT
+(`tests/editor_api_staves_checks.py`), and the loader reads them, so a hand-written file works.
+
+```jsonc
+{ "id": "warp_staff",   "kind": "staff", "group": "staff", "range": 3, "target": "ally",
+  "effects": [ { "warp": { "range": 4 } } ] }                 // pick the unit, then a free square within 4 of the USER
+{ "id": "recall_staff", "kind": "staff", "group": "staff", "range": 8, "target": "ally",
+  "effects": [ { "pull": true } ] }                           // the unit lands on the free square next to the user nearest to it
+{ "id": "swap_staff",   "kind": "staff", "group": "staff", "range": 4, "target": "ally",
+  "effects": [ { "swap": true } ] }                           // the user and the unit trade squares
+{ "id": "fix_staff",    "kind": "staff", "group": "staff", "range": 2, "target": "ally",
+  "effects": [ { "repair": "full" } ] }                       // or "repair": 3 (uses); the player picks which item
+{ "id": "lantern_staff","kind": "staff", "group": "staff", "range": 6,
+  "effects": [ { "light": { "radius": 2, "turns": 2 } } ] }   // pick a SQUARE; "turns" optional, default 1
+{ "id": "worn_blade", "kind": "weapon", "weapon": "blade", "uses": 4, "repairable": false }   // any item: a repair never offers it
+```
+
+**The effects**
+- **`warp`**: `{ "warp": { "range": n | [min, max] | "<formula>" } }`, the forms of the staff's own `range` (a number is 1 to n, a list
+  is `[min, max]`, a formula gives the maximum with minimum 1 and sees `a` = the user and `w` = the staff; 0 to 20). The distance is
+  **from the user**, not from the target. The use is two picks: the unit (per `target`, `range`, `if`), then an **empty square the unit
+  could legally stand on** within that reach (`Battle::staffWarpCells`). `target: "self"` warps the user itself (no unit pick, no
+  `range` key, the square pick is all there is); `"foe"` and `"any"` may warp an enemy (it must be seen). A unit with no such square
+  in reach is not a valid target.
+- **`pull`** (rescue-style): `{ "pull": true }`. No second pick. The unit lands on the **free square next to the user that the unit
+  could stand on and that is nearest to the square the unit is on now** (grid distance, squares and hexagons alike); **a tie goes to the
+  lower cell number** (`y * width + x`: the northernmost, then the westernmost), so the result is the same on every machine. A unit
+  that already stands next to the user is not a valid target (nothing would change), and neither is one with no such square
+  (`Battle::staffPullCell`). The squares next to the user are judged on the truth: the user's neighbours are always in its team's sight.
+- **`swap`**: `{ "swap": true }`. The user takes the unit's square and the unit takes the user's (the user's square being `from`, where it
+  stands when the staff is used). Not usable when either could not legally stand on the other's square: a walker cannot swap with a flyer
+  hovering over water. Events: the unit's `UnitRelocated` first, then the user's.
+- **`repair`**: `{ "repair": "full" | n }` (n = uses, 1 to 999). After the unit, the player picks which **of the unit's items** to mend
+  (`Battle::staffRepairSlots`): an item with a limited number of uses that is **below full** and not marked `"repairable": false`;
+  items with unlimited uses are never offered, nor is **the staff being used** when the unit is the user (a staff cannot mend itself). The
+  uses go up by `n` (or to full) and never above the item's own `uses`. A unit with no such item is **not a valid target** (reason `that
+  unit carries nothing that needs repair`). `"repairable": false` is a key of **any** item in `data/items.json` (boolean, default true;
+  refused on an item without `uses`, which never wears).
+- **`light`**: `{ "light": { "radius": 1 to 10, "turns": 1 to 10 } }`, `turns` default 1. In **fog of war** (docs/ECONOMY.md) the user's
+  **team** sees every square within `radius` of the picked **square** (not a unit; within the staff's `range` of where the user stands,
+  and only a square where something is hidden now) for `turns` of **the user's side's** turns: it ends when that side's turn has started
+  `turns` times after the use (so 1 = until that side's next turn starts, 2 = through the side's next turn). It is **extra sight on
+  the same cache as `visionAt`** (`Battle::lights`, read in `computeTeamSight`): a lit square is seen like a square a unit with that
+  vision sees, so a unit standing on a square that **hides** (brush, a forest) is still hidden from afar. No new fog machinery. On a map
+  **without fog** the staff cannot be used: the list greys it with `this map has no fog of war`, and the action is refused with `this map
+  has no fog of war, so there is nothing to light`.
+
+**What the loader refuses** (each with the file, the item and the key, like stage 1)
+- `warp`: not an object, no `range`, an unknown key, a `range` that is not 1 to 20 / `[min, max]` / a formula; `pull` / `swap` not `true`;
+  `repair` not `"full"` or 1 to 999; `light` without a `radius` of 1 to 10, a `turns` outside 1 to 10, an unknown key.
+- `warp`, `pull`, `swap` and `repair` with an `area` that is not `"single"` (`"warp" works on the one unit picked, so "area" must be
+  "single"`); `pull` and `swap` with `target: "self"` (they need another unit; `"team"` is allowed, the user is never in its own single
+  reach, as in stage 1). `warp` and `repair` may use `"self"`.
+- **Combinations**: at most one of `warp` / `pull` / `swap` per staff (each decides where the unit ends up), at most one `repair`, at
+  most one `light`; `repair` with a moving effect (two second picks); `light` with **anything else**: a light staff is exactly one
+  `light` effect and has **no** `target`, `area`, `hit` or `if` (there is no unit to judge or roll for; `xp`, `range`, `rank`, locks and
+  `props` work). `heal` with `pull` / `swap` / `warp` / `repair` is allowed (`heal` still cannot target `"foe"`).
+- `repairable` that is not true / false, or on an item with no `uses`.
+
+**Several effects, in what order.** Per unit hit, after the `hit` roll: every `heal` (added, capped as in stage 1), then `repair`, then
+the move, **whatever order the staff lists them in**: formulas of the heal see the unit where it stood when it was picked, and the move
+is the last thing done to it. A unit is a valid target when **any** effect would change it, and an effect that cannot work on it is
+skipped while the others still happen (a heal + pull staff on a hurt unit with no free square next to the user only heals; a pull on a
+whole unit far away only moves it). A miss (`hit`) does nothing at all to the unit. The greyed/refusal reason is the **first** effect's.
+
+**Where a unit may stand, and what a move touches.** One rule everywhere (`Battle::staffCanStand`): on the map, and the unit's movement
+type can enter that terrain (`enterCost > 0`: walls, water for a walker); nobody on the square. Moves go through the ability machinery
+(`doAbilityMoves`): a capture the unit was making is abandoned (`releaseCapture`), the team sight is dropped and recomputed (a moved
+unit sees from its new square: events before the move are stamped with the old sight), the units' `moved` / `done` / `acted` flags are
+**not touched**, and `UnitRelocated` is the event. Terrain effects: the engine has none that act on arrival (terrain only acts at turn
+start), so there is nothing to fire. A **carried or paired** unit is off the board (rescue, `alive` false, no square): it cannot be picked,
+and a carrier that is moved takes nobody anywhere (the carried unit has no square; where it is dropped is judged when it is dropped).
+**Story and objectives**: a staff move counts as the unit **ending a move there**, the same decision as the ability moves and the rescue
+"drop": the story's `reach` events run (target first, then the user), **last** of all (after experience, the order's end and the supports;
+they may add units or end the battle), and a `reach` victory or defeat objective is judged by the usual check after every action, so a warp
+onto the goal wins. **Fog**: with fog, the destination of a warp must be a square the team **sees**; a square that looks empty but holds
+an enemy the team does not see (a hideout) is offered anyway, and the warp then fails when carried out: the use is spent, the other
+effects still happen, nothing moves, and `StaffUsed` carries the flag `kBlocked` and the blocker in `data` (as `AbilityUsed` does).
+
+**Used-up and cost.** One use, the `xp`, the rank experience and the end of the order are exactly stage 1's, a light and a miss included.
+
+**Queries and action.** `Action::useStaff(unit, slot, target, cell = kNoCell, itemSlot = -1)`: a warp's square goes in `cell`, a repair's
+item (a slot in the **target's** inventory) in `itemSlot`, a light's square in `cell` with `target` -1. New queries: `staffWarpCells`,
+`staffRepairSlots`, `staffLightCells`, `staffPullCell`, `staffWarpRange`, `staffTargetWhy` (the plain reason a unit cannot be picked, ""
+when it can), `staffCanStand`; `staffForecast` takes the optional `dest` and `itemSlot` and says in the result what is still to pick
+(`needsDest`, `needsItem`), where a unit would go (`StaffHit::moveTo`, `userTo`), the item's uses before and after, and for a light
+`isLight`, `area`, `newSquares`, `lightTurns`. New reasons of `staffOptions` (a staff of another kind finds nobody): `nobody in reach can
+be moved`, `nobody in reach has an item to repair`, and a light's `this map has no fog of war` / `nothing in reach is hidden`; a heal's
+stays `nobody in reach needs that`.
+
+**Events** (appended; a moved unit is the existing `UnitRelocated`: a = unit, b = the square it left, c = the square it stands on):
+
+| Entry | a, b, c, d | Seen by (fog) |
+|---|---|---|
+| `ItemRepaired` | a = the unit, b = the item, c = uses restored, d = uses it has now | the unit's team |
+| `AreaLit` | a = the user, b = the square, c = radius, d = turns | the user's team |
+
+`StaffUsed` for a light has c = -1 and d = the number of squares that came into sight; with `kBlocked` (a blocked warp) the blocker is in
+`data`. Order: `StaffUsed`, per unit `UnitHealed`, `ItemRepaired`, `UnitRelocated` (or `AreaLit` for a light), `ItemBroke`, the user's
+experience, `RankUp`, the supports, then the story's `reach` events.
+
+**Saves and hash.** The only new state is the **lights** that still last: `"lights": [ { "side", "cell", "radius", "turns" } ]` in the
+battle (`turns` = the side turns left), written only when there are some (every other save is byte for byte what it was; an old save
+has no key and loads with none), refused on a battle without fog (`battle.lights: this battle has no fog of war`), each entry checked
+(a side, a square on the map, radius 1 to 10, turns 1 to 10) with a path in the message. A light is on the undo copy like the rest of
+the battle. The data hash is `data/items.json` whole, so the new keys change the fingerprint of a game that has them and no other.
+
+**AI.** The computer **ignores every staff that has an effect other than a heal** (a heal + pull staff too): the new effects need a
+second pick (a square, an item) or change what a whole side sees, and judging them takes a plan the stateless AI does not make; ignoring
+them can never crash or stall it (`ai_staves.cpp`; `tests/srpg_content_test.py` plays the fixture with sixteen such staves on both sides,
+and the fog map is left out of its stall check because the AI's hunt for units it cannot see stalls there with or without staves). Heal-only
+staves are used as in stage 1.
+
+**Player.** The same Staff entry and list (greyed with the reason; three lengths of wording for narrow screens), then, **one stage at a
+time and Cancel steps back one stage**:
+- unit pick (blue reach, red for the units and the squares they would end on, and the forecast box: `Bram: pick a square`, `Ren is pulled
+  next to you`, `Bram and Sage swap places`, `Pick an item to repair`; a heal still shows its HP line);
+- warp: a **square pick** (the legal squares in blue, the forecast says `Bram warps there`, hint `Pick a square to send it to`); a repair:
+  a menu **"Repair which?"** (name, uses before > after); a light: the **square pick** straight away (the area it would light in red,
+  `Lights 7 new squares / 2 turns`, hint `Pick a square to light`). A staff of `"self"` that warps or repairs starts at its second stage and
+  Cancel there goes back to the action menu; Cancel at the unit pick goes to the action menu as in stage 1.
+- keyboard (arrows / Tab, Z, X), mouse and touch (a tap highlights, a second tap on the highlighted one chooses; a tap on a unit or a square
+  that cannot be picked says why in the hint line: `Out of range`, `Already next to you`, `No room next to you`, `Cannot stand there`,
+  `Nothing to repair`, `That square is taken`, `Not in sight`, `Nothing hidden there`).
+- playing it: the unit slides to its new square (`UnitRelocated`; a long way it is simply there), `ItemRepaired` floats `Iron Blade +5`,
+  `AreaLit` floats `Lit` and the camera looks at the square; the lit squares come into sight by themselves (sight is derived).
+- views: every pick works through the generic pick modes and the overlay masks, so it works in **all four kinds of view** and on **square
+  and hexagon** maps (`tests/srpg_player_staves2_test.py` runs warp and pull in each view, light in each view, pull / swap / warp on
+  pointy and flat hexagons, and the keyboard flows at 480x270 and a 270x480 phone). A keyboard player cannot land on a unit that is not
+  a candidate, so the "why" is for taps; the greyed list entry carries the staff-level reasons.
+
+What the stage-two contract left open, and how it was settled (the owner may change any of these):
+- *Warp reach is from the user*, as asked; a destination is never the user's own square nor the unit's. *Pull* tie-break = lower cell number.
+- *A move fires `reach` events and counts for objectives*, like the ability moves and the rescue drop (see above).
+- *The user is never in its own single reach* (stage 1's decision, kept): `"team"` single-target staves pick allies only; use `"self"`.
+- *`light` is one effect and nothing else* (no target, area, hit, if): it has no unit. `xp` works.
+- *Heal + repair* is allowed: the player is asked for an item only when the unit carries one that can be repaired.
+- *Light and hiding*: a lit hideout square is seen, a unit hiding in it is not (as with a unit's own vision), until a unit is next to it.
+- *The AI ignores* every staff with a non-heal effect; it never lights, warps, pulls, swaps or repairs.
+- *All wording is placeholder* (`staff_text.h`). New strings: see the list in the stage-two report; all in `StaffWords`, `staffReasonText`,
+  `staffWhyText`, `staffEffectText`, `staffMoveLines`, `staffLightLines`.
+- Code: `engine/core/battle/staves_effects.cpp` (the questions), `staves_apply.cpp` (validate / apply, now with `finishStaffUse`,
+  `applyStaffLight`), `sight.cpp` (lights as sight), `turn.cpp` (`lightsTurnStart`), `save_fog.cpp` (`lights`), `ai/ai_staves.cpp`; player
+  `battle_menu_staves.cpp` (the stages), `battle_srpg_target.cpp` (`pickBack_`, `pickWhy_`), `staff_text.*`, `staff_forecast.cpp`,
+  `battle_view_staves.cpp`. Tests: `tests/test_srpg_staves2*.cpp`, `tests/srpg_player_staves2_test.py`, the fixture
+  `tests/fixtures/srpg-staves2` (maps `yard`, `mist` (fog), `gate` (story + objective), `skirmish` (AI)).
+
+### Stage 3 (outline only, NOT BUILT)
 
 **Stage 3: status conditions.** A new optional file `data/statuses.json`, blocks like skills (section 3): `{ "id", "name",
 "turns", "stack": "refresh" | "add" | "none", "tags": [...], "perTurn": [ turn-start effects: hurt / heal ], "restrict": [
