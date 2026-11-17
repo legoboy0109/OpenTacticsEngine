@@ -112,9 +112,10 @@ const std::vector<OptionDef>& optionDefs() {
       {"style", "Visual style", styleChoices, applyStyle},
       {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},
       {"res3d", "3D resolution", res3dChoices, applyRes3d},
-      {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
       {"musicVolume", "Music volume", volumeChoices, applyMusicVolume, true, 7},
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
+      {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
+      // (last, so the positions the existing option screens are driven by do not move)
   };
   return defs;
 }
