@@ -33,7 +33,13 @@ export function removeSide(map: MapFile, id: string): MapFile {
   if (!canRemoveSide(map) || !sideOf(map, id)) return map
   const next: MapFile = { ...map, sides: map.sides!.filter((s) => s.id !== id) }
   if (map.units) next.units = map.units.filter((u) => u.side !== id)
-  if (map.structures?.some((o) => o.side === id)) next.structures = map.structures.map((o) => (o.side === id ? patchObj(o, { side: undefined }) : o))
+  if (map.structures?.some((o) => o.side === id || o.visitSides?.includes(id))) {
+    // A place that listed the side as a visitor stops listing it (the loader refuses a side the map does not have).
+    next.structures = map.structures.map((o) => {
+      const left = o.visitSides?.filter((x) => x !== id)
+      return o.side === id || left?.length !== o.visitSides?.length ? patchObj(o, { ...(o.side === id ? { side: undefined } : {}), ...(left?.length !== o.visitSides?.length ? { visitSides: left?.length ? left : undefined } : {}) }) : o
+    })
+  }
   return next
 }
 

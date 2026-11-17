@@ -198,7 +198,7 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'closeDoor': return `Shuts ${placeText(c, cmd.closeDoor ?? '')}`
     case 'lockDoor': return `Locks ${placeText(c, cmd.lockDoor ?? '')}`
     case 'unlockDoor': return `Unlocks ${placeText(c, cmd.unlockDoor ?? '')}`
-    case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof cmd.by === 'string' && cmd.by ? `, the contents go to ${unitText(c, cmd.by)}` : ''}`
+    case 'openChest': return `Opens ${placeText(c, cmd.openChest ?? '')}${typeof (cmd as Record<string, unknown>).by === 'string' ? `, the contents go to ${unitText(c, String((cmd as Record<string, unknown>).by))}` : ''}`
     case 'focus': return typeof cmd.focus === 'string' ? `Moves the view to ${unitText(c, cmd.focus)}` : `Moves the view to ${squareText(rectOf(cmd.focus).x, rectOf(cmd.focus).y)}`
     default: return 'Does something'
   }

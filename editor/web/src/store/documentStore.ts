@@ -4,6 +4,7 @@
 import type { Api } from '../api/client'
 import { reconcileAudio } from '../model/audioRefs'
 import { reconcileCampaign } from '../model/campaignRefs'
+import { reconcilePlaces } from '../model/placeRefs'
 import { reconcileEconomy } from '../model/researchRefs'
 import type { Problem, ProjectDoc } from '../model/types'
 import { ArtLibrary } from './art'
@@ -93,7 +94,8 @@ export class DocumentStore {
     // same way (model/researchRefs.ts); the campaign then follows whatever that took out of the maps.
     // A track or sound that this edit deleted is taken out of the standard set, the overrides, the maps' music, the scenes
     // and the story commands first (model/audioRefs.ts), also in the same undo step.
-    const edited = reconcileEconomy(prev, reconcileAudio(prev, fn(prev)))
+    // Doors, chests and keys follow a deleted structure kind, item or resource the same way (model/placeRefs.ts).
+    const edited = reconcilePlaces(prev, reconcileEconomy(prev, reconcileAudio(prev, fn(prev))))
     const next = reconcileCampaign(prev, edited)
     const h = pushEdit(this.history, next, key, (this.opts.now ?? Date.now)())
     if (h === this.history) return

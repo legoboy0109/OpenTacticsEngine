@@ -210,7 +210,7 @@ function eventChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceChe
 }
 
 const GOALS: Array<{ key: 'chests' | 'villages' | 'doors'; kinds: PlaceKind; words: string }> = [
-  { key: 'chests', kinds: 'chest', words: 'a chest' }, { key: 'villages', kinds: 'visit', words: 'a place that can be visited' }, { key: 'doors', kinds: 'door', words: 'a door' },
+  { key: 'chests', kinds: 'chest', words: 'chest' }, { key: 'villages', kinds: 'visit', words: 'place that can be visited' }, { key: 'doors', kinds: 'door', words: 'door' },
 ]
 
 function goalChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceCheck[]): void {

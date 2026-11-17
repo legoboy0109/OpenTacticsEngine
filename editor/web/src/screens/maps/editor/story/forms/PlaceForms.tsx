@@ -40,6 +40,8 @@ const HELP: Partial<Record<CommandKind, string>> = {
   openDoor: P.openDoorHelp, closeDoor: P.closeDoorHelp, lockDoor: P.lockDoorHelp, unlockDoor: P.unlockDoorHelp, openChest: P.openChestHelp,
 }
 const WHAT: Partial<Record<CommandKind, string>> = { openDoor: 'door', closeDoor: 'door', lockDoor: 'door', unlockDoor: 'door or chest', openChest: 'chest' }
+/** An openChest's `by` is a unit id (the numeric `by` of the variable commands is another thing). */
+const chestWho = (c: Command): string => { const v = (c as Record<string, unknown>).by; return typeof v === 'string' ? v : '' }
 const PLACE_KEYS = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] as const
 
 /** openDoor / closeDoor / lockDoor / unlockDoor / openChest: which place, and for a chest who gets the contents. */
@@ -52,7 +54,7 @@ export function PlaceCommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) 
     <div className="stack tight" data-testid="place-command">
       <PickSelect label={P.place} value={String(cmd[kind] ?? '')} options={options} empty={P.noPlacesFor(WHAT[kind] ?? 'door')} onChange={(v) => patch({ [kind]: v })} />
       {kind === 'openChest' && (
-        <PickSelect label={P.chestWho} help={P.chestWhoHelp} value={typeof cmd.by === 'string' ? cmd.by : ''}
+        <PickSelect label={P.chestWho} help={P.chestWhoHelp} value={chestWho(cmd)}
           options={[{ value: '', label: P.chestNobody }, ...units.map((u) => ({ value: u.id, label: u.label }))]}
           onChange={(v) => patch({ by: v === '' ? undefined : v })} />
       )}
