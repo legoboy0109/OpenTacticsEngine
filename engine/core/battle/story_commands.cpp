@@ -186,6 +186,19 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         giveTo(i, s, 0, events);
       }
       break;
+    case K::TakeItem:
+      // A unit that exists (on the board, or carried: R1) loses one copy, the first in its inventory, or all of them.
+      // The equipped weapon is simply the first wieldable item left, so it falls back by itself (docs/ITEMS.md).
+      for (int i = 0; i < unitCount; ++i) {
+        if (!exists(units[(size_t)i]) || !unitMatches(c.filter, units[(size_t)i])) continue;
+        std::vector<ItemStack>& items = units[(size_t)i].items;
+        for (size_t s = 0; s < items.size();) {
+          if (items[s].item != c.item) { ++s; continue; }
+          items.erase(items.begin() + (long)s);
+          if (!c.on) break;
+        }
+      }
+      break;
     case K::GiveResource:
       for (const Amount& a : c.amounts) {
         // Funds never go below zero (nor past the save limit).

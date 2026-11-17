@@ -7,7 +7,7 @@ namespace ote {
 namespace {
 
 constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVariable", "giveResource", "if", "goto",
-                                       "playMusic", "stopMusic", "playSound"};
+                                       "playMusic", "stopMusic", "playSound", "takeItem"};
 
 // The strategy-RPG scene commands and conditions (read in loader_supports_story.cpp). Listed apart so that the
 // "is not a scene command" message keeps naming only the old ones.
@@ -144,6 +144,19 @@ bool CampaignLoader::command(const Json& e, const std::string& where, bool allow
     if (!c_.integer(e, extra, at, out.value, true)) return false;
     if (out.value < -kMaxStoryNumber || out.value > kMaxStoryNumber) return fail(at, "the number is unreasonably large");
     return true;
+  }
+  if (k == "takeItem") {
+    out.kind = K::TakeItem;
+    if (!onlyKeys(e, {"takeItem", "from", "all"}, at)) return false;
+    if (!v.isString() || (out.item = db_.findItem(v.asString())) < 0)
+      return fail(at, "\"takeItem\" names unknown item " + quoted(v.asString()) +
+                          (db_.items.empty() ? " (this game has no items, data/items.json)" : ""));
+    if (!e.has("from")) return fail(at, "missing required \"from\" (the roster unit who loses the item)");
+    // The character may join the roster in a later chapter, so only the shape of the id is checked (as alive / dead).
+    if (!e["from"].isString() || !isStoryId(e["from"].asString()))
+      return fail(at, "\"from\" must be a roster unit id (letters, digits, \"_\" and \"-\")");
+    out.unit = e["from"].asString();
+    return c_.boolean(e, "all", at, out.on);
   }
   if (k == "giveResource") {
     out.kind = K::GiveResource;

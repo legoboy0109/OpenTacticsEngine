@@ -158,6 +158,16 @@ struct SceneRun {
         pt.variables[(size_t)c.index] = clampStory((long long)pt.variables[(size_t)c.index] +
                                                      (c.reading.kind == UnitReading::Kind::None ? c.value : readRoster(db, pt, c.reading)));
         break;
+      case K::TakeItem:
+        for (RosterUnit& r : pt.roster) {
+          if (r.id != c.unit || r.gone) continue;
+          for (size_t s = 0; s < r.items.size();) {
+            if (r.items[s].item != c.item) { ++s; continue; }
+            r.items.erase(r.items.begin() + (long)s);
+            if (!c.on) break;
+          }
+        }
+        break;
       case K::GiveResource: {
         CarriedSide& s = pt.sideCarry(c.side, db.resources.size());
         for (const Amount& a : c.amounts) {

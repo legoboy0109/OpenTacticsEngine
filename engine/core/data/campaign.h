@@ -34,14 +34,16 @@ struct SceneAnswer {
 struct SceneCommand {
   enum class Kind { Say, SetSwitch, SetVariable, AddVariable, GiveResource, If, Goto, PlayMusic, StopMusic, PlaySound,
                     AddSupport,  // AddSupport: docs/SRPG.md; `unit` / `with` = the two characters, `value` = points
-                    Choice };    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
+                    Choice,      // Choice: see above
+                    TakeItem };  // TakeItem: removes item `item` (every copy when `on`) from the roster unit `unit`    // Choice: asks `text` (speaker as Say), runs the picked answer; `index` = the variable that gets its number (-1 none)
   Kind kind = Kind::Say;
   // Say, Choice: indices into CampaignDef::texts (-1 = none); `unit` is the speaker's roster id ("" = none)
   int text = -1, speakerName = -1, portrait = -1;
   std::string unit, with;
   int index = -1;   // SetSwitch / SetVariable / AddVariable
   // PlayMusic / PlaySound: `text` is the id (index into CampaignDef::texts); PlayMusic / StopMusic: `value` is the fade in ms (-1 = not given)
-  bool on = false;  // SetSwitch
+  int item = -1;    // TakeItem: index into Database::items
+  bool on = false;  // SetSwitch; TakeItem: every copy
   int value = 0;    // SetVariable / AddVariable
   UnitReading reading;  // SetVariable / AddVariable: the number comes from a roster unit when its kind is not None
   std::string side;              // GiveResource: the side id the amounts go to
