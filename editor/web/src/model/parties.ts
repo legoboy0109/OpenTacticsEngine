@@ -132,13 +132,16 @@ export function partyHints(doc: ProjectDoc): string[] {
       const here = merged.has(active) ? parties[0].id : active
       const mapId = e.chapter.map
       const have = seenOf(here)
+      const strangers = new Map<string, string[]>()  // the party that has them -> who
       for (const id of humanStoryIds(mapId ? doc.maps[mapId] : null)) {
         if (!have.has(id)) {
           const other = [...seen.entries()].find(([p, ids]) => p !== here && ids.has(id))
-          if (other) hints.push(`Chapter “${chapterName(e.chapter)}”: its map puts ${id} on the player’s side, but so far only ${name(other[0])} has them, not ${name(here)}. They start fresh from the map’s own description.`)
+          if (other) strangers.set(other[0], [...(strangers.get(other[0]) ?? []), id])
         }
         have.add(id)
       }
+      for (const [owner, ids] of strangers)
+        hints.push(`Chapter “${chapterName(e.chapter)}”: its map puts ${ids.join(', ')} on the player’s side, but so far only ${name(owner)} has them, not ${name(here)}. They start fresh from the map’s own description.`)
     }
   }
   for (const p of parties.slice(1)) {
