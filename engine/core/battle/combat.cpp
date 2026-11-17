@@ -185,6 +185,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       if (s.drop) drops.push_back(s);
     killUnit(def, events, atk);
     for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
+    defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events
     unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
   }
   // 8. "Strike again": one more strike through the same steps, hit or miss; that one cannot give another.
@@ -200,6 +201,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
 
   // "Just before a fight": story events may change things, even take a fighter off the map or end
   // the battle, in which case there is no fight.
+  fightQuotes(a, d, events);  // characters' battle quotes come before the "fight" story events (docs/EVENTS.md)
   StoryOccurrence fight;
   fight.kind = Trigger::Kind::Fight;
   fight.unit = a;

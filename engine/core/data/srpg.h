@@ -53,6 +53,28 @@ struct LearnDef {
   int skill = -1;  // index into Database::skills
 };
 
+// One line of dialogue as a character's data writes it (a "say" command): support conversations and quotes. The
+// numbers are indices into the owner's text table (SupportData::texts, QuoteData::texts).
+struct SayLine {
+  int text = -1;
+  std::string speaker;   // a character id ("" = none)
+  int speakerName = -1;  // free speaker name (-1 = none)
+  int portrait = -1;     // portrait id (-1 = none)
+};
+using SupportLine = SayLine;
+using QuoteLine = SayLine;
+
+// Battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes"): data on a character.
+enum class QuoteOnce { Map, Campaign, Always };
+
+struct BattleQuote {
+  std::string againstId;  // "" = against anyone
+  int against = -1;       // index into Database::characters (resolved by the loader), -1 = anyone
+  QuoteOnce once = QuoteOnce::Map;
+  std::vector<QuoteLine> lines;
+  int flat = -1;          // position among all battle quotes of the game (the key of the "already said" state)
+};
+
 struct CharacterDef {
   std::string id, name, description;
   int type = -1;                  // index into Database::unitTypes: the unit type it starts as
@@ -70,7 +92,19 @@ struct CharacterDef {
   std::vector<std::string> wields;  // extra weapon groups it can wield beyond its class's (docs/SRPG.md section 7); only ever adds
   std::vector<int> rankStart;     // per RankRules::groups index: personal weapon experience (the higher of it and the class's wins)
   std::vector<int> capAdjust;     // per stat index: added to the cap the class / game gives (may be negative)
+  // Quotes (docs/EVENTS.md "Battle and defeat quotes"); empty = none.
+  std::vector<BattleQuote> battleQuotes;
+  std::vector<QuoteLine> fallsLines, retreatsLines;  // said when the character is struck down (for good / retreating)
 };
+
+// The wording of all quotes (Battle::storyText, from kQuoteTextBase) and how many battle quotes there are.
+struct QuoteData {
+  std::vector<std::string> texts;
+  int count = 0;
+};
+
+// Text indices at or above this are looked up in QuoteData::texts (Dialogue events of a quote).
+const int kQuoteTextBase = 1 << 25;
 
 // ---- 3. skills (data/skills.json) ----
 
@@ -227,14 +261,6 @@ struct RescueRules {
 struct SupportBonus {
   int hit = 0, avoid = 0, crit = 0, critAvoid = 0, damage = 0, damageTaken = 0;
   std::vector<int> stats;  // per stat index; empty = none
-};
-
-// One line of a support conversation (a "say" command). The numbers are indices into SupportData::texts.
-struct SupportLine {
-  int text = -1;
-  std::string speaker;   // a character id ("" = none)
-  int speakerName = -1;  // free speaker name (-1 = none)
-  int portrait = -1;     // portrait id (-1 = none)
 };
 
 struct SupportLevelDef {

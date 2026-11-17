@@ -13,7 +13,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -75,6 +75,7 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
 
 bool loadCharacters(const std::string& path, Database& db, std::string& err) {
   db.characters.clear();
+  db.quotes = QuoteData();
   if (!fileExists(path)) return true;  // a game without the file: nothing to load
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
@@ -88,7 +89,7 @@ bool loadCharacters(const std::string& path, Database& db, std::string& err) {
     if (!readCharacter(c, db, (*list)[i], i, ch)) return false;
     db.characters.push_back(ch);
   }
-  return true;
+  return readCharacterQuotes(c, db, *list);  // docs/EVENTS.md "Battle and defeat quotes": needs every character
 }
 
 // Skill and ability ids become indices. The lists exist by now; in a game without the file every id is unknown

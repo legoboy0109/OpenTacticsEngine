@@ -1,0 +1,21 @@
+{ "characters": [
+  { "id": "eirik", "name": "Eirik", "type": "hero",
+    "quotes": {
+      "battle": [
+        { "against": "gorm", "lines": [ { "say": "Gorm! Your raids end today." } ] },
+        { "lines": [ { "say": "For the valley!" } ] } ],
+      "defeat": {
+        "falls": [ { "say": "Tell them I tried." } ],
+        "retreats": [ { "say": "I must pull back!" } ] } } },
+  { "id": "bram", "name": "Bram", "type": "brute",
+    "quotes": { "battle": [ { "once": "always", "lines": [ { "say": "Hah!" } ] } ],
+                "defeat": { "falls": [ { "say": "Bram goes down." } ], "retreats": [ { "say": "Bram backs off." } ] } } },
+  { "id": "mira", "name": "Mira", "type": "rider" },
+  { "id": "gorm", "name": "Gorm", "type": "brute",
+    "quotes": {
+      "battle": [
+        { "once": "campaign", "lines": [ { "say": "Come, little ones." }, { "say": "Do not run.", "speaker": "mira" } ] },
+        { "against": "eirik", "once": "always", "lines": [ { "say": "Eirik. At last." } ] } ],
+      "defeat": { "falls": [ { "say": "Impossible..." }, { "say": "Brother!", "speaker": "mira" } ] } } },
+  { "id": "tolly", "name": "Tolly", "type": "grunt",
+    "quotes": { "battle": [ { "once": "map", "lines": [ { "say": "Tolly tries." } ] } ] } } ] }

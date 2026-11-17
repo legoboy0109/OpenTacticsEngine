@@ -20,8 +20,13 @@ bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string&
 
 bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }
 
-void writeBattleSrpg(const Battle& b, Json& out) { writeBattleSupports(b, out); }
-bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b) { return readBattleSupports(rd, saved, b); }
+void writeBattleSrpg(const Battle& b, Json& out) {
+  writeBattleSupports(b, out);
+  writeBattleQuotes(b, out);
+}
+bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b) {
+  return readBattleSupports(rd, saved, b) && readBattleQuotes(rd, saved, b);
+}
 
 void writeRosterSrpg(const Database& db, const RosterUnit& r, Json& j) {
   writeRosterSkills(db, r, j);
@@ -31,9 +36,12 @@ bool readRosterSrpg(Reader& rd, const Database& db, const Json& j, const std::st
   return readRosterSkills(rd, db, j, where, r) && readRankXp(rd, db, j, where, r.weaponXp);
 }
 
-void writePlaythroughSrpg(const Database& db, const Playthrough& pt, Json& out) { writePlaythroughSupports(db, pt, out); }
+void writePlaythroughSrpg(const Database& db, const Playthrough& pt, Json& out) {
+  writePlaythroughSupports(db, pt, out);
+  writePlaythroughQuotes(db, pt, out);
+}
 bool readPlaythroughSrpg(Reader& rd, const Database& db, const Json& saved, Playthrough& pt) {
-  return readPlaythroughSupports(rd, db, saved, pt);
+  return readPlaythroughSupports(rd, db, saved, pt) && readPlaythroughQuotes(rd, db, saved, pt);
 }
 
 }  // namespace savejson

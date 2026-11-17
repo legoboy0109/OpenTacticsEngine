@@ -81,12 +81,17 @@ bool readBonus(const LoadCtx& c, const Database& db, const Json& e, const std::s
   return true;
 }
 
-// "talk": a list of "say" commands, kept as indices into db.supports.texts.
-bool readTalk(const LoadCtx& c, Database& db, const Json& list, const std::string& where, std::vector<SupportLine>& out) {
+}  // namespace
+
+// A list of "say" commands, kept as indices into `texts` (a support conversation's "talk" and a character's quote lines).
+// `what` names the list in messages. `ownerId` (quotes): a line with no speaker is the owner's; every line spoken by a
+// character also carries that character's id as its portrait unless it names one, so a character that is not on the map
+// still shows its picture.
+bool readSayLines(const LoadCtx& c, const Database& db, std::vector<std::string>& texts, const Json& list, const std::string& where,
+                  const char* what, const std::string& ownerId, std::vector<SayLine>& out) {
   if (!list.isArray()) return c.fail(where, "must be a list of say commands");
   if ((int)list.size() > kMaxSupportLines)
     return c.fail(where, "has more than " + std::to_string(kMaxSupportLines) + " lines");
-  std::vector<std::string>& texts = db.supports.texts;
   auto text = [&](const std::string& s) {
     texts.push_back(s);
     return (int)texts.size() - 1;
@@ -96,16 +101,21 @@ bool readTalk(const LoadCtx& c, Database& db, const Json& list, const std::strin
     const std::string n = std::to_string(i + 1);
     if (!e.isObject() || e.members().empty()) return c.fail(where, "command " + n + ": must be a command such as { \"say\": \"Hello\" }");
     if (!e.has("say"))
-      return c.fail(where, "command " + n + " (" + e.members()[0].first + "): only \"say\" is allowed in a support conversation");
+      return c.fail(where, "command " + n + " (" + e.members()[0].first + "): only \"say\" is allowed in " + what);
     const std::string at = where + ": command " + n + " (say)";
     if (!onlyKeys(c, e, {"say", "speaker", "speakerName", "portrait"}, at)) return false;
-    SupportLine line;
+    SayLine line;
     if (!e["say"].isString()) return c.fail(at, "\"say\" must be the text to show");
     line.text = text(e["say"].asString());
     if (e.has("speaker") && e.has("speakerName")) return c.fail(at, "give \"speaker\" or \"speakerName\", not both");
     std::string s;
     if (e.has("speaker")) {
       if (!c.str(e, "speaker", at, line.speaker)) return false;
+      if (line.speaker.empty()) return c.fail(at, "\"speaker\" names unknown character \"\"");
+    } else if (!e.has("speakerName")) {
+      line.speaker = ownerId;  // "" for a support conversation: nobody
+    }
+    if (!line.speaker.empty()) {
       const int ch = db.findCharacter(line.speaker);
       if (ch < 0) return c.fail(at, "\"speaker\" names unknown character " + quoted(line.speaker));
       line.speakerName = text(db.characters[(size_t)ch].name);  // shown when the character is not on the board
@@ -117,10 +127,18 @@ bool readTalk(const LoadCtx& c, Database& db, const Json& list, const std::strin
     if (e.has("portrait")) {
       if (!c.str(e, "portrait", at, s)) return false;
       line.portrait = text(s);
+    } else if (!ownerId.empty() && !line.speaker.empty()) {
+      line.portrait = text(line.speaker);
     }
     out.push_back(line);
   }
   return true;
+}
+
+namespace {
+
+bool readTalk(const LoadCtx& c, Database& db, const Json& list, const std::string& where, std::vector<SupportLine>& out) {
+  return readSayLines(c, db, db.supports.texts, list, where, "a support conversation", "", out);
 }
 
 bool readLevels(const LoadCtx& c, Database& db, const Json& list, const std::string& where, SupportPairDef& p) {

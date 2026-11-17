@@ -172,11 +172,11 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   if (readTextFile(root + "/data/research.json", probe) && !mixJson(f, root, "data/research.json", false, nullptr, err)) return false;
   // The strategy-RPG files (docs/SRPG.md), in this order and each only when the game has it: a game without them
   // keeps its hash. Names and descriptions are cosmetic keys; a support conversation's wording is blanked like a
-  // map's (the map-file treatment), so rewriting it keeps saves valid.
+  // map's (the map-file treatment; so is a character's quote), so rewriting it keeps saves valid.
   // A file that holds nothing (an empty list; supports with no pair and no setting) is the same game as no file: the
   // editor writes one to remember that the maker switched the feature on, and that must not make a save invalid.
   struct SrpgFile { const char* rel; const char* list; bool mapFile; };
-  static const SrpgFile kSrpg[] = {{"data/characters.json", "characters", false}, {"data/skills.json", "skills", false},
+  static const SrpgFile kSrpg[] = {{"data/characters.json", "characters", true}, {"data/skills.json", "skills", false},
                                    {"data/abilities.json", "abilities", false}, {"data/supports.json", "pairs", true},
                                    {"data/conditions.json", "conditions", false}};  // docs/SRPG.md section 9
   for (const SrpgFile& sf : kSrpg) {

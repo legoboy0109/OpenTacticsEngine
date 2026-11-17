@@ -974,6 +974,20 @@ All wording below is placeholder. No helper (API) change: the loader already che
 - **Tests**: unit `choices.test.ts` (+ the changed line in `campaign.test.ts`); e2e `choices.spec.ts` (desktop: a question with a hidden answer, nested
   question, reorder, limits, duplicate store; a scene question that jumps to chapters; 360 px phone with four long answers).
 
+## Battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes")
+
+The Characters screen's form ends with a **Quotes** card (`screens/characters/srpg/CharacterQuotesCard.tsx`, model `model/quotes.ts`,
+checks `model/quoteChecks.ts`, wording `quotesText.ts`). **When it fights**: a list of battle quotes, each with "Fighting" (Anyone or one
+other character), "How often" (Once on each map / Once in the whole campaign / Every time), up / down / Remove, and its lines edited with the
+story's own line editor (`SceneCommands`, only "Say something", speakers are the characters; a line left with "Nobody" is said by this
+character); "Add a battle quote" adds one against anyone, once per map, with one empty line. **When it is defeated**: one set ("Defeat quote")
+or, when the campaign's "When a unit is defeated" is "It comes back next chapter", two ("When it falls for good", "When it retreats").
+Checks (the "Worth a look" list, the same wording family as the loader's refusals): a quote without lines or a blank line, an unknown
+character in "Fighting" or as a speaker, a quote against itself, a second quote against the same character, and retreat lines in a game that
+never uses them. Deleting a character lists the quotes that name it (a quote against it, lines it speaks) and removes them with it (a quote
+left without lines goes too). Works at 360 px (the fields wrap). Tests: `tests/unit/quotes.test.ts`, `tests/e2e/quotes.spec.ts`,
+`tests/editor_api_quotes_checks.py`.
+
 ## Campaign timeline (PLAN 6c)
 
 All wording is placeholder (`screens/campaign/timeline/text.ts`). No helper (API) change. The Campaign screen has two views, **List** (the original) and **Timeline**

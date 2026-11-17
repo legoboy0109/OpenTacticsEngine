@@ -112,6 +112,7 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);
   battle.setStartingRoster(std::make_shared<const Roster>(pt.roster));
+  battle.setStartingQuotes(pt.quotesSaid);  // the once-per-campaign quotes already said (docs/EVENTS.md)
   battle.setStartingSupports(pt.supports);  // the closeness the campaign carries (docs/SRPG.md); empty = nothing
   if (!battle.setStartingStory(pt.switches, pt.variables)) {
     err = "the playthrough's switches and variables do not fit the game";
@@ -149,6 +150,10 @@ ChapterResult finishChapterBattle(const Database& db, Playthrough& pt, const Bat
   }
   pt.switches = battle.storyState.switches;
   pt.variables = battle.storyState.variables;
+  for (const CharacterDef& ch : db.characters)  // only a won battle carries the once-per-campaign quotes said
+    for (const BattleQuote& bq : ch.battleQuotes)
+      if (bq.once == QuoteOnce::Campaign && (size_t)bq.flat < pt.quotesSaid.size() && (size_t)bq.flat < battle.quotes.said.size())
+        pt.quotesSaid[(size_t)bq.flat] = battle.quotes.said[(size_t)bq.flat];
   takeSupports(db, pt, battle);  // only a won battle changes the closeness (a retry starts from the same)
   pt.phase = Phase::After;
   return ChapterResult::Won;

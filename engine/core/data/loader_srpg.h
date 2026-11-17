@@ -25,6 +25,13 @@ bool loadAbilities(const std::string& path, Database& db, std::string& err);   /
 bool loadCharacters(const std::string& path, Database& db, std::string& err);  // loader_characters.cpp (C1)
 bool loadSupports(const std::string& path, Database& db, std::string& err);    // loader_supports.cpp (S1)
 
+// A list of "say" commands as indices into `texts` (support conversations; quotes, loader_quotes.cpp). `ownerId` = the
+// character a quote belongs to ("" for a conversation); a line without a speaker is then that character's.
+bool readSayLines(const LoadCtx& c, const Database& db, std::vector<std::string>& texts, const Json& list, const std::string& where,
+                  const char* what, const std::string& ownerId, std::vector<SayLine>& out);
+// "quotes" of every character, once all characters are known (loader_quotes.cpp); `list` is the file's "characters" array.
+bool readCharacterQuotes(const LoadCtx& c, Database& db, const Json& list);
+
 // ---- game.json "rules" (loader_srpg_rules.cpp; `rules` is the "rules" object) ----
 bool loadRescueRules(const LoadCtx& c, const Json& rules, Database& db);     // "rules.rescue" (R1)
 bool loadPromotionRules(const LoadCtx& c, const Json& rules, Database& db);  // "rules.promotion" (P1)

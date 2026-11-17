@@ -1,0 +1,11 @@
+// Frozen fixture: battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes") in a two-chapter campaign.
+{
+  "formatVersion": 1, "name": "Quotes Fixture",
+  "stats": [ {"id":"hp"}, {"id":"str"}, {"id":"def"}, {"id":"spd"}, {"id":"mov"} ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ {"id":"foot"} ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true },
+  "formulas": { "damage": "a.str - b.def" },
+  "maps": [ {"id":"ch1","name":"First Field","file":"maps/ch1.json"}, {"id":"ch2","name":"Second Field","file":"maps/ch2.json"},
+            {"id":"eventful","name":"Story Field","file":"maps/eventful.json"} ]
+}

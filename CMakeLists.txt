@@ -183,6 +183,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME srpg_player_doors
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_doors_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Battle and defeat quotes (docs/EVENTS.md): the lines before the strikes and after a fall, the enemy turn, skip, autoplay.
+    add_test(NAME srpg_player_quotes
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_quotes_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # And in the two 3D kinds (docs/HEX.md "3D isometric and full 3D"), both 3D backends where there is a driver.
     add_test(NAME hex3d_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/hex3d_player_test.py
