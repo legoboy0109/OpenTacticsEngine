@@ -130,7 +130,20 @@ bool Battle::validate(const Action& action, std::string* why) const {
 }
 
 bool Battle::apply(const Action& action, std::vector<Event>& events, std::string* why) {
+  if (choiceWaiting()) {
+    if (why) *why = "a question is waiting for its answer";
+    return false;
+  }
   if (!validate(action, why)) return false;
+  if (askingChoices()) {  // a question may stop this action half way (story_choice.cpp)
+    runAsking(false, action, nullptr, {}, 0, events);
+    return true;
+  }
+  applyAction(action, events);
+  return true;
+}
+
+void Battle::applyAction(const Action& action, std::vector<Event>& events) {
   EventScope scope(*this, events);  // with fog: stamps every event with the teams that saw it
   switch (action.type) {
     case ActionType::Move: applyMove(action, events); break;
@@ -156,14 +169,13 @@ bool Battle::apply(const Action& action, std::vector<Event>& events, std::string
       srpgTurnEnd(events);  // what ending a turn earns (supports), before the next side's turn begins
       advanceTurn(events);
       // Without a story nothing can have changed since the last action's check.
-      if (!story) return true;
+      if (!story) return;
       break;
     default: applyItemAction(action, events); break;
   }
   settle(events);
   // A counterattack can eliminate the side whose turn it is.
   if (!over && sides[activeSide].defeated) advanceTurn(events);
-  return true;
 }
 
 void Battle::releaseCapture(int unit, Cell newCell) {

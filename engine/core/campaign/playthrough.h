@@ -58,8 +58,12 @@ struct Playthrough {
 struct SceneLine {
   // A line to show, or (docs/SOUND.md) a sound request that comes between lines: the player acts on it when it
   // reaches it. `text` is then the music / sound id ("" for StopMusic) and `fadeMs` the fade.
-  enum class Kind { Say, PlayMusic, StopMusic, PlaySound };
+  // Choice (docs/EVENTS.md "Dialogue choices"): `text` is the question, `answers` the offered answers' words; `waiting`
+  // = nothing answered it yet, so the scene stops here (runScene with answers).
+  enum class Kind { Say, PlayMusic, StopMusic, PlaySound, Choice };
   Kind kind = Kind::Say;
+  bool waiting = false;
+  std::vector<std::string> answers;
   int fadeMs = 0;
   std::string speakerId;  // the roster id named by "speaker" ("" = none)
   std::string speaker;    // the name to show ("" = nobody)
@@ -80,6 +84,14 @@ bool freeBattleAllowed(const Database& db, const std::string& mapId);
 // to `lines`. Before needs phase Before (then phase = Battle); After needs phase After (then the
 // next chapter in phase Before, or Finished). False and nothing done in any other phase.
 bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines);
+// Dialogue choices (docs/EVENTS.md "Dialogue choices"): the same, but a question waits for a person. `answers` are the
+// picks made so far, in order, each a position among the answers offered at that question. The scene runs until it
+// meets a question with no pick: that question is its last line (Choice with `waiting`), the playthrough is as the
+// scene left it up to there and the phase has not moved. To go on, start again from a copy of the playthrough as it
+// was before the scene, with the picks plus the new one: the lines come back from the start (the same ones, then more).
+// Answered questions come back as Choice lines with `waiting` false. A scene with no question behaves as above.
+bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines,
+              const std::vector<int>& answers);
 
 // Gets the chapter's battle ready: loads the map, initialises `battle`, dresses the named units of
 // human sides from the roster and hands in carried storage, resources, switches and variables. It

@@ -26,6 +26,10 @@ bool buildCampaignSave(const Database& db, const std::string& gameId, const Play
     err = "the playthrough does not belong to this game";
     return false;
   }
+  if (battle && battle->choiceWaiting()) {  // half way through an action (docs/EVENTS.md "Dialogue choices")
+    err = "a question is waiting for its answer";
+    return false;
+  }
   if (battle && pt.phase != Phase::Battle) {
     err = "a battle can only be saved in the playthrough's battle phase";
     return false;

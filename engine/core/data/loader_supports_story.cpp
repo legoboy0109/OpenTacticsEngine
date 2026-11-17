@@ -116,6 +116,18 @@ bool checkScene(const LoadCtx& c, const Database& db, const std::vector<SceneCom
     const std::string at = where + ": command " + std::to_string(i + 1);
     if (cmd.kind == SceneCommand::Kind::AddSupport && !isPair(cmd.unit, cmd.with))
       return c.fail(at + " (addSupport)", notASupportPair(cmd.unit, cmd.with));
+    if (cmd.kind == SceneCommand::Kind::Choice) {  // a question's answers hold scene commands (and may hide on a support level)
+      for (size_t a = 0; a < cmd.answers.size(); ++a) {
+        const std::string ans = at + " (choice): answer " + std::to_string(a + 1);
+        for (size_t k = 0; k < cmd.answers[a].cond.size(); ++k)
+          if (cmd.answers[a].cond[k].kind == SceneCondition::Kind::Support &&
+              !isPair(cmd.answers[a].cond[k].unit, cmd.answers[a].cond[k].with))
+            return c.fail(ans + ": condition " + std::to_string(k + 1),
+                          notASupportPair(cmd.answers[a].cond[k].unit, cmd.answers[a].cond[k].with));
+        if (!checkScene(c, db, cmd.answers[a].commands, ans + ": \"do\"")) return false;
+      }
+      continue;
+    }
     if (cmd.kind != SceneCommand::Kind::If) continue;
     for (size_t k = 0; k < cmd.cond.size(); ++k)
       if (cmd.cond[k].kind == SceneCondition::Kind::Support && !isPair(cmd.cond[k].unit, cmd.cond[k].with))

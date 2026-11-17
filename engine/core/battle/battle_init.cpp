@@ -191,6 +191,14 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
 }
 
 void Battle::start(std::vector<Event>& events) {
+  if (askingChoices()) {  // a question may stop the start half way (story_choice.cpp)
+    runAsking(true, Action(), nullptr, {}, 0, events);
+    return;
+  }
+  startNow(events);
+}
+
+void Battle::startNow(std::vector<Event>& events) {
   EventScope scope(*this, events);
   sight_.valid = false;  // state may have been set up by hand since init (roster, research, tests)
   activeSide = 0;

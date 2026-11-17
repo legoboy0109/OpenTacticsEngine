@@ -298,6 +298,11 @@ bool checkCommands(const AudioData& d, const std::vector<Command>& list, const s
       if (!checkCommands(d, c.thenDo, texts, where, err) || !checkCommands(d, c.elseDo, texts, where, err)) return false;
       continue;
     }
+    if (c.kind == Command::Kind::Choice) {  // an answer's commands may play sounds too
+      for (const ChoiceAnswer& a : c.answers)
+        if (!checkCommands(d, a.commands, texts, where, err)) return false;
+      continue;
+    }
     if (c.kind != Command::Kind::PlayMusic && c.kind != Command::Kind::PlaySound) continue;
     const std::string& id = texts[(size_t)c.text];
     const bool music = c.kind == Command::Kind::PlayMusic;
@@ -315,6 +320,11 @@ bool checkScene(const AudioData& d, const std::vector<SceneCommand>& list, const
   for (const SceneCommand& c : list) {
     if (c.kind == SceneCommand::Kind::If) {
       if (!checkScene(d, c.thenDo, texts, where, err) || !checkScene(d, c.elseDo, texts, where, err)) return false;
+      continue;
+    }
+    if (c.kind == SceneCommand::Kind::Choice) {
+      for (const SceneAnswer& a : c.answers)
+        if (!checkScene(d, a.commands, texts, where, err)) return false;
       continue;
     }
     if (c.kind != SceneCommand::Kind::PlayMusic && c.kind != SceneCommand::Kind::PlaySound) continue;

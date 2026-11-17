@@ -57,6 +57,7 @@ enum class EventType {
   UnitRelocated,    // a=unit, b=cell it left, c=cell it now stands on (moved by an event)
   SideChanged,      // a=unit, b=old side, c=new side
   ObjectiveChanged, // a=text of the new objective (-1 = none), b=objective set
+  Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
   // Upgradable structures and research (docs/ECONOMY.md); the payments come first as ResourceChanged.
   StructureUpgraded,  // a=structure index, b=previous kind, c=new kind (indices into db->structures)
   ResearchStarted,    // a=side, b=technology (index into db->research), c=turns it takes (0 = finished at once)
@@ -538,6 +539,15 @@ class Battle {
   // Hands in starting switches / variables (a campaign carries them); sizes must match the game's
   // lists. Call after init(), before start(). False (nothing changed) on a size mismatch.
   bool setStartingStory(const std::vector<uint8_t>& switches, const std::vector<int>& variables);
+  // Dialogue choices (docs/EVENTS.md "Dialogue choices", story_choice.cpp). Off (the default): a question takes its
+  // first offered answer on the spot and leaves a Dialogue entry with the question. On: apply / start stop at the
+  // question, leaving a Choice entry as their last one; nothing else can be done until answerChoice(). The player
+  // turns it on for a person at the screen; ote-sim and --autoplay leave it off.
+  void setAskChoices(bool ask) { choice_.ask = ask; }
+  bool choiceWaiting() const { return choice_.wait != nullptr; }
+  // The pick is a position in the Choice entry's answers. Appends the entries that follow the question (up to the
+  // next one, if there is another). False (nothing changed) when no question is waiting or the pick is out of range.
+  bool answerChoice(int pick, std::vector<Event>& events);
   // Hands in a campaign's roster (docs/EVENTS.md "Campaign"). Every named unit on a human side that the
   // roster knows takes its type, name, level, xp, stats and items and starts at full HP; one the roster
   // marks gone is taken off the map; others stay as the map says. Later addUnit events of named units
@@ -648,6 +658,14 @@ class Battle {
 #include "core/battle/srpg_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
+  StoryChoice choice_;  // dialogue choices (story_choice.cpp)
+  // story_choice.cpp: apply / start when questions wait; the command; the pieces of apply / start without that.
+  void applyAction(const Action& action, std::vector<Event>& events);
+  void startNow(std::vector<Event>& events);
+  void runAsking(bool isStart, const Action& action, std::shared_ptr<const Battle> pre, const std::vector<int>& answers,
+                 size_t skip, std::vector<Event>& out);
+  void storyChoice(const Command& c, std::vector<Event>& events);
+  bool askingChoices() const { return choice_.ask && story && story->hasChoice && !choice_.running; }
 
   // ---- fog of war, private (sight.cpp) ----
   struct SightCache {

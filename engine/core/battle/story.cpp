@@ -185,6 +185,7 @@ void Battle::drainStory(std::vector<Event>& events) {
   run.running = true;
   run.ran = 0;
   for (size_t head = 0; head < run.queue.size(); ++head) {
+    if (choice_.halted) break;  // a question is waiting (story_choice.cpp): the rest of the queue does not run
     StoryRun::Queued q = run.queue[head];
     const StoryEvent& ev = story->events[(size_t)q.event];
     if (storyState.fired[(size_t)q.event] && !ev.repeat) continue;  // queued twice in this go

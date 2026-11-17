@@ -100,7 +100,10 @@ void Battle::storyRelocate(int unit, Cell to, std::vector<Event>& events) {
 }
 
 void Battle::runCommands(const std::vector<Command>& list, std::vector<Event>& events) {
-  for (const Command& c : list) runCommand(c, events);
+  for (const Command& c : list) {
+    if (choice_.halted) return;  // a question is waiting behind us (story_choice.cpp): nothing after it counts
+    runCommand(c, events);
+  }
 }
 
 void Battle::runCommand(const Command& c, std::vector<Event>& events) {
@@ -112,6 +115,9 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       events.push_back(e);
       break;
     }
+    case K::Choice:
+      storyChoice(c, events);
+      break;
     case K::AddUnit:
       storyAddUnit(c.newUnit, events);
       break;

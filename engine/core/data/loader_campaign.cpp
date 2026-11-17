@@ -90,6 +90,9 @@ bool checkScene(const CampaignLoader& L, const CampaignDef& c, const std::vector
     if (cmd.kind == SceneCommand::Kind::If &&
         (!checkScene(L, c, cmd.thenDo, where) || !checkScene(L, c, cmd.elseDo, where)))
       return false;
+    if (cmd.kind == SceneCommand::Kind::Choice)
+      for (const SceneAnswer& a : cmd.answers)
+        if (!checkScene(L, c, a.commands, where)) return false;
   }
   return true;
 }

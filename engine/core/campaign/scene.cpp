@@ -31,6 +31,11 @@ struct SceneRun {
   Playthrough& pt;
   std::vector<SceneLine>& lines;
   std::string gotoChapter;  // the last "goto" executed ("" = none)
+  // Dialogue choices: `asking` = questions wait for the picks in `picks` (null = take the first offered answer);
+  // `halted` = a question without a pick was reached, nothing after it runs.
+  const std::vector<int>* picks = nullptr;
+  size_t used = 0;
+  bool halted = false;
   // The chapter's map, read once when a speaker is not in the party yet: before the first battle
   // the roster is empty, yet the hero must be able to speak under their name.
   bool mapTried = false, mapOk = false;
@@ -70,26 +75,67 @@ struct SceneRun {
   }
 
   void run(const std::vector<SceneCommand>& list) {
-    for (const SceneCommand& c : list) command(c);
+    for (const SceneCommand& c : list) {
+      if (halted) return;
+      command(c);
+    }
+  }
+
+  // The speaker of a Say or a Choice, resolved like a battle's Dialogue entry.
+  void speaker(const SceneCommand& c, SceneLine& l) {
+    const std::vector<std::string>& texts = db.campaign->texts;
+    l.speakerId = c.unit;
+    if (!c.unit.empty()) {
+      const RosterUnit* r = pt.findUnit(c.unit);
+      // In the party: its name there. Not yet: the name the chapter's map gives that unit;
+      // unknown to both: no name, like a Dialogue entry with no unit.
+      l.speaker = r ? r->name : nameFromMap(c.unit);
+    } else if (c.speakerName >= 0) {
+      l.speaker = texts[(size_t)c.speakerName];
+    }
+    if (c.portrait >= 0) l.portrait = texts[(size_t)c.portrait];
+    l.text = texts[(size_t)c.text];
+  }
+
+  void choice(const SceneCommand& c) {
+    const std::vector<std::string>& texts = db.campaign->texts;
+    std::vector<size_t> offered;
+    for (size_t i = 0; i < c.answers.size(); ++i) {
+      bool all = true;
+      for (const SceneCondition& cnd : c.answers[i].cond) all = all && holds(cnd);
+      if (all) offered.push_back(i);
+    }
+    if (offered.empty()) return;  // every answer is hidden: nothing to ask, nothing to record
+    size_t picked = offered[0];
+    if (offered.size() >= 2) {
+      SceneLine l;
+      speaker(c, l);
+      if (!picks) {  // nobody to ask: the question is only said
+        lines.push_back(l);
+      } else {
+        l.kind = SceneLine::Kind::Choice;
+        for (size_t i : offered) l.answers.push_back(texts[(size_t)c.answers[i].text]);
+        l.waiting = used >= picks->size();
+        lines.push_back(l);
+        if (l.waiting) {
+          halted = true;
+          return;
+        }
+        picked = offered[(size_t)std::max(0, std::min((*picks)[used++], (int)offered.size() - 1))];
+      }
+    }
+    if (c.index >= 0) pt.variables[(size_t)c.index] = (int)picked + 1;
+    run(c.answers[picked].commands);
   }
 
   void command(const SceneCommand& c) {
     using K = SceneCommand::Kind;
     const std::vector<std::string>& texts = db.campaign->texts;
     switch (c.kind) {
+      case K::Choice: choice(c); break;
       case K::Say: {
         SceneLine l;
-        l.speakerId = c.unit;
-        if (!c.unit.empty()) {
-          const RosterUnit* r = pt.findUnit(c.unit);
-          // In the party: its name there. Not yet: the name the chapter's map gives that unit;
-          // unknown to both: no name, like a Dialogue entry with no unit.
-          l.speaker = r ? r->name : nameFromMap(c.unit);
-        } else if (c.speakerName >= 0) {
-          l.speaker = texts[(size_t)c.speakerName];
-        }
-        if (c.portrait >= 0) l.portrait = texts[(size_t)c.portrait];
-        l.text = texts[(size_t)c.text];
+        speaker(c, l);
         lines.push_back(l);
         break;
       }
@@ -131,18 +177,22 @@ struct SceneRun {
 
 }  // namespace
 
-bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines) {
+namespace {
+
+bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines,
+                  const std::vector<int>* picks) {
   const CampaignDef* cd = db.campaign.get();
   if (!cd || pt.chapter < 0 || pt.chapter >= (int)cd->chapters.size()) return false;
   if (pt.phase != (which == SceneKind::Before ? Phase::Before : Phase::After)) return false;
   const ChapterDef& ch = cd->chapters[(size_t)pt.chapter];
-  SceneRun r{db, pt, lines, std::string(), false, false, MapDef()};
+  SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, MapDef()};
   if (which == SceneKind::Before) {
     r.run(ch.before);
-    pt.phase = Phase::Battle;
+    if (!r.halted) pt.phase = Phase::Battle;
     return true;
   }
   r.run(ch.after);
+  if (r.halted) return true;  // a question waits: the chapter has not been left
   // The next chapter: the last "goto" that ran, else the chapter's "next", else the following one.
   int next = pt.chapter + 1;
   if (!r.gotoChapter.empty()) next = cd->findChapter(r.gotoChapter);
@@ -154,6 +204,17 @@ bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<
     pt.phase = Phase::Before;
   }
   return true;
+}
+
+}  // namespace
+
+bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines) {
+  return runSceneWith(db, pt, which, lines, nullptr);
+}
+
+bool runScene(const Database& db, Playthrough& pt, SceneKind which, std::vector<SceneLine>& lines,
+              const std::vector<int>& answers) {
+  return runSceneWith(db, pt, which, lines, &answers);
 }
 
 }  // namespace ote
