@@ -19,6 +19,11 @@ void writeUnitAbilities(const Battle&, const Unit& u, Json& j) {
     }
     j.set("abilities", list);
   }
+  if (!u.refreshedBy.empty()) {  // docs/SRPG.md "Refresh an ally"
+    Json list = Json::makeArray();
+    for (int id : u.refreshedBy) list.push(Json::makeNumber(id));
+    j.set("refreshedBy", list);
+  }
   if (u.summoner >= 0) {
     Json s = Json::makeObject();
     s.set("by", Json::makeNumber(u.summoner));
@@ -32,8 +37,20 @@ bool readUnitAbilities(Reader& rd, const Battle& b, const Json& j, const std::st
   const Database& db = *b.db;
   u.abilityUses.clear();
   u.summoner = u.summonAbility = u.summonLeft = -1;
-  for (const char* key : {"abilities", "summon"})
+  u.refreshedBy.clear();
+  for (const char* key : {"abilities", "summon", "refreshedBy"})
     if (j.has(key) && db.abilities.empty()) return rd.fail(where + "." + key, "this game has no abilities");
+  if (j.has("refreshedBy")) {
+    if (!db.refreshAbilities) return rd.fail(where + ".refreshedBy", "this game has no \"refresh\" ability");
+    const Json* list;
+    if (!rd.array(j, "refreshedBy", where, -1, 9, list)) return false;
+    for (size_t i = 0; i < list->size(); ++i) {
+      const Json& v = (*list)[i];
+      if (!v.isNumber() || v.asNumber() != std::floor(v.asNumber()) || v.asNumber() < 0 || v.asNumber() > kMaxUnits)
+        return rd.fail(where + ".refreshedBy[" + std::to_string(i) + "]", "not a unit id");
+      u.refreshedBy.push_back((int)v.asNumber());
+    }
+  }
 
   if (j.has("abilities")) {
     const Json* list;

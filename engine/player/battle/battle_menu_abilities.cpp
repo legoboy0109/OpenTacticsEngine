@@ -9,6 +9,8 @@
 // the menu is open).
 #include "battle/ability_preview.h"
 #include "battle/ability_text.h"
+#include "battle/item_text.h"
+#include "battle/srpg_menu_ids.h"
 #include "battle/battle_scene.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -44,8 +46,54 @@ void BattleScene::addAbilityEntries(std::vector<MenuItem>& items) {
   }
 }
 
+// "Steal which?": the items of the foe that was picked, the ones that cannot be taken greyed with the reason on the right (the long
+// form when it fits, else a short one, else none). Choosing one uses the ability; Cancel steps back to the unit pick.
+void BattleScene::stealMenu(int user, int ability, int target, std::function<void()> back) {
+  const Unit& t = battle_.units[(size_t)target];
+  std::vector<StealOption> opts;
+  battle_.stealOptions(user, ability, battle_.units[(size_t)user].cell, target, opts);
+  Renderer& r = host_.renderer();
+  std::vector<MenuItem> items;
+  std::string log;
+  for (const StealOption& o : opts) {
+    const ItemStack& st = t.items[(size_t)o.slot];
+    const ItemDef& d = battle_.db->items[(size_t)st.item];
+    const int room = layout_.vw - 4 - (2 * 4 + textW(r, ">") + 4 + 2) - textW(r, "  ") - textW(r, d.name);  // as the staff lists do
+    std::string extra = o.ok ? usesText(battle_, st) : stealReasonText(o.why, false);
+    if (textW(r, extra) > room && !o.ok) extra = stealReasonText(o.why, true);
+    if (textW(r, extra) > room) extra = "";  // a narrow screen: greyed without words (the unit details say why)
+    items.push_back({d.name, extra, o.ok, kStealBase + o.slot});
+    log += (log.empty() ? "" : ", ") + d.name + (o.ok ? "" : " [" + stealReasonText(o.why, false) + "]");
+  }
+  OTE_INFO("steal list from %s: %s", t.name.c_str(), log.c_str());
+  mode_ = Mode::ActionMenu;
+  overlay_ = Overlay();
+  staffFcOn_ = false;
+  pickBack_ = nullptr;
+  staffBack_ = std::move(back);
+  staffItemUser_ = user;
+  staffItemTarget_ = target;
+  stealAbility_ = ability;
+  menu_.open(r, AbilityWords::kStealWhich, items, 0, 0, layout_.vw, layout_.vh);
+  anchorActionMenu();
+  say(AbilityWords::kStealWhich);
+}
+
 bool BattleScene::abilityChosen(int id) {
   if (sel_ < 0) return false;
+  if (id >= kStealBase && id < kSupportBase) {  // an item picked in the "Steal which?" list
+    if (stealAbility_ < 0 || staffItemUser_ < 0 || staffItemTarget_ < 0) return false;
+    const int user = staffItemUser_, ability = stealAbility_;
+    Action a = Action::useAbility(user, ability, staffItemTarget_);
+    a.slot = id - kStealBase;
+    stealAbility_ = -1;
+    staffBack_ = nullptr;
+    if (!submit(a)) return true;
+    const Unit& me = battle_.units[(size_t)user];
+    if (battle_.over || !me.alive || me.done) finishOrder();
+    else itemActionDone();
+    return true;
+  }
   const Unit& u = battle_.units[(size_t)sel_];
   std::vector<AbilityOption> opts;
   battle_.abilityOptions(sel_, u.cell, opts);
@@ -74,6 +122,15 @@ bool BattleScene::abilityChosen(int id) {
     gPickHint = hint;
     say(hint);
   };
+  // A steal's forecast: how many of the highlighted foe's items can be taken.
+  auto stealHint = [this, user, ability](int target) {
+    std::vector<StealOption> o;
+    battle_.stealOptions(user, ability, battle_.units[(size_t)user].cell, target, o);
+    int ok = 0;
+    for (const StealOption& e : o) ok += e.ok;
+    gPickHint = "Steal: " + std::to_string(ok) + " of " + std::to_string(o.size()) + " items can be taken  Z:choose  X:back";
+    say(gPickHint);
+  };
 
   std::vector<int> units;
   std::vector<Cell> cells;
@@ -93,13 +150,22 @@ bool BattleScene::abilityChosen(int id) {
     if (units.empty()) { say(AbilityWords::kNothingToTarget); return true; }
     std::vector<Cell> candidateCells;  // blue: who can be picked
     for (int t : units) candidateCells.push_back(battle_.units[(size_t)t].cell);
-    auto mark = [this, user, ability, candidateCells, sayHint](int target, Overlay& ov) {
+    const bool steals = def.effect == AbilityEffect::Steal;
+    auto mark = [this, user, ability, candidateCells, sayHint, stealHint, steals](int target, Overlay& ov) {
       for (Cell c : candidateCells) ov.reach[(size_t)c] = 1;
       for (const AbilityMovePreview& m : previewAbilityMoves(battle_, user, ability, target))
         for (Cell c : m.path) { ov.reach[(size_t)c] = 0; ov.attack[(size_t)c] = 1; }  // where the units would end up (and pass, for a push)
-      sayHint();
+      if (steals) stealHint(target);
+      else sayHint();
     };
-    beginPickUnit(units, [use](int t) { use(t, kNoCell); }, mark);
+    if (steals) {  // the foe first, then which of its items
+      beginPickUnit(units, [this, user, ability, id, clearHint](int t) {
+        clearHint();
+        stealMenu(user, ability, t, [this, id] { abilityChosen(id); });
+      }, mark);
+    } else {
+      beginPickUnit(units, [use](int t) { use(t, kNoCell); }, mark);
+    }
   }
   OTE_INFO("ability chosen: %s by %s", def.name.c_str(), u.name.c_str());
   return true;

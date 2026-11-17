@@ -42,6 +42,8 @@ export const T = {
   portraitRemove: 'Remove portrait',
   portraitLabel: (n: string) => `Portrait of ${n}`,
 
+  tags: 'Labels',
+  tagsHelp: 'Words of your own, like a unit type’s labels: a skill or a weapon can ask for “armored” or “flier”. A character counts as having its class’s labels and these.',
   advanced: 'Advanced',
   id: 'Internal name',
   idHelp: 'Made when the character was created and never changed by renaming. Events, saves and the campaign point to the person with it.',

@@ -5,6 +5,8 @@ import { maxLevel, setCharacterItems, setCharacterLevel, updateCharacter } from 
 import { featureEnabled } from '../../model/rules'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
+import { allTags } from '../../model/units'
+import { ChipsInput } from '../../ui/ChipsInput'
 import { Field } from '../../ui/Field'
 import { ItemListEditor } from '../../ui/ItemListEditor'
 import { NumberInput } from '../../ui/NumberInput'
@@ -58,6 +60,15 @@ export function CharacterForm({ id, word }: { id: string; word: string }) {
       <CharacterStatsCard id={id} word={word} />
 
       <CharacterSrpgCards id={id} />
+
+      <Card>
+        <Field label={T.tags} help={T.tagsHelp}>
+          <div data-testid="character-tags">
+            <ChipsInput value={c.tags ?? []} suggestions={[...new Set([...allTags(doc), ...(doc.characters ?? []).flatMap((x) => x.tags ?? [])])]}
+              onChange={(v) => edit((d) => updateCharacter(d, id, { tags: v.length ? v : undefined }))} />
+          </div>
+        </Field>
+      </Card>
 
       {(items.length > 0 || c.items !== undefined) && (
         <Card>

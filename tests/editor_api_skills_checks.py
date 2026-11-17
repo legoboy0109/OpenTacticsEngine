@@ -31,6 +31,12 @@ EXTRA = [
         {"when": "always", "do": [{"moveAgain": {"notAfterAttack": True}}, {"weaponXpPercent": 150}, {"noCarryPenalty": True},
                                   {"cancelEffective": True}]},
         {"when": "turnStart", "do": [{"cure": "all"}]}]},
+    # The second set (docs/SRPG.md "Skill and ability blocks, second set"): nullify, a staff-used point, staff range, carry bonus, a terrain list, tags.
+    {"id": "second_set", "name": "Second set", "tags": ["bonus"], "blocks": [
+        {"when": "combat", "do": [{"nullifySkills": {"tag": "bonus"}}]},
+        {"when": "combat", "if": [{"terrain": ["forest", "plain"]}], "do": [{"nullifySkills": ["tough"]}, {"damage": 1}]},
+        {"when": "always", "do": [{"staffRange": {"amount": 2}}, {"carryBonus": 2}]},
+        {"when": "staffUse", "chance": 50, "do": [{"heal": {"percent": 10}}, {"cure": "all"}]}]},
 ]
 
 
@@ -52,15 +58,19 @@ def run_skills_checks(api, tmp, games, templates, check, get_project, put_projec
     skills = d["skills"] + EXTRA
     for u in d["units"]:
         if u["id"] == "lord":
-            u["skills"] = ["tough", "heavy_blow", "every_condition", "general_blocks"]
+            u["skills"] = ["tough", "heavy_blow", "every_condition", "general_blocks", "second_set"]
+            u["abilities"] = ["pick", "encore", "leap"]
             u["learns"] = [{"level": 2, "skill": "catch_breath"}, {"level": 3, "skill": "every_effect"}]
     for w in d["weapons"]:
         if w["id"] == "iron_sword":
             w["skills"] = ["opening_blow"]
             w["damageKind"] = "magic"  # a weapon's kind of damage, tested by "general_blocks"
-    items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"]}]  # the template's own stay
-    abilities = [{"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 1}}]
-    chars = [{"id": "eirik", "name": "Eirik", "type": "lord", "skills": ["on_my_own"], "learns": [{"level": 2, "skill": "gifted"}]}]
+    items = (d["items"] or []) + [{"id": "ring", "name": "Ring", "kind": "accessory", "skills": ["light_step"], "stealable": False}]  # the template's own stay
+    abilities = [{"id": "shove", "name": "Shove", "target": "enemy", "effect": {"push": 1}},
+                 {"id": "pick", "name": "Pick", "target": "enemy", "effect": {"steal": {"if": "a.spd > b.spd", "weapons": True}}},
+                 {"id": "encore", "name": "Encore", "target": "ally", "effect": {"refresh": {"perTurn": 2}}},
+                 {"id": "leap", "name": "Leap", "target": "unit", "effect": {"movePast": True}}]
+    chars = [{"id": "eirik", "name": "Eirik", "type": "lord", "tags": ["scout"], "skills": ["on_my_own"], "learns": [{"level": 2, "skill": "gifted"}]}]
     game = d["game"]
     mid = game["maps"][0]["id"]
     maps = plain_units(d)

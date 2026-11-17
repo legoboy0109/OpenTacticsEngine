@@ -9,6 +9,8 @@ import type { Extra, ProjectDoc } from './types'
 import { moveItem, patchObj, updateById } from './util'
 
 export const blocksOf = (s: Skill): Extra[] => (Array.isArray(s.blocks) ? s.blocks : [])
+/** Every tag any skill carries, sorted (the picker of "nullifySkills" and the suggestions of the tag field). */
+export const allSkillTags = (doc: ProjectDoc): string[] => [...new Set((doc.skills ?? []).flatMap((s) => s.tags ?? []))].sort()
 export const skillName = (doc: ProjectDoc, id: string): string => doc.skills?.find((s) => s.id === id)?.name ?? id
 
 /** A new skill gives +1 to the first stat that is not hit points or movement, always: valid as it stands. */

@@ -55,11 +55,15 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
       return cmp(cond.op, count, cond.value);
     }
     case Kind::Weapon:
+      if (!cond.foe && ctx.staffGroup) return *ctx.staffGroup == cond.key;  // after a staff: its group
       return weapon >= 0 && (db->weapons[(size_t)weapon].id == cond.key || db->weapons[(size_t)weapon].group == cond.key);
     case Kind::Terrain: {
       if (cell == kNoCell) return false;
       const TerrainDef& t = db->terrains[(size_t)cells[(size_t)cell].terrain];
-      return t.id == cond.key || hasKey(t.tags, cond.key);
+      if (cond.keys.empty()) return t.id == cond.key || hasKey(t.tags, cond.key);
+      for (const std::string& key : cond.keys)  // the list form: any one
+        if (t.id == key || hasKey(t.tags, key)) return true;
+      return false;
     }
     case Kind::Structure: {
       const int si = cell == kNoCell ? -1 : structureIndexAt(cell);

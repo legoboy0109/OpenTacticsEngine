@@ -1,7 +1,7 @@
 // The plain one-line summary of an ability ("Pushes a unit next to it 1 square away. Uses the unit’s action."), shown under
 // its form and as the list's second line. Wording is a placeholder for the owner to review (docs/SRPG.md "E3 as built").
 import { conditionsText } from './abilityConditions'
-import { effectKind, rangeOf, summonOf, targetOf } from './abilities'
+import { effectKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
 
@@ -25,6 +25,18 @@ function whatText(doc: ProjectDoc, a: Ability): string {
     case 'pull': return `steps back and pulls ${whom(a)} into its place`
     case 'swap': return `swaps places with ${whom(a)}`
     case 'moveBehind': return `puts ${whom(a)} on its other side`
+    case 'movePast': return `moves to the far side of ${whom(a)}`
+    case 'steal': {
+      const s = stealOf(a)
+      const what = s.weapons === true ? (s.equipped === true ? 'any item it carries' : 'an item it carries, weapons too (not the one in hand)') : 'an item it carries (not weapons)'
+      return `takes ${what} from ${whom(a)}${s.if ? ` (only if ${s.if})` : ''}`
+    }
+    case 'refresh': { const n = refreshPerTurn(a); return `lets ${whom(a)} act again after it has acted${n > 1 ? ` (a unit can be refreshed ${times(n)} a turn)` : ''}` }
+    case 'cure': {
+      const ids = Array.isArray(e.cure) ? e.cure : []
+      const names = ids.map((id) => doc.conditions?.find((c) => c.id === id)?.name ?? id)
+      return `cures ${e.cure === 'all' ? 'every condition of' : names.length ? `${names.join(' and ')} on` : 'nothing on'} ${whom(a)}`
+    }
     case 'heal': return `heals ${whom(a)} ${e.heal === 'full' ? 'fully' : `by ${e.heal ?? 0}`}`
     case 'summon': {
       const s = summonOf(a)

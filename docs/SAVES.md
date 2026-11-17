@@ -145,6 +145,11 @@ for a counted condition), to a battle save's units, written only for a unit that
 data hash covers `data/conditions.json` only when it holds something (name, description and tag are cosmetic). Conditions are not part of a campaign
 save: they end with the map.
 
+The second set of skill and ability blocks (docs/SRPG.md section 3 "Skill and ability blocks, second set") adds one optional key to a battle save's units,
+`refreshedBy` (`[unit ids]`: who refreshed the unit in its side's present turn), written only when not empty and refused in a game with no `refresh` ability.
+A unit's `goes` (section 10) may now include the bit 8 (the computer opponent's steal marker). Steal, move past, cure, nullify, staff range and carry bonus
+add no state. Old saves load unchanged; the data hash is unchanged for a game that uses none of the new keys.
+
 Battle quotes (docs/EVENTS.md "Battle and defeat quotes") add one optional key, `"quotes": { "said": [n, ...] }` (the positions, in file
 order of `data/characters.json`, of the "map" and "campaign" quotes already said; ascending, each once; "always" quotes are never kept), to a
 battle save and, for the "campaign" quotes only, to a campaign playthrough. Written only when something was said; refused in a game with

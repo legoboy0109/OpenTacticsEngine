@@ -113,6 +113,7 @@ class BattleScene : public Scene {
   bool supportChosen(int id);
   void addAbilityEntries(std::vector<MenuItem>& items);    // battle_menu_abilities.cpp (U3)
   bool abilityChosen(int id);
+  void stealMenu(int user, int ability, int target, std::function<void()> back);  // battle_menu_abilities.cpp: "Steal which?"
   void addStaffEntries(std::vector<MenuItem>& items);      // battle_menu_staves.cpp (docs/SRPG.md section 8): Staff, its list and target pick
   bool staffChosen(int id);
   void openStaffList();
@@ -288,6 +289,7 @@ class BattleScene : public Scene {
   bool staffFcOn_ = false;                // a staff target is being picked: staffFc_ is drawn as the forecast box
   std::function<void()> staffBack_;       // the open menu is a staff's second stage ("Repair which?"): Cancel does this
   int staffItemUser_ = -1, staffItemSlot_ = -1, staffItemTarget_ = -1;  // what that menu is about
+  int stealAbility_ = -1;                 // the open menu is "Steal which?" (staffItem* then hold the user and the foe)
   StaffForecast staffFc_;
   std::vector<PlaceOption> placeOpts_;    // the place entries of the action menu now open (ids kPlaceBase + n)
   std::vector<PlaceAttack> placeAtk_;

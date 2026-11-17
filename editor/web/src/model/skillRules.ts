@@ -1,10 +1,10 @@
-// The tables of docs/SRPG.md section 3 as data: the seven "when" points, which conditions and effects each one allows,
+// The tables of docs/SRPG.md section 3 as data: the eight "when" points, which conditions and effects each one allows,
 // and the limits of the loader (engine/core/data/loader_skill_blocks.cpp). The block builder offers only what these
 // tables allow, so what the editor writes loads. Wording lives in screens/skills/text.ts, not here.
 import type { Extra } from './types'
 
-export type When = 'always' | 'turnStart' | 'combat' | 'strike' | 'struck' | 'defeat' | 'afterCombat'
-export const WHENS: When[] = ['always', 'turnStart', 'combat', 'strike', 'struck', 'defeat', 'afterCombat']
+export type When = 'always' | 'turnStart' | 'combat' | 'strike' | 'struck' | 'defeat' | 'afterCombat' | 'staffUse'
+export const WHENS: When[] = ['always', 'turnStart', 'combat', 'strike', 'struck', 'defeat', 'afterCombat', 'staffUse']
 
 /** Loader limits (`kMaxSkillBlocks`, `kMaxBlockConditions`, `kMaxBlockEffects` in engine/core/data/srpg.h). */
 export const MAX_BLOCKS = 8
@@ -32,15 +32,18 @@ export type EffectKind =
   | 'cannotAct' | 'cannotMove' | 'forbid' | 'berserk' | 'immune' | 'inflict'
   // General blocks (docs/SRPG.md "More skill blocks").
   | 'followUp' | 'followShift' | 'trianglePercent' | 'weaponXpPercent' | 'noCarryPenalty' | 'cancelEffective' | 'cure'
-const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat'
+  // Second set (docs/SRPG.md "Skill and ability blocks, second set").
+  | 'nullifySkills' | 'staffRange' | 'carryBonus'
+const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat', U: When = 'staffUse'
 /** Every effect and the `when` points it is allowed in, in the order the contract lists them. */
 export const EFFECT_WHENS: Record<EffectKind, When[]> = {
   stats: [A, C], growths: [A], maxMoveCost: [A], pass: [A], moveAgain: [A], xpPercent: [A], ability: [A],
   hit: [C, S], crit: [C, S], damage: [C, S], avoid: [C, R], critAvoid: [C, R], damageTaken: [C, R],
   damagePercent: [C, S], damageTakenPercent: [C, R], strikes: [C], multiStrike: [C], strikeFirst: [C], counterAnyRange: [C], noCounter: [C],
-  drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F], hurt: [T, F], actAgain: [D, F],
+  drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F, U], hurt: [T, F], actAgain: [D, F],
   cannotAct: [A], cannotMove: [A], forbid: [A], berserk: [A], immune: [A], inflict: [S, R],
-  followUp: [C], followShift: [C], trianglePercent: [C], weaponXpPercent: [A], noCarryPenalty: [A], cancelEffective: [A], cure: [T, D, F],
+  followUp: [C], followShift: [C], trianglePercent: [C], weaponXpPercent: [A], noCarryPenalty: [A], cancelEffective: [A], cure: [T, D, F, U],
+  nullifySkills: [C], staffRange: [A], carryBonus: [A],
 }
 /** Effects only the blocks of a condition may have (the loader says they "belong to the blocks of a condition"). */
 export const CONDITION_ONLY: EffectKind[] = ['cannotAct', 'cannotMove', 'forbid', 'berserk']
@@ -57,19 +60,21 @@ export const FLAG_EFFECTS: EffectKind[] = ['moveAgain', 'strikeFirst', 'counterA
 export const NUMBER_RANGE: Partial<Record<EffectKind, [number, number]>> = {
   maxMoveCost: [1, 100], xpPercent: [1, 1000], hit: [-1000, 1000], crit: [-1000, 1000], damage: [-1000, 1000], avoid: [-1000, 1000],
   critAvoid: [-1000, 1000], damageTaken: [-1000, 1000], damagePercent: [0, 1000], damageTakenPercent: [0, 1000], strikes: [-7, 7],
-  multiStrike: [2, 4], drain: [1, 100], followShift: [-100, 100], trianglePercent: [0, 1000], weaponXpPercent: [1, 1000],
+  multiStrike: [2, 4], drain: [1, 100], followShift: [-100, 100], trianglePercent: [0, 1000], weaponXpPercent: [1, 1000], carryBonus: [-100, 100],
 }
+/** `staffRange`: a number from 1 to 10, or `{ amount, group }` (its own form, so it is not in NUMBER_RANGE). */
+export const STAFF_RANGE_MAX = 10
 
 export const hasChance = (w: When): boolean => w !== 'always' && w !== 'combat'
 /** `"if"` in an `always` block: no combat, so no foe, no initiating / distance, no formula. A turn start has no foe either. */
 export function condsFor(w: When, aura: boolean): CondKind[] {
   const plain = COND_KINDS.filter((k) => !STRIKE_ONLY.includes(k))
   if (w === 'always') return plain.filter((k) => !FOE_POINT_ONLY.includes(k) && k !== 'formula')
-  if (w === 'turnStart' || aura) return plain.filter((k) => !FOE_POINT_ONLY.includes(k))
+  if (w === 'turnStart' || w === 'staffUse' || aura) return plain.filter((k) => !FOE_POINT_ONLY.includes(k))
   return (w === 'strike' || w === 'struck') ? COND_KINDS : plain
 }
 /** Can this condition say "the foe"? Only where there is a foe, and never for an aura. */
-export const canJudgeFoe = (k: CondKind, w: When, aura: boolean): boolean => FOEABLE.includes(k) && !aura && w !== 'always' && w !== 'turnStart'
+export const canJudgeFoe = (k: CondKind, w: When, aura: boolean): boolean => FOEABLE.includes(k) && !aura && w !== 'always' && w !== 'turnStart' && w !== 'staffUse'
 export function effectsFor(w: When, aura: boolean, forCondition = false): EffectKind[] {
   return EFFECT_KINDS.filter((k) => EFFECT_WHENS[k].includes(w) && (!aura || AURA_EFFECTS.includes(k)) && (forCondition || !CONDITION_ONLY.includes(k)))
 }

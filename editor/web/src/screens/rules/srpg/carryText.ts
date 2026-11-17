@@ -44,6 +44,10 @@ export const C = {
   promoHelp: 'What happens to a unit’s level when it promotes. Each promotion can say otherwise for itself, on the Units screen.',
   levelAfter: 'After promoting, the level',
   levelReset: 'Starts again at 1',
+  classSkills: 'Skills of the old class',
+  classSkillsHelp: 'What happens to the skills the old class taught (at its levels) when a unit promotes. Skills from the class itself, accessories and weapons always follow the unit’s present state.',
+  classSkillsKeep: 'The unit keeps them',
+  classSkillsReplace: 'They go; the new class teaches its own',
   levelKeep: 'Stays as it was',
   levelHelp: 'This only matters in games with experience and levels.',
 }

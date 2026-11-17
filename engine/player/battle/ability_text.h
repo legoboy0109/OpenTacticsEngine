@@ -16,7 +16,13 @@ struct AbilityWords {
   static constexpr const char* kNone = "No abilities.";
   static constexpr const char* kBlocked = "Blocked!";
   static constexpr const char* kMore = " more...";  // Abilities page: "+2 more..." when the list does not fit
+  // Steal (docs/SRPG.md "Steal"): the list of the foe's items, the floating texts of the events.
+  static constexpr const char* kStealWhich = "Steal which?";
+  static constexpr const char* kStole = "Stole ";    // "Stole Potion"
+  static constexpr const char* kAgain = "Ready again";  // over a unit that was refreshed
 };
+// The plain reason an item cannot be stolen (the core's text), in the words of the list: the long form, or the short one for a narrow menu.
+std::string stealReasonText(const std::string& why, bool shortForm);
 
 // What the effect does, in one phrase: "Pushes it 2 squares away", "Heals 10 HP", "Heals all HP", "Pulls it next to
 // you", "Swaps places with it", "Moves it behind you", "Calls a Hound (level 3, up to 2 at a time, lasts 3 turns)".

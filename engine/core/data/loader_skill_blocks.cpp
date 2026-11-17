@@ -14,16 +14,17 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 // ---- when ----
 
-const char* const kWhenNames[] = {"always", "turnStart", "combat", "strike", "struck", "defeat", "afterCombat"};
+const char* const kWhenNames[] = {"always", "turnStart", "combat", "strike", "struck", "defeat", "afterCombat", "staffUse"};
+constexpr int kWhenCount = 8;
 constexpr unsigned bit(SkillWhen w) { return 1u << (int)w; }
 constexpr unsigned A = bit(SkillWhen::Always), T = bit(SkillWhen::TurnStart), C = bit(SkillWhen::Combat),
                    S = bit(SkillWhen::Strike), R = bit(SkillWhen::Struck), D = bit(SkillWhen::Defeat),
-                   F = bit(SkillWhen::AfterCombat);
+                   F = bit(SkillWhen::AfterCombat), SU = bit(SkillWhen::StaffUse);
 
 const char* whenName(SkillWhen w) { return kWhenNames[(int)w]; }
 
 bool parseWhen(const std::string& s, SkillWhen& out) {
-  for (int i = 0; i < 7; ++i)
+  for (int i = 0; i < kWhenCount; ++i)
     if (s == kWhenNames[i]) {
       out = (SkillWhen)i;
       return true;
@@ -33,7 +34,7 @@ bool parseWhen(const std::string& s, SkillWhen& out) {
 
 std::string whenList(unsigned mask) {
   std::string out;
-  for (int i = 0; i < 7; ++i)
+  for (int i = 0; i < kWhenCount; ++i)
     if (mask & (1u << i)) out += (out.empty() ? "" : ", ") + std::string(kWhenNames[i]);
   return out;
 }
@@ -217,8 +218,22 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"weaponKind\" must be a damage kind, the word a weapon's \"damageKind\" says");
       out.key = v.asString();
       return true;
+    case SkillCond::Kind::Terrain: {  // an id or tag, or a list of them: any one will do
+      if (!onlyKeys(c, e, {"terrain", "who"}, where)) return false;
+      if (v.isString() && !v.asString().empty()) {
+        out.keys.push_back(v.asString());
+      } else if (v.isArray() && v.size() > 0) {
+        for (size_t i = 0; i < v.size(); ++i) {
+          if (!v[i].isString() || v[i].asString().empty()) return c.fail(where, "\"terrain\" must be an id or a tag, or a list of them");
+          out.keys.push_back(v[i].asString());
+        }
+      } else {
+        return c.fail(where, "\"terrain\" must be an id or a tag, or a list of them");
+      }
+      out.key = out.keys[0];
+      return true;
+    }
     case SkillCond::Kind::Weapon:
-    case SkillCond::Kind::Terrain:
     case SkillCond::Kind::Unit:
       if (!onlyKeys(c, e, {spec->key, "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, q(key) + " must be an id or a " + (out.kind == SkillCond::Kind::Weapon ? "group" : "tag"));
@@ -272,7 +287,7 @@ const EffectSpec kEffects[] = {
     {"damageTakenPercent", K::DamageTakenPercent, C | R}, {"strikes", K::Strikes, C},
     {"multiStrike", K::MultiStrike, C}, {"strikeFirst", K::StrikeFirst, C}, {"counterAnyRange", K::CounterAnyRange, C},
     {"noCounter", K::NoCounter, C},   {"drain", K::Drain, S},              {"strikeAgain", K::StrikeAgain, S},
-    {"survive", K::Survive, R},       {"heal", K::Heal, T | D | F},        {"hurt", K::Hurt, T | F},
+    {"survive", K::Survive, R},       {"heal", K::Heal, T | D | F | SU},        {"hurt", K::Hurt, T | F},
     {"actAgain", K::ActAgain, D | F},
     // Conditions (docs/SRPG.md section 9).
     {"cannotAct", K::CannotAct, A},   {"cannotMove", K::CannotMove, A},    {"forbid", K::Forbid, A},
@@ -280,7 +295,9 @@ const EffectSpec kEffects[] = {
     // General blocks (docs/SRPG.md "More skill blocks").
     {"followUp", K::FollowUp, C},     {"followShift", K::FollowShift, C},  {"trianglePercent", K::TrianglePercent, C},
     {"weaponXpPercent", K::WeaponXpPercent, A}, {"noCarryPenalty", K::NoCarryPenalty, A}, {"cancelEffective", K::CancelEffective, A},
-    {"cure", K::Cure, T | D | F}};
+    {"cure", K::Cure, T | D | F | SU},
+    // Second set (docs/SRPG.md "Skill and ability blocks, second set").
+    {"nullifySkills", K::NullifySkills, C}, {"staffRange", K::StaffRange, A}, {"carryBonus", K::CarryBonus, A}};
 
 // An aura's effects go to other units: only plain numbers that a fighter can carry.
 bool auraKind(K k) {
@@ -441,6 +458,8 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
                                   " block (it belongs to: " + whenList(spec->whens) + ")");
   if (conditionOnly(spec->kind) && !forCondition)
     return c.fail(blockWhere, q(key) + " belongs to the blocks of a condition (data/conditions.json), not to a skill");
+  if (forCondition && (spec->kind == K::NullifySkills || spec->kind == K::StaffRange || spec->kind == K::CarryBonus))
+    return c.fail(blockWhere, q(key) + " belongs to skills (data/skills.json), not to a condition");
   if (aura && !auraKind(spec->kind))
     return c.fail(blockWhere, q(key) + " cannot be used in an aura block (an aura gives: stats, hit, avoid, crit, critAvoid, damage, damageTaken)");
   out = SkillEffect();
@@ -474,6 +493,8 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     if (out.to == SkillEffect::To::Enemies && when != SkillWhen::TurnStart)
       return c.fail(where, "\"to\": \"enemies\" belongs to \"turnStart\" blocks");
   }
+  if (when == SkillWhen::StaffUse && out.to == SkillEffect::To::Allies)
+    return c.fail(where, "\"to\": \"allies\" is not allowed in a \"staffUse\" block (it heals the unit that used the staff)");
   const bool usesWithin = out.to == SkillEffect::To::Allies || out.to == SkillEffect::To::Enemies;
   if (e.has("within") && !usesWithin) return c.fail(where, "\"within\" belongs to \"to\": \"allies\" or \"enemies\"");
   if (usesWithin) {
@@ -516,6 +537,41 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
       return c.fail(where, "\"inflict\" must be { \"condition\": \"poison\" } (optionally with \"turns\")");
     out.names.push_back(v["condition"].asString());
     return intIn(c, v, "turns", where, 1, kMaxConditionTurns, out.turns);
+  }
+  if (spec->kind == K::NullifySkills) {  // true | [skill ids] | { "tag": "word" }
+    if (v.isBool() && v.asBool()) { out.value = 0; return true; }
+    if (v.isArray() && v.size() > 0) {
+      out.value = 1;
+      return readNameList(c, v, where, "\"nullifySkills\"", out.names) && !out.names.empty();
+    }
+    if (v.isObject() && v.size() == 1 && v.has("tag") && v["tag"].isString() && !v["tag"].asString().empty()) {
+      out.value = 2;
+      out.names.push_back(v["tag"].asString());
+      return true;
+    }
+    return c.fail(where, "\"nullifySkills\" must be true (every skill of the foe), a list of skill ids, or { \"tag\": \"word\" } (the skills with that tag)");
+  }
+  if (spec->kind == K::StaffRange) {  // N | { "amount": N, "group": "staff group" }
+    const std::string how = "\"staffRange\" must be a whole number from 1 to 10 (squares added to the reach of staves), or { \"amount\": 2, \"group\": \"heal\" }";
+    if (LoadCtx::isWhole(v)) {
+      if (v.asInt() < 1 || v.asInt() > 10) return c.fail(where, how);
+      out.value = v.asInt();
+      return true;
+    }
+    if (v.isObject() && !onlyKeys(c, v, {"amount", "group"}, where + ": \"staffRange\"")) return false;
+    if (!v.isObject() || !v.has("amount") || !LoadCtx::isWhole(v["amount"]) || v["amount"].asInt() < 1 || v["amount"].asInt() > 10)
+      return c.fail(where, how);
+    out.value = v["amount"].asInt();
+    if (v.has("group")) {
+      if (!v["group"].isString() || v["group"].asString().empty()) return c.fail(where, how);
+      out.names.push_back(v["group"].asString());
+    }
+    return true;
+  }
+  if (spec->kind == K::CarryBonus) {
+    if (!LoadCtx::isWhole(v) || v.asInt() < -100 || v.asInt() > 100) return c.fail(where, "\"carryBonus\" must be a whole number from -100 to 100 (the canCarry formula reads it as a.carryBonus)");
+    out.value = v.asInt();
+    return true;
   }
   if (spec->kind == K::FollowUp) {
     if (!v.isString() || (v.asString() != "force" && v.asString() != "forbid"))
@@ -576,7 +632,7 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
   std::string when;
   if (!c.str(e, "when", where, when, true)) return false;
   if (!parseWhen(when, out.when))
-    return c.fail(where, "\"when\" must be one of " + whenList(0x7f) + ", not " + q(when));
+    return c.fail(where, "\"when\" must be one of " + whenList((1u << kWhenCount) - 1) + ", not " + q(when));
   const SkillWhen w = out.when;
 
   if (e.has("aura")) {
@@ -600,6 +656,7 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     if (out.aura) scope = {false, false, true, "in an aura block"};
     else if (w == SkillWhen::Always) scope = {false, false, false, "in an \"always\" block"};
     else if (w == SkillWhen::TurnStart) scope = {false, false, true, "in a \"turnStart\" block"};
+    else if (w == SkillWhen::StaffUse) scope = {false, false, true, "in a \"staffUse\" block"};
     else {
       scope = {true, true, true, "here"};
       scope.strike = w == SkillWhen::Strike || w == SkillWhen::Struck;
@@ -653,13 +710,19 @@ bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& 
       case SkillCond::Kind::Weapon:
         found = false;
         for (const WeaponDef& w : db.weapons) found = found || w.id == k.key || w.group == k.key;
+        for (const StaffDef& st : db.staves) found = found || st.gear.group == k.key;  // a "staffUse" block tests the staff's group
         what = "\"weapon\" names no weapon id or group \"";
         break;
       case SkillCond::Kind::Terrain:
-        found = false;
-        for (const TerrainDef& t : db.terrains)
-          found = found || t.id == k.key || std::find(t.tags.begin(), t.tags.end(), k.key) != t.tags.end();
-        what = "\"terrain\" names no terrain id or tag \"";
+        for (const std::string& key : k.keys) {
+          bool one = false;
+          for (const TerrainDef& t : db.terrains)
+            one = one || t.id == key || std::find(t.tags.begin(), t.tags.end(), key) != t.tags.end();
+          if (!one) {
+            found = false;
+            return c.fail(at, "\"terrain\" names no terrain id or tag \"" + key + "\"");
+          }
+        }
         break;
       case SkillCond::Kind::Structure:
         found = k.key.empty();

@@ -1,10 +1,11 @@
 // The form of one skill: name, description, its rules as cards, and the sentence the whole skill adds up to.
-import { addBlock, blocksOf, moveBlock, removeBlock, updateBlock, updateSkill } from '../../model/skills'
+import { addBlock, allSkillTags, blocksOf, moveBlock, removeBlock, updateBlock, updateSkill } from '../../model/skills'
 import { MAX_BLOCKS } from '../../model/skillRules'
 import { skillSummary } from '../../model/skillText'
 import { STARTER_SKILLS } from '../../model/starterSkills'
 import { useDoc, useEdit } from '../../store/context'
 import { Advanced, Card, FormGrid } from '../../ui/Card'
+import { ChipsInput } from '../../ui/ChipsInput'
 import { Field } from '../../ui/Field'
 import { TextInput } from '../../ui/TextInput'
 import { BlockCard } from './BlockCard'
@@ -30,6 +31,9 @@ export function SkillForm({ id }: { id: string }) {
           </Field>
           <Field label={T.description} help={T.descriptionHelp}>
             <TextInput value={skill.description ?? ''} onChange={(v) => edit((d) => updateSkill(d, id, { description: v === '' ? undefined : v }), `${key}:description`)} />
+          </Field>
+          <Field label={T.skillTags} help={T.skillTagsHelp}>
+            <ChipsInput value={skill.tags ?? []} suggestions={allSkillTags(doc)} onChange={(v) => edit((d) => updateSkill(d, id, { tags: v.length ? v : undefined }))} />
           </Field>
         </FormGrid>
       </Card>

@@ -76,7 +76,7 @@ export function removeMapUnit(map: MapFile, x: number, y: number): MapFile {
 }
 
 /** `items`: a list (even an empty one) replaces the unit type's starting items; undefined removes the key = uses the type's. */
-type UnitPatch = { side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap }
+type UnitPatch = { side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap; skills?: string[] }
 
 /** Name, level and leader are stored only when they mean something; clearing removes the key. */
 export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPatch): MapFile {

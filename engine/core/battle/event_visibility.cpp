@@ -139,6 +139,9 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::UnitHurt:
     case EventType::UnitPromoted:
       return unitSeenBy(e.a);
+    case EventType::ItemStolen:    // like a swap: the teams that see either unit
+    case EventType::UnitRefreshed:
+      return unitSeenBy(e.a) | unitSeenBy(e.b);
     case EventType::AbilityUsed:
     case EventType::StaffUsed:
       return unitSeenBy(e.a) | unitSeenBy(e.c);

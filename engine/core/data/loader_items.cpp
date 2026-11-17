@@ -87,6 +87,10 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (it.uses < 0) return c.fail(where, "\"repairable\" only matters for an item with \"uses\" (an item without them never wears)");
       it.repairable = e["repairable"].asBool();
     }
+    if (e.has("stealable")) {  // docs/SRPG.md "Steal": false = a steal ability can never take this item
+      if (!e["stealable"].isBool()) return c.fail(where, "\"stealable\" must be true or false");
+      it.stealable = e["stealable"].asBool();
+    }
     if (!c.amounts(db, e, "price", where, it.price)) return false;
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");

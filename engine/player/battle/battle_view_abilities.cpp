@@ -15,6 +15,25 @@ constexpr float kAbilityDur = 0.45f;
 
 bool BattleView::beginAbilities(const Battle& b) {
   const Event& e = cur_.ev;
+  if (e.type == EventType::ItemStolen || e.type == EventType::UnitRefreshed) {  // second set (docs/SRPG.md "Steal", "Refresh an ally")
+    const int who = e.type == EventType::ItemStolen ? e.a : e.b;  // the thief / the unit that may act again
+    if (who < 0 || (size_t)who >= units.size() || (size_t)who >= b.units.size()) {
+      cur_.dur = 0;
+      return true;
+    }
+    const UnitView& v = units[(size_t)who];
+    if (e.type == EventType::ItemStolen) {
+      const std::string item = e.c >= 0 && (size_t)e.c < b.db->items.size() ? b.db->items[(size_t)e.c].name : "an item";
+      addFloat(std::string(AbilityWords::kStole) + item, v.px + tile_ / 2.0f, v.py - 2, Color(255, 215, 120), 1.2f);
+      OTE_INFO("steal: %s stole %s from %s", b.units[(size_t)e.a].name.c_str(), item.c_str(),
+               e.b >= 0 && (size_t)e.b < b.units.size() ? b.units[(size_t)e.b].name.c_str() : "?");
+    } else {
+      addFloat(AbilityWords::kAgain, v.px + tile_ / 2.0f, v.py - 2, Color(190, 255, 190), 1.1f);
+      OTE_INFO("refresh: %s may act again", b.units[(size_t)e.b].name.c_str());
+    }
+    cur_.dur = 0.4f;
+    return true;
+  }
   if (e.type != EventType::AbilityUsed) return false;
   const bool ok = e.a >= 0 && (size_t)e.a < units.size() && (size_t)e.a < b.units.size() && e.b >= 0 &&
                   (size_t)e.b < b.db->abilities.size();
@@ -40,6 +59,7 @@ bool BattleView::beginAbilities(const Battle& b) {
 
 bool BattleView::progressAbilities(const Battle&) {
   const Event& e = cur_.ev;
+  if (e.type == EventType::ItemStolen || e.type == EventType::UnitRefreshed) return true;
   if (e.type != EventType::AbilityUsed) return false;
   if (e.a >= 0 && (size_t)e.a < units.size()) {
     hasFocus = true;
@@ -49,6 +69,9 @@ bool BattleView::progressAbilities(const Battle&) {
   return true;
 }
 
-bool BattleView::finishAbilities(const Battle&) { return cur_.ev.type == EventType::AbilityUsed; }
+bool BattleView::finishAbilities(const Battle&) {
+  const EventType t = cur_.ev.type;
+  return t == EventType::AbilityUsed || t == EventType::ItemStolen || t == EventType::UnitRefreshed;
+}
 
 }  // namespace ote

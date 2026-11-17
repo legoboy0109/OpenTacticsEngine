@@ -124,6 +124,23 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
   }
 }
 
+// After the unit used a staff (docs/SRPG.md "A staff used"): its "staffUse" blocks, in skill-list order, judged with the staff's group
+// (the "weapon" condition tests it). They run after the use is spent and the order has ended, like the blocks after a combat.
+void Battle::skillsStaffUse(int unit, const std::string& group, std::vector<Event>& events) {
+  if (db->skills.empty()) return;
+  Unit& u = units[(size_t)unit];
+  if (!u.alive || u.cell == kNoCell) return;
+  std::vector<int> list;
+  skillsOf(u, -1, list);
+  SkillCtx ctx;
+  ctx.unit = unit;
+  ctx.weapon = restingWeapon(u);
+  ctx.staffGroup = &group;
+  for (int s : list)
+    for (const SkillBlock& b : db->skills[(size_t)s].blocks)
+      if (units[(size_t)unit].alive && b.when == SkillWhen::StaffUse && skillBlockHolds(b, ctx)) runTimedBlock(unit, -1, s, b, ctx, events);
+}
+
 // The start of the active side's turn: its units in id order, each one's blocks in skill-list order.
 void Battle::skillsTurnStart(std::vector<Event>& events) {
   if (db->skills.empty()) return;

@@ -1,5 +1,6 @@
 // Small shared pieces of the K2 skill code (docs/SRPG.md "Skills"): the context a fighter's blocks are judged with,
 // conditions and chances. Nothing here rolls or changes the battle.
+#include <algorithm>
 #include <cmath>
 
 #include "core/battle/battle.h"
@@ -21,7 +22,49 @@ SkillCtx Battle::skillCombatCtx(const CombatSetup& setup, int unit) const {
   return ctx;
 }
 
+// The one place a fighter's skills for a fight are gathered (docs/SRPG.md "Switch off the foe's skills"): its own list for the weapon it
+// fights with, minus what the foe's "nullifySkills" switches off. Forecast, strikes, auras and notes all come through here.
 void Battle::skillCombatList(const CombatSetup& setup, int unit, std::vector<int>& out) const {
+  skillsOfFighter(setup, unit, out);
+  if (!db->nullifySkills || out.empty()) return;
+  const int foe = unit == setup.attacker ? setup.defender : setup.attacker;
+  std::vector<int> foeList;
+  skillsOfFighter(setup, foe, foeList);
+  const SkillCtx foeCtx = skillCombatCtx(setup, foe);
+  // What the foe's "combat" blocks (whose conditions hold) switch off. A skill that itself has such an effect is never switched off:
+  // when both fighters have one, each loses everything but the nullifying skill.
+  std::vector<const SkillEffect*> fx;
+  for (int s : foeList)
+    for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
+      if (b.when != SkillWhen::Combat || b.aura) continue;
+      bool any = false;
+      for (const SkillEffect& e : b.effects) any = any || e.kind == SkillEffect::Kind::NullifySkills;
+      if (!any || !skillBlockHolds(b, foeCtx)) continue;
+      for (const SkillEffect& e : b.effects)
+        if (e.kind == SkillEffect::Kind::NullifySkills) fx.push_back(&e);
+    }
+  if (fx.empty()) return;
+  for (size_t i = 0; i < out.size();) {
+    const int s = out[i];
+    const SkillDef& def = db->skills[(size_t)s];
+    bool exempt = def.hidden;  // a condition's blocks (section 9) are never switched off
+    for (const SkillBlock& b : def.blocks)
+      for (const SkillEffect& e : b.effects) exempt = exempt || e.kind == SkillEffect::Kind::NullifySkills;
+    bool off = false;
+    if (!exempt)
+      for (const SkillEffect* e : fx) {
+        if (e->value == 0) off = true;
+        else if (e->value == 1) off = off || std::find(e->skillIds.begin(), e->skillIds.end(), s) != e->skillIds.end();
+        else off = off || std::find(def.tags.begin(), def.tags.end(), e->names[0]) != def.tags.end();
+      }
+    if (off) out.erase(out.begin() + (long)i);
+    else ++i;
+  }
+}
+
+// A fighter's own skills for this fight (before anything is switched off): the weapon it fights with; a defender with nothing that can
+// answer has no weapon skills.
+void Battle::skillsOfFighter(const CombatSetup& setup, int unit, std::vector<int>& out) const {
   const bool atk = unit == setup.attacker;
   const int w = atk ? setup.weaponA : setup.weaponD;
   skillsOf(units[(size_t)unit], w >= 0 ? w : -2, out);

@@ -4,6 +4,8 @@
 //
 // Skills load before weapons, items and unit types, so those can name them and get indices at once; what a skill's
 // own blocks name (weapon groups, terrain, unit types, abilities) is checked last, in resolveSkillRefs.
+#include <algorithm>
+
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_srpg.h"
@@ -49,12 +51,12 @@ bool loadSkills(const std::string& path, Database& db, std::string& err) {
     for (const SkillDef& o : db.skills)
       if (o.id == s.id) return c.fail(where, "duplicate id");
     for (const Json::Member& m : e.members())
-      if (m.first != "id" && m.first != "name" && m.first != "description" && m.first != "blocks")
-        return c.fail(where, "unknown key \"" + m.first + "\" (expected \"id\", \"name\", \"description\", \"blocks\")");
+      if (m.first != "id" && m.first != "name" && m.first != "description" && m.first != "blocks" && m.first != "tags")
+        return c.fail(where, "unknown key \"" + m.first + "\" (expected \"id\", \"name\", \"description\", \"tags\", \"blocks\")");
     s.name = s.id;
     const Json* blocks;
     if (!c.str(e, "name", where, s.name) || !c.str(e, "description", where, s.description) ||
-        !c.array(e, "blocks", where, blocks, true))
+        !c.stringList(e, "tags", where, s.tags) || !c.array(e, "blocks", where, blocks, true))
       return false;
     if (blocks->size() == 0) return c.fail(where, "\"blocks\" needs at least one block");
     if ((int)blocks->size() > kMaxSkillBlocks)
@@ -114,6 +116,22 @@ bool resolveSkillRefs(const std::string& root, Database& db, std::string& err) {
       if (!resolveSkillConds(c, db, where, block.conds) || !resolveBlockConditions(c, db, where, block)) return false;
       for (size_t i = 0; i < block.effects.size(); ++i) {
         SkillEffect& e = block.effects[i];
+        const std::string at = where + ": effect " + std::to_string(i + 1);
+        if (e.kind == SkillEffect::Kind::NullifySkills && e.value == 1) {
+          for (const std::string& id : e.names) {
+            const int k = db.findSkill(id);
+            if (k < 0) return c.fail(at, "\"nullifySkills\" names unknown skill \"" + id + "\"");
+            e.skillIds.push_back(k);
+          }
+        } else if (e.kind == SkillEffect::Kind::NullifySkills && e.value == 2) {
+          bool any = false;
+          for (const SkillDef& o : db.skills) any = any || std::find(o.tags.begin(), o.tags.end(), e.names[0]) != o.tags.end();
+          if (!any) return c.fail(at, "\"nullifySkills\" names no skill tag \"" + e.names[0] + "\" (a skill's \"tags\")");
+        } else if (e.kind == SkillEffect::Kind::StaffRange && !e.names.empty()) {
+          bool any = false;
+          for (const StaffDef& st : db.staves) any = any || st.gear.group == e.names[0];
+          if (!any) return c.fail(at, "\"staffRange\" names no staff group \"" + e.names[0] + "\"");
+        }
         if (e.kind != SkillEffect::Kind::Ability) continue;
         e.ability = db.findAbility(e.abilityId);
         if (e.ability < 0)

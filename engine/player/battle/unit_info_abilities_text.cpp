@@ -25,6 +25,18 @@ std::string abilityEffectText(const Database& db, const AbilityDef& def) {
       if (def.unlockNeeds >= 0 && (size_t)def.unlockNeeds < db.items.size()) t += ", wears a " + db.items[(size_t)def.unlockNeeds].name;
       return t;
     }
+    case AbilityEffect::Steal:
+      return def.stealWeapons ? (def.stealEquipped ? "Takes any item it carries" : "Takes an item it carries, weapons too (not the one in hand)")
+                              : "Takes an item it carries (not weapons)";
+    case AbilityEffect::Refresh: return def.refreshPerTurn > 1 ? "Lets it act again (up to " + num(def.refreshPerTurn) + " times a turn)" : "Lets it act again";
+    case AbilityEffect::MovePast: return "Moves you to the far side of it";
+    case AbilityEffect::Cure: {
+      if (def.cureAll) return "Cures every condition";
+      std::string t;
+      for (int c : def.cures)
+        if (c >= 0 && (size_t)c < db.conditions.size()) t = join(t, db.conditions[(size_t)c].name);
+      return "Cures " + t;
+    }
     case AbilityEffect::Summon: {
       const SummonDef& s = def.summon;
       std::string name = s.type >= 0 && (size_t)s.type < db.unitTypes.size() ? db.unitTypes[(size_t)s.type].name : s.typeId;
@@ -72,6 +84,13 @@ std::string abilityStatusText(const Battle& b, const Unit& u, int ability) {
   if (use && use->wait > 0) t = join(t, "ready in " + plural(use->wait, "turn", "turns"));
   else if (use && use->turn) t = join(t, "used this turn");
   return t;
+}
+
+std::string stealReasonText(const std::string& why, bool shortForm) {
+  if (why == "weapons cannot be stolen") return shortForm ? "no weapons" : "weapons cannot be taken";
+  if (why == "the equipped weapon") return shortForm ? "in hand" : "the weapon in hand";
+  if (why == "cannot be stolen") return shortForm ? "not takeable" : "cannot be taken";
+  return why;
 }
 
 std::string abilityShortReason(const std::string& reason) {

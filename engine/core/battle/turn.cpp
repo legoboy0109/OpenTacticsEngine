@@ -35,6 +35,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
       // The turn flags of "move again" / "act again" (docs/SRPG.md) start over with them.
       u.moveSpent = 0;
       u.acted = u.refreshed = false;
+      u.refreshedBy.clear();  // docs/SRPG.md "Refresh an ally"
     }
 
   Event e;

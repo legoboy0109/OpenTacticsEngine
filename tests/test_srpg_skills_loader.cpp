@@ -135,7 +135,7 @@ TEST(skills_loader_refusals_of_blocks_and_effects) {
          {R"({ "when": "combat", "aura": { "to": "allies" }, "do": [ { "hit": 1, "to": "foe" } ] })", "\"to\" cannot be used with \"hit\" in an aura block"},
          {R"({ "when": "combat", "do": [ { "drain": 50 } ] })",
           "skill \"x\": block 1: \"drain\" cannot be used in a \"combat\" block (it belongs to: strike)"},
-         {R"({ "when": "always", "do": [ { "heal": 5 } ] })", "\"heal\" cannot be used in an \"always\" block (it belongs to: turnStart, defeat, afterCombat)"},
+         {R"({ "when": "always", "do": [ { "heal": 5 } ] })", "\"heal\" cannot be used in an \"always\" block (it belongs to: turnStart, defeat, afterCombat, staffUse)"},
          {R"({ "when": "always", "if": [ { "unit": "hero" } ], "do": [ { "stats": { "hp": 2 } } ] })",
           "skill \"x\": block 1: a bonus to \"hp\" cannot have a condition"},
          {R"({ "when": "always", "do": [ { "stats": { "hp": 2 }, "growths": { "hp": 1 } } ] })", "has two effects"},

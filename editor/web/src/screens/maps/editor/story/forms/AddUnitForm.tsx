@@ -14,6 +14,7 @@ import { ItemListEditor } from '../../../../../ui/ItemListEditor'
 import { NumberInput } from '../../../../../ui/NumberInput'
 import { TextInput } from '../../../../../ui/TextInput'
 import { Check, Toggle } from '../../../../../ui/Toggle'
+import { UnitSkills } from '../../panels/UnitSkills'
 import { AreaField } from '../AreaField'
 import { IdInput } from '../../../../../ui/IdInput'
 import { SidePick, TypePick } from '../pickers'
@@ -49,6 +50,7 @@ export function AddUnitForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
           <NumberInput value={u.level} min={1} allowEmpty placeholder="1" onChange={(v) => set({ level: v }, 'level')} />
         </Field>
       )}
+      <UnitSkills doc={doc} value={u.skills} onChange={(v) => set({ skills: v }, 'skills')} />
       <Check checked={!!u.leader} label={S.unitLeader} onChange={(v) => set({ leader: v ? true : undefined })} />
       <Field label={S.storyName} help={S.storyNameHelp}>
         <IdInput value={u.id ?? ''} validate={validate} onChange={setId} placeholder={S.unitStoryPlaceholder} />

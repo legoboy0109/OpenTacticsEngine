@@ -25,6 +25,7 @@ import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import type { Cell } from '../../../../model/mapGrid'
 import { UnitRankOverride } from './UnitRankOverride'
+import { UnitSkills } from './UnitSkills'
 import { T } from '../text'
 
 interface Props { mapId: string; cell: Cell; say: (m: string | null) => void }
@@ -106,6 +107,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
         </div>
       )}
       <UnitRankOverride mapId={mapId} cell={cell} classId={typeId} />
+      <UnitSkills doc={doc} value={unit.skills} onChange={(v) => patch({ skills: v })} />
       <FieldGroup label={T.statsTitle} help={T.statsHelp}>
         <table className="kv">
           <tbody>

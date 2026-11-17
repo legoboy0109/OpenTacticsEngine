@@ -932,8 +932,18 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
   `FormulaNumber`; a combat stat bonus per stat in `StatRows.tsx`); follow-up strike, follow-up threshold, weapon triangle effect, weapon experience,
   not slowed by carrying, "effective against" cancelled, cures conditions, and "Not after attacking" under move again. `skillRules.ts` holds the tables
   (`STRIKE_ONLY`: the counterattack test only in strike / struck rules; `FORMULA_EFFECTS`), `skillChecks.ts` mirrors the loader's refusals. The Weapons
-  screen has "Kind of damage". **Not in the editor** (hand-edit; the helper keeps the keys): a character's `tags` (the Characters screen is another job's),
-  `skills` on a map unit or `addUnit`, `rules.promotion.classSkills`.
+  screen has "Kind of damage". The three keys that were hand-edit only now have controls (below, "Second set").
+- **Second set** (docs/SRPG.md "Skill and ability blocks, second set"):
+  - Skills: a "staffUse" point ("After using a staff"; heal and cure only, a heal there goes to the unit itself), the effects "Switches off the foe's skills"
+    (all / only these skills / the skills with a tag: `EffectFields.tsx` `NullifyFields`), "Staves reach further" (`StaffRangeFields`: extra squares, every staff or one
+    group) and "Carrying capacity bonus"; the Terrain test has "Match: one kind of ground / any of several" (a list of ids and tags: `ConditionFields.tsx`); a skill's form has
+    "Tags" (chips; `model/skills.ts` `allSkillTags`). Tables in `skillRules.ts`, mirrored refusals in `skillChecks.ts`, sentences in `skillText.ts`.
+  - Abilities: effects "Steal an item" (an optional "Only if (formula)", "Weapons can be taken", "The weapon in hand can be taken too": `model/abilities.ts` `setSteal`, defaults
+    written as `true`), "Let it act again" (times a unit can be refreshed in a turn), "Move past it" and "Cure conditions" (all or a pick of conditions). Steal has no range of
+    its own (a neighbour). Items: when the game has a steal ability (or an item already says so) the item form has "Can be stolen" (`"stealable": false` when off).
+  - Characters: "Labels" (a character's `tags`). Maps: a placed unit's panel and the "Add a unit" command form have "Skills of its own" (`panels/UnitSkills.tsx`); deleting a
+    skill takes it off those too (`srpgRefs.ts` `cleanSkill`). Rules: the Promotion card has "Skills of the old class" (`rules.promotion.classSkills`).
+  - Still hand-edit: a map unit's `"goesFor": ["steal"]` (the helper keeps it). **Tests**: unit `skillblocks2`; API `editor_api_skills_checks.py`; e2e `srpg-skillblocks2.spec.ts`.
 - **Installer** (`StarterDialog.tsx`, data in `model/starterSkills.ts`, the same list as `editor/templates/strategy-rpg/data/skills.json`; a unit test compares them).
 - **Cards**: unit type and character (Skills + Learns at a level), accessory item (only the accessory kind), weapon: all through `screens/skills/SkillsCard.tsx`.
   An accessory needs a bonus or a skill (the check and help text say so). Changing an item away from accessory drops its skills.

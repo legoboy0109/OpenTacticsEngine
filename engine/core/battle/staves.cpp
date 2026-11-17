@@ -72,9 +72,23 @@ void Battle::staffRange(const Unit& u, int item, int& minRange, int& maxRange) c
   if (s->rangeExpr < 0) {
     minRange = s->minRange;
     maxRange = s->maxRange;
-    return;
+  } else {
+    maxRange = whole(staffEval(s->rangeExpr, u, nullptr, *s, kNoCell, 0), kMaxStaffRange);
   }
-  maxRange = whole(staffEval(s->rangeExpr, u, nullptr, *s, kNoCell, 0), kMaxStaffRange);
+  // "staffRange" skills (docs/SRPG.md "Staff range bonus"): the number, [min, max] and formula forms all raise the maximum. The one
+  // place reach is worked out, so the menu, the player's reach display, the rules and the computer opponent agree.
+  const int bonus = staffRangeBonus(u, s->gear.group);
+  if (bonus > 0) maxRange = std::min(kMaxStaffRange, maxRange + bonus);
+}
+
+int Battle::staffRangeBonus(const Unit& u, const std::string& group) const {
+  if (!db->staffRangeSkills) return 0;
+  std::vector<const SkillEffect*> fx;
+  standingEffects(u, false, fx);
+  int sum = 0;
+  for (const SkillEffect* e : fx)
+    if (e->kind == SkillEffect::Kind::StaffRange && (e->names.empty() || e->names[0] == group)) sum += e->value;
+  return sum;
 }
 
 int Battle::staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffect& fx, const Unit& t, Cell from) const {
