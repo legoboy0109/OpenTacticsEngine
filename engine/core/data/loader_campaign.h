@@ -30,6 +30,11 @@ class CampaignLoader {
   }
 
   // A scene: a list of commands. `allowGoto`: only the "after" scene may name the next chapter.
+  // Parties (docs/EVENTS.md "Parties"), loader_campaign_parties.cpp: the "parties" list (read before the chapters).
+  bool readParties(const Json& root);
+  // A chapter's "party" value: it must be one of the campaign's parties.
+  bool partyRef(const Json& v, const std::string& at, const char* key, std::string& out) const;
+
   bool scene(const Json& list, const std::string& where, bool allowGoto, std::vector<SceneCommand>& out);
   // A chapter's "before" / "after": a scene, or { "music": "id", "commands": [...] } (docs/SOUND.md), which is the
   // same scene with a playMusic command in front.
@@ -43,6 +48,7 @@ class CampaignLoader {
   bool supportCommand(const Json& e, const std::string& where, SceneCommand& out);
   bool supportCondition(const Json& e, const std::string& where, SceneCondition& out) const;
   bool choiceCommand(const Json& e, const std::string& at, bool allowGoto, SceneCommand& out);  // loader_campaign_choice.cpp
+  bool partyCommand(const Json& e, const std::string& at, SceneCommand& out);                   // loader_campaign_parties.cpp
   bool storeItemsCommand(const Json& e, const std::string& at, SceneCommand& out);              // loader_campaign_extras.cpp
 
   const Database& db_;

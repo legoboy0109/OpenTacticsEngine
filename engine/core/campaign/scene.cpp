@@ -172,6 +172,8 @@ struct SceneRun {
         }
         break;
       case K::StoreItems: sceneStoreItems(db, pt, c); break;
+      case K::SwitchParty: switchParty(db, pt, c.party); break;
+      case K::MergeParties: mergeParties(db, pt, c.parties, c.party); break;
       case K::GiveResource: {
         CarriedSide& s = pt.sideCarry(c.side, db.resources.size());
         for (const Amount& a : c.amounts) {
@@ -228,6 +230,7 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
   const ChapterDef& ch = cd->chapters[(size_t)pt.chapter];
   SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, MapDef()};
   if (which == SceneKind::Before) {
+    if (!ch.party.empty()) switchParty(db, pt, ch.party);  // the chapter's "party": active from the start of its scene
     r.run(ch.before);
     if (r.halted) return true;
     // A "goto" in a before scene skips this chapter's battle: the chapter it names is next, starting with its own before scene.
