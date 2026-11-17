@@ -28,14 +28,14 @@ interface Props {
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
   { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addSupport'] },
-  { group: S.commandGroups.give, kinds: ['giveItem', 'giveResource', 'grantResearch'] },
+  { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
   { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
 ]
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
-const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
+const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound']
 
 /** The menu of commands, grouped. A kind that cannot be used yet says why in its name and cannot be chosen. */
 function menu(story: Story, talk: boolean): OptionGroup[] {
@@ -46,6 +46,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     teachSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
     forgetSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
     giveItem: doc.items?.length ? null : 'no items yet',
+    takeItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',
     grantResearch: doc.research?.length ? null : 'no technologies yet',
     setSwitch: doc.game?.switches?.length ? null : 'no switches yet',

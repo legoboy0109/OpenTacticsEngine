@@ -62,6 +62,15 @@ struct Trigger {
   int label = -1;      // Talk: index into StoryData::texts
 };
 
+// A number a setVariable / addVariable takes from a unit instead of a written one (docs/EVENTS.md "Reading a unit's
+// numbers"). Shared by event commands and campaign scene commands. Kind::None = the command uses its written number.
+struct UnitReading {
+  enum class Kind { None, Level, Hp, MaxHp, Stat };
+  Kind kind = Kind::None;
+  std::string unit;  // the unit (event: a unit id of the map; scene: a roster id)
+  int stat = -1;     // Stat: index into Database::stats
+};
+
 struct Command;
 
 // One answer of a Choice command (docs/EVENTS.md "Dialogue choices"): its wording, an optional condition that hides
@@ -82,21 +91,25 @@ struct Command {
     Promote, TeachSkill, ForgetSkill, AddSupport,
     // docs/EVENTS.md "Dialogue choices": asks the question `text` (speaker as in Say) and runs the commands of the
     // picked answer; `index` = the variable that receives the picked answer's number (1 = the first answer), -1 = none.
-    Choice
+    Choice,
+    // docs/EVENTS.md "Taking an item away": removes one copy (`on` = every copy) of item `item` from every existing
+    // unit matching `filter`; nothing for a unit that carries none.
+    TakeItem
   };
   Kind kind = Kind::Say;
   // Say, Choice
   int text = -1, speakerName = -1, portrait = -1;  // indices into StoryData::texts (-1 = none); PlayMusic / PlaySound: `text` is the track / sound id
   std::string unit;      // Say: speaker unit id; MoveUnit / Focus: the unit ("" = a square)
   MapUnitDef newUnit;    // AddUnit
-  UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem: which units
+  UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem, TakeItem: which units
   int x = 0, y = 0;      // MoveUnit, Focus (a square)
   int side = -1;         // ChangeSide, GiveResource, GrantResearch: side index
   int team = -1;         // Win, Lose: team index
-  int item = -1;         // GiveItem
+  int item = -1;         // GiveItem, TakeItem
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
-  bool on = false;       // SetSwitch
+  bool on = false;       // SetSwitch; TakeItem: every copy
+  UnitReading reading;   // SetVariable / AddVariable: where the number comes from when it is not `value`
   int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)
   int objectives = -1;   // Objective: index into StoryData::objectives
   std::vector<Condition> cond;                // If

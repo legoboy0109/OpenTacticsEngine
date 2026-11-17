@@ -46,6 +46,7 @@ export function findUsages(doc: ProjectDoc, kind: RefKind, id: string): Usage[] 
       { const sk = skillsUseStat(doc, id); if (sk.length) out.push({ section: 'skills', text: `${sk.length} skill${sk.length === 1 ? '' : 's'} use${sk.length === 1 ? 's' : ''} it: ${sk.slice(0, 5).join(', ')}${sk.length > 5 ? ` and ${sk.length - 5} more` : ''} (it is taken out of them; a rule or skill left empty goes)` }) }
       out.push(...statCapUsageLines(doc, id))
       out.push(...economyUsageLines(doc, 'stat', id))
+      out.push(...storyUsages(doc, [{ kind: 'stat', id }]))
       break
     case 'resource':
       for (const u of units) if (u.cost && id in u.cost) out.push({ section: 'units', text: `Unit "${u.name}" has a cost in it` })

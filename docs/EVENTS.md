@@ -127,8 +127,9 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "moveUnit": "eirik", "x": 3, "y": 4 }` | refined: the unit is put there (no path is walked; the entry gives the squares it left and reached, the player may animate it); if the square is taken, the nearest free one as for `addUnit`. Does not spend its move. Fires `reach` events |
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
+| `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
 | `{ "giveResource": { "gold": 500 }, "side": "blue" }` | may be negative; a side's funds never go below zero |
-| `{ "setSwitch": id, "to": true }`, `{ "setVariable": id, "to": 3 }`, `{ "addVariable": id, "by": 1 }` | |
+| `{ "setSwitch": id, "to": true }`, `{ "setVariable": id, "to": 3 }`, `{ "addVariable": id, "by": 1 }` | the number may instead be read from a unit: `{ "setVariable": id, "level": "eirik" }` (see "Reading a unit's numbers" below) |
 | `{ "objective": { … } }` | replaces the current objectives (below) |
 | `{ "win": "blue" }` / `{ "lose": "blue" }` | ends the battle for that team (refined: a team name or a side id). `lose` leaves the win to the only other team still in the battle, nobody if there are several. The first decision stands; the rest of the event still runs |
 | `{ "if": [conditions], "then": [commands], "else": [commands] }` | `then` required, `else` optional |
@@ -142,6 +143,72 @@ non-repeating event can still run at a later occurrence of its trigger.
 fires while another runs (a `reach` caused by `moveUnit`, a `won` event caused
 by `win`) waits in a queue, so every event sees what the previous one left.
 At most 100 events run in one go; the next one is cut with a logged error.
+
+### Reading a unit's numbers
+
+`setVariable` and `addVariable` take their number either written (`"to"` / `"by"`) or **read from a unit** when the command runs. Give
+exactly one reading instead of the number:
+
+```json
+{ "setVariable": "bar", "level": "eirik" }                      // the unit's level (the one the player sees)
+{ "addVariable": "bar", "level": "lyra" }
+{ "addVariable": "bar", "hp": "eirik" }                         // hit points now (map events only)
+{ "addVariable": "bar", "maxHp": "eirik" }                      // most hit points
+{ "addVariable": "bar", "stat": "str", "of": "eirik" }          // a stat of the game (game.json "stats"); "of" is the unit
+```
+
+Because the result is an ordinary variable, sums and bars use the existing `variable` condition. Worked example (neutral names): the
+guard Edda survives the chapter if her level plus the squire Bram's level reaches 7:
+
+```json
+{ "id": "check", "when": { "turn": 5 }, "do": [
+  { "setVariable": "bar", "level": "edda" },
+  { "addVariable": "bar", "level": "bram" },
+  { "if": [ { "variable": "bar", "op": ">=", "value": 7 } ],
+    "then": [ { "say": "Edda stands firm.", "speaker": "edda" } ],
+    "else": [ { "removeUnit": { "unit": "edda" } }, { "say": "Edda is lost." } ] } ] }
+```
+
+- **The unit** is named as other commands name one (`moveUnit`, `say`'s `speaker`): the unit's story `id`, which for a unit placed from
+  data/characters.json is its character id. A map event may only name an `id` that the map (or an earlier `addUnit`) gives a unit; a campaign
+  scene names a roster id and, as `alive` / `dead` do, only has the shape of the id checked (the character may join in a later chapter).
+- **What reads as 0:** a unit that is not on the map yet (an `addUnit` that has not run), one that was removed (`removeUnit`, `changeSide` does
+  not remove), one that was defeated, and in a campaign scene a character who is not in the roster or whose entry is `gone` (fell in an
+  earlier chapter under `"fallen": "gone"`). A unit that is carried (rescued) still exists and is read. A character that fell under
+  `"fallen": "return"` is in the roster and not gone, so it is read normally. A negative stat stays negative; the result is kept
+  within the usual +-1,000,000,000.
+- **Which number:** `level` is `Unit.level` (the roster's `level` in a scene), i.e. the level shown on the unit: after a promotion that
+  resets the level (`rules.promotion.levelAfter`) it is the new, reset level; the engine keeps no separate total level. `hp` is current hit
+  points (never negative). `maxHp` and `stat` are the stats as the rules see them (own value plus accessories, research, skills and
+  carry bonuses). In a scene they are the roster's own stored values, without accessories or research (a scene has no map and no sides);
+  `hp` is refused there because the roster keeps no hit points between battles (a chapter begins at full strength).
+- **Loader refusals** (each names the map or file, the event and the command): both a number and a reading (`give "to" (a number) or a
+  reading from a unit, not both`); more than one reading; `stat` without `of` (or `of` with anything else); an empty unit id; a unit id the
+  map does not know (map events); an unknown stat (`game.json "stats"`); `hp` in a scene.
+- Saves need nothing new: the variable is saved like any variable and the reading happens when the command runs.
+
+### Taking an item away
+
+`{ "takeItem": "salve", "from": <unit filter>, "all": true }` removes one copy of the item (the first in the unit's inventory) from every
+**existing** unit matching `from` (on the board, or carried by another unit), or every copy with `"all": true` (default false). Filters are the
+same as `giveItem`'s `to`. A unit that carries none is left alone, silently. If the item was the weapon a unit fights with (carried weapons,
+docs/ITEMS.md), nothing else is needed: the equipped weapon is simply the first wieldable item still carried, so the unit falls back to
+its next usable weapon or fights unarmed. The shared storage is not touched (`giveItem` does not fill it except when a unit has no room).
+It works in every trigger, including `battle: "start"` and `defeated`. Because the inventory is saved with the battle and carried into the
+roster at the end of the chapter, a taken item stays gone through save / load and into later chapters.
+
+In a campaign scene: `{ "takeItem": "salve", "from": "eirik", "all": true }` where `from` is a roster id (only the shape is checked); it
+removes the item from that character's carried belongings, so it is gone in every later chapter. A character who is not in the roster (or who
+is gone) is left alone. Loader refusals: an unknown item (`"takeItem" names unknown item "x"`), a missing `from`, an unknown unit id (map
+events), a bad `all`.
+
+Three uses (neutral names):
+
+```json
+{ "id": "lost_blade", "when": { "battle": "won" }, "do": [ { "takeItem": "oak_blade", "from": "edda" } ] }        // a weapon gone after a battle
+{ "id": "strip", "when": { "battle": "start" }, "do": [ { "takeItem": "healing_herb", "from": { "side": "blue" }, "all": true } ] }  // all of one item removed at battle start
+{ "id": "return", "when": { "turn": 4 }, "do": [ { "giveItem": "healing_herb", "to": { "side": "blue" } } ] }     // ... given back later
+```
 
 ### What the player gets (event stream)
 
@@ -289,7 +356,7 @@ is wording (default: "Campaign" / the chapter id).
 with `text` = the id and `fadeMs`, and the player acts on them when it reaches them; nothing in the playthrough changes), `say`
 (`speaker` = a roster unit id, only checked for being a well-formed id since the
 unit may join later; or `speakerName`; optional `portrait`), `setSwitch`,
-`setVariable`, `addVariable`, `giveResource` (`"side": "<side id>"`: added to what that
+`setVariable`, `addVariable` (also reading a roster unit's level, most hit points or a stat: "Reading a unit's numbers"), `takeItem` ("Taking an item away"), `giveResource` (`"side": "<side id>"`: added to what that
 side carries; a side id is only checked for being well-formed because scenes
 know no map), `if` with the conditions `switch`, `variable`, `alive` / `dead` (a
 roster id) and `{ "goto": "<chapter id>" }` (also inside `if`; in a `before` scene it skips the chapter's battle, see "Dialogue choices"), `choice` ("Dialogue choices").

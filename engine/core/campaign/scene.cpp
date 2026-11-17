@@ -26,6 +26,19 @@ int clampStory(long long v) {
   return (int)std::max(-lim, std::min(lim, v));
 }
 
+// The number a scene command reads from a roster unit: 0 when the character is not in the roster or is gone (fell in
+// an earlier chapter under "fallen": "gone"). A fallen unit that "returns" is not gone and is read.
+int readRoster(const Database& db, const Playthrough& pt, const UnitReading& r) {
+  const RosterUnit* u = pt.findUnit(r.unit);
+  if (!u || u->gone) return 0;
+  switch (r.kind) {
+    case UnitReading::Kind::Level: return u->level;
+    case UnitReading::Kind::MaxHp: return db.rules.statHp >= 0 && (size_t)db.rules.statHp < u->stats.size() ? u->stats[(size_t)db.rules.statHp] : 0;
+    case UnitReading::Kind::Stat: return r.stat >= 0 && (size_t)r.stat < u->stats.size() ? u->stats[(size_t)r.stat] : 0;
+    default: return 0;
+  }
+}
+
 struct SceneRun {
   const Database& db;
   Playthrough& pt;
@@ -140,9 +153,20 @@ struct SceneRun {
         break;
       }
       case K::SetSwitch: pt.switches[(size_t)c.index] = c.on ? 1 : 0; break;
-      case K::SetVariable: pt.variables[(size_t)c.index] = c.value; break;
+      case K::SetVariable: pt.variables[(size_t)c.index] = c.reading.kind == UnitReading::Kind::None ? c.value : clampStory(readRoster(db, pt, c.reading)); break;
       case K::AddVariable:
-        pt.variables[(size_t)c.index] = clampStory((long long)pt.variables[(size_t)c.index] + c.value);
+        pt.variables[(size_t)c.index] = clampStory((long long)pt.variables[(size_t)c.index] +
+                                                     (c.reading.kind == UnitReading::Kind::None ? c.value : readRoster(db, pt, c.reading)));
+        break;
+      case K::TakeItem:
+        for (RosterUnit& r : pt.roster) {
+          if (r.id != c.unit || r.gone) continue;
+          for (size_t s = 0; s < r.items.size();) {
+            if (r.items[s].item != c.item) { ++s; continue; }
+            r.items.erase(r.items.begin() + (long)s);
+            if (!c.on) break;
+          }
+        }
         break;
       case K::GiveResource: {
         CarriedSide& s = pt.sideCarry(c.side, db.resources.size());

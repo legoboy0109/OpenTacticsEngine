@@ -26,6 +26,23 @@ int clampStory(long long v) {
   return (int)std::max(-lim, std::min(lim, v));
 }
 
+// The number a setVariable / addVariable reads from a unit (docs/EVENTS.md "Reading a unit's numbers"). A unit that is
+// not on the map yet, was removed or was defeated reads 0; a carried (rescued) unit still exists and is read.
+int readUnitNumber(const Battle& b, const UnitReading& r) {
+  const int i = b.unitByStoryId(r.unit);
+  if (i < 0) return 0;
+  const Unit& u = b.units[(size_t)i];
+  if (!b.exists(u)) return 0;
+  switch (r.kind) {
+    case UnitReading::Kind::Level: return u.level;  // the level shown on the unit (a promotion may have reset it)
+    case UnitReading::Kind::Hp: return std::max(0, u.hp);
+    case UnitReading::Kind::MaxHp: return b.maxHp(u);
+    case UnitReading::Kind::Stat: return b.stat(u, r.stat);  // as the rules see it, accessories and research included
+    case UnitReading::Kind::None: break;
+  }
+  return 0;
+}
+
 }  // namespace
 
 // The free square nearest to `target` (by grid distance, lowest cell index on a tie) that a unit
@@ -169,6 +186,19 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         giveTo(i, s, 0, events);
       }
       break;
+    case K::TakeItem:
+      // A unit that exists (on the board, or carried: R1) loses one copy, the first in its inventory, or all of them.
+      // The equipped weapon is simply the first wieldable item left, so it falls back by itself (docs/ITEMS.md).
+      for (int i = 0; i < unitCount; ++i) {
+        if (!exists(units[(size_t)i]) || !unitMatches(c.filter, units[(size_t)i])) continue;
+        std::vector<ItemStack>& items = units[(size_t)i].items;
+        for (size_t s = 0; s < items.size();) {
+          if (items[s].item != c.item) { ++s; continue; }
+          items.erase(items.begin() + (long)s);
+          if (!c.on) break;
+        }
+      }
+      break;
     case K::GiveResource:
       for (const Amount& a : c.amounts) {
         // Funds never go below zero (nor past the save limit).
@@ -184,10 +214,12 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
       storyState.switches[(size_t)c.index] = c.on ? 1 : 0;
       break;
     case K::SetVariable:
-      storyState.variables[(size_t)c.index] = c.value;
+      storyState.variables[(size_t)c.index] =
+          c.reading.kind == UnitReading::Kind::None ? c.value : clampStory(readUnitNumber(*this, c.reading));
       break;
     case K::AddVariable:
-      storyState.variables[(size_t)c.index] = clampStory((long long)storyState.variables[(size_t)c.index] + c.value);
+      storyState.variables[(size_t)c.index] = clampStory((long long)storyState.variables[(size_t)c.index] +
+                                                                (c.reading.kind == UnitReading::Kind::None ? c.value : readUnitNumber(*this, c.reading)));
       break;
     case K::Objective:
       storyState.objectives = c.objectives;

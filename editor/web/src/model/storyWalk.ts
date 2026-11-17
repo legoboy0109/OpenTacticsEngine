@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -221,11 +221,17 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withFilter(x, 'from', w, where),
     (x) => withRef(x, 'side', 'side', w, where),
     (x) => withRef(x, 'giveItem', 'item', w, where),
+    (x) => withRef(x, 'takeItem', 'item', w, where),
     (x) => withRef(x, 'grantResearch', 'tech', w, where),
     (x) => withRef(x, 'playMusic', 'music', w, where),
     (x) => withRef(x, 'playSound', 'sound', w, where),
     (x) => (typeof x.to === 'object' && x.to !== null ? withFilter(x, 'to', w, where) : x),
     (x) => withRef(x, 'setSwitch', 'switch', w, where),
+    (x) => withRef(x, 'level', 'unit', w, where), // a variable command that reads a unit
+    (x) => withRef(x, 'hp', 'unit', w, where),
+    (x) => withRef(x, 'maxHp', 'unit', w, where),
+    (x) => withRef(x, 'of', 'unit', w, where),
+    (x) => withRef(x, 'stat', 'stat', w, where),
     (x) => withRef(x, 'setVariable', 'variable', w, where),
     (x) => withRef(x, 'addVariable', 'variable', w, where),
     (x) => withRef(x, 'win', 'teamOrSide', w, where),

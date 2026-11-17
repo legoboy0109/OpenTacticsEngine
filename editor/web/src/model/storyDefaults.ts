@@ -100,6 +100,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }
     case 'teachSkill': return { teachSkill: c.doc.skills?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'forgetSkill': return { forgetSkill: c.doc.skills?.[0]?.id ?? '', from: defaultFilter(c) }
+    case 'takeItem': return { takeItem: c.doc.items?.[0]?.id ?? '', from: c.scene ? firstUnit(c) : defaultFilter(c) }
     case 'giveItem': return { giveItem: c.doc.items?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'grantResearch': return { grantResearch: c.doc.research?.[0]?.id ?? '', side: firstSide(c) }
     case 'giveResource': {

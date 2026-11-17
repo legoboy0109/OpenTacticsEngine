@@ -1,9 +1,10 @@
-// Commands that give something: an item to units, resources to a side.
-import type { Command } from '../../../../../model/storyTypes'
+// Commands that give or take something: an item to / from units, resources to a side.
+import { asFilter, type Command } from '../../../../../model/storyTypes'
 import { setNum } from '../../../../../model/util'
 import { FieldGroup } from '../../../../../ui/Field'
 import { NumberInput } from '../../../../../ui/NumberInput'
-import { FilterPicker, ItemPick, SidePick, TechPick } from '../pickers'
+import { Check } from '../../../../../ui/Toggle'
+import { FilterPicker, ItemPick, SidePick, TechPick, UnitPick } from '../pickers'
 import { useStory } from '../StoryContext'
 import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
@@ -15,6 +16,22 @@ export function GiveItemForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <ItemPick label={S.giveItem} value={cmd.giveItem ?? ''} onChange={(v) => patch({ giveItem: v })} />
       <FilterPicker label={S.giveItemTo} value={typeof cmd.to === 'object' ? cmd.to : {}} onChange={(f) => patch({ to: f ?? {} })} />
       <p className="help">{S.giveItemHelp}</p>
+    </div>
+  )
+}
+
+/** An item taken away from units (map events) or from one character of the party (campaign scenes). */
+export function TakeItemForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { scene } = useStory()
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <ItemPick label={S.takeItem} value={cmd.takeItem ?? ''} onChange={(v) => patch({ takeItem: v })} />
+      {scene
+        ? <UnitPick label={S.takeItemFromScene} value={typeof cmd.from === 'string' ? cmd.from : ''} onChange={(v) => patch({ from: v })} />
+        : <FilterPicker label={S.takeItemFrom} value={asFilter(cmd.from) ?? {}} onChange={(f) => patch({ from: f ?? {} })} />}
+      <Check label={S.takeItemAll} help={S.takeItemAllHelp} checked={cmd.all === true} onChange={(v) => patch({ all: v ? true : undefined })} />
+      <p className="help">{scene ? S.takeItemHelpScene : S.takeItemHelp}</p>
     </div>
   )
 }

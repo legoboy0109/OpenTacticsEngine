@@ -3,6 +3,7 @@ import { withGame } from './doc'
 import { repairFormulasForStat } from './formulas'
 import { makeId, RESERVED_STAT_IDS } from './ids'
 import { cleanStat } from './references'
+import { scrubDoc } from './storyRefs'
 import { moveItem, updateById } from './util'
 import type { ProjectDoc } from './types'
 
@@ -39,6 +40,6 @@ export function statRemovalBlock(doc: ProjectDoc, id: string): string | null {
 export function removeStat(doc: ProjectDoc, id: string): ProjectDoc {
   if (!doc.game || statRemovalBlock(doc, id)) return doc
   const repaired = withGame(doc, (g) => repairFormulasForStat(g, id))
-  const cleaned = cleanStat(repaired, id)
+  const cleaned = scrubDoc(cleanStat(repaired, id), [{ kind: 'stat', id }]) // story commands that read this stat go too
   return withGame(cleaned, (g) => ({ ...g, stats: g.stats.filter((s) => s.id !== id) }))
 }

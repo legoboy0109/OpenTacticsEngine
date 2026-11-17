@@ -104,12 +104,23 @@ export interface Command extends Extra {
   /** A skill id taught to (`to` filter) or forgotten by (`from` filter) every matching unit (docs/SRPG.md "Skills"). */
   teachSkill?: string
   forgetSkill?: string
-  from?: Filter
+  /** Who loses it: a filter (forgetSkill; takeItem in a map event) or a roster id (takeItem in a campaign scene). */
+  from?: Filter | string
+  /** takeItem: an item id; `from` says who loses it, `all: true` takes every copy (else one). */
+  takeItem?: string
+  all?: boolean
   giveResource?: Record<string, number>
   setSwitch?: string
   setVariable?: string
   addVariable?: string
   by?: number
+  /** setVariable / addVariable: the number comes from a unit instead of `to` / `by` (docs/EVENTS.md "Reading a unit's numbers"). One of
+   *  `level`, `hp`, `maxHp` (each holds the unit's id) or `stat` (a stat id, with `of` = the unit's id). */
+  level?: string
+  hp?: string
+  maxHp?: string
+  stat?: string
+  of?: string
   objective?: Objectives
   win?: string
   lose?: string
@@ -129,12 +140,12 @@ export interface Command extends Extra {
   playSound?: string
 }
 export type CommandKind =
-  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'giveResource'
+  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'giveResource',
+  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport',
 ]
@@ -170,6 +181,13 @@ export function conditionKind(c: Condition): ConditionKind | null {
 
 export function commandKind(c: Command): CommandKind | null {
   return COMMAND_KINDS.find((k) => has(c, k)) ?? null
+}
+
+/** Where a variable command takes its number from: written in the command, or read from a unit. */
+export type NumberSource = 'number' | 'level' | 'hp' | 'maxHp' | 'stat'
+export const NUMBER_SOURCES: NumberSource[] = ['number', 'level', 'hp', 'maxHp', 'stat']
+export function numberSource(c: Command): NumberSource {
+  return (['level', 'hp', 'maxHp', 'stat'] as const).find((k) => has(c, k)) ?? 'number'
 }
 
 export function ruleKind(r: ObjectiveRule): RuleKind | null {
