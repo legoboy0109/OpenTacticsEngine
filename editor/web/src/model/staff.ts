@@ -3,7 +3,7 @@
 // show (an effect of a later stage, any key a hand-edited file has) exactly as it is.
 import { groupsOf } from './ranks'
 import { dropGroupRanks, renameGroupRefs } from './rankRefs'
-import { MOVE_KINDS, hasFx, isLightStaff } from './staffFx'
+import { MOVE_KINDS, hasFx, isLightStaff, isSquareStaff } from './staffFx'
 import type { Item, ItemTarget, ProjectDoc, StaffArea } from './types'
 import { withItems } from './doc'
 import { patchObj, setNum, updateById } from './util'
@@ -112,7 +112,7 @@ export const setReachFormula = (doc: ProjectDoc, id: string, text: string): Proj
  *  refuses are not made at all: "yourself" for a staff that pulls or swaps (it needs another unit), "an enemy" for one that heals. */
 export function setStaffTarget(doc: ProjectDoc, id: string, target: ItemTarget): ProjectDoc {
   const cur = doc.items?.find((x) => x.id === id)
-  if (isLightStaff(cur)) return doc // a light picks a square: it has no target
+  if (isSquareStaff(cur)) return doc // a light or an unlock picks a square: it has no target
   if (target === 'self' && hasFx(cur, ['pull', 'swap'])) return doc
   if (target === 'foe' && hasFx(cur, ['heal'])) return doc
   return updateItem(doc, id, target === 'self' ? { target, range: undefined, area: undefined } : { target: target === 'ally' ? undefined : target })
@@ -129,7 +129,7 @@ export const needsSingleArea = (item: Item | undefined): boolean => hasFx(item, 
 
 export function setAreaMode(doc: ProjectDoc, id: string, mode: AreaMode): ProjectDoc {
   const cur = doc.items?.find((x) => x.id === id)
-  if (mode !== 'single' && (needsSingleArea(cur) || isLightStaff(cur))) return doc
+  if (mode !== 'single' && (needsSingleArea(cur) || isSquareStaff(cur))) return doc
   const area: StaffArea | undefined = mode === 'single' ? undefined : mode === 'all' ? 'all' : { radius: 1 }
   return areaModeOf(doc.items?.find((x) => x.id === id) ?? ({} as Item)) === mode ? doc : updateItem(doc, id, { area })
 }

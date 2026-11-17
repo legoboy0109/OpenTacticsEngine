@@ -1,6 +1,7 @@
 // What a new trigger, condition, command or objective entry starts as: valid where it can be (the first thing that
 // exists is picked), so the files stay loadable while the maker fills the form in. Changing a kind starts again
 // from the new kind's default.
+import { firstPlaceFor, firstPlaceForEvent } from './placeStory'
 import { namedUnits, teamsOf } from './storyIds'
 import { pairsOf } from './supports'
 import {
@@ -67,6 +68,7 @@ export function newTrigger(c: DefCtx, kind: TriggerKind): Trigger {
     }
     case 'promoted': return { promoted: defaultFilter(c) }
     case 'support': return { support: firstPair(c.doc) }
+    case 'place': return { place: firstPlaceForEvent(c.doc, c.map, 'opened'), is: 'opened' }
   }
 }
 
@@ -129,6 +131,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'playMusic': return { playMusic: Object.keys(c.doc.audio?.music ?? {})[0] ?? '' }
     case 'stopMusic': return { stopMusic: true }
     case 'playSound': return { playSound: Object.keys(c.doc.audio?.sounds ?? {})[0] ?? '' }
+    case 'openDoor': case 'closeDoor': case 'lockDoor': case 'unlockDoor': case 'openChest': return { [kind]: firstPlaceFor(c.doc, c.map, kind) }
   }
 }
 

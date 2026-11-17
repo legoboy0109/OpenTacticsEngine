@@ -2,6 +2,7 @@
 // points at) is deleted. Pure functions returning new documents, so a delete and its clean-up are one undo step.
 import { allGear } from './gear'
 import { entryId, withoutItem } from './itemGrants'
+import { placeItemUsageLines } from './placeRefs'
 import { cleanItemPromotions, itemPromotionUsageLines } from './promotionRefs'
 import { groupRankUsageLines } from './rankRefs'
 import { scrubMap, storyUsages } from './storyRefs'
@@ -25,6 +26,7 @@ export function itemUsageLines(doc: ProjectDoc, id: string): Usage[] {
     for (const s of m.sides ?? []) if (holds(s.storage, id)) out.push({ section: 'maps', text: `Map “${mapName(doc, mid)}”: side “${s.name || s.id}” starts with it in storage` })
   }
   out.push(...itemPromotionUsageLines(doc, id))
+  out.push(...placeItemUsageLines(doc, id))
   // The last staff of a group takes the starting ranks in that group with it (docs/SRPG.md section 8).
   const group = doc.items?.find((i) => i.id === id && i.kind === 'staff')?.group
   if (group && !allGear(doc).some((g) => !(g.owner === 'item' && g.id === id) && g.keys.group === group)) out.push(...groupRankUsageLines(doc, group))

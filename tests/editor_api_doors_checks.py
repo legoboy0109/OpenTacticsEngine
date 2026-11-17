@@ -1,6 +1,6 @@
 """Doors, keys, chests and visiting checks of the ote-editor API test (docs/SRPG.md section 10, docs/EDITOR_UI.md "Doors, chests and
-places: hand-edited"). There is no editor form for them yet; what matters is that the helper keeps every new key untouched through
-a load and a save: the "door" / "chest" / "visit" blocks and "blocksSight" of structure kinds, a key item's "opens", the "unlock"
+places"). The editor now has forms for them (the shapes they write are checked at the end); the first thing that matters is that the
+helper keeps every key untouched through a load and a save: the "door" / "chest" / "visit" blocks and "blocksSight" of structure kinds, a key item's "opens", the "unlock"
 effect of an ability and of a staff, a map structure's "id" / "contents" / "locked" / "visitSides" / "visitUnits", a map unit's
 "goesFor", events with a "place" trigger and the door commands, and game.json's rules.places. The scratch project is the committed
 fixture tests/fixtures/srpg-doors. Called from editor_api_test.py; uses its helpers."""
@@ -66,3 +66,64 @@ def run_doors_checks(api, tmp, games, templates, check, get_project, put_project
     st, res = put_project(api, pid, d, d["revision"], structures=kinds)
     st, p = api.json("GET", "/api/projects/%s/problems" % pid)
     check("doors: and the fixed list is accepted again", st == 200 and p["problems"] == [], p)
+
+    # The shapes the editor's forms write (docs/EDITOR_UI.md "Doors, chests and places"): story-only door, a one-kind unlock staff and ability, the
+    # automatic rule. Each is accepted by the real loader; the mistakes the forms and checks guard against are refused in its words.
+    st, d = get_project(api, pid)
+    kinds = d["structures"]
+    for s in kinds:
+        if s["id"] == "cell_door":
+            s["door"] = {"opens": "cell_door_open", "locked": False, "by": [], "from": "on"}   # keys went with "A key"
+    items = d["items"]
+    for i in items:
+        if i["id"] == "wild_staff":
+            i["effects"] = [{"unlock": ["chest"]}]
+    abilities = d["abilities"]
+    for a in abilities:
+        if a["id"] == "deft":
+            a["effect"] = {"unlock": {"needs": "lockpick"}}
+    game = d["game"]
+    game.setdefault("rules", {})["places"] = {"actions": "auto"}
+    st, res = put_project(api, pid, d, d["revision"], game=game, structures=kinds, items=items, abilities=abilities)
+    check("doors: the shapes the forms write are accepted", st == 200, (st, res))
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("doors: a story-only door, one-kind staff, lockpick ability and rules.places auto load", st == 200 and p["problems"] == [], p)
+    check("doors: the file keeps them as written", read("data/structures.json")["structures"][2]["door"]["by"] == [] and
+          read("game.json")["rules"]["places"] == {"actions": "auto"} and read("data/items.json")["items"][8]["effects"] == [{"unlock": ["chest"]}])
+
+    # A chest with nothing inside, a door that stops nobody, a break with no hit points: refused in the loader's words.
+    st, d = get_project(api, pid)
+    hall = d["maps"]["hall"]
+    hall["structures"][2].pop("contents")
+    st, res = put_project(api, pid, d, d["revision"], maps=d["maps"], structures=d["structures"], items=d["items"], abilities=d["abilities"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("doors: a chest with no contents is a problem naming the map file",
+          any("needs \"contents\"" in x["message"] and x["file"] == "maps/hall.json" for x in p["problems"]), p)
+    st, d = get_project(api, pid)   # each accepted save moves the revision on
+    d["maps"]["hall"]["structures"][2]["contents"] = ["potion", {"resource": "gold", "amount": 50}]
+    kinds = d["structures"]
+    for s in kinds:
+        if s["id"] == "cell_door":
+            s["moveCost"] = {"foot": 1}
+    st, res = put_project(api, pid, d, d["revision"], maps=d["maps"], structures=kinds, items=d["items"], abilities=d["abilities"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("doors: a door that stops no kind of unit is a problem",
+          any("a door must stop at least one movement type" in x["message"] for x in p["problems"]), p)
+    st, d = get_project(api, pid)
+    kinds = d["structures"]
+    for s in kinds:
+        if s["id"] == "cell_door":
+            s["moveCost"] = {"foot": 0, "fly": 0}
+            s["door"]["by"] = ["break"]
+    st, res = put_project(api, pid, d, d["revision"], maps=d["maps"], structures=kinds, items=d["items"], abilities=d["abilities"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("doors: breaking without hit points is a problem",
+          any("\"by\" has \"break\" but the door has no \"hp\"" in x["message"] for x in p["problems"]), p)
+    # Put it right again: the project is accepted once more.
+    st, d = get_project(api, pid)
+    for s in d["structures"]:
+        if s["id"] == "cell_door":
+            s["door"] = {"opens": "cell_door_open", "keys": ["brass_key", "master_key"]}
+    st, res = put_project(api, pid, d, d["revision"], structures=d["structures"], maps=d["maps"], items=d["items"], abilities=d["abilities"])
+    st, p = api.json("GET", "/api/projects/%s/problems" % pid)
+    check("doors: and the corrected door is accepted again", st == 200 and p["problems"] == [], p)

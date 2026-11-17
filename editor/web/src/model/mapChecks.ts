@@ -5,6 +5,7 @@ import { audioChecks } from './audioChecks'
 import { typeIdOf } from './characterUnits'
 import { fogChecks } from './fogChecks'
 import { itemChecks } from './itemChecks'
+import { placeChecks } from './placeChecks'
 import { storyChecks } from './storyChecks'
 import { prepChecks } from './prepChecks'
 import { ctxOf } from './mapCtx'
@@ -56,6 +57,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   // What the loader would refuse about the items on this map (placed units' items, sides' storage).
   const mapId = Object.keys(doc.maps).find((k) => doc.maps[k] === map)
   itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
+  // Doors, chests, places and the computer's goals: what the loader refuses and what is probably not meant (docs/SRPG.md section 10).
+  placeChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `places:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))
   // What the player's sound loader would refuse about this map's music keys.
   audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))

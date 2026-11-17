@@ -3,7 +3,7 @@
 import { useId } from 'react'
 import { groupsOf } from '../../../model/ranks'
 import { STAFF_RADIUS_MAX, STAFF_RANGE_MAX, areaModeOf, needsSingleArea, radiusOf, reachExample, reachOf, setAreaMode, setRadius, setReachFormula, setReachMax, setReachMin, setReachMode, setStaffGroup, setStaffTarget, type AreaMode, type ReachMode } from '../../../model/staff'
-import { hasFx, isLightStaff } from '../../../model/staffFx'
+import { hasFx, isLightStaff, isSquareStaff } from '../../../model/staffFx'
 import type { ItemTarget } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
@@ -26,7 +26,8 @@ export function StaffUseCard({ id }: { id: string }) {
   const self = target === 'self'
   const reach = reachOf(item)
   const area = areaModeOf(item)
-  const light = isLightStaff(item)
+  const light = isSquareStaff(item) // a light or an unlock picks a square, not a unit
+  const lightOnly = isLightStaff(item)
   const noSelf = hasFx(item, ['pull', 'swap'])
   const singleOnly = needsSingleArea(item)
   // "An enemy" is offered only to a staff that does not heal (healing refuses it); a file that has it keeps it shown, so the select never lies.
@@ -77,7 +78,7 @@ export function StaffUseCard({ id }: { id: string }) {
               </Field>
             )}
 
-            {light ? <p className="help" data-testid="staff-light-note">{S.lightUse}</p> : (
+            {light ? <p className="help" data-testid="staff-light-note">{lightOnly ? S.lightUse : S.unlockUse}</p> : (
               <Field label={S.area} help={singleOnly ? S.areaSingleOnly : S.areaHelp}>
                 <Select value={area} options={(Object.keys(S.areaModes) as AreaMode[]).map((m) => ({ value: m, label: S.areaModes[m], disabled: singleOnly && m !== 'single' }))}
                   onChange={(v) => edit((d) => setAreaMode(d, id, v as AreaMode))} />

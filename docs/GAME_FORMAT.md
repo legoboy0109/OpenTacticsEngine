@@ -161,7 +161,7 @@ the ground's movement costs. Ids are unique among structures.
 A structure kind may also be a **door**, a **chest** or a **visitable place** (a village), with a `"door"`, `"chest"` or `"visit"` block, and may say
 `"blocksSight": true` (fog: units do not see past it). Opening, visiting or destroying one turns it into another kind of the same size.
 Keys, the thief's ability, the unlock staff, the map keys (`id`, `contents`, `locked`, `visitSides`, `visitUnits`) and `"goesFor"` on units are
-specified in docs/SRPG.md section 10; the editor has no forms for them (docs/EDITOR_UI.md).
+specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR_UI.md).
 
 ## data/weapons.json
 

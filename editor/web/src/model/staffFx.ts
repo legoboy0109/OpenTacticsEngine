@@ -5,7 +5,7 @@ import type { Extra, Item } from './types'
 
 export const MOVE_KINDS = ['warp', 'pull', 'swap'] as const
 export type MoveKind = (typeof MOVE_KINDS)[number]
-export const STAFF_EFFECT_KINDS = ['heal', 'warp', 'pull', 'swap', 'repair', 'light', 'inflict', 'cure']
+export const STAFF_EFFECT_KINDS = ['heal', 'warp', 'pull', 'swap', 'repair', 'light', 'inflict', 'cure', 'unlock']
 
 /** The one key of an effect (`{ "heal": 5 }` is "heal"); undefined for anything that is not an object with exactly one key. */
 export function fxKind(e: unknown): string | undefined {
@@ -23,7 +23,7 @@ export const hasFx = (item: Item | undefined, kinds: readonly string[]): boolean
 
 /** Indexes of the effects the form edits: the first heal, the first move, the first repair, the first light, the first inflict and cure. */
 export function handledIndexes(item: Item | undefined): number[] {
-  return [fxIndex(item, ['heal']), fxIndex(item, MOVE_KINDS), fxIndex(item, ['repair']), fxIndex(item, ['light']), fxIndex(item, ['inflict']), fxIndex(item, ['cure'])].filter((i) => i >= 0)
+  return [fxIndex(item, ['heal']), fxIndex(item, MOVE_KINDS), fxIndex(item, ['repair']), fxIndex(item, ['light']), fxIndex(item, ['inflict']), fxIndex(item, ['cure']), fxIndex(item, ['unlock'])].filter((i) => i >= 0)
 }
 
 /** How many effects the form leaves alone and keeps: kinds it does not know, a second heal, a second move, anything malformed. */
@@ -31,3 +31,7 @@ export const keptEffectCount = (item: Item | undefined): number => fxList(item).
 
 /** A light staff: one of its effects is a light. */
 export const isLightStaff = (item: Item | undefined): boolean => hasFx(item, ['light'])
+/** An unlock staff (docs/SRPG.md section 10): one unlock effect; it picks a square of a door or chest. */
+export const isUnlockStaff = (item: Item | undefined): boolean => hasFx(item, ['unlock'])
+/** A staff that picks a square, not a unit (light or unlock): it is exactly one effect, with no target, area or "only if". */
+export const isSquareStaff = (item: Item | undefined): boolean => isLightStaff(item) || isUnlockStaff(item)

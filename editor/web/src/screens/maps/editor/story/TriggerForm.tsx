@@ -1,4 +1,5 @@
 // "When": the kind of trigger and that kind's fields. Areas are picked on the map as well as typed.
+import { placesOf } from '../../../../model/placeStory'
 import { patchEvent, setTriggerKind } from '../../../../model/storyEdit'
 import { rectOf, triggerKind, type StoryEvent, type TriggerKind } from '../../../../model/storyTypes'
 import { patchObj } from '../../../../model/util'
@@ -10,12 +11,14 @@ import { AreaField } from './AreaField'
 import { PairPick, SupportLevelPick } from './forms/SupportForms'
 import { FilterPicker, SidePick, UnitPick } from './pickers'
 import { useStory } from './StoryContext'
+import { PlaceTriggerForm } from './forms/PlaceForms'
+import { P } from './forms/placeText'
 import { S } from './text'
 
 const GROUPS: Array<{ group: string; kinds: TriggerKind[] }> = [
   { group: S.triggerGroups.battle, kinds: ['start', 'won', 'lost', 'end'] },
   { group: S.triggerGroups.turns, kinds: ['turn', 'everyTurn'] },
-  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support'] },
+  { group: S.triggerGroups.units, kinds: ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place'] },
 ]
 
 export function TriggerForm({ event }: { event: StoryEvent }) {
@@ -25,10 +28,11 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
   const kind = triggerKind(when)
   const setWhen = (p: Record<string, unknown>, key?: string) => apply((m) => patchEvent(m, event.id, { when: patchObj(when, p) }), key && `event:${event.id}:when:${key}`)
   const firstSide = map.sides?.[0]?.id ?? ''
+  const hasPlaces = placesOf(story.doc, map).some((p) => p.kind !== null) || kind === 'place'
   return (
     <div className="stack tight" data-testid="trigger-form">
       <Field label={S.when} help={S.whenHelp}>
-        <Select data-learn="event-when" value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => (k === 'support' && !story.doc.supports?.pairs?.length ? { value: k, label: `${S.triggerKinds[k]} (no support pairs yet)`, disabled: true } : { value: k, label: S.triggerKinds[k] })) }))}
+        <Select data-learn="event-when" value={kind ?? 'start'} options={GROUPS.map((g) => ({ group: g.group, options: g.kinds.map((k) => (k === 'support' && !story.doc.supports?.pairs?.length ? { value: k, label: `${S.triggerKinds[k]} (no support pairs yet)`, disabled: true } : k === 'place' && !hasPlaces ? { value: k, label: `${S.triggerKinds[k]} (${P.noneYetShort})`, disabled: true } : { value: k, label: S.triggerKinds[k] })) }))}
           onChange={(k) => apply((m) => setTriggerKind(m, event.id, k as TriggerKind, story))} />
       </Field>
       {(kind === 'turn' || kind === 'everyTurn') && (
@@ -67,6 +71,7 @@ export function TriggerForm({ event }: { event: StoryEvent }) {
           <SupportLevelPick pair={when.support} value={when.level} onChange={(l) => setWhen({ level: l })} />
         </>
       )}
+      {kind === 'place' && <PlaceTriggerForm event={event} />}
       {kind === 'talk' && (
         <>
           <UnitPick label={S.talkWho} value={when.talk ?? ''} onChange={(v) => setWhen({ talk: v })} help={S.talkHelp} />

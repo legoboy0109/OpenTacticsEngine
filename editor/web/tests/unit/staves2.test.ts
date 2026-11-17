@@ -196,7 +196,7 @@ describe('a light staff', () => {
     expect(setHit(lit, 'lantern_staff', '50')).toBe(lit)
   })
   it('is refused while the staff has an effect the editor does not know (nothing is dropped)', () => {
-    const odd = updateItem(base(), 'mend_staff', { effects: [{ heal: 4 }, { unlock: 'door' }] })
+    const odd = updateItem(base(), 'mend_staff', { effects: [{ heal: 4 }, { wizardry: 'door' }] })
     expect(unknownEffectCount(item(odd, 'mend_staff'))).toBe(1)
     expect(setLightOn(odd, 'mend_staff', true)).toBe(odd)
   })
@@ -204,11 +204,11 @@ describe('a light staff', () => {
 
 describe('what the form does not understand is kept', () => {
   it('an unknown effect, a second heal and a second move stay when other parts are edited', () => {
-    const odd = updateItem(base(), 'mend_staff', { effects: [{ unlock: 'door' }, { heal: 4 }, { heal: 9 }, { pull: true }, { swap: true }], mystery: 3 })
+    const odd = updateItem(base(), 'mend_staff', { effects: [{ wizardry: 'door' }, { heal: 4 }, { heal: 9 }, { pull: true }, { swap: true }], mystery: 3 })
     expect(keptEffectCount(item(odd, 'mend_staff'))).toBe(3)
     let d = setHealKind(odd, 'mend_staff', 'full')
     d = setMoveKind(d, 'mend_staff', 'warp')
-    expect(item(d, 'mend_staff').effects).toEqual([{ unlock: 'door' }, { heal: 'full' }, { heal: 9 }, { warp: { range: 3 } }, { swap: true }])
+    expect(item(d, 'mend_staff').effects).toEqual([{ wizardry: 'door' }, { heal: 'full' }, { heal: 9 }, { warp: { range: 3 } }, { swap: true }])
     expect(item(d, 'mend_staff').mystery).toBe(3)
   })
 })
@@ -270,7 +270,7 @@ describe('the checks name every stage-two refusal', () => {
     expect(l({ radius: 2 })).toBe('')
   })
   it('an unknown effect, and an effect that is not one thing', () => {
-    expect(bad([{ unlock: 'door' }])).toContain('“unlock”, which a staff cannot do')
+    expect(bad([{ wizardry: 'door' }])).toContain('“wizardry”, which a staff cannot do')
     expect(bad([{ heal: 1, warp: { range: 2 } }])).toContain('must be one thing')
     expect(bad([])).toContain('1 to 4 effects')
     expect(bad([{ heal: 1 }, { heal: 1 }, { heal: 1 }, { heal: 1 }, { heal: 1 }])).toContain('1 to 4 effects')

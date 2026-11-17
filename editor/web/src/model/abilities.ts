@@ -8,8 +8,8 @@ import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
 import type { Extra, ProjectDoc } from './types'
 
-export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure'
-export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure']
+export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock'
+export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock']
 /** The five that move units next to the user: the loader needs a unit target and the range [1, 1]. */
 export const isMove = (k: EffectKind | null): boolean => k === 'push' || k === 'pull' || k === 'swap' || k === 'moveBehind' || k === 'movePast'
 /** Effects with no range of their own to write: the moving ones and steal (a neighbour, range [1, 1]). */
@@ -25,7 +25,7 @@ export const LIFETIME_MAX = 99
 /** Which targets each effect accepts (the loader's "target against effect" rules). */
 export const TARGETS_FOR: Record<EffectKind, AbilityTarget[]> = {
   push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'], movePast: ['ally', 'enemy', 'unit'],
-  heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'],
+  heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'], unlock: ['cell'],
 }
 
 export function effectKind(a: Ability): EffectKind | null {
@@ -94,6 +94,7 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
     case 'steal': return { steal: true }
     case 'refresh': return { refresh: true }
     case 'cure': return { cure: 'all' }
+    case 'unlock': return { unlock: true }
   }
 }
 
@@ -158,3 +159,24 @@ export const setConditions = (a: Ability, list: Extra[]): Ability => patchObj(a,
 
 /** Ability ids, so a story or a form can tell what exists. */
 export const abilityName = (doc: ProjectDoc, id: string): string => doc.abilities?.find((a) => a.id === id)?.name ?? id
+
+/** Unlock (docs/SRPG.md section 10): doors and chests without a key, optionally needing a lockpick item that wears out. `true` = both kinds. */
+export type UnlockKinds = 'both' | 'door' | 'chest'
+export interface UnlockSetting { kinds: UnlockKinds; needs: string }
+export function unlockOf(a: Ability): UnlockSetting {
+  const u = a.effect?.unlock
+  const fromList = (l: unknown): UnlockKinds => (Array.isArray(l) && l.length === 1 ? (l[0] === 'door' ? 'door' : l[0] === 'chest' ? 'chest' : 'both') : 'both')
+  if (Array.isArray(u)) return { kinds: fromList(u), needs: '' }
+  if (u && typeof u === 'object') return { kinds: fromList((u as { kinds?: unknown }).kinds), needs: typeof (u as { needs?: unknown }).needs === 'string' ? (u as { needs: string }).needs : '' }
+  return { kinds: 'both', needs: '' }
+}
+/** The simplest form that says it: true, a list of one kind, or an object when a lockpick is needed. */
+export function setUnlock(a: Ability, patch: Partial<UnlockSetting>): Ability {
+  if (effectKind(a) !== 'unlock') return a
+  const cur = { ...unlockOf(a), ...patch }
+  const list = cur.kinds === 'both' ? undefined : [cur.kinds]
+  const value = cur.needs
+    ? { ...(list ? { kinds: list } : {}), needs: cur.needs }
+    : list ?? true
+  return patchObj(a, { effect: { unlock: value as AbilityEffect['unlock'] } })
+}

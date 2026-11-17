@@ -1,7 +1,7 @@
 // The plain one-line summary of an ability ("Pushes a unit next to it 1 square away. Uses the unit’s action."), shown under
 // its form and as the list's second line. Wording is a placeholder for the owner to review (docs/SRPG.md "E3 as built").
 import { conditionsText } from './abilityConditions'
-import { effectKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf } from './abilities'
+import { effectKind, refreshPerTurn, rangeOf, stealOf, summonOf, targetOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
 import type { ProjectDoc } from './types'
 
@@ -36,6 +36,11 @@ function whatText(doc: ProjectDoc, a: Ability): string {
       const ids = Array.isArray(e.cure) ? e.cure : []
       const names = ids.map((id) => doc.conditions?.find((c) => c.id === id)?.name ?? id)
       return `cures ${e.cure === 'all' ? 'every condition of' : names.length ? `${names.join(' and ')} on` : 'nothing on'} ${whom(a)}`
+    }
+    case 'unlock': {
+      const u = unlockOf(a)
+      const lock = u.needs ? ` (needs a ${doc.items?.find((i) => i.id === u.needs)?.name ?? u.needs}, which wears out)` : ''
+      return `opens ${u.kinds === 'door' ? 'a locked door' : u.kinds === 'chest' ? 'a locked chest' : 'a locked door or chest'} on a square ${(() => { const [lo, hi] = rangeOf(a); return hi === 1 ? 'next to it' : lo === hi ? `${squares(lo)} away` : `${lo} to ${squares(hi)} away` })()} without a key${lock}`
     }
     case 'heal': return `heals ${whom(a)} ${e.heal === 'full' ? 'fully' : `by ${e.heal ?? 0}`}`
     case 'summon': {

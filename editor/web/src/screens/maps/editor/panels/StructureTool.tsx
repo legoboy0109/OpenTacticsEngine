@@ -1,4 +1,5 @@
 // The Structures tool's panel: which structure and owner to place, and the details of the selected one.
+import { fitPlaceKeys } from '../../../../model/mapPlaces'
 import { ctxOf, editMap } from '../../../../model/mapCtx'
 import type { Cell } from '../../../../model/mapGrid'
 import { changeStructureKind, removeStructureAt, setStructureOwner, structureAt } from '../../../../model/mapStructures'
@@ -11,6 +12,7 @@ import { Field } from '../../../../ui/Field'
 import { Select } from '../../../../ui/Select'
 import type { ToolState } from '../tools'
 import { T } from '../text'
+import { PlaceProps } from './PlaceProps'
 import { SidePicker, StructurePicker } from './pickers'
 
 interface Props {
@@ -54,7 +56,7 @@ export function StructureProps({ doc, map, mapId, cell, say }: { doc: ProjectDoc
   const changeKind = (type: string) => {
     const r = changeStructureKind(map, ctx, at, type)
     if (r.error) { say(r.error); return }
-    edit((d) => editMap(d, mapId, (m, c) => changeStructureKind(m, c, at, type).map))
+    edit((d) => editMap(d, mapId, (m, c) => fitPlaceKeys(d, changeStructureKind(m, c, at, type).map, at)))
   }
   return (
     <div className="stack tight" data-testid="structure-props">
@@ -69,6 +71,7 @@ export function StructureProps({ doc, map, mapId, cell, say }: { doc: ProjectDoc
             options={[{ value: '', label: T.neutral }, ...(map.sides ?? []).map((x) => ({ value: x.id, label: x.name || x.id }))]} />
         </Field>
       </div>
+      <PlaceProps doc={doc} map={map} mapId={mapId} s={s} />
       {s.side && !ownershipMatters(def) && <p className="help">{T.structureOwnerNoEffect(def?.name ?? 'This structure')}</p>}
       <button type="button" className="btn danger sm" onClick={() => edit((d) => editMap(d, mapId, (m, c) => removeStructureAt(m, c, s.x, s.y)))}>{T.structureRemove}</button>
     </div>

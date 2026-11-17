@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { staffChecks } from '../../../model/staffChecks'
 import { setStaffProp } from '../../../model/staff'
 import { updateItem } from '../../../model/items'
-import { isLightStaff } from '../../../model/staffFx'
+import { isSquareStaff } from '../../../model/staffFx'
 import type { Ability } from '../../../model/srpgTypes'
 import { useDoc, useEdit } from '../../../store/context'
 import { Banner } from '../../../ui/Banner'
@@ -53,7 +53,7 @@ export function StaffExtraCards({ id }: { id: string }) {
     <>
       <WeaponRankCard id={id} owner="item" />
       <WeaponLockCard id={id} owner="item" />
-      {!isLightStaff(item) && (
+      {!isSquareStaff(item) && (
         <AbilityConditions ability={asAbility} title={S.condTitle} help={S.condHelp} userLabel={S.condUser}
           change={(fn, key) => edit((d) => updateItem(d, id, { if: fn(asAbility).if }), key && `item:${id}:${key}`)} />
       )}

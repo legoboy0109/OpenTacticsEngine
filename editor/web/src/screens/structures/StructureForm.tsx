@@ -22,6 +22,7 @@ import { repairOn } from '../../model/supplyRules'
 import { GroundSightCard } from '../fog/GroundSightCard'
 import { Footprint, HexFootprint } from './Footprint'
 import { MovingThrough } from './MovingThrough'
+import { PlacePartsCard } from './PlaceParts'
 import { RepairsCard, ResearchHereCard } from './RepairsCard'
 import { UpgradesCard } from './UpgradesCard'
 import { T } from './text'
@@ -127,6 +128,8 @@ export function StructureForm({ id }: { id: string }) {
           columns={[{ title: T.numberCol, values: s.props, integer: false, placeholder: T.numberPlaceholder, onChange: (k, v) => edit((d) => setStructureNumber(d, id, k, v), `${key}:prop:${k}`) }]}
           addOptions={suggested.map((x) => ({ key: x.id, label: x.label }))} onAdd={(k) => edit((d) => setStructureNumber(d, id, k, 0))} addLabel={T.addNumber} />
       </Card>
+
+      <PlacePartsCard id={id} />
 
       {(showCapture || showHq) && (
         <Card>

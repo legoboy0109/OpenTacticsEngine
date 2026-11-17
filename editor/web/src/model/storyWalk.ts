@@ -12,7 +12,7 @@ import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP
@@ -81,6 +81,7 @@ function mapTrigger(t: Trigger, w: Walk, where: string): Trigger | Dropped {
     (x) => withPair(x, 'support', w, where),
     (x) => withRef(x, 'talk', 'unit', w, where),
     (x) => withRef(x, 'to', 'unit', w, where),
+    (x) => withRef(x, 'place', 'place', w, where), // a door, chest or place by its story name (docs/SRPG.md section 10)
   ])
 }
 
@@ -242,6 +243,12 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'lose', 'teamOrSide', w, where),
     (x) => (typeof x.focus === 'string' ? withRef(x, 'focus', 'unit', w, where) : x),
     (x) => withRef(x, 'goto', 'chapter', w, where),
+    (x) => withRef(x, 'openDoor', 'place', w, where),
+    (x) => withRef(x, 'closeDoor', 'place', w, where),
+    (x) => withRef(x, 'lockDoor', 'place', w, where),
+    (x) => withRef(x, 'unlockDoor', 'place', w, where),
+    (x) => withRef(x, 'openChest', 'place', w, where),
+    (x) => (x.openChest !== undefined ? withRef(x, 'by', 'unit', w, where) : x), // the unit that gets the contents
   ])
 }
 

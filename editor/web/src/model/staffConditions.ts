@@ -7,7 +7,7 @@ import { conditionList } from './conditions'
 import { CONDITION_TURNS_MAX } from './conditions'
 import { STAFF_EFFECTS_MAX } from './staff'
 import { putFx, room } from './staffEffects'
-import { fxIndex, fxList, isLightStaff } from './staffFx'
+import { fxIndex, fxList, isSquareStaff } from './staffFx'
 import type { Extra, Item, ProjectDoc } from './types'
 
 const itemOf = (doc: ProjectDoc, id: string): Item | undefined => doc.items?.find((x) => x.id === id)
@@ -18,7 +18,7 @@ export const countsTurns = (doc: ProjectDoc, id: string | undefined): boolean =>
 
 /** Why the part cannot be switched on now: 'light' (a light staff has no other effect), 'full' (four effects already), 'none' (the game has no conditions), or ''. */
 export function conditionPartBlock(doc: ProjectDoc, item: Item, kind: 'inflict' | 'cure'): '' | 'light' | 'full' | 'none' {
-  if (isLightStaff(item)) return 'light'
+  if (isSquareStaff(item)) return 'light'
   if (fxIndex(item, [kind]) >= 0) return ''
   if (conditionList(doc).length === 0) return 'none'
   return room(item) ? '' : 'full'

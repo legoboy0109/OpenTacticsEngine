@@ -33,10 +33,16 @@ export interface Trigger extends Extra {
   talk?: string
   to?: string
   label?: string
+  /** A door, chest or place of the map by its story name, and what happened to it (docs/SRPG.md section 10). `by` filters who did it. */
+  place?: string
+  is?: PlaceEvent
 }
+/** What a `place` trigger waits for. */
+export type PlaceEvent = 'opened' | 'visited' | 'destroyed'
+export const PLACE_EVENTS: PlaceEvent[] = ['opened', 'visited', 'destroyed']
 /** The kinds the editor offers (the file has six keys; battle and turn split in more). */
-export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted' | 'support'
-export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted', 'support']
+export type TriggerKind = 'start' | 'won' | 'lost' | 'end' | 'turn' | 'everyTurn' | 'reach' | 'defeated' | 'fight' | 'talk' | 'promoted' | 'support' | 'place'
+export const TRIGGER_KINDS: TriggerKind[] = ['start', 'won', 'lost', 'end', 'turn', 'everyTurn', 'reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place']
 
 export interface Condition extends Extra {
   switch?: string
@@ -144,17 +150,28 @@ export interface Command extends Extra {
   stopMusic?: boolean
   fade?: number
   playSound?: string
+  /** Doors and chests by their map story name (docs/SRPG.md section 10); `openChest` may also say who gets the contents in `by` (a unit id). Map events only. */
+  openDoor?: string
+  closeDoor?: string
+  lockDoor?: string
+  unlockDoor?: string
+  openChest?: string
+  // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
 export type CommandKind =
   | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
+  | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
+  'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest',
 ]
+/** The commands that name a door, chest or place of the map. */
+export const PLACE_COMMANDS: CommandKind[] = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest']
 
 export interface StoryEvent extends Extra {
   id: string
@@ -177,7 +194,7 @@ const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k)
 export function triggerKind(t: Trigger): TriggerKind | null {
   if (has(t, 'battle')) return t.battle === 'won' || t.battle === 'lost' || t.battle === 'end' ? t.battle : 'start'
   if (has(t, 'turn')) return t.turn === 'every' ? 'everyTurn' : 'turn'
-  for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support'] as const) if (has(t, k)) return k
+  for (const k of ['reach', 'defeated', 'fight', 'talk', 'promoted', 'support', 'place'] as const) if (has(t, k)) return k
   return null
 }
 

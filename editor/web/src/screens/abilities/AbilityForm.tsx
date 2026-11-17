@@ -31,7 +31,7 @@ export function AbilityForm({ id }: { id: string }) {
   const far = rmax > 1
   // Offer only the targets the effect accepts; the one the file has stays even when it is wrong, so the select shows it.
   const allowed = kind ? TARGETS_FOR[kind] : (Object.keys(T.targets) as AbilityTarget[])
-  const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
+  const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: kind === 'unlock' && t === 'cell' ? (far ? T.unlockTarget : T.unlockTargetNext) : far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
   const showRange = kind !== null && !hasFixedRange(kind) && target !== 'self'
 
   return (
