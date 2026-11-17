@@ -5,7 +5,9 @@
 
 namespace ote {
 
-BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool hasEffect) {
+BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool hasEffect, bool miss) {
+  if (miss && t.has[BaMiss]) return BaMiss;
+  if (crit && ranged && t.has[BaCritRanged]) return BaCritRanged;
   if (crit && t.has[BaCrit]) return BaCrit;
   if (ranged && t.has[BaRanged]) return BaRanged;
   if (hasEffect && t.has[BaCast]) return BaCast;
@@ -59,7 +61,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
     tl.beats.push_back({t0, BeatKind::StrikeStart, (int)i, a, 0, false, ""});
     // The striker.
     const FighterTimes& ft = times[a];
-    const BattleAnimId kind = attackAnimFor(ft, st.crit, s.ranged(), fx.has);
+    const BattleAnimId kind = attackAnimFor(ft, st.crit, s.ranged(), fx.has, !st.hit);
     FightPose ap;
     ap.start = t0;
     ap.anim = kind;
@@ -122,9 +124,9 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
       tl.beats.push_back({hitT, BeatKind::Miss, (int)i, d, 0, false, ""});
       FightPose dp;
       dp.start = std::max(t0, hitT - 0.12);
-      dp.anim = BaDodge;
-      dp.dur = dt.has[BaDodge] ? sec(dt.total[BaDodge]) : sec(kFallbackDodgeMs);
-      dp.fallback = !dt.has[BaDodge];
+      dp.anim = s.ranged() && dt.has[BaDodgeRanged] ? BaDodgeRanged : BaDodge;  // (dodgeRanged falls back to dodge)
+      dp.dur = dt.has[dp.anim] ? sec(dt.total[dp.anim]) : sec(kFallbackDodgeMs);
+      dp.fallback = !dt.has[dp.anim];
       dp.strike = (int)i;
       tl.poses[d].push_back(dp);
       end = std::max(end, dp.start + dp.dur);

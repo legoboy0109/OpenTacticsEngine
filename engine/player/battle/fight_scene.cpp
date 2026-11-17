@@ -103,11 +103,12 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
       }
     if (weapon >= 0) f.weapon = db.weapons[(size_t)weapon].name;
     const std::string group = weapon >= 0 ? db.weapons[(size_t)weapon].group : std::string();
-    f.set = art.resolveSet(u.character, u.type, group);
+    f.sideId = b.sides[(size_t)u.side].id;
+    f.set = art.resolveSet(u.character, u.type, group, weapon, f.sideId);
     if (f.set >= 0) {
       f.setName = art.sets[(size_t)f.set].id;
       // A set whose stand sheet has no texture (the file failed to load) is as good as none.
-      if (!env.sprites || env.sprites->texture(art.sets[(size_t)f.set].anims[BaStand].sheet) == 0) f.set = -1;
+      if (!env.sprites || env.sprites->texture(sheetOf(s, art.sets[(size_t)f.set].anims[BaStand])) == 0) f.set = -1;
     }
     if (f.set >= 0) f.times = timesOf(art.sets[(size_t)f.set]);
     if (gset && (size_t)u.type < gset->units.size() && env.sprites) {
@@ -176,6 +177,15 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   for (int s = 0; s < 2; ++s)
     OTE_INFO("battle scene: %s art: %s", fighter_[s].name.c_str(),
              fighter_[s].set >= 0 ? ("set \"" + fighter_[s].setName + "\"").c_str() : "map picture");
+  // A side's own sheet (docs/BATTLE_SCENE.md "By side"): named only when it replaces the set's, so a game without any logs as before.
+  for (int s = 0; s < 2; ++s)
+    if (fighter_[s].set >= 0) {
+      const BattleAnim& stand = art.sets[(size_t)fighter_[s].set].anims[BaStand];
+      const int sheet = sheetOf(s, stand);
+      if (sheet != stand.sheet)
+        OTE_INFO("battle scene: %s sheet: \"%s\" (side %s)", fighter_[s].name.c_str(), db.graphics.sheets[(size_t)sheet].id.c_str(),
+                 fighter_[s].sideId.c_str());
+    }
   return true;
 }
 
