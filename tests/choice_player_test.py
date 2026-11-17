@@ -67,8 +67,8 @@ def answers(log):
     return [int(a) for a in re.findall(r'choice: (?:scene|battle) answer (\d+)', log)]
 
 
-def save_of(saves, slot='continue'):
-    path = os.path.join(saves, 'choice-story', slot + '.json')
+def save_of(saves, slot='continue', game='choice-story'):
+    path = os.path.join(saves, game, slot + '.json')
     return json.load(open(path)) if os.path.exists(path) else None
 
 
@@ -193,6 +193,28 @@ def scenarios(tmp):
     code, log2 = play(['--map', 'ridge'], saves=sv, inp=BATTLE_Q.replace(C(2) + ',' + C(2), C(2) + ',' + C(2)) + ',down,confirm,wait:30', frames=400)
     check('--map: the map event asks and the answer is taken', answers(log2) == [1], log2[-300:])
     check('--map: a free battle of a campaign game leaves no Continue save (as before)', save_of(sv) is None)
+
+    # 10. The very first scene asks (free speaker name only) and branches forward: a tutorial chapter or straight to chapter 1.
+    tut = os.path.join(GAMES, 'tutorial-story')
+    shutil.copytree(os.path.join(GAMES, 'choice-story'), tut)
+    json.dump({'chapters': [
+        {'id': 'start', 'name': 'Start', 'map': 'vale', 'before': [
+            {'choice': 'Play the tutorial?', 'speakerName': 'Guide', 'store': 'road', 'answers': [
+                {'text': 'Yes', 'do': [{'setSwitch': 'crossed', 'to': True}, {'goto': 'tutorial'}]},
+                {'text': 'No, straight to chapter 1', 'do': [{'goto': 'ch1'}]}]}]},
+        {'id': 'tutorial', 'name': 'Tutorial', 'map': 'vale', 'before': [{'say': 'Welcome to the tutorial.', 'speakerName': 'Guide'}]},
+        {'id': 'ch1', 'name': 'Chapter One', 'map': 'vale', 'before': [
+            {'if': [{'switch': 'crossed'}], 'then': [{'say': 'You know the basics.', 'speakerName': 'Guide'}],
+             'else': [{'say': 'No lessons, good luck.', 'speakerName': 'Guide'}]}]}]},
+        open(os.path.join(tut, 'data/campaign.json'), 'w'))
+    for pick, chapter in ((0, 'tutorial'), (1, 'ch1')):
+        sv = fresh(tmp, 'sv_tut%d' % pick)
+        inp = CARD + ',' + C(2) + ',' + ('down,' if pick else '') + 'confirm,' + C(2) + ',wait:20'
+        code, log2 = play(['--campaign'], saves=sv, inp=inp, frames=500, game='tutorial-story')
+        s = save_of(sv, game='tutorial-story')
+        check('first scene question, pick %d: the campaign goes on at chapter "%s", answer saved' % (pick, chapter),
+              answers(log2) == [pick] and s and s['chapter'] == chapter and s['playthrough']['phase'] == 'before'
+              and s['playthrough']['variables'][3] == pick + 1 and s['playthrough']['switches'][0] == (1 - pick), log2[-300:] + (json.dumps(s)[:300] if s else ' no save'))
 
 
 def main():

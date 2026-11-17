@@ -188,7 +188,14 @@ bool runSceneWith(const Database& db, Playthrough& pt, SceneKind which, std::vec
   SceneRun r{db, pt, lines, std::string(), picks, 0, false, false, false, MapDef()};
   if (which == SceneKind::Before) {
     r.run(ch.before);
-    if (!r.halted) pt.phase = Phase::Battle;
+    if (r.halted) return true;
+    // A "goto" in a before scene skips this chapter's battle: the chapter it names is next, starting with its own before scene.
+    if (!r.gotoChapter.empty() && cd->findChapter(r.gotoChapter) >= 0) {
+      pt.chapter = cd->findChapter(r.gotoChapter);
+      pt.phase = Phase::Before;
+      return true;
+    }
+    pt.phase = Phase::Battle;
     return true;
   }
   r.run(ch.after);

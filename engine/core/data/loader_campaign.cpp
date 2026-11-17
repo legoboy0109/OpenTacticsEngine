@@ -76,23 +76,27 @@ bool readChapter(CampaignLoader& L, const Database& db, const Json& e, size_t in
   ch.map = db.findMap(map);
   if (ch.map < 0) return L.fail(where, "\"map\" names unknown map " + quoted(map));
   if (!L.ctx().str(e, "next", where, ch.next)) return false;  // checked once every chapter is known
-  if (e.has("before") && !L.chapterScene(e["before"], where + ": \"before\"", false, ch.before)) return false;
+  if (e.has("before") && !L.chapterScene(e["before"], where + ": \"before\"", true, ch.before)) return false;
   if (e.has("after") && !L.chapterScene(e["after"], where + ": \"after\"", true, ch.after)) return false;
   out.chapters.push_back(ch);
   return true;
 }
 
 // next / goto name chapters that may come later in the file, so they are checked at the end.
-bool checkScene(const CampaignLoader& L, const CampaignDef& c, const std::vector<SceneCommand>& list, const std::string& where) {
+// `self` = the chapter's id for a "before" scene (a goto there may not name its own chapter: its scene would run forever), "" for "after".
+bool checkScene(const CampaignLoader& L, const CampaignDef& c, const std::vector<SceneCommand>& list, const std::string& where,
+                const std::string& self = "") {
   for (const SceneCommand& cmd : list) {
     if (cmd.kind == SceneCommand::Kind::Goto && c.findChapter(cmd.chapter) < 0)
       return L.fail(where, "\"goto\" names unknown chapter " + quoted(cmd.chapter));
+    if (cmd.kind == SceneCommand::Kind::Goto && !self.empty() && cmd.chapter == self)
+      return L.fail(where, "\"goto\" names its own chapter " + quoted(cmd.chapter) + " (a \"before\" scene can only jump to another chapter)");
     if (cmd.kind == SceneCommand::Kind::If &&
-        (!checkScene(L, c, cmd.thenDo, where) || !checkScene(L, c, cmd.elseDo, where)))
+        (!checkScene(L, c, cmd.thenDo, where, self) || !checkScene(L, c, cmd.elseDo, where, self)))
       return false;
     if (cmd.kind == SceneCommand::Kind::Choice)
       for (const SceneAnswer& a : cmd.answers)
-        if (!checkScene(L, c, a.commands, where)) return false;
+        if (!checkScene(L, c, a.commands, where, self)) return false;
   }
   return true;
 }
@@ -101,7 +105,7 @@ bool checkTargets(const CampaignLoader& L, const CampaignDef& c) {
   for (const ChapterDef& ch : c.chapters) {
     std::string where = "chapter " + quoted(ch.id);
     if (!ch.next.empty() && c.findChapter(ch.next) < 0) return L.fail(where, "\"next\" names unknown chapter " + quoted(ch.next));
-    if (!checkScene(L, c, ch.after, where + ": \"after\"")) return false;
+    if (!checkScene(L, c, ch.before, where + ": \"before\"", ch.id) || !checkScene(L, c, ch.after, where + ": \"after\"")) return false;
   }
   return true;
 }

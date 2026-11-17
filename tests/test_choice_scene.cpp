@@ -91,8 +91,9 @@ TEST(choice_scene_loader_checks_a_branch_to_a_chapter) {
   // A nested question and an `if` inside an answer are checked as well.
   CHECK(has(refuse(camp("[]", R"([{"choice":"Q?","answers":[{"text":"a","do":[{"choice":"R?","answers":[{"text":"x","do":[{"goto":"zz"}]},{"text":"y"}]}]},{"text":"b"}]}])")),
             "unknown chapter \"zz\""));
-  // "goto" picks the next chapter, so it only works after the battle.
-  CHECK(has(refuse(camp(kBranch)), "\"goto\" only works in a chapter's \"after\" scene"));
+  // A before scene may branch too (to another chapter, never its own).
+  CHECK(has(refuse(camp(R"([{"choice":"Q?","answers":[{"text":"a","do":[{"goto":"a"}]},{"text":"b"}]}])")), "names its own chapter"));
+  CHECK_STR(refuse(camp(kBranch)), "");
 }
 
 // ---- nobody to ask ----
@@ -274,4 +275,50 @@ TEST(choice_scene_hash_ignores_wording_but_not_what_the_answers_do) {
   std::string stored = base;
   stored.replace(stored.find("\"store\":\"kills\""), 15, "\"store\":\"chapters\"");
   CHECK(hashOf(base) != hashOf(stored));
+}
+
+// ---- a question in the very first scene, branching forward (a tutorial the player may skip) ----
+
+namespace {
+// "start" is the chapter whose before scene asks (speakerName only: no character exists yet); its battle is never played.
+const char* kTutorial = R"({ "chapters": [
+  { "id": "start", "map": "ford", "before": [
+      {"choice":"Play the tutorial?","speakerName":"Guide","store":"chapters","answers":[
+        {"text":"Yes","do":[{"setSwitch":"met_wanderer","to":true},{"goto":"tutorial"}]},
+        {"text":"No, straight to chapter 1","do":[{"goto":"ch1"}]}]} ] },
+  { "id": "tutorial", "map": "mill", "before": [ {"say":"Welcome to the tutorial.","speakerName":"Guide"} ] },
+  { "id": "ch1", "map": "keep", "before": [
+      {"if":[{"switch":"met_wanderer"}],"then":[{"say":"You know the basics.","speakerName":"Guide"}],"else":[{"say":"Good luck, no lessons.","speakerName":"Guide"}]} ] } ] })";
+}  // namespace
+
+TEST(choice_scene_first_scene_question_branches_forward_and_the_answer_stays_readable) {
+  struct Path { int pick; const char* chapter; const char* line; };
+  const Path paths[] = {{0, "tutorial", "Welcome to the tutorial."}, {1, "ch1", "Good luck, no lessons."}};
+  for (const Path& p : paths) {
+    Pick k;
+    CHECK(k.begin(kTutorial));
+    k.start = k.r.pt;
+    CHECK(k.play(SceneKind::Before, {}) && k.waiting());
+    CHECK_STR(k.r.lines.back().speaker, "Guide");     // a free speaker name: nobody is in the roster yet
+    CHECK(k.r.lines.back().speakerId.empty());
+    CHECK(k.play(SceneKind::Before, {p.pick}) && !k.waiting());
+    CHECK_STR(currentChapter(k.r.g.db, k.r.pt)->id, p.chapter);
+    CHECK(k.r.pt.phase == Phase::Before);              // the chapter branched to starts with its own before scene
+    CHECK_EQ(k.var("chapters"), p.pick + 1);           // the answer is saved
+    // The next scene reads it; the order goes on normally from the chapter branched to.
+    k.start = k.r.pt;
+    CHECK(k.play(SceneKind::Before, {}));
+    CHECK(k.r.said().find(p.line) != std::string::npos);
+    if (p.pick == 0) {  // the tutorial's following chapter is ch1, which reads the switch the answer set
+      CHECK(k.r.pt.phase == Phase::Battle);
+      CHECK(k.r.startBattle());
+      k.r.decide(true);
+      CHECK(finishChapterBattle(k.r.g.db, k.r.pt, k.r.b) == ChapterResult::Won);
+      std::vector<SceneLine> lines;
+      CHECK(runScene(k.r.g.db, k.r.pt, SceneKind::After, lines));
+      CHECK_STR(currentChapter(k.r.g.db, k.r.pt)->id, "ch1");
+      CHECK(k.r.scene(SceneKind::Before));
+      CHECK(k.r.said().find("You know the basics.") != std::string::npos);
+    }
+  }
 }

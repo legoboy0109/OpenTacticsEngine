@@ -57,7 +57,6 @@ enum class EventType {
   UnitRelocated,    // a=unit, b=cell it left, c=cell it now stands on (moved by an event)
   SideChanged,      // a=unit, b=old side, c=new side
   ObjectiveChanged, // a=text of the new objective (-1 = none), b=objective set
-  Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
   // Upgradable structures and research (docs/ECONOMY.md); the payments come first as ResourceChanged.
   StructureUpgraded,  // a=structure index, b=previous kind, c=new kind (indices into db->structures)
   ResearchStarted,    // a=side, b=technology (index into db->research), c=turns it takes (0 = finished at once)
@@ -90,6 +89,8 @@ enum class EventType {
   // Staves (docs/SRPG.md section 8): a=user, b=item, c=the picked unit or -1, d=units really affected / a=the unit missed, b=user, c=item.
   StaffUsed,
   StaffMissed,
+  // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
+  Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
 
 enum : int {
