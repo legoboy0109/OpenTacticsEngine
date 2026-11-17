@@ -11,6 +11,7 @@ export const T = {
   newHelp: 'For example Poison or Sleep.',
   deleteWhat: (n: string) => `the condition “${n}”`,
   checksTitle: 'Worth a look',
+  manyUnused: (n: number) => `${n} conditions are not put on any unit yet. Let staves, items, weapons, skills or events inflict them.`,
   limit: 'A game can have up to 100 conditions.',
 
   // the starter set

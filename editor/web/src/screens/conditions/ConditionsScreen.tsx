@@ -31,7 +31,12 @@ function ConditionList({ itemId }: { itemId?: string }) {
   const [result, setResult] = useState<StarterConditionsResult | null>(null)
   const go = (id?: string) => navigate(projectPath(store.id, 'conditions', id))
   const target = list.find((c) => c.id === deleting)
-  const notes = useMemo(() => conditionChecks(doc).filter((c) => !c.blocks), [doc])
+  // Right after the starter set every condition is unused: say so in one line instead of seven.
+  const notes = useMemo(() => {
+    const all = conditionChecks(doc).filter((c) => !c.blocks)
+    const unused = all.filter((c) => c.text.includes('nothing can put this'))
+    return unused.length > 3 ? [...all.filter((c) => !unused.includes(c)), { text: T.manyUnused(unused.length) }] : all
+  }, [doc])
 
   // One Undo step: the whole set goes in with one edit.
   const addStarter = () => {
