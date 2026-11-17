@@ -119,5 +119,8 @@ TEST(player_staves2_the_view_plays_a_repair_and_a_light) {
   CHECK(m.use("sage", "lantern_staff", nullptr, 7, 2));
   CHECK(plays(m, m.events, "Lit"));
   CHECK(StaffWords::kLit == std::string("Lit"));
+  Yard f("player_s2_view_blocked", "mist");  // a warp into the brush where an enemy hides unseen
+  CHECK(f.use("sage", "warp_staff", "ola", 4, 3));
+  CHECK(plays(f, f.events, "Blocked!"));
   CHECK(srpgGroupOf(kStaffItemBase + 3) == SrpgGroup::Staff && kStaffItemBase > kStaffBase + 99);
 }

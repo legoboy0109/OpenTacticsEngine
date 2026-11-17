@@ -33,7 +33,8 @@ struct StaffWords {
   static constexpr const char* kNewSquare = "new square";
   static constexpr const char* kTurn = "turn";                                // forecast: "2 turns"
   static constexpr const char* kTurns = "turns";
-  static constexpr const char* kLit = "Lit";                                  // floats over a lit square
+  static constexpr const char* kBlocked = "Blocked!";                         // floats when a warp ran into an enemy nobody had seen
+  static constexpr const char* kLit = "Lit";                               // floats over a lit square
   static constexpr const char* kOutOfRange = "Out of range";                  // a tapped square or unit that is too far
   static constexpr const char* kNotAValidTarget = "Not a valid target";
   static constexpr const char* kCannotSee = "Cannot see that unit";

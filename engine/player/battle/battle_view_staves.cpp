@@ -51,6 +51,10 @@ bool BattleView::beginStaves(const Battle& b) {
   if (e.type == EventType::StaffUsed) {
     const std::string& name = e.b >= 0 && (size_t)e.b < b.db->items.size() ? b.db->items[(size_t)e.b].name : std::string("Staff");
     addFloat(name, v.px + tile_ / 2.0f, v.py - 2, kStaffColor, 1.0f);
+    if (e.flags & kBlocked) {  // a warp sent into an enemy nobody saw: the use is spent, the unit stays
+      addFloat(StaffWords::kBlocked, v.px + tile_ / 2.0f, v.py + tile_, Color(255, 170, 90), 1.1f);
+      OTE_INFO("staff blocked: the square held an unseen unit");
+    }
     OTE_INFO("staff: %s uses %s on unit %d (%d affected)", b.units[(size_t)e.a].name.c_str(), name.c_str(), e.c, e.d);
     cur_.dur = kStaffDur;
   } else {
