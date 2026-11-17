@@ -194,6 +194,8 @@ export interface Item extends Named {
   kind: ItemKind
   /** Missing = unlimited. */
   uses?: number
+  /** Any item with `uses`: false = a staff's repair never offers it (missing = repairable; docs/SRPG.md "Staves: stage two"). */
+  repairable?: boolean
   /** Per resource; missing = not for sale. */
   price?: NumMap
   target?: ItemTarget

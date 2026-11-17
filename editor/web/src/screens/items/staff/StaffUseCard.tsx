@@ -2,7 +2,8 @@
 // The edits are model/staff.ts; this file only lays them out. One column everywhere, so it fits 360 px.
 import { useId } from 'react'
 import { groupsOf } from '../../../model/ranks'
-import { STAFF_RADIUS_MAX, STAFF_RANGE_MAX, areaModeOf, radiusOf, reachExample, reachOf, setAreaMode, setRadius, setReachFormula, setReachMax, setReachMin, setReachMode, setStaffGroup, setStaffTarget, type AreaMode, type ReachMode } from '../../../model/staff'
+import { STAFF_RADIUS_MAX, STAFF_RANGE_MAX, areaModeOf, needsSingleArea, radiusOf, reachExample, reachOf, setAreaMode, setRadius, setReachFormula, setReachMax, setReachMin, setReachMode, setStaffGroup, setStaffTarget, type AreaMode, type ReachMode } from '../../../model/staff'
+import { hasFx, isLightStaff } from '../../../model/staffFx'
 import type { ItemTarget } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
 import { Card } from '../../../ui/Card'
@@ -25,8 +26,13 @@ export function StaffUseCard({ id }: { id: string }) {
   const self = target === 'self'
   const reach = reachOf(item)
   const area = areaModeOf(item)
-  // "An enemy" is not offered (healing refuses it), but a file that has it keeps it shown, so the select never lies.
-  const targetOptions = (target === 'foe' ? [...TARGETS, 'foe' as const] : TARGETS).map((t) => ({ value: t, label: S.targets[t] }))
+  const light = isLightStaff(item)
+  const noSelf = hasFx(item, ['pull', 'swap'])
+  const singleOnly = needsSingleArea(item)
+  // "An enemy" is offered only to a staff that does not heal (healing refuses it); a file that has it keeps it shown, so the select never lies.
+  // "Only the user" is not offered to a pull or swap (they need another unit).
+  const targetOptions = (target === 'foe' || !hasFx(item, ['heal']) ? [...TARGETS, 'foe' as const] : TARGETS)
+    .map((t) => ({ value: t, label: S.targets[t], disabled: t === 'self' && noSelf && target !== 'self' }))
   const groups = groupsOf(doc)
 
   return (
@@ -38,11 +44,13 @@ export function StaffUseCard({ id }: { id: string }) {
           <datalist id={listId}>{groups.map((g) => <option key={g} value={g} />)}</datalist>
         </Field>
 
-        <Field label={S.target} help={S.targetHelp}>
-          <Select value={target} options={targetOptions} onChange={(v) => edit((d) => setStaffTarget(d, id, v as ItemTarget))} />
-        </Field>
+        {!light && (
+          <Field label={S.target} help={noSelf ? S.targetNoSelf : S.targetHelp}>
+            <Select value={target} options={targetOptions} onChange={(v) => edit((d) => setStaffTarget(d, id, v as ItemTarget))} />
+          </Field>
+        )}
 
-        {self ? <p className="help" data-testid="staff-self-note">{S.reachSelf}</p> : (
+        {self && !light ? <p className="help" data-testid="staff-self-note">{S.reachSelf}</p> : (
           <>
             <Field label={S.reach} help={S.reachHelp}>
               <Select value={reach.mode} options={(Object.keys(S.reachModes) as ReachMode[]).map((m) => ({ value: m, label: S.reachModes[m] }))}
@@ -69,11 +77,13 @@ export function StaffUseCard({ id }: { id: string }) {
               </Field>
             )}
 
-            <Field label={S.area} help={S.areaHelp}>
-              <Select value={area} options={(Object.keys(S.areaModes) as AreaMode[]).map((m) => ({ value: m, label: S.areaModes[m] }))}
-                onChange={(v) => edit((d) => setAreaMode(d, id, v as AreaMode))} />
-            </Field>
-            {area === 'radius' && (
+            {light ? <p className="help" data-testid="staff-light-note">{S.lightUse}</p> : (
+              <Field label={S.area} help={singleOnly ? S.areaSingleOnly : S.areaHelp}>
+                <Select value={area} options={(Object.keys(S.areaModes) as AreaMode[]).map((m) => ({ value: m, label: S.areaModes[m], disabled: singleOnly && m !== 'single' }))}
+                  onChange={(v) => edit((d) => setAreaMode(d, id, v as AreaMode))} />
+              </Field>
+            )}
+            {!light && area === 'radius' && (
               <Field label={S.areaRadius}>
                 <NumberInput value={radiusOf(item)} min={1} max={STAFF_RADIUS_MAX} onChange={(v) => { if (v !== undefined) edit((d) => setRadius(d, id, v), `${key}:radius`) }} />
               </Field>
