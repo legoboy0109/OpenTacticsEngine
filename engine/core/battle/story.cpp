@@ -135,6 +135,8 @@ bool Battle::conditionHolds(const Condition& c, int actor) const {
       return storyHasCondition(c);
     case Condition::Kind::Actor:
       return storyActorHolds(c, actor < -1 ? storyRun_.actor : actor);
+    case Condition::Kind::Difficulty:
+      return difficulty >= 0 && compare(c.op, difficulty, c.index);  // docs/DIFFICULTY.md
   }
   return false;
 }

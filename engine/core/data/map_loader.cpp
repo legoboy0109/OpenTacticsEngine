@@ -4,6 +4,7 @@
 #include "core/data/loader.h"
 #include "core/data/footprint.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_difficulty.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_prep.h"
@@ -117,6 +118,7 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
       s.aiSeesAll = all ? 1 : 0;
     }
     if (!c.str(e, "color", where, color)) return false;
+    if (!c.boolean(e, "difficultyShift", where, s.difficultyShift)) return false;  // docs/DIFFICULTY.md
     s.color = parseColor(color, 0xffffff);
     if (!c.amounts(db, e, "resources", where, s.resources)) return false;
     if (!readItemGrants(c, db, e, "storage", where, false, -1, s.storage)) return false;
@@ -239,7 +241,8 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
     return c.fail(where, "position is outside the map");
   return readUnitGoals(c, m, e, where, u) &&  // "goesFor" (docs/SRPG.md section 10)
-         readUnitBehaviour(c, db, m, e, where, u);  // "behaviour" (docs/AI.md)
+         readUnitBehaviour(c, db, m, e, where, u) &&  // "behaviour" (docs/AI.md)
+         readUnitDifficulty(c, db, e, where, u);  // "difficulty", "difficultyShift" (docs/DIFFICULTY.md)
 }
 
 // The second half: stats and items.
@@ -249,6 +252,10 @@ bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std
   if (ch)  // the unit type of THIS map plus the character's own stats (never below 0); the map's "stats" replace single values
     for (size_t s = 0; s < u.stats.size() && s < ch->stats.size(); ++s) u.stats[s] = std::max(0, u.stats[s] + ch->stats[s]);
   if (!c.statMap(db, e, "stats", where, u.stats)) return false;
+  if (e.has("stats")) {  // docs/DIFFICULTY.md: a stat the placement wrote itself is exact and never shifted
+    u.statExact.assign(u.stats.size(), 0);
+    for (const Json::Member& m : e["stats"].members()) u.statExact[(size_t)db.findStat(m.first)] = 1;
+  }
   if (!readRankMap(c, db, e, where, -1, u.weaponXp)) return false;  // "ranks" replaces the start of the groups it names
   std::vector<std::string> skillIds;  // "skills": added to those of its type and character
   if (!c.stringList(e, "skills", where, skillIds)) return false;
@@ -328,7 +335,7 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   std::vector<int> structureAt;
   if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !readMapBattleBackground(c, db, root, m) || !loadStructures(c, db, root, m, structureAt) ||
-      !readMapChanges(c, db, root, m) ||
+      !readMapChanges(c, db, root, m) || !readMapDifficulty(c, db, root, m) ||
       !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err) ||
       !loadMapPrep(c, db, root, m, structureAt))
     return false;

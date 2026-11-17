@@ -83,6 +83,10 @@ struct SceneRun {
         const int pair = db.findSupportPair(db.findCharacter(c.unit), db.findCharacter(c.with));
         return pair >= 0 && (size_t)pair < pt.supports.level.size() && compare(c.op, pt.supports.level[(size_t)pair], c.value);
       }
+      case SceneCondition::Kind::Difficulty: {  // docs/DIFFICULTY.md: `value` = list position
+        const int now = db.difficulties.find(pt.difficulty);
+        return now >= 0 && compare(c.op, now, c.value);
+      }
     }
     return false;
   }

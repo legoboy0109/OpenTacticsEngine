@@ -59,6 +59,7 @@ struct Playthrough {
   SupportState supports;            // closeness of the support pairs (docs/SRPG.md); empty in a game without pairs
   PrepState prep;                   // the preparation of the current chapter, see PrepState
   std::vector<std::string> lastDeployed;  // ids deployed in the last chapter that had a preparation, in order (the default pick uses it)
+  std::string difficulty;           // docs/DIFFICULTY.md: the id chosen at New Game; empty in a game without difficulties
   std::vector<uint8_t> quotesSaid;  // per battle quote (BattleQuote::flat): said already; only "campaign" quotes are kept (docs/EVENTS.md)
 
   // A new playthrough at chapter 1; false (nothing changed) if the game has no campaign.

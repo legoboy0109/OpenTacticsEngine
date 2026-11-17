@@ -7,6 +7,7 @@
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_difficulty.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
@@ -207,6 +208,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   }
 
   if (!loadRules(c, root, db)) return false;
+  if (!loadDifficulties(c, root, db)) return false;  // docs/DIFFICULTY.md
   if (!c.stringList(root, "scripts", "", db.scripts)) return false;
 
   const Json* maps;

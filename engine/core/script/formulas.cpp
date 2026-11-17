@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt, difficulty, difficultyId = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -250,8 +250,12 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_pushinteger(L_, ctx.healed);
   pushItem(ctx.item, ctx.itemUses);
   lua_pushinteger(L_, ctx.dealt);
+  // docs/DIFFICULTY.md: `difficulty` = the battle's position in the game's list (0 = easiest; 0 without difficulties), `difficultyId` its id ("" without).
+  const int diff = ctx.battle ? ctx.battle->difficulty : -1;
+  lua_pushinteger(L_, diff > 0 ? diff : 0);
+  lua_pushstring(L_, diff >= 0 && diff < (int)db_->difficulties.list.size() ? db_->difficulties.list[(size_t)diff].id.c_str() : "");
   double result = def;
-  if (lua_pcall(L_, 13, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 15, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

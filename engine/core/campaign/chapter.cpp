@@ -112,6 +112,7 @@ bool prepareChapterBattle(const Database& db, const Playthrough& pt, Formulas& f
   // A map with a preparation starts with the deployed characters on their slots (the default pick when none was chosen).
   MapDef prepared;
   prepApplyToMap(db, pt, map, prepared);
+  battle.setDifficulty(db.difficulties.find(pt.difficulty));  // docs/DIFFICULTY.md: -1 (a game without, or an old save) = the default
   if (!battle.init(db, prepared, formulas, seed, err)) return false;
   // Carried technologies first: the roster dresses units at full hit points, bonuses included.
   takeCarried(pt, battle);

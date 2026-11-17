@@ -37,7 +37,9 @@ struct Condition {
     // docs/SRPG.md section 9: a living unit matching `filter` has status condition `index`.
     HasCondition,
     // docs/EVENTS.md "Branching on who acted": the unit that set this event off matches `filter` (false with no acting unit).
-    Actor
+    Actor,
+    // docs/DIFFICULTY.md: the battle's difficulty compared (`op`: = >= <=) with list position `index`.
+    Difficulty
   };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched

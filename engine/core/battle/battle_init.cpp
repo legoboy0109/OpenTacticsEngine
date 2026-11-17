@@ -1,5 +1,6 @@
 // Battle setup from a loaded map.
 #include "core/battle/battle.h"
+#include "core/base/log.h"
 #include "core/data/footprint.h"
 
 namespace ote {
@@ -13,8 +14,10 @@ static bool hasTag(const std::vector<std::string>& tags, const char* tag) {
 bool Battle::init(const Database& database, const MapDef& map, Formulas& formulaHost,
                   uint32_t seed, std::string& err) {
   const bool askChoices = choice_.ask;  // the caller's choice of asking survives a new battle
+  const int keepDifficulty = difficulty;  // so does the difficulty it is to be built at (docs/DIFFICULTY.md)
   *this = Battle();
   choice_.ask = askChoices;
+  difficulty = keepDifficulty;
   db = &database;
   formulas = &formulaHost;
   rng.seed(seed);
@@ -53,6 +56,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.name = sd.name.empty() ? sd.id : sd.name;
     s.color = sd.color;
     s.ai = sd.ai;
+    s.difficultyShift = sd.difficultyShift;
     s.seesAll = sd.ai && (sd.aiSeesAll >= 0 ? sd.aiSeesAll == 1 : map.aiSeesAll);  // docs/ECONOMY.md "Fog of war"
     std::string team = sd.team.empty() ? sd.id : sd.team;
     int teamIndex = -1;
@@ -137,7 +141,15 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     if (s.owner >= 0 && hasTag(def.tags, "hq")) sides[s.owner].hadHq = true;
   }
 
+  // Difficulty (docs/DIFFICULTY.md): the numbers for the chosen one, with this map's own on top; before any unit is built.
+  if (!map.difficulty.empty()) diffMap = std::make_shared<const std::vector<MapDifficulty>>(map.difficulty);
+  resolveDifficulty();
+  if (difficulty >= 0)
+    OTE_INFO("battle: difficulty \"%s\" (enemy levels %+d, xp %d%%, resources %d%%)", db->difficulties.list[(size_t)difficulty].id.c_str(),
+             diffEnemy.levels, diffXpPercent, diffResourcePercent);
+
   for (const MapUnitDef& ud : map.units) {
+    if (!appearsOnDifficulty(ud)) continue;  // a unit for other difficulties only
     Cell c = grid.at(ud.x, ud.y);
     if (c == kNoCell || occupant[c] != -1 || ud.side < 0 || ud.side >= (int)sides.size() ||
         ud.type < 0 || ud.type >= (int)db->unitTypes.size()) {
@@ -185,7 +197,8 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   u.side = ud.side;
   u.name = ud.name.empty() ? db->unitTypes[ud.type].name : ud.name;
   u.storyId = ud.id;
-  u.level = ud.level;
+  const int placedLevel = difficultyLevel(ud);  // docs/DIFFICULTY.md: an enemy of a harder / easier difficulty is built at another level
+  u.level = placedLevel;
   u.leader = ud.leader;
   u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10
   u.behaviour = ud.behaviour;  // docs/AI.md
@@ -199,6 +212,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
     u.items.push_back(s);
   }
   dressUnit(u);  // its character and learned skills, before the hit points (a standing skill may raise the maximum)
+  difficultyStats(u, ud, placedLevel - ud.level);  // flat and percent additions of the difficulty (nothing in a game without one)
   for (int s : ud.skills) learnSkill(u, s);  // the map unit's own skills ("skills" on the unit): learned for good, saved like any
   rankOverride(u, ud.weaponXp);  // a map unit's own ranks replace those of its class (docs/SRPG.md section 7)
   u.hp = maxHp(u);

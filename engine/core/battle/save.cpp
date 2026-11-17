@@ -5,6 +5,7 @@
 // problem produces a readable message, never a crash. The new state is built
 // in a copy of the battle and only assigned when everything checked out.
 #include "core/battle/save.h"
+#include "core/battle/save_difficulty.h"
 #include "core/battle/save_behaviour.h"
 
 #include "core/battle/save_fog.h"
@@ -213,6 +214,7 @@ void saveBattleState(const Battle& b, Json& out) {
   savejson::writeLights(b, out);
   saveStoryState(b, out);
   savejson::writeBattleSrpg(b, out);
+  savejson::writeBattleDifficulty(b, out);  // docs/DIFFICULTY.md: only in a game with difficulties
 }
 
 bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
@@ -278,6 +280,7 @@ bool restoreBattleState(Battle& battle, const Json& saved, std::string& err) {
   if (!savejson::readLights(rd, saved, b)) return false;
   if (!restoreStoryState(rd, saved, b)) return false;
   if (!savejson::readBattleSrpg(rd, saved, b)) return false;
+  if (!savejson::readBattleDifficulty(rd, saved, b)) return false;
 
   battle = b;
   return true;

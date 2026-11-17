@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "core/data/behaviour.h"
+#include "core/data/difficulty.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
 #include "core/data/places.h"
@@ -407,6 +408,7 @@ struct Database {
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool marksUsed = false;     // some skill block sets or tests a mark (docs/SRPG.md "Linking two strike blocks")
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
+  DifficultyRules difficulties;   // game.json "difficulties" (docs/DIFFICULTY.md); an empty list = the game has none
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;
@@ -466,6 +468,7 @@ struct MapSideDef {
   std::vector<Amount> resources;  // starting amounts
   std::vector<ItemGrant> storage; // starting contents of the side's shared storage
   int aiSeesAll = -1;             // fog: -1 = follow the map's "aiSeesAll", 0 = this computer side is bound by fog, 1 = it sees everything
+  bool difficultyShift = true;    // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this computer side
 };
 
 struct MapUnitDef {
@@ -488,6 +491,11 @@ struct MapUnitDef {
   AiBehaviour behaviour;
   // Skills of its own (docs/SRPG.md "A unit with skills of its own"): indices into Database::skills, learned for good when it is made.
   std::vector<int> skills;
+  // docs/DIFFICULTY.md: appears only on these difficulties (indices into DifficultyRules::list; empty = on all); false = the
+  // enemy shift never touches it (a boss); a stat the placement wrote itself is exact and never shifted.
+  std::vector<int> onlyOn;
+  bool difficultyShift = true;
+  std::vector<char> statExact;  // per stat index: the placement gave the stat itself (empty = none)
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).
@@ -522,6 +530,7 @@ struct MapDef {
   int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)
+  std::vector<MapDifficulty> difficulty;   // "difficulty": the map's own numbers per difficulty (docs/DIFFICULTY.md)
 };
 
 }  // namespace ote

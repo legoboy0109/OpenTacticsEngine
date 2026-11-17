@@ -3,6 +3,7 @@
 #include <cmath>
 #include <set>
 
+#include "core/battle/save_difficulty.h"
 #include "core/battle/save_items.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
@@ -193,6 +194,7 @@ void savePlaythrough(const Database& db, const Playthrough& pt, Json& out) {
   out.set("variables", intList(pt.variables));
   savejson::writePlaythroughSrpg(db, pt, out);  // docs/SRPG.md: supports, only in a game with support pairs
   writePrep(pt, out);
+  savejson::writePlaythroughDifficulty(db, pt, out);  // docs/DIFFICULTY.md: only in a game with difficulties
 }
 
 bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out, std::string& err) {
@@ -244,6 +246,7 @@ bool restorePlaythrough(const Database& db, const Json& saved, Playthrough& out,
   if (!readInts(rd, saved, "variables", top, (int)db.variables.size(), kMaxStoryNumber, pt.variables)) return false;
   if (!savejson::readPlaythroughSrpg(rd, db, saved, pt)) return false;
   if (!readPrep(rd, saved, pt)) return false;
+  if (!savejson::readPlaythroughDifficulty(rd, db, saved, pt)) return false;
   if (pt.prep.any() && pt.phase != Phase::Battle) return rd.fail("playthrough.prep", "a preparation only exists in the battle phase");
   out = pt;
   return true;

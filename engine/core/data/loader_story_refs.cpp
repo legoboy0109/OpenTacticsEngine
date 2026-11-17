@@ -3,6 +3,7 @@
 
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
+#include "core/data/loader_difficulty.h"
 
 namespace ote {
 
@@ -146,7 +147,7 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
   if (!e.isObject()) return fail(where, "a condition must be an object");
   // "hasSkill" and "support" are the strategy-RPG conditions (docs/SRPG.md), read by their own areas below.
   static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched", "sees",
-                                       "hasSkill", "support", "hasCondition", "actor"};
+                                       "hasSkill", "support", "hasCondition", "actor", "difficulty"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
@@ -159,6 +160,10 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
   if (k == "hasSkill") {
     out.kind = Condition::Kind::HasSkill;
     return hasSkillCondition(e, where, out);
+  }
+  if (k == "difficulty") {  // docs/DIFFICULTY.md
+    out.kind = Condition::Kind::Difficulty;
+    return readDifficultyCondition(c_, db_, e, where, out.index, out.op);
   }
   if (k == "actor") {
     out.kind = Condition::Kind::Actor;
