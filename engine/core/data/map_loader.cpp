@@ -5,6 +5,7 @@
 #include "core/data/footprint.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_places.h"
+#include "core/data/loader_prep.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/events.h"
 #include "core/data/loader_util.h"
@@ -320,7 +321,8 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   std::vector<int> structureAt;
   if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !loadStructures(c, db, root, m, structureAt) ||
-      !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err))
+      !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err) ||
+      !loadMapPrep(c, db, root, m, structureAt))
     return false;
   out = m;
   err.clear();

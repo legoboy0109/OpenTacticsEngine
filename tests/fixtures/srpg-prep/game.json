@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1, "name": "Muster Tale",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "atk", "name": "Attack" }, { "id": "def", "name": "Defense" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "moveTypes": [ { "id": "foot", "name": "Foot" }, { "id": "wing", "name": "Wing" } ],
+  "switches": [ { "id": "muster_called", "name": "Muster called" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3, "storage": "anywhere" } },
+  "formulas": { "damage": "a.atk - b.def" },
+  "maps": [ { "id": "meadow", "name": "The Meadow", "file": "maps/meadow.json" },
+            { "id": "orchard", "name": "The Orchard", "file": "maps/orchard.json" },
+            { "id": "hilltop", "name": "The Hilltop", "file": "maps/hilltop.json" } ]
+}

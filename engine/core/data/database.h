@@ -471,6 +471,8 @@ struct MapStructureDef {
   std::vector<std::string> visitUnits;  // visit: units (story ids) that may visit, in addition
 };
 
+struct PrepDef;  // a map's preparation screen (core/data/prep.h, docs/EVENTS.md "Preparation")
+
 struct MapDef {
   std::string id, name;
   GridType gridType = GridType::Square;  // always the game's grid (the loader checks)
@@ -483,6 +485,7 @@ struct MapDef {
   std::vector<MapUnitDef> units;
   bool fog = false;  // fog of war (docs/ECONOMY.md "Fog of war")
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
+  std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)
 };
 
 }  // namespace ote

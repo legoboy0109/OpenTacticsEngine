@@ -1,0 +1,30 @@
+// A map's preparation screen (docs/EVENTS.md "Preparation"): the map file's optional "prep" block, as read by the
+// loader (loader_prep.cpp). Plain data; the rules that use it are in core/campaign/prep.*.
+#pragma once
+#include <string>
+#include <vector>
+
+namespace ote {
+
+struct PrepSlot {
+  int x = 0, y = 0;
+};
+
+// A character that always fights on this map (cannot be benched); `slot` >= 0 also fixes the square it starts on.
+struct PrepRequired {
+  std::string id;  // story id (a character id)
+  int slot = -1;   // index into PrepDef::slots, -1 = any slot
+};
+
+struct PrepDef {
+  std::vector<PrepSlot> slots;           // deployment squares, in numbering order (slot 1 is index 0)
+  int limit = 0;                         // most characters that can be deployed (1 .. slots.size())
+  std::vector<PrepRequired> required;    // always deployed
+  std::vector<std::string> forbidden;    // story ids that cannot take part in this map
+  std::vector<std::string> fixed;        // named human-side units placed by the map that stay as placed (not part of the choice)
+  bool hasShop = false;                  // a preparation shop
+  std::vector<int> shop;                 // item indices it sells (docs/ITEMS.md "Shops"); every one has a price
+  int side = -1;                         // map side the deployed characters join (a human side)
+};
+
+}  // namespace ote

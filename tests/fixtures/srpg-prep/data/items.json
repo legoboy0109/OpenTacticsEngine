@@ -1,0 +1,5 @@
+{ "items": [
+  { "id": "potion", "name": "Potion", "kind": "usable", "uses": 2, "heal": 5, "price": { "gold": 20 } },
+  { "id": "tonic", "name": "Tonic", "kind": "usable", "uses": 1, "raise": { "atk": 1 }, "price": { "gold": 30 } },
+  { "id": "ring", "name": "Ring", "kind": "accessory", "bonus": { "hp": 4 }, "price": { "gold": 50 } },
+  { "id": "token", "name": "Token", "kind": "accessory", "bonus": { "def": 1 } } ] }

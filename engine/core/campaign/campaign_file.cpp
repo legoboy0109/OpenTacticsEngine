@@ -2,6 +2,8 @@
 #include "core/battle/save.h"
 #include "core/battle/save_hash.h"
 #include "core/campaign/campaign_save.h"
+#include "core/campaign/prep.h"
+#include "core/data/loader.h"
 #include "core/script/formulas.h"
 
 namespace ote {
@@ -99,6 +101,15 @@ bool restoreCampaignSave(const Database& db, Formulas& formulas, const std::stri
   }
   Playthrough restored;
   if (!restorePlaythrough(db, root["playthrough"], restored, err)) return false;
+  if (restored.prep.any()) {  // the deployment must fit the chapter's map
+    MapDef map;
+    const std::string mapId = db.maps[(size_t)db.campaign->chapters[(size_t)restored.chapter].map].id;
+    if (!loadMap(db, mapId, map, err)) return false;
+    if (!prepValidate(db, restored, map, err)) {
+      err = "playthrough.prep: " + err;
+      return false;
+    }
+  }
   Battle fresh;
   bool withBattle = root.has("battle");
   if (withBattle) {

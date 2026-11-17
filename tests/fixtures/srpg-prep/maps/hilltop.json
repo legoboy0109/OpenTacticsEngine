@@ -1,0 +1,17 @@
+{
+  "name": "The Hilltop",
+  "grid": { "type": "square", "width": 8, "height": 6 },
+  "legend": { ".": "plain", "~": "pond" },
+  "tiles": [ "........", "........", "..~.....", "........", "........", "........" ],
+  "sides": [
+    { "id": "blue", "name": "Company", "controller": "human", "color": "#4a7fc1" },
+    { "id": "red", "name": "Raiders", "controller": "ai", "color": "#c14a4a" } ],
+  "prep": {
+    "slots": [ { "x": 0, "y": 0 }, { "x": 0, "y": 1 }, { "x": 0, "y": 2 }, { "x": 0, "y": 3 } ],
+    "limit": 4,
+    "forbidden": [ "wren" ] },
+  "units": [
+    { "type": "raider", "side": "red", "x": 7, "y": 2 },
+    { "type": "raider", "side": "red", "x": 7, "y": 3 } ],
+  "events": [ { "id": "finish", "when": { "turn": 2, "side": "blue" }, "do": [ { "win": "blue" } ] } ]
+}
