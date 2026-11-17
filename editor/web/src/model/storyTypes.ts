@@ -66,9 +66,24 @@ export interface Condition extends Extra {
 export type ConditionKind = 'switch' | 'variable' | 'alive' | 'dead' | 'round' | 'carries' | 'researched' | 'sees' | 'support' | 'hasSkill'
 export const CONDITION_KINDS: ConditionKind[] = ['switch', 'variable', 'alive', 'dead', 'round', 'carries', 'researched', 'sees', 'support', 'hasSkill']
 
+/** One answer of a `choice` command: its words, an optional hiding condition list and the commands it runs (docs/EVENTS.md "Dialogue choices"). */
+export interface ChoiceAnswer extends Extra {
+  text: string
+  if?: Condition[]
+  do?: Command[]
+}
+/** A choice has two to four answers. */
+export const MIN_ANSWERS = 2
+export const MAX_ANSWERS = 4
+
 /** `to` is a filter (giveItem), true / false (setSwitch) or a number (setVariable). */
 export interface Command extends Extra {
   say?: string
+  /** Dialogue choices: the question (speaker / speakerName / portrait as for `say`), the variable that receives the answer's number
+   *  (1 = the first answer), and the answers. */
+  choice?: string
+  store?: string
+  answers?: ChoiceAnswer[]
   speaker?: string
   speakerName?: string
   portrait?: string
@@ -103,7 +118,7 @@ export interface Command extends Extra {
   else?: Command[]
   endTurn?: boolean
   focus?: { x: number; y: number } | string
-  /** Campaign "after" scenes only: the chapter that comes next (docs/EVENTS.md "Campaign"). */
+  /** Campaign scenes only: the chapter that comes next after an "after" scene, or the chapter a "before" scene jumps to (docs/EVENTS.md "Campaign"). */
   goto?: string
   /** A technology id: `side` has it at once, free (docs/ECONOMY.md). Map events only. */
   grantResearch?: string
@@ -114,12 +129,12 @@ export interface Command extends Extra {
   playSound?: string
 }
 export type CommandKind =
-  | 'say' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'giveResource'
+  | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
-  'say', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'giveResource',
+  'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'giveResource',
   'setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose', 'if', 'endTurn', 'focus', 'goto', 'grantResearch',
   'playMusic', 'stopMusic', 'playSound', 'addSupport',
 ]

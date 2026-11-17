@@ -91,6 +91,7 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
   const vr = c.doc.game?.variables?.[0]?.id ?? ''
   switch (kind) {
     case 'say': return { say: '' }
+    case 'choice': return { choice: '', answers: [{ text: 'Yes', do: [] }, { text: 'No', do: [] }] }
     case 'addUnit': return { addUnit: newAddedUnit(c) }
     case 'removeUnit': return { removeUnit: defaultFilter(c) }
     case 'moveUnit': return { moveUnit: firstUnit(c), x: 0, y: 0 }

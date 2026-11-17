@@ -10,14 +10,16 @@ interface Props {
   up: string
   down: string
   del: string
+  /** False greys the delete button out (a list that may not get shorter). */
+  canDelete?: boolean
 }
 
-export function RowButtons({ index, count, onUp, onDown, onDelete, up, down, del }: Props) {
+export function RowButtons({ index, count, onUp, onDown, onDelete, up, down, del, canDelete = true }: Props) {
   return (
     <span className="item-row-buttons">
       <button type="button" className="btn ghost sm icon" aria-label={up} disabled={index === 0} onClick={onUp}><Icon name="up" /></button>
       <button type="button" className="btn ghost sm icon" aria-label={down} disabled={index === count - 1} onClick={onDown}><Icon name="down" /></button>
-      <button type="button" className="btn ghost sm icon" aria-label={del} onClick={onDelete}><Icon name="trash" /></button>
+      <button type="button" className="btn ghost sm icon" aria-label={del} disabled={!canDelete} onClick={onDelete}><Icon name="trash" /></button>
     </span>
   )
 }

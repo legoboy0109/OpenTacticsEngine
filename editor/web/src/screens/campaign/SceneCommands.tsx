@@ -19,7 +19,7 @@ export interface SceneSource {
   read: (doc: ProjectDoc) => Command[]
   /** The document with `list` as the scene's commands (the same document when nothing changed). */
   write: (doc: ProjectDoc, list: Command[]) => ProjectDoc
-  /** "Go to a chapter" is only offered in a scene that ends a chapter. */
+  /** "Go to a chapter" is offered in a chapter's scenes, not in a support conversation. */
   goto: boolean
   /** Only these kinds of command are offered. */
   only?: CommandKind[]

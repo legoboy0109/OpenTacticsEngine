@@ -9,6 +9,7 @@ import { SCENE_TITLE, walkCampaign } from './campaignWalk'
 import { sceneCommands } from './campaignScene'
 import { addSupportChecks, supportConditionChecks } from './supportStoryChecks'
 import { audioRefProblem } from './audioChecks'
+import { choiceChecks, storeCounts } from './choiceChecks'
 import { isStoryId } from './storyIds'
 import { commandKind, type Command } from './storyTypes'
 import { forEachCommand, type Ref } from './storyWalk'
@@ -56,7 +57,8 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
   }
 }
 
-function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, allowGoto: boolean): void {
+/** `own`: the chapter's id when the scene is its "before" scene, where a "go to" may name any chapter but this one (its scene would run for ever). */
+function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: CampaignCheck['level'], topic: CampaignCheck['topic'], where: string, text: string) => void, own: string | undefined, stores: Map<string, number>): void {
   switch (commandKind(c)) {
     case 'say':
       if (!String(c.say ?? '').trim()) say('error', 'general', where, 'the text to say is empty.')
@@ -70,7 +72,11 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
       if (Math.abs(Number(c.to ?? c.by ?? 0)) > BIG) say('error', 'variable', where, 'the number is unreasonably large.')
       break
     case 'goto':
-      if (!allowGoto) say('error', 'chapter', where, '“Go to a chapter” only works in an “After the battle” scene.')
+      if (own !== undefined && c.goto === own) say('error', 'chapter', where, 'a “Before the battle” scene can only go to another chapter, not its own.')
+      break
+    case 'choice':
+      choiceChecks(c, where, stores, (w, t) => say('error', 'general', w, t), true)
+      ;(c.answers ?? []).forEach((a, i) => supportConditionChecks(doc, a.if, `${where}, answer ${i + 1}`, (ww, tx) => say('error', 'unit', ww, tx)))
       break
     case 'if':
       if (!c.if?.length) say('hint', 'general', where, 'this “If” has no conditions, so it always happens.')
@@ -108,8 +114,9 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
     if (seen.has(ch.id)) say('error', 'chapter', where, 'another chapter has the same internal name.', ch.id)
     seen.add(ch.id)
     for (const key of ['before', 'after'] as const) {
+      const stores = storeCounts([sceneCommands(ch[key])])
       forEachCommand(sceneCommands(ch[key]), `${where}, “${SCENE_TITLE[key]}”`, (cmd, w) => {
-        commandChecks(doc, cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'after')
+        commandChecks(doc, cmd, w, (l, t, ww, tx) => say(l, t, ww, tx, ch.id), key === 'before' ? ch.id : undefined, stores)
         supportConditionChecks(doc, cmd.if, w, (ww, tx) => say('error', 'unit', ww, tx, ch.id))
       })
     }

@@ -7,7 +7,7 @@
 //   - check that every name exists (the callback gets `where`, a plain place such as `event “ambush”, command 2`).
 // A walk returns the very same objects when nothing changed, so callers can tell cheaply.
 import { entryId } from './itemGrants'
-import type { Command, Condition, Filter, ObjectiveRule, Objectives, StoryEvent, Trigger } from './storyTypes'
+import type { ChoiceAnswer, Command, Condition, Filter, ObjectiveRule, Objectives, StoryEvent, Trigger } from './storyTypes'
 import type { ItemEntry, MapFile } from './types'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
@@ -209,6 +209,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   }
   return chain(c, [
     (x) => withRef(x, 'speaker', 'unit', w, where),
+    (x) => withRef(x, 'store', 'variable', w, where), // a choice's variable
     (x) => withFilter(x, 'removeUnit', w, where),
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
@@ -234,6 +235,25 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
   ])
 }
 
+/** A choice's answers: a hiding condition that cannot stay takes its answer with it (the check then says the choice is short of
+ *  answers); the commands inside go on one by one. */
+function mapAnswers(c: Command, w: Walk, here: string): Command {
+  const kept: ChoiceAnswer[] = []
+  let changed = false
+  ;(c.answers ?? []).forEach((a, k) => {
+    const at = `${here}, answer ${k + 1}`
+    const conds = Array.isArray(a.if) ? mapConditions(a.if, w, at) : a.if
+    if (conds === DROP) { changed = true; w.dropped?.({ what: 'command', text: `Answer “${a.text}” of ${w.describe?.command?.(c) ?? 'a question'}`, where: at }); return }
+    const inner = Array.isArray(a.do) ? mapCommands(a.do, w, at) : a.do
+    let next = a
+    if (conds !== a.if) next = put(next, 'if', conds)
+    if (inner !== a.do) next = put(next, 'do', inner)
+    if (next !== a) changed = true
+    kept.push(next)
+  })
+  return changed ? { ...c, answers: kept } : c
+}
+
 /** `trail` numbers the commands of a nested list after the `if` they sit in: "3" at the top, "3.1" inside it. */
 export function mapCommands(list: Command[], w: Walk, where: string, trail = ''): Command[] {
   const out: Command[] = []
@@ -250,6 +270,7 @@ export function mapCommands(list: Command[], w: Walk, where: string, trail = '')
       const next = mapCommands(inner, w, where, num)
       if (next !== inner) r = { ...r, [branch]: next }
     }
+    if (Array.isArray(r.answers)) r = mapAnswers(r, w, here)
     if (r !== c) changed = true
     out.push(r)
   })
@@ -303,5 +324,6 @@ export function forEachCommand(list: Command[] | undefined, where: string, fn: (
     fn(c, `${where}, command ${num}`)
     forEachCommand(c.then, where, fn, num)
     forEachCommand(c.else, where, fn, num)
+    ;(c.answers ?? []).forEach((a, k) => forEachCommand(a.do, `${where}, command ${num}, answer ${k + 1}`, fn))
   })
 }

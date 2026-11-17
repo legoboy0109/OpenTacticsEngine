@@ -194,12 +194,13 @@ describe('checks', () => {
     d = addChapter(d, 'Two')
     d = setChapterMap(d, 'chapter_1', '')
     d = setChapterNext(d, 'two', 'nope')
-    d = withScene(d, 'chapter_1', 'before', { ...sceneAsMap(d, 'chapter_1', 'before'), events: [{ id: 'x', when: { battle: 'start' }, do: [{ say: ' ' }, { goto: 'two' }, { setSwitch: 'ghost', to: true }] }] })
+    d = withScene(d, 'chapter_1', 'before', { ...sceneAsMap(d, 'chapter_1', 'before'), events: [{ id: 'x', when: { battle: 'start' }, do: [{ say: ' ' }, { goto: 'chapter_1' }, { setSwitch: 'ghost', to: true }] }] })
     const t = texts(d)
     expect(t).toContain('error: Chapter “Chapter 1”: pick a map.')
     expect(t).toContain('error: Chapter “Two”: “nope” is not a chapter of this campaign.')
     expect(t.some((x) => /Before the battle”, command 1: the text to say is empty/.test(x))).toBe(true)
-    expect(t.some((x) => /Before the battle”, command 2: “Go to a chapter” only works in an “After the battle” scene/.test(x))).toBe(true)
+    // A before scene may jump to another chapter (docs/EVENTS.md "Dialogue choices") but not to its own.
+    expect(t.some((x) => /Before the battle”, command 2: a “Before the battle” scene can only go to another chapter, not its own/.test(x))).toBe(true)
     expect(t.some((x) => /command 3: “ghost” is not a switch of this game/.test(x))).toBe(true)
   })
   it('unknown map, duplicate chapter id, a gift with no resource', () => {

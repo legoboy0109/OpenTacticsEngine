@@ -23,7 +23,7 @@ export function SceneEditor({ chapterId, which }: { chapterId: string; which: Sc
     read: (d) => sceneOf(d, chapterId, which),
     // `withScene` takes the scene map's edited event back out; the made-up map is rebuilt around the new list.
     write: (d, list) => withScene(d, chapterId, which, { ...sceneAsMap(d, chapterId, which), events: [{ id: sceneEventId(chapterId, which), when: { battle: 'start' }, do: list }] }),
-    goto: which === 'after',
+    goto: true, // after the battle: the next chapter; before it: a jump forward that skips this chapter's battle
   }), [chapterId, which])
   const music = sceneMusic(doc.campaign?.chapters.find((c) => c.id === chapterId)?.[which])
   return (

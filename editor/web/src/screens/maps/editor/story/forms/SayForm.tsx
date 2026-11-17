@@ -1,4 +1,5 @@
 // "Say something": who speaks (a named unit, nobody, or someone else by name), an optional portrait, the text.
+// The speaker and portrait fields are shared with "Ask a question" (ChoiceForm.tsx).
 import { useId } from 'react'
 import { portraitList } from '../../../../../model/portraits'
 import type { Command } from '../../../../../model/storyTypes'
@@ -12,7 +13,8 @@ import { useCommandEdit, type CommandRef } from './useCommandEdit'
 const NOBODY = '__nobody__'
 const OTHER = '__other__'
 
-export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+/** Who speaks and the portrait: the first two fields of a line and of a question. */
+export function SpeakerFields({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { doc, units } = useStory()
   const { patch } = useCommandEdit(at)
   const list = useId()
@@ -30,7 +32,7 @@ export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     else patch({ speaker: v, speakerName: undefined })
   }
   return (
-    <div className="stack tight">
+    <>
       <Field label={S.speaker}><Select value={speaker} options={options} onChange={choose} /></Field>
       {speaker === OTHER && (
         <Field label={S.speakerName}><TextInput value={cmd.speakerName ?? ''} onChange={(v) => patch({ speakerName: v }, 'speakerName')} /></Field>
@@ -39,6 +41,15 @@ export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
         <TextInput list={list} value={cmd.portrait ?? ''} onChange={(v) => patch({ portrait: v === '' ? undefined : v }, 'portrait')} />
         <datalist id={list}>{portraitList(doc).map((p) => <option key={p.id} value={p.id} />)}</datalist>
       </Field>
+    </>
+  )
+}
+
+export function SayForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  return (
+    <div className="stack tight">
+      <SpeakerFields cmd={cmd} at={at} />
       <Field label={S.sayText} help={S.sayTextHelp}>
         <TextInput data-learn="say-text" multiline rows={4} value={String(cmd.say ?? '')} onChange={(v) => patch({ say: v }, 'say')} />
       </Field>
