@@ -169,6 +169,8 @@ export const S = {
     forgetSkill: 'Make units forget a skill',
     addCondition: 'Put a condition on units',
     removeCondition: 'Cure units of a condition',
+    setBehaviour: 'Change units’ behaviour',
+    wakeGroup: 'Wake a group',
     giveItem: 'Give an item',
     takeItem: 'Take an item away',
     giveResource: 'Give resources',

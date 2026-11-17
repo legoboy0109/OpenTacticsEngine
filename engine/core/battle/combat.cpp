@@ -192,6 +192,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       }
       damage = std::min(damage, target.hp);
       target.hp -= damage;
+      if (damage > 0 && target.hp > 0) wakeUnit(def);  // a guard that is hit wakes up (docs/AI.md)
       e.d = damage;
       e.flags |= kHit;
       if (target.hp <= 0) e.flags |= kKill;

@@ -15,6 +15,7 @@ import { PromoteForm } from './forms/PromoteForm'
 import { AddSupportForm } from './forms/SupportForms'
 import { ForgetSkillForm, TeachSkillForm } from './forms/SkillForms'
 import { AddConditionForm, RemoveConditionForm } from './forms/ConditionForms'
+import { SetBehaviourForm, WakeGroupForm } from './forms/BehaviourForms'
 import { ChangeSideForm, MoveUnitForm, RemoveUnitForm } from './forms/UnitForms'
 import { useCommandEdit, type CommandRef } from './forms/useCommandEdit'
 import { ConditionList } from './ConditionList'
@@ -35,6 +36,8 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'forgetSkill': return <ForgetSkillForm cmd={cmd} at={at} />
     case 'addCondition': return <AddConditionForm cmd={cmd} at={at} />
     case 'removeCondition': return <RemoveConditionForm cmd={cmd} at={at} />
+    case 'setBehaviour': return <SetBehaviourForm cmd={cmd} at={at} />
+    case 'wakeGroup': return <WakeGroupForm cmd={cmd} at={at} />
     case 'giveItem': return <GiveItemForm cmd={cmd} at={at} />
     case 'takeItem': return <TakeItemForm cmd={cmd} at={at} />
     case 'giveResource': return <GiveResourceForm cmd={cmd} at={at} />

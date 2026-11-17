@@ -1,5 +1,6 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
+import type { Behaviour } from './behaviour'
 import type { Audio } from './audioTypes'
 import type { Campaign } from './campaignTypes'
 import type { MapPrep } from './prepTypes'
@@ -280,6 +281,8 @@ export interface MapUnit extends Extra {
   skills?: string[]
   /** Computer-side units only (docs/SRPG.md section 10): what the unit goes for. */
   goesFor?: Array<'chests' | 'villages' | 'doors' | 'steal'>
+  /** Computer-side units only (docs/AI.md): how it moves and when it starts; model/behaviour.ts. */
+  behaviour?: Behaviour
 }
 export interface MapFile extends Extra {
   name: string

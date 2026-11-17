@@ -1,5 +1,6 @@
 // The list of commands ("Then"): one plain sentence each; selecting one opens its form under it; add, reorder, delete.
 // An "If" shows its own "Then" and "Otherwise" lists indented under it, so nesting reads as an outline.
+import { groupNames } from '../../../../model/behaviour'
 import { placesForCommand } from '../../../../model/placeStory'
 import { newCommand } from '../../../../model/storyDefaults'
 import { addCommand, answerOf, moveCommand, removeCommand, type ListPath } from '../../../../model/storyEdit'
@@ -29,7 +30,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
@@ -53,6 +54,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     forgetSkill: doc.skills?.length ? null : S.noSkills.toLowerCase(),
     addCondition: doc.conditions?.length ? null : S.noConditions2.toLowerCase(),
     removeCondition: doc.conditions?.length ? null : S.noConditions2.toLowerCase(),
+    wakeGroup: groupNames(story.map).length ? null : 'no groups yet',
     giveItem: doc.items?.length ? null : 'no items yet',
     takeItem: doc.items?.length ? null : 'no items yet',
     giveResource: doc.game?.resources?.length ? null : 'no resources yet',

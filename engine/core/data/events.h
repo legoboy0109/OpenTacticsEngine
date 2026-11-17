@@ -109,7 +109,10 @@ struct Command {
     Place,
     // docs/EVENTS.md "Status conditions": AddCondition gives condition `index` (`value` turns, 0 = its own) to every living unit
     // matching `filter`; RemoveCondition removes it (`on` = every condition).
-    AddCondition, RemoveCondition
+    AddCondition, RemoveCondition,
+    // docs/AI.md: SetBehaviour gives every living computer unit matching `filter` the block `behaviour` (and puts it back to sleep, for a
+    // guard); WakeGroup wakes every unit whose guard group is `unit` (the group name).
+    SetBehaviour, WakeGroup
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -117,6 +120,7 @@ struct Command {
   std::string unit;      // Say: speaker unit id; MoveUnit / Focus: the unit ("" = a square)
   std::string place;     // Place: the structure's id
   MapUnitDef newUnit;    // AddUnit
+  AiBehaviour behaviour; // SetBehaviour
   UnitFilter filter;     // RemoveUnit, ChangeSide, GiveItem, TakeItem: which units
   int x = 0, y = 0;      // MoveUnit, Focus (a square)
   int side = -1;         // ChangeSide, GiveResource, GrantResearch: side index

@@ -2284,6 +2284,7 @@ every key below is optional, and the demos have no doors.
   optionally needing a lockpick item with limited uses); a story event; or by being broken down (doors with hit points that can be attacked)."
 - "Chests and villages: the maker chooses per game between explicit Open / Visit actions in the unit's menu (uses the turn) and the current
   'stand on it' trigger."
+- (How the computer plays, and the per-unit `behaviour` — hold, guard, seek, start turn — is in docs/AI.md.)
 - "Computer opponent: the maker marks per placed unit whether it goes for chests (taking the item), destroys villages, or opens doors with its
   own keys; unmarked units ignore them."
 

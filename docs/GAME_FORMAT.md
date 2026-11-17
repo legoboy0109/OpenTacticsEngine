@@ -273,6 +273,7 @@ Everything is in docs/ECONOMY.md.
       "name": "Gilda", "level": 3, "leader": true,
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
       "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
+      "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / an object
       "stats": { "hp": 26 } }            // optional per-unit overrides
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)

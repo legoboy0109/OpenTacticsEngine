@@ -2,6 +2,7 @@
 // the helper reports what stops the game loading, these point at things that
 // load fine but are probably not what the author meant.
 import { audioChecks } from './audioChecks'
+import { behaviourChecks } from './behaviour'
 import { typeIdOf } from './characterUnits'
 import { fogChecks } from './fogChecks'
 import { itemChecks } from './itemChecks'
@@ -59,6 +60,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   itemChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `items:${i}`, text: x.text }))
   // Doors, chests, places and the computer's goals: what the loader refuses and what is probably not meant (docs/SRPG.md section 10).
   placeChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `places:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
+  // The computer units' behaviours (docs/AI.md): what the loader refuses and what is probably not meant.
+  if (mapId !== undefined) behaviourChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `behaviour:${i}`, text: x.text, cell: x.cell }))
   fogChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `fog:${i}`, text: x.text }))
   // What the player's sound loader would refuse about this map's music keys.
   audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))

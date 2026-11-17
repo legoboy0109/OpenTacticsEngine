@@ -1,6 +1,7 @@
 // What a new trigger, condition, command or objective entry starts as: valid where it can be (the first thing that
 // exists is picked), so the files stay loadable while the maker fills the form in. Changing a kind starts again
 // from the new kind's default.
+import { groupNames } from './behaviour'
 import { firstPlaceFor, firstPlaceForEvent } from './placeStory'
 import { namedUnits, teamsOf } from './storyIds'
 import { pairsOf } from './supports'
@@ -29,6 +30,8 @@ const firstPair = (doc: ProjectDoc): [string, string] => {
   const p = pairsOf(doc)[0]
   return p ? [p.a, p.b] : ['', '']
 }
+/** The first side the computer plays (every unit of it by default), else anyone. */
+const aiSideFilter = (c: DefCtx): Filter => { const s = c.map.sides?.find((x) => x.controller === 'ai'); return s ? { side: s.id } : {} }
 const firstSide = (c: DefCtx) => c.map.sides?.[0]?.id ?? ''
 
 /** A filter of the given kind pointing at the first thing of that kind (empty text when there is none yet). */
@@ -109,6 +112,8 @@ export function newCommand(c: DefCtx, kind: CommandKind): Command {
     case 'promote': return { promote: firstUnit(c), to: c.doc.units?.[0]?.id ?? '' }
     case 'teachSkill': return { teachSkill: c.doc.skills?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'forgetSkill': return { forgetSkill: c.doc.skills?.[0]?.id ?? '', from: defaultFilter(c) }
+    case 'setBehaviour': return { setBehaviour: 'hold', units: aiSideFilter(c) }
+    case 'wakeGroup': return { wakeGroup: groupNames(c.map)[0] ?? '' }
     case 'addCondition': return { addCondition: c.doc.conditions?.[0]?.id ?? '', to: defaultFilter(c) }
     case 'removeCondition': return { removeCondition: c.doc.conditions?.[0]?.id ?? '', from: defaultFilter(c) }
     case 'takeItem': return { takeItem: c.doc.items?.[0]?.id ?? '', from: c.scene ? firstUnit(c) : defaultFilter(c) }

@@ -275,6 +275,17 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::RemoveCondition:
       storyRemoveCondition(c, events);
       break;
+    case K::SetBehaviour:  // docs/AI.md
+      for (int i = 0; i < unitCount; ++i) {
+        Unit& u = units[(size_t)i];
+        if (!u.alive || !unitMatches(c.filter, u) || !sides[(size_t)u.side].ai) continue;
+        u.behaviour = c.behaviour;
+        u.awake = false;  // a guard starts waiting afresh
+      }
+      break;
+    case K::WakeGroup:
+      wakeGroup(c.unit);
+      break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
       if (!c.unit.empty()) {

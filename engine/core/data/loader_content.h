@@ -54,6 +54,17 @@ int findMapSide(const MapDef& m, const std::string& id);
 bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, std::string& where,
                   MapUnitDef& u);
 bool readUnitBody(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u);
+// "behaviour" of a map unit / addUnit (loader_behaviour.cpp; docs/AI.md). checkBehaviourPlace: the squares and the place exist on this map.
+// checkBehaviourUnits: a unit it heads for / prefers is one of `ids` or a character. checkMapBehaviours: the latter for every map unit.
+bool readUnitBehaviour(const LoadCtx& c, const Database& db, const MapDef& m, const Json& e, const std::string& where, MapUnitDef& u);
+bool checkBehaviourPlace(const LoadCtx& c, const MapDef& m, const std::string& where, const AiBehaviour& b);
+bool checkBehaviourUnits(const LoadCtx& c, const Database& db, const std::vector<std::string>& ids, const std::string& where,
+                         const AiBehaviour& b);
+bool checkMapBehaviours(const Database& db, const Json& root, const MapDef& m, const std::string& file, std::string& err);
+// Story ids of the units that addUnit commands create (loader_events.cpp).
+void collectAddedUnitIds(const Json& commands, std::vector<std::string>& out);
+// Names of guard groups in addUnit / setBehaviour blocks of a command list (loader_behaviour.cpp).
+void collectBehaviourGroups(const Json& commands, std::vector<std::string>& out);
 // A list of items handed out by data ("items" of a unit type or a map unit, "storage" of a map side):
 // ids or { "item", "uses", "drop" }. A missing key gives an empty list. maxCount < 0 = any length.
 bool readItemGrants(const LoadCtx& c, const Database& db, const Json& o, const char* key, const std::string& where,

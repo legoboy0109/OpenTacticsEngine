@@ -1,5 +1,6 @@
 // Units on a map. The placement rules mirror the game loader: one unit per square,
 // and a unit may not start on terrain its movement type cannot enter.
+import type { Behaviour } from './behaviour'
 import type { MapCtx } from './mapCtx'
 import { inBounds, terrainAt } from './mapGrid'
 import { typeIdOf } from './characterUnits'
@@ -76,7 +77,7 @@ export function removeMapUnit(map: MapFile, x: number, y: number): MapFile {
 }
 
 /** `items`: a list (even an empty one) replaces the unit type's starting items; undefined removes the key = uses the type's. */
-type UnitPatch = { side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap; skills?: string[] }
+type UnitPatch = { behaviour?: Behaviour; side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap; skills?: string[] }
 
 /** Name, level and leader are stored only when they mean something; clearing removes the key. */
 export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPatch): MapFile {

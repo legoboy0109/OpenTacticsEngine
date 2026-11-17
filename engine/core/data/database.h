@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 
+#include "core/data/behaviour.h"
 #include "core/data/graphics.h"
 #include "core/data/places.h"
 #include "core/data/ranks.h"
@@ -466,6 +467,8 @@ struct MapUnitDef {
   std::vector<int> weaponXp;
   // Computer opponent (docs/SRPG.md section 10): what this unit goes for; bits of kAiChests | kAiPlaces | kAiDoors. 0 = none.
   int aiGoals = 0;
+  // Computer opponent (docs/AI.md): how it moves and when it starts. The default is the plain "advance and attack".
+  AiBehaviour behaviour;
   // Skills of its own (docs/SRPG.md "A unit with skills of its own"): indices into Database::skills, learned for good when it is made.
   std::vector<int> skills;
 };

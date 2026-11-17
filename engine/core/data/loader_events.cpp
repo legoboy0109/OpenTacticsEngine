@@ -3,27 +3,24 @@
 #include <algorithm>
 #include <memory>
 
+#include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 
 namespace ote {
 
-namespace {
-
 // Story ids of units that addUnit commands create (looked at before parsing, so that
 // an event may refer to a unit that a later event adds). Tolerates malformed input.
-void collectAddedIds(const Json& commands, std::vector<std::string>& out) {
+void collectAddedUnitIds(const Json& commands, std::vector<std::string>& out) {
   for (const Json& c : commands.items()) {
     if (!c.isObject()) continue;
     const Json& u = c["addUnit"];
     if (u.isObject() && u["id"].isString()) out.push_back(u["id"].asString());
     if (u.isObject() && u["character"].isString()) out.push_back(u["character"].asString());  // a character's id
-    collectAddedIds(c["then"], out);
-    collectAddedIds(c["else"], out);
-    for (const Json& a : c["answers"].items()) collectAddedIds(a["do"], out);  // a choice's answers
+    collectAddedUnitIds(c["then"], out);
+    collectAddedUnitIds(c["else"], out);
+    for (const Json& a : c["answers"].items()) collectAddedUnitIds(a["do"], out);  // a choice's answers
   }
 }
-
-}  // namespace
 
 // The trigger: exactly one of battle / turn / reach / defeated / fight / talk, plus its extras.
 static bool readTrigger(StoryLoader& L, const Json& w, const std::string& where, Trigger& t) {
@@ -125,6 +122,7 @@ static bool readEvents(StoryLoader& L, const Json& list, const std::string& mapN
 }
 
 bool loadMapStory(const Database& db, const Json& root, MapDef& map, const std::string& file, std::string& err) {
+  if (!checkMapBehaviours(db, root, map, file, err)) return false;  // docs/AI.md: seek / prefer units exist
   if (!root.has("events") && !root.has("objectives")) return true;
   auto data = std::make_shared<StoryData>();
   StoryLoader L(db, map, file, err, *data);
@@ -133,8 +131,13 @@ bool loadMapStory(const Database& db, const Json& root, MapDef& map, const std::
   for (const MapUnitDef& u : map.units)
     if (!u.id.empty()) L.usedIds.push_back(u.id);
   L.unitIds = L.usedIds;
+  for (const MapUnitDef& u : map.units)
+    if (!u.behaviour.group.empty()) L.groups.push_back(u.behaviour.group);
   if (root["events"].isArray())
-    for (const Json& e : root["events"].items()) collectAddedIds(e["do"], L.unitIds);
+    for (const Json& e : root["events"].items()) {
+      collectAddedUnitIds(e["do"], L.unitIds);
+      collectBehaviourGroups(e["do"], L.groups);
+    }
 
   if (root.has("objectives") && !L.objectiveSet(root["objectives"], mapName + ": \"objectives\"", data->objectives[0]))
     return false;

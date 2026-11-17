@@ -26,6 +26,8 @@ class StoryLoader {
   std::vector<std::string> unitIds;
   // Ids already taken by units (map units first, then each addUnit as it is read).
   std::vector<std::string> usedIds;
+  // Guard group names the map's units and its commands give (docs/AI.md), for wakeGroup.
+  std::vector<std::string> groups;
   // Variables that a choice command of this map already writes ("store"): a second one may not (loader_story_choice.cpp).
   std::vector<int> choiceStores;
 
@@ -71,6 +73,7 @@ class StoryLoader {
   bool placeCommand(const Json& e, const std::string& kind, const std::string& at, Command& out);
   bool conditionCommand(const Json& e, const std::string& at, bool add, Command& out);           // loader_story_conditions.cpp: addCondition / removeCondition
   bool hasConditionCondition(const Json& e, const std::string& at, Condition& out) const;      // loader_story_conditions.cpp
+  bool behaviourCommand(const Json& e, const std::string& at, Command& out);                    // loader_behaviour.cpp: setBehaviour / wakeGroup
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);
