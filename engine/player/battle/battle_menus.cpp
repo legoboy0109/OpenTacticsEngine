@@ -116,6 +116,7 @@ void BattleScene::openEndMenu() {
   // Research (docs/ECONOMY.md "Player"): whenever the game has technologies. With "needsStructure" and no research
   // structure it still opens; the panel greys its rows with the reason.
   if (!session_.db.research.empty() && humanTurn()) items.push_back({EconomyWords::kResearch, "", true, kResearchEntry});
+  addDifficultyEntry(items);  // docs/DIFFICULTY.md: only in a game that has difficulties
   if (manualSaves()) {  // game setting "any": the player may save and load at will
     items.push_back({"Save", "", true, kSave});
     items.push_back({"Load", "", true, kLoad});
@@ -171,6 +172,11 @@ void BattleScene::menuInput(const InputEvent& e) {
     mode_ = Mode::Idle;
     if (res == Menu::Chosen) submit(Action::build(buildCell_, id));
     else if (structureMenuBack_) backToStructure();
+  } else if (mode_ == Mode::DifficultyMenu) {
+    menu_.close();
+    mode_ = Mode::Idle;
+    if (res == Menu::Chosen) difficultyChosen(id);
+    else openEndMenu();  // cancelled: back to the end menu
   } else if (mode_ == Mode::EndMenu) {
     menu_.close();
     mode_ = Mode::Idle;
@@ -178,6 +184,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     else if (res == Menu::Chosen && id == kObjective) openObjective();
     else if (res == Menu::Chosen && id == kResearchEntry) openResearchPanel();
     else if (res == Menu::Chosen && srpgEndMenuChosen(id)) {}
+    else if (res == Menu::Chosen && id == kDifficultyEntry) openDifficultyMenu();
     else if (res == Menu::Chosen && id == kSave) openSlotList(SlotPanel::Save);
     else if (res == Menu::Chosen && id == kLoad) openSlotList(SlotPanel::Load);
     else if (res == Menu::Chosen && id == kLeave) {

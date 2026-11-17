@@ -282,6 +282,7 @@ std::string BattleScene::hint() const {
     case Mode::Promotion: return promotionHint();
     case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
     case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
+    case Mode::DifficultyMenu: return "Up/Down + Z:choose  X:back";
     case Mode::Items: return itemsHint();
     case Mode::Objective: return "Z / X / tap: close";
     case Mode::StructureMenu:

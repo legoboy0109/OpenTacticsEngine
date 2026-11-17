@@ -10,6 +10,7 @@
 #include "campaign/end_scenes.h"
 #include "campaign/story_scene.h"
 #include "core/base/log.h"
+#include "core/campaign/difficulty.h"
 #include "core/campaign/prep.h"
 #include "core/data/loader.h"
 
@@ -64,6 +65,18 @@ void PlayerApp::doStartCampaign() {
   session_->campaign.reset(new CampaignRun());
   session_->campaign->pt.begin(session_->db);
   OTE_INFO("campaign: new game of '%s'", gameId_.c_str());
+  std::string why;
+  if (difficultyNeeded()) {  // docs/DIFFICULTY.md: New Game asks which difficulty first
+    askDifficulty("New game", [this](const std::string& id) {
+      std::string note;
+      if (session_ && session_->campaign && setPlaythroughDifficulty(session_->db, session_->campaign->pt, id, true, note)) {
+        OTE_INFO("campaign: difficulty \"%s\"", id.c_str());
+        doCampaignNext();
+      }
+    });
+    return;
+  }
+  if (!args_.difficulty.empty()) setPlaythroughDifficulty(session_->db, session_->campaign->pt, args_.difficulty, true, why);
   doCampaignNext();
 }
 

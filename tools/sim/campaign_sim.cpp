@@ -73,6 +73,7 @@ RunOutcome playRun(const Database& db, Formulas& formulas, const CampaignSimOpti
   RunOutcome out;
   Playthrough pt;
   pt.begin(db);
+  if (!opt.difficulty.empty()) pt.difficulty = opt.difficulty;  // docs/DIFFICULTY.md (main.cpp has checked the id)
   std::vector<SceneLine> lines;
   int attempt = 0, lastChapter = -1;
   while (pt.active()) {
