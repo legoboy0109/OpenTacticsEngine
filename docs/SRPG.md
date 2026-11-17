@@ -2394,6 +2394,8 @@ Appended to `EventType` in this order (existing values keep their numbers):
 Section 8 appended `StaffUsed`, `StaffMissed`, `ItemRepaired` and `AreaLit`, and section 9 appends `ConditionApplied`,
 `ConditionEnded`, `ConditionResisted` and `ConditionTick` (with the flag `kRefreshed = 2048`); section 10 appends `DoorOpened`, `DoorClosed`,
 `ChestOpened`, `PlaceHit`, `PlaceVisited`, `PlaceDestroyed` and `PlaceUnlocked` (flags `kLooted = 4096`, `kLocked = 8192`), all before `Choice`.
+The second set of skill and ability blocks appends `ItemStolen` (a = thief, b = the unit robbed, c = item, d = uses left or -1) and `UnitRefreshed` (a = the refresher,
+b = the unit that may act again, c = ability), both before `Choice` and both seen by the teams that see either unit.
 
 New flag bits (after `kBought = 32`): `kSurvived = 64`, `kBlocked = 128`, `kPaired = 256`, `kForced = 512`,
 `kReady = 1024`. `Attack` events may carry `kSurvived`. Existing entries reused: `UnitRelocated` (pushes, pulls,
