@@ -2,7 +2,7 @@
 // and the races between uploads and the autosave.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { addImage, addImages, bareGame, clickPiece, imageList, openArt, png, picker, pickerGrid, seedArt, sheetPng, solidPng, tilesGraphics } from './artkit'
-import { diskPath, editorUrl, expect, readDisk, saved, section, test, writeDisk } from './fixtures'
+import { gotoSection, diskPath, editorUrl, expect, readDisk, saved, test, writeDisk } from './fixtures'
 
 const noConflict = (page: import('@playwright/test').Page) => expect(page.getByText(/changed on disk/i)).toHaveCount(0)
 const undo = (page: import('@playwright/test').Page) => page.getByRole('button', { name: 'Undo' })
@@ -31,7 +31,7 @@ test('undo and redo cover every picture edit and never touch the files @smoke', 
   expect(readDisk(id, 'data/graphics.json').sheets).toEqual([])
   expect(existsSync(diskPath(id, 'art/tiles.png'))).toBe(true)
   // The file now shows as unused.
-  await section(page, 'Art').click()
+  await gotoSection(page, 'Art')
   await expect(page.getByRole('region', { name: 'Unused files' })).toContainText('art/tiles.png')
   // Redo brings everything back (the image, then the picture).
   await redo(page).click(); await redo(page).click()

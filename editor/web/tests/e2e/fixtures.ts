@@ -79,6 +79,25 @@ export async function saved(page: Page): Promise<void> {
 /** Sidebar / section switcher link (the game name link in the top bar can share a word). */
 export const section = (page: Page, name: string) => page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name, exact: true })
 
+/** The phone's section menu button (one sticky row showing the current section; the full list opens as a panel). Not shown on desktop. */
+export const sectionMenu = (page: Page) => page.locator('.section-bar-button')
+
+/** Open the phone's section menu when it is shown and closed (nothing on desktop, where the list is always there). */
+export async function openSectionMenu(page: Page): Promise<void> {
+  const button = sectionMenu(page)
+  if (await button.isVisible() && (await button.getAttribute('aria-expanded')) !== 'true') {
+    await button.click()
+    await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible()
+  }
+}
+
+/** Go to a section by its link in the "Sections" navigation, at either width: on a phone the menu is opened first (the panel closes
+ *  itself when a section is chosen). `name` is the link's exact text, or a pattern. */
+export async function gotoSection(page: Page, name: string | RegExp): Promise<void> {
+  await openSectionMenu(page)
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('link', typeof name === 'string' ? { name, exact: true } : { name }).click()
+}
+
 /** No horizontal scrolling: the page is never wider than the window. */
 export async function expectNoHScroll(page: Page): Promise<void> {
   const wide = await page.evaluate(() => document.scrollingElement!.scrollWidth - window.innerWidth)

@@ -4,8 +4,8 @@
 // "phone-" ones and put back).
 import type { Page } from '@playwright/test'
 import { clickCell, pickSide, tool } from './mapkit'
-import { requirePlayer, saved } from './fixtures'
-import { answered, expect, expectCurrent, expectRingOn, expectTicked, learnButton, learnList, learnState, panel, readGame, ring, sectionLink, test } from './learnkit'
+import { gotoSection, requirePlayer, saved } from './fixtures'
+import { answered, expect, expectCurrent, expectRingOn, expectTicked, learnButton, learnList, learnState, panel, readGame, ring, test } from './learnkit'
 import { expectRingOnOneOf } from './learnstart'
 import { finish, playAndClose, practiceOf, shot as desktopShot, startLesson } from './learntopic'
 
@@ -76,14 +76,14 @@ test('@smoke Characters and skills: every step ticks only after its action, and 
   await expectTicked(page, 'Put them on the map', 'Switch on skills')
 
   // 4. Skills on.
-  await sectionLink(page, 'Rules').click()
+  await gotoSection(page, 'Rules')
   await expectRingOn(page, 'srpg-skills')
   await shot(page, 'characters-4')
   await switchFor(page, 'This game has skills').check()
   await expectTicked(page, 'Switch on skills', 'Add the starter skills')
 
   // 5. The starter set: opening the installer is not adding.
-  await sectionLink(page, 'Skills').click()
+  await gotoSection(page, 'Skills')
   await expectRingOn(page, 'starter-open')
   await page.getByTestId('starter-open').click()
   await expectCurrent(page, 'Add the starter skills')
@@ -100,7 +100,7 @@ test('@smoke Characters and skills: every step ticks only after its action, and 
   await expectTicked(page, 'Give them a skill', 'Switch on levelling up')
 
   // 7. Levelling up (the game's own switch, on the Rules screen).
-  await sectionLink(page, 'Rules').click()
+  await gotoSection(page, 'Rules')
   await expectRingOn(page, 'progression')
   await shot(page, 'characters-7')
   await page.getByRole('switch', { name: 'Experience and levels' }).check()

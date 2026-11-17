@@ -1,7 +1,7 @@
 // E0 of docs/SRPG.md: the strategy-RPG switches on Rules, the sidebar entries that follow them, and the rule that a
 // feature switched on is remembered (an empty file) and one switched off leaves no file. (The screens themselves are empty frames until steps E1 to E4.)
 import { readFileSync } from 'node:fs'
-import { diskPath, editorUrl, expect, saved, section, test, writeDisk } from './fixtures'
+import { gotoSection, diskPath, editorUrl, expect, saved, section, test, writeDisk } from './fixtures'
 
 test('switches add and remove the screens; a switch stays on after a reload, and off removes the file', async ({ page, game }) => {
   const id = await game.create('blank', 'Skeleton')
@@ -29,12 +29,12 @@ test('switches add and remove the screens; a switch stays on after a reload, and
   await expect(section(page, 'Skills')).toBeVisible()
 
   // The empty frame of a screen, and the way back.
-  await section(page, 'Skills').click()
+  await gotoSection(page, 'Skills')
   await expect(page.getByRole('heading', { name: 'Skills', level: 1 })).toBeVisible()
   await expect(page.getByText('No skills yet').first()).toBeVisible() // E2 filled the Skills screen
 
   // Off again (nothing inside, so no question) and the entry goes.
-  await section(page, 'Rules').click()
+  await gotoSection(page, 'Rules')
   await switches.getByRole('switch', { name: 'This game has skills' }).uncheck()
   await expect(section(page, 'Skills')).toHaveCount(0)
   await saved(page)

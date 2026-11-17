@@ -1,6 +1,6 @@
 // Structures on a phone (360 x 740, touch): the screens fit, and the map tool works by touch, including a 2 x 2 structure.
 import type { CDPSession, Page } from '@playwright/test'
-import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
+import { editorUrl, expect, expectNoHScroll, openSectionMenu, readDisk, saved, test } from './fixtures'
 import { canvas, cellPoint, diskStructures, openMap, pickSide, pickStructure, tool } from './mapkit'
 
 test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })
@@ -14,9 +14,11 @@ test('the Structures screen at 360 px: list, form, size boxes, movement table an
   const id = await game.create('economy-tactics', 'Phone Structures')
   await page.goto(editorUrl(id, 'structures'))
   await expectNoHScroll(page)
+  await openSectionMenu(page)
   const links = page.getByRole('navigation', { name: 'Sections' }).getByRole('link', { name: 'Structures', exact: true })
   await expect(links).toBeVisible()
   expect(await links.evaluate((el) => el.scrollWidth > el.clientWidth + 1), 'the "Structures" label is whole').toBe(false)
+  await page.keyboard.press('Escape')
   await page.getByRole('list', { name: 'Structures' }).getByRole('button', { name: /Headquarters/ }).click()
   await expect(page.getByLabel('Width (squares)')).toBeVisible()
   await expectNoHScroll(page)

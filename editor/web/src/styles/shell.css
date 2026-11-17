@@ -49,6 +49,10 @@
   overflow-y: auto;
 }
 .sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.sidebar[hidden] { display: none; }
+/* Desktop: the wrapper adds no box (the sidebar is the sticky column) and the phone button is not there. */
+.section-bar { display: contents; }
+.section-bar-button { display: none; }
 .nav-link {
   display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: var(--radius-sm);
   color: var(--text); text-decoration: none; font-weight: 500;
@@ -81,14 +85,25 @@
   }
   .play-btn { width: 36px; padding: 0; margin-left: 2px; }
   .workspace { flex-direction: column; align-items: stretch; }
-  .sidebar {
-    position: sticky; top: 0; z-index: 15; width: auto; height: auto; padding: 6px 8px; overflow-y: visible;
-    border-right: 0; border-bottom: 1px solid var(--border);
+  /* One sticky row showing the current section and a menu button; the full list is a panel dropping from under the row, two
+     columns, scrolling inside itself when the window is short. The top bar is static here, so the panel never covers it. */
+  .section-bar {
+    display: block; position: sticky; top: 0; z-index: 15; background: var(--surface); border-bottom: 1px solid var(--border);
   }
-  /* Eight sections do not fit one row at 360 px ("Structures" would be clipped): two rows of four. */
-  .sidebar ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
-  .nav-link { justify-content: center; padding: 8px 2px; font-size: 0.82rem; position: relative; }
-  .nav-dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; }
+  .section-bar-button {
+    display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 6px 12px; border: 0; background: none;
+    color: var(--text); font: inherit; font-weight: 650; text-align: left; cursor: pointer;
+  }
+  .section-bar-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .section-bar-menu { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 500; font-size: 0.9rem; }
+  .section-bar-button[aria-expanded='true'] { background: var(--surface-2); }
+  .sidebar {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 15; width: auto; height: auto; padding: 8px;
+    max-height: calc(100dvh - 46px); overflow-y: auto; overscroll-behavior: contain;
+    border-right: 0; border-bottom: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .sidebar ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px; }
+  .nav-link { padding: 11px 12px; min-height: 44px; }
   .main { padding: 16px 12px 48px; }
   .problems-panel { position: static; max-height: none; }
 }

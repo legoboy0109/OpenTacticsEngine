@@ -1,7 +1,7 @@
 // The second set of skill and ability blocks (docs/SRPG.md "Skill and ability blocks, second set", docs/EDITOR_UI.md "Skills", "Abilities"), built through
 // the real editor, plus the controls for the keys the first set left hand-edit only (character tags, a map unit's skills, class skills on promotion).
 // The proof that matters: the exact JSON the forms wrote and that the real loader accepts the game (/problems is empty). Desktop and the 360 px phone.
-import { editorUrl, expect, expectNoHScroll, readDisk, saved, section, test } from './fixtures'
+import { gotoSection, editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fixtures'
 import { clickCell, openMap, tool } from './mapkit'
 import { newSkill, openSkills, part, rule } from './skillskit'
 
@@ -142,7 +142,7 @@ test('@smoke the keys that were hand-edit only: character tags, a map unit’s s
   await saved(page)
   expect(readDisk(id, 'game.json').rules.promotion.classSkills).toBe('replace')
   expect(await game.problems(id)).toEqual([])
-  await section(page, 'Skills').click()
+  await gotoSection(page, 'Skills')
 })
 
 test('the second set fits a 360 px phone', async ({ page, game }) => {

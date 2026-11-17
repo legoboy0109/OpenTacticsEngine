@@ -3,7 +3,7 @@
 import type { Page } from '@playwright/test'
 import { bareGame } from './artkit'
 import { newCharacter, switchOn } from './characterskit'
-import { editorUrl, expect, readDisk, requirePlayer, saved, section, test, writeDisk } from './fixtures'
+import { gotoSection, editorUrl, expect, readDisk, requirePlayer, saved, test, writeDisk } from './fixtures'
 import { clickCell, openMap, pickSide, pickUnitType, tool } from './mapkit'
 
 const charactersTab = (page: Page) => page.getByRole('tab', { name: 'Characters', exact: true })
@@ -99,7 +99,7 @@ test('a class that characters use cannot go without them: deleting it says so an
   await newCharacter(page, 'Mira')
   await page.locator('.md-detail').getByLabel('Class', { exact: true }).selectOption('archer')
   await saved(page)
-  await section(page, 'Units').click()
+  await gotoSection(page, 'Units')
   await page.getByRole('button', { name: /^Archer/ }).click()
   await page.getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByRole('dialog')).toContainText('Mira')

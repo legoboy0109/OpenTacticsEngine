@@ -1,5 +1,5 @@
 import { FORMULA_DEFS, type FormulaKey } from '../../src/model/presetDefs'
-import { editorUrl, expect, readDisk, saved, section, test } from './fixtures'
+import { gotoSection, editorUrl, expect, readDisk, saved, test } from './fixtures'
 
 const LABEL: Record<FormulaKey, string> = {
   damage: 'Damage', hit: 'Chance to hit', crit: 'Critical hits', strikes: 'Attacks per fight',
@@ -71,7 +71,7 @@ test('add a stat, a resource and a movement type', async ({ page, game }) => {
   expect(g.moveTypes.at(-1)).toEqual({ id: 'boat', name: 'Boat' })
   expect(await game.problems(id)).toEqual([])
   // The new stat shows up on every unit.
-  await section(page, 'Units').click()
+  await gotoSection(page, 'Units')
   await expect(page.getByLabel('Luck Value')).toBeVisible()
 })
 

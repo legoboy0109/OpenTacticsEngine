@@ -1,7 +1,7 @@
 // E3 of docs/SRPG.md: the Abilities screen and the Abilities card on a unit type, through the real editor. The proof that matters:
 // the exact JSON the editor wrote, and that the game loader accepts it (/problems is empty).
 import type { Page } from '@playwright/test'
-import { expectNoHScroll, editorUrl, expect, readDisk, saved, section, test } from './fixtures'
+import { gotoSection, expectNoHScroll, editorUrl, expect, readDisk, saved, test } from './fixtures'
 
 /** Resizes the window to the page's height first: a full-page capture would smear the sticky sidebar over the content. */
 const shot = async (page: Page, name: string) => {
@@ -25,7 +25,7 @@ async function newAbility(page: Page, name: string): Promise<void> {
 async function switchOn(page: Page, id: string): Promise<void> {
   await page.goto(editorUrl(id, 'rules'))
   await page.getByTestId('srpg-switches').getByRole('switch', { name: 'This game has abilities' }).check()
-  await section(page, 'Abilities').click()
+  await gotoSection(page, 'Abilities')
 }
 
 test('@smoke a push and a summon: the file is exactly that, a unit type gets them, and the game loads', async ({ page, game }) => {

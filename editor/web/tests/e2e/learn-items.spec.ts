@@ -1,9 +1,9 @@
 // The lesson "Items" played through the real editor by a script that does what each step asks. For every step: before the action
 // the step is the current one (not ticked); after it, it is ticked and the next one is current. Ends with the practice game on
 // disk loading in the real engine.
-import { requirePlayer, saved } from './fixtures'
+import { gotoSection, requirePlayer, saved } from './fixtures'
 import {
-  expect, expectCurrent, expectLoadsInEngine, expectRingOn, expectTicked, learnState, panel, readGame, ring, sectionLink, stepTitle, test,
+  expect, expectCurrent, expectLoadsInEngine, expectRingOn, expectTicked, learnState, panel, readGame, ring, stepTitle, test,
 } from './learnkit'
 import { shot, startLesson } from './learnstart'
 
@@ -21,9 +21,9 @@ test('@smoke the whole lesson: every step ticks only after its action, and the p
   // (and at the sidebar link once the maker is on another screen).
   await expectRingOn(page, 'new-item')
   await shot(page, 'items-1')
-  await sectionLink(page, 'Game').click()
+  await gotoSection(page, 'Game')
   await expectRingOn(page, 'nav-items')
-  await sectionLink(page, 'Items').click()
+  await gotoSection(page, 'Items')
   await expectRingOn(page, 'new-item')
   await page.getByRole('button', { name: 'New item' }).click()
   await expectCurrent(page, 'Make an item') // the dialog is open, nothing made yet
