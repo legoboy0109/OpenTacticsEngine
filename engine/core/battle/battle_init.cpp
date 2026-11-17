@@ -104,6 +104,13 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.y = ms.y;
     s.owner = ms.side >= 0 && ms.side < (int)sides.size() ? ms.side : -1;
     s.capture = def.capturePoints;
+    // Doors, chests and visitable places (docs/SRPG.md section 10).
+    s.id = ms.id;
+    s.loot = ms.loot;
+    s.visitSides = ms.visitSides;
+    s.visitUnits = ms.visitUnits;
+    if (def.place.isDoor() || def.place.isChest()) s.locked = ms.locked >= 0 ? ms.locked == 1 : def.place.locked;
+    if (def.place.isDoor() && def.place.hp > 0) s.hp = def.place.hp;
     int index = (int)structures.size();
     structures.push_back(s);
     std::vector<Cell> footprint;
@@ -168,6 +175,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   u.storyId = ud.id;
   u.level = ud.level;
   u.leader = ud.leader;
+  u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10
   u.stats = ud.stats;
   u.stats.resize(db->stats.size(), 0);
   for (const ItemGrant& g : ud.hasItems ? ud.items : db->unitTypes[ud.type].items) {

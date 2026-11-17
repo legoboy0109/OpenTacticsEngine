@@ -8,6 +8,7 @@
 
 #include "core/battle/save_fog.h"
 #include "core/battle/save_items.h"
+#include "core/battle/save_places.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
 #include "core/battle/save_srpg.h"
@@ -106,6 +107,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   // Before the hit points: learned skills may raise the maximum.
   u.character = b.characterOf(u);
   if (!savejson::readUnitSrpg(rd, b, j, where, u)) return false;
+  if (!savejson::readUnitGoals(rd, j, where, u)) return false;  // docs/SRPG.md section 10
   int maxHp = b.stat(u, db.rules.statHp);  // as the rules see it: accessories, research, standing skills
   if (!rd.integer(j, "hp", where, 0, maxHp > 0 ? maxHp : 0, u.hp)) return false;
   if (u.alive && u.hp < 1) return rd.fail(where + ".hp", "a living unit has no hit points");
@@ -121,6 +123,7 @@ bool readStructure(Reader& rd, const Battle& b, const Json& j, int index, Struct
   if (!rd.integer(j, "owner", where, -1, (int)b.sides.size() - 1, st.owner)) return false;
   if (!rd.integer(j, "capture", where, 0, points > 0 ? points : 0, st.capture)) return false;
   if (!rd.integer(j, "capturer", where, -1, (int)b.units.size() - 1, st.capturer)) return false;
+  if (!savejson::readStructurePlace(rd, b, j, where, st)) return false;  // doors, chests, visits (docs/SRPG.md section 10)
   if (st.capturer >= 0) {
     const Unit& u = b.units[(size_t)st.capturer];
     if (!u.alive) return rd.fail(where + ".capturer", "unit " + std::to_string(st.capturer) + " is dead");
@@ -183,6 +186,7 @@ void saveBattleState(const Battle& b, Json& out) {
     if (!u.items.empty()) j.set("items", itemsJson(u.items));
     savejson::writeUnitSupply(*b.db, u, j);
     savejson::writeUnitSrpg(b, u, j);  // docs/SRPG.md: only what the game uses and is not the default
+    savejson::writeUnitGoals(u, j);
     units.push(j);
   }
   out.set("units", units);
@@ -194,6 +198,7 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("capture", num(s.capture));
     j.set("capturer", num(s.capturer));
     savejson::writeStructureKind(s, j);
+    savejson::writeStructurePlace(b, s, j);
     structures.push(j);
   }
   out.set("structures", structures);

@@ -1,0 +1,12 @@
+{ "name": "Market", "grid": { "type": "square", "width": 11, "height": 5 }, "legend": { ".": "plain" },
+  "tiles": [ "...........", "...........", "...........", "...........", "..........." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [
+    { "type": "chest", "x": 4, "y": 1, "id": "c1", "contents": [ "potion" ], "locked": false },
+    { "type": "chest", "x": 4, "y": 3, "id": "c2", "contents": [ { "resource": "gold", "amount": 40 } ], "locked": false },
+    { "type": "hamlet", "x": 8, "y": 4, "id": "v1", "side": "blue" } ],
+  "units": [
+    { "type": "fighter", "id": "lord", "name": "Lord", "side": "blue", "x": 10, "y": 0, "leader": true, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "side": "red", "x": 1, "y": 1, "items": ["iron_sword"], "goesFor": ["chests"] },
+    { "type": "raider", "id": "r2", "side": "red", "x": 1, "y": 3, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r3", "side": "red", "x": 9, "y": 3, "items": ["iron_sword"], "goesFor": ["villages"] } ] }

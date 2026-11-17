@@ -3,6 +3,7 @@
 // once); what an ability itself names (a summoned unit type, the unit and terrain keys of its "if") is checked last,
 // in resolveAbilityRefs.
 #include "core/data/loader_events.h"
+#include "core/data/loader_places.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -62,15 +63,15 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
 // The one effect of an ability: exactly one of push, pull, swap, moveBehind, heal, summon.
 bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, AbilityDef& a) {
   if (!e.isObject()) return c.fail(where, "\"effect\" must be an object such as { \"push\": 1 }");
-  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon"};
+  static const char* const keys[] = {"push", "pull", "swap", "moveBehind", "heal", "summon", "unlock"};
   int count = 0;
   for (const Json::Member& m : e.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
-    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon)");
+    if (!known) return c.fail(where, "\"effect\": unknown key " + q(m.first) + " (expected push, pull, swap, moveBehind, heal, summon, unlock)");
     ++count;
   }
-  if (count != 1) return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon");
+  if (count != 1) return c.fail(where, "\"effect\" needs exactly one of push, pull, swap, moveBehind, heal, summon, unlock");
   if (e.has("push")) {
     a.effect = AbilityEffect::Push;
     if (!LoadCtx::isWhole(e["push"]) || e["push"].asInt() < 1 || e["push"].asInt() > 5)
@@ -86,6 +87,9 @@ bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::
     if (h.isString() && h.asString() == "full") a.amount = kHealFull;
     else if (LoadCtx::isWhole(h) && h.asInt() >= 1 && h.asInt() <= 999) a.amount = h.asInt();
     else return c.fail(where, "\"heal\" must be a whole number from 1 to 999 or \"full\"");
+  } else if (e.has("unlock")) {
+    a.effect = AbilityEffect::Unlock;
+    if (!readUnlockKinds(c, e["unlock"], where, true, a.unlockDoors, a.unlockChests, a.unlockNeedsId)) return false;
   } else {
     a.effect = AbilityEffect::Summon;
     if (!readSummon(c, db, e["summon"], where, a.summon)) return false;
@@ -139,6 +143,9 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
       break;
     case AbilityEffect::Summon:
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"summon\" needs \"target\": \"cell\"");
+      break;
+    case AbilityEffect::Unlock:
+      if (a.target != AbilityTarget::Cell) return c.fail(where, "\"unlock\" needs \"target\": \"cell\" (a square of the door or chest)");
       break;
   }
 
@@ -213,6 +220,12 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
     if (a.effect == AbilityEffect::Summon) {
       a.summon.type = db.findUnitType(a.summon.typeId);
       if (a.summon.type < 0) return c.fail(where, "\"summon\": unknown unit type \"" + a.summon.typeId + "\"");
+    }
+    if (a.effect == AbilityEffect::Unlock && !a.unlockNeedsId.empty()) {
+      a.unlockNeeds = db.findItem(a.unlockNeedsId);
+      if (a.unlockNeeds < 0) return c.fail(where, "\"unlock\": \"needs\" names unknown item \"" + a.unlockNeedsId + "\" (data/items.json)");
+      if (db.items[(size_t)a.unlockNeeds].uses < 0)
+        return c.fail(where, "\"unlock\": \"needs\" names \"" + a.unlockNeedsId + "\", which has unlimited uses; a lockpick that wears out needs \"uses\"");
     }
     if (!resolveSkillConds(c, db, where, a.conds)) return false;
   }

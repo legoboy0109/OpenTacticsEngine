@@ -20,6 +20,7 @@ struct Order {
   int slot = -1;                       // UseItem / UseStaff: the inventory slot (UseItem: target = the unit itself)
   int ability = -1;                    // Ability only: index into db->abilities (target = unit or -1, cell = square or kNoCell)
   Cell cell = kNoCell;                 // Ability only: the target square of a "cell" ability
+  int structure = -1;                  // OpenPlace / VisitPlace: the structure (OpenPlace: slot = the key's inventory slot or -1)
   // Kinds added by AI1 besides the ones above: Promote (takes the first offered promotion, in place) and Ability.
 };
 
@@ -91,6 +92,11 @@ double exposureCost(const Battle& b, const Unit& u, Cell c);
 // Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use
 // beats it.
 void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
+
+// ---- ai_places.cpp (docs/SRPG.md section 10 "Computer opponent") ----
+// A unit the map marked ("goesFor") may replace `order` by opening a chest / door or visiting / destroying a place, or by walking toward the
+// nearest one. Unmarked units do nothing here.
+void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& best);
 
 // ---- ai_items.cpp ----
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.

@@ -1,0 +1,12 @@
+{ "items": [
+  { "id": "iron_sword", "name": "Iron Sword", "kind": "weapon", "weapon": "iron_sword", "uses": 40 },
+  { "id": "heavy_axe", "name": "Heavy Axe", "kind": "weapon", "weapon": "heavy_axe", "uses": 20 },
+  { "id": "potion", "name": "Potion", "kind": "usable", "heal": 10, "uses": 1 },
+  { "id": "lockpick", "name": "Lockpick", "kind": "usable", "heal": 1, "uses": 2, "description": "Worn by a tinker's deft hands." },
+  { "id": "brass_key", "name": "Brass Key", "kind": "usable", "opens": ["door"], "uses": 1 },
+  { "id": "master_key", "name": "Master Key", "kind": "usable", "opens": ["door", "chest"], "uses": 3 },
+  { "id": "strong_key", "name": "Strong Key", "kind": "usable", "opens": ["strongbox"] },
+  { "id": "unlock_staff", "name": "Unlock Staff", "kind": "staff", "group": "staff", "uses": 3, "range": 3,
+    "effects": [ { "unlock": true } ], "xp": 10 },
+  { "id": "wild_staff", "name": "Wild Unlock Staff", "kind": "staff", "group": "staff", "uses": 3, "range": 3,
+    "effects": [ { "unlock": ["door"] } ], "hit": 0 } ] }

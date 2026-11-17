@@ -139,6 +139,7 @@ const char* Battle::staffEffectWhy(const Unit& user, const StaffDef& d, const St
       return slots.empty() ? "that unit carries nothing that needs repair" : nullptr;
     }
     case StaffEffect::Kind::Light: return "a light picks a square";
+    case StaffEffect::Kind::Unlock: return "an unlock picks a door or chest";
     case StaffEffect::Kind::Inflict: {
       const int why = inflictWhy(t, fx.conds[0], fx.turns);
       return why == 0 ? nullptr : why == 1 ? "that unit is immune to it" : "that unit has it already";

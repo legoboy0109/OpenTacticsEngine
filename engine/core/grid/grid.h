@@ -60,6 +60,9 @@ class Grid {
   int distance(Cell a, Cell b) const;
   // Every cell within `radius` steps of `c` (distance() <= radius), `c` included; ascending cell index.
   void within(Cell c, int radius, std::vector<Cell>& out) const;
+  // The cells on the straight line from `a` to `b`, both ends included, in order (squares: evenly spaced columns / rows; hexagons:
+  // a line in cube coordinates). Used for line of sight past a closed door (docs/SRPG.md section 10); deterministic.
+  void line(Cell a, Cell b, std::vector<Cell>& out) const;
   // The cells of a hexagon structure: `middle`, then its six neighbours in direction order when rings == 1
   // (rings == 0: just `middle`). False (and `out` cleared) when any of them is off the map, `middle` is
   // invalid, rings is not 0 or 1, or the grid is not a hexagon grid and rings > 0.

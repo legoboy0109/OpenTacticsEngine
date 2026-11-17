@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "core/data/graphics.h"
+#include "core/data/places.h"
 #include "core/data/ranks.h"
 #include "core/base/types.h"
 #include "core/grid/grid.h"
@@ -79,6 +80,11 @@ struct StructureDef {
   int visionBonus = 0;
   std::vector<std::string> visionUnits;  // as TerrainDef::visionUnits
   bool hides = false;
+  // Doors, chests and visitable places (docs/SRPG.md section 10): what a structure kind does when a unit interacts with it.
+  PlaceDef place;
+  // Fog: a unit looking along a straight line of squares does not see past the squares of this kind (a closed door); the
+  // squares of the kind themselves are seen. Only means something with fog (a map's "fog").
+  bool blocksSight = false;
 };
 
 const int kMaxStructureSize = 8;
@@ -139,6 +145,12 @@ struct ItemDef {
   bool cureAll = false;
   int inflict = -1;            // index into Database::conditions
   int inflictTurns = 0;        // 0 = the condition's own duration
+  // Keys (docs/SRPG.md section 10): "opens": ["door", "chest", "<structure id>"]. `opensIds` as written; the loader turns them
+  // into the two flags (any door / any chest) and structure kind indices once structures are loaded.
+  std::vector<std::string> opensIds;
+  bool opensDoors = false, opensChests = false;
+  std::vector<int> opensKinds;
+  bool isKey() const { return !opensIds.empty(); }
 };
 const int kHealFull = 1000000000;
 
@@ -261,6 +273,7 @@ struct RulesConfig {
   int maxLevel = 20;
   RescueRules rescue;        // "rules.rescue" (docs/SRPG.md "Rescue and pair up"); mode Off when the block is missing
   PromotionRules promotion;  // "rules.promotion" (docs/SRPG.md "Promotion")
+  PlaceRules places;         // "rules.places" (docs/SRPG.md section 10); the default changes nothing for a game without such structures
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.
@@ -437,6 +450,8 @@ struct MapUnitDef {
   // Weapon ranks: per RankRules::groups index the weapon experience this unit REPLACES its class's with; -1 = not
   // said. Empty = the map says nothing (docs/SRPG.md section 7).
   std::vector<int> weaponXp;
+  // Computer opponent (docs/SRPG.md section 10): what this unit goes for; bits of kAiChests | kAiPlaces | kAiDoors. 0 = none.
+  int aiGoals = 0;
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).
@@ -444,6 +459,12 @@ struct MapStructureDef {
   int type = 0;      // index into Database::structures
   int x = 0, y = 0;
   int side = -1;     // owning side index, -1 neutral
+  // Doors, chests and visitable places (docs/SRPG.md section 10); all at these defaults for any other structure.
+  std::string id;                  // story id of the placed object ("" = none), unique in the map
+  std::vector<PlaceLoot> loot;     // a chest's contents
+  int locked = -1;                 // -1 = the kind says, 0 / 1 = this placement is unlocked / locked
+  std::vector<int> visitSides;     // visit: only these sides may visit (indices into MapDef::sides); empty = the kind's rule
+  std::vector<std::string> visitUnits;  // visit: units (story ids) that may visit, in addition
 };
 
 struct MapDef {

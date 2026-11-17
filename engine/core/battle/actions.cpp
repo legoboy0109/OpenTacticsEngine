@@ -130,6 +130,10 @@ bool Battle::validate(const Action& action, std::string* why) const {
       return validateSupport(action, why);
     case ActionType::UseStaff:
       return validateStaff(action, why);
+    case ActionType::OpenPlace:
+    case ActionType::VisitPlace:
+    case ActionType::BreakPlace:
+      return validatePlace(action, why);  // doors, chests and visiting (docs/SRPG.md section 10)
     default:
       return validateItemAction(action, why);
   }
@@ -171,6 +175,9 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::SwitchPair: applyRescue(action, events); break;
     case ActionType::Support: applySupport(action, events); break;
     case ActionType::UseStaff: applyStaff(action, events); break;
+    case ActionType::OpenPlace:
+    case ActionType::VisitPlace:
+    case ActionType::BreakPlace: applyPlace(action, events, true); break;
     case ActionType::EndTurn:
       srpgTurnEnd(events);  // what ending a turn earns (supports), before the next side's turn begins
       advanceTurn(events);
@@ -247,6 +254,8 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
     o.unit = action.unit;
     o.cell = dest;
     fireStory(o, events);
+    // "rules.places": "actions": "auto": what the unit can open or visit from where it stopped happens by itself.
+    if (db->rules.places.automatic && !over && units[(size_t)action.unit].alive) autoPlaces(action.unit, events);
   }
 }
 

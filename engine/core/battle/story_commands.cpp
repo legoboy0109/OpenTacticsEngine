@@ -266,6 +266,9 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
     case K::AddSupport:
       storyAddSupport(c, events);
       break;
+    case K::Place:  // doors and chests (places_apply.cpp)
+      storyPlace(c, events);
+      break;
     case K::Focus: {
       int u = c.unit.empty() ? -1 : unitByStoryId(c.unit);
       if (!c.unit.empty()) {

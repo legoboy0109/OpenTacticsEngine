@@ -1,5 +1,7 @@
 #include "core/grid/grid.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 
 namespace ote {
@@ -91,6 +93,48 @@ void Grid::within(Cell c, int radius, std::vector<Cell>& out) const {
       Cell cell = yy * width_ + xx;
       if (distance(c, cell) <= radius) out.push_back(cell);
     }
+}
+
+void Grid::line(Cell a, Cell b, std::vector<Cell>& out) const {
+  out.clear();
+  if (!valid(a) || !valid(b)) return;
+  if (a == b) {
+    out.push_back(a);
+    return;
+  }
+  if (!isHex()) {
+    const double x0 = x(a), y0 = y(a), dx = x(b) - x0, dy = y(b) - y0;
+    const int steps = (int)std::max(std::fabs(dx), std::fabs(dy));
+    for (int i = 0; i <= steps; ++i) {
+      const double t = (double)i / steps;
+      const int cx = (int)std::floor(x0 + dx * t + 0.5 + 1e-9), cy = (int)std::floor(y0 + dy * t + 0.5 + 1e-9);
+      out.push_back(at(cx, cy));
+    }
+    return;
+  }
+  const int n = distance(a, b);
+  int qa, ra, qb, rb;
+  axial(layout_, x(a), y(a), qa, ra);
+  axial(layout_, x(b), y(b), qb, rb);
+  for (int i = 0; i <= n; ++i) {
+    const double t = (double)i / n;
+    // Cube coordinates (q, r, -q-r), nudged a hair so a line along a cell edge always rounds the same way.
+    double fq = qa + (qb - qa) * t + 1e-6, fr = ra + (rb - ra) * t + 2e-6, fs = -(qa + ra) + (-(qb + rb) + (qa + ra)) * t - 3e-6;
+    double rq = std::round(fq), rr = std::round(fr), rs = std::round(fs);
+    const double dq = std::fabs(rq - fq), dr = std::fabs(rr - fr), ds = std::fabs(rs - fs);
+    if (dq > dr && dq > ds) rq = -rr - rs;
+    else if (dr > ds) rr = -rq - rs;
+    const int q = (int)rq, r = (int)rr;
+    int ox, oy;
+    if (layout_ == HexLayout::Pointy) {
+      oy = r;
+      ox = q + (r - (r & 1)) / 2;
+    } else {
+      ox = q;
+      oy = r + (q - (q & 1)) / 2;
+    }
+    out.push_back(at(ox, oy));
+  }
 }
 
 bool Grid::ringCells(Cell middle, int rings, std::vector<Cell>& out) const {

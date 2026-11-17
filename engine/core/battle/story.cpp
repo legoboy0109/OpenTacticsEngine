@@ -161,6 +161,9 @@ bool Battle::triggerMatches(const Trigger& t, const StoryOccurrence& o) const {
       return o.unit >= 0 && unitMatches(t.who, units[(size_t)o.unit]);
     case K::Support:   // fired when a pair gains a level; "level" left out = any level
       return t.pair == o.pair && (t.level == 0 || t.level == o.level);
+    case K::Place:     // docs/SRPG.md section 10: a door / chest opened, a place visited / destroyed; "by" left out = by anyone (or the story)
+      if (o.place < 0 || o.place >= (int)structures.size() || structures[(size_t)o.place].id != t.place || t.placeIs != o.placeIs) return false;
+      return t.who.kind == UnitFilter::Kind::Any || (o.unit >= 0 && unitMatches(t.who, units[(size_t)o.unit]));
     default:
       return true;  // battle start / won / lost / end: the kind says it all
   }

@@ -1,0 +1,23 @@
+{ "name": "Hall", "grid": { "type": "square", "width": 10, "height": 6 }, "legend": { ".": "plain", "w": "wall" },
+  "tiles": [ ".....w....", "..........", ".....w....", "..........", ".....w....", ".....w...." ],
+  "sides": [ { "id": "blue", "controller": "human", "resources": { "gold": 0 } }, { "id": "red", "controller": "ai" } ],
+  "structures": [
+    { "type": "cell_door", "x": 5, "y": 1, "id": "d1" },
+    { "type": "latch_door", "x": 5, "y": 3, "id": "d2" },
+    { "type": "chest", "x": 2, "y": 0, "id": "c1", "contents": [ "potion", { "resource": "gold", "amount": 50 } ] },
+    { "type": "strongbox", "x": 2, "y": 5, "id": "c2", "contents": [ "heavy_axe" ] },
+    { "type": "hamlet", "x": 3, "y": 3, "id": "v1" },
+    { "type": "camp", "x": 1, "y": 3, "id": "v2" },
+    { "type": "hamlet", "x": 8, "y": 0, "id": "v3", "side": "red" },
+    { "type": "hamlet", "x": 8, "y": 4, "id": "v4", "side": "blue" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 4, "y": 1, "leader": true, "items": ["iron_sword", "brass_key"] },
+    { "type": "thief", "id": "sneak", "name": "Sneak", "side": "blue", "x": 4, "y": 3, "items": ["iron_sword"] },
+    { "type": "tinker", "id": "tink", "name": "Tink", "side": "blue", "x": 2, "y": 1, "items": ["iron_sword", "lockpick"] },
+    { "type": "mystic", "id": "sage", "name": "Sage", "side": "blue", "x": 1, "y": 5, "items": ["unlock_staff", "wild_staff"] },
+    { "type": "raider", "id": "g1", "side": "red", "x": 7, "y": 2, "items": ["iron_sword"] } ],
+  "events": [
+    { "id": "e_door", "when": { "place": "d1", "is": "opened" }, "do": [ { "setSwitch": "opened", "to": true } ] },
+    { "id": "e_visit", "when": { "place": "v1", "is": "visited" }, "do": [ { "setSwitch": "visited", "to": true }, { "giveResource": { "gold": 30 }, "side": "blue" } ] },
+    { "id": "e_raze", "when": { "place": "v4", "is": "destroyed" }, "do": [ { "setSwitch": "razed", "to": true } ] },
+    { "id": "e_chest", "when": { "place": "c1", "is": "opened", "by": "tink" }, "do": [ { "setSwitch": "chest_done", "to": true } ] } ] }

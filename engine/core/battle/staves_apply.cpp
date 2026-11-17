@@ -39,6 +39,17 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
   if (!canWieldStaff(u, item, why)) return false;
   const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];
 
+  if (d.has(StaffEffect::Kind::Unlock)) {  // doors and chests (docs/SRPG.md section 10): the square of the one to open
+    if (!grid.valid(action.cell)) return refuse(why, "pick a door or chest to unlock");
+    std::vector<Cell> cells;
+    staffUnlockCells(action.unit, action.slot, u.cell, cells);
+    if (std::find(cells.begin(), cells.end(), action.cell) != cells.end()) return true;
+    int minR = 1, maxR = 1;
+    staffRange(u, item, minR, maxR);
+    const int dist = grid.distance(u.cell, action.cell);
+    if (dist < minR || dist > maxR) return refuse(why, "that square is out of range");
+    return refuse(why, "that cannot be unlocked");
+  }
   if (d.picksSquare()) {  // a light: the square to light
     if (!fog) return refuse(why, "this map has no fog of war, so there is nothing to light");
     if (!grid.valid(action.cell)) return refuse(why, "pick a square to light");
@@ -136,6 +147,10 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
   const int slot = action.slot;
   const int item = units[(size_t)uid].items[(size_t)slot].item;
   const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];  // validated
+  if (d.has(StaffEffect::Kind::Unlock)) {
+    applyStaffUnlock(action, events);
+    return;
+  }
   if (d.picksSquare()) {
     applyStaffLight(action, events);
     return;

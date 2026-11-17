@@ -17,6 +17,8 @@ constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit"
 // loader_skills.cpp, loader_supports.cpp). A list of their own so that the "is not a command" message keeps naming
 // only what every game can use until those areas exist.
 constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport", "choice"};
+// Doors and chests (docs/SRPG.md section 10), read by loader_places_story.cpp.
+constexpr const char* kPlaceCommandKeys[] = {"openDoor", "closeDoor", "lockDoor", "unlockDoor", "openChest"};
 
 }  // namespace
 
@@ -24,7 +26,7 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   const Json& u = e["addUnit"];
   if (!u.isObject()) return fail(where, "\"addUnit\" must be a unit: { \"type\": ..., \"side\": ..., \"x\": ..., \"y\": ... }");
   if (!onlyKeys(e, {"addUnit"}, where) ||
-      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items", "ranks"}, where + ": \"addUnit\""))
+      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items", "ranks", "goesFor"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
   if (!readUnitHead(c_, db_, map_, u, at, out.newUnit)) return false;
@@ -51,6 +53,13 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kPlaceCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
+  for (const char* k : kPlaceCommandKeys)
+    if (kind && std::string(kind) == k) return placeCommand(e, kind, where + " (" + kind + ")", out);
   if (!kind) {
     std::string list;
     for (const char* k : kCommandKeys) list += (list.empty() ? "" : ", ") + std::string(k);

@@ -136,6 +136,11 @@ struct StaffForecast {
   Cell lightCell = kNoCell;
   std::vector<Cell> area;
   int newSquares = 0, lightTurns = 1, lightRadius = 0;
+  // An unlock staff (docs/SRPG.md section 10): `target` of the forecast is a square; the structure it belongs to opens (if it hits).
+  bool isUnlock = false;
+  Cell unlockCell = kNoCell;
+  int unlockStructure = -1;
+  int unlockHit = 100;  // percent chance to open it (100 when the staff cannot miss)
 };
 
 // A light a staff made (docs/SRPG.md section 8, stage 2): the side's team sees every square within `radius` of `cell` until
