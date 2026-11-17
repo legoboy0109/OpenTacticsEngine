@@ -36,6 +36,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
   const Database& db = *b.db;
   std::vector<SkillRow> out;
   for (int s : list) {
+    if (db.skills[(size_t)s].hidden) continue;  // a condition's blocks (docs/SRPG.md section 9) are shown on the Status page
     SkillRow row;
     row.skill = s;
     row.name = db.skills[(size_t)s].name;

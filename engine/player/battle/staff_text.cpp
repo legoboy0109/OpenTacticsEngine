@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "battle/condition_text.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -14,6 +15,9 @@ std::string staffReasonText(const std::string& why, int form) {
   if (why == "nobody in reach has an item to repair") return form == 0 ? "Nothing in reach to repair" : form == 1 ? "Nothing to repair" : StaffWords::kNobodyTiny;
   if (why == "this map has no fog of war") return form == 0 ? "No fog on this map" : form == 1 ? "No fog here" : "No fog";
   if (why == "nothing in reach is hidden") return form == 0 ? "Nothing in reach is hidden" : form == 1 ? "Nothing hidden" : "None";
+  // Stage 3 (conditions).
+  if (why == "nobody in reach has anything it cures") return form == 0 ? "Nobody in reach to cure" : form == 1 ? "Nobody to cure" : StaffWords::kNobodyTiny;
+  if (why == "nobody in reach can be affected") return form == 0 ? "Nobody in reach it can affect" : form == 1 ? "Nobody to affect" : StaffWords::kNobodyTiny;
   static const std::string kSuffix = " can wield this", kNeeds = "Needs rank ";
   if (form >= 1 && why.compare(0, 5, "Only ") == 0 && why.size() > kSuffix.size() &&
       why.compare(why.size() - kSuffix.size(), kSuffix.size(), kSuffix) == 0)
@@ -31,6 +35,13 @@ std::string staffEffectText(const Database& db, const ItemDef& item) {
       case StaffEffect::Kind::Swap: return "Swaps places";
       case StaffEffect::Kind::Repair: return fx.amount == StaffEffect::Amount::Full ? "Repairs an item fully" : "Repairs " + intStr(fx.value) + " uses";
       case StaffEffect::Kind::Light: return "Lights an area";
+      case StaffEffect::Kind::Inflict: return "Inflicts " + conditionName(db, fx.conds.empty() ? -1 : fx.conds[0]);
+      case StaffEffect::Kind::Cure: {
+        if (fx.cureAll) return "Cures every condition";
+        std::string names;
+        for (size_t i = 0; i < fx.conds.size(); ++i) names += (i ? ", " : "") + conditionName(db, fx.conds[i]);
+        return "Cures " + names;
+      }
       case StaffEffect::Kind::Heal: break;
     }
     switch (fx.amount) {
@@ -57,6 +68,9 @@ std::string staffWhyText(const std::string& why) {
       {"that unit carries nothing that needs repair", StaffWords::kNothingToRepair},
       {"a unit cannot be pulled to itself", StaffWords::kNotAValidTarget},
       {"a unit cannot swap with itself", StaffWords::kNotAValidTarget},
+      {"that unit is immune to it", ConditionWords::kImmune},
+      {"that unit has it already", ConditionWords::kAlreadyAffected},
+      {"that unit has nothing it cures", ConditionWords::kNothingToCure},
   };
   for (const Row& r : rows)
     if (why == r.core) return r.words;

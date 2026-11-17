@@ -1,10 +1,12 @@
 // Info panel (right side) and hint strip (bottom). Row pitch and widths all
 // come from the active font (Layout::row, Renderer::textWidth).
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
 #include "battle/battle_draw.h"
 #include "battle/carrier_marker.h"
+#include "battle/condition_text.h"
 #include "battle/economy_text.h"
 #include "battle/item_text.h"
 #include "battle/rank_text.h"
@@ -128,10 +130,28 @@ bool supportReady(const Battle& b, const Unit& u) {
 }
 
 // Up to three skill names in gold (nothing else on the panel is gold), then "+2 more". Rows that do not fit are dropped.
+// The unit's conditions (docs/SRPG.md section 9): name left in violet, the turns left on the right ("3", "cure", "map", "ends");
+// up to three, then "+N more". Placed above the skills; a game without conditions draws nothing.
+void drawConditionRows(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w, int bottom) {
+  if (u.conditions.empty()) return;
+  const Database& db = *c.battle.db;
+  const size_t shown = std::min<size_t>(u.conditions.size(), 3);
+  for (size_t i = 0; i < shown && y <= bottom; ++i) {
+    const ConditionState& cs = u.conditions[i];
+    row(r, x, y, w, conditionName(db, cs.condition), conditionDurationShort(db, cs), Color(215, 170, 255), kLabel);
+    y += c.layout.row;
+  }
+  if (u.conditions.size() > shown && y <= bottom) {
+    r.drawText(x, y, ("+" + intStr((int)(u.conditions.size() - shown)) + ConditionWords::kMore).c_str(), kLabel);
+    y += c.layout.row;
+  }
+}
+
 void drawSkillNames(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, int w, int bottom) {
   if (c.battle.db->skills.empty()) return;
   std::vector<int> list;
   c.battle.skillsOf(u, -1, list);
+  list.erase(std::remove_if(list.begin(), list.end(), [&](int s) { return c.battle.db->skills[(size_t)s].hidden; }), list.end());  // a condition's blocks are not skills
   const size_t shown = std::min<size_t>(list.size(), 3);
   for (size_t i = 0; i < shown && y <= bottom; ++i) {
     r.drawText(x, y, fitText(r, c.battle.db->skills[(size_t)list[i]].name, w).c_str(), Color(255, 235, 130));
@@ -205,6 +225,7 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
     }
     y += rh;
   }
+  drawConditionRows(r, c, u, x, y, w, bottom);
   drawSkillNames(r, c, u, x, y, w, bottom);
   drawCarried(r, c, u, x, y, w);
 }

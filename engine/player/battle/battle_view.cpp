@@ -51,6 +51,7 @@ void BattleView::resync(const Battle& b) {
     UnitView& v = units[u.id];
     v.visible = u.alive && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
     v.hp = u.hp;
+    for (const ConditionState& cs : u.conditions) v.conds.push_back(cs.condition);
     if (u.alive) cellPos(b, u.cell, v.px, v.py);
   }
   queue_.clear();
@@ -272,7 +273,12 @@ void BattleView::begin(const Battle& b) {
     case EventType::StaffUsed:
     case EventType::StaffMissed:
     case EventType::ItemRepaired:
-    case EventType::AreaLit: break;
+    case EventType::AreaLit:
+    // Conditions (battle_view_conditions.cpp).
+    case EventType::ConditionApplied:
+    case EventType::ConditionEnded:
+    case EventType::ConditionResisted:
+    case EventType::ConditionTick: break;
   }
 }
 

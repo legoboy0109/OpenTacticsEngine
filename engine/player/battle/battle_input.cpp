@@ -3,6 +3,7 @@
 // Menus only react once the view has finished playing the last events (see
 // onInput), so state can change the moment apply() is called.
 #include "battle/battle_scene.h"
+#include "battle/condition_text.h"
 #include "core/base/log.h"
 #include "sound/cue_sink.h"
 #include "ui/text.h"
@@ -200,6 +201,17 @@ void BattleScene::idleButton(Button b) {
         selectUnit(uid);
         return;
       }
+      // A unit of the active side that a condition stops (asleep, or acting on its own): it takes no orders, and tapping it says why
+      // (docs/SRPG.md section 9).
+      if (uid >= 0 && battle_.units[uid].alive && battle_.units[uid].side == battle_.activeSide) {
+        const std::string stopped = unitStoppedText(battle_, battle_.units[uid]);
+        if (!stopped.empty()) {
+          uiCue(Cue::Error);
+          say(stopped);
+          OTE_INFO("unit stopped: %s", stopped.c_str());
+          break;
+        }
+      }
       uiCue(Cue::Confirm);
       if (!openStructureAt(cursor_)) openEndMenu();  // Build / Upgrade / Research of an own structure (battle_economy.cpp)
       break;
@@ -223,6 +235,11 @@ void BattleScene::selectUnit(int unit) {
   mode_ = Mode::Selected;
   battle_.reachable(unit, reach_);
   computeOverlay();
+  const std::string stuck = unitStuckText(battle_, battle_.units[unit]);  // a condition that stops it moving (docs/SRPG.md section 9)
+  if (!stuck.empty()) {
+    say(stuck);
+    OTE_INFO("unit stuck: %s", stuck.c_str());
+  }
 }
 
 void BattleScene::computeOverlay() {
