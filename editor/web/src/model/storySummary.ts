@@ -41,6 +41,16 @@ export function unitText(c: SumCtx, id: string): string {
   return known.label.replace(/ \([^)]*\)$/, '')
 }
 
+/** "the level of Eirik" for a variable command that reads a unit; null when the number is written in the command. */
+function readingText(c: SumCtx, cmd: Command): string | null {
+  const stat = (id: string) => c.doc.game?.stats?.find((s) => s.id === id)?.name ?? id
+  if (cmd.level !== undefined) return `the level of ${unitText(c, cmd.level)}`
+  if (cmd.hp !== undefined) return `the hit points of ${unitText(c, cmd.hp)}`
+  if (cmd.maxHp !== undefined) return `the most hit points of ${unitText(c, cmd.maxHp)}`
+  if (cmd.stat !== undefined) return `the ${q(stat(cmd.stat))} stat of ${unitText(c, cmd.of ?? '')}`
+  return null
+}
+
 /** A chapter's name (campaign scenes only; an id nothing knows is shown as typed). */
 const chapterLabel = ({ doc }: SumCtx, id: string): string => {
   const ch = doc.campaign?.chapters.find((x) => x.id === id)
@@ -151,8 +161,8 @@ export function commandText(c: SumCtx, cmd: Command): string {
     case 'forgetSkill': return `Makes ${filterText(c, cmd.from)} forget the skill ${q(skillLabel(c, cmd.forgetSkill ?? ''))}`
     case 'giveResource': return `Gives side ${sideName(c, cmd.side ?? '')} ${amountsText(c, cmd.giveResource)}`
     case 'setSwitch': return `Turns the switch ${q(switchName(c, cmd.setSwitch ?? ''))} ${cmd.to === false ? 'off' : 'on'}`
-    case 'setVariable': return `Sets the variable ${q(variableName(c, cmd.setVariable ?? ''))} to ${typeof cmd.to === 'number' ? cmd.to : 0}`
-    case 'addVariable': return `Adds ${cmd.by ?? 0} to the variable ${q(variableName(c, cmd.addVariable ?? ''))}`
+    case 'setVariable': return `Sets the variable ${q(variableName(c, cmd.setVariable ?? ''))} to ${readingText(c, cmd) ?? (typeof cmd.to === 'number' ? cmd.to : 0)}`
+    case 'addVariable': return `Adds ${readingText(c, cmd) ?? cmd.by ?? 0} to the variable ${q(variableName(c, cmd.addVariable ?? ''))}`
     case 'objective': return cmd.objective?.text ? `Changes the objective to ${q(clip(cmd.objective.text))}` : 'Changes the objectives'
     case 'win': return `Team ${teamText(c, cmd.win ?? '')} wins the battle`
     case 'lose': return `Team ${teamText(c, cmd.lose ?? '')} loses the battle`

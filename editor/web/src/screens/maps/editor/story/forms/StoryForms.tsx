@@ -1,9 +1,7 @@
-// Story commands: switches, variables, a team winning or losing, ending a talking unit's turn, moving the view.
+// Story commands: switches, a team winning or losing, ending a talking unit's turn, moving the view.
 import { rectOf, type Command } from '../../../../../model/storyTypes'
-import { Field } from '../../../../../ui/Field'
-import { NumberInput } from '../../../../../ui/NumberInput'
 import { AreaField } from '../AreaField'
-import { PickSelect, SwitchPick, TeamPick, UnitPick, VariablePick } from '../pickers'
+import { PickSelect, SwitchPick, TeamPick, UnitPick } from '../pickers'
 import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
@@ -14,30 +12,6 @@ export function SetSwitchForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       <SwitchPick label={S.setSwitch} value={cmd.setSwitch ?? ''} onChange={(v) => patch({ setSwitch: v })} />
       <PickSelect label={S.setSwitchTo} value={cmd.to === false ? 'off' : 'on'} options={[{ value: 'on', label: S.on }, { value: 'off', label: S.off }]}
         onChange={(v) => patch({ to: v === 'on' })} />
-    </div>
-  )
-}
-
-export function SetVariableForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
-  const { patch } = useCommandEdit(at)
-  return (
-    <div className="stack tight">
-      <VariablePick label={S.setVariable} value={cmd.setVariable ?? ''} onChange={(v) => patch({ setVariable: v })} />
-      <Field label={S.setVariableTo}>
-        <NumberInput value={typeof cmd.to === 'number' ? cmd.to : 0} onChange={(v) => { if (v !== undefined) patch({ to: v }, 'to') }} />
-      </Field>
-    </div>
-  )
-}
-
-export function AddVariableForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
-  const { patch } = useCommandEdit(at)
-  return (
-    <div className="stack tight">
-      <VariablePick label={S.addVariable} value={cmd.addVariable ?? ''} onChange={(v) => patch({ addVariable: v })} />
-      <Field label={S.addVariableBy} help={S.addVariableHelp}>
-        <NumberInput value={cmd.by ?? 1} onChange={(v) => { if (v !== undefined) patch({ by: v }, 'by') }} />
-      </Field>
     </div>
   )
 }

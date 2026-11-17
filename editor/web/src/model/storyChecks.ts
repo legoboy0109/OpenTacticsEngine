@@ -5,6 +5,7 @@
 import { audioRefProblem } from './audioChecks'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { inventorySize } from './itemRules'
+import { readingProblems } from './readingChecks'
 import { addSupportChecks, supportConditionChecks, supportTriggerChecks } from './supportStoryChecks'
 import { definedUnitIds, isStoryId, teamsOf } from './storyIds'
 import { conditionKind, rectOf, commandKind, triggerKind, type Command, type Condition, type ObjectiveRule, type Objectives, type StoryEvent } from './storyTypes'
@@ -29,6 +30,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'resource': return missing('a resource') ?? (known(doc.game?.resources) ? null : `“${r.id}” is not a resource of this game.`)
     case 'switch': return missing('a switch') ?? (known(doc.game?.switches) ? null : `“${r.id}” is not a switch of this game.`)
     case 'variable': return missing('a variable') ?? (known(doc.game?.variables) ? null : `“${r.id}” is not a variable of this game.`)
+    case 'stat': return missing('a stat') ?? (known(doc.game?.stats) ? null : `“${r.id}” is not a stat of this game.`)
     case 'tech': return missing('a technology') ?? (known(doc.research ?? undefined) ? null : `“${r.id}” is not a technology of this game${doc.research?.length ? '' : ' (the game has no research yet)'}.`)
     case 'skill': return missing('a skill') ?? (known(doc.skills ?? undefined) ? null : `“${r.id}” is not a skill of this game${doc.skills?.length ? '' : ' (the game has no skills yet)'}.`)
     case 'music':
@@ -98,6 +100,7 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
     case 'setVariable':
     case 'addVariable':
       if (Math.abs(Number(c.to ?? c.by ?? 0)) > BIG) say(where, 'the number is unreasonably large.')
+      for (const p of readingProblems(c, false)) say(where, p)
       break
     case 'playMusic':
     case 'stopMusic':

@@ -12,6 +12,7 @@ import { audioRefProblem } from './audioChecks'
 import { choiceChecks, storeCounts } from './choiceChecks'
 import { isStoryId } from './storyIds'
 import { commandKind, type Command } from './storyTypes'
+import { readingProblems } from './readingChecks'
 import { forEachCommand, type Ref } from './storyWalk'
 import type { ProjectDoc } from './types'
 
@@ -45,6 +46,7 @@ function refProblem(doc: ProjectDoc, c: Campaign, r: Ref): { topic: CampaignChec
       if (!isStoryId(r.id)) return { topic: 'unit', level: 'error', text: 'a unit’s story name may use only letters, digits, _ and - (up to 64).' }
       return definedStoryIds(doc).has(r.id) ? null : { topic: 'unit', level: 'hint', text: `no map has a unit with the story name “${r.id}” (give a unit that story name in the map editor).` }
     case 'pair': return null
+    case 'stat': return pick('a stat', 'general') ?? (known(doc.game?.stats) ? null : { topic: 'general', level: 'error', text: `“${r.id}” is not a stat of this game.` })
     case 'character':
       if (r.id === '') return { topic: 'unit', level: 'error', text: 'pick a character.' }
       return known(doc.characters ?? undefined) ? null : { topic: 'unit', level: 'error', text: `“${r.id}” is not a character of this game.` }
@@ -70,6 +72,7 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
     case 'setVariable':
     case 'addVariable':
       if (Math.abs(Number(c.to ?? c.by ?? 0)) > BIG) say('error', 'variable', where, 'the number is unreasonably large.')
+      for (const p of readingProblems(c, true)) say('error', 'variable', where, p)
       break
     case 'goto':
       if (own !== undefined && c.goto === own) say('error', 'chapter', where, 'a “Before the battle” scene can only go to another chapter, not its own.')

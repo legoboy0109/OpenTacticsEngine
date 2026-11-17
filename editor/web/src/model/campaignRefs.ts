@@ -22,6 +22,7 @@ export function goneRefs(before: ProjectDoc, after: ProjectDoc): Ref[] {
   const lost = (kind: Ref['kind'], a: Set<string>, b: Set<string>) => { for (const id of a) if (!b.has(id)) out.push({ kind, id }) }
   lost('switch', ids(before.game.switches), ids(after.game.switches))
   lost('variable', ids(before.game.variables), ids(after.game.variables))
+  lost('stat', ids(before.game.stats), ids(after.game.stats))
   lost('resource', ids(before.game.resources), ids(after.game.resources))
   lost('map', ids(before.game.maps), ids(after.game.maps))
   lost('side', allSideIds(before), allSideIds(after))
