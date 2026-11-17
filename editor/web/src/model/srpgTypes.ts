@@ -22,6 +22,18 @@ export interface Character extends Named {
   /** Personal starting ranks per weapon group, and cap adjustments per stat (section 7). */
   ranks?: RankMap
   capAdjust?: NumMap
+  /** Battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes"). */
+  quotes?: CharacterQuotes
+}
+
+/** How often a battle quote is said: once per map (the default), once per campaign, or every time. */
+export type QuoteOnce = 'map' | 'campaign' | 'always'
+/** Lines said when the character first enters a fight; `against` = only against that character (absent = anyone). */
+export interface Quote { against?: string; once?: QuoteOnce; lines: Command[] }
+export interface CharacterQuotes {
+  battle?: Quote[]
+  /** `falls`: struck down for good; `retreats`: one of the player's units in a game whose fallen units come back. */
+  defeat?: { falls?: Command[]; retreats?: Command[] }
 }
 
 /** data/skills.json entry (section 3); the blocks are E2's to type. */

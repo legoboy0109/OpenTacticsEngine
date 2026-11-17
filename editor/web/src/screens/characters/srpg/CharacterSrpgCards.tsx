@@ -5,6 +5,7 @@ import { CharacterLockedWeapons } from './CharacterLockedWeapons'
 import { CharacterRanksCard } from './CharacterRanksCard'
 import { CharacterSkillsCard } from './CharacterSkillsCard'
 import { CharacterAbilitiesCard } from './CharacterAbilitiesCard'
+import { CharacterQuotesCard } from './CharacterQuotesCard'
 
 export function CharacterSrpgCards({ id }: { id: string }) {
   return (
@@ -14,6 +15,7 @@ export function CharacterSrpgCards({ id }: { id: string }) {
       <CharacterLockedWeapons id={id} />
       <CharacterSkillsCard id={id} />
       <CharacterAbilitiesCard id={id} />
+      <CharacterQuotesCard id={id} />
     </>
   )
 }

@@ -1,5 +1,6 @@
 // Editor-side checks for characters (docs/SRPG.md "Checks / Problems"), beside the loader's: the loader refuses what
 // cannot load; these point at what loads but is probably not what the maker meant.
+import { quoteChecks } from './quoteChecks'
 import { forEachCommand } from './storyWalk'
 import type { ProjectDoc } from './types'
 
@@ -21,8 +22,9 @@ export const NOT_USED = 'Not used on any map.'
 export function characterChecks(doc: ProjectDoc): CharacterCheck[] {
   const list = doc.characters ?? []
   if (list.length === 0) return []
+  const quotes = quoteChecks(doc)  // docs/EVENTS.md "Battle and defeat quotes"
   // A map that could not be read might place the character: say nothing rather than something wrong.
-  if (Object.values(doc.maps).some((m) => m === null)) return []
+  if (Object.values(doc.maps).some((m) => m === null)) return quotes
   const used = charactersInUse(doc)
-  return list.filter((c) => !used.has(c.id)).map((c) => ({ characterId: c.id, text: NOT_USED }))
+  return [...list.filter((c) => !used.has(c.id)).map((c) => ({ characterId: c.id, text: NOT_USED })), ...quotes]
 }

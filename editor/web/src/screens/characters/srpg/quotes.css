@@ -1,0 +1,7 @@
+/* The Quotes card of a character. Imported by CharacterQuotesCard. */
+.quote-block { border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.quote-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.quote-head .sub-title { margin: 0; }
+.quote-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+.quote-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.quote-lines-title { margin: 0; font-size: 0.9rem; }

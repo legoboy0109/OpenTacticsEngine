@@ -51,6 +51,8 @@ export function loadStavesFixture(): ProjectDoc { return loadFrom(fixtures, 'srp
 export function loadStaves2Fixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-staves2') }
 /** The engine's status conditions test game (tests/fixtures/srpg-conditions): 19 conditions using every block, every duration form, staves / items / weapons that inflict and cure. */
 export function loadConditionsFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-conditions') }
+/** The engine's battle and defeat quotes test game (tests/fixtures/srpg-quotes): five characters, four of them with quotes, a two-chapter campaign (fallen: gone). */
+export function loadQuotesFixture(): ProjectDoc { return loadFrom(fixtures, 'srpg-quotes') }
 export function loadTemplate(name: (typeof TEMPLATES)[number]): ProjectDoc { return loadFrom(templates, name) }
 
 /** Any template by id, including the hexagon ones (the lesson tests start from the template a lesson names). */
