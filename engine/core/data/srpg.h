@@ -32,6 +32,8 @@ const int kMaxSupportLevels = 5;
 const int kMaxSupportLines = 200;
 const int kMaxPromotions = 8;
 const int kMaxSupportPoints = 1000000;
+const int kMaxConditions = 100;  // data/conditions.json (section 9)
+const int kMaxConditionTurns = 99;
 
 // ---- expressions (docs/SRPG.md "Formulas in this document") ----
 // One Lua expression in the formula language, registered by a loader (Database::addExpr) and compiled by
@@ -76,7 +78,8 @@ enum class SkillWhen { Always, TurnStart, Combat, Strike, Struck, Defeat, AfterC
 
 // One entry of a block's "if" (also of an ability's "if"). Which fields count depends on `kind`.
 struct SkillCond {
-  enum class Kind { Hp, Near, Weapon, Terrain, Structure, Unit, Carrying, Round, Initiating, Distance, Formula };
+  enum class Kind { Hp, Near, Weapon, Terrain, Structure, Unit, Carrying, Round, Initiating, Distance, Formula,
+                    Condition };  // Condition: the unit has the condition with id `key` (docs/SRPG.md section 9)
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)
   CmpOp op = CmpOp::Ge;   // Hp, Near, Round, Distance
@@ -100,7 +103,10 @@ struct SkillEffect {
     // per strike
     Drain, StrikeAgain, Survive,
     // timed
-    Heal, Hurt, ActAgain
+    Heal, Hurt, ActAgain,
+    // conditions (docs/SRPG.md section 9). CannotAct, CannotMove, Forbid and Berserk belong to the blocks of a condition;
+    // Immune works in any skill; Inflict is an on-hit effect of "strike" / "struck" blocks (a weapon's "inflict" is one).
+    CannotAct, CannotMove, Forbid, Berserk, Immune, Inflict
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;
@@ -111,6 +117,15 @@ struct SkillEffect {
   std::vector<int> stats;   // Stats / Growths: per stat index
   std::string abilityId;    // Ability
   int ability = -1;         // index into Database::abilities
+  // Conditions (section 9). Heal / Hurt: `expr` >= 0 = the amount is a formula (a = the receiver); `kill`: a Hurt may defeat.
+  int expr = -1;
+  bool kill = false;
+  // CannotAct: may it still counterattack / still dodge (otherwise it answers nothing and every strike on it hits).
+  bool counter = false, dodge = false;
+  // Forbid: weapon / staff groups and item kinds it may not use. Immune: condition ids. Inflict: `names[0]` = the condition.
+  std::vector<std::string> names, kinds;
+  std::vector<int> conds;   // Immune / Inflict: the same as indices into Database::conditions
+  int turns = 0;            // Inflict: duration override (0 = the condition's own)
 };
 
 struct SkillBlock {
@@ -128,6 +143,9 @@ struct SkillBlock {
 struct SkillDef {
   std::string id, name, description;
   std::vector<SkillBlock> blocks;
+  // Not a skill of the maker's: the blocks of a condition, or what a weapon's "inflict" key turned into. Never shown in a
+  // unit's skill list; only the unit's conditions / the weapon reach it (docs/SRPG.md section 9).
+  bool hidden = false;
 };
 
 // ---- 4. menu abilities and summoning (data/abilities.json) ----
@@ -244,5 +262,21 @@ struct SupportData {
 
 // Text indices at or above this are looked up in SupportData::texts (Dialogue events of a support conversation).
 const int kSupportTextBase = 1 << 24;
+
+// ---- 9. conditions (data/conditions.json; docs/SRPG.md section 9) ----
+
+enum class ConditionUntil { Turns, Cured, MapEnd };
+
+struct ConditionDef {
+  std::string id, name, description;
+  std::string tag;                   // a short text for the map marker (the engine has no small pictures for units)
+  ConditionUntil until = ConditionUntil::Turns;
+  int turns = 3;                     // Turns: the afflicted unit's own turns it lasts (1..99)
+  int wearOff = 0;                   // percent chance each own turn that it ends early (0 = never)
+  bool endsWhenStruck = false;       // a strike that does damage to the unit ends it
+  std::vector<std::string> replaceIds;
+  std::vector<int> replaces;         // applying this removes these
+  int skill = -1;                    // the hidden SkillDef (index into Database::skills) that holds its blocks
+};
 
 }  // namespace ote

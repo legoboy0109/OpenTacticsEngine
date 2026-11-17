@@ -49,6 +49,10 @@ bool readUnitSkills(Reader& rd, const Battle& b, const Json& j, const std::strin
 void writeRosterSkills(const Database& db, const RosterUnit& r, Json& j);
 bool readRosterSkills(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);
 
+// ---- conditions (save_conditions.cpp, docs/SRPG.md section 9): units[i] "conditions" ----
+void writeUnitConditions(const Battle& b, const Unit& u, Json& j);
+bool readUnitConditions(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
+
 // ---- abilities and summons (save_abilities.cpp, step A1): units[i] "abilities", "summon" ----
 void writeUnitAbilities(const Battle& b, const Unit& u, Json& j);
 bool readUnitAbilities(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);

@@ -134,6 +134,11 @@ save's units and to a campaign roster entry, written only in a game with `data/r
 `data/ranks.json` and `data/caps.json` only when they hold something (an empty ladder / empty `caps` is the same game as no file). See
 docs/SRPG.md section 7 "Saves and hash".
 
+Status conditions (docs/SRPG.md section 9) add one optional key, `conditions` (`[ { "condition": index, "left": turns } ]`, oldest first, `left` only
+for a counted condition), to a battle save's units, written only for a unit that has some and refused in a game without `data/conditions.json`. The
+data hash covers `data/conditions.json` only when it holds something (name, description and tag are cosmetic). Conditions are not part of a campaign
+save: they end with the map.
+
 ## Editor
 
 Rules screen, a small **Saving** card: "Players can save: Any time / Only

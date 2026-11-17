@@ -27,6 +27,7 @@ struct UnitView {
   int side = -1;         // side whose colour is drawn; -1 = the unit's own (differs while a SideChanged entry waits to play)
   float flash = 0;       // 0..1: the short flash of a unit that changed sides
   int type = -1;         // unit type to draw it as; -1 = the unit's own (the old type while a UnitPromoted entry waits to play)
+  std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)
 };
 
 struct FloatText {
@@ -159,6 +160,9 @@ class BattleView {
   bool beginStaves(const Battle& b);       // battle_view_staves.cpp     StaffUsed, StaffMissed (docs/SRPG.md section 8)
   bool progressStaves(const Battle& b);
   bool finishStaves(const Battle& b);
+  bool beginConditions(const Battle& b);   // battle_view_conditions.cpp ConditionApplied, ConditionEnded, ConditionResisted, ConditionTick (section 9)
+  bool progressConditions(const Battle& b);
+  bool finishConditions(const Battle& b);
   bool beginRanks(const Battle& b);        // battle_view_ranks.cpp      RankUp (docs/SRPG.md section 7)
   bool progressRanks(const Battle& b);
   bool finishRanks(const Battle& b);

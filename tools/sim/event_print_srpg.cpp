@@ -108,6 +108,28 @@ bool describeSrpgEvent(const Battle& b, const Event& e, std::string& out) {
     case EventType::AreaLit:
       out = unit(b, e.a) + " lights " + cell(b, e.b) + " (radius " + std::to_string(e.c) + ", " + std::to_string(e.d) + " turns)";
       return true;
+    case EventType::ConditionApplied: {
+      const std::string name = e.b >= 0 && (size_t)e.b < b.db->conditions.size() ? b.db->conditions[(size_t)e.b].name : "?";
+      out = unit(b, e.a) + " gets " + name + (e.c >= 0 ? " for " + std::to_string(e.c) + " turns" : std::string(" until cured")) +
+            ((e.flags & kRefreshed) ? " (again)" : "") + (e.d >= 0 ? " from " + unit(b, e.d) : std::string());
+      return true;
+    }
+    case EventType::ConditionEnded: {
+      static const char* const kWhy[] = {"ran out", "wore off", "was cured", "was replaced", "was woken by a strike"};
+      const std::string name = e.b >= 0 && (size_t)e.b < b.db->conditions.size() ? b.db->conditions[(size_t)e.b].name : "?";
+      out = unit(b, e.a) + "'s " + name + " " + (e.c >= 0 && e.c < 5 ? kWhy[e.c] : "ended");
+      return true;
+    }
+    case EventType::ConditionResisted: {
+      const std::string name = e.b >= 0 && (size_t)e.b < b.db->conditions.size() ? b.db->conditions[(size_t)e.b].name : "?";
+      out = unit(b, e.a) + " is immune to " + name;
+      return true;
+    }
+    case EventType::ConditionTick: {
+      const std::string name = e.b >= 0 && (size_t)e.b < b.db->conditions.size() ? b.db->conditions[(size_t)e.b].name : "?";
+      out = unit(b, e.a) + (e.c == kTickActsAlone ? " acts on its own (" : " cannot act (") + name + ")";
+      return true;
+    }
     default:
       return false;
   }

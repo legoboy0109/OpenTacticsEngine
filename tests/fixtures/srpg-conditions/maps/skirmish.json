@@ -1,0 +1,14 @@
+{ "name": "Skirmish", "grid": { "type": "square", "width": 12, "height": 6 }, "legend": { ".": "plain" },
+  "tiles": ["............", "............", "............", "............", "............", "............"],
+  "sides": [ { "id": "blue", "controller": "ai" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "bf", "name": "Blue Fighter", "side": "blue", "x": 2, "y": 2, "leader": true, "items": ["venom_blade", "tonic"] },
+    { "type": "mage", "id": "bm", "name": "Blue Mage", "side": "blue", "x": 1, "y": 3,
+      "items": ["fire_tome", "poison_staff", "sleep_staff", "hex_staff", "cure_staff"] },
+    { "type": "cleric", "id": "bc", "name": "Blue Cleric", "side": "blue", "x": 1, "y": 2, "items": ["cure_staff", "purify_staff", "mend_cure_staff"] },
+    { "type": "knight", "id": "bk", "name": "Blue Knight", "side": "blue", "x": 2, "y": 4, "items": ["iron_blade"] },
+    { "type": "fighter", "id": "rf", "name": "Red Fighter", "side": "red", "x": 9, "y": 3, "leader": true, "items": ["venom_blade", "antidote"] },
+    { "type": "mage", "id": "rm", "name": "Red Mage", "side": "red", "x": 10, "y": 2,
+      "items": ["fire_tome", "poison_staff", "sleep_staff", "hex_staff", "cure_staff"] },
+    { "type": "cleric", "id": "rc", "name": "Red Cleric", "side": "red", "x": 10, "y": 3, "items": ["cure_staff", "purify_staff", "mend_cure_staff"] },
+    { "type": "knight", "id": "rk", "name": "Red Knight", "side": "red", "x": 9, "y": 4, "items": ["lull_blade"] } ] }

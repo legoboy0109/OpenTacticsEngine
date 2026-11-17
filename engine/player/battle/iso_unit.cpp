@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "battle/carrier_marker.h"
+#include "battle/condition_marker.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -49,6 +50,7 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
     r.fillRect(cx - uw / 2 + 1, bodyTop, 3, 3, scaled(Color(255, 210, 40), al));
   }
   drawCarrierMarker(r, c, u, cx + uw / 2, bodyTop, uw, al);  // top right corner: a unit with someone off the board
+  drawConditionMarker(r, c, u, cx - uw / 2, foot, al);       // bottom left corner: its conditions (docs/SRPG.md section 9)
   // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = cx - barW / 2, barY = foot + 1;
   r.fillRect(barX - 1, barY - 1, barW + 2, 4, scaled(Color(0, 0, 0, 200), al));

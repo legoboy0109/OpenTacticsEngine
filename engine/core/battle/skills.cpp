@@ -60,6 +60,8 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
   const int w = weapon == -1 ? restingWeapon(u) : weapon;  // -2 = no weapon at all
   if (w >= 0 && (size_t)w < db->weapons.size())
     for (int s : db->weapons[(size_t)w].skills) add(s);
+  // Conditions (docs/SRPG.md section 9): the blocks of each condition the unit has, in the order they were applied, last.
+  for (const ConditionState& cs : u.conditions) add(db->conditions[(size_t)cs.condition].skill);
 }
 
 bool Battle::hasSkill(const Unit& u, int skill) const {

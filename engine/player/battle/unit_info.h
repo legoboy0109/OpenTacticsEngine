@@ -32,6 +32,7 @@ void addSkillsPage(UnitInfoPages& pages, const Battle& b, int unit);     // U1
 void addAbilitiesPage(UnitInfoPages& pages, const Battle& b, int unit);  // U3
 void addSupportsPage(UnitInfoPages& pages, const Battle& b, int unit);   // U5
 void addItemsPage(UnitInfoPages& pages, const Battle& b, int unit);      // U1
+void addConditionsPage(UnitInfoPages& pages, const Battle& b, int unit); // docs/SRPG.md section 9: "Status" (only for a unit that has a condition)
 
 // All pages of a unit, in the order Stats, Skills, Abilities, Supports, Items.
 UnitInfoPages buildUnitInfoPages(const Battle& b, int unit);

@@ -36,6 +36,8 @@ bool cosmeticKey(const std::string& k) {
   return k == "name" || k == "description" || k == "author" || k == "color" || k == "glyph" ||
          // What support levels are called (data/supports.json "levelNames"; docs/SRPG.md).
          k == "levelNames" ||
+         // The short map marker text of a condition (data/conditions.json "tag").
+         k == "tag" ||
          // Sound (docs/SOUND.md) is presentation, like graphics.json: which sound or track plays never changes a rule.
          k == "sounds" || k == "music" || k == "playerTurnMusic" || k == "enemyTurnMusic";
 }
@@ -175,7 +177,8 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   // editor writes one to remember that the maker switched the feature on, and that must not make a save invalid.
   struct SrpgFile { const char* rel; const char* list; bool mapFile; };
   static const SrpgFile kSrpg[] = {{"data/characters.json", "characters", false}, {"data/skills.json", "skills", false},
-                                   {"data/abilities.json", "abilities", false}, {"data/supports.json", "pairs", true}};
+                                   {"data/abilities.json", "abilities", false}, {"data/supports.json", "pairs", true},
+                                   {"data/conditions.json", "conditions", false}};  // docs/SRPG.md section 9
   for (const SrpgFile& sf : kSrpg) {
     if (!readTextFile(root + "/" + sf.rel, probe) || holdsNothing(probe, sf.list)) continue;
     if (!mixJson(f, root, sf.rel, false, nullptr, err, sf.mapFile)) return false;

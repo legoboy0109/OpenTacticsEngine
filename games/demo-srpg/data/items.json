@@ -29,5 +29,10 @@
     "kind": "accessory", "bonus": { "def": 2 } },
   // An accessory that grants a skill instead of a stat bonus.
   { "id": "runners_charm", "name": "Runner's Charm", "description": "Grants Light Step while carried.",
-    "kind": "accessory", "skills": ["light_step"], "price": { "gold": 500 } }
+    "kind": "accessory", "skills": ["light_step"], "price": { "gold": 500 } },
+
+  // Cures a condition (docs/SRPG.md section 9; the starter conditions are in data/conditions.json). Sold at forts, carried by nobody.
+  { "id": "antidote", "name": "Antidote", "description": "Cures poison.",
+    "kind": "usable", "uses": 2, "price": { "gold": 200 }, "cure": ["poison"],
+    "sounds": { "use": "potion" } }
 ] }

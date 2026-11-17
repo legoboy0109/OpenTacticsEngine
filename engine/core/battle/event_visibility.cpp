@@ -144,6 +144,12 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
       return unitSeenBy(e.a) | unitSeenBy(e.c);
     case EventType::StaffMissed:
       return unitSeenBy(e.a) | unitSeenBy(e.b);
+    case EventType::ConditionApplied:  // seen like a heal: by the teams that see the unit
+    case EventType::ConditionEnded:
+    case EventType::ConditionTick:
+      return unitSeenBy(e.a);
+    case EventType::ConditionResisted:
+      return unitSeenBy(e.a) | unitSeenBy(e.c);
     case EventType::ItemRepaired:  // like an item break: the owner's team knows its items
     case EventType::AreaLit:       // the user's team (what the light shows is sight, not an event)
       return unitTeam(e.a);

@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1, "name": "Conditions Fixture",
+  "description": "Small test game for status conditions (docs/SRPG.md, section 9). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mag", "name": "Magic" }, { "id": "res", "name": "Resistance" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 8 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str + w.might - b.def", "hit": "90" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" },
+            { "id": "mist", "name": "Mist", "file": "maps/mist.json" },
+            { "id": "skirmish", "name": "Skirmish", "file": "maps/skirmish.json" } ]
+}

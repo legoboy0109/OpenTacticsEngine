@@ -27,6 +27,7 @@ bool readSkillList(Reader& rd, const Database& db, const Json& j, const std::str
     if (!v.isNumber() || v.asNumber() != std::floor(v.asNumber()) || v.asNumber() < 0 || v.asNumber() >= (double)db.skills.size())
       return rd.fail(at, "not a skill of this game (0.." + std::to_string(db.skills.size() - 1) + ")");
     const int s = (int)v.asNumber();
+    if (db.skills[(size_t)s].hidden) return rd.fail(at, "not a skill of this game (it belongs to a condition)");
     for (int o : out)
       if (o == s) return rd.fail(at, "skill " + std::to_string(s) + " is listed twice");
     out.push_back(s);

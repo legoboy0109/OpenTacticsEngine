@@ -132,3 +132,29 @@ bool staffCanStand(const Unit& t, Cell cell) const { return grid.valid(cell) && 
 void staffWarpRange(const Unit& user, const StaffDef& d, const StaffEffect& fx, int& minRange, int& maxRange) const;
 // The lights staves have made and that still last (docs/SRPG.md section 8, stage 2). Saved only when not empty.
 std::vector<LightArea> lights;
+
+// ---- conditions (conditions.cpp; docs/SRPG.md section 9) ----
+// The unit has the condition (an index into db->conditions) / how many of its own turns it still lasts (-1 = no count; also -1 when absent).
+bool hasCondition(const Unit& u, int condition) const;
+int conditionLeft(const Unit& u, int condition) const;
+// Does a standing effect (a skill's "immune") make the unit immune to the condition?
+bool conditionImmune(const Unit& u, int condition) const;
+// The first condition of the unit (in the order applied) whose blocks stop it acting / moving, or make it act by itself (berserk); -1 = none.
+int conditionBlock(const Unit& u, ConditionBlock what) const;
+// May an order be given to the unit: false with the plain reason when a condition stops it acting or acts for it.
+bool unitControllable(const Unit& u, std::string* why = nullptr) const;
+// What a unit that cannot act still does: answer a strike (its conditions' "counter" option), dodge one ("dodge"). True for a unit that is not stopped.
+bool mayCounterWhileStopped(const Unit& u) const;
+bool mayDodgeWhileStopped(const Unit& u) const;
+// Does a condition forbid the unit this weapon (its group, or weapons at all)? `why` gets the plain reason.
+bool weaponForbidden(const Unit& u, int weapon, std::string* why) const;
+// The first condition that forbids the unit this weapon / staff group, or this kind of item ("staff", "usable", "weapon"); -1 = none.
+int conditionForbidsGroup(const Unit& u, const std::string& group) const;
+int conditionForbidsKind(const Unit& u, ItemKind kind) const;
+// What inflicting `condition` (turns 0 = its own) on the unit would do: 0 = it would take hold (new, or a longer duration), 1 = the unit is
+// immune, 2 = it has it already for as long. Judged now, no randomness.
+int inflictWhy(const Unit& u, int condition, int turns) const;
+// Would a cure of these conditions (or "all") remove at least one the unit has?
+bool cureWould(const Unit& u, const std::vector<int>& ids, bool all) const;
+// The own turns a fresh application lasts (-1 = no count): the override, else the condition's own.
+int conditionDuration(int condition, int turns) const;

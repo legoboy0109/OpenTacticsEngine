@@ -24,6 +24,7 @@ void Battle::reachable(int unit, Reach& out) const {
   // "Move again" (docs/SRPG.md "Turn flags"): after its action only the movement it has not used is left.
   if (u.acted) budget = std::max(0, budget - u.moveSpent);
   if (u.fuel >= 0 && u.fuel < budget) budget = u.fuel;  // fuel (docs/ECONOMY.md): the tank limits the reach
+  if (!u.conditions.empty() && conditionBlock(u, ConditionBlock::Move) >= 0) budget = 0;  // "cannot move" (docs/SRPG.md section 9)
 
   // (cost, cell) min-heap. Ties resolve by cell index, keeping results
   // identical across platforms/standard libraries.

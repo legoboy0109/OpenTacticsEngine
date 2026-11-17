@@ -6,6 +6,7 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_staves.h"
@@ -330,6 +331,9 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   // Strategy-RPG features (docs/SRPG.md "Load order"): skills and abilities first (ids and shapes only), because
   // weapons, items and unit types name them; what they name themselves is resolved at the very end.
   if (!loadSkills(root + "/data/skills.json", db, err)) return false;
+  // Conditions (docs/SRPG.md section 9) come right after skills (their blocks are skill blocks, kept as hidden skills) and
+  // before everything that names one: weapons ("inflict"), items and staves ("cure", "inflict").
+  if (!loadConditions(root + "/data/conditions.json", db, err)) return false;
   if (!loadAbilities(root + "/data/abilities.json", db, err)) return false;
   // Weapon ranks and stat caps (docs/SRPG.md section 7): the ladder before the weapons that name a rank; the groups
   // after them, because unit types, characters and map units name groups.

@@ -63,6 +63,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
   // Strategy-RPG features (docs/SRPG.md): ability waits, summon lifetimes, postponed promotions and "turnStart"
   // skills, after repair and supply and before the story's turn events.
   srpgTurnStart(events);
+  if (over) return;  // a condition's damage or a berserk unit's fight ended the battle
 
   StoryOccurrence o;
   o.kind = Trigger::Kind::Turn;

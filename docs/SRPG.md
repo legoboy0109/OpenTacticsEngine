@@ -66,9 +66,10 @@ data/abilities.json    menu abilities, summons                               (op
 data/supports.json     support rules, pairs, levels, conversations           (optional file; needs characters)
 data/ranks.json        weapon rank ladder and growth                         (optional file; section 7)
 data/caps.json         game-wide stat caps                                   (optional file; section 7)
+data/conditions.json   status conditions made of blocks                      (optional file; section 9)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
-data/weapons.json      per weapon: skills
-data/items.json        accessory: skills; usable: promotes; staves (section 8)
+data/weapons.json      per weapon: skills, inflict (section 9)
+data/items.json        accessory: skills; usable: promotes, cure, inflict; staves (section 8; inflict, cure: section 9)
 maps/*.json            per unit: character; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
 ```
@@ -1319,7 +1320,7 @@ action. Owner's answers (PLAN item 3l, 2026-11-16): staves come in **stages** (r
 then status conditions built by the maker from blocks, with a starter set and curing staves); whether a staff can miss is **the
 maker's choice per staff** (healing defaults to certain, a hostile one gets a hit chance). This section is the contract for
 **all** stages, so the later ones fit without rework. Stages 1 (healing) and 2 (moving units: warp, pull, swap; utility: repair, light)
-are built; stage 3 is written in outline only and marked "not built". A game with no staff plays, saves and hashes exactly as before.
+and 3 (status conditions: `inflict` and `cure`, section 9) are built. A game with no staff plays, saves and hashes exactly as before.
 
 ### Where a staff is defined, and why
 
@@ -1365,7 +1366,7 @@ staff as `w`.
   (section 4); a staff adds no second language. Stage 1: `{ "heal": 10 }`, `{ "heal": "full" }`, `{ "heal": { "percent": 30 } }`
   and `{ "heal": "<formula>" }` (a number; `a` = user, `b` = the unit healed, `w` = the staff, `dist` = distance between them,
   `ta` / `tb` the squares). A formula that fails counts as 0. Stage 2 adds `warp`, `pull`, `swap`, `repair`, `light` ("Staves: stage
-  two, as built"); stage 3 appends `status`, `cure` (below). `unlock` waits for doors.
+  two, as built"); stage 3 adds `inflict` and `cure` (section 9). `unlock` waits for doors.
 - **`hit`**: a formula, a percent (rounded, 0 to 100), same variables as `heal`. Rolled **once per unit in the area**, in
   ascending unit id, with `Battle::rng` (`rng.chance`), so a battle replays from its seed. Absent = no roll at all (no random
   number is spent). A miss still spends the use and earns the experience. Queries never roll.
@@ -1455,7 +1456,7 @@ Appended to `EventType` (existing numbers keep their values):
 | `StaffMissed` | a = the unit missed, b = user, c = item | the teams that see either unit |
 
 What the effects did arrives as the existing entries: `UnitHealed` (a = unit, b = amount), `ItemBroke`, `XpGained`, `LevelUp`,
-`RankUp`, and (stage 2) `UnitRelocated`, with `ItemRepaired` and `AreaLit` appended to the list; stage 3 gets its own status events.
+`RankUp`, and (stage 2) `UnitRelocated`, with `ItemRepaired` and `AreaLit` appended to the list; stage 3's condition events are in section 9.
 
 ### Saves, hash, campaign
 
@@ -1655,7 +1656,7 @@ has no key and loads with none), refused on a battle without fog (`battle.lights
 (a side, a square on the map, radius 1 to 10, turns 1 to 10) with a path in the message. A light is on the undo copy like the rest of
 the battle. The data hash is `data/items.json` whole, so the new keys change the fingerprint of a game that has them and no other.
 
-**AI.** The computer **ignores every staff that has an effect other than a heal** (a heal + pull staff too): the new effects need a
+**AI.** The computer **ignores every staff that has an effect other than a heal** (a heal + pull staff too; `inflict` and `cure` are the exception, section 9 "Computer opponent"): the new effects need a
 second pick (a square, an item) or change what a whole side sees, and judging them takes a plan the stateless AI does not make; ignoring
 them can never crash or stall it (`ai_staves.cpp`; `tests/srpg_content_test.py` plays a fixture whose two sides carry such staves,
 and the fog map is left out of its stall check because the AI's hunt for units it cannot see stalls there with or without staves). Heal-only
@@ -1695,18 +1696,306 @@ What the stage-two contract left open, and how it was settled (the owner may cha
   `battle_view_staves.cpp`. Tests: `tests/test_srpg_staves2*.cpp`, `tests/srpg_player_staves2_test.py`, the fixture
   `tests/fixtures/srpg-staves2` (maps `yard`, `mist` (fog), `gate` (story + objective), `skirmish` (AI)).
 
-### Stage 3 (outline only, NOT BUILT)
+### Stage 3: status conditions
 
-**Stage 3: status conditions.** A new optional file `data/statuses.json`, blocks like skills (section 3): `{ "id", "name",
-"turns", "stack": "refresh" | "add" | "none", "tags": [...], "perTurn": [ turn-start effects: hurt / heal ], "restrict": [
-"move", "attack", "staff", "item" ], "controlledBy": "foe" (acts for the other side), "stats": { ... } }`. A **starter set** of
-neutral ones (poison, stun, silence, rooted, frenzy, bless, sap) is offered like the skills' starter set; the maker may change or
-delete them. Staves and usable items apply a status with `{ "status": "poison", "turns": 3 }` and remove it with `{ "cure":
-["poison", "stun"] }` / `"all"` / a tag. The staff's `hit` formula then sees **both units** (`a`, `b`) and, `fw`-style, the
-weapon or staff the target holds, so resistance is the maker's formula. State: per unit a saved list `{ status, turns }`
-(written only when not empty; refused in a game without the file); hash: `data/statuses.json` only when present; events
-`StatusApplied`, `StatusEnded`, `StatusTick`; forecast lines; and an AI that uses hostile staves on the most dangerous foe and
-curing staves on afflicted allies.
+Built: see **section 9**. (The outline that stood here proposed `data/statuses.json` and `{ "status": ... }`; the build uses
+`data/conditions.json` and `{ "inflict": { "condition": ... } }` / `{ "cure": ... }`.)
+
+---
+
+## 9. Status conditions
+
+A **condition** is a temporary state a unit is in: poisoned, asleep, silenced, berserk, stunned, cursed. The maker builds them in a new
+optional file, `data/conditions.json`, from the **same blocks skills use** plus four new effects for what a skill cannot do. Staves,
+usable items, weapons and skills **inflict** them; staves and items **cure** them. This is stage 3 of the staves contract (section 8,
+owner's answers in PLAN item 3l); everything here is built: rules, player and the loader. A game without `data/conditions.json` plays,
+saves and hashes exactly as before (same `dataHash`, same random numbers, same save bytes; the demo sims are line for line the same).
+
+All wording is placeholder. The file is called `conditions.json` and the effects `inflict` / `cure` (the stage-3 outline of this document
+said `statuses.json` / `status`; the owner's brief for the build used "condition", which is also what the skill documents already call
+`if` entries, so they are told apart by place: a skill's `if` is a *test*, a unit's *condition* is a state).
+
+### Data: data/conditions.json
+
+```jsonc
+{ "conditions": [
+  { "id": "poison", "name": "Poison", "description": "Loses a little HP at the start of each of its turns.",
+    "tag": "Po",                         // optional: 1 to 4 characters shown on the map (default: the first two letters of the name)
+    "turns": 3,                          // how long: the afflicted unit's OWN turns (1 to 99) ... or
+    // "until": "cured" | "mapEnd",      // ... until it is cured / the map ends (exactly one of "turns" and "until")
+    "wearOff": 25,                       // optional: percent chance (1 to 99) each own turn that it ends early. Default: never
+    "endsWhenStruck": false,             // optional: a strike that does damage to the unit ends it (sleep). Default false
+    "replaces": ["ember"],               // optional: applying this removes these conditions first
+    "blocks": [ { "when": "turnStart", "do": [ { "hurt": { "percent": 10 }, "to": "self" } ] } ] }
+] }
+```
+
+Keys: `id` (required, unique), `name`, `description`, `tag`, `turns` or `until` (one is required), `wearOff`, `endsWhenStruck`, `replaces`,
+`blocks` (required, 1 to 8). **Unknown keys are refused**, like the other new files. At most 100 conditions. `name`, `description` and
+`tag` are cosmetic for the data hash (renaming a condition keeps saves valid); everything else counts.
+
+**Icons.** The engine has no small picture for a unit (the map draws a unit as art or a letter block), so a condition has a short text
+**tag** instead; it is drawn in a small tab at the bottom left of the unit in every kind of view.
+
+### The blocks
+
+A condition's `blocks` are skill blocks (section 3: `when`, `if`, `chance`, `do`; every `if` test and every effect that makes sense on a
+temporary state works). Internally each condition is a **hidden skill** (`SkillDef::hidden`, index in `ConditionDef::skill`, id
+`condition:<id>`), and `Battle::skillsOf` appends the hidden skills of the conditions a unit has **after** the skills it has (type,
+learned, character, accessories, weapon), in the order the conditions were applied. So stat changes, combat numbers (`hit`, `avoid`,
+`crit`, `damage`, ... in `combat` blocks), `strike` / `struck` blocks, `turnStart` blocks, auras and the info panel all work with no code of
+their own, and the forecasts see them. Hidden skills are never listed as skills (the panel, the Skills page) and cannot be found by id.
+
+| Behaviour | Block | Notes |
+|---|---|---|
+| Damage each turn | `turnStart`: `{ "hurt": 5, "to": "self" }` | The amount is a number, `{ "percent": 10 }` (of the unit's maximum, at least 1), or a formula (`"hurt": "a.mag + 1"` / `{ "formula": "..." }`; `a` = the unit, `b` = nil). `to: "self"` is new (it joins `foe` and `enemies`). **Can it kill? No by default**: it leaves 1 HP, like every `hurt`. `{ "hurt": { "amount": 5, "canKill": true }, "to": "self" }` lets it defeat the unit (a normal death: `UnitHurt`, then `UnitDied`, drops are not paid, the story's "defeated" events and the win checks run once every unit's blocks of the turn have run) |
+| Heal each turn | `turnStart`: `{ "heal": 4 }` | A number, `{ "percent": n }`, or now also a formula. `to: "self"` (default) or `allies` |
+| Cannot act | `always`: `{ "cannotAct": true }` or `{ "cannotAct": { "counter": true, "dodge": true } }` | The unit's turn is skipped (it is finished at the start of it). **Counterattack and dodge: both off by default** (a sleeper answers nothing and every strike on it hits, hit 100); `"counter": true` lets it still answer, `"dodge": true` lets its hit chance count as usual. The most restrictive of several conditions wins |
+| Cannot move | `always`: `{ "cannotMove": true }` | Its reach is its own square; it can still act |
+| Silence | `always`: `{ "forbid": { "groups": ["tome"], "kinds": ["staff"] } }` | `groups` = weapon or staff groups of the game (checked against `weapons.json` and the staves), `kinds` = `"staff"`, `"usable"`, `"weapon"`. A forbidden weapon is not wieldable (`canWieldNow`, so it is not equipped, cannot answer a strike and the AI never picks it), a forbidden staff is greyed ("Silence stops that"), a forbidden usable item cannot be used ("Bind stops the unit using items") |
+| Acts on its own | `always`: `{ "berserk": true }` | "Berserk": see below |
+| Stat changes | `always`: `{ "stats": { "str": -2, "def": -2 } }` | The existing effect. **Not the HP stat** (a maximum that flickers would cut current HP): refused, use `hurt` / `heal` |
+| Hit / avoid / crit / damage | `combat` blocks, e.g. `{ "hit": 10 }` | The existing effects |
+| Immunity | `always`: `{ "immune": ["poison", "sleep"] }` | Works in **any skill** too (a unit type, character, accessory or weapon skill), see "Immunity" |
+| Inflict on hit | `strike` / `struck`: `{ "inflict": { "condition": "poison", "turns": 2 } }` | See "Weapons and skills" |
+
+`cannotAct`, `cannotMove`, `forbid` and `berserk` belong to conditions: in a skill the loader says `"cannotAct" belongs to the blocks of a
+condition (data/conditions.json), not to a skill`. `immune` and `inflict` work in skills and conditions. A new skill test,
+`{ "condition": "poison" }` (with `"who": "foe"` where a foe exists), is true while the unit has that condition: in a block's `if`, a
+staff's `if` and an ability's `if`.
+
+### When a turn is counted (the one rule)
+
+At the start of **each turn of the afflicted unit's side**, units in id order, each unit's conditions **in the order they were applied**:
+
+1. **Wear-off roll.** A condition with `wearOff` is rolled (`Battle::rng`, only when the chance is 1 to 99); a condition that wears off
+   is gone for this whole turn (`ConditionEnded`, reason "wore off").
+2. **Count down.** A counted condition (`turns`) has one fewer turn left (`ConditionState::left`). A fresh condition applied with
+   `turns: 3` therefore affects the unit's next three turns: at its first turn start `left` becomes 2, at the second 1, at the third 0.
+3. The skills' and conditions' **`turnStart` blocks run** (poison ticks, regeneration), skills first, then conditions in order.
+4. A unit that **cannot act** is finished for the turn (`done`, `moved`; `ConditionTick`, kind "cannot act"), so neither the AI nor the
+   player's menus offer it.
+5. **Berserk** units take their own action (below).
+
+A counted condition **lasts through the turn in which its count reached 0 and wears off when that turn ends** (`EndTurn`,
+`ConditionEnded`, reason "ran out"). So "3 turns" means three turns of effect, and a sleeper with 1 turn left still sleeps through its next
+turn. A condition applied **during the unit's own turn** (its own item, a counter) is not counted that turn (the count starts at its next
+turn start), and a unit that cannot act loses the rest of that turn at once. `until: cured` and `until: mapEnd` never count; **both last
+until the battle ends** (conditions are not carried between campaign maps, see "Not built"); they differ only in what the maker means. The
+turns left are shown as the stored `left` (3, 2, 1, "ends" at 0).
+
+A unit that is **carried or paired** (rescue, section 5) is off the board: its conditions are **frozen** (no tick, no count, no wear-off
+roll) until it is put down. A unit that is defeated has none. With **fog**, a condition's events are seen by the teams that see the unit.
+
+### Applying, re-applying, replacing, curing
+
+- **Applying** (`Battle::inflictCondition`): an immune unit gets `ConditionResisted` and nothing else. Otherwise the conditions in the new
+  one's `replaces` list are removed first (`ConditionEnded`, reason "replaced"), then it is added at the end of the unit's list
+  (`ConditionApplied`, `c` = turns, -1 = uncounted, `d` = the unit that did it, `flags` `kRefreshed` when it was there already).
+- **Re-applying** a condition the unit already has **starts the duration over** (the count becomes the new full duration, never a sum, never
+  the larger of the two) and **keeps its place** in the order. There is no stacking option. A staff or item does not offer a target that
+  has it for at least as long already ("that unit has it already"); a weapon or skill that hits again simply refreshes it.
+- **Several different conditions** at once are fine; their blocks add up as skills do (numbers add, percents multiply in order, yes/no
+  effects are "any", the most restrictive `cannotAct` wins).
+- **Curing** (`cureConditions`): `ConditionEnded`, reason "cured"; max-HP style clamping is not needed (conditions cannot change HP stat).
+- **Struck** (`endsWhenStruck`): a strike that did damage (and did not defeat the unit) ends the condition after the `Attack` event
+  (reason "struck"), **before** the strike's own `inflict` effects run, so a strike can wake a sleeper and put it back to sleep.
+
+### Immunity
+
+The smallest consistent design: **the skill effect `{ "immune": [ids] }`** (any `when` that allows `always`, with conditions allowed).
+A unit type, a character, an accessory and a weapon already carry skills, so each of them can grant immunity by listing such a skill;
+there is no separate list on unit types or characters. A condition can also grant immunity (a "Ward" condition). A staff does not offer
+an immune unit as a target and says "that unit is immune to it"; a weapon or skill that tries gives `ConditionResisted` (player: floats
+"Immune").
+
+### Berserk
+
+A unit with a condition holding `{ "berserk": true }` (and not stopped by `cannotAct`; a unit that cannot act does not go berserk) acts **by
+itself at the start of its side's turn, after the ticks**, outside the control of the player and of its own AI; its turn is then over (it
+takes no orders: an order to it is refused, `that unit acts on its own (Berserk)`). It attacks **the nearest unit of any side** with its
+equipped weapon, by the same move and attack code as an order (same events, same dice, counterattacks, experience, drops, story events,
+win checks); only the "may it fight that unit" test is its own (it may hit an ally). The choice (`Battle::berserkPlan`), all on the truth
+**limited to what its team sees** (with fog a berserk unit does not hit an enemy hiding unseen; its own side is always seen; carried
+units are off the board):
+
+1. Candidates: every other unit on the board that its team sees, of **any** side.
+2. Weapon: the first weapon it could attack with (the equipped one; with fixed weapons the type's first with ammunition). A weapon with
+   `afterMove: false` is used from the square it stands on only.
+3. Of the candidates it can hit this turn (from a square it can reach, in the weapon's range, `versus` allowing it) it takes the **nearest
+   to the square it stands on** (grid distance); a **tie goes to the lower unit id**. It stands on the square from which it can hit with
+   the **least movement** (staying put when that works); a tie goes to the lower square number (`y * width + x`).
+4. When nothing is in reach it walks as far as it can towards the **nearest** candidate (the reachable square nearest to it; ties: the
+   cheaper walk, then the lower square number) and does not attack. With no candidate in sight, or no weapon, it stands still.
+5. It hits first, so an ally can strike back (counter) and can defeat a berserk unit; a defeat that ends the battle ends it at once.
+
+### Ways to inflict and cure
+
+**Staves** (section 8; stage 3): two effect kinds in a staff's `effects` (each at most once per staff).
+
+```jsonc
+{ "id": "venom_staff", "name": "Venom Staff", "kind": "staff", "group": "staff", "uses": 5, "range": 3, "target": "foe",
+  "effects": [ { "inflict": { "condition": "poison", "turns": 4 } } ],        // "turns" optional: overrides the condition's own (counted conditions only)
+  "hit": "70 + a.mag * 5 - b.res * 5 - dist * 2", "xp": 10 }
+{ "id": "cure_staff", "kind": "staff", "group": "staff", "range": 3, "target": "ally", "effects": [ { "cure": ["poison"] } ] }
+{ "id": "purify_staff", "kind": "staff", "group": "staff", "range": 6, "target": "ally", "area": "all", "effects": [ { "cure": "all" } ] }
+```
+
+They follow every rule of stages 1 and 2: reach, `target`, `area` (**allowed** for both: `single`, `{ "radius": n }`, `"all"`), `if`, `hit`,
+`xp`, ranks, locks, uses, one `StaffUsed` event, supports unchanged. Where they sit in the effect order, per unit hit, after the `hit` roll:
+**heal, repair, cure, inflict, then the move** (a staff lists them in any order; a "cure all" that also inflicts X ends with X). A unit
+is a valid target when some effect would change it: for `cure` it has a condition the staff cures ("that unit has nothing it cures"; the
+staff's own reason when none in reach: "nobody in reach has anything it cures"); for `inflict` it is not immune and does not have the
+condition for as long already ("that unit is immune to it", "that unit has it already"; "nobody in reach can be affected"). In an area an
+immune unit is simply not affected (no roll, no event for it unless another effect changes it, then `ConditionResisted`). A miss does
+nothing to the unit (`StaffMissed`). A staff with `inflict` or `cure` may be combined with `heal`, `repair` and a move effect; `light` stays
+alone. **The `hit` formula already sees both units**: `a` = the user, `b` = the unit, `w` = the staff, `dist` = the distance, `ta` / `tb`
+= their squares (judged as the user would stand when it uses the staff; section 8). So "base + the user's magic - the target's
+resistance, and distance" is the maker's formula (above); nothing had to be extended. Forecast (`staffForecast`): each `StaffHit` gains
+`inflict` / `inflictTurns` (what it would get, -1 when it would not take hold) and `cures` (what it would remove).
+A staff that picks nobody (area `all`, target `self`) is used at once, as before.
+
+**Usable items** (docs/ITEMS.md), flat keys in the style of `heal` / `raise`:
+`{ "kind": "usable", "cure": ["poison"] }`, `"cure": "all"`, `{ "kind": "usable", "inflict": { "condition": "curse", "turns": 2 } }`. The effect
+goes to the unit the item is used on (the user for `target: "self"`, a neighbouring ally for `"ally"`; an item that inflicts is meant for
+the user). Order: raise, heal, cure, inflict. An item that would change nothing (nothing to cure, immune, has it already) is not offered.
+A usable item may have only `cure` / `inflict`.
+
+**Weapons** (data/weapons.json): `{ "inflict": { "condition": "poison", "chance": 30, "turns": 2 } }`: **an on-hit chance to inflict the
+condition on the unit struck**. `chance` is a percent from 1 to 100 or a formula (`a` = the wielder, `b` = the unit struck; default 100 =
+every hit, no roll). It is kept as a hidden skill with one `strike` block, so it works exactly like the skill below: the chance is rolled
+at the moment of the strike like every activation (before the hit roll; a forecast lists it as a note, "Poison 30%"), and the condition
+takes hold **only if the strike hits**. **Skills** do the same with the same effect: `{ "when": "strike", "chance": 30, "do": [ { "inflict":
+{ "condition": "poison" } } ] }` (to the unit struck) and `{ "when": "struck", ... }` (to the unit that struck it, a thorns skill).
+Inflicting is `strike` / `struck` only; an `afterCombat` or `turnStart` block cannot inflict.
+
+**Story commands** to add or remove a condition: **not built** (the story files were being changed for dialogue choices; follow-up, see
+below). A skill / staff / ability test `{ "condition": id }` exists (it lives with the skill conditions, outside the story files).
+
+### Loader refusals
+
+Plain English in the existing style, naming the file, the condition / item / weapon and the key, e.g. `data/conditions.json: condition
+"poison": needs a duration: "turns": 3 (the unit's own turns) or "until": "cured" or "mapEnd"`. Refused: unknown keys; duplicate or empty
+ids; no duration, both durations, `turns` outside 1 to 99, `until` other than `cured` / `mapEnd`; `wearOff` outside 1 to 99; a `tag` of 0 or
+more than 4 characters; `replaces` naming an unknown condition or the condition itself; no blocks, more than 8; every error of a skill block
+(unknown effect, wrong `when`, ...); `cannotAct` and `berserk` in one condition (contradict: make two); a condition changing the HP stat;
+`hurt` / `heal` with a bad amount, `percent` outside 1 to 100, `canKill` that is not true / false; `forbid` naming a group no weapon or
+staff has, a kind other than `staff` / `usable` / `weapon`, or nothing; `immune` naming an unknown condition or none; `inflict` naming an
+unknown condition (or in a game with no conditions file, saying so), a `turns` on a condition that does not count turns, a `chance`
+outside 1 to 100 / not a formula, an unknown key; `cure` naming an unknown condition, listing one twice, empty, or not `"all"`; `inflict` /
+`cure` on an item that is not usable; two `inflict` or two `cure` in one staff; `area` with `target: "self"` (as always); a skill's
+`condition` test naming an unknown condition. A syntax error in a formula names the place as for skills.
+
+### Events
+
+Appended to `EventType` (existing numbers keep their values); new flag `kRefreshed = 2048`.
+
+| Entry | a, b, c, d, flags | Seen by (fog) |
+|---|---|---|
+| `ConditionApplied` | a = unit, b = condition, c = own turns it lasts (-1 = uncounted), d = the unit that did it or -1, `kRefreshed` | the teams that see the unit |
+| `ConditionEnded` | a = unit, b = condition, c = why: 0 ran out, 1 wore off early, 2 cured, 3 replaced, 4 struck | the teams that see the unit |
+| `ConditionResisted` | a = the immune unit, b = condition, c = the unit that tried | the teams that see either |
+| `ConditionTick` | a = unit, b = condition, c = 1 acts on its own (berserk, its own action follows) / 2 cannot act (its turn is skipped) | the teams that see the unit |
+
+A condition's damage and healing arrive as the usual `SkillActivated` (b = the condition's hidden skill, named after the condition: the
+float), `UnitHurt` / `UnitHealed` (and `UnitDied` for `canKill`). A berserk unit's action is the usual `UnitMoved` / `Attack` and the rest.
+
+### Saves, hash, campaign
+
+- Battle save, per unit, only for a unit that has some: `"conditions": [ { "condition": index, "left": turns } ]`, oldest first; `left`
+  only for a counted condition (0 to 99). A key in a game without conditions is refused (`units[3].conditions: this game has no conditions`);
+  every entry is checked (index, no repeats, `left` forbidden on an uncounted condition) with a path. An old save has no key and loads with
+  none. Conditions are saved only for units that exist (a defeated unit has none).
+- **Hash**: `data/conditions.json` is mixed in only when it holds something (an empty list is the same game as no file), in the strategy-RPG
+  order after `data/supports.json`; `name`, `description` and `tag` are cosmetic. A weapon's `inflict`, an item's `cure` / `inflict`, a staff's
+  effects and a skill's `immune` / `inflict` are keys of files that are hashed whole.
+- **Campaign**: conditions end when the map ends and the roster carries none (**carry-over between maps: not built**; a maker would need a
+  per-condition `carryOver` flag, a roster key and a rule for the counts; the data hash and the roster format are ready for it).
+
+### Computer opponent
+
+Every rule above applies to computer units without special cases: a unit that cannot act is finished at the start of its turn (so
+`aiTakeStep` never picks it), a berserk unit has acted before the AI looks, a stunned unit's reach is its own square, a silenced unit's
+tome, staves and items are not offered by `weaponsOf` / `staffOptions` / `useTargets` (it never tries a forbidden one). Its heal staves are
+unchanged. **New (cheap and safe): a staff whose effects are only heal, inflict and cure is used** when it beats the unit's best attack,
+capture or advance on the same scale: a cure is worth a quarter of the unit's value (as an attack scores it: production cost, default
+1000; a game-ending leader counts double) for each **ally** it would free of something, an inflict a quarter for each **foe** it would really
+afflict (not immune, not afflicted already: those are not legal targets), both times the hit chance, plus the heal part as before. It never
+inflicts on its own side (it cannot tell a blessing from a curse) and never cures a foe. Only a unit that would change is a legal target, so
+even an unlimited staff cannot loop. Usable cure items: the AI does not seek them (a tonic that also heals is used as a heal).
+`tests/srpg_content_test.py` plays the fixture's armies (sleep, poison and cure staves, venom blades) on 20 seeds: no stalls, same text
+twice.
+
+### Player
+
+Built in `engine/player/battle/`: `condition_text.*` (every word, in `ConditionWords`), `condition_marker.*`, `battle_view_conditions.cpp`
+(the events), `unit_info_conditions.cpp` (the Status page); changes in `panel.cpp`, `staff_text.cpp`, `staff_forecast.cpp`,
+`battle_input.cpp` and the three unit-drawing places.
+
+- **Marker**: a small dark-violet tab with the first condition's tag ("Po", "Zz"), and a "+" when there are more, at the bottom left of the
+  unit, in **all four kinds of view** and on hexagons (top-down and hexagon units, the isometric figure, the 3D billboards) and on the phone.
+  It follows the events (it appears with "Poison!" and goes with "Poison ended").
+- **Info panel**: under the stats and the weapon, up to three rows "Poison  3" (name in violet, the turns left; "cure" / "map" for
+  uncounted ones, "ends" on the last turn), then "+N more". The unit details gain a **Status** page (only for an afflicted unit): each
+  condition's name, "3 turns left" / "Until cured" / "Until the map ends" and its description.
+- **Staff flow**: nothing new to learn: the same Staff entry and list (greyed with the reason; three lengths of wording), the pick, the
+  forecast box (below), Cancel. The forecast lists per unit **what it would be afflicted with** ("Rook  Curse 3 turns") and **what it would
+  be cured of** ("Kay  Cures Curse"), the "Hit 91%" line when the staff can miss, and the usual "Exp" and "Breaks". Floats on the result:
+  "Poison!" (applied), "Missed", "Cured Poison", "Poison ended", "Immune". The weapon-inflict result shows after the hit, and the combat
+  forecast lists a weapon's chance as a note ("Sleep 50%") and **reflects stat changes** and a sleeper's missing counterattack and dodge.
+- **Turn flow**: at the start of a unit's turn its condition's name floats, then the "-2" and the HP bar (and "+4" for a heal); a
+  condition wearing off floats "Poison ended"; a berserk unit floats "Berserk!" and then visibly moves and attacks; a sleeping unit floats
+  "Sleep" and takes no orders: **tapping it (Confirm on it) says why in the hint line**, "Sleep: cannot act" / "Berserk: acts on its own";
+  selecting a stunned unit says "Stun: cannot move". Staves that pick nobody (area `all`, target `self`) work at once on the list entry and
+  show no forecast, exactly as healing ones always did.
+- Keyboard, mouse and touch: nothing new is needed. Desktop size and the 270 x 480 phone are both covered by the tests.
+
+### The starter set
+
+Six conditions shipped as data only (no special-casing by id), in `editor/templates/strategy-rpg/data/conditions.json` (new games made from
+the strategy-RPG template get them) and in `games/demo-srpg/data/conditions.json` (data only: the demo gains an **Antidote** in the fort shop
+and no staff, because no demo class wields staves; adding the file and the shop line changes the demo's data hash, so old demo saves are
+refused, and changes no `ote-sim` result). Placeholders for the owner:
+
+| id | name (tag) | duration | blocks |
+|---|---|---|---|
+| `poison` | Poison (Po) | 3 turns | `turnStart`: hurt 10% of max HP (at least 1) to self, never defeats |
+| `sleep` | Sleep (Zz) | 3 turns, ends when struck | `always`: cannotAct, cannotMove (defaults: no counter, no dodge) |
+| `silence` | Silence (Si) | 3 turns | `always`: forbid kinds `staff` (add `"groups": ["tome"]` where the game has a magic group) |
+| `berserk` | Berserk (Br) | 3 turns | `always`: berserk |
+| `stun` | Stun (St) | 2 turns | `always`: cannotMove |
+| `curse` | Curse (Cu) | 3 turns | `always`: stats str -2, def -2 |
+
+### Decisions (the owner may change any of these)
+
+- A condition's blocks are the skill blocks, not a second language; new effects only for what did not exist (`cannotAct`, `cannotMove`,
+  `forbid`, `berserk`, `immune`, `inflict`, and `hurt` to self / formulas / `canKill`).
+- A damage tick leaves 1 HP unless the maker writes `canKill`.
+- A sleeper answers nothing and cannot dodge unless the maker allows it.
+- Turns are counted at the start of the afflicted unit's side's turn; the condition works through the turn its count reaches 0 and ends when
+  that turn ends. Re-applying starts the duration over; no stacking. `until cured` and `until mapEnd` behave alike.
+- Immunity is a skill effect only.
+- Berserk chooses the nearest *attackable* unit it can see (ties: lower unit id); it walks towards the nearest when none is attackable.
+- Carried units' conditions are frozen.
+- A staff's inflict / cure order is heal, repair, cure, inflict, move.
+- The AI uses inflict / cure staves with a simple worth rule, ignores the rest.
+- Staves that pick nobody show no forecast (as before).
+
+### Not built (follow-ups)
+
+Story commands to add / remove a condition on a unit and the matching story condition "unit has condition X" (the story files were being changed
+by another job; a `{ "condition": id }` test exists for skills / staves / abilities); carrying a condition over to the next campaign map; editor
+forms (docs/EDITOR_UI.md "Conditions"); condition sounds; a picture instead of the text tag; the AI inflicting beneficial conditions, seeking
+cure items, or using the area-all staves' value beyond the simple rule; a berserk or sleeping unit's own portrait pose.
+
+### Tests
+
+`tests/test_srpg_conditions.cpp` (rules: every block, the count of turns, re-applying, replacing, immunity, each route to inflict and cure,
+berserk target choice and tie-break, fog, a tick that defeats the last unit or a leader, carried units),
+`tests/test_srpg_conditions_data.cpp` (loader refusals, the data hash, saves mid-condition and damaged saves), the fixture
+`tests/fixtures/srpg-conditions` (maps `field`, `mist` (fog), `skirmish` (AI)), `tests/srpg_player_conditions_test.py` (the player's flows,
+all four views, the phone), `tests/editor_api_conditions_checks.py` (the helper keeps the file and every key), `tests/srpg_content_test.py`
+(no stalls).
 
 ---
 
@@ -1729,6 +2018,9 @@ Appended to `EventType` in this order (existing values keep their numbers):
 | `SupportReached` | a = unit of `a` (-1 off the board), b = unit of `b`, c = pair, d = new level | the units' own team |
 | `RankUp` | a = unit, b = weapon group, c = new rank, d = old rank (section 7) | the unit's own team |
 
+Section 8 appended `StaffUsed`, `StaffMissed`, `ItemRepaired` and `AreaLit`, and section 9 appends `ConditionApplied`,
+`ConditionEnded`, `ConditionResisted` and `ConditionTick` (with the flag `kRefreshed = 2048`).
+
 New flag bits (after `kBought = 32`): `kSurvived = 64`, `kBlocked = 128`, `kPaired = 256`, `kForced = 512`,
 `kReady = 1024`. `Attack` events may carry `kSurvived`. Existing entries reused: `UnitRelocated` (pushes, pulls,
 swaps), `UnitAdded` (a summon), `UnitRemoved` (a summon vanishing), `UnitHealed`, `Dialogue` (support
@@ -1748,6 +2040,7 @@ refused by the data hash anyway (the rules changed).
 | | `abilities` | the unit has used an ability this battle |
 | | `summon` | the unit was summoned |
 | | `carrying` | the unit carries / has a unit behind it |
+| | `conditions` | the unit has status conditions (section 9) |
 | battle | `supports` | the game has support pairs |
 | playthrough `roster[i]` | `skills` | the unit has learned skills |
 | playthrough | `supports` | the game has support pairs |
@@ -1758,7 +2051,7 @@ holds. Round trip stays exact, including the middle of a turn with `acted` units
 
 Data hash (`save_hash.cpp`, `mixRules`): after `data/research.json`, each only when the file exists and in this
 order: `data/characters.json`, `data/skills.json`, `data/abilities.json`, `data/supports.json` (the last with the
-map-file wording treatment). `rules.rescue` and `rules.promotion` are part of `game.json`'s `rules`, which is hashed
+map-file wording treatment), then `data/conditions.json` (section 9; `tag` is cosmetic too). `rules.rescue` and `rules.promotion` are part of `game.json`'s `rules`, which is hashed
 whole. `cosmeticKey` gains `levelNames`. The campaign hash is built on `mixRules`, so it follows.
 
 ## AI (minimum behaviour)
@@ -2004,8 +2297,8 @@ effect, on a 6 x 4 map; also a hexagon copy `srpg-hex` for directions), `srpg-ca
 
 Close-up battle scenes. Character tags, per-character art or sprites. Simulated levels for units placed above
 level 1. A cap on how many skills a unit may hold, or choosing which are active. `formula` conditions and chances
-in `always` blocks. Skills that change vision, weapon range or weapon wear; status effects that last several turns;
-reflected damage. Abilities with an area, with a formula effect, or that attack. Per-class maximum levels and
+in `always` blocks. Skills that change vision, weapon range or weapon wear;
+reflected damage. Story commands for conditions, and carrying a condition to the next campaign map (section 9, "Not built"). Abilities with an area, with a formula effect, or that attack. Per-class maximum levels and
 demotion. Trading with a carried unit; maps that start with a carried or paired unit; pair-up extras (the partner
 striking or shielding in combat, handing a partner over). Support conversations with choices or with commands other
 than lines; support points for units of different teams; endings by support. The AI pushing, pulling, carrying or

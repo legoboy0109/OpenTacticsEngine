@@ -4,6 +4,7 @@
 //
 // Skills load before weapons, items and unit types, so those can name them and get indices at once; what a skill's
 // own blocks name (weapon groups, terrain, unit types, abilities) is checked last, in resolveSkillRefs.
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -106,10 +107,11 @@ bool readItemSkills(const LoadCtx& c, const Database& db, const Json& e, const s
 bool resolveSkillRefs(const std::string& root, Database& db, std::string& err) {
   LoadCtx c(err, root + "/data/skills.json");
   for (SkillDef& s : db.skills) {
+    if (s.hidden) continue;  // a condition's blocks are resolved with the conditions (loader_conditions.cpp)
     for (size_t b = 0; b < s.blocks.size(); ++b) {
       SkillBlock& block = s.blocks[b];
       const std::string where = "skill \"" + s.id + "\": block " + std::to_string(b + 1);
-      if (!resolveSkillConds(c, db, where, block.conds)) return false;
+      if (!resolveSkillConds(c, db, where, block.conds) || !resolveBlockConditions(c, db, where, block)) return false;
       for (size_t i = 0; i < block.effects.size(); ++i) {
         SkillEffect& e = block.effects[i];
         if (e.kind != SkillEffect::Kind::Ability) continue;

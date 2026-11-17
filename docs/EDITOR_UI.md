@@ -864,6 +864,21 @@ A staff is an item of kind "staff". Contract: docs/SRPG.md section 8 ("Staves: t
 - **Tests**: unit `tests/unit/staves.test.ts` (on `tests/fixtures/srpg-staves`) and `staves2.test.ts` (on `srpg-staves2`); API `tests/editor_api_staves_checks.py`; e2e `srpg-staves.spec.ts` and
   `srpg-staves2.spec.ts` (each with Play and the 360 px check).
 
+## Conditions (docs/SRPG.md section 9): no forms yet
+
+The editor has **no forms for status conditions**. Nothing in the editor breaks: the helper (`ote-editor`) does not know `data/conditions.json`, so GET never
+returns it, PUT never writes or removes it, and it stays byte for byte as it is; every key that names a condition (a staff's `inflict` / `cure` effects, a
+usable item's `cure` / `inflict`, a weapon's `inflict`, a skill's `immune` / `inflict` blocks and the `condition` test) travels through GET and PUT untouched
+(`tests/editor_api_conditions_checks.py`), and the real loader's refusals about them reach Problems in the engine's words. What a maker must **hand-edit**:
+
+- `data/conditions.json` (the whole file; new games made from the strategy-RPG template already have the six starter conditions in it, with a comment
+  header explaining the keys);
+- on a weapon: `"inflict": { "condition": "poison", "chance": 30 }`; on a usable item: `"cure"` / `"inflict"`; in a staff's `"effects"`: `{ "inflict": ... }` and
+  `{ "cure": ... }` (a staff whose first effect is not a heal shows as "not editable" in the Items form, as the stage-two effects do, and is kept as it is);
+- in a skill: the `immune` and `inflict` effects and the `condition` test (the Skills form keeps blocks and effects it does not know).
+
+The Problems list shows an unknown condition id anywhere it is named, in plain words (`names unknown condition "poison" (data/conditions.json)`).
+
 ## Strategy-RPG: skills (editor step E2 of docs/SRPG.md)
 
 Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change: the `skills` section of docs/EDITOR_API.md carries everything.

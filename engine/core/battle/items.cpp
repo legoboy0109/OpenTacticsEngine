@@ -39,7 +39,7 @@ void Battle::weaponsOf(const Unit& u, std::vector<int>& out) const {
     // Fixed weapons; one with ammunition that has run out is not available (docs/ECONOMY.md).
     const std::vector<int>& list = typeOf(u).weapons;
     for (size_t i = 0; i < list.size(); ++i)
-      if (u.ammo.empty() || i >= u.ammo.size() || u.ammo[i] != 0) out.push_back(list[i]);
+      if ((u.ammo.empty() || i >= u.ammo.size() || u.ammo[i] != 0) && !weaponForbidden(u, list[i], nullptr)) out.push_back(list[i]);
     return;
   }
   for (const ItemStack& s : u.items) {
@@ -111,10 +111,13 @@ void Battle::useTargets(int unit, int slot, std::vector<int>& targets) const {
   // A promotion item also counts when the unit using it on itself could promote now (promotion.cpp).
   auto helps = [&](const Unit& t) {
     if ((!d.raise.empty() && canRaiseAny(t, d.raise)) || (d.heal > 0 && t.hp < maxHp(t))) return true;
+    if ((d.cureAll || !d.cures.empty()) && cureWould(t, d.cures, d.cureAll)) return true;
+    if (d.inflict >= 0 && inflictWhy(t, d.inflict, d.inflictTurns) == 0) return true;
     std::vector<const PromotionDef*> fits;
     if (d.promotes && t.id == unit) promotionCandidates(t, u.items[(size_t)slot].item, true, fits);
     return !fits.empty();
   };
+  if (conditionForbidsKind(u, ItemKind::Usable) >= 0) return;  // e.g. a condition that stops items (docs/SRPG.md section 9)
   if (!d.targetAlly) {
     if (helps(u)) targets.push_back(unit);
     return;
@@ -145,6 +148,11 @@ bool Battle::validateItemAction(const Action& a, std::string* why) const {
     case ActionType::UseItem: {
       if (!ownSlot()) return fail(why, "the unit does not carry that item");
       if (itemOf(u.items[(size_t)a.slot]).kind != ItemKind::Usable) return fail(why, "that item cannot be used like this");
+      const int stop = conditionForbidsKind(u, ItemKind::Usable);
+      if (stop >= 0) {
+        if (why) *why = db->conditions[(size_t)stop].name + " stops the unit using items";
+        return false;
+      }
       const ItemDef& d = itemOf(u.items[(size_t)a.slot]);
       const int item = u.items[(size_t)a.slot].item;
       // Promotion (docs/SRPG.md): a promotion that was asked for by type must be possible; when the item would
@@ -260,6 +268,9 @@ void Battle::applyItemAction(const Action& a, std::vector<Event>& events) {
         events.push_back(event(EventType::UnitHealed, a.target, amount));
         healedAnother = a.target != a.unit;
       }
+      // Conditions (docs/SRPG.md section 9): a cure, then an inflict, after the heal.
+      if (d.cureAll || !d.cures.empty()) cureConditions(a.target, d.cures, d.cureAll, kConditionCured, events);
+      if (d.inflict >= 0) inflictCondition(a.target, d.inflict, d.inflictTurns, a.unit, events);
       const int usedItem = u.items[(size_t)a.slot].item;
       spendUse(a.unit, a.slot, events);
       endOrder(a.unit);

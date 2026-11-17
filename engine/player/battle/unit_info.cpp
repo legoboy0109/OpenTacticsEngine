@@ -11,6 +11,7 @@ UnitInfoPages buildUnitInfoPages(const Battle& b, int unit) {
   UnitInfoPages pages;
   addStatsPage(pages, b, unit);
   addSkillsPage(pages, b, unit);
+  addConditionsPage(pages, b, unit);
   addAbilitiesPage(pages, b, unit);
   addSupportsPage(pages, b, unit);
   addItemsPage(pages, b, unit);

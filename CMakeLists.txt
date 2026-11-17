@@ -75,6 +75,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   target_sources(ote_tests PRIVATE engine/player/battle/promotion_text.cpp)  # step U2: what a promotion gives, as text
   target_sources(ote_tests PRIVATE engine/player/battle/rank_text.cpp)  # weapon ranks and stat caps in words (docs/SRPG.md section 7)
   target_sources(ote_tests PRIVATE engine/player/battle/staff_text.cpp)  # staves in words (docs/SRPG.md section 8)
+  target_sources(ote_tests PRIVATE engine/player/battle/condition_text.cpp)  # status conditions in words (docs/SRPG.md section 9)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
@@ -172,6 +173,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # Staves, stage two (docs/SRPG.md section 8): warp, pull, swap, repair, light; hexagons and every kind of view.
     add_test(NAME srpg_player_staves2
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_staves2_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Status conditions (docs/SRPG.md section 9): staves, items, the turn flow, berserk, the marker in every kind of view.
+    add_test(NAME srpg_player_conditions
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_conditions_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # And in the two 3D kinds (docs/HEX.md "3D isometric and full 3D"), both 3D backends where there is a driver.
     add_test(NAME hex3d_player

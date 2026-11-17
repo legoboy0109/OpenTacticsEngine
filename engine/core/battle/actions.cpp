@@ -72,6 +72,7 @@ bool Battle::validate(const Action& action, std::string* why) const {
   // Everything else is a unit order.
   if (!canAct(action.unit)) return fail(why, "that unit cannot act now");
   const Unit& u = units[action.unit];
+  if (!unitControllable(u, why)) return false;  // asleep, or acting on its own (docs/SRPG.md section 9)
   if (u.done) return fail(why, "that unit has already acted");
   // "Move again" (docs/SRPG.md "Turn flags"): the action is used up, only the rest of its movement is left.
   if (u.acted && action.type != ActionType::Move && action.type != ActionType::Wait)
@@ -81,6 +82,11 @@ bool Battle::validate(const Action& action, std::string* why) const {
     case ActionType::Move: {
       if (u.moved && !u.acted) return fail(why, "that unit has already moved");
       if (action.cell == u.cell) return fail(why, "the unit is already there");
+      const int stop = conditionBlock(u, ConditionBlock::Move);
+      if (stop >= 0) {
+        if (why) *why = "that unit cannot move (" + db->conditions[(size_t)stop].name + ")";
+        return false;
+      }
       Reach reach;
       reachable(action.unit, reach);
       if (!reach.canStop(action.cell)) return fail(why, "the unit cannot reach that cell");

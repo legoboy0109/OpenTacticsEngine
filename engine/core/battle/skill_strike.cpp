@@ -7,7 +7,7 @@ namespace ote {
 namespace {
 
 // The effects a "strike" block (the striker's) or a "struck" block (the struck unit's) has on this one strike.
-void applyStrikeEffects(const SkillBlock& b, StrikeMods& m) {
+void applyStrikeEffects(const SkillBlock& b, StrikeMods& m, bool strikersBlock) {
   using K = SkillEffect::Kind;
   for (const SkillEffect& e : b.effects) {
     switch (e.kind) {
@@ -22,6 +22,7 @@ void applyStrikeEffects(const SkillBlock& b, StrikeMods& m) {
       case K::DamageTaken: m.damageTaken += e.value; break;
       case K::DamageTakenPercent: m.damageTakenPercent.push_back(e.value); break;
       case K::Survive: m.survive = true; break;
+      case K::Inflict: (strikersBlock ? m.inflictOnStruck : m.inflictOnStriker).push_back(&e); break;
       default: break;  // the loader keeps other effects out of these blocks
     }
   }
@@ -60,7 +61,7 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, Rng* rng, Stri
         } else if (notes) {
           continue;  // a list of notes only wants the activations
         }
-        applyStrikeEffects(b, out);
+        applyStrikeEffects(b, out, side == 0);
       }
     }
   }

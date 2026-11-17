@@ -1,0 +1,3 @@
+{ "terrain": [
+  { "id": "plain", "name": "Plain" },
+  { "id": "brush", "name": "Brush", "hides": true } ] }

@@ -93,7 +93,7 @@ const CondSpec kConds[] = {{"hp", SkillCond::Kind::Hp},           {"near", Skill
                            {"structure", SkillCond::Kind::Structure}, {"unit", SkillCond::Kind::Unit},
                            {"carrying", SkillCond::Kind::Carrying}, {"round", SkillCond::Kind::Round},
                            {"initiating", SkillCond::Kind::Initiating}, {"distance", SkillCond::Kind::Distance},
-                           {"formula", SkillCond::Kind::Formula}};
+                           {"formula", SkillCond::Kind::Formula}, {"condition", SkillCond::Kind::Condition}};
 
 bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& where, const SkillCondScope& scope,
               const std::string& label, SkillCond& out) {
@@ -117,7 +117,8 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
   // Which kinds may say "who": "foe", and which only make sense where there is a combat.
   const bool foeable = out.kind == SkillCond::Kind::Hp || out.kind == SkillCond::Kind::Weapon ||
                        out.kind == SkillCond::Kind::Terrain || out.kind == SkillCond::Kind::Structure ||
-                       out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying;
+                       out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying ||
+                       out.kind == SkillCond::Kind::Condition;
   if (e.has("who")) {
     std::string who;
     if (!c.str(e, "who", where, who)) return false;
@@ -147,6 +148,11 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       return intIn(c, e, "within", where, 1, 10, out.within) && readOp(c, e, where, out.op) &&
              intIn(c, e, "count", where, 0, 1000, out.value) && c.str(e, "match", where, out.key);
     }
+    case SkillCond::Kind::Condition:
+      if (!onlyKeys(c, e, {"condition", "who"}, where)) return false;
+      if (!v.isString() || v.asString().empty()) return c.fail(where, "\"condition\" must be a condition id (data/conditions.json)");
+      out.key = v.asString();
+      return true;
     case SkillCond::Kind::Weapon:
     case SkillCond::Kind::Terrain:
     case SkillCond::Kind::Unit:
@@ -203,7 +209,10 @@ const EffectSpec kEffects[] = {
     {"multiStrike", K::MultiStrike, C}, {"strikeFirst", K::StrikeFirst, C}, {"counterAnyRange", K::CounterAnyRange, C},
     {"noCounter", K::NoCounter, C},   {"drain", K::Drain, S},              {"strikeAgain", K::StrikeAgain, S},
     {"survive", K::Survive, R},       {"heal", K::Heal, T | D | F},        {"hurt", K::Hurt, T | F},
-    {"actAgain", K::ActAgain, D | F}};
+    {"actAgain", K::ActAgain, D | F},
+    // Conditions (docs/SRPG.md section 9).
+    {"cannotAct", K::CannotAct, A},   {"cannotMove", K::CannotMove, A},    {"forbid", K::Forbid, A},
+    {"berserk", K::Berserk, A},       {"immune", K::Immune, A},            {"inflict", K::Inflict, S | R}};
 
 // An aura's effects go to other units: only plain numbers that a fighter can carry.
 bool auraKind(K k) {
@@ -216,7 +225,7 @@ bool foeKind(K k) { return auraKind(k) || k == K::Strikes; }
 
 bool isFlag(K k) {
   return k == K::MoveAgain || k == K::StrikeFirst || k == K::CounterAnyRange || k == K::NoCounter ||
-         k == K::StrikeAgain || k == K::Survive || k == K::ActAgain;
+         k == K::StrikeAgain || k == K::Survive || k == K::ActAgain || k == K::CannotMove || k == K::Berserk;
 }
 
 struct Range {
@@ -232,7 +241,6 @@ bool numberRange(K k, Range& r) {
     case K::Strikes: r = {-7, 7}; return true;
     case K::MultiStrike: r = {2, 4}; return true;
     case K::Drain: r = {1, 100}; return true;
-    case K::Hurt: r = {1, 1000000}; return true;
     default: return false;
   }
 }
@@ -251,8 +259,86 @@ bool readStatMap(const LoadCtx& c, const Database& db, const Json& v, const char
   return true;
 }
 
-bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::string& blockWhere, const std::string& where,
-                SkillWhen when, bool aura, SkillEffect& out) {
+// Conditions (docs/SRPG.md section 9): the five effects that only make sense on a temporary state, and the readers of the
+// forms the new effects take. `where` / `at` name the place for the message.
+bool conditionOnly(K k) { return k == K::CannotAct || k == K::CannotMove || k == K::Forbid || k == K::Berserk; }
+
+bool readBoolFlags(const LoadCtx& c, const Json& v, const std::string& where, const char* key, std::initializer_list<const char*> names,
+                   std::initializer_list<bool*> outs) {
+  if (v.isBool()) {
+    if (!v.asBool()) return c.fail(where, q(key) + " must be true (leave the effect out to turn it off)");
+    return true;
+  }
+  if (!v.isObject()) return c.fail(where, q(key) + " must be true or an object with the keys of its options");
+  if (!onlyKeys(c, v, names, where + ": " + q(key))) return false;
+  auto o = outs.begin();
+  for (const char* n : names) {
+    if (v.has(n) && !v[n].isBool()) return c.fail(where, q(key) + "." + q(n) + " must be true or false");
+    if (v.has(n)) **o = v[n].asBool();
+    ++o;
+  }
+  return true;
+}
+
+bool readNameList(const LoadCtx& c, const Json& v, const std::string& where, const std::string& what, std::vector<std::string>& out) {
+  if (!v.isArray()) return c.fail(where, what + " must be a list of ids");
+  for (size_t i = 0; i < v.size(); ++i) {
+    if (!v[i].isString() || v[i].asString().empty()) return c.fail(where, what + " entry " + std::to_string(i + 1) + " must be an id (text)");
+    out.push_back(v[i].asString());
+  }
+  return true;
+}
+
+// "forbid": { "groups": ["staff", "tome"], "kinds": ["staff", "usable"] }
+bool readForbid(const LoadCtx& c, const Json& v, const std::string& where, SkillEffect& out) {
+  if (!v.isObject()) return c.fail(where, "\"forbid\" must be { \"groups\": [\"magic\"], \"kinds\": [\"staff\"] }");
+  if (!onlyKeys(c, v, {"groups", "kinds"}, where + ": \"forbid\"")) return false;
+  if (v.has("groups") && !readNameList(c, v["groups"], where, "\"forbid\".\"groups\"", out.names)) return false;
+  if (v.has("kinds") && !readNameList(c, v["kinds"], where, "\"forbid\".\"kinds\"", out.kinds)) return false;
+  for (const std::string& k : out.kinds)
+    if (k != "staff" && k != "usable" && k != "weapon")
+      return c.fail(where, "\"forbid\".\"kinds\" has " + q(k) + "; the kinds are \"staff\", \"usable\" and \"weapon\"");
+  if (out.names.empty() && out.kinds.empty())
+    return c.fail(where, "\"forbid\" must name at least one weapon or staff group (\"groups\") or item kind (\"kinds\")");
+  return true;
+}
+
+// The amount of a heal or hurt: a whole number, { "percent": 10 }, or a formula; hurt also { "amount" | "percent" | "formula", "canKill": true }.
+bool readAmount(const LoadCtx& c, Database& db, const Json& v, const std::string& where, const std::string& labelPrefix, const char* key,
+                bool hurt, SkillEffect& out) {
+  const std::string k = q(key);
+  const Json* amount = &v;
+  if (v.isObject()) {
+    if (!onlyKeys(c, v, hurt ? std::initializer_list<const char*>{"amount", "percent", "formula", "canKill"}
+                             : std::initializer_list<const char*>{"amount", "percent", "formula"}, where + ": " + k)) return false;
+    const int given = (int)v.has("amount") + (int)v.has("percent") + (int)v.has("formula");
+    if (given != 1) return c.fail(where, k + " needs exactly one of \"amount\", \"percent\" or \"formula\"");
+    if (v.has("canKill")) {
+      if (!v["canKill"].isBool()) return c.fail(where, k + ": \"canKill\" must be true or false");
+      out.kill = v["canKill"].asBool();
+    }
+    if (v.has("percent")) {
+      if (!LoadCtx::isWhole(v["percent"]) || v["percent"].asInt() < 1 || v["percent"].asInt() > 100)
+        return c.fail(where, k + ": \"percent\" must be a whole number from 1 to 100");
+      out.percent = true;
+      out.value = v["percent"].asInt();
+      return true;
+    }
+    amount = v.has("amount") ? &v["amount"] : &v["formula"];
+  }
+  if (amount->isString()) {
+    if (amount->asString().empty()) return c.fail(where, k + " formula must not be empty");
+    out.expr = db.addExpr(amount->asString(), labelPrefix + where + ": " + k);
+    return true;
+  }
+  if (!LoadCtx::isWhole(*amount) || amount->asInt() < 1 || amount->asInt() > 1000000)
+    return c.fail(where, k + " must be a whole number of 1 or more, { \"percent\": 20 } or a formula (text)");
+  out.value = amount->asInt();
+  return true;
+}
+
+bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string& blockWhere, const std::string& where,
+                SkillWhen when, bool aura, bool forCondition, const std::string& labelPrefix, SkillEffect& out) {
   if (!e.isObject()) return c.fail(where, "must be an object such as { \"crit\": 25 }");
   const EffectSpec* spec = nullptr;
   for (const EffectSpec& s : kEffects)
@@ -270,6 +356,8 @@ bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::
   if (!(spec->whens & bit(when)))
     return c.fail(blockWhere, q(key) + " cannot be used in " + (when == SkillWhen::Always ? "an " : "a ") + q(whenName(when)) +
                                   " block (it belongs to: " + whenList(spec->whens) + ")");
+  if (conditionOnly(spec->kind) && !forCondition)
+    return c.fail(blockWhere, q(key) + " belongs to the blocks of a condition (data/conditions.json), not to a skill");
   if (aura && !auraKind(spec->kind))
     return c.fail(blockWhere, q(key) + " cannot be used in an aura block (an aura gives: stats, hit, avoid, crit, critAvoid, damage, damageTaken)");
   out = SkillEffect();
@@ -289,13 +377,15 @@ bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::
       if (to != "self" && to != "allies") return c.fail(where, "\"to\" must be \"self\" or \"allies\"");
       out.to = to == "self" ? SkillEffect::To::Self : SkillEffect::To::Allies;
     } else {
-      if (to != "foe" && to != "enemies") return c.fail(where, "\"to\" must be \"foe\" or \"enemies\"");
-      out.to = to == "foe" ? SkillEffect::To::Foe : SkillEffect::To::Enemies;
+      if (to != "foe" && to != "enemies" && to != "self") return c.fail(where, "\"to\" must be \"foe\", \"enemies\" or \"self\"");
+      out.to = to == "foe" ? SkillEffect::To::Foe : to == "self" ? SkillEffect::To::Self : SkillEffect::To::Enemies;
     }
   } else if (spec->kind == K::Hurt) {
     out.to = when == SkillWhen::AfterCombat ? SkillEffect::To::Foe : SkillEffect::To::Enemies;
   }
   if (spec->kind == K::Hurt) {
+    if (out.to == SkillEffect::To::Self && when != SkillWhen::TurnStart)
+      return c.fail(where, "\"to\": \"self\" belongs to \"turnStart\" blocks");
     if (out.to == SkillEffect::To::Foe && when != SkillWhen::AfterCombat)
       return c.fail(where, "\"to\": \"foe\" belongs to \"afterCombat\" blocks");
     if (out.to == SkillEffect::To::Enemies && when != SkillWhen::TurnStart)
@@ -323,21 +413,24 @@ bool readEffect(const LoadCtx& c, const Database& db, const Json& e, const std::
     out.abilityId = v.asString();
     return true;
   }
+  if (spec->kind == K::CannotAct) return readBoolFlags(c, v, where, "cannotAct", {"counter", "dodge"}, {&out.counter, &out.dodge});
+  if (spec->kind == K::Forbid) return readForbid(c, v, where, out);
+  if (spec->kind == K::Immune) {
+    if (!readNameList(c, v, where, "\"immune\"", out.names)) return false;
+    if (out.names.empty()) return c.fail(where, "\"immune\" must name at least one condition");
+    return true;
+  }
+  if (spec->kind == K::Inflict) {
+    if (!v.isObject() || !onlyKeys(c, v, {"condition", "turns"}, where + ": \"inflict\"") || !v.has("condition") || !v["condition"].isString())
+      return c.fail(where, "\"inflict\" must be { \"condition\": \"poison\" } (optionally with \"turns\")");
+    out.names.push_back(v["condition"].asString());
+    return intIn(c, v, "turns", where, 1, kMaxConditionTurns, out.turns);
+  }
   if (isFlag(spec->kind)) {
     if (!v.isBool() || !v.asBool()) return c.fail(where, q(key) + " must be true (leave the effect out to turn it off)");
     return true;
   }
-  if (spec->kind == K::Heal) {
-    if (v.isObject()) {
-      if (!onlyKeys(c, v, {"percent"}, where + ": \"heal\"")) return false;
-      out.percent = true;
-      return intIn(c, v, "percent", where, 1, 100, out.value, true);
-    }
-    if (!LoadCtx::isWhole(v) || v.asInt() < 1 || v.asInt() > 1000000)
-      return c.fail(where, "\"heal\" must be a whole number of 1 or more, or { \"percent\": 20 }");
-    out.value = v.asInt();
-    return true;
-  }
+  if (spec->kind == K::Heal || spec->kind == K::Hurt) return readAmount(c, db, v, where, labelPrefix, spec->key, spec->kind == K::Hurt, out);
   if (numberRange(spec->kind, r)) {
     if (!LoadCtx::isWhole(v) || v.asInt() < r.lo || v.asInt() > r.hi)
       return c.fail(where, q(key) + " must be a whole number from " + std::to_string(r.lo) + " to " + std::to_string(r.hi));
@@ -367,7 +460,7 @@ bool readSkillConds(const LoadCtx& c, Database& db, const Json& list, const std:
 }
 
 bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::string& where, const std::string& labelPrefix,
-                    SkillBlock& out) {
+                    SkillBlock& out, bool forCondition) {
   if (!e.isObject()) return c.fail(where, "must be an object such as { \"when\": \"combat\", \"do\": [ { \"crit\": 25 } ] }");
   if (!onlyKeys(c, e, {"when", "if", "chance", "aura", "do"}, where)) return false;
   std::string when;
@@ -417,8 +510,10 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
   for (size_t i = 0; i < list->size(); ++i) {
     SkillEffect fx;
     const std::string at = where + ": effect " + std::to_string(i + 1);
-    if (!readEffect(c, db, (*list)[i], where, at, w, out.aura, fx)) return false;
+    if (!readEffect(c, db, (*list)[i], where, at, w, out.aura, forCondition, labelPrefix, fx)) return false;
     // Rules that need the block as a whole.
+    if (forCondition && fx.kind == K::Stats && isStat(db, fx, db.rules.statHp))
+      return c.fail(at, "a condition cannot change the hit points stat (use \"hurt\" and \"heal\" for damage and healing over time)");
     if (fx.kind == K::Stats && w == SkillWhen::Always && isStat(db, fx, db.rules.statHp) && !out.conds.empty())
       return c.fail(where, "a bonus to " + q(db.stats[(size_t)db.rules.statHp].id) + " cannot have a condition");
     if (fx.kind == K::Stats && w == SkillWhen::Combat &&
@@ -463,9 +558,14 @@ bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& 
         for (const UnitTypeDef& t : db.unitTypes) found = found || unitTypeMatchesKey(t, k.key);
         what = k.kind == SkillCond::Kind::Unit ? "\"unit\" names no unit type id or tag \"" : "\"match\" names no unit type id or tag \"";
         break;
+      case SkillCond::Kind::Condition:
+        found = db.findCondition(k.key) >= 0;
+        what = "\"condition\" names unknown condition \"";
+        break;
       default: break;
     }
-    if (!found) return c.fail(at, what + k.key + "\"");
+    if (!found)
+      return c.fail(at, what + k.key + "\"" + (k.kind == SkillCond::Kind::Condition ? " (data/conditions.json)" : ""));
   }
   return true;
 }

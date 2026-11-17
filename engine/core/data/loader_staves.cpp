@@ -1,6 +1,7 @@
 // Loader side of staves (docs/SRPG.md section 8): the keys of an item of kind "staff".
 #include "core/data/loader_staves.h"
 
+#include "core/data/loader_conditions.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -157,8 +158,10 @@ bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const 
 
 // What a staff's effects may be put together with (docs/SRPG.md "Staves: stage two, as built"), refused in plain words.
 bool checkCombination(const LoadCtx& c, const Json& e, const std::string& where, const StaffDef& d) {
-  int moves = 0, repairs = 0, lights = 0;
+  int moves = 0, repairs = 0, lights = 0, inflicts = 0, cures = 0;
   for (const StaffEffect& fx : d.effects) {
+    inflicts += fx.kind == StaffEffect::Kind::Inflict;
+    cures += fx.kind == StaffEffect::Kind::Cure;
     moves += fx.movesUnit();
     repairs += fx.kind == StaffEffect::Kind::Repair;
     lights += fx.kind == StaffEffect::Kind::Light;
@@ -166,6 +169,8 @@ bool checkCombination(const LoadCtx& c, const Json& e, const std::string& where,
   if (moves > 1) return c.fail(where, "a staff can have only one of \"warp\", \"pull\" and \"swap\" (each one decides where the picked unit ends up)");
   if (repairs > 1) return c.fail(where, "a staff can have only one \"repair\"");
   if (lights > 1) return c.fail(where, "a staff can have only one \"light\"");
+  if (inflicts > 1) return c.fail(where, "a staff can have only one \"inflict\" (make two staves, or two conditions that replace each other)");
+  if (cures > 1) return c.fail(where, "a staff can have only one \"cure\" (it takes a list of conditions)");
   if (repairs && moves)
     return c.fail(where, "\"repair\" cannot be put together with \"warp\", \"pull\" or \"swap\" (each one asks the player for a second pick)");
   if (lights) {
@@ -212,8 +217,17 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
       if (!readRepair(c, v, where, at, out)) return false;
     } else if (kind == "light") {
       if (!readLight(c, v, where, at, out)) return false;
+    } else if (kind == "inflict") {  // stage 3, docs/SRPG.md section 9
+      InflictSpec spec;
+      if (!readInflictSpec(c, db, v, where, at, false, spec)) return false;
+      out.kind = StaffEffect::Kind::Inflict;
+      out.conds = {spec.condition};
+      out.turns = spec.turns;  // 0 = the condition's own (the default of 1 is a light's)
+    } else if (kind == "cure") {
+      out.kind = StaffEffect::Kind::Cure;
+      if (!readCureList(c, db, v, where, at, out.conds, out.cureAll)) return false;
     } else {
-      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light)");
+      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light, inflict, cure)");
     }
     d.effects.push_back(out);
   }

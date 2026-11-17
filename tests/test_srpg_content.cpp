@@ -13,11 +13,20 @@ bool load(Database& db, const std::string& rel) {
 }
 }  // namespace
 
+// The skills the maker wrote: a condition's blocks (and a weapon's "inflict") are kept as hidden skills (docs/SRPG.md section 9).
+static size_t visibleSkills(const Database& db) {
+  size_t n = 0;
+  for (const SkillDef& s : db.skills) n += !s.hidden;
+  return n;
+}
+
 TEST(demo_srpg_has_the_strategy_rpg_content_of_the_contract) {
   Database db;
   CHECK(load(db, "games/demo-srpg"));
   CHECK_EQ(db.characters.size(), size_t(7));  // the company, Sera, and the two bosses
-  CHECK_EQ(db.skills.size(), size_t(33));     // the starter set (30) and Armor Breaker, Woodcraft, Sword Dancer
+  CHECK_EQ(visibleSkills(db), size_t(33));    // the starter set (30) and Armor Breaker, Woodcraft, Sword Dancer
+  CHECK_EQ(db.conditions.size(), size_t(6));  // the starter conditions (docs/SRPG.md section 9)
+  CHECK(db.findItem("antidote") >= 0 && db.items[(size_t)db.findItem("antidote")].cures.size() == 1);
   CHECK_EQ(db.abilities.size(), size_t(5));   // Shove, Swap, Pull Back, Rally, Call Hound
   CHECK_EQ(db.supports.pairs.size(), size_t(4));
   CHECK_EQ(db.supports.rules.maxLevels, 3);
@@ -38,7 +47,8 @@ TEST(demo_srpg_has_the_strategy_rpg_content_of_the_contract) {
 TEST(template_strategy_rpg_has_pair_up_a_promotion_one_support_and_shove) {
   Database db;
   CHECK(load(db, "editor/templates/strategy-rpg"));
-  CHECK_EQ(db.skills.size(), size_t(30));
+  CHECK_EQ(visibleSkills(db), size_t(30));
+  CHECK_EQ(db.conditions.size(), size_t(6));  // poison, sleep, silence, berserk, stun, curse
   CHECK_EQ(db.characters.size(), size_t(5));
   CHECK(db.rules.rescue.mode == RescueMode::PairUp);
   CHECK_EQ(db.abilities.size(), size_t(1));

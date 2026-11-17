@@ -25,7 +25,7 @@ struct Copy {
     makeDir(dir + "/data");
     makeDir(dir + "/maps");
     static const char* const files[] = {"game.json",         "data/terrain.json", "data/weapons.json", "data/items.json",
-                                        "data/units.json",   "data/characters.json", "data/ranks.json", "data/caps.json",
+                                        "data/units.json",   "data/characters.json", "data/ranks.json", "data/caps.json", "data/skills.json", "data/conditions.json",
                                         "maps/field.json",   "maps/duel.json", "maps/clinic.json", "maps/skirmish.json", "maps/yard.json", "maps/mist.json", "maps/gate.json"};
     for (const char* f : files) {
       std::string text;
