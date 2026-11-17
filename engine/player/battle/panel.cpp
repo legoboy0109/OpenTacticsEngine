@@ -1,5 +1,6 @@
 // Info panel (right side) and hint strip (bottom). Row pitch and widths all
 // come from the active font (Layout::row, Renderer::textWidth).
+#include "battle/place_text.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -73,6 +74,12 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
     }
     r.drawText(x + sw + 3, y, fitText(r, name, w - sw - 3).c_str(), kText);
     y += rh;
+    // Doors, chests and places (docs/SRPG.md section 10): Locked / Shut / Open / Visited / Ruined, a door's hit points. Out of sight
+    // only what the remembered kind implies.
+    for (const PlaceRow& pr : placeInfoRows(b, si, st.type, !structureDimmed(c, si))) {
+      row(r, x, y, w, pr.label, pr.value);
+      y += rh;
+    }
   }
   Props scratch;
   for (const NamedNumber& p : (c.view.fogged() ? b.numbersAtSeen(c.view.viewerTeam(), cell, scratch) : b.numbersAt(cell, scratch))) {

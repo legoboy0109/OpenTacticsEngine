@@ -42,6 +42,16 @@ bool BattleView::beginStaves(const Battle& b) {
     return true;
   }
   if (e.type != EventType::StaffUsed && e.type != EventType::StaffMissed) return false;
+  if (e.type == EventType::StaffMissed && e.a < 0) {  // an unlock staff that missed: d = the square of the door or chest
+    float x, y;
+    if (b.grid.valid(e.d) && !dimmed(e.d)) {
+      cellPos(b, e.d, x, y);
+      addFloat(StaffWords::kMissed, x + tile_ / 2.0f, y, kMissColor, 0.9f);
+    }
+    OTE_INFO("staff missed: the door at square %d", e.d);
+    cur_.dur = kMissDur;
+    return true;
+  }
   const int who = e.a;  // StaffUsed: the user floats the name; StaffMissed: the missed unit floats "Missed"
   if (who < 0 || (size_t)who >= units.size() || (size_t)who >= b.units.size() || !units[(size_t)who].visible) {
     cur_.dur = 0;  // not on the map (or out of sight): nothing to show
@@ -77,7 +87,7 @@ bool BattleView::progressStaves(const Battle& b) {
     }
     return true;
   }
-  if (e.type == EventType::ItemRepaired) return true;
+  if (e.type == EventType::ItemRepaired || (e.type == EventType::StaffMissed && e.a < 0)) return true;
   if (e.type != EventType::StaffUsed && e.type != EventType::StaffMissed) return false;
   if (e.a >= 0 && (size_t)e.a < units.size() && units[(size_t)e.a].visible) {
     hasFocus = true;

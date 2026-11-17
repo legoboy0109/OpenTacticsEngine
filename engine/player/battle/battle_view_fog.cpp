@@ -160,15 +160,35 @@ void BattleView::updateShown(const Battle& b) {
     key.push_back((int)c);
     mine.push_back(&u);
   }
+  // Squares of a kind that blocks sight (a closed door; docs/SRPG.md section 10). The key holds the kind of each such structure, so
+  // a door that opens while events play recomputes what is shown.
+  std::vector<uint8_t> blocks;
+  for (size_t s = 0; s < b.structures.size(); ++s) {
+    if (!b.defOf(b.structures[s]).blocksSight && !b.db->structures[(size_t)b.structures[s].mapType].blocksSight) continue;
+    key.push_back(-2 - (int)s);
+    key.push_back(b.structures[s].type);
+    if (!b.defOf(b.structures[s]).blocksSight) continue;
+    if (blocks.empty()) blocks.assign(n, 0);
+    std::vector<Cell> cellsOf;
+    b.structureCells((int)s, cellsOf);
+    for (Cell c : cellsOf) blocks[(size_t)c] = 1;
+  }
   if (shown_.size() == n && key == shownKey_) return;
   shownKey_ = key;
   shown_.assign(n, 0);
-  std::vector<Cell> area;
+  std::vector<Cell> area, ray;
   for (size_t i = 0; i < mine.size(); ++i) {
     const Cell c = (Cell)key[i * 2 + 1];
     const int radius = b.visionAt(b.typeOf(*mine[i]), c);  // the same rule as the rules core's sight
     b.grid.within(c, radius, area);
-    for (Cell a : area) shown_[(size_t)a] = 1;
+    for (Cell a : area) {
+      bool clear = true;
+      if (!blocks.empty()) {
+        b.grid.line(c, a, ray);
+        for (size_t k = 1; k + 1 < ray.size() && clear; ++k) clear = !blocks[(size_t)ray[k]];
+      }
+      if (clear) shown_[(size_t)a] = 1;
+    }
   }
   for (size_t s = 0; s < b.structures.size(); ++s) {
     const int owner = b.structures[s].owner;

@@ -123,6 +123,12 @@ class BattleScene : public Scene {
   void staffWarpPick(int user, int slot, int target, std::function<void()> back);
   void staffRepairMenu(int user, int slot, int target, std::function<void()> back);
   void staffLightPick(int user, int slot);
+  void staffUnlockPick(int user, int slot);  // an unlock staff: the square of the door or chest (battle_menu_staves.cpp)
+  // Doors, chests and visiting (battle_menu_places.cpp; docs/SRPG.md section 10).
+  void addPlaceEntries(std::vector<MenuItem>& items);
+  bool placeChosen(int id);
+  void placeBreakPick();
+  void placeSubmit(const Action& a);
   void clearStaffHint();  // takes the stage hints ("Pick a square to light") off the hint line once the picking is over
   void staffUse(int user, int slot, int target, Cell dest, int itemSlot);  // submit, then the usual end of an order
   void addRescueEntries(std::vector<MenuItem>& items);     // battle_menu_rescue.cpp (U4): Rescue / Drop / Give / Take / Pair up / Switch
@@ -283,6 +289,11 @@ class BattleScene : public Scene {
   std::function<void()> staffBack_;       // the open menu is a staff's second stage ("Repair which?"): Cancel does this
   int staffItemUser_ = -1, staffItemSlot_ = -1, staffItemTarget_ = -1;  // what that menu is about
   StaffForecast staffFc_;
+  std::vector<PlaceOption> placeOpts_;    // the place entries of the action menu now open (ids kPlaceBase + n)
+  std::vector<PlaceAttack> placeAtk_;
+  int placeKeyStructure_ = -1;            // the open menu is "Which key?" for this structure
+  bool placeFcOn_ = false;                // a door is being picked: placeFc_ is drawn as the forecast box
+  PlaceForecast placeFc_;
   bool unitInfoFromAction_ = false;       // opened from the action menu: Cancel returns there (else to the map)
   int itemSlot_ = -1;        // the item being worked on (slot in the acting unit's inventory)
   int partner_ = -1;         // trade partner unit

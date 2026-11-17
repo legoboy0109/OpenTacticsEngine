@@ -40,6 +40,7 @@ void BattleScene::openActionMenu() {
   overlay_ = Overlay();
   staffList_ = false;
   staffFcOn_ = false;
+  placeFcOn_ = false;
   staffBack_ = nullptr;
   pickBack_ = nullptr;
   pickWhy_ = nullptr;

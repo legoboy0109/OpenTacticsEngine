@@ -12,6 +12,7 @@
 
 #include "battle/battle_scene.h"
 #include "battle/item_text.h"
+#include "battle/place_text.h"
 #include "battle/staff_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -108,6 +109,11 @@ void BattleScene::staffListChosen(int slot) {
   const StaffDef& sd = battle_.db->staves[(size_t)d.staff];
   const std::string effect = staffEffectText(*battle_.db, d);
   staffList_ = false;
+  if (sd.has(StaffEffect::Kind::Unlock)) {  // docs/SRPG.md section 10: pick the door or chest
+    staffUnlockPick(user, slot);
+    OTE_INFO("staff chosen: %s by %s (%s)", d.name.c_str(), u.name.c_str(), effect.c_str());
+    return;
+  }
   if (sd.picksSquare()) {  // a light: pick the square (stage 2)
     staffLightPick(user, slot);
     OTE_INFO("staff chosen: %s by %s (%s)", d.name.c_str(), u.name.c_str(), effect.c_str());
@@ -290,7 +296,46 @@ void BattleScene::staffLightPick(int user, int slot) {
   OTE_INFO("staff light: %d squares to choose from", (int)cells.size());
 }
 
+// An unlock staff: a square of a door or chest in reach (all squares of such a structure are offered, the structure opens); the
+// structure is marked red and the forecast box says what opens and the chance.
+void BattleScene::staffUnlockPick(int user, int slot) {
+  const Cell from = battle_.units[(size_t)user].cell;
+  std::vector<Cell> cells;
+  battle_.staffUnlockCells(user, slot, from, cells);
+  if (cells.empty()) {
+    staffList_ = true;
+    say(PlaceWords::kNothingToUnlock);
+    return;
+  }
+  auto mark = [this, user, slot, from](int cand, Overlay& ov) {
+    StaffForecast f;
+    staffFcOn_ = battle_.staffForecast(user, slot, cand, from, f);
+    if (!staffFcOn_) return;
+    staffFc_ = f;
+    std::vector<Cell> fp;
+    battle_.structureCells(f.unlockStructure, fp);
+    for (Cell c : fp) {
+      ov.reach[(size_t)c] = 0;
+      ov.attack[(size_t)c] = 1;
+    }
+  };
+  beginPickCell(cells, [this, user, slot](Cell c) {
+    staffFcOn_ = false;
+    staffUse(user, slot, -1, c, -1);
+  }, mark);
+  int minR = 1, maxR = 1;
+  battle_.staffRange(battle_.units[(size_t)user], battle_.units[(size_t)user].items[(size_t)slot].item, minR, maxR);
+  pickWhy_ = [this, from, minR, maxR](int c) {
+    const int dist = battle_.grid.distance(from, (Cell)c);
+    return std::string(dist < minR || dist > maxR ? StaffWords::kOutOfRange : PlaceWords::kNothingToUnlock);
+  };
+  say(PlaceWords::kPickUnlock);
+  OTE_INFO("staff hint: %s", PlaceWords::kPickUnlock);
+  OTE_INFO("staff unlock: %d squares to choose from", (int)cells.size());
+}
+
 void BattleScene::clearStaffHint() {
+  if (notice_ == PlaceWords::kPickUnlock || notice_ == PlaceWords::kPickDoor) noticeTime_ = 0;
   if (notice_ == StaffWords::kPickSquare || notice_ == StaffWords::kPickLight || notice_ == StaffWords::kRepairWhich) noticeTime_ = 0;
 }
 

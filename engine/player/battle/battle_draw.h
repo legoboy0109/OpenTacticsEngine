@@ -146,5 +146,7 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
 
 // The forecast box of a staff (staff_forecast.cpp; docs/SRPG.md section 8): what the use would do to each unit hit.
 void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Cell targetCell);
+// The forecast box of an attack on a door (place_forecast.cpp; docs/SRPG.md section 10).
+void drawPlaceForecast(Renderer& r, const DrawCtx& c, const PlaceForecast& f, Cell targetCell);
 
 }  // namespace ote

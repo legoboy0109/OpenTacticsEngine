@@ -160,6 +160,10 @@ class BattleView {
   bool beginStaves(const Battle& b);       // battle_view_staves.cpp     StaffUsed, StaffMissed (docs/SRPG.md section 8)
   bool progressStaves(const Battle& b);
   bool finishStaves(const Battle& b);
+  bool beginPlaces(const Battle& b);       // battle_view_places.cpp    DoorOpened .. PlaceUnlocked, the chest's "Found" lines (docs/SRPG.md section 10)
+  bool progressPlaces(const Battle& b);
+  bool finishPlaces(const Battle& b);
+  bool placeTop(const Battle& b, int structure, float& x, float& y) const;  // the middle of the structure's top edge, map pixels
   bool beginConditions(const Battle& b);   // battle_view_conditions.cpp ConditionApplied, ConditionEnded, ConditionResisted, ConditionTick (section 9)
   bool progressConditions(const Battle& b);
   bool finishConditions(const Battle& b);

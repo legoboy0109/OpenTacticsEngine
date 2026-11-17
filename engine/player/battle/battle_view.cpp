@@ -112,7 +112,7 @@ void BattleView::begin(const Battle& b) {
   cur_.fired = false;
   cur_.hideAtEnd = false;
   float cx = tile_ / 2.0f;
-  if (beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b)) return;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b)) return;
   switch (e.type) {
     case EventType::TurnStarted:
       banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
@@ -275,6 +275,14 @@ void BattleView::begin(const Battle& b) {
     case EventType::StaffMissed:
     case EventType::ItemRepaired:
     case EventType::AreaLit:
+    // Doors, chests and visiting: beginPlaces (battle_view_places.cpp) took them above.
+    case EventType::DoorOpened:
+    case EventType::DoorClosed:
+    case EventType::ChestOpened:
+    case EventType::PlaceHit:
+    case EventType::PlaceVisited:
+    case EventType::PlaceDestroyed:
+    case EventType::PlaceUnlocked:
     // Conditions (battle_view_conditions.cpp).
     case EventType::ConditionApplied:
     case EventType::ConditionEnded:
@@ -305,7 +313,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressStory(b) || progressEconomy(b) || progressSrpg(b)) return;
+  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSrpg(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];
@@ -363,7 +371,7 @@ void BattleView::progress(const Battle& b) {
 
 void BattleView::finish(const Battle& b) {
   const Event& e = cur_.ev;
-  if (finishStory(b) || finishEconomy(b) || finishSrpg(b)) {
+  if (finishPlaces(b) || finishStory(b) || finishEconomy(b) || finishSrpg(b)) {
     cur_.active = false;
     return;
   }
