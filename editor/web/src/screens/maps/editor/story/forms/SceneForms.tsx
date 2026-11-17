@@ -55,7 +55,7 @@ export function FadeForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   return (
     <div className="stack tight">
       <PickSelect label={S.sceneFadeWhich} help={S.sceneFadeHelp} value={out ? 'out' : 'in'} options={[{ value: 'out', label: S.sceneFadeOut }, { value: 'in', label: S.sceneFadeIn }]}
-        onChange={(v) => patch({ fade: v === 'in' ? 'in' : 'out' })} />
+        onChange={(v) => patch(v === 'in' ? { fade: 'in', color: undefined } : { fade: 'out', color: cmd.color ?? '#000000' })} />
       <MsField label={S.sceneFadeMs} value={cmd.ms ?? 500} max={MAX_SCENE_MS} onChange={(v) => patch({ ms: v ?? 500 }, 'ms')} />
       {out && (
         <Field label={S.sceneFadeColor}>

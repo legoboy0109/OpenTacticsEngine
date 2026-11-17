@@ -1208,3 +1208,40 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
   Problems the loader would refuse (no direction, frames outside the image, bad time) show in red inside the card. Removing the image drops only the walk.
 - Code: `model/walking.ts`, `screens/art/walking/*`, `model/battleArt.ts`, `model/battleChecks.ts`. Tests: unit `walking.test.ts`, `battleArtFollowup.test.ts`;
   e2e `battle-followup.spec.ts` (desktop and 360 px).
+
+## Scene presentation (docs/EVENTS.md "Scene presentation")
+
+All wording below is placeholder. No helper (API) change: graphics.json and the story pass through like every other key, and the real loader
+checks them (`tests/editor_api_scene_checks.py`).
+
+- **Group "Scene"** in the command picker (map events and campaign scenes; a scene is not offered "Set the weather" or "Move the view", which need
+  a map): *Show a background*, *Fade the screen*, *Wait*, *Shake the screen*, *Send a speaker away*, *Clear the stage*, *Set the weather* (map only),
+  *Narrate*. Forms in `forms/SceneForms.tsx`:
+  - *Show a background*: "Background" (the game's backgrounds, or "Take the background away (back to the map)" = `"background": null`; greyed with
+    "no backgrounds yet" when the game has none), "How it changes" (At once / A cross-fade) and "Cross-fade time" (ms, 0 to 10000).
+  - *Fade the screen*: "The screen goes" (Out / Back in), "How long it takes" (ms), "Colour" (a colour box with its hex code; only for Out: choosing
+    Back in drops the key). A help line says it stays faded until faded in and that a scene that ends faded out fades in by itself.
+  - *Wait*: "Pause" (ms, 0 to 60000). *Shake the screen*: "How long" and "How hard" (1 to 32 pixels). *Send a speaker away*: "Who leaves" (text: the unit's
+    story name or the free name a line used). *Clear the stage*: no fields. *Set the weather*: Rain / Snow / Clear sky. *Narrate*: "What is narrated" and
+    "Goes on by itself after".
+- **On existing commands**: *Say something* gets "Where the speaker stands" (Beside the box (as usual) / Left / Right / In the middle) and "Goes on
+  by itself after" (empty = waits for the player); *Move the view* gets "Scroll time" (empty = the usual quick move, 0 = a jump) and, once a time is
+  set, "The next command waits for the scroll"; *Move a unit* gets "The unit walks there" and, once on, "The next command waits until it has walked".
+  Sentences in the list: "Shows the background “hall” with a fade over 600 ms", "Fades the screen out to #102030 over 300 ms", "Walks Eirik to 3, 2",
+  "Says “Hi” (on the left)", and so on.
+- **Art screen, card "Backgrounds"** (under Portraits; `screens/art/BackgroundsCard.tsx`, `BackgroundPicker.tsx`, `BackgroundThumb.tsx`;
+  model `model/backgrounds.ts`): a list with a small picture, the name (letters, digits, `_`, `-`; repeats and bad names are refused where typed),
+  "Choose picture…", up / down / delete. A new background is the first image, whole. The picker has the image, "The whole image" / "One piece of the
+  image" (then click the piece in the piece grid) and a preview. Written as `"backgrounds": { "<id>": { "sheet", "cell"? } }` in graphics.json (no
+  `cell` = the whole image; no key when the list is empty). The portrait and background rows share one stylesheet rule, fixed so that a row fits 360 px.
+- **Follow-through** (`model/backgrounds.ts`, `reconcileBackgrounds` in `store/documentStore.ts`, the `background` ref kind in `storyWalk.ts`):
+  renaming a background changes every command in every map event and campaign scene that names it; deleting one asks first ("These show it and will be
+  removed with it" and the sentences of the commands) and takes those commands out in the same undo step; removing an image removes the backgrounds
+  drawn from it (listed in the image's own delete question as "Background: hall (it is removed too)") and then the commands.
+- **Checks** (`model/sceneChecks.ts`, used by `storyChecks.ts` and `campaignChecks.ts`; the loader's refusals): an unknown or empty background, a
+  transition that is neither cut nor fade, a time out of range (fade, transition, shake 0 to 10000; wait 0 to 60000; "goes on by itself" 1 to 60000),
+  a colour that is not #rgb / #rrggbb, a shake strength outside 1 to 32, an empty narration or speaker, a place that is not left / right / center,
+  weather in a campaign scene, "wait" without "walk". A scene left faded out is fine (it fades in by itself): no check. The number boxes refuse
+  out-of-range values as they are typed; the checks catch hand-written files. The campaign timeline's "What changes" line ignores these commands.
+- **Tests**: unit `scene.test.ts`; API `tests/editor_api_scene_checks.py`; e2e `scene.spec.ts` (the Backgrounds list, a map event with every new command and the
+  exact JSON, the checks, rename and delete, a campaign scene, 360 px phone).

@@ -199,6 +199,39 @@ so the sheet's `smooth` key has no effect on portraits yet.
 In memory: `GraphicsSet::portraits` and `GraphicsSet::portrait(id)`;
 player: `BattleScene::portraitFor` (battle_story.cpp).
 
+A portrait also stands on the scene **stage** when a line has a `position` (docs/EVENTS.md "Scene presentation": "Standing portraits"):
+there it is drawn bigger (the largest whole-number scale that fits 55 percent of the screen's height and 45 percent of its width, 3 times
+on the 480 x 270 screen with 48 x 48 faces), bright while its speaker talks and dimmed otherwise. The same picture serves both; faces
+that are about 48 x 48 or 64 x 64 work well.
+
+## Backgrounds (story scenes)
+
+```jsonc
+"backgrounds": { "forest_dusk": { "sheet": "bg_forest" },                     // the whole image of a sheet
+                 "hall":        { "sheet": "bg_places", "cell": [0, 0] } }    // one cell of a sheet
+```
+
+The full-screen pictures a story scene shows behind its dialogue (the `background` command of docs/EVENTS.md "Scene presentation", in map
+events and in campaign scenes). The id (letters, digits, `_` and `-`) is what the command names. An entry is a `sheet` and optionally a
+`cell`: with no `cell` the picture is the sheet's **whole image** (the cell size of the sheet does not matter for it), with a `cell` it is
+that one cell. Unknown keys, an unknown sheet and a cell outside the sheet are loader errors (`data/graphics.json: background "hall":
+cell [5, 0] is outside sheet "bg_places" (2 x 1 cells)`). The list is the same for every visual style (unlike terrain and units, a
+backdrop is not drawn differently per kind of view). Not to be confused with the battle scene's own `battle.backgrounds`
+(docs/BATTLE_SCENE.md): those are the side view's.
+
+**How it is drawn** ("cover", in the pixel-art rules of this file): the picture covers the whole screen, scaled by a **whole number**
+when it has to grow (the smallest whole number that covers both directions: a 240 x 135 picture on the 480 x 270 screen is exactly 2 times;
+a 120 x 68 cell is 4 times, which overshoots a little), by a fraction only when it is bigger than the screen and has to shrink, and what
+overshoots is cut away evenly all round (a 240 x 135 picture on a 270 x 480 phone screen shows its middle 68 x 120, at 4 times). The
+renderer samples nearest-neighbour, so the pixels stay crisp. Pictures made in the shape of the screen they are meant for look best; for a
+game played on phones and desktops, draw them wide enough and keep what matters in the middle. While a background shows in a map event
+it covers the map and the panels (the hint line stays); a cross-fade draws the old picture under the new one, or the map under a
+picture that is being taken away.
+
+In memory: `Graphics::backgrounds` (`SceneBackground`: `sheet`, `whole`, `cell`) and `Graphics::findBackground(id)`; loader
+`loader_scene_backgrounds.cpp`; player `ui/scene_stage_draw.cpp` (`fitCover`, `drawStageBackground`). Test art for the tests is drawn by
+`tools/art/make_scene_test_art.py`.
+
 ## Models (3D kinds of view only)
 
 In a style whose kind of view is 3D (`isometric-3d`, later `3d`; see
