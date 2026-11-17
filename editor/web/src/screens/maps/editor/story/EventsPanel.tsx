@@ -1,9 +1,10 @@
 // The "Events" tab: the map's events as a list (name + one plain sentence), and the open event's editor.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { storyChecks } from '../../../../model/storyChecks'
 import { addEvent, deleteEvent, moveEvent } from '../../../../model/storyEdit'
 import { eventSummary } from '../../../../model/storySummary'
 import { Icon } from '../../../../ui/Icon'
+import { clearOpenEvent, peekOpenEvent } from '../openRequest'
 import type { MapViewState } from '../viewState'
 import { EventEditor } from './EventEditor'
 import { RowButtons } from '../../../../ui/RowButtons'
@@ -20,7 +21,9 @@ function EventsBody() {
   const { doc, map, mapId, apply } = story
   const events = map.events ?? []
   // The open event is remembered by its place in the list, so renaming it keeps it open.
-  const [open, setOpen] = useState<number | null>(null)
+  // (or opened at once when the campaign timeline asked for one event: openRequest.ts)
+  const [open, setOpen] = useState<number | null>(() => { const id = peekOpenEvent(mapId); const i = id === null ? -1 : (map.events ?? []).findIndex((e) => e.id === id); return i >= 0 ? i : null })
+  useEffect(() => { clearOpenEvent() }, [])
   const checks = useMemo(() => storyChecks(doc, mapId), [doc, mapId])
   const current = open !== null ? events[open] : undefined
 

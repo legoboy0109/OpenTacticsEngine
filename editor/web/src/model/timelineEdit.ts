@@ -33,20 +33,26 @@ export const removeScene = (doc: ProjectDoc, chapterId: string, which: SceneKey)
   return !ch || ch[which] === undefined ? doc : patchChapter(doc, chapterId, { [which]: undefined })
 }
 
-/** Where a dragged chapter would land: the list position it ends up at when dropped at world point (x, y). The nearest chapter
- *  decides; the left half of it means "before it", the right half "after it". Dropping on itself changes nothing. */
-export function dropIndex(strips: Array<{ chapterId: string; rect: Rect }>, order: string[], dragged: string, x: number, y: number): number {
-  const from = order.indexOf(dragged)
-  let best = -1, bestD = Infinity
-  strips.forEach((s, i) => {
+type Strips = Array<{ chapterId: string; rect: Rect }>
+
+/** The chapter nearest to world point (x, y) and whether the point is on its right half ("after it"); null with no chapters. */
+export function dropSpot(strips: Strips, x: number, y: number): { chapterId: string; after: boolean; rect: Rect } | null {
+  let best: Strips[number] | null = null, bestD = Infinity
+  for (const s of strips) {
     const dx = Math.max(s.rect.x - x, 0, x - (s.rect.x + s.rect.w)), dy = Math.max(s.rect.y - y, 0, y - (s.rect.y + s.rect.h))
     const d = Math.hypot(dx, dy)
-    if (d < bestD) { bestD = d; best = i }
-  })
-  if (best < 0 || from < 0) return from
-  const s = strips[best]
-  if (s.chapterId === dragged) return from
-  let at = order.indexOf(s.chapterId) + (x > s.rect.x + s.rect.w / 2 ? 1 : 0)
+    if (d < bestD) { bestD = d; best = s }
+  }
+  return best ? { chapterId: best.chapterId, after: x > best.rect.x + best.rect.w / 2, rect: best.rect } : null
+}
+
+/** Where a dragged chapter would land: the list position it ends up at when dropped at world point (x, y). The nearest chapter
+ *  decides; the left half of it means "before it", the right half "after it". Dropping on itself changes nothing. */
+export function dropIndex(strips: Strips, order: string[], dragged: string, x: number, y: number): number {
+  const from = order.indexOf(dragged)
+  const spot = dropSpot(strips, x, y)
+  if (!spot || from < 0 || spot.chapterId === dragged) return from
+  let at = order.indexOf(spot.chapterId) + (spot.after ? 1 : 0)
   if (from < at) at -= 1
   return at
 }

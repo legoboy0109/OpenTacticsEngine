@@ -8,6 +8,7 @@ import { SidesPanel } from './panels/SidesPanel'
 import { ToolPanel } from './panels/ToolPanel'
 import { EventsPanel } from './story/EventsPanel'
 import { ObjectivesPanel } from './story/ObjectivesPanel'
+import { peekOpenEvent } from './openRequest'
 import type { MapViewState } from './viewState'
 import { T } from './text'
 import type { ToolState } from './tools'
@@ -28,7 +29,8 @@ interface Props {
 }
 
 export function OptionsPanel({ doc, map, mapId, state, selected, onChange, say, vs }: Props) {
-  const [tab, setTab] = useState<Tab>('tool')
+  // The campaign timeline can send the person straight to one event (openRequest.ts).
+  const [tab, setTab] = useState<Tab>(() => (peekOpenEvent(mapId) ? 'events' : 'tool'))
   const [open, setOpen] = useStored('ote.mapSheetOpen', true)
   const choose = (t: Tab) => { setTab(t); setOpen(true) }
   return (

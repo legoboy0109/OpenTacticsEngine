@@ -10,15 +10,18 @@ export interface Pt { x: number; y: number }
 
 export interface RouteEnv {
   rect: Record<string, Rect>
-  /** x of the left edge of each column (layer). */
+  /** x of the left edge of each column (layer) on its line, and of its right edge. */
   layerX: number[]
+  layerRight: number[]
   /** Gap between columns: the vertical stretches go in the middle of it. */
   layerGap: number
-  /** y just below the boxes of each lane: the free band starts here. */
-  laneBottom: number[]
-  /** Chapter's layer, lane, and whether the box is the last of its chapter's strip. */
+  /** y just below the boxes of a chapter's lane; y just below the lowest lane of the chapter's line. The free bands start there. */
+  laneBottom: (chapter: number) => number
+  groupBottom: (chapter: number) => number
+  laneKey: (chapter: number) => string
   layerOf: (chapter: number) => number
-  laneOf: (chapter: number) => number
+  /** Both chapters are on the same line of the picture (a long story is folded into several lines). */
+  sameGroup: (a: number, b: number) => boolean
   isTail: (nodeId: string) => boolean
   forward: Set<string>
   slots: Map<string, number>
@@ -37,19 +40,27 @@ const attachY = (r: Rect) => r.y + 48
 export function routePoints(e: TimelineEdge, env: RouteEnv): Pt[] {
   const S = env.rect[e.from], T = env.rect[e.to]
   const aS = attachY(S), aT = attachY(T)
-  const sameStrip = e.fromChapter === e.toChapter
   // Inside a strip, to the box on the right: a straight line.
-  if (sameStrip && !e.backward && Math.abs(aS - aT) < 1) return [{ x: S.x + S.w, y: aS }, { x: T.x, y: aT }]
+  if (e.fromChapter === e.toChapter && !e.backward && Math.abs(aS - aT) < 1) return [{ x: S.x + S.w, y: aS }, { x: T.x, y: aT }]
   const lt = env.layerOf(e.toChapter), ls = env.layerOf(e.fromChapter)
   const gapAt = (layer: number) => env.layerX[layer] - env.layerGap / 2 + slot(env, `g${layer}`, 7) * SLOT
-  const gy = env.laneBottom[env.laneOf(e.fromChapter)] + 14 + slot(env, `b${env.laneOf(e.fromChapter)}`, 7) * SLOT + 3 * SLOT
+  const near = env.sameGroup(e.fromChapter, e.toChapter)
+  // The free band to run along: under this chapter's lane, or (to another line of the picture) under the whole line.
+  const band = near ? env.laneBottom(e.fromChapter) : env.groupBottom(e.fromChapter)
+  const gy = band + 14 + slot(env, `b${near ? env.laneKey(e.fromChapter) : `row${env.groupBottom(e.fromChapter)}`}`, 7) * SLOT + 3 * SLOT
   const forward = env.forward.has(e.id) && lt > ls
-  const rightExit = forward && env.isTail(e.from)
-  if (rightExit) {
-    const gx1 = gapAt(ls + 1)
-    if (lt === ls + 1) return Math.abs(aS - aT) < 1 ? [{ x: S.x + S.w, y: aS }, { x: T.x, y: aT }] : [{ x: S.x + S.w, y: aS }, { x: gx1, y: aS }, { x: gx1, y: aT }, { x: T.x, y: aT }]
+  if (forward && env.isTail(e.from)) {
+    const out = { x: S.x + S.w, y: aS }
+    if (near) {
+      const gx1 = gapAt(ls + 1)
+      if (lt === ls + 1) return Math.abs(aS - aT) < 1 ? [out, { x: T.x, y: aT }] : [out, { x: gx1, y: aS }, { x: gx1, y: aT }, { x: T.x, y: aT }]
+      const gx2 = gapAt(lt)
+      return [out, { x: gx1, y: aS }, { x: gx1, y: gy }, { x: gx2, y: gy }, { x: gx2, y: aT }, { x: T.x, y: aT }]
+    }
+    // Into the next line: down the gap after this column, back along under the line, down the left margin, in from the left.
+    const xr = env.layerRight[ls] + env.layerGap / 2 + slot(env, `r${ls}`, 7) * SLOT
     const gx2 = gapAt(lt)
-    return [{ x: S.x + S.w, y: aS }, { x: gx1, y: aS }, { x: gx1, y: gy }, { x: gx2, y: gy }, { x: gx2, y: aT }, { x: T.x, y: aT }]
+    return [out, { x: xr, y: aS }, { x: xr, y: gy }, { x: gx2, y: gy }, { x: gx2, y: aT }, { x: T.x, y: aT }]
   }
   const gx2 = gapAt(lt)
   const cx = S.x + S.w / 2 + slot(env, `x${e.from}`, 5) * 8

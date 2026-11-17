@@ -21,6 +21,7 @@ import { useLearnContext, useSavedSignal } from '../learn/useLearn'
 import { PLAY_CAMPAIGN } from '../play/PlayPanel'
 import { usePlay } from '../play/usePlay'
 import { useProject, useStore } from '../store/context'
+import { onOpenProblems } from './openProblems'
 import { ProblemsPanel } from './ProblemsPanel'
 import { SaveBanners } from './SaveBanners'
 import { Sidebar } from './Sidebar'
@@ -77,6 +78,8 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [store, canUndo, canRedo])
 
+  // A screen (the campaign timeline's problem badges) can ask for the Problems list.
+  useEffect(() => onOpenProblems(() => setProblemsOpen(true)), [])
   useEffect(() => { document.title = `${doc.game?.name || store.id} - Game Editor` }, [doc.game?.name, store.id])
 
   if (phase === 'loading') return <div className="center-msg" role="status">Opening game&hellip;</div>
