@@ -174,7 +174,9 @@ identity that events, the campaign roster and supports use.
     "learns": [ { "level": 8, "skill": "heavy_blow" } ],   // optional: personal skills learned at a level
     "abilities": ["shove"],                       // optional: personal menu abilities (section 4)
     "wields": ["bow"],                            // optional: weapon groups it can wield beyond its class's (section 7)
-    "items": ["iron_sword", "salve"] }        // optional: replaces the unit type's starting items
+    "items": ["iron_sword", "salve"],         // optional: replaces the unit type's starting items
+    "quotes": { "battle": [ { "against": "gorm", "lines": [ { "say": "Your raids end today." } ] } ],
+                "defeat": { "falls": [ { "say": "Tell them I tried." } ] } } }   // optional: docs/EVENTS.md "Battle and defeat quotes"
 ] }
 ```
 

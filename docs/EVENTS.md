@@ -564,6 +564,58 @@ a battle or a scene) stops at the next question. Hint line while the answers are
 confirm". Test scripts: the player logs `choice: ... N answers: 0@x,y 1@x,y` (row centres, logical pixels) and `choice: battle|scene
 answer N`; `tests/choice_player_test.py` and the game `tests/fixtures/choice-story` use them.
 
+## Battle and defeat quotes
+
+Built (PLAN k item 7; owner: "go ahead", scope below is the assistant's default for the owner to correct). A **character**
+(`data/characters.json`) can say lines when it first fights on a map and when it is struck down. Generic units (no
+character) have none. All wording is placeholder.
+
+```jsonc
+{ "id": "gorm", "name": "Gorm", "type": "brute",
+  "quotes": {
+    "battle": [
+      { "against": "eirik", "once": "always", "lines": [ { "say": "Eirik. At last." } ] },
+      { "once": "campaign", "lines": [ { "say": "Come, little ones." }, { "say": "Do not run.", "speaker": "mira" } ] } ],
+    "defeat": { "falls":    [ { "say": "Impossible..." }, { "say": "Brother!", "speaker": "mira" } ],
+                "retreats": [ { "say": "I must pull back!" } ] } } }
+```
+
+- **Lines** are the ordinary `say` command (`say`, `speaker` = a character id, `speakerName`, `portrait`), read by the loader code
+  that reads support conversations. A line with neither `speaker` nor `speakerName` is **said by the character the quote belongs
+  to**; a line may be spoken by any other character (a friend answering). A character that is not on the map is shown by name
+  with the portrait of its id. Only `say` is allowed.
+- **Battle quote**: `against` (a character id, absent = anyone; not the character itself), `once` (`"map"` default, `"campaign"`,
+  `"always"`), `lines` (at least one). A character has at most one quote per `against` value and one for anyone (a second would never
+  be said; the loader refuses it).
+- **When**: a fight is about to begin (every attack, a counter-less fight too; also the computer's and a berserk unit's), before the
+  strikes and **before** the `fight` story events. Both fighters may speak, **the attacked unit first, then the attacker**
+  (both are chosen before either is said). Each fighter says at most one quote per fight: its quote `against` the other fighter if
+  it has one that is still allowed, else its general one. So a quote against a character wins over the general quote, and when the
+  pair quote is used up the general one follows.
+- **How often**: `"map"` = once per battle (state in the battle, saved); `"campaign"` = once per playthrough (carried between
+  chapters; a lost chapter that is retried does not use it up; in a game without a campaign it is the same as `"map"`);
+  `"always"` = every time. There is no "per opponent": a quote against one character is one pair already.
+- **Defeat quote**: said right after a unit is **struck down in a fight** (its killing strike, a counter included, on any turn), before
+  the `defeated` story events (and so before the victory when it was the boss). Which set: `falls` normally; `retreats` only for a
+  unit of a human (non-computer) side in a game whose `data/campaign.json` says `"fallen": "return"` (the unit comes back next
+  chapter). So in a "gone" game, or a game with no campaign, only `falls` is used (the editor offers one set), and with "return" both
+  are offered (`falls` is then for enemies and other sides). A set that is absent is silent.
+- **Not defeats**: a poison tick, fuel running out, a unit lost with its carrier, a side wiped out by the defeat rules, and a story
+  `removeUnit` never say a defeat quote. Only a fight does.
+- **Stream**: the lines are `Dialogue` entries in the action's own event list, in this order: battle quotes, `fight` events' lines,
+  the strikes, the killing strike, `UnitDied`, the defeat quote, the `defeated` events' lines, then the rest (experience, victory).
+  Nothing waits; no new event type. The player shows them in the normal dialogue box before the combat animation / after the fall
+  and skips them like other dialogue (Skip tab, hold Cancel, `--autoplay` ends them by itself). The simulator emits them and ignores
+  them; `ote-sim` results are unchanged. A `fight` event that takes a fighter away still leaves the quotes said (they come first).
+- **Saves** (docs/SAVES.md): `"quotes": { "said": [n, ...] }` in a battle and in a campaign playthrough, written only when something
+  was said. A game without quotes saves and hashes as before.
+- **Loader refusals** (`data/characters.json: character "eirik": battle quote 1: ...`): `"against" names unknown character "x"`; `"against"
+  names the character itself`; `a second quote against "gorm"` / `against anyone`; `"lines" must be a list with at least one say
+  command`; `"once" must be "map", "campaign" or "always"`; `"speaker" names unknown character`; `give "speaker" or "speakerName", not
+  both`; `only "say" is allowed in a quote`; an unknown key in `quotes`, a quote or `defeat`.
+- Tests: `tests/test_quotes_rules.cpp`, `tests/test_quotes_data.cpp` (fixture `tests/fixtures/srpg-quotes`),
+  `tests/srpg_player_quotes_test.py`. The player logs `[info] dialogue: <speaker> | <text>` for each line that reaches the box.
+
 ## Strategy-RPG additions
 
 A unit placed as a character is known to events and objectives by the character's id, so conditions and commands that name a unit work

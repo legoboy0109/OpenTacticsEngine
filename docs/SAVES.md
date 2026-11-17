@@ -145,6 +145,12 @@ for a counted condition), to a battle save's units, written only for a unit that
 data hash covers `data/conditions.json` only when it holds something (name, description and tag are cosmetic). Conditions are not part of a campaign
 save: they end with the map.
 
+Battle quotes (docs/EVENTS.md "Battle and defeat quotes") add one optional key, `"quotes": { "said": [n, ...] }` (the positions, in file
+order of `data/characters.json`, of the "map" and "campaign" quotes already said; ascending, each once; "always" quotes are never kept), to a
+battle save and, for the "campaign" quotes only, to a campaign playthrough. Written only when something was said; refused in a game with
+no quotes. Old saves load (a missing key = nothing said). A character's quote wording is blanked for the data hash like a story's
+wording; `against`, `once`, `speaker` and the number of lines count.
+
 ## Editor
 
 Rules screen, a small **Saving** card: "Players can save: Any time / Only

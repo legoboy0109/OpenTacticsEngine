@@ -337,7 +337,8 @@ Games can add named characters (`data/characters.json`), skills (`data/skills.js
 supports (`data/supports.json`), a `rules.promotion` and a `rules.rescue` block, extra keys on unit types, weapons and items (skills,
 learned skills, promotions, abilities), and map units placed as a character (`"character"` in place of `"type"`). Every one is optional,
 a game that uses none of them loads and plays exactly as before, and the files, keys, limits and loader refusals are specified in
-docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
+docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here. A character may carry `"quotes"` (lines said when it fights and
+when it is struck down; docs/EVENTS.md "Battle and defeat quotes"); their wording does not count for the data hash, their rules do.
 
 **Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
