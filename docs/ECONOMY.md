@@ -192,7 +192,7 @@ Unknown keys inside `supply` / `repair` are refused. A game without the block re
 
 Map file: `"fog": true` (default false; a boolean, anything else is refused). At most 32 sides on a fog map (an
 event's "seen by" is a 32-bit mask with one bit per team). Built in the rules core and the player (2026-11-14); the
-editor has no switch for it yet (step 5).
+the editor has a switch for it on the map's Map tab (docs/EDITOR_UI.md "Fog of war").
 
 **Data.**
 - units.json `"vision": 3` (whole number 0 to 20, default 2): how many squares the unit's team sees from where it

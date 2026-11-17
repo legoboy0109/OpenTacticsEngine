@@ -293,8 +293,8 @@ What step 1 built, for the player, art and editor steps.
   the `rings`; map structures: `covers its hexagon and the six around it (rings 1) but they do not all fit inside the map`,
   `is outside the map`, `overlaps structures[n] (...) on hexagon x,y`. Tests: `tests/test_hex_*.cpp`.
 - **Not touched on purpose**: story rectangles (`reach`, area conditions, `loader_story_refs.cpp`) stay column/row
-  rectangles; `core/view/` (isometric and 3D projections) is square-only and untouched; the editor has not been taught
-  `rings` yet (editor step; its server uses the engine loader, so hexagon games already validate there).
+  rectangles; `core/view/` (isometric and 3D projections) is square-only and untouched; the editor's structure form has `rings`
+  (docs/EDITOR_UI.md), and its server uses the engine loader, so hexagon games validate there.
 - **Fixtures**: `tests/fixtures/hex-pointy` and `hex-flat` (no art; map `skirmish`, 12 x 9, 2 AI sides, an HQ with
   `"rings": 1`, factories, cities). `ote-sim tests/fixtures/hex-pointy skirmish` works; results are deterministic.
 

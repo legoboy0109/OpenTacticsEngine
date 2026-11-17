@@ -1348,11 +1348,11 @@ wider than the box (a phone: "Equip  Only .."; the full words are on the Items l
 with ".." at 270 px). Promotion previews (`cannotWield`) look at the class only and do not mention locks. Tests:
 tests/test_srpg_locks.cpp, tests/srpg_player_locks_test.py, fixture tests/fixtures/srpg-locks.
 
-**Editor as built.** No helper change (the helper keeps `wieldedBy` and the loader reports its errors). Weapons screen: the card "Only these characters can wield it"
-(`WeaponLockCard`, a checkbox list of the characters; one column at 360 px), shown only when weapons are carried and the game has characters; the key is written only
-when the list is not empty, and left untouched while the card is hidden. Follow-through (`model/locks.ts`): deleting a character takes it off every list (named in the
+**Editor as built.** No helper change (the helper keeps `wieldedBy` and `wieldedByTypes` and the loader reports their errors). Weapons screen (and the Items screen for a staff): the card "Who can wield it"
+(`WeaponLockCard`, two checkbox lists, classes and characters; one column at 360 px). The character list shows when weapons are carried (a staff: always) and the game has characters, the class list
+when weapons are carried (a staff: always); each key is written only when its list is not empty, and left untouched while hidden. Deleting a unit type takes it off the class lists. Follow-through (`model/locks.ts`): deleting a character takes it off every list (named in the
 delete question, one Undo step); an emptied list loses its key; switching Characters off removes all lists (the confirmation says how many weapons had one); renaming a
-character id is `renameCharacterLocks` (the editor has no screen that renames a character id yet, so nothing calls it). Checks (`model/lockChecks.ts`, "Worth a look" on the
+character id is `renameCharacterLocks` (ids are never renamed in the editor, so nothing calls it). Checks (`model/lockChecks.ts`, "Worth a look" on the
 card): a name that is no character, and a list where no character's class can use the weapon (class `weapons` or `wields` of the weapon's group). Characters screen: a
 read-only card "Weapons locked to this character". Tests: `tests/unit/locks.test.ts`, `editor/web/tests/e2e/srpg-locks.spec.ts`.
 
@@ -1411,8 +1411,8 @@ only weapons above its rank has no attack and behaves like an unarmed one.
 
 ### Editor (built later, see "Editor: as built" below)
 Screens: a **Weapon ranks** section in Rules (growth mode, the ladder as an editable list with id / name /
-experience; a "default E to S ladder" button), the weapon form (`rank`, `rankXp`), the unit type form (`ranks` per
-group, `caps`), the character form (`ranks`, `capAdjust`), the map unit form (`ranks`), and **Stat caps** in Rules
+experience; a "default E to S ladder" button), the weapon form (`rank`, `rankXp`, 0 included), the unit type form (`ranks` per
+group, `caps`), the character form (`wields`, `ranks`, `capAdjust`), the map unit form and the `addUnit` command form (`ranks`), and **Stat caps** in Rules
 (one optional number per stat). Problems to report: a rank id not in the ladder, a group no weapon has, `rank`
 without a `group`, an `xp` that is not rising, a ladder with fixed weapons. The editor must keep the keys it does
 not edit (see "as built").
@@ -2368,7 +2368,7 @@ All wording is a placeholder, in one file (`engine/player/battle/place_text.h`; 
 
 - **Steal** is built (section 3 "Skill and ability blocks, second set", Steal): an ability that takes an item from an adjacent foe. A stolen item is no
   longer in the foe's inventory, so it cannot drop when the foe is defeated.
-- Editor forms are built (docs/EDITOR_UI.md "Doors, chests and places"); not in the editor: `goesFor` on an `addUnit` command (hand-edit; the helper keeps it).
+- Editor forms are built (docs/EDITOR_UI.md "Doors, chests and places"), `goesFor` on an `addUnit` command included ("Editor gaps").
 - The AI does not use unlock abilities / staves and does not break doors down.
 
 ### Tests
@@ -3845,7 +3845,7 @@ The Characters screen, characters on the map and the "class" wording are in; the
   "Character “X” has this class (the character goes with it)".
 - **Readings of the contract.** (1) "Class" is applied on the Characters screen, the map's Units picker and unit form, and the unit-type delete
   line; other screens (Units, story forms, Rules) still say "unit type". (2) The story `addUnit` form does not offer characters yet (its
-  `character` key is kept and counts for the check). (3) Personal skills / abilities pickers are E2 / E3's slots. (4) A deleted character's portrait
+  `character` key is kept and counts for the check; its ranks and goes-for controls are built, "Editor gaps" in docs/EDITOR_UI.md). (3) Personal skills / abilities pickers are E2 / E3's slots. (4) A deleted character's portrait
   entry stays in Art. (5) Level shows only with progression on. (6) Shared CSS: `.md-detail` column may shrink (a long name overflowed at 360 px).
 
 ### E2. Editor: Skills — depends on E1; parallel with E3, E4
