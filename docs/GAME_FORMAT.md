@@ -327,6 +327,10 @@ learned skills, promotions, abilities), and map units placed as a character (`"c
 a game that uses none of them loads and plays exactly as before, and the files, keys, limits and loader refusals are specified in
 docs/SRPG.md ("Files at a glance" lists them all). Nothing is repeated here.
 
+**Status conditions** (docs/SRPG.md section 9, optional): `data/conditions.json` (poison, sleep, silence, berserk and the like, built from skill blocks
+plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
+staff, and the skill effect `immune`. A game without the file loads, plays, saves and hashes exactly as before.
+
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a
 weapon (needs a `group`), `"ranks"` and `"caps"` on a unit type, `"ranks"`, `"capAdjust"` and `"wields"` (extra weapon groups) on a character, `"ranks"` on a map unit.

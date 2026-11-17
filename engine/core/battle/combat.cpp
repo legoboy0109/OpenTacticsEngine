@@ -170,7 +170,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   // the "inflict" effects of the strike's activated blocks take hold (in that order, so a strike that wakes a sleeper can also
   // put it back to sleep): the striker's on the unit struck, the struck unit's on the striker.
   if (hit && db->conditions.size()) {
-    if (e.d > 0) conditionsStruck(def, events);
+    if (e.d > 0 && !(e.flags & kKill)) conditionsStruck(def, events);
     for (const SkillEffect* fx : strike.inflictOnStruck)
       if (units[def].alive) inflictCondition(def, fx->conds[0], fx->turns, atk, events);
     for (const SkillEffect* fx : strike.inflictOnStriker)

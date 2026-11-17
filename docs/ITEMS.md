@@ -183,6 +183,14 @@ optional `"hit"` chance, `"xp"`). Its uses, price, trading, storage, drops and s
 A staff's `repair` skips an item with `"repairable": false` (a key of any item that has `uses`; default true) and items with unlimited uses. It is not a `usable` item: the Items
 screen offers no Use for it; the action menu has a Staff entry.
 
+## Status conditions
+
+A usable item can **cure** conditions (`"cure": ["poison"]` or `"cure": "all"`) and/or **inflict** one on the unit it is used on (`"inflict": { "condition":
+"curse", "turns": 2 }`), alone or together with `heal` / `raise`; the order is raise, heal, cure, inflict. An item that would change nothing (no condition to
+cure, immune, has it already) is not offered. A weapon can inflict a condition on the unit it hits (`"inflict": { "condition": "poison", "chance": 30 }`, in
+`data/weapons.json`), and a condition can forbid a weapon group, staves or usable items while it lasts (silence). The contract, the loader refusals and the
+starter set (an Antidote is sold at the demo's forts) are in docs/SRPG.md section 9.
+
 ## Weapon ranks
 
 A weapon item can require a **rank** in its group (`"rank"` on the weapon, `"ranks"` on unit types, characters and map units, the ladder in
