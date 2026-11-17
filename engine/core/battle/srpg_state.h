@@ -92,6 +92,13 @@ struct AbilityPlan {
 
 namespace ote {
 
+// One item of a foe a steal ability could take: its slot in the foe's inventory, and the plain reason it cannot be taken.
+struct StealOption {
+  int slot = -1;
+  bool ok = false;
+  std::string why;  // when !ok
+};
+
 // ---- staves (docs/SRPG.md section 8) ----
 // One entry of a unit's staff list: usable now, or the plain reason it is not.
 struct StaffOption {

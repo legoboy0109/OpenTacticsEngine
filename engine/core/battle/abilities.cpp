@@ -98,8 +98,16 @@ bool Battle::validateAbility(const Action& action, std::string* why) const {
   abilitiesOf(u, owned);
   if (std::find(owned.begin(), owned.end(), action.ability) == owned.end())
     return refuse(why, "that unit does not have that ability");
-  return abilityStateOk(u, action.ability, u.cell, why) &&
-         abilityTargetOk(u, action.ability, u.cell, action.target, action.cell, why);
+  if (!abilityStateOk(u, action.ability, u.cell, why) ||
+      !abilityTargetOk(u, action.ability, u.cell, action.target, action.cell, why))
+    return false;
+  if (db->abilities[(size_t)action.ability].effect == AbilityEffect::Steal) {  // which item: `slot` of the target's inventory
+    std::vector<StealOption> opts;
+    stealOptions(u.id, action.ability, u.cell, action.target, opts);
+    if (action.slot < 0 || action.slot >= (int)opts.size()) return refuse(why, "choose an item to steal");
+    if (!opts[(size_t)action.slot].ok) return refuse(why, "that item " + opts[(size_t)action.slot].why);
+  }
+  return true;
 }
 
 void Battle::noteAbilityUse(int unit, int ability) {

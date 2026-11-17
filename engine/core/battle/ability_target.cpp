@@ -38,6 +38,7 @@ bool Battle::abilityStateOk(const Unit& u, int ability, Cell from, std::string* 
     if (use->wait > 0) return refuse(why, "ready in " + std::to_string(use->wait) + (use->wait == 1 ? " turn" : " turns"));
     if (d.free && use->turn) return refuse(why, "already used this turn");
   }
+  if (d.effect == AbilityEffect::Steal && !stealRoomOk(u, why)) return false;
   if (d.effect == AbilityEffect::Summon) {
     const int have = summonCount(u.id, ability);
     if (have >= d.summon.limit) {
@@ -104,6 +105,14 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
       break;
     case AbilityEffect::MoveBehind:
       if (!squareFreeFor(back, typeOf(*t).moveType, team, u.id)) return refuse(why, "there is no room behind the user");
+      break;
+    case AbilityEffect::MovePast:  // the USER goes to the far side of the target
+      if (!squareFreeFor(grid.neighbor(t->cell, dir), typeOf(u).moveType, team, u.id)) return refuse(why, "there is no room beyond that unit");
+      break;
+    case AbilityEffect::Steal:
+    case AbilityEffect::Refresh:
+    case AbilityEffect::Cure:
+      if (!abilityEffectOk(u, d, from, *t, why)) return false;
       break;
     case AbilityEffect::Heal:
       if (t->hp >= maxHp(*t)) return refuse(why, "that unit is at full health");

@@ -205,7 +205,8 @@ struct SkillDef {
 // ---- 4. menu abilities and summoning (data/abilities.json) ----
 
 enum class AbilityTarget { Self, Ally, Enemy, Unit, Cell };
-enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */ };
+// Steal, Refresh, MovePast, Cure: docs/SRPG.md "Skill and ability blocks, second set".
+enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure };
 
 struct SummonDef {
   std::string typeId;
@@ -235,6 +236,15 @@ struct AbilityDef {
   int unlockNeeds = -1;            // index into Database::items (resolved last)
   bool afterMove = true;           // false = only before moving
   std::vector<SkillCond> conds;    // "if"; `foe` = the target unit
+  // Steal: the maker's condition (a = the user, b = the foe; -1 = always) and which items may be taken.
+  int stealIf = -1;
+  bool stealWeapons = false, stealEquipped = false;
+  // Refresh: how many times a unit can be refreshed per turn (by anyone, with any such ability).
+  int refreshPerTurn = 1;
+  // Cure: the conditions it cures (`cureIds` as written, `cures` resolved last) or every one.
+  std::vector<std::string> cureIds;
+  std::vector<int> cures;
+  bool cureAll = false;
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----

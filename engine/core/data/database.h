@@ -152,6 +152,7 @@ struct ItemDef {
   bool opensDoors = false, opensChests = false;
   std::vector<int> opensKinds;
   bool isKey() const { return !opensIds.empty(); }
+  bool stealable = true;       // false: a steal ability never takes it (docs/SRPG.md "Steal")
 };
 const int kHealFull = 1000000000;
 
@@ -381,6 +382,7 @@ struct Database {
   // Some skill has the effect moveAgain or actAgain: only then the turn flags moveSpent / acted / refreshed are
   // part of a save (set by resolveSrpgRefs).
   bool turnFlagSkills = false;
+  bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
 
   // Index lookups by id; -1 when not found.
   int findStat(const std::string& id) const;

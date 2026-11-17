@@ -1,4 +1,4 @@
-// The four abilities that move units (docs/SRPG.md "Directions" and "Legality"): push, pull, swap, moveBehind.
+// The abilities that move units (docs/SRPG.md "Directions" and "Legality"): push, pull, swap, moveBehind, movePast.
 // All of them think in directions through Grid (directionTo, neighbor, opposite), never in coordinates, so one
 // piece of code serves the square grid and both hexagon layouts.
 #include "core/battle/battle.h"
@@ -41,6 +41,14 @@ void Battle::planAbilityMove(const Unit& user, const AbilityDef& def, int target
       if (occupant[(size_t)back] >= 0) out.blocker = occupant[(size_t)back];
       else out.moves = {{target, back}};
       break;
+    case AbilityEffect::MovePast: {
+      // The user steps to the square on the far side of the target, along the same line.
+      const Cell far = grid.neighbor(t.cell, dir);
+      if (!grid.valid(far) || enterCost(far, typeOf(user).moveType) <= 0) break;  // cannot happen after validation
+      if (occupant[(size_t)far] >= 0) out.blocker = occupant[(size_t)far];
+      else out.moves = {{user.id, far}};
+      break;
+    }
     default: break;
   }
 }

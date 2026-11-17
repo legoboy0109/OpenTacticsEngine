@@ -158,3 +158,8 @@ int inflictWhy(const Unit& u, int condition, int turns) const;
 bool cureWould(const Unit& u, const std::vector<int>& ids, bool all) const;
 // The own turns a fresh application lasts (-1 = no count): the override, else the condition's own.
 int conditionDuration(int condition, int turns) const;
+
+// ---- steal (ability_effects.cpp; docs/SRPG.md "Steal") ----
+// The items of `target` (a unit the steal ability could be used on from `from`), one entry per slot in order, each with whether
+// it can be taken now and, when not, the plain reason ("weapons cannot be stolen", "the equipped weapon", "cannot be stolen").
+void stealOptions(int unit, int ability, Cell from, int target, std::vector<StealOption>& out) const;

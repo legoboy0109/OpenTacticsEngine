@@ -48,7 +48,7 @@ struct PlaceRules {
 };
 
 // map unit / addUnit "goes for": what the computer opponent does with these (docs/SRPG.md section 10 "Computer opponent").
-enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4 };
+enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4, kAiSteal = 8 /* docs/SRPG.md "Steal" */ };
 
 const int kMaxPlaceHp = 9999;
 const int kMaxChestLoot = 8;

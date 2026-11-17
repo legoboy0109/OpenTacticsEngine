@@ -112,6 +112,10 @@ enum class EventType {
   PlaceVisited,     // a=structure, b=unit, c=the kind it was
   PlaceDestroyed,   // a=structure, b=unit, c=the kind it was
   PlaceUnlocked,    // a=structure, b=unit (-1 = story): a story command took the lock off, the door stays shut
+  // Skill and ability blocks, second set (docs/SRPG.md): a=thief, b=the unit robbed, c=item, d=uses left (-1 = unlimited) /
+  // a=the unit that refreshed, b=the unit that may act again, c=ability.
+  ItemStolen,
+  UnitRefreshed,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -192,8 +196,11 @@ struct Unit {
   std::vector<int> weaponXp;
   // Conditions (docs/SRPG.md section 9), in the order they were applied; empty in a game without conditions.
   std::vector<ConditionState> conditions;
-  // Computer opponent (docs/SRPG.md section 10): what it goes for (kAiChests | kAiPlaces | kAiDoors); 0 = ignores them. Saved when not 0.
+  // Computer opponent (docs/SRPG.md section 10): what it goes for (kAiChests | kAiPlaces | kAiDoors | kAiSteal); 0 = ignores them. Saved when not 0.
   int aiGoals = 0;
+  // Refresh (docs/SRPG.md "Refresh an ally"): the units that refreshed this one in the present turn of its side, cleared when that turn
+  // starts. Its size is the number of refreshes it has had this turn. Saved when not empty.
+  std::vector<int> refreshedBy;
 };
 
 struct CellState {

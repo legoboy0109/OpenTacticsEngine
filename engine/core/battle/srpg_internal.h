@@ -316,3 +316,11 @@ std::vector<int> condDeaths_;  // see conditionsSettleDeaths
 bool stoppedMay(const Unit& u, bool counter) const;
 // A defender that cannot dodge is always hit: the strike's hit chance becomes 100 (combat_mods.cpp).
 void noDodge(const CombatSetup& setup, bool counter, StrikeForecast& f) const;
+
+// ---- skill and ability blocks, second set (ability_effects.cpp; docs/SRPG.md) ----
+// The effect-specific part of abilityTargetOk for steal, refresh and cure (a unit target `t`, the user on `from`); false = refused.
+bool abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, const Unit& t, std::string* why) const;
+// Does the steal ability's own state allow it now (the user has room, or storage takes the overflow)?
+bool stealRoomOk(const Unit& u, std::string* why) const;
+// Carries out steal / refresh / cure (events after AbilityUsed); `slot` = the foe's item slot for a steal.
+void applyAbilityEffect(const AbilityDef& d, int uid, int target, int slot, std::vector<Event>& events);

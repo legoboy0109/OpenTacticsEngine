@@ -1,0 +1,9 @@
+{ "units": [
+  { "id": "rogue", "name": "Rogue", "moveType": "foot", "stats": { "hp": 20, "str": 5, "def": 2, "spd": 8, "mov": 4 },
+    "wields": ["sword"], "items": ["iron_sword"], "tags": ["thief"],
+    "abilities": ["steal", "steal_fast", "steal_arms", "steal_all", "refresh", "refresh_two", "leap", "purge", "purge_self"] },
+  { "id": "guard", "name": "Guard", "moveType": "foot", "stats": { "hp": 30, "str": 5, "def": 4, "spd": 3, "mov": 3 },
+    "wields": ["sword"], "items": ["iron_sword", "potion", "relic"], "tags": ["armored"] },
+  { "id": "medic", "name": "Medic", "moveType": "foot", "stats": { "hp": 16, "str": 2, "def": 1, "spd": 5, "mov": 4 },
+    "wields": ["staff"], "items": ["mend_staff"], "tags": ["healer"],
+    "abilities": ["refresh", "refresh_two", "purge"] } ] }

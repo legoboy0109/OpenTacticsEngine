@@ -94,7 +94,7 @@ TEST(doors_data_map_entries_refuse_bad_values) {
   CHECK(saysIn(mapWith("hall", "\"type\": \"latch_door\", \"x\": 5, \"y\": 3", "\"type\": \"latch_door\", \"x\": 5, \"y\": 2"), "opens onto terrain \"wall\" that no movement type can enter"));
   // The computer opponent's markers.
   CHECK(saysIn(mapWith("hall", "\"id\": \"sneak\"", "\"id\": \"sneak\", \"goesFor\": [\"chests\"]"), "this unit is on a side a person plays"));
-  CHECK(saysIn(mapWith("market", "\"goesFor\": [\"chests\"]", "\"goesFor\": [\"bridges\"]"), "must be \"chests\", \"villages\" or \"doors\", not \"bridges\""));
+  CHECK(saysIn(mapWith("market", "\"goesFor\": [\"chests\"]", "\"goesFor\": [\"bridges\"]"), "must be \"chests\", \"villages\", \"doors\" or \"steal\", not \"bridges\""));
   CHECK(saysIn(mapWith("market", "\"goesFor\": [\"chests\"]", "\"goesFor\": []"), "\"goesFor\" must be a list"));
   CHECK_STR(mapWith("market", "\"goesFor\": [\"chests\"]", "\"goesFor\": [\"chests\", \"doors\", \"villages\"]"), "");
 }

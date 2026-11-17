@@ -35,6 +35,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
     case AbilityEffect::Pull:
     case AbilityEffect::Swap:
     case AbilityEffect::MoveBehind:
+    case AbilityEffect::MovePast:
       planAbilityMove(units[(size_t)uid], def, target, plan);
       // A unit in the way that the team could see is the ordinary end of a push, not a surprise.
       blocked = plan.blocker >= 0 && !unitVisibleTo(team, plan.blocker);
@@ -45,6 +46,9 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
       break;
     case AbilityEffect::Heal: break;
     case AbilityEffect::Unlock: break;
+    case AbilityEffect::Steal: break;
+    case AbilityEffect::Refresh: break;
+    case AbilityEffect::Cure: break;
   }
   if (blocked) {
     used.flags = kBlocked;
@@ -69,6 +73,11 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
     }
     case AbilityEffect::Summon:
       if (!blocked) summonUnit(uid, ability, action.cell, events);
+      break;
+    case AbilityEffect::Steal:
+    case AbilityEffect::Refresh:
+    case AbilityEffect::Cure:
+      applyAbilityEffect(def, uid, target, action.slot, events);
       break;
     default:
       doAbilityMoves(plan, events);

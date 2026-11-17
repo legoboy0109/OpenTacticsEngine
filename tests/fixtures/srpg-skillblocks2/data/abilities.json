@@ -1,0 +1,10 @@
+{ "abilities": [
+  { "id": "steal", "name": "Steal", "target": "enemy", "effect": { "steal": true } },
+  { "id": "steal_fast", "name": "Pickpocket", "target": "enemy", "effect": { "steal": { "if": "a.spd > b.spd" } } },
+  { "id": "steal_arms", "name": "Disarm", "target": "enemy", "effect": { "steal": { "weapons": true } } },
+  { "id": "steal_all", "name": "Plunder", "target": "enemy", "effect": { "steal": { "weapons": true, "equipped": true } } },
+  { "id": "refresh", "name": "Encore", "target": "ally", "effect": { "refresh": true } },
+  { "id": "refresh_two", "name": "Double Encore", "target": "ally", "effect": { "refresh": { "perTurn": 2 } } },
+  { "id": "leap", "name": "Leap Past", "target": "unit", "effect": { "movePast": true } },
+  { "id": "purge", "name": "Purge", "target": "ally", "effect": { "cure": ["poison"] } },
+  { "id": "purge_self", "name": "Shake Off", "target": "self", "effect": { "cure": "all" } } ] }
