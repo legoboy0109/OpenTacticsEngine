@@ -49,7 +49,7 @@ export function buildTimeline(doc: ProjectDoc): TimelineGraph | null {
     markers.shop = shopCount(doc, map)
     nodes.push({
       id: nodeId(ch.id, 'level'), kind: 'level', chapterId: ch.id, chapterIndex: i, chapterName: name, mapId: ch.map,
-      mapName: doc.game?.maps.find((m) => m.id === ch.map)?.name || ch.map, mapKnown: known, markers, commandCount: 0,
+      mapName: doc.game?.maps.find((m) => m.id === ch.map)?.name || ch.map, mapKnown: known, hasPrep: !!map?.prep, markers, commandCount: 0,
       unreached: false, skipped: false, events,
     })
     ids.push(nodeId(ch.id, 'level'))

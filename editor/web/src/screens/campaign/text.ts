@@ -53,7 +53,7 @@ export const C = {
   deleteChapterWhat: (n: string) => `the chapter “${n}”`,
   chapterNumber: (n: number) => `Chapter ${n}`,
   noScenes: 'No scenes yet',
-  chapterListSub: (map: string, scene: string) => `${map} · ${scene}`,
+  chapterListSub: (map: string, scene: string, prep = false) => `${map}${prep ? ' · preparation screen' : ''} · ${scene}`,
   noMapChosen: 'No map chosen',
 
   chapterName: 'Name',
