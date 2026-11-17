@@ -80,6 +80,7 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
     const r = NUMBER_RANGE[k]
     if (r && FORMULA_EFFECTS.includes(k) && typeof e[k] === 'string') { if ((e[k] as string).trim() === '') out.push('The formula is empty.') }
     else if (r && (typeof e[k] !== 'number' || e[k] < r[0] || e[k] > r[1])) out.push(`That number must be from ${r[0]} to ${r[1]}.`)
+    if (k === 'vision' && e[k] === 0) out.push('Sight in fog cannot be 0: give a number above or below it.')
     const cancelList = k === 'cancelEffective' && Array.isArray(e[k])
     const moveAgainOption = k === 'moveAgain' && e[k] && typeof e[k] === 'object' && (e[k] as Extra).notAfterAttack === true
     if (FLAG_EFFECTS.includes(k) && e[k] !== true && !moveAgainOption && !cancelList) out.push('That effect is either on or not there.')

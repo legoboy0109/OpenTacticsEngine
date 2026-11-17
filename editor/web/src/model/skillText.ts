@@ -123,6 +123,7 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
       const o = (v && typeof v === 'object' ? v : null) as Extra | null
       return o ? `staves of the group “${String(o.group ?? '')}” reach ${squares(o.amount)} further` : `staves reach ${squares(v)} further`
     }
+    case 'vision': return `sees ${signed(v)} in fog`
     case 'carryBonus': return `carrying capacity ${signed(v)} (read by the carrying rule as a.carryBonus)`
     case 'strikes': return `${own}strikes ${signed(v)}`
     case 'multiStrike': return `each strike is made ${v} times in a row`

@@ -38,6 +38,8 @@ export type EffectKind =
   | 'nullifySkills' | 'staffRange' | 'carryBonus'
   // Third set: the wielder is hurt by its own strike.
   | 'recoil'
+  // Fog (docs/ECONOMY.md "Fog options"): the unit sees further or less far. Never 0 (the loader refuses it).
+  | 'vision'
 const A: When = 'always', T: When = 'turnStart', C: When = 'combat', S: When = 'strike', R: When = 'struck', D: When = 'defeat', F: When = 'afterCombat', U: When = 'staffUse'
 /** Every effect and the `when` points it is allowed in, in the order the contract lists them. */
 export const EFFECT_WHENS: Record<EffectKind, When[]> = {
@@ -47,7 +49,7 @@ export const EFFECT_WHENS: Record<EffectKind, When[]> = {
   drain: [S], strikeAgain: [S], survive: [R], heal: [T, D, F, U], hurt: [T, F], actAgain: [D, F],
   cannotAct: [A], cannotMove: [A], forbid: [A], berserk: [A], immune: [A], inflict: [S, R],
   followUp: [C], followShift: [C], trianglePercent: [C], weaponXpPercent: [A], noCarryPenalty: [A], cancelEffective: [A], cure: [T, D, F, U],
-  nullifySkills: [C], staffRange: [A], carryBonus: [A], recoil: [S],
+  nullifySkills: [C], staffRange: [A], carryBonus: [A], recoil: [S], vision: [A],
 }
 /** Effects only the blocks of a condition may have (the loader says they "belong to the blocks of a condition"). */
 export const CONDITION_ONLY: EffectKind[] = ['cannotAct', 'cannotMove', 'forbid', 'berserk']
@@ -64,7 +66,7 @@ export const FLAG_EFFECTS: EffectKind[] = ['moveAgain', 'strikeFirst', 'counterA
 export const NUMBER_RANGE: Partial<Record<EffectKind, [number, number]>> = {
   maxMoveCost: [1, 100], xpPercent: [1, 1000], hit: [-1000, 1000], crit: [-1000, 1000], damage: [-1000, 1000], avoid: [-1000, 1000],
   critAvoid: [-1000, 1000], damageTaken: [-1000, 1000], damagePercent: [0, 1000], damageTakenPercent: [0, 1000], strikes: [-7, 7],
-  multiStrike: [2, 4], drain: [1, 100], followShift: [-100, 100], trianglePercent: [0, 1000], weaponXpPercent: [1, 1000], carryBonus: [-100, 100],
+  multiStrike: [2, 4], drain: [1, 100], followShift: [-100, 100], trianglePercent: [0, 1000], weaponXpPercent: [1, 1000], carryBonus: [-100, 100], vision: [-10, 10],
 }
 /** `staffRange`: a number from 1 to 10, or `{ amount, group }` (its own form, so it is not in NUMBER_RANGE). */
 export const STAFF_RANGE_MAX = 10

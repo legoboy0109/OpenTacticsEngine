@@ -170,7 +170,7 @@ export const T = {
     immune: 'Cannot get a condition', inflict: 'Puts a condition on the unit',
     followUp: 'Follow-up strike', followShift: 'Follow-up threshold', trianglePercent: 'Weapon triangle effect', weaponXpPercent: 'Weapon experience gained',
     noCarryPenalty: 'Not slowed by carrying', cancelEffective: 'Not hurt extra by “effective against”', cure: 'Cures conditions',
-    nullifySkills: 'Switches off the foe’s skills', staffRange: 'Staves reach further', carryBonus: 'Carrying capacity bonus',
+    nullifySkills: 'Switches off the foe’s skills', staffRange: 'Staves reach further', carryBonus: 'Carrying capacity bonus', vision: 'Sight in fog',
     recoil: 'Hurts its own wielder',
   } as Record<EffectKind, string>,
   effectHelps: {
@@ -216,6 +216,7 @@ export const T = {
     nullifySkills: 'For this fight the foe’s skills do not work: all of them, the ones you pick, or the ones with a tag. Standing bonuses to its stats stay, and so do its conditions. A skill that does this itself is never switched off.',
     staffRange: 'Added to how far the unit can use a staff. Staves with a fixed or a formula reach both get it.',
     carryBonus: 'A number your carrying rule (Rules, Carrying) can read as a.carryBonus.',
+    vision: 'How many squares further (or less far, with a minus) the unit sees on a map with fog. Not 0.',
     recoil: 'After the strike the unit loses hit points, and can be defeated by it. Nothing answers it. Use a chance for a weapon that only sometimes bites, and put the skill on the weapon for one that bites whoever holds it.',
   } as Record<EffectKind, string>,
   recoilAmount: 'Hit points lost',

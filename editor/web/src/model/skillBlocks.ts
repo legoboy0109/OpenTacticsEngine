@@ -94,6 +94,7 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'nullifySkills': return { nullifySkills: true }
     case 'staffRange': return { staffRange: 1 }
     case 'carryBonus': return { carryBonus: 1 }
+    case 'vision': return { vision: 1 }
     case 'recoil': return { recoil: 2 }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
