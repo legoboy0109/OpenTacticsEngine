@@ -233,7 +233,8 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   if (u.level < 1) return c.fail(where, "\"level\" must be at least 1");
   if (u.x < 0 || u.y < 0 || u.x >= m.width || u.y >= m.height)
     return c.fail(where, "position is outside the map");
-  return readUnitGoals(c, m, e, where, u);  // "goesFor" (docs/SRPG.md section 10)
+  return readUnitGoals(c, m, e, where, u) &&  // "goesFor" (docs/SRPG.md section 10)
+         readUnitBehaviour(c, db, m, e, where, u);  // "behaviour" (docs/AI.md)
 }
 
 // The second half: stats and items.

@@ -21,6 +21,8 @@ constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkil
 constexpr const char* kPlaceCommandKeys[] = {"openDoor", "closeDoor", "lockDoor", "unlockDoor", "openChest"};
 // Status conditions (docs/SRPG.md section 9), read in loader_story_conditions.cpp.
 constexpr const char* kConditionCommandKeys[] = {"addCondition", "removeCondition"};
+// The computer opponent's behaviour (docs/AI.md), read in loader_behaviour.cpp.
+constexpr const char* kBehaviourCommandKeys[] = {"setBehaviour", "wakeGroup"};
 
 }  // namespace
 
@@ -28,12 +30,13 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   const Json& u = e["addUnit"];
   if (!u.isObject()) return fail(where, "\"addUnit\" must be a unit: { \"type\": ..., \"side\": ..., \"x\": ..., \"y\": ... }");
   if (!onlyKeys(e, {"addUnit"}, where) ||
-      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items", "ranks", "goesFor", "skills"}, where + ": \"addUnit\""))
+      !onlyKeys(u, {"id", "character", "type", "side", "x", "y", "name", "level", "leader", "stats", "items", "ranks", "goesFor", "skills", "behaviour"}, where + ": \"addUnit\""))
     return false;
   std::string at = where;
   if (!readUnitHead(c_, db_, map_, u, at, out.newUnit)) return false;
   if (!readUnitBody(c_, db_, u, at, out.newUnit)) return false;
   // A character already placed (map or an earlier addUnit) is not an error: the second add does nothing at run time.
+  if (!checkBehaviourUnits(c_, db_, unitIds, at, out.newUnit.behaviour)) return false;  // docs/AI.md
   if (!out.newUnit.id.empty() && !u.has("character")) {
     if (std::find(usedIds.begin(), usedIds.end(), out.newUnit.id) != usedIds.end())
       return fail(at, "\"id\" " + quoted(out.newUnit.id) + " is already used by another unit of the map");
@@ -65,6 +68,13 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kBehaviourCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
+  for (const char* k : kBehaviourCommandKeys)
+    if (kind && std::string(kind) == k) return behaviourCommand(e, where + " (" + kind + ")", out);
   for (const char* k : kPlaceCommandKeys)
     if (kind && std::string(kind) == k) return placeCommand(e, kind, where + " (" + kind + ")", out);
   if (!kind) {
