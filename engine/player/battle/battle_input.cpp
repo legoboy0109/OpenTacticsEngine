@@ -86,6 +86,13 @@ void BattleScene::onInput(const InputEvent& e) {
     else if (confirmish) view_.skip(battle_);
     return;
   }
+  // A story scene without a dialogue box up (a fade, a wait, a shake, a walk): the skip control fast-forwards the whole scene (the
+  // Skip button, or Cancel / Menu held half a second, as on the dialogue box; a plain tap still ends only the current entry).
+  if (view_.busy() && view_.inScene()) {
+    if (e.type == InputEvent::ButtonDown && e.button == Button::Skip) { view_.skipDialogues(battle_); return; }
+    if (e.type == InputEvent::ButtonDown && (e.button == Button::Cancel || e.button == Button::Menu)) sceneHold_ = 0;
+    if (e.type == InputEvent::ButtonUp && (e.button == Button::Cancel || e.button == Button::Menu)) sceneHold_ = -1;
+  }
   if (view_.busy()) {  // the player cannot give orders mid-animation
     if (confirmish) view_.skip(battle_);
     return;

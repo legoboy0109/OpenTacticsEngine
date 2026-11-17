@@ -98,6 +98,10 @@ class DialogueBox {
   int panelX_ = 0, panelY_ = 0, panelW_ = 0, panelH_ = 0, markW_ = 0;
   bool choosing_ = false;
   int sel_ = 0, chosen_ = -1;
+  // Scene presentation (docs/EVENTS.md): a narrator line is centred; a line with "auto" goes on by itself `autoMs_` after a page is complete.
+  bool centred_ = false;
+  int autoMs_ = 0;
+  float autoT_ = 0;
 };
 
 }  // namespace ote

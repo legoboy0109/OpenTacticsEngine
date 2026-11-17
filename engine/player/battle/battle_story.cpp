@@ -48,7 +48,8 @@ void BattleScene::updateDialogue(double dt) {
     dialogueSerial_ = d.serial;
     freeCam_.releaseAll();  // a camera button held down when the line appeared must not keep turning
     Renderer& r = host_.renderer();
-    dialogue_.open(r, layout_.W, layout_.H, layout_.vh, d.line, portraitFor(d.line.portrait));
+    // A speaker standing on the scene stage has no portrait beside the box; a narrator line has none at all.
+    dialogue_.open(r, layout_.W, layout_.H, layout_.vh, d.line, d.staged || d.line.narrate ? PortraitArt() : portraitFor(d.line.portrait));
     if (!d.answers.empty()) {
       dialogue_.setAnswers(r, d.answers);
       OTE_INFO("choice: battle question \"%s\": %s", d.line.text.c_str(), dialogue_.describeAnswers().c_str());

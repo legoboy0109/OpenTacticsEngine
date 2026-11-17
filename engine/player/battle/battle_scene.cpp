@@ -9,6 +9,7 @@
 #include "battle/hex_draw.h"
 #include "core/ai/ai.h"
 #include "core/base/log.h"
+#include "ui/scene_stage_draw.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -146,7 +147,21 @@ void BattleScene::followCamera(double dt) {
     Cell c = battle_.grid.valid(cursor_) ? cursor_ : 0;
     cellCentre(battle_.grid, layout_.tile, c, fx, fy);  // (a hexagon's middle on a hexagon map)
   }
+  // A new Focus entry: its "ms" (docs/EVENTS.md "Scene presentation") says how the camera gets there: 0 = at once, more = a
+  // steady scroll of that length, -1 (not given) = the usual quick ease.
+  const bool newFocus = view_.focusSerial != scrollSerial_;
+  scrollSerial_ = view_.focusSerial;
+  if (newFocus && view_.focusMs > 0 && !proj_.free3d()) {
+    scroll_.active = true;
+    scroll_.t = 0;
+    scroll_.dur = (float)view_.focusMs / 1000.0f;
+    scroll_.fromX = cam_.x;
+    scroll_.fromY = cam_.y;
+  } else if (newFocus) {
+    scroll_.active = false;
+  }
   if (proj_.free3d()) {  // this view has no scrolling: its own camera keeps the spot in the picture
+    if (newFocus && view_.focusMs == 0) freeCam_.snap();  // a jump
     float gx = fx / layout_.tile, gy = fy / layout_.tile;
     freeCam_.update(dt, proj_.cam3(), gx - proj_.spaceW() * 0.5f, proj_.elevationAt(gx, gy) * proj_.stepY(), gy - proj_.spaceH() * 0.5f);
     cam_.x = cam_.y = 0;
@@ -155,6 +170,24 @@ void BattleScene::followCamera(double dt) {
   }
   float wx, wy;
   proj_.toWorld(fx, fy, wx, wy);
+  if (newFocus && view_.focusMs == 0 && cam_.placed) {  // a jump: the camera arrives at once
+    cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), 1000.0);
+    return;
+  }
+  if (scroll_.active) {
+    scroll_.t += (float)dt;
+    const float p = std::min(1.0f, scroll_.t / scroll_.dur), k = p * p * (3 - 2 * p);  // eased both ends
+    Camera target;  // where the focus wants the camera, from where it started
+    target.x = scroll_.fromX;
+    target.y = scroll_.fromY;
+    target.placed = true;
+    target.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), 1000.0);
+    cam_.x = scroll_.fromX + (target.x - scroll_.fromX) * k;
+    cam_.y = scroll_.fromY + (target.y - scroll_.fromY) * k;
+    cam_.placed = true;
+    if (p >= 1) scroll_.active = false;
+    return;
+  }
   if (map3d_ && !cam_.placed) cam_.centre(wx, wy, layout_, proj_.worldW(), proj_.worldH());
   else cam_.follow(wx, wy, layout_, proj_.worldW(), proj_.worldH(), dt);
 }
@@ -164,6 +197,13 @@ void BattleScene::update(double dt) {
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);
+  if (sceneHold_ >= 0) {  // Cancel / Menu held while a scene plays: half a second fast-forwards it (battle_input.cpp)
+    if (!view_.inScene()) sceneHold_ = -1;
+    else if ((sceneHold_ += (float)dt) >= 0.5f) {
+      sceneHold_ = -1;
+      view_.skipDialogues(battle_);
+    }
+  }
   updateFight(dt);
   updateDialogue(dt);
   if (mode_ != Mode::Result && !view_.busy() && !prep_) {  // (the preparation has no turns to begin and no AI)
@@ -260,10 +300,36 @@ void BattleScene::draw(Renderer& r) {
   bool human = humanTurn() && mode_ != Mode::Result;
   bool idleView = !view_.busy();
   r.clear(Color(0, 0, 0));
+  // The shake of a story scene (docs/EVENTS.md "Scene presentation"): only the map moves, not the panels. The scrolling views
+  // shift the camera for this draw; the full 3D view turns its camera a hair; a background in front shakes itself instead.
+  const SceneStage& stage = view_.stage;
+  const int shakeX = stage.shakeX(), shakeY = stage.shakeY();
+  const bool shaking = stage.shaking() && !stage.backgroundShown() && (shakeX != 0 || shakeY != 0);
+  const float yaw0 = proj_.cam3().yaw, pitch0 = proj_.cam3().pitch;
+  if (shaking) {
+    if (proj_.free3d()) {
+      proj_.cam3().yaw += (float)shakeX * 0.004f;
+      proj_.cam3().pitch = std::max(Free3DGeometry::kMinPitch, std::min(Free3DGeometry::kMaxPitch, pitch0 + (float)shakeY * 0.004f));
+    } else {
+      cam_.x += (float)shakeX;
+      cam_.y += (float)shakeY;
+    }
+  }
   drawMap(r, ctx, mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_ : supplyOverlay(), cursor_, human);
   if (prep_) prepDrawSlots(r);  // the numbered deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);
+  if (shaking) {
+    if (proj_.free3d()) {
+      proj_.cam3().yaw = yaw0;
+      proj_.cam3().pitch = pitch0;
+    } else {
+      cam_.x -= (float)shakeX;
+      cam_.y -= (float)shakeY;
+    }
+  }
+  const StageDrawCtx sctx{session_.db, host_.sprites(), styleIdx_};
+  drawStageWeather(r, stage);  // the map's weather: over the map, under everything else
   drawEconomy(r);
   if (map3d_) {  // the camera buttons, for pointer and touch
     static const char* const kLabels[6] = {"<", ">", "^", "v", "+", "-"};
@@ -281,6 +347,11 @@ void BattleScene::draw(Renderer& r) {
   if (prep_) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
   drawHint(r, layout_, hint());
   drawFloats(r, ctx, true);
+  if (stage.backgroundShown()) {  // a story background hides the map and the panels; the hint line stays readable
+    drawStageBackground(r, sctx, stage);
+    drawHint(r, layout_, hint());
+  }
+  drawStagePortraits(r, sctx, stage, dialogue_.isOpen() ? dialogue_.top() : layout_.vh);
 
   if (idleView && human) {
     if (mode_ == Mode::Targeting && targetIdx_ < (int)targets_.size()) {
@@ -307,6 +378,7 @@ void BattleScene::draw(Renderer& r) {
   drawLevelUp(r, layout_, view_.levelUp);
   if (mode_ == Mode::Result) drawBanner(r, layout_, resultText_, resultColor_, 3, resultSub_);
   fightScene_.draw(r);  // the battle scene covers everything while a fight plays
+  drawStageFade(r, stage);  // a fade covers the whole screen, the dialogue and the fights included
 }
 
 }  // namespace ote

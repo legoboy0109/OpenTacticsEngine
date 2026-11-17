@@ -1,0 +1,17 @@
+{
+  "sheets": [
+    { "id": "bg_forest", "file": "art/bg_forest.png", "cellWidth": 240, "cellHeight": 135 },
+    { "id": "bg_places", "file": "art/bg_places.png", "cellWidth": 120, "cellHeight": 68 },
+    { "id": "faces", "file": "art/faces.png", "cellWidth": 48, "cellHeight": 48 }
+  ],
+  "backgrounds": {
+    "forest": { "sheet": "bg_forest" },
+    "hall": { "sheet": "bg_places", "cell": [0, 0] },
+    "cellar": { "sheet": "bg_places", "cell": [1, 0] }
+  },
+  "portraits": {
+    "eirik": { "sheet": "faces", "cell": [0, 0] },
+    "lyra": { "sheet": "faces", "cell": [1, 0] },
+    "gorm": { "sheet": "faces", "cell": [2, 0] }
+  }
+}

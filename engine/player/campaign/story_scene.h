@@ -11,6 +11,8 @@
 #include "core/campaign/playthrough.h"
 #include "scene.h"
 #include "ui/dialogue_box.h"
+#include "ui/scene_stage.h"
+#include "ui/scene_stage_draw.h"
 
 namespace ote {
 
@@ -37,8 +39,14 @@ class StoryScene : public Scene {
   void skipRest();  // skip everything that is left, but stop at the next question
   void answered(int pick);
   void finish();
-  void consumeAudio();
+  void consumeAudio(bool fx);
   void playAudio(const SceneLine& l);
+  // Scene presentation (docs/EVENTS.md "Scene presentation"): an Fx line acts when reached; fades, waits, shakes and background
+  // transitions hold the scene (blockLeft_) until they are over. skipFx = the skip control: instant.
+  void applyFx(const SceneLine& l, bool instant);
+  void applyRest(size_t from, size_t to);   // skip: the music and presentation of the lines in [from, to) take effect at once
+  void endScene();
+  const StageDrawCtx stageCtx() const;
 
   SceneHost& host_;
   std::string heading_, title_;
@@ -52,6 +60,10 @@ class StoryScene : public Scene {
   float lineTime_ = 0;    // autoplay: how long the line has been up
   SceneResolver resolve_;
   std::vector<int> picks_;  // the answers given so far (a question's position among the answers offered)
+  SceneStage stage_;
+  float blockLeft_ = 0;       // seconds a fade / wait / shake / transition still holds the next line back
+  bool ending_ = false;       // the scene is over but faded out: it fades in before it leaves
+  float holdT_ = -1;          // Cancel / Menu held while a block runs (seconds), -1 = not held
   DialogueBox box_;
   Color bg_;
 };
