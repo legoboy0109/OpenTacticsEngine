@@ -111,11 +111,11 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
         !only("raise", ItemKind::Usable, "usable") || !only("weapon", ItemKind::Weapon, "weapon") ||
         !(it.kind == ItemKind::Staff || only("bonus", ItemKind::Accessory, "accessory")) || !only("promotes", ItemKind::Usable, "usable") ||
         !only("skills", ItemKind::Accessory, "accessory") || !only("cure", ItemKind::Usable, "usable") ||
-        !only("inflict", ItemKind::Usable, "usable") || !only("opens", ItemKind::Usable, "usable"))
+        !only("inflict", ItemKind::Usable, "usable") || !only("opens", ItemKind::Usable, "usable") || !only("light", ItemKind::Usable, "usable"))
       return false;
     // Strategy-RPG features (docs/SRPG.md): a promotion item, an accessory's skills. Read before the checks below:
     // either one makes an item valid without heal / raise / bonus.
-    if (!readItemPromotes(c, e, where, it) || !readItemSkills(c, db, e, where, it) || !readItemConditions(c, db, e, where, it) ||
+    if (!readItemLight(c, e, where, it) || !readItemPromotes(c, e, where, it) || !readItemSkills(c, db, e, where, it) || !readItemConditions(c, db, e, where, it) ||
         !readItemOpens(c, e, where, it))  // a key (docs/SRPG.md section 10) is valid without heal / raise
       return false;
 
@@ -135,9 +135,10 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       bool raises = false;
       for (int v : it.raise) raises = raises || v != 0;
       if (!raises) it.raise.clear();
-      if (it.heal == 0 && !raises && !it.promotes && it.cures.empty() && !it.cureAll && it.inflict < 0 && !it.isKey())
+      if (it.heal == 0 && !raises && !it.promotes && it.cures.empty() && !it.cureAll && it.inflict < 0 && !it.isKey() && it.lightRadius == 0)
         return c.fail(where, std::string("a usable item needs \"heal\" and/or \"raise\"") +
-                                 (db.conditions.empty() ? "" : " (or \"cure\" / \"inflict\" / \"opens\")"));
+                                 (db.conditions.empty() ? " (or \"light\")" : " (or \"cure\" / \"inflict\" / \"opens\" / \"light\")"));
+      if (it.lightRadius > 0 && it.targetAlly) return c.fail(where, "a \"light\" item lights the square of whoever uses it: its \"target\" must be \"self\"");
     } else if (it.kind == ItemKind::Weapon) {
       if (!db.rules.items.carriedWeapons)
         return c.fail(where, "an item of kind \"weapon\" needs carried weapons: set \"rules\": { \"items\": { \"weapons\": "

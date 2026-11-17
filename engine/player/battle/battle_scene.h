@@ -72,6 +72,7 @@ class BattleScene : public Scene {
 
   // --- battle_fog.cpp: fog of war (docs/ECONOMY.md "Fog of war > Player")
   void initFog();
+  void watchFogSwitch();          // a story command switched fog on / off (setFog): the screen follows (battle_fog.cpp)
   void setViewerSide(int side);   // who the screen is drawn for
   void raiseCover(int side);      // hot-seat: "Pass the device to <side>"
   bool fogTurnGate();             // a human turn is about to begin: true = the cover went up and the turn waits
@@ -208,6 +209,7 @@ class BattleScene : public Scene {
   void logInspected();                     // [info] line for the unit under the cursor when it has fuel / ammunition
   std::string economyHint() const;
   void drawEconomy(Renderer& r);           // under the panel: the flash of an upgraded structure
+  void drawMapChange(Renderer& r);         // battle_mapchange.cpp: the flash of squares that changed terrain
 
   // --- battle_story.cpp: story events in the player (docs/EVENTS.md): dialogue box, Talk, objectives
   void updateDialogue(double dt);
@@ -303,6 +305,7 @@ class BattleScene : public Scene {
   bool autoplay_ = false;
   int styleIdx_ = 0;  // visual style of the look in use (index into db.styles)
   float time_ = 0;
+  bool fogSeenOn_ = false;  // what battle_.fogOn() was when watchFogSwitch last looked
   bool fogActive_ = false;  // the screen is drawn for one team (fog on, not --show-all, a human side exists)
   bool hotSeat_ = false;    // fogActive_ and humans of two or more teams share the device: the cover between turns
   bool covered_ = false;    // the cover is up

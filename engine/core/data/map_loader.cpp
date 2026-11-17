@@ -111,6 +111,11 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     if (controller != "human" && controller != "ai")
       return c.fail(where, "\"controller\" must be \"human\" or \"ai\", not \"" + controller + "\"");
     s.ai = controller == "ai";
+    if (e.has("aiSeesAll")) {  // fog (docs/ECONOMY.md "Fog of war"): this computer side sees everything / is bound by fog, whatever the map says
+      bool all = false;
+      if (!c.boolean(e, "aiSeesAll", where, all)) return false;
+      s.aiSeesAll = all ? 1 : 0;
+    }
     if (!c.str(e, "color", where, color)) return false;
     s.color = parseColor(color, 0xffffff);
     if (!c.amounts(db, e, "resources", where, s.resources)) return false;
@@ -323,6 +328,7 @@ bool loadMap(const Database& db, const std::string& mapId, MapDef& out, std::str
   std::vector<int> structureAt;
   if (!loadGrid(c, db, root, m) || !loadTiles(c, db, root, m) || !loadSides(c, db, root, m) ||
       !readMapFog(c, root, m) || !readMapBattleBackground(c, db, root, m) || !loadStructures(c, db, root, m, structureAt) ||
+      !readMapChanges(c, db, root, m) ||
       !loadUnits(c, db, root, m, structureAt) || !checkPlaceVisitors(c, db, m) || !loadMapStory(db, root, m, path, err) ||
       !loadMapPrep(c, db, root, m, structureAt))
     return false;

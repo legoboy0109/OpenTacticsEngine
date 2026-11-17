@@ -1,0 +1,7 @@
+{ "terrain": [
+  { "id": "plain",  "name": "Plain" },
+  { "id": "wall",   "name": "Wall",   "moveCost": { "foot": 0, "fly": 0 }, "blocksSight": true },
+  { "id": "river",  "name": "River",  "moveCost": { "foot": 0 } },
+  { "id": "bridge", "name": "Bridge" },
+  { "id": "rubble", "name": "Rubble", "moveCost": { "foot": 2 } },
+  { "id": "thicket", "name": "Thicket", "blocksSight": true } ] }

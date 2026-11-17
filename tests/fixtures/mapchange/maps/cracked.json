@@ -1,0 +1,10 @@
+{ "name": "Cracked wall", "fog": true, "grid": { "type": "square", "width": 9, "height": 6 }, "legend": { ".": "plain", "w": "wall", "r": "rubble" },
+  "tiles": [ ".........", ".........", "www...www", ".........", ".........", "........." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [ { "type": "crack", "x": 3, "y": 2, "id": "w1" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 4, "y": 3, "leader": true, "items": ["iron_sword", "torch"] },
+    { "type": "thief", "id": "sneak", "name": "Sneak", "side": "blue", "x": 2, "y": 3, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 4, "y": 0, "items": ["iron_sword"] } ],
+  "changes": { "rubble": { "cells": [ { "x": 3, "y": 2, "terrain": "rubble" }, { "x": 4, "y": 2, "terrain": "rubble" }, { "x": 5, "y": 2, "terrain": "rubble" } ] } },
+  "events": [ { "id": "e_broke", "when": { "place": "w1", "is": "opened" }, "do": [ { "applyChange": "rubble" }, { "setSwitch": "broken", "to": true } ] } ] }

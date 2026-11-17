@@ -127,6 +127,7 @@ class BattleView {
   std::string bannerSub;  // smaller line under the banner (an objective), empty = none
   DialogueState dialogue;
   std::vector<float> structFlash;  // per structure: 0..1, the white flash of an upgrade (battle_view_economy.cpp)
+  std::vector<float> cellFlash;    // per square: 0..1, the white flash of a changed square (battle_view_mapchange.cpp)
   Color bannerColor;
   // While an event involving a unit plays, the camera should follow it.
   bool hasFocus = false;
@@ -183,6 +184,9 @@ class BattleView {
   bool beginStaves(const Battle& b);       // battle_view_staves.cpp     StaffUsed, StaffMissed (docs/SRPG.md section 8)
   bool progressStaves(const Battle& b);
   bool finishStaves(const Battle& b);
+  bool beginMapChange(const Battle& b);    // battle_view_mapchange.cpp  TerrainChanged (docs/EVENTS.md "Changing the map")
+  bool progressMapChange(const Battle& b);
+  bool finishMapChange(const Battle& b);
   bool beginPlaces(const Battle& b);       // battle_view_places.cpp    DoorOpened .. PlaceUnlocked, the chest's "Found" lines (docs/SRPG.md section 10)
   bool progressPlaces(const Battle& b);
   bool finishPlaces(const Battle& b);

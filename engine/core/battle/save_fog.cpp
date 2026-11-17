@@ -87,7 +87,8 @@ bool readSeenKinds(Reader& rd, const Json& saved, Battle& b) {
         double d = v.isNumber() ? v.asNumber() : 0;
         if (!v.isNumber() || d != (double)(int)d || d < 0 || d > (double)b.db->structures.size() - 1)
           return rd.fail(at, "not a structure kind number");
-        if (!checkStructureKind(rd, *b.db, (int)d, b.structures[s].mapType, at)) return false;
+        const std::vector<int> extra = b.changeKindsOf((int)s);
+        if (!checkStructureKind(rd, *b.db, (int)d, b.structures[s].mapType, at, &extra)) return false;
         kinds[(size_t)t][s] = (int)d;
       }
     }

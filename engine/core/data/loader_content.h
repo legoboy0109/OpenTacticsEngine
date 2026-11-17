@@ -43,6 +43,12 @@ bool isUnitKey(const Database& db, const std::string& key);
 // game.json "grid" (loader_grid.cpp; docs/HEX.md): sets db.gridType and db.hexLayout. Missing = square.
 bool readGameGrid(const LoadCtx& c, const Json& root, Database& db);
 bool readMapFog(const LoadCtx& c, const Json& root, MapDef& m);
+// structures.json "light": 1..10 (a fixed light; loader_fog.cpp), and the map side's "aiSeesAll" (read by loadSides).
+bool readStructureLight(const LoadCtx& c, const Json& e, const std::string& where, StructureDef& s);
+// An item's "light": { "radius", "turns", "shrink" } (loader_fog.cpp): a usable item that lights the square its user stands on.
+bool readItemLight(const LoadCtx& c, const Json& e, const std::string& where, ItemDef& it);
+// The "changes" of a map (loader_map_changes.cpp; docs/EVENTS.md "Changing the map"); after the map's structures are loaded.
+bool readMapChanges(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 // The "upgrades" of every structure kind, read once all kinds exist (loader_upgrades.cpp). `list` is the
 // "structures" array of data/structures.json; db.structures already holds its entries in the same order.
 bool loadStructureUpgrades(const LoadCtx& c, const Json& list, Database& db);

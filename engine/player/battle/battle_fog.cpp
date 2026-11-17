@@ -37,6 +37,15 @@ void BattleScene::initFog() {
   if (hotSeat_ && humanTurn() && !prep_) raiseCover(side);  // a game that starts or resumes on a human turn starts with the cover
 }
 
+// Fog can be switched by the story (setFog): when it comes down on a map that began without it the screen starts to be drawn for one team
+// (like at the start); when it lifts, the view's idle answer is the truth, so everything shows at once.
+void BattleScene::watchFogSwitch() {
+  if (battle_.fogOn() == fogSeenOn_) return;
+  fogSeenOn_ = battle_.fogOn();
+  OTE_INFO("fog: %s", fogSeenOn_ ? "came down" : "lifted");
+  if (fogSeenOn_ && !fogActive_) initFog();
+}
+
 void BattleScene::setViewerSide(int side) {
   viewerSide_ = side;
   const int team = battle_.sides[(size_t)side].team;

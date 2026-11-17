@@ -1,0 +1,2 @@
+{ "skills": [
+  { "id": "keen_eye", "name": "Keen Eye", "blocks": [ { "when": "always", "do": [ { "vision": 2 } ] } ] } ] }

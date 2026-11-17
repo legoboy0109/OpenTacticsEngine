@@ -1,0 +1,6 @@
+{ "items": [
+  { "id": "iron_sword", "name": "Iron Sword", "kind": "weapon", "weapon": "iron_sword", "uses": 40 },
+  { "id": "heavy_axe", "name": "Heavy Axe", "kind": "weapon", "weapon": "heavy_axe", "uses": 20 },
+  { "id": "potion", "name": "Potion", "kind": "usable", "heal": 10, "uses": 1 },
+  { "id": "torch", "name": "Torch", "kind": "usable", "uses": 2, "light": { "radius": 2, "turns": 2 } },
+  { "id": "stub", "name": "Candle Stub", "kind": "usable", "uses": 1, "light": { "radius": 3, "shrink": 1 } } ] }

@@ -30,6 +30,7 @@ BattleScene::BattleScene(SceneHost& host, bool preparing)
   view_.init(battle_, layout_.tile, autoplay_);
   view_.setAudio(&host_.gameAudio());
   initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
+  fogSeenOn_ = battle_.fogOn();
   view_.push(session_.startEvents);  // first TurnStarted + income (empty when the battle was resumed from a save)
   // A new battle says what it is about under its first banner (nothing when the map has no objective text).
   if (!session_.startEvents.empty() && !battle_.objectiveText().empty()) view_.announceObjective();
@@ -167,6 +168,7 @@ void BattleScene::update(double dt) {
   updateFight(dt);
   updateDialogue(dt);
   if (mode_ != Mode::Result && !view_.busy() && !prep_) {  // (the preparation has no turns to begin and no AI)
+    watchFogSwitch();
     updateSaves();  // before the AI moves on: a turn's first idle moment is its starting position
     if (battle_.over) enterResult();
     else if (!humanTurn()) aiStep();
@@ -265,6 +267,7 @@ void BattleScene::draw(Renderer& r) {
   drawFloats(r, ctx, false);
   drawStory(r);
   drawEconomy(r);
+  drawMapChange(r);
   if (map3d_) {  // the camera buttons, for pointer and touch
     static const char* const kLabels[6] = {"<", ">", "^", "v", "+", "-"};
     for (int i = 0; i < cameraButtons(); ++i) {

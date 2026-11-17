@@ -168,7 +168,8 @@ struct SkillEffect {
     // Third set (docs/SRPG.md "Skill blocks, third set"). Recoil (strike blocks): the wielder is hurt; `expr` >= 0 = a formula amount (`dealt` = the
     // damage of the strike), else `value`; `instead`: the strike's damage goes to the wielder, not to the foe.
     // CancelEffective may now list effectiveness tags (`names`); empty = all.
-    Recoil
+    Recoil,
+    Vision  // standing (fog): `value` (-10..10) is added to the unit's vision (docs/ECONOMY.md "Fog of war")
   };
   enum class To { Self, Foe, Allies, Enemies };
   Kind kind = Kind::Stats;

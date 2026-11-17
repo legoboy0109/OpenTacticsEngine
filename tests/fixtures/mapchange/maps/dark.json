@@ -1,0 +1,16 @@
+{ "name": "Dark", "fog": true, "grid": { "type": "square", "width": 13, "height": 5 }, "legend": { ".": "plain", "t": "thicket" },
+  "tiles": [ ".....t.......", ".....t.......", ".....t.......", ".....t.......", ".....t......." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "structures": [ { "type": "brazier", "x": 11, "y": 0, "id": "lamp" }, { "type": "portcullis", "x": 5, "y": 2, "id": "gate" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 3, "y": 2, "leader": true, "items": ["iron_sword", "torch", "stub"] },
+    { "type": "thief", "id": "sneak", "name": "Sneak", "side": "blue", "x": 1, "y": 4, "items": ["iron_sword"] },
+    { "type": "seer", "id": "seer", "name": "Seer", "side": "blue", "x": 1, "y": 0, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 8, "y": 2, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r2", "name": "Raider Two", "side": "red", "x": 12, "y": 4, "items": ["iron_sword"] } ],
+  "changes": {
+    "gap": { "cells": [ { "x": 5, "y": 1, "terrain": "plain" } ], "structures": [ { "id": "gate", "kind": "portcullis_up" } ] },
+    "night": { "cells": [ { "x": 5, "y": 0, "terrain": "thicket" } ] } },
+  "events": [
+    { "id": "e_lift", "when": { "turn": 2 }, "do": [ { "setFog": false } ] },
+    { "id": "e_dark", "when": { "turn": 3 }, "do": [ { "setFog": true }, { "setVision": -1 } ] } ] }

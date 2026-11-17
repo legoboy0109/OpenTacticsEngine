@@ -1,0 +1,15 @@
+{ "name": "Bridge", "grid": { "type": "square", "width": 9, "height": 3 }, "legend": { ".": "plain", "~": "river", "w": "wall" },
+  "tiles": [ "....~....", "....~....", "....~...." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 1, "y": 1, "leader": true, "items": ["iron_sword"] },
+    { "type": "bird", "id": "wing", "name": "Wing", "side": "blue", "x": 1, "y": 0, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 7, "y": 1, "items": ["iron_sword"] } ],
+  "changes": {
+    "bridge": { "cells": [ { "x": 4, "y": 1, "terrain": "bridge" } ] },
+    "sink": { "cells": [ { "x": 2, "y": 1, "terrain": "river" }, { "x": 2, "y": 2, "terrain": "river" } ] },
+    "ford": { "cells": [ { "x": 4, "y": 0, "terrain": "bridge" }, { "x": 4, "y": 1, "terrain": "rubble" } ] } },
+  "events": [
+    { "id": "e_bridge", "when": { "turn": 2 }, "do": [ { "applyChange": "bridge" }, { "setSwitch": "bridged", "to": true } ] },
+    { "id": "e_fill", "when": { "turn": 4 }, "do": [ { "setTerrain": "bridge", "area": { "x": 4, "y": 2, "w": 1, "h": 1 } },
+                                                      { "setTerrain": "plain", "cells": [[4, 0]] } ] } ] }
