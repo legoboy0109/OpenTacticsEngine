@@ -1,0 +1,14 @@
+{ "name": "Field", "grid": { "type": "square", "width": 12, "height": 6 }, "legend": { ".": "plain" },
+  "tiles": ["............", "............", "............", "............", "............", "............"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "kay", "name": "Kay", "side": "blue", "x": 2, "y": 2, "leader": true,
+      "items": ["iron_blade", "antidote", "tonic", "bad_brew"] },
+    { "type": "mage", "id": "mira", "name": "Mira", "side": "blue", "x": 1, "y": 2,
+      "items": ["fire_tome", "poison_staff", "sleep_staff", "hex_staff", "rage_staff", "cure_staff", "purify_staff", "blessing_staff"] },
+    { "type": "knight", "id": "bo", "name": "Bo", "side": "blue", "x": 2, "y": 4, "items": ["short_sword"] },
+    { "type": "cleric", "id": "nell", "name": "Nell", "side": "blue", "x": 1, "y": 3,
+      "items": ["cure_staff", "mend_cure_staff", "purify_staff", "cleanse_staff", "short_sword"] },
+    { "type": "raider", "id": "r1", "name": "Rook", "side": "red", "x": 5, "y": 2, "items": ["venom_blade"] },
+    { "type": "raider", "id": "r2", "name": "Rex", "side": "red", "x": 6, "y": 2, "items": ["iron_blade"] },
+    { "type": "raider", "id": "r3", "name": "Rye", "side": "red", "x": 7, "y": 4, "items": ["lull_blade"] } ] }

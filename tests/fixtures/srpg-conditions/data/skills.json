@@ -1,0 +1,9 @@
+{ "skills": [
+  { "id": "iron_will", "name": "Iron Will", "description": "Cannot be poisoned or put to sleep.",
+    "blocks": [ { "when": "always", "do": [ { "immune": ["poison", "sleep"] } ] } ] },
+  { "id": "thorns", "name": "Thorns", "description": "Poisons whoever strikes it.",
+    "blocks": [ { "when": "struck", "do": [ { "inflict": { "condition": "poison", "turns": 2 } } ] } ] },
+  { "id": "gloom_strike", "name": "Gloom Strike", "description": "Curses the foe it hits.",
+    "blocks": [ { "when": "strike", "do": [ { "inflict": { "condition": "curse" } } ] } ] },
+  { "id": "wary", "name": "Wary", "description": "Defense +3 while poisoned.",
+    "blocks": [ { "when": "always", "if": [ { "condition": "poison" } ], "do": [ { "stats": { "def": 3 } } ] } ] } ] }

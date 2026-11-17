@@ -1,0 +1,10 @@
+{ "weapons": [
+  { "id": "short_sword", "name": "Short Sword", "group": "sword", "props": { "might": 3 } },
+  { "id": "iron_blade",  "name": "Iron Blade",  "group": "sword", "props": { "might": 5 } },
+  { "id": "long_pike",   "name": "Long Pike",   "group": "lance", "range": [2, 2], "props": { "might": 4 } },
+  { "id": "venom_blade", "name": "Venom Blade", "group": "sword", "props": { "might": 4 },
+    "inflict": { "condition": "poison", "chance": 100, "turns": 2 } },
+  { "id": "lull_blade",  "name": "Lull Blade",  "group": "sword", "props": { "might": 4 },
+    "inflict": { "condition": "sleep", "chance": "a.mag * 25" } },
+  { "id": "fire_tome",   "name": "Fire Tome",   "group": "tome", "range": [1, 2], "props": { "might": 5 } },
+  { "id": "stick",       "name": "Stick",       "props": { "might": 1 } } ] }

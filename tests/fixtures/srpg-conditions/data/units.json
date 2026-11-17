@@ -1,0 +1,11 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot",
+    "stats": { "hp": 24, "str": 7, "def": 3, "mag": 0, "res": 1, "mov": 4 }, "wields": ["sword", "lance"] },
+  { "id": "mage", "name": "Mage", "glyph": "M", "moveType": "foot",
+    "stats": { "hp": 18, "str": 1, "def": 1, "mag": 6, "res": 4, "mov": 4 }, "wields": ["tome", "staff"] },
+  { "id": "cleric", "name": "Cleric", "glyph": "C", "moveType": "foot",
+    "stats": { "hp": 18, "str": 1, "def": 1, "mag": 5, "res": 5, "mov": 4 }, "wields": ["staff", "sword"] },
+  { "id": "knight", "name": "Knight", "glyph": "K", "moveType": "foot",
+    "stats": { "hp": 30, "str": 8, "def": 5, "mag": 0, "res": 0, "mov": 3 }, "wields": ["sword"], "skills": ["iron_will"] },
+  { "id": "raider", "name": "Raider", "glyph": "R", "moveType": "foot",
+    "stats": { "hp": 22, "str": 6, "def": 2, "mag": 2, "res": 1, "mov": 4 }, "wields": ["sword", "lance"] } ] }
