@@ -1,6 +1,6 @@
-// The preparation screen's items: trading between roster characters, the shared storage and the preparation shop
-// (docs/EVENTS.md "Preparation"). Everything works on the roster and on what the prep side carries, so it all stays
-// when the battle starts (and after a lost battle).
+// The preparation screen's items: trading between roster characters, the shared storage, equipping a weapon and the
+// preparation shop, buying and selling (docs/EVENTS.md "Preparation"). Everything works on the roster and on what the
+// prep side carries, so it all stays when the battle starts (and after a lost battle).
 #include <algorithm>
 
 #include "core/campaign/prep_internal.h"
@@ -37,6 +37,31 @@ CarriedSide* carriedOf(Playthrough& pt, const Database& db, const MapDef& map) {
 bool needItems(const MapDef& map, std::string& why) {
   if (!map.prep) return refuse(why, "This battle has no preparation.");
   return true;
+}
+
+// Is this carried weapon one `r` can wield now (its class, a character lock, its rank)? The battle's own test
+// (Battle::canWieldNow), run on a stand-in unit so the screen and the battle never disagree. `why` gets the reason.
+bool wieldable(const Database& db, const RosterUnit& r, int weapon, std::string* why) {
+  Unit u;
+  u.type = r.type;
+  u.character = db.findCharacter(r.id);
+  u.weaponXp = r.weaponXp;
+  Battle judge;
+  judge.db = &db;
+  std::string reason;
+  if (judge.canWieldNow(u, weapon, &reason)) return true;
+  // The battle's words are for a unit ("the unit cannot wield that"); a lock or a rank already names itself.
+  if (why) *why = db.canWield(u.type, weapon, u.character) ? reason + "." : r.name + " cannot wield that.";
+  return false;
+}
+
+// The position of the weapon in hand: the first wieldable weapon item (docs/ITEMS.md "State"); -1 = none.
+int equippedAt(const Database& db, const RosterUnit& r) {
+  for (size_t i = 0; i < r.items.size(); ++i) {
+    const ItemDef& d = db.items[(size_t)r.items[i].item];
+    if (d.kind == ItemKind::Weapon && wieldable(db, r, d.weapon, nullptr)) return (int)i;
+  }
+  return -1;
 }
 
 }  // namespace
@@ -103,17 +128,71 @@ bool prepFetch(const Database& db, Playthrough& pt, const MapDef& map, const std
   return true;
 }
 
-bool prepEquip(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why) {
-  if (!needItems(map, why)) return false;
-  RosterUnit* a = unitOf(pt, id, why);
-  if (!a) return false;
+int prepEquippedAt(const Database& db, const Playthrough& pt, const std::string& id) {
+  const RosterUnit* a = pt.findUnit(id);
+  return a && db.rules.items.carriedWeapons ? equippedAt(db, *a) : -1;
+}
+
+bool prepWieldReason(const Database& db, const Playthrough& pt, const std::string& id, int slot, std::string& why) {
+  if (!db.rules.items.carriedWeapons) return refuse(why, "Weapons are not carried in this game.");
+  const RosterUnit* a = pt.findUnit(id);
+  if (!a || a->gone) return refuse(why, "That character is not in your party.");
   if (slot < 0 || slot >= (int)a->items.size()) return refuse(why, a->name + " does not carry that item.");
   const ItemDef& d = db.items[(size_t)a->items[(size_t)slot].item];
   if (d.kind != ItemKind::Weapon) return refuse(why, "That cannot be wielded.");
-  if (slot == 0) return refuse(why, "That is already equipped.");
+  return wieldable(db, *a, d.weapon, &why);
+}
+
+bool prepEquipReason(const Database& db, const Playthrough& pt, const std::string& id, int slot, std::string& why) {
+  if (!prepWieldReason(db, pt, id, slot, why)) return false;
+  if (slot == equippedAt(db, *pt.findUnit(id))) return refuse(why, "That is already equipped.");
+  return true;
+}
+
+bool prepEquip(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why) {
+  if (!needItems(map, why)) return false;
+  if (!prepEquipReason(db, pt, id, slot, why)) return false;
+  RosterUnit* a = unitOf(pt, id, why);
   ItemGrant g = a->items[(size_t)slot];
   a->items.erase(a->items.begin() + slot);
-  a->items.insert(a->items.begin(), g);
+  a->items.insert(a->items.begin(), g);  // the front: ahead of every other weapon, so it is the first wieldable one
+  return true;
+}
+
+// ---- selling
+
+bool prepSellValue(const Database& db, const ItemGrant& g, std::vector<Amount>& out, std::string& why) {
+  out.clear();
+  const ItemDef& d = db.items[(size_t)g.item];
+  if (d.price.empty()) return refuse(why, d.name + " has no price, so nobody buys it.");
+  if (!d.sellable) return refuse(why, d.name + " cannot be sold.");
+  for (const Amount& a : d.price) {
+    long long v = (long long)a.amount * db.rules.items.sellPercent;  // percent of the price; divided by 100 below
+    if (d.uses > 0 && g.uses >= 0) v = v * std::min(g.uses, d.uses) / d.uses;  // scaled by the uses left
+    out.push_back({a.resource, (int)(v / 100)});
+  }
+  return true;
+}
+
+bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why) {
+  if (!needItems(map, why)) return false;
+  if (!map.prep->hasShop) return refuse(why, "This battle has no shop.");
+  if (!map.prep->buys) return refuse(why, "This shop does not buy items.");
+  CarriedSide* side = carriedOf(pt, db, map);
+  RosterUnit* r = nullptr;
+  std::vector<ItemGrant>* from = &side->storage;
+  if (!id.empty()) {
+    r = unitOf(pt, id, why);
+    if (!r) return false;
+    from = &r->items;
+  }
+  if (slot < 0 || slot >= (int)from->size())
+    return refuse(why, r ? r->name + " does not carry that item." : "That is not in the storage.");
+  std::vector<Amount> value;
+  if (!prepSellValue(db, (*from)[(size_t)slot], value, why)) return false;
+  for (const Amount& a : value)
+    if (a.resource < (int)side->resources.size()) side->resources[(size_t)a.resource] += a.amount;
+  from->erase(from->begin() + slot);
   return true;
 }
 

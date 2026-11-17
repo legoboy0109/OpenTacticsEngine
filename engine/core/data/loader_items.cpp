@@ -91,6 +91,10 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!e["stealable"].isBool()) return c.fail(where, "\"stealable\" must be true or false");
       it.stealable = e["stealable"].asBool();
     }
+    if (e.has("sellable")) {  // docs/EVENTS.md "Preparation": false = a shop that buys items never takes this one
+      if (!e["sellable"].isBool()) return c.fail(where, "\"sellable\" must be true or false");
+      it.sellable = e["sellable"].asBool();
+    }
     if (!c.amounts(db, e, "price", where, it.price)) return false;
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");

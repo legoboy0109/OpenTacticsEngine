@@ -153,6 +153,7 @@ struct ItemDef {
   std::vector<int> opensKinds;
   bool isKey() const { return !opensIds.empty(); }
   bool stealable = true;       // false: a steal ability never takes it (docs/SRPG.md "Steal")
+  bool sellable = true;        // false: a shop that buys items never takes it (docs/EVENTS.md "Preparation"); no price = never bought either
 };
 const int kHealFull = 1000000000;
 
@@ -169,6 +170,7 @@ struct ItemRules {
   bool carriedWeapons = false;  // false: a unit type's weapons, fixed; true: weapons are items
   int inventorySize = 5;
   ItemStorage storage = ItemStorage::Off;
+  int sellPercent = 50;         // what a shop that buys items pays: this share of the price, scaled by the uses left (0..100)
 };
 const int kMaxInventory = 20;
 
