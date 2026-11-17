@@ -40,7 +40,7 @@ function whatText(doc: ProjectDoc, a: Ability): string {
     case 'unlock': {
       const u = unlockOf(a)
       const lock = u.needs ? ` (needs a ${doc.items?.find((i) => i.id === u.needs)?.name ?? u.needs}, which wears out)` : ''
-      return `opens ${u.kinds === 'door' ? 'a locked door' : u.kinds === 'chest' ? 'a locked chest' : 'a locked door or chest'} on a square ${(() => { const [lo, hi] = rangeOf(a); return lo === hi ? `${squares(lo)} away` : `${lo} to ${squares(hi)} away` })()} without a key${lock}`
+      return `opens ${u.kinds === 'door' ? 'a locked door' : u.kinds === 'chest' ? 'a locked chest' : 'a locked door or chest'} on a square ${(() => { const [lo, hi] = rangeOf(a); return hi === 1 ? 'next to it' : lo === hi ? `${squares(lo)} away` : `${lo} to ${squares(hi)} away` })()} without a key${lock}`
     }
     case 'heal': return `heals ${whom(a)} ${e.heal === 'full' ? 'fully' : `by ${e.heal ?? 0}`}`
     case 'summon': {

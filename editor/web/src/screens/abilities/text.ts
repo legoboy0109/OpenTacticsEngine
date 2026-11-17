@@ -75,6 +75,8 @@ export const T = {
   cureAll: 'All of them',
   curePick: 'Only these',
   cureNone: 'The game has no conditions yet. Turn them on and make some first.',
+  unlockTarget: 'A square of a door or chest within reach',
+  unlockTargetNext: 'A square of a door or chest next to it',
   unlockKinds: 'What it unlocks',
   unlockBoth: 'Doors and chests',
   unlockDoor: 'Doors only',

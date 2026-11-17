@@ -9,6 +9,8 @@ import { clickCell, openMap, pickStructure, tab, tool } from './mapkit'
 import { shot, shotEl } from './rankskit'
 import { addCommand, editor, eventsTab, form, newEvent, when } from './storykit'
 
+test.use({ actionTimeout: 10_000 }) // a wrong label fails in seconds, not minutes
+
 const structures = (id: string) => readDisk(id, 'data/structures.json').structures as any[]
 const kind = (id: string, k: string) => structures(id).find((s) => s.id === k)
 const items = (id: string) => readDisk(id, 'data/items.json').items as any[]
@@ -66,7 +68,7 @@ test('@smoke build a door, a chest, a place and a key through the forms, place t
   // Breaking it down gives it hit points (and what its damage reads); fog: it blocks sight; it is used from next to it.
   await partSwitch(page, 'door', 'Breaking it down').check()
   await page.getByLabel('Hit points', { exact: true }).fill('20')
-  await part(page, 'door').getByRole('row', { name: /Defense/ }).getByRole('spinbutton').fill('3')
+  await part(page, 'door').getByLabel('Defense Value').fill('3')
   await part(page, 'door').getByLabel('Where a unit stands to use it').selectOption('next')
   await part(page, 'door').getByRole('checkbox', { name: /It blocks sight/ }).check()
   await saved(page)
@@ -105,8 +107,8 @@ test('@smoke build a door, a chest, a place and a key through the forms, place t
   await shotEl(page.getByTestId('item-key'), 'desktop-key-part')
   await newItem(page, 'Chest Key')
   await page.getByTestId('item-key').getByRole('checkbox', { name: /It opens doors and chests/ }).check()
-  await page.getByTestId('item-key').getByRole('checkbox', { name: 'Any door' }).uncheck()
   await page.getByTestId('item-key').getByRole('checkbox', { name: 'Treasure Chest (chest)' }).check()
+  await page.getByTestId('item-key').getByRole('checkbox', { name: 'Any door' }).uncheck() // the last tick cannot be removed first: an empty list is refused
   await saved(page)
   expect(item(id, 'chest_key').opens).toEqual(['treasure_chest'])
   await newItem(page, 'Unlock Staff')
@@ -206,6 +208,7 @@ test('@smoke build a door, a chest, a place and a key through the forms, place t
     { id: 'hamlet_visited', when: { place: 'hamlet', is: 'visited' }, do: [{ openDoor: 'cell_door' }, { openChest: 'treasure' }] },
   ])
   await shotEl(editor(page), 'desktop-place-event')
+  await shot(page, 'desktop-place-event-page')
 
   // Renaming a story name in the map's panel changes the event with it (one edit).
   await tab(page, 'Tool').click()

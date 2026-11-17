@@ -89,10 +89,7 @@ function OpeningPart({ s, part }: { s: Structure; part: 'door' | 'chest' }) {
         {ways.length === 0 && <p className="help" data-testid="story-only">{D.storyOnly}</p>}
       </FieldGroup>
       {ways.includes('key') && (
-        <>
-          <MultiSelect label={D.keys} help={D.keysHelp} emptyText={D.keysNone} options={keyOptions} value={listed} onChange={(v) => edit((d) => setPlaceKeys(d, s.id, v))} />
-          {!anyKeyItem && <p className="help">{D.noKeysInGame}</p>}
-        </>
+        <MultiSelect label={D.keys} help={D.keysHelp} emptyText={anyKeyItem ? D.keysNone : D.noKeysInGame} options={keyOptions} value={listed} onChange={(v) => edit((d) => setPlaceKeys(d, s.id, v))} />
       )}
       {door && ways.includes('break') && typeof s.door?.hp === 'number' && (
         <>
