@@ -59,7 +59,7 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   # and the 3D picture sizing are tested here too.
   add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
                  engine/player/saves.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
-                 engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp engine/player/ui/scene_stage.cpp engine/player/ui/scene_stage_draw.cpp engine/player/ui/dialogue_portrait.cpp
+                 engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp engine/player/ui/scene_stage.cpp engine/player/ui/scene_stage_layout.cpp engine/player/ui/scene_stage_draw.cpp engine/player/ui/dialogue_portrait.cpp
                  engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
                  engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
                  engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp)

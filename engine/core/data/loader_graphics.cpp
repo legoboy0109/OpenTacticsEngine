@@ -339,6 +339,12 @@ bool readPortraits(const LoadCtx& c, const Database& db, const Json& o, const st
     Look look;
     if (!readLook(c, db, e.second, where, false, -1, look, "portraits")) return false;
     if (look.kind != Look::Still) return c.fail(where, "a portrait is one \"cell\" of a sheet");
+    if (e.second.has("faces")) {
+      std::string f;
+      if (!c.str(e.second, "faces", where, f)) return false;
+      if (f != "left" && f != "right") return c.fail(where, "\"faces\" must be \"left\" or \"right\": the way the picture looks");
+      look.faces = f == "left" ? 1 : 2;
+    }
     list.push_back(std::make_pair(e.first, look));
   }
   return true;

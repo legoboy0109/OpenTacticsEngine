@@ -1,0 +1,19 @@
+{
+  "name": "Stage Road",
+  "chapters": [
+    { "id": "ch1", "name": "The Field", "map": "field",
+      "before": [
+        { "background": "forest" },
+        { "enter": "Eirik", "position": "farLeft", "portrait": "eirik" },
+        { "enter": "Lyra", "position": "left", "portrait": "lyra", "transition": "fade", "ms": 300 },
+        { "enter": "Gorm", "position": "farRight", "portrait": "gorm" },
+        { "say": "We camp here tonight.", "speakerName": "Eirik", "portrait": "eirik" },
+        { "move": "Lyra", "position": "midRight", "ms": 300 },
+        { "say": "I will keep watch.", "speakerName": "Lyra", "portrait": "lyra" },
+        { "leave": "Gorm", "transition": "fade", "ms": 300 },
+        { "move": "Eirik", "position": "center", "transition": "cut" },
+        { "say": "Then rest.", "speakerName": "Eirik", "portrait": "eirik" },
+        { "clearStage": true },
+        { "background": null } ] }
+  ]
+}

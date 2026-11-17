@@ -5,6 +5,7 @@
 
 #include "core/data/scene_fx.h"
 #include "ui/dialogue_portrait.h"
+#include "ui/scene_stage_layout.h"
 
 namespace ote {
 
@@ -86,22 +87,58 @@ void drawStageBackground(Renderer& r, const StageDrawCtx& ctx, const SceneStage&
   }
 }
 
+namespace {
+
+// The picture drawn right to left (the renderer has no flip): one source column at a time, so each backend works the same.
+void drawMirrored(Renderer& r, const PortraitArt& art, int x, int y, int dw, int dh, Color tint) {
+  for (int i = 0; i < art.sw; ++i) {
+    const int x0 = x + i * dw / art.sw, x1 = x + (i + 1) * dw / art.sw;
+    if (x1 <= x0) continue;
+    r.drawTexture(art.tex, art.sx + art.sw - 1 - i, art.sy, 1, art.sh, x0, y, x1 - x0, dh, tint);
+  }
+}
+
+}  // namespace
+
 void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage, int baseY) {
-  const int W = r.width();
-  const int margin = std::max(2, W / 60);
+  struct Shown {
+    const SceneStage::Portrait* p;
+    PortraitArt art;
+  };
+  std::vector<Shown> shown;
+  std::vector<StageItem> items;
   for (const SceneStage::Portrait& p : stage.portraits()) {
     const PortraitArt art = portraitArt(ctx.db, ctx.sprites, ctx.styleIdx, p.art);
     if (!art.any()) continue;
-    // Tall enough to read at a glance, never more than 55% of the screen height or 45% of the width; whole-number
-    // scales when it grows (pixel art), a fraction only when it has to shrink.
-    const int maxH = std::max(16, std::min(baseY - 2, r.height() * 55 / 100)), maxW = std::max(16, W * 45 / 100);
-    float s = std::min((float)maxH / (float)art.sh, (float)maxW / (float)art.sw);
-    if (s >= 1.0f) s = std::floor(s);
-    const int dw = std::max(1, (int)std::lround((double)art.sw * s)), dh = std::max(1, (int)std::lround((double)art.sh * s));
-    const int x = p.position == kPosLeft ? margin + stage.shakeX() : p.position == kPosRight ? W - dw - margin + stage.shakeX() : (W - dw) / 2 + stage.shakeX();
-    const bool lit = stage.speaker() == p.key;
-    r.drawTexture(art.tex, art.sx, art.sy, art.sw, art.sh, x, baseY - dh + stage.shakeY(), dw, dh,
-                  lit ? Color(255, 255, 255) : Color(105, 105, 120));
+    shown.push_back(Shown{&p, art});
+    StageItem it;
+    it.slot = p.slotNow();
+    it.artW = art.sw;
+    it.artH = art.sh;
+    it.lit = stage.speaker() == p.key;
+    items.push_back(it);
+  }
+  const std::vector<StagePlace> places = layoutStage(r.width(), r.height(), baseY, stage.wide(), items);
+  // The speaker is drawn last, so it is in front where neighbours overlap.
+  std::vector<size_t> order;
+  for (size_t i = 0; i < shown.size(); ++i)
+    if (!items[i].lit) order.push_back(i);
+  for (size_t i = 0; i < shown.size(); ++i)
+    if (items[i].lit) order.push_back(i);
+  for (size_t i : order) {
+    const StagePlace& pl = places[i];
+    if (!pl.shown) continue;
+    const PortraitArt& art = shown[i].art;
+    const SceneStage::Portrait& p = *shown[i].p;
+    const Color tint = items[i].lit ? Color(255, 255, 255, (uint8_t)std::lround(255.0f * p.alpha)) : Color(105, 105, 120, (uint8_t)std::lround(255.0f * p.alpha));
+    // Facing (docs/GRAPHICS.md "Portraits"): the left half looks right, the right half looks left, the middle is left as drawn;
+    // only a picture that says which way it looks ("faces") is turned.
+    const int slot = stageSlot(p.position);
+    const int want = slot < 3 ? 2 : slot > 3 ? 1 : 0;
+    const bool mirror = art.faces != 0 && want != 0 && art.faces != want;
+    const int x = pl.x + stage.shakeX(), y = baseY - pl.h + stage.shakeY();
+    if (mirror) drawMirrored(r, art, x, y, pl.w, pl.h, tint);
+    else r.drawTexture(art.tex, art.sx, art.sy, art.sw, art.sh, x, y, pl.w, pl.h, tint);
   }
 }
 

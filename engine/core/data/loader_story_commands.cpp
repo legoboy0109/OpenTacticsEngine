@@ -27,7 +27,7 @@ constexpr const char* kBehaviourCommandKeys[] = {"setBehaviour", "wakeGroup"};
 // Changing the map and fog (docs/EVENTS.md "Changing the map"), read in loader_story_mapchange.cpp.
 constexpr const char* kMapCommandKeys[] = {"setTerrain", "applyChange", "revertChange", "setFog", "setVision"};
 // Scene presentation (docs/EVENTS.md "Scene presentation"), read by loader_scene_fx.cpp (and narrate, a say line).
-constexpr const char* kSceneCommandKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
+constexpr const char* kSceneCommandKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate", "enter", "move"};
 
 SceneFxReader readerFor(StoryLoader& L) {
   return SceneFxReader{L.ctx(), L.db(), true, [&L](const std::string& s) { return L.text(s); }};

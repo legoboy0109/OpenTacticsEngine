@@ -85,10 +85,27 @@ void StoryScene::applyFx(const SceneLine& l, bool instant) {
       if (ms > 0) blockLeft_ = (float)ms / 1000.0f;
       OTE_INFO("scene: shake %d ms strength %d%s", l.fadeMs, l.strength, note);
       break;
-    case SceneFx::Kind::Leave:
-      stage_.leave(l.text);
-      OTE_INFO("scene: leave %s", l.text.empty() ? "(everybody)" : l.text.c_str());
+    case SceneFx::Kind::Leave: {
+      const bool fade = l.fadeTransition && ms > 0;
+      stage_.leave(l.text, fade ? ms : 0);
+      if (fade) blockLeft_ = (float)ms / 1000.0f;
+      OTE_INFO("scene: leave %s%s%s", l.text.empty() ? "(everybody)" : l.text.c_str(), fade ? " fade" : "", note);
       break;
+    }
+    case SceneFx::Kind::Enter: {  // a portrait on stage without a line (docs/EVENTS.md "Standing portraits")
+      const bool fade = l.fadeTransition && ms > 0;
+      stage_.enter(l.text, l.portrait.empty() ? l.text : l.portrait, l.position, fade ? ms : 0);
+      if (fade) blockLeft_ = (float)ms / 1000.0f;
+      OTE_INFO("scene: enter %s %s%s%s", l.text.c_str(), positionName(l.position), fade ? " fade" : "", note);
+      break;
+    }
+    case SceneFx::Kind::Move: {
+      const bool slide = l.fadeTransition && ms > 0;
+      stage_.move(l.text, l.position, slide ? ms : 0);
+      if (slide) blockLeft_ = (float)ms / 1000.0f;
+      OTE_INFO("scene: move %s %s%s%s", l.text.c_str(), positionName(l.position), slide ? "" : " cut", note);
+      break;
+    }
     case SceneFx::Kind::Weather:  // (map events only: a scene never gets one)
     case SceneFx::Kind::None: break;
   }
@@ -131,11 +148,11 @@ void StoryScene::openLine() {
                       stage_.say(l.speakerId.empty() ? l.speaker : l.speakerId, d.portrait, l.position);
   if (l.kind == SceneLine::Kind::Say && l.narrate) stage_.say(std::string(), std::string(), 0);
   if (l.position != 0)
-    OTE_INFO("scene: portrait %s %s", (l.speakerId.empty() ? l.speaker : l.speakerId).c_str(),
-             l.position == kPosLeft ? "left" : l.position == kPosRight ? "right" : "center");
+    OTE_INFO("scene: portrait %s %s", (l.speakerId.empty() ? l.speaker : l.speakerId).c_str(), positionName(l.position));
   if (l.narrate) OTE_INFO("scene: narrate");
   const Renderer& r = host_.renderer();
   int style = std::max(0, std::min(host_.styleIndex(), (int)host_.session()->db.styles.size() - 1));
+  box_.setSkipInside(!stage_.portraits().empty());
   box_.open(r, r.width(), r.height(), r.height() - footerHeight(r), d,
             staged || l.narrate ? PortraitArt() : portraitArt(host_.session()->db, host_.sprites(), style, d.portrait));
   if (l.kind == SceneLine::Kind::Choice) {

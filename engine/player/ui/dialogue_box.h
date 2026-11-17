@@ -31,6 +31,7 @@ constexpr const char* kChoiceHint = "Up/Down + Z: answer   tap: pick, tap again:
 struct PortraitArt {
   TextureId tex = 0;
   int sx = 0, sy = 0, sw = 0, sh = 0;
+  int faces = 0;  // the way it naturally looks: 0 not said, 1 left, 2 right (docs/GRAPHICS.md "Portraits")
   bool any() const { return tex != 0 && sw > 0 && sh > 0; }
 };
 
@@ -41,6 +42,9 @@ class DialogueBox {
   // Lays the line out for a screen `screenW` x `screenH` whose free area ends at `bottom` (the top
   // of the hint strip) and starts typing it.
   void open(const Renderer& r, int screenW, int screenH, int bottom, const DialogueLine& line, const PortraitArt& art);
+  // Call before open(): portraits stand on the stage above the box, so the Skip tab sits inside the box's top-right corner
+  // (in the name row) instead of on top of the portrait's corner. Off = the tab on the box's top edge, as always.
+  void setSkipInside(bool inside) { skipInside_ = inside; }
   // Makes the open line a question with these answers (two to four; call right after open()).
   void setAnswers(const Renderer& r, const std::vector<std::string>& answers);
   // True once the answers are on screen (the question has been read); chosen() is then valid after Result::Chosen.
@@ -100,6 +104,7 @@ class DialogueBox {
   int sel_ = 0, chosen_ = -1;
   // Scene presentation (docs/EVENTS.md): a narrator line is centred; a line with "auto" goes on by itself `autoMs_` after a page is complete.
   bool centred_ = false;
+  bool skipInside_ = false;
   int autoMs_ = 0;
   float autoT_ = 0;
 };

@@ -1,0 +1,16 @@
+{
+  "sheets": [
+    { "id": "bg_forest", "file": "art/bg_forest.png", "cellWidth": 240, "cellHeight": 135 },
+    { "id": "faces", "file": "art/faces.png", "cellWidth": 48, "cellHeight": 48 }
+  ],
+  "backgrounds": {
+    "forest": { "sheet": "bg_forest" }
+  },
+  "portraits": {
+    "eirik": { "sheet": "faces", "cell": [0, 0], "faces": "left" },
+    "lyra": { "sheet": "faces", "cell": [1, 0], "faces": "left" },
+    "gorm": { "sheet": "faces", "cell": [2, 0], "faces": "left" },
+    "mira": { "sheet": "faces", "cell": [3, 0], "faces": "left" },
+    "tobin": { "sheet": "faces", "cell": [4, 0], "faces": "left" }
+  }
+}

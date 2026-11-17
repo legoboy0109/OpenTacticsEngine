@@ -16,7 +16,16 @@ class SceneStage {
   struct Portrait {
     std::string key;  // the speaker: a unit's story id, or the free name of the line
     std::string art;  // the portrait id to look up in the graphics
-    int position = 0; // kPosLeft / kPosRight / kPosCenter (scene_fx.h)
+    int position = 0; // kPos* (scene_fx.h)
+    // Enter / leave / move transitions (docs/EVENTS.md "Standing portraits"): fading in or out, sliding from another slot.
+    float alpha = 1;          // 0..1
+    float alphaSpeed = 0;     // per second; 0 = at rest
+    bool leaving = false;     // fading out: removed when alpha reaches 0
+    float fromSlot = 0;       // while sliding: the slot (0..6) it slid from
+    float slideT = 1;         // 0..1 of the slide; 1 = at rest
+    float slideSpeed = 0;
+    // The slot to draw it at right now (fractional while sliding), 0..6 (stageSlot()).
+    float slotNow() const;
   };
 
   // ---- commands
@@ -29,7 +38,13 @@ class SceneStage {
   // stands on the stage: then that portrait lights up). Returns true when the line's speaker stands on the stage (the
   // box then draws no portrait of its own).
   bool say(const std::string& key, const std::string& art, int position);
-  void leave(const std::string& key);                   // "" = everybody
+  // `leave` with `ms` > 0 fades the portrait out first ("" = everybody); 0 = at once.
+  void leave(const std::string& key, int ms = 0);
+  // A portrait on stage without a line (docs/EVENTS.md "Standing portraits"): `fadeMs` > 0 fades it in. It is not lit.
+  void enter(const std::string& key, const std::string& art, int position, int fadeMs);
+  // Slides a portrait on stage to another slot over `ms` (0 = jumps); one that is not on stage is ignored.
+  // Whoever stands in the new slot leaves (one portrait per place).
+  void move(const std::string& key, int position, int ms);
   void clearPortraits();
   // What a resumed battle / a resync shows: the saved background and weather at once, nothing mid-way, nobody on stage.
   void syncFrom(const std::string& background, const std::string& weather);
@@ -56,8 +71,11 @@ class SceneStage {
   const std::vector<Portrait>& portraits() const { return portraits_; }
   const std::string& speaker() const { return speaker_; }    // the lit portrait (the others are dimmed)
   bool staged(const std::string& key) const;
+  // True while any of the four added slots (farLeft, midLeft, midRight, farRight) is occupied:
+  // the layout is then the wide one (scene_stage_layout.h).
+  bool wide() const;
   // Anything still moving (a transition, a fade, a shake).
-  bool animating() const { return (bgT_ < 1) || fading() || shakeLeft_ > 0; }
+  bool animating() const;
 
  private:
   std::string bg_, prev_;

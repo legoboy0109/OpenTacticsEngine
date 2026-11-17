@@ -14,6 +14,7 @@ PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx
   art.sy = look->cells[0].row * sh.cellH;
   art.sw = sh.cellW;
   art.sh = sh.cellH;
+  art.faces = look->faces;
   return art;  // (the sheet's "smooth" flag is not honoured: the 2D renderer samples every texture the same way)
 }
 

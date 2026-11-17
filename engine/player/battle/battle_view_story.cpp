@@ -35,8 +35,7 @@ bool BattleView::beginStory(const Battle& b) {
       // exists for those, so a game that does not use the keys logs exactly what it always did.
       const bool staged = stage.say(dialogue.line.key, dialogue.line.portrait, dialogue.line.position);
       if (dialogue.line.position != 0)
-        OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(),
-                 dialogue.line.position == kPosLeft ? "left" : dialogue.line.position == kPosRight ? "right" : "center");
+        OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(), positionName(dialogue.line.position));
       dialogue.staged = staged;
       if (dialogue.line.narrate) OTE_INFO("scene: narrate");
       // An empty line has nothing to show; a skipped run passes every line without showing it.
@@ -252,10 +251,28 @@ bool BattleView::beginSceneEffect(const Battle& b) {
       cur_.dur = (float)ms / 1000.0f;
       OTE_INFO("scene: shake %d ms strength %d%s", e.c, e.d, note);
       break;
-    case SceneFx::Kind::Leave:
-      stage.leave(text);
-      OTE_INFO("scene: leave %s", text.empty() ? "(everybody)" : text.c_str());
+    case SceneFx::Kind::Leave: {
+      const bool fade = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      stage.leave(text, fade ? ms : 0);
+      cur_.dur = fade ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: leave %s%s%s", text.empty() ? "(everybody)" : text.c_str(), fade ? " fade" : "", note);
       break;
+    }
+    case SceneFx::Kind::Enter: {  // a portrait on stage without a line (docs/EVENTS.md "Standing portraits")
+      const bool fade = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      const std::string art = !e.data.empty() ? b.storyText(e.data[0]) : text;
+      stage.enter(text, art, e.d, fade ? ms : 0);
+      cur_.dur = fade ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: enter %s %s%s%s", text.c_str(), positionName(e.d), fade ? " fade" : "", note);
+      break;
+    }
+    case SceneFx::Kind::Move: {
+      const bool slide = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      stage.move(text, e.d, slide ? ms : 0);
+      cur_.dur = slide ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: move %s %s%s%s", text.c_str(), positionName(e.d), slide ? "" : " cut", note);
+      break;
+    }
     case SceneFx::Kind::Weather:
       stage.setWeather(text);
       OTE_INFO("scene: weather %s", text.c_str());

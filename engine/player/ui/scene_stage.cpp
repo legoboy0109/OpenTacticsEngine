@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "core/data/scene_fx.h"
+
 namespace ote {
 
 void SceneStage::setBackground(const std::string& id, bool fade, int ms) {
@@ -47,13 +49,41 @@ bool SceneStage::staged(const std::string& key) const {
   return false;
 }
 
+float SceneStage::Portrait::slotNow() const {
+  const float to = (float)stageSlot(position);
+  return slideT >= 1 ? to : fromSlot + (to - fromSlot) * slideT;
+}
+
+bool SceneStage::wide() const {
+  for (const Portrait& p : portraits_)
+    if (p.position >= kPosFarLeft) return true;
+  return false;
+}
+
+bool SceneStage::animating() const {
+  if ((bgT_ < 1) || fading() || shakeLeft_ > 0) return true;
+  for (const Portrait& p : portraits_)
+    if (p.alphaSpeed != 0 || p.slideT < 1 || p.leaving) return true;
+  return false;
+}
+
+// One portrait per place: a newcomer replaces whoever stood there (and `key` leaves its old place).
+static void clearPlace(std::vector<SceneStage::Portrait>& list, const std::string& key, int position) {
+  list.erase(std::remove_if(list.begin(), list.end(),
+                            [&](const SceneStage::Portrait& p) { return p.position == position || (!key.empty() && p.key == key); }),
+             list.end());
+}
+
 bool SceneStage::say(const std::string& key, const std::string& art, int position) {
   speaker_ = key;
   if (position == 0) return !key.empty() && staged(key);  // standing already: it lights up where it stands
-  // One portrait per place: a newcomer replaces whoever stood there; a speaker that moves leaves its old place.
-  portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(),
-                                  [&](const Portrait& p) { return p.position == position || (!key.empty() && p.key == key); }),
-                   portraits_.end());
+  // A speaker already standing in that very place just lights up (a fade-in under way goes on); otherwise it takes the place.
+  for (Portrait& p : portraits_)
+    if (p.key == key && p.position == position && !p.leaving) {
+      if (!art.empty()) p.art = art;
+      return true;
+    }
+  clearPlace(portraits_, key, position);
   Portrait p;
   p.key = key;
   p.art = art;
@@ -62,13 +92,68 @@ bool SceneStage::say(const std::string& key, const std::string& art, int positio
   return true;
 }
 
-void SceneStage::leave(const std::string& key) {
+void SceneStage::enter(const std::string& key, const std::string& art, int position, int fadeMs) {
+  if (key.empty() || position == 0) return;
+  clearPlace(portraits_, key, position);
+  Portrait p;
+  p.key = key;
+  p.art = art;
+  p.position = position;
+  if (fadeMs > 0) {
+    p.alpha = 0;
+    p.alphaSpeed = 1000.0f / (float)fadeMs;
+  }
+  portraits_.push_back(p);
+}
+
+void SceneStage::move(const std::string& key, int position, int ms) {
+  if (key.empty() || position == 0) return;
+  Portrait* mover = nullptr;
+  for (Portrait& p : portraits_)
+    if (p.key == key && !p.leaving) mover = &p;
+  if (!mover) return;
+  const Portrait copy = *mover;
+  if (copy.position == position) return;
+  // Whoever stood in the target slot leaves (the mover keeps its entry: find it again after the erase).
+  portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(),
+                                  [&](const Portrait& p) { return p.position == position && p.key != key; }),
+                   portraits_.end());
+  for (Portrait& p : portraits_)
+    if (p.key == key && !p.leaving) {
+      p.fromSlot = p.slotNow();
+      p.position = position;
+      if (ms > 0) {
+        p.slideT = 0;
+        p.slideSpeed = 1000.0f / (float)ms;
+      } else {
+        p.slideT = 1;
+      }
+    }
+}
+
+void SceneStage::leave(const std::string& key, int ms) {
   if (key.empty()) {
-    clearPortraits();
+    if (ms <= 0) {
+      clearPortraits();
+      return;
+    }
+    for (Portrait& p : portraits_) {
+      p.leaving = true;
+      p.alphaSpeed = -1000.0f / (float)ms;
+    }
+    speaker_.clear();
     return;
   }
-  portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(), [&](const Portrait& p) { return p.key == key; }),
-                   portraits_.end());
+  if (ms <= 0) {
+    portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(), [&](const Portrait& p) { return p.key == key; }),
+                     portraits_.end());
+  } else {
+    for (Portrait& p : portraits_)
+      if (p.key == key) {
+        p.leaving = true;
+        p.alphaSpeed = -1000.0f / (float)ms;
+      }
+  }
   if (speaker_ == key) speaker_.clear();
 }
 
@@ -105,6 +190,16 @@ void SceneStage::update(double dt) {
     shakeLeft_ = std::max(0.0f, shakeLeft_ - d);
     shakeElapsed_ += d;
   }
+  for (Portrait& p : portraits_) {
+    if (p.alphaSpeed != 0) {
+      p.alpha += p.alphaSpeed * d;
+      if (p.alpha >= 1) { p.alpha = 1; p.alphaSpeed = 0; }
+      if (p.alpha <= 0) { p.alpha = 0; p.alphaSpeed = 0; }
+    }
+    if (p.slideT < 1) p.slideT = std::min(1.0f, p.slideT + p.slideSpeed * d);
+  }
+  portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(), [](const Portrait& p) { return p.leaving && p.alpha <= 0; }),
+                   portraits_.end());
 }
 
 void SceneStage::finishNow() {
@@ -115,6 +210,12 @@ void SceneStage::finishNow() {
   fadeAmt_ = fadeOut_ ? 1.0f : 0.0f;
   fadeSpeed_ = 0;
   shakeLeft_ = 0;
+  for (Portrait& p : portraits_) {
+    p.alpha = p.leaving ? 0 : 1;
+    p.alphaSpeed = 0;
+    p.slideT = 1;
+  }
+  portraits_.erase(std::remove_if(portraits_.begin(), portraits_.end(), [](const Portrait& p) { return p.leaving; }), portraits_.end());
 }
 
 // A fast wobble that dies away linearly; the same on every machine (no random numbers).

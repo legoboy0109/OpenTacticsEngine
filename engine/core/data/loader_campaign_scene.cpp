@@ -16,7 +16,7 @@ constexpr const char* kSceneKeys[] = {"say", "setSwitch", "setVariable", "addVar
 constexpr const char* kSrpgSceneKeys[] = {"addSupport", "choice"};
 constexpr const char* kSrpgConditionKeys[] = {"support"};
 // Scene presentation (docs/EVENTS.md "Scene presentation"); "weather" is listed so that a scene says why it cannot use it.
-constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
+constexpr const char* kSceneFxKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate", "enter", "move"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_campaign_extras.cpp.
 constexpr const char* kExtrasSceneKeys[] = {"storeItems", "switchParty", "mergeParties"};
 

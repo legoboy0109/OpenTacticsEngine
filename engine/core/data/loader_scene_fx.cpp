@@ -11,7 +11,7 @@ namespace {
 
 std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
-constexpr const char* kKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather"};
+constexpr const char* kKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "enter", "move"};
 
 // "#rrggbb" or "#rgb".
 bool parseColor(const std::string& s, uint32_t& out) {
@@ -29,6 +29,17 @@ bool parseColor(const std::string& s, uint32_t& out) {
   }
   out = v;
   return true;
+}
+
+// "position": one of the seven slot names.
+bool readPosition(const LoadCtx& c, const Json& e, const std::string& at, int& out) {
+  const Json& p = e["position"];
+  for (int i = 1; i < 8; ++i)
+    if (p.isString() && p.asString() == positionName(i)) {
+      out = i;
+      return true;
+    }
+  return c.fail(at, "\"position\" must be \"left\", \"right\" or \"center\" (or \"farLeft\", \"midLeft\", \"midRight\", \"farRight\")");
 }
 
 }  // namespace
@@ -128,17 +139,44 @@ bool SceneFxReader::command(const Json& e, const std::string& key, const std::st
   }
   if (key == "leave") {
     out.kind = K::Leave;
-    if (!onlyKeys(e, {"leave"}, at)) return false;
+    if (!onlyKeys(e, {"leave", "transition", "ms"}, at)) return false;
     if (!v.isString() || v.asString().empty()) return c.fail(at, "\"leave\" must name the speaker that leaves the stage (the id or name a say line used)");
     out.text = text(v.asString());
-    return true;
+    return stageTransition(e, at, out);
   }
   if (key == "clearStage") {
     out.kind = K::Leave;
-    if (!onlyKeys(e, {"clearStage"}, at)) return false;
+    if (!onlyKeys(e, {"clearStage", "transition", "ms"}, at)) return false;
     if (!v.isBool() || !v.asBool()) return c.fail(at, "write { \"clearStage\": true }");
     out.text = -1;
-    return true;
+    return stageTransition(e, at, out);
+  }
+  if (key == "enter" || key == "move") {
+    const bool enter = key == "enter";
+    out.kind = enter ? K::Enter : K::Move;
+    if (enter ? !onlyKeys(e, {"enter", "position", "portrait", "transition", "ms"}, at)
+              : !onlyKeys(e, {"move", "position", "transition", "ms"}, at))
+      return false;
+    if (!v.isString() || v.asString().empty())
+      return c.fail(at, quoted(key) + " must name the speaker " + (enter ? "that comes on stage" : "that moves") + " (the id or name a say line uses)");
+    out.text = text(v.asString());
+    if (!e.has("position")) return c.fail(at, quoted(key) + " needs a \"position\" (farLeft, left, midLeft, center, midRight, right or farRight)");
+    if (!readPosition(c, e, at, out.position)) return false;
+    if (enter && e.has("portrait")) {
+      std::string pid;
+      if (!c.str(e, "portrait", at, pid)) return false;
+      out.portrait = text(pid);
+    }
+    // A move slides (400 ms) unless it is told to cut; an enter / leave cuts unless it is told to fade.
+    if (!enter) {
+      std::string tr = "fade";
+      if (!c.str(e, "transition", at, tr)) return false;
+      if (tr != "cut" && tr != "fade") return c.fail(at, "\"transition\" must be \"cut\" (jump there) or \"fade\" (slide, the default)");
+      out.fadeTransition = tr == "fade";
+      out.ms = kDefaultSlideMs;
+      return ms(e, "ms", at, 0, kMaxSceneMs, out.ms);
+    }
+    return stageTransition(e, at, out);
   }
   // weather
   out.kind = K::Weather;
@@ -151,12 +189,19 @@ bool SceneFxReader::command(const Json& e, const std::string& key, const std::st
   return true;
 }
 
+// "transition" ("cut" default, or "fade") and "ms" of enter / leave / clearStage.
+bool SceneFxReader::stageTransition(const Json& e, const std::string& at, SceneFx& out) const {
+  std::string tr = "cut";
+  if (!c.str(e, "transition", at, tr)) return false;
+  if (tr != "cut" && tr != "fade") return c.fail(at, "\"transition\" must be \"cut\" or \"fade\"");
+  out.fadeTransition = tr == "fade";
+  out.ms = kDefaultFadeMs;
+  return ms(e, "ms", at, 0, kMaxSceneMs, out.ms);
+}
+
 bool SceneFxReader::sayExtras(const Json& e, const std::string& at, SceneFx& out) const {
   if (e.has("position")) {
-    const Json& p = e["position"];
-    if (!p.isString() || (p.asString() != "left" && p.asString() != "right" && p.asString() != "center"))
-      return c.fail(at, "\"position\" must be \"left\", \"right\" or \"center\"");
-    out.position = p.asString() == "left" ? kPosLeft : p.asString() == "right" ? kPosRight : kPosCenter;
+    if (!readPosition(c, e, at, out.position)) return false;
   }
   if (e.has("auto")) {
     out.ms = 0;
