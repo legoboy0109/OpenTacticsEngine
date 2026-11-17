@@ -1,3 +1,4 @@
+import { backgroundList, setTerrainBackground, terrainBackground } from '../../model/battleArt'
 import { suggestedTerrainProps } from '../../model/formulas'
 import { setTerrainNumber, setTerrainTags, updateTerrain } from '../../model/terrain'
 import { Link, projectPath } from '../../router'
@@ -7,6 +8,7 @@ import { ChipsInput } from '../../ui/ChipsInput'
 import { ColorInput } from '../../ui/ColorInput'
 import { Field } from '../../ui/Field'
 import { KeyNumberTable } from '../../ui/KeyNumberTable'
+import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { PictureCard } from '../../ui/picture/PictureCard'
 import { GroundSightCard } from '../fog/GroundSightCard'
@@ -46,6 +48,16 @@ export function TerrainForm({ id }: { id: string }) {
       </Card>
 
       <PictureCard kind="terrain" id={id} name={t.name} />
+
+      {backgroundList(doc).length > 0 && (
+        <Card>
+          <Field label={T.battleBackground} help={T.battleBackgroundHelp}>
+            <Select aria-label={T.battleBackground} value={terrainBackground(doc, id)}
+              options={[{ value: '', label: T.battleBackgroundDefault }, ...backgroundList(doc).map((b) => ({ value: b.id, label: b.id }))]}
+              onChange={(v) => edit((d) => setTerrainBackground(d, id, v))} />
+          </Field>
+        </Card>
+      )}
 
       <Card><MoveCosts id={id} /></Card>
 

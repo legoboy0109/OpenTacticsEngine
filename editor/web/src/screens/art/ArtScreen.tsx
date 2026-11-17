@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../ui/Dialog'
 import { MasterDetail } from '../../ui/MasterDetail'
 import { Toggle } from '../../ui/Toggle'
 import { ImageDetails } from './ImageDetails'
+import { BattleAnimsCard } from './battle/BattleAnimsCard'
 import { PortraitsCard } from './PortraitsCard'
 import { portraitsUsingSheet } from '../../model/portraits'
 import { T } from './text'
@@ -93,6 +94,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
           <Toggle label={T.marker} help={T.markerHelp} checked={unitMarkerOn(doc)} onChange={(v) => edit((d) => setUnitMarker(d, v))} />
         </Card>
         <PortraitsCard />
+        <BattleAnimsCard />
         <UnusedFiles say={say} />
       </div>
       <ConfirmDialog open={!!target} title={T.removeTitle(target?.name || (target ? artBase(target.file) : ''))} confirmLabel={T.removeConfirm} danger
