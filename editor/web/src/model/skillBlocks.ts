@@ -24,6 +24,8 @@ export const patchBlock = (b: Extra, patch: Extra): Extra => tidy({ ...b, ...pat
 // --- stats of the game ---------------------------------------------------------------------------------------------------
 
 export const statIds = (doc: ProjectDoc): string[] => (doc.game?.stats ?? []).map((s) => s.id)
+/** The stats a condition's stat bonus may change: not hit points (a maximum that flickers would cut the current hit points). */
+export const conditionStatIds = (doc: ProjectDoc): string[] => statIds(doc).filter((s) => s !== doc.game?.roles?.hp)
 /** A combat bonus may not change the hit points or the movement stat (the loader refuses it). */
 export const combatStatIds = (doc: ProjectDoc): string[] => statIds(doc).filter((s) => s !== doc.game?.roles?.hp && s !== doc.game?.roles?.move)
 
@@ -43,6 +45,7 @@ export function newCondition(kind: CondKind, doc: ProjectDoc): Extra | null {
     case 'initiating': return { initiating: true }
     case 'distance': return { distance: { op: '=', value: 1 } }
     case 'formula': return { formula: 'a.level >= 5' }
+    case 'condition': return doc.conditions?.[0] ? { condition: doc.conditions[0].id } : null
   }
 }
 
@@ -70,6 +73,10 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'drain': return { drain: 50 }
     case 'heal': return { heal: 5 }
     case 'hurt': return { hurt: 5 }
+    case 'immune': return doc.conditions?.[0] ? { immune: [doc.conditions[0].id] } : null
+    case 'inflict': return doc.conditions?.[0] ? { inflict: { condition: doc.conditions[0].id } } : null
+    case 'cannotAct': return { cannotAct: true }
+    case 'forbid': return { forbid: { kinds: ['staff'] } }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
 }
@@ -79,6 +86,7 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
 export function offeredEffects(doc: ProjectDoc, b: Extra): EffectKind[] {
   const when = b.when as When
   const conds = list(b.if).length > 0
+  // A condition's four own effects (cannot act, cannot move, forbid, berserk) have their own simple controls on the Conditions form.
   return effectsFor(when, !!b.aura).filter((k) => newEffect(k, doc, when) !== null && !(conds && (k === 'growths' || k === 'ability')))
 }
 

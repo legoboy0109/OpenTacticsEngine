@@ -40,7 +40,8 @@ const pickStat = (doc: ProjectDoc, names: string[]): string => names.find((n) =>
 /** Example formulas shown under the boxes, and what a mode starts with: a = the user, b = the unit hit, w = the staff. */
 export const reachExample = (doc: ProjectDoc): string => `1 + a.${pickStat(doc, ['mag', 'int', 'res', 'skl'])} / 3`
 export const healExample = (doc: ProjectDoc): string => `w.power + a.${pickStat(doc, ['mag', 'int', 'res', 'str'])} / 2`
-export const hitExample = (doc: ProjectDoc): string => `80 + a.${pickStat(doc, ['skill', 'skl', 'mag'])} - b.${pickStat(doc, ['res', 'def'])}`
+/** Reads both units, in the game's own stat names: the user's magic against the target's resistance, and the distance (a = the user, b = the unit, dist = squares). */
+export const hitExample = (doc: ProjectDoc): string => `70 + a.${pickStat(doc, ['mag', 'int', 'skill', 'skl'])} * 5 - b.${pickStat(doc, ['res', 'def'])} * 5 - dist * 2`
 export const xpExample = 'a.level + 5'
 
 // --- the group ----------------------------------------------------------------------------------------------------------

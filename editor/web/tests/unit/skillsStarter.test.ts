@@ -29,9 +29,9 @@ describe('the starter set', () => {
     const blocks = STARTER_SKILLS.flatMap(blocksOf)
     expect(new Set(blocks.map((b) => b.when))).toEqual(new Set(WHENS))
     const conds = new Set(blocks.flatMap((b) => ((b.if as object[]) ?? []).map((c) => condKindOf(c as never))))
-    for (const k of COND_KINDS.filter((x) => !['weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'formula'].includes(x))) expect(conds.has(k), k).toBe(true)
+    for (const k of COND_KINDS.filter((x) => !['weapon', 'terrain', 'structure', 'unit', 'carrying', 'round', 'formula', 'condition'].includes(x))) expect(conds.has(k), k).toBe(true)
     const effects = new Set(blocks.flatMap((b) => (b.do as object[]).map((e) => effectKindOf(e as never))))
-    for (const k of EFFECT_KINDS.filter((x) => x !== 'ability' && x !== 'critAvoid')) expect(effects.has(k), k).toBe(true)
+    for (const k of EFFECT_KINDS.filter((x) => x !== 'ability' && x !== 'critAvoid' && !['cannotAct', 'cannotMove', 'forbid', 'berserk', 'immune', 'inflict'].includes(x))) expect(effects.has(k), k).toBe(true)
   })
   it('every skill passes the editor’s checks in the template’s game', () => {
     const d = loadTemplate('strategy-rpg')

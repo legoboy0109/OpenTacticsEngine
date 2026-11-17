@@ -27,6 +27,22 @@ export interface Character extends Named {
 /** data/skills.json entry (section 3); the blocks are E2's to type. */
 export interface Skill extends Named { description?: string; blocks?: Extra[] }
 
+/** data/conditions.json entry (section 9): how long it lasts (exactly one of `turns` and `until`), and its rules as skill blocks. */
+export interface Condition extends Named {
+  description?: string
+  /** 1 to 4 characters shown on the unit on the map (the loader's default is the first two letters of the name). */
+  tag?: string
+  /** The afflicted unit's own turns (1 to 99) ... */
+  turns?: number
+  /** ... or until it is cured / the map ends. */
+  until?: 'cured' | 'mapEnd'
+  /** Percent chance (1 to 99) each own turn that it ends early. */
+  wearOff?: number
+  endsWhenStruck?: boolean
+  replaces?: string[]
+  blocks?: Extra[]
+}
+
 /** The `summon` effect of an ability (section 4); only `type` is required, a default is never written. */
 export interface Summon extends Extra {
   type?: string; level?: 'summoner' | number; limit?: number; vanish?: boolean; lifetime?: number; canAct?: boolean; givesXp?: boolean
@@ -72,7 +88,7 @@ export type RankValue = string | number
 export type RankMap = Record<string, RankValue>
 
 /** The four optional features that have a file of their own. */
-export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'supports'
+export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'conditions' | 'supports'
 
 /** One entry of a unit type's `promotions` (section 2); E3 refines it. */
 export interface Promotion extends Extra {

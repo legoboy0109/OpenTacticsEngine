@@ -77,7 +77,7 @@ export const S = {
   miss: 'It can miss',
   missHelp: 'Off: it always works. On: each unit is rolled for on its own.',
   hit: 'Chance of working, in percent',
-  hitHelp: (example: string) => `A number from 0 to 100, or a formula. Example: ${example}`,
+  hitHelp: (example: string) => `A number from 0 to 100, or a formula. a is the user and b the unit it is used on, so a formula can set one against the other; dist is the distance in squares. Example: ${example}`,
 
   xp: 'Experience for the user',
   xpHelp: (example: string) => `Given once per use, even when it misses. A number, or a formula such as ${example}. Leave empty for none. Needs experience to be turned on in the Rules.`,

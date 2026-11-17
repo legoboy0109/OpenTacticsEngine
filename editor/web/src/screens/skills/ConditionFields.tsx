@@ -76,6 +76,12 @@ export function ConditionFields({ doc, cond, change }: Props) {
           <Field label={T.distanceNumber}><Num value={Number(o.value ?? 1)} min={0} max={1000000} onChange={(v) => change({ ...cond, distance: { ...o, value: v } }, 'distance')} /></Field>
         </>
       )
+    case 'condition': {
+      const id = String(cond.condition ?? '')
+      const options = (doc.conditions ?? []).map((c) => ({ value: c.id, label: c.name }))
+      if (id && !options.some((o) => o.value === id)) options.push({ value: id, label: `${id} (not a condition)` })
+      return <Field label={T.hasConditionPick}><Select value={id} options={options} onChange={(v) => change({ ...cond, condition: v })} /></Field>
+    }
     case 'formula':
       return <Field label={T.formula} help={T.formulaHelp}><TextInput mono value={String(cond.formula ?? '')} onChange={(v) => change({ ...cond, formula: v }, 'formula')} /></Field>
     default: return <p className="help">{T.condKept}</p>

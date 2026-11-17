@@ -24,12 +24,16 @@ interface Props {
   onDelete: () => void
   /** `data-learn` name for the tutorial's pointing ring. */
   learn?: string
+  /** A rule of a status condition (the Conditions screen): its issues and stat choices follow the condition rules. */
+  forCondition?: boolean
+  /** The card's number as the maker sees it (the Conditions form hides the blocks it shows as switches). */
+  shownNumber?: number
 }
 
-export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, learn }: Props) {
+export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, learn, forCondition, shownNumber }: Props) {
   const when = whenOf(block)
-  const issues = ruleIssues(doc, block)
-  const n = index + 1
+  const issues = ruleIssues(doc, block, forCondition)
+  const n = shownNumber ?? index + 1
   return (
     <section className="card skill-rule" role="group" aria-label={T.rule(n)} data-testid="skill-rule">
       <header className="card-head">
@@ -53,7 +57,7 @@ export function BlockCard({ doc, block, index, count, edit, onMove, onDelete, le
         <ChanceRow doc={doc} block={block} setBlock={edit} />
         <ReachesRow doc={doc} block={block} setBlock={edit} />
         <h4 className="skill-part">{T.then}</h4>
-        <EffectRows doc={doc} block={block} setBlock={edit} />
+        <EffectRows doc={doc} block={block} setBlock={edit} forCondition={forCondition} />
         <p className="skill-sentence" data-testid="skill-rule-summary">{blockSummary(doc, block)}</p>
       </div>
     </section>

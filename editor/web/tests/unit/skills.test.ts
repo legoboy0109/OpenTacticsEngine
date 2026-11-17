@@ -19,11 +19,11 @@ const base = (): ProjectDoc => switchOnFeature(loadDemo('demo-srpg'), 'skills')
 
 // The tables of docs/SRPG.md section 3, written out once more by hand: the picker rules must equal them.
 const EFFECT_TABLE: Record<When, EffectKind[]> = {
-  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability'],
+  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune'],
   turnStart: ['heal', 'hurt'],
   combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter'],
-  strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain'],
-  struck: ['avoid', 'critAvoid', 'damageTaken', 'damageTakenPercent', 'survive'],
+  strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain', 'inflict'],
+  struck: ['avoid', 'critAvoid', 'damageTaken', 'damageTakenPercent', 'survive', 'inflict'],
   defeat: ['heal', 'actAgain'],
   afterCombat: ['heal', 'hurt', 'actAgain'],
 }
@@ -33,7 +33,9 @@ describe('skills: the pickers follow the contract tables', () => {
   it('offers the effects of each "when" and no others (aura: only what an aura gives)', () => {
     for (const w of WHENS) expect(sorted(effectsFor(w, false)), w).toEqual(sorted(EFFECT_TABLE[w]))
     expect(sorted(effectsFor('combat', true))).toEqual(sorted(['stats', 'hit', 'avoid', 'crit', 'critAvoid', 'damage', 'damageTaken']))
-    expect(sorted(EFFECT_KINDS)).toEqual(sorted([...new Set(Object.values(EFFECT_TABLE).flat())]))
+    // The four effects only a condition has are not offered to a skill (the loader says they belong to the blocks of a condition).
+    expect(sorted(EFFECT_KINDS)).toEqual(sorted([...new Set(Object.values(EFFECT_TABLE).flat()), 'cannotAct', 'cannotMove', 'forbid', 'berserk']))
+    expect(effectsFor('always', false, true)).toEqual(expect.arrayContaining(['cannotAct', 'cannotMove', 'forbid', 'berserk']))
   })
   it('offers the conditions of each "when": no formula / foe points where there is no combat', () => {
     const all = sorted(COND_KINDS)
@@ -60,7 +62,7 @@ describe('skills: the pickers follow the contract tables', () => {
     expect(noConditionsWhy(d, full)).toBe('limit')
   })
   it('every effect and condition the editor can make passes its own checks in a rule that allows it', () => {
-    const d = { ...base(), abilities: [{ id: 'shove', name: 'Shove' }] }
+    const d = { ...base(), abilities: [{ id: 'shove', name: 'Shove' }], conditions: [{ id: 'poison', name: 'Poison', turns: 3, blocks: [{ when: 'always', do: [{ cannotMove: true }] }] }] }
     for (const w of WHENS) for (const k of effectsFor(w, false)) {
       const e = newEffect(k, d, w)
       expect(e, `${w}/${k}`).not.toBeNull()

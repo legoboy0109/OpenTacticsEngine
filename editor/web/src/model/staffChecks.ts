@@ -5,6 +5,7 @@ import { staffItems } from './gear'
 import { featureEnabled } from './rules'
 import { hasLadder } from './ranks'
 import { mapHasFog } from './fog'
+import { CONDITION_TURNS_MAX } from './conditions'
 import { STAFF_EFFECTS_MAX, STAFF_HEAL_MAX, STAFF_RADIUS_MAX, STAFF_RANGE_MAX, STAFF_XP_MAX } from './staff'
 import { STAFF_LIGHT_TURNS_MAX, STAFF_REPAIR_MAX, repairableItems } from './staffEffects'
 import { MOVE_KINDS, fxKind, hasFx } from './staffFx'
@@ -41,7 +42,7 @@ function areaProblem(i: Item): string | undefined {
 }
 
 /** One effect on its own (kind and value); `n` numbers it the way the loader's "effects entry N" does. */
-function effectProblem(i: Item, e: unknown, n: number): string | undefined {
+function effectProblem(doc: ProjectDoc, i: Item, e: unknown, n: number): string | undefined {
   const at = `effect ${n}`
   const kind = fxKind(e)
   if (!kind) return `${at} must be one thing, such as healing for 10.`
@@ -85,9 +86,41 @@ function effectProblem(i: Item, e: unknown, n: number): string | undefined {
       if (turns !== undefined && (!whole(turns) || turns < 1 || turns > STAFF_LIGHT_TURNS_MAX)) return `the light’s turns must be a whole number from 1 to ${STAFF_LIGHT_TURNS_MAX} (leave it out for 1).`
       return undefined
     }
+    case 'inflict': return inflictProblem(doc, v, at)
+    case 'cure': return cureProblem(doc, v, at)
     default:
-      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair or light).`
+      return `${at} is “${kind}”, which a staff cannot do (a staff can heal, warp, pull, swap, repair, light, inflict a condition or cure).`
   }
+}
+
+const noSuchCondition = (doc: ProjectDoc, id: string): string =>
+  doc.conditions?.length ? `the condition “${id}” does not exist (see the Conditions screen).` : `the game has no conditions yet, so “${id}” cannot be named (add them on the Conditions screen).`
+
+function inflictProblem(doc: ProjectDoc, v: unknown, at: string): string | undefined {
+  if (!v || typeof v !== 'object' || Array.isArray(v) || typeof (v as Extra).condition !== 'string') return `${at}: inflicting needs a condition, such as { "condition": "poison" }.`
+  const o = v as Extra
+  const extra = Object.keys(o).find((k) => k !== 'condition' && k !== 'turns')
+  if (extra) return `${at}: inflicting has no “${extra}”, only a condition and optional turns.`
+  const c = doc.conditions?.find((x) => x.id === o.condition)
+  if (!c) return `${at}: ${noSuchCondition(doc, String(o.condition))}`
+  if (o.turns !== undefined) {
+    if (!whole(o.turns) || o.turns < 1 || o.turns > CONDITION_TURNS_MAX) return `${at}: the turns must be a whole number from 1 to ${CONDITION_TURNS_MAX}.`
+    if (c.until !== undefined) return `${at}: ${c.name} does not count turns (it lasts until it is cured or the map ends), so the turns mean nothing. Remove them.`
+  }
+  return undefined
+}
+
+function cureProblem(doc: ProjectDoc, v: unknown, at: string): string | undefined {
+  if (v === 'all') return undefined
+  if (!Array.isArray(v) || v.length === 0) return `${at}: curing needs a list of conditions, or every condition.`
+  const seen = new Set<string>()
+  for (const x of v) {
+    if (typeof x !== 'string') return `${at}: curing lists conditions by their ids.`
+    if (!doc.conditions?.some((c) => c.id === x)) return `${at}: ${noSuchCondition(doc, x)}`
+    if (seen.has(x)) return `${at}: “${x}” is listed twice.`
+    seen.add(x)
+  }
+  return undefined
 }
 
 /** What the effects may be put together with (the loader's checkCombination). */
@@ -98,6 +131,8 @@ function combinationProblem(i: Item, fx: unknown[]): string | undefined {
   if (moves > 1) return 'a staff can have only one of warp, pull and swap (each one decides where the unit ends up).'
   if (repairs > 1) return 'a staff can have only one repair.'
   if (lights > 1) return 'a staff can have only one light.'
+  if (count(['inflict']) > 1) return 'a staff can have only one “inflicts a condition” (make two staves, or two conditions that replace each other).'
+  if (count(['cure']) > 1) return 'a staff can have only one “cures” (it takes a list of conditions).'
   if (repairs && moves) return 'repairing cannot be put together with warp, pull or swap (each one asks the player for a second pick).'
   if (lights) {
     if (fx.length !== 1) return 'a light picks a square, not a unit, so it cannot be put together with another effect.'
@@ -116,10 +151,10 @@ function combinationProblem(i: Item, fx: unknown[]): string | undefined {
 }
 
 /** Each effect by itself first; when all are fine, what they are put together with. */
-function effectProblems(i: Item): string[] {
+function effectProblems(doc: ProjectDoc, i: Item): string[] {
   const fx = i.effects as unknown[] | undefined
-  if (!Array.isArray(fx) || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return [`a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal, move a unit, repair an item or light an area).`]
-  const each = fx.map((e, n) => effectProblem(i, e, n + 1)).filter((p): p is string => !!p)
+  if (!Array.isArray(fx) || fx.length < 1 || fx.length > STAFF_EFFECTS_MAX) return [`a staff needs 1 to ${STAFF_EFFECTS_MAX} effects (it can heal, move a unit, repair an item, light an area, inflict a condition or cure).`]
+  const each = fx.map((e, n) => effectProblem(doc, i, e, n + 1)).filter((p): p is string => !!p)
   if (each.length > 0) return each
   const combo = combinationProblem(i, fx)
   return combo ? [combo] : []
@@ -144,7 +179,7 @@ export function staffChecks(doc: ProjectDoc): StaffCheck[] {
     const ids = [i.id]
     const say = (text: string, blocks = true) => out.push({ section: 'items', ids, text: `${i.name}: ${text}`, blocks })
     if (!i.group || i.group.trim() === '') say('a staff needs a group (the kind of staff a class can use, such as “staff”).')
-    for (const p of [rangeProblem(i), areaProblem(i), ...effectProblems(i), ...hitXpProblems(doc, i)]) if (p) say(p)
+    for (const p of [rangeProblem(i), areaProblem(i), ...effectProblems(doc, i), ...hitXpProblems(doc, i)]) if (p) say(p)
     if ((i.rank !== undefined || i.rankXp !== undefined) && !hasLadder(doc)) say('it needs a rank, but the game has no weapon ranks. Add them on the Rules screen, or clear the rank.')
     if (i.wieldedBy?.length && (doc.characters?.length ?? 0) === 0) say('it is locked to characters, but the game has none.')
     // Loads fine, can never be used: no class lists its group.

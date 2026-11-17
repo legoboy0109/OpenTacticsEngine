@@ -1,6 +1,7 @@
 // What deleting a stat does to skills (E2): the stat leaves every "stat bonus" / "growth bonus" effect; an effect left with no
 // stat goes, a rule left with no effect goes, a skill left with no rule is deleted (with everything that named it). A chance
 // formula that reads the stat can no longer work, so the rule's chance becomes 0 (it never applies) rather than failing at play.
+import { deleteCondition } from './conditionRefs'
 import { deleteSkill } from './srpgRefs'
 import type { Extra, ProjectDoc } from './types'
 
@@ -31,6 +32,22 @@ export function cleanStatSkills(doc: ProjectDoc, stat: string): ProjectDoc {
     const blocks = (s.blocks ?? []).flatMap((b) => { const c = cleanBlock(b, stat); return c ? [c] : [] })
     if (JSON.stringify(blocks) === JSON.stringify(s.blocks ?? [])) continue
     out = blocks.length === 0 ? deleteSkill(out, s.id) : { ...out, skills: out.skills!.map((x) => (x.id === s.id ? { ...x, blocks } : x)) }
+  }
+  return out
+}
+
+/** Conditions whose rules read the stat (their stat bonuses are skill blocks too). */
+export function conditionsUseStat(doc: ProjectDoc, stat: string): string[] {
+  return (doc.conditions ?? []).filter((c) => JSON.stringify(c.blocks ?? []).includes(`"${stat}"`) || (c.blocks ?? []).some((b) => reads(b.chance, stat))).map((c) => c.name)
+}
+
+/** The same clean-up for the rules of conditions; a condition left with no rule is deleted (with everything that named it). */
+export function cleanStatConditions(doc: ProjectDoc, stat: string): ProjectDoc {
+  let out = doc
+  for (const c of doc.conditions ?? []) {
+    const blocks = (c.blocks ?? []).flatMap((b) => { const x = cleanBlock(b, stat); return x ? [x] : [] })
+    if (JSON.stringify(blocks) === JSON.stringify(c.blocks ?? [])) continue
+    out = blocks.length === 0 ? deleteCondition(out, c.id) : { ...out, conditions: out.conditions!.map((x) => (x.id === c.id ? { ...x, blocks } : x)) }
   }
   return out
 }

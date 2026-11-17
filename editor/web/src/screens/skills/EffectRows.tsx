@@ -11,9 +11,9 @@ import { Select } from '../../ui/Select'
 import { EffectFields } from './EffectFields'
 import { T } from './text'
 
-interface Props { doc: ProjectDoc; block: Extra; setBlock: (fn: (b: Extra) => Extra, key?: string) => void }
+interface Props { doc: ProjectDoc; block: Extra; setBlock: (fn: (b: Extra) => Extra, key?: string) => void; forCondition?: boolean }
 
-export function EffectRows({ doc, block, setBlock }: Props) {
+export function EffectRows({ doc, block, setBlock, forCondition }: Props) {
   const effects = (Array.isArray(block.do) ? block.do : []) as Extra[]
   const when = block.when as When
   const aura = !!block.aura
@@ -39,7 +39,7 @@ export function EffectRows({ doc, block, setBlock }: Props) {
                 onUp={() => setBlock((b) => setEffects(b, moveItem(effects, i, i - 1)))} onDown={() => setBlock((b) => setEffects(b, moveItem(effects, i, i + 1)))}
                 onDelete={() => setBlock((b) => setEffects(b, effects.filter((_, j) => j !== i)))} />
             </div>
-            <EffectFields doc={doc} effect={e} when={when} aura={aura} change={(next, key) => patch(i, next, key)} />
+            <EffectFields doc={doc} effect={e} when={when} aura={aura} forCondition={forCondition} change={(next, key) => patch(i, next, key)} />
           </div>
         )
       })}

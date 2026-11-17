@@ -50,7 +50,7 @@ export const T = {
   healsAmount: 'Amount of health restored',
   healsAll: 'All HP',
   raises: 'Raises for good',
-  raisesHelp: 'Added to the stat permanently when used. Leave empty for none. A usable item needs to heal or raise something.',
+  raisesHelp: 'Added to the stat permanently when used. Leave empty for none. A usable item needs to heal or raise something, or cure or inflict a condition.',
   raisesCol: 'Raise by',
 
   weapon: 'Which weapon',

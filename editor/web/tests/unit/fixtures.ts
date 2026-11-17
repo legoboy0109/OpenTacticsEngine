@@ -78,6 +78,7 @@ function loadFrom(root: string, name: string): ProjectDoc {
     characters: existsSync(path.join(root, name, 'data/characters.json')) ? read(name, 'data/characters.json').characters : null,
     skills: existsSync(path.join(root, name, 'data/skills.json')) ? read(name, 'data/skills.json').skills : null,
     abilities: existsSync(path.join(root, name, 'data/abilities.json')) ? read(name, 'data/abilities.json').abilities : null,
+    conditions: existsSync(path.join(root, name, 'data/conditions.json')) ? read(name, 'data/conditions.json').conditions : null,
     supports: existsSync(path.join(root, name, 'data/supports.json')) ? read(name, 'data/supports.json') : null,
     ranks: existsSync(path.join(root, name, 'data/ranks.json')) ? read(name, 'data/ranks.json') : null,
     caps: existsSync(path.join(root, name, 'data/caps.json')) ? read(name, 'data/caps.json') : null,

@@ -9,6 +9,8 @@ export const T = {
   skillsHelp: 'Bonuses and special effects that units, characters, weapons and items can have.',
   abilities: 'This game has abilities',
   abilitiesHelp: 'Extra commands in a unit’s menu, such as pushing a neighbour or summoning a helper.',
+  conditions: 'This game has status conditions',
+  conditionsHelp: 'Poison, sleep and the like: temporary states that staves, items and weapons can put on a unit and cure.',
   supports: 'This game has supports',
   supportsHelp: 'Characters grow closer, unlock conversations and fight better side by side.',
   supportsNeedCharacters: 'Supports are between two characters: switch on characters first.',
@@ -16,13 +18,14 @@ export const T = {
   offBody: (what: string, count: number) => `This removes ${what} from the game${count > 0 ? `, including the ${count} you have made` : ''}. You can undo it with the Undo button.`,
   offConfirm: 'Remove',
   /** What each feature is called in the question above. */
-  what: { characters: 'all characters', skills: 'all skills', abilities: 'all abilities', supports: 'all supports' },
+  what: { characters: 'all characters', skills: 'all skills', abilities: 'all abilities', conditions: 'all status conditions', supports: 'all supports' },
 
   // The four screens
   screens: {
     characters: { title: 'Characters', intro: 'Named people with their own stats, skills and story.' },
     skills: { title: 'Skills', intro: 'Bonuses and special effects for units, characters, weapons and items.' },
     abilities: { title: 'Abilities', intro: 'Extra commands in a unit’s menu.' },
+    conditions: { title: 'Conditions', intro: 'Temporary states such as poison or sleep.' },
     supports: { title: 'Supports', intro: 'How closeness between two characters grows and what it unlocks.' },
   },
   notAvailableYet: 'Editing this is not available yet.',

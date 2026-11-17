@@ -16,11 +16,11 @@ export type RepairKind = 'full' | 'uses'
 
 const clampInt = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n)))
 const itemOf = (doc: ProjectDoc, id: string): Item | undefined => doc.items?.find((x) => x.id === id)
-const room = (item: Item | undefined): boolean => fxList(item).length < STAFF_EFFECTS_MAX
+export const room = (item: Item | undefined): boolean => fxList(item).length < STAFF_EFFECTS_MAX
 
 /** Replaces the first effect of one of these kinds where it stands, appends the effect when there is none, removes it when `fx` is
  *  undefined. Everything else in the list is left as it is. */
-function putFx(doc: ProjectDoc, id: string, kinds: readonly string[], fx: Extra | undefined): ProjectDoc {
+export function putFx(doc: ProjectDoc, id: string, kinds: readonly string[], fx: Extra | undefined): ProjectDoc {
   const list = [...fxList(itemOf(doc, id))]
   const at = fxIndex(itemOf(doc, id), kinds)
   if (at >= 0 && fx) list[at] = fx
