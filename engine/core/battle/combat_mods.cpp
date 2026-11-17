@@ -84,6 +84,13 @@ void Battle::setUpCombat(int attacker, int defender, int weapon, Cell from, Comb
   setup.defender = defender;
   setup.weaponA = weapon;
   setup.from = from;
+  // A weapon the unit does not carry that the structure under `from` offers is fired from the structure (docs/SRPG.md "Map weapons").
+  {
+    int si = -1;
+    std::vector<int> own;
+    attackWeaponsAt(a, from, own, &si);
+    if (si >= 0 && mapWeaponOf(si) == weapon) setup.mapStructure = si;
+  }
   setup.weaponD = counterWeapon(d, d.cell, a, from);
   combatMods(setup, modsA, modsD);
   setup.counters = db->rules.counterAttacks && setup.weaponD >= 0 && !modsA.noCounter &&

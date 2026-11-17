@@ -10,6 +10,7 @@
 #include "core/data/difficulty.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
+#include "core/data/map_weapon.h"
 #include "core/data/places.h"
 #include "core/data/ranks.h"
 #include "core/base/types.h"
@@ -94,6 +95,8 @@ struct StructureDef {
   // Fog: a fixed light (a brazier): every square within this many squares of the structure's squares is in sight of EVERY team, all
   // the time. 0 = none, else 1..kMaxStaffRadius (docs/ECONOMY.md "Fog of war").
   int light = 0;
+  // A weapon a unit standing here may attack with (docs/SRPG.md "Map weapons"); `has()` is false for any other structure.
+  MapWeaponDef mapWeapon;
 };
 
 const int kMaxStructureSize = 8;
@@ -514,6 +517,7 @@ struct MapStructureDef {
   int locked = -1;                 // -1 = the kind says, 0 / 1 = this placement is unlocked / locked
   std::vector<int> visitSides;     // visit: only these sides may visit (indices into MapDef::sides); empty = the kind's rule
   std::vector<std::string> visitUnits;  // visit: units (story ids) that may visit, in addition
+  int weaponUses = -1;             // a kind with a map weapon: this placement's own uses (-1 = the kind's); loader_map_weapon.cpp
 };
 
 struct PrepDef;  // a map's preparation screen (core/data/prep.h, docs/EVENTS.md "Preparation")

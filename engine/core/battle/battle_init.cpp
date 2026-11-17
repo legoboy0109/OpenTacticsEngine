@@ -126,6 +126,10 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.visitUnits = ms.visitUnits;
     if (def.place.isDoor() || def.place.isChest()) s.locked = ms.locked >= 0 ? ms.locked == 1 : def.place.locked;
     if (def.place.isDoor() && def.place.hp > 0) s.hp = def.place.hp;
+    if (def.mapWeapon.has()) {  // a usable weapon: its uses (the placement's own number, else the kind's), docs/SRPG.md "Map weapons"
+      s.weaponFor = s.type;
+      s.weaponUses = ms.weaponUses >= 0 ? ms.weaponUses : def.mapWeapon.uses;
+    }
     int index = (int)structures.size();
     structures.push_back(s);
     std::vector<Cell> footprint;

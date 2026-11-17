@@ -37,6 +37,15 @@ std::vector<int> Battle::changeKindsOf(int structure) const {
     for (const MapChangeDef& ch : *mapChanges)
       for (const MapChangeStructure& s : ch.structures)
         if (s.index == structure) out.push_back(s.kind);
+  // A map weapon that is spent turns its structure into another kind (docs/SRPG.md "Map weapons"), and that one may do the same.
+  if (structure >= 0 && structure < (int)structures.size()) {
+    int kind = structures[(size_t)structure].mapType;
+    for (size_t hops = 0; hops < db->structures.size(); ++hops) {
+      kind = db->structures[(size_t)kind].mapWeapon.becomes;
+      if (kind < 0) break;
+      out.push_back(kind);
+    }
+  }
   return out;
 }
 

@@ -334,7 +334,7 @@ bool checkPlaceVisitors(const LoadCtx& c, const Database& db, const MapDef& m) {
 bool readUnitGoals(const LoadCtx& c, const MapDef& m, const Json& e, const std::string& where, MapUnitDef& u) {
   if (!e.has("goesFor")) return true;
   if (!e["goesFor"].isArray() || e["goesFor"].size() == 0)
-    return c.fail(where, "\"goesFor\" must be a list such as [\"chests\", \"villages\", \"doors\", \"steal\", \"walls\"]");
+    return c.fail(where, "\"goesFor\" must be a list such as [\"chests\", \"villages\", \"doors\", \"steal\", \"walls\", \"weapons\"]");
   if (u.side >= 0 && u.side < (int)m.sides.size() && !m.sides[(size_t)u.side].ai)
     return c.fail(where, "\"goesFor\" tells the computer opponent what to do, but this unit is on a side a person plays (controller \"human\")");
   for (size_t i = 0; i < e["goesFor"].size(); ++i) {
@@ -344,7 +344,8 @@ bool readUnitGoals(const LoadCtx& c, const MapDef& m, const Json& e, const std::
     else if (w == "doors") u.aiGoals |= kAiDoors;
     else if (w == "steal") u.aiGoals |= kAiSteal;  // docs/SRPG.md "Steal"
     else if (w == "walls") u.aiGoals |= kAiWalls;  // attacks a breakable door / wall in its way (docs/SRPG.md section 10)
-    else return c.fail(where, "\"goesFor\" entry " + std::to_string(i + 1) + " must be \"chests\", \"villages\", \"doors\" or \"steal\", not " + q(w) + " (or \"walls\": breaks a wall in its way)");
+    else if (w == "weapons") u.aiGoals |= kAiWeapons;  // walks to a free map weapon (docs/SRPG.md "Map weapons")
+    else return c.fail(where, "\"goesFor\" entry " + std::to_string(i + 1) + " must be \"chests\", \"villages\", \"doors\" or \"steal\", not " + q(w) + " (or \"walls\": breaks a wall in its way, \"weapons\": walks to a free ballista)");
   }
   return true;
 }
