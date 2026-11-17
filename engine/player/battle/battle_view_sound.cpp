@@ -47,8 +47,9 @@ void BattleView::soundStarted(const Battle& b) {
       const bool heals = it && it->staff >= 0 && (size_t)it->staff < b.db->staves.size() && b.db->staves[(size_t)it->staff].has(StaffEffect::Kind::Heal);
       CueCtx plain;
       plain.unitType = c.unitType;
-      if (!own && heals && a.defines(Cue::Heal, plain)) a.cue(Cue::Heal, plain);
-      else a.cue(Cue::ItemUse, c);
+      // A healing staff with no sound of its own is heard through the heal it causes (UnitHealed plays the heal
+      // sound once per healed unit); playing it here too would double it.
+      if (own || !heals || !a.defines(Cue::Heal, plain)) a.cue(Cue::ItemUse, c);
       break;
     }
     case EventType::StaffMissed: {  // a=the unit missed, b=user, c=item
