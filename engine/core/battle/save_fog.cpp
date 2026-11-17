@@ -96,5 +96,40 @@ bool readSeenKinds(Reader& rd, const Json& saved, Battle& b) {
   return true;
 }
 
+void writeLights(const Battle& b, Json& out) {
+  if (b.lights.empty()) return;
+  Json list = Json::makeArray();
+  for (const LightArea& l : b.lights) {
+    Json j = Json::makeObject();
+    j.set("side", Json::makeNumber(l.side));
+    j.set("cell", Json::makeNumber(l.cell));
+    j.set("radius", Json::makeNumber(l.radius));
+    j.set("turns", Json::makeNumber(l.turns));
+    list.push(j);
+  }
+  out.set("lights", list);
+}
+
+bool readLights(Reader& rd, const Json& saved, Battle& b) {
+  const std::string top = "battle";
+  b.lights.clear();
+  if (!saved.has("lights")) return true;
+  if (!b.fogOn()) return rd.fail(top + ".lights", "this battle has no fog of war");
+  const Json* list;
+  if (!rd.array(saved, "lights", top, -1, 1000, list)) return false;
+  for (size_t i = 0; i < list->size(); ++i) {
+    const std::string where = top + ".lights[" + std::to_string(i) + "]";
+    const Json& j = (*list)[i];
+    if (!j.isObject()) return rd.fail(where, "not an object");
+    LightArea l;
+    if (!rd.integer(j, "side", where, 0, (int)b.sides.size() - 1, l.side) ||
+        !rd.integer(j, "cell", where, 0, b.grid.cellCount() - 1, l.cell) || !rd.integer(j, "radius", where, 1, kMaxStaffRadius, l.radius) ||
+        !rd.integer(j, "turns", where, 1, kMaxStaffLightTurns, l.turns))
+      return false;
+    b.lights.push_back(l);
+  }
+  return true;
+}
+
 }  // namespace savejson
 }  // namespace ote

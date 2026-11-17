@@ -253,7 +253,14 @@ bool validateStaff(const Action& action, std::string* why) const;
 void applyStaff(const Action& action, std::vector<Event>& events);
 // The units (ascending id) the staff would really affect for the picked unit `center` (-1 = nobody picked) with the user
 // on `from`: the target rule, the area, the conditions, and "would change" (a heal needs a hurt unit).
-void staffAffected(const Unit& user, int item, int center, Cell from, std::vector<int>& out) const;
+void staffAffected(const Unit& user, int item, int slot, int center, Cell from, std::vector<int>& out) const;
+// Would this one effect change `t` (the user on `from`, the staff in `slot`)? null = yes, else the plain reason it would not.
+const char* staffEffectWhy(const Unit& user, const StaffDef& d, const StaffEffect& fx, int slot, const Unit& t, Cell from) const;
+// The shared tail of a use: the use is spent, then experience and rank experience, then the order ends (staves_apply.cpp).
+void finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events);
+void applyStaffLight(const Action& action, std::vector<Event>& events);
+// Lights whose time is up leave at the start of their side's turn (turn.cpp).
+void lightsTurnStart();
 // A staff formula (`expr` of Database::exprs): a = user, b = `target` (null = none), w = the staff, the user on `from`.
 double staffEval(int expr, const Unit& user, const Unit* target, const StaffDef& d, Cell from, double def) const;
 // What one effect would restore to `t` before the unit's maximum caps it (0 = nothing).

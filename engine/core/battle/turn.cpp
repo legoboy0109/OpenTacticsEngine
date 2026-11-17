@@ -15,7 +15,20 @@ void Battle::changeResource(int side, int resource, int delta, std::vector<Event
   events.push_back(e);
 }
 
+// A light lasts for `turns` of its side's turns: each time that side's turn starts it has one fewer, and at 0 it is gone
+// (so the default 1 = until that side's next turn starts). Dropped from the sight cache, which is derived data.
+void Battle::lightsTurnStart() {
+  bool changed = false;
+  for (size_t i = lights.size(); i-- > 0;)
+    if (lights[i].side == activeSide) {
+      changed = true;
+      if (--lights[i].turns <= 0) lights.erase(lights.begin() + (long)i);
+    }
+  if (changed) markSight();
+}
+
 void Battle::beginTurn(std::vector<Event>& events) {
+  lightsTurnStart();
   for (Unit& u : units)
     if (u.side == activeSide) {
       u.moved = u.done = false;

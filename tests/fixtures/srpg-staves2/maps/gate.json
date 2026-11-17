@@ -1,0 +1,11 @@
+{ "name": "Gate", "grid": { "type": "square", "width": 6, "height": 4 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "mystic", "id": "sage", "name": "Sage", "side": "blue", "x": 3, "y": 2, "leader": true,
+      "items": ["warp_staff", "swap_staff", "recall_staff"] },
+    { "type": "fighter", "id": "bram", "name": "Bram", "side": "blue", "x": 1, "y": 3, "items": ["short_sword"] },
+    { "type": "fighter", "id": "dax", "name": "Dax", "side": "blue", "x": 4, "y": 3, "items": ["short_sword"] },
+    { "type": "raider", "id": "g1", "side": "red", "x": 5, "y": 0, "items": ["short_sword"] } ],
+  "events": [ { "id": "arrive", "when": { "reach": { "x": 1, "y": 1 }, "by": { "unit": "bram" } }, "do": [ { "setSwitch": "arrived", "to": true } ] } ],
+  "objectives": { "text": "Get Dax to the gate.", "win": [ { "reach": { "x": 5, "y": 3 }, "by": "dax" } ] } }

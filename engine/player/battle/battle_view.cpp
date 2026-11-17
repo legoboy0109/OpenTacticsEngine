@@ -270,7 +270,9 @@ void BattleView::begin(const Battle& b) {
     case EventType::SupportReached:
     case EventType::RankUp:
     case EventType::StaffUsed:
-    case EventType::StaffMissed: break;
+    case EventType::StaffMissed:
+    case EventType::ItemRepaired:
+    case EventType::AreaLit: break;
   }
 }
 

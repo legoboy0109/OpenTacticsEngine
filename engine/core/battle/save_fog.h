@@ -23,5 +23,12 @@ void writeSeenKinds(const Battle& b, Json& out);
 // and for an entry that is not a kind the structure can have become (same footprint, reachable by upgrades).
 bool readSeenKinds(Reader& rd, const Json& saved, Battle& b);
 
+// Adds "lights" (docs/SRPG.md section 8, stage 2): the lights staves made that still last, as [{ "side", "cell", "radius", "turns" }].
+// Written only when there are some, so every other save is what it was.
+void writeLights(const Battle& b, Json& out);
+// Reads it into `b`. No key = no lights (an old save). Refused on a battle without fog and for an entry that is not a side, a square
+// on the map, a radius 1..10 and turns 1..10.
+bool readLights(Reader& rd, const Json& saved, Battle& b);
+
 }  // namespace savejson
 }  // namespace ote

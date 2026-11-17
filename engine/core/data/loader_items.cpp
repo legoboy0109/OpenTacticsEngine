@@ -80,6 +80,11 @@ bool loadItems(const std::string& path, Database& db, std::string& err) {
       if (!c.integer(e, "uses", where, it.uses)) return false;
       if (it.uses < 1 || it.uses > 999) return c.fail(where, "\"uses\" must be from 1 to 999 (leave it out for unlimited)");
     }
+    if (e.has("repairable")) {  // docs/SRPG.md section 8: a staff's "repair" skips items marked false
+      if (!e["repairable"].isBool()) return c.fail(where, "\"repairable\" must be true or false");
+      if (it.uses < 0) return c.fail(where, "\"repairable\" only matters for an item with \"uses\" (an item without them never wears)");
+      it.repairable = e["repairable"].asBool();
+    }
     if (!c.amounts(db, e, "price", where, it.price)) return false;
     for (const Amount& a : it.price)
       if (a.amount < 0) return c.fail(where, "\"price\" must not be negative");

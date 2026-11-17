@@ -1,7 +1,12 @@
-// Staves in a battle, carrying a use out (docs/SRPG.md section 8 "How it is used"). The questions are staves.cpp.
+// Staves in a battle, carrying a use out (docs/SRPG.md section 8 "How it is used"). The questions are staves.cpp and
+// staves_effects.cpp.
 //
-// Order of the events: StaffUsed; per unit in the area (ascending id) UnitHealed or StaffMissed; ItemBroke when the use was
-// the staff's last; the user's XpGained / LevelUp; RankUp; then the user's order ends and supports earn for each unit healed.
+// Order of the events: StaffUsed; per unit in the area (ascending id) StaffMissed, or UnitHealed, ItemRepaired and last
+// UnitRelocated (a move is always the last thing an effect does to a unit, whatever order the staff lists them in, so every
+// formula sees the unit where it stood when it was picked); ItemBroke when the use was the staff's last; the user's XpGained /
+// LevelUp; RankUp; then the user's order ends, supports earn for each unit healed, and last the story's "reach" events for the
+// units that were moved (they may add units or end the battle, so nothing runs after them).
+// A light staff: StaffUsed, AreaLit, then the same spending, experience and end of the order.
 #include <algorithm>
 #include <cmath>
 
@@ -10,7 +15,7 @@
 namespace ote {
 
 namespace {
-bool refuse(std::string* why, const char* reason) {
+bool refuse(std::string* why, const std::string& reason) {
   if (why) *why = reason;
   return false;
 }
@@ -33,60 +38,52 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
   if (db->items[(size_t)item].kind != ItemKind::Staff) return refuse(why, "that item is not a staff");
   if (!canWieldStaff(u, item, why)) return false;
   const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];
-  std::vector<int> legal;
-  staffTargets(action.unit, action.slot, u.cell, legal);
-  if (!d.needsPick()) return !legal.empty() || refuse(why, "nobody in reach needs that");
-  if (std::find(legal.begin(), legal.end(), action.target) != legal.end()) return true;
-  // Say why this unit is not one (the list above is the truth; these are only the words).
-  if (action.target < 0 || action.target >= (int)units.size() || !units[(size_t)action.target].alive)
-    return refuse(why, "that is not a unit on the board");
-  const Unit& t = units[(size_t)action.target];
-  if (t.id != u.id && !unitVisibleTo(teamOf(u), t)) return refuse(why, "you cannot see that unit");
-  const bool mine = teamOf(t) == teamOf(u);
-  if ((d.target == StaffTarget::Ally && (!mine || t.id == u.id)) || (d.target == StaffTarget::Team && !mine) ||
-      (d.target == StaffTarget::Foe && mine) || (d.target == StaffTarget::Any && t.id == u.id))
-    return refuse(why, "that staff does not work on that unit");
-  int minR = 1, maxR = 1;
-  staffRange(u, item, minR, maxR);
-  const int dist = grid.distance(u.cell, t.cell);
-  if (dist < minR || dist > maxR) return refuse(why, "that unit is out of range");
-  return refuse(why, "nobody in reach needs that");
-}
 
-void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
-  const int uid = action.unit;
-  const int slot = action.slot;
-  const int item = units[(size_t)uid].items[(size_t)slot].item;
-  const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];  // validated
-  const int center = d.needsPick() ? action.target : (d.target == StaffTarget::Self ? uid : -1);
-
-  std::vector<int> affected;
-  staffAffected(units[(size_t)uid], item, center, units[(size_t)uid].cell, affected);
-  events.push_back(staffEvent(EventType::StaffUsed, uid, item, center, (int)affected.size()));
-
-  std::vector<int> healed;
-  for (int id : affected) {
-    Unit& t = units[(size_t)id];
-    if (d.canMiss()) {
-      // One roll per unit, in ascending id, with the battle's own dice (docs/SRPG.md "hit").
-      const int percent = std::max(0, std::min(100, (int)std::lround(staffEval(d.hitExpr, units[(size_t)uid], &t, d, kNoCell, 100))));
-      if (!rng.chance(percent)) {
-        events.push_back(staffEvent(EventType::StaffMissed, id, uid, item));
-        continue;
-      }
-    }
-    int total = 0;
-    for (const StaffEffect& fx : d.effects) {
-      if (fx.kind != StaffEffect::Kind::Heal) continue;
-      total += std::max(0, std::min(staffHealAmount(units[(size_t)uid], d, fx, t, kNoCell), maxHp(t) - t.hp - total));
-    }
-    if (total <= 0) continue;
-    t.hp += total;
-    events.push_back(staffEvent(EventType::UnitHealed, id, total));
-    if (id != uid) healed.push_back(id);
+  if (d.picksSquare()) {  // a light: the square to light
+    if (!fog) return refuse(why, "this map has no fog of war, so there is nothing to light");
+    if (!grid.valid(action.cell)) return refuse(why, "pick a square to light");
+    std::vector<Cell> cells;
+    staffLightCells(action.unit, action.slot, u.cell, cells);
+    if (std::find(cells.begin(), cells.end(), action.cell) != cells.end()) return true;
+    int minR = 1, maxR = 1;
+    staffRange(u, item, minR, maxR);
+    const int dist = grid.distance(u.cell, action.cell);
+    if (dist < minR || dist > maxR) return refuse(why, "that square is out of range");
+    return refuse(why, "nothing there is hidden from you");
   }
 
-  // The use is spent (the staff may break: the slot is gone after this), then what the user earns.
+  std::vector<int> legal;
+  staffTargets(action.unit, action.slot, u.cell, legal);
+  int center = action.target;
+  if (!d.needsPick()) {
+    if (legal.empty()) return refuse(why, staffNobodyWhy(d));
+    center = d.target == StaffTarget::Self ? action.unit : -1;  // (a staff of "self" that warps or repairs still needs its second pick)
+  } else if (std::find(legal.begin(), legal.end(), action.target) == legal.end()) {
+    const std::string reason = staffTargetWhy(action.unit, action.slot, action.target, u.cell);
+    return refuse(why, reason.empty() ? "nobody in reach needs that" : reason);
+  }
+  if (center < 0) return true;
+  // The second pick of a warp (the square) and of a repair (the item).
+  if (d.has(StaffEffect::Kind::Warp)) {
+    std::vector<Cell> cells;
+    staffWarpCells(action.unit, action.slot, center, u.cell, cells);
+    // With no square to send it to the warp part is skipped (the staff's other effects still work), so none is needed.
+    if (!cells.empty() && !grid.valid(action.cell)) return refuse(why, "pick the square to warp it to");
+    if (!cells.empty() && std::find(cells.begin(), cells.end(), action.cell) == cells.end())
+      return refuse(why, "it cannot be warped to that square (too far, not free, or it could not stand there)");
+  }
+  if (d.has(StaffEffect::Kind::Repair)) {
+    std::vector<int> mendable;
+    staffRepairSlots(action.unit, action.slot, center, mendable);
+    if (!mendable.empty() && action.itemSlot < 0) return refuse(why, "pick the item to repair");
+    if (action.itemSlot >= 0 && std::find(mendable.begin(), mendable.end(), action.itemSlot) == mendable.end())
+      return refuse(why, "that item cannot be repaired");
+  }
+  return true;
+}
+
+// The use is spent (the staff may break: the slot is gone after this), then what the user earns, then the order ends.
+void Battle::finishStaffUse(int uid, int slot, const StaffDef& d, int center, std::vector<Event>& events) {
   Unit& user = units[(size_t)uid];
   const Unit* centerUnit = center >= 0 ? &units[(size_t)center] : nullptr;
   const int xp = d.xpExpr >= 0 ? (int)std::max(0.0, std::min<double>(kMaxStaffXp, std::floor(staffEval(d.xpExpr, user, centerUnit, d, kNoCell, 0)))) : d.xp;
@@ -109,8 +106,124 @@ void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
     }
   }
   endOrder(uid);
+}
+
+void Battle::applyStaffLight(const Action& action, std::vector<Event>& events) {
+  const int uid = action.unit;
+  const int slot = action.slot;
+  const int item = units[(size_t)uid].items[(size_t)slot].item;
+  const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];
+  const StaffEffect& fx = *d.find(StaffEffect::Kind::Light);
+  const int team = teamOf(units[(size_t)uid]);
+  std::vector<Cell> area;
+  grid.within(action.cell, fx.radius, area);
+  int fresh = 0;
+  for (Cell c : area) fresh += !visibleTo(team, c);
+  events.push_back(staffEvent(EventType::StaffUsed, uid, item, -1, fresh));
+  markSight();  // the events so far describe the world as it was; the light changes who sees what
+  LightArea light;
+  light.side = units[(size_t)uid].side;
+  light.cell = action.cell;
+  light.radius = fx.radius;
+  light.turns = fx.turns;
+  lights.push_back(light);
+  events.push_back(staffEvent(EventType::AreaLit, uid, action.cell, fx.radius, fx.turns));
+  finishStaffUse(uid, slot, d, -1, events);
+}
+
+void Battle::applyStaff(const Action& action, std::vector<Event>& events) {
+  const int uid = action.unit;
+  const int slot = action.slot;
+  const int item = units[(size_t)uid].items[(size_t)slot].item;
+  const StaffDef& d = db->staves[(size_t)db->items[(size_t)item].staff];  // validated
+  if (d.picksSquare()) {
+    applyStaffLight(action, events);
+    return;
+  }
+  const int center = d.needsPick() ? action.target : (d.target == StaffTarget::Self ? uid : -1);
+
+  std::vector<int> affected;
+  staffAffected(units[(size_t)uid], item, slot, center, units[(size_t)uid].cell, affected);
+
+  // What would move, worked out on the truth before anything changes. A warp whose square holds an enemy the team never saw
+  // is blocked: the use is paid for, the other effects still happen, the unit stays where it was.
+  AbilityPlan plan;
+  bool blocked = false;
+  if (d.movesUnit() && !affected.empty()) {
+    const Unit& user = units[(size_t)uid];
+    const Unit& t = units[(size_t)center];
+    // An effect that cannot work on this unit (only possible next to a heal that can) is skipped.
+    if (d.has(StaffEffect::Kind::Warp)) {
+      if (grid.valid(action.cell) && occupant[(size_t)action.cell] >= 0 && occupant[(size_t)action.cell] != uid) {
+        plan.blocker = occupant[(size_t)action.cell];
+        blocked = true;
+      } else if (grid.valid(action.cell)) {
+        plan.moves = {{center, action.cell}};
+      }
+    } else if (d.has(StaffEffect::Kind::Pull)) {
+      const Cell to = staffPullCell(uid, center, user.cell);
+      if (to != kNoCell) plan.moves = {{center, to}};
+    } else if (center != uid && staffCanStand(user, t.cell) && staffCanStand(t, user.cell)) {
+      plan.moves = {{center, user.cell}, {uid, t.cell}};  // the target first: the events and "reach" follow that order
+    }
+  }
+  Event used = staffEvent(EventType::StaffUsed, uid, item, center, (int)affected.size());
+  if (blocked) {
+    used.flags = kBlocked;
+    used.data.push_back(plan.blocker);
+  }
+  events.push_back(used);
+
+  std::vector<int> healed;
+  bool moves = false;
+  for (int id : affected) {
+    Unit& t = units[(size_t)id];
+    if (d.canMiss()) {
+      // One roll per unit, in ascending id, with the battle's own dice (docs/SRPG.md "hit").
+      const int percent = std::max(0, std::min(100, (int)std::lround(staffEval(d.hitExpr, units[(size_t)uid], &t, d, kNoCell, 100))));
+      if (!rng.chance(percent)) {
+        events.push_back(staffEvent(EventType::StaffMissed, id, uid, item));
+        continue;
+      }
+    }
+    int total = 0;
+    for (const StaffEffect& fx : d.effects) {
+      if (fx.kind != StaffEffect::Kind::Heal) continue;
+      total += std::max(0, std::min(staffHealAmount(units[(size_t)uid], d, fx, t, kNoCell), maxHp(t) - t.hp - total));
+    }
+    if (total > 0) {
+      t.hp += total;
+      events.push_back(staffEvent(EventType::UnitHealed, id, total));
+      if (id != uid) healed.push_back(id);
+    }
+    if (const StaffEffect* fx = d.find(StaffEffect::Kind::Repair)) {
+      if (action.itemSlot >= 0 && action.itemSlot < (int)t.items.size()) {
+        ItemStack& st = t.items[(size_t)action.itemSlot];
+        const int top = db->items[(size_t)st.item].uses;
+        const int amount = std::min(top - st.uses, fx->amount == StaffEffect::Amount::Full ? top : fx->value);
+        if (amount > 0) {
+          st.uses += amount;
+          events.push_back(staffEvent(EventType::ItemRepaired, id, st.item, amount, st.uses));
+        }
+      }
+    }
+    moves = true;
+  }
+  if (moves) doAbilityMoves(plan, events);  // a miss leaves `moves` false for the one unit: nothing moves
+  if (!moves) plan.moves.clear();
+
+  finishStaffUse(uid, slot, d, center, events);
   // Supports earn after the order ends: their story events may add units (items do the same).
   for (int id : healed) supportsHealed(uid, id, events);
+  // A moved unit has stopped somewhere: events waiting for a unit to arrive on that square may run (as after an ability or a
+  // drop). The same units' objectives ("reach a square") are judged by settle() after every action.
+  for (const AbilityMove& m : plan.moves) {
+    StoryOccurrence o;
+    o.kind = Trigger::Kind::Reach;
+    o.unit = m.unit;
+    o.cell = m.to;
+    fireStory(o, events);
+  }
 }
 
 }  // namespace ote

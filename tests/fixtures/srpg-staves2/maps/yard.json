@@ -1,0 +1,13 @@
+{ "name": "Yard", "grid": { "type": "square", "width": 10, "height": 6 }, "legend": { ".": "plain", "~": "pond", "#": "wall" },
+  "tiles": ["..........", "...~~.....", "...~~.....", "...##.....", "..........", ".........."],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "mystic", "id": "sage", "name": "Sage", "side": "blue", "x": 2, "y": 2, "leader": true,
+      "items": ["warp_staff", "recall_staff", "swap_staff", "shove_staff", "banish_staff", "hop_staff", "fix_staff", "patch_staff", "kindly_pull_staff"] },
+    { "type": "fighter", "id": "ren", "name": "Ren", "side": "blue", "x": 8, "y": 2,
+      "items": ["iron_blade", "glass_blade", "short_sword", "herb"] },
+    { "type": "glider", "id": "wisp", "name": "Wisp", "side": "blue", "x": 3, "y": 2, "items": ["iron_blade"] },
+    { "type": "knight", "id": "bram", "name": "Bram", "side": "blue", "x": 2, "y": 4, "items": ["short_sword"] },
+    { "type": "fighter", "id": "dax", "name": "Dax", "side": "blue", "x": 6, "y": 4, "items": ["short_sword"] },
+    { "type": "raider", "id": "g1", "side": "red", "x": 9, "y": 0, "items": ["short_sword"] },
+    { "type": "raider", "id": "g2", "side": "red", "x": 5, "y": 5, "items": ["short_sword"] } ] }

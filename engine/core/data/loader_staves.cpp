@@ -14,7 +14,7 @@ std::string q(const std::string& s) { return "\"" + s + "\""; }
 
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where) {
   static const char* const keys[] = {"id", "name", "description", "kind", "uses", "price", "group", "rank", "rankXp", "wieldedBy", "wieldedByTypes",
-                                     "props", "range", "target", "area", "effects", "hit", "xp", "if"};
+                                     "props", "range", "target", "area", "effects", "hit", "xp", "if", "repairable"};
   for (const Json::Member& m : o.members()) {
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
@@ -75,7 +75,119 @@ bool readTargetAndArea(const LoadCtx& c, const Json& e, const std::string& where
   return true;
 }
 
-// "effects": [ { "heal": 10 | "full" | { "percent": 30 } | "<formula>" } ], 1 to 4 entries. Stage 1: only the heal.
+// "range" of a warp: the same three forms as the staff's own (a whole number, [min, max], a formula for the maximum).
+bool readWarpRange(const LoadCtx& c, Database& db, const Json& v, const std::string& where, const std::string& at, StaffEffect& out) {
+  const std::string bad = at + ": \"warp\": \"range\" must be a whole number from 1 to " + std::to_string(kMaxStaffRange) +
+                          ", a list [min, max] or a formula (text)";
+  if (!v.isObject()) return c.fail(where, at + ": \"warp\" must be { \"range\": n } (how far from the user the destination may be)");
+  for (const Json::Member& m : v.members())
+    if (m.first != "range") return c.fail(where, at + ": \"warp\": unknown key " + q(m.first) + " (expected \"range\")");
+  if (!v.has("range")) return c.fail(where, at + ": \"warp\" needs \"range\" (how far from the user the destination may be)");
+  const Json& r = v["range"];
+  out.kind = StaffEffect::Kind::Warp;
+  if (r.isString()) {
+    out.warpExpr = db.addExpr(r.asString(), "data/items.json: " + where + ": " + at + ": \"warp\": \"range\"");
+  } else if (LoadCtx::isWhole(r)) {
+    if (r.asInt() < 1 || r.asInt() > kMaxStaffRange) return c.fail(where, bad);
+    out.warpMax = r.asInt();
+  } else if (r.isArray()) {
+    if (r.size() != 2 || !LoadCtx::isWhole(r[0]) || !LoadCtx::isWhole(r[1]) || r[0].asInt() < 1 || r[1].asInt() < r[0].asInt() ||
+        r[1].asInt() > kMaxStaffRange)
+      return c.fail(where, bad + "; a list is whole numbers, min not above max");
+    out.warpMin = r[0].asInt();
+    out.warpMax = r[1].asInt();
+  } else {
+    return c.fail(where, bad);
+  }
+  return true;
+}
+
+bool readHeal(const LoadCtx& c, Database& db, const Json& h, const std::string& where, const std::string& at, StaffEffect& out) {
+  if (h.isString() && h.asString() == "full") {
+    out.amount = StaffEffect::Amount::Full;
+  } else if (h.isString()) {
+    out.amount = StaffEffect::Amount::Formula;
+    out.expr = db.addExpr(h.asString(), "data/items.json: " + where + ": " + at + ": \"heal\"");
+  } else if (LoadCtx::isWhole(h)) {
+    if (h.asInt() < 1 || h.asInt() > 1000000) return c.fail(where, at + ": \"heal\" must be from 1 to 1000000");
+    out.value = h.asInt();
+  } else if (h.isObject()) {
+    for (const Json::Member& m : h.members())
+      if (m.first != "percent") return c.fail(where, at + ": \"heal\": unknown key " + q(m.first) + " (expected \"percent\")");
+    if (!h.has("percent") || !LoadCtx::isWhole(h["percent"]) || h["percent"].asInt() < 1 || h["percent"].asInt() > 100)
+      return c.fail(where, at + ": \"heal\": \"percent\" must be a whole number from 1 to 100");
+    out.amount = StaffEffect::Amount::Percent;
+    out.value = h["percent"].asInt();
+  } else {
+    return c.fail(where, at + ": \"heal\" must be a whole number, \"full\", { \"percent\": n } or a formula (text)");
+  }
+  return true;
+}
+
+bool readRepair(const LoadCtx& c, const Json& v, const std::string& where, const std::string& at, StaffEffect& out) {
+  out.kind = StaffEffect::Kind::Repair;
+  if (v.isString() && v.asString() == "full") {
+    out.amount = StaffEffect::Amount::Full;
+  } else if (LoadCtx::isWhole(v)) {
+    if (v.asInt() < 1 || v.asInt() > 999) return c.fail(where, at + ": \"repair\" must be a whole number of uses from 1 to 999");
+    out.value = v.asInt();
+  } else {
+    return c.fail(where, at + ": \"repair\" must be \"full\" or a whole number of uses from 1 to 999");
+  }
+  return true;
+}
+
+bool readLight(const LoadCtx& c, const Json& v, const std::string& where, const std::string& at, StaffEffect& out) {
+  out.kind = StaffEffect::Kind::Light;
+  if (!v.isObject()) return c.fail(where, at + ": \"light\" must be { \"radius\": n, \"turns\": n }");
+  for (const Json::Member& m : v.members())
+    if (m.first != "radius" && m.first != "turns")
+      return c.fail(where, at + ": \"light\": unknown key " + q(m.first) + " (expected \"radius\" or \"turns\")");
+  if (!v.has("radius") || !LoadCtx::isWhole(v["radius"]) || v["radius"].asInt() < 1 || v["radius"].asInt() > kMaxStaffRadius)
+    return c.fail(where, at + ": \"light\": \"radius\" must be a whole number from 1 to " + std::to_string(kMaxStaffRadius));
+  out.radius = v["radius"].asInt();
+  if (v.has("turns")) {
+    if (!LoadCtx::isWhole(v["turns"]) || v["turns"].asInt() < 1 || v["turns"].asInt() > kMaxStaffLightTurns)
+      return c.fail(where, at + ": \"light\": \"turns\" must be a whole number from 1 to " + std::to_string(kMaxStaffLightTurns) +
+                               " (leave it out for 1)");
+    out.turns = v["turns"].asInt();
+  }
+  return true;
+}
+
+// What a staff's effects may be put together with (docs/SRPG.md "Staves: stage two, as built"), refused in plain words.
+bool checkCombination(const LoadCtx& c, const Json& e, const std::string& where, const StaffDef& d) {
+  int moves = 0, repairs = 0, lights = 0;
+  for (const StaffEffect& fx : d.effects) {
+    moves += fx.movesUnit();
+    repairs += fx.kind == StaffEffect::Kind::Repair;
+    lights += fx.kind == StaffEffect::Kind::Light;
+  }
+  if (moves > 1) return c.fail(where, "a staff can have only one of \"warp\", \"pull\" and \"swap\" (each one decides where the picked unit ends up)");
+  if (repairs > 1) return c.fail(where, "a staff can have only one \"repair\"");
+  if (lights > 1) return c.fail(where, "a staff can have only one \"light\"");
+  if (repairs && moves)
+    return c.fail(where, "\"repair\" cannot be put together with \"warp\", \"pull\" or \"swap\" (each one asks the player for a second pick)");
+  if (lights) {
+    if (d.effects.size() != 1) return c.fail(where, "\"light\" picks a square, not a unit, so it cannot be put together with another effect");
+    if (e.has("target")) return c.fail(where, "\"light\" picks a square, so the staff has no \"target\"");
+    if (e.has("area")) return c.fail(where, "\"light\" picks a square, so the staff has no \"area\" (the light has its own \"radius\")");
+    if (e.has("hit")) return c.fail(where, "\"light\" picks a square, so there is no unit to roll \"hit\" for");
+    if (e.has("if")) return c.fail(where, "\"light\" picks a square, so there is no unit for \"if\" to judge");
+    return true;
+  }
+  if (moves || repairs) {
+    const char* what = repairs ? "repair" : d.has(StaffEffect::Kind::Warp) ? "warp" : d.has(StaffEffect::Kind::Pull) ? "pull" : "swap";
+    if (d.area != StaffArea::Single)
+      return c.fail(where, std::string("\"") + what + "\" works on the one unit picked, so \"area\" must be \"single\"");
+    if ((d.has(StaffEffect::Kind::Pull) || d.has(StaffEffect::Kind::Swap)) && d.target == StaffTarget::Self)
+      return c.fail(where, std::string("\"") + what + "\" needs another unit, so \"target\" cannot be \"self\"");
+  }
+  return true;
+}
+
+// "effects": [ { "heal": ... } | { "warp": { "range": n } } | { "pull": true } | { "swap": true } | { "repair": "full" | n }
+//              | { "light": { "radius": n, "turns": n } } ], 1 to 4 entries.
 bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::string& where, StaffDef& d) {
   const Json* list;
   if (!c.array(e, "effects", where, list, true)) return false;
@@ -85,31 +197,27 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& e, const std::strin
     const Json& fx = (*list)[i];
     const std::string at = "\"effects\" entry " + std::to_string(i + 1);
     if (!fx.isObject() || fx.size() != 1) return c.fail(where, at + " must be an object with exactly one effect such as { \"heal\": 10 }");
-    if (!fx.has("heal")) return c.fail(where, at + ": unknown effect " + q(fx.members()[0].first) + " (a staff can: heal)");
-    if (d.target == StaffTarget::Foe) return c.fail(where, "\"heal\" cannot target \"foe\"");
-    const Json& h = fx["heal"];
+    const std::string kind = fx.members()[0].first;
+    const Json& v = fx[kind.c_str()];
     StaffEffect out;
-    if (h.isString() && h.asString() == "full") {
-      out.amount = StaffEffect::Amount::Full;
-    } else if (h.isString()) {
-      out.amount = StaffEffect::Amount::Formula;
-      out.expr = db.addExpr(h.asString(), "data/items.json: " + where + ": " + at + ": \"heal\"");
-    } else if (LoadCtx::isWhole(h)) {
-      if (h.asInt() < 1 || h.asInt() > 1000000) return c.fail(where, at + ": \"heal\" must be from 1 to 1000000");
-      out.value = h.asInt();
-    } else if (h.isObject()) {
-      for (const Json::Member& m : h.members())
-        if (m.first != "percent") return c.fail(where, at + ": \"heal\": unknown key " + q(m.first) + " (expected \"percent\")");
-      if (!h.has("percent") || !LoadCtx::isWhole(h["percent"]) || h["percent"].asInt() < 1 || h["percent"].asInt() > 100)
-        return c.fail(where, at + ": \"heal\": \"percent\" must be a whole number from 1 to 100");
-      out.amount = StaffEffect::Amount::Percent;
-      out.value = h["percent"].asInt();
+    if (kind == "heal") {
+      if (d.target == StaffTarget::Foe) return c.fail(where, "\"heal\" cannot target \"foe\"");
+      if (!readHeal(c, db, v, where, at, out)) return false;
+    } else if (kind == "warp") {
+      if (!readWarpRange(c, db, v, where, at, out)) return false;
+    } else if (kind == "pull" || kind == "swap") {
+      if (!(v.isBool() && v.asBool())) return c.fail(where, at + ": \"" + kind + "\" must be true");
+      out.kind = kind == "pull" ? StaffEffect::Kind::Pull : StaffEffect::Kind::Swap;
+    } else if (kind == "repair") {
+      if (!readRepair(c, v, where, at, out)) return false;
+    } else if (kind == "light") {
+      if (!readLight(c, v, where, at, out)) return false;
     } else {
-      return c.fail(where, at + ": \"heal\" must be a whole number, \"full\", { \"percent\": n } or a formula (text)");
+      return c.fail(where, at + ": unknown effect " + q(kind) + " (a staff can: heal, warp, pull, swap, repair, light)");
     }
     d.effects.push_back(out);
   }
-  return true;
+  return checkCombination(c, e, where, d);
 }
 
 bool readHitXpConds(const LoadCtx& c, Database& db, const Json& e, const std::string& where, StaffDef& d) {

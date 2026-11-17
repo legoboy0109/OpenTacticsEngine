@@ -6,6 +6,10 @@
 // units it hits. A leader whose death ends the game counts double. A unit above half HP that would get less than half of what
 // the staff nominally gives is not worth a use (the staff has limited uses). Only a unit that would change is a legal target
 // (Battle::staffTargets), so a use is never wasted on an unhurt unit.
+//
+// Stage 2 (warp, pull, swap, repair, light): the computer IGNORES any staff that has an effect other than a heal. Those effects
+// need a second pick (a square, an item) or change the map for the whole side, and judging them takes a plan the stateless AI
+// does not make; ignoring them can never crash or stall it (docs/SRPG.md section 8).
 #include <algorithm>
 
 #include "core/ai/ai_internal.h"
@@ -41,6 +45,10 @@ void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& b
   b.staffOptions(u.id, s, options);
   for (const StaffOption& o : options) {
     if (!o.ok) continue;
+    const StaffDef& def = b.db->staves[(size_t)b.db->items[(size_t)o.item].staff];
+    bool healsOnly = true;
+    for (const StaffEffect& fx : def.effects) healsOnly = healsOnly && fx.kind == StaffEffect::Kind::Heal;
+    if (!healsOnly) continue;
     std::vector<int> targets;
     b.staffTargets(u.id, o.slot, s, targets);
     for (int t : targets) {

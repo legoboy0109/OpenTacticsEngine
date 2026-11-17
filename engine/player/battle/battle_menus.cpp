@@ -40,6 +40,10 @@ void BattleScene::openActionMenu() {
   overlay_ = Overlay();
   staffList_ = false;
   staffFcOn_ = false;
+  staffBack_ = nullptr;
+  pickBack_ = nullptr;
+  pickWhy_ = nullptr;
+  clearStaffHint();
   const Unit& u = battle_.units[sel_];
   std::vector<AttackOption> opts;
   battle_.attackOptions(sel_, u.cell, opts);
@@ -130,6 +134,12 @@ void BattleScene::menuInput(const InputEvent& e) {
   if (res == Menu::None) return;
   int id = menu_.chosenId();
   if (mode_ == Mode::ActionMenu) {
+    if (res == Menu::Cancelled && staffBack_) {  // a staff's "Repair which?": one step back, to the unit pick
+      std::function<void()> stepBack = std::move(staffBack_);
+      staffBack_ = nullptr;
+      stepBack();
+      return;
+    }
     if (res == Menu::Cancelled && staffList_) {  // the Staff list: back to the action menu, nothing undone
       openActionMenu();
       return;

@@ -219,8 +219,10 @@ The switch between fixed and carried weapons, the inventory size and the
 shared storage are in `game.json` under `rules.items`. A map can give each
 unit its own `"items"` and each side a starting `"storage"`. Everything is
 in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md). An item of `"kind": "staff"` (a staff a unit wields by
-group and rank and uses on another unit at range: healing in a first stage) has its own keys (`group`, `range`, `target`, `area`,
-`effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md section 8 "Staves".
+group and rank and uses on another unit at range: healing, warping, pulling, swapping, repairing an item, lighting a square in fog)
+has its own keys (`group`, `range`, `target`, `area`, `effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md
+section 8 "Staves" (the editor's form covers healing only so far; the other effects are written by hand and kept by the editor). Any item may
+say `"repairable": false` (only with `uses`) so that a staff's `repair` never offers it.
 
 ## data/research.json (optional)
 

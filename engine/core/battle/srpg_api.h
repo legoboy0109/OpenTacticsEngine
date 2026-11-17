@@ -108,4 +108,27 @@ void staffOptions(int unit, Cell from, std::vector<StaffOption>& out) const;
 // "all", target "self") returns the user alone when it would do something, meaning "confirm". Empty = unusable now.
 void staffTargets(int unit, int slot, Cell from, std::vector<int>& out) const;
 // What the use would do (no randomness). False when it is not legal (see validate).
-bool staffForecast(int unit, int slot, int target, Cell from, StaffForecast& out) const;
+// Stage 2 (docs/SRPG.md section 8): `dest` = a warp's chosen square and `itemSlot` = a repair's chosen item (slot in the target's
+// inventory), both optional (the forecast says what is still to pick); for a light staff `target` is the picked SQUARE.
+bool staffForecast(int unit, int slot, int target, Cell from, StaffForecast& out, Cell dest = kNoCell, int itemSlot = -1) const;
+// A warp's destinations for the picked unit: free squares it could stand on (and, with fog, that the team sees) within the
+// warp's reach of the user standing on `from`. Ascending cell index.
+void staffWarpCells(int unit, int slot, int target, Cell from, std::vector<Cell>& out) const;
+// The items of `target` a repair could mend (slots in its inventory, ascending): not unlimited, not full, not "repairable": false,
+// and not the staff in use when the target is the user.
+void staffRepairSlots(int unit, int slot, int target, std::vector<int>& out) const;
+// A light staff's squares: those within its range of `from` where it would show the team something it does not see now.
+// Empty on a map without fog.
+void staffLightCells(int unit, int slot, Cell from, std::vector<Cell>& out) const;
+// A pull's square: the free square next to the user (on `from`) the target could stand on that is nearest to it, ties to the
+// lower cell number; kNoCell when there is none or the target already stands next to the user.
+Cell staffPullCell(int unit, int target, Cell from) const;
+// Why `target` is not a valid pick for the staff in `slot` ("" = valid): the words the player says when a unit is tapped.
+std::string staffTargetWhy(int unit, int slot, int target, Cell from) const;
+// May the unit stand on `cell`: on the map and its movement type can enter the terrain (ignores who is there). The one rule
+// every staff move, drop and ability uses for "legal to stand on".
+bool staffCanStand(const Unit& t, Cell cell) const { return grid.valid(cell) && enterCost(cell, typeOf(t).moveType) > 0; }
+// The warp's reach (min .. max) from the user for this staff effect (a formula judged on the user's stats; max 0 = nowhere).
+void staffWarpRange(const Unit& user, const StaffDef& d, const StaffEffect& fx, int& minRange, int& maxRange) const;
+// The lights staves have made and that still last (docs/SRPG.md section 8, stage 2). Saved only when not empty.
+std::vector<LightArea> lights;

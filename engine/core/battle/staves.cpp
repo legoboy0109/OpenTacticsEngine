@@ -81,10 +81,10 @@ int Battle::staffHealAmount(const Unit& user, const StaffDef& d, const StaffEffe
 
 // The units the staff would really change. `from` is where the user stands for the question; its own square is `from`
 // whenever the user itself is a candidate (a team heal, a self staff).
-void Battle::staffAffected(const Unit& user, int item, int center, Cell from, std::vector<int>& out) const {
+void Battle::staffAffected(const Unit& user, int item, int slot, int center, Cell from, std::vector<int>& out) const {
   out.clear();
   const StaffDef* sp = staffDefOf(*db, item);
-  if (!sp || !grid.valid(from)) return;
+  if (!sp || !grid.valid(from) || sp->picksSquare()) return;
   const StaffDef& d = *sp;
   const int team = teamOf(user);
   auto cellOf = [&](const Unit& t) { return t.id == user.id ? from : t.cell; };
@@ -127,10 +127,9 @@ void Battle::staffAffected(const Unit& user, int item, int center, Cell from, st
     bool holds = true;
     for (const SkillCond& cond : d.conds) holds = holds && skillCondHolds(cond, ctx);
     if (!holds) continue;
-    // "Would change": a heal needs a hurt unit and an amount above 0.
+    // "Would change": some effect does something to this unit (a heal needs a hurt one, a pull a free square, ...).
     bool changes = false;
-    for (const StaffEffect& fx : d.effects)
-      if (fx.kind == StaffEffect::Kind::Heal && t.hp < maxHp(t) && staffHealAmount(user, d, fx, t, from) > 0) changes = true;
+    for (const StaffEffect& fx : d.effects) changes = changes || !staffEffectWhy(user, d, fx, slot, t, from);
     if (changes) out.push_back(t.id);
   }
 }
@@ -145,8 +144,9 @@ void Battle::staffTargets(int unit, int slot, Cell from, std::vector<int>& out) 
   if (!sp || !canWieldStaff(u, item)) return;
   const StaffDef& d = *sp;
   std::vector<int> hit;
+  if (d.picksSquare()) return;  // a light picks a square (staffLightCells)
   if (!d.needsPick()) {  // nothing to pick: confirm when it would do something
-    staffAffected(u, item, d.target == StaffTarget::Self ? unit : -1, from, hit);
+    staffAffected(u, item, slot, d.target == StaffTarget::Self ? unit : -1, from, hit);
     if (!hit.empty()) out.push_back(unit);
     return;
   }
@@ -162,7 +162,7 @@ void Battle::staffTargets(int unit, int slot, Cell from, std::vector<int>& out) 
       continue;
     const int dist = grid.distance(from, t.id == unit ? from : t.cell);
     if (dist < minR || dist > maxR) continue;
-    staffAffected(u, item, t.id, from, hit);
+    staffAffected(u, item, slot, t.id, from, hit);
     if (!hit.empty()) out.push_back(t.id);
   }
 }
@@ -179,18 +179,21 @@ void Battle::staffOptions(int unit, Cell from, std::vector<StaffOption>& out) co
     o.item = item;
     o.ok = canWieldStaff(u, item, &o.why);
     if (o.ok) {
+      const StaffDef& d = *staffDefOf(*db, item);
       std::vector<int> targets;
-      staffTargets(unit, (int)i, from, targets);
-      if (targets.empty()) {
+      std::vector<Cell> cells;
+      if (d.picksSquare()) staffLightCells(unit, (int)i, from, cells);
+      else staffTargets(unit, (int)i, from, targets);
+      if (targets.empty() && cells.empty()) {
         o.ok = false;
-        o.why = "nobody in reach needs that";
+        o.why = !d.picksSquare() ? staffNobodyWhy(d) : !fog ? "this map has no fog of war" : "nothing in reach is hidden";
       }
     }
     out.push_back(o);
   }
 }
 
-bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForecast& out) const {
+bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForecast& out, Cell dest, int itemSlot) const {
   out = StaffForecast();
   if (unit < 0 || unit >= (int)units.size() || !grid.valid(from)) return false;
   const Unit& u = units[(size_t)unit];
@@ -199,13 +202,41 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
   const StaffDef* sp = staffDefOf(*db, item);
   if (!sp || !canWieldStaff(u, item)) return false;
   const StaffDef& d = *sp;
+  out.canMiss = d.canMiss();
+  out.user = unit;
+  out.slot = slot;
+  out.item = item;
+  out.usesLeft = u.items[(size_t)slot].uses;
+  out.breaks = out.usesLeft == 1;
+  staffRange(u, item, out.minRange, out.maxRange);
+  if (d.picksSquare()) {  // a light: `target` is the square
+    std::vector<Cell> legal;
+    staffLightCells(unit, slot, from, legal);
+    if (std::find(legal.begin(), legal.end(), (Cell)target) == legal.end()) return false;
+    const StaffEffect& fx = *d.find(StaffEffect::Kind::Light);
+    out.isLight = true;
+    out.needsPick = false;
+    out.lightCell = (Cell)target;
+    out.lightRadius = fx.radius;
+    out.lightTurns = fx.turns;
+    grid.within(out.lightCell, fx.radius, out.area);
+    for (Cell c : out.area) out.newSquares += !visibleTo(teamOf(u), c);
+    out.xp = d.xpExpr >= 0 ? whole(staffEval(d.xpExpr, u, nullptr, d, from, 0), kMaxStaffXp) : d.xp;
+    return true;
+  }
   std::vector<int> legal;
   staffTargets(unit, slot, from, legal);
   out.needsPick = d.needsPick();
   out.center = out.needsPick ? target : (d.target == StaffTarget::Self ? unit : -1);
   if (out.needsPick ? std::find(legal.begin(), legal.end(), target) == legal.end() : legal.empty()) return false;
   std::vector<int> hit;
-  staffAffected(u, item, out.center, from, hit);
+  staffAffected(u, item, slot, out.center, from, hit);
+  const StaffEffect* warp = d.find(StaffEffect::Kind::Warp);
+  const bool repairs = d.has(StaffEffect::Kind::Repair);
+  std::vector<int> mendable;
+  if (repairs && out.center >= 0) staffRepairSlots(unit, slot, out.center, mendable);
+  out.needsDest = warp && dest == kNoCell;
+  out.needsItem = repairs && !mendable.empty() && itemSlot < 0;
   for (int id : hit) {
     const Unit& t = units[(size_t)id];
     StaffHit h;
@@ -219,17 +250,25 @@ bool Battle::staffForecast(int unit, int slot, int target, Cell from, StaffForec
       h.hpAfter = std::min(maxHp(t), h.hpAfter + give);
     }
     h.amount = h.hpAfter - h.hpBefore;
+    if (d.has(StaffEffect::Kind::Pull)) h.moveTo = staffPullCell(unit, id, from);
+    if (d.has(StaffEffect::Kind::Swap)) {
+      h.moveTo = from;
+      h.userTo = t.cell;
+    }
+    if (warp && dest != kNoCell) h.moveTo = dest;
+    if (repairs && itemSlot >= 0 && itemSlot < (int)t.items.size()) {
+      const StaffEffect& fx = *d.find(StaffEffect::Kind::Repair);
+      const ItemStack& st = t.items[(size_t)itemSlot];
+      const int top = db->items[(size_t)st.item].uses;
+      h.repairItem = st.item;
+      h.usesBefore = st.uses;
+      h.usesAfter = fx.amount == StaffEffect::Amount::Full ? top : std::min(top, st.uses + fx.value);
+    }
     if (d.canMiss()) h.hit = std::max(0, std::min(100, (int)std::lround(staffEval(d.hitExpr, u, &t, d, from, 100))));
     out.hits.push_back(h);
   }
-  out.canMiss = d.canMiss();
   const Unit* centerUnit = out.center >= 0 ? &units[(size_t)out.center] : nullptr;
   out.xp = d.xpExpr >= 0 ? whole(staffEval(d.xpExpr, u, centerUnit, d, from, 0), kMaxStaffXp) : d.xp;
-  out.slot = slot;
-  out.item = item;
-  out.usesLeft = u.items[(size_t)slot].uses;
-  out.breaks = out.usesLeft == 1;
-  staffRange(u, item, out.minRange, out.maxRange);
   return true;
 }
 

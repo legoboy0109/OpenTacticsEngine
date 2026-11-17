@@ -279,7 +279,7 @@ void BattleScene::draw(Renderer& r) {
       const AttackOption& t = targets_[targetIdx_];
       drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
-    if (mode_ == Mode::PickUnit && staffFcOn_) drawStaffForecast(r, ctx, staffFc_, cursor_);
+    if ((mode_ == Mode::PickUnit || mode_ == Mode::PickCell) && staffFcOn_) drawStaffForecast(r, ctx, staffFc_, cursor_);
     if (mode_ == Mode::Items) drawItems(r);
     else if (mode_ == Mode::Research) researchPanel_.draw(r);
     else if (mode_ == Mode::Promotion) drawPromotion(r);

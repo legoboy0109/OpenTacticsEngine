@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1, "name": "Staves Two Fixture",
+  "description": "Small test game for the second stage of staves (docs/SRPG.md, section 8): warp, pull, swap, repair, light. Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mag", "name": "Magic" }, { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" }, { "id": "fly", "name": "Fly" } ],
+  "switches": [ { "id": "arrived", "name": "Arrived" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 12 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "30", "xpKill": "60" } },
+  "formulas": { "damage": "a.str + w.might - b.def", "hit": "90" },
+  "maps": [ { "id": "yard", "name": "Yard", "file": "maps/yard.json" },
+            { "id": "mist", "name": "Mist", "file": "maps/mist.json" },
+            { "id": "gate", "name": "Gate", "file": "maps/gate.json" },
+            { "id": "skirmish", "name": "Skirmish", "file": "maps/skirmish.json" } ]
+}

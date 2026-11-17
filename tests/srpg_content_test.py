@@ -30,7 +30,8 @@ def run(*args):
 BATTLES = [('games/demo-srpg', 'bridge'), ('games/demo-srpg', 'north_road'), ('editor/templates/strategy-rpg', 'ford'),
            ('tests/fixtures/srpg-carry', 'field'), ('tests/fixtures/srpg-pair', 'field'), ('tests/fixtures/srpg-hex', 'field'),
            ('tests/fixtures/srpg-supports', 'ch1'), ('tests/fixtures/srpg-supports', 'ch2'),
-           ('tests/fixtures/srpg-staves', 'skirmish'), ('tests/fixtures/srpg-staves', 'clinic')]
+           ('tests/fixtures/srpg-staves', 'skirmish'), ('tests/fixtures/srpg-staves', 'clinic'),
+           ('tests/fixtures/srpg-staves2', 'skirmish'), ('tests/fixtures/srpg-staves2', 'yard'), ('tests/fixtures/srpg-staves2', 'gate')]
 for game, map_id in BATTLES:
     code, out = run(os.path.join(root, game), map_id, '--runs', '20')
     last = out.strip().split('\n')[-1]
@@ -62,5 +63,17 @@ b = run(staves, 'skirmish', '--seed', '3', '--verbose')[1]
 check('staves skirmish: same seed twice, same text', a == b and len(a) > 500)
 text = ''.join(run(staves, 'skirmish', '--seed', str(seed), '--verbose')[1] for seed in range(1, 11))
 check('the event printer names a staff use', ' uses mend_staff on ' in text and ' heals ' in text)
+
+# Staves, stage two (docs/SRPG.md section 8): the computer holds warp, pull, swap, repair and light staves it does not use (it ignores
+# every staff that does more than heal) and never stalls on them; the fog map (mist) is not in the stall list above because the
+# computer's hunt for units it cannot see stalls there with or without staves (same numbers with the staves taken away).
+staves2 = os.path.join(root, 'tests/fixtures/srpg-staves2')
+a = run(staves2, 'skirmish', '--seed', '3', '--verbose')[1]
+b = run(staves2, 'skirmish', '--seed', '3', '--verbose')[1]
+check('staves2 skirmish: same seed twice, same text', a == b and len(a) > 500)
+text = ''.join(run(staves2, 'skirmish', '--seed', str(seed), '--verbose')[1] for seed in range(1, 11))
+check('staves2: the computer heals with its plain heal staff and never uses the others',
+      ' uses mend_staff on ' in text and not any(' uses %s ' % s in text for s in ('warp_staff', 'recall_staff', 'swap_staff', 'shove_staff', 'hop_staff',
+                                                                                    'fix_staff', 'patch_staff', 'kindly_pull_staff')))
 
 sys.exit(1 if failures else 0)

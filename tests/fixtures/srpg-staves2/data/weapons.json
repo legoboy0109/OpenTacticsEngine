@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "short_sword", "name": "Short Sword", "group": "sword", "props": { "might": 3 } },
+  { "id": "iron_blade",  "name": "Iron Blade",  "group": "sword", "props": { "might": 5 } },
+  { "id": "glass_blade", "name": "Glass Blade", "group": "sword", "props": { "might": 8 } },
+  { "id": "stick",       "name": "Stick",       "props": { "might": 1 } } ] }

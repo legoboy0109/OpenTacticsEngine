@@ -106,9 +106,15 @@ struct StaffHit {
   int nominal = 0;  // what the staff gives before that cap (the AI judges a small heal against it)
   int hpBefore = 0, hpAfter = 0;
   int hit = 100;   // percent chance; 100 when the staff cannot miss
+  // Stage 2: where the staff would put the unit (pull, swap, and a warp once its square is chosen), and for a swap where
+  // the user goes; kNoCell = it does not move. `repairItem` = the picked item (an index into db->items) with its uses
+  // before and after; -1 when no item is chosen yet (or nothing to repair).
+  Cell moveTo = kNoCell, userTo = kNoCell;
+  int repairItem = -1, usesBefore = -1, usesAfter = -1;
 };
 // A forecast of one use (Battle::staffForecast): no randomness is consumed.
 struct StaffForecast {
+  int user = -1;               // the unit using the staff
   int slot = -1, item = -1;
   int center = -1;             // the picked unit (-1 = nothing is picked)
   std::vector<StaffHit> hits;  // the units really affected, ascending id
@@ -118,6 +124,23 @@ struct StaffForecast {
   bool breaks = false;         // this is its last use
   int minRange = 1, maxRange = 1;
   bool needsPick = true;
+  // Stage 2. A warp that still needs its square / a repair that still needs its item (the picks come after the unit).
+  bool needsDest = false, needsItem = false;
+  // A light staff: `target` of the forecast is the picked square; `area` = the squares it would light, `newSquares` = how
+  // many of them the team does not see now. The turns and radius are the staff's.
+  bool isLight = false;
+  Cell lightCell = kNoCell;
+  std::vector<Cell> area;
+  int newSquares = 0, lightTurns = 1, lightRadius = 0;
+};
+
+// A light a staff made (docs/SRPG.md section 8, stage 2): the side's team sees every square within `radius` of `cell` until
+// the side's turn has started `turns` more times. Saved while it lasts ("lights"), only in a battle that has some.
+struct LightArea {
+  int side = -1;
+  Cell cell = kNoCell;
+  int radius = 0;
+  int turns = 1;
 };
 
 }  // namespace ote

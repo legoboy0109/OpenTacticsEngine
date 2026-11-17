@@ -15,18 +15,26 @@ const int kMaxStaffRange = 20;
 const int kMaxStaffRadius = 10;
 const int kMaxStaffEffects = 4;
 const int kMaxStaffXp = 1000;
+const int kMaxStaffLightTurns = 10;
 
 enum class StaffTarget { Ally, Self, Team, Foe, Any };
 enum class StaffArea { Single, Radius, All };
 
-// One entry of "effects". Stage 1 has only the heal; later stages add kinds at the end (docs/SRPG.md "Stages 2 and 3").
+// One entry of "effects". Stage 1: Heal. Stage 2 (docs/SRPG.md section 8): the three that move the picked unit, the one
+// that repairs an item it carries, and the one that lights a square. Later stages add kinds at the end.
 struct StaffEffect {
-  enum class Kind { Heal };
+  enum class Kind { Heal, Warp, Pull, Swap, Repair, Light };
   enum class Amount { Fixed, Full, Percent, Formula };
   Kind kind = Kind::Heal;
-  Amount amount = Amount::Fixed;
-  int value = 0;  // Fixed: HP; Percent: share of the receiver's maximum
+  Amount amount = Amount::Fixed;  // Heal: any; Repair: Fixed or Full
+  int value = 0;  // Fixed: HP (Heal) or uses (Repair); Percent: share of the receiver's maximum
   int expr = -1;  // Formula: index into Database::exprs
+  // Warp: how far from the USER the destination may be (the forms of the staff's own "range").
+  int warpMin = 1, warpMax = 1;
+  int warpExpr = -1;  // formula: the maximum (minimum 1)
+  // Light: the squares within `radius` of the picked square are seen for `turns` of the user's side's turns.
+  int radius = 0, turns = 1;
+  bool movesUnit() const { return kind == Kind::Warp || kind == Kind::Pull || kind == Kind::Swap; }
 };
 
 struct StaffDef {
@@ -43,7 +51,28 @@ struct StaffDef {
   std::vector<SkillCond> conds;    // "if", judged per unit hit ("who": "foe" = that unit)
   bool canMiss() const { return hitExpr >= 0; }
   // Nothing to pick: the user itself, or every unit in range.
-  bool needsPick() const { return area != StaffArea::All && target != StaffTarget::Self; }
+  bool needsPick() const { return picksSquare() ? false : area != StaffArea::All && target != StaffTarget::Self; }
+  bool has(StaffEffect::Kind k) const {
+    for (const StaffEffect& e : effects)
+      if (e.kind == k) return true;
+    return false;
+  }
+  const StaffEffect* find(StaffEffect::Kind k) const {
+    for (const StaffEffect& e : effects)
+      if (e.kind == k) return &e;
+    return nullptr;
+  }
+  bool movesUnit() const { return has(StaffEffect::Kind::Warp) || has(StaffEffect::Kind::Pull) || has(StaffEffect::Kind::Swap); }
+  // A light staff picks a SQUARE, not a unit (the loader allows it nothing else).
+  bool picksSquare() const { return has(StaffEffect::Kind::Light); }
 };
+
+// The plain reason a staff finds nobody in reach (a light has its own reasons, see Battle::staffOptions).
+inline const char* staffNobodyWhy(const StaffDef& d) {
+  if (d.has(StaffEffect::Kind::Heal)) return "nobody in reach needs that";
+  if (d.movesUnit()) return "nobody in reach can be moved";
+  if (d.has(StaffEffect::Kind::Repair)) return "nobody in reach has an item to repair";
+  return "nobody in reach needs that";
+}
 
 }  // namespace ote

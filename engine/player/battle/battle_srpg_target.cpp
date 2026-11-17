@@ -52,17 +52,23 @@ void BattleScene::pickButton(Button b) {
     pickMoved();
   } else if (res == PickList::Cancelled) {
     uiCue(Cue::Cancel);
+    std::function<void()> stepBack = std::move(pickBack_);
     pickChosen_ = nullptr;
     pickMark_ = nullptr;
+    pickBack_ = nullptr;
+    pickWhy_ = nullptr;
     overlay_ = Overlay();
     cursor_ = battle_.units[(size_t)sel_].cell;
-    openActionMenu();
+    if (stepBack) stepBack();  // a second stage of a staff: one step back, not all the way
+    else openActionMenu();
   } else if (res == PickList::Chosen) {
     uiCue(Cue::Confirm);
     std::function<void(int)> chosen = std::move(pickChosen_);
     int value = pick_.current();
     pickChosen_ = nullptr;
     pickMark_ = nullptr;
+    pickBack_ = nullptr;
+    pickWhy_ = nullptr;
     overlay_ = Overlay();
     mode_ = Mode::Idle;  // the callback decides what is next (finishOrder, another menu)
     if (chosen) chosen(value);
@@ -76,6 +82,13 @@ void BattleScene::pickPointer(int x, int y) {
   PickList::Result res = pick_.tap(value);
   if (res == PickList::Moved) pickMoved();
   else if (res == PickList::Chosen) pickButton(Button::Confirm);
+  else if (pickWhy_) {  // a tap on something that cannot be picked: say why
+    const std::string why = pickWhy_(value);
+    if (!why.empty()) {
+      OTE_INFO("pick refused: %s", why.c_str());
+      say(why);
+    }
+  }
 }
 
 std::string BattleScene::srpgHint() const {
