@@ -224,7 +224,7 @@ nothing and checks nothing; a headless run (Silent) loads everything, so tests f
 | `StructureCaptured` | `capture` | |
 | `UnitBuilt` | `build` | |
 | `ItemUsed` | `itemUse` | the item's override first |
-| `StaffUsed` | `itemUse` (not played yet) | A staff accepts `"sounds": { "use": ... }` and the player stores it like an item's, but nothing in the battle view plays a sound for `StaffUsed` / `StaffMissed` yet (`battle_view_sound.cpp` has no case for them). Intended when it is: the staff's `use` override, else the game's `heal` for a staff with a heal effect when the game defines it, else `itemUse`; a miss plays `miss` |
+| `StaffUsed` | the staff's `sounds.use`, else `heal`, else `itemUse` | The staff item's own `use` sound if it has one; else the game's `heal` for a staff with a heal effect when the game defines `heal`; else `itemUse`. `StaffMissed` plays `miss` when the game defines it. (`tests/sound_player_test.py` observes the first three; the miss is not observed.) |
 | `ResourceChanged` (gain, of the viewer's side) | `gold` | the same entries that float "+N" over the panel |
 | `TurnStarted` | `turnStart` | also moves the turn-phase music |
 | `StructureUpgraded` | `upgrade` | |

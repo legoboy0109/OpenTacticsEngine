@@ -1676,8 +1676,8 @@ What the contract above left open, and how it was settled (the owner may change 
   leader, times the hit chance; the AI heals before it advances and compares fairly with an attack through the same `kAttackBase`.
   It does not move towards the wounded (a healer with nothing to heal behaves like any unit with no attack: it advances).
 - *Not built in stage 1*: foe-targeting effects (nothing but the heal exists), the `"cell"` target, picking among several items,
-  the staff's sound being played (the key `"sounds": { "use": ... }` is accepted and loaded like an item's, docs/SOUND.md, but the battle
-  view has no sound case for `StaffUsed` / `StaffMissed` yet), the editor screens (a separate step). The wording of every player text is placeholder (`staff_text.h`).
+  (the staff's sound now plays: its `"sounds": { "use": ... }`, else `heal` for a healing staff, else `itemUse`; a miss plays `miss`, docs/SOUND.md),
+  the editor screens (a separate step). The wording of every player text is placeholder (`staff_text.h`).
 
 ### Staves: the editor, as built
 

@@ -368,6 +368,64 @@ def run_all(tmp):
     for d in ('demo-srpg', 'demo-economy'):
         os.symlink(os.path.join(REPO, 'games', d), os.path.join(demos, d))
     shipped_games(tmp, demos)
+    staff_sounds(tmp, starter, aj)
+
+
+def staff_sounds(tmp, starter, aj):
+    """StaffUsed / StaffMissed (docs/SOUND.md): the staff's own `use` sound, else heal for a healing staff, else itemUse; a miss plays miss."""
+    def game(name, tweak=None, drop_heal=False):
+        games = games_folder(tmp, name)
+        g = os.path.join(games, 'stf')
+        shutil.copytree(os.path.join(REPO, 'tests/fixtures/srpg-staves'), g)
+        shutil.copytree(os.path.join(starter, 'audio'), g + '/audio')
+        a = json.loads(json.dumps(aj))
+        if drop_heal:
+            a['use']['sounds'].pop('heal', None) if 'use' in a else a['sounds'].pop('heal', None)
+        if tweak:
+            tweak(g, a)
+        os.makedirs(g + '/data', exist_ok=True)
+        json.dump(a, open(g + '/data/audio.json', 'w'), indent=1)
+        # a Continue save with Tarn hurt (the map cannot place a wounded unit): let the player write one, then edit it
+        saves = os.path.join(tmp, 'stf_saves_' + name)
+        shutil.rmtree(saves, ignore_errors=True)
+        subprocess.run([PLAYER, '--games', games, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', saves,
+                        '--frames', '120', '--game', 'stf', '--map', 'clinic', '--input', 'wait:20'], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=300)
+        path = os.path.join(saves, 'stf', 'continue.json')
+        doc = json.load(open(path))
+        for u in doc['battle']['units']:
+            if u.get('id') == 'tarn':
+                u['hp'] = 5
+        json.dump(doc, open(path, 'w'))
+        return games, saves
+
+    def use(games, saves, extra):
+        log = os.path.join(tmp, 'staff_audio.log')
+        if os.path.exists(log):
+            os.remove(log)
+        inp = ','.join(['wait:14', 'confirm', 'wait:3', 'confirm', 'wait:3', 'confirm', 'wait:3'] + extra + ['confirm', 'wait:3', 'confirm', 'wait:30'])
+        cmd = [PLAYER, '--headless', '--no-settings', '--games', games, '--assets', os.path.join(REPO, 'assets'), '--audio-log', log, '--input-interval', '4',
+               '--saves', saves, '--continue', '--game', 'stf', '--map', 'clinic', '--frames', '700', '--input', inp]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=300)
+        raw = open(log).read().splitlines() if os.path.exists(log) else []
+        return [token(l) for l in raw if token(l)]
+
+    def staff_list_menu():  # the staff list: Mend Staff is the first entry
+        return []
+
+    games, saves = game('stf_plain')
+    seq = use(games, saves, staff_list_menu())
+    shown('staff heal', seq)
+    check('staff: a healing staff plays the game\'s heal sound', 'heal' in seq and 'item_use' not in seq, str(seq))
+
+    games, saves = game('stf_own', lambda g, a: edit_json(g + '/data/items.json', lambda d: d['items'][0].update({'sounds': {'use': 'neigh'}})))
+    seq = use(games, saves, [])
+    shown('staff own', seq)
+    check('staff: the staff\'s own use sound wins over heal', 'neigh' in seq and seq.index('neigh') == min(i for i, t in enumerate(seq) if t in ('neigh', 'heal')), str(seq))
+
+    games, saves = game('stf_noheal', drop_heal=True)
+    seq = use(games, saves, [])
+    shown('staff itemUse', seq)
+    check('staff: with no heal sound in the game it plays itemUse', 'item_use' in seq and 'heal' not in seq, str(seq))
 
 
 def shipped_games(tmp, demos):
