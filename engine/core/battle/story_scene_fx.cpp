@@ -34,7 +34,7 @@ void Battle::storyScene(const Command& c, std::vector<Event>& events) {
       break;
     case K::Fade:
       storyState.faded = fx.out;
-      storyState.fadeColor = fx.color;
+      if (fx.out) storyState.fadeColor = fx.color;
       events.push_back(sceneEvent(K::Fade, -1, fx.ms, (int)fx.color, fx.out ? kSceneOut : 0));
       break;
     case K::Wait: events.push_back(sceneEvent(K::Wait, -1, fx.ms, 0, 0)); break;

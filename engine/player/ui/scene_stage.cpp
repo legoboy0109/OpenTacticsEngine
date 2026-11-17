@@ -21,7 +21,7 @@ void SceneStage::setBackground(const std::string& id, bool fade, int ms) {
 
 void SceneStage::fade(bool out, uint32_t color, int ms) {
   fadeOut_ = out;
-  color_ = color;
+  if (out) color_ = color;  // a fade in comes back from the colour the screen went out to, whatever it is given
   const float target = out ? 1.0f : 0.0f;
   if (ms <= 0) {
     fadeAmt_ = target;

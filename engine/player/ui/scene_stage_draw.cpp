@@ -92,9 +92,9 @@ void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& 
   for (const SceneStage::Portrait& p : stage.portraits()) {
     const PortraitArt art = portraitArt(ctx.db, ctx.sprites, ctx.styleIdx, p.art);
     if (!art.any()) continue;
-    // Tall enough to read at a glance, never more than half the free height or a third of the width; whole-number
+    // Tall enough to read at a glance, never more than 55% of the screen height or 45% of the width; whole-number
     // scales when it grows (pixel art), a fraction only when it has to shrink.
-    const int maxH = std::max(16, std::min(baseY - 2, r.height() * 55 / 100)), maxW = std::max(16, W / 3);
+    const int maxH = std::max(16, std::min(baseY - 2, r.height() * 55 / 100)), maxW = std::max(16, W * 45 / 100);
     float s = std::min((float)maxH / (float)art.sh, (float)maxW / (float)art.sw);
     if (s >= 1.0f) s = std::floor(s);
     const int dw = std::max(1, (int)std::lround((double)art.sw * s)), dh = std::max(1, (int)std::lround((double)art.sh * s));
@@ -123,7 +123,7 @@ void drawStageWeather(Renderer& r, const SceneStage& stage) {
       r.fillRect(x, y, 1, 5, Color(175, 195, 235, 150));
     } else {
       const int y = (int)fall - 4, x = (int)(baseX + std::sin(t * 0.9f + (float)i) * 6.0f);
-      const int size = 1 + (int)(h2 % 2);
+      const int size = 2 + (int)(h2 % 2);
       r.fillRect(x, y, size, size, Color(240, 244, 255, 215));
     }
   }
