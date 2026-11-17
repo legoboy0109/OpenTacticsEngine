@@ -4,9 +4,9 @@ import { editorUrl, expect, expectNoHScroll, readDisk, saved, test } from './fix
 
 test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })
 test.skip(({ browserName }) => browserName !== 'chromium', 'touch emulation is Chromium-only')
-const NAV = 16 // every section the editor has, the four strategy-RPG ones included
+const NAV = 17 // every section the editor has, the five strategy-RPG ones (Conditions too) included
 
-test('the section switcher still fits with every section in it (the real strategy-rpg template: Characters, Skills, Abilities, Supports too): every label is whole', async ({ page, game }) => {
+test('the section switcher still fits with every section in it (the real strategy-rpg template: Characters, Skills, Abilities, Conditions, Supports too): every label is whole', async ({ page, game }) => {
   const id = await game.create('strategy-rpg', 'Phone Art Nav', { srpgContent: true })
   await page.goto(editorUrl(id, 'game'))
   await expectNoHScroll(page)
