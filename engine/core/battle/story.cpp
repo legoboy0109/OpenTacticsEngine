@@ -126,6 +126,8 @@ bool Battle::conditionHolds(const Condition& c) const {
       return storyHasSkill(c);
     case Condition::Kind::Support:
       return storySupportHolds(c);
+    case Condition::Kind::HasCondition:
+      return storyHasCondition(c);
   }
   return false;
 }

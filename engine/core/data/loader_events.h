@@ -65,6 +65,8 @@ class StoryLoader {
   bool supportCommand(const Json& e, const std::string& at, Command& out);             // loader_supports.cpp: addSupport
   bool supportCondition(const Json& e, const std::string& at, Condition& out) const;   // loader_supports.cpp
   bool supportTrigger(const Json& w, const std::string& at, Trigger& out);             // loader_supports.cpp
+  bool conditionCommand(const Json& e, const std::string& at, bool add, Command& out);           // loader_story_conditions.cpp: addCondition / removeCondition
+  bool hasConditionCondition(const Json& e, const std::string& at, Condition& out) const;      // loader_story_conditions.cpp
 
  private:
   bool command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn);

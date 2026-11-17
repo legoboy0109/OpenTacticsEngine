@@ -1869,8 +1869,12 @@ takes hold **only if the strike hits**. **Skills** do the same with the same eff
 { "condition": "poison" } } ] }` (to the unit struck) and `{ "when": "struck", ... }` (to the unit that struck it, a thorns skill).
 Inflicting is `strike` / `struck` only; an `afterCombat` or `turnStart` block cannot inflict.
 
-**Story commands** to add or remove a condition: **not built** (the story files were being changed for dialogue choices; follow-up, see
-below). A skill / staff / ability test `{ "condition": id }` exists (it lives with the skill conditions, outside the story files).
+**Story commands** (map events only; docs/EVENTS.md "Status conditions"): `{ "addCondition": "poison", "to": <unit filter>, "turns": 2 }` (turns
+optional), `{ "removeCondition": "poison" | "all", "from": <unit filter> }`, and the story condition `{ "hasCondition": "poison", "unit": <unit filter> }`
+(a living unit matches). They use `inflictCondition` / `cureConditions` like every other route, so **immunity is respected** (`ConditionResisted`),
+`replaces` runs and the same events come (the giver is -1); removing is "cured". A campaign scene refuses all three (conditions end with the map).
+A skill / staff / ability test `{ "condition": id }` exists too (it lives with the skill conditions). Code: `battle/story_conditions.cpp`,
+`data/loader_story_conditions.cpp`; tests `tests/test_story_conditions.cpp`.
 
 ### Loader refusals
 
@@ -1983,9 +1987,7 @@ refused, and changes no `ote-sim` result). Placeholders for the owner:
 
 ### Not built (follow-ups)
 
-Story commands to add / remove a condition on a unit and the matching story condition "unit has condition X" (the story files were being changed
-by another job; a `{ "condition": id }` test exists for skills / staves / abilities); carrying a condition over to the next campaign map; editor
-forms (docs/EDITOR_UI.md "Conditions"); condition sounds; a picture instead of the text tag; the AI inflicting beneficial conditions, seeking
+Carrying a condition over to the next campaign map; condition sounds; a picture instead of the text tag; the AI inflicting beneficial conditions, seeking
 cure items, or using the area-all staves' value beyond the simple rule; a berserk or sleeping unit's own portrait pose.
 
 ### Tests

@@ -17,6 +17,8 @@ constexpr const char* kCommandKeys[] = {"say",       "addUnit",     "removeUnit"
 // loader_skills.cpp, loader_supports.cpp). A list of their own so that the "is not a command" message keeps naming
 // only what every game can use until those areas exist.
 constexpr const char* kSrpgCommandKeys[] = {"promote", "teachSkill", "forgetSkill", "addSupport", "choice"};
+// Status conditions (docs/SRPG.md section 9), read in loader_story_conditions.cpp.
+constexpr const char* kConditionCommandKeys[] = {"addCondition", "removeCondition"};
 
 }  // namespace
 
@@ -51,6 +53,11 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kConditionCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   if (!kind) {
     std::string list;
     for (const char* k : kCommandKeys) list += (list.empty() ? "" : ", ") + std::string(k);
@@ -68,6 +75,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "teachSkill" || k == "forgetSkill") {
     out.kind = k == "teachSkill" ? K::TeachSkill : K::ForgetSkill;
     return skillCommand(e, at, k == "teachSkill", out);
+  }
+  if (k == "addCondition" || k == "removeCondition") {
+    out.kind = k == "addCondition" ? K::AddCondition : K::RemoveCondition;
+    return conditionCommand(e, at, k == "addCondition", out);
   }
   if (k == "addSupport") {
     out.kind = K::AddSupport;

@@ -146,7 +146,7 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
   if (!e.isObject()) return fail(where, "a condition must be an object");
   // "hasSkill" and "support" are the strategy-RPG conditions (docs/SRPG.md), read by their own areas below.
   static const char* const kKinds[] = {"switch", "variable", "alive", "dead", "round", "carries", "researched", "sees",
-                                       "hasSkill", "support"};
+                                       "hasSkill", "support", "hasCondition"};
   const char* kind = nullptr;
   for (const char* k : kKinds)
     if (e.has(k)) {
@@ -159,6 +159,10 @@ bool StoryLoader::condition(const Json& e, const std::string& where, Condition& 
   if (k == "hasSkill") {
     out.kind = Condition::Kind::HasSkill;
     return hasSkillCondition(e, where, out);
+  }
+  if (k == "hasCondition") {
+    out.kind = Condition::Kind::HasCondition;
+    return hasConditionCondition(e, where, out);
   }
   if (k == "support") {
     out.kind = Condition::Kind::Support;

@@ -283,6 +283,10 @@ void conditionsTurnStart(std::vector<Event>& events);
 void conditionsPrevent(std::vector<Event>& events);
 void conditionsAct(std::vector<Event>& events);
 void conditionsTurnEnd(std::vector<Event>& events);
+// The story (story_conditions.cpp): addCondition / removeCondition run through inflictCondition / cureConditions; hasCondition tests.
+void storyAddCondition(const Command& c, std::vector<Event>& events);
+void storyRemoveCondition(const Command& c, std::vector<Event>& events);
+bool storyHasCondition(const Condition& c) const;
 // Units a tick (a "hurt" that may kill) defeated while the blocks were still running: their story events and the win checks follow.
 void conditionsSettleDeaths(std::vector<Event>& events);
 // A strike that did damage ends the conditions marked "endsWhenStruck".

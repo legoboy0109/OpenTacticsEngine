@@ -32,7 +32,9 @@ struct Condition {
     Switch, Variable, Alive, Dead, Round, Carries, Researched, Sees,
     // docs/SRPG.md: HasSkill = a living unit matching `filter` has skill `index`; Support = the level of support
     // pair `index` compared (`op`) with `value`.
-    HasSkill, Support
+    HasSkill, Support,
+    // docs/SRPG.md section 9: a living unit matching `filter` has status condition `index`.
+    HasCondition
   };
   Kind kind = Kind::Switch;
   int index = -1;     // switch / variable index, item index for Carries, technology index for Researched
@@ -94,7 +96,10 @@ struct Command {
     Choice,
     // docs/EVENTS.md "Taking an item away": removes one copy (`on` = every copy) of item `item` from every existing
     // unit matching `filter`; nothing for a unit that carries none.
-    TakeItem
+    TakeItem,
+    // docs/EVENTS.md "Status conditions": AddCondition gives condition `index` (`value` turns, 0 = its own) to every living unit
+    // matching `filter`; RemoveCondition removes it (`on` = every condition).
+    AddCondition, RemoveCondition
   };
   Kind kind = Kind::Say;
   // Say, Choice
