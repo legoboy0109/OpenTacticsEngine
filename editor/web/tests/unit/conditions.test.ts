@@ -22,7 +22,7 @@ import { itemChecks } from '../../src/model/itemChecks'
 import { ruleIssues } from '../../src/model/skillChecks'
 import { amountOf, withAmount } from '../../src/model/skillAmount'
 import { staffChecks } from '../../src/model/staffChecks'
-import { cureOf, inflictOf, setCureAll, setCureIds, setCureOn, setInflictCondition, setInflictOn, setInflictTurns } from '../../src/model/staffConditions'
+import { cureOf, dropCure, inflictOf, setCure, setInflictCondition, setInflictOn, setInflictTurns } from '../../src/model/staffConditions'
 import { setLightOn } from '../../src/model/staffEffects'
 import { keptEffectCount } from '../../src/model/staffFx'
 import { STARTER_CONDITIONS, installStarterConditions } from '../../src/model/starterConditions'
@@ -260,22 +260,26 @@ describe('staff parts: inflicts and cures', () => {
   it('the last effect cannot be switched off, a second one of a kind is not made, four is the most', () => {
     let d = fx()
     expect(setInflictOn(d, 'poison_staff', false)).toBe(d)
-    expect(setCureOn(d, 'cure_staff', false)).toBe(d)
+    expect(dropCure(d, 'cure_staff')).toBe(d)
     expect(setInflictOn(d, 'poison_staff', true)).toBe(d)
-    d = setCureOn(d, 'poison_staff', true)
+    d = setCure(d, 'poison_staff', ['poison'])
     expect(item(d, 'poison_staff').effects).toHaveLength(2)
     d = { ...d, items: d.items!.map((i) => (i.id === 'poison_staff' ? { ...i, target: 'ally', effects: [{ heal: 1 }, { repair: 'full' }, { inflict: { condition: 'poison' } }, { cure: 'all' }] } : i)) }
     expect(staffChecks(d).filter((c) => c.blocks)).toEqual([])
-    expect(setCureOn({ ...d, items: d.items!.map((i) => (i.id === 'poison_staff' ? { ...i, effects: [{ heal: 1 }, { repair: 'full' }, { inflict: { condition: 'poison' } }] } : i)) }, 'poison_staff', true).items!.find((i) => i.id === 'poison_staff')!.effects).toHaveLength(4)
+    expect(setCure({ ...d, items: d.items!.map((i) => (i.id === 'poison_staff' ? { ...i, effects: [{ heal: 1 }, { repair: 'full' }, { inflict: { condition: 'poison' } }] } : i)) }, 'poison_staff', 'all').items!.find((i) => i.id === 'poison_staff')!.effects).toHaveLength(4)
   })
-  it('cure: list or every condition; the list is never emptied', () => {
-    let d = setCureAll(fx(), 'cure_staff', true)
+  it('cure: list or every condition; the list is never emptied, and a new part starts only with a pick', () => {
+    let d = setCure(fx(), 'cure_staff', 'all')
     expect(item(d, 'cure_staff').effects).toEqual([{ cure: 'all' }])
-    d = setCureAll(d, 'cure_staff', false)
+    d = setCure(d, 'cure_staff', ['poison'])
     expect(item(d, 'cure_staff').effects).toEqual([{ cure: ['poison'] }])
-    d = setCureIds(d, 'cure_staff', ['poison', 'sleep'])
+    d = setCure(d, 'cure_staff', ['poison', 'sleep'])
     expect(cureOf(item(d, 'cure_staff')).ids).toEqual(['poison', 'sleep'])
-    expect(setCureIds(d, 'cure_staff', [])).toBe(d)
+    expect(setCure(d, 'cure_staff', [])).toBe(d)
+    // Nothing ticked is never written: a staff without the part stays without it (the loader refuses an empty list).
+    const plain = fx()
+    expect(setCure(plain, 'poison_staff', [])).toBe(plain)
+    expect(item(setCure(plain, 'poison_staff', ['sleep']), 'poison_staff').effects).toEqual([{ inflict: { condition: 'poison' } }, { cure: ['sleep'] }])
   })
   it('area and heal go along with them; a light staff has neither (and switching light on replaces them)', () => {
     const d = fx()
@@ -319,7 +323,8 @@ describe('usable items and weapons', () => {
     expect(itemCureOf(item(d, 'tonic')).mode).toBe('all')
     d = setItemCureMode(d, 'antidote', 'all')
     expect(item(d, 'antidote').cure).toBe('all')
-    d = setItemCureMode(d, 'antidote', 'list')
+    expect(setItemCureIds(d, 'antidote', [])).toBe(d)  // nothing ticked is never written
+    d = setItemCureIds(d, 'antidote', ['poison'])  // the first pick starts the list
     expect(item(d, 'antidote').cure).toEqual(['poison'])
     d = setItemCureIds(d, 'antidote', ['poison', 'sleep'])
     expect(item(d, 'antidote').cure).toEqual(['poison', 'sleep'])
@@ -452,8 +457,7 @@ describe('worth a look', () => {
     // a staff that inflicts it removes the first note; "cure all" removes the second
     d = setInflictCondition(setInflictOn(d, 'cure_staff', true), 'cure_staff', 'lonely')
     expect(notes(d).filter((t) => /Lonely/.test(t)).join('|')).not.toMatch(/nothing can put this/)
-    d = setCureOn(d, 'poison_staff', true)
-    d = setCureAll(d, 'poison_staff', true)
+    d = setCure(d, 'poison_staff', 'all')
     expect(notes(d).filter((t) => /Lonely/.test(t)).join('|')).not.toMatch(/nothing cures it/)
   })
   it('another condition replacing it counts as a cure; an event command counts as both', () => {

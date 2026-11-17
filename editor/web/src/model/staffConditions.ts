@@ -71,23 +71,21 @@ export function cureOf(item: Item): StaffCure {
   return { on: true, all: false, ids: [], editable: false }
 }
 
-export function setCureOn(doc: ProjectDoc, id: string, on: boolean): ProjectDoc {
+/** Switches the part off (the last effect of a staff cannot go). */
+export function dropCure(doc: ProjectDoc, id: string): ProjectDoc {
   const item = itemOf(doc, id)
-  if (!item || cureOf(item).on === on) return doc
-  if (!on) return fxList(item).length > 1 ? putFx(doc, id, ['cure'], undefined) : doc
-  if (conditionPartBlock(doc, item, 'cure')) return doc
-  return putFx(doc, id, ['cure'], { cure: [conditionList(doc)[0].id] })
+  if (!item || !cureOf(item).on) return doc
+  return fxList(item).length > 1 ? putFx(doc, id, ['cure'], undefined) : doc
 }
-export function setCureAll(doc: ProjectDoc, id: string, all: boolean): ProjectDoc {
+/** Sets what it cures: `'all'` or at least one condition (the loader refuses an empty list, so an empty pick changes nothing: the form keeps
+ *  the part unsaved until one is picked). Adds the part when it is not there yet (refused when a light staff, four effects, or no conditions). */
+export function setCure(doc: ProjectDoc, id: string, what: string[] | 'all'): ProjectDoc {
   const item = itemOf(doc, id)
-  if (!item || !cureOf(item).on || cureOf(item).all === all) return doc
-  return putFx(doc, id, ['cure'], { cure: all ? 'all' : [conditionList(doc)[0]?.id ?? ''].filter(Boolean) })
-}
-/** The listed conditions, in the game's order. Unticking the last one is refused (a cure lists at least one, or is "every condition"). */
-export function setCureIds(doc: ProjectDoc, id: string, ids: string[]): ProjectDoc {
-  const item = itemOf(doc, id)
-  if (!item || !cureOf(item).on || cureOf(item).all || ids.length === 0) return doc
-  return putFx(doc, id, ['cure'], { cure: ids })
+  if (!item || (what !== 'all' && what.length === 0)) return doc
+  const cur = cureOf(item)
+  if (!cur.on && conditionPartBlock(doc, item, 'cure')) return doc
+  if (cur.on && !cur.editable) return doc
+  return putFx(doc, id, ['cure'], { cure: what })
 }
 
 /** A usable staff's four effects, for the form's "a staff has at most four effects" note. */
