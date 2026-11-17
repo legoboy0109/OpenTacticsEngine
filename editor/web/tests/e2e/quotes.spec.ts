@@ -42,7 +42,10 @@ test('@smoke add battle and defeat quotes: the file is exactly that and the game
   // --- a quote against Gorm, once in the whole campaign
   await card(page).getByTestId('add-battle-quote').click()
   await expect(card(page).getByTestId('battle-quote-1')).toBeVisible()
+  // A just-added quote is not flagged for its empty line yet; the first thing the maker changes about it makes the line count.
+  await expect(page.getByTestId('character-checks')).not.toContainText('is empty')
   await card(page).getByLabel('Fighting (Battle quote 1)').selectOption({ label: 'Gorm' })
+  await expect(page.getByTestId('character-checks')).toContainText('Battle quote 1, line 1 is empty.')
   await card(page).getByLabel('How often (Battle quote 1)').selectOption({ label: 'Once in the whole campaign' })
   // The new quote came with one empty line; the list is the story's: open it and write the words.
   await card(page).getByTestId('battle-quote-lines-1').getByRole('button', { name: /^1\./ }).click()

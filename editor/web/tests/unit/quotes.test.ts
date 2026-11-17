@@ -74,11 +74,23 @@ describe('the checks mirror the loader', () => {
     expect(texts(setQuoteLines(game(), 'bram', 0, [{ say: '  ' }]))).toEqual([QUOTE_TEXT.emptyLine('Battle quote 1', 1)])
     expect(texts(setDefeatLines(game(), 'bram', 'falls', [{ say: '' }]))).toEqual([QUOTE_TEXT.emptyLine('Defeat quote', 1)])
   })
+  it('a quote that was just added is not flagged for its empty line until it is touched', () => {
+    const fresh = addQuote(game(), 'mira')  // mira has no quotes: the new one is quote 1
+    expect(texts(fresh)).toEqual([])
+    expect(fresh.characters!.find((c) => c.id === 'mira')!.quotes!.battle![0].lines).toEqual([{ say: '' }])  // the file still has the empty line
+    // The first change of any kind makes it count: whitespace typed, a speaker, an opponent, a frequency, a second line.
+    const line = [QUOTE_TEXT.emptyLine('Battle quote 1', 1)]
+    expect(texts(setQuoteLines(fresh, 'mira', 0, [{ say: ' ' }]))).toEqual(line)
+    expect(texts(setQuoteLines(fresh, 'mira', 0, [{ say: '', speaker: 'eirik' }]))).toEqual(line)
+    expect(texts(setQuoteOnce(fresh, 'mira', 0, 'always'))).toEqual(line)
+    expect(texts(setQuoteAgainst(fresh, 'mira', 0, 'gorm'))).toEqual(line)
+    expect(texts(setQuoteLines(fresh, 'mira', 0, [{ say: '' }, { say: '' }]))).toEqual([QUOTE_TEXT.emptyLine('Battle quote 1', 1), QUOTE_TEXT.emptyLine('Battle quote 1', 2)])
+  })
   it('an unknown character in against, a quote against oneself, and the same opponent twice', () => {
     expect(texts(setQuoteAgainst(game(), 'eirik', 0, 'nobody'))).toEqual([QUOTE_TEXT.unknownAgainst(1, 'nobody')])
     expect(texts(setQuoteAgainst(game(), 'eirik', 0, 'eirik'))).toEqual([QUOTE_TEXT.againstSelf(1)])
     expect(texts(setQuoteAgainst(game(), 'eirik', 1, 'gorm'))).toEqual([QUOTE_TEXT.duplicate(2, 'against Gorm')])
-    expect(texts(addQuote(game(), 'eirik'))).toEqual([QUOTE_TEXT.emptyLine('Battle quote 3', 1), QUOTE_TEXT.duplicate(3, 'against anyone')])
+    expect(texts(addQuote(game(), 'eirik'))).toEqual([QUOTE_TEXT.duplicate(3, 'against anyone')])  // (its fresh empty line is not flagged, below)
   })
   it('a line spoken by an unknown character', () => {
     const d = setQuoteLines(game(), 'bram', 0, [{ say: 'Hah!', speaker: 'ghost' }])
