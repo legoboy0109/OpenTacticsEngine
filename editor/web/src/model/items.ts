@@ -80,6 +80,11 @@ export function setUses(doc: ProjectDoc, id: string, uses: number | undefined): 
   return updateItem(doc, id, uses === undefined ? { uses: undefined, repairable: undefined } : { uses: Math.min(USES_MAX, Math.max(1, Math.round(uses))) })
 }
 
+/** "Cannot be stolen" is written as `stealable: false`; the default (it can be) is not written. */
+export const setStealable = (doc: ProjectDoc, id: string, can: boolean): ProjectDoc => updateItem(doc, id, { stealable: can ? undefined : false })
+/** Does any ability of the game steal? (The Items screen offers the switch then, or when an item already says it.) */
+export const gameHasSteal = (doc: ProjectDoc): boolean => (doc.abilities ?? []).some((a) => !!a.effect && typeof a.effect === 'object' && 'steal' in a.effect)
+
 export function setUnlimited(doc: ProjectDoc, id: string, unlimited: boolean): ProjectDoc {
   const kind = doc.items?.find((x) => x.id === id)?.kind ?? 'usable'
   return setUses(doc, id, unlimited ? undefined : DEFAULT_USES[kind])

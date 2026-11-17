@@ -200,6 +200,8 @@ export interface Item extends Named {
   uses?: number
   /** Any item with `uses`: false = a staff's repair never offers it (missing = repairable; docs/SRPG.md "Staves: stage two"). */
   repairable?: boolean
+  /** false = a steal ability never takes this item (missing = it can be stolen; docs/SRPG.md "Steal"). */
+  stealable?: boolean
   /** Per resource; missing = not for sale. */
   price?: NumMap
   target?: ItemTarget
@@ -250,6 +252,8 @@ export interface MapUnit extends Extra {
   character?: string
   /** Replaces the starting value of the weapon groups it names (docs/SRPG.md section 7). */
   ranks?: RankMap
+  /** Skills of its own, learned in addition to those of its type and character (docs/SRPG.md "More skill blocks"). */
+  skills?: string[]
 }
 export interface MapFile extends Extra {
   name: string

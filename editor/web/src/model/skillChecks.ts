@@ -16,7 +16,7 @@ import type { Extra, ProjectDoc } from './types'
 const list = (v: unknown): Extra[] => (Array.isArray(v) ? (v as Extra[]) : [])
 const WHEN_WORDS: Record<When, string> = {
   always: 'a rule that always applies', turnStart: 'a rule for the start of a turn', combat: 'a rule for combat', strike: 'a rule for when the unit strikes',
-  struck: 'a rule for when the unit is struck', defeat: 'a rule for after defeating a foe', afterCombat: 'a rule for after combat',
+  struck: 'a rule for when the unit is struck', defeat: 'a rule for after defeating a foe', afterCombat: 'a rule for after combat', staffUse: 'a rule for after the unit uses a staff',
 }
 
 /** What is wrong with one rule, in plain words (empty = nothing the editor can see). */
@@ -82,6 +82,11 @@ export function ruleIssues(doc: ProjectDoc, b: Extra, forCondition = false): str
 function ownCondIssues(doc: ProjectDoc, c: Extra, k: ReturnType<typeof condKindOf>): string[] {
   const out: string[] = []
   if (k === 'weaponKind' && !weaponKinds(doc).includes(String(c.weaponKind))) out.push(`“Only if” asks about the kind of damage “${String(c.weaponKind)}”, which no weapon has. Give a weapon that kind first.`)
+  if (k === 'terrain' && Array.isArray(c.terrain)) {
+    const names = c.terrain as unknown[]
+    if (names.length === 0) out.push('“Only if” stands on nothing yet. Pick at least one kind of ground.')
+    for (const t of names) if (!doc.terrain?.some((x) => x.id === t || (x as Extra).tags && ((x as Extra).tags as string[]).includes(String(t)))) out.push(`“Only if” asks about the ground “${String(t)}”, which is no terrain or tag of this game.`)
+  }
   if (k === 'carries' && !doc.items?.some((i) => i.id === c.carries)) out.push(`“Only if” asks about the item “${String(c.carries)}”, which does not exist.`)
   if (k === 'inventory') {
     const v = c.inventory
@@ -133,6 +138,24 @@ function ownEffectIssues(doc: ProjectDoc, e: Extra, k: EffectKind, when: When): 
     if (kinds.length === 0 && groups.length === 0) out.push('It forbids nothing yet. Tick an item kind or a group.')
     for (const x of kinds) if (x !== 'weapon' && x !== 'staff' && x !== 'usable') out.push(`“${String(x)}” is not an item kind (weapons, staves or usable items).`)
     for (const g of groups) if (!groupsOf(doc).includes(String(g))) out.push(`“${String(g)}” is no weapon or staff group of this game.`)
+  }
+  if (k === 'heal' && when === 'staffUse' && e.to === 'allies') out.push('After a staff, a heal goes to the unit that used it.')
+  if (k === 'nullifySkills') {
+    if (Array.isArray(v)) {
+      if (v.length === 0) out.push('It switches off nothing yet. Pick at least one skill.')
+      for (const id of v) if (!doc.skills?.some((s) => s.id === id)) out.push(`The skill “${String(id)}” does not exist.`)
+    } else if (v && typeof v === 'object') {
+      const tag = (v as Extra).tag
+      if (typeof tag !== 'string' || tag === '') out.push('Pick the tag of the skills to switch off.')
+      else if (!doc.skills?.some((s) => (s as Extra).tags && ((s as Extra).tags as string[]).includes(tag))) out.push(`No skill has the tag “${tag}”. Give a skill that tag first.`)
+    } else if (v !== true) out.push('It switches off every skill of the foe, the skills you pick, or the skills with a tag.')
+  }
+  if (k === 'staffRange') {
+    const o = obj(v)
+    const amount = typeof v === 'number' ? v : o.amount
+    if (!isWhole(amount) || amount < 1 || amount > 10) out.push('The extra reach must be a whole number from 1 to 10.')
+    if (typeof v === 'object' && o.group !== undefined && !(typeof o.group === 'string' && doc.items?.some((i) => i.kind === 'staff' && (i as Extra).group === o.group)))
+      out.push(`“${String(o.group)}” is no staff group of this game.`)
   }
   if (k === 'followUp' && v !== 'force' && v !== 'forbid') out.push('A follow-up strike is either forced or forbidden.')
   if (k === 'cure') {

@@ -94,10 +94,26 @@ function mapKeep<T>(list: T[] | null, fn: (t: T) => T): T[] | null {
 }
 
 /** Takes the skill out of every unit type, character, weapon and item, and the events that teach, forget or ask for it. */
+/** Takes the id out of the `skills` list of every map unit and of every addUnit command in a map's events. */
+function stripUnitSkills(value: unknown, id: string): unknown {
+  if (Array.isArray(value)) return value.map((v) => stripUnitSkills(v, id))
+  if (!value || typeof value !== 'object') return value
+  const o = value as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(o)) out[k] = stripUnitSkills(v, id)
+  if (Array.isArray(out.skills) && (out.skills as unknown[]).includes(id) && ('side' in out || 'x' in out)) {
+    const rest = (out.skills as unknown[]).filter((s) => s !== id)
+    if (rest.length) out.skills = rest; else delete out.skills
+  }
+  return out
+}
+
 export function cleanSkill(doc: ProjectDoc, id: string): ProjectDoc {
+  const scrubbed = scrubMaps(doc, [{ kind: 'skill', id }])
+  const maps = Object.fromEntries(Object.entries(scrubbed).map(([k, m]) => [k, m && (JSON.stringify(m).includes(`"${id}"`) ? (stripUnitSkills(m, id) as typeof m) : m)])) as typeof doc.maps
   return {
     ...doc,
-    maps: scrubMaps(doc, [{ kind: 'skill', id }]),
+    maps,
     units: mapKeep(doc.units, (u) => dropLearn(dropId(u, 'skills', id), id)),
     characters: mapKeep(doc.characters, (c) => dropLearn(dropId(c, 'skills', id), id)),
     weapons: mapKeep(doc.weapons, (w) => dropId(w, 'skills', id)),

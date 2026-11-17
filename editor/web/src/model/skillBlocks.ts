@@ -90,6 +90,9 @@ export function newEffect(kind: EffectKind, doc: ProjectDoc, when: When): Extra 
     case 'trianglePercent': return { trianglePercent: 200 }
     case 'weaponXpPercent': return { weaponXpPercent: 150 }
     case 'cure': return doc.conditions?.[0] ? { cure: [doc.conditions[0].id] } : { cure: 'all' }
+    case 'nullifySkills': return { nullifySkills: true }
+    case 'staffRange': return { staffRange: 1 }
+    case 'carryBonus': return { carryBonus: 1 }
     default: return FLAG_EFFECTS.includes(kind) ? { [kind]: true } : null
   }
 }
@@ -170,6 +173,7 @@ export function setWhen(b: Extra, when: When, doc: ProjectDoc): Extra {
   eff = eff.map((e) => {
     if (effectKindOf(e) === 'hurt') return withoutKey(withoutKey(e, 'to'), 'within')
     if (e.to === 'foe' && (when !== 'combat' || aura)) return setEffectTarget(e, false)
+    if (e.to === 'allies' && when === 'staffUse') return withoutKey(withoutKey(e, 'to'), 'within')  // a staff's heal goes to the user
     return e
   })
   if (eff.length === 0) { const first = okEffects.map((k) => newEffect(k, doc, when)).find((x) => x !== null); eff = first ? [first] : [] }
@@ -182,7 +186,7 @@ const withoutKey = (o: Extra, k: string): Extra => { const c = { ...o }; delete 
 
 /** A new skill rule, valid as it stands. */
 export function newBlock(doc: ProjectDoc, when: When = 'combat'): Extra {
-  const prefer: Record<When, EffectKind> = { always: 'stats', turnStart: 'heal', combat: 'damage', strike: 'damage', struck: 'damageTaken', defeat: 'heal', afterCombat: 'heal' }
+  const prefer: Record<When, EffectKind> = { always: 'stats', turnStart: 'heal', combat: 'damage', strike: 'damage', struck: 'damageTaken', defeat: 'heal', afterCombat: 'heal', staffUse: 'heal' }
   const e = [prefer[when], ...effectsFor(when, false)].map((k) => newEffect(k, doc, when)).find((x) => x !== null)
   return { when, do: e ? [e] : [] }
 }

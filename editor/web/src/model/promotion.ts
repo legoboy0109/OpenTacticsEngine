@@ -9,6 +9,7 @@ import type { Item, NumMap, ProjectDoc, Unit } from './types'
 
 export type AtLevel = 'off' | 'offer' | 'auto'
 export type LevelAfter = 'reset' | 'keep'
+export type ClassSkills = 'keep' | 'replace'
 
 export const promotionsOf = (u: Unit | undefined): Promotion[] => u?.promotions ?? []
 export const progressionOn = (doc: ProjectDoc): boolean => doc.game?.rules?.progression?.enabled === true
@@ -91,6 +92,18 @@ export function setItemPromotes(doc: ProjectDoc, itemId: string, on: boolean): P
 }
 
 // --- rules.promotion --------------------------------------------------------------------------------------------------------------
+
+/** What the game does with the old class's skills on promotion ("keep" is the engine's default and is not written). */
+export const gameClassSkills = (doc: ProjectDoc): ClassSkills => (doc.game?.rules?.promotion?.classSkills === 'replace' ? 'replace' : 'keep')
+export function setClassSkillsRule(doc: ProjectDoc, v: ClassSkills): ProjectDoc {
+  return withGame(doc, (g) => {
+    const rules = { ...(g.rules ?? {}) }
+    const block: PromotionRules = { ...(rules.promotion ?? {}) }
+    if (v === 'keep') delete block.classSkills; else block.classSkills = v
+    if (Object.keys(block).length) rules.promotion = block; else delete rules.promotion
+    return { ...g, rules }
+  })
+}
 
 /** "Starts again at 1" is the default and is not written; an empty block is removed. */
 export function setLevelAfterRule(doc: ProjectDoc, v: LevelAfter): ProjectDoc {

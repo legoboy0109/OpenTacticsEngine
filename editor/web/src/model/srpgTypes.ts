@@ -24,6 +24,8 @@ export interface Character extends Named {
   capAdjust?: NumMap
   /** Battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes"). */
   quotes?: CharacterQuotes
+  /** The maker's labels: a character matches a tag like its unit type does (docs/SRPG.md "Tags"). */
+  tags?: string[]
 }
 
 /** How often a battle quote is said: once per map (the default), once per campaign, or every time. */
@@ -37,7 +39,7 @@ export interface CharacterQuotes {
 }
 
 /** data/skills.json entry (section 3); the blocks are E2's to type. */
-export interface Skill extends Named { description?: string; blocks?: Extra[] }
+export interface Skill extends Named { description?: string; /** The maker's labels; a "nullifySkills" effect can name one. */ tags?: string[]; blocks?: Extra[] }
 
 /** data/conditions.json entry (section 9): how long it lasts (exactly one of `turns` and `until`), and its rules as skill blocks. */
 export interface Condition extends Named {
@@ -60,7 +62,12 @@ export interface Summon extends Extra {
   type?: string; level?: 'summoner' | number; limit?: number; vanish?: boolean; lifetime?: number; canAct?: boolean; givesXp?: boolean
 }
 /** An ability's one effect: exactly one of these keys. */
-export interface AbilityEffect extends Extra { push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon }
+/** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */
+export interface StealOptions extends Extra { if?: string; weapons?: boolean; equipped?: boolean }
+export interface AbilityEffect extends Extra {
+  push?: number; pull?: boolean; swap?: boolean; moveBehind?: boolean; heal?: number | 'full'; summon?: Summon
+  steal?: true | StealOptions; refresh?: true | { perTurn: number }; movePast?: boolean; cure?: string[] | 'all'
+}
 export type AbilityTarget = 'self' | 'ally' | 'enemy' | 'unit' | 'cell'
 /** data/abilities.json entry (section 4). `if` holds conditions of the skill kind; E3 shows and edits a few of them. */
 export interface Ability extends Named {
@@ -107,5 +114,5 @@ export interface Promotion extends Extra {
   to: string; fromLevel?: number; items?: string[]; atLevel?: 'off' | 'offer' | 'auto'; levelAfter?: 'reset' | 'keep'; gains?: NumMap
 }
 /** game.json `rules.promotion` (section 2) and `rules.rescue` (section 5); E3 refines them. */
-export interface PromotionRules extends Extra { levelAfter?: 'reset' | 'keep' }
+export interface PromotionRules extends Extra { levelAfter?: 'reset' | 'keep'; /** "keep" (the default) or "replace": the old class's skills go on promotion. */ classSkills?: 'keep' | 'replace' }
 export interface RescueRules extends Extra { mode?: 'carry' | 'pairUp'; canCarry?: string; carrierStats?: Record<string, number | { percent: number }>; pairBonus?: NumMap }

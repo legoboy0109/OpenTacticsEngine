@@ -9,7 +9,7 @@ import type { Extra, ProjectDoc } from './types'
 
 export const WHEN_LEAD: Record<When, string> = {
   always: 'Always', turnStart: 'At the start of its turn', combat: 'In combat', strike: 'When it strikes', struck: 'When it is struck',
-  defeat: 'After defeating a foe', afterCombat: 'After combat',
+  defeat: 'After defeating a foe', afterCombat: 'After combat', staffUse: 'After using a staff',
 }
 const OP_WORDS: Record<string, string> = { '=': 'exactly', '==': 'exactly', '!=': 'not', '<': 'below', '<=': 'at most', '>': 'above', '>=': 'at least' }
 export const opWords = (op: unknown): string => OP_WORDS[String(op ?? '>=')] ?? 'at least'
@@ -38,7 +38,7 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
       return `${opWords(c.op)} ${c.count ?? 1}${match} ${what === 'enemy' ? (Number(c.count ?? 1) === 1 ? 'enemy' : 'enemies') : (Number(c.count ?? 1) === 1 ? 'ally' : 'allies')} within ${squares(c.within ?? 1)}`
     }
     case 'weapon': return `${foe ? 'the foe’s' : 'its'} weapon is ${weaponWords(doc, String(v ?? ''))}`
-    case 'terrain': return `${who} stands on ${terrainWords(doc, String(v ?? ''))}`
+    case 'terrain': return Array.isArray(v) ? `${who} stands on ${(v as string[]).map((t) => terrainWords(doc, String(t))).join(' or ')}` : `${who} stands on ${terrainWords(doc, String(v ?? ''))}`
     case 'structure': return v === true ? `${who} stands on a structure` : v === false ? `${who} stands on no structure` : `${who} stands on ${structureWords(doc, String(v ?? ''))}`
     case 'unit': return `${who} is ${nameOfTypeOrTag(doc, String(v ?? ''), true)}`
     case 'carrying': return v === false ? `${who} is not carrying anyone` : `${who} is carrying someone`
@@ -63,6 +63,7 @@ export function conditionText(doc: ProjectDoc, c: Extra): string {
 }
 
 const conditionNameOf = (doc: ProjectDoc, id: string): string => doc.conditions?.find((c) => c.id === id)?.name ?? id
+const skillNameOf = (doc: ProjectDoc, id: string): string => `“${doc.skills?.find((s) => s.id === id)?.name ?? id}”`
 const nameOfTypeOrTag = (doc: ProjectDoc, key: string, article = false): string => {
   const t = doc.units?.find((u) => u.id === key)
   if (t) return article ? `a ${t.name}` : t.name
@@ -101,6 +102,16 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
     case 'noCarryPenalty': return 'is not slowed by carrying someone'
     case 'cancelEffective': return 'is not hurt extra by weapons that are effective against it'
     case 'cure': return v === 'all' ? 'is cured of every condition' : `is cured of ${((Array.isArray(v) ? v : []) as string[]).map((id) => conditionNameOf(doc, id)).join(' and ')}`
+    case 'nullifySkills': {
+      if (v === true) return 'the foe’s skills do not work in this fight'
+      if (Array.isArray(v)) return `the foe’s ${(v as string[]).map((id) => skillNameOf(doc, id)).join(' and ')} ${v.length === 1 ? 'does' : 'do'} not work in this fight`
+      return `the foe’s skills tagged “${String((v && typeof v === 'object' ? (v as Extra).tag : '') ?? '')}” do not work in this fight`
+    }
+    case 'staffRange': {
+      const o = (v && typeof v === 'object' ? v : null) as Extra | null
+      return o ? `staves of the group “${String(o.group ?? '')}” reach ${squares(o.amount)} further` : `staves reach ${squares(v)} further`
+    }
+    case 'carryBonus': return `carrying capacity ${signed(v)} (read by the carrying rule as a.carryBonus)`
     case 'strikes': return `${own}strikes ${signed(v)}`
     case 'multiStrike': return `each strike is made ${v} times in a row`
     case 'strikeFirst': return 'strikes first when defending'

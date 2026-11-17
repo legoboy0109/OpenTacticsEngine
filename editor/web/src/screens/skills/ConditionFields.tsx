@@ -4,6 +4,7 @@ import { weaponKinds } from '../../model/skillBlocks'
 import { structureOptions, terrainOptions, unitOptions, weaponOptions } from './options'
 import type { Extra, ProjectDoc } from '../../model/types'
 import { Field } from '../../ui/Field'
+import { MultiSelect } from '../../ui/MultiSelect'
 import { Num } from './Num'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
@@ -40,7 +41,23 @@ export function ConditionFields({ doc, cond, change }: Props) {
       )
     }
     case 'weapon': return <Field label={T.weaponPick}><Select value={String(cond.weapon ?? '')} options={weaponOptions(doc, String(cond.weapon ?? ''))} onChange={(v) => change({ ...cond, weapon: v })} /></Field>
-    case 'terrain': return <Field label={T.terrainPick}><Select value={String(cond.terrain ?? '')} options={terrainOptions(doc, String(cond.terrain ?? ''))} onChange={(v) => change({ ...cond, terrain: v })} /></Field>
+    case 'terrain': {
+      const many = Array.isArray(cond.terrain)
+      const list = (many ? cond.terrain : []) as string[]
+      const options = terrainOptions(doc, '')
+      const first = many ? (list[0] ?? options[0]?.value ?? '') : String(cond.terrain ?? options[0]?.value ?? '')
+      return (
+        <>
+          <Field label={T.terrainHow}>
+            <Select value={many ? 'many' : 'one'} options={[{ value: 'one', label: T.terrainOne }, { value: 'many', label: T.terrainMany }]}
+              onChange={(m) => change({ ...cond, terrain: m === 'many' ? (first ? [first] : []) : first })} />
+          </Field>
+          {many
+            ? <MultiSelect label={T.terrainPickMany} options={[...options, ...list.filter((t) => !options.some((x) => x.value === t)).map((t) => ({ value: t, label: `${t} (not in this game)` }))]} value={list} onChange={(v) => change({ ...cond, terrain: v })} />
+            : <Field label={T.terrainPick}><Select value={String(cond.terrain ?? '')} options={terrainOptions(doc, String(cond.terrain ?? ''))} onChange={(v) => change({ ...cond, terrain: v })} /></Field>}
+        </>
+      )
+    }
     case 'structure': {
       const v = cond.structure
       const shown = v === true ? 'any' : v === false ? 'none' : String(v ?? '')

@@ -32,6 +32,8 @@ export const T = {
   unlimited: 'Unlimited',
   unlimitedHelp: 'It never wears out.',
   usesCount: 'Number of uses',
+  stealable: 'Can be stolen',
+  stealableHelp: 'Off: a steal ability never takes this item from a unit that carries it.',
   repairable: 'A repair staff can mend it',
   repairableHelp: 'Off: a staff that repairs items never offers this one.',
 

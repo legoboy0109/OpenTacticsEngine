@@ -1,4 +1,4 @@
-import { setItemKind, setPrice, setUnlimited, setUses, updateItem } from '../../model/items'
+import { gameHasSteal, setItemKind, setPrice, setStealable, setUnlimited, setUses, updateItem } from '../../model/items'
 import { carriedWeapons } from '../../model/itemRules'
 import { repairableShown, setRepairable } from '../../model/staffEffects'
 import type { ItemKind } from '../../model/types'
@@ -72,6 +72,12 @@ export function ItemForm({ id }: { id: string }) {
               <Toggle label={T.repairable} help={T.repairableHelp} checked={item.repairable !== false} onChange={(v) => edit((d) => setRepairable(d, id, v))} />
             )}
           </div>
+        </Card>
+      )}
+
+      {(gameHasSteal(doc) || item.stealable === false) && (
+        <Card>
+          <Toggle label={T.stealable} help={T.stealableHelp} checked={item.stealable !== false} onChange={(v) => edit((d) => setStealable(d, id, v))} />
         </Card>
       )}
 

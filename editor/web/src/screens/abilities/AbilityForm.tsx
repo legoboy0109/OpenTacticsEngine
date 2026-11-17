@@ -1,5 +1,5 @@
 // The form of one ability: name, what it does and on whom, cost and limits, conditions, and the sentence it adds up to.
-import { EFFECT_KINDS, TARGETS_FOR, effectKind, isMove, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
+import { EFFECT_KINDS, TARGETS_FOR, effectKind, hasFixedRange, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
 import { abilitySummary } from '../../model/abilityText'
 import { withAbilities } from '../../model/doc'
 import type { Ability, AbilityTarget } from '../../model/srpgTypes'
@@ -32,7 +32,7 @@ export function AbilityForm({ id }: { id: string }) {
   // Offer only the targets the effect accepts; the one the file has stays even when it is wrong, so the select shows it.
   const allowed = kind ? TARGETS_FOR[kind] : (Object.keys(T.targets) as AbilityTarget[])
   const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
-  const showRange = kind !== null && !isMove(kind) && target !== 'self'
+  const showRange = kind !== null && !hasFixedRange(kind) && target !== 'self'
 
   return (
     <div className="stack" data-testid="ability-form">

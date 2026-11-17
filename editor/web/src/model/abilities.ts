@@ -5,13 +5,15 @@
 import { withAbilities } from './doc'
 import { newAbilityId } from './srpgRefs'
 import { moveItem, patchObj, updateById } from './util'
-import type { Ability, AbilityEffect, AbilityTarget, Summon } from './srpgTypes'
+import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
 import type { Extra, ProjectDoc } from './types'
 
-export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'heal' | 'summon'
-export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'heal', 'summon']
-/** The four that move a neighbour: the loader needs a unit target and the range [1, 1]. */
-export const isMove = (k: EffectKind | null): boolean => k === 'push' || k === 'pull' || k === 'swap' || k === 'moveBehind'
+export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure'
+export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure']
+/** The five that move units next to the user: the loader needs a unit target and the range [1, 1]. */
+export const isMove = (k: EffectKind | null): boolean => k === 'push' || k === 'pull' || k === 'swap' || k === 'moveBehind' || k === 'movePast'
+/** Effects with no range of their own to write: the moving ones and steal (a neighbour, range [1, 1]). */
+export const hasFixedRange = (k: EffectKind | null): boolean => isMove(k) || k === 'steal'
 
 export const PUSH_MAX = 5
 export const HEAL_MAX = 999
@@ -22,8 +24,8 @@ export const LIFETIME_MAX = 99
 
 /** Which targets each effect accepts (the loader's "target against effect" rules). */
 export const TARGETS_FOR: Record<EffectKind, AbilityTarget[]> = {
-  push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'],
-  heal: ['self', 'ally', 'unit'], summon: ['cell'],
+  push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'], movePast: ['ally', 'enemy', 'unit'],
+  heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'],
 }
 
 export function effectKind(a: Ability): EffectKind | null {
@@ -65,7 +67,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, M
 /** The range is written only when it is not the default [1, 1]; "itself" and the moving effects have none to write. */
 function withRange(a: Ability, range: [number, number]): Ability {
   const kind = effectKind(a)
-  const keep = targetOf(a) !== 'self' && !isMove(kind) && !(range[0] === 1 && range[1] === 1)
+  const keep = targetOf(a) !== 'self' && !hasFixedRange(kind) && !(range[0] === 1 && range[1] === 1)
   return patchObj(a, { range: keep ? range : undefined })
 }
 
@@ -86,8 +88,12 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
     case 'pull': return { pull: true }
     case 'swap': return { swap: true }
     case 'moveBehind': return { moveBehind: true }
+    case 'movePast': return { movePast: true }
     case 'heal': return { heal: 10 }
     case 'summon': return { summon: { type: '' } }
+    case 'steal': return { steal: true }
+    case 'refresh': return { refresh: true }
+    case 'cure': return { cure: 'all' }
   }
 }
 
@@ -98,6 +104,7 @@ export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Abili
   const target = TARGETS_FOR[k].includes(targetOf(a)) ? targetOf(a) : TARGETS_FOR[k][0]
   const effect = defaultEffect(k)
   if (k === 'summon') effect.summon = { type: doc.units?.[0]?.id ?? '' }
+  if (k === 'cure' && doc.conditions?.[0]) effect.cure = [doc.conditions[0].id]
   const next = patchObj(a, { effect, target })
   return withRange(next, k === 'summon' && a.range === undefined ? [1, 2] : rangeOf(a))
 }
@@ -118,6 +125,30 @@ export function setSummon(a: Ability, patch: Partial<Summon>): Ability {
   for (const [k, def] of Object.entries(SUMMON_DEFAULTS)) if (next[k] === def || next[k] === undefined) delete next[k]
   return patchObj(a, { effect: { ...a.effect, summon: next as Summon } })
 }
+
+/** Steal options: the defaults (no condition, no weapons) are written as plain `true`. */
+export function setSteal(a: Ability, patch: Partial<StealOptions>): Ability {
+  if (effectKind(a) !== 'steal') return a
+  const cur = a.effect?.steal && typeof a.effect.steal === 'object' ? a.effect.steal : {}
+  const next: Record<string, unknown> = { ...cur, ...patch }
+  if (next.if === undefined || next.if === '') delete next.if
+  if (next.weapons !== true) { delete next.weapons; delete next.equipped }  // "equipped" needs weapons
+  if (next.equipped !== true) delete next.equipped
+  return patchObj(a, { effect: { steal: Object.keys(next).length ? (next as StealOptions) : true } })
+}
+export const stealOf = (a: Ability): StealOptions => (a.effect?.steal && typeof a.effect.steal === 'object' ? a.effect.steal : {})
+
+/** Refresh: how many times a unit can be refreshed in one turn (1 is the default and is written as `true`). */
+export const refreshPerTurn = (a: Ability): number => (a.effect?.refresh && typeof a.effect.refresh === 'object' ? a.effect.refresh.perTurn : 1)
+export function setRefreshPerTurn(a: Ability, n: number): Ability {
+  if (effectKind(a) !== 'refresh') return a
+  const v = clamp(n, 1, REFRESH_MAX)
+  return patchObj(a, { effect: { refresh: v === 1 ? true : { perTurn: v } } })
+}
+export const REFRESH_MAX = 9
+
+/** Cure: "all", or the ids of the conditions it cures (the first one when the maker leaves "all"). */
+export const setCure = (a: Ability, cure: string[] | 'all'): Ability => (effectKind(a) === 'cure' ? patchObj(a, { effect: { cure } }) : a)
 
 export const setCost = (a: Ability, free: boolean): Ability => patchObj(a, { cost: free ? 'free' : undefined })
 export const setUses = (a: Ability, n: number | undefined): Ability => patchObj(a, { uses: n === undefined ? undefined : clamp(n, 1, USES_MAX) })

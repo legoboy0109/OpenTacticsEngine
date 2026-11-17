@@ -10,6 +10,7 @@ import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
 import { Check } from '../../ui/Toggle'
+import { allSkillTags } from '../../model/skills'
 import { Num } from './Num'
 import { StatRows } from './StatRows'
 import { T } from './text'
@@ -56,8 +57,10 @@ export function EffectFields({ doc, effect, when, aura, change, forCondition }: 
     return <Check label={T.moveAgainNot} help={T.moveAgainNotHelp} checked={on} onChange={(c) => change({ ...effect, moveAgain: c ? { notAfterAttack: true } : true })} />
   }
   if (kind === 'cure') return <CureFields doc={doc} effect={effect} change={change} />
+  if (kind === 'nullifySkills') return <NullifyFields doc={doc} effect={effect} change={change} />
+  if (kind === 'staffRange') return <StaffRangeFields doc={doc} effect={effect} change={change} />
   if (FORMULA_EFFECTS.includes(kind) && NUMBER_RANGE[kind]) return <>{target}<FormulaNumber effect={effect} kind={kind} change={change} percent={PERCENT.includes(kind)} /></>
-  if (kind === 'heal') return <HealFields effect={effect} change={change} />
+  if (kind === 'heal') return <HealFields effect={effect} when={when} change={change} />
   if (kind === 'hurt') return <HurtFields effect={effect} when={when} change={change} />
   if (kind === 'immune') return <ImmuneFields doc={doc} effect={effect} change={change} />
   if (kind === 'inflict') return <InflictFields doc={doc} effect={effect} change={change} />
@@ -124,18 +127,18 @@ function AmountFields({ effect, which, change, labels }: { effect: Extra; which:
   )
 }
 
-function HealFields({ effect, change }: { effect: Extra; change: (e: Extra, key?: string) => void }) {
+function HealFields({ effect, when, change }: { effect: Extra; when: When; change: (e: Extra, key?: string) => void }) {
   const allies = effect.to === 'allies'
   const set = (patch: Extra, key?: string) => change({ ...effect, ...patch }, key)
   return (
     <>
       <AmountFields effect={effect} which="heal" change={change}
         labels={{ how: T.healAmount, kinds: { number: T.healHp, percent: T.healPercent, formula: T.healFormula }, formula: T.healFormulaLabel, formulaHelp: T.healFormulaHelp }} />
-      <Field label={T.healTo}>
+      {when !== 'staffUse' && <Field label={T.healTo}>
         <Select value={allies ? 'allies' : 'self'} options={[{ value: 'self', label: T.healSelf }, { value: 'allies', label: T.healAllies }]}
           onChange={(t) => { const { to: _t, within: _w, ...rest } = effect; change(t === 'allies' ? { ...rest, to: 'allies', within: 1 } : rest) }} />
-      </Field>
-      {allies && <Field label={T.squares}><Num value={Number(effect.within ?? 1)} min={1} max={10} onChange={(n) => set({ within: n }, 'within')} /></Field>}
+      </Field>}
+      {allies && when !== 'staffUse' && <Field label={T.squares}><Num value={Number(effect.within ?? 1)} min={1} max={10} onChange={(n) => set({ within: n }, 'within')} /></Field>}
     </>
   )
 }
@@ -189,6 +192,48 @@ function InflictFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra
         ? <Field label={T.inflictTurns} help={T.inflictTurnsHelp}><NumberInput value={typeof v.turns === 'number' ? v.turns : undefined} min={1} max={99} allowEmpty
             onChange={(n) => put({ condition: id, ...(n !== undefined ? { turns: n } : {}) }, 'turns')} /></Field>
         : id ? <p className="help">{T.inflictTurnsNo}</p> : null}
+    </>
+  )
+}
+
+/** "nullifySkills": every skill of the foe, the skills picked, or the skills with a tag. */
+function NullifyFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra; change: (e: Extra, key?: string) => void }) {
+  const v = effect.nullifySkills
+  const mode = Array.isArray(v) ? 'some' : v && typeof v === 'object' ? 'tag' : 'all'
+  const skills = (doc.skills ?? []).map((s) => ({ value: s.id, label: s.name }))
+  const tags = allSkillTags(doc)
+  const set = (next: unknown, key?: string) => change({ ...effect, nullifySkills: next }, key)
+  return (
+    <>
+      <Field label={T.nullifyHow}>
+        <Select value={mode} options={[{ value: 'all', label: T.nullifyAll }, { value: 'some', label: T.nullifyPick }, { value: 'tag', label: T.nullifyTag }]}
+          onChange={(m) => set(m === 'all' ? true : m === 'some' ? (skills[0] ? [skills[0].value] : true) : tags[0] ? { tag: tags[0] } : true)} />
+      </Field>
+      {mode === 'some' && (skills.length === 0 ? <p className="help">{T.nullifyNoSkills}</p> : <MultiSelect label={T.nullifyPick} options={skills} value={v as string[]} onChange={(l) => set(l)} />)}
+      {mode === 'tag' && (
+        <Field label={T.nullifyTagPick}>
+          <Select value={String((v as Extra).tag ?? '')} options={[...new Set([...tags, String((v as Extra).tag ?? '')])].filter(Boolean).map((t) => ({ value: t, label: t }))} onChange={(t) => set({ tag: t })} />
+        </Field>
+      )}
+      {mode === 'tag' && tags.length === 0 && <p className="help">{T.nullifyNoTags}</p>}
+    </>
+  )
+}
+
+/** "staffRange": extra squares, for every staff or only the staves of one group. */
+function StaffRangeFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra; change: (e: Extra, key?: string) => void }) {
+  const v = effect.staffRange
+  const o = (v && typeof v === 'object' ? v : null) as Extra | null
+  const amount = typeof v === 'number' ? v : Number(o?.amount ?? 1)
+  const group = o ? String(o.group ?? '') : ''
+  const groups = [...new Set((doc.items ?? []).filter((i) => i.kind === 'staff').map((i) => String((i as Extra).group ?? '')).filter(Boolean))]
+  const put = (n: number, g: string, key?: string) => change({ ...effect, staffRange: g ? { amount: n, group: g } : n }, key)
+  return (
+    <>
+      <Field label={T.staffRangeAmount}><Num value={amount} min={1} max={10} onChange={(n) => put(n, group, 'staffRange')} /></Field>
+      <Field label={T.staffRangeGroup}>
+        <Select value={group} options={[{ value: '', label: T.staffRangeAnyGroup }, ...[...new Set([...groups, group])].filter(Boolean).map((g) => ({ value: g, label: g }))]} onChange={(g) => put(amount, g)} />
+      </Field>
     </>
   )
 }

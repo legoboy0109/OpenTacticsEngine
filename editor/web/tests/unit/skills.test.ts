@@ -19,13 +19,14 @@ const base = (): ProjectDoc => switchOnFeature(loadDemo('demo-srpg'), 'skills')
 
 // The tables of docs/SRPG.md section 3, written out once more by hand: the picker rules must equal them.
 const EFFECT_TABLE: Record<When, EffectKind[]> = {
-  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective'],
+  always: ['stats', 'growths', 'maxMoveCost', 'pass', 'moveAgain', 'xpPercent', 'ability', 'immune', 'weaponXpPercent', 'noCarryPenalty', 'cancelEffective', 'staffRange', 'carryBonus'],
   turnStart: ['heal', 'hurt', 'cure'],
-  combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter', 'followUp', 'followShift', 'trianglePercent'],
+  combat: ['stats', 'hit', 'crit', 'damage', 'avoid', 'critAvoid', 'damageTaken', 'damagePercent', 'damageTakenPercent', 'strikes', 'multiStrike', 'strikeFirst', 'counterAnyRange', 'noCounter', 'followUp', 'followShift', 'trianglePercent', 'nullifySkills'],
   strike: ['hit', 'crit', 'damage', 'damagePercent', 'drain', 'strikeAgain', 'inflict'],
   struck: ['avoid', 'critAvoid', 'damageTaken', 'damageTakenPercent', 'survive', 'inflict'],
   defeat: ['heal', 'actAgain', 'cure'],
   afterCombat: ['heal', 'hurt', 'actAgain', 'cure'],
+  staffUse: ['heal', 'cure'],
 }
 const sorted = <T,>(l: T[]) => [...l].sort()
 
