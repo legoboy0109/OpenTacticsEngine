@@ -54,7 +54,7 @@ export function ChoiceForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
             onChange={(list, key) => set(listPatch(answers, k, { if: list.length ? list : undefined }), key && `${k}:if:${key}`)} />
         </div>
       ))}
-      <button type="button" className="btn sm" disabled={answers.length >= MAX_ANSWERS} onClick={() => set(listAdd(answers, { text: '', do: [] }))}>
+      <button type="button" className="btn sm" disabled={answers.length >= MAX_ANSWERS} onClick={() => set(listAdd(answers, { text: '' }))}>
         <Icon name="plus" />{S.addAnswer}
       </button>
       {answers.length >= MAX_ANSWERS && <p className="help">{S.answersFull}</p>}

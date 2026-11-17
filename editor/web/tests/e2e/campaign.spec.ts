@@ -70,7 +70,7 @@ test('@smoke a campaign from nothing: two chapters, every scene command, a neste
   // --- chapter 1: the scene before the battle, one command of every kind
   await openChapter(page, 'Chapter 1')
   await page.getByLabel('Name', { exact: true }).fill('The Crossing')
-  await expect(scene(page, 'before').getByRole('option', { name: 'Go to a chapter' })).toHaveCount(0) // only After can send the story elsewhere
+  await expect(scene(page, 'before').getByRole('option', { name: 'Go to a chapter' })).toHaveCount(1) // both scenes can send the story elsewhere (docs/EVENTS.md "Dialogue choices")
   await expect(scene(page, 'before').getByRole('option', { name: 'Add a unit' })).toHaveCount(0)
   await addSceneCommand(page, 'before', 'Before the battle', 'Say something')
   await sceneForm(page, 'before').getByLabel('Who speaks').selectOption({ label: 'Someone else (type a name)' })

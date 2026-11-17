@@ -11,7 +11,7 @@ Contract for PLAN item 3f. Owner decisions (2026-11-14):
   units with levels and items carried over, scenes between maps.
 - **Dialogue** is a box across the bottom with the speaker's name and, when
   the game has one, the speaker's portrait beside it.
-- **Dialogue choices come later**, not in the first version.
+- **Dialogue choices**: built after the first version (PLAN k item 6); see "Dialogue choices" below.
 - **Fallen units: the maker chooses per game** (gone for good, or back next
   chapter).
 - **Single maps next to a campaign: the maker chooses** (campaign only, or
@@ -33,8 +33,8 @@ version and says so ("refined").
 - Events run in the rules core, so they are deterministic, saved, and
   played by `ote-sim`. A command changes the battle at once and leaves
   entries in the event stream; the player shows them in order (a line of
-  dialogue is one such entry). Nothing waits for input inside the core, so
-  dialogue choices are not in this version (owner decision).
+  dialogue is one such entry). Nothing waits for input inside the core: a question that a person must answer is done by replaying
+  the action with the answer (see "Dialogue choices").
 - A game without events, objectives, switches or variables behaves exactly
   as today and keeps its save hash and its saves byte for byte.
 - Wording (what is said, names, labels, objective text) is kept apart from
@@ -278,7 +278,7 @@ file), `engine/core/campaign/` (playing it and saving it), `Battle::setStartingR
 Keys are checked like the rest of the game files: an unknown key, a bad
 `rules` / `freeBattles` value, an empty `chapters` list, a duplicate chapter
 id, an unknown `map` / `next` / `goto` / `freeBattles` map, a `goto` in a
-`before` scene, or a scene command that is not one of the list below is a
+`before` scene to its own chapter, or a scene command that is not one of the list below is a
 loader error naming the file, the chapter and the command
 (`data/campaign.json: chapter "ch1": "before": command 2 (say): …`). A chapter
 nobody can reach is **not** an error. `name` of the campaign and the chapters
@@ -292,7 +292,7 @@ unit may join later; or `speakerName`; optional `portrait`), `setSwitch`,
 `setVariable`, `addVariable`, `giveResource` (`"side": "<side id>"`: added to what that
 side carries; a side id is only checked for being well-formed because scenes
 know no map), `if` with the conditions `switch`, `variable`, `alive` / `dead` (a
-roster id) and `{ "goto": "<chapter id>" }` (`after` only, also inside `if`).
+roster id) and `{ "goto": "<chapter id>" }` (also inside `if`; in a `before` scene it skips the chapter's battle, see "Dialogue choices"), `choice` ("Dialogue choices").
 A chapter's `before` / `after` may also be written `{ "music": "scene_theme", "commands": [ ... ] }`: the same
 scene with a `playMusic` in front (`commands` optional; the data hash sees the plain list, so adding music to a scene changes no save).
 Refined: `alive` = the id is in the roster and not gone, `dead` = it is in the
@@ -383,6 +383,90 @@ docs/SAVES.md "Campaign saves in the player". All wording below is placeholder.
 - **Web**: the same code; `tools/webtest/suites/campaign.mjs` plays New game -> scene -> battle -> reload -> Continue on
   the test game in a temp folder that serves the web build with its own `games/`.
 
+## Dialogue choices
+
+PLAN k item 6. All wording is placeholder until the owner approves it.
+
+**The command** (map events and campaign scenes, same JSON in both):
+
+```jsonc
+{ "choice": "An old gate blocks the path. What now?",   // the question (not empty)
+  "speaker": "mara",            // or "speakerName": "Guide", and "portrait": "id": as for "say" (all optional)
+  "store": "gate",              // optional: a game variable that receives the NUMBER of the answer picked
+  "answers": [                  // two to four
+    { "text": "Open it",  "do": [ { "setSwitch": "gate_open", "to": true } ] },        // "do": any commands legal in this place
+    { "text": "Go around" },                                                          // "do" optional (nothing happens)
+    { "text": "Ask Tobin first", "if": [ { "alive": "tobin" } ],                      // "if": optional, hides the answer
+      "do": [ { "choice": "Trust him?", "answers": [ { "text": "Yes" }, { "text": "No" } ] } ] } ] }   // a nested question
+```
+
+Number = the answer's position **as written** (1 = the first), also when earlier answers are hidden; 0 = never asked. It is
+an ordinary variable, so everything that reads variables works: `{ "variable": "gate", "op": "=", "value": 2 }` in event and
+answer conditions and in campaign scenes, and it is saved and carried between chapters like any variable (so it needs no
+save format of its own). A new choice id was not invented: the maker's id is the variable's id (game.json `variables`).
+
+**Branching the campaign.** Two ways, both on what exists: an answer sets the variable and a later `if` branches (`{ "if":
+[ { "variable": "road", "value": 2 } ], "then": [ { "goto": "ch3" } ] }`), or the answer holds `{ "goto": "<chapter id>" }`
+itself. `goto` works in every scene command list, answers included. In an **after** scene it picks the next chapter (the last
+`goto` that ran wins, as before). In a **before** scene (new) it skips this chapter's battle: the chapter it names becomes
+current in phase `Before`, so its own before scene runs next, and from there the order is normal (its `next`, else the
+following chapter). That is how a first scene asks "Play the tutorial?" (a chapter whose before scene asks and whose map is
+never played). A before scene may not name its own chapter (loader error: it would run for ever); longer cycles are the maker's
+to avoid.
+
+**Hidden answers.** `if` uses the engine's conditions (map: all kinds; scene: switch, variable, alive, dead, support). At run
+time: two or more offered = asked; exactly one offered = taken at once (stored, its commands run, nothing shown); none offered =
+the question is skipped (nothing stored). The loader cannot know which conditions hold, so it only refuses fewer than two or
+more than four answers written.
+
+**Loader refusals** (plain English, naming the map / chapter, the event or scene and `command N (choice)`): a question that is
+not text or is empty; fewer than two / more than four answers; an answer with empty or missing `text`; an answer with the same
+`text` as an earlier one; an unknown key (in the command or an answer); an unknown command or a bad command inside an answer
+(the message names `answer N: "do": command M`); an unknown `store` variable, unknown switch / unit in a condition; `goto` to
+a chapter that does not exist (also inside answers, nested questions and `if`s); a `goto` in a before scene to its own chapter;
+and **two questions of one map (or of one scene) with the same `store`** (almost always a copy that was not edited; reuse across
+different scenes / maps is fine, the later answer overwrites). The question wording and the answers' `text` are wording for
+the save hash; `store`, the answer count and what the answers do are rules.
+
+**Runtime in a battle** (`Battle`, `core/battle/story_choice.cpp`). `Battle::setAskChoices(false)` (default; `ote-sim`, AI-only
+runs, `--autoplay`, the editor's Play): the first offered answer is taken on the spot and a `Dialogue` entry with the question
+leaves the stream, so every existing consumer works. With `setAskChoices(true)` (the player, a person at the screen)
+`apply` / `start` stop at the first unanswered question: the entries up to and including a `Choice` entry are returned
+(a = speaker unit, b = question text, c = free speaker name, d = portrait id, `data` = the offered answers' texts), the Battle
+is the state exactly at the question (what the view shows matches the entries), `choiceWaiting()` is true and every
+`apply` is refused. `answerChoice(pick, events)` (pick = position among the offered answers) goes back to the state before
+the action, runs the same action again with all answers given so far (deterministic, so it reaches the same question) and
+returns the entries after the question, up to the next unanswered question if there is one. The rest of the action (a fight, the
+turn) therefore happens after the answer in the stream and in the state, exactly as if the answer's commands had been written
+in place: a test checks the final state against the plain commands. Cost: one copy of the Battle per action while asking is
+on and the map has a choice (maps without one are untouched and byte-identical). `Choice` is the last `EventType`.
+
+**Saves.** The answer is the variable, saved with the battle and the playthrough as always; a save made after the choice
+(also in the middle of a battle) restores it, and the question is not asked again. A save made **while a question is on screen
+is impossible**: the player is busy then (no menu, no autosave), and the save writers refuse a Battle with a waiting question.
+The previous Continue save stays (a battle question: the playthrough before the battle, or the last turn's save; a scene
+question: the state before the scene), so Continue asks the question again.
+
+**Scenes** (`runScene`): `runScene(db, pt, which, lines)` takes the first offered answer (a `Say` line with the question).
+`runScene(db, pt, which, lines, answers)` stops at the first unanswered question: its `SceneLine` (kind `Choice`, `text`,
+`answers`, speaker) is the last line, `waiting` is true, the playthrough is as the scene left it and the phase has not moved.
+To go on the caller runs the scene again from a copy of the playthrough as it was before it with the answers plus the new one:
+the same lines come back (answered questions as `Choice` lines with `waiting` false; the player skips what it has shown), then
+the rest.
+
+**Simulator.** `ote-sim` (single maps and `--campaign`) always takes the first offered answer (documented default; no option, the
+numbers of the demo games do not change).
+
+**Player.** The question reads like any line in the dialogue box (same speaker / portrait handling, pages, typing). When its last
+page is complete the answers come up in a panel directly above the box: Up / Down move the highlight (they wrap), Confirm
+picks; a pointer over an answer highlights it, a tap on the highlighted answer picks it (a first tap on a touch screen only
+highlights, so a slip of the finger does not decide the story). Answers wrap to the box's width; when four long answers would not
+fit above the box on a small screen each gets fewer lines and the last line is cut with "..". There is no way out: Cancel, Menu,
+the Skip tab, holding Cancel / Menu and the `skip` script token only show the whole question at once; skipping dialogue (in
+a battle or a scene) stops at the next question. Hint line while the answers are up: "Up/Down + Z: answer   tap: pick, tap again:
+confirm". Test scripts: the player logs `choice: ... N answers: 0@x,y 1@x,y` (row centres, logical pixels) and `choice: battle|scene
+answer N`; `tests/choice_player_test.py` and the game `tests/fixtures/choice-story` use them.
+
 ## Strategy-RPG additions
 
 A unit placed as a character is known to events and objectives by the character's id, so conditions and commands that name a unit work
@@ -399,12 +483,13 @@ behaviour for characters are specified in docs/SRPG.md (the "Story" part of each
 - Art: portraits.
 - **Campaign** screen: chapter list in order, each with its map and the
   scenes before and after.
+- Dialogue choices: the command **Ask a question** (docs/EDITOR_UI.md).
 - Problems: unknown ids, events that can never fire, a chapter without a
   map.
 
 ## Not in this version
 
-Dialogue choices; events outside battles other than chapter scenes (no
+Events outside battles other than chapter scenes (no
 walking around towns); common events shared between maps; a preparations
 screen; world maps; cut-scene unit animation beyond moving; Lua event
 commands; voice.
