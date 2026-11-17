@@ -3,6 +3,7 @@
 import { CharacterCapsCard } from './CharacterCapsCard'
 import { CharacterLockedWeapons } from './CharacterLockedWeapons'
 import { CharacterRanksCard } from './CharacterRanksCard'
+import { CharacterWieldsCard } from './CharacterWieldsCard'
 import { CharacterSkillsCard } from './CharacterSkillsCard'
 import { CharacterAbilitiesCard } from './CharacterAbilitiesCard'
 import { CharacterQuotesCard } from './CharacterQuotesCard'
@@ -10,6 +11,7 @@ import { CharacterQuotesCard } from './CharacterQuotesCard'
 export function CharacterSrpgCards({ id }: { id: string }) {
   return (
     <>
+      <CharacterWieldsCard id={id} />
       <CharacterRanksCard id={id} />
       <CharacterCapsCard id={id} />
       <CharacterLockedWeapons id={id} />

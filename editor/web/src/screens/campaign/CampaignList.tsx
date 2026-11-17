@@ -30,7 +30,7 @@ export function CampaignList({ itemId }: { itemId?: string }) {
   const sub = (id: string) => {
     const ch = chapters.find((c) => c.id === id)!
     const text = commandsSummary(ctx, sceneOf(doc, id, 'before'), '') || commandsSummary(ctx, sceneOf(doc, id, 'after'), '') || C.noScenes
-    return C.chapterListSub(mapName(ch.map), text)
+    return C.chapterListSub(mapName(ch.map), text, !!doc.maps[ch.map]?.prep)
   }
   return (
     <>

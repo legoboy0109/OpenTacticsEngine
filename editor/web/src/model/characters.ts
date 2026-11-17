@@ -34,6 +34,9 @@ export function duplicateCharacter(doc: ProjectDoc, id: string, newId?: string):
 
 export const moveCharacter = (doc: ProjectDoc, from: number, to: number): ProjectDoc => withCharacters(doc, (list) => moveItem(list, from, to))
 
+/** A character's own extra weapon groups; an empty list removes the key. */
+export const setCharacterWields = (doc: ProjectDoc, id: string, groups: string[]): ProjectDoc => updateCharacter(doc, id, { wields: groups.length ? groups : undefined })
+
 export const updateCharacter = (doc: ProjectDoc, id: string, patch: Partial<Omit<Character, 'id'>>): ProjectDoc =>
   withCharacters(doc, (list) => updateById(list, id, (c) => patchObj(c, patch)))
 

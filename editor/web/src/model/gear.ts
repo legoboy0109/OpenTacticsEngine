@@ -5,7 +5,7 @@ import type { Item, NumMap, ProjectDoc, Section, Weapon } from './types'
 import { patchObj } from './util'
 
 export type GearOwner = 'weapon' | 'item'
-export interface GearKeys { group?: string; rank?: string; rankXp?: number; wieldedBy?: string[] }
+export interface GearKeys { group?: string; rank?: string; rankXp?: number; wieldedBy?: string[]; wieldedByTypes?: string[] }
 export interface GearRef { owner: GearOwner; id: string; name: string; section: Section; keys: GearKeys & { props?: NumMap } }
 
 export const isStaff = (i: Item): boolean => i.kind === 'staff'

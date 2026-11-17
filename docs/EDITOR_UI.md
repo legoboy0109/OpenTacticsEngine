@@ -832,12 +832,14 @@ Contract and wording: docs/SRPG.md "Editor" and "E3 as built". No helper change:
 
 ## Character-locked weapons (editor step of docs/SRPG.md "Character-locked weapons")
 
-- **Weapons**: `WeaponLockCard` (`screens/weapons/srpg/`, words in `lockText.ts`): "Only these characters can wield it", a `MultiSelect` checkbox list of the characters, a
-  one-line summary and "Worth a look" checks. Shown only when weapons are carried and the game has characters; written only when non-empty; a hidden card leaves the key alone.
+- **Weapons and staves**: `WeaponLockCard` (`screens/weapons/srpg/`, words in `lockText.ts`): "Who can wield it", two `MultiSelect` checkbox lists, "Classes that can wield it"
+  (`wieldedByTypes`, unit type ids; "unit types" while the game has no characters) and "Characters who can wield it" (`wieldedBy`), a one-line summary and "Worth a look" checks. A
+  unit passes by either list (docs/SRPG.md "The rule"). The class list shows whenever weapons are carried (a staff: always), the character list when the game has characters; each
+  is written only when non-empty; a hidden list is left alone. Deleting a unit type takes it off every class list (`cleanUnit`, named in the delete question, one Undo step).
 - **Characters**: `CharacterLockedWeapons`, a read-only card with links to the weapons locked to the character (nothing when none). **Rules**: the confirmation for switching
   Characters off adds a line when weapons are locked.
-- **Model**: `model/locks.ts` (edit, clean-up on delete / rename / switch-off, "used by" line) and `lockChecks.ts`; `cleanCharacter` drops the character from the lists.
-- **Tests**: unit `tests/unit/locks.test.ts`; e2e `srpg-locks.spec.ts` (with Play and the 360 px check).
+- **Model**: `model/locks.ts` (edit, clean-up on delete / rename / switch-off, "used by" line) and `lockChecks.ts` (unknown name, nobody on either list can use the group); `cleanCharacter` drops the character from the lists.
+- **Tests**: unit `tests/unit/locks.test.ts`, `editorgaps.test.ts`; e2e `srpg-locks.spec.ts` (with Play and the 360 px check), `editor-gaps.spec.ts`.
 
 ## Staves (editor step of docs/SRPG.md section 8)
 
@@ -945,7 +947,7 @@ ruined) is a structure kind of its own with its own size-matching footprint, pic
   kind switches off the Door / Chest part of kinds that open into it, clears a place's `becomes` / `ruin`, and takes the kind off keys' `opens`; deleting an item takes it out of a door's / chest's key list,
   out of placed chests, and clears an unlock ability's lockpick; deleting a resource takes its amounts out of chests. The delete confirmations list each of these. A story name that goes with a deleted
   placed structure is **not** scrubbed from the events (that would silently delete a maker's events): the checks flag an event that names a place that is no longer there.
-- **Not in the editor**: `goesFor` on an `addUnit` command; the template (`editor/templates/strategy-rpg`) has no structures at all, so it was left alone (a starter set would change the "no structures
+- **Not in the editor**: nothing of this part now (`goesFor` on an `addUnit` command is built, see "Editor gaps"); the template (`editor/templates/strategy-rpg`) has no structures at all, so it was left alone (a starter set would change the "no structures
   yet" starting point of many specs and lessons).
 - **Tests**: unit `tests/unit/places.test.ts` (on `tests/fixtures/srpg-doors`); API `tests/editor_api_doors_checks.py` (the shapes the forms write, and three refusals); e2e `places-forms.spec.ts` (every
   form, the placed details, an event, the saved JSON against the docs, Play, and the 360 px phone). The API test suite now sends the helper's log to a file: nothing read the pipe, and the helper blocked
@@ -977,7 +979,7 @@ Contract and wording: docs/SRPG.md "Editor" and "E2 as built". No helper change:
     its own (a neighbour). Items: when the game has a steal ability (or an item already says so) the item form has "Can be stolen" (`"stealable": false` when off).
   - Characters: "Labels" (a character's `tags`). Maps: a placed unit's panel and the "Add a unit" command form have "Skills of its own" (`panels/UnitSkills.tsx`); deleting a
     skill takes it off those too (`srpgRefs.ts` `cleanSkill`). Rules: the Promotion card has "Skills of the old class" (`rules.promotion.classSkills`).
-  - Still hand-edit: a map unit's `"goesFor": ["steal"]` (the helper keeps it). **Tests**: unit `skillblocks2`; API `editor_api_skills_checks.py`; e2e `srpg-skillblocks2.spec.ts`.
+  - A computer unit's `"goesFor": ["steal"]` is the "Goes for" control of the unit panel and the Add a unit command ("Editor gaps"). **Tests**: unit `skillblocks2`; API `editor_api_skills_checks.py`; e2e `srpg-skillblocks2.spec.ts`.
 - **Installer** (`StarterDialog.tsx`, data in `model/starterSkills.ts`, the same list as `editor/templates/strategy-rpg/data/skills.json`; a unit test compares them).
 - **Cards**: unit type and character (Skills + Learns at a level), accessory item (only the accessory kind), weapon: all through `screens/skills/SkillsCard.tsx`.
   An accessory needs a bonus or a skill (the check and help text say so). Changing an item away from accessory drops its skills.
@@ -1052,6 +1054,29 @@ more required than the limit, a required character no map places on a human side
 cannot stand on, a slot nobody can stand on or on a unit that stays, fixed / forbidden mismatches, a shop item without a price, and a
 map with a preparation used outside a campaign (or by no chapter). Strings: `screens/maps/editor/panels/prepText.ts`; model:
 `model/prep.ts`, `prepChecks.ts`, `prepRoster.ts`.
+
+## Editor gaps (rules that existed, no form until now)
+
+Wording is placeholder. No helper change: it keeps every key and the loader reports the refusals.
+
+- **Class locks**: see "Character-locked weapons" above (`wieldedByTypes` on the weapon / staff card).
+- **A character's own weapon groups** (`wields`): Characters screen, card "Extra weapon groups" (`CharacterWieldsCard`, words `wieldsText.ts`), a checkbox list of every group some weapon or
+  staff has; groups the class already wields are shown ticked-off ("their class can already") and cannot be added. Shown when weapons are carried or the game has staves, or the character
+  already has some. The starting rank in such a group is on "Personal ranks" right under it (`model/ranks.ts` `wieldsOf` = class groups + the character's). Renaming a weapon group follows
+  (`renameGroupRefs`); a group nothing has any more is not cleaned (the engine ignores it, like on a class).
+- **`rankXp` 0**: the weapon / staff rank card's "Experience per use" takes 0 (the loader's 0..99; empty = the default 1, not written; 0 is written). The check says "from 0 to 99".
+- **Ranks and goes-for on an Add a unit command**: the Add a unit form has the same two controls as a placed unit's panel, built once and reused:
+  `screens/ranks/StartingRanksField.tsx` (a rank per group the class can wield, "Its own" removes the entry) and `panels/GoesFor.tsx` (computer sides only; its `onChange` gets the list).
+  `placeChecks.ts` checks `goesFor` on these commands like on placed units (a side a person plays, an empty list, nothing of that kind on the map = note).
+- **Preparation tab**: checked against the `prep` block of docs/EVENTS.md: `slots`, `limit`, `required` (with `slot`), `forbidden`, `fixed`, `shop.sells` and `side` all have controls; nothing was missing.
+  New: the Campaign list says "preparation screen" in a chapter's second line, and the timeline's level box says "Preparation" after the map name (`TimelineNode.hasPrep`, `data-testid prep-<chapter>:level`).
+- **Still without an editor control** (sweep of the docs' notes and the loaders' key lists; every other documented key has a control): see the list at the end of this section.
+  - The `character` key of an Add a unit command (a named character joins; the form only offers a unit type). Medium: a picker plus making type / name / level optional and the checks; the key is kept as the file has it.
+  - Story commands in campaign scenes (the scene loader refuses the map-only ones; the ones it accepts, such as condition commands, are listed per command in the scene form). Not a missing key.
+  - A rank starting value written as weapon experience (a number) is kept and shown, but a maker can only pick rank names (deliberate: ranks are the maker-facing words).
+  - Renaming a character's or unit type's id (ids are read-only everywhere; `renameCharacterLocks` is ready for the day). Small, but a design call (ids are shown read-only on purpose).
+  - A player-side equip button and selling on the preparation screen (rules / player, not the editor).
+- **Tests**: unit `tests/unit/editorgaps.test.ts`; e2e `tests/e2e/editor-gaps.spec.ts` (desktop and 360 px: each control set, saved, the JSON compared with the docs, `/problems` empty, Play).
 
 ## Campaign timeline (PLAN 6c)
 

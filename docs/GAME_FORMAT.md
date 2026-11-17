@@ -231,7 +231,7 @@ unit its own `"items"` and each side a starting `"storage"`. Everything is
 in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md). An item of `"kind": "staff"` (a staff a unit wields by
 group and rank and uses on another unit at range: healing, warping, pulling, swapping, repairing an item, lighting a square in fog)
 has its own keys (`group`, `range`, `target`, `area`, `effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md
-section 8 "Staves" (the editor's form covers healing only so far; the other effects are written by hand and kept by the editor). Any item may
+section 8 "Staves" (the editor's Items form covers every effect). Any item may
 say `"repairable": false` (only with `uses`) so that a staff's `repair` never offers it. A **key** is a usable item with `"opens": ["door"]`, `["chest"]`,
 both and/or structure kind ids (valid without `heal`); its `uses` are the openings it has (docs/SRPG.md section 10).
 

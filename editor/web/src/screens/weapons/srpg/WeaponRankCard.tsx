@@ -35,7 +35,7 @@ export function WeaponRankCard({ id, owner = 'weapon' }: { id: string; owner?: G
         </Field>
         {growthOf(doc) === 'use' && (
           <Field label={R.rankXpPerUse} help={staff ? R.staffRankXpPerUseHelp : R.rankXpPerUseHelp}>
-            <NumberInput value={w.rankXp} allowEmpty min={1} max={MAX_USE_XP} placeholder={String(DEFAULT_USE_XP)} disabled={!w.group && w.rankXp === undefined}
+            <NumberInput value={w.rankXp} allowEmpty min={0} max={MAX_USE_XP} placeholder={String(DEFAULT_USE_XP)} disabled={!w.group && w.rankXp === undefined}
               onChange={(v) => edit((d) => setGearRankXp(d, owner, id, v), `${key}:rankXp`)} />
           </Field>
         )}

@@ -80,11 +80,11 @@ export const R = {
   noRankNeeded: 'Any rank',
   needsGroup: 'Give the weapon a group first (above): ranks are kept per group of weapons.',
   rankXpPerUse: 'Experience per use',
-  rankXpPerUseHelp: 'Weapon experience a unit earns in this weapon’s group each time it fights with it. Usually 1.',
+  rankXpPerUseHelp: 'Weapon experience a unit earns in this weapon’s group each time it fights with it. Usually 1; 0 means using it gives no experience.',
   staffTitle: 'Staff rank',
   staffHelp: 'A unit whose rank in this staff’s group is lower cannot use it. It can still carry, trade and store it.',
   staffNeedsGroup: 'Give the staff a group first (above): ranks are kept per group.',
-  staffRankXpPerUseHelp: 'Experience a unit earns in this staff’s group each time it uses the staff. Usually 1.',
+  staffRankXpPerUseHelp: 'Experience a unit earns in this staff’s group each time it uses the staff. Usually 1; 0 means using it gives no experience.',
 
   // Placed units (map)
   mapRanksTitle: 'Starting ranks on this map',

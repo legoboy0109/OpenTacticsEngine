@@ -9,7 +9,7 @@ import { forEachCommand } from './storyWalk'
 import { PLACE_COMMANDS, PLACE_EVENTS, commandKind, type CommandKind, type PlaceEvent } from './storyTypes'
 import { abilityIsGiven } from './abilityChecks'
 import { fxList } from './staffFx'
-import type { Item, MapFile, MapStructure, ProjectDoc, Section, Structure } from './types'
+import type { Item, MapFile, MapStructure, MapUnit, ProjectDoc, Section, Structure } from './types'
 
 export interface PlaceCheck { section: Section; text: string; mapId?: string; cell?: { x: number; y: number }; /** Loads fine but is probably not what was meant. */ note?: boolean }
 
@@ -216,10 +216,12 @@ const GOALS: Array<{ key: 'chests' | 'villages' | 'doors'; kinds: PlaceKind; wor
 function goalChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceCheck[]): void {
   const present = new Set((map.structures ?? []).map((p) => placeKindOf(doc.structures?.find((x) => x.id === p.type))))
   const sides = new Map((map.sides ?? []).map((s) => [s.id, s]))
-  for (const u of map.units ?? []) {
+  // Placed units, then the units "Add a unit" commands bring in (the same rules; a command has no square on the map to point at).
+  const units: Array<{ u: MapUnit; where: string; cell?: { x: number; y: number } }> = (map.units ?? []).map((u) => ({ u, where: `The unit at ${u.x + 1}, ${u.y + 1}`, cell: { x: u.x, y: u.y } }))
+  for (const e of map.events ?? []) forEachCommand(e.do, `${q(e.id)}`, (c, w) => { if (c.addUnit) units.push({ u: c.addUnit, where: `Event ${w}, the unit it adds` }) })
+  for (const { u, where, cell } of units) {
     if (u.goesFor === undefined) continue
-    const where = `The unit at ${u.x + 1}, ${u.y + 1}`
-    const say = (text: string, note?: boolean) => out.push({ section: 'maps', mapId, cell: { x: u.x, y: u.y }, note, text: `${where}: ${text}` })
+    const say = (text: string, note?: boolean) => out.push({ section: 'maps', mapId, cell, note, text: `${where}: ${text}` })
     if (!Array.isArray(u.goesFor) || u.goesFor.length === 0) { say('“goes for” needs at least one of chests, villages, doors, steal (or remove it).'); continue }
     const side = sides.get(u.side)
     if (side && side.controller !== 'ai') say('“goes for” tells the computer what to do, but this unit is on a side a person plays.')

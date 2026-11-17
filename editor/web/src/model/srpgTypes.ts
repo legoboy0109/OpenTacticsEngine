@@ -22,6 +22,8 @@ export interface Character extends Named {
   /** Personal starting ranks per weapon group, and cap adjustments per stat (section 7). */
   ranks?: RankMap
   capAdjust?: NumMap
+  /** Extra weapon groups this person can wield, on top of the class's (section 7 "A character's own groups"). */
+  wields?: string[]
   /** Battle and defeat quotes (docs/EVENTS.md "Battle and defeat quotes"). */
   quotes?: CharacterQuotes
   /** The maker's labels: a character matches a tag like its unit type does (docs/SRPG.md "Tags"). */

@@ -37,6 +37,8 @@ export interface TimelineNode {
   mapId?: string
   mapName?: string
   mapKnown?: boolean
+  /** Levels: the map has a preparation screen (a `prep` block) before its battle. */
+  hasPrep?: boolean
   markers: Markers
   /** Scenes: how many commands (all levels) it has; a scene that is only music has 0. */
   commandCount: number

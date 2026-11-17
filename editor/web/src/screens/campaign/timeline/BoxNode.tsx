@@ -36,7 +36,7 @@ export const BoxNode = memo(function BoxNode({ node, rect, expanded, problems, e
   const label = level
     ? (node.mapKnown ? TL.openLevel(node.chapterName, node.mapName ?? '') : TL.openLevelNoMap(node.chapterName))
     : TL.openScene(part, node.chapterName)
-  const full = [label, markers, node.unreached ? TL.unreached : '', node.skipped ? TL.skipped : ''].filter(Boolean).join('. ')
+  const full = [label, level && node.hasPrep ? TL.prepNote : '', markers, node.unreached ? TL.unreached : '', node.skipped ? TL.skipped : ''].filter(Boolean).join('. ')
   const mapText = !node.mapId ? TL.noMap : node.mapKnown ? node.mapName : TL.mapGone(node.mapId)
   return (
     <div className="tl-node" data-kind={node.kind} data-node-id={node.id} data-chapter={node.chapterId} data-drag-chapter={node.chapterId}
@@ -49,7 +49,7 @@ export const BoxNode = memo(function BoxNode({ node, rect, expanded, problems, e
         <span className="tl-text">
           {!level && <span className="tl-kicker">{part}</span>}
           <span className="tl-title">{node.chapterName}</span>
-          {level && <span className="tl-sub">{mapText}</span>}
+          {level && <span className="tl-sub">{mapText}{node.hasPrep && <span className="tl-prep" data-testid={`prep-${node.id}`} title={TL.prepNote}> · {TL.prepShort}</span>}</span>}
           {!level && node.commandCount === 0 && <span className="tl-sub">{TL.emptyScene}</span>}
         </span>
         <MarkerRow markers={node.markers} />

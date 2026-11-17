@@ -62,6 +62,8 @@ export const TL = {
   openLevel: (chapter: string, map: string) => `Level of chapter ${chapter}, map ${map}: open the map`,
   openLevelNoMap: (chapter: string) => `Level of chapter ${chapter}: no map chosen, open the chapter’s settings`,
   noMap: 'No map chosen',
+  prepShort: 'Preparation',
+  prepNote: 'The map has a preparation screen before the battle.',
   mapGone: (id: string) => `${id} (not there any more)`,
   skipped: 'Never played: the scene before it always jumps to another chapter.',
   unreached: 'Nothing leads here',
