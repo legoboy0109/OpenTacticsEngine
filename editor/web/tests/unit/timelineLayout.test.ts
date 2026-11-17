@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { deleteChapter } from '../../src/model/campaign'
 import type { Chapter } from '../../src/model/campaignTypes'
 import { buildTimeline } from '../../src/model/timelineGraph'
-import { BOX_H, boxHeight, layoutTimeline } from '../../src/model/timelineLayout'
+import { BOX_H, boxHeight, layoutTimeline, MAX_ROW_W } from '../../src/model/timelineLayout'
 import { addScene, dropIndex, insertChapter, moveChapterTo, removeScene } from '../../src/model/timelineEdit'
 import type { Command } from '../../src/model/storyTypes'
 import { bareMap, campaignDoc, say, straight } from './timelineKit'
@@ -118,7 +118,24 @@ describe('layout', () => {
     expect(Date.now() - t).toBeLessThan(800)
     sane(g, l)
     expect(g.unreached.length).toBeGreaterThan(0)
-    expect(l.width).toBeGreaterThan(40 * 150)
+    expect(l.width).toBeLessThan(MAX_ROW_W + 1200) // folded into several lines, not one very long one
+    expect(l.height).toBeGreaterThan(3 * BOX_H)
+  })
+
+  it('folds a long straight story into lines that still read left to right, and the arrow across the fold comes in from the left', () => {
+    const { g, l } = lay(straight(40))
+    sane(g, l)
+    const first = l.nodes['ch1:level'], last = l.nodes['ch40:level']
+    expect(last.y).toBeGreaterThan(first.y)
+    expect(l.width).toBeLessThan(MAX_ROW_W + 1200)
+    const ys = [...new Set(g.nodes.map((n) => l.nodes[n.id].y))]
+    expect(ys.length).toBeGreaterThan(2)
+    // a chapter's successor is to its right on the same line, or the first column of the next line
+    for (const e of g.edges) {
+      const a = l.nodes[e.from], b = l.nodes[e.to]
+      if (b.y === a.y) expect(b.x).toBeGreaterThan(a.x)
+      else { expect(b.y).toBeGreaterThan(a.y); expect(b.x).toBeLessThan(a.x) }
+    }
   })
 
   it('an empty campaign lays out to nothing', () => {
@@ -139,6 +156,18 @@ describe('edits', () => {
     d = insertChapter(d, 'First', 0)
     expect(ids(d)).toEqual(['first', 'a1', 'middle', 'b1', 'last'])
     expect(d.campaign!.chapters[0].map).toBe('m1')
+  })
+
+  it('a new chapter takes over the "Next chapter" that pointed at its right neighbour, so the story goes through it', () => {
+    const ch = straight(3)
+    ch[0].next = 'ch2'
+    ch[1].next = 'ch3'
+    let d = insertChapter(campaignDoc(ch), 'Mid', 2) // between ch2 and ch3
+    expect(d.campaign!.chapters.map((c) => [c.id, c.next])).toEqual([['ch1', 'ch2'], ['ch2', 'mid'], ['mid', undefined], ['ch3', undefined]])
+    expect(buildTimeline(d)!.unreached).toEqual([])
+    // a "Next chapter" that points somewhere else is left alone
+    d = insertChapter(campaignDoc(straight(3).map((c, i) => (i === 0 ? { ...c, next: 'ch3' } : c))), 'Mid', 1)
+    expect(d.campaign!.chapters[0].next).toBe('ch3')
   })
 
   it('moves a chapter and leaves the document alone when nothing moves', () => {

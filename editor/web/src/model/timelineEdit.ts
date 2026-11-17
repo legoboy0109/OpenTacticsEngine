@@ -6,13 +6,18 @@ import type { Chapter, SceneKey } from './campaignTypes'
 import type { Rect } from './timelineTypes'
 import type { ProjectDoc } from './types'
 
-/** A new chapter at list position `index` (0 = first, length = last), on the map of the chapter before it (else after it). */
+/** A new chapter at list position `index` (0 = first, length = last), on the map of the chapter before it (else after it).
+ *  When the chapter before it has "Next chapter" set to the chapter that follows it (the arrow the new one goes into), that
+ *  "Next chapter" now points at the new chapter, so the story really goes through it; the new one carries on in list order. */
 export function insertChapter(doc: ProjectDoc, name: string, index: number, id: string = newChapterId(doc, name)): ProjectDoc {
   return withCampaign(doc, (c) => {
     const at = Math.max(0, Math.min(index, c.chapters.length))
     const map = c.chapters[at - 1]?.map || c.chapters[at]?.map || doc.game?.maps[0]?.id || ''
     const chapter: Chapter = { id, name, map }
-    return { ...c, chapters: [...c.chapters.slice(0, at), chapter, ...c.chapters.slice(at)] }
+    const prev = c.chapters[at - 1], following = c.chapters[at]
+    const repoint = prev?.next !== undefined && following !== undefined && prev.next === following.id
+    const list = c.chapters.map((x) => (repoint && x === prev ? { ...x, next: id } : x))
+    return { ...c, chapters: [...list.slice(0, at), chapter, ...list.slice(at)] }
   })
 }
 
