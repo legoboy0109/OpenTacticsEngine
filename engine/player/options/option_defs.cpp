@@ -83,6 +83,14 @@ std::vector<OptionChoice> res3dChoices(const OptionContext& ctx) {
 }
 void applyRes3d(const Json& v, LookLayer& l) { l.res3d = v.asString(); }
 
+// ---- battle animations (docs/BATTLE_SCENE.md "Settings") -----------------------------------------------------------
+// The scene (side-view fighters) or the quick fight on the map; unset = what the game asks for.
+std::vector<OptionChoice> battleSceneChoices(const OptionContext& ctx) {
+  return {choice(ctx.game ? "Use global" : "Game default"), choice("Scene", Json::makeString("scene")),
+          choice("On the map", Json::makeString("map"))};
+}
+void applyBattleScene(const Json& v, LookLayer& l) { l.battleScene = v.asString(); }
+
 // ---- volumes (docs/SOUND.md "Options") ----------------------------------------
 // 0..10; 0 = off (music is not even decoded). Element 0 is "not set": the default of 7, or the global value.
 // Sliders (OptionDef::slider): element 1 + v is the value v.
@@ -104,6 +112,7 @@ const std::vector<OptionDef>& optionDefs() {
       {"style", "Visual style", styleChoices, applyStyle},
       {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},
       {"res3d", "3D resolution", res3dChoices, applyRes3d},
+      {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
       {"musicVolume", "Music volume", volumeChoices, applyMusicVolume, true, 7},
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
   };

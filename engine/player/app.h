@@ -46,6 +46,7 @@ class PlayerApp : public App, public SceneHost {
   const std::string& notice() const override { return notice_; }
   const std::string& currentGameId() const override { return gameId_; }
   int styleIndex() const override { return look_.styleIndex; }
+  bool battleScene() const override { return look_.battleScene; }
   SaveStore saveStore(const std::string& gameId) override;
   bool resumeSave(int slot, std::string& err) override;
   void showSlots(const std::string& gameId) override;
