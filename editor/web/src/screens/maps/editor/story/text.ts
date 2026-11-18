@@ -185,6 +185,7 @@ export const S = {
     removeUnit: 'Remove a unit',
     moveUnit: 'Move a unit',
     showUnit: 'Bring a hidden unit back',
+    fight: 'Stage a fight',
     changeSide: 'Change a unit’s side',
     promote: 'Promote a unit',
     addSupport: 'Add support points',

@@ -10,6 +10,7 @@ import { entryId } from './itemGrants'
 import type { ChoiceAnswer, Command, Condition, Filter, ObjectiveRule, Objectives, StoryEvent, Trigger } from './storyTypes'
 import type { ItemEntry, MapFile } from './types'
 import { withKeepList } from './storyExtras'
+import { withFightUnits } from './storyFight'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
@@ -309,6 +310,7 @@ function mapCommand(c: Command, w: Walk, where: string): Command | Dropped {
     (x) => withRef(x, 'store', 'variable', w, where), // a choice's variable
     (x) => withFilter(x, 'removeUnit', w, where),
     (x) => withRef(x, 'showUnit', 'unit', w, where), // brings a hidden unit back: the same unit story name
+    (x) => withFightUnits(x, w, where), // a staged fight: attacker and defender
     (x) => withRef(x, 'moveUnit', 'unit', w, where),
     (x) => withFilter(x, 'changeSide', w, where),
     (x) => withRef(x, 'promote', 'unit', w, where),

@@ -3,6 +3,7 @@
 // own messages still show in the Problems list after a save. Plus two hints the loader does not give (a portrait with no
 // picture, an `if` with no conditions).
 import { sceneProblems } from './sceneChecks'
+import { fightProblems } from './storyFight'
 import { audioRefProblem } from './audioChecks'
 import { mapChangeChecks } from './mapChangeStory'
 import { ACTOR_NOBODY, actorWithoutActor, storeItemsProblems, triggerHasActor } from './storyExtras'
@@ -101,6 +102,9 @@ function commandChecks(doc: ProjectDoc, map: MapFile, e: StoryEvent, c: Command,
       if (u.behaviour !== undefined) blockProblems(u.behaviour, doc, map, (t) => say(where, t), { human: map.sides?.some((s) => s.id === u.side && s.controller !== 'ai') })
       break
     }
+    case 'fight':
+      for (const t of fightProblems(doc, c, [...ids.keys()])) say(where, t)
+      break
     case 'showUnit':
       if (typeof c.x !== 'number' || typeof c.y !== 'number' || outside(map, { x: c.x, y: c.y, w: 1, h: 1 })) say(where, 'the square is outside the map.')
       break

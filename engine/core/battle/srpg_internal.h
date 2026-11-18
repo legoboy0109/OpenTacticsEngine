@@ -144,7 +144,8 @@ bool strikeForecast(const CombatSetup& setup, bool counter, const CombatMods& ow
 // real strike a critical multiplies between the two).
 void foldStrikeMods(const StrikeMods& mods, StrikeForecast& numbers) const;
 // Battle::forecast after its checks, also handing back the setup (applyAttack fights with it).
-bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup) const;
+// `story`: a fight the story stages (docs/EVENTS.md "A staged fight"): no check of teams, sight, range or the move rule.
+bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup, bool story = false) const;
 // One strike, steps 1 to 8 of the contract. `extra` = the strike a "strikeAgain" gave (it cannot give another).
 void doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events);
 // How many strikes each fighter has made in the fight being resolved (index 0 = the attacker, 1 = the defender): the `strikeNo` of the next
@@ -355,6 +356,16 @@ bool storyActorHolds(const Condition& c, int actor) const;
 // ---- storeItems (story_store.cpp; docs/EVENTS.md "Sending a unit's items to storage") ----
 // Every item but the kept ones goes from each matching existing human-side unit to its side's storage.
 void storyStoreItems(const Command& c, std::vector<Event>& events);
+
+// ---- the `fight` story command (story_fight.cpp; docs/EVENTS.md "A staged fight") ----
+// Plays one staged fight between two map units. A fight with `strikes` takes each strike's result and damage as written and rolls nothing;
+// one without them is a fight with real rolls (doStrike) that the story starts. `xp` / `wear` / `lethal` as written in the command.
+void storyFight(const StoryFight& f, std::vector<Event>& events);
+void stagedStrike(const CombatSetup& setup, bool counter, const StoryFightStrike& k, bool lethal, bool wear, bool& ammoSpent, std::vector<Event>& events);
+// What a fight pays in experience (applyAttack and the staged fight's "xp": true): the attacker's reward, the defender's for a counter.
+void fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events);
+// Set only while a story fight runs: its weapons do not wear / nobody may drop below 1 HP. (Never saved: a fight is one command.)
+bool fightNoWear_ = false, fightSpare_ = false;
 
 // ---- fidelity options (hit_roll.cpp, xp_extras.cpp, ...; append only) ----
 // "rules.hitRoll": "average2": two random numbers 0-99, hit when their average (rounded down) is below `percent`.
