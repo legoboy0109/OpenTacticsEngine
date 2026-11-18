@@ -1493,10 +1493,26 @@ rectangles, resizing), `model/tilesets.ts` (tileset edits, animations, removal),
 - **Changes tab: tiles of a change.** For a map with a layer the change panel has "Tiles of this change": **"Paint tiles into this change"** (on: the Tiles tool writes into the change
   instead of the map; a square joins the change with the terrain it has now and the tile you paint; a square whose terrain and tile would stay as in the map leaves it again; the panel
   holds its own palette), **"Also record the tiles of these squares"** (every square of the change gets the tile the map has now), "Forget the change's tiles", and **"Keep the tiles"**
-  (the change's `keepTile`). The After view applies the same rule as the game (a given tile; a square whose terrain really changes loses its tile unless kept). Not offered: tiles on the
-  Events tab's "Change terrain" command (a hand-written `tile` / `keepTile` is kept and checked).
+  (the change's `keepTile`). The After view applies the same rule as the game (a given tile; a square whose terrain really changes loses its tile unless kept). The Events tab's "Change terrain" command has the two fields too (fidelity 3): "Tile of these squares" (a tile number, -1 = none, empty = not given) and "Keep the squares' tiles", shown
+  when the map has a tile layer (or the command already has them).
 - **Checks** (`tileChecks.ts`, with the map's other warnings; the same wording as the loader): a layer that is not `{ tileset, cells }`, an unknown tileset or missing image, a hexagon game,
   rows that do not match the map's height / width, a square that is not four hex digits, a tile outside the tileset (needs the image's size from the art library), a tile in a change or a
   `setTerrain` command on a map with no layer, a tile that is not -1 or a tile number, `keepTile` that is not on / off.
 - **Tests.** `tests/unit/tiles.test.ts`, `tileMap.test.ts`, `tests/editor_api_tiles_checks.py`, `tests/e2e/tiles-map.spec.ts` (desktop and 360 px: palette, paint, drag, undo, erase, rectangle,
   stamp, eyedropper, terrain colours, tiles in a change).
+
+## Fidelity 3 on the screens (placeholder wording)
+
+- **Abilities.** "Uses up its item" (`spendsItem`) beside "Only before moving"; a warning when no item gives the ability, the item gives it with unlimited uses, or a unit type / character
+  lists it itself (`model/abilityItem.ts`, also in the ability checks). The summon card's candidate rows have "highest summoner's level" (`maxLevel`), a weight (shown with "a random one") and a
+  "No item" choice (`"item": null`); up to 32 candidates (`model/summonItems.ts`).
+- **Characters and Units.** The character page has a "Promotion" card, "May promote from level" (`promotion.fromLevel`); a unit type's promotion row has "Another level for some characters"
+  (`fromLevelFor`: a character and a level per row). A renamed character is followed, a deleted one's rows go (`model/promotionLevels.ts`).
+- **Terrain.** "Weather and platform": a "Closed" box beside each cost (`"blocked"`); a closed way hides the number (`model/battleTables.ts`).
+- **Maps, Preparation.** "Use several shops" turns the single shop into the first of a list; each shop has a name, its items, "The shop also buys items" and "Shop music"; "Add a shop"; a list of one can go
+  back to the single shop. The single shop has "Shop music" too. Problems are listed with the map's other preparation checks (`model/prepShops.ts`); renaming or deleting a track follows (`audioRefs.ts`).
+- **Sound.** Music slots "When the game's page opens" (boot jingle, must play once) and "Shop screens"; sound slots "Level-up: each stat that rises" and "A save was written"; a "When a unit is promoted:
+  more sounds" list of time (ms) and sound (`model/promotionSounds.ts`). `MUSIC_SLOTS` pins its last three slots in `tests/unit/situations.test.ts`, so the two new ones sit in the middle and the boot jingle is
+  recognised by `isJingleSlot` instead of being appended to `JINGLE_SLOTS`.
+- **Leftovers.** Deleting a weapon takes its name out of a staged `fight` (`weapon`) command instead of leaving it; the battle effect's "hit time" goes up to 15000 ms.
+- **Tests.** `tests/unit/fidelity3.test.ts`, `tests/editor_api_fidelity3_checks.py`, `tests/e2e/fidelity3.spec.ts` (desktop and 360 px).
