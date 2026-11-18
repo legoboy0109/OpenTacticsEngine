@@ -29,6 +29,8 @@ struct Args {
   std::string res3d = "auto";   // --3d-res auto|display|game: how big the 3D picture is (docs/RENDER3D.md "Resolution")
   int scale3d = 1;              // --3d-scale N (1..8, needs --headless): the headless "display" is N times the logical size
   std::string difficulty;  // --difficulty ID: the difficulty of a new campaign or free battle (docs/DIFFICULTY.md); beats the default and the choice screen
+  int testLevel = 0;      // --test-level auto|N: a testing aid (docs/DIFFICULTY.md "Test level"): 0 = off, -1 = auto, N = at least level N for the human side
+  std::string chapter;    // --chapter ID (with --campaign): a NEW test playthrough that starts at that chapter (docs/SAVES.md "Test playthroughs")
   std::string battleScene;  // --battle-scene scene|map: beats the option for one run (docs/BATTLE_SCENE.md "Settings"); empty = not given
   int musicVolume = -1;   // --music-volume 0..10: beats the option; -1 = not given
   int soundVolume = -1;   // --sound-volume 0..10

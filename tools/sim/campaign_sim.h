@@ -17,6 +17,7 @@ struct CampaignSimOptions {
   int maxRounds = 60;
   bool verbose = false;
   std::string difficulty;  // docs/DIFFICULTY.md: the id the playthrough is on (empty = the game's default)
+  int testLevel = 0;       // --test-level: 0 = off, -1 = auto, N (the roster is levelled before each chapter, docs/DIFFICULTY.md "Test level")
 };
 
 // Returns the process exit code: 0 when every run finished the campaign, 2 when a run ended early

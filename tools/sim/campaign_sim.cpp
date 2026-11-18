@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "core/ai/ai.h"
-#include "core/campaign/playthrough.h"
+#include "core/campaign/testplay.h"
 #include "core/script/formulas.h"
 #include "event_print.h"
 
@@ -94,6 +94,7 @@ RunOutcome playRun(const Database& db, Formulas& formulas, const CampaignSimOpti
       Battle battle;
       std::vector<Event> events;
       std::string err;
+      if (opt.testLevel != 0) battle.setTestLevel(applyChapterTestLevel(db, pt, formulas, seed * 131u + (unsigned)attempt, opt.testLevel, err));
       if (!startChapterBattle(db, pt, formulas, seed * 131u + (unsigned)attempt, battle, events, err)) {
         std::printf("ERROR: %s\n", err.c_str());
         out.aiError = true;

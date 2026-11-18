@@ -19,6 +19,7 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   battle = Battle();
   battle.setAskChoices(askChoices);  // before init / start: a question may come with the first events
   battle.setDifficulty(db.difficulties.find(difficulty));  // docs/DIFFICULTY.md
+  battle.setTestLevel(testLevel);
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
@@ -39,6 +40,7 @@ bool GameSession::rebuildFreePrep(unsigned seed, std::string& err) {
   battle = Battle();
   battle.setAskChoices(askChoices);
   battle.setDifficulty(db.difficulties.find(difficulty));
+  battle.setTestLevel(testLevel);
   return battle.init(db, picked, formulas, seed, err);
 }
 
