@@ -24,6 +24,10 @@ void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
     }
   for (const BattleEffect& e : g.battle.effects)
     if (e.anim.sheet >= 0 && (size_t)e.anim.sheet < mirrorIt.size()) mirrorIt[(size_t)e.anim.sheet] = 1;
+  // A fixed stage turns the left platform picture round for the right-hand fighter.
+  if (g.battle.stage.on)
+    for (const BattlePlatform& p : g.battle.platforms)
+      if (p.sheet >= 0 && (size_t)p.sheet < mirrorIt.size()) mirrorIt[(size_t)p.sheet] = 1;
   // Walking frames of one side drawn as the other (docs/GRAPHICS.md "Walking").
   for (const GraphicsSet& set : g.styles)
     for (const UnitLook& ul : set.units) {

@@ -4,21 +4,10 @@
 #include <cmath>
 
 #include "battle/fight_scene.h"
+#include "battle/fight_scene_geo.h"
 #include "ui/text.h"
 
 namespace ote {
-
-struct FightScene::Geo {
-  int W = 0, H = 0;
-  bool portrait = false;
-  int lh = 8, rowH = 10;
-  int boxW = 0, boxH = 0, boxY = 4, boxX[2] = {4, 4};
-  int stageTop = 0, stageBottom = 0;
-  int groundY = 0;
-  int footX[2] = {0, 0};
-  int scale[2] = {1, 1};  // each fighter's whole-number enlargement (a small map picture is enlarged more than a big animation frame)
-  int frameW[2] = {24, 24}, frameH[2] = {24, 24};  // each fighter's picture in design pixels
-};
 
 namespace {
 
@@ -70,6 +59,10 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
     g.frameW[s] = w;
     g.frameH[s] = h;
   }
+  if (db.graphics.battle.stage.on) {  // a fixed stage lays everything out in its own pixels (fight_scene_stage.cpp)
+    stageLayout(g);
+    return g;
+  }
   // Each picture as big as the stage allows (whole numbers, up to 8): by height first, then both side by side must fit the width.
   const int room = std::max(8, g.groundY - g.stageTop - g.lh * 2 - 4);  // above the feet: the picture, then the floating text
   for (int i = 0; i < 2; ++i) {
@@ -111,12 +104,17 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
     g.footX[0] = g.W / 2 - sep;
     g.footX[1] = g.W / 2 + sep;
   }
+  g.footY[0] = g.footY[1] = g.groundY;
   return g;
 }
 
 void FightScene::drawBackground(Renderer& r, const Geo& g) const {
   const Database& db = *env_.battle->db;
   const BattleArt& art = db.graphics.battle;
+  if (background_ >= 0 && env_.sprites && g.stage) {
+    drawStageBackground(r, g);
+    return;
+  }
   if (background_ >= 0 && env_.sprites) {
     const BattleBackground& bg = art.backgrounds[(size_t)background_];
     const SheetDef& sh = db.graphics.sheets[(size_t)bg.sheet];
@@ -154,6 +152,10 @@ void FightScene::drawBackground(Renderer& r, const Geo& g) const {
 // The picture under a fighter (docs/BATTLE_SCENE.md "Platforms"): enlarged like the fighter, centred on its foot point.
 void FightScene::drawPlatform(Renderer& r, const Geo& g, int side) const {
   if (platform_ < 0 || !env_.sprites) return;
+  if (g.stage) {
+    drawStagePlatform(r, g, side);
+    return;
+  }
   const Database& db = *env_.battle->db;
   const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_];
   const SheetDef& sh = db.graphics.sheets[(size_t)p.sheet];
@@ -258,9 +260,9 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
     w = sw * s;
     h = sh * s;
   }
-  const int footX = g.footX[side] + (int)std::lround(offX), footY = g.groundY + (int)std::lround(offY);
+  const int footX = g.footX[side] + (int)std::lround(offX), footY = g.footY[side] + (int)std::lround(offY);
   // A shadow on the ground.
-  r.fillRect(g.footX[side] - w * 3 / 10, g.groundY - 1, w * 6 / 10, std::max(2, s), Color(0, 0, 0, (uint8_t)(90 * alpha)));
+  r.fillRect(g.footX[side] - w * 3 / 10, g.footY[side] - 1, w * 6 / 10, std::max(2, s), Color(0, 0, 0, (uint8_t)(90 * alpha)));
   const int x = footX - ax * s, y = footY - ay * s;
   if (glyphBlock) {
     const int bw = w * 3 / 4;
@@ -284,11 +286,11 @@ void FightScene::drawEffects(Renderer& r, const Geo& g) const {
     const BattleEffect& be = art.effects[(size_t)e];
     const BattleAnim& an = be.anim;
     const SheetDef& sheet = db.graphics.sheets[(size_t)an.sheet];
-    const int s = g.scale[fx.fromSide];
+    const int s = g.stage ? g.sg.scale : g.scale[fx.fromSide];  // (a fixed stage: one scale for everything)
     const double p = fx.dur > 0 ? std::min(1.0, (t_ - fx.t0) / fx.dur) : 1;
     auto bodyPoint = [&](int side, double& px, double& py) {
       px = g.footX[side];
-      py = g.groundY - g.frameH[side] * g.scale[side] * 0.5;
+      py = g.stage ? g.footY[side] : g.footY[side] - g.frameH[side] * g.scale[side] * 0.5;  // a fixed stage: the foot point itself, the effect's anchor lifts it
     };
     double ax, ay, bx, by;
     bodyPoint(fx.fromSide, ax, ay);
@@ -349,7 +351,7 @@ void FightScene::drawFloats(Renderer& r, const Geo& g) const {
   for (const Float& f : floats_) {
     const double age = t_ - f.born, k = age / f.life;
     int cx = g.footX[f.side];
-    const int top = g.groundY - g.frameH[f.side] * g.scale[f.side];
+    const int top = g.footY[f.side] - g.frameH[f.side] * g.scale[f.side];
     int y = top - g.lh - 2 - f.rise - (int)(age * (f.plate ? 4 : 14));
     y = std::max(g.stageTop, y);
     Color c = f.color;
@@ -364,6 +366,7 @@ void FightScene::drawFloats(Renderer& r, const Geo& g) const {
 
 void FightScene::drawRange(Renderer& r, const Geo& g) const {
   // The distance cue of a ranged fight: a dotted line between the feet with the number of squares.
+  if (g.stage && !env_.battle->db->graphics.battle.stage.rangeLine) return;  // "rangeLine": false
   const int y = g.groundY + std::max(3, std::min(g.scale[0], g.scale[1]) * 2);
   const int x0 = g.footX[0] + g.scale[0] * 4, x1 = g.footX[1] - g.scale[1] * 4;
   for (int x = x0; x < x1; x += 6) r.fillRect(x, y, 3, 1, Color(220, 225, 245, 160));
@@ -388,8 +391,11 @@ void FightScene::draw(Renderer& r) const {
   drawEffects(r, g);
   drawFloats(r, g);
   // An opaque band behind the boxes, so the background picture (clouds) never runs into them.
-  r.fillRect(0, 0, g.W, g.stageTop - 2, Color(10, 13, 28));
-  r.fillRect(0, g.stageTop - 2, g.W, 1, Color(70, 76, 110));
+  // (a fixed stage may run under the boxes: they are drawn over the picture, which stays visible behind them)
+  if (!g.stage) {
+    r.fillRect(0, 0, g.W, g.stageTop - 2, Color(10, 13, 28));
+    r.fillRect(0, g.stageTop - 2, g.W, 1, Color(70, 76, 110));
+  }
   drawBox(r, g, 0);
   drawBox(r, g, 1);
   drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));

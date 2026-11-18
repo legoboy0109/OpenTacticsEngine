@@ -4,6 +4,7 @@
 // changes nothing in the rules or the view; BattleScene tells the view when it is done (BattleView::fightFinished).
 //   fight_scene.cpp       preparing a fight (art lookup, script, timeline), the clock, the beats (log lines, sounds, floats)
 //   fight_scene_draw.cpp  drawing: layout for landscape and portrait, background, fighters, boxes, effects
+//   fight_scene_stage.cpp the optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): layout, backdrop and platforms
 #pragma once
 #include <map>
 #include <string>
@@ -84,6 +85,9 @@ class FightScene {
   // fight_scene_draw.cpp
   struct Geo;  // positions for the size of the screen
   Geo geometry(const Renderer& r) const;
+  void stageLayout(Geo& g) const;                      // fight_scene_stage.cpp: the fixed stage's layout
+  void drawStageBackground(Renderer& r, const Geo& g) const;
+  void drawStagePlatform(Renderer& r, const Geo& g, int side) const;
   void drawBackground(Renderer& r, const Geo& g) const;
   void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
