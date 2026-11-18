@@ -8,6 +8,7 @@
 
 #include "core/battle/battle.h"
 #include "core/data/graphics.h"
+#include "platform/common/image.h"
 #include "platform/platform.h"
 
 namespace ote {
@@ -32,12 +33,17 @@ class Sprites {
   TextureId mirrored(int sheet) const {
     return sheet >= 0 && (size_t)sheet < mir_.size() ? mir_[(size_t)sheet] : 0;
   }
+  // The decoded pixels of a sheet a tileset uses (the isometric view builds tile pictures from them); null for other sheets.
+  const Image* pixels(int sheet) const {
+    return sheet >= 0 && (size_t)sheet < pix_.size() && !pix_[(size_t)sheet].rgba.empty() ? &pix_[(size_t)sheet] : nullptr;
+  }
   bool any() const { return !tex_.empty(); }
   bool has(const Look& look) const { return look.any() && texture(look.sheet) != 0; }
 
  private:
   std::vector<TextureId> tex_;
   std::vector<TextureId> mir_;
+  std::vector<Image> pix_;  // only the sheets of tilesets
 };
 
 // The look of a terrain / of a unit in the style being drawn, or null when it

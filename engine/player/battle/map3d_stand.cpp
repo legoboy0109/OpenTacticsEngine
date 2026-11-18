@@ -19,6 +19,7 @@
 #include "battle/battle_draw.h"
 #include "battle/map3d.h"
 #include "battle/map3d_sizes.h"
+#include "battle/tile_art.h"
 
 namespace ote {
 
@@ -51,7 +52,8 @@ void Map3D::markStands(const DrawCtx& c) {
   for (int y = 0; y < c.proj->gridH(); ++y)
     for (int x = 0; x < c.proj->gridW(); ++x) {
       Cell cell = b.grid.at(x, y);
-      if (standOf(c, b.cells[cell].terrain)) {
+      // A square with a tile of the map's tile layer shows no standing part: the tile already shows it (docs/GRAPHICS.md "Tile layer").
+      if (standOf(c, b.cells[cell].terrain) && !hasTileArt(c, cell)) {
         standAt_[(size_t)cell] = 1;
         anyStand_ = true;
       }

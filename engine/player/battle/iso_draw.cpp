@@ -7,6 +7,7 @@
 
 #include "battle/battle_draw.h"
 #include "battle/iso_unit.h"
+#include "battle/tile_art.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -48,9 +49,15 @@ void drawSquare(const Iso& I, Cell cell, int x, int y) {
   int nx, ny;
   I.at((float)x, (float)y, (float)e, nx, ny);
   const CellState& cs = b.cells[cell];
-  const Look* art = terrainArt(I.c, cs.terrain);
+  // The map's tile layer (docs/GRAPHICS.md "Tile layer"): the tile laid flat on the block's top, sides in the terrain's colour.
+  IsoPicture tilePic = isoTileBlock(I.r, I.c, g, cell, g.step, terrainRgb(I.c, cs.terrain));
+  const Look* art = tilePic.tex ? nullptr : terrainArt(I.c, cs.terrain);
   SpriteSrc src;
-  if (art) {
+  if (tilePic.tex) {
+    src.tex = tilePic.tex;
+    src.w = tilePic.w;
+    src.h = tilePic.h;
+  } else if (art) {
     src = terrainSrc(I.c, *art, cell);
   } else {
     IsoPicture pic = I.c.tiles->block(I.r, g, 1, 1, g.step, terrainRgb(I.c, cs.terrain));
@@ -76,7 +83,7 @@ void drawSquare(const Iso& I, Cell cell, int x, int y) {
     I.r.drawTexture(src.tex, src.x, src.y + src.h - srcSlice, src.w, srcSlice, left, by - sliceH, dw, sliceH, mod);
   }
   I.r.drawTexture(src.tex, src.x, src.y, src.w, src.h, left, bottom - dh, dw, dh, mod);
-  if (!art) {
+  if (!art && !tilePic.tex) {
     const TerrainDef& td = b.terrainAt(cell);
     const StyleDef* st = I.c.style;
     if (td.glyph != ' ' && !(st && st->showGlyphs == 0)) {

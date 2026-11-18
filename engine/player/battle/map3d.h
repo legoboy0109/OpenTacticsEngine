@@ -38,6 +38,7 @@ class Map3D {
   struct Spot { float X, Y, Z; };
   // map3d.cpp
   void buildGround(const DrawCtx& c);
+  int groundKey(const DrawCtx& c, Cell cell) const;
   void beginFrame(Renderer& r, const DrawCtx& c);
   void updateHidden(const DrawCtx& c);
   Spot spot(const DrawCtx& c, float gx, float gy, float elevation) const;
