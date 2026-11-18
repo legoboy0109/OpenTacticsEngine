@@ -105,6 +105,10 @@ export interface Game extends Extra {
   battleSceneSides?: 'map' | 'playerRight' | 'playerLeft'
   /** A staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene"): missing = false (staves stay on the map). */
   battleSceneStaves?: boolean
+  /** An action with nothing to act on in the unit's menu (docs/SRPG.md "Menu options"): missing = 'grey' (it stays, greyed); 'hide' leaves it out. */
+  menuUnavailable?: 'grey' | 'hide'
+  /** What Attack does first (docs/SRPG.md "Menu options"): missing = 'equipped' (straight to the targets); 'pick' asks which weapon. */
+  attackWeaponChoice?: 'equipped' | 'pick'
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
   switches?: Named[]
   variables?: Named[]
