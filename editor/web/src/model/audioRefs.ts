@@ -79,6 +79,24 @@ function walkUse(a: Audio, w: Walk): Audio {
       w.dropped?.({ what: 'setting', text: 'Sound, standard set: no music plays when few enemies are left any more', where })
     } else if (r !== use.fewEnemies.music) next = { ...next, fewEnemies: { ...use.fewEnemies, music: r } }
   }
+  if (Array.isArray(use.promotionSounds)) {  // the sounds played at times after a promotion starts
+    let kept = use.promotionSounds
+    let changed = false
+    const out = []
+    for (const [i, e] of kept.entries()) {
+      if (!e || typeof e.sound !== 'string' || e.sound === '') { out.push(e); continue }
+      const where = `the standard set, promotion sound ${i + 1}`
+      const rr = w.ref({ kind: 'sound', id: e.sound }, where)
+      if (rr === DROP) { changed = true; w.dropped?.({ what: 'setting', text: `Sound, standard set: promotion sound ${i + 1} (at ${e.atMs} ms) goes`, where }) }
+      else if (rr !== e.sound) { changed = true; out.push({ ...e, sound: rr }) }
+      else out.push(e)
+    }
+    if (changed) {
+      kept = out
+      if (kept.length) next = { ...next, promotionSounds: kept }
+      else { const { promotionSounds: _p, ...rest } = next; next = rest }
+    }
+  }
   const sounds = walkBlock(use.sounds, STANDARD_SOUND_KEYS, 'sound', w, 'the standard set', (k) => SOUND_KEY_LABEL[k as StandardSoundKey], 'Sound, standard set')
   if (sounds !== use.sounds) {
     if (sounds) next = { ...next, sounds }  // the key stays where it was

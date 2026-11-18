@@ -1,11 +1,12 @@
 // "When things happen": the game's standard set. Every moment is a row with a picker ("Nothing" or a track / sound) and a
 // play button for the choice. Music first, then the sound events in groups.
-import { JINGLE_SLOTS, MUSIC_SLOT_LABEL, MUSIC_SLOTS, SOUND_GROUPS, SOUND_KEY_LABEL, type MusicSlot, type StandardSoundKey } from '../../model/audioLabels'
+import { isJingleSlot, MUSIC_SLOT_LABEL, MUSIC_SLOTS, SOUND_GROUPS, SOUND_KEY_LABEL, type MusicSlot, type StandardSoundKey } from '../../model/audioLabels'
 import { musicOf, setUseMusic, setUseSound, soundsOf } from '../../model/audio'
 import type { ProjectDoc } from '../../model/types'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { AudioChoice } from './AudioChoice'
+import { PromotionSounds } from './PromotionSounds'
 import { SoundPlay, TrackPlay } from './sources'
 import { T } from './text'
 
@@ -15,7 +16,7 @@ function MusicRow({ doc, slot }: { doc: ProjectDoc; slot: MusicSlot }) {
   const edit = useEdit()
   const value = shownValue(doc.audio?.use?.[slot])
   const track = value !== undefined ? musicOf(doc)[value] : undefined
-  const jingle = JINGLE_SLOTS.includes(slot)
+  const jingle = isJingleSlot(slot)
   return (
     <li className="slot-row" data-testid={`slot-${slot}`}>
       <span className="slot-label">{MUSIC_SLOT_LABEL[slot]}{jingle && <span className="help slot-note"> ({T.oncePlays})</span>}</span>
@@ -51,6 +52,7 @@ export function EventsCard() {
           <h3>{T.musicGroup}</h3>
           <ul className="slot-list">{MUSIC_SLOTS.map((s) => <MusicRow key={s} doc={doc} slot={s} />)}</ul>
         </section>
+        <PromotionSounds />
         {SOUND_GROUPS.map((g) => (
           <section key={g.title} className="slot-group" aria-label={g.title}>
             <h3>{g.title}</h3>

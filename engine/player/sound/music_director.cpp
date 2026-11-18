@@ -70,7 +70,7 @@ int MusicDirector::phaseTrack() const {
 }
 
 void MusicDirector::settle(int fadeMs) {
-  if (locked_) return;
+  if (locked_ || bootWaiting_) return;  // a victory jingle / the boot jingle plays out first
   bool keep = false;
   const int track = wanted(keep);
   if (!keep) play(track, fadeMs);
@@ -110,6 +110,7 @@ void MusicDirector::enter(const SceneAudio& scene) {
   side_ = scene.kind == SceneAudio::Battle ? scene.phaseSide : std::string();
   few_ = false;
   prep_ = false;
+  bootWaiting_ = false;
   shop_ = false;
   shopTrack_ = -1;
   overrides_.clear();
@@ -130,6 +131,35 @@ void MusicDirector::enter(const SceneAudio& scene) {
     }
     if (!enemy_ && scene.hostiles >= 0) few_ = fewTrack() >= 0 && scene.hostiles <= fewCount();
   }
+  if (kind_ == SceneAudio::Title && data_ && data_->bootJingle >= 0 && !bootDone_) startBootJingle();
+  settle();
+}
+
+// The game's page opened for the first time since the game was loaded: its boot jingle plays alone, and titleMusic follows when it ends
+// (tick). A missing file or a refused open simply skips the jingle.
+void MusicDirector::startBootJingle() {
+  bootDone_ = true;
+  const int track = data_->bootJingle;
+  if (!audio_ || (bank_ && !bank_->musicFileOk(track))) return;
+  const MusicDef& m = data_->music[(size_t)track];
+  MusicParams p;
+  p.loop = false;
+  p.loopStartSeconds = 0;
+  p.volume = (float)m.volume / 100.0f;
+  p.fadeSeconds = 0;
+  std::string err;
+  if (!audio_->playMusicFile(dir_ + "/" + m.file, p, err)) {
+    OTE_WARN("audio: boot jingle '%s': %s", m.id.c_str(), err.c_str());
+    return;
+  }
+  playing_ = -2;  // nothing of the scene's own is playing yet: the first settle after the jingle starts it
+  bootWaiting_ = true;
+}
+
+// Once per frame: the boot jingle has ended (or was never heard): the scene's music starts.
+void MusicDirector::tick() {
+  if (!bootWaiting_ || !audio_ || audio_->musicPlaying()) return;
+  bootWaiting_ = false;
   settle();
 }
 
@@ -239,6 +269,8 @@ void MusicDirector::stop() {
   storyAsked_ = false;
   storyTrack_ = -1;
   locked_ = false;
+  bootWaiting_ = false;
+  bootDone_ = false;  // the next time a game's page opens it is a new start
 }
 
 }  // namespace ote

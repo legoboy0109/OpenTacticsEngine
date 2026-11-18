@@ -175,6 +175,7 @@ void BattleView::begin(const Battle& b) {
         else if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
       }
       if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
+      levelUp.ticks = risenStats(e); levelUp.ticksSent = 0; levelUp.tickClock = 0;  // one levelUpTick sound per stat that rose
       addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
       cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
       break;
@@ -479,6 +480,7 @@ void BattleView::skip(const Battle& b) {
 void BattleView::update(double dt, const Battle& b) {
   ensureUnits(b);
   updateScene(dt, b);  // the scene stage's clock and the background walkers (battle_view_story.cpp)
+  tickSounds((float)dt);  // level-up ticks and promotion sounds (battle_view_ticks.cpp)
   for (FloatText& f : floats) f.age += (float)dt;
   floats.erase(std::remove_if(floats.begin(), floats.end(), [](const FloatText& f) { return f.age >= f.life; }),
                floats.end());

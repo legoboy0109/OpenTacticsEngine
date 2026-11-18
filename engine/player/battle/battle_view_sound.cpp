@@ -70,7 +70,7 @@ void BattleView::soundStarted(const Battle& b) {
       if (e.c > 0 && showsResources(b, e.a)) a.cue(Cue::Gold);
       break;
     case EventType::LevelUp: a.music().jingle(MusicDirector::Jingle::LevelUp); break;
-    case EventType::UnitPromoted: a.music().jingle(MusicDirector::Jingle::Promotion); break;
+    case EventType::UnitPromoted: a.music().jingle(MusicDirector::Jingle::Promotion); startPromotionSounds(); break;
     case EventType::StructureUpgraded: a.cue(Cue::Upgrade); break;
     case EventType::ResearchStarted:
       if (e.c > 0) a.cue(Cue::Research);  // an instant research is announced by its ResearchFinished

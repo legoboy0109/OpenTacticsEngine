@@ -55,7 +55,10 @@ void GameAudio::unload() {
   soundFrame_.clear();
 }
 
-void GameAudio::beginFrame() { ++frame_; }
+void GameAudio::beginFrame() {
+  ++frame_;
+  director_.tick();  // the music after the boot jingle
+}
 
 void GameAudio::playSoundIndex(int index, int cueSlot, double gap) {
   if (index < 0 || (size_t)index >= data_.sounds.size()) return;

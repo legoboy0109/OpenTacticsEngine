@@ -21,6 +21,10 @@ export interface AudioUse extends Extra {
   prepMusic?: string
   promotion?: string
   chapterCard?: string
+  shopMusic?: string
+  bootJingle?: string
+  /** Sounds played at times (ms) after a promotion starts, next to the promotion jingle. */
+  promotionSounds?: Array<{ atMs: number; sound: string }>
   /** Music by situation (docs/SOUND.md): a side id -> track id ("" = none), and the track that plays while few hostile units are left. */
   phaseMusic?: Record<string, string>
   fewEnemies?: { music?: string; count?: number }

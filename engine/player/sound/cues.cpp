@@ -5,7 +5,7 @@ namespace {
 
 const char* const kKeys[kCueCount] = {"cursor", "confirm", "cancel", "error", "step", "hit", "miss", "critical", "heal",
                                       "defeated", "capture", "build", "itemUse", "gold", "dialogue", "turnStart",
-                                      "upgrade", "research", "repair", "supply", "ambush", "select"};
+                                      "upgrade", "research", "repair", "supply", "ambush", "select", "levelUpTick", "save"};
 
 struct Entry { const char* key; Cue cue; };
 const Entry kWeapon[] = {{"hit", Cue::Hit}, {"miss", Cue::Miss}, {"critical", Cue::Critical}};

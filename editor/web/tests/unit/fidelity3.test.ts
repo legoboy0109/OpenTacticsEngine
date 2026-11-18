@@ -11,6 +11,11 @@ import { setWeatherCost, weatherCostOf, weatherCostProblems } from '../../src/mo
 import { addShop, patchShop, removeShop, setSingleShopMusic, shopChecks, shopsOf, toSeveralShops, toSingleShop } from '../../src/model/prepShops'
 import { renameAudioId } from '../../src/model/audioRefs'
 import type { MapFile } from '../../src/model/types'
+import { audioChecks } from '../../src/model/audioChecks'
+import { isJingleSlot, MUSIC_SLOT_LABEL, MUSIC_SLOTS, SOUND_KEY_LABEL, STANDARD_SOUND_KEYS } from '../../src/model/audioLabels'
+import { deleteSound, setUseMusic, setUseSound } from '../../src/model/audio'
+import { addPromotionSound, patchPromotionSound, promotionSoundProblems, promotionSoundRows, removePromotionSound } from '../../src/model/promotionSounds'
+import { reconcileAudio } from '../../src/model/audioRefs'
 import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
 import type { Ability } from '../../src/model/srpgTypes'
@@ -190,5 +195,44 @@ describe('several preparation shops', () => {
     const withAudio = { ...d, audio: { music: { theme: { file: 'audio/t.ogg' } } }, maps: { ...d.maps, [mapId]: { ...d.maps[mapId]!, prep: { slots: [{ x: 0, y: 0 }], shops: [{ id: 'a', name: 'A', sells: ['potion'], music: 'theme' }] } } } } as unknown as ProjectDoc
     const renamed = renameAudioId(withAudio, 'music', 'theme', 'newtheme')
     expect(renamed.maps[mapId]!.prep!.shops![0].music).toBe('newtheme')
+  })
+})
+
+describe('the new sound slots', () => {
+  const withSounds = (): ProjectDoc => ({
+    ...base(),
+    audio: { music: { boot: { file: 'audio/b.ogg', loop: false }, loopy: { file: 'audio/l.ogg' }, shop: { file: 'audio/s.ogg' } }, sounds: { tick: { file: 'audio/t.wav' }, whoosh: { file: 'audio/w.wav' }, boom: { file: 'audio/m.wav' } } },
+  } as unknown as ProjectDoc)
+  it('lists the slots with names; the boot jingle must play once', () => {
+    expect(MUSIC_SLOTS).toContain('shopMusic')
+    expect(MUSIC_SLOTS).toContain('bootJingle')
+    expect(isJingleSlot('bootJingle')).toBe(true)
+    expect(isJingleSlot('shopMusic')).toBe(false)
+    expect(STANDARD_SOUND_KEYS).toContain('levelUpTick')
+    expect(STANDARD_SOUND_KEYS).toContain('save')
+    expect(SOUND_KEY_LABEL.levelUpTick).toBeTruthy()
+    expect(MUSIC_SLOT_LABEL.shopMusic).toBeTruthy()
+    let d = setUseMusic(withSounds(), 'bootJingle', 'loopy')
+    expect(audioChecks(d).map((c) => c.text).join(' ')).toContain('repeats, but this plays once')
+    d = setUseMusic(d, 'bootJingle', 'boot')
+    d = setUseMusic(d, 'shopMusic', 'shop')
+    d = setUseSound(setUseSound(d, 'levelUpTick', 'tick'), 'save', 'boom')
+    expect(audioChecks(d).filter((c) => /Standard set/.test(c.text))).toEqual([])
+    expect(d.audio!.use).toMatchObject({ bootJingle: 'boot', shopMusic: 'shop', sounds: { levelUpTick: 'tick', save: 'boom' } })
+  })
+  it('promotion sounds: add, change, remove, checks and follow a deleted sound', () => {
+    let d = withSounds()
+    d = addPromotionSound(d)
+    d = addPromotionSound(d)
+    expect(promotionSoundRows(d)).toEqual([{ atMs: 0, sound: 'tick' }, { atMs: 400, sound: 'tick' }])
+    d = patchPromotionSound(d, 1, { atMs: 750, sound: 'boom' })
+    expect(d.audio!.use!.promotionSounds).toEqual([{ atMs: 0, sound: 'tick' }, { atMs: 750, sound: 'boom' }])
+    expect(promotionSoundProblems(d)).toEqual([])
+    expect(promotionSoundProblems(patchPromotionSound(d, 0, { atMs: 70000 }))[0]).toMatch(/0 to 60000/)
+    expect(promotionSoundProblems(patchPromotionSound(d, 0, { sound: 'nope' }))[0]).toMatch(/not a sound/)
+    expect(audioChecks(patchPromotionSound(d, 0, { atMs: -1 })).some((c) => /60000/.test(c.text))).toBe(true)
+    const gone = reconcileAudio(d, deleteSound(d, 'boom'))
+    expect(gone.audio!.use!.promotionSounds).toEqual([{ atMs: 0, sound: 'tick' }])
+    expect(removePromotionSound(removePromotionSound(d, 0), 0).audio!.use).toBeUndefined()
   })
 })

@@ -1,6 +1,7 @@
 #include "sound/audio_data.h"
 #include "core/data/prep.h"
 
+#include <algorithm>
 #include <initializer_list>
 
 #include "core/base/json.h"
@@ -162,12 +163,36 @@ bool readSituations(const LoadCtx& c, const Json& use, const std::string& where,
   return true;
 }
 
+// "promotionSounds": [ { "atMs": 0, "sound": "id" }, ... ] (docs/SOUND.md "Promotion sounds"): sounds played at those times from the start of a promotion,
+// next to the promotion jingle. At most 16; atMs 0..60000; kept in time order (the listed order for equal times).
+bool readPromotionSounds(const LoadCtx& c, const Json& use, AudioData& out) {
+  if (!use.has("promotionSounds")) return true;
+  const Json& list = use["promotionSounds"];
+  const std::string where = "use.promotionSounds";
+  if (!list.isArray() || list.size() == 0 || list.size() > 16)
+    return c.fail("use", "\"promotionSounds\" must be a list of 1 to 16 entries such as { \"atMs\": 0, \"sound\": \"id\" }");
+  for (size_t i = 0; i < list.size(); ++i) {
+    const Json& e = list[i];
+    const std::string at = where + " entry " + std::to_string(i + 1);
+    if (!e.isObject()) return c.fail("use", at + " must be { \"atMs\": 0, \"sound\": \"id\" }");
+    if (!onlyKeys(c, e, at, {"atMs", "sound"})) return false;
+    if (!e.has("atMs") || !LoadCtx::isWhole(e["atMs"]) || e["atMs"].asInt() < 0 || e["atMs"].asInt() > 60000)
+      return c.fail(at, "\"atMs\" must be a whole number of milliseconds from 0 to 60000");
+    if (!e.has("sound") || !e["sound"].isString() || e["sound"].asString().empty()) return c.fail(at, "\"sound\" must be the id of a sound of data/audio.json");
+    const int s = out.findSound(e["sound"].asString());
+    if (s < 0) return c.fail(at, "\"sound\" names unknown sound " + q(e["sound"].asString()) + " (data/audio.json \"sounds\")");
+    out.promotionSounds.push_back(std::make_pair(e["atMs"].asInt(), s));
+  }
+  std::stable_sort(out.promotionSounds.begin(), out.promotionSounds.end(), [](const std::pair<int, int>& x, const std::pair<int, int>& y) { return x.first < y.first; });
+  return true;
+}
+
 bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
   if (!root.has("use")) return true;
   const Json& use = root["use"];
   if (!use.isObject()) return c.fail("", "\"use\" must be an object (the game's standard set)");
   if (!onlyKeys(c, use, "use", {"titleMusic", "mapMusic", "playerTurnMusic", "enemyTurnMusic", "sceneMusic", "victory",
-                                 "defeat", "levelUp", "sounds", "phaseMusic", "fewEnemies", "prepMusic", "promotion", "chapterCard", "shopMusic"}))
+                                 "defeat", "levelUp", "sounds", "phaseMusic", "fewEnemies", "prepMusic", "promotion", "chapterCard", "shopMusic", "bootJingle", "promotionSounds"}))
     return false;
   if (!useMusic(c, out, use, "titleMusic", out.titleMusic) || !useMusic(c, out, use, "mapMusic", out.mapMusic) ||
       !useMusic(c, out, use, "playerTurnMusic", out.playerTurnMusic) ||
@@ -175,11 +200,11 @@ bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
       !useMusic(c, out, use, "sceneMusic", out.sceneMusic) || !useMusic(c, out, use, "victory", out.victory) ||
       !useMusic(c, out, use, "defeat", out.defeat) || !useMusic(c, out, use, "levelUp", out.levelUp) ||
       !useMusic(c, out, use, "prepMusic", out.prepMusic) || !useMusic(c, out, use, "promotion", out.promotion) ||
-      !useMusic(c, out, use, "chapterCard", out.chapterCard) || !useMusic(c, out, use, "shopMusic", out.shopMusic) || !readSituations(c, use, "use", out))
+      !useMusic(c, out, use, "chapterCard", out.chapterCard) || !useMusic(c, out, use, "shopMusic", out.shopMusic) || !useMusic(c, out, use, "bootJingle", out.bootJingle) || !readPromotionSounds(c, use, out) || !readSituations(c, use, "use", out))
     return false;
-  for (int jingle : {out.victory, out.defeat, out.levelUp, out.promotion, out.chapterCard})
+  for (int jingle : {out.victory, out.defeat, out.levelUp, out.promotion, out.chapterCard, out.bootJingle})
     if (jingle >= 0 && out.music[(size_t)jingle].loop)
-      return c.fail("use", "the jingle " + q(out.music[(size_t)jingle].id) + " must have \"loop\": false (victory, defeat, levelUp, promotion and chapterCard play once)");
+      return c.fail("use", "the jingle " + q(out.music[(size_t)jingle].id) + " must have \"loop\": false (victory, defeat, levelUp, promotion, chapterCard and bootJingle play once)");
   if (!use.has("sounds")) return true;
   if (!use["sounds"].isObject()) return c.fail("use", "\"sounds\" must be an object (event -> sound id)");
   for (const Json::Member& m : use["sounds"].members()) {

@@ -13,6 +13,8 @@ enum class Cue {
   Repair, Supply,
   // optional extras (a game that does not define them hears nothing, except Select, which falls back to Confirm)
   Ambush, Select,
+  // fidelity 3: one tick per stat that rises in the level-up box; a save written from a menu
+  LevelUpTick, Save,
   Count
 };
 constexpr int kCueCount = (int)Cue::Count;
