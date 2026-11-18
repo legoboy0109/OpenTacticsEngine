@@ -179,9 +179,11 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   OTE_INFO("battle scene: start %s (Lv %d) vs %s (Lv %d), %s, %d strike(s)", fighter_[0].name.c_str(), fighter_[0].level,
            fighter_[1].name.c_str(), fighter_[1].level,
            script_.ranged() ? ("ranged, " + intStr(script_.distance) + " squares").c_str() : "melee", (int)script_.strikes.size());
-  if (background_ >= 0) OTE_INFO("battle scene: background \"%s\" (terrain %s)", art.backgrounds[(size_t)background_].id.c_str(), terrain_ >= 0 ? db.terrains[(size_t)terrain_].id.c_str() : "none");
+  // Only a game that uses the newer picks (platforms, a map's table, "attacker") says which picture it chose: every other game logs what it always did.
+  const bool pickLog = db.battleBackgroundFromAttacker || !art.platforms.empty() || !mapDef.bgByTerrain.empty() || mapDef.bgDefault >= 0;
+  if (db.battleSceneSides != 0) OTE_INFO("battle scene: left %s, right %s", fighter_[0].name.c_str(), fighter_[1].name.c_str());
+  if (pickLog && background_ >= 0) OTE_INFO("battle scene: background \"%s\" (terrain %s)", art.backgrounds[(size_t)background_].id.c_str(), terrain_ >= 0 ? db.terrains[(size_t)terrain_].id.c_str() : "none");
   if (platform_ >= 0) OTE_INFO("battle scene: platform \"%s\"%s", art.platforms[(size_t)platform_].id.c_str(), platformFar_ && art.platforms[(size_t)platform_].hasFar ? " (far)" : "");
-  OTE_INFO("battle scene: left %s, right %s", fighter_[0].name.c_str(), fighter_[1].name.c_str());
   for (int s = 0; s < 2; ++s)
     if (fighter_[s].hit >= 0 || fighter_[s].crit >= 0)
       OTE_INFO("battle scene: %s chances: hit %d%% crit %d%%", fighter_[s].name.c_str(), fighter_[s].hit, fighter_[s].crit);

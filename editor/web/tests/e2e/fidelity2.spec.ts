@@ -88,8 +88,16 @@ async function run(page: Page, game: { problems: (id: string) => Promise<Array<{
 
   // ===== Damage that varies =====
   await page.goto(editorUrl(id, 'conditions', 'poison'))
-  await expect(page.getByLabel('How much', { exact: false }).first()).toBeVisible()
-  await expect(page.getByText('Anything from one number to another').first()).toBeVisible()
+  const hurts = page.getByLabel('Hurts', { exact: true })
+  await expect(hurts).toHaveValue('range')
+  const hurt = () => readDisk(id, 'data/conditions.json').conditions[1].blocks[0].do[0].hurt
+  await hurts.selectOption({ label: 'A number of hit points' })
+  await saved(page)
+  expect(hurt()).toBe(5)
+  await hurts.selectOption({ label: 'Anything from one number to another' })
+  await saved(page)
+  expect(hurt()).toEqual([1, 3])
+  expect(await game.problems(id)).toEqual([])
   await shot(page, `${tag}-hurt-range`)
 
   // ===== A terrain's weather costs and platform =====

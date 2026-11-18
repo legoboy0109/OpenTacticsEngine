@@ -293,8 +293,10 @@ def test_sides():
         make_game(gid, game_key(battleSceneSides=mode) if mode else (lambda g: None))
         sc = scene_lines(run(gid, ','.join(script), frames=1600))
         return [s for s in sc if s.startswith('left ')], sc
-    own, _ = left_right('s_map', None, ATTACK + ['wait:200'])
-    check('sides: by default the map decides (Eirik at column 3 stands left of Gorm at 4)', own[:1] == ['left Eirik, right Gorm'], str(own))
+    own, sc = left_right('s_map', None, ATTACK + ['wait:200'])
+    # (the default says nothing new: the start line already names the left fighter first)
+    check('sides: by default the map decides (Eirik at column 3 stands left of Gorm at 4), and no extra line is logged',
+          own == [] and any(s.startswith('start Eirik (Lv 1) vs Gorm') for s in sc), str(sc))
     mine, sc = left_right('s_right', 'playerRight', ATTACK + ['wait:200'])
     check('sides: "playerRight": a player\'s attack puts its fighter on the right', mine[:1] == ['left Gorm, right Eirik'], str(sc))
     mine, sc = left_right('s_right_ai', 'playerRight', [IDLE, 'menu', 'confirm', 'wait:500'])

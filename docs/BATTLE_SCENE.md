@@ -25,8 +25,7 @@ rest of the fight to its result. A fight out of the viewer's sight (fog) is not 
 
 Log lines (`[info] battle scene: ...`) for tests: `start A (Lv n) vs B (Lv n), melee|ranged, N strike(s)`, `X art: set "id"|map
 picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of its own for the set), `skill NAME (unit)`, `strike A -> B [(counter)] [(crit)]`, `hit|crit A -> B DMG`, `miss A -> B`, `drain X +n`, `recoil X -n`,
-`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). Also: `left A, right B` (who stands where),
-`background "id" (terrain t)` and `platform "id"` (when one is used).
+`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). Also, only in a game that uses the newer settings: `left A, right B` (who stands where, with `battleSceneSides`), `background "id" (terrain t)` (when the game has platforms, a map table or `battleBackgroundFrom: attacker`) and `platform "id"` (when one is used); a game with none of them logs exactly what it always did.
 
 ## Which side each fighter stands on
 
@@ -36,7 +35,7 @@ that started the fight does. **`"playerRight"`**: a fighter controlled by a pers
 the map rule decides. "A person's" = the side's `controller` is not `ai`. Everything that depends on the side index follows, because the scene only
 knows left and right: the mirroring (`faces`, `mirror`), the per-side sheets, which way an effect travels, the hit-point boxes and names, the floating
 numbers. Presentation only: no save, hash or `ote-sim` result changes. Code: `initiatorStandsLeft` in `fight_script.*` (pure, unit-tested),
-`FightInfo::sidesMode`. Log: the new line `battle scene: left A, right B` after `start`.
+`FightInfo::sidesMode`. Log: the line `battle scene: left A, right B` after `start`, only in a game that sets `battleSceneSides` (in the default the `start` line names the left fighter first, as it always did).
 
 ## Which background and platform
 
