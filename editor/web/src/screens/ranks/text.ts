@@ -53,7 +53,7 @@ export const R = {
   computerCapsTitle: 'Computer-controlled units',
   computerCapsHelp: 'A different cap for units the computer plays (for example enemies that may grow stronger than your own). Empty = the cap above. A class\'s own cap still wins.',
   computerCapSame: 'same as above',
-  computerCapLabel: (stat: string) => `${stat} cap for computer units`,
+  computerCapLabel: (stat: string) => `Computer units: cap on ${stat}`,
 
   // Units (classes)
   unitRanksTitle: 'Starting ranks',
