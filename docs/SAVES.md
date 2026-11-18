@@ -593,3 +593,12 @@ walked scenes gave, the storage is empty, support points are at their `start` va
 saves **nothing** (as headless and `--no-settings` runs already did); with `--saves DIR` its saves go there only. The editor's embedded player
 runs with `--no-saving`, so it writes no save at all and has no Continue to continue: Restart (and changing a Play panel choice) starts the same
 test run again from the chapter. Tests: `tests/testplay_player_test.py`.
+
+## Fidelity 3 saves nothing new
+
+The fidelity 3 keys (`spendsItem`, summon candidate `weight` / `maxLevel` / `null`, a character's `promotion` and a promotion's `fromLevelFor`, `"blocked"` weather costs, preparation `shops`,
+the new sound slots) are data, not state, so a save written by a game that uses them has the same shape as before and a game that uses none of them saves byte for byte as it did. What they
+change is read from the data files when a save is loaded: the uses an item has left (the cost of an ability that spends its item) are the inventory's own, already saved; a promotion's level is
+looked up from the character and the data; the weather that closes a way is the weather already saved (`story.scene.weather`); which preparation shop is open is not saved (the screen opens on
+the menu), what was bought is in the party's items and money. They are part of the data files that the save's data hash covers (docs/SAVES.md "The data hash"): editing one makes older saves of that
+game refuse to load, like any other rules change; the sound keys (`audio.json`) are not hashed. Tests: `tests/test_fidelity3_ability.cpp` (a save round trip after a spent use, and no new key in a game without them).
