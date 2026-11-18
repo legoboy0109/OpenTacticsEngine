@@ -2,8 +2,8 @@
 // one-fighter-at-a-time camera. The model is model/stageBands.ts; the checks mirror the loader.
 import { stageOf } from '../../../model/battleStage'
 import {
-  addBand, bandEach, bandPanMs, bandsOf, removeBand, setBandFrom, setBandPan, setBandPlatform, setBandPoint, setBandView, type BandGroup, type BandSide,
-  BAND_FROM_MAX, BAND_FROM_MIN, BAND_MAX, WORLD_MAX,
+  addBand, bandBackdrop, bandEach, bandPanMs, bandsOf, removeBand, setBandBackdrop, setBandFrom, setBandPan, setBandPanStart, setBandPlatform, setBandPoint, setBandView, type BandGroup, type BandSide,
+  BAND_FROM_MAX, BAND_FROM_MIN, BAND_MAX, PAN_START_MAX, WORLD_MAX,
 } from '../../../model/stageBands'
 import { useDoc, useEdit } from '../../../store/context'
 import { Field } from '../../../ui/Field'
@@ -77,6 +77,15 @@ export function StageBands() {
                   </Field>
                   <Field label={ST.bandRightView}>
                     <NumberInput aria-label={ST.bandPanField(i + 1, ST.bandRightView)} min={0} max={WORLD_MAX} value={b.pan.rightView} onChange={(v) => v !== undefined && edit((d) => setBandPan(d, i, 'rightView', v), `band${i}:rv`)} />
+                  </Field>
+                </div>
+                <div className="row wrap">
+                  <Field label={ST.bandBackdrop}>
+                    <Select aria-label={ST.bandPanField(i + 1, ST.bandBackdrop)} value={bandBackdrop(b)} options={[{ value: 'fixed', label: ST.bandBackdropFixed }, { value: 'scroll', label: ST.bandBackdropScroll }]}
+                      onChange={(v) => edit((d) => setBandBackdrop(d, i, v as 'fixed' | 'scroll'))} />
+                  </Field>
+                  <Field label={ST.bandPanStart} help={ST.bandPanStartHelp}>
+                    <NumberInput aria-label={ST.bandPanField(i + 1, ST.bandPanStart)} allowEmpty min={0} max={PAN_START_MAX} value={b.pan.startMs} onChange={(v) => edit((d) => setBandPanStart(d, i, v), `band${i}:start`)} />
                   </Field>
                 </div>
                 <p className="help">{ST.bandNoLine}</p>
