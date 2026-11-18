@@ -49,7 +49,7 @@ default above. Unknown keys, bad values and keys that do not belong to the mode 
 | `unit` / `place` / `x` + `y` | `seek`: exactly one target: a unit's story id, a placed structure's `id`, or a square |
 | `fromTurn` | any mode: whole number 1 to 99; the unit does nothing before that round (1 = from the start, the same as leaving it out) |
 | `prefer` | any mode: `"weakest"`, `"nearest"`, `{ "unit": id }`, `{ "type": id }`, `{ "tag": text }` |
-| `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
+| `order`, `weights`, `caution`, `retreat`, `idleTurns`, `ignores`, `heals` | any mode: the scripted-style options (section "Scripted-style computer players" below); all opt-in |
 
 ### The modes
 
@@ -172,6 +172,7 @@ Game-wide settings are `rules.ai` in `game.json`; the per-unit keys are in the u
 | `ignores` | behaviour | a list (up to 32) of unit story ids or character ids |
 | `mode: "patrol"`, `route` | behaviour | 2 to 32 squares |
 | `measure` | behaviour, `guardArea` | `"steps"` (default) or `"moveCost"` |
+| `heals` | behaviour | `"anyone"` (default) or `"retreating"` |
 
 #### 1. Acting order (`turnOrder` and `order`)
 
@@ -267,6 +268,17 @@ is not ignored.
 `guardArea` with `within` and `"measure": "moveCost"`: `within` is a **cost**, not a distance. A hostile unit the side knows of wakes the unit when the cheapest walk from the unit to it (the unit's move type,
 terrain costs of every square entered including the foe's own square, units in the way ignored) costs at most `within`. `"steps"` (the default) is the distance as before. An `area` still wakes by position.
 
+#### 9. Healers that serve retreating allies (`heals`)
+
+`"heals": "retreating"` (the other value, `"anyone"`, is the default and means today's healer; a block that says it stores nothing). Only the unit's **staves with a heal effect** are
+affected (a staff that only cures or inflicts a condition, and every other staff kind the computer uses, work as before). With `"retreating"` such a staff is used only when **every unit it
+would heal** is an **ally in the retreat state** (the saved `retreating` flag, see section 4), **below full hit points**, and **not the user**. A staff that heals the user (`"target": "self"`) or an
+area that also reaches a non-retreating ally is therefore never used. Among the uses it could make from the squares it can stop on, the one that heals the **unit placed last** wins: the highest unit
+id, that is the latest in the map's unit list (a reinforcement is later still), **not** the most wounded one; it then uses the staff the way the default AI does (the same squares, the staff and
+the exposure rule), and when no use qualifies the unit does what it would do without the staff (attack, advance, wait). The key is read each step from the block, so `setBehaviour` changes it.
+It needs no state of its own: nothing is saved but the key in the block (written only when `"retreating"`). The retreat state itself still comes from the allies' `retreat` blocks; an ally with
+none is never in it, so such a healer then never heals. Refusal: `"heals" must be "anyone" (the default) or "retreating" (...)`.
+
 #### Worked example
 
 A game for a classic handheld style. `game.json`:
@@ -299,11 +311,11 @@ given in one command: `{ "setBehaviour": { "order": 3, "weights": "classic" }, "
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
 `tests/ai_behaviour_player_test.py` (the headless player over a few turns); the scripted-style options: `tests/test_ai_scripted.cpp` (rules: a hand-computed score table, order, caution, retreat, idle,
-patrol, ignores, measure), `tests/test_ai_scripted_data.cpp` (loader, refusals, reinforcements, saves; fixture `tests/ai_scripted_fixture.h`), `tests/ai_scripted_sim_test.py` (ote-sim on the game
+patrol, ignores, measure), `tests/test_ai_scripted_data.cpp` (loader, refusals, reinforcements, saves; fixture `tests/ai_scripted_fixture.h`), `tests/test_ai_heals.cpp` (`heals`: default, retreating only, never the user, last placed wins, out of reach, no target, loader and saves), `tests/ai_scripted_sim_test.py` (ote-sim on the game
 `tests/fixtures/ai-scripted`: deterministic), `tests/ai_scripted_player_test.py` (the headless player), editor: `tests/unit/aiScripted.test.ts`, `tests/e2e/ai-scripted.spec.ts`, `tests/editor_api_scripted_checks.py`; editor: `tests/unit/behaviour.test.ts`, `tests/e2e/ai-behaviour.spec.ts`,
 `tests/editor_api_behaviour_checks.py`. Code: `ai/ai_behaviour.cpp` (stance, waking, seek, favourites), `battle/ai_wake.cpp`, `battle/save_behaviour.cpp`,
 `data/behaviour.cpp` and `data/loader_behaviour.cpp`. Scripted-style options: `ai/ai_scripted.cpp` (order, ignores, patrol, measure), `ai/ai_weights.cpp`, `ai/ai_retreat.cpp`, `battle/ai_state.cpp`
-(the counters and the retreat state at the start of a turn), `data/behaviour_scripted.cpp`, `data/loader_ai_rules.cpp`.
+(the counters and the retreat state at the start of a turn), `ai/ai_staves.cpp` (`heals`), `data/behaviour_scripted.cpp`, `data/loader_ai_rules.cpp`.
 
 ### Not built
 

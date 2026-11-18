@@ -18,7 +18,7 @@ export interface BehaviourObj {
   mode?: string; wake?: string; group?: string; fromTurn?: number; area?: Rect; within?: number
   unit?: string; place?: string; x?: number; y?: number; prefer?: Prefer
   /** The scripted-style keys (model/behaviourScripted.ts). */
-  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string
+  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string; heals?: string
   [k: string]: unknown
 }
 export type Behaviour = string | BehaviourObj

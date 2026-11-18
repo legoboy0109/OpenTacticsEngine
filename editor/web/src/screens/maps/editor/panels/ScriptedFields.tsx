@@ -87,6 +87,10 @@ export function ScriptedFields({ o, patch, doc, map, id }: Props) {
         </Field>
         <MultiSelect label={S.ignores} help={S.ignoresHelp} emptyText={S.ignoresNone} options={units.map((u) => ({ value: u.id, label: u.label }))}
           value={Array.isArray(o.ignores) ? o.ignores : []} onChange={(v) => patch({ ignores: v.length ? v : undefined })} />
+        <Field label={S.heals} help={S.healsHelp}>
+          <Select aria-label={S.heals} value={o.heals === 'retreating' ? 'retreating' : 'anyone'} options={(['anyone', 'retreating'] as const).map((h) => ({ value: h, label: S.healsChoices[h] }))}
+            onChange={(v) => patch({ heals: v === 'retreating' ? 'retreating' : undefined })} />
+        </Field>
         <Check label={S.retreat} help={S.retreatHelp} checked={retreat !== undefined} onChange={(v) => patch({ retreat: v ? defaultRetreat() : undefined })} />
         {retreat !== undefined && (
           <div className="stack tight" data-testid={`${id}-retreat`}>

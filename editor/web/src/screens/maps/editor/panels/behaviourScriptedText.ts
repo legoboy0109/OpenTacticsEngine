@@ -32,6 +32,10 @@ export const S = {
   ignoresNone: 'Nothing on this map has a story name yet, so there is nothing to pick.',
   ignoresMissing: (n: string) => `${n} (not there any more)`,
 
+  heals: 'Heals with its healing staves',
+  healsHelp: 'Anyone: any hurt ally in reach, as usual. Only allies that are falling back: just an ally that is retreating to heal (see below) and is hurt, never the healer itself; the one placed last on the map is chosen, not the most wounded. Without such an ally it does whatever it would otherwise do.',
+  healsChoices: { anyone: 'Any hurt ally', retreating: 'Only allies that are falling back' },
+
   retreat: 'Falls back to heal when hurt',
   retreatHelp: 'When its hit points fall under a limit it stops attacking, uses a healing item or walks to safety, and comes back when it has healed.',
   retreatBelow: 'Falls back below (% of its hit points)',

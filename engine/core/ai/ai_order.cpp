@@ -148,6 +148,7 @@ Order bestOrder(Context& cx, const Unit& u) {
   if (u.retreating && st.beh && st.beh->retreat.on) return retreatOrder(cx, u, stops);  // docs/AI.md "Retreat to heal": no attacking
   const AiWeightSet* weights = st.beh && st.beh->weightSet >= 0 ? &b.db->rules.ai.weights[(size_t)st.beh->weightSet] : nullptr;  // docs/AI.md "Attack weights"
 
+  const int healKey = st.beh && st.beh->healsRetreating ? lastRetreatingHeal(b, u, stops) : kHealAnyone;  // docs/AI.md "heals"
   const double fade = fadeFactor(b);
   Order best;  // default: Wait in place, score 0
   Order viaMapWeapon;  // the best attack from a free map weapon it would walk to (only a unit marked "goesFor": ["weapons"]); a fallback
@@ -165,7 +166,7 @@ Order bestOrder(Context& cx, const Unit& u) {
       }
     }
 
-    considerStaves(b, u, s, travel, best);  // a staff beats an attack only by its own worth (ai_staves.cpp)
+    considerStaves(b, u, s, travel, best, healKey);  // a staff beats an attack only by its own worth (ai_staves.cpp)
 
     if (weights) options.clear();  // it chooses its attack by its weights, below
     else b.attackOptions(u.id, s, options);

@@ -135,8 +135,13 @@ double exposureCost(const Battle& b, const Unit& u, Cell c);
 
 // ---- ai_staves.cpp (docs/SRPG.md section 8 "AI") ----
 // Considers every usable staff of the unit from the square `s` (its travel cost `travel`) and replaces `best` when a use
-// beats it.
-void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best);
+// beats it. `healKey`: kHealAnyone (the default AI), or for a unit with "heals": "retreating" what lastRetreatingHeal returned: its staves
+// with a heal effect then serve only a use whose last-placed healed unit is that id (kNoHealKey: none of them is used).
+constexpr int kHealAnyone = -2, kNoHealKey = -1;
+void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best, int healKey = kHealAnyone);
+// "heals": "retreating": the highest unit id among the retreating, hurt allies (never the user) a healing staff of the unit could reach from any of
+// `stops`, or kNoHealKey.
+int lastRetreatingHeal(const Battle& b, const Unit& u, const std::vector<Cell>& stops);
 
 // ---- ai_places.cpp (docs/SRPG.md section 10 "Computer opponent") ----
 // A unit the map marked ("goesFor") may replace `order` by opening a chest / door or visiting / destroying a place, or by walking toward the

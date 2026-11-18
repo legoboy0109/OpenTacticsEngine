@@ -90,7 +90,7 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     for (const char* k : kKeys) known = known || m.first == k;
     if (!known)
       return no(err, "\"behaviour\" has an unknown key " + q(m.first) + " (it may have mode, wake, group, fromTurn, area, within, measure, unit, place, x, y, prefer, " +
-                         "order, weights, caution, retreat, idleTurns, route, ignores)");
+                         "order, weights, caution, retreat, idleTurns, route, ignores, heals)");
   }
   if (v.has("mode")) {
     if (!v["mode"].isString()) return no(err, "\"mode\" must be " + modes + patrolNote);

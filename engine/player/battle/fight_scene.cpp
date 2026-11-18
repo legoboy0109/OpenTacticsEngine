@@ -355,6 +355,7 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
       addFloat("+" + intStr(beat.value), beat.side, kHeal, 1.0);
       if (audio) {
         CueCtx c;
+        c.item = st ? st->item : -1;  // the staff's own "heal" sound, or "" for none (docs/SOUND.md)
         c.unitType = who.type;
         audio->cue(Cue::Heal, c);
       }

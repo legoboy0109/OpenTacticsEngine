@@ -1,5 +1,5 @@
 // The keys of a "behaviour" block that make a game's computer player behave like a scripted one (docs/AI.md "Scripted-style computer players"):
-// order, weights, caution, retreat, idleTurns, route (mode patrol), ignores and measure (mode guardArea). All optional; a block without
+// order, weights, caution, retreat, idleTurns, route (mode patrol), ignores, measure (mode guardArea) and heals. All optional; a block without
 // them reads, writes and plays exactly as before.
 #include <cmath>
 
@@ -75,14 +75,14 @@ bool readRoute(const Json& v, AiBehaviour& b, std::string& err) {
 }  // namespace
 
 bool scriptedKey(const std::string& key) {
-  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure"};
+  static const char* const kKeys[] = {"order", "weights", "caution", "retreat", "idleTurns", "route", "ignores", "measure", "heals"};
   for (const char* k : kKeys)
     if (key == k) return true;
   return false;
 }
 
 bool scriptedIsDefault(const AiBehaviour& b) {
-  return b.order == 0 && b.weightSet < 0 && !b.cautionNone && !b.retreat.on && b.idleTurns == 0 && b.route.empty() && b.ignores.empty() && !b.areaMoveCost;
+  return b.order == 0 && b.weightSet < 0 && !b.cautionNone && !b.retreat.on && b.idleTurns == 0 && b.route.empty() && b.ignores.empty() && !b.areaMoveCost && !b.healsRetreating;
 }
 
 bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string& err) {
@@ -130,6 +130,12 @@ bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string
       return no(err, "\"measure\" must be \"steps\" (squares, the default) or \"moveCost\" (what the walk costs the unit; \"within\" is then a cost)");
     b.areaMoveCost = m == "moveCost";
   }
+  if (v.has("heals")) {
+    const std::string h = v["heals"].asString();
+    if (!v["heals"].isString() || (h != "anyone" && h != "retreating"))
+      return no(err, "\"heals\" must be \"anyone\" (the default) or \"retreating\" (its healing staves are used only on allies that are retreating to heal)");
+    b.healsRetreating = h == "retreating";
+  }
   return true;
 }
 
@@ -168,6 +174,7 @@ void writeScripted(const AiBehaviour& b, Json& o) {
     o.set("ignores", list);
   }
   if (b.areaMoveCost) o.set("measure", Json::makeString("moveCost"));
+  if (b.healsRetreating) o.set("heals", Json::makeString("retreating"));
 }
 
 }  // namespace ote

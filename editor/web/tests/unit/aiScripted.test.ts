@@ -103,6 +103,19 @@ describe('the keys of a behaviour block', () => {
     expect(texts(fixture())).toEqual([])
   })
 
+  it('"heals": only "retreating" is written ("anyone" is the default), it is kept in every mode and checked like the loader', () => {
+    expect(tidyBehaviour({ heals: 'anyone' })).toBeUndefined()
+    expect(tidyBehaviour({ heals: 'retreating' })).toEqual({ heals: 'retreating' })
+    expect(tidyBehaviour({ mode: 'hold', heals: 'retreating' })).toEqual({ mode: 'hold', heals: 'retreating' })
+    const d = fixture()
+    expect(withMode({ mode: 'guard', heals: 'retreating' }, 'seek', contextOf(d, map(d))).heals).toBe('retreating')
+    const one = (b: unknown): string => texts(withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, behaviour: b as MapUnit['behaviour'] } : x)))).join('\n')
+    expect(one({ heals: 'retreating' })).toBe('')
+    expect(one({ heals: 'anyone' })).toBe('')
+    expect(one({ heals: 'everyone' })).toContain('“heals” must be anyone or only allies that are falling back')
+    expect(one({ heals: true })).toContain('“heals” must be')
+  })
+
   it('checks every key the way the loader does', () => {
     const d = fixture()
     const one = (b: unknown): string[] => texts(withUnits(d, (u) => u.map((x) => (x.id === 'r5' ? { ...x, behaviour: b as MapUnit['behaviour'] } : x))))

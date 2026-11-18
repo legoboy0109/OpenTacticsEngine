@@ -12,6 +12,10 @@
 // really afflict (not immune, not afflicted already; the forecast only lists such units), both times the hit chance, a leader counting
 // double as for a heal. Only a unit that would change is ever a target, so an unlimited staff cannot be used twice for nothing.
 //
+// "heals": "retreating" (docs/AI.md "Healers that serve retreating allies"): a staff with a heal effect is used only when every unit it would
+// heal is an ally in the retreat state, below full HP, and not the user; among the possible uses the one that heals the unit placed last (the
+// highest unit id) wins (lastRetreatingHeal picks it once for the whole turn, considerStaves then allows only that one). Other staves are as before.
+//
 // Stage 2 (warp, pull, swap, repair, light): the computer IGNORES any staff that has an effect other than a heal. Those effects
 // need a second pick (a square, an item) or change the map for the whole side, and judging them takes a plan the stateless AI
 // does not make; ignoring them can never crash or stall it (docs/SRPG.md section 8).
@@ -56,24 +60,64 @@ double conditionValue(const Battle& b, const Unit& user, const StaffForecast& f)
   return value;
 }
 
+// The staves the computer uses at all: only heal, inflict and cure effects (the others need a plan it does not make).
+bool usable(const StaffDef& def) {
+  for (const StaffEffect& fx : def.effects)
+    if (!(fx.kind == StaffEffect::Kind::Heal || fx.kind == StaffEffect::Kind::Inflict || fx.kind == StaffEffect::Kind::Cure)) return false;
+  return true;
+}
+
+// "heals": "retreating": does this use heal only retreating, hurt allies other than the user? `key` = the highest unit id among those it heals.
+bool servesRetreating(const Battle& b, const Unit& user, const StaffForecast& f, int& key) {
+  key = -1;
+  for (const StaffHit& h : f.hits) {
+    if (h.amount <= 0) continue;  // (a cure or an inflict on someone is not a heal)
+    const Unit& t = b.units[(size_t)h.unit];
+    if (t.id == user.id || b.isEnemy(user, t) || !t.retreating || t.hp >= b.maxHp(t)) return false;
+    key = std::max(key, t.id);
+  }
+  return key >= 0;
+}
+
 }  // namespace
 
-void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best) {
+int lastRetreatingHeal(const Battle& b, const Unit& u, const std::vector<Cell>& stops) {
+  int last = kNoHealKey;
+  std::vector<StaffOption> options;
+  std::vector<int> targets;
+  for (Cell s : stops) {
+    b.staffOptions(u.id, s, options);
+    for (const StaffOption& o : options) {
+      if (!o.ok) continue;
+      const StaffDef& def = b.db->staves[(size_t)b.db->items[(size_t)o.item].staff];
+      if (!usable(def) || !def.has(StaffEffect::Kind::Heal)) continue;
+      b.staffTargets(u.id, o.slot, s, targets);
+      for (int t : targets) {
+        StaffForecast f;
+        int key = -1;
+        if (b.staffForecast(u.id, o.slot, t, s, f) && servesRetreating(b, u, f, key)) last = std::max(last, key);
+      }
+    }
+  }
+  return last;
+}
+
+void considerStaves(const Battle& b, const Unit& u, Cell s, int travel, Order& best, int healKey) {
   if (b.db->staves.empty()) return;
   std::vector<StaffOption> options;
   b.staffOptions(u.id, s, options);
   for (const StaffOption& o : options) {
     if (!o.ok) continue;
     const StaffDef& def = b.db->staves[(size_t)b.db->items[(size_t)o.item].staff];
-    bool healsOnly = true;
-    for (const StaffEffect& fx : def.effects)
-      healsOnly = healsOnly && (fx.kind == StaffEffect::Kind::Heal || fx.kind == StaffEffect::Kind::Inflict || fx.kind == StaffEffect::Kind::Cure);
-    if (!healsOnly) continue;
+    if (!usable(def)) continue;
+    const bool restricted = healKey != kHealAnyone && def.has(StaffEffect::Kind::Heal);
     std::vector<int> targets;
     b.staffTargets(u.id, o.slot, s, targets);
     for (int t : targets) {
       StaffForecast f;
       if (!b.staffForecast(u.id, o.slot, t, s, f)) continue;
+      int key = -1;
+      if (restricted && (!servesRetreating(b, u, f, key) || key != healKey)) continue;
       double sc = healValue(b, f) + conditionValue(b, u, f);
       if (sc <= 0) continue;
       sc -= exposureCost(b, u, s);

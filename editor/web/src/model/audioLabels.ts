@@ -72,13 +72,13 @@ export const SOUND_GROUPS: Array<{ title: string; keys: StandardSoundKey[] }> = 
 /** Which events a weapon, a unit type and an item may override (the loader refuses any other key). */
 export const WEAPON_SOUND_KEYS = ['hit', 'miss', 'critical'] as const
 export const UNIT_SOUND_KEYS = ['step', 'hit', 'miss', 'critical', 'defeated', 'select', 'heal'] as const
-export const ITEM_SOUND_KEYS = ['use'] as const
+export const ITEM_SOUND_KEYS = ['use', 'heal'] as const  // heal: instead of the game's heal sound for a staff or healing item (docs/SOUND.md)
 export type OverrideOwner = 'weapons' | 'units' | 'items'
 export const OVERRIDE_KEYS: Record<OverrideOwner, readonly string[]> = { weapons: WEAPON_SOUND_KEYS, units: UNIT_SOUND_KEYS, items: ITEM_SOUND_KEYS }
 
 export const OVERRIDE_KEY_LABEL: Record<string, string> = {
   hit: 'When it hits', miss: 'When it misses', critical: 'On a critical hit',
-  step: 'Walking', defeated: 'Being defeated', select: 'Being picked', heal: 'Being healed',
+  step: 'Walking', defeated: 'Being defeated', select: 'Being picked', heal: 'The “+N” when it heals',  // (a unit type's own heal label is UNIT_KEY_LABEL's)
   use: 'When it is used',
 }
 /** The same keys when the owner is a unit type (they describe what the unit does or has done to it). */

@@ -246,6 +246,7 @@ class BattleView {
   Current cur_;
   std::deque<Event> queue_;
   GameAudio* audio_ = nullptr;
+  int healItem_ = -1;  // the staff / healing item whose use the UnitHealed entries now playing belong to (its "sounds.heal" applies); -1 = none
   int stepped_ = -1;  // UnitMoved: the path square the last step sound was made for
   float promoSoundClock_ = -1;  // seconds since the promotion began while the promotionSounds list plays (-1 = none)
   size_t promoSoundNext_ = 0;   // the next entry of that list

@@ -194,7 +194,7 @@ dialogue turnStart upgrade research repair supply ambush select`. `ambush` (a mo
 |---|---|---|
 | `data/weapons.json`, per weapon | `"sounds"` | `hit`, `miss`, `critical` |
 | `data/units.json`, per unit type | `"sounds"` | `step`, `hit`, `miss`, `critical`, `defeated`, `select`, `heal` |
-| `data/items.json`, per item (a staff too) | `"sounds"` | `use` (the cue `itemUse`) |
+| `data/items.json`, per item (a staff too) | `"sounds"` | `use` (the cue `itemUse`), `heal` (the cue `heal`, see "A staff's own heal sound") |
 | `maps/*.json` | `"music"`, `"playerTurnMusic"`, `"enemyTurnMusic"` (music ids) | |
 | `data/campaign.json`, a chapter's `before` / `after` | the scene as `{ "music": "id", "commands": [ ... ] }` | |
 
@@ -202,6 +202,14 @@ A sound id of `""` in an override means silence on purpose (the lookup stops the
 set). `""` as a map's `music` means no music on that map; `""` for a turn-phase key means no phase music on that map.
 The unit type's blocks apply to the unit doing the thing: the attacker for `hit` / `miss` / `critical`, the walker for `step`, the
 unit that fell for `defeated`, the unit picked for `select`, the unit healed for `heal`.
+**A staff's own heal sound.** The `heal` cue plays when a "+N" appears over a healed unit, so a staff whose battle scene effect already plays its own sound ("Effect sounds" in
+docs/BATTLE_SCENE.md) is heard twice. An item (a staff or a healing item) may carry `"sounds": { "heal": "<sound id>" }`: that sound plays **instead of** the game's `heal` sound for the heal
+that item causes, and `"heal": ""` (the same "silence on purpose" as above) plays nothing. The item's entry is looked up first, then the healed unit type's `heal`, then the standard set,
+so an item without the key behaves exactly as before. It applies on the map (the `UnitHealed` entries that follow the item's `StaffUsed` / `ItemUsed`) and in the battle scene (the "+N" beat);
+a heal from anything else (drain, a condition, an ability, a structure) never takes an item's sound. It changes only the heal cue: the staff's use cue (`use`, else `itemUse`) and the miss
+cue are decided as before (a staff with a heal effect plays no `itemUse` of its own when the game defines `heal`, even if the item silences it). An unknown sound id is a load error
+(`item "mend_staff": "sounds": "heal" names unknown sound "x"`). Test: `tests/staff_heal_sound_player_test.py`.
+
 A scene object with `"music"` is the plain scene with `{ "playMusic": "id" }` in front, nothing else changes (`"commands"`
 may be left out); scenes in `then` / `else` branches stay plain lists.
 
