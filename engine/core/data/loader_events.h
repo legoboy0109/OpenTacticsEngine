@@ -24,8 +24,9 @@ class StoryLoader {
 
   // Story ids the map knows: its units' and those of addUnit commands (collected before parsing).
   std::vector<std::string> unitIds;
-  // Ids already taken by units (map units first, then each addUnit as it is read).
-  std::vector<std::string> usedIds;
+  // Ids already taken by units (map units first, then each addUnit as it is read), each with the difficulties it exists on
+  // (empty = all): the same id may be reused by placements limited to disjoint difficulties (docs/DIFFICULTY.md).
+  std::vector<std::pair<std::string, std::vector<int>>> usedIds;
   // Guard group names the map's units and its commands give (docs/AI.md), for wakeGroup.
   std::vector<std::string> groups;
   // Variables that a choice command of this map already writes ("store"): a second one may not (loader_story_choice.cpp).

@@ -278,8 +278,22 @@ namespace {
 bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m, const std::vector<int>& structureAt) {
   const Json* list;
   if (!c.array(root, "units", "", list)) return false;
-  std::map<int, int> occupied;  // cell -> unit index
-  std::map<std::string, int> ids;  // story id -> unit index
+  // Two placements conflict only if they can exist in one battle (docs/DIFFICULTY.md "One unit, different numbers per
+  // difficulty"): units limited to disjoint difficulty lists may share a square and an id.
+  std::map<int, std::vector<int>> occupied;  // cell -> unit indexes (same as m.units, which grows in step)
+  std::map<std::string, std::vector<int>> ids;  // story id -> unit indexes
+  auto conflict = [&](const std::vector<int>& others, const MapUnitDef& u, int& found, std::string& on) {
+    for (int o : others) {
+      const int d = sharedDifficulty(m.units[(size_t)o].onlyOn, u.onlyOn);
+      if (d == kNoSharedDifficulty) continue;
+      found = o;
+      on = d >= 0 ? " on difficulty \"" + db.difficulties.list[(size_t)d].id + "\"" : "";
+      return true;
+    }
+    return false;
+  };
+  int hit = -1;
+  std::string on;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& e = (*list)[i];
     std::string where = "units[" + std::to_string(i) + "]";
@@ -287,16 +301,16 @@ bool loadUnits(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     MapUnitDef u;
     if (!readUnitHead(c, db, m, e, where, u)) return false;
     if (!u.id.empty()) {
-      if (ids.count(u.id) && e.has("character"))
-        return c.fail(where, "\"character\" \"" + u.id + "\" is already placed by units[" + std::to_string(ids[u.id]) + "]");
-      if (ids.count(u.id))
-        return c.fail(where, "\"id\" \"" + u.id + "\" is already used by units[" + std::to_string(ids[u.id]) + "]");
-      ids[u.id] = static_cast<int>(i);
+      if (conflict(ids[u.id], u, hit, on) && e.has("character"))
+        return c.fail(where, "\"character\" \"" + u.id + "\" is already placed by units[" + std::to_string(hit) + "]" + on);
+      if (conflict(ids[u.id], u, hit, on))
+        return c.fail(where, "\"id\" \"" + u.id + "\" is already used by units[" + std::to_string(hit) + "]" + on);
+      ids[u.id].push_back(static_cast<int>(i));
     }
     int cell = u.y * m.width + u.x;
-    if (occupied.count(cell))
-      return c.fail(where, "shares a cell with units[" + std::to_string(occupied[cell]) + "]");
-    occupied[cell] = static_cast<int>(i);
+    if (conflict(occupied[cell], u, hit, on))
+      return c.fail(where, "shares a cell with units[" + std::to_string(hit) + "]" + on);
+    occupied[cell].push_back(static_cast<int>(i));
 
     const int terrain = m.terrain[static_cast<size_t>(cell)], structure = structureAt[static_cast<size_t>(cell)];
     const int structureType = structure < 0 ? -1 : m.structures[static_cast<size_t>(structure)].type;
