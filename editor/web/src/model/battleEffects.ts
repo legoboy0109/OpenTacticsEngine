@@ -180,7 +180,7 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
   if (e.id && list.some((o, j) => j < index && o.id === e.id)) bad('another effect has the same name.')
   if (!lib && !e.weapon && !e.group) bad('name a weapon or a weapon group (or give it a name and use it in a list).')
   if (e.weapon && e.group) bad('name a weapon or a weapon group, not both.')
-  if (e.weapon && !effectWeaponChoices(doc).some((w) => w.id === e.weapon)) bad(`the weapon or staff “${e.weapon}” does not exist.`)
+  if (e.weapon && !effectWeaponChoices(doc).some((w) => w.id === e.weapon)) bad(`the weapon “${e.weapon}” does not exist (a staff item is named by its item id too).`)
   if (e.group && !weaponGroups(doc).includes(e.group)) bad(`no weapon has the group “${e.group}”.`)
   if (!lib && list.some((o, j) => j < index && !!(o.weapon || o.group) && o.weapon === e.weapon && o.group === e.group)) bad(`there is already an effect for ${e.weapon ?? e.group}.`)
   const lists = e.effects !== undefined || e.byType !== undefined
