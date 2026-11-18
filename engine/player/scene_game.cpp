@@ -189,7 +189,8 @@ void GameScene::draw(Renderer& r) {
     const Row& it = rows_[(size_t)row];
     bool sel = row == list_.sel;
     if (it.kind == kNote) {  // the locked free battles' one greyed line
-      r.drawText(list_.x + 8, ry + list_.rowH - lh - 6, fitText(r, it.label, list_.w - 16).c_str(), kGreyed);
+      // one line, as wide as the screen allows (the list column is narrow for a sentence)
+      r.drawText(list_.x + 8, ry + list_.rowH - lh - 6, fitText(r, it.label, r.width() - list_.x - 16).c_str(), kGreyed);
       continue;
     }
     if (it.kind == kHeading) {  // a caption, no box: the free battles below it
