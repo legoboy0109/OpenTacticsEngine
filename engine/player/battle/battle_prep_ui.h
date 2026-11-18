@@ -20,6 +20,7 @@ struct BattleScene::PrepUi {
   std::vector<int> shopItems;   // item index of each row of the shop list
   std::string who, with;        // Trade: the two sides ("" with = the storage)
   int shopItem = -1;            // the item picked in the shop, being given to someone
+  int shopIx = 0;               // which of the map's shops is open (PrepDef::shops)
   std::string sellFrom;         // SellItems: whose items are listed ("" = the storage)
   int tradeRow = -1;            // TradeChoice: the position of the item the small menu is about
   int overlayUnit = -1;         // View: the enemy whose reach is drawn
@@ -31,6 +32,8 @@ namespace prepui {
 // list panel are on screen (the screen tests tap them). Assumes the list is not scrolled.
 void logPanel(ItemPanel& panel, Renderer& r, int vw, int vh, const char* what);
 ItemStack stackOf(const ItemGrant& g);
+// The panel title of a shop: its name, or the plain word for the single unnamed one.
+inline std::string shopTitle(const PrepShop& s) { return s.name.empty() ? std::string("Shop") : s.name; }
 std::string countText(const Database& db, const RosterUnit& r);  // "2/3": items carried over the most it can carry
 std::string fundsText(const Database& db, const std::vector<int>& have);  // "Gold 125"
 }  // namespace prepui

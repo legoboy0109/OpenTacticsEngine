@@ -63,6 +63,7 @@ struct AudioData {
   std::vector<std::pair<std::string, int>> phaseMusic;
   int fewMusic = -1, fewCount = 0;
   int prepMusic = -1, promotion = -1, chapterCard = -1;
+  int shopMusic = -1;  // "shopMusic": the music of any shop screen whose shop names none of its own (docs/SOUND.md "Shop music")
   CueSet standard;
   // Overrides, by index into db.weapons / db.unitTypes / db.items / db.maps (empty until loadAudioOverrides).
   std::vector<CueSet> weapons, units, items;

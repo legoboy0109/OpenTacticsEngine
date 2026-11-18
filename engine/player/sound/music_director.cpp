@@ -26,6 +26,10 @@ int MusicDirector::wanted(bool& keep) const {
       return -1;
     case SceneAudio::Battle: {
       if (storyAsked_) return storyTrack_;
+      if (shop_) {  // a shop screen: its own music, else the game's shopMusic, else whatever else would play
+        const int s = shopTrack_ >= 0 ? shopTrack_ : data_->shopMusic;
+        if (s >= 0) return s;
+      }
       const MapMusic mm = map_ >= 0 && (size_t)map_ < data_->maps.size() ? data_->maps[(size_t)map_] : MapMusic();
       if (prep_) {  // the preparation screen: the map's, else the game's; none = the battle's own music goes on
         const int p = mm.prep != kNone ? mm.prep : data_->prepMusic;
@@ -106,6 +110,8 @@ void MusicDirector::enter(const SceneAudio& scene) {
   side_ = scene.kind == SceneAudio::Battle ? scene.phaseSide : std::string();
   few_ = false;
   prep_ = false;
+  shop_ = false;
+  shopTrack_ = -1;
   overrides_.clear();
   locked_ = false;
   storyAsked_ = false;
@@ -172,6 +178,15 @@ void MusicDirector::phaseOverride(const std::string& side, const std::string& id
 void MusicDirector::prep(bool open) {
   if (kind_ != SceneAudio::Battle || open == prep_) return;
   prep_ = open;
+  settle();
+}
+
+void MusicDirector::shop(bool open, const std::string& id) {
+  if (kind_ != SceneAudio::Battle || !data_) return;
+  const int track = open && !id.empty() ? data_->findMusic(id) : -1;
+  if (open == shop_ && track == shopTrack_) return;
+  shop_ = open;
+  shopTrack_ = track;
   settle();
 }
 

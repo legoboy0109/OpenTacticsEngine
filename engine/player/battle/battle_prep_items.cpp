@@ -206,7 +206,8 @@ void BattleScene::prepShopOpen(int sel) {
   const Database& db = session_.db;
   const std::vector<int> have = prepResources(db, *p.pt, p.map);
   std::vector<PanelRow> rows;
-  p.shopItems = p.map.prep->shop;
+  const PrepShop& shop = p.map.prep->shops[(size_t)p.shopIx];
+  p.shopItems = shop.sells;
   for (int i : p.shopItems) {
     const ItemDef& d = db.items[(size_t)i];
     ItemStack s;
@@ -219,10 +220,10 @@ void BattleScene::prepShopOpen(int sel) {
     for (const Amount& a : d.price) row.dim = row.dim || a.resource >= (int)have.size() || have[(size_t)a.resource] < a.amount;
     rows.push_back(row);
   }
-  itemPanel_.open(PrepWords::kShop, fundsText(db, have), rows, PrepWords::kNothingForSale, sel);
-  if (p.map.prep->buys) itemPanel_.setTabs({PrepWords::kBuy, PrepWords::kSell}, 0);  // the shop also buys: Left/Right or a tap
+  itemPanel_.open(shopTitle(shop), fundsText(db, have), rows, PrepWords::kNothingForSale, sel);
+  if (shop.buys) itemPanel_.setTabs({PrepWords::kBuy, PrepWords::kSell}, 0);  // the shop also buys: Left/Right or a tap
   logPanel(itemPanel_, host_.renderer(), layout_.vw, layout_.vh, "shop");
-  OTE_INFO("prep shop: %s (%s)", fundsText(db, have).c_str(), std::to_string(rows.size()).c_str());
+  OTE_INFO("prep shop: %s (%s) \"%s\"", fundsText(db, have).c_str(), std::to_string(rows.size()).c_str(), shopTitle(shop).c_str());
 }
 
 // Who gets the item bought: a character, or the storage.
@@ -300,7 +301,7 @@ void BattleScene::prepItemsInput(const InputEvent& e) {
       else if (res == ItemPanel::Picked && itemPanel_.sel() < (int)p.ids.size()) {
         std::string why;
         const int row = itemPanel_.sel();
-        if (!prepBuy(session_.db, *p.pt, p.map, p.ids[(size_t)row], p.shopItem, why)) {
+        if (!prepBuy(session_.db, *p.pt, p.map, p.ids[(size_t)row], p.shopItem, why, p.shopIx)) {
           uiCue(Cue::Error);
           say(why);
           OTE_INFO("prep refused: %s", why.c_str());

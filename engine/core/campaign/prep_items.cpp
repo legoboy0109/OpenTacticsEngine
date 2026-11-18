@@ -174,10 +174,11 @@ bool prepSellValue(const Database& db, const ItemGrant& g, std::vector<Amount>& 
   return true;
 }
 
-bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why) {
+bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why, int shop) {
   if (!needItems(map, why)) return false;
   if (!map.prep->hasShop) return refuse(why, "This battle has no shop.");
-  if (!map.prep->buys) return refuse(why, "This shop does not buy items.");
+  if (shop < 0 || shop >= (int)map.prep->shops.size()) return refuse(why, "There is no such shop.");
+  if (!map.prep->shops[(size_t)shop].buys) return refuse(why, "This shop does not buy items.");
   CarriedSide* side = carriedOf(pt, db, map);
   RosterUnit* r = nullptr;
   std::vector<ItemGrant>* from = &side->storage;
@@ -196,10 +197,11 @@ bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std:
   return true;
 }
 
-bool prepBuy(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int item, std::string& why) {
+bool prepBuy(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int item, std::string& why, int shopIndex) {
   if (!needItems(map, why)) return false;
   if (!map.prep->hasShop) return refuse(why, "This battle has no shop.");
-  const std::vector<int>& shop = map.prep->shop;
+  if (shopIndex < 0 || shopIndex >= (int)map.prep->shops.size()) return refuse(why, "There is no such shop.");
+  const std::vector<int>& shop = map.prep->shops[(size_t)shopIndex].sells;
   if (item < 0 || std::find(shop.begin(), shop.end(), item) == shop.end()) return refuse(why, "That is not sold here.");
   const ItemDef& def = db.items[(size_t)item];
   CarriedSide* side = carriedOf(pt, db, map);

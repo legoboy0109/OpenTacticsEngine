@@ -1,4 +1,5 @@
 #include "sound/audio_data.h"
+#include "core/data/prep.h"
 
 #include <initializer_list>
 
@@ -166,7 +167,7 @@ bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
   const Json& use = root["use"];
   if (!use.isObject()) return c.fail("", "\"use\" must be an object (the game's standard set)");
   if (!onlyKeys(c, use, "use", {"titleMusic", "mapMusic", "playerTurnMusic", "enemyTurnMusic", "sceneMusic", "victory",
-                                 "defeat", "levelUp", "sounds", "phaseMusic", "fewEnemies", "prepMusic", "promotion", "chapterCard"}))
+                                 "defeat", "levelUp", "sounds", "phaseMusic", "fewEnemies", "prepMusic", "promotion", "chapterCard", "shopMusic"}))
     return false;
   if (!useMusic(c, out, use, "titleMusic", out.titleMusic) || !useMusic(c, out, use, "mapMusic", out.mapMusic) ||
       !useMusic(c, out, use, "playerTurnMusic", out.playerTurnMusic) ||
@@ -174,7 +175,7 @@ bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
       !useMusic(c, out, use, "sceneMusic", out.sceneMusic) || !useMusic(c, out, use, "victory", out.victory) ||
       !useMusic(c, out, use, "defeat", out.defeat) || !useMusic(c, out, use, "levelUp", out.levelUp) ||
       !useMusic(c, out, use, "prepMusic", out.prepMusic) || !useMusic(c, out, use, "promotion", out.promotion) ||
-      !useMusic(c, out, use, "chapterCard", out.chapterCard) || !readSituations(c, use, "use", out))
+      !useMusic(c, out, use, "chapterCard", out.chapterCard) || !useMusic(c, out, use, "shopMusic", out.shopMusic) || !readSituations(c, use, "use", out))
     return false;
   for (int jingle : {out.victory, out.defeat, out.levelUp, out.promotion, out.chapterCard})
     if (jingle >= 0 && out.music[(size_t)jingle].loop)
@@ -428,12 +429,20 @@ bool checkStoryAudio(const Database& db, const AudioData& d, std::string& err) {
     // Only a map whose file mentions one of the commands can fail, so the others are not even parsed.
     std::string text;
     if (!readTextFile(db.rootPath + "/" + ref.file, text)) continue;
+    const bool shops = text.find("\"shop") != std::string::npos;  // a preparation shop may name music
     if (text.find("\"playMusic\"") == std::string::npos && text.find("\"playSound\"") == std::string::npos &&
-        text.find("\"setPhaseMusic\"") == std::string::npos)
+        text.find("\"setPhaseMusic\"") == std::string::npos && !shops)
       continue;
     MapDef map;
     std::string lerr;
     if (!loadMap(db, ref.id, map, lerr)) continue;  // the core reports a broken map when it is played
+    if (map.prep)
+      for (const PrepShop& s : map.prep->shops)
+        if (!s.music.empty() && d.findMusic(s.music) < 0) {
+          err = db.rootPath + "/" + ref.file + ": prep shop " + q(s.id.empty() ? std::string("shop") : s.id) + ": \"music\" names unknown music " + q(s.music) +
+                (d.present ? " (data/audio.json \"music\")" : " (this game has no data/audio.json)");
+          return false;
+        }
     if (!map.story) continue;
     for (const StoryEvent& e : map.story->events)
       if (!checkCommands(d, e.commands, map.story->texts, db.rootPath + "/" + ref.file + ": event " + q(e.id), err)) return false;

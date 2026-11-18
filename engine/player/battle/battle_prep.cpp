@@ -15,7 +15,7 @@
 namespace ote {
 namespace {
 
-enum PrepMenuId { kmUnits = 1, kmPositions, kmItems, kmShop, kmView, kmSave, kmLeave, kmBegin };
+enum PrepMenuId { kmUnits = 1, kmPositions, kmItems, kmShop, kmView, kmSave, kmLeave, kmBegin, kmShopBase = 100 };  // kmShopBase + n: the n-th shop of a `shops` list
 
 const Color kSlotFree(90, 170, 255, 110), kSlotTaken(110, 220, 120, 130), kSlotCarry(255, 220, 90, 170);
 
@@ -98,7 +98,11 @@ void BattleScene::prepMainMenu() {
   items.push_back({PrepWords::kUnits, intStr((int)p.pt->prep.deployed.size()) + "/" + intStr(def.limit), true, kmUnits});
   items.push_back({PrepWords::kPositions, "", true, kmPositions});
   if (p.campaign && !p.pt->roster.empty()) items.push_back({PrepWords::kItems, "", true, kmItems});
-  if (p.campaign && def.hasShop) items.push_back({PrepWords::kShop, "", true, kmShop});
+  if (p.campaign && def.hasShop) {
+    if (def.shops.size() == 1 && def.shops[0].id.empty()) items.push_back({PrepWords::kShop, "", true, kmShop});  // the single unnamed `shop`
+    else
+      for (size_t i = 0; i < def.shops.size(); ++i) items.push_back({def.shops[i].name, "", true, kmShopBase + (int)i});  // each shop by name
+  }
   items.push_back({PrepWords::kView, "", true, kmView});
   if (p.campaign && manualSaves()) items.push_back({PrepWords::kSave, "", true, kmSave});
   items.push_back({p.campaign ? PrepWords::kLeave : PrepWords::kAbandon, "", true, kmLeave});
@@ -138,7 +142,7 @@ void BattleScene::prepMenuChosen(int id) {
       prepLogSlots();
       break;
     case kmItems: prepItemsWhoOpen(); break;
-    case kmShop: prepShopOpen(); break;
+    case kmShop: p.shopIx = 0; prepShopOpen(); break;
     case kmSave: openSlotList(SlotPanel::Save); break;
     case kmLeave:
       if (continueOn()) writeContinue();
@@ -146,7 +150,12 @@ void BattleScene::prepMenuChosen(int id) {
       else host_.showMapSelect();
       return;
     case kmBegin: prepBeginPressed(); break;
-    default: break;
+    default:
+      if (id >= kmShopBase && id - kmShopBase < (int)p.map.prep->shops.size()) {
+        p.shopIx = id - kmShopBase;
+        prepShopOpen();
+      }
+      break;
   }
 }
 
@@ -512,7 +521,7 @@ std::string BattleScene::prepHint() const {
     case S::Positions: return prep_->carrySlot >= 0 ? PrepWords::kHintPlace : PrepWords::kHintPick;
     case S::View: return PrepWords::kHintView;
     case S::Trade: return session_.db.rules.items.carriedWeapons ? PrepWords::kHintTradeEquip : PrepWords::kHintTrade;
-    case S::Shop: return prep_->map.prep->buys ? PrepWords::kHintBuyTabs : PrepWords::kHintBuy;
+    case S::Shop: return prep_->map.prep->shops[(size_t)prep_->shopIx].buys ? PrepWords::kHintBuyTabs : PrepWords::kHintBuy;
     case S::SellWho: return PrepWords::kHintSellWho;
     case S::SellItems: return PrepWords::kHintSell;
     case S::Begin: return PrepWords::kHintAsk;

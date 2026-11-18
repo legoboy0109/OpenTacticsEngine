@@ -115,25 +115,64 @@ bool readRequired(const LoadCtx& c, const Json& prep, PrepDef& out) {
   return true;
 }
 
-bool readShop(const LoadCtx& c, const Database& db, const Json& prep, PrepDef& out) {
-  if (!prep.has("shop")) return true;
-  const Json& s = prep["shop"];
-  if (!s.isObject()) return c.fail("prep", "\"shop\" must be an object such as { \"sells\": [\"potion\"] }");
-  if (!onlyKeys(c, s, {"sells", "buys"}, "prep: \"shop\"")) return false;
+// One shop object: { "sells": [...], "buys": true, "music": "id" } and, in the list form only, "id" and "name". `where` says which one.
+bool readOneShop(const LoadCtx& c, const Database& db, const Json& s, const std::string& where, bool listed, PrepShop& out) {
+  if (!s.isObject()) return c.fail("prep", where + " must be an object such as { \"sells\": [\"potion\"] }");
+  if (listed) {
+    if (!onlyKeys(c, s, {"id", "name", "sells", "buys", "music"}, "prep: " + where)) return false;
+    if (!c.str(s, "id", "prep: " + where, out.id, true)) return false;
+    if (!isStoryId(out.id)) return c.fail("prep: " + where, "\"id\" must be letters, digits, \"_\" and \"-\" (got \"" + out.id + "\")");
+    out.name = out.id;
+    if (!c.str(s, "name", "prep: " + where, out.name)) return false;
+    if (out.name.empty()) return c.fail("prep: " + where, "\"name\" must not be empty");
+  } else if (!onlyKeys(c, s, {"sells", "buys", "music"}, "prep: " + where)) {
+    return false;
+  }
+  if (s.has("music") && (!s["music"].isString() || s["music"].asString().empty()))
+    return c.fail("prep: " + where, "\"music\" must be a music id of data/audio.json");
+  if (!c.str(s, "music", "prep: " + where, out.music)) return false;
   std::vector<std::string> ids;
-  if (!s.has("sells") || !c.stringList(s, "sells", "prep: \"shop\"", ids) || ids.empty())
-    return c.fail("prep: \"shop\"", "\"sells\" must list at least one item id");
+  if (!s.has("sells") || !c.stringList(s, "sells", "prep: " + where, ids) || ids.empty())
+    return c.fail("prep: " + where, "\"sells\" must list at least one item id");
   for (const std::string& iid : ids) {
     const int it = db.findItem(iid);
-    if (it < 0) return c.fail("prep: \"shop\"", "\"sells\" names unknown item \"" + iid + "\" (data/items.json)");
+    if (it < 0) return c.fail("prep: " + where, "\"sells\" names unknown item \"" + iid + "\" (data/items.json)");
     if (db.items[(size_t)it].price.empty())
-      return c.fail("prep: \"shop\"", "\"sells\" lists \"" + iid + "\", which has no \"price\" (data/items.json)");
-    if (std::find(out.shop.begin(), out.shop.end(), it) != out.shop.end())
-      return c.fail("prep: \"shop\"", "\"sells\" lists \"" + iid + "\" twice");
-    out.shop.push_back(it);
+      return c.fail("prep: " + where, "\"sells\" lists \"" + iid + "\", which has no \"price\" (data/items.json)");
+    if (std::find(out.sells.begin(), out.sells.end(), it) != out.sells.end())
+      return c.fail("prep: " + where, "\"sells\" lists \"" + iid + "\" twice");
+    out.sells.push_back(it);
   }
-  if (!c.boolean(s, "buys", "prep: \"shop\"", out.buys)) return false;
+  return c.boolean(s, "buys", "prep: " + where, out.buys);
+}
+
+// "shop" (one, unnamed) or "shops" (a list of named ones), never both. The first shop's fields are copied to PrepDef::shop / buys / hasShop.
+bool readShop(const LoadCtx& c, const Database& db, const Json& prep, PrepDef& out) {
+  if (prep.has("shop") && prep.has("shops"))
+    return c.fail("prep", "give either \"shop\" (one shop) or \"shops\" (several), not both");
+  if (prep.has("shop")) {
+    PrepShop one;
+    if (!readOneShop(c, db, prep["shop"], "\"shop\"", false, one)) return false;
+    out.shops.push_back(one);
+  } else if (prep.has("shops")) {
+    const Json& list = prep["shops"];
+    if (!list.isArray() || list.size() == 0 || list.size() > 8)
+      return c.fail("prep", "\"shops\" must be a list of 1 to 8 shops such as { \"id\": \"armory\", \"name\": \"Armory\", \"sells\": [\"potion\"] }");
+    for (size_t i = 0; i < list.size(); ++i) {
+      PrepShop s;
+      if (!readOneShop(c, db, list[i], "\"shops\" entry " + std::to_string(i + 1), true, s)) return false;
+      for (const PrepShop& o : out.shops) {
+        if (o.id == s.id) return c.fail("prep: \"shops\" entry " + std::to_string(i + 1), "the id \"" + s.id + "\" is used twice");
+        if (o.name == s.name) return c.fail("prep: \"shops\" entry " + std::to_string(i + 1), "the name \"" + s.name + "\" is used twice (the menu lists shops by name)");
+      }
+      out.shops.push_back(s);
+    }
+  } else {
+    return true;
+  }
   out.hasShop = true;
+  out.shop = out.shops[0].sells;
+  out.buys = out.shops[0].buys;
   return true;
 }
 
@@ -143,7 +182,7 @@ bool loadMapPrep(const LoadCtx& c, const Database& db, const Json& root, MapDef&
   if (!root.has("prep")) return true;
   const Json& prep = root["prep"];
   if (!prep.isObject()) return c.fail("", "\"prep\" must be an object (the preparation screen, docs/EVENTS.md \"Preparation\")");
-  if (!onlyKeys(c, prep, {"slots", "limit", "required", "forbidden", "fixed", "shop", "side"}, "prep")) return false;
+  if (!onlyKeys(c, prep, {"slots", "limit", "required", "forbidden", "fixed", "shop", "shops", "side"}, "prep")) return false;
   PrepDef out;
 
   // The side the deployed characters join: a human side (default: the first one).

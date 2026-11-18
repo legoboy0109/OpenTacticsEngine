@@ -70,7 +70,7 @@ void BattleScene::prepSellWhoOpen(int sel) {
     p.ids.push_back("");
   }
   const std::string funds = fundsText(db, prepResources(db, *p.pt, p.map));
-  itemPanel_.open(PrepWords::kShop, funds, rows, PrepWords::kNobody, sel);
+  itemPanel_.open(shopTitle(p.map.prep->shops[(size_t)p.shopIx]), funds, rows, PrepWords::kNobody, sel);
   itemPanel_.setTabs({PrepWords::kBuy, PrepWords::kSell}, 1);
   OTE_INFO("prep sell who: %s", funds.c_str());
   logPanel(itemPanel_, host_.renderer(), layout_.vw, layout_.vh, "sellwho");
@@ -117,7 +117,7 @@ void BattleScene::prepSellPicked() {
   std::vector<Amount> value;
   std::string why;
   prepSellValue(db, g, value, why);
-  if (!prepSell(db, *p.pt, p.map, p.sellFrom, row, why)) {
+  if (!prepSell(db, *p.pt, p.map, p.sellFrom, row, why, p.shopIx)) {
     uiCue(Cue::Error);
     say(why);
     OTE_INFO("prep refused: %s", why.c_str());

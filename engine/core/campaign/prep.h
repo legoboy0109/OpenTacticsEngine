@@ -94,15 +94,15 @@ bool prepEquipReason(const Database& db, const Playthrough& pt, const std::strin
 const std::vector<ItemGrant>& prepStorage(const Playthrough& pt, const MapDef& map);
 std::vector<int> prepResources(const Database& db, const Playthrough& pt, const MapDef& map);
 // Buy `item` (index into Database::items) at the preparation shop for `id`'s inventory, or into the storage when it is
-// full (or `id` is empty) and the game has one.
-bool prepBuy(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int item, std::string& why);
+// full (or `id` is empty) and the game has one. `shop` = which of the map's shops (PrepDef::shops; 0 = the only one).
+bool prepBuy(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int item, std::string& why, int shop = 0);
 
 // Selling at the preparation shop (needs a shop whose "buys" is not false). The price is rules.items.sellPercent of the
 // item's price for each resource, times the uses left over the uses when new (an unlimited item: no scaling), rounded
 // down (so a worn item can fetch 0). `id` empty = out of the storage; `slot` = position in the inventory / storage.
 // Refused, with a plain reason and nothing changed: an item without a price, one marked "sellable": false, a shop that
 // does not buy, a position that holds nothing.
-bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why);
+bool prepSell(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int slot, std::string& why, int shop = 0);
 // What a shop would pay for this item now, per resource (same order as the price); false + reason if it is not bought.
 bool prepSellValue(const Database& db, const ItemGrant& g, std::vector<Amount>& out, std::string& why);
 

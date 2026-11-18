@@ -8,6 +8,9 @@ import { addLevelFor, characterPromotionLevel, followCharacterInPromotions, leve
 import { renameCharacter } from '../../src/model/characterRename'
 import { deleteCharacter } from '../../src/model/srpgRefs'
 import { setWeatherCost, weatherCostOf, weatherCostProblems } from '../../src/model/battleTables'
+import { addShop, patchShop, removeShop, setSingleShopMusic, shopChecks, shopsOf, toSeveralShops, toSingleShop } from '../../src/model/prepShops'
+import { renameAudioId } from '../../src/model/audioRefs'
+import type { MapFile } from '../../src/model/types'
 import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
 import type { Ability } from '../../src/model/srpgTypes'
@@ -138,5 +141,54 @@ describe('weather that closes a way', () => {
     expect(weatherCostOf(setWeatherCost(d, terrain, 'snow', mt, 500), terrain, 'snow', mt)).toBe(99)
     const bad = { ...d, terrain: d.terrain!.map((t, i) => (i === 0 ? { ...t, weatherCost: { rain: { [mt]: 'closed' as unknown as number } } } : t)) }
     expect(weatherCostProblems(bad, terrain)[0]).toMatch(/whole number from 1 to 99, or closed/)
+  })
+})
+
+describe('several preparation shops', () => {
+  const mapWithShop = (): MapFile => ({ prep: { slots: [{ x: 0, y: 0 }], shop: { sells: ['potion'] } } } as unknown as MapFile)
+  it('turns the single shop into the first of a list and back', () => {
+    const m = toSeveralShops(mapWithShop())
+    expect(m.prep!.shop).toBeUndefined()
+    expect(shopsOf(m)).toEqual([{ id: 'shop', name: 'Shop', sells: ['potion'] }])
+    const back = toSingleShop(m)
+    expect(back.prep!.shops).toBeUndefined()
+    expect(back.prep!.shop).toEqual({ sells: ['potion'] })
+    expect(toSingleShop(addShop(m))).toEqual(addShop(m))  // two shops: not collapsed
+  })
+  it('adds shops with free ids and names, patches them and drops defaults', () => {
+    let m = toSeveralShops(mapWithShop())
+    m = addShop(m)
+    expect(shopsOf(m).map((s) => [s.id, s.name])).toEqual([['shop', 'Shop'], ['shop2', 'Shop 2']])
+    m = patchShop(m, 1, { buys: false, music: 'theme', name: 'Market' })
+    expect(shopsOf(m)[1]).toMatchObject({ buys: false, music: 'theme', name: 'Market' })
+    m = patchShop(m, 1, { buys: true, music: undefined })
+    expect(shopsOf(m)[1]).toEqual({ id: 'shop2', name: 'Market', sells: [] })
+    m = removeShop(removeShop(m, 1), 0)
+    expect(m.prep!.shops).toBeUndefined()
+  })
+  it('music on the single shop', () => {
+    const m = setSingleShopMusic(mapWithShop(), 'inn')
+    expect(m.prep!.shop).toEqual({ sells: ['potion'], music: 'inn' })
+    expect(setSingleShopMusic(m, undefined).prep!.shop).toEqual({ sells: ['potion'] })
+  })
+  it('says what the loader refuses', () => {
+    const d = base()
+    const priced = d.items!.find((i) => i.price && Object.keys(i.price).length)!.id
+    const good = { ...mapWithShop(), prep: { slots: [{ x: 0, y: 0 }], shops: [{ id: 'a', name: 'A', sells: [priced] }, { id: 'b', name: 'B', sells: [priced] }] } } as unknown as MapFile
+    expect(shopChecks(d, good)).toEqual([])
+    const bad = { ...good, prep: { ...good.prep!, shop: { sells: [priced] }, shops: [{ id: 'a', name: 'Same', sells: [] }, { id: 'a', name: 'Same', sells: ['nope'], music: 'nothing' }] } } as MapFile
+    const texts = shopChecks(d, bad).join('\n')
+    expect(texts).toMatch(/both one shop and a list/)
+    expect(texts).toMatch(/sells nothing/)
+    expect(texts).toMatch(/used twice/)
+    expect(texts).toMatch(/is not an item/)
+    expect(texts).toMatch(/not a music track/)
+  })
+  it('a renamed track is followed by the shops that play it', () => {
+    const d = base()
+    const mapId = Object.keys(d.maps)[0]
+    const withAudio = { ...d, audio: { music: { theme: { file: 'audio/t.ogg' } } }, maps: { ...d.maps, [mapId]: { ...d.maps[mapId]!, prep: { slots: [{ x: 0, y: 0 }], shops: [{ id: 'a', name: 'A', sells: ['potion'], music: 'theme' }] } } } } as unknown as ProjectDoc
+    const renamed = renameAudioId(withAudio, 'music', 'theme', 'newtheme')
+    expect(renamed.maps[mapId]!.prep!.shops![0].music).toBe('newtheme')
   })
 })

@@ -882,6 +882,26 @@ stand on / on the square of a unit that stays, a limit of 0 or above the slots, 
 that does not exist or is used twice, a character both required and forbidden / fixed, a fixed id the map does not place, a forbidden
 unit the map places on the prep side, an empty or unknown or unpriced shop item, a computer or unknown `side`.
 
+**Several shops (fidelity 3).** Instead of the single `shop`, a map may give `"shops"`, a list of 1 to 8:
+
+```jsonc
+"shops": [ { "id": "armory", "name": "Armory", "sells": [ "tonic" ], "music": "armory_theme" },     // "music": a music id of data/audio.json
+           { "id": "market", "name": "Market", "sells": [ "potion", "ring" ], "buys": false } ]
+```
+
+`id` (letters, digits, `_`, `-`) and `name` are required in the list form (`name` defaults to the id), each unique; `sells` and `buys` are as for the single
+shop; `music` is optional. The single `shop` stays valid and is one unnamed shop (it may also have `"music"`); giving both `shop` and `shops` is refused
+(`give either "shop" (one shop) or "shops" (several), not both`). Each shop sells only its own list (buying another shop's item is refused with
+`That is not sold here.`) and buys or not by its own `buys`. **Player:** with `shops` the Prep menu lists each shop by its name in place of "Shop" (the single
+unnamed shop still reads "Shop"); the panels are titled with the name. **Music:** while any screen of a shop is open (buy, who gets it, sell) its `music`
+plays, else the game's `use.shopMusic` (docs/SOUND.md "Shop music"), else nothing changes; leaving the shop brings back the preparation music. A `music` id
+that is not in `data/audio.json` is a load error ("Cannot load game") like the other music ids. **Saves:** nothing new (which shop is open is not
+saved; what was bought is in the party's items and money as before). Core: `PrepDef::shops` (`PrepShop`), the first shop also in `shop` / `buys` / `hasShop`
+for code that knows one shop; `prepBuy` / `prepSell` take a trailing shop index (default 0). Player: `battle_prep.cpp`, `battle_prep_items.cpp`,
+`battle_shop_music.cpp`. Editor: Maps, Preparation, "Use several shops" turns the single shop into the first of a list (a list of one can go back);
+each shop has name, items, "also buys", music; renaming or deleting a track follows. Tests: `tests/test_fidelity3_shops.cpp`,
+`tests/srpg_player_fidelity3_test.py`.
+
 ## Dialogue choices
 
 PLAN k item 6. All wording is placeholder until the owner approves it.

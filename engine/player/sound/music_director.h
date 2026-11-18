@@ -57,6 +57,8 @@ class MusicDirector {
   void phaseOverride(const std::string& side, const std::string& id, bool clear);
   // The preparation screen is open / closed (its music: the map's, else the game's; none = the battle's own music goes on).
   void prep(bool open);
+  // A shop screen is open / closed. `id` = the music of that shop ("" = the game's shopMusic, if it has one; else nothing changes).
+  void shop(bool open, const std::string& id);
   // The story asked (playMusic / stopMusic; `id` empty = stop). fadeMs < 0 = the default cross-fade.
   void story(const std::string& id, int fadeMs);
   // The battle is decided: `victory` / `defeat` jingle, no music under it (it ends in silence); the level-up
@@ -84,6 +86,8 @@ class MusicDirector {
   std::string side_;            // ... of this side ("" = unknown)
   bool few_ = false;            // the hostile units left were few when this phase started (decided at the start, not mid-phase)
   bool prep_ = false;           // the preparation screen is open
+  bool shop_ = false;           // a shop screen is open (preparation or map)
+  int shopTrack_ = -1;          // ... and the music its shop names (-1 = the game's shopMusic)
   std::vector<std::pair<std::string, int>> overrides_;  // setPhaseMusic: side id -> track (kSilent = "")
   int fewTrack() const;         // the few-enemies track of this map / game (-1 = none)
   int phaseTrack() const;       // the phase music of the side to move (-1 = none)
