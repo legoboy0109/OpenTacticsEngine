@@ -10,6 +10,8 @@
 .play-head h2 { margin-right: auto; }
 .play-map { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.92rem; }
 .play-map .select { width: auto; min-width: 10rem; max-width: 40vw; }
+.play-level { width: 4.5rem; flex: none; }
+.play-level[aria-invalid='true'] { border-color: var(--danger); }
 .play-all { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.92rem; cursor: pointer; }
 .play-actions { display: flex; gap: 8px; }
 .play-stage { position: relative; flex: 1; min-height: 0; background: #000; }
