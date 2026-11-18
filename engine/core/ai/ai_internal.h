@@ -92,6 +92,12 @@ struct Stance {
   std::vector<int> field;            // seeking: distance to the goal for every square
   int seekTarget = -1;               // seeking a unit: its id
   int bestGoal = kFar;               // seeking: the smallest goal distance among the squares it may stop on
+  // Scripted-style computer players (ai_scripted.cpp): a patrol walks `field` (distance to its next route square); `ignored` marks (per unit id) the
+  // hostile units it never chases or attacks, and `goalField` is then the distance to the nearest hostile unit it does not ignore (ownGoals).
+  bool patrolling = false;
+  std::vector<char> ignored;
+  bool ownGoals = false;
+  std::vector<int> goalField;
 };
 // At the start of an AI step: sleeping guards of the active side that have a reason wake up (their groups with them).
 void updateWakes(Battle& b);
@@ -99,6 +105,27 @@ Stance stanceFor(Context& cx, const Unit& u, const std::vector<Cell>& stops);
 // False = this attack is not allowed to the unit; otherwise `score` may be raised (a seeker's target, a favourite target).
 bool adjustAttack(const Battle& b, const Stance& st, const Unit& u, const Unit& target, Cell from, double& score);
 void considerSeek(const Stance& st, Context& cx, const Unit& u, const std::vector<Cell>& stops, Order& best);
+
+// ---- ai_scripted.cpp (docs/AI.md "Scripted-style computer players") ----
+// The unit that acts next when rules.ai.turnOrder is "order" (lowest `order`, then lowest unit id, among the side's ready units); -1 when the
+// game plays "best" (the default) or nobody is ready.
+int orderedUnit(const Battle& b, int side);
+// Fills st.ignored / st.goalField for a unit with an "ignores" list; st.patrolling / st.field (distance to its next route square) for a patrol.
+void fillIgnores(const Battle& b, const Unit& u, Stance& st);
+void fillPatrol(const Battle& b, const Unit& u, Stance& st);
+bool ignoredTarget(const Stance& st, int target);
+// The walk of a patrol toward its next route square.
+void considerPatrol(const Stance& st, const Battle& b, const Unit& u, const std::vector<Cell>& stops, Order& best);
+// guardArea "measure": "moveCost": is a hostile unit it knows of within `within` of path cost from the unit?
+bool hostileWithinMoveCost(const Battle& b, const Unit& u, int within);
+
+// ---- ai_weights.cpp (docs/AI.md "Attack weights") ----
+// The unit's best attack by its weight set (rules.ai.weights); false when it has none to make (nothing scores above 0, or attackAtZero is off).
+bool weightedAttack(const Battle& b, const Unit& u, const Stance& st, const Reach& reach, const std::vector<Cell>& stops, Order& out);
+
+// ---- ai_retreat.cpp (docs/AI.md "Retreat to heal") ----
+// The order of a unit that is retreating: a healing item, a step toward the terrain it falls back to (or away from the enemy), else Wait.
+Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops);
 
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);
@@ -119,6 +146,8 @@ void considerPlaces(Context& cx, const Unit& u, const Reach& reach, const std::v
 void considerWalls(Context& cx, const Unit& u, const Reach& reach, const std::vector<Cell>& stops, Order& best);
 
 // ---- ai_items.cpp ----
+// Slot of the first usable item that heals its carrier and would do something now (-1 = none).
+int healingItemSlot(const Battle& b, const Unit& u);
 // Turns an Attack or Wait order of a badly hurt unit into drinking its healing item (same square), when it has one.
 void considerHealing(const Battle& b, const Unit& u, Order& order);
 // A cure item (itself, or a unit next to it when the unit stays where it is); used instead of a plain Wait or a hit that does not finish its target.
