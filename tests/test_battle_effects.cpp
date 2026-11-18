@@ -128,8 +128,8 @@ TEST(battle_effects_refusals) {
   expectError("snd3", one("\"sounds\":{\"-5\":\"zap\"}"), "\"sounds\" key \"-5\"");
   expectError("snd4", one("\"sounds\":{\"5\":\"no way\"}"), "must name a sound");
   expectError("snd5", one("\"sounds\":{\"5\":3}"), "must name a sound");
-  expectError("hit1", one("\"hitAtMs\":-1"), "\"hitAtMs\" must be between 0 and 5000");
-  expectError("hit2", one("\"hitAtMs\":9000"), "\"hitAtMs\" must be between 0 and 5000");
+  expectError("hit1", one("\"hitAtMs\":-1"), "\"hitAtMs\" must be between 0 and 15000");
+  expectError("hit2", one("\"hitAtMs\":19000"), "\"hitAtMs\" must be between 0 and 15000");
   expectError("hit3", one("\"mode\":\"travel\",\"hitAtMs\":100"), "\"hitAtMs\" is for an effect that appears");
   expectError("hit4", one("\"hitAtMs\":1.5"), "hitAtMs", "whole number");
   expectError("lay1", one("\"layer\":\"above\""), "\"layer\" must be \"front\", \"behind\" or \"screen\"");

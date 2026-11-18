@@ -233,7 +233,7 @@ TEST(fid2_summon_loader) {
     return error(make(name, p));
   };
   CHECK_STR(with("s_ok", "{\"type\":\"hound\",\"level\":\"user\",\"replace\":true,\"items\":[{\"item\":\"fang\",\"minLevel\":3}],\"pick\":\"random\"}"), "");
-  CHECK(says(with("s_r1", "{\"type\":\"hound\",\"items\":[]}"), "\"items\" must be a list of 1 to 8"));
+  CHECK(says(with("s_r1", "{\"type\":\"hound\",\"items\":[]}"), "\"items\" must be a list of 1 to 32"));
   CHECK(says(with("s_r2", "{\"type\":\"hound\",\"items\":[{\"item\":\"nope\"}]}"), "unknown item \"nope\""));
   CHECK(says(with("s_r3", "{\"type\":\"hound\",\"items\":[{\"item\":\"fang\",\"minLevel\":0}]}"), "\"minLevel\" must be a whole number from 1 to"));
   CHECK(says(with("s_r4", "{\"type\":\"hound\",\"pick\":\"highest\"}"), "\"pick\" goes with \"items\""));

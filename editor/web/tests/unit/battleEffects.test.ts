@@ -109,7 +109,7 @@ describe('battle effects: checks mirror the loader', () => {
     expect(battleChecks(d).filter((c) => c.blocks)).toEqual([])
   })
   const cases: Array<[string, Partial<BattleEffectDef>, string]> = [
-    ['hit time too big', { hitAtMs: 9000 }, 'hit time must be between 0 and 5000'],
+    ['hit time too big', { hitAtMs: 19000 }, 'hit time must be between 0 and 15000'],
     ['hit time on a flying effect', { mode: 'travel', hitAtMs: 100 }, 'a flying effect hits when it arrives'],
     ['returns when it does not fly', { returns: true }, 'only a flying effect can fly back'],
     ['stays when it does not fly', { lingerMs: 100 }, 'only a flying effect can stay'],
