@@ -29,6 +29,13 @@ struct FightUnitInfo {
 // fighter on the right / left, the computer's opposite). When both or neither fighter is a person's, the map rule decides.
 bool initiatorStandsLeft(int mode, bool initiatorHuman, bool otherHuman, int initiatorX, int otherX);
 
+// A staff use in the scene (docs/BATTLE_SCENE.md "Staves in the scene"): is `e` one of the entries of the use that `StaffUsed` (user, target) began?
+// Its results on the target; the user's own entries after it (broken staff, experience) are not part of it.
+bool belongsToStaffUse(const Event& e, int user, int target);
+// Does the use `used` (a StaffUsed entry) play as a scene? It needs one picked unit that is not the user and exactly one unit affected, and
+// none of the entries that follow it (`following`, in order; only the staff's own are looked at) may be a unit moved (a warp, a pull, a swap stay on the map).
+bool staffUseInScene(const Event& used, const std::vector<Event>& following);
+
 // What the builder needs to know that the events do not say.
 struct FightInfo {
   std::map<int, FightUnitInfo> units;  // by unit id (at least the two fighters)
@@ -40,6 +47,7 @@ struct FightInfo {
 struct FightTag {
   int side = 0;  // 0 = the left fighter, 1 = the right fighter
   std::string text;
+  int kind = 0;  // a staff use's notes (FightStrike::notes): 0 = a condition, 1 = an item repaired
 };
 
 struct FightHp {
@@ -57,6 +65,12 @@ struct FightStrike {
   bool dies[2] = {false, false};     // this fighter falls after this strike
   bool weaponBroke = false;
   std::string brokeText;             // "Iron Sword broke"
+  // A staff used on one other unit (docs/BATTLE_SCENE.md "Staves in the scene"): the one strike of such a script. `actor` is the user,
+  // `item` the staff (index into Database::items). It lands (`hit`) unless `missed`; `healed` hit points came back to the target (hpAfterHit
+  // already holds them); `notes` are the labels that show on the target after the effect (a condition put on, resisted or cured; an item mended).
+  bool staff = false, missed = false;
+  int item = -1, healed = 0;
+  std::vector<FightTag> notes;
   int hpBefore[2] = {0, 0};          // both fighters' hit points when the strike begins ...
   int hpAfterHit[2] = {0, 0};        // ... after the hit ...
   int hpEnd[2] = {0, 0};             // ... and after drain and recoil
@@ -68,6 +82,7 @@ struct FightScript {
   int initiator = 0;      // side index of the unit that started the fight (the one that attacked)
   int distance = 1;
   std::vector<FightStrike> strikes;
+  bool staff() const { return !strikes.empty() && strikes[0].staff; }  // a staff use, not a fight
 
   bool ranged() const { return distance > 1; }
   int sideOf(int unit) const { return side[0].unit == unit ? 0 : side[1].unit == unit ? 1 : -1; }

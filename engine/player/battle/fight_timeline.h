@@ -57,9 +57,10 @@ struct FightPose {
   int strike = -1;
 };
 
-enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart };
+enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart, StaffHeal, StaffMiss, StaffNote };
 // Sound: an animation's own sound (text = its id). FxSound: an effect's sound (text = its id, label = the effect's name). FxStart: an effect
-// that uses the newer keys begins (label = its name).
+// that uses the newer keys begins (label = its name). A staff use's results (docs/BATTLE_SCENE.md "Staves in the scene"), on the target `side`:
+// StaffHeal (value = hit points), StaffMiss, StaffNote (text = the label; value 1 = an item mended, else a condition).
 
 struct FightBeat {
   double t = 0;

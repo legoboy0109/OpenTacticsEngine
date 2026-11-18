@@ -90,7 +90,8 @@ struct FxShake {
 // only assigns the effects named in `list` / `byType`; an entry with an `id` and no weapon / group is a library effect that lists use.
 struct BattleEffect {
   std::string id;    // optional name, used by the lists of other entries and in the log
-  int weapon = -1;   // index into Database::weapons, or -1 when `group` is used
+  int weapon = -1;   // index into Database::weapons, or -1 when `group` (or `item`) is used
+  int item = -1;     // index into Database::items: a STAFF item named by "weapon" (docs/BATTLE_SCENE.md "Staves in the scene"), else -1
   std::string group; // weapon group
   BattleAnim anim;
   bool travel = false;  // true: flies from the striker to the target; false: appears on the target
@@ -180,10 +181,11 @@ struct BattleArt {
   // rules of the same level (it never lifts a rule over a more specific one).
   int resolveSet(int character, int type, const std::string& group, int weapon = -1, const std::string& side = std::string()) const;
   // The effect for a weapon: the weapon's own entry, else its group's; -1 = none.
-  int resolveEffect(int weapon, const std::string& group) const;
+  // `item`: the staff item in use (a staff use in the scene; -1 = none): an entry for that very item beats the entry of its group.
+  int resolveEffect(int weapon, const std::string& group, int item = -1) const;
   // The effects of a strike in the order they start: the entry for the weapon (else its group), then for a striker of unit type `type`
   // its byType list when it has one, else its own pictures followed by its list (docs/BATTLE_SCENE.md "Several effects, by unit type").
-  std::vector<int> resolveEffects(int weapon, const std::string& group, int type) const;
+  std::vector<int> resolveEffects(int weapon, const std::string& group, int type, int item = -1) const;
   int findEffect(const std::string& id) const;
 };
 

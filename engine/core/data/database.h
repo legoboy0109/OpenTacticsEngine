@@ -380,6 +380,8 @@ struct Database {
   bool battleBackgroundFromAttacker = false;
   // game.json "battleSceneSides": which side of the battle scene each fighter stands on: 0 "map" (the default), 1 "playerRight", 2 "playerLeft".
   int battleSceneSides = 0;
+  // game.json "battleSceneStaves": a staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene").
+  bool battleSceneStaves = false;
   GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;

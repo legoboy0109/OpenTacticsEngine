@@ -347,14 +347,18 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) 
       return c.fail(where, "needs exactly one of \"weapon\" (a weapon id) or \"group\" (a weapon group), or an \"id\" to be used in a list");
     if (!weapon.empty()) {
       fx.weapon = db.findWeapon(weapon);
-      if (fx.weapon < 0) return c.fail(where, "there is no weapon with the id " + q(weapon));
+      if (fx.weapon < 0) {  // a staff item is named here too (docs/BATTLE_SCENE.md "Staves in the scene")
+        const int it = db.findItem(weapon);
+        if (it >= 0 && db.items[(size_t)it].kind == ItemKind::Staff) fx.item = it;
+        else return c.fail(where, "there is no weapon with the id " + q(weapon) + " (a staff item is named by its item id too)");
+      }
     } else if (!library) {
       if (!weaponGroupExists(db, group)) return c.fail(where, "no weapon has the group " + q(group));
       fx.group = group;
     }
     if (!library)
       for (const BattleEffect& other : art.effects)
-        if (!(other.weapon < 0 && other.group.empty()) && other.weapon == fx.weapon && other.group == fx.group)
+        if (!(other.weapon < 0 && other.item < 0 && other.group.empty()) && other.weapon == fx.weapon && other.item == fx.item && other.group == fx.group)
           return c.fail(where, "a second effect for " + q(weapon.empty() ? group : weapon));
     const bool hasLists = j.has("effects") || j.has("byType");
     if (hasLists && library) return c.fail(where, "\"effects\" and \"byType\" belong to an entry with a \"weapon\" or a \"group\"");

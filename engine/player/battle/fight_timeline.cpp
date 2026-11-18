@@ -76,7 +76,9 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
     tl.beats.push_back({t0, BeatKind::StrikeStart, (int)i, a, 0, false, ""});
     // The striker.
     const FighterTimes& ft = times[a];
-    const BattleAnimId kind = attackAnimFor(ft, st.crit, s.ranged(), !fxs.empty(), !st.hit);
+    // A staff use plays `cast` (else `attack`; with neither, the fallback motion of a cast).
+    const BattleAnimId kind = st.staff ? (ft.has[BaCast] ? BaCast : ft.has[BaAttack] ? BaAttack : BaCast)
+                                       : attackAnimFor(ft, st.crit, s.ranged(), !fxs.empty(), !st.hit);
     FightPose ap;
     ap.start = t0;
     ap.anim = kind;
@@ -132,7 +134,27 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
     // The struck fighter.
     double end = std::max(ap.start + ap.dur, fxEnd);
     const FighterTimes& dt = times[d];
-    if (st.hit) {
+    if (st.staff) {  // the result of a staff on the target: no blow, no pose; the number or the label shows where the effect lands
+      if (st.missed) {
+        tl.beats.push_back({hitT, BeatKind::StaffMiss, (int)i, d, 0, false, ""});
+        end = std::max(end, hitT + 0.6);
+      } else {
+        double at = hitT;
+        if (st.healed > 0) {
+          tl.beats.push_back({hitT, BeatKind::StaffHeal, (int)i, d, st.healed, false, ""});
+          const double rise = std::min(0.7, std::max(0.3, kDrainTime * st.healed / std::max(1, st.hpBefore[d] > 0 ? st.hpBefore[d] : 10) + 0.25));
+          tl.hp.push_back({hitT, hitT + rise, d, st.hpBefore[d], st.hpAfterHit[d]});
+          end = std::max(end, hitT + std::max(rise, 0.6));
+          at += kExtraTime;
+        }
+        for (const FightTag& n : st.notes) {
+          tl.beats.push_back({at, BeatKind::StaffNote, (int)i, d, n.kind, false, n.text});
+          at += kExtraTime;
+          end = std::max(end, at + 0.4);
+        }
+        if (st.healed <= 0 && st.notes.empty()) end = std::max(end, hitT + 0.4);
+      }
+    } else if (st.hit) {
       tl.beats.push_back({hitT, BeatKind::Hit, (int)i, d, st.damage, st.crit, ""});
       FightPose dp;
       dp.start = hitT;

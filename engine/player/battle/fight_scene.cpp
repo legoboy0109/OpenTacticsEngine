@@ -49,13 +49,16 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   const Battle& b = *env.battle;
   const Database& db = *b.db;
   const Event* first = nullptr;
-  for (const Event& e : run)
-    if (e.type == EventType::Attack) {
-      first = &e;
-      break;
-    }
+  const bool staffUse = !run.empty() && run[0].type == EventType::StaffUsed;  // a staff used on one unit (docs/BATTLE_SCENE.md "Staves in the scene")
+  if (staffUse) first = &run[0];
+  else
+    for (const Event& e : run)
+      if (e.type == EventType::Attack) {
+        first = &e;
+        break;
+      }
   if (!first) return false;
-  const int pair[2] = {first->a, first->b};
+  const int pair[2] = {first->a, staffUse ? first->c : first->b};
   for (int u : pair)
     if (u < 0 || (size_t)u >= b.units.size() || (size_t)u >= env.view->units.size()) return false;
 
@@ -105,13 +108,28 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
         weapon = st.weapon;
         break;
       }
-    if (weapon >= 0) f.weapon = db.weapons[(size_t)weapon].name;
+    // A staff use: the user shows (and picks its set by) the staff; the target shows the weapon it holds, which picks its set as in a fight.
+    std::string staffGroup;
+    if (script_.staff() && script_.strikes[0].actor == s) {
+      const int item = script_.strikes[0].item;
+      if (item >= 0 && (size_t)item < db.items.size()) {
+        f.weapon = db.items[(size_t)item].name;
+        const int sd = db.items[(size_t)item].staff;
+        if (sd >= 0 && (size_t)sd < db.staves.size()) staffGroup = db.staves[(size_t)sd].gear.group;
+      }
+    } else if (script_.staff()) {
+      std::vector<int> held;
+      b.weaponsOf(u, held);
+      if (!held.empty() && held[0] >= 0 && (size_t)held[0] < db.weapons.size()) weapon = held[0];
+    }
+    if (!f.weapon.empty()) {
+    } else if (weapon >= 0) f.weapon = db.weapons[(size_t)weapon].name;
     else {  // never struck (felled before its counter): the box still names the weapon it holds, the first it would attack with
       std::vector<int> held;
       b.weaponsOf(u, held);
       if (!held.empty() && held[0] >= 0 && (size_t)held[0] < db.weapons.size()) f.weapon = db.weapons[(size_t)held[0]].name;
     }
-    const std::string group = weapon >= 0 ? db.weapons[(size_t)weapon].group : std::string();
+    const std::string group = weapon >= 0 ? db.weapons[(size_t)weapon].group : staffGroup;
     f.sideId = b.sides[(size_t)u.side].id;
     f.set = art.resolveSet(u.character, u.type, group, weapon, f.sideId);
     if (f.set >= 0) {
@@ -126,7 +144,7 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
     }
   }
   // Hit and crit percentages from the forecast of the fight as ordered; a game without hit / crit formulas (everything 100 / 0) shows none.
-  if (env.forecasts) {
+  if (env.forecasts && !script_.staff()) {
     const int ini = script_.side[script_.initiator].unit, other = script_.side[1 - script_.initiator].unit;
     auto it = env.forecasts->find(std::make_pair(ini, other));
     if (it != env.forecasts->end()) {
@@ -147,9 +165,11 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   effectsOfStrike_.clear();
   std::vector<std::vector<EffectTimes>> fx;
   for (const FightStrike& st : script_.strikes) {
-    const std::string group = st.weapon >= 0 && (size_t)st.weapon < db.weapons.size() ? db.weapons[(size_t)st.weapon].group : std::string();
+    std::string group = st.weapon >= 0 && (size_t)st.weapon < db.weapons.size() ? db.weapons[(size_t)st.weapon].group : std::string();
+    if (st.staff && st.item >= 0 && (size_t)st.item < db.items.size() && db.items[(size_t)st.item].staff >= 0)
+      group = db.staves[(size_t)db.items[(size_t)st.item].staff].gear.group;
     std::vector<int> picked, kept;
-    picked = art.resolveEffects(st.weapon, group, fighter_[st.actor].type);
+    picked = art.resolveEffects(st.weapon, group, fighter_[st.actor].type, st.staff ? st.item : -1);
     std::vector<EffectTimes> times;
     for (int e : picked) {
       const BattleEffect& be = art.effects[(size_t)e];
@@ -170,7 +190,7 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
       t.sounds = be.sounds;
       t.flash = be.flash;
       t.shake = be.shake;
-      t.name = !be.id.empty() ? be.id : be.weapon >= 0 ? db.weapons[(size_t)be.weapon].id : be.group;
+      t.name = !be.id.empty() ? be.id : be.weapon >= 0 ? db.weapons[(size_t)be.weapon].id : be.item >= 0 ? db.items[(size_t)be.item].id : be.group;
       times.push_back(t);
     }
     effectsOfStrike_.push_back(kept);
@@ -198,9 +218,15 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   flash_ = -10;
   skipped_ = false;
   active_ = true;
-  OTE_INFO("battle scene: start %s (Lv %d) vs %s (Lv %d), %s, %d strike(s)", fighter_[0].name.c_str(), fighter_[0].level,
+  std::string staffNote;  // a staff use: ", staff Heal Staff on Gorm" ends the start line
+  if (script_.staff()) {
+    const int item = script_.strikes[0].item;
+    staffNote = ", staff " + (item >= 0 && (size_t)item < db.items.size() ? db.items[(size_t)item].name : std::string("?")) + " on " +
+                fighter_[1 - script_.strikes[0].actor].name;
+  }
+  OTE_INFO("battle scene: start %s (Lv %d) vs %s (Lv %d), %s, %d strike(s)%s", fighter_[0].name.c_str(), fighter_[0].level,
            fighter_[1].name.c_str(), fighter_[1].level,
-           script_.ranged() ? ("ranged, " + intStr(script_.distance) + " squares").c_str() : "melee", (int)script_.strikes.size());
+           script_.ranged() ? ("ranged, " + intStr(script_.distance) + " squares").c_str() : "melee", (int)script_.strikes.size(), staffNote.c_str());
   // Only a game that uses the newer picks (platforms, a map's table, "attacker") says which picture it chose: every other game logs what it always did.
   const bool pickLog = db.battleBackgroundFromAttacker || !art.platforms.empty() || !mapDef.bgByTerrain.empty() || mapDef.bgDefault >= 0;
   if (db.battleSceneSides != 0) OTE_INFO("battle scene: left %s, right %s", fighter_[0].name.c_str(), fighter_[1].name.c_str());
@@ -267,6 +293,19 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
       addFloat(beat.text, beat.side, kTag, 1.3, true);
       break;
     case BeatKind::StrikeStart:
+      if (st && st->staff) {  // the staff's own sound (as on the map: its use sound, else heal when it heals, else itemUse)
+        if (audio) {
+          const ItemDef& it = b.db->items[(size_t)st->item];
+          CueCtx c, plain;
+          c.item = st->item;
+          c.unitType = who.type;
+          plain.unitType = who.type;
+          const bool own = st->item >= 0 && (size_t)st->item < audio->data().items.size() && audio->data().items[(size_t)st->item].sound[(int)Cue::ItemUse] != kNone;
+          const bool heals = it.staff >= 0 && b.db->staves[(size_t)it.staff].has(StaffEffect::Kind::Heal);
+          if (own || !heals || !audio->defines(Cue::Heal, plain)) audio->cue(Cue::ItemUse, c);
+        }
+        break;
+      }
       OTE_INFO("battle scene: strike %s -> %s%s%s", who.name.c_str(), foe.name.c_str(), st && st->counter ? " (counter)" : "",
                st && st->crit ? " (crit)" : "");
       break;
@@ -293,6 +332,28 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
       if (audio) audio->cue(Cue::Miss, weaponCtx(fighter_[striker].type));
       break;
     }
+    case BeatKind::StaffHeal:  // who = the target
+      OTE_INFO("battle scene: staff heal %s +%d", who.name.c_str(), beat.value);
+      addFloat("+" + intStr(beat.value), beat.side, kHeal, 1.0);
+      if (audio) {
+        CueCtx c;
+        c.unitType = who.type;
+        audio->cue(Cue::Heal, c);
+      }
+      break;
+    case BeatKind::StaffMiss:
+      OTE_INFO("battle scene: staff miss %s", who.name.c_str());
+      addFloat("MISS", beat.side, kMiss, 0.9);
+      if (audio) {
+        CueCtx c;
+        c.unitType = foe.type;  // (the user's)
+        if (audio->defines(Cue::Miss, c)) audio->cue(Cue::Miss, c);
+      }
+      break;
+    case BeatKind::StaffNote:
+      OTE_INFO("battle scene: staff %s %s (%s)", beat.value == 1 ? "repair" : "condition", beat.text.c_str(), who.name.c_str());
+      addFloat(beat.text, beat.side, kTag, 1.3, true);
+      break;
     case BeatKind::Heal:
       OTE_INFO("battle scene: drain %s +%d", who.name.c_str(), beat.value);
       addFloat("+" + intStr(beat.value), beat.side, kHeal, 1.0);
