@@ -1,5 +1,5 @@
 // All wording on the Campaign screen (placeholders: the project owner reviews them).
-import type { FallenRule, DefeatRule } from '../../model/campaignTypes'
+import type { FallenRule, DefeatRule, FreeWhen } from '../../model/campaignTypes'
 import type { FreeMode } from '../../model/campaign'
 
 export const C = {
@@ -33,6 +33,11 @@ export const C = {
   freeHelp: 'Maps the player can also play on their own, apart from the story, from the game’s page.',
   freeChoices: { none: 'None', all: 'All maps', chosen: 'Only the maps I choose' } as Record<FreeMode, string>,
   freePick: 'Maps that can be played on their own',
+  freeWhen: 'When free battles can be played',
+  freeWhenChoices: { always: 'Always', storyComplete: 'After the story is complete' } as Record<FreeWhen, string>,
+  freeWhenHelp: 'After the story is complete: the game’s page hides the list until the player has played the story to its end once. Playing a map from the editor’s Play button is not affected.',
+  freeNote: 'Line shown while they are locked',
+  freeNoteHelp: 'Optional. One short greyed line in the list’s place on the game’s page, for example “Finish the story to unlock free battles.” Leave empty to show nothing.',
 
   flowTitle: 'How the story goes',
   flowHelp: 'Each chapter and where it leads. “Next chapter” and “Go to a chapter” in a scene decide the way.',

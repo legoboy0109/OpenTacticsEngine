@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { Api, PutBody, Result, PutResult } from '../../src/api/client'
 import {
   addChapter, createCampaign, deleteChapter, freeMaps, freeMode, moveChapter, removeCampaign, sceneAsMap, sceneOf, setCampaignName, setChapterMap,
-  setChapterName, setChapterNext, setDefeatRule, setFallenRule, setFreeMap, setFreeMode, withScene,
+  setChapterName, setChapterNext, setDefeatRule, setFallenRule, setFreeMap, setFreeMode, setFreeNote, setFreeWhen, freeNote, freeWhen, withScene,
 } from '../../src/model/campaign'
 import { campaignChecks } from '../../src/model/campaignChecks'
 import { flowRows } from '../../src/model/campaignFlow'
@@ -87,6 +87,50 @@ describe('rules and free battles', () => {
     expect(d.campaign!.freeBattles).toEqual([b])
     d = setFreeMode(d, 'none')
     expect(d.campaign).not.toHaveProperty('freeBattles')
+  })
+  it('free battles after the story: the object form is written only when needed, the old forms stay as they were', () => {
+    let d = setFreeMode(createCampaign(bare()), 'all')
+    expect(freeWhen(d.campaign!)).toBe('always')
+    d = setFreeWhen(d, 'storyComplete')
+    expect(d.campaign!.freeBattles).toEqual({ maps: 'all', when: 'storyComplete' })
+    d = setFreeNote(d, 'Finish the story first.')
+    expect(d.campaign!.freeBattles).toEqual({ maps: 'all', when: 'storyComplete', lockedNote: 'Finish the story first.' })
+    expect(freeNote(d.campaign!)).toBe('Finish the story first.')
+    d = setFreeMode(d, 'chosen')
+    const [a, b] = d.game!.maps.map((m) => m.id)
+    d = setFreeMap(setFreeMap(d, b, true), a, true)
+    expect(d.campaign!.freeBattles).toEqual({ maps: [a, b], when: 'storyComplete', lockedNote: 'Finish the story first.' })
+    d = setFreeNote(d, '')
+    expect(d.campaign!.freeBattles).toEqual({ maps: [a, b], when: 'storyComplete' })
+    d = setFreeWhen(d, 'always') // nothing left that needs the object: back to the plain list
+    expect(d.campaign!.freeBattles).toEqual([a, b])
+    d = setFreeMode(setFreeWhen(d, 'storyComplete'), 'none')
+    expect(d.campaign!.freeBattles).toEqual({ maps: 'none', when: 'storyComplete' })
+    // An object loaded as it is and not touched is not rewritten; a key the editor does not know survives edits.
+    const raw = { ...bare(), campaign: { chapters: [{ id: 'a', map: a }], freeBattles: { maps: 'all' as const, when: 'always' as const, future: 1 } } } as ProjectDoc
+    expect(setFreeWhen(raw, 'always')).toBe(raw)
+    expect(setFreeMode(raw, 'chosen').campaign!.freeBattles).toEqual({ maps: [], future: 1 })
+    // The old forms, edited without touching "when", keep their old shape.
+    const plain = setFreeMap(setFreeMode(createCampaign(bare()), 'chosen'), a, true)
+    expect(plain.campaign!.freeBattles).toEqual([a])
+  })
+  it('free battles checks: the object form is checked, a hint when nothing can unlock or the note is unused', () => {
+    const base = setFreeWhen(setFreeMode(createCampaign(bare()), 'all'), 'storyComplete')
+    expect(campaignChecks(base)).toEqual([])
+    const texts = (c: ProjectDoc) => campaignChecks(c).map((x) => x.level + ': ' + x.text).join(' | ')
+    const withFree = (f: unknown) => ({ ...base, campaign: { ...base.campaign!, freeBattles: f } }) as ProjectDoc
+    expect(texts(withFree({ when: 'storyComplete' }))).toContain('error: Free battles: the free battles need “maps”')
+    expect(texts(withFree({ maps: 'all', when: 'later' }))).toContain('“when” must be')
+    expect(texts(withFree({ maps: 'all', lockedNote: 3 }))).toContain('the note must be text')
+    expect(texts(withFree({ maps: [], when: 'storyComplete' }))).toContain('hint: Free battles: the free battles unlock after the story, but no map is chosen')
+    expect(texts(withFree({ maps: 'all', lockedNote: 'x' }))).toContain('hint: Free battles: the note is never shown')
+  })
+  it('a map that is deleted leaves the free battles of the object form too', () => {
+    let d = setFreeMode(createCampaign(bare()), 'chosen')
+    const [a, b] = d.game!.maps.map((m) => m.id)
+    d = setFreeWhen(setFreeMap(setFreeMap(d, a, true), b, true), 'storyComplete')
+    const after = reconcileCampaign(d, deleteMap(d, b))
+    expect(after.campaign!.freeBattles).toEqual({ maps: [a], when: 'storyComplete' })
   })
   it('the name may be emptied (no key)', () => {
     const d = setCampaignName(createCampaign(bare()), '')

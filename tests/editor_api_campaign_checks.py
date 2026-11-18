@@ -81,6 +81,30 @@ def run_campaign_checks(api, tmp, games, templates, check, get_project, put_proj
     st, d = get_project(api, pid)
     check("campaign: the refused campaign is saved as sent", d["campaign"] == bad)
 
+    # "freeBattles" object form (docs/EVENTS.md "Campaign"): kept as sent, accepted by the loader; its mistakes are reported
+    def free_problem(value):
+        c = {"name": "Free", "freeBattles": value, "chapters": [{"id": "ch1", "map": first_map}]}
+        s, r = put_project(api, pid, d, d["revision"], campaign=c)
+        return s, [p["message"] for p in r["problems"] if p["file"] == "data/campaign.json"], c
+    st, d = get_project(api, pid)
+    s, msgs, c = free_problem({"maps": "all", "when": "storyComplete", "lockedNote": "Finish the story first."})
+    check("campaign: the freeBattles object form loads without a problem", s == 200 and msgs == [], msgs)
+    st, d2 = get_project(api, pid)
+    check("campaign: the freeBattles object form is stored as sent", d2["campaign"] == c, d2["campaign"])
+    d = d2
+    s, msgs, _ = free_problem({"maps": [first_map], "when": "always"})
+    check("campaign: freeBattles with a list of maps and when always loads", s == 200 and msgs == [], msgs)
+    st, d = get_project(api, pid)
+    s, msgs, _ = free_problem({"maps": "all", "when": "later"})
+    check("campaign: a bad freeBattles \"when\" is reported", any("\"when\" must be" in m for m in msgs), msgs)
+    st, d = get_project(api, pid)
+    s, msgs, _ = free_problem({"when": "storyComplete"})
+    check("campaign: freeBattles without \"maps\" is reported", any("needs \"maps\"" in m for m in msgs), msgs)
+    st, d = get_project(api, pid)
+    s, msgs, _ = free_problem({"maps": ["nope"], "when": "storyComplete"})
+    check("campaign: freeBattles object with an unknown map is reported", any("unknown map" in m for m in msgs), msgs)
+    st, d = get_project(api, pid)
+
     # absent / null leave the file byte-identical
     before = raw()
     st, r1 = put_project(api, pid, d, d["revision"])

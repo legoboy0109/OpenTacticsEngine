@@ -73,13 +73,15 @@ export function walkCampaign(c: Campaign, w: Walk): Campaign {
     return next
   })
   let out: Campaign = changed ? { ...c, chapters } : c
-  if (Array.isArray(c.freeBattles)) {
-    const kept = c.freeBattles.filter((id) => {
+  const fb = c.freeBattles
+  const list = Array.isArray(fb) ? fb : fb && typeof fb === 'object' && Array.isArray(fb.maps) ? fb.maps : null
+  if (list) {
+    const kept = list.filter((id) => {
       const r = typeof id === 'string' ? w.ref({ kind: 'map', id }, 'the free battles') : id
       if (r === DROP) w.dropped?.({ what: 'freeBattle', text: id, where: 'the free battles' })
       return r !== DROP
     })
-    if (kept.length !== c.freeBattles.length) out = { ...out, freeBattles: kept }
+    if (kept.length !== list.length) out = { ...out, freeBattles: Array.isArray(fb) ? kept : { ...(fb as object), maps: kept } }
   }
   return out
 }

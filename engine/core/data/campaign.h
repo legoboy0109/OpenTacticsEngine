@@ -84,6 +84,10 @@ struct CampaignDef {
   bool endOnDefeat = false;   // rules.onDefeat: "retry" (false) or "end"
   FreeBattles freeBattles = FreeBattles::None;
   std::vector<std::string> freeMaps;  // map ids, FreeBattles::List
+  // Object form of "freeBattles" (docs/EVENTS.md "Campaign"): the game page lists the free battles only once the player has
+  // completed the story. Only the game page looks at this; freeBattleAllowed() and --map / the editor's Play do not.
+  bool freeAfterStory = false;
+  std::string lockedNote;  // greyed line the game page shows in place of the list while it is locked ("" = nothing)
   std::vector<ChapterDef> chapters;   // never empty
   // All wording (dialogue, speaker names, portrait ids) lives here; commands carry indices, as
   // in StoryData, and the wording stays out of the save hash.

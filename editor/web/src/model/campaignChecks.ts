@@ -4,6 +4,7 @@
 // The wording is plain; the loader's own message still shows in the Problems list after a save.
 import { sceneProblems } from './sceneChecks'
 import { unreachedChapters } from './campaignFlow'
+import { freeBattleChecks } from './campaignFree'
 import { allSideIds, definedStoryIds } from './campaignRoster'
 import { chapterName, type Campaign, type Chapter } from './campaignTypes'
 import { SCENE_TITLE, walkCampaign } from './campaignWalk'
@@ -170,6 +171,7 @@ export function campaignChecks(doc: ProjectDoc): CampaignCheck[] {
     partySeen.add(p.id)
   })
   for (const text of partyHints(doc)) say('hint', 'general', '', text)
+  for (const f of freeBattleChecks(c)) say(f.level, 'general', 'free battles', f.text)
 
   // Hints: a chapter no chapter leads to (the first one is where the story starts).
   for (const id of unreachedChapters(c)) {
