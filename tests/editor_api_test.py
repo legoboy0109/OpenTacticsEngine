@@ -43,6 +43,7 @@ from editor_api_conditions_checks import run_conditions_checks
 from editor_api_skills_checks import run_skills_checks
 from editor_api_srpg_checks import run_srpg_checks
 from editor_api_doors_checks import run_doors_checks
+from editor_api_battle_effects_checks import run_battle_effects_checks
 from editor_api_mapweapon_checks import run_mapweapon_checks
 from editor_api_fidelity2_checks import run_fidelity2_checks
 from editor_api_gaps_checks import run_gaps_checks
@@ -193,6 +194,7 @@ def main():
         run_staves_checks(api, tmp, games, templates, check, get_project, put_project)
         run_conditions_checks(api, tmp, games, templates, check, get_project, put_project)
         run_doors_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_battle_effects_checks(api, tmp, games, templates, check, get_project, put_project)
         run_mapweapon_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity2_checks(api, tmp, games, templates, check, get_project, put_project)
         run_gaps_checks(api, tmp, games, templates, check, get_project, put_project)

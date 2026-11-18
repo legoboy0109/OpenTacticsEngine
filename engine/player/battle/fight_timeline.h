@@ -2,6 +2,7 @@
 // become one timeline of poses, beats, hit-point changes and effects. Pure: no renderer, no Battle. The scene plays it
 // and tests read it.
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,16 @@ struct EffectTimes {
   bool travel = false;
   int travelMs = 250;
   int total = 0;
+  // The newer keys (docs/BATTLE_SCENE.md "Effects"); all off = the effect plays exactly as it always did.
+  int hitAtMs = 0;        // starts this long before the hit lands (not for travel)
+  bool striker = false;   // drawn on the striker, not the target
+  bool returns = false;   // travel: flies back after arriving
+  int lingerMs = 0;       // travel: stays at the target this long after arriving
+  bool extended = false;  // some newer key is used: the effect logs its start
+  std::string name;       // for the log lines
+  std::vector<std::pair<int, std::string>> sounds;  // ms after the effect starts, sound id
+  std::vector<FxFlash> flash;
+  std::vector<FxShake> shake;
 };
 
 // Fallback motion times (ms), shared by the timeline and the drawing.
@@ -46,7 +57,9 @@ struct FightPose {
   int strike = -1;
 };
 
-enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound };  // Sound: an animation's own sound (text = its id)
+enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart };
+// Sound: an animation's own sound (text = its id). FxSound: an effect's sound (text = its id, label = the effect's name). FxStart: an effect
+// that uses the newer keys begins (label = its name).
 
 struct FightBeat {
   double t = 0;
@@ -55,7 +68,8 @@ struct FightBeat {
   int side = 0;        // whose beat (the one struck for Hit / Miss / Defeated, the striker for StrikeStart)
   int value = 0;       // damage for Hit, hit points for Heal / Hurt
   bool crit = false;   // Hit
-  std::string text;    // Tag / Broke
+  std::string text;    // Tag / Broke / Sound / FxSound
+  std::string label = std::string();  // FxSound / FxStart: the effect's name
 };
 
 struct HpSegment {
@@ -65,11 +79,22 @@ struct HpSegment {
 };
 
 struct FightFx {
-  double t0 = 0, dur = 0;
+  double t0 = 0, dur = 0;  // dur: the whole time it is drawn (a returning projectile: out, linger, back)
   int strike = -1;
+  int slot = 0;            // which of the strike's effects (the position in its list)
   bool travel = false;
   int travelMs = 0;
-  int fromSide = 0, toSide = 1;
+  bool returns = false;
+  int lingerMs = 0;
+  int fromSide = 0, toSide = 1;  // a striker effect has toSide == fromSide
+};
+
+// A flash of colour over the scene / a shake of the stage, from `t0` for `dur` seconds.
+struct FightPulse {
+  double t0 = 0, dur = 0;
+  uint32_t rgb = 0xffffff;  // flash
+  int strength = 0;         // shake: stage pixels before scaling
+  int strike = -1;
 };
 
 struct FightTimeline {
@@ -78,6 +103,7 @@ struct FightTimeline {
   std::vector<FightBeat> beats;      // in time order
   std::vector<HpSegment> hp;
   std::vector<FightFx> fx;
+  std::vector<FightPulse> flashes, shakes;  // an effect's flash and shake lists
 
   // The pose of `side` at `t`: the last one begun (its progress is t - start; once over, a defeated fighter stays down and
   // the others stand). Null = standing.
@@ -86,7 +112,9 @@ struct FightTimeline {
   int hpAt(int side, double t, int startHp) const;
 };
 
-// `weaponFx(weapon)` says what the weapon's effect needs (EffectTimes::has false = none).
+// `effectsByStrike[i]` lists the effects of strike i in the order they start (empty = none; docs/BATTLE_SCENE.md "Timing of effects").
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike);
+// At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 
 }  // namespace ote

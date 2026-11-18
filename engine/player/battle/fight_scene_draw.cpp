@@ -121,8 +121,9 @@ void FightScene::drawBackground(Renderer& r, const Geo& g) const {
     // Whole-number enlargement that covers the screen, centred (the overhang is off the screen).
     const int k = std::max(1, (int)std::ceil(std::max(g.W / (double)sh.cellW, g.H / (double)sh.cellH)));
     const int dw = sh.cellW * k, dh = sh.cellH * k;
-    r.drawTexture(env_.sprites->texture(bg.sheet), bg.cell.col * sh.cellW, bg.cell.row * sh.cellH, sh.cellW, sh.cellH, (g.W - dw) / 2,
-                  (g.H - dh) / 2, dw, dh);
+    if (g.shakeX || g.shakeY) r.fillRect(0, 0, g.W, g.H, Color(10, 13, 28));
+    r.drawTexture(env_.sprites->texture(bg.sheet), bg.cell.col * sh.cellW, bg.cell.row * sh.cellH, sh.cellW, sh.cellH, (g.W - dw) / 2 + g.shakeX,
+                  (g.H - dh) / 2 + g.shakeY, dw, dh);
     return;
   }
   // Generated: a sky, and ground in the colour of the terrain the struck fighter stands on.
@@ -276,18 +277,47 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
   }
 }
 
-void FightScene::drawEffects(Renderer& r, const Geo& g) const {
+// An effect that covers the whole stage (docs/BATTLE_SCENE.md "Effect layers"): with a fixed stage at the stage's origin and scale, else
+// enlarged by the whole number that covers the screen and centred (like a backdrop). Turned round only with "mirror": true.
+void FightScene::drawScreenEffect(Renderer& r, const Geo& g, const BattleEffect& be, const FightFx& fx) const {
+  const Database& db = *env_.battle->db;
+  const BattleAnim& an = be.anim;
+  const int frame = std::min(an.frameAt((int)((t_ - fx.t0) * 1000.0)), (int)an.frames.size() - 1);
+  const int sheetIdx = an.sheetOfFrame(frame);
+  const SheetDef& sheet = db.graphics.sheets[(size_t)sheetIdx];
+  const SpriteCell cell = an.frames[(size_t)frame];
+  const bool mirror = be.mirror && fx.fromSide == 1;
+  const TextureId tex = mirror ? env_.sprites->mirrored(sheetIdx) : env_.sprites->texture(sheetIdx);
+  if (!tex) return;
+  const int sx = mirror ? (sheet.cols - 1 - cell.col) * sheet.cellW : cell.col * sheet.cellW;
+  int k, x, y;
+  if (g.stage) {
+    k = g.sg.scale;
+    x = g.sg.x;
+    y = g.sg.y;
+  } else {
+    k = std::max(1, (int)std::ceil(std::max(g.W / (double)sheet.cellW, g.H / (double)sheet.cellH)));
+    x = (g.W - sheet.cellW * k) / 2 + g.shakeX;
+    y = (g.H - sheet.cellH * k) / 2 + g.shakeY;
+  }
+  r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, x, y, sheet.cellW * k, sheet.cellH * k);
+}
+
+void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
   const Database& db = *env_.battle->db;
   const BattleArt& art = db.graphics.battle;
   for (const FightFx& fx : tl_.fx) {
     if (t_ < fx.t0 || t_ > fx.t0 + fx.dur + 0.001) continue;
-    const int e = effectOfStrike_[(size_t)fx.strike];
-    if (e < 0) continue;
-    const BattleEffect& be = art.effects[(size_t)e];
+    if ((size_t)fx.strike >= effectsOfStrike_.size() || (size_t)fx.slot >= effectsOfStrike_[(size_t)fx.strike].size()) continue;
+    const BattleEffect& be = art.effects[(size_t)effectsOfStrike_[(size_t)fx.strike][(size_t)fx.slot]];
+    if (be.layer != layer) continue;
+    if (layer == FxLayer::Screen) {
+      drawScreenEffect(r, g, be, fx);
+      continue;
+    }
     const BattleAnim& an = be.anim;
-    const SheetDef& sheet = db.graphics.sheets[(size_t)an.sheet];
     const int s = g.stage ? g.sg.scale : g.scale[fx.fromSide];  // (a fixed stage: one scale for everything)
-    const double p = fx.dur > 0 ? std::min(1.0, (t_ - fx.t0) / fx.dur) : 1;
+    const double elapsedMs = (t_ - fx.t0) * 1000.0;
     auto bodyPoint = [&](int side, double& px, double& py) {
       px = g.footX[side];
       py = g.stage ? g.footY[side] : g.footY[side] - g.frameH[side] * g.scale[side] * 0.5;  // a fixed stage: the foot point itself, the effect's anchor lifts it
@@ -296,20 +326,67 @@ void FightScene::drawEffects(Renderer& r, const Geo& g) const {
     bodyPoint(fx.fromSide, ax, ay);
     bodyPoint(fx.toSide, bx, by);
     double cx = bx, cy = by;
+    bool back = false;  // a returning projectile on its way home turns round
     if (fx.travel) {
+      // Out in travelMs, then (lingerMs) at the target, then (returns) back in travelMs.
+      double p = std::min(1.0, elapsedMs / std::max(1, fx.travelMs));
+      const double backStart = fx.travelMs + fx.lingerMs;
+      if (fx.returns && elapsedMs > backStart) {
+        p = std::max(0.0, 1.0 - (elapsedMs - backStart) / std::max(1, fx.travelMs));
+        back = true;
+      }
       cx = ax + (bx - ax) * p;
       cy = ay + (by - ay) * p;
     }
-    const int frame = an.frameAt((int)((t_ - fx.t0) * 1000.0));
-    const SpriteCell cell = an.frames[(size_t)std::min(frame, (int)an.frames.size() - 1)];
-    const bool mirror = fx.fromSide == 1;  // the art flies / faces right
-    const TextureId tex = mirror ? env_.sprites->mirrored(an.sheet) : env_.sprites->texture(an.sheet);
+    const int frame = std::min(an.frameAt((int)elapsedMs), (int)an.frames.size() - 1);
+    const int sheetIdx = an.sheetOfFrame(frame);
+    const SheetDef& sheet = db.graphics.sheets[(size_t)sheetIdx];
+    const SpriteCell cell = an.frames[(size_t)frame];
+    const bool mirror = (fx.fromSide == 1) != back;  // the art flies / faces right
+    const TextureId tex = mirror ? env_.sprites->mirrored(sheetIdx) : env_.sprites->texture(sheetIdx);
     if (!tex) continue;
     const int sx = mirror ? (sheet.cols - 1 - cell.col) * sheet.cellW : cell.col * sheet.cellW;
     int anchorX = be.anchorX >= 0 ? be.anchorX : sheet.cellW / 2, anchorY = be.anchorY >= 0 ? be.anchorY : sheet.cellH / 2;
     if (mirror) anchorX = sheet.cellW - anchorX;
     r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, (int)std::lround(cx) - anchorX * s, (int)std::lround(cy) - anchorY * s,
                   sheet.cellW * s, sheet.cellH * s);
+  }
+}
+
+// The effects' shakes (docs/BATTLE_SCENE.md "Flash and shake"), done like a fighter's hit shake: back and forth, dying away. The stage moves,
+// the boxes and the hint line do not. Strength is in stage pixels (a fixed stage) or screen pixels, so it is multiplied by the stage's scale.
+void FightScene::applyShake(Geo& g) const {
+  double dx = 0, dy = 0;
+  for (const FightPulse& sh : tl_.shakes) {
+    if (t_ < sh.t0 || t_ >= sh.t0 + sh.dur) continue;
+    const double p = (t_ - sh.t0) / sh.dur;
+    const double amp = sh.strength * (g.stage ? g.sg.scale : 1) * (1 - p);
+    dx += (((int)(p * 18)) % 2 ? 1 : -1) * amp;
+    dy += (((int)(p * 11)) % 2 ? 1 : -1) * amp * 0.5;
+  }
+  g.shakeX = (int)std::lround(dx);
+  g.shakeY = (int)std::lround(dy);
+  if (!g.shakeX && !g.shakeY) return;
+  for (int s = 0; s < 2; ++s) {
+    g.footX[s] += g.shakeX;
+    g.footY[s] += g.shakeY;
+    g.sg.feet[s][0] += g.shakeX;
+    g.sg.feet[s][1] += g.shakeY;
+    g.sg.platform[s][0] += g.shakeX;
+    g.sg.platform[s][1] += g.shakeY;
+  }
+  g.groundY += g.shakeY;
+  g.sg.x += g.shakeX;
+  g.sg.y += g.shakeY;
+}
+
+// A critical hit flashes white for a moment; an effect's flashes are the same thing in its own colour and time.
+void FightScene::drawFlashes(Renderer& r, const Geo& g) const {
+  if (t_ - flash_ < 0.12) r.fillRect(0, 0, g.W, g.H, Color(255, 255, 255, (uint8_t)(110 * (1 - (t_ - flash_) / 0.12))));  // a critical hit
+  for (const FightPulse& fl : tl_.flashes) {
+    if (t_ < fl.t0 || t_ >= fl.t0 + fl.dur) continue;
+    const double k = (t_ - fl.t0) / fl.dur;
+    r.fillRect(0, 0, g.W, g.H, Color((uint8_t)(fl.rgb >> 16), (uint8_t)(fl.rgb >> 8), (uint8_t)fl.rgb, clamp8(180 * (1 - k))));
   }
 }
 
@@ -378,17 +455,20 @@ void FightScene::drawRange(Renderer& r, const Geo& g) const {
 
 void FightScene::draw(Renderer& r) const {
   if (!active_) return;
-  const Geo g = geometry(r);
+  Geo g = geometry(r);
+  applyShake(g);
   drawBackground(r, g);
+  drawEffects(r, g, FxLayer::Screen);
   if (script_.ranged()) drawRange(r, g);
   drawPlatform(r, g, 0);
   drawPlatform(r, g, 1);
+  drawEffects(r, g, FxLayer::Behind);
   // The one who is striking stands in front.
   int order[2] = {0, 1};
   const FightPose* p0 = tl_.poseAt(0, t_);
   if (p0 && (p0->anim == BaAttack || p0->anim == BaCrit || p0->anim == BaRanged || p0->anim == BaCast || p0->anim == BaCritRanged || p0->anim == BaMiss)) std::swap(order[0], order[1]);
   for (int i = 0; i < 2; ++i) drawFighter(r, g, order[i]);
-  drawEffects(r, g);
+  drawEffects(r, g, FxLayer::Front);
   drawFloats(r, g);
   // An opaque band behind the boxes, so the background picture (clouds) never runs into them.
   // (a fixed stage may run under the boxes: they are drawn over the picture, which stays visible behind them)
@@ -399,7 +479,7 @@ void FightScene::draw(Renderer& r) const {
   drawBox(r, g, 0);
   drawBox(r, g, 1);
   drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));
-  if (t_ - flash_ < 0.12) r.fillRect(0, 0, g.W, g.H, Color(255, 255, 255, (uint8_t)(110 * (1 - (t_ - flash_) / 0.12))));  // a critical hit
+  drawFlashes(r, g);
   double fade = 0;
   if (t_ < kFade) fade = 1 - t_ / kFade;
   else if (t_ > tl_.total - kFade) fade = (t_ - (tl_.total - kFade)) / kFade;

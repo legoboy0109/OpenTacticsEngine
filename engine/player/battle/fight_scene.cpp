@@ -143,24 +143,41 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
     }
   }
   // Effects per strike (a spell or an arrow for the weapon in use).
-  effectOfStrike_.clear();
-  std::vector<EffectTimes> fx;
+  // (docs/BATTLE_SCENE.md "Several effects, by unit type": the strike's list, picked by the weapon and the striker's unit type.)
+  effectsOfStrike_.clear();
+  std::vector<std::vector<EffectTimes>> fx;
   for (const FightStrike& st : script_.strikes) {
     const std::string group = st.weapon >= 0 && (size_t)st.weapon < db.weapons.size() ? db.weapons[(size_t)st.weapon].group : std::string();
-    int e = art.resolveEffect(st.weapon, group);
-    if (e >= 0 && (!env.sprites || env.sprites->texture(art.effects[(size_t)e].anim.sheet) == 0)) e = -1;
-    effectOfStrike_.push_back(e);
-    EffectTimes t;
-    if (e >= 0) {
+    std::vector<int> picked, kept;
+    picked = art.resolveEffects(st.weapon, group, fighter_[st.actor].type);
+    std::vector<EffectTimes> times;
+    for (int e : picked) {
+      const BattleEffect& be = art.effects[(size_t)e];
+      bool ok = env.sprites != nullptr;  // an effect whose pictures did not load is as good as none
+      for (size_t f = 0; ok && f < be.anim.frames.size(); ++f) ok = env.sprites->texture(be.anim.sheetOfFrame((int)f)) != 0;
+      if (!ok) continue;
+      kept.push_back(e);
+      EffectTimes t;
       t.has = true;
-      t.travel = art.effects[(size_t)e].travel;
-      t.travelMs = art.effects[(size_t)e].travelMs;
-      t.total = art.effects[(size_t)e].anim.totalMs();
+      t.travel = be.travel;
+      t.travelMs = be.travelMs;
+      t.total = be.anim.totalMs();
+      t.hitAtMs = be.hitAtMs;
+      t.striker = be.atStriker;
+      t.returns = be.returns;
+      t.lingerMs = be.lingerMs;
+      t.extended = be.extended;
+      t.sounds = be.sounds;
+      t.flash = be.flash;
+      t.shake = be.shake;
+      t.name = !be.id.empty() ? be.id : be.weapon >= 0 ? db.weapons[(size_t)be.weapon].id : be.group;
+      times.push_back(t);
     }
-    fx.push_back(t);
+    effectsOfStrike_.push_back(kept);
+    fx.push_back(times);
   }
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
-  tl_ = buildTimeline(script_, times, fx);
+  tl_ = buildTimelineList(script_, times, fx);
 
   // Background and platform (docs/BATTLE_SCENE.md "Which background and platform"): by the terrain under the struck fighter, or under the
   // attacker with game.json "battleBackgroundFrom": "attacker"; the map's own table first, then the game's.
@@ -237,6 +254,13 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
     case BeatKind::Sound:  // an animation's own sound at its frame (docs/BATTLE_SCENE.md "Sounds")
       OTE_INFO("battle scene: sound %s (%s)", beat.text.c_str(), who.name.c_str());
       if (audio) audio->sound(beat.text);
+      break;
+    case BeatKind::FxSound:  // an effect's own sound, a set time after the effect starts (docs/BATTLE_SCENE.md "Effect sounds")
+      OTE_INFO("battle scene: sound %s (effect %s)", beat.text.c_str(), beat.label.c_str());
+      if (audio) audio->sound(beat.text);
+      break;
+    case BeatKind::FxStart:
+      OTE_INFO("battle scene: effect %s start", beat.label.c_str());
       break;
     case BeatKind::Tag:
       OTE_INFO("battle scene: skill %s (%s)", beat.text.c_str(), who.name.c_str());

@@ -122,6 +122,8 @@ Pure function: `pickBattlePlatform`. Editor: Art > Platforms; Terrain > "Weather
   - standing: `standRanged` while the fight is ranged (falls back to `stand`), else `stand`.
 - **Effects**: per weapon (`"weapon": id`) or weapon group (`"group": id`); `mode` `"target"` (appears on the foe) or `"travel"`
   (flies from the striker; the hit lands when it arrives, `travelMs`). Drawn mirrored when the striker is on the right. Optional `anchor`.
+  Everything newer (sounds, a lead-in before the hit, layers, flash and shake, a charge on the striker, lists, by unit type, a returning
+  shot) is in "Effects" below; an effect with none of those keys plays exactly as before.
 - **Which set a fighter uses** (`assign`): every rule that fits the fighter is a candidate and the most specific wins. A rule may name
   `type` (unit type), `character`, `group` (the group of the weapon the fighter struck with), `weapon` (that very weapon's id; a rule
   names a weapon **or** a group, not both) and `side` (the fighter's map side id). From most to least specific:
@@ -150,6 +152,90 @@ Pure function: `pickBattlePlatform`. Editor: Art > Platforms; Terrain > "Weather
   set / unit type / character / weapon / weapon group / terrain / background, a frame outside the sheet, more than 512 frames, `ms` count
   not matching frames, `hit` / `spawn` beyond the last frame, an anchor outside the frame, a side's sheet with another layout or too small
   for the frames, a rule with nobody named, a rule naming a weapon and a group, a duplicate rule, a sheet image above 2048 x 2048.
+
+## Effects
+
+An effect is a picture sequence drawn over a fight for the weapon (or weapon group) the striker uses. The first keys are in "Data" above
+(`weapon` / `group`, `sheet`, `frames`, `ms`, `mode`, `travelMs`, `anchor`). Everything below is optional; **data without the newer keys loads and
+plays exactly as it did, and logs no new lines.** Presentation only: no save, hash or `ote-sim` result changes.
+
+```jsonc
+"effects": [
+  { "id": "charge", "sheet": "fx", "frames": [[0,0],[1,0,"fx2"],[2,0]], "ms": 80, "at": "striker", "hitAtMs": 300,
+    "sounds": { "0": "hum", "300": "zap" }, "flash": [{ "atMs": 300, "ms": 80, "color": "#ffffff" }], "shake": [{ "atMs": 300, "ms": 200, "strength": 2 }] },
+  { "id": "wash", "sheet": "sky", "frames": [[0,0]], "layer": "screen" },                      // a library effect: an id and pictures, no weapon
+  { "id": "bolt", "sheet": "fx", "frames": [[3,0]], "mode": "travel", "travelMs": 300, "returns": true, "lingerMs": 120 },
+  { "weapon": "fire_tome", "effects": ["charge", "bolt"], "byType": { "knight": "wash", "mage": [] } }   // an assignment: no pictures of its own
+]
+```
+
+**Effect sounds.** `"sounds": { "<ms>": "<sound id>" }`: a sound of `data/audio.json` that plays that many milliseconds after the effect **starts**
+(for a `target` / `striker` effect with `hitAtMs`, the start is the lead-in, not the hit). Ids are checked when the game loads in the player
+(`data/graphics.json: battle effect 3: sound "x" is not in data/audio.json "sounds"`); a key that is not a whole number of milliseconds (0 to 60000) or
+an id with other characters than letters, digits, `_` and `-` is refused by the loader. Log: `battle scene: sound X (effect ID)`, where ID is the
+effect's `id`, else its weapon id, else its group. The existing animation sound lines (`sound X (Eirik)`) are unchanged. A skipped scene is silent
+(the log lines are still written).
+
+**Hit time (a lead-in).** `"hitAtMs": 233` (0 to 5000, default 0) on a `target` or `striker` effect: the effect starts that long **before the hit
+lands**, so its peak meets the damage. 0 is today: the effect starts at the hit. The strike's hit moment (the striker animation's `hit` frame) is the reference;
+the effect is started early. If the lead-in is longer than the time since the strike began (the striker's animation reaches its hit frame sooner
+than `hitAtMs`), the hit **waits**: the effect starts when the strike starts and the hit lands `hitAtMs` later. A strike that misses plays its effects
+the same way (the `miss` beat takes the place of the hit). A `travel` effect refuses `hitAtMs` (it hits when it arrives).
+
+**Layers.** `"layer"`: `"front"` (default: over the fighters, as always), `"behind"` (behind **both** fighters, in front of the backdrop, the range line
+and the platforms), `"screen"` (frames that cover the whole stage; drawn right after the backdrop, so the range line, platforms, fighters and
+`front` effects are over it). A screen effect with a fixed stage is drawn at the stage's origin at the stage's scale `k` (a frame the stage's size covers
+it exactly); without a fixed stage it is enlarged by the whole number that covers the screen and centred, like a backdrop. It is never turned round unless
+`"mirror": true` (then it is, when the striker stands on the right). A screen effect cannot `travel` and has no `at`; `mirror` is refused on other layers.
+Draw order: backdrop, screen effects, range line, platforms, behind effects, fighters (the striker in front), front effects, floating numbers, boxes, flashes, fade.
+
+**Frames from several sheets.** A sheet image is at most 2048 x 2048 (docs/GRAPHICS.md), so a long effect can come from several. In an effect (not in a
+fighter's animation) a `frames` entry may be `[column, row, "sheet id"]`: that frame is cell (column, row) of that sheet; an entry with two numbers is from the
+effect's own `"sheet"` (which is still required). All the sheets of one effect must have **one cell size** (refused otherwise, naming both). The timeline
+and the 512-frame limit are unchanged.
+
+**Flash and shake.** `"flash": [{ "atMs": 100, "ms": 80, "color": "#ffffff" }]`: at `atMs` after the effect starts the whole scene is covered by `color` (default
+`#ffffff`), starting at an alpha of about 70% and fading out over `ms` (the critical-hit flash is the same drawing, white, 110 / 255 over 120 ms).
+`"shake": [{ "atMs": 100, "ms": 200, "strength": 2 }]`: the stage (backdrop, platforms, fighters, effects, floating numbers; **not** the boxes and the hint) moves back and
+forth, dying away over `ms`, like a fighter's hit shake; `strength` (1 to 64) is in stage pixels with a fixed stage (multiplied by the scale `k`) and screen
+pixels without one. Both lists have up to 32 rows; `atMs` 0 to 60000, `ms` 10 to 5000; `atMs`, `ms` (and `strength` for a shake) are required in a row.
+Several at once add up. A skipped scene shows none.
+
+**`at`: an effect on the striker.** `"at": "target"` (default) or `"striker"` for a non-travel effect: it is put on the striker's foot point (the middle of the
+fighter, or with a fixed stage the foot point lifted by the effect's `anchor`), turned round like the striker's art. A charge-up on the caster. `hitAtMs` works
+the same as for a target effect.
+
+**Several effects per weapon.** An entry with a `weapon` or `group` may carry `"effects": "<effect id>"` or a list of up to 8 ids: effects named by `"id"` somewhere
+in the list (an entry with its own pictures: a library effect with no weapon, or another weapon's entry). The entry's own pictures (if it has any) come first, then the
+list in order. An entry without `sheet` / `frames` but with `effects` and / or `byType` only assigns. Each listed effect starts **by its own rules**:
+
+- a `target` or `striker` effect starts `hitAtMs` before the hit (0: at the hit);
+- a `travel` effect leaves at the striker animation's `spawn` frame (else its hit frame) and arrives `travelMs` later, as always;
+- the hit lands at the **latest** of: the striker animation's hit frame; every travelling effect's arrival; and the start of the strike plus the longest `hitAtMs` (so a charge
+  of `hitAtMs: 300` on a 200 ms strike makes the hit land at 300 ms, and a bolt that arrives at 350 ms makes it 350, with the charge then starting at 50 ms).
+- the list order is the order of the start of the effects that start at the same moment and of the layers inside a layer (later is drawn over earlier). A weapon that has any effect
+  makes the striker play `cast` when the set has it, as before.
+
+An entry's `"effects"` lists name only effects with pictures of their own; the listed entries' own `effects` / `byType` are not followed (no chains). Refusals: an
+unknown id (`there is no effect with the id "x"`), an id of an entry without pictures, more than 8 ids, a second entry with one `id`, an `effects` / `byType` on an entry with no weapon
+or group. The one-entry-per-weapon rule is unchanged (`a second effect for "longbow"`).
+
+**By unit type.** `"byType": { "<unit type id>": "<effect id>" | ["<effect id>", ...] }` on an entry with a weapon or group: when the **striker's** unit type is listed, those
+effects play **instead of** the entry's own pictures and its `effects` list (`[]` = no effect for that type; the striker then also plays no `cast`). Other types play the entry
+as written. The weapon's own entry wins over its group's entry as a whole (the by-type table of the group's entry is not consulted for a weapon that has its own).
+Unknown unit types and effect ids are refused.
+
+**Projectile extras (`travel` only).** `"returns": true`: after arriving, the projectile flies back to the striker in the same `travelMs`, the frames continuing, turned
+round (it flies the other way); the hit still lands on arrival. `"lingerMs": N` (0 to 5000): it stays at the target that long after arriving (before flying back, if both).
+The effect is drawn for `travelMs + lingerMs (+ travelMs)` and the strike does not end before the projectile is home (the next strike starts after it). `returns` and
+`lingerMs` are refused on an effect that does not travel.
+
+**Timing, as built.** Pure function `buildTimelineList` (`fight_timeline.*`): per strike, `t0` = the strike's start; the hit time is as above; effect `i`'s
+`FightFx` has `t0` (a travel effect: the spawn time; another: hit - `hitAtMs`), `dur`, the side it is drawn on; its sounds are beats at `t0 + ms`, its flashes and shakes pulses at
+`t0 + atMs`. An effect that uses any newer key also logs `battle scene: effect ID start` at its start (before the hit when it leads in); an effect without them logs nothing new.
+Tests: `test_battle_effects.cpp` (the loader, refusals for every key, which effects a strike gets, the audio check, the timeline for lead-ins, striker effects, lists, misses, returns, lingers, sounds, flash,
+shake), `tests/battle_effects_player_test.py` (the real player, headless: log order, `--audio-log` times, screenshots of the layers, a striker and a target effect, a returning shot, a
+flash and a shake).
 
 ## Fallback
 
@@ -238,6 +324,6 @@ has no ranged stand or whiff animation simply leaves them out.
 
 `engine/core/data/battle_art.*`, `loader_battle_art.cpp`; player: `fight_script.*` (events to strikes, pure), `fight_timeline.*`
 (clock, pure), `fight_scene*.cpp` (drawing; `fight_scene_stage.cpp` the fixed stage), `core/data/battle_stage.*` (its geometry, pure), `loader_battle_stage.cpp`, `battle_view_fight.cpp` (the view holds the run and plays it silently afterwards),
-`battle_fight.cpp`. Tests: `test_battle_art.cpp`, `test_fight_script.cpp`, `test_fight_timeline.cpp`, `test_battle_scene_settings.cpp`,
-`tests/battle_scene_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
-`battleArt.test.ts`, `battleStage.test.ts`, `battle-anims.spec.ts`, `battle-stage.spec.ts`.
+`battle_fight.cpp`. Effects: `BattleEffect` (`battle_art.h`), `readEffects` (`loader_battle_art.cpp`), `BattleArt::resolveEffects`, `buildTimelineList`, `FightScene::drawEffects` / `applyShake` / `drawFlashes`. Tests: `test_battle_art.cpp`, `test_fight_script.cpp`, `test_fight_timeline.cpp`, `test_battle_scene_settings.cpp`,
+`tests/battle_scene_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `test_battle_effects.cpp`, `tests/battle_effects_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
+`battleArt.test.ts`, `battleStage.test.ts`, `battleEffects.test.ts`, `battle-anims.spec.ts`, `battle-stage.spec.ts`, `battle-effects.spec.ts`.

@@ -81,4 +81,23 @@ int BattleArt::resolveEffect(int weapon, const std::string& group) const {
   return byGroup;
 }
 
+std::vector<int> BattleArt::resolveEffects(int weapon, const std::string& group, int type) const {
+  std::vector<int> out;
+  const int e = resolveEffect(weapon, group);
+  if (e < 0) return out;
+  const BattleEffect& entry = effects[(size_t)e];
+  for (const auto& bt : entry.byType)
+    if (bt.first == type) return bt.second;
+  if (entry.anim.any()) out.push_back(e);
+  for (int l : entry.list) out.push_back(l);
+  return out;
+}
+
+int BattleArt::findEffect(const std::string& id) const {
+  if (id.empty()) return -1;
+  for (size_t i = 0; i < effects.size(); ++i)
+    if (effects[i].id == id) return (int)i;
+  return -1;
+}
+
 }  // namespace ote

@@ -1233,6 +1233,16 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
   mirror the loader (`model/battleStage.ts`: size 16..1024, whole numbers, points inside the stage, platforms at range need platforms) and say so in words. The **Platforms**
   card also has "Add a right-hand picture" / "Add a right-hand far picture" (`right` / `farRight`, pieces of the platform's own image). Code: `screens/art/battle/StageCard.tsx`,
   `StagePreview.tsx`, `stageText.ts`, `model/battleStage.ts`. Tests: `tests/unit/battleStage.test.ts`, `tests/e2e/battle-stage.spec.ts`.
+- **Art screen**, card **Battle effects** (below "Who uses which set"): the spells and arrows of the scene (docs/BATTLE_SCENE.md "Effects"). One block per entry:
+  **Plays for** (one weapon / a weapon group / only in lists, a named effect with no weapon), the weapon or group, **Name** (optional, letters / digits / `_` / `-`; renaming
+  follows the lists that name it, deleting removes it from them), the picture (image, row, number of frames, milliseconds per frame; frames written by hand across rows or
+  images are kept and said in a note until typed over), **How it moves** (appears in place / flies to the foe) with **Flight time**, **Stays at the foe** and the switch **Flies
+  back after arriving**, **Appears on** (the foe / the fighter itself) and **Starts before the hit (ms)** for an effect that appears in place, **Drawn** (in front / behind both
+  fighters / covering the whole stage, with the switch **Turn round when the striker is on the right**), **Sounds** (rows of milliseconds and the game's sounds, the same picker as the
+  animation sounds), **Flashes** (start, length, colour) and **Shakes** (start, length, strength), **Also plays** (a list of named effects) and **By unit type** (a unit type and the effects
+  that replace this one's own for it; an empty list = none). **Add effect** starts for the first weapon that has none (else a named effect). Checks mirror the loader
+  (`model/battleEffects.ts`, also in the art screen's check list) and show under the block in red with the loader's meaning. Code: `screens/art/battle/EffectsCard.tsx`,
+  `EffectLists.tsx`, `EffectTimed.tsx`, `effectText.ts`. Tests: `tests/unit/battleEffects.test.ts`, `tests/e2e/battle-effects.spec.ts`, `tests/editor_api_battle_effects_checks.py`.
 - **Terrain screen**, card **Weather and platform**: a table with a column for rain and one for snow and a row per movement type (a number from 1 to 99;
   empty = the usual cost), and the terrain's platform. **Maps**, the map's settings tab, part **Battle scene and weather**: a table of background and a table
   of platform per terrain plus "Everything else" (a map's choices win over the game's; "The game's choice" removes the entry), and "Weather at the start"

@@ -434,10 +434,21 @@ export interface BattleSetDef extends Extra { anchor?: [number, number]; faces?:
 /** Who uses a set: a unit type, a character, a weapon group or one weapon, a side (the most specific rule wins). */
 export interface BattleAssignDef extends Extra { set: string; type?: string; character?: string; group?: string; weapon?: string; side?: string }
 export interface BattleBackgroundDef extends Extra { sheet: string; cell: CellRef }
+export interface FxFlashDef extends Extra { atMs: number; ms: number; color?: string }
+export interface FxShakeDef extends Extra { atMs: number; ms: number; strength: number }
+/** A battle scene effect (docs/BATTLE_SCENE.md "Effects"; model/battleEffects.ts). `frames` entries are [column, row] or, from another image, [column, row, image id]. */
+export interface BattleEffectDef extends Extra {
+  id?: string; weapon?: string; group?: string
+  sheet?: string; frames?: Array<CellRef | [number, number, string]>; ms?: number | number[]
+  mode?: 'target' | 'travel'; travelMs?: number; anchor?: [number, number]
+  sounds?: Record<string, string>; hitAtMs?: number; layer?: 'front' | 'behind' | 'screen'; mirror?: boolean
+  flash?: FxFlashDef[]; shake?: FxShakeDef[]; at?: 'target' | 'striker'; returns?: boolean; lingerMs?: number
+  effects?: string | string[]; byType?: Record<string, string | string[]>
+}
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
   sets?: Record<string, BattleSetDef>
-  effects?: Extra[]
+  effects?: BattleEffectDef[]
   assign?: BattleAssignDef[]
   backgrounds?: Record<string, BattleBackgroundDef>
   terrainBackground?: Record<string, string>

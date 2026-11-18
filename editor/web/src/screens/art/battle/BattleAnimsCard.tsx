@@ -13,6 +13,7 @@ import { Icon } from '../../../ui/Icon'
 import { Select } from '../../../ui/Select'
 import { AssignCard } from './AssignCard'
 import { BackgroundsCard } from './BackgroundsCard'
+import { EffectsCard } from './EffectsCard'
 import { PlatformsCard } from './PlatformsCard'
 import { StageCard } from './StageCard'
 import { SetEditor } from './SetEditor'
@@ -66,6 +67,7 @@ export function BattleAnimsCard() {
         </div>
       </Card>
       <AssignCard />
+      <EffectsCard />
       <BackgroundsCard />
       <PlatformsCard />
       <StageCard />
