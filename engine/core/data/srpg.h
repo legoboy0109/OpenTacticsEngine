@@ -97,6 +97,8 @@ struct CharacterDef {
   std::vector<QuoteLine> fallsLines, retreatsLines;  // said when the character is struck down (for good / retreating)
   // Free-form labels (docs/SRPG.md "Tags"): a character matches `unit` / `near.match` / aura `match` keys by them like its type's tags.
   std::vector<std::string> tags;
+  // "promotion": { "fromLevel": n }: the lowest level of every promotion of this character (0 = the promotion entries' own).
+  int promotionFromLevel = 0;
 };
 
 // The wording of all quotes (Battle::storyText, from kQuoteTextBase) and how many battle quotes there are.
@@ -307,6 +309,10 @@ struct PromotionDef {
   LevelAfter levelAfter = LevelAfter::Game;
   bool hasGains = false;             // false = the difference of the two types' base stats
   std::vector<int> gains;            // per stat index
+  // "fromLevelFor": { "<character id>": n }: this entry's lowest level for those characters (the ids as written, then as indices
+  // into Database::characters once the characters are loaded). Wins over CharacterDef::promotionFromLevel.
+  std::vector<std::pair<std::string, int>> fromLevelForIds;
+  std::vector<std::pair<int, int>> fromLevelFor;
 };
 
 struct PromotionRules {

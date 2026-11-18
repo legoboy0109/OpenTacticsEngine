@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { SrpgCheck } from '../../model/abilityChecks'
 import { promotionChecks } from '../../model/promotionChecks'
+import { promotionLevelChecks } from '../../model/promotionLevels'
 import { rescueChecks } from '../../model/rescueChecks'
 import type { Section } from '../../model/types'
 import { useDoc } from '../../store/context'
@@ -12,7 +13,7 @@ import { Banner } from '../../ui/Banner'
 export function SrpgChecks({ section, id, testId }: { section: Section; id?: string; testId: string }) {
   const doc = useDoc()
   const list = useMemo<SrpgCheck[]>(
-    () => [...promotionChecks(doc), ...rescueChecks(doc)].filter((c) => c.section === section && (id === undefined || c.ids?.includes(id))),
+    () => [...promotionChecks(doc), ...promotionLevelChecks(doc), ...rescueChecks(doc)].filter((c) => c.section === section && (id === undefined || c.ids?.includes(id))),
     [doc, section, id],
   )
   if (list.length === 0) return null

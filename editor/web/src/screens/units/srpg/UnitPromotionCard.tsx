@@ -1,6 +1,7 @@
 // The Promotion card of a unit type (E3 of docs/SRPG.md): rows of "becomes <unit type>, from level N, by item, on reaching the
 // level, level afterwards, stat changes". Edits `promotions` of the unit type.
 import { addPromotion, baseDifference, gameLevelAfter, maxLevelOf, movePromotion, patchPromotion, progressionOn, promotionItems, promotionPatches, promotionsOf, removePromotion, setGain, type AtLevel, type LevelAfter } from '../../../model/promotion'
+import { addLevelFor, levelForRows, setLevelFor } from '../../../model/promotionLevels'
 import type { Promotion } from '../../../model/srpgTypes'
 import type { NumMap } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
@@ -49,6 +50,7 @@ interface RowProps {
 
 function PromotionRow({ index, count, from, promo, patch, onUp, onDown, onRemove }: RowProps) {
   const doc = useDoc()
+  const edit = useEdit()
   const n = index + 1
   const targets = (doc.units ?? []).filter((u) => u.id !== from)
   const known = targets.some((u) => u.id === promo.to)
@@ -85,6 +87,21 @@ function PromotionRow({ index, count, from, promo, patch, onUp, onDown, onRemove
             onChange={(v) => patch(promotionPatches.levelAfter(v as LevelAfter | 'game'))} />
         </Field>
       </FormGrid>
+      {(doc.characters ?? []).length > 0 && (
+        <Field label={P.levelFor} help={P.levelForHelp}>
+          <div className="stack tight" data-testid={`promotion-levelfor-${n}`}>
+            {levelForRows(doc, from, index).map((r) => (
+              <div key={r.character} className="row">
+                <Select aria-label={P.levelForWho(n)} value={r.character} options={(doc.characters ?? []).filter((c) => c.id === r.character || !levelForRows(doc, from, index).some((x) => x.character === c.id)).map((c) => ({ value: c.id, label: c.name }))}
+                  onChange={(v) => { edit((d) => setLevelFor(setLevelFor(d, from, index, r.character, undefined), from, index, v, r.level)) }} />
+                <NumberInput aria-label={P.levelForLevel(n)} value={r.level} min={1} max={maxLevelOf(doc)} onChange={(v) => { if (v !== undefined) edit((d) => setLevelFor(d, from, index, r.character, v), `unit:${from}:promotion:${index}:for:${r.character}`) }} />
+                <button type="button" className="btn sm" aria-label={P.levelForRemove(n)} onClick={() => edit((d) => setLevelFor(d, from, index, r.character, undefined))}>{P.levelForRemoveText}</button>
+              </div>
+            ))}
+            <div><button type="button" className="btn sm" disabled={levelForRows(doc, from, index).length >= (doc.characters ?? []).length} onClick={() => edit((d) => addLevelFor(d, from, index))}>{P.levelForAdd}</button></div>
+          </div>
+        </Field>
+      )}
       <MultiSelect label={P.byItem} help={P.byItemHelp} emptyText={P.noItems} value={promo.items ?? []}
         options={items.map((i) => ({ value: i.id, label: i.name }))} onChange={(v) => patch(promotionPatches.items(v))} />
       <Field label={P.gains} help={hand ? P.gainsTableHelp : `${P.gainsHelp} ${P.gainsNowDiff(diffText)}`}>

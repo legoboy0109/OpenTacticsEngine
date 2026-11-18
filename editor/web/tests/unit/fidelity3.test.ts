@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { abilityChecks } from '../../src/model/abilityChecks'
 import { abilityGivers, setSpendsItem, spendsItemProblems } from '../../src/model/abilityItem'
 import { setSummon } from '../../src/model/abilities'
+import { addLevelFor, characterPromotionLevel, followCharacterInPromotions, levelForRows, promotionLevelChecks, setCharacterPromotionLevel, setLevelFor } from '../../src/model/promotionLevels'
+import { renameCharacter } from '../../src/model/characterRename'
+import { deleteCharacter } from '../../src/model/srpgRefs'
 import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
 import type { Ability } from '../../src/model/srpgTypes'
@@ -71,5 +74,48 @@ describe('summon candidates: ceiling, weight, no item, 32 of them', () => {
     expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, weight: 0 }] }))[0]).toMatch(/weight/)
     expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, weight: 1001 }] }))[0]).toMatch(/weight/)
     expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, minLevel: 5, maxLevel: 4 }] }))[0]).toMatch(/highest level/)
+  })
+})
+
+describe('a promotion level per character', () => {
+  const withPromotion = (): ProjectDoc => {
+    const d = base()
+    const [from, to] = [d.units![0].id, d.units![1].id]
+    return { ...d, characters: [{ id: 'eirik', name: 'Eirik', type: from }], units: d.units!.map((u) => (u.id === from ? { ...u, promotions: [{ to, fromLevel: 8 }] } : u)) }
+  }
+  it('sets and clears the character level; the key goes with the last value', () => {
+    const d = withPromotion()
+    const c = d.characters![0].id
+    let n = setCharacterPromotionLevel(d, c, 3)
+    expect(characterPromotionLevel(n, c)).toBe(3)
+    expect(n.characters![0].promotion).toEqual({ fromLevel: 3 })
+    n = setCharacterPromotionLevel(n, c, undefined)
+    expect('promotion' in n.characters![0]).toBe(false)
+  })
+  it('adds, sets and removes the rows of a promotion entry', () => {
+    const d = withPromotion()
+    const from = d.units![0].id
+    let n = addLevelFor(d, from, 0)
+    expect(levelForRows(n, from, 0)).toEqual([{ character: d.characters![0].id, level: 8 }])
+    n = setLevelFor(n, from, 0, d.characters![0].id, 2)
+    expect(n.units![0].promotions![0].fromLevelFor).toEqual({ [d.characters![0].id]: 2 })
+    n = setLevelFor(n, from, 0, d.characters![0].id, undefined)
+    expect('fromLevelFor' in n.units![0].promotions![0]).toBe(false)
+  })
+  it('follows a renamed character and drops a deleted one', () => {
+    const d = withPromotion()
+    const from = d.units![0].id, c = d.characters![0].id
+    const n = setLevelFor(d, from, 0, c, 2)
+    expect(levelForRows(renameCharacter(n, c, 'zz_new').doc, from, 0)).toEqual([{ character: 'zz_new', level: 2 }])
+    expect(levelForRows(deleteCharacter(n, c), from, 0)).toEqual([])
+    expect(followCharacterInPromotions(d, c, undefined)).toBe(d)
+  })
+  it('says what the loader refuses', () => {
+    const d = withPromotion()
+    const from = d.units![0].id
+    expect(promotionLevelChecks(d)).toEqual([])
+    expect(promotionLevelChecks(setCharacterPromotionLevel(d, d.characters![0].id, 99)).length).toBe(1)
+    expect(promotionLevelChecks(setLevelFor(d, from, 0, 'nobody', 2))[0].text).toMatch(/not a character/)
+    expect(promotionLevelChecks(setLevelFor(d, from, 0, d.characters![0].id, 0))[0].text).toMatch(/whole number/)
   })
 })

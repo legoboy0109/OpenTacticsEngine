@@ -19,6 +19,9 @@ struct Opts {
   std::string units;       // data/units.json list items
   std::string characters;  // data/characters.json list items ("" = no file)
   std::string weapons;     // data/weapons.json list items
+  std::string mapUnits;    // the map's "units" list items ("" = the fidelity 2 map's three units)
+  std::string mapTiles;    // the map's "tiles" rows as a JSON list body ("" = the fidelity 2 rows); the legend is the terrain ids' first letters
+  std::string legend;      // the map's "legend" object body ("" = the fidelity 2 one)
 };
 
 inline const char* kSkills =
@@ -53,6 +56,17 @@ inline std::string make(const char* name, const Opts& o = Opts()) {
         "\"growths\":{\"hp\":50},\"wields\":[\"blade\"],\"items\":[\"iron_sword\",\"wand\"],\"abilities\":[\"inspire\",\"call_pet\",\"call_high\",\"call_rand\",\"call_one\",\"call_plain\"]},"
         "{\"id\":\"brigand\",\"name\":\"Brigand\",\"moveType\":\"foot\",\"stats\":{\"hp\":20,\"atk\":5,\"def\":1,\"mov\":3},\"wields\":[\"blade\"],\"items\":[\"old_axe\"]},"
         "{\"id\":\"hound\",\"name\":\"Hound\",\"moveType\":\"foot\",\"stats\":{\"hp\":8,\"atk\":3,\"def\":1,\"mov\":4},\"wields\":[\"blade\"],\"items\":[\"old_axe\"]}] }");
+  }
+  if (!o.mapUnits.empty() || !o.mapTiles.empty()) {  // the same map with other units / tiles
+    CHECK(writeTextFile(root + "/maps/arena.json",
+                        "{ \"name\": \"Arena\", \"grid\": {\"type\":\"square\",\"width\":9,\"height\":3}, \"legend\": {" +
+                            (o.legend.empty() ? std::string("\".\":\"plain\",\"s\":\"swamp\"") : o.legend) + "},"
+                            " \"tiles\": [" + (o.mapTiles.empty() ? std::string("\".........\",\"...ss....\",\".........\"") : o.mapTiles) + "]," + o.base.mapExtra +
+                            " \"sides\": [{\"id\":\"blue\",\"controller\":\"human\"},{\"id\":\"red\",\"controller\":\"ai\"}],"
+                            " \"units\": [" + (o.mapUnits.empty() ? std::string("{\"type\":\"knight\",\"id\":\"hero\",\"side\":\"blue\",\"x\":1,\"y\":1,\"leader\":true},"
+                            "{\"type\":\"knight\",\"id\":\"pal\",\"side\":\"blue\",\"x\":0,\"y\":1},"
+                            "{\"type\":\"brigand\",\"id\":\"bandit\",\"side\":\"red\",\"x\":2,\"y\":1}") : o.mapUnits) + "]" +
+                            (o.base.events.empty() ? "" : ", \"events\": [" + o.base.events + "]") + " }"));
   }
   return root;
 }

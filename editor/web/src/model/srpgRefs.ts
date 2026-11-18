@@ -10,6 +10,7 @@ import { cleanQuotes, quoteUsageLines } from './quotes'
 import type { Usage } from './references'
 import { walkCampaign } from './campaignWalk'
 import { scrubDoc, scrubMap, scrubMaps, storyUsages } from './storyRefs'
+import { followCharacterInPromotions } from './promotionLevels'
 import { pairId, walkStory, type Ref } from './storyWalk'
 import { deletePair, pairsOf, setPairCharacter } from './supports'
 import type { Learn } from './srpgTypes'
@@ -147,6 +148,7 @@ export function cleanCharacter(doc: ProjectDoc, id: string): ProjectDoc {
     const kept = m && m.units?.some((u) => u.character === id) ? { ...m, units: m.units.filter((u) => u.character !== id) } : m
     maps[mid] = kept && scrubMap(doc, kept, [{ kind: 'unit', id }, { kind: 'character', id }])
   }
+  doc = followCharacterInPromotions({ ...doc }, id, undefined)  // its rows in a promotion's "fromLevelFor"
   const pairs = doc.supports?.pairs
   const keepPairs = pairs?.filter((p) => p.a !== id && p.b !== id)
   return { ...doc, maps, supports: doc.supports && pairs && keepPairs && keepPairs.length !== pairs.length ? { ...doc.supports, pairs: keepPairs } : doc.supports }

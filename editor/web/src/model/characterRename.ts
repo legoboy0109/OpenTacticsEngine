@@ -18,6 +18,7 @@
 import { renameBehaviourUnit } from './behaviour'
 import { walkCampaign } from './campaignWalk'
 import { renameCharacterLocks } from './locks'
+import { followCharacterInPromotions } from './promotionLevels'
 import { renameVisitUnit } from './mapPlaces'
 import { ID_RULE, idProblem, isStoryId, takenUnitIds } from './storyIds'
 import { mapCommands, walkStory, type Ref, type Walk } from './storyWalk'
@@ -144,7 +145,7 @@ export function renameCharacter(doc: ProjectDoc, from: string, to: string): { do
   next.maps = maps
   if (doc.campaign) next.campaign = walkCampaign(doc.campaign, walk)
   if (doc.supports) next.supports = { ...doc.supports, pairs: doc.supports.pairs.map((p) => renamePair(p, walk, from, to)) }
-  next = renameInGraphics(renameCharacterLocks(next, from, to), from, to)
+  next = followCharacterInPromotions(renameInGraphics(renameCharacterLocks(next, from, to), from, to), from, to)
   return { doc: next, error: null }
 }
 

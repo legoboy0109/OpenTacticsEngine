@@ -13,7 +13,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -68,6 +68,14 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
   if (!readCharacterRanks(c, db, e, where, ch)) return false;  // "ranks", "capAdjust" (docs/SRPG.md section 7)
   if (!c.stringList(e, "tags", where, ch.tags)) return false;  // docs/SRPG.md "Tags"
   if (!c.stringList(e, "wields", where, ch.wields)) return false;  // extra weapon groups, same shape as a unit type's "wields"
+  if (e.has("promotion")) {  // { "fromLevel": 1 }: the lowest level of this character's promotions (docs/SRPG.md "A promotion level per character")
+    const Json& pr = e["promotion"];
+    if (!pr.isObject() || pr.size() != 1 || !pr.has("fromLevel"))
+      return c.fail(where, "\"promotion\" must be { \"fromLevel\": 1 }");
+    if (!LoadCtx::isWhole(pr["fromLevel"]) || pr["fromLevel"].asInt() < 1 || pr["fromLevel"].asInt() > db.rules.maxLevel)
+      return c.fail(where, "\"promotion\": \"fromLevel\" must be a whole number from 1 to " + std::to_string(db.rules.maxLevel));
+    ch.promotionFromLevel = pr["fromLevel"].asInt();
+  }
   ch.hasItems = e.has("items");
   return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, ch.items);
 }

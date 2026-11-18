@@ -28,6 +28,8 @@ export interface Character extends Named {
   quotes?: CharacterQuotes
   /** The maker's labels: a character matches a tag like its unit type does (docs/SRPG.md "Tags"). */
   tags?: string[]
+  /** The lowest level of every promotion of this character (docs/SRPG.md "A promotion level per character"). */
+  promotion?: { fromLevel?: number }
 }
 
 /** How often a battle quote is said: once per map (the default), once per campaign, or every time. */
@@ -124,7 +126,7 @@ export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'conditions' |
 
 /** One entry of a unit type's `promotions` (section 2); E3 refines it. */
 export interface Promotion extends Extra {
-  to: string; fromLevel?: number; items?: string[]; atLevel?: 'off' | 'offer' | 'auto'; levelAfter?: 'reset' | 'keep'; gains?: NumMap
+  to: string; fromLevel?: number; /** Other lowest levels for named characters: { character id: level }. */ fromLevelFor?: Record<string, number>; items?: string[]; atLevel?: 'off' | 'offer' | 'auto'; levelAfter?: 'reset' | 'keep'; gains?: NumMap
 }
 /** game.json `rules.promotion` (section 2) and `rules.rescue` (section 5); E3 refines them. */
 export interface PromotionRules extends Extra { levelAfter?: 'reset' | 'keep'; /** "keep" (the default) or "replace": the old class's skills go on promotion. */ classSkills?: 'keep' | 'replace' }

@@ -328,6 +328,26 @@ kinds, postponed.
 Nothing new is saved (type, stats, level and xp are saved already; the roster carries the new type). Event
 `UnitPromoted`: a = unit, b = old type, c = new type, d = new level, data = change per stat index.
 
+### A promotion level per character
+
+The lowest level of a promotion (`fromLevel`) belongs to the promotion entry of a unit type, so every character of a class promotes at the same
+level. Two optional keys let a named character differ (every trigger uses them: the item, the offer, the automatic kind, the player's preview):
+
+```jsonc
+// data/characters.json: the lowest level of ALL of this character's promotions
+{ "id": "eirik", "type": "lord", "promotion": { "fromLevel": 1 } }
+// data/units.json, one promotion entry: other levels for named characters of that entry only
+{ "to": "captain", "fromLevel": 10, "items": ["officers_writ"], "fromLevelFor": { "eirik": 1, "mia": 8 } }
+```
+
+The most specific wins: the entry's `fromLevelFor` for the unit's character, then the character's `promotion.fromLevel`, then the entry's `fromLevel`.
+A unit without a character, or a character that says nothing, uses the entry's `fromLevel` exactly as before (nothing is saved either way). `promotion` is
+exactly `{ "fromLevel": 1..maxLevel }`; `fromLevelFor` is a non-empty object of character id to a level from 1 to `maxLevel`. Refused: any other shape, a
+level out of range, a character id that does not exist (`unknown character "x" (data/characters.json)`). Core: `CharacterDef::promotionFromLevel`,
+`PromotionDef::fromLevelFor`, `Battle::promotionFromLevel` (`battle/promotion_level.cpp`). Editor: the character page's "Promotion" card ("May promote from level"),
+a unit type's promotion row "Another level for some characters"; a renamed character is followed, a deleted one's rows go. Tests:
+`tests/test_fidelity3_promotion.cpp`.
+
 ---
 
 ## 3. Skills
