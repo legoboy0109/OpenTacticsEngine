@@ -69,7 +69,7 @@ struct FightBeat {
   int value = 0;       // damage for Hit, hit points for Heal / Hurt
   bool crit = false;   // Hit
   std::string text;    // Tag / Broke / Sound / FxSound
-  std::string label;   // FxSound / FxStart: the effect's name
+  std::string label = std::string();  // FxSound / FxStart: the effect's name
 };
 
 struct HpSegment {
