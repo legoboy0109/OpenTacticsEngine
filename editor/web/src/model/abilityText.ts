@@ -42,6 +42,11 @@ function whatText(doc: ProjectDoc, a: Ability): string {
       const lock = u.needs ? ` (needs a ${doc.items?.find((i) => i.id === u.needs)?.name ?? u.needs}, which wears out)` : ''
       return `opens ${u.kinds === 'door' ? 'a locked door' : u.kinds === 'chest' ? 'a locked chest' : 'a locked door or chest'} on a square ${(() => { const [lo, hi] = rangeOf(a); return hi === 1 ? 'next to it' : lo === hi ? `${squares(lo)} away` : `${lo} to ${squares(hi)} away` })()} without a key${lock}`
     }
+    case 'none': {
+      const c = a.inflict as { condition?: string; turns?: number }
+      const name = doc.conditions?.find((x) => x.id === c.condition)?.name ?? c.condition ?? 'a condition'
+      return `gives ${name}${c.turns ? ` for ${c.turns} ${c.turns === 1 ? 'turn' : 'turns'}` : ''} to ${whom(a)}, and nothing else`
+    }
     case 'heal': return `heals ${whom(a)} ${e.heal === 'full' ? 'fully' : `by ${e.heal ?? 0}`}`
     case 'summon': {
       const s = summonOf(a)

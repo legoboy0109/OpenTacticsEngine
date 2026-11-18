@@ -142,7 +142,9 @@ function ownEffectIssues(doc: ProjectDoc, e: Extra, k: EffectKind, when: When): 
   const obj = (x: unknown): Extra => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Extra) : {})
   if (k === 'heal' || k === 'hurt') {
     const a = amountOf(e, k)
-    if (a.kind === 'formula' ? a.text.trim() === '' : a.kind === 'percent' ? !isWhole(a.value) || a.value < 1 || a.value > 100 : !isWhole(a.value) || a.value < 1 || a.value > 1000000)
+    if (a.kind === 'range' && (k !== 'hurt' || !isWhole(a.value) || !isWhole(a.max ?? NaN) || a.value < 1 || (a.max ?? 0) > 1000000 || (a.max ?? 0) <= a.value))
+      out.push('A range must be two whole numbers from 1 up, the highest above the lowest.')
+    else if (a.kind === 'formula' ? a.text.trim() === '' : a.kind === 'percent' ? !isWhole(a.value) || a.value < 1 || a.value > 100 : !isWhole(a.value) || a.value < 1 || a.value > 1000000)
       out.push(a.kind === 'formula' ? 'The amount formula is empty.' : a.kind === 'percent' ? 'A percentage must be a whole number from 1 to 100.' : 'The amount must be a whole number of 1 or more.')
     if (k === 'hurt') {
       if (e.to === 'self' && when !== 'turnStart') out.push('Hurting itself belongs to a rule for the start of a turn.')

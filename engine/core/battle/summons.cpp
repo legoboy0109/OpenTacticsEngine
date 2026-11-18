@@ -11,6 +11,16 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   const UnitTypeDef& type = db->unitTypes[(size_t)sd.type];
   if (!grid.valid(cell) || occupant[(size_t)cell] >= 0 || enterCost(cell, type.moveType) <= 0) return false;
 
+  // "replace": at the limit, the oldest summons of this ability by this summoner leave first (lowest unit id = made first).
+  if (sd.replace)
+    while (summonCount(summoner, ability) >= sd.limit) {
+      int oldest = -1;
+      for (const Unit& o : units)
+        if (o.summoner == summoner && o.summonAbility == ability && exists(o)) { oldest = o.id; break; }
+      if (oldest < 0) break;
+      removeSummon(oldest, events);
+    }
+
   // An ordinary unit of the type's own base stats and items, on the summoner's side: no story id, no character.
   MapUnitDef md;
   md.type = sd.type;
@@ -19,6 +29,25 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   md.stats = type.stats;
   md.difficultyShift = false;  // a summon is built from the summoner's level, never shifted (docs/DIFFICULTY.md)
   Unit s = makeUnit(md);
+  if (!sd.items.empty()) {  // "items": the summon carries one candidate whose "minLevel" the summoner's level reaches (none fits: the type's own items)
+    std::vector<int> fits;
+    for (size_t i = 0; i < sd.items.size(); ++i)
+      if (units[(size_t)summoner].level >= sd.items[i].minLevel) fits.push_back((int)i);
+    if (!fits.empty()) {
+      int pick = fits[0];
+      if (sd.pickRandom) {
+        if (fits.size() > 1) pick = fits[(size_t)rng.range((int)fits.size())];  // a roll only when there is a choice
+      } else {
+        for (int i : fits)
+          if (sd.items[(size_t)i].minLevel > sd.items[(size_t)pick].minLevel) pick = i;  // the first of equals wins
+      }
+      ItemStack stack;
+      stack.item = sd.items[(size_t)pick].item;
+      stack.uses = db->items[(size_t)stack.item].uses;
+      s.items.clear();
+      s.items.push_back(stack);
+    }
+  }
   for (ItemStack& item : s.items) item.drop = false;  // its items never drop
   s.summoner = summoner;
   s.summonAbility = ability;

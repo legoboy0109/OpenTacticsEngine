@@ -37,11 +37,16 @@ std::string abilityEffectText(const Database& db, const AbilityDef& def) {
         if (c >= 0 && (size_t)c < db.conditions.size()) t = join(t, db.conditions[(size_t)c].name);
       return "Cures " + t;
     }
+    case AbilityEffect::None: {  // only "inflict": the condition is the whole doing
+      const std::string name = def.inflictCond >= 0 && (size_t)def.inflictCond < db.conditions.size() ? db.conditions[(size_t)def.inflictCond].name : "a condition";
+      return def.inflictTurns > 0 ? "Inflicts " + name + " for " + plural(def.inflictTurns, "turn", "turns") : "Inflicts " + name;
+    }
     case AbilityEffect::Summon: {
       const SummonDef& s = def.summon;
       std::string name = s.type >= 0 && (size_t)s.type < db.unitTypes.size() ? db.unitTypes[(size_t)s.type].name : s.typeId;
       std::string t = "Calls a " + name + " (" + (s.level > 0 ? "level " + num(s.level) : std::string("your level")) +
                       ", up to " + num(s.limit) + " at a time";
+      if (s.replace) t += ", the oldest goes when there are too many";
       if (s.lifetime > 0) t += ", lasts " + plural(s.lifetime, "turn", "turns");
       if (!s.canAct) t += ", waits a turn";
       return t + ")";

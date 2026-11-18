@@ -8,8 +8,10 @@ import { moveItem, patchObj, updateById } from './util'
 import type { Ability, AbilityEffect, AbilityTarget, StealOptions, Summon } from './srpgTypes'
 import type { Extra, ProjectDoc } from './types'
 
-export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock'
+export type EffectKind = 'push' | 'pull' | 'swap' | 'moveBehind' | 'movePast' | 'heal' | 'summon' | 'steal' | 'refresh' | 'cure' | 'unlock' | 'none'
 export const EFFECT_KINDS: EffectKind[] = ['push', 'pull', 'swap', 'moveBehind', 'movePast', 'heal', 'summon', 'steal', 'refresh', 'cure', 'unlock']
+/** 'none' = no "effect" key at all: the ability only gives a condition ("inflict"). Not in EFFECT_KINDS (those are the kinds with a key of their own). */
+export const NO_EFFECT: EffectKind = 'none'
 /** The five that move units next to the user: the loader needs a unit target and the range [1, 1]. */
 export const isMove = (k: EffectKind | null): boolean => k === 'push' || k === 'pull' || k === 'swap' || k === 'moveBehind' || k === 'movePast'
 /** Effects with no range of their own to write: the moving ones and steal (a neighbour, range [1, 1]). */
@@ -23,14 +25,17 @@ export const LIMIT_MAX = 20
 export const LIFETIME_MAX = 99
 
 /** Which targets each effect accepts (the loader's "target against effect" rules). */
-export const TARGETS_FOR: Record<EffectKind, AbilityTarget[]> = {
+export const TARGETS_FOR: Record<Exclude<EffectKind, 'none'>, AbilityTarget[]> = {
   push: ['ally', 'enemy', 'unit'], pull: ['ally', 'enemy', 'unit'], swap: ['ally', 'enemy', 'unit'], moveBehind: ['ally', 'enemy', 'unit'], movePast: ['ally', 'enemy', 'unit'],
   heal: ['self', 'ally', 'unit'], summon: ['cell'], steal: ['enemy'], refresh: ['ally'], cure: ['self', 'ally'], unlock: ['cell'],
 }
 
+/** What an ability with only an inflict may be aimed at: any unit (not a square). */
+export const targetsFor = (k: EffectKind): AbilityTarget[] => (k === 'none' ? ['self', 'ally', 'enemy', 'unit'] : TARGETS_FOR[k])
+
 export function effectKind(a: Ability): EffectKind | null {
   const e = a.effect
-  if (!e || typeof e !== 'object') return null
+  if (!e || typeof e !== 'object') return a.inflict && typeof a.inflict === 'object' && !Array.isArray(a.inflict) ? 'none' : null
   return EFFECT_KINDS.find((k) => Object.prototype.hasOwnProperty.call(e, k)) ?? null
 }
 
@@ -73,7 +78,7 @@ function withRange(a: Ability, range: [number, number]): Ability {
 
 export function setTarget(a: Ability, target: AbilityTarget): Ability {
   const kind = effectKind(a)
-  if (kind && !TARGETS_FOR[kind].includes(target)) return a
+  if (kind && !targetsFor(kind).includes(target)) return a
   return withRange(patchObj(a, { target }), rangeOf(a))
 }
 
@@ -95,6 +100,7 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
     case 'refresh': return { refresh: true }
     case 'cure': return { cure: 'all' }
     case 'unlock': return { unlock: true }
+    case 'none': return {}
   }
 }
 
@@ -102,7 +108,11 @@ const defaultEffect = (k: EffectKind): AbilityEffect => {
  *  needs a square within reach, so it starts with range 1..2 (the summon's own default is the maker's to change). */
 export function setEffectKind(doc: ProjectDoc, a: Ability, k: EffectKind): Ability {
   if (effectKind(a) === k) return a
-  const target = TARGETS_FOR[k].includes(targetOf(a)) ? targetOf(a) : TARGETS_FOR[k][0]
+  const target = targetsFor(k).includes(targetOf(a)) ? targetOf(a) : targetsFor(k)[0]
+  if (k === 'none') {  // no "effect" key; "inflict" is then required, so one is started
+    const next = patchObj(a, { effect: undefined, target, inflict: a.inflict ?? (doc.conditions?.[0] ? { condition: doc.conditions[0].id } : undefined) })
+    return withRange(next, rangeOf(a))
+  }
   const effect = defaultEffect(k)
   if (k === 'summon') effect.summon = { type: doc.units?.[0]?.id ?? '' }
   if (k === 'cure' && doc.conditions?.[0]) effect.cure = [doc.conditions[0].id]
@@ -119,11 +129,12 @@ export function setEffectAmount(a: Ability, amount: number | 'full'): Ability {
 }
 
 /** Summon fields: a value equal to the engine's default is removed rather than written. */
-const SUMMON_DEFAULTS: Record<string, unknown> = { level: 'summoner', limit: 1, vanish: true, lifetime: 0, canAct: false, givesXp: true }
+const SUMMON_DEFAULTS: Record<string, unknown> = { level: 'summoner', limit: 1, vanish: true, lifetime: 0, canAct: false, givesXp: true, replace: false, pick: 'highest' }
 export function setSummon(a: Ability, patch: Partial<Summon>): Ability {
   if (effectKind(a) !== 'summon') return a
   const next: Record<string, unknown> = { ...summonOf(a), ...patch }
   for (const [k, def] of Object.entries(SUMMON_DEFAULTS)) if (next[k] === def || next[k] === undefined) delete next[k]
+  if (!Array.isArray(next.items) || next.items.length === 0) { delete next.items; delete next.pick }  // a pick goes with the items
   return patchObj(a, { effect: { ...a.effect, summon: next as Summon } })
 }
 

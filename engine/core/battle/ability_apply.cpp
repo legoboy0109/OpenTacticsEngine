@@ -49,6 +49,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
     case AbilityEffect::Steal: break;
     case AbilityEffect::Refresh: break;
     case AbilityEffect::Cure: break;
+    case AbilityEffect::None: break;
   }
   if (blocked) {
     used.flags = kBlocked;
@@ -79,6 +80,7 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
     case AbilityEffect::Cure:
       applyAbilityEffect(def, uid, target, action.slot, events);
       break;
+    case AbilityEffect::None: break;  // only the "inflict" below
     default:
       doAbilityMoves(plan, events);
       break;
