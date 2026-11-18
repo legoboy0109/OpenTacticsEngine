@@ -493,7 +493,7 @@ optional sizes under `"isometric"`: see docs/VIEWS.md.
 Every key except `id` is optional. These keys recolor the placeholder
 graphics (`structureColors` does the same for structure blocks, by structure
 id, like `terrainColors` does for terrain). Real art (sheets, tiles, sprites) lives in the optional
-`data/graphics.json` (unit pictures may carry `walk` frames, docs/GRAPHICS.md "Walking"; the `battle` section gives fighters' animation sets by
+`data/graphics.json` (the `battle` section may have a fixed `stage`, docs/BATTLE_SCENE.md "Fixed stage"; unit pictures may carry `walk` frames, docs/GRAPHICS.md "Walking"; the `battle` section gives fighters' animation sets by
 unit type, character, weapon, weapon group and side, with per-side sheets and up to 512 frames per animation, docs/BATTLE_SCENE.md; the root `backgrounds` list gives story scenes their full-screen pictures, docs/GRAPHICS.md "Backgrounds"), which can also override art per style id: see
 docs/GRAPHICS.md.
 

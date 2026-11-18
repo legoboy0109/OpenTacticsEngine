@@ -229,3 +229,66 @@ TEST(battle_art_map_background_refusal_and_no_art_games) {
   CHECK(loadGame(makeGame("nobattle", "{}"), db, err));
   CHECK(!db.graphics.battle.any());
 }
+
+// ---- the fixed stage (docs/BATTLE_SCENE.md "Fixed stage") ----
+
+namespace {
+const char* kStageOk =
+    "\"stage\": { \"width\": 240, \"height\": 160, \"feet\": {\"left\": [88,104], \"right\": [152,104]},"
+    " \"feetFar\": {\"left\": [56,104], \"right\": [184,104]}, \"platform\": {\"left\": [8,88], \"right\": [128,88]},"
+    " \"platformFar\": {\"left\": [0,88], \"right\": [136,88]}, \"align\": \"bottom\", \"fit\": \"contain\", \"rangeLine\": false }";
+}
+
+TEST(battle_stage_loads_and_defaults) {
+  Database db;
+  std::string err;
+  const std::string body = std::string("{ \"backgrounds\": {\"x\": {\"sheet\":\"bg\",\"cell\":[0,0]}}, \"platforms\": {\"p\": {\"sheet\":\"fx\",\"cell\":[0,0],\"far\":[1,0],\"right\":[2,0],\"farRight\":[3,0]}}, ") + kStageOk + " }";
+  bool ok = loadGame(makeGame("stage_ok", body), db, err);
+  if (!ok) std::printf("  %s\n", err.c_str());
+  CHECK(ok);
+  if (!ok) return;
+  const BattleStage& s = db.graphics.battle.stage;
+  CHECK(s.on);
+  CHECK_EQ(s.width, 240);
+  CHECK_EQ(s.height, 160);
+  CHECK_EQ(s.feet[0][0], 88);
+  CHECK_EQ(s.feet[1][0], 152);
+  CHECK(s.hasFeetFar && s.hasPlatform && s.hasPlatformFar);
+  CHECK_EQ(s.feetFar[1][0], 184);
+  CHECK_EQ(s.platform[1][0], 128);
+  CHECK_EQ(s.platformFar[0][0], 0);
+  CHECK(s.align == BattleStage::AlignBottom);
+  CHECK(s.contain);
+  CHECK(!s.rangeLine);
+  const BattlePlatform& p = db.graphics.battle.platforms[0];
+  CHECK(p.hasRight && p.hasFarRight && p.hasFar);
+  CHECK_EQ(p.rightCell.col, 2);
+  CHECK_EQ(p.farRightCell.col, 3);
+  // Defaults: only width, height and feet.
+  CHECK(loadGame(makeGame("stage_min", "{ \"stage\": { \"width\": 240, \"height\": 160, \"feet\": {\"left\": [88,104], \"right\": [152,104]} } }"), db, err));
+  const BattleStage& m = db.graphics.battle.stage;
+  CHECK(m.on && !m.hasFeetFar && !m.hasPlatform && !m.contain && m.rangeLine && m.align == BattleStage::AlignCenter);
+  // No stage key: off.
+  CHECK(loadGame(makeGame("stage_none", "{ \"backgrounds\": {\"x\": {\"sheet\":\"bg\",\"cell\":[0,0]}} }"), db, err));
+  CHECK(!db.graphics.battle.stage.on);
+}
+
+TEST(battle_stage_refusals) {
+  const std::string feet = "\"feet\": {\"left\": [88,104], \"right\": [152,104]}";
+  auto st = [&](const std::string& body) { return "{ \"stage\": { " + body + " } }"; };
+  expectError("s_small", st("\"width\": 8, \"height\": 160, " + feet), "battle stage", "between 16 and 1024");
+  expectError("s_big", st("\"width\": 240, \"height\": 2000, " + feet), "between 16 and 1024");
+  expectError("s_nofeet", st("\"width\": 240, \"height\": 160"), "needs \"feet\"");
+  expectError("s_outside", st("\"width\": 240, \"height\": 160, \"feet\": {\"left\": [88,104], \"right\": [240,104]}"), "\"right\" [240, 104] is outside the stage");
+  expectError("s_negative", st("\"width\": 240, \"height\": 160, \"feet\": {\"left\": [-1,104], \"right\": [1,1]}"), "outside the stage");
+  expectError("s_oneside", st("\"width\": 240, \"height\": 160, \"feet\": {\"left\": [88,104]}"), "needs \"right\"");
+  expectError("s_point", st("\"width\": 240, \"height\": 160, \"feet\": {\"left\": [88], \"right\": [1,1]}"), "must be [x, y]");
+  expectError("s_key", st("\"width\": 240, \"height\": 160, " + feet + ", \"zoom\": 2"), "unknown key \"zoom\"");
+  expectError("s_align", st("\"width\": 240, \"height\": 160, " + feet + ", \"align\": \"left\""), "\"align\" must be");
+  expectError("s_fit", st("\"width\": 240, \"height\": 160, " + feet + ", \"fit\": \"stretch\""), "\"fit\" must be \"cover\" or \"contain\"");
+  expectError("s_pfar", st("\"width\": 240, \"height\": 160, " + feet + ", \"platformFar\": {\"left\": [0,0], \"right\": [1,1]}"), "\"platformFar\" needs \"platform\"");
+  expectError("s_plat_out", st("\"width\": 240, \"height\": 160, " + feet + ", \"platform\": {\"left\": [0,0], \"right\": [1,160]}"), "outside the stage");
+  expectError("s_obj", "{ \"stage\": 5 }", "\"stage\" must be an object");
+  expectError("p_farright", "{ \"platforms\": {\"p\": {\"sheet\":\"fx\",\"cell\":[0,0],\"farRight\":[1,0]}} }", "\"farRight\" needs a \"far\" picture");
+  expectError("p_right_out", "{ \"platforms\": {\"p\": {\"sheet\":\"fx\",\"cell\":[0,0],\"right\":[9,0]}} }", "outside sheet \"fx\"");
+}

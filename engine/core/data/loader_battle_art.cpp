@@ -281,7 +281,8 @@ bool readPlatforms(const LoadCtx& c, Database& db, const Json& b, BattleArt& art
     const std::string where = "battle platform " + q(e.first);
     if (e.first.empty() || e.first == "default" || !e.second.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"cell\" (and optionally \"far\"); the id cannot be \"default\"");
     for (const Json::Member& k : e.second.members())
-      if (k.first != "sheet" && k.first != "cell" && k.first != "far") return c.fail(where, "unknown key " + q(k.first) + " (expected \"sheet\", \"cell\", \"far\")");
+      if (k.first != "sheet" && k.first != "cell" && k.first != "far" && k.first != "right" && k.first != "farRight")
+        return c.fail(where, "unknown key " + q(k.first) + " (expected \"sheet\", \"cell\", \"far\", \"right\", \"farRight\")");
     BattlePlatform p;
     p.id = e.first;
     std::string sheetId;
@@ -295,6 +296,16 @@ bool readPlatforms(const LoadCtx& c, Database& db, const Json& b, BattleArt& art
     if (e.second.has("far")) {
       if (!readFrameCell(c, sh, e.second["far"], where + " \"far\"", p.farCell)) return false;
       p.hasFar = true;
+    }
+    // The right-hand fighter's own pictures (used with a fixed stage; else the left one drawn mirrored).
+    if (e.second.has("right")) {
+      if (!readFrameCell(c, sh, e.second["right"], where + " \"right\"", p.rightCell)) return false;
+      p.hasRight = true;
+    }
+    if (e.second.has("farRight")) {
+      if (!p.hasFar) return c.fail(where, "\"farRight\" needs a \"far\" picture");
+      if (!readFrameCell(c, sh, e.second["farRight"], where + " \"farRight\"", p.farRightCell)) return false;
+      p.hasFarRight = true;
     }
     art.platforms.push_back(p);
   }
@@ -393,6 +404,7 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   art.terrainBackground.assign(db.terrains.size(), -1);
   art.terrainPlatform.assign(db.terrains.size(), -1);
   if (!readSets(c, db, b, art) || !readEffects(c, db, b, art) || !readAssign(c, db, b, art) || !readBackgrounds(c, db, b, art)) return false;
+  if (!readBattleStage(c, b, art.stage)) return false;
   db.graphics.battle = art;
   return true;
 }

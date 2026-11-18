@@ -443,9 +443,24 @@ export interface BattleSection extends Extra {
   terrainBackground?: Record<string, string>
   defaultBackground?: string
   /** Pictures drawn under each fighter, by terrain (model/battleTables.ts); `far` is used when the fight is at range 2+. */
-  platforms?: Record<string, { sheet: string; cell: CellRef; far?: CellRef } & Extra>
+  platforms?: Record<string, { sheet: string; cell: CellRef; far?: CellRef; right?: CellRef; farRight?: CellRef } & Extra>
   terrainPlatform?: Record<string, string>
   defaultPlatform?: string
+  /** An optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"; model/battleStage.ts). */
+  stage?: BattleStageDef
+}
+export type StagePoint = [number, number]
+export interface StagePair { left: StagePoint; right: StagePoint }
+export interface BattleStageDef extends Extra {
+  width: number
+  height: number
+  feet: StagePair
+  feetFar?: StagePair
+  platform?: StagePair
+  platformFar?: StagePair
+  align?: 'top' | 'center' | 'bottom'
+  fit?: 'cover' | 'contain'
+  rangeLine?: boolean
 }
 /** A tileset of hand-painted maps (docs/GRAPHICS.md "Tile layer"): a sheet whose cells are the tiles, numbered row by row from 0; model/tilesets.ts. */
 export interface Tileset extends Extra { sheet: string; animations?: Record<string, { frames: number[]; ms?: number }> }

@@ -1209,6 +1209,15 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
 - **Art screen**, card **Platforms** (below Battle backgrounds): a list of named pictures (choose the picture, optionally a "far" picture used at range 2+,
   delete: the terrain choices, the default and every map's table that named it go too) and the **Default platform**. A terrain's own platform is chosen on
   the **Terrain** screen, card "Weather and platform".
+- **Art screen**, card **Stage** (below Platforms): the optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"). A switch "Use a fixed stage" (off removes the
+  `stage` key; on starts from the default backdrop's size, else 240 x 160, with the fighters in the lower middle), the stage's width and height (16 to 1024), "Where the
+  fighters stand" (a foot point per side: across, down), "Different at range" (a second pair for range 2+, starts as a copy), "Place the platforms" (the top left of each
+  platform picture; a second pair "at range") , "Keep visible" (top / middle / bottom), "When the stage is too tall" (fill the screen and cut off the rest / show all of it, with
+  bars around) and "Show the dotted range line". A note says whether the default backdrop has the stage's size. A live preview (SVG) draws the backdrop, a box for each fighter on its
+  foot point and a bar for each platform (the right one mirrored), with Close / At range buttons when there are far points; a point outside the stage is outlined red. Problems
+  mirror the loader (`model/battleStage.ts`: size 16..1024, whole numbers, points inside the stage, platforms at range need platforms) and say so in words. The **Platforms**
+  card also has "Add a right-hand picture" / "Add a right-hand far picture" (`right` / `farRight`, pieces of the platform's own image). Code: `screens/art/battle/StageCard.tsx`,
+  `StagePreview.tsx`, `stageText.ts`, `model/battleStage.ts`. Tests: `tests/unit/battleStage.test.ts`, `tests/e2e/battle-stage.spec.ts`.
 - **Terrain screen**, card **Weather and platform**: a table with a column for rain and one for snow and a row per movement type (a number from 1 to 99;
   empty = the usual cost), and the terrain's platform. **Maps**, the map's settings tab, part **Battle scene and weather**: a table of background and a table
   of platform per terrain plus "Everything else" (a map's choices win over the game's; "The game's choice" removes the entry), and "Weather at the start"

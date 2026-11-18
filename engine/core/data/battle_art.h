@@ -100,6 +100,26 @@ struct BattlePlatform {
   SpriteCell cell;
   bool hasFar = false;
   SpriteCell farCell;
+  // The right-hand fighter's own pictures (a fixed stage only): else the left one drawn mirrored (docs/BATTLE_SCENE.md "Fixed stage").
+  bool hasRight = false, hasFarRight = false;
+  SpriteCell rightCell, farRightCell;
+};
+
+// An optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): the scene is laid out in the stage's own pixels and drawn at one whole-number
+// scale. Points are [x, y] in stage pixels; index 0 = the left fighter, 1 = the right one.
+struct BattleStage {
+  bool on = false;
+  int width = 0, height = 0;
+  int feet[2][2] = {{0, 0}, {0, 0}};      // where a fighter's anchor (foot point) stands, close
+  bool hasFeetFar = false;
+  int feetFar[2][2] = {{0, 0}, {0, 0}};   // at range 2+ (default: feet)
+  bool hasPlatform = false;
+  int platform[2][2] = {{0, 0}, {0, 0}};  // top-left of the platform picture, close (default: centred on the foot point)
+  bool hasPlatformFar = false;
+  int platformFar[2][2] = {{0, 0}, {0, 0}};
+  enum Align { AlignTop, AlignCenter, AlignBottom } align = AlignCenter;  // the part that stays visible when the stage is cropped
+  bool contain = false;                    // false = "cover", true = "contain"
+  bool rangeLine = true;                   // the dotted line and label of a ranged fight
 };
 
 struct BattleArt {
@@ -112,6 +132,7 @@ struct BattleArt {
   std::vector<BattlePlatform> platforms;
   std::vector<int> terrainPlatform;  // per terrain index: index into `platforms`, -1 = none
   int defaultPlatform = -1;
+  BattleStage stage;  // stage.on = a fixed stage is declared
 
   int findPlatform(const std::string& id) const;
   bool any() const { return !sets.empty() || !backgrounds.empty(); }

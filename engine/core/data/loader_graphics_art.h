@@ -9,6 +9,8 @@ class Json;
 
 // data/graphics.json "battle" (docs/BATTLE_SCENE.md); needs the sheets, unit types, characters, weapons and terrain.
 bool readBattleArt(const LoadCtx& c, Database& db, const Json& root);
+// data/graphics.json "battle" > "stage" (loader_battle_stage.cpp; docs/BATTLE_SCENE.md "Fixed stage").
+bool readBattleStage(const LoadCtx& c, const Json& battle, BattleStage& out);
 // data/graphics.json "backgrounds" (story scenes, docs/GRAPHICS.md "Backgrounds"); needs the sheets.
 bool readSceneBackgrounds(const LoadCtx& c, Database& db, const Json& root);
 // data/graphics.json "tilesets" (docs/GRAPHICS.md "Tile layer"); needs the sheets.
