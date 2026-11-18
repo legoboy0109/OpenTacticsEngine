@@ -83,6 +83,7 @@ class PlayerApp : public App, public SceneHost {
   void doStartCampaign();
   void doCampaignNext();
   void saveAfterScene();
+  void recordStoryEnd();  // progress.json when the story reaches "The End" (never for test runs)
   SceneResolver runSceneFor(SceneKind kind, const Playthrough& before, std::vector<SceneLine>& lines);
   bool resumeCampaignSave(const SaveFile& file, std::string& err);
 

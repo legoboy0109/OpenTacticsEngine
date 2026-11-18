@@ -40,23 +40,40 @@ bool readRules(const CampaignLoader& L, const Json& root, CampaignDef& out) {
   return true;
 }
 
-bool readFreeBattles(const CampaignLoader& L, const Database& db, const Json& root, CampaignDef& out) {
-  if (!root.has("freeBattles")) return true;
-  const Json& f = root["freeBattles"];
+// "none" | "all" | ["map_id", ...]: shared by the plain forms and the "maps" key of the object form.
+bool readFreeMaps(const CampaignLoader& L, const Database& db, const Json& f, const std::string& where, CampaignDef& out) {
   if (f.isString()) {
     if (f.asString() == "none") out.freeBattles = CampaignDef::FreeBattles::None;
     else if (f.asString() == "all") out.freeBattles = CampaignDef::FreeBattles::All;
-    else return L.fail("\"freeBattles\"", "must be \"none\", \"all\" or a list of map ids, not " + quoted(f.asString()));
+    else return L.fail(where, "must be \"none\", \"all\" or a list of map ids, not " + quoted(f.asString()));
     return true;
   }
-  if (!f.isArray()) return L.fail("", "\"freeBattles\" must be \"none\", \"all\" or a list of map ids");
+  if (!f.isArray()) return L.fail("", where + " must be \"none\", \"all\" or a list of map ids");
   out.freeBattles = CampaignDef::FreeBattles::List;
   for (size_t i = 0; i < f.size(); ++i) {
-    if (!f[i].isString()) return L.fail("\"freeBattles\"", "entry " + std::to_string(i + 1) + " must be a map id");
+    if (!f[i].isString()) return L.fail(where, "entry " + std::to_string(i + 1) + " must be a map id");
     if (db.findMap(f[i].asString()) < 0)
-      return L.fail("\"freeBattles\"", "entry " + std::to_string(i + 1) + " names unknown map " + quoted(f[i].asString()));
+      return L.fail(where, "entry " + std::to_string(i + 1) + " names unknown map " + quoted(f[i].asString()));
     out.freeMaps.push_back(f[i].asString());
   }
+  return true;
+}
+
+bool readFreeBattles(const CampaignLoader& L, const Database& db, const Json& root, CampaignDef& out) {
+  if (!root.has("freeBattles")) return true;
+  const Json& f = root["freeBattles"];
+  if (!f.isObject()) return readFreeMaps(L, db, f, "\"freeBattles\"", out);
+  // Object form: { "maps": "all" | [ids], "when": "always" | "storyComplete", "lockedNote": "text" }
+  if (!L.onlyKeys(f, {"maps", "when", "lockedNote"}, "\"freeBattles\"")) return false;
+  if (!f.has("maps")) return L.fail("\"freeBattles\"", "needs \"maps\" (\"all\" or a list of map ids)");
+  if (!readFreeMaps(L, db, f["maps"], "\"freeBattles\" \"maps\"", out)) return false;
+  if (f.has("when")) {
+    std::string w;
+    if (!L.ctx().str(f, "when", "\"freeBattles\"", w)) return false;
+    if (w != "always" && w != "storyComplete") return L.fail("\"freeBattles\"", "\"when\" must be \"always\" or \"storyComplete\", not " + quoted(w));
+    out.freeAfterStory = w == "storyComplete";
+  }
+  if (f.has("lockedNote") && !L.ctx().str(f, "lockedNote", "\"freeBattles\"", out.lockedNote)) return false;
   return true;
 }
 

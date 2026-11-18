@@ -136,10 +136,14 @@ bool SaveStore::read(int slot, const Database& db, const std::string& gameId, Sa
   return true;
 }
 
-bool SaveStore::write(int slot, const Json& file, std::string& err) const {
+bool SaveStore::write(int slot, const Json& file, std::string& err) const { return writeAt(path(slot), file, err); }
+
+std::string SaveStore::progressPath() const { return dir_ + "/progress.json"; }
+
+bool SaveStore::writeAt(const std::string& target, const Json& file, std::string& err) const {
   if (!enabled()) { err = "saving is switched off"; return false; }
   if (!makeDirs(dir_)) { err = dir_ + ": cannot create the saves folder"; return false; }
-  std::string target = path(slot), tmp = target + ".tmp";
+  std::string tmp = target + ".tmp";
   if (!writeTextFile(tmp, file.dump(0) + "\n")) {
     removeFile(tmp);
     err = tmp + ": cannot write the save";

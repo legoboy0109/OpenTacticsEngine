@@ -21,13 +21,14 @@ class GameScene : public Scene {
   SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Title; return a; }  // the game's title music
 
  private:
-  enum Kind { kContinue, kPlay, kNewGame, kLoad, kOptions, kBack, kHeading, kFreeMap, kDifficulty };
+  enum Kind { kContinue, kPlay, kNewGame, kLoad, kOptions, kBack, kHeading, kNote, kFreeMap, kDifficulty };  // kHeading / kNote: captions, never selected
   struct Row {
     Kind kind;
     std::string label, detail;  // detail: second line, only on pages with saving
     bool enabled = true;        // a Continue save that cannot be loaded is greyed out
     std::string mapId;          // kFreeMap
   };
+  static bool isCaption(Kind k) { return k == kHeading || k == kNote; }
   void buildRows();
   void layout(const Renderer& r);
   void activate(int row);

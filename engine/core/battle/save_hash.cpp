@@ -70,6 +70,12 @@ Json rulesOnly(const Json& j, bool mapFile, bool numbersTable = false) {
     Json out = Json::makeObject();
     for (const Json::Member& m : j.members()) {
       if (!numbersTable && cosmeticKey(m.first)) continue;
+      // The campaign's "freeBattles" object form ({ "maps", "when", "lockedNote" }, docs/EVENTS.md) counts as its plain
+      // form: when the game page lists the battles is not a rule, so moving a game to it keeps every save usable.
+      if (mapFile && !numbersTable && m.first == "freeBattles" && m.second.isObject() && m.second.has("maps")) {
+        out.set(m.first, rulesOnly(m.second["maps"], mapFile));
+        continue;
+      }
       // A weapon's empty "wieldedBy" / "wieldedByTypes" is the same game as none (docs/SRPG.md character-locked weapons).
       if ((m.first == "wieldedBy" || m.first == "wieldedByTypes") && m.second.isArray() && m.second.size() == 0) continue;
       if (!numbersTable && mapFile && wordingKey(m.first) && m.second.isString()) {

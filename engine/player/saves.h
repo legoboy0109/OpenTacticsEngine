@@ -61,6 +61,9 @@ class SaveStore {
   // Deletes the save; true also when there was none.
   bool remove(int slot, std::string& err) const;
   bool exists(int slot) const;
+  // The game's progress record (progress.json, docs/SAVES.md "Progress record"), kept next to the saves but independent of them.
+  std::string progressPath() const;
+  bool writeAt(const std::string& target, const Json& file, std::string& err) const;  // atomic write of any file in the folder
 
  private:
   std::string dir_;

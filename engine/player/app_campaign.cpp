@@ -14,6 +14,7 @@
 #include "core/campaign/prep.h"
 #include "core/campaign/testplay.h"
 #include "core/data/loader.h"
+#include "progress.h"
 
 namespace ote {
 
@@ -102,6 +103,18 @@ void PlayerApp::saveAfterScene() {
   std::string err;
   bool ok = pt.active() ? writeCampaignSave(store, 0, db, gameId_, pt, nullptr, err) : store.remove(0, err);
   if (!ok) OTE_WARN("campaign: saving after a scene failed: %s", err.c_str());
+}
+
+// The story has been played to its end ("The End", never the defeat ending): write the game's progress record
+// (docs/SAVES.md "Progress record"), which unlocks free battles that wait for it. Test playthroughs (--chapter,
+// --test-level) are not the player's story and leave nothing; --no-saving has no store. Failure is only logged.
+void PlayerApp::recordStoryEnd() {
+  if (!args_.chapter.empty() || args_.testLevel != 0) return;
+  SaveStore store = saveStore(gameId_);
+  if (!store.enabled()) return;
+  std::string err;
+  if (!recordStoryComplete(store, nowSeconds(), err)) OTE_WARN("campaign: cannot record the finished story: %s", err.c_str());
+  else OTE_INFO("campaign: story complete recorded for '%s'", gameId_.c_str());
 }
 
 // Runs a chapter's scene on the playthrough. With a person at the screen a question stops the scene (dialogue choices,
@@ -221,6 +234,7 @@ void PlayerApp::doCampaignNext() {
       scene_.reset(new BattleScene(*this));
       break;
     case Next::EndFinished:
+      recordStoryEnd();
       scene_.reset(new EndScene(*this, "The End", db.campaign->name));
       break;
     case Next::EndOver:

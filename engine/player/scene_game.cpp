@@ -8,6 +8,7 @@
 #include "core/campaign/playthrough.h"
 #include "core/data/loader.h"
 #include "platform/platform.h"
+#include "progress.h"
 #include "ui/chrome.h"
 #include "ui/text.h"
 
@@ -79,6 +80,15 @@ void GameScene::buildRows() {
     if (freeBattleAllowed(db, m.id))
       maps.push_back({kFreeMap, m.name.empty() ? m.id : m.name, "Not saved automatically", true, m.id});
   if (maps.empty()) return;
+  // "freeBattles": { "when": "storyComplete" } (docs/SAVES.md "Progress record"): hidden until the story has been completed,
+  // with the game's optional note in its place. --map and the editor's Play never come through here.
+  if (!freeBattlesListed(db, store, game_.id)) {
+    OTE_INFO("game page: free battles locked (%zu map(s) wait for the story to be completed)%s", maps.size(),
+             db.campaign->lockedNote.empty() ? "" : ", note shown");
+    if (!db.campaign->lockedNote.empty()) rows_.push_back({kNote, db.campaign->lockedNote, "", false, ""});
+    return;
+  }
+  OTE_INFO("game page: free battles listed (%zu)", maps.size());
   rows_.push_back({kHeading, "Free battles", "", false, ""});
   rows_.insert(rows_.end(), maps.begin(), maps.end());
 }
@@ -108,7 +118,7 @@ void GameScene::activate(int row) {
     case kPlay: host_.loadGame(game_.id); break;
     case kNewGame: startNewGame(); break;
     case kFreeMap: host_.startFreeBattle(game_.id, r.mapId); break;
-    case kHeading: break;
+    case kHeading: case kNote: break;
     case kLoad: host_.showSlots(game_.id); break;
     case kOptions: host_.showOptions(game_.id); break;
     case kDifficulty:
@@ -131,7 +141,7 @@ void GameScene::startNewGame() {
 }
 
 void GameScene::skipHeading(Button dir) {
-  for (int guard = 0; guard < 2 && rows_[(size_t)list_.sel].kind == kHeading; ++guard) list_.step(dir);
+  for (int guard = 0; guard < 2 && isCaption(rows_[(size_t)list_.sel].kind); ++guard) list_.step(dir);
 }
 
 void GameScene::onInput(const InputEvent& e) {
@@ -155,7 +165,7 @@ void GameScene::onInput(const InputEvent& e) {
     if (a == ConfirmBox::Yes) host_.startCampaign(game_.id);
     return;
   }
-  auto selectable = [&](int row) { return row >= 0 && rows_[(size_t)row].kind != kHeading; };
+  auto selectable = [&](int row) { return row >= 0 && !isCaption(rows_[(size_t)row].kind); };
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
     if (selectable(row)) list_.sel = row;
@@ -178,6 +188,10 @@ void GameScene::draw(Renderer& r) {
     int row = first + i, ry = list_.rowY(row);
     const Row& it = rows_[(size_t)row];
     bool sel = row == list_.sel;
+    if (it.kind == kNote) {  // the locked free battles' one greyed line
+      r.drawText(list_.x + 8, ry + list_.rowH - lh - 6, fitText(r, it.label, list_.w - 16).c_str(), kGreyed);
+      continue;
+    }
     if (it.kind == kHeading) {  // a caption, no box: the free battles below it
       r.drawText(list_.x + 8, ry + list_.rowH - lh - 6, fitText(r, it.label, list_.w - 16).c_str(), chrome::kAccent);
       continue;
