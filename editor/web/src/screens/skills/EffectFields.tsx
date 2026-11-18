@@ -1,6 +1,6 @@
 // The blanks of one effect row, by kind (docs/SRPG.md "EFFECTS"). Each change hands back the whole new effect.
 import { combatStatIds, conditionStatIds, statIds } from '../../model/skillBlocks'
-import { amountKind, amountNumber, amountOf, amountPercent, withAmount, type AmountKind } from '../../model/skillAmount'
+import { amountKind, amountNumber, amountOf, amountPercent, amountRange, withAmount, type AmountKind } from '../../model/skillAmount'
 import { countsTurns } from '../../model/staffConditions'
 import { FLAG_EFFECTS, FOE_EFFECTS, FORMULA_EFFECTS, NUMBER_RANGE, effectKindOf, type EffectKind, type When } from '../../model/skillRules'
 import type { Extra, ProjectDoc } from '../../model/types'
@@ -112,19 +112,26 @@ function CureFields({ doc, effect, change }: { doc: ProjectDoc; effect: Extra; c
 }
 
 const AMOUNT_KINDS: AmountKind[] = ['number', 'percent', 'formula']
+const HURT_KINDS: AmountKind[] = ['number', 'range', 'percent', 'formula']
 
 /** The amount of a heal / hurt: a number, a percent of the maximum, or a formula (a = the unit). */
-function AmountFields({ effect, which, change, labels }: { effect: Extra; which: 'heal' | 'hurt'; change: (e: Extra, key?: string) => void; labels: { how: string; kinds: Record<AmountKind, string>; formula: string; formulaHelp: string } }) {
+function AmountFields({ effect, which, change, labels }: { effect: Extra; which: 'heal' | 'hurt'; change: (e: Extra, key?: string) => void; labels: { how: string; kinds: Partial<Record<AmountKind, string>>; formula: string; formulaHelp: string } }) {
   const a = amountOf(effect, which)
   const set = (next: typeof a, key?: string) => change(withAmount(effect, which, next), key)
   return (
     <>
       <Field label={labels.how}>
-        <Select value={a.kind} options={AMOUNT_KINDS.map((k) => ({ value: k, label: labels.kinds[k] }))} onChange={(k) => set(amountKind(a, k as AmountKind))} />
+        <Select value={a.kind} options={(which === 'hurt' ? HURT_KINDS : AMOUNT_KINDS).map((k) => ({ value: k, label: labels.kinds[k] ?? k }))} onChange={(k) => set(amountKind(a, k as AmountKind))} />
       </Field>
       {a.kind === 'formula'
         ? <Field label={labels.formula} help={labels.formulaHelp}><TextInput mono value={a.text} onChange={(v) => set({ ...a, text: v }, which)} /></Field>
-        : <Field label={T.amount}><Num value={a.value} min={1} max={a.kind === 'percent' ? 100 : 1000000} suffix={a.kind === 'percent' ? '%' : undefined}
+        : a.kind === 'range'
+          ? <Field label={T.rangeAmount} help={T.rangeHelp}><div className="row">
+              <Num value={a.value} min={1} max={999999} onChange={(n) => set(amountRange(a, n, a.max ?? n + 2), which + 'Lo')} />
+              <span className="help">{T.rangeTo}</span>
+              <Num value={a.max ?? a.value + 2} min={2} max={1000000} onChange={(n) => set(amountRange(a, a.value, n), which + 'Hi')} />
+            </div></Field>
+          : <Field label={T.amount}><Num value={a.value} min={1} max={a.kind === 'percent' ? 100 : 1000000} suffix={a.kind === 'percent' ? '%' : undefined}
             onChange={(n) => set(a.kind === 'percent' ? amountPercent(a, n) : amountNumber(a, n), which)} /></Field>}
     </>
   )
@@ -161,7 +168,7 @@ function HurtFields({ effect, when, change }: { effect: Extra; when: When; chang
         </Field>
       )}
       <AmountFields effect={effect} which="hurt" change={change}
-        labels={{ how: T.hurtAmount, kinds: { number: T.hurtHp, percent: T.hurtPercent, formula: T.hurtFormula }, formula: T.hurtFormulaLabel, formulaHelp: T.hurtFormulaHelp }} />
+        labels={{ how: T.hurtAmount, kinds: { number: T.hurtHp, range: T.hurtRange, percent: T.hurtPercent, formula: T.hurtFormula }, formula: T.hurtFormulaLabel, formulaHelp: T.hurtFormulaHelp }} />
       {turn && target === 'enemies' && <Field label={T.squares}><Num value={Number(effect.within ?? 1)} min={1} max={10} onChange={(n) => set({ within: n }, 'within')} /></Field>}
       <Check label={T.hurtCanKill} help={T.hurtCanKillHelp} checked={a.canKill} onChange={(on) => change(withAmount(effect, 'hurt', { ...a, canKill: on }))} />
       {!(turn && target === 'self') && <p className="help">{turn ? T.hurtEnemies : T.hurtFoe}</p>}

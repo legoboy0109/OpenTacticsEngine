@@ -1,0 +1,20 @@
+// Wording of the map's battle scene settings and of the weather and platform parts of other screens (placeholder wording for the owner to review).
+export const BS = {
+  title: 'Battle scene and weather',
+  backgroundTable: 'Battle background by terrain',
+  backgroundTableHelp: 'The picture behind a fight on this map. A terrain left on “The game’s choice” uses the game’s list (Terrain screen). “Everything else” covers the terrain you did not name.',
+  platformTable: 'Platform by terrain',
+  platformTableHelp: 'The picture each fighter stands on. Same rules as the background.',
+  noBackgrounds: 'No battle backgrounds yet. Make some in the Art section, “Battle backgrounds”.',
+  noPlatforms: 'No platforms yet. Make some in the Art section, “Platforms”.',
+  everythingElse: 'Everything else',
+  fromDefault: 'The game’s choice',
+  gameTable: 'The game’s choice (or none)',
+  backgroundFor: 'Background for',
+  platformFor: 'Platform for',
+  weather: 'Weather at the start',
+  weatherHelp: 'Rain or snow fall over the map from the start. A terrain’s weather costs (Terrain screen) apply while it lasts; a story command can change it.',
+  clear: 'Clear sky',
+  rain: 'Rain',
+  snow: 'Snow',
+}

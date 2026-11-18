@@ -27,6 +27,14 @@ std::string nameOf(const std::vector<std::string>& names, int index, const char*
 
 }  // namespace
 
+bool initiatorStandsLeft(int mode, bool initiatorHuman, bool otherHuman, int initiatorX, int otherX) {
+  if ((mode == 1 || mode == 2) && initiatorHuman != otherHuman) {
+    const bool humanLeft = mode == 2;
+    return initiatorHuman ? humanLeft : !humanLeft;
+  }
+  return initiatorX <= otherX;  // the map rule: the unit nearer the left edge, else the one that started it
+}
+
 FightScript buildFightScript(const std::vector<Event>& run, const FightInfo& info) {
   FightScript out;
   const Event* first = nullptr;
@@ -54,8 +62,8 @@ FightScript buildFightScript(const std::vector<Event>& run, const FightInfo& inf
     }
   const int other = initiatorUnit == first->a ? first->b : first->a;
   FightUnitInfo ui = unitInfo(initiatorUnit), uo = unitInfo(other);
-  // The unit nearer the left edge of the map stands on the left; on the same column the one that started it does.
-  const bool initiatorLeft = ui.x <= uo.x;
+  // By default the unit nearer the left edge of the map stands on the left; on the same column the one that started it does.
+  const bool initiatorLeft = initiatorStandsLeft(info.sidesMode, ui.human, uo.human, ui.x, uo.x);
   out.side[0] = initiatorLeft ? ui : uo;
   out.side[1] = initiatorLeft ? uo : ui;
   out.initiator = initiatorLeft ? 0 : 1;

@@ -53,6 +53,34 @@ bool BattleView::takeFightRun(const Battle& b) {
   return true;
 }
 
+// Undoes what the start events' fights did to the view's picture of the units (it was made from the state after them): a hit gives its damage
+// back, drain and recoil likewise, a fallen unit stands again on the square its UnitDied entry names. The entries themselves then play as ever.
+void BattleView::rewindStartFights(const Battle& b, const std::vector<Event>& startEvents) {
+  auto unit = [&](int id) -> UnitView* { return id >= 0 && (size_t)id < units.size() && (size_t)id < b.units.size() ? &units[(size_t)id] : nullptr; };
+  for (size_t i = startEvents.size(); i-- > 0;) {  // newest first: each entry is undone from the state it left
+    const Event& e = startEvents[i];
+    switch (e.type) {
+      case EventType::Attack:
+        if (UnitView* d = unit(e.b)) d->hp += (e.flags & kHit) ? e.d : 0;
+        break;
+      case EventType::UnitHealed:
+        if (UnitView* v = unit(e.a)) v->hp = std::max(0, v->hp - e.b);
+        break;
+      case EventType::UnitHurt:
+        if (UnitView* v = unit(e.a)) v->hp += e.b;
+        break;
+      case EventType::UnitDied:
+        if (UnitView* v = unit(e.a)) {
+          v->visible = true;
+          v->alpha = 1;
+          cellPos(b, (Cell)e.b, v->px, v->py);
+        }
+        break;
+      default: break;
+    }
+  }
+}
+
 // The scene has played (or been skipped): the run goes into the view's state in one go, as if the map had played it and been
 // skipped, without sounds, and without the floating numbers (the scene showed them).
 void BattleView::fightFinished(const Battle& b) {

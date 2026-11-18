@@ -63,6 +63,7 @@ bool tryFrom(const Battle& b, const Unit& u, Cell from, Order& order, bool wantS
     if (d.free && from != u.cell) continue;
     const bool summon = d.effect == AbilityEffect::Summon;
     if (summon != wantSummon || (!summon && d.effect != AbilityEffect::Heal)) continue;
+    if (summon && d.summon.replace && b.summonCount(u.id, o.ability) >= d.summon.limit) continue;  // the computer never throws away a summon to make another
     std::vector<int> units;
     std::vector<Cell> cells;
     b.abilityTargets(u.id, o.ability, from, units, cells);

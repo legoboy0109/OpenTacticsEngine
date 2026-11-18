@@ -439,14 +439,16 @@ bool readAmount(const LoadCtx& c, Database& db, const Json& v, const std::string
   const std::string k = q(key);
   const Json* amount = &v;
   if (v.isObject()) {
-    if (!onlyKeys(c, v, hurt ? std::initializer_list<const char*>{"amount", "percent", "formula", "canKill"}
+    if (!onlyKeys(c, v, hurt ? std::initializer_list<const char*>{"amount", "percent", "formula", "canKill", "lethal"}
                              : std::initializer_list<const char*>{"amount", "percent", "formula"}, where + ": " + k)) return false;
     const int given = (int)v.has("amount") + (int)v.has("percent") + (int)v.has("formula");
     if (given != 1) return c.fail(where, k + " needs exactly one of \"amount\", \"percent\" or \"formula\"");
-    if (v.has("canKill")) {
-      if (!v["canKill"].isBool()) return c.fail(where, k + ": \"canKill\" must be true or false");
-      out.kill = v["canKill"].asBool();
-    }
+    if (v.has("canKill") && v.has("lethal")) return c.fail(where, k + ": give \"canKill\" or \"lethal\" (the same thing), not both");
+    for (const char* kw : {"canKill", "lethal"})  // "lethal" is another name for "canKill" (docs/SRPG.md section 9); the default is false either way
+      if (v.has(kw)) {
+        if (!v[kw].isBool()) return c.fail(where, k + ": \"" + kw + "\" must be true or false");
+        out.kill = v[kw].asBool();
+      }
     if (v.has("percent")) {
       if (!LoadCtx::isWhole(v["percent"]) || v["percent"].asInt() < 1 || v["percent"].asInt() > 100)
         return c.fail(where, k + ": \"percent\" must be a whole number from 1 to 100");
@@ -455,6 +457,14 @@ bool readAmount(const LoadCtx& c, Database& db, const Json& v, const std::string
       return true;
     }
     amount = v.has("amount") ? &v["amount"] : &v["formula"];
+  }
+  if (hurt && amount->isArray()) {  // [lo, hi]: a roll of the battle's random numbers each time (docs/SRPG.md section 9 "Damage that varies")
+    if (amount->size() != 2 || !LoadCtx::isWhole((*amount)[0]) || !LoadCtx::isWhole((*amount)[1]) || (*amount)[0].asInt() < 1 ||
+        (*amount)[1].asInt() > 1000000 || (*amount)[1].asInt() <= (*amount)[0].asInt())
+      return c.fail(where, k + ": a range must be [lowest, highest], whole numbers from 1 up with the highest above the lowest (a single number needs no range)");
+    out.value = (*amount)[0].asInt();
+    out.valueMax = (*amount)[1].asInt();
+    return true;
   }
   if (amount->isString()) {
     if (amount->asString().empty()) return c.fail(where, k + " formula must not be empty");

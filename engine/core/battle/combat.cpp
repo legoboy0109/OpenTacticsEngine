@@ -78,19 +78,20 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
 }
 
 bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out,
-                           CombatSetup& setup) const {
+                           CombatSetup& setup, bool story) const {
   out = Forecast();
   if (attacker < 0 || attacker >= (int)units.size() || defender < 0 ||
       defender >= (int)units.size() || !grid.valid(from))
     return false;
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
-  if (!a.alive || !d.alive || !mayFight(a, d) || !unitVisibleTo(teamOf(a), d)) return false;  // fog: not what it cannot see
+  if (!a.alive || !d.alive) return false;
+  if (!story && (!mayFight(a, d) || !unitVisibleTo(teamOf(a), d))) return false;  // fog: not what it cannot see
   std::vector<int> owned;
   attackWeaponsAt(a, from, owned);  // (the structure it would stand on may add a weapon)
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
-  if ((a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
-  if (!weaponInRange(weapon, grid.distance(from, d.cell))) return false;
+  if (!story && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
+  if (!story && !weaponInRange(weapon, grid.distance(from, d.cell))) return false;
 
   CombatMods modsA, modsD;
   setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
@@ -195,6 +196,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       hit = false;
       e.flags &= ~kCrit;
     } else {
+      if (fightSpare_ && damage >= target.hp) damage = std::max(0, target.hp - 1);  // a staged fight with "lethal": false
       if (strike.survive && target.hp > 1 && damage >= target.hp) {
         damage = target.hp - 1;
         e.flags |= kSurvived;
@@ -256,7 +258,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
       if (units[atk].alive) inflictCondition(atk, fx->conds[0], fx->turns, def, events);
   }
   // 7. Wear, drops, defeat.
-  if (slot >= 0) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
+  if (slot >= 0 && !fightNoWear_) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
   if (mapStrike) spendMapWeapon(setup.mapStructure, events);  // ... and the structure's weapon likewise
   if (e.flags & kKill) {
     // What the fallen unit was marked to drop goes to the one who struck it down.
@@ -327,29 +329,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
     }
   }
 
-  if (db->rules.progression) {
-    FormulaCtx ctx;
-    ctx.sides = &sides;
-    ctx.battle = this;
-    // Attacker's reward.
-    if (units[a].alive && units[d].hp < hpD) {
-      ctx.a = &units[a];
-      ctx.b = &units[d];
-      Formulas::Slot slot = units[d].alive ? Formulas::XpHit : Formulas::XpKill;
-      awardXp(a, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
-    } else if (units[a].alive && fightStrikes_[0] > 0) {
-      awardXp(a, xpNoDamage(a, d), events);  // "xpNoDamage": a fight that did no damage (nothing unless the game sets it)
-    }
-    // Defender's reward for a successful counter.
-    if (units[d].alive && units[a].hp < hpA) {
-      ctx.a = &units[d];
-      ctx.b = &units[a];
-      Formulas::Slot slot = units[a].alive ? Formulas::XpHit : Formulas::XpKill;
-      awardXp(d, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
-    } else if (units[d].alive && fightStrikes_[1] > 0) {
-      awardXp(d, xpNoDamage(d, a), events);  // only a defender that really struck back
-    }
-  }
+  fightExperience(a, d, hpA, hpD, events);
   ranksAfterCombat(events, combatFrom, a, d);  // weapon ranks, growth "use" (docs/SRPG.md section 7); nothing otherwise
   // After the experience: "defeat" / "afterCombat" skills and supports' "fought together" (docs/SRPG.md "Combat
   // pipeline"), and only then the attacker's order ends (a skill may let it act again). A fallen attacker keeps
@@ -357,6 +337,31 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   srpgAfterCombat(a, d, hpA, hpD, events);
   fightMarks_.clear();  // the afterCombat blocks were the last to ask
   if (units[a].alive) endOrder(a, true);
+}
+
+void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events) {
+  if (!db->rules.progression) return;
+  FormulaCtx ctx;
+  ctx.sides = &sides;
+  ctx.battle = this;
+  // Attacker's reward.
+  if (units[a].alive && units[d].hp < hpD) {
+    ctx.a = &units[a];
+    ctx.b = &units[d];
+    Formulas::Slot slot = units[d].alive ? Formulas::XpHit : Formulas::XpKill;
+    awardXp(a, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
+  } else if (units[a].alive && fightStrikes_[0] > 0) {
+    awardXp(a, xpNoDamage(a, d), events);  // "xpNoDamage": a fight that did no damage (nothing unless the game sets it)
+  }
+  // Defender's reward for a successful counter.
+  if (units[d].alive && units[a].hp < hpA) {
+    ctx.a = &units[d];
+    ctx.b = &units[a];
+    Formulas::Slot slot = units[a].alive ? Formulas::XpHit : Formulas::XpKill;
+    awardXp(d, (int)std::floor(formulas->eval(slot, ctx, 0)), events);
+  } else if (units[d].alive && fightStrikes_[1] > 0) {
+    awardXp(d, xpNoDamage(d, a), events);  // only a defender that really struck back
+  }
 }
 
 void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {

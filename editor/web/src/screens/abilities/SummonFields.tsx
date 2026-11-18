@@ -7,6 +7,7 @@ import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { Check } from '../../ui/Toggle'
 import type { FormProps } from './AbilityEffectFields'
+import { SummonItems } from './SummonItems'
 import { T } from './text'
 
 export function SummonFields({ ability, change }: FormProps) {
@@ -43,6 +44,7 @@ export function SummonFields({ ability, change }: FormProps) {
         <Check label={T.summonVanish} help={T.summonVanishHelp} checked={s.vanish !== false} onChange={(v) => set({ vanish: v })} />
         <Check label={T.summonCanAct} help={T.summonCanActHelp} checked={s.canAct === true} onChange={(v) => set({ canAct: v })} />
         <Check label={T.summonXp} help={T.summonXpHelp} checked={s.givesXp !== false} onChange={(v) => set({ givesXp: v })} />
+        <SummonItems ability={ability} change={change} />
       </div>
     </Card>
   )

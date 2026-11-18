@@ -41,7 +41,7 @@ bool Battle::abilityStateOk(const Unit& u, int ability, Cell from, std::string* 
   if (d.effect == AbilityEffect::Steal && !stealRoomOk(u, why)) return false;
   if (d.effect == AbilityEffect::Summon) {
     const int have = summonCount(u.id, ability);
-    if (have >= d.summon.limit) {
+    if (have >= d.summon.limit && !d.summon.replace) {  // with "replace" the oldest one makes room (summons.cpp)
       const std::string& name = db->unitTypes[(size_t)d.summon.type].name;
       return refuse(why, "already has " + std::to_string(have) + " summoned " + name + (have == 1 ? "" : "s"));
     }
@@ -116,6 +116,10 @@ bool Battle::abilityTargetOk(const Unit& u, int ability, Cell from, int target, 
       break;
     case AbilityEffect::Heal:
       if (t->hp >= maxHp(*t)) return refuse(why, "that unit is at full health");
+      break;
+    case AbilityEffect::None:  // only "inflict": refused where it could not take hold (immune, or already there for as long)
+      if (d.inflictCond >= 0 && inflictWhy(*t, d.inflictCond, d.inflictTurns) != 0)
+        return refuse(why, inflictWhy(*t, d.inflictCond, d.inflictTurns) == 1 ? "that unit is immune" : "that unit already has it");
       break;
     case AbilityEffect::Summon: break;
     case AbilityEffect::Unlock: break;  // handled above (a square, not a unit)

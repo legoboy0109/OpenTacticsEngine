@@ -142,7 +142,7 @@ export function effectText(doc: ProjectDoc, e: Extra, when?: When): string {
     }
     case 'hurt': {
       const a = amountOf(e, 'hurt')
-      const amount = a.kind === 'percent' ? `${a.value}% of its maximum HP` : a.kind === 'formula' ? `an amount from the formula ${a.text}` : `${a.value} HP`
+      const amount = a.kind === 'percent' ? `${a.value}% of its maximum HP` : a.kind === 'formula' ? `an amount from the formula ${a.text}` : a.kind === 'range' ? `${a.value} to ${a.max} HP (rolled each time)` : `${a.value} HP`
       const end = a.canKill ? ' (can defeat it)' : ' (never below 1)'
       if (e.to === 'self') return `loses ${amount}${end}`
       return e.to === 'enemies' || (e.to === undefined && when === 'turnStart') ? `hurts enemies within ${squares(e.within ?? 1)} for ${amount}${end}` : `hurts the foe for ${amount}${end}`

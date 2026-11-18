@@ -1,6 +1,7 @@
 import { battleSceneMode, setBattleSceneMode, type BattleSceneMode } from '../../model/battleArt'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
+import { BattleSceneChoices } from './BattleSceneChoices'
 import { T } from './text'
 
 const MODES: BattleSceneMode[] = ['map', 'scene']
@@ -19,6 +20,7 @@ export function BattleViewCard() {
         ))}
       </div>
       <p className="help">{T.battleViewChoices[mode].help}</p>
+      <BattleSceneChoices />
     </Card>
   )
 }

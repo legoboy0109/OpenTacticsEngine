@@ -32,18 +32,18 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
   if (!v.isObject()) return c.fail(at, "\"summon\" must be an object such as { \"type\": \"hound\" }");
   const std::string in = "\"summon\": ";
   for (const Json::Member& m : v.members()) {
-    static const char* const keys[] = {"type", "level", "limit", "vanish", "lifetime", "canAct", "givesXp"};
+    static const char* const keys[] = {"type", "level", "limit", "vanish", "lifetime", "canAct", "givesXp", "items", "pick", "replace"};
     bool known = false;
     for (const char* k : keys) known = known || m.first == k;
     if (!known)
-      return c.fail(at, in + "unknown key " + q(m.first) + " (expected \"type\", \"level\", \"limit\", \"vanish\", \"lifetime\", \"canAct\", \"givesXp\")");
+      return c.fail(at, in + "unknown key " + q(m.first) + " (expected \"type\", \"level\", \"limit\", \"vanish\", \"lifetime\", \"canAct\", \"givesXp\", \"items\", \"pick\", \"replace\")");
   }
   if (!v.has("type") || !v["type"].isString() || v["type"].asString().empty())
     return c.fail(at, in + "\"type\" must be the id of a unit type");
   out.typeId = v["type"].asString();
   if (v.has("level")) {
     const Json& l = v["level"];
-    if (l.isString() && l.asString() == "summoner") out.level = 0;
+    if (l.isString() && (l.asString() == "summoner" || l.asString() == "user")) out.level = 0;  // "user" is another name for "summoner"
     else if (LoadCtx::isWhole(l) && l.asInt() >= 1 && l.asInt() <= db.rules.maxLevel) out.level = l.asInt();
     else return c.fail(at, in + "\"level\" must be \"summoner\" or a whole number from 1 to " + std::to_string(db.rules.maxLevel));
   }
@@ -56,8 +56,35 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
   };
   if (!range("limit", 1, 20, out.limit) || !range("lifetime", 0, 99, out.lifetime)) return false;
   if (!c.boolean(v, "vanish", at, out.vanish) || !c.boolean(v, "canAct", at, out.canAct) ||
-      !c.boolean(v, "givesXp", at, out.givesXp))
+      !c.boolean(v, "givesXp", at, out.givesXp) || !c.boolean(v, "replace", at, out.replace))
     return false;
+  if (v.has("pick")) {
+    if (!v.has("items")) return c.fail(at, in + "\"pick\" goes with \"items\" (which candidate the summon carries)");
+    if (!v["pick"].isString() || (v["pick"].asString() != "highest" && v["pick"].asString() != "random"))
+      return c.fail(at, in + "\"pick\" must be \"highest\" (the candidate with the highest \"minLevel\" that fits, the default) or \"random\"");
+    out.pickRandom = v["pick"].asString() == "random";
+  }
+  if (v.has("items")) {
+    const Json& list = v["items"];
+    if (!list.isArray() || list.size() == 0 || list.size() > 8)
+      return c.fail(at, in + "\"items\" must be a list of 1 to 8 candidates such as { \"item\": \"iron_sword\", \"minLevel\": 1 }");
+    for (size_t i = 0; i < list.size(); ++i) {
+      const Json& it = list[i];
+      const std::string w = in + "\"items\" candidate " + std::to_string(i + 1) + ": ";
+      if (!it.isObject()) return c.fail(at, w + "must be { \"item\": item id, \"minLevel\": number }");
+      for (const Json::Member& m : it.members())
+        if (m.first != "item" && m.first != "minLevel") return c.fail(at, w + "unknown key " + q(m.first) + " (expected \"item\", \"minLevel\")");
+      SummonItem s;
+      if (!it.has("item") || !it["item"].isString() || it["item"].asString().empty()) return c.fail(at, w + "\"item\" must be the id of an item");
+      s.id = it["item"].asString();
+      if (it.has("minLevel")) {
+        if (!LoadCtx::isWhole(it["minLevel"]) || it["minLevel"].asInt() < 1 || it["minLevel"].asInt() > db.rules.maxLevel)
+          return c.fail(at, w + "\"minLevel\" must be a whole number from 1 to " + std::to_string(db.rules.maxLevel));
+        s.minLevel = it["minLevel"].asInt();
+      }
+      out.items.push_back(s);
+    }
+  }
   return true;
 }
 
@@ -165,8 +192,13 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
     a.maxRange = r[1].asInt();
   }
 
-  if (!e.has("effect")) return c.fail(where, "missing required \"effect\"");
-  if (!readEffect(c, db, e["effect"], where, a)) return false;
+  if (e.has("effect")) {
+    if (!readEffect(c, db, e["effect"], where, a)) return false;
+  } else if (e.has("inflict")) {
+    a.effect = AbilityEffect::None;  // an ability whose only doing is "inflict" (docs/SRPG.md "An ability with no effect of its own")
+  } else {
+    return c.fail(where, "missing required \"effect\" (an ability may leave it out only when it has an \"inflict\")");
+  }
 
   // Target against effect.
   const char* name = a.effect == AbilityEffect::Push ? "push" : a.effect == AbilityEffect::Pull ? "pull"
@@ -198,6 +230,9 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
       break;
     case AbilityEffect::Summon:
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"summon\" needs \"target\": \"cell\"");
+      break;
+    case AbilityEffect::None:
+      if (a.target == AbilityTarget::Cell) return c.fail(where, "an ability with only \"inflict\" needs a target unit: \"target\" must be \"self\", \"ally\", \"enemy\" or \"unit\"");
       break;
     case AbilityEffect::Unlock:
       if (a.target != AbilityTarget::Cell) return c.fail(where, "\"unlock\" needs \"target\": \"cell\" (a square of the door or chest)");
@@ -278,6 +313,10 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
     if (a.effect == AbilityEffect::Summon) {
       a.summon.type = db.findUnitType(a.summon.typeId);
       if (a.summon.type < 0) return c.fail(where, "\"summon\": unknown unit type \"" + a.summon.typeId + "\"");
+      for (SummonItem& s : a.summon.items) {
+        s.item = db.findItem(s.id);
+        if (s.item < 0) return c.fail(where, "\"summon\": \"items\" names unknown item \"" + s.id + "\" (data/items.json)");
+      }
     }
     if (a.effect == AbilityEffect::Unlock && !a.unlockNeedsId.empty()) {
       a.unlockNeeds = db.findItem(a.unlockNeedsId);

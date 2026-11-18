@@ -15,6 +15,7 @@ import { GroundSightCard } from '../fog/GroundSightCard'
 import { TerrainBlocksSight } from '../fog/LightParts'
 import { MC } from '../maps/editor/story/forms/mapChangeText'
 import { MoveCosts } from './MoveCosts'
+import { WeatherCosts } from './WeatherCosts'
 import { T } from './text'
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -62,6 +63,7 @@ export function TerrainForm({ id }: { id: string }) {
       )}
 
       <Card><MoveCosts id={id} /></Card>
+      <WeatherCosts id={id} />
 
       <Card>
         <KeyNumberTable label={T.numbers} help={T.numbersHelp} rows={propRows} emptyText={T.numbersEmpty}

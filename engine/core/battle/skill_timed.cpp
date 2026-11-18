@@ -30,7 +30,7 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
   auto amountOf = [&](int target, const SkillEffect& e) -> int {
     const Unit& t = units[(size_t)target];
     if (e.percent) return std::max(1, (int)((long long)maxHp(t) * e.value / 100));
-    if (e.expr < 0) return e.value;
+    if (e.expr < 0) return e.valueMax > e.value ? e.value + rng.range(e.valueMax - e.value + 1) : e.value;  // "amount": [lo, hi] rolls, a number does not
     FormulaCtx fc;
     fc.sides = &sides;
     fc.battle = this;

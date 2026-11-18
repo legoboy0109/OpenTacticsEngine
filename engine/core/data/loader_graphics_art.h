@@ -16,6 +16,8 @@ bool readTilesets(const LoadCtx& c, Database& db, const Json& root);
 // A map file's "tileLayer" (loader_map_tiles.cpp); needs the tilesets and the map's size.
 bool readMapTileLayer(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 // A map file's "battleBackground".
+bool readMapBattleTables(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);  // "battleBackgrounds" / "battlePlatforms"
+bool readMapWeather(const LoadCtx& c, const Json& root, MapDef& m);  // "weather" (loader_weather.cpp)
 bool readMapBattleBackground(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 
 }  // namespace ote

@@ -1,5 +1,5 @@
 // The form of one ability: name, what it does and on whom, cost and limits, conditions, and the sentence it adds up to.
-import { EFFECT_KINDS, TARGETS_FOR, effectKind, hasFixedRange, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
+import { EFFECT_KINDS, NO_EFFECT, targetsFor, effectKind, hasFixedRange, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
 import { abilitySummary } from '../../model/abilityText'
 import { withAbilities } from '../../model/doc'
 import type { Ability, AbilityTarget } from '../../model/srpgTypes'
@@ -31,7 +31,7 @@ export function AbilityForm({ id }: { id: string }) {
   const [rmin, rmax] = rangeOf(ability)
   const far = rmax > 1
   // Offer only the targets the effect accepts; the one the file has stays even when it is wrong, so the select shows it.
-  const allowed = kind ? TARGETS_FOR[kind] : (Object.keys(T.targets) as AbilityTarget[])
+  const allowed = kind ? targetsFor(kind) : (Object.keys(T.targets) as AbilityTarget[])
   const targetOptions = [...new Set([...allowed, target])].map((t) => ({ value: t, label: kind === 'unlock' && t === 'cell' ? (far ? T.unlockTarget : T.unlockTargetNext) : far && T.targetsFar[t] ? T.targetsFar[t] : T.targets[t] }))
   const showRange = kind !== null && !hasFixedRange(kind) && target !== 'self'
 
@@ -54,7 +54,7 @@ export function AbilityForm({ id }: { id: string }) {
         <div className="stack">
           <FormGrid>
             <Field label={T.effect} help={kind ? T.effectHelp[kind] : undefined}>
-              <Select value={kind ?? ''} placeholder={kind ? undefined : '—'} options={EFFECT_KINDS.map((k) => ({ value: k, label: T.effects[k] }))}
+              <Select value={kind ?? ''} placeholder={kind ? undefined : '—'} options={[...EFFECT_KINDS, ...(kind === NO_EFFECT || (doc.conditions?.length ?? 0) > 0 ? [NO_EFFECT] : [])].map((k) => ({ value: k, label: T.effects[k] }))}
                 onChange={(v) => change((a) => setEffectKind(doc, a, v as (typeof EFFECT_KINDS)[number]))} />
             </Field>
             <Field label={T.target} help={T.targetHelp}>

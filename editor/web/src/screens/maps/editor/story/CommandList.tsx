@@ -36,7 +36,7 @@ interface Props {
 
 const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.dialogue, kinds: ['say', 'choice'] },
-  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup', 'showUnit'] },
+  { group: S.commandGroups.units, kinds: ['addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'addCondition', 'removeCondition', 'addSupport', 'setBehaviour', 'wakeGroup', 'showUnit', 'fight'] },
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
@@ -83,6 +83,7 @@ function menu(story: Story, talk: boolean): OptionGroup[] {
     switchParty: doc.campaign?.parties?.length ? null : PT.noParties,
     mergeParties: (doc.campaign?.parties?.length ?? 0) > 1 ? null : PT.noParties,
     storeItems: storageMode(doc) === 'off' ? EX.noStorage : doc.items?.length ? null : 'no items yet',
+    fight: story.units.length >= 2 ? null : 'needs two named units',
     applyChange: changeIds(story.map).length ? null : MC.noChangesYet, revertChange: changeIds(story.map).length ? null : MC.noChangesYet,
   }
   // A support conversation (`scene.only`) takes the listed kinds and nothing else.

@@ -27,7 +27,7 @@ class FightScene {
     const BattleView* view = nullptr;   // the hit points shown when the fight starts
     const Sprites* sprites = nullptr;   // textures of the game's sheets (null = placeholders only)
     int styleIndex = 0;                 // the visual style in use (the fallback picture is the map picture of that style)
-    int mapBackground = -1;             // the map's own background (index into Graphics::battle.backgrounds) or -1
+    const MapDef* map = nullptr;        // the map being played: its own background and platform tables (core/data/battle_pick.h)
     GameAudio* audio = nullptr;         // null = silent
     const std::map<std::pair<int, int>, Forecast>* forecasts = nullptr;  // by (attacker, defender), taken before the fight
     // Per unit: levels (and maximum hit points) the fight's experience adds after it (BattleView::FightRun).
@@ -85,6 +85,7 @@ class FightScene {
   struct Geo;  // positions for the size of the screen
   Geo geometry(const Renderer& r) const;
   void drawBackground(Renderer& r, const Geo& g) const;
+  void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
   void drawEffects(Renderer& r, const Geo& g) const;
   void drawBox(Renderer& r, const Geo& g, int side) const;
@@ -103,6 +104,8 @@ class FightScene {
   std::vector<Float> floats_;
   int terrain_ = -1;                 // the terrain under the struck fighter (background and ground colour)
   int background_ = -1;
+  int platform_ = -1;                // the picture under each fighter (index into Graphics::battle.platforms) or -1
+  bool platformFar_ = false;         // the fight is at range 2+: the platform's `far` picture when it has one
   double flash_ = -10;               // when the last critical hit landed (white flash)
   bool skipped_ = false;
 };

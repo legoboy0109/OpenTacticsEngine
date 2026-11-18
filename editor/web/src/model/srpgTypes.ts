@@ -64,6 +64,8 @@ export interface Condition extends Named {
 /** The `summon` effect of an ability (section 4); only `type` is required, a default is never written. */
 export interface Summon extends Extra {
   type?: string; level?: 'summoner' | number; limit?: number; vanish?: boolean; lifetime?: number; canAct?: boolean; givesXp?: boolean
+  /** What the summon carries (docs/SRPG.md "Summoning"): candidates with the level the summoner must reach, which one is picked, and whether it replaces the oldest at its limit. */
+  items?: Array<{ item: string; minLevel?: number }>; pick?: 'highest' | 'random'; replace?: boolean
 }
 /** An ability's one effect: exactly one of these keys. */
 /** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */

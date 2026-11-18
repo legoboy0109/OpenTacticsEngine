@@ -153,6 +153,16 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (scene != "map" && scene != "scene")
     return c.fail("", "\"battleScene\" must be \"map\" (quick fights on the map) or \"scene\" (the side-view battle scene), got \"" + scene + "\"");
   db.battleSceneDefault = scene == "scene";
+  std::string bgFrom = "defender";  // docs/BATTLE_SCENE.md "Which background and platform"
+  if (!c.str(root, "battleBackgroundFrom", "", bgFrom)) return false;
+  if (bgFrom != "defender" && bgFrom != "attacker")
+    return c.fail("", "\"battleBackgroundFrom\" must be \"defender\" (the square of the fighter that is struck, the default) or \"attacker\", got \"" + bgFrom + "\"");
+  db.battleBackgroundFromAttacker = bgFrom == "attacker";
+  std::string sides = "map";  // docs/BATTLE_SCENE.md "Which side each fighter stands on"
+  if (!c.str(root, "battleSceneSides", "", sides)) return false;
+  if (sides != "map" && sides != "playerRight" && sides != "playerLeft")
+    return c.fail("", "\"battleSceneSides\" must be \"map\" (the unit nearer the left edge of the map stands on the left, the default), \"playerRight\" or \"playerLeft\", got \"" + sides + "\"");
+  db.battleSceneSides = sides == "playerRight" ? 1 : sides == "playerLeft" ? 2 : 0;
 
   if (!readGameGrid(c, root, db)) return false;
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "core/base/log.h"
+#include "core/data/battle_pick.h"
 #include "sound/game_audio.h"
 #include "ui/text.h"
 
@@ -72,9 +73,11 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
     f.maxHp = std::max(f.hp, std::max(1, b.maxHp(u) - gained(env.hpGained)));
     cells[i] = cellOf(b, run, u.id);
     f.x = cells[i] == kNoCell ? 0 : b.grid.x(cells[i]);
+    f.human = !b.sides[(size_t)u.side].ai;
     info.units[u.id] = f;
   }
   info.distance = cells[0] != kNoCell && cells[1] != kNoCell ? std::max(1, b.grid.distance(cells[0], cells[1])) : 1;
+  info.sidesMode = db.battleSceneSides;
   for (const SkillDef& s : db.skills) info.skillNames.push_back(s.name);
   for (const ConditionDef& c : db.conditions) info.conditionNames.push_back(c.name);
   for (const ItemDef& it : db.items) info.itemNames.push_back(it.name);
@@ -154,14 +157,18 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
   tl_ = buildTimeline(script_, times, fx);
 
-  // Background: the map's own, else the terrain under the struck fighter, else the game's default (else generated).
-  const int struck = 1 - script_.initiator;
-  const Cell where = cells[script_.side[struck].unit == pair[0] ? 0 : 1];
+  // Background and platform (docs/BATTLE_SCENE.md "Which background and platform"): by the terrain under the struck fighter, or under the
+  // attacker with game.json "battleBackgroundFrom": "attacker"; the map's own table first, then the game's.
+  const int deciding = db.battleBackgroundFromAttacker ? script_.initiator : 1 - script_.initiator;
+  const Cell where = cells[script_.side[deciding].unit == pair[0] ? 0 : 1];
   terrain_ = where != kNoCell ? (int)b.cells[(size_t)where].terrain : -1;
-  background_ = env.mapBackground;
-  if (background_ < 0 && terrain_ >= 0 && (size_t)terrain_ < art.terrainBackground.size()) background_ = art.terrainBackground[(size_t)terrain_];
-  if (background_ < 0) background_ = art.defaultBackground;
+  const MapDef noMap;
+  const MapDef& mapDef = env.map ? *env.map : noMap;
+  background_ = pickBattleBackground(db, mapDef, terrain_);
   if (background_ >= 0 && (!env.sprites || env.sprites->texture(art.backgrounds[(size_t)background_].sheet) == 0)) background_ = -1;
+  platform_ = pickBattlePlatform(db, mapDef, terrain_);
+  platformFar_ = script_.ranged();
+  if (platform_ >= 0 && (!env.sprites || env.sprites->texture(art.platforms[(size_t)platform_].sheet) == 0)) platform_ = -1;
 
   t_ = 0;
   nextBeat_ = 0;
@@ -172,6 +179,11 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   OTE_INFO("battle scene: start %s (Lv %d) vs %s (Lv %d), %s, %d strike(s)", fighter_[0].name.c_str(), fighter_[0].level,
            fighter_[1].name.c_str(), fighter_[1].level,
            script_.ranged() ? ("ranged, " + intStr(script_.distance) + " squares").c_str() : "melee", (int)script_.strikes.size());
+  // Only a game that uses the newer picks (platforms, a map's table, "attacker") says which picture it chose: every other game logs what it always did.
+  const bool pickLog = db.battleBackgroundFromAttacker || !art.platforms.empty() || !mapDef.bgByTerrain.empty() || mapDef.bgDefault >= 0;
+  if (db.battleSceneSides != 0) OTE_INFO("battle scene: left %s, right %s", fighter_[0].name.c_str(), fighter_[1].name.c_str());
+  if (pickLog && background_ >= 0) OTE_INFO("battle scene: background \"%s\" (terrain %s)", art.backgrounds[(size_t)background_].id.c_str(), terrain_ >= 0 ? db.terrains[(size_t)terrain_].id.c_str() : "none");
+  if (platform_ >= 0) OTE_INFO("battle scene: platform \"%s\"%s", art.platforms[(size_t)platform_].id.c_str(), platformFar_ && art.platforms[(size_t)platform_].hasFar ? " (far)" : "");
   for (int s = 0; s < 2; ++s)
     if (fighter_[s].hit >= 0 || fighter_[s].crit >= 0)
       OTE_INFO("battle scene: %s chances: hit %d%% crit %d%%", fighter_[s].name.c_str(), fighter_[s].hit, fighter_[s].crit);

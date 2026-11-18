@@ -3,6 +3,7 @@
 // is there. Every interface lists all the keys any kind may use as optional, so the forms stay simple, and carries an
 // index signature so a key the editor does not know survives load -> edit -> save.
 import type { Behaviour } from './behaviour'
+import type { FightSpec } from './storyFight'
 import type { Extra, ItemEntry, MapUnit } from './types'
 
 /** A rectangle of squares, 0-based as stored (the editor shows 1-based numbers). */
@@ -111,6 +112,8 @@ export interface Command extends Extra {
   hide?: boolean
   /** The hidden unit that comes back at (x, y). */
   showUnit?: string
+  /** A staged fight between two named units (docs/EVENTS.md "A staged fight"; storyFight.ts). */
+  fight?: FightSpec
   moveUnit?: string
   x?: number
   y?: number
@@ -231,7 +234,7 @@ export type CommandKind =
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
   | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate' | 'enter' | 'move'
   | 'setPhaseMusic'
-  | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit'
+  | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit' | 'fight'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
   'say', 'choice', 'addUnit', 'removeUnit', 'moveUnit', 'changeSide', 'promote', 'teachSkill', 'forgetSkill', 'giveItem', 'takeItem', 'giveResource',
@@ -239,7 +242,7 @@ export const COMMAND_KINDS: CommandKind[] = [
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
   'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',
-  'storeItems', 'switchParty', 'mergeParties', 'showUnit', 'setPhaseMusic',
+  'storeItems', 'switchParty', 'mergeParties', 'showUnit', 'fight', 'setPhaseMusic',
   // The stage commands enter / move (docs/EVENTS.md "Standing portraits"); their keys are not the scene kinds' keys, so they sit before them
   'enter', 'move',
   // Scene presentation (kept LAST: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)

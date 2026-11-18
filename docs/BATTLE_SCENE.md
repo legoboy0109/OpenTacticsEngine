@@ -8,6 +8,8 @@ sets. Presentation only: the rules core's event stream is the single source of t
 ## Settings
 
 - `game.json` `"battleScene": "map" | "scene"` (default `"map"`): the maker's default. Existing games stay on the map.
+- `game.json` `"battleBackgroundFrom": "defender" | "attacker"` (default `"defender"`): whose square decides the background and the platform ("Which background and platform").
+- `game.json` `"battleSceneSides": "map" | "playerRight" | "playerLeft"` (default `"map"`): which side each fighter stands on ("Which side each fighter stands on").
 - Player option **Battle animations**: *Game default* / *Scene* / *On the map* (options screen, global or per game, saved in the
   settings file as `battleScene`, effective at once). Command line `--battle-scene scene|map` beats it for one run.
 - Order: command line > per-game option > global option > the game's default.
@@ -23,7 +25,55 @@ rest of the fight to its result. A fight out of the viewer's sight (fog) is not 
 
 Log lines (`[info] battle scene: ...`) for tests: `start A (Lv n) vs B (Lv n), melee|ranged, N strike(s)`, `X art: set "id"|map
 picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of its own for the set), `skill NAME (unit)`, `strike A -> B [(counter)] [(crit)]`, `hit|crit A -> B DMG`, `miss A -> B`, `drain X +n`, `recoil X -n`,
-`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order).
+`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). Also, only in a game that uses the newer settings: `left A, right B` (who stands where, with `battleSceneSides`), `background "id" (terrain t)` (when the game has platforms, a map table or `battleBackgroundFrom: attacker`) and `platform "id"` (when one is used); a game with none of them logs exactly what it always did.
+
+## Which side each fighter stands on
+
+By default (`"battleSceneSides": "map"`, today's rule) the unit standing nearer the left edge of the map stands on the left; in the same column the one
+that started the fight does. **`"playerRight"`**: a fighter controlled by a person always stands on the **right** and the computer's fighter on the left
+(the classic handheld layout); **`"playerLeft"`** is the opposite. When **both or neither** fighter is a person's (a hot-seat game, or two computers),
+the map rule decides. "A person's" = the side's `controller` is not `ai`. Everything that depends on the side index follows, because the scene only
+knows left and right: the mirroring (`faces`, `mirror`), the per-side sheets, which way an effect travels, the hit-point boxes and names, the floating
+numbers. Presentation only: no save, hash or `ote-sim` result changes. Code: `initiatorStandsLeft` in `fight_script.*` (pure, unit-tested),
+`FightInfo::sidesMode`. Log: the line `battle scene: left A, right B` after `start`, only in a game that sets `battleSceneSides` (in the default the `start` line names the left fighter first, as it always did).
+
+## Which background and platform
+
+The background comes from the terrain under **one** fighter's square: the fighter that is struck (`"battleBackgroundFrom": "defender"`, today's rule and
+the default) or the one that attacks (`"attacker"`); the platform from the same square. The picture is chosen, first match wins:
+
+1. the **map's table** entry for that terrain: the map file's `"battleBackgrounds": { "swamp": "bog", "default": "meadow" }`;
+2. the map's single `"battleBackground": "id"` (as before: one picture for the whole map);
+3. the map table's `"default"`;
+4. the game-wide table: `terrainBackground` of `data/graphics.json` `"battle"` for that terrain;
+5. the game's `defaultBackground`; then the generated sky and ground in the terrain's colour, as before.
+
+So a map that writes a table wins over the game's whole table (its `"default"` too, which beats the game's entry for a terrain the map did not name); a map with
+no table behaves exactly as before. The table's keys are terrain ids and `"default"`; its values are background ids of `"battle"` > `"backgrounds"`. Refusals
+(in the map file): `"battleBackgrounds" must be { "<terrain id>": "<background id>", "default": "<id>" }` (not an object, or empty), `there is no terrain with this id`
+(use a terrain id, or "default"), `there is no background "x"`. `"battleBackgroundFrom"` other than the two is refused in `game.json`.
+Log: `battle scene: background "bog" (terrain swamp)`. Pure function: `pickBattleBackground` (`core/data/battle_pick.*`).
+
+## Platforms
+
+The engine had no platforms (the fighters stood on a ground line with a shadow), so a small one was built: a **platform** is a picture drawn **under
+each fighter**, centred on the fighter's feet, enlarged by the same whole number as the fighter, behind it (the shadow is drawn over it). One picture per
+terrain, an optional `far` picture used instead when the fight is at range 2 or more.
+
+```jsonc
+"battle": {
+  "platforms": { "grass": { "sheet": "plat", "cell": [0, 0], "far": [1, 0] }, "boards": { "sheet": "plat", "cell": [2, 0] } },
+  "terrainPlatform": { "plain": "grass", "swamp": "boards" },     // the game-wide table
+  "defaultPlatform": "grass"
+}
+```
+
+A map may override per terrain with `"battlePlatforms": { "swamp": "boards", "default": "grass" }` in the map file (same rules and order as the background,
+without a "single picture" step). Which square decides: `battleBackgroundFrom` (the same square as the background; both fighters stand on the same kind of
+platform). A platform's image is a normal sheet; `cell` / `far` are `[column, row]` of it, the piece size is the sheet's cell size. Refusals:
+`unknown sheet`, a cell outside the sheet, an id called `default`, unknown keys, `there is no platform "x"` (in the tables), `there is no terrain with this id`.
+Not built (on purpose, small): a platform per fighter's own terrain, platform animation, flipping. Log: `battle scene: platform "grass" (far)`.
+Pure function: `pickBattlePlatform`. Editor: Art > Platforms; Terrain > "Weather and platform"; map settings.
 
 ## Data: `data/graphics.json` key `"battle"`
 
@@ -92,8 +142,8 @@ picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of 
   `battle set "knight" animation "attack": sound "x" is not in data/audio.json "sounds"`). They come on top of the impact sounds by weapon / unit type
   (`hit`, `miss`, `critical`), which still play at the hit frame. A fighter on the fallback motion (no animation) has none; a skipped scene is silent. The log
   says `battle scene: sound swing (Eirik)`. Time order is kept: a sound is a beat of the timeline at the frame's start.
-- **Backgrounds**: picture per terrain of the struck fighter, a map's own (`"battleBackground": "id"` in the map file) wins; then the
-  default; then a generated sky and ground in the terrain's colour. A background is scaled up by a whole number to cover the screen.
+- **Backgrounds**: picture per terrain of the struck fighter (or the attacker's, "Which background and platform"), a map's own table or
+  `"battleBackground": "id"` in the map file wins; then the default; then a generated sky and ground in the terrain's colour. A background is scaled up by a whole number to cover the screen.
 - Side colours come from per-side sheets (above); there is no tint.
 - Refusals (plain English, `data/graphics.json: battle set "knight": needs a "stand" animation ...`): unknown sheet / animation /
   set / unit type / character / weapon / weapon group / terrain / background, a frame outside the sheet, more than 512 frames, `ms` count

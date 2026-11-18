@@ -51,7 +51,7 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
 // Music by situation (docs/SOUND.md), read in loader_story_music.cpp.
 constexpr const char* kMusicCommandKeys[] = {"setPhaseMusic"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
-constexpr const char* kExtrasCommandKeys[] = {"storeItems", "showUnit"};
+constexpr const char* kExtrasCommandKeys[] = {"storeItems", "showUnit", "fight"};
 
 }  // namespace
 
@@ -127,6 +127,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  if (kind && std::string(kind) == "fight") return fightCommand(e, where + " (fight)", out);
   if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
   if (kind && std::string(kind) == "setPhaseMusic") {
     out.kind = Command::Kind::SetPhaseMusic;

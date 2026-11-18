@@ -81,6 +81,7 @@ class StoryLoader {
   bool phaseMusicCommand(const Json& e, const std::string& at, Command& out);                    // loader_story_music.cpp: setPhaseMusic
   bool storeItemsCommand(const Json& e, const std::string& at, Command& out);                    // loader_story_store.cpp
   bool rosterCondition(const Json& e, const std::string& at, const char* kind, Condition& out) const;  // loader_story_roster.cpp: rosterAlive / rosterDead / inRoster
+  bool fightCommand(const Json& e, const std::string& at, Command& out);                         // loader_story_fight.cpp: fight
   bool showUnitCommand(const Json& e, const std::string& at, Command& out);                     // loader_story_roster.cpp
 
  private:

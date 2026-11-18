@@ -2066,7 +2066,7 @@ their own, and the forecasts see them. Hidden skills are never listed as skills 
 
 | Behaviour | Block | Notes |
 |---|---|---|
-| Damage each turn | `turnStart`: `{ "hurt": 5, "to": "self" }` | The amount is a number, `{ "percent": 10 }` (of the unit's maximum, at least 1), or a formula (`"hurt": "a.mag + 1"` / `{ "formula": "..." }`; `a` = the unit, `b` = nil). `to: "self"` is new (it joins `foe` and `enemies`). **Can it kill? No by default**: it leaves 1 HP, like every `hurt`. `{ "hurt": { "amount": 5, "canKill": true }, "to": "self" }` lets it defeat the unit (a normal death: `UnitHurt`, then `UnitDied`, drops are not paid, the story's "defeated" events and the win checks run once every unit's blocks of the turn have run) |
+| Damage each turn | `turnStart`: `{ "hurt": 5, "to": "self" }` | The amount is a number, a range `[1, 3]` rolled each time (section 11 "Damage that varies"), `{ "percent": 10 }` (of the unit's maximum, at least 1), or a formula (`"hurt": "a.mag + 1"` / `{ "formula": "..." }`; `a` = the unit, `b` = nil). `to: "self"` is new (it joins `foe` and `enemies`). **Can it kill? No by default**: it leaves 1 HP, like every `hurt`. `{ "hurt": { "amount": 5, "canKill": true }, "to": "self" }` lets it defeat the unit (a normal death: `UnitHurt`, then `UnitDied`, drops are not paid, the story's "defeated" events and the win checks run once every unit's blocks of the turn have run) |
 | Heal each turn | `turnStart`: `{ "heal": 4 }` | A number, `{ "percent": n }`, or now also a formula. `to: "self"` (default) or `allies` |
 | Cannot act | `always`: `{ "cannotAct": true }` or `{ "cannotAct": { "counter": true, "dodge": true } }` | The unit's turn is skipped (it is finished at the start of it). **Counterattack and dodge: both off by default** (a sleeper answers nothing and every strike on it hits, hit 100); `"counter": true` lets it still answer, `"dodge": true` lets its hit chance count as usual. The most restrictive of several conditions wins |
 | Cannot move | `always`: `{ "cannotMove": true }` | Its reach is its own square; it can still act |
@@ -2698,6 +2698,44 @@ another size; a placed `uses` on a kind without a weapon.
   under it, the red attack squares include what a ballista square would reach, the terrain info shows `Weapon  Bolt 2/3`, the unit panel `Bolt  2/3 r2-6`, the log
   line `map weapon: Mara fires Bolt from Ballista (spent)` (words: `engine/player/battle/mapweapon_text.h`).
 - Code: `core/data/loader_map_weapon.cpp`, `core/battle/mapweapon.cpp`, `save_mapweapon.cpp`, `ai/ai_order.cpp`.
+
+### An ability with no effect of its own
+
+`"effect"` may be left out when the ability has an `"inflict"`: `{ "id": "rally", "target": "ally", "inflict": { "condition": "boost", "turns": 4 }, "xp": 20 }`.
+The only thing it does is give the target the condition (immunity, `replaces` and "has it for as long already" as for any inflict; a target that
+cannot take it is refused with `that unit is immune` / `that unit already has it`), and pay `xp` to the user if the ability has one. Without an
+effect and without an inflict the loader still refuses: `missing required "effect" (an ability may leave it out only when it has an "inflict")`;
+`xp` alone is not enough. The target must be a unit (`self`, `ally`, `enemy`, `unit`), no `cell`. Core: `AbilityEffect::None`. **Computer
+opponent:** it never uses these (it does not use push, pull or swap either; its abilities are heal, summon, steal, cure and refresh). Player:
+the ability's line reads `Inflicts Boost for 4 turns`. Editor: Abilities, "What it does" > "No other effect" (offered when the game has conditions).
+Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
+
+### Damage that varies: a range for `hurt`
+
+`{ "hurt": [1, 3], "to": "self" }`, or `{ "hurt": { "amount": [1, 3], "canKill": true }, "to": "self" }` (also written `"lethal": true`: the same key
+under another name; giving both is refused). The two numbers are whole, from 1 up, the second above the first (`[2, 2]` is refused: write 2). Each time
+the effect hurts a unit, **one roll of the battle's random numbers** picks the amount, both ends included; a plain number still takes no roll, so
+games without a range play exactly as before. One roll per receiver (a `hurt` to `enemies` rolls once for each). **Can it kill?** The default is
+unchanged: **no**, it leaves 1 HP; `"canKill": true` / `"lethal": true` lets it defeat the unit (a normal death). A range is for `hurt` only (a heal
+with a range is refused). Core: `SkillEffect::valueMax`; code `core/battle/skill_timed.cpp`, `loader_skill_blocks.cpp`. Editor: Skills and
+Conditions, a damage effect's "How much" > "Anything from one number to another"; the "can defeat" box is the lethal switch. Saves: nothing new.
+
+### Summon follow-ups
+
+`level`, `limit` and the vanish rules existed (see "Summoning": `"level": "summoner"`, the default, is the summoner's level; `"user"` is accepted as
+another name for it; the summoned unit is made at that level by the usual level rule of a unit placed at that level). **New** keys of `summon`:
+
+- `"items": [ { "item": "fang", "minLevel": 1 }, { "item": "big_fang", "minLevel": 5 } ]` (1 to 8 candidates; `minLevel` default 1, at most the
+  game's level cap) with `"pick": "highest"` (default) or `"random"`. The summoned unit carries **one** candidate whose `minLevel` the **summoner's
+  level** reaches, **instead of its unit type's own items** (none fits: the type's own items). `highest` = the candidate with the highest `minLevel` that
+  fits (the first listed of equals); `random` = one of those that fit, by **one roll** of the battle's random numbers, **none when only one fits**.
+  `pick` without `items` is refused. Its items never drop, as before.
+- `"replace": true` (default false): at its `limit`, calling another **makes the oldest** living summon of this ability by this summoner vanish
+  (`UnitRemoved`, no defeat) and then makes the new one, so `"limit": 1, "replace": true` is "one pet, calling a new one sends the old one away". Without
+  `replace` the ability is still refused at the limit. **The computer opponent never replaces**: it summons only while under the limit.
+
+Core: `SummonDef::items / pickRandom / replace`; code `core/battle/summons.cpp`. Editor: Abilities, the summon card (a candidate list with the level each
+needs, "Which one it carries", "A new one replaces the oldest at the limit"). Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
 
 ### Already possible (nothing was added)
 

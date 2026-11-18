@@ -9,6 +9,7 @@ import { TextInput } from '../../../../ui/TextInput'
 import { T } from '../text'
 import type { MapViewState } from '../viewState'
 import { MapMusic } from '../../../sound/MapMusic'
+import { BattleSceneSettings } from './BattleSceneSettings'
 import { FogSettings } from './FogSettings'
 import { MapDifficulty } from './MapDifficulty'
 import { ResizeDialog } from './ResizeDialog'
@@ -30,6 +31,7 @@ export function SettingsPanel({ doc, map, mapId, vs }: { doc: ProjectDoc; map: M
         <button type="button" className="btn" onClick={() => setResizing(true)}>{T.resizeButton}</button>
       </div>
       <FogSettings doc={doc} map={map} mapId={mapId} vs={vs} />
+      <BattleSceneSettings doc={doc} map={map} mapId={mapId} />
       <MapMusic doc={doc} map={map} mapId={mapId} />
       <MapDifficulty doc={doc} map={map} mapId={mapId} />
       {resizing && <ResizeDialog doc={doc} map={map} mapId={mapId} onClose={() => setResizing(false)} />}

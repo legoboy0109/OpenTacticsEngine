@@ -92,6 +92,22 @@ struct UnitReading {
 
 struct Command;
 
+// A staged fight (docs/EVENTS.md "A staged fight", the `fight` command): who fights whom, and optionally the exact outcome of every strike.
+struct StoryFightStrike {
+  bool byAttacker = true;  // false = the defender strikes
+  int result = 0;          // 0 = hit, 1 = miss, 2 = crit
+  int damage = -1;         // -1 = the normal computed damage (a miss: 0)
+};
+struct StoryFight {
+  std::string attacker, defender;  // unit ids of the map
+  int weaponA = -1, weaponD = -1;  // indices into Database::weapons; -1 = the equipped one
+  bool scripted = false;           // `strikes` was written (an empty list is refused); false = real rolls
+  std::vector<StoryFightStrike> strikes;
+  bool lethal = true;  // false: nobody drops below 1 HP
+  bool xp = false;     // the fight gives experience
+  bool wear = false;   // the fight wears the weapons (uses, ammunition)
+};
+
 // One answer of a Choice command (docs/EVENTS.md "Dialogue choices"): its wording, an optional condition that hides
 // it, and the commands that run when it is picked.
 struct ChoiceAnswer {
@@ -131,7 +147,8 @@ struct Command {
     StoreItems,
     // docs/EVENTS.md "Taking a unit off the map and bringing it back": ShowUnit brings the hidden unit `unit` back at square (x, y).
     ShowUnit,
-    SetPhaseMusic  // docs/SOUND.md "Music by situation": `side` = the side, `text` = the music id (-1 = clear the override; "" = no phase music)
+    SetPhaseMusic,  // docs/SOUND.md "Music by situation": `side` = the side, `text` = the music id (-1 = clear the override; "" = no phase music)
+    Fight           // docs/EVENTS.md "A staged fight": `fight`
   };
   Kind kind = Kind::Say;
   // Say, Choice
@@ -157,6 +174,7 @@ struct Command {
   std::vector<ChoiceAnswer> answers;          // Choice: two to four
   std::vector<int> keep;                      // StoreItems: item indices that stay with the unit
   std::vector<Rect> rects;                    // SetTerrain: the squares (an "area" is one rect, "cells" one 1 x 1 rect each)
+  StoryFight fight;      // Fight
   SceneFx fx;            // Scene; also the presentation keys of Say (position, auto, narrate), Focus (ms, wait), MoveUnit (walk, wait)
 };
 

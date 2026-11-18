@@ -131,6 +131,7 @@ non-repeating event can still run at a later occurrence of its trigger.
 | `{ "changeSide": <filter>, "side": "blue" }` | matching living units join another side (recruiting); an unfinished capture is dropped |
 | `{ "giveItem": "salve", "to": <filter> }` | every matching living unit gets one, following the item rules (room: inventory, else the shared storage if the game has one, else lost) |
 | `{ "takeItem": "salve", "from": <filter>, "all": true }` | the opposite of `giveItem`: see "Taking an item away" below |
+| `{ "fight": { "attacker": "eirik", "defender": "brigand", "strikes": [ … ] } }` | two named map units fight, with every strike written down or with real rolls: see "A staged fight" below (map events only) |
 | `{ "storeItems": <filter>, "keep": ["salve"] }` | sends every item a unit carries (except the kept ones) to the side's shared storage: see "Sending a unit's items to storage" below |
 | `{ "openDoor": "d1" }`, `{ "closeDoor": "d1" }`, `{ "lockDoor": "d1" }`, `{ "unlockDoor": "d1" }`, `{ "openChest": "c1", "by": "tink" }` | doors and chests by their map `id` (docs/SRPG.md section 10): open a shut door, shut an open one (skipped while a unit stands in it), shut-and-lock / lock a door, take the lock off a door or chest (it stays shut), open a chest (the contents go to `by`, else to the first human side's storage / funds) |
 | `{ "setBehaviour": "hold" \| { "mode": "seek", "unit": "lord" }, "units": <filter> }`, `{ "wakeGroup": "ambush" }` | the computer's per-unit behaviour (docs/AI.md "Story commands", map events only): give matching computer units a new behaviour block (a guard starts asleep again); wake every waiting unit of a group. `addUnit` takes the same `"behaviour"` key as a map unit. To make a unit escape, send it to a square (`seek`) and remove it with a `reach` event |
@@ -292,6 +293,50 @@ A campaign scene has no acting unit: the scene loader refuses it (`"actor" is fo
 Loader refusals are those of a unit filter (`unknown unit "x"`, `unknown side`, `unknown key`, a filter that is not an object or an id). Code:
 `battle/story_actor.cpp` (and `StoryRun::actor` in `story_state.h`), `data/loader_story_actor.cpp`; tests `tests/test_extras_actor.cpp`,
 `tests/srpg_player_extras_test.py`.
+
+### A staged fight
+
+```jsonc
+{ "fight": { "attacker": "eirik", "defender": "brigand",
+             "strikes": [ { "by": "attacker", "result": "hit", "damage": 4 },
+                          { "by": "defender", "result": "miss" },
+                          { "by": "attacker", "result": "crit" } ],
+             "weapon": { "attacker": "iron_sword", "defender": "old_axe" },
+             "lethal": false, "xp": true, "wear": true } }
+```
+
+Two units of the map (named by their `id`, so one a `addUnit` adds works too) fight as if the attacker had started it. **Map events only** (a
+campaign scene has no map units). Both must be on the map when the command runs; if one is not, nothing happens and the log says
+`story: fight 'a' against 'b': a fighter is not on the map; no fight`. The fight is shown by the same battle scene (or on-map blows) as a real
+one and writes the same `Attack` entries, so nothing in the player is special.
+
+- **`strikes`** (1 to 24; leave the key out for real rolls). Each is `{ "by": "attacker" | "defender", "result": "hit" | "miss" | "crit", "damage": n }`
+  and they are played **in the order written**; the defender's strikes are counters (the scene shows them so). `damage` is optional: left out, it
+  is **the normal computed damage** of that strike (the weapon's damage formula, the unit's skill blocks that need no roll, `critMultiplier` for a `crit`),
+  `0` is allowed, a number is exact (not changed by a crit or percents; capped at the target's HP), and a `miss` does no damage (a `damage` other than
+  0 on a miss is refused). **No random number of the battle is used** (the generator is where it was). A fighter that falls ends the fight: the strikes
+  after that are not played. A strike by a fighter with no weapon is skipped (logged). Skill blocks that fire on a strike, a weapon's inflict, drain
+  and recoil do **not** happen in a written fight: it is a scene, every number is the maker's.
+- **`strikes` left out:** an ordinary fight with real rolls, the attacker striking first: the same strikes, counters, follow-ups and skill blocks as
+  one a unit starts (`rules.counterAttacks`, the follow-up rules, hit and crit rolls from the battle's generator), without the checks of an order
+  (range, sight, the move rule, teams are not asked: allies may fight; the answering weapon is the one the defender would use at that distance, and it
+  answers only if its range reaches).
+- **`weapon`**: `{ "attacker": id, "defender": id }`, each optional (a weapon of `data/weapons.json` the unit owns: an item it carries, or its type's
+  weapons); left out, the unit's **equipped** weapon. A unit that does not own the named weapon, or an attacker with none, means no fight (logged).
+- **`lethal`** (default true): `false` keeps a fighter that would fall at **1 HP** (it is not defeated; the scene shows the 1).
+- **`xp`** (default false): `true` pays the experience the rules would pay for the fight (the same `xpHit` / `xpKill` / `xpNoDamage`, level-ups and all).
+  No experience by default.
+- **`wear`** (default false): `true` spends the weapons' uses (and the first strike's ammunition) as a real fight does; by default nothing wears.
+- A defeat is normal: drops go to the victor, the fallen unit's defeat quote runs, the story's `defeated` events and the win checks run.
+- **What it does not do:** it does not set off the `fight` trigger or the characters' battle quotes before it (an event cannot start itself), does not
+  pay weapon ranks, supports' "fought together" or `afterCombat` skill blocks, and does not end the attacker's turn (it is not an action).
+- **Loader refusals:** `missing required "attacker"` / `"defender"`, `unknown unit "x"`, `a unit cannot fight itself`, `unknown key`, `"strikes" must be
+  a list of 1 to 24 strikes`, `"by" must be "attacker" or "defender"`, `"result" must be "hit", "miss" or "crit"`, `"damage" must be a whole number from 0 to
+  9999`, `a miss does no damage`, `unknown weapon "x"`, `"lethal"` / `"xp"` / `"wear"` that are not true / false.
+- **Saves, hash:** nothing new (the result is HP and who is alive, saved as ever). The command is part of the data hash like any other.
+- Code: `core/data/loader_story_fight.cpp`, `core/battle/story_fight.cpp` (`Battle::storyFight`, `stagedStrike`; `fightExperience` is applyAttack's
+  reward code made reusable). Editor: the command "Stage a fight" (Units group of the command picker). Tests: `tests/test_fidelity2_rules.cpp`,
+  `tests/srpg_player_fidelity2_test.py`.
 
 ### Sending a unit's items to storage
 
@@ -1069,6 +1114,8 @@ that is entered, moved or left is only presentation; nothing about it is saved.
   walks take no time, the remaining lines pass, and the end state is exactly what playing reaches (background, fade, who stands on the
   stage, weather, unit squares, music: a skipped campaign scene still makes its `playMusic` / `stopMusic` changes; one-shot sounds stay
   silent). A tap or Confirm during a wait ends just that wait. `--autoplay` never waits on a scene.
+- **Weather and movement cost.** Weather is also a rules fact since the terrain's `weatherCost` (docs/ECONOMY.md "Weather and movement cost"): the
+  `weather` command sets the weather the cost uses, from then on, and a map may start with one (`"weather": "rain"`).
 - **Saved.** Only the **picture** and the **weather** of a map event are state: the battle's `story` object gets `"scene":
   { "background": "hall", "weather": "rain" }` (each key only while set; docs/SAVES.md) and a resumed battle shows them at once, with
   nothing replayed. The fade needs no key (never on at a save), and the stage, a shake and a scroll under way are not saved (a save is

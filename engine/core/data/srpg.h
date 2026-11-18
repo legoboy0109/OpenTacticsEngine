@@ -179,6 +179,7 @@ struct SkillEffect {
   Kind kind = Kind::Stats;
   To to = To::Self;
   int value = 0;            // the effect's number (hit 15, damagePercent 150, heal 5, maxMoveCost 1, ...)
+  int valueMax = 0;         // Hurt with "amount": [lo, hi]: `value` is lo and this is hi (> lo); the battle's random numbers pick one each time. 0 = a plain number
   bool percent = false;     // Heal: `value` is a percent of the receiver's maximum
   int within = 0;           // Heal "allies" / Hurt "enemies": steps (1..10)
   std::vector<int> stats;   // Stats / Growths: per stat index
@@ -230,7 +231,14 @@ struct SkillDef {
 
 enum class AbilityTarget { Self, Ally, Enemy, Unit, Cell };
 // Steal, Refresh, MovePast, Cure: docs/SRPG.md "Skill and ability blocks, second set".
-enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure };
+enum class AbilityEffect { Push, Pull, Swap, MoveBehind, Heal, Summon, Unlock /* docs/SRPG.md section 10 */, Steal, Refresh, MovePast, Cure, None /* only "inflict" */ };
+
+// One candidate of a summon's "items" (docs/SRPG.md "Summoning"): the item is carried when the summoner's level is at least `minLevel`.
+struct SummonItem {
+  std::string id;
+  int item = -1;      // index into Database::items (resolved last)
+  int minLevel = 1;
+};
 
 struct SummonDef {
   std::string typeId;
@@ -241,6 +249,9 @@ struct SummonDef {
   int lifetime = 0;      // turns of its side; 0 = no limit
   bool canAct = false;   // false = it arrives with its turn finished
   bool givesXp = true;   // false = defeating or hitting it gives no XP
+  std::vector<SummonItem> items;  // "items": candidates for what the summon carries (empty = the unit type's own items)
+  bool pickRandom = false;        // "pick": "random" (one roll of the battle's random numbers when more than one candidate fits); false = "highest" (the highest minLevel that fits)
+  bool replace = false;           // "replace": at its limit a new summon makes the oldest one vanish instead of being refused
 };
 
 struct AbilityDef {
