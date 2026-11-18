@@ -47,4 +47,5 @@ export function reveal(v: View, c: Cell, w: number, h: number, geo: Geo): View {
   return { scale: m, x, y }
 }
 
-export const cellKey = (c: Cell | null): string | null => (c ? `${c.x},${c.y}` : null)
+/** "x,y", or "x,y,v" for the second and later unit of a stack of variants. */
+export const cellKey = (c: Cell | null): string | null => (c ? `${c.x},${c.y}${c.v ? `,${c.v}` : ''}` : null)

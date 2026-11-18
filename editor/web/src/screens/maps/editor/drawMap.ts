@@ -13,7 +13,7 @@ import { drawOverlays } from './drawStory'
 import { drawOrder, drawStructure, drawStructureGhost, structureRows } from './drawStructures'
 import type { Scene } from './drawTypes'
 import type { DrawState } from './drawTypes'
-import { drawAnyUnit, drawFlag, glyphOfType } from './drawUnits'
+import { drawAnyUnit, drawFlag, drawStackMark, glyphOfType } from './drawUnits'
 
 export { parseHex, readableOn, glyphOfType }
 export type { Scene, DrawState }
@@ -101,10 +101,22 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       drawStructure(g, scene, grid, s, time, glyphOn)
     }
   }
+  // Per-difficulty variants share a square: the selected one is drawn on top, and a small count marks the square (docs/DIFFICULTY.md).
+  const stacks = new Map<string, number[]>()
+  ;(map.units ?? []).forEach((u, i) => { const k = `${u.x},${u.y}`; stacks.set(k, [...(stacks.get(k) ?? []), i]) })
+  for (const idx of stacks.values()) {
+    if (idx.length < 2) continue
+    const u0 = map.units![idx[0]]
+    if (!unitVisible(u0)) continue
+    const sel = st.selected && st.selected.x === u0.x && st.selected.y === u0.y ? idx[(st.selected.v ?? 0) % idx.length] : idx[0]
+    if (sel !== idx[idx.length - 1]) paintUnit(map.units![sel])
+    drawStackMark(g, px(u0.x), py(u0.y), px(u0.x + 1) - px(u0.x), idx.length)
+  }
   if (scene.showHeights && map.heights) drawHeights(g, map, x0, x1, y0, y1, px, py, S, dpr)
   if (st.structureGhost) drawStructureGhost(g, scene, grid, st.structureGhost, time)
   if (st.ghost) {
-    const u = map.units?.find((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
+    const stack = (map.units ?? []).filter((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
+    const u = stack.length ? stack[(st.ghost.from.v ?? 0) % stack.length] : undefined
     const t = st.ghost.to
     if (u && t.x >= 0 && t.y >= 0 && t.x < mw && t.y < mh) {
       drawAnyUnit(g, scene, u, px(t.x), py(t.y), px(t.x + 1) - px(t.x), py(t.y + 1) - py(t.y), sideColor(u.side), 0.65, true, time)

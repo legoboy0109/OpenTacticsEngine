@@ -15,14 +15,14 @@ import type { MapFile, ProjectDoc } from '../../../../model/types'
 import { T } from '../text'
 import { UnitProps } from './UnitProps'
 
-export function Inspect({ doc, map, mapId, cell, say }: { doc: ProjectDoc; map: MapFile; mapId: string; cell: Cell | null; say: (m: string | null) => void }) {
+export function Inspect({ doc, map, mapId, cell, say, onSelect }: { doc: ProjectDoc; map: MapFile; mapId: string; cell: Cell | null; say: (m: string | null) => void; onSelect?: (c: Cell) => void }) {
   const words = useCellWords()
   if (!cell) return <div className="stack tight"><h3>{words(T.selectTitle)}</h3><p className="help">{words(T.selectHelp)}</p><p className="help">{T.selectNone}</p></div>
   const ctx = ctxOf(doc)
   const t = doc.terrain?.find((x) => x.id === terrainAt(map, cell.x, cell.y))
   const placed = ctx ? structureAt(map, ctx, cell.x, cell.y) : undefined
   const s = placed ? doc.structures?.find((d) => d.id === placed.type) : undefined
-  const unit = unitAt(map, cell.x, cell.y)
+  const unit = unitAt(map, cell.x, cell.y, cell.v)
   const costs = doc.game?.moveTypes.map((m) => ({ name: m.name, ...enterCost(t, s, m.id) })) ?? []
   const numbers = effectiveNumbers(t, s)
   const size = sizeOf(s)
@@ -43,7 +43,7 @@ export function Inspect({ doc, map, mapId, cell, say }: { doc: ProjectDoc; map: 
         <p className="help" data-testid="effective-costs">{T.moveCostsTitle}: {costs.map((c) => `${c.name} ${c.cost > 0 ? c.cost : T.cannotEnter}${s && c.from === 'structure' ? ` (${from(c.from)})` : ''}`).join(', ')}</p>
       )}
       <p className="help" data-testid="effective-numbers">{T.numbersTitle}: {numbers.length ? numbers.map((n) => `${n.key} ${n.value}${s && n.from === 'structure' ? ` (${from(n.from)})` : ''}`).join(', ') : T.noNumbers}</p>
-      {unit && <><hr className="rule" /><UnitProps mapId={mapId} cell={cell} say={say} /></>}
+      {unit && <><hr className="rule" /><UnitProps mapId={mapId} cell={cell} say={say} onSelect={onSelect} /></>}
     </div>
   )
 }

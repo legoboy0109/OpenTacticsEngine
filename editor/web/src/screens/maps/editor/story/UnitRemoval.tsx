@@ -18,17 +18,17 @@ export function useRemoveUnit(mapId: string): [(c: Cell) => void, ReactNode] {
 
   const remove = (c: Cell) => {
     const d = store.getState().doc
-    if (unitRemovalUsages(d, mapId, c.x, c.y).length) setTarget(c)
-    else edit((x) => removeUnitAndStory(x, mapId, c.x, c.y))
+    if (unitRemovalUsages(d, mapId, c.x, c.y, c.v).length) setTarget(c)
+    else edit((x) => removeUnitAndStory(x, mapId, c.x, c.y, c.v))
   }
 
   const map = doc.maps[mapId]
-  const unit = target && map ? unitAt(map, target.x, target.y) : undefined
+  const unit = target && map ? unitAt(map, target.x, target.y, target.v) : undefined
   const dialog = (
     <DeleteConfirm open={!!target && !!unit} what={unit ? `the unit “${unitDisplayName(doc, unit)}”` : ''}
-      usages={target ? unitRemovalUsages(doc, mapId, target.x, target.y) : []}
+      usages={target ? unitRemovalUsages(doc, mapId, target.x, target.y, target.v) : []}
       onCancel={() => setTarget(null)}
-      onConfirm={() => { if (target) edit((x) => removeUnitAndStory(x, mapId, target.x, target.y)); setTarget(null) }} />
+      onConfirm={() => { if (target) edit((x) => removeUnitAndStory(x, mapId, target.x, target.y, target.v)); setTarget(null) }} />
   )
   return [remove, dialog]
 }

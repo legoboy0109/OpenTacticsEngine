@@ -1,6 +1,7 @@
 // Story names ("ids") of units, events, switches and variables, and which names a map offers to events.
 import { storyIdOf, typeIdOf } from './characterUnits'
 import { makeId } from './ids'
+import { coexistOn } from './unitVariants'
 import { forEachCommand } from './storyWalk'
 import type { MapFile, MapUnit, ProjectDoc } from './types'
 
@@ -52,11 +53,13 @@ export function namedUnits(doc: ProjectDoc, map: MapFile): NamedUnit[] {
 /** Plain list of the story names a map defines (placed units, then added ones). */
 export const definedUnitIds = (doc: ProjectDoc, map: MapFile): string[] => namedUnits(doc, map).map((u) => u.id)
 
-/** The names taken by units other than `except` (a placed unit or an added unit, compared by identity). */
+/** The names taken by units other than `except` (a placed unit or an added unit, compared by identity). A unit limited to some
+ *  difficulties does not take the names of units that can never be in the same battle as `except` (disjoint lists). */
 export const takenUnitIds = (map: MapFile, except?: MapUnit): string[] => {
   const out: string[] = []
-  for (const u of map.units ?? []) { const id = u !== except ? storyIdOf(u) : undefined; if (id) out.push(id) }
-  for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { const u = c.addUnit; if (u && u !== except && typeof u === 'object' && u.id) out.push(u.id) })
+  const meets = (u: MapUnit) => except === undefined || coexistOn(except.difficulty, u.difficulty) !== null
+  for (const u of map.units ?? []) { const id = u !== except && meets(u) ? storyIdOf(u) : undefined; if (id) out.push(id) }
+  for (const e of map.events ?? []) forEachCommand(e.do, '', (c) => { const u = c.addUnit; if (u && u !== except && typeof u === 'object' && u.id && meets(u)) out.push(u.id) })
   return out
 }
 

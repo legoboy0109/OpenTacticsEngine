@@ -164,8 +164,9 @@ export const patchObjectives = (map: MapFile, patch: { text?: string; win?: Obje
 
 // --- unit story ids ---
 /** Gives the placed unit at (x, y) a new story name (or none); everything that named the old one follows. */
-export function setUnitStoryId(map: MapFile, x: number, y: number, to: string): MapFile {
-  const i = (map.units ?? []).findIndex((u) => u.x === x && u.y === y)
+export function setUnitStoryId(map: MapFile, x: number, y: number, to: string, v = 0): MapFile {
+  const stack = (map.units ?? []).flatMap((u, j) => (u.x === x && u.y === y ? [j] : []))  // per-difficulty variants share a square
+  const i = stack.length ? stack[v % stack.length] : -1
   if (i < 0) return map
   const old = map.units![i].id
   const units = map.units!.map((u, j) => (j === i ? patchObj(u, { id: to === '' ? undefined : to }) : u))

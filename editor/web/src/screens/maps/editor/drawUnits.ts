@@ -84,3 +84,17 @@ export function drawFlag(g: CanvasRenderingContext2D, cx: number, cy: number, cw
   g.lineWidth = lw
   g.strokeRect(cx + lw / 2, cy + lw / 2, cw - lw, cw - lw)
 }
+
+/** A small count in the top right corner of a square that holds several units for different difficulties (docs/DIFFICULTY.md). */
+export function drawStackMark(g: CanvasRenderingContext2D, cx: number, cy: number, cw: number, count: number): void {
+  const k = cw / 24
+  const m = Math.max(8, Math.round(11 * k)), inset = Math.max(1, Math.round(1 * k))
+  const bx = cx + cw - m - inset, by = cy + inset
+  g.fillStyle = 'rgba(20,20,20,0.92)'
+  g.fillRect(bx - 1, by - 1, m + 2, m + 2)
+  g.fillStyle = '#ffd43b'
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.font = `bold ${Math.max(7, Math.round(m * 0.85))}px ${FONT}`
+  g.fillText(String(count), bx + m / 2, by + m / 2 + 1)
+}
