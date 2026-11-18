@@ -3,7 +3,8 @@ import { assignLegend } from './legend'
 import type { MapFile, Terrain } from './types'
 
 export const MAP_MAX = 256
-export interface Cell { x: number; y: number }
+/** `v`: which unit of a square that holds per-difficulty variants is the selected one (0 or missing = the first). */
+export interface Cell { x: number; y: number; v?: number }
 export interface Grid { width: number; height: number; cells: string[] }
 
 const isSize = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= MAP_MAX

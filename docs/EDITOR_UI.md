@@ -1366,6 +1366,14 @@ No helper (API) change: every key passes through and the real loaders check it (
   limit, written as no key; the last tick cannot be cleared into an empty list) and "Keep the same on every difficulty" (`difficultyShift: false`;
   a boss). A unit of a human side shows neither (the loader refuses it). **Sides tab**: a computer side has "Difficulty changes this side" (off writes
   `difficultyShift: false`).
+- **Variants** (`model/unitVariants.ts`, `panels/UnitVariants.tsx`, "Variants on this square"): units for disjoint difficulties may share a square and a story
+  name (docs/DIFFICULTY.md section 4). Such a square shows a small yellow count in its top right corner on the canvas. The unit panel (Units and Select tools) lists the square's variants ("Variant 2 of 3: Normal"); picking one selects it, and **clicking the selected
+  square again steps to the next variant**; the selection (`Cell.v`, key `x,y,v`) decides which unit the panel edits, moves (drag) and removes, and the selected one is
+  drawn on top. **Add a variant for another difficulty** copies the selected unit (same story name) limited to the difficulties nothing on the square covers
+  yet (refused with a reason when the unit is unrestricted or the square already covers every difficulty). A variant's story name is not "taken" by units it
+  never meets; renaming or deleting one variant leaves the name, and the events pointing at it, with the others. Placing a new unit on an occupied square is still
+  refused (use Add a variant). The checks (below) refuse overlapping lists on one square or name, naming the difficulty. Not done: variants are not shown side
+  by side on the canvas (the selected one is on top, with the count).
 - **Story**: the condition kind "The difficulty is ..." (is / is at least / is at most, then a difficulty) in the event conditions, the `if` command,
   choice answers and the campaign's scenes (`DifficultyConditionFields.tsx`); only offered when the game has difficulties. Sentences: "the difficulty is
   at least “Normal”".

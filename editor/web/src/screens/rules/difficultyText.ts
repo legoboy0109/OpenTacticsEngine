@@ -63,6 +63,12 @@ export const D = {
   // placements
   onlyOnTitle: 'Only on these difficulties',
   onlyOnHelp: 'Untick a difficulty to leave this unit out of it. All ticked = it appears on every difficulty.',
+  variantsTitle: 'Variants on this square',
+  variantsHelp: 'Several units can share one square and one story name when each is for different difficulties, for example the same enemy with different numbers on Easy, Normal and Hard. Click the square again on the map to step through them too.',
+  variantPick: (n: number, of: number, what: string) => `Variant ${n} of ${of}: ${what}`,
+  variantAll: 'every difficulty',
+  variantAdd: 'Add a variant for another difficulty',
+  variantAddHelp: 'Copies this unit for the difficulties nothing on this square covers yet. Then change its numbers.',
   onlyOnGone: (id: string) => `Limited to “${id}”, which no longer exists`,
   shiftTitle: 'Keep the same on every difficulty',
   shiftHelp: 'The difficulty’s enemy numbers (levels, added stats, percent) never change this unit: use it for a boss. Stats you type on this unit are always kept as they are.',

@@ -178,6 +178,15 @@ bool readDifficultyCondition(const LoadCtx& c, const Database& db, const Json& e
   return true;
 }
 
+int sharedDifficulty(const std::vector<int>& a, const std::vector<int>& b) {
+  if (a.empty() && b.empty()) return -1;
+  if (a.empty()) return b.front();
+  if (b.empty()) return a.front();
+  for (int d : a)
+    if (std::find(b.begin(), b.end(), d) != b.end()) return d;
+  return kNoSharedDifficulty;
+}
+
 bool readUnitDifficulty(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u) {
   if (e.has("difficultyShift") && !c.boolean(e, "difficultyShift", where, u.difficultyShift)) return false;
   if (!e.has("difficulty")) return true;

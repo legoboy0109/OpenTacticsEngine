@@ -4,6 +4,7 @@ import type { Behaviour } from './behaviour'
 import type { MapCtx } from './mapCtx'
 import { inBounds, terrainAt } from './mapGrid'
 import { typeIdOf } from './characterUnits'
+import { coexistOn } from './unitVariants'
 import { structureAt } from './mapStructures'
 import { canEnter } from './structuresEffective'
 import { patchObj } from './util'
@@ -18,10 +19,18 @@ export interface UnitEdit {
   existing?: { x: number; y: number }
 }
 
-export const unitIndexAt = (map: MapFile, x: number, y: number): number =>
-  (map.units ?? []).findIndex((u) => u.x === x && u.y === y)
+/** Every unit standing on a square, in file order: more than one only when they are per-difficulty variants of each other
+ *  (docs/DIFFICULTY.md "One unit, different numbers per difficulty"). */
+export const unitIndexesAt = (map: MapFile, x: number, y: number): number[] =>
+  (map.units ?? []).flatMap((u, i) => (u.x === x && u.y === y ? [i] : []))
 
-export const unitAt = (map: MapFile, x: number, y: number): MapUnit | undefined => map.units?.[unitIndexAt(map, x, y)]
+/** The `v`-th unit of the square's stack (0 = the first; a number past the end counts from the first again). */
+export const unitIndexAt = (map: MapFile, x: number, y: number, v = 0): number => {
+  const all = unitIndexesAt(map, x, y)
+  return all.length === 0 ? -1 : all[v % all.length]
+}
+
+export const unitAt = (map: MapFile, x: number, y: number, v = 0): MapUnit | undefined => map.units?.[unitIndexAt(map, x, y, v)]
 
 const typeOf = (c: MapCtx, id: string) => c.unitTypes.find((u) => u.id === id)
 const terrainDef = (c: MapCtx, map: MapFile, x: number, y: number) => c.terrain.find((t) => t.id === terrainAt(map, x, y))
@@ -58,12 +67,12 @@ export function placeUnit(map: MapFile, c: MapCtx, spec: { type?: string; charac
   return { map: { ...map, units: [...(map.units ?? []), unit] }, error: null }
 }
 
-export function moveMapUnit(map: MapFile, c: MapCtx, from: { x: number; y: number }, to: { x: number; y: number }): UnitEdit {
-  const i = unitIndexAt(map, from.x, from.y)
+export function moveMapUnit(map: MapFile, c: MapCtx, from: { x: number; y: number }, to: { x: number; y: number }, v = 0): UnitEdit {
+  const i = unitIndexAt(map, from.x, from.y, v)
   if (i < 0 || (from.x === to.x && from.y === to.y)) return { map, error: null }
   if (!inBounds(map, to.x, to.y)) return refuse(map, 'That square is outside the map.')
-  if (unitAt(map, to.x, to.y)) return refuse(map, 'There is already a unit there.')
   const u = map.units![i]
+  if (unitIndexesAt(map, to.x, to.y).some((j) => coexistOn(u.difficulty, map.units![j].difficulty) !== null)) return refuse(map, 'There is already a unit there.')
   const why = blockedReason(c, map, typeIdOf(c.characters, u), to.x, to.y)
   if (why) return refuse(map, why)
   const units = map.units!.slice()
@@ -71,8 +80,8 @@ export function moveMapUnit(map: MapFile, c: MapCtx, from: { x: number; y: numbe
   return { map: { ...map, units }, error: null }
 }
 
-export function removeMapUnit(map: MapFile, x: number, y: number): MapFile {
-  const i = unitIndexAt(map, x, y)
+export function removeMapUnit(map: MapFile, x: number, y: number, v = 0): MapFile {
+  const i = unitIndexAt(map, x, y, v)
   return i < 0 ? map : { ...map, units: map.units!.filter((_, j) => j !== i) }
 }
 
@@ -80,8 +89,8 @@ export function removeMapUnit(map: MapFile, x: number, y: number): MapFile {
 type UnitPatch = { behaviour?: Behaviour; side?: string; name?: string; level?: number; leader?: boolean; items?: ItemEntry[]; ranks?: RankMap; skills?: string[]; difficulty?: string[]; difficultyShift?: boolean }
 
 /** Name, level and leader are stored only when they mean something; clearing removes the key. */
-export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPatch): MapFile {
-  const i = unitIndexAt(map, x, y)
+export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPatch, v = 0): MapFile {
+  const i = unitIndexAt(map, x, y, v)
   if (i < 0) return map
   const clean: Record<string, unknown> = { ...patch }
   if ('name' in patch && !patch.name?.trim()) clean.name = undefined
@@ -93,8 +102,8 @@ export function updateMapUnit(map: MapFile, x: number, y: number, patch: UnitPat
 }
 
 /** Switches the unit type; refused when the new type cannot stand there. Overrides that now equal the new base are dropped. */
-export function changeUnitType(map: MapFile, c: MapCtx, x: number, y: number, type: string): UnitEdit {
-  const i = unitIndexAt(map, x, y)
+export function changeUnitType(map: MapFile, c: MapCtx, x: number, y: number, type: string, v = 0): UnitEdit {
+  const i = unitIndexAt(map, x, y, v)
   const next = typeOf(c, type)
   if (i < 0 || !next) return { map, error: null }
   if (map.units![i].type === type) return { map, error: null }
@@ -130,8 +139,8 @@ export function startStats(c: MapCtx, u: Pick<MapUnit, 'character'>, type: strin
 }
 
 /** Sets one stat override; a value equal to the unit type's own (or undefined) removes the key. */
-export function setUnitStat(map: MapFile, c: MapCtx, x: number, y: number, stat: string, value: number | undefined): MapFile {
-  const i = unitIndexAt(map, x, y)
+export function setUnitStat(map: MapFile, c: MapCtx, x: number, y: number, stat: string, value: number | undefined, v = 0): MapFile {
+  const i = unitIndexAt(map, x, y, v)
   if (i < 0) return map
   const u = map.units![i]
   const type = typeIdOf(c.characters, u)
@@ -141,4 +150,23 @@ export function setUnitStat(map: MapFile, c: MapCtx, x: number, y: number, stat:
   const units = map.units!.slice()
   units[i] = patchObj(u, { stats })
   return { ...map, units }
+}
+
+/** "Add a variant for another difficulty": copies the unit (same square, same story name) limited to the difficulties that nothing on
+ *  its square covers yet; the copy sits right after the unit. Refused (with the reason) when the unit appears on every difficulty or the
+ *  stack already covers them all. `all` = the game's difficulty ids. */
+export function addUnitVariant(map: MapFile, x: number, y: number, v: number, all: string[]): UnitEdit {
+  const i = unitIndexAt(map, x, y, v)
+  if (i < 0) return { map, error: null }
+  const u = map.units![i]
+  if (all.length < 2) return refuse(map, 'The game needs at least two difficulties for a unit to have variants.')
+  if (u.difficulty === undefined) return refuse(map, 'This unit appears on every difficulty. Untick the difficulties it should not appear on first, then add a variant for those.')
+  const covered = new Set(unitIndexesAt(map, x, y).flatMap((j) => map.units![j].difficulty ?? all))
+  const lacks = all.filter((d) => !covered.has(d))
+  if (lacks.length === 0) return refuse(map, 'The units on this square already cover every difficulty.')
+  const copy: MapUnit = { ...u, difficulty: lacks.length === all.length ? undefined : lacks }
+  if (copy.stats) copy.stats = { ...copy.stats }
+  const units = map.units!.slice()
+  units.splice(i + 1, 0, copy)
+  return { map: { ...map, units }, error: null }
 }

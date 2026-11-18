@@ -97,6 +97,33 @@ def run_difficulty_checks(api, tmp, games, templates, check, get_project, put_pr
     st, res = put_project(api, pid, d, d["revision"], game=game, maps={mid: m})
     check("difficulty: valid data again -> no problems", st == 200 and problems() == [], problems())
 
+    # One unit, different numbers per difficulty (units[1] is hard-only; the two new ones take its square for easy and normal): disjoint lists may share a square and a story name; overlapping ones are refused naming the difficulty.
+    def variants(a, b, c):
+        vm = copy(m)
+        base = copy(m["units"][1])
+        base["difficultyShift"] = False
+        base.pop("id", None)
+        for diff, atk in ((a, 3), (b, 6), (c, 9)):
+            if diff is None:
+                continue
+            u = copy(base)
+            u.update({"id": "twin", "difficulty": diff, "stats": {"str": atk}})
+            vm["units"].append(u)
+        return vm
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], game=game, maps={mid: variants(["easy"], ["normal"], None)})
+    check("difficulty: variants of one unit on one square and one id -> 200", st == 200, (st, res))
+    check("difficulty: the loader accepts per-difficulty variants", problems() == [], problems())
+    st, d = get_project(api, pid)
+    check("difficulty: variants come back as written", [u.get("difficulty") for u in d["maps"][mid]["units"] if u.get("id") == "twin"] == [["easy"], ["normal"]], "mismatch")
+    st, res = put_project(api, pid, d, d["revision"], game=game, maps={mid: variants(["easy", "normal"], ["normal"], None)})
+    ps = problems()
+    check("difficulty: overlapping variants are refused naming the difficulty",
+          any("already used by" in p and "on difficulty \"normal\"" in p for p in ps), ps)
+    st, d = get_project(api, pid)
+    st, res = put_project(api, pid, d, d["revision"], game=game, maps={mid: m})
+    check("difficulty: back without variants -> no problems", st == 200 and problems() == [], problems())
+
     # A campaign scene may read the difficulty too.
     campaign = {"name": "C", "chapters": [{"id": "c1", "name": "One", "map": mid, "after": [
         {"if": [{"difficulty": {"atMost": "normal"}}], "then": [{"say": "A gentle road."}]}]}]}

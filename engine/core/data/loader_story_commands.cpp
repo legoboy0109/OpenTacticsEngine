@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "core/data/loader_content.h"
+#include "core/data/loader_difficulty.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_scene_fx.h"
 
@@ -66,9 +67,14 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
   // A character already placed (map or an earlier addUnit) is not an error: the second add does nothing at run time.
   if (!checkBehaviourUnits(c_, db_, unitIds, at, out.newUnit.behaviour)) return false;  // docs/AI.md
   if (!out.newUnit.id.empty() && !u.has("character")) {
-    if (std::find(usedIds.begin(), usedIds.end(), out.newUnit.id) != usedIds.end())
-      return fail(at, "\"id\" " + quoted(out.newUnit.id) + " is already used by another unit of the map");
-    usedIds.push_back(out.newUnit.id);
+    for (const auto& used : usedIds) {
+      if (used.first != out.newUnit.id) continue;
+      const int d = sharedDifficulty(used.second, out.newUnit.onlyOn);
+      if (d == kNoSharedDifficulty) continue;  // can never be in the same battle
+      return fail(at, "\"id\" " + quoted(out.newUnit.id) + " is already used by another unit of the map" +
+                          (d >= 0 ? " on difficulty " + quoted(db_.difficulties.list[(size_t)d].id) : std::string()));
+    }
+    usedIds.push_back({out.newUnit.id, out.newUnit.onlyOn});
   }
   return true;
 }

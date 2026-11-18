@@ -10,7 +10,7 @@ import { footprint, moveStructureBy, placeStructure, rectOf, structureIndexAt, p
 import { fitPlaceKeys } from '../../../model/mapPlaces'
 import { paintChange } from '../../../model/mapChanges'
 import { MC as CT } from './story/forms/mapChangeText'
-import { moveMapUnit, placeUnit, unitAt } from '../../../model/mapUnits'
+import { moveMapUnit, placeUnit, unitAt, unitIndexesAt } from '../../../model/mapUnits'
 import { toggleSlot } from '../../../model/prep'
 import { STROKE_PREFIX } from '../../../store/history'
 import type { DocumentStore } from '../../../store/documentStore'
@@ -82,10 +82,15 @@ export function beginStroke(env: StrokeEnv, cell: Cell, opts: { alt?: boolean } 
   if (t.tool === 'structures') return structureStroke(env, cell, t)
   if (t.tool === 'heights') return heightStroke(env, cell, t, gridOf(env))
   if (t.tool === 'slots') return slotStroke(env, cell)
-  env.view.set({ selected: cell })
+  // A square that holds per-difficulty variants of a unit: clicking it again selects the next variant (docs/EDITOR_UI.md).
+  const stack = unitIndexesAt(map, cell.x, cell.y).length
+  const was = env.view.selected
+  const v = was && was.x === cell.x && was.y === cell.y && stack > 1 ? ((was.v ?? 0) + 1) % stack : 0
+  const at = v ? { ...cell, v } : cell
+  env.view.set({ selected: at })
   const unit = unitAt(map, cell.x, cell.y)
   if (t.tool === 'select') return NOOP
-  return unit ? dragUnit(env, cell) : placeAt(env, cell, t)
+  return unit ? dragUnit(env, at) : placeAt(env, cell, t)
 }
 
 /** Click a square of the preparation: an empty one becomes the next deployment slot, a slot is taken away (one undo step each). */
@@ -207,9 +212,9 @@ function dragUnit(env: StrokeEnv, from: Cell): Stroke {
       const ctx = ctxOf(env.store.getState().doc)
       const map = currentMap(env)
       if (!ctx || !map) return
-      const r = moveMapUnit(map, ctx, from, c)
+      const r = moveMapUnit(map, ctx, from, c, from.v)
       if (r.error) { env.say(r.error); return }
-      env.store.edit((d) => editMap(d, env.mapId, (m, x) => moveMapUnit(m, x, from, c).map))
+      env.store.edit((d) => editMap(d, env.mapId, (m, x) => moveMapUnit(m, x, from, c, from.v).map))
       env.view.set({ selected: c })
     },
   }

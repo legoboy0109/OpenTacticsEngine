@@ -150,7 +150,7 @@ function Editor({ id }: { id: string }) {
       vs.set({ selected: null })
       return
     }
-    if (!unitAt(m0, c.x, c.y)) return
+    if (!unitAt(m0, c.x, c.y, c.v)) return
     requestRemoveRef.current(c)
   }, [vs, store, id])
 

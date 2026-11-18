@@ -16,7 +16,7 @@ import type { MapStructure, MapUnit } from '../../../model/types'
 import { css, FONT, mix, parseHex, readableOn, type Rgb } from './drawColors'
 import { drawOrder, type StructureGhost } from './drawStructures'
 import type { DrawState, Scene } from './drawTypes'
-import { drawAnyUnit } from './drawUnits'
+import { drawAnyUnit, drawStackMark } from './drawUnits'
 
 const BACKDROP = '#14161c'
 
@@ -154,10 +154,23 @@ export function drawHexMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawSt
     if (!onScreen(bb.x, bb.y - rise, bb.w, bb.h + rise)) continue
     drawStructureHex(g, scene, k, s, time, glyphOn)
   }
+  // Per-difficulty variants share a hexagon: the selected one on top, and a small count (as on square maps).
+  const stacks = new Map<string, number[]>()
+  ;(map.units ?? []).forEach((u, i) => { const key = `${u.x},${u.y}`; stacks.set(key, [...(stacks.get(key) ?? []), i]) })
+  for (const idx of stacks.values()) {
+    if (idx.length < 2) continue
+    const u0 = map.units![idx[0]]
+    const q = unitSquare(k, u0)
+    if (!onScreen(q.x, q.y, q.w, q.h)) continue
+    const sel = st.selected && st.selected.x === u0.x && st.selected.y === u0.y ? idx[(st.selected.v ?? 0) % idx.length] : idx[0]
+    if (sel !== idx[idx.length - 1]) paintUnit(map.units![sel])
+    drawStackMark(g, q.x, q.y, q.w, idx.length)
+  }
   if (scene.showHeights && map.heights) drawHeightsHex(g, scene, k, r)
   if (st.structureGhost) drawGhostHex(g, scene, k, st.structureGhost, time)
   if (st.ghost) {
-    const u = map.units?.find((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
+    const stack = (map.units ?? []).filter((m) => m.x === st.ghost!.from.x && m.y === st.ghost!.from.y)
+    const u = stack.length ? stack[(st.ghost.from.v ?? 0) % stack.length] : undefined
     const t = st.ghost.to
     if (u && t.x >= 0 && t.y >= 0 && t.x < mw && t.y < mh) {
       const q = unitSquare(k, t)

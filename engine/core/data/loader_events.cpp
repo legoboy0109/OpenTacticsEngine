@@ -129,8 +129,10 @@ bool loadMapStory(const Database& db, const Json& root, MapDef& map, const std::
   std::string mapName = "map \"" + map.id + "\"";
 
   for (const MapUnitDef& u : map.units)
-    if (!u.id.empty()) L.usedIds.push_back(u.id);
-  L.unitIds = L.usedIds;
+    if (!u.id.empty()) {
+      L.usedIds.push_back({u.id, u.onlyOn});
+      if (std::find(L.unitIds.begin(), L.unitIds.end(), u.id) == L.unitIds.end()) L.unitIds.push_back(u.id);
+    }
   for (const MapUnitDef& u : map.units)
     if (!u.behaviour.group.empty()) L.groups.push_back(u.behaviour.group);
   if (root["events"].isArray())

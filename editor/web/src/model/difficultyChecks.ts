@@ -4,6 +4,7 @@
 import { MAX_DIFFICULTIES, MAX_FLAT_STAT, MAX_LEVEL_SHIFT, MAX_PERCENT, difficultyById, hasDifficulties } from './difficulty'
 import type { DifficultyEnemy } from './difficultyTypes'
 import type { MapFile, ProjectDoc } from './types'
+import { coexistOn } from './unitVariants'
 
 export interface DifficultyCheck { level: 'error' | 'hint'; text: string; mapId?: string; cell?: { x: number; y: number } }
 
@@ -71,7 +72,27 @@ export function mapDifficultyChecks(doc: ProjectDoc, mapId: string, map: MapFile
       if (!difficultyById(doc, id)) out.push({ level: 'error', mapId, cell: at, text: `${who} is limited to the difficulty “${id}”, which does not exist (deleted?). Untick it.` })
     if (u.difficulty.every((id) => !difficultyById(doc, id))) out.push({ level: 'error', mapId, cell: at, text: `${who} appears on no difficulty at all.` })
   }
+  sharedPlaceChecks(doc, mapId, map, out)
   return out
+}
+
+/** Two units of a map conflict only when they can be in one battle: one square and one story name may be shared by units for
+ *  different difficulties (the loader's rule: engine/core/data/map_loader.cpp). */
+function sharedPlaceChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: DifficultyCheck[]): void {
+  const units = map.units ?? []
+  const who = (u: (typeof units)[number]) => `${u.name || u.id || u.type || 'A unit'} at ${u.x + 1},${u.y + 1}`
+  const on = (shared: string[]) => (shared.length ? ` on the difficulty “${difficultyById(doc, shared[0])?.name ?? shared[0]}”` : '')
+  for (let j = 1; j < units.length; j++)
+    for (let i = 0; i < j; i++) {
+      const a = units[i], b = units[j]
+      const shared = coexistOn(a.difficulty, b.difficulty)
+      if (shared === null) continue
+      if (a.x === b.x && a.y === b.y)
+        out.push({ level: 'error', mapId, cell: { x: b.x, y: b.y }, text: `${who(b)} shares its square with ${who(a)}${on(shared)}. Two units can only share a square when they are for different difficulties (untick the difficulties they have in common).` })
+      const name = a.character !== undefined && a.character === b.character ? a.character : a.id !== undefined && a.id === b.id ? a.id : undefined
+      if (name !== undefined)
+        out.push({ level: 'error', mapId, cell: { x: b.x, y: b.y }, text: `${who(b)} has the same story name “${name}” as ${who(a)}${on(shared)}. A story name can only be shared by units for different difficulties.` })
+    }
 }
 
 /** Everything, for a screen that lists it all. */

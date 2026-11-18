@@ -135,6 +135,45 @@ test('@smoke a map\'s own numbers and a unit\'s "Only on": they are written, rep
   expect(await game.problems(id)).toEqual([])
 })
 
+test('a unit gets variants for other difficulties: they share the square and the name, the panel steps through them, and the loader agrees', async ({ page, game }) => {
+  const id = await game.create('strategy-rpg', 'DiffVariants')
+  withDifficulties(id)
+  await openMap(page, id, 'ford')
+  await tool(page, 'Units').click()
+  await pickSide(page, 'Red').click()
+  await pickUnitType(page, 'Soldier').click()
+  await clickCell(page, 6, 1)
+  const only = page.getByTestId('difficulty-only')
+  await page.getByLabel('Story name').fill('gorm')
+  await only.getByRole('checkbox', { name: 'Easy' }).uncheck()
+  await only.getByRole('checkbox', { name: 'Normal' }).uncheck()  // now only on Hard
+  await saved(page)
+  // Add a variant: a copy for the difficulties nothing on the square covers, with the same story name.
+  await page.getByRole('button', { name: 'Add a variant for another difficulty' }).click()
+  await saved(page)
+  const at = (u: { x: number; y: number }) => u.x === 6 && u.y === 1
+  let stack = readDisk(id, 'maps/ford.json').units.filter(at)
+  expect(stack.map((u: { difficulty?: string[] }) => u.difficulty)).toEqual([['hard'], ['easy', 'normal']])
+  expect(stack.map((u: { id: string }) => u.id)).toEqual(['gorm', 'gorm'])
+  expect(await game.problems(id)).toEqual([])
+  // The copy is selected; the panel lists both and picking one switches what it edits.
+  const variants = page.getByTestId('unit-variants')
+  await expect(variants.getByRole('button', { name: /Variant 2 of 2/ })).toHaveAttribute('aria-pressed', 'true')
+  await variants.getByRole('button', { name: /Variant 1 of 2/ }).click()
+  await expect(only.getByRole('checkbox', { name: 'Hard' })).toBeChecked()
+  await expect(only.getByRole('checkbox', { name: 'Easy' })).not.toBeChecked()
+  // Clicking the selected square again steps to the next variant.
+  await clickCell(page, 6, 1)
+  await expect(variants.getByRole('button', { name: /Variant 2 of 2/ })).toHaveAttribute('aria-pressed', 'true')
+  // Ticking a difficulty the other variant has makes them overlap: the editor says so and so does the loader.
+  await only.getByRole('checkbox', { name: 'Hard' }).check()
+  await saved(page)
+  await expect(page.getByText(/shares its square with/).first()).toBeVisible()
+  expect((await game.problems(id)).some((p: { message: string }) => p.message.includes('shares a cell with') || p.message.includes('already used by'))).toBe(true)
+  stack = readDisk(id, 'maps/ford.json').units.filter(at)
+  expect(stack).toHaveLength(2)
+})
+
 test('a placement still limited to a difficulty that is gone is pointed out', async ({ page, game }) => {
   const id = await game.create('strategy-rpg', 'DiffGone')
   withDifficulties(id)

@@ -24,11 +24,13 @@ interface Props {
   selected: string | null
   onChange: (patch: Partial<ToolState>) => void
   say: (m: string | null) => void
+  /** Selects another variant of a square that holds per-difficulty variants of a unit. */
+  onSelect?: (c: Cell) => void
 }
 
-const parse = (k: string | null): Cell | null => { if (!k) return null; const [x, y] = k.split(',').map(Number); return { x, y } }
+const parse = (k: string | null): Cell | null => { if (!k) return null; const [x, y, v] = k.split(',').map(Number); return v ? { x, y, v } : { x, y } }
 
-export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, say }: Props) {
+export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, say, onSelect }: Props) {
   const sides = map.sides ?? []
   const words = useCellWords()
   const cell = parse(selected)
@@ -52,7 +54,7 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
           {(doc.units?.length ?? 0) === 0 && <p className="help">{T.noUnitsTypes}</p>}
           <UnitPicker doc={doc} map={map} state={state} color={sideOf(map, state.unitSide)?.color} onChange={onChange} />
           <hr className="rule" />
-          {cell ? <UnitProps mapId={mapId} cell={cell} say={say} /> : <p className="help">{T.unitNone}</p>}
+          {cell ? <UnitProps mapId={mapId} cell={cell} say={say} onSelect={onSelect} /> : <p className="help">{T.unitNone}</p>}
         </div>
       )
     case 'structures':
@@ -62,6 +64,6 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
     case 'slots':
       return <SlotsTool doc={doc} map={map} mapId={mapId} />
     case 'select':
-      return <Inspect doc={doc} map={map} mapId={mapId} cell={cell} say={say} />
+      return <Inspect doc={doc} map={map} mapId={mapId} cell={cell} say={say} onSelect={onSelect} />
   }
 }

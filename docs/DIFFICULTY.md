@@ -113,6 +113,31 @@ limited (only units; a structure could always be given by a story event that rea
 
 `"difficultyShift": false` (section 2) is valid on the same two places.
 
+**Variants: one unit, different numbers per difficulty.** Two placements conflict only if they can exist in the same battle,
+that is, if their difficulty sets **intersect** (a placement without `"difficulty"` is on every difficulty). So placements whose
+lists are **disjoint** may stand on the same square and share an `id` (or a `character`); they are variants of one unit and
+exactly one of them is built per battle. This holds for map units among themselves, for `addUnit` ids against map units' ids and
+against other `addUnit`s (the loader checks those statically), and for a character placed more than once. What still refuses:
+two placements whose lists share a difficulty (`shares a cell with units[1] on difficulty "normal"`, `"id" "gorm" is already used
+by units[1] on difficulty "normal"`, `"character" "lyra" is already placed by units[0] on difficulty "hard"`; an `addUnit`:
+`"id" "gorm" is already used by another unit of the map on difficulty "hard"`), and a variant next to an unrestricted unit (the
+unrestricted one exists on every difficulty, so the message names the variant's first difficulty). Two unrestricted placements
+keep the plain messages (`shares a cell with units[0]`) with no difficulty named. Preparation slots, "fixed" and "forbidden" lists
+only concern units of human sides, which cannot be limited, so they are unaffected; a slot on a square where a computer variant
+exists on some difficulty is refused as before.
+
+**Referring to a shared id** (events, objectives, behaviours, talk, quotes, `goesFor`, AI `seek`, `setBehaviour`, filters...): the
+id means the one variant that exists in the battle. The loader accepts a reference if **any** placement with that id exists
+(map unit or `addUnit`); it does not try to prove the id exists on every difficulty the reference can run on. On a difficulty where
+no variant exists the reference behaves as it always did for a unit that is not in the battle (docs/EVENTS.md, docs/AI.md): a
+`defeated` trigger never fires, a `defeated` objective is not met (it is true only once something matching existed and none is
+alive), a command aimed at it does nothing, a `seek` unit plays as `advance`. So give every difficulty a variant of any unit that a
+win objective names, or make the objective itself depend on the difficulty with events.
+
+**Building.** Units are built in placement order among those that exist on the battle's difficulty, so the unit order, ids in
+saves and everything that follows from it are those of the built battle; a save made on one difficulty loads exactly as before (the
+save holds the built units, not the placements).
+
 ## 5. Experience and resources
 
 - **`xpPercent`** scales every experience award to a unit of a human side (experience from fights, staves and the like - all of
@@ -205,7 +230,8 @@ All start with the file and the place: `game.json: difficulties: ...`, `maps/x.j
 `"stats" names unknown stat "x"`; `"percentStats" names unknown stat "x"`; unknown keys (`unknown key "x"`).
 On a map: `difficulty "x": unknown difficulty "x"`, the same unknown-key and range refusals, and `the map names a difficulty but
 the game has none`. On a unit: `"difficulty" names unknown difficulty "x"`, `"difficulty" must list at least one difficulty`,
-`"difficulty" is for units of computer sides`, `"difficulty" is given but the game has no difficulties`. A condition on an unknown
+`"difficulty" is for units of computer sides`, `"difficulty" is given but the game has no difficulties`; two placements that can coexist and share a square or an id are
+refused naming the shared difficulty (section 4). A condition on an unknown
 difficulty, or in a game without any: `"difficulty" names unknown difficulty "x"` / `... the game has no difficulties`.
 
 ## 12. Worked examples
@@ -242,6 +268,24 @@ Hard is `+3` on those maps (a replacement, not `+2 +3`), `+2` on every other map
 percent, experience, resources) is unchanged because the map did not name them. The editor's "Difficulty on this map" card writes
 exactly this.
 
+### One unit, different numbers per difficulty
+
+The same enemy on one square, with its own stats on each difficulty: three placements, one `id`, each limited to one difficulty.
+The `"stats"` written on a placement are exact (section 2), so each variant is built with exactly the numbers written.
+
+```jsonc
+"units": [
+  { "id": "gorm", "type": "brute", "side": "red", "x": 9, "y": 4, "difficulty": ["easy"],   "stats": { "hp": 18, "str": 6 } },
+  { "id": "gorm", "type": "brute", "side": "red", "x": 9, "y": 4, "difficulty": ["normal"], "stats": { "hp": 24, "str": 8 } },
+  { "id": "gorm", "type": "brute", "side": "red", "x": 9, "y": 4, "difficulty": ["hard"],   "stats": { "hp": 32, "str": 10 } } ],
+"objectives": { "win": [ { "defeated": { "unit": "gorm" } } ] },
+"events": [ { "id": "gorm-falls", "when": { "defeated": { "unit": "gorm" } }, "do": [ { "say": "Gorm falls." } ] } ]
+```
+
+Whichever difficulty is played, `gorm` is the one variant that exists there, and the objective and the event refer to it by that one
+id. A fourth placement for `["hard"]` would be refused (`on difficulty "hard"`), as would one without `"difficulty"`. In the editor:
+select the unit, press **Add a variant for another difficulty**, then change the copy's numbers.
+
 ### Reading the difficulty in a formula
 
 ```jsonc
@@ -250,7 +294,7 @@ exactly this.
 
 ---
 
-Tests: `tests/test_difficulty_rules.cpp` (the shift, exemptions, multipliers, Lua, hex), `test_difficulty_data.cpp` (loader and
+Tests: `tests/test_difficulty_variants.cpp` (variants), `tests/test_difficulty_rules.cpp` (the shift, exemptions, multipliers, Lua, hex), `test_difficulty_data.cpp` (loader and
 refusals, the arena at each difficulty, conditions, map override), `test_difficulty_save.cpp` (saves, fallback, rules,
 campaign), `tests/difficulty_player_test.py` (the real player), `tests/editor_api_difficulty_checks.py`,
 `editor/web/tests/unit/difficulty.test.ts`, `editor/web/tests/e2e/difficulty.spec.ts`.

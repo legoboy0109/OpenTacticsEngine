@@ -26,21 +26,23 @@ import { TextInput } from '../../../../ui/TextInput'
 import type { Cell } from '../../../../model/mapGrid'
 import { setGoesFor } from '../../../../model/mapPlaces'
 import { DifficultyOnly } from './DifficultyOnly'
+import { UnitVariants } from './UnitVariants'
 import { GoesFor } from './GoesFor'
 import { UnitBehaviour } from './UnitBehaviour'
 import { UnitRankOverride } from './UnitRankOverride'
 import { UnitSkills } from './UnitSkills'
 import { T } from '../text'
 
-interface Props { mapId: string; cell: Cell; say: (m: string | null) => void }
+interface Props { mapId: string; cell: Cell; say: (m: string | null) => void; /** Selects another variant of the square's stack. */ onSelect?: (c: Cell) => void }
 
-export function UnitProps({ mapId, cell, say }: Props) {
+export function UnitProps({ mapId, cell, say, onSelect }: Props) {
   const doc = useDoc()
   const edit = useEdit()
   const store = useStore()
   const [removeUnit, removeDialog] = useRemoveUnit(mapId)
   const map = doc.maps[mapId]
-  const unit = map ? unitAt(map, cell.x, cell.y) : undefined
+  const v = cell.v ?? 0
+  const unit = map ? unitAt(map, cell.x, cell.y, v) : undefined
   if (!map || !unit) return <p className="help">{T.unitNone}</p>
   const typeId = typeIdOf(doc.characters, unit)
   const base = doc.units?.find((u) => u.id === typeId)
@@ -51,17 +53,17 @@ export function UnitProps({ mapId, cell, say }: Props) {
   const ctx = ctxOf(doc)
   const startOf = ctx ? startStats(ctx, unit, typeId) : {}
   const typeItems = startItems.map((e) => doc.items?.find((i) => i.id === entryId(e))?.name ?? entryId(e))
-  const key = (f: string) => `unit:${mapId}:${cell.x},${cell.y}:${f}`
-  const patch = (p: Parameters<typeof updateMapUnit>[3], k?: string) => edit((d) => editMap(d, mapId, (m) => updateMapUnit(m, cell.x, cell.y, p)), k)
+  const key = (f: string) => `unit:${mapId}:${cell.x},${cell.y}${v ? `,${v}` : ''}:${f}`
+  const patch = (p: Parameters<typeof updateMapUnit>[3], k?: string) => edit((d) => editMap(d, mapId, (m) => updateMapUnit(m, cell.x, cell.y, p, v)), k)
   // The story name: events and objectives point at the unit with it; renaming rewrites them (one undo step).
-  const setStoryId = (id: string) => edit((d) => changeUnitStoryId(d, mapId, cell.x, cell.y, id).doc, key('id'))
+  const setStoryId = (id: string) => edit((d) => changeUnitStoryId(d, mapId, cell.x, cell.y, id, v).doc, key('id'))
   const validateStoryId = (text: string) => (text === ''
     ? (unit.id && storyIdUsages(doc, mapId, unit.id).length ? S.nameInUse : null)
     : idProblem(text, takenUnitIds(map, unit)))
   const typeError = (id: string) => {
-    const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? [], gridOfGame(doc.game), doc.characters ?? []), cell.x, cell.y, id)
+    const r = changeUnitType(map, ctxOfParts(doc.terrain ?? [], doc.structures ?? [], doc.units ?? [], gridOfGame(doc.game), doc.characters ?? []), cell.x, cell.y, id, v)
     if (r.error) { say(r.error); return }
-    edit((d) => editMap(d, mapId, (m, c) => changeUnitType(m, c, cell.x, cell.y, id).map))
+    edit((d) => editMap(d, mapId, (m, c) => changeUnitType(m, c, cell.x, cell.y, id, v).map))
   }
   return (
     <div className="stack tight" data-testid="unit-props">
@@ -101,7 +103,8 @@ export function UnitProps({ mapId, cell, say }: Props) {
       </div>
       <Check checked={!!unit.leader} label={T.unitLeader} help={T.unitLeaderHelp} onChange={(v) => patch({ leader: v })} />
       <GoesFor map={map} side={unit.side} value={unit.goesFor} onChange={(goals) => edit((d) => editMap(d, mapId, (m) => setGoesFor(m, unit, goals)))} />
-      <UnitBehaviour mapId={mapId} map={map} unit={unit} />
+      <UnitBehaviour mapId={mapId} map={map} unit={unit} variant={v} />
+      <UnitVariants mapId={mapId} cell={cell} onSelect={onSelect} say={say} />
       <DifficultyOnly doc={doc} unit={unit} ai={map.sides?.find((s) => s.id === unit.side)?.controller === 'ai'} onChange={(p) => patch(p)} />
       {((doc.items?.length ?? 0) > 0 || unit.items !== undefined) && (
         <div className="stack tight" data-testid="unit-own-items">
@@ -123,7 +126,7 @@ export function UnitProps({ mapId, cell, say }: Props) {
                 <th scope="row">{s.name}</th>
                 <td>
                   <StatCell label={`${s.name} for this unit`} override={unit.stats?.[s.id]} base={startOf[s.id] ?? 0}
-                    onChange={(v) => edit((d) => editMap(d, mapId, (m, c) => setUnitStat(m, c, cell.x, cell.y, s.id, v)), key(`stat:${s.id}`))} />
+                    onChange={(val) => edit((d) => editMap(d, mapId, (m, c) => setUnitStat(m, c, cell.x, cell.y, s.id, val, v)), key(`stat:${s.id}`))} />
                 </td>
               </tr>
             ))}
