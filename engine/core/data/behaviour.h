@@ -62,6 +62,7 @@ struct AiBehaviour {
   std::vector<std::pair<int, int>> route;  // Patrol: the squares (x, y) it walks, in order, looping
   std::vector<std::string> ignores;        // "ignores": unit / character ids it never chases or attacks (unless nothing else is left)
   bool areaMoveCost = false;     // GuardArea "measure": "moveCost": `within` is a movement cost, not a distance
+  bool healsRetreating = false;  // "heals": "retreating": its healing staves are used only on retreating allies (docs/AI.md "Healers that serve retreating allies")
 
   bool isDefault() const;
 };
@@ -79,7 +80,7 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
 Json behaviourToJson(const AiBehaviour& b);
 const char* behaviourModeName(AiMode m);
 
-// ---- behaviour_scripted.cpp: the keys of the scripted-style computer players (order, weights, caution, retreat, idleTurns, route, ignores, measure) ----
+// ---- behaviour_scripted.cpp: the keys of the scripted-style computer players (order, weights, caution, retreat, idleTurns, route, ignores, measure, heals) ----
 bool scriptedKey(const std::string& key);                                                    // is `key` one of them?
 bool scriptedIsDefault(const AiBehaviour& b);                                                // none of them set
 bool readScripted(const Json& v, const Database& db, AiBehaviour& b, std::string& err);      // after mode / within are read
