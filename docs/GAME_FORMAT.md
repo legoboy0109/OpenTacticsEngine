@@ -69,8 +69,14 @@ id that does not exist is a load error.
     // Optional (docs/ECONOMY.md "Research", "Fog of war"); unknown keys and other values are refused.
     "research": { "needsStructure": false },   // true: research needs an owned structure kind with "research": true. Default
                                                // false: a side can research whenever the game has technologies
-    "fog": { "ambush": "endsTurn" }            // a unit that walks into a hidden enemy: "endsTurn" (default) or "canAct"
+    "fog": { "ambush": "endsTurn" },           // a unit that walks into a hidden enemy: "endsTurn" (default) or "canAct"
                                                // (stopped and moved, but it may still attack, wait, capture...)
+    // Optional (docs/AI.md "Scripted-style computer players"); unknown keys and out-of-range numbers are refused. No block = the usual computer player.
+    "ai": { "turnOrder": "best",               // "best" (default: the single best action of any unit first) or "order" (one unit at a time, by each unit's behaviour "order")
+            "weights": { "classic": { "dmg": 2, "left": 3, "friends": 4, "class": 1, "turn": 1, "counter": 2, "danger": 6, "wounds": 1,
+                                      "killValue": 50, "dmgCap": 40, "leftBase": 20, "friendsCap": 10, "counterCap": 40,
+                                      "noCounterBonus": 10, "dangerDiv": 8, "dangerCap": 20, "attackAtZero": false,
+                                      "priority": { "archer": 10 } } } }   // named sets a unit's behaviour picks with "weights": "classic"
   },
 
   "formulas": {
@@ -304,7 +310,8 @@ Everything is in docs/ECONOMY.md.
       "name": "Gilda", "level": 3, "leader": true,
       "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md); placements for disjoint difficulties may share it (and a square)
       "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
-      "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / an object
+      "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / "patrol" / an object; the object may also carry
+                                         //   the scripted-style keys order, weights, caution, retreat, idleTurns, ignores, route, measure (docs/AI.md "Scripted-style computer players")
       "difficulty": ["hard"],            // optional, computer sides only: appears only on these difficulties (docs/DIFFICULTY.md)
       "difficultyShift": false,          // optional: the difficulty's enemy numbers never change this unit (a boss)
       "stats": { "hp": 26 } }            // optional per-unit overrides (exact: a difficulty never shifts a stat written here)

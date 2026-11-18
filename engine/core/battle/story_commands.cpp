@@ -96,6 +96,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
     return;
   }
   markSight();
+  if (u.behaviour.idleTurns > 0 && u.side == activeSide) u.idleSeen = 1;  // docs/AI.md: arriving in its own side's turn, that turn counts as its first
   u.id = (int)units.size();
   u.cell = cell;
   occupant[(size_t)cell] = u.id;
