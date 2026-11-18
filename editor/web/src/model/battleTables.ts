@@ -36,10 +36,10 @@ export function setSceneSides(doc: ProjectDoc, v: SceneSides): ProjectDoc {
 }
 
 // --- platforms (data/graphics.json "battle") -----------------------------------------------------------------------------------
-export interface PlatformRow { id: string; sheet: string; cell: CellRef; far?: CellRef }
-export const platformList = (doc: ProjectDoc): PlatformRow[] => Object.entries(battleOf(doc).platforms ?? {}).map(([id, p]) => ({ id, sheet: p.sheet, cell: p.cell, far: p.far }))
+export interface PlatformRow { id: string; sheet: string; cell: CellRef; far?: CellRef; right?: CellRef; farRight?: CellRef }
+export const platformList = (doc: ProjectDoc): PlatformRow[] => Object.entries(battleOf(doc).platforms ?? {}).map(([id, p]) => ({ id, sheet: p.sheet, cell: p.cell, far: p.far, right: p.right, farRight: p.farRight }))
 
-const withBattle = (doc: ProjectDoc, fn: (b: BattleSection) => BattleSection): ProjectDoc =>
+export const withBattle = (doc: ProjectDoc, fn: (b: BattleSection) => BattleSection): ProjectDoc =>
   withGraphics(doc, (g) => {
     const next = fn(g.battle ?? {})
     return patchObj(g, { battle: Object.keys(next).length ? next : undefined }) as Graphics
@@ -64,10 +64,16 @@ export function setPlatformPicture(doc: ProjectDoc, id: string, sheet: string, c
   if (!cur) return doc
   return withBattle(doc, (b) => ({ ...b, platforms: { ...b.platforms, [id]: far ? { ...cur, sheet, far: cell } : patchObj(cur, { sheet, cell }) } }))
 }
+/** The right-hand fighter's own picture of a platform (a fixed stage only); without one the left picture is drawn mirrored. */
+export function setPlatformRight(doc: ProjectDoc, id: string, cell: CellRef | undefined, far?: boolean): ProjectDoc {
+  const cur = battleOf(doc).platforms?.[id]
+  if (!cur || (far && !cur.far)) return doc
+  return withBattle(doc, (b) => ({ ...b, platforms: { ...b.platforms, [id]: patchObj(cur, far ? { farRight: cell } : { right: cell }) } }))
+}
 export function clearPlatformFar(doc: ProjectDoc, id: string): ProjectDoc {
   const cur = battleOf(doc).platforms?.[id]
   if (!cur || !cur.far) return doc
-  return withBattle(doc, (b) => ({ ...b, platforms: { ...b.platforms, [id]: patchObj(cur, { far: undefined }) } }))
+  return withBattle(doc, (b) => ({ ...b, platforms: { ...b.platforms, [id]: patchObj(cur, { far: undefined, farRight: undefined }) } }))
 }
 /** Removes the platform and every choice that named it (terrain table, default, a map's table). */
 export function removePlatform(doc: ProjectDoc, id: string): ProjectDoc {

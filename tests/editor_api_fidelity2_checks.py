@@ -62,8 +62,11 @@ def run_fidelity2_checks(api, tmp, games, templates, check, get_project, put_pro
         "sheets": [{"id": "bgs", "file": "art/bgs.png", "cellWidth": 120, "cellHeight": 68}, {"id": "plat", "file": "art/plat.png", "cellWidth": 48, "cellHeight": 16}],
         "battle": {"backgrounds": {"meadow": {"sheet": "bgs", "cell": [0, 0]}, "cave": {"sheet": "bgs", "cell": [1, 0]}}, "terrainBackground": {"plain": "meadow"},
                    "defaultBackground": "meadow",
-                   "platforms": {"grass": {"sheet": "plat", "cell": [0, 0], "far": [1, 0]}, "boards": {"sheet": "plat", "cell": [1, 0]}},
-                   "terrainPlatform": {"plain": "grass"}, "defaultPlatform": "boards"}})
+                   "platforms": {"grass": {"sheet": "plat", "cell": [0, 0], "far": [1, 0], "right": [1, 0], "farRight": [0, 0]}, "boards": {"sheet": "plat", "cell": [1, 0]}},
+                   "terrainPlatform": {"plain": "grass"}, "defaultPlatform": "boards",
+                   "stage": {"width": 240, "height": 160, "feet": {"left": [88, 104], "right": [152, 104]}, "feetFar": {"left": [56, 104], "right": [184, 104]},
+                             "platform": {"left": [64, 96], "right": [128, 96]}, "platformFar": {"left": [32, 96], "right": [160, 96]},
+                             "align": "bottom", "fit": "contain", "rangeLine": False}}})
     write("maps/arena.json", {
         "name": "Arena", "grid": {"type": "square", "width": 6, "height": 3}, "legend": {".": "plain", "s": "swamp"},
         "tiles": ["......", "..ss..", "......"], "weather": "rain",
@@ -136,3 +139,16 @@ def run_fidelity2_checks(api, tmp, games, templates, check, get_project, put_pro
            lambda d: d["game"].update({"battleBackgroundFrom": "both"}))
     broken("a platform with a far picture outside its image", "outside sheet", "data/graphics.json",
            lambda d: d["graphics"]["battle"]["platforms"]["grass"].update({"far": [9, 0]}))
+    check("fidelity2: the stage and a platform's right-hand pictures arrive and are saved unchanged",
+          d["graphics"]["battle"]["stage"]["align"] == "bottom" and d["graphics"]["battle"]["stage"]["rangeLine"] is False and
+          d["graphics"]["battle"]["platforms"]["grass"]["farRight"] == [0, 0])
+    broken("a stage with a foot point outside it", "is outside the stage", "data/graphics.json",
+           lambda d: d["graphics"]["battle"]["stage"]["feet"]["right"].__setitem__(0, 240))
+    broken("a stage that is too small", "between 16 and 1024", "data/graphics.json",
+           lambda d: d["graphics"]["battle"]["stage"].update({"width": 8}))
+    broken("a stage with an align it does not know", "\"align\" must be", "data/graphics.json",
+           lambda d: d["graphics"]["battle"]["stage"].update({"align": "left"}))
+    broken("a stage with platformFar but no platform", "\"platformFar\" needs \"platform\"", "data/graphics.json",
+           lambda d: d["graphics"]["battle"]["stage"].pop("platform"))
+    broken("a platform's farRight without a far picture", "\"farRight\" needs a \"far\" picture", "data/graphics.json",
+           lambda d: d["graphics"]["battle"]["platforms"]["grass"].pop("far"))

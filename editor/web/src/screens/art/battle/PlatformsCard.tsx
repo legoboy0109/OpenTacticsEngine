@@ -1,7 +1,7 @@
 // "Platforms": the picture each fighter of the battle scene stands on, the default one, and a `far` picture for fights at range 2+
 // (docs/BATTLE_SCENE.md "Platforms"). Per terrain they are chosen on the Terrain screen and per map in the map's settings.
 import { useState } from 'react'
-import { addPlatform, clearPlatformFar, defaultPlatform, newPlatformId, platformList, platformProblems, removePlatform, setDefaultPlatform, setPlatformPicture } from '../../../model/battleTables'
+import { addPlatform, clearPlatformFar, defaultPlatform, newPlatformId, platformList, platformProblems, removePlatform, setDefaultPlatform, setPlatformPicture, setPlatformRight } from '../../../model/battleTables'
 import { sheetsOf } from '../../../model/graphics'
 import { tidyId } from '../../../model/storyIds'
 import { useDoc, useEdit } from '../../../store/context'
@@ -17,7 +17,7 @@ export function PlatformsCard() {
   const doc = useDoc()
   const edit = useEdit()
   const list = platformList(doc)
-  const [choosing, setChoosing] = useState<{ id: string; far: boolean } | null>(null)
+  const [choosing, setChoosing] = useState<{ id: string; far: boolean; right?: boolean } | null>(null)
   const [text, setText] = useState('')
   const hasImages = sheetsOf(doc).length > 0
   const id = newPlatformId(doc, text || 'ground')
@@ -42,6 +42,12 @@ export function PlatformsCard() {
                     <button type="button" className="btn sm" aria-label={PT.clearFar(p.id)} onClick={() => edit((d) => clearPlatformFar(d, p.id))}>{PT.clearFarText}</button>
                   </>
                 : <button type="button" className="btn sm" onClick={() => setChoosing({ id: p.id, far: true })}>{PT.addFar}</button>}
+              {p.right && <PortraitThumb sheet={p.sheet} cell={p.right} label={PT.rightName(p.id)} height={32} />}
+              {p.farRight && <PortraitThumb sheet={p.sheet} cell={p.farRight} label={PT.farRightName(p.id)} height={32} />}
+              <button type="button" className="btn sm" onClick={() => setChoosing({ id: p.id, far: false, right: true })}>{p.right ? PT.chooseRight : PT.addRight}</button>
+              {p.right && <button type="button" className="btn sm" aria-label={PT.clearRight(p.id)} onClick={() => edit((d) => setPlatformRight(d, p.id, undefined))}>{PT.clearRightText}</button>}
+              {p.far && <button type="button" className="btn sm" onClick={() => setChoosing({ id: p.id, far: true, right: true })}>{p.farRight ? PT.chooseFarRight : PT.addFarRight}</button>}
+              {p.farRight && <button type="button" className="btn sm" aria-label={PT.clearFarRight(p.id)} onClick={() => edit((d) => setPlatformRight(d, p.id, undefined, true))}>{PT.clearFarRightText}</button>}
               <button type="button" className="btn sm" aria-label={PT.delete(p.id)} onClick={() => edit((d) => removePlatform(d, p.id))}><Icon name="trash" />{PT.delete(p.id)}</button>
             </li>
           ))}
@@ -63,8 +69,14 @@ export function PlatformsCard() {
         {problems.map((p) => <p key={p} className="error-text" role="alert">{p}</p>)}
       </div>
       {target && choosing && (
-        <PortraitPicker id={target.id} current={{ sheet: target.sheet, cell: choosing.far && target.far ? target.far : target.cell }} onClose={() => setChoosing(null)}
-          onChoose={(sheet, cell) => { edit((d) => setPlatformPicture(d, target.id, sheet, cell, choosing.far)); setChoosing(null) }} />
+        <PortraitPicker id={target.id}
+          current={{ sheet: target.sheet, cell: (choosing.right ? (choosing.far ? target.farRight : target.right) : undefined) ?? (choosing.far && target.far ? target.far : target.cell) }}
+          onClose={() => setChoosing(null)}
+          onChoose={(sheet, cell) => {
+            // (a picture for the right-hand fighter comes from the platform's own image: only the piece is chosen)
+            edit((d) => (choosing.right ? setPlatformRight(d, target.id, cell, choosing.far) : setPlatformPicture(d, target.id, sheet, cell, choosing.far)))
+            setChoosing(null)
+          }} />
       )}
     </Card>
   )
