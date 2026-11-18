@@ -86,6 +86,24 @@ struct FxShake {
   int strength = 2;  // stage / screen pixels before scaling
 };
 
+// Scene-wide parts of an effect (docs/BATTLE_SCENE.md "Hiding and fading"), timed from the start of the effect that owns them.
+enum : unsigned { kHideBackdrop = 1, kHidePlatforms = 2 };
+struct FxHide {                  // for `ms` from `atMs` the picked layers are not drawn; a hidden backdrop leaves the stage filled with `rgb` (black without one)
+  int atMs = 0, ms = 100;
+  unsigned what = 0;             // kHideBackdrop | kHidePlatforms
+  bool hasColor = false;
+  uint32_t rgb = 0;
+};
+struct FxFade {                  // a colour laid over the scene: in over `ms`, held `holdMs`, out over `ms`; peak opacity alpha / 255
+  int atMs = 0, ms = 100, holdMs = 0;
+  uint32_t rgb = 0;
+  int alpha = 255;
+  bool backdropOnly = false;     // "over": "backdrop" (else everything, the fighters too)
+};
+// Where a "screen" effect is drawn among the layers (docs/BATTLE_SCENE.md "Effect layers"): right after the backdrop (the default), with the
+// "behind" layer (over the platforms, under the fighters), or over the fighters.
+enum class FxOrder { Backdrop, Behind, Front };
+
 // A spell or an arrow drawn over the fight for a weapon (or every weapon of a group). An entry with a weapon / group and no pictures
 // only assigns the effects named in `list` / `byType`; an entry with an `id` and no weapon / group is a library effect that lists use.
 struct BattleEffect {
@@ -109,6 +127,10 @@ struct BattleEffect {
   int lingerMs = 0;                  // travel: stays at the target this long after arriving
   std::vector<int> list;             // assignment: indices of further effects that play with this one (after its own pictures)
   std::vector<std::pair<int, std::vector<int>>> byType;  // assignment: striker's unit type index -> the effects that replace this entry's own
+  std::vector<FxHide> hide;          // "hide": layers not drawn for a while
+  std::vector<FxFade> fade;          // "fade": a colour over the scene or the backdrop
+  FxOrder order = FxOrder::Backdrop; // "order" of a "screen" effect
+  int speed = 0;                     // travel: "speed" in stage pixels per second instead of "travelMs" (0 = travelMs; needs a fixed stage)
   bool additive = false;             // "blend": "add": its pixels brighten what is under them (docs/BATTLE_SCENE.md "Blending")
   bool extended = false;             // any of the newer keys was given (it then also logs its start)
   bool assignsOnly() const { return !anim.any(); }
@@ -144,8 +166,21 @@ struct BattlePlatform {
 
 // An optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): the scene is laid out in the stage's own pixels and drawn at one whole-number
 // scale. Points are [x, y] in stage pixels; index 0 = the left fighter, 1 = the right one.
+// An extra layout of the fixed stage for fights from `from` squares apart (docs/BATTLE_SCENE.md "Range bands"). With `each` the stage shows one fighter at a
+// time (the camera follows the acting fighter): points are then in a world wider than the stage and `leftView` / `rightView` are the world x of the
+// stage's left edge while the camera is on the left / right fighter.
+struct StageBand {
+  int from = 2;
+  int feet[2][2] = {{0, 0}, {0, 0}};
+  bool hasPlatform = false;
+  int platform[2][2] = {{0, 0}, {0, 0}};
+  bool each = false;                // "view": "each"
+  int panMs = 250, leftView = 0, rightView = 0;
+};
+
 struct BattleStage {
   bool on = false;
+  std::vector<StageBand> ranges;           // sorted by `from`
   int width = 0, height = 0;
   int feet[2][2] = {{0, 0}, {0, 0}};      // where a fighter's anchor (foot point) stands, close
   bool hasFeetFar = false;

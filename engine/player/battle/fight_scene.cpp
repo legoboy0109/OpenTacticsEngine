@@ -1,9 +1,11 @@
 #include "battle/fight_scene.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include "core/base/log.h"
 #include "core/data/battle_pick.h"
+#include "core/data/battle_stage.h"
 #include "sound/game_audio.h"
 #include "ui/text.h"
 
@@ -164,6 +166,8 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   // (docs/BATTLE_SCENE.md "Several effects, by unit type": the strike's list, picked by the weapon and the striker's unit type.)
   effectsOfStrike_.clear();
   std::vector<std::vector<EffectTimes>> fx;
+  const bool stageOn = art.stage.on;
+  const StageLayout lay = stageOn ? stageLayoutFor(art.stage, script_.distance) : StageLayout();  // (range bands: the points of this fight's distance)
   for (const FightStrike& st : script_.strikes) {
     std::string group = st.weapon >= 0 && (size_t)st.weapon < db.weapons.size() ? db.weapons[(size_t)st.weapon].group : std::string();
     if (st.staff && st.item >= 0 && (size_t)st.item < db.items.size() && db.items[(size_t)st.item].staff >= 0)
@@ -190,6 +194,15 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
       t.sounds = be.sounds;
       t.flash = be.flash;
       t.shake = be.shake;
+      t.hide = be.hide;
+      t.fade = be.fade;
+      // "speed" (stage pixels per second): the flight takes as long as the distance between the two foot points needs.
+      if (be.travel && be.speed > 0 && stageOn) {
+        const int to = 1 - st.actor;
+        const double dx = lay.feet[to][0] - lay.feet[st.actor][0], dy = lay.feet[to][1] - lay.feet[st.actor][1];
+        t.travelMs = std::max(20, std::min(5000, (int)std::lround(std::sqrt(dx * dx + dy * dy) * 1000.0 / be.speed)));
+        t.bySpeed = true;
+      }
       t.name = !be.id.empty() ? be.id : be.weapon >= 0 ? db.weapons[(size_t)be.weapon].id : be.item >= 0 ? db.items[(size_t)be.item].id : be.group;
       times.push_back(t);
     }
@@ -197,7 +210,7 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
     fx.push_back(times);
   }
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
-  tl_ = buildTimelineList(script_, times, fx);
+  tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1);
 
   // Background and platform (docs/BATTLE_SCENE.md "Which background and platform"): by the terrain under the struck fighter, or under the
   // attacker with game.json "battleBackgroundFrom": "attacker"; the map's own table first, then the game's.
@@ -287,6 +300,9 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
       break;
     case BeatKind::FxStart:
       OTE_INFO("battle scene: effect %s start", beat.label.c_str());
+      break;
+    case BeatKind::FxFlight:
+      OTE_INFO("battle scene: effect %s flight %d ms", beat.label.c_str(), beat.value);
       break;
     case BeatKind::Tag:
       OTE_INFO("battle scene: skill %s (%s)", beat.text.c_str(), who.name.c_str());

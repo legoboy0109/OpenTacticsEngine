@@ -23,6 +23,44 @@ BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool h
   return crit && !t.has[BaAttack] ? BaCrit : BaAttack;  // (with no attack animation either, the fallback crit shows its flash)
 }
 
+double FightFadeWin::opacityAt(double t) const {
+  const double d = t - t0;
+  if (d < 0 || ms <= 0) return 0;
+  if (d < ms) return alpha * d / ms;
+  if (d < ms + hold) return alpha;
+  if (d < 2 * ms + hold) return alpha * (1 - (d - ms - hold) / ms);
+  return 0;
+}
+
+double FightTimeline::cameraAt(double t) const {
+  double pos = camStart;
+  for (const FightCamKey& k : cam) {
+    if (t <= k.t) break;
+    if (k.dur <= 0 || t >= k.t + k.dur) {
+      pos = k.side;
+      continue;
+    }
+    const double p = (t - k.t) / k.dur;
+    return pos + (k.side - pos) * (p * p * (3 - 2 * p));  // eased, so the picture does not start and stop with a jerk
+  }
+  return pos;
+}
+
+unsigned FightTimeline::hiddenAt(double t, uint32_t& rgb) const {
+  unsigned mask = 0;
+  double latest = -1e9;
+  rgb = 0;
+  for (const FightHideWin& h : hides) {
+    if (t < h.t0 || t >= h.t0 + h.dur) continue;
+    mask |= h.what;
+    if ((h.what & kHideBackdrop) && h.hasColor && h.t0 >= latest) {
+      latest = h.t0;
+      rgb = h.rgb;
+    }
+  }
+  return mask;
+}
+
 const FightPose* FightTimeline::poseAt(int side, double t) const {
   const FightPose* cur = nullptr;
   for (const FightPose& p : poses[side & 1])
@@ -58,15 +96,24 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
   return buildTimelineList(s, times, lists);
 }
 
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike) {
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs) {
   FightTimeline tl;
   if (!s.valid) return tl;
+  const bool useCam = panMs >= 0;
+  const double pan = useCam ? sec(panMs) : 0;
+  int camSide = s.initiator;  // the camera of a band that shows one fighter at a time starts on the fighter that acts first
+  tl.camStart = camSide;
   double t = kIntro;
   tl.beats.push_back({0, BeatKind::Begin, -1, s.initiator, 0, false, ""});
   for (size_t i = 0; i < s.strikes.size(); ++i) {
     const FightStrike& st = s.strikes[i];
     const int a = st.actor, d = 1 - a;
     const std::vector<EffectTimes> fxs = i < effectsByStrike.size() ? effectsByStrike[i] : std::vector<EffectTimes>();
+    if (useCam && camSide != a) {  // the camera goes to the fighter that acts next, before it begins
+      tl.cam.push_back({t, pan, a});
+      camSide = a;
+      t += pan;
+    }
     double t0 = t;
     // Skills that fired and conditions put on show first, over their owner, while the fighters stand.
     if (!st.tags.empty()) {
@@ -106,6 +153,12 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
         hitT = std::max(hitT, t0 + sec(e.hitAtMs));
       }
     }
+    // A camera that shows one fighter at a time moves to the struck one over `pan`, arriving as the hit lands (the hit waits when the blow is sooner).
+    if (useCam) {
+      hitT = std::max(hitT, t0 + pan);
+      tl.cam.push_back({hitT - pan, pan, d});
+      camSide = d;
+    }
     for (size_t k = 0; k < fxs.size(); ++k) {
       const EffectTimes& e = fxs[k];
       FightFx f;
@@ -130,6 +183,9 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
       for (const auto& snd : e.sounds) tl.beats.push_back({f.t0 + sec(snd.first), BeatKind::FxSound, (int)i, a, 0, false, snd.second, e.name});
       for (const FxFlash& fl : e.flash) tl.flashes.push_back({f.t0 + sec(fl.atMs), sec(fl.ms), fl.rgb, 0, (int)i});
       for (const FxShake& sh : e.shake) tl.shakes.push_back({f.t0 + sec(sh.atMs), sec(sh.ms), 0, sh.strength, (int)i});
+      if (e.travel && e.bySpeed) tl.beats.push_back({f.t0, BeatKind::FxFlight, (int)i, a, e.travelMs, false, "", e.name});
+      for (const FxHide& h : e.hide) tl.hides.push_back({f.t0 + sec(h.atMs), sec(h.ms), h.what, h.hasColor, h.rgb});
+      for (const FxFade& fd : e.fade) tl.fades.push_back({f.t0 + sec(fd.atMs), sec(fd.ms), sec(fd.holdMs), fd.rgb, fd.alpha / 255.0, fd.backdropOnly});
     }
     // The struck fighter.
     double end = std::max(ap.start + ap.dur, fxEnd);

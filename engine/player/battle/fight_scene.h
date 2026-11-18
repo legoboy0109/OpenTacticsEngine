@@ -88,7 +88,8 @@ class FightScene {
   void stageLayout(Geo& g) const;                      // fight_scene_stage.cpp: the fixed stage's layout
   void drawStageBackground(Renderer& r, const Geo& g) const;
   void drawStagePlatform(Renderer& r, const Geo& g, int side) const;
-  void drawBackground(Renderer& r, const Geo& g) const;
+  void drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb) const;
+  void drawFades(Renderer& r, const Geo& g, bool backdropOnly) const;  // the effects' "fade" windows
   void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
   void drawEffects(Renderer& r, const Geo& g, FxLayer layer) const;  // the effects of one layer (docs/BATTLE_SCENE.md "Effect layers")

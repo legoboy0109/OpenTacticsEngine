@@ -40,6 +40,8 @@ C_TL, C_TR, C_BL, C_BR = (255, 255, 0), (0, 255, 255), (0, 255, 0), (255, 128, 0
 C_FOOT = (255, 0, 255)                                                              # a fighter's foot pixel
 C_BLUE_BODY, C_RED_BODY = (30, 60, 200), (200, 40, 40)
 C_PLATFORM = (200, 120, 40)
+C_PLATFORM_FAR = (60, 160, 70)                                                      # the platform sheet's `far` picture (ranged fights)
+C_RANGE_TEXT = (220, 225, 245)                                                      # "Range N" (and nothing else) is drawn in this colour
 C_SPARK = (120, 255, 60)                                                            # the staff's effect on the target
 C_BACK = (24, 30, 96)                                                               # the backdrop's plain colour (row 0)
 
@@ -460,12 +462,209 @@ def blending():
           body_a == add(C_BLUE_BODY, (60, 60, 60)), str(body_a))
 
 
+def near(a, b, tol=3):
+    return a is not None and b is not None and all(abs(x - y) <= tol for x, y in zip(a, b))
+
+
+def hide_and_fade():
+    C_HIDE = (16, 32, 48)
+    spark = lambda extra: [dict({'id': 'w', 'weapon': 'mend_staff', 'sheet': 'fx_spark', 'frames': [[0, 0]], 'ms': 100, 'sounds': {'0': 'probe'}}, **extra)]
+    # hide: the backdrop and the platforms are not drawn for a while; the stage is filled with the window's colour (black without one).
+    saves = fx_game('hide_both', spark({'hide': [{'atMs': 0, 'ms': 1000, 'what': ['backdrop', 'platforms'], 'color': '#102030'}]}))
+    shots, log = timed_shots('hide_both', USE + ['wait:120'], saves, {'hide-during': 0.5, 'hide-after': 1.4})
+    d, a = shots.get('hide-during'), shots.get('hide-after')
+    if d and a:
+        ox, oy = place(a, 2)
+        back, plat = (ox + 120 * 2, oy + 60 * 2), (ox + 40 * 2, oy + 100 * 2)  # the far left platform's top-left region (24, 96, 64 x 32)
+        check('hide: during the window the backdrop is the window\'s colour and the corner marks are gone', d.px(*back) == C_HIDE and d.bbox(C_TL) is None, str(d.px(*back)))
+        check('hide: the platforms are not drawn either (the colour shows where they were)', d.px(*plat) == C_HIDE, str(d.px(*plat)))
+        check('hide: fighters and effects are still drawn (the right fighter\'s foot mark, the left body)', d.bbox(C_FOOT, 240, 480) is not None)
+        check('hide: afterwards the backdrop and the platforms are back', a.px(*back) == C_BACK and a.px(*plat) == C_PLATFORM_FAR and a.bbox(C_BL) is not None,
+              str((a.px(*back), a.px(*plat))))
+    check('hide: a window logs the effect start', 'effect w start' in scene_lines(log))
+    # Only the platforms, with no colour (black fills only a hidden backdrop).
+    saves = fx_game('hide_plat', spark({'hide': [{'atMs': 0, 'ms': 1000, 'what': ['platforms']}]}))
+    shots, log = timed_shots('hide_plat', USE + ['wait:120'], saves, {'hide-platforms': 0.5})
+    h = shots.get('hide-platforms')
+    if h:
+        ox, oy = place(h, 2)
+        check('hide platforms only: the backdrop shows and the platform picture is not drawn there',
+              h.px(ox + 120 * 2, oy + 60 * 2) == C_BACK and h.px(ox + 40 * 2, oy + 100 * 2) == C_BACK, str((h.px(ox + 120 * 2, oy + 60 * 2), h.px(ox + 40 * 2, oy + 100 * 2))))
+    saves = fx_game('hide_bg', spark({'hide': [{'atMs': 0, 'ms': 1000, 'what': ['backdrop']}]}))
+    shots, log = timed_shots('hide_bg', USE + ['wait:120'], saves, {'hide-backdrop': 0.5})
+    h = shots.get('hide-backdrop')
+    if h:
+        check('hide backdrop only: black fills the stage (no colour given), the corner marks are gone and the platforms stay',
+              h.px(240, 70) == (0, 0, 0) and h.bbox(C_TL) is None and h.px(80, 200) == C_PLATFORM_FAR, str((h.px(240, 70), h.px(80, 200))))
+    # fade over everything: the colour is laid over the fighters too; over the backdrop only: they stay as they are.
+    for over in ('all', 'backdrop'):
+        gid = 'fade_' + over
+        saves = fx_game(gid, spark({'fade': [{'atMs': 0, 'ms': 300, 'to': '#000000', 'alpha': 0.8, 'holdMs': 600, 'over': over}]}))
+        shots, log = timed_shots(gid, USE + ['wait:120'], saves, {'fade-%s-held' % over: 0.45, 'fade-%s-after' % over: 1.45, 'fade-%s-rising' % over: 0.15})
+        h, a, r = shots.get('fade-%s-held' % over), shots.get('fade-%s-after' % over), shots.get('fade-%s-rising' % over)
+        if not (h and a and r):
+            continue
+        ox, oy = place(a, 2)
+        back = (ox + 120 * 2, oy + 60 * 2)
+        body = (ox + 184 * 2 - 6, oy + 104 * 2 - 40)  # the right fighter (Wen, on the stage's right) at its far foot point
+        dim = tuple(int(round(c * 0.2)) for c in C_BACK)
+        pb = h.px(*back)
+        check('fade %s: held, the backdrop is laid over with 80%% black (%s)' % (over, dim), near(pb, dim, 4), str(pb))
+        check('fade %s: it rose first (the rising frame is between the plain and the held colour)' % over,
+              r.px(*back) is not None and sum(dim) < sum(r.px(*back)) < sum(C_BACK), str(r.px(*back)))
+        if over == 'all':
+            check('fade all: the fighter is dimmed too', near(h.px(*body), tuple(int(round(c * 0.2)) for c in C_BLUE_BODY), 4), str(h.px(*body)))
+        else:
+            check('fade backdrop: the fighter keeps its colour', h.px(*body) == C_BLUE_BODY, str(h.px(*body)))
+        check('fade %s: afterwards the backdrop is as it was' % over, a.px(*back) == C_BACK, str(a.px(*back)))
+
+
+def order():
+    C_FX = (100, 90, 120)
+    for where in ('backdrop', 'behind', 'front'):
+        fx = [{'id': 'wash', 'weapon': 'mend_staff', 'sheet': 'fx_wash', 'frames': [[0, 0]], 'ms': 3000, 'layer': 'screen', 'order': where, 'sounds': {'0': 'probe'}}]
+        gid = 'order_' + where
+        saves = fx_game(gid, fx, extra_sheets=[sheet('fx_wash', 240, 160)], extra_files={'fx_wash': solid(240, 160, C_FX)})
+        shots, log = timed_shots(gid, USE + ['wait:120'], saves, {'order-' + where: 0.2})
+        s = shots.get('order-' + where)
+        if not s:
+            continue
+        ox, oy = place(s, 2) if s.bbox(C_BL) else (None, None)
+        if where == 'front':
+            check('order front: the screen effect covers everything, fighters and platforms too (no corner mark, no foot mark, no platform)',
+                  s.px(240, 60) == C_FX and s.bbox(C_FOOT) is None and s.bbox(C_PLATFORM_FAR) is None)
+            continue
+        check('order %s: the corner marks of the backdrop are covered by the effect' % where, s.bbox(C_TL) is None and s.px(240, 60) == C_FX)
+        check('order %s: the fighters are over it (the right fighter\'s foot mark shows)' % where, s.bbox(C_FOOT, 240, 480) is not None)
+        plat_visible = s.bbox(C_PLATFORM_FAR) is not None
+        check('order %s: the platforms are %s' % (where, 'over it' if where == 'backdrop' else 'under it'), plat_visible == (where == 'backdrop'))
+
+
+def far_game(gid, effects, stage, wen_x, tarn_x, reach=8, phone=False, **kw):
+    """The staff scene with Wen (the caster) at map column `wen_x` and wounded Tarn (the target) at `tarn_x`, both in row 3: `tarn_x - wen_x` squares apart."""
+    def tweak(g):
+        def f(doc):
+            for u in doc['units']:
+                if u.get('character') == 'wen':
+                    u['x'], u['y'] = wen_x, 2
+                if u.get('character') == 'tarn':
+                    u['x'], u['y'] = tarn_x, 2
+        edit(g, 'maps/clinic.json', f)
+        mend_effects(lambda it: it.update({'range': reach}))(g)
+        if phone:
+            edit(g, 'game.json', lambda gj: gj.update({'view': {'width': 270, 'height': 480, 'tileSize': 24}}))
+    saves = fx_game(gid, effects, tweak=tweak, **kw)
+    edit(os.path.join(TMP, gid), 'data/graphics.json', lambda gj: gj['battle'].update({'stage': stage}))
+    return saves
+
+
+BAND_BOTH = {'from': 4, 'feet': {'left': [30, 104], 'right': [210, 104]}, 'platform': {'left': [0, 96], 'right': [176, 96]}}
+BAND_EACH = {'from': 6, 'feet': {'left': [40, 104], 'right': [400, 104]}, 'platform': {'left': [8, 96], 'right': [368, 96]}, 'view': 'each',
+             'pan': {'panMs': 250, 'leftView': 0, 'rightView': 200}}
+
+
+def foot_x(s, x0, x1):
+    bb = s.bbox(C_FOOT, x0, x1)
+    return None if bb is None else (bb[0] + bb[2]) // 2
+
+
+def range_bands():
+    glow = [{'id': 'glow', 'weapon': 'mend_staff', 'sheet': 'fx_spark', 'frames': [[0, 0]], 'ms': 800, 'anchor': [8, 8], 'hitAtMs': 300, 'sounds': {'0': 'probe'}}]
+    # A band that shows both fighters from 4 squares on: Wen at column 1, Tarn at column 5.
+    stage = dict(STAGE, ranges=[BAND_BOTH])
+    saves = far_game('rg_both', glow, stage, 1, 5)
+    shots, log = timed_shots('rg_both', USE + ['wait:120'], saves, {'range-band-both': 0.15})
+    s = shots.get('range-band-both')
+    check('range band: a 4-square fight is a "ranged, 4 squares" scene', any('ranged, 4 squares' in l for l in scene_lines(log)), str(scene_lines(log)[:3]))
+    if s:
+        ox, oy = place(s, 2)
+        lx, ly = feet(2, ox, oy, 'left')
+        lf, rf = foot_x(s, 0, 240), foot_x(s, 240, 480)
+        check('range band: the right fighter stands at the band\'s own foot point (x 210 * 2)', rf is not None and abs(rf - (ox + 210 * 2)) <= 2, str((rf, ox + 420)))
+        check('range band: the left fighter (under the effect) stands at its foot point: the spark is centred on x 30 * 2',
+              s.bbox(C_SPARK) is not None and abs((s.bbox(C_SPARK)[0] + s.bbox(C_SPARK)[2]) // 2 - (ox + 30 * 2)) <= 1, str(s.bbox(C_SPARK)))
+        check('range band: the platforms are at the band\'s points (left platform picture top-left at stage x 0)', s.px(ox + 20, oy + 100 * 2 + 10) == C_PLATFORM_FAR)
+    # One fighter at a time: Wen at column 0, Tarn at column 6 (6 squares): the camera starts on the caster (Wen, on the right) and moves to the target.
+    stage = dict(STAGE, ranges=[BAND_EACH])
+    saves = far_game('rg_each', glow, stage, 0, 6)
+    shots, log = timed_shots('rg_each', USE + ['wait:120'], saves, {'range-each-caster': 0.02, 'range-each-target': 1.0, 'range-each-moving': 0.175})
+    c, t, m = shots.get('range-each-caster'), shots.get('range-each-target'), shots.get('range-each-moving')
+    check('range band each: a 6-square fight is logged as such', any('ranged, 6 squares' in l for l in scene_lines(log)), str(scene_lines(log)[:3]))
+    if c and t:
+        ox, oy = place(c, 2) if c.bbox(C_BL) else (0, -50)
+        # While the caster (the right fighter) acts the picture shows its half: its foot mark is at (400 - 200) * 2, the left fighter is out of the picture.
+        rf = foot_x(c, 0, 480)
+        check('range band each: the camera starts on the acting fighter: its foot mark is at (400 - 200) * 2 and nobody else is in the picture',
+              rf is not None and abs(rf - (ox + 400)) <= 2 and c.bbox(C_FOOT, 0, 240) is None, str((rf, c.bbox(C_FOOT))))
+        # When the effect lands the camera is on the target (the left fighter): it is at x 40 * 2 and the caster is gone from the picture.
+        lf = foot_x(t, 0, 480)
+        check('range band each: after the hit the camera is on the target: its foot mark is at 40 * 2 and the caster is out of the picture',
+              lf is not None and abs(lf - (ox + 80)) <= 2 and t.bbox(C_FOOT, 240, 480) is None, str((lf, t.bbox(C_FOOT))))
+        check('range band each: the backdrop does not move (its corner marks are at the stage corners in both pictures)',
+              c.bbox(C_BL) is not None and c.bbox(C_BL) == t.bbox(C_BL) and c.bbox(C_BR) == t.bbox(C_BR), str((c.bbox(C_BL), t.bbox(C_BL))))
+        check('range band each: no range line is drawn (the camera follows one fighter)', c.count(C_RANGE_TEXT) == 0 and t.count(C_RANGE_TEXT) == 0)
+    if m and c and t:
+        # Half way through the pan neither fighter's platform is in the picture (the picture is between the two halves of the world): it moved, not cut.
+        gc, gm, gt = c.count(C_PLATFORM_FAR), m.count(C_PLATFORM_FAR), t.count(C_PLATFORM_FAR)
+        check('range band each: half way the picture is between the two halves (no platform in it; before and after there is one)', gc > 0 and gt > 0 and gm < min(gc, gt) // 4, str((gc, gm, gt)))
+    # panMs 0 cuts: the camera is on the target as soon as the hit is due.
+    stage0 = dict(STAGE, ranges=[dict(BAND_EACH, pan=dict(BAND_EACH['pan'], panMs=0))])
+    saves = far_game('rg_cut', glow, stage0, 0, 6)
+    shots, log = timed_shots('rg_cut', USE + ['wait:120'], saves, {'range-cut-after': 1.0})
+    cut = shots.get('range-cut-after')
+    if cut:
+        lf = foot_x(cut, 0, 480)
+        check('range band each, panMs 0: the camera has cut to the target', lf is not None and cut.bbox(C_FOOT, 240, 480) is None)
+    # The same on the phone-shaped screen (the bars at the sides stay clear of what the camera does not show).
+    stage = dict(STAGE, ranges=[BAND_EACH])
+    saves = far_game('rg_each_p', glow, stage, 0, 6, phone=True)
+    shots, log = timed_shots('rg_each_p', USE + ['wait:120'], saves, {'range-each-portrait': 1.0}, W=270, H=480)
+    p = shots.get('range-each-portrait')
+    if p:
+        check('range band each, portrait: the left fighter is in the picture and the right one is not drawn in the bars at the sides',
+              p.bbox(C_FOOT, 0, 270) is not None and p.bbox(C_FOOT, 255, 270) is None)
+
+
+def travel_speed():
+    bolt = lambda: [{'id': 'bolt', 'weapon': 'mend_staff', 'sheet': 'fx_spark', 'frames': [[0, 0]], 'ms': 100, 'mode': 'travel', 'speed': 200, 'anchor': [8, 8],
+                     'sounds': {'0': 'probe'}}]
+    out = {}
+    # Range 2 (Wen at column 3, Tarn at 5): the far layout, the feet 128 stage pixels apart; range 4 with a band: 150.
+    stage = dict(STAGE, ranges=[{'from': 4, 'feet': {'left': [30, 104], 'right': [180, 104]}}])
+    for name, wen, tarn in (('near', 3, 5), ('far', 1, 5)):
+        saves = far_game('speed_' + name, bolt(), stage, wen, tarn)
+        log, units = run_player('speed_' + name, USE + ['wait:120'], saves, frames=800)
+        fl = [l for l in scene_lines(log) if l.startswith('effect bolt flight')]
+        out[name] = int(fl[0].split()[3]) if fl else None
+        check('speed %s: the flight time is logged once' % name, len(fl) == 1, str(scene_lines(log)))
+    check('speed: at range 2 (the feet 128 stage pixels apart) 200 px/s takes 640 ms', out.get('near') == 640, str(out))
+    check('speed: at range 4 (a band with the feet 150 apart) it takes 750 ms: longer for the longer way', out.get('far') == 750, str(out))
+    # An effect with travelMs logs no flight line; the hit lands when the shot arrives (the effect's own arrival, checked by the log order).
+    plain = {k: v for k, v in bolt()[0].items() if k != 'speed'}
+    saves = far_game('speed_ms', [dict(plain, travelMs=300)], stage, 3, 5)
+    log, units = run_player('speed_ms', USE + ['wait:120'], saves, frames=800)
+    sl = scene_lines(log)
+    check('speed: an effect with travelMs logs no flight line and still plays', not any('flight' in l for l in sl) and 'effect bolt start' in sl and 'staff heal Tarn +8' in sl, str(sl))
+    # The shot is on its way when the first screenshot is taken and arrives at the target: it moves from the caster towards the target.
+    saves = far_game('speed_shot', bolt(), stage, 3, 5)
+    shots, log = timed_shots('speed_shot', USE + ['wait:120'], saves, {'speed-flight-early': 0.1, 'speed-flight-late': 0.5})
+    e, l = shots.get('speed-flight-early'), shots.get('speed-flight-late')
+    if e and l:
+        be, bl = e.bbox(C_SPARK), l.bbox(C_SPARK)
+        # Wen (right fighter) casts at Tarn (left): the bolt flies right to left.
+        check('speed: the shot flies from the caster towards the target (it is further left later)', be is not None and bl is not None and bl[0] < be[0], str((be, bl)))
+
+
 # ---- main -------------------------------------------------------------------------------------------------------------------------------
 
 def main():
     try:
         staves()
         blending()
+        hide_and_fade()
+        order()
+        range_bands()
+        travel_speed()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
     print('%d passed, %d failed' % (passed, len(failures)))

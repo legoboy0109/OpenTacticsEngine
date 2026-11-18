@@ -17,7 +17,10 @@ void FightScene::stageLayout(Geo& g) const {
     pw[0] = pw[1] = sh.cellW;
     ph[0] = ph[1] = sh.cellH;
   }
-  g.sg = stageGeometry(g.W, g.H, g.stageTop, g.stageBottom, st, script_.ranged(), pw, ph);
+  // Range bands (docs/BATTLE_SCENE.md): the layout of this fight's distance; a band that shows one fighter at a time moves the picture with the camera.
+  const StageLayout lay = stageLayoutFor(st, script_.distance);
+  g.panning = lay.each;
+  g.sg = stageGeometryAt(g.W, g.H, g.stageTop, g.stageBottom, st, script_.distance, pw, ph, lay.each ? lay.viewX(tl_.cameraAt(t_)) : 0.0);
   g.stage = g.sg.valid;
   const int k = g.sg.scale;
   g.groundY = (g.sg.feet[0][1] + g.sg.feet[1][1]) / 2;
