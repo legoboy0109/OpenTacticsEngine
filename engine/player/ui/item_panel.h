@@ -5,6 +5,7 @@
 // way Menu and SlotPanel do: tap a row to select it, tap the selected row to
 // choose it, tap outside to leave. All measures come from the active font.
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,11 @@ struct PanelRow {
   bool dim = false;    // cannot be chosen (shown greyed; choosing it is still reported)
   bool mark = false;   // the equipped weapon
   bool blank = false;  // a free slot ("-")
+  // A picture before the name (the preparation screen's unit rows): `icon` draws it into the square it is given, `iconSize` is the
+  // square's side in pixels (the panel makes the rows tall enough). `sub` is a second, dimmer line under the name ("Lv2 Soldier").
+  std::function<void(Renderer&, int x, int y, int size)> icon;
+  int iconSize = 0;
+  std::string sub;
 };
 
 // One row inside `x, y, w, h` (shared with the trade panel).

@@ -95,6 +95,7 @@ void BattleScene::prepItemsWhoOpen(int sel) {
     if (r.gone) continue;
     PanelRow row;
     row.label = r.name;
+    decorateUnitRow(row, r.type, r.level);
     row.extra = countText(session_.db, r);
     rows.push_back(row);
     p.ids.push_back(r.id);
@@ -114,6 +115,7 @@ void BattleScene::prepItemsWithOpen() {
     if (r.gone || r.id == p.who) continue;
     PanelRow row;
     row.label = r.name;
+    decorateUnitRow(row, r.type, r.level);
     row.extra = countText(session_.db, r);
     rows.push_back(row);
     ids.push_back(r.id);
@@ -236,6 +238,7 @@ void BattleScene::prepShopForOpen() {
     if (r.gone) continue;
     PanelRow row;
     row.label = r.name;
+    decorateUnitRow(row, r.type, r.level);
     row.extra = countText(session_.db, r);
     row.dim = (int)r.items.size() >= session_.db.rules.items.inventorySize && session_.db.rules.items.storage == ItemStorage::Off;
     rows.push_back(row);

@@ -263,6 +263,9 @@ class BattleScene : public Scene {
   void prepTradePicked(bool direct = false);  // direct: skip the Hand over / Equip menu
   void prepShopOpen(int sel = 0);
   void prepShopForOpen();
+  // battle_unit_icon.cpp: the unit's map picture and "Lv2 Soldier" on a row of the prep lists
+  void drawUnitIcon(Renderer& r, int type, int x, int y, int size);
+  void decorateUnitRow(PanelRow& row, int type, int level);
   void updateShopMusic();  // battle_shop_music.cpp
   // battle_prep_sell.cpp: selling at the shop, and Equip on the trade screen
   void prepShopTab(int tab);                 // 0 = Buy, 1 = Sell (the shop's tabs)
