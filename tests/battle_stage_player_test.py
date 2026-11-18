@@ -264,7 +264,26 @@ def expect_scene(name, gid, W, H, far, k, own_right=False, range_line=True, plat
     return s
 
 
+def felled_first(g):  # the brutes have two hit points: Eirik's first hit fells Gorm before he can counter
+    edit(g, 'data/units.json', lambda u: [x.update({'stats': dict(x['stats'], hp=2)}) for x in u['units'] if x['id'] == 'brute'])
+
+
+def test_weapon_name_of_a_fighter_who_never_struck():
+    """The top box names the weapon a fighter holds even when it fell before it struck (it used to show "-")."""
+    make_game('felled', felled_first)
+    path = os.path.join(TMP, 'felled.bmp')
+    log = run('felled', path)
+    keep(path, 'weapon-name-felled-defender')
+    check('weapon name: Gorm never struck in this fight', 'strike Gorm' not in log and 'defeated Gorm' in log, log[-300:])
+    s = Shot(path)
+    # the weapon row of the left box: a word of light text, not just a dash (the row sits below the name row)
+    ink = lambda x0, x1, y0, y1: sum(1 for y in range(y0, y1) for x in range(x0, x1) if s.px(x, y) and abs(s.px(x, y)[0] - 150) < 12 and abs(s.px(x, y)[1] - 156) < 12 and abs(s.px(x, y)[2] - 190) < 12)
+    left, right = ink(6, 120, 14, 38), ink(246, 360, 14, 38)
+    check('weapon name: the felled fighter\'s box shows its weapon as the other box does (%d / %d ink pixels)' % (left, right), left > 20 and right > 20, '%d %d' % (left, right))
+
+
 def main():
+    test_weapon_name_of_a_fighter_who_never_struck()
     make_game('close')
     make_game('far', ranged)
     make_game('close_p', phone)

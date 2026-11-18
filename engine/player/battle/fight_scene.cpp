@@ -106,6 +106,11 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
         break;
       }
     if (weapon >= 0) f.weapon = db.weapons[(size_t)weapon].name;
+    else {  // never struck (felled before its counter): the box still names the weapon it holds, the first it would attack with
+      std::vector<int> held;
+      b.weaponsOf(u, held);
+      if (!held.empty() && held[0] >= 0 && (size_t)held[0] < db.weapons.size()) f.weapon = db.weapons[(size_t)held[0]].name;
+    }
     const std::string group = weapon >= 0 ? db.weapons[(size_t)weapon].group : std::string();
     f.sideId = b.sides[(size_t)u.side].id;
     f.set = art.resolveSet(u.character, u.type, group, weapon, f.sideId);

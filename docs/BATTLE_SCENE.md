@@ -160,7 +160,7 @@ with no picture at all is the map's coloured block with its letter. A game works
 ## Layout
 
 Same code at every size; positions come from the screen size and the font's line height. Top: a box per fighter (side colour,
-name, level, weapon, hit-point bar with numbers). Middle: the fighters standing on a ground line (landscape 80% down the stage, portrait
+name, level, weapon (the one it struck with, else the one it holds: a fighter felled before it could counter still names it), hit-point bar with numbers). Middle: the fighters standing on a ground line (landscape 80% down the stage, portrait
 66%), each as large as fits (whole-number scale, up to 8x), melee close together, ranged apart with a dotted line and "Range N".
 Bottom: "Confirm / tap: skip". Floating numbers and skill labels rise above the fighter; a crit flashes the screen; the scene fades in
 and out. Checked at 480 x 270 and 270 x 480. Art made for a fixed small stage uses the optional **fixed stage** instead ("Fixed stage").
