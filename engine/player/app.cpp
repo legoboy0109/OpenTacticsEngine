@@ -220,6 +220,7 @@ bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
   dropSession();
   session_.reset(new GameSession());
   session_->askChoices = !args_.autoplay;
+  session_->testLevel = args_.testLevel;
   if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
     dropSession();
     return false;

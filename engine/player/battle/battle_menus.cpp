@@ -117,6 +117,7 @@ void BattleScene::openEndMenu() {
   // structure it still opens; the panel greys its rows with the reason.
   if (!session_.db.research.empty() && humanTurn()) items.push_back({EconomyWords::kResearch, "", true, kResearchEntry});
   addDifficultyEntry(items);  // docs/DIFFICULTY.md: only in a game that has difficulties
+  addTestLevelEntry(items);
   if (manualSaves()) {  // game setting "any": the player may save and load at will
     items.push_back({"Save", "", true, kSave});
     items.push_back({"Load", "", true, kLoad});

@@ -8,7 +8,13 @@ import type { DocumentStore } from '../store/documentStore'
 import { useStored } from '../ui/hooks'
 import { Icon } from '../ui/Icon'
 import { Select } from '../ui/Select'
+import {
+  chapterChoice, DEFAULT_TEST_NUMBER, effectiveMode, parseLevelNumber, playerUrl, PLAY_CAMPAIGN, readTestLevels, TEST_LEVEL_MAX, TEST_LEVEL_MIN, TEST_OFF,
+  type PlayMode, type TestLevel,
+} from './playOptions'
 import { T } from './text'
+
+export { PLAY_CAMPAIGN, playerUrl }
 
 interface Props {
   store: DocumentStore
@@ -19,21 +25,14 @@ interface Props {
 
 type Status = { state: 'loading' } | { state: 'ready' } | { state: 'error'; message: string }
 
-/** Picker value for "the campaign from chapter 1" (no map id can be this: ids have no '*'). */
-export const PLAY_CAMPAIGN = '*campaign'
-
-/** `showAll` adds `showall=1`: the player draws without fog of war (the maker's view; docs/ECONOMY.md "Fog of war").
- *  `muted` adds `noaudio=1`: the player starts without a sound device. `difficulty` adds `difficulty=<id>` (docs/DIFFICULTY.md): the
- *  preview plays at that difficulty without asking; left out, the player shows its choice screen. */
-export const playerUrl = (project: string, map: string, style?: string, showAll?: boolean, muted?: boolean, difficulty?: string): string =>
-  `/player/embed.html?project=${encodeURIComponent(project)}&${map === PLAY_CAMPAIGN ? 'campaign=1' : `map=${encodeURIComponent(map)}`}${style ? `&style=${encodeURIComponent(style)}` : ''}${showAll ? '&showall=1' : ''}${muted ? '&noaudio=1' : ''}${difficulty ? `&difficulty=${encodeURIComponent(difficulty)}` : ''}`
-
 export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   const frame = useRef<HTMLIFrameElement>(null)
   const [map, setMap] = useState(initialMap)
   const [status, setStatus] = useState<Status>({ state: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
+  // The test level the player reports for "Automatic" (it works the number out from the map, so the panel reads it back).
+  const [autoLevel, setAutoLevel] = useState<number | null>(null)
   // Every style can be played. With one there is nothing to choose.
   const doc = useDoc()
   const playable = doc.game?.styles ?? []
@@ -76,6 +75,42 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
     setStoredDifficulty(id)
   }
 
+  // "This map alone" / "From this chapter of the campaign" (docs/SAVES.md "Test playthroughs"), remembered per project. The second is
+  // only possible on a map that is a chapter's; otherwise the first is used and the choice says why it is greyed.
+  const [storedMode, setStoredMode] = useStored<PlayMode>(`ote.playMode.${store.id}`, 'map')
+  const chapterOpt = chapterChoice(doc, map)
+  const mode = effectiveMode(storedMode, chapterOpt)
+  const chapter = mode === 'chapter' && chapterOpt.ok ? chapterOpt.chapter : undefined
+  const switchMode = async (v: string) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setStoredMode(v === 'chapter' ? 'chapter' : 'map')
+  }
+
+  // The test level (docs/DIFFICULTY.md "Test level"): off / automatic / a number, remembered per map of the project.
+  const [storedLevels, setStoredLevels] = useStored<Record<string, TestLevel>>(`ote.playTestLevels.${store.id}`, {})
+  const testLevel = readTestLevels(storedLevels)[map] ?? TEST_OFF
+  const [draft, setDraft] = useState<string | null>(null)  // the number box while it is being typed
+  const setLevel = async (t: TestLevel) => {
+    if (!(await saveFirst())) return
+    setStatus({ state: 'loading' })
+    setAutoLevel(null)
+    const next = { ...readTestLevels(storedLevels) }
+    if (t.kind === 'off') delete next[map]; else next[map] = t
+    setStoredLevels(next)
+  }
+  const switchLevelKind = (v: string) => {
+    setDraft(null)
+    void setLevel(v === 'auto' ? { kind: 'auto' } : v === 'number' ? { kind: 'number', n: testLevel.kind === 'number' ? testLevel.n : DEFAULT_TEST_NUMBER } : TEST_OFF)
+  }
+  const commitNumber = () => {
+    if (draft === null) return
+    const n = parseLevelNumber(draft)
+    setDraft(null)
+    if (n !== null && !(testLevel.kind === 'number' && testLevel.n === n)) void setLevel({ kind: 'number', n })
+  }
+  const numberBad = draft !== null && parseLevelNumber(draft) === null
+
   useEffect(() => {
     const el = dialog.current!
     if (!el.open) el.showModal()
@@ -87,6 +122,7 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow || !e.data) return
       if (e.data.type === 'ote-player-ready') { setStatus({ state: 'ready' }); frame.current?.focus(); emitSignal('played') }
+      else if (e.data.type === 'ote-player-testlevel') setAutoLevel(typeof e.data.level === 'number' && e.data.level > 0 ? e.data.level : null)
       else if (e.data.type === 'ote-player-error') setStatus({ state: 'error', message: String(e.data.message ?? 'Unknown error') })
     }
     window.addEventListener('message', onMessage)
@@ -124,6 +160,23 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
             <Select value={style} onChange={(v) => void switchStyle(v)} options={playable.map((s) => ({ value: s.id, label: s.name || s.id }))} aria-label={T.styleLabel} />
           </label>
         )}
+        <label className="play-map" title={T.modeTitle}>
+          <span>{T.modeLabel}</span>
+          <Select value={mode} onChange={(v) => void switchMode(v)} aria-label={T.modeLabel}
+            options={[{ value: 'map', label: T.modeMap },
+              { value: 'chapter', label: chapterOpt.ok ? T.modeChapter(chapterOpt.name) : `${T.modeChapterOff} (${T.modeReason[chapterOpt.reason]})`, disabled: !chapterOpt.ok }]} />
+        </label>
+        <label className="play-map" title={T.levelTitle}>
+          <span>{T.levelLabel}</span>
+          <Select value={testLevel.kind} onChange={switchLevelKind} aria-label={T.levelLabel}
+            options={[{ value: 'off', label: T.levelOff }, { value: 'auto', label: autoLevel && testLevel.kind === 'auto' ? T.levelAutoWith(autoLevel) : T.levelAuto },
+              { value: 'number', label: T.levelNumber }]} />
+        </label>
+        {testLevel.kind === 'number' && (
+          <input type="number" className="input play-level" aria-label={T.levelNumberLabel} aria-invalid={numberBad} title={numberBad ? T.levelBad(TEST_LEVEL_MIN, TEST_LEVEL_MAX) : T.levelNumberLabel}
+            min={TEST_LEVEL_MIN} max={TEST_LEVEL_MAX} value={draft ?? String(testLevel.n)}
+            onChange={(e) => setDraft(e.target.value)} onBlur={commitNumber} onKeyDown={(e) => { if (e.key === 'Enter') commitNumber() }} />
+        )}
         {difficulties.length > 0 && (
           <label className="play-map" title={T.difficultyTitle}>
             <span>{T.difficultyLabel}</span>
@@ -147,7 +200,8 @@ export function PlayPanel({ store, maps, initialMap, onClose }: Props) {
         </div>
       </header>
       <div className="play-stage">
-        <iframe key={`${map}:${style}:${showAll}:${sound}:${difficulty}`} ref={frame} src={playerUrl(store.id, map, style !== playable[0]?.id ? style : undefined, showAll, !sound, difficulty || undefined)} title="Game preview" className="play-frame"
+        <iframe key={`${map}:${style}:${showAll}:${sound}:${difficulty}:${chapter ?? ''}:${testLevel.kind}${testLevel.kind === 'number' ? testLevel.n : ''}`} ref={frame}
+          src={playerUrl(store.id, map, { style: style !== playable[0]?.id ? style : undefined, showAll, muted: !sound, difficulty: difficulty || undefined, chapter, testLevel })} title="Game preview" className="play-frame"
           allow="fullscreen" onLoad={() => frame.current?.focus()} />
         {status.state === 'loading' && <div className="play-overlay" role="status" data-testid="play-loading"><span className="spinner" aria-hidden="true" />{T.loading}</div>}
         {status.state === 'error' && (

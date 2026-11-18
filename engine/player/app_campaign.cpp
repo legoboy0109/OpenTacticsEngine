@@ -12,6 +12,7 @@
 #include "core/base/log.h"
 #include "core/campaign/difficulty.h"
 #include "core/campaign/prep.h"
+#include "core/campaign/testplay.h"
 #include "core/data/loader.h"
 
 namespace ote {
@@ -66,6 +67,16 @@ void PlayerApp::doStartCampaign() {
   session_->campaign->pt.begin(session_->db);
   OTE_INFO("campaign: new game of '%s'", gameId_.c_str());
   std::string why;
+  if (!args_.chapter.empty()) {  // a test playthrough (docs/SAVES.md "Test playthroughs"): starts at that chapter with an approximated roster
+    std::string note;
+    if (!beginPlaythroughAt(session_->db, session_->campaign->pt, args_.chapter, args_.difficulty, note, why)) {
+      showError("Cannot start the test playthrough", why, ToGame);
+      runPending();
+      return;
+    }
+    OTE_INFO("campaign: test playthrough starts at chapter '%s' with %zu roster unit(s)", args_.chapter.c_str(), session_->campaign->pt.roster.size());
+    if (!note.empty()) OTE_WARN("campaign: %s", note.c_str());
+  }
   if (difficultyNeeded()) {  // docs/DIFFICULTY.md: New Game asks which difficulty first
     askDifficulty("New game", [this](const std::string& id) {
       std::string note;
@@ -170,6 +181,12 @@ void PlayerApp::doCampaignNext() {
     }
     case Next::StartBattle: {
       session_->battle = Battle();
+      if (args_.testLevel != 0) {  // docs/DIFFICULTY.md "Test level": the whole roster first, then the battle's own units
+        std::string terr;
+        applyChapterTestLevel(db, pt, session_->formulas, args_.seed, args_.testLevel, terr);
+        if (!terr.empty()) OTE_WARN("test level: %s", terr.c_str());
+        session_->battle.setTestLevel(args_.testLevel);  // the battle finds the same number itself (auto) and lifts the map's plain human units
+      }
       if (!pt.party.empty()) OTE_INFO("campaign: chapter %d is played by party '%s' (%s)", pt.chapter + 1, pt.party.c_str(), activePartyName(db, pt).c_str());
       session_->battle.setAskChoices(session_->askChoices);  // before start: a question may come with the first events
       session_->startEvents.clear();

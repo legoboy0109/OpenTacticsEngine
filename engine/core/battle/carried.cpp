@@ -54,6 +54,7 @@ void Battle::setStartingRoster(std::shared_ptr<const Roster> carried) {
     units[i].id = (int)i;
     occupant[(size_t)units[i].cell] = (int)i;
   }
+  applyTestLevel();  // the roster's version of a unit may be below the test level (docs/DIFFICULTY.md "Test level")
 }
 
 }  // namespace ote

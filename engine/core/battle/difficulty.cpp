@@ -70,6 +70,11 @@ int Battle::difficultyLevel(const MapUnitDef& def) const {
   return std::max(1, std::min(top, def.level + diffEnemy.levels));
 }
 
+void Battle::growStatByLevels(Unit& u, int stat, int levels) const {
+  const long long total = (long long)growthOf(u, stat) * levels;
+  raiseStat(u, stat, (int)((total + (total >= 0 ? 50 : -50)) / 100));
+}
+
 // Builds the stats of a shifted enemy. `levelsShifted` = how many levels it really moved (after the limits above).
 // Per stat that the placement did not write itself ("stats" of the map unit are exact):
 //   1. the growths of `levelsShifted` levels as their expected value, growth% x levels, rounded to the nearest (no dice:
@@ -81,10 +86,7 @@ void Battle::difficultyStats(Unit& u, const MapUnitDef& def, int levelsShifted) 
   const DifficultyRules& rules = db->difficulties;
   for (size_t s = 0; s < u.stats.size(); ++s) {
     if (s < def.statExact.size() && def.statExact[s]) continue;
-    if (levelsShifted != 0) {
-      const long long total = (long long)growthOf(u, (int)s) * levelsShifted;
-      raiseStat(u, (int)s, (int)((total + (total >= 0 ? 50 : -50)) / 100));
-    }
+    if (levelsShifted != 0) growStatByLevels(u, (int)s, levelsShifted);
     if (s < diffEnemy.stats.size() && diffEnemy.stats[s] != 0) u.stats[s] = std::max(0, u.stats[s] + diffEnemy.stats[s]);
     if (diffEnemy.statsPercent != 100 &&
         std::find(rules.percentStatIndex.begin(), rules.percentStatIndex.end(), (int)s) != rules.percentStatIndex.end())

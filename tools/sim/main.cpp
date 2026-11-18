@@ -5,6 +5,7 @@
 //   ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose] [--difficulty ID]
 //       --difficulty ID plays at one of the game's difficulties (docs/DIFFICULTY.md); without it the game's default
 //       plays the game's campaign from chapter 1 (the human side played by the AI)
+//   --test-level auto|N (both forms) lifts the human side to that level first (docs/DIFFICULTY.md "Test level")
 // Exit codes: 0 all runs had a winner, 1 load/usage error, 2 some run
 // stalled (no winner within the round limit), 3 the AI misbehaved.
 #include <chrono>
@@ -33,6 +34,7 @@ struct Options {
   bool verbose = false;
   bool campaign = false;
   std::string difficulty;  // --difficulty ID (docs/DIFFICULTY.md); empty = the game's default
+  int testLevel = 0;      // --test-level auto|N (docs/DIFFICULTY.md "Test level"): 0 = off, -1 = auto
   bool forceFog = false;  // switch fog of war on for the map, whatever the file says (to test the AI under fog)
 };
 
@@ -47,11 +49,17 @@ bool parseArgs(int argc, char** argv, Options& o) {
   int positional = 0;
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
-    long v = 0;
+    long v = 0, n = 0;
     if (a == "--verbose") o.verbose = true;
     else if (a == "--campaign") o.campaign = true;
     else if (a == "--force-fog") o.forceFog = true;
     else if (a == "--difficulty" && i + 1 < argc) o.difficulty = argv[++i];
+    else if (a == "--test-level" && i + 1 < argc) {
+      const std::string tv = argv[++i];
+      if (tv == "auto") o.testLevel = -1;
+      else if (parseInt(tv.c_str(), n) && n >= 1 && n <= 99) o.testLevel = (int)n;
+      else return false;
+    }
     else if ((a == "--seed" || a == "--runs" || a == "--max-rounds") && i + 1 < argc && parseInt(argv[i + 1], v)) {
       ++i;
       if (a == "--seed") o.seed = (unsigned)v;
@@ -75,10 +83,11 @@ struct RunResult {
 };
 
 RunResult playOne(const Database& db, const MapDef& map, Formulas& formulas, unsigned seed,
-                  int maxRounds, bool verbose, int difficulty) {
+                  int maxRounds, bool verbose, int difficulty, int testLevel) {
   RunResult r;
   Battle battle;
   battle.setDifficulty(difficulty);
+  battle.setTestLevel(testLevel);
   std::string err;
   std::vector<Event> events;
   if (!battle.init(db, map, formulas, seed, err)) {
@@ -151,8 +160,8 @@ bool checkDifficulty(const Database& db, const std::string& id) {
 int main(int argc, char** argv) {
   Options opt;
   if (!parseArgs(argc, argv, opt)) {
-    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose] [--force-fog] [--difficulty ID]\n"
-                         "       ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose] [--difficulty ID]\n");
+    std::fprintf(stderr, "usage: ote-sim <gameDir> <mapId> [--seed N] [--runs N] [--max-rounds N] [--verbose] [--force-fog] [--difficulty ID] [--test-level auto|N]\n"
+                         "       ote-sim <gameDir> --campaign [--seed N] [--runs N] [--max-rounds N] [--verbose] [--difficulty ID] [--test-level auto|N]\n");
     return 1;
   }
   Database db;
@@ -171,6 +180,7 @@ int main(int argc, char** argv) {
     c.runs = opt.runs;
     c.maxRounds = opt.maxRounds;
     c.verbose = opt.verbose;
+    c.testLevel = opt.testLevel;
     return simtool::runCampaignSim(db, formulas, c);
   }
   if (!loadGame(opt.gameDir, db, err) || !loadMap(db, opt.mapId, map, err) || !formulas.init(db, err)) {
@@ -195,7 +205,7 @@ int main(int argc, char** argv) {
     unsigned seed = opt.seed + (unsigned)i;
     if (opt.verbose) std::printf("=== run seed %u ===\n", seed);
     auto t0 = std::chrono::steady_clock::now();
-    RunResult r = playOne(db, map, formulas, seed, opt.maxRounds, opt.verbose, difficulty);
+    RunResult r = playOne(db, map, formulas, seed, opt.maxRounds, opt.verbose, difficulty, opt.testLevel);
     double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
     if (r.aiError) return 3;
     totalMs += ms;

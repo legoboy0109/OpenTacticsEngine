@@ -676,6 +676,18 @@ class Battle {
   void setAskChoices(bool ask) { choice_.ask = ask; }
   // docs/DIFFICULTY.md (difficulty.cpp): -1 or an index out of range = the game's default (no effect in a game without difficulties).
   void setDifficulty(int index);
+  // Test level (docs/DIFFICULTY.md "Test level", test_level.cpp): a testing aid. 0 = off (the default: nothing changes), -1 =
+  // automatic (autoTestLevel() when the units are placed), N > 0 = at least N. init() and setStartingRoster() then raise
+  // every unit of a human side that is below it (never above; see levelUnitTo). Not saved.
+  void setTestLevel(int level) { testLevel = level; }
+  int testLevel = 0;
+  int testLevelUsed = 0;  // the number the last pass used (0 = none), for the on-screen tag
+  // The rounded (halves up) average level of the units on the map of the computer sides hostile to the first human side; 0 when none.
+  int autoTestLevel() const;
+  // Raises `u` to `target` by level-ups at the average growth (the difficulty mechanism: docs/DIFFICULTY.md section 2), no dice:
+  // stops at the unit type's maxLevel (else the game's); a unit already there or above is untouched; no promotion; the skills of the
+  // new levels are learned; experience 0, hit points full. `u` needs its character set. Returns the levels gained (0 = untouched).
+  int levelUnitTo(Unit& u, int target) const;
   bool choiceWaiting() const { return choice_.wait != nullptr; }
   // The pick is a position in the Choice entry's answers. Appends the entries that follow the question (up to the
   // next one, if there is another). False (nothing changed) when no question is waiting or the pick is out of range.

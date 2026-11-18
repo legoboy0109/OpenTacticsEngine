@@ -15,9 +15,11 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
                   uint32_t seed, std::string& err) {
   const bool askChoices = choice_.ask;  // the caller's choice of asking survives a new battle
   const int keepDifficulty = difficulty;  // so does the difficulty it is to be built at (docs/DIFFICULTY.md)
+  const int keepTestLevel = testLevel;  // and the test level (docs/DIFFICULTY.md "Test level")
   *this = Battle();
   choice_.ask = askChoices;
   difficulty = keepDifficulty;
+  testLevel = keepTestLevel;
   db = &database;
   formulas = &formulaHost;
   rng.seed(seed);
@@ -196,6 +198,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
         return false;
       }
   }
+  applyTestLevel();  // docs/DIFFICULTY.md "Test level": nothing unless asked for
   quotesInit();  // docs/EVENTS.md "Battle and defeat quotes": nothing said yet (none in a game without quotes)
   supportsInit();  // a single battle starts every support pair at its "start" points (docs/SRPG.md); none = nothing
   return true;
