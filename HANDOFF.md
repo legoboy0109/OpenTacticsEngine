@@ -40,18 +40,24 @@ a map's `tileLayer`, tiles in changes; hex games refused); the second fidelity b
 `fight` command, `battleBackgrounds` / `battlePlatforms` per map + `battleBackgroundFrom`, terrain `weatherCost` + map
 `weather`, `hurt` ranges, summon `items`/`pick`/`replace`, `battleSceneSides`). No engine job is running.
 
-Private converter (separate folder, never public): steps 22-26 done (three difficulties as engine difficulties, parties,
-one-command conversion with ROM audio; engine features used; ROM findings in docs/ASM_FINDINGS3.md; silent-music fix;
-real map tiles with animated water; player on the right; exact backdrops and platforms; weather costs; rings; summon).
-The installed git-ignored `games/vision-quest` is the step 26 state (reinstall = `python3 -I tools/convert.py`,
-`python3 -I tools/check_game.py`, then replace the folder). Open there: spell / arrow effects in battle scenes
-(not decoded), most menu sound cues, the preparation shop stock, 23 weather cases that close a way (engine never
-closes), weighted summon items, the original's own menus.
+Pushed on 2026-11-18 (origin/main = 1f37839 plus this note): the fixed stage for battle scenes (docs/BATTLE_SCENE.md
+"Fixed stage"), test levels and playing from a chapter (`--test-level`, `--campaign --chapter`, the editor's Play panel:
+docs/DIFFICULTY.md, docs/SAVES.md), battle effect features (docs/BATTLE_SCENE.md "Effects": ids, sounds, `hitAtMs`,
+layers, flash / shake, striker parts, lists, `byType`, `returns` / `lingerMs`; the editor's Battle effects card), and a
+phone fix (seven map tools on one row). No engine job is running.
 
-Owner, 2026-11-17: played the port and reported fighters on the wrong sides (fixed: playerRight) and music going mute
-(fixed in the synth: awaiting a listen). Wants the map tiles (done). After the port: Android and an Xbox Dev Mode UWP
-build of the player (research first; see Claude memory). Open with the owner: names of the three difficulties (the
-easy one reads as the ROM's tutorial mode word), "Only on" difficulty limited to computer-side units.
+Private converter (separate folder, never public): steps 22-29 done. The installed git-ignored `games/vision-quest` is
+the step 29 state: real map tiles, the ROM's fixed battle stage (pixel-exact fighters and platforms), 33 battle effects
+with sounds and lead-in timing, ROM music with the silent-track fix. The owner played it on 2026-11-18: battle scenes and
+sound effects are good. Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py` (about 25 min; do
+not run it while the engine is being rebuilt), then replace the folder. Open there: menu / level-up / item sound cues
+and the victory, game-over, preparation music; the preparation shop stock; wall Def / Res; additive glow, range 2+
+camera for spell layers, weather closing a way (engine features); the original's own menus (out of scope so far).
+
+Owner, 2026-11-17/18: the editor's Play button was the "campaign does not continue" report (it ran one map; now it can
+play from a chapter with test levels). After the port: Android and an Xbox Dev Mode UWP build of the player (research
+first; see Claude memory). Open with the owner: keep or hide the port's Free battles list; names of the three
+difficulties; "Only on" difficulty limited to computer-side units; all new editor wording is placeholder.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
