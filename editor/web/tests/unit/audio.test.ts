@@ -121,6 +121,21 @@ describe('editing audio.json', () => {
     expect('sounds' in d.weapons![0]).toBe(false)
     expect(d.weapons![0].name).toBe(silent().weapons![0].name)
   })
+  it('an item may override "heal" as well as "use" (a staff\'s own heal sound, "" = none); a weapon may not', () => {
+    let d = addSound(silent(), 's', 'audio/s.wav')
+    const item = d.items![0].id
+    d = setOverride(d, 'items', item, 'heal', '')
+    expect(d.items![0].sounds).toEqual({ heal: '' })
+    d = setOverride(d, 'items', item, 'use', 's')
+    d = setOverride(d, 'items', item, 'heal', 's')
+    expect(d.items![0].sounds).toEqual({ heal: 's', use: 's' })
+    expect(overrideOf(d, 'items', item, 'heal')).toBe('s')
+    expect(audioChecks(d).filter((c) => c.text.includes('cannot have a sound'))).toEqual([])
+    expect(audioChecks(setOverride(d, 'items', item, 'heal', 'ghost')).map((c) => c.text).join('\n')).toContain('names “ghost”, which is not a sound of this game')
+    expect(setOverride(d, 'weapons', d.weapons![0].id, 'heal', 's').weapons).toEqual(d.weapons)
+    d = setOverride(setOverride(d, 'items', item, 'heal', undefined), 'items', item, 'use', undefined)
+    expect('sounds' in d.items![0]).toBe(false)
+  })
   it('a map\'s music: a track, "" for no music, undefined for the game\'s', () => {
     let d = addTrack(silent(), 't', 'audio/t.ogg')
     const m = mapId(d)

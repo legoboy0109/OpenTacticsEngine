@@ -84,6 +84,14 @@ test('@smoke the Computer player card and the behaviour fields write what docs/A
   expect(retreat).toMatchObject({ below: 30, until: 90, useItems: false })
   expect(retreat.to.terrain).toHaveLength(1)
   expect(await game.problems(id)).toEqual([])
+  // A healer that serves only retreating allies ("heals"): written only when chosen, and the loader accepts it.
+  await box(page).getByRole('combobox', { name: 'Heals with its healing staves' }).selectOption({ label: 'Only allies that are falling back' })
+  await saved(page)
+  expect(unit(id, 'Gorm').behaviour.heals).toBe('retreating')
+  expect(await game.problems(id)).toEqual([])
+  await box(page).getByRole('combobox', { name: 'Heals with its healing staves' }).selectOption({ label: 'Any hurt ally' })
+  await saved(page)
+  expect('heals' in unit(id, 'Gorm').behaviour).toBe(false)
 
   // A bad value is said in plain words; the weight set it uses cannot be removed without a warning.
   await box(page).getByLabel('Acts in this order').fill('')

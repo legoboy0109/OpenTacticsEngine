@@ -253,6 +253,14 @@ test('a staff has the same Sounds card as other items, and the key it writes is 
   await saved(page)
   expect(readDisk(id, 'data/items.json').items[0].sounds).toEqual({ use: '' })
   expect(await game.problems(id)).toEqual([])
+  // The staff's own heal sound (docs/SOUND.md "A staff's own heal sound"): the game's "+N" cue replaced, or silenced with "Silent".
+  await page.getByTestId('sounds-items').getByLabel('Sounds: The “+N” when it heals').selectOption({ label: 'Silent' })
+  await saved(page)
+  expect(readDisk(id, 'data/items.json').items[0].sounds).toEqual({ use: '', heal: '' })
+  await page.getByTestId('sounds-items').getByLabel('Sounds: The “+N” when it heals').selectOption('hit')
+  await saved(page)
+  expect(readDisk(id, 'data/items.json').items[0].sounds).toEqual({ use: '', heal: 'hit' })
+  expect(await game.problems(id)).toEqual([])
 })
 
 test('a game with audio saves and reloads without a byte changing', async ({ page, request, game }) => {

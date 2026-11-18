@@ -1,5 +1,5 @@
 // The keys of a behaviour block that make a computer player act like a scripted one (docs/AI.md "Scripted-style computer players"): order, weights, caution,
-// retreat, idleTurns, route (mode patrol), ignores and measure (mode guardArea). behaviour.ts keeps the block together; this file knows these keys: which
+// retreat, idleTurns, route (mode patrol), ignores, measure (mode guardArea) and heals. behaviour.ts keeps the block together; this file knows these keys: which
 // ones are written, what the loader would refuse (the checks mirror engine/core/data/behaviour_scripted.cpp and loader_behaviour.cpp), and the starting values.
 import { aiRules } from './aiRules'
 import { namedUnits } from './storyIds'
@@ -16,7 +16,7 @@ export interface RouteSquare { x: number; y: number }
 export type ScriptedObj = Record<string, unknown>
 
 /** The keys, in the order they are written. */
-export const SCRIPTED_KEYS = ['order', 'weights', 'caution', 'retreat', 'idleTurns', 'route', 'ignores', 'measure'] as const
+export const SCRIPTED_KEYS = ['order', 'weights', 'caution', 'retreat', 'idleTurns', 'route', 'ignores', 'measure', 'heals'] as const
 export const isScriptedKey = (k: string): boolean => (SCRIPTED_KEYS as readonly string[]).includes(k)
 
 const isInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v)
@@ -32,6 +32,7 @@ export function keepScripted(k: string, v: unknown, mode: string): boolean {
     case 'route': return mode === 'patrol' && Array.isArray(v)
     case 'ignores': return Array.isArray(v) && v.length > 0
     case 'measure': return mode === 'guardArea' && v === 'moveCost'
+    case 'heals': return v === 'retreating'
     default: return false
   }
 }
@@ -77,6 +78,7 @@ export function scriptedProblems(o: ScriptedObj, mode: string, doc: ProjectDoc, 
       }
     }
   }
+  if (o.heals !== undefined && o.heals !== 'anyone' && o.heals !== 'retreating') say('“heals” must be anyone or only allies that are falling back.')
   if (o.measure !== undefined) {
     if (mode !== 'guardArea' || o.within === undefined) say('“measured by” goes with “waits until someone comes near” and a distance.')
     else if (o.measure !== 'steps' && o.measure !== 'moveCost') say('“measured by” must be squares or walking cost.')

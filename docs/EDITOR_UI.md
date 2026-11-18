@@ -647,7 +647,7 @@ Sidebar entry "Sound" after Art. Three parts on one page: **Music** (tracks: fil
 happen** (the standard set as labelled pickers with play buttons: music slots, then Menus / Moving and fighting / Economy / Story),
 then **Sound files** (every file with length, rate, what uses it, "Not used yet", use as music or a sound, delete) and "Remove all
 sound". No sound yet: an explanation and "Add music" / "Add a sound". Adding = choose a file (checked here: 8 MB, first bytes), upload,
-name it. Small "Sounds" groups on Weapons / Items (cards) and Units (folded), "Music" on the map's Map tab, "Music for this scene"
+name it. Small "Sounds" groups on Weapons / Items (cards) and Units (folded; an item has "When it is used" and "The “+N” when it heals", the staff's own heal sound, docs/SOUND.md), "Music" on the map's Map tab, "Music for this scene"
 on the campaign scenes, and Play music / Stop the music / Play a sound among the story commands (map events and scenes); all shown only
 when the game has sounds or music. "Same as the game" = no key, "Silent" / "No music" = "". Delete and rename follow everywhere in one
 undo step; deleting a file that is used asks first. Amber checks mirror the player's loader (`model/audioChecks.ts`). Wording:
@@ -962,7 +962,7 @@ ruined) is a structure kind of its own with its own size-matching footprint, pic
   has the mode "Walks a route" (a **Route** group: squares counted from 1, "Add a square" / remove, 2 to 32; a new patrol starts with two squares), under "Waits until someone comes near" a "Distance counted in"
   (Squares / Walking cost; `measure`) once a distance is set, and a "Computer player options" group: "Acts in this order" (`order`, empty = 0), "Chooses its attacks by" (the sets of Rules, Computer player; a set
   that is not there any more stays in the list, marked), "When walking toward the enemy" (Is careful / Goes straight at them; `caution`), "Does not walk for its first turns" (`idleTurns`), "Never chases or attacks"
-  (a tick list of the map's named units; `ignores`) and "Falls back to heal when hurt" (`retreat`: "Falls back below" %, "Comes back at" %, "Drinks a healing item first", a tick list of terrain for "Falls back to this terrain").
+  (a tick list of the map's named units; `ignores`), "Heals with its healing staves" (Any hurt ally / Only allies that are falling back; `heals`, written only for the second) and "Falls back to heal when hurt" (`retreat`: "Falls back below" %, "Comes back at" %, "Drinks a healing item first", a tick list of terrain for "Falls back to this terrain").
   Nothing is written for a default (an empty box, "Is careful", no ticks); a route only for the patrol mode and a measure only for the area mode (switching the mode drops them, the other keys stay). A patrol wears **P** on the canvas.
   Checks (they mirror the loader): an order past ±100000, a set that is not there, a caution that is neither, `idleTurns` outside 1 to 99, a retreat without a limit / with `until` not above `below` / to a terrain that is not
   there, a route of fewer than 2 or more than 32 squares / with a square outside the map / the same square twice in a row / on a mode that is not a patrol, a unit in "ignores" that is not there, a measure without
