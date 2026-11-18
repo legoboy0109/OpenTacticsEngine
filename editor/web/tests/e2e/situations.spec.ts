@@ -61,7 +61,6 @@ test('the stage commands and the music change in a map event, and the focus spee
   await form(page).getByLabel('Who leaves').fill('Mira')
   await form(page).getByLabel('How', { exact: true }).selectOption({ label: 'Fade out' })
   await addCommand(page, 'Then', 'Move the view')
-  await form(page).getByLabel('How the view scrolls').selectOption({ label: 'At a set speed' })
   await form(page).getByLabel('Scroll speed').fill('4')
   await addCommand(page, 'Then', 'Change a side’s music')
   await form(page).getByLabel('What it plays').selectOption({ label: 'A track' })

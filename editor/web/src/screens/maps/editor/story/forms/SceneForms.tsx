@@ -199,18 +199,15 @@ export function PositionField({ cmd, at }: { cmd: Command; at: CommandRef }) {
 /** focus: how long the scroll takes, and whether the next command waits for it. */
 export function FocusExtras({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
-  const how = cmd.speed !== undefined ? 'speed' : cmd.ms !== undefined ? 'time' : 'usual'
   return (
     <>
-      <PickSelect label={S.focusHow} value={how} options={[{ value: 'usual', label: S.focusHowUsual }, { value: 'time', label: S.focusHowTime }, { value: 'speed', label: S.focusHowSpeed }]}
-        onChange={(v) => patch(v === 'time' ? { ms: cmd.ms ?? 600, speed: undefined } : v === 'speed' ? { speed: cmd.speed ?? 4, ms: undefined } : { ms: undefined, speed: undefined, wait: undefined })} />
-      {how === 'time' && <MsField label={S.focusMs} help={S.focusMsHelp} value={cmd.ms} max={MAX_SCENE_MS} allowEmpty placeholder="Usual" onChange={(v) => patch({ ms: v }, 'ms')} />}
-      {how === 'speed' && (
-        <Field label={S.focusSpeed} help={S.focusSpeedHelp}>
-          <NumberInput value={cmd.speed ?? 4} min={0.1} max={100} integer={false} suffix="squares a second" onChange={(v) => patch({ speed: v ?? 4 }, 'speed')} />
-        </Field>
-      )}
-      {how !== 'usual' && <Check label={S.focusWait} checked={cmd.wait !== false} onChange={(v) => patch({ wait: v ? undefined : false })} />}
+      <MsField label={S.focusMs} help={S.focusMsHelp} value={cmd.ms} max={MAX_SCENE_MS} allowEmpty placeholder="Usual"
+        onChange={(v) => patch(v === undefined ? { ms: undefined } : { ms: v, speed: undefined }, 'ms')} />
+      <Field label={S.focusSpeed} help={S.focusSpeedHelp}>
+        <NumberInput aria-label={S.focusSpeed} value={cmd.speed} min={0.1} max={100} integer={false} allowEmpty placeholder="Not set" suffix="squares a second"
+          onChange={(v) => patch(v === undefined ? { speed: undefined } : { speed: v, ms: undefined }, 'speed')} />
+      </Field>
+      {(cmd.ms !== undefined || cmd.speed !== undefined) && <Check label={S.focusWait} checked={cmd.wait !== false} onChange={(v) => patch({ wait: v ? undefined : false })} />}
     </>
   )
 }
