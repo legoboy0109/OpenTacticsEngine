@@ -58,6 +58,7 @@ def make_game(gid, view=(480, 270)):
     game = read_json(g + '/game.json')
     game['view']['width'], game['view']['height'] = view
     write_json(g + '/game.json', game)
+    os.makedirs(g + '/art', exist_ok=True)  # the fixture has no art folder in git (the sheet is generated)
     TS.write_sheet(g + '/art/tiles.png')
     return g
 
