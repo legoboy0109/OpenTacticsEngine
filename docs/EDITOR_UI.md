@@ -135,6 +135,21 @@ under Advanced.
 edited (or the first map), with **Restart** and **Close**. If the project
 has problems, Play explains them instead of starting.
 
+Play panel choices (all kept in the editor's local settings, never in the game's files; wording lives in `src/play/text.ts`, the
+address and the remembered choices in `src/play/playOptions.ts`; each change starts the game again):
+- **Start**: "This map alone" (a one-off battle on the map) or "From this chapter of the campaign (name)": a TEST run of the story that
+  starts at that chapter with an approximated roster (docs/SAVES.md "Test playthroughs"). The second is only possible when the map is
+  a chapter's map (several chapters on it: the first); otherwise it is greyed with the reason in its label ("this game has no campaign",
+  "this map is not a chapter", "the story already starts at chapter 1" for the story picker) and the map alone is played. Remembered per
+  project. The embedded player gets `campaign=1&chapter=<id>` instead of `map=<id>`.
+- **Test level**: Off / Automatic / A number (a box, 1 to 99, applied on Enter or leaving the box). It lifts the human side's units to
+  that level for this run (docs/DIFFICULTY.md "Test level"); the player gets `testlevel=auto|N`. Remembered per map of the project.
+  "Automatic" shows the number the player settled on, read back from the player's own log line (the embedded page posts
+  `{type:"ote-player-testlevel", level}`), e.g. "Automatic (7)", once the game has started.
+- The embedded player never saves (`--no-saving`), so a test run cannot touch a real Continue save or slot, and there is no Continue to
+  continue: Restart starts the same test run again. Tests: `tests/unit/playOptions.test.ts`, `tests/e2e/testplay.spec.ts` (desktop and
+  360 px; it judges the iframe's address only).
+
 ## Quality bar
 
 Keyboard accessible, labelled inputs, visible focus, works at 360 px

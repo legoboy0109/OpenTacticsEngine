@@ -220,6 +220,36 @@ numbers with plain-language help, add / rename / reorder / delete with follow-th
 on the Map tab, **Only on** checkboxes and the keep-the-same tick on a placed unit and on the Add a unit command, the side's
 **Difficulty changes this side** tick, the story condition form, the checks, and the Play panel's difficulty choice.
 
+## 10b. Test level (a maker's testing aid; shares the rule of section 2)
+
+`ote-player --test-level auto|N` (the web player's `testlevel=auto|N`, the editor's Play panel, and `ote-sim --test-level`) lifts the
+player's units to a level **for this run only**, so a late map can be tested without playing the earlier ones. Without the option nothing
+changes: sims, saves and behaviour are identical (the battle's random numbers are never used either way).
+
+- **Who.** Every unit of a **human-controlled side** when the battle is built (free battle: when it is built; the map's placements, named
+  or not: plain human units are lifted too, because they are the player's units on that map). Units a story adds later (`addUnit`,
+  `changeSide`, summons, structures) are not lifted, except that a **campaign roster** is lifted as a whole (below). Computer sides are
+  never touched.
+- **How.** A unit below the level is raised **to** it by "that many level-ups at the average growth", the exact mechanism of section 2
+  (`Battle::growStatByLevels`: `growth% x levels`, rounded to the nearest, no dice, through the stat caps; `Battle::levelUnitTo`). It stops
+  at the unit type's `maxLevel` (else the game's top level). It is **not promoted**: the unit stays in its class (the normal rule still
+  applies when a turn starts: a class whose automatic promotion level the unit now meets promotes it then, an offered promotion is offered,
+  exactly as for any unit placed at that level). The skills the new levels teach are learned. Experience becomes 0 and hit points full.
+  A unit already at or above the level is untouched (nothing is lowered, its experience stays).
+- **`auto`.** The rounded (halves up) average level of the units **on the map when the battle is built** that belong to computer-controlled
+  sides on another team than the **first** human side (difficulty shifts already applied, units that appear only on other difficulties
+  absent). No such unit: no change (logged).
+- **Campaign (`--campaign`, docs/SAVES.md "Test playthroughs").** Before each chapter's battle is built the **whole roster** (every party,
+  the benched too) is raised the same way and stays raised in the playthrough, so reserves and later chapters keep it. A number is applied
+  at every chapter (upward only: a unit that is already higher keeps its level). `auto` is **re-evaluated at each chapter start from that
+  chapter's map, upward only**: the roster never goes down.
+- **Telling you.** The log says `[info] test level: 7 (auto) (3 units raised)` (or `test level: 7 (...)`) and one `test level: Kell Lv 2 -> 7`
+  line per unit (the roster ones say `(roster)`); the battle menu has a greyed row **Test level**, "7 (auto)" (new wording in
+  `engine/player/battle/battle_difficulty.cpp`; `ote-sim --test-level auto|N` also works for a map and for `--campaign`). Nothing new is saved: the
+  raised stats are ordinary unit state, so a save made in such a run loads the same.
+- Code: `core/battle/test_level.cpp`, `core/campaign/testplay.{h,cpp}`. Tests: `tests/test_testplay.cpp`, `tests/test_testplay_campaign.cpp`,
+  `tests/testplay_player_test.py`.
+
 ## 11. Refusals
 
 All start with the file and the place: `game.json: difficulties: ...`, `maps/x.json: ...`.

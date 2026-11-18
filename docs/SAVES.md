@@ -536,3 +536,29 @@ starts with its own number (it saves nothing); the becomes kind is accepted as r
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a
 battle save and `playthrough.variables` of a campaign save. A Battle with a question waiting cannot be saved (`buildSaveFile` and
 `buildCampaignSave` refuse it); the player never offers a save then. Games and maps without a choice keep their save bytes and hashes.
+
+## Test playthroughs (`--chapter`, `--test-level`)
+
+A maker's way into a late chapter (the editor's Play panel "From this chapter of the campaign"). **`ote-player --game ID --campaign --chapter CH`**
+starts a NEW playthrough at chapter `CH` instead of the first: its `before` scene, its preparation if the map has one, the battle, its `after`
+scene, then on to the next chapter as normal. **`--test-level auto|N`** lifts the human side's units (docs/DIFFICULTY.md "Test level"); in a
+campaign the whole roster is raised at each chapter. `--chapter` needs `--campaign` and `--game`; an unknown id is an error that lists the
+chapters; a game without a campaign cannot be started this way.
+
+**The roster is approximated** (`core/campaign/testplay.cpp`): the playthrough is walked along the campaign's **main path** from chapter 1 up to
+`CH` without playing it, as the real code runs scenes: each chapter's `before` scene runs (so `switchParty` / `mergeParties`, switches, variables
+and funds given by scenes happen; every question takes its first offered answer), then every **named** unit (a unit with an `id`) that the chapter's
+map places on a human side, or that one of its events adds with `addUnit` on a human side (anywhere in the events, also under conditions), joins
+the **active party's** roster with the level, stats and items written on its **first** placement, then the `after` scene runs and gives the next
+chapter (its `next`, a `goto` taken by default, or the following chapter in the list). Characters therefore join the party that plays the chapter
+where they first appear. If `CH` is not on that path (a branch the default choices never take), the chapters before it **in the list** are walked
+instead and a warning says so.
+
+**What it cannot know:** anything a battle decides - units recruited by `changeSide`, who fell, experience and levels earned, items used or
+found, gold earned, switches and variables set by map events, choices made in dialogue (the first answer is taken). Funds start at 0 plus what the
+walked scenes gave, the storage is empty, support points are at their `start` values. Story branches that depend on those take their default.
+
+**Where test saves go.** A test run never touches the real Continue save or slots: without `--saves DIR` a run with `--chapter` or `--test-level`
+saves **nothing** (as headless and `--no-settings` runs already did); with `--saves DIR` its saves go there only. The editor's embedded player
+runs with `--no-saving`, so it writes no save at all and has no Continue to continue: Restart (and changing a Play panel choice) starts the same
+test run again from the chapter. Tests: `tests/testplay_player_test.py`.
