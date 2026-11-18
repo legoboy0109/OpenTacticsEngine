@@ -50,24 +50,42 @@ Pushed on 2026-11-18 (origin/main = 7addf9b): the fixed stage for battle scenes,
   `levelUpTick`, `save`, `shopMusic`, `bootJingle`, `promotionSounds`;
 - scripted-style computer players (docs/AI.md): `rules.ai.turnOrder: order` + behaviour `order`, `rules.ai.weights`
   sets, `caution: none`, `retreat`, `idleTurns`, mode `patrol`, `ignores`, `guardArea.measure: moveCost`.
-In progress (worktree job, not merged): classic menu options asked for by the owner: unit sprites in the preparation
-unit lists (always), `menuUnavailable: grey|hide`, `attackWeaponChoice: equipped|pick`. After merging: full check, push,
-then switch both on in the port. Known small flaw: the phone shop panel cuts an item's price ("20 G..").
+Also pushed on 2026-11-18 (origin/main = 4f65853, full check: ote_tests 2218 both builds, editor API 1365, ctest 34,
+vitest 1589, e2e 613): classic menu options asked for by the owner (docs/SRPG.md "Menu options"): unit pictures in the
+preparation unit lists (always), `menuUnavailable: grey|hide` (also a player setting), `attackWeaponChoice:
+equipped|pick`. The options screen gained a row, so `tests/audio_player_test.py` taps and row counts moved with it.
+Known small flaws: the phone shop panel cuts an item's price ("20 G.."); at UI scale 150% on a phone-shaped screen the
+preparation list cuts unit names; weight sets cannot be renamed in the editor.
 
-Private converter (separate folder, never public): steps 22-31 done, step 32 running (uses the three batches above:
-the original's enemy acting order and attack weights, retreat, staves in the scene, glow, long-range camera, rings,
-summon odds, three prep shops, new sound slots). The installed git-ignored `games/vision-quest` is the step 31 state;
-the owner played it on 2026-11-18: battle scenes and sound effects are good, some enemy behaviour differed (step 31
-found why). Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py` (about 25 min; do not run it
-while the engine is being rebuilt), then replace the folder. Left after step 32: sounds with no source found (victory,
-chapter card, prep music, banner, item use, door / chest / steal / trade / buy), the world map, the healers' choice
-rule if still undecoded, and above all play-testing by the owner. The original's menus need not match 1 to 1 (owner).
+Private converter (separate folder, never public): steps 22-33 done. Step 33 added staves in the battle scene (ten
+staves), the camera by distance (`stage.ranges`, two bands with pan), screen-fixed or fighter-following spell layers,
+effect fades, item-use sounds for keys and stat boosters, dropped the 50 s boot jingle, and settled the healers' rule
+(heal only retreating allies; not expressible yet, nothing emitted). The converter also turns on `menuUnavailable:
+hide` and `attackWeaponChoice: pick`. Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py`
+(about 40 min now; must end "45 maps checked, 0 problems"; do not run it while the engine is being rebuilt), then
+replace the git-ignored `games/vision-quest`. Engine features the port still lacks (step 33's list): a per-staff
+switch for the engine's own heal sound (it doubles the staff's), per-distance effect timing, a backdrop that scrolls
+with the camera, a staff-use rule "only retreating allies". Sounds with no source found: victory, chapter card,
+preparation music, turn banner, steal, trade, shop buy / sell, experience bar, healing-item use. Not reproduced: the
+world map, the original's menus (need not match 1 to 1, owner). Above all: play-testing by the owner.
 
-Owner, 2026-11-18: free battles in the port hidden until the story is complete (editor Play unaffected); the two menu
-settings above are per-game and the port turns them on. After the port: Android and an Xbox Dev Mode UWP build of the
-player (research first; see Claude memory). Open with the owner: names of the three difficulties; "Only on" difficulty
-limited to computer-side units; all new editor wording is placeholder. See `.agent/notes.md` on a committed
-`node_modules` link before merging any agent branch.
+Engine audit (2026-11-18, owner approved the list; details and order in `.agent/notes.md`): one small job at a time,
+each with the full check and byte-identical sims. First job (register the ~21 player tests missing from CTest, fix two
+warnings) runs in a worktree. Then Lua GC mode, caching unit tables within one forecast (about 80% of srpg sim time),
+the 13 copies of the "two commands" loop in the loaders, and so on.
+
+Ports (owner, 2026-11-18; research in `.agent/notes.md`, decisions in Claude memory): Android first (SDL3 APK from
+SDL's android-project template; SDK, NDK, emulator and an x86_64 image are in `~/Android/Sdk`, JDK 21 needs JAVA_HOME),
+then Xbox Dev Mode as a UWP app on real SDL2 2.32.x (SDL3 dropped UWP), software 3D only. Test console: Series X; Xbox
+One must work too (untested until a One is at hand; Series X "App" mode is the closest check). Windows build machine:
+a VM on the 500 GB external drive (path in memory); still missing there: `swtpm` (needs the owner's admin password),
+the Windows 11 evaluation ISO, and the owner's yes for any network change. Shared groundwork to do first on Linux:
+content root not tied to the working folder, saving on suspend, back button, a controller-only pass.
+
+Owner, 2026-11-18: free battles in the port hidden until the story is complete (editor Play unaffected). Open with the
+owner: names of the three difficulties; "Only on" difficulty limited to computer-side units; all new editor wording is
+placeholder; shop labels in the port; a locked door without a key is hidden under `hide`. See `.agent/notes.md` on a
+committed `node_modules` link before merging any agent branch.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
