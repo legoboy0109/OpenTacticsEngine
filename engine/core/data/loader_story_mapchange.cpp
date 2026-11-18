@@ -13,7 +13,23 @@ bool StoryLoader::mapChangeCommand(const Json& e, const std::string& kind, const
   const Json& v = e[kind.c_str()];
   if (kind == "setTerrain") {
     out.kind = K::SetTerrain;
-    if (!onlyKeys(e, {"setTerrain", "area", "cells"}, at)) return false;
+    if (!onlyKeys(e, {"setTerrain", "area", "cells", "tile", "keepTile"}, at)) return false;
+    // docs/GRAPHICS.md "Tile layer": the squares' new tile (-1 / null = none), or "keepTile": true to leave their tiles alone.
+    out.value = kTileUnset;
+    out.on = false;
+    if (e.has("keepTile")) {
+      if (!e["keepTile"].isBool()) return fail(at, "\"keepTile\" must be true or false");
+      out.on = e["keepTile"].asBool();
+    }
+    if (e.has("tile")) {
+      if (map_.tileset < 0) return fail(at, "\"tile\" needs a tile layer: the map has no \"tileLayer\"");
+      const int count = db_.graphics.tilesets[(size_t)map_.tileset].count();
+      const Json& t = e["tile"];
+      if (t.isNull()) out.value = -1;
+      else if (!LoadCtx::isWhole(t) || t.asInt() < -1 || t.asInt() >= count)
+        return fail(at, "\"tile\" must be -1 (no tile) or a tile number from 0 to " + std::to_string(count - 1) + " of the map's tileset");
+      else out.value = t.asInt();
+    }
     if (!v.isString()) return fail(at, "\"setTerrain\" must be the id of a terrain");
     out.index = db_.findTerrain(v.asString());
     if (out.index < 0) return fail(at, "\"setTerrain\" names unknown terrain " + q(v.asString()));

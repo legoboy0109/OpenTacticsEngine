@@ -1,0 +1,5 @@
+{ "units": [
+  { "id": "fighter", "name": "Fighter", "glyph": "F", "moveType": "foot", "vision": 2,
+    "stats": { "hp": 24, "str": 7, "def": 3, "mov": 5 }, "wields": ["sword"] },
+  { "id": "raider", "name": "Raider", "glyph": "R", "moveType": "foot", "vision": 3,
+    "stats": { "hp": 22, "str": 6, "def": 2, "mov": 5 }, "wields": ["sword"] } ] }

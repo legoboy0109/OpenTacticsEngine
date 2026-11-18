@@ -1,0 +1,4 @@
+{ "terrain": [
+  { "id": "plain",  "name": "Plain",  "color": "#9ccc65" },
+  { "id": "river",  "name": "River",  "color": "#3d85c6", "moveCost": { "foot": 0 } },
+  { "id": "bridge", "name": "Bridge", "color": "#a0522d" } ] }

@@ -1,0 +1,23 @@
+{ "name": "Tiled", "grid": { "type": "square", "width": 10, "height": 7 },
+  "legend": { ".": "plain", "~": "river", "=": "bridge" },
+  "tiles": [ "..........", "..........", "....~~~...", "....~~~...", "....~~~...", "..........", ".........." ],
+  "tileLayer": { "tileset": "test", "cells": [
+"000c000f001200150018001b001e000d00100013",
+"001300160019001c001f000e001100140017001a",
+"001a001d000c000f000800080008001b001e000d",
+"000d001000130016000800080008000e00110014",
+"00140017001a001d00080008000800150018001b",
+"001b001e000d0010001300160019001c001f000e",
+"........00140017001a001d000c000f00120015"
+  ] },
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "fighter", "id": "hero", "name": "Hero", "side": "blue", "x": 1, "y": 1, "leader": true, "items": ["iron_sword"] },
+    { "type": "raider", "id": "r1", "name": "Raider", "side": "red", "x": 8, "y": 5, "items": ["iron_sword"] } ],
+  "changes": {
+    "dry": { "cells": [ { "x": 4, "y": 3, "terrain": "plain", "tile": 5 },
+                         { "x": 5, "y": 3, "terrain": "plain" },
+                         { "x": 6, "y": 3, "terrain": "plain", "keepTile": true } ] } },
+  "events": [
+    { "id": "e_dry", "when": { "turn": 2 }, "do": [ { "applyChange": "dry" },
+                                                    { "setTerrain": "bridge", "cells": [[4, 2]], "tile": 1 } ] } ] }

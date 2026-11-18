@@ -1,6 +1,6 @@
 // A map's "changes" (docs/EVENTS.md "Changing the map"):
 //
-//   "changes": { "bridge": { "cells": [ { "x": 4, "y": 2, "terrain": "bridge" }, ... ],
+//   "changes": { "bridge": { "cells": [ { "x": 4, "y": 2, "terrain": "bridge", "tile": 57 }, ... ], "keepTile": false,
 //                            "structures": [ { "id": "gate", "kind": "gate_open" } ] } }
 //
 // "cells" gives squares another terrain, "structures" turns structures the map placed (named by their "id") into another kind of the
@@ -26,6 +26,21 @@ bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*
   return true;
 }
 
+// A change's "tile" (a tile number of the map's tileset, or -1 / null = no tile).
+bool readChangeTile(const LoadCtx& c, const Database& db, const MapDef& m, const Json& v, const std::string& at, int& out) {
+  if (m.tileset < 0) return c.fail(at, "\"tile\" needs a tile layer: the map has no \"tileLayer\"");
+  if (v.isNull()) {
+    out = -1;
+    return true;
+  }
+  const int count = db.graphics.tilesets[(size_t)m.tileset].count();
+  if (!LoadCtx::isWhole(v) || v.asInt() < -1 || v.asInt() >= count)
+    return c.fail(at, "\"tile\" must be -1 (no tile) or a tile number from 0 to " + std::to_string(count - 1) + " of tileset " +
+                          q(db.graphics.tilesets[(size_t)m.tileset].id));
+  out = v.asInt();
+  return true;
+}
+
 }  // namespace
 
 bool readMapChanges(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
@@ -40,7 +55,9 @@ bool readMapChanges(const LoadCtx& c, const Database& db, const Json& root, MapD
     if (!isStoryId(ch.id)) return c.fail("changes", "the id " + q(ch.id) + " may only have letters, digits, \"_\" and \"-\"");
     const Json& j = mem.second;
     if (!j.isObject()) return c.fail(where, "must be an object such as { \"cells\": [ { \"x\": 3, \"y\": 4, \"terrain\": \"bridge\" } ] }");
-    if (!onlyKeys(c, j, {"cells", "structures"}, where)) return false;
+    if (!onlyKeys(c, j, {"cells", "structures", "keepTile"}, where)) return false;
+    bool keepTile = false;  // docs/GRAPHICS.md "Tile layer": squares whose terrain changes keep their tile
+    if (!c.boolean(j, "keepTile", where, keepTile)) return false;
     std::set<std::pair<int, int>> seen;
     if (j.has("cells")) {
       if (!j["cells"].isArray()) return c.fail(where, "\"cells\" must be a list of { \"x\", \"y\", \"terrain\" }");
@@ -49,8 +66,11 @@ bool readMapChanges(const LoadCtx& c, const Database& db, const Json& root, MapD
         const Json& e = j["cells"][i];
         const std::string at = where + ": cell " + std::to_string(i + 1);
         if (!e.isObject()) return c.fail(at, "must be { \"x\": 3, \"y\": 4, \"terrain\": \"bridge\" }");
-        if (!onlyKeys(c, e, {"x", "y", "terrain"}, at)) return false;
+        if (!onlyKeys(c, e, {"x", "y", "terrain", "tile", "keepTile"}, at)) return false;
         MapChangeCell cell;
+        cell.keepTile = keepTile;
+        if (!c.boolean(e, "keepTile", at, cell.keepTile)) return false;
+        if (e.has("tile") && !readChangeTile(c, db, m, e["tile"], at, cell.tile)) return false;
         std::string terrain;
         if (!c.integer(e, "x", at, cell.x, true) || !c.integer(e, "y", at, cell.y, true) || !c.str(e, "terrain", at, terrain, true)) return false;
         if (cell.x < 0 || cell.y < 0 || cell.x >= m.width || cell.y >= m.height)

@@ -71,28 +71,50 @@ void Battle::setStructureKind(int s, int kind, std::vector<Event>& events) {
   events.push_back(ev(EventType::StructureUpgraded, s, from, kind));
 }
 
-// Writes the terrain of the squares (only those that really change), says so, then moves the units that cannot stand where they are.
-// `touched` lists extra squares to check for stranded units (the footprints of structures that changed kind).
-void Battle::changeTerrainCells(const std::vector<std::pair<Cell, int>>& list, const std::vector<Cell>& touched, std::vector<Event>& events) {
-  std::vector<Cell> changed;
-  int common = -2;
-  for (const std::pair<Cell, int>& p : list) {
-    if (!grid.valid(p.first) || p.second < 0 || p.second >= (int)db->terrains.size() || cells[(size_t)p.first].terrain == p.second) continue;
-    if (std::find(changed.begin(), changed.end(), p.first) != changed.end()) continue;  // a square twice: the first entry counts
-    changed.push_back(p.first);
+// Writes the terrain (and the tile layer's tile) of the squares (only those that really change), says so, then moves the units that cannot
+// stand where they are. `touched` lists extra squares to check for stranded units (the footprints of structures that changed kind).
+// The tile layer (docs/GRAPHICS.md "Tile layer"): `tileList` gives each entry's tile (see mapchange_api.h); a square whose tile changes is in
+// the TerrainChanged event too, but only a changed terrain can strand a unit.
+void Battle::changeTerrainCells(const std::vector<std::pair<Cell, int>>& list, const std::vector<Cell>& touched, std::vector<Event>& events,
+                                const std::vector<int>* tileList) {
+  struct Write {
+    Cell cell;
+    int terrain;
+    bool terrainDiff;
+    int tile;  // the tile to write, or kTileKeep
+  };
+  std::vector<Write> writes;
+  std::vector<Cell> changed;  // terrain really changes
+  for (size_t i = 0; i < list.size(); ++i) {
+    const std::pair<Cell, int>& p = list[i];
+    if (!grid.valid(p.first) || p.second < 0 || p.second >= (int)db->terrains.size()) continue;
+    bool twice = false;
+    for (const Write& w : writes) twice = twice || w.cell == p.first;
+    if (twice) continue;  // a square twice: the first entry counts
+    Write w{p.first, p.second, cells[(size_t)p.first].terrain != p.second, kTileKeep};
+    if (hasTiles() && tileList && i < tileList->size()) {
+      int t = (*tileList)[i];
+      if (t == kTileUnset) t = w.terrainDiff ? -1 : kTileKeep;  // a new terrain without a tile clears the square's tile
+      if (t != kTileKeep && t == tiles[(size_t)p.first]) t = kTileKeep;
+      w.tile = t;
+    }
+    if (!w.terrainDiff && w.tile == kTileKeep) continue;
+    writes.push_back(w);
+    if (w.terrainDiff) changed.push_back(p.first);
   }
   if (!changed.empty()) markSight();  // the events so far describe the world as it was
-  for (const std::pair<Cell, int>& p : list) {
-    if (std::find(changed.begin(), changed.end(), p.first) == changed.end()) continue;
-    cells[(size_t)p.first].terrain = p.second;
-    common = common == -2 || common == p.second ? p.second : -1;
+  int common = -2;
+  for (const Write& w : writes) {
+    cells[(size_t)w.cell].terrain = w.terrain;
+    if (w.tile != kTileKeep) tiles[(size_t)w.cell] = w.tile;
+    common = common == -2 || common == w.terrain ? w.terrain : -1;
   }
-  if (!changed.empty()) {
-    sight_.valid = false;
-    Event e = ev(EventType::TerrainChanged, (int)changed.size(), common < 0 ? -1 : common);
-    for (Cell c : changed) e.data.push_back(c);
+  if (!writes.empty()) {
+    if (!changed.empty()) sight_.valid = false;
+    Event e = ev(EventType::TerrainChanged, (int)writes.size(), common < 0 ? -1 : common);
+    for (const Write& w : writes) e.data.push_back(w.cell);
     events.push_back(e);
-    OTE_INFO("map: %d square(s) changed terrain", (int)changed.size());
+    OTE_INFO("map: %d square(s) changed (%d terrain)", (int)writes.size(), (int)changed.size());
   }
   // Stranded units (see the rule at the top of the file).
   std::vector<Cell> check = changed;
@@ -108,14 +130,18 @@ void Battle::changeTerrainCells(const std::vector<std::pair<Cell, int>>& list, c
   }
 }
 
-void Battle::storySetTerrain(const std::vector<Cell>& squares, int terrain, std::vector<Event>& events) {
+void Battle::storySetTerrain(const std::vector<Cell>& squares, int terrain, std::vector<Event>& events, int tile, bool keepTile) {
   if (terrain < 0 || terrain >= (int)db->terrains.size()) {
     OTE_WARN("story: setTerrain: no terrain number %d", terrain);
     return;
   }
   std::vector<std::pair<Cell, int>> list;
-  for (Cell c : squares) list.push_back({c, terrain});
-  changeTerrainCells(list, {}, events);
+  std::vector<int> tileList;
+  for (Cell c : squares) {
+    list.push_back({c, terrain});
+    tileList.push_back(tile != kTileUnset ? tile : keepTile ? kTileKeep : kTileUnset);
+  }
+  changeTerrainCells(list, {}, events, hasTiles() ? &tileList : nullptr);
 }
 
 void Battle::storyApplyChange(int change, std::vector<Event>& events) {
@@ -131,9 +157,14 @@ void Battle::storyApplyChange(int change, std::vector<Event>& events) {
   AppliedChange rec;
   rec.change = change;
   std::vector<std::pair<Cell, int>> list;
+  std::vector<int> tileList;
   for (const MapChangeCell& mc : def.cells) {
     const Cell c = grid.at(mc.x, mc.y);
     rec.before.push_back(c == kNoCell ? 0 : cells[(size_t)c].terrain);
+    if (hasTiles()) {
+      rec.beforeTiles.push_back(c == kNoCell ? -1 : tiles[(size_t)c]);
+      tileList.push_back(mc.tile != kTileUnset ? mc.tile : mc.keepTile ? kTileKeep : kTileUnset);
+    }
     list.push_back({c, mc.terrain});
   }
   for (const MapChangeStructure& ms : def.structures) rec.beforeKinds.push_back(structures[(size_t)ms.index].type);
@@ -145,7 +176,7 @@ void Battle::storyApplyChange(int change, std::vector<Event>& events) {
     structureCells(ms.index, fp);
     touched.insert(touched.end(), fp.begin(), fp.end());
   }
-  changeTerrainCells(list, touched, events);
+  changeTerrainCells(list, touched, events, hasTiles() ? &tileList : nullptr);
   OTE_INFO("story: applyChange '%s'", def.id.c_str());
 }
 
@@ -173,7 +204,7 @@ void Battle::storyRevertChange(int change, std::vector<Event>& events) {
     structureCells(def.structures[i].index, fp);
     touched.insert(touched.end(), fp.begin(), fp.end());
   }
-  changeTerrainCells(list, touched, events);
+  changeTerrainCells(list, touched, events, hasTiles() && rec.beforeTiles.size() == list.size() ? &rec.beforeTiles : nullptr);
   OTE_INFO("story: revertChange '%s'", def.id.c_str());
 }
 

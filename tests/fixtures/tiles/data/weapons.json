@@ -1,0 +1,1 @@
+{ "weapons": [ { "id": "iron_sword", "name": "Iron Sword", "group": "sword", "props": { "might": 5 } } ] }

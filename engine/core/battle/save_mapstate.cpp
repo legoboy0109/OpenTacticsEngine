@@ -19,6 +19,18 @@ void writeMapState(const Battle& b, Json& out) {
       }
     if (list.size() > 0) state.set("terrain", list);
   }
+  // The tile layer (docs/SAVES.md "Map changes"): squares whose tile is not what the map file gave, [square, tile] (-1 = no tile).
+  if (b.hasTiles() && b.baseTiles) {
+    Json list = Json::makeArray();
+    for (size_t c = 0; c < b.tiles.size() && c < b.baseTiles->size(); ++c)
+      if (b.tiles[c] != (*b.baseTiles)[c]) {
+        Json pair = Json::makeArray();
+        pair.push(Json::makeNumber((double)c));
+        pair.push(Json::makeNumber(b.tiles[c]));
+        list.push(pair);
+      }
+    if (list.size() > 0) state.set("tiles", list);
+  }
   if (!b.appliedChanges.empty() && b.mapChanges) {
     Json list = Json::makeArray();
     for (const AppliedChange& a : b.appliedChanges) {
@@ -27,6 +39,11 @@ void writeMapState(const Battle& b, Json& out) {
       Json before = Json::makeArray();
       for (int t : a.before) before.push(Json::makeNumber(t));
       j.set("before", before);
+      if (!a.beforeTiles.empty()) {
+        Json tl = Json::makeArray();
+        for (int t : a.beforeTiles) tl.push(Json::makeNumber(t));
+        j.set("tiles", tl);
+      }
       if (!a.beforeKinds.empty()) {
         Json kinds = Json::makeArray();
         for (int k : a.beforeKinds) kinds.push(Json::makeNumber(k));
@@ -47,7 +64,7 @@ bool readMapState(Reader& rd, const Json& saved, Battle& b) {
   const Json& s = saved["mapState"];
   if (!s.isObject()) return rd.fail(top, "not an object");
   for (const Json::Member& m : s.members())
-    if (m.first != "terrain" && m.first != "applied" && m.first != "fog" && m.first != "fogVision")
+    if (m.first != "terrain" && m.first != "tiles" && m.first != "applied" && m.first != "fog" && m.first != "fogVision")
       return rd.fail(top, "unknown key \"" + m.first + "\"");
   if (s.has("fog")) {
     if (!rd.boolean(s, "fog", top, b.fog)) return false;
@@ -67,6 +84,23 @@ bool readMapState(Reader& rd, const Json& saved, Battle& b) {
       if (t != (double)(int)t || t < 0 || t >= (double)b.db->terrains.size()) return rd.fail(where, "not a terrain number");
       if (!seen.insert((int)c).second) return rd.fail(where, "the square is listed twice");
       b.restoreTerrain((Cell)c, (int)t);
+    }
+  }
+  if (s.has("tiles")) {
+    if (!b.hasTiles()) return rd.fail(top + ".tiles", "this map has no tile layer");
+    const Json* list;
+    if (!rd.array(s, "tiles", top, -1, (int)b.cells.size(), list)) return false;
+    const int tileCount = b.db->graphics.tilesets[(size_t)b.tileset].count();
+    std::set<int> seen;
+    for (size_t i = 0; i < list->size(); ++i) {
+      const std::string where = top + ".tiles[" + std::to_string(i) + "]";
+      const Json& p = (*list)[i];
+      if (!p.isArray() || p.size() != 2 || !p[0].isNumber() || !p[1].isNumber()) return rd.fail(where, "not a pair [square, tile]");
+      const double c = p[0].asNumber(), t = p[1].asNumber();
+      if (c != (double)(int)c || c < 0 || c >= (double)b.cells.size()) return rd.fail(where, "not a square of the map");
+      if (t != (double)(int)t || t < -1 || t >= (double)tileCount) return rd.fail(where, "not a tile of the map's tileset (or -1)");
+      if (!seen.insert((int)c).second) return rd.fail(where, "the square is listed twice");
+      b.restoreTile((Cell)c, (int)t);
     }
   }
   if (s.has("applied")) {
@@ -93,6 +127,18 @@ bool readMapState(Reader& rd, const Json& saved, Battle& b) {
         if (!v.isNumber() || v.asNumber() != (double)(int)v.asNumber() || v.asNumber() < 0 || v.asNumber() >= (double)b.db->terrains.size())
           return rd.fail(where + ".before[" + std::to_string(k) + "]", "not a terrain number");
         a.before.push_back((int)v.asNumber());
+      }
+      if (b.hasTiles()) {
+        if (!rd.array(j, "tiles", where, (int)def.cells.size(), 0, before)) return false;
+        const int tileCount = b.db->graphics.tilesets[(size_t)b.tileset].count();
+        for (size_t k = 0; k < before->size(); ++k) {
+          const Json& v = (*before)[k];
+          if (!v.isNumber() || v.asNumber() != (double)(int)v.asNumber() || v.asNumber() < -1 || v.asNumber() >= (double)tileCount)
+            return rd.fail(where + ".tiles[" + std::to_string(k) + "]", "not a tile of the map's tileset (or -1)");
+          a.beforeTiles.push_back((int)v.asNumber());
+        }
+      } else if (j.has("tiles")) {
+        return rd.fail(where + ".tiles", "this map has no tile layer");
       }
       if (!def.structures.empty()) {
         const Json* kinds;
