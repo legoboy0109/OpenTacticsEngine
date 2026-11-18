@@ -15,3 +15,8 @@ void difficultyStats(Unit& u, const MapUnitDef& def, int levelsShifted) const;
 int resourceGain(int side, int amount) const;
 // Experience a unit is given, scaled by xpPercent for a unit of a human side.
 int xpGain(int unit, int amount) const;
+// The shared "that many level-ups at the average growth" of one stat (a difficulty's level shift, the test level): growth% x
+// levels rounded to the nearest (halves away from zero), through the stat caps.
+void growStatByLevels(Unit& u, int stat, int levels) const;
+// The test level (test_level.cpp): raises the units of human sides to testLevel.
+void applyTestLevel();
