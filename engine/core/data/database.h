@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 
+#include "core/data/ai_rules.h"
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
 #include "core/data/graphics.h"
@@ -300,6 +301,7 @@ struct RulesConfig {
   RescueRules rescue;        // "rules.rescue" (docs/SRPG.md "Rescue and pair up"); mode Off when the block is missing
   PromotionRules promotion;  // "rules.promotion" (docs/SRPG.md "Promotion")
   PlaceRules places;         // "rules.places" (docs/SRPG.md section 10); the default changes nothing for a game without such structures
+  AiRules ai;                // "rules.ai" (docs/AI.md "Scripted-style computer players")
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.

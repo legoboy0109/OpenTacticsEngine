@@ -313,6 +313,8 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         if (!u.alive || !unitMatches(c.filter, u) || !sides[(size_t)u.side].ai) continue;
         u.behaviour = c.behaviour;
         u.awake = false;  // a guard starts waiting afresh
+        u.retreating = false, u.patrolAt = 0;  // the scripted-style state (docs/AI.md) starts afresh too
+        u.idleSeen = u.behaviour.idleTurns > 0 && u.side == activeSide ? 1 : 0;  // the turn it is handed out in counts as the first idle one
       }
       break;
     case K::WakeGroup:

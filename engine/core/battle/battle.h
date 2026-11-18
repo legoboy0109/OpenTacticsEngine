@@ -211,6 +211,11 @@ struct Unit {
   // Computer opponent (docs/AI.md): how it moves, and whether a guard has woken up. Saved only when not the default.
   AiBehaviour behaviour;
   bool awake = false;
+  // Scripted-style computer players (docs/AI.md): whether it is retreating now, its own turns counted for "idleTurns", and the route square it walks to.
+  // All 0 / false unless its behaviour uses the key; saved only when not.
+  bool retreating = false;
+  int idleSeen = 0;
+  int patrolAt = 0;
   // Refresh (docs/SRPG.md "Refresh an ally"): the units that refreshed this one in the present turn of its side, cleared when that turn
   // starts. Its size is the number of refreshes it has had this turn. Saved when not empty.
   std::vector<int> refreshedBy;
@@ -658,6 +663,7 @@ class Battle {
   // Computer opponent (docs/AI.md; battle/ai_wake.cpp): wakes a guard (and its group) / every guard of a group.
   void wakeUnit(int unit);
   void wakeGroup(const std::string& group);
+  void aiTurnStart();  // docs/AI.md "Scripted-style computer players" (battle/ai_state.cpp): idle counters, retreat state, patrol squares at the start of a turn
   bool unitMatches(const UnitFilter& filter, const Unit& u) const;
   // The Talk menu for `unit` standing on `from`: events whose two named units are alive and next to
   // each other, whose conditions hold and which have not run (or repeat). Empty unless the unit can act.
