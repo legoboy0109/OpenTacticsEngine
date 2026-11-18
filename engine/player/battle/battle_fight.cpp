@@ -17,7 +17,7 @@ void BattleScene::startFight() {
   env.view = &view_;
   env.sprites = host_.sprites();
   env.styleIndex = styleIdx_;
-  env.mapBackground = session_.map.battleBackground;
+  env.map = &session_.map;
   env.audio = &host_.gameAudio();
   env.forecasts = &forecasts_;
   env.levelsGained = view_.fight.levelsGained;

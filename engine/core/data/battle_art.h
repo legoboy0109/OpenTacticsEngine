@@ -93,6 +93,15 @@ struct BattleBackground {
   SpriteCell cell;
 };
 
+// A picture drawn under each fighter of the battle scene (docs/BATTLE_SCENE.md "Platforms"); `far` is the picture used when the fight is at range 2+.
+struct BattlePlatform {
+  std::string id;
+  int sheet = -1;
+  SpriteCell cell;
+  bool hasFar = false;
+  SpriteCell farCell;
+};
+
 struct BattleArt {
   std::vector<BattleSet> sets;
   std::vector<BattleEffect> effects;
@@ -100,7 +109,11 @@ struct BattleArt {
   std::vector<BattleBackground> backgrounds;
   std::vector<int> terrainBackground;  // per terrain index: index into `backgrounds`, -1 = none
   int defaultBackground = -1;
+  std::vector<BattlePlatform> platforms;
+  std::vector<int> terrainPlatform;  // per terrain index: index into `platforms`, -1 = none
+  int defaultPlatform = -1;
 
+  int findPlatform(const std::string& id) const;
   bool any() const { return !sets.empty() || !backgrounds.empty(); }
   int findSet(const std::string& id) const;
   int findBackground(const std::string& id) const;

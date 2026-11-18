@@ -493,7 +493,12 @@ class Battle {
   const StructureDef& defOf(const StructureState& s) const { return db->structures[s.type]; }
   // Cost for a move type to enter the square (structure's cost if it sets one,
   // else the terrain's). <= 0 = cannot enter.
-  int enterCost(Cell c, int moveType) const { return enterCostOf(*db, cells[c].terrain, structureTypeAt(c), moveType); }
+  // While it rains or snows a terrain's "weatherCost" replaces its own cost (not a structure's own; docs/ECONOMY.md "Weather and movement cost").
+  int enterCost(Cell c, int moveType) const {
+    const int base = enterCostOf(*db, cells[c].terrain, structureTypeAt(c), moveType);
+    return db->anyWeatherCost ? weatherEnterCost(c, moveType, base) : base;
+  }
+  int weatherEnterCost(Cell c, int moveType, int base) const;  // weather_cost.cpp
   // What formulas see as `ta` / `tb` for the square: terrain numbers with the
   // structure's numbers replacing/adding. May return `scratch`.
   const Props& numbersAt(Cell c, Props& scratch) const {

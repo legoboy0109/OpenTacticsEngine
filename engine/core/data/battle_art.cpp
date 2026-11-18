@@ -43,6 +43,12 @@ int BattleArt::findBackground(const std::string& id) const {
   return -1;
 }
 
+int BattleArt::findPlatform(const std::string& id) const {
+  for (size_t i = 0; i < platforms.size(); ++i)
+    if (platforms[i].id == id) return (int)i;
+  return -1;
+}
+
 int BattleArt::resolveSet(int character, int type, const std::string& group, int weapon, const std::string& side) const {
   int best = -1, bestScore = 0;
   for (const BattleAssign& a : assign) {

@@ -21,13 +21,20 @@ struct FightUnitInfo {
   int level = 1;
   int hp = 0, maxHp = 1;  // the hit points shown when the fight starts
   int x = 0;              // the map column (the unit nearer the left edge stands on the left)
+  bool human = false;     // the unit's side is controlled by a person (game.json "battleSceneSides")
 };
+
+// Which fighter stands on the left of the scene (docs/BATTLE_SCENE.md "Which side each fighter stands on"). `mode`: 0 = "map" (the unit
+// nearer the left edge of the map; on the same column the one that started the fight), 1 = "playerRight", 2 = "playerLeft" (a person's
+// fighter on the right / left, the computer's opposite). When both or neither fighter is a person's, the map rule decides.
+bool initiatorStandsLeft(int mode, bool initiatorHuman, bool otherHuman, int initiatorX, int otherX);
 
 // What the builder needs to know that the events do not say.
 struct FightInfo {
   std::map<int, FightUnitInfo> units;  // by unit id (at least the two fighters)
   std::vector<std::string> skillNames, conditionNames, itemNames;  // by index; an unknown index reads as a plain word
   int distance = 1;                    // squares between the fighters (more than 1 = a ranged fight)
+  int sidesMode = 0;                   // game.json "battleSceneSides": 0 = map, 1 = playerRight, 2 = playerLeft
 };
 
 struct FightTag {

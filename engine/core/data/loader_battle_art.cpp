@@ -272,6 +272,51 @@ bool readAssign(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
   return true;
 }
 
+// "platforms": { "<id>": { "sheet": id, "cell": [col, row], "far": [col, row] } }, "terrainPlatform": { "<terrain>": "<id>" },
+// "defaultPlatform": "<id>" (docs/BATTLE_SCENE.md "Platforms").
+bool readPlatforms(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
+  const Json* m;
+  if (!c.object(b, "platforms", "battle", m)) return false;
+  for (const Json::Member& e : m->members()) {
+    const std::string where = "battle platform " + q(e.first);
+    if (e.first.empty() || e.first == "default" || !e.second.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"cell\" (and optionally \"far\"); the id cannot be \"default\"");
+    for (const Json::Member& k : e.second.members())
+      if (k.first != "sheet" && k.first != "cell" && k.first != "far") return c.fail(where, "unknown key " + q(k.first) + " (expected \"sheet\", \"cell\", \"far\")");
+    BattlePlatform p;
+    p.id = e.first;
+    std::string sheetId;
+    if (!c.str(e.second, "sheet", where, sheetId, true)) return false;
+    p.sheet = db.graphics.findSheet(sheetId);
+    if (p.sheet < 0) return c.fail(where, "unknown sheet " + q(sheetId));
+    const SheetDef& sh = db.graphics.sheets[(size_t)p.sheet];
+    const Json* cell;
+    if (!c.array(e.second, "cell", where, cell, true)) return false;
+    if (!readFrameCell(c, sh, *cell, where, p.cell)) return false;
+    if (e.second.has("far")) {
+      if (!readFrameCell(c, sh, e.second["far"], where + " \"far\"", p.farCell)) return false;
+      p.hasFar = true;
+    }
+    art.platforms.push_back(p);
+  }
+  if (!c.object(b, "terrainPlatform", "battle", m)) return false;
+  for (const Json::Member& e : m->members()) {
+    const std::string where = "battle terrainPlatform " + q(e.first);
+    const int t = db.findTerrain(e.first);
+    if (t < 0) return c.fail(where, "there is no terrain with this id");
+    if (!e.second.isString()) return c.fail(where, "must be a platform id");
+    const int p = art.findPlatform(e.second.asString());
+    if (p < 0) return c.fail(where, "there is no platform " + q(e.second.asString()));
+    art.terrainPlatform[(size_t)t] = p;
+  }
+  std::string def;
+  if (!c.str(b, "defaultPlatform", "battle", def)) return false;
+  if (!def.empty()) {
+    art.defaultPlatform = art.findPlatform(def);
+    if (art.defaultPlatform < 0) return c.fail("battle", "\"defaultPlatform\" names unknown platform " + q(def));
+  }
+  return true;
+}
+
 bool readBackgrounds(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
   const Json* m;
   if (!c.object(b, "backgrounds", "battle", m)) return false;
@@ -307,10 +352,37 @@ bool readBackgrounds(const LoadCtx& c, Database& db, const Json& b, BattleArt& a
     art.defaultBackground = art.findBackground(def);
     if (art.defaultBackground < 0) return c.fail("battle", "\"defaultBackground\" names unknown background " + q(def));
   }
-  return true;
+  return readPlatforms(c, db, b, art);
 }
 
 }  // namespace
+
+bool readMapBattleTables(const LoadCtx& c, const Database& db, const Json& root, MapDef& m) {
+  struct Table { const char* key; bool platform; };
+  for (const Table t : {Table{"battleBackgrounds", false}, Table{"battlePlatforms", true}}) {
+    std::vector<int>& byTerrain = t.platform ? m.platformByTerrain : m.bgByTerrain;
+    int& dflt = t.platform ? m.platformDefault : m.bgDefault;
+    byTerrain.clear();
+    dflt = -1;
+    if (!root.has(t.key)) continue;
+    const Json& table = root[t.key];
+    const std::string what = std::string("\"") + t.key + "\"";
+    if (!table.isObject() || table.size() == 0)
+      return c.fail("", what + " must be { \"<terrain id>\": \"<" + (t.platform ? "platform" : "background") + " id>\", \"default\": \"<id>\" } (data/graphics.json \"battle\")");
+    byTerrain.assign(db.terrains.size(), -1);
+    for (const Json::Member& e : table.members()) {
+      const std::string where = what + " " + q(e.first);
+      if (!e.second.isString()) return c.fail("", where + ": must be the id of a " + (t.platform ? "platform" : "background") + " of data/graphics.json \"battle\"");
+      const int id = t.platform ? db.graphics.battle.findPlatform(e.second.asString()) : db.graphics.battle.findBackground(e.second.asString());
+      if (id < 0) return c.fail("", where + ": there is no " + (t.platform ? "platform " : "background ") + q(e.second.asString()) + " (data/graphics.json \"battle\" > \"" + (t.platform ? "platforms" : "backgrounds") + "\")");
+      if (e.first == "default") { dflt = id; continue; }
+      const int terrain = db.findTerrain(e.first);
+      if (terrain < 0) return c.fail("", where + ": there is no terrain with this id (use a terrain id, or \"default\")");
+      byTerrain[(size_t)terrain] = id;
+    }
+  }
+  return true;
+}
 
 bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   db.graphics.battle = BattleArt();
@@ -319,6 +391,7 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   if (!b.isObject()) return c.fail("", "\"battle\" must be an object");
   BattleArt art;
   art.terrainBackground.assign(db.terrains.size(), -1);
+  art.terrainPlatform.assign(db.terrains.size(), -1);
   if (!readSets(c, db, b, art) || !readEffects(c, db, b, art) || !readAssign(c, db, b, art) || !readBackgrounds(c, db, b, art)) return false;
   db.graphics.battle = art;
   return true;

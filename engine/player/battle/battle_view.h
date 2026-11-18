@@ -121,6 +121,9 @@ class BattleView {
   FightRun fight;
   bool sceneMode = false;  // the player wants fights shown as the scene (set by the battle screen every frame)
   void fightFinished(const Battle& b);
+  // A battle that starts with fights in its first events (a staged `fight` of a battle-start event): the view is made after the rules have run
+  // them, so it shows the end of them. This puts the hit points and the fallen back as they were before the first one (battle_view_fight.cpp).
+  void rewindStartFights(const Battle& b, const std::vector<Event>& startEvents);
 
   std::vector<UnitView> units;  // indexed by unit id
   std::vector<FloatText> floats;

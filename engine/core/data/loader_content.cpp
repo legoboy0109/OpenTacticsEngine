@@ -126,6 +126,31 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
   return true;
 }
 
+// "weatherCost": { "rain": { "foot": 3 }, "snow": { "foot": 2, "wheel": 4 } } (docs/ECONOMY.md "Weather and movement cost"): the cost of this terrain
+// for a move type while that weather lasts. Whole numbers 1 to 99 (weather can open a blocked terrain, never close one: a unit standing on
+// a square must not find itself stranded by the sky).
+bool readWeatherCost(const LoadCtx& c, Database& db, const Json& e, const std::string& where, TerrainDef& t) {
+  if (!e.has("weatherCost")) return true;
+  const Json& w = e["weatherCost"];
+  if (!w.isObject() || w.size() == 0) return c.fail(where, "\"weatherCost\" must be { \"rain\": { \"<move type>\": cost }, \"snow\": { ... } }");
+  for (const Json::Member& kind : w.members()) {
+    const int k = kind.first == "rain" ? 0 : kind.first == "snow" ? 1 : -1;
+    if (k < 0) return c.fail(where, "\"weatherCost\" names unknown weather \"" + kind.first + "\" (\"rain\" or \"snow\")");
+    if (!kind.second.isObject() || kind.second.size() == 0)
+      return c.fail(where, "\"weatherCost\".\"" + kind.first + "\" must be { \"<move type>\": cost }");
+    t.weatherCost[k].assign(db.moveTypes.size(), 0);
+    for (const Json::Member& m : kind.second.members()) {
+      const int mt = db.findMoveType(m.first);
+      if (mt < 0) return c.fail(where, "\"weatherCost\".\"" + kind.first + "\" names unknown move type \"" + m.first + "\"");
+      if (!LoadCtx::isWhole(m.second) || m.second.asInt() < 1 || m.second.asInt() > 99)
+        return c.fail(where, "\"weatherCost\".\"" + kind.first + "\".\"" + m.first + "\" must be a whole number from 1 to 99");
+      t.weatherCost[k][(size_t)mt] = m.second.asInt();
+    }
+    db.anyWeatherCost = true;
+  }
+  return true;
+}
+
 bool loadTerrain(const std::string& path, Database& db, std::string& err) {
   Json root;
   if (!loadObjectFile(path, root, err)) return false;
@@ -161,6 +186,7 @@ bool loadTerrain(const std::string& path, Database& db, std::string& err) {
       t.moveCost[static_cast<size_t>(k)] = m.second.asInt();
     }
 
+    if (!readWeatherCost(c, db, e, where, t)) return false;
     if (!c.props(e, "props", where, t.props)) return false;
     // Buildings are structures now: say where each old setting went.
     for (const char* old : {"capture", "capturePoints", "income", "produces"})

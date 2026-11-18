@@ -151,6 +151,18 @@ void FightScene::drawBackground(Renderer& r, const Geo& g) const {
     r.fillRect(0, horizon + 2 + below * i / 6, g.W, below / 6 + 1, Color(0, 0, 0, (uint8_t)(10 + i * 8)));
 }
 
+// The picture under a fighter (docs/BATTLE_SCENE.md "Platforms"): enlarged like the fighter, centred on its foot point.
+void FightScene::drawPlatform(Renderer& r, const Geo& g, int side) const {
+  if (platform_ < 0 || !env_.sprites) return;
+  const Database& db = *env_.battle->db;
+  const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_];
+  const SheetDef& sh = db.graphics.sheets[(size_t)p.sheet];
+  const SpriteCell cell = platformFar_ && p.hasFar ? p.farCell : p.cell;
+  const int k = g.scale[side];
+  r.drawTexture(env_.sprites->texture(p.sheet), cell.col * sh.cellW, cell.row * sh.cellH, sh.cellW, sh.cellH, g.footX[side] - sh.cellW * k / 2,
+                g.groundY - sh.cellH * k / 2, sh.cellW * k, sh.cellH * k);
+}
+
 void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
   const Fighter& f = fighter_[side];
   const Database& db = *env_.battle->db;
@@ -366,6 +378,8 @@ void FightScene::draw(Renderer& r) const {
   const Geo g = geometry(r);
   drawBackground(r, g);
   if (script_.ranged()) drawRange(r, g);
+  drawPlatform(r, g, 0);
+  drawPlatform(r, g, 1);
   // The one who is striking stands in front.
   int order[2] = {0, 1};
   const FightPose* p0 = tl_.poseAt(0, t_);

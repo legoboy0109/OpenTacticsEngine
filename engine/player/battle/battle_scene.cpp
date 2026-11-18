@@ -32,6 +32,7 @@ BattleScene::BattleScene(SceneHost& host, bool preparing)
   view_.setAudio(&host_.gameAudio());
   initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
   fogSeenOn_ = battle_.fogOn();
+  view_.rewindStartFights(battle_, session_.startEvents);  // a staged fight in a battle-start event shows from before its first blow
   view_.push(session_.startEvents);  // first TurnStarted + income (empty when the battle was resumed from a save)
   // A new battle says what it is about under its first banner (nothing when the map has no objective text).
   if (!session_.startEvents.empty() && !battle_.objectiveText().empty()) view_.announceObjective();

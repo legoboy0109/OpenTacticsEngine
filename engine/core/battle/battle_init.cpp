@@ -178,6 +178,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     seenKinds_.assign((size_t)teamCount, kinds);
   }
 
+  storyState.weather = map.weather;  // the map's own weather ("" = clear); a story `weather` command changes it later
   // Story: the map's events and objectives, everything off / 0 / not yet run.
   story = map.story;
   storyState.switches.assign(db->switches.size(), 0);

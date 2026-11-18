@@ -12,6 +12,8 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root);
 // data/graphics.json "backgrounds" (story scenes, docs/GRAPHICS.md "Backgrounds"); needs the sheets.
 bool readSceneBackgrounds(const LoadCtx& c, Database& db, const Json& root);
 // A map file's "battleBackground".
+bool readMapBattleTables(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);  // "battleBackgrounds" / "battlePlatforms"
+bool readMapWeather(const LoadCtx& c, const Json& root, MapDef& m);  // "weather" (loader_weather.cpp)
 bool readMapBattleBackground(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 
 }  // namespace ote

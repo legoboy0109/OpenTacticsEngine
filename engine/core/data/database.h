@@ -37,6 +37,9 @@ struct TerrainDef {
   char glyph = ' ';            // optional placeholder letter
   // Movement cost to ENTER, indexed by move type. <= 0 means impassable.
   std::vector<int> moveCost;
+  // "weatherCost" (docs/ECONOMY.md "Weather and movement cost"): [0] = while it rains, [1] = while it snows; per move type, 0 = no change.
+  // Both empty = the terrain does not care about weather.
+  std::vector<int> weatherCost[2];
   Props props;                 // formula-visible numbers (defense, avoid...)
   std::vector<std::string> tags;  // free-form labels (the "hq" tag moved to structures)
   // Fog of war (docs/ECONOMY.md "Fog of war"): squares a unit stands on add this to its vision (0..10); a unit on
@@ -372,6 +375,11 @@ struct Database {
   // game.json "battleScene": "scene" = fights are shown as the side-view battle scene unless the player chose otherwise;
   // "map" (default) = quick on-map fights (docs/BATTLE_SCENE.md). Presentation only.
   bool battleSceneDefault = false;
+  bool anyWeatherCost = false;  // some terrain has a "weatherCost": Battle::enterCost looks at the weather only then
+  // game.json "battleBackgroundFrom": whose square decides the battle scene's background and platform: "defender" (false, the default) or "attacker" (true).
+  bool battleBackgroundFromAttacker = false;
+  // game.json "battleSceneSides": which side of the battle scene each fighter stands on: 0 "map" (the default), 1 "playerRight", 2 "playerLeft".
+  int battleSceneSides = 0;
   GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;
@@ -537,6 +545,11 @@ struct MapDef {
   bool aiSeesAll = false;    // fog: computer sides see everything (a side's own "aiSeesAll" overrides it)
   std::vector<MapChangeDef> changes;  // named map changes (docs/EVENTS.md "Changing the map"); empty = none
   int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
+  // "battleBackgrounds" / "battlePlatforms" (docs/BATTLE_SCENE.md): the map's own table per terrain (size = terrain count when written, else empty)
+  // and its "default"; -1 = none. They win over the game-wide tables of data/graphics.json for this map.
+  std::vector<int> bgByTerrain, platformByTerrain;
+  std::string weather;  // "weather": "rain" | "snow": the weather the battle starts with ("" = clear); a story `weather` command changes it
+  int bgDefault = -1, platformDefault = -1;
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies
   std::shared_ptr<const PrepDef> prep;     // null = the map starts as it is placed (no preparation screen)
   std::vector<MapDifficulty> difficulty;   // "difficulty": the map's own numbers per difficulty (docs/DIFFICULTY.md)
