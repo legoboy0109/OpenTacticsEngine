@@ -98,6 +98,9 @@ export interface Game extends Extra {
   saving?: SavingMode
   /** How fights are shown unless the player chose otherwise (docs/BATTLE_SCENE.md): missing = 'map' (quick fights on the map). */
   battleScene?: 'scene' | 'map'
+  /** Whose square decides the battle scene's background and platform (docs/BATTLE_SCENE.md): missing = 'defender'. Which side each fighter stands on: missing = 'map'. */
+  battleBackgroundFrom?: 'defender' | 'attacker'
+  battleSceneSides?: 'map' | 'playerRight' | 'playerLeft'
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
   switches?: Named[]
   variables?: Named[]
@@ -114,6 +117,8 @@ export interface Terrain extends Named {
   visionBonus?: number | VisionLimit; hides?: boolean
   /** Fog: a unit looking along a line of squares does not see past a square of this terrain (a wall); docs/ECONOMY.md "Fog of war". */
   blocksSight?: boolean
+  /** What the terrain costs while it rains / snows, per movement type (docs/ECONOMY.md "Weather and movement cost"); model/battleTables.ts. */
+  weatherCost?: { rain?: NumMap; snow?: NumMap }
   // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
   // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
   capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]
@@ -328,6 +333,10 @@ export interface MapFile extends Extra {
   /** Fog options (docs/ECONOMY.md "Fog of war"): vision added to every unit (-10 to 10) and computer sides that see everything. Only with fog. */
   fogVision?: number
   aiSeesAll?: boolean
+  /** The battle scene's background / platform for each terrain on this map, and a "default" (they win over the game's tables); the weather the battle starts with. */
+  battleBackgrounds?: Record<string, string>
+  battlePlatforms?: Record<string, string>
+  weather?: 'rain' | 'snow'
   /** Named map changes (docs/EVENTS.md "Changing the map"); model/mapChanges.ts. */
   changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string }>; structures?: Array<{ id: string; kind: string }> }>
   /** Music (docs/SOUND.md): a track id of data/audio.json, "" = none on this map; missing = the game's. */
@@ -431,6 +440,10 @@ export interface BattleSection extends Extra {
   backgrounds?: Record<string, BattleBackgroundDef>
   terrainBackground?: Record<string, string>
   defaultBackground?: string
+  /** Pictures drawn under each fighter, by terrain (model/battleTables.ts); `far` is used when the fight is at range 2+. */
+  platforms?: Record<string, { sheet: string; cell: CellRef; far?: CellRef } & Extra>
+  terrainPlatform?: Record<string, string>
+  defaultPlatform?: string
 }
 export interface Graphics extends Extra {
   sheets: Sheet[]

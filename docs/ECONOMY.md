@@ -381,6 +381,35 @@ prints `MoveBlocked` and, for events a team did not see, `[seen by team ...]`.
   an own structure (build, upgrade, research) read the truth: a side always sees its own structures.
 Story events: unaffected (they act on the truth); dialogue always shows.
 
+## Weather and movement cost
+
+Weather existed as a picture only (`{ "weather": "rain" | "snow" | "none" }`, a story command of a map event, saved with the battle). It is now a
+fact the rules can read. **Where the weather comes from:** the map's `"weather": "rain" | "snow"` (optional, `"none"` = clear; the weather the battle
+starts with, also drawn) and the story's `weather` command (it changes it from then on, mid-battle too). There is no other weather state; it is saved as
+it always was (`story.scene.weather`, only while set: a map without weather and a battle whose story never set one write nothing about it).
+
+**The costs.** A terrain in `data/terrain.json` may say what it costs while it rains or snows, per movement type:
+
+```jsonc
+{ "id": "swamp", "moveCost": { "foot": 2, "wheel": 3 },
+  "weatherCost": { "rain": { "foot": 4, "wheel": 6 }, "snow": { "foot": 1 } } }
+```
+
+(Chosen because the existing cost tables are per terrain, per movement type: `moveCost` already is `{ moveType: cost }` on the terrain, so the weather
+costs sit next to it instead of in a new file.) While a weather lasts, a movement type with an entry for it pays **that number instead of the terrain's own**
+for entering the terrain; a movement type with no entry, and every terrain with no `weatherCost`, pays what it paid. **A structure that sets its own
+`moveCost` for the movement type keeps it** (a bridge or a road does not care about the rain). The numbers are whole, **1 to 99**: weather can open
+a terrain that is blocked (a frozen swamp: cost 1) but never close one, so no unit is ever stranded by the sky. The loader refuses `unknown weather`
+(`"fog"`), `unknown move type`, a cost outside 1..99 or not whole, and an empty table; a map's `"weather"` other than `"rain"`, `"snow"`, `"none"`.
+
+**Who follows.** `Battle::enterCost` is the one place; so the movement range the player shows, the paths, the computer opponent's reach and goals, summons
+and warps all see the cost of the moment. A change of weather takes effect from the next question asked (a move already made is not re-priced).
+A game with no `weatherCost` anywhere never looks at the weather (`Database::anyWeatherCost`), so it plays and saves exactly as before.
+
+Code: `core/data/loader_content.cpp` (`readWeatherCost`), `loader_weather.cpp`, `core/battle/weather_cost.cpp`, `Battle::enterCost` (battle.h).
+Editor: Terrain, card "Weather and platform" (a cost per movement type and weather; empty = the usual cost); Maps, map settings, "Weather at the start".
+Tests: `tests/test_fidelity2_scene.cpp`, `tests/srpg_player_fidelity2_test.py`.
+
 ## Editor
 
 - Structures: upgrades list, "research" checkbox (only with the rule), repairs list, vision

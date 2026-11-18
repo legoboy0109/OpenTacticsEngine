@@ -1201,7 +1201,30 @@ share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.t
 
 ## Battle animations (docs/BATTLE_SCENE.md)
 
-- **Rules screen**, card "How fights are shown": On the map (default, written as no key) / Battle scene (`game.json` `battleScene`).
+- **Rules screen**, card "How fights are shown": On the map (default, written as no key) / Battle scene (`game.json` `battleScene`). The same card has
+  **"Background and platform come from"** (the attacked fighter, the default / the attacker: `battleBackgroundFrom`) and **"Which side each fighter stands
+  on"** (by their places on the map, the default / your fighter on the right / on the left: `battleSceneSides`), each written only when it is not the
+  default. A note appears where the sides choice changes nothing (no map has both a computer side and a player side); a value the loader would refuse
+  (`model/battleSceneChecks.ts`) is said in words.
+- **Art screen**, card **Platforms** (below Battle backgrounds): a list of named pictures (choose the picture, optionally a "far" picture used at range 2+,
+  delete: the terrain choices, the default and every map's table that named it go too) and the **Default platform**. A terrain's own platform is chosen on
+  the **Terrain** screen, card "Weather and platform".
+- **Terrain screen**, card **Weather and platform**: a table with a column for rain and one for snow and a row per movement type (a number from 1 to 99;
+  empty = the usual cost), and the terrain's platform. **Maps**, the map's settings tab, part **Battle scene and weather**: a table of background and a table
+  of platform per terrain plus "Everything else" (a map's choices win over the game's; "The game's choice" removes the entry), and "Weather at the start"
+  (Clear sky / Rain / Snow: the map's `weather`). Checks say a table that names a terrain or picture that is gone. Deleting a background, a platform or a
+  terrain clears what named it. Code: `model/battleTables.ts`, `screens/maps/editor/panels/BattleSceneSettings.tsx`, `screens/terrain/WeatherCosts.tsx`,
+  `screens/art/battle/PlatformsCard.tsx`, `screens/rules/BattleSceneChoices.tsx`. Tests: `tests/unit/fidelity2.test.ts`, `tests/e2e/fidelity2.spec.ts`.
+- **Maps**, story command **Stage a fight** (Units group; docs/EVENTS.md "A staged fight"): the two fighters (named units of the map), each side's weapon
+  ("The one it has equipped" by default), the check box "Write every strike down (no dice)" with a list of strikes (who strikes, hit / miss / critical hit,
+  damage empty = the normal damage; up, down, remove, add), and the boxes "Nobody can die in it", "The fight gives experience", "The fight wears the
+  weapons". The command's row reads "Eirik fights Brigand: 3 strikes written down, nobody dies". Code: `model/storyFight.ts`,
+  `screens/maps/editor/story/forms/FightForm.tsx`.
+- **Abilities**: "What it does" offers **No other effect** (when the game has conditions): the ability then only gives the condition and may pay experience
+  ("Experience and conditions" card); its summary reads "Gives Boost for 4 turns to an ally next to it, and nothing else". The summon card has the **candidate
+  items** list ("What it carries": an item and the summoner's level it needs), "Which one it carries" (the highest level it reaches / a random one) and
+  "A new one replaces the oldest at the limit". **Skills and Conditions**: a damage effect's "How much" offers "Anything from one number to another"
+  (two numbers; the checks say a range that is not from 1 up with the highest above the lowest); "can defeat" is the lethal switch.
 - **Art screen**, cards below Portraits: *Battle animations* (pick / add a set, rename, delete with a question that counts the rules
   that go with it; faces, "turn it around" switch, foot point; one block per animation: image, row, number of frames, milliseconds per
   frame, hit frame for attack-type animations; a live preview of one animation, and **Preview a fight**: the set strikes twice

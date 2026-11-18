@@ -97,7 +97,9 @@ battle shows that picture and weather at once and replays nothing. Anything else
 core ends a run of events that is still faded out with an automatic fade in, so a save is never made faded), the standing portraits, a
 shake or scroll under way, and everything of a **campaign scene** (a scene in progress is never saved, "Campaign saves in the player";
 its background, stage and fade end with it). The data hash counts that a scene command exists and its milliseconds, not which picture,
-weather or narrator wording.
+weather or narrator wording. **Weather as a rules fact** (docs/ECONOMY.md "Weather and movement cost"): a map's own `"weather"` is the starting
+weather, so a battle on such a map writes `scene.weather` from the first save on (the key is still "only while set"); a map without one, and a
+battle whose story never set one, are unchanged byte for byte.
 
 ## Presentation additions to a battle's `story` object
 

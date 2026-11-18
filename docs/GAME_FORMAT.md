@@ -27,6 +27,8 @@ id that does not exist is a load error.
   "author": "Your Name",                                     // optional
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
   "battleScene": "map",                                      // optional: "map" (default) | "scene": how fights are shown (docs/BATTLE_SCENE.md)
+  "battleBackgroundFrom": "defender",                        // optional: "defender" (default) | "attacker": whose square picks the battle scene's background and platform
+  "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
   "saving": "any",                                           // optional: "any" | "continue" | "off"
   "grid": { "type": "hex", "layout": "pointy" },             // optional: hexagon game, "pointy" | "flat" (docs/HEX.md);
                                                              // missing (or { "type": "square" }) = a square game
@@ -123,6 +125,7 @@ Every `rules` block and key is optional; defaults are shown above
   { "id": "city", "name": "City",
     "color": "#b7b7b7", "glyph": "c",          // placeholder look
     "moveCost": { "foot": 1, "tread": 1 },     // missing type = 1; 0 or less = impassable
+    "weatherCost": { "rain": { "foot": 3 }, "snow": { "foot": 2 } },  // optional: the cost per move type while it rains / snows, 1..99 (docs/ECONOMY.md "Weather and movement cost")
     "props": { "defense": 2 },                 // free-form numbers for formulas
     "tags": ["open"],                          // free-form labels
     "visionBonus": 2,                          // optional (fog of war, docs/ECONOMY.md): 0..10, added to the
@@ -268,6 +271,10 @@ Everything is in docs/ECONOMY.md.
              "rrrr",
              "f..." ],                   // exactly height rows of width chars
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
+  "weather": "rain",                                       // optional: "rain" | "snow" | "none": the weather the battle starts with (docs/ECONOMY.md "Weather and movement cost")
+  "battleBackgrounds": { "swamp": "bog", "default": "meadow" },  // optional: the battle scene's background per terrain on this map ("default" = every other);
+                                                           // wins over the game's table (docs/BATTLE_SCENE.md "Which background and platform")
+  "battlePlatforms": { "swamp": "boards", "default": "grass" },  // optional: the same for the platform under each fighter
   "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
                                                            // at most 32 sides then
   "difficulty": { "hard": { "enemy": { "levels": 3 } } },  // optional: this map's own numbers per difficulty id; they REPLACE the game's (docs/DIFFICULTY.md)

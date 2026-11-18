@@ -1,0 +1,29 @@
+// Two more choices of the "Battle animations" default (docs/BATTLE_SCENE.md): whose square decides the backdrop and platform, and which
+// side of the scene each fighter stands on. Shown with the scene's default; both are presentation only.
+import { sceneChoiceProblems } from '../../model/battleSceneChecks'
+import { SCENE_SIDES, backgroundFrom, sceneSides, setBackgroundFrom, setSceneSides, type BackgroundFrom, type SceneSides } from '../../model/battleTables'
+import { useDoc, useEdit } from '../../store/context'
+import { Field } from '../../ui/Field'
+import { Select } from '../../ui/Select'
+import { BC } from './battleSceneText'
+
+export function BattleSceneChoices() {
+  const doc = useDoc()
+  const edit = useEdit()
+  const from = backgroundFrom(doc)
+  const sides = sceneSides(doc)
+  return (
+    <div className="stack tight" data-testid="battle-scene-choices">
+      <Field label={BC.from} help={BC.fromHelp}>
+        <Select aria-label={BC.from} value={from} options={[{ value: 'defender', label: BC.fromDefender }, { value: 'attacker', label: BC.fromAttacker }]}
+          onChange={(v) => edit((d) => setBackgroundFrom(d, v as BackgroundFrom))} />
+      </Field>
+      <Field label={BC.sides} help={BC.sidesHelp}>
+        <Select aria-label={BC.sides} value={sides} options={SCENE_SIDES.map((s) => ({ value: s, label: BC.sidesChoices[s] }))}
+          onChange={(v) => edit((d) => setSceneSides(d, v as SceneSides))} />
+      </Field>
+      <p className="help">{BC.sidesChoicesHelp[sides]}</p>
+      {sceneChoiceProblems(doc).map((p) => <p key={p} className="help" role="alert">{p}</p>)}
+    </div>
+  )
+}

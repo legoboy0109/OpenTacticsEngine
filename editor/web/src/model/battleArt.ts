@@ -3,6 +3,7 @@
 // Effects (spells, arrows) are kept untouched when present but have no screen yet (they are written by hand).
 import { withGraphics, findSheet, sheetsOf } from './graphics'
 import { makeId } from './ids'
+import { dropFromMapTables, dropTerrainFromTables, droppedPlatforms } from './battleTables'
 import { patchObj } from './util'
 import type { BattleAnimDef, BattleAssignDef, BattleSection, BattleSetDef, CellRef, Graphics, ProjectDoc, SideSheetDef } from './types'
 
@@ -193,11 +194,11 @@ export function setBackgroundPicture(doc: ProjectDoc, id: string, sheet: string,
 }
 /** Removes the background and what pointed at it (terrain choices, the default). */
 export function removeBackground(doc: ProjectDoc, id: string): ProjectDoc {
-  return withBattle(doc, (b) => patchObj(b, {
+  return dropFromMapTables(withBattle(doc, (b) => patchObj(b, {
     backgrounds: dropKeyOf(b.backgrounds, id),
     terrainBackground: prune(Object.fromEntries(Object.entries(b.terrainBackground ?? {}).filter(([, v]) => v !== id))),
     defaultBackground: b.defaultBackground === id ? undefined : b.defaultBackground,
-  }))
+  })), 'battleBackgrounds', (v) => v === id)  // (a map's table forgets it too: model/battleTables.ts)
 }
 export const terrainBackground = (doc: ProjectDoc, terrain: string): string => battleOf(doc).terrainBackground?.[terrain] ?? ''
 export function setTerrainBackground(doc: ProjectDoc, terrain: string, background: string): ProjectDoc {
@@ -238,6 +239,7 @@ export function dropBattleSheet(g: Graphics, sheetId: string): Graphics {
     backgrounds: prune(backgrounds),
     terrainBackground: prune(Object.fromEntries(Object.entries(b.terrainBackground ?? {}).filter(([, v]) => !goneBg.has(v)))),
     defaultBackground: b.defaultBackground && goneBg.has(b.defaultBackground) ? undefined : b.defaultBackground,
+    ...droppedPlatforms(b, sheetId),
   })
   return patchObj(g, { battle: Object.keys(next).length ? next : undefined }) as Graphics
 }
@@ -247,8 +249,9 @@ export function dropBattleOf(doc: ProjectDoc, what: 'type' | 'character' | 'terr
   const b = doc.graphics?.battle
   if (!b) return doc
   if (what === 'terrain') {
-    if (!b.terrainBackground || !(id in b.terrainBackground)) return doc
-    return setTerrainBackground(doc, id, '')
+    const rest = dropTerrainFromTables(doc, id)  // the platform table and the maps' tables (model/battleTables.ts)
+    if (!b.terrainBackground || !(id in b.terrainBackground)) return rest
+    return setTerrainBackground(rest, id, '')
   }
   const list = (b.assign ?? []).filter((a) => (what === 'type' ? a.type !== id : a.character !== id))
   return list.length === (b.assign ?? []).length ? doc : setAssign(doc, list)
