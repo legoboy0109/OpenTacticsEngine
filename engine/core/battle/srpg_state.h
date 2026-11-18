@@ -33,6 +33,7 @@ struct AbilityOption {
   int ability = -1;
   bool ok = false;
   std::string why;  // when !ok: "ready in 2 turns", "no uses left this battle", ...
+  int itemUses = -2;  // "spendsItem": uses the giving item has left (-1 = unlimited); -2 = the ability spends no item
 };
 
 // An activation that could fire in a forecast fight (Forecast::notes), in roll order.

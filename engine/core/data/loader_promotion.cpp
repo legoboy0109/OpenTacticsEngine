@@ -11,7 +11,7 @@ namespace {
 std::string quoted(const std::string& s) { return "\"" + s + "\""; }
 
 bool knownKey(const std::string& k) {
-  static const char* const keys[] = {"to", "fromLevel", "items", "atLevel", "levelAfter", "gains"};
+  static const char* const keys[] = {"to", "fromLevel", "items", "atLevel", "levelAfter", "gains", "fromLevelFor"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -31,6 +31,16 @@ bool readPromotion(const LoadCtx& c, const Database& db, const Json& p, size_t i
     if (!LoadCtx::isWhole(p["fromLevel"]) || p["fromLevel"].asInt() < 1 || p["fromLevel"].asInt() > db.rules.maxLevel)
       return c.fail(where, at + ": \"fromLevel\" must be from 1 to " + std::to_string(db.rules.maxLevel));
     d.fromLevel = p["fromLevel"].asInt();
+  }
+
+  if (p.has("fromLevelFor")) {  // { "eirik": 1, "mia": 8 }: other levels for named characters (the ids are resolved last)
+    const Json& m = p["fromLevelFor"];
+    if (!m.isObject() || m.size() == 0) return c.fail(where, at + ": \"fromLevelFor\" must be an object such as { \"eirik\": 1 } (character id: level)");
+    for (const Json::Member& e : m.members()) {
+      if (!LoadCtx::isWhole(e.second) || e.second.asInt() < 1 || e.second.asInt() > db.rules.maxLevel)
+        return c.fail(where, at + ": \"fromLevelFor\" " + quoted(e.first) + " must be a level from 1 to " + std::to_string(db.rules.maxLevel));
+      d.fromLevelForIds.push_back({e.first, e.second.asInt()});
+    }
   }
 
   if (p.has("atLevel")) {
@@ -98,6 +108,11 @@ bool resolvePromotionRefs(const std::string& root, Database& db, std::string& er
       d.to = db.findUnitType(d.toId);
       if (d.to < 0) return c.fail(where, at + ": unknown unit type " + quoted(d.toId));
       if (db.unitTypes[(size_t)d.to].id == u.id) return c.fail(where, at + ": \"to\" is the unit type itself");
+      for (const auto& f : d.fromLevelForIds) {
+        const int ch = db.findCharacter(f.first);
+        if (ch < 0) return c.fail(where, at + ": \"fromLevelFor\" names unknown character " + quoted(f.first) + " (data/characters.json)");
+        d.fromLevelFor.push_back({ch, f.second});
+      }
     }
   }
   return true;

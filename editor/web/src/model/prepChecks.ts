@@ -7,6 +7,7 @@ import { campaignRosterIds } from './prepRoster'
 import { ctxOf } from './mapCtx'
 import { terrainAt } from './mapGrid'
 import { requiredId, requiredSlot, someoneCanStand, stayingAt, typeCanStand, prepSide, isChoosable } from './prep'
+import { shopChecks } from './prepShops'
 import type { ProjectDoc } from './types'
 
 export interface PrepCheck { text: string; cell?: { x: number; y: number } }
@@ -75,6 +76,9 @@ export function prepChecks(doc: ProjectDoc, mapId: string): PrepCheck[] {
       else if (!item.price || Object.keys(item.price).length === 0) out.push({ text: `The preparation shop sells ${item.name ?? id}, which has no price (Items). The game will not load until it has one or is removed from the shop.` })
     }
   }
+
+  for (const text of shopChecks(doc, map)) out.push({ text })
+  if (prep.shop?.music && !Object.keys(doc.audio?.music ?? {}).includes(prep.shop.music)) out.push({ text: `The preparation shop plays “${prep.shop.music}”, which is not a music track of this game (Sound).` })
 
   // Outside a campaign there is no party: the choice is only among the units this map places.
   const chapters = doc.campaign?.chapters ?? []

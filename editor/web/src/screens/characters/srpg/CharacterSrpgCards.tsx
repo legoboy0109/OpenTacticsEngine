@@ -7,6 +7,7 @@ import { CharacterWieldsCard } from './CharacterWieldsCard'
 import { CharacterSkillsCard } from './CharacterSkillsCard'
 import { CharacterAbilitiesCard } from './CharacterAbilitiesCard'
 import { CharacterQuotesCard } from './CharacterQuotesCard'
+import { CharacterPromotionCard } from './CharacterPromotionCard'
 
 export function CharacterSrpgCards({ id }: { id: string }) {
   return (
@@ -18,6 +19,7 @@ export function CharacterSrpgCards({ id }: { id: string }) {
       <CharacterSkillsCard id={id} />
       <CharacterAbilitiesCard id={id} />
       <CharacterQuotesCard id={id} />
+      <CharacterPromotionCard id={id} />
     </>
   )
 }

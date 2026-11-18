@@ -376,6 +376,42 @@ gives a step on every square. Refusals: `game.json: move type "mounted": "sounds
 **Sounds on the frames of a battle scene animation** (docs/BATTLE_SCENE.md "Sounds"): per-weapon / per-type `hit`, `miss`, `critical` sounds at the moment of impact
 already existed (the lookup above); what was missing is a sound that belongs to the *animation*, so a set can have a swing sound on frame 1 and a clang on frame 3.
 
+## Shop music, boot jingle, level-up ticks, save sound, promotion sounds (fidelity 3)
+
+All optional and presentation only (nothing here is saved or hashed): a game that uses none of these keys sounds exactly as before. Code:
+`engine/player/sound/` (`audio_data.cpp` the keys, `music_director.cpp` the music, `cues.*` the two new cues), `engine/player/battle/battle_shop_music.cpp`,
+`battle_view_ticks.cpp`. Tests: `tests/test_fidelity3_sound.cpp`, `tests/srpg_player_fidelity3_test.py` (through `--audio-log`).
+
+```jsonc
+// data/audio.json "use"
+"shopMusic": "market",                  // music id: any shop screen whose shop names no music of its own (preparation shops and the shop a unit opens on the map)
+"bootJingle": "boot",                   // music id, "loop": false: played once when a game's page opens, before titleMusic
+"promotionSounds": [ { "atMs": 0, "sound": "whoosh" }, { "atMs": 400, "sound": "boom" } ],   // sounds at times after a promotion starts, next to the promotion jingle
+"sounds": { "levelUpTick": "tick",      // once for each stat line that rises on the level-up box
+            "save": "chime" }           // a save was written from a menu (the slot list; not the continue file)
+```
+
+- **`shopMusic`.** While a shop screen is open its music plays: a preparation shop's own `music` (docs/EVENTS.md "Preparation": `shop.music` / `shops[].music`),
+  else `shopMusic`, else nothing changes. It sits above the preparation music and the map's music and below a story `playMusic`; closing the shop brings back what
+  was playing (a cross-fade each way, the same track asked again keeps playing). Applies to the preparation shop's three screens (buy, who gets it, sell) and to
+  the shop a unit opens on the map (which has no music of its own, so it plays `shopMusic`).
+- **`bootJingle`.** Played alone (no title music under it) the first time a game's page opens after the game is opened from the launcher; `titleMusic` starts when
+  it ends (and at once when there is no jingle, no file, or the music level is 0). The map list or a battle coming back to the page does not play it again;
+  leaving the game for the home list and opening it again does. It must have `"loop": false` like the other jingles. In a headless run nothing is mixed, so the
+  jingle counts as over at once: the log shows `music play ...boot...` and, one frame later, `music play ...title...`.
+- **`levelUpTick`.** Requested once for each stat that rose in a level-up (a stat held at its cap does not tick), the first as the box opens and the others
+  0.12 s apart so that each is heard (the same sound twice in one frame would be one). The box staying up for Confirm does not repeat them; confirming before
+  they are all out drops the rest. Not played for the promotion's "Stat changes" box. It is an ordinary cue of `use.sounds` (22 -> 24 keys; no weapon, unit or
+  item override).
+- **`save`.** A cue played when a manual save to a slot succeeded (battle menu and preparation "Save"). A failed save plays nothing new; nor do the
+  continue file and autosaves.
+- **`promotionSounds`.** 1 to 16 entries `{ "atMs": 0..60000, "sound": id }`, kept in time order. When a promotion begins (the entry the viewer sees), each sound is
+  requested `atMs` after it, whatever the box on screen is doing; the promotion jingle (`use.promotion`) is requested as before. Refused: an empty list, more
+  than 16, `atMs` outside 0..60000 or not whole, an unknown sound id, any other key.
+- **Editor.** Sound, "Events": the music slots gain "Shop screens" and "When the game's page opens" (the boot jingle), the sound slots gain "Level-up: each stat"
+  and "A save was written", and a "Promotion sounds" list (a time in milliseconds and a sound per row) sits under the promotion jingle; renaming or deleting a
+  track or sound follows everywhere, as for the other slots.
+
 ## Starter audio
 
 - `tools/audio/make_starter_audio.py` synthesizes the **retro set**

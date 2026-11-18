@@ -8,6 +8,10 @@ import {
   setLimit, setRequiredSlot, setShop, setSide,
 } from '../../../../model/prep'
 import { prepChecks } from '../../../../model/prepChecks'
+import { isSeveralShops, setSingleShopMusic, toSeveralShops } from '../../../../model/prepShops'
+import { musicIds } from '../../../../model/audio'
+import { AudioChoice } from '../../../sound/AudioChoice'
+import { PrepShops } from './PrepShops'
 import { setShopBuys, shopBuys } from '../../../../model/sell'
 import { peopleOf } from '../../../../model/prepRoster'
 import type { MapFile, ProjectDoc } from '../../../../model/types'
@@ -102,8 +106,10 @@ export function PrepPanel({ doc, map, mapId, onSlots, say }: Props) {
             onChange={(v) => apply((m) => addFixed(m, v))} />
 
           <h4>{P.shopTitle}</h4>
-          <Toggle label={P.shopSwitch} help={P.shopHelp} checked={!!prep.shop} onChange={(v) => apply((m) => setShop(m, v ? [] : null))} />
-          {prep.shop && (
+          {isSeveralShops(map) ? <PrepShops doc={doc} map={map} apply={apply} /> : (
+            <Toggle label={P.shopSwitch} help={P.shopHelp} checked={!!prep.shop} onChange={(v) => apply((m) => setShop(m, v ? [] : null))} />
+          )}
+          {!isSeveralShops(map) && prep.shop && (
             <>
               <Toggle label={P.shopBuys} help={P.shopBuysHelp} checked={shopBuys(map)} onChange={(v) => apply((m) => setShopBuys(m, v))} />
               {prep.shop.sells.length === 0 && <p className="help">{P.shopNone}</p>}
@@ -117,6 +123,12 @@ export function PrepPanel({ doc, map, mapId, onSlots, say }: Props) {
               <Select aria-label={P.shopAdd} value="" placeholder={P.shopAdd}
                 options={(doc.items ?? []).filter((i) => i.price && Object.keys(i.price).length > 0 && !prep.shop!.sells.includes(i.id)).map((i) => ({ value: i.id, label: i.name ?? i.id }))}
                 onChange={(v) => apply((m) => setShop(m, [...prep.shop!.sells, v]))} />
+              {musicIds(doc).length > 0 && (
+                <Field label={P.shopMusic} help={P.shopMusicHelp}>
+                  <AudioChoice kind="music" mode="nothing" value={prep.shop.music} aria-label={P.shopMusic} onChange={(v) => apply((m) => setSingleShopMusic(m, v || undefined))} />
+                </Field>
+              )}
+              <div><button type="button" className="btn ghost sm" onClick={() => apply(toSeveralShops)}>{P.shopsUse}</button></div>
             </>
           )}
 

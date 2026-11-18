@@ -1,6 +1,6 @@
 // What the summoned unit carries (docs/SRPG.md "Summoning"): candidate items with the summoner's level each needs, which one is picked,
 // and "replace the oldest at the limit". A part of the summon card.
-import { addSummonItem, MAX_SUMMON_ITEMS, patchSummonItem, removeSummonItem, setSummonPick, setSummonReplace, summonItemRows } from '../../model/summonItems'
+import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, removeSummonItem, setSummonPick, setSummonReplace, summonItemRows } from '../../model/summonItems'
 import { summonOf } from '../../model/abilities'
 import { useDoc } from '../../store/context'
 import { Field } from '../../ui/Field'
@@ -15,6 +15,7 @@ export function SummonItems({ ability, change }: FormProps) {
   const s = summonOf(ability)
   const rows = summonItemRows(ability)
   const items = (doc.items ?? []).map((i) => ({ value: i.id, label: i.name }))
+  const random = s.pick === 'random'
   const maxLevel = doc.game?.rules?.progression?.maxLevel ?? 20
   return (
     <div className="stack tight" data-testid="summon-items">
@@ -23,9 +24,15 @@ export function SummonItems({ ability, change }: FormProps) {
         <div className="stack tight">
           {rows.map((r, i) => (
             <div key={i} className="row" data-testid={`summon-item-${i + 1}`}>
-              <Select aria-label={T.summonItemPick(i + 1)} value={r.item} placeholder="—" options={[...(r.item && !items.some((x) => x.value === r.item) ? [{ value: r.item, label: `${r.item} (not an item)` }] : []), ...items]}
+              <Select aria-label={T.summonItemPick(i + 1)} value={r.item} placeholder="—" options={[{ value: NO_ITEM_VALUE, label: T.summonNoItem }, ...(r.item && r.item !== NO_ITEM_VALUE && !items.some((x) => x.value === r.item) ? [{ value: r.item, label: `${r.item} (not an item)` }] : []), ...items]}
                 onChange={(v) => change((a) => patchSummonItem(a, i, { item: v }))} />
               <NumberInput aria-label={T.summonItemLevel(i + 1)} value={r.minLevel} min={1} max={maxLevel} onChange={(v) => { if (v !== undefined) change((a) => patchSummonItem(a, i, { minLevel: v }), `summonItemLevel${i}`) }} />
+              <NumberInput aria-label={T.summonItemMax(i + 1)} value={r.maxLevel} allowEmpty min={r.minLevel} max={maxLevel} placeholder={T.summonItemMaxNone}
+                onChange={(v) => change((a) => patchSummonItem(a, i, { maxLevel: v }), `summonItemMax${i}`)} />
+              {random && (
+                <NumberInput aria-label={T.summonItemWeight(i + 1)} value={r.weight ?? 1} min={1} max={1000}
+                  onChange={(v) => { if (v !== undefined) change((a) => patchSummonItem(a, i, { weight: v }), `summonItemWeight${i}`) }} />
+              )}
               <button type="button" className="btn sm" aria-label={T.summonItemRemove(i + 1)} onClick={() => change((a) => removeSummonItem(a, i))}>{T.summonItemRemoveText}</button>
             </div>
           ))}

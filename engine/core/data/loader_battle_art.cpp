@@ -236,7 +236,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
   }
   if (given("hitAtMs")) {
     if (!c.integer(j, "hitAtMs", where, fx.hitAtMs)) return false;
-    if (fx.hitAtMs < 0 || fx.hitAtMs > 5000) return c.fail(where, "\"hitAtMs\" must be between 0 and 5000 (milliseconds the effect starts before the hit)");
+    if (fx.hitAtMs < 0 || fx.hitAtMs > 15000) return c.fail(where, "\"hitAtMs\" must be between 0 and 15000 (milliseconds the effect starts before the hit)");
     if (fx.travel) return c.fail(where, "\"hitAtMs\" is for an effect that appears on the target or the striker; a \"travel\" effect hits when it arrives");
   }
   std::string layer = "front";

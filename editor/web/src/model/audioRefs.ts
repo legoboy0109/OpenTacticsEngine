@@ -79,6 +79,24 @@ function walkUse(a: Audio, w: Walk): Audio {
       w.dropped?.({ what: 'setting', text: 'Sound, standard set: no music plays when few enemies are left any more', where })
     } else if (r !== use.fewEnemies.music) next = { ...next, fewEnemies: { ...use.fewEnemies, music: r } }
   }
+  if (Array.isArray(use.promotionSounds)) {  // the sounds played at times after a promotion starts
+    let kept = use.promotionSounds
+    let changed = false
+    const out = []
+    for (const [i, e] of kept.entries()) {
+      if (!e || typeof e.sound !== 'string' || e.sound === '') { out.push(e); continue }
+      const where = `the standard set, promotion sound ${i + 1}`
+      const rr = w.ref({ kind: 'sound', id: e.sound }, where)
+      if (rr === DROP) { changed = true; w.dropped?.({ what: 'setting', text: `Sound, standard set: promotion sound ${i + 1} (at ${e.atMs} ms) goes`, where }) }
+      else if (rr !== e.sound) { changed = true; out.push({ ...e, sound: rr }) }
+      else out.push(e)
+    }
+    if (changed) {
+      kept = out
+      if (kept.length) next = { ...next, promotionSounds: kept }
+      else { const { promotionSounds: _p, ...rest } = next; next = rest }
+    }
+  }
   const sounds = walkBlock(use.sounds, STANDARD_SOUND_KEYS, 'sound', w, 'the standard set', (k) => SOUND_KEY_LABEL[k as StandardSoundKey], 'Sound, standard set')
   if (sounds !== use.sounds) {
     if (sounds) next = { ...next, sounds }  // the key stays where it was
@@ -115,6 +133,33 @@ function walkOwners(doc: ProjectDoc, w: Walk): ProjectDoc {
     if (changed) out = { ...out, [owner]: next }
   }
   return out
+}
+
+/** The "music" of a map's preparation shop (one) or shops (a list): follows a rename, goes with a deleted track. */
+function walkShopMusic(map: MapFile, mapName: string, w: Walk): MapFile {
+  const prep = map.prep
+  if (!prep) return map
+  let next = prep
+  const follow = <T extends { music?: string }>(s: T, label: string): T => {
+    if (typeof s.music !== 'string' || s.music === '') return s
+    const where = `map “${mapName}”, ${label}`
+    const r = w.ref({ kind: 'music', id: s.music }, where)
+    if (r === DROP) {
+      const { music: _g, ...rest } = s
+      w.dropped?.({ what: 'setting', text: `Map “${mapName}”: ${label} plays no music of its own any more`, where })
+      return rest as T
+    }
+    return r === s.music ? s : { ...s, music: r }
+  }
+  if (prep.shop) {
+    const s = follow(prep.shop, 'the preparation shop')
+    if (s !== prep.shop) next = { ...next, shop: s }
+  }
+  if (Array.isArray(prep.shops)) {
+    const list = prep.shops.map((s) => follow(s, `the preparation shop “${s.name ?? s.id}”`))
+    if (list.some((s, i) => s !== prep.shops![i])) next = { ...next, shops: list }
+  }
+  return next === prep ? map : { ...map, prep: next }
 }
 
 function walkMapMusic(doc: ProjectDoc, w: Walk): ProjectDoc {
@@ -158,6 +203,7 @@ function walkMapMusic(doc: ProjectDoc, w: Walk): ProjectDoc {
         w.dropped?.({ what: 'setting', text: `Map “${mapName}”: few enemies left goes back to the game’s music`, where })
       } else if (r !== m.fewEnemies.music) next = { ...next, fewEnemies: { ...m.fewEnemies, music: r } }
     }
+    next = walkShopMusic(next, mapName, w)  // the music of the preparation shops
     if (next !== m) maps = { ...maps, [id]: next }
   }
   return maps === doc.maps ? doc : { ...doc, maps }

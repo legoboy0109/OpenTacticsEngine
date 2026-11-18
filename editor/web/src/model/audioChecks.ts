@@ -3,7 +3,8 @@
 // plain; the loader's own message still shows in the Problems list after a save. Names in story commands and scenes are
 // checked with the maps' and the campaign's own checks (`audioRefProblem` is what they use).
 // A sound FILE that is missing is not refused by the player (that sound stays silent), so it is a `hint`.
-import { JINGLE_SLOTS, MAP_MUSIC_KEYS, MAP_MUSIC_LABEL, MUSIC_SLOT_LABEL, MUSIC_SLOTS, OVERRIDE_KEY_LABEL, OVERRIDE_KEYS, SOUND_KEY_LABEL, STANDARD_SOUND_KEYS, UNIT_KEY_LABEL, type StandardSoundKey } from './audioLabels'
+import { promotionSoundProblems } from './promotionSounds'
+import { isJingleSlot, MAP_MUSIC_KEYS, MAP_MUSIC_LABEL, MUSIC_SLOT_LABEL, MUSIC_SLOTS, OVERRIDE_KEY_LABEL, OVERRIDE_KEYS, SOUND_KEY_LABEL, STANDARD_SOUND_KEYS, UNIT_KEY_LABEL, type StandardSoundKey } from './audioLabels'
 import { MAX_VARIANTS, SOUND_EFFECT_SECONDS, filesOfSound, musicOf, soundsOf } from './audio'
 import type { AudioFile } from './audioTypes'
 import { situationProblems } from './audioSituations'
@@ -93,7 +94,7 @@ function useChecks(doc: ProjectDoc, say: Say): void {
   const use = doc.audio!.use
   if (use === undefined) return
   if (!isObject(use)) { say('sound', 'The standard set is not a list of settings.'); return }
-  for (const k of onlyKeys(use, [...MUSIC_SLOTS, 'sounds', 'phaseMusic', 'fewEnemies'])) say('sound', `The standard set has something this game does not know (${q(k)}).`)
+  for (const k of onlyKeys(use, [...MUSIC_SLOTS, 'sounds', 'phaseMusic', 'fewEnemies', 'promotionSounds'])) say('sound', `The standard set has something this game does not know (${q(k)}).`)
   for (const slot of MUSIC_SLOTS) {
     const v = use[slot]
     if (v === undefined || v === '') continue
@@ -101,7 +102,7 @@ function useChecks(doc: ProjectDoc, say: Say): void {
     if (typeof v !== 'string') { say('sound', `${at}: pick a music track or nothing.`); continue }
     const track = musicOf(doc)[v]
     if (!track) say('sound', `${at}: ${q(v)} is not a music track of this game.`)
-    else if (JINGLE_SLOTS.includes(slot) && track.loop !== false) say('sound', `${at}: ${q(v)} repeats, but this plays once. Switch off “Repeats” on that track, or pick another.`)
+    else if (isJingleSlot(slot) && track.loop !== false) say('sound', `${at}: ${q(v)} repeats, but this plays once. Switch off “Repeats” on that track, or pick another.`)
   }
   if (use.sounds === undefined) return
   if (!isObject(use.sounds)) { say('sound', 'The standard sounds are not a list of settings.'); return }
@@ -114,12 +115,17 @@ function useChecks(doc: ProjectDoc, say: Say): void {
   }
 }
 
+function promoChecks(doc: ProjectDoc, say: Say): void {
+  for (const p of promotionSoundProblems(doc)) say('sound', p)
+}
+
 function structureChecks(doc: ProjectDoc, say: Say): void {
   const a = doc.audio!
   for (const k of onlyKeys(a, ['music', 'sounds', 'use'])) say('sound', `The sound settings have something this game does not know (${q(k)}).`)
   trackChecks(doc, say)
   effectChecks(doc, say)
   useChecks(doc, say)
+  promoChecks(doc, say)
 }
 
 /** Missing files (a hint: the game starts without that sound) and effects the loader refuses because of the file itself. */

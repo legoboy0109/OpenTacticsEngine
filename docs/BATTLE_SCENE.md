@@ -215,7 +215,7 @@ an id with other characters than letters, digits, `_` and `-` is refused by the 
 effect's `id`, else its weapon id, else its group. The existing animation sound lines (`sound X (Eirik)`) are unchanged. A skipped scene is silent
 (the log lines are still written).
 
-**Hit time (a lead-in).** `"hitAtMs": 233` (0 to 5000, default 0) on a `target` or `striker` effect: the effect starts that long **before the hit
+**Hit time (a lead-in).** `"hitAtMs": 233` (0 to 15000, default 0) on a `target` or `striker` effect: the effect starts that long **before the hit
 lands**, so its peak meets the damage. 0 is today: the effect starts at the hit. The strike's hit moment (the striker animation's `hit` frame) is the reference;
 the effect is started early. If the lead-in is longer than the time since the strike began (the striker's animation reaches its hit frame sooner
 than `hitAtMs`), the hit **waits**: the effect starts when the strike starts and the hit lands `hitAtMs` later. A strike that misses plays its effects

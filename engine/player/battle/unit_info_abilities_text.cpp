@@ -112,9 +112,14 @@ std::string abilityShortReason(const std::string& reason) {
 std::string abilityMenuExtra(const Battle& b, const Unit& u, const AbilityOption& o) {
   if (!o.ok) return o.why;
   const AbilityDef& def = b.db->abilities[(size_t)o.ability];
-  if (def.uses <= 0) return "";
-  const AbilityUse* use = b.abilityUseOf(u, o.ability);
-  return num(std::max(0, def.uses - (use ? use->used : 0))) + AbilityWords::kLeft;
+  // "spendsItem": the uses the giving item has left count too; the smaller number is what is left.
+  int left = -1;
+  if (def.uses > 0) {
+    const AbilityUse* use = b.abilityUseOf(u, o.ability);
+    left = std::max(0, def.uses - (use ? use->used : 0));
+  }
+  if (o.itemUses >= 0) left = left < 0 ? o.itemUses : std::min(left, o.itemUses);
+  return left < 0 ? "" : num(left) + AbilityWords::kLeft;
 }
 
 }  // namespace ote

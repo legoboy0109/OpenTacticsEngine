@@ -28,7 +28,7 @@ bool Battle::canStandAs(const Unit& u, int type) const {
 void Battle::promotionCandidates(const Unit& u, int item, bool needStand, std::vector<const PromotionDef*>& out) const {
   out.clear();
   for (const PromotionDef& d : typeOf(u).promotions) {
-    if (u.level < d.fromLevel) continue;
+    if (u.level < promotionFromLevel(u, d)) continue;
     if (item >= 0) {
       if (std::find(d.items.begin(), d.items.end(), item) == d.items.end()) continue;
     } else if (d.atLevel != PromoteAtLevel::Offer) {
@@ -144,7 +144,7 @@ void Battle::promotionLevelUp(int unit, std::vector<Event>& events) {
   if (unit < 0 || unit >= (int)units.size() || !units[(size_t)unit].alive) return;
   const Unit& u = units[(size_t)unit];
   for (const PromotionDef& d : typeOf(u).promotions)
-    if (d.atLevel == PromoteAtLevel::Auto && u.level >= d.fromLevel && canStandAs(u, d.to)) {
+    if (d.atLevel == PromoteAtLevel::Auto && u.level >= promotionFromLevel(u, d) && canStandAs(u, d.to)) {
       promote(unit, d.to, &d, events);
       return;
     }

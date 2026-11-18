@@ -9,6 +9,7 @@ using LogSink = void (*)(LogLevel level, const char* message);
 
 void setLogSink(LogSink sink);
 void setLogLevel(LogLevel minimum);
+LogLevel logLevel();  // the minimum shown now
 #if defined(__GNUC__)
 void logf(LogLevel level, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
 #else

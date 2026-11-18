@@ -63,6 +63,9 @@ struct AudioData {
   std::vector<std::pair<std::string, int>> phaseMusic;
   int fewMusic = -1, fewCount = 0;
   int prepMusic = -1, promotion = -1, chapterCard = -1;
+  int bootJingle = -1;  // "bootJingle": played once when a game's page opens, before titleMusic (docs/SOUND.md "Boot jingle")
+  std::vector<std::pair<int, int>> promotionSounds;  // "promotionSounds": (ms after the promotion starts, sound index), in time order
+  int shopMusic = -1;  // "shopMusic": the music of any shop screen whose shop names none of its own (docs/SOUND.md "Shop music")
   CueSet standard;
   // Overrides, by index into db.weapons / db.unitTypes / db.items / db.maps (empty until loadAudioOverrides).
   std::vector<CueSet> weapons, units, items;

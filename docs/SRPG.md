@@ -328,6 +328,26 @@ kinds, postponed.
 Nothing new is saved (type, stats, level and xp are saved already; the roster carries the new type). Event
 `UnitPromoted`: a = unit, b = old type, c = new type, d = new level, data = change per stat index.
 
+### A promotion level per character
+
+The lowest level of a promotion (`fromLevel`) belongs to the promotion entry of a unit type, so every character of a class promotes at the same
+level. Two optional keys let a named character differ (every trigger uses them: the item, the offer, the automatic kind, the player's preview):
+
+```jsonc
+// data/characters.json: the lowest level of ALL of this character's promotions
+{ "id": "eirik", "type": "lord", "promotion": { "fromLevel": 1 } }
+// data/units.json, one promotion entry: other levels for named characters of that entry only
+{ "to": "captain", "fromLevel": 10, "items": ["officers_writ"], "fromLevelFor": { "eirik": 1, "mia": 8 } }
+```
+
+The most specific wins: the entry's `fromLevelFor` for the unit's character, then the character's `promotion.fromLevel`, then the entry's `fromLevel`.
+A unit without a character, or a character that says nothing, uses the entry's `fromLevel` exactly as before (nothing is saved either way). `promotion` is
+exactly `{ "fromLevel": 1..maxLevel }`; `fromLevelFor` is a non-empty object of character id to a level from 1 to `maxLevel`. Refused: any other shape, a
+level out of range, a character id that does not exist (`unknown character "x" (data/characters.json)`). Core: `CharacterDef::promotionFromLevel`,
+`PromotionDef::fromLevelFor`, `Battle::promotionFromLevel` (`battle/promotion_level.cpp`). Editor: the character page's "Promotion" card ("May promote from level"),
+a unit type's promotion row "Another level for some characters"; a renamed character is followed, a deleted one's rows go. Tests:
+`tests/test_fidelity3_promotion.cpp`.
+
 ---
 
 ## 3. Skills
@@ -1029,6 +1049,21 @@ costs included, as for walking) and no unit stands on it. Heights do not matter.
 - State: `Unit::abilityUses`, one entry per ability the unit has used: `{ ability, used, wait, turn }` (`used` =
   times this battle, `wait` = turns still to wait, `turn` = used this turn). At the start of its side's turn `wait`
   drops by one (not below 0) and `turn` is cleared.
+
+### An ability that spends its item
+
+`"spendsItem": true` on an ability (default false): each use takes one use of the item that gives the ability, as a staff or a potion
+loses one (the item breaks or vanishes at 0 by the item's normal rule: `ItemBroke`), and the ability is no longer offered once the item is
+gone. An item gives an ability the ordinary way: a skill with `{ "ability": "id" }` in an `always` block on an accessory (carried), or
+on the weapon of a weapon item that is in use. The first such item (accessories in inventory order, then the weapon in use) is the one
+spent. `uses` and `cooldown` of the ability apply as well; the menu shows the smaller of the ability's uses left and the item's
+(`2 left`). The loader refuses (at the end, with the other cross references): a `spendsItem` ability no item gives, an item that gives
+it with unlimited uses (nothing would be spent), a unit type or character that lists it itself (it would never be offered), and a value
+other than true / false. An ability that spends its item is offered only while an item gives it (a skill from any other place gives
+nothing). Saves: nothing new (the item's uses are already saved). Core: `Battle::abilityItemSlot`, `spendAbilityItem`
+(`battle/ability_item.cpp`), `itemGivesAbility` (`data/ability_grants.cpp`). Player: the menu line, the log line `[info] item: Hero's Wand is
+gone`. Editor: Abilities, "Uses up its item" (with a warning when no item gives it, it has unlimited uses, or a type / character lists it).
+Tests: `tests/test_fidelity3_ability.cpp`, `tests/srpg_player_fidelity3_test.py`.
 
 ### Summoning
 
@@ -2726,7 +2761,7 @@ Conditions, a damage effect's "How much" > "Anything from one number to another"
 `level`, `limit` and the vanish rules existed (see "Summoning": `"level": "summoner"`, the default, is the summoner's level; `"user"` is accepted as
 another name for it; the summoned unit is made at that level by the usual level rule of a unit placed at that level). **New** keys of `summon`:
 
-- `"items": [ { "item": "fang", "minLevel": 1 }, { "item": "big_fang", "minLevel": 5 } ]` (1 to 8 candidates; `minLevel` default 1, at most the
+- `"items": [ { "item": "fang", "minLevel": 1 }, { "item": "big_fang", "minLevel": 5 } ]` (1 to 32 candidates; `minLevel` default 1, at most the
   game's level cap) with `"pick": "highest"` (default) or `"random"`. The summoned unit carries **one** candidate whose `minLevel` the **summoner's
   level** reaches, **instead of its unit type's own items** (none fits: the type's own items). `highest` = the candidate with the highest `minLevel` that
   fits (the first listed of equals); `random` = one of those that fit, by **one roll** of the battle's random numbers, **none when only one fits**.
@@ -2737,6 +2772,15 @@ another name for it; the summoned unit is made at that level by the usual level 
 
 Core: `SummonDef::items / pickRandom / replace`; code `core/battle/summons.cpp`. Editor: Abilities, the summon card (a candidate list with the level each
 needs, "Which one it carries", "A new one replaces the oldest at the limit"). Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
+
+**Weights, a ceiling and "nothing" (fidelity 3).** A candidate may also have `"maxLevel": n` (from its `minLevel` to the level cap; it fits only while the
+summoner's level is at most that; default none), `"weight": n` (1..1000, default 1; the candidate's share of the roll of `pick: "random"`; `highest` ignores
+it) and the item may be `null`: `{ "item": null, "minLevel": 3 }` is a candidate that makes the summon carry **no item at all** (`highest` and `random` treat
+it as any other candidate). The roll is still **one** call of the battle's random numbers, made only when more than one candidate fits: `range(sum of the
+weights of those that fit)`, walked through the candidates in order. With every weight 1 that is exactly `range(n)` and the same pick as before, so a game
+that does not write `weight` rolls and plays identically. Refused: more than 32 candidates, a weight outside 1..1000 or not whole, a `maxLevel` below the
+`minLevel` or above the cap, `"item"` neither an item id nor null. Core: `SummonItem::maxLevel / weight / nothing`. Editor: the candidate rows have a
+"highest summoner's level", a weight (shown with "a random one") and a "No item" choice. Saves: nothing new. Tests: `tests/test_fidelity3_summon.cpp`.
 
 ### Already possible (nothing was added)
 

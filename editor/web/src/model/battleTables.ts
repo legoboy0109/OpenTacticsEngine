@@ -140,9 +140,9 @@ export const mapWeather = (map: MapFile): Weather | '' => (map.weather === 'rain
 export const setMapWeather = (doc: ProjectDoc, mapId: string, w: Weather | ''): ProjectDoc => withMap(doc, mapId, (m) => patchObj(m, { weather: w === '' ? undefined : w }))
 
 export const WEATHER_COST_MAX = 99
-export const weatherCostOf = (doc: ProjectDoc, terrain: string, weather: Weather, moveType: string): number | undefined => doc.terrain?.find((t) => t.id === terrain)?.weatherCost?.[weather]?.[moveType]
+export const weatherCostOf = (doc: ProjectDoc, terrain: string, weather: Weather, moveType: string): number | 'blocked' | undefined => doc.terrain?.find((t) => t.id === terrain)?.weatherCost?.[weather]?.[moveType]
 /** undefined removes the entry; an emptied weather or terrain key goes too (no key = the terrain does not care about the weather). */
-export function setWeatherCost(doc: ProjectDoc, terrain: string, weather: Weather, moveType: string, cost: number | undefined): ProjectDoc {
+export function setWeatherCost(doc: ProjectDoc, terrain: string, weather: Weather, moveType: string, cost: number | 'blocked' | undefined): ProjectDoc {
   if (!doc.terrain) return doc
   return {
     ...doc,
@@ -151,6 +151,7 @@ export function setWeatherCost(doc: ProjectDoc, terrain: string, weather: Weathe
       const wc = { ...(t.weatherCost ?? {}) }
       const row = { ...(wc[weather] ?? {}) }
       if (cost === undefined) delete row[moveType]
+      else if (cost === 'blocked') row[moveType] = 'blocked'  // the weather closes the way (docs/ECONOMY.md)
       else row[moveType] = Math.min(WEATHER_COST_MAX, Math.max(1, Math.round(cost)))
       if (Object.keys(row).length) wc[weather] = row
       else delete wc[weather]
@@ -183,7 +184,7 @@ export function weatherCostProblems(doc: ProjectDoc, terrain: string): string[] 
     if (w !== 'rain' && w !== 'snow') { out.push(`The weather “${w}” is not rain or snow.`); continue }
     for (const [mt, cost] of Object.entries(row ?? {})) {
       if (!doc.game?.moveTypes.some((m) => m.id === mt)) out.push(`The ${w} cost names the movement type “${mt}”, which this game does not have.`)
-      if (!Number.isInteger(cost) || cost < 1 || cost > WEATHER_COST_MAX) out.push(`The ${w} cost for “${mt}” must be a whole number from 1 to ${WEATHER_COST_MAX}.`)
+      if (cost !== 'blocked' && (!Number.isInteger(cost) || cost < 1 || cost > WEATHER_COST_MAX)) out.push(`The ${w} cost for “${mt}” must be a whole number from 1 to ${WEATHER_COST_MAX}, or closed.`)
     }
   }
   return out

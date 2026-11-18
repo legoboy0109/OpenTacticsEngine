@@ -14,7 +14,7 @@ std::string withArticle(const std::string& noun) {
 const PromotionDef* entryFor(const Battle& b, const Unit& u, int slot, int to) {
   int item = slot >= 0 && slot < (int)u.items.size() ? u.items[(size_t)slot].item : -1;
   for (const PromotionDef& d : b.typeOf(u).promotions) {
-    if (d.to != to || u.level < d.fromLevel) continue;
+    if (d.to != to || u.level < b.promotionFromLevel(u, d)) continue;
     if (item >= 0 ? std::find(d.items.begin(), d.items.end(), item) != d.items.end() : d.atLevel == PromoteAtLevel::Offer)
       return &d;
   }

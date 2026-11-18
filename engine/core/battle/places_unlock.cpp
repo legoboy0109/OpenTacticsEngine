@@ -63,6 +63,7 @@ void Battle::applyUnlockAbility(const Action& action, std::vector<Event>& events
     if (slot >= 0) spendUse(uid, slot, events);  // the lockpick wears
   }
   noteAbilityUse(uid, action.ability);
+  spendAbilityItem(uid, action.ability, events);
   if (!def.free) endOrder(uid);
   openPlace(s, uid, locked ? kOpenTrait : kOpenFree, events);  // last: its story events may add units
 }

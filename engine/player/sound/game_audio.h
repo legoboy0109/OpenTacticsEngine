@@ -40,6 +40,8 @@ class GameAudio {
   bool defines(Cue cue, const CueCtx& ctx = CueCtx()) const { return data_.present && SoundBank::lookup(data_, cue, ctx) >= 0; }
   // A sound by its id (the story's playSound). Unknown ids are ignored with a warning.
   void sound(const std::string& id);
+  // A sound by its index in data().sounds (the promotion sounds list).
+  void soundIndex(int index) { playSoundIndex(index, -1); }
 
   MusicDirector& music() { return director_; }
   const AudioData& data() const { return data_; }

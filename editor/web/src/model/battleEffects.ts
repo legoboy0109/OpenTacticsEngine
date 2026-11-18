@@ -207,7 +207,7 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
   if (e.mode !== undefined && e.mode !== 'target' && e.mode !== 'travel') bad('it must appear on the foe or fly to it.')
   if (e.travelMs !== undefined && (!whole(e.travelMs) || e.travelMs < 20 || e.travelMs > 5000)) bad('the flight time must be between 20 and 5000 milliseconds.')
   if (e.hitAtMs !== undefined) {
-    if (!whole(e.hitAtMs) || e.hitAtMs < 0 || e.hitAtMs > 5000) bad('the hit time must be between 0 and 5000 milliseconds.')
+    if (!whole(e.hitAtMs) || e.hitAtMs < 0 || e.hitAtMs > 15000) bad('the hit time must be between 0 and 15000 milliseconds.')
     if (travel) bad('a flying effect hits when it arrives; the hit time is for an effect that appears in place.')
   }
   if (e.layer !== undefined && !['front', 'behind', 'screen'].includes(e.layer)) bad('the layer must be front, behind or screen.')

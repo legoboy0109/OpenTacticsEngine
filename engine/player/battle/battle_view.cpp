@@ -175,6 +175,7 @@ void BattleView::begin(const Battle& b) {
         else if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
       }
       if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
+      levelUp.ticks = risenStats(e); levelUp.ticksSent = 0; levelUp.tickClock = 0;  // one levelUpTick sound per stat that rose
       addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
       cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
       break;
@@ -232,6 +233,7 @@ void BattleView::begin(const Battle& b) {
       break;
     }
     case EventType::ItemBroke:
+      OTE_INFO("item: %s's %s is gone", b.units[(size_t)e.a].name.c_str(), itemName(b, e.b).c_str());
       // A potion is used up rather than broken.
       addFloat(itemName(b, e.b) + (b.db->items[(size_t)e.b].kind == ItemKind::Usable ? " used up" : " broke"), units[e.a].px + cx, units[e.a].py - 2, Color(255, 170, 110), 1.2f);
       cur_.dur = 0.3f;
@@ -478,6 +480,7 @@ void BattleView::skip(const Battle& b) {
 void BattleView::update(double dt, const Battle& b) {
   ensureUnits(b);
   updateScene(dt, b);  // the scene stage's clock and the background walkers (battle_view_story.cpp)
+  tickSounds((float)dt);  // level-up ticks and promotion sounds (battle_view_ticks.cpp)
   for (FloatText& f : floats) f.age += (float)dt;
   floats.erase(std::remove_if(floats.begin(), floats.end(), [](const FloatText& f) { return f.age >= f.life; }),
                floats.end());

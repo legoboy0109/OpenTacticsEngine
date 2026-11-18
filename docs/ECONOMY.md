@@ -399,8 +399,19 @@ it always was (`story.scene.weather`, only while set: a map without weather and 
 costs sit next to it instead of in a new file.) While a weather lasts, a movement type with an entry for it pays **that number instead of the terrain's own**
 for entering the terrain; a movement type with no entry, and every terrain with no `weatherCost`, pays what it paid. **A structure that sets its own
 `moveCost` for the movement type keeps it** (a bridge or a road does not care about the rain). The numbers are whole, **1 to 99**: weather can open
-a terrain that is blocked (a frozen swamp: cost 1) but never close one, so no unit is ever stranded by the sky. The loader refuses `unknown weather`
-(`"fog"`), `unknown move type`, a cost outside 1..99 or not whole, and an empty table; a map's `"weather"` other than `"rain"`, `"snow"`, `"none"`.
+a terrain that is blocked (a frozen swamp: cost 1) and, since fidelity 3, **close** one: the cost `"blocked"` (below). The loader refuses `unknown weather`
+(`"fog"`), `unknown move type`, a cost outside 1..99 that is not `"blocked"`, and an empty table; a map's `"weather"` other than `"rain"`, `"snow"`, `"none"`.
+
+**Weather that closes a way (`"blocked"`).** `"weatherCost": { "rain": { "foot": "blocked" } }`: while it rains, foot units cannot enter that terrain (the
+cost counts as 0 like any impassable square; the movement range, paths, the computer opponent's reach and goals, summons and warps all see it).
+(`moveCost` spells an impassable square `0`; here `0` is still refused, as before, and the word is `"blocked"`, so a typo for a cost cannot close a road by
+accident.) A structure with its own `moveCost` for the movement type still keeps it, so a bridge stays open. **A unit already standing on the square when
+the weather turns stays there** (nobody is moved by the sky; this differs from the map-change "stranded unit" rule of docs/EVENTS.md, which moves the unit
+because the map itself changed) and **may leave by any open neighbour**: movement never asks about the square a unit starts on. A unit with no open
+neighbour can only wait. Questions of the kind "could this unit stand on this square?" about a unit that is standing on a closed square also say no while it
+lasts (a postponed promotion waits for the weather to pass; a swap or a carry that would need that unit to stand there is refused). Core: `weatherCost` holds
+-1 = no change, 0 = closed, n = cost (`Database`, `weather_cost.cpp`). Editor: Terrain, "Weather and platform": a "Closed" box beside each cost.
+Tests: `tests/test_fidelity3_weather.cpp`, `tests/srpg_player_fidelity3_test.py`.
 
 **Who follows.** `Battle::enterCost` is the one place; so the movement range the player shows, the paths, the computer opponent's reach and goals, summons
 and warps all see the cost of the moment. A change of weather takes effect from the next question asked (a move already made is not re-priced).

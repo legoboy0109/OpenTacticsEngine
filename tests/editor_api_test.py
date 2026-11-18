@@ -47,6 +47,7 @@ from editor_api_battle_effects_checks import run_battle_effects_checks
 from editor_api_scene3_checks import run_scene3_checks
 from editor_api_mapweapon_checks import run_mapweapon_checks
 from editor_api_fidelity2_checks import run_fidelity2_checks
+from editor_api_fidelity3_checks import run_fidelity3_checks
 from editor_api_gaps_checks import run_gaps_checks
 from editor_api_behaviour_checks import run_behaviour_checks
 from editor_api_prep_checks import run_prep_checks
@@ -199,6 +200,7 @@ def main():
         run_scene3_checks(api, tmp, games, templates, check, get_project, put_project)
         run_mapweapon_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity2_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_fidelity3_checks(api, tmp, games, templates, check, get_project, put_project)
         run_gaps_checks(api, tmp, games, templates, check, get_project, put_project)
         run_behaviour_checks(api, tmp, games, templates, check, get_project, put_project)
         run_quotes_checks(api, tmp, games, templates, check, get_project, put_project)

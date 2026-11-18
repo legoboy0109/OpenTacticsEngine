@@ -7,6 +7,7 @@
 #include "battle/battle_scene.h"
 #include "campaign/campaign_logic.h"
 #include "core/base/log.h"
+#include "sound/cue_sink.h"
 
 namespace ote {
 
@@ -94,6 +95,7 @@ void BattleScene::slotInput(const InputEvent& e) {
       slots_.close();
       if (prep_) prepMainMenu();
       else mode_ = Mode::Idle;
+      uiCue(Cue::Save);  // the game's "save" sound
       say("Saved to slot " + std::to_string(slot));
     } else {
       OTE_WARN("saving to slot %d failed: %s", slot, err.c_str());

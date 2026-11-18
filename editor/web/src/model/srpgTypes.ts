@@ -28,6 +28,8 @@ export interface Character extends Named {
   quotes?: CharacterQuotes
   /** The maker's labels: a character matches a tag like its unit type does (docs/SRPG.md "Tags"). */
   tags?: string[]
+  /** The lowest level of every promotion of this character (docs/SRPG.md "A promotion level per character"). */
+  promotion?: { fromLevel?: number }
 }
 
 /** How often a battle quote is said: once per map (the default), once per campaign, or every time. */
@@ -65,7 +67,7 @@ export interface Condition extends Named {
 export interface Summon extends Extra {
   type?: string; level?: 'summoner' | number; limit?: number; vanish?: boolean; lifetime?: number; canAct?: boolean; givesXp?: boolean
   /** What the summon carries (docs/SRPG.md "Summoning"): candidates with the level the summoner must reach, which one is picked, and whether it replaces the oldest at its limit. */
-  items?: Array<{ item: string; minLevel?: number }>; pick?: 'highest' | 'random'; replace?: boolean
+  items?: Array<{ item: string | null; minLevel?: number; maxLevel?: number; weight?: number }>; pick?: 'highest' | 'random'; replace?: boolean
 }
 /** An ability's one effect: exactly one of these keys. */
 /** `steal` (docs/SRPG.md "Steal"): true, or the options; `refresh`: true or `{ perTurn }`; `movePast`; `cure`: condition ids or "all". */
@@ -91,6 +93,8 @@ export interface Ability extends Named {
   /** docs/SRPG.md section 11: experience for the user per use (a number or a formula), and a condition the target gets. */
   xp?: number | string
   inflict?: Extra
+  /** Each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item"). */
+  spendsItem?: boolean
 }
 
 /** The combat numbers of a support level (section 6): a level states its whole bonus; `stats` never holds HP or move. */
@@ -122,7 +126,7 @@ export type SrpgFeature = 'characters' | 'skills' | 'abilities' | 'conditions' |
 
 /** One entry of a unit type's `promotions` (section 2); E3 refines it. */
 export interface Promotion extends Extra {
-  to: string; fromLevel?: number; items?: string[]; atLevel?: 'off' | 'offer' | 'auto'; levelAfter?: 'reset' | 'keep'; gains?: NumMap
+  to: string; fromLevel?: number; /** Other lowest levels for named characters: { character id: level }. */ fromLevelFor?: Record<string, number>; items?: string[]; atLevel?: 'off' | 'offer' | 'auto'; levelAfter?: 'reset' | 'keep'; gains?: NumMap
 }
 /** game.json `rules.promotion` (section 2) and `rules.rescue` (section 5); E3 refines them. */
 export interface PromotionRules extends Extra { levelAfter?: 'reset' | 'keep'; /** "keep" (the default) or "replace": the old class's skills go on promotion. */ classSkills?: 'keep' | 'replace' }

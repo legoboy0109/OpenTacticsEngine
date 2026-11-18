@@ -1,5 +1,6 @@
 // The form of one ability: name, what it does and on whom, cost and limits, conditions, and the sentence it adds up to.
 import { EFFECT_KINDS, NO_EFFECT, targetsFor, effectKind, hasFixedRange, rangeOf, setAfterMove, setCooldown, setCost, setEffectKind, setRange, setTarget, setUses, targetOf, updateAbility } from '../../model/abilities'
+import { setSpendsItem, spendsItemProblems } from '../../model/abilityItem'
 import { abilitySummary } from '../../model/abilityText'
 import { withAbilities } from '../../model/doc'
 import type { Ability, AbilityTarget } from '../../model/srpgTypes'
@@ -10,6 +11,7 @@ import { Field } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
 import { TextInput } from '../../ui/TextInput'
+import { Banner } from '../../ui/Banner'
 import { Check } from '../../ui/Toggle'
 import { AbilityConditions } from './AbilityConditions'
 import { AbilityEffectFields } from './AbilityEffectFields'
@@ -95,6 +97,8 @@ export function AbilityForm({ id }: { id: string }) {
               <Field label={T.waitNumber}><NumberInput value={ability.cooldown} min={1} max={99} onChange={(v) => { if (v !== undefined) change((a) => setCooldown(a, v), 'cooldown') }} /></Field>
             )}
           </FormGrid>
+          <Check label={T.spendsItem} help={T.spendsItemHelp} checked={ability.spendsItem === true} onChange={(v) => change((a) => setSpendsItem(a, v))} />
+          {spendsItemProblems(doc, ability).map((p) => <Banner key={p} tone="warn" title={p} />)}
           <Check label={T.beforeMoving} help={T.beforeMovingHelp} checked={ability.afterMove === false} onChange={(v) => change((a) => setAfterMove(a, !v))} />
         </div>
       </Card>

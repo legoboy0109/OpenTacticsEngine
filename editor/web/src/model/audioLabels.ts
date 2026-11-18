@@ -2,12 +2,14 @@
 // decides). The key lists mirror engine/player/sound/cues.cpp; the groups are only how the Sound screen lays them out.
 // Kept here, not in a screen, because the model's "used by" sentences and the checks use the same names.
 
-export type MusicSlot = 'titleMusic' | 'mapMusic' | 'playerTurnMusic' | 'enemyTurnMusic' | 'sceneMusic' | 'victory' | 'defeat' | 'levelUp' | 'prepMusic' | 'promotion' | 'chapterCard'
+export type MusicSlot = 'titleMusic' | 'mapMusic' | 'playerTurnMusic' | 'enemyTurnMusic' | 'sceneMusic' | 'victory' | 'defeat' | 'levelUp' | 'prepMusic' | 'promotion' | 'chapterCard' | 'shopMusic' | 'bootJingle'
 
 /** In the order the Sound screen lists them. */
-export const MUSIC_SLOTS: MusicSlot[] = ['titleMusic', 'mapMusic', 'playerTurnMusic', 'enemyTurnMusic', 'sceneMusic', 'victory', 'defeat', 'levelUp', 'prepMusic', 'promotion', 'chapterCard']
+export const MUSIC_SLOTS: MusicSlot[] = ['titleMusic', 'bootJingle', 'mapMusic', 'playerTurnMusic', 'enemyTurnMusic', 'sceneMusic', 'shopMusic', 'victory', 'defeat', 'levelUp', 'prepMusic', 'promotion', 'chapterCard']
 /** These play once: the loader refuses a track that loops. */
 export const JINGLE_SLOTS: MusicSlot[] = ['victory', 'defeat', 'levelUp', 'promotion', 'chapterCard']
+/** Every slot whose track must not repeat: the jingles above and the boot jingle (fidelity 3). */
+export const isJingleSlot = (slot: MusicSlot): boolean => JINGLE_SLOTS.includes(slot) || slot === 'bootJingle'
 
 export const MUSIC_SLOT_LABEL: Record<MusicSlot, string> = {
   titleMusic: 'Title screen',
@@ -21,12 +23,14 @@ export const MUSIC_SLOT_LABEL: Record<MusicSlot, string> = {
   prepMusic: 'Preparation screen',
   promotion: 'A unit is promoted',
   chapterCard: 'A chapter’s title card',
+  shopMusic: 'Shop screens',
+  bootJingle: 'When the game’s page opens',
 }
 
-/** The 22 event keys of `use.sounds`. */
+/** The 24 event keys of `use.sounds`. */
 export const STANDARD_SOUND_KEYS = [
   'cursor', 'confirm', 'cancel', 'error', 'step', 'hit', 'miss', 'critical', 'heal', 'defeated', 'capture', 'build',
-  'itemUse', 'gold', 'dialogue', 'turnStart', 'upgrade', 'research', 'repair', 'supply', 'ambush', 'select',
+  'itemUse', 'gold', 'dialogue', 'turnStart', 'upgrade', 'research', 'repair', 'supply', 'ambush', 'select', 'levelUpTick', 'save',
 ] as const
 export type StandardSoundKey = typeof STANDARD_SOUND_KEYS[number]
 
@@ -53,13 +57,16 @@ export const SOUND_KEY_LABEL: Record<StandardSoundKey, string> = {
   gold: 'Money comes in',
   itemUse: 'An item is used',
   dialogue: 'Text appears in a conversation',
+  levelUpTick: 'Level-up: each stat that rises',
+  save: 'A save was written',
 }
 
 export const SOUND_GROUPS: Array<{ title: string; keys: StandardSoundKey[] }> = [
   { title: 'Menus', keys: ['cursor', 'confirm', 'cancel', 'error'] },
   { title: 'Moving and fighting', keys: ['select', 'step', 'ambush', 'turnStart', 'hit', 'miss', 'critical', 'heal', 'defeated'] },
   { title: 'Economy', keys: ['capture', 'build', 'upgrade', 'research', 'repair', 'supply', 'gold', 'itemUse'] },
-  { title: 'Story', keys: ['dialogue'] },
+  { title: 'Story', keys: ['dialogue', 'levelUpTick'] },
+  { title: 'Saving', keys: ['save'] },
 ]
 
 /** Which events a weapon, a unit type and an item may override (the loader refuses any other key). */

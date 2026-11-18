@@ -4,6 +4,7 @@ import { changeIds } from '../../../../../model/mapChanges'
 import { rectOf, type Command } from '../../../../../model/storyTypes'
 import { Field } from '../../../../../ui/Field'
 import { NumberInput } from '../../../../../ui/NumberInput'
+import { Check } from '../../../../../ui/Toggle'
 import { AreaField } from '../AreaField'
 import { PickSelect } from '../pickers'
 import { useStory } from '../StoryContext'
@@ -13,7 +14,8 @@ import { useCommandEdit, type CommandRef } from './useCommandEdit'
 /** Turns the squares of an area into one terrain. A command written with a list of squares (by hand or by another tool) keeps that list. */
 export function SetTerrainForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
   const { patch } = useCommandEdit(at)
-  const { doc } = useStory()
+  const { doc, map } = useStory()
+  const tiled = !!map.tileLayer || cmd.tile !== undefined || cmd.keepTile !== undefined  // the tile fields need a tile layer on the map (the loader refuses them otherwise)
   const options = (doc.terrain ?? []).map((t) => ({ value: t.id, label: t.name || t.id }))
   const cells = Array.isArray(cmd.cells)
   return (
@@ -22,6 +24,15 @@ export function SetTerrainForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
       {cells
         ? <p className="help">{MC.cellsList(cmd.cells!.length)} <button type="button" className="btn sm" onClick={() => patch({ cells: undefined, area: { x: 0, y: 0, w: 1, h: 1 } })}>{MC.useArea}</button></p>
         : <AreaField label={MC.area} mode="area" value={rectOf(cmd.area)} onChange={(r) => patch({ area: r })} help={MC.areaHelp} />}
+      {tiled && (
+        <>
+          <Field label={MC.tile} help={MC.tileHelp}>
+            <NumberInput aria-label={MC.tile} value={typeof cmd.tile === 'number' ? cmd.tile : undefined} allowEmpty min={-1} max={65534} placeholder={MC.tileNone}
+              onChange={(v) => patch({ tile: v === undefined ? undefined : Math.round(v) }, 'tile')} />
+          </Field>
+          <Check label={MC.keepTile} help={MC.keepTileHelp} checked={cmd.keepTile === true} onChange={(v) => patch({ keepTile: v ? true : undefined })} />
+        </>
+      )}
     </div>
   )
 }

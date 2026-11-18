@@ -97,6 +97,8 @@ struct CharacterDef {
   std::vector<QuoteLine> fallsLines, retreatsLines;  // said when the character is struck down (for good / retreating)
   // Free-form labels (docs/SRPG.md "Tags"): a character matches `unit` / `near.match` / aura `match` keys by them like its type's tags.
   std::vector<std::string> tags;
+  // "promotion": { "fromLevel": n }: the lowest level of every promotion of this character (0 = the promotion entries' own).
+  int promotionFromLevel = 0;
 };
 
 // The wording of all quotes (Battle::storyText, from kQuoteTextBase) and how many battle quotes there are.
@@ -238,6 +240,9 @@ struct SummonItem {
   std::string id;
   int item = -1;      // index into Database::items (resolved last)
   int minLevel = 1;
+  int maxLevel = 0;   // "maxLevel": the candidate fits only up to this summoner level (0 = no ceiling)
+  int weight = 1;     // "weight" 1..1000: its share of the roll when the summon picks at random
+  bool nothing = false;  // { "item": null }: the summon carries no item at all
 };
 
 struct SummonDef {
@@ -286,6 +291,7 @@ struct AbilityDef {
   // target gets after the effect (docs/SRPG.md "Abilities: experience and conditions").
   int xp = 0, xpExpr = -1;
   int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
+  bool spendsItem = false;  // "spendsItem": each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item")
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----
@@ -303,6 +309,10 @@ struct PromotionDef {
   LevelAfter levelAfter = LevelAfter::Game;
   bool hasGains = false;             // false = the difference of the two types' base stats
   std::vector<int> gains;            // per stat index
+  // "fromLevelFor": { "<character id>": n }: this entry's lowest level for those characters (the ids as written, then as indices
+  // into Database::characters once the characters are loaded). Wins over CharacterDef::promotionFromLevel.
+  std::vector<std::pair<std::string, int>> fromLevelForIds;
+  std::vector<std::pair<int, int>> fromLevelFor;
 };
 
 struct PromotionRules {

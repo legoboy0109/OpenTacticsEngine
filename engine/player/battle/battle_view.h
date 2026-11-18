@@ -61,6 +61,8 @@ struct LevelUpPanel {
   float timer = 0;
   std::string title;
   std::vector<std::string> lines;
+  int ticks = 0, ticksSent = 0;  // levelUpTick sounds still to play / played for this box (battle_view_ticks.cpp)
+  float tickClock = 0;
 };
 
 // Side whose resources the panel shows: the active side if it is human,
@@ -245,6 +247,11 @@ class BattleView {
   std::deque<Event> queue_;
   GameAudio* audio_ = nullptr;
   int stepped_ = -1;  // UnitMoved: the path square the last step sound was made for
+  float promoSoundClock_ = -1;  // seconds since the promotion began while the promotionSounds list plays (-1 = none)
+  size_t promoSoundNext_ = 0;   // the next entry of that list
+  int risenStats(const Event& e) const;  // battle_view_ticks.cpp
+  void startPromotionSounds();
+  void tickSounds(float dt);
   int tile_ = 24;
   bool autoplay_ = false;
   bool wasBusy_ = false;

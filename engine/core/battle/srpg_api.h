@@ -45,10 +45,15 @@ bool skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const;
 // The unit types the unit could become now: through the item in inventory slot `slot`, or (`slot` = -1) through an
 // offer at its level. Empty = no Promote entry.
 void promotionOptions(int unit, int slot, std::vector<int>& out) const;
+// The lowest level at which this unit may take the promotion: the entry's "fromLevelFor" for its character, else its character's
+// "promotion.fromLevel", else the entry's "fromLevel" (promotion_level.cpp).
+int promotionFromLevel(const Unit& u, const PromotionDef& d) const;
 
 // ---- menu abilities and summons (abilities.cpp and friends) ----
 // The abilities the unit has: its type's, its character's, then its skills', each once.
 void abilitiesOf(const Unit& u, std::vector<int>& out) const;
+// "spendsItem": the inventory slot of the item that gives the unit this ability (an accessory with a skill, or the weapon in use), or -1.
+int abilityItemSlot(const Unit& u, int ability) const;
 // One menu entry per ability it has, if it stood on `from`.
 void abilityOptions(int unit, Cell from, std::vector<AbilityOption>& out) const;
 // Targets if the unit stood on `from`: units for unit targets, squares for "cell"; a "self" ability returns the unit.

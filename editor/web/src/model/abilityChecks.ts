@@ -1,5 +1,6 @@
 // Editor-side checks for abilities (docs/SRPG.md "Checks / Problems"): an ability nobody has, plus the loader's refusals
 // said in plain words, so a maker sees them before pressing Play. (The loader's own messages still reach the Problems list.)
+import { spendsItemProblems } from './abilityItem'
 import { summonItemProblems } from './summonItems'
 import { targetsFor, effectKind, hasFixedRange, stealOf, targetOf, summonOf, unlockOf } from './abilities'
 import type { Ability } from './srpgTypes'
@@ -79,6 +80,7 @@ export function abilityChecks(doc: ProjectDoc): SrpgCheck[] {
   const out: SrpgCheck[] = []
   for (const a of doc.abilities ?? []) {
     for (const text of shapeChecks(doc, a)) out.push({ section: 'abilities', ids: [a.id], text })
+    for (const text of spendsItemProblems(doc, a)) out.push({ section: 'abilities', ids: [a.id], text: `${a.name}: ${text}` })
     if (!abilityIsGiven(doc, a.id)) out.push({ section: 'abilities', ids: [a.id], text: `${a.name}: nobody has this ability yet. Give it to a unit type on the Units screen.` })
   }
   return out

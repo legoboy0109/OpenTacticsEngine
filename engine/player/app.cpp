@@ -126,6 +126,11 @@ void PlayerApp::onInput(const InputEvent& e) {
 }
 
 void PlayerApp::update(double dt) {
+  ++frameCount_;
+  if (logLevel() == LogLevel::Debug && (frameClock_ += dt) >= 1.0) {  // a frame counter, only while debugging
+    frameClock_ -= 1.0;
+    OTE_INFO("frame %ld", frameCount_);
+  }
   gameAudio_.beginFrame();
   launcherAudio_.beginFrame();
   syncAudio();

@@ -2,6 +2,7 @@
 // summoning": Data). Abilities load before weapons, items and unit types (they name abilities and get indices at
 // once); what an ability itself names (a summoned unit type, the unit and terrain keys of its "if") is checked last,
 // in resolveAbilityRefs.
+#include "core/data/ability_grants.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
@@ -66,21 +67,33 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
   }
   if (v.has("items")) {
     const Json& list = v["items"];
-    if (!list.isArray() || list.size() == 0 || list.size() > 8)
-      return c.fail(at, in + "\"items\" must be a list of 1 to 8 candidates such as { \"item\": \"iron_sword\", \"minLevel\": 1 }");
+    if (!list.isArray() || list.size() == 0 || list.size() > 32)
+      return c.fail(at, in + "\"items\" must be a list of 1 to 32 candidates such as { \"item\": \"iron_sword\", \"minLevel\": 1 } (\"item\": null = no item)");
     for (size_t i = 0; i < list.size(); ++i) {
       const Json& it = list[i];
       const std::string w = in + "\"items\" candidate " + std::to_string(i + 1) + ": ";
       if (!it.isObject()) return c.fail(at, w + "must be { \"item\": item id, \"minLevel\": number }");
       for (const Json::Member& m : it.members())
-        if (m.first != "item" && m.first != "minLevel") return c.fail(at, w + "unknown key " + q(m.first) + " (expected \"item\", \"minLevel\")");
+        if (m.first != "item" && m.first != "minLevel" && m.first != "maxLevel" && m.first != "weight")
+          return c.fail(at, w + "unknown key " + q(m.first) + " (expected \"item\", \"minLevel\", \"maxLevel\", \"weight\")");
       SummonItem s;
-      if (!it.has("item") || !it["item"].isString() || it["item"].asString().empty()) return c.fail(at, w + "\"item\" must be the id of an item");
-      s.id = it["item"].asString();
+      if (it.has("item") && it["item"].isNull()) s.nothing = true;  // an explicit "nothing" candidate
+      else if (!it.has("item") || !it["item"].isString() || it["item"].asString().empty()) return c.fail(at, w + "\"item\" must be the id of an item, or null for no item");
+      else s.id = it["item"].asString();
       if (it.has("minLevel")) {
         if (!LoadCtx::isWhole(it["minLevel"]) || it["minLevel"].asInt() < 1 || it["minLevel"].asInt() > db.rules.maxLevel)
           return c.fail(at, w + "\"minLevel\" must be a whole number from 1 to " + std::to_string(db.rules.maxLevel));
         s.minLevel = it["minLevel"].asInt();
+      }
+      if (it.has("maxLevel")) {
+        if (!LoadCtx::isWhole(it["maxLevel"]) || it["maxLevel"].asInt() < s.minLevel || it["maxLevel"].asInt() > db.rules.maxLevel)
+          return c.fail(at, w + "\"maxLevel\" must be a whole number from \"minLevel\" (" + std::to_string(s.minLevel) + ") to " + std::to_string(db.rules.maxLevel));
+        s.maxLevel = it["maxLevel"].asInt();
+      }
+      if (it.has("weight")) {
+        if (!LoadCtx::isWhole(it["weight"]) || it["weight"].asInt() < 1 || it["weight"].asInt() > 1000)
+          return c.fail(at, w + "\"weight\" must be a whole number from 1 to 1000");
+        s.weight = it["weight"].asInt();
       }
       out.items.push_back(s);
     }
@@ -168,7 +181,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 }
 
 bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
-  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict"}, where))
+  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem"}, where))
     return false;
   a.name = a.id;
   if (!c.str(e, "name", where, a.name) || !c.str(e, "description", where, a.description)) return false;
@@ -252,6 +265,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   if (e.has("cooldown")) a.cooldown = e["cooldown"].asInt();
   if (!c.boolean(e, "afterMove", where, a.afterMove)) return false;
 
+  if (!c.boolean(e, "spendsItem", where, a.spendsItem)) return false;
   if (!readAbilityExtras(c, db, e, where, a)) return false;  // "xp", "inflict" (loader_fidelity.cpp)
   if (e.has("if")) {
     // A condition may judge the target unit ("who": "foe"), but not where there is none (a square). There is no
@@ -303,6 +317,27 @@ bool readUnitAbilities(const LoadCtx& c, const Database& db, const Json& e, cons
   return true;
 }
 
+// "spendsItem": some item must give the ability, every such item must wear out, and no unit type or character may list
+// it itself (it would never be offered: an ability that spends an item is offered only while an item gives it).
+bool checkSpendsItem(const LoadCtx& c, const Database& db, int ability, const std::string& where) {
+  const std::string& id = db.abilities[(size_t)ability].id;
+  bool any = false;
+  for (const ItemDef& it : db.items) {
+    if (!itemGivesAbility(db, (int)(&it - &db.items[0]), ability)) continue;
+    any = true;
+    if (it.uses < 0)
+      return c.fail(where, "\"spendsItem\": the item \"" + it.id + "\" gives it but has unlimited uses; an item that is spent needs \"uses\"");
+  }
+  if (!any) return c.fail(where, "\"spendsItem\": no item gives this ability (an accessory or a weapon whose skill has { \"ability\": \"" + id + "\" })");
+  for (const UnitTypeDef& t : db.unitTypes)
+    for (int a : t.abilities)
+      if (a == ability) return c.fail(where, "\"spendsItem\": unit type \"" + t.id + "\" lists the ability itself; only an item may give it");
+  for (const CharacterDef& ch : db.characters)
+    for (int a : ch.abilities)
+      if (a == ability) return c.fail(where, "\"spendsItem\": character \"" + ch.id + "\" lists the ability itself; only an item may give it");
+  return true;
+}
+
 // What the abilities name, once unit types, weapons, terrain and structures are loaded.
 bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err) {
   LoadCtx c(err, root + "/data/abilities.json");
@@ -314,6 +349,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
       a.summon.type = db.findUnitType(a.summon.typeId);
       if (a.summon.type < 0) return c.fail(where, "\"summon\": unknown unit type \"" + a.summon.typeId + "\"");
       for (SummonItem& s : a.summon.items) {
+        if (s.nothing) continue;
         s.item = db.findItem(s.id);
         if (s.item < 0) return c.fail(where, "\"summon\": \"items\" names unknown item \"" + s.id + "\" (data/items.json)");
       }
@@ -333,6 +369,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
       }
     }
     if (!resolveSkillConds(c, db, where, a.conds)) return false;
+    if (a.spendsItem && !checkSpendsItem(c, db, (int)(&a - &db.abilities[0]), where)) return false;
   }
   return true;
 }
