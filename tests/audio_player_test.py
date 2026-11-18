@@ -200,15 +200,15 @@ def test_options(tmp):
     check('options: --music-volume / --sound-volume beat the options', lines and lines[0].endswith('volumes music=9 sound=0'), str(lines))
     s = json.load(open(settings))
     check('options: ...and are not saved', s['global'].get('musicVolume') == 5)
-    # Touch: tap the row's value (steps forward), tap its left arrow (steps back). Rows are 14 px apart from y=45.
+    # Touch: tap the row's value (steps forward), tap its left arrow (steps back). Rows are 14 px apart from y=45. The value column starts after the widest label ('Unavailable actions'), so the left arrow is near x=192.
     touch = os.path.join(tmp, 'touch.json')
-    code, out, lines = headless(tmp, touch, ['--input', TO_OPTIONS + ',tap:300:130,tap:300:130,tap:180:130,wait:2'])
+    code, out, lines = headless(tmp, touch, ['--input', TO_OPTIONS + ',tap:300:130,tap:300:130,tap:192:130,wait:2'])
     s = json.load(open(touch))
     body = [l.split(' ', 1)[1] for l in lines if 'tick' not in l]
     check('options: touch steps the volume up and down', s['global'].get('musicVolume') == 8 and
           body[-3:] == ['volumes music=8 sound=7', 'volumes music=9 sound=7', 'volumes music=8 sound=7'], str(lines))
     # Reset to defaults: back to 7 with no tick.
-    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + ',down' * 9 + ',confirm,wait:2'])
+    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + ',down' * 10 + ',confirm,wait:2'])
     s = json.load(open(settings))
     check('options: Reset to defaults clears the volumes', 'musicVolume' not in s['global'] and 'soundVolume' not in s['global'], str(s))
     check('options: ...without a tick', not any('tick' in l for l in lines), '\n'.join(lines))
