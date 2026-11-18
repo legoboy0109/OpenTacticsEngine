@@ -11,6 +11,7 @@ namespace ote {
 struct RescueEntry {
   std::string label, extra;  // extra = the reason a greyed entry is greyed (empty otherwise)
   bool enabled = true;
+  bool noTarget = false;     // greyed only because there is nowhere / nobody to do it to ("no room"): the "hide" menu option leaves it out
   int id = 0;                // SrpgMenuId: kRescue .. kSwitch
 };
 

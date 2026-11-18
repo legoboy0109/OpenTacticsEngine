@@ -165,6 +165,17 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   db.battleSceneSides = sides == "playerRight" ? 1 : sides == "playerLeft" ? 2 : 0;
   db.battleSceneStaves = false;  // docs/BATTLE_SCENE.md "Staves in the scene"
   if (!c.boolean(root, "battleSceneStaves", "", db.battleSceneStaves)) return false;
+  // Menu options of the player (docs/SRPG.md "Menu options"): presentation of the action menu and the attack flow; no rule changes.
+  std::string unavailable = "grey";
+  if (!c.str(root, "menuUnavailable", "", unavailable)) return false;
+  if (unavailable != "grey" && unavailable != "hide")
+    return c.fail("", "\"menuUnavailable\" must be \"grey\" (an action with nothing to act on stays in the menu, greyed; the default) or \"hide\" (it is left out), got \"" + unavailable + "\"");
+  db.menuHideUnavailable = unavailable == "hide";
+  std::string weaponChoice = "equipped";
+  if (!c.str(root, "attackWeaponChoice", "", weaponChoice)) return false;
+  if (weaponChoice != "equipped" && weaponChoice != "pick")
+    return c.fail("", "\"attackWeaponChoice\" must be \"equipped\" (Attack goes straight to the targets, the default) or \"pick\" (Attack asks which weapon to use first), got \"" + weaponChoice + "\"");
+  db.attackWeaponPick = weaponChoice == "pick";
 
   if (!readGameGrid(c, root, db)) return false;
 

@@ -2886,7 +2886,7 @@ Attack, Capture, Talk…, **Support** (one entry per partner: "Support: Lyra"), 
 ability's name; one that cannot be used now is shown greyed with its reason: "Shove (ready in 2 turns)", "Call
 Hound (0 left)"), **Rescue / Drop / Give / Take** or **Pair up / Switch / Drop**, **Promote**, Items, Trade, Storage,
 Shop, Supply, **Info**, Wait. A unit with `acted` gets only Info and Wait, and its remaining move range is shown as
-when a unit is first selected.
+when a unit is first selected. Two options change this menu and the Attack step (`"menuUnavailable"`, `"attackWeaponChoice"`): see "Menu options" below.
 
 **Targeting.** Abilities, Rescue, Give, Take, Pair up and Support pick a unit the way Attack does (the list of legal
 targets, cycled with the direction keys or tapped). Drop and `cell` abilities pick a square from the highlighted
@@ -2944,6 +2944,79 @@ once (plays nothing).
 `confirm`); the player logs each opened menu's entries (`OTE_INFO`), which the script tests read.
 
 ---
+
+## Menu options (action menu and Attack)
+
+Two presentation options for the player, both in `game.json`, both off by default (a game without the keys plays exactly as before).
+They change what the menus show and ask; no rule, save, replay, event or computer-player behaviour changes. Code: `engine/player/battle/menu_hide.*`,
+`weapon_choice.*`, `battle_weapon_pick.cpp`; the core only marks options with `noTarget`. Tests: `tests/test_menu_options.cpp`,
+`tests/menu_options_player_test.py`, `tests/editor_api_menuoptions_checks.py`, `editor/web/tests/unit/menuOptions.test.ts`, `tests/e2e/menu-options.spec.ts`.
+All wording is placeholder (`battle/weapon_choice.h`, `screens/rules/menuOptionsText.ts`).
+
+### `"menuUnavailable": "grey" | "hide"` (default `"grey"` = today)
+
+With `"hide"` the action menu leaves out an entry that cannot be used **because there is nothing to use it on, or nothing to do it with**. An
+entry that is off for any other reason stays, greyed with its reason, so the player learns why. **Wait is never left out** (and Info stays).
+Every entry the menu can show, and what `"hide"` does to it:
+
+| Entry | In the menu today | With `"hide"` |
+|---|---|---|
+| Attack | only when a target is in reach | unchanged (it was never greyed) |
+| Capture, Talk, Support, Promote, Storage, Shop, Supply, Info, Wait | only when they apply | unchanged |
+| Items | only when the unit carries something | unchanged |
+| Trade | only with a neighbour and something to swap | unchanged |
+| Rescue, Take, Give, Pair up, Switch | only when a legal target exists | unchanged |
+| **Drop** | always, for a unit that carries someone; greyed "no room" when no square is free | **left out** when no square is free |
+| **an ability** | greyed with its reason | **left out** when the reason is "nothing to target" (also Steal, Yank, a summon with no free square); **stays greyed** for "ready in N turns", "no uses left this battle", "already used this turn", "can only be used before moving", "already has N summoned...", "cannot be used now" |
+| **Staff** | greyed with the first staff's reason when no staff can be used | **left out** when EVERY staff carried is off only because nobody is in reach to use it on; stays greyed when any staff is off for a rank, class or character reason ("Needs rank C", "Only Mara can wield this") |
+| **Open** (a locked door or chest) | greyed "Needs a key" | **left out** (nothing to open it with) |
+| Open (a chest, pack full) | greyed "Pack full" | stays greyed (the player should know why) |
+| Visit, Break door / wall | only with a place in reach / only when one can be attacked | unchanged |
+
+The core marks these cases (`AbilityOption::noTarget`, `StaffOption::noTarget`, `PlaceOption::noTarget`, `RescueEntry::noTarget`), so the list above is
+decided in one place and tested as functions (`menu_hide.h`). Menu ids do not change when an entry is left out; the keyboard, mouse and touch only ever
+reach rows that exist (the cursor starts on the first row, Up / Down wrap over the rows shown). The web player is the same code.
+
+**The player's own setting.** Settings screen row **Unavailable actions**: *Game default* / *Greyed out* / *Hidden* (per game: *Use global* / *Greyed out* /
+*Hidden*), saved with the other settings (`menuUnavailable` in the settings file). Same layering as Battle animations without a command-line flag: this
+game's choice, then the global one, then the game's key. The row is last, so the positions of the older rows do not move.
+
+### `"attackWeaponChoice": "equipped" | "pick"` (default `"equipped"` = today)
+
+Today Attack goes straight to the targets: the list it steps through holds every (weapon, enemy) pair, weapon by weapon in the order carried, and the forecast box names the
+weapon of the highlighted pair; confirming attacks with that weapon without putting it in hand (no Equip order). That stays as it is with `"equipped"`.
+
+With `"pick"`, choosing Attack is a flow of steps:
+
+1. **Weapon list** (`Mode::WeaponPick`, a panel titled "Attack with"): every weapon the unit carries **and can wield** that has at least one enemy in reach from where it
+   stands (`Battle::attackOptions`; a weapon that cannot be used after moving is left out after a move; a structure's map weapon is listed too), in the order carried.
+   Each row: the item's name (the weapon's for a fixed weapon), the uses left (`30/30`, or the ammunition of a fixed weapon) on the right, a small marker on the
+   weapon in hand, and under the list, for the highlighted row, the stats line **`Dmg 7  Hit 90%  Crit 5%  Range 1-2`**: the forecast's own damage, hit and crit against
+   the first enemy that weapon reaches (Hit and Crit only when they are not always 100 / 0), then the range. The list starts on the weapon in hand; when the player
+   started the attack by tapping an enemy on the map, it starts on the weapon in hand if that reaches the enemy, else on the first weapon that does.
+2. **Targets**: the enemies **that weapon** reaches, with the usual forecast box using it (HP before and after, damage, hit, counter). Arrows / Tab / tap step
+   through them.
+3. **Confirm**: for a carried weapon that is not in hand the player submits **`Equip` of its slot first (exactly the order the Items menu gives; the weapon moves to the front of
+   the inventory), then `Attack`**, so the rules, the saves, the replays, the event stream (`ItemEquipped`, then the fight) and the simulation see what they would had the player
+   equipped by hand. A weapon already in hand, a fixed weapon and a map weapon attack with no Equip.
+4. **Back**: from the targets to the weapon list (on the same row); from the weapon list to the action menu. Nothing is changed by leaving: the Equip order is only
+   given at the moment the attack is confirmed, so cancelling out leaves the equipped weapon exactly as it was (and the move can still be undone).
+
+**One weapon.** The list still shows with one row (the classic look; the weapon in hand is already highlighted, so a touch player taps it once and goes on, and Confirm, Confirm
+attacks). **Cycling weapons on the forecast.** In `"equipped"` mode the arrows already step through every weapon's targets (the forecast names the weapon); in `"pick"` mode
+the weapon is chosen in the list first and the arrows step through that weapon's targets; Back reaches the list. **Staves.** The Staff entry already is a list of the
+staves carried (name, uses, or the reason one cannot be used), so nothing changes for staves in either mode. On a narrow screen the list takes the whole width. The editor's
+**Menu options** card (Rules screen) sets both keys; with fixed weapons `"pick"` lists only the unit type's own weapons, so the card says it matters most with carried weapons.
+
+The player logs `weapon list: ...`, `weapon list rows: ...`, `weapon picked: ...`, `order: equip ...` / `order: attack ...` and `menu entries: ...` (the entries of every action
+menu, a greyed one marked `[grey]`, and where each row is) for the script tests.
+
+### Unit pictures in the preparation lists
+
+The preparation screen's unit lists (Units, "Whose items?", "Trade with", the shop's "Give to" and the sell list) show each character's **map picture** (the
+standing picture of its unit type in the style being played, animated when the look is; the side marker as on the map; a type with no picture keeps the map's coloured block
+with its letter), its name, and under the name its level and class (`Lv2 Soldier`). Always on, no setting. On a narrow list the "Slot 2" text moves to the second line
+and the class is cut back to the level (`Lv2`); the selected row's explanation at the bottom still says everything. Code: `battle_unit_icon.cpp`, `PanelRow::icon` / `sub`.
 
 ## Editor
 
@@ -4549,7 +4622,7 @@ The campaign roster may now hold more characters than a map deploys: a map with 
 starting squares, trade items between any roster characters and the shared storage, and buy from a preparation shop. Benched
 characters keep everything and join the next chapter; rescue, supports and skills are untouched (a benched unit is simply not on the
 board). Inventory-full handling in the screen: a purchase for a full character goes to the storage when the game has one, else it is
-refused.
+refused. The lists of characters on this screen show each one's map picture, level and class ("Menu options > Unit pictures in the preparation lists").
 
 ## Interpretations
 

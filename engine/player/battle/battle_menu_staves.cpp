@@ -11,6 +11,7 @@
 #include <functional>
 
 #include "battle/battle_scene.h"
+#include "battle/menu_hide.h"
 #include "battle/item_text.h"
 #include "battle/place_text.h"
 #include "battle/staff_text.h"
@@ -47,6 +48,10 @@ void BattleScene::addStaffEntries(std::vector<MenuItem>& items) {
   std::vector<StaffOption> opts;
   battle_.staffOptions(sel_, battle_.units[(size_t)sel_].cell, opts);
   if (opts.empty()) return;
+  if (staffEntryHidden(host_.menuHide(), opts)) {  // "hide": every staff carried has nobody to use it on (menu_hide.h)
+    OTE_INFO("staff entry of %s: hidden (nobody in reach)", battle_.units[(size_t)sel_].name.c_str());
+    return;
+  }
   bool any = false;
   for (const StaffOption& o : opts) any = any || o.ok;
   Renderer& r = host_.renderer();

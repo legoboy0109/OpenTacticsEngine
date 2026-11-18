@@ -92,6 +92,7 @@ void Battle::abilityOptions(int unit, Cell from, std::vector<AbilityOption>& out
       if (us.empty() && cs.empty()) {
         o.ok = false;
         o.why = "nothing to target";
+        o.noTarget = true;
       }
     }
     out.push_back(o);

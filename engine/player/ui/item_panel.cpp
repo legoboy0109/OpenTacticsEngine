@@ -16,20 +16,41 @@ constexpr int kTabGap = 10;
 void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected) {
   drawRowBox(r, x, y, w, h, selected);
   int lh = r.lineHeight(), ty = y + (h - lh) / 2;
+  const bool twoLines = !row.sub.empty() && h >= 2 * lh + 2;
+  if (twoLines) ty = y + (h - 2 * lh) / 2;
   Color c = row.dim || row.blank ? kGreyed : (selected ? chrome::kTextSel : chrome::kText);
   int s = std::max(3, lh / 3), tx = x + 4;
   if (row.mark) r.fillRect(tx, y + (h - s) / 2, s, s, kMark);  // a small square: this weapon is in hand
   tx += s + 3;  // names line up whether or not a marker is shown
+  if (row.icon && row.iconSize > 0) {
+    row.icon(r, tx, y + (h - row.iconSize) / 2, row.iconSize);
+    tx += row.iconSize + 4;
+  }
   // The name matters more than the extra: when both do not fit, the name keeps at least half the row.
   int avail = x + w - 4 - tx, gap = 6;
   std::string extra = row.extra, label = row.label;
+  const Color extraColor = row.dim ? kGreyed : chrome::kAccent, subColor = row.dim ? kGreyed : chrome::kDim;
+  if (twoLines && !extra.empty() && textW(r, label) + gap + textW(r, extra) > avail) {
+    // A narrow list with a picture: the extra ("Slot 2") moves down to the second line, right-aligned; the dimmer text on the left
+    // shrinks to its first word ("Lv2") or goes when even that does not fit (the selected row's explanation says the rest).
+    std::string sub = row.sub;
+    const int room = avail - gap - textW(r, extra);
+    if (textW(r, sub) > room) sub = sub.substr(0, sub.find(' '));
+    if (textW(r, sub) > room) sub.clear();
+    r.drawText(tx, ty, fitText(r, label, avail).c_str(), c);
+    r.drawText(tx, ty + lh, sub.c_str(), subColor);
+    const std::string shown = fitText(r, extra, avail);
+    r.drawText(x + w - 4 - textW(r, shown), ty + lh, shown.c_str(), extraColor);
+    return;
+  }
   if (!extra.empty() && textW(r, label) + gap + textW(r, extra) > avail) {
     int labelMax = std::max(avail / 2, avail - gap - textW(r, extra));
     label = fitText(r, label, labelMax);
     extra = fitText(r, extra, std::max(0, avail - gap - textW(r, label)));
   }
   r.drawText(tx, ty, fitText(r, label, avail).c_str(), c);
-  if (!extra.empty()) r.drawText(x + w - 4 - textW(r, extra), ty, extra.c_str(), row.dim ? kGreyed : chrome::kAccent);
+  if (!extra.empty()) r.drawText(x + w - 4 - textW(r, extra), ty, extra.c_str(), extraColor);
+  if (twoLines) r.drawText(tx, ty + lh, fitText(r, row.sub, avail).c_str(), subColor);
 }
 
 void ItemPanel::open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,
@@ -47,7 +68,12 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
 }
 
 void ItemPanel::layout(const Renderer& r) {
-  const int lh = r.lineHeight(), rowH = lh + 4;
+  const int lh = r.lineHeight();
+  int rowH = lh + 4;
+  for (const PanelRow& row : rows_) {  // rows with a picture or a second line are taller (one height for all, as RowList wants)
+    if (!row.sub.empty()) rowH = std::max(rowH, 2 * lh + 4);
+    if (row.icon) rowH = std::max(rowH, row.iconSize + 3);
+  }
   w_ = std::min(aw_ - 8, std::max(150, maxW_ > 0 ? maxW_ : std::min(260, aw_ * 3 / 4)));
   int fixedTop = kPad + lh + 4 + (head_.empty() ? 0 : lh + 2);
   int fixedBottom = detailLines_ * lh + 4 + kPad;

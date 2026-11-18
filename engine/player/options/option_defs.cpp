@@ -91,6 +91,14 @@ std::vector<OptionChoice> battleSceneChoices(const OptionContext& ctx) {
 }
 void applyBattleScene(const Json& v, LookLayer& l) { l.battleScene = v.asString(); }
 
+// ---- actions with nothing to act on (docs/SRPG.md "Menu options") -------------------------------------------------
+// Greyed out in the action menu or left out of it; unset = what the game asks for.
+std::vector<OptionChoice> menuUnavailableChoices(const OptionContext& ctx) {
+  return {choice(ctx.game ? "Use global" : "Game default"), choice("Greyed out", Json::makeString("grey")),
+          choice("Hidden", Json::makeString("hide"))};
+}
+void applyMenuUnavailable(const Json& v, LookLayer& l) { l.menuUnavailable = v.asString(); }
+
 // ---- volumes (docs/SOUND.md "Options") ----------------------------------------
 // 0..10; 0 = off (music is not even decoded). Element 0 is "not set": the default of 7, or the global value.
 // Sliders (OptionDef::slider): element 1 + v is the value v.
@@ -115,6 +123,7 @@ const std::vector<OptionDef>& optionDefs() {
       {"musicVolume", "Music volume", volumeChoices, applyMusicVolume, true, 7},
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
       {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
+      {"menuUnavailable", "Unavailable actions", menuUnavailableChoices, applyMenuUnavailable},
       // (last, so the positions the existing option screens are driven by do not move)
   };
   return defs;

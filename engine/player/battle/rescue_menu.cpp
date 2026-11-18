@@ -18,7 +18,10 @@ RescueEntry entry(const char* label, int id, bool enabled = true, const char* wh
 RescueEntry dropEntry(const Battle& b, int unit) {
   std::vector<Cell> cells;
   b.dropCells(unit, b.units[(size_t)unit].cell, cells);
-  return cells.empty() ? entry("Drop", kDrop, false, "no room") : entry("Drop", kDrop);
+  if (!cells.empty()) return entry("Drop", kDrop);
+  RescueEntry e = entry("Drop", kDrop, false, "no room");
+  e.noTarget = true;
+  return e;
 }
 
 }  // namespace

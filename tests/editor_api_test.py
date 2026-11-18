@@ -45,6 +45,7 @@ from editor_api_srpg_checks import run_srpg_checks
 from editor_api_doors_checks import run_doors_checks
 from editor_api_battle_effects_checks import run_battle_effects_checks
 from editor_api_scene3_checks import run_scene3_checks
+from editor_api_menuoptions_checks import run_menuoptions_checks
 from editor_api_mapweapon_checks import run_mapweapon_checks
 from editor_api_fidelity2_checks import run_fidelity2_checks
 from editor_api_fidelity3_checks import run_fidelity3_checks
@@ -199,6 +200,7 @@ def main():
         run_doors_checks(api, tmp, games, templates, check, get_project, put_project)
         run_battle_effects_checks(api, tmp, games, templates, check, get_project, put_project)
         run_scene3_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_menuoptions_checks(api, tmp, games, templates, check, get_project, put_project)
         run_mapweapon_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity2_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity3_checks(api, tmp, games, templates, check, get_project, put_project)

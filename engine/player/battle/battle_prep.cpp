@@ -174,6 +174,7 @@ void BattleScene::prepUnitsOpen(int sel) {
     row.label = e.name;
     const bool in = e.slot >= 0;
     row.mark = in;
+    decorateUnitRow(row, e.type, e.level);
     row.dim = e.lock == PrepLock::Forbidden || e.lock == PrepLock::Fallen;
     if (e.lock == PrepLock::Forbidden) row.extra = "Not allowed";
     else if (e.lock == PrepLock::Fallen) row.extra = "Fallen";

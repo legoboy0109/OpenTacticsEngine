@@ -210,6 +210,7 @@ void Battle::staffOptions(int unit, Cell from, std::vector<StaffOption>& out) co
       else staffTargets(unit, (int)i, from, targets);
       if (targets.empty() && cells.empty()) {
         o.ok = false;
+        o.noTarget = true;
         o.why = !d.picksSquare() || d.has(StaffEffect::Kind::Unlock) ? staffNobodyWhy(d) : !fog ? "this map has no fog of war" : "nothing in reach is hidden";
       }
     }

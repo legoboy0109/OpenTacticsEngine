@@ -17,6 +17,7 @@
 #include "battle/srpg_menu_ids.h"
 #include "battle/srpg_pick.h"
 #include "battle/unit_info.h"
+#include "battle/weapon_choice.h"
 #include "scene.h"
 #include "saves.h"
 #include "ui/confirm.h"
@@ -43,7 +44,8 @@ class BattleScene : public Scene {
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result,
               PickUnit, PickCell, UnitInfo, Promotion,  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
               Prep,                                     // the preparation screen (battle_prep*.cpp)
-              DifficultyMenu };                         // the Difficulty entry of the end menu (battle_difficulty.cpp)
+              DifficultyMenu,                           // the Difficulty entry of the end menu (battle_difficulty.cpp)
+              WeaponPick };                             // Attack with "attackWeaponChoice": "pick": the weapon list (battle_weapon_pick.cpp)
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
@@ -104,6 +106,7 @@ class BattleScene : public Scene {
   void selectUnit(int unit);
   void computeOverlay();
   void openActionMenu();
+  void logActionMenu(const std::vector<MenuItem>& items);
   void openBuildMenu(Cell cell);
   void openEndMenu();
   // battle_difficulty.cpp (docs/DIFFICULTY.md): the end menu's Difficulty row and its list
@@ -112,7 +115,14 @@ class BattleScene : public Scene {
   void addTestLevelEntry(std::vector<MenuItem>& items);  // docs/DIFFICULTY.md "Test level": a greyed row that says the run is a test (none otherwise)
   void openDifficultyMenu();
   void difficultyChosen(int id);
+  void beginAttack(int preferTarget);   // Attack: straight to the targets, or the weapon list first (game.json "attackWeaponChoice")
   void beginTargeting(int preferTarget);
+  void enterTargeting(int preferTarget);  // targets_ is filled: show them (Mode::Targeting)
+  // --- battle_weapon_pick.cpp: the weapon list of "attackWeaponChoice": "pick" (docs/SRPG.md "Menu options")
+  void openWeaponPick(int preferTarget, int selectRow = -1);
+  void weaponPickInput(const InputEvent& e);
+  void weaponPicked(int row);
+  bool equipForAttack();   // submits the Equip order the picked weapon needs; false = refused
   void cancelAction();
   void finishOrder();
   void anchorActionMenu();
@@ -263,6 +273,9 @@ class BattleScene : public Scene {
   void prepTradePicked(bool direct = false);  // direct: skip the Hand over / Equip menu
   void prepShopOpen(int sel = 0);
   void prepShopForOpen();
+  // battle_unit_icon.cpp: the unit's map picture and "Lv2 Soldier" on a row of the prep lists
+  void drawUnitIcon(Renderer& r, int type, int x, int y, int size);
+  void decorateUnitRow(PanelRow& row, int type, int level);
   void updateShopMusic();  // battle_shop_music.cpp
   // battle_prep_sell.cpp: selling at the shop, and Equip on the trade screen
   void prepShopTab(int tab);                 // 0 = Buy, 1 = Sell (the shop's tabs)
@@ -337,6 +350,11 @@ class BattleScene : public Scene {
   Cell undoCell_ = kNoCell;
   std::vector<AttackOption> targets_;
   int targetIdx_ = 0;
+  ItemPanel weaponPanel_;                 // Mode::WeaponPick
+  std::vector<WeaponRow> weaponRows_;     // its rows
+  std::vector<AttackOption> weaponOpts_;  // every attack option of the unit (the targets_ of a row are the ones of its weapon)
+  int weaponPrefer_ = -1;                 // an enemy the player tapped on the map to start the attack (-1 = none)
+  int weaponRow_ = -1;                    // the row picked; >= 0 while Targeting came from the list (Back returns there)
   Cell buildCell_ = kNoCell;
   int turnKey_ = -1;
   int aiTurnKey_ = -1;  // the AI turn the log last said it started

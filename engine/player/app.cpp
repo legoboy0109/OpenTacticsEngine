@@ -61,6 +61,7 @@ GameLook lookOf(const Database& db) {
   g.font.smooth = db.font.smooth;
   g.root = db.rootPath;
   g.battleScene = db.battleSceneDefault;
+  g.menuHide = db.menuHideUnavailable;
   for (const StyleDef& s : db.styles) {
     g.styleIds.push_back(s.id);
     g.styleUsable.push_back(viewSupported(s.view));
@@ -77,6 +78,7 @@ GameLook lookOf(const GameEntry& e, const std::string& gamesDir) {
   g.font.smooth = e.info.font.smooth;
   g.root = gamesDir + "/" + e.id;
   g.battleScene = e.info.battleScene;
+  g.menuHide = e.info.menuHide;
   for (const StyleInfo& s : e.info.styles) {
     g.styleIds.push_back(s.id);
     g.styleUsable.push_back(viewSupported(s.view));

@@ -279,6 +279,7 @@ std::string BattleScene::hint() const {
     case Mode::ActionMenu:
       return staffList_ ? "Up/Down + Z:choose  X:back" : ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
     case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
+    case Mode::WeaponPick: return WeaponWords::kHint;
     case Mode::PickUnit:
     case Mode::PickCell:
     case Mode::UnitInfo: return srpgHint();
@@ -369,6 +370,7 @@ void BattleScene::draw(Renderer& r) {
     if (mode_ == Mode::PickCell && placeFcOn_) drawPlaceForecast(r, ctx, placeFc_, cursor_);
     if (mode_ == Mode::Prep) prepDraw(r);
     else if (mode_ == Mode::Items) drawItems(r);
+    else if (mode_ == Mode::WeaponPick) weaponPanel_.draw(r);
     else if (mode_ == Mode::Research) researchPanel_.draw(r);
     else if (mode_ == Mode::Promotion) drawPromotion(r);
     else menu_.draw(r);

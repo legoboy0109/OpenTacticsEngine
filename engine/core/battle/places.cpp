@@ -120,6 +120,7 @@ void Battle::placeOptions(int unit, Cell from, std::vector<PlaceOption>& out) co
       if (st.locked && o.keySlots.empty()) {
         o.ok = false;
         o.why = p.byKey ? "it is locked and needs a key" : "it is locked";
+        o.noTarget = true;
       } else if (!st.locked) {
         o.keySlots.clear();  // not locked: nothing to use
       }

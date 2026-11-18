@@ -5,6 +5,7 @@
 // Which actions end the turn follows the core: Rescue, Pair up and Drop end it (the order is over, back to the
 // map); Give, Take and Switch are free (the action menu comes back, the move can no longer be undone, like an item).
 #include "battle/battle_scene.h"
+#include "battle/menu_hide.h"
 #include "battle/rescue_menu.h"
 #include "core/base/log.h"
 
@@ -13,6 +14,7 @@ namespace ote {
 void BattleScene::addRescueEntries(std::vector<MenuItem>& items) {
   std::string log;  // the script tests read this ("the player logs each opened menu's entries")
   for (const RescueEntry& e : rescueEntries(battle_, sel_)) {
+    if (rescueEntryHidden(host_.menuHide(), e)) continue;  // "hide": Drop with no free square (menu_hide.h)
     items.push_back({e.label, e.extra, e.enabled, e.id});
     log += (log.empty() ? "" : ", ") + e.label + (e.enabled ? "" : " (" + e.extra + ")");
   }

@@ -12,6 +12,7 @@
 #include "battle/item_text.h"
 #include "battle/srpg_menu_ids.h"
 #include "battle/battle_scene.h"
+#include "battle/menu_hide.h"
 #include "core/base/log.h"
 #include "ui/text.h"
 
@@ -29,14 +30,17 @@ void BattleScene::addAbilityEntries(std::vector<MenuItem>& items) {
   const Unit& u = battle_.units[(size_t)sel_];
   std::vector<AbilityOption> opts;
   battle_.abilityOptions(sel_, u.cell, opts);
+  const bool hide = host_.menuHide();  // "hide": an ability with nothing to use it on is left out (menu_hide.h); the others keep their id = position
   // A reason must not push the menu off a small screen: it gets what is left of the viewport next to the widest
   // label (the menu's own padding and arrow are about 36 px). Too long for that: the short form, then cut off.
   Renderer& r = host_.renderer();
   int labelW = 0;
-  for (const AbilityOption& o : opts) labelW = std::max(labelW, textW(r, battle_.db->abilities[(size_t)o.ability].name));
+  for (const AbilityOption& o : opts)
+    if (!abilityEntryHidden(hide, o)) labelW = std::max(labelW, textW(r, battle_.db->abilities[(size_t)o.ability].name));
   const int maxExtra = std::max(40, layout_.vw - 36 - textW(r, "  ") - labelW);
   for (size_t i = 0; i < opts.size(); ++i) {
     const AbilityOption& o = opts[i];
+    if (abilityEntryHidden(hide, o)) continue;
     std::string extra = abilityMenuExtra(battle_, u, o);
     if (textW(r, extra) > maxExtra) extra = abilityShortReason(extra);
     // Still too long: cut off with "..", but a stump of a word ("no..") says nothing, so with no room at all the

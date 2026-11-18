@@ -64,6 +64,8 @@ class SceneHost {
   virtual int styleIndex() const = 0;
   // Fights are shown as the side-view battle scene (the player setting "Battle animations", else the game's default; docs/BATTLE_SCENE.md).
   virtual bool battleScene() const = 0;
+  // The action menu leaves out entries with nothing to act on (the player setting "Unavailable actions", else the game's default; docs/SRPG.md "Menu options").
+  virtual bool menuHide() const = 0;
 
   // Save files of a game (docs/SAVES.md). Disabled (enabled() false) when saving is
   // off for this run: --no-saving, or a headless / --no-settings run without --saves,

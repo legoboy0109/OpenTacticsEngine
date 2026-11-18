@@ -34,6 +34,7 @@ struct AbilityOption {
   bool ok = false;
   std::string why;  // when !ok: "ready in 2 turns", "no uses left this battle", ...
   int itemUses = -2;  // "spendsItem": uses the giving item has left (-1 = unlimited); -2 = the ability spends no item
+  bool noTarget = false;  // !ok only because nothing is there to use it on (the player's "hide" menu option leaves such an entry out)
 };
 
 // An activation that could fire in a forecast fight (Forecast::notes), in roll order.
@@ -119,6 +120,7 @@ struct StaffOption {
   int item = -1;  // index into db->items
   bool ok = false;
   std::string why;  // when !ok: "Needs rank C", "Only Mara can wield this", "nobody in reach needs that", ...
+  bool noTarget = false;  // !ok only because nobody / nothing is in reach to use it on (not a rank, class or lock reason)
 };
 // What a staff would do to one unit.
 struct StaffHit {

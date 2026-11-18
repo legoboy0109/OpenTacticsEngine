@@ -6,6 +6,7 @@
 // there are no Open / Visit entries (the move does it); Break door, abilities and staves stay.
 // Ids: kPlaceBase + n (the n-th option of Battle::placeOptions), kPlaceKeyBase + slot, kPlaceBreakEntry.
 #include "battle/battle_scene.h"
+#include "battle/menu_hide.h"
 #include "battle/place_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -27,6 +28,7 @@ void BattleScene::addPlaceEntries(std::vector<MenuItem>& items) {
   std::string log;
   for (size_t i = 0; i < placeOpts_.size() && i < 90; ++i) {
     const PlaceOption& o = placeOpts_[i];
+    if (placeEntryHidden(host_.menuHide(), o)) continue;  // "hide": a locked door or chest the unit has no key for (menu_hide.h); the ids keep their position
     std::string label = o.verb == PlaceOption::Verb::Open ? PlaceWords::kOpen
                         : o.verb == PlaceOption::Verb::Visit ? PlaceWords::kVisit : PlaceWords::kDestroy;
     const bool several = o.verb == PlaceOption::Verb::Open ? opens > 1 : placeOpts_.size() > 1;

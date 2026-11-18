@@ -23,6 +23,7 @@ struct LookLayer {
   std::string draw3d; // what draws 3D: "opengl" or "software"; "" = unset
   std::string res3d;  // how big the 3D picture is: "display" or "game"; "" = unset
   std::string battleScene;  // "scene" or "map"; "" = unset (the game decides)
+  std::string menuUnavailable;  // "grey" or "hide"; "" = unset (the game decides)
   int musicVolume = -1;  // 0..10; -1 = unset
   int soundVolume = -1;  // 0..10; -1 = unset
 };
@@ -38,6 +39,7 @@ struct GameLook {
   // drawn is never picked; the default is then the first one that can.
   std::vector<char> styleUsable;
   bool battleScene = false;        // game.json "battleScene": the game wants the side-view battle scene by default
+  bool menuHide = false;           // game.json "menuUnavailable": "hide": the game wants actions with nothing to act on left out of the menu
 };
 
 struct EffectiveLook {
@@ -47,6 +49,7 @@ struct EffectiveLook {
   std::string draw3d;  // "opengl", "software", or "" = the player decides (docs/RENDER3D.md)
   std::string res3d;   // "display", "game", or "" = automatic (docs/RENDER3D.md "Resolution")
   bool battleScene = false;  // fights are shown as the side-view battle scene (docs/BATTLE_SCENE.md "Settings")
+  bool menuHide = false;     // the action menu leaves out entries with nothing to act on (docs/SRPG.md "Menu options")
   int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
   int soundVolume = 7;
 };
