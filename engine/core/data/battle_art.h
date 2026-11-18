@@ -104,6 +104,11 @@ struct FxFade {                  // a colour laid over the scene: in over `ms`, 
 // "behind" layer (over the platforms, under the fighters), or over the fighters.
 enum class FxOrder { Backdrop, Behind, Front };
 
+// One step of an effect's "atRange" list: from a fight `from` squares apart, the whole effect starts `delayMs` later (docs/BATTLE_SCENE.md "Effect timing by distance").
+struct FxRange {
+  int from = 1, delayMs = 0;
+};
+
 // A spell or an arrow drawn over the fight for a weapon (or every weapon of a group). An entry with a weapon / group and no pictures
 // only assigns the effects named in `list` / `byType`; an entry with an `id` and no weapon / group is a library effect that lists use.
 struct BattleEffect {
@@ -131,8 +136,17 @@ struct BattleEffect {
   std::vector<FxFade> fade;          // "fade": a colour over the scene or the backdrop
   FxOrder order = FxOrder::Backdrop; // "order" of a "screen" effect
   int speed = 0;                     // travel: "speed" in stage pixels per second instead of "travelMs" (0 = travelMs; needs a fixed stage)
+  std::vector<FxRange> atRange;      // "atRange": delay of the whole effect by fight distance, sorted by `from`
+  int endOffset = 0;                 // travel: "endOffset": the flight stops this many stage pixels short of the target
   bool additive = false;             // "blend": "add": its pixels brighten what is under them (docs/BATTLE_SCENE.md "Blending")
   bool extended = false;             // any of the newer keys was given (it then also logs its start)
+  // The delay for a fight `distance` squares apart: the band with the largest `from` that is not above it, 0 when none fits.
+  int delayAt(int distance) const {
+    int d = 0;
+    for (const FxRange& r : atRange)
+      if (r.from <= distance) d = r.delayMs;
+    return d;
+  }
   bool assignsOnly() const { return !anim.any(); }
 };
 
@@ -176,6 +190,8 @@ struct StageBand {
   int platform[2][2] = {{0, 0}, {0, 0}};
   bool each = false;                // "view": "each"
   int panMs = 250, leftView = 0, rightView = 0;
+  bool scrollBackdrop = false;      // pan "backdrop": "scroll": the backdrop moves with the camera and wraps (default "fixed")
+  int panStartMs = -1;              // pan "startMs": the pan toward the struck fighter starts this long after the strike starts (-1 = timed to arrive at the hit)
 };
 
 struct BattleStage {

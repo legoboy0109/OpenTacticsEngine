@@ -1,6 +1,7 @@
 // The optional fixed stage of the battle scene (docs/BATTLE_SCENE.md "Fixed stage"): everything is placed in the stage's own pixels
 // and drawn at one whole-number scale; the numbers come from the pure stageGeometry (core/data/battle_stage.h).
 #include <algorithm>
+#include <cmath>
 
 #include "battle/fight_scene.h"
 #include "battle/fight_scene_geo.h"
@@ -20,7 +21,9 @@ void FightScene::stageLayout(Geo& g) const {
   // Range bands (docs/BATTLE_SCENE.md): the layout of this fight's distance; a band that shows one fighter at a time moves the picture with the camera.
   const StageLayout lay = stageLayoutFor(st, script_.distance);
   g.panning = lay.each;
-  g.sg = stageGeometryAt(g.W, g.H, g.stageTop, g.stageBottom, st, script_.distance, pw, ph, lay.each ? lay.viewX(tl_.cameraAt(t_)) : 0.0);
+  g.viewX = lay.each ? lay.viewX(tl_.cameraAt(t_)) : 0.0;
+  g.scrollBackdrop = lay.each && lay.scrollBackdrop;
+  g.sg = stageGeometryAt(g.W, g.H, g.stageTop, g.stageBottom, st, script_.distance, pw, ph, g.viewX);
   g.stage = g.sg.valid;
   const int k = g.sg.scale;
   g.groundY = (g.sg.feet[0][1] + g.sg.feet[1][1]) / 2;
@@ -58,8 +61,21 @@ void FightScene::drawStageBackground(Renderer& r, const Geo& g) const {
   const int ox =(st.width - sh.cellW) / 2;
   const int oy = st.align == BattleStage::AlignTop ? 0 : st.align == BattleStage::AlignBottom ? st.height - sh.cellH : (st.height - sh.cellH) / 2;
   // The part of the picture inside the stage, in picture pixels.
-  const int i0 = std::max(0, -ox), i1 = std::min(sh.cellW, st.width - ox);
   const int j0 = std::max(0, -oy), j1 = std::min(sh.cellH, st.height - oy);
+  if (g.scrollBackdrop && sh.cellW > 0 && j1 > j0) {
+    // "backdrop": "scroll": the picture moves with the camera by the same pixels as the world and repeats sideways, so no strip is empty.
+    // Stage column x shows picture column (x + viewX - ox) modulo the picture's width; drawn in strips, one per repeat.
+    const long view = std::lround(g.viewX);
+    const TextureId tex = env_.sprites->texture(bg.sheet);
+    for (int x = 0; x < st.width;) {
+      const long col = (((x + view - ox) % sh.cellW) + sh.cellW) % sh.cellW;
+      const int w = (int)std::min<long>(sh.cellW - col, st.width - x);
+      r.drawTexture(tex, bg.cell.col * sh.cellW + (int)col, bg.cell.row * sh.cellH + j0, w, j1 - j0, g.sg.x + x * k, g.sg.y + (oy + j0) * k, w * k, (j1 - j0) * k);
+      x += w;
+    }
+    return;
+  }
+  const int i0 = std::max(0, -ox), i1 = std::min(sh.cellW, st.width - ox);
   if (i1 <= i0 || j1 <= j0) return;
   r.drawTexture(env_.sprites->texture(bg.sheet), bg.cell.col * sh.cellW + i0, bg.cell.row * sh.cellH + j0, i1 - i0, j1 - j0,
                 g.sg.x + (ox + i0) * k, g.sg.y + (oy + j0) * k, (i1 - i0) * k, (j1 - j0) * k);

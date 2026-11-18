@@ -447,6 +447,8 @@ export interface FxShakeDef extends Extra { atMs: number; ms: number; strength: 
 /** An effect's scene-wide parts (docs/BATTLE_SCENE.md "Hiding and fading"; model/battleEffects.ts). */
 export interface FxHideDef extends Extra { atMs: number; ms: number; what: Array<'backdrop' | 'platforms'>; color?: string }
 export interface FxFadeDef extends Extra { atMs: number; ms: number; to?: string; alpha?: number; holdMs?: number; over?: 'all' | 'backdrop' }
+/** One step of an effect's "atRange": from a fight `from` squares apart the whole effect starts `delayMs` later. */
+export interface FxRangeDef extends Extra { from: number; delayMs: number }
 /** A battle scene effect (docs/BATTLE_SCENE.md "Effects"; model/battleEffects.ts). `frames` entries are [column, row] or, from another image, [column, row, image id]. */
 export interface BattleEffectDef extends Extra {
   id?: string; weapon?: string; group?: string
@@ -456,6 +458,8 @@ export interface BattleEffectDef extends Extra {
   flash?: FxFlashDef[]; shake?: FxShakeDef[]; at?: 'target' | 'striker'; returns?: boolean; lingerMs?: number
   effects?: string | string[]; byType?: Record<string, string | string[]>
   blend?: 'normal' | 'add'; hide?: FxHideDef[]; fade?: FxFadeDef[]; order?: 'backdrop' | 'behind' | 'front'; speed?: number
+  /** Newer opt-in keys: a delay of the whole effect by fight distance, and a flight that stops short of the foe (docs/BATTLE_SCENE.md). */
+  atRange?: FxRangeDef[]; endOffset?: number
 }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
@@ -492,7 +496,7 @@ export interface StageBandDef extends Extra {
   feet: StagePair
   platform?: StagePair
   view?: 'both' | 'each'
-  pan?: { panMs?: number; leftView: number; rightView: number } & Extra
+  pan?: { panMs?: number; leftView: number; rightView: number; backdrop?: 'fixed' | 'scroll'; startMs?: number } & Extra
 }
 /** A tileset of hand-painted maps (docs/GRAPHICS.md "Tile layer"): a sheet whose cells are the tiles, numbered row by row from 0; model/tilesets.ts. */
 export interface Tileset extends Extra { sheet: string; animations?: Record<string, { frames: number[]; ms?: number }> }

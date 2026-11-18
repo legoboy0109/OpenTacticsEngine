@@ -191,6 +191,7 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
       t.returns = be.returns;
       t.lingerMs = be.lingerMs;
       t.extended = be.extended;
+      t.delayMs = be.delayAt(script_.distance);
       t.sounds = be.sounds;
       t.flash = be.flash;
       t.shake = be.shake;
@@ -210,7 +211,8 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
     fx.push_back(times);
   }
   FighterTimes times[2] = {fighter_[0].times, fighter_[1].times};
-  tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1);
+  tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1,
+                         stageOn && lay.each ? lay.panStartMs : -1);
 
   // Background and platform (docs/BATTLE_SCENE.md "Which background and platform"): by the terrain under the struck fighter, or under the
   // attacker with game.json "battleBackgroundFrom": "attacker"; the map's own table first, then the game's.

@@ -78,12 +78,22 @@ bool readRanges(const LoadCtx& c, const Json& st, BattleStage& s) {
       const std::string pw = where + " \"pan\"";
       if (!p.isObject()) return c.fail(pw, "must be { \"panMs\": 250, \"leftView\": x, \"rightView\": x }");
       for (const Json::Member& e : p.members())
-        if (e.first != "panMs" && e.first != "leftView" && e.first != "rightView")
-          return c.fail(pw, "unknown key " + q(e.first) + " (expected \"panMs\", \"leftView\", \"rightView\")");
+        if (e.first != "panMs" && e.first != "leftView" && e.first != "rightView" && e.first != "backdrop" && e.first != "startMs")
+          return c.fail(pw, "unknown key " + q(e.first) + " (expected \"panMs\", \"leftView\", \"rightView\", \"backdrop\", \"startMs\")");
       if (!c.integer(p, "panMs", pw, b.panMs) || !c.integer(p, "leftView", pw, b.leftView, true) || !c.integer(p, "rightView", pw, b.rightView, true)) return false;
       if (b.panMs < 0 || b.panMs > 5000) return c.fail(pw, "\"panMs\" must be between 0 and 5000 milliseconds (0 = the camera cuts)");
       if (b.leftView < 0 || b.leftView > 8191 || b.rightView < 0 || b.rightView > 8191)
         return c.fail(pw, "\"leftView\" and \"rightView\" must be between 0 and 8191 (the stage x of the picture's left edge)");
+      std::string backdrop = "fixed";
+      if (!c.str(p, "backdrop", pw, backdrop)) return false;
+      if (backdrop != "fixed" && backdrop != "scroll")
+        return c.fail(pw, "\"backdrop\" must be \"fixed\" (the picture stays put, the default) or \"scroll\" (it moves with the camera and repeats sideways)");
+      b.scrollBackdrop = backdrop == "scroll";
+      if (p.has("startMs")) {
+        if (!c.integer(p, "startMs", pw, b.panStartMs)) return false;
+        if (b.panStartMs < 0 || b.panStartMs > 15000)
+          return c.fail(pw, "\"startMs\" must be between 0 and 15000 milliseconds (how long after the strike starts the camera moves to the struck fighter)");
+      }
       // Each fighter must be in the picture while the camera is on it.
       const int views[2] = {b.leftView, b.rightView};
       const char* names[2] = {"left", "right"};

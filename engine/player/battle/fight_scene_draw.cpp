@@ -345,6 +345,15 @@ void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
     double ax, ay, bx, by;
     bodyPoint(fx.fromSide, ax, ay);
     bodyPoint(fx.toSide, bx, by);
+    // "endOffset": a travelling effect stops this many stage pixels short of the target, along the line it flies (never before the striker).
+    if (fx.travel && be.endOffset > 0) {
+      const double len = std::sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+      if (len > 0) {
+        const double keep = std::max(0.0, len - be.endOffset * (double)s) / len;
+        bx = ax + (bx - ax) * keep;
+        by = ay + (by - ay) * keep;
+      }
+    }
     double cx = bx, cy = by;
     bool back = false;  // a returning projectile on its way home turns round
     if (fx.travel) {

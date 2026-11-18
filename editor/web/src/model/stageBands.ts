@@ -83,6 +83,15 @@ export function setBandPan(doc: ProjectDoc, i: number, key: 'panMs' | 'leftView'
   return withBand(doc, i, (b) => (b.pan ? { ...b, pan: { ...b.pan, [key]: v } } : b))
 }
 
+/** pan "backdrop": fixed is the default and is written as no key. */
+export const bandBackdrop = (b: StageBandDef): 'fixed' | 'scroll' => (b.pan?.backdrop === 'scroll' ? 'scroll' : 'fixed')
+export const setBandBackdrop = (doc: ProjectDoc, i: number, v: 'fixed' | 'scroll'): ProjectDoc =>
+  withBand(doc, i, (b) => (b.pan ? { ...b, pan: patchObj(b.pan, { backdrop: v === 'scroll' ? 'scroll' : undefined }) as NonNullable<StageBandDef['pan']> } : b))
+/** pan "startMs": when the camera leaves for the struck fighter, after the strike starts; `undefined` = timed to arrive at the hit (no key). */
+export const PAN_START_MAX = 15000
+export const setBandPanStart = (doc: ProjectDoc, i: number, v: number | undefined): ProjectDoc =>
+  withBand(doc, i, (b) => (b.pan ? { ...b, pan: patchObj(b.pan, { startMs: v }) as NonNullable<StageBandDef['pan']> } : b))
+
 const whole = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n)
 const pairProblems = (b: StageBandDef, group: BandGroup, label: string, maxX: number, height: number, bad: (t: string) => void) => {
   const pair = b[group]
@@ -118,6 +127,8 @@ export function bandProblems(doc: ProjectDoc): string[] {
     if (each && b.pan) {
       const p = b.pan
       if (p.panMs !== undefined && (!whole(p.panMs) || p.panMs < 0 || p.panMs > 5000)) bad('the pan time must be between 0 and 5000 milliseconds (0 = the camera cuts).')
+      if (p.backdrop !== undefined && p.backdrop !== 'fixed' && p.backdrop !== 'scroll') bad('the backdrop must stay fixed or scroll with the camera.')
+      if (p.startMs !== undefined && (!whole(p.startMs) || p.startMs < 0 || p.startMs > PAN_START_MAX)) bad(`the camera's start time must be between 0 and ${PAN_START_MAX} milliseconds.`)
       for (const k of ['leftView', 'rightView'] as const)
         if (!whole(p[k]) || p[k] < 0 || p[k] > WORLD_MAX) bad(`the ${k === 'leftView' ? 'left' : 'right'} view must be a whole number between 0 and ${WORLD_MAX}.`)
       if (whole(s.width)) {

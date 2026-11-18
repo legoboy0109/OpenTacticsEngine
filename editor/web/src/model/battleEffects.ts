@@ -6,7 +6,7 @@ import { findSheet, sheetsOf } from './graphics'
 import { battleOf, framesFromRow, weaponGroups } from './battleArt'
 import { soundIds } from './audio'
 import { patchObj } from './util'
-import type { BattleEffectDef, FxFadeDef, FxFlashDef, FxHideDef, FxShakeDef, ProjectDoc } from './types'
+import type { BattleEffectDef, FxFadeDef, FxFlashDef, FxHideDef, FxRangeDef, FxShakeDef, ProjectDoc } from './types'
 import { withGraphics } from './graphics'
 import type { Graphics } from './types'
 
@@ -144,6 +144,26 @@ export const flightBySpeed = (e: BattleEffectDef): boolean => e.speed !== undefi
 export const setFlightBySpeed = (doc: ProjectDoc, index: number, bySpeed: boolean): ProjectDoc =>
   updateEffect(doc, index, bySpeed ? { speed: DEFAULT_SPEED, travelMs: undefined } : { speed: undefined })
 
+/** "atRange": the delay steps by fight distance, sorted by `from` (the game sorts them too). An emptied list is written as no key. */
+export const RANGE_MAX = 16
+export const effectRanges = (e: BattleEffectDef): FxRangeDef[] => e.atRange ?? []
+export const setEffectRanges = (doc: ProjectDoc, index: number, rows: FxRangeDef[]): ProjectDoc =>
+  updateEffect(doc, index, { atRange: rows.length ? [...rows].sort((a, b) => a.from - b.from) : undefined })
+/** A new step at the first free distance from 2 up (distance 1 is melee, which can be given by hand). */
+export function addEffectRange(doc: ProjectDoc, index: number): ProjectDoc {
+  const e = effectList(doc)[index]
+  if (!e || effectRanges(e).length >= RANGE_MAX) return doc
+  let from = 2
+  while (effectRanges(e).some((r) => r.from === from)) from += 1
+  return setEffectRanges(doc, index, [...effectRanges(e), { from, delayMs: 200 }])
+}
+/** The delay the game uses for a fight `distance` squares apart: the last step at or below it, else 0. */
+export const delayAtDistance = (e: BattleEffectDef, distance: number): number =>
+  effectRanges(e).filter((r) => r.from <= distance).sort((a, b) => a.from - b.from).pop()?.delayMs ?? 0
+/** "endOffset": how many pixels short of the foe a flying effect stops (0 = the foe, written as no key). */
+export const END_OFFSET_MAX = 200
+export const setEndOffset = (doc: ProjectDoc, index: number, v: number | undefined): ProjectDoc => updateEffect(doc, index, { endOffset: v ? v : undefined })
+
 /** Lists: the `effects` of an entry, and its `byType` rows. An emptied list is written as no key. */
 export function setEffectIds(doc: ProjectDoc, index: number, ids: string[]): ProjectDoc {
   return updateEffect(doc, index, { effects: ids.length === 0 ? undefined : ids.length === 1 ? ids[0] : ids })
@@ -227,6 +247,18 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     else if (e.travelMs !== undefined) bad('give a flight time or a speed, not both.')
     else if (!whole(e.speed) || e.speed < 1 || e.speed > 10000) bad('the speed must be between 1 and 10000 stage pixels per second.')
     else if (!doc.graphics?.battle?.stage) bad('a speed is in stage pixels per second and needs a fixed stage (Stage card); use a flight time instead.')
+  }
+  if (e.endOffset !== undefined) {
+    if (!travel) bad('stopping short of the foe is only for a flying effect.')
+    else if (!whole(e.endOffset) || e.endOffset < 0 || e.endOffset > END_OFFSET_MAX) bad(`the distance it stops short must be between 0 and ${END_OFFSET_MAX} pixels.`)
+  }
+  if (e.atRange !== undefined) {
+    if (!Array.isArray(e.atRange) || e.atRange.length < 1 || e.atRange.length > RANGE_MAX) bad(`the delays by distance must be a list of 1 to ${RANGE_MAX} (remove the list to have none).`)
+    else e.atRange.forEach((r, i) => {
+      if (!whole(r.from) || r.from < 1 || r.from > 99) bad(`delay ${i + 1}: the distance must be between 1 and 99 squares.`)
+      else if (e.atRange!.some((o, j) => j < i && o.from === r.from)) bad(`delay ${i + 1}: another delay also starts at ${r.from} squares.`)
+      if (!whole(r.delayMs) || r.delayMs < 0 || r.delayMs > 15000) bad(`delay ${i + 1}: the delay must be between 0 and 15000 milliseconds.`)
+    })
   }
   if (e.lingerMs !== undefined) {
     if (!whole(e.lingerMs) || e.lingerMs < 0 || e.lingerMs > 5000) bad('the time it stays must be between 0 and 5000 milliseconds.')

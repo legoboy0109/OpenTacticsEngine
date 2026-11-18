@@ -19,6 +19,8 @@ struct FightScene::Geo {
   int shakeX = 0, shakeY = 0;  // the stage is moved by this much by an effect's shake (already added to the points above)
   bool stage = false;
   bool panning = false;  // a range band that shows one fighter at a time: the points are moved by the camera (docs/BATTLE_SCENE.md "Range bands")
+  double viewX = 0;           // a panning band: the world x of the picture's left edge (stage pixels)
+  bool scrollBackdrop = false;  // pan "backdrop": "scroll": the backdrop moves with viewX and wraps
   StageGeo sg;
 };
 

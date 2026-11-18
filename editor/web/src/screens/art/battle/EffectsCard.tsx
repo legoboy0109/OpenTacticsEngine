@@ -5,7 +5,7 @@ import { artBase } from '../../../model/artFiles'
 import { DEFAULT_FRAME_MS, weaponGroups } from '../../../model/battleArt'
 import {
   addEffect, effectBlend, effectFor, effectList, effectName, effectOrder, effectProblems, effectWeaponChoices, flightBySpeed, hasPictures, isRowRun, removeEffect, setEffectBlend,
-  setEffectFor, setEffectOrder, setEffectPicture, setFlightBySpeed, updateEffect, type EffectFor,
+  setEffectFor, setEffectOrder, setEffectPicture, setEndOffset, setFlightBySpeed, updateEffect, END_OFFSET_MAX, type EffectFor,
 } from '../../../model/battleEffects'
 import { sheetsOf } from '../../../model/graphics'
 import { useDoc, useEdit, useStore } from '../../../store/context'
@@ -17,6 +17,7 @@ import { Select } from '../../../ui/Select'
 import { TextInput } from '../../../ui/TextInput'
 import { Toggle } from '../../../ui/Toggle'
 import { EffectLists } from './EffectLists'
+import { EffectRanges } from './EffectRanges'
 import { EffectFades, EffectHides, EffectPulses, EffectSounds } from './EffectTimed'
 import { ET } from './effectText'
 
@@ -81,7 +82,7 @@ function EffectForm({ index }: { index: number }) {
               <Select aria-label={`Effect ${index + 1}: ${ET.mode}`} value={travel ? 'travel' : 'target'} options={[{ value: 'target', label: ET.modeTarget }, { value: 'travel', label: ET.modeTravel }]}
                 onChange={(v) => patch(v === 'travel'
                   ? { mode: 'travel', hitAtMs: undefined, at: undefined, ...(layer === 'screen' ? { layer: undefined, mirror: undefined } : {}) }
-                  : { mode: undefined, travelMs: undefined, speed: undefined, returns: undefined, lingerMs: undefined })} />
+                  : { mode: undefined, travelMs: undefined, speed: undefined, returns: undefined, lingerMs: undefined, endOffset: undefined })} />
             </Field>
             {travel && (
               <>
@@ -98,6 +99,9 @@ function EffectForm({ index }: { index: number }) {
                     <NumberInput aria-label={`Effect ${index + 1}: ${ET.travelMs}`} min={20} max={5000} value={e.travelMs ?? 250} onChange={(v) => v !== undefined && patch({ travelMs: v }, group('travel'))} />
                   </Field>
                 )}
+                <Field label={ET.endOffset} help={ET.endOffsetHelp}>
+                  <NumberInput aria-label={`Effect ${index + 1}: ${ET.endOffset}`} allowEmpty min={0} max={END_OFFSET_MAX} value={e.endOffset} onChange={(v) => edit((d) => setEndOffset(d, index, v), group('endoffset'))} />
+                </Field>
                 <Field label={ET.linger}>
                   <NumberInput aria-label={`Effect ${index + 1}: ${ET.linger}`} allowEmpty min={0} max={5000} value={e.lingerMs} onChange={(v) => patch({ lingerMs: v ? v : undefined }, group('linger'))} />
                 </Field>
@@ -133,6 +137,7 @@ function EffectForm({ index }: { index: number }) {
           </div>
           {travel && <Toggle label={ET.returns} help={ET.returnsHelp} checked={!!e.returns} onChange={(v) => patch({ returns: v ? true : undefined })} />}
           {layer === 'screen' && <Toggle label={ET.mirror} help={ET.mirrorHelp} checked={!!e.mirror} onChange={(v) => patch({ mirror: v ? true : undefined })} />}
+          <EffectRanges index={index} />
           <EffectSounds index={index} />
           <EffectPulses index={index} kind="flash" />
           <EffectPulses index={index} kind="shake" />

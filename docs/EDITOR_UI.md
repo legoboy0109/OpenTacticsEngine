@@ -1260,8 +1260,10 @@ All wording is placeholder (`screens/campaign/text.ts`, `C.freeWhen*`, `C.freeNo
   needs the Stage card's fixed stage), **Hide the backdrop or platforms** (rows: start, length, fill colour, which layers) and **Fade the scene** (rows: start, fade time, held, strength 0 to 1,
   colour, over everything / the backdrop only). **Art > Stage**: **Layouts by distance** (`ranges`): add a layout (from 4 squares, a copy of the far points), its first distance, **Shows** (both
   fighters / one fighter at a time with a camera), foot points, optional platform places and, for one at a time, **Camera time**, **Left view** and **Right view** (the world is then twice the stage
-  wide; switching back undoes it). Checks mirror the loader and also appear in the art check list (`model/stageBands.ts`, `model/battleEffects.ts`). Code: `StageBands.tsx`, `EffectTimed.tsx`
-  (`EffectHides`, `EffectFades`), `BattleSceneChoices.tsx`. Tests: `tests/unit/scene3.test.ts`, `tests/e2e/scene3.spec.ts`, `tests/editor_api_scene3_checks.py`.
+  wide; switching back undoes it), then **Backdrop** (stays where it is / moves with the camera: `pan.backdrop`) and **Camera leaves after** (`pan.startMs`; empty = timed to arrive with the blow). A flying effect also
+  has **Stops short of the foe** (`endOffset`), and any effect **Later when far away** (`atRange` rows: from distance, starts later by ms; `EffectRanges.tsx`). Checks mirror the loader and also appear in the
+  art check list (`model/stageBands.ts`, `model/battleEffects.ts`). Code: `StageBands.tsx`, `EffectTimed.tsx`
+  (`EffectHides`, `EffectFades`), `BattleSceneChoices.tsx`. Tests: `tests/unit/scene3.test.ts`, `tests/unit/scene4.test.ts`, `tests/e2e/scene3.spec.ts`, `tests/editor_api_scene3_checks.py`.
 - **Art screen**, card **Platforms** (below Battle backgrounds): a list of named pictures (choose the picture, optionally a "far" picture used at range 2+,
   delete: the terrain choices, the default and every map's table that named it go too) and the **Default platform**. A terrain's own platform is chosen on
   the **Terrain** screen, card "Weather and platform".

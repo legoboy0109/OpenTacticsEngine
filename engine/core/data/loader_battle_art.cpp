@@ -286,6 +286,30 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
     if (given("travelMs")) return c.fail(where, "give a \"travelMs\" or a \"speed\", not both");
     if (fx.speed < 1 || fx.speed > 10000) return c.fail(where, "\"speed\" must be between 1 and 10000 (stage pixels per second)");
   }
+  if (given("endOffset")) {  // docs/BATTLE_SCENE.md "Thrown weapons stopping short"
+    if (!c.integer(j, "endOffset", where, fx.endOffset)) return false;
+    if (!fx.travel) return c.fail(where, "\"endOffset\" is only for a \"travel\" effect (it stops short of the target)");
+    if (fx.endOffset < 0 || fx.endOffset > 200) return c.fail(where, "\"endOffset\" must be between 0 and 200 (pixels short of the target)");
+  }
+  if (given("atRange")) {  // docs/BATTLE_SCENE.md "Effect timing by distance"
+    const Json& r = j["atRange"];
+    if (!r.isArray() || r.size() < 1 || r.size() > 16)
+      return c.fail(where, "\"atRange\" must be a list of 1 to 16 { \"from\": 2, \"delayMs\": 267 }");
+    for (size_t i = 0; i < r.size(); ++i) {
+      const std::string w = where + " atRange " + std::to_string(i + 1);
+      if (!r[i].isObject()) return c.fail(w, "must be { \"from\": 2, \"delayMs\": 267 }");
+      for (const Json::Member& m : r[i].members())
+        if (m.first != "from" && m.first != "delayMs") return c.fail(w, "unknown key " + q(m.first) + " (expected \"from\", \"delayMs\")");
+      FxRange fr;
+      if (!c.integer(r[i], "from", w, fr.from, true) || !c.integer(r[i], "delayMs", w, fr.delayMs, true)) return false;
+      if (fr.from < 1 || fr.from > 99) return c.fail(w, "\"from\" must be between 1 and 99 (the fight distance in squares the delay starts at)");
+      if (fr.delayMs < 0 || fr.delayMs > 15000) return c.fail(w, "\"delayMs\" must be between 0 and 15000 (milliseconds the whole effect starts later)");
+      for (const FxRange& o : fx.atRange)
+        if (o.from == fr.from) return c.fail(w, "a second entry starts at " + std::to_string(fr.from) + " (each \"from\" can be used once)");
+      fx.atRange.push_back(fr);
+    }
+    std::sort(fx.atRange.begin(), fx.atRange.end(), [](const FxRange& a, const FxRange& b) { return a.from < b.from; });
+  }
   if (given("hide")) {  // docs/BATTLE_SCENE.md "Hiding and fading"
     const Json& h = j["hide"];
     if (!h.isArray() || h.size() > 32) return c.fail(where, "\"hide\" must be a list of up to 32 { \"atMs\": 0, \"ms\": 1500, \"what\": [\"backdrop\", \"platforms\"], \"color\": \"#000000\" }");
@@ -386,7 +410,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       fx.shake.push_back(sh);
     }
   }
-  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed"})
+  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed", "endOffset", "atRange"})
     if (given(k)) fx.extended = true;
   if (fx.anim.frameSheets.size() > 0) fx.extended = true;
   return true;
