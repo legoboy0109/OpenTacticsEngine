@@ -1,5 +1,6 @@
 // Types mirroring docs/GAME_FORMAT.md. Every object carries an index
 // signature so keys the UI does not know about survive load -> edit -> save.
+import type { AiRulesBlock } from './aiRules'
 import type { Behaviour } from './behaviour'
 import type { DifficultySet, MapDifficulties } from './difficultyTypes'
 import type { Audio } from './audioTypes'
@@ -39,6 +40,7 @@ export interface FogRules extends Extra { ambush?: AmbushRule }
 export type PlaceActions = 'menu' | 'auto'
 export interface PlaceRules extends Extra { actions?: PlaceActions }
 export interface Rules extends Extra {
+  ai?: AiRulesBlock  // docs/AI.md "Scripted-style computer players" (model/aiRules.ts)
   places?: PlaceRules
   items?: ItemRules
   supply?: SupplyRules

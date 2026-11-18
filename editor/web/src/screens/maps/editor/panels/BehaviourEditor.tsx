@@ -14,6 +14,7 @@ import { Select } from '../../../../ui/Select'
 import { TextInput } from '../../../../ui/TextInput'
 import { Check } from '../../../../ui/Toggle'
 import { B } from './behaviourText'
+import { MeasureField, RouteFields, ScriptedFields } from './ScriptedFields'
 
 interface Props {
   value: unknown
@@ -74,6 +75,7 @@ export function BehaviourEditor({ value, onChange, doc, map, id = 'behaviour' }:
           <Field label={B.within} help={B.withinHelp}>
             <NumberInput value={o.within} min={1} max={MAX_WITHIN} allowEmpty onChange={(v) => patch({ within: v }, 'within')} />
           </Field>
+          <MeasureField o={o} patch={patch} />
         </>
       )}
       {waits && (
@@ -82,6 +84,7 @@ export function BehaviourEditor({ value, onChange, doc, map, id = 'behaviour' }:
           <datalist id={`${list}-groups`} aria-label={B.groupSuggestions}>{groups.map((g) => <option key={g} value={g} />)}</datalist>
         </Field>
       )}
+      {mode === 'patrol' && <RouteFields o={o} patch={patch} map={map} id={id} />}
       {mode === 'seek' && (
         <>
           <Field label={B.seekWhat}>
@@ -129,6 +132,7 @@ export function BehaviourEditor({ value, onChange, doc, map, id = 'behaviour' }:
           <TextInput value={String(preferText)} onChange={(v) => patch({ prefer: { tag: v } }, 'prefer')} />
         </Field>
       )}
+      <ScriptedFields o={o} patch={patch} doc={doc} map={map} id={id} />
     </div>
   )
 }

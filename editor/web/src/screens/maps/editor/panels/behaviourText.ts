@@ -1,5 +1,6 @@
 // Wording of the computer unit's behaviour control and the story commands that change it (docs/AI.md, docs/EDITOR_UI.md "Behaviour").
 import type { BehaviourMode } from '../../../../model/behaviour'
+import { S } from './behaviourScriptedText'
 
 export const B = {
   title: 'Behaviour',
@@ -10,6 +11,7 @@ export const B = {
     guard: 'Waits until someone comes into its range',
     guardArea: 'Waits until someone comes near or into an area',
     seek: 'Heads for…',
+    patrol: S.patrolMode,
   } as Record<BehaviourMode, string>,
   modeHelp: {
     advance: 'The ordinary computer behaviour: it walks toward the enemy and attacks.',
@@ -17,6 +19,7 @@ export const B = {
     guard: 'It stays put until an enemy is within its reach (its move plus its weapon), then acts like an ordinary unit. A blow wakes it too.',
     guardArea: 'It stays put until an enemy stands in the area you set or comes within the distance you set, then acts like an ordinary unit.',
     seek: 'It makes for a unit, a place or a square and ignores other targets unless they stand in the way or can be hit for free.',
+    patrol: S.patrolHelp,
   } as Record<BehaviourMode, string>,
   mode: 'What it does',
   react: 'Never goes after anyone',

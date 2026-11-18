@@ -1,6 +1,7 @@
 // The computer opponent's behaviour of a unit (docs/AI.md): how it moves, when it starts, its group and a favourite target. A map unit, an `addUnit`
 // command and a `setBehaviour` command all hold the same block. A block is a mode name ("hold") or an object; the editor always edits the object
 // form and writes the shortest text that means the same (nothing for the default, a bare name when the mode is all there is).
+import { defaultRoute, keepScripted, SCRIPTED_KEYS, scriptedProblems } from './behaviourScripted'
 import { entryId } from './itemGrants'
 import { namedUnits } from './storyIds'
 import { placesOf } from './placeStory'
@@ -8,14 +9,16 @@ import { forEachCommand } from './storyWalk'
 import type { Rect } from './storyTypes'
 import type { MapFile, MapUnit, ProjectDoc, Unit } from './types'
 
-export type BehaviourMode = 'advance' | 'hold' | 'guard' | 'guardArea' | 'seek'
-export const BEHAVIOUR_MODES: BehaviourMode[] = ['advance', 'hold', 'guard', 'guardArea', 'seek']
+export type BehaviourMode = 'advance' | 'hold' | 'guard' | 'guardArea' | 'seek' | 'patrol'
+export const BEHAVIOUR_MODES: BehaviourMode[] = ['advance', 'hold', 'guard', 'guardArea', 'seek', 'patrol']
 export type SeekKind = 'unit' | 'place' | 'square'
 export type Prefer = 'weakest' | 'nearest' | { unit: string } | { type: string } | { tag: string }
 
 export interface BehaviourObj {
   mode?: string; wake?: string; group?: string; fromTurn?: number; area?: Rect; within?: number
   unit?: string; place?: string; x?: number; y?: number; prefer?: Prefer
+  /** The scripted-style keys (model/behaviourScripted.ts). */
+  order?: number; weights?: string; caution?: string; retreat?: unknown; idleTurns?: number; route?: unknown; ignores?: string[]; measure?: string
   [k: string]: unknown
 }
 export type Behaviour = string | BehaviourObj
@@ -41,7 +44,7 @@ export const seekKindOf = (o: BehaviourObj): SeekKind => (typeof o.unit === 'str
 
 /** The keys each mode keeps; everything else goes when the mode changes. `fromTurn` and `prefer` belong to every mode. */
 const KEEP: Record<BehaviourMode, string[]> = {
-  advance: [], hold: [], guard: ['wake', 'group'], guardArea: ['group', 'area', 'within'], seek: ['unit', 'place', 'x', 'y'],
+  advance: [], hold: [], guard: ['wake', 'group'], guardArea: ['group', 'area', 'within'], seek: ['unit', 'place', 'x', 'y'], patrol: [],
 }
 
 /** The block written the short way: undefined for the default, a bare mode name when nothing else is set, else an object. */
@@ -52,6 +55,7 @@ export function tidyBehaviour(o: BehaviourObj): Behaviour | undefined {
   for (const k of KEEP[mode]) if (o[k] !== undefined && o[k] !== '' && !(k === 'wake' && o[k] === 'once')) out[k] = o[k]
   if (typeof o.fromTurn === 'number' && o.fromTurn > 1) out.fromTurn = o.fromTurn
   if (o.prefer !== undefined) out.prefer = o.prefer
+  for (const k of SCRIPTED_KEYS) if (keepScripted(k, o[k], mode)) (out as Record<string, unknown>)[k] = o[k]
   // Keys the editor does not know stay (a hand-edited file keeps them; the loader says if they are wrong).
   for (const k of Object.keys(o)) if (!KNOWN.has(k)) out[k] = o[k]
   const keys = Object.keys(out)
@@ -59,7 +63,7 @@ export function tidyBehaviour(o: BehaviourObj): Behaviour | undefined {
   if (keys.length === 1 && out.mode !== undefined && (mode === 'hold' || mode === 'guard')) return mode
   return out
 }
-const KNOWN = new Set(['mode', 'wake', 'group', 'fromTurn', 'area', 'within', 'unit', 'place', 'x', 'y', 'prefer'])
+const KNOWN = new Set(['mode', 'wake', 'group', 'fromTurn', 'area', 'within', 'unit', 'place', 'x', 'y', 'prefer', ...SCRIPTED_KEYS])
 
 export const isDefaultBehaviour = (b: unknown): boolean => tidyBehaviour(behaviourObj(b)) === undefined
 
@@ -82,9 +86,11 @@ export function withMode(b: unknown, mode: BehaviourMode, ctx: BehaviourContext)
   const o: BehaviourObj = { mode }
   if (old.fromTurn !== undefined) o.fromTurn = old.fromTurn
   if (old.prefer !== undefined) o.prefer = old.prefer
+  for (const k of SCRIPTED_KEYS) if (old[k] !== undefined && k !== 'route' && k !== 'measure') (o as Record<string, unknown>)[k] = old[k]  // they belong to every mode (route and measure to one each)
   if (mode === old.mode) return { ...old }
   if (mode === 'guard' || mode === 'guardArea') if (old.group !== undefined) o.group = old.group
   if (mode === 'guardArea') o.within = 3
+  if (mode === 'patrol') o.route = defaultRoute(ctx.width, ctx.height)
   if (mode === 'seek') {
     if (ctx.places.length) o.place = ctx.places[0]
     else if (ctx.units.length) o.unit = ctx.units[0]
@@ -122,6 +128,7 @@ export function behaviourMark(b: unknown): string | null {
     case 'hold': return 'H'
     case 'guard': case 'guardArea': return 'G'
     case 'seek': return 'S'
+    case 'patrol': return 'P'
     default: return typeof o.fromTurn === 'number' && o.fromTurn > 1 ? 'T' : null
   }
 }
@@ -129,7 +136,7 @@ export function behaviourMark(b: unknown): string | null {
 // --- units with a story name: renames and deletes ------------------------------------------------------------------------------
 
 /** Where a behaviour block of this map's units names unit `id` (heads for it, prefers it). */
-const namesUnit = (o: BehaviourObj, id: string): boolean => o.unit === id || (typeof o.prefer === 'object' && o.prefer !== null && (o.prefer as { unit?: string }).unit === id)
+const namesUnit = (o: BehaviourObj, id: string): boolean => o.unit === id || (Array.isArray(o.ignores) && o.ignores.includes(id)) || (typeof o.prefer === 'object' && o.prefer !== null && (o.prefer as { unit?: string }).unit === id)
 
 /** A unit's story name changed: the blocks that head for it or prefer it follow. */
 export function renameBehaviourUnit(map: MapFile, from: string, to: string): MapFile {
@@ -137,6 +144,7 @@ export function renameBehaviourUnit(map: MapFile, from: string, to: string): Map
     const o = behaviourObj(b)
     if (!namesUnit(o, from)) return b
     if (o.unit === from) o.unit = to
+    if (Array.isArray(o.ignores)) o.ignores = o.ignores.map((i) => (i === from ? to : i))
     if (typeof o.prefer === 'object' && o.prefer !== null && (o.prefer as { unit?: string }).unit === from) o.prefer = { unit: to }
     return o
   }
@@ -150,6 +158,7 @@ export function dropBehaviourUnit(map: MapFile, id: string): MapFile {
   const fix = (b: unknown): Behaviour | undefined => {
     const o = behaviourObj(b)
     if (o.unit === id) { delete o.unit; o.mode = 'advance' }
+    if (Array.isArray(o.ignores)) o.ignores = o.ignores.filter((i) => i !== id)
     if (typeof o.prefer === 'object' && o.prefer !== null && (o.prefer as { unit?: string }).unit === id) delete o.prefer
     return tidyBehaviour(o)
   }
@@ -195,7 +204,7 @@ export function blockProblems(b: unknown, doc: ProjectDoc, map: MapFile, say: (t
   const o = behaviourObj(b)
   const mode = modeOf(o)
   if (typeof b !== 'string' && (typeof b !== 'object' || b === null || Array.isArray(b))) { say('the behaviour is not a mode name or a block.'); return }
-  if (o.mode !== undefined && !BEHAVIOUR_MODES.includes(o.mode as BehaviourMode)) say(`“${String(o.mode)}” is not a behaviour (advance, hold, guard, guardArea or seek).`)
+  if (o.mode !== undefined && !BEHAVIOUR_MODES.includes(o.mode as BehaviourMode)) say(`“${String(o.mode)}” is not a behaviour (advance, hold, guard, guardArea, seek or patrol).`)
   if (mine.human) say('a behaviour tells the computer what to do, but this unit is on a side a person plays.')
   if (o.fromTurn !== undefined) {
     if (!Number.isInteger(o.fromTurn) || o.fromTurn < 1 || o.fromTurn > MAX_FROM_TURN) say(`“does nothing before turn” must be a whole number from 1 to ${MAX_FROM_TURN}.`)
@@ -220,6 +229,7 @@ export function blockProblems(b: unknown, doc: ProjectDoc, map: MapFile, say: (t
     if (a !== undefined && (a.x >= map.grid.width || a.y >= map.grid.height || a.x < 0 || a.y < 0)) say('its area starts outside the map.')
     if (o.within !== undefined && (!Number.isInteger(o.within) || o.within < 1 || o.within > MAX_WITHIN)) say(`the distance must be a whole number from 1 to ${MAX_WITHIN}.`)
   }
+  scriptedProblems(o, mode, doc, map, say)
   const p = o.prefer
   if (typeof p === 'object' && p !== null && 'unit' in p && typeof p.unit === 'string' && p.unit !== '' && !namedUnits(doc, map).some((u) => u.id === p.unit) && !doc.characters?.some((c) => c.id === p.unit))
     say(`it prefers “${p.unit}”, which is not a named unit of this map.`)
@@ -235,6 +245,7 @@ export function behaviourPhrase(b: unknown): string {
     case 'hold': text = 'stay where they are'; break
     case 'guard': text = o.wake === 'react' ? 'only hit what comes within reach' : 'wait until someone comes into range'; break
     case 'guardArea': text = 'wait until someone comes near'; break
+    case 'patrol': text = 'walk their route'; break
     case 'seek': text = typeof o.unit === 'string' ? `head for ${o.unit || 'a unit'}` : typeof o.place === 'string' ? `head for ${o.place || 'a place'}` : `head for the square ${(o.x ?? 0) + 1}, ${(o.y ?? 0) + 1}`; break
     default: text = 'advance and attack'
   }

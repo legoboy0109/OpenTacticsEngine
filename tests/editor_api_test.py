@@ -50,6 +50,7 @@ from editor_api_fidelity2_checks import run_fidelity2_checks
 from editor_api_fidelity3_checks import run_fidelity3_checks
 from editor_api_gaps_checks import run_gaps_checks
 from editor_api_behaviour_checks import run_behaviour_checks
+from editor_api_scripted_checks import run_scripted_checks
 from editor_api_prep_checks import run_prep_checks
 from editor_api_quotes_checks import run_quotes_checks
 from editor_api_rename_checks import run_rename_checks
@@ -203,6 +204,7 @@ def main():
         run_fidelity3_checks(api, tmp, games, templates, check, get_project, put_project)
         run_gaps_checks(api, tmp, games, templates, check, get_project, put_project)
         run_behaviour_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_scripted_checks(api, tmp, games, templates, check, get_project, put_project)
         run_quotes_checks(api, tmp, games, templates, check, get_project, put_project)
         run_rename_checks(api, tmp, games, templates, check, get_project, put_project)
         run_prep_checks(api, tmp, games, templates, check, get_project, put_project)

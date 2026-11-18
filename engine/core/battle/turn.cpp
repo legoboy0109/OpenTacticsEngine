@@ -67,6 +67,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
   // skills, after repair and supply and before the story's turn events.
   srpgTurnStart(events);
   if (over) return;  // a condition's damage or a berserk unit's fight ended the battle
+  aiTurnStart();     // docs/AI.md: after healing and damage, so the retreat check sees this turn's hit points
 
   StoryOccurrence o;
   o.kind = Trigger::Kind::Turn;

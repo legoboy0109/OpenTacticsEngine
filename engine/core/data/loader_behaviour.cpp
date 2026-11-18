@@ -25,6 +25,10 @@ bool checkBehaviourPlace(const LoadCtx& c, const MapDef& m, const std::string& w
   if (b.seekCell && (b.sx >= m.width || b.sy >= m.height))
     return c.fail(where, "the square " + std::to_string(b.sx) + "," + std::to_string(b.sy) + " to head for is outside the map (" +
                              std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
+  for (size_t i = 0; i < b.route.size(); ++i)
+    if (b.route[i].first >= m.width || b.route[i].second >= m.height)
+      return c.fail(where, "\"route\" square " + std::to_string(i + 1) + " (" + std::to_string(b.route[i].first) + "," + std::to_string(b.route[i].second) +
+                               ") is outside the map (" + std::to_string(m.width) + " x " + std::to_string(m.height) + ")");
   if (!b.seekPlace.empty()) {
     bool found = false;
     for (const MapStructureDef& s : m.structures) found = found || s.id == b.seekPlace;
@@ -39,6 +43,8 @@ bool checkBehaviourUnits(const LoadCtx& c, const Database& db, const std::vector
     return c.fail(where, "\"unit\" names unknown unit " + q(b.seekUnit) + " (give the unit an \"id\" in the map's units)");
   if (b.prefer == AiPrefer::Unit && !knownUnit(db, ids, b.preferText))
     return c.fail(where, "\"prefer\" names unknown unit " + q(b.preferText) + " (give the unit an \"id\" in the map's units)");
+  for (const std::string& id : b.ignores)
+    if (!knownUnit(db, ids, id)) return c.fail(where, "\"ignores\" names unknown unit " + q(id) + " (give the unit an \"id\" in the map's units, or use a character id)");
   return true;
 }
 
@@ -54,7 +60,7 @@ bool readUnitBehaviour(const LoadCtx& c, const Database& db, const MapDef& m, co
 // The seek / prefer unit references of every map unit; run once the units (and the ids of addUnit commands) are known.
 bool checkMapBehaviours(const Database& db, const Json& root, const MapDef& m, const std::string& file, std::string& err) {
   bool any = false;
-  for (const MapUnitDef& u : m.units) any = any || !u.behaviour.seekUnit.empty() || u.behaviour.prefer == AiPrefer::Unit;
+  for (const MapUnitDef& u : m.units) any = any || !u.behaviour.seekUnit.empty() || u.behaviour.prefer == AiPrefer::Unit || !u.behaviour.ignores.empty();
   if (!any) return true;
   std::vector<std::string> ids;
   for (const MapUnitDef& u : m.units)

@@ -15,6 +15,7 @@ import { SavingCard } from './SavingCard'
 import { FogRuleCard } from './FogRuleCard'
 import { FidelityCard } from './FidelityCard'
 import { PlacesRuleCard } from './PlacesRuleCard'
+import { AiRuleCard } from './AiRuleCard'
 import { ResearchRuleCard } from './ResearchRuleCard'
 import { SupplyCard } from './SupplyCard'
 import { SrpgRulesCards } from './srpg/SrpgRulesCards'
@@ -51,6 +52,7 @@ function RulesForm() {
       <SupplyCard />
       <ResearchRuleCard />
       <FogRuleCard />
+      <AiRuleCard />
       <FidelityCard />
       <ItemsCard />
       <PlacesRuleCard />

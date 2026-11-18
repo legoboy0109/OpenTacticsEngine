@@ -56,6 +56,8 @@ int cureSlot(const Battle& b, const Unit& u, bool staysPut, int& target) {
 
 }  // namespace
 
+int healingItemSlot(const Battle& b, const Unit& u) { return selfHealSlot(b, u); }
+
 void considerCuring(const Battle& b, const Unit& u, Order& order) {
   if (u.items.empty() || (order.kind != ActionType::Attack && order.kind != ActionType::Wait)) return;
   if (order.kind == ActionType::Attack && attackKills(b, u, order)) return;

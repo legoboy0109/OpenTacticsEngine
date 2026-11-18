@@ -27,8 +27,10 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   ai::assignCaptureGoals(cx);
   int bestUnit = -1;
   ai::Order best;
+  const int turnOf = ai::orderedUnit(battle, side);  // rules.ai.turnOrder "order": one unit at a time, in its order; -1 = the best action first
   for (const Unit& u : battle.units) {
     if (!u.alive || u.side != side || u.done) continue;
+    if (turnOf >= 0 && u.id != turnOf) continue;
     ai::Order o = ai::bestOrder(cx, u);
     if (bestUnit < 0 || o.score > best.score) {  // strict: ties go to the lowest unit id
       bestUnit = u.id;

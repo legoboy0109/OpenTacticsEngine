@@ -41,9 +41,10 @@ bool inArea(const Battle& b, const AiBehaviour& beh, Cell c) {
 bool shouldWake(const Battle& b, const Unit& u) {
   const AiBehaviour& beh = u.behaviour;
   if (beh.mode == AiMode::Guard) return couldStrike(b, u);
+  if (beh.within > 0 && beh.areaMoveCost && hostileWithinMoveCost(b, u, beh.within)) return true;  // "measure": "moveCost"
   for (const Unit& o : b.units) {
     if (!hostileKnown(b, u, o)) continue;
-    if (beh.within > 0 && b.grid.distance(u.cell, o.cell) <= beh.within) return true;
+    if (beh.within > 0 && !beh.areaMoveCost && b.grid.distance(u.cell, o.cell) <= beh.within) return true;
     if (beh.hasArea && inArea(b, beh, o.cell)) return true;
   }
   return false;
@@ -114,6 +115,10 @@ Stance stanceFor(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
     case AiMode::GuardArea:
       if (!u.awake) st.idle = true;
       break;
+    case AiMode::Patrol:
+      // it attacks what it can reach like a reactive guard (nothing to wake); its own walk is considerPatrol's, not the advance
+      fillPatrol(b, u, st);
+      break;
     case AiMode::Seek: {
       std::vector<Cell> goals;
       if (!seekGoals(b, u, goals, st.seekTarget)) break;  // nothing to head for: acts as Advance
@@ -124,11 +129,14 @@ Stance stanceFor(Context& cx, const Unit& u, const std::vector<Cell>& stops) {
       break;
     }
   }
+  if (beh.idleTurns > 0 && u.idleSeen <= beh.idleTurns) st.noAdvance = true;  // "idleTurns": it attacks what it can reach but makes no approach move
+  fillIgnores(b, u, st);
   return st;
 }
 
 bool adjustAttack(const Battle& b, const Stance& st, const Unit& u, const Unit& target, Cell from, double& score) {
   if (!st.beh) return true;
+  if (ignoredTarget(st, target.id) && target.id != st.seekTarget) return false;  // "ignores" (a seeker's own target is exempt)
   if (st.seeking) {
     if (target.id == st.seekTarget) score = score * kSeekTargetFactor + kSeekTargetBonus;
     else if (st.field[(size_t)from] > st.bestGoal) return false;  // a free hit only: it must not cost the seeker ground

@@ -376,6 +376,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
+  if (!loadAiRules(root + "/game.json", db, err)) return false;  // "rules.ai" (docs/AI.md); needs the unit types
   if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;
   if (!loadCampaign(root + "/data/campaign.json", db, err)) return false;
   if (!loadSupports(root + "/data/supports.json", db, err)) return false;  // needs the characters

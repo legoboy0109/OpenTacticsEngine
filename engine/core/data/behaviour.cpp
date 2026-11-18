@@ -9,7 +9,7 @@
 namespace ote {
 
 bool AiBehaviour::isDefault() const {
-  return mode == AiMode::Advance && fromTurn == 0 && group.empty() && prefer == AiPrefer::None;
+  return mode == AiMode::Advance && fromTurn == 0 && group.empty() && prefer == AiPrefer::None && scriptedIsDefault(*this);
 }
 
 const char* behaviourModeName(AiMode m) {
@@ -18,6 +18,7 @@ const char* behaviourModeName(AiMode m) {
     case AiMode::Guard: return "guard";
     case AiMode::GuardArea: return "guardArea";
     case AiMode::Seek: return "seek";
+    case AiMode::Patrol: return "patrol";
     default: return "advance";
   }
 }
@@ -69,35 +70,38 @@ bool intKey(const Json& o, const char* key, int lo, int hi, int& out, std::strin
 bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::string& err) {
   AiBehaviour b;
   const std::string modes = "\"advance\", \"hold\", \"guard\", \"guardArea\" or \"seek\"";
+  const std::string patrolNote = " (\"patrol\" too, with a \"route\")";  // after the old list, so the wording the tests know stays
   if (v.isString()) {
     const std::string m = v.asString();
     if (m == "advance") b.mode = AiMode::Advance;
     else if (m == "hold") b.mode = AiMode::Hold;
     else if (m == "guard") b.mode = AiMode::Guard;
-    else if (m == "guardArea" || m == "seek")
-      return no(err, q(m) + " needs more than a name (" + (m == "seek" ? "what to head for" : "an area or a distance") +
+    else if (m == "guardArea" || m == "seek" || m == "patrol")
+      return no(err, q(m) + " needs more than a name (" + (m == "seek" ? "what to head for" : m == "patrol" ? "a route" : "an area or a distance") +
                          "): write { \"mode\": " + q(m) + ", ... }");
-    else return no(err, "\"behaviour\" must be " + modes + ", not " + q(m));
+    else return no(err, "\"behaviour\" must be " + modes + ", not " + q(m) + patrolNote);
     out = b;
     return true;
   }
   if (!v.isObject()) return no(err, "\"behaviour\" must be a mode name such as \"hold\" or an object such as { \"mode\": \"guard\" }");
   static const char* const kKeys[] = {"mode", "wake", "group", "fromTurn", "area", "within", "unit", "place", "x", "y", "prefer"};
   for (const Json::Member& m : v.members()) {
-    bool known = false;
+    bool known = scriptedKey(m.first);
     for (const char* k : kKeys) known = known || m.first == k;
     if (!known)
-      return no(err, "\"behaviour\" has an unknown key " + q(m.first) + " (it may have mode, wake, group, fromTurn, area, within, unit, place, x, y, prefer)");
+      return no(err, "\"behaviour\" has an unknown key " + q(m.first) + " (it may have mode, wake, group, fromTurn, area, within, measure, unit, place, x, y, prefer, " +
+                         "order, weights, caution, retreat, idleTurns, route, ignores)");
   }
   if (v.has("mode")) {
-    if (!v["mode"].isString()) return no(err, "\"mode\" must be " + modes);
+    if (!v["mode"].isString()) return no(err, "\"mode\" must be " + modes + patrolNote);
     const std::string m = v["mode"].asString();
     if (m == "advance") b.mode = AiMode::Advance;
     else if (m == "hold") b.mode = AiMode::Hold;
     else if (m == "guard") b.mode = AiMode::Guard;
     else if (m == "guardArea") b.mode = AiMode::GuardArea;
     else if (m == "seek") b.mode = AiMode::Seek;
-    else return no(err, "\"mode\" must be " + modes + ", not " + q(m));
+    else if (m == "patrol") b.mode = AiMode::Patrol;
+    else return no(err, "\"mode\" must be " + modes + ", not " + q(m) + patrolNote);
   }
   const bool guards = b.mode == AiMode::Guard || b.mode == AiMode::GuardArea;
   if (v.has("wake")) {
@@ -157,6 +161,7 @@ bool parseBehaviour(const Json& v, const Database& db, AiBehaviour& out, std::st
     }
   }
   if (v.has("prefer") && !readPrefer(v["prefer"], db, b, err)) return false;
+  if (!readScripted(v, db, b, err)) return false;
   out = b;
   return true;
 }
@@ -182,6 +187,7 @@ Json behaviourToJson(const AiBehaviour& b) {
     o.set("x", Json::makeNumber(b.sx));
     o.set("y", Json::makeNumber(b.sy));
   }
+  writeScripted(b, o);
   if (b.prefer == AiPrefer::Weakest) o.set("prefer", Json::makeString("weakest"));
   else if (b.prefer == AiPrefer::Nearest) o.set("prefer", Json::makeString("nearest"));
   else if (b.prefer != AiPrefer::None) {

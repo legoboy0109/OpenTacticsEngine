@@ -1,0 +1,34 @@
+{
+ "units": [
+  {
+   "id": "soldier",
+   "name": "Soldier",
+   "glyph": "S",
+   "moveType": "foot",
+   "stats": {
+    "hp": 20,
+    "str": 6,
+    "def": 2,
+    "mov": 4
+   },
+   "weapons": [
+    "sword"
+   ]
+  },
+  {
+   "id": "archer",
+   "name": "Archer",
+   "glyph": "A",
+   "moveType": "foot",
+   "stats": {
+    "hp": 16,
+    "str": 5,
+    "def": 1,
+    "mov": 4
+   },
+   "weapons": [
+    "bow"
+   ]
+  }
+ ]
+}

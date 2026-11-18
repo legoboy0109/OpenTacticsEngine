@@ -73,7 +73,7 @@ int danger(const Battle& b, const Unit& u, Cell c, double fade) {
   return (int)(outnumbered(b, u, c) * kDangerCost * fade);
 }
 
-void considerAdvance(Context& cx, const Unit& u,
+void considerAdvance(Context& cx, const Unit& u, const Stance& st,
                      const std::vector<Cell>& stops, Order& best) {
   const Battle& b = cx.b;
   if (stops.size() < 2 || leaderStaysHome(b, u)) return;
@@ -83,10 +83,14 @@ void considerAdvance(Context& cx, const Unit& u,
   const std::vector<int>* field = nullptr;
   if (b.typeOf(u).canCapture && u.id < (int)cx.assigned.size() && cx.assigned[u.id] != kNoCell)
     field = &cx.goalFieldFor(mt, cx.assigned[u.id]);
+  else if (st.ownGoals)
+    field = &st.goalField;  // "ignores": the nearest hostile unit it does not ignore
   else
     field = &cx.enemyFieldFor(mt);
 
-  const double fade = fadeFactor(b);
+  // "caution": "none" (docs/AI.md): straight-line pursuit, the outnumbered / danger cost of a square does not count.
+  const bool cautious = !(st.beh && st.beh->cautionNone);
+  const double fade = cautious ? fadeFactor(b) : 0;
   int minRange = kFar;
   std::vector<int> weapons;
   b.weaponsOf(u, weapons);
@@ -141,6 +145,8 @@ Order bestOrder(Context& cx, const Unit& u) {
   if (st.idle || (st.stay && u.acted)) return Order();
   if (st.stay) stops.assign(1, u.cell);                // hold: acts from where it stands
   if (u.acted) return moveAgainOrder(b, u, stops);   // action used up: only the rest of its movement
+  if (u.retreating && st.beh && st.beh->retreat.on) return retreatOrder(cx, u, stops);  // docs/AI.md "Retreat to heal": no attacking
+  const AiWeightSet* weights = st.beh && st.beh->weightSet >= 0 ? &b.db->rules.ai.weights[(size_t)st.beh->weightSet] : nullptr;  // docs/AI.md "Attack weights"
 
   const double fade = fadeFactor(b);
   Order best;  // default: Wait in place, score 0
@@ -161,7 +167,8 @@ Order bestOrder(Context& cx, const Unit& u) {
 
     considerStaves(b, u, s, travel, best);  // a staff beats an attack only by its own worth (ai_staves.cpp)
 
-    b.attackOptions(u.id, s, options);
+    if (weights) options.clear();  // it chooses its attack by its weights, below
+    else b.attackOptions(u.id, s, options);
     for (const AttackOption& o : options) {
       const bool walkToWeapon = o.mapWeapon && s != u.cell;  // docs/SRPG.md "Map weapons": only a marked unit goes for one
       if (walkToWeapon && !(u.aiGoals & kAiWeapons)) continue;
@@ -194,12 +201,18 @@ Order bestOrder(Context& cx, const Unit& u) {
     }
   }
 
+  if (weights) {
+    Order w;
+    if (weightedAttack(b, u, st, reach, stops, w) && w.score > best.score) best = w;
+  }
+
   // No attack of its own (a capture or a staff may be the best order): a ballista it can reach and fire from beats walking on.
   if (viaMapWeapon.kind == ActionType::Attack && best.kind != ActionType::Attack && viaMapWeapon.score > best.score) best = viaMapWeapon;
 
   if (!u.moved && !st.noAdvance) {
     if (st.seeking) considerSeek(st, cx, u, stops, best);
-    else considerAdvance(cx, u, stops, best);
+    else if (st.patrolling) considerPatrol(st, b, u, stops, best);
+    else if (u.behaviour.mode != AiMode::Patrol) considerAdvance(cx, u, st, stops, best);
   }
   considerPlaces(cx, u, reach, stops, best);  // chests, villages and doors, for a unit the map marked (ai_places.cpp)
   considerHealing(b, u, best);
