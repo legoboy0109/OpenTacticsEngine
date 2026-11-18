@@ -5,6 +5,7 @@
 
 #include "battle/fight_scene.h"
 #include "battle/fight_scene_geo.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -300,7 +301,19 @@ void FightScene::drawScreenEffect(Renderer& r, const Geo& g, const BattleEffect&
     x = (g.W - sheet.cellW * k) / 2 + g.shakeX;
     y = (g.H - sheet.cellH * k) / 2 + g.shakeY;
   }
-  r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, x, y, sheet.cellW * k, sheet.cellH * k);
+  drawEffectPicture(r, be, tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, x, y, sheet.cellW * k, sheet.cellH * k);
+}
+
+// One picture of an effect, normal or (`"blend": "add"`) additive. A backend that cannot blend additively draws it normally and says so once.
+void FightScene::drawEffectPicture(Renderer& r, const BattleEffect& be, TextureId tex, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh) const {
+  static bool warned = false;
+  const bool add = be.additive && r.setAdditiveBlend(true);
+  if (be.additive && !add && !warned) {
+    warned = true;
+    OTE_WARN("battle scene: additive blending is not available on this renderer; effects with \"blend\": \"add\" are drawn normally");
+  }
+  r.drawTexture(tex, sx, sy, sw, sh, dx, dy, dw, dh);
+  if (add) r.setAdditiveBlend(false);
 }
 
 void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
@@ -348,8 +361,8 @@ void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
     const int sx = mirror ? (sheet.cols - 1 - cell.col) * sheet.cellW : cell.col * sheet.cellW;
     int anchorX = be.anchorX >= 0 ? be.anchorX : sheet.cellW / 2, anchorY = be.anchorY >= 0 ? be.anchorY : sheet.cellH / 2;
     if (mirror) anchorX = sheet.cellW - anchorX;
-    r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, (int)std::lround(cx) - anchorX * s, (int)std::lround(cy) - anchorY * s,
-                  sheet.cellW * s, sheet.cellH * s);
+    drawEffectPicture(r, be, tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, (int)std::lround(cx) - anchorX * s, (int)std::lround(cy) - anchorY * s,
+                      sheet.cellW * s, sheet.cellH * s);
   }
 }
 

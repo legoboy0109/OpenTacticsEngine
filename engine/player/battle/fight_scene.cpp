@@ -352,7 +352,7 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
       break;
     case BeatKind::StaffNote:
       OTE_INFO("battle scene: staff %s %s (%s)", beat.value == 1 ? "repair" : "condition", beat.text.c_str(), who.name.c_str());
-      addFloat(beat.text, beat.side, kTag, 1.3, true);
+      addFloat(beat.text, beat.side, kTag, 1.3, true, 12);  // (above the "+N" that came first)
       break;
     case BeatKind::Heal:
       OTE_INFO("battle scene: drain %s +%d", who.name.c_str(), beat.value);

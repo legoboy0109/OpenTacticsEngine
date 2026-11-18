@@ -159,6 +159,7 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
                               Color mod) {
   if (id < 1 || (size_t)id > images_.size() || !images_[(size_t)id - 1] || sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) return;
   SDL_Texture* t = images_[(size_t)id - 1];
+  SDL_SetTextureBlendMode(t, additive_ ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);  // (a texture keeps its mode: set it on every draw)
   SDL_SetTextureColorMod(t, mod.r, mod.g, mod.b);
   SDL_SetTextureAlphaMod(t, mod.a);
   SDL_Rect src = {sx, sy, sw, sh};

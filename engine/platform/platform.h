@@ -103,6 +103,10 @@ class Renderer {
   // (white = as is). Unknown ids draw nothing.
   virtual void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
                            Color mod = Color(255, 255, 255)) = 0;
+  // Additive drawing for the textures drawn next (docs/BATTLE_SCENE.md "Blending"): on = the picture's colour, times its alpha and `mod`, is ADDED to
+  // what is under it (it only brightens); off (the default) = alpha blended. Returns false when the backend cannot do it: the call then changes
+  // nothing and pictures are drawn normally. Always switch it off again after the pictures that wanted it.
+  virtual bool setAdditiveBlend(bool on) { return false; }
 };
 
 // What the player implements.

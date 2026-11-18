@@ -267,6 +267,12 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
     if (fx.lingerMs < 0 || fx.lingerMs > 5000) return c.fail(where, "\"lingerMs\" must be between 0 and 5000");
     if (fx.lingerMs > 0 && !fx.travel) return c.fail(where, "\"lingerMs\" is only for a \"travel\" effect (it stays at the target after arriving)");
   }
+  if (given("blend")) {  // docs/BATTLE_SCENE.md "Blending"
+    std::string blend;
+    if (!c.str(j, "blend", where, blend)) return false;
+    if (blend != "normal" && blend != "add") return c.fail(where, "\"blend\" must be \"normal\" (the default) or \"add\" (its pixels brighten what is under them)");
+    fx.additive = blend == "add";
+  }
   if (given("flash")) {
     const Json& f = j["flash"];
     if (!f.isArray() || f.size() > 32) return c.fail(where, "\"flash\" must be a list of up to 32 { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
@@ -300,7 +306,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       fx.shake.push_back(sh);
     }
   }
-  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs"})
+  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend"})
     if (given(k)) fx.extended = true;
   if (fx.anim.frameSheets.size() > 0) fx.extended = true;
   return true;

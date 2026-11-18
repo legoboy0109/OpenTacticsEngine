@@ -109,6 +109,7 @@ struct BattleEffect {
   int lingerMs = 0;                  // travel: stays at the target this long after arriving
   std::vector<int> list;             // assignment: indices of further effects that play with this one (after its own pictures)
   std::vector<std::pair<int, std::vector<int>>> byType;  // assignment: striker's unit type index -> the effects that replace this entry's own
+  bool additive = false;             // "blend": "add": its pixels brighten what is under them (docs/BATTLE_SCENE.md "Blending")
   bool extended = false;             // any of the newer keys was given (it then also logs its start)
   bool assignsOnly() const { return !anim.any(); }
 };
