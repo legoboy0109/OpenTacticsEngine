@@ -2,7 +2,7 @@
 // maker hears about it before Play. One list of sentences per command, used by the map-event checks (storyChecks.ts) and by the
 // campaign's scene checks (campaignChecks.ts). A scene left faded out is fine: it fades in by itself, so nothing says anything.
 import { backgroundIds } from './backgrounds'
-import { commandKind, type Command } from './storyTypes'
+import { commandKind, STAGE_POSITIONS, type Command } from './storyTypes'
 import type { ProjectDoc } from './types'
 
 export const MAX_SCENE_MS = 10000
@@ -48,7 +48,18 @@ export function sceneProblems(doc: ProjectDoc, c: Command, scene: boolean): stri
       break
     case 'leave':
       if (typeof c.leave !== 'string' || c.leave.trim() === '') out.push('name the speaker who leaves (the unit or name a line used).')
+      if (c.transition !== undefined && c.transition !== 'cut' && c.transition !== 'fade') out.push('the transition is “cut” or “fade”.')
+      add(ms('the fade time', c.ms, MAX_SCENE_MS))
       break
+    case 'enter': case 'move': {
+      const who = c.enter ?? c.move
+      if (typeof who !== 'string' || who.trim() === '') out.push(`name the speaker who ${commandKind(c) === 'enter' ? 'comes on stage' : 'moves'} (the unit or name a line used).`)
+      if (c.position === undefined) out.push('pick the place on the stage.')
+      else if (!STAGE_POSITIONS.includes(c.position)) out.push('the place is farLeft, left, midLeft, center, midRight, right or farRight.')
+      if (c.transition !== undefined && c.transition !== 'cut' && c.transition !== 'fade') out.push('the transition is “cut” or “fade”.')
+      add(ms('the transition time', c.ms, MAX_SCENE_MS))
+      break
+    }
     case 'weather':
       if (scene) out.push('weather is for map events only: a scene has no map to put weather over.')
       else if (c.weather !== 'rain' && c.weather !== 'snow' && c.weather !== 'none') out.push('the weather is rain, snow or none.')
@@ -58,11 +69,13 @@ export function sceneProblems(doc: ProjectDoc, c: Command, scene: boolean): stri
       add(ms('the “goes on by itself” time', c.auto, MAX_AUTO_MS, 1))
       break
     case 'say':
-      if (c.position !== undefined && c.position !== 'left' && c.position !== 'right' && c.position !== 'center') out.push('the place is left, right or center.')
+      if (c.position !== undefined && !STAGE_POSITIONS.includes(c.position)) out.push('the place is left, right or center (or farLeft, midLeft, midRight, farRight).')
       add(ms('the “goes on by itself” time', c.auto, MAX_AUTO_MS, 1))
       break
     case 'focus':
       add(ms('the scroll time', c.ms, MAX_SCENE_MS))
+      if (c.speed !== undefined && (typeof c.speed !== 'number' || c.speed < 0.1 || c.speed > 100)) out.push('the scroll speed is squares per second, from 0.1 to 100.')
+      if (c.speed !== undefined && c.ms !== undefined) out.push('give the scroll time or its speed, not both.')
       if (c.wait !== undefined && typeof c.wait !== 'boolean') out.push('“wait” is yes or no.')
       break
     case 'moveUnit':

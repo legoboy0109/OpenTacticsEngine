@@ -132,22 +132,53 @@ bool useMusic(const LoadCtx& c, const AudioData& d, const Json& use, const char*
   return true;
 }
 
+// "phaseMusic": { "<side id>": "<music id>" } and "fewEnemies": { "music": id, "count": n } of the `use` block.
+bool readSituations(const LoadCtx& c, const Json& use, const std::string& where, AudioData& out) {
+  if (use.has("phaseMusic")) {
+    const Json& p = use["phaseMusic"];
+    if (!p.isObject()) return c.fail(where, "\"phaseMusic\" must be an object of side id -> music id");
+    for (const Json::Member& m : p.members()) {
+      if (!isStoryId(m.first)) return c.fail(where + ".phaseMusic", q(m.first) + " is not a side id (letters, digits, \"_\" and \"-\")");
+      if (!m.second.isString()) return c.fail(where + ".phaseMusic", q(m.first) + " must be a music id (or \"\" for none)");
+      int t = -1;
+      if (!m.second.asString().empty() && (t = out.findMusic(m.second.asString())) < 0)
+        return c.fail(where + ".phaseMusic", q(m.first) + " names unknown music " + q(m.second.asString()) + " (data/audio.json \"music\")");
+      out.phaseMusic.push_back(std::make_pair(m.first, t));
+    }
+  }
+  if (use.has("fewEnemies")) {
+    const Json& f = use["fewEnemies"];
+    if (!f.isObject()) return c.fail(where, "\"fewEnemies\" must be { \"music\": \"id\", \"count\": 2 }");
+    if (!onlyKeys(c, f, where + ".fewEnemies", {"music", "count"})) return false;
+    if (!f.has("music") || !f["music"].isString() || f["music"].asString().empty())
+      return c.fail(where + ".fewEnemies", "\"music\" must name a music track of data/audio.json");
+    out.fewMusic = out.findMusic(f["music"].asString());
+    if (out.fewMusic < 0) return c.fail(where + ".fewEnemies", "\"music\" names unknown music " + q(f["music"].asString()) + " (data/audio.json \"music\")");
+    if (!f.has("count") || !LoadCtx::isWhole(f["count"]) || f["count"].asInt() < 1 || f["count"].asInt() > 999)
+      return c.fail(where + ".fewEnemies", "\"count\" is a whole number of hostile units, from 1 to 999");
+    out.fewCount = f["count"].asInt();
+  }
+  return true;
+}
+
 bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
   if (!root.has("use")) return true;
   const Json& use = root["use"];
   if (!use.isObject()) return c.fail("", "\"use\" must be an object (the game's standard set)");
   if (!onlyKeys(c, use, "use", {"titleMusic", "mapMusic", "playerTurnMusic", "enemyTurnMusic", "sceneMusic", "victory",
-                                 "defeat", "levelUp", "sounds"}))
+                                 "defeat", "levelUp", "sounds", "phaseMusic", "fewEnemies", "prepMusic", "promotion", "chapterCard"}))
     return false;
   if (!useMusic(c, out, use, "titleMusic", out.titleMusic) || !useMusic(c, out, use, "mapMusic", out.mapMusic) ||
       !useMusic(c, out, use, "playerTurnMusic", out.playerTurnMusic) ||
       !useMusic(c, out, use, "enemyTurnMusic", out.enemyTurnMusic) ||
       !useMusic(c, out, use, "sceneMusic", out.sceneMusic) || !useMusic(c, out, use, "victory", out.victory) ||
-      !useMusic(c, out, use, "defeat", out.defeat) || !useMusic(c, out, use, "levelUp", out.levelUp))
+      !useMusic(c, out, use, "defeat", out.defeat) || !useMusic(c, out, use, "levelUp", out.levelUp) ||
+      !useMusic(c, out, use, "prepMusic", out.prepMusic) || !useMusic(c, out, use, "promotion", out.promotion) ||
+      !useMusic(c, out, use, "chapterCard", out.chapterCard) || !readSituations(c, use, "use", out))
     return false;
-  for (int jingle : {out.victory, out.defeat, out.levelUp})
+  for (int jingle : {out.victory, out.defeat, out.levelUp, out.promotion, out.chapterCard})
     if (jingle >= 0 && out.music[(size_t)jingle].loop)
-      return c.fail("use", "the jingle " + q(out.music[(size_t)jingle].id) + " must have \"loop\": false (victory, defeat and levelUp play once)");
+      return c.fail("use", "the jingle " + q(out.music[(size_t)jingle].id) + " must have \"loop\": false (victory, defeat, levelUp, promotion and chapterCard play once)");
   if (!use.has("sounds")) return true;
   if (!use["sounds"].isObject()) return c.fail("use", "\"sounds\" must be an object (event -> sound id)");
   for (const Json::Member& m : use["sounds"].members()) {
@@ -168,14 +199,20 @@ bool readUse(const LoadCtx& c, const Json& root, AudioData& out) {
 
 // The optional "sounds" object of a weapon / unit / item entry.
 bool readBlock(const LoadCtx& c, const AudioData& d, const Json& entry, const std::string& where, OverrideScope scope,
-               CueSet& out) {
+               CueSet& out, float* stepGap = nullptr) {
   if (!entry.has("sounds")) return true;
   const Json& block = entry["sounds"];
   if (!block.isObject()) return c.fail(where, "\"sounds\" must be an object (event -> sound id)");
   for (const Json::Member& m : block.members()) {
+    if (m.first == "stepInterval" && stepGap) {  // seconds between two steps of a walk (docs/SOUND.md "Step sounds by movement type")
+      if (!m.second.isNumber() || m.second.asNumber() < 0.02 || m.second.asNumber() > 2.0)
+        return c.fail(where + ": \"sounds\"", "\"stepInterval\" is seconds between two steps, from 0.02 to 2");
+      *stepGap = (float)m.second.asNumber();
+      continue;
+    }
     Cue cue;
     if (!overrideCue(scope, m.first, cue))
-      return c.fail(where + ": \"sounds\"", "unknown key " + q(m.first) + " (expected " + overrideKeys(scope) + ")");
+      return c.fail(where + ": \"sounds\"", "unknown key " + q(m.first) + " (expected " + overrideKeys(scope) + (stepGap ? ", \"stepInterval\"" : "") + ")");
     if (!m.second.isString()) return c.fail(where + ": \"sounds\"", q(m.first) + " must be a sound id (or \"\" for silence)");
     const std::string& id = m.second.asString();
     if (id.empty()) { out.sound[(int)cue] = kSilent; continue; }
@@ -207,8 +244,8 @@ bool readIfMentions(const std::string& path, std::initializer_list<const char*> 
 // One of data/weapons.json, units.json, items.json: "<key>": [ { "id": ..., "sounds": {...} } ].
 template <typename Find>
 bool readList(const Database& db, AudioData& d, const char* file, const char* key, const char* noun, OverrideScope scope,
-              Find find, std::vector<CueSet>& out, std::string& err) {
-  const std::string path = db.rootPath + "/data/" + file;
+              Find find, std::vector<CueSet>& out, std::string& err, std::vector<float>* gaps = nullptr) {
+  const std::string path = db.rootPath + (std::string(file) == "game.json" ? "/" : "/data/") + file;
   Json root;
   bool have;
   if (!readIfMentions(path, {"\"sounds\""}, root, have, err)) return false;
@@ -220,7 +257,7 @@ bool readList(const Database& db, AudioData& d, const char* file, const char* ke
     if (!e.isObject() || !e["id"].isString()) continue;  // the core loader already judged these
     int idx = find(e["id"].asString());
     if (idx < 0 || (size_t)idx >= out.size()) continue;
-    if (!readBlock(c, d, e, std::string(noun) + " " + q(e["id"].asString()), scope, out[(size_t)idx])) return false;
+    if (!readBlock(c, d, e, std::string(noun) + " " + q(e["id"].asString()), scope, out[(size_t)idx], gaps ? &(*gaps)[(size_t)idx] : nullptr)) return false;
   }
   return true;
 }
@@ -235,6 +272,39 @@ bool mapMusicKey(const LoadCtx& c, const AudioData& d, const Json& root, const c
     return c.fail(where, q(key) + " names unknown music " + q(id) +
                       (d.present ? " (data/audio.json \"music\")" : " (this game has no data/audio.json)"));
   out = m;
+  return true;
+}
+
+// A map file's "phaseMusic" (side ids of this map) and "fewEnemies".
+bool mapSituations(const LoadCtx& c, const AudioData& d, const Json& root, const std::string& where, MapMusic& m) {
+  if (root.has("phaseMusic")) {
+    const Json& p = root["phaseMusic"];
+    if (!p.isObject()) return c.fail(where, "\"phaseMusic\" must be an object of side id -> music id");
+    for (const Json::Member& e : p.members()) {
+      bool side = false;
+      if (root["sides"].isArray())
+        for (size_t i = 0; i < root["sides"].size(); ++i) side = side || (root["sides"][i]["id"].isString() && root["sides"][i]["id"].asString() == e.first);
+      if (!side) return c.fail(where, "\"phaseMusic\" names unknown side " + q(e.first) + " (this map's \"sides\")");
+      if (!e.second.isString()) return c.fail(where, "\"phaseMusic\" " + q(e.first) + " must be a music id (or \"\")");
+      int t = kSilent;
+      if (!e.second.asString().empty() && (t = d.findMusic(e.second.asString())) < 0)
+        return c.fail(where, "\"phaseMusic\" " + q(e.first) + " names unknown music " + q(e.second.asString()) +
+                                 (d.present ? " (data/audio.json \"music\")" : " (this game has no data/audio.json)"));
+      m.phase.push_back(std::make_pair(e.first, t));
+    }
+  }
+  if (root.has("fewEnemies")) {
+    const Json& f = root["fewEnemies"];
+    if (!f.isObject()) return c.fail(where, "\"fewEnemies\" must be { \"music\": \"id\", \"count\": 2 }");
+    if (!onlyKeys(c, f, where + ": \"fewEnemies\"", {"music", "count"})) return false;
+    if (!f.has("music") || !f["music"].isString()) return c.fail(where, "\"fewEnemies\" needs a \"music\" id (or \"\" for none on this map)");
+    if (f["music"].asString().empty()) m.few = kSilent;
+    else if ((m.few = d.findMusic(f["music"].asString())) < 0)
+      return c.fail(where, "\"fewEnemies\" names unknown music " + q(f["music"].asString()) + (d.present ? " (data/audio.json \"music\")" : " (this game has no data/audio.json)"));
+    if (!f.has("count") || !LoadCtx::isWhole(f["count"]) || f["count"].asInt() < 1 || f["count"].asInt() > 999)
+      return c.fail(where, "\"fewEnemies\" \"count\" is a whole number of hostile units, from 1 to 999");
+    m.fewCount = f["count"].asInt();
+  }
   return true;
 }
 
@@ -264,11 +334,17 @@ bool loadAudioOverrides(const Database& db, AudioData& d, std::string& err) {
   d.units.assign(db.unitTypes.size(), CueSet());
   d.items.assign(db.items.size(), CueSet());
   d.maps.assign(db.maps.size(), MapMusic());
+  d.moveTypes.assign(db.moveTypes.size(), CueSet());
+  d.unitStepGap.assign(db.unitTypes.size(), 0.0f);
+  d.moveStepGap.assign(db.moveTypes.size(), 0.0f);
   d.hasOverrides = true;
   if (!readList(db, d, "weapons.json", "weapons", "weapon", OverrideScope::Weapon,
                 [&](const std::string& id) { return db.findWeapon(id); }, d.weapons, err) ||
       !readList(db, d, "units.json", "units", "unit", OverrideScope::Unit,
-                [&](const std::string& id) { return db.findUnitType(id); }, d.units, err) ||
+                [&](const std::string& id) { return db.findUnitType(id); }, d.units, err, &d.unitStepGap) ||
+      !readList(db, d, "game.json", "moveTypes", "move type", OverrideScope::MoveType,
+                [&](const std::string& id) { for (size_t i = 0; i < db.moveTypes.size(); ++i) if (db.moveTypes[i].id == id) return (int)i; return -1; },
+                d.moveTypes, err, &d.moveStepGap) ||
       !readList(db, d, "items.json", "items", "item", OverrideScope::Item,
                 [&](const std::string& id) { return db.findItem(id); }, d.items, err))
     return false;
@@ -276,13 +352,14 @@ bool loadAudioOverrides(const Database& db, AudioData& d, std::string& err) {
     const std::string path = db.rootPath + "/" + db.maps[i].file;
     Json root;
     bool have;
-    if (!readIfMentions(path, {"\"music\"", "\"playerTurnMusic\"", "\"enemyTurnMusic\""}, root, have, err)) return false;
+    if (!readIfMentions(path, {"\"music\"", "\"playerTurnMusic\"", "\"enemyTurnMusic\"", "\"phaseMusic\"", "\"fewEnemies\"", "\"prepMusic\""}, root, have, err)) return false;
     if (!have || !root.isObject()) continue;
     LoadCtx c(err, path);
     const std::string where = "map " + q(db.maps[i].id);
     MapMusic& m = d.maps[i];
     if (!mapMusicKey(c, d, root, "music", where, m.music) || !mapMusicKey(c, d, root, "playerTurnMusic", where, m.playerTurn) ||
-        !mapMusicKey(c, d, root, "enemyTurnMusic", where, m.enemyTurn))
+        !mapMusicKey(c, d, root, "enemyTurnMusic", where, m.enemyTurn) || !mapMusicKey(c, d, root, "prepMusic", where, m.prep) ||
+        !mapSituations(c, d, root, where, m))
       return false;
   }
   return true;
@@ -302,6 +379,12 @@ bool checkCommands(const AudioData& d, const std::vector<Command>& list, const s
       for (const ChoiceAnswer& a : c.answers)
         if (!checkCommands(d, a.commands, texts, where, err)) return false;
       continue;
+    }
+    if (c.kind == Command::Kind::SetPhaseMusic) {  // "" and null (no text) name no track
+      if (c.text < 0 || texts[(size_t)c.text].empty() || d.findMusic(texts[(size_t)c.text]) >= 0) continue;
+      err = where + ": \"setPhaseMusic\" names unknown music " + q(texts[(size_t)c.text]) +
+            (d.present ? " (data/audio.json \"music\")" : " (this game has no data/audio.json)");
+      return false;
     }
     if (c.kind != Command::Kind::PlayMusic && c.kind != Command::Kind::PlaySound) continue;
     const std::string& id = texts[(size_t)c.text];
@@ -345,7 +428,9 @@ bool checkStoryAudio(const Database& db, const AudioData& d, std::string& err) {
     // Only a map whose file mentions one of the commands can fail, so the others are not even parsed.
     std::string text;
     if (!readTextFile(db.rootPath + "/" + ref.file, text)) continue;
-    if (text.find("\"playMusic\"") == std::string::npos && text.find("\"playSound\"") == std::string::npos) continue;
+    if (text.find("\"playMusic\"") == std::string::npos && text.find("\"playSound\"") == std::string::npos &&
+        text.find("\"setPhaseMusic\"") == std::string::npos)
+      continue;
     MapDef map;
     std::string lerr;
     if (!loadMap(db, ref.id, map, lerr)) continue;  // the core reports a broken map when it is played
@@ -353,6 +438,15 @@ bool checkStoryAudio(const Database& db, const AudioData& d, std::string& err) {
     for (const StoryEvent& e : map.story->events)
       if (!checkCommands(d, e.commands, map.story->texts, db.rootPath + "/" + ref.file + ": event " + q(e.id), err)) return false;
   }
+  // The sounds a battle scene animation plays at its frames (docs/BATTLE_SCENE.md "Sounds").
+  for (const BattleSet& set : db.graphics.battle.sets)
+    for (int a = 0; a < kBattleAnims; ++a)
+      for (const auto& s : set.anims[a].sounds)
+        if (d.findSound(s.second) < 0) {
+          err = db.rootPath + "/data/graphics.json: battle set " + q(set.id) + " animation " + q(battleAnimKey((BattleAnimId)a)) + ": sound " +
+                q(s.second) + " is not in " + (d.present ? "data/audio.json \"sounds\"" : "this game (it has no data/audio.json)");
+          return false;
+        }
   if (db.campaign) {
     for (const ChapterDef& ch : db.campaign->chapters) {
       const std::string where = db.rootPath + "/data/campaign.json: chapter " + q(ch.id);

@@ -330,6 +330,10 @@ export interface MapFile extends Extra {
   music?: string
   playerTurnMusic?: string
   enemyTurnMusic?: string
+  /** Music by situation (docs/SOUND.md "Music by situation"): the preparation screen's, a side id -> track ("" = none), and the few-enemies track. */
+  prepMusic?: string
+  phaseMusic?: Record<string, string>
+  fewEnemies?: { music?: string; count?: number }
   /** Story events and objectives (docs/EVENTS.md); model/storyTypes.ts. */
   events?: StoryEvent[]
   objectives?: Objectives
@@ -401,11 +405,11 @@ export interface Stand extends Extra {
 /** A visual style's overrides; `null` = no picture in that style. */
 export interface StyleArt extends Extra { terrain?: Record<string, Look | null>; units?: Record<string, Look | null>; structures?: Record<string, Look | null> }
 /** A dialogue portrait: one piece of an image (docs/EVENTS.md "Dialogue"). */
-export interface Portrait extends Extra { sheet: string; cell: CellRef }
+export interface Portrait extends Extra { sheet: string; cell: CellRef; faces?: 'left' | 'right'; talk?: CellRef[]; blink?: CellRef[] }
 /** A full-screen picture of a story scene: the whole image of a sheet, or one piece of it (docs/GRAPHICS.md "Backgrounds"). */
 export interface SceneBackground extends Extra { sheet: string; cell?: CellRef }
 /** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */
-export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef> }
+export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef>; sounds?: Record<string, string> }
 /** Another image with the same layout, drawn by the fighters of one side (a map side id). */
 export interface SideSheetDef extends Extra { sheet: string }
 /** A fighter's animation set: `stand` is required, the other animations are optional (the map picture moves instead). */

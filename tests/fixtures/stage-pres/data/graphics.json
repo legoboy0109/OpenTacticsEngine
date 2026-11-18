@@ -1,0 +1,16 @@
+{
+  "sheets": [
+    { "id": "bg_forest", "file": "art/bg_forest.png", "cellWidth": 240, "cellHeight": 135 },
+    { "id": "faces", "file": "art/faces.png", "cellWidth": 48, "cellHeight": 48 }
+  ],
+  "backgrounds": {
+    "forest": { "sheet": "bg_forest" }
+  },
+  "portraits": {
+    "eirik": { "sheet": "faces", "cell": [0, 0], "faces": "left", "talk": [[0, 1]], "blink": [[0, 2]] },
+    "lyra": { "sheet": "faces", "cell": [1, 0], "faces": "left", "talk": [[1, 1]], "blink": [[1, 2]] },
+    "gorm": { "sheet": "faces", "cell": [2, 0], "faces": "left", "talk": [[2, 1]], "blink": [[2, 2]] },
+    "mira": { "sheet": "faces", "cell": [3, 0], "faces": "left", "talk": [[3, 1]], "blink": [[3, 2]] },
+    "tobin": { "sheet": "faces", "cell": [4, 0], "faces": "left", "talk": [[4, 1]], "blink": [[4, 2]] }
+  }
+}

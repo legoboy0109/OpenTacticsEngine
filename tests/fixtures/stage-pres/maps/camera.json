@@ -1,0 +1,91 @@
+{
+ "name": "The Camera",
+ "grid": {
+  "type": "square",
+  "width": 8,
+  "height": 4
+ },
+ "legend": {
+  ".": "plain"
+ },
+ "tiles": [
+  "........",
+  "........",
+  "........",
+  "........"
+ ],
+ "sides": [
+  {
+   "id": "blue",
+   "name": "Travellers",
+   "controller": "human"
+  },
+  {
+   "id": "red",
+   "name": "Wardens",
+   "controller": "ai"
+  }
+ ],
+ "units": [
+  {
+   "id": "eirik",
+   "type": "walker",
+   "side": "blue",
+   "x": 0,
+   "y": 1,
+   "name": "Eirik"
+  },
+  {
+   "id": "lyra",
+   "type": "walker",
+   "side": "blue",
+   "x": 0,
+   "y": 2,
+   "name": "Lyra"
+  },
+  {
+   "id": "gorm",
+   "type": "warden",
+   "side": "red",
+   "x": 7,
+   "y": 1,
+   "name": "Gorm"
+  }
+ ],
+ "events": [
+  {
+   "id": "cam",
+   "when": {
+    "battle": "start"
+   },
+   "do": [
+    {
+     "focus": {
+      "x": 6,
+      "y": 1
+     },
+     "speed": 4
+    },
+    {
+     "focus": {
+      "x": 0,
+      "y": 3
+     },
+     "speed": 8,
+     "wait": false
+    },
+    {
+     "focus": "gorm",
+     "ms": 300
+    },
+    {
+     "focus": {
+      "x": 2,
+      "y": 2
+     },
+     "speed": 100
+    }
+   ]
+  }
+ ]
+}

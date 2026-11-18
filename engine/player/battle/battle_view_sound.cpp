@@ -7,6 +7,7 @@
 // applyUnseen() and never begin, so unseen enemy actions are silent. A skipped animation finishes entries without
 // calling soundStep / soundImpact for the part skipped, and GameAudio plays one identical sound per frame at
 // most, so skipping a long turn cannot stack dozens of sounds.
+#include "battle/battle_music.h"
 #include "battle/battle_view.h"
 #include "sound/game_audio.h"
 
@@ -19,7 +20,7 @@ void BattleView::soundStarted(const Battle& b) {
   auto typeOf = [&](int unit) { return unit >= 0 && (size_t)unit < b.units.size() ? b.units[(size_t)unit].type : -1; };
   switch (e.type) {
     case EventType::TurnStarted:
-      a.music().turnPhase(b.sides[(size_t)e.a].ai);  // "the enemy's turn" = a side no human on this device plays
+      a.music().turnPhase(phaseInfo(b, e.a));  // "the enemy's turn" = a side no human on this device plays; per side and few-enemies too
       a.cue(Cue::TurnStart);
       break;
     case EventType::UnitMoved: stepped_ = -1; break;  // the steps come from soundStep as the unit walks
@@ -69,6 +70,7 @@ void BattleView::soundStarted(const Battle& b) {
       if (e.c > 0 && showsResources(b, e.a)) a.cue(Cue::Gold);
       break;
     case EventType::LevelUp: a.music().jingle(MusicDirector::Jingle::LevelUp); break;
+    case EventType::UnitPromoted: a.music().jingle(MusicDirector::Jingle::Promotion); break;
     case EventType::StructureUpgraded: a.cue(Cue::Upgrade); break;
     case EventType::ResearchStarted:
       if (e.c > 0) a.cue(Cue::Research);  // an instant research is announced by its ResearchFinished
@@ -78,7 +80,12 @@ void BattleView::soundStarted(const Battle& b) {
     case EventType::UnitResupplied: a.cue(Cue::Supply); break;
     case EventType::MoveBlocked: a.cue(Cue::Ambush); break;
     // Story commands (docs/EVENTS.md): ids are opaque to the core, the player knows what they name.
-    case EventType::MusicChanged: a.music().story(e.a >= 0 ? b.storyText(e.a) : std::string(), e.b); break;
+    case EventType::MusicChanged:
+      if (e.flags & kMusicPhase)  // setPhaseMusic (docs/SOUND.md "Music by situation"): a = the music (-1 = the override is gone), c = the side
+        a.music().phaseOverride(e.c >= 0 && (size_t)e.c < b.sides.size() ? b.sides[(size_t)e.c].id : std::string(),
+                                e.a >= 0 ? b.storyText(e.a) : std::string(), e.a < 0);
+      else a.music().story(e.a >= 0 ? b.storyText(e.a) : std::string(), e.b);
+      break;
     case EventType::SoundRequested: a.sound(b.storyText(e.a)); break;
     default: break;
   }
@@ -101,6 +108,7 @@ void BattleView::soundStep(const Battle& b, size_t index) {
   CueCtx c;
   const int unit = cur_.ev.a;
   c.unitType = unit >= 0 && (size_t)unit < b.units.size() ? b.units[(size_t)unit].type : -1;
+  if (c.unitType >= 0 && (size_t)c.unitType < b.db->unitTypes.size()) c.moveType = b.db->unitTypes[(size_t)c.unitType].moveType;  // its movement type's step sound
   audio_->cue(Cue::Step, c);
 }
 

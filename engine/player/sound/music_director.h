@@ -29,6 +29,18 @@ struct SceneAudio {
   bool storyAsked = false;    // Battle: the story had already asked for music (a resumed battle)
   std::string storyMusic;     // ... and for which track ("" = it stopped the music)
   bool enemyTurn = false;     // Battle: the side to move is not a human (a resumed battle)
+  // Music by situation (docs/SOUND.md "Music by situation"), for a resumed battle: the side to move, the hostile units left, and the
+  // overrides setPhaseMusic had set (side id -> music id, "" = no phase music).
+  std::string phaseSide;
+  int hostiles = -1;
+  std::vector<std::pair<std::string, std::string>> overrides;
+};
+
+// A turn that starts: whose, whether a computer plays it, and how many units hostile to it are left (-1 = not counted).
+struct PhaseInfo {
+  std::string side;      // the side id ("" = not known: only the legacy player / enemy music applies)
+  bool ai = false;
+  int hostiles = -1;
 };
 
 class MusicDirector {
@@ -40,11 +52,16 @@ class MusicDirector {
   void enter(const SceneAudio& scene);
   // A turn started in the battle: `enemy` = a side that is not a human on this device.
   void turnPhase(bool enemy);
+  void turnPhase(const PhaseInfo& phase);
+  // setPhaseMusic ran: `id` = the music ("" = no phase music for that side), `clear` = the override is taken away.
+  void phaseOverride(const std::string& side, const std::string& id, bool clear);
+  // The preparation screen is open / closed (its music: the map's, else the game's; none = the battle's own music goes on).
+  void prep(bool open);
   // The story asked (playMusic / stopMusic; `id` empty = stop). fadeMs < 0 = the default cross-fade.
   void story(const std::string& id, int fadeMs);
   // The battle is decided: `victory` / `defeat` jingle, no music under it (it ends in silence); the level-up
   // jingle pauses the track and lets it go on afterwards.
-  enum class Jingle { Victory, Defeat, LevelUp };
+  enum class Jingle { Victory, Defeat, LevelUp, Promotion, ChapterCard };
   void jingle(Jingle which);
   // Stops everything and forgets (the game is unloaded).
   void stop();
@@ -64,6 +81,13 @@ class MusicDirector {
   SceneAudio::Kind kind_ = SceneAudio::Silent;
   int map_ = -1;
   bool enemy_ = false;          // the turn phase
+  std::string side_;            // ... of this side ("" = unknown)
+  bool few_ = false;            // the hostile units left were few when this phase started (decided at the start, not mid-phase)
+  bool prep_ = false;           // the preparation screen is open
+  std::vector<std::pair<std::string, int>> overrides_;  // setPhaseMusic: side id -> track (kSilent = "")
+  int fewTrack() const;         // the few-enemies track of this map / game (-1 = none)
+  int phaseTrack() const;       // the phase music of the side to move (-1 = none)
+  int fewCount() const;
   bool storyAsked_ = false;
   int storyTrack_ = -1;         // -1 with storyAsked_ = stopped
   bool locked_ = false;         // a victory / defeat jingle is playing out: nothing else starts until the scene changes

@@ -160,6 +160,14 @@ refuses the condition.
   per difficulty (easiest first, the default preselected and tagged), the selected one's description and what it changes
   ("Enemies: +2 levels, +1 Defense. Experience 80%."). Arrows and Confirm, a tap (it picks), Cancel goes back to the game's page.
   It lays out for a phone-shaped screen (270 x 480) as well as 480 x 270. `--autoplay` takes the default without asking.
+- **The game page** (the page of a game with a campaign and a Continue save) has a **Difficulty** row, between Load and Game options, showing the difficulty the
+  Continue save's playthrough is on. It follows the **same rule and wording as the battle menu's row** (`engine/player/difficulty_rows.*` is the one place for both):
+  greyed with `(fixed)` for `never`, `(lowest)` for `lowerOnly` on the easiest (choosing it explains why); otherwise it opens the list of what the rule allows
+  and writes the pick into the Continue save's `playthrough.difficulty` (**only that field**; a battle in the save keeps its own, and the row then says
+  `(next battle)`). The next battle built (the next chapter, a retry) uses it. The save's detail line (the game page's Continue row and the save list) ends with the
+  difficulty's name in a game that has difficulties (`The Ford - Turn 1 - Hard`); other games show nothing new. Log: `game page: difficulty row "Hard"` /
+  `game page: difficulty menu offers easy, normal` / `campaign: difficulty changed to "easy" (applies from the next battle)`. Not offered without a Continue save
+  (New Game has its own choice screen) or in a game without difficulties. Tests: `tests/music_player_test.py` (section "game page").
 - **The battle menu** (the End Turn menu, also the pause menu) has a **Difficulty** row in a game that has difficulties. Its
   right-hand column names the current difficulty. When the game's rule does not allow a change the row is **shown greyed with the
   reason** next to the name (`(fixed)` for `never`, `(lowest)` for `lowerOnly` on the easiest, `(this battle)` in a free battle,

@@ -18,6 +18,12 @@ export interface AudioUse extends Extra {
   victory?: string
   defeat?: string
   levelUp?: string
+  prepMusic?: string
+  promotion?: string
+  chapterCard?: string
+  /** Music by situation (docs/SOUND.md): a side id -> track id ("" = none), and the track that plays while few hostile units are left. */
+  phaseMusic?: Record<string, string>
+  fewEnemies?: { music?: string; count?: number }
   /** Event key (see STANDARD_SOUND_KEYS) -> sound id. */
   sounds?: Record<string, string>
 }

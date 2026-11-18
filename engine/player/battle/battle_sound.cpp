@@ -1,6 +1,7 @@
 // The battle scene's part of sound (docs/SOUND.md): what the music director is told about this battle, the
 // victory / defeat jingle, and the cue with a unit's type for the lookup. The sounds of the events themselves are
 // in battle_view_sound.cpp; the menu cues come from the widgets (ui/) through uiCue().
+#include "battle/battle_music.h"
 #include "battle/battle_scene.h"
 
 namespace ote {
@@ -19,6 +20,12 @@ SceneAudio BattleScene::audioContext() const {
   const bool resumed = session_.startEvents.empty();
   a.storyAsked = resumed && battle_.storyState.musicAsked;
   a.storyMusic = battle_.storyState.music;
+  if (resumed && !battle_.over && battle_.activeSide >= 0 && battle_.activeSide < (int)battle_.sides.size()) {
+    const PhaseInfo p = phaseInfo(battle_, battle_.activeSide);
+    a.phaseSide = p.side;
+    a.hostiles = p.hostiles;
+  }
+  a.overrides = battle_.storyState.phaseMusic;  // (a new battle has none yet: its start events say so, in order)
   a.enemyTurn = resumed && !battle_.over && battle_.activeSide >= 0 && battle_.activeSide < (int)battle_.sides.size() &&
                 battle_.sides[(size_t)battle_.activeSide].ai;
   return a;

@@ -71,7 +71,7 @@ function commandChecks(doc: ProjectDoc, c: Command, where: string, say: (level: 
     case 'say':
       if (!String(c.say ?? '').trim()) say('error', 'general', where, 'the text to say is empty.')
       break
-    case 'background': case 'fade': case 'wait': case 'shake': case 'leave': case 'clearStage': case 'narrate': case 'weather':
+    case 'background': case 'fade': case 'wait': case 'shake': case 'leave': case 'clearStage': case 'narrate': case 'weather': case 'enter': case 'move':
       break  // (sceneChecks.ts has said what is wrong with them)
     case 'giveResource':
       if (!Object.keys(c.giveResource ?? {}).length) say('error', 'resource', where, 'choose a resource to give.')

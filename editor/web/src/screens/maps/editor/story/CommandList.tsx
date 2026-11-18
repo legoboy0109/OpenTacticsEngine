@@ -40,8 +40,8 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
   { group: S.commandGroups.give, kinds: ['giveItem', 'takeItem', 'giveResource', 'grantResearch'] },
   { group: S.commandGroups.story, kinds: ['setSwitch', 'setVariable', 'addVariable', 'objective', 'win', 'lose'] },
   { group: S.commandGroups.flow, kinds: ['if', 'endTurn', 'focus', 'goto'] },
-  { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound'] },
-  { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate'] },
+  { group: S.commandGroups.sound, kinds: ['playMusic', 'stopMusic', 'playSound', 'setPhaseMusic'] },
+  { group: S.commandGroups.scene, kinds: ['background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'weather', 'narrate'] },
   { group: S.commandGroups.places, kinds: ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest'] },
   { group: MC.group, kinds: ['setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision'] },
   { group: EX.group, kinds: ['storeItems'] },
@@ -50,7 +50,7 @@ const GROUPS: Array<{ group: string; kinds: CommandKind[] }> = [
 
 /** A campaign scene knows no map, so it can only use these (`goto` in a chapter's scenes, not in a support conversation). */
 const SCENE_KINDS: CommandKind[] = ['say', 'choice', 'addSupport', 'takeItem', 'giveResource', 'setSwitch', 'setVariable', 'addVariable', 'if', 'goto', 'playMusic', 'stopMusic', 'playSound',
-  'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'narrate', 'storeItems', 'switchParty', 'mergeParties']
+  'background', 'fade', 'wait', 'shake', 'enter', 'move', 'leave', 'clearStage', 'narrate', 'storeItems', 'switchParty', 'mergeParties']
 
 /** A door / chest command needs such a place with a story name on this map. */
 const placeWhy = (story: Story, kind: CommandKind): string | null => (placesForCommand(story.doc, story.map, kind).length > 0 ? null : P.noneYetShort)

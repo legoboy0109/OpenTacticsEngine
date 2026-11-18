@@ -39,7 +39,14 @@ void Battle::storyScene(const Command& c, std::vector<Event>& events) {
       break;
     case K::Wait: events.push_back(sceneEvent(K::Wait, -1, fx.ms, 0, 0)); break;
     case K::Shake: events.push_back(sceneEvent(K::Shake, -1, fx.ms, fx.strength, 0)); break;
-    case K::Leave: events.push_back(sceneEvent(K::Leave, fx.text, -1, 0, 0)); break;
+    case K::Leave: events.push_back(sceneEvent(K::Leave, fx.text, fx.fadeTransition ? fx.ms : -1, 0, fx.fadeTransition ? kSceneFadeTrans : 0)); break;
+    case K::Enter:
+    case K::Move: {  // a = kind, b = speaker, c = ms, d = slot (kPos*), data = [portrait text index] (enter only)
+      Event e = sceneEvent(fx.kind, fx.text, fx.ms, fx.position, fx.fadeTransition ? kSceneFadeTrans : 0);
+      if (fx.kind == K::Enter && fx.portrait >= 0) e.data.push_back(fx.portrait);
+      events.push_back(e);
+      break;
+    }
     case K::Weather:
       storyState.weather = storyText(fx.text) == "none" ? std::string() : storyText(fx.text);
       events.push_back(sceneEvent(K::Weather, fx.text, -1, 0, 0));

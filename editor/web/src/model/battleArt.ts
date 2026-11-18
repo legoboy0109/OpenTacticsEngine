@@ -120,6 +120,11 @@ function tidyAnim(a: BattleAnimDef): BattleAnimDef {
   const out = { ...a }
   if (out.hit !== undefined && out.hit >= n) out.hit = n - 1
   if (out.spawn !== undefined && out.spawn >= n) out.spawn = n - 1
+  if (out.sounds) {  // a sound on a frame the animation no longer has goes
+    const kept = Object.fromEntries(Object.entries(out.sounds).filter(([f]) => Number(f) < n))
+    if (Object.keys(kept).length) out.sounds = kept
+    else delete out.sounds
+  }
   if (Array.isArray(out.ms)) {
     const ms = out.ms.slice(0, n)
     while (ms.length < n) ms.push(ms[ms.length - 1] ?? DEFAULT_FRAME_MS)

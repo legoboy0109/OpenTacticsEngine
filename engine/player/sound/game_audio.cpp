@@ -57,12 +57,12 @@ void GameAudio::unload() {
 
 void GameAudio::beginFrame() { ++frame_; }
 
-void GameAudio::playSoundIndex(int index, int cueSlot) {
+void GameAudio::playSoundIndex(int index, int cueSlot, double gap) {
   if (index < 0 || (size_t)index >= data_.sounds.size()) return;
   if (soundFrame_[(size_t)index] == frame_) return;  // the same sound twice in one frame is one sound
   const double now = audio_.clock();
   const int c = cueSlot;
-  if (c >= 0 && played_[c] && now - lastCue_[c] < minGap((Cue)c)) return;
+  if (c >= 0 && played_[c] && now - lastCue_[c] < (gap >= 0 ? gap : minGap((Cue)c))) return;
   SoundId id = bank_.pick(index);
   if (id == 0) return;  // its file is missing: silence
   soundFrame_[(size_t)index] = frame_;
@@ -80,7 +80,13 @@ void GameAudio::cue(Cue cue, const CueCtx& ctx) {
     s = SoundBank::lookup(data_, Cue::Confirm, CueCtx());
     cue = Cue::Confirm;
   }
-  playSoundIndex(s, (int)cue);
+  double gap = -1;
+  if (cue == Cue::Step) {  // seconds between two steps: the unit type's own, else its movement type's, else the default (docs/SOUND.md)
+    const float u = ctx.unitType >= 0 && (size_t)ctx.unitType < data_.unitStepGap.size() ? data_.unitStepGap[(size_t)ctx.unitType] : 0.0f;
+    const float m = ctx.moveType >= 0 && (size_t)ctx.moveType < data_.moveStepGap.size() ? data_.moveStepGap[(size_t)ctx.moveType] : 0.0f;
+    gap = u > 0 ? u : m > 0 ? m : -1;
+  }
+  playSoundIndex(s, (int)cue, gap);
 }
 
 void GameAudio::sound(const std::string& id) {

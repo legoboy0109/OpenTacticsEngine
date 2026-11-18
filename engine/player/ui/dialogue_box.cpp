@@ -5,6 +5,7 @@
 
 #include "sound/cue_sink.h"
 #include "ui/chrome.h"
+#include "ui/dialogue_portrait.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -29,7 +30,7 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   // Everything is measured from the active font, like the other panels.
   lh_ = r.lineHeight();
   pad_ = std::max(4, lh_ / 2);
-  headerH_ = name_.empty() ? 0 : lh_ + 2;
+  headerH_ = name_.empty() && !skipInside_ ? 0 : lh_ + 2;  // (a nameless line keeps the row for the Skip tab when it sits inside)
   // Up to three lines a page, fewer when a big font would make the box cover more than 40% of the screen.
   step_ = lh_ + 2;  // line pitch (a little air between lines, like the other panels)
   int room = (screenH * 2 / 5 - 2 * pad_ - headerH_) / step_;
@@ -49,7 +50,8 @@ void DialogueBox::open(const Renderer& r, int screenW, int screenH, int bottom, 
   skipW_ = textW(r, kSkipLabel) + 8;
   skipH_ = lh_ + 4;
   skipX_ = boxX_ + boxW_ - skipW_;
-  skipY_ = boxY_ - skipH_;
+  skipY_ = skipInside_ ? boxY_ + 1 : boxY_ - skipH_;
+  if (skipInside_) skipX_ -= 2;
 
   // The text keeps clear of the "more" mark in the bottom-right corner.
   int textW_ = boxW_ - 2 * pad_ - textW(r, "v") - 2;
@@ -231,7 +233,8 @@ void DialogueBox::draw(Renderer& r) const {
     int dw = ps_, dh = ps_;
     if (art_.sw >= art_.sh) dh = std::max(1, ps_ * art_.sh / art_.sw);
     else dw = std::max(1, ps_ * art_.sw / art_.sh);
-    r.drawTexture(art_.tex, art_.sx, art_.sy, art_.sw, art_.sh, portraitX_ + (ps_ - dw) / 2, portraitY_ + ps_ - dh,
+    const PortraitArt face = portraitFrame(art_, revealing(), time_, name_);  // talk / blink frames, when the portrait has them
+    r.drawTexture(face.tex, face.sx, face.sy, face.sw, face.sh, portraitX_ + (ps_ - dw) / 2, portraitY_ + ps_ - dh,
                   dw, dh);
     r.drawRect(portraitX_, portraitY_, ps_, ps_, Color(200, 205, 230));
   }

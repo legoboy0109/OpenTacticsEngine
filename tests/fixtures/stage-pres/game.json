@@ -1,0 +1,55 @@
+{
+ "formatVersion": 1,
+ "name": "Stage Road",
+ "view": {
+  "width": 480,
+  "height": 270,
+  "tileSize": 24
+ },
+ "stats": [
+  {
+   "id": "hp",
+   "name": "HP"
+  },
+  {
+   "id": "mov",
+   "name": "Move"
+  }
+ ],
+ "roles": {
+  "hp": "hp",
+  "move": "mov"
+ },
+ "moveTypes": [
+  {
+   "id": "foot",
+   "name": "Foot"
+  }
+ ],
+ "switches": [
+  {
+   "id": "seen",
+   "name": "Seen"
+  }
+ ],
+ "rules": {
+  "defeat": [
+   "noUnits"
+  ]
+ },
+ "formulas": {
+  "damage": "0"
+ },
+ "maps": [
+  {
+   "id": "field",
+   "name": "The Field",
+   "file": "maps/field.json"
+  },
+  {
+   "id": "camera",
+   "name": "Camera",
+   "file": "maps/camera.json"
+  }
+ ]
+}

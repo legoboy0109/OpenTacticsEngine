@@ -1,0 +1,30 @@
+{
+  "name": "The Field",
+  "grid": { "type": "square", "width": 8, "height": 4 },
+  "legend": { ".": "plain" },
+  "tiles": [ "........", "........", "........", "........" ],
+  "sides": [ { "id": "blue", "name": "Travellers", "controller": "human" }, { "id": "red", "name": "Wardens", "controller": "ai" } ],
+  "units": [ { "id": "eirik", "type": "walker", "side": "blue", "x": 0, "y": 1, "name": "Eirik" },
+             { "id": "lyra", "type": "walker", "side": "blue", "x": 0, "y": 2, "name": "Lyra" },
+             { "id": "gorm", "type": "warden", "side": "red", "x": 7, "y": 1, "name": "Gorm" } ],
+  "events": [
+    { "id": "intro", "when": { "battle": "start" }, "do": [
+      { "background": "forest" },
+      { "enter": "eirik", "position": "farLeft" },
+      { "enter": "lyra", "position": "midLeft", "transition": "fade", "ms": 300 },
+      { "enter": "Tobin", "position": "center", "portrait": "tobin" },
+      { "enter": "gorm", "position": "midRight" },
+      { "enter": "Mira", "position": "farRight", "portrait": "mira", "transition": "fade", "ms": 300 },
+      { "say": "All five of us at last.", "speaker": "eirik" },
+      { "say": "Stand closer, Tobin.", "speaker": "lyra" },
+      { "move": "Tobin", "position": "right" },
+      { "say": "Here?", "speakerName": "Tobin", "portrait": "tobin" },
+      { "say": "Hmph.", "speaker": "gorm" },
+      { "leave": "Mira", "transition": "fade", "ms": 300 },
+      { "say": "Mira has gone ahead.", "speaker": "eirik", "position": "farLeft" },
+      { "move": "gorm", "position": "left", "transition": "cut" },
+      { "say": "Then we follow.", "speaker": "gorm" },
+      { "clearStage": true },
+      { "background": null } ] }
+  ]
+}

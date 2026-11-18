@@ -30,6 +30,7 @@ FighterTimes timesOf(const BattleSet& s) {
     t.total[a] = an.totalMs();
     t.hitAt[a] = an.startMs(an.hitFrame());
     if (an.spawn >= 0) t.spawnAt[a] = an.startMs(an.spawn);
+    for (const auto& s : an.sounds) t.soundAt[a].push_back(std::make_pair(an.startMs(s.first), s.second));
   }
   return t;
 }
@@ -216,6 +217,10 @@ void FightScene::fire(const FightBeat& beat, bool quiet) {
   };
   switch (beat.kind) {
     case BeatKind::Begin: break;
+    case BeatKind::Sound:  // an animation's own sound at its frame (docs/BATTLE_SCENE.md "Sounds")
+      OTE_INFO("battle scene: sound %s (%s)", beat.text.c_str(), who.name.c_str());
+      if (audio) audio->sound(beat.text);
+      break;
     case BeatKind::Tag:
       OTE_INFO("battle scene: skill %s (%s)", beat.text.c_str(), who.name.c_str());
       addFloat(beat.text, beat.side, kTag, 1.3, true);

@@ -17,6 +17,7 @@ struct FighterTimes {
   int total[kBattleAnims] = {};
   int hitAt[kBattleAnims] = {};    // from the start of the animation to the start of its hit frame
   int spawnAt[kBattleAnims] = {};  // ... of its spawn frame, -1 = none given
+  std::vector<std::pair<int, std::string>> soundAt[kBattleAnims];  // the animation's sounds: ms from its start, sound id
 };
 
 struct EffectTimes {
@@ -45,7 +46,7 @@ struct FightPose {
   int strike = -1;
 };
 
-enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End };
+enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound };  // Sound: an animation's own sound (text = its id)
 
 struct FightBeat {
   double t = 0;

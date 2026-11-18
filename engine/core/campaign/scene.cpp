@@ -213,6 +213,8 @@ struct SceneRun {
         l.strength = c.fx.strength;
         l.out = c.fx.out;
         l.fadeTransition = c.fx.fadeTransition;
+        l.position = c.fx.position;  // enter / move: the slot
+        if (c.fx.portrait >= 0) l.portrait = texts[(size_t)c.fx.portrait];
         if (c.fx.text >= 0) l.text = texts[(size_t)c.fx.text];
         lines.push_back(l);
         break;

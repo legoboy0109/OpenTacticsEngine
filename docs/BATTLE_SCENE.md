@@ -86,6 +86,12 @@ picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of 
   every frame of the animation inside it (the loader refuses otherwise: `... must have the same layout`). A side with no entry (and a side id
   the map does not have) draws from the animation's own sheet. Resolved from the fighter's own side when the scene starts; the log names
   the sheet only when a side's sheet is used (`X sheet: "battle_knight_red" (side red)`).
+- **Sounds** (`"sounds": { "<frame>": "<sound id>" }` on an animation): a sound of `data/audio.json` that plays when that frame **begins**, for any animation
+  of a set (`attack`, `crit`, `hurt`, `defeat`...), e.g. `"attack": { ..., "hit": 2, "sounds": { "1": "swing", "3": "clang" } }`. Frames count from 0; a
+  frame the animation does not have, or an id that is not a sound of the game, is refused (`"sounds" names frame "9" but the animation has frames 0 to 3`,
+  `battle set "knight" animation "attack": sound "x" is not in data/audio.json "sounds"`). They come on top of the impact sounds by weapon / unit type
+  (`hit`, `miss`, `critical`), which still play at the hit frame. A fighter on the fallback motion (no animation) has none; a skipped scene is silent. The log
+  says `battle scene: sound swing (Eirik)`. Time order is kept: a sound is a beat of the timeline at the frame's start.
 - **Backgrounds**: picture per terrain of the struck fighter, a map's own (`"battleBackground": "id"` in the map file) wins; then the
   default; then a generated sky and ground in the terrain's colour. A background is scaled up by a whole number to cover the screen.
 - Side colours come from per-side sheets (above); there is no tint.

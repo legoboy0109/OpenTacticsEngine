@@ -7,8 +7,8 @@ import { ChoiceForm } from './forms/ChoiceForm'
 import { GiveItemForm, GiveResourceForm, GrantResearchForm, TakeItemForm } from './forms/GiveForms'
 import { GotoForm } from './forms/GotoForm'
 import { SayForm } from './forms/SayForm'
-import { BackgroundForm, ClearStageForm, FadeForm, LeaveForm, NarrateForm, ShakeForm, WaitForm, WeatherForm } from './forms/SceneForms'
-import { PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
+import { BackgroundForm, ClearStageForm, EnterForm, FadeForm, LeaveForm, MoveStageForm, NarrateForm, ShakeForm, WaitForm, WeatherForm } from './forms/SceneForms'
+import { PhaseMusicForm, PlayMusicForm, PlaySoundForm, StopMusicForm } from './forms/SoundForms'
 import { EndTurnForm, FocusForm, SetSwitchForm, WinLoseForm } from './forms/StoryForms'
 import { AddVariableForm, SetVariableForm } from './forms/VariableForms'
 import { PlaceCommandForm } from './forms/PlaceForms'
@@ -81,7 +81,10 @@ export function CommandForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     case 'wait': return <WaitForm cmd={cmd} at={at} />
     case 'shake': return <ShakeForm cmd={cmd} at={at} />
     case 'leave': return <LeaveForm cmd={cmd} at={at} />
-    case 'clearStage': return <ClearStageForm />
+    case 'clearStage': return <ClearStageForm cmd={cmd} at={at} />
+    case 'enter': return <EnterForm cmd={cmd} at={at} />
+    case 'move': return <MoveStageForm cmd={cmd} at={at} />
+    case 'setPhaseMusic': return <PhaseMusicForm cmd={cmd} at={at} />
     case 'weather': return <WeatherForm cmd={cmd} at={at} />
     case 'narrate': return <NarrateForm cmd={cmd} at={at} />
     case 'storeItems': return <StoreItemsForm cmd={cmd} at={at} />

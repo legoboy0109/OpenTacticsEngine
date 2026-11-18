@@ -8,6 +8,7 @@
 
 #include "scene.h"
 #include "ui/confirm.h"
+#include "ui/menu.h"
 #include "ui/row_list.h"
 
 namespace ote {
@@ -20,7 +21,7 @@ class GameScene : public Scene {
   SceneAudio audioContext() const override { SceneAudio a; a.kind = SceneAudio::Title; return a; }  // the game's title music
 
  private:
-  enum Kind { kContinue, kPlay, kNewGame, kLoad, kOptions, kBack, kHeading, kFreeMap };
+  enum Kind { kContinue, kPlay, kNewGame, kLoad, kOptions, kBack, kHeading, kFreeMap, kDifficulty };
   struct Row {
     Kind kind;
     std::string label, detail;  // detail: second line, only on pages with saving
@@ -32,6 +33,11 @@ class GameScene : public Scene {
   void activate(int row);
   void startNewGame();
   void skipHeading(Button dir);  // the heading row cannot be selected: step past it
+  // scene_game_difficulty.cpp (docs/DIFFICULTY.md section 8): the Difficulty row of a campaign with a Continue save.
+  void addDifficultyRow(const Database& db, const SaveInfo& info);
+  void openDifficultyMenu();
+  void changeDifficulty(int listIndex);  // edits the Continue save's playthrough; applies from the next battle built
+  void rebuild();
 
   SceneHost& host_;
   GameEntry game_;
@@ -40,6 +46,9 @@ class GameScene : public Scene {
   std::string continueProblem_;  // why Continue cannot be used (when it is greyed out)
   RowList list_;
   ConfirmBox confirm_;  // "This replaces your Continue save." before New game
+  Menu menu_;           // the Difficulty row's list of what the rule allows
+  Row diffRow_{kHeading, "", "", false, ""};  // the Difficulty row when there is one (kind kDifficulty), built by buildRows()
+  std::vector<int> diffChoices_;  // list positions the menu offers (ids are position + 1)
 };
 
 }  // namespace ote

@@ -52,6 +52,33 @@ function walkUse(a: Audio, w: Walk): Audio {
       w.dropped?.({ what: 'setting', text: `Sound, standard set: “${MUSIC_SLOT_LABEL[slot]}” plays no music any more`, where })
     } else if (r !== v) next = { ...next, [slot]: r }
   }
+  // Music by situation: a side's phase music and the few-enemies track.
+  if (use.phaseMusic && typeof use.phaseMusic === 'object') {
+    let pm = use.phaseMusic
+    for (const [side, v] of Object.entries(use.phaseMusic)) {
+      if (typeof v !== 'string' || v === '') continue
+      const where = `the standard set, music on “${side}”’s turn`
+      const r = w.ref({ kind: 'music', id: v }, where)
+      if (r === DROP) {
+        const { [side]: _g, ...rest } = pm
+        pm = rest
+        w.dropped?.({ what: 'setting', text: `Sound, standard set: the turn of “${side}” plays no music of its own any more`, where })
+      } else if (r !== v) pm = { ...pm, [side]: r }
+    }
+    if (pm !== use.phaseMusic) {
+      if (Object.keys(pm).length) next = { ...next, phaseMusic: pm }
+      else { const { phaseMusic: _p, ...rest } = next; next = rest }
+    }
+  }
+  if (use.fewEnemies && typeof use.fewEnemies === 'object' && typeof use.fewEnemies.music === 'string' && use.fewEnemies.music !== '') {
+    const where = 'the standard set, few enemies left'
+    const r = w.ref({ kind: 'music', id: use.fewEnemies.music }, where)
+    if (r === DROP) {
+      const { fewEnemies: _f, ...rest } = next
+      next = rest
+      w.dropped?.({ what: 'setting', text: 'Sound, standard set: no music plays when few enemies are left any more', where })
+    } else if (r !== use.fewEnemies.music) next = { ...next, fewEnemies: { ...use.fewEnemies, music: r } }
+  }
   const sounds = walkBlock(use.sounds, STANDARD_SOUND_KEYS, 'sound', w, 'the standard set', (k) => SOUND_KEY_LABEL[k as StandardSoundKey], 'Sound, standard set')
   if (sounds !== use.sounds) {
     if (sounds) next = { ...next, sounds }  // the key stays where it was
@@ -107,9 +134,86 @@ function walkMapMusic(doc: ProjectDoc, w: Walk): ProjectDoc {
         w.dropped?.({ what: 'setting', text: `Map “${mapName}”: “${MAP_MUSIC_LABEL[key]}” goes back to the game’s music`, where })
       } else if (r !== v) next = { ...next, [key]: r }
     }
+    const mapName = doc.game?.maps.find((x) => x.id === id)?.name ?? id
+    if (m.phaseMusic && typeof m.phaseMusic === 'object') {
+      let pm = m.phaseMusic
+      for (const [side, v] of Object.entries(m.phaseMusic)) {
+        if (typeof v !== 'string' || v === '') continue
+        const where = `map “${mapName}”, music on “${side}”’s turn`
+        const r = w.ref({ kind: 'music', id: v }, where)
+        if (r === DROP) {
+          const { [side]: _g, ...rest } = pm
+          pm = rest
+          w.dropped?.({ what: 'setting', text: `Map “${mapName}”: the turn of “${side}” goes back to the game’s music`, where })
+        } else if (r !== v) pm = { ...pm, [side]: r }
+      }
+      if (pm !== m.phaseMusic) next = (Object.keys(pm).length ? { ...next, phaseMusic: pm } : (({ phaseMusic: _p, ...rest }) => rest)(next)) as MapFile
+    }
+    if (m.fewEnemies && typeof m.fewEnemies === 'object' && typeof m.fewEnemies.music === 'string' && m.fewEnemies.music !== '') {
+      const where = `map “${mapName}”, few enemies left`
+      const r = w.ref({ kind: 'music', id: m.fewEnemies.music }, where)
+      if (r === DROP) {
+        const { fewEnemies: _f, ...rest } = next
+        next = rest as MapFile
+        w.dropped?.({ what: 'setting', text: `Map “${mapName}”: few enemies left goes back to the game’s music`, where })
+      } else if (r !== m.fewEnemies.music) next = { ...next, fewEnemies: { ...m.fewEnemies, music: r } }
+    }
     if (next !== m) maps = { ...maps, [id]: next }
   }
   return maps === doc.maps ? doc : { ...doc, maps }
+}
+
+/** Movement types' step sounds and battle animations' frame sounds. */
+function walkStepsAndFrames(doc: ProjectDoc, w: Walk): ProjectDoc {
+  let out = doc
+  const game = out.game
+  if (game) {
+    let changed = false
+    const moveTypes = game.moveTypes.map((m) => {
+      const s = m.sounds as Record<string, string> | undefined
+      if (!s || typeof s !== 'object') return m
+      const who = `Movement type “${m.name || m.id}”`
+      const block = walkBlock(s, ['step'], 'sound', w, who, () => 'Steps', who)
+      if (block === s) return m
+      changed = true
+      // (a stepInterval that was kept next to the step sound stays; walkBlock only knows the sound keys)
+      const interval = s.stepInterval
+      const keep = block ?? (interval !== undefined ? { stepInterval: interval } : undefined)
+      if (block && interval !== undefined) return { ...m, sounds: { ...block, stepInterval: interval } }
+      if (keep) return { ...m, sounds: keep }
+      const { sounds: _g, ...rest } = m
+      return rest as typeof m
+    })
+    if (changed) out = { ...out, game: { ...game, moveTypes } }
+  }
+  const battle = out.graphics?.battle
+  if (battle?.sets && out.graphics) {
+    let sets = battle.sets
+    for (const [setId, set] of Object.entries(battle.sets)) {
+      let anims = set.animations
+      for (const [key, a] of Object.entries(set.animations)) {
+        if (!a.sounds || typeof a.sounds !== 'object') continue
+        let block = a.sounds
+        for (const [frame, id] of Object.entries(a.sounds)) {
+          if (typeof id !== 'string' || id === '') continue
+          const where = `battle set “${setId}”, “${key}”, frame ${frame}`
+          const r = w.ref({ kind: 'sound', id }, where)
+          if (r === DROP) {
+            const { [frame]: _g, ...rest } = block
+            block = rest
+            w.dropped?.({ what: 'setting', text: `Art: battle set “${setId}”, “${key}”: the sound on frame ${frame} goes`, where })
+          } else if (r !== id) block = { ...block, [frame]: r }
+        }
+        if (block !== a.sounds) {
+          const { sounds: _s, ...restA } = a
+          anims = { ...anims, [key]: Object.keys(block).length ? { ...restA, sounds: block } : restA }
+        }
+      }
+      if (anims !== set.animations) sets = { ...sets, [setId]: { ...set, animations: anims } }
+    }
+    if (sets !== battle.sets) out = { ...out, graphics: { ...out.graphics, battle: { ...battle, sets } } }
+  }
+  return out
 }
 
 /** The places outside story commands and scenes: audio.json's `use`, the `sounds` of weapons / units / items, maps' music. */
@@ -117,6 +221,7 @@ export function walkAudioSettings(doc: ProjectDoc, w: Walk): ProjectDoc {
   let out = doc
   if (out.audio) { const a = walkUse(out.audio, w); if (a !== out.audio) out = { ...out, audio: a } }
   out = walkOwners(out, w)
+  out = walkStepsAndFrames(out, w)
   return walkMapMusic(out, w)
 }
 
@@ -195,7 +300,7 @@ export function allAudioUsageLines(doc: ProjectDoc): Usage[] {
 function usageLinesOf(doc: ProjectDoc, gone: Ref[]): Usage[] {
   const out: Usage[] = []
   const sectionOf = (what: string): Usage['section'] =>
-    what.startsWith('Weapon') ? 'weapons' : what.startsWith('Unit') ? 'units' : what.startsWith('Item') ? 'items' : what.startsWith('Map') ? 'maps' : 'sound'
+    what.startsWith('Weapon') ? 'weapons' : what.startsWith('Unit') ? 'units' : what.startsWith('Item') ? 'items' : what.startsWith('Map') ? 'maps' : what.startsWith('Movement') ? 'game' : what.startsWith('Art') ? 'art' : 'sound'
   walkAudioSettings(doc, {
     ref: (r) => (hit(gone, r) ? DROP : r.id),
     dropped: ({ text }) => out.push({ section: sectionOf(text), text }),

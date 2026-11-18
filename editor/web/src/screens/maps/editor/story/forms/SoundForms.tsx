@@ -3,7 +3,8 @@
 import type { Command } from '../../../../../model/storyTypes'
 import { Field } from '../../../../../ui/Field'
 import { NumberInput } from '../../../../../ui/NumberInput'
-import { MusicPick, SoundPickStory } from '../pickers'
+import { MusicPick, PickSelect, SidePick, SoundPickStory } from '../pickers'
+import { useStory } from '../StoryContext'
 import { S } from '../text'
 import { useCommandEdit, type CommandRef } from './useCommandEdit'
 
@@ -33,6 +34,24 @@ export function StopMusicForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
     <div className="stack tight">
       <p className="help">{S.stopMusicHelp}</p>
       <FadeField cmd={cmd} at={at} help={S.fadeOutHelp} />
+    </div>
+  )
+}
+
+/** setPhaseMusic (docs/SOUND.md "Music by situation"): a side's turn music for the rest of the battle. */
+export function PhaseMusicForm({ cmd, at }: { cmd: Command; at: CommandRef }) {
+  const { patch } = useCommandEdit(at)
+  const { doc } = useStory()
+  const p = cmd.setPhaseMusic ?? {}
+  const mode = p.music === null ? 'clear' : p.music === '' ? 'none' : 'track'
+  return (
+    <div className="stack tight">
+      <p className="help">{S.phaseMusicHelp}</p>
+      <SidePick label={S.phaseMusicSide} help={S.phaseMusicSideHelp} value={p.side ?? ''} onChange={(v) => patch({ setPhaseMusic: { ...p, side: v } }, 'side')} />
+      <PickSelect label={S.phaseMusicWhat} value={mode}
+        options={[{ value: 'track', label: S.phaseMusicTrackChoice }, { value: 'none', label: S.phaseMusicNone }, { value: 'clear', label: S.phaseMusicClear }]}
+        onChange={(v) => patch({ setPhaseMusic: { side: p.side, music: v === 'clear' ? null : v === 'none' ? '' : (p.music || Object.keys(doc.audio?.music ?? {})[0] || '') } })} />
+      {mode === 'track' && <MusicPick label={S.phaseMusicTrack} value={p.music ?? ''} onChange={(v) => patch({ setPhaseMusic: { ...p, music: v } }, 'track')} />}
     </div>
   )
 }

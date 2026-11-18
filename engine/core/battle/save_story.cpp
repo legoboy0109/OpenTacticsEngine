@@ -36,6 +36,12 @@ void saveStoryState(const Battle& b, Json& out) {
     if (!b.storyState.weather.empty()) s.set("weather", Json::makeString(b.storyState.weather));
     j.set("scene", s);
   }
+  // setPhaseMusic overrides (docs/SOUND.md), only once one is set.
+  if (!b.storyState.phaseMusic.empty()) {
+    Json p = Json::makeObject();
+    for (const auto& e : b.storyState.phaseMusic) p.set(e.first, Json::makeString(e.second));
+    j.set("phaseMusic", p);
+  }
   out.set("story", j);
 }
 
@@ -85,6 +91,21 @@ bool restoreStoryState(Reader& rd, const Json& saved, Battle& b) {
       return rd.fail(where + ".music", "not a music id (letters, digits, _ and -) or \"\"");
     b.storyState.musicAsked = true;
     b.storyState.music = m.asString();
+  }
+  // "phaseMusic" (docs/SAVES.md): side id -> music id set by setPhaseMusic. Absent = none.
+  b.storyState.phaseMusic.clear();
+  if (j->has("phaseMusic")) {
+    const Json& p = (*j)["phaseMusic"];
+    if (!p.isObject()) return rd.fail(where + ".phaseMusic", "not an object (side id -> music id)");
+    for (const Json::Member& m : p.members()) {
+      const std::string at = where + ".phaseMusic." + m.first;
+      bool side = false;
+      for (const SideState& s : b.sides) side = side || s.id == m.first;
+      if (!side) return rd.fail(at, "the map has no side \"" + m.first + "\"");
+      if (!m.second.isString() || (!m.second.asString().empty() && !isStoryId(m.second.asString())))
+        return rd.fail(at, "not a music id (letters, digits, _ and -) or \"\"");
+      b.storyState.phaseMusic.push_back(std::make_pair(m.first, m.second.asString()));
+    }
   }
   // "scene" (docs/SAVES.md): the background and weather a story command set. Absent = the map, clear sky.
   b.storyState.background.clear();

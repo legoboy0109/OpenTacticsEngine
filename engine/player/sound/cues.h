@@ -23,7 +23,7 @@ bool cueFromKey(const std::string& key, Cue& out);
 
 // Where an override block sits. The keys each scope accepts are listed in docs/SOUND.md; `key` is the JSON key
 // inside the block's "sounds" object ("use" for an item is the cue ItemUse).
-enum class OverrideScope { Weapon, Unit, Item };
+enum class OverrideScope { Weapon, Unit, Item, MoveType };
 bool overrideCue(OverrideScope scope, const std::string& key, Cue& out);
 // The accepted keys of a scope as text for an error message: "hit", "miss", "critical".
 std::string overrideKeys(OverrideScope scope);

@@ -27,7 +27,7 @@ constexpr const char* kBehaviourCommandKeys[] = {"setBehaviour", "wakeGroup"};
 // Changing the map and fog (docs/EVENTS.md "Changing the map"), read in loader_story_mapchange.cpp.
 constexpr const char* kMapCommandKeys[] = {"setTerrain", "applyChange", "revertChange", "setFog", "setVision"};
 // Scene presentation (docs/EVENTS.md "Scene presentation"), read by loader_scene_fx.cpp (and narrate, a say line).
-constexpr const char* kSceneCommandKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate"};
+constexpr const char* kSceneCommandKeys[] = {"background", "fade", "wait", "shake", "leave", "clearStage", "weather", "narrate", "enter", "move"};
 
 SceneFxReader readerFor(StoryLoader& L) {
   return SceneFxReader{L.ctx(), L.db(), true, [&L](const std::string& s) { return L.text(s); }};
@@ -47,6 +47,8 @@ bool sceneFxCommand(StoryLoader& L, const Json& e, const std::string& key, const
   out.kind = Command::Kind::Scene;
   return r.command(e, key, at, out.fx);
 }
+// Music by situation (docs/SOUND.md), read in loader_story_music.cpp.
+constexpr const char* kMusicCommandKeys[] = {"setPhaseMusic"};
 // Small extras (docs/EVENTS.md "Sending a unit's items to storage"), read in loader_story_extras.cpp.
 constexpr const char* kExtrasCommandKeys[] = {"storeItems", "showUnit"};
 
@@ -104,6 +106,11 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
       kind = k;
     }
+  for (const char* k : kMusicCommandKeys)
+    if (e.has(k)) {
+      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
+      kind = k;
+    }
   for (const char* k : kExtrasCommandKeys)
     if (e.has(k)) {
       if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
@@ -115,6 +122,10 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
       kind = k;
     }
   if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
+  if (kind && std::string(kind) == "setPhaseMusic") {
+    out.kind = Command::Kind::SetPhaseMusic;
+    return phaseMusicCommand(e, where + " (setPhaseMusic)", out);
+  }
   if (kind && std::string(kind) == "storeItems") {
     out.kind = Command::Kind::StoreItems;
     return storeItemsCommand(e, where + " (storeItems)", out);
@@ -316,7 +327,7 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   }
   // focus
   out.kind = K::Focus;
-  if (!onlyKeys(e, {"focus", "ms", "wait"}, at) || !readerFor(*this).focusExtras(e, at, out.fx)) return false;
+  if (!onlyKeys(e, {"focus", "ms", "speed", "wait"}, at) || !readerFor(*this).focusExtras(e, at, out.fx)) return false;
   if (v.isString()) return unitId(v, at, "\"focus\"", out.unit);
   if (!v.isObject()) return fail(at, "\"focus\" must be a unit id or a square { \"x\": 3, \"y\": 4 }");
   if (!onlyKeys(v, {"x", "y"}, at + ": \"focus\"") || !c_.integer(v, "x", at, out.x, true) || !c_.integer(v, "y", at, out.y, true))

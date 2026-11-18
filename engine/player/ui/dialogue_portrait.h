@@ -13,4 +13,10 @@ namespace ote {
 // the box is then drawn without a picture.
 PortraitArt portraitArt(const Database& db, const Sprites* sprites, int styleIdx, const std::string& id);
 
+// The portrait as it looks now (docs/GRAPHICS.md "Portraits"): the "talk" frames cycle while `talking`, a "blink" frame shows for a moment
+// every few seconds (when the times are worked out from `clock` seconds and `key`: the same on every machine, nothing random). A
+// portrait with neither is returned as it is.
+PortraitArt portraitFrame(const PortraitArt& art, bool talking, double clock, const std::string& key);
+constexpr int kTalkFrameMs = 140, kBlinkMs = 130, kBlinkMinMs = 2800, kBlinkSpreadMs = 2600;
+
 }  // namespace ote

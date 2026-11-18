@@ -195,6 +195,7 @@ void BattleScene::followCamera(double dt) {
 
 void BattleScene::update(double dt) {
   time_ += (float)dt;
+  host_.gameAudio().music().prep(prep_ != nullptr);  // the preparation screen's music (docs/SOUND.md "Music by situation")
   if (covered_) return;  // hot-seat cover: nothing plays (or is decided) until the next player confirms
   view_.sceneMode = host_.battleScene();  // the player's setting, else the game's default: effective at once
   view_.update(dt, battle_);
@@ -355,7 +356,7 @@ void BattleScene::draw(Renderer& r) {
     drawStageBackground(r, sctx, stage);
     drawHint(r, layout_, hint());
   }
-  drawStagePortraits(r, sctx, stage, dialogue_.isOpen() ? dialogue_.top() : layout_.vh);
+  drawStagePortraits(r, sctx, stage, dialogue_.isOpen() ? dialogue_.top() : layout_.vh, dialogue_.revealing());
 
   if (idleView && human) {
     if (mode_ == Mode::Targeting && targetIdx_ < (int)targets_.size()) {

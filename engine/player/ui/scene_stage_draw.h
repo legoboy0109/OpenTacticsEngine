@@ -29,7 +29,8 @@ CoverFit fitCover(int sw, int sh, int W, int H);
 // the screen but its picture is missing. `shakeX` / `shakeY` move the picture.
 void drawStageBackground(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage);
 // The standing portraits, bottoms on `baseY` (the top of the dialogue box). The speaker is bright, the others dimmed.
-void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage, int baseY);
+// `speaking`: the lit speaker's line is being typed (its portrait's "talk" frames play).
+void drawStagePortraits(Renderer& r, const StageDrawCtx& ctx, const SceneStage& stage, int baseY, bool speaking = false);
 void drawStageWeather(Renderer& r, const SceneStage& stage);
 void drawStageFade(Renderer& r, const SceneStage& stage);
 

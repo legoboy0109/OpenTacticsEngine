@@ -12,6 +12,7 @@ const Entry kWeapon[] = {{"hit", Cue::Hit}, {"miss", Cue::Miss}, {"critical", Cu
 const Entry kUnit[] = {{"step", Cue::Step}, {"hit", Cue::Hit}, {"miss", Cue::Miss}, {"critical", Cue::Critical},
                        {"defeated", Cue::Defeated}, {"select", Cue::Select}, {"heal", Cue::Heal}};
 const Entry kItem[] = {{"use", Cue::ItemUse}};
+const Entry kMoveType[] = {{"step", Cue::Step}};  // docs/SOUND.md "Step sounds by movement type"
 
 template <size_t N>
 bool find(const Entry (&list)[N], const std::string& key, Cue& out) {
@@ -42,6 +43,7 @@ bool overrideCue(OverrideScope scope, const std::string& key, Cue& out) {
     case OverrideScope::Weapon: return find(kWeapon, key, out);
     case OverrideScope::Unit: return find(kUnit, key, out);
     case OverrideScope::Item: return find(kItem, key, out);
+    case OverrideScope::MoveType: return find(kMoveType, key, out);
   }
   return false;
 }
@@ -51,6 +53,7 @@ std::string overrideKeys(OverrideScope scope) {
     case OverrideScope::Weapon: return keys(kWeapon);
     case OverrideScope::Unit: return keys(kUnit);
     case OverrideScope::Item: return keys(kItem);
+    case OverrideScope::MoveType: return keys(kMoveType);
   }
   return "";
 }

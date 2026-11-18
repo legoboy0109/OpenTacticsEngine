@@ -3,6 +3,8 @@
 // ObjectiveChanged. UnitAdded shares the pop-in of UnitBuilt in battle_view.cpp.
 // Each hook returns true when the entry was one of these (and so fully handled here).
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 
 #include "battle/battle_view.h"
 #include "core/base/log.h"
@@ -19,6 +21,7 @@ constexpr int kSlideMaxCells = 8;             // a unit moved further than this 
 constexpr float kFlashDur = 0.5f;
 constexpr float kFocusDur = 0.5f;             // the camera has this long to arrive
 constexpr float kNoticeDur = 2.4f;
+constexpr int kMaxFocusMs = 10000;            // a focus "speed" never makes a scroll longer than the loader's limit for "ms"
 constexpr float kWalkSecPerCell = 0.035f;     // a walked moveUnit goes at the speed of an ordinary move (battle_view.cpp kMoveSecPerCell)
 
 }  // namespace
@@ -35,8 +38,7 @@ bool BattleView::beginStory(const Battle& b) {
       // exists for those, so a game that does not use the keys logs exactly what it always did.
       const bool staged = stage.say(dialogue.line.key, dialogue.line.portrait, dialogue.line.position);
       if (dialogue.line.position != 0)
-        OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(),
-                 dialogue.line.position == kPosLeft ? "left" : dialogue.line.position == kPosRight ? "right" : "center");
+        OTE_INFO("scene: portrait %s %s", dialogue.line.key.c_str(), positionName(dialogue.line.position));
       dialogue.staged = staged;
       if (dialogue.line.narrate) OTE_INFO("scene: narrate");
       // An empty line has nothing to show; a skipped run passes every line without showing it.
@@ -62,6 +64,9 @@ bool BattleView::beginStory(const Battle& b) {
       return true;
     }
     case EventType::Focus: {
+      // The point the camera was on (the last focus; at the start of a run, the middle of the map): "speed" measures from there.
+      const float fromX = stickyFocus_ ? stickyX_ : (float)b.grid.width() * tile_ / 2.0f;
+      const float fromY = stickyFocus_ ? stickyY_ : (float)b.grid.height() * tile_ / 2.0f;
       if (e.b >= 0 && (size_t)e.b < units.size() && units[(size_t)e.b].visible) {
         stickyX_ = units[(size_t)e.b].px + tile_ / 2.0f;
         stickyY_ = units[(size_t)e.b].py + tile_ / 2.0f;
@@ -76,12 +81,20 @@ bool BattleView::beginStory(const Battle& b) {
       stickyFocus_ = true;
       // "ms" / "wait" (docs/EVENTS.md "Scene presentation"): c = scroll milliseconds (-1 = not given: the usual half
       // second wait and quick ease), flags kFocusNoWait = the next entry does not wait. A skipped run jumps.
-      focusMs = skipping_ ? 0 : e.c;
+      int ms = e.c;
+      if (!e.data.empty() && e.data[0] > 0) {  // "speed" (docs/EVENTS.md "The camera"): the time is the distance over the speed
+        const float squares = std::hypot(stickyX_ - fromX, stickyY_ - fromY) / std::max(1.0f, (float)tile_);
+        ms = std::min(kMaxFocusMs, (int)std::lround(squares / ((double)e.data[0] / 1000.0) * 1000.0));
+      }
+      focusMs = skipping_ ? 0 : ms;
       ++focusSerial;
-      cur_.dur = skipping_ ? 0.0f : (e.flags & kFocusNoWait) ? 0.0f : e.c >= 0 ? (float)e.c / 1000.0f : kFocusDur;
-      if (e.c >= 0 || (e.flags & kFocusNoWait))
-        OTE_INFO("scene: focus %d,%d %s ms%s", b.grid.x(e.a), b.grid.y(e.a), e.c >= 0 ? std::to_string(e.c).c_str() : "default",
+      cur_.dur = skipping_ ? 0.0f : (e.flags & kFocusNoWait) ? 0.0f : ms >= 0 ? (float)ms / 1000.0f : kFocusDur;
+      if (ms >= 0 || (e.flags & kFocusNoWait)) {
+        char speed[40] = "";
+        if (!e.data.empty() && e.data[0] > 0) std::snprintf(speed, sizeof speed, " (speed %g)", e.data[0] / 1000.0);
+        OTE_INFO("scene: focus %d,%d %s ms%s%s", b.grid.x(e.a), b.grid.y(e.a), ms >= 0 ? std::to_string(ms).c_str() : "default", speed,
                  (e.flags & kFocusNoWait) ? " (no wait)" : "");
+      }
       return true;
     }
     case EventType::SceneEffect: return beginSceneEffect(b);
@@ -252,10 +265,28 @@ bool BattleView::beginSceneEffect(const Battle& b) {
       cur_.dur = (float)ms / 1000.0f;
       OTE_INFO("scene: shake %d ms strength %d%s", e.c, e.d, note);
       break;
-    case SceneFx::Kind::Leave:
-      stage.leave(text);
-      OTE_INFO("scene: leave %s", text.empty() ? "(everybody)" : text.c_str());
+    case SceneFx::Kind::Leave: {
+      const bool fade = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      stage.leave(text, fade ? ms : 0);
+      cur_.dur = fade ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: leave %s%s%s", text.empty() ? "(everybody)" : text.c_str(), fade ? " fade" : "", note);
       break;
+    }
+    case SceneFx::Kind::Enter: {  // a portrait on stage without a line (docs/EVENTS.md "Standing portraits")
+      const bool fade = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      const std::string art = !e.data.empty() ? b.storyText(e.data[0]) : text;
+      stage.enter(text, art, e.d, fade ? ms : 0);
+      cur_.dur = fade ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: enter %s %s%s%s", text.c_str(), positionName(e.d), fade ? " fade" : "", note);
+      break;
+    }
+    case SceneFx::Kind::Move: {
+      const bool slide = (e.flags & kSceneFadeTrans) != 0 && ms > 0;
+      stage.move(text, e.d, slide ? ms : 0);
+      cur_.dur = slide ? (float)ms / 1000.0f : 0.0f;
+      OTE_INFO("scene: move %s %s%s%s", text.c_str(), positionName(e.d), slide ? "" : " cut", note);
+      break;
+    }
     case SceneFx::Kind::Weather:
       stage.setWeather(text);
       OTE_INFO("scene: weather %s", text.c_str());

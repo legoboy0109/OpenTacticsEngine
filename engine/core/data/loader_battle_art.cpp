@@ -1,7 +1,9 @@
 // The "battle" part of data/graphics.json (docs/BATTLE_SCENE.md): fighter animation sets, weapon effects, which set a
 // unit type / character / weapon group uses, and the scene's backgrounds. Presentation only.
 #include <algorithm>
+#include <cstdlib>
 
+#include "core/data/events.h"  // isStoryId
 #include "core/data/loader_content.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_util.h"
@@ -23,7 +25,7 @@ bool readFrameCell(const LoadCtx& c, const SheetDef& sh, const Json& j, const st
   return true;
 }
 
-// One animation object: sheet, frames, ms, loop, hit, spawn.
+// One animation object: sheet, frames, ms, loop, hit, spawn, sounds.
 bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool loopDefault, BattleAnim& out) {
   out = BattleAnim();
   if (!j.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"frames\"");
@@ -69,6 +71,21 @@ bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::st
     if (!c.integer(j, key, where, v)) return false;
     if (v < 0 || v >= n) return c.fail(where, q(key) + " is frame " + std::to_string(v) + " but the animation has frames 0 to " + std::to_string(n - 1));
     (std::string(key) == "hit" ? out.hit : out.spawn) = v;
+  }
+  // "sounds": { "<frame>": "<sound id>" }: a sound that plays when that frame begins (docs/BATTLE_SCENE.md "Sounds").
+  if (j.has("sounds")) {
+    const Json& s = j["sounds"];
+    if (!s.isObject()) return c.fail(where, "\"sounds\" must be an object: a frame number, then a sound id, such as { \"1\": \"swing\" }");
+    for (const Json::Member& m : s.members()) {
+      char* end = nullptr;
+      const long frame = std::strtol(m.first.c_str(), &end, 10);
+      if (m.first.empty() || *end != 0 || frame < 0 || frame >= n)
+        return c.fail(where, "\"sounds\" names frame " + q(m.first) + " but the animation has frames 0 to " + std::to_string(n - 1));
+      if (!m.second.isString() || !isStoryId(m.second.asString()))
+        return c.fail(where, "\"sounds\" frame " + m.first + " must name a sound of data/audio.json (letters, digits, \"_\" and \"-\")");
+      out.sounds.push_back(std::make_pair((int)frame, m.second.asString()));
+    }
+    std::sort(out.sounds.begin(), out.sounds.end());
   }
   return true;
 }

@@ -1323,6 +1323,29 @@ checks them (`tests/editor_api_scene_checks.py`).
 - **Tests**: unit `scene.test.ts`; API `tests/editor_api_scene_checks.py`; e2e `scene.spec.ts` (the Backgrounds list, a map event with every new command and the
   exact JSON, the checks, rename and delete, a campaign scene, 360 px phone).
 
+## Stage places, music by situation, steps and frame sounds, portrait frames (docs/EVENTS.md, docs/SOUND.md, docs/GRAPHICS.md, docs/BATTLE_SCENE.md)
+
+No helper (API) change: every key passes through and the real loaders check it (the helper's `/problems` runs the player's audio loader). Wording is placeholder.
+
+- **Story commands** (`forms/SceneForms.tsx`, `forms/SoundForms.tsx`; `model/storyTypes.ts`): the **Scene** group gains *Bring a speaker on stage* (`enter`: "Who comes on
+  stage", "Place on the stage" with the seven places from Far left to Far right, "Portrait picture", "How": At once / Fade in + "How long it takes") and *Move a speaker
+  on stage* (`move`: "Who moves", the place, "How": Slide / Jump); *Send a speaker away* and *Clear the stage* get "How" (At once / Fade out). *Say something*'s "Where the speaker
+  stands" lists the seven places. *Move the view* gets "How the view scrolls" (The usual quick move / In a set time / At a set speed, squares a second). The **Sound** group
+  gains *Change a side's music* (`setPhaseMusic`: "Whose turn", "What it plays": A track / Nothing of its own / Take the change away, and "Music"; map events only). `enter` and
+  `move` sit in `COMMAND_KINDS` just **before** the eight pinned scene kinds, so the pinned tail (`scene.test.ts`, `difficulty.test.ts`) is unchanged; `STAGE_KINDS` lists them.
+  Sentences: "“Mira” comes on stage at the far right with a fade", "“Mira” moves left of the middle", "Changes the music of Red’s turn to “calm”".
+- **Sound screen** (`screens/sound/SituationsCard.tsx`, `EventsCard.tsx`): the standard set gains the rows *Preparation screen*, *A unit is promoted* and *A chapter's title card* (the last two are
+  jingles: a track that repeats is refused with the usual sentence); a new card **Music by situation** with "Music for each side's turn" (one row per side id the maps use), "When few enemies are
+  left" (track + "Hostile units left (at most)") and **Steps by movement type** (per movement type: the step sound and "time between steps", seconds, 0.02 to 2). The map's music group (`MapMusic.tsx`)
+  gains "Music on the preparation screen", "Music for each side's turn" (this map's sides) and "When few enemies are left" ("Same as the game" / "No music" / a track + number).
+- **Art screen**: each portrait gets "Looks to the" (Not said / The left / The right) and "Talking frames" / "Blinking frames" (pieces written as `2,1  3,1`, column then row from 1, at
+  most 8; what cannot be read is said under the box and not saved; `model/portraits.ts`). Each animation of a battle set gets "Sounds on frames" (`AnimSounds.tsx`: frame, sound, remove;
+  "Add a sound" takes the next frame that has none; sounds on frames an animation loses are dropped).
+- **Checks** (`model/audioSituations.ts` for sound, `sceneChecks.ts` for the stage, same wording as the loaders): unknown tracks / sides, a few-enemies number outside 1 to 999, a step interval outside 0.02
+  to 2, a sound on a frame the animation does not have or that is not a sound of the game, `enter` / `move` without a place, a transition that is not cut / fade, `focus` with both a time and a
+  speed. **Follow-through** (`model/audioRefs.ts`, `storyWalk.ts`): renaming or deleting a track or sound changes or removes every phase / few-enemies / preparation setting, `setPhaseMusic` command, movement type step sound and animation frame sound that names it, in the same undo step, and the delete question lists them.
+- **Tests**: unit `situations.test.ts`; e2e `situations.spec.ts` (desktop, and a 360 px phone).
+
 ## Difficulties (docs/DIFFICULTY.md)
 
 - **Rules screen, card "Difficulty"** (`screens/rules/DifficultyCard.tsx`, `EnemyFields.tsx`, wording in `difficultyText.ts`; model `model/difficulty.ts`):

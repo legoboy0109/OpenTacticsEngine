@@ -5,6 +5,15 @@
 
 namespace ote {
 
+namespace {
+// An animation's own sounds (docs/BATTLE_SCENE.md "Sounds"): one beat per sound at the start of its frame, for a pose that plays the
+// set's animation (a fallback motion has none).
+void addSounds(FightTimeline& tl, const FightPose& pose, int side, const FighterTimes& t, int strike) {
+  if (pose.fallback) return;
+  for (const auto& s : t.soundAt[pose.anim]) tl.beats.push_back({pose.start + s.first / 1000.0, BeatKind::Sound, strike, side, 0, false, s.second});
+}
+}  // namespace
+
 BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool hasEffect, bool miss) {
   if (miss && t.has[BaMiss]) return BaMiss;
   if (crit && ranged && t.has[BaCritRanged]) return BaCritRanged;
@@ -76,6 +85,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
       hitOffset = sec(kind == BaCrit ? kFallbackCritHitMs : kFallbackAttackHitMs);
     }
     tl.poses[a].push_back(ap);
+    addSounds(tl, ap, a, ft, (int)i);
     double hitT = t0 + hitOffset;
     if (fx.has) {
       FightFx f;
@@ -114,6 +124,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
         dp.fallback = !dt.has[BaHurt];
       }
       tl.poses[d].push_back(dp);
+      addSounds(tl, dp, d, dt, (int)i);
       end = std::max(end, hitT + dp.dur + (st.dies[d] ? 0.3 : 0.0));
       if (st.damage > 0 || st.hpBefore[d] != st.hpAfterHit[d]) {
         const double drain = std::min(0.7, std::max(0.3, kDrainTime * st.damage / std::max(1, st.hpBefore[d] > 0 ? st.hpBefore[d] : 10) + 0.25));
@@ -129,6 +140,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
       dp.fallback = !dt.has[dp.anim];
       dp.strike = (int)i;
       tl.poses[d].push_back(dp);
+      addSounds(tl, dp, d, dt, (int)i);
       end = std::max(end, dp.start + dp.dur);
     }
     if (st.weaponBroke) {

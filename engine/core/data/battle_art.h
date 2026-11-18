@@ -32,6 +32,9 @@ struct BattleAnim {
   bool loop = false;
   int hit = -1;    // frame on which the hit lands (-1 = the animation's last frame)
   int spawn = -1;  // frame on which a projectile / effect appears (-1 = none given)
+  // Sounds at frames (docs/BATTLE_SCENE.md "Sounds"): { frame, sound id }, in frame order. The id is opaque here (presentation only);
+  // the player checks it against data/audio.json and plays it when the frame begins.
+  std::vector<std::pair<int, std::string>> sounds;
 
   bool any() const { return sheet >= 0 && !frames.empty(); }
   // The sheet the fighter of `sideId` draws this animation from: its side's own sheet, else `sheet`.

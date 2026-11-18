@@ -3,7 +3,7 @@
 Contract for PLAN item 3h. Owner decisions (2026-11-14):
 
 - **Music** can be set for the title, per map (with a game default), per
-  turn phase (player's turn / enemy's turn), for story scenes and by event
+  turn phase (player's turn / enemy's turn, and per side id), for story scenes and by event
   commands (play music, stop music, play sound), and as victory / defeat /
   level-up jingles.
 - **Sound effects**: one standard set per game, with overrides per weapon,
@@ -325,6 +325,54 @@ sound is named by its id; deleting or renaming one rewrites every place that nam
 by the document store after every edit); a sound FILE is not part of Undo. A missing file is a hint in the editor and not a problem in
 `/problems`. The Play panel has no sound toggle: the embed page would need `if (q.get('noaudio')) a.push('--no-audio');` in
 `engine/platform/web/embed.html`.
+
+## Music by situation, steps by movement type, sounds on animation frames
+
+All optional and all presentation: a game that uses none of these keys sounds, saves and hashes exactly as before (the keys are cosmetic for the data
+hash: `phaseMusic`, `fewEnemies`, `prepMusic` on a map and `stepInterval` inside a `sounds` block are not counted). Code: `engine/player/sound/music_director.*`
+(the choice), `engine/player/battle/battle_music.*` (what a turn start tells it), `engine/core/battle/story_music.cpp` (setPhaseMusic).
+Tests: `tests/test_music_situations.cpp`, `tests/test_step_and_anim_sounds.cpp`, `tests/music_player_test.py` (every one through `--audio-log`).
+
+**What already existed and what was added.** Title / game page music (`titleMusic`), the map's music with a game default, a player-turn and an enemy-turn
+music (game and map), scene music, the `victory`, `defeat` and `levelUp` jingles and the story `playMusic` / `stopMusic` were there. The enemy's turn was one
+thing for every computer side. Added: music **per side id**, **few enemies**, `setPhaseMusic`, **preparation** music, the **promotion** and **chapter title card** jingles.
+There is no separate "game over" key: the `defeat` jingle is the game-over sound and the end card keeps the title music.
+
+```jsonc
+// data/audio.json "use"
+"phaseMusic": { "red": "enemy_theme", "green": "ally_theme" },   // a side id -> track ("" = none for that side); beats playerTurnMusic / enemyTurnMusic for that side
+"fewEnemies": { "music": "last_stand", "count": 2 },              // while the hostile units left are at most `count` at the start of a human side's phase
+"prepMusic": "camp",                                               // the preparation screen (docs/EVENTS.md "Preparation"); none = the battle's own goes on
+"promotion": "fanfare", "chapterCard": "chapter_jingle"            // jingles: they must have "loop": false; they pause the music under them like the level-up jingle
+// maps/<id>.json (every key optional; the map's wins over the game's)
+"phaseMusic": { "green": "boss_green" },                           // side ids of THIS map only ("names unknown side" otherwise)
+"fewEnemies": { "music": "mapfew", "count": 1 },                   // "music": "" turns it off on this map
+"prepMusic": "camp"                                                // "" = no preparation music on this map
+```
+
+Order for a battle (highest first): a jingle while it plays; the story's `playMusic` / `stopMusic`; the preparation music while the preparation screen is open;
+what `setPhaseMusic` set for the side to move; the **few-enemies** track; the map's `phaseMusic` for that side, else the game's; the map's `playerTurnMusic` /
+`enemyTurnMusic`, else the game's; the map's `music`; the game's `mapMusic`. `""` for a side (or in a `setPhaseMusic`) means "no phase music" and the lookup
+falls to the map's music.
+
+- **When it switches.** The music is chosen at the **start of a phase** (the `TurnStarted` entry) and **never in the middle of one**: the few-enemies count is
+  taken once, when a human side's phase starts (units still alive on the board that belong to a side of another team); killing the last-but-two enemy changes the
+  music at the next player phase. The enemy's phases never use it. A resumed battle counts from the saved state. The one exception is `setPhaseMusic`.
+- **`{ "setPhaseMusic": { "side": "red", "music": "calm" } }`** (map events): from now on that side's phase plays `calm`; if it is that side's phase right now
+  the music changes at once, otherwise when its phase starts. `"music": ""` = no phase music for that side, `"music": null` = take the change away (back to what the
+  data says). It beats the few-enemies track and the data, and loses to `playMusic`. It is **saved with the battle** (`story.phaseMusic`, docs/SAVES.md) and a
+  resumed battle plays it. The side must be a side of the map; the track must be one of `audio.json` (checked like `playMusic`). An event that fires at the start of a
+  turn changes the music right after that turn's banner (the map's music is heard for the length of the banner).
+- **Events.** The core emits a `MusicChanged` entry with the flag `kMusicPhase` (a = text index of the track, -1 = cleared, c = side index).
+
+**Step sounds by movement type.** `game.json` `moveTypes`: `{ "id": "mounted", "sounds": { "step": "hooves", "stepInterval": 0.25 } }`. Lookup for a step: the
+unit type's own `step`, then its movement type's, then the standard set's, then silence (`""` is silence at any level). `stepInterval` (0.02 to 2 seconds, default 0.1) is
+the least time between two steps heard; a unit type may set its own in its `sounds` block (`"stepInterval": 0.2`), which wins. A shorter interval than the walk's pace
+gives a step on every square. Refusals: `game.json: move type "mounted": "sounds": "step" names unknown sound "x"`, `unknown key "hit" (expected "step", "stepInterval")`,
+`"stepInterval" is seconds between two steps, from 0.02 to 2`.
+
+**Sounds on the frames of a battle scene animation** (docs/BATTLE_SCENE.md "Sounds"): per-weapon / per-type `hit`, `miss`, `critical` sounds at the moment of impact
+already existed (the lookup above); what was missing is a sound that belongs to the *animation*, so a set can have a swing sound on frame 1 and a clang on frame 3.
 
 ## Starter audio
 

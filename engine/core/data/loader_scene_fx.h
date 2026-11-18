@@ -28,6 +28,8 @@ struct SceneFxReader {
   // focus: "ms" and "wait" (a map event only). moveUnit: "walk" and "wait".
   bool focusExtras(const Json& e, const std::string& at, SceneFx& out) const;
   bool moveExtras(const Json& e, const std::string& at, SceneFx& out) const;
+  // enter / leave / clearStage: "transition" (cut or fade) and "ms".
+  bool stageTransition(const Json& e, const std::string& at, SceneFx& out) const;
   bool onlyKeys(const Json& o, std::initializer_list<const char*> keys, const std::string& at) const;
   bool ms(const Json& o, const char* key, const std::string& at, int lo, int hi, int& out) const;
 };

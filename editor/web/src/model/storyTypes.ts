@@ -168,9 +168,16 @@ export interface Command extends Extra {
   clearStage?: boolean
   weather?: 'rain' | 'snow' | 'none'
   narrate?: string
-  /** A line's place on the stage, and "it goes on by itself after this many ms". */
-  position?: 'left' | 'right' | 'center'
+  /** A line's place on the stage (seven slots, docs/EVENTS.md "Standing portraits"), and "it goes on by itself after this many ms". */
+  position?: StagePosition
   auto?: number
+  /** enter: a speaker comes on stage without a line (`position`, optional `portrait`, `transition`, `ms`). move: slides one to another slot. */
+  enter?: string
+  move?: string
+  /** focus: how fast the view scrolls, in squares per second (instead of `ms`). */
+  speed?: number
+  /** setPhaseMusic (docs/SOUND.md "Music by situation"): a side's phase music for the rest of the battle; music "" = none, null = take the change away. */
+  setPhaseMusic?: { side?: string; music?: string | null }
   /** moveUnit: the unit walks its way (and, with `wait: false`, the next command does not wait for it). */
   walk?: boolean
   /** Campaign scenes only: the chapter that comes next after an "after" scene, or the chapter a "before" scene jumps to (docs/EVENTS.md "Campaign"). */
@@ -210,13 +217,17 @@ export interface Command extends Extra {
   into?: string
   // (an openChest's `by` is a unit id; `by` above is the number of the variable commands, so it is read as a record key)
 }
+export type StagePosition = 'farLeft' | 'left' | 'midLeft' | 'center' | 'midRight' | 'right' | 'farRight'
+/** Left to right across the stage. */
+export const STAGE_POSITIONS: StagePosition[] = ['farLeft', 'left', 'midLeft', 'center', 'midRight', 'right', 'farRight']
 export type CommandKind =
   | 'say' | 'choice' | 'addUnit' | 'removeUnit' | 'moveUnit' | 'changeSide' | 'promote' | 'teachSkill' | 'forgetSkill' | 'giveItem' | 'takeItem' | 'giveResource'
   | 'setSwitch' | 'setVariable' | 'addVariable' | 'objective' | 'win' | 'lose' | 'if' | 'endTurn' | 'focus' | 'goto' | 'grantResearch'
   | 'playMusic' | 'stopMusic' | 'playSound' | 'addSupport' | 'addCondition' | 'removeCondition'
   | 'openDoor' | 'closeDoor' | 'lockDoor' | 'unlockDoor' | 'openChest' | 'setBehaviour' | 'wakeGroup'
   | 'setTerrain' | 'applyChange' | 'revertChange' | 'setFog' | 'setVision'
-  | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate'
+  | 'background' | 'fade' | 'wait' | 'shake' | 'leave' | 'clearStage' | 'weather' | 'narrate' | 'enter' | 'move'
+  | 'setPhaseMusic'
   | 'storeItems' | 'switchParty' | 'mergeParties' | 'showUnit'
 /** In the order the loader looks for them (`goto` is only ever found in a campaign scene). */
 export const COMMAND_KINDS: CommandKind[] = [
@@ -225,12 +236,16 @@ export const COMMAND_KINDS: CommandKind[] = [
   'playMusic', 'stopMusic', 'playSound', 'addSupport', 'addCondition', 'removeCondition',
   'openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest', 'setBehaviour', 'wakeGroup',
   'setTerrain', 'applyChange', 'revertChange', 'setFog', 'setVision',
-  'storeItems', 'switchParty', 'mergeParties', 'showUnit',
+  'storeItems', 'switchParty', 'mergeParties', 'showUnit', 'setPhaseMusic',
+  // The stage commands enter / move (docs/EVENTS.md "Standing portraits"); their keys are not the scene kinds' keys, so they sit before them
+  'enter', 'move',
   // Scene presentation (kept LAST: `fade` and `wait` are also the keys of playMusic / focus / moveUnit, whose own kinds come first)
   'background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate',
 ]
 /** The scene presentation commands (the "Scene" group of the command picker). `weather` is for map events only. */
 export const SCENE_FX_KINDS: CommandKind[] = ['background', 'fade', 'wait', 'shake', 'leave', 'clearStage', 'weather', 'narrate']
+/** The stage commands that came after the eight (listed in the "Scene" group of the picker, but kept out of the pinned tail of COMMAND_KINDS). */
+export const STAGE_KINDS: CommandKind[] = ['enter', 'move']
 /** The commands that name a door, chest or place of the map. */
 export const PLACE_COMMANDS: CommandKind[] = ['openDoor', 'closeDoor', 'lockDoor', 'unlockDoor', 'openChest']
 
