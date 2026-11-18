@@ -1,10 +1,11 @@
 // Two more choices of the "Battle animations" default (docs/BATTLE_SCENE.md): whose square decides the backdrop and platform, and which
 // side of the scene each fighter stands on. Shown with the scene's default; both are presentation only.
 import { sceneChoiceProblems } from '../../model/battleSceneChecks'
-import { SCENE_SIDES, backgroundFrom, sceneSides, setBackgroundFrom, setSceneSides, type BackgroundFrom, type SceneSides } from '../../model/battleTables'
+import { SCENE_SIDES, backgroundFrom, sceneSides, sceneStaves, setBackgroundFrom, setSceneSides, setSceneStaves, type BackgroundFrom, type SceneSides } from '../../model/battleTables'
 import { useDoc, useEdit } from '../../store/context'
 import { Field } from '../../ui/Field'
 import { Select } from '../../ui/Select'
+import { Toggle } from '../../ui/Toggle'
 import { BC } from './battleSceneText'
 
 export function BattleSceneChoices() {
@@ -23,6 +24,7 @@ export function BattleSceneChoices() {
           onChange={(v) => edit((d) => setSceneSides(d, v as SceneSides))} />
       </Field>
       <p className="help">{BC.sidesChoicesHelp[sides]}</p>
+      <Toggle label={BC.staves} help={BC.stavesHelp} checked={sceneStaves(doc)} onChange={(on) => edit((d) => setSceneStaves(d, on))} />
       {sceneChoiceProblems(doc).map((p) => <p key={p} className="help" role="alert">{p}</p>)}
     </div>
   )

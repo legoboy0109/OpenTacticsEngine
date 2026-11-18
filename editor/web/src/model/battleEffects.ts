@@ -6,9 +6,17 @@ import { findSheet, sheetsOf } from './graphics'
 import { battleOf, framesFromRow, weaponGroups } from './battleArt'
 import { soundIds } from './audio'
 import { patchObj } from './util'
-import type { BattleEffectDef, FxFlashDef, FxShakeDef, ProjectDoc } from './types'
+import type { BattleEffectDef, FxFadeDef, FxFlashDef, FxHideDef, FxShakeDef, ProjectDoc } from './types'
 import { withGraphics } from './graphics'
 import type { Graphics } from './types'
+
+/** The staff items of the game (a staff item's id can be an effect's "weapon": docs/BATTLE_SCENE.md "Staves in the scene"). */
+export const staffItems = (doc: ProjectDoc): Array<{ id: string; name: string }> => (doc.items ?? []).filter((i) => i.kind === 'staff').map((i) => ({ id: i.id, name: i.name || i.id }))
+/** What an effect's "weapon" can name: a weapon, or a staff item. */
+export const effectWeaponChoices = (doc: ProjectDoc): Array<{ id: string; name: string }> => [
+  ...(doc.weapons ?? []).map((w) => ({ id: w.id, name: w.name || w.id })),
+  ...staffItems(doc).filter((s) => !(doc.weapons ?? []).some((w) => w.id === s.id)).map((s) => ({ id: s.id, name: `${s.name} (staff)` })),
+]
 
 export const effectList = (doc: ProjectDoc): BattleEffectDef[] => battleOf(doc).effects ?? []
 
@@ -38,7 +46,7 @@ export function addEffect(doc: ProjectDoc): ProjectDoc {
   const sheet = sheetsOf(doc)[0]?.id
   if (!sheet) return doc
   const list = effectList(doc)
-  const weapon = (doc.weapons ?? []).find((w) => !list.some((e) => e.weapon === w.id))?.id
+  const weapon = effectWeaponChoices(doc).find((w) => !list.some((e) => e.weapon === w.id))?.id
   const base: BattleEffectDef = weapon ? { weapon, sheet, frames: [[0, 0]] } : { id: freshId(list), sheet, frames: [[0, 0]] }
   return setEffects(doc, [...list, base])
 }
@@ -83,7 +91,7 @@ export function setEffectFor(doc: ProjectDoc, index: number, kind: EffectFor, va
   const e = effectList(doc)[index]
   if (!e) return doc
   const id = e.id ?? (kind === 'library' ? freshId(effectList(doc)) : undefined)
-  if (kind === 'weapon') return updateEffect(doc, index, { weapon: value ?? (doc.weapons ?? [])[0]?.id, group: undefined })
+  if (kind === 'weapon') return updateEffect(doc, index, { weapon: value ?? effectWeaponChoices(doc)[0]?.id, group: undefined })
   if (kind === 'group') return updateEffect(doc, index, { group: value ?? weaponGroups(doc)[0], weapon: undefined })
   return updateEffect(doc, index, { weapon: undefined, group: undefined, id, effects: undefined, byType: undefined })
 }
@@ -118,9 +126,23 @@ export const nextSoundMs = (e: BattleEffectDef): number => { let ms = 0; while (
 
 export const DEFAULT_FLASH: FxFlashDef = { atMs: 0, ms: 80, color: '#ffffff' }
 export const DEFAULT_SHAKE: FxShakeDef = { atMs: 0, ms: 200, strength: 2 }
-export function setEffectTimed(doc: ProjectDoc, index: number, key: 'flash' | 'shake', rows: Array<FxFlashDef | FxShakeDef>): ProjectDoc {
+export const DEFAULT_HIDE: FxHideDef = { atMs: 0, ms: 1000, what: ['backdrop'] }
+export const DEFAULT_FADE: FxFadeDef = { atMs: 0, ms: 300, to: '#000000', alpha: 0.8, holdMs: 300, over: 'all' }
+export function setEffectTimed(doc: ProjectDoc, index: number, key: 'flash' | 'shake' | 'hide' | 'fade', rows: Array<FxFlashDef | FxShakeDef | FxHideDef | FxFadeDef>): ProjectDoc {
   return updateEffect(doc, index, { [key]: rows.length ? rows : undefined })
 }
+
+/** "blend": normal is the default and is written as no key. */
+export const effectBlend = (e: BattleEffectDef): 'normal' | 'add' => (e.blend === 'add' ? 'add' : 'normal')
+export const setEffectBlend = (doc: ProjectDoc, index: number, v: 'normal' | 'add'): ProjectDoc => updateEffect(doc, index, { blend: v === 'add' ? 'add' : undefined })
+/** "order" of a screen effect: right after the backdrop is the default and is written as no key. */
+export const effectOrder = (e: BattleEffectDef): 'backdrop' | 'behind' | 'front' => (e.order === 'behind' || e.order === 'front' ? e.order : 'backdrop')
+export const setEffectOrder = (doc: ProjectDoc, index: number, v: 'backdrop' | 'behind' | 'front'): ProjectDoc => updateEffect(doc, index, { order: v === 'backdrop' ? undefined : v })
+/** A flight by time ("travelMs") or by speed ("speed": stage pixels per second; needs a fixed stage). Switching writes one of them, never both. */
+export const DEFAULT_SPEED = 240
+export const flightBySpeed = (e: BattleEffectDef): boolean => e.speed !== undefined
+export const setFlightBySpeed = (doc: ProjectDoc, index: number, bySpeed: boolean): ProjectDoc =>
+  updateEffect(doc, index, bySpeed ? { speed: DEFAULT_SPEED, travelMs: undefined } : { speed: undefined })
 
 /** Lists: the `effects` of an entry, and its `byType` rows. An emptied list is written as no key. */
 export function setEffectIds(doc: ProjectDoc, index: number, ids: string[]): ProjectDoc {
@@ -158,7 +180,7 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
   if (e.id && list.some((o, j) => j < index && o.id === e.id)) bad('another effect has the same name.')
   if (!lib && !e.weapon && !e.group) bad('name a weapon or a weapon group (or give it a name and use it in a list).')
   if (e.weapon && e.group) bad('name a weapon or a weapon group, not both.')
-  if (e.weapon && !(doc.weapons ?? []).some((w) => w.id === e.weapon)) bad(`the weapon “${e.weapon}” does not exist.`)
+  if (e.weapon && !effectWeaponChoices(doc).some((w) => w.id === e.weapon)) bad(`the weapon or staff “${e.weapon}” does not exist.`)
   if (e.group && !weaponGroups(doc).includes(e.group)) bad(`no weapon has the group “${e.group}”.`)
   if (!lib && list.some((o, j) => j < index && !!(o.weapon || o.group) && o.weapon === e.weapon && o.group === e.group)) bad(`there is already an effect for ${e.weapon ?? e.group}.`)
   const lists = e.effects !== undefined || e.byType !== undefined
@@ -195,6 +217,17 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
   if (e.at === 'striker' && travel) bad('an effect on the striker appears in place; it cannot fly.')
   if (e.at === 'striker' && layer === 'screen') bad('an effect that covers the screen has no place to appear at.')
   if (e.returns && !travel) bad('only a flying effect can fly back.')
+  if (e.blend !== undefined && e.blend !== 'normal' && e.blend !== 'add') bad('the blending must be normal or add.')
+  if (e.order !== undefined) {
+    if (!['backdrop', 'behind', 'front'].includes(e.order)) bad('the order must be right after the backdrop, behind the fighters or in front of them.')
+    else if (layer !== 'screen') bad('the order is only for an effect that covers the stage.')
+  }
+  if (e.speed !== undefined) {
+    if (!travel) bad('a speed is only for a flying effect.')
+    else if (e.travelMs !== undefined) bad('give a flight time or a speed, not both.')
+    else if (!whole(e.speed) || e.speed < 1 || e.speed > 10000) bad('the speed must be between 1 and 10000 stage pixels per second.')
+    else if (!doc.graphics?.battle?.stage) bad('a speed is in stage pixels per second and needs a fixed stage (Stage card); use a flight time instead.')
+  }
   if (e.lingerMs !== undefined) {
     if (!whole(e.lingerMs) || e.lingerMs < 0 || e.lingerMs > 5000) bad('the time it stays must be between 0 and 5000 milliseconds.')
     else if (e.lingerMs > 0 && !travel) bad('only a flying effect can stay at the target.')
@@ -215,6 +248,22 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     if (!whole(f.strength) || f.strength < 1 || f.strength > 64) bad(`shake ${i + 1}: the strength must be between 1 and 64 pixels.`)
   })
   if ((e.flash ?? []).length > 32 || (e.shake ?? []).length > 32) bad('at most 32 flashes and 32 shakes.')
+  if ((e.hide ?? []).length > 32 || (e.fade ?? []).length > 32) bad('at most 32 hiding windows and 32 fades.')
+  ;(e.hide ?? []).forEach((h, i) => {
+    if (!whole(h.atMs) || h.atMs < 0 || h.atMs > 60000) bad(`hiding ${i + 1}: the start must be between 0 and 60000 milliseconds.`)
+    if (!whole(h.ms) || h.ms < 10 || h.ms > 60000) bad(`hiding ${i + 1}: the length must be between 10 and 60000 milliseconds.`)
+    const what = Array.isArray(h.what) ? h.what : []
+    if (what.length < 1 || what.length > 2 || what.some((w) => w !== 'backdrop' && w !== 'platforms') || new Set(what).size !== what.length) bad(`hiding ${i + 1}: choose the backdrop and / or the platforms.`)
+    if (h.color !== undefined && !COLOR.test(h.color)) bad(`hiding ${i + 1}: the colour must look like #102030.`)
+  })
+  ;(e.fade ?? []).forEach((f, i) => {
+    if (!whole(f.atMs) || f.atMs < 0 || f.atMs > 60000) bad(`fade ${i + 1}: the start must be between 0 and 60000 milliseconds.`)
+    if (!whole(f.ms) || f.ms < 10 || f.ms > 5000) bad(`fade ${i + 1}: the time to fade in (and out) must be between 10 and 5000 milliseconds.`)
+    if (f.holdMs !== undefined && (!whole(f.holdMs) || f.holdMs < 0 || f.holdMs > 60000)) bad(`fade ${i + 1}: the time held must be between 0 and 60000 milliseconds.`)
+    if (f.to !== undefined && !COLOR.test(f.to)) bad(`fade ${i + 1}: the colour must look like #000000.`)
+    if (f.alpha !== undefined && !(typeof f.alpha === 'number' && f.alpha > 0 && f.alpha <= 1)) bad(`fade ${i + 1}: how strong it gets must be above 0 and at most 1.`)
+    if (f.over !== undefined && f.over !== 'all' && f.over !== 'backdrop') bad(`fade ${i + 1}: it can cover everything or the backdrop only.`)
+  })
   return out
 }
 function refProblem(doc: ProjectDoc, id: string, bad: (t: string) => void, where: string) {

@@ -2,6 +2,7 @@
 // (this mirrors engine/core/data/loader_battle_art.cpp, so a maker sees it before pressing Play); the rest loads fine but is worth a look.
 import { ANIM_KEYS, HIT_ANIMS, MAX_FRAMES, assignKey, assignList, backgroundList, battleOf, setList, weaponGroups } from './battleArt'
 import { effectList, effectProblems, effectName } from './battleEffects'
+import { bandProblems } from './stageBands'
 import { findSheet } from './graphics'
 import type { ProjectDoc, Section } from './types'
 
@@ -78,5 +79,6 @@ export function battleChecks(doc: ProjectDoc, dims?: Dims): BattleCheck[] {
     if (!b.backgrounds?.[bg]) add([terrain], `The terrain “${terrain}” uses the background “${bg}”, which does not exist.`, true)
   }
   effectList(doc).forEach((e, i) => { for (const p of effectProblems(doc, i, dims)) add([effectName(e, i)], p, true) })
+  for (const p of bandProblems(doc)) add(['stage'], p, true)
   return out
 }

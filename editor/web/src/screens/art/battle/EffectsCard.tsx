@@ -2,8 +2,11 @@
 // and the newer options (sounds, a lead-in before the hit, layers, flash and shake, a charge on the striker, lists, by unit type, a returning shot).
 import { useArtState } from '../../../art/useArt'
 import { artBase } from '../../../model/artFiles'
-import { DEFAULT_FRAME_MS, weaponChoices, weaponGroups } from '../../../model/battleArt'
-import { addEffect, effectFor, effectList, effectName, effectProblems, hasPictures, isRowRun, removeEffect, setEffectFor, setEffectPicture, updateEffect, type EffectFor } from '../../../model/battleEffects'
+import { DEFAULT_FRAME_MS, weaponGroups } from '../../../model/battleArt'
+import {
+  addEffect, effectBlend, effectFor, effectList, effectName, effectOrder, effectProblems, effectWeaponChoices, flightBySpeed, hasPictures, isRowRun, removeEffect, setEffectBlend,
+  setEffectFor, setEffectOrder, setEffectPicture, setFlightBySpeed, updateEffect, type EffectFor,
+} from '../../../model/battleEffects'
 import { sheetsOf } from '../../../model/graphics'
 import { useDoc, useEdit, useStore } from '../../../store/context'
 import { Card } from '../../../ui/Card'
@@ -14,7 +17,7 @@ import { Select } from '../../../ui/Select'
 import { TextInput } from '../../../ui/TextInput'
 import { Toggle } from '../../../ui/Toggle'
 import { EffectLists } from './EffectLists'
-import { EffectPulses, EffectSounds } from './EffectTimed'
+import { EffectFades, EffectHides, EffectPulses, EffectSounds } from './EffectTimed'
 import { ET } from './effectText'
 
 function EffectForm({ index }: { index: number }) {
@@ -32,7 +35,8 @@ function EffectForm({ index }: { index: number }) {
   const problems = effectProblems(doc, index, (file) => store.art.fileInfo(file))
   const group = (k: string) => `fx${index}:${k}`
   const ms = typeof e.ms === 'number' ? e.ms : Array.isArray(e.ms) ? undefined : DEFAULT_FRAME_MS
-  const weapons = weaponChoices(doc), groups = weaponGroups(doc)
+  const weapons = effectWeaponChoices(doc), groups = weaponGroups(doc)
+  const bySpeed = flightBySpeed(e)
   return (
     <div className="stack battle-rule" data-testid={`effect-${index}`}>
       <div className="battle-fields">
@@ -77,13 +81,23 @@ function EffectForm({ index }: { index: number }) {
               <Select aria-label={`Effect ${index + 1}: ${ET.mode}`} value={travel ? 'travel' : 'target'} options={[{ value: 'target', label: ET.modeTarget }, { value: 'travel', label: ET.modeTravel }]}
                 onChange={(v) => patch(v === 'travel'
                   ? { mode: 'travel', hitAtMs: undefined, at: undefined, ...(layer === 'screen' ? { layer: undefined, mirror: undefined } : {}) }
-                  : { mode: undefined, travelMs: undefined, returns: undefined, lingerMs: undefined })} />
+                  : { mode: undefined, travelMs: undefined, speed: undefined, returns: undefined, lingerMs: undefined })} />
             </Field>
             {travel && (
               <>
-                <Field label={ET.travelMs} help={ET.travelHelp}>
-                  <NumberInput aria-label={`Effect ${index + 1}: ${ET.travelMs}`} min={20} max={5000} value={e.travelMs ?? 250} onChange={(v) => v !== undefined && patch({ travelMs: v }, group('travel'))} />
+                <Field label={ET.flightBy}>
+                  <Select aria-label={`Effect ${index + 1}: ${ET.flightBy}`} value={bySpeed ? 'speed' : 'time'} options={[{ value: 'time', label: ET.flightTime }, { value: 'speed', label: ET.flightSpeed }]}
+                    onChange={(v) => edit((d) => setFlightBySpeed(d, index, v === 'speed'))} />
                 </Field>
+                {bySpeed ? (
+                  <Field label={ET.speed} help={ET.speedHelp}>
+                    <NumberInput aria-label={`Effect ${index + 1}: ${ET.speed}`} min={1} max={10000} value={e.speed} onChange={(v) => v !== undefined && patch({ speed: v }, group('speed'))} />
+                  </Field>
+                ) : (
+                  <Field label={ET.travelMs} help={ET.travelHelp}>
+                    <NumberInput aria-label={`Effect ${index + 1}: ${ET.travelMs}`} min={20} max={5000} value={e.travelMs ?? 250} onChange={(v) => v !== undefined && patch({ travelMs: v }, group('travel'))} />
+                  </Field>
+                )}
                 <Field label={ET.linger}>
                   <NumberInput aria-label={`Effect ${index + 1}: ${ET.linger}`} allowEmpty min={0} max={5000} value={e.lingerMs} onChange={(v) => patch({ lingerMs: v ? v : undefined }, group('linger'))} />
                 </Field>
@@ -103,7 +117,18 @@ function EffectForm({ index }: { index: number }) {
             <Field label={ET.layer} help={layer === 'screen' ? ET.layerHelp : undefined}>
               <Select aria-label={`Effect ${index + 1}: ${ET.layer}`} value={layer}
                 options={[{ value: 'front', label: ET.layerFront }, { value: 'behind', label: ET.layerBehind }, ...(travel ? [] : [{ value: 'screen', label: ET.layerScreen }])]}
-                onChange={(v) => patch({ layer: v === 'front' ? undefined : (v as 'behind' | 'screen'), ...(v === 'screen' ? { at: undefined } : { mirror: undefined }) })} />
+                onChange={(v) => patch({ layer: v === 'front' ? undefined : (v as 'behind' | 'screen'), ...(v === 'screen' ? { at: undefined } : { mirror: undefined, order: undefined }) })} />
+            </Field>
+            {layer === 'screen' && (
+              <Field label={ET.orderLabel} help={ET.orderHelp}>
+                <Select aria-label={`Effect ${index + 1}: ${ET.orderLabel}`} value={effectOrder(e)}
+                  options={[{ value: 'backdrop', label: ET.orderBackdrop }, { value: 'behind', label: ET.orderBehind }, { value: 'front', label: ET.orderFront }]}
+                  onChange={(v) => edit((d) => setEffectOrder(d, index, v as 'backdrop' | 'behind' | 'front'))} />
+              </Field>
+            )}
+            <Field label={ET.blend} help={ET.blendHelp}>
+              <Select aria-label={`Effect ${index + 1}: ${ET.blend}`} value={effectBlend(e)} options={[{ value: 'normal', label: ET.blendNormal }, { value: 'add', label: ET.blendAdd }]}
+                onChange={(v) => edit((d) => setEffectBlend(d, index, v as 'normal' | 'add'))} />
             </Field>
           </div>
           {travel && <Toggle label={ET.returns} help={ET.returnsHelp} checked={!!e.returns} onChange={(v) => patch({ returns: v ? true : undefined })} />}
@@ -111,6 +136,8 @@ function EffectForm({ index }: { index: number }) {
           <EffectSounds index={index} />
           <EffectPulses index={index} kind="flash" />
           <EffectPulses index={index} kind="shake" />
+          <EffectHides index={index} />
+          <EffectFades index={index} />
         </>
       ) : (
         <>

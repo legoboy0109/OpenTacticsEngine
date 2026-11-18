@@ -101,6 +101,8 @@ export interface Game extends Extra {
   /** Whose square decides the battle scene's background and platform (docs/BATTLE_SCENE.md): missing = 'defender'. Which side each fighter stands on: missing = 'map'. */
   battleBackgroundFrom?: 'defender' | 'attacker'
   battleSceneSides?: 'map' | 'playerRight' | 'playerLeft'
+  /** A staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene"): missing = false (staves stay on the map). */
+  battleSceneStaves?: boolean
   /** Story switches (off / on) and variables (whole numbers) that events read and set (docs/EVENTS.md). */
   switches?: Named[]
   variables?: Named[]
@@ -436,6 +438,9 @@ export interface BattleAssignDef extends Extra { set: string; type?: string; cha
 export interface BattleBackgroundDef extends Extra { sheet: string; cell: CellRef }
 export interface FxFlashDef extends Extra { atMs: number; ms: number; color?: string }
 export interface FxShakeDef extends Extra { atMs: number; ms: number; strength: number }
+/** An effect's scene-wide parts (docs/BATTLE_SCENE.md "Hiding and fading"; model/battleEffects.ts). */
+export interface FxHideDef extends Extra { atMs: number; ms: number; what: Array<'backdrop' | 'platforms'>; color?: string }
+export interface FxFadeDef extends Extra { atMs: number; ms: number; to?: string; alpha?: number; holdMs?: number; over?: 'all' | 'backdrop' }
 /** A battle scene effect (docs/BATTLE_SCENE.md "Effects"; model/battleEffects.ts). `frames` entries are [column, row] or, from another image, [column, row, image id]. */
 export interface BattleEffectDef extends Extra {
   id?: string; weapon?: string; group?: string
@@ -444,6 +449,7 @@ export interface BattleEffectDef extends Extra {
   sounds?: Record<string, string>; hitAtMs?: number; layer?: 'front' | 'behind' | 'screen'; mirror?: boolean
   flash?: FxFlashDef[]; shake?: FxShakeDef[]; at?: 'target' | 'striker'; returns?: boolean; lingerMs?: number
   effects?: string | string[]; byType?: Record<string, string | string[]>
+  blend?: 'normal' | 'add'; hide?: FxHideDef[]; fade?: FxFadeDef[]; order?: 'backdrop' | 'behind' | 'front'; speed?: number
 }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
@@ -472,6 +478,15 @@ export interface BattleStageDef extends Extra {
   align?: 'top' | 'center' | 'bottom'
   fit?: 'cover' | 'contain'
   rangeLine?: boolean
+  /** Extra layouts by fight distance (docs/BATTLE_SCENE.md "Range bands"; model/stageBands.ts). */
+  ranges?: StageBandDef[]
+}
+export interface StageBandDef extends Extra {
+  from: number
+  feet: StagePair
+  platform?: StagePair
+  view?: 'both' | 'each'
+  pan?: { panMs?: number; leftView: number; rightView: number } & Extra
 }
 /** A tileset of hand-painted maps (docs/GRAPHICS.md "Tile layer"): a sheet whose cells are the tiles, numbered row by row from 0; model/tilesets.ts. */
 export interface Tileset extends Extra { sheet: string; animations?: Record<string, { frames: number[]; ms?: number }> }

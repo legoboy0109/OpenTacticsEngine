@@ -10,6 +10,7 @@ sets. Presentation only: the rules core's event stream is the single source of t
 - `game.json` `"battleScene": "map" | "scene"` (default `"map"`): the maker's default. Existing games stay on the map.
 - `game.json` `"battleBackgroundFrom": "defender" | "attacker"` (default `"defender"`): whose square decides the background and the platform ("Which background and platform").
 - `game.json` `"battleSceneSides": "map" | "playerRight" | "playerLeft"` (default `"map"`): which side each fighter stands on ("Which side each fighter stands on").
+- `game.json` `"battleSceneStaves": true` (default `false`): a staff used on one other unit plays in the scene too ("Staves in the scene"). Off, staves stay on the map as always.
 - Player option **Battle animations**: *Game default* / *Scene* / *On the map* (options screen, global or per game, saved in the
   settings file as `battleScene`, effective at once). Command line `--battle-scene scene|map` beats it for one run.
 - Order: command line > per-game option > global option > the game's default.
@@ -17,15 +18,48 @@ sets. Presentation only: the rules core's event stream is the single source of t
 ## What plays in the scene, and what stays on the map
 
 In the scene: every fight between two units (a player's attack, the computer's attack, counters, follow-up strikes, skills that
-fire, drain, recoil, conditions put on in the fight, a weapon that breaks, the fall). **Staves, abilities, attacks on doors, and
-everything else stay on the map in this version.** Battle quotes (before) and defeat quotes (after) are dialogue on the map and
+fire, drain, recoil, conditions put on in the fight, a weapon that breaks, the fall), and, with `"battleSceneStaves": true`, a staff used on
+one other unit ("Staves in the scene"). **Abilities, attacks on doors, every other staff (map-wide, on oneself, moving a unit, a light, a lock),
+and everything else stay on the map in this version.** Battle quotes (before) and defeat quotes (after) are dialogue on the map and
 keep their place in the stream: quotes, scene, defeat quote. Experience, level-up box and rank-up come after the scene as before
 (the scene shows the fighters' level and maximum hit points as they were when the fight began). Confirm / Cancel / tap skips the
 rest of the fight to its result. A fight out of the viewer's sight (fog) is not shown.
 
 Log lines (`[info] battle scene: ...`) for tests: `start A (Lv n) vs B (Lv n), melee|ranged, N strike(s)`, `X art: set "id"|map
 picture`, `X sheet: "id" (side S)` (only when the fighter's side has a sheet of its own for the set), `skill NAME (unit)`, `strike A -> B [(counter)] [(crit)]`, `hit|crit A -> B DMG`, `miss A -> B`, `drain X +n`, `recoil X -n`,
-`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). Also, only in a game that uses the newer settings: `left A, right B` (who stands where, with `battleSceneSides`), `background "id" (terrain t)` (when the game has platforms, a map table or `battleBackgroundFrom: attacker`) and `platform "id"` (when one is used); a game with none of them logs exactly what it always did.
+`defeated X`, `end` or `end (skipped)` (skipped beats are still logged, in order). A staff use adds `staff heal B +N`, `staff miss B`, `staff condition X (B)`,
+`staff repair X (B)` and ends its `start` line with `, staff ITEM on B` ("Staves in the scene"); an effect with `"speed"` adds `effect ID flight N ms` ("Travel and distance"). Also, only in a game that uses the newer settings: `left A, right B` (who stands where, with `battleSceneSides`), `background "id" (terrain t)` (when the game has platforms, a map table or `battleBackgroundFrom: attacker`) and `platform "id"` (when one is used); a game with none of them logs exactly what it always did.
+
+## Staves in the scene
+
+With `"battleSceneStaves": true` in `game.json` (and the scene on, "Settings"), a **staff used on one other unit** (a heal, a status, a cure, a repair; a
+staff that can miss) plays as a scene instead of the map's floating "+8". Presentation only: the rules core's events are the single source of truth (a use
+is `StaffUsed`, then per target `StaffMissed` or `UnitHealed` / `ItemRepaired` / the condition entries; nothing new in the core), and no save, hash or `ote-sim`
+result changes. What plays:
+
+- **Which uses.** A use plays when it has **one picked unit that is not the user** and **one unit affected**, and no unit is moved by it. Staves **without a single
+  target unit stay on the map**: a map-wide one (`"area": "all"`), one on oneself (`"target": "self"`), a radius that reaches several units, a warp / pull / swap
+  (they end in `UnitRelocated`), a light and a lock (they pick a square). A use that is out of the viewer's sight (fog) is not shown either. The rules entries that
+  follow (the broken staff, the user's experience, a level-up) are played on the map after the scene as after a fight.
+- **Who stands where.** The user is the one that "started it": with `battleSceneSides` `"playerRight"` a person's user is on the right and the computer's on the left,
+  `"playerLeft"` the opposite, `"map"` the unit nearer the left edge of the map is on the left. The target stands **on the other side**, also when it is an ally of
+  the same player (as in the original: an ally opposite the caster; the "both are a person's" rule of a fight does not apply). The range shows as in a ranged fight
+  (a staff reaching 2 squares or more is a "ranged" scene; range bands and the stage's layouts by distance apply).
+- **The user** plays `cast` (else `attack`; with neither, the fallback motion). Its set is picked by the staff's group like a weapon's (`assign` `group`); the target's by
+  the weapon it holds, its box shows that weapon, the user's box the staff. There are no hit or crit percentages and **no counter**.
+- **The staff's effect.** An effect assigned to the staff plays like a weapon's ("Effects"): name the staff item's id in `"weapon"` (`{ "weapon": "mend_staff", "sheet": ... }`; an
+  item id that is a staff is accepted where a weapon id is; a weapon's id wins when both exist), or its group with `"group"` (`"staff"`; the item's own entry wins over its group's).
+  `mode` `target` appears on the target with `hitAtMs` lead-in as before, `travel` flies from the user to the target, `at: striker` is a charge on the user.
+  All other keys of an effect work the same.
+- **The result** shows on the target when the effect lands (the cast's hit frame, or later if a lead-in or a flight needs it): the hit-point bar **rises** with a green
+  **`+N`**; a **condition** put on, resisted or cured, or an item mended, as a label above it (`Poison`, `Poison resisted`, `Poison cured`, `Iron Sword +5`); a staff that
+  missed shows **`MISS`**. The target plays no pose. The sounds are the map's: the staff's own use sound (else the heal sound for a healing staff), the heal sound at the
+  `+N`, the miss sound.
+- **Log** (the existing lines are unchanged; a fight logs exactly what it did): `battle scene: start A (Lv n) vs B (Lv n), melee|ranged, 1 strike(s), staff ITEM on B` (A is
+  the left fighter, as in a fight; `left A, right B` follows with `battleSceneSides`), `effect ID start`, `staff heal B +N`, `staff miss B`, `staff condition NAME (B)` (also
+  `staff condition Poison resisted (B)`, `Poison cured`), `staff repair Iron Sword +5 (B)`, `end`. No `strike` / `hit` line.
+- Code: `staffUseInScene` / `belongsToStaffUse` and the staff script in `fight_script.*` (pure), the staff's beats in `buildTimelineList` (`StaffHeal`, `StaffMiss`, `StaffNote`),
+  `BattleView::takeFightRun` (the view holds the run as for a fight). Tests: `test_scene3_staff.cpp`, `tests/battle_scene3_player_test.py`.
 
 ## Which side each fighter stands on
 
@@ -165,9 +199,14 @@ plays exactly as it did, and logs no new lines.** Presentation only: no save, ha
     "sounds": { "0": "hum", "300": "zap" }, "flash": [{ "atMs": 300, "ms": 80, "color": "#ffffff" }], "shake": [{ "atMs": 300, "ms": 200, "strength": 2 }] },
   { "id": "wash", "sheet": "sky", "frames": [[0,0]], "layer": "screen" },                      // a library effect: an id and pictures, no weapon
   { "id": "bolt", "sheet": "fx", "frames": [[3,0]], "mode": "travel", "travelMs": 300, "returns": true, "lingerMs": 120 },
-  { "weapon": "fire_tome", "effects": ["charge", "bolt"], "byType": { "knight": "wash", "mage": [] } }   // an assignment: no pictures of its own
+  { "weapon": "fire_tome", "effects": ["charge", "bolt"], "byType": { "knight": "wash", "mage": [] } },  // an assignment: no pictures of its own
+  { "id": "flame", "weapon": "heal_staff", "sheet": "fx", "frames": [[4,0]], "blend": "add",           // a staff item's id: its effect in the scene ("Staves in the scene")
+    "hide": [{ "atMs": 0, "ms": 900, "what": ["backdrop"] }], "fade": [{ "atMs": 0, "ms": 200, "alpha": 0.6, "holdMs": 300 }] },
+  { "id": "arrow", "group": "bow", "sheet": "fx", "frames": [[5,0]], "mode": "travel", "speed": 240 }     // a flight that takes longer over a longer way
 ]
 ```
+
+Newer than the first set: `blend`, `hide`, `fade`, the `order` of a screen effect and `speed` of a flight (below), and a **staff item's id** as `"weapon"` (a weapon's id wins when both exist; "Staves in the scene").
 
 **Effect sounds.** `"sounds": { "<ms>": "<sound id>" }`: a sound of `data/audio.json` that plays that many milliseconds after the effect **starts**
 (for a `target` / `striker` effect with `hitAtMs`, the start is the lead-in, not the hit). Ids are checked when the game loads in the player
@@ -187,7 +226,12 @@ and the platforms), `"screen"` (frames that cover the whole stage; drawn right a
 `front` effects are over it). A screen effect with a fixed stage is drawn at the stage's origin at the stage's scale `k` (a frame the stage's size covers
 it exactly); without a fixed stage it is enlarged by the whole number that covers the screen and centred, like a backdrop. It is never turned round unless
 `"mirror": true` (then it is, when the striker stands on the right). A screen effect cannot `travel` and has no `at`; `mirror` is refused on other layers.
-Draw order: backdrop, screen effects, range line, platforms, behind effects, fighters (the striker in front), front effects, floating numbers, boxes, flashes, fade.
+**`"order"` of a screen effect.** A `screen` effect may say where in the drawing it goes: `"order": "backdrop"` (the default, today: right after the backdrop, so the platforms
+and fighters are over it), `"behind"` (with the behind layer: over the platforms, under the fighters) or `"front"` (over the fighters and front effects, under the floating numbers and boxes). It is
+the stage-sized picture of `layer: "screen"` either way (at the stage's origin and scale, mirrored with `mirror` for the striker on the right), so there is no second kind of placement: `order` is
+the only addition, and it is refused on other layers (`"order" is only for "layer": "screen"`). An effect that should sit **on a fighter** is the default placement (`at` target / striker).
+Draw order: backdrop (or the hide colour), a `fade` over the backdrop only, screen effects of order `backdrop`, range line, platforms (unless hidden), behind effects and screen effects of order `behind`, fighters (the striker in front),
+front effects and screen effects of order `front`, floating numbers, boxes, flashes, a `fade` over everything, the scene's own fade.
 
 **Frames from several sheets.** A sheet image is at most 2048 x 2048 (docs/GRAPHICS.md), so a long effect can come from several. In an effect (not in a
 fighter's animation) a `frames` entry may be `[column, row, "sheet id"]`: that frame is cell (column, row) of that sheet; an entry with two numbers is from the
@@ -230,6 +274,35 @@ round (it flies the other way); the hit still lands on arrival. `"lingerMs": N` 
 The effect is drawn for `travelMs + lingerMs (+ travelMs)` and the strike does not end before the projectile is home (the next strike starts after it). `returns` and
 `lingerMs` are refused on an effect that does not travel.
 
+**Blending.** `"blend": "normal"` (default) or `"add"`. An additive effect's pixels are **added** to what is under them (the colour times its alpha is added to the picture below, clamped), so it
+only brightens: fire, light and glow. It applies to the effect's pictures on any layer (a screen effect, a travelling shot, an effect on a fighter: over a fighter it brightens the fighter). The renderer
+call is `Renderer::setAdditiveBlend(bool)` (`platform.h`): SDL3 and SDL2 draw the textures with `SDL_BLENDMODE_ADD` (the web build is the SDL3 backend compiled by Emscripten, so it is the same code);
+a backend that returns false from it draws the effect normally and logs once `battle scene: additive blending is not available on this renderer; effects with "blend": "add" are drawn normally`.
+Refusal: a `blend` that is not `"normal"` or `"add"`.
+
+**Hiding and fading.** Scene-wide parts of an effect, timed from the effect's start like `flash` (each list up to 32 rows):
+
+```jsonc
+"hide": [{ "atMs": 0, "ms": 1500, "what": ["backdrop", "platforms"], "color": "#102030" }],
+"fade": [{ "atMs": 0, "ms": 300, "to": "#000000", "alpha": 0.8, "holdMs": 400, "over": "all" }]
+```
+
+- `hide`: for `ms` (10 to 60000) from `atMs` (0 to 60000) the named layers are **not drawn**: `"backdrop"` (the stage is filled with `color`, black without one) and / or `"platforms"`. Fighters,
+  effects, floating numbers and boxes are drawn as usual, so a screen effect can stand in for the backdrop. Windows may overlap; the colour is the one of the window that began last and gives one.
+- `fade`: a colour (`to`, default `#000000`) laid over the scene: it fades **in over `ms`** (10 to 5000) to `alpha` (above 0, at most 1, default 1), is **held `holdMs`** (0 to 60000, default 0), and fades **out
+  over `ms`**. `"over": "all"` (default) covers everything including the fighters and the boxes (like a flash); `"backdrop"` covers the backdrop only (it dims the stage and the fighters stay as they are; the scene
+  had no backdrop dimming before, so this is the only one). Windows that run past the end of the scene are cut off with it.
+- Refusals: not a list, more than 32 rows, an unknown key, a missing `atMs` / `ms`, out-of-range numbers, a `what` that is empty or names anything but the two layers or names one twice, a `color` / `to` that is not `#rrggbb`, an `over` that is not `all` / `backdrop`.
+- Skipping the scene shows none of it. Log: the effect's `effect ID start`, as for every effect with a newer key.
+
+**Travel and distance.** A travel effect flies on the line between the two **foot points** as drawn (the striker's to the target's; with a fixed stage those of the layout of the fight's distance: `feet`, `feetFar`
+or a range band, "Range bands"; the effect's `anchor` is the point of its frame that sits on the path), so it already covers more ground in a far layout; `travelMs` is how long it takes whatever the distance.
+**`"speed": N`** (1 to 10000 **stage pixels per second**) is the alternative: the flight takes `distance / N` seconds (the straight distance between the two foot points of this fight's layout, in stage
+pixels, whole milliseconds, kept between 20 and 5000), so it grows with the distance. `speed` is for a `travel` effect on a **fixed stage** (refused without one: `"speed" is in stage pixels per second and
+needs a fixed "stage"`), refused together with `travelMs` (`give a "travelMs" or a "speed", not both`) and on an effect that does not travel. The hit lands when the shot arrives, as always. With a camera
+pan ("Range bands") the flight is in the stage's world: the shot flies across the pan. Log: `effect ID flight N ms`, after the `start` line. Example: 200 px/s over the 128 pixels between the `feetFar`
+foot points is 640 ms; over a 150 pixel band 750 ms (`tests/battle_scene3_player_test.py`).
+
 **Timing, as built.** Pure function `buildTimelineList` (`fight_timeline.*`): per strike, `t0` = the strike's start; the hit time is as above; effect `i`'s
 `FightFx` has `t0` (a travel effect: the spawn time; another: hit - `hitAtMs`), `dur`, the side it is drawn on; its sounds are beats at `t0 + ms`, its flashes and shakes pulses at
 `t0 + atMs`. An effect that uses any newer key also logs `battle scene: effect ID start` at its start (before the hit when it leads in); an effect without them logs nothing new.
@@ -267,7 +340,11 @@ laid out exactly as described under "Layout" (nothing changes). Presentation onl
   "platformFar": { "left": [24, 96], "right": [152, 96] },     // optional, needs "platform": at range 2+ (default: platform)
   "align": "bottom",   // "top" | "center" (default) | "bottom": the part that stays visible when the stage is taller than the screen allows
   "fit": "cover",      // "cover" (default) | "contain"
-  "rangeLine": true    // default true: the dotted line and "Range N" label of a ranged fight
+  "rangeLine": true,   // default true: the dotted line and "Range N" label of a ranged fight
+  "ranges": [          // optional: extra layouts by fight distance ("Range bands")
+    { "from": 4, "feet": { "left": [40, 104], "right": [400, 104] }, "platform": { "left": [8, 96], "right": [368, 96] },
+      "view": "each", "pan": { "panMs": 250, "leftView": 0, "rightView": 200 } }
+  ]
 }
 ```
 
@@ -308,6 +385,27 @@ the **area** is rows `hudBottom` to `hintTop`.
    about rows 12 to 147. `contain` gives `k = 1`, the whole stage centred (120 pixels bar at each side). The 270 x 480 portrait screen: `k = 1`, the whole stage fits
    between the boxes and the hint and is centred there (15 pixels at each side). 960 x 540: `k = 4` under `cover`, `3` under `contain`.
 
+### Range bands
+
+`feet` is the layout for a fight one square apart and `feetFar` for two or more. **`"ranges"`** adds layouts by distance, like the original's several ranges: a list of 1 to 16 **bands**, each
+`{ "from": N, "feet": {...}, "platform": {...}, "view": "both" | "each", "pan": {...} }`. A fight `D` squares apart uses the band with the **largest `from` that is not above `D`** (`from` 2 to 99, each used once;
+a `from` of 2 replaces `feetFar` altogether); with no band that fits, `feet` / `feetFar` as above. A band replaces the foot points **and** the platform points: with its own `platform` the pictures sit at its points,
+without one each is **centred on its foot point** (the base `platform` points belong to the base layout). The platform picture is the `far` one, as in any ranged fight. Everything that follows
+the foot points follows the band: shadows, floating numbers, effects, the `speed` of a flight.
+
+- **`"view": "both"`** (default): both fighters are in the stage's picture, no camera; the points are inside the stage as for `feet`.
+- **`"view": "each"`**, the classic one-fighter-per-screen presentation, needs **`"pan": { "panMs": 250, "leftView": x, "rightView": x }`** (`pan` is refused on a band that is not `each`). The points of such a band
+  lie in a **world wider than the stage** (x 0 to 8191); the picture shows `width` stage pixels of it. `leftView` / `rightView` (0 to 8191) are the **world x of the picture's left edge** while the camera is on
+  the left / right fighter, and each fighter's foot point x must be inside the picture while the camera is on it (`leftView <= left foot x < leftView + width`, likewise on the right; the loader checks).
+  `panMs` (0 to 5000, default 250; 0 = the camera cuts) is the time the camera takes to move. The stage is drawn at the same scale, only slid: the **backdrop** and the screen effects stay on the picture (they are
+  not part of the world), platforms, fighters, shadows, effects and floating numbers move with the camera, and no range line is drawn. The bars at the sides of a stage narrower than the screen cover what the camera does not show.
+- **Where the camera is.** It starts on the fighter that acts first. Before a strike it moves to the striker (when it is elsewhere; the strike waits for it), and it moves to the struck fighter **so that it has arrived when the hit
+  lands**: it starts `panMs` before the hit, and a blow that would land sooner than `panMs` after its strike began **waits** until it has (like a lead-in). A travelling effect flies across the pan. A counter's striker is the
+  struck fighter of the blow before, so the camera is on it already. The movement is eased (smoothstep). A staff use ("Staves in the scene") moves the camera the same way: user, then target for the result.
+- Pure functions: `stageLayoutFor(stage, distance)` and `stageGeometryAt(..., distance, ..., viewX)` (`core/data/battle_stage.*`), the camera `FightTimeline::cameraAt(t)` (`fight_timeline.*`, `buildTimelineList(..., panMs)`).
+- Refusals (all name `battle stage range N`): `ranges` not a list of 1 to 16, a band that is not an object, an unknown key, `from` outside 2 to 99 or used twice, no `feet`, a point outside the stage (a
+  panning band: outside 0 to 8191), `view` not `both` / `each`, `each` without `pan`, `pan` without `each`, an unknown `pan` key, `panMs` outside 0 to 5000, a view outside 0 to 8191, a foot point that is not inside the picture of its own view.
+
 The geometry is the pure function `stageGeometry` (`core/data/battle_stage.*`); the loader is `loader_battle_stage.cpp`; the drawing `fight_scene_stage.cpp`.
 Editor: Art > **Stage** card (docs/EDITOR_UI.md). Tests: `test_battle_stage.cpp`, `test_battle_art.cpp`, `tests/battle_stage_player_test.py`.
 
@@ -325,5 +423,5 @@ has no ranged stand or whiff animation simply leaves them out.
 `engine/core/data/battle_art.*`, `loader_battle_art.cpp`; player: `fight_script.*` (events to strikes, pure), `fight_timeline.*`
 (clock, pure), `fight_scene*.cpp` (drawing; `fight_scene_stage.cpp` the fixed stage), `core/data/battle_stage.*` (its geometry, pure), `loader_battle_stage.cpp`, `battle_view_fight.cpp` (the view holds the run and plays it silently afterwards),
 `battle_fight.cpp`. Effects: `BattleEffect` (`battle_art.h`), `readEffects` (`loader_battle_art.cpp`), `BattleArt::resolveEffects`, `buildTimelineList`, `FightScene::drawEffects` / `applyShake` / `drawFlashes`. Tests: `test_battle_art.cpp`, `test_fight_script.cpp`, `test_fight_timeline.cpp`, `test_battle_scene_settings.cpp`,
-`tests/battle_scene_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `test_battle_effects.cpp`, `tests/battle_effects_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
+`tests/battle_scene_player_test.py`, `test_scene3_staff.cpp`, `test_scene3_keys.cpp`, `tests/battle_scene3_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `test_battle_effects.cpp`, `tests/battle_effects_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
 `battleArt.test.ts`, `battleStage.test.ts`, `battleEffects.test.ts`, `battle-anims.spec.ts`, `battle-stage.spec.ts`, `battle-effects.spec.ts`.
