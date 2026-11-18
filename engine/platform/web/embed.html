@@ -13,13 +13,14 @@
 <script src="player.js"></script>
 <script>
 // Embedded player for the editor's Play button (see docs/ARCHITECTURE.md "Web").
-//   embed.html?project=<id>[&map=<mapId> | &campaign=1][&api=<base>][&font=<id>][&style=<id>][&showall=1][&noaudio=1][&difficulty=<id>]
-// campaign=1 starts a New game of the project's campaign instead of one map (nothing is saved either way).
+//   embed.html?project=<id>[&map=<mapId> | &campaign=1][&api=<base>][&font=<id>][&style=<id>][&showall=1][&noaudio=1][&difficulty=<id>][&testlevel=auto|N][&chapter=<id>]
+// campaign=1 starts a New game of the project's campaign instead of one map (nothing is saved either way). chapter=<id> (with campaign=1)
+// starts a test playthrough at that chapter; testlevel=auto|N lifts the human side to that level (docs/DIFFICULTY.md "Test level", docs/SAVES.md).
 // Loads the project from <api>/api/projects/<id>/files and .../file/<path>
 // (api defaults to this page's origin), plus the fonts from <api>/assets/fonts/,
 // then starts the game. Options are never stored (--no-settings) and nothing is
 // saved or offered for saving (--no-saving), so the preview always starts from defaults. Messages to the parent window:
-//   {type:"ote-player-ready"}  {type:"ote-player-error", message}
+//   {type:"ote-player-ready"}  {type:"ote-player-error", message}  {type:"ote-player-testlevel", level}
 // Message from the parent: {type:"ote-player-restart"} reloads the project.
 (function () {
   var q = new URLSearchParams(location.search);
@@ -38,14 +39,21 @@
     persist: false,
     onReady: function () { tell({ type: 'ote-player-ready' }); },
     onError: function (message) { tell({ type: 'ote-player-error', message: message }); },
+    // The test level the player settled on (the editor shows the number for "Automatic"): the first "test level: N" summary line.
+    onLog: function (line) {
+      var m = /test level: (\d+)(?: \(auto\))? \(\d+ units? raised\)/.exec(line);
+      if (m) tell({ type: 'ote-player-testlevel', level: Number(m[1]) });
+      else if (line.indexOf('test level: automatic, but') >= 0) tell({ type: 'ote-player-testlevel', level: 0 });
+    },
     args: (function () {
       var a = ['--games', '/games', '--assets', '/assets', '--no-settings', '--no-saving', '--game', project || ''];
-      if (q.get('campaign')) a.push('--campaign');
+      if (q.get('campaign')) { a.push('--campaign'); if (q.get('chapter')) a.push('--chapter', q.get('chapter')); }
       else if (q.get('map')) a.push('--map', q.get('map'));
       if (q.get('font')) a.push('--font', q.get('font'));
       if (q.get('style')) a.push('--style', q.get('style'));
       if (q.get('showall')) a.push('--show-all');  // fog of war drawn as if there were none (the rules still apply)
       if (q.get('noaudio')) a.push('--no-audio');
+      if (q.get('testlevel')) a.push('--test-level', q.get('testlevel'));  // a testing aid; the editor's Play panel
       if (q.get('difficulty')) a.push('--difficulty', q.get('difficulty'));  // docs/DIFFICULTY.md: no choice screen, this difficulty
       return a;
     })(),

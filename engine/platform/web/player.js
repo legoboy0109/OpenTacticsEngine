@@ -8,6 +8,7 @@
 //     args: ['--game', 'x'],          // arguments for the player's main()
 //     onReady: () => {},              // first frame is up
 //     onError: (message) => {},       // anything went wrong (also shown on the page)
+//     onLog: (line) => {},            // every line the engine logs (the editor's Play panel reads the test level from it)
 //   });
 //
 // Dependency-free, no build step. Everything the engine logs goes to the
@@ -17,6 +18,7 @@
 
   var errorLines = [];   // engine "[ERROR] ..." lines, newest last
   var failed = false;
+  var logHook = null;    // opts.onLog
   var statusEl = null, panelEl = null, canvas = null;
 
   function el(tag, cls, parent) {
@@ -70,6 +72,7 @@
 
   function log(text) {
     var line = String(text);
+    if (logHook) { try { logHook(line); } catch (e) { /* a broken hook must not stop the log */ } }
     if (line.indexOf('[ERROR]') === 0) { errorLines.push(line); console.error(line); }
     else if (line.indexOf('[warn]') === 0) console.warn(line);
     else console.log(line);
@@ -149,6 +152,7 @@
     setupCanvas();
     var Module;
     var args = opts.args || [];
+    logHook = opts.onLog || null;
 
     createOtePlayer({
       canvas: canvas,
