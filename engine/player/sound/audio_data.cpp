@@ -447,6 +447,16 @@ bool checkStoryAudio(const Database& db, const AudioData& d, std::string& err) {
                 q(s.second) + " is not in " + (d.present ? "data/audio.json \"sounds\"" : "this game (it has no data/audio.json)");
           return false;
         }
+  // The sounds of a battle scene effect (docs/BATTLE_SCENE.md "Effect sounds").
+  for (size_t i = 0; i < db.graphics.battle.effects.size(); ++i) {
+    const BattleEffect& fx = db.graphics.battle.effects[i];
+    for (const auto& s : fx.sounds)
+      if (d.findSound(s.second) < 0) {
+        err = db.rootPath + "/data/graphics.json: battle effect " + std::to_string(i + 1) + ": sound " + q(s.second) + " is not in " +
+              (d.present ? "data/audio.json \"sounds\"" : "this game (it has no data/audio.json)");
+        return false;
+      }
+  }
   if (db.campaign) {
     for (const ChapterDef& ch : db.campaign->chapters) {
       const std::string where = db.rootPath + "/data/campaign.json: chapter " + q(ch.id);

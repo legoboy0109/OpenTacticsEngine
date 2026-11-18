@@ -91,7 +91,10 @@ class FightScene {
   void drawBackground(Renderer& r, const Geo& g) const;
   void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
-  void drawEffects(Renderer& r, const Geo& g) const;
+  void drawEffects(Renderer& r, const Geo& g, FxLayer layer) const;  // the effects of one layer (docs/BATTLE_SCENE.md "Effect layers")
+  void drawScreenEffect(Renderer& r, const Geo& g, const BattleEffect& be, const FightFx& fx) const;
+  void applyShake(Geo& g) const;                    // moves the stage by the effects' shakes at this moment
+  void drawFlashes(Renderer& r, const Geo& g) const;  // the crit flash and the effects' flashes
   void drawBox(Renderer& r, const Geo& g, int side) const;
   void drawFloats(Renderer& r, const Geo& g) const;
   void drawRange(Renderer& r, const Geo& g) const;
@@ -102,7 +105,7 @@ class FightScene {
   FightScript script_;
   FightTimeline tl_;
   Fighter fighter_[2];
-  std::vector<int> effectOfStrike_;  // per strike: index into Graphics::battle.effects or -1
+  std::vector<std::vector<int>> effectsOfStrike_;  // per strike: the indices into Graphics::battle.effects in the order they start
   double t_ = 0;
   size_t nextBeat_ = 0;
   std::vector<Float> floats_;

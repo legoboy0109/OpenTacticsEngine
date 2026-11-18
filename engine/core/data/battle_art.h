@@ -2,6 +2,7 @@
 // backgrounds. Part of data/graphics.json (key "battle"). The core only describes it; the player draws it. Presentation
 // only: nothing here is read by the rules, the saves or the simulator.
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,11 @@ struct BattleAnim {
   // the player checks it against data/audio.json and plays it when the frame begins.
   std::vector<std::pair<int, std::string>> sounds;
 
+  // Effects only (docs/BATTLE_SCENE.md "Frames from several sheets"): the sheet of each frame, same length as `frames`, or empty = every
+  // frame is from `sheet`. All the sheets have one cell size (checked at load).
+  std::vector<int> frameSheets;
+  int sheetOfFrame(int frame) const { return frame >= 0 && (size_t)frame < frameSheets.size() ? frameSheets[(size_t)frame] : sheet; }
+
   bool any() const { return sheet >= 0 && !frames.empty(); }
   // The sheet the fighter of `sideId` draws this animation from: its side's own sheet, else `sheet`.
   int sheetFor(const std::string& sideId) const {
@@ -67,14 +73,43 @@ struct BattleSet {
   bool mirror = true;              // the fighter on the other side is the picture mirrored (false: never mirror)
 };
 
-// A spell or an arrow drawn over the fight for a weapon (or every weapon of a group).
+// Where an effect is drawn (docs/BATTLE_SCENE.md "Effect layers"): over the fighters (today), behind both of them, or covering the whole stage.
+enum class FxLayer { Front, Behind, Screen };
+
+// A flash of colour over the whole scene / a shake of the stage, both timed from the start of the effect that owns them.
+struct FxFlash {
+  int atMs = 0, ms = 100;
+  uint32_t rgb = 0xffffff;
+};
+struct FxShake {
+  int atMs = 0, ms = 200;
+  int strength = 2;  // stage / screen pixels before scaling
+};
+
+// A spell or an arrow drawn over the fight for a weapon (or every weapon of a group). An entry with a weapon / group and no pictures
+// only assigns the effects named in `list` / `byType`; an entry with an `id` and no weapon / group is a library effect that lists use.
 struct BattleEffect {
+  std::string id;    // optional name, used by the lists of other entries and in the log
   int weapon = -1;   // index into Database::weapons, or -1 when `group` is used
   std::string group; // weapon group
   BattleAnim anim;
   bool travel = false;  // true: flies from the striker to the target; false: appears on the target
   int travelMs = 250;
   int anchorX = -1, anchorY = -1;  // the point of a frame that sits on the path / target (-1 = its middle)
+  // The newer keys (all optional; an entry that sets none of them plays exactly as before).
+  std::vector<std::pair<int, std::string>> sounds;  // { ms after the effect starts, sound id }, in time order
+  int hitAtMs = 0;                                  // the effect starts this long before the hit lands (a "target" or "striker" effect)
+  FxLayer layer = FxLayer::Front;
+  bool mirror = false;               // layer "screen": turned round when the striker stands on the right
+  std::vector<FxFlash> flash;
+  std::vector<FxShake> shake;
+  bool atStriker = false;            // "at": "striker": drawn on the striker, not the target (not for travel effects)
+  bool returns = false;              // travel: flies back to the striker after arriving
+  int lingerMs = 0;                  // travel: stays at the target this long after arriving
+  std::vector<int> list;             // assignment: indices of further effects that play with this one (after its own pictures)
+  std::vector<std::pair<int, std::vector<int>>> byType;  // assignment: striker's unit type index -> the effects that replace this entry's own
+  bool extended = false;             // any of the newer keys was given (it then also logs its start)
+  bool assignsOnly() const { return !anim.any(); }
 };
 
 // Which set a fighter uses. The most specific rule that fits wins (the order is in docs/BATTLE_SCENE.md and BattleArt::resolveSet).
@@ -146,6 +181,10 @@ struct BattleArt {
   int resolveSet(int character, int type, const std::string& group, int weapon = -1, const std::string& side = std::string()) const;
   // The effect for a weapon: the weapon's own entry, else its group's; -1 = none.
   int resolveEffect(int weapon, const std::string& group) const;
+  // The effects of a strike in the order they start: the entry for the weapon (else its group), then for a striker of unit type `type`
+  // its byType list when it has one, else its own pictures followed by its list (docs/BATTLE_SCENE.md "Several effects, by unit type").
+  std::vector<int> resolveEffects(int weapon, const std::string& group, int type) const;
+  int findEffect(const std::string& id) const;
 };
 
 }  // namespace ote

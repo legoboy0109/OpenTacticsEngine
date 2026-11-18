@@ -13,8 +13,8 @@ namespace {
 
 std::string q(const std::string& s) { return "\"" + s + "\""; }
 
-bool readFrameCell(const LoadCtx& c, const SheetDef& sh, const Json& j, const std::string& where, SpriteCell& out) {
-  if (!j.isArray() || j.size() != 2 || !LoadCtx::isWhole(j[0]) || !LoadCtx::isWhole(j[1]) || j[0].asInt() < 0 || j[1].asInt() < 0)
+bool readFrameCell(const LoadCtx& c, const SheetDef& sh, const Json& j, const std::string& where, SpriteCell& out, size_t n = 2) {
+  if (!j.isArray() || j.size() != n || !LoadCtx::isWhole(j[0]) || !LoadCtx::isWhole(j[1]) || j[0].asInt() < 0 || j[1].asInt() < 0)
     return c.fail(where, "\"frames\" must be a list of [column, row] cells (whole numbers, counted from 0)");
   out.col = (int16_t)std::min(j[0].asInt(), 30000);
   out.row = (int16_t)std::min(j[1].asInt(), 30000);
@@ -25,8 +25,9 @@ bool readFrameCell(const LoadCtx& c, const SheetDef& sh, const Json& j, const st
   return true;
 }
 
-// One animation object: sheet, frames, ms, loop, hit, spawn, sounds.
-bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool loopDefault, BattleAnim& out) {
+// One animation object: sheet, frames, ms, loop, hit, spawn, sounds. `isEffect`: an effect's frames may name their own sheet as a third
+// entry ([column, row, "sheet"]) and its "sounds" are not frame sounds (readEffects reads them, keyed by milliseconds).
+bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::string& where, bool loopDefault, BattleAnim& out, bool isEffect = false) {
   out = BattleAnim();
   if (!j.isObject()) return c.fail(where, "must be an object with \"sheet\" and \"frames\"");
   std::string sheetId;
@@ -38,11 +39,30 @@ bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::st
   if (!c.array(j, "frames", where, frames, true)) return false;
   if (frames->size() < 1 || frames->size() > (size_t)kMaxBattleFrames)
     return c.fail(where, "\"frames\" must list between 1 and " + std::to_string(kMaxBattleFrames) + " cells (all from one sheet)");
+  bool several = false;
   for (size_t i = 0; i < frames->size(); ++i) {
     SpriteCell cell;
-    if (!readFrameCell(c, sh, (*frames)[i], where, cell)) return false;
+    const Json& f = (*frames)[i];
+    if (isEffect && f.isArray() && f.size() == 3) {  // [column, row, "sheet"]: this frame is from another sheet of the same cell size
+      if (!f[2].isString()) return c.fail(where, "a frame's third entry must be a sheet id: [column, row, \"sheet\"]");
+      const int fs = db.graphics.findSheet(f[2].asString());
+      if (fs < 0) return c.fail(where, "frame " + std::to_string(i) + " names unknown sheet " + q(f[2].asString()));
+      const SheetDef& fsh = db.graphics.sheets[(size_t)fs];
+      if (fsh.cellW != sh.cellW || fsh.cellH != sh.cellH)
+        return c.fail(where, "frame " + std::to_string(i) + " is from sheet " + q(fsh.id) + " (cells of " + std::to_string(fsh.cellW) + " x " +
+                                 std::to_string(fsh.cellH) + ") but the effect's sheet " + q(sh.id) + " has cells of " + std::to_string(sh.cellW) + " x " +
+                                 std::to_string(sh.cellH) + " (all the sheets of one effect need the same cell size)");
+      if (!readFrameCell(c, fsh, f, where, cell, 3)) return false;
+      out.frameSheets.resize(i, out.sheet);
+      out.frameSheets.push_back(fs);
+      several = true;
+    } else {
+      if (!readFrameCell(c, sh, f, where, cell)) return false;
+      if (several) out.frameSheets.push_back(out.sheet);
+    }
     out.frames.push_back(cell);
   }
+  if (several) out.frameSheets.resize(out.frames.size(), out.sheet);
   // "ms": one number for every frame, or a list with one number per frame. Default 120.
   const int n = (int)out.frames.size();
   out.ms.assign((size_t)n, 120);
@@ -73,7 +93,7 @@ bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::st
     (std::string(key) == "hit" ? out.hit : out.spawn) = v;
   }
   // "sounds": { "<frame>": "<sound id>" }: a sound that plays when that frame begins (docs/BATTLE_SCENE.md "Sounds").
-  if (j.has("sounds")) {
+  if (j.has("sounds") && !isEffect) {
     const Json& s = j["sounds"];
     if (!s.isObject()) return c.fail(where, "\"sounds\" must be an object: a frame number, then a sound id, such as { \"1\": \"swing\" }");
     for (const Json::Member& m : s.members()) {
@@ -197,26 +217,164 @@ bool weaponGroupExists(const Database& db, const std::string& g) {
   return false;
 }
 
+// The newer keys of an effect (docs/BATTLE_SCENE.md "Effects"): sounds, hitAtMs, layer, mirror, flash, shake, at, returns, lingerMs.
+bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where, BattleEffect& fx) {
+  auto given = [&](const char* k) { return j.has(k); };
+  if (given("sounds")) {
+    const Json& s = j["sounds"];
+    if (!s.isObject()) return c.fail(where, "\"sounds\" must be an object: milliseconds after the effect starts, then a sound id, such as { \"0\": \"zap\" }");
+    for (const Json::Member& m : s.members()) {
+      char* end = nullptr;
+      const long ms = std::strtol(m.first.c_str(), &end, 10);
+      if (m.first.empty() || *end != 0 || ms < 0 || ms > 60000)
+        return c.fail(where, "\"sounds\" key " + q(m.first) + " must be the milliseconds after the effect starts (0 to 60000)");
+      if (!m.second.isString() || !isStoryId(m.second.asString()))
+        return c.fail(where, "\"sounds\" at " + m.first + " must name a sound of data/audio.json (letters, digits, \"_\" and \"-\")");
+      fx.sounds.push_back(std::make_pair((int)ms, m.second.asString()));
+    }
+    std::stable_sort(fx.sounds.begin(), fx.sounds.end(), [](const std::pair<int, std::string>& a, const std::pair<int, std::string>& b) { return a.first < b.first; });
+  }
+  if (given("hitAtMs")) {
+    if (!c.integer(j, "hitAtMs", where, fx.hitAtMs)) return false;
+    if (fx.hitAtMs < 0 || fx.hitAtMs > 5000) return c.fail(where, "\"hitAtMs\" must be between 0 and 5000 (milliseconds the effect starts before the hit)");
+    if (fx.travel) return c.fail(where, "\"hitAtMs\" is for an effect that appears on the target or the striker; a \"travel\" effect hits when it arrives");
+  }
+  std::string layer = "front";
+  if (given("layer")) {
+    if (!c.str(j, "layer", where, layer)) return false;
+    if (layer != "front" && layer != "behind" && layer != "screen") return c.fail(where, "\"layer\" must be \"front\", \"behind\" or \"screen\"");
+    fx.layer = layer == "behind" ? FxLayer::Behind : layer == "screen" ? FxLayer::Screen : FxLayer::Front;
+    if (fx.layer == FxLayer::Screen && fx.travel) return c.fail(where, "a \"screen\" effect covers the stage and cannot be a \"travel\" effect");
+  }
+  if (given("mirror")) {
+    if (!c.boolean(j, "mirror", where, fx.mirror)) return false;
+    if (fx.mirror && fx.layer != FxLayer::Screen) return c.fail(where, "\"mirror\" is only for \"layer\": \"screen\" (the other layers are turned round with the striker already)");
+  }
+  if (given("at")) {
+    std::string at;
+    if (!c.str(j, "at", where, at)) return false;
+    if (at != "target" && at != "striker") return c.fail(where, "\"at\" must be \"target\" or \"striker\"");
+    fx.atStriker = at == "striker";
+    if (fx.atStriker && fx.travel) return c.fail(where, "\"at\": \"striker\" is for an effect that appears in place, not a \"travel\" effect");
+    if (fx.atStriker && fx.layer == FxLayer::Screen) return c.fail(where, "a \"screen\" effect covers the stage and has no \"at\"");
+  }
+  if (given("returns")) {
+    if (!c.boolean(j, "returns", where, fx.returns)) return false;
+    if (fx.returns && !fx.travel) return c.fail(where, "\"returns\" is only for a \"travel\" effect (it flies back to the striker)");
+  }
+  if (given("lingerMs")) {
+    if (!c.integer(j, "lingerMs", where, fx.lingerMs)) return false;
+    if (fx.lingerMs < 0 || fx.lingerMs > 5000) return c.fail(where, "\"lingerMs\" must be between 0 and 5000");
+    if (fx.lingerMs > 0 && !fx.travel) return c.fail(where, "\"lingerMs\" is only for a \"travel\" effect (it stays at the target after arriving)");
+  }
+  if (given("flash")) {
+    const Json& f = j["flash"];
+    if (!f.isArray() || f.size() > 32) return c.fail(where, "\"flash\" must be a list of up to 32 { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
+    for (size_t i = 0; i < f.size(); ++i) {
+      const std::string w = where + " flash " + std::to_string(i + 1);
+      if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
+      FxFlash fl;
+      if (!c.integer(f[i], "atMs", w, fl.atMs, true) || !c.integer(f[i], "ms", w, fl.ms, true)) return false;
+      if (fl.atMs < 0 || fl.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
+      if (fl.ms < 10 || fl.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000");
+      std::string col = "#ffffff";
+      if (!c.str(f[i], "color", w, col)) return false;
+      char* end = nullptr;
+      const unsigned long v = col.size() == 7 && col[0] == '#' ? std::strtoul(col.c_str() + 1, &end, 16) : 0;
+      if (col.size() != 7 || col[0] != '#' || *end != 0) return c.fail(w, "\"color\" must be a colour such as \"#ffffff\"");
+      fl.rgb = (uint32_t)v;
+      fx.flash.push_back(fl);
+    }
+  }
+  if (given("shake")) {
+    const Json& f = j["shake"];
+    if (!f.isArray() || f.size() > 32) return c.fail(where, "\"shake\" must be a list of up to 32 { \"atMs\": 100, \"ms\": 200, \"strength\": 2 }");
+    for (size_t i = 0; i < f.size(); ++i) {
+      const std::string w = where + " shake " + std::to_string(i + 1);
+      if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 200, \"strength\": 2 }");
+      FxShake sh;
+      if (!c.integer(f[i], "atMs", w, sh.atMs, true) || !c.integer(f[i], "ms", w, sh.ms, true) || !c.integer(f[i], "strength", w, sh.strength, true)) return false;
+      if (sh.atMs < 0 || sh.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
+      if (sh.ms < 10 || sh.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000");
+      if (sh.strength < 1 || sh.strength > 64) return c.fail(w, "\"strength\" must be between 1 and 64 (pixels of the stage)");
+      fx.shake.push_back(sh);
+    }
+  }
+  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs"})
+    if (given(k)) fx.extended = true;
+  if (fx.anim.frameSheets.size() > 0) fx.extended = true;
+  return true;
+}
+
+// "effects": one id or a list of ids of library effects; the indices are filled in once every entry is read.
+bool readEffectIds(const LoadCtx& c, const Json& v, const std::string& where, std::vector<std::string>& out) {
+  if (v.isString()) {
+    out.push_back(v.asString());
+    return true;
+  }
+  if (!v.isArray() || v.size() > 8) return c.fail(where, "must be an effect id or a list of up to 8 effect ids");
+  for (size_t i = 0; i < v.size(); ++i) {
+    if (!v[i].isString()) return c.fail(where, "must be an effect id or a list of up to 8 effect ids");
+    out.push_back(v[i].asString());
+  }
+  return true;
+}
+
 bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
   const Json* list;
   if (!c.array(b, "effects", "battle", list)) return false;
+  struct Pending {
+    std::vector<std::string> ids;
+    std::vector<std::pair<std::string, std::vector<std::string>>> byType;
+    std::string where;
+  };
+  std::vector<Pending> pending;
   for (size_t i = 0; i < list->size(); ++i) {
     const Json& j = (*list)[i];
     const std::string where = "battle effect " + std::to_string(i + 1);
     if (!j.isObject()) return c.fail(where, "must be an object");
     BattleEffect fx;
+    Pending pend;
+    pend.where = where;
     std::string weapon, group;
-    if (!c.str(j, "weapon", where, weapon) || !c.str(j, "group", where, group)) return false;
-    if (weapon.empty() == group.empty()) return c.fail(where, "needs exactly one of \"weapon\" (a weapon id) or \"group\" (a weapon group)");
+    if (!c.str(j, "id", where, fx.id) || !c.str(j, "weapon", where, weapon) || !c.str(j, "group", where, group)) return false;
+    if (j.has("id")) {
+      if (!isStoryId(fx.id)) return c.fail(where, "\"id\" must be letters, digits, \"_\" and \"-\"");
+      if (art.findEffect(fx.id) >= 0) return c.fail(where, "a second effect with the id " + q(fx.id));
+    }
+    const bool library = weapon.empty() && group.empty() && !fx.id.empty();
+    if (!library && weapon.empty() == group.empty())
+      return c.fail(where, "needs exactly one of \"weapon\" (a weapon id) or \"group\" (a weapon group), or an \"id\" to be used in a list");
     if (!weapon.empty()) {
       fx.weapon = db.findWeapon(weapon);
       if (fx.weapon < 0) return c.fail(where, "there is no weapon with the id " + q(weapon));
-    } else {
+    } else if (!library) {
       if (!weaponGroupExists(db, group)) return c.fail(where, "no weapon has the group " + q(group));
       fx.group = group;
     }
-    for (const BattleEffect& other : art.effects)
-      if (other.weapon == fx.weapon && other.group == fx.group) return c.fail(where, "a second effect for " + q(weapon.empty() ? group : weapon));
+    if (!library)
+      for (const BattleEffect& other : art.effects)
+        if (!(other.weapon < 0 && other.group.empty()) && other.weapon == fx.weapon && other.group == fx.group)
+          return c.fail(where, "a second effect for " + q(weapon.empty() ? group : weapon));
+    const bool hasLists = j.has("effects") || j.has("byType");
+    if (hasLists && library) return c.fail(where, "\"effects\" and \"byType\" belong to an entry with a \"weapon\" or a \"group\"");
+    if (j.has("effects") && !readEffectIds(c, j["effects"], where + " \"effects\"", pend.ids)) return false;
+    if (j.has("byType")) {
+      const Json& bt = j["byType"];
+      if (!bt.isObject()) return c.fail(where, "\"byType\" must be { \"<unit type id>\": \"<effect id>\" or [\"<effect id>\", ...] }");
+      for (const Json::Member& m : bt.members()) {
+        if (db.findUnitType(m.first) < 0) return c.fail(where + " \"byType\"", "there is no unit type with the id " + q(m.first));
+        std::vector<std::string> ids;
+        if (!readEffectIds(c, m.second, where + " \"byType\" " + q(m.first), ids)) return false;
+        pend.byType.push_back(std::make_pair(m.first, ids));
+      }
+    }
+    if (!library && !j.has("sheet") && !j.has("frames") && hasLists) {
+      // An assignment only: it names effects to play and has no pictures of its own.
+      art.effects.push_back(fx);
+      pending.push_back(pend);
+      continue;
+    }
     std::string mode = "target";
     if (!c.str(j, "mode", where, mode)) return false;
     if (mode != "target" && mode != "travel") return c.fail(where, "\"mode\" must be \"target\" (appears on the foe) or \"travel\" (flies to the foe)");
@@ -224,8 +382,30 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) 
     if (!c.integer(j, "travelMs", where, fx.travelMs)) return false;
     if (fx.travelMs < 20 || fx.travelMs > 5000) return c.fail(where, "\"travelMs\" must be between 20 and 5000");
     if (!readAnchor(c, j, where, fx.anchorX, fx.anchorY)) return false;
-    if (!readAnim(c, db, j, where, false, fx.anim)) return false;
+    if (!readAnim(c, db, j, where, false, fx.anim, true)) return false;
+    if (!readEffectExtras(c, j, where, fx)) return false;
     art.effects.push_back(fx);
+    pending.push_back(pend);
+  }
+  // Now every id is known: fill in the lists.
+  auto resolve = [&](const std::vector<std::string>& ids, const std::string& where, std::vector<int>& out) {
+    for (const std::string& id : ids) {
+      const int e = art.findEffect(id);
+      if (e < 0) return c.fail(where, "there is no effect with the id " + q(id) + " (give an effect an \"id\" to use it in a list)");
+      if (art.effects[(size_t)e].assignsOnly()) return c.fail(where, "the effect " + q(id) + " has no pictures of its own (a list names effects with \"sheet\" and \"frames\")");
+      out.push_back(e);
+    }
+    return true;
+  };
+  for (size_t i = 0; i < art.effects.size(); ++i) {
+    BattleEffect& fx = art.effects[i];
+    const Pending& p = pending[i];
+    if (!resolve(p.ids, p.where + " \"effects\"", fx.list)) return false;
+    for (const auto& bt : p.byType) {
+      std::vector<int> v;
+      if (!resolve(bt.second, p.where + " \"byType\" " + q(bt.first), v)) return false;
+      fx.byType.push_back(std::make_pair(db.findUnitType(bt.first), v));
+    }
   }
   return true;
 }

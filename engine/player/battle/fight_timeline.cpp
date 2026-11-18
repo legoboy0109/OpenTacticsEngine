@@ -53,6 +53,12 @@ double sec(int ms) { return ms / 1000.0; }
 }  // namespace
 
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike) {
+  std::vector<std::vector<EffectTimes>> lists;
+  for (const EffectTimes& e : effectByStrike) lists.push_back(e.has ? std::vector<EffectTimes>(1, e) : std::vector<EffectTimes>());
+  return buildTimelineList(s, times, lists);
+}
+
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike) {
   FightTimeline tl;
   if (!s.valid) return tl;
   double t = kIntro;
@@ -60,7 +66,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
   for (size_t i = 0; i < s.strikes.size(); ++i) {
     const FightStrike& st = s.strikes[i];
     const int a = st.actor, d = 1 - a;
-    const EffectTimes fx = i < effectByStrike.size() ? effectByStrike[i] : EffectTimes();
+    const std::vector<EffectTimes> fxs = i < effectsByStrike.size() ? effectsByStrike[i] : std::vector<EffectTimes>();
     double t0 = t;
     // Skills that fired and conditions put on show first, over their owner, while the fighters stand.
     if (!st.tags.empty()) {
@@ -70,7 +76,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
     tl.beats.push_back({t0, BeatKind::StrikeStart, (int)i, a, 0, false, ""});
     // The striker.
     const FighterTimes& ft = times[a];
-    const BattleAnimId kind = attackAnimFor(ft, st.crit, s.ranged(), fx.has, !st.hit);
+    const BattleAnimId kind = attackAnimFor(ft, st.crit, s.ranged(), !fxs.empty(), !st.hit);
     FightPose ap;
     ap.start = t0;
     ap.anim = kind;
@@ -87,26 +93,44 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
     tl.poses[a].push_back(ap);
     addSounds(tl, ap, a, ft, (int)i);
     double hitT = t0 + hitOffset;
-    if (fx.has) {
+    // The strike's effects (docs/BATTLE_SCENE.md "Timing of effects"). The hit lands at the strike animation's hit frame, but not before a
+    // travelling effect has arrived, and not before an effect that starts `hitAtMs` ahead of it has had that long to run since the strike began.
+    double fxEnd = 0;  // the end of an effect that flies back or lingers (the strike lasts until then)
+    for (const EffectTimes& e : fxs) {
+      if (e.travel) {
+        const double spawn = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
+        hitT = std::max(hitT, spawn + sec(e.travelMs));  // the hit lands when the shot arrives
+      } else if (e.hitAtMs > 0) {
+        hitT = std::max(hitT, t0 + sec(e.hitAtMs));
+      }
+    }
+    for (size_t k = 0; k < fxs.size(); ++k) {
+      const EffectTimes& e = fxs[k];
       FightFx f;
       f.strike = (int)i;
-      f.travel = fx.travel;
+      f.slot = (int)k;
+      f.travel = e.travel;
       f.fromSide = a;
-      f.toSide = d;
-      if (fx.travel) {
-        const double spawn = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
-        f.t0 = spawn;
-        f.travelMs = fx.travelMs;
-        f.dur = sec(fx.travelMs);
-        hitT = std::max(hitT, spawn + sec(fx.travelMs));  // the hit lands when the shot arrives
+      f.toSide = e.striker ? a : d;
+      if (e.travel) {
+        f.t0 = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
+        f.travelMs = e.travelMs;
+        f.returns = e.returns;
+        f.lingerMs = e.lingerMs;
+        f.dur = sec(e.travelMs + e.lingerMs + (e.returns ? e.travelMs : 0));
+        if (e.returns || e.lingerMs > 0) fxEnd = std::max(fxEnd, f.t0 + f.dur);
       } else {
-        f.t0 = hitT;
-        f.dur = sec(std::max(fx.total, 60));
+        f.t0 = hitT - sec(e.hitAtMs);
+        f.dur = sec(std::max(e.total, 60));
       }
       tl.fx.push_back(f);
+      if (e.extended) tl.beats.push_back({f.t0, BeatKind::FxStart, (int)i, a, 0, false, "", e.name});
+      for (const auto& snd : e.sounds) tl.beats.push_back({f.t0 + sec(snd.first), BeatKind::FxSound, (int)i, a, 0, false, snd.second, e.name});
+      for (const FxFlash& fl : e.flash) tl.flashes.push_back({f.t0 + sec(fl.atMs), sec(fl.ms), fl.rgb, 0, (int)i});
+      for (const FxShake& sh : e.shake) tl.shakes.push_back({f.t0 + sec(sh.atMs), sec(sh.ms), 0, sh.strength, (int)i});
     }
     // The struck fighter.
-    double end = ap.start + ap.dur;
+    double end = std::max(ap.start + ap.dur, fxEnd);
     const FighterTimes& dt = times[d];
     if (st.hit) {
       tl.beats.push_back({hitT, BeatKind::Hit, (int)i, d, st.damage, st.crit, ""});

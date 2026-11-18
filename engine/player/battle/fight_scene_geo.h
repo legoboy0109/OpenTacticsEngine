@@ -16,6 +16,7 @@ struct FightScene::Geo {
   int scale[2] = {1, 1};  // each fighter's whole-number enlargement (a small map picture is enlarged more than a big animation frame)
   int frameW[2] = {24, 24}, frameH[2] = {24, 24};  // each fighter's picture in design pixels
   // A fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): the stage's place and the one scale of effects and platforms.
+  int shakeX = 0, shakeY = 0;  // the stage is moved by this much by an effect's shake (already added to the points above)
   bool stage = false;
   StageGeo sg;
 };
