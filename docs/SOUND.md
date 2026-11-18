@@ -242,6 +242,8 @@ Fog: the view only starts entries the viewer saw (`Event::seen`), so unseen enem
 Skipped or fast-forwarded animations finish entries without their mid-animation sounds, and `GameAudio` plays the same sound once
 per frame at most, so a skipped turn never stacks sounds.
 
+Battle scene effects can play sounds too: `"sounds": { "<ms>": "<sound id>" }` on an effect plays a sound of this file that many milliseconds after the effect starts (docs/BATTLE_SCENE.md "Effects"); the id is checked when the game loads, like an animation's frame sounds, and the audio log shows the time.
+
 **Variants** of a sound with `files` play in turn (a counter per sound, never the rules' RNG). Sound loading is cached per path.
 
 **Music.** `MusicDirector` implements the priority above and only ever says "this is what I want now": the same track asked again keeps
