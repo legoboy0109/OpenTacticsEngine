@@ -18,6 +18,14 @@ void BattleView::soundStarted(const Battle& b) {
   const Event& e = cur_.ev;
   GameAudio& a = *audio_;
   auto typeOf = [&](int unit) { return unit >= 0 && (size_t)unit < b.units.size() ? b.units[(size_t)unit].type : -1; };
+  // The entries of one staff / item use (the ones fight_script.cpp calls belongsToStaffUse, plus the stat gain of an item) keep the item of the
+  // StaffUsed / ItemUsed that began them; any other entry ends the use, so a later heal (a drain, a condition) never takes the staff's sound.
+  switch (e.type) {
+    case EventType::StaffUsed: case EventType::ItemUsed: healItem_ = e.b; break;
+    case EventType::UnitHealed: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::StatsRaised:
+    case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: break;
+    default: healItem_ = -1; break;
+  }
   switch (e.type) {
     case EventType::TurnStarted:
       a.music().turnPhase(phaseInfo(b, e.a));  // "the enemy's turn" = a side no human on this device plays; per side and few-enemies too
@@ -61,6 +69,7 @@ void BattleView::soundStarted(const Battle& b) {
     }
     case EventType::UnitHealed: {
       CueCtx c;
+      c.item = healItem_;  // a staff / healing item may carry its own "heal" sound, or "" for none (docs/SOUND.md)
       c.unitType = typeOf(e.a);
       a.cue(Cue::Heal, c);
       break;

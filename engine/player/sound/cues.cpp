@@ -11,7 +11,7 @@ struct Entry { const char* key; Cue cue; };
 const Entry kWeapon[] = {{"hit", Cue::Hit}, {"miss", Cue::Miss}, {"critical", Cue::Critical}};
 const Entry kUnit[] = {{"step", Cue::Step}, {"hit", Cue::Hit}, {"miss", Cue::Miss}, {"critical", Cue::Critical},
                        {"defeated", Cue::Defeated}, {"select", Cue::Select}, {"heal", Cue::Heal}};
-const Entry kItem[] = {{"use", Cue::ItemUse}};
+const Entry kItem[] = {{"use", Cue::ItemUse}, {"heal", Cue::Heal}};  // "heal": the "+N" cue of this staff / healing item (docs/SOUND.md)
 const Entry kMoveType[] = {{"step", Cue::Step}};  // docs/SOUND.md "Step sounds by movement type"
 
 template <size_t N>

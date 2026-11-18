@@ -54,7 +54,7 @@ result changes. What plays:
 - **The result** shows on the target when the effect lands (the cast's hit frame, or later if a lead-in or a flight needs it): the hit-point bar **rises** with a green
   **`+N`**; a **condition** put on, resisted or cured, or an item mended, as a label above it (`Poison`, `Poison resisted`, `Poison cured`, `Iron Sword +5`); a staff that
   missed shows **`MISS`**. The target plays no pose. The sounds are the map's: the staff's own use sound (else the heal sound for a healing staff), the heal sound at the
-  `+N`, the miss sound.
+  `+N` (the staff item's `"sounds": { "heal": ... }` replaces it, `""` silences it: docs/SOUND.md "A staff's own heal sound"), the miss sound.
 - **Log** (the existing lines are unchanged; a fight logs exactly what it did): `battle scene: start A (Lv n) vs B (Lv n), melee|ranged, 1 strike(s), staff ITEM on B` (A is
   the left fighter, as in a fight; `left A, right B` follows with `battleSceneSides`), `effect ID start`, `staff heal B +N`, `staff miss B`, `staff condition NAME (B)` (also
   `staff condition Poison resisted (B)`, `Poison cured`), `staff repair Iron Sword +5 (B)`, `end`. No `strike` / `hit` line.
