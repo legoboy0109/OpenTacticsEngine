@@ -16,6 +16,7 @@ import { useViewSlice, type MapViewState } from '../viewState'
 import type { ToolState } from '../tools'
 import { MC } from '../story/forms/mapChangeText'
 import { TerrainPicker } from './pickers'
+import { ChangeTiles } from './ChangeTiles'
 
 interface Props {
   doc: ProjectDoc
@@ -104,6 +105,8 @@ export function ChangesPanel({ doc, map, mapId, vs, state, onChange }: Props) {
                 <button type="button" className="btn sm" disabled={cells.length === 0} onClick={() => edit((d) => editMap(d, mapId, (m) => clearChangeCells(m, current)))}>{MC.clear}</button>
                 <button type="button" className="btn sm danger" data-testid="change-delete" onClick={() => setDeleting(true)}>{MC.delete}</button>
               </div>
+
+              <ChangeTiles doc={doc} map={map} mapId={mapId} change={current} vs={vs} state={state} onChange={onChange} />
 
               <h4>{MC.structuresTitle}</h4>
               <p className="help">{MC.structuresHelp}</p>

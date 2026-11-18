@@ -9,6 +9,7 @@ export const T = {
     heights: { label: 'Heights', key: 'H', help: 'Raise or lower squares.' },
     slots: { label: 'Slots', key: 'D', help: 'Mark where the player’s units may start (the preparation screen).' },
     select: { label: 'Select', key: 'S', help: 'Look at a square.' },
+    tiles: { label: 'Tiles', key: 'L', help: 'Paint hand-drawn tiles over the squares (a tile layer).' },
   },
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',

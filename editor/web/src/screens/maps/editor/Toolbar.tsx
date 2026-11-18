@@ -13,6 +13,7 @@ const TOOL_ICON: Record<Tool, ReactNode> = {
   heights: <path d="M3 20h18M5 20v-5h4v5M10 20V9h4v11M15 20v-8h4v8" />,
   slots: <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM17 14v6M14 17h6" />,
   select: <path d="M5 4l13 6-6 2-2 6zM13 13l6 6" />,
+  tiles: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
 }
 
 interface Props {

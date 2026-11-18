@@ -3,6 +3,7 @@
 // side's colour with the type's letter, yellow leader marker. All coordinates are device pixels
 // rounded to whole pixels so edges stay crisp at any zoom and devicePixelRatio.
 import { drawTerrainArt } from '../../../art/draw'
+import { drawTile, tileFrame } from '../../../art/tileScene'
 import { PLAIN_STYLE } from '../../../art/scene'
 import type { Cell } from '../../../model/mapGrid'
 import type { MapFile, MapUnit } from '../../../model/types'
@@ -53,6 +54,14 @@ export function drawMap(g: CanvasRenderingContext2D, scene: Scene, st: DrawState
       const cx = px(x), cy = py(y), cw = px(x + 1) - cx, ch = py(y + 1) - cy
       g.fillStyle = css(col)
       g.fillRect(cx, cy, cw, ch)
+      // A tile of the tile layer replaces the terrain's look; "show terrain colours" lays the terrain colour over it (the rules layer).
+      const tl = scene.tiles
+      const tv = tl ? tl.cells[y * mw + x] : -1
+      if (tl && tv >= 0 && drawTile(g, tl, tileFrame(tl, tv, time), cx, cy, cw, ch)) {
+        if (tl.terrainOver) { g.fillStyle = css(col, 0.45); g.fillRect(cx, cy, cw, ch) }
+        if (S >= 8 * dpr) { g.fillStyle = 'rgba(0,0,0,0.11)'; g.fillRect(cx, cy, cw, 1); g.fillRect(cx, cy, 1, ch) }
+        continue
+      }
       // Art replaces the letter and the faint outline; the colour stays underneath for transparent pixels.
       if (art && drawTerrainArt(g, art, tid, x, y, mw, mh, idAt, time, cx, cy, cw, ch)) continue
       const glyph = t?.glyph

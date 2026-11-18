@@ -1,5 +1,6 @@
 // What the map drawing code is given (shared by the square and the hexagon drawing).
 import type { ArtScene, StyleView } from '../../../art/scene'
+import type { TileScene } from '../../../art/tileScene'
 import type { GridSpec } from '../../../model/gridSpec'
 import type { Geo } from '../../../model/mapGeo'
 import type { Cell } from '../../../model/mapGrid'
@@ -19,6 +20,8 @@ export interface Scene {
   flagged: Set<string>
   /** Pictures (null = the game has none: everything keeps the placeholder look). */
   art?: ArtScene | null
+  /** The map's tile layer (docs/GRAPHICS.md "Tile layer"); null / missing = none: squares show their terrain's look. */
+  tiles?: TileScene | null
   /** The visual style being previewed: background, terrain colours, letters on/off. */
   style?: StyleView
   /** Squares whose height is not 0 get a tint and their number (the Heights tool). */

@@ -4,6 +4,7 @@ import { sideOf } from '../../../model/mapSides'
 import { gridOfGame } from '../../../model/gridSpec'
 import { structureAt } from '../../../model/mapStructures'
 import { unitAt } from '../../../model/mapUnits'
+import { tileAt } from '../../../model/tiles'
 import type { MapFile, Structure, Terrain, Unit } from '../../../model/types'
 import { useDoc } from '../../../store/context'
 import { useCellWords } from '../../../ui/cellWords'
@@ -23,6 +24,8 @@ export function StatusLine({ vs, map, terrain, structureTypes, unitTypes, notice
   if (key) {
     const [x, y] = key.split(',').map(Number)
     const parts = [T.statusSquare(x, y), terrain.find((t) => t.id === terrainAt(map, x, y))?.name ?? '?']
+    const tile = tileAt(map, x, y)  // the tile layer's tile (docs/GRAPHICS.md "Tile layer"), when the square has one
+    if (tile >= 0) parts.push(`Tile ${tile}`)
     const st = structureAt(map, { structureTypes, grid }, x, y)
     if (st) {
       parts.push(T.statusStructure(structureTypes.find((k) => k.id === st.type)?.name ?? st.type))

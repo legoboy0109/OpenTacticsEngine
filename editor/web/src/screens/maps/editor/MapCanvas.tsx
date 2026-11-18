@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { clockNow, useAnimating, useAnimationClock, useReducedMotion } from '../../../art/useArt'
 import type { ArtScene, StyleView } from '../../../art/scene'
+import { hasAnimatedTiles, type TileScene } from '../../../art/tileScene'
 import { ctxOfParts } from '../../../model/mapCtx'
 import { fitProblem, indexByOrigin, placedOf, structureIndexAt } from '../../../model/mapStructures'
 import type { MapFile, Structure, Terrain, Unit } from '../../../model/types'
@@ -17,12 +18,14 @@ interface Props extends Omit<InputProps, 'size'> {
   structureTypes: Structure[]
   flagged: Set<string>
   art: ArtScene | null
+  /** The map's tile layer (null = none). */
+  tiles: TileScene | null
   style: StyleView
   /** The Heights tool is active: squares not at ground level show their number. */
   showHeights: boolean
 }
 
-export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights, ...input }: Props) {
+export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, art, tiles, style, showHeights, ...input }: Props) {
   const { vs, geo } = input
   const wrap = useRef<HTMLDivElement>(null)
   const cv = useRef<HTMLCanvasElement>(null)
@@ -38,8 +41,8 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
     terrain: new Map(terrain.map((t) => [t.id, t])),
     types: new Map(unitTypes.map((u) => [u.id, u])),
     structures: new Map(structureTypes.map((s) => [s.id, s])),
-    flagged, art, style, showHeights, grid: geo.grid, geo,
-  }), [map, terrain, unitTypes, structureTypes, flagged, art, style, showHeights, geo])
+    flagged, art, tiles, style, showHeights, grid: geo.grid, geo,
+  }), [map, terrain, unitTypes, structureTypes, flagged, art, tiles, style, showHeights, geo])
   const sceneRef = useRef(scene)
   sceneRef.current = scene
 
@@ -104,7 +107,7 @@ export function MapCanvas({ map, terrain, unitTypes, structureTypes, flagged, ar
 
   useEffect(() => vs.subscribe(schedule), [vs, schedule])
   // Animated pictures: redraw ~20x a second, only while the tab is in front and motion is allowed.
-  useAnimationClock(useAnimating(!!art?.animated), schedule)
+  useAnimationClock(useAnimating(!!art?.animated || hasAnimatedTiles(tiles)), schedule)
   useEffect(schedule, [scene, schedule])
   // Motion switched off (or on) while the map is open: draw once more, so an animated picture goes back to its first
   // frame instead of staying on whichever frame the clock stopped at.

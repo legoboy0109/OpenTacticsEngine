@@ -10,6 +10,7 @@ import { footprint, moveStructureBy, placeStructure, rectOf, structureIndexAt, p
 import { fitPlaceKeys } from '../../../model/mapPlaces'
 import { paintChange } from '../../../model/mapChanges'
 import { MC as CT } from './story/forms/mapChangeText'
+import { tileStroke } from './tileStrokes'
 import { moveMapUnit, placeUnit, unitAt, unitIndexesAt } from '../../../model/mapUnits'
 import { toggleSlot } from '../../../model/prep'
 import { STROKE_PREFIX } from '../../../store/history'
@@ -17,10 +18,10 @@ import type { DocumentStore } from '../../../store/documentStore'
 import type { MapViewState } from './viewState'
 import { T } from './text'
 
-export type Tool = 'terrain' | 'units' | 'structures' | 'heights' | 'slots' | 'select'
-export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'heights', 'slots', 'select']
+export type Tool = 'terrain' | 'units' | 'structures' | 'heights' | 'slots' | 'select' | 'tiles'
+export const TOOLS: Tool[] = ['terrain', 'units', 'structures', 'heights', 'slots', 'select', 'tiles']
 /** O stays the key of the old Owners tool, which the Structures tool replaced. */
-export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', heights: 'h', slots: 'd', select: 's' }
+export const TOOL_KEY: Record<Tool, string> = { terrain: 't', units: 'u', structures: 'o', heights: 'h', slots: 'd', select: 's', tiles: 'l' }
 
 export interface ToolState {
   tool: Tool
@@ -37,6 +38,15 @@ export interface ToolState {
   /** The Heights tool: what a click or drag does, and the number for "Set to". */
   heightMode: HeightMode
   heightValue: number
+  /** The Tiles tool (docs/EDITOR_UI.md "Tiles tool"); older saved states have none of these. `tileBlock` = the palette's chosen tiles (w x h, row by
+   *  row), `tileSel` = where in the palette (to outline it), `tileTileset` = the tileset a new layer starts with, `tileTerrain` = show the terrain
+   *  colours over the tiles. */
+  tileMode?: 'paint' | 'erase' | 'rect' | 'pick'
+  tileSel?: { col: number; row: number; w: number; h: number }
+  tileBlock?: { w: number; h: number; tiles: number[] }
+  tileTileset?: string
+  tileTerrain?: boolean
+  tileZoom?: number
 }
 
 /** One drag. `end` gets the square the pointer was released on (null if outside the map). */
@@ -49,6 +59,8 @@ export interface StrokeEnv {
   view: MapViewState
   tools: () => ToolState
   pickTerrain: (id: string) => void
+  /** The Tiles tool's eyedropper: choose this tile in the palette. */
+  pickTile?: (tile: number) => void
   say: (msg: string | null) => void
 }
 
@@ -79,6 +91,7 @@ export function beginStroke(env: StrokeEnv, cell: Cell, opts: { alt?: boolean } 
     }
     return paintStroke(cell, gridOf(env), (cells, k) => env.store.edit((d) => editMap(d, env.mapId, (m, c) => paintCells(m, c.terrain, cells, t.terrainId)), k))
   }
+  if (t.tool === 'tiles') return tileStroke(env, cell, t, opts)
   if (t.tool === 'structures') return structureStroke(env, cell, t)
   if (t.tool === 'heights') return heightStroke(env, cell, t, gridOf(env))
   if (t.tool === 'slots') return slotStroke(env, cell)

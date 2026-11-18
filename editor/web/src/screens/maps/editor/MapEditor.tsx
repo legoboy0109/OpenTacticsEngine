@@ -2,7 +2,8 @@
 import { placedCharacterIds, withResolvedTypes } from '../../../model/characterUnits'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { styleView } from '../../../art/scene'
-import { useArtScene } from '../../../art/useArt'
+import { buildTileScene, type TileScene } from '../../../art/tileScene'
+import { useArtScene, useArtState } from '../../../art/useArt'
 import { mapWarnings } from '../../../model/mapChecks'
 import { slotOverlays } from '../../../model/prep'
 import { applyToMap, changeOutline } from '../../../model/mapChanges'
@@ -104,6 +105,7 @@ function Editor({ id }: { id: string }) {
   }
   const tsRef = useRef(ts)
   tsRef.current = ts
+  const tilesRef = useRef<TileScene | null>(null)
   const patch = useCallback((p: Partial<ToolState>) => setStored({ ...tsRef.current, ...p }), [setStored])
   const setTool = useCallback((tool: Tool) => patch({ tool }), [patch])
 
@@ -114,7 +116,11 @@ function Editor({ id }: { id: string }) {
 
   useEffect(() => { if (notice) { const t = setTimeout(() => setNotice(null), 6000); return () => clearTimeout(t) } }, [notice])
 
-  const warnings = useMemo(() => mapWarnings(doc, map), [doc, map])
+  // The tile layer (docs/GRAPHICS.md "Tile layer"): the tiles of the map shown on the canvas (with the Changes tab's After view applied).
+  const { version: artVersion } = useArtState()
+  const tiles = useMemo(() => buildTileScene(doc, viewMap, store.art, !!ts.tileTerrain), [doc.graphics, viewMap, store, artVersion, ts.tileTerrain]) // eslint-disable-line react-hooks/exhaustive-deps
+  tilesRef.current = tiles
+  const warnings = useMemo(() => mapWarnings(doc, map, (file) => store.art.fileInfo(file)), [doc, map, store, artVersion]) // eslint-disable-line react-hooks/exhaustive-deps
   const flagged = useMemo(() => new Set(warnings.filter((w) => w.key.startsWith('blocked:')).map((w) => cellKey(w.cell!)!)), [warnings])
 
   // The preparation's deployment squares, numbered, over the map.
@@ -133,6 +139,12 @@ function Editor({ id }: { id: string }) {
   const env: StrokeEnv = useMemo(() => ({
     store, mapId: id, view: vs, tools: () => tsRef.current, say: setNotice,
     pickTerrain: (tid) => patch({ terrainId: tid, fill: false }),
+    // The Tiles tool's eyedropper: the tile under the pointer becomes the chosen tile in the palette.
+    pickTile: (tile) => {
+      const cols = tilesRef.current?.cols
+      if (!cols) return
+      patch({ tileSel: { col: tile % cols, row: Math.floor(tile / cols), w: 1, h: 1 }, tileBlock: { w: 1, h: 1, tiles: [tile] }, tileMode: tsRef.current.tileMode === 'pick' ? 'paint' : tsRef.current.tileMode })
+    },
   }), [store, id, vs, patch])
 
   // Deleting a unit that events or objectives point at asks first (the dialog is rendered below).
@@ -181,7 +193,7 @@ function Editor({ id }: { id: string }) {
           looks={styles.length > 1 ? { options: styles.map((x) => ({ value: x.id, label: x.name || x.id })), value: lookId ?? '', onChange: setLook } : undefined} />
         {big && <p className="help">{words(T.big(map.grid.width, map.grid.height))}</p>}
         <div className="map-stage">
-          <MapCanvas map={shownMap} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} style={look} vs={vs} geo={geo} showHeights={ts.tool === 'heights'}
+          <MapCanvas map={shownMap} terrain={terrain} unitTypes={unitTypes} structureTypes={structureTypes} flagged={flagged} art={art} tiles={tiles} style={look} vs={vs} geo={geo} showHeights={ts.tool === 'heights'}
             begin={(cell, o) => (vs.picking ? pickStroke(vs, vs.picking, cell) : beginStroke(env, cell, o))}
             longPress={(cell) => {
               if (vs.picking || tsRef.current.tool !== 'terrain') return false
