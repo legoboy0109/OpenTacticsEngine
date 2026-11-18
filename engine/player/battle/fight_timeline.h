@@ -36,6 +36,9 @@ struct EffectTimes {
   std::vector<std::pair<int, std::string>> sounds;  // ms after the effect starts, sound id
   std::vector<FxFlash> flash;
   std::vector<FxShake> shake;
+  std::vector<FxHide> hide;  // scene-wide parts (docs/BATTLE_SCENE.md "Hiding and fading")
+  std::vector<FxFade> fade;
+  bool bySpeed = false;      // travel: `travelMs` was worked out from the distance and "speed" (the effect then logs its flight time)
 };
 
 // Fallback motion times (ms), shared by the timeline and the drawing.
@@ -57,9 +60,10 @@ struct FightPose {
   int strike = -1;
 };
 
-enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart };
+enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart, StaffHeal, StaffMiss, StaffNote, FxFlight };
 // Sound: an animation's own sound (text = its id). FxSound: an effect's sound (text = its id, label = the effect's name). FxStart: an effect
-// that uses the newer keys begins (label = its name).
+// that uses the newer keys begins (label = its name). A staff use's results (docs/BATTLE_SCENE.md "Staves in the scene"), on the target `side`:
+// FxFlight: a travel effect whose time came from "speed" (value = the flight time in ms, label = its name). StaffHeal (value = hit points), StaffMiss, StaffNote (text = the label; value 1 = an item mended, else a condition).
 
 struct FightBeat {
   double t = 0;
@@ -97,6 +101,27 @@ struct FightPulse {
   int strike = -1;
 };
 
+// A window of an effect's "hide" / "fade" (seconds on the scene's clock).
+struct FightHideWin {
+  double t0 = 0, dur = 0;
+  unsigned what = 0;
+  bool hasColor = false;
+  uint32_t rgb = 0;
+};
+struct FightFadeWin {
+  double t0 = 0, ms = 0, hold = 0;  // in over `ms`, held `hold`, out over `ms`
+  uint32_t rgb = 0;
+  double alpha = 1;
+  bool backdropOnly = false;
+  // The opacity (0 to alpha) at scene time `t`.
+  double opacityAt(double t) const;
+};
+// The camera of a range band that shows one fighter at a time (docs/BATTLE_SCENE.md "Range bands"): from `t` it moves to `side` over `dur` seconds.
+struct FightCamKey {
+  double t = 0, dur = 0;
+  int side = 0;
+};
+
 struct FightTimeline {
   double total = 0;                  // the whole scene, fade out included
   std::vector<FightPose> poses[2];   // per side, in start order
@@ -104,6 +129,16 @@ struct FightTimeline {
   std::vector<HpSegment> hp;
   std::vector<FightFx> fx;
   std::vector<FightPulse> flashes, shakes;  // an effect's flash and shake lists
+  std::vector<FightHideWin> hides;
+  std::vector<FightFadeWin> fades;
+  int camStart = 0;                         // the side the camera begins on (the fighter that acts first)
+  std::vector<FightCamKey> cam;             // empty = no camera (both fighters in one picture)
+
+  // Where the camera is at `t`: 0 = on the left fighter, 1 = on the right fighter, in between while it moves.
+  double cameraAt(double t) const;
+  // The layers hidden at `t` (kHideBackdrop | kHidePlatforms), and the colour the stage is filled with while the backdrop is hidden (the window that began last
+  // among those hiding it that give a colour; black otherwise).
+  unsigned hiddenAt(double t, uint32_t& rgb) const;
 
   // The pose of `side` at `t`: the last one begun (its progress is t - start; once over, a defeated fighter stays down and
   // the others stand). Null = standing.
@@ -113,7 +148,9 @@ struct FightTimeline {
 };
 
 // `effectsByStrike[i]` lists the effects of strike i in the order they start (empty = none; docs/BATTLE_SCENE.md "Timing of effects").
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike);
+// `panMs` >= 0: the range band shows one fighter at a time; the camera follows the acting fighter and moves to the struck one over `panMs` so that it has
+// arrived when the hit lands (the hit waits for it when the blow comes sooner); -1: no camera.
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1);
 // At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 

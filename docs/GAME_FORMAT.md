@@ -29,6 +29,7 @@ id that does not exist is a load error.
   "battleScene": "map",                                      // optional: "map" (default) | "scene": how fights are shown (docs/BATTLE_SCENE.md)
   "battleBackgroundFrom": "defender",                        // optional: "defender" (default) | "attacker": whose square picks the battle scene's background and platform
   "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
+  "battleSceneStaves": false,                                // optional: true = a staff used on one other unit plays in the scene (docs/BATTLE_SCENE.md "Staves in the scene")
   "saving": "any",                                           // optional: "any" | "continue" | "off"
   "grid": { "type": "hex", "layout": "pointy" },             // optional: hexagon game, "pointy" | "flat" (docs/HEX.md);
                                                              // missing (or { "type": "square" }) = a square game

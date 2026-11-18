@@ -11,9 +11,17 @@ namespace ote {
 // the whole run goes to `fight` and the view waits; returns true.
 bool BattleView::takeFightRun(const Battle& b) {
   const Event head = cur_.ev;
-  if (head.type != EventType::Attack && head.type != EventType::SkillActivated) return false;
+  const bool staff = head.type == EventType::StaffUsed;
+  if (head.type != EventType::Attack && head.type != EventType::SkillActivated && !staff) return false;
   int u0 = -1, u1 = -1;
-  if (head.type == EventType::Attack) {
+  if (staff) {  // a staff used on one other unit (game.json "battleSceneStaves", docs/BATTLE_SCENE.md "Staves in the scene"); the others stay on the map
+    if (!b.db->battleSceneStaves) return false;
+    std::vector<Event> following;
+    for (size_t i = 0; i < queue_.size() && i < 16; ++i) following.push_back(queue_[i]);
+    if (!staffUseInScene(head, following)) return false;
+    u0 = head.a;
+    u1 = head.c;
+  } else if (head.type == EventType::Attack) {
     u0 = head.a;
     u1 = head.b;
   } else {  // skills fire before the strike they belong to: look for the strike behind them
@@ -31,7 +39,7 @@ bool BattleView::takeFightRun(const Battle& b) {
   if (!onMap(u0) || !onMap(u1)) return false;  // a fight out of the viewer's sight, or on units that are not drawn: no scene
   std::vector<Event> run;
   run.push_back(head);
-  while (!queue_.empty() && belongsToFight(queue_.front(), u0, u1) && !unseenByViewer(queue_.front())) {
+  while (!queue_.empty() && (staff ? belongsToStaffUse(queue_.front(), u0, u1) : belongsToFight(queue_.front(), u0, u1)) && !unseenByViewer(queue_.front())) {
     run.push_back(queue_.front());
     queue_.pop_front();
   }

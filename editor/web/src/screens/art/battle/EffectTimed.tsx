@@ -1,12 +1,13 @@
 // The timed parts of one effect: its sounds (the game's sound picker), flashes and shakes (docs/BATTLE_SCENE.md "Effect sounds", "Flash and shake").
-import { DEFAULT_FLASH, DEFAULT_SHAKE, effectList, effectSounds, nextSoundMs, setEffectSound, setEffectTimed } from '../../../model/battleEffects'
+import { DEFAULT_FADE, DEFAULT_FLASH, DEFAULT_HIDE, DEFAULT_SHAKE, effectList, effectSounds, nextSoundMs, setEffectSound, setEffectTimed } from '../../../model/battleEffects'
 import { soundIds } from '../../../model/audio'
-import type { FxFlashDef, FxShakeDef } from '../../../model/types'
+import type { FxFadeDef, FxFlashDef, FxHideDef, FxShakeDef } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
 import { Field } from '../../../ui/Field'
 import { Icon } from '../../../ui/Icon'
 import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
+import { Toggle } from '../../../ui/Toggle'
 import { ET } from './effectText'
 
 export function EffectSounds({ index }: { index: number }) {
@@ -59,6 +60,78 @@ export function EffectPulses({ index, kind }: { index: number; kind: 'flash' | '
         ))}
         <div><button type="button" className="btn sm" aria-label={`${kind === 'flash' ? ET.addFlash : ET.addShake} (effect ${index + 1})`}
           onClick={() => edit((d) => setEffectTimed(d, index, kind, [...rows, kind === 'flash' ? DEFAULT_FLASH : DEFAULT_SHAKE]))}><Icon name="plus" />{kind === 'flash' ? ET.addFlash : ET.addShake}</button></div>
+      </div>
+    </Field>
+  )
+}
+
+/** Hiding windows: for a while the backdrop and / or the platforms are not drawn (docs/BATTLE_SCENE.md "Hiding and fading"). */
+export function EffectHides({ index }: { index: number }) {
+  const doc = useDoc()
+  const edit = useEdit()
+  const e = effectList(doc)[index]
+  const rows: FxHideDef[] = e.hide ?? []
+  const patchRow = (n: number, p: Partial<FxHideDef>, group?: string) => edit((d) => setEffectTimed(d, index, 'hide', rows.map((r, k) => (k === n ? { ...r, ...p } : r))), group)
+  const toggle = (n: number, what: 'backdrop' | 'platforms', on: boolean) => {
+    const cur = rows[n].what
+    const next = on ? [...cur.filter((w) => w !== what), what] : cur.filter((w) => w !== what)
+    patchRow(n, { what: next.length ? next : cur })  // (at least one layer stays)
+  }
+  return (
+    <Field label={ET.hide} help={ET.hideHelp}>
+      <div className="stack tight" data-testid={`effect-hide-${index}`}>
+        {rows.map((r, n) => (
+          <div className="stack tight battle-rule" key={n}>
+            <div className="battle-fields">
+              <Field label={ET.atMs}><NumberInput aria-label={`${ET.hide} ${n + 1}: ${ET.atMs}`} min={0} max={60000} value={r.atMs} onChange={(v) => v !== undefined && patchRow(n, { atMs: v }, `fx${index}:hide${n}:at`)} /></Field>
+              <Field label={ET.length}><NumberInput aria-label={`${ET.hide} ${n + 1}: ${ET.length}`} min={10} max={60000} value={r.ms} onChange={(v) => v !== undefined && patchRow(n, { ms: v }, `fx${index}:hide${n}:ms`)} /></Field>
+              <Field label={ET.hideColor}>
+                <div className="row">
+                  <input type="color" className="input" aria-label={`${ET.hide} ${n + 1}: ${ET.hideColor}`} value={r.color ?? '#000000'} onChange={(ev) => patchRow(n, { color: ev.target.value }, `fx${index}:hide${n}:color`)} />
+                  {r.color !== undefined && <button type="button" className="btn sm" aria-label={`${ET.hide} ${n + 1}: ${ET.hideNoColor}`} onClick={() => patchRow(n, { color: undefined })}>{ET.hideNoColor}</button>}
+                </div>
+              </Field>
+            </div>
+            <div className="row wrap">
+              <Toggle label={ET.hideBackdrop} checked={r.what.includes('backdrop')} onChange={(on) => toggle(n, 'backdrop', on)} />
+              <Toggle label={ET.hidePlatforms} checked={r.what.includes('platforms')} onChange={(on) => toggle(n, 'platforms', on)} />
+              <button type="button" className="btn sm" aria-label={ET.removeHide(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, 'hide', rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button>
+            </div>
+          </div>
+        ))}
+        <div><button type="button" className="btn sm" aria-label={`${ET.addHide} (effect ${index + 1})`} onClick={() => edit((d) => setEffectTimed(d, index, 'hide', [...rows, DEFAULT_HIDE]))}><Icon name="plus" />{ET.addHide}</button></div>
+      </div>
+    </Field>
+  )
+}
+
+/** Fades: a colour over everything (or the backdrop only) that fades in, is held, and fades out. */
+export function EffectFades({ index }: { index: number }) {
+  const doc = useDoc()
+  const edit = useEdit()
+  const e = effectList(doc)[index]
+  const rows: FxFadeDef[] = e.fade ?? []
+  const patchRow = (n: number, p: Partial<FxFadeDef>, group?: string) => edit((d) => setEffectTimed(d, index, 'fade', rows.map((r, k) => (k === n ? { ...r, ...p } : r))), group)
+  return (
+    <Field label={ET.fade} help={ET.fadeHelp}>
+      <div className="stack tight" data-testid={`effect-fade-${index}`}>
+        {rows.map((r, n) => (
+          <div className="stack tight battle-rule" key={n}>
+            <div className="battle-fields">
+              <Field label={ET.atMs}><NumberInput aria-label={`${ET.fade} ${n + 1}: ${ET.atMs}`} min={0} max={60000} value={r.atMs} onChange={(v) => v !== undefined && patchRow(n, { atMs: v }, `fx${index}:fade${n}:at`)} /></Field>
+              <Field label={ET.fadeIn}><NumberInput aria-label={`${ET.fade} ${n + 1}: ${ET.fadeIn}`} min={10} max={5000} value={r.ms} onChange={(v) => v !== undefined && patchRow(n, { ms: v }, `fx${index}:fade${n}:ms`)} /></Field>
+              <Field label={ET.fadeHold}><NumberInput aria-label={`${ET.fade} ${n + 1}: ${ET.fadeHold}`} allowEmpty min={0} max={60000} value={r.holdMs} onChange={(v) => patchRow(n, { holdMs: v ? v : undefined }, `fx${index}:fade${n}:hold`)} /></Field>
+              <Field label={ET.fadeAlpha}><NumberInput aria-label={`${ET.fade} ${n + 1}: ${ET.fadeAlpha}`} allowEmpty integer={false} min={0.05} max={1} value={r.alpha} onChange={(v) => patchRow(n, { alpha: v }, `fx${index}:fade${n}:alpha`)} /></Field>
+              <Field label={ET.color}><input type="color" className="input" aria-label={`${ET.fade} ${n + 1}: ${ET.color}`} value={r.to ?? '#000000'} onChange={(ev) => patchRow(n, { to: ev.target.value }, `fx${index}:fade${n}:color`)} /></Field>
+              <Field label={ET.fadeOver}>
+                <Select aria-label={`${ET.fade} ${n + 1}: ${ET.fadeOver}`} value={r.over === 'backdrop' ? 'backdrop' : 'all'} options={[{ value: 'all', label: ET.fadeOverAll }, { value: 'backdrop', label: ET.fadeOverBackdrop }]}
+                  onChange={(v) => patchRow(n, { over: v === 'backdrop' ? 'backdrop' : undefined })} />
+              </Field>
+            </div>
+            <div><button type="button" className="btn sm" aria-label={ET.removeFade(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, 'fade', rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button></div>
+          </div>
+        ))}
+        <div><button type="button" className="btn sm" aria-label={`${ET.addFade} (effect ${index + 1})`} onClick={() => edit((d) => setEffectTimed(d, index, 'fade', [...rows, DEFAULT_FADE]))}><Icon name="plus" />{ET.addFade}</button></div>
       </div>
     </Field>
   )

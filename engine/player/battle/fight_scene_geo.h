@@ -18,6 +18,7 @@ struct FightScene::Geo {
   // A fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): the stage's place and the one scale of effects and platforms.
   int shakeX = 0, shakeY = 0;  // the stage is moved by this much by an effect's shake (already added to the points above)
   bool stage = false;
+  bool panning = false;  // a range band that shows one fighter at a time: the points are moved by the camera (docs/BATTLE_SCENE.md "Range bands")
   StageGeo sg;
 };
 

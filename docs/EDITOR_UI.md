@@ -1235,6 +1235,15 @@ All wording is placeholder (`screens/campaign/text.ts`, `C.freeWhen*`, `C.freeNo
   on"** (by their places on the map, the default / your fighter on the right / on the left: `battleSceneSides`), each written only when it is not the
   default. A note appears where the sides choice changes nothing (no map has both a computer side and a player side); a value the loader would refuse
   (`model/battleSceneChecks.ts`) is said in words.
+- **Third batch** (docs/BATTLE_SCENE.md "Staves in the scene", "Blending", "Hiding and fading", "Range bands"). **Rules**, same card: the switch **Show staves in the battle
+  scene** (`battleSceneStaves`; off = no key; a note says when the game has no staves). **Art > Battle effects**: the weapon list also offers the game's staff items (marked "(staff)"; the
+  entry then plays when that staff is used in the scene); **Blending** (normal / additive), for a stage-covering effect **Position among the layers** (right after the backdrop / with the behind
+  layer / over the fighters: `order`), for a flying effect **Flight lasts** (a set time / as long as the distance needs: `speed` in stage pixels per second, which replaces the flight time and
+  needs the Stage card's fixed stage), **Hide the backdrop or platforms** (rows: start, length, fill colour, which layers) and **Fade the scene** (rows: start, fade time, held, strength 0 to 1,
+  colour, over everything / the backdrop only). **Art > Stage**: **Layouts by distance** (`ranges`): add a layout (from 4 squares, a copy of the far points), its first distance, **Shows** (both
+  fighters / one fighter at a time with a camera), foot points, optional platform places and, for one at a time, **Camera time**, **Left view** and **Right view** (the world is then twice the stage
+  wide; switching back undoes it). Checks mirror the loader and also appear in the art check list (`model/stageBands.ts`, `model/battleEffects.ts`). Code: `StageBands.tsx`, `EffectTimed.tsx`
+  (`EffectHides`, `EffectFades`), `BattleSceneChoices.tsx`. Tests: `tests/unit/scene3.test.ts`, `tests/e2e/scene3.spec.ts`, `tests/editor_api_scene3_checks.py`.
 - **Art screen**, card **Platforms** (below Battle backgrounds): a list of named pictures (choose the picture, optionally a "far" picture used at range 2+,
   delete: the terrain choices, the default and every map's table that named it go too) and the **Default platform**. A terrain's own platform is chosen on
   the **Terrain** screen, card "Weather and platform".

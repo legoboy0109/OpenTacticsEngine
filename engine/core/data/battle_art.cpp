@@ -72,18 +72,19 @@ int BattleArt::resolveSet(int character, int type, const std::string& group, int
   return best;
 }
 
-int BattleArt::resolveEffect(int weapon, const std::string& group) const {
+int BattleArt::resolveEffect(int weapon, const std::string& group, int item) const {
   int byGroup = -1;
   for (size_t i = 0; i < effects.size(); ++i) {
     if (weapon >= 0 && effects[i].weapon == weapon) return (int)i;
-    if (byGroup < 0 && effects[i].weapon < 0 && !group.empty() && effects[i].group == group) byGroup = (int)i;
+    if (item >= 0 && effects[i].item == item) return (int)i;
+    if (byGroup < 0 && effects[i].weapon < 0 && effects[i].item < 0 && !group.empty() && effects[i].group == group) byGroup = (int)i;
   }
   return byGroup;
 }
 
-std::vector<int> BattleArt::resolveEffects(int weapon, const std::string& group, int type) const {
+std::vector<int> BattleArt::resolveEffects(int weapon, const std::string& group, int type, int item) const {
   std::vector<int> out;
-  const int e = resolveEffect(weapon, group);
+  const int e = resolveEffect(weapon, group, item);
   if (e < 0) return out;
   const BattleEffect& entry = effects[(size_t)e];
   for (const auto& bt : entry.byType)

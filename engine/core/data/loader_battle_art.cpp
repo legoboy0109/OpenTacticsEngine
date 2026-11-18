@@ -267,6 +267,92 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
     if (fx.lingerMs < 0 || fx.lingerMs > 5000) return c.fail(where, "\"lingerMs\" must be between 0 and 5000");
     if (fx.lingerMs > 0 && !fx.travel) return c.fail(where, "\"lingerMs\" is only for a \"travel\" effect (it stays at the target after arriving)");
   }
+  if (given("blend")) {  // docs/BATTLE_SCENE.md "Blending"
+    std::string blend;
+    if (!c.str(j, "blend", where, blend)) return false;
+    if (blend != "normal" && blend != "add") return c.fail(where, "\"blend\" must be \"normal\" (the default) or \"add\" (its pixels brighten what is under them)");
+    fx.additive = blend == "add";
+  }
+  if (given("order")) {  // docs/BATTLE_SCENE.md "Effect layers"
+    std::string order;
+    if (!c.str(j, "order", where, order)) return false;
+    if (order != "backdrop" && order != "behind" && order != "front") return c.fail(where, "\"order\" must be \"backdrop\" (right after the backdrop, the default), \"behind\" or \"front\"");
+    if (fx.layer != FxLayer::Screen) return c.fail(where, "\"order\" is only for \"layer\": \"screen\" (the other layers have their place already)");
+    fx.order = order == "behind" ? FxOrder::Behind : order == "front" ? FxOrder::Front : FxOrder::Backdrop;
+  }
+  if (given("speed")) {  // docs/BATTLE_SCENE.md "Effects": a flight time that grows with the distance
+    if (!c.integer(j, "speed", where, fx.speed)) return false;
+    if (!fx.travel) return c.fail(where, "\"speed\" is only for a \"travel\" effect");
+    if (given("travelMs")) return c.fail(where, "give a \"travelMs\" or a \"speed\", not both");
+    if (fx.speed < 1 || fx.speed > 10000) return c.fail(where, "\"speed\" must be between 1 and 10000 (stage pixels per second)");
+  }
+  if (given("hide")) {  // docs/BATTLE_SCENE.md "Hiding and fading"
+    const Json& h = j["hide"];
+    if (!h.isArray() || h.size() > 32) return c.fail(where, "\"hide\" must be a list of up to 32 { \"atMs\": 0, \"ms\": 1500, \"what\": [\"backdrop\", \"platforms\"], \"color\": \"#000000\" }");
+    for (size_t i = 0; i < h.size(); ++i) {
+      const std::string w = where + " hide " + std::to_string(i + 1);
+      if (!h[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 1500, \"what\": [\"backdrop\", \"platforms\"] }");
+      for (const Json::Member& m : h[i].members())
+        if (m.first != "atMs" && m.first != "ms" && m.first != "what" && m.first != "color")
+          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"what\", \"color\")");
+      FxHide hd;
+      if (!c.integer(h[i], "atMs", w, hd.atMs, true) || !c.integer(h[i], "ms", w, hd.ms, true)) return false;
+      if (hd.atMs < 0 || hd.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
+      if (hd.ms < 10 || hd.ms > 60000) return c.fail(w, "\"ms\" must be between 10 and 60000");
+      const Json* what;
+      if (!c.array(h[i], "what", w, what, true)) return false;
+      if (what->size() < 1 || what->size() > 2) return c.fail(w, "\"what\" must list \"backdrop\" and / or \"platforms\"");
+      for (size_t k = 0; k < what->size(); ++k) {
+        const std::string name = (*what)[k].isString() ? (*what)[k].asString() : std::string();
+        const unsigned bit = name == "backdrop" ? kHideBackdrop : name == "platforms" ? kHidePlatforms : 0;
+        if (!bit) return c.fail(w, "\"what\" can name \"backdrop\" and \"platforms\" only");
+        if (hd.what & bit) return c.fail(w, "\"what\" names " + q(name) + " twice");
+        hd.what |= bit;
+      }
+      if (h[i].has("color")) {
+        std::string col;
+        if (!c.str(h[i], "color", w, col)) return false;
+        char* end = nullptr;
+        const unsigned long v = col.size() == 7 && col[0] == '#' ? std::strtoul(col.c_str() + 1, &end, 16) : 0;
+        if (col.size() != 7 || col[0] != '#' || *end != 0) return c.fail(w, "\"color\" must be a colour such as \"#102030\"");
+        hd.hasColor = true;
+        hd.rgb = (uint32_t)v;
+      }
+      fx.hide.push_back(hd);
+    }
+  }
+  if (given("fade")) {
+    const Json& f = j["fade"];
+    if (!f.isArray() || f.size() > 32)
+      return c.fail(where, "\"fade\" must be a list of up to 32 { \"atMs\": 0, \"ms\": 300, \"to\": \"#000000\", \"alpha\": 0.8, \"holdMs\": 400, \"over\": \"all\" }");
+    for (size_t i = 0; i < f.size(); ++i) {
+      const std::string w = where + " fade " + std::to_string(i + 1);
+      if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 300, \"to\": \"#000000\", \"alpha\": 0.8, \"holdMs\": 400, \"over\": \"all\" }");
+      for (const Json::Member& m : f[i].members())
+        if (m.first != "atMs" && m.first != "ms" && m.first != "to" && m.first != "alpha" && m.first != "holdMs" && m.first != "over")
+          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"to\", \"alpha\", \"holdMs\", \"over\")");
+      FxFade fd;
+      if (!c.integer(f[i], "atMs", w, fd.atMs, true) || !c.integer(f[i], "ms", w, fd.ms, true) || !c.integer(f[i], "holdMs", w, fd.holdMs)) return false;
+      if (fd.atMs < 0 || fd.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
+      if (fd.ms < 10 || fd.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000 (the time to fade in, and again to fade out)");
+      if (fd.holdMs < 0 || fd.holdMs > 60000) return c.fail(w, "\"holdMs\" must be between 0 and 60000");
+      std::string col = "#000000", over = "all";
+      if (!c.str(f[i], "to", w, col) || !c.str(f[i], "over", w, over)) return false;
+      char* end = nullptr;
+      const unsigned long v = col.size() == 7 && col[0] == '#' ? std::strtoul(col.c_str() + 1, &end, 16) : 0;
+      if (col.size() != 7 || col[0] != '#' || *end != 0) return c.fail(w, "\"to\" must be a colour such as \"#000000\"");
+      fd.rgb = (uint32_t)v;
+      if (over != "all" && over != "backdrop") return c.fail(w, "\"over\" must be \"all\" (everything, the fighters too) or \"backdrop\"");
+      fd.backdropOnly = over == "backdrop";
+      if (f[i].has("alpha")) {
+        double a = 1;
+        if (!c.num(f[i], "alpha", w, a)) return false;
+        if (!(a > 0 && a <= 1)) return c.fail(w, "\"alpha\" must be above 0 and at most 1 (how opaque the colour gets at its peak)");
+        fd.alpha = (int)(a * 255 + 0.5);
+      }
+      fx.fade.push_back(fd);
+    }
+  }
   if (given("flash")) {
     const Json& f = j["flash"];
     if (!f.isArray() || f.size() > 32) return c.fail(where, "\"flash\" must be a list of up to 32 { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
@@ -300,7 +386,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       fx.shake.push_back(sh);
     }
   }
-  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs"})
+  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed"})
     if (given(k)) fx.extended = true;
   if (fx.anim.frameSheets.size() > 0) fx.extended = true;
   return true;
@@ -347,14 +433,18 @@ bool readEffects(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) 
       return c.fail(where, "needs exactly one of \"weapon\" (a weapon id) or \"group\" (a weapon group), or an \"id\" to be used in a list");
     if (!weapon.empty()) {
       fx.weapon = db.findWeapon(weapon);
-      if (fx.weapon < 0) return c.fail(where, "there is no weapon with the id " + q(weapon));
+      if (fx.weapon < 0) {  // a staff item is named here too (docs/BATTLE_SCENE.md "Staves in the scene")
+        const int it = db.findItem(weapon);
+        if (it >= 0 && db.items[(size_t)it].kind == ItemKind::Staff) fx.item = it;
+        else return c.fail(where, "there is no weapon with the id " + q(weapon) + " (a staff item is named by its item id too)");
+      }
     } else if (!library) {
       if (!weaponGroupExists(db, group)) return c.fail(where, "no weapon has the group " + q(group));
       fx.group = group;
     }
     if (!library)
       for (const BattleEffect& other : art.effects)
-        if (!(other.weapon < 0 && other.group.empty()) && other.weapon == fx.weapon && other.group == fx.group)
+        if (!(other.weapon < 0 && other.item < 0 && other.group.empty()) && other.weapon == fx.weapon && other.item == fx.item && other.group == fx.group)
           return c.fail(where, "a second effect for " + q(weapon.empty() ? group : weapon));
     const bool hasLists = j.has("effects") || j.has("byType");
     if (hasLists && library) return c.fail(where, "\"effects\" and \"byType\" belong to an entry with a \"weapon\" or a \"group\"");
@@ -585,6 +675,9 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   art.terrainPlatform.assign(db.terrains.size(), -1);
   if (!readSets(c, db, b, art) || !readEffects(c, db, b, art) || !readAssign(c, db, b, art) || !readBackgrounds(c, db, b, art)) return false;
   if (!readBattleStage(c, b, art.stage)) return false;
+  // A flight by "speed" is measured in stage pixels: it needs a fixed stage.
+  for (size_t i = 0; i < art.effects.size(); ++i)
+    if (art.effects[i].speed > 0 && !art.stage.on) return c.fail("battle effect " + std::to_string(i + 1), "\"speed\" is in stage pixels per second and needs a fixed \"stage\" (or use \"travelMs\")");
   db.graphics.battle = art;
   return true;
 }

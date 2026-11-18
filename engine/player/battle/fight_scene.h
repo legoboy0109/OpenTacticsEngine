@@ -88,10 +88,12 @@ class FightScene {
   void stageLayout(Geo& g) const;                      // fight_scene_stage.cpp: the fixed stage's layout
   void drawStageBackground(Renderer& r, const Geo& g) const;
   void drawStagePlatform(Renderer& r, const Geo& g, int side) const;
-  void drawBackground(Renderer& r, const Geo& g) const;
+  void drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb) const;
+  void drawFades(Renderer& r, const Geo& g, bool backdropOnly) const;  // the effects' "fade" windows
   void drawPlatform(Renderer& r, const Geo& g, int side) const;
   void drawFighter(Renderer& r, const Geo& g, int side) const;
   void drawEffects(Renderer& r, const Geo& g, FxLayer layer) const;  // the effects of one layer (docs/BATTLE_SCENE.md "Effect layers")
+  void drawEffectPicture(Renderer& r, const BattleEffect& be, TextureId tex, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh) const;  // blend mode
   void drawScreenEffect(Renderer& r, const Geo& g, const BattleEffect& be, const FightFx& fx) const;
   void applyShake(Geo& g) const;                    // moves the stage by the effects' shakes at this moment
   void drawFlashes(Renderer& r, const Geo& g) const;  // the crit flash and the effects' flashes

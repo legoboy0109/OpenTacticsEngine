@@ -11,6 +11,8 @@ import { Field } from '../../../ui/Field'
 import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
 import { Toggle } from '../../../ui/Toggle'
+import { bandProblems } from '../../../model/stageBands'
+import { StageBands } from './StageBands'
 import { StagePreview } from './StagePreview'
 import { ST } from './stageText'
 
@@ -22,7 +24,7 @@ export function StageCard() {
   const edit = useEdit()
   const s = stageOf(doc)
   const [far, setFar] = useState(false)
-  const problems = stageProblems(doc)
+  const problems = [...stageProblems(doc), ...bandProblems(doc)]
   const backdrop = defaultBackdropSize(doc)
   const groupOn = (g: PointGroup) => !!s?.[g]
   const row = (g: PointGroup) => {
@@ -66,6 +68,7 @@ export function StageCard() {
             {row('platform')}
             {groupOn('platform') && <Toggle label={ST.platformFar} checked={groupOn('platformFar')} onChange={(on) => edit((d) => setStageGroup(d, 'platformFar', on))} />}
             {row('platformFar')}
+            <StageBands />
             <Field label={ST.align} help={ST.alignHelp}>
               <Select aria-label={ST.align} value={stageAlign(s)} onChange={(v) => edit((d) => setStageAlign(d, v as StageAlign))}
                 options={[{ value: 'top', label: ST.alignTop }, { value: 'center', label: ST.alignCenter }, { value: 'bottom', label: ST.alignBottom }]} />

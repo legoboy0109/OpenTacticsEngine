@@ -16,6 +16,20 @@ struct StageGeo {
   int platformW[2] = {0, 0}, platformH[2] = {0, 0};  // its size on the screen (0 = no platform picture)
 };
 
+// The layout of the stage for a fight `distance` squares apart: the points of the range band that fits, else of feet / feetFar
+// (docs/BATTLE_SCENE.md "Range bands"). Pure.
+struct StageLayout {
+  int feet[2][2] = {{0, 0}, {0, 0}};
+  bool hasPlatform = false;              // false: each platform picture is centred on its foot point
+  int platform[2][2] = {{0, 0}, {0, 0}};
+  bool each = false;                     // the camera follows the acting fighter (a "view": "each" band)
+  int panMs = 0, leftView = 0, rightView = 0;
+  int band = -1;                         // index into BattleStage::ranges, -1 = feet / feetFar
+  // The stage x (world) of the left edge of the picture while the camera is `t` of the way from the left fighter (0) to the right (1).
+  double viewX(double t) const { return leftView + (rightView - leftView) * t; }
+};
+StageLayout stageLayoutFor(const BattleStage& st, int distance);
+
 // `W` x `H`: the screen in design pixels. `hudBottom`: the first row below the hit-point boxes; `hintTop`: the first row of the hint line.
 // The area the scene has for the fight is rows hudBottom..hintTop; a stage that does not fit it may run under the boxes and the hint.
 // `far`: the fight is at range 2+ (feetFar / platformFar). `picW` / `picH`: each platform picture's size in stage pixels (0 = none; may be null).
@@ -24,5 +38,8 @@ struct StageGeo {
 // the screen height (placed or cropped by `align`), then is moved the least that keeps every foot point and platform inside the
 // area. Horizontally the stage is centred.
 StageGeo stageGeometry(int W, int H, int hudBottom, int hintTop, const BattleStage& st, bool far, const int picW[2], const int picH[2]);
+// The same for a fight `distance` squares apart (range bands) and a camera looking at stage x `viewX` (the left edge of the picture): foot points and platforms are
+// placed at (x - viewX) * scale. The scale and the vertical place do not depend on the camera.
+StageGeo stageGeometryAt(int W, int H, int hudBottom, int hintTop, const BattleStage& st, int distance, const int picW[2], const int picH[2], double viewX = 0);
 
 }  // namespace ote

@@ -5,6 +5,7 @@
 
 #include "battle/fight_scene.h"
 #include "battle/fight_scene_geo.h"
+#include "core/base/log.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -108,9 +109,13 @@ FightScene::Geo FightScene::geometry(const Renderer& r) const {
   return g;
 }
 
-void FightScene::drawBackground(Renderer& r, const Geo& g) const {
+void FightScene::drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint32_t hideRgb) const {
   const Database& db = *env_.battle->db;
   const BattleArt& art = db.graphics.battle;
+  if (hidden & kHideBackdrop) {  // an effect's "hide": the stage is a plain colour for a while
+    r.fillRect(0, 0, g.W, g.H, Color::rgb(hideRgb));
+    return;
+  }
   if (background_ >= 0 && env_.sprites && g.stage) {
     drawStageBackground(r, g);
     return;
@@ -300,7 +305,19 @@ void FightScene::drawScreenEffect(Renderer& r, const Geo& g, const BattleEffect&
     x = (g.W - sheet.cellW * k) / 2 + g.shakeX;
     y = (g.H - sheet.cellH * k) / 2 + g.shakeY;
   }
-  r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, x, y, sheet.cellW * k, sheet.cellH * k);
+  drawEffectPicture(r, be, tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, x, y, sheet.cellW * k, sheet.cellH * k);
+}
+
+// One picture of an effect, normal or (`"blend": "add"`) additive. A backend that cannot blend additively draws it normally and says so once.
+void FightScene::drawEffectPicture(Renderer& r, const BattleEffect& be, TextureId tex, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh) const {
+  static bool warned = false;
+  const bool add = be.additive && r.setAdditiveBlend(true);
+  if (be.additive && !add && !warned) {
+    warned = true;
+    OTE_WARN("battle scene: additive blending is not available on this renderer; effects with \"blend\": \"add\" are drawn normally");
+  }
+  r.drawTexture(tex, sx, sy, sw, sh, dx, dy, dw, dh);
+  if (add) r.setAdditiveBlend(false);
 }
 
 void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
@@ -310,8 +327,11 @@ void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
     if (t_ < fx.t0 || t_ > fx.t0 + fx.dur + 0.001) continue;
     if ((size_t)fx.strike >= effectsOfStrike_.size() || (size_t)fx.slot >= effectsOfStrike_[(size_t)fx.strike].size()) continue;
     const BattleEffect& be = art.effects[(size_t)effectsOfStrike_[(size_t)fx.strike][(size_t)fx.slot]];
-    if (be.layer != layer) continue;
-    if (layer == FxLayer::Screen) {
+    // A screen effect is drawn in the pass of its "order": right after the backdrop, with the behind layer, or over the fighters.
+    const FxLayer pass = be.layer != FxLayer::Screen ? be.layer
+                         : be.order == FxOrder::Behind ? FxLayer::Behind : be.order == FxOrder::Front ? FxLayer::Front : FxLayer::Screen;
+    if (pass != layer) continue;
+    if (be.layer == FxLayer::Screen) {
       drawScreenEffect(r, g, be, fx);
       continue;
     }
@@ -348,8 +368,8 @@ void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
     const int sx = mirror ? (sheet.cols - 1 - cell.col) * sheet.cellW : cell.col * sheet.cellW;
     int anchorX = be.anchorX >= 0 ? be.anchorX : sheet.cellW / 2, anchorY = be.anchorY >= 0 ? be.anchorY : sheet.cellH / 2;
     if (mirror) anchorX = sheet.cellW - anchorX;
-    r.drawTexture(tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, (int)std::lround(cx) - anchorX * s, (int)std::lround(cy) - anchorY * s,
-                  sheet.cellW * s, sheet.cellH * s);
+    drawEffectPicture(r, be, tex, sx, cell.row * sheet.cellH, sheet.cellW, sheet.cellH, (int)std::lround(cx) - anchorX * s, (int)std::lround(cy) - anchorY * s,
+                      sheet.cellW * s, sheet.cellH * s);
   }
 }
 
@@ -387,6 +407,15 @@ void FightScene::drawFlashes(Renderer& r, const Geo& g) const {
     if (t_ < fl.t0 || t_ >= fl.t0 + fl.dur) continue;
     const double k = (t_ - fl.t0) / fl.dur;
     r.fillRect(0, 0, g.W, g.H, Color((uint8_t)(fl.rgb >> 16), (uint8_t)(fl.rgb >> 8), (uint8_t)fl.rgb, clamp8(180 * (1 - k))));
+  }
+}
+
+// An effect's "fade" windows (docs/BATTLE_SCENE.md "Hiding and fading"): a colour over the whole screen, over the backdrop only or over everything.
+void FightScene::drawFades(Renderer& r, const Geo& g, bool backdropOnly) const {
+  for (const FightFadeWin& f : tl_.fades) {
+    if (f.backdropOnly != backdropOnly) continue;
+    const double a = f.opacityAt(t_);
+    if (a > 0) r.fillRect(0, 0, g.W, g.H, Color((uint8_t)(f.rgb >> 16), (uint8_t)(f.rgb >> 8), (uint8_t)f.rgb, clamp8(a * 255 + 0.5)));
   }
 }
 
@@ -457,11 +486,16 @@ void FightScene::draw(Renderer& r) const {
   if (!active_) return;
   Geo g = geometry(r);
   applyShake(g);
-  drawBackground(r, g);
+  uint32_t hideRgb = 0;
+  const unsigned hidden = tl_.hiddenAt(t_, hideRgb);
+  drawBackground(r, g, hidden, hideRgb);
+  drawFades(r, g, true);
   drawEffects(r, g, FxLayer::Screen);
-  if (script_.ranged()) drawRange(r, g);
-  drawPlatform(r, g, 0);
-  drawPlatform(r, g, 1);
+  if (script_.ranged() && !g.panning) drawRange(r, g);  // (a camera that follows one fighter has no line to draw)
+  if (!(hidden & kHidePlatforms)) {
+    drawPlatform(r, g, 0);
+    drawPlatform(r, g, 1);
+  }
   drawEffects(r, g, FxLayer::Behind);
   // The one who is striking stands in front.
   int order[2] = {0, 1};
@@ -469,6 +503,10 @@ void FightScene::draw(Renderer& r) const {
   if (p0 && (p0->anim == BaAttack || p0->anim == BaCrit || p0->anim == BaRanged || p0->anim == BaCast || p0->anim == BaCritRanged || p0->anim == BaMiss)) std::swap(order[0], order[1]);
   for (int i = 0; i < 2; ++i) drawFighter(r, g, order[i]);
   drawEffects(r, g, FxLayer::Front);
+  if (g.panning && g.sg.x > 0) {  // the world is wider than the picture: what the camera does not show stays out of the bars at its sides
+    r.fillRect(0, 0, g.sg.x, g.H, Color(10, 13, 28));
+    r.fillRect(g.sg.x + g.sg.w, 0, g.W - g.sg.x - g.sg.w, g.H, Color(10, 13, 28));
+  }
   drawFloats(r, g);
   // An opaque band behind the boxes, so the background picture (clouds) never runs into them.
   // (a fixed stage may run under the boxes: they are drawn over the picture, which stays visible behind them)
@@ -480,6 +518,7 @@ void FightScene::draw(Renderer& r) const {
   drawBox(r, g, 1);
   drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));
   drawFlashes(r, g);
+  drawFades(r, g, false);
   double fade = 0;
   if (t_ < kFade) fade = 1 - t_ / kFade;
   else if (t_ > tl_.total - kFade) fade = (t_ - (tl_.total - kFade)) / kFade;

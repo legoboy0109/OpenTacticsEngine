@@ -35,6 +35,13 @@ export function setSceneSides(doc: ProjectDoc, v: SceneSides): ProjectDoc {
   return { ...doc, game: patchObj(doc.game, { battleSceneSides: v === 'map' ? undefined : v }) }
 }
 
+/** "Staves in the battle scene" (docs/BATTLE_SCENE.md "Staves in the scene"): off is the default and is written as NO key. */
+export const sceneStaves = (doc: ProjectDoc): boolean => doc.game?.battleSceneStaves === true
+export function setSceneStaves(doc: ProjectDoc, on: boolean): ProjectDoc {
+  if (!doc.game || sceneStaves(doc) === on) return doc
+  return { ...doc, game: patchObj(doc.game, { battleSceneStaves: on ? true : undefined }) }
+}
+
 // --- platforms (data/graphics.json "battle") -----------------------------------------------------------------------------------
 export interface PlatformRow { id: string; sheet: string; cell: CellRef; far?: CellRef; right?: CellRef; farRight?: CellRef }
 export const platformList = (doc: ProjectDoc): PlatformRow[] => Object.entries(battleOf(doc).platforms ?? {}).map(([id, p]) => ({ id, sheet: p.sheet, cell: p.cell, far: p.far, right: p.right, farRight: p.farRight }))

@@ -8,6 +8,8 @@ export const BC = {
   fromAttacker: 'The fighter that attacks',
   sides: 'Which side each fighter stands on',
   sidesHelp: 'In the battle scene, which fighter stands on the left and which on the right.',
+  staves: 'Show staves in the battle scene',
+  stavesHelp: 'A staff used on one other unit (a heal, a cure, a status) plays as a scene: the user casts, the staff’s effect plays on the target, and the hit points rise or the condition shows. Staves that need no single target (a whole team, a warp, a light, a lock) stay on the map. Needs the battle scene above.',
   sidesChoices: { map: 'By their places on the map', playerRight: 'Your fighter on the right', playerLeft: 'Your fighter on the left' } as Record<SceneSides, string>,
   sidesChoicesHelp: {
     map: 'The fighter standing nearer the left edge of the map is on the left (the one who attacks, if they are in the same column).',

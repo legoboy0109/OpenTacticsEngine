@@ -38,6 +38,10 @@ class SdlRenderer : public Renderer {
   void updateTexture(TextureId id, const uint8_t* rgba) override;
   void drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,
                    Color mod = Color(255, 255, 255)) override;
+  bool setAdditiveBlend(bool on) override {
+    additive_ = on;
+    return true;
+  }
 
   SDL_Renderer* handle() const { return r_; }
   // Saves what the player sees (the whole output, including letterbox bars)
@@ -52,6 +56,7 @@ class SdlRenderer : public Renderer {
   int w_, h_;
   bool headless_;
   int headlessScale_;
+  bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
   std::unique_ptr<Target> target_;
   std::unique_ptr<TextEngine> text_;

@@ -163,6 +163,8 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (sides != "map" && sides != "playerRight" && sides != "playerLeft")
     return c.fail("", "\"battleSceneSides\" must be \"map\" (the unit nearer the left edge of the map stands on the left, the default), \"playerRight\" or \"playerLeft\", got \"" + sides + "\"");
   db.battleSceneSides = sides == "playerRight" ? 1 : sides == "playerLeft" ? 2 : 0;
+  db.battleSceneStaves = false;  // docs/BATTLE_SCENE.md "Staves in the scene"
+  if (!c.boolean(root, "battleSceneStaves", "", db.battleSceneStaves)) return false;
 
   if (!readGameGrid(c, root, db)) return false;
 

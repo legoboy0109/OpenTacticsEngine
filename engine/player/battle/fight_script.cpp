@@ -19,6 +19,27 @@ bool belongsToFight(const Event& e, int u0, int u1) {
   }
 }
 
+bool belongsToStaffUse(const Event& e, int user, int target) {
+  switch (e.type) {
+    case EventType::StaffMissed: return e.a == target && e.b == user;
+    case EventType::UnitHealed:
+    case EventType::ItemRepaired:
+    case EventType::ConditionApplied:
+    case EventType::ConditionEnded:
+    case EventType::ConditionResisted: return e.a == target;
+    default: return false;
+  }
+}
+
+bool staffUseInScene(const Event& used, const std::vector<Event>& following) {
+  if (used.type != EventType::StaffUsed || used.c < 0 || used.c == used.a || used.d != 1) return false;
+  for (const Event& e : following) {
+    if (e.type == EventType::UnitRelocated) return false;  // moved: stays on the map
+    if (!belongsToStaffUse(e, used.a, used.c) && e.type != EventType::ItemBroke) break;
+  }
+  return true;
+}
+
 namespace {
 
 std::string nameOf(const std::vector<std::string>& names, int index, const char* plain) {
@@ -35,8 +56,69 @@ bool initiatorStandsLeft(int mode, bool initiatorHuman, bool otherHuman, int ini
   return initiatorX <= otherX;  // the map rule: the unit nearer the left edge, else the one that started it
 }
 
+namespace {
+
+// The script of a staff use: one strike by the user (`staff`), the result on the target.
+FightScript buildStaffScript(const Event& used, const std::vector<Event>& run, const FightInfo& info) {
+  FightScript out;
+  auto unitInfo = [&](int u) {
+    auto it = info.units.find(u);
+    if (it != info.units.end()) return it->second;
+    FightUnitInfo blank;
+    blank.unit = u;
+    blank.name = "?";
+    return blank;
+  };
+  const FightUnitInfo ui = unitInfo(used.a), ut = unitInfo(used.c);
+  // The user stands where its side stands (a person's fighter on the right with "playerRight"); the target on the other side, even when both
+  // are a person's (the original puts an ally opposite). `battleSceneSides` "map": the unit nearer the left edge of the map stands on the left.
+  const bool userLeft = initiatorStandsLeft(info.sidesMode, ui.human, !ui.human, ui.x, ut.x);
+  out.side[0] = userLeft ? ui : ut;
+  out.side[1] = userLeft ? ut : ui;
+  out.initiator = userLeft ? 0 : 1;
+  out.distance = std::max(1, info.distance);
+  FightStrike st;
+  st.staff = true;
+  st.item = used.b;
+  st.actor = out.initiator;
+  const int t = 1 - st.actor;
+  int hp = out.side[t].hp;
+  const int maxHp = std::max(1, out.side[t].maxHp);
+  for (const Event& e : run) {
+    if (!belongsToStaffUse(e, used.a, used.c)) continue;
+    switch (e.type) {
+      case EventType::StaffMissed: st.missed = true; break;
+      case EventType::UnitHealed: {
+        const int gained = std::max(0, std::min(e.b, maxHp - hp));
+        hp += gained;
+        st.healed += gained;
+        break;
+      }
+      case EventType::ItemRepaired: st.notes.push_back({t, nameOf(info.itemNames, e.b, "Item") + " +" + std::to_string(e.c), 1}); break;
+      case EventType::ConditionApplied: st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition"), 0}); break;
+      case EventType::ConditionResisted: st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition") + " resisted", 0}); break;
+      case EventType::ConditionEnded:
+        if (e.c == kConditionCured) st.notes.push_back({t, nameOf(info.conditionNames, e.b, "Condition") + " cured", 0});
+        break;
+      default: break;
+    }
+  }
+  st.hit = !st.missed;
+  st.hpBefore[0] = out.side[0].hp;
+  st.hpBefore[1] = out.side[1].hp;
+  st.hpAfterHit[0] = st.hpEnd[0] = out.side[0].hp;
+  st.hpAfterHit[1] = st.hpEnd[1] = out.side[1].hp;
+  st.hpAfterHit[t] = st.hpEnd[t] = hp;
+  out.strikes.push_back(st);
+  out.valid = true;
+  return out;
+}
+
+}  // namespace
+
 FightScript buildFightScript(const std::vector<Event>& run, const FightInfo& info) {
   FightScript out;
+  if (!run.empty() && run[0].type == EventType::StaffUsed) return buildStaffScript(run[0], run, info);
   const Event* first = nullptr;
   for (const Event& e : run)
     if (e.type == EventType::Attack) {
