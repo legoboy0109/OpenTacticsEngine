@@ -382,7 +382,7 @@ void FightScene::applyShake(Geo& g) const {
 
 // A critical hit flashes white for a moment; an effect's flashes are the same thing in its own colour and time.
 void FightScene::drawFlashes(Renderer& r, const Geo& g) const {
-  drawFlashes(r, g);
+  if (t_ - flash_ < 0.12) r.fillRect(0, 0, g.W, g.H, Color(255, 255, 255, (uint8_t)(110 * (1 - (t_ - flash_) / 0.12))));  // a critical hit
   for (const FightPulse& fl : tl_.flashes) {
     if (t_ < fl.t0 || t_ >= fl.t0 + fl.dur) continue;
     const double k = (t_ - fl.t0) / fl.dur;
@@ -479,7 +479,7 @@ void FightScene::draw(Renderer& r) const {
   drawBox(r, g, 0);
   drawBox(r, g, 1);
   drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));
-  if (t_ - flash_ < 0.12) r.fillRect(0, 0, g.W, g.H, Color(255, 255, 255, (uint8_t)(110 * (1 - (t_ - flash_) / 0.12))));  // a critical hit
+  drawFlashes(r, g);
   double fade = 0;
   if (t_ < kFade) fade = 1 - t_ / kFade;
   else if (t_ > tl_.total - kFade) fade = (t_ - (tl_.total - kFade)) / kFade;
