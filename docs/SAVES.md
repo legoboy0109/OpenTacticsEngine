@@ -409,7 +409,8 @@ hashes are byte for byte as before (pinned by tests).
   rules of any chapter change; renaming things and rewording dialogue does not.
   In `data/campaign.json` the **wording** does not count: the campaign's and the
   chapters' `name`, the text of `say`, `speakerName` (the keys stay, so adding or
-  removing a line counts); everything else counts (`rules`, `freeBattles`, chapter
+  removing a line counts); everything else counts (`rules`, `freeBattles` (its object form counts as its `maps`
+  value alone: `when` and `lockedNote` do not), chapter
   order, maps, `next`, `goto`, every scene command, `portrait`, `speaker`).
 - **`computeDataHash` (single battle) also mixes `data/campaign.json`**, after the
   map, **only when the file exists** (a game without it hashes exactly as before;
@@ -500,6 +501,36 @@ windowless on a three-chapter game), `tools/webtest/suites/campaign.mjs`.
   combined with `--map`, `--continue` or `--load-slot`. `--autoplay --campaign` plays the whole story with the computer
   on the human side (title cards, scene lines, results and the retry choice pass by themselves; nothing is saved); with
   `--frames N` it stops as before.
+
+## Progress record and free battles that wait for the story
+
+A campaign may say `"freeBattles": { "maps": ..., "when": "storyComplete" }` (docs/EVENTS.md "Campaign"). The game page then
+lists the free battles only once **this player has completed the story**. Code: `engine/player/progress.*`
+(`storyUnlocked`, `recordStoryComplete`, `freeBattlesListed`), `scene_game.cpp`, `PlayerApp::recordStoryEnd`.
+
+- **What "complete" means.** The playthrough reaches phase `finished` ("Story complete", the end screen "The End"): the last
+  chapter's after scene ran and the story has no next chapter (the end of the list, or a `next` / `goto` past it). Phase
+  `over` ("Story ended", "The story ends here.") is a chapter lost with `onDefeat: "end"`; it never counts. There is no
+  other explicit ending command.
+- **The record.** On reaching "The End" the player writes `<saves folder>/<game>/progress.json`:
+  `{ "storyComplete": true, "at": "2026-11-18T09:30:00Z" }` (UTC; written once, the first date stays). It sits next to the
+  saves but is **independent** of them: deleting or overwriting the Continue save and slots never re-locks. It is written
+  whatever the game's `saving` setting (it is progress, not a save), through the same atomic write and `commitUserData()`,
+  so the web build keeps it in the browser storage beside the saves.
+- **The rule** (`storyUnlocked`): the record says `storyComplete: true`, **or** the Continue save or any slot holds a campaign
+  save of phase `finished` (so a player who finished before this existed gets it). Saves are judged by their own file
+  (not against the game's current data), so an updated game still counts; a `finished` save of another game does not. A
+  save of phase `over` does not count. A player with no saves folder (`--no-saving`) is never complete. A broken or
+  foreign `progress.json` counts as no record. (The Continue save is deleted when the story finishes, so in practice the
+  record is what carries it; a `finished` slot or Continue file only exists from older play or by hand.)
+- **Never written by:** test playthroughs (`--chapter`, `--test-level`), a run without a saves folder (`--no-saving`, the
+  editor's embedded player; headless without `--saves`), and free battles (they never reach the story's end).
+  `--autoplay` writes it when a saves folder is given (it plays the story to its end).
+- **Game page.** Locked: no heading and no rows; with `lockedNote` one greyed line in their place (the log says
+  `game page: free battles locked (N map(s) ...)`). Unlocked: the list as before (`game page: free battles listed (N)`).
+  A free-battle slot saved earlier still loads from Load whatever the page shows; `--map ID` is unaffected.
+- Tests: `tests/test_free_battles.cpp` (the rule as a function: no saves, finished Continue, finished slot, ended by
+  defeat, the record), `tests/freebattles_player_test.py` (the real player, 480x270 pictures with `--shots`).
 
 ## Preparation (docs/EVENTS.md "Preparation")
 

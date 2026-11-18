@@ -1214,6 +1214,20 @@ The badge (count, tooltip and accessible name list the messages) opens the Probl
 **Limits.** No dependency was added. Scene text is never edited inline. The edge labels are nudged apart but can still overlap in very busy pictures; arrows that
 share a free band are spread over a few lanes. Tests: unit `timelineGraph.test.ts`, `timelineLayout.test.ts`; e2e `timeline.spec.ts` (+ `timeline-shots.spec.ts`, SHOTS=1).
 
+## Free battles after the story (docs/EVENTS.md "Campaign")
+
+All wording is placeholder (`screens/campaign/text.ts`, `C.freeWhen*`, `C.freeNote*`). No helper change: the loader checks the object form.
+- **Campaign screen, "The story" card.** Under "Free battles" (None / All maps / Only the maps I choose) a new field **When free battles
+  can be played**: Always / After the story is complete (hidden while the choice is None). With the second, **Line shown while they are
+  locked** (optional text: one greyed line on the game's page in the list's place). Model: `model/campaignFree.ts` (re-exported by
+  `campaign.ts`): the file is written in the simplest form that holds the choice, so a game left on Always with no note keeps the plain
+  `"none"` / `"all"` / list; the object form is written only when `when` or the note is set, keys the editor does not know stay in it,
+  and an object that is loaded and not edited is not rewritten. Deleting a map takes it out of the object's `maps` too (`campaignWalk.ts`).
+- **Problems** (`freeBattleChecks`, listed with the campaign's): errors for what the loader refuses (no `maps`, a `when` that is neither
+  value, a note that is not text); hints when it unlocks after the story but no map is chosen, or when a note is set while the battles are always available.
+- **Tests**: unit `campaign.test.ts` (forms, round trip, checks, map delete); e2e `free-battles.spec.ts` (file contents, loader accepts it,
+  hints / errors; 360 px no sideways scroll); `tests/editor_api_campaign_checks.py`.
+
 ## Battle animations (docs/BATTLE_SCENE.md)
 
 - **Rules screen**, card "How fights are shown": On the map (default, written as no key) / Battle scene (`game.json` `battleScene`). The same card has

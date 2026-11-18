@@ -587,6 +587,8 @@ file), `engine/core/campaign/` (playing it and saving it), `Battle::setStartingR
   "rules": { "fallen": "gone",          // "gone" (default): a defeated unit never returns; "return": it is back next chapter
              "onDefeat": "retry" },     // "retry" (default): the chapter can be started again; "end": the campaign is over
   "freeBattles": "none",                // "none" (default) | "all" | ["map_id", ...]: maps that can also be started on their own
+                                        // or the object form { "maps": "all" | ["map_id", ...], "when": "always" | "storyComplete",
+                                        //   "lockedNote": "text" } (see "Free battles" below)
   "chapters": [
     { "id": "ch1", "name": "The Ford", "map": "bridge",
       "before": [ { "say": "…", "speaker": "eirik" } ],   // scenes, see below
@@ -671,6 +673,19 @@ unchanged byte for byte.
 **Free battles.** `freeBattleAllowed(db, mapId)`: true for every map when the game has no
 campaign; otherwise per `freeBattles`. A free battle is an ordinary `Battle::init` +
 `start` and never touches a playthrough.
+
+**Free battles that wait for the story.** `freeBattles` takes an object next to the plain values:
+`{ "maps": "all" | ["map_id", ...], "when": "always" | "storyComplete", "lockedNote": "text" }`. `maps` is
+required and means what the plain value means ("none" is accepted too); `when` defaults to `"always"`; the plain
+forms (`"none"`, `"all"`, a list) mean `when: "always"`, stay valid and are written back unchanged. With
+`"storyComplete"` the player's **game page** lists the free battles only when this player has completed the story
+(rule and record: docs/SAVES.md "Progress record and free battles that wait for the story"); until then the list is
+simply absent (no heading, no teaser) unless `lockedNote` is set, which is shown as one greyed line in its place.
+Nothing special is shown the first time it unlocks. `when` and `lockedNote` only steer the game page:
+`freeBattleAllowed`, `--map ID` and the editor's Play panel still start any map. Loader refusals: no `maps`, a
+`maps` / `when` / `lockedNote` of the wrong kind, an unknown key, an unknown map. The save hash counts the object form
+as its `maps` value alone, so moving a game to it (or changing `when` / the note) keeps every save usable. Tests:
+`tests/test_free_battles.cpp`, `tests/freebattles_player_test.py`.
 
 ### Parties
 
