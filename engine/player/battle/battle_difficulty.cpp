@@ -44,6 +44,19 @@ void BattleScene::addDifficultyEntry(std::vector<MenuItem>& items) {
   items.push_back(it);
 }
 
+// A run with a test level (--test-level, the editor's Play panel) says so in the end menu, in a greyed row: "Test level  7 (auto)".
+// Nothing at all without the option. battle_.testLevelUsed is the number the battle used (0 = automatic found nothing to go by).
+void BattleScene::addTestLevelEntry(std::vector<MenuItem>& items) {
+  if (battle_.testLevel == 0) return;
+  MenuItem it;
+  it.label = "Test level";
+  it.id = kTestLevelEntry;
+  it.enabled = false;
+  it.extra = battle_.testLevelUsed > 0 ? std::to_string(battle_.testLevelUsed) : "none";
+  if (battle_.testLevel < 0) it.extra += " (auto)";
+  items.push_back(it);
+}
+
 void BattleScene::openDifficultyMenu() {
   const Database& db = session_.db;
   const int now = difficultyNow();

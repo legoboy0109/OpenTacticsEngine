@@ -49,7 +49,7 @@ class BattleScene : public Scene {
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
-                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kDifficultyEntry,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kDifficultyEntry, kTestLevelEntry,
                 kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -109,6 +109,7 @@ class BattleScene : public Scene {
   // battle_difficulty.cpp (docs/DIFFICULTY.md): the end menu's Difficulty row and its list
   int difficultyNow() const;
   void addDifficultyEntry(std::vector<MenuItem>& items);
+  void addTestLevelEntry(std::vector<MenuItem>& items);  // docs/DIFFICULTY.md "Test level": a greyed row that says the run is a test (none otherwise)
   void openDifficultyMenu();
   void difficultyChosen(int id);
   void beginTargeting(int preferTarget);

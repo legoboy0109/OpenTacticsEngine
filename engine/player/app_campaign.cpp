@@ -183,9 +183,9 @@ void PlayerApp::doCampaignNext() {
       session_->battle = Battle();
       if (args_.testLevel != 0) {  // docs/DIFFICULTY.md "Test level": the whole roster first, then the battle's own units
         std::string terr;
-        const int level = applyChapterTestLevel(db, pt, session_->formulas, args_.seed, args_.testLevel, terr);
+        applyChapterTestLevel(db, pt, session_->formulas, args_.seed, args_.testLevel, terr);
         if (!terr.empty()) OTE_WARN("test level: %s", terr.c_str());
-        session_->battle.setTestLevel(level);
+        session_->battle.setTestLevel(args_.testLevel);  // the battle finds the same number itself (auto) and lifts the map's plain human units
       }
       if (!pt.party.empty()) OTE_INFO("campaign: chapter %d is played by party '%s' (%s)", pt.chapter + 1, pt.party.c_str(), activePartyName(db, pt).c_str());
       session_->battle.setAskChoices(session_->askChoices);  // before start: a question may come with the first events
