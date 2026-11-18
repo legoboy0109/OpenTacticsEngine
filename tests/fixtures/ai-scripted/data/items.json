@@ -1,0 +1,11 @@
+{
+ "items": [
+  {
+   "id": "potion",
+   "name": "Potion",
+   "kind": "usable",
+   "uses": 2,
+   "heal": 10
+  }
+ ]
+}

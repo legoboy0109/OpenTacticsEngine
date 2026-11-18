@@ -1,0 +1,169 @@
+{
+ "name": "Field",
+ "grid": {
+  "type": "square",
+  "width": 14,
+  "height": 6
+ },
+ "legend": {
+  ".": "plain",
+  "f": "forest",
+  "F": "fort"
+ },
+ "tiles": [
+  "..............",
+  "....ff....ff..",
+  ".....ff..ff...",
+  "..F........F..",
+  "....ff....ff..",
+  ".............."
+ ],
+ "sides": [
+  {
+   "id": "blue",
+   "controller": "ai"
+  },
+  {
+   "id": "red",
+   "controller": "ai"
+  }
+ ],
+ "units": [
+  {
+   "type": "soldier",
+   "id": "b1",
+   "side": "blue",
+   "x": 1,
+   "y": 1,
+   "behaviour": {
+    "order": 2,
+    "weights": "classic",
+    "retreat": {
+     "below": 30,
+     "until": 80,
+     "to": {
+      "terrain": [
+       "fort"
+      ]
+     }
+    }
+   },
+   "items": [
+    "potion"
+   ]
+  },
+  {
+   "type": "archer",
+   "id": "b2",
+   "side": "blue",
+   "x": 1,
+   "y": 3,
+   "behaviour": {
+    "order": 1,
+    "weights": "brave",
+    "caution": "none"
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "b3",
+   "side": "blue",
+   "x": 0,
+   "y": 4,
+   "behaviour": {
+    "order": 3,
+    "idleTurns": 2,
+    "ignores": [
+     "r3"
+    ]
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "b4",
+   "side": "blue",
+   "x": 2,
+   "y": 5,
+   "behaviour": {
+    "mode": "patrol",
+    "route": [
+     {
+      "x": 2,
+      "y": 5
+     },
+     {
+      "x": 5,
+      "y": 5
+     },
+     {
+      "x": 5,
+      "y": 3
+     }
+    ]
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "r1",
+   "side": "red",
+   "x": 12,
+   "y": 1,
+   "behaviour": {
+    "order": 1,
+    "weights": "classic",
+    "retreat": {
+     "below": 40,
+     "until": 90
+    }
+   }
+  },
+  {
+   "type": "archer",
+   "id": "r2",
+   "side": "red",
+   "x": 12,
+   "y": 4,
+   "behaviour": {
+    "order": 2,
+    "weights": "brave"
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "r3",
+   "side": "red",
+   "x": 13,
+   "y": 2,
+   "behaviour": {
+    "mode": "guardArea",
+    "within": 5,
+    "measure": "moveCost",
+    "group": "pack"
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "r4",
+   "side": "red",
+   "x": 13,
+   "y": 5,
+   "behaviour": {
+    "mode": "guardArea",
+    "within": 4,
+    "group": "pack",
+    "order": -1
+   }
+  },
+  {
+   "type": "soldier",
+   "id": "r5",
+   "side": "red",
+   "x": 11,
+   "y": 3,
+   "behaviour": {
+    "caution": "none",
+    "idleTurns": 1
+   }
+  }
+ ]
+}

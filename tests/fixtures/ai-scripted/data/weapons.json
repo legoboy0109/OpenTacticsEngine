@@ -1,0 +1,24 @@
+{
+ "weapons": [
+  {
+   "id": "sword",
+   "name": "Sword",
+   "group": "sword",
+   "props": {
+    "might": 5
+   }
+  },
+  {
+   "id": "bow",
+   "name": "Bow",
+   "group": "bow",
+   "range": [
+    2,
+    2
+   ],
+   "props": {
+    "might": 4
+   }
+  }
+ ]
+}

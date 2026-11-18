@@ -1,0 +1,31 @@
+{
+ "terrain": [
+  {
+   "id": "plain",
+   "name": "Plain",
+   "props": {
+    "defense": 0,
+    "avoid": 0
+   }
+  },
+  {
+   "id": "forest",
+   "name": "Forest",
+   "moveCost": {
+    "foot": 2
+   },
+   "props": {
+    "defense": 1,
+    "avoid": 10
+   }
+  },
+  {
+   "id": "fort",
+   "name": "Fort",
+   "props": {
+    "defense": 2,
+    "avoid": 20
+   }
+  }
+ ]
+}
