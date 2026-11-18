@@ -84,7 +84,7 @@ into the player. The player's `AudioService` (`engine/player/sound/`, reached as
 decoded effects, writes the audio log and, once per frame in `PlayerApp::update`, tops the device queue up to about 80 ms
 (never blocking, at most 250 ms after a long frame). `--headless` and `--no-audio` never open a device; a device that fails
 to open is a warning and the game runs silent. On the web the device is opened on the first key press or tap.
-Volumes are options (`musicVolume`, `soundVolume`, 0..10). So is `battleScene` ("Battle animations": scene / on the map; docs/BATTLE_SCENE.md).
+Volumes are options (`musicVolume`, `soundVolume`, 0..10). So is `battleScene` ("Battle animations": scene / on the map; docs/BATTLE_SCENE.md); and `menuUnavailable` ("Unavailable actions": greyed out / hidden; docs/SRPG.md "Menu options").
 On top of that the player plays a game's sound (docs/SOUND.md "Step 2 as built"): `engine/player/sound/` loads `data/audio.json` (the core never sees
 it), `GameAudio` turns cues (menus, battle events, story commands) into sounds and the music director picks the track per scene; sound is
 presentation only and never touches the rules' random numbers, saves or hash. Everything about the files, events and rules for sound is

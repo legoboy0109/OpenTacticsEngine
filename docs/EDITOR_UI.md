@@ -1249,6 +1249,10 @@ All wording is placeholder (`screens/campaign/text.ts`, `C.freeWhen*`, `C.freeNo
   on"** (by their places on the map, the default / your fighter on the right / on the left: `battleSceneSides`), each written only when it is not the
   default. A note appears where the sides choice changes nothing (no map has both a computer side and a player side); a value the loader would refuse
   (`model/battleSceneChecks.ts`) is said in words.
+- **Menu options** (docs/SRPG.md "Menu options"): **Rules screen**, card **Menu options** (after "How fights are shown"), two radio rows: **Actions with nothing to act on** (Greyed out, the default / Left out:
+  `game.json` `menuUnavailable`) and **Choosing Attack** (Go straight to the targets, the default / Ask for the weapon first: `attackWeaponChoice`). Defaults are written as no key;
+  a help line under each explains the chosen one in words; a value the loader would refuse is said in words, and a note appears when "Ask for the weapon first" is chosen in a game whose weapons are not
+  carried (`model/menuOptions.ts`). Wording: `screens/rules/menuOptionsText.ts`. Unit `menuOptions.test.ts`, e2e `menu-options.spec.ts` (desktop and 360 px), `tests/editor_api_menuoptions_checks.py`.
 - **Third batch** (docs/BATTLE_SCENE.md "Staves in the scene", "Blending", "Hiding and fading", "Range bands"). **Rules**, same card: the switch **Show staves in the battle
   scene** (`battleSceneStaves`; off = no key; a note says when the game has no staves). **Art > Battle effects**: the weapon list also offers the game's staff items (marked "(staff)"; the
   entry then plays when that staff is used in the scene); **Blending** (normal / additive), for a stage-covering effect **Position among the layers** (right after the backdrop / with the behind

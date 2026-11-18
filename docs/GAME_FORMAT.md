@@ -30,6 +30,8 @@ id that does not exist is a load error.
   "battleBackgroundFrom": "defender",                        // optional: "defender" (default) | "attacker": whose square picks the battle scene's background and platform
   "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
   "battleSceneStaves": false,                                // optional: true = a staff used on one other unit plays in the scene (docs/BATTLE_SCENE.md "Staves in the scene")
+  "menuUnavailable": "grey",                                 // optional: "grey" (default) | "hide": an action with nothing to act on stays greyed or is left out of the action menu (docs/SRPG.md "Menu options")
+  "attackWeaponChoice": "equipped",                          // optional: "equipped" (default) | "pick": Attack goes straight to the targets or asks which weapon first (docs/SRPG.md "Menu options")
   "saving": "any",                                           // optional: "any" | "continue" | "off"
   "grid": { "type": "hex", "layout": "pointy" },             // optional: hexagon game, "pointy" | "flat" (docs/HEX.md);
                                                              // missing (or { "type": "square" }) = a square game
