@@ -19,6 +19,7 @@ struct PlaceOption {
   bool locked = false;  // Open: the door / chest is locked
   bool ok = false;
   std::string why;      // when !ok: "needs a key", "the unit cannot carry more", ...
+  bool noTarget = false;  // !ok only because the unit has nothing to open it with (no key): the "hide" menu option leaves it out
 };
 
 // A door a unit could attack from where it stands with a weapon (Battle::placeAttackOptions).

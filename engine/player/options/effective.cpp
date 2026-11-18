@@ -70,6 +70,10 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
   out.battleScene = game.present && game.battleScene;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.battleScene == "scene" || x.battleScene == "map"; }))
     out.battleScene = l->battleScene == "scene";
+  // --- unavailable actions in the action menu: the same layering (docs/SRPG.md "Menu options")
+  out.menuHide = game.present && game.menuHide;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.menuUnavailable == "grey" || x.menuUnavailable == "hide"; }))
+    out.menuHide = l->menuUnavailable == "hide";
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.musicVolume >= 0; }))
     out.musicVolume = l->musicVolume > 10 ? 10 : l->musicVolume;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.soundVolume >= 0; }))

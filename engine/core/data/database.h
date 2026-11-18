@@ -384,6 +384,10 @@ struct Database {
   int battleSceneSides = 0;
   // game.json "battleSceneStaves": a staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene").
   bool battleSceneStaves = false;
+  // game.json "menuUnavailable": "hide" = the action menu leaves out entries that have nothing to act on (default "grey": today's menu,
+  // where a few stay greyed); "attackWeaponChoice": "pick" = Attack asks which weapon first. Presentation only (docs/SRPG.md "Menu options").
+  bool menuHideUnavailable = false;
+  bool attackWeaponPick = false;
   GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;
