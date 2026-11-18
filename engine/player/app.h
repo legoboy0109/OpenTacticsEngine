@@ -114,6 +114,8 @@ class PlayerApp : public App, public SceneHost {
   GameAudio launcherAudio_{audio_};  // <assets>/launcher: the menu sounds while no game is open (never any music)
   bool launcherAudioTried_ = false;  // loaded once, on the first scene; a failure is one warning, then silence
   GameAudioCues cues_{gameAudio_, launcherAudio_, gameId_};  // installed as the sink of uiCue() in onStart
+  long frameCount_ = 0;             // frames run; `[info] frame N` once a second under OTE_LOG_LEVEL=debug (a stuck run shows where it stopped)
+  double frameClock_ = 0;
   unsigned audioScene_ = 0;         // Scene::audioId() of the scene the music was last told about
   std::string audioFailed_;         // a game whose audio.json could not be loaded for its page (warned once)
   std::string settingsPath_;  // empty = in-memory only

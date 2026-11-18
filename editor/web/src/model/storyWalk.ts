@@ -14,7 +14,7 @@ import { withFightUnits } from './storyFight'
 
 /** `teamOrSide`: a win / lose names a team or, as a shorthand, a side id. */
 /** `chapter` and `map` only occur in a campaign (campaignWalk.ts); `goto` in a scene names a chapter. */
-export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'party' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background' | 'difficulty'
+export type RefKind = 'unit' | 'character' | 'pair' | 'side' | 'team' | 'teamOrSide' | 'type' | 'item' | 'resource' | 'switch' | 'variable' | 'chapter' | 'party' | 'map' | 'tech' | 'music' | 'sound' | 'skill' | 'stat' | 'condition' | 'place' | 'portrait' | 'change' | 'terrain' | 'background' | 'difficulty' | 'weapon'
 export interface Ref { kind: RefKind; id: string }
 export const DROP = Symbol('drop')
 export type Dropped = typeof DROP

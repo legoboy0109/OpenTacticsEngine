@@ -16,6 +16,7 @@ import { isJingleSlot, MUSIC_SLOT_LABEL, MUSIC_SLOTS, SOUND_KEY_LABEL, STANDARD_
 import { deleteSound, setUseMusic, setUseSound } from '../../src/model/audio'
 import { addPromotionSound, patchPromotionSound, promotionSoundProblems, promotionSoundRows, removePromotionSound } from '../../src/model/promotionSounds'
 import { reconcileAudio } from '../../src/model/audioRefs'
+import { deleteWeapon } from '../../src/model/weapons'
 import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
 import type { Ability } from '../../src/model/srpgTypes'
@@ -234,5 +235,22 @@ describe('the new sound slots', () => {
     const gone = reconcileAudio(d, deleteSound(d, 'boom'))
     expect(gone.audio!.use!.promotionSounds).toEqual([{ atMs: 0, sound: 'tick' }])
     expect(removePromotionSound(removePromotionSound(d, 0), 0).audio!.use).toBeUndefined()
+  })
+})
+
+describe('small leftovers', () => {
+  it('deleting a weapon takes it out of a staged fight; the fight stays', () => {
+    const d = base()
+    const mapId = Object.keys(d.maps)[0]
+    const weapon = d.weapons![0].id
+    const other = d.weapons![1].id
+    const cmd = { fight: { attacker: 'a', defender: 'b', weapon: { attacker: weapon, defender: other } } }
+    const withFight = { ...d, maps: { ...d.maps, [mapId]: { ...d.maps[mapId]!, events: [{ id: 'f', when: { battle: 'start' }, do: [cmd] }] } } } as unknown as ProjectDoc
+    const after = deleteWeapon(withFight, weapon)
+    const ev = after.maps[mapId]!.events![0].do as Array<{ fight: { weapon?: { attacker?: string; defender?: string } } }>
+    expect(ev).toHaveLength(1)
+    expect(ev[0].fight.weapon).toEqual({ defender: other })
+    const both = deleteWeapon(after, other)
+    expect((both.maps[mapId]!.events![0].do as Array<{ fight: { weapon?: unknown } }>)[0].fight.weapon).toBeUndefined()
   })
 })

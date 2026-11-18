@@ -15,6 +15,7 @@ static LogLevel g_min = LogLevel::Info;
 
 void setLogSink(LogSink sink) { g_sink = sink ? sink : defaultSink; }
 void setLogLevel(LogLevel minimum) { g_min = minimum; }
+LogLevel logLevel() { return g_min; }
 
 void logf(LogLevel level, const char* fmt, ...) {
   if ((int)level < (int)g_min) return;

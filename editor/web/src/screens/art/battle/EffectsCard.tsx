@@ -97,7 +97,7 @@ function EffectForm({ index }: { index: number }) {
             )}
             {!travel && (
               <Field label={ET.hitAtMs} help={ET.hitAtHelp}>
-                <NumberInput aria-label={`Effect ${index + 1}: ${ET.hitAtMs}`} allowEmpty min={0} max={5000} value={e.hitAtMs} onChange={(v) => patch({ hitAtMs: v ? v : undefined }, group('hitat'))} />
+                <NumberInput aria-label={`Effect ${index + 1}: ${ET.hitAtMs}`} allowEmpty min={0} max={15000} value={e.hitAtMs} onChange={(v) => patch({ hitAtMs: v ? v : undefined }, group('hitat'))} />
               </Field>
             )}
             <Field label={ET.layer} help={layer === 'screen' ? ET.layerHelp : undefined}>

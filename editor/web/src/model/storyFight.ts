@@ -121,6 +121,24 @@ export function withFightUnits<T extends { fight?: unknown }>(c: T, w: Walk, whe
     if (r === DROP) return DROP
     if (r !== v) next = { ...next, [k]: r }
   }
+  // The weapons named for the two fighters (a weapon of data/weapons.json): a deleted weapon leaves the fight as it is, with that fighter's own weapon.
+  if (next.weapon && typeof next.weapon === 'object') {
+    let wp = next.weapon
+    for (const k of ['attacker', 'defender'] as const) {
+      const v = wp[k]
+      if (typeof v !== 'string' || v === '') continue
+      const r = w.ref({ kind: 'weapon', id: v }, where)
+      if (r === DROP) {
+        const { [k]: _gone, ...rest } = wp
+        wp = rest
+        w.dropped?.({ what: 'setting', text: `A staged fight: the ${k}’s weapon “${v}” goes (it uses its own weapon)`, where })
+      } else if (r !== v) wp = { ...wp, [k]: r }
+    }
+    if (wp !== next.weapon) {
+      const { weapon: _w, ...rest } = next
+      next = Object.keys(wp).length ? { ...rest, weapon: wp } : (rest as FightSpec)
+    }
+  }
   return next === f ? c : { ...c, fight: next }
 }
 

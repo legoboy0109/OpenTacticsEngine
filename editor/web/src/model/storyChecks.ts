@@ -52,6 +52,7 @@ function refProblem(doc: ProjectDoc, map: MapFile, defined: Set<string>, r: Ref)
     case 'place': return null // placeChecks.ts says it in plainer words (the loader's rules differ per trigger and command)
     case 'background': return null // sceneChecks.ts says it with the command's own words
     case 'portrait': return null // just text for the player to look up: an id with no picture shows the box without one
+    case 'weapon': return null // a staged fight's weapon: storyFight.ts (fightProblems) says it
   }
 }
 

@@ -13,7 +13,7 @@ import { allGear } from './gear'
 import { dropUnitTypeLocks, typeLockUsageLines } from './locks'
 import { cleanStatCaps, groupRankUsageLines, statCapUsageLines } from './rankRefs'
 import { readGrid, writeGrid } from './mapGrid'
-import { scrubMap, storyUsages } from './storyRefs'
+import { scrubDoc, scrubMap, storyUsages } from './storyRefs'
 import { cleanMoveTypeInStructures, cleanResourceInStructures, cleanUnitInStructures } from './structuresRefs'
 import { dropKey, without } from './util'
 import type { MapFile, ProjectDoc, Section, Unit } from './types'
@@ -178,7 +178,7 @@ export function cleanUnit(doc: ProjectDoc, id: string): ProjectDoc {
 /** A weapon item that names the weapon cannot stay, so it goes too (with its own references). */
 export function cleanWeapon(doc: ProjectDoc, id: string): ProjectDoc {
   const gone = (doc.items ?? []).filter((i) => i.kind === 'weapon' && i.weapon === id)
-  const base = gone.reduce((d, i) => deleteItem(d, i.id), doc)
+  const base = scrubDoc(gone.reduce((d, i) => deleteItem(d, i.id), doc), [{ kind: 'weapon', id }])  // a staged fight that names the weapon uses its fighter's own
   return {
     ...base,
     units: base.units && base.units.map((u) => (u.weapons?.includes(id) ? { ...u, weapons: u.weapons.filter((w) => w !== id) } : u)),
