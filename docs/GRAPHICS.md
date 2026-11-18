@@ -423,7 +423,7 @@ defence, sight and everything else; the rules core keeps no tile in its state, b
 - **Standing terrain is not drawn on a square that has a tile** (the 3D views' `stand` pictures and models): the tile already shows the trees or the
   peak. Squares without a tile keep their standing parts. The terrain's `stand` stays defined; it simply does not apply there.
 - **Fallback**: a square whose tile cannot be drawn (its sheet failed to load) shows the terrain's look as if it had no tile.
-- **Performance**: one lookup per visible square per frame, no per-square allocation; a 60 x 40 map draws as fast as the same map with terrain art.
+- **Performance**: the 2D view and the 3D views batch tiles like terrain pictures (one textured quad or blit per visible square per frame); measured on a 60 x 40 map in the headless player (300 frames): 2D 0.68 s without the layer, 0.77 s with; isometric 0.56 s / 0.63 s; 3D isometric 0.76 s / 1.23 s and full 3D 0.87 s / 1.44 s with the software 3D drawer (the extra is the 2,400 tile quads a frame).
 
 In memory: `Graphics::tilesets` (`TilesetDef`: `sheet`, `cols`, `rows`, `anims`; `frame(tile, ms)`, `cell(tile)`: `engine/core/data/tileset.h`), the map's
 `MapDef::tileset` / `tileCells`, the battle's `Battle::tiles` / `tileset` / `baseTiles` (`tileAt(cell)`). Loader: `loader_tilesets.cpp`,
