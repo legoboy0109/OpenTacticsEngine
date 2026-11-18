@@ -291,7 +291,7 @@ Everything is in docs/ECONOMY.md.
   "units": [
     { "type": "knight", "side": "blue", "x": 1, "y": 0,
       "name": "Gilda", "level": 3, "leader": true,
-      "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md)
+      "id": "gilda",                     // optional story id, unique in the map (docs/EVENTS.md); placements for disjoint difficulties may share it (and a square)
       "goesFor": ["chests"],             // optional, computer sides only: chests / villages / doors / steal (docs/SRPG.md section 10)
       "behaviour": "hold",               // optional, computer sides only: how it moves (docs/AI.md): "advance" (default) / "hold" / "guard" / an object
       "difficulty": ["hard"],            // optional, computer sides only: appears only on these difficulties (docs/DIFFICULTY.md)
@@ -314,7 +314,8 @@ loads and plays exactly as before.
 A side may also say `"difficultyShift": false` (a computer side the difficulty's enemy numbers never touch; docs/DIFFICULTY.md).
 
 Sides take turns in listed order. `x` counts columns from the left, `y`
-rows from the top, both starting at 0. Two units may not share a cell, and
+rows from the top, both starting at 0. Two units may not share a cell (nor an `id`, nor a `character`) unless their `"difficulty"` lists
+are disjoint, so they never exist in the same battle: one unit with different numbers per difficulty (docs/DIFFICULTY.md section 4), and
 a unit may not start on a square impassable to it (judged with the
 structure's movement costs applied, if one stands there).
 
