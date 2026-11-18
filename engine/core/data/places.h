@@ -49,7 +49,8 @@ struct PlaceRules {
 };
 
 // map unit / addUnit "goes for": what the computer opponent does with these (docs/SRPG.md section 10 "Computer opponent").
-enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4, kAiSteal = 8 /* docs/SRPG.md "Steal" */, kAiWalls = 16 /* docs/SRPG.md section 10: break a door that has hit points and blocks the way */ };
+enum : int { kAiChests = 1, kAiPlaces = 2, kAiDoors = 4, kAiSteal = 8 /* docs/SRPG.md "Steal" */, kAiWalls = 16 /* docs/SRPG.md section 10: break a door that has hit points and blocks the way */,
+       kAiWeapons = 32 /* docs/SRPG.md "Map weapons": walk to a free ballista */ };
 
 const int kMaxPlaceHp = 9999;
 const int kMaxChestLoot = 8;

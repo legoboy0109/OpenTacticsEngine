@@ -12,6 +12,7 @@ import { Field } from '../../../../ui/Field'
 import { Select } from '../../../../ui/Select'
 import type { ToolState } from '../tools'
 import { T } from '../text'
+import { MapWeaponProps } from './MapWeaponProps'
 import { PlaceProps } from './PlaceProps'
 import { SidePicker, StructurePicker } from './pickers'
 
@@ -72,6 +73,7 @@ export function StructureProps({ doc, map, mapId, cell, say }: { doc: ProjectDoc
         </Field>
       </div>
       <PlaceProps doc={doc} map={map} mapId={mapId} s={s} />
+      <MapWeaponProps doc={doc} map={map} mapId={mapId} s={s} />
       {s.side && !ownershipMatters(def) && <p className="help">{T.structureOwnerNoEffect(def?.name ?? 'This structure')}</p>}
       <button type="button" className="btn danger sm" onClick={() => edit((d) => editMap(d, mapId, (m, c) => removeStructureAt(m, c, s.x, s.y)))}>{T.structureRemove}</button>
     </div>

@@ -55,7 +55,8 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
   const Unit& u = units[unit];
   bool moved = u.moved || from != u.cell;
   std::vector<int> weapons;
-  weaponsOf(u, weapons);
+  int mapStructure = -1;
+  attackWeaponsAt(u, from, weapons, &mapStructure);  // carried or fixed weapons, plus the one of the structure it would stand on
   for (int w : weapons) {
     if (moved && !db->weapons[w].afterMove) continue;
     for (const Unit& t : units) {
@@ -65,6 +66,7 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
       AttackOption opt;
       opt.target = t.id;
       opt.weapon = w;
+      opt.mapWeapon = mapStructure >= 0 && w == mapWeaponOf(mapStructure);
       out.push_back(opt);
     }
   }
@@ -85,7 +87,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   const Unit& d = units[defender];
   if (!a.alive || !d.alive || !mayFight(a, d) || !unitVisibleTo(teamOf(a), d)) return false;  // fog: not what it cannot see
   std::vector<int> owned;
-  weaponsOf(a, owned);
+  attackWeaponsAt(a, from, owned);  // (the structure it would stand on may add a weapon)
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
   if ((a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
   if (!weaponInRange(weapon, grid.distance(from, d.cell))) return false;
@@ -146,8 +148,14 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   StrikeForecast f;
   if (!strikeForecast(setup, counter, counter ? modsD : modsA, counter ? modsA : modsD, f)) return;
   // A carried weapon: gone (broken earlier in this fight) means no strike.
+  // A map weapon (docs/SRPG.md "Map weapons"): spent, or the structure turned into another kind in this fight, means no strike.
   int slot = -1;
-  if (db->rules.items.carriedWeapons && (slot = weaponSlot(units[atk], weapon)) < 0) return;
+  const bool mapStrike = !counter && setup.mapStructure >= 0;
+  if (mapStrike) {
+    if (mapWeaponUses(setup.mapStructure) == 0 || mapWeaponOf(setup.mapStructure) != weapon) return;
+  } else if (db->rules.items.carriedWeapons && (slot = weaponSlot(units[atk], weapon)) < 0) {
+    return;
+  }
 
   // 2. This strike's own effects: the striker's "strike" blocks, then the struck unit's "struck" blocks.
   // Activations among them are rolled here, before the hit roll.
@@ -166,6 +174,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   e.c = weapon;
   e.d = 0;
   e.flags = counter ? kCounter : 0;
+  if (mapStrike) e.flags |= kMapWeapon | (mapWeaponUses(setup.mapStructure) == 1 ? kMapWeaponSpent : 0);
   // 3. Hit. (A hit of 0 still rolls, as it always did.)
   bool hit = f.hit >= 100 || (db->rules.hitRollAverage ? rollHitAverage(f.hit) : rng.chance(f.hit));
   // A "recoil" with "instead" (docs/SRPG.md "Skill blocks, third set"): a strike that lands turns on its wielder, who takes the damage
@@ -248,6 +257,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   }
   // 7. Wear, drops, defeat.
   if (slot >= 0) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
+  if (mapStrike) spendMapWeapon(setup.mapStructure, events);  // ... and the structure's weapon likewise
   if (e.flags & kKill) {
     // What the fallen unit was marked to drop goes to the one who struck it down.
     std::vector<ItemStack> drops;
@@ -311,7 +321,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
       if (!units[a].alive || !units[d].alive) break;
       // Ammunition: one per fight, spent when its first strike is made (a counter that never comes costs nothing).
       bool& spent = step.counter ? ammoD : ammoA;
-      if (!spent) spendAmmo(step.counter ? d : a, step.counter ? setup.weaponD : setup.weaponA);
+      if (!spent && !(setup.mapStructure >= 0 && !step.counter)) spendAmmo(step.counter ? d : a, step.counter ? setup.weaponD : setup.weaponA);
       spent = true;
       doStrike(setup, step.counter, false, events);
     }

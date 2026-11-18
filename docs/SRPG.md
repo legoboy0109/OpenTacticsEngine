@@ -2658,18 +2658,46 @@ Rules screen: "Hit roll and experience options" (hit roll, experience for a figh
 Stat caps card, a "Computer-controlled units" table. Units: "Top level". Abilities: "Experience and conditions". Staves: "Experience when it
 misses" (shown when the staff can miss). Map events: the conditions "A campaign character is alive / has fallen / is in the roster" (also in
 scenes), the "Only hide it" box of Remove a unit and the command "Bring a hidden unit back". Each form's checks mirror the loader's refusals
-(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition is not
-renamed when the character is renamed (the id is free text because the character may live in another chapter).
+(`model/fidelityRules.ts`, `fidelityCaps.ts`, `fidelityAbility.ts`, `storyChecks.ts`); a character id inside a roster condition (`rosterAlive` / `rosterDead` / `inRoster`) or a `showUnit` command follows a rename of the character and goes with a deleted
+character, like every other reference (`model/storyWalk.ts`; tests `tests/unit/rosterStory.test.ts`).
 
-### Not built: a usable map weapon (ballista)
+### Map weapons (a ballista)
 
-Design for later: a structure kind gets `"weapon": "<item id>"` and optional `"uses": n`; a unit standing on it (movement types allowed
-as for entering the structure) gets an extra Attack entry whose weapon is that item (its range, might and the unit's own stats by the weapon's
-formulas); uses live on the structure's state (a new saved key, only for such structures); the forecast and battle scene take the weapon
-as if carried (`CombatSetup::weaponA` already names a weapon by index, so the fight code needs the weapon of the structure instead of a
-carried slot); `wieldedByTypes` / a structure-level `"by"` list limits who may use it; the computer opponent uses it when standing on it and
-walks to an empty one only for `goesFor: ["weapons"]`. The work is in `Battle::weaponsOf` (an extra weapon not in the inventory),
-the action validation, the player's menu and the save format; it was left out of this batch to keep the other eight verified.
+A structure kind may carry a weapon that a unit standing on it can attack with, next to what it carries. Keys of a kind in `data/structures.json`:
+
+| Key | Meaning |
+|---|---|
+| `"weapon": "ballista_bolt"` | A weapon **item** (kind `weapon`). Nobody carries it: it has no inventory entry. Needed for every key below. |
+| `"uses": 3` | 1 to 9999 per placed structure; absent = unlimited. A map's structure may override it: `{ "type": "ballista", "x": 4, "y": 1, "uses": 1 }`. |
+| `"by": { "types": ["archer"], "tags": ["siege"] }` | Only these unit types (and every type with one of the tags) may use it. Absent = any unit that can stand there. Never empty. |
+| `"ignoreRank": true` | Skip the weapon's own rank and character / class lock (below). |
+| `"becomes": "ballista_wreck"` | The kind it turns into when the last use is spent (the map change's kind swap: same size, art and numbers follow, a unit that can no longer stand there is moved). Absent = the structure stays and the weapon is gone. |
+
+Example: `{ "id": "ballista", "weapon": "ballista_bolt", "uses": 3, "by": { "tags": ["archer"] }, "becomes": "ballista_wreck" }`.
+
+**Loader refusals** (each names the kind or the map entry): an unknown item; an item that is not a weapon; `uses` not a whole number from 1 to 9999 (kind or placement);
+`uses`, `by`, `ignoreRank` or `becomes` without `weapon`; `by` that is empty, has another key, names an unknown unit type or a tag no unit type has;
+a kind units cannot stand on (cost 0 for every movement type, or for every type `by` allows); `becomes` naming an unknown kind, the structure itself or a kind of
+another size; a placed `uses` on a kind without a weapon.
+
+**Rules.**
+- *Who may use it.* The unit must be able to stand on the structure, be on `by`'s list when there is one, not be stopped by a condition that forbids weapons, and
+  meet the **weapon's own** rank (`"rank"`) and character / class lock (`wieldedBy`, `wieldedByTypes`) unless `ignoreRank` is set. The class's weapon *groups*
+  (`wields`) are **not** asked: the structure, not the class, says who fires it (least surprising for a ballista; for "archers only" write `by`, or a lock on the weapon).
+  `Battle::mapWeaponStructure` gives the structure or the plain reason ("Only Archer can use this", "spent", "Needs rank C").
+- *The attack.* A unit standing on the structure (or, when planning, on the square it would stand on) has the weapon as an extra choice after its carried ones
+  (`Battle::attackWeaponsAt`, used by `attackOptions`, the forecast and the action check). Range, `afterMove`, the forecast, the battle scene and the map animation work
+  as for a carried weapon, and the unit's own stats feed the weapon's formulas. A weapon the unit also carries is listed once and counts as the carried one.
+- *Wear.* Every strike made with it takes one use off **the structure** (hit or miss, like a carried weapon's); a strike is not made when it is spent. The last one carries
+  the event flag `kMapWeaponSpent`; with `becomes` the structure then changes kind (event `StructureUpgraded`). Weapon experience and rank gain follow the weapon's group as usual.
+- *Counterattacks.* A defender standing on one does **not** counter with it: a unit answers with its equipped carried weapon only (the classic rule), and the structure's
+  weapon is used only on its own attack. A defender with nothing in hand on a ballista does not answer.
+- *Not covered.* Breaking a door (`breakPlace`), berserk and the AI's threat estimate use carried weapons only.
+- Events: the `Attack` event carries `kMapWeapon = 16384` (and `kMapWeaponSpent = 32768`); nothing else is new.
+- Saves: docs/SAVES.md "Map weapons". AI: docs/AI.md "Map weapons". Editor: docs/EDITOR_UI.md. Player: the forecast box shows the weapon with its uses and "From Ballista"
+  under it, the red attack squares include what a ballista square would reach, the terrain info shows `Weapon  Bolt 2/3`, the unit panel `Bolt  2/3 r2-6`, the log
+  line `map weapon: Mara fires Bolt from Ballista (spent)` (words: `engine/player/battle/mapweapon_text.h`).
+- Code: `core/data/loader_map_weapon.cpp`, `core/battle/mapweapon.cpp`, `save_mapweapon.cpp`, `ai/ai_order.cpp`.
 
 ### Already possible (nothing was added)
 

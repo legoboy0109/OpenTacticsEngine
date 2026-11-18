@@ -1379,3 +1379,12 @@ No helper (API) change: every key passes through and the real loaders check it (
   the choice is remembered per game and adds `&difficulty=<id>` to the player's address (`embed.html` turns it into `--difficulty`).
 - **Tests**: unit `difficulty.test.ts`; API `tests/editor_api_difficulty_checks.py`; e2e `difficulty.spec.ts` (the card, the map's numbers and Only on,
   delete follow-through, the gone-difficulty warning, Play's choice, a 360 px phone).
+
+## Map weapons (docs/SRPG.md "Map weapons")
+
+Structures screen, card **A weapon to use here** (under Doors, chests and places): a switch ("A unit standing here can attack with a weapon", off when the game has no weapon item), the
+weapon (weapon items only), Uses (empty = no limit), Who may use it (unit types and unit tags; nothing ticked = any unit that can stand there), "Ignore the weapon's rank and lock" and
+"When the weapon is spent" (stays, or becomes a kind of the same size). Switching it off removes every key that belongs with it. Checks mirror the loader and show inside the card
+(`model/mapWeapon.ts`, also in the map's warnings for a placed `uses`). Map editor, Structures tool: a placed structure whose kind has a weapon shows **Uses left of its weapon**
+(empty = as the kind says); Select tool: a computer unit's **Goes for** has Weapons. Deleting a weapon item, a structure kind a weapon becomes, or the only unit type allowed to use
+one cleans the references in the same undo step (`model/mapWeaponRefs.ts`). Tests: `tests/unit/mapWeapon.test.ts`, `tests/e2e/mapweapon.spec.ts` (desktop and 360 px).

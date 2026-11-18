@@ -134,7 +134,9 @@ enum : int {
   kSurvived = 64, kBlocked = 128, kPaired = 256, kForced = 512, kReady = 1024,
   kRefreshed = 2048,  // ConditionApplied: the unit had it already, its duration starts over
   kLooted = 4096,     // ItemGained / ResourceChanged: it came out of a chest (docs/SRPG.md section 10)
-  kLocked = 8192      // DoorClosed: the story locked it as well
+  kLocked = 8192,     // DoorClosed: the story locked it as well
+  kMapWeapon = 16384, // Attack: the attacker used the weapon of the structure it stands on (docs/SRPG.md "Map weapons")
+  kMapWeaponSpent = 32768  // Attack with kMapWeapon: that was the structure weapon's last use
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
@@ -231,6 +233,9 @@ struct StructureState {
   int owner = -1;     // side index, -1 neutral
   int capture = 0;    // capture points remaining
   int capturer = -1;  // unit currently capturing; progress resets if it leaves the structure
+  // Map weapons (docs/SRPG.md "Map weapons"): the uses left, valid while `weaponFor` is the current kind; see Battle::mapWeaponUses.
+  int weaponUses = -1;
+  int weaponFor = -1;
   // Doors, chests and visitable places (docs/SRPG.md section 10); at these defaults for any other structure.
   std::string id;               // the map's story id for it ("" = none); fixed, never saved
   int hp = -1;                  // a door that can be attacked: hit points left; -1 = none
@@ -382,6 +387,7 @@ struct ResearchOption {
 struct AttackOption {
   int target = -1;
   int weapon = -1;
+  bool mapWeapon = false;  // the weapon is the one of the structure the unit would stand on (docs/SRPG.md "Map weapons")
 };
 
 // One strike's numbers where they differ from strike to strike (StrikeForecast::each).
@@ -688,6 +694,7 @@ class Battle {
 #include "core/battle/places_api.h"
 #include "core/battle/quotes_api.h"
 #include "core/battle/mapchange_api.h"
+#include "core/battle/mapweapon_api.h"
 
  private:
   // combat.cpp

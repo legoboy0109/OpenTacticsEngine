@@ -222,12 +222,12 @@ function goalChecks(doc: ProjectDoc, mapId: string, map: MapFile, out: PlaceChec
   for (const { u, where, cell } of units) {
     if (u.goesFor === undefined) continue
     const say = (text: string, note?: boolean) => out.push({ section: 'maps', mapId, cell, note, text: `${where}: ${text}` })
-    if (!Array.isArray(u.goesFor) || u.goesFor.length === 0) { say('“goes for” needs at least one of chests, villages, doors, steal, walls (or remove it).'); continue }
+    if (!Array.isArray(u.goesFor) || u.goesFor.length === 0) { say('“goes for” needs at least one of chests, villages, doors, steal, walls, weapons (or remove it).'); continue }
     const side = sides.get(u.side)
     if (side && side.controller !== 'ai') say('“goes for” tells the computer what to do, but this unit is on a side a person plays.')
     for (const w of u.goesFor) {
       const g = GOALS.find((x) => x.key === w)
-      if (!g && w !== 'steal' && w !== 'walls') say(`${q(String(w))} is not something a unit can go for.`)
+      if (!g && w !== 'steal' && w !== 'walls' && w !== 'weapons') say(`${q(String(w))} is not something a unit can go for.`)
       else if (g && !present.has(g.kinds)) say(`it goes for ${g.key}, but this map has no ${g.words}.`, true)
     }
   }

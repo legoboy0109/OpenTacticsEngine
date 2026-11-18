@@ -12,6 +12,7 @@
 #include "core/battle/save_mapstate.h"
 #include "core/battle/save_items.h"
 #include "core/battle/save_places.h"
+#include "core/battle/save_mapweapon.h"
 #include "core/battle/save_reader.h"
 #include "core/battle/save_research.h"
 #include "core/battle/save_srpg.h"
@@ -134,6 +135,7 @@ bool readStructure(Reader& rd, const Battle& b, const Json& j, int index, Struct
   if (!rd.integer(j, "capture", where, 0, points > 0 ? points : 0, st.capture)) return false;
   if (!rd.integer(j, "capturer", where, -1, (int)b.units.size() - 1, st.capturer)) return false;
   if (!savejson::readStructurePlace(rd, b, j, where, st)) return false;  // doors, chests, visits (docs/SRPG.md section 10)
+  if (!savejson::readStructureWeapon(rd, b, j, where, st)) return false;  // map weapon uses (docs/SRPG.md "Map weapons")
   if (st.capturer >= 0) {
     const Unit& u = b.units[(size_t)st.capturer];
     if (!u.alive) return rd.fail(where + ".capturer", "unit " + std::to_string(st.capturer) + " is dead");
@@ -204,6 +206,7 @@ void saveBattleState(const Battle& b, Json& out) {
   out.set("units", units);
 
   Json structures = Json::makeArray();
+  int index = 0;
   for (const StructureState& s : b.structures) {
     Json j = Json::makeObject();
     j.set("owner", num(s.owner));
@@ -211,7 +214,9 @@ void saveBattleState(const Battle& b, Json& out) {
     j.set("capturer", num(s.capturer));
     savejson::writeStructureKind(s, j);
     savejson::writeStructurePlace(b, s, j);
+    savejson::writeStructureWeapon(b, index, j);  // only a structure with a map weapon that has been used (save_mapweapon.cpp)
     structures.push(j);
+    ++index;
   }
   out.set("structures", structures);
   savejson::writeMapState(b, out);  // only after a map change or a fog switch (save_mapstate.cpp)

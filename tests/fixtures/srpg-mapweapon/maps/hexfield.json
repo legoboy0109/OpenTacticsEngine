@@ -1,0 +1,7 @@
+{ "name": "Hex field", "grid": { "type": "hex", "width": 9, "height": 5 }, "legend": { ".": "plain" },
+  "tiles": [".........", ".........", ".........", ".........", "........."],
+  "structures": [ { "type": "ballista", "x": 3, "y": 2, "id": "b1" } ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "archer", "id": "ar", "side": "blue", "x": 2, "y": 2, "leader": true },
+    { "type": "grunt", "id": "g1", "side": "red", "x": 7, "y": 2, "leader": true, "stats": { "hp": 40 } } ] }

@@ -50,6 +50,7 @@ struct CombatSetup {
   int weaponD = -1;                  // the defender's answering weapon, -1 = none
   Cell from = kNoCell;               // the square the attacker fights from (a forecast: may differ from its own)
   bool counters = false;             // the defender counterattacks (set once the modifiers are known)
+  int mapStructure = -1;             // the attacker fires the weapon of this structure (not a carried one), -1 = a carried or fixed weapon
 };
 
 // What one fighter gets for one combat, and for one strike: defined by the combat pipeline

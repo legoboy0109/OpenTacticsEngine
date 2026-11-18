@@ -516,6 +516,13 @@ renaming, retuning or deleting a difficulty never invalidates saves); a value th
 any more is ignored with a note. Units already built are saved as they are (their shifted stats), so changing a difficulty's numbers never
 rewrites a battle in progress. Code: `core/battle/save_difficulty.{h,cpp}`.
 
+## Map weapons (docs/SRPG.md "Map weapons")
+
+A structure whose kind has a `weapon` may save `"weaponUses": n` (0 = spent) in its `structures[]` entry, **only** when the number differs from what a fresh structure of that kind
+holds (the kind's `uses`, or the placement's own: a placement's number is written from the start). Nothing else is written, so a save of any game without usable weapons, and
+of one that has them but has not fired, is unchanged. The key is refused on a structure whose present kind has no weapon, and outside 0..9999. After `becomes` the new kind
+starts with its own number (it saves nothing); the becomes kind is accepted as reachable like a map change's. Unit `goes` gains bit 32 (`"weapons"`). Code: `core/battle/save_mapweapon.cpp`.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

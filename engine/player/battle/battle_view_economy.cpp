@@ -39,7 +39,7 @@ bool BattleView::beginEconomy(const Battle& b) {
       float fx, fy;
       structureTop(b, st, fx, fy);  // (the upgraded kind keeps the size of the hexagons it covers)
       addFloat(EconomyWords::kFloatUpgraded + to.name, fx, fy, Color(255, 240, 140), 1.2f);
-      OTE_INFO("upgrade: %s %s at %d,%d -> %s", b.sides[(size_t)st.owner].name.c_str(), b.db->structures[(size_t)e.b].name.c_str(),
+      OTE_INFO("upgrade: %s %s at %d,%d -> %s", st.owner >= 0 ? b.sides[(size_t)st.owner].name.c_str() : "neutral"  /* a neutral structure changes kind too (map weapons, map changes) */, b.db->structures[(size_t)e.b].name.c_str(),
                st.x, st.y, to.name.c_str());
       cur_.dur = kUpgradeFlash;
       return true;

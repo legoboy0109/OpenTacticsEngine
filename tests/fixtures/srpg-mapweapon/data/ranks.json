@@ -1,0 +1,6 @@
+{ "growth": "use",
+  "ranks": [
+    { "id": "e", "name": "E", "xp": 0 },
+    { "id": "d", "name": "D", "xp": 3 },
+    { "id": "c", "name": "C", "xp": 7 },
+    { "id": "b", "name": "B", "xp": 12 } ] }

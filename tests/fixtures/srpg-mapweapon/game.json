@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1, "name": "Map Weapon Fixture",
+  "description": "Small test game for usable map weapons (docs/SRPG.md, Map weapons). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "carried", "inventorySize": 5 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "60", "xpKill": "100" } },
+  "formulas": { "damage": "a.str + w.might - b.def", "hit": "100" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" },
+            { "id": "siege", "name": "Siege", "file": "maps/siege.json" } ]
+}

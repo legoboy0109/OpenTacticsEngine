@@ -144,6 +144,7 @@ Order bestOrder(Context& cx, const Unit& u) {
 
   const double fade = fadeFactor(b);
   Order best;  // default: Wait in place, score 0
+  Order viaMapWeapon;  // the best attack from a free map weapon it would walk to (only a unit marked "goesFor": ["weapons"]); a fallback
   std::vector<AttackOption> options;
   for (Cell s : stops) {
     int travel = s == u.cell ? 0 : reach.cost[s];
@@ -162,6 +163,8 @@ Order bestOrder(Context& cx, const Unit& u) {
 
     b.attackOptions(u.id, s, options);
     for (const AttackOption& o : options) {
+      const bool walkToWeapon = o.mapWeapon && s != u.cell;  // docs/SRPG.md "Map weapons": only a marked unit goes for one
+      if (walkToWeapon && !(u.aiGoals & kAiWeapons)) continue;
       double sc = scoreAttack(b, u, b.units[o.target], o.weapon, s);
       if (sc <= 0) continue;
       sc -= outnumbered(b, u, s) * kExposure * typeValue(*b.db, u.type) * fade *
@@ -169,6 +172,17 @@ Order bestOrder(Context& cx, const Unit& u) {
       if (u.leader && b.db->rules.defeatLeaderDead) sc -= outnumbered(b, u, s) * kLeaderExposure * fade;
       if (sc <= 0 || !adjustAttack(b, st, u, b.units[o.target], s, sc)) continue;
       sc += kAttackBase - kMoveCostWeight * travel;
+      if (walkToWeapon) {
+        if (sc > viaMapWeapon.score) {
+          viaMapWeapon = Order();
+          viaMapWeapon.score = sc;
+          viaMapWeapon.kind = ActionType::Attack;
+          viaMapWeapon.moveTo = s;
+          viaMapWeapon.target = o.target;
+          viaMapWeapon.weapon = o.weapon;
+        }
+        continue;
+      }
       if (sc > best.score) {
         best = Order();
         best.score = sc;
@@ -179,6 +193,9 @@ Order bestOrder(Context& cx, const Unit& u) {
       }
     }
   }
+
+  // No attack of its own (a capture or a staff may be the best order): a ballista it can reach and fire from beats walking on.
+  if (viaMapWeapon.kind == ActionType::Attack && best.kind != ActionType::Attack && viaMapWeapon.score > best.score) best = viaMapWeapon;
 
   if (!u.moved && !st.noAdvance) {
     if (st.seeking) considerSeek(st, cx, u, stops, best);

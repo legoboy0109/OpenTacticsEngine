@@ -27,7 +27,8 @@ bool couldStrike(const Battle& b, const Unit& u) {
   std::vector<AttackOption> options;
   for (Cell s : reach.stops) {
     b.attackOptions(u.id, s, options);
-    if (!options.empty()) return true;
+    for (const AttackOption& o : options)
+      if (!(o.mapWeapon && s != u.cell && !(u.aiGoals & kAiWeapons))) return true;  // (a free ballista counts only for a unit that goes for one)
   }
   return false;
 }

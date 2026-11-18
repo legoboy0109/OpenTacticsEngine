@@ -7,6 +7,7 @@
 #include "core/data/loader_difficulty.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_places.h"
+#include "core/data/loader_map_weapon.h"
 #include "core/data/loader_prep.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/events.h"
@@ -184,6 +185,7 @@ bool loadStructures(const LoadCtx& c, const Database& db, const Json& root, MapD
                                  std::to_string(grid.x(cell)) + "," + std::to_string(grid.y(cell)));
       }
     if (!readPlacedPlace(c, db, m, e, where, cells, s)) return false;  // id, contents, locked, visitors (docs/SRPG.md section 10)
+    if (!readPlacedWeapon(c, db, e, where, s)) return false;  // "uses" of a map weapon (docs/SRPG.md "Map weapons")
     for (Cell cell : cells) at[(size_t)cell] = (int)m.structures.size();
     m.structures.push_back(s);
   }

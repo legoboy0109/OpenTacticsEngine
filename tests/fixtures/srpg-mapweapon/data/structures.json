@@ -1,0 +1,6 @@
+{ "structures": [
+  { "id": "ballista", "name": "Ballista", "color": "#8a6a3a", "glyph": "B",
+    "weapon": "ballista_bolt", "uses": 3, "by": { "tags": ["archer"] }, "becomes": "ballista_wreck" },
+  { "id": "ballista_wreck", "name": "Broken Ballista", "color": "#4a3a2a", "glyph": "b" },
+  { "id": "catapult", "name": "Catapult", "color": "#7a7a8a", "glyph": "C", "weapon": "ballista_bolt" },
+  { "id": "tower", "name": "Tower", "color": "#999999", "glyph": "T" } ] }

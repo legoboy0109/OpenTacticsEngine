@@ -1,0 +1,13 @@
+{ "name": "Field", "grid": { "type": "square", "width": 12, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["............", "............", "............"],
+  "structures": [
+    { "type": "catapult", "x": 4, "y": 0, "id": "c1" },
+    { "type": "ballista", "x": 4, "y": 1, "id": "b1" },
+    { "type": "ballista", "x": 4, "y": 2, "id": "b2", "uses": 1 },
+    { "type": "tower", "x": 6, "y": 0 } ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "archer", "id": "ar", "side": "blue", "x": 3, "y": 1, "leader": true },
+    { "type": "knight", "id": "kn", "side": "blue", "x": 3, "y": 0 },
+    { "type": "grunt", "id": "g1", "side": "red", "x": 9, "y": 1, "stats": { "hp": 40 } },
+    { "type": "grunt", "id": "g2", "side": "red", "x": 11, "y": 2, "stats": { "hp": 40 } } ] }

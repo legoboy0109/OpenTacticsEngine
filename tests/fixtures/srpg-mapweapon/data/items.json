@@ -1,0 +1,5 @@
+{ "items": [
+  { "id": "sword",         "name": "Sword",     "kind": "weapon", "weapon": "sword" },
+  { "id": "short_bow",     "name": "Short Bow", "kind": "weapon", "weapon": "short_bow" },
+  { "id": "ballista_bolt", "name": "Bolt",      "kind": "weapon", "weapon": "ballista_bolt" },
+  { "id": "potion",        "name": "Potion",    "kind": "usable", "heal": 10 } ] }

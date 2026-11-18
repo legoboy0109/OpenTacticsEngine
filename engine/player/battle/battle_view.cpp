@@ -1,3 +1,4 @@
+#include "battle/mapweapon_text.h"
 #include "battle/battle_view.h"
 
 #include <algorithm>
@@ -147,6 +148,10 @@ void BattleView::begin(const Battle& b) {
       cur_.dirX = len > 0 ? dx / len : 0;
       cur_.dirY = len > 0 ? dy / len : 0;
       cur_.dur = kAttackDur;
+      if (e.flags & kMapWeapon) {  // fired from a structure (docs/SRPG.md "Map weapons"): one log line, a floating note after the last shot
+        OTE_INFO("%s", mapWeaponLogLine(b, e).c_str());
+        if (e.flags & kMapWeaponSpent) addFloat(mapWeaponSpentFloat(b, e), units[e.a].px + cx, units[e.a].py - 2, Color(255, 200, 110), 1.2f);
+      }
       break;
     }
     case EventType::UnitDied: cur_.dur = 0.3f; break;

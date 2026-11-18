@@ -1,0 +1,4 @@
+{ "weapons": [
+  { "id": "sword",         "name": "Sword",         "group": "sword", "props": { "might": 3 } },
+  { "id": "short_bow",     "name": "Short Bow",     "group": "bow", "range": [2, 2], "props": { "might": 3 } },
+  { "id": "ballista_bolt", "name": "Bolt",          "group": "ballista", "range": [2, 6], "props": { "might": 10 } } ] }

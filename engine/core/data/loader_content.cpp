@@ -1,5 +1,6 @@
 #include "core/data/loader_content.h"
 #include "core/data/loader_places.h"
+#include "core/data/loader_map_weapon.h"
 
 #include <cctype>
 
@@ -263,7 +264,8 @@ bool loadStructures(const std::string& path, Database& db, std::string& err) {
     db.structureLights = db.structureLights || s.light > 0;
     db.structures.push_back(s);
   }
-  return loadStructureUpgrades(c, *list, db) && loadStructurePlaces(c, *list, db);  // doors, chests, visits (docs/SRPG.md section 10)
+  return loadStructureUpgrades(c, *list, db) && loadStructurePlaces(c, *list, db) &&  // doors, chests, visits (docs/SRPG.md section 10)
+         loadStructureWeapons(c, *list, db);  // usable weapons (docs/SRPG.md "Map weapons")
 }
 
 bool checkVersusKeys(const std::string& weaponsPath, const Database& db, std::string& err) {

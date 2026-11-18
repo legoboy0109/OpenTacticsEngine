@@ -43,7 +43,8 @@ export const Pl = {
     doors: 'Only when a closed door is all that keeps it from its enemies, it opens one it can (unlocked, or with a key it carries).',
     walls: 'Only when a wall or door with hit points (a door you can break down) is all that keeps it from its enemies, it attacks it and walks toward the nearest. Off by default.',
     steal: 'If it has a steal ability, it steals from a foe in reach instead of just waiting or moving up. It does not hunt foes down to rob them.',
+    weapons: 'Walks to a free ballista or catapult (a structure with a weapon to use) it may use when, from there, it can hit a foe this turn and has no better attack of its own. Off by default: a unit already standing on one always may fire it.',
   },
   goesForHuman: 'This unit is on a side a person plays, so it cannot be sent anywhere. Set the side to the computer to use this.',
-  goesForShort: { chests: 'Chests', villages: 'Villages', doors: 'Doors', steal: 'Steal', walls: 'Walls' },
+  goesForShort: { chests: 'Chests', villages: 'Villages', doors: 'Doors', steal: 'Steal', walls: 'Walls', weapons: 'Weapons' },
 }

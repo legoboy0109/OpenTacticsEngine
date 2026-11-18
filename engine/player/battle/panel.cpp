@@ -10,6 +10,8 @@
 #include "battle/condition_text.h"
 #include "battle/economy_text.h"
 #include "battle/item_text.h"
+#include "battle/mapweapon_text.h"
+#include "core/base/log.h"
 #include "battle/rank_text.h"
 #include "ui/text.h"
 
@@ -79,6 +81,17 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
     for (const PlaceRow& pr : placeInfoRows(b, si, st.type, !structureDimmed(c, si))) {
       row(r, x, y, w, pr.label, pr.value);
       y += rh;
+    }
+    if (!structureDimmed(c, si) && sd.mapWeapon.has()) {  // the weapon a unit standing here may fire and its uses left
+      const std::string value = mapWeaponRowValue(b, si);
+      row(r, x, y, w, MapWeaponWords::kRow, value);
+      y += rh;
+      static std::string lastRow;  // once per change, for the player tests (drawn every frame)
+      const std::string text = sd.name + ": " + value;
+      if (text != lastRow) {
+        lastRow = text;
+        OTE_INFO("terrain weapon: %s", text.c_str());
+      }
     }
   }
   Props scratch;
@@ -231,6 +244,17 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
       row(r, x, y, w, db.weapons[wi].name, ammo + "r" + rangeText(db.weapons[wi]), kText, kLabel);
     }
     y += rh;
+  }
+  std::string mwLabel, mwValue;  // a unit standing on a structure with a weapon it may fire (docs/SRPG.md "Map weapons")
+  if (y <= bottom && mapWeaponUnitRow(b, u, mwLabel, mwValue)) {
+    row(r, x, y, w, mwLabel, mwValue, kText, kLabel);
+    y += rh;
+    static std::string lastUnitRow;
+    const std::string text = u.name + ": " + mwLabel + " " + mwValue;
+    if (text != lastUnitRow) {
+      lastUnitRow = text;
+      OTE_INFO("unit weapon: %s", text.c_str());
+    }
   }
   drawConditionRows(r, c, u, x, y, w, bottom);
   drawSkillNames(r, c, u, x, y, w, bottom);

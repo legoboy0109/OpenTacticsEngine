@@ -1,0 +1,7 @@
+{ "name": "Siege", "grid": { "type": "square", "width": 14, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["..............", "..............", ".............."],
+  "structures": [ { "type": "catapult", "x": 5, "y": 1, "id": "c1" } ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "knight", "id": "kn", "side": "blue", "x": 0, "y": 1, "leader": true, "stats": { "hp": 60 } },
+    { "type": "grunt", "id": "g1", "side": "red", "x": 8, "y": 1, "leader": true } ] }
