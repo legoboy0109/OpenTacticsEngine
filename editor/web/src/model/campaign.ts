@@ -41,26 +41,8 @@ export const defeatRule = (c: Campaign): DefeatRule => (c.rules?.onDefeat === 'e
 export const setFallenRule = (doc: ProjectDoc, v: FallenRule): ProjectDoc => setRule(doc, 'fallen', v === 'gone' ? undefined : v)
 export const setDefeatRule = (doc: ProjectDoc, v: DefeatRule): ProjectDoc => setRule(doc, 'onDefeat', v === 'retry' ? undefined : v)
 
-// --- free battles ---
-export type FreeMode = 'none' | 'all' | 'chosen'
-export const freeMode = (c: Campaign): FreeMode => (c.freeBattles === 'all' ? 'all' : Array.isArray(c.freeBattles) ? 'chosen' : 'none')
-export const freeMaps = (c: Campaign): string[] => (Array.isArray(c.freeBattles) ? c.freeBattles : [])
-
-export function setFreeMode(doc: ProjectDoc, mode: FreeMode): ProjectDoc {
-  return withCampaign(doc, (c) => (freeMode(c) === mode ? c : patchObj(c, { freeBattles: mode === 'none' ? undefined : mode === 'all' ? 'all' : [] })))
-}
-
-/** Ticks or unticks one map of the chosen list; the list keeps the order of the game's map list. */
-export function setFreeMap(doc: ProjectDoc, mapId: string, on: boolean): ProjectDoc {
-  return withCampaign(doc, (c) => {
-    if (freeMode(c) !== 'chosen') return c
-    const have = new Set(freeMaps(c))
-    if (on) have.add(mapId); else have.delete(mapId)
-    const order = (doc.game?.maps ?? []).map((m) => m.id)
-    const list = [...order.filter((id) => have.has(id)), ...[...have].filter((id) => !order.includes(id))]
-    return patchObj(c, { freeBattles: list })
-  })
-}
+// --- free battles: campaignFree.ts ---
+export * from './campaignFree'
 
 // --- chapters ---
 export function addChapter(doc: ProjectDoc, name: string, id: string = newChapterId(doc, name)): ProjectDoc {

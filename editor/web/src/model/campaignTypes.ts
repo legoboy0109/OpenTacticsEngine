@@ -6,7 +6,12 @@ import type { Extra } from './types'
 export type FallenRule = 'gone' | 'return'
 export type DefeatRule = 'retry' | 'end'
 /** "none" (the loader's default, written as no key), "all", or the maps that can also be played on their own. */
-export type FreeBattles = 'none' | 'all' | string[]
+export type FreeMaps = 'none' | 'all' | string[]
+/** The object form: the same maps, plus when the game page lists them. "storyComplete" = only once the player has finished the
+ *  story; `lockedNote` is the one greyed line shown in the list's place until then. */
+export type FreeWhen = 'always' | 'storyComplete'
+export interface FreeBattlesObject extends Extra { maps?: FreeMaps; when?: FreeWhen; lockedNote?: string }
+export type FreeBattles = FreeMaps | FreeBattlesObject
 
 export interface CampaignRules extends Extra { fallen?: FallenRule; onDefeat?: DefeatRule }
 

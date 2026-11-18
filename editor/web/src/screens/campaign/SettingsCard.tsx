@@ -1,9 +1,10 @@
 // The campaign's name and rules: what happens to defeated units and lost chapters, and which maps can be played alone.
 import { useState } from 'react'
 import {
-  defeatRule, fallenRule, freeMaps, freeMode, removeCampaign, setCampaignName, setDefeatRule, setFallenRule, setFreeMap, setFreeMode, type FreeMode,
+  defeatRule, fallenRule, freeMaps, freeMode, freeNote, freeWhen, removeCampaign, setCampaignName, setDefeatRule, setFallenRule, setFreeMap,
+  setFreeMode, setFreeNote, setFreeWhen, type FreeMode,
 } from '../../model/campaign'
-import type { DefeatRule, FallenRule } from '../../model/campaignTypes'
+import type { DefeatRule, FallenRule, FreeWhen } from '../../model/campaignTypes'
 import { useDoc, useEdit } from '../../store/context'
 import { Card } from '../../ui/Card'
 import { ConfirmDialog } from '../../ui/Dialog'
@@ -48,6 +49,17 @@ export function SettingsCard() {
               ))}
             </div>
           </FieldGroup>
+        )}
+        {mode !== 'none' && (
+          <Field label={C.freeWhen} help={C.freeWhenHelp}>
+            <Select value={freeWhen(c)} onChange={(v) => edit((d) => setFreeWhen(d, v as FreeWhen))}
+              options={(['always', 'storyComplete'] as FreeWhen[]).map((v) => ({ value: v, label: C.freeWhenChoices[v] }))} />
+          </Field>
+        )}
+        {mode !== 'none' && freeWhen(c) === 'storyComplete' && (
+          <Field label={C.freeNote} help={C.freeNoteHelp}>
+            <TextInput value={freeNote(c)} onChange={(v) => edit((d) => setFreeNote(d, v), 'campaign:freeNote')} />
+          </Field>
         )}
       </div>
       <ConfirmDialog open={removing} title={C.removeTitle} confirmLabel={C.removeConfirm} danger
