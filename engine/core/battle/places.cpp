@@ -12,11 +12,6 @@ namespace ote {
 
 namespace {
 
-bool refuse(std::string* why, const std::string& reason) {
-  if (why) *why = reason;
-  return false;
-}
-
 int wholeNumber(double v) {
   if (!(v > -1e9)) return 0;
   if (v > 1e6) return 1000000;

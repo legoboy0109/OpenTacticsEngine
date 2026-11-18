@@ -171,14 +171,12 @@ void Battle::applyPlace(const Action& a, std::vector<Event>& events, bool endsTu
       placeForecast(uid, s, a.weapon, units[(size_t)uid].cell, f);  // validated
       // Ammunition once per attack, wear of a carried weapon once per strike, like a fight.
       spendAmmo(uid, a.weapon);
-      int dealt = 0;
       for (int i = 0; i < f.strikes && structures[(size_t)s].hp > 0; ++i) {
         const int slot = db->rules.items.carriedWeapons ? weaponSlot(units[(size_t)uid], a.weapon) : -1;
         if (db->rules.items.carriedWeapons && slot < 0) break;  // the weapon broke
         StructureState& st = structures[(size_t)s];
         const int damage = std::min(f.damage, st.hp);
         st.hp -= damage;
-        dealt += damage;
         events.push_back(pev(EventType::PlaceHit, uid, s, a.weapon, damage, st.hp <= 0 ? kKill : 0));
         if (slot >= 0) spendUse(uid, slot, events);
       }
