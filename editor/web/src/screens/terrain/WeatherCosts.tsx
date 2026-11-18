@@ -5,6 +5,7 @@ import { Card } from '../../ui/Card'
 import { FieldGroup, Field } from '../../ui/Field'
 import { NumberInput } from '../../ui/NumberInput'
 import { Select } from '../../ui/Select'
+import { Check } from '../../ui/Toggle'
 import { WX } from './weatherText'
 
 export function WeatherCosts({ id }: { id: string }) {
@@ -22,8 +23,11 @@ export function WeatherCosts({ id }: { id: string }) {
                 <th scope="row">{m.name}</th>
                 {WEATHERS.map((w) => (
                   <td key={w}>
-                    <NumberInput value={weatherCostOf(doc, id, w, m.id)} min={1} max={WEATHER_COST_MAX} allowEmpty placeholder={WX.same} aria-label={`${m.name}, ${WX.weather[w].toLowerCase()}`}
-                      onChange={(v) => edit((d) => setWeatherCost(d, id, w, m.id, v), `terrain:${id}:weather:${w}:${m.id}`)} />
+                    {weatherCostOf(doc, id, w, m.id) !== 'blocked' && (
+                      <NumberInput value={weatherCostOf(doc, id, w, m.id) as number | undefined} min={1} max={WEATHER_COST_MAX} allowEmpty placeholder={WX.same} aria-label={`${m.name}, ${WX.weather[w].toLowerCase()}`}
+                        onChange={(v) => edit((d) => setWeatherCost(d, id, w, m.id, v), `terrain:${id}:weather:${w}:${m.id}`)} />
+                    )}
+                    <Check label={WX.closed} checked={weatherCostOf(doc, id, w, m.id) === 'blocked'} onChange={(on) => edit((d) => setWeatherCost(d, id, w, m.id, on ? 'blocked' : undefined))} />
                   </td>
                 ))}
               </tr>

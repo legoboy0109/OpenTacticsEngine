@@ -118,7 +118,7 @@ export interface Terrain extends Named {
   /** Fog: a unit looking along a line of squares does not see past a square of this terrain (a wall); docs/ECONOMY.md "Fog of war". */
   blocksSight?: boolean
   /** What the terrain costs while it rains / snows, per movement type (docs/ECONOMY.md "Weather and movement cost"); model/battleTables.ts. */
-  weatherCost?: { rain?: NumMap; snow?: NumMap }
+  weatherCost?: { rain?: Record<string, number | 'blocked'>; snow?: Record<string, number | 'blocked'> }
   // Settings that moved to structures (docs/STRUCTURES.md). Only old projects still have them; the Convert flow
   // (model/structuresConvert.ts) moves them. `capture` is the key older games used, `capturePoints` the new name.
   capture?: number; capturePoints?: number; income?: NumMap; produces?: string[]

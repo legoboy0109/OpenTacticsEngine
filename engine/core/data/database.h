@@ -37,7 +37,7 @@ struct TerrainDef {
   char glyph = ' ';            // optional placeholder letter
   // Movement cost to ENTER, indexed by move type. <= 0 means impassable.
   std::vector<int> moveCost;
-  // "weatherCost" (docs/ECONOMY.md "Weather and movement cost"): [0] = while it rains, [1] = while it snows; per move type, 0 = no change.
+  // "weatherCost" (docs/ECONOMY.md "Weather and movement cost"): [0] = while it rains, [1] = while it snows; per move type, -1 = no change, 0 = closed (cannot enter), n = cost.
   // Both empty = the terrain does not care about weather.
   std::vector<int> weatherCost[2];
   Props props;                 // formula-visible numbers (defense, avoid...)

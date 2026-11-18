@@ -7,6 +7,7 @@ import { setSummon } from '../../src/model/abilities'
 import { addLevelFor, characterPromotionLevel, followCharacterInPromotions, levelForRows, promotionLevelChecks, setCharacterPromotionLevel, setLevelFor } from '../../src/model/promotionLevels'
 import { renameCharacter } from '../../src/model/characterRename'
 import { deleteCharacter } from '../../src/model/srpgRefs'
+import { setWeatherCost, weatherCostOf, weatherCostProblems } from '../../src/model/battleTables'
 import { switchOnFeature } from '../../src/model/srpgFeatures'
 import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
 import type { Ability } from '../../src/model/srpgTypes'
@@ -117,5 +118,25 @@ describe('a promotion level per character', () => {
     expect(promotionLevelChecks(setCharacterPromotionLevel(d, d.characters![0].id, 99)).length).toBe(1)
     expect(promotionLevelChecks(setLevelFor(d, from, 0, 'nobody', 2))[0].text).toMatch(/not a character/)
     expect(promotionLevelChecks(setLevelFor(d, from, 0, d.characters![0].id, 0))[0].text).toMatch(/whole number/)
+  })
+})
+
+describe('weather that closes a way', () => {
+  it('"blocked" is written and read back; clearing it removes the entry', () => {
+    const d = base()
+    const terrain = d.terrain![0].id, mt = d.game!.moveTypes[0].id
+    let n = setWeatherCost(d, terrain, 'rain', mt, 'blocked')
+    expect(weatherCostOf(n, terrain, 'rain', mt)).toBe('blocked')
+    expect(n.terrain![0].weatherCost).toEqual({ rain: { [mt]: 'blocked' } })
+    expect(weatherCostProblems(n, terrain)).toEqual([])
+    n = setWeatherCost(n, terrain, 'rain', mt, undefined)
+    expect(n.terrain![0].weatherCost).toBeUndefined()
+  })
+  it('a plain number is still clamped to 1..99 and a stray word is a problem', () => {
+    const d = base()
+    const terrain = d.terrain![0].id, mt = d.game!.moveTypes[0].id
+    expect(weatherCostOf(setWeatherCost(d, terrain, 'snow', mt, 500), terrain, 'snow', mt)).toBe(99)
+    const bad = { ...d, terrain: d.terrain!.map((t, i) => (i === 0 ? { ...t, weatherCost: { rain: { [mt]: 'closed' as unknown as number } } } : t)) }
+    expect(weatherCostProblems(bad, terrain)[0]).toMatch(/whole number from 1 to 99, or closed/)
   })
 })
