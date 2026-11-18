@@ -2741,7 +2741,7 @@ Conditions, a damage effect's "How much" > "Anything from one number to another"
 `level`, `limit` and the vanish rules existed (see "Summoning": `"level": "summoner"`, the default, is the summoner's level; `"user"` is accepted as
 another name for it; the summoned unit is made at that level by the usual level rule of a unit placed at that level). **New** keys of `summon`:
 
-- `"items": [ { "item": "fang", "minLevel": 1 }, { "item": "big_fang", "minLevel": 5 } ]` (1 to 8 candidates; `minLevel` default 1, at most the
+- `"items": [ { "item": "fang", "minLevel": 1 }, { "item": "big_fang", "minLevel": 5 } ]` (1 to 32 candidates; `minLevel` default 1, at most the
   game's level cap) with `"pick": "highest"` (default) or `"random"`. The summoned unit carries **one** candidate whose `minLevel` the **summoner's
   level** reaches, **instead of its unit type's own items** (none fits: the type's own items). `highest` = the candidate with the highest `minLevel` that
   fits (the first listed of equals); `random` = one of those that fit, by **one roll** of the battle's random numbers, **none when only one fits**.
@@ -2752,6 +2752,15 @@ another name for it; the summoned unit is made at that level by the usual level 
 
 Core: `SummonDef::items / pickRandom / replace`; code `core/battle/summons.cpp`. Editor: Abilities, the summon card (a candidate list with the level each
 needs, "Which one it carries", "A new one replaces the oldest at the limit"). Saves: nothing new. Tests: `tests/test_fidelity2_rules.cpp`.
+
+**Weights, a ceiling and "nothing" (fidelity 3).** A candidate may also have `"maxLevel": n` (from its `minLevel` to the level cap; it fits only while the
+summoner's level is at most that; default none), `"weight": n` (1..1000, default 1; the candidate's share of the roll of `pick: "random"`; `highest` ignores
+it) and the item may be `null`: `{ "item": null, "minLevel": 3 }` is a candidate that makes the summon carry **no item at all** (`highest` and `random` treat
+it as any other candidate). The roll is still **one** call of the battle's random numbers, made only when more than one candidate fits: `range(sum of the
+weights of those that fit)`, walked through the candidates in order. With every weight 1 that is exactly `range(n)` and the same pick as before, so a game
+that does not write `weight` rolls and plays identically. Refused: more than 32 candidates, a weight outside 1..1000 or not whole, a `maxLevel` below the
+`minLevel` or above the cap, `"item"` neither an item id nor null. Core: `SummonItem::maxLevel / weight / nothing`. Editor: the candidate rows have a
+"highest summoner's level", a weight (shown with "a random one") and a "No item" choice. Saves: nothing new. Tests: `tests/test_fidelity3_summon.cpp`.
 
 ### Already possible (nothing was added)
 

@@ -238,6 +238,9 @@ struct SummonItem {
   std::string id;
   int item = -1;      // index into Database::items (resolved last)
   int minLevel = 1;
+  int maxLevel = 0;   // "maxLevel": the candidate fits only up to this summoner level (0 = no ceiling)
+  int weight = 1;     // "weight" 1..1000: its share of the roll when the summon picks at random
+  bool nothing = false;  // { "item": null }: the summon carries no item at all
 };
 
 struct SummonDef {

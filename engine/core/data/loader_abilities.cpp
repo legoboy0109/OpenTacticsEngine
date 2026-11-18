@@ -67,21 +67,33 @@ bool readSummon(const LoadCtx& c, const Database& db, const Json& v, const std::
   }
   if (v.has("items")) {
     const Json& list = v["items"];
-    if (!list.isArray() || list.size() == 0 || list.size() > 8)
-      return c.fail(at, in + "\"items\" must be a list of 1 to 8 candidates such as { \"item\": \"iron_sword\", \"minLevel\": 1 }");
+    if (!list.isArray() || list.size() == 0 || list.size() > 32)
+      return c.fail(at, in + "\"items\" must be a list of 1 to 32 candidates such as { \"item\": \"iron_sword\", \"minLevel\": 1 } (\"item\": null = no item)");
     for (size_t i = 0; i < list.size(); ++i) {
       const Json& it = list[i];
       const std::string w = in + "\"items\" candidate " + std::to_string(i + 1) + ": ";
       if (!it.isObject()) return c.fail(at, w + "must be { \"item\": item id, \"minLevel\": number }");
       for (const Json::Member& m : it.members())
-        if (m.first != "item" && m.first != "minLevel") return c.fail(at, w + "unknown key " + q(m.first) + " (expected \"item\", \"minLevel\")");
+        if (m.first != "item" && m.first != "minLevel" && m.first != "maxLevel" && m.first != "weight")
+          return c.fail(at, w + "unknown key " + q(m.first) + " (expected \"item\", \"minLevel\", \"maxLevel\", \"weight\")");
       SummonItem s;
-      if (!it.has("item") || !it["item"].isString() || it["item"].asString().empty()) return c.fail(at, w + "\"item\" must be the id of an item");
-      s.id = it["item"].asString();
+      if (it.has("item") && it["item"].isNull()) s.nothing = true;  // an explicit "nothing" candidate
+      else if (!it.has("item") || !it["item"].isString() || it["item"].asString().empty()) return c.fail(at, w + "\"item\" must be the id of an item, or null for no item");
+      else s.id = it["item"].asString();
       if (it.has("minLevel")) {
         if (!LoadCtx::isWhole(it["minLevel"]) || it["minLevel"].asInt() < 1 || it["minLevel"].asInt() > db.rules.maxLevel)
           return c.fail(at, w + "\"minLevel\" must be a whole number from 1 to " + std::to_string(db.rules.maxLevel));
         s.minLevel = it["minLevel"].asInt();
+      }
+      if (it.has("maxLevel")) {
+        if (!LoadCtx::isWhole(it["maxLevel"]) || it["maxLevel"].asInt() < s.minLevel || it["maxLevel"].asInt() > db.rules.maxLevel)
+          return c.fail(at, w + "\"maxLevel\" must be a whole number from \"minLevel\" (" + std::to_string(s.minLevel) + ") to " + std::to_string(db.rules.maxLevel));
+        s.maxLevel = it["maxLevel"].asInt();
+      }
+      if (it.has("weight")) {
+        if (!LoadCtx::isWhole(it["weight"]) || it["weight"].asInt() < 1 || it["weight"].asInt() > 1000)
+          return c.fail(at, w + "\"weight\" must be a whole number from 1 to 1000");
+        s.weight = it["weight"].asInt();
       }
       out.items.push_back(s);
     }
@@ -337,6 +349,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
       a.summon.type = db.findUnitType(a.summon.typeId);
       if (a.summon.type < 0) return c.fail(where, "\"summon\": unknown unit type \"" + a.summon.typeId + "\"");
       for (SummonItem& s : a.summon.items) {
+        if (s.nothing) continue;
         s.item = db.findItem(s.id);
         if (s.item < 0) return c.fail(where, "\"summon\": \"items\" names unknown item \"" + s.id + "\" (data/items.json)");
       }

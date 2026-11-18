@@ -1,0 +1,75 @@
+// "Fidelity 3": an ability that spends its item, summon candidates with weights and a ceiling, a promotion level per character, weather that closes
+// a way, several preparation shops, the new sound slots and the small leftovers (model/abilityItem.ts, summonItems.ts, ...).
+import { describe, expect, it } from 'vitest'
+import { abilityChecks } from '../../src/model/abilityChecks'
+import { abilityGivers, setSpendsItem, spendsItemProblems } from '../../src/model/abilityItem'
+import { setSummon } from '../../src/model/abilities'
+import { switchOnFeature } from '../../src/model/srpgFeatures'
+import { addSummonItem, MAX_SUMMON_ITEMS, NO_ITEM_VALUE, patchSummonItem, summonItemProblems, summonItemRows } from '../../src/model/summonItems'
+import type { Ability } from '../../src/model/srpgTypes'
+import type { ProjectDoc } from '../../src/model/types'
+import { loadDemo } from './fixtures'
+
+const base = (): ProjectDoc => switchOnFeature(loadDemo('demo-srpg'), 'abilities')
+
+describe('an ability that spends its item', () => {
+  const withWand = (uses: number | undefined): ProjectDoc => {
+    const d = base()
+    return {
+      ...d,
+      skills: [...(d.skills ?? []), { id: 'zapper', name: 'Zapper', blocks: [{ when: 'always', do: [{ ability: 'zap' }] }] }],
+      items: [...(d.items ?? []), { id: 'wand', name: 'Wand', kind: 'accessory', skills: ['zapper'], ...(uses === undefined ? {} : { uses }) }],
+      abilities: [{ id: 'zap', name: 'Zap', target: 'ally', effect: { heal: 5 }, spendsItem: true }],
+    }
+  }
+  it('finds the items that give an ability', () => {
+    expect(abilityGivers(withWand(3), 'zap').map((i) => i.id)).toEqual(['wand'])
+    expect(abilityGivers(base(), 'zap')).toEqual([])
+  })
+  it('writes true only, never false', () => {
+    const a: Ability = { id: 'x', name: 'X', target: 'self', effect: { heal: 1 } }
+    expect(setSpendsItem(a, true).spendsItem).toBe(true)
+    expect('spendsItem' in setSpendsItem(setSpendsItem(a, true), false)).toBe(false)
+  })
+  it('says what the loader refuses', () => {
+    expect(spendsItemProblems(withWand(3), withWand(3).abilities![0])).toEqual([])
+    expect(spendsItemProblems(withWand(undefined), withWand(undefined).abilities![0])[0]).toMatch(/unlimited uses/)
+    const d = base()
+    const a: Ability = { id: 'zap', name: 'Zap', target: 'ally', effect: { heal: 5 }, spendsItem: true }
+    expect(spendsItemProblems(d, a)[0]).toMatch(/No item gives/)
+    expect(abilityChecks({ ...d, abilities: [a] }).some((c) => /No item gives/.test(c.text))).toBe(true)
+    const listed = { ...withWand(3), units: (withWand(3).units ?? []).map((u, i) => (i === 0 ? { ...u, abilities: ['zap'] } : u)) }
+    expect(spendsItemProblems(listed, listed.abilities![0]).some((p) => /only an item may give it/.test(p))).toBe(true)
+  })
+})
+
+describe('summon candidates: ceiling, weight, no item, 32 of them', () => {
+  const ability = (d: ProjectDoc): Ability => ({ id: 's', name: 'S', target: 'cell', range: [1, 2], effect: { summon: { type: d.units![0].id } } })
+  it('writes only numbers that are not the default', () => {
+    const d = base()
+    let a = addSummonItem(d, ability(d))
+    a = patchSummonItem(a, 0, { maxLevel: 6, weight: 3 })
+    expect(a.effect!.summon!.items![0]).toMatchObject({ maxLevel: 6, weight: 3 })
+    a = patchSummonItem(a, 0, { weight: 1, maxLevel: undefined })
+    expect(a.effect!.summon!.items).toEqual([{ item: summonItemRows(a)[0].item }])
+  })
+  it('the "no item" candidate is written as null and read back', () => {
+    const d = base()
+    let a = addSummonItem(d, ability(d))
+    a = patchSummonItem(a, 0, { item: NO_ITEM_VALUE })
+    expect(a.effect!.summon!.items![0].item).toBeNull()
+    expect(summonItemRows(a)[0].item).toBe(NO_ITEM_VALUE)
+    expect(summonItemProblems(d, a)).toEqual([])
+  })
+  it('allows 32 candidates and says what the loader refuses', () => {
+    const d = base()
+    const item = d.items![0].id
+    expect(MAX_SUMMON_ITEMS).toBe(32)
+    const many = setSummon(ability(d), { items: Array.from({ length: 32 }, () => ({ item })) })
+    expect(summonItemProblems(d, many)).toEqual([])
+    expect(summonItemProblems(d, setSummon(ability(d), { items: Array.from({ length: 33 }, () => ({ item })) }))[0]).toMatch(/1 to 32/)
+    expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, weight: 0 }] }))[0]).toMatch(/weight/)
+    expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, weight: 1001 }] }))[0]).toMatch(/weight/)
+    expect(summonItemProblems(d, setSummon(ability(d), { items: [{ item, minLevel: 5, maxLevel: 4 }] }))[0]).toMatch(/highest level/)
+  })
+})

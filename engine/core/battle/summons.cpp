@@ -32,20 +32,33 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   if (!sd.items.empty()) {  // "items": the summon carries one candidate whose "minLevel" the summoner's level reaches (none fits: the type's own items)
     std::vector<int> fits;
     for (size_t i = 0; i < sd.items.size(); ++i)
-      if (units[(size_t)summoner].level >= sd.items[i].minLevel) fits.push_back((int)i);
+      if (units[(size_t)summoner].level >= sd.items[i].minLevel &&
+          (sd.items[i].maxLevel == 0 || units[(size_t)summoner].level <= sd.items[i].maxLevel))
+        fits.push_back((int)i);
     if (!fits.empty()) {
       int pick = fits[0];
       if (sd.pickRandom) {
-        if (fits.size() > 1) pick = fits[(size_t)rng.range((int)fits.size())];  // a roll only when there is a choice
+        if (fits.size() > 1) {  // a roll only when there is a choice; one roll over the weights (all 1: the plain pick among the n)
+          int total = 0;
+          for (int i : fits) total += sd.items[(size_t)i].weight;
+          int roll = rng.range(total);
+          for (int i : fits) {
+            pick = i;
+            if (roll < sd.items[(size_t)i].weight) break;
+            roll -= sd.items[(size_t)i].weight;
+          }
+        }
       } else {
         for (int i : fits)
           if (sd.items[(size_t)i].minLevel > sd.items[(size_t)pick].minLevel) pick = i;  // the first of equals wins
       }
-      ItemStack stack;
-      stack.item = sd.items[(size_t)pick].item;
-      stack.uses = db->items[(size_t)stack.item].uses;
       s.items.clear();
-      s.items.push_back(stack);
+      if (!sd.items[(size_t)pick].nothing) {  // a "nothing" candidate leaves the summon without an item
+        ItemStack stack;
+        stack.item = sd.items[(size_t)pick].item;
+        stack.uses = db->items[(size_t)stack.item].uses;
+        s.items.push_back(stack);
+      }
     }
   }
   for (ItemStack& item : s.items) item.drop = false;  // its items never drop
