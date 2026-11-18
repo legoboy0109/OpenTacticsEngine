@@ -255,6 +255,8 @@ bool summonIgnored(const UnitFilter& filter, const Unit& u) const {
 }
 // Notes that the unit used the ability (count, cooldown, once per turn).
 void noteAbilityUse(int unit, int ability);
+// "spendsItem": takes one use of the item that gives the ability (ItemBroke at 0); nothing for any other ability (ability_item.cpp).
+void spendAbilityItem(int unit, int ability, std::vector<Event>& events);
 
 // ---- weapon ranks and stat caps (ranks.cpp, caps.cpp; docs/SRPG.md section 7) ----
 // Raises the unit's weapon experience, per group, to what its class and character give (never lowers). `events`

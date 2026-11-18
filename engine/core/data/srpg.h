@@ -286,6 +286,7 @@ struct AbilityDef {
   // target gets after the effect (docs/SRPG.md "Abilities: experience and conditions").
   int xp = 0, xpExpr = -1;
   int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
+  bool spendsItem = false;  // "spendsItem": each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item")
 };
 
 // ---- 2. promotion (game.json rules.promotion, units.json "promotions") ----

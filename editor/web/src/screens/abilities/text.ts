@@ -143,6 +143,8 @@ export const T = {
   waitNone: 'None',
   waitNumber: 'Number of turns',
   waitHelp: 'After a use the unit waits this many of its side’s turns (1 = ready again next turn).',
+  spendsItem: 'Uses up its item',
+  spendsItemHelp: 'Each use takes one use of the item that gives the ability; when the item is gone the ability is gone too. Needs an accessory or a weapon (with a number of uses) whose skill gives this ability.',
   beforeMoving: 'Only before moving',
   beforeMovingHelp: 'Off: it can be used before or after the unit moves.',
 

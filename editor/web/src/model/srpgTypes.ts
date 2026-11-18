@@ -91,6 +91,8 @@ export interface Ability extends Named {
   /** docs/SRPG.md section 11: experience for the user per use (a number or a formula), and a condition the target gets. */
   xp?: number | string
   inflict?: Extra
+  /** Each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item"). */
+  spendsItem?: boolean
 }
 
 /** The combat numbers of a support level (section 6): a level states its whole bonus; `stats` never holds HP or move. */

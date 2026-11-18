@@ -2,6 +2,7 @@
 // summoning": Data). Abilities load before weapons, items and unit types (they name abilities and get indices at
 // once); what an ability itself names (a summoned unit type, the unit and terrain keys of its "if") is checked last,
 // in resolveAbilityRefs.
+#include "core/data/ability_grants.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
@@ -168,7 +169,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 }
 
 bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
-  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict"}, where))
+  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem"}, where))
     return false;
   a.name = a.id;
   if (!c.str(e, "name", where, a.name) || !c.str(e, "description", where, a.description)) return false;
@@ -252,6 +253,7 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   if (e.has("cooldown")) a.cooldown = e["cooldown"].asInt();
   if (!c.boolean(e, "afterMove", where, a.afterMove)) return false;
 
+  if (!c.boolean(e, "spendsItem", where, a.spendsItem)) return false;
   if (!readAbilityExtras(c, db, e, where, a)) return false;  // "xp", "inflict" (loader_fidelity.cpp)
   if (e.has("if")) {
     // A condition may judge the target unit ("who": "foe"), but not where there is none (a square). There is no
@@ -303,6 +305,27 @@ bool readUnitAbilities(const LoadCtx& c, const Database& db, const Json& e, cons
   return true;
 }
 
+// "spendsItem": some item must give the ability, every such item must wear out, and no unit type or character may list
+// it itself (it would never be offered: an ability that spends an item is offered only while an item gives it).
+bool checkSpendsItem(const LoadCtx& c, const Database& db, int ability, const std::string& where) {
+  const std::string& id = db.abilities[(size_t)ability].id;
+  bool any = false;
+  for (const ItemDef& it : db.items) {
+    if (!itemGivesAbility(db, (int)(&it - &db.items[0]), ability)) continue;
+    any = true;
+    if (it.uses < 0)
+      return c.fail(where, "\"spendsItem\": the item \"" + it.id + "\" gives it but has unlimited uses; an item that is spent needs \"uses\"");
+  }
+  if (!any) return c.fail(where, "\"spendsItem\": no item gives this ability (an accessory or a weapon whose skill has { \"ability\": \"" + id + "\" })");
+  for (const UnitTypeDef& t : db.unitTypes)
+    for (int a : t.abilities)
+      if (a == ability) return c.fail(where, "\"spendsItem\": unit type \"" + t.id + "\" lists the ability itself; only an item may give it");
+  for (const CharacterDef& ch : db.characters)
+    for (int a : ch.abilities)
+      if (a == ability) return c.fail(where, "\"spendsItem\": character \"" + ch.id + "\" lists the ability itself; only an item may give it");
+  return true;
+}
+
 // What the abilities name, once unit types, weapons, terrain and structures are loaded.
 bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err) {
   LoadCtx c(err, root + "/data/abilities.json");
@@ -333,6 +356,7 @@ bool resolveAbilityRefs(const std::string& root, Database& db, std::string& err)
       }
     }
     if (!resolveSkillConds(c, db, where, a.conds)) return false;
+    if (a.spendsItem && !checkSpendsItem(c, db, (int)(&a - &db.abilities[0]), where)) return false;
   }
   return true;
 }

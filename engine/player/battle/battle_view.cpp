@@ -232,6 +232,7 @@ void BattleView::begin(const Battle& b) {
       break;
     }
     case EventType::ItemBroke:
+      OTE_INFO("item: %s's %s is gone", b.units[(size_t)e.a].name.c_str(), itemName(b, e.b).c_str());
       // A potion is used up rather than broken.
       addFloat(itemName(b, e.b) + (b.db->items[(size_t)e.b].kind == ItemKind::Usable ? " used up" : " broke"), units[e.a].px + cx, units[e.a].py - 2, Color(255, 170, 110), 1.2f);
       cur_.dur = 0.3f;

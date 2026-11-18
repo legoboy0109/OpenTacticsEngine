@@ -1030,6 +1030,21 @@ costs included, as for walking) and no unit stands on it. Heights do not matter.
   times this battle, `wait` = turns still to wait, `turn` = used this turn). At the start of its side's turn `wait`
   drops by one (not below 0) and `turn` is cleared.
 
+### An ability that spends its item
+
+`"spendsItem": true` on an ability (default false): each use takes one use of the item that gives the ability, as a staff or a potion
+loses one (the item breaks or vanishes at 0 by the item's normal rule: `ItemBroke`), and the ability is no longer offered once the item is
+gone. An item gives an ability the ordinary way: a skill with `{ "ability": "id" }` in an `always` block on an accessory (carried), or
+on the weapon of a weapon item that is in use. The first such item (accessories in inventory order, then the weapon in use) is the one
+spent. `uses` and `cooldown` of the ability apply as well; the menu shows the smaller of the ability's uses left and the item's
+(`2 left`). The loader refuses (at the end, with the other cross references): a `spendsItem` ability no item gives, an item that gives
+it with unlimited uses (nothing would be spent), a unit type or character that lists it itself (it would never be offered), and a value
+other than true / false. An ability that spends its item is offered only while an item gives it (a skill from any other place gives
+nothing). Saves: nothing new (the item's uses are already saved). Core: `Battle::abilityItemSlot`, `spendAbilityItem`
+(`battle/ability_item.cpp`), `itemGivesAbility` (`data/ability_grants.cpp`). Player: the menu line, the log line `[info] item: Hero's Wand is
+gone`. Editor: Abilities, "Uses up its item" (with a warning when no item gives it, it has unlimited uses, or a type / character lists it).
+Tests: `tests/test_fidelity3_ability.cpp`, `tests/srpg_player_fidelity3_test.py`.
+
 ### Summoning
 
 `{ "summon": { "type", "level", "limit", "vanish", "lifetime", "canAct", "givesXp" } }`; only `type` is required.

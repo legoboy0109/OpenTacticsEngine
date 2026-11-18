@@ -36,6 +36,10 @@ void Battle::abilitiesOf(const Unit& u, std::vector<int>& out) const {
       for (const SkillEffect& fx : block.effects)
         if (fx.kind == SkillEffect::Kind::Ability && fx.ability >= 0) addOnce(out, fx.ability);
     }
+  // An ability that spends its item is offered only while an item gives it (ability_item.cpp).
+  out.erase(std::remove_if(out.begin(), out.end(),
+                           [&](int a) { return db->abilities[(size_t)a].spendsItem && abilityItemSlot(u, a) < 0; }),
+            out.end());
 }
 
 const AbilityUse* Battle::abilityUseOf(const Unit& u, int ability) const {
@@ -77,6 +81,10 @@ void Battle::abilityOptions(int unit, Cell from, std::vector<AbilityOption>& out
     AbilityOption o;
     o.ability = a;
     o.ok = abilityStateOk(u, a, from, &o.why);
+    if (db->abilities[(size_t)a].spendsItem) {
+      const int slot = abilityItemSlot(u, a);
+      if (slot >= 0) o.itemUses = u.items[(size_t)slot].uses;
+    }
     if (o.ok) {
       std::vector<int> us;
       std::vector<Cell> cs;

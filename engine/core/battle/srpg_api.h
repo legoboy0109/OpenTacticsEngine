@@ -49,6 +49,8 @@ void promotionOptions(int unit, int slot, std::vector<int>& out) const;
 // ---- menu abilities and summons (abilities.cpp and friends) ----
 // The abilities the unit has: its type's, its character's, then its skills', each once.
 void abilitiesOf(const Unit& u, std::vector<int>& out) const;
+// "spendsItem": the inventory slot of the item that gives the unit this ability (an accessory with a skill, or the weapon in use), or -1.
+int abilityItemSlot(const Unit& u, int ability) const;
 // One menu entry per ability it has, if it stood on `from`.
 void abilityOptions(int unit, Cell from, std::vector<AbilityOption>& out) const;
 // Targets if the unit stood on `from`: units for unit targets, squares for "cell"; a "self" ability returns the unit.
