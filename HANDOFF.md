@@ -40,24 +40,34 @@ a map's `tileLayer`, tiles in changes; hex games refused); the second fidelity b
 `fight` command, `battleBackgrounds` / `battlePlatforms` per map + `battleBackgroundFrom`, terrain `weatherCost` + map
 `weather`, `hurt` ranges, summon `items`/`pick`/`replace`, `battleSceneSides`). No engine job is running.
 
-Pushed on 2026-11-18 (origin/main = 1f37839 plus this note): the fixed stage for battle scenes (docs/BATTLE_SCENE.md
-"Fixed stage"), test levels and playing from a chapter (`--test-level`, `--campaign --chapter`, the editor's Play panel:
-docs/DIFFICULTY.md, docs/SAVES.md), battle effect features (docs/BATTLE_SCENE.md "Effects": ids, sounds, `hitAtMs`,
-layers, flash / shake, striker parts, lists, `byType`, `returns` / `lingerMs`; the editor's Battle effects card), and a
-phone fix (seven map tools on one row). No engine job is running.
+Pushed on 2026-11-18 (origin/main = 7addf9b): the fixed stage for battle scenes, test levels and playing from a chapter
+(the editor's Play panel), battle effect features, free battles that wait for the story (`freeBattles` object form,
+`progress.json`: docs/SAVES.md), and three fidelity batches, all opt-in:
+- battle scene 3 (docs/BATTLE_SCENE.md): `battleSceneStaves`, effect `blend: add`, `hide`, `fade`, screen `order`,
+  `stage.ranges` with `view: each` + `pan`, travel `speed`, `hitAtMs` up to 15000;
+- fidelity 3: ability `spendsItem`, summon `weight` / `maxLevel` / `item: null` (32 candidates), character
+  `promotion.fromLevel` and `fromLevelFor`, `weatherCost: "blocked"`, `prep.shops` with music, sound slots
+  `levelUpTick`, `save`, `shopMusic`, `bootJingle`, `promotionSounds`;
+- scripted-style computer players (docs/AI.md): `rules.ai.turnOrder: order` + behaviour `order`, `rules.ai.weights`
+  sets, `caution: none`, `retreat`, `idleTurns`, mode `patrol`, `ignores`, `guardArea.measure: moveCost`.
+In progress (worktree job, not merged): classic menu options asked for by the owner: unit sprites in the preparation
+unit lists (always), `menuUnavailable: grey|hide`, `attackWeaponChoice: equipped|pick`. After merging: full check, push,
+then switch both on in the port. Known small flaw: the phone shop panel cuts an item's price ("20 G..").
 
-Private converter (separate folder, never public): steps 22-29 done. The installed git-ignored `games/vision-quest` is
-the step 29 state: real map tiles, the ROM's fixed battle stage (pixel-exact fighters and platforms), 33 battle effects
-with sounds and lead-in timing, ROM music with the silent-track fix. The owner played it on 2026-11-18: battle scenes and
-sound effects are good. Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py` (about 25 min; do
-not run it while the engine is being rebuilt), then replace the folder. Open there: menu / level-up / item sound cues
-and the victory, game-over, preparation music; the preparation shop stock; wall Def / Res; additive glow, range 2+
-camera for spell layers, weather closing a way (engine features); the original's own menus (out of scope so far).
+Private converter (separate folder, never public): steps 22-31 done, step 32 running (uses the three batches above:
+the original's enemy acting order and attack weights, retreat, staves in the scene, glow, long-range camera, rings,
+summon odds, three prep shops, new sound slots). The installed git-ignored `games/vision-quest` is the step 31 state;
+the owner played it on 2026-11-18: battle scenes and sound effects are good, some enemy behaviour differed (step 31
+found why). Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py` (about 25 min; do not run it
+while the engine is being rebuilt), then replace the folder. Left after step 32: sounds with no source found (victory,
+chapter card, prep music, banner, item use, door / chest / steal / trade / buy), the world map, the healers' choice
+rule if still undecoded, and above all play-testing by the owner. The original's menus need not match 1 to 1 (owner).
 
-Owner, 2026-11-17/18: the editor's Play button was the "campaign does not continue" report (it ran one map; now it can
-play from a chapter with test levels). After the port: Android and an Xbox Dev Mode UWP build of the player (research
-first; see Claude memory). Open with the owner: keep or hide the port's Free battles list; names of the three
-difficulties; "Only on" difficulty limited to computer-side units; all new editor wording is placeholder.
+Owner, 2026-11-18: free battles in the port hidden until the story is complete (editor Play unaffected); the two menu
+settings above are per-game and the port turns them on. After the port: Android and an Xbox Dev Mode UWP build of the
+player (research first; see Claude memory). Open with the owner: names of the three difficulties; "Only on" difficulty
+limited to computer-side units; all new editor wording is placeholder. See `.agent/notes.md` on a committed
+`node_modules` link before merging any agent branch.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
