@@ -48,6 +48,10 @@ units do, drawn across their whole footprint.
                  "sides": { "red": { "sheet": "men", "cell": [0,3] } } }
   },
 
+  "tilesets": {                            // hand-painted maps (see "Tile layer (hand-painted maps)")
+    "world": { "sheet": "tiles", "animations": { "8": { "frames": [8, 9, 10], "ms": 200 } } }
+  },
+
   "styles": {                              // visual style id -> overrides
     "night": { "terrain": { "plain": { "sheet": "tiles", "cell": [0,6] }, "sea": null },
                "structures": { "city": { "sheet": "buildings_night", "cell": [0,0] } },
@@ -363,6 +367,69 @@ and `cell` / `variants` / `frames` / `join`) stays underneath and keeps joining,
 In memory: `GraphicsSet::stands` (per terrain index, `StandLook`: `picture` (a `Look`), `width`, `models`
 (`ModelLook`, one per variant), `scatter`), chosen with `pickStandCell`, `pickStandModel` and `standScatter`
 (`engine/core/data/graphics.*`, tests in `tests/test_graphics_stand.cpp`). Player: `engine/player/battle/map3d_stand.cpp`.
+
+## Tile layer (hand-painted maps)
+
+Terrain gives every square of one kind the same look (a picture, variants, join pieces). A map may also have a **tile layer**: per square, one
+picture of a **tileset** (a sheet whose cells are the tiles), drawn INSTEAD of the terrain's generic look, so a maker can paint a map by hand
+(a village with its own roofs, a coast with its own curves). It is **presentation only**: the terrain underneath still decides movement,
+defence, sight and everything else; the rules core keeps no tile in its state, battle hashes and simulations are unchanged.
+
+```jsonc
+// data/graphics.json
+"tilesets": {
+  "world": { "sheet": "world_tiles",                                       // the sheet: its cells are the tiles
+             "animations": { "40": { "frames": [40, 41, 42], "ms": 250 } } }   // optional: tile 40 cycles through these tiles
+}
+// maps/ford.json
+"tileLayer": { "tileset": "world",
+               "cells": [ "000c000f0012....0018",                          // one string per map row, four hex digits per square
+                          "..." ] }
+```
+
+- **Tiles are numbered row by row from 0** across the sheet's cells (`n` = row x columns + column); the cell size is the sheet's own. A sheet may
+  have at most 65,536 cells. Tilesets are the same for every visual style (a tile is drawn flat in all four kinds of view, below).
+- **Animations** (optional, per tileset): the key is a tile number, `frames` (2 to 64) the tiles of the same sheet shown in turn, `ms` the time
+  per frame (20 to 60000, default 200). Animated tiles run on the same running clock as animated terrain, so everything of one kind is in step.
+  A tile used as a frame can itself be an animated tile; it is not followed further.
+- **`tileLayer`** (map file, optional): `tileset` is an id of `tilesets`, `cells` has exactly one row per map row. **Encoding**: a row is a string of
+  `4 x width` characters, square `x` being characters `4x` to `4x + 3` as four hex digits (`0000`...`ffff`, either case), `....` = no tile (the
+  terrain's own look shows). It is the way `tiles` stores terrain (one string per row), so a changed square is a changed line of a diff and a
+  40 x 30 map is 30 lines of 160 characters (about 5 KB; a 60 x 40 map about 10 KB), whatever the tile numbers. A row may also be written as a list of
+  numbers (`-1` or `null` = none), which the loader reads too; the editor writes the strings. (The key is `tileLayer`, not `tiles`: a map's `tiles` is
+  its terrain rows.)
+- **Strict**: unknown keys are refused. Refusals name the file and the place: `maps/ford.json: tileLayer: unknown tileset "x"` (and, when the game has
+  none, `(data/graphics.json has no "tilesets")`), `tileLayer: "cells" has 6 rows but the grid height is 7`, `tileLayer: cells row 0 has 8
+  characters but 40 are needed (...)`, `cells row 0, column 9: "001z" is not four hex digits or "...."`, `cells row 0, column 9: tile 32 is outside
+  tileset "world" (32 tiles)`; in `data/graphics.json`: `tileset "world": unknown sheet "x"`, `tileset "world" animation "40": tile 40 is outside the
+  sheet (32 tiles)`, `... frame 2 must be a tile number from 0 to 31`, `... "frames" must list between 2 and 64 tiles`, `... "ms" must be between 20 and
+  60000`, `... the key must be a tile number (0, 1, 2, ...)`.
+- **Hexagon games: not supported** (decision of this step). A hexagon map is drawn cell by cell from the terrain's looks in four views whose hexagon
+  drawing is built on joins and 64-piece blocks; a flat rectangular tile has no natural place there, so `tileLayer` on a hexagon game is refused with
+  `tile layers are not supported on hexagon games (a hexagon map is drawn from its terrain's looks)`, and the editor's Tiles tool says so.
+- **Map changes** carry tiles (docs/EVENTS.md "Changing the map"): a changed square can name its new tile, and a changed terrain without a tile
+  clears the square's tile unless `keepTile`.
+
+**Drawing** (the editor canvas draws a tile the same way as the 2D view; the 3D views and the web player share the code):
+- **2D view (top-down)**: like terrain art: the placeholder colour of the square's terrain is filled first, then the tile is stretched over the
+  square (nearest pixels), so see-through pixels show the terrain's colour. The terrain's own picture, its faint outline and its letter are not drawn.
+  Fog dimming, the grid, move / attack tints, the cursor, structures and units are drawn over the tile exactly as over terrain art. Animated tiles
+  follow the battle's running time.
+- **2D isometric**: the tile is laid flat on the diamond of the square's block (picture north = map north, `x` to the lower right, `y` to the lower
+  left), the block's sides take the terrain's colour darkened; each (tile, size, side colour) picture is made once and cached.
+- **3D isometric and full 3D**: the tile is laid flat on the top of the square's block, picture north = map north, like a terrain's ground picture
+  (see-through pixels show the block's colour). The ground mesh remembers only *whether* a square shows a tile; changing which tile a square shows
+  (and the animation) needs no rebuild.
+- **Standing terrain is not drawn on a square that has a tile** (the 3D views' `stand` pictures and models): the tile already shows the trees or the
+  peak. Squares without a tile keep their standing parts. The terrain's `stand` stays defined; it simply does not apply there.
+- **Fallback**: a square whose tile cannot be drawn (its sheet failed to load) shows the terrain's look as if it had no tile.
+- **Performance**: one lookup per visible square per frame, no per-square allocation; a 60 x 40 map draws as fast as the same map with terrain art.
+
+In memory: `Graphics::tilesets` (`TilesetDef`: `sheet`, `cols`, `rows`, `anims`; `frame(tile, ms)`, `cell(tile)`: `engine/core/data/tileset.h`), the map's
+`MapDef::tileset` / `tileCells`, the battle's `Battle::tiles` / `tileset` / `baseTiles` (`tileAt(cell)`). Loader: `loader_tilesets.cpp`,
+`loader_map_tiles.cpp`. Player: `engine/player/battle/tile_art.*` (2D and 3D), `iso_tiles_picture.cpp` (the isometric block). Editor: `model/tiles.ts`,
+`model/tilesets.ts`, `art/tileScene.ts`. Tests: `tests/test_tiles.cpp`, `tests/tiles_player_test.py` (test tileset made by
+`tools/art/make_test_tileset.py`), `editor/web/tests/unit/tile*.test.ts`, `editor/web/tests/e2e/tiles-map.spec.ts`, `tilesets-art.spec.ts`.
 
 ## Drawing rules (player and editor canvas must match)
 

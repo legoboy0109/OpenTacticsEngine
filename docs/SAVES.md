@@ -240,7 +240,13 @@ Decisions where the contract was silent, and the few deviations:
   is not what the map placed (square number, terrain index; heights never change), `applied` the named changes applied and not reverted, in order, with
   the terrain each of the change's squares held before (one per square, in the change's order) and, when the change turns structures into other kinds, the
   kind each had (`kinds`; structures' present kinds are saved as always, `type`), `fog` the fog state when a story command switched it, `fogVision` the vision
-  adjustment when it is not the map's. Reading refuses (with a path such as `battle.mapState.applied[0].change`) an unknown key, a square or terrain that
+  adjustment when it is not the map's. **Tiles** (docs/GRAPHICS.md "Tile layer"): on a map with a tile layer `mapState` may also have `"tiles": [[square, tile], ...]` (every square whose tile is not what the
+  map file gave: square number, tile number or -1 for none, in square order; written only when something differs, so a battle that never changed a tile
+  writes nothing) and each `applied` record `"tiles": [tile, ...]` (the tile each of the change's squares held before, one per square in the change's order, -1 =
+  none; written only on such maps). The map file's own layer is not saved. Reading refuses `battle.mapState.tiles[i]` that is not a pair, a square outside the map, a tile outside the tileset (or -1), a square
+  listed twice, `tiles` for a map with no layer (`this map has no tile layer`), and an `applied` record's `tiles` of the wrong length. Saves of maps without a layer are byte for byte what they were. The tiles are
+  presentation: never part of the battle's hash or the simulations.
+  Reading refuses (with a path such as `battle.mapState.applied[0].change`) an unknown key, a square or terrain that
   does not exist, a square listed twice, a change the map does not have or applied twice, a `before` / `kinds` list of the wrong length or with a number that
   is no terrain / kind, `kinds` for a change with no structure, and `applied` on a map with no changes. A structure's `type` may be any kind its map's changes
   name for it (besides what upgrades and doors allow). Written only when something differs, so a battle that never changed the map saves byte for byte as

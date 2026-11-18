@@ -1396,3 +1396,36 @@ weapon (weapon items only), Uses (empty = no limit), Who may use it (unit types 
 (`model/mapWeapon.ts`, also in the map's warnings for a placed `uses`). Map editor, Structures tool: a placed structure whose kind has a weapon shows **Uses left of its weapon**
 (empty = as the kind says); Select tool: a computer unit's **Goes for** has Weapons. Deleting a weapon item, a structure kind a weapon becomes, or the only unit type allowed to use
 one cleans the references in the same undo step (`model/mapWeaponRefs.ts`). Tests: `tests/unit/mapWeapon.test.ts`, `tests/e2e/mapweapon.spec.ts` (desktop and 360 px).
+
+## Tile layer: the Tilesets card and the Tiles tool (docs/GRAPHICS.md "Tile layer (hand-painted maps)")
+
+Wording is placeholder (`screens/art/text.ts` for the Art card, `screens/maps/editor/tilesText.ts` for the map editor). Model: `model/tiles.ts` (a map's layer as numbers, stamps,
+rectangles, resizing), `model/tilesets.ts` (tileset edits, animations, removal), `model/tileChecks.ts` (checks), `model/mapChanges.ts` (tiles in changes); canvas: `art/tileScene.ts`.
+
+- **Art screen, "Tilesets" card** (after Story backgrounds). Each tileset has a name (renaming it follows the maps that use it), an image (a Select of the game's images) and a grid
+  of its tiles numbered row by row from 0 (the same piece grid the pickers use: zoom, scrolls inside its box, so a phone never scrolls sideways). Click a tile (or type its number)
+  to select it; "Animated tile" marks it (it starts as itself and the next tile) and gives it a frames list ("9, 10, 11": whole tile numbers inside the image, 2 to 64) and a time per
+  frame (20 to 60000 ms, default 200); animated tiles are marked in the grid and listed. Bad input shows why and never reaches the file. A missing image or a frame outside the image
+  is flagged in the card. Add (needs an image), reorder and delete as with backgrounds; **deleting a tileset a map uses asks first and lists those maps**, and confirming takes the tile
+  layers of those maps (and the tiles their changes and `setTerrain` commands carry) away in the same undo step. **Deleting an image** that tilesets draw from lists them too and
+  removes them with it (and the layers that use them). Tests: `tests/unit/tilesets.test.ts`, `tests/e2e/tilesets-art.spec.ts` (desktop and 360 px).
+- **Map editor, "Tiles" tool** (key L; the toolbar's seventh tool; the Heights-style panel under the Tool tab). Pick the **Tileset** (the map's own once it has a layer; changing it keeps
+  the tile numbers), then a tile in the **palette**: the tileset's image as a zoomable (1x to 8x, starting so a tile is about 32 px wide), scrollable canvas inside its own box;
+  click a tile to choose it, **drag (mouse or pen) to choose a block** of tiles to stamp (a finger scrolls the palette; a tap chooses); arrow keys move the choice; animated tiles carry a
+  yellow corner mark; the number under the pointer is shown. "What a click does": **Paint** (click or drag; a chosen block is stamped whole on a click, and a drag goes on painting its
+  pattern), **Erase**, **Rectangle** (drag a rectangle; a block repeats over it), **Pick** (a click chooses the tile under it and goes back to Paint). **Alt-click** picks in any mode.
+  The layer starts with the first tile you paint (no tile = the square shows its terrain's picture); one drag is one undo step like every other tool. The status line names the tile of the
+  square under the pointer ("Tile 10"). **"Show terrain colours"** lays each square's terrain colour (45 %) over its tile, so the maker sees the rules layer while painting the art
+  (remembered like the other tool choices). "Remove the tile layer" takes the layer and the tiles carried by changes and commands away (undoable). The tool says what is missing
+  (no tileset yet: add an image and a tileset on the Art screen) and refuses hexagon games ("Tile layers are not supported on hexagon games yet"). Resizing a map keeps the layer in
+  step (the old squares move with the map, new squares have no tile; `model/mapResize.ts`). The palette stays usable at 360 px: the page never scrolls sideways.
+- **Changes tab: tiles of a change.** For a map with a layer the change panel has "Tiles of this change": **"Paint tiles into this change"** (on: the Tiles tool writes into the change
+  instead of the map; a square joins the change with the terrain it has now and the tile you paint; a square whose terrain and tile would stay as in the map leaves it again; the panel
+  holds its own palette), **"Also record the tiles of these squares"** (every square of the change gets the tile the map has now), "Forget the change's tiles", and **"Keep the tiles"**
+  (the change's `keepTile`). The After view applies the same rule as the game (a given tile; a square whose terrain really changes loses its tile unless kept). Not offered: tiles on the
+  Events tab's "Change terrain" command (a hand-written `tile` / `keepTile` is kept and checked).
+- **Checks** (`tileChecks.ts`, with the map's other warnings; the same wording as the loader): a layer that is not `{ tileset, cells }`, an unknown tileset or missing image, a hexagon game,
+  rows that do not match the map's height / width, a square that is not four hex digits, a tile outside the tileset (needs the image's size from the art library), a tile in a change or a
+  `setTerrain` command on a map with no layer, a tile that is not -1 or a tile number, `keepTile` that is not on / off.
+- **Tests.** `tests/unit/tiles.test.ts`, `tileMap.test.ts`, `tests/editor_api_tiles_checks.py`, `tests/e2e/tiles-map.spec.ts` (desktop and 360 px: palette, paint, drag, undo, erase, rectangle,
+  stamp, eyedropper, terrain colours, tiles in a change).

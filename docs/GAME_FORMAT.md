@@ -268,6 +268,9 @@ Everything is in docs/ECONOMY.md.
              "rrrr",
              "f..." ],                   // exactly height rows of width chars
   "heights": [ [0,0,1,1], [0,0,0,1], [0,0,0,0] ],          // optional
+  "tileLayer": { "tileset": "world",                       // optional, square games only: a hand-painted picture per square
+                 "cells": [ "000c000f001200150018",        // (docs/GRAPHICS.md "Tile layer"): a tileset of data/graphics.json "tilesets"; one string per row,
+                            "....0003000400050006" ] },    // four hex digits per square, "...." = no tile; the terrain still decides the rules
   "fog": true,                                             // optional: fog of war (docs/ECONOMY.md), default false;
                                                            // at most 32 sides then
   "difficulty": { "hard": { "enemy": { "levels": 3 } } },  // optional: this map's own numbers per difficulty id; they REPLACE the game's (docs/DIFFICULTY.md)
