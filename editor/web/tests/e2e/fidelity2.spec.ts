@@ -140,6 +140,8 @@ async function run(page: Page, game: { problems: (id: string) => Promise<Array<{
   // ===== The staged fight command =====
   await tab(page, 'Events').click()
   await openEvent(page, 'duel')
+  await expect(page.getByTestId('command-fight')).toContainText('2 strikes written down')
+  await page.getByTestId('command-fight').click()
   const fight = page.getByTestId('fight-form')
   await expect(fight).toBeVisible()
   await expect(fight.getByTestId('fight-strike-2')).toBeVisible()
@@ -179,7 +181,7 @@ async function run(page: Page, game: { problems: (id: string) => Promise<Array<{
   const gfx = readDisk(id, 'data/graphics.json').battle
   expect(gfx.platforms.boards).toBeUndefined()
   expect(gfx).not.toHaveProperty('defaultPlatform')  // the default pointed at it
-  expect(readDisk(id, 'maps/arena.json')).not.toHaveProperty('battlePlatforms')
+  expect(readDisk(id, 'maps/arena.json').battlePlatforms).toEqual({ default: 'grass' })  // the swamp's entry went with the platform
   expect(await game.problems(id)).toEqual([])
   if (phone) await expectNoHScroll(page)
 }
