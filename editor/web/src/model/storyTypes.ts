@@ -201,6 +201,9 @@ export interface Command extends Extra {
   wakeGroup?: string
   /** Changing the map (docs/EVENTS.md "Changing the map"): terrain id + `area` or `cells`; a named change of the map; fog on / off; the vision adjustment. */
   setTerrain?: string
+  /** setTerrain and the tile layer (docs/GRAPHICS.md "Tile layer"): the squares' new tile (-1 / null = none), or keepTile to leave their tiles. */
+  tile?: number | null
+  keepTile?: boolean
   area?: Rect
   cells?: Array<[number, number]>
   applyChange?: string
