@@ -70,9 +70,10 @@ terrain, an optional `far` picture used instead when the fight is at range 2 or 
 
 A map may override per terrain with `"battlePlatforms": { "swamp": "boards", "default": "grass" }` in the map file (same rules and order as the background,
 without a "single picture" step). Which square decides: `battleBackgroundFrom` (the same square as the background; both fighters stand on the same kind of
-platform). A platform's image is a normal sheet; `cell` / `far` are `[column, row]` of it, the piece size is the sheet's cell size. Refusals:
+platform). A platform's image is a normal sheet; `cell` / `far` are `[column, row]` of it, the piece size is the sheet's cell size. A platform may also give `right` / `farRight`
+cells (the right-hand fighter's own pictures, used with a fixed stage, "Fixed stage"). Refusals:
 `unknown sheet`, a cell outside the sheet, an id called `default`, unknown keys, `there is no platform "x"` (in the tables), `there is no terrain with this id`.
-Not built (on purpose, small): a platform per fighter's own terrain, platform animation, flipping. Log: `battle scene: platform "grass" (far)`.
+Not built (on purpose, small): a platform per fighter's own terrain, platform animation. (Without a fixed stage the right-hand platform is not flipped.) Log: `battle scene: platform "grass" (far)`.
 Pure function: `pickBattlePlatform`. Editor: Art > Platforms; Terrain > "Weather and platform"; map settings.
 
 ## Data: `data/graphics.json` key `"battle"`
@@ -162,7 +163,67 @@ Same code at every size; positions come from the screen size and the font's line
 name, level, weapon, hit-point bar with numbers). Middle: the fighters standing on a ground line (landscape 80% down the stage, portrait
 66%), each as large as fits (whole-number scale, up to 8x), melee close together, ranged apart with a dotted line and "Range N".
 Bottom: "Confirm / tap: skip". Floating numbers and skill labels rise above the fighter; a crit flashes the screen; the scene fades in
-and out. Checked at 480 x 270 and 270 x 480.
+and out. Checked at 480 x 270 and 270 x 480. Art made for a fixed small stage uses the optional **fixed stage** instead ("Fixed stage").
+
+## Fixed stage
+
+Art made for one small fixed picture (a classic handheld tactics game: a 240 x 160 stage with the fighters at fixed places, a backdrop exactly the
+stage's size, platforms at fixed places) does not fit the generic layout, which enlarges each fighter on its own and puts them around the middle of the
+screen. An optional **`"stage"`** in `data/graphics.json` `"battle"` lays everything out in the stage's own pixels instead. Without it the scene is
+laid out exactly as described under "Layout" (nothing changes). Presentation only: no save, hash or `ote-sim` result changes.
+
+```jsonc
+"stage": {
+  "width": 240, "height": 160,                                // the stage's own size, 16 to 1024; everything below is in stage pixels
+  "feet":    { "left": [88, 104], "right": [152, 104] },       // where each fighter's anchor (foot point) stands in a close fight
+  "feetFar": { "left": [56, 104], "right": [184, 104] },       // optional: at range 2 or more (default: feet)
+  "platform":    { "left": [56, 96], "right": [120, 96] },     // optional: top left of each fighter's platform picture, close (default: centred on the foot point)
+  "platformFar": { "left": [24, 96], "right": [152, 96] },     // optional, needs "platform": at range 2+ (default: platform)
+  "align": "bottom",   // "top" | "center" (default) | "bottom": the part that stays visible when the stage is taller than the screen allows
+  "fit": "cover",      // "cover" (default) | "contain"
+  "rangeLine": true    // default true: the dotted line and "Range N" label of a ranged fight
+}
+```
+
+Points are `[x, y]` whole numbers counted from the stage's top left and must lie inside the stage (`0 <= x < width`, `0 <= y < height`). `left` / `right`
+are the two sides of the scene (after `battleSceneSides` and `faces` / `mirror`, so "right" is where the right-hand fighter stands). Refusals name
+`battle stage`: size outside 16 to 1024, a point outside the stage or not a pair of whole numbers, `platformFar` without `platform`, an unknown key, an `align`
+or `fit` that is not one of the words, a `left` or `right` missing.
+
+**What is drawn where.** The stage is one picture space with **one whole-number scale `k`**:
+
+- The **backdrop** is drawn at the stage's origin at scale `k` (never scaled on its own). A backdrop of the stage's size covers the stage exactly. A backdrop
+  of another size is centred across the stage and placed up or down by `align` (top edge on the stage's top, middle, or bottom edge on the stage's bottom);
+  what falls outside the stage is not drawn. With no backdrop picture the generated sky and ground fill the whole screen.
+- Each **fighter** is placed so that its set's `anchor` (the point of the frame that sits on the foot point; frame pixel `(ax, ay)` has its top left corner on the
+  foot point, and for the right-hand fighter the picture is mirrored around it) stands on the foot point, drawn at `k`. A fighter with no set (the map-picture
+  fallback) stands on the foot point too and is enlarged by a further whole number to about the height of an animated fighter (the other side's
+  `anchor` height, else 30% of the stage's height), as in the generic layout. Per-fighter enlargement is otherwise off.
+- A **platform** picture is drawn at its declared top-left corner at scale `k`, behind the fighters. The right-hand platform is the left picture mirrored,
+  unless the platform entry gives its own cells: **`"right"`** (the close picture) and **`"farRight"`** (the far picture, needs `"far"`) are optional
+  `[column, row]` cells of the platform's sheet, for art whose two halves differ. Without `platform` points the picture is centred on the foot point.
+- **Shadows**, **floating numbers and labels** and the **range line** are placed from the foot points at `k`. **Effects**: a `"travel"` effect flies on the line
+  between the two foot points; a `"target"` effect is put on the struck fighter's foot point; in both the effect's `anchor` is the point of its frame that sits on
+  that path or point (so give an effect an `anchor` where it should touch: the default is the middle of the frame). The lunge, dodge and hit-shake offsets of
+  the fallback motion, the crit flash and the fades keep working (offsets are in stage pixels times `k`).
+
+**Scale and crop, as built.** Screen `W x H`, the boxes end at row `hudBottom` and the hint line starts at row `hintTop` (today's boxes and hint, unchanged);
+the **area** is rows `hudBottom` to `hintTop`.
+
+1. `k` = the largest whole number with `width * k <= W` (at least 1; a stage wider than the screen is centred and cut at both sides).
+2. `"contain"`: while `k > 1` and `height * k` is taller than the area, `k` is reduced. (At `k = 1` a stage taller than the area is cropped like `cover`.)
+3. Across: centred. Up and down: a stage that fits the area (`height * k <= area`) is centred in the area, so nothing is hidden and nothing is under the boxes
+   (bars of plain dark colour above and below). A taller stage **runs under the top boxes and the hint line**: it is placed against the whole screen height by `align`
+   (`top`: its top at row 0; `center`; `bottom`: its bottom at the screen's bottom; the rows that fall off the screen are cropped) and then moved the least
+   that keeps **every foot point and platform picture inside the area** (below the boxes, above the hint line; the bottom wins a conflict). So fighters'
+   feet and platforms are always in view and never hidden by the HUD; the boxes are drawn over the stage, as translucent panels.
+4. The 480 x 270 screen with a 240 x 160 stage (boxes end at about row 46, hint at about row 257): `cover` gives `k = 2` (320 rows), cropped to 270 rows: with `align: "bottom"`
+   the lowest 135 stage rows show (the top 25 are cut: stage row 25 is at screen row 0, the stage's feet at row 104 are at screen row 158); `top` shows rows 0 to 134; `center`
+   about rows 12 to 147. `contain` gives `k = 1`, the whole stage centred (120 pixels bar at each side). The 270 x 480 portrait screen: `k = 1`, the whole stage fits
+   between the boxes and the hint and is centred there (15 pixels at each side). 960 x 540: `k = 4` under `cover`, `3` under `contain`.
+
+The geometry is the pure function `stageGeometry` (`core/data/battle_stage.*`); the loader is `loader_battle_stage.cpp`; the drawing `fight_scene_stage.cpp`.
+Editor: Art > **Stage** card (docs/EDITOR_UI.md). Tests: `test_battle_stage.cpp`, `test_battle_art.cpp`, `tests/battle_stage_player_test.py`.
 
 ## Preparing art (artist or converter)
 
@@ -176,7 +237,7 @@ has no ranged stand or whiff animation simply leaves them out.
 ## Code
 
 `engine/core/data/battle_art.*`, `loader_battle_art.cpp`; player: `fight_script.*` (events to strikes, pure), `fight_timeline.*`
-(clock, pure), `fight_scene*.cpp` (drawing), `battle_view_fight.cpp` (the view holds the run and plays it silently afterwards),
+(clock, pure), `fight_scene*.cpp` (drawing; `fight_scene_stage.cpp` the fixed stage), `core/data/battle_stage.*` (its geometry, pure), `loader_battle_stage.cpp`, `battle_view_fight.cpp` (the view holds the run and plays it silently afterwards),
 `battle_fight.cpp`. Tests: `test_battle_art.cpp`, `test_fight_script.cpp`, `test_fight_timeline.cpp`, `test_battle_scene_settings.cpp`,
-`tests/battle_scene_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
-`battleArt.test.ts`, `battle-anims.spec.ts`.
+`tests/battle_scene_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
+`battleArt.test.ts`, `battleStage.test.ts`, `battle-anims.spec.ts`, `battle-stage.spec.ts`.
