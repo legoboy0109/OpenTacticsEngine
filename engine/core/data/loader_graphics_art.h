@@ -11,6 +11,10 @@ class Json;
 bool readBattleArt(const LoadCtx& c, Database& db, const Json& root);
 // data/graphics.json "backgrounds" (story scenes, docs/GRAPHICS.md "Backgrounds"); needs the sheets.
 bool readSceneBackgrounds(const LoadCtx& c, Database& db, const Json& root);
+// data/graphics.json "tilesets" (docs/GRAPHICS.md "Tile layer"); needs the sheets.
+bool readTilesets(const LoadCtx& c, Database& db, const Json& root);
+// A map file's "tileLayer" (loader_map_tiles.cpp); needs the tilesets and the map's size.
+bool readMapTileLayer(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 // A map file's "battleBackground".
 bool readMapBattleBackground(const LoadCtx& c, const Database& db, const Json& root, MapDef& m);
 

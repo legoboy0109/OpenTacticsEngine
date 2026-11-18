@@ -445,6 +445,7 @@ bool loadGraphics(const std::string& path, Database& db, std::string& err) {
 
   if (!c.boolean(root, "unitMarker", "", db.graphics.unitMarker)) return false;
   if (!readSceneBackgrounds(c, db, root)) return false;
+  if (!readTilesets(c, db, root)) return false;  // loader_tilesets.cpp
 
   GraphicsSet base;
   base.terrain.assign(db.terrains.size(), Look());

@@ -12,6 +12,7 @@
 
 #include "core/data/battle_art.h"
 #include "core/data/sprite_cell.h"
+#include "core/data/tileset.h"
 #include "core/grid/grid.h"
 
 namespace ote {
@@ -150,6 +151,13 @@ struct Graphics {
   std::vector<SheetDef> sheets;
   // Backgrounds of story scenes (root key "backgrounds"; the same for every style). Not the battle scene's (`battle`).
   std::vector<SceneBackground> backgrounds;
+  // Tilesets of hand-painted maps (root key "tilesets", the same for every style; docs/GRAPHICS.md "Tile layer").
+  std::vector<TilesetDef> tilesets;
+  int findTileset(const std::string& id) const {
+    for (size_t i = 0; i < tilesets.size(); ++i)
+      if (tilesets[i].id == id) return (int)i;
+    return -1;
+  }
   int findBackground(const std::string& id) const {
     for (size_t i = 0; i < backgrounds.size(); ++i)
       if (backgrounds[i].id == id) return (int)i;

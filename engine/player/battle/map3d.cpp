@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/tile_art.h"
 #include "show3d.h"
 #include "ui/text.h"
 
@@ -15,6 +16,11 @@ int elevOr(const MapProj& p, const Grid& g, int x, int y) {
   return x < 0 || y < 0 || x >= g.width() || y >= g.height() ? -1 : p.elevation(x, y);
 }
 }  // namespace
+
+// What the ground mesh depends on for a square: its terrain, and whether a tile is drawn on it.
+int Map3D::groundKey(const DrawCtx& c, Cell cell) const {
+  return c.battle.cells[(size_t)cell].terrain | (hasTileArt(c, cell) ? 0x40000000 : 0);
+}
 
 Map3D::Map3D(Renderer3D& r3d, Show3D& show, const std::string& gameDir, const Graphics& graphics)
     : r3d_(r3d), show_(show) {
@@ -94,7 +100,8 @@ void Map3D::buildGround(const DrawCtx& c) {
       Spot a = spot(c, (float)x, (float)y, (float)e), z = spot(c, (float)(x + 1), (float)(y + 1), (float)e);
       float hi = a.Y;
       const Look* art = terrainArt(c, b.cells[cell].terrain);
-      if (!art || !sheets_.texture(r3d_, art->sheet)) groundQuad(m, c, x, y, 1, 1, hi, 0, tintOf(col));
+      // A square with a tile keeps the placeholder top under it (the tile's see-through pixels show it, as in the 2D view).
+      if (hasTileArt(c, cell) || !art || !sheets_.texture(r3d_, art->sheet)) groundQuad(m, c, x, y, 1, 1, hi, 0, tintOf(col));
       // Sides, down to the neighbour's top (the rim of the map shows one level below the lowest ground).
       auto lowOf = [&](int nx, int ny) { return elevOr(p, b.grid, nx, ny) * g.stepY(); };
       float lo;
@@ -179,15 +186,16 @@ void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, 
   // of every square is compared with what the mesh was built from and the whole ground is rebuilt when one differs (the map is a few
   // thousand squares at most, so this is cheap, and it is what the renderer supports: there is no partial update of a mesh).
   const Battle& bt = c.battle;
+  // (The key also says whether a square shows a tile: that decides about its ground top and its standing part; which tile is drawn per frame.)
   bool stale = !built_ || terrainKey_.size() != bt.cells.size();
-  for (size_t i = 0; i < bt.cells.size() && !stale; ++i) stale = terrainKey_[i] != bt.cells[i].terrain;
+  for (size_t i = 0; i < bt.cells.size() && !stale; ++i) stale = terrainKey_[i] != groundKey(c, (Cell)i);
   if (stale) {
     if (ground_) r3d_.destroyMesh(ground_);
     ground_ = 0;
     buildGround(c);
     markStands(c);
     terrainKey_.resize(bt.cells.size());
-    for (size_t i = 0; i < bt.cells.size(); ++i) terrainKey_[i] = bt.cells[i].terrain;
+    for (size_t i = 0; i < bt.cells.size(); ++i) terrainKey_[i] = groundKey(c, (Cell)i);
   }
   updateHidden(c);
   beginFrame(r, c);

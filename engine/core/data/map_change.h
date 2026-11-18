@@ -13,7 +13,14 @@ namespace ote {
 struct MapChangeCell {
   int x = 0, y = 0;
   int terrain = 0;  // index into Database::terrains
+  // The map's tile layer (docs/GRAPHICS.md "Tile layer"): the tile the square gets (a tile number, -1 = no tile), or kTileUnset = none
+  // given. Unset: the square's tile is cleared when its terrain really changes, unless `keepTile` (the loader resolves the change's
+  // and the entry's "keepTile" into this one).
+  int tile = -2;
+  bool keepTile = false;
 };
+const int kTileUnset = -2;  // (and kTileKeep = -3, used inside the battle: leave the square's tile as it is)
+const int kTileKeep = -3;
 
 // A structure the map placed (named by its "id") that becomes another kind of the same size.
 struct MapChangeStructure {

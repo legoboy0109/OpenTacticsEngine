@@ -8,6 +8,7 @@
 #include "battle/condition_marker.h"
 #include "battle/map3d.h"
 #include "battle/map3d_sizes.h"
+#include "battle/tile_art.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -79,10 +80,18 @@ void Map3D::drawTops(const DrawCtx& c) {
   for (int y = 0; y < g.gridH(); ++y)
     for (int x = 0; x < g.gridW(); ++x) {
       Cell cell = b.grid.at(x, y);
-      const Look* art = terrainArt(c, b.cells[cell].terrain);
-      if (!art) continue;
-      SpriteSrc src = terrainSrc(c, *art, cell);
-      Material3D m = flat();
+      SpriteSrc src;
+      Look tileLook;  // the map's tile layer (docs/GRAPHICS.md "Tile layer"): the tile instead of the terrain's picture
+      const Look* art;
+      if (tileSrc(c, cell, src)) {
+        tileLook.sheet = tileSheet(c);
+        art = &tileLook;
+      } else {
+        art = terrainArt(c, b.cells[cell].terrain);
+        if (!art) continue;
+        src = terrainSrc(c, *art, cell);
+      }
+      Material3D m = flat(art == &tileLook ? Blend3D::Cutout : Blend3D::Opaque);
       float uv[4];
       if (!picture(c, *art, src.x, src.y, src.w, src.h, m, uv)) continue;
       // A hair above the block so the picture, not the block, wins where both are.

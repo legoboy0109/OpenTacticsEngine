@@ -40,6 +40,11 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
   fogVision = startFogVision = map.fogVision;
   if (!map.changes.empty()) mapChanges = std::make_shared<const std::vector<MapChangeDef>>(map.changes);
   baseTerrain = std::make_shared<const std::vector<int>>(map.terrain);
+  if (map.tileset >= 0 && map.tileCells.size() == map.terrain.size()) {  // the tile layer (docs/GRAPHICS.md "Tile layer")
+    tileset = map.tileset;
+    tiles = map.tileCells;
+    baseTiles = std::make_shared<const std::vector<int>>(map.tileCells);
+  }
   if (map.gridType != db->gridType) {
     err = "map '" + map.id + "' has a different kind of grid than the game";
     return false;

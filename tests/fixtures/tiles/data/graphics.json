@@ -1,0 +1,4 @@
+{
+  "sheets": [ { "id": "tiles", "file": "art/tiles.png", "cellWidth": 16, "cellHeight": 16 } ],
+  "tilesets": { "test": { "sheet": "tiles", "animations": { "8": { "frames": [8, 9, 10], "ms": 200 } } } }
+}

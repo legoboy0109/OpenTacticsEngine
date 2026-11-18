@@ -6,6 +6,7 @@
 #include "battle/carrier_marker.h"
 #include "battle/condition_marker.h"
 #include "battle/hex_draw.h"
+#include "battle/tile_art.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -22,7 +23,10 @@ void drawTerrain(Renderer& r, const DrawCtx& c, Cell cell, int sx, int sy) {
   const StyleDef* st = c.style;
   Color col = Color::rgb(terrainRgb(c, cs.terrain));
   r.fillRect(sx, sy, t, t, col);
-  if (const Look* art = terrainArt(c, cs.terrain)) {
+  SpriteSrc tile;
+  if (tileSrc(c, cell, tile)) {  // the map's tile layer replaces the terrain's look (docs/GRAPHICS.md "Tile layer")
+    drawTileArt(r, c, tile, sx, sy, t, t);
+  } else if (const Look* art = terrainArt(c, cs.terrain)) {
     // Art replaces the faint outline and the letter; transparent pixels show the colour above.
     drawTerrainArt(r, c, *art, cell, sx, sy, t, t);
   } else {

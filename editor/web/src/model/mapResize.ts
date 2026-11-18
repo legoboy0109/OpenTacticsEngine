@@ -2,6 +2,7 @@
 import { MAP_MAX, readGrid, writeGrid } from './mapGrid'
 import { footprint } from './mapStructures'
 import { removeSlot } from './prep'
+import { resizeTileLayer, tileLayerOf } from './tiles'
 import type { GridSpec } from './gridSpec'
 import type { MapFile, MapStructure, MapUnit, Structure, Terrain } from './types'
 
@@ -58,6 +59,7 @@ export function resizeMap(map: MapFile, terrain: Terrain[], structureTypes: Stru
     map.prep.slots.map((s, i) => (inside(s.x, s.y) ? -1 : i)).filter((i) => i >= 0).reverse().forEach((i) => { p = removeSlot(p, i) })
     next.prep = { ...p.prep!, slots: p.prep!.slots.map((s) => ({ x: s.x + dx, y: s.y + dy })) }
   }
+  if (tileLayerOf(map)) next.tileLayer = resizeTileLayer(map, newW, newH, dx, dy)  // the tile layer keeps in step (new squares: no tile)
   if (map.heights) {
     next.heights = Array.from({ length: newH }, (_, y) => Array.from({ length: newW }, (_, x) => map.heights![y - dy]?.[x - dx] ?? 0))
   }

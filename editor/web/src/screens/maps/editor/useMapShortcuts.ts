@@ -15,7 +15,7 @@ const typing = (el: EventTarget | null): boolean => {
   return !!e && (e.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName) || !!e.closest?.('dialog'))
 }
 
-/** Single-key shortcuts of the map editor (T U O H S, F, + -, 0, Delete, Esc). Never while typing or in a dialog. */
+/** Single-key shortcuts of the map editor (T U O H S L, F, + -, 0, Delete, Esc). Never while typing or in a dialog. */
 export function useMapShortcuts(h: Handlers): void {
   const ref = useRef(h)
   ref.current = h

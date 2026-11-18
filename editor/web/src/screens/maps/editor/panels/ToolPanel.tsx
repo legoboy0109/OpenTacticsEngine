@@ -12,6 +12,8 @@ import { UnitPicker } from './UnitPicker'
 import { HeightsTool } from './HeightsTool'
 import { SlotsTool } from './SlotsTool'
 import { StructureTool } from './StructureTool'
+import { TilesTool } from './TilesTool'
+import type { MapViewState } from '../viewState'
 import { UnitProps } from './UnitProps'
 
 interface Props {
@@ -26,11 +28,13 @@ interface Props {
   say: (m: string | null) => void
   /** Selects another variant of a square that holds per-difficulty variants of a unit. */
   onSelect?: (c: Cell) => void
+  /** The map's view state (the Tiles tool reads whether the Changes tab has "Paint into this change" on). */
+  vs?: MapViewState
 }
 
 const parse = (k: string | null): Cell | null => { if (!k) return null; const [x, y, v] = k.split(',').map(Number); return v ? { x, y, v } : { x, y } }
 
-export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, say, onSelect }: Props) {
+export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, say, onSelect, vs }: Props) {
   const sides = map.sides ?? []
   const words = useCellWords()
   const cell = parse(selected)
@@ -63,6 +67,8 @@ export function ToolPanel({ doc, map, mapId, tool, state, selected, onChange, sa
       return <HeightsTool state={state} onChange={onChange} />
     case 'slots':
       return <SlotsTool doc={doc} map={map} mapId={mapId} />
+    case 'tiles':
+      return vs ? <TilesTool doc={doc} map={map} mapId={mapId} state={state} vs={vs} onChange={onChange} /> : null
     case 'select':
       return <Inspect doc={doc} map={map} mapId={mapId} cell={cell} say={say} onSelect={onSelect} />
   }

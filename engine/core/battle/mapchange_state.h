@@ -9,6 +9,7 @@ namespace ote {
 struct AppliedChange {
   int change = -1;                  // index into the map's changes (MapDef::changes)
   std::vector<int> before;          // the terrain index each of the change's squares held, in the change's order
+  std::vector<int> beforeTiles;     // the tile layer's tile (-1 none) each of the change's squares held; empty on a map with no tile layer
   std::vector<int> beforeKinds;     // the kind (index into db->structures) each of the change's structures was, in the change's order
 };
 

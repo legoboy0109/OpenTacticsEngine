@@ -328,8 +328,10 @@ export interface MapFile extends Extra {
   /** Fog options (docs/ECONOMY.md "Fog of war"): vision added to every unit (-10 to 10) and computer sides that see everything. Only with fog. */
   fogVision?: number
   aiSeesAll?: boolean
-  /** Named map changes (docs/EVENTS.md "Changing the map"); model/mapChanges.ts. */
-  changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string }>; structures?: Array<{ id: string; kind: string }> }>
+  /** Named map changes (docs/EVENTS.md "Changing the map"); model/mapChanges.ts. A cell may carry the new `tile` (-1 / null = none) of the tile layer. */
+  changes?: Record<string, { cells?: Array<{ x: number; y: number; terrain: string; tile?: number | null; keepTile?: boolean }>; structures?: Array<{ id: string; kind: string }>; keepTile?: boolean }>
+  /** The tile layer (docs/GRAPHICS.md "Tile layer"): one string per row, four hex digits per square ("...." = no tile); model/tiles.ts. */
+  tileLayer?: TileLayer
   /** Music (docs/SOUND.md): a track id of data/audio.json, "" = none on this map; missing = the game's. */
   music?: string
   playerTurnMusic?: string
@@ -432,8 +434,13 @@ export interface BattleSection extends Extra {
   terrainBackground?: Record<string, string>
   defaultBackground?: string
 }
+/** A tileset of hand-painted maps (docs/GRAPHICS.md "Tile layer"): a sheet whose cells are the tiles, numbered row by row from 0; model/tilesets.ts. */
+export interface Tileset extends Extra { sheet: string; animations?: Record<string, { frames: number[]; ms?: number }> }
+export interface TileLayer extends Extra { tileset: string; cells: string[] }
 export interface Graphics extends Extra {
   sheets: Sheet[]
+  /** Tilesets of tile layers: id -> sheet (and animated tiles). */
+  tilesets?: Record<string, Tileset>
   /** The side-view battle scene's animation sets, rules and backgrounds. */
   battle?: BattleSection
   /** Portrait id -> picture; the id is what a `say` command's "portrait" names. */

@@ -12,6 +12,7 @@ namespace ote {
 void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
   tex_.assign(g.sheets.size(), 0);
   mir_.assign(g.sheets.size(), 0);
+  pix_.assign(g.sheets.size(), Image());
   // Sheets the battle scene draws mirrored (docs/BATTLE_SCENE.md): its animation sets and effects.
   std::vector<char> mirrorIt(g.sheets.size(), 0);
   for (const BattleSet& s : g.battle.sets)
@@ -49,6 +50,8 @@ void Sprites::load(Renderer& r, const std::string& gameDir, const Graphics& g) {
       continue;
     }
     tex_[i] = r.createTexture(img.rgba.data(), img.width, img.height);  // logs its own failure
+    for (const TilesetDef& ts : g.tilesets)
+      if (ts.sheet == (int)i && tex_[i]) pix_[i] = img;  // the isometric view samples tiles itself (tile_art.cpp)
     if (tex_[i] && mirrorIt[i]) {
       // A copy of the whole cells with every row reversed, for the fighter that faces the other way.
       const int w = s.cols * s.cellW, h = img.height;
@@ -69,6 +72,7 @@ void Sprites::release(Renderer& r) {
     if (t) r.destroyTexture(t);
   tex_.clear();
   mir_.clear();
+  pix_.clear();
 }
 
 namespace {

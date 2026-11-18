@@ -325,7 +325,7 @@ void Battle::runCommand(const Command& c, std::vector<Event>& events) {
         for (int y = r.y; y < r.y + r.h; ++y)
           for (int x = r.x; x < r.x + r.w; ++x)
             if (grid.at(x, y) != kNoCell) squares.push_back(grid.at(x, y));
-      storySetTerrain(squares, c.index, events);
+      storySetTerrain(squares, c.index, events, c.value, c.on);  // value = the tile (kTileUnset = none given), on = keepTile
       break;
     }
     case K::ApplyChange: storyApplyChange(c.index, events); break;

@@ -427,6 +427,18 @@ when it breaks there is **no extra key**: the existing `place` trigger is the ho
 ```
 (see "Walls that break" in docs/SRPG.md section 10; the computer opponent breaks one in its way when its unit is marked `goesFor: ["walls"]`.)
 
+**Tiles in changes (docs/GRAPHICS.md "Tile layer").** On a map with a `tileLayer` a change and `setTerrain` can also set the squares' **tiles**
+(presentation only; the rules never see them). In a change a cell may carry `"tile": 5` (a tile number of the map's tileset; `-1` or `null` = no
+tile, the terrain's look shows); in `setTerrain` the command carries one `"tile"` for all its squares. A tile can be given with or without a new
+terrain, so a change may only repaint a square (a torch burning out): then the square's terrain must still be named, as always, and may be the one
+it has. **A square whose terrain really changes and that is given no tile loses its tile** (it falls back to the terrain's look: a bridge replaces a
+painted river instead of staying drawn as water), unless `"keepTile": true` (on a cell, on the whole change, or on a `setTerrain` command), which
+leaves its tile alone. A square whose terrain does not change and that is given no tile keeps its tile. `revertChange` puts back **the tiles the
+squares held when the change was applied**, together with their terrain. The refusals are the loader's: `"tile"` outside the tileset, a `"tile"` on
+a map with no tile layer (`needs a tile layer: the map has no "tileLayer"`), `"keepTile"` that is not true / false. A square whose tile alone changes
+is in the `TerrainChanged` entry (it flashes like any changed square) but never strands a unit. Games and maps without a tile layer behave exactly
+as before.
+
 **What the player does.** `TerrainChanged` plays a brief white flash on the changed squares (every kind of view) and the camera looks at them; the squares
 already show their new terrain. In the **3D views the whole ground mesh is rebuilt** the first frame the terrain differs from what it was built from (the renderer
 has no partial mesh update; a map is a few thousand squares at most). Under fog a square the viewer cannot see changes without a flash.

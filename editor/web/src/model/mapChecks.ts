@@ -7,6 +7,7 @@ import { typeIdOf } from './characterUnits'
 import { mapDifficultyChecks } from './difficultyChecks'
 import { fogChecks } from './fogChecks'
 import { changeChecks } from './mapChangeChecks'
+import { tileChecks, type ImageSize } from './tileChecks'
 import { itemChecks } from './itemChecks'
 import { placeChecks } from './placeChecks'
 import { mapWeaponChecks } from './mapWeapon'
@@ -21,7 +22,8 @@ import type { MapFile, ProjectDoc } from './types'
 
 export interface MapWarning { key: string; text: string; cell?: { x: number; y: number } }
 
-export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
+/** `imageSize`: the width and height of a game image (lets the tile numbers of the tile layer be checked against the tileset). */
+export function mapWarnings(doc: ProjectDoc, map: MapFile, imageSize?: ImageSize): MapWarning[] {
   const c = ctxOf(doc)
   if (!c) return []
   const out: MapWarning[] = []
@@ -72,6 +74,8 @@ export function mapWarnings(doc: ProjectDoc, map: MapFile): MapWarning[] {
   if (mapId !== undefined) mapDifficultyChecks(doc, mapId, map).forEach((x, i) => out.push({ key: `difficulty:${i}`, text: x.text, ...(x.cell ? { cell: x.cell } : {}) }))
   // Named map changes and the fog options of the map (model/mapChangeChecks.ts); notes the loader does not give are marked as such.
   if (mapId !== undefined) changeChecks(doc, mapId).forEach((x, i) => out.push({ key: `changes:${i}`, text: x.text }))
+  // The tile layer and the tiles changes and commands carry (model/tileChecks.ts).
+  if (mapId !== undefined) tileChecks(doc, mapId, imageSize).forEach((x, i) => out.push({ key: `tiles:${i}`, text: x.text }))
   // What the player's sound loader would refuse about this map's music keys.
   audioChecks(doc).filter((x) => mapId !== undefined && x.mapId === mapId).forEach((x, i) => out.push({ key: `audio:${i}`, text: x.text }))
   // What the loader would refuse about this map's story events, objectives and unit story names.

@@ -1,7 +1,7 @@
 // The Art section: the images of the game (list + details), the unit-base setting and unused files.
 import { useCallback, useRef, useState, type DragEvent } from 'react'
 import { artBase } from '../../model/artFiles'
-import { findSheet, removeSheet, setUnitMarker, sheetsOf, unitMarkerOn } from '../../model/graphics'
+import { findSheet, setUnitMarker, sheetsOf, unitMarkerOn } from '../../model/graphics'
 import { sheetUsers } from '../../model/graphicsUsage'
 import { navigate, projectPath } from '../../router'
 import { Needs } from '../../shell/Blocked'
@@ -14,6 +14,8 @@ import { Toggle } from '../../ui/Toggle'
 import { ImageDetails } from './ImageDetails'
 import { BattleAnimsCard } from './battle/BattleAnimsCard'
 import { BackgroundsCard } from './BackgroundsCard'
+import { TilesetsCard } from './TilesetsCard'
+import { mapsUsingTileset, removeSheetAndTilesets, tilesetsUsingSheet } from '../../model/tilesets'
 import { PortraitsCard } from './PortraitsCard'
 import { backgroundsUsingSheet } from '../../model/backgrounds'
 import { portraitsUsingSheet } from '../../model/portraits'
@@ -64,7 +66,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
     setDragging(false)
     void addFiles(Array.from(e.dataTransfer.files))
   }
-  const doRemove = (id: string) => { edit((d) => removeSheet(d, id)); if (itemId === id) go(); setRemoving(null) }
+  const doRemove = (id: string) => { edit((d) => removeSheetAndTilesets(d, id)); if (itemId === id) go(); setRemoving(null) }
 
   return (
     <div className="art-screen" data-dragging={dragging || undefined}
@@ -89,7 +91,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
             thumb: <img className="art-thumb" src={store.art.url(s.file)} alt="" />,
           }))}
           onSelect={go} onBack={() => go()} onNew={() => input.current?.click()}
-          onDelete={(id) => { if (sheetUsers(doc, id).length || portraitsUsingSheet(doc, id).length || backgroundsUsingSheet(doc, id).length) setRemoving(id); else doRemove(id) }}>
+          onDelete={(id) => { if (sheetUsers(doc, id).length || portraitsUsingSheet(doc, id).length || backgroundsUsingSheet(doc, id).length || tilesetsUsingSheet(doc, id).length) setRemoving(id); else doRemove(id) }}>
           {(id) => <ImageDetails id={id} say={say} />}
         </MasterDetail>
         <Card title={T.settingsTitle}>
@@ -97,6 +99,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
         </Card>
         <PortraitsCard />
         <BackgroundsCard />
+        <TilesetsCard />
         <BattleAnimsCard />
         <UnusedFiles say={say} />
       </div>
@@ -107,6 +110,7 @@ function ArtBody({ itemId }: { itemId?: string }) {
           {users.map((u) => <li key={`${u.kind}:${u.id}`}>{T.usedByItem(u.kind, u.name)}</li>)}
           {(target ? portraitsUsingSheet(doc, target.id) : []).map((p) => <li key={`portrait:${p}`}>{T.usedByPortrait(p)}</li>)}
           {(target ? backgroundsUsingSheet(doc, target.id) : []).map((b) => <li key={`background:${b}`}>{T.usedByBackground(b)}</li>)}
+          {(target ? tilesetsUsingSheet(doc, target.id) : []).map((t) => <li key={`tileset:${t}`}>{T.usedByTileset(t, mapsUsingTileset(doc, t))}</li>)}
         </ul>
         <p className="help">{T.removeUnusedNote}</p>
         <p className="help">{T.removeUndo}</p>

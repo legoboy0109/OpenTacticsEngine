@@ -535,6 +535,8 @@ struct MapDef {
   bool fog = false;  // fog of war (docs/ECONOMY.md "Fog of war")
   int fogVision = 0;         // fog: added to every unit's vision (negative = darkness), -10..10 (docs/ECONOMY.md "Fog of war")
   bool aiSeesAll = false;    // fog: computer sides see everything (a side's own "aiSeesAll" overrides it)
+  int tileset = -1;                // the tile layer's tileset (index into Graphics::tilesets), -1 = no tile layer (docs/GRAPHICS.md "Tile layer")
+  std::vector<int> tileCells;      // per cell, row-major: tile number or -1 (empty when there is no tile layer)
   std::vector<MapChangeDef> changes;  // named map changes (docs/EVENTS.md "Changing the map"); empty = none
   int battleBackground = -1;  // the map's own background for the battle scene (index into Graphics::battle.backgrounds), -1 = by terrain
   std::shared_ptr<const StoryData> story;  // null = no events and no objectives; shared by copies

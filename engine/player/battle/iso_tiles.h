@@ -30,6 +30,11 @@ class IsoTiles {
   IsoPicture diamond(Renderer& r, const IsoGeometry& g, int wCells, int hCells, bool outline) {
     return diamond(r, g, wCells, hCells, outline ? Outline : Fill);
   }
+  // A block like block(1, 1) whose top face shows a picture laid flat (iso_tiles_picture.cpp): the rectangle (sx, sy, sw, sh) of the RGBA
+  // image `rgba` (`imgW` pixels wide), picture north = map north, nearest pixels, drawn over the colour `rgb`; side faces in `rgb`.
+  // `id` names the picture for the cache (anything that makes it differ: sheet, rectangle...).
+  IsoPicture pictureBlock(Renderer& r, const IsoGeometry& g, int sideH, uint32_t rgb, const std::vector<int>& id, const uint8_t* rgba, int imgW,
+                          int sx, int sy, int sw, int sh);
   // The placeholder block of a hexagon (iso_tiles_hex.cpp): its top face is the squashed hexagon `sq` (a box
   // sq.boxW() x sq.boxH()), with side faces `sideH` pixels high below the lower edges. Size: boxW x (boxH + sideH).
   IsoPicture hexBlock(Renderer& r, const HexGeo& sq, int sideH, uint32_t rgb);
