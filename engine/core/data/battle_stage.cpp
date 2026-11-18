@@ -33,6 +33,8 @@ StageLayout stageLayoutFor(const BattleStage& st, int distance) {
     l.panMs = b.panMs;
     l.leftView = b.leftView;
     l.rightView = b.rightView;
+    l.scrollBackdrop = b.scrollBackdrop;
+    l.panStartMs = b.panStartMs;
   }
   return l;
 }

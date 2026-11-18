@@ -24,6 +24,8 @@ struct StageLayout {
   int platform[2][2] = {{0, 0}, {0, 0}};
   bool each = false;                     // the camera follows the acting fighter (a "view": "each" band)
   int panMs = 0, leftView = 0, rightView = 0;
+  bool scrollBackdrop = false;           // the backdrop follows the camera
+  int panStartMs = -1;                   // the pan starts this long after the strike starts; -1 = timed to arrive at the hit
   int band = -1;                         // index into BattleStage::ranges, -1 = feet / feetFar
   // The stage x (world) of the left edge of the picture while the camera is `t` of the way from the left fighter (0) to the right (1).
   double viewX(double t) const { return leftView + (rightView - leftView) * t; }

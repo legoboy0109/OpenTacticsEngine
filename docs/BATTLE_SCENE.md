@@ -303,6 +303,20 @@ needs a fixed "stage"`), refused together with `travelMs` (`give a "travelMs" or
 pan ("Range bands") the flight is in the stage's world: the shot flies across the pan. Log: `effect ID flight N ms`, after the `start` line. Example: 200 px/s over the 128 pixels between the `feetFar`
 foot points is 640 ms; over a 150 pixel band 750 ms (`tests/battle_scene3_player_test.py`).
 
+**Effect timing by distance (`atRange`).** `"atRange": [ { "from": 2, "delayMs": 267 }, { "from": 4, "delayMs": 400 } ]` (1 to 16 entries, any effect, optional): for a fight `D` squares apart the entry
+with the **largest `from` not above `D`** counts (the rule of `stage.ranges`; entries are sorted, each `from` 1 to 99 used once, `delayMs` 0 to 15000; no entry that fits = no delay). That many milliseconds are added
+to the **whole effect**: its start (so its pictures, which are drawn from the start), its `sounds`, `flash`, `shake`, `hide` and `fade` (all timed from the start), the log line `effect ID start`, and **the hit it
+leads to** (the blow, its damage number and hit-point drain, the struck fighter's hurt or defeat animation and the staff result of a staff use land later by the same time). A `travel` effect leaves and arrives
+later by the delay (the flight still takes `travelMs`); an effect with `hitAtMs` keeps its lead-in (both its start and the hit move). **Not shifted:** the striker's own animation and sounds, and the camera of a
+panning band (`pan`, `startMs`), which are timed as without the delay. With several effects on one strike the hit waits for the latest, as before. A strike that misses is shifted the same way. Absent, or no entry
+for the distance, or `delayMs` 0: exactly as before. Refusals (name the effect): not a list of 1 to 16, an entry that is not `{ "from", "delayMs" }`, an unknown key, `from` outside 1 to 99 or used twice, `delayMs`
+outside 0 to 15000. Log: an effect that uses `atRange` logs `effect ID start` like any effect with a newer key. Tests: `tests/test_scene4_keys.cpp`, `tests/battle_scene4_player_test.py`.
+
+**Thrown weapons stopping short (`endOffset`).** `"endOffset": N` (0 to 200 pixels, default 0) on a `travel` effect: the flight ends `N` **stage pixels** (times the stage's scale; on a scene without a
+fixed stage, `N` times the scene's whole-number scale) short of the target's point, measured back along the line of flight (never before the striker). The shot stops there, rests there for `lingerMs` and
+returns from there. The timing is unchanged (`travelMs` / `speed` is still the time of the flight: with `speed` the distance measured is still foot point to foot point, so the shot just moves a little slower in
+pixels). Refused on an effect that does not travel (`"endOffset" is only for a "travel" effect`) and outside 0 to 200.
+
 **Timing, as built.** Pure function `buildTimelineList` (`fight_timeline.*`): per strike, `t0` = the strike's start; the hit time is as above; effect `i`'s
 `FightFx` has `t0` (a travel effect: the spawn time; another: hit - `hitAtMs`), `dur`, the side it is drawn on; its sounds are beats at `t0 + ms`, its flashes and shakes pulses at
 `t0 + atMs`. An effect that uses any newer key also logs `battle scene: effect ID start` at its start (before the hit when it leads in); an effect without them logs nothing new.
@@ -397,14 +411,20 @@ the foot points follows the band: shadows, floating numbers, effects, the `speed
 - **`"view": "each"`**, the classic one-fighter-per-screen presentation, needs **`"pan": { "panMs": 250, "leftView": x, "rightView": x }`** (`pan` is refused on a band that is not `each`). The points of such a band
   lie in a **world wider than the stage** (x 0 to 8191); the picture shows `width` stage pixels of it. `leftView` / `rightView` (0 to 8191) are the **world x of the picture's left edge** while the camera is on
   the left / right fighter, and each fighter's foot point x must be inside the picture while the camera is on it (`leftView <= left foot x < leftView + width`, likewise on the right; the loader checks).
-  `panMs` (0 to 5000, default 250; 0 = the camera cuts) is the time the camera takes to move. The stage is drawn at the same scale, only slid: the **backdrop** and the screen effects stay on the picture (they are
+  `panMs` (0 to 5000, default 250; 0 = the camera cuts) is the time the camera takes to move. Two more optional `pan` keys: `"backdrop"` and `"startMs"` (below). The stage is drawn at the same scale, only slid: the **backdrop** and the screen effects stay on the picture (they are
   not part of the world), platforms, fighters, shadows, effects and floating numbers move with the camera, and no range line is drawn. The bars at the sides of a stage narrower than the screen cover what the camera does not show.
 - **Where the camera is.** It starts on the fighter that acts first. Before a strike it moves to the striker (when it is elsewhere; the strike waits for it), and it moves to the struck fighter **so that it has arrived when the hit
   lands**: it starts `panMs` before the hit, and a blow that would land sooner than `panMs` after its strike began **waits** until it has (like a lead-in). A travelling effect flies across the pan. A counter's striker is the
   struck fighter of the blow before, so the camera is on it already. The movement is eased (smoothstep). A staff use ("Staves in the scene") moves the camera the same way: user, then target for the result.
+- **`"backdrop": "fixed" | "scroll"`** (in `pan`, default `"fixed"`: the backdrop stays on the picture as described above). With `"scroll"` the backdrop moves with the camera by the same pixels as the world (a view
+  `x` shows the backdrop shifted `x` stage pixels to the left, rounded to whole pixels while the camera moves) and **repeats sideways**: where the picture ends, its left edge follows, so no strip of the stage is
+  empty (a backdrop narrower than the stage is repeated too; a taller one is placed up and down by `align` as always). Screen effects stay on the picture. Refused: anything but those two words.
+- **`"startMs": N`** (in `pan`, 0 to 15000, optional): the camera moves to the struck fighter `N` ms after the **strike starts** (the striker's animation start, after any skill tags) instead of timed to arrive as
+  the blow lands. The blow does **not** wait for the camera (it lands at its own time, so with a large `startMs` it lands while the camera is still on the striker); the next strike does wait until the camera has
+  arrived. Absent: the camera is timed as described above. The move to the striker before a strike is unchanged.
 - Pure functions: `stageLayoutFor(stage, distance)` and `stageGeometryAt(..., distance, ..., viewX)` (`core/data/battle_stage.*`), the camera `FightTimeline::cameraAt(t)` (`fight_timeline.*`, `buildTimelineList(..., panMs)`).
 - Refusals (all name `battle stage range N`): `ranges` not a list of 1 to 16, a band that is not an object, an unknown key, `from` outside 2 to 99 or used twice, no `feet`, a point outside the stage (a
-  panning band: outside 0 to 8191), `view` not `both` / `each`, `each` without `pan`, `pan` without `each`, an unknown `pan` key, `panMs` outside 0 to 5000, a view outside 0 to 8191, a foot point that is not inside the picture of its own view.
+  panning band: outside 0 to 8191), a `backdrop` that is not `fixed` / `scroll`, a `startMs` outside 0 to 15000, `view` not `both` / `each`, `each` without `pan`, `pan` without `each`, an unknown `pan` key, `panMs` outside 0 to 5000, a view outside 0 to 8191, a foot point that is not inside the picture of its own view.
 
 The geometry is the pure function `stageGeometry` (`core/data/battle_stage.*`); the loader is `loader_battle_stage.cpp`; the drawing `fight_scene_stage.cpp`.
 Editor: Art > **Stage** card (docs/EDITOR_UI.md). Tests: `test_battle_stage.cpp`, `test_battle_art.cpp`, `tests/battle_stage_player_test.py`.

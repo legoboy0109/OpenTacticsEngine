@@ -38,6 +38,7 @@ struct EffectTimes {
   std::vector<FxShake> shake;
   std::vector<FxHide> hide;  // scene-wide parts (docs/BATTLE_SCENE.md "Hiding and fading")
   std::vector<FxFade> fade;
+  int delayMs = 0;           // "atRange": for this fight's distance the whole effect (its start, sounds, flashes, hides, fades and the hit it leads to) comes this much later
   bool bySpeed = false;      // travel: `travelMs` was worked out from the distance and "speed" (the effect then logs its flight time)
 };
 
@@ -150,7 +151,9 @@ struct FightTimeline {
 // `effectsByStrike[i]` lists the effects of strike i in the order they start (empty = none; docs/BATTLE_SCENE.md "Timing of effects").
 // `panMs` >= 0: the range band shows one fighter at a time; the camera follows the acting fighter and moves to the struck one over `panMs` so that it has
 // arrived when the hit lands (the hit waits for it when the blow comes sooner); -1: no camera.
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1);
+// `panStartMs` >= 0 (with a camera): the move to the struck fighter starts that long after the strike starts, whatever the hit time (the hit does not wait for it).
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1,
+                                int panStartMs = -1);
 // At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 

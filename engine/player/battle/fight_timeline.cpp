@@ -96,7 +96,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
   return buildTimelineList(s, times, lists);
 }
 
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs) {
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs) {
   FightTimeline tl;
   if (!s.valid) return tl;
   const bool useCam = panMs >= 0;
@@ -145,19 +145,39 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
     // The strike's effects (docs/BATTLE_SCENE.md "Timing of effects"). The hit lands at the strike animation's hit frame, but not before a
     // travelling effect has arrived, and not before an effect that starts `hitAtMs` ahead of it has had that long to run since the strike began.
     double fxEnd = 0;  // the end of an effect that flies back or lingers (the strike lasts until then)
+    // The hit time and the camera's timing as they are without any "atRange" delay: the delay moves the effect and the hit, never the camera.
+    double hitNoDelay = hitT;
     for (const EffectTimes& e : fxs) {
       if (e.travel) {
         const double spawn = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
-        hitT = std::max(hitT, spawn + sec(e.travelMs));  // the hit lands when the shot arrives
+        hitNoDelay = std::max(hitNoDelay, spawn + sec(e.travelMs));  // the hit lands when the shot arrives
       } else if (e.hitAtMs > 0) {
-        hitT = std::max(hitT, t0 + sec(e.hitAtMs));
+        hitNoDelay = std::max(hitNoDelay, t0 + sec(e.hitAtMs));
       }
     }
     // A camera that shows one fighter at a time moves to the struck one over `pan`, arriving as the hit lands (the hit waits when the blow is sooner).
+    // With a "startMs" it leaves that long after the strike starts instead and the hit does not wait for it (only the next strike does).
+    double camDone = 0;
     if (useCam) {
-      hitT = std::max(hitT, t0 + pan);
-      tl.cam.push_back({hitT - pan, pan, d});
+      if (panStartMs >= 0) {
+        tl.cam.push_back({t0 + sec(panStartMs), pan, d});
+        camDone = t0 + sec(panStartMs) + pan;
+      } else {
+        hitNoDelay = std::max(hitNoDelay, t0 + pan);
+        tl.cam.push_back({hitNoDelay - pan, pan, d});
+      }
       camSide = d;
+    }
+    // An effect with an "atRange" delay for this distance starts later, and the hit it leads to with it.
+    hitT = hitNoDelay;
+    for (const EffectTimes& e : fxs) {
+      if (e.delayMs <= 0) continue;
+      if (e.travel) {
+        const double spawn = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
+        hitT = std::max(hitT, spawn + sec(e.delayMs + e.travelMs));
+      } else {
+        hitT = std::max(hitT, std::max(hitNoDelay, t0 + sec(e.hitAtMs)) + sec(e.delayMs));
+      }
     }
     for (size_t k = 0; k < fxs.size(); ++k) {
       const EffectTimes& e = fxs[k];
@@ -168,7 +188,7 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
       f.fromSide = a;
       f.toSide = e.striker ? a : d;
       if (e.travel) {
-        f.t0 = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset);
+        f.t0 = t0 + (ft.has[kind] && ft.spawnAt[kind] >= 0 ? sec(ft.spawnAt[kind]) : hitOffset) + sec(e.delayMs);
         f.travelMs = e.travelMs;
         f.returns = e.returns;
         f.lingerMs = e.lingerMs;
@@ -188,7 +208,7 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
       for (const FxFade& fd : e.fade) tl.fades.push_back({f.t0 + sec(fd.atMs), sec(fd.ms), sec(fd.holdMs), fd.rgb, fd.alpha / 255.0, fd.backdropOnly});
     }
     // The struck fighter.
-    double end = std::max(ap.start + ap.dur, fxEnd);
+    double end = std::max(std::max(ap.start + ap.dur, fxEnd), camDone);
     const FighterTimes& dt = times[d];
     if (st.staff) {  // the result of a staff on the target: no blow, no pose; the number or the label shows where the effect lands
       if (st.missed) {
