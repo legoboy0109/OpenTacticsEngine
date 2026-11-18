@@ -35,12 +35,28 @@ void BattleScene::anchorActionMenu() {
   menu_.place(cand[0][0], cand[0][1], layout_.vw, layout_.vh);
 }
 
+// One line per opened action menu: its entries in order, a greyed one marked "[grey]", then where each row is on screen (the
+// screen tests read both: "hide" leaves entries out, and they tap the rows).
+void BattleScene::logActionMenu(const std::vector<MenuItem>& items) {
+  std::string log, rows;
+  for (size_t i = 0; i < items.size(); ++i) {
+    log += (i ? ", " : "") + items[i].label + (items[i].enabled ? "" : " [grey]");
+    int x, y;
+    menu_.rowCentre((int)i, x, y);
+    rows += " " + intStr((int)i) + "@" + intStr(x) + "," + intStr(y);
+  }
+  OTE_INFO("menu entries: %s", log.c_str());
+  OTE_INFO("menu entry rows:%s", rows.c_str());
+}
+
 void BattleScene::openActionMenu() {
   mode_ = Mode::ActionMenu;
   overlay_ = Overlay();
   staffList_ = false;
   staffFcOn_ = false;
   placeFcOn_ = false;
+  weaponRow_ = -1;
+  weaponPanel_.close();
   staffBack_ = nullptr;
   pickBack_ = nullptr;
   pickWhy_ = nullptr;
@@ -54,6 +70,7 @@ void BattleScene::openActionMenu() {
     items.push_back({"Wait", "", true, kWait});
     menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
     anchorActionMenu();
+    logActionMenu(items);
     return;
   }
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
@@ -75,6 +92,7 @@ void BattleScene::openActionMenu() {
   items.push_back({"Wait", "", true, kWait});
   menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
   anchorActionMenu();
+  logActionMenu(items);
 }
 
 void BattleScene::openBuildMenu(Cell cell) {
@@ -153,7 +171,7 @@ void BattleScene::menuInput(const InputEvent& e) {
       else cancelAction();
       return;
     }
-    if (id == kAttack) beginTargeting(-1);
+    if (id == kAttack) beginAttack(-1);
     else if (srpgGroupOf(id) == SrpgGroup::Talk) talkChosen(id - kTalkBase);
     else if (srpgGroupOf(id) != SrpgGroup::None && srpgMenuChosen(id)) {}  // a strategy-RPG group took it
     else if (id == kItems) openItems();
