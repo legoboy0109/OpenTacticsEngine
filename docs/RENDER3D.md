@@ -99,7 +99,8 @@ the same.
 | Backend | Where | State |
 |---|---|---|
 | Software (`soft3d.h`) | everywhere: SDL3, SDL2, web, headless tests | built |
-| OpenGL (`gl/gl_renderer3d.h`) | PC (SDL3, SDL2) and web; phones when there is a phone port | built |
+| OpenGL (`gl/gl_renderer3d.h`) | PC (SDL3, SDL2), web, Android | built |
+| Direct3D 11 (`d3d11/d3d11_renderer3d.h`) | Windows desktop (SDL3); UWP / Xbox (SDL2) with its own host glue | built; UWP glue to do |
 | Console SDKs | homebrew ports | with each port |
 
 The software backend draws into an RGBA picture (`framePixels`); the player
@@ -152,12 +153,14 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   "Resolution"), or `ote-player --3d
   auto|software|hardware`, which wins over the option. Automatic is
   hardware, except in `--headless` runs, which keep the software backend so
-  their screenshots do not depend on the machine's driver. A changed choice
+  their screenshots do not depend on the machine's driver. "Hardware" (the
+  option's "OpenGL") is Direct3D 11 first on Windows, then OpenGL
+  (`createHardwareRenderer3D`, `platform/sdl3/sdl_gl3d.cpp`). A changed choice
   takes effect at once: `PlayerApp::applyLook` drops the backend (no scene
   holds 3D things while looks are applied) and the next use makes the new
-  one. A further graphics API would be one more value here. The
+  one. The
   log says which one draws (`3D drawing: OpenGL (...)` / `3D drawing:
-  software`).
+  Direct3D 11 (...)` / `3D drawing: software`).
 - **Checked by** `tests/render3d_backends_test.py` (windowless, both
   backends, five scenes, at most 0.2% of pixels may differ: triangle edges
   are filled by slightly different rules) and the webtest suite `render3d`
@@ -165,8 +168,139 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
 - Measured on a desktop (windowless, 480 x 270, whole frame including 2D):
   test scene 4.3 ms software, 0.8 ms OpenGL; demo-srpg battle with models
   2.4 ms and 1.2 ms.
-- Not handled yet: a lost context (a browser or phone taking the GL context
-  away) leaves the 3D picture empty until the page is reloaded.
+- Not handled yet on the desktop and the web: a lost context (a browser
+  taking the GL context away) leaves the 3D picture empty until the page is
+  reloaded. Android rebuilds it (see "Losing the device").
+
+### Direct3D 11 backend
+
+Windows' own API, so the 3D picture costs no second device, no read-back and no
+OpenGL driver (Windows PCs without a vendor driver, and Xbox, have none). One
+backend for the desktop (SDL3) and UWP / Xbox (SDL2): `engine/gfx3d/d3d11/`,
+compiled on Windows only (`#ifdef _WIN32` in those files and in
+`engine/platform` only; CMake adds them and links `d3d11` and `dxgi` when
+`WIN32`). It keeps the contract above and does the GL backend's arithmetic.
+
+- **Feature level 10_0 is enough** (an Xbox One gives UWP apps 10_1, Series
+  11_0): Shader Model 4.0, no compute, no tessellation, nothing of 11_0.
+  16-bit indices as in the other backends (`Caps3D::maxMeshVertices` 65535).
+  `Caps3D`: textures up to 4096 a side (every level from 10_0 has 8192),
+  `fullResolution` true, except on Microsoft's software rasteriser (WARP,
+  "Microsoft Basic Render Driver": a PC or VM without a graphics driver),
+  which is correct but too slow for the display's resolution, so Automatic
+  keeps the game's size there.
+- **Where the device comes from** (`D3D11Host`, `d3d11/d3d11_host.h`, like
+  `GlHost`): when SDL draws the 2D layer with its own Direct3D 11 renderer
+  (asked for by name on Windows, `sdl_app.cpp`; the `SDL_RENDER_DRIVER` hint
+  still wins), the backend uses SDL's device
+  (`SDL_PROP_RENDERER_D3D11_DEVICE_POINTER`, `platform/sdl3/sdl_d3d11_3d.cpp`).
+  Otherwise (windowless runs: SDL's software renderer; or SDL chose another
+  driver) it makes a device of its own (`d3d11/d3d11_device.h`) and reads the
+  picture back into memory (`framePixels`), exactly as the OpenGL backend does.
+  If neither works the player tries OpenGL, then software, with a log line each.
+- **Drawn onto SDL's back buffer, through a picture of its own.** The frame is
+  drawn into the backend's own colour target (4x multisampled when
+  `Frame3D::samples` asks and the device can) with a 24-bit depth buffer, at
+  `renderWidth x renderHeight`, and then put on SDL's back buffer
+  (`IDXGISwapChain::GetBuffer(0)`, a render target view made and released in
+  the same frame, so SDL can still resize its swap chain) as **one textured
+  quad** at the frame's rectangle mapped through SDL's logical presentation
+  (`SDL_GetRenderLogicalPresentationRect`): entirely on the GPU, under the 2D
+  things drawn afterwards; `framePixels` is null. Not drawn straight into the
+  back buffer, because SDL's back buffer has no depth buffer and no
+  multisampling, and its size is the window's, not the picture's; the quad
+  also gives the picture exactly the treatment `Show3D::show` gives the other
+  backends' pictures: blended by its alpha with SDL's "blend" factors (a clear
+  colour of alpha 0 leaves the 2D backdrop showing), smooth scaling when the
+  picture has more pixels than its rectangle, hard pixels otherwise.
+- **Sharing the context with SDL** (`D3D11StateBackup`,
+  `d3d11/d3d11_state.h`). SDL caches some pipeline state (render target,
+  viewport, scissor, rasterizer, blend, shaders and their resources and
+  samplers) and sets other parts once when it makes its device (input
+  layout, vertex shader, its vertex constant buffer). Around every use of the
+  context the host first lets SDL carry out its queued 2D drawing
+  (`SDL_FlushRenderer`, which in SDL3 also forgets SDL's cached state) and
+  saves everything the backend touches (slot 0 of each stage, one render
+  target, viewports, scissors, the three state objects, topology, buffers),
+  and puts all of it back after. SDL2's `SDL_RenderFlush` does not forget the
+  cache, so exact restoring is the rule that holds for both. Checked by
+  drawing 2D after 3D in every test picture (the HUD over the battle, the
+  test scene's text) after hundreds of frames, and by a unit test that sets
+  state, draws a frame and reads every piece back.
+- **Conventions.** The engine's projections give OpenGL's clip-space depth
+  (-w..w); the vertex shader turns it into Direct3D's 0..w (`z = (z + w) / 2`:
+  the same near and far planes, the same depth precision). Direct3D's first
+  row is the picture's top row, so nothing is drawn upside down (the GL
+  backend draws upside down so its read-back starts at the top) and front
+  faces stay counter-clockwise (`FrontCounterClockwise`). Pixel centres are at
+  .5 in both APIs (Direct3D 9's half-pixel offset is gone since 10). Textures
+  and targets are `R8G8B8A8_UNORM`, no sRGB anywhere, as in the GL backend
+  (`GL_RGBA8`); vertex colours are `R8G8B8A8_UNORM` too. Matrices go to the
+  shaders as the engine has them (column-major, `mul(M, v)`).
+- **Textures**: without mipmaps immutable; with mipmaps the GPU makes the
+  smaller copies (`GenerateMips`, a box filter like `glGenerateMipmap`). One
+  sampler per way of reading, as in the GL backend: hard pixels never read the
+  smaller copies (`MaxLOD` 0), smooth ones trilinear. Texture positions are
+  interpolated at the centroid (multisampling; see "Edges").
+- **Shaders**: one small fixed set, `d3d11/shaders/render3d.hlsl` (the 3D
+  drawing, and the screen quad), compiled ahead of time to Shader Model 4.0
+  bytecode by `tools/windows/make_d3d11_shaders.ps1` (`fxc` from the Windows
+  SDK, `/O3`, reflection and debug data stripped) into
+  `d3d11/shaders/*.h`. The generated headers are committed: building needs no
+  shader compiler, and nothing compiles shaders at run time (`d3dcompiler` is
+  not on every device, Xbox included). Change the HLSL, run the script on
+  Windows (`powershell -ExecutionPolicy Bypass -File
+  tools\windows\make_d3d11_shaders.ps1`), commit both. No shader exists
+  anywhere else.
+- **Draws are queued** and carried out in `end()`, inside one host
+  `enter()`/`leave()`, as in the GL backend (a solid draw whose mesh or
+  texture is updated or freed before `end()` is carried out first). Meshes
+  updated with `updateMesh` are refilled in place when they fit
+  (`UpdateSubresource`), else made anew.
+- **Debug switches** (environment, Windows): `OTE_3D_API=opengl` skips
+  Direct3D 11; `OTE_3D_D3D11_OWN=1` uses a device of its own even when SDL's
+  could be shared; `OTE_3D_D3D11_LEVEL=10_1` (or `10_0`, `11_0`) caps the
+  feature level and `OTE_3D_D3D11_DRIVER=warp` picks the software rasteriser,
+  both for an own device (SDL makes its own); `OTE_WINDOW_HIDDEN=1` (any
+  platform, for tests) makes the real window and renderer but never shows
+  the window.
+- **Checked by** `ote_tests` on Windows (`tests/windows/`: ten feature scenes
+  against the software backend at the best feature level and at 10_1, the
+  same pictures at both levels, mipmaps, multisampling, the screen quad at
+  two scales, the state put back, device loss), `tests/render3d_backends_test.py`
+  (the player's scenes, Direct3D 11 against software) and
+  `tests/render3d_d3d11_test.py` (10_1, device loss and the software
+  fallback, multisampling, and SDL's real Direct3D 11 renderer in a hidden
+  window: 3D under 2D, at two window sizes; that part needs an interactive
+  desktop and reports SKIP over ssh, where Windows refuses a swap chain).
+  On other systems that ctest entry is reported as skipped.
+- **Measured** only on WARP (a VM without a GPU): correct pictures; its
+  timings say nothing about a graphics chip.
+
+### Losing the device
+
+A GPU context or device can go away under a running game: Android may take
+an EGL context, Direct3D reports `DXGI_ERROR_DEVICE_REMOVED` / `RESET` after a
+driver update or reset or a removed GPU, and SDL's Direct3D 11 renderer then
+makes itself a new device (`SDL_EVENT_RENDER_DEVICE_RESET`).
+`ResilientRenderer3D` (`gfx3d/resilient3d.h`, no graphics API) wraps the
+hardware backend on Android (EGL) and on Windows (Direct3D 11): it keeps a CPU
+copy of every mesh and texture the game made, and when the platform's
+`DeviceKeeper` says the device is gone it makes a new backend (Windows: on
+SDL's new device, or a new own device), uploads everything again (the game's
+ids stay valid) and repeats the frame. If no new backend can be made the
+copies go to the software backend for the rest of the session. Log lines:
+`3D (Direct3D 11): the Direct3D 11 device was lost (...); rebuilding it`,
+`... device rebuilt, N meshes and M textures uploaded again`, or `... cannot
+rebuild the device (...); using the software 3D renderer for the rest of the
+session`. Direct3D 11 counts as lost when the device reports a removal
+reason, or when SDL's renderer has another device than the backend's. Debug:
+`OTE_3D_SIMULATE_LOSS=N` loses the device after N frames,
+`OTE_3D_SIMULATE_NO_REBUILD=1` refuses the rebuild (both platforms; a
+simulated loss on Windows marks the device lost, it cannot really remove
+one). The cost is the copies (the meshes and textures once more in memory).
+Not covered: SDL's own 2D textures after a real reset (docs/PORTING.md "Life
+cycle").
 
 The player makes the backend in `PlayerApp::renderer3d()`; it outlives every
 scene, and a scene frees its own meshes and textures when it ends.

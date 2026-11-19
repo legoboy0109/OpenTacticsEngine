@@ -21,7 +21,7 @@ linked statically). The zip holds the player, `SDL3.dll`, `assets\`, `games\` (t
 | Replacing saves | `replaceFile()` (SDL3: `SDL_RenamePath`, replaces an existing file) instead of `std::rename`, which refuses to replace on Windows | Saves are written to `x.tmp` and moved over `x` |
 | C++ runtime | Static, `/MT` (`OTE_MSVC_STATIC_RUNTIME=ON`, the default) | The zip needs no Visual C++ redistributable on a clean PC. `-DOTE_MSVC_STATIC_RUNTIME=OFF` gives `/MD` for every target; UWP must use that. SDL3.dll has its own runtime use; no CRT objects (memory, FILE*) cross that boundary |
 | Flags | `/W4 /permissive- /utf-8 /EHsc /GR-` | `/GR-`: nothing in the engine or the editor uses RTTI (all of it builds). `/EHsc` on every target: the engine throws nothing, but the STL and `ote-editor` (exceptions on purpose) need it declared |
-| 3D | The software 3D drawer is the default and what the tests use; hardware OpenGL is requested through SDL's hidden window as on Linux | See "Not verified" |
+| 3D | Hardware 3D is Direct3D 11 (feature level 10_0 or better): SDL is asked for its `direct3d11` renderer and the 3D picture is drawn with SDL's device onto its back buffer, under the 2D layer; OpenGL only if Direct3D 11 fails. Windowless runs keep the software drawer, as on Linux | No OpenGL driver needed (a PC with only Windows' own driver has none worth the name, Xbox has none); the same backend serves UWP. Details in docs/RENDER3D.md "Direct3D 11 backend" |
 
 ## Build
 
@@ -67,11 +67,14 @@ no icon yet (Windows SmartScreen may warn about an unsigned download).
 
 ## Known gaps
 
-- **Not verified: hardware 3D.** The VM has only Microsoft's basic display adapter. `--3d hardware` there gets Microsoft's old GL 1.1
-  software driver, which lacks `glBlendFuncSeparate`, and the player logs `3D drawing: no hardware backend (the GL driver lacks
-  glBlendFuncSeparate); using the software one` and draws the 3D test scene correctly in software. So the fallback is verified; the
-  OpenGL drawer itself has never run on Windows. (In the VM that probe left a black window for several seconds before the first
-  picture; real drivers should answer at once.)
+- **Hardware 3D verified on WARP only.** The VM has only Microsoft's basic display adapter, so Direct3D 11 runs on WARP (Microsoft's
+  software rasteriser, "Microsoft Basic Render Driver", feature level 11_1, and capped to 10_1 for the tests): pictures checked
+  against the software drawer windowless and in a real window, device loss simulated. Not run on a graphics chip, and a real device
+  removal was never triggered. WARP's frame times say nothing about a GPU. The OpenGL drawer has never run on Windows: the VM's GL is
+  Microsoft's GL 1.1, which lacks `glBlendFuncSeparate` (`OTE_3D_API=opengl` shows the logged fallback to software).
+- **Window tests need the desktop.** Over ssh (session 0) Windows refuses SDL a swap chain, so SDL falls back to its software
+  renderer and the window part of `render3d_d3d11` reports SKIP; run it from a logged-in desktop (the VM: a scheduled task with
+  `/it`) to cover it.
 - **Not verified: sound.** The VM has no audio device. The player logs `audio: no sound device: No default audio device available;
   the game runs without sound` and runs on, as designed. Nothing was heard; `audio_player` (the real-device test) was not run.
 - **Not verified: a real PC** (window, DPI scaling, full screen, controller, display of mixed refresh rates).
@@ -92,4 +95,4 @@ no icon yet (Windows SmartScreen may warn about an unsigned download).
 The compiler, flags, tests and file/path handling are shared; what is left is in docs/PORTING.md "Still missing": the package
 project and manifest (SDL2 2.32 for UWP; the `-VC` SDL3 package is desktop-only), `/MD`, the UWP subset of the Win32 calls in
 `sdl2_files.cpp`, the SDL2 backend under MSVC, content from the install folder with `userRoot()` = LocalState, the Xbox back-button
-hint, Direct3D device-lost handling, and a run on a real Xbox in Dev Mode.
+hint, the Direct3D 11 3D glue for SDL2 (docs/PORTING.md "Direct3D 11 3D on UWP"), and a run on a real Xbox in Dev Mode.
