@@ -47,6 +47,15 @@ void BattleScene::writeContinue() {
   if (!buildSave(file, err) || !store_.write(0, file, err)) saveFailed(err);
 }
 
+// The app is going to the background and may be killed there: the same write as "Leave battle" (the very latest position,
+// including a unit that has only moved). No new file kind; a decided battle writes nothing (its Continue file is gone or the
+// story flow owns it), exactly as updateSaves() does.
+void BattleScene::onSuspend() {
+  if (!continueOn() || mode_ == Mode::Result || battle_.over) return;
+  writeContinue();
+  OTE_INFO("lifecycle: Continue save written");
+}
+
 void BattleScene::clearContinue() {
   if (continueCleared_ || !continueOn()) return;
   continueCleared_ = true;

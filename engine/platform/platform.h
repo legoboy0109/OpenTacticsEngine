@@ -109,6 +109,16 @@ class Renderer {
   virtual bool setAdditiveBlend(bool on) { return false; }
 };
 
+// Life-cycle notices from the operating system (phones, consoles; docs/PORTING.md "Life cycle"). Desktop backends
+// send none today. They arrive through App::onLifecycle, possibly right before the OS freezes the process, so the
+// handler must finish what it has to write before it returns.
+enum class Lifecycle {
+  WillEnterBackground,  // the app is about to be hidden / suspended: write everything now
+  DidEnterForeground,   // the app is visible and running again
+  LowMemory,            // the OS asks to give memory back
+  Terminating           // the OS is about to end the process (may follow WillEnterBackground with no further warning)
+};
+
 // What the player implements.
 class App {
  public:
@@ -119,6 +129,10 @@ class App {
   // Called once by the backend after the window/renderer exist and before
   // the first frame (set the font / logical size here, load content).
   virtual void onStart(Renderer& renderer) {}
+  // A life-cycle notice (see Lifecycle). Backends call it from their event loop; where the OS may freeze the process
+  // right after the notice (SDL's WILL_ENTER_BACKGROUND / TERMINATING) they call it from an event watch, at once,
+  // with the main loop locked out, instead of queueing it.
+  virtual void onLifecycle(Lifecycle event) {}
   virtual bool wantsQuit() const = 0;
   // Called once by the backend after the main loop ends and before the window / SDL go away (never
   // on the web, where the page stays up): release anything that needs the device (the audio output).

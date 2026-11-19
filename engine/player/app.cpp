@@ -144,10 +144,13 @@ void PlayerApp::update(double dt) {
   syncAudio();
   if (script_.active()) {
     std::vector<InputEvent> injected;
-    script_.tick(injected);
+    std::vector<Lifecycle> notices;
+    script_.tick(injected, notices);
+    for (Lifecycle n : notices) onLifecycle(n);
     for (const InputEvent& ev : injected) onInput(ev);
     if (script_.finished() && args_.frames == 0) quit_ = true;
   }
+  if (suspended_) return;  // the simulation clock stands still while the app is in the background
   if (scene_) scene_->update(dt);
   runPending();
   audio_.update(dt);  // after the scenes: what they asked for this frame is mixed at once

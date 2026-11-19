@@ -25,6 +25,9 @@ class Scene {
   virtual void onInput(const InputEvent& e) = 0;
   virtual void update(double dt) {}
   virtual void draw(Renderer& r) = 0;
+  // The app is about to be suspended or killed (platform.h Lifecycle): write whatever must survive, exactly as if the player
+  // had left right now. Never changes what is on screen.
+  virtual void onSuspend() {}
   // What the music should do while this scene is on screen (docs/SOUND.md). The App asks once per new scene.
   virtual SceneAudio audioContext() const { return SceneAudio(); }
   // Unique per scene object (an address can be reused by the next scene, this cannot).

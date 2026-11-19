@@ -29,6 +29,7 @@ class PlayerApp : public App, public SceneHost {
   void draw(Renderer& r) override;
   void onStart(Renderer& r) override;
   void onStop() override { audio_.shutdown(); }
+  void onLifecycle(Lifecycle event) override;  // app_lifecycle.cpp
   bool wantsQuit() const override { return quit_; }
 
   // SceneHost
@@ -103,6 +104,7 @@ class PlayerApp : public App, public SceneHost {
   // app_look.cpp: settings file and the look derived from the options.
   void loadSettings();
   void flushSettings();  // writes the settings file if anything changed
+  bool settingsPending() const { return !settingsPath_.empty() && settings_.dirty(); }
   // Resolves options + command line + the game's defaults and applies the
   // result (logical size, font, scale). gameId empty = launcher screens.
   void applyLook(const std::string& gameId, const GameLook& game, int logicalW, int logicalH);
@@ -139,6 +141,7 @@ class PlayerApp : public App, public SceneHost {
   std::function<void()> pending_;
   ScriptInput script_;
   bool quit_ = false;
+  bool suspended_ = false;  // between WillEnterBackground and DidEnterForeground: no simulation, no sound
   bool firstLoad_ = true;  // --map applies only to the first game load
 };
 
