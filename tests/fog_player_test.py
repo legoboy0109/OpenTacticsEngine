@@ -20,16 +20,15 @@ import os
 import re
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import check, failures, run_text, summary, write_json  # noqa: E402
 
 PLAYER = ''
 REPO = ''
 GAMES = ''
 SHOTS = ''
-failures = []
-passed = 0
 W, H = 480, 270  # the game's view; the picture is read back at this size
 MAP_W, MAP_H, TILE = 10, 6, 24  # small, so the whole map is in the picture in the 3D isometric view too
 
@@ -37,10 +36,6 @@ STYLES = [('classic', 'top-down'), ('isometric-3d', '3D isometric')]
 
 
 # ---- the test game
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 def unit(type_, side, x, y, **kw):
@@ -178,18 +173,8 @@ def play(args, saves=None, frames=300, interval=4, inp=None, shot=None, style='c
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def lines(log, prefix):
@@ -533,7 +518,7 @@ def main():
         scenarios(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

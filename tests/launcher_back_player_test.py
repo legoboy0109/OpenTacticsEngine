@@ -14,9 +14,10 @@ A temp games folder with the three demos keeps the result independent of what el
 """
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text  # noqa: E402
 
 failures = []
 passed = 0
@@ -44,7 +45,7 @@ def run(mode, inp, shot=None, games=None):
            '--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=120, env=env)
+    p = run_text(cmd, timeout=120, env=env)
     frames = None
     for line in p.stdout.splitlines():
         if 'quit requested after' in line:  # the player's own exit path (PlayerApp::quit), not the frame cap

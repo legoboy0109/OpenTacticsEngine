@@ -20,23 +20,18 @@ import os
 import re
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary, write_json  # noqa: E402
 
 PLAYER = ''
 REPO = ''
 GAMES = ''
 SHOTS = ''
-failures = []
-passed = 0
 
 
 # ---- the test game
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 def unit(type_, side, x, y, **kw):
@@ -153,18 +148,8 @@ def play(args, saves=None, frames=600, interval=8, inp=None, shot=None, game='ec
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def save_of(saves, game='eco'):
@@ -357,7 +342,7 @@ def main():
         scenarios(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

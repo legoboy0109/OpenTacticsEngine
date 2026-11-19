@@ -15,17 +15,15 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, read_jsonc, summary  # noqa: E402
+jsonc = read_jsonc  # (the name this script uses)
 
 repo = '.'
 src = ''
 out = ''
-def jsonc(path):
-    text = open(path).read()
-    text = '\n'.join(l for l in text.split('\n') if not l.strip().startswith('//'))
-    return json.loads(text)
 
 
 bridge = None  # loaded in make_games()
@@ -141,8 +139,6 @@ def build(folder, title, on_defeat, fallen, free, lose_first):
     json.dump(campaign(on_defeat, fallen, free), open(dst + '/data/campaign.json', 'w'), indent=1)
 
 
-
-
 def make_games(root, folder_out):
     global bridge, src, repo, out
     repo = root
@@ -161,8 +157,6 @@ def make_games(root, folder_out):
 PLAYER = ''
 GAMES = ''
 SAVES = ''
-failures = []
-passed = 0
 
 
 def play(args, saves=None, frames=1500, interval=8, inp=None):
@@ -171,18 +165,8 @@ def play(args, saves=None, frames=1500, interval=8, inp=None):
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def save_of(saves, game, slot='continue'):
@@ -315,7 +299,7 @@ def main():
         return 2
     PLAYER, repo = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
     run_all()
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

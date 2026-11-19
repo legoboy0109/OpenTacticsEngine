@@ -19,12 +19,12 @@ import struct
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import check, failures, summary  # noqa: E402
 
 PLAYER = ''
 REPO = ''
 SHOTS = ''
-failures = []
-passed = 0
 
 
 def play(game_map, inp, frames=400, style=None, extra=None, shot=None):
@@ -47,16 +47,6 @@ def lines(log, prefix):
         if m and m.group(1).startswith(prefix):
             out.append(m.group(1))
     return out
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def read_bmp(path):
@@ -100,7 +90,7 @@ def main():
         scenarios(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

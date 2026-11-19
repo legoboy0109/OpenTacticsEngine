@@ -12,31 +12,20 @@ nothing is written and no file or folder appears; the simulation clock stands st
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
-failures = []
-passed = 0
 PLAYER = ''
 REPO = ''
 WORK = ''
 
 
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
-
-
 def play(args, inp, frames=1500, games=None):
     cmd = [PLAYER, '--games', games or os.path.join(REPO, 'games'), '--assets', os.path.join(REPO, 'assets'), '--headless',
            '--no-audio', '--frames', str(frames), '--input', inp] + args
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.returncode, p.stdout
 
 
@@ -127,7 +116,7 @@ def main():
         check('an unknown token is still an error', code != 0 and 'bad --input token' in log, log)
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     return 1 if failures else 0
 
 
