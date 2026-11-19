@@ -39,6 +39,7 @@
 #include <dxgi1_3.h>
 #include <wrl/client.h>
 
+#include <cstdlib>
 #include <memory>
 #include <string>
 
@@ -157,8 +158,12 @@ class Sdl2D3D11Host : public D3D11Host {
   bool warned_ = false;
 };
 
+// The C runtime's environment, not SDL_getenv: SDL2's WinRT build keeps an environment of its own that never sees the
+// process's (where LocalState\args.txt puts its NAME=value words).
+const char* env(const char* name) { return std::getenv(name); }
+
 bool envSet(const char* name) {
-  const char* v = SDL_getenv(name);
+  const char* v = env(name);
   return v && *v && SDL_strcmp(v, "0") != 0;
 }
 
@@ -174,8 +179,8 @@ std::unique_ptr<Renderer3D> makeBackend(std::string& why, ComPtr<ID3D11Device>& 
     return D3D11Renderer3D::create(std::unique_ptr<D3D11Host>(new Sdl2D3D11Host(shared, g.loss)), why);
   }
   D3D11DeviceChoice choice;
-  if (const char* level = SDL_getenv("OTE_3D_D3D11_LEVEL")) choice.maxLevel = level;
-  if (const char* driver = SDL_getenv("OTE_3D_D3D11_DRIVER")) choice.warp = SDL_strcmp(driver, "warp") == 0;
+  if (const char* level = env("OTE_3D_D3D11_LEVEL")) choice.maxLevel = level;
+  if (const char* driver = env("OTE_3D_D3D11_DRIVER")) choice.warp = SDL_strcmp(driver, "warp") == 0;
   used = makeD3D11Device(choice, why);
   if (!used) return nullptr;
   std::unique_ptr<Renderer3D> r = D3D11Renderer3D::create(std::unique_ptr<D3D11Host>(new OwnD3D11Host(used, g.loss)), why);
@@ -247,7 +252,7 @@ std::unique_ptr<Renderer3D> createD3D11HardwareRenderer3D(std::string& why) {
   bool shared = false;
   std::unique_ptr<Renderer3D> r = makeBackend(why, dev, shared);
   if (!r) return nullptr;
-  const char* loss = SDL_getenv("OTE_3D_SIMULATE_LOSS");
+  const char* loss = env("OTE_3D_SIMULATE_LOSS");
   return std::unique_ptr<Renderer3D>(new ResilientRenderer3D(std::move(r),
                                                              std::unique_ptr<DeviceKeeper>(new D3D11Keeper(dev, shared)),
                                                              loss ? SDL_atoi(loss) : 0, envSet("OTE_3D_SIMULATE_NO_REBUILD")));
