@@ -149,6 +149,10 @@ int runApp(App& app, const PlatformConfig& config) {
   int winW = config.logicalWidth * (config.headless ? hs : scale);
   int winH = config.logicalHeight * (config.headless ? hs : scale);
   SDL_WindowFlags flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
+  // Tests of the real window path (its own 2D renderer, the hardware 3D backend drawing into it) without showing
+  // anything: OTE_WINDOW_HIDDEN=1 makes the window but never shows it (tests/render3d_window_test.py).
+  const bool hiddenWindow = !config.headless && SDL_getenv("OTE_WINDOW_HIDDEN") != nullptr;
+  if (hiddenWindow) flags |= SDL_WINDOW_HIDDEN;
 #ifdef __ANDROID__
   // Immersive: without it the window sits under the status bar and the top of every screen is cut off.
   flags |= SDL_WINDOW_FULLSCREEN;
@@ -164,7 +168,17 @@ int runApp(App& app, const PlatformConfig& config) {
     SDL_Quit();
     return 2;
   }
-  SDL_Renderer* ren = SDL_CreateRenderer(window, config.headless ? SDL_SOFTWARE_RENDERER : nullptr);
+  SDL_Renderer* ren = nullptr;
+#ifdef _WIN32
+  // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its back
+  // buffer (sdl_d3d11_3d.cpp). SDL's own default order starts with it too; asked by name so that stays true. The
+  // SDL_RENDER_DRIVER hint (or environment variable) still wins.
+  if (!config.headless && !SDL_GetHint(SDL_HINT_RENDER_DRIVER)) {
+    ren = SDL_CreateRenderer(window, "direct3d11");
+    if (!ren) OTE_INFO("SDL's Direct3D 11 renderer is not available (%s); taking SDL's default", SDL_GetError());
+  }
+#endif
+  if (!ren) ren = SDL_CreateRenderer(window, config.headless ? SDL_SOFTWARE_RENDERER : nullptr);
   if (!ren && !config.headless) {
     OTE_WARN("default renderer failed (%s); falling back to software", SDL_GetError());
     ren = SDL_CreateRenderer(window, SDL_SOFTWARE_RENDERER);
@@ -177,6 +191,7 @@ int runApp(App& app, const PlatformConfig& config) {
   }
   OTE_INFO("SDL video driver '%s', renderer '%s'", SDL_GetCurrentVideoDriver(), SDL_GetRendererName(ren));
 
+  attachHardware3D(ren);
   SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
   if (!SDL_SetRenderLogicalPresentation(ren, config.logicalWidth, config.logicalHeight,
                                         SDL_LOGICAL_PRESENTATION_LETTERBOX))
@@ -189,7 +204,7 @@ int runApp(App& app, const PlatformConfig& config) {
     loop.cfg = &config;
     SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless, hs);
     loop.gfx = &gfx;
-    loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
+    loop.vsync = !config.headless && !hiddenWindow && SDL_SetRenderVSync(ren, 1);
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
     loop.lastNs = SDL_GetTicksNS();
 #ifndef __EMSCRIPTEN__
