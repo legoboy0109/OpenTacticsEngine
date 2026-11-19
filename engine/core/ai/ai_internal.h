@@ -2,8 +2,10 @@
 // everything the rest of the engine may call is declared in ai.h.
 #pragma once
 #include <map>
+#include <memory>
 #include <vector>
 
+#include "core/ai/ai_field_cache.h"
 #include "core/battle/battle.h"
 
 namespace ote {
@@ -25,8 +27,9 @@ struct Order {
 };
 
 // Cached data shared by all unit evaluations of ONE aiTakeStep call.
-// Nothing survives between calls (the AI is stateless on purpose: the same
-// Battle always yields the same decision, and copies of a Battle just work).
+// Nothing about the game survives between calls (the AI is stateless on purpose: the same Battle always yields
+// the same decision, and copies of a Battle just work). The one exception is the content-keyed memo of
+// single-goal distance fields in ai_field_cache.h, which can only ever return what a recompute would.
 struct Context {
   explicit Context(const Battle& battle);
   const Battle& b;
@@ -35,7 +38,7 @@ struct Context {
   std::vector<int> captureTargets;           // capturable structures not claimed by a friendly capturer
   std::vector<int> claimant;                 // per structure: friendly unit allowed to capture it now, or -1
   std::vector<Cell> assigned;                // per unit id: square of a capture target to walk to, or kNoCell
-  std::map<std::pair<int, Cell>, std::vector<int>> goalFields;  // (moveType, goal) -> field
+  std::vector<std::shared_ptr<GoalFieldSet>> goalSets;  // per move type: single-goal fields, shared across Contexts (ai_field_cache.h)
 
   // One claim per structure: a second capturer standing on another square of the
   // same structure would only reset the first one's progress.
@@ -45,6 +48,7 @@ struct Context {
   }
   const std::vector<int>& enemyFieldFor(int moveType);
   const std::vector<int>& goalFieldFor(int moveType, Cell goal);
+  GoalFieldSet& goalSetFor(int moveType);  // this move type's cached fields, looked up once per Context
 };
 
 // ---- ai_knowledge.cpp ----

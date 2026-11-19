@@ -52,15 +52,20 @@ const std::vector<int>& Context::enemyFieldFor(int moveType) {
   if (f.empty()) {
     std::vector<Cell> goals;
     enemyGoals(b, side, goals);
-    distanceField(b, moveType, goals, f);
+    f = goalsFieldIn(b, goalSetFor(moveType), goals);  // a copy: cheap next to a Dijkstra
   }
   return f;
 }
 
+GoalFieldSet& Context::goalSetFor(int moveType) {
+  if (goalSets.size() <= (size_t)moveType) goalSets.resize((size_t)moveType + 1);
+  std::shared_ptr<GoalFieldSet>& set = goalSets[(size_t)moveType];
+  if (!set) set = goalFieldSetFor(b, moveType);  // once per Context: the battle's terrain cannot change inside one step
+  return *set;
+}
+
 const std::vector<int>& Context::goalFieldFor(int moveType, Cell goal) {
-  std::vector<int>& f = goalFields[std::make_pair(moveType, goal)];
-  if (f.empty()) distanceField(b, moveType, std::vector<Cell>(1, goal), f);
-  return f;
+  return goalFieldIn(b, goalSetFor(moveType), goal);
 }
 
 namespace {
