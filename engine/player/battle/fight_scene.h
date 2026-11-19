@@ -2,7 +2,8 @@
 // two fighters drawn from their animation sets (or the enlarged map picture with simple motion). Independent of the map's
 // kind of view. Presentation only: it reads the fight script and the timeline (fight_script.h, fight_timeline.h) and
 // changes nothing in the rules or the view; BattleScene tells the view when it is done (BattleView::fightFinished).
-//   fight_scene.cpp       preparing a fight (art lookup, script, timeline), the clock, the beats (log lines, sounds, floats)
+//   fight_scene.cpp       the clock, the beats (log lines, sounds, floats)
+//   fight_scene_start.cpp preparing a fight (art lookup, script, effects, timeline, backdrop)
 //   fight_scene_draw.cpp  drawing: layout for landscape and portrait, background, fighters, boxes, effects
 //   fight_scene_stage.cpp the optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"): layout, backdrop and platforms
 #pragma once
@@ -19,6 +20,7 @@
 namespace ote {
 
 class GameAudio;
+struct StageLayout;  // core/data/battle_stage.h
 
 class FightScene {
  public:
@@ -74,6 +76,26 @@ class FightScene {
   };
 
   void fire(const FightBeat& b, bool quiet);
+  // What the handlers of one beat share (fight_scene.cpp); `audio` is null in a skipped scene.
+  struct BeatCtx {
+    const FightBeat& beat;
+    const FightStrike* st;
+    const Fighter& who;
+    const Fighter& foe;
+    GameAudio* audio;
+  };
+  void fireStaffUse(const BeatCtx& x);
+  void fireHit(const BeatCtx& x);
+  void fireMiss(const BeatCtx& x);
+  void fireStaffHeal(const BeatCtx& x);
+  void fireStaffMiss(const BeatCtx& x);
+  void fireDrain(const BeatCtx& x);
+  // Steps of start() (fight_scene_start.cpp)
+  void initFighter(int side);
+  void applyForecast();
+  std::vector<std::vector<EffectTimes>> collectEffects(bool stageOn, const StageLayout& lay);
+  void pickBackdrop(const Cell cells[2], const int pair[2]);
+  void logStart() const;
   void addFloat(const std::string& text, int side, Color c, double life, bool plate = false, int rise = 0);
   const BattleSet* setOf(int side) const;
   // The sheet a fighter draws an animation from: its side's own sheet when the set gives one (docs/BATTLE_SCENE.md "By side").
