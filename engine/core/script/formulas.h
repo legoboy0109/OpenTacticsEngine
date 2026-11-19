@@ -65,6 +65,22 @@ struct FormulaCtx {
 
 class Formulas {
  public:
+  // While one of these is alive, the costly numbers of a unit (its stats as the rules see them) are worked out once and
+  // reused by every formula call. Meant for ONE bounded batch of calls in which nothing about the units can change, such as
+  // Battle::forecastFight (a const method: it only reads the battle). It caches numbers, not Lua tables: every call still
+  // builds its own fresh tables, so a formula that writes into `a` or `b` leaks nothing into the next call, and an error a
+  // misbehaving formula raises reads exactly as before. The cache is dropped when the outermost scope ends. Nesting is fine;
+  // a null Formulas does nothing. No random numbers are involved: the numbers are pure functions of the battle's state.
+  class BatchScope {
+   public:
+    explicit BatchScope(Formulas* f);
+    ~BatchScope();
+    BatchScope(const BatchScope&) = delete;
+    BatchScope& operator=(const BatchScope&) = delete;
+   private:
+    Formulas* f_;
+  };
+
   enum Slot { Damage, Hit, Crit, Strikes, XpHit, XpKill, CaptureAmount, kSlotCount };
 
   Formulas();
@@ -95,7 +111,25 @@ class Formulas {
   void pushFoeWeapon(const WeaponDef* fw, bool answers);
   void pushUnit(const Unit* u, const FormulaCtx& ctx, const std::vector<int>* bonus, int follow, int tri);
 
+  // What pushUnit needs that is costly to compute (see BatchScope).
+  struct UnitNumbers {
+    std::vector<int> stats;  // per stat index, as the rules see it (with the evaluation's bonus)
+    int maxhp = 0;           // the hp stat, same way
+    int carryBonus = 0;
+  };
+  // Valid only for the same unit seen through the same battle / sides with the same stat bonus (compared by value).
+  struct BatchEntry {
+    const Unit* u;
+    const Battle* battle;
+    const std::vector<SideState>* sides;
+    std::vector<int> bonus;
+    UnitNumbers numbers;
+  };
+  UnitNumbers computeNumbers(const Unit& u, const FormulaCtx& ctx, const std::vector<int>* bonus);
+
   const Database* db_ = nullptr;
+  int batchDepth_ = 0;
+  std::vector<BatchEntry> batch_;
   lua_State* L_ = nullptr;
   int emptyWeaponMeta_ = 0;     // registry ref: metatable of an empty `fw` (every missing number reads 0)
   int refs_[kSlotCount];        // 0 = not defined
