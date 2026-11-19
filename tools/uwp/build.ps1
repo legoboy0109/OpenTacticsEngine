@@ -59,6 +59,9 @@ if ((@($index.games) -join ',') -ne ($Games -join ',')) {
 
 function Invoke-Checked {
   param([string]$What, [scriptblock]$Command)
+  # A tool that writes a warning to stderr must not stop the script when its output is redirected (PowerShell 5.1 turns
+  # redirected stderr into errors); the exit code decides.
+  $ErrorActionPreference = 'Continue'
   & $Command
   if ($LASTEXITCODE -ne 0) { throw "$What failed (exit code $LASTEXITCODE)." }
 }

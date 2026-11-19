@@ -83,13 +83,10 @@ no icon yet (Windows SmartScreen may warn about an unsigned download).
 - The default window is 3 times the 480x270 game picture, 1440x810 pixels: bigger than a 1024x768 or 1280x720 screen (it is placed
   partly off-screen there). `--scale N` changes it for one run, the same on Linux; a smarter default is a design question, not
   done here.
-- The SDL2 backend has not been built with MSVC (only the SDL3 one); on Linux both build.
+- The desktop build uses SDL3. The SDL2 backend has been built with MSVC only as the UWP app (docs/XBOX.md); on Linux both build.
 - The VM's clock was 7 hours behind (QEMU gave the guest local time while Windows reads UTC), which made files installed earlier look
   newer than new builds, so Ninja looped; setting the clock fixed it. Not an engine matter, but expect it after every VM start.
 
-## What the UWP / Xbox port still needs on top
+## The UWP / Xbox port
 
-The compiler, flags, tests and file/path handling are shared; what is left is in docs/PORTING.md "Still missing": the package
-project and manifest (SDL2 2.32 for UWP; the `-VC` SDL3 package is desktop-only), `/MD`, the UWP subset of the Win32 calls in
-`sdl2_files.cpp`, the SDL2 backend under MSVC, content from the install folder with `userRoot()` = LocalState, the Xbox back-button
-hint, Direct3D device-lost handling, and a run on a real Xbox in Dev Mode.
+Built on this base (same compiler, flags and sources, `/MD` instead of `/MT`): docs/XBOX.md.
