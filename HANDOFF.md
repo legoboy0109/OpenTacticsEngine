@@ -57,35 +57,51 @@ equipped|pick`. The options screen gained a row, so `tests/audio_player_test.py`
 Known small flaws: the phone shop panel cuts an item's price ("20 G.."); at UI scale 150% on a phone-shaped screen the
 preparation list cuts unit names; weight sets cannot be renamed in the editor.
 
-Private converter (separate folder, never public): steps 22-33 done. Step 33 added staves in the battle scene (ten
-staves), the camera by distance (`stage.ranges`, two bands with pan), screen-fixed or fighter-following spell layers,
-effect fades, item-use sounds for keys and stat boosters, dropped the 50 s boot jingle, and settled the healers' rule
-(heal only retreating allies; not expressible yet, nothing emitted). The converter also turns on `menuUnavailable:
-hide` and `attackWeaponChoice: pick`. Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py`
-(about 40 min now; must end "45 maps checked, 0 problems"; do not run it while the engine is being rebuilt), then
-replace the git-ignored `games/vision-quest`. Engine features the port still lacks (step 33's list): a per-staff
-switch for the engine's own heal sound (it doubles the staff's), per-distance effect timing, a backdrop that scrolls
-with the camera, a staff-use rule "only retreating allies". Sounds with no source found: victory, chapter card,
-preparation music, turn banner, steal, trade, shop buy / sell, experience bar, healing-item use. Not reproduced: the
-world map, the original's menus (need not match 1 to 1, owner). Above all: play-testing by the owner.
+Pushed later on 2026-11-18 (origin/main = 6bf5aa7, every batch fully checked: ote_tests 2253 both builds, editor API
+1399, ctest 61, vitest 1614, e2e 615): the 22 player tests missing from CTest; faster fight forecasts (stats once per
+forecast, generational Lua collector) and AI distance fields remembered across steps; loader helpers
+(`pickCommandKind`, `LoadCtx::integerIn` / `integerFrom`); healers that heal only retreating allies (`heals`), an item's
+own heal sound (`sounds.heal`, `healScene`); battle scene 4 and 5 (docs/BATTLE_SCENE.md: `pan.backdrop`, `pan.startMs`,
+`atRange` with `delayMs` / `endOffset`, `atRangeFixed`, `panAtMs`, held poses `holdFrame` / `startFrame` /
+`startDelayMs` with `battle.scene.resultHoldMs`, `battlePlatformFrom: own`); port groundwork (docs/PORTING.md: content
+and user roots, life cycle events with `--input` tokens `background` / `foreground`, back key, MSVC flag block); the
+first Android build (docs/ANDROID.md, `tools/android/build_apk.sh`, hardware 3D through an EGL pbuffer context, back on
+the launcher leaves the app: owner's decision). Tests must not count the games in the checkout's `games/` folder (it
+holds untracked games): use a temp folder.
 
-Engine audit (2026-11-18, owner approved the list; details and order in `.agent/notes.md`): one small job at a time,
-each with the full check and byte-identical sims. First job (register the ~21 player tests missing from CTest, fix two
-warnings) runs in a worktree. Then Lua GC mode, caching unit tables within one forecast (about 80% of srpg sim time),
-the 13 copies of the "two commands" loop in the loaders, and so on.
+Private converter (separate folder, never public): steps 22-35 done and installed in the git-ignored
+`games/vision-quest`. Owner's play-test findings fixed: scrambled enemy-side platform (wrong half of the tile blob), a
+rout ending a chapter (`rules.defeat` now empty), dodges far too short (the original holds a pose until the result has
+been shown; command words cost a tick each). Reinstall = `python3 -I tools/convert.py`, `python3 -I tools/check_game.py`
+(about 45 min; must end "45 maps checked, 0 problems"; read the result BEFORE copying; do not run it while the engine
+is being rebuilt), then replace the folder. Engine features the port still lacks (step 35's list): a shot's hit before
+its arrival, an effect's lead-in counted from the hit frame, `atRange` starting inside an effect, a follow-up hold per
+distance class, the damage gauge's length by hit points, a retreat state without a destination (one healer, ch17).
+Sounds with no source found: victory, chapter card, preparation music, turn banner, steal, trade, shop buy / sell,
+experience bar, healing-item use. Not reproduced: the world map, the original's menus (need not match, owner). Next:
+the owner plays again.
 
-Ports (owner, 2026-11-18; research in `.agent/notes.md`, decisions in Claude memory): Android first (SDL3 APK from
-SDL's android-project template; SDK, NDK, emulator and an x86_64 image are in `~/Android/Sdk`, JDK 21 needs JAVA_HOME),
-then Xbox Dev Mode as a UWP app on real SDL2 2.32.x (SDL3 dropped UWP), software 3D only. Test console: Series X; Xbox
-One must work too (untested until a One is at hand; Series X "App" mode is the closest check). Windows build machine:
-a VM on the 500 GB external drive (path in memory); still missing there: `swtpm` (needs the owner's admin password),
-the Windows 11 evaluation ISO, and the owner's yes for any network change. Shared groundwork to do first on Linux:
-content root not tied to the working folder, saving on suspend, back button, a controller-only pass.
+Ports (owner, 2026-11-18; research in `.agent/notes.md`, decisions in Claude memory):
+- Android: builds and runs on the emulator (touch, back, suspend with Continue save, hardware 3D). Never run on a real
+  device or on arm64. Open: app name / id / icon (placeholders), safe-area insets, loss of SDL's own 2D context.
+- Windows VM (QEMU/KVM, no window) on the external drive, folder `OpenTacticsEngine-WindowsVM` (README and scripts
+  there: `vm-start.sh`, `vm-stop.sh`, `vm-ssh.sh`, `vm-shot.sh`, `vm-type.py`; key login as `builder` on
+  127.0.0.1:2222; Windows 11 Enterprise 90-day evaluation installed 2026-11-18). Visual Studio 2022 Build Tools with
+  the C++ and UWP workloads were being installed when this was written. The OpenSSH firewall rule had to be opened to
+  every profile (the VM's network counts as public).
+- Then: Windows desktop build of the player (a real target, owner), SDL2 UWP hello on the Xbox Series X (owner has Dev
+  Mode ready; pairing needed), engine as UWP with software 3D, then a native Direct3D 11 backend for `Renderer3D`
+  (owner's choice over ANGLE; also for Windows desktop). Xbox One must work too (D3D11 feature level 10.1; untested).
+- After Android and Xbox work: a one-day feasibility test for the original Xbox (nxdk + xemu, 480 and 720p), owner's
+  go-ahead for the test only. Then the advanced native editor (Linux and Windows first); the web editor's UI overhaul
+  waits for a UI framework somebody else is writing: no large editor UI work until the owner says so.
 
-Owner, 2026-11-18: free battles in the port hidden until the story is complete (editor Play unaffected). Open with the
-owner: names of the three difficulties; "Only on" difficulty limited to computer-side units; all new editor wording is
-placeholder; shop labels in the port; a locked door without a key is hidden under `hide`. See `.agent/notes.md` on a
-committed `node_modules` link before merging any agent branch.
+Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache). Next: C7 (editor code
+splitting; small, independent of the UI overhaul), D2, A3, D5, A4, ...
+
+Open with the owner: names of the three difficulties; "Only on" difficulty limited to computer-side units; all new
+editor wording is placeholder; shop labels in the port; a locked door without a key is hidden under `hide`. See
+`.agent/notes.md` on a committed `node_modules` link before merging any agent branch.
 
 Test notes: under load (several jobs at once) editor e2e and webtest flake; re-run failures alone before judging.
 A failure that repeats alone is real (the sidebar bug was found that way).
