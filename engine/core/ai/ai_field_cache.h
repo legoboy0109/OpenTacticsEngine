@@ -3,7 +3,7 @@
 // A fresh Context is built for every AI step, so without this the same "how far is each square from capture target
 // G" field was recomputed for every acting unit on every step. A field is a pure function of exactly three things:
 // the grid's shape, the entry cost of every square for the move type (all distanceField reads from the Battle is
-// Grid::neighbors and Battle::enterCost), and the goal. The cache is keyed on those by CONTENT: each entry stores
+// Grid::neighbors and Battle::enterCost), and the goal. The cache is keyed on those by CONTENT (many-goal fields additionally on the exact goal list): each entry stores
 // the full per-square cost vector it was built for and is only reused when a new vector compares equal. So terrain
 // edits, structure upgrades, weather and a different map or Battle all simply miss; nothing needs invalidating by hand.
 // Unit positions, fog and doors are not inputs (distanceField ignores units), so they cannot make an entry stale.
@@ -25,6 +25,9 @@ struct GoalFieldSet {
   int width = 0, height = 0, moveType = 0;
   std::vector<int> costs;                 // Battle::enterCost of every square for moveType
   std::map<Cell, std::vector<int>> fields;  // goal -> distanceField(goal)
+  // Many-goal fields (the "toward the enemy" field), keyed by the exact goal list, order included, so no argument
+  // about goal order is needed: the same list on the same costs is the same call.
+  std::map<std::vector<Cell>, std::vector<int>> multiFields;
 };
 
 // The set matching this Battle's current terrain for `moveType` (found, or created and remembered).
@@ -32,6 +35,9 @@ std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType);
 
 // The field for `goal` within `set`, computing it on first use.
 const std::vector<int>& goalFieldIn(const Battle& b, GoalFieldSet& set, Cell goal);
+
+// The field for the exact goal list `goals` (any length), computing it on first use.
+const std::vector<int>& goalsFieldIn(const Battle& b, GoalFieldSet& set, const std::vector<Cell>& goals);
 
 }  // namespace ai
 }  // namespace ote

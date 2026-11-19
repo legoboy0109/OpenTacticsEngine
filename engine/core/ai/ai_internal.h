@@ -48,6 +48,7 @@ struct Context {
   }
   const std::vector<int>& enemyFieldFor(int moveType);
   const std::vector<int>& goalFieldFor(int moveType, Cell goal);
+  GoalFieldSet& goalSetFor(int moveType);  // this move type's cached fields, looked up once per Context
 };
 
 // ---- ai_knowledge.cpp ----

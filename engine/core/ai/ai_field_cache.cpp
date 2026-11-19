@@ -32,7 +32,7 @@ std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType) {
     if (s.moveType != moveType || s.gridType != g.type() || s.layout != g.layout() || s.width != g.width() ||
         s.height != g.height() || s.costs != costs)
       continue;
-    if (s.fields.size() >= kMaxFieldsPerSet) {  // full: replace it by an empty twin
+    if (s.fields.size() + s.multiFields.size() >= kMaxFieldsPerSet) {  // full: replace it by an empty twin
       all.erase(all.begin() + (long)i);
       break;
     }
@@ -57,6 +57,15 @@ const std::vector<int>& goalFieldIn(const Battle& b, GoalFieldSet& set, Cell goa
   std::vector<int>& f = set.fields[goal];
   if (f.empty()) distanceField(b, set.moveType, std::vector<Cell>(1, goal), f);
   return f;
+}
+
+const std::vector<int>& goalsFieldIn(const Battle& b, GoalFieldSet& set, const std::vector<Cell>& goals) {
+  std::map<std::vector<Cell>, std::vector<int>>::iterator it = set.multiFields.find(goals);
+  if (it == set.multiFields.end()) {
+    it = set.multiFields.insert(std::make_pair(goals, std::vector<int>())).first;
+    distanceField(b, set.moveType, goals, it->second);
+  }
+  return it->second;
 }
 
 }  // namespace ai
