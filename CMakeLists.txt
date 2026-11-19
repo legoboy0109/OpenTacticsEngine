@@ -59,8 +59,17 @@ target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
 # OpenGL backend. No platform dependencies and no GL headers or libraries: the OpenGL
 # backend calls through pointers the platform hands it (docs/RENDER3D.md).
 file(GLOB GFX3D_SRC CONFIGURE_DEPENDS engine/gfx3d/*.cpp engine/gfx3d/gl/*.cpp)
+# Windows (desktop and UWP): the Direct3D 11 backend too. Its shaders are committed as bytecode headers
+# (tools/windows/make_d3d11_shaders.ps1), so no shader compiler is needed to build.
+if(WIN32)
+  file(GLOB GFX3D_D3D11_SRC CONFIGURE_DEPENDS engine/gfx3d/d3d11/*.cpp)
+  list(APPEND GFX3D_SRC ${GFX3D_D3D11_SRC})
+endif()
 add_library(ote_gfx3d STATIC ${GFX3D_SRC})
 target_link_libraries(ote_gfx3d PUBLIC ote_core)
+if(WIN32)
+  target_link_libraries(ote_gfx3d PUBLIC d3d11 dxgi)
+endif()
 target_compile_options(ote_gfx3d PRIVATE ${OTE_WARN})
 
 # --- Audio: decoders (WAV, Ogg Vorbis through stb_vorbis), the software mixer, built-in synthesized
