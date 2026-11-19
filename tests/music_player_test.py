@@ -17,6 +17,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, player_and_repo, summary, write_json  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -24,25 +26,12 @@ sys.dont_write_bytecode = True
 import sound_game  # noqa: E402
 import srpg_promo_games as promo_games  # noqa: E402
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
+PLAYER, REPO = player_and_repo()
 SHOW = '--show' in sys.argv
-failures = []
-passed = 0
 TMP = tempfile.mkdtemp(prefix='ote-music-')
 
 TRACKS = ['battle', 'boss', 'red_theme', 'green_theme', 'few', 'bossnow', 'promo', 'card', 'prep', 'thunder']
 JINGLES = ('promo', 'card')
-
-
-def check(name, ok, detail=''):
-    global passed
-    if ok:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def make_audio(root):
@@ -83,7 +72,7 @@ def play(games, game, args, inp, frames=0, saves=None, interval=8):
         cmd += ['--frames', str(frames)]
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     raw = open(log).read().splitlines() if os.path.exists(log) else []
     return p.returncode, p.stdout, [t for t in (token(l) for l in raw) if t]
 
@@ -91,11 +80,6 @@ def play(games, game, args, inp, frames=0, saves=None, interval=8):
 def shown(name, seq):
     if SHOW:
         print('%-18s %s' % (name, ' '.join(seq)))
-
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 def add_maps(g, maps):
@@ -231,7 +215,7 @@ def run_game_page_difficulty():
                '--input-interval', '3', '--fixed-dt', '0.016', '--frames', str(frames)] + args
         if inp:
             cmd += ['--input', inp]
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+        p = run_text(cmd)
         return p.returncode, p.stdout
 
     # lowerOnly: Hard -> the list offers Easy and Normal; Easy is picked; only the playthrough's difficulty changes in the save.
@@ -291,7 +275,7 @@ def play_sounds(games, game, args, inp, frames=0, interval=8):
         cmd += ['--frames', str(frames)]
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     raw = open(log).read().splitlines() if os.path.exists(log) else []
     return p.returncode, p.stdout, [t for t in (sound_token(l) for l in raw) if t]
 
@@ -404,6 +388,6 @@ def run_step_and_animation_sounds():
 run_situations()
 run_step_and_animation_sounds()
 run_game_page_difficulty()
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 shutil.rmtree(TMP, ignore_errors=True)
 sys.exit(1 if failures else 0)

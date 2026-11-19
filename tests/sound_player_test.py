@@ -22,6 +22,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, player_cmd  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -90,7 +92,7 @@ def play(tmp, games, args, inp=None, frames=0, saves=None, game='snd', interval=
         cmd += ['--frames', str(frames)]
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     # (paths in the log use the platform's separators; the checks look for '/')
     raw = open(log).read().replace('\\', '/').splitlines() if os.path.exists(log) else []
     return p.returncode, p.stdout, [token(l) for l in raw if token(l)], raw
@@ -389,7 +391,7 @@ def staff_sounds(tmp, starter, aj):
         # a Continue save with Tarn hurt (the map cannot place a wounded unit): let the player write one, then edit it
         saves = os.path.join(tmp, 'stf_saves_' + name)
         shutil.rmtree(saves, ignore_errors=True)
-        subprocess.run([PLAYER, '--games', games, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', saves,
+        subprocess.run(player_cmd(PLAYER, games, REPO) + ['--saves', saves,
                         '--frames', '120', '--game', 'stf', '--map', 'clinic', '--input', 'wait:20'], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=300)
         path = os.path.join(saves, 'stf', 'continue.json')
         doc = json.load(open(path))

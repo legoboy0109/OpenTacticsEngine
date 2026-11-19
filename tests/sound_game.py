@@ -22,12 +22,7 @@ number), a crit is 0 or 100, the AI never has anything to attack unless a map sa
 import json
 import os
 import shutil
-
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
+from ote_testkit import write_json  # tests/ is on sys.path: only the scripts import this module
 
 
 def _unit(type_, side, x, y, **kw):
