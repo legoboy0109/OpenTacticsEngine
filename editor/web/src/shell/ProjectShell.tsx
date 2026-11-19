@@ -1,32 +1,59 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import type { Route } from '../router'
 import { Link } from '../router'
-import { GameScreen } from '../screens/game/GameScreen'
-import { CampaignScreen } from '../screens/campaign/CampaignScreen'
-import { AbilitiesScreen } from '../screens/abilities/AbilitiesScreen'
-import { ConditionsScreen } from '../screens/conditions/ConditionsScreen'
-import { CharactersScreen } from '../screens/characters/CharactersScreen'
-import { SkillsScreen } from '../screens/skills/SkillsScreen'
-import { SupportsScreen } from '../screens/supports/SupportsScreen'
-import { ArtScreen } from '../screens/art/ArtScreen'
-import { SoundScreen } from '../screens/sound/SoundScreen'
-import { ItemsScreen } from '../screens/items/ItemsScreen'
-import { MapsScreen } from '../screens/maps/MapsScreen'
-import { ResearchScreen } from '../screens/research/ResearchScreen'
-import { RulesScreen } from '../screens/rules/RulesScreen'
-import { StructuresScreen } from '../screens/structures/StructuresScreen'
-import { TerrainScreen } from '../screens/terrain/TerrainScreen'
-import { UnitsScreen } from '../screens/units/UnitsScreen'
-import { WeaponsScreen } from '../screens/weapons/WeaponsScreen'
 import { useLearnContext, useSavedSignal } from '../learn/useLearn'
 import { PLAY_CAMPAIGN } from '../play/PlayPanel'
 import { usePlay } from '../play/usePlay'
 import { useProject, useStore } from '../store/context'
+import { LazyBoundary } from './LazyBoundary'
 import { onOpenProblems } from './openProblems'
 import { ProblemsPanel } from './ProblemsPanel'
 import { SaveBanners } from './SaveBanners'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
+
+// Each section's screen is its own chunk, fetched the first time the section opens (keeps the first load small).
+const screenLoaders = {
+  GameScreen: () => import('../screens/game/GameScreen').then((m) => ({ default: m.GameScreen })),
+  CampaignScreen: () => import('../screens/campaign/CampaignScreen').then((m) => ({ default: m.CampaignScreen })),
+  AbilitiesScreen: () => import('../screens/abilities/AbilitiesScreen').then((m) => ({ default: m.AbilitiesScreen })),
+  ConditionsScreen: () => import('../screens/conditions/ConditionsScreen').then((m) => ({ default: m.ConditionsScreen })),
+  CharactersScreen: () => import('../screens/characters/CharactersScreen').then((m) => ({ default: m.CharactersScreen })),
+  SkillsScreen: () => import('../screens/skills/SkillsScreen').then((m) => ({ default: m.SkillsScreen })),
+  SupportsScreen: () => import('../screens/supports/SupportsScreen').then((m) => ({ default: m.SupportsScreen })),
+  ArtScreen: () => import('../screens/art/ArtScreen').then((m) => ({ default: m.ArtScreen })),
+  SoundScreen: () => import('../screens/sound/SoundScreen').then((m) => ({ default: m.SoundScreen })),
+  ItemsScreen: () => import('../screens/items/ItemsScreen').then((m) => ({ default: m.ItemsScreen })),
+  MapsScreen: () => import('../screens/maps/MapsScreen').then((m) => ({ default: m.MapsScreen })),
+  ResearchScreen: () => import('../screens/research/ResearchScreen').then((m) => ({ default: m.ResearchScreen })),
+  RulesScreen: () => import('../screens/rules/RulesScreen').then((m) => ({ default: m.RulesScreen })),
+  StructuresScreen: () => import('../screens/structures/StructuresScreen').then((m) => ({ default: m.StructuresScreen })),
+  TerrainScreen: () => import('../screens/terrain/TerrainScreen').then((m) => ({ default: m.TerrainScreen })),
+  UnitsScreen: () => import('../screens/units/UnitsScreen').then((m) => ({ default: m.UnitsScreen })),
+  WeaponsScreen: () => import('../screens/weapons/WeaponsScreen').then((m) => ({ default: m.WeaponsScreen })),
+}
+const GameScreen = lazy(screenLoaders.GameScreen)
+const CampaignScreen = lazy(screenLoaders.CampaignScreen)
+const AbilitiesScreen = lazy(screenLoaders.AbilitiesScreen)
+const ConditionsScreen = lazy(screenLoaders.ConditionsScreen)
+const CharactersScreen = lazy(screenLoaders.CharactersScreen)
+const SkillsScreen = lazy(screenLoaders.SkillsScreen)
+const SupportsScreen = lazy(screenLoaders.SupportsScreen)
+const ArtScreen = lazy(screenLoaders.ArtScreen)
+const SoundScreen = lazy(screenLoaders.SoundScreen)
+const ItemsScreen = lazy(screenLoaders.ItemsScreen)
+const MapsScreen = lazy(screenLoaders.MapsScreen)
+const ResearchScreen = lazy(screenLoaders.ResearchScreen)
+const RulesScreen = lazy(screenLoaders.RulesScreen)
+const StructuresScreen = lazy(screenLoaders.StructuresScreen)
+const TerrainScreen = lazy(screenLoaders.TerrainScreen)
+const UnitsScreen = lazy(screenLoaders.UnitsScreen)
+const WeaponsScreen = lazy(screenLoaders.WeaponsScreen)
+
+/** Fetch every screen chunk in the background so later section switches (and offline use) need no network. */
+export function preloadScreens(): void {
+  for (const load of Object.values(screenLoaders)) void load().catch(() => {})
+}
 
 type ProjectRoute = Extract<Route, { kind: 'project' }>
 
@@ -80,6 +107,12 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [store, canUndo, canRedo])
 
+  // Once the opened section is showing, fetch the other sections' code quietly in the background.
+  useEffect(() => {
+    const t = window.setTimeout(preloadScreens, 1500)
+    return () => window.clearTimeout(t)
+  }, [])
+
   // A screen (the campaign timeline's problem badges) can ask for the Problems list.
   useEffect(() => onOpenProblems(() => setProblemsOpen(true)), [])
   useEffect(() => { document.title = `${doc.game?.name || store.id} - Game Editor` }, [doc.game?.name, store.id])
@@ -105,7 +138,11 @@ export function ProjectShell({ route }: { route: ProjectRoute }) {
         <Sidebar current={route.section} />
         <main id="main" className="main" tabIndex={-1}>
           <SaveBanners />
-          <Screen route={route} />
+          <LazyBoundary key={route.section}>
+            <Suspense fallback={<p role="status">Loading&hellip;</p>}>
+              <Screen route={route} />
+            </Suspense>
+          </LazyBoundary>
         </main>
       </div>
     </div>
