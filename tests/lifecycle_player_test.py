@@ -33,8 +33,8 @@ def check(name, cond, detail=''):
         print('FAIL %s %s' % (name, detail))
 
 
-def play(args, inp, frames=1500):
-    cmd = [PLAYER, '--games', os.path.join(REPO, 'games'), '--assets', os.path.join(REPO, 'assets'), '--headless',
+def play(args, inp, frames=1500, games=None):
+    cmd = [PLAYER, '--games', games or os.path.join(REPO, 'games'), '--assets', os.path.join(REPO, 'assets'), '--headless',
            '--no-audio', '--frames', str(frames), '--input', inp] + args
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
     return p.returncode, p.stdout
@@ -94,10 +94,16 @@ def main():
         # Settings: change an option on the global options screen (no scene change, so nothing flushed it yet), then background.
         sets = os.path.join(WORK, 'settings.json')
         opt = 'wait:5,down,down,down,confirm,wait:3,right,wait:3,background,wait:5'
-        code, log = play(['--settings', sets, '--no-saving'], opt)
+        # The launcher lists every game in the folder, and a checkout may hold more than the tracked demos: count the
+        # rows down to Options in a folder that holds exactly the three demos.
+        three = os.path.join(WORK, 'games')
+        os.makedirs(three)
+        for g in ('demo-srpg', 'demo-economy', 'demo-hex'):
+            os.symlink(os.path.join(REPO, 'games', g), os.path.join(three, g))
+        code, log = play(['--settings', sets, '--no-saving'], opt, games=three)
         check('background writes changed settings', 'lifecycle: settings written' in log and os.path.exists(sets), log)
         sets2 = os.path.join(WORK, 'settings2.json')
-        code, log = play(['--no-settings', '--no-saving'], opt)
+        code, log = play(['--no-settings', '--no-saving'], opt, games=three)
         check('--no-settings: no settings are written', 'settings written' not in log, log)
         code, log = play(['--settings', sets2, '--no-saving'], 'wait:5,background,wait:5')
         check('nothing changed: nothing to write', 'settings written' not in log and not os.path.exists(sets2), log)
