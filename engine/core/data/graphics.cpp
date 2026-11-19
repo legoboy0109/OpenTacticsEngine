@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include "core/base/fileio.h"
+
 namespace ote {
 
 int Graphics::findSheet(const std::string& id) const {
@@ -85,7 +87,7 @@ void standScatter(int x, int y, float& dx, float& dz, float& turnDeg) {
 }
 
 bool readPngSize(const std::string& path, int& width, int& height, std::string& err) {
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) {
     err = "the file is missing or cannot be read";
     return false;

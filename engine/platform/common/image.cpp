@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "core/base/fileio.h"
 #include "../../../third_party/stb/stb_image.h"  // declarations only; the code is in stb_image_impl.cpp
 
 namespace ote {
@@ -49,7 +50,7 @@ bool decodeImage(const uint8_t* data, size_t size, Image& out, std::string& err)
 
 bool loadPngFile(const std::string& path, Image& out, std::string& err) {
   out = Image();
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) {
     err = "the file is missing or cannot be read";
     return false;

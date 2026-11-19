@@ -1,11 +1,13 @@
 #include "sound/audio_log.h"
 
+#include "core/base/fileio.h"
+
 namespace ote {
 
 bool AudioLog::open(const std::string& path, std::string& err) {
   close();
   if (path.empty()) return true;
-  file_ = std::fopen(path.c_str(), "wb");
+  file_ = openFile(path, "wb");
   if (!file_) {
     err = "cannot write the audio log " + path;
     return false;

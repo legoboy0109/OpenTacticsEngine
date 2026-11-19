@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "core/base/fileio.h"
 #include "gfx3d/model_internal.h"
 
 namespace ote {
@@ -19,7 +20,7 @@ bool asIndex(const Json& v, size_t& out) {
 
 bool readFileBytes(const std::string& path, std::vector<uint8_t>& out) {
   out.clear();
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) return false;
   uint8_t buf[65536];
   size_t n;
