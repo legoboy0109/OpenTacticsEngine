@@ -11,13 +11,14 @@ namespace ote {
 void FightScene::stageLayout(Geo& g) const {
   const Database& db = *env_.battle->db;
   const BattleStage& st = db.graphics.battle.stage;
-  // The platform pictures' size (both sides share one sheet, so one size).
+  // The platform pictures' size, per side (with "battlePlatformFrom": "own" the two may come from different sheets).
   int pw[2] = {0, 0}, ph[2] = {0, 0};
-  if (platform_ >= 0 && env_.sprites) {
-    const SheetDef& sh = db.graphics.sheets[(size_t)db.graphics.battle.platforms[(size_t)platform_].sheet];
-    pw[0] = pw[1] = sh.cellW;
-    ph[0] = ph[1] = sh.cellH;
-  }
+  for (int s = 0; s < 2; ++s)
+    if (platform_[s] >= 0 && env_.sprites) {
+      const SheetDef& sh = db.graphics.sheets[(size_t)db.graphics.battle.platforms[(size_t)platform_[s]].sheet];
+      pw[s] = sh.cellW;
+      ph[s] = sh.cellH;
+    }
   // Range bands (docs/BATTLE_SCENE.md): the layout of this fight's distance; a band that shows one fighter at a time moves the picture with the camera.
   const StageLayout lay = stageLayoutFor(st, script_.distance);
   g.panning = lay.each;
@@ -84,9 +85,9 @@ void FightScene::drawStageBackground(Renderer& r, const Geo& g) const {
 // A platform at its declared place; the right-hand one is the left one turned round unless the platform names a picture of its own for it.
 void FightScene::drawStagePlatform(Renderer& r, const Geo& g, int side) const {
   const Database& db = *env_.battle->db;
-  const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_];
+  if (platform_[side] < 0 || g.sg.platformW[side] <= 0) return;
+  const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_[side]];
   const SheetDef& sh = db.graphics.sheets[(size_t)p.sheet];
-  if (g.sg.platformW[side] <= 0) return;
   const bool far = platformFar_ && p.hasFar;
   SpriteCell cell = far ? p.farCell : p.cell;
   bool turn = false;

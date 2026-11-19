@@ -33,6 +33,10 @@ struct BattleAnim {
   bool loop = false;
   int hit = -1;    // frame on which the hit lands (-1 = the animation's last frame)
   int spawn = -1;  // frame on which a projectile / effect appears (-1 = none given)
+  // Holding a pose until the result has been shown (docs/BATTLE_SCENE.md "Holding a pose"); all -1 / 0 = not used, today's timing.
+  int holdFrame = -1;     // "holdFrame": the animation waits on this frame until the result of the blow has been shown
+  int startFrame = -1;    // "startFrame" (a dodge): frames before it are the brace, held until the miss; this frame starts at the miss
+  int startDelayMs = 0;   // "startDelayMs" (a dodge with holdFrame / startFrame): the dodge proper starts this long after the miss
   // Sounds at frames (docs/BATTLE_SCENE.md "Sounds"): { frame, sound id }, in frame order. The id is opaque here (presentation only);
   // the player checks it against data/audio.json and plays it when the frame begins.
   std::vector<std::pair<int, std::string>> sounds;
@@ -43,6 +47,7 @@ struct BattleAnim {
   int sheetOfFrame(int frame) const { return frame >= 0 && (size_t)frame < frameSheets.size() ? frameSheets[(size_t)frame] : sheet; }
 
   bool any() const { return sheet >= 0 && !frames.empty(); }
+  bool holds() const { return holdFrame >= 0 || startFrame >= 0; }
   // The sheet the fighter of `sideId` draws this animation from: its side's own sheet, else `sheet`.
   int sheetFor(const std::string& sideId) const {
     for (const auto& s : sideSheets)
@@ -77,13 +82,16 @@ struct BattleSet {
 enum class FxLayer { Front, Behind, Screen };
 
 // A flash of colour over the whole scene / a shake of the stage, both timed from the start of the effect that owns them.
+// `atRangeFixed` on a row (docs/BATTLE_SCENE.md "Effect timing by distance"): the row is timed from the effect's start **before** its "atRange" delay.
 struct FxFlash {
   int atMs = 0, ms = 100;
   uint32_t rgb = 0xffffff;
+  bool fixed = false;
 };
 struct FxShake {
   int atMs = 0, ms = 200;
   int strength = 2;  // stage / screen pixels before scaling
+  bool fixed = false;
 };
 
 // Scene-wide parts of an effect (docs/BATTLE_SCENE.md "Hiding and fading"), timed from the start of the effect that owns them.
@@ -93,12 +101,14 @@ struct FxHide {                  // for `ms` from `atMs` the picked layers are n
   unsigned what = 0;             // kHideBackdrop | kHidePlatforms
   bool hasColor = false;
   uint32_t rgb = 0;
+  bool fixed = false;            // "atRangeFixed"
 };
 struct FxFade {                  // a colour laid over the scene: in over `ms`, held `holdMs`, out over `ms`; peak opacity alpha / 255
   int atMs = 0, ms = 100, holdMs = 0;
   uint32_t rgb = 0;
   int alpha = 255;
   bool backdropOnly = false;     // "over": "backdrop" (else everything, the fighters too)
+  bool fixed = false;            // "atRangeFixed"
 };
 // Where a "screen" effect is drawn among the layers (docs/BATTLE_SCENE.md "Effect layers"): right after the backdrop (the default), with the
 // "behind" layer (over the platforms, under the fighters), or over the fighters.
@@ -107,6 +117,8 @@ enum class FxOrder { Backdrop, Behind, Front };
 // One step of an effect's "atRange" list: from a fight `from` squares apart, the whole effect starts `delayMs` later (docs/BATTLE_SCENE.md "Effect timing by distance").
 struct FxRange {
   int from = 1, delayMs = 0;
+  bool hasEndOffset = false;  // "endOffset" given on this step: a travel effect stops this far short of (negative: past) the target at this distance
+  int endOffset = 0;
 };
 
 // A spell or an arrow drawn over the fight for a weapon (or every weapon of a group). An entry with a weapon / group and no pictures
@@ -137,7 +149,9 @@ struct BattleEffect {
   FxOrder order = FxOrder::Backdrop; // "order" of a "screen" effect
   int speed = 0;                     // travel: "speed" in stage pixels per second instead of "travelMs" (0 = travelMs; needs a fixed stage)
   std::vector<FxRange> atRange;      // "atRange": delay of the whole effect by fight distance, sorted by `from`
-  int endOffset = 0;                 // travel: "endOffset": the flight stops this many stage pixels short of the target
+  int endOffset = 0;                 // travel: "endOffset": the flight stops this many stage pixels short of the target (negative: past it)
+  bool rangeFixed = false;           // "atRangeFixed": the effect is not moved by the other effects' "atRange" delays (it starts as if none had one)
+  int panAtMs = -1;                  // "panAtMs": the camera of a panning band moves to the struck fighter this long after this effect starts (-1 = the band's own timing)
   bool additive = false;             // "blend": "add": its pixels brighten what is under them (docs/BATTLE_SCENE.md "Blending")
   bool extended = false;             // any of the newer keys was given (it then also logs its start)
   // The delay for a fight `distance` squares apart: the band with the largest `from` that is not above it, 0 when none fits.
@@ -146,6 +160,18 @@ struct BattleEffect {
     for (const FxRange& r : atRange)
       if (r.from <= distance) d = r.delayMs;
     return d;
+  }
+  // The step of "atRange" that counts for a fight `distance` squares apart (largest `from` not above it), null when none.
+  const FxRange* rangeAt(int distance) const {
+    const FxRange* hit = nullptr;
+    for (const FxRange& r : atRange)
+      if (r.from <= distance) hit = &r;
+    return hit;
+  }
+  // The "endOffset" for that distance: the counting step's own when it gives one, else the plain "endOffset".
+  int endOffsetAt(int distance) const {
+    const FxRange* r = rangeAt(distance);
+    return r && r->hasEndOffset ? r->endOffset : endOffset;
   }
   bool assignsOnly() const { return !anim.any(); }
 };
@@ -210,7 +236,14 @@ struct BattleStage {
   bool rangeLine = true;                   // the dotted line and label of a ranged fight
 };
 
+// Scene-wide timing (data/graphics.json "battle" > "scene"; docs/BATTLE_SCENE.md "Holding a pose"): how long after the blow (or the miss) a held pose waits.
+struct BattleSceneTiming {
+  int resultHoldMs = 533;      // "resultHoldMs" 0..5000: the result is "over" this long after the hit / miss moment (or when the striker's effect ends, if later)
+  int resultHoldAgainMs = 0;   // "resultHoldAgainMs" 0..5000: added when the same fighter strikes again next
+};
+
 struct BattleArt {
+  BattleSceneTiming timing;
   std::vector<BattleSet> sets;
   std::vector<BattleEffect> effects;
   std::vector<BattleAssign> assign;

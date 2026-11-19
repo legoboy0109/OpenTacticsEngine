@@ -113,7 +113,7 @@ class FightScene {
   std::vector<Float> floats_;
   int terrain_ = -1;                 // the terrain under the struck fighter (background and ground colour)
   int background_ = -1;
-  int platform_ = -1;                // the picture under each fighter (index into Graphics::battle.platforms) or -1
+  int platform_[2] = {-1, -1};       // the picture under each fighter (index into Graphics::battle.platforms) or -1; the same for both unless "battlePlatformFrom": "own"
   bool platformFar_ = false;         // the fight is at range 2+: the platform's `far` picture when it has one
   double flash_ = -10;               // when the last critical hit landed (white flash)
   bool skipped_ = false;

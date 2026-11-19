@@ -157,13 +157,13 @@ void FightScene::drawBackground(Renderer& r, const Geo& g, unsigned hidden, uint
 
 // The picture under a fighter (docs/BATTLE_SCENE.md "Platforms"): enlarged like the fighter, centred on its foot point.
 void FightScene::drawPlatform(Renderer& r, const Geo& g, int side) const {
-  if (platform_ < 0 || !env_.sprites) return;
+  if (platform_[side] < 0 || !env_.sprites) return;
   if (g.stage) {
     drawStagePlatform(r, g, side);
     return;
   }
   const Database& db = *env_.battle->db;
-  const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_];
+  const BattlePlatform& p = db.graphics.battle.platforms[(size_t)platform_[side]];
   const SheetDef& sh = db.graphics.sheets[(size_t)p.sheet];
   const SpriteCell cell = platformFar_ && p.hasFar ? p.farCell : p.cell;
   const int k = g.scale[side];
@@ -191,7 +191,7 @@ void FightScene::drawFighter(Renderer& r, const Geo& g, int side) const {
       local = t_ - pose->start;
     }
     anim = &set->anims[id];
-    frame = anim->frameAt((int)(local * 1000.0));
+    frame = anim->frameAt((int)(pose && set->anims[pose->anim].any() ? pose->animMsAt(local) : local * 1000.0));  // (a held pose stands still on its frame)
   }
   // The fallback motion: a pose the picture has no animation for (or no art at all) moves the stand picture instead.
   if (pose && (!set || !set->anims[pose->anim].any())) {
@@ -346,10 +346,11 @@ void FightScene::drawEffects(Renderer& r, const Geo& g, FxLayer layer) const {
     bodyPoint(fx.fromSide, ax, ay);
     bodyPoint(fx.toSide, bx, by);
     // "endOffset": a travelling effect stops this many stage pixels short of the target, along the line it flies (never before the striker).
-    if (fx.travel && be.endOffset > 0) {
+    // A negative one overshoots; "atRange" may give one per distance.
+    if (fx.travel && be.endOffsetAt(script_.distance) != 0) {
       const double len = std::sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
       if (len > 0) {
-        const double keep = std::max(0.0, len - be.endOffset * (double)s) / len;
+        const double keep = std::max(0.0, len - be.endOffsetAt(script_.distance) * (double)s) / len;
         bx = ax + (bx - ax) * keep;
         by = ay + (by - ay) * keep;
       }

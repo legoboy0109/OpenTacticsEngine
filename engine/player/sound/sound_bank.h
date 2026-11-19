@@ -14,6 +14,7 @@ namespace ote {
 // What a cue is about, for the lookup: an index into db.weapons / db.items / db.unitTypes, -1 = none.
 struct CueCtx {
   int weapon = -1, item = -1, unitType = -1, moveType = -1;  // moveType: index into db.moveTypes (the step sound of a movement type)
+  bool scene = false;  // the cue plays in the battle scene: an item's "healScene" then replaces its "heal" (docs/SOUND.md "A staff's own heal sound")
 };
 
 class SoundBank {

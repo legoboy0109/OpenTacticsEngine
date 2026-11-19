@@ -158,6 +158,11 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
   if (bgFrom != "defender" && bgFrom != "attacker")
     return c.fail("", "\"battleBackgroundFrom\" must be \"defender\" (the square of the fighter that is struck, the default) or \"attacker\", got \"" + bgFrom + "\"");
   db.battleBackgroundFromAttacker = bgFrom == "attacker";
+  std::string platFrom = "same";  // docs/BATTLE_SCENE.md "Platforms"
+  if (!c.str(root, "battlePlatformFrom", "", platFrom)) return false;
+  if (platFrom != "same" && platFrom != "own")
+    return c.fail("", "\"battlePlatformFrom\" must be \"same\" (both fighters stand on the platform of the square \"battleBackgroundFrom\" names, the default) or \"own\" (each on the platform of its own square), got \"" + platFrom + "\"");
+  db.battlePlatformOwn = platFrom == "own";
   std::string sides = "map";  // docs/BATTLE_SCENE.md "Which side each fighter stands on"
   if (!c.str(root, "battleSceneSides", "", sides)) return false;
   if (sides != "map" && sides != "playerRight" && sides != "playerLeft")

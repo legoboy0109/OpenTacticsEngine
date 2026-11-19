@@ -237,16 +237,18 @@ bool readBlock(const LoadCtx& c, const AudioData& d, const Json& entry, const st
       continue;
     }
     Cue cue;
-    if (!overrideCue(scope, m.first, cue))
+    const bool sceneHeal = scope == OverrideScope::Item && m.first == "healScene";  // an item's heal sound in the battle scene only
+    if (!sceneHeal && !overrideCue(scope, m.first, cue))
       return c.fail(where + ": \"sounds\"", "unknown key " + q(m.first) + " (expected " + overrideKeys(scope) + (stepGap ? ", \"stepInterval\"" : "") + ")");
     if (!m.second.isString()) return c.fail(where + ": \"sounds\"", q(m.first) + " must be a sound id (or \"\" for silence)");
     const std::string& id = m.second.asString();
-    if (id.empty()) { out.sound[(int)cue] = kSilent; continue; }
+    int& slot = sceneHeal ? out.healScene : out.sound[(int)cue];
+    if (id.empty()) { slot = kSilent; continue; }
     int s = d.findSound(id);
     if (s < 0)
       return c.fail(where + ": \"sounds\"", q(m.first) + " names unknown sound " + q(id) +
                         (d.present ? " (data/audio.json \"sounds\")" : " (this game has no data/audio.json)"));
-    out.sound[(int)cue] = s;
+    slot = s;
   }
   return true;
 }

@@ -380,6 +380,9 @@ struct Database {
   bool anyWeatherCost = false;  // some terrain has a "weatherCost": Battle::enterCost looks at the weather only then
   // game.json "battleBackgroundFrom": whose square decides the battle scene's background and platform: "defender" (false, the default) or "attacker" (true).
   bool battleBackgroundFromAttacker = false;
+  // game.json "battlePlatformFrom": "same" (false, the default: both fighters stand on the platform of the square that decides the background) or
+  // "own" (true: each fighter's platform comes from the terrain it stands on; the background still follows battleBackgroundFrom).
+  bool battlePlatformOwn = false;
   // game.json "battleSceneSides": which side of the battle scene each fighter stands on: 0 "map" (the default), 1 "playerRight", 2 "playerLeft".
   int battleSceneSides = 0;
   // game.json "battleSceneStaves": a staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene").
