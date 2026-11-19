@@ -153,3 +153,15 @@ TEST(campaign_free_battles_query) {
   CHECK(g.load("camp_loader", ""));  // no campaign: every map is a single battle, as before
   CHECK(freeBattleAllowed(g.db, "ford") && freeBattleAllowed(g.db, "keep"));
 }
+
+// The "two commands" message, exactly, for a pair drawn from each table of scene command keys.
+TEST(campaign_loader_names_both_commands_when_a_scene_entry_has_two) {
+  const char* later[] = {"setSwitch", "addSupport", "wait", "storeItems"};
+  const char* values[] = {"\"s\"", "\"x\"", "5", "\"eirik\""};
+  for (size_t i = 0; i < 4; ++i) {
+    std::string e = refuse(one(std::string("\"before\": [ {\"say\":\"x\",\"") + later[i] + "\":" + values[i] + "} ]"));
+    const std::string tail = std::string("has two commands (say and ") + later[i] + "); use one entry for each";
+    CHECK(e.size() > tail.size() + 2 && e.compare(e.size() - tail.size(), tail.size(), tail) == 0);
+    if (e.size() > tail.size() + 2) CHECK(e.compare(e.size() - tail.size() - 2, 2, ": ") == 0);
+  }
+}

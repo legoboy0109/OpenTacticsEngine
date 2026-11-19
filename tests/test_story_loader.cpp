@@ -261,3 +261,17 @@ TEST(story_loader_messages_name_the_map_the_event_and_the_command) {
   std::string e = commandError(R"({"say":"ok"},{"giveItem":"sock","to":"eirik"})");
   CHECK(has(e, "test.json: map \"test\": event \"ev\": \"do\": command 2 (giveItem): "));
 }
+
+// The "two commands" message, exactly, for a pair drawn from each table of command keys (the first key is always
+// the one found first, so this also pins the order of the tables).
+TEST(story_loader_names_both_commands_when_an_entry_has_two) {
+  const char* later[] = {"removeUnit", "promote", "openDoor", "addCondition", "setBehaviour",
+                         "setFog", "setPhaseMusic", "showUnit", "wait"};
+  const char* values[] = {"\"eirik\"", "\"eirik\"", "\"d\"", "\"x\"", "\"x\"", "true", "{}", "\"eirik\"", "5"};
+  for (size_t i = 0; i < 9; ++i) {
+    std::string e = commandError(std::string("{\"say\":\"hi\",\"") + later[i] + "\":" + values[i] + "}");
+    const std::string tail = std::string("has two commands (say and ") + later[i] + "); use one entry for each";
+    CHECK(e.size() > tail.size() + 2 && e.compare(e.size() - tail.size(), tail.size(), tail) == 0);
+    if (e.size() > tail.size() + 2) CHECK(e.compare(e.size() - tail.size() - 2, 2, ": ") == 0);
+  }
+}
