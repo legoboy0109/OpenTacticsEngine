@@ -179,7 +179,23 @@ int runApp(App& app, const PlatformConfig& config) {
   if (config.headless) {
     ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
   } else {
-    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+#ifdef _WIN32
+    // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its
+    // target (sdl2_d3d11_3d.cpp). On UWP it is SDL2's only hardware renderer anyway; SDL2's desktop default would be
+    // Direct3D 9. The SDL_RENDER_DRIVER hint (or environment variable) still wins. Picking a driver turns SDL2's
+    // command batching off unless it is asked for: the 3D glue flushes SDL before every use, so batching stays on.
+    if (!SDL_GetHint(SDL_HINT_RENDER_DRIVER)) {
+      for (int i = 0, n = SDL_GetNumRenderDrivers(); i < n && !ren; ++i) {
+        SDL_RendererInfo di;
+        if (SDL_GetRenderDriverInfo(i, &di) != 0 || SDL_strcmp(di.name, "direct3d11") != 0) continue;
+        if (!SDL_GetHint(SDL_HINT_RENDER_BATCHING)) SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
+        ren = SDL_CreateRenderer(window, i, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!ren) OTE_INFO("SDL's Direct3D 11 renderer is not available (%s); taking SDL's default", SDL_GetError());
+      }
+    }
+    if (!ren)
+#endif
+      ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
       OTE_WARN("accelerated renderer failed (%s); falling back to software", SDL_GetError());
       ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
@@ -198,6 +214,7 @@ int runApp(App& app, const PlatformConfig& config) {
     OTE_INFO("SDL video driver '%s', renderer '%s'", SDL_GetCurrentVideoDriver(), info.name);
   }
 
+  attachHardware3D(ren);
   SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
   if (SDL_RenderSetLogicalSize(ren, config.logicalWidth, config.logicalHeight) != 0)
     OTE_WARN("logical size failed: %s", SDL_GetError());
