@@ -17,34 +17,24 @@ headless with --input scripts and --no-saving, and reads the player's log lines 
 import json
 import os
 import shutil
-import struct
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    Bmp, run_text, check, failures, inp, lines, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
+Image = Bmp  # (the name this script uses)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-ranks-')
-passed, failures = 0, []
 
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
 GOLD = (255, 225, 110)       # MAX, the rank-up label
 RED = (255, 140, 120)        # a reason ("Needs rank B")
 GREYED = (110, 114, 140)     # a weapon the rank does not allow
 LEVEL_FRAME = (255, 220, 90)  # the level-up box border
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
 
 
 def make_game(gid, width, height, strong=False):
@@ -67,53 +57,13 @@ def make_game(gid, width, height, strong=False):
     return g
 
 
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def run(game, map_id, inp, shot=None, frames=None, interval=4):
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--no-saving', '--frames', str(frames or ticks(inp) * interval + 60), '--input-interval', str(interval),
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--no-saving', '--frames', str(frames or ticks(inp) * interval + 60), '--input-interval', str(interval),
            '--fixed-dt', '0.016', '--game', game, '--map', map_id, '--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.returncode, p.stdout
-
-
-class Image:
-    def __init__(self, path):
-        data = open(path, 'rb').read()
-        off = struct.unpack_from('<I', data, 10)[0]
-        self.w, h = struct.unpack_from('<ii', data, 18)
-        bpp = struct.unpack_from('<H', data, 28)[0] // 8
-        self.h = abs(h)
-        stride = (self.w * bpp + 3) // 4 * 4
-        self.px = []
-        for y in range(self.h):
-            row = (self.h - 1 - y) if h > 0 else y
-            base = off + row * stride
-            self.px.append([(data[base + x * bpp + 2], data[base + x * bpp + 1], data[base + x * bpp]) for x in range(self.w)])
-
-    def count(self, rgb, tol=12, box=None):
-        x0, y0, x1, y1 = box or (0, 0, self.w, self.h)
-        n = 0
-        for y in range(y0, min(y1, self.h)):
-            for x in range(x0, min(x1, self.w)):
-                p = self.px[y][x]
-                if abs(p[0] - rgb[0]) <= tol and abs(p[1] - rgb[1]) <= tol and abs(p[2] - rgb[2]) <= tol:
-                    n += 1
-        return n
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def shot(name, game, map_id, inp, **kw):
@@ -123,14 +73,6 @@ def shot(name, game, map_id, inp, **kw):
         os.makedirs(SHOTS, exist_ok=True)
         shutil.copy(path, os.path.join(SHOTS, name + '.bmp'))
     return Image(path), log, code
-
-
-def lines(log, key):
-    return [l for l in log.splitlines() if key in l]
-
-
-def inp(*parts):
-    return ','.join(parts)
 
 
 def frames_at(script, extra):
@@ -211,7 +153,7 @@ def main():
     finally:
         if not SHOTS:
             shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     for f in failures:
         print('  FAILED: ' + f)
     return 1 if failures else 0

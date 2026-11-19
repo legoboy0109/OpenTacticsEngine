@@ -12,22 +12,10 @@ finds nothing).
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
-
-failures = []
-passed = 0
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
 
 def main():
@@ -45,8 +33,7 @@ def main():
             e.pop('OTE_CONTENT_ROOT', None)
             e.pop('OTE_EXTRA_GAMES', None)
             e.update(env or {})
-            p = subprocess.run(cmd, cwd=cwd, env=e, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               universal_newlines=True, timeout=120)
+            p = run_text(cmd, cwd=cwd, env=e, timeout=120)
             return p.returncode, p.stdout
 
         # No root anywhere: the working directory is the root, as it always was.
@@ -87,7 +74,7 @@ def main():
         check('working directory stays empty', os.listdir(cwd) == [], str(os.listdir(cwd)))
     finally:
         shutil.rmtree(work, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     return 1 if failures else 0
 
 

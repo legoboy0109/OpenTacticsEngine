@@ -19,17 +19,17 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, player_and_repo, player_cmd, shots_dir, summary, ticks, write_json)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-quotes-')
-passed, failures = 0, []
 
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
 # Select the first unit (Eirik), stay where he is, choose Attack, pick the only target (the forecast shows while picking).
@@ -42,11 +42,6 @@ def read_json(path):
         return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
 
 
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
 def make_game(gid, tweak=None):
     g = os.path.join(TMP, gid)
     shutil.copytree(os.path.join(REPO, 'tests/fixtures/srpg-quotes'), g)
@@ -55,29 +50,17 @@ def make_game(gid, tweak=None):
     return g
 
 
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
-
-
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def run(gid, inp, extra=(), shot=None, interval=4, frames=None):
     """Runs the player on a fresh battle of ch1; returns (log, the Continue save's battle)."""
     work = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--saves', work, '--frames', str(frames or ticks(inp) * interval + 90), '--input-interval', str(interval),
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work, '--frames', str(frames or ticks(inp) * interval + 90), '--input-interval', str(interval),
            '--fixed-dt', '0.016', '--game', gid, '--map', 'ch1']
     if inp:
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + list(extra), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + list(extra))
     battle = {}
     try:
         battle = read_json(os.path.join(work, gid, 'continue.json'))['battle']
@@ -89,16 +72,6 @@ def run(gid, inp, extra=(), shot=None, interval=4, frames=None):
 def said(log):
     """The dialogue lines that reached the box, in order, as 'Speaker | text' (a skipped one has ' (skipped)')."""
     return [m.group(1) for m in re.finditer(r'\[info\] dialogue: (.*)', log)]
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def keep(shot_path, name):
@@ -200,5 +173,5 @@ try:
 finally:
     shutil.rmtree(TMP, ignore_errors=True)
 
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)

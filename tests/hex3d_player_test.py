@@ -33,6 +33,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import hex_player_test as hp  # noqa: E402  (its game writers, runner and image reader)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import failures, summary  # noqa: E402
 
 check = hp.check
 near, mix, fresh, save_of, play = hp.near, hp.mix, hp.fresh, hp.save_of, hp.play
@@ -643,8 +645,8 @@ def main():
             backends(layout, geo)
     finally:
         shutil.rmtree(hp.TMP, ignore_errors=True)
-    print('\n%d passed, %d failed' % (hp.passed, len(hp.failures)))
-    return 1 if hp.failures else 0
+    summary(blank_line=True)
+    return 1 if failures else 0
 
 
 if __name__ == '__main__':

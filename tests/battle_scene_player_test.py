@@ -18,18 +18,19 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, player_and_repo, read_jsonc, shots_dir, summary, ticks, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 BASELINE = os.path.abspath(sys.argv[sys.argv.index('--baseline') + 1]) if '--baseline' in sys.argv else ''
 TMP = tempfile.mkdtemp(prefix='ote-bscene-')
-passed, failures = 0, []
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)
@@ -37,23 +38,6 @@ import battle_art  # noqa: E402  (our own generator: original pixel art, no Pill
 IDLE = 'wait:14'
 ATTACK = [IDLE, 'confirm', 'wait:3', 'confirm', 'wait:3', 'confirm', 'wait:3', 'confirm']
 NEXT = ['confirm'] * 3
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
 
 
 def small_hp(g):  # the brutes have two hit points: Eirik's first hit ends Gorm
@@ -126,10 +110,6 @@ def make_game(gid, *tweaks, scene=None, art=True, battle=None, effects=None, she
     return g
 
 
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def run(gid, inp, extra=('--battle-scene', 'scene'), shot=None, interval=4, frames=None, player=None, settings=None):
     work = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(work, ignore_errors=True)
@@ -141,7 +121,7 @@ def run(gid, inp, extra=('--battle-scene', 'scene'), shot=None, interval=4, fram
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + list(extra), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + list(extra))
     return p.stdout
 
 
@@ -151,16 +131,6 @@ def scene_lines(log):
 
 def said(log):
     return [m.group(1) for m in re.finditer(r'\[info\] dialogue: (.*)', log)]
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def keep(shot_path, name):
@@ -417,5 +387,5 @@ try:
 finally:
     shutil.rmtree(TMP, ignore_errors=True)
 
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)

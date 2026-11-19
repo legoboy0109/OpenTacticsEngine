@@ -13,9 +13,10 @@ starts any map, and the old forms are listed as before. Everything runs with --s
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -24,8 +25,6 @@ import campaign_player_test as ct  # noqa: E402  (its games and input recipes)
 PLAYER = ''
 GAMES = ''
 SHOTS = ''
-failures = []
-passed = 0
 NOTE = 'Finish the story to unlock free battles.'
 
 
@@ -37,18 +36,8 @@ def play(args, saves=None, frames=1500, interval=8, inp=None, shot=None):
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def progress(saves, game):
@@ -200,7 +189,7 @@ def main():
         return 2
     PLAYER, REPO = os.path.abspath(args[0]), os.path.abspath(args[1])
     run_all()
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

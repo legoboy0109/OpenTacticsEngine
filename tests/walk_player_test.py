@@ -23,14 +23,16 @@ import struct
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, failures, player_and_repo, player_cmd, read_jsonc, shots_dir, summary, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 TMP = tempfile.mkdtemp(prefix='ote-walk-')
-passed, failures = 0, []
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)
@@ -39,26 +41,6 @@ DOWN, UP, RIGHT = battle_art.SHIRTS['down'], battle_art.SHIRTS['up'], battle_art
 STAND = (200, 60, 200, 255)   # the standing figure's shirt (a colour the walking figure does not have)
 # One move: select the hero (the cursor starts on it), two squares right, confirm. The path is down, down, right, right, up, up.
 MOVE = ['wait:14', 'confirm', 'wait:3', 'right', 'right', 'confirm']
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
 
 
 def read_bmp(path):
@@ -146,15 +128,14 @@ def make_game(gid, walk=True, view=None):
 def run(gid, inp, style=None, frames=300, shot=None, interval=4):
     work = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--saves', work, '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', '0.016',
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work, '--frames', str(frames), '--input-interval', str(interval), '--fixed-dt', '0.016',
            '--game', gid, '--map', 'ch1', '--input', ','.join(inp)]
     if style:
         cmd += ['--style', style]
     if shot:
         cmd += ['--screenshot', shot]
     env = dict(os.environ, OTE_LOG_LEVEL='debug')
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300, env=env)
+    p = run_text(cmd, env=env)
     return p.stdout
 
 
@@ -181,7 +162,7 @@ def test_directions_2d():
     log = run('w_flat', MOVE)
     check('2D: the directions follow the path, one line per change', walks(log) == ['Hero down', 'Hero right', 'Hero up'], str(walks(log)) + log[-300:])
     check('2D: debug lines are not shown at the normal log level', not walks(subprocess.run(
-        [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves',
+        player_cmd(PLAYER, TMP, REPO) + ['--saves',
          os.path.join(TMP, 'saves_w_flat'), '--frames', '200', '--input-interval', '4', '--fixed-dt', '0.016', '--game', 'w_flat', '--map', 'ch1',
          '--input', ','.join(MOVE)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True).stdout))
 
@@ -231,5 +212,5 @@ try:
 finally:
     shutil.rmtree(TMP, ignore_errors=True)
 
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)

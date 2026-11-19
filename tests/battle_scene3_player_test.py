@@ -20,14 +20,16 @@ import subprocess
 import sys
 import tempfile
 import wave
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, lines, player_and_repo, player_cmd, read_jsonc, shots_dir, summary, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 TMP = tempfile.mkdtemp(prefix='ote-bs3-')
-passed, failures = 0, []
 DT = 0.016
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
@@ -53,32 +55,6 @@ PLAT = {'sheet': 'plat', 'cell': [0, 0], 'far': [1, 0]}
 
 
 # ---- helpers ----------------------------------------------------------------------------------------------------------------------------
-
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def keep(path, name):
@@ -122,10 +98,6 @@ class Shot:
                     xs.append(x)
                     ys.append(y)
         return (min(xs), min(ys), max(xs) + 1, max(ys) + 1) if xs else None
-
-
-def lines(log, key):
-    return [l for l in log.splitlines() if key in l]
 
 
 def scene_lines(log):
@@ -221,7 +193,7 @@ def run_player(gid, inp, saves=None, frames=420, shot=None, extra=(), map_id='cl
     cmd += (['--continue'] if saves else []) + list(extra) + list(game_args)
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     if sounds is not None and os.path.exists(alog):
         for line in open(alog).read().splitlines():
             parts = line.split()
@@ -260,7 +232,7 @@ def hurt_save(gid, hp):
     """A Continue save with some units wounded (the maps cannot place a wounded unit): made by the player, then edited."""
     saves = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(saves, ignore_errors=True)
-    subprocess.run([PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', saves,
+    subprocess.run(player_cmd(PLAYER, TMP, REPO) + ['--saves', saves,
                     '--frames', '120', '--fixed-dt', '0.016', '--game', gid, '--map', 'clinic', '--input', 'wait:20'],
                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300)
     path = os.path.join(saves, gid, 'continue.json')
@@ -667,7 +639,7 @@ def main():
         travel_speed()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     if failures:
         print('FAILED: ' + ', '.join(failures))
         sys.exit(1)

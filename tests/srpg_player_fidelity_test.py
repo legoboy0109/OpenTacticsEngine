@@ -19,26 +19,15 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
 PLAYER = ''
 repo = '.'
-failures = []
-passed = 0
 
 STATS = [{"id": "hp", "name": "HP"}, {"id": "atk", "name": "Attack"}, {"id": "def", "name": "Defense"}, {"id": "mov", "name": "Move"}]
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def write(root, rel, data):
@@ -99,7 +88,7 @@ def make_game(root, options):
 def play(root):
     cmd = [PLAYER, '--games', os.path.dirname(root), '--game', os.path.basename(root), '--map', 'field', '--autoplay',
            '--headless', '--no-audio', '--no-settings', '--no-saving', '--frames', '6000']
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.returncode, p.stdout
 
 
@@ -132,7 +121,7 @@ def main():
         check('the stat cap is read from caps.json (Attack: max in the level-up box)', any('Attack' in l and 'max' in l for l in boxes), str(boxes[:3]))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     return 1 if failures else 0
 
 

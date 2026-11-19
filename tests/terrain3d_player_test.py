@@ -27,25 +27,15 @@ import subprocess
 import sys
 import tempfile
 import zlib
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import check_dash, failures, summary  # noqa: E402
+check = check_dash  # this script prints the "PASS name" / "FAIL name -> detail" layout
 
 PLAYER = REPO = ''
-failures = []
-passed = 0
 BASELINE = ''
 
 MAGENTA, GREEN, ORANGE = (255, 0, 255), (0, 170, 0), (255, 208, 0)
 DIM = 0.55
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS', name)
-    else:
-        failures.append(name)
-        print('FAIL', name, ('-> ' + str(detail)) if detail != '' else '')
-    return bool(cond)
 
 
 # ---- files of the test games
@@ -321,7 +311,7 @@ def main():
                     a = Pic(_run(tmp, real, game, mp, style, 'wait:30,skip,wait:20', PLAYER))
                     b = Pic(_run(tmp, real, game, mp, style, 'wait:30,skip,wait:20', BASELINE))
                     check('%s, style %s: the same picture as the baseline build' % (game, style), a.raw == b.raw)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

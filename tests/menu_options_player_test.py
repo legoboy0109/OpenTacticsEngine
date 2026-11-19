@@ -23,9 +23,10 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, failures, player_and_repo, shots_dir, summary, ticks, write_json  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -33,9 +34,8 @@ sys.path.insert(0, HERE)
 import hex_player_test as hp  # noqa: E402  (its image reader, PNG writer and checker)
 
 check, Image, png_bytes = hp.check, hp.Image, hp.png_bytes
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 TMP = tempfile.mkdtemp(prefix='ote-menuopt-')
 GAMES = os.path.join(TMP, 'games')
 TILE, MAP_W, MAP_H, VIEW_W, VIEW_H = 24, 9, 7, 352, 259
@@ -43,17 +43,8 @@ IDLE = 'wait:14'
 SELECT = 'confirm,confirm'  # select the unit under the cursor, stay: its action menu opens
 
 
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
-
-
 def read_json(path):
     return json.load(open(path))
-
-
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
 
 
 def play(game, inp, map_id=None, shot=None, saves=None, settings=None, extra=(), interval=4):
@@ -66,7 +57,7 @@ def play(game, inp, map_id=None, shot=None, saves=None, settings=None, extra=(),
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + list(extra), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + list(extra))
     return p.stdout
 
 
@@ -424,8 +415,8 @@ def main():
         pick_tests()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (hp.passed, len(hp.failures)))
-    sys.exit(1 if hp.failures else 0)
+    summary()
+    sys.exit(1 if failures else 0)
 
 
 if __name__ == '__main__':

@@ -19,18 +19,18 @@ import importlib.util
 import json
 import os
 import shutil
-import struct
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    Bmp, run_text, check, failures, inp, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-tiles-')
-passed, failures = 0, []
 
 spec = importlib.util.spec_from_file_location('make_test_tileset', os.path.join(REPO, 'tools/art/make_test_tileset.py'))
 TS = importlib.util.module_from_spec(spec)
@@ -40,16 +40,6 @@ IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs other
 # Move the cursor off the units and end the turn from the empty square's menu; red plays, round 2 begins (the map change event).
 END_TURN = [IDLE, 'right', 'wait:2', 'right', 'wait:2', 'confirm', 'wait:3', 'confirm', 'wait:200']
 SELECT = [IDLE, 'confirm', 'wait:20']  # select the hero: its move range is highlighted
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
 
 
 def make_game(gid, view=(480, 270)):
@@ -63,39 +53,15 @@ def make_game(gid, view=(480, 270)):
     return g
 
 
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
-def inp(*parts):
-    flat = []
-    for p in parts:
-        flat.extend(p if isinstance(p, list) else [p])
-    return ','.join(flat)
-
-
 def run(gid, script, style, shot, extra_frames=90):
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--no-saving',
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--no-saving',
            '--frames', str(ticks(script) * 4 + extra_frames), '--input-interval', '4', '--fixed-dt', '0.016', '--game', gid,
            '--map', 'tiled', '--style', style, '--3d', 'software', '--screenshot', shot, '--input', script]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.returncode, p.stdout
 
 
-class Image:
-    def __init__(self, path):
-        data = open(path, 'rb').read()
-        off = struct.unpack_from('<I', data, 10)[0]
-        self.w, h = struct.unpack_from('<ii', data, 18)
-        bpp = struct.unpack_from('<H', data, 28)[0] // 8
-        self.h = abs(h)
-        stride = (self.w * bpp + 3) // 4 * 4
-        self.px = []
-        for y in range(self.h):
-            row = (self.h - 1 - y) if h > 0 else y
-            base = off + row * stride
-            self.px.append([(data[base + x * bpp + 2], data[base + x * bpp + 1], data[base + x * bpp]) for x in range(self.w)])
-
+class Image(Bmp):
     def at(self, x, y):
         return self.px[y][x]
 
@@ -107,16 +73,6 @@ class Image:
     def box_differs(self, other, x0, y0, x1, y1, margin=30):
         return sum(1 for y in range(y0, y1) for x in range(x0, x1)
                    if max(abs(a - b) for a, b in zip(self.px[y][x], other.px[y][x])) > margin)
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def shot(name, gid, script, style):
@@ -284,7 +240,7 @@ def main():
     test_views()
     test_standing_terrain()
     test_portrait()
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     shutil.rmtree(TMP, ignore_errors=True)
     return 1 if failures else 0
 

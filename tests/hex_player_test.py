@@ -26,17 +26,16 @@ import math
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
 import zlib
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, save_of, summary, write_json  # noqa: E402
 
 PLAYER = ''
 REPO = ''
 GAMES = ''
 SHOTS = ''
-failures = []
-passed = 0
 W, H = 480, 270
 TILE = 24
 VIEW_W, VIEW_H = 352, 259  # the map viewport: the window minus the panel (128) and the hint strip (11)
@@ -139,10 +138,6 @@ class Geo:
 
 
 # ---- the test games
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 def png_bytes(width, height, pixel):
@@ -303,18 +298,8 @@ def play(game, map_id, args=(), saves=None, frames=None, interval=4, inp=None, s
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + list(args), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + list(args))
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 class Image:
@@ -352,11 +337,6 @@ def shot(name, game, map_id, **kw):
     if SHOTS:
         shutil.copy(path, os.path.join(SHOTS, name + '.bmp'))
     return Image(path), log
-
-
-def save_of(saves, game):
-    path = os.path.join(saves, game, 'continue.json')
-    return json.load(open(path)) if os.path.exists(path) else None
 
 
 def fresh(name):
@@ -731,7 +711,7 @@ def main():
             art(layout)
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

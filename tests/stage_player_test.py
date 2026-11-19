@@ -15,28 +15,17 @@ Plays tests/fixtures/stage-pres (copied to a temp folder, never changed; its art
 """
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, player_and_repo, shots_dir, summary  # noqa: E402
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-stage-')
-passed, failures = 0, []
 INTERVAL = 3  # frames per input token
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def make_game(name, view=None, campaign=False, fixture='stage-pres'):
@@ -62,7 +51,7 @@ def play(games, game, args, inp, frames, shot=''):
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot + '.bmp']
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     png = None
     if shot and os.path.exists(shot + '.bmp'):
         png = keep_shot(shot)
@@ -191,6 +180,6 @@ def run():
 
 
 run()
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 shutil.rmtree(TMP, ignore_errors=True)
 sys.exit(1 if failures else 0)

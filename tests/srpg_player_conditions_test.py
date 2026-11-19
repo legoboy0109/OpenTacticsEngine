@@ -19,32 +19,22 @@ screenshots:
 import json
 import os
 import shutil
-import struct
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    Bmp, run_text, check, failures, inp, lines, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
+Image = Bmp  # (the name this script uses)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-conditions-')
-passed, failures = 0, []
 
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
 WIDTH = {'field': 12, 'mist': 12, 'skirmish': 12}
 POISON, SLEEP, SILENCE, BERSERK, STUN, CURSE = range(6)  # indices of the starter conditions in the fixture's conditions.json
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
 
 
 STYLES = [{'id': 'top', 'name': 'Top'}, {'id': 'iso', 'name': 'Iso', 'view': 'isometric'},
@@ -98,22 +88,17 @@ def arrange(items=None, at=None, drop=(), map_id='field', extra=None):
     return tweak
 
 
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def run(gid, inp, map_id='field', style=None, shot=None, interval=4, extra_frames=90):
     """Runs the player on a fresh battle; returns (code, log, the units of the Continue save by story id, the battle)."""
     work = os.path.join(TMP, 'saves_%s_%s' % (gid, map_id))
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--saves', work, '--frames', str(ticks(inp) * interval + extra_frames), '--input-interval', str(interval),
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work, '--frames', str(ticks(inp) * interval + extra_frames), '--input-interval', str(interval),
            '--fixed-dt', '0.016', '--game', gid, '--map', map_id, '--input', inp]
     if style:
         cmd += ['--style', style]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     units, battle = {}, {}
     try:
         battle = read_json(os.path.join(work, gid, 'continue.json'))['battle']
@@ -122,39 +107,6 @@ def run(gid, inp, map_id='field', style=None, shot=None, interval=4, extra_frame
     except (OSError, ValueError, KeyError):
         pass
     return p.returncode, p.stdout, units, battle
-
-
-class Image:
-    def __init__(self, path):
-        data = open(path, 'rb').read()
-        off = struct.unpack_from('<I', data, 10)[0]
-        self.w, h = struct.unpack_from('<ii', data, 18)
-        bpp = struct.unpack_from('<H', data, 28)[0] // 8
-        self.h = abs(h)
-        stride = (self.w * bpp + 3) // 4 * 4
-        self.px = []
-        for y in range(self.h):
-            row = (self.h - 1 - y) if h > 0 else y
-            base = off + row * stride
-            self.px.append([(data[base + x * bpp + 2], data[base + x * bpp + 1], data[base + x * bpp]) for x in range(self.w)])
-
-    def count(self, rgb, tol=12):
-        n = 0
-        for row in self.px:
-            for p in row:
-                if abs(p[0] - rgb[0]) <= tol and abs(p[1] - rgb[1]) <= tol and abs(p[2] - rgb[2]) <= tol:
-                    n += 1
-        return n
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def shot(name, gid, inp, map_id='field', style=None):
@@ -166,16 +118,8 @@ def shot(name, gid, inp, map_id='field', style=None):
     return Image(path), log, units, battle, code
 
 
-def lines(log, key):
-    return [l for l in log.splitlines() if key in l]
-
-
 def xy(unit, width=12):
     return (unit['cell'] % width, unit['cell'] // width)
-
-
-def inp(*parts):
-    return ','.join(parts)
 
 
 def conds(unit):
@@ -368,7 +312,7 @@ def main():
     make_game('cphonemark', 270, 480, tweak=arrange(items={'kay': ['iron_blade', 'bad_brew']}, at={'r1': (9, 5), 'r2': (10, 5), 'r3': (11, 5)}))
     test_marker('cphonemark', 'top', tag='_phone')
 
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     for f in failures:
         print('  FAILED: ' + f)
     shutil.rmtree(TMP, ignore_errors=True)

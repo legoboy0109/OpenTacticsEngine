@@ -6,6 +6,7 @@ Written here, byte for byte, so the player test depends on no shipped game (game
 import json
 import os
 import shutil
+from ote_testkit import write_json  # tests/ is on sys.path: only the scripts import this module
 
 TILE = 24
 MAP_W, MAP_H = 7, 5
@@ -15,11 +16,6 @@ STYLES = [{'id': 'classic', 'name': 'Classic'},
           {'id': 'iso', 'name': 'Isometric', 'view': 'isometric', 'background': '#161a24'},
           {'id': 'iso3d', 'name': '3D Isometric', 'view': 'isometric-3d', 'background': '#161a24'},
           {'id': 'full3d', 'name': 'Full 3D', 'view': '3d', 'background': '#161a24'}]
-
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 def map_doc(units=UNITS, width=MAP_W, height=MAP_H, hexes=False):

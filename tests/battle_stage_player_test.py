@@ -15,17 +15,18 @@ import json
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, player_and_repo, player_cmd, read_jsonc, shots_dir, summary, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 TMP = tempfile.mkdtemp(prefix='ote-bstage-')
-passed, failures = 0, []
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)
@@ -111,23 +112,6 @@ def make_game(gid, *tweaks, stage=None, plat=None, sides='playerRight', backdrop
     return g
 
 
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
-
-
 def ranged(g):  # the sword reaches two squares; Gorm stands two squares from Eirik
     edit(g, 'data/weapons.json', lambda w: w['weapons'][0].update({'range': [1, 2]}))
     edit(g, 'maps/ch1.json', lambda m: [u.update({'x': 5, 'y': 1}) for u in m['units'] if u.get('character') == 'gorm'])
@@ -145,10 +129,10 @@ ATTACK = [IDLE, 'confirm', 'wait:3', 'confirm', 'wait:3', 'confirm', 'wait:3', '
 def run(gid, shot, frames=175):
     work = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', work,
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work,
            '--frames', str(frames), '--input-interval', '4', '--fixed-dt', '0.016', '--game', gid, '--map', 'ch1',
            '--input', ','.join(ATTACK), '--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.stdout
 
 
@@ -182,16 +166,6 @@ class Shot:
                     xs.append(x)
                     ys.append(y)
         return (min(xs), min(ys), max(xs) + 1, max(ys) + 1) if xs else None
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def keep(path, name):
@@ -308,5 +282,5 @@ try:
 finally:
     shutil.rmtree(TMP, ignore_errors=True)
 
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)

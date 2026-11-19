@@ -13,9 +13,10 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, save_of, summary  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -24,18 +25,6 @@ import campaign_player_test as cpt  # noqa: E402  (its game builder: three chapt
 PLAYER = ''
 repo = '.'
 GAMES = ''
-failures = []
-passed = 0
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def play(args, saves=None, frames=1500, interval=8, inp=None):
@@ -43,13 +32,8 @@ def play(args, saves=None, frames=1500, interval=8, inp=None):
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def save_of(saves, game):
-    path = os.path.join(saves, game, 'continue.json')
-    return json.load(open(path)) if os.path.exists(path) else None
 
 
 def make_game():
@@ -189,7 +173,7 @@ def main():
         return 2
     PLAYER, repo = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
     run_all()
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

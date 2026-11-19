@@ -13,22 +13,16 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, read_jsonc, save_of, summary  # noqa: E402
+jsonc = read_jsonc  # (the name this script uses)
 
 repo = '.'
 out = ''
 PLAYER = ''
 GAMES = ''
-failures = []
-passed = 0
-
-
-def jsonc(path):
-    text = open(path).read()
-    text = '\n'.join(l for l in text.split('\n') if not l.strip().startswith('//'))
-    return json.loads(text)
 
 
 # ---- the games
@@ -135,24 +129,8 @@ def play(args, saves=None, frames=1500, interval=8, inp=None, extra=None):
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args + (extra or []), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                       universal_newlines=True, timeout=300)
+    p = run_text(cmd + args + (extra or []))
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
-
-
-def save_of(saves, game):
-    path = os.path.join(saves, game, 'continue.json')
-    return json.load(open(path)) if os.path.exists(path) else None
 
 
 def supports_of(save):
@@ -254,7 +232,7 @@ def main():
         return 2
     PLAYER, repo = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
     run_all()
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

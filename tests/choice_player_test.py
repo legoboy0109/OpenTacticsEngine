@@ -14,15 +14,14 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
 PLAYER = ''
 repo = '.'
 GAMES = ''
-failures = []
-passed = 0
 INTERVAL = 3  # frames per token: a line has more letters than that is typed in one token (60 letters a second)
 
 
@@ -37,18 +36,8 @@ def play(args, saves=None, frames=3000, inp=None, game='choice-story'):
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if inp:
         cmd += ['--input', inp]
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + args)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def rows(log, n=-1):
@@ -231,7 +220,7 @@ def main():
         scenarios(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     return 1 if failures else 0
 
 

@@ -21,45 +21,20 @@ import subprocess
 import sys
 import tempfile
 import wave
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, player_and_repo, player_cmd, read_jsonc, summary, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
+PLAYER, REPO = player_and_repo()
 TMP = tempfile.mkdtemp(prefix='ote-staffheal-')
-passed, failures = 0, []
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)
 
 Canvas, write_png = battle_art.Canvas, battle_art.write_png
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
 
 
 def beep(path, hz):
@@ -121,7 +96,7 @@ def game(gid, heal=None, scene=False):
 def hurt_save(gid):
     """A Continue save with Tarn wounded (the maps cannot place a wounded unit): made by the player, then edited."""
     saves = os.path.join(TMP, 'saves_' + gid)
-    subprocess.run([PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', saves,
+    subprocess.run(player_cmd(PLAYER, TMP, REPO) + ['--saves', saves,
                     '--frames', '120', '--fixed-dt', '0.016', '--game', gid, '--map', 'clinic', '--input', 'wait:20'],
                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=300)
     path = os.path.join(saves, gid, 'continue.json')
@@ -145,7 +120,7 @@ def play(gid):
     alog = os.path.join(TMP, gid + '.audio.log')
     cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-settings', '--saves', work, '--audio-log', alog,
            '--frames', '600', '--input-interval', '4', '--fixed-dt', '0.016', '--game', gid, '--map', 'clinic', '--continue', '--input', ','.join(USE)]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     heard = []
     if os.path.exists(alog):
         for line in open(alog).read().splitlines():
@@ -186,8 +161,8 @@ def main():
                 if it['id'] == 'mend_staff':
                     it['sounds'] = sounds
         edit(g, 'data/items.json', fn)
-        p = subprocess.run([PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--audio-log', os.path.join(TMP, 'bad.log'), '--no-settings', '--no-saving',  # (--no-audio would not check the ids)
-                            '--frames', '5', '--game', gid, '--map', 'clinic'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=120)
+        p = run_text([PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--audio-log', os.path.join(TMP, 'bad.log'), '--no-settings', '--no-saving',  # (--no-audio would not check the ids)
+                            '--frames', '5', '--game', gid, '--map', 'clinic'], timeout=120)
         check('loader: sounds %s is refused and named' % json.dumps(sounds), 'items.json: item "mend_staff"' in p.stdout and part in p.stdout, p.stdout[-300:])
 
 
@@ -196,5 +171,5 @@ if __name__ == '__main__':
         main()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     sys.exit(1 if failures else 0)

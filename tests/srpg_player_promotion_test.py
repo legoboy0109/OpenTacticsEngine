@@ -21,6 +21,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import check_dash, failures, player_cmd, summary  # noqa: E402
+check = check_dash  # this script prints the "PASS name" / "FAIL name -> detail" layout
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,21 +33,9 @@ from terrain3d_player_test import Pic  # noqa: E402
 
 PLAYER = REPO = ''
 SHOTS = ''
-failures, passed = [], 0
 START = 'wait:40'            # the turn banner plays first
 PICK = 'confirm,confirm'     # select the unit under the cursor, stay: opens its action menu
 INTERVAL = 4
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS', name)
-    else:
-        failures.append(name)
-        print('FAIL', name, ('-> ' + str(detail)) if detail != '' else '')
-    return bool(cond)
 
 
 def frames_for(inp):
@@ -59,8 +50,7 @@ class Run:
         Run.n += 1
         shot = os.path.join(tmp, '%02d_%s.bmp' % (Run.n, name))
         saves = os.path.join(tmp, 'saves%d' % Run.n)
-        cmd = [PLAYER, '--games', games, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-               '--saves', saves, '--fixed-dt', '0.016', '--input-interval', str(INTERVAL), '--game', 'promo', '--map', map_id,
+        cmd = player_cmd(PLAYER, games, REPO) + ['--saves', saves, '--fixed-dt', '0.016', '--input-interval', str(INTERVAL), '--game', 'promo', '--map', map_id,
                '--style', style, '--input', inp, '--frames', str(frames or frames_for(inp)), '--screenshot', shot] + list(extra)
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
         self.log = res.stdout + res.stderr
@@ -212,7 +202,7 @@ def main():
                           ('phone_banner', START + ',' + PICK + ',confirm,confirm,wait:10')):
             r = Run(tmp, phone, name, 'choose', inp)
             check(name + ' runs and the window is 270 x 480', r.ok and (r.pic.w, r.pic.h) == (270, 480), r.log[-300:])
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     return 1 if failures else 0
 
 
