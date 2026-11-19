@@ -110,9 +110,7 @@ bool loadConditions(const std::string& path, Database& db, std::string& err) {
     if (!e.has("turns") && !e.has("until"))
       return c.fail(where, "needs a duration: \"turns\": 3 (the unit's own turns) or \"until\": \"cured\" or \"mapEnd\"");
     if (e.has("turns")) {
-      if (!LoadCtx::isWhole(e["turns"]) || e["turns"].asInt() < 1 || e["turns"].asInt() > kMaxConditionTurns)
-        return c.fail(where, "\"turns\" must be a whole number from 1 to " + std::to_string(kMaxConditionTurns));
-      d.turns = e["turns"].asInt();
+      if (!c.integerIn(e, "turns", where, 1, kMaxConditionTurns, d.turns)) return false;
       d.until = ConditionUntil::Turns;
     } else {
       std::string until;

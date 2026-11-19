@@ -48,10 +48,7 @@ bool readWeightSet(const LoadCtx& c, const Database& db, const std::string& name
                                "friendsCap, counterCap, noCounterBonus, dangerDiv, dangerCap; also attackAtZero and priority)");
   }
   for (const IntKey& k : kKeys) {
-    if (!e.has(k.key)) continue;
-    if (!whole(e[k.key], k.lo, k.hi))
-      return c.fail(where, std::string("\"") + k.key + "\" must be a whole number from " + std::to_string(k.lo) + " to " + std::to_string(k.hi));
-    out.*(k.field) = e[k.key].asInt();
+    if (!c.integerIn(e, k.key, where, k.lo, k.hi, out.*(k.field))) return false;
   }
   if (!c.boolean(e, "attackAtZero", where, out.attackAtZero)) return false;
   if (e.has("priority")) {

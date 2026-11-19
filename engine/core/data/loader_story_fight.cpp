@@ -52,9 +52,7 @@ bool StoryLoader::fightCommand(const Json& e, const std::string& at, Command& ou
     else if (result == "crit") k.result = 2;
     else return fail(where, "\"result\" must be \"hit\", \"miss\" or \"crit\"");
     if (st.has("damage")) {
-      if (!LoadCtx::isWhole(st["damage"]) || st["damage"].asInt() < 0 || st["damage"].asInt() > 9999)
-        return fail(where, "\"damage\" must be a whole number from 0 to 9999");
-      k.damage = st["damage"].asInt();
+      if (!c_.integerIn(st, "damage", where, 0, 9999, k.damage)) return false;
       if (k.result == 1 && k.damage != 0) return fail(where, "a miss does no damage: leave \"damage\" out or write 0");
     }
     s.strikes.push_back(k);

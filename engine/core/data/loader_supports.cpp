@@ -22,16 +22,6 @@ bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*
   return true;
 }
 
-// A whole number from `lo` to `hi`, key optional (`out` untouched when absent).
-bool number(const LoadCtx& c, const Json& o, const char* key, const std::string& where, int lo, int hi, int& out,
-            bool required = false) {
-  if (!o.has(key)) return !required || c.fail(where, std::string("missing required \"") + key + "\"");
-  if (!LoadCtx::isWhole(o[key]) || o[key].asInt() < lo || o[key].asInt() > hi)
-    return c.fail(where, quoted(key) + " must be a whole number from " + std::to_string(lo) + " to " + std::to_string(hi));
-  out = o[key].asInt();
-  return true;
-}
-
 bool readRules(const LoadCtx& c, const Json& root, SupportRules& r) {
   if (!root.has("rules")) return true;
   const Json& e = root["rules"];
@@ -46,12 +36,12 @@ bool readRules(const LoadCtx& c, const Json& root, SupportRules& r) {
     if (!e["points"].isObject()) return c.fail("rules", "\"points\" must be an object");
     const Json& p = e["points"];
     if (!onlyKeys(c, p, {"endTurnAdjacent", "fightTogether", "heal"}, "rules: \"points\"") ||
-        !number(c, p, "endTurnAdjacent", "rules: \"points\"", 0, kMaxSupportPoints, r.endTurnAdjacent) ||
-        !number(c, p, "fightTogether", "rules: \"points\"", 0, kMaxSupportPoints, r.fightTogether) ||
-        !number(c, p, "heal", "rules: \"points\"", 0, kMaxSupportPoints, r.heal))
+        !c.integerIn(p, "endTurnAdjacent", "rules: \"points\"", 0, kMaxSupportPoints, r.endTurnAdjacent) ||
+        !c.integerIn(p, "fightTogether", "rules: \"points\"", 0, kMaxSupportPoints, r.fightTogether) ||
+        !c.integerIn(p, "heal", "rules: \"points\"", 0, kMaxSupportPoints, r.heal))
       return false;
   }
-  if (!number(c, e, "range", "rules", 1, 10, r.range) || !number(c, e, "maxLevels", "rules", 1, 99, r.maxLevels)) return false;
+  if (!c.integerIn(e, "range", "rules", 1, 10, r.range) || !c.integerIn(e, "maxLevels", "rules", 1, 99, r.maxLevels)) return false;
   if (e.has("conversations")) {
     const std::string v = e["conversations"].isString() ? e["conversations"].asString() : "";
     if (v == "battle") r.conversations = SupportTalks::Battle;
@@ -66,9 +56,9 @@ bool readBonus(const LoadCtx& c, const Database& db, const Json& e, const std::s
   if (!e.isObject()) return c.fail(where, "must be an object");
   if (!onlyKeys(c, e, {"hit", "avoid", "crit", "critAvoid", "damage", "damageTaken", "stats"}, where)) return false;
   const int lim = kMaxSupportPoints;
-  if (!number(c, e, "hit", where, -lim, lim, b.hit) || !number(c, e, "avoid", where, -lim, lim, b.avoid) ||
-      !number(c, e, "crit", where, -lim, lim, b.crit) || !number(c, e, "critAvoid", where, -lim, lim, b.critAvoid) ||
-      !number(c, e, "damage", where, -lim, lim, b.damage) || !number(c, e, "damageTaken", where, -lim, lim, b.damageTaken))
+  if (!c.integerIn(e, "hit", where, -lim, lim, b.hit) || !c.integerIn(e, "avoid", where, -lim, lim, b.avoid) ||
+      !c.integerIn(e, "crit", where, -lim, lim, b.crit) || !c.integerIn(e, "critAvoid", where, -lim, lim, b.critAvoid) ||
+      !c.integerIn(e, "damage", where, -lim, lim, b.damage) || !c.integerIn(e, "damageTaken", where, -lim, lim, b.damageTaken))
     return false;
   if (!e.has("stats")) return true;
   b.stats.assign(db.stats.size(), 0);
@@ -150,7 +140,7 @@ bool readLevels(const LoadCtx& c, Database& db, const Json& list, const std::str
     if (!e.isObject()) return c.fail(at, "must be an object");
     if (!onlyKeys(c, e, {"points", "bonus", "talk"}, at)) return false;
     SupportLevelDef lv;
-    if (!number(c, e, "points", at, 0, kMaxSupportPoints, lv.points, true)) return false;
+    if (!c.integerIn(e, "points", at, 0, kMaxSupportPoints, lv.points, true)) return false;
     if (i > 0 && lv.points <= p.levels.back().points)
       return c.fail(at, "\"points\" must be more than level " + std::to_string(i) + "'s (" + std::to_string(p.levels.back().points) + ")");
     if (e.has("bonus") && !readBonus(c, db, e["bonus"], at + ": \"bonus\"", lv.bonus)) return false;
@@ -174,7 +164,7 @@ bool readPair(const LoadCtx& c, Database& db, const Json& e, size_t index, Suppo
   const int dup = db.findSupportPair(p.a, p.b);
   if (dup >= 0) return c.fail(where, quoted(a) + " and " + quoted(b) + " are already a pair (pair " + std::to_string(dup + 1) + ")");
   where += " (" + quoted(a) + ", " + quoted(b) + ")";
-  if (!number(c, e, "start", where, 0, kMaxSupportPoints, p.start)) return false;
+  if (!c.integerIn(e, "start", where, 0, kMaxSupportPoints, p.start)) return false;
   if (!e.has("levels")) return c.fail(where, "\"levels\" must have from 1 to " + std::to_string(kMaxSupportLevels) + " entries");
   return readLevels(c, db, e["levels"], where, p);
 }
