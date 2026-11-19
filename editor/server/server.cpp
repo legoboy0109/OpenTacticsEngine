@@ -136,6 +136,11 @@ struct EditorServer::Impl {
       setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&yes), sizeof yes);
 #endif
     });
+    // The web editor is many small files fetched at once (one per section), over up to six connections per browser
+    // tab, and httplib ties a thread to every open connection for its keep-alive time. With the default pool a few
+    // tabs starve each other for seconds, so: more threads (they only wait) and idle connections let go quickly.
+    svr.new_task_queue = [] { return new httplib::ThreadPool(64); };
+    svr.set_keep_alive_timeout(1);
     svr.set_default_headers({{"Cache-Control", "no-store"}});
 
     // DNS-rebinding defence: a hostile web page can point its own domain at
