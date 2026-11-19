@@ -80,9 +80,9 @@ handlers are additions that call the same actions. No screen has text entry. Ski
 
 ## Still missing
 
-Android (native SDL3 APK): the APK project and `SDL_main` glue; extracting `games/` and `assets/` from the APK to app
-storage on first run and pointing `contentRoot()` there; `userRoot()` in app storage; a device-reset handler; the
-launcher's Cancel on the first screen (back = leave app?); safe-area / notch insets; touch is already a pointer.
+Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. Still missing there: a device-reset handler;
+the launcher's Cancel on the first screen (back = leave app?); safe-area / notch insets; the hardware 3D backend; an icon
+and release build.
 
 UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the
 back-button hint set before SDL init; D3D11 device removal handling; `sdl2_files.cpp`'s `_WIN32` branch (`listSubdirs`,
