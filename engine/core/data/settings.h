@@ -39,7 +39,6 @@ class Settings {
   std::string getString(const std::string& gameId, const std::string& key,
                         const std::string& def) const;
   int getInt(const std::string& gameId, const std::string& key, int def) const;
-  bool getBool(const std::string& gameId, const std::string& key, bool def) const;
 
   const Json& global(const std::string& key) const;
   bool hasOverride(const std::string& gameId, const std::string& key) const;

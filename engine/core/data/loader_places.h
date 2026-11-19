@@ -29,6 +29,5 @@ bool readUnlockKinds(const LoadCtx& c, const Json& v, const std::string& where, 
 // The key rule: does this item open a structure kind? The item's "opens" names "door" / "chest" for a door / chest kind, or the
 // kind's id; and, when the kind lists "keys", the item is one of them.
 bool kindAcceptsKey(const Database& db, const StructureDef& kind, int kindIndex, int item);
-bool itemOpensKind(const Database& db, int item, int structureKind);
 
 }  // namespace ote

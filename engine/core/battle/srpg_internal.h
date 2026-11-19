@@ -296,8 +296,6 @@ void addRankXp(Unit& u, int group, int amount, int& before, int& after) const;
 bool inflictCondition(int unit, int condition, int turns, int source, std::vector<Event>& events, bool* resisted = nullptr);
 // Removes the listed conditions ("all" = every one); returns how many went. `reason` is the ConditionEnded `c`.
 int cureConditions(int unit, const std::vector<int>& ids, bool all, int reason, std::vector<Event>& events);
-// The unit's own conditions as hidden skills, in the order applied (skillsOf appends them after the skills it has).
-void conditionSkills(const Unit& u, std::vector<int>& out) const;
 // True when `skill` is the hidden skill of a condition the unit no longer has (skill_timed.cpp: a cured condition does not tick).
 bool conditionSkillGone(const Unit& u, int skill) const;
 // The start of a turn (turn.cpp / srpg_hooks.cpp), in this order: wear-off rolls and the count-down (conditionsTurnStart), then the

@@ -257,7 +257,6 @@ class BattleScene : public Scene {
   void prepDrawSlots(Renderer& r);  // the numbered deployment squares, over the map
   void prepDrawPanelHead(Renderer& r);
   std::string prepHint() const;
-  Overlay prepOverlay() const;
   void prepMainMenu();
   void prepMenuChosen(int id);
   void prepUnitsOpen(int sel = 0);

@@ -22,8 +22,6 @@ double tri(double p, double peak) {
 
 }  // namespace
 
-int FightScene::bgIndex() const { return background_; }
-
 FightScene::Geo FightScene::geometry(const Renderer& r) const {
   Geo g;
   g.W = r.width();
