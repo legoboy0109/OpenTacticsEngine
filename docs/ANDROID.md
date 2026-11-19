@@ -45,7 +45,7 @@ files dir: `settings.json`, `saves/`), `extraContentRoot()` = `Android/data/<id>
 - Logs go to logcat, tag `OTE` (`adb logcat -s OTE`); SDL's own lines use tag `SDL`.
 - Touch is SDL's synthesized left-button mouse; the launcher, game page and battle (select, move, menu) work by tap.
 - Back is trapped (`SDL_HINT_ANDROID_TRAP_BACK_BUTTON=1`) and arrives as `AC_BACK` = Cancel. On the launcher's first screen
-  back leaves the app (Android only; elsewhere Cancel does nothing there).
+  back leaves the app at once (`launcherBack()` = `Exit`, platform.h; Xbox asks first, desktop does nothing).
 - Fullscreen (immersive); Android shows its one-time "Viewing full screen" notice on first launch.
 - Home / return: `background` and `foreground` reach the app; a battle in progress writes its Continue save on Home.
 
