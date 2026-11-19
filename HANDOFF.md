@@ -81,25 +81,54 @@ Sounds with no source found: victory, chapter card, preparation music, turn bann
 experience bar, healing-item use. Not reproduced: the world map, the original's menus (need not match, owner). Next:
 the owner plays again.
 
-Ports (owner, 2026-11-18; research in `.agent/notes.md`, decisions in Claude memory):
-- Android: builds and runs on the emulator (touch, back, suspend with Continue save, hardware 3D). Never run on a real
-  device or on arm64. Open: app name / id / icon (placeholders), safe-area insets, loss of SDL's own 2D context.
+Ports (owner's order; research in `.agent/notes.md`, decisions in Claude memory). State on 2026-11-19, origin/main =
+a4cdd8d, every merge fully checked (ote_tests 2257 both builds, editor API 1399, ctest 63, vitest 1614, e2e 616 in
+about 16 min):
+- Android (docs/ANDROID.md): builds and runs on the emulator (touch, back, suspend with Continue save, hardware 3D,
+  rebuilt after a simulated context loss). Never run on a real device or on arm64. Open: app name / id / icon
+  (placeholders), safe-area insets, loss of SDL's own 2D context.
+- Windows desktop (docs/WINDOWS.md): MSVC build of player, tools and tests; `engine/core/base/fileio.*` (`openFile`
+  UTF-8 paths, `replaceFile`, `executableDir`), `-DOTE_MSVC_STATIC_RUNTIME` (/MT default), `tools/windows/package.ps1`
+  makes the zip; user folder `%APPDATA%\OpenTacticsEngine\player\`. Never run on a real PC (sound, controller, full
+  screen, a real GPU). The editor helper with non-ASCII game paths on Windows is unchecked.
+- Direct3D 11 backend (`engine/gfx3d/d3d11/`, docs/RENDER3D.md): the hardware 3D choice on Windows; HLSL precompiled
+  to headers by `tools/windows/make_d3d11_shaders.ps1` (rerun after editing `shaders/render3d.hlsl`); device loss
+  through `ResilientRenderer3D` (`engine/gfx3d/resilient3d.*`). Switches: `OTE_3D_API=opengl`, `OTE_3D_D3D11_OWN=1`,
+  `OTE_3D_D3D11_LEVEL=10_1`, `OTE_3D_D3D11_DRIVER=warp`, `OTE_WINDOW_HIDDEN=1`. Verified only on WARP (software
+  Direct3D) at levels 11_1 and 10_1; ctest `render3d_d3d11` is skipped off Windows. One unexplained exit -1 of a
+  windowless run in the VM, not reproduced in 48 runs.
+- Xbox / UWP (docs/XBOX.md, `tools/uwp/build.ps1`): the SDL2 platform as a UWP app (`OTE_UWP`), SDL2 2.32.10 built from
+  pinned source and patched to export `SDL_RenderGetD3D11Device`; content from the install folder, saves, `log.txt`
+  and `args.txt` in LocalState, extra games in `LocalState\games`. B on the launcher asks "Exit the player?" (owner's
+  decision; `launcherBack()` in `engine/platform/platform.h`: Android exits, UWP confirms, desktop nothing;
+  `OTE_LAUNCHER_BACK` overrides). Checked on the VM's desktop with a keyboard and with the Windows App Certification
+  Kit (27 of 27). NEVER run on a console: controller, sound, TV safe area, the 1 GB memory budget and whether the
+  Device Portal accepts the test signature are all open. Xbox One (level 10.1) untested.
 - Windows VM (QEMU/KVM, no window) on the external drive, folder `OpenTacticsEngine-WindowsVM` (README and scripts
-  there: `vm-start.sh`, `vm-stop.sh`, `vm-ssh.sh`, `vm-shot.sh`, `vm-type.py`; key login as `builder` on
-  127.0.0.1:2222; Windows 11 Enterprise 90-day evaluation installed 2026-11-18). Visual Studio 2022 Build Tools with
-  the C++ and UWP workloads were being installed when this was written. The OpenSSH firewall rule had to be opened to
-  every profile (the VM's network counts as public).
-- Then: Windows desktop build of the player (a real target, owner), SDL2 UWP hello on the Xbox Series X (owner has Dev
-  Mode ready; pairing needed), engine as UWP with software 3D, then a native Direct3D 11 backend for `Renderer3D`
-  (owner's choice over ANGLE; also for Windows desktop). Xbox One must work too (D3D11 feature level 10.1; untested).
+  there: `vm-start.sh` (8 CPUs, 10G, UTC clock), `vm-stop.sh`, `vm-ssh.sh`, `vm-shot.sh`, `vm-type.py` with `wait:N`
+  keys; key login as `builder` on 127.0.0.1:2222; Windows 11 Enterprise 90-day evaluation installed 2026-11-18, so it
+  expires mid-February 2027). Installed: VS 2022 Build Tools (v143, UWP tools), Windows SDK 10.0.26100, Python 3.12,
+  Pillow, ffmpeg, SDL3 VC package. Trees `C:\work`, `C:\work2`, `C:\uwp`; the test certificate lives only in
+  `C:\uwp\cert`. ssh sessions have no desktop: start windows through a scheduled task with `/it`. `PC-Backup`
+  beside the VM folder is the owner's: never touch it.
+- Builds for the owner in the VM folder's `builds/` (demo games only): `OpenTacticsEngine-windows-x64.zip` and
+  `uwp/OpenTacticsPlayer_0.1.1119.1452_x64.appx` with `Microsoft.VCLibs.x64.14.00.appx` and `ote-test.cer`.
+  Waiting for the owner: install the appx through the console's Device Portal (or give the console's address), try
+  the zip on a real PC.
 - After Android and Xbox work: a one-day feasibility test for the original Xbox (nxdk + xemu, 480 and 720p), owner's
   go-ahead for the test only. Then the advanced native editor (Linux and Windows first); the web editor's UI overhaul
   waits for a UI framework somebody else is writing: no large editor UI work until the owner says so.
 
-Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache). Next: C7 (editor code
-splitting; small, independent of the UI overhaul), D2, A3, D5, A4, ...
+Editor: the 17 section screens load on demand (`React.lazy` in `editor/web/src/shell/ProjectShell.tsx`, first load
+1572 -> 482 kB). That needs the helper's `httplib::ThreadPool(64)` and 1 s keep-alive in `editor/server/server.cpp`:
+without them the many chunk requests starve the helper and the e2e suite takes twice as long with ~20 failures. A
+suite that suddenly takes twice as long is a real signal, not load.
 
-Open with the owner: names of the three difficulties; "Only on" difficulty limited to computer-side units; all new
+Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache). C7. Next: D2, A3, D5, A4, ...
+
+Open with the owner: the wording "Exit the player?"; the app's name, identity and logos on Android and Xbox (changing
+the identity later loses saves); the 3D option's "OpenGL" label now means Direct3D 11 on Windows; names of the three
+difficulties; "Only on" difficulty limited to computer-side units; all new
 editor wording is placeholder; shop labels in the port; a locked door without a key is hidden under `hide`. See
 `.agent/notes.md` on a committed `node_modules` link before merging any agent branch.
 
