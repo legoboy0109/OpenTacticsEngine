@@ -1,5 +1,7 @@
 // memoryStatus() and platformLaunchArgs(): see platform.h. Shared by every backend.
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -41,6 +43,21 @@ std::vector<std::string> platformLaunchArgs() {
   return uwpLaunchArgs();
 #else
   return std::vector<std::string>();
+#endif
+}
+
+LauncherBack launcherBack() {
+  if (const char* o = std::getenv("OTE_LAUNCHER_BACK")) {
+    if (!std::strcmp(o, "nothing")) return LauncherBack::Nothing;
+    if (!std::strcmp(o, "exit")) return LauncherBack::Exit;
+    if (!std::strcmp(o, "confirm")) return LauncherBack::ConfirmExit;
+  }
+#if defined(__ANDROID__)
+  return LauncherBack::Exit;  // owner's decision: back leaves the app, as users expect on Android
+#elif defined(OTE_UWP)
+  return LauncherBack::ConfirmExit;  // owner's decision: B on the Xbox launcher exits after a Yes / No question
+#else
+  return LauncherBack::Nothing;
 #endif
 }
 

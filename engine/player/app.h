@@ -66,7 +66,7 @@ class PlayerApp : public App, public SceneHost {
   void campaignBattleOver(ChapterResult result) override;
   void prepareDone() override;
   void relook(const std::string& gameId) override;
-  void quit() override { quit_ = true; flushSettings(); }
+  void quit() override;  // logs "quit requested after N frames", flushes the settings
   void showError(const std::string& title, const std::string& message, Back back) override;
 
  private:

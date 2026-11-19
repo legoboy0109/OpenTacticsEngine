@@ -135,6 +135,14 @@ void PlayerApp::runPending() {
   syncAudio();
 }
 
+// The scenes' way to leave (launcher Quit, back on Android, "Yes" on the UWP exit prompt). The log line is what the
+// launcher-back test reads, and shows in a console / LocalState\log.txt that the app ended through its own exit path.
+void PlayerApp::quit() {
+  OTE_INFO("quit requested after %ld frames", frameCount_);
+  quit_ = true;
+  flushSettings();
+}
+
 void PlayerApp::onInput(const InputEvent& e) {
   // The web only lets sound start after a key press or tap: the device is opened on the first one.
   if (audio_.devicePending() && (e.type == InputEvent::ButtonDown || e.type == InputEvent::PointerDown)) openAudioDevice();

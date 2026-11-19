@@ -65,6 +65,13 @@ void HomeScene::activate(int row) {
 
 void HomeScene::onInput(const InputEvent& e) {
   layout(host_.renderer());
+  if (exitAsk_.isOpen()) {  // modal: Cancel / a tap outside answers No
+    ConfirmBox::Result a = exitAsk_.onInput(e, host_.renderer());
+    if (a == ConfirmBox::None) return;
+    exitAsk_.close();
+    if (a == ConfirmBox::Yes) host_.quit();
+    return;
+  }
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
     if (row >= 0) list_.sel = row;
@@ -74,11 +81,13 @@ void HomeScene::onInput(const InputEvent& e) {
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) return;
     if (e.button == Button::Confirm) activate(list_.sel);
-#ifdef __ANDROID__
-    // Owner's decision: on Android the back key (Cancel) on the first screen leaves the app, as users expect there.
-    // Elsewhere Cancel does nothing here, so a stray Esc or B press cannot close the player.
-    if (e.button == Button::Cancel) host_.quit();
-#endif
+    if (e.button == Button::Cancel) {
+      // What back does here is the platform's convention (platform.h LauncherBack): Android leaves, UWP asks first,
+      // elsewhere nothing, so a stray Esc cannot close the player.
+      LauncherBack b = launcherBack();
+      if (b == LauncherBack::Exit) host_.quit();
+      else if (b == LauncherBack::ConfirmExit) exitAsk_.open("Exit the player?", "Yes", "No");
+    }
   }
 }
 
@@ -143,6 +152,7 @@ void HomeScene::draw(Renderer& r) {
   list_.drawMore(r, chrome::kAccent);
   drawInfo(r, infoX_, list_.y, infoW_, list_.h);
   drawFooter(r, "Up/Down: choose   Confirm: open   or tap");
+  exitAsk_.draw(r);
 }
 
 }  // namespace ote

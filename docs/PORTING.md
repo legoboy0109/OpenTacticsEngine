@@ -63,8 +63,11 @@ Tests: the `--input` tokens `background`, `foreground`, `lowmemory`, `terminate`
 ## Input
 
 The platform back key (`SDL_SCANCODE_AC_BACK`: Android back, and Xbox B on UWP when the app sets
-`SDL_HINT_WINRT_HANDLE_BACK_BUTTON`) is `Button::Cancel` in both backends. On the launcher's first screen Cancel does
-nothing, except on Android, where the platform layer leaves the app from there (the owner's decision, docs/ANDROID.md).
+`SDL_HINT_WINRT_HANDLE_BACK_BUTTON`) is `Button::Cancel` in both backends. What Cancel does on the launcher's first
+screen is the platform's answer, `launcherBack()` in `platform.h` (`common/process_info.cpp`), so the player has no platform
+`#ifdef` there: `Exit` on Android (leaves at once, docs/ANDROID.md), `ConfirmExit` on UWP / Xbox (asks "Exit the player?",
+Yes / No with No selected; Yes quits, docs/XBOX.md), `Nothing` everywhere else, so a stray Esc cannot close the player.
+A new port picks its answer there. `OTE_LAUNCHER_BACK=nothing|exit|confirm` overrides it (`tests/launcher_back_player_test.py`).
 
 Every screen is operable with a controller alone (d-pad or left stick, A confirm, B cancel, Start = Menu, shoulders =
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
