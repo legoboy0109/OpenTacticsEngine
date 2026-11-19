@@ -1,0 +1,99 @@
+// The player's APK. Layout and what is packaged: docs/ANDROID.md.
+//  - Java glue: SDL's own SDLActivity & co. are taken straight from the SDL release tree that tools/android/fetch_sdl.sh
+//    downloads into android/third_party/ (git-ignored, sha256-checked), so no third-party Java is committed.
+//  - Native: the repository's root CMakeLists.txt (player only) with SDL3 built from the same tree.
+//  - Content: an explicit allow-list of tracked games + assets/ copied from the repository at build time.
+import java.security.MessageDigest
+
+plugins {
+    id 'com.android.application'
+}
+
+def sdlVersion = '3.4.20'
+def sdlDir = file("${rootDir}/third_party/SDL3-${sdlVersion}")
+def repoRoot = file("${rootDir}/..")
+
+// Only games that are tracked in git. games/vision-quest and games/practice-* are private and must never be packaged.
+def packagedGames = ['demo-srpg', 'demo-economy', 'demo-hex']
+
+if (!sdlDir.exists()) {
+    throw new GradleException("SDL ${sdlVersion} source not found at ${sdlDir}. Run tools/android/fetch_sdl.sh first.")
+}
+
+android {
+    namespace = 'org.libsdl.app'   // SDL's Java classes live in this package; the app id below is ours
+    compileSdk 36
+    ndkVersion = '28.2.13676358'
+
+    defaultConfig {
+        applicationId 'org.opentacticsengine.player'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '0.1'
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static',
+                          '-DOTE_BUILD_TESTS=OFF', '-DOTE_BUILD_EDITOR=OFF', '-DOTE_BUILD_PLAYER=ON',
+                          "-DOTE_ANDROID_SDL_SOURCE=${sdlDir}",
+                          // Gradle's Debug build type would compile at -O0; the software 3D renderer needs speed.
+                          '-DCMAKE_C_FLAGS_DEBUG=-O2 -g', '-DCMAKE_CXX_FLAGS_DEBUG=-O2 -g'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("${repoRoot}/CMakeLists.txt")
+            version = '3.31.5'
+        }
+    }
+
+    sourceSets.main {
+        java.srcDir "${sdlDir}/android-project/app/src/main/java"
+        assets.srcDir layout.buildDirectory.dir('generated/ote-assets')
+    }
+
+    // Debug signing only (the auto-generated debug keystore). No release signing is configured on purpose.
+    buildTypes {
+        release { minifyEnabled false }
+    }
+    lint { abortOnError = false }
+}
+
+// Copies the allow-listed games and assets/ into generated/ote-assets and writes ote-manifest.txt: line 1 is
+// "version <versionCode>-<hash of every packaged byte>", then one relative path per line. The player extracts the
+// files to app storage (APK assets cannot be listed or fopen'ed) and re-extracts when line 1 changes.
+tasks.register('stageContent') {
+    def outDir = layout.buildDirectory.dir('generated/ote-assets')
+    def code = android.defaultConfig.versionCode
+    inputs.dir("${repoRoot}/assets")
+    packagedGames.each { inputs.dir("${repoRoot}/games/${it}") }
+    inputs.file("${repoRoot}/games/index.json")
+    inputs.property('code', code)
+    outputs.dir(outDir)
+    doLast {
+        def out = outDir.get().asFile
+        delete(out)
+        out.mkdirs()
+        copy {
+            from("${repoRoot}/assets") { into 'assets' }
+            from("${repoRoot}/games/index.json") { into 'games' }
+            packagedGames.each { g -> from("${repoRoot}/games/${g}") { into "games/${g}" } }
+            into out
+        }
+        // aapt skips names starting with "." or "_"; the manifest must not list what the APK will not contain.
+        def paths = []
+        out.eachFileRecurse(groovy.io.FileType.FILES) { f ->
+            def rel = out.toPath().relativize(f.toPath()).toString().replace('\\', '/')
+            if (!rel.split('/').any { it.startsWith('.') || it.startsWith('_') }) paths << rel
+        }
+        paths.sort()
+        def md = MessageDigest.getInstance('SHA-256')
+        paths.each { p -> md.update(p.getBytes('UTF-8')); md.update(new File(out, p).bytes) }
+        def hash = md.digest().encodeHex().toString().take(16)
+        new File(out, 'ote-manifest.txt').text = "version ${code}-${hash}\n" + paths.join('\n') + '\n'
+    }
+}
+tasks.matching { it.name.matches('merge.*Assets') }.configureEach { dependsOn 'stageContent' }
