@@ -2,13 +2,14 @@
 
 #include <cstdio>
 
+#include "core/base/fileio.h"
 #include "core/base/log.h"
 
 namespace ote {
 namespace {
 
 bool fileExists(const std::string& path) {
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) return false;
   std::fclose(f);
   return true;

@@ -2,7 +2,7 @@
 // map changes, the layer's state in a battle and its save. Game: tests/fixtures/tiles (10 x 7, tileset "test" of 8 x 4 tiles, tile 8
 // animated; squares 4..6,2..4 are river with tile 8; change "dry" turns 4,3 into plain with tile 5, 5,3 into plain with no tile given,
 // 6,3 into plain keeping its tile; the turn 2 event applies it and sets 4,2 to a bridge with tile 1).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 #include <cstring>
@@ -260,7 +260,7 @@ TEST(tiles_apply_change_sets_clears_or_keeps_each_squares_tile_and_revert_restor
   CHECK_EQ(w.tile(5, 3), -1);  // the terrain changed and no tile was given: cleared
   CHECK_EQ(w.tile(6, 3), 8);   // keepTile
   CHECK_EQ(w.tile(4, 4), 8);   // not in the change
-  CHECK_EQ((int)w.events.size() >= 1, 1);
+  CHECK(w.events.size() >= 1);
   CHECK(w.events[0].type == EventType::TerrainChanged);
   CHECK_EQ(w.events[0].a, 3);
   w.events.clear();

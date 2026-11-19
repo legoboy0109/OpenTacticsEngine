@@ -42,7 +42,7 @@ bool hasRecoil(const SkillBlock& b) {
 
 }  // namespace
 
-void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, Rng* rng, StrikeMods& out,
+void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, Rng* roller, StrikeMods& out,
                           std::vector<Event>* strikeEvents, std::vector<Event>* struckEvents,
                           std::vector<ForecastNote>* notes) const {
   if (db->skills.empty()) return;
@@ -60,7 +60,7 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, 
       for (const SkillBlock& b : db->skills[(size_t)s].blocks) {
         if (b.when != when) continue;
         // A block that asks about marks depends on a roll of another block, so no forecast lists it (the other block's chance is the note).
-        if (!rng && db->marksUsed && blockReadsMarks(b)) continue;
+        if (!roller && db->marksUsed && blockReadsMarks(b)) continue;
         if (!skillBlockHolds(b, ctx)) continue;
         if (b.hasChance) {
           const int chance = skillChance(b, ctx);
@@ -68,7 +68,7 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, 
             if (chance > 0) notes->push_back(ForecastNote{owner, s, chance, hasRecoil(b)});
             continue;
           }
-          if (!rng || !rollActivation(*rng, chance)) continue;
+          if (!roller || !rollActivation(*roller, chance)) continue;
           Event e;
           e.type = EventType::SkillActivated;
           e.a = owner;
@@ -83,7 +83,7 @@ void Battle::gatherStrike(const CombatSetup& setup, bool counter, int strikeNo, 
         numbers.clear();
         for (const SkillEffect& e : b.effects) numbers.push_back(skillEffectNumber(e, ctx, scratch));
         applyStrikeEffects(b, numbers, out, side == 0);
-        if (rng && db->marksUsed)  // a real fight: the owner now has the marks this block gives (blocks after it see them at once)
+        if (roller && db->marksUsed)  // a real fight: the owner now has the marks this block gives (blocks after it see them at once)
           for (const SkillEffect& e : b.effects)
             if (e.kind == SkillEffect::Kind::Mark) setMark(owner, e.names[0]);
       }

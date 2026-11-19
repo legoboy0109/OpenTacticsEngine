@@ -2,10 +2,12 @@
 
 #include <cstdio>
 
+#include "core/base/fileio.h"
+
 namespace ote {
 
 FileBytes readAudioFile(const std::string& path, std::string& err) {
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) {
     err = "cannot read " + path;
     return nullptr;

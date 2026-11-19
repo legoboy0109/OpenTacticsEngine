@@ -1,7 +1,7 @@
 // Loading the fog of war data (docs/ECONOMY.md "Fog of war"): the map's "fog", units.json "vision", terrain.json and
 // structures.json "visionBonus" and "hides", and the story condition "sees". The good case and one test per refusal,
 // each checking that the message names what is wrong.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

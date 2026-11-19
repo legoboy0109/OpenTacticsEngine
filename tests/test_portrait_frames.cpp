@@ -1,7 +1,7 @@
 // Portrait facing, talk and blink frames (docs/GRAPHICS.md "Portraits"): the loader reads and refuses the keys, and portraitFrame() picks
 // the frame to draw: talk frames cycle while the line is typed, a blink frame shows for a moment at times that depend only on the clock
 // and the speaker (never random), and a portrait with neither is untouched.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

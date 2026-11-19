@@ -16,6 +16,7 @@
 using namespace ote;
 
 int main(int argc, char** argv) {
+  attachParentConsole();  // Windows GUI program started from a terminal: show its output there (no-op elsewhere)
 #ifdef __ANDROID__
   installAndroidLogSink();  // stderr is not shown on Android; logcat tag "OTE"
   // Debug aid: player arguments and environment from the launching intent's extras (docs/ANDROID.md). Before the log level

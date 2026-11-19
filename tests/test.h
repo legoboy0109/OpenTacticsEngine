@@ -26,6 +26,10 @@ struct Registrar {
   }
 };
 
+// CHECK passes its condition through this so a condition made only of constants (an enum compared to a number) does not
+// trip MSVC's "conditional expression is constant" warning; the check still runs.
+inline bool truth(bool value) { return value; }
+
 // Root of the source tree, for locating games/ and tests/fixtures/.
 inline std::string sourceDir() { return OTE_SOURCE_DIR; }
 // Scratch folder for tests that write files (the build directory).
@@ -40,7 +44,7 @@ inline std::string tempDir() { return OTE_TEMP_DIR; }
 
 #define CHECK(cond)                                                        \
   do {                                                                     \
-    if (!(cond)) {                                                         \
+    if (!::ote_test::truth(cond)) {                                        \
       std::printf("  FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond);        \
       ++::ote_test::failures();                                            \
     }                                                                      \

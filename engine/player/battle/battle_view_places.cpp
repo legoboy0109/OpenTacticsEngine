@@ -28,7 +28,7 @@ bool isPlaceEvent(EventType t) {
 
 // The middle of the structure's top edge, in map pixels.
 bool BattleView::placeTop(const Battle& b, int s, float& x, float& y) const {
-  const float tile = tile_;
+  const float tile = (float)tile_;
   const BattleView& v = *this;
   if (s < 0 || (size_t)s >= b.structures.size()) return false;
   std::vector<Cell> cells;

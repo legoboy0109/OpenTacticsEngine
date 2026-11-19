@@ -89,9 +89,9 @@ void Battle::staffUnlockCells(int unit, int slot, Cell from, std::vector<Cell>& 
     if (!((p.isDoor() && fx->unlockDoors) || (p.isChest() && fx->unlockChests))) continue;
     if (!structureVisibleTo(teamOf(u), (int)s)) continue;
     if (p.isChest() && !roomForLoot(u, (int)s)) continue;
-    std::vector<Cell> cells;
-    structureCells((int)s, cells);
-    for (Cell c : cells) {
+    std::vector<Cell> structCells;
+    structureCells((int)s, structCells);
+    for (Cell c : structCells) {
       const int dist = grid.distance(from, c);
       if (dist >= minR && dist <= maxR) out.push_back(c);
     }

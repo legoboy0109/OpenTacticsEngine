@@ -2,6 +2,7 @@
 // backends. A port with different storage (Android app storage, UWP InstalledLocation/LocalState) replaces
 // the defaults here, behind its own #if, and leaves every caller alone.
 #include <cstdlib>
+#include <vector>
 
 #include "platform/common/android_roots.h"
 #include "platform/platform.h"
@@ -31,7 +32,15 @@ std::string contentRoot() {
   // APK assets cannot be opened with fopen: the first run extracts them to app storage (sdl_android.cpp).
   if (env.empty()) return androidContentRoot();
 #endif
-  return env;  // desktop default: empty = the working directory
+  if (!env.empty()) return env;
+  // Desktop default: a download unpacked anywhere runs by double-click, because games/ sits next to the program
+  // (docs/WINDOWS.md). Otherwise empty = the working directory (a source checkout run from its root).
+  std::string exe = executableDir();
+  std::vector<std::string> names;
+  if (!exe.empty() && listSubdirs(exe, names))
+    for (const std::string& n : names)
+      if (n == "games") return exe;
+  return "";
 }
 
 std::string extraContentRoot() {

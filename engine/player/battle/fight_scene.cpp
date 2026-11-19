@@ -33,7 +33,7 @@ FighterTimes timesOf(const BattleSet& s) {
     t.total[a] = an.totalMs();
     t.hitAt[a] = an.startMs(an.hitFrame());
     if (an.spawn >= 0) t.spawnAt[a] = an.startMs(an.spawn);
-    for (const auto& s : an.sounds) t.soundAt[a].push_back(std::make_pair(an.startMs(s.first), s.second));
+    for (const auto& snd : an.sounds) t.soundAt[a].push_back(std::make_pair(an.startMs(snd.first), snd.second));
     // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose").
     if (an.holdFrame >= 0) {
       t.hold[a] = true;

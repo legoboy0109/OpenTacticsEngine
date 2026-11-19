@@ -66,4 +66,24 @@ bool removeFile(const std::string& path) {
   return SDL_RemovePath(path.c_str());
 }
 
+bool replaceFile(const std::string& from, const std::string& to) {
+  // SDL3 replaces an existing target on every platform (MoveFileEx with REPLACE_EXISTING on Windows, rename elsewhere)
+  // and takes UTF-8 paths everywhere.
+  return SDL_RenamePath(from.c_str(), to.c_str());
+}
+
+std::string executableDir() {
+#if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
+  return "";  // no program folder to speak of (web: virtual FS; Android: the APK)
+#else
+  const char* b = SDL_GetBasePath();  // owned by SDL, ends with a separator; may be null
+  if (!b || !*b) return "";
+  std::string dir = b;
+  for (char& c : dir)
+    if (c == '\\') c = '/';
+  while (dir.size() > 1 && dir.back() == '/') dir.pop_back();
+  return dir;
+#endif
+}
+
 }  // namespace ote

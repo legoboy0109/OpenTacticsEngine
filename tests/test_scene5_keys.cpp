@@ -2,7 +2,7 @@
 //   an animation's "holdFrame" / "startFrame" / "startDelayMs" and the scene's "resultHoldMs" / "resultHoldAgainMs",
 //   game.json "battlePlatformFrom", a travel effect's "endOffset" by distance (and the wider range), "atRangeFixed" and an effect's "panAtMs".
 // The loader and its refusals, and the timeline (exactly when a held pose starts, waits and ends, and what leaves the old timing alone).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cmath>
 #include <cstdio>

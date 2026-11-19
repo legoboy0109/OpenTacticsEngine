@@ -1,7 +1,7 @@
 // Loading the repair and supply data (docs/ECONOMY.md "Repair and supply"): game.json "rules.supply",
 // structures "repairs", units "fuel" / "fuelPerTurn" / "supplies", weapons "ammo". The good case and one test
 // per refusal, each checking that the message names what is wrong.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

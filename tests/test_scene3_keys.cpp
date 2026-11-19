@@ -1,7 +1,7 @@
 // The third batch of battle scene keys (docs/BATTLE_SCENE.md): the loader and its refusals for every key (game.json "battleSceneStaves", an effect's
 // "blend", "hide", "fade", "order", "speed", a staff item as the effect's "weapon", the stage's "ranges"), the stage's range bands as pure geometry,
 // and the timeline's windows, flight time and camera.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cmath>
 #include <cstdio>

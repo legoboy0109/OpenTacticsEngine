@@ -9,11 +9,12 @@ already does. The layer rules are in docs/ARCHITECTURE.md; everything here lives
 
 | Function | Meaning | Desktop today |
 |---|---|---|
-| `contentRoot()` | folder holding shipped, read-only `games/` and `assets/` | empty = the working directory |
+| `contentRoot()` | folder holding shipped, read-only `games/` and `assets/` | the program's own folder when `games/` sits in it (an unpacked download), else empty = the working directory |
 | `extraContentRoot()` | optional second folder of games the user added (`<id>/game.json`) | none |
 | `userRoot()` | folder the app may write (settings, saves, progress) | `userDataDir()`: `SDL_GetPrefPath("OpenTacticsEngine", "player")` |
 
-Implemented in `platform/common/roots.cpp` (shared by both SDL backends). A port changes the answers there, behind its own
+Implemented in `platform/common/roots.cpp` (shared by both SDL backends); the program's folder comes from `executableDir()`
+(`SDL_GetBasePath`; empty on the web and Android). A port changes the answers there, behind its own
 `#if`: Android returns the folder the APK's assets were extracted to on first run (SDL's `SDL_GetAndroidInternalStoragePath`;
 APK assets cannot be read with `fopen`), UWP returns the install folder (`SDL_GetBasePath`) for content and
 `SDL_GetPrefPath` (LocalState) for `userRoot()`. Nothing else in the player builds a content or write path:
@@ -71,7 +72,15 @@ handlers are additions that call the same actions. No screen has text entry. Ski
   configured backend (CMake defines `OTE_PLATFORM_SDL3` / `OTE_PLATFORM_SDL2`). Nothing changes on Linux/macOS; on
   Windows, UWP and Android SDL renames `main`. SDL2 also links `SDL2::SDL2main` on WIN32/ANDROID. The web build skips it.
 - **MSVC.** `if(MSVC)` in the root `CMakeLists.txt`: `/W4 /permissive- /utf-8 /EHsc /GR-`, `NOMINMAX`,
-  `_CRT_SECURE_NO_WARNINGS`. Untested (no MSVC here); expect a first round of `/W4` warnings.
+  `_CRT_SECURE_NO_WARNINGS`. Built and tested with Visual Studio 2022 Build Tools (MSVC 14.44) on Windows 11: no warnings in
+  our code, all tests pass (docs/WINDOWS.md). `/GR-` holds for everything including the editor helper (nothing uses RTTI);
+  `/EHsc` is on for every target (the engine throws nothing; the STL and the editor need it declared). The C/C++ runtime is
+  static (`/MT`) by default and `-DOTE_MSVC_STATIC_RUNTIME=OFF` switches every target to `/MD` (UWP needs that).
+- **Windows differences live in the platform layer.** `core/base/fileio.h` `openFile()` is the only way the engine opens a
+  file (wide-path `_wfopen` on Windows, `fopen` elsewhere: engine paths are UTF-8); `platform.h` `replaceFile()`
+  (a rename that replaces: `std::rename` does not on Windows and reads the ANSI code page), `executableDir()` and
+  `attachParentConsole()` (the player is a GUI-subsystem program; started from a terminal it attaches to that terminal so
+  `--help` and the log show up). The SDL2 backend's Windows folder calls use the `W` functions with UTF-16 paths.
 - **Texture format (SDL2).** `-DOTE_SDL2_UPLOAD_ARGB8888=ON` makes every SDL2 texture ARGB8888 and swizzles the bytes in the
   backend (`sdl2/sdl2_pixels.h`) in one tight loop, because UWP's Direct3D 11 renderer has no RGBA32 and SDL would convert
   on every upload (every frame for the 3D picture). Default OFF, pictures byte-identical either way (checked with headless
@@ -84,13 +93,19 @@ Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. St
 safe-area / notch insets; an icon
 and release build.
 
-UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the
-back-button hint set before SDL init; D3D11 device removal handling; `sdl2_files.cpp`'s `_WIN32` branch (`listSubdirs`,
-`makeDir`) calls `FindFirstFileA` / `CreateDirectoryA`, which the UWP API subset does not offer (it needs the `W`
-variants / `FindFirstFileExW`, `CreateDirectory2`), and `_WIN32` is also defined on UWP, so it needs its own `#if` there;
-gamepad-only operation was verified by reading the code and a scripted run, not on a device.
+Windows desktop (SDL3, MSVC): done, see docs/WINDOWS.md. Unverified there: hardware (OpenGL) 3D, because the build VM has no GPU;
+sound, because it has no audio device; a real PC.
 
-Non-portable code noticed (left alone): `tests/*.cpp` and `tests/platform_stub.cpp` use `<sys/stat.h>`/`mkdir` (tests are
-desktop-only); `tools/sim/event_print.cpp` uses `__attribute__((format))` unguarded (the sim tool is not part of the ports;
-`core/base/log.h` is guarded). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No
-`<filesystem>`, `dirent` or `FindFirstFile` outside `engine/platform/` (inside it, see the UWP note above).
+UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the
+back-button hint set before SDL init; D3D11 device removal handling; `/MD` (`-DOTE_MSVC_STATIC_RUNTIME=OFF`); the
+desktop-only Win32 calls in `sdl2_files.cpp` (`CreateDirectoryW`, `DeleteFileW`, `MoveFileExW`: the UWP subset offers
+`CreateDirectory2`, `DeleteFile`/`MoveFileEx` only in part; `FindFirstFileExW` is fine) need their own `#if` for
+`WINAPI_FAMILY_APP`; `attachParentConsole()` already compiles to nothing there; `_WIN32` is also defined on UWP;
+gamepad-only operation was verified by reading the code and a scripted run, not on a device. The Windows desktop build is the
+base: same compiler, same sources, same tests; the SDL2 backend has not been built with MSVC yet.
+
+Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
+(MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`
+or `FindFirstFile` outside `engine/platform/` (inside it, see the UWP note above). The editor helper (`ote-editor`, desktop tool)
+uses `<filesystem>` and `std::ifstream` with UTF-8 path strings, which on Windows are read in the ANSI code page: project
+folders with non-ASCII names do not work there yet.

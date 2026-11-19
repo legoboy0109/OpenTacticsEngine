@@ -1058,13 +1058,56 @@ def check_file(path, uid):
     return dict(tris=tris, height=height, width=wid, depth=dep, joints=names[:-1], clips=dur, side=side / len(verts))
 
 
+def _close(a, b):
+    """JSON values equal, numbers to 12 significant digits (the sin/cos of different C libraries differ in the last bit)."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_close(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_close(x, y) for x, y in zip(a, b))
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool):
+        return math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-12)
+    return a == b
+
+
+def _same_float_words(a, b):
+    """Binary chunks equal, except float32 words that are the same number up to noise: sin/cos of different C
+    libraries give 1e-16-sized leftovers of either sign where the exact value is 0, and a last-bit difference elsewhere.
+    A word that differs and is not a normal float (index data, a denormal) is a real difference."""
+    if len(a) != len(b) or len(a) % 4:
+        return False
+    for i in range(0, len(a), 4):
+        if a[i:i + 4] == b[i:i + 4]:
+            continue
+        x, y = struct.unpack_from('<f', a, i)[0], struct.unpack_from('<f', b, i)[0]
+        if any(v != 0.0 and abs(v) < 1.2e-38 for v in (x, y)) or x != x or y != y:
+            return False
+        if abs(x - y) > 1e-6 * (1.0 + max(abs(x), abs(y))):
+            return False
+    return True
+
+
+def same_glb(old, fresh):
+    """The written file equals a fresh run: byte for byte, or the same up to float noise between platforms (the JSON
+    chunk's accessor min/max text and 1e-16-sized float32 leftovers in the binary chunk; see _same_float_words)."""
+    if old == fresh:
+        return True
+    if len(old) != len(fresh) or old[:12] != fresh[:12]:
+        return False
+    jlen = struct.unpack_from('<I', old, 12)[0]
+    if struct.unpack_from('<I', fresh, 12)[0] != jlen:
+        return False
+    return (_close(json.loads(old[20:20 + jlen]), json.loads(fresh[20:20 + jlen]))
+            and old[20 + jlen:20 + jlen + 8] == fresh[20 + jlen:20 + jlen + 8]  # the BIN chunk's length and tag
+            and _same_float_words(old[28 + jlen:], fresh[28 + jlen:]))
+
+
 def check(root):
     d = out_dir(root)
     for uid in UNIT_ORDER + ['fort']:
         path = os.path.join(d, uid + '.glb')
         info = check_file(path, uid)
         fresh = fort_bytes() if uid == 'fort' else unit_bytes(uid)
-        assert open(path, 'rb').read() == fresh, uid + ': file differs from a fresh run (not deterministic / stale)'
+        assert same_glb(open(path, 'rb').read(), fresh), uid + ': file differs from a fresh run (not deterministic / stale)'
         print('%-9s ok  tris=%d height=%.2f w=%.2f d=%.2f side=%.0f%% joints=%s clips=%s' % (
             uid, info['tris'], info['height'], info['width'], info['depth'], info['side'] * 100,
             ','.join(info['joints']), {k: round(v, 2) for k, v in info['clips'].items()}))

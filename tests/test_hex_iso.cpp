@@ -189,7 +189,7 @@ TEST(hex_iso_picking_follows_the_nearest_hexagon_and_the_heights) {
     g.topBox(x0, y0, 4, bx, by);
     CHECK_EQ(g.pick(bx + g.boxW() * 0.5f, by + g.boxH() * 0.5f, elev), (int)mid);
     g.topBox(x0, y0, 0, bx, by);
-    CHECK_EQ(g.pick(bx + g.boxW() * 0.5f, by + g.boxH() - 6, elev), (int)mid);  // low on its side face
+    CHECK_EQ(g.pick(bx + g.boxW() * 0.5f, (float)(by + g.boxH() - 6), elev), (int)mid);  // low on its side face
     g.topBox(grid.x(behind), grid.y(behind), 0, bx, by);
     CHECK_EQ(g.pick(bx + g.boxW() * 0.5f, by + g.boxH() * 0.5f, elev), (int)mid);  // the block is nearer
     CHECK(g.hidden(grid.x(behind), grid.y(behind), elev));

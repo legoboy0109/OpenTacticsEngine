@@ -1,7 +1,7 @@
 // Story state in saves (docs/SAVES.md): a round trip in the middle of a battle with events half
 // fired, refusal of damaged story fields, the data hash rules, determinism, and that games
 // without a story keep their saves and hashes exactly.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

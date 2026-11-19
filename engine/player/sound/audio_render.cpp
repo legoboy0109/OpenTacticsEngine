@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 
+#include "core/base/fileio.h"
 #include "audio/synth.h"
 #include "core/base/log.h"
 #include "sound/audio_selftest.h"
@@ -65,7 +66,7 @@ int runAudioRender(const Args& args) {
   rec->data.resize((size_t)want * 2);
 
   std::vector<uint8_t> wav = encodeWav16(rec->data.data(), (size_t)want, 2, AudioService::kRate);
-  FILE* f = fopen(args.audioRender.c_str(), "wb");
+  FILE* f = openFile(args.audioRender, "wb");
   if (!f || fwrite(wav.data(), 1, wav.size(), f) != wav.size()) {
     fprintf(stderr, "error: cannot write %s\n", args.audioRender.c_str());
     if (f) fclose(f);

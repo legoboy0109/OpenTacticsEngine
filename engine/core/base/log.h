@@ -2,6 +2,14 @@
 // on-screen); the default writes to stderr.
 #pragma once
 
+// printf-style format checking where the compiler offers it (GCC/Clang); nothing on MSVC. Also used by the sim tool and
+// the editor helper for their own printf-style functions.
+#if defined(__GNUC__)
+#define OTE_PRINTF_LIKE(fmtIndex, firstArg) __attribute__((format(printf, fmtIndex, firstArg)))
+#else
+#define OTE_PRINTF_LIKE(fmtIndex, firstArg)
+#endif
+
 namespace ote {
 
 enum class LogLevel { Debug, Info, Warn, Error };
@@ -10,11 +18,7 @@ using LogSink = void (*)(LogLevel level, const char* message);
 void setLogSink(LogSink sink);
 void setLogLevel(LogLevel minimum);
 LogLevel logLevel();  // the minimum shown now
-#if defined(__GNUC__)
-void logf(LogLevel level, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
-#else
-void logf(LogLevel level, const char* fmt, ...);
-#endif
+void logf(LogLevel level, const char* fmt, ...) OTE_PRINTF_LIKE(2, 3);
 
 }  // namespace ote
 

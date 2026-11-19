@@ -106,7 +106,7 @@ class Renderer {
   // Additive drawing for the textures drawn next (docs/BATTLE_SCENE.md "Blending"): on = the picture's colour, times its alpha and `mod`, is ADDED to
   // what is under it (it only brightens); off (the default) = alpha blended. Returns false when the backend cannot do it: the call then changes
   // nothing and pictures are drawn normally. Always switch it off again after the pictures that wanted it.
-  virtual bool setAdditiveBlend(bool on) { return false; }
+  virtual bool setAdditiveBlend(bool /*on*/) { return false; }
 };
 
 // Life-cycle notices from the operating system (phones, consoles; docs/PORTING.md "Life cycle"). Desktop backends
@@ -128,11 +128,11 @@ class App {
   virtual void draw(Renderer& renderer) = 0;
   // Called once by the backend after the window/renderer exist and before
   // the first frame (set the font / logical size here, load content).
-  virtual void onStart(Renderer& renderer) {}
+  virtual void onStart(Renderer& /*renderer*/) {}
   // A life-cycle notice (see Lifecycle). Backends call it from their event loop; where the OS may freeze the process
   // right after the notice (SDL's WILL_ENTER_BACKGROUND / TERMINATING) they call it from an event watch, at once,
   // with the main loop locked out, instead of queueing it.
-  virtual void onLifecycle(Lifecycle event) {}
+  virtual void onLifecycle(Lifecycle /*event*/) {}
   virtual bool wantsQuit() const = 0;
   // Called once by the backend after the main loop ends and before the window / SDL go away (never
   // on the web, where the page stays up): release anything that needs the device (the audio output).
@@ -227,5 +227,18 @@ bool makeDir(const std::string& path);
 // Deletes a file. True if the file is gone afterwards (also when it never
 // existed).
 bool removeFile(const std::string& path);
+
+// Moves `from` over `to`, replacing `to` if it exists (the save writer writes "x.tmp" and then replaces "x"). Paths are
+// UTF-8; on Windows std::rename would read them in the ANSI code page and refuses to replace, so it is a platform call.
+bool replaceFile(const std::string& from, const std::string& to);
+
+// Folder the program file lives in, without a trailing slash; empty if unknown (web, Android) or if the platform has no
+// such notion. contentRoot() uses it so an unpacked download runs from anywhere (docs/WINDOWS.md).
+std::string executableDir();
+
+// Windows only (a no-op everywhere else): the player is a GUI-subsystem program so a double-click opens no console
+// window; when it was started from a terminal this attaches to that terminal so log lines and --help output show up
+// there. Does nothing if stdout/stderr are already redirected to a file or pipe. Call first thing in main().
+void attachParentConsole();
 
 }  // namespace ote

@@ -37,7 +37,7 @@ bool hasTileArt(const DrawCtx& c, Cell cell) {
   return tileSrc(c, cell, s);
 }
 
-void drawTileArt(Renderer& r, const DrawCtx& c, const SpriteSrc& s, int dx, int dy, int dw, int dh) {
+void drawTileArt(Renderer& r, const DrawCtx& /*c*/, const SpriteSrc& s, int dx, int dy, int dw, int dh) {
   r.drawTexture(s.tex, s.x, s.y, s.w, s.h, dx, dy, dw, dh, Color(255, 255, 255));
 }
 

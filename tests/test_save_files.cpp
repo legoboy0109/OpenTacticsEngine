@@ -1,7 +1,6 @@
 // The player's save-file module (engine/player/saves.*): paths, atomic
 // writes, listing with reasons, reading, deleting.
-#include <sys/stat.h>
-#include <unistd.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

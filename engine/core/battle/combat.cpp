@@ -78,7 +78,7 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
 }
 
 bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out,
-                           CombatSetup& setup, bool story) const {
+                           CombatSetup& setup, bool storyFight) const {
   out = Forecast();
   if (attacker < 0 || attacker >= (int)units.size() || defender < 0 ||
       defender >= (int)units.size() || !grid.valid(from))
@@ -86,12 +86,12 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
   if (!a.alive || !d.alive) return false;
-  if (!story && (!mayFight(a, d) || !unitVisibleTo(teamOf(a), d))) return false;  // fog: not what it cannot see
+  if (!storyFight && (!mayFight(a, d) || !unitVisibleTo(teamOf(a), d))) return false;  // fog: not what it cannot see
   std::vector<int> owned;
   attackWeaponsAt(a, from, owned);  // (the structure it would stand on may add a weapon)
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
-  if (!story && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
-  if (!story && !weaponInRange(weapon, grid.distance(from, d.cell))) return false;
+  if (!storyFight && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
+  if (!storyFight && !weaponInRange(weapon, grid.distance(from, d.cell))) return false;
 
   // Everything below only reads the battle (this method is const; no roll is made), so a unit's stats cannot change between
   // the formula calls of this forecast: let the formulas work them out once (Formulas::BatchScope).

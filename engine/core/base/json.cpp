@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "core/base/fileio.h"
+
 namespace ote {
 
 static const Json kNull;
@@ -378,7 +380,7 @@ std::string Json::dump(int indent) const {
 // ----------------------------------------------------------------- files
 
 bool readTextFile(const std::string& path, std::string& out) {
-  std::FILE* f = std::fopen(path.c_str(), "rb");
+  std::FILE* f = openFile(path, "rb");
   if (!f) return false;
   std::string data;
   char buf[4096];
@@ -391,7 +393,7 @@ bool readTextFile(const std::string& path, std::string& out) {
 }
 
 bool writeTextFile(const std::string& path, const std::string& text) {
-  std::FILE* f = std::fopen(path.c_str(), "wb");
+  std::FILE* f = openFile(path, "wb");
   if (!f) return false;
   bool ok = std::fwrite(text.data(), 1, text.size(), f) == text.size();
   if (std::fclose(f) != 0) ok = false;

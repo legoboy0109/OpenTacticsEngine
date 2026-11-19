@@ -22,10 +22,10 @@ struct StoryWorld : fixture::World {
 
   // Parses `{ "events": [...], "objectives": {...} }` fragments into the map. Returns the loader's
   // error ("" = fine); the text may leave either part out (pass "" ).
-  std::string load(const std::string& events, const std::string& objectives = "") {
+  std::string load(const std::string& eventsJson, const std::string& objectives = "") {
     std::string text = "{";
-    if (!events.empty()) text += "\"events\": " + events;
-    if (!objectives.empty()) text += std::string(events.empty() ? "" : ",") + "\"objectives\": " + objectives;
+    if (!eventsJson.empty()) text += "\"events\": " + eventsJson;
+    if (!objectives.empty()) text += std::string(eventsJson.empty() ? "" : ",") + "\"objectives\": " + objectives;
     text += "}";
     Json root;
     std::string err;
@@ -36,8 +36,8 @@ struct StoryWorld : fixture::World {
   }
 
   // load() that must succeed, then begin().
-  bool play(const std::string& events, const std::string& objectives = "", uint32_t seed = 1) {
-    std::string err = load(events, objectives);
+  bool play(const std::string& eventsJson, const std::string& objectives = "", uint32_t seed = 1) {
+    std::string err = load(eventsJson, objectives);
     if (!err.empty()) {
       std::printf("  story: %s\n", err.c_str());
       return false;

@@ -236,7 +236,7 @@ bool readBlock(const LoadCtx& c, const AudioData& d, const Json& entry, const st
       *stepGap = (float)m.second.asNumber();
       continue;
     }
-    Cue cue;
+    Cue cue = Cue();
     const bool sceneHeal = scope == OverrideScope::Item && m.first == "healScene";  // an item's heal sound in the battle scene only
     if (!sceneHeal && !overrideCue(scope, m.first, cue))
       return c.fail(where + ": \"sounds\"", "unknown key " + q(m.first) + " (expected " + overrideKeys(scope) + (stepGap ? ", \"stepInterval\"" : "") + ")");

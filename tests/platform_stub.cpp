@@ -1,6 +1,6 @@
 // The few platform.h functions the player's save-file module calls, for the
-// unit tests (which do not link a backend). POSIX only: tests run on desktop.
-#include <sys/stat.h>
+// unit tests (which do not link a backend). Desktop only (POSIX or MSVC, see posix_compat.h).
+#include "posix_compat.h"
 
 #include <cstdio>
 
@@ -10,8 +10,7 @@ namespace ote {
 
 bool makeDir(const std::string& path) {
   if (mkdir(path.c_str(), 0755) == 0) return true;
-  struct stat st;
-  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+  return testIsDirectory(path.c_str());
 }
 
 bool removeFile(const std::string& path) {
@@ -20,6 +19,11 @@ bool removeFile(const std::string& path) {
   if (!f) return true;
   std::fclose(f);
   return false;
+}
+
+bool replaceFile(const std::string& from, const std::string& to) {
+  std::remove(to.c_str());  // std::rename does not replace an existing file on Windows
+  return std::rename(from.c_str(), to.c_str()) == 0;
 }
 
 void commitUserData() {}

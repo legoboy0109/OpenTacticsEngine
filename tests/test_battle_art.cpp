@@ -1,6 +1,6 @@
 // The battle scene's art: data/graphics.json "battle" (docs/BATTLE_SCENE.md): loader, refusals, which set a fighter
 // uses (character > weapon group > class > none), the game default and a map's own background.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

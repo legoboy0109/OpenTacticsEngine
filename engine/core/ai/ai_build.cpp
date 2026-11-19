@@ -58,7 +58,7 @@ bool chooseBuild(const Battle& b, Cell& outCell, int& outType) {
   if (b.fogOn()) {
     bool any = false;
     for (char t : enemyType) any = any || t != 0;
-    if (!any) std::fill(enemyType.begin(), enemyType.end(), 1);
+    if (!any) std::fill(enemyType.begin(), enemyType.end(), (char)1);
   }
   if (db.rules.capture) {
     for (size_t si = 0; si < b.structures.size(); ++si) {

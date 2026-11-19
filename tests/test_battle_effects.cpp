@@ -1,7 +1,7 @@
 // Richer battle scene effects (docs/BATTLE_SCENE.md "Effects"): the loader and its refusals for every newer key (sounds, hitAtMs, layer, mirror,
 // flash, shake, at, returns, lingerMs, frames from several sheets, lists, byType), which effects a strike gets, the sound check against
 // data/audio.json, and the timeline of effects (when each effect, sound, flash and the hit start).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cmath>
 #include <cstdio>

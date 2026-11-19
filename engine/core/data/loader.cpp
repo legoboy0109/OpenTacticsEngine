@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdio>
 
+#include "core/base/fileio.h"
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
@@ -32,7 +33,7 @@ uint32_t parseColor(const std::string& text, uint32_t def) {
 }
 
 bool fileExists(const std::string& path) {
-  FILE* f = std::fopen(path.c_str(), "rb");
+  FILE* f = openFile(path, "rb");
   if (!f) return false;
   std::fclose(f);
   return true;

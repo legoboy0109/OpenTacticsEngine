@@ -1,5 +1,5 @@
 // Standing terrain: the "stand" of a terrain look in a 3D style (docs/GRAPHICS.md "Standing terrain").
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 #include <set>

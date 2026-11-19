@@ -233,9 +233,9 @@ bool Battle::storyShutDoor(int s, bool lock, std::vector<Event>& events) {
   const int target = closed ? st.type : closedKindOf(s);
   if (target < 0 || !db->structures[(size_t)target].place.isDoor()) return false;  // not a door at all
   if (!closed) {
-    std::vector<Cell> cells;
-    structureCells(s, cells);
-    for (Cell c : cells)
+    std::vector<Cell> structCells;
+    structureCells(s, structCells);
+    for (Cell c : structCells)
       if (occupant[(size_t)c] >= 0) return false;  // somebody stands in the doorway: it stays open
     const int old = st.type;
     markSight();

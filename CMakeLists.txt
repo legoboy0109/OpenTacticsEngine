@@ -14,6 +14,16 @@ endif()
 option(OTE_BUILD_PLAYER "Build the SDL3 player" ON)
 option(OTE_BUILD_TESTS "Build tests and the headless sim tool" ON)
 option(OTE_BUILD_EDITOR "Build the editor helper" ON)
+# MSVC only: link the C/C++ runtime statically (/MT: nothing to install next to the program, what the Windows desktop
+# zip uses) or as the DLL (/MD: needed for UWP and wherever the app brings the Visual C++ runtime itself). docs/WINDOWS.md.
+option(OTE_MSVC_STATIC_RUNTIME "MSVC: static runtime (/MT) instead of the DLL runtime (/MD)" ON)
+if(MSVC)
+  if(OTE_MSVC_STATIC_RUNTIME)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  else()
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  endif()
+endif()
 
 # --- Lua 5.4 (vendored, plain C) ---
 file(GLOB LUA_SRC third_party/lua/src/*.c)
@@ -361,7 +371,10 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
   # ote_core exports -fno-exceptions -fno-rtti as PUBLIC options and those come
   # after our own target options, so -fexceptions is set as a per-source flag,
   # which is placed last on the command line and therefore wins.
-  set_source_files_properties(${EDITOR_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  # (MSVC: /EHsc is already on for every target, nothing to add.)
+  if(NOT MSVC)
+    set_source_files_properties(${EDITOR_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  endif()
   find_package(Threads REQUIRED)
   target_link_libraries(ote-editor PRIVATE Threads::Threads)
   if(WIN32)

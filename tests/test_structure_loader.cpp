@@ -1,6 +1,6 @@
 // Loading structures: data/structures.json, map "structures", the refusals of the
 // old terrain keys and the map "owners" list, and the art section for structures.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

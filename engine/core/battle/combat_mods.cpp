@@ -167,16 +167,16 @@ void Battle::strikeOrder(const Forecast& forecast, std::vector<StrikeStep>& out)
   int strikesD = forecast.counter.can ? forecast.counter.strikes : 0;
   bool defenderFirst = forecast.defenderFirst && forecast.counter.can;
   // One fighter's turn within a round: its `multi` strikes in a row, if it has a strike left in this round.
-  auto step = [&](bool counter, int round) {
-    if (round >= (counter ? strikesD : strikesA)) return;
+  auto step = [&](bool counter, int rnd) {
+    if (rnd >= (counter ? strikesD : strikesA)) return;
     StrikeStep s;
     s.counter = counter;
     s.count = std::max(1, counter ? forecast.counter.multi : forecast.attack.multi);
     out.push_back(s);
   };
-  for (int round = 0; round < std::max(strikesA, strikesD); ++round) {
-    step(defenderFirst, round);
-    step(!defenderFirst, round);
+  for (int rnd = 0; rnd < std::max(strikesA, strikesD); ++rnd) {
+    step(defenderFirst, rnd);
+    step(!defenderFirst, rnd);
   }
 }
 

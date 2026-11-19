@@ -1,5 +1,5 @@
 // Portraits of the dialogue box: data/graphics.json "portraits" (loader, per-style merge, errors).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

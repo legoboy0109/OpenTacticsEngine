@@ -1,5 +1,5 @@
 // data/graphics.json loading and cell picking.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

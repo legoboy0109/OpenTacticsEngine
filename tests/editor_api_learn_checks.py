@@ -140,32 +140,37 @@ def run_learn_checks(api, binary, repo, tmp, learn_file, check):
     finally:
         h.stop()
 
-    # Default place (no flag): <user data>/OpenTacticsEngine/editor/learn.json. HOME is a temp folder, so the real one is safe.
+    # Default place (no flag): <user data>/OpenTacticsEngine/editor/learn.json. Linux: $XDG_DATA_HOME or ~/.local/share
+    # (HOME is a temp folder, so the real one is safe); Windows: %APPDATA%.
+    windows = os.name == "nt"
     home = os.path.join(tmp, "learn-home")
     os.makedirs(home)
-    env = dict(os.environ, HOME=home)
+    env = dict(os.environ, APPDATA=home) if windows else dict(os.environ, HOME=home)
     env.pop("XDG_DATA_HOME", None)
     h = _Helper(type(api), binary, repo, tmp, "learn-default", [], env)
-    expected = os.path.join(home, ".local", "share", "OpenTacticsEngine", "editor", "learn.json")
+    data_base = home if windows else os.path.join(home, ".local", "share")
+    expected = os.path.join(data_base, "OpenTacticsEngine", "editor", "learn.json")
+    place = "%APPDATA%" if windows else "~/.local/share"
     try:
         st, doc = h.api.json("GET", "/api/learn")
         check("learn: default place: reading before any PUT works and makes nothing",
-              st == 200 and doc == {} and not os.path.exists(os.path.join(home, ".local")), (st, doc))
+              st == 200 and doc == {} and os.listdir(home) == [], (st, doc))
         st, _ = h.api.json("PUT", "/api/learn", state)
-        check("learn: default place is ~/.local/share/OpenTacticsEngine/editor/learn.json",
+        check("learn: default place is %s/OpenTacticsEngine/editor/learn.json" % place,
               st == 200 and os.path.isfile(expected), (st, os.listdir(home)))
     finally:
         h.stop()
-    # A relative or unusable XDG_DATA_HOME is ignored; an absolute one is honoured.
-    xdg = os.path.join(tmp, "learn-xdg")
-    os.makedirs(xdg)
-    env = dict(os.environ, HOME=home, XDG_DATA_HOME=xdg)
-    h = _Helper(type(api), binary, repo, tmp, "learn-xdg-helper", [], env)
-    try:
-        st, _ = h.api.json("PUT", "/api/learn", {"version": 1})
-        check("learn: XDG_DATA_HOME is honoured", st == 200 and os.path.isfile(os.path.join(xdg, "OpenTacticsEngine", "editor", "learn.json")), st)
-    finally:
-        h.stop()
+    if not windows:
+        # A relative or unusable XDG_DATA_HOME is ignored; an absolute one is honoured.
+        xdg = os.path.join(tmp, "learn-xdg")
+        os.makedirs(xdg)
+        env = dict(os.environ, HOME=home, XDG_DATA_HOME=xdg)
+        h = _Helper(type(api), binary, repo, tmp, "learn-xdg-helper", [], env)
+        try:
+            st, _ = h.api.json("PUT", "/api/learn", {"version": 1})
+            check("learn: XDG_DATA_HOME is honoured", st == 200 and os.path.isfile(os.path.join(xdg, "OpenTacticsEngine", "editor", "learn.json")), st)
+        finally:
+            h.stop()
 
     # A state file that cannot be written (the folder is a file): 500 with a message, helper survives.
     blocked = os.path.join(tmp, "learn-blocked")
