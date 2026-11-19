@@ -8,6 +8,7 @@
 // the order weapon (the unit's own order) outer, target (unit id) inner.
 #include <algorithm>
 #include <map>
+#include <memory>
 
 #include "core/ai/ai_internal.h"
 
@@ -46,8 +47,18 @@ int adjacentEnemies(const Battle& b, const Unit& u, Cell c) {
 // The damage the unit could take at `sq` from the known enemies that can reach it: for each such enemy, the most it expects to deal to the
 // unit there with any of its weapons from any square it can walk to (capped at the unit's hit points), added up over the enemies. Worked out on
 // a copy of the battle with the unit moved to `sq`, so terrain and blocking are those of the square. Enemy flags of last turn are cleared.
-double dangerAt(const Battle& b, const Unit& u, Cell sq) {
-  Battle sim = b;
+double dangerAt(const Battle& b, const Unit& u, Cell sq, std::unique_ptr<Battle>& scratch) {
+  // Only enemies the unit's side knows of count; with none, nothing below would run, so skip the copy altogether.
+  bool any = false;
+  for (const Unit& e : b.units)
+    if (e.alive && b.isEnemy(u, e) && knownEnemy(b, u.side, e)) { any = true; break; }
+  if (!any) return 0;
+  // A fresh copy of the battle each time (not one reused and moved about): the copy carries b's mutable caches (sight, fight
+  // marks) and the queries below may leave state in them, so reusing it could change a later answer. Assigning into the one
+  // `scratch` keeps its vectors' memory, which is most of what a new copy costs. No random numbers are drawn by any of this.
+  if (!scratch) scratch.reset(new Battle(b));
+  else *scratch = b;
+  Battle& sim = *scratch;
   Unit& me = sim.units[(size_t)u.id];
   sim.occupant[(size_t)me.cell] = -1;
   me.cell = sq;
@@ -104,6 +115,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const Stance& st, const Reac
   b.weaponsOf(u, ownWeapons);
   std::vector<Cand> cands;
   std::map<Cell, double> dangerCache;
+  std::unique_ptr<Battle> dangerScratch;  // storage for dangerAt's copy of the battle, shared by all squares of this call
   std::vector<AttackOption> options;
   const int missingPct = 100 - u.hp * 100 / std::max(1, b.maxHp(u));
 
@@ -133,7 +145,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const Stance& st, const Reac
       else if (!kill) score -= std::min(std::min(predicted(f.counter), (double)u.hp), (double)w.counterCap) * w.counter;  // counterTerm
       if (w.danger > 0) {
         auto it = dangerCache.find(s);
-        if (it == dangerCache.end()) it = dangerCache.insert(std::make_pair(s, dangerAt(b, u, s))).first;
+        if (it == dangerCache.end()) it = dangerCache.insert(std::make_pair(s, dangerAt(b, u, s, dangerScratch))).first;
         score -= std::min((double)w.dangerCap, w.danger * it->second / w.dangerDiv);     // dangerTerm
       }
       score -= w.wounds * missingPct / 5.0;                                              // woundsTerm
