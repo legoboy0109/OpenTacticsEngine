@@ -100,7 +100,7 @@ the same.
 |---|---|---|
 | Software (`soft3d.h`) | everywhere: SDL3, SDL2, web, headless tests | built |
 | OpenGL (`gl/gl_renderer3d.h`) | PC (SDL3, SDL2), web, Android | built |
-| Direct3D 11 (`d3d11/d3d11_renderer3d.h`) | Windows desktop (SDL3); UWP / Xbox (SDL2) with its own host glue | built; UWP glue to do |
+| Direct3D 11 (`d3d11/d3d11_renderer3d.h`) | Windows desktop (SDL3); UWP / Xbox (SDL2) | built; run on WARP only (no GPU, no console) |
 | Console SDKs | homebrew ports | with each port |
 
 The software backend draws into an RGBA picture (`framePixels`); the player
@@ -154,7 +154,7 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   auto|software|hardware`, which wins over the option. Automatic is
   hardware, except in `--headless` runs, which keep the software backend so
   their screenshots do not depend on the machine's driver. "Hardware" (the
-  option's "OpenGL") is Direct3D 11 first on Windows, then OpenGL
+  option's "OpenGL") is Direct3D 11 first on Windows, then OpenGL (UWP: Direct3D 11 only)
   (`createHardwareRenderer3D`, `platform/sdl3/sdl_gl3d.cpp`). A changed choice
   takes effect at once: `PlayerApp::applyLook` drops the backend (no scene
   holds 3D things while looks are applied) and the next use makes the new
@@ -198,6 +198,16 @@ compiled on Windows only (`#ifdef _WIN32` in those files and in
   driver) it makes a device of its own (`d3d11/d3d11_device.h`) and reads the
   picture back into memory (`framePixels`), exactly as the OpenGL backend does.
   If neither works the player tries OpenGL, then software, with a log line each.
+- **SDL2 / UWP** (`platform/sdl2/sdl2_d3d11_3d.cpp`, same shape as the SDL3 glue). SDL2 asks for its `direct3d11`
+  renderer by name on Windows (on UWP it is the only hardware one; batching stays on), and the backend uses its device
+  (`SDL_RenderGetD3D11Device`; SDL 2.32 builds that function only for desktop Windows, so `tools/uwp/build.ps1` widens
+  one `#if` in SDL's source and adds the declaration for WinRT, then checks the DLL exports it). SDL2 shows no swap
+  chain, so the picture goes onto **the render target SDL has bound** after `SDL_RenderFlush`, mapped through **SDL's
+  bound viewport** (the letterbox, in target pixels) and `SDL_RenderGetScale`. SDL2's Direct3D 11 renderer binds its
+  target and viewport only when it draws, and a present unbinds the target (flip model), so before flushing the glue
+  queues one point of alpha 0 with blending (no pixel changes) to make SDL bind both. Order: Direct3D 11, then software
+  on UWP (no OpenGL there); Direct3D 11, OpenGL, software in an SDL2 desktop build (not built on Windows so far). The
+  glue reads its debug switches with the C runtime's `getenv`: SDL2's WinRT `SDL_getenv` has an environment of its own.
 - **Drawn onto SDL's back buffer, through a picture of its own.** The frame is
   drawn into the backend's own colour target (4x multisampled when
   `Frame3D::samples` asks and the device can) with a 24-bit depth buffer, at
@@ -261,9 +271,10 @@ compiled on Windows only (`#ifdef _WIN32` in those files and in
   Direct3D 11; `OTE_3D_D3D11_OWN=1` uses a device of its own even when SDL's
   could be shared; `OTE_3D_D3D11_LEVEL=10_1` (or `10_0`, `11_0`) caps the
   feature level and `OTE_3D_D3D11_DRIVER=warp` picks the software rasteriser,
-  both for an own device (SDL makes its own); `OTE_WINDOW_HIDDEN=1` (any
-  platform, for tests) makes the real window and renderer but never shows
-  the window.
+  both for an own device (SDL makes its own); `OTE_WINDOW_HIDDEN=1` (SDL3,
+  for tests) makes the real window and renderer but never shows the window.
+  On UWP the same switches go into `LocalState\args.txt` as `NAME=value` words
+  (`OTE_3D_API` is ignored there: no OpenGL).
 - **Checked by** `ote_tests` on Windows (`tests/windows/`: ten feature scenes
   against the software backend at the best feature level and at 10_1, the
   same pictures at both levels, mipmaps, multisampling, the screen quad at
@@ -273,9 +284,19 @@ compiled on Windows only (`#ifdef _WIN32` in those files and in
   fallback, multisampling, and SDL's real Direct3D 11 renderer in a hidden
   window: 3D under 2D, at two window sizes; that part needs an interactive
   desktop and reports SKIP over ssh, where Windows refuses a swap chain).
-  On other systems that ctest entry is reported as skipped.
+  On other systems that ctest entry is reported as skipped. The UWP app has
+  no automated test: it was checked by hand in the VM (docs/XBOX.md "3D").
 - **Measured** only on WARP (a VM without a GPU): correct pictures; its
-  timings say nothing about a graphics chip.
+  timings say nothing about a graphics chip. Never run on an Xbox.
+- **Suspend (UWP).** Windows wants `IDXGIDevice3::Trim` on every Direct3D
+  device when a UWP app is suspended. SDL 2.32's WinRT layer trims its
+  renderer's device itself (in its suspend task, right after
+  `SDL_APP_DIDENTERBACKGROUND`), and that is the device the 3D drawing shares,
+  so the glue only logs it (`suspending: the device is SDL's, which SDL trims
+  now`). An own device (`OTE_3D_D3D11_OWN=1`) is trimmed by the glue on
+  `SDL_APP_WILLENTERBACKGROUND`, after `ClearState` as the documentation asks
+  (`suspending: own device trimmed`); the backend sets all its state again
+  every frame.
 
 ### Losing the device
 
@@ -284,7 +305,8 @@ an EGL context, Direct3D reports `DXGI_ERROR_DEVICE_REMOVED` / `RESET` after a
 driver update or reset or a removed GPU, and SDL's Direct3D 11 renderer then
 makes itself a new device (`SDL_EVENT_RENDER_DEVICE_RESET`).
 `ResilientRenderer3D` (`gfx3d/resilient3d.h`, no graphics API) wraps the
-hardware backend on Android (EGL) and on Windows (Direct3D 11): it keeps a CPU
+hardware backend on Android (EGL) and on Windows and UWP (Direct3D 11; SDL2 says
+`SDL_RENDER_DEVICE_RESET`): it keeps a CPU
 copy of every mesh and texture the game made, and when the platform's
 `DeviceKeeper` says the device is gone it makes a new backend (Windows: on
 SDL's new device, or a new own device), uploads everything again (the game's
@@ -296,7 +318,7 @@ rebuild the device (...); using the software 3D renderer for the rest of the
 session`. Direct3D 11 counts as lost when the device reports a removal
 reason, or when SDL's renderer has another device than the backend's. Debug:
 `OTE_3D_SIMULATE_LOSS=N` loses the device after N frames,
-`OTE_3D_SIMULATE_NO_REBUILD=1` refuses the rebuild (both platforms; a
+`OTE_3D_SIMULATE_NO_REBUILD=1` refuses the rebuild (Android, Windows desktop and UWP; a
 simulated loss on Windows marks the device lost, it cannot really remove
 one). The cost is the copies (the meshes and textures once more in memory).
 Not covered: SDL's own 2D textures after a real reset (docs/PORTING.md "Life

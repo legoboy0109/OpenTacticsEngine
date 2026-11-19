@@ -9,7 +9,8 @@ build it grew out of is in docs/WINDOWS.md; the previous port, with the same app
 software renderer). The Windows App Certification Kit (the Store's own checker, including its "supported APIs" test)
 passes with no warnings. Nothing here has touched an Xbox: "Not verified" at the end lists what that leaves open.
 
-3D is the software renderer for now (the Direct3D 11 3D drawer is separate work, docs/RENDER3D.md). SDL3 has no UWP
+Hardware 3D is Direct3D 11 on the device of SDL's own 2D renderer (section "3D" below), with the software drawer as the
+fallback; only ever run on WARP, Microsoft's software rasteriser, never on a graphics chip or a console. SDL3 has no UWP
 support, so this build uses the SDL2 backend (`engine/platform/sdl2`) with SDL 2.32.10's own WinRT port.
 
 ## Build
@@ -24,7 +25,7 @@ powershell -ExecutionPolicy Bypass -File tools\uwp\build.ps1          # work fol
 One command: 9 minutes from an empty `C:\uwp` in the VM (SDL2 about 3, the engine the rest), a couple of minutes for a rebuild
 (`-SkipSdl` reuses the SDL2 build).
 It: downloads the SDL2 2.32.10 release zip (checks the sha256 pinned in the script against the release's published digest),
-builds `SDL2.dll` with SDL's own `VisualC-WinRT\SDL-UWP.vcxproj` (MSBuild, retargeted to v143 and SDK 10.0.26100 on the
+turns on `SDL_RenderGetD3D11Device` for WinRT (two small edits to SDL's source, see "3D"), builds `SDL2.dll` with SDL's own `VisualC-WinRT\SDL-UWP.vcxproj` (MSBuild, retargeted to v143 and SDK 10.0.26100 on the
 command line, `/MD`), configures the engine with CMake/Ninja, builds it, stages the package folder, makes the logos, makes
 the test certificate if there is none, packs with `makeappx`, signs with `signtool`, and copies the dependency package and the
 public certificate next to the result. Output, in `C:\uwp\out\`:
@@ -103,7 +104,7 @@ Delete the file to go back to the normal start. Debug level also logs the frame 
 
 | Topic | What it does | Why |
 |---|---|---|
-| Backend | SDL2 2.32.10 (WinRT port), software 3D, Direct3D 11 for SDL's 2D renderer | SDL3 has no UWP support. SDL's WinRT port renders with Direct3D 11 only |
+| Backend | SDL2 2.32.10 (WinRT port); SDL's `direct3d11` 2D renderer (asked for by name); 3D: Direct3D 11 on SDL's device, else software | SDL3 has no UWP support. SDL's WinRT port renders with Direct3D 11 only; no OpenGL on UWP |
 | Runtime | `/MD`, the VCLibs framework package | UWP does not allow the static runtime for the Store; the package depends on `Microsoft.VCLibs.140.00` |
 | Entry point | SDL's `SDL_winrt_main_NonXAML.cpp` (WinMain, `SDL_WinRTRunApp`, then the player's `main`) | The one place C++/CX (`/ZW`) is needed; the player's `main.cpp` is unchanged. Our own other C++/CX file is `sdl2_uwp_view.cpp` (view setup, memory budget). Both are compiled with `/ZW /GR /permissive` (C++/CX does not parse under `/permissive-`), everything else is plain C++ |
 | Content | Read from the app's install folder (read-only: `ote-player.exe`'s folder holds `games\` and `assets\`, the same rule as the Windows zip). Nothing is copied: UWP can `fopen` the install folder, unlike APK assets | Android must extract; here no need |
@@ -122,7 +123,9 @@ Delete the file to go back to the normal start. Debug level also logs the frame 
 | Signing | A self-signed test certificate (`CN=OpenTacticsEngine Test`, code signing, 3 years) made by `build.ps1` on first run into `<work>\cert\` (`ote-test.pfx` and a generated password file). Never committed: `.gitignore` covers `*.pfx`, `*.cer`, `*.appx`, `*.msix`, `*.pem` | A test certificate only proves the package was not changed; it is not a Store signature |
 | Memory | The player logs `memory: working set X MB, app memory X MB of limit Y MB` at start and after every scene change (`memoryStatus()`, `Windows.System.MemoryManager`; UWP only, so other platforms' logs do not change) | An Xbox UWP app (not a game) gets about 1 GB |
 
-## Measured (Windows 11 VM, no GPU: Direct3D 11 on WARP, 800x600 window)
+## Measured (Windows 11 VM, no GPU: Direct3D 11 on WARP, 800x600 window; software 3D)
+
+Taken before the window-size rule (docs/WINDOWS.md "Decisions"): the app now asks for 960x540 on that 1280x800 screen.
 
 - Start to launcher: 0.24 s on an ordinary start (the first start after an install took 8 s, the new files being scanned).
   Working set at the launcher 36 MB (app memory 12 MB); after loading the story demo's battle 79 MB (app memory 56 MB). The
@@ -134,7 +137,61 @@ Delete the file to go back to the normal start. Debug level also logs the frame 
   notice came back when the window was restored. After killing the process and starting it again, the launcher offered
   Continue ("Skirmish at the Ford - Turn 1") and it restored the unit at its moved position.
 - Windows App Certification Kit (`appcert.exe test -apptype windowsstoreapp`): 27 of 27 tests passed, including supported
-  APIs, binary analysis, manifest and launch.
+  APIs, binary analysis, manifest and launch; run again on the package with Direct3D 11 3D and the edited SDL2
+  (0.1.1119.1342): overall PASS. (The kit uninstalls the app when it cleans up: install it again afterwards.)
+
+## 3D
+
+The player's "3D graphics" option works as on the other platforms: Automatic and "OpenGL" (the label means "the graphics
+chip") use Direct3D 11, "Software" the processor; `--3d` in `LocalState\args.txt` beats it. The log says which:
+`3D drawing: Direct3D 11 (feature level 11_1; Microsoft Basic Render Driver, ...; drawn on SDL's render target; ...)`, or
+`3D drawing: no hardware backend (Direct3D 11: ...); using the software one` then `3D drawing: software`.
+
+How it works (`engine/platform/sdl2/sdl2_d3d11_3d.cpp`, docs/RENDER3D.md "Direct3D 11 backend"): the 3D backend draws with
+the Direct3D 11 device SDL's 2D renderer already has, into a picture of its own, and puts that picture onto the render
+target SDL is drawing to (its back buffer) as one quad, under the 2D things drawn afterwards: no second device and no copy
+through memory. Around every use it lets SDL finish its queued drawing and puts SDL's pipeline state back exactly.
+
+What SDL2 forced:
+
+- **No device accessor on WinRT.** SDL 2.32 compiles `SDL_RenderGetD3D11Device` for desktop Windows only, although its
+  WinRT renderer is the same Direct3D 11 one. `tools/uwp/build.ps1` widens that one `#if` in `SDL_render_d3d11.c` and
+  declares the function for WinRT in `SDL_system.h` (marked "OpenTacticsEngine"), after the zip's hash check, and checks
+  that the built `SDL2.dll` exports it. Without it the only way would be a second device and a copy through memory every
+  frame (the "read-back" mode, still there as the fallback: `OTE_3D_D3D11_OWN=1`).
+- **No swap chain.** SDL3 hands out its swap chain; SDL2 does not, so the picture goes onto the render target SDL has bound
+  after the flush, at SDL's bound viewport (the letterbox) times `SDL_RenderGetScale`. SDL2's renderer binds both only when
+  it draws, and the flip-model present unbinds the target, so the glue first queues one point of alpha 0 (blended: no pixel
+  changes) to make SDL bind them.
+- **Its own environment.** SDL2's WinRT `SDL_getenv` never sees the process environment, so the glue reads its debug
+  switches with the C runtime's `getenv`, where `args.txt` puts them.
+- **Suspend.** SDL 2.32 already calls `IDXGIDevice3::Trim` on its renderer's device when the app is suspended
+  (`SDL_winrtapp_direct3d.cpp`, in its suspend task right after `SDL_APP_DIDENTERBACKGROUND`); that is the device the 3D
+  drawing shares, so the glue does not trim it a second time and only logs `3D (Direct3D 11): suspending: the device is
+  SDL's, which SDL trims now` (from the same task, just before SDL's Trim, which itself logs nothing). An own device is
+  trimmed by the glue (`ClearState`, `Trim`) on `SDL_APP_WILLENTERBACKGROUND`: `suspending: own device trimmed`.
+- **Device reset.** SDL2 makes itself a new device after a removal and sends `SDL_RENDER_DEVICE_RESET`; the 3D side
+  notices the new device pointer (or the removal reason) and rebuilds through `ResilientRenderer3D`, or falls back to
+  software. SDL's own 2D textures are not rebuilt after a real reset (docs/PORTING.md "Life cycle"), as on every platform.
+
+Debug words for `args.txt`: `OTE_3D_D3D11_OWN=1` (own device, picture read back), `OTE_3D_D3D11_LEVEL=10_1` (with an own
+device: cap the feature level, what an Xbox One gives), `OTE_3D_SIMULATE_LOSS=N`, `OTE_3D_SIMULATE_NO_REBUILD=1`.
+
+Checked in the Windows 11 VM (no GPU: WARP, "Microsoft Basic Render Driver"), demo-srpg `bridge` in full 3D, by
+screenshots of the app window compared pixel by pixel (differences = any channel off by more than 16; the units' idle
+animation and the blinking cursor account for most of them, the shots being taken seconds apart):
+
+| Run | Log | Picture |
+|---|---|---|
+| Direct3D 11 on SDL's device, 960x540 window | `feature level 11_1; ... drawn on SDL's render target` | 3D under the HUD and dialogue, right way up, colours as software: 0.36% of the 3D area differs from software 3D in the app, 0.14% from the desktop (SDL3) Direct3D 11 player |
+| Same, window maximised (1280x720) | no warning | 0.026% differs from software 3D maximised |
+| Own device capped to 10_1 | `feature level 10_1; ... own device, picture read back` | 0.24% from the shared-device picture |
+| `OTE_3D_SIMULATE_LOSS=200` | `device was lost ...; rebuilding it`, `device rebuilt, 26 meshes and 3 textures uploaded again` | 0.12% from the first picture |
+| Loss, rebuild refused | `cannot rebuild the device ...; using the software 3D renderer` | the software picture |
+| Minimise (suspend) and back | `lifecycle: background`, `suspending: the device is SDL's, which SDL trims now`, `lifecycle: foreground` | drawn correctly after resume (0.18%); own device: `own device trimmed`, also correct after resume |
+
+The 2D drawn after the 3D picture (HUD, dialogue text) stayed intact over 2,300 frames. Frame times on WARP (software
+device, not representative): work 1.9 ms, interval 17.3 ms (vsync), at the game's resolution.
 
 ## What the Windows Store API partition changed
 
@@ -168,7 +225,8 @@ CMake for the UWP target):
 - Everything on a real Xbox: Dev Mode install through the Device Portal (and which signature route the portal wants), the
   1 GB budget, the 5-second suspend, B handling, a real controller through Windows.Gaming.Input, full-screen fit and the
   layout-scaling switch on a TV (on a PC it is a no-op), audio.
-- Hardware 3D: there is no Direct3D 11 3D backend yet (separate work).
+- Hardware 3D on a graphics chip: Direct3D 11 ran on WARP only (feature level 11_1, and 10_1 when capped). An Xbox's
+  GPU, its real 10_1 (Xbox One) or 11_0+ (Series) device and its speed are untried.
 - A device reset of Direct3D (docs/PORTING.md "Not handled").
 - Sound on any machine (the VM has no audio device; the player ran without it).
 - Windows on ARM or x86: x64 only.
