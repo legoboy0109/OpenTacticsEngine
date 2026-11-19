@@ -8,8 +8,9 @@ without a stall or an error line; the same seed printed twice gives the same tex
 names every strategy-RPG entry the demo produces (promotion, skills, summons, supports).
 """
 import os
-import subprocess
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text  # noqa: E402
 
 root = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.getcwd()
 sim = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else os.path.join(root, 'build', 'ote-sim')
@@ -23,7 +24,7 @@ def check(name, ok, detail=''):
 
 
 def run(*args):
-    p = subprocess.run([sim] + list(args), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text([sim] + list(args))
     return p.returncode, p.stdout
 
 

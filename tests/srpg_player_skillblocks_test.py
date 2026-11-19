@@ -18,9 +18,10 @@ save:
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, failures, player_cmd, summary, write_json  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -35,11 +36,6 @@ VIEW_W, VIEW_H = 352, 259
 IDLE = 'wait:14'                   # the turn banner plays first
 SELECT = 'confirm,confirm'         # select the unit under the cursor, stay where it is: its action menu opens
 GAME = 'skillblocks_player'
-
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    json.dump(obj, open(path, 'w'), indent=1)
 
 
 ABILITIES = {'abilities': [
@@ -102,13 +98,12 @@ MAPS = {
 
 def play(map_id, inp, shot=None, saves=None, extra=(), tail=60):
     frames = sum(int(t[5:]) * 4 if t.startswith('wait:') else 4 for t in inp.split(',')) + tail
-    cmd = [PLAYER, '--games', GAMES, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--frames', str(frames), '--input-interval', '4', '--fixed-dt', '0.016', '--game', GAME, '--map', map_id,
+    cmd = player_cmd(PLAYER, GAMES, REPO) + ['--frames', str(frames), '--input-interval', '4', '--fixed-dt', '0.016', '--game', GAME, '--map', map_id,
            '--input', inp]
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd + list(extra), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd + list(extra))
     return p.returncode, p.stdout
 
 
@@ -165,8 +160,8 @@ def main():
         leap_checks()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('\n%d passed, %d failed' % (hp.passed, len(hp.failures)))
-    return 1 if hp.failures else 0
+    summary(blank_line=True)
+    return 1 if failures else 0
 
 
 # ---- steal ----

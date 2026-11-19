@@ -18,9 +18,10 @@ scripts, reading the menu / pick lines it logs, the Continue save (--saves on a 
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, player_cmd, summary  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,8 +31,6 @@ import srpg_rescue_games as games  # noqa: E402
 from hex_player_test import Image  # noqa: E402  (the BMP reader)
 
 PLAYER = REPO = TMP = GAMES = SHOTS = ''
-failures = []
-passed = 0
 IDLE = 'wait:14'                 # the turn banner takes the first inputs otherwise
 SELECT = 'confirm,confirm'       # select the first blue unit (Ann, or Bram once Ann is carried) and open its menu
 END_TURN = 'menu,confirm,wait:60'  # the battle menu's End Turn, then red's turn (its one unit cannot reach anybody)
@@ -43,16 +42,6 @@ VIEW_W, VIEW_H = 352, 259        # the map area of the 480 x 270 window (the pan
 BLUE = (0x3d, 0x85, 0xc6)
 
 
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
-
-
 def frames_for(inp, interval=4, slack=40):
     n = 0
     for tok in inp.split(','):
@@ -62,15 +51,14 @@ def frames_for(inp, interval=4, slack=40):
 
 def run(game, inp, style='classic', map_id='open', saves=None, shot=None):
     """Runs the player headless; returns the log text."""
-    cmd = [PLAYER, '--games', GAMES, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--frames', str(frames_for(inp)), '--input-interval', '4', '--fixed-dt', '0.016', '--game', game, '--map', map_id,
+    cmd = player_cmd(PLAYER, GAMES, REPO) + ['--frames', str(frames_for(inp)), '--input-interval', '4', '--fixed-dt', '0.016', '--game', game, '--map', map_id,
            '--style', style, '--input', inp]
     cmd += ['--saves', saves] if saves else ['--no-saving']
     if style in ('iso3d', 'full3d'):
         cmd += ['--3d', 'software']
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.stdout
 
 
@@ -184,7 +172,6 @@ def panel_row():
           lines(after, *box) == lines(before, *box) + 1, '%d vs %d' % (lines(after, *box), lines(before, *box)))
 
 
-
 def marker_pictures():
     """The marker is the only difference between a unit with a partner and the same unit alone (pair up: the partner
     is gone from the map; the baseline map simply has no Ann)."""
@@ -238,7 +225,7 @@ def main():
             scenario()
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     sys.exit(1 if failures else 0)
 
 

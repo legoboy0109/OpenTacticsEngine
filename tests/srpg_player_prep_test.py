@@ -14,31 +14,21 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, failures, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = sys.argv[sys.argv.index('--shots') + 1] if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir()
 TMP = tempfile.mkdtemp(prefix='ote-prep-')
-passed, failures = 0, []
 
 # Chapter 1 played (a title card, a line, end the turn, the result), chapter 2's card and line: the screen opens.
 TO_PREP = 'confirm,confirm,confirm,wait:20,menu,confirm,wait:100,confirm,wait:30,confirm,confirm,confirm,wait:40'
 MAIN = ['Units', 'Positions', 'Items', 'Shop', 'View map', 'Leave', 'Begin']  # without saving
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
 
 
 def make_game(gid, width=480, height=270, tweak=None):
@@ -52,13 +42,8 @@ def make_game(gid, width=480, height=270, tweak=None):
     return g
 
 
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def play(gid, inp, shot=None, saves=None, extra=None, interval=3):
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--frames', str(ticks(inp) * interval + 90), '--input-interval', str(interval), '--fixed-dt', '0.016',
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--frames', str(ticks(inp) * interval + 90), '--input-interval', str(interval), '--fixed-dt', '0.016',
            '--game', gid]
     cmd += ['--saves', saves] if saves else ['--no-saving']
     cmd += extra if extra is not None else ['--campaign']
@@ -66,18 +51,8 @@ def play(gid, inp, shot=None, saves=None, extra=None, interval=3):
         cmd += ['--input', inp]
     if shot:
         cmd += ['--screenshot', shot]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     return p.returncode, p.stdout
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def lines(log, key):
@@ -494,7 +469,7 @@ def main():
     test_save_and_resume('desk')
     test_pointer('desk')
     test_autoplay_and_free_battle('desk')
-    print('\n%d passed, %d failed' % (passed, len(failures)))
+    summary(blank_line=True)
     shutil.rmtree(TMP, ignore_errors=True)
     return 1 if failures else 0
 

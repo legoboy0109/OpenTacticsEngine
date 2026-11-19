@@ -17,37 +17,17 @@ folder, changes a few files, runs the player headless (--no-audio --no-settings,
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, inp, lines, player_and_repo, player_cmd, read_json, summary, ticks, write_json)
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
+PLAYER, REPO = player_and_repo()
 TMP = tempfile.mkdtemp(prefix='ote-skillblocks2-')
-passed, failures = 0, []
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-def write_json(path, obj):
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def make_game(gid, fixture, tweak, width=480, height=270):
@@ -62,25 +42,13 @@ def make_game(gid, fixture, tweak, width=480, height=270):
     return g
 
 
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
-
-
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
-
-
 def run(gid, inp, map_id='field', interval=4):
     """Runs the player on a fresh battle; returns (log, the Continue save's battle with its units by story id)."""
     work = os.path.join(TMP, 'saves_%s_%s' % (gid, map_id))
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
-           '--saves', work, '--frames', str(ticks(inp) * interval + 90), '--input-interval', str(interval),
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work, '--frames', str(ticks(inp) * interval + 90), '--input-interval', str(interval),
            '--fixed-dt', '0.016', '--game', gid, '--map', map_id, '--input', inp]
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     battle, units = {}, {}
     try:
         battle = read_json(os.path.join(work, gid, 'continue.json'))['battle']
@@ -89,14 +57,6 @@ def run(gid, inp, map_id='field', interval=4):
     except (OSError, ValueError, KeyError):
         pass
     return p.stdout, units, battle
-
-
-def lines(log, key):
-    return [l for l in log.splitlines() if key in l]
-
-
-def inp(*parts):
-    return ','.join(parts)
 
 
 # The thief (the first unit) is under the cursor: confirm selects it, confirm again opens its action menu.
@@ -221,7 +181,7 @@ def main():
             test_light(tag, w, h)
     finally:
         shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     for f in failures:
         print('  FAILED: ' + f)
     return 1 if failures else 0

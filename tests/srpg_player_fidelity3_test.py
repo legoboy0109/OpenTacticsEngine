@@ -23,10 +23,13 @@ import os
 import re
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
 import wave
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import (  # noqa: E402
+    run_text, check, edit, failures, player_and_repo, read_jsonc, shots_dir, summary, ticks, write_json)
+read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
@@ -34,39 +37,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import sound_game  # noqa: E402
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
-SHOTS = os.path.abspath(sys.argv[sys.argv.index('--shots') + 1]) if '--shots' in sys.argv else ''
+PLAYER, REPO = player_and_repo()
+SHOTS = shots_dir(absolute=True)
 TMP = tempfile.mkdtemp(prefix='ote-fid3-')
-passed, failures = 0, []
-
-
-def read_json(path):
-    with open(path) as f:
-        return json.loads(''.join(l for l in f if not l.lstrip().startswith('//')))
-
-
-def write_json(path, obj):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(obj, f, indent=1)
-
-
-def edit(g, rel, fn):
-    path = os.path.join(g, rel)
-    obj = read_json(path)
-    fn(obj)
-    write_json(path, obj)
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def wav(path, ms=120, freq=440):
@@ -118,7 +91,7 @@ def player(args, games=None, audio_log=None, saves=None, frames=0, inp=None, int
         cmd += ['--screenshot', shot]
     e = dict(os.environ)
     e.update(env or {})
-    p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300, env=e)
+    p = run_text(cmd + args, env=e)
     return p.stdout
 
 
@@ -238,10 +211,6 @@ def test_shops():
     player(['--game', 'shops_nodef', '--campaign'], audio_log=log_b, frames=1600, inp=inp)
     tail = [t for t in names(audio_tokens(log_b)) if t.startswith('M:')]
     check('shops: a shop without music, in a game without shopMusic, leaves the preparation music playing', tail[-3:] == ['M:camp', 'M:armory', 'M:camp'], str(tail))
-
-
-def ticks(script):
-    return sum(int(t[5:]) if t.startswith('wait:') else 1 for t in script.split(','))
 
 
 def test_shop_screenshots():
@@ -419,7 +388,7 @@ if __name__ == '__main__':
         if not only or t.__name__ in only:
             t()
     shutil.rmtree(TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (passed, len(failures)))
+    summary()
     for f in failures:
         print('FAILED: ' + f)
     sys.exit(1 if failures else 0)
