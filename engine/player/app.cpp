@@ -108,6 +108,7 @@ void PlayerApp::onStart(Renderer& r) {
   else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
+  OTE_INFO("memory after start: %s", memoryStatus().c_str());
 }
 
 std::string PlayerApp::gameDir(const std::string& gameId) const {
@@ -121,6 +122,7 @@ void PlayerApp::runPending() {
   std::function<void()> fn = std::move(pending_);
   pending_ = nullptr;
   fn();
+  OTE_INFO("memory after scene change: %s", memoryStatus().c_str());  // a UWP app has a hard budget; docs/XBOX.md
   flushSettings();  // every scene switch is a good moment to save
   syncAudio();
 }

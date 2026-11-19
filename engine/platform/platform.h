@@ -241,4 +241,14 @@ std::string executableDir();
 // there. Does nothing if stdout/stderr are already redirected to a file or pipe. Call first thing in main().
 void attachParentConsole();
 
+// How much memory the process uses, for the log ("resident 85 MB", "working set 90 MB, app memory 88 MB of limit 1024 MB");
+// empty where the platform cannot say. UWP apps have a hard budget (about 1 GB on Xbox), so the player logs this at start
+// and after every scene change.
+std::string memoryStatus();
+
+// Extra command-line words for a program that cannot be given a command line (the UWP app: LocalState/args.txt, a
+// testing aid; docs/XBOX.md). Empty everywhere else and when there is no such file. A word NAME=value is put into the
+// environment instead of being returned.
+std::vector<std::string> platformLaunchArgs();
+
 }  // namespace ote

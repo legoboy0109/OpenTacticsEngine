@@ -29,6 +29,15 @@ int main(int argc, char** argv) {
     argv = intentArgv.data();
   }
 #endif
+  // A packaged app that cannot be given a command line (the UWP app) may take one from a file; empty everywhere else.
+  // NAME=value words in it go into the environment, so this runs before OTE_LOG_LEVEL is read.
+  std::vector<std::string> fileArgs = platformLaunchArgs();
+  std::vector<char*> fileArgv(1, argc > 0 ? argv[0] : const_cast<char*>("ote-player"));
+  for (std::string& a : fileArgs) fileArgv.push_back(&a[0]);
+  if (!fileArgs.empty()) {
+    argc = (int)fileArgv.size();
+    argv = fileArgv.data();
+  }
   // OTE_LOG_LEVEL=debug shows the debug lines too (the walk directions; tests read them). Normal runs log info and above only.
   if (const char* lv = std::getenv("OTE_LOG_LEVEL"))
     if (!std::strcmp(lv, "debug")) setLogLevel(LogLevel::Debug);
