@@ -801,6 +801,20 @@ class Battle {
   void endStoryRun(std::vector<Event>& events);
   void storyPhaseMusic(const Command& c, std::vector<Event>& events);  // story_music.cpp
   Cell nearestFreeCell(Cell target, int moveType) const;
+  // One event command each; runCommand (story_commands.cpp) only dispatches.
+  void cmdSay(const Command& c, std::vector<Event>& events);
+  void cmdGiveItem(const Command& c, std::vector<Event>& events);
+  void cmdTakeItem(const Command& c);
+  void cmdGiveResource(const Command& c, std::vector<Event>& events);
+  void cmdEndTurn();
+  void cmdSetTerrain(const Command& c, std::vector<Event>& events);
+  void cmdFocus(const Command& c, std::vector<Event>& events);
+  // story_command_units.cpp
+  void cmdShowUnit(const Command& c, std::vector<Event>& events);
+  void cmdRemoveUnit(const Command& c, std::vector<Event>& events);
+  void cmdMoveUnit(const Command& c, std::vector<Event>& events);
+  void cmdChangeSide(const Command& c, std::vector<Event>& events);
+  void cmdSetBehaviour(const Command& c);
   // objectives.cpp
   bool objectiveHolds(const ObjectiveRule& r, bool win) const;
   // Judges the current objectives for the human team and ends the battle if one holds.
