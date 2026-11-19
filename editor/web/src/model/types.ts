@@ -102,6 +102,8 @@ export interface Game extends Extra {
   battleScene?: 'scene' | 'map'
   /** Whose square decides the battle scene's background and platform (docs/BATTLE_SCENE.md): missing = 'defender'. Which side each fighter stands on: missing = 'map'. */
   battleBackgroundFrom?: 'defender' | 'attacker'
+  /** Whether each fighter's platform comes from its own square ('own') or from the square that decides the background ('same', the default). */
+  battlePlatformFrom?: 'same' | 'own'
   battleSceneSides?: 'map' | 'playerRight' | 'playerLeft'
   /** A staff used on one other unit plays in the battle scene (docs/BATTLE_SCENE.md "Staves in the scene"): missing = false (staves stay on the map). */
   battleSceneStaves?: boolean
@@ -434,7 +436,9 @@ export interface Portrait extends Extra { sheet: string; cell: CellRef; faces?: 
 /** A full-screen picture of a story scene: the whole image of a sheet, or one piece of it (docs/GRAPHICS.md "Backgrounds"). */
 export interface SceneBackground extends Extra { sheet: string; cell?: CellRef }
 /** One animation of a battle set: cells of an image played in order (docs/BATTLE_SCENE.md). */
-export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef>; sounds?: Record<string, string> }
+export interface BattleAnimDef extends Extra { sheet: string; frames: CellRef[]; ms?: number | number[]; loop?: boolean; hit?: number; spawn?: number; sides?: Record<string, SideSheetDef>; sounds?: Record<string, string>
+  /** Holding a pose until the result has been shown (docs/BATTLE_SCENE.md "Holding a pose"); startFrame / startDelayMs are for a dodge. Frame numbers count from 0. */
+  holdFrame?: number; startFrame?: number; startDelayMs?: number }
 /** Another image with the same layout, drawn by the fighters of one side (a map side id). */
 export interface SideSheetDef extends Extra { sheet: string }
 /** A fighter's animation set: `stand` is required, the other animations are optional (the map picture moves instead). */
@@ -442,13 +446,14 @@ export interface BattleSetDef extends Extra { anchor?: [number, number]; faces?:
 /** Who uses a set: a unit type, a character, a weapon group or one weapon, a side (the most specific rule wins). */
 export interface BattleAssignDef extends Extra { set: string; type?: string; character?: string; group?: string; weapon?: string; side?: string }
 export interface BattleBackgroundDef extends Extra { sheet: string; cell: CellRef }
-export interface FxFlashDef extends Extra { atMs: number; ms: number; color?: string }
-export interface FxShakeDef extends Extra { atMs: number; ms: number; strength: number }
+/** `atRangeFixed` on a row: timed from the effect's start before its "atRange" delay (docs/BATTLE_SCENE.md "Leaving a part out of the delay"). */
+export interface FxFlashDef extends Extra { atMs: number; ms: number; color?: string; atRangeFixed?: boolean }
+export interface FxShakeDef extends Extra { atMs: number; ms: number; strength: number; atRangeFixed?: boolean }
 /** An effect's scene-wide parts (docs/BATTLE_SCENE.md "Hiding and fading"; model/battleEffects.ts). */
-export interface FxHideDef extends Extra { atMs: number; ms: number; what: Array<'backdrop' | 'platforms'>; color?: string }
-export interface FxFadeDef extends Extra { atMs: number; ms: number; to?: string; alpha?: number; holdMs?: number; over?: 'all' | 'backdrop' }
-/** One step of an effect's "atRange": from a fight `from` squares apart the whole effect starts `delayMs` later. */
-export interface FxRangeDef extends Extra { from: number; delayMs: number }
+export interface FxHideDef extends Extra { atMs: number; ms: number; what: Array<'backdrop' | 'platforms'>; color?: string; atRangeFixed?: boolean }
+export interface FxFadeDef extends Extra { atMs: number; ms: number; to?: string; alpha?: number; holdMs?: number; over?: 'all' | 'backdrop'; atRangeFixed?: boolean }
+/** One step of an effect's "atRange": from a fight `from` squares apart the whole effect starts `delayMs` later and / or a flight stops `endOffset` pixels short of (negative: past) the foe. */
+export interface FxRangeDef extends Extra { from: number; delayMs?: number; endOffset?: number }
 /** A battle scene effect (docs/BATTLE_SCENE.md "Effects"; model/battleEffects.ts). `frames` entries are [column, row] or, from another image, [column, row, image id]. */
 export interface BattleEffectDef extends Extra {
   id?: string; weapon?: string; group?: string
@@ -460,7 +465,11 @@ export interface BattleEffectDef extends Extra {
   blend?: 'normal' | 'add'; hide?: FxHideDef[]; fade?: FxFadeDef[]; order?: 'backdrop' | 'behind' | 'front'; speed?: number
   /** Newer opt-in keys: a delay of the whole effect by fight distance, and a flight that stops short of the foe (docs/BATTLE_SCENE.md). */
   atRange?: FxRangeDef[]; endOffset?: number
+  /** Fifth batch: a part that the distance's delay does not move, and the camera's own start for this effect (docs/BATTLE_SCENE.md). */
+  atRangeFixed?: boolean; panAtMs?: number
 }
+/** data/graphics.json "battle" > "scene": how long a held pose waits after the result (docs/BATTLE_SCENE.md "Holding a pose"). */
+export interface BattleSceneTimingDef extends Extra { resultHoldMs?: number; resultHoldAgainMs?: number }
 /** data/graphics.json "battle". */
 export interface BattleSection extends Extra {
   sets?: Record<string, BattleSetDef>
@@ -475,6 +484,7 @@ export interface BattleSection extends Extra {
   defaultPlatform?: string
   /** An optional fixed stage (docs/BATTLE_SCENE.md "Fixed stage"; model/battleStage.ts). */
   stage?: BattleStageDef
+  scene?: BattleSceneTimingDef
 }
 export type StagePoint = [number, number]
 export interface StagePair { left: StagePoint; right: StagePoint }

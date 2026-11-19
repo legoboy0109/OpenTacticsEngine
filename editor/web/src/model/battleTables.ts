@@ -27,6 +27,13 @@ export function setBackgroundFrom(doc: ProjectDoc, v: BackgroundFrom): ProjectDo
   if (!doc.game || backgroundFrom(doc) === v) return doc
   return { ...doc, game: patchObj(doc.game, { battleBackgroundFrom: v === 'attacker' ? 'attacker' : undefined }) }
 }
+/** "Each fighter's platform" (docs/BATTLE_SCENE.md "Platforms"): "same" (both from the square that decides the background) is the default and is written as NO key. */
+export type PlatformFrom = 'same' | 'own'
+export const platformFrom = (doc: ProjectDoc): PlatformFrom => (doc.game?.battlePlatformFrom === 'own' ? 'own' : 'same')
+export function setPlatformFrom(doc: ProjectDoc, v: PlatformFrom): ProjectDoc {
+  if (!doc.game || platformFrom(doc) === v) return doc
+  return { ...doc, game: patchObj(doc.game, { battlePlatformFrom: v === 'own' ? 'own' : undefined }) }
+}
 export type SceneSides = 'map' | 'playerRight' | 'playerLeft'
 export const SCENE_SIDES: SceneSides[] = ['map', 'playerRight', 'playerLeft']
 export const sceneSides = (doc: ProjectDoc): SceneSides => (doc.game?.battleSceneSides === 'playerRight' || doc.game?.battleSceneSides === 'playerLeft' ? doc.game.battleSceneSides : 'map')

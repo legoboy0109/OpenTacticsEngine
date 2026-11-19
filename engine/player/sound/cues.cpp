@@ -49,6 +49,7 @@ bool overrideCue(OverrideScope scope, const std::string& key, Cue& out) {
 }
 
 std::string overrideKeys(OverrideScope scope) {
+  if (scope == OverrideScope::Item) return keys(kItem) + ", \"healScene\"";  // (healScene is read by readBlock: it has no cue of its own)
   switch (scope) {
     case OverrideScope::Weapon: return keys(kWeapon);
     case OverrideScope::Unit: return keys(kUnit);

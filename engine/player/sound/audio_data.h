@@ -39,6 +39,7 @@ struct SoundDef {
 constexpr int kNone = -1, kSilent = -2;
 struct CueSet {
   int sound[kCueCount];
+  int healScene = kNone;  // an item's "healScene": its heal sound in the battle scene only (kNone = the "heal" one is used there too)
   CueSet() { for (int& s : sound) s = kNone; }
 };
 

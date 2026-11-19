@@ -1,6 +1,6 @@
 // One animation of a set: its image, the row and number of frames (the frames are made from them), the time per frame and the hit frame.
 import { artBase } from '../../../model/artFiles'
-import { DEFAULT_FRAME_MS, HIT_ANIMS, MAX_FRAMES, framesFromRow, msList, setAnim, type AnimKey } from '../../../model/battleArt'
+import { DEFAULT_FRAME_MS, DODGE_ANIMS, HIT_ANIMS, HOLD_ANIMS, HOLD_DELAY_MAX, MAX_FRAMES, framesFromRow, msList, setAnim, type AnimKey } from '../../../model/battleArt'
 import { findSheet, sheetsOf } from '../../../model/graphics'
 import type { BattleAnimDef } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
@@ -36,6 +36,8 @@ export function AnimRow({ setId, animKey, anim }: Props) {
   const uniform = ms.every((m) => m === ms[0])
   const run = isRowRun(anim)
   const hits = HIT_ANIMS.includes(animKey)
+  const holds = HOLD_ANIMS.includes(animKey)
+  const dodges = DODGE_ANIMS.includes(animKey)
   return (
     <div className="battle-anim" data-testid={`anim-${animKey}`}>
       <div className="battle-anim-head">
@@ -68,6 +70,26 @@ export function AnimRow({ setId, animKey, anim }: Props) {
           </Field>
         )}
       </div>
+      {holds && (
+        <div className="battle-fields">
+          <Field label={T.holdFrame} help={T.holdFrameHelp}>
+            <NumberInput aria-label={`${info.label}: ${T.holdFrame}`} allowEmpty min={1} max={anim.frames.length} value={anim.holdFrame === undefined ? undefined : anim.holdFrame + 1}
+              onChange={(v) => patch({ holdFrame: v === undefined ? undefined : v - 1 }, `${setId}:${animKey}:hold`)} />
+          </Field>
+          {dodges && (
+            <Field label={T.startFrame} help={T.startFrameHelp}>
+              <NumberInput aria-label={`${info.label}: ${T.startFrame}`} allowEmpty min={1} max={anim.frames.length} value={anim.startFrame === undefined ? undefined : anim.startFrame + 1}
+                onChange={(v) => patch({ startFrame: v === undefined ? undefined : v - 1 }, `${setId}:${animKey}:startframe`)} />
+            </Field>
+          )}
+          {dodges && (
+            <Field label={T.startDelay} help={T.startDelayHelp}>
+              <NumberInput aria-label={`${info.label}: ${T.startDelay}`} allowEmpty min={0} max={HOLD_DELAY_MAX} value={anim.startDelayMs}
+                onChange={(v) => patch({ startDelayMs: v ? v : undefined }, `${setId}:${animKey}:startdelay`)} />
+            </Field>
+          )}
+        </div>
+      )}
       <AnimSounds setId={setId} animKey={animKey} label={info.label} anim={anim} />
       {!run && <p className="help">{T.customFrames(anim.frames.slice(0, 8).map(([c, r]) => `${c + 1},${r + 1}`).join(' ') + (anim.frames.length > 8 ? ' …' : ''))}</p>}
     </div>

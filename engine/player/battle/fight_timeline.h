@@ -19,6 +19,16 @@ struct FighterTimes {
   int hitAt[kBattleAnims] = {};    // from the start of the animation to the start of its hit frame
   int spawnAt[kBattleAnims] = {};  // ... of its spawn frame, -1 = none given
   std::vector<std::pair<int, std::string>> soundAt[kBattleAnims];  // the animation's sounds: ms from its start, sound id
+  // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"); all off = the animation plays straight through at its own times.
+  bool hold[kBattleAnims] = {};    // "holdFrame" given: the animation waits on that frame until the result has been shown
+  int holdAt[kBattleAnims] = {};   // ms from the start of the animation to the start of the held frame
+  int holdLen[kBattleAnims] = {};  // the held frame's own time
+  bool start[kBattleAnims] = {};   // a dodge with "startFrame": its dodge proper starts at the miss
+  int braceAt[kBattleAnims] = {};  // ms to the start of the last brace frame (startFrame - 1); braceLen its time; brace[] false when startFrame is 0
+  int braceLen[kBattleAnims] = {};
+  bool brace[kBattleAnims] = {};
+  int startAt[kBattleAnims] = {};  // ms to the start of the "startFrame" frame
+  int startDelay[kBattleAnims] = {};  // "startDelayMs"
 };
 
 struct EffectTimes {
@@ -40,6 +50,8 @@ struct EffectTimes {
   std::vector<FxFade> fade;
   int delayMs = 0;           // "atRange": for this fight's distance the whole effect (its start, sounds, flashes, hides, fades and the hit it leads to) comes this much later
   bool bySpeed = false;      // travel: `travelMs` was worked out from the distance and "speed" (the effect then logs its flight time)
+  bool rangeFixed = false;   // "atRangeFixed": starts as if no effect of the strike had an "atRange" delay
+  int panAtMs = -1;          // "panAtMs": the camera of a panning band leaves this long after the effect starts (-1 = the band's own timing)
 };
 
 // Fallback motion times (ms), shared by the timeline and the drawing.
@@ -59,6 +71,17 @@ struct FightPose {
   BattleAnimId anim = BaStand;
   bool fallback = false;  // no animation of that name: the stand picture moves
   int strike = -1;
+  // Frozen moments ("holdFrame" / a dodge's brace): the animation stands still at `atMs` of its own time for `pauseMs` more than it would,
+  // in animation order. `dur` already holds the pauses. Empty = the pose plays straight through.
+  struct Stall {
+    int atMs = 0;
+    double pauseMs = 0;
+  };
+  std::vector<Stall> stalls;
+  // The time inside the animation (ms) that `localSec` seconds after the pose began shows (the stalls stop it).
+  double animMsAt(double localSec) const;
+  // Seconds after the pose began at which the animation reaches `animMs` of its own time (a frame's start; a stall at that very time comes after it).
+  double localSecOf(int animMs) const;
 };
 
 enum class BeatKind { Begin, Tag, StrikeStart, Hit, Miss, Heal, Hurt, Broke, Defeated, End, Sound, FxSound, FxStart, StaffHeal, StaffMiss, StaffNote, FxFlight };
@@ -152,8 +175,10 @@ struct FightTimeline {
 // `panMs` >= 0: the range band shows one fighter at a time; the camera follows the acting fighter and moves to the struck one over `panMs` so that it has
 // arrived when the hit lands (the hit waits for it when the blow comes sooner); -1: no camera.
 // `panStartMs` >= 0 (with a camera): the move to the struck fighter starts that long after the strike starts, whatever the hit time (the hit does not wait for it).
+// `resultHoldMs` / `resultHoldAgainMs` (docs/BATTLE_SCENE.md "Holding a pose"): a held pose waits until the hit (or miss) moment plus `resultHoldMs`, or until the strike's
+// effects are all over if later, plus `resultHoldAgainMs` when the same fighter strikes again next. Only used by animations that hold.
 FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs = -1,
-                                int panStartMs = -1);
+                                int panStartMs = -1, int resultHoldMs = 533, int resultHoldAgainMs = 0);
 // At most one effect per strike (EffectTimes::has false = none): the form the first scene used.
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike);
 

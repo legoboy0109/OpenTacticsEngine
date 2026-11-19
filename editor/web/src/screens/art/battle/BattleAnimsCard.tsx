@@ -14,6 +14,7 @@ import { Select } from '../../../ui/Select'
 import { AssignCard } from './AssignCard'
 import { BackgroundsCard } from './BackgroundsCard'
 import { EffectsCard } from './EffectsCard'
+import { SceneTiming } from './SceneTiming'
 import { PlatformsCard } from './PlatformsCard'
 import { StageCard } from './StageCard'
 import { SetEditor } from './SetEditor'
@@ -59,6 +60,7 @@ export function BattleAnimsCard() {
           )}
           {problem && <p className="error-text" role="alert">{problem}</p>}
           {current && <SetEditor key={current.id} id={current.id} set={current.set} onGone={() => setPicked('')} />}
+          {sets.length > 0 && <SceneTiming />}
           {checks.length > 0 && (
             <div className="stack tight" data-testid="battle-checks">
               {checks.map((c, i) => <p key={i} className={c.blocks ? 'error-text' : 'help'} role={c.blocks ? 'alert' : undefined}>{c.blocks ? `${T.blocked}: ` : `${T.checks}: `}{c.text}</p>)}

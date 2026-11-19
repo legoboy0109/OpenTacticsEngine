@@ -28,6 +28,7 @@ id that does not exist is a load error.
   "view": { "width": 480, "height": 270, "tileSize": 24 },   // optional
   "battleScene": "map",                                      // optional: "map" (default) | "scene": how fights are shown (docs/BATTLE_SCENE.md)
   "battleBackgroundFrom": "defender",                        // optional: "defender" (default) | "attacker": whose square picks the battle scene's background and platform
+  "battlePlatformFrom": "same",                              // optional: "same" (default) | "own": each fighter's battle platform from the square of its own terrain (docs/BATTLE_SCENE.md "Platforms")
   "battleSceneSides": "map",                                 // optional: "map" (default) | "playerRight" | "playerLeft": which side of the scene each fighter stands on
   "battleSceneStaves": false,                                // optional: true = a staff used on one other unit plays in the scene (docs/BATTLE_SCENE.md "Staves in the scene")
   "menuUnavailable": "grey",                                 // optional: "grey" (default) | "hide": an action with nothing to act on stays greyed or is left out of the action menu (docs/SRPG.md "Menu options")

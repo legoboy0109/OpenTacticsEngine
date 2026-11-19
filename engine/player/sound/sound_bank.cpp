@@ -60,7 +60,9 @@ int SoundBank::lookup(const AudioData& d, Cue cue, const CueCtx& ctx) {
   // layer ends the search with nothing; kNone passes it on.
   const int layers[5] = {
       ctx.weapon >= 0 && (size_t)ctx.weapon < d.weapons.size() ? d.weapons[(size_t)ctx.weapon].sound[c] : kNone,
-      ctx.item >= 0 && (size_t)ctx.item < d.items.size() ? d.items[(size_t)ctx.item].sound[c] : kNone,
+      ctx.item >= 0 && (size_t)ctx.item < d.items.size()
+          ? (cue == Cue::Heal && ctx.scene && d.items[(size_t)ctx.item].healScene != kNone ? d.items[(size_t)ctx.item].healScene : d.items[(size_t)ctx.item].sound[c])
+          : kNone,
       ctx.unitType >= 0 && (size_t)ctx.unitType < d.units.size() ? d.units[(size_t)ctx.unitType].sound[c] : kNone,
       ctx.moveType >= 0 && (size_t)ctx.moveType < d.moveTypes.size() ? d.moveTypes[(size_t)ctx.moveType].sound[c] : kNone,
       d.standard.sound[c]};

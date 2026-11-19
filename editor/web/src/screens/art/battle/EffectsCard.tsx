@@ -5,7 +5,7 @@ import { artBase } from '../../../model/artFiles'
 import { DEFAULT_FRAME_MS, weaponGroups } from '../../../model/battleArt'
 import {
   addEffect, effectBlend, effectFor, effectList, effectName, effectOrder, effectProblems, effectWeaponChoices, flightBySpeed, hasPictures, isRowRun, removeEffect, setEffectBlend,
-  setEffectFor, setEffectOrder, setEffectPicture, setEndOffset, setFlightBySpeed, updateEffect, END_OFFSET_MAX, type EffectFor,
+  setEffectFor, setEffectOrder, setEffectPicture, setEndOffset, setFlightBySpeed, updateEffect, END_OFFSET_MAX, END_OFFSET_MIN, PAN_AT_MAX, setEffectRangeFixed, setPanAt, type EffectFor,
 } from '../../../model/battleEffects'
 import { sheetsOf } from '../../../model/graphics'
 import { useDoc, useEdit, useStore } from '../../../store/context'
@@ -100,7 +100,7 @@ function EffectForm({ index }: { index: number }) {
                   </Field>
                 )}
                 <Field label={ET.endOffset} help={ET.endOffsetHelp}>
-                  <NumberInput aria-label={`Effect ${index + 1}: ${ET.endOffset}`} allowEmpty min={0} max={END_OFFSET_MAX} value={e.endOffset} onChange={(v) => edit((d) => setEndOffset(d, index, v), group('endoffset'))} />
+                  <NumberInput aria-label={`Effect ${index + 1}: ${ET.endOffset}`} allowEmpty min={END_OFFSET_MIN} max={END_OFFSET_MAX} value={e.endOffset} onChange={(v) => edit((d) => setEndOffset(d, index, v), group('endoffset'))} />
                 </Field>
                 <Field label={ET.linger}>
                   <NumberInput aria-label={`Effect ${index + 1}: ${ET.linger}`} allowEmpty min={0} max={5000} value={e.lingerMs} onChange={(v) => patch({ lingerMs: v ? v : undefined }, group('linger'))} />
@@ -118,6 +118,9 @@ function EffectForm({ index }: { index: number }) {
                 <NumberInput aria-label={`Effect ${index + 1}: ${ET.hitAtMs}`} allowEmpty min={0} max={15000} value={e.hitAtMs} onChange={(v) => patch({ hitAtMs: v ? v : undefined }, group('hitat'))} />
               </Field>
             )}
+            <Field label={ET.panAt} help={ET.panAtHelp}>
+              <NumberInput aria-label={`Effect ${index + 1}: ${ET.panAt}`} allowEmpty min={0} max={PAN_AT_MAX} value={e.panAtMs} onChange={(v) => edit((d) => setPanAt(d, index, v), group('panat'))} />
+            </Field>
             <Field label={ET.layer} help={layer === 'screen' ? ET.layerHelp : undefined}>
               <Select aria-label={`Effect ${index + 1}: ${ET.layer}`} value={layer}
                 options={[{ value: 'front', label: ET.layerFront }, { value: 'behind', label: ET.layerBehind }, ...(travel ? [] : [{ value: 'screen', label: ET.layerScreen }])]}
@@ -136,6 +139,7 @@ function EffectForm({ index }: { index: number }) {
             </Field>
           </div>
           {travel && <Toggle label={ET.returns} help={ET.returnsHelp} checked={!!e.returns} onChange={(v) => patch({ returns: v ? true : undefined })} />}
+          {(!e.atRange?.length || e.atRangeFixed) && <Toggle label={ET.rangeFixed} help={ET.rangeFixedHelp} checked={!!e.atRangeFixed} onChange={(v) => edit((d) => setEffectRangeFixed(d, index, v))} />}
           {layer === 'screen' && <Toggle label={ET.mirror} help={ET.mirrorHelp} checked={!!e.mirror} onChange={(v) => patch({ mirror: v ? true : undefined })} />}
           <EffectRanges index={index} />
           <EffectSounds index={index} />

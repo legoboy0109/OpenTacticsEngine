@@ -194,7 +194,7 @@ dialogue turnStart upgrade research repair supply ambush select`. `ambush` (a mo
 |---|---|---|
 | `data/weapons.json`, per weapon | `"sounds"` | `hit`, `miss`, `critical` |
 | `data/units.json`, per unit type | `"sounds"` | `step`, `hit`, `miss`, `critical`, `defeated`, `select`, `heal` |
-| `data/items.json`, per item (a staff too) | `"sounds"` | `use` (the cue `itemUse`), `heal` (the cue `heal`, see "A staff's own heal sound") |
+| `data/items.json`, per item (a staff too) | `"sounds"` | `use` (the cue `itemUse`), `heal` (the cue `heal`, see "A staff's own heal sound"), `healScene` (the same cue, in the battle scene only) |
 | `maps/*.json` | `"music"`, `"playerTurnMusic"`, `"enemyTurnMusic"` (music ids) | |
 | `data/campaign.json`, a chapter's `before` / `after` | the scene as `{ "music": "id", "commands": [ ... ] }` | |
 
@@ -205,10 +205,17 @@ unit that fell for `defeated`, the unit picked for `select`, the unit healed for
 **A staff's own heal sound.** The `heal` cue plays when a "+N" appears over a healed unit, so a staff whose battle scene effect already plays its own sound ("Effect sounds" in
 docs/BATTLE_SCENE.md) is heard twice. An item (a staff or a healing item) may carry `"sounds": { "heal": "<sound id>" }`: that sound plays **instead of** the game's `heal` sound for the heal
 that item causes, and `"heal": ""` (the same "silence on purpose" as above) plays nothing. The item's entry is looked up first, then the healed unit type's `heal`, then the standard set,
-so an item without the key behaves exactly as before. It applies on the map (the `UnitHealed` entries that follow the item's `StaffUsed` / `ItemUsed`) and in the battle scene (the "+N" beat);
+so an item without the key behaves exactly as before. It applies on the map (the `UnitHealed` entries that follow the item's `StaffUsed` / `ItemUsed`) and in the battle scene (the "+N" beat), **unless the item also gives `"healScene"`** (next paragraph);
 a heal from anything else (drain, a condition, an ability, a structure) never takes an item's sound. It changes only the heal cue: the staff's use cue (`use`, else `itemUse`) and the miss
 cue are decided as before (a staff with a heal effect plays no `itemUse` of its own when the game defines `heal`, even if the item silences it). An unknown sound id is a load error
 (`item "mend_staff": "sounds": "heal" names unknown sound "x"`). Test: `tests/staff_heal_sound_player_test.py`.
+**Scene only: `"healScene"`.** `"sounds": { "heal": "<id>", "healScene": "<id>" | "" }` on an item: `healScene` is the heal sound **in the battle scene only** (the "+N" beat of a staff used in the scene,
+`battleSceneStaves`); it replaces the item's `heal` there, and `""` silences the scene's heal while `heal` keeps playing on the map. Use it for a staff whose scene effect plays its own sound
+(`"sounds"` of the effect, docs/BATTLE_SCENE.md "Effect sounds") so the engine's cue is not heard twice in the scene but still is on the map. Without `healScene` the item's `heal` (or, without that, the unit
+type's / the standard `heal`) is used in the scene exactly as before, and `heal` keeps its meaning on the map and in the scene; `healScene` alone leaves the map's heal sound to the unit type / the standard
+set. It changes only the heal cue of the staff's own heal: the use cue, the miss cue and a heal from anything else (drain, a condition, an ability, a structure) are unaffected. Item blocks accept the keys
+`use`, `heal`, `healScene` (an unknown key is refused, listing them); an unknown sound id is `item "x": "sounds": "healScene" names unknown sound "y"`. Code: `CueCtx::scene`, `CueSet::healScene`
+(`sound_bank.*`, `audio_data.*`). Tests: `tests/test_audio_data.cpp`, `tests/battle_scene5_player_test.py` (which sounds are heard on the map and in the scene).
 
 A scene object with `"music"` is the plain scene with `{ "playMusic": "id" }` in front, nothing else changes (`"commands"`
 may be left out); scenes in `then` / `else` branches stay plain lists.

@@ -92,6 +92,14 @@ bool readAnim(const LoadCtx& c, const Database& db, const Json& j, const std::st
     if (v < 0 || v >= n) return c.fail(where, q(key) + " is frame " + std::to_string(v) + " but the animation has frames 0 to " + std::to_string(n - 1));
     (std::string(key) == "hit" ? out.hit : out.spawn) = v;
   }
+  // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"): the slot-specific rules are checked by checkHolds once the slot is known.
+  for (const char* key : {"holdFrame", "startFrame", "startDelayMs"}) {
+    if (!j.has(key)) continue;
+    if (isEffect) return c.fail(where, q(key) + " is only for an animation of a battle set (an effect has no pose to hold)");
+  }
+  if (!c.integerIn(j, "holdFrame", where, 0, n - 1, out.holdFrame) || !c.integerIn(j, "startFrame", where, 0, n - 1, out.startFrame) ||
+      !c.integerIn(j, "startDelayMs", where, 0, 5000, out.startDelayMs))
+    return false;
   // "sounds": { "<frame>": "<sound id>" }: a sound that plays when that frame begins (docs/BATTLE_SCENE.md "Sounds").
   if (j.has("sounds") && !isEffect) {
     const Json& s = j["sounds"];
@@ -156,6 +164,23 @@ bool checkSideSheet(const LoadCtx& c, const Database& db, const BattleAnim& a, c
   return true;
 }
 
+// The rules of "holdFrame" / "startFrame" / "startDelayMs" that depend on the slot (docs/BATTLE_SCENE.md "Holding a pose").
+bool checkHolds(const LoadCtx& c, const BattleAnim& a, BattleAnimId id, const std::string& where) {
+  if (!a.holds() && a.startDelayMs == 0) return true;
+  const bool dodge = id == BaDodge || id == BaDodgeRanged;
+  const bool striker = id == BaAttack || id == BaCrit || id == BaRanged || id == BaCast || id == BaCritRanged || id == BaMiss;
+  if (!dodge && !striker && id != BaHurt)
+    return c.fail(where, "\"holdFrame\" / \"startFrame\" are for the strike animations, \"dodge\", \"dodgeRanged\" and \"hurt\" (a standing animation or a fall never waits for a result)");
+  if (a.startFrame >= 0 && !dodge) return c.fail(where, "\"startFrame\" is only for \"dodge\" and \"dodgeRanged\" (the frames before it are the brace before the blow)");
+  if (a.startDelayMs > 0 && !dodge) return c.fail(where, "\"startDelayMs\" is only for \"dodge\" and \"dodgeRanged\"");
+  if (a.startDelayMs > 0 && !a.holds()) return c.fail(where, "\"startDelayMs\" needs a \"startFrame\" or a \"holdFrame\" (it moves the start of the dodge from the miss)");
+  if (a.holdFrame >= 0 && a.startFrame >= 0 && a.holdFrame < a.startFrame)
+    return c.fail(where, "\"holdFrame\" " + std::to_string(a.holdFrame) + " comes before \"startFrame\" " + std::to_string(a.startFrame) + " (the hold is a frame of the dodge itself, not of the brace)");
+  if (striker && a.holdFrame >= 0 && a.holdFrame < a.hitFrame())
+    return c.fail(where, "\"holdFrame\" " + std::to_string(a.holdFrame) + " comes before the hit frame " + std::to_string(a.hitFrame()) + " (the animation waits after the blow, on the hit frame or a later one)");
+  return true;
+}
+
 bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
   const Json* sets;
   if (!c.object(b, "sets", "battle", sets)) return false;
@@ -181,6 +206,7 @@ bool readSets(const LoadCtx& c, Database& db, const Json& b, BattleArt& art) {
       if (a.second.isNull()) continue;
       const std::string aw = where + ": animation " + q(a.first);
       if (!readAnim(c, db, a.second, aw, id == BaStand || id == BaStandRanged, s.anims[id])) return false;
+      if (!checkHolds(c, s.anims[id], id, aw)) return false;
       if (!readSideSheets(c, db, a.second, aw, s.anims[id].sideSheets)) return false;
       for (const auto& ss : s.anims[id].sideSheets)
         if (!checkSideSheet(c, db, s.anims[id], ss.first, ss.second, aw)) return false;
@@ -287,23 +313,38 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
     if (fx.speed < 1 || fx.speed > 10000) return c.fail(where, "\"speed\" must be between 1 and 10000 (stage pixels per second)");
   }
   if (given("endOffset")) {  // docs/BATTLE_SCENE.md "Thrown weapons stopping short"
-    if (!c.integer(j, "endOffset", where, fx.endOffset)) return false;
+    if (!c.integerIn(j, "endOffset", where, -400, 400, fx.endOffset)) return false;  // (negative: the shot flies past the target)
     if (!fx.travel) return c.fail(where, "\"endOffset\" is only for a \"travel\" effect (it stops short of the target)");
-    if (fx.endOffset < 0 || fx.endOffset > 200) return c.fail(where, "\"endOffset\" must be between 0 and 200 (pixels short of the target)");
+  }
+  if (given("panAtMs")) {  // docs/BATTLE_SCENE.md "Range bands": the camera's own start for strikes that use this effect
+    if (!c.integerIn(j, "panAtMs", where, 0, 15000, fx.panAtMs)) return false;
+  }
+  if (given("atRangeFixed")) {  // docs/BATTLE_SCENE.md "Effect timing by distance"
+    if (!c.boolean(j, "atRangeFixed", where, fx.rangeFixed)) return false;
+    if (fx.rangeFixed && given("atRange")) return c.fail(where, "\"atRangeFixed\" is for an effect that is not delayed by distance; an effect with its own \"atRange\" is delayed by it (mark single rows of its fade / hide / flash / shake instead)");
   }
   if (given("atRange")) {  // docs/BATTLE_SCENE.md "Effect timing by distance"
     const Json& r = j["atRange"];
     if (!r.isArray() || r.size() < 1 || r.size() > 16)
-      return c.fail(where, "\"atRange\" must be a list of 1 to 16 { \"from\": 2, \"delayMs\": 267 }");
+      return c.fail(where, "\"atRange\" must be a list of 1 to 16 { \"from\": 2, \"delayMs\": 267 } (a travel effect's may also give \"endOffset\")");
     for (size_t i = 0; i < r.size(); ++i) {
       const std::string w = where + " atRange " + std::to_string(i + 1);
-      if (!r[i].isObject()) return c.fail(w, "must be { \"from\": 2, \"delayMs\": 267 }");
+      if (!r[i].isObject()) return c.fail(w, "must be { \"from\": 2, \"delayMs\": 267 } (a travel effect's may also give an \"endOffset\")");
       for (const Json::Member& m : r[i].members())
-        if (m.first != "from" && m.first != "delayMs") return c.fail(w, "unknown key " + q(m.first) + " (expected \"from\", \"delayMs\")");
+        if (m.first != "from" && m.first != "delayMs" && m.first != "endOffset") return c.fail(w, "unknown key " + q(m.first) + " (expected \"from\", \"delayMs\", \"endOffset\")");
       FxRange fr;
-      if (!c.integer(r[i], "from", w, fr.from, true) || !c.integer(r[i], "delayMs", w, fr.delayMs, true)) return false;
-      if (fr.from < 1 || fr.from > 99) return c.fail(w, "\"from\" must be between 1 and 99 (the fight distance in squares the delay starts at)");
-      if (fr.delayMs < 0 || fr.delayMs > 15000) return c.fail(w, "\"delayMs\" must be between 0 and 15000 (milliseconds the whole effect starts later)");
+      if (!c.integer(r[i], "from", w, fr.from, true)) return false;
+      if (fr.from < 1 || fr.from > 99) return c.fail(w, "\"from\" must be between 1 and 99 (the fight distance in squares the step starts at)");
+      if (!r[i].has("delayMs") && !r[i].has("endOffset")) return c.fail(w, "needs a \"delayMs\" (milliseconds the whole effect starts later) or an \"endOffset\" (pixels the flight stops short of the target)");
+      if (r[i].has("delayMs")) {  // (milliseconds the whole effect starts later)
+        if (!c.integer(r[i], "delayMs", w, fr.delayMs)) return false;
+        if (fr.delayMs < 0 || fr.delayMs > 15000) return c.fail(w, "\"delayMs\" must be between 0 and 15000 (milliseconds the whole effect starts later)");
+      }
+      if (r[i].has("endOffset")) {
+        if (!fx.travel) return c.fail(w, "\"endOffset\" is only for a \"travel\" effect (it stops short of the target)");
+        if (!c.integerIn(r[i], "endOffset", w, -400, 400, fr.endOffset)) return false;
+        fr.hasEndOffset = true;
+      }
       for (const FxRange& o : fx.atRange)
         if (o.from == fr.from) return c.fail(w, "a second entry starts at " + std::to_string(fr.from) + " (each \"from\" can be used once)");
       fx.atRange.push_back(fr);
@@ -317,9 +358,10 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " hide " + std::to_string(i + 1);
       if (!h[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 1500, \"what\": [\"backdrop\", \"platforms\"] }");
       for (const Json::Member& m : h[i].members())
-        if (m.first != "atMs" && m.first != "ms" && m.first != "what" && m.first != "color")
-          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"what\", \"color\")");
+        if (m.first != "atMs" && m.first != "ms" && m.first != "what" && m.first != "color" && m.first != "atRangeFixed")
+          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"what\", \"color\", \"atRangeFixed\")");
       FxHide hd;
+      if (!c.boolean(h[i], "atRangeFixed", w, hd.fixed)) return false;
       if (!c.integer(h[i], "atMs", w, hd.atMs, true) || !c.integer(h[i], "ms", w, hd.ms, true)) return false;
       if (hd.atMs < 0 || hd.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
       if (hd.ms < 10 || hd.ms > 60000) return c.fail(w, "\"ms\" must be between 10 and 60000");
@@ -353,9 +395,10 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " fade " + std::to_string(i + 1);
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 0, \"ms\": 300, \"to\": \"#000000\", \"alpha\": 0.8, \"holdMs\": 400, \"over\": \"all\" }");
       for (const Json::Member& m : f[i].members())
-        if (m.first != "atMs" && m.first != "ms" && m.first != "to" && m.first != "alpha" && m.first != "holdMs" && m.first != "over")
-          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"to\", \"alpha\", \"holdMs\", \"over\")");
+        if (m.first != "atMs" && m.first != "ms" && m.first != "to" && m.first != "alpha" && m.first != "holdMs" && m.first != "over" && m.first != "atRangeFixed")
+          return c.fail(w, "unknown key " + q(m.first) + " (expected \"atMs\", \"ms\", \"to\", \"alpha\", \"holdMs\", \"over\", \"atRangeFixed\")");
       FxFade fd;
+      if (!c.boolean(f[i], "atRangeFixed", w, fd.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, fd.atMs, true) || !c.integer(f[i], "ms", w, fd.ms, true) || !c.integer(f[i], "holdMs", w, fd.holdMs)) return false;
       if (fd.atMs < 0 || fd.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
       if (fd.ms < 10 || fd.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000 (the time to fade in, and again to fade out)");
@@ -384,6 +427,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " flash " + std::to_string(i + 1);
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 80, \"color\": \"#ffffff\" }");
       FxFlash fl;
+      if (!c.boolean(f[i], "atRangeFixed", w, fl.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, fl.atMs, true) || !c.integer(f[i], "ms", w, fl.ms, true)) return false;
       if (fl.atMs < 0 || fl.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
       if (fl.ms < 10 || fl.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000");
@@ -403,6 +447,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       const std::string w = where + " shake " + std::to_string(i + 1);
       if (!f[i].isObject()) return c.fail(w, "must be { \"atMs\": 100, \"ms\": 200, \"strength\": 2 }");
       FxShake sh;
+      if (!c.boolean(f[i], "atRangeFixed", w, sh.fixed)) return false;
       if (!c.integer(f[i], "atMs", w, sh.atMs, true) || !c.integer(f[i], "ms", w, sh.ms, true) || !c.integer(f[i], "strength", w, sh.strength, true)) return false;
       if (sh.atMs < 0 || sh.atMs > 60000) return c.fail(w, "\"atMs\" must be between 0 and 60000");
       if (sh.ms < 10 || sh.ms > 5000) return c.fail(w, "\"ms\" must be between 10 and 5000");
@@ -410,7 +455,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       fx.shake.push_back(sh);
     }
   }
-  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed", "endOffset", "atRange"})
+  for (const char* k : {"sounds", "hitAtMs", "layer", "mirror", "flash", "shake", "at", "returns", "lingerMs", "blend", "hide", "fade", "order", "speed", "endOffset", "atRange", "atRangeFixed", "panAtMs"})
     if (given(k)) fx.extended = true;
   if (fx.anim.frameSheets.size() > 0) fx.extended = true;
   return true;
@@ -689,6 +734,16 @@ bool readMapBattleTables(const LoadCtx& c, const Database& db, const Json& root,
   return true;
 }
 
+// "scene": { "resultHoldMs": 533, "resultHoldAgainMs": 0 }: how long a held pose waits after the result (docs/BATTLE_SCENE.md "Holding a pose").
+bool readSceneTiming(const LoadCtx& c, const Json& b, BattleSceneTiming& out) {
+  if (!b.has("scene")) return true;
+  const Json& sc = b["scene"];
+  if (!sc.isObject()) return c.fail("battle scene", "must be an object such as { \"resultHoldMs\": 533, \"resultHoldAgainMs\": 0 }");
+  for (const Json::Member& m : sc.members())
+    if (m.first != "resultHoldMs" && m.first != "resultHoldAgainMs") return c.fail("battle scene", "unknown key " + q(m.first) + " (expected \"resultHoldMs\", \"resultHoldAgainMs\")");
+  return c.integerIn(sc, "resultHoldMs", "battle scene", 0, 5000, out.resultHoldMs) && c.integerIn(sc, "resultHoldAgainMs", "battle scene", 0, 5000, out.resultHoldAgainMs);
+}
+
 bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   db.graphics.battle = BattleArt();
   if (!root.has("battle")) return true;
@@ -698,7 +753,7 @@ bool readBattleArt(const LoadCtx& c, Database& db, const Json& root) {
   art.terrainBackground.assign(db.terrains.size(), -1);
   art.terrainPlatform.assign(db.terrains.size(), -1);
   if (!readSets(c, db, b, art) || !readEffects(c, db, b, art) || !readAssign(c, db, b, art) || !readBackgrounds(c, db, b, art)) return false;
-  if (!readBattleStage(c, b, art.stage)) return false;
+  if (!readBattleStage(c, b, art.stage) || !readSceneTiming(c, b, art.timing)) return false;
   // A flight by "speed" is measured in stage pixels: it needs a fixed stage.
   for (size_t i = 0; i < art.effects.size(); ++i)
     if (art.effects[i].speed > 0 && !art.stage.on) return c.fail("battle effect " + std::to_string(i + 1), "\"speed\" is in stage pixels per second and needs a fixed \"stage\" (or use \"travelMs\")");

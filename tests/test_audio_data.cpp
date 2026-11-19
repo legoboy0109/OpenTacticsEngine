@@ -179,6 +179,65 @@ TEST(audio_data_story_ids_are_checked_in_maps_and_scenes) {
   CHECK(err.find("this game has no data/audio.json") != std::string::npos);
 }
 
+// An item's "healScene" (docs/SOUND.md "A staff's own heal sound"): its heal sound in the battle scene only; "heal" keeps meaning both.
+TEST(audio_item_heal_scene_replaces_heal_in_the_scene_only) {
+  auto build = [&](const char* folder, const char* sounds, SoundGame& s, AudioData& d) {
+    CHECK(s.make(kAudio, folder, false));
+    std::string t;
+    readTextFile(s.g.dir + "/data/items.json", t);
+    const size_t at = t.find("\"id\":\"potion\",");
+    CHECK(at != std::string::npos);
+    if (at == std::string::npos) return std::string("no potion");
+    t.replace(at, 14, std::string("\"id\":\"potion\",\"sounds\":") + sounds + ",");
+    CHECK(Game::write(s.g.dir + "/data/items.json", t));
+    return loadAll(s, d);
+  };
+  {
+    SoundGame s;
+    AudioData d;
+    CHECK_STR(build("audio_scene5_a", "{\"heal\":\"hit\",\"healScene\":\"thunder\"}", s, d), std::string());
+    const int potion = s.g.db.findItem("potion");
+    CueCtx map, scene;
+    map.item = scene.item = potion;
+    scene.scene = true;
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, map), d.findSound("hit"));          // on the map: "heal"
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, scene), d.findSound("thunder"));    // in the scene: "healScene"
+    CHECK_EQ(SoundBank::lookup(d, Cue::Miss, scene), -1);                       // it changes the heal cue only
+  }
+  {
+    SoundGame s;
+    AudioData d;
+    CHECK_STR(build("audio_scene5_b", "{\"heal\":\"hit\",\"healScene\":\"\"}", s, d), std::string());  // silent in the scene on purpose
+    CueCtx map, scene;
+    map.item = scene.item = s.g.db.findItem("potion");
+    scene.scene = true;
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, map), d.findSound("hit"));
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, scene), -1);
+  }
+  {
+    SoundGame s;
+    AudioData d;
+    CHECK_STR(build("audio_scene5_c", "{\"heal\":\"hit\"}", s, d), std::string());  // no healScene: "heal" plays in the scene too, as before
+    CueCtx scene;
+    scene.item = s.g.db.findItem("potion");
+    scene.scene = true;
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, scene), d.findSound("hit"));
+    CueCtx other;  // a heal from anything else never takes an item's sound
+    other.scene = true;
+    CHECK_EQ(SoundBank::lookup(d, Cue::Heal, other), -1);
+  }
+  {
+    SoundGame s;
+    AudioData d;
+    const std::string err = build("audio_scene5_d", "{\"healScene\":\"ghost\"}", s, d);
+    CHECK(err.find("item \"potion\": \"sounds\": \"healScene\" names unknown sound \"ghost\"") != std::string::npos);
+    const std::string err2 = build("audio_scene5_e", "{\"healScene\":4}", s, d);
+    CHECK(err2.find("\"healScene\" must be a sound id") != std::string::npos);
+    const std::string err3 = build("audio_scene5_f", "{\"heel\":\"hit\"}", s, d);
+    CHECK(err3.find("unknown key \"heel\" (expected \"use\", \"heal\", \"healScene\")") != std::string::npos);
+  }
+}
+
 TEST(sound_lookup_order_weapon_item_unit_standard_silence) {
   AudioData d;
   d.present = true;

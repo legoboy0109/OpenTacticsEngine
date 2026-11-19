@@ -10,7 +10,7 @@ namespace {
 // set's animation (a fallback motion has none).
 void addSounds(FightTimeline& tl, const FightPose& pose, int side, const FighterTimes& t, int strike) {
   if (pose.fallback) return;
-  for (const auto& s : t.soundAt[pose.anim]) tl.beats.push_back({pose.start + s.first / 1000.0, BeatKind::Sound, strike, side, 0, false, s.second});
+  for (const auto& s : t.soundAt[pose.anim]) tl.beats.push_back({pose.start + pose.localSecOf(s.first), BeatKind::Sound, strike, side, 0, false, s.second});
 }
 }  // namespace
 
@@ -21,6 +21,25 @@ BattleAnimId attackAnimFor(const FighterTimes& t, bool crit, bool ranged, bool h
   if (ranged && t.has[BaRanged]) return BaRanged;
   if (hasEffect && t.has[BaCast]) return BaCast;
   return crit && !t.has[BaAttack] ? BaCrit : BaAttack;  // (with no attack animation either, the fallback crit shows its flash)
+}
+
+double FightPose::animMsAt(double localSec) const {
+  const double local = localSec * 1000.0;
+  double extra = 0;
+  for (const Stall& s : stalls) {
+    const double begin = s.atMs + extra;
+    if (local <= begin) break;
+    if (local < begin + s.pauseMs) return s.atMs;  // frozen on the frame that starts at atMs
+    extra += s.pauseMs;
+  }
+  return local - extra;
+}
+
+double FightPose::localSecOf(int animMs) const {
+  double extra = 0;
+  for (const Stall& s : stalls)
+    if (s.atMs < animMs) extra += s.pauseMs;
+  return (animMs + extra) / 1000.0;
 }
 
 double FightFadeWin::opacityAt(double t) const {
@@ -88,6 +107,21 @@ namespace {
 
 double sec(int ms) { return ms / 1000.0; }
 
+// Builds the stalls of one pose in animation order (docs/BATTLE_SCENE.md "Holding a pose"): a frame that begins at `frameAtMs` of the animation and lasts
+// `frameLenMs` is kept on screen until at least `untilAbs` (scene seconds); the frames after it come later by the extra time.
+struct StallMaker {
+  double startAbs;
+  FightPose* pose;
+  double extraMs = 0;
+  void holdUntil(int frameAtMs, int frameLenMs, double untilAbs) {
+    const double begins = startAbs + (frameAtMs + extraMs) / 1000.0;
+    const double pause = (untilAbs - begins) * 1000.0 - frameLenMs;
+    if (pause <= 0.5) return;  // it ends later than that on its own
+    pose->stalls.push_back({frameAtMs, pause});
+    extraMs += pause;
+  }
+};
+
 }  // namespace
 
 FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], const std::vector<EffectTimes>& effectByStrike) {
@@ -96,7 +130,7 @@ FightTimeline buildTimeline(const FightScript& s, const FighterTimes times[2], c
   return buildTimelineList(s, times, lists);
 }
 
-FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs) {
+FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2], const std::vector<std::vector<EffectTimes>>& effectsByStrike, int panMs, int panStartMs, int resultHoldMs, int resultHoldAgainMs) {
   FightTimeline tl;
   if (!s.valid) return tl;
   const bool useCam = panMs >= 0;
@@ -139,8 +173,12 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
       ap.dur = sec(kind == BaCrit ? kFallbackCritMs : kFallbackAttackMs);
       hitOffset = sec(kind == BaCrit ? kFallbackCritHitMs : kFallbackAttackHitMs);
     }
-    tl.poses[a].push_back(ap);
-    addSounds(tl, ap, a, ft, (int)i);
+    // A held strike animation is added once the strike's effects are known (its wait depends on when they end); every other one now, as always.
+    const bool holdA = ft.has[kind] && ft.hold[kind];
+    if (!holdA) {
+      tl.poses[a].push_back(ap);
+      addSounds(tl, ap, a, ft, (int)i);
+    }
     double hitT = t0 + hitOffset;
     // The strike's effects (docs/BATTLE_SCENE.md "Timing of effects"). The hit lands at the strike animation's hit frame, but not before a
     // travelling effect has arrived, and not before an effect that starts `hitAtMs` ahead of it has had that long to run since the strike began.
@@ -158,7 +196,12 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
     // A camera that shows one fighter at a time moves to the struck one over `pan`, arriving as the hit lands (the hit waits when the blow is sooner).
     // With a "startMs" it leaves that long after the strike starts instead and the hit does not wait for it (only the next strike does).
     double camDone = 0;
-    if (useCam) {
+    int panFx = -1;  // the first effect with its own "panAtMs": the camera leaves relative to its start (set after the effects are placed)
+    for (size_t k = 0; useCam && panFx < 0 && k < fxs.size(); ++k)
+      if (fxs[k].panAtMs >= 0) panFx = (int)k;
+    if (useCam && panFx >= 0) {
+      camSide = d;
+    } else if (useCam) {
       if (panStartMs >= 0) {
         tl.cam.push_back({t0 + sec(panStartMs), pan, d});
         camDone = t0 + sec(panStartMs) + pan;
@@ -179,6 +222,8 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
         hitT = std::max(hitT, std::max(hitNoDelay, t0 + sec(e.hitAtMs)) + sec(e.delayMs));
       }
     }
+    double fxBusy = 0;  // when the last part of any of the strike's effects (pictures, sounds, flashes, shakes, hides, fades, a flight home) is over
+    std::vector<double> fxStart;
     for (size_t k = 0; k < fxs.size(); ++k) {
       const EffectTimes& e = fxs[k];
       FightFx f;
@@ -195,17 +240,54 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
         f.dur = sec(e.travelMs + e.lingerMs + (e.returns ? e.travelMs : 0));
         if (e.returns || e.lingerMs > 0) fxEnd = std::max(fxEnd, f.t0 + f.dur);
       } else {
-        f.t0 = hitT - sec(e.hitAtMs);
+        f.t0 = (e.rangeFixed ? hitNoDelay : hitT) - sec(e.hitAtMs);  // "atRangeFixed": as if no effect of the strike were delayed
         f.dur = sec(std::max(e.total, 60));
       }
       tl.fx.push_back(f);
+      fxStart.push_back(f.t0);
+      fxBusy = std::max(fxBusy, f.t0 + f.dur);
+      // The start a row marked "atRangeFixed" is timed from: the effect's start without its own "atRange" delay.
+      const double base = f.t0 - sec(e.delayMs);
+      auto rowT = [&](bool fixed) { return fixed ? base : f.t0; };
       if (e.extended) tl.beats.push_back({f.t0, BeatKind::FxStart, (int)i, a, 0, false, "", e.name});
-      for (const auto& snd : e.sounds) tl.beats.push_back({f.t0 + sec(snd.first), BeatKind::FxSound, (int)i, a, 0, false, snd.second, e.name});
-      for (const FxFlash& fl : e.flash) tl.flashes.push_back({f.t0 + sec(fl.atMs), sec(fl.ms), fl.rgb, 0, (int)i});
-      for (const FxShake& sh : e.shake) tl.shakes.push_back({f.t0 + sec(sh.atMs), sec(sh.ms), 0, sh.strength, (int)i});
+      for (const auto& snd : e.sounds) {
+        tl.beats.push_back({f.t0 + sec(snd.first), BeatKind::FxSound, (int)i, a, 0, false, snd.second, e.name});
+        fxBusy = std::max(fxBusy, f.t0 + sec(snd.first));
+      }
+      for (const FxFlash& fl : e.flash) {
+        tl.flashes.push_back({rowT(fl.fixed) + sec(fl.atMs), sec(fl.ms), fl.rgb, 0, (int)i});
+        fxBusy = std::max(fxBusy, rowT(fl.fixed) + sec(fl.atMs + fl.ms));
+      }
+      for (const FxShake& sh : e.shake) {
+        tl.shakes.push_back({rowT(sh.fixed) + sec(sh.atMs), sec(sh.ms), 0, sh.strength, (int)i});
+        fxBusy = std::max(fxBusy, rowT(sh.fixed) + sec(sh.atMs + sh.ms));
+      }
       if (e.travel && e.bySpeed) tl.beats.push_back({f.t0, BeatKind::FxFlight, (int)i, a, e.travelMs, false, "", e.name});
-      for (const FxHide& h : e.hide) tl.hides.push_back({f.t0 + sec(h.atMs), sec(h.ms), h.what, h.hasColor, h.rgb});
-      for (const FxFade& fd : e.fade) tl.fades.push_back({f.t0 + sec(fd.atMs), sec(fd.ms), sec(fd.holdMs), fd.rgb, fd.alpha / 255.0, fd.backdropOnly});
+      for (const FxHide& h : e.hide) {
+        tl.hides.push_back({rowT(h.fixed) + sec(h.atMs), sec(h.ms), h.what, h.hasColor, h.rgb});
+        fxBusy = std::max(fxBusy, rowT(h.fixed) + sec(h.atMs + h.ms));
+      }
+      for (const FxFade& fd : e.fade) {
+        tl.fades.push_back({rowT(fd.fixed) + sec(fd.atMs), sec(fd.ms), sec(fd.holdMs), fd.rgb, fd.alpha / 255.0, fd.backdropOnly});
+        fxBusy = std::max(fxBusy, rowT(fd.fixed) + sec(fd.atMs + 2 * fd.ms + fd.holdMs));
+      }
+    }
+    // A camera that leaves relative to an effect's own start (after its "atRange" delay): like "startMs", the blow does not wait for it.
+    if (useCam && panFx >= 0) {
+      const double leave = fxStart[(size_t)panFx] + sec(fxs[(size_t)panFx].panAtMs);
+      tl.cam.push_back({leave, pan, d});
+      camDone = leave + pan;
+    }
+    // Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"): the result is over `resultHoldMs` after the blow / miss moment, or when the effects
+    // are all over if later, and `resultHoldAgainMs` more when the same fighter strikes again next.
+    const bool again = i + 1 < s.strikes.size() && s.strikes[i + 1].actor == a;
+    const double resultOver = std::max(hitT + sec(resultHoldMs), fxBusy) + (again ? sec(resultHoldAgainMs) : 0.0);
+    if (holdA) {
+      StallMaker m{ap.start, &ap};
+      m.holdUntil(ft.holdAt[kind], ft.holdLen[kind], resultOver);
+      ap.dur += m.extraMs / 1000.0;
+      tl.poses[a].push_back(ap);
+      addSounds(tl, ap, a, ft, (int)i);
     }
     // The struck fighter.
     double end = std::max(std::max(ap.start + ap.dur, fxEnd), camDone);
@@ -244,6 +326,11 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
         dp.anim = BaHurt;
         dp.dur = dt.has[BaHurt] ? sec(dt.total[BaHurt]) : sec(kFallbackHurtMs);
         dp.fallback = !dt.has[BaHurt];
+        if (dt.has[BaHurt] && dt.hold[BaHurt]) {
+          StallMaker m{dp.start, &dp};
+          m.holdUntil(dt.holdAt[BaHurt], dt.holdLen[BaHurt], resultOver);
+          dp.dur += m.extraMs / 1000.0;
+        }
       }
       tl.poses[d].push_back(dp);
       addSounds(tl, dp, d, dt, (int)i);
@@ -261,6 +348,18 @@ FightTimeline buildTimelineList(const FightScript& s, const FighterTimes times[2
       dp.dur = dt.has[dp.anim] ? sec(dt.total[dp.anim]) : sec(kFallbackDodgeMs);
       dp.fallback = !dt.has[dp.anim];
       dp.strike = (int)i;
+      // A dodge that holds (docs/BATTLE_SCENE.md "Holding a pose"): the frames before "startFrame" are the brace, played from the start of the strike with the last one
+      // held until the miss; the dodge proper starts at the miss plus "startDelayMs"; "holdFrame" waits until the result is over. Without "startFrame" the whole dodge starts at the miss.
+      if (dt.has[dp.anim] && (dt.hold[dp.anim] || dt.start[dp.anim])) {
+        const BattleAnimId id = dp.anim;
+        const double properAt = hitT + sec(dt.startDelay[id]);
+        const bool braced = dt.start[id] && dt.brace[id];
+        dp.start = braced ? t0 : properAt;
+        StallMaker m{dp.start, &dp};
+        if (braced) m.holdUntil(dt.braceAt[id], dt.braceLen[id], properAt);
+        if (dt.hold[id]) m.holdUntil(dt.holdAt[id], dt.holdLen[id], resultOver);
+        dp.dur += m.extraMs / 1000.0;
+      }
       tl.poses[d].push_back(dp);
       addSounds(tl, dp, d, dt, (int)i);
       end = std::max(end, dp.start + dp.dur);

@@ -16,6 +16,10 @@ export const HIT_ANIMS: AnimKey[] = ['attack', 'miss', 'crit', 'critRanged', 'ra
 export const ANIM_FALLBACK: Partial<Record<AnimKey, AnimKey>> = { standRanged: 'stand', miss: 'attack', critRanged: 'crit', dodgeRanged: 'dodge' }
 /** The most frames one animation may list (the game's limit; all from one image). */
 export const MAX_FRAMES = 512
+/** Holding a pose (docs/BATTLE_SCENE.md "Holding a pose"): the slots that can wait for the result, and the ones that can have a brace and a delay (the dodges). */
+export const DODGE_ANIMS: AnimKey[] = ['dodge', 'dodgeRanged']
+export const HOLD_ANIMS: AnimKey[] = [...HIT_ANIMS, ...DODGE_ANIMS, 'hurt']
+export const HOLD_DELAY_MAX = 5000
 export const DEFAULT_FRAME_MS = 120
 
 export const battleOf = (doc: ProjectDoc): BattleSection => doc.graphics?.battle ?? {}
@@ -121,6 +125,8 @@ function tidyAnim(a: BattleAnimDef): BattleAnimDef {
   const out = { ...a }
   if (out.hit !== undefined && out.hit >= n) out.hit = n - 1
   if (out.spawn !== undefined && out.spawn >= n) out.spawn = n - 1
+  if (out.holdFrame !== undefined && out.holdFrame >= n) out.holdFrame = n - 1
+  if (out.startFrame !== undefined && out.startFrame >= n) out.startFrame = n - 1
   if (out.sounds) {  // a sound on a frame the animation no longer has goes
     const kept = Object.fromEntries(Object.entries(out.sounds).filter(([f]) => Number(f) < n))
     if (Object.keys(kept).length) out.sounds = kept

@@ -9,6 +9,7 @@ sets. Presentation only: the rules core's event stream is the single source of t
 
 - `game.json` `"battleScene": "map" | "scene"` (default `"map"`): the maker's default. Existing games stay on the map.
 - `game.json` `"battleBackgroundFrom": "defender" | "attacker"` (default `"defender"`): whose square decides the background and the platform ("Which background and platform").
+- `game.json` `"battlePlatformFrom": "same" | "own"` (default `"same"`): whether each fighter's platform comes from the same square as the backdrop or from the terrain it stands on ("Platforms").
 - `game.json` `"battleSceneSides": "map" | "playerRight" | "playerLeft"` (default `"map"`): which side each fighter stands on ("Which side each fighter stands on").
 - `game.json` `"battleSceneStaves": true` (default `false`): a staff used on one other unit plays in the scene too ("Staves in the scene"). Off, staves stay on the map as always.
 - Player option **Battle animations**: *Game default* / *Scene* / *On the map* (options screen, global or per game, saved in the
@@ -54,7 +55,7 @@ result changes. What plays:
 - **The result** shows on the target when the effect lands (the cast's hit frame, or later if a lead-in or a flight needs it): the hit-point bar **rises** with a green
   **`+N`**; a **condition** put on, resisted or cured, or an item mended, as a label above it (`Poison`, `Poison resisted`, `Poison cured`, `Iron Sword +5`); a staff that
   missed shows **`MISS`**. The target plays no pose. The sounds are the map's: the staff's own use sound (else the heal sound for a healing staff), the heal sound at the
-  `+N` (the staff item's `"sounds": { "heal": ... }` replaces it, `""` silences it: docs/SOUND.md "A staff's own heal sound"), the miss sound.
+  `+N` (the staff item's `"sounds": { "heal": ... }` replaces it, `""` silences it; `"healScene"` does the same in the scene only: docs/SOUND.md "A staff's own heal sound"), the miss sound.
 - **Log** (the existing lines are unchanged; a fight logs exactly what it did): `battle scene: start A (Lv n) vs B (Lv n), melee|ranged, 1 strike(s), staff ITEM on B` (A is
   the left fighter, as in a fight; `left A, right B` follows with `battleSceneSides`), `effect ID start`, `staff heal B +N`, `staff miss B`, `staff condition NAME (B)` (also
   `staff condition Poison resisted (B)`, `Poison cured`), `staff repair Iron Sword +5 (B)`, `end`. No `strike` / `hit` line.
@@ -103,11 +104,14 @@ terrain, an optional `far` picture used instead when the fight is at range 2 or 
 ```
 
 A map may override per terrain with `"battlePlatforms": { "swamp": "boards", "default": "grass" }` in the map file (same rules and order as the background,
-without a "single picture" step). Which square decides: `battleBackgroundFrom` (the same square as the background; both fighters stand on the same kind of
-platform). A platform's image is a normal sheet; `cell` / `far` are `[column, row]` of it, the piece size is the sheet's cell size. A platform may also give `right` / `farRight`
+without a "single picture" step). Which square decides: by default (`"battlePlatformFrom": "same"`) `battleBackgroundFrom` (the same square as the background; both fighters stand on the same kind of
+platform); with **`"battlePlatformFrom": "own"`** (`game.json`) each fighter's platform is picked from the terrain **that fighter stands on** (the same tables and order, per fighter; a unit that fell
+uses the square it fell on), while the backdrop still follows `battleBackgroundFrom`. Each side's platform is drawn at that side's platform point and the pictures may come from different sheets. Any other
+word is refused (`"battlePlatformFrom" must be "same" ... or "own"`). A platform's image is a normal sheet; `cell` / `far` are `[column, row]` of it, the piece size is the sheet's cell size. A platform may also give `right` / `farRight`
 cells (the right-hand fighter's own pictures, used with a fixed stage, "Fixed stage"). Refusals:
 `unknown sheet`, a cell outside the sheet, an id called `default`, unknown keys, `there is no platform "x"` (in the tables), `there is no terrain with this id`.
-Not built (on purpose, small): a platform per fighter's own terrain, platform animation. (Without a fixed stage the right-hand platform is not flipped.) Log: `battle scene: platform "grass" (far)`.
+Not built (on purpose, small): platform animation. (Without a fixed stage the right-hand platform is not flipped.) Log: `battle scene: platform "grass" (far)`; with `"own"` one line per fighter that has
+a platform: `battle scene: platform "grass" (left)` and `platform "boards" (right)` (plus ` (far)`). A game without `battlePlatformFrom` logs exactly what it did. Code: `FightScene::platform_[2]`. Tests: `tests/battle_scene5_player_test.py`, `tests/test_scene5_keys.cpp`.
 Pure function: `pickBattlePlatform`. Editor: Art > Platforms; Terrain > "Weather and platform"; map settings.
 
 ## Data: `data/graphics.json` key `"battle"`
@@ -303,19 +307,32 @@ needs a fixed "stage"`), refused together with `travelMs` (`give a "travelMs" or
 pan ("Range bands") the flight is in the stage's world: the shot flies across the pan. Log: `effect ID flight N ms`, after the `start` line. Example: 200 px/s over the 128 pixels between the `feetFar`
 foot points is 640 ms; over a 150 pixel band 750 ms (`tests/battle_scene3_player_test.py`).
 
-**Effect timing by distance (`atRange`).** `"atRange": [ { "from": 2, "delayMs": 267 }, { "from": 4, "delayMs": 400 } ]` (1 to 16 entries, any effect, optional): for a fight `D` squares apart the entry
-with the **largest `from` not above `D`** counts (the rule of `stage.ranges`; entries are sorted, each `from` 1 to 99 used once, `delayMs` 0 to 15000; no entry that fits = no delay). That many milliseconds are added
+**Effect timing by distance (`atRange`).** `"atRange": [ { "from": 2, "delayMs": 267 }, { "from": 4, "delayMs": 400 } ]` (1 to 16 entries, any effect, optional; a step of a `travel` effect may also carry an
+`endOffset`, "Thrown weapons stopping short"): for a fight `D` squares apart the entry with the **largest `from` not above `D`** counts (the rule of `stage.ranges`; entries are sorted, each `from` 1 to 99 used once, `delayMs` 0 to 15000; no entry that fits = no delay). That many milliseconds are added
 to the **whole effect**: its start (so its pictures, which are drawn from the start), its `sounds`, `flash`, `shake`, `hide` and `fade` (all timed from the start), the log line `effect ID start`, and **the hit it
 leads to** (the blow, its damage number and hit-point drain, the struck fighter's hurt or defeat animation and the staff result of a staff use land later by the same time). A `travel` effect leaves and arrives
 later by the delay (the flight still takes `travelMs`); an effect with `hitAtMs` keeps its lead-in (both its start and the hit move). **Not shifted:** the striker's own animation and sounds, and the camera of a
 panning band (`pan`, `startMs`), which are timed as without the delay. With several effects on one strike the hit waits for the latest, as before. A strike that misses is shifted the same way. Absent, or no entry
 for the distance, or `delayMs` 0: exactly as before. Refusals (name the effect): not a list of 1 to 16, an entry that is not `{ "from", "delayMs" }`, an unknown key, `from` outside 1 to 99 or used twice, `delayMs`
-outside 0 to 15000. Log: an effect that uses `atRange` logs `effect ID start` like any effect with a newer key. Tests: `tests/test_scene4_keys.cpp`, `tests/battle_scene4_player_test.py`.
+outside 0 to 15000, a step with neither a `delayMs` nor an `endOffset`. Log: an effect that uses `atRange` logs `effect ID start` like any effect with a newer key. Tests: `tests/test_scene4_keys.cpp`, `tests/battle_scene4_player_test.py`.
 
-**Thrown weapons stopping short (`endOffset`).** `"endOffset": N` (0 to 200 pixels, default 0) on a `travel` effect: the flight ends `N` **stage pixels** (times the stage's scale; on a scene without a
+**Leaving a part out of the delay (`atRangeFixed`).** A delay carries the whole effect along, **and the hit**, so a second effect of the same strike that is timed from the hit (a `target` / `striker` or
+a `screen` layer with `hitAtMs`, default 0) would move with it, and so would a fade that is meant to start on time. `"atRangeFixed": true` says that part is **not shifted by distance**:
+  - on an **effect** (any layer, including a `"layer": "screen"` effect, which is the way to a scene-dimming layer that starts on time while the spell is delayed): it starts as if no effect of the strike had a delay
+    (at the undelayed hit time minus its own `hitAtMs`), so it is not carried along by another effect's delay. The hit still waits for the delayed effects as before. Refused together with the effect's own
+    `atRange` (`"atRangeFixed" is for an effect that is not delayed by distance`); on a travel effect (which only follows its own delay) it changes nothing;
+  - on a **row** of `fade`, `hide`, `flash` or `shake` of an effect that is delayed by `atRange`: that row is timed from the effect's start **before its delay** (the moment it would start with no `atRange`), the other rows
+    from the delayed start. This is how a dimming `fade` ramp starts on time while the rest of the spell comes later.
+  Covered: effect-level, and the rows of `fade`, `hide`, `flash`, `shake`. **Not covered:** an effect's `sounds` (they follow the effect), the pictures of a single effect (an effect's frames are one layer: mark a second effect instead), and the striker's own animation and the camera, which are never shifted anyway.
+  Absent: nothing changes. A row key that is not a boolean is refused. Tests: `test_scene5_keys.cpp`, `tests/battle_scene5_player_test.py`.
+
+**Thrown weapons stopping short (`endOffset`).** `"endOffset": N` (-400 to 400 pixels, default 0; a negative one flies **past** the target by that much) on a `travel` effect: the flight ends `N` **stage pixels** (times the stage's scale; on a scene without a
 fixed stage, `N` times the scene's whole-number scale) short of the target's point, measured back along the line of flight (never before the striker). The shot stops there, rests there for `lingerMs` and
 returns from there. The timing is unchanged (`travelMs` / `speed` is still the time of the flight: with `speed` the distance measured is still foot point to foot point, so the shot just moves a little slower in
-pixels). Refused on an effect that does not travel (`"endOffset" is only for a "travel" effect`) and outside 0 to 200.
+pixels). Refused on an effect that does not travel (`"endOffset" is only for a "travel" effect`) and outside -400 to 400 (`"endOffset" must be a whole number from -400 to 400`).
+**By distance:** a step of `atRange` may carry its own `endOffset` (same range), `"atRange": [ { "from": 2, "endOffset": 12 }, { "from": 4, "delayMs": 100, "endOffset": -30 } ]`: for a fight `D` squares apart the step
+that counts (the largest `from` not above `D`) gives it, **in addition to or instead of a `delayMs`**; a step that gives none (and no step reaching `D`) leaves the plain `"endOffset"` of the effect. A step without a `delayMs` delays
+nothing. Pure: `BattleEffect::endOffsetAt(distance)`. Test: `tests/battle_scene5_player_test.py` (the landing point of a shot at 2 and at 4 squares).
 
 **Timing, as built.** Pure function `buildTimelineList` (`fight_timeline.*`): per strike, `t0` = the strike's start; the hit time is as above; effect `i`'s
 `FightFx` has `t0` (a travel effect: the spawn time; another: hit - `hitAtMs`), `dur`, the side it is drawn on; its sounds are beats at `t0 + ms`, its flashes and shakes pulses at
@@ -323,6 +340,52 @@ pixels). Refused on an effect that does not travel (`"endOffset" is only for a "
 Tests: `test_battle_effects.cpp` (the loader, refusals for every key, which effects a strike gets, the audio check, the timeline for lead-ins, striker effects, lists, misses, returns, lingers, sounds, flash,
 shake), `tests/battle_effects_player_test.py` (the real player, headless: log order, `--audio-log` times, screenshots of the layers, a striker and a target effect, a returning shot, a
 flash and a shake).
+
+## Holding a pose
+
+Optional, **off unless a key below is used**: a game that does not use them plays every animation straight through at its own frame times, exactly as before. Classic
+games hold a fighter on one frame until the result of a blow has been shown: the striker stays in its follow-through, the one dodging braces before the blow, moves at the
+miss and waits again until the "MISS" has gone. Presentation only: no save, hash or `ote-sim` result changes.
+
+```jsonc
+"dodge":  { "sheet": "fighters", "frames": [[0,1],[1,1],[2,1],[3,1],[4,1],[5,1]], "ms": 100,
+            "startFrame": 2, "holdFrame": 3, "startDelayMs": 0 },
+"attack": { "sheet": "fighters", "frames": [[0,0],[1,0],[2,0],[3,0]], "ms": [200,200,200,100], "hit": 2, "holdFrame": 3 }
+...
+"battle": { "scene": { "resultHoldMs": 533, "resultHoldAgainMs": 0 } }      // the scene-wide durations (only used by a pose that holds)
+```
+
+- **`"holdFrame": K`** (an animation's key, 0 to its last frame): the animation waits on frame `K` until the **result is over** (below), then plays the frames after it. Frame `K` is shown for at
+  least its own time, and until the result is over if that is later. Allowed in the strike slots (`attack`, `crit`, `ranged`, `cast`, `critRanged`, `miss`; a staff use's `cast` too), in
+  `dodge` / `dodgeRanged` and in `hurt`; refused in `stand`, `standRanged` and `defeat` (a standing animation or a fall never waits). In a strike slot `K` may not come before the `hit` frame
+  (the animation waits **after** the blow: the hit frame itself or later; refused as `"holdFrame" 2 comes before the hit frame 3`). `K` is in the range of the frames
+  (`"holdFrame" must be a whole number from 0 to N`).
+- **`"startFrame": K`** (`dodge` / `dodgeRanged` only): frames before `K` are the **brace** and play **from the start of the strike**, the last of them (`K - 1`) held until the miss moment; frame `K` begins
+  at the miss moment plus `startDelayMs`. If the brace is longer than the time to the miss, frame `K` begins when the brace ends (it cannot start before its frames have played). `startFrame` 0 = no brace.
+  Without `startFrame` **but with `holdFrame`** the whole dodge starts at the miss moment plus `startDelayMs` (not 120 ms before it as a plain dodge does). Without either key the dodge is as before: it
+  starts at the later of the strike's start and 120 ms before the miss and plays once.
+- **`"startDelayMs": N`** (`dodge` / `dodgeRanged`, 0 to 5000, default 0): the dodge proper starts this long after the miss; refused without `startFrame` or `holdFrame` and on other slots.
+  `holdFrame` may not come before `startFrame` (the hold is a frame of the dodge itself, not of the brace).
+- **The result is over** at the time of the blow (the hit moment, or the miss moment for a miss) **plus `battle.scene.resultHoldMs`** (0 to 5000, default 533), or when **the strike's effects are all over**
+  if that is later, **plus `resultHoldAgainMs`** (0 to 5000, default 0) when **the same fighter strikes again next** (a follow-up). An effect is "busy" until its last picture, sound, flash, shake, hide or fade has
+  ended (a `fade` counts its fade in, hold and fade out), a travelling shot until it is home (`lingerMs` and `returns` included), measured from where each part really starts, so an `atRange`
+  delay counts. A held `hurt` waits the same way from the hit.
+- **Order of the timeline** (`buildTimelineList`): the strike starts at `t0` (after the scene's 0.4 s intro, or the previous strike's end plus the 0.3 s gap, plus 0.6 s per skill tag). The blow lands at `M`
+  (the striker's hit frame, later if an effect or a flight needs it). Both held poses are laid out from that, in animation order, each frame as soon as it is allowed: the striker's pose starts at `t0` and
+  its frame `K` waits until the result is over; the dodger's brace starts at `t0` and waits on its last frame until `M + startDelayMs`, the dodge proper plays from there and waits on `holdFrame` until the
+  result is over. **A strike ends when every pose it began has played its last frame** (a held pose's remaining frames included), the effects have ended and the camera has arrived; the next strike (a
+  counter, a follow-up) starts **0.3 s after that**, so it never begins while a fighter is still on a held frame. Sounds of a frame begin with the frame (a frame after the wait sounds after it).
+- **Worked example.** Striker: four frames of 200, 200, 200 and 100 ms, `"hit": 2`, `"holdFrame": 3`. Dodger: six frames of 100 ms, `"startFrame": 2`, `"holdFrame": 3`. `resultHoldMs` 533. The strike starts at
+  0.400 s (after the 0.4 s intro); the striker's hit frame (frame 2) is at 0.400 + 0.400 = 0.800 s, the miss moment `M`. Striker: frames 0 and 1 until 0.800, frame 2 (the blow) at 0.800, frame 3 at
+  1.000 and **held until 0.800 + 0.533 = 1.333**; its pose ends there. Dodger: frame 0 at 0.400, frame 1 (the last of the brace) at 0.500 and held until 0.800 (it would end at 0.600); frame 2 at **0.800**,
+  frame 3 at 0.900 and held until 1.333, frames 4 and 5 from 1.333 to 1.533; the pose ends at 1.533. The strike ends at 1.533 and the counter starts at 1.533 + 0.3 = **1.833**. Without the keys the same
+  animations give: dodge from 0.680 (120 ms before the miss) to 1.280, striker to 1.100, next strike at 1.580.
+- Refusals (in `data/graphics.json`, naming the set and the animation): a key in a slot that cannot take it, `holdFrame` / `startFrame` outside the frames, `startDelayMs` outside 0 to 5000 or without
+  `startFrame` / `holdFrame`, `holdFrame` before `startFrame` or before a strike's hit frame, any of the three keys in an **effect** (an effect has no pose), `scene` that is not an object or has an unknown
+  key, `resultHoldMs` / `resultHoldAgainMs` outside 0 to 5000.
+- Code: `BattleAnim::holdFrame` / `startFrame` / `startDelayMs`, `BattleSceneTiming` (`battle_art.h`), `checkHolds` and `readSceneTiming` (`loader_battle_art.cpp`), `FightPose::stalls` and `StallMaker` in
+  `buildTimelineList` (`fight_timeline.*`; the pose says which animation time it shows at each moment, `animMsAt`, and `FightScene::drawFighter` draws that frame). Tests: `tests/test_scene5_keys.cpp`,
+  `tests/battle_scene5_player_test.py` (the colour of each fighter's body is the frame it shows: a screenshot at a time after the miss tells which frame is up).
 
 ## Fallback
 
@@ -419,6 +482,8 @@ the foot points follows the band: shadows, floating numbers, effects, the `speed
 - **`"backdrop": "fixed" | "scroll"`** (in `pan`, default `"fixed"`: the backdrop stays on the picture as described above). With `"scroll"` the backdrop moves with the camera by the same pixels as the world (a view
   `x` shows the backdrop shifted `x` stage pixels to the left, rounded to whole pixels while the camera moves) and **repeats sideways**: where the picture ends, its left edge follows, so no strip of the stage is
   empty (a backdrop narrower than the stage is repeated too; a taller one is placed up and down by `align` as always). Screen effects stay on the picture. Refused: anything but those two words.
+- **`"panAtMs": N`** (an **effect's** key, 0 to 15000, optional): for a strike that uses this effect the camera moves to the struck fighter `N` ms after **the effect's own start** (after any `atRange` delay), whatever the band's
+  `startMs` says: the blow does not wait for the camera, the next strike does (as with `startMs`). With several effects on a strike the first one that has it counts. Without a panning band it does nothing. Test: `tests/battle_scene5_player_test.py`.
 - **`"startMs": N`** (in `pan`, 0 to 15000, optional): the camera moves to the struck fighter `N` ms after the **strike starts** (the striker's animation start, after any skill tags) instead of timed to arrive as
   the blow lands. The blow does **not** wait for the camera (it lands at its own time, so with a large `startMs` it lands while the camera is still on the striker); the next strike does wait until the camera has
   arrived. Absent: the camera is timed as described above. The move to the striker before a strike is unchanged.
@@ -443,5 +508,5 @@ has no ranged stand or whiff animation simply leaves them out.
 `engine/core/data/battle_art.*`, `loader_battle_art.cpp`; player: `fight_script.*` (events to strikes, pure), `fight_timeline.*`
 (clock, pure), `fight_scene*.cpp` (drawing; `fight_scene_stage.cpp` the fixed stage), `core/data/battle_stage.*` (its geometry, pure), `loader_battle_stage.cpp`, `battle_view_fight.cpp` (the view holds the run and plays it silently afterwards),
 `battle_fight.cpp`. Effects: `BattleEffect` (`battle_art.h`), `readEffects` (`loader_battle_art.cpp`), `BattleArt::resolveEffects`, `buildTimelineList`, `FightScene::drawEffects` / `applyShake` / `drawFlashes`. Tests: `test_battle_art.cpp`, `test_fight_script.cpp`, `test_fight_timeline.cpp`, `test_battle_scene_settings.cpp`,
-`tests/battle_scene_player_test.py`, `test_scene3_staff.cpp`, `test_scene3_keys.cpp`, `tests/battle_scene3_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `test_battle_effects.cpp`, `tests/battle_effects_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
+`tests/battle_scene_player_test.py`, `test_scene3_staff.cpp`, `test_scene3_keys.cpp`, `tests/battle_scene3_player_test.py`, `test_scene5_keys.cpp`, `tests/battle_scene5_player_test.py`, `test_battle_stage.cpp`, `tests/battle_stage_player_test.py`, `test_battle_effects.cpp`, `tests/battle_effects_player_test.py`, `tests/test_battle_followup.cpp` (side sheets, the assign order, limits, extra slots), editor
 `battleArt.test.ts`, `battleStage.test.ts`, `battleEffects.test.ts`, `battle-anims.spec.ts`, `battle-stage.spec.ts`, `battle-effects.spec.ts`.
