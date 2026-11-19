@@ -124,7 +124,8 @@ Editor: the 17 section screens load on demand (`React.lazy` in `editor/web/src/s
 without them the many chunk requests starve the helper and the e2e suite takes twice as long with ~20 failures. A
 suite that suddenly takes twice as long is a real signal, not load.
 
-Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache). C7. Next: D2, A3, D5, A4, ...
+Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache), C7, D2, A3, D5 (`ote_player_lib`: the player's SDL-free sources compile once; real builds done on Windows, UWP and
+Android). Next: A4, A5, A7, ...
 
 Open with the owner: the wording "Exit the player?"; the app's name, identity and logos on Android and Xbox (changing
 the identity later loses saves); the 3D option's "OpenGL" label now means Direct3D 11 on Windows; names of the three
