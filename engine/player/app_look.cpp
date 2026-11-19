@@ -10,7 +10,7 @@ void PlayerApp::loadSettings() {
   settingsPath_ = args_.noSettings ? "" : args_.settings;
   if (settingsPath_.empty() && !args_.headless && !args_.noSettings) {
     // Headless runs are tests: never read or write the user's real settings unless asked to.
-    std::string dir = userDataDir();
+    std::string dir = userRoot();
     if (dir.empty()) OTE_WARN("no user data folder: options will not be remembered");
     else settingsPath_ = dir + "/settings.json";
   }

@@ -43,6 +43,7 @@ class PlayerApp : public App, public SceneHost {
   AudioService& audio() override { return audio_; }
   GameAudio& gameAudio() override { return gameAudio_; }
   const std::vector<GameEntry>& games() const override { return games_; }
+  std::string gameDir(const std::string& gameId) const override;
   const std::string& notice() const override { return notice_; }
   const std::string& currentGameId() const override { return gameId_; }
   int styleIndex() const override { return look_.styleIndex; }

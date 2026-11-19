@@ -29,7 +29,7 @@ void GameScene::addDifficultyRow(const Database& db, const SaveInfo& info) {
 }
 
 void GameScene::openDifficultyMenu() {
-  std::string dir = host_.args().gamesDir + "/" + game_.id, err;
+  std::string dir = game_.dir, err;
   Database db;
   if (!loadGame(dir, db, err)) {
     host_.showError("Difficulty", err, SceneHost::ToGame);
@@ -51,7 +51,7 @@ void GameScene::openDifficultyMenu() {
 }
 
 void GameScene::changeDifficulty(int listIndex) {
-  const std::string dir = host_.args().gamesDir + "/" + game_.id;
+  const std::string dir = game_.dir;
   std::string err;
   Database db;
   if (!loadGame(dir, db, err) || listIndex < 0 || listIndex >= (int)db.difficulties.list.size()) {

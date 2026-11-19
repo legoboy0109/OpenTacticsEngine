@@ -179,6 +179,23 @@ bool audioWaitsForUserInput();
 // without a trailing slash. Empty string if the platform has none.
 std::string userDataDir();
 
+// ---- Where things live (docs/PORTING.md "Roots") ----
+// The player reads shipped content from one place and writes to another; on Android the first is app storage the
+// assets were unpacked into, on UWP the read-only install folder and the writable LocalState folder. Everything the
+// player reads or writes is under one of these, so a port changes the answers here and nothing else.
+
+// Folder holding the shipped, read-only content: it contains games/ and assets/. Empty = the working directory
+// (the desktop default, so `ote-player` run from the repository finds games/ and assets/). No trailing slash.
+// Overridden by setContentRootOverride (the player's --content-root) or the OTE_CONTENT_ROOT environment variable.
+std::string contentRoot();
+// Optional second folder of games (same layout as games/: <id>/game.json) that the user added; empty = none.
+// Overridden by setExtraContentRootOverride (--extra-games) or OTE_EXTRA_GAMES.
+std::string extraContentRoot();
+// Folder the app may write to: settings.json and saves/ live here. Empty if there is none. Today this is userDataDir().
+std::string userRoot();
+void setContentRootOverride(const std::string& dir);
+void setExtraContentRootOverride(const std::string& dir);
+
 // Call after writing files inside userDataDir(): lets the platform persist
 // them (the web build copies its in-memory folder to browser storage; every
 // other platform writes through already, so this does nothing there).

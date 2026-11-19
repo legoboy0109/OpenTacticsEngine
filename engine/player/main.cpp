@@ -22,6 +22,8 @@ int main(int argc, char** argv) {
     return args.help ? 0 : 1;
   }
 
+  applyContentRoots(args);
+
   // Offline mixing needs neither a window nor a sound device.
   if (!args.audioRender.empty()) return runAudioRender(args);
 

@@ -57,6 +57,8 @@ class SceneHost {
   virtual AudioService& audio() = 0;    // sound and music (docs/SOUND.md); safe to call without a sound device
   virtual GameAudio& gameAudio() = 0;   // the open game's sounds, cues and music; does nothing when the game has none
   virtual const std::vector<GameEntry>& games() const = 0;
+  // The folder of a game by id (it may come from the built-in games folder or the user's extra one); every read of a game's files starts here.
+  virtual std::string gameDir(const std::string& gameId) const = 0;
   virtual const std::string& notice() const = 0;  // one-line problem to show on the home screen, or ""
   virtual const std::string& currentGameId() const = 0;  // last game opened, or ""
   // Index of the visual style in the look last applied (0 = the game's default;

@@ -37,7 +37,7 @@ void GameScene::buildRows() {
   twoLines_ = saving;  // rows get a second line only where saves are involved
   // The game's data is needed to judge the Continue save against the game as it is now (a different
   // version greys it out) and, for a game with a campaign, for its maps. A game without either is not loaded.
-  const std::string dir = host_.args().gamesDir + "/" + game_.id;
+  const std::string dir = game_.dir;
   std::string probe;
   const bool campaignFile = readTextFile(dir + "/data/campaign.json", probe);
   const bool continueFile = saving && store.exists(0);

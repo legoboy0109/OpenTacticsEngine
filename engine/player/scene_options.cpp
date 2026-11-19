@@ -35,7 +35,7 @@ OptionsScene::OptionsScene(SceneHost& host, const std::string& gameId) : host_(h
 
   if (perGame()) {  // terrain colours for the style swatches; failure only loses the swatches
     std::string err;
-    dbLoaded_ = loadGame(host.args().gamesDir + "/" + gameId_, db_, err);
+    dbLoaded_ = loadGame(host.gameDir(gameId_), db_, err);
     if (!dbLoaded_) OTE_WARN("options: no style preview for '%s': %s", gameId_.c_str(), err.c_str());
   }
 }
