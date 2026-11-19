@@ -1,7 +1,7 @@
 // The timed parts of one effect: its sounds (the game's sound picker), flashes and shakes (docs/BATTLE_SCENE.md "Effect sounds", "Flash and shake").
 import { DEFAULT_FADE, DEFAULT_FLASH, DEFAULT_HIDE, DEFAULT_SHAKE, effectList, effectSounds, nextSoundMs, setEffectSound, setEffectTimed } from '../../../model/battleEffects'
 import { soundIds } from '../../../model/audio'
-import type { FxFadeDef, FxFlashDef, FxHideDef, FxShakeDef } from '../../../model/types'
+import type { BattleEffectDef, FxFadeDef, FxFlashDef, FxHideDef, FxShakeDef } from '../../../model/types'
 import { useDoc, useEdit } from '../../../store/context'
 import { Field } from '../../../ui/Field'
 import { Icon } from '../../../ui/Icon'
@@ -9,6 +9,12 @@ import { NumberInput } from '../../../ui/NumberInput'
 import { Select } from '../../../ui/Select'
 import { Toggle } from '../../../ui/Toggle'
 import { ET } from './effectText'
+
+/** "atRangeFixed" of one row: shown when the effect is delayed by distance (or the row already has it). */
+function RowFixed({ effect, row, onChange }: { effect: BattleEffectDef; row: { atRangeFixed?: boolean }; onChange: (on: boolean) => void }) {
+  if (!effect.atRange?.length && !row.atRangeFixed) return null
+  return <Toggle label={ET.rangeFixedRow} help={ET.rangeFixedRowHelp} checked={!!row.atRangeFixed} onChange={onChange} />
+}
 
 export function EffectSounds({ index }: { index: number }) {
   const doc = useDoc()
@@ -55,6 +61,7 @@ export function EffectPulses({ index, kind }: { index: number; kind: 'flash' | '
             {kind === 'flash'
               ? <Field label={ET.color}><input type="color" className="input" aria-label={`${title} ${n + 1}: ${ET.color}`} value={(r as FxFlashDef).color ?? '#ffffff'} onChange={(ev) => patchRow(n, { color: ev.target.value }, `fx${index}:flash${n}:color`)} /></Field>
               : <Field label={ET.strength}><NumberInput aria-label={`${title} ${n + 1}: ${ET.strength}`} min={1} max={64} value={(r as FxShakeDef).strength} onChange={(v) => v !== undefined && patchRow(n, { strength: v }, `fx${index}:shake${n}:s`)} /></Field>}
+            <RowFixed effect={e} row={r} onChange={(on) => patchRow(n, { atRangeFixed: on ? true : undefined })} />
             <button type="button" className="btn sm" aria-label={kind === 'flash' ? ET.removeFlash(n + 1) : ET.removeShake(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, kind, rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button>
           </div>
         ))}
@@ -95,6 +102,7 @@ export function EffectHides({ index }: { index: number }) {
             <div className="row wrap">
               <Toggle label={ET.hideBackdrop} checked={r.what.includes('backdrop')} onChange={(on) => toggle(n, 'backdrop', on)} />
               <Toggle label={ET.hidePlatforms} checked={r.what.includes('platforms')} onChange={(on) => toggle(n, 'platforms', on)} />
+              <RowFixed effect={e} row={r} onChange={(on) => patchRow(n, { atRangeFixed: on ? true : undefined })} />
               <button type="button" className="btn sm" aria-label={ET.removeHide(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, 'hide', rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button>
             </div>
           </div>
@@ -128,7 +136,10 @@ export function EffectFades({ index }: { index: number }) {
                   onChange={(v) => patchRow(n, { over: v === 'backdrop' ? 'backdrop' : undefined })} />
               </Field>
             </div>
-            <div><button type="button" className="btn sm" aria-label={ET.removeFade(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, 'fade', rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button></div>
+            <div className="row wrap">
+              <RowFixed effect={e} row={r} onChange={(on) => patchRow(n, { atRangeFixed: on ? true : undefined })} />
+              <button type="button" className="btn sm" aria-label={ET.removeFade(n + 1)} onClick={() => edit((d) => setEffectTimed(d, index, 'fade', rows.filter((_, k) => k !== n)))}>{ET.removeShort}</button>
+            </div>
           </div>
         ))}
         <div><button type="button" className="btn sm" aria-label={`${ET.addFade} (effect ${index + 1})`} onClick={() => edit((d) => setEffectTimed(d, index, 'fade', [...rows, DEFAULT_FADE]))}><Icon name="plus" />{ET.addFade}</button></div>

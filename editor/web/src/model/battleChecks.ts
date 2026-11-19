@@ -3,6 +3,7 @@
 import { ANIM_KEYS, HIT_ANIMS, MAX_FRAMES, assignKey, assignList, backgroundList, battleOf, setList, weaponGroups } from './battleArt'
 import { effectList, effectProblems, effectName } from './battleEffects'
 import { bandProblems } from './stageBands'
+import { holdProblems, sceneTimingProblems } from './battleHold'
 import { findSheet } from './graphics'
 import type { ProjectDoc, Section } from './types'
 
@@ -50,6 +51,7 @@ export function battleChecks(doc: ProjectDoc, dims?: Dims): BattleCheck[] {
         if (bad.length) add([id], `Set “${id}”: “${key}” has ${bad.length === 1 ? 'a frame' : `${bad.length} frames`} outside the image (it has ${cols} × ${rows} pieces).`, true)
       }
       if (a.hit !== undefined && a.hit >= a.frames.length) add([id], `Set “${id}”: the hit frame of “${key}” is beyond its last frame.`, true)
+      for (const p of holdProblems(id, key, a)) add([id], p, true)
       if (HIT_ANIMS.includes(key) && a.hit === undefined) add([id], `Set “${id}”: “${key}” has no hit frame marked, so the blow lands on its last frame. Mark the frame where the weapon hits.`, false)
     }
     if (!used.has(id)) add([id], `Set “${id}” is not used by any unit type, character or weapon group yet.`, false)
@@ -80,5 +82,6 @@ export function battleChecks(doc: ProjectDoc, dims?: Dims): BattleCheck[] {
   }
   effectList(doc).forEach((e, i) => { for (const p of effectProblems(doc, i, dims)) add([effectName(e, i)], p, true) })
   for (const p of bandProblems(doc)) add(['stage'], p, true)
+  for (const p of sceneTimingProblems(doc)) add(['scene'], p, true)
   return out
 }

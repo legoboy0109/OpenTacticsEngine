@@ -63,12 +63,13 @@ describe('endOffset (a thrown weapon stops short)', () => {
     expect('endOffset' in setEndOffset(d, 0, undefined).graphics!.battle!.effects![0]).toBe(false)
     expect(updateEffect(d, 0, { endOffset: 5 }).graphics!.battle!.effects![0].endOffset).toBe(5)
   })
-  it('is checked like the loader: flying effects only, 0 to 200, whole', () => {
-    expect(problems(arrow({ endOffset: 200 }))).toEqual([])
+  it('is checked like the loader: flying effects only, -400 to 400, whole', () => {
+    expect(problems(arrow({ endOffset: 400 }))).toEqual([])
+    expect(problems(arrow({ endOffset: -400 }))).toEqual([])
     expect(problems(arrow({ endOffset: 0 }))).toEqual([])
-    expect(says(problems(arrow({ endOffset: 201 })), 'between 0 and 200')).toBe(true)
-    expect(says(problems(arrow({ endOffset: -1 })), 'between 0 and 200')).toBe(true)
-    expect(says(problems(arrow({ endOffset: 1.5 })), 'between 0 and 200')).toBe(true)
+    expect(says(problems(arrow({ endOffset: 401 })), 'between -400 and 400')).toBe(true)
+    expect(says(problems(arrow({ endOffset: -401 })), 'between -400 and 400')).toBe(true)
+    expect(says(problems(arrow({ endOffset: 1.5 })), 'between -400 and 400')).toBe(true)
     expect(says(problems(fx({ endOffset: 10 })), 'only for a flying effect')).toBe(true)
   })
 })

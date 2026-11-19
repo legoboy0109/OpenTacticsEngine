@@ -160,9 +160,26 @@ export function addEffectRange(doc: ProjectDoc, index: number): ProjectDoc {
 /** The delay the game uses for a fight `distance` squares apart: the last step at or below it, else 0. */
 export const delayAtDistance = (e: BattleEffectDef, distance: number): number =>
   effectRanges(e).filter((r) => r.from <= distance).sort((a, b) => a.from - b.from).pop()?.delayMs ?? 0
-/** "endOffset": how many pixels short of the foe a flying effect stops (0 = the foe, written as no key). */
-export const END_OFFSET_MAX = 200
+/** "endOffset": how many pixels short of the foe a flying effect stops (0 = the foe, written as no key; a negative one flies past the foe). */
+export const END_OFFSET_MIN = -400
+export const END_OFFSET_MAX = 400
 export const setEndOffset = (doc: ProjectDoc, index: number, v: number | undefined): ProjectDoc => updateEffect(doc, index, { endOffset: v ? v : undefined })
+/** The "endOffset" the game uses for a fight `distance` squares apart: the step that counts (the last at or below it) when it gives one, else the plain key, else 0. */
+export function endOffsetAtDistance(e: BattleEffectDef, distance: number): number {
+  const step = effectRanges(e).filter((r) => r.from <= distance).sort((a, b) => a.from - b.from).pop()
+  return step?.endOffset !== undefined ? step.endOffset : e.endOffset ?? 0
+}
+/** Changes one step of "atRange"; an empty number leaves the key out (a step needs a delay or an end offset; the checks say so). */
+export function patchEffectRange(doc: ProjectDoc, index: number, n: number, patch: Partial<FxRangeDef>): ProjectDoc {
+  const rows = effectRanges(effectList(doc)[index] ?? {})
+  if (n < 0 || n >= rows.length) return doc
+  return setEffectRanges(doc, index, rows.map((r, k) => (k === n ? (patchObj(r, patch) as FxRangeDef) : r)))
+}
+/** "panAtMs" (0 to 15000): the camera of a panning band leaves this long after the effect starts. No key = the band's own timing. */
+export const PAN_AT_MAX = 15000
+export const setPanAt = (doc: ProjectDoc, index: number, v: number | undefined): ProjectDoc => updateEffect(doc, index, { panAtMs: v })
+/** "atRangeFixed" on the effect (not moved by other effects' delays) or on a row of its flash / shake / hide / fade (timed from the start before the delay). */
+export const setEffectRangeFixed = (doc: ProjectDoc, index: number, on: boolean): ProjectDoc => updateEffect(doc, index, { atRangeFixed: on ? true : undefined })
 
 /** Lists: the `effects` of an entry, and its `byType` rows. An emptied list is written as no key. */
 export function setEffectIds(doc: ProjectDoc, index: number, ids: string[]): ProjectDoc {
@@ -250,14 +267,24 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
   }
   if (e.endOffset !== undefined) {
     if (!travel) bad('stopping short of the foe is only for a flying effect.')
-    else if (!whole(e.endOffset) || e.endOffset < 0 || e.endOffset > END_OFFSET_MAX) bad(`the distance it stops short must be between 0 and ${END_OFFSET_MAX} pixels.`)
+    else if (!whole(e.endOffset) || e.endOffset < END_OFFSET_MIN || e.endOffset > END_OFFSET_MAX) bad(`the distance it stops short must be between ${END_OFFSET_MIN} and ${END_OFFSET_MAX} pixels (a negative one flies past the foe).`)
+  }
+  if (e.panAtMs !== undefined && (!whole(e.panAtMs) || e.panAtMs < 0 || e.panAtMs > PAN_AT_MAX)) bad(`the camera start must be between 0 and ${PAN_AT_MAX} milliseconds after the effect starts.`)
+  if (e.atRangeFixed !== undefined) {
+    if (typeof e.atRangeFixed !== 'boolean') bad('“not moved by distance” must be on or off.')
+    else if (e.atRangeFixed && e.atRange !== undefined) bad('“not moved by distance” is for an effect that is not delayed by distance; this one has delays of its own (mark single flashes, shakes, hidings or fades instead).')
   }
   if (e.atRange !== undefined) {
     if (!Array.isArray(e.atRange) || e.atRange.length < 1 || e.atRange.length > RANGE_MAX) bad(`the delays by distance must be a list of 1 to ${RANGE_MAX} (remove the list to have none).`)
     else e.atRange.forEach((r, i) => {
       if (!whole(r.from) || r.from < 1 || r.from > 99) bad(`delay ${i + 1}: the distance must be between 1 and 99 squares.`)
       else if (e.atRange!.some((o, j) => j < i && o.from === r.from)) bad(`delay ${i + 1}: another delay also starts at ${r.from} squares.`)
-      if (!whole(r.delayMs) || r.delayMs < 0 || r.delayMs > 15000) bad(`delay ${i + 1}: the delay must be between 0 and 15000 milliseconds.`)
+      if (r.delayMs === undefined && r.endOffset === undefined) bad(`delay ${i + 1}: give a delay or, for a flying effect, how far it stops short.`)
+      if (r.delayMs !== undefined && (!whole(r.delayMs) || r.delayMs < 0 || r.delayMs > 15000)) bad(`delay ${i + 1}: the delay must be between 0 and 15000 milliseconds.`)
+      if (r.endOffset !== undefined) {
+        if (!travel) bad(`delay ${i + 1}: stopping short of the foe is only for a flying effect.`)
+        else if (!whole(r.endOffset) || r.endOffset < END_OFFSET_MIN || r.endOffset > END_OFFSET_MAX) bad(`delay ${i + 1}: the distance it stops short must be between ${END_OFFSET_MIN} and ${END_OFFSET_MAX} pixels.`)
+      }
     })
   }
   if (e.lingerMs !== undefined) {
@@ -273,11 +300,13 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     if (!whole(f.atMs) || f.atMs < 0 || f.atMs > 60000) bad(`flash ${i + 1}: the start must be between 0 and 60000 milliseconds.`)
     if (!whole(f.ms) || f.ms < 10 || f.ms > 5000) bad(`flash ${i + 1}: the length must be between 10 and 5000 milliseconds.`)
     if (f.color !== undefined && !COLOR.test(f.color)) bad(`flash ${i + 1}: the colour must look like #ffffff.`)
+    if (f.atRangeFixed !== undefined && typeof f.atRangeFixed !== 'boolean') bad(`flash ${i + 1}: “not moved by distance” must be on or off.`)
   })
   ;(e.shake ?? []).forEach((f, i) => {
     if (!whole(f.atMs) || f.atMs < 0 || f.atMs > 60000) bad(`shake ${i + 1}: the start must be between 0 and 60000 milliseconds.`)
     if (!whole(f.ms) || f.ms < 10 || f.ms > 5000) bad(`shake ${i + 1}: the length must be between 10 and 5000 milliseconds.`)
     if (!whole(f.strength) || f.strength < 1 || f.strength > 64) bad(`shake ${i + 1}: the strength must be between 1 and 64 pixels.`)
+    if (f.atRangeFixed !== undefined && typeof f.atRangeFixed !== 'boolean') bad(`shake ${i + 1}: “not moved by distance” must be on or off.`)
   })
   if ((e.flash ?? []).length > 32 || (e.shake ?? []).length > 32) bad('at most 32 flashes and 32 shakes.')
   if ((e.hide ?? []).length > 32 || (e.fade ?? []).length > 32) bad('at most 32 hiding windows and 32 fades.')
@@ -287,6 +316,7 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     const what = Array.isArray(h.what) ? h.what : []
     if (what.length < 1 || what.length > 2 || what.some((w) => w !== 'backdrop' && w !== 'platforms') || new Set(what).size !== what.length) bad(`hiding ${i + 1}: choose the backdrop and / or the platforms.`)
     if (h.color !== undefined && !COLOR.test(h.color)) bad(`hiding ${i + 1}: the colour must look like #102030.`)
+    if (h.atRangeFixed !== undefined && typeof h.atRangeFixed !== 'boolean') bad(`hiding ${i + 1}: “not moved by distance” must be on or off.`)
   })
   ;(e.fade ?? []).forEach((f, i) => {
     if (!whole(f.atMs) || f.atMs < 0 || f.atMs > 60000) bad(`fade ${i + 1}: the start must be between 0 and 60000 milliseconds.`)
@@ -295,6 +325,7 @@ export function effectProblems(doc: ProjectDoc, index: number, dims?: (file: str
     if (f.to !== undefined && !COLOR.test(f.to)) bad(`fade ${i + 1}: the colour must look like #000000.`)
     if (f.alpha !== undefined && !(typeof f.alpha === 'number' && f.alpha > 0 && f.alpha <= 1)) bad(`fade ${i + 1}: how strong it gets must be above 0 and at most 1.`)
     if (f.over !== undefined && f.over !== 'all' && f.over !== 'backdrop') bad(`fade ${i + 1}: it can cover everything or the backdrop only.`)
+    if (f.atRangeFixed !== undefined && typeof f.atRangeFixed !== 'boolean') bad(`fade ${i + 1}: “not moved by distance” must be on or off.`)
   })
   return out
 }
