@@ -58,9 +58,10 @@ const std::vector<int>& Context::enemyFieldFor(int moveType) {
 }
 
 const std::vector<int>& Context::goalFieldFor(int moveType, Cell goal) {
-  std::vector<int>& f = goalFields[std::make_pair(moveType, goal)];
-  if (f.empty()) distanceField(b, moveType, std::vector<Cell>(1, goal), f);
-  return f;
+  if (goalSets.size() <= (size_t)moveType) goalSets.resize((size_t)moveType + 1);
+  std::shared_ptr<GoalFieldSet>& set = goalSets[(size_t)moveType];
+  if (!set) set = goalFieldSetFor(b, moveType);  // once per Context: the battle's terrain cannot change inside one step
+  return goalFieldIn(b, *set, goal);
 }
 
 namespace {
