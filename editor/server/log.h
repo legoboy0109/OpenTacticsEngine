@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+#include "core/base/log.h"
+
 namespace ote_editor {
 
-void elog(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+void elog(const char* fmt, ...) OTE_PRINTF_LIKE(1, 2);
 
 // Routes engine Warn/Error messages to stderr.
 void installEngineLogSink();

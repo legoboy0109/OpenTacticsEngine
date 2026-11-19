@@ -3,13 +3,15 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "core/base/log.h"
+
 using namespace ote;
 
 namespace simtool {
 
 namespace {
 
-std::string fmt(const char* f, ...) __attribute__((format(printf, 1, 2)));
+std::string fmt(const char* f, ...) OTE_PRINTF_LIKE(1, 2);
 std::string fmt(const char* f, ...) {
   char buf[512];
   va_list ap;

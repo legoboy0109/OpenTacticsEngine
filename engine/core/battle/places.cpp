@@ -36,10 +36,10 @@ bool Battle::isClosedChest(int structure) const {
 }
 
 int Battle::placeDistance(int structure, Cell from) const {
-  std::vector<Cell> cells;
-  structureCells(structure, cells);
+  std::vector<Cell> structCells;
+  structureCells(structure, structCells);
   int best = 1 << 20;
-  for (Cell c : cells) best = std::min(best, grid.distance(from, c));
+  for (Cell c : structCells) best = std::min(best, grid.distance(from, c));
   return best;
 }
 
@@ -157,10 +157,10 @@ bool Battle::placeStrike(const Unit& u, int structure, int weapon, Cell from, in
   door.stats.resize(db->stats.size(), 0);
   if (db->rules.statHp >= 0) door.stats[(size_t)db->rules.statHp] = std::max(1, p.hp);
   door.hp = std::max(0, st.hp);
-  std::vector<Cell> cells;
-  structureCells(structure, cells);
-  Cell near = cells.empty() ? kNoCell : cells[0];
-  for (Cell c : cells)
+  std::vector<Cell> structCells;
+  structureCells(structure, structCells);
+  Cell near = structCells.empty() ? kNoCell : structCells[0];
+  for (Cell c : structCells)
     if (grid.distance(from, c) < grid.distance(from, near)) near = c;
   door.cell = near;
 

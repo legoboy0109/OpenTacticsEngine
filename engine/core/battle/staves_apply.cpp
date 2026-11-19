@@ -41,9 +41,9 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
 
   if (d.has(StaffEffect::Kind::Unlock)) {  // doors and chests (docs/SRPG.md section 10): the square of the one to open
     if (!grid.valid(action.cell)) return refuse(why, "pick a door or chest to unlock");
-    std::vector<Cell> cells;
-    staffUnlockCells(action.unit, action.slot, u.cell, cells);
-    if (std::find(cells.begin(), cells.end(), action.cell) != cells.end()) return true;
+    std::vector<Cell> structCells;
+    staffUnlockCells(action.unit, action.slot, u.cell, structCells);
+    if (std::find(structCells.begin(), structCells.end(), action.cell) != structCells.end()) return true;
     int minR = 1, maxR = 1;
     staffRange(u, item, minR, maxR);
     const int dist = grid.distance(u.cell, action.cell);
@@ -53,9 +53,9 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
   if (d.picksSquare()) {  // a light: the square to light
     if (!fog) return refuse(why, "this map has no fog of war, so there is nothing to light");
     if (!grid.valid(action.cell)) return refuse(why, "pick a square to light");
-    std::vector<Cell> cells;
-    staffLightCells(action.unit, action.slot, u.cell, cells);
-    if (std::find(cells.begin(), cells.end(), action.cell) != cells.end()) return true;
+    std::vector<Cell> structCells;
+    staffLightCells(action.unit, action.slot, u.cell, structCells);
+    if (std::find(structCells.begin(), structCells.end(), action.cell) != structCells.end()) return true;
     int minR = 1, maxR = 1;
     staffRange(u, item, minR, maxR);
     const int dist = grid.distance(u.cell, action.cell);
@@ -76,11 +76,11 @@ bool Battle::validateStaff(const Action& action, std::string* why) const {
   if (center < 0) return true;
   // The second pick of a warp (the square) and of a repair (the item).
   if (d.has(StaffEffect::Kind::Warp)) {
-    std::vector<Cell> cells;
-    staffWarpCells(action.unit, action.slot, center, u.cell, cells);
+    std::vector<Cell> structCells;
+    staffWarpCells(action.unit, action.slot, center, u.cell, structCells);
     // With no square to send it to the warp part is skipped (the staff's other effects still work), so none is needed.
-    if (!cells.empty() && !grid.valid(action.cell)) return refuse(why, "pick the square to warp it to");
-    if (!cells.empty() && std::find(cells.begin(), cells.end(), action.cell) == cells.end())
+    if (!structCells.empty() && !grid.valid(action.cell)) return refuse(why, "pick the square to warp it to");
+    if (!structCells.empty() && std::find(structCells.begin(), structCells.end(), action.cell) == structCells.end())
       return refuse(why, "it cannot be warped to that square (too far, not free, or it could not stand there)");
   }
   if (d.has(StaffEffect::Kind::Repair)) {

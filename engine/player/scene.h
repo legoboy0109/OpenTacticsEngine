@@ -23,7 +23,7 @@ class Scene {
   Scene() : audioId_(nextAudioId()) {}
   virtual ~Scene() {}
   virtual void onInput(const InputEvent& e) = 0;
-  virtual void update(double dt) {}
+  virtual void update(double /*dt*/) {}
   virtual void draw(Renderer& r) = 0;
   // The app is about to be suspended or killed (platform.h Lifecycle): write whatever must survive, exactly as if the player
   // had left right now. Never changes what is on screen.

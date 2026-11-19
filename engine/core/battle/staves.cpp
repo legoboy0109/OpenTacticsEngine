@@ -204,11 +204,11 @@ void Battle::staffOptions(int unit, Cell from, std::vector<StaffOption>& out) co
     if (o.ok) {
       const StaffDef& d = *staffDefOf(*db, item);
       std::vector<int> targets;
-      std::vector<Cell> cells;
-      if (d.has(StaffEffect::Kind::Unlock)) staffUnlockCells(unit, (int)i, from, cells);
-      else if (d.picksSquare()) staffLightCells(unit, (int)i, from, cells);
+      std::vector<Cell> structCells;
+      if (d.has(StaffEffect::Kind::Unlock)) staffUnlockCells(unit, (int)i, from, structCells);
+      else if (d.picksSquare()) staffLightCells(unit, (int)i, from, structCells);
       else staffTargets(unit, (int)i, from, targets);
-      if (targets.empty() && cells.empty()) {
+      if (targets.empty() && structCells.empty()) {
         o.ok = false;
         o.noTarget = true;
         o.why = !d.picksSquare() || d.has(StaffEffect::Kind::Unlock) ? staffNobodyWhy(d) : !fog ? "this map has no fog of war" : "nothing in reach is hidden";

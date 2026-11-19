@@ -3,9 +3,11 @@
 #pragma once
 #if defined(_MSC_VER)
 #include <direct.h>
+#include <io.h>
 #include <sys/stat.h>
 
 inline int mkdir(const char* path, int /*mode*/) { return _mkdir(path); }
+inline int chmod(const char* path, int mode) { return _chmod(path, mode); }
 inline int rmdir(const char* path) { return _rmdir(path); }
 inline bool testIsDirectory(const char* path) {
   struct _stat st;

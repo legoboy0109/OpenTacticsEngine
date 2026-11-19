@@ -122,9 +122,9 @@ const char* Battle::staffEffectWhy(const Unit& user, const StaffDef& d, const St
     case StaffEffect::Kind::Heal:
       return t.hp < maxHp(t) && staffHealAmount(user, d, fx, t, from) > 0 ? nullptr : "nobody in reach needs that";
     case StaffEffect::Kind::Warp: {
-      std::vector<Cell> cells;
-      staffWarpCells(user.id, slot, t.id, from, cells);
-      return cells.empty() ? "there is no free square in reach of the user that it could stand on" : nullptr;
+      std::vector<Cell> structCells;
+      staffWarpCells(user.id, slot, t.id, from, structCells);
+      return structCells.empty() ? "there is no free square in reach of the user that it could stand on" : nullptr;
     }
     case StaffEffect::Kind::Pull:
       if (t.id == user.id) return "a unit cannot be pulled to itself";

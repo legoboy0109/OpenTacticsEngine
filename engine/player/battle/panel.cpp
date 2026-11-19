@@ -236,11 +236,11 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   else if (!db.rules.items.carriedWeapons) weapons = b.typeOf(u).weapons;
   for (int wi : weapons) {
     if (y > bottom) break;
-    const int mx = b.maxAmmo(u.id, wi), left = mx < 0 ? 0 : b.ammo(u.id, wi);
-    if (mx >= 0 && left <= 0) {  // "EMPTY" in red instead of the range: it cannot be fired (short, so the name keeps its room)
+    const int maxAm = b.maxAmmo(u.id, wi), left = maxAm < 0 ? 0 : b.ammo(u.id, wi);
+    if (maxAm >= 0 && left <= 0) {  // "EMPTY" in red instead of the range: it cannot be fired (short, so the name keeps its room)
       row(r, x, y, w, db.weapons[wi].name, EconomyWords::kEmpty, kWarn, kWarn);
     } else {
-      const std::string ammo = mx < 0 ? "" : intStr(left) + "/" + intStr(mx) + " ";  // "3/6 r1"
+      const std::string ammo = maxAm < 0 ? "" : intStr(left) + "/" + intStr(maxAm) + " ";  // "3/6 r1"
       row(r, x, y, w, db.weapons[wi].name, ammo + "r" + rangeText(db.weapons[wi]), kText, kLabel);
     }
     y += rh;

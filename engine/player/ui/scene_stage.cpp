@@ -211,7 +211,7 @@ void SceneStage::finishNow() {
   fadeSpeed_ = 0;
   shakeLeft_ = 0;
   for (Portrait& p : portraits_) {
-    p.alpha = p.leaving ? 0 : 1;
+    p.alpha = p.leaving ? 0.0f : 1.0f;
     p.alphaSpeed = 0;
     p.slideT = 1;
   }

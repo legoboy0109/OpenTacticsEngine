@@ -65,14 +65,14 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
   if (db->skills.empty()) return;
   const int fighters[2] = {setup.attacker, setup.defender};
   CombatMods* bags[2] = {&attacker, &defender};
-  const Cell cells[2] = {setup.from, units[(size_t)setup.defender].cell};
+  const Cell fighterCells[2] = {setup.from, units[(size_t)setup.defender].cell};
   std::vector<int> list, scratch;
   for (const Unit& o : units) {
     if (!o.alive || o.cell == kNoCell) continue;
     const bool isFighter = o.id == setup.attacker || o.id == setup.defender;
     const Cell ownerCell = o.id == setup.attacker ? setup.from : o.cell;
     // Nothing reaches further than 10 steps: skip owners far from both fighters before looking at their skills.
-    if (grid.distance(ownerCell, cells[0]) > 10 && grid.distance(ownerCell, cells[1]) > 10) continue;
+    if (grid.distance(ownerCell, fighterCells[0]) > 10 && grid.distance(ownerCell, fighterCells[1]) > 10) continue;
     if (isFighter) skillCombatList(setup, o.id, list);
     else skillsOf(o, -1, list);
     SkillCtx ctx;
@@ -84,7 +84,7 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
         if (b.when != SkillWhen::Combat || !b.aura || !skillBlockHolds(b, ctx)) continue;
         for (int f = 0; f < 2; ++f) {
           const Unit& target = units[(size_t)fighters[f]];
-          if (target.id == o.id || grid.distance(ownerCell, cells[f]) > b.auraWithin) continue;
+          if (target.id == o.id || grid.distance(ownerCell, fighterCells[f]) > b.auraWithin) continue;
           // "enemies" reaches a fighter only if the owner's team sees it.
           if (b.auraEnemies ? !(isEnemy(o, target) && unitVisibleTo(teamOf(o), target)) : teamOf(o) != teamOf(target))
             continue;
@@ -92,7 +92,7 @@ void Battle::auraCombatMods(const CombatSetup& setup, CombatMods& attacker, Comb
           // A formula amount sees the owner as `a` and the fighter that receives it as `b`.
           SkillCtx fx = ctx;
           fx.foe = target.id;
-          fx.foeCell = cells[f];
+          fx.foeCell = fighterCells[f];
           fx.foeWeapon = f == 0 ? setup.weaponA : setup.weaponD;
           // The receiver's own weapon in this fight, its damage kind, and the maker's test: judged per receiver, here, so the forecast
           // (which comes through this function too) always agrees with the fight.

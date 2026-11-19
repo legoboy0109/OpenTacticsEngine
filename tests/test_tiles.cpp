@@ -260,7 +260,7 @@ TEST(tiles_apply_change_sets_clears_or_keeps_each_squares_tile_and_revert_restor
   CHECK_EQ(w.tile(5, 3), -1);  // the terrain changed and no tile was given: cleared
   CHECK_EQ(w.tile(6, 3), 8);   // keepTile
   CHECK_EQ(w.tile(4, 4), 8);   // not in the change
-  CHECK_EQ((int)w.events.size() >= 1, 1);
+  CHECK(w.events.size() >= 1);
   CHECK(w.events[0].type == EventType::TerrainChanged);
   CHECK_EQ(w.events[0].a, 3);
   w.events.clear();
