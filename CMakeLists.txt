@@ -371,7 +371,10 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
   # ote_core exports -fno-exceptions -fno-rtti as PUBLIC options and those come
   # after our own target options, so -fexceptions is set as a per-source flag,
   # which is placed last on the command line and therefore wins.
-  set_source_files_properties(${EDITOR_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  # (MSVC: /EHsc is already on for every target, nothing to add.)
+  if(NOT MSVC)
+    set_source_files_properties(${EDITOR_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  endif()
   find_package(Threads REQUIRED)
   target_link_libraries(ote-editor PRIVATE Threads::Threads)
   if(WIN32)
