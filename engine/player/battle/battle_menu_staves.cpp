@@ -36,11 +36,6 @@ std::string fitUses(Renderer& r, const std::string& full, int uses, int room) {
   const std::string n = uses >= 0 ? intStr(uses) : "";
   return textW(r, n) <= room ? n : "";
 }
-// What a row of a menu has left after its label: the menu is at most the screen's map area wide, less its own padding, arrow
-// and border (Menu::open: 2 * 4 + arrow + 2).
-int roomAfter(Renderer& r, int screenW, const std::string& label) {
-  return screenW - 4 - (2 * 4 + textW(r, ">") + 4 + 2) - textW(r, "  ") - textW(r, label);
-}
 }  // namespace
 
 void BattleScene::addStaffEntries(std::vector<MenuItem>& items) {
@@ -55,7 +50,7 @@ void BattleScene::addStaffEntries(std::vector<MenuItem>& items) {
   bool any = false;
   for (const StaffOption& o : opts) any = any || o.ok;
   Renderer& r = host_.renderer();
-  items.push_back({StaffWords::kMenu, any ? "" : fitReason(r, opts[0].why, roomAfter(r, layout_.vw, StaffWords::kMenu)), any, kStaffEntry});
+  items.push_back({StaffWords::kMenu, any ? "" : fitReason(r, opts[0].why, menuRoomAfter(r, layout_.vw, StaffWords::kMenu)), any, kStaffEntry});
   OTE_INFO("staff entry of %s: %s", battle_.units[(size_t)sel_].name.c_str(), any ? "usable" : ("greyed: " + staffReasonText(opts[0].why, false)).c_str());
 }
 
@@ -90,7 +85,7 @@ void BattleScene::openStaffList() {
   std::string log;
   for (const StaffOption& o : opts) {
     const ItemDef& d = battle_.db->items[(size_t)o.item];
-    const int room = roomAfter(r, layout_.vw, d.name);
+    const int room = menuRoomAfter(r, layout_.vw, d.name);
     const ItemStack& stack = u.items[(size_t)o.slot];
     const std::string extra = o.ok ? fitUses(r, usesText(battle_, stack), stack.uses, room) : fitReason(r, o.why, room);
     items.push_back({d.name, extra, o.ok, kStaffBase + o.slot});
@@ -248,7 +243,7 @@ void BattleScene::staffRepairMenu(int user, int slot, int target, std::function<
     const ItemStack& st = t.items[(size_t)s];
     const ItemDef& def = battle_.db->items[(size_t)st.item];
     const int after = fx.amount == StaffEffect::Amount::Full ? def.uses : std::min(def.uses, st.uses + fx.value);
-    const std::string extra = fitUses(r, intStr(st.uses) + " > " + intStr(after), after, roomAfter(r, layout_.vw, def.name));
+    const std::string extra = fitUses(r, intStr(st.uses) + " > " + intStr(after), after, menuRoomAfter(r, layout_.vw, def.name));
     items.push_back({def.name, extra, true, kStaffItemBase + s});
     log += (log.empty() ? "" : ", ") + def.name + " " + intStr(st.uses) + ">" + intStr(after);
   }

@@ -62,7 +62,7 @@ void BattleScene::stealMenu(int user, int ability, int target, std::function<voi
   for (const StealOption& o : opts) {
     const ItemStack& st = t.items[(size_t)o.slot];
     const ItemDef& d = battle_.db->items[(size_t)st.item];
-    const int room = layout_.vw - 4 - (2 * 4 + textW(r, ">") + 4 + 2) - textW(r, "  ") - textW(r, d.name);  // as the staff lists do
+    const int room = menuRoomAfter(r, layout_.vw, d.name);  // as the staff lists do
     std::string extra = o.ok ? usesText(battle_, st) : stealReasonText(o.why, false);
     if (textW(r, extra) > room && !o.ok) extra = stealReasonText(o.why, true);
     if (textW(r, extra) > room) extra = "";  // a narrow screen: greyed without words (the unit details say why)

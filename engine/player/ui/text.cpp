@@ -78,6 +78,10 @@ std::string intStr(int v) {
   return buf;
 }
 
+int menuRoomAfter(const Renderer& r, int screenW, const std::string& label) {
+  return screenW - 4 - (2 * 4 + textW(r, ">") + 4 + 2) - textW(r, "  ") - textW(r, label);
+}
+
 void drawTextShadow(Renderer& r, int x, int y, const std::string& s, Color c, int scale) {
   r.drawText(x + scale, y + scale, s.c_str(), Color(0, 0, 0, (uint8_t)(c.a * 180 / 255)), scale);
   r.drawText(x, y, s.c_str(), c, scale);
