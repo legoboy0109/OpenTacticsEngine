@@ -24,10 +24,13 @@ namespace ote {
 
 #if defined(_WIN32) && !defined(OTE_NO_CONSOLE_API)
 namespace {
-// A standard handle that points at something (a file, a pipe, a console) needs nothing from us.
+// A standard handle that points at something (a file, a pipe, a console) needs nothing from us. Started from a terminal
+// without redirection, a GUI-subsystem program may still be handed non-null handle values that lead nowhere (it has no
+// console yet): GetFileType tells those apart (FILE_TYPE_UNKNOWN).
 bool hasHandle(DWORD which) {
   HANDLE h = GetStdHandle(which);
-  return h != nullptr && h != INVALID_HANDLE_VALUE;
+  if (h == nullptr || h == INVALID_HANDLE_VALUE) return false;
+  return GetFileType(h) != FILE_TYPE_UNKNOWN;
 }
 }  // namespace
 
