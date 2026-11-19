@@ -17,27 +17,16 @@ where every unit stands and whether a guard is awake from that save. It judges:
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, player_and_repo, player_cmd, summary  # noqa: E402
 
 sys.dont_write_bytecode = True
 
-PLAYER = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else ''
-REPO = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else '.'
+PLAYER, REPO = player_and_repo()
 TMP = tempfile.mkdtemp(prefix='ote-aibehaviour-')
 WIDTH = 14
-passed, failures = 0, []
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def write(path, obj):
@@ -78,9 +67,9 @@ def run(gid, frames):
     """Runs the player headless for `frames` frames; returns (log, the Continue save's battle or {})."""
     work = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(work, ignore_errors=True)
-    cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings', '--saves', work,
+    cmd = player_cmd(PLAYER, TMP, REPO) + ['--saves', work,
            '--frames', str(frames), '--fixed-dt', '0.016', '--game', gid, '--map', 'field']
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text(cmd)
     battle = {}
     try:
         with open(os.path.join(work, gid, 'continue.json')) as f:
@@ -182,5 +171,5 @@ for t in (test_hold_and_advance, test_guard_wakes_when_the_enemy_comes_into_reac
           test_from_turn, test_story_commands_change_behaviour):
     t()
 shutil.rmtree(TMP, ignore_errors=True)
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)

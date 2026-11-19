@@ -19,6 +19,8 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import battle_scene3_player_test as s3  # noqa: E402  (the shared generated games; its main() is not run)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import failures, summary  # noqa: E402
 
 STAGE, USE, C_SPARK, C_BL, C_BR, C_FOOT = s3.STAGE, s3.USE, s3.C_SPARK, s3.C_BL, s3.C_BR, s3.C_FOOT
 check, foot_x = s3.check, s3.foot_x
@@ -193,9 +195,9 @@ def main():
         end_offset()
     finally:
         shutil.rmtree(s3.TMP, ignore_errors=True)
-    print('%d passed, %d failed' % (s3.passed, len(s3.failures)))
-    if s3.failures:
-        print('FAILED: ' + ', '.join(s3.failures))
+    summary()
+    if failures:
+        print('FAILED: ' + ', '.join(failures))
         sys.exit(1)
 
 

@@ -15,9 +15,10 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
+from ote_testkit import run_text, check, failures, summary  # noqa: E402
 
 sys.dont_write_bytecode = True
 
@@ -25,21 +26,10 @@ REPO = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else '.'
 SIM = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else ''
 FIXTURE = os.path.join(REPO, 'tests', 'fixtures', 'ai-scripted')
 TMP = tempfile.mkdtemp(prefix='ote-aiscripted-')
-passed, failures = 0, []
-
-
-def check(name, cond, detail=''):
-    global passed
-    if cond:
-        passed += 1
-        print('PASS ' + name)
-    else:
-        failures.append(name)
-        print('FAIL %s %s' % (name, detail))
 
 
 def sim(game, *args):
-    p = subprocess.run([SIM, game, 'field'] + list(args), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
+    p = run_text([SIM, game, 'field'] + list(args))
     return p.returncode, re.sub(r'avg [0-9.]+ ms/run', '', p.stdout)
 
 
@@ -76,5 +66,5 @@ check('the same game without the keys plays', code3 == 0 and 'summary: 20 runs' 
 check('the keys change how the battles go', out3 != out1)
 
 shutil.rmtree(TMP, ignore_errors=True)
-print('%d passed, %d failed' % (passed, len(failures)))
+summary()
 sys.exit(1 if failures else 0)
