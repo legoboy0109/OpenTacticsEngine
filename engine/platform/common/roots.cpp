@@ -3,6 +3,7 @@
 // the defaults here, behind its own #if, and leaves every caller alone.
 #include <cstdlib>
 
+#include "platform/common/android_roots.h"
 #include "platform/platform.h"
 
 namespace ote {
@@ -25,12 +26,21 @@ void setExtraContentRootOverride(const std::string& dir) { extraOverride() = dir
 
 std::string contentRoot() {
   if (!contentOverride().empty()) return trimmed(contentOverride());
-  return trimmed(fromEnv("OTE_CONTENT_ROOT"));  // desktop default: empty = the working directory
+  std::string env = trimmed(fromEnv("OTE_CONTENT_ROOT"));
+#ifdef __ANDROID__
+  // APK assets cannot be opened with fopen: the first run extracts them to app storage (sdl_android.cpp).
+  if (env.empty()) return androidContentRoot();
+#endif
+  return env;  // desktop default: empty = the working directory
 }
 
 std::string extraContentRoot() {
   if (!extraOverride().empty()) return trimmed(extraOverride());
-  return trimmed(fromEnv("OTE_EXTRA_GAMES"));
+  std::string env = trimmed(fromEnv("OTE_EXTRA_GAMES"));
+#ifdef __ANDROID__
+  if (env.empty()) return androidExtraGamesRoot();  // Android/data/<id>/files/games
+#endif
+  return env;
 }
 
 std::string userRoot() { return userDataDir(); }

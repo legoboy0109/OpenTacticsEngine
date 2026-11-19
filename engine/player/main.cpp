@@ -7,12 +7,16 @@
 #include "args.h"
 #include "core/base/log.h"
 #include "sound/audio_render.h"
+#include "platform/common/android_roots.h"
 #include "platform/platform.h"
 #include "platform/platform_main.h"  // SDL_main on the platforms that need it; must stay in this file
 
 using namespace ote;
 
 int main(int argc, char** argv) {
+#ifdef __ANDROID__
+  installAndroidLogSink();  // stderr is not shown on Android; logcat tag "OTE"
+#endif
   // OTE_LOG_LEVEL=debug shows the debug lines too (the walk directions; tests read them). Normal runs log info and above only.
   if (const char* lv = std::getenv("OTE_LOG_LEVEL"))
     if (!std::strcmp(lv, "debug")) setLogLevel(LogLevel::Debug);
