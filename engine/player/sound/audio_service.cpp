@@ -183,7 +183,22 @@ void AudioService::pump() {
   }
 }
 
+void AudioService::suspend() {
+  if (suspended_) return;
+  suspended_ = true;
+  pausedBySuspend_ = !mixer_->musicPaused();
+  if (pausedBySuspend_) mixer_->pauseMusic();
+}
+
+void AudioService::resume() {
+  if (!suspended_) return;
+  suspended_ = false;
+  if (pausedBySuspend_) mixer_->resumeMusic();
+  pausedBySuspend_ = false;
+}
+
 void AudioService::update(double dt) {
+  if (suspended_) return;  // no clock, no mixing: the device plays out what it has and goes quiet
   clock_ += dt;
   pump();
 }

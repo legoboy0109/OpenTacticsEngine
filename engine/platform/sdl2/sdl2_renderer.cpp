@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "core/base/log.h"
+#include "platform/sdl2/sdl2_pixels.h"
 
 namespace ote {
 
@@ -16,8 +17,7 @@ class SdlRenderer::Target : public TextTarget {
   }
 
   int createTexture(int w, int h) override {
-    // SDL_PIXELFORMAT_RGBA32 (bytes R,G,B,A in memory on any endianness) is 2.0.5+.
-    SDL_Texture* t = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+    SDL_Texture* t = SDL_CreateTexture(r_, kUploadFormat, SDL_TEXTUREACCESS_STATIC, w, h);  // see sdl2_pixels.h
     if (!t) {
       OTE_ERROR("SDL_CreateTexture(%dx%d) failed: %s", w, h, SDL_GetError());
       return -1;
@@ -33,7 +33,9 @@ class SdlRenderer::Target : public TextTarget {
 
   void updateTexture(int tex, int x, int y, int w, int h, const uint8_t* rgba, int pitch) override {
     SDL_Rect rc = {x, y, w, h};
-    SDL_UpdateTexture(tex_[tex], &rc, rgba, pitch);
+    int outPitch = pitch;
+    const void* px = uploadPixels(rgba, w, h, pitch, scratch_, outPitch);
+    SDL_UpdateTexture(tex_[tex], &rc, px, outPitch);
   }
 
   void destroyTexture(int tex) override {
@@ -77,6 +79,7 @@ class SdlRenderer::Target : public TextTarget {
   int* lw_;
   int* lh_;
   std::vector<SDL_Texture*> tex_;
+  std::vector<uint32_t> scratch_;  // converted pixels while uploading (sdl2_pixels.h)
 };
 
 SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
@@ -123,14 +126,16 @@ TextureId SdlRenderer::createTexture(const uint8_t* rgba, int width, int height,
   if (!rgba || width < 1 || height < 1) return 0;
   // SDL2 fixes a texture's scaling when it is made, from this hint (the app keeps it at "0", nearest).
   if (smooth) SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-  SDL_Texture* t = SDL_CreateTexture(r_, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, width, height);
+  SDL_Texture* t = SDL_CreateTexture(r_, kUploadFormat, SDL_TEXTUREACCESS_STATIC, width, height);
   if (smooth) SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
   if (!t) {
     OTE_ERROR("createTexture(%dx%d) failed: %s", width, height, SDL_GetError());
     return 0;
   }
   SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
-  if (SDL_UpdateTexture(t, nullptr, rgba, width * 4) != 0) {
+  int outPitch = width * 4;
+  const void* px = uploadPixels(rgba, width, height, width * 4, uploadScratch_, outPitch);
+  if (SDL_UpdateTexture(t, nullptr, px, outPitch) != 0) {
     OTE_ERROR("createTexture: cannot upload pixels: %s", SDL_GetError());
     SDL_DestroyTexture(t);
     return 0;
@@ -152,7 +157,9 @@ void SdlRenderer::updateTexture(TextureId id, const uint8_t* rgba) {
   SDL_Texture* t = images_[(size_t)id - 1];
   int w = 0, h = 0;
   SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
-  if (SDL_UpdateTexture(t, nullptr, rgba, w * 4) != 0) OTE_ERROR("updateTexture: cannot upload pixels: %s", SDL_GetError());
+  int outPitch = w * 4;
+  const void* px = uploadPixels(rgba, w, h, w * 4, uploadScratch_, outPitch);
+  if (SDL_UpdateTexture(t, nullptr, px, outPitch) != 0) OTE_ERROR("updateTexture: cannot upload pixels: %s", SDL_GetError());
 }
 
 void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh,

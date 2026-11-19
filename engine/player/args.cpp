@@ -6,7 +6,7 @@
 namespace ote {
 
 const char* usageText() {
-  return "usage: ote-player [--games DIR=games] [--assets DIR=assets] [--game ID] [--map ID] [--autoplay] [--seed N]\n"
+  return "usage: ote-player [--games DIR=games] [--assets DIR=assets] [--content-root DIR] [--extra-games DIR] [--game ID] [--map ID] [--autoplay] [--seed N]\n"
          "                  [--headless] [--frames N] [--fixed-dt SECONDS] [--screenshot FILE.bmp]\n"
          "                  [--input \"tok,tok,...\"] [--input-interval FRAMES=6] [--scale N]\n"
          "                  [--font NAME_OR_FILE] [--font-size N] [--font-smooth 0|1] [--style ID] [--ui-scale PERCENT]\n"
@@ -15,6 +15,8 @@ const char* usageText() {
          "                  [--3d auto|software|hardware] [--3d-res auto|display|game] [--3d-scale N]\n"
          "                  [--show-all] [--difficulty ID] [--test-level auto|N] [--chapter ID] [--battle-scene scene|map] [--music-volume 0..10] [--sound-volume 0..10] [--no-audio] [--audio-log FILE]\n"
          "                  [--audio-test | --audio-render FILE.wav [--seconds N=4]] [--audio-file FILE.ogg|.wav]\n"
+         "roots: games/ and assets/ are looked for in --content-root DIR (default: the working directory); --games / --assets beat it.\n"
+         "       --extra-games DIR is a second folder of games (the user's); a game there replaces a built-in one with the same id.\n"
          "fonts: NAME is pixel or an id from <assets>/fonts/fonts.json (pixel-ttf arcade sans serif mono);\n"
          "       otherwise a .ttf/.otf path. Command line beats the game's own font setting.\n"
          "options (font, size, scale, style) are stored in the settings file; these flags override them for one run.\n"
@@ -39,7 +41,7 @@ const char* usageText() {
          "--audio-log FILE writes one line per sound / music request (docs/SOUND.md, Audio log), so tests can see what would be heard.\n"
          "--audio-test plays a synthesized melody and a chime through the real sound device (or --audio-file's music) and exits.\n"
          "--audio-render FILE.wav writes --seconds of what the mixer would play for that same test to a 16-bit stereo WAV, with no device.\n"
-         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip wait wait:N tap:X:Y\n";
+         "input tokens: up down left right confirm cancel menu next prev turnleft turnright tiltup tiltdown zoomin zoomout skip background foreground lowmemory terminate wait wait:N tap:X:Y\n";
 }
 
 namespace {
@@ -107,8 +109,10 @@ Args parseArgs(int argc, char** argv) {
       if (value(v)) { a.battleScene = v; if (a.battleScene != "scene" && a.battleScene != "map") a.error = "bad --battle-scene (scene or map)"; }
     }
     else if (!strcmp(arg, "--saves")) { if (value(v)) a.saves = v; }
-    else if (!strcmp(arg, "--games")) { if (value(v)) a.gamesDir = v; }
-    else if (!strcmp(arg, "--assets")) { if (value(v)) a.assetsDir = v; }
+    else if (!strcmp(arg, "--games")) { if (value(v)) { a.gamesDir = v; a.gamesGiven = true; } }
+    else if (!strcmp(arg, "--assets")) { if (value(v)) { a.assetsDir = v; a.assetsGiven = true; } }
+    else if (!strcmp(arg, "--content-root")) { if (value(v)) a.contentRoot = v; }
+    else if (!strcmp(arg, "--extra-games")) { if (value(v)) a.extraGames = v; }
     else if (!strcmp(arg, "--font")) { if (value(v)) a.font = v; }
     else if (!strcmp(arg, "--style")) { if (value(v)) a.style = v; }
     else if (!strcmp(arg, "--settings")) { if (value(v)) a.settings = v; }

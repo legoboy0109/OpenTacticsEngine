@@ -8,6 +8,7 @@
 #include "core/base/log.h"
 #include "sound/audio_render.h"
 #include "platform/platform.h"
+#include "platform/platform_main.h"  // SDL_main on the platforms that need it; must stay in this file
 
 using namespace ote;
 
@@ -21,6 +22,8 @@ int main(int argc, char** argv) {
     fputs(usageText(), args.help ? stdout : stderr);
     return args.help ? 0 : 1;
   }
+
+  applyContentRoots(args);
 
   // Offline mixing needs neither a window nor a sound device.
   if (!args.audioRender.empty()) return runAudioRender(args);

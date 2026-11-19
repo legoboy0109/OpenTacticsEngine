@@ -109,6 +109,16 @@ class Renderer {
   virtual bool setAdditiveBlend(bool on) { return false; }
 };
 
+// Life-cycle notices from the operating system (phones, consoles; docs/PORTING.md "Life cycle"). Desktop backends
+// send none today. They arrive through App::onLifecycle, possibly right before the OS freezes the process, so the
+// handler must finish what it has to write before it returns.
+enum class Lifecycle {
+  WillEnterBackground,  // the app is about to be hidden / suspended: write everything now
+  DidEnterForeground,   // the app is visible and running again
+  LowMemory,            // the OS asks to give memory back
+  Terminating           // the OS is about to end the process (may follow WillEnterBackground with no further warning)
+};
+
 // What the player implements.
 class App {
  public:
@@ -119,6 +129,10 @@ class App {
   // Called once by the backend after the window/renderer exist and before
   // the first frame (set the font / logical size here, load content).
   virtual void onStart(Renderer& renderer) {}
+  // A life-cycle notice (see Lifecycle). Backends call it from their event loop; where the OS may freeze the process
+  // right after the notice (SDL's WILL_ENTER_BACKGROUND / TERMINATING) they call it from an event watch, at once,
+  // with the main loop locked out, instead of queueing it.
+  virtual void onLifecycle(Lifecycle event) {}
   virtual bool wantsQuit() const = 0;
   // Called once by the backend after the main loop ends and before the window / SDL go away (never
   // on the web, where the page stays up): release anything that needs the device (the audio output).
@@ -178,6 +192,23 @@ bool audioWaitsForUserInput();
 // Writable folder for the user's settings and saves, created if missing,
 // without a trailing slash. Empty string if the platform has none.
 std::string userDataDir();
+
+// ---- Where things live (docs/PORTING.md "Roots") ----
+// The player reads shipped content from one place and writes to another; on Android the first is app storage the
+// assets were unpacked into, on UWP the read-only install folder and the writable LocalState folder. Everything the
+// player reads or writes is under one of these, so a port changes the answers here and nothing else.
+
+// Folder holding the shipped, read-only content: it contains games/ and assets/. Empty = the working directory
+// (the desktop default, so `ote-player` run from the repository finds games/ and assets/). No trailing slash.
+// Overridden by setContentRootOverride (the player's --content-root) or the OTE_CONTENT_ROOT environment variable.
+std::string contentRoot();
+// Optional second folder of games (same layout as games/: <id>/game.json) that the user added; empty = none.
+// Overridden by setExtraContentRootOverride (--extra-games) or OTE_EXTRA_GAMES.
+std::string extraContentRoot();
+// Folder the app may write to: settings.json and saves/ live here. Empty if there is none. Today this is userDataDir().
+std::string userRoot();
+void setContentRootOverride(const std::string& dir);
+void setExtraContentRootOverride(const std::string& dir);
 
 // Call after writing files inside userDataDir(): lets the platform persist
 // them (the web build copies its in-memory folder to browser storage; every

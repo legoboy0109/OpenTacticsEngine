@@ -38,7 +38,7 @@ void PlayerApp::syncAudio() {
   } else if (gameAudio_.gameId() != gameId_ || (session_ && !gameAudio_.full())) {
     std::string err;
     if (audioFailed_ != gameId_ + (session_ ? "+" : "") &&
-        !gameAudio_.load(args_.gamesDir + "/" + gameId_, gameId_, session_ ? &session_->db : nullptr, err)) {
+        !gameAudio_.load(gameDir(gameId_), gameId_, session_ ? &session_->db : nullptr, err)) {
       OTE_WARN("audio: %s", err.c_str());
       audioFailed_ = gameId_ + (session_ ? "+" : "");
     }

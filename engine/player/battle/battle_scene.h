@@ -39,6 +39,7 @@ class BattleScene : public Scene {
   void update(double dt) override;
   void draw(Renderer& r) override;
   SceneAudio audioContext() const override;  // battle_sound.cpp
+  void onSuspend() override;                 // battle_saves.cpp
 
  private:
   enum class Mode { Idle, Selected, ActionMenu, Targeting, BuildMenu, EndMenu, SlotList, Items, Objective, StructureMenu, UpgradeMenu, Research, Result,

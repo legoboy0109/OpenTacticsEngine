@@ -7,6 +7,9 @@ namespace ote {
 struct Args {
   std::string gamesDir = "games";
   std::string assetsDir = "assets";  // built-in fonts live in <assetsDir>/fonts
+  bool gamesGiven = false, assetsGiven = false;  // --games / --assets were on the command line: they beat the content root
+  std::string contentRoot;    // --content-root DIR: where games/ and assets/ are (default: platform contentRoot(), the working directory on desktop)
+  std::string extraGames;     // --extra-games DIR: a second folder of games (the user's); same id as a built-in game wins
   std::string font;       // --font: built-in id, "pixel", or a font file; empty = the game decides
   int fontSize = 0;       // --font-size, logical pixels; 0 = default
   int fontSmooth = -1;    // --font-smooth 0|1; -1 = default
@@ -55,6 +58,8 @@ struct Args {
 };
 
 Args parseArgs(int argc, char** argv);
+// Fills gamesDir / assetsDir / extraGames from the platform's content roots (content_roots.cpp; ote-player only).
+void applyContentRoots(Args& args);
 const char* usageText();
 
 }  // namespace ote

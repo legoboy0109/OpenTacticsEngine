@@ -21,6 +21,6 @@ class SlotScene : public Scene {
 // Summary of the five manual slots of a game, judged against the game as it is
 // now (loads the game's data once for the version check; without it the files
 // are only checked for being readable).
-std::vector<SaveInfo> inspectSlots(const SaveStore& store, const std::string& gamesDir, const std::string& gameId);
+std::vector<SaveInfo> inspectSlots(const SaveStore& store, const std::string& gameDir, const std::string& gameId);
 
 }  // namespace ote

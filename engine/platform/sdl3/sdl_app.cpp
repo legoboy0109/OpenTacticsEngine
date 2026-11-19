@@ -29,9 +29,32 @@ struct Loop {
   long frames = 0;
   bool done = false;
   bool vsync = false;
+  // Held while the app handles input, time and drawing; the life-cycle watch takes it too, so a suspend notice that
+  // arrives on another thread (Android's UI thread) never runs while a frame is half done. SDL mutexes are recursive:
+  // on platforms that deliver the notice from inside SDL_PollEvent on this thread it simply re-enters. Null on the web.
+  SDL_Mutex* lock = nullptr;
 };
 
+// The OS may freeze the process right after WILL_ENTER_BACKGROUND / TERMINATING returns, so these are handled here, at
+// once, and not from the event queue (docs/PORTING.md "Life cycle").
+bool SDLCALL lifecycleWatch(void* user, SDL_Event* e) {
+  Loop* L = static_cast<Loop*>(user);
+  Lifecycle notice;
+  switch (e->type) {
+    case SDL_EVENT_WILL_ENTER_BACKGROUND: notice = Lifecycle::WillEnterBackground; break;
+    case SDL_EVENT_DID_ENTER_FOREGROUND: notice = Lifecycle::DidEnterForeground; break;
+    case SDL_EVENT_LOW_MEMORY: notice = Lifecycle::LowMemory; break;
+    case SDL_EVENT_TERMINATING: notice = Lifecycle::Terminating; break;
+    default: return true;
+  }
+  if (L->lock) SDL_LockMutex(L->lock);
+  L->app->onLifecycle(notice);
+  if (L->lock) SDL_UnlockMutex(L->lock);
+  return true;
+}
+
 void frame(Loop& L) {
+  if (L.lock) SDL_LockMutex(L.lock);
   // 1. Input.
   L.events.clear();
   SDL_Event e;
@@ -52,6 +75,7 @@ void frame(Loop& L) {
   bool last = L.app->wantsQuit() || (L.cfg->maxFrames > 0 && L.frames >= L.cfg->maxFrames);
   L.app->draw(*L.gfx);
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
+  if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
   SDL_RenderPresent(L.gfx->handle());
   // Without working vsync a plain loop would spin a core at 100%.
   // (The browser paces the web loop itself.)
@@ -140,11 +164,17 @@ int runApp(App& app, const PlatformConfig& config) {
     loop.vsync = !config.headless && SDL_SetRenderVSync(ren, 1);
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
     loop.lastNs = SDL_GetTicksNS();
+#ifndef __EMSCRIPTEN__
+    loop.lock = SDL_CreateMutex();
+    SDL_AddEventWatch(lifecycleWatch, &loop);
+#endif
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg(emFrame, &loop, 0, 1);
 #else
     while (!loop.done) frame(loop);
+    SDL_RemoveEventWatch(lifecycleWatch, &loop);
+    SDL_DestroyMutex(loop.lock);
 #endif
   }
 

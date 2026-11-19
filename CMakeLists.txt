@@ -24,8 +24,19 @@ if(UNIX AND NOT EMSCRIPTEN)
   target_compile_definitions(lua PRIVATE LUA_USE_POSIX)
 endif()
 
-set(OTE_WARN -Wall -Wextra -Wno-unused-parameter)
-set(OTE_CXX_FLAGS -fno-exceptions -fno-rtti)
+if(MSVC)
+  # Visual Studio / UWP: strict conformance, UTF-8 sources (the engine's strings are UTF-8), and the C library's
+  # "unsafe" warnings off. Exceptions stay at /EHsc (the STL needs them declared); the engine itself throws none and
+  # uses no RTTI (/GR-). NOMINMAX: windows.h must not define min/max macros. Not built in CI here (no MSVC on Linux).
+  set(OTE_WARN /W4 /permissive- /utf-8 /EHsc)
+  set(OTE_CXX_FLAGS /GR-)
+  set(OTE_NOWARN /w)  # third-party sources compiled into our targets: warnings off for those files only
+  add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
+else()
+  set(OTE_WARN -Wall -Wextra -Wno-unused-parameter)
+  set(OTE_CXX_FLAGS -fno-exceptions -fno-rtti)
+  set(OTE_NOWARN -w)
+endif()
 
 # --- Rules core: pure logic, no platform/graphics dependencies ---
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS engine/core/*.cpp)
@@ -49,7 +60,7 @@ add_library(ote_audio STATIC ${AUDIO_SRC} engine/audio/stb_vorbis_impl.c)
 target_link_libraries(ote_audio PUBLIC ote_core)
 target_compile_options(ote_audio PRIVATE ${OTE_WARN})
 # Third-party C: warnings off for this file only.
-set_source_files_properties(engine/audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-w")
+set_source_files_properties(engine/audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "${OTE_NOWARN}")
 
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
@@ -107,6 +118,14 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     enable_testing()
     add_test(NAME campaign_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/campaign_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # The content/user roots: the player run from another working directory (docs/PORTING.md).
+    add_test(NAME roots_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/roots_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Suspend / resume / low memory / terminate injected with --input tokens (docs/PORTING.md "Life cycle").
+    add_test(NAME lifecycle_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/lifecycle_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME freebattles_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/freebattles_player_test.py

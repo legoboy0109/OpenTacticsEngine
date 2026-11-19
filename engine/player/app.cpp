@@ -69,14 +69,14 @@ GameLook lookOf(const Database& db) {
   return g;
 }
 
-GameLook lookOf(const GameEntry& e, const std::string& gamesDir) {
+GameLook lookOf(const GameEntry& e) {
   GameLook g;
   g.present = true;
   g.font.name = e.info.font.name;
   g.font.file = e.info.font.file;
   g.font.size = e.info.font.size;
   g.font.smooth = e.info.font.smooth;
-  g.root = gamesDir + "/" + e.id;
+  g.root = e.dir;
   g.battleScene = e.info.battleScene;
   g.menuHide = e.info.menuHide;
   for (const StyleInfo& s : e.info.styles) {
@@ -100,7 +100,7 @@ void PlayerApp::onStart(Renderer& r) {
   loadSettings();
   startAudio();
   std::string warning;
-  games_ = discoverGames(args_.gamesDir, warning);
+  games_ = discoverGamesMerged(args_.gamesDir, args_.extraGames, warning);
   if (notice_.empty()) notice_ = warning;
   findSavesFolder();
   if (args_.test3d) { applyLauncherLook(); scene_.reset(new Test3DScene(*this)); }
@@ -108,6 +108,12 @@ void PlayerApp::onStart(Renderer& r) {
   else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
+}
+
+std::string PlayerApp::gameDir(const std::string& gameId) const {
+  for (const GameEntry& g : games_)
+    if (g.id == gameId) return g.dir;
+  return args_.gamesDir + "/" + gameId;
 }
 
 void PlayerApp::runPending() {
@@ -138,10 +144,13 @@ void PlayerApp::update(double dt) {
   syncAudio();
   if (script_.active()) {
     std::vector<InputEvent> injected;
-    script_.tick(injected);
+    std::vector<Lifecycle> notices;
+    script_.tick(injected, notices);
+    for (Lifecycle n : notices) onLifecycle(n);
     for (const InputEvent& ev : injected) onInput(ev);
     if (script_.finished() && args_.frames == 0) quit_ = true;
   }
+  if (suspended_) return;  // the simulation clock stands still while the app is in the background
   if (scene_) scene_->update(dt);
   runPending();
   audio_.update(dt);  // after the scenes: what they asked for this frame is mixed at once
@@ -189,7 +198,7 @@ void PlayerApp::showOptions(const std::string& gameId) {
 
 void PlayerApp::relook(const std::string& gameId) {
   for (const GameEntry& g : games_)
-    if (g.id == gameId && !gameId.empty()) { applyLook(gameId, lookOf(g, args_.gamesDir), 480, 270); return; }
+    if (g.id == gameId && !gameId.empty()) { applyLook(gameId, lookOf(g), 480, 270); return; }
   applyLauncherLook();
 }
 
@@ -228,7 +237,7 @@ bool PlayerApp::loadSession(const std::string& gameId, std::string& err) {
   session_.reset(new GameSession());
   session_->askChoices = !args_.autoplay;
   session_->testLevel = args_.testLevel;
-  if (!session_->load(args_.gamesDir + "/" + gameId, err)) {
+  if (!session_->load(gameDir(gameId), err)) {
     dropSession();
     return false;
   }

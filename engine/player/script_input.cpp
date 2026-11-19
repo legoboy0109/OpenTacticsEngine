@@ -43,6 +43,11 @@ bool ScriptInput::parse(const std::string& text, int interval, std::string& err)
     bool found = false;
     for (const Name& n : kButtons)
       if (tok == n.name) { t.kind = Token::Press; t.button = n.button; found = true; }
+    struct LifeName { const char* name; Lifecycle life; };
+    static const LifeName kLife[] = {{"background", Lifecycle::WillEnterBackground}, {"foreground", Lifecycle::DidEnterForeground},
+                                     {"lowmemory", Lifecycle::LowMemory}, {"terminate", Lifecycle::Terminating}};
+    for (const LifeName& n : kLife)
+      if (tok == n.name) { t.kind = Token::Life; t.life = n.life; found = true; }
     if (!found && tok == "wait") { t.kind = Token::Wait; t.count = 1; found = true; }
     if (!found && tok.compare(0, 5, "wait:") == 0) {
       found = toInt(tok.substr(5), t.count) && t.count >= 0;
@@ -63,7 +68,7 @@ bool ScriptInput::parse(const std::string& text, int interval, std::string& err)
   return true;
 }
 
-void ScriptInput::tick(std::vector<InputEvent>& out) {
+void ScriptInput::tick(std::vector<InputEvent>& out, std::vector<Lifecycle>& notices) {
   if (tokens_.empty() || finished_) return;
   if (settle_ >= 0) {  // script exhausted: count down the settle time
     if (--settle_ < 0) finished_ = true;
@@ -79,6 +84,8 @@ void ScriptInput::tick(std::vector<InputEvent>& out) {
     out.push_back(ev);
     ev.type = InputEvent::ButtonUp;
     out.push_back(ev);
+  } else if (t.kind == Token::Life) {
+    notices.push_back(t.life);
   } else if (t.kind == Token::Tap) {
     ev.x = t.x;
     ev.y = t.y;

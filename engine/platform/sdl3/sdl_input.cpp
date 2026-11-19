@@ -13,7 +13,8 @@ Button keyButton(SDL_Scancode sc) {
     case SDL_SCANCODE_RIGHT: case SDL_SCANCODE_D: return Button::Right;
     case SDL_SCANCODE_RETURN: case SDL_SCANCODE_KP_ENTER: case SDL_SCANCODE_SPACE:
     case SDL_SCANCODE_Z: return Button::Confirm;
-    case SDL_SCANCODE_ESCAPE: case SDL_SCANCODE_X: case SDL_SCANCODE_BACKSPACE: return Button::Cancel;
+    case SDL_SCANCODE_ESCAPE: case SDL_SCANCODE_X: case SDL_SCANCODE_BACKSPACE:
+    case SDL_SCANCODE_AC_BACK: return Button::Cancel;  // AC_BACK: Android's back button / UWP's B (docs/PORTING.md)
     case SDL_SCANCODE_TAB: case SDL_SCANCODE_E: return Button::Next;
     case SDL_SCANCODE_Q: return Button::Prev;
     case SDL_SCANCODE_M: return Button::Menu;

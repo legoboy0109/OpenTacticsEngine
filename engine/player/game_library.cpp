@@ -12,6 +12,7 @@ static GameEntry makeEntry(const std::string& gamesDir, const std::string& id) {
   GameEntry e;
   e.id = id;
   e.name = id;
+  e.dir = gamesDir + "/" + id;
   if (loadGameInfo(gamesDir + "/" + id, e.info, e.error)) {
     if (!e.info.name.empty()) e.name = e.info.name;
   } else {
@@ -48,6 +49,20 @@ std::vector<GameEntry> discoverGames(const std::string& gamesDir, std::string& w
     }
   }
   for (const std::string& id : ids) out.push_back(makeEntry(gamesDir, id));
+  return out;
+}
+
+std::vector<GameEntry> discoverGamesMerged(const std::string& gamesDir, const std::string& extraDir, std::string& warning) {
+  std::vector<GameEntry> out = discoverGames(gamesDir, warning);
+  if (extraDir.empty()) return out;
+  std::string extraWarning;
+  for (GameEntry& e : discoverGames(extraDir, extraWarning)) {
+    bool replaced = false;
+    for (GameEntry& have : out)
+      if (have.id == e.id) { have = e; replaced = true; break; }
+    if (!replaced) out.push_back(e);
+  }
+  if (warning.empty()) warning = extraWarning;
   return out;
 }
 

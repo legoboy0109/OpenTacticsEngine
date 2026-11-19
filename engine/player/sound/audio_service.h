@@ -77,6 +77,12 @@ class AudioService {
   void stopMusic(float fadeSeconds);
   bool musicPlaying() const { return mixer_->musicPlaying(); }
 
+  // The app goes to the background / comes back (platform.h Lifecycle): the music holds still and nothing is mixed or pushed
+  // while suspended; resume() continues it (music that was already paused, e.g. under a jingle, stays as it was).
+  void suspend();
+  void resume();
+  bool suspended() const { return suspended_; }
+
   // Once per frame: advances the clock and tops the device queue up to ~80 ms.
   void update(double dt);
   double clock() const { return clock_; }
@@ -94,6 +100,8 @@ class AudioService {
 
   Mode mode_ = Mode::Off;
   bool pending_ = false;
+  bool suspended_ = false;
+  bool pausedBySuspend_ = false;
   std::unique_ptr<AudioOut> device_;
   std::unique_ptr<Mixer> mixer_;
   AudioLog log_;

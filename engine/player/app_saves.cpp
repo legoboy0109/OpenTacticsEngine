@@ -22,7 +22,7 @@ void PlayerApp::findSavesFolder() {
   }
   // A test playthrough (--chapter) or a test level run must not overwrite the player's real Continue save or slots either.
   if (args_.headless || args_.noSettings || !args_.chapter.empty() || args_.testLevel != 0) return;
-  std::string dir = userDataDir();
+  std::string dir = userRoot();
   if (dir.empty()) {
     OTE_WARN("no user data folder: battles cannot be saved");
     return;
