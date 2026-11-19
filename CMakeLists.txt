@@ -95,38 +95,53 @@ target_compile_options(ote_audio PRIVATE ${OTE_WARN})
 # Third-party C: warnings off for this file only.
 set_source_files_properties(engine/audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "${OTE_NOWARN}")
 
+# --- The player's SDL-free part, compiled once and linked by the player, the tests and the editor helper ---
+# Everything the player, ote_tests and ote-editor used to each compile on their own: the player's saves, options,
+# UI text and layout, the battle screens' text and views, the sound service and director, and the shared platform code
+# that needs no SDL. Each file is compiled once, with the same options every user gave it before (no definition of the
+# per-program kind reaches these files: OTE_PLATFORM_*, OTE_SDL2_UPLOAD_ARGB8888 and the test paths are used elsewhere only).
+# A STATIC library, not OBJECT: nothing here registers itself from a static initializer (verified: the linked programs
+# define the same symbols as before), so the linker pulling only what is referenced is correct, and it lets each program
+# keep supplying its own platform functions (ote_tests: tests/platform_stub.cpp; the player: its backend), which the
+# library's files call but do not define.
+if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
+  set(OTE_PLAYER_DIR ${CMAKE_SOURCE_DIR}/engine/player)
+  set(OTE_COMMON_DIR ${CMAKE_SOURCE_DIR}/engine/platform/common)
+  set(OTE_PLAYER_LIB_SRC
+      ${OTE_COMMON_DIR}/image.cpp ${OTE_COMMON_DIR}/stb_image_impl.cpp ${OTE_COMMON_DIR}/font_registry.cpp ${OTE_COMMON_DIR}/null_audio.cpp ${OTE_COMMON_DIR}/window_fit.cpp
+      ${OTE_PLAYER_DIR}/saves.cpp ${OTE_PLAYER_DIR}/progress.cpp ${OTE_PLAYER_DIR}/campaign/campaign_logic.cpp ${OTE_PLAYER_DIR}/options/effective.cpp
+      ${OTE_PLAYER_DIR}/ui/text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_box.cpp ${OTE_PLAYER_DIR}/ui/scene_stage.cpp
+      ${OTE_PLAYER_DIR}/ui/scene_stage_layout.cpp ${OTE_PLAYER_DIR}/ui/scene_stage_draw.cpp ${OTE_PLAYER_DIR}/ui/dialogue_portrait.cpp
+      ${OTE_PLAYER_DIR}/show3d.cpp ${OTE_PLAYER_DIR}/args.cpp ${OTE_PLAYER_DIR}/options/option_defs.cpp ${OTE_PLAYER_DIR}/battle/map_proj.cpp
+      # The sound loader, cue lookup, music director and service (docs/SOUND.md).
+      ${OTE_PLAYER_DIR}/sound/audio_service.cpp ${OTE_PLAYER_DIR}/sound/audio_log.cpp ${OTE_PLAYER_DIR}/sound/audio_files.cpp ${OTE_PLAYER_DIR}/sound/audio_selftest.cpp
+      ${OTE_PLAYER_DIR}/sound/audio_data.cpp ${OTE_PLAYER_DIR}/sound/cues.cpp ${OTE_PLAYER_DIR}/sound/sound_bank.cpp ${OTE_PLAYER_DIR}/sound/music_director.cpp
+      ${OTE_PLAYER_DIR}/sound/game_audio.cpp
+      # The strategy-RPG shared places and the texts of the battle screens, free of SDL (docs/SRPG.md, docs/BATTLE_SCENE.md).
+      ${OTE_PLAYER_DIR}/battle/battle_music.cpp ${OTE_PLAYER_DIR}/battle/promotion_text.cpp ${OTE_PLAYER_DIR}/battle/rank_text.cpp ${OTE_PLAYER_DIR}/battle/staff_text.cpp
+      ${OTE_PLAYER_DIR}/battle/condition_text.cpp ${OTE_PLAYER_DIR}/battle/place_text.cpp ${OTE_PLAYER_DIR}/battle/menu_hide.cpp ${OTE_PLAYER_DIR}/battle/weapon_choice.cpp
+      ${OTE_PLAYER_DIR}/battle/mapweapon_text.cpp ${OTE_PLAYER_DIR}/battle/fight_script.cpp ${OTE_PLAYER_DIR}/battle/fight_timeline.cpp)
+  file(GLOB PLAYER_SRPG_LIB_SRC CONFIGURE_DEPENDS ${OTE_PLAYER_DIR}/battle/srpg_pick.cpp ${OTE_PLAYER_DIR}/battle/unit_info*.cpp
+       ${OTE_PLAYER_DIR}/battle/battle_view*.cpp ${OTE_PLAYER_DIR}/battle/economy_text.cpp ${OTE_PLAYER_DIR}/battle/item_text.cpp
+       ${OTE_PLAYER_DIR}/battle/rescue_menu.cpp ${OTE_PLAYER_DIR}/battle/support_text.cpp)
+  list(APPEND OTE_PLAYER_LIB_SRC ${PLAYER_SRPG_LIB_SRC})
+  add_library(ote_player_lib STATIC ${OTE_PLAYER_LIB_SRC})
+  target_include_directories(ote_player_lib PUBLIC ${OTE_PLAYER_DIR})  # options/, show3d.h, "battle/..." "ui/..."
+  target_link_libraries(ote_player_lib PUBLIC ote_core ote_gfx3d ote_audio)
+  target_compile_options(ote_player_lib PRIVATE ${OTE_WARN})
+  if(ANDROID)
+    # Ends up inside the shared libmain.so (engine/player/CMakeLists.txt turns the global setting on only after this point).
+    set_target_properties(ote_player_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  endif()
+endif()
+
 if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   enable_testing()
   file(GLOB TEST_SRC CONFIGURE_DEPENDS tests/*.cpp)
-  # The PNG decoder (platform layer, no SDL), the player's save-file module
-  # (it needs makeDir/removeFile/commitUserData: tests/platform_stub.cpp provides them), the option layering
-  # and the 3D picture sizing are tested here too.
-  add_executable(ote_tests ${TEST_SRC} engine/platform/common/image.cpp engine/platform/common/stb_image_impl.cpp
-                 engine/player/saves.cpp engine/player/progress.cpp engine/player/campaign/campaign_logic.cpp engine/player/options/effective.cpp engine/platform/common/font_registry.cpp
-                 engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp engine/player/ui/scene_stage.cpp engine/player/ui/scene_stage_layout.cpp engine/player/ui/scene_stage_draw.cpp engine/player/ui/dialogue_portrait.cpp
-                 engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
-                 engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
-                 engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp
-                 engine/platform/common/window_fit.cpp)
-  # The player's sound data, cue lookup and music director (docs/SOUND.md step 2).
-  target_sources(ote_tests PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp engine/player/sound/sound_bank.cpp
-                 engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp)
-  # The player's strategy-RPG shared places (docs/SRPG.md step U0): the pick list, the unit details frame and the
-  # battle view with its event hooks, all of it free of SDL.
-  file(GLOB PLAYER_SRPG_TEST_SRC CONFIGURE_DEPENDS engine/player/battle/srpg_pick.cpp engine/player/battle/unit_info*.cpp
-       engine/player/battle/battle_view*.cpp engine/player/battle/economy_text.cpp engine/player/battle/item_text.cpp
-       engine/player/battle/rescue_menu.cpp engine/player/battle/support_text.cpp)
-  target_sources(ote_tests PRIVATE ${PLAYER_SRPG_TEST_SRC})
-  target_sources(ote_tests PRIVATE engine/player/battle/battle_music.cpp)  # what the music director is told at a turn start (docs/SOUND.md)
-  target_sources(ote_tests PRIVATE engine/player/battle/promotion_text.cpp)  # step U2: what a promotion gives, as text
-  target_sources(ote_tests PRIVATE engine/player/battle/rank_text.cpp)  # weapon ranks and stat caps in words (docs/SRPG.md section 7)
-  target_sources(ote_tests PRIVATE engine/player/battle/staff_text.cpp)  # staves in words (docs/SRPG.md section 8)
-  target_sources(ote_tests PRIVATE engine/player/battle/condition_text.cpp)  # status conditions in words (docs/SRPG.md section 9)
-  target_sources(ote_tests PRIVATE engine/player/battle/place_text.cpp)  # doors, chests and visiting in words (docs/SRPG.md section 10)
-  target_sources(ote_tests PRIVATE engine/player/battle/menu_hide.cpp engine/player/battle/weapon_choice.cpp)  # the action menu's "hide" option and the weapon list (docs/SRPG.md "Menu options")
-  target_sources(ote_tests PRIVATE engine/player/battle/mapweapon_text.cpp)  # map weapons in words (docs/SRPG.md "Map weapons")
-  target_sources(ote_tests PRIVATE engine/player/battle/fight_script.cpp engine/player/battle/fight_timeline.cpp)  # the battle scene's script of a fight (docs/BATTLE_SCENE.md)
-  target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
+  # The player's SDL-free sources (saves, options, UI text, sound, battle texts, the PNG decoder ...) come from
+  # ote_player_lib; tests/platform_stub.cpp provides the platform functions they call (makeDir, removeFile, commitUserData).
+  add_executable(ote_tests ${TEST_SRC})
+  target_link_libraries(ote_tests PRIVATE ote_player_lib ote_core ote_gfx3d ote_audio)
   if(WIN32)
     # The Direct3D 11 backend against the software one, its screen quad, state handling and device loss (Windows only;
     # tests/render3d_d3d11_test.py covers it inside the player).
@@ -134,7 +149,6 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
     target_sources(ote_tests PRIVATE ${TEST_WIN_SRC})
     target_include_directories(ote_tests PRIVATE tests)
   endif()
-  target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
                                              OTE_TEMP_DIR="${CMAKE_BINARY_DIR}")
@@ -398,13 +412,9 @@ endif()
 if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
   file(GLOB EDITOR_SRC CONFIGURE_DEPENDS editor/server/*.cpp)
   add_executable(ote-editor ${EDITOR_SRC})
-  target_link_libraries(ote-editor PRIVATE ote_core ote_audio)
-  # The player's sound loader and service (decoders, silent mode, no device): /problems runs the same checks as the
-  # player so an unknown sound id or an over-long effect is reported before Play (docs/SOUND.md).
-  target_sources(ote-editor PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp
-                 engine/player/sound/sound_bank.cpp engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp
-                 engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp engine/player/sound/audio_files.cpp
-                 engine/platform/common/null_audio.cpp)
+  # The player's sound loader and service (decoders, silent mode, no device) come from ote_player_lib: /problems runs the
+  # same checks as the player so an unknown sound id or an over-long effect is reported before Play (docs/SOUND.md).
+  target_link_libraries(ote-editor PRIVATE ote_player_lib ote_core ote_audio)
   target_include_directories(ote-editor PRIVATE engine/player)
   # httplib as SYSTEM include: its warnings are not ours to fix.
   target_include_directories(ote-editor SYSTEM PRIVATE third_party/httplib)
