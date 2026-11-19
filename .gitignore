@@ -34,3 +34,16 @@ android/local.properties
 *.aab
 *.keystore
 *.jks
+
+# UWP / Xbox player (docs/XBOX.md): packages, the local TEST signing certificate and its key never go into the repository
+*.appx
+*.msix
+*.appxbundle
+*.msixbundle
+*.appxupload
+*.pfx
+*.cer
+*.p12
+*.pem
+*.snk
+tools/uwp/cert/
