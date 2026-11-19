@@ -14,7 +14,8 @@ namespace ote_editor {
 // {relative path with '/', absolute path}, sorted by relative path.
 std::vector<std::pair<std::string, fs::path>> listProjectFiles(const fs::path& dir);
 
-// 16 hex chars: FNV-1a 64 over sorted relative paths and file bytes.
+// 16 hex chars: FNV-1a 64 over sorted relative paths and file bytes. Cached per project by (path, size, mtime) of every
+// file, so an unchanged folder costs a directory scan, not a read of every byte (see revision.cpp). Thread-safe.
 std::string computeRevision(const fs::path& dir);
 
 }  // namespace ote_editor
