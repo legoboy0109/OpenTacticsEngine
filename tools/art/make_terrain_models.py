@@ -269,7 +269,7 @@ def write_all(repo):
     terrain = piece['styles']['detailed-3d']['terrain']
     for tid, stand in stand_looks().items():
         terrain[tid]['stand'] = stand
-    with open(path, 'w', encoding='utf-8') as f:
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
         f.write(head + json.dumps(piece, indent=2) + '\n')
 
 

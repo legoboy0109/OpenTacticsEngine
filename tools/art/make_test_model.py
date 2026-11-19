@@ -197,7 +197,7 @@ def main():
 
     doc, binary = build(False, png)
     doc['buffers'][0]['uri'] = 'figure.bin'
-    with open(os.path.join(out, 'figure.gltf'), 'w') as f:
+    with open(os.path.join(out, 'figure.gltf'), 'w', newline='\n') as f:
         json.dump(doc, f, indent=1)
         f.write('\n')
     with open(os.path.join(out, 'figure.bin'), 'wb') as f:

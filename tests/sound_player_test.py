@@ -91,7 +91,8 @@ def play(tmp, games, args, inp=None, frames=0, saves=None, game='snd', interval=
     if inp:
         cmd += ['--input', inp]
     p = subprocess.run(cmd + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, timeout=300)
-    raw = open(log).read().splitlines() if os.path.exists(log) else []
+    # (paths in the log use the platform's separators; the checks look for '/')
+    raw = open(log).read().replace('\\', '/').splitlines() if os.path.exists(log) else []
     return p.returncode, p.stdout, [token(l) for l in raw if token(l)], raw
 
 
@@ -406,7 +407,7 @@ def staff_sounds(tmp, starter, aj):
         cmd = [PLAYER, '--headless', '--no-settings', '--games', games, '--assets', os.path.join(REPO, 'assets'), '--audio-log', log, '--input-interval', '4',
                '--saves', saves, '--continue', '--game', 'stf', '--map', 'clinic', '--frames', '700', '--input', inp]
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=300)
-        raw = open(log).read().splitlines() if os.path.exists(log) else []
+        raw = open(log).read().replace('\\', '/').splitlines() if os.path.exists(log) else []
         return [token(l) for l in raw if token(l)]
 
     def staff_list_menu():  # the staff list: Mend Staff is the first entry

@@ -54,6 +54,18 @@ def read(path):
         return f.read()
 
 
+def same_content(name, a, b):
+    """Byte equality; for a PNG that differs only in how it was compressed (Pillow's bundled zlib differs between
+    platforms), equal pictures count as equal: same size, mode and pixels."""
+    if a == b:
+        return True
+    if a is None or b is None or not name.endswith('.png'):
+        return False
+    import io
+    ia, ib = Image.open(io.BytesIO(a)), Image.open(io.BytesIO(b))
+    return ia.size == ib.size and ia.mode == ib.mode and ia.tobytes() == ib.tobytes()
+
+
 def generated_files(base):
     out = {}
     for rel in GAMES:
@@ -82,7 +94,7 @@ def generator_checks():
         check(runs[0] == runs[1], 'the generator is not deterministic')
         committed = generated_files(root)
         for name in sorted(set(runs[0]) | set(committed)):
-            check(runs[0].get(name) == committed.get(name), '%s is not what make_hex_art.py generates' % name)
+            check(same_content(name, runs[0].get(name), committed.get(name)), '%s is not what make_hex_art.py generates' % name)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
