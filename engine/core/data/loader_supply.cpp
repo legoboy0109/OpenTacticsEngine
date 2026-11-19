@@ -8,13 +8,6 @@ namespace ote {
 
 namespace {
 
-bool inRange(const LoadCtx& c, const Json& o, const char* key, const std::string& where, int lo, int hi, int& out) {
-  if (!c.integer(o, key, where, out)) return false;
-  if (o.has(key) && (out < lo || out > hi))
-    return c.fail(where, std::string("\"") + key + "\" must be from " + std::to_string(lo) + " to " + std::to_string(hi));
-  return true;
-}
-
 // Refuses keys that are not in the list, naming the allowed ones (a typo must not silently do nothing).
 bool onlyKeys(const LoadCtx& c, const Json& o, const std::string& where, const char* const* allowed, const char* names) {
   for (const Json::Member& m : o.members()) {
@@ -41,22 +34,22 @@ bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db) {
     static const char* const kRepairKeys[] = {"amount", "costShare", nullptr};
     if (!onlyKeys(c, *rep, "rules.supply.repair", kRepairKeys, "\"amount\" or \"costShare\"")) return false;
     if (!rep->has("amount")) return c.fail("rules.supply.repair", "missing required \"amount\" (percent of maximum HP per turn)");
-    if (!inRange(c, *rep, "amount", "rules.supply.repair", 1, 100, s.repairAmount)) return false;
-    if (!inRange(c, *rep, "costShare", "rules.supply.repair", 0, 100, s.repairCostShare)) return false;
+    if (!c.integerFrom(*rep, "amount", "rules.supply.repair", 1, 100, s.repairAmount)) return false;
+    if (!c.integerFrom(*rep, "costShare", "rules.supply.repair", 0, 100, s.repairCostShare)) return false;
     s.repair = true;
   }
   return true;
 }
 
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w) {
-  return inRange(c, e, "ammo", where, 1, 99, w.ammo);
+  return c.integerFrom(e, "ammo", where, 1, 99, w.ammo);
 }
 
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u) {
-  if (!inRange(c, e, "fuel", where, 1, 999, u.fuel)) return false;
+  if (!c.integerFrom(e, "fuel", where, 1, 999, u.fuel)) return false;
   if (e.has("fuelPerTurn")) {
     if (!e.has("fuel")) return c.fail(where, "\"fuelPerTurn\" needs \"fuel\"");
-    if (!inRange(c, e, "fuelPerTurn", where, 1, 999, u.fuelPerTurn)) return false;
+    if (!c.integerFrom(e, "fuelPerTurn", where, 1, 999, u.fuelPerTurn)) return false;
     // A unit that burns its whole tank at the first turn start would be destroyed before it ever moved.
     if (u.fuelPerTurn >= u.fuel)
       return c.fail(where, "\"fuelPerTurn\" (" + std::to_string(u.fuelPerTurn) + ") must be less than \"fuel\" (" +

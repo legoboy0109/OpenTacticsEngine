@@ -1,6 +1,7 @@
 // Event loader, part 2: the commands of an event's "do" list (docs/EVENTS.md "Commands").
 #include <algorithm>
 
+#include "core/data/loader_command_kind.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
 #include "core/data/loader_events.h"
@@ -81,52 +82,19 @@ bool StoryLoader::addUnitCommand(const Json& e, const std::string& where, Comman
 
 bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Command& out, bool& usesEndTurn) {
   if (!e.isObject()) return fail(where, "a command must be an object such as { \"say\": \"Hello\" }");
+  // All the "two commands in one entry" checks run here, before ANY command is dispatched (pinned: the first error
+  // for a bad entry must not depend on what the commands themselves would say).
   const char* kind = nullptr;
-  for (const char* k : kCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kSrpgCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kPlaceCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kConditionCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kBehaviourCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kMapCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kMusicCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kExtrasCommandKeys)
-    if (e.has(k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
-  for (const char* k : kSceneCommandKeys)
-    if (SceneFxReader::isCommandIn(e, k)) {
-      if (kind) return fail(where, std::string("has two commands (") + kind + " and " + k + "); use one entry for each");
-      kind = k;
-    }
+  if (!pickCommandKind(c_, e, where, kCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kSrpgCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kPlaceCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kConditionCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kBehaviourCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kMapCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kMusicCommandKeys, kind)) return false;
+  if (!pickCommandKind(c_, e, where, kExtrasCommandKeys, kind)) return false;
+  const auto isSceneFx = [&e](const char* k) { return SceneFxReader::isCommandIn(e, k); };
+  if (!pickCommandKind(c_, where, kSceneCommandKeys, isSceneFx, kind)) return false;
   if (kind && std::string(kind) == "fight") return fightCommand(e, where + " (fight)", out);
   if (kind && std::string(kind) == "showUnit") return showUnitCommand(e, where + " (showUnit)", out);
   if (kind && std::string(kind) == "setPhaseMusic") {

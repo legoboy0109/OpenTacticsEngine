@@ -100,10 +100,7 @@ bool readPlacedWeapon(const LoadCtx& c, const Database& db, const Json& e, const
   if (!e.has("uses")) return true;
   const MapWeaponDef& m = db.structures[(size_t)s.type].mapWeapon;
   if (!m.has()) return c.fail(where, "\"uses\" only belongs to a structure whose kind has a \"weapon\"");
-  if (!LoadCtx::isWhole(e["uses"]) || e["uses"].asInt() < 1 || e["uses"].asInt() > kMaxMapWeaponUses)
-    return c.fail(where, "\"uses\" must be a whole number from 1 to " + std::to_string(kMaxMapWeaponUses));
-  s.weaponUses = e["uses"].asInt();
-  return true;
+  return c.integerIn(e, "uses", where, 1, kMaxMapWeaponUses, s.weaponUses);
 }
 
 }  // namespace ote

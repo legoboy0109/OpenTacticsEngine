@@ -63,19 +63,6 @@ bool onlyKeys(const LoadCtx& c, const Json& o, std::initializer_list<const char*
   return true;
 }
 
-// `key` of `o` as a whole number in lo..hi.
-bool intIn(const LoadCtx& c, const Json& o, const char* key, const std::string& where, int lo, int hi, int& out,
-           bool required = false) {
-  if (!o.has(key)) {
-    if (required) return c.fail(where, std::string("missing required ") + q(key));
-    return true;
-  }
-  if (!LoadCtx::isWhole(o[key]) || o[key].asInt() < lo || o[key].asInt() > hi)
-    return c.fail(where, q(key) + " must be a whole number from " + std::to_string(lo) + " to " + std::to_string(hi));
-  out = o[key].asInt();
-  return true;
-}
-
 bool readOp(const LoadCtx& c, const Json& o, const std::string& where, CmpOp& op) {
   std::string t;
   if (!c.str(o, "op", where, t)) return false;
@@ -119,7 +106,7 @@ bool readTurnCond(const LoadCtx& c, const Json& e, const Json& v, const std::str
     out.turnMode = SkillCond::TurnMode::Range;
     out.turnA = 1;
     out.turnB = 1000000;
-    if (!intIn(c, v, "from", at, 1, 1000000, out.turnA) || !intIn(c, v, "to", at, 1, 1000000, out.turnB)) return false;
+    if (!c.integerIn(v, "from", at, 1, 1000000, out.turnA) || !c.integerIn(v, "to", at, 1, 1000000, out.turnB)) return false;
     if (out.turnA > out.turnB) return c.fail(where, "\"turn\": \"from\" is later than \"to\"");
     return true;
   }
@@ -127,7 +114,7 @@ bool readTurnCond(const LoadCtx& c, const Json& e, const Json& v, const std::str
   out.turnMode = SkillCond::TurnMode::Every;
   out.turnA = 0;
   out.turnB = 0;
-  if (!intIn(c, v, "every", at, 2, 1000, out.turnA, true) || !intIn(c, v, "offset", at, 0, 999, out.turnB)) return false;
+  if (!c.integerIn(v, "every", at, 2, 1000, out.turnA, true) || !c.integerIn(v, "offset", at, 0, 999, out.turnB)) return false;
   if (out.turnB >= out.turnA) return c.fail(where, "\"turn\": \"offset\" must be less than \"every\"");
   return true;
 }
@@ -174,7 +161,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
     case SkillCond::Kind::Hp:
       if (!v.isObject()) return c.fail(where, "\"hp\" must be { \"op\": \"<=\", \"percent\": 50 }");
       if (!onlyKeys(c, v, {"op", "percent"}, where + ": \"hp\"")) return false;
-      if (!readOp(c, v, where, out.op) || !intIn(c, v, "percent", where, 0, 100, out.value, true)) return false;
+      if (!readOp(c, v, where, out.op) || !c.integerIn(v, "percent", where, 0, 100, out.value, true)) return false;
       return onlyKeys(c, e, {"hp", "who"}, where);
     case SkillCond::Kind::Near: {
       if (!onlyKeys(c, e, {"near", "within", "op", "count", "match"}, where)) return false;
@@ -183,8 +170,8 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       out.enemy = v.asString() == "enemy";
       out.op = CmpOp::Ge;
       out.value = 1;
-      return intIn(c, e, "within", where, 1, 10, out.within) && readOp(c, e, where, out.op) &&
-             intIn(c, e, "count", where, 0, 1000, out.value) && c.str(e, "match", where, out.key);
+      return c.integerIn(e, "within", where, 1, 10, out.within) && readOp(c, e, where, out.op) &&
+             c.integerIn(e, "count", where, 0, 1000, out.value) && c.str(e, "match", where, out.key);
     }
     case SkillCond::Kind::Condition:
       if (!onlyKeys(c, e, {"condition", "who"}, where)) return false;
@@ -210,7 +197,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       else if (v.isString() && v.asString() == "followUp") { out.op = CmpOp::Ge; out.value = 2; }
       else if (LoadCtx::isWhole(v) && v.asInt() >= 1 && v.asInt() <= 1000) out.value = v.asInt();
       else if (v.isObject()) {
-        if (!onlyKeys(c, v, {"op", "value"}, where + ": \"strike\"") || !readOp(c, v, where, out.op) || !intIn(c, v, "value", where, 1, 1000, out.value, true)) return false;
+        if (!onlyKeys(c, v, {"op", "value"}, where + ": \"strike\"") || !readOp(c, v, where, out.op) || !c.integerIn(v, "value", where, 1, 1000, out.value, true)) return false;
       } else return c.fail(where, how);
       db.strikeNoUsed = true;
       return true;
@@ -238,7 +225,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
         return true;
       }
       if (!v.isObject() || !onlyKeys(c, v, {"op", "value"}, where + ": \"inventory\"")) return c.fail(where, "\"inventory\" must be \"full\", \"notFull\" or { \"op\": \">=\", \"value\": 3 }");
-      return readOp(c, v, where, out.op) && intIn(c, v, "value", where, 0, 1000, out.value, true);
+      return readOp(c, v, where, out.op) && c.integerIn(v, "value", where, 0, 1000, out.value, true);
     case SkillCond::Kind::WeaponKind:
       if (!onlyKeys(c, e, {"weaponKind", "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"weaponKind\" must be a damage kind, the word a weapon's \"damageKind\" says");
@@ -285,7 +272,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
     case SkillCond::Kind::Distance:
       if (!v.isObject()) return c.fail(where, q(key) + " must be { \"op\": \">=\", \"value\": 5 }");
       if (!onlyKeys(c, e, {spec->key}, where) || !onlyKeys(c, v, {"op", "value"}, where + ": " + q(key))) return false;
-      return readOp(c, v, where, out.op) && intIn(c, v, "value", where, 0, 1000000, out.value, true);
+      return readOp(c, v, where, out.op) && c.integerIn(v, "value", where, 0, 1000000, out.value, true);
     case SkillCond::Kind::Formula: {
       if (!onlyKeys(c, e, {"formula"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"formula\" must be the text of a formula");
@@ -539,7 +526,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
   if (e.has("within") && !usesWithin) return c.fail(where, "\"within\" belongs to \"to\": \"allies\" or \"enemies\"");
   if (usesWithin) {
     out.within = 1;
-    if (!intIn(c, e, "within", where, 1, 10, out.within)) return false;
+    if (!c.integerIn(e, "within", where, 1, 10, out.within)) return false;
   }
   if (!onlyKeys(c, e, {spec->key, "to", "within"}, where)) return false;
 
@@ -576,7 +563,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
     if (!v.isObject() || !onlyKeys(c, v, {"condition", "turns"}, where + ": \"inflict\"") || !v.has("condition") || !v["condition"].isString())
       return c.fail(where, "\"inflict\" must be { \"condition\": \"poison\" } (optionally with \"turns\")");
     out.names.push_back(v["condition"].asString());
-    return intIn(c, v, "turns", where, 1, kMaxConditionTurns, out.turns);
+    return c.integerIn(v, "turns", where, 1, kMaxConditionTurns, out.turns);
   }
   if (spec->kind == K::NullifySkills) {  // true | [skill ids] | { "tag": "word" }
     if (v.isBool() && v.asBool()) { out.value = 0; return true; }
@@ -739,7 +726,7 @@ bool readSkillBlock(const LoadCtx& c, Database& db, const Json& e, const std::st
     out.aura = true;
     out.auraEnemies = to == "enemies";
     out.auraWithin = 1;
-    if (!intIn(c, a, "within", where + ": \"aura\"", 1, 10, out.auraWithin)) return false;
+    if (!c.integerIn(a, "within", where + ": \"aura\"", 1, 10, out.auraWithin)) return false;
   }
 
   if (e.has("if")) {

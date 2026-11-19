@@ -44,6 +44,24 @@ class LoadCtx {
     out = o[key].asInt();
     return true;
   }
+  // A whole number from `lo` to `hi`. Anything that is not a whole number, or is outside the range, gets the one
+  // message "\"key\" must be a whole number from lo to hi". Key optional (`out` untouched when absent) unless `required`.
+  bool integerIn(const Json& o, const char* key, const std::string& where, int lo, int hi, int& out,
+                 bool required = false) const {
+    if (!o.has(key)) return missing(key, where, required);
+    if (!isWhole(o[key]) || o[key].asInt() < lo || o[key].asInt() > hi)
+      return fail(where, std::string("\"") + key + "\" must be a whole number from " + std::to_string(lo) + " to " + std::to_string(hi));
+    out = o[key].asInt();
+    return true;
+  }
+  // The other wording in use: a non-whole value is `integer`'s "must be a whole number", and only a whole number
+  // outside the range gets "\"key\" must be from lo to hi". Key optional.
+  bool integerFrom(const Json& o, const char* key, const std::string& where, int lo, int hi, int& out) const {
+    if (!integer(o, key, where, out)) return false;
+    if (o.has(key) && (out < lo || out > hi))
+      return fail(where, std::string("\"") + key + "\" must be from " + std::to_string(lo) + " to " + std::to_string(hi));
+    return true;
+  }
   bool boolean(const Json& o, const char* key, const std::string& where, bool& out,
                bool required = false) const {
     if (!o.has(key)) return missing(key, where, required);

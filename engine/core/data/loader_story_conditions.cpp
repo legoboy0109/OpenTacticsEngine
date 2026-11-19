@@ -36,11 +36,9 @@ bool StoryLoader::conditionCommand(const Json& e, const std::string& at, bool ad
     return false;
   }
   if (add && e.has("turns")) {
-    if (!LoadCtx::isWhole(e["turns"]) || e["turns"].asInt() < 1 || e["turns"].asInt() > kMaxConditionTurns)
-      return fail(at, "\"turns\" must be a whole number from 1 to " + std::to_string(kMaxConditionTurns));
+    if (!c_.integerIn(e, "turns", at, 1, kMaxConditionTurns, out.value)) return false;
     if (db_.conditions[(size_t)out.index].until != ConditionUntil::Turns)
       return fail(at, quoted(v.asString()) + " does not count turns (it lasts until it is cured or the map ends), so \"turns\" means nothing");
-    out.value = e["turns"].asInt();
   }
   if (!e.has(who))
     return fail(at, std::string("needs \"") + who + "\": which units " + (add ? "get" : "lose") + " it (a unit filter, {} for every unit)");
