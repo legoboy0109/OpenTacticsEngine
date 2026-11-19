@@ -48,7 +48,7 @@ What a suspend does **not** save: a story scene or dialogue in progress (docs/SA
 restarts the chapter's scene), a half-typed anything (no text entry exists), and a battle that has just been decided.
 
 Not handled: a **device reset**. Neither backend reacts to `SDL_EVENT_RENDER_DEVICE_RESET` / `SDL_EVENT_RENDER_TARGETS_RESET`
-(SDL2: `SDL_RENDER_DEVICE_RESET`), so the textures `Renderer::createTexture` made (art sheets, the 3D picture, the text atlas)
+(SDL2: `SDL_RENDER_DEVICE_RESET`; the Android hardware 3D context is the exception, it is rebuilt, docs/ANDROID.md "3D"), so the textures `Renderer::createTexture` made (art sheets, the 3D picture, the text atlas)
 are assumed to survive. On Android (GL context loss) and UWP (D3D device removal) they may not; the fix is to rebuild
 `Sprites`, `IsoTiles`, `Show3D` and the `TextEngine` atlas, from a handler that does not exist yet.
 
@@ -59,7 +59,7 @@ Tests: the `--input` tokens `background`, `foreground`, `lowmemory`, `terminate`
 
 The platform back key (`SDL_SCANCODE_AC_BACK`: Android back, and Xbox B on UWP when the app sets
 `SDL_HINT_WINRT_HANDLE_BACK_BUTTON`) is `Button::Cancel` in both backends. On the launcher's first screen Cancel does
-nothing, so Android back does not leave the app from there (a decision for the Android port).
+nothing, except on Android, where the platform layer leaves the app from there (the owner's decision, docs/ANDROID.md).
 
 Every screen is operable with a controller alone (d-pad or left stick, A confirm, B cancel, Start = Menu, shoulders =
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
@@ -80,8 +80,8 @@ handlers are additions that call the same actions. No screen has text entry. Ski
 
 ## Still missing
 
-Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. Still missing there: a device-reset handler;
-the launcher's Cancel on the first screen (back = leave app?); safe-area / notch insets; the hardware 3D backend; an icon
+Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. Still missing there: a device-reset handler for SDL's 2D textures;
+safe-area / notch insets; an icon
 and release build.
 
 UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the

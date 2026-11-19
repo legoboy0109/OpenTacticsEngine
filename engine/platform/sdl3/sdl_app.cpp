@@ -27,6 +27,10 @@ struct Loop {
   std::vector<InputEvent> events;
   Uint64 lastNs = 0;
   long frames = 0;
+  // Debug-level frame timing: the average of "work" (input, update, drawing; before present and the vsync wait) and of the
+  // whole frame interval, logged every kTimedFrames frames.
+  Uint64 workNs = 0, intervalStartNs = 0;
+  int timedFrames = 0;
   bool done = false;
   bool vsync = false;
   // Held while the app handles input, time and drawing; the life-cycle watch takes it too, so a suspend notice that
@@ -53,7 +57,10 @@ bool SDLCALL lifecycleWatch(void* user, SDL_Event* e) {
   return true;
 }
 
+constexpr int kTimedFrames = 120;
+
 void frame(Loop& L) {
+  const Uint64 workStart = SDL_GetTicksNS();
   if (L.lock) SDL_LockMutex(L.lock);
   // 1. Input.
   L.events.clear();
@@ -75,6 +82,16 @@ void frame(Loop& L) {
   bool last = L.app->wantsQuit() || (L.cfg->maxFrames > 0 && L.frames >= L.cfg->maxFrames);
   L.app->draw(*L.gfx);
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
+  L.workNs += SDL_GetTicksNS() - workStart;
+  if (++L.timedFrames == kTimedFrames) {
+    const Uint64 t = SDL_GetTicksNS();
+    if (L.intervalStartNs)
+      OTE_DEBUG("frame time: work %.1f ms, interval %.1f ms (average of %d frames)", L.workNs / 1e6 / kTimedFrames,
+                (t - L.intervalStartNs) / 1e6 / kTimedFrames, kTimedFrames);
+    L.intervalStartNs = t;
+    L.workNs = 0;
+    L.timedFrames = 0;
+  }
   if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
   SDL_RenderPresent(L.gfx->handle());
   // Without working vsync a plain loop would spin a core at 100%.

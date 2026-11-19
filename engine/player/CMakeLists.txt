@@ -46,7 +46,7 @@ file(GLOB BACKEND_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/${OT
 if(ANDROID)
   add_library(ote-player SHARED ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
   set_target_properties(ote-player PROPERTIES OUTPUT_NAME main)  # libmain.so
-  target_link_libraries(ote-player PRIVATE log)  # logcat (sdl_android.cpp)
+  target_link_libraries(ote-player PRIVATE log EGL GLESv3)  # logcat (sdl_android.cpp); the 3D pbuffer context (sdl_gl3d_android.cpp)
 else()
   add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
 endif()

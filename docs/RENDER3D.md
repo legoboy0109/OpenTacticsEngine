@@ -137,7 +137,9 @@ vertex), and no shader or API name appears outside `engine/gfx3d/gl/`.
   `engine/platform/platform3d.h`): SDL3 and SDL2 make a hidden 16 x 16
   window with an OpenGL ES 3.0 context, or OpenGL 3.3 core when the driver
   has no ES (`OTE_3D_GL=core` in the environment forces that path for
-  testing); the web makes a WebGL 2 context on a canvas that is never shown.
+  testing); the web makes a WebGL 2 context on a canvas that is never shown;
+  Android makes an EGL pbuffer context with no window, and keeps a CPU copy of
+  the meshes and textures so a lost context can be rebuilt (docs/ANDROID.md "3D").
   The platform frees the context when it shuts down; a backend that lives
   longer draws nothing.
 - **Falling back.** At start the backend compiles its shaders and reads back

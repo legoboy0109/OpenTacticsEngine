@@ -25,7 +25,7 @@ Debug signing only (Gradle's own debug keystore). There is no release build, key
   `engine/player/CMakeLists.txt` makes the player a shared library `libmain.so` (the library SDLActivity loads) and builds SDL
   from `OTE_ANDROID_SDL_SOURCE`. Debug builds use `-O2` (the software 3D renderer is CPU-bound).
 - Android code in the engine: `engine/platform/sdl3/sdl_android.cpp` (content extraction, extra games folder, logcat sink),
-  the `#ifdef __ANDROID__` branches in `engine/platform/common/roots.cpp`, `sdl_app.cpp` (hints, fullscreen) and `sdl_gl3d.cpp`.
+  the `#ifdef __ANDROID__` branches in `engine/platform/common/roots.cpp`, `sdl_app.cpp` (hints, fullscreen) and `sdl_gl3d.cpp`, `sdl_gl3d_android.cpp` (3D context), and the intent extras in `sdl_android.cpp` / `player/main.cpp`.
 - App name "OpenTactics Player", application id and the missing launcher icon are placeholders: the owner decides.
 
 ## Content
@@ -49,12 +49,67 @@ files dir: `settings.json`, `saves/`), `extraContentRoot()` = `Android/data/<id>
 - Fullscreen (immersive); Android shows its one-time "Viewing full screen" notice on first launch.
 - Home / return: `background` and `foreground` reach the app; a battle in progress writes its Continue save on Home.
 
+## 3D
+
+The hardware 3D backend (docs/RENDER3D.md "OpenGL backend") runs unchanged. Its GL context is an EGL **pbuffer** context made
+directly with EGL (`engine/platform/sdl3/sdl_gl3d_android.cpp`): `eglGetDisplay(EGL_DEFAULT_DISPLAY)` (the display SDL
+already initialised; never `eglTerminate`d here), a config with `EGL_OPENGL_ES3_BIT` + `EGL_PBUFFER_BIT`, a 1 x 1 pbuffer,
+an ES 3.0 context. `enter()` saves SDL's current display / surfaces / context with `eglGetCurrent*` and `leave()` restores
+exactly that. GL function addresses come from `eglGetProcAddress`, then `dlsym` on `libGLESv3` (the library links `EGL` and
+`GLESv3`). Everything runs on SDL's native thread, the one that draws the frame. Why not a second `SDL_GL_CreateContext` on
+the main window: it would have to use the EGL config SDL chose for its 2D renderer and share SDL's own "current context"
+bookkeeping; the pbuffer is independent of both.
+
+- **If no ES 3.0 context can be made** the reason is logged (`OTE` tag, warning "no hardware backend") and the software
+  renderer is used, as before. `--3d auto|software|hardware` and the "3D graphics" / "3D resolution" options behave as on the
+  desktop (4x multisampling and display resolution work when the context allows).
+- **Context loss.** A pbuffer context normally survives Home and return (checked on the emulator); a driver may still lose
+  it (`EGL_CONTEXT_LOST`, GPU reset). `GlRenderer3D` has no "recreate everything" path, so on Android it is wrapped in a
+  `ResilientRenderer3D` that keeps a CPU copy of every mesh and texture the game created (extra memory: the meshes and
+  textures once more). When `eglMakeCurrent` fails the wrapper discards the backend, makes a new context and backend, uploads
+  everything again (the game's mesh and texture ids stay valid) and repeats the frame. If a new context cannot be made, the
+  same copies go to the software renderer for the rest of the session (logged). Nothing else in the player notices.
+  Not covered: SDL's own 2D textures (see above). After a switch to software `caps()` changes (`fullResolution` goes
+  false); only the player's own per-frame choices see that, nothing was seen to break in the emulator test.
+- Debug hooks (environment, see "Debug launch"): `OTE_3D_SIMULATE_LOSS=N` destroys the 3D context after N frames;
+  `OTE_3D_SIMULATE_NO_REBUILD=1` also refuses the rebuild (tests the software fallback).
+- Emulator reading (API 36 x86_64, `-gpu swiftshader_indirect`): `GL_VERSION` "OpenGL ES 3.0 (OpenGL ES 3.0 SwiftShader
+  4.0.0.1)", `GL_RENDERER` "Android Emulator OpenGL ES Translator (Google SwiftShader)", max samples 4, max texture and
+  renderbuffer 8192. The log prints the same on every start (`3D drawing: OpenGL (...)`, `3D (EGL): pbuffer ES 3.0 context;
+  max samples ...`).
+
+## Debug launch
+
+Player arguments cannot be typed on a phone, so the launching intent can carry two string extras (read once at start, so
+`am force-stop` first; they only exist in the Android build and are meant for testing):
+
+```
+adb shell "am start -n org.opentacticsengine.player/org.libsdl.app.SDLActivity \
+  --es ote_env 'OTE_LOG_LEVEL=debug' \
+  --es ote_args '--game demo-srpg --map bridge --style full-3d --3d hardware --3d-res display'"
+```
+
+`ote_args` are ordinary `ote-player` arguments (split at spaces), `ote_env` is `NAME=value` pairs put into the environment
+before anything reads it. With `OTE_LOG_LEVEL=debug` the player logs, every 120 frames, `frame time: work X ms, interval Y
+ms`: *work* is input + update + drawing (before present and the vsync wait), *interval* the whole frame; vsync pins the
+interval to 16.7 ms.
+
+Measured on the emulator (1280 x 720, `-gpu swiftshader_indirect`, host CPU with KVM; indicative only, the emulator's GL is
+a CPU renderer, a phone's will differ): full 3D battle on `demo-srpg` / `bridge`, work per frame:
+
+| 3D resolution | software | hardware |
+|---|---|---|
+| game (480 x 270) | 3.5 ms | 5.7 ms |
+| display | 16.2 ms | 10.4 ms |
+
+Pictures were compared with a desktop headless screenshot of the same map and style (`--headless --style full-3d`): Android
+software at game resolution differs from it by 0.06 / 255 on average (downscaled to 480 x 270), Android hardware at game
+resolution by 0.19 / 255 (a few edge pixels), as the backends are meant to match.
+
 ## Known not to work yet
 
-- **3D**: the hardware 3D backend needs a second hidden GL window, which SDL on Android does not have, so only the software
-  3D renderer is used (slow on a phone-sized 3D picture; not measured on a real device).
-- Device reset: GL context loss (rotation is handled by `configChanges`, but memory pressure can still lose textures) is not
-  handled (docs/PORTING.md "Not handled").
+- Device reset of the **2D** side: SDL's own renderer textures (art sheets, text atlas, the 3D picture's texture) are not
+  rebuilt if Android loses SDL's GL context (docs/PORTING.md "Not handled"); the 3D backend's own context is (see "3D").
 - Safe-area / notch insets, an app icon, a release build, AAB.
 - Audio: SDL3 opens its device and the game's tracks load; nothing was listened to (the emulator ran without sound).
-- Only tested on an x86_64 emulator (API 36, software GL). arm64 libraries build but have not run.
+- Only tested on an x86_64 emulator (API 36, SwiftShader GL). arm64 libraries build but have not run.

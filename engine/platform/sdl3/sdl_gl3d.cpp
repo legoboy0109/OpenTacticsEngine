@@ -4,6 +4,7 @@
 // OpenGL 3.3 core where the driver has no ES (macOS). The backend draws into
 // its own framebuffer, never into that window.
 // Web: a WebGL 2 context on a canvas that is never shown.
+// Android: an EGL pbuffer context made directly (sdl_gl3d_android.cpp), no window at all.
 //
 // The 2D renderer may be using GL itself (SDL's own), so whatever context
 // was current is put back after every use.
@@ -51,12 +52,6 @@ class WebGlHost : public GlHost {
 
 bool makeContext(std::string& why) {
   if (g.ctx) return true;
-#ifdef __ANDROID__
-  // SDL on Android has one window, and the second hidden one this backend wants for its own context is not
-  // available: the software 3D renderer is used (docs/ANDROID.md).
-  why = "the hardware 3D backend is not available on Android yet";
-  return false;
-#endif
   // A canvas of its own, never shown: the page's canvas belongs to the 2D renderer.
   EM_ASM({
     if (!document.getElementById('ote-gl3d')) {
@@ -93,7 +88,7 @@ void freeContext() {
 
 std::unique_ptr<GlHost> makeHost() { return std::unique_ptr<GlHost>(new WebGlHost()); }
 
-#else  // desktop / phones
+#elif !defined(__ANDROID__)  // desktop
 
 struct Shared {
   SDL_Window* window = nullptr;
@@ -175,6 +170,14 @@ std::unique_ptr<GlHost> makeHost() { return std::unique_ptr<GlHost>(new SdlGlHos
 
 }  // namespace
 
+#ifdef __ANDROID__
+// Android has no second window: an EGL pbuffer context of its own (sdl_gl3d_android.cpp).
+std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) { return createAndroidHardwareRenderer3D(why); }
+
+void shutdownHardware3D() { shutdownAndroidHardware3D(); }
+
+#else
+
 std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) {
   if (!makeContext(why)) return nullptr;
   std::unique_ptr<Renderer3D> r = GlRenderer3D::create(makeHost(), why);
@@ -184,5 +187,7 @@ std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) {
 }
 
 void shutdownHardware3D() { freeContext(); }
+
+#endif
 
 }  // namespace ote

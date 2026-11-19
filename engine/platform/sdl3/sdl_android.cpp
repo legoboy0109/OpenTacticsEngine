@@ -2,6 +2,8 @@
 #ifdef __ANDROID__
 #include <SDL3/SDL.h>
 #include <android/log.h>
+#include <jni.h>
+#include <stdlib.h>
 
 #include <string>
 #include <vector>
@@ -130,6 +132,62 @@ std::string androidExtraGamesRoot() {
   std::string dir = std::string(ext) + "/games";
   if (!SDL_CreateDirectory(dir.c_str())) return "";
   return dir;
+}
+
+namespace {
+// The string extra `name` of the activity's launching intent; "" when absent. Reads only (Intent.getStringExtra), from the
+// SDL main thread; SDL attaches this thread to the JVM and owns the local references it hands out.
+std::string intentExtra(const char* name) {
+  JNIEnv* env = (JNIEnv*)SDL_GetAndroidJNIEnv();
+  jobject activity = (jobject)SDL_GetAndroidActivity();
+  if (!env || !activity) return "";
+  std::string out;
+  jclass activityClass = env->GetObjectClass(activity);
+  jmethodID getIntent = env->GetMethodID(activityClass, "getIntent", "()Landroid/content/Intent;");
+  jobject intent = getIntent ? env->CallObjectMethod(activity, getIntent) : nullptr;
+  if (intent) {
+    jclass intentClass = env->GetObjectClass(intent);
+    jmethodID getString = env->GetMethodID(intentClass, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+    jstring key = env->NewStringUTF(name);
+    jstring value = getString ? (jstring)env->CallObjectMethod(intent, getString, key) : nullptr;
+    if (value) {
+      const char* chars = env->GetStringUTFChars(value, nullptr);
+      if (chars) {
+        out = chars;
+        env->ReleaseStringUTFChars(value, chars);
+      }
+      env->DeleteLocalRef(value);
+    }
+    env->DeleteLocalRef(key);
+    env->DeleteLocalRef(intentClass);
+    env->DeleteLocalRef(intent);
+  }
+  if (env->ExceptionCheck()) env->ExceptionClear();
+  env->DeleteLocalRef(activityClass);
+  env->DeleteLocalRef(activity);
+  return out;
+}
+
+std::vector<std::string> splitWords(const std::string& s) {
+  std::vector<std::string> words;
+  size_t i = 0;
+  while (i < s.size()) {
+    while (i < s.size() && s[i] == ' ') ++i;
+    size_t j = i;
+    while (j < s.size() && s[j] != ' ') ++j;
+    if (j > i) words.push_back(s.substr(i, j - i));
+    i = j;
+  }
+  return words;
+}
+}  // namespace
+
+std::vector<std::string> androidIntentArgs() {
+  for (const std::string& kv : splitWords(intentExtra("ote_env"))) {
+    size_t eq = kv.find('=');
+    if (eq != std::string::npos && eq > 0) setenv(kv.substr(0, eq).c_str(), kv.substr(eq + 1).c_str(), 1);
+  }
+  return splitWords(intentExtra("ote_args"));
 }
 
 void installAndroidLogSink() { setLogSink(logSink); }

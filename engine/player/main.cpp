@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
+#include <vector>
 
 #include "app.h"
 #include "args.h"
@@ -16,6 +18,15 @@ using namespace ote;
 int main(int argc, char** argv) {
 #ifdef __ANDROID__
   installAndroidLogSink();  // stderr is not shown on Android; logcat tag "OTE"
+  // Debug aid: player arguments and environment from the launching intent's extras (docs/ANDROID.md). Before the log level
+  // is read below, so ote_env can set OTE_LOG_LEVEL.
+  std::vector<std::string> intentArgs = androidIntentArgs();
+  std::vector<char*> intentArgv(1, argc > 0 ? argv[0] : const_cast<char*>("ote-player"));
+  for (std::string& a : intentArgs) intentArgv.push_back(&a[0]);
+  if (!intentArgs.empty()) {
+    argc = (int)intentArgv.size();
+    argv = intentArgv.data();
+  }
 #endif
   // OTE_LOG_LEVEL=debug shows the debug lines too (the walk directions; tests read them). Normal runs log info and above only.
   if (const char* lv = std::getenv("OTE_LOG_LEVEL"))
