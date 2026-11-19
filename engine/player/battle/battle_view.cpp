@@ -113,125 +113,114 @@ std::string BattleView::itemName(const Battle& b, int item) const {
 
 bool BattleView::showsResources(const Battle& b, int side) const { return side == shownSide(b, autoplay_); }
 
-void BattleView::begin(const Battle& b) {
+// A turn's banner; the first turn of a new battle says what the battle is about, long enough to read.
+void BattleView::beginTurnStarted(const Battle& b) {
   const Event& e = cur_.ev;
-  cur_.t = 0;
-  cur_.dur = 0;
-  cur_.fired = false;
-  cur_.hideAtEnd = false;
-  float cx = tile_ / 2.0f;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b) || beginMapChange(b)) return;
+  banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
+  bannerColor = sideColor(b, e.a);
+  cur_.dur = 0.6f;
+  if (announce_) {
+    announce_ = false;
+    bannerSub = b.objectiveText();
+    if (!bannerSub.empty()) {
+      bannerSub = "Objective: " + bannerSub;
+      cur_.dur = 2.4f;
+    }
+  }
+}
+
+// The lunge direction and the defender's hit-point drop; a map weapon (docs/SRPG.md "Map weapons") logs its line and may float a note.
+void BattleView::beginAttack(const Battle& b) {
+  const Event& e = cur_.ev;
+  const float cx = tile_ / 2.0f;
+  UnitView& d = units[e.b];
+  const UnitView& a = units[e.a];
+  cur_.hpFrom = d.hp;
+  cur_.hpTo = std::max(0, d.hp - e.d);
+  float dx = d.px - a.px, dy = d.py - a.py, len = std::sqrt(dx * dx + dy * dy);
+  cur_.dirX = len > 0 ? dx / len : 0;
+  cur_.dirY = len > 0 ? dy / len : 0;
+  cur_.dur = kAttackDur;
+  if (e.flags & kMapWeapon) {  // fired from a structure: one log line, a floating note after the last shot
+    OTE_INFO("%s", mapWeaponLogLine(b, e).c_str());
+    if (e.flags & kMapWeaponSpent) addFloat(mapWeaponSpentFloat(b, e), units[e.a].px + cx, units[e.a].py - 2, Color(255, 200, 110), 1.2f);
+  }
+}
+
+// The level-up box: gained stats (a capped one says so), the skills learned; it waits for Confirm or the auto-continue timer.
+void BattleView::beginLevelUp(const Battle& b) {
+  const Event& e = cur_.ev;
+  const Unit& u = b.units[e.a];
+  levelUp.active = true;
+  levelUp.timer = 0;
+  levelUp.autoContinue = autoplay_ || b.sides[u.side].ai;
+  levelUp.title = u.name + " reached Lv " + intStr(e.b);
+  levelUp.lines.clear();
+  for (size_t s = 0; s < e.data.size() && s < b.db->stats.size(); ++s) {
+    const std::string capped = capLine(b, u, (int)s, e.data[s]);  // a stat at its cap says so (docs/SRPG.md section 7)
+    if (!capped.empty()) {
+      levelUp.lines.push_back(capped);
+      OTE_INFO("level-up box: %s", capped.c_str());
+    }
+    else if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
+  }
+  if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
+  levelUp.ticks = risenStats(e); levelUp.ticksSent = 0; levelUp.tickClock = 0;  // one levelUpTick sound per stat that rose
+  addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
+  cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
+}
+
+// The capture count over its cell, and the "Captured!" text over a structure's top edge.
+void BattleView::beginCapture(const Battle& b) {
+  const Event& e = cur_.ev;
+  float x, y;
+  if (e.type == EventType::CaptureProgress) {
+    cellPos(b, e.b, x, y);
+    addFloat("Capture: " + intStr(e.c) + " left", x + tile_ / 2.0f, y, Color(255, 230, 120), 1.2f);
+    cur_.dur = 0.3f;
+  } else {
+    // Once per structure, over the middle of its footprint's top edge.
+    structureTop(b, b.structures[(size_t)e.a], x, y);
+    addFloat("Captured!", x, y, Color(255, 240, 140), 1.2f);
+    cur_.dur = 0.35f;
+  }
+}
+
+// A resource change floats at the resource readout, only for the side the viewer follows.
+void BattleView::beginResource(const Battle& b) {
+  const Event& e = cur_.ev;
+  if (showsResources(b, e.a) && e.c != 0 && e.b >= 0 && e.b < (int)b.db->resources.size()) {
+    std::string t = (e.c > 0 ? "+" : "") + intStr(e.c) + " " + b.db->resources[e.b].name;
+    addFloat(t, (float)resX_, (float)(resY_ + 11 * (resFloats_++ % 3)), e.c > 0 ? Color(120, 255, 140) : Color(255, 130, 110), 1.3f, true);
+    cur_.dur = 0.12f;
+  }
+}
+
+// A new unit appears from nothing (it grows in): a fresh view of it.
+void BattleView::beginUnitAppears(const Battle& b) {
+  const Event& e = cur_.ev;  // same layout for both entries: a=unit, b=cell
+  UnitView& v = units[e.a];
+  v = UnitView();
+  v.hp = b.units[e.a].hp;
+  v.scale = 0;
+  cellPos(b, e.b, v.px, v.py);
+  cur_.dur = 0.25f;
+}
+
+void BattleView::beginHealed(const Battle& b) {
+  const Event& e = cur_.ev;
+  UnitView& v = units[e.a];
+  cur_.hpFrom = v.hp;
+  cur_.hpTo = std::min(v.hp + e.b, b.maxHp(b.units[e.a]));
+  addFloat("+" + intStr(e.b), v.px + tile_ / 2.0f, v.py - 2, Color(120, 255, 140), 1.0f);
+  cur_.dur = 0.35f;
+}
+
+// The three item entries that show something: broke / used up, got, lost for want of room.
+void BattleView::beginItemEvent(const Battle& b) {
+  const Event& e = cur_.ev;
+  const float cx = tile_ / 2.0f;
   switch (e.type) {
-    case EventType::TurnStarted:
-      banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
-      bannerColor = sideColor(b, e.a);
-      cur_.dur = 0.6f;
-      if (announce_) {  // the very first turn of a new battle: say what the battle is about, long enough to read
-        announce_ = false;
-        bannerSub = b.objectiveText();
-        if (!bannerSub.empty()) {
-          bannerSub = "Objective: " + bannerSub;
-          cur_.dur = 2.4f;
-        }
-      }
-      break;
-    case EventType::UnitMoved:  // (with fog, beginFog took the ones it changes)
-      cur_.path.assign(e.data.begin(), e.data.end());
-      cur_.dur = std::max(0.02f, kMoveSecPerCell * (float)(cur_.path.size() - 1));
-      break;
-    case EventType::Attack: {
-      UnitView& d = units[e.b];
-      const UnitView& a = units[e.a];
-      cur_.hpFrom = d.hp;
-      cur_.hpTo = std::max(0, d.hp - e.d);
-      float dx = d.px - a.px, dy = d.py - a.py, len = std::sqrt(dx * dx + dy * dy);
-      cur_.dirX = len > 0 ? dx / len : 0;
-      cur_.dirY = len > 0 ? dy / len : 0;
-      cur_.dur = kAttackDur;
-      if (e.flags & kMapWeapon) {  // fired from a structure (docs/SRPG.md "Map weapons"): one log line, a floating note after the last shot
-        OTE_INFO("%s", mapWeaponLogLine(b, e).c_str());
-        if (e.flags & kMapWeaponSpent) addFloat(mapWeaponSpentFloat(b, e), units[e.a].px + cx, units[e.a].py - 2, Color(255, 200, 110), 1.2f);
-      }
-      break;
-    }
-    case EventType::UnitDied: cur_.dur = 0.3f; break;
-    case EventType::XpGained:
-      addFloat("+" + intStr(e.b) + " XP", units[e.a].px + cx, units[e.a].py - 2, Color(120, 220, 255), 1.1f);
-      cur_.dur = 0.2f;
-      break;
-    case EventType::LevelUp: {
-      const Unit& u = b.units[e.a];
-      levelUp.active = true;
-      levelUp.timer = 0;
-      levelUp.autoContinue = autoplay_ || b.sides[u.side].ai;
-      levelUp.title = u.name + " reached Lv " + intStr(e.b);
-      levelUp.lines.clear();
-      for (size_t s = 0; s < e.data.size() && s < b.db->stats.size(); ++s) {
-        const std::string capped = capLine(b, u, (int)s, e.data[s]);  // a stat at its cap says so (docs/SRPG.md section 7)
-        if (!capped.empty()) {
-          levelUp.lines.push_back(capped);
-          OTE_INFO("level-up box: %s", capped.c_str());
-        }
-        else if (e.data[s] > 0) levelUp.lines.push_back("+" + intStr(e.data[s]) + " " + b.db->stats[s].name);
-      }
-      if (levelUp.lines.empty()) levelUp.lines.push_back("No stat gains");
-      levelUp.ticks = risenStats(e); levelUp.ticksSent = 0; levelUp.tickClock = 0;  // one levelUpTick sound per stat that rose
-      addLearnedToBox(b, e.a);  // "New skill: ..." (battle_view_skills.cpp)
-      cur_.dur = 1e9f;  // until Confirm, or the auto-continue timer
-      break;
-    }
-    case EventType::CaptureProgress: {
-      float x, y;
-      cellPos(b, e.b, x, y);
-      addFloat("Capture: " + intStr(e.c) + " left", x + cx, y, Color(255, 230, 120), 1.2f);
-      cur_.dur = 0.3f;
-      break;
-    }
-    case EventType::StructureCaptured: {
-      // Once per structure, over the middle of its footprint's top edge.
-      const StructureState& st = b.structures[(size_t)e.a];
-      float x, y;
-      structureTop(b, st, x, y);
-      addFloat("Captured!", x, y, Color(255, 240, 140), 1.2f);
-      cur_.dur = 0.35f;
-      break;
-    }
-    case EventType::ResourceChanged:
-      if (showsResources(b, e.a) && e.c != 0 && e.b >= 0 && e.b < (int)b.db->resources.size()) {
-        std::string t = (e.c > 0 ? "+" : "") + intStr(e.c) + " " + b.db->resources[e.b].name;
-        addFloat(t, (float)resX_, (float)(resY_ + 11 * (resFloats_++ % 3)), e.c > 0 ? Color(120, 255, 140) : Color(255, 130, 110), 1.3f, true);
-        cur_.dur = 0.12f;
-      }
-      break;
-    case EventType::UnitBuilt:
-    case EventType::UnitAdded: {  // same layout: a=unit, b=cell
-      UnitView& v = units[e.a];
-      v = UnitView();
-      v.hp = b.units[e.a].hp;
-      v.scale = 0;
-      cellPos(b, e.b, v.px, v.py);
-      cur_.dur = 0.25f;
-      break;
-    }
-    case EventType::SideDefeated:
-      banner = b.sides[e.a].name + " defeated";
-      bannerColor = sideColor(b, e.a);
-      cur_.dur = 0.8f;
-      break;
-    case EventType::UnitHealed: {
-      UnitView& v = units[e.a];
-      cur_.hpFrom = v.hp;
-      cur_.hpTo = std::min(v.hp + e.b, b.maxHp(b.units[e.a]));
-      addFloat("+" + intStr(e.b), v.px + cx, v.py - 2, Color(120, 255, 140), 1.0f);
-      cur_.dur = 0.35f;
-      break;
-    }
-    case EventType::StatsRaised: {
-      std::string t = gainsText(*b.db, e.data);
-      if (!t.empty()) addFloat(t, units[e.a].px + cx, units[e.a].py - 2, Color(255, 235, 130), 1.2f);
-      cur_.dur = t.empty() ? 0 : 0.3f;
-      break;
-    }
     case EventType::ItemBroke:
       OTE_INFO("item: %s's %s is gone", b.units[(size_t)e.a].name.c_str(), itemName(b, e.b).c_str());
       // A potion is used up rather than broken.
@@ -246,10 +235,56 @@ void BattleView::begin(const Battle& b) {
         notice = itemName(b, e.b) + " sent to storage";
       }
       break;
-    case EventType::ItemLost:
+    default:  // ItemLost
       addFloat(itemName(b, e.b) + " lost (no room)", units[e.a].px + cx, units[e.a].py - 2, Color(255, 140, 120), 1.2f);
       cur_.dur = 0.3f;
       break;
+  }
+}
+
+// Sets up cur_ for the entry now playing: its length, floats, log lines. The sub-files (places, story, economy, fog, srpg, map change)
+// take their entries first; the longer cases here are in the helpers above.
+void BattleView::begin(const Battle& b) {
+  const Event& e = cur_.ev;
+  cur_.t = 0;
+  cur_.dur = 0;
+  cur_.fired = false;
+  cur_.hideAtEnd = false;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b) || beginMapChange(b)) return;
+  const float cx = tile_ / 2.0f;
+  switch (e.type) {
+    case EventType::TurnStarted: beginTurnStarted(b); break;
+    case EventType::UnitMoved:  // (with fog, beginFog took the ones it changes)
+      cur_.path.assign(e.data.begin(), e.data.end());
+      cur_.dur = std::max(0.02f, kMoveSecPerCell * (float)(cur_.path.size() - 1));
+      break;
+    case EventType::Attack: beginAttack(b); break;
+    case EventType::UnitDied: cur_.dur = 0.3f; break;
+    case EventType::XpGained:
+      addFloat("+" + intStr(e.b) + " XP", units[e.a].px + cx, units[e.a].py - 2, Color(120, 220, 255), 1.1f);
+      cur_.dur = 0.2f;
+      break;
+    case EventType::LevelUp: beginLevelUp(b); break;
+    case EventType::CaptureProgress:
+    case EventType::StructureCaptured: beginCapture(b); break;
+    case EventType::ResourceChanged: beginResource(b); break;
+    case EventType::UnitBuilt:
+    case EventType::UnitAdded: beginUnitAppears(b); break;
+    case EventType::SideDefeated:
+      banner = b.sides[e.a].name + " defeated";
+      bannerColor = sideColor(b, e.a);
+      cur_.dur = 0.8f;
+      break;
+    case EventType::UnitHealed: beginHealed(b); break;
+    case EventType::StatsRaised: {
+      std::string t = gainsText(*b.db, e.data);
+      if (!t.empty()) addFloat(t, units[e.a].px + cx, units[e.a].py - 2, Color(255, 235, 130), 1.2f);
+      cur_.dur = t.empty() ? 0 : 0.3f;
+      break;
+    }
+    case EventType::ItemBroke:
+    case EventType::ItemGained:
+    case EventType::ItemLost: beginItemEvent(b); break;
     case EventType::ItemUsed:    // nothing to show beyond what its effects show
     case EventType::ItemMoved:
     case EventType::ItemEquipped:
