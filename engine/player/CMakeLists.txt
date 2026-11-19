@@ -57,6 +57,9 @@ file(GLOB PLAYER_SRC CONFIGURE_DEPENDS *.cpp battle/*.cpp campaign/*.cpp options
 # Shared by every backend: text engine, bitmap font, font registry (no SDL inside).
 file(GLOB COMMON_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/common/*.cpp
      ${CMAKE_SOURCE_DIR}/engine/platform/common/*.c)
+# The SDL-free files ote_player_lib (root CMakeLists.txt) compiles once for the player, the tests and the editor helper.
+list(REMOVE_ITEM PLAYER_SRC ${OTE_PLAYER_LIB_SRC})
+list(REMOVE_ITEM COMMON_SRC ${OTE_PLAYER_LIB_SRC})
 file(GLOB BACKEND_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/engine/platform/${OTE_PLATFORM}/*.cpp)
 
 if(ANDROID)
@@ -88,7 +91,7 @@ else()
 endif()
 # engine/ for "core/..." and "platform/..."; engine/player for the player's own "battle/..." "ui/...".
 target_include_directories(ote-player PRIVATE ${CMAKE_SOURCE_DIR}/engine ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ote-player PRIVATE ote_core ote_gfx3d ote_audio)
+target_link_libraries(ote-player PRIVATE ote_player_lib ote_core ote_gfx3d ote_audio)
 if(NOT EMSCRIPTEN)  # (on Android SDL3::SDL3 is the shared library built above)
   if(OTE_PLATFORM STREQUAL "sdl3")
     target_link_libraries(ote-player PRIVATE SDL3::SDL3)
