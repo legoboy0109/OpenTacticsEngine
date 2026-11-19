@@ -20,6 +20,10 @@ std::string fitText(const Renderer& r, const std::string& s, int maxWidth, int s
 // Largest scale in [1, maxScale] at which `s` fits maxWidth (1 if none does).
 int fitScale(const Renderer& r, const std::string& s, int maxWidth, int maxScale);
 std::string intStr(int v);
+// What a row of a popup Menu has left to the right of `label` on a screen screenW wide: the menu is at most the screen less
+// 4 px wide, and each row spends Menu::open's padding (2 * 4), arrow (">" + 4), border (2) and the "  " gap before the
+// right-hand text. Used by the action menu's lists (staves, steal) to pick the longest extra text that fits. Can be negative.
+int menuRoomAfter(const Renderer& r, int screenW, const std::string& label);
 
 // Drawing. "Shadow" variants add a 1px dark shadow for text over busy maps.
 void drawTextShadow(Renderer& r, int x, int y, const std::string& s, Color c, int scale = 1);
