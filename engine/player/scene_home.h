@@ -2,6 +2,7 @@
 // The highlighted game's description, author and map count show on the right.
 #pragma once
 #include "scene.h"
+#include "ui/confirm.h"
 #include "ui/row_list.h"
 
 namespace ote {
@@ -24,6 +25,7 @@ class HomeScene : public Scene {
 
   SceneHost& host_;
   RowList list_;
+  ConfirmBox exitAsk_;  // "Exit the player?" (launcherBack() == ConfirmExit)
   int infoX_ = 0, infoW_ = 0;  // right panel, from the last layout
 };
 

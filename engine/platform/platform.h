@@ -253,4 +253,11 @@ std::string memoryStatus();
 // environment instead of being returned.
 std::vector<std::string> platformLaunchArgs();
 
+// What Cancel (back / B) does on the launcher's first screen. The answer is the platform's convention, so the player has no
+// platform #ifdef: Android's back key leaves the app (Exit); Xbox / UWP asks first (ConfirmExit); everywhere else a stray
+// Esc must not close the player (Nothing). The environment variable OTE_LAUNCHER_BACK=nothing|exit|confirm overrides it
+// (tests; on UWP it can go into LocalState/args.txt as a NAME=value word).
+enum class LauncherBack { Nothing, Exit, ConfirmExit };
+LauncherBack launcherBack();
+
 }  // namespace ote
