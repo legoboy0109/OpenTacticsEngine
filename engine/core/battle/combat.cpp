@@ -93,6 +93,9 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   if (!story && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
   if (!story && !weaponInRange(weapon, grid.distance(from, d.cell))) return false;
 
+  // Everything below only reads the battle (this method is const; no roll is made), so a unit's stats cannot change between
+  // the formula calls of this forecast: let the formulas work them out once (Formulas::BatchScope).
+  Formulas::BatchScope formulaBatch(formulas);
   CombatMods modsA, modsD;
   setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
   if (!strikeForecast(setup, false, modsA, modsD, out.attack)) return false;
