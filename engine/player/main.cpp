@@ -8,6 +8,7 @@
 #include "core/base/log.h"
 #include "sound/audio_render.h"
 #include "platform/platform.h"
+#include "platform/platform_main.h"  // SDL_main on the platforms that need it; must stay in this file
 
 using namespace ote;
 

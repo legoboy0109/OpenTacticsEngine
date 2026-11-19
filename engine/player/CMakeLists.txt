@@ -37,6 +37,10 @@ if(NOT EMSCRIPTEN)
     # SDL2's CMake config exports SDL2::SDL2 (and SDL2::SDL2main); older
     # packages only set SDL2_LIBRARIES / SDL2_INCLUDE_DIRS.
     if(TARGET SDL2::SDL2)
+      # SDL2main supplies the real entry point where SDL_main.h renames main (Windows/UWP); not needed on Linux.
+      if(TARGET SDL2::SDL2main AND (WIN32 OR ANDROID))
+        target_link_libraries(ote-player PRIVATE SDL2::SDL2main)
+      endif()
       target_link_libraries(ote-player PRIVATE SDL2::SDL2)
     else()
       target_include_directories(ote-player SYSTEM PRIVATE ${SDL2_INCLUDE_DIRS})
@@ -44,11 +48,23 @@ if(NOT EMSCRIPTEN)
     endif()
   endif()
 endif()
+# Which backend's entry-point header platform/platform_main.h pulls in.
+if(OTE_PLATFORM STREQUAL "sdl3")
+  target_compile_definitions(ote-player PRIVATE OTE_PLATFORM_SDL3=1)
+else()
+  target_compile_definitions(ote-player PRIVATE OTE_PLATFORM_SDL2=1)
+endif()
+# SDL2 only: upload textures as ARGB8888 (D3D11's native format, the UWP renderer) instead of RGBA32, converting the
+# bytes once in the backend (engine/platform/sdl2/sdl2_pixels.h). Default OFF = unchanged.
+option(OTE_SDL2_UPLOAD_ARGB8888 "SDL2 backend: ARGB8888 textures (for Direct3D 11, UWP)" OFF)
+if(OTE_SDL2_UPLOAD_ARGB8888 AND OTE_PLATFORM STREQUAL "sdl2")
+  target_compile_definitions(ote-player PRIVATE OTE_SDL2_UPLOAD_ARGB8888=1)
+endif()
 target_compile_options(ote-player PRIVATE ${OTE_WARN})
 # Third-party sources compiled into the player: warnings off for these files only.
 set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/platform/common/bitmap_font_data.c
                             ${CMAKE_SOURCE_DIR}/engine/platform/common/stb_truetype_impl.cpp
-                            PROPERTIES COMPILE_OPTIONS "-w")
+                            PROPERTIES COMPILE_OPTIONS "${OTE_NOWARN}")
 
 if(EMSCRIPTEN)
   if(NOT OTE_PLATFORM STREQUAL "sdl3")

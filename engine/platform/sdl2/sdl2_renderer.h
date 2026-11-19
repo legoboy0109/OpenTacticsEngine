@@ -57,6 +57,7 @@ class SdlRenderer : public Renderer {
   bool headless_;
   int headlessScale_;
   bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
+  std::vector<uint32_t> uploadScratch_;  // converted pixels while uploading (sdl2_pixels.h); unused with the default format
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot
   std::unique_ptr<Target> target_;
   std::unique_ptr<TextEngine> text_;

@@ -46,6 +46,9 @@ calls, for old ports). Pick one at configure time:
 `cmake -S . -B build [-DOTE_PLATFORM=sdl3|sdl2]`; the player sources are
 identical for both.
 
+Content and write roots, life-cycle events, the back key, build switches for MSVC / SDL_main and what Android and UWP
+still lack are in docs/PORTING.md.
+
 Everything text-related is backend independent and lives in
 `platform/common/`: `TextEngine` (UTF-8, measuring, glyph atlas, the
 built-in 8x8 font from `bitmap_font` and TrueType via stb_truetype),
