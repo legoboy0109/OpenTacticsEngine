@@ -370,7 +370,7 @@ bool readEffectExtras(const LoadCtx& c, const Json& j, const std::string& where,
       if (what->size() < 1 || what->size() > 2) return c.fail(w, "\"what\" must list \"backdrop\" and / or \"platforms\"");
       for (size_t k = 0; k < what->size(); ++k) {
         const std::string name = (*what)[k].isString() ? (*what)[k].asString() : std::string();
-        const unsigned bit = name == "backdrop" ? kHideBackdrop : name == "platforms" ? kHidePlatforms : 0;
+        const unsigned bit = name == "backdrop" ? (unsigned)kHideBackdrop : name == "platforms" ? (unsigned)kHidePlatforms : 0u;
         if (!bit) return c.fail(w, "\"what\" can name \"backdrop\" and \"platforms\" only");
         if (hd.what & bit) return c.fail(w, "\"what\" names " + q(name) + " twice");
         hd.what |= bit;

@@ -17,8 +17,6 @@ std::string blue(const char* id, int x, int y, const char* type = "soldier") {
 }
 std::string beh(const std::string& body) { return "\"behaviour\": " + body; }
 
-bool says(const std::string& text, const char* part) { return text.find(part) != std::string::npos; }
-
 }  // namespace
 
 // ---- the default changes nothing ----
