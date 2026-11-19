@@ -162,6 +162,91 @@ static Json readDataList(const fs::path& dir, const std::string& rel, const char
   return doc[key];
 }
 
+// True when the optional data file `rel` does not exist (a path that escapes the project does not count as absent,
+// so the read below reports it).
+static bool dataFileAbsent(const fs::path& dir, const std::string& rel) {
+  fs::path full;
+  std::string why;
+  std::error_code ec;
+  return resolveInside(dir, rel, full, why) && !fs::exists(full, ec);
+}
+
+// An optional data file whose whole content is one object (graphics, campaign, audio): absent = null with no problem;
+// a file that is not a JSON object is null plus a problem on the file (the screen then refuses to edit, like Items).
+static Json readOptionalObject(const fs::path& dir, const std::string& rel, std::vector<Problem>& probs) {
+  if (dataFileAbsent(dir, rel)) return Json();
+  Json v;
+  Problem pb;
+  if (readJsonRel(dir, rel, v, pb) && v.isObject()) return v;
+  if (pb.message.empty()) pb = {rel, "the file must contain a JSON object at the top level"};
+  probs.push_back(pb);
+  return Json();
+}
+
+// An optional data file that holds a list under `key` (structures, items, research): absent = null, no problem.
+static Json readOptionalList(const fs::path& dir, const std::string& rel, const char* key,
+                             std::vector<Problem>& probs) {
+  if (dataFileAbsent(dir, rel)) return Json();
+  return readDataList(dir, rel, key, probs);
+}
+
+// game.json: the object, or null plus a problem when it cannot be read.
+static Json readGameFile(const fs::path& dir, std::vector<Problem>& probs) {
+  Json game;
+  Problem gp;
+  if (!readJsonRel(dir, "game.json", game, gp)) { probs.push_back(gp); return Json(); }
+  if (!game.isObject()) {
+    probs.push_back({"game.json", "the file must contain a JSON object at the top level"});
+    return Json();
+  }
+  return game;
+}
+
+// The map files listed in game.maps, keyed by map id (null for one that cannot be read).
+static Json readMaps(const fs::path& dir, const Json& game, std::vector<Problem>& probs) {
+  Json maps = Json::makeObject();
+  const Json& mlist = game["maps"];
+  for (size_t i = 0; i < mlist.size(); ++i) {
+    const Json& m = mlist[i];
+    if (!m["id"].isString() || !m["file"].isString()) continue;  // loader reports it
+    Json mj;
+    Problem p;
+    if (readJsonRel(dir, m["file"].asString(), mj, p) && mj.isObject()) maps.set(m["id"].asString(), mj);
+    else {
+      if (p.file.empty() || p.message.empty())
+        p = {m["file"].asString(), "the file must contain a JSON object at the top level"};
+      probs.push_back(p);
+      maps.set(m["id"].asString(), Json());
+    }
+  }
+  return maps;
+}
+
+// The Lua files listed in game.scripts, keyed by their project-relative path.
+static Json readScripts(const fs::path& dir, const Json& game, std::vector<Problem>& probs) {
+  Json scripts = Json::makeObject();
+  const Json& slist = game["scripts"];
+  for (size_t i = 0; i < slist.size(); ++i) {
+    if (!slist[i].isString()) continue;
+    std::string rel = slist[i].asString(), why, text;
+    fs::path full;
+    if (!resolveInside(dir, rel, full, why)) probs.push_back({rel, why});
+    else if (!readWholeFile(full, text)) probs.push_back({rel, "cannot read file"});
+    else scripts.set(rel, jstr(text));
+  }
+  return scripts;
+}
+
+// Loader problems first; read problems are added for files the loader did not mention.
+static std::vector<Problem> mergeProblems(std::vector<Problem> loaderProbs, const std::vector<Problem>& readProbs) {
+  for (const Problem& rp : readProbs) {
+    bool known = std::any_of(loaderProbs.begin(), loaderProbs.end(),
+                             [&](const Problem& q) { return q.file == rp.file; });
+    if (!known) loaderProbs.push_back(rp);
+  }
+  return loaderProbs;
+}
+
 ApiResult getProject(const Config& cfg, const std::string& id) {
   fs::path dir;
   ApiResult err;
@@ -175,153 +260,29 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   doc.set("id", jstr(id));
   doc.set("revision", jstr(revision));
 
-  Json game;
-  Problem gp;
-  if (!readJsonRel(dir, "game.json", game, gp)) { readProbs.push_back(gp); game = Json(); }
-  else if (!game.isObject()) {
-    readProbs.push_back({"game.json", "the file must contain a JSON object at the top level"});
-    game = Json();
-  }
+  const Json game = readGameFile(dir, readProbs);
   doc.set("game", game);
   doc.set("terrain", readDataList(dir, "data/terrain.json", "terrain", readProbs));
   doc.set("weapons", readDataList(dir, "data/weapons.json", "weapons", readProbs));
   doc.set("units", readDataList(dir, "data/units.json", "units", readProbs));
-
-  // graphics.json is optional: absent = null with no problem.
-  Json graphics;
-  {
-    fs::path gfull;
-    std::string gwhy;
-    std::error_code gec;
-    bool absent = resolveInside(dir, "data/graphics.json", gfull, gwhy) && !fs::exists(gfull, gec);
-    if (!absent) {
-      Json g;
-      Problem gpb;
-      if (readJsonRel(dir, "data/graphics.json", g, gpb) && g.isObject()) graphics = g;
-      else {
-        if (gpb.message.empty()) gpb = {"data/graphics.json", "the file must contain a JSON object at the top level"};
-        readProbs.push_back(gpb);
-      }
-    }
-  }
-  doc.set("graphics", graphics);
-
-  // structures.json is optional (docs/STRUCTURES.md): absent = null, no problem.
-  Json structures;
-  {
-    fs::path sfull;
-    std::string swhy;
-    std::error_code sec;
-    bool absent = resolveInside(dir, "data/structures.json", sfull, swhy) && !fs::exists(sfull, sec);
-    if (!absent) structures = readDataList(dir, "data/structures.json", "structures", readProbs);
-  }
-  doc.set("structures", structures);
-
-  // items.json is optional too (docs/ITEMS.md): absent = null, no problem.
-  Json items;
-  {
-    fs::path ifull;
-    std::string iwhy;
-    std::error_code iec;
-    bool absent = resolveInside(dir, "data/items.json", ifull, iwhy) && !fs::exists(ifull, iec);
-    if (!absent) items = readDataList(dir, "data/items.json", "items", readProbs);
-  }
-  doc.set("items", items);
-
-  // research.json is optional too (docs/ECONOMY.md "Research"): absent = null, no problem. The list sits under
-  // "technologies" in the file and comes back as "research" (a broken file only blocks the Research screen).
-  Json research;
-  {
-    fs::path rfull;
-    std::string rwhy;
-    std::error_code rec;
-    bool absent = resolveInside(dir, "data/research.json", rfull, rwhy) && !fs::exists(rfull, rec);
-    if (!absent) research = readDataList(dir, "data/research.json", "technologies", readProbs);
-  }
-  doc.set("research", research);
-
-  // campaign.json is optional (docs/EVENTS.md "Campaign"): absent = null with no problem; a file that is not a JSON
-  // object is null plus a problem on the file (the Campaign screen then refuses to edit, like Items).
-  Json campaign;
-  {
-    fs::path cfull;
-    std::string cwhy;
-    std::error_code cec;
-    bool absent = resolveInside(dir, "data/campaign.json", cfull, cwhy) && !fs::exists(cfull, cec);
-    if (!absent) {
-      Json c;
-      Problem cpb;
-      if (readJsonRel(dir, "data/campaign.json", c, cpb) && c.isObject()) campaign = c;
-      else {
-        if (cpb.message.empty()) cpb = {"data/campaign.json", "the file must contain a JSON object at the top level"};
-        readProbs.push_back(cpb);
-      }
-    }
-  }
-  doc.set("campaign", campaign);
-
-  // audio.json is optional (docs/SOUND.md): absent = null with no problem; a file that is not a JSON object is null
-  // plus a problem on the file (the Sound screen then refuses to edit, like Items).
-  Json audio;
-  {
-    fs::path afull;
-    std::string awhy;
-    std::error_code aec;
-    bool absent = resolveInside(dir, "data/audio.json", afull, awhy) && !fs::exists(afull, aec);
-    if (!absent) {
-      Json a;
-      Problem apb;
-      if (readJsonRel(dir, "data/audio.json", a, apb) && a.isObject()) audio = a;
-      else {
-        if (apb.message.empty()) apb = {"data/audio.json", "the file must contain a JSON object at the top level"};
-        readProbs.push_back(apb);
-      }
-    }
-  }
-  doc.set("audio", audio);
+  // The optional files (absent = null, no problem): graphics, structures (docs/STRUCTURES.md), items (docs/ITEMS.md),
+  // research (docs/ECONOMY.md; the list sits under "technologies" in the file and comes back as "research"; a broken
+  // file only blocks the Research screen), campaign (docs/EVENTS.md), audio (docs/SOUND.md).
+  doc.set("graphics", readOptionalObject(dir, "data/graphics.json", readProbs));
+  doc.set("structures", readOptionalList(dir, "data/structures.json", "structures", readProbs));
+  doc.set("items", readOptionalList(dir, "data/items.json", "items", readProbs));
+  doc.set("research", readOptionalList(dir, "data/research.json", "technologies", readProbs));
+  doc.set("campaign", readOptionalObject(dir, "data/campaign.json", readProbs));
+  doc.set("audio", readOptionalObject(dir, "data/audio.json", readProbs));
 
   // characters / skills / abilities / supports (docs/SRPG.md "Editor"): each optional, null when the file is absent.
   readSrpgSections(dir, doc, readProbs);
 
-  Json maps, scripts;  // stay null when game.json is unusable
-  if (game.isObject()) {
-    maps = Json::makeObject();
-    scripts = Json::makeObject();
-    const Json& mlist = game["maps"];
-    for (size_t i = 0; i < mlist.size(); ++i) {
-      const Json& m = mlist[i];
-      if (!m["id"].isString() || !m["file"].isString()) continue;  // loader reports it
-      Json mj;
-      Problem p;
-      if (readJsonRel(dir, m["file"].asString(), mj, p) && mj.isObject()) maps.set(m["id"].asString(), mj);
-      else {
-        if (p.file.empty() || p.message.empty())
-          p = {m["file"].asString(), "the file must contain a JSON object at the top level"};
-        readProbs.push_back(p);
-        maps.set(m["id"].asString(), Json());
-      }
-    }
-    const Json& slist = game["scripts"];
-    for (size_t i = 0; i < slist.size(); ++i) {
-      if (!slist[i].isString()) continue;
-      std::string rel = slist[i].asString(), why, text;
-      fs::path full;
-      if (!resolveInside(dir, rel, full, why)) readProbs.push_back({rel, why});
-      else if (!readWholeFile(full, text)) readProbs.push_back({rel, "cannot read file"});
-      else scripts.set(rel, jstr(text));
-    }
-  }
-  doc.set("maps", maps);
-  doc.set("scripts", scripts);
+  // maps and scripts stay null when game.json is unusable
+  doc.set("maps", game.isObject() ? readMaps(dir, game, readProbs) : Json());
+  doc.set("scripts", game.isObject() ? readScripts(dir, game, readProbs) : Json());
 
-  // Loader problems first; add read problems for files the loader did not mention.
-  std::vector<Problem> probs = validateProject(dir);
-  for (const Problem& rp : readProbs) {
-    bool known = std::any_of(probs.begin(), probs.end(),
-                             [&](const Problem& q) { return q.file == rp.file; });
-    if (!known) probs.push_back(rp);
-  }
-  doc.set("problems", problemsToJson(probs));
+  doc.set("problems", problemsToJson(mergeProblems(validateProject(dir), readProbs)));
   return apiOk(doc);
 }
 
