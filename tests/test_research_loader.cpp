@@ -1,6 +1,6 @@
 // Loading upgrades, "research": true and data/research.json (docs/ECONOMY.md): the good case and
 // one test per refusal, each checking the message names the thing that is wrong.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

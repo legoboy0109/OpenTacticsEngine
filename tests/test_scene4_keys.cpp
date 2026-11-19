@@ -1,6 +1,6 @@
 // The fourth batch of opt-in battle scene keys (docs/BATTLE_SCENE.md): a range band's pan "backdrop" and "startMs", an effect's "atRange" (delay by fight
 // distance) and a travel effect's "endOffset". The loader and its refusals, the pure layout, and the timeline (what a delay shifts and what it leaves).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cmath>
 #include <cstdio>

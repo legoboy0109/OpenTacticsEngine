@@ -2,7 +2,7 @@
 // an artillery weapon with range 2..3), written into the build's scratch folder with the grid, styles, structures
 // and map the test asks for.
 #pragma once
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <string>
 

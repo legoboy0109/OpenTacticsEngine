@@ -1,6 +1,6 @@
 // Loading items (docs/ITEMS.md "Data"): data/items.json, rules.items, and the
 // item lists of unit types, map units, map sides and structures.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

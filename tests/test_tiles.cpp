@@ -2,7 +2,7 @@
 // map changes, the layer's state in a battle and its save. Game: tests/fixtures/tiles (10 x 7, tileset "test" of 8 x 4 tiles, tile 8
 // animated; squares 4..6,2..4 are river with tile 8; change "dry" turns 4,3 into plain with tile 5, 5,3 into plain with no tile given,
 // 6,3 into plain keeping its tile; the turn 2 event applies it and sets 4,2 to a bridge with tile 1).
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 #include <cstring>

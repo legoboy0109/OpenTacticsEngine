@@ -1,7 +1,7 @@
 // Loading story events, objectives, switches, variables and unit ids (docs/EVENTS.md): that
 // everything is read, and that each kind of mistake is refused with a message that names the map,
 // the event and the command.
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

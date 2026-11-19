@@ -1,6 +1,6 @@
 // Battle-scene and unit-art follow-ups: per-side sheets, assign by side / weapon (the full order), the frame limit and the sheet
 // limit, the extra animation slots, and walking frames of unit pictures (docs/BATTLE_SCENE.md, docs/GRAPHICS.md "Walking").
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 

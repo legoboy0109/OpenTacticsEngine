@@ -5,7 +5,7 @@
 // Map "arena" (9 x 3, "s" = swamp at 3,1 and 4,1): blue hero (knight, 30 HP, atk 8, def 2, carries an iron sword with 3 uses) at 1,1, blue pal
 // (a knight) at 0,1; red bandit (20 HP, atk 5, def 1) at 2,1. Damage = a.atk - b.def, hit 60, crit 30.
 #pragma once
-#include <sys/stat.h>
+#include "posix_compat.h"
 
 #include <cstdio>
 #include <string>
