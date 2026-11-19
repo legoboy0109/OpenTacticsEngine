@@ -124,8 +124,18 @@ Editor: the 17 section screens load on demand (`React.lazy` in `editor/web/src/s
 without them the many chunk requests starve the helper and the e2e suite takes twice as long with ~20 failures. A
 suite that suddenly takes twice as long is a real signal, not load.
 
-Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache), C7, D2, A3, D5 (`ote_player_lib`: the player's SDL-free sources compile once; real builds done on Windows, UWP and
-Android). Next: A4, A5, A7, ...
+Engine audit list (order in `.agent/notes.md`): done D3+D1, C2, C1, A1+A9, A2, C3 (as a cache), C7, D2 (`tests/ote_testkit.py`), A3, D5 (`ote_player_lib`: the player's
+SDL-free sources compile once; real builds done on Windows, UWP and Android), A4, A5 (the build has no warnings: keep it
+so), A7, A8, C4 (only 2 %: the cost is the ~52,000 forecasts per run, not the copy; a forecast cache would be the real
+fix), C6 (revision cached by path, size and time; entries younger than 2 s are not trusted). Next: B5, D6, D7, D8, docs
+B1-B4, the phone shop price and prep list flaws. Known and left: the first save of a project re-formats data files the
+editor did not change.
+
+Original Xbox (nxdk) feasibility test, 2026-11-19: built, never run (details in `.agent/notes.md`; local branch
+`xbox-og-feasibility`, not for merging; toolchain and `run-xemu.sh` in `~/Projects/OpenTacticsEngine-OGXbox/`). Core
+and player compile and link with a handful of `OTE_NXDK` switches; software 3D is far too slow there (a native NV2A
+backend would be needed); memory (35-45 of 64 MB, estimated) is the open risk. Blocked on the owner dumping the boot
+ROM, BIOS and disk image from their own console; never download those.
 
 Open with the owner: the wording "Exit the player?"; the app's name, identity and logos on Android and Xbox (changing
 the identity later loses saves); the 3D option's "OpenGL" label now means Direct3D 11 on Windows; names of the three
