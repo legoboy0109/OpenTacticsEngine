@@ -1,10 +1,11 @@
 <#
 .SYNOPSIS
-  Builds the UWP player (x64, Release, /MD, SDL2 backend, software 3D) and packs a test-signed .appx.
+  Builds the UWP player (x64, Release, /MD, SDL2 backend, Direct3D 11 3D) and packs a test-signed .appx.
 
 .DESCRIPTION
   One command, from a clean work folder (default C:\uwp):
-    1. downloads the pinned SDL2 release source (sha256 checked) and builds it with its own VisualC-WinRT project,
+    1. downloads the pinned SDL2 release source (sha256 checked), turns on SDL_RenderGetD3D11Device for WinRT (two
+       small source edits, below) and builds it with its own VisualC-WinRT project,
     2. configures and builds the engine with CMake/Ninja for the "WindowsStore" system (UWP) in the same x64 UWP
        compiler environment,
     3. makes the placeholder logos, stages the package folder (program, SDL2.dll, assets, the three demo games,
@@ -102,14 +103,42 @@ if (-not (Test-Path (Join-Path $sdlSrc 'include\SDL.h'))) {
   if ($hash -ne $SdlSha256) { Remove-Item $zip; throw "SDL2 zip sha256 is $hash, expected $SdlSha256." }
   Invoke-Checked 'unpack' { tar -xf $zip -C $srcRoot }
 }
-if (-not ($SkipSdl -and (Test-Path (Join-Path $sdlLib 'SDL2.dll')))) {
+# SDL 2.32 builds SDL_RenderGetD3D11Device (the renderer's Direct3D 11 device, which the 3D drawing shares) on
+# desktop Windows only, although its WinRT renderer is Direct3D 11 too: the same function is turned on for WinRT here,
+# two small edits that only widen an #if and add the declaration (docs/XBOX.md "3D"). Done once; a fresh edit forces
+# SDL2 to be rebuilt.
+$sdlPatched = $false
+$renderC = Join-Path $sdlSrc 'src\render\direct3d11\SDL_render_d3d11.c'
+$t = [IO.File]::ReadAllText($renderC)
+if ($t -notmatch 'OpenTacticsEngine') {
+  $re = '#if defined\(__WIN32__\) \|\| defined\(__WINGDK__\)(\r?\n/\* This function needs to always exist on Windows, for the Dynamic API\. \*/\r?\nID3D11Device \*SDL_RenderGetD3D11Device)'
+  if ($t -notmatch $re) { throw "SDL_render_d3d11.c: the SDL_RenderGetD3D11Device block was not found (SDL version changed?)." }
+  $t = [regex]::Replace($t, $re, '#if defined(__WIN32__) || defined(__WINGDK__) || defined(__WINRT__) /* OpenTacticsEngine: WinRT too */$1')
+  [IO.File]::WriteAllText($renderC, $t)
+  $sdlPatched = $true
+}
+$systemH = Join-Path $sdlSrc 'include\SDL_system.h'
+$t = [IO.File]::ReadAllText($systemH)
+if ($t -notmatch 'OpenTacticsEngine') {
+  $re = '(\r?\n)#ifdef __WINRT__\r?\n'
+  if ($t -notmatch $re) { throw 'SDL_system.h: no "#ifdef __WINRT__" block (SDL version changed?).' }
+  $decl = '$1#ifdef __WINRT__$1/* OpenTacticsEngine (tools/uwp/build.ps1): the Direct3D 11 device of a "direct3d11" renderer, as on desktop Windows. */$1' +
+          'typedef struct ID3D11Device ID3D11Device;$1extern DECLSPEC ID3D11Device* SDLCALL SDL_RenderGetD3D11Device(SDL_Renderer * renderer);$1'
+  $t = ([regex]$re).Replace($t, $decl, 1)
+  [IO.File]::WriteAllText($systemH, $t)
+  $sdlPatched = $true
+}
+if ($sdlPatched -or -not ($SkipSdl -and (Test-Path (Join-Path $sdlLib 'SDL2.dll')))) {
   Write-Host '== build SDL2 (VisualC-WinRT, x64 Release, /MD)'
-  # The project says v142 / SDK 10.0.16299: retarget on the command line (the source tree stays as released).
+  # The project says v142 / SDK 10.0.16299: retarget on the command line.
   Invoke-Checked 'SDL2 build' {
     & $msbuild (Join-Path $sdlSrc 'VisualC-WinRT\SDL-UWP.vcxproj') /p:Configuration=Release /p:Platform=x64 `
       /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=$SdkVersion /p:TargetPlatformVersion=$SdkVersion `
       /m /v:m /nologo
   }
+}
+if (-not (& dumpbin /exports (Join-Path $sdlLib 'SDL2.dll') | Select-String -SimpleMatch 'SDL_RenderGetD3D11Device')) {
+  throw "SDL2.dll does not export SDL_RenderGetD3D11Device (the WinRT edit above did not take; delete $sdlSrc and run again)."
 }
 
 # --- 2. the engine ---------------------------------------------------------------------------------------------------
