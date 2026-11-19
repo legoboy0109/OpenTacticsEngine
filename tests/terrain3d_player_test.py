@@ -250,7 +250,7 @@ def main():
 
         backends = ['software']
         ok, log = shoot(games, 'withpic', 'lone', 'isometric-3d', 'wait:5', os.path.join(tmp, 'probe.bmp'), 'hardware')
-        if ok and '3D drawing: OpenGL' in log:
+        if ok and ('3D drawing: OpenGL' in log or '3D drawing: Direct3D 11' in log):
             backends.append('hardware')
         else:
             print('SKIP hardware backend: none here')

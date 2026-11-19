@@ -112,6 +112,13 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
   target_sources(ote_tests PRIVATE engine/player/battle/mapweapon_text.cpp)  # map weapons in words (docs/SRPG.md "Map weapons")
   target_sources(ote_tests PRIVATE engine/player/battle/fight_script.cpp engine/player/battle/fight_timeline.cpp)  # the battle scene's script of a fight (docs/BATTLE_SCENE.md)
   target_link_libraries(ote_tests PRIVATE ote_core ote_gfx3d ote_audio)
+  if(WIN32)
+    # The Direct3D 11 backend against the software one, its screen quad, state handling and device loss (Windows only;
+    # tests/render3d_d3d11_test.py covers it inside the player).
+    file(GLOB TEST_WIN_SRC CONFIGURE_DEPENDS tests/windows/*.cpp)
+    target_sources(ote_tests PRIVATE ${TEST_WIN_SRC})
+    target_include_directories(ote_tests PRIVATE tests)
+  endif()
   target_include_directories(ote_tests PRIVATE engine/player)  # options/, show3d.h
   target_compile_options(ote_tests PRIVATE ${OTE_WARN})
   target_compile_definitions(ote_tests PRIVATE OTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
@@ -317,6 +324,12 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME render3d_backends
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/render3d_backends_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # The Direct3D 11 backend in the player: feature level 10_1, device loss, multisampling, SDL's back buffer
+    # (Windows only: elsewhere it exits 77 and ctest lists it as skipped).
+    add_test(NAME render3d_d3d11
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/render3d_d3d11_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    set_tests_properties(render3d_d3d11 PROPERTIES SKIP_RETURN_CODE 77)
     # SRPG extras (player, windowless).
     add_test(NAME srpg_player_extras
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/srpg_player_extras_test.py

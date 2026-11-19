@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Checks that the hardware 3D backend draws what the software backend (the reference) draws.
+"""Checks that the hardware 3D backend (OpenGL; Direct3D 11 on Windows) draws what the software backend (the
+reference) draws.
 
   python3 tests/render3d_backends_test.py ./build/engine/player/ote-player .
 
@@ -75,7 +76,7 @@ def main():
                 print('FAIL %s: the player ended with an error\n%s' % (name, log[-600:]))
                 failed += 1
                 continue
-            if '3D drawing: OpenGL' not in log:
+            if '3D drawing: OpenGL' not in log and '3D drawing: Direct3D 11' not in log:
                 why = [l for l in log.splitlines() if 'no hardware backend' in l]
                 print('SKIP %s: no hardware backend here %s' % (name, why[:1]))
                 skipped += 1
