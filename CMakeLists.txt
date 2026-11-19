@@ -270,6 +270,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME battle_scene4_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/battle_scene4_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Battle scene, fifth batch of opt-in keys (player, windowless).
+    add_test(NAME battle_scene5_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/battle_scene5_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Choices in scenes (player, windowless).
     add_test(NAME choice_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/choice_player_test.py

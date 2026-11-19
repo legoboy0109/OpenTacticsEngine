@@ -222,8 +222,8 @@ TEST(scene4_end_offset) {
   Database plain;
   if (!load("offset_plain", travel("\"travelMs\":300"), plain)) return;
   CHECK(plain.graphics.battle.effects[0].endOffset == 0 && !plain.graphics.battle.effects[0].extended);
-  expectError("eo1", travel("\"endOffset\":-1"), "\"endOffset\" must be between 0 and 200");
-  expectError("eo2", travel("\"endOffset\":201"), "\"endOffset\" must be between 0 and 200");
+  expectError("eo1", travel("\"endOffset\":-401"), "\"endOffset\" must be a whole number from -400 to 400");
+  expectError("eo2", travel("\"endOffset\":401"), "\"endOffset\" must be a whole number from -400 to 400");
   expectError("eo3", travel("\"endOffset\":1.5"), "\"endOffset\"", "whole number");
   expectError("eo4", one("\"endOffset\":10"), "\"endOffset\" is only for a \"travel\" effect");
 }
