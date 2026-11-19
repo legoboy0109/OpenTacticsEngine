@@ -37,6 +37,15 @@ std::unique_ptr<AudioOut> openAudioOut(int rate, std::string& why) {
     why = std::string("SDL audio is unavailable: ") + SDL_GetError();
     return nullptr;
   }
+#ifdef OTE_UWP
+  // SDL 2.32's WinRT audio backend crashes (ReleaseWasapiDevice, SDL_wasapi.c) when it is asked to open a device on a
+  // machine with no sound endpoint at all (seen in a VM without audio hardware). A console or PC always lists one.
+  if (SDL_GetNumAudioDevices(0) <= 0) {
+    why = "no sound device: the system lists no audio output";
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    return nullptr;
+  }
+#endif
   SDL_AudioSpec want;
   SDL_zero(want);
   want.freq = rate;

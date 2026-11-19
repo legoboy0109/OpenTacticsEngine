@@ -29,6 +29,22 @@ if(ANDROID)
   set(SDL_TESTS OFF CACHE BOOL "" FORCE)
   set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
   add_subdirectory("${OTE_ANDROID_SDL_SOURCE}" "${CMAKE_BINARY_DIR}/sdl3")
+elseif(OTE_UWP)
+  # UWP (docs/XBOX.md): SDL2 built from its own VisualC-WinRT project (SDL2.lib / SDL2.dll, x64 Release, /MD); SDL has no
+  # CMake package for it. OTE_UWP_SDL2_SOURCE = the unpacked SDL2 release tree (include/, src/main/winrt/),
+  # OTE_UWP_SDL2_LIBDIR = the folder MSBuild wrote SDL2.lib and SDL2.dll to.
+  if(NOT OTE_PLATFORM STREQUAL "sdl2")
+    message(FATAL_ERROR "The UWP build uses the SDL2 backend: -DOTE_PLATFORM=sdl2")
+  endif()
+  set(OTE_UWP_SDL2_SOURCE "" CACHE PATH "UWP: unpacked SDL2 release source tree")
+  set(OTE_UWP_SDL2_LIBDIR "" CACHE PATH "UWP: folder with SDL2.lib and SDL2.dll built from VisualC-WinRT")
+  if(NOT EXISTS "${OTE_UWP_SDL2_SOURCE}/include/SDL.h" OR NOT EXISTS "${OTE_UWP_SDL2_LIBDIR}/SDL2.lib")
+    message(FATAL_ERROR "UWP: set OTE_UWP_SDL2_SOURCE and OTE_UWP_SDL2_LIBDIR (tools/uwp/build.ps1 does)")
+  endif()
+  add_library(SDL2::SDL2 SHARED IMPORTED)
+  set_target_properties(SDL2::SDL2 PROPERTIES IMPORTED_IMPLIB "${OTE_UWP_SDL2_LIBDIR}/SDL2.lib"
+                        IMPORTED_LOCATION "${OTE_UWP_SDL2_LIBDIR}/SDL2.dll"
+                        INTERFACE_INCLUDE_DIRECTORIES "${OTE_UWP_SDL2_SOURCE}/include")
 elseif(NOT EMSCRIPTEN)
   if(OTE_PLATFORM STREQUAL "sdl3")
     find_package(SDL3 REQUIRED CONFIG)
@@ -47,6 +63,21 @@ if(ANDROID)
   add_library(ote-player SHARED ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
   set_target_properties(ote-player PROPERTIES OUTPUT_NAME main)  # libmain.so
   target_link_libraries(ote-player PRIVATE log EGL GLESv3)  # logcat (sdl_android.cpp); the 3D pbuffer context (sdl_gl3d_android.cpp)
+elseif(OTE_UWP)
+  # SDL's own WinRT entry point (WinMain -> SDL_WinRTRunApp -> main) is C++/CX and goes into the program, with the one
+  # other C++/CX file of ours; both are compiled with /ZW, everything else stays plain C++.
+  set(UWP_ZW_SRC ${OTE_UWP_SDL2_SOURCE}/src/main/winrt/SDL_winrt_main_NonXAML.cpp
+      ${CMAKE_SOURCE_DIR}/engine/platform/sdl2/sdl2_uwp_view.cpp)
+  add_executable(ote-player WIN32 ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC} ${UWP_ZW_SRC})
+  # /ZW needs RTTI-enabled C++ (the engine-wide /GR- and /permissive- are overridden for these two files: vccorlib.h does not parse under /permissive-) and the WinRT metadata
+  # (platform.winmd, Windows.winmd), which vcvarsall's "uwp" environment puts on LIBPATH.
+  set_source_files_properties(${UWP_ZW_SRC} PROPERTIES COMPILE_OPTIONS "/ZW;/GR;/EHsc;/permissive;/wd4447;/wd4996"
+                              SKIP_PRECOMPILE_HEADERS ON)
+  target_compile_definitions(ote-player PRIVATE OTE_UWP=1)
+  target_compile_definitions(ote-player PRIVATE OTE_SDL2_UPLOAD_ARGB8888=1)  # Direct3D 11 has no RGBA32 texture format
+  # vccorlib (C++/CX runtime) must come before the C runtime on the link line (LNK2038), so it is named first and
+  # explicitly; runtimeobject is what SDL_winrt_main_NonXAML.cpp asks for with a #pragma.
+  target_link_libraries(ote-player PRIVATE vccorlib msvcrt runtimeobject)
 else()
   add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
   if(WIN32)

@@ -12,6 +12,9 @@
 #include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/platform.h"
+#ifdef OTE_UWP
+#include "platform/common/uwp.h"
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -24,6 +27,9 @@
 namespace ote {
 
 std::string userDataDir() {
+#ifdef OTE_UWP
+  return uwpLocalStateDir();  // LocalState itself (SDL_GetPrefPath would nest <org>/<app> below it)
+#else
   char* p = SDL_GetPrefPath("OpenTacticsEngine", "player");  // created if missing, ends with a separator
   if (!p) {
     OTE_WARN("no user data folder: %s", SDL_GetError());
@@ -35,6 +41,7 @@ std::string userDataDir() {
     if (c == '\\') c = '/';
   while (dir.size() > 1 && dir.back() == '/') dir.pop_back();
   return dir;
+#endif
 }
 
 bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
