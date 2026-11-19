@@ -51,6 +51,12 @@ class WebGlHost : public GlHost {
 
 bool makeContext(std::string& why) {
   if (g.ctx) return true;
+#ifdef __ANDROID__
+  // SDL on Android has one window, and the second hidden one this backend wants for its own context is not
+  // available: the software 3D renderer is used (docs/ANDROID.md).
+  why = "the hardware 3D backend is not available on Android yet";
+  return false;
+#endif
   // A canvas of its own, never shown: the page's canvas belongs to the 2D renderer.
   EM_ASM({
     if (!document.getElementById('ote-gl3d')) {

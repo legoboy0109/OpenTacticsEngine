@@ -22,3 +22,15 @@ __pycache__/
 games/*
 !games/demo-*/
 !games/index.json
+
+# Android player (docs/ANDROID.md): fetched SDL source, Gradle state and outputs, machine-specific and signing files
+android/third_party/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks

@@ -98,6 +98,13 @@ void emFrame(void* arg) {
 #endif
 
 bool initVideo(bool headless) {
+#ifdef __ANDROID__
+  // The back button arrives as SDL_SCANCODE_AC_BACK (= Cancel) instead of closing the activity; the game is landscape;
+  // touch is synthesized into left-button mouse events (the default, set so a later SDL default change cannot break it).
+  SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
+  SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+  SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
+#endif
   if (headless) {
     // "offscreen" renders without any display server; "dummy" is the fallback.
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "offscreen");
@@ -125,6 +132,10 @@ int runApp(App& app, const PlatformConfig& config) {
   int winW = config.logicalWidth * (config.headless ? hs : scale);
   int winH = config.logicalHeight * (config.headless ? hs : scale);
   SDL_WindowFlags flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
+#ifdef __ANDROID__
+  // Immersive: without it the window sits under the status bar and the top of every screen is cut off.
+  flags |= SDL_WINDOW_FULLSCREEN;
+#endif
 #ifdef __EMSCRIPTEN__
   // The canvas backing store gets devicePixelRatio times its CSS size, so smooth
   // text is rasterized at real screen resolution (the page sizes the canvas via CSS).
