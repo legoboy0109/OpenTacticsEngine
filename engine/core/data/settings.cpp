@@ -75,11 +75,6 @@ int Settings::getInt(const std::string& gameId, const std::string& key, int def)
   return v.isNumber() ? v.asInt() : def;
 }
 
-bool Settings::getBool(const std::string& gameId, const std::string& key, bool def) const {
-  const Json& v = get(gameId, key);
-  return v.isBool() ? v.asBool() : def;
-}
-
 const Json& Settings::global(const std::string& key) const { return global_[key]; }
 
 bool Settings::hasOverride(const std::string& gameId, const std::string& key) const {

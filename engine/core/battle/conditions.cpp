@@ -47,11 +47,6 @@ int Battle::conditionDuration(int condition, int turns) const {
   return turns > 0 ? turns : def.turns;
 }
 
-void Battle::conditionSkills(const Unit& u, std::vector<int>& out) const {
-  out.clear();
-  for (const ConditionState& cs : u.conditions) out.push_back(db->conditions[(size_t)cs.condition].skill);
-}
-
 bool Battle::conditionImmune(const Unit& u, int condition) const {
   if (db->skills.empty()) return false;
   std::vector<const SkillEffect*> fx;

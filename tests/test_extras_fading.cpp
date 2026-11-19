@@ -66,10 +66,6 @@ struct Game {
   void twoRounds() { CHECK(w->apply(Action::endTurn()) && w->apply(Action::endTurn())); }  // blue, red: blue's next turn starts
 };
 
-void twoStrikes(Copy& c) { c.swap("game.json", "\"strikes\": \"1\"", "\"strikes\": \"2\""); }
-
-std::string skill(const std::string& id, const std::string& blocks) { return "{ \"id\": \"" + id + "\", \"blocks\": [" + blocks + "] }"; }
-
 }  // namespace
 
 // ---- a condition whose effects fade ----

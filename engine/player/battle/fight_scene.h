@@ -122,7 +122,6 @@ class FightScene {
   void drawBox(Renderer& r, const Geo& g, int side) const;
   void drawFloats(Renderer& r, const Geo& g) const;
   void drawRange(Renderer& r, const Geo& g) const;
-  int bgIndex() const;
 
   Env env_;
   bool active_ = false;

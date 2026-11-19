@@ -469,8 +469,6 @@ void BattleScene::prepInput(const InputEvent& e) {
 
 // ---- drawing
 
-Overlay BattleScene::prepOverlay() const { return overlay_; }
-
 void BattleScene::prepDrawSlots(Renderer& r) {
   PrepUi& p = *prep_;
   const PrepDef& def = *p.map.prep;

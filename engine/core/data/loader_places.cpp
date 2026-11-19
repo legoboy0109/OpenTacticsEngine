@@ -218,11 +218,6 @@ bool kindAcceptsKey(const Database& db, const StructureDef& kind, int kindIndex,
   return p.keys.empty() || std::find(p.keys.begin(), p.keys.end(), item) != p.keys.end();
 }
 
-bool itemOpensKind(const Database& db, int item, int structureKind) {
-  if (structureKind < 0 || (size_t)structureKind >= db.structures.size()) return false;
-  return kindAcceptsKey(db, db.structures[(size_t)structureKind], structureKind, item);
-}
-
 // ---- map placements ----
 
 namespace {

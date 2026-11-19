@@ -11,12 +11,6 @@ namespace {
 
 constexpr int kMaxResource = 1000000000;  // the same ceiling a save accepts (savejson::kMaxNumber)
 
-ParkedParty* findParked(Playthrough& pt, const std::string& id) {
-  for (ParkedParty& p : pt.parked)
-    if (p.id == id) return &p;
-  return nullptr;
-}
-
 bool isMerged(const Playthrough& pt, const std::string& id) {
   return std::find(pt.merged.begin(), pt.merged.end(), id) != pt.merged.end();
 }
