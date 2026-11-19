@@ -25,6 +25,15 @@ if(MSVC)
   endif()
 endif()
 
+# UWP (Windows 10/11 and Xbox Dev Mode apps): configure with -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0
+# (tools/uwp/build.ps1 does; docs/XBOX.md). Only the player, SDL2 backend, is built for it.
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+  set(OTE_UWP ON)
+  # What Visual Studio's "Windows Store" project type adds (CMake's Ninja generator does not): only the UWP part of the
+  # Windows API is declared, so a call outside it is a compile error here and not a failed certification later.
+  add_compile_definitions(OTE_UWP=1 WINAPI_FAMILY=WINAPI_FAMILY_APP __WRL_NO_DEFAULT_LIB__)
+endif()
+
 # --- Lua 5.4 (vendored, plain C) ---
 file(GLOB LUA_SRC third_party/lua/src/*.c)
 list(FILTER LUA_SRC EXCLUDE REGEX "/(lua|luac)\\.c$")
@@ -32,6 +41,11 @@ add_library(lua STATIC ${LUA_SRC})
 target_include_directories(lua PUBLIC third_party/lua/src)
 if(UNIX AND NOT EMSCRIPTEN)
   target_compile_definitions(lua PRIVATE LUA_USE_POSIX)
+endif()
+if(OTE_UWP)
+  # Plain C89 Lua: no popen / LoadLibrary (not in the UWP API set). The game scripts only get base, table, string and
+  # math anyway (core/script/formulas.cpp).
+  target_compile_definitions(lua PRIVATE LUA_USE_C89)
 endif()
 
 if(MSVC)

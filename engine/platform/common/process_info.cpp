@@ -1,0 +1,47 @@
+// memoryStatus() and platformLaunchArgs(): see platform.h. Shared by every backend.
+#include <cstdio>
+#include <string>
+#include <vector>
+
+#include "platform/platform.h"
+
+#if defined(OTE_UWP)
+#include "platform/common/uwp.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#define PSAPI_VERSION 2  // GetProcessMemoryInfo from kernel32 (K32...), the form UWP has: no psapi.lib
+#include <psapi.h>
+#endif
+
+namespace ote {
+
+std::string memoryStatus() {
+#if defined(OTE_UWP)
+  // Only where the number matters (a hard budget): everywhere else an always-different line in the log would break the
+  // tests that compare whole logs of two runs.
+  std::string out;
+  PROCESS_MEMORY_COUNTERS pmc;
+  if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "working set %.0f MB", (double)pmc.WorkingSetSize / (1024.0 * 1024.0));
+    out = buf;
+  }
+  std::string app = uwpMemoryStatus();  // the app's budget (about 1 GB on Xbox for an app, not a game)
+  if (!app.empty()) out += (out.empty() ? "" : ", ") + app;
+  return out;
+#else
+  return "";
+#endif
+}
+
+std::vector<std::string> platformLaunchArgs() {
+#if defined(OTE_UWP)
+  return uwpLaunchArgs();
+#else
+  return std::vector<std::string>();
+#endif
+}
+
+}  // namespace ote

@@ -1,6 +1,9 @@
 // attachParentConsole(): see platform.h. The player is built for the Windows GUI subsystem (no console window on a
 // double-click); this gives it its terminal back when it was started from one.
 #include "platform/platform.h"
+#ifdef OTE_UWP
+#include "platform/common/uwp.h"
+#endif
 
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -45,7 +48,12 @@ void attachParentConsole() {
   if (needErr && freopen_s(&f, "CONOUT$", "w", stderr) == 0) setvbuf(stderr, nullptr, _IONBF, 0);
 }
 #else
-void attachParentConsole() {}
+// UWP has no console to attach to: it logs to a file in LocalState instead (platform/common/uwp.h). Elsewhere nothing to do.
+void attachParentConsole() {
+#ifdef OTE_UWP
+  uwpInstallLog();
+#endif
+}
 #endif
 
 }  // namespace ote

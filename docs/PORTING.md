@@ -16,8 +16,9 @@ already does. The layer rules are in docs/ARCHITECTURE.md; everything here lives
 Implemented in `platform/common/roots.cpp` (shared by both SDL backends); the program's folder comes from `executableDir()`
 (`SDL_GetBasePath`; empty on the web and Android). A port changes the answers there, behind its own
 `#if`: Android returns the folder the APK's assets were extracted to on first run (SDL's `SDL_GetAndroidInternalStoragePath`;
-APK assets cannot be read with `fopen`), UWP returns the install folder (`SDL_GetBasePath`) for content and
-`SDL_GetPrefPath` (LocalState) for `userRoot()`. Nothing else in the player builds a content or write path:
+APK assets cannot be read with `fopen`). UWP (docs/XBOX.md, `OTE_UWP`) reads content straight from the read-only install
+folder (the "`games/` next to the program" rule, `SDL_GetBasePath`), `userRoot()` is the LocalState folder itself and
+`extraContentRoot()` is `LocalState/games`. Nothing else in the player builds a content or write path:
 `engine/player/content_roots.cpp` turns the roots into `Args::gamesDir` / `assetsDir` / `extraGames`, and every read of a
 game goes through `GameEntry::dir` (or `SceneHost::gameDir`).
 
@@ -36,7 +37,10 @@ web build's `/userdata` (IDBFS, `userDataDir()`).
 `App::onLifecycle`. Both SDL backends register an SDL event watch (SDL3 `SDL_EVENT_WILL_ENTER_BACKGROUND`, ...; SDL2
 `SDL_APP_WILLENTERBACKGROUND`, ...) so the notice is handled at once, not from the queue: the OS may freeze the process
 right after the callback returns. The watch and the frame are serialized by one (recursive) SDL mutex, because on Android
-the notice arrives on the UI thread while the main loop runs. Not registered on the web (no such events there).
+the notice arrives on the UI thread while the main loop runs. Not registered on the web (no such events there). On UWP the notices arrive from SDL's WinRT port (suspend =
+`WillEnterBackground`, resume = `DidEnterForeground`) on the thread that runs the loop; there is no terminate notice
+(the system may end a suspended app silently), so the suspend is where the Continue save is written; the budget is about
+5 seconds.
 
 The player (`app_lifecycle.cpp`) on background or terminating: pauses the music and stops mixing (`AudioService::suspend`),
 stops the simulation clock (`PlayerApp::update` returns before the scene update), writes the settings, and asks the scene to
@@ -87,6 +91,14 @@ handlers are additions that call the same actions. No screen has text entry. Ski
   screenshots). The conversion is in the backend, not at the 3D renderer's output: a software 3D drawer that wrote the
   native format directly would save the loop, but that changes `Renderer3D`'s contract and was left alone.
 
+- **UWP.** `-DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DOTE_PLATFORM=sdl2 -DOTE_MSVC_STATIC_RUNTIME=OFF`
+  with Ninja in the x64 UWP compiler environment (`tools/uwp/build.ps1`, docs/XBOX.md). CMake defines `OTE_UWP` and
+  `WINAPI_FAMILY=WINAPI_FAMILY_APP` (only the UWP part of the Windows API is declared). SDL2 comes from its own
+  `VisualC-WinRT` project (`OTE_UWP_SDL2_SOURCE`, `OTE_UWP_SDL2_LIBDIR`). Two files are C++/CX and compiled with `/ZW`: SDL's
+  WinRT entry point and `sdl2_uwp_view.cpp`. The pieces that differ live in `platform/sdl2/sdl2_uwp*.cpp`,
+  `platform/common/uwp.h` and `platform/common/process_info.cpp` (`memoryStatus()`, `platformLaunchArgs()`: a UWP app has
+  no command line, so `LocalState/args.txt` stands in). This is also the first MSVC build of the SDL2 backend.
+
 ## Still missing
 
 Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. Still missing there: a device-reset handler for SDL's 2D textures;
@@ -96,13 +108,11 @@ and release build.
 Windows desktop (SDL3, MSVC): done, see docs/WINDOWS.md. Hardware 3D is Direct3D 11, verified on WARP only (the build VM has no
 GPU); unverified: sound (no audio device there); a real PC.
 
-UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the
-back-button hint set before SDL init; the Direct3D 11 3D glue (below); `/MD` (`-DOTE_MSVC_STATIC_RUNTIME=OFF`); the
-desktop-only Win32 calls in `sdl2_files.cpp` (`CreateDirectoryW`, `DeleteFileW`, `MoveFileExW`: the UWP subset offers
-`CreateDirectory2`, `DeleteFile`/`MoveFileEx` only in part; `FindFirstFileExW` is fine) need their own `#if` for
-`WINAPI_FAMILY_APP`; `attachParentConsole()` already compiles to nothing there; `_WIN32` is also defined on UWP;
-gamepad-only operation was verified by reading the code and a scripted run, not on a device. The Windows desktop build is the
-base: same compiler, same sources, same tests; the SDL2 backend has not been built with MSVC yet.
+UWP (SDL2 2.32, Xbox Dev Mode): done as far as a PC can show, see docs/XBOX.md: builds and runs as a UWP app on Windows 11
+(package, install, launcher, battles, software 3D, suspend / Continue; the Windows App Certification Kit passes); never run
+on a console yet. Still missing: a run on a real Xbox (Device Portal install, the 1 GB budget, B and a real controller, the
+TV fit), the Direct3D 11 3D glue for SDL2 ("Direct3D 11 3D on UWP" below; the backend itself exists), D3D11 device removal handling for SDL's 2D textures (same gap as
+the other platforms, "Not handled" above), a decision on B on the launcher, final names and logos.
 
 Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
 (MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`

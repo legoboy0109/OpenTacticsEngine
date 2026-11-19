@@ -46,6 +46,14 @@ Renderer3D& PlayerApp::renderer3d() {
   return *r3d_;
 }
 
+namespace {
+// A UWP app has a hard memory budget (docs/XBOX.md); only that platform answers, so other logs are unchanged.
+void logMemory(const char* when) {
+  std::string m = memoryStatus();
+  if (!m.empty()) OTE_INFO("memory after %s: %s", when, m.c_str());
+}
+}  // namespace
+
 bool PlayerApp::start(std::string& err) {
   if (!args_.input.empty() && !script_.parse(args_.input, args_.inputInterval, err)) return false;
   return true;
@@ -108,6 +116,7 @@ void PlayerApp::onStart(Renderer& r) {
   else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
+  logMemory("start");
 }
 
 std::string PlayerApp::gameDir(const std::string& gameId) const {
@@ -121,6 +130,7 @@ void PlayerApp::runPending() {
   std::function<void()> fn = std::move(pending_);
   pending_ = nullptr;
   fn();
+  logMemory("scene change");
   flushSettings();  // every scene switch is a good moment to save
   syncAudio();
 }

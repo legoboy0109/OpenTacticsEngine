@@ -6,6 +6,9 @@
 
 #include "platform/common/android_roots.h"
 #include "platform/platform.h"
+#ifdef OTE_UWP
+#include "platform/common/uwp.h"
+#endif
 
 namespace ote {
 namespace {
@@ -33,7 +36,8 @@ std::string contentRoot() {
   if (env.empty()) return androidContentRoot();
 #endif
   if (!env.empty()) return env;
-  // Desktop default: a download unpacked anywhere runs by double-click, because games/ sits next to the program
+  // Desktop default (UWP too: the install folder is the program's folder and holds games/ and assets/, read-only):
+  // a download unpacked anywhere runs by double-click, because games/ sits next to the program
   // (docs/WINDOWS.md). Otherwise empty = the working directory (a source checkout run from its root).
   std::string exe = executableDir();
   std::vector<std::string> names;
@@ -48,6 +52,16 @@ std::string extraContentRoot() {
   std::string env = trimmed(fromEnv("OTE_EXTRA_GAMES"));
 #ifdef __ANDROID__
   if (env.empty()) return androidExtraGamesRoot();  // Android/data/<id>/files/games
+#endif
+#ifdef OTE_UWP
+  // LocalState/games: the owner puts extra games here (Xbox Device Portal file explorer; docs/XBOX.md). Always made.
+  if (env.empty()) {
+    std::string dir = uwpLocalStateDir();
+    if (dir.empty()) return "";
+    dir += "/games";
+    makeDir(dir);
+    return dir;
+  }
 #endif
   return env;
 }

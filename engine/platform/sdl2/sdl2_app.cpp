@@ -7,6 +7,9 @@
 
 #include "core/base/log.h"
 #include "platform/platform.h"
+#ifdef OTE_UWP
+#include "platform/common/uwp.h"
+#endif
 #include "platform/sdl2/sdl2_gl3d.h"
 #include "platform/sdl2/sdl2_input.h"
 #include "platform/sdl2/sdl2_renderer.h"
@@ -35,7 +38,12 @@ struct Loop {
   // arrives on another thread (Android's UI thread) never runs while a frame is half done. SDL mutexes are recursive:
   // on platforms that deliver the notice from inside SDL_PollEvent on this thread (UWP) it simply re-enters. Null on the web.
   SDL_mutex* lock = nullptr;
+  // Debug log (OTE_LOG_LEVEL=debug): average work per frame (input + update + drawing, before present and the vsync wait)
+  // and the whole frame interval, every kTimedFrames frames; same line as the SDL3 backend.
+  Uint64 workTicks = 0, intervalStart = 0;
+  int timedFrames = 0;
 };
+constexpr int kTimedFrames = 120;
 
 // The OS may freeze the process right after APP_WILLENTERBACKGROUND / APP_TERMINATING returns, so these are handled
 // here, at once, and not from the event queue (docs/PORTING.md "Life cycle").
@@ -56,6 +64,7 @@ int SDLCALL lifecycleWatch(void* user, SDL_Event* e) {
 }
 
 void frame(Loop& L) {
+  const Uint64 workStart = SDL_GetPerformanceCounter();
   if (L.lock) SDL_LockMutex(L.lock);
   // 1. Input.
   L.events.clear();
@@ -78,6 +87,17 @@ void frame(Loop& L) {
   bool last = L.app->wantsQuit() || (L.cfg->maxFrames > 0 && L.frames >= L.cfg->maxFrames);
   L.app->draw(*L.gfx);
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
+  L.workTicks += SDL_GetPerformanceCounter() - workStart;
+  if (++L.timedFrames == kTimedFrames) {
+    const Uint64 t = SDL_GetPerformanceCounter();
+    if (L.intervalStart)
+      OTE_DEBUG("frame time: work %.1f ms, interval %.1f ms (average of %d frames)",
+                1e3 * (double)L.workTicks / L.tickHz / kTimedFrames,
+                1e3 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames, kTimedFrames);
+    L.intervalStart = t;
+    L.workTicks = 0;
+    L.timedFrames = 0;
+  }
   if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
   SDL_RenderPresent(L.gfx->handle());
   // Without working vsync a plain loop would spin a core at 100%.
@@ -113,7 +133,15 @@ bool initVideo(bool headless) {
 }  // namespace
 
 int runApp(App& app, const PlatformConfig& config) {
+#ifdef OTE_UWP
+  // Xbox B / the system back request must reach the game as the back key (Cancel) and must not close the app; without
+  // this hint SDL lets the system handle it (docs/XBOX.md). Before SDL_Init: the app object reads it when it starts.
+  SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
+#endif
   if (!initVideo(config.headless)) return 2;
+#ifdef OTE_UWP
+  if (!config.headless) uwpPrepareView();  // full window on Xbox, before the window exists
+#endif
   // Gamepads are optional: a failure here must not stop the game.
   if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) OTE_WARN("gamepad support unavailable: %s", SDL_GetError());
 
