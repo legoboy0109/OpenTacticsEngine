@@ -164,6 +164,15 @@ class BattleView {
   void ensureUnits(const Battle& b);
   void startNext(const Battle& b);
   void begin(const Battle& b);     // sets up cur_ from its event
+  // The longer cases of begin() (battle_view.cpp), each setting up cur_ for its entry.
+  void beginTurnStarted(const Battle& b);
+  void beginAttack(const Battle& b);
+  void beginLevelUp(const Battle& b);
+  void beginCapture(const Battle& b);  // CaptureProgress, StructureCaptured
+  void beginResource(const Battle& b);
+  void beginUnitAppears(const Battle& b);  // UnitBuilt, UnitAdded
+  void beginHealed(const Battle& b);
+  void beginItemEvent(const Battle& b);  // ItemBroke, ItemGained, ItemLost
   void progress(const Battle& b);  // applies cur_ at time t
   void finish(const Battle& b);    // final state of cur_
   void impact(const Battle& b);    // attack: spawn numbers
