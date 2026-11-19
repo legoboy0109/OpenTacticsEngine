@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <ctime>
 
+#include "core/base/fileio.h"
 #include "core/battle/save.h"
 #include "core/campaign/campaign_save.h"
 #include "platform/platform.h"
@@ -25,7 +26,7 @@ bool makeDirs(const std::string& path) {
 enum class Probe { Missing, Unreadable, Readable };
 
 Probe probe(const std::string& path) {
-  std::FILE* f = std::fopen(path.c_str(), "rb");
+  std::FILE* f = openFile(path, "rb");
   if (f) { std::fclose(f); return Probe::Readable; }
   return (errno == ENOENT || errno == ENOTDIR) ? Probe::Missing : Probe::Unreadable;
 }
@@ -149,8 +150,7 @@ bool SaveStore::writeAt(const std::string& target, const Json& file, std::string
     err = tmp + ": cannot write the save";
     return false;
   }
-  std::remove(target.c_str());  // rename() does not replace on Windows
-  if (std::rename(tmp.c_str(), target.c_str()) != 0) {
+  if (!replaceFile(tmp, target)) {  // (platform call: replaces an existing file on Windows too, UTF-8 paths)
     err = target + ": cannot replace the save file";
     return false;
   }

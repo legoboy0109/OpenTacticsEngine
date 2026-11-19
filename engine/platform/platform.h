@@ -228,4 +228,17 @@ bool makeDir(const std::string& path);
 // existed).
 bool removeFile(const std::string& path);
 
+// Moves `from` over `to`, replacing `to` if it exists (the save writer writes "x.tmp" and then replaces "x"). Paths are
+// UTF-8; on Windows std::rename would read them in the ANSI code page and refuses to replace, so it is a platform call.
+bool replaceFile(const std::string& from, const std::string& to);
+
+// Folder the program file lives in, without a trailing slash; empty if unknown (web, Android) or if the platform has no
+// such notion. contentRoot() uses it so an unpacked download runs from anywhere (docs/WINDOWS.md).
+std::string executableDir();
+
+// Windows only (a no-op everywhere else): the player is a GUI-subsystem program so a double-click opens no console
+// window; when it was started from a terminal this attaches to that terminal so log lines and --help output show up
+// there. Does nothing if stdout/stderr are already redirected to a file or pipe. Call first thing in main().
+void attachParentConsole();
+
 }  // namespace ote

@@ -49,6 +49,11 @@ if(ANDROID)
   target_link_libraries(ote-player PRIVATE log EGL GLESv3)  # logcat (sdl_android.cpp); the 3D pbuffer context (sdl_gl3d_android.cpp)
 else()
   add_executable(ote-player ${PLAYER_SRC} ${COMMON_SRC} ${BACKEND_SRC})
+  if(WIN32)
+    # GUI subsystem: a double-click opens no console window. SDL's main header supplies WinMain; attachParentConsole()
+    # (platform/common/console.cpp) gives the program its terminal back when it was started from one (docs/WINDOWS.md).
+    set_target_properties(ote-player PROPERTIES WIN32_EXECUTABLE ON)
+  endif()
 endif()
 # engine/ for "core/..." and "platform/..."; engine/player for the player's own "battle/..." "ui/...".
 target_include_directories(ote-player PRIVATE ${CMAKE_SOURCE_DIR}/engine ${CMAKE_CURRENT_SOURCE_DIR})
@@ -70,6 +75,12 @@ if(NOT EMSCRIPTEN)  # (on Android SDL3::SDL3 is the shared library built above)
       target_link_libraries(ote-player PRIVATE ${SDL2_LIBRARIES})
     endif()
   endif()
+endif()
+# Windows: SDL is a DLL (the "-VC" development package); copy it next to the program so it starts from the build folder.
+if(WIN32 AND NOT EMSCRIPTEN AND NOT CMAKE_VERSION VERSION_LESS 3.21)
+  add_custom_command(TARGET ote-player POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:ote-player> $<TARGET_FILE_DIR:ote-player>
+    COMMAND_EXPAND_LISTS)
 endif()
 # Which backend's entry-point header platform/platform_main.h pulls in.
 if(OTE_PLATFORM STREQUAL "sdl3")
