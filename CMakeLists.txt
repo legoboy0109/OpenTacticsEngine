@@ -106,7 +106,8 @@ if(OTE_BUILD_TESTS AND NOT EMSCRIPTEN)
                  engine/player/ui/text.cpp engine/player/ui/dialogue_text.cpp engine/player/ui/dialogue_box.cpp engine/player/ui/scene_stage.cpp engine/player/ui/scene_stage_layout.cpp engine/player/ui/scene_stage_draw.cpp engine/player/ui/dialogue_portrait.cpp
                  engine/player/show3d.cpp engine/player/sound/audio_service.cpp engine/player/sound/audio_log.cpp
                  engine/player/sound/audio_files.cpp engine/player/sound/audio_selftest.cpp engine/platform/common/null_audio.cpp
-                 engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp)
+                 engine/player/args.cpp engine/player/options/option_defs.cpp engine/player/battle/map_proj.cpp
+                 engine/platform/common/window_fit.cpp)
   # The player's sound data, cue lookup and music director (docs/SOUND.md step 2).
   target_sources(ote_tests PRIVATE engine/player/sound/audio_data.cpp engine/player/sound/cues.cpp engine/player/sound/sound_bank.cpp
                  engine/player/sound/music_director.cpp engine/player/sound/game_audio.cpp)

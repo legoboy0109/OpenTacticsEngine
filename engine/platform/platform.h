@@ -142,7 +142,9 @@ class App {
 struct PlatformConfig {
   std::string title = "OpenTacticsEngine";
   int logicalWidth = 480, logicalHeight = 270;
-  int windowScale = 3;        // initial window = logical size * scale
+  // Initial window = logical size * scale; 0 = the largest whole scale that fits the display's usable area
+  // (platform/common/window_fit.h; desktop only, at least 1). Headless windows ignore it (headlessScale).
+  int windowScale = 0;
   // Test/automation support:
   bool headless = false;      // no visible window (offscreen software rendering)
   int headlessScale = 1;      // headless: the "display" is the logical size times this (1..8), so screenshots

@@ -7,6 +7,7 @@
 
 #include "core/base/log.h"
 #include "platform/platform.h"
+#include "platform/common/window_fit.h"
 #ifdef OTE_UWP
 #include "platform/common/uwp.h"
 #endif
@@ -145,7 +146,21 @@ int runApp(App& app, const PlatformConfig& config) {
   // Gamepads are optional: a failure here must not stop the game.
   if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) OTE_WARN("gamepad support unavailable: %s", SDL_GetError());
 
-  int scale = config.windowScale < 1 ? 1 : config.windowScale;
+  int scale = config.windowScale;
+  if (scale < 1 && !config.headless) {
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+    scale = 1;  // full screen / the page's canvas: the size asked does not matter
+#else
+    // The largest whole scale whose window fits the first display (a 1440x810 window would hang off a 1024x768 screen).
+    // UWP too: on a PC SDL asks Windows for that size (TryResizeView); an Xbox keeps the app full screen anyway.
+    SDL_Rect usable = {0, 0, 0, 0};
+    if (SDL_GetDisplayUsableBounds(0, &usable) != 0) OTE_WARN("display size unknown: %s", SDL_GetError());
+    scale = fitWindowScale(config.logicalWidth, config.logicalHeight, usable.w, usable.h);
+    OTE_INFO("window scale %d (the largest that fits the display's usable %dx%d; --scale N to choose)", scale, usable.w,
+             usable.h);
+#endif
+  }
+  if (scale < 1) scale = 1;
   // Headless windows are exactly logical size (times headlessScale) so screenshots are 1:1.
   int hs = config.headlessScale < 1 ? 1 : config.headlessScale;
   int winW = config.logicalWidth * (config.headless ? hs : scale);

@@ -52,7 +52,7 @@ struct Args {
   std::string screenshot;
   std::string input;      // scripted input, see script_input.h
   int inputInterval = 6;  // frames between script tokens
-  int scale = 3;          // window scale
+  int scale = 0;          // --scale N: window scale; 0 = the largest that fits the display
   bool help = false;
   std::string error;      // non-empty = bad command line
 };

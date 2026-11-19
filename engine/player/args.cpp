@@ -24,6 +24,7 @@ const char* usageText() {
          "       unless --saves DIR is given; --continue / --load-slot N resume a save of --game directly.\n"
          "campaign: --campaign starts a New game of --game's campaign; --map ID starts that map as a free battle (also in a\n"
          "       campaign game, whatever its freeBattles says) and never touches campaign saves.\n"
+         "--scale N (1..16): the window is N times the game's logical size; default: the largest that fits the screen.\n"
          "--test-3d shows the built-in 3D test scene (docs/RENDER3D.md) instead of the launcher.\n"
          "--3d: what draws 3D. hardware = the graphics chip (OpenGL ES 3 / WebGL 2), software = the processor;\n"
          "      auto = hardware where it works (software with --headless). hardware falls back to software.\n"
