@@ -93,11 +93,11 @@ Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. St
 safe-area / notch insets; an icon
 and release build.
 
-Windows desktop (SDL3, MSVC): done, see docs/WINDOWS.md. Unverified there: hardware (OpenGL) 3D, because the build VM has no GPU;
-sound, because it has no audio device; a real PC.
+Windows desktop (SDL3, MSVC): done, see docs/WINDOWS.md. Hardware 3D is Direct3D 11, verified on WARP only (the build VM has no
+GPU); unverified: sound (no audio device there); a real PC.
 
 UWP (SDL2 2.32, Xbox Dev Mode): the UWP project and manifest; content in the package, `userRoot()` = LocalState; the
-back-button hint set before SDL init; D3D11 device removal handling; `/MD` (`-DOTE_MSVC_STATIC_RUNTIME=OFF`); the
+back-button hint set before SDL init; the Direct3D 11 3D glue (below); `/MD` (`-DOTE_MSVC_STATIC_RUNTIME=OFF`); the
 desktop-only Win32 calls in `sdl2_files.cpp` (`CreateDirectoryW`, `DeleteFileW`, `MoveFileExW`: the UWP subset offers
 `CreateDirectory2`, `DeleteFile`/`MoveFileEx` only in part; `FindFirstFileExW` is fine) need their own `#if` for
 `WINAPI_FAMILY_APP`; `attachParentConsole()` already compiles to nothing there; `_WIN32` is also defined on UWP;
@@ -109,3 +109,33 @@ Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/
 or `FindFirstFile` outside `engine/platform/` (inside it, see the UWP note above). The editor helper (`ote-editor`, desktop tool)
 uses `<filesystem>` and `std::ifstream` with UTF-8 path strings, which on Windows are read in the ANSI code page: project
 folders with non-ASCII names do not work there yet.
+
+## Direct3D 11 3D on UWP
+
+The backend (`engine/gfx3d/d3d11/`, docs/RENDER3D.md "Direct3D 11 backend") is the same for UWP; only the glue is
+per platform. The SDL3 desktop glue is `platform/sdl3/sdl_d3d11_3d.cpp`; the SDL2 / UWP one has to provide the same three
+things, in its own file under `platform/sdl2/`:
+
+- **A `D3D11Host`** (`gfx3d/d3d11/d3d11_host.h`): `device()` / `context()` are SDL's
+  (`SDL_RenderGetD3D11Device(renderer)` in SDL2 2.0.16+, then `GetImmediateContext`; only when
+  `SDL_GetRendererInfo` names `direct3d11`). `enter()` calls `SDL_RenderFlush(renderer)` and saves the pipeline state with
+  `D3D11StateBackup` (`d3d11_state.h`); `leave()` restores it. SDL2 does not forget its cached state on a flush (SDL3 does), so
+  the exact restore is what keeps its 2D drawing right. `enter()` returns false when the device is removed
+  (`GetDeviceRemovedReason() != S_OK`) or SDL's device pointer changed.
+- **Where the picture goes.** Either `screen()` gives a render target view of SDL's back buffer and the frame's rectangle in
+  its pixels (the 3D picture is drawn there as one quad under the 2D layer, no read-back). SDL2 exposes no swap chain, so the
+  glue would take the render target currently bound by SDL (`OMGetRenderTargets` after the flush; with no texture target set
+  that is the back buffer) and map the rectangle through `SDL_RenderGetViewport` / `SDL_RenderGetScale`. Or `screen()` returns
+  false and the picture is read back into `framePixels` and shown through an SDL texture as on every other backend: simpler,
+  slower (a GPU-CPU-GPU round trip per frame); a sensible first step.
+- **Device loss**: wrap the backend in `ResilientRenderer3D` (`gfx3d/resilient3d.h`) with a `DeviceKeeper` (see
+  `D3D11Keeper` in the SDL3 glue): lost = removed or SDL's device changed (SDL2 sends `SDL_RENDER_DEVICE_RESET` and makes
+  a new one), rebuild = a new backend on SDL's new device. `OTE_3D_SIMULATE_LOSS` then works there too.
+- **Suspend**: UWP requires `IDXGIDevice3::Trim()` on the device when the app is suspended (Lifecycle
+  `WillEnterBackground`), after the last frame. SDL2's WinRT layer trims its renderer's device when suspending
+  (`D3D11_Trim`; confirm in the SDL2 version used), so a shared device needs nothing more. An own device (read-back mode without SDL's device) must be trimmed by
+  the glue.
+
+Feature level: an Xbox One gives UWP apps 10_1 (Series: 11_0+), which the backend is tested at (`ote_tests` on Windows,
+`tests/render3d_d3d11_test.py`). No shader is compiled at run time (no `d3dcompiler` needed). The SDL2 backend's
+`OTE_SDL2_UPLOAD_ARGB8888` matters only in read-back mode.

@@ -626,7 +626,7 @@ def main():
             geo = make_games(hp.GAMES, layout)
             if layout == LAYOUTS[0]:  # is there a graphics driver? (as in render3d_backends_test.py)
                 _, log = view('probe', 'h3_' + layout, 'flat', 'i3', 'wait:2', 'hardware')
-                if '3D drawing: OpenGL' in log:
+                if '3D drawing: OpenGL' in log or '3D drawing: Direct3D 11' in log:
                     BACKENDS.append('hardware')
                 else:
                     print('SKIP hardware backend: none here')

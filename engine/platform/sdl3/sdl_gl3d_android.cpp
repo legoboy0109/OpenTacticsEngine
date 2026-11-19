@@ -10,10 +10,11 @@
 //
 // Life cycle. Android may take EGL surfaces away when the app goes to the background; a pbuffer context normally
 // survives that, but a driver may still lose it (EGL_CONTEXT_LOST, GPU reset, memory pressure). GlRenderer3D has no
-// "recreate everything" path, so ResilientRenderer3D below keeps a CPU copy of every mesh and texture the game made and,
-// when the context is gone, makes a new context and backend and replays them (the game's ids stay valid). If even that
+// "recreate everything" path, so ResilientRenderer3D (gfx3d/resilient3d.h, shared with the Direct3D 11 host) keeps a
+// CPU copy of every mesh and texture the game made and, when the context is gone, makes a new context and backend and
+// replays them (the game's ids stay valid); EglKeeper below tells it what "lost" and "a new one" are here. If even that
 // fails, the same copies are replayed into the software backend for the rest of the session. Nothing above this file
-// notices, apart from one log line.
+// notices, apart from the log lines.
 //
 // Debug: OTE_3D_SIMULATE_LOSS=N destroys the context after N frames, to test the above; with OTE_3D_SIMULATE_NO_REBUILD=1
 // as well the rebuild is refused, which tests the software fallback (docs/ANDROID.md).
@@ -23,11 +24,10 @@
 
 #include <cstdlib>
 #include <string>
-#include <vector>
 
 #include "core/base/log.h"
 #include "gfx3d/gl/gl_renderer3d.h"
-#include "gfx3d/soft3d.h"
+#include "gfx3d/resilient3d.h"
 #include "platform/platform3d.h"
 #include "platform/sdl3/sdl_gl3d.h"
 
@@ -186,179 +186,17 @@ std::unique_ptr<Renderer3D> makeGlBackend(std::string& why) {
   return r;
 }
 
-// What the game made, kept on the CPU so a lost context can be rebuilt.
-class ResilientRenderer3D : public Renderer3D {
+// What ResilientRenderer3D (gfx3d/resilient3d.h) needs to rebuild the backend on a new EGL context.
+class EglKeeper : public DeviceKeeper {
  public:
-  explicit ResilientRenderer3D(std::unique_ptr<Renderer3D> inner) : inner_(std::move(inner)) {
-    const char* s = std::getenv("OTE_3D_SIMULATE_LOSS");
-    simulateAt_ = s ? std::atoi(s) : 0;
+  const char* name() const override { return "3D (EGL)"; }
+  const char* lossText() const override {
+    return "the 3D context was lost (backgrounded, GPU reset or memory pressure)";
   }
-  ~ResilientRenderer3D() override {
-    inner_.reset();  // before the EGL objects go
-    destroyEgl();
-  }
-
-  Caps3D caps() const override { return inner_->caps(); }
-
-  MeshId createMesh(const MeshData& data) override {
-    MeshId inner = inner_->createMesh(data);
-    if (!inner && recoverIfLost()) inner = inner_->createMesh(data);
-    if (!inner) return 0;
-    size_t slot = 0;
-    while (slot < meshes_.size() && meshes_[slot].used) ++slot;
-    if (slot == meshes_.size()) meshes_.push_back(Mesh());
-    meshes_[slot].used = true;
-    meshes_[slot].data = data;
-    meshes_[slot].inner = inner;
-    recoverIfLost();
-    return (MeshId)slot + 1;
-  }
-  void updateMesh(MeshId mesh, const MeshData& data) override {
-    if (!validMesh(mesh)) return;
-    Mesh& m = meshes_[(size_t)mesh - 1];
-    m.data = data;
-    inner_->updateMesh(m.inner, data);
-    recoverIfLost();  // replays m.data, which is already the new one
-  }
-  void destroyMesh(MeshId mesh) override {
-    if (!validMesh(mesh)) return;
-    Mesh& m = meshes_[(size_t)mesh - 1];
-    inner_->destroyMesh(m.inner);
-    m = Mesh();
-    recoverIfLost();
-  }
-  Texture3DId createTexture(const uint8_t* rgba, int width, int height, bool repeat, bool mipmaps) override {
-    Texture3DId inner = inner_->createTexture(rgba, width, height, repeat, mipmaps);
-    if (!inner && recoverIfLost()) inner = inner_->createTexture(rgba, width, height, repeat, mipmaps);
-    if (!inner) return 0;
-    size_t slot = 0;
-    while (slot < textures_.size() && textures_[slot].used) ++slot;
-    if (slot == textures_.size()) textures_.push_back(Texture());
-    Texture& t = textures_[slot];
-    t.used = true;
-    t.rgba.assign(rgba, rgba + (size_t)width * (size_t)height * 4);
-    t.w = width;
-    t.h = height;
-    t.repeat = repeat;
-    t.mipmaps = mipmaps;
-    t.inner = inner;
-    recoverIfLost();
-    return (Texture3DId)slot + 1;
-  }
-  void destroyTexture(Texture3DId texture) override {
-    if (texture < 1 || (size_t)texture > textures_.size() || !textures_[(size_t)texture - 1].used) return;
-    Texture& t = textures_[(size_t)texture - 1];
-    inner_->destroyTexture(t.inner);
-    t = Texture();
-    recoverIfLost();
-  }
-
-  void begin(const Frame3D& frame) override {
-    recoverIfLost();
-    frame_ = frame;
-    draws_.clear();
-    inFrame_ = true;
-    inner_->begin(frame);
-  }
-  void draw(MeshId mesh, const Mat4& model, const Material3D& material) override {
-    if (!inFrame_ || !validMesh(mesh)) return;
-    draws_.push_back(Draw{mesh, model, material});
-    inner_->draw(meshes_[(size_t)mesh - 1].inner, model, innerMaterial(material));
-  }
-  void end() override {
-    inner_->end();
-    inFrame_ = false;
-    if (!software_ && simulateAt_ > 0 && ++frames_ == simulateAt_) {
-      OTE_WARN("3D (EGL): OTE_3D_SIMULATE_LOSS: destroying the 3D context now");
-      eglDestroyContext(g.display, g.context);  // the next make-current fails like a lost context
-      inner_->begin(frame_);                    // one more frame, which finds the context gone (as after a real loss)
-      inner_->end();
-    }
-    // The draws of this frame went nowhere if the context was gone: do them again on the rebuilt backend.
-    if (recoverIfLost()) {
-      inner_->begin(frame_);
-      for (const Draw& d : draws_)
-        if (validMesh(d.mesh)) inner_->draw(meshes_[(size_t)d.mesh - 1].inner, d.model, innerMaterial(d.material));
-      inner_->end();
-    }
-  }
-  const uint8_t* framePixels(int& width, int& height) const override { return inner_->framePixels(width, height); }
-
- private:
-  struct Mesh {
-    bool used = false;
-    MeshData data;
-    MeshId inner = 0;
-  };
-  struct Texture {
-    bool used = false, repeat = false, mipmaps = false;
-    std::vector<uint8_t> rgba;
-    int w = 0, h = 0;
-    Texture3DId inner = 0;
-  };
-  struct Draw {
-    MeshId mesh;
-    Mat4 model;
-    Material3D material;
-  };
-
-  bool validMesh(MeshId m) const { return m >= 1 && (size_t)m <= meshes_.size() && meshes_[(size_t)m - 1].used; }
-  Material3D innerMaterial(Material3D m) const {
-    if (m.texture >= 1 && (size_t)m.texture <= textures_.size() && textures_[(size_t)m.texture - 1].used)
-      m.texture = textures_[(size_t)m.texture - 1].inner;
-    else
-      m.texture = 0;
-    return m;
-  }
-
-  // If the GL context was lost (the software backend never is): rebuild. True when something was rebuilt.
-  bool recoverIfLost() {
-    if (software_ || !g.lost) return false;
-    OTE_WARN("3D (EGL): the 3D context was lost (backgrounded, GPU reset or memory pressure); rebuilding it");
-    inner_.reset();  // its GL objects went with the context; the backend sees the failed enter() and frees nothing
-    std::string why;
-    // OTE_3D_SIMULATE_NO_REBUILD=1 (debug): pretend the new context cannot be made, to try the software fallback.
-    const bool refuse = std::getenv("OTE_3D_SIMULATE_NO_REBUILD") != nullptr;
-    if (refuse) why = "OTE_3D_SIMULATE_NO_REBUILD";
-    std::unique_ptr<Renderer3D> gl = refuse ? nullptr : makeGlBackend(why);
-    if (gl) {
-      inner_ = std::move(gl);
-      replay();
-      OTE_INFO("3D (EGL): context rebuilt, %zu meshes and %zu textures uploaded again", countMeshes(), countTextures());
-      return true;
-    }
-    OTE_WARN("3D (EGL): cannot rebuild the context (%s); using the software 3D renderer for the rest of the session",
-             why.c_str());
-    destroyEgl();
-    inner_.reset(new SoftRenderer3D());
-    software_ = true;
-    replay();
-    return true;
-  }
-  void replay() {
-    for (Mesh& m : meshes_)
-      if (m.used) m.inner = inner_->createMesh(m.data);
-    for (Texture& t : textures_)
-      if (t.used) t.inner = inner_->createTexture(t.rgba.data(), t.w, t.h, t.repeat, t.mipmaps);
-  }
-  size_t countMeshes() const {
-    size_t n = 0;
-    for (const Mesh& m : meshes_) n += m.used;
-    return n;
-  }
-  size_t countTextures() const {
-    size_t n = 0;
-    for (const Texture& t : textures_) n += t.used;
-    return n;
-  }
-
-  std::unique_ptr<Renderer3D> inner_;
-  std::vector<Mesh> meshes_;
-  std::vector<Texture> textures_;
-  Frame3D frame_;
-  std::vector<Draw> draws_;
-  bool inFrame_ = false, software_ = false;
-  int simulateAt_ = 0, frames_ = 0;
+  bool lost() override { return g.lost; }
+  std::unique_ptr<Renderer3D> rebuild(std::string& why) override { return makeGlBackend(why); }
+  void simulateLoss() override { eglDestroyContext(g.display, g.context); }  // the next make-current fails like a lost context
+  void release() override { destroyEgl(); }
 };
 
 }  // namespace
@@ -366,7 +204,10 @@ class ResilientRenderer3D : public Renderer3D {
 std::unique_ptr<Renderer3D> createAndroidHardwareRenderer3D(std::string& why) {
   std::unique_ptr<Renderer3D> gl = makeGlBackend(why);
   if (!gl) return nullptr;
-  return std::unique_ptr<Renderer3D>(new ResilientRenderer3D(std::move(gl)));
+  const char* loss = std::getenv("OTE_3D_SIMULATE_LOSS");
+  return std::unique_ptr<Renderer3D>(new ResilientRenderer3D(std::move(gl), std::unique_ptr<DeviceKeeper>(new EglKeeper()),
+                                                             loss ? std::atoi(loss) : 0,
+                                                             std::getenv("OTE_3D_SIMULATE_NO_REBUILD") != nullptr));
 }
 
 void shutdownAndroidHardware3D() { destroyEgl(); }  // before SDL goes away; a backend that lives on draws nothing

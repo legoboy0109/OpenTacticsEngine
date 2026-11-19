@@ -1,4 +1,5 @@
-// Gives the hardware 3D backend (engine/gfx3d/gl) a GL context of its own.
+// Gives the hardware 3D backend (engine/gfx3d/gl) a GL context of its own. (On Windows the Direct3D 11 backend is
+// tried first: sdl_d3d11_3d.cpp.)
 //
 // Desktop: a hidden 16 x 16 window with an OpenGL ES 3.0 context, or desktop
 // OpenGL 3.3 core where the driver has no ES (macOS). The backend draws into
@@ -170,6 +171,12 @@ std::unique_ptr<GlHost> makeHost() { return std::unique_ptr<GlHost>(new SdlGlHos
 
 }  // namespace
 
+#ifdef _WIN32
+void attachHardware3D(SDL_Renderer* renderer) { attachD3D11Renderer(renderer); }
+#else
+void attachHardware3D(SDL_Renderer*) {}
+#endif
+
 #ifdef __ANDROID__
 // Android has no second window: an EGL pbuffer context of its own (sdl_gl3d_android.cpp).
 std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) { return createAndroidHardwareRenderer3D(why); }
@@ -179,14 +186,38 @@ void shutdownHardware3D() { shutdownAndroidHardware3D(); }
 #else
 
 std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) {
-  if (!makeContext(why)) return nullptr;
+#ifdef _WIN32
+  // Windows: Direct3D 11 first (sdl_d3d11_3d.cpp); OTE_3D_API=opengl skips it, to try the OpenGL backend there.
+  std::string d3dWhy;
+  const char* api = SDL_getenv("OTE_3D_API");
+  if (!(api && !SDL_strcmp(api, "opengl"))) {
+    std::unique_ptr<Renderer3D> d3d = createD3D11HardwareRenderer3D(d3dWhy);
+    if (d3d) return d3d;
+    OTE_INFO("3D (Direct3D 11): not available (%s); trying OpenGL", d3dWhy.c_str());
+    d3dWhy = "Direct3D 11: " + d3dWhy + "; OpenGL: ";
+  }
+#else
+  const std::string d3dWhy;
+#endif
+  if (!makeContext(why)) {
+    why = d3dWhy + why;
+    return nullptr;
+  }
   std::unique_ptr<Renderer3D> r = GlRenderer3D::create(makeHost(), why);
   // A context that cannot do the job is of no use to a second try either.
-  if (!r) freeContext();
+  if (!r) {
+    freeContext();
+    why = d3dWhy + why;
+  }
   return r;
 }
 
-void shutdownHardware3D() { freeContext(); }
+void shutdownHardware3D() {
+#ifdef _WIN32
+  shutdownD3D11Hardware3D();
+#endif
+  freeContext();
+}
 
 #endif
 
