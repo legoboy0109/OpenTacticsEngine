@@ -16,6 +16,14 @@ class D3D11StateBackup {
   ~D3D11StateBackup() { clear(); }
   void save(ID3D11DeviceContext* c);
   void restore(ID3D11DeviceContext* c);  // also releases what save() held
+  // What save() found, valid until restore(): the render target and the first viewport the other user of the context
+  // (SDL) was drawing with. The SDL2 glue takes the place for the 3D picture from them (SDL2 shows no swap chain).
+  ID3D11RenderTargetView* savedTarget() const { return saved_ ? rtv_ : nullptr; }
+  bool savedViewport(D3D11_VIEWPORT& out) const {
+    if (!saved_ || viewportCount_ == 0) return false;
+    out = viewports_[0];
+    return true;
+  }
 
  private:
   void clear();

@@ -21,6 +21,7 @@ linked statically). The zip holds the player, `SDL3.dll`, `assets\`, `games\` (t
 | Replacing saves | `replaceFile()` (SDL3: `SDL_RenamePath`, replaces an existing file) instead of `std::rename`, which refuses to replace on Windows | Saves are written to `x.tmp` and moved over `x` |
 | C++ runtime | Static, `/MT` (`OTE_MSVC_STATIC_RUNTIME=ON`, the default) | The zip needs no Visual C++ redistributable on a clean PC. `-DOTE_MSVC_STATIC_RUNTIME=OFF` gives `/MD` for every target; UWP must use that. SDL3.dll has its own runtime use; no CRT objects (memory, FILE*) cross that boundary |
 | Flags | `/W4 /permissive- /utf-8 /EHsc /GR-` | `/GR-`: nothing in the engine or the editor uses RTTI (all of it builds). `/EHsc` on every target: the engine throws nothing, but the STL and `ote-editor` (exceptions on purpose) need it declared |
+| Window size | The largest whole multiple of 480x270 whose window (plus room for the title bar and frame) fits the display's usable area, at least 1x: 960x540 on a 1280x800 or 1366x768 screen, 1440x810 on a 1920x1080 one with a taskbar. `--scale N` still chooses. The log says `window scale N (the largest that fits the display's usable WxH; ...)` | The old fixed 3x (1440x810) hung off small screens. No setting is stored for it (there never was one); headless runs are unchanged. Same rule on Linux/macOS (SDL3 and SDL2) and for the UWP app on a PC (`platform/common/window_fit.h`, unit-tested) |
 | 3D | Hardware 3D is Direct3D 11 (feature level 10_0 or better): SDL is asked for its `direct3d11` renderer and the 3D picture is drawn with SDL's device onto its back buffer, under the 2D layer; OpenGL only if Direct3D 11 fails. Windowless runs keep the software drawer, as on Linux | No OpenGL driver needed (a PC with only Windows' own driver has none worth the name, Xbox has none); the same backend serves UWP. Details in docs/RENDER3D.md "Direct3D 11 backend" |
 
 ## Build
@@ -83,10 +84,9 @@ no icon yet (Windows SmartScreen may warn about an unsigned download).
   takes UTF-8 path strings that Windows reads in the ANSI code page: started on a `games` folder under a non-ASCII path
   (`...\éü-test\games`) it lists the projects but reads none of them (0 maps, problems reported). Not fixed: it is
   the desktop helper for the frozen web editor, it is not packaged, and the web editor UI (`editor\web`) was not part of this work.
-- The default window is 3 times the 480x270 game picture, 1440x810 pixels: bigger than a 1024x768 or 1280x720 screen (it is placed
-  partly off-screen there). `--scale N` changes it for one run, the same on Linux; a smarter default is a design question, not
-  done here.
 - The desktop build uses SDL3. The SDL2 backend has been built with MSVC only as the UWP app (docs/XBOX.md); on Linux both build.
+  Its Direct3D 11 glue (`platform/sdl2/sdl2_d3d11_3d.cpp`) is written for an SDL2 desktop build too (SDL2's `direct3d11`
+  renderer asked for by name, then Direct3D 11, OpenGL, software for 3D), but no SDL2 desktop build exists on Windows to try it.
 - The VM's clock was 7 hours behind (QEMU gave the guest local time while Windows reads UTC), which made files installed earlier look
   newer than new builds, so Ninja looped; setting the clock fixed it. Not an engine matter, but expect it after every VM start.
 

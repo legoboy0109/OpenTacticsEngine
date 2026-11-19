@@ -1,4 +1,5 @@
-// Gives the hardware 3D backend (engine/gfx3d/gl) a GL context of its own.
+// Gives the hardware 3D backend (engine/gfx3d/gl) a GL context of its own. (On Windows the Direct3D 11 backend is
+// tried first: sdl2_d3d11_3d.cpp.)
 //
 // A hidden 16 x 16 window with an OpenGL ES 3.0 context, or desktop OpenGL
 // 3.3 core where the driver has no ES (macOS). The backend draws into its own
@@ -46,6 +47,7 @@ class SdlGlHost : public GlHost {
   SDL_GLContext prevCtx_ = nullptr;
 };
 
+#ifndef OTE_UWP  // UWP has no OpenGL: only freeContext() (a no-op there) is used
 bool tryContext(bool es) {
   SDL_GL_ResetAttributes();
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, es ? SDL_GL_CONTEXT_PROFILE_ES : SDL_GL_CONTEXT_PROFILE_CORE);
@@ -83,6 +85,8 @@ bool makeContext(std::string& why) {
   return ok;
 }
 
+#endif
+
 void freeContext() {
   if (g.ctx) {
     if (SDL_GL_GetCurrentContext() == g.ctx) SDL_GL_MakeCurrent(nullptr, nullptr);
@@ -93,18 +97,61 @@ void freeContext() {
   g.window = nullptr;
 }
 
+#ifndef OTE_UWP
 std::unique_ptr<GlHost> makeHost() { return std::unique_ptr<GlHost>(new SdlGlHost()); }
+#endif
 
 }  // namespace
 
+#ifdef _WIN32
+void attachHardware3D(SDL_Renderer* renderer) { attachD3D11Renderer(renderer); }
+#else
+void attachHardware3D(SDL_Renderer*) {}
+#endif
+
+// Windows: Direct3D 11 first (sdl2_d3d11_3d.cpp), then OpenGL; UWP has no OpenGL, so there it is Direct3D 11 or
+// nothing (the player then logs it and draws with the software backend). OTE_3D_API=opengl skips Direct3D 11 on the
+// desktop, to try the OpenGL backend there.
+#ifdef OTE_UWP
 std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) {
-  if (!makeContext(why)) return nullptr;
+  std::string d3dWhy;
+  std::unique_ptr<Renderer3D> d3d = createD3D11HardwareRenderer3D(d3dWhy);
+  if (!d3d) why = "Direct3D 11: " + d3dWhy;
+  return d3d;
+}
+#else
+std::unique_ptr<Renderer3D> createHardwareRenderer3D(std::string& why) {
+#ifdef _WIN32
+  std::string d3dWhy;
+  const char* api = SDL_getenv("OTE_3D_API");
+  if (!(api && !SDL_strcmp(api, "opengl"))) {
+    std::unique_ptr<Renderer3D> d3d = createD3D11HardwareRenderer3D(d3dWhy);
+    if (d3d) return d3d;
+    OTE_INFO("3D (Direct3D 11): not available (%s); trying OpenGL", d3dWhy.c_str());
+    d3dWhy = "Direct3D 11: " + d3dWhy + "; OpenGL: ";
+  }
+#else
+  const std::string d3dWhy;
+#endif
+  if (!makeContext(why)) {
+    why = d3dWhy + why;
+    return nullptr;
+  }
   std::unique_ptr<Renderer3D> r = GlRenderer3D::create(makeHost(), why);
   // A context that cannot do the job is of no use to a second try either.
-  if (!r) freeContext();
+  if (!r) {
+    freeContext();
+    why = d3dWhy + why;
+  }
   return r;
 }
+#endif
 
-void shutdownHardware3D() { freeContext(); }
+void shutdownHardware3D() {
+#ifdef _WIN32
+  shutdownD3D11Hardware3D();
+#endif
+  freeContext();
+}
 
 }  // namespace ote

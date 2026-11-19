@@ -109,10 +109,11 @@ Windows desktop (SDL3, MSVC): done, see docs/WINDOWS.md. Hardware 3D is Direct3D
 GPU); unverified: sound (no audio device there); a real PC.
 
 UWP (SDL2 2.32, Xbox Dev Mode): done as far as a PC can show, see docs/XBOX.md: builds and runs as a UWP app on Windows 11
-(package, install, launcher, battles, software 3D, suspend / Continue; the Windows App Certification Kit passes); never run
-on a console yet. Still missing: a run on a real Xbox (Device Portal install, the 1 GB budget, B and a real controller, the
-TV fit), the Direct3D 11 3D glue for SDL2 ("Direct3D 11 3D on UWP" below; the backend itself exists), D3D11 device removal handling for SDL's 2D textures (same gap as
-the other platforms, "Not handled" above), a decision on B on the launcher, final names and logos.
+(package, install, launcher, battles, software and Direct3D 11 3D, suspend / Continue; the Windows App Certification Kit passes); never run
+on a console yet. Hardware 3D is Direct3D 11 on SDL2's device ("Direct3D 11 3D on UWP" below), run on WARP only. Still
+missing: a run on a real Xbox (Device Portal install, the 1 GB budget, B and a real controller, the TV fit, a real GPU),
+D3D11 device removal handling for SDL's 2D textures (same gap as the other platforms, "Not handled" above), a decision
+on B on the launcher, final names and logos.
 
 Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
 (MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`
@@ -122,30 +123,21 @@ folders with non-ASCII names do not work there yet.
 
 ## Direct3D 11 3D on UWP
 
-The backend (`engine/gfx3d/d3d11/`, docs/RENDER3D.md "Direct3D 11 backend") is the same for UWP; only the glue is
-per platform. The SDL3 desktop glue is `platform/sdl3/sdl_d3d11_3d.cpp`; the SDL2 / UWP one has to provide the same three
-things, in its own file under `platform/sdl2/`:
+Done (`platform/sdl2/sdl2_d3d11_3d.cpp`; details in docs/RENDER3D.md "Direct3D 11 backend" and docs/XBOX.md "3D"). The
+backend in `engine/gfx3d/d3d11/` is the desktop's; only the glue is SDL2's:
 
-- **A `D3D11Host`** (`gfx3d/d3d11/d3d11_host.h`): `device()` / `context()` are SDL's
-  (`SDL_RenderGetD3D11Device(renderer)` in SDL2 2.0.16+, then `GetImmediateContext`; only when
-  `SDL_GetRendererInfo` names `direct3d11`). `enter()` calls `SDL_RenderFlush(renderer)` and saves the pipeline state with
-  `D3D11StateBackup` (`d3d11_state.h`); `leave()` restores it. SDL2 does not forget its cached state on a flush (SDL3 does), so
-  the exact restore is what keeps its 2D drawing right. `enter()` returns false when the device is removed
-  (`GetDeviceRemovedReason() != S_OK`) or SDL's device pointer changed.
-- **Where the picture goes.** Either `screen()` gives a render target view of SDL's back buffer and the frame's rectangle in
-  its pixels (the 3D picture is drawn there as one quad under the 2D layer, no read-back). SDL2 exposes no swap chain, so the
-  glue would take the render target currently bound by SDL (`OMGetRenderTargets` after the flush; with no texture target set
-  that is the back buffer) and map the rectangle through `SDL_RenderGetViewport` / `SDL_RenderGetScale`. Or `screen()` returns
-  false and the picture is read back into `framePixels` and shown through an SDL texture as on every other backend: simpler,
-  slower (a GPU-CPU-GPU round trip per frame); a sensible first step.
-- **Device loss**: wrap the backend in `ResilientRenderer3D` (`gfx3d/resilient3d.h`) with a `DeviceKeeper` (see
-  `D3D11Keeper` in the SDL3 glue): lost = removed or SDL's device changed (SDL2 sends `SDL_RENDER_DEVICE_RESET` and makes
-  a new one), rebuild = a new backend on SDL's new device. `OTE_3D_SIMULATE_LOSS` then works there too.
-- **Suspend**: UWP requires `IDXGIDevice3::Trim()` on the device when the app is suspended (Lifecycle
-  `WillEnterBackground`), after the last frame. SDL2's WinRT layer trims its renderer's device when suspending
-  (`D3D11_Trim`; confirm in the SDL2 version used), so a shared device needs nothing more. An own device (read-back mode without SDL's device) must be trimmed by
-  the glue.
+- **Host**: SDL's device (`SDL_RenderGetD3D11Device`, which SDL 2.32 builds for desktop Windows only: `tools/uwp/build.ps1`
+  turns it on for WinRT with two small source edits). `enter()` queues one invisible point (so SDL binds its target and
+  viewport), calls `SDL_RenderFlush` and saves the pipeline state with `D3D11StateBackup`; `leave()` puts it back
+  exactly (SDL2 does not forget its cached state on a flush).
+- **Picture**: one quad onto the render target SDL has bound (its back buffer; SDL2 exposes no swap chain), at the
+  frame's rectangle mapped through SDL's bound viewport and `SDL_RenderGetScale`. No read-back. Read-back stays the
+  fallback for an own device (`OTE_3D_D3D11_OWN=1`) or a texture render target.
+- **Device loss**: `ResilientRenderer3D` with a keeper like the SDL3 glue's: lost = removed, simulated, or SDL's device
+  pointer changed (SDL2 makes a new one and sends `SDL_RENDER_DEVICE_RESET`).
+- **Suspend**: SDL 2.32's WinRT layer trims its own (shared) device in its suspend task; the glue trims only an own
+  device (`ClearState` + `IDXGIDevice3::Trim` on `SDL_APP_WILLENTERBACKGROUND`).
 
-Feature level: an Xbox One gives UWP apps 10_1 (Series: 11_0+), which the backend is tested at (`ote_tests` on Windows,
-`tests/render3d_d3d11_test.py`). No shader is compiled at run time (no `d3dcompiler` needed). The SDL2 backend's
-`OTE_SDL2_UPLOAD_ARGB8888` matters only in read-back mode.
+Feature level: 10_0 or better is accepted (an Xbox One gives UWP apps 10_1, Series 11_0+); SDL2 itself may make a 9_x
+device on old hardware, which the backend refuses with a log line (then software). No shader is compiled at run time.
+The SDL2 backend's `OTE_SDL2_UPLOAD_ARGB8888` matters only for the software 3D picture and read-back mode.

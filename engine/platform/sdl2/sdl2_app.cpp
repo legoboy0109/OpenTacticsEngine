@@ -7,6 +7,7 @@
 
 #include "core/base/log.h"
 #include "platform/platform.h"
+#include "platform/common/window_fit.h"
 #ifdef OTE_UWP
 #include "platform/common/uwp.h"
 #endif
@@ -145,7 +146,21 @@ int runApp(App& app, const PlatformConfig& config) {
   // Gamepads are optional: a failure here must not stop the game.
   if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) OTE_WARN("gamepad support unavailable: %s", SDL_GetError());
 
-  int scale = config.windowScale < 1 ? 1 : config.windowScale;
+  int scale = config.windowScale;
+  if (scale < 1 && !config.headless) {
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
+    scale = 1;  // full screen / the page's canvas: the size asked does not matter
+#else
+    // The largest whole scale whose window fits the first display (a 1440x810 window would hang off a 1024x768 screen).
+    // UWP too: on a PC SDL asks Windows for that size (TryResizeView); an Xbox keeps the app full screen anyway.
+    SDL_Rect usable = {0, 0, 0, 0};
+    if (SDL_GetDisplayUsableBounds(0, &usable) != 0) OTE_WARN("display size unknown: %s", SDL_GetError());
+    scale = fitWindowScale(config.logicalWidth, config.logicalHeight, usable.w, usable.h);
+    OTE_INFO("window scale %d (the largest that fits the display's usable %dx%d; --scale N to choose)", scale, usable.w,
+             usable.h);
+#endif
+  }
+  if (scale < 1) scale = 1;
   // Headless windows are exactly logical size (times headlessScale) so screenshots are 1:1.
   int hs = config.headlessScale < 1 ? 1 : config.headlessScale;
   int winW = config.logicalWidth * (config.headless ? hs : scale);
@@ -164,7 +179,23 @@ int runApp(App& app, const PlatformConfig& config) {
   if (config.headless) {
     ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
   } else {
-    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+#ifdef _WIN32
+    // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its
+    // target (sdl2_d3d11_3d.cpp). On UWP it is SDL2's only hardware renderer anyway; SDL2's desktop default would be
+    // Direct3D 9. The SDL_RENDER_DRIVER hint (or environment variable) still wins. Picking a driver turns SDL2's
+    // command batching off unless it is asked for: the 3D glue flushes SDL before every use, so batching stays on.
+    if (!SDL_GetHint(SDL_HINT_RENDER_DRIVER)) {
+      for (int i = 0, n = SDL_GetNumRenderDrivers(); i < n && !ren; ++i) {
+        SDL_RendererInfo di;
+        if (SDL_GetRenderDriverInfo(i, &di) != 0 || SDL_strcmp(di.name, "direct3d11") != 0) continue;
+        if (!SDL_GetHint(SDL_HINT_RENDER_BATCHING)) SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
+        ren = SDL_CreateRenderer(window, i, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!ren) OTE_INFO("SDL's Direct3D 11 renderer is not available (%s); taking SDL's default", SDL_GetError());
+      }
+    }
+    if (!ren)
+#endif
+      ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
       OTE_WARN("accelerated renderer failed (%s); falling back to software", SDL_GetError());
       ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
@@ -183,6 +214,7 @@ int runApp(App& app, const PlatformConfig& config) {
     OTE_INFO("SDL video driver '%s', renderer '%s'", SDL_GetCurrentVideoDriver(), info.name);
   }
 
+  attachHardware3D(ren);
   SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
   if (SDL_RenderSetLogicalSize(ren, config.logicalWidth, config.logicalHeight) != 0)
     OTE_WARN("logical size failed: %s", SDL_GetError());
