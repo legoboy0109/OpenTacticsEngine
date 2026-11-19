@@ -45,7 +45,7 @@ files dir: `settings.json`, `saves/`), `extraContentRoot()` = `Android/data/<id>
 - Logs go to logcat, tag `OTE` (`adb logcat -s OTE`); SDL's own lines use tag `SDL`.
 - Touch is SDL's synthesized left-button mouse; the launcher, game page and battle (select, move, menu) work by tap.
 - Back is trapped (`SDL_HINT_ANDROID_TRAP_BACK_BUTTON=1`) and arrives as `AC_BACK` = Cancel. On the launcher's first screen
-  Cancel does nothing, so back does not leave the app there (Home does).
+  back leaves the app (Android only; elsewhere Cancel does nothing there).
 - Fullscreen (immersive); Android shows its one-time "Viewing full screen" notice on first launch.
 - Home / return: `background` and `foreground` reach the app; a battle in progress writes its Continue save on Home.
 
@@ -55,6 +55,6 @@ files dir: `settings.json`, `saves/`), `extraContentRoot()` = `Android/data/<id>
   3D renderer is used (slow on a phone-sized 3D picture; not measured on a real device).
 - Device reset: GL context loss (rotation is handled by `configChanges`, but memory pressure can still lose textures) is not
   handled (docs/PORTING.md "Not handled").
-- Safe-area / notch insets, an app icon, a release build, AAB, and a way to leave the app from the launcher with back.
+- Safe-area / notch insets, an app icon, a release build, AAB.
 - Audio: SDL3 opens its device and the game's tracks load; nothing was listened to (the emulator ran without sound).
 - Only tested on an x86_64 emulator (API 36, software GL). arm64 libraries build but have not run.

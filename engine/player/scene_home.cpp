@@ -74,6 +74,11 @@ void HomeScene::onInput(const InputEvent& e) {
   } else if (e.type == InputEvent::ButtonDown) {
     if (list_.step(e.button)) return;
     if (e.button == Button::Confirm) activate(list_.sel);
+#ifdef __ANDROID__
+    // Owner's decision: on Android the back key (Cancel) on the first screen leaves the app, as users expect there.
+    // Elsewhere Cancel does nothing here, so a stray Esc or B press cannot close the player.
+    if (e.button == Button::Cancel) host_.quit();
+#endif
   }
 }
 
