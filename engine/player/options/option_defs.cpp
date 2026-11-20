@@ -99,6 +99,14 @@ std::vector<OptionChoice> menuUnavailableChoices(const OptionContext& ctx) {
 }
 void applyMenuUnavailable(const Json& v, LookLayer& l) { l.menuUnavailable = v.asString(); }
 
+// ---- enemy ranges (docs/SRPG.md "Enemy ranges") --------------------------------------------------------------------
+// What the danger-zone display of a marked enemy / "show all" draws. Unset = movement and attack; a game can switch the display off.
+std::vector<OptionChoice> enemyRangesChoices(const OptionContext& ctx) {
+  return {choice(ctx.game ? "Use global" : "Game default"), choice("Movement + attack", Json::makeString("both")),
+          choice("Attack only", Json::makeString("attack")), choice("Off", Json::makeString("off"))};
+}
+void applyEnemyRanges(const Json& v, LookLayer& l) { l.enemyRanges = v.asString(); }
+
 // ---- volumes (docs/SOUND.md "Options") ----------------------------------------
 // 0..10; 0 = off (music is not even decoded). Element 0 is "not set": the default of 7, or the global value.
 // Sliders (OptionDef::slider): element 1 + v is the value v.
@@ -136,6 +144,7 @@ const std::vector<OptionDef>& optionDefs() {
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
       {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
       {"menuUnavailable", "Unavailable actions", menuUnavailableChoices, applyMenuUnavailable},
+      {"enemyRanges", "Enemy ranges", enemyRangesChoices, applyEnemyRanges},
 #ifdef OTE_NXDK
       {"safeArea", "Screen margin", safeAreaChoices, applySafeArea},  // the one Xbox-only row (not in any other build)
 #endif

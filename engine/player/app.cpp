@@ -80,6 +80,7 @@ GameLook lookOf(const Database& db) {
   g.root = db.rootPath;
   g.battleScene = db.battleSceneDefault;
   g.menuHide = db.menuHideUnavailable;
+  g.enemyRanges = db.enemyRanges;
   for (const StyleDef& s : db.styles) {
     g.styleIds.push_back(s.id);
     g.styleUsable.push_back(viewSupported(s.view));
@@ -97,6 +98,7 @@ GameLook lookOf(const GameEntry& e) {
   g.root = e.dir;
   g.battleScene = e.info.battleScene;
   g.menuHide = e.info.menuHide;
+  g.enemyRanges = e.info.enemyRanges;
   for (const StyleInfo& s : e.info.styles) {
     g.styleIds.push_back(s.id);
     g.styleUsable.push_back(viewSupported(s.view));

@@ -71,6 +71,9 @@ class SceneHost {
   virtual bool battleScene() const = 0;
   // The action menu leaves out entries with nothing to act on (the player setting "Unavailable actions", else the game's default; docs/SRPG.md "Menu options").
   virtual bool menuHide() const = 0;
+  // The enemy-range display of a battle: 0 off, 1 movement + attack, 2 attack only (the player setting "Enemy ranges", never on in a game
+  // that switched it off; docs/SRPG.md "Enemy ranges").
+  virtual int enemyRanges() const = 0;
 
   // Save files of a game (docs/SAVES.md). Disabled (enabled() false) when saving is
   // off for this run: --no-saving, or a headless / --no-settings run without --saves,

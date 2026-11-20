@@ -18,6 +18,7 @@ bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err) {
   parseSavingMode(root["saving"].asString("any"), out.saving);
   out.battleScene = root["battleScene"].asString() == "scene";
   out.menuHide = root["menuUnavailable"].asString() == "hide";
+  out.enemyRanges = root["rules"]["display"]["enemyRanges"].asBool(true);
   const Json& grid = root["grid"];
   if (grid["type"].asString() == "hex") {
     out.gridType = GridType::Hex;

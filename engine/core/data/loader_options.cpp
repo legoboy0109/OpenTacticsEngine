@@ -1,4 +1,4 @@
-// Two small rule switches of game.json "rules": "research" { "needsStructure" } and "fog" { "ambush" }.
+// Small rule switches of game.json "rules": "research" { "needsStructure" }, "fog" { "ambush" }, "hitRoll" and "display" { "enemyRanges" }.
 // Both are optional and a game without them keeps its save fingerprint, but note (docs/ECONOMY.md) that research
 // no longer needs a building unless needsStructure is on.
 #include "core/data/loader_content.h"
@@ -33,6 +33,11 @@ bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db) {
     if (ambush == "endsTurn") db.rules.ambush = AmbushRule::EndsTurn;
     else if (ambush == "canAct") db.rules.ambush = AmbushRule::CanAct;
     else return c.fail("rules.fog", "\"ambush\" must be \"endsTurn\" or \"canAct\", not \"" + ambush + "\"");
+  }
+  if (!c.object(rules, "display", "rules", blk)) return false;
+  if (rules.has("display")) {
+    if (!onlyKey(c, *blk, "rules.display", "enemyRanges")) return false;
+    if (!c.boolean(*blk, "enemyRanges", "rules.display", db.enemyRanges)) return false;
   }
   // "rules.hitRoll": "single" (default, one random number per strike) or "average2" (docs/SRPG.md "The hit roll").
   if (rules.has("hitRoll")) {
