@@ -44,10 +44,8 @@ def run_height_checks(api, tmp, games, templates, check, get_project, put_projec
     st, d2 = get_project(api, pid)
     check("height: ... the problems are still none and the data read back is the same",
           problems() == [] and d2["game"] == d["game"] and d2["weapons"] == d["weapons"] and d2["units"] == d["units"], "differs")
-    maps = {m["id"]: m for m in d2.get("maps", [])} if isinstance(d2.get("maps"), list) else {}
-    cliffs = maps.get("cliffs")
-    if cliffs is not None and isinstance(cliffs, dict):
-        check("height: a map's heights come back", "heights" in json.dumps(cliffs), list(cliffs)[:8])
+    cliffs = d2.get("maps", {}).get("cliffs", {})
+    check("height: a map's heights come back with GET", cliffs.get("heights", [[]])[0] == [0, 0, 0, 0, 0, 2, 2, 2], list(cliffs)[:8])
 
     def refused(label, change, needle):
         st, cur = get_project(api, pid)
