@@ -4,6 +4,8 @@
 
 #include "campaign/campaign_run.h"
 #include "campaign/end_scenes.h"
+#include "campaign/jobs_scene.h"
+#include "core/jobs/job_camp.h"
 #include "campaign/story_scene.h"
 #include "core/base/log.h"
 #include "sound/cue_sink.h"
@@ -51,7 +53,8 @@ void CampScene::choose(int row) {
   left_ = true;
   uiCue(Cue::Confirm);
   if (CampaignRun* run = host_.session()->campaign.get()) {
-    if (row < (int)rows_.size()) run->campPlay = rows_[(size_t)row].pair;
+    if (row < (int)rows_.size() && rows_[(size_t)row].jobs) run->campJobs = true;
+    else if (row < (int)rows_.size()) run->campPlay = rows_[(size_t)row].pair;
     else run->campDone = true;
   }
   host_.campaignNext();  // replaces this scene: nothing after this line
@@ -117,10 +120,18 @@ std::unique_ptr<Scene> campStep(SceneHost& host) {
     OTE_WARN("camp: pair %d has no conversation waiting", chosen);
   }
   if (run.campDone) return nullptr;
+  if (run.campJobs) return std::unique_ptr<Scene>(new JobsScene(host));  // the Jobs screen was chosen in the camp (docs/JOBS.md)
   std::vector<int> pending;
   pendingSupports(db, pt, pending);
   std::vector<CampRow> rows = campRows(db, pt.supports, pending);
-  if (rows.empty()) return nullptr;  // nothing to talk about: no camp
+  if (!jobsRosterIds(db, pt).empty()) {  // a game with jobs: one row after the conversations
+    CampRow jobs;
+    jobs.jobs = true;
+    jobs.label = "Jobs";
+    jobs.extra = "Change, learn, equip";
+    rows.push_back(jobs);
+  }
+  if (rows.empty()) return nullptr;  // nothing to talk about and no jobs to change: no camp
   std::string log;
   for (const CampRow& r : rows) log += (log.empty() ? "" : ", ") + r.label + " (" + r.extra + ")";
   OTE_INFO("camp: %s", log.c_str());

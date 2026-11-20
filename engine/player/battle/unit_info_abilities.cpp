@@ -39,6 +39,8 @@ void addAbilitiesPage(UnitInfoPages& pages, const Battle& b, int unit) {
     const AbilityDef& d = b.db->abilities[(size_t)id];
     Block k;
     k.name = d.name;
+    if (b.jobGivesAbility(u, id) && std::find(b.typeOf(u).abilities.begin(), b.typeOf(u).abilities.end(), id) == b.typeOf(u).abilities.end())
+      k.name += " (Job)";  // learned in its job or equipped from another (docs/JOBS.md); the place abilitiesOf puts a job's abilities
     k.effect = abilityEffectText(*b.db, d);
     k.target = "Use on " + abilityTargetText(d);
     if (!abilityRangeText(d).empty()) k.target += ", " + abilityRangeText(d);

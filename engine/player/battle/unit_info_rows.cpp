@@ -6,6 +6,7 @@
 #include "battle/item_text.h"
 #include "battle/rank_text.h"
 #include "battle/unit_info_rank.h"
+#include "core/jobs/job_rules.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -29,6 +30,7 @@ const char* skillSourceName(SkillSource s) {
     case SkillSource::Weapon: return "Weapon";
     case SkillSource::Side: return "Side";
     case SkillSource::Rank: return "Rank";
+    case SkillSource::Job: return "Job";
   }
   return "";
 }
@@ -68,6 +70,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
              has(db.characters[(size_t)u.character].skills, s))
       row.source = SkillSource::Personal;
     else if (rankGives(b, u, s)) row.source = SkillSource::Rank;
+    else if (b.jobGivesSkill(u, s)) row.source = SkillSource::Job;  // the same place skillsOf puts a job's skills: after the rank's
     else if (sideGives(b, u, s)) row.source = SkillSource::Side;
     else {
       bool item = false;
@@ -86,6 +89,10 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
   const Database& db = *b.db;
   std::vector<InfoRow> rows;
   rows.push_back({"Class", b.typeOf(u).name, "", kText, kLabel});
+  if (b.jobsGame() && u.jobs.on()) {  // docs/JOBS.md: "Squire  Lv 2  JP 40" (JP left to spend in this job)
+    const int left = jobUnspent(u.jobs, u.jobs.job);
+    rows.push_back({"Job", b.db->jobs[(size_t)u.jobs.job].name + "  Lv " + intStr(b.unitJobLevel(u)), "JP " + intStr(left), kText, kSmall});
+  }
   if (db.rules.progression && db.rules.unitRanks.on())  // docs/SRPG.md "Unit ranks": the rank and the experience towards the next, instead of a level
     rows.push_back({"Rank", unitRankName(b, u) + "  " + unitRankXpText(b, u), "", kText, kLabel});
   else if (db.rules.progression)

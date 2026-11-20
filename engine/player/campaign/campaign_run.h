@@ -18,6 +18,7 @@ struct CampaignRun {
   // when the chapter's before scene starts.
   int campPlay = -1;
   bool campDone = false;
+  bool campJobs = false;  // the camp's Jobs screen is open (docs/JOBS.md); the flow shows it instead of the camp until it is left
   // The chapter's preparation screen (docs/EVENTS.md "Preparation") was answered with Begin: the battle starts now. Cleared when
   // a chapter's before scene starts and when a lost battle is tried again (the screen comes back, with the same choice).
   bool prepDone = false;

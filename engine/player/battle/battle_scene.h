@@ -279,6 +279,9 @@ class BattleScene : public Scene {
   void prepMainMenu();
   void prepMenuChosen(int id);
   void prepUnitsOpen(int sel = 0);
+  void prepJobsOpen();  // battle_prep_jobs.cpp (docs/JOBS.md): the same Jobs screen as the camp's
+  void prepJobsInput(const InputEvent& e);
+  void prepJobsDraw(Renderer& r);
   void prepUnitsPicked();
   void prepPositionsButton(Button b);
   void prepViewButton(Button b);

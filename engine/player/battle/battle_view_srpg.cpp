@@ -24,7 +24,7 @@ bool isSrpgEvent(EventType t) {
     case EventType::SupportPoints: case EventType::SupportReached: case EventType::RankUp:
     case EventType::StaffUsed: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::AreaLit:
     case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: case EventType::ConditionTick:
-    case EventType::ItemStolen: case EventType::UnitRefreshed: case EventType::UnitRankUp: return true;
+    case EventType::ItemStolen: case EventType::UnitRefreshed: case EventType::UnitRankUp: case EventType::JpGained: return true;
     default: return false;
   }
 }
@@ -54,6 +54,7 @@ const char* srpgEventName(EventType t) {
     case EventType::ItemStolen: return "ItemStolen";
     case EventType::UnitRefreshed: return "UnitRefreshed";
     case EventType::UnitRankUp: return "UnitRankUp";
+    case EventType::JpGained: return "JpGained";
     default: return "?";
   }
 }
@@ -63,7 +64,7 @@ const char* srpgEventName(EventType t) {
 bool BattleView::beginSrpg(const Battle& b) {
   const Event& e = cur_.ev;
   if (!isSrpgEvent(e.type)) return false;
-  if (beginSkills(b) || beginPromotion(b) || beginAbilities(b) || beginRescue(b) || beginSupports(b) || beginRanks(b) || beginUnitRank(b) || beginStaves(b) || beginConditions(b)) return true;
+  if (beginSkills(b) || beginPromotion(b) || beginAbilities(b) || beginRescue(b) || beginSupports(b) || beginRanks(b) || beginUnitRank(b) || beginJobs(b) || beginStaves(b) || beginConditions(b)) return true;
   OTE_INFO("srpg event (not shown yet): %s a=%d b=%d c=%d d=%d flags=%d", srpgEventName(e.type), e.a, e.b, e.c, e.d, e.flags);
   cur_.dur = 0;
   return true;

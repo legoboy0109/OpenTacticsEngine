@@ -42,6 +42,7 @@ struct CampRow {
   int pair = -1;
   std::string label;  // "Eirik and Lyra"
   std::string extra;  // "Level 2"
+  bool jobs = false;  // the camp's "Jobs" row (docs/JOBS.md): no pair, `label` is "Jobs"
 };
 std::vector<CampRow> campRows(const Database& db, const SupportState& state, const std::vector<int>& pending);
 

@@ -325,6 +325,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::ItemStolen:
     case EventType::UnitRefreshed:
     case EventType::UnitRankUp:
+    case EventType::JpGained:
     case EventType::UnitRescued:
     case EventType::UnitDropped:
     case EventType::UnitHanded:
