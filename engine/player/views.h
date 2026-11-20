@@ -11,4 +11,14 @@ inline bool viewSupported(StyleView v) {
   return v == StyleView::TopDown || v == StyleView::Isometric || v == StyleView::Isometric3D || v == StyleView::Full3D;
 }
 
+// A style the player may offer: a kind of view it can draw, and art that fits the machine. The original Xbox has 64 MB
+// in all; a style marked "largeArt" (docs/GAME_FORMAT.md "styles") does not fit there (docs/XBOX_OG.md "Limits").
+template <class Style>
+inline bool styleUsable(const Style& s) {
+#ifdef OTE_NXDK
+  if (s.largeArt) return false;
+#endif
+  return viewSupported(s.view);
+}
+
 }  // namespace ote

@@ -562,6 +562,8 @@ is the default. A game without a `styles` list has one style, `default`.
   { "id": "night", "name": "Night",
     "background": "#05060f",                       // screen background
     "showGlyphs": false,                           // hide terrain letters
+    "largeArt": true,                              // optional: this style's art needs a lot of memory; players on small consoles
+                                                   // (the original Xbox, 64 MB) do not offer it. Default false
     "terrainColors": { "plain": "#2f4f3a", "sea": "#101a40" },   // recolor terrain
     "structureColors": { "city": "#6a6a78" } }                    // recolor structure blocks
 ]

@@ -12,7 +12,7 @@
     { "id": "isometric-3d", "name": "3D Isometric", "view": "isometric-3d", "background": "#161a24" },
     { "id": "full-3d", "name": "Full 3D", "view": "3d", "background": "#161a24" },
     // Detailed test art from CC0 packs (CREDITS.md); built by tools/art/make_detailed_style.py.
-    { "id": "detailed-3d", "name": "Detailed 3D", "view": "3d", "background": "#1c2430" }
+    { "id": "detailed-3d", "name": "Detailed 3D", "view": "3d", "background": "#1c2430", "largeArt": true }
   ],
   "view": { "width": 480, "height": 270, "tileSize": 24 },
 

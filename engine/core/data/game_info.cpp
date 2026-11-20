@@ -39,6 +39,7 @@ bool loadGameInfo(const std::string& gameDir, GameInfo& out, std::string& err) {
     si.view = view == "isometric" ? StyleView::Isometric
               : view == "isometric-3d" ? StyleView::Isometric3D
               : view == "3d" ? StyleView::Full3D : StyleView::TopDown;
+    si.largeArt = s["largeArt"].asBool(false);
     out.styles.push_back(si);
   }
   if (out.styles.empty()) out.styles.push_back(StyleInfo{"default", "Default"});

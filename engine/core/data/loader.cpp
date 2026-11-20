@@ -307,6 +307,7 @@ static bool loadStyles(const std::string& path, Database& db, std::string& err) 
       st.hasBackground = true;
       st.background = parseColor(bg, 0);
     }
+    if (!c.boolean(j, "largeArt", where, st.largeArt)) return false;
     std::string view;
     if (!c.str(j, "view", where, view)) return false;
     if (view.empty() || view == "top-down") st.view = StyleView::TopDown;

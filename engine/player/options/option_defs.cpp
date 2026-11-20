@@ -47,14 +47,14 @@ std::vector<OptionChoice> styleChoices(const OptionContext& ctx) {
   if (ctx.game) {
     out[0].label = "Use global";
     for (const StyleInfo& s : ctx.game->info.styles)
-      if (viewSupported(s.view)) out.push_back(choice(s.name, Json::makeString(s.id)));
+      if (styleUsable(s)) out.push_back(choice(s.name, Json::makeString(s.id)));
     return out;
   }
   std::vector<std::string> ids, names;
   if (ctx.games)
     for (const GameEntry& g : *ctx.games)
       for (const StyleInfo& s : g.info.styles) {
-        if (!viewSupported(s.view)) continue;  // this player cannot draw it
+        if (!styleUsable(s)) continue;  // this player cannot draw it
         size_t i = 0;
         while (i < ids.size() && ids[i] != s.id) ++i;
         if (i == ids.size()) { ids.push_back(s.id); names.push_back(s.name); }

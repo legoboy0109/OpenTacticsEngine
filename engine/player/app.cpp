@@ -83,7 +83,7 @@ GameLook lookOf(const Database& db) {
   g.enemyRanges = db.enemyRanges;
   for (const StyleDef& s : db.styles) {
     g.styleIds.push_back(s.id);
-    g.styleUsable.push_back(viewSupported(s.view));
+    g.styleUsable.push_back(styleUsable(s));
   }
   return g;
 }
@@ -101,7 +101,7 @@ GameLook lookOf(const GameEntry& e) {
   g.enemyRanges = e.info.enemyRanges;
   for (const StyleInfo& s : e.info.styles) {
     g.styleIds.push_back(s.id);
-    g.styleUsable.push_back(viewSupported(s.view));
+    g.styleUsable.push_back(styleUsable(s));
   }
   return g;
 }

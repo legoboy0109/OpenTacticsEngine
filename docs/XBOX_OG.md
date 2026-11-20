@@ -307,7 +307,7 @@ results), draws the final map, and times a software 3D scene at 640x480 and 1280
 
 * Never run on a real console; sound, controller, real TV and disk speed unverified.
 * Video mode is chosen at start only (`OTE_VIDEO` in `args.txt`); there is no Options row for 480 / 720p.
-* 3D: see "Limits" in the 3D section; the "Detailed 3D" style of Story Tactics does not fit the memory (owner's choice there).
+* 3D: see "Limits" in the 3D section; the "Detailed 3D" style of Story Tactics does not fit the memory, so it is marked `"largeArt": true` in its game.json and this build does not offer it (`styleUsable()` in `engine/player/views.h`; owner's decision 2026-11-20).
 * Settings per game exist for the Screen margin row because every option row has them; a global value is the sensible use.
 * A real console's dashboard may show the app folder without an icon (no `TitleImage.xbx` / `default.xbe` logo is made).
 * The XBE has nxdk's fixed title ID `0xFFFF0002` (cxbe offers no option); nothing here depends on it because data lives in the

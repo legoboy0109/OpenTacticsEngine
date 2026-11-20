@@ -450,6 +450,7 @@ struct StyleDef {
   bool hasBackground = false;
   uint32_t background = 0;
   int showGlyphs = -1;  // 1/0 = force terrain letters on/off, -1 = default
+  bool largeArt = false;  // "largeArt": needs more memory than a small console has; not offered there (views.h styleUsable)
   // Per terrain index: replacement color, or -1 to keep the terrain's own.
   std::vector<int32_t> terrainColors;
   // Same for structures' placeholder blocks (per structure index).
