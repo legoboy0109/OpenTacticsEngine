@@ -4,7 +4,19 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-19, night) — read this first
+## Latest (2026-11-20, early morning)
+
+- **Pushed (origin/main = 6c2ecba, full check 49 clean):** enemy ranges, stacked storage lists, original Xbox native 3D
+  renderer (step 2, emulator only; `docs/XBOX_OG.md`), damage types (`docs/SRPG.md` "Damage types").
+- **Merged locally, full check 50 running:** side-wide modifiers + branching research (`docs/ECONOMY.md` "Branching research",
+  `docs/SRPG.md` "Side-wide modifiers"). Push `main` if check 50 is clean.
+- **In progress (agent, worktree):** factions (`data/factions.json`). After it: line fire + area attacks, AP turns, height
+  rules/facing, rank table, CO powers, speed turns, jobs (order and designs in `.agent/notes.md` "New mechanics plan").
+- **Owner decisions pending:** "Detailed 3D" style on the original Xbox (recommend hiding it there: 61/64 MB); forecast
+  "res +3" row placement; per-map-unit resistances; research cancel refund default (0%); AI research weights.
+- **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK.
+
+## Earlier (2026-11-19, night) — read this first
 
 origin/main = 75795e5 (full check 47: ote_tests 2309 both builds, editor API 1399, ctest 66/66, vitest 1614, e2e 616 in
 15.7 min, sims identical). Local main is two merges ahead (enemy ranges, stacked storage lists): full check 48 was started;
