@@ -91,6 +91,7 @@ struct CharacterDef {
   // Weapon ranks and stat caps (docs/SRPG.md section 7); empty when the character says nothing.
   std::vector<std::string> wields;  // extra weapon groups it can wield beyond its class's (docs/SRPG.md section 7); only ever adds
   std::vector<int> rankStart;     // per RankRules::groups index: personal weapon experience (the higher of it and the class's wins)
+  std::vector<int> resist;        // per damage type: this character's own resistance, kResistUnset = the unit type's value; empty = none written
   std::vector<int> capAdjust;     // per stat index: added to the cap the class / game gives (may be negative)
   // Quotes (docs/EVENTS.md "Battle and defeat quotes"); empty = none.
   std::vector<BattleQuote> battleQuotes;
@@ -128,7 +129,9 @@ struct SkillCond {
                     // Strike: which strike of the fight (strike / struck blocks; `op`, `value`; "first" = 1, "followUp" = 2 or more).
                     Strike,
                     // Marked: the owner (or its foe with "who") has the mark `key` in the fight now running; `flag` false = does not (docs/SRPG.md "Linking two strike blocks").
-                    Marked };
+                    Marked,
+                    // DamageType: the weapon's declared damage type (game.json "damageTypes") is `key` (docs/SRPG.md "Damage types").
+                    DamageType };
   enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)

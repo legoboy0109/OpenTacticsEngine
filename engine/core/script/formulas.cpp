@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt, difficulty, difficultyId = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt, difficulty, difficultyId, rs, ha, hb, dh = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -123,12 +123,14 @@ static void pushProps(lua_State* L, const Props* props) {
 // A weapon as formulas see it (`w`, `fw`): its props as numbers, plus `id` and `group` as text (group "" when the
 // weapon has none), so a formula can ask `w.group == "sword"`. A prop the maker named "id" or "group" wins, as before.
 // `answers` (only `fw` in a fight where the foe really answers) is set before the props, so a prop of that name wins.
-static void pushWeapon(lua_State* L, const WeaponDef* w, bool answers = false) {
+static void pushWeapon(lua_State* L, const Database& db, const WeaponDef* w, bool answers = false) {
   if (!w) { pushProps(L, nullptr); return; }
-  lua_createtable(L, 0, (int)w->props.size() + 3);
+  lua_createtable(L, 0, (int)w->props.size() + 4);
   lua_pushstring(L, w->id.c_str()); lua_setfield(L, -2, "id");
   lua_pushstring(L, w->group.c_str()); lua_setfield(L, -2, "group");
   lua_pushstring(L, w->damageKind.c_str()); lua_setfield(L, -2, "damageKind");  // "" when the weapon has none
+  // `w.damageType`: the declared type's id ("" in a game without damage types)
+  lua_pushstring(L, w->damageType >= 0 ? db.damageTypes.list[(size_t)w->damageType].id.c_str() : ""); lua_setfield(L, -2, "damageType");
   if (answers) { lua_pushinteger(L, 1); lua_setfield(L, -2, "answers"); }
   for (const NamedNumber& n : w->props) {
     lua_pushnumber(L, n.value);
@@ -139,11 +141,12 @@ static void pushWeapon(lua_State* L, const WeaponDef* w, bool answers = false) {
 // `fw`: the props of the foe's weapon like `w`; without one an empty table marked `none = 1` whose missing numbers
 // read 0 (see emptyWeaponMeta_), so a formula can test `fw.none` or just compute with it.
 void Formulas::pushFoeWeapon(const WeaponDef* fw, bool answers) {
-  if (fw) { pushWeapon(L_, fw, answers); return; }
+  if (fw) { pushWeapon(L_, *db_, fw, answers); return; }
   lua_createtable(L_, 0, 4);
   lua_pushinteger(L_, 1);
   lua_setfield(L_, -2, "none");
   lua_pushstring(L_, ""); lua_setfield(L_, -2, "damageKind");
+  lua_pushstring(L_, ""); lua_setfield(L_, -2, "damageType");
   lua_pushstring(L_, ""); lua_setfield(L_, -2, "id");     // strings, so `fw.group == "sword"` is simply false
   lua_pushstring(L_, ""); lua_setfield(L_, -2, "group");
   lua_rawgeti(L_, LUA_REGISTRYINDEX, emptyWeaponMeta_);
@@ -290,7 +293,7 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_rawgeti(L_, LUA_REGISTRYINDEX, ref);
   pushUnit(ctx.a, ctx, ctx.bonusA, ctx.followA, ctx.triA);
   pushUnit(ctx.b, ctx, ctx.bonusB, ctx.followB, ctx.triB);
-  pushWeapon(L_, ctx.w);
+  pushWeapon(L_, *db_, ctx.w);
   pushProps(L_, ctx.ta);
   pushProps(L_, ctx.tb);
   lua_pushinteger(L_, ctx.dist);
@@ -305,8 +308,12 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   const int diff = ctx.battle ? ctx.battle->difficulty : -1;
   lua_pushinteger(L_, diff > 0 ? diff : 0);
   lua_pushstring(L_, diff >= 0 && diff < (int)db_->difficulties.list.size() ? db_->difficulties.list[(size_t)diff].id.c_str() : "");
+  lua_pushinteger(L_, ctx.rs);
+  lua_pushinteger(L_, ctx.ha);
+  lua_pushinteger(L_, ctx.hb);
+  lua_pushinteger(L_, ctx.ha - ctx.hb);
   double result = def;
-  if (lua_pcall(L_, 15, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 19, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

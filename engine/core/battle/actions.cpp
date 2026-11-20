@@ -273,6 +273,7 @@ void Battle::applyCapture(const Action& action, std::vector<Event>& events) {
     ctx.a = &u;
     Props scratch;
     ctx.ta = &numbersAt(u.cell, scratch);
+    ctx.ha = heightAt(u.cell);
     ctx.battle = this;
     amount = (int)std::floor(formulas->eval(Formulas::CaptureAmount, ctx, points));
   }

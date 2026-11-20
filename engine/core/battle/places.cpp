@@ -172,7 +172,8 @@ bool Battle::placeStrike(const Unit& u, int structure, int weapon, Cell from, in
   ctx.vs = 1;
   Props scratchA, scratchB;
   ctx.ta = &numbersAt(from, scratchA);
-  if (near != kNoCell) ctx.tb = &numbersAt(near, scratchB);
+  ctx.ha = heightAt(from);
+  if (near != kNoCell) { ctx.tb = &numbersAt(near, scratchB); ctx.hb = heightAt(near); }
   ctx.dist = near == kNoCell ? 0 : grid.distance(from, near);
   damage = std::max(0, std::min(wholeNumber(formulas->evalDamage(weapon, ctx)), 1000000));
   strikes = formulas->has(Formulas::Strikes) ? std::max(1, std::min(8, wholeNumber(formulas->eval(Formulas::Strikes, ctx, 1)))) : 1;

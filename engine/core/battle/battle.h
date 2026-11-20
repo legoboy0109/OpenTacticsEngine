@@ -515,6 +515,11 @@ class Battle {
   const Props& numbersAt(Cell c, Props& scratch) const {
     return squareNumbers(*db, cells[c].terrain, structureTypeAt(c), scratch);
   }
+  // Height of a square (the map's per-cell heights; 0 for a map without) and the unit's flat resistance against damage type `type`
+  // (index into db->damageTypes.list): its character's own entry if it wrote one, else its unit type's; 0 without types
+  // (docs/SRPG.md "Damage types"). Formulas read them as `ha` / `hb` and `rs`.
+  int heightAt(Cell c) const { return grid.valid(c) ? cells[c].height : 0; }
+  int resistOf(const Unit& u, int type) const;
   // The same as `team` believes it to be: a structure it does not see counts as the kind it last saw (an upgrade done
   // out of sight must not show in what a viewer reads off a square). Without fog identical to numbersAt.
   const Props& numbersAtSeen(int team, Cell c, Props& scratch) const {

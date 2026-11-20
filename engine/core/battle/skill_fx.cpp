@@ -91,8 +91,8 @@ double Battle::skillExpr(int expr, const SkillCtx& ctx, double def) const {
   fc.b = b;
   if (ctx.weapon >= 0) fc.w = &db->weapons[(size_t)ctx.weapon];
   if (ctx.foeWeapon >= 0) fc.fw = &db->weapons[(size_t)ctx.foeWeapon];
-  if (ca != kNoCell) fc.ta = &numbersAt(ca, scratchA);
-  if (cb != kNoCell) fc.tb = &numbersAt(cb, scratchB);
+  if (ca != kNoCell) { fc.ta = &numbersAt(ca, scratchA); fc.ha = heightAt(ca); }
+  if (cb != kNoCell) { fc.tb = &numbersAt(cb, scratchB); fc.hb = heightAt(cb); }
   if (ca != kNoCell && cb != kNoCell) fc.dist = grid.distance(ca, cb);
   if (b && ctx.weapon >= 0) {
     double vs = 1;

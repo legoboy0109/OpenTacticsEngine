@@ -44,8 +44,8 @@ bool Battle::carryAllowed(const Unit& stays, const Unit& leaves) const {
   ctx.b = &leaves;
   Props scratchA, scratchB;
   // A unit that is already carried (Give / Take) has no square: its table gets no `tb`.
-  if (grid.valid(stays.cell)) ctx.ta = &numbersAt(stays.cell, scratchA);
-  if (grid.valid(leaves.cell)) ctx.tb = &numbersAt(leaves.cell, scratchB);
+  if (grid.valid(stays.cell)) { ctx.ta = &numbersAt(stays.cell, scratchA); ctx.ha = heightAt(stays.cell); }
+  if (grid.valid(leaves.cell)) { ctx.tb = &numbersAt(leaves.cell, scratchB); ctx.hb = heightAt(leaves.cell); }
   if (grid.valid(stays.cell) && grid.valid(leaves.cell)) ctx.dist = grid.distance(stays.cell, leaves.cell);
   return formulas->evalExpr(expr, ctx, 0) != 0;  // a failing formula counts as false (and is logged once)
 }

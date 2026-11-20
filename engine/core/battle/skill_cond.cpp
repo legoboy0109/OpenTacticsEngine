@@ -89,6 +89,9 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
     }
     case Kind::WeaponKind:
       return weapon >= 0 && db->weapons[(size_t)weapon].damageKind == cond.key;
+    case Kind::DamageType:
+      return weapon >= 0 && db->weapons[(size_t)weapon].damageType >= 0 &&
+             db->damageTypes.list[(size_t)db->weapons[(size_t)weapon].damageType].id == cond.key;
     case Kind::Turn:
       switch (cond.turnMode) {
         case SkillCond::TurnMode::Odd: return round % 2 == 1;

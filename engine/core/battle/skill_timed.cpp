@@ -38,7 +38,7 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
     if (ctx.foe >= 0 && ctx.foe < (int)units.size()) fc.b = &units[(size_t)ctx.foe];  // a "staffUse" block: the staff's target
     fc.healed = ctx.healed;
     Props scratch;
-    if (t.cell != kNoCell) fc.ta = &numbersAt(t.cell, scratch);
+    if (t.cell != kNoCell) { fc.ta = &numbersAt(t.cell, scratch); fc.ha = heightAt(t.cell); }
     const double v = formulas ? formulas->evalExpr(e.expr, fc, 0) : 0;
     return !(v > 0) ? 0 : v >= 1000000 ? 1000000 : (int)v;
   };
