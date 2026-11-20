@@ -210,7 +210,7 @@ void BattleScene::cycleUnit(int dir) {
   int cur = battle_.unitAt(cursor_);
   int best = -1, wrap = -1;
   for (const Unit& u : battle_.units) {
-    if (!u.alive || u.side != battle_.activeSide || battle_.unitSpent(u)) continue;
+    if (!battle_.mayActNow(u)) continue;
     if (dir > 0) {
       if (u.id > cur && best < 0) best = u.id;
       if (wrap < 0) wrap = u.id;
@@ -237,7 +237,7 @@ void BattleScene::idleButton(Button b) {
     case Button::Cancel: clearRanges(); break;  // (nothing else to cancel on the plain map)
     case Button::Confirm: {
       int uid = battle_.unitAt(cursor_);
-      if (uid >= 0 && battle_.canAct(uid) && !battle_.unitSpent(battle_.units[uid]) && battle_.units[uid].side == battle_.activeSide) {
+      if (uid >= 0 && battle_.mayActNow(battle_.units[uid])) {
         selectUnit(uid);
         return;
       }

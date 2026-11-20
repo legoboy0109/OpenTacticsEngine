@@ -115,16 +115,22 @@ struct Overlay {
   std::vector<uint8_t> reach, attack;
   const std::vector<uint8_t>* foeMove = nullptr;
   const std::vector<uint8_t>* foeAttack = nullptr;
-  bool any() const { return !reach.empty() || foeMove; }
+  // Speed turn order (docs/TURN_ORDER.md "Player"): the squares of the units that are charging an action and the squares those actions are aimed
+  // at (null = none; one entry per cell). Read through toneOf like the rest, so every kind of view paints them.
+  const std::vector<uint8_t>* chargeFrom = nullptr;
+  const std::vector<uint8_t>* chargeAim = nullptr;
+  bool any() const { return !reach.empty() || foeMove || chargeFrom; }
 };
 
-enum class Tone : uint8_t { None, Move, Attack, FoeMove, FoeAttack };
+enum class Tone : uint8_t { None, Move, Attack, FoeMove, FoeAttack, ChargeFrom, ChargeAim };
 
 inline Tone toneOf(const Overlay& ov, Cell cell) {
   if (!ov.reach.empty()) {
     if (ov.reach[(size_t)cell]) return Tone::Move;
     if (ov.attack[(size_t)cell]) return Tone::Attack;
   }
+  if (ov.chargeAim && (*ov.chargeAim)[(size_t)cell]) return Tone::ChargeAim;
+  if (ov.chargeFrom && (*ov.chargeFrom)[(size_t)cell]) return Tone::ChargeFrom;
   if (ov.foeMove) {
     if ((*ov.foeMove)[(size_t)cell]) return Tone::FoeMove;
     if ((*ov.foeAttack)[(size_t)cell]) return Tone::FoeAttack;
@@ -139,11 +145,15 @@ inline ToneRgb toneRgb(Tone t) {
     case Tone::Move: return {50, 110, 255};
     case Tone::Attack: return {255, 50, 50};
     case Tone::FoeMove: return {150, 80, 230};
+    case Tone::ChargeFrom: return {30, 200, 190};  // a unit that is charging an action (teal)
+    case Tone::ChargeAim: return {235, 60, 190};   // the square (or unit) it will hit (magenta)
     default: return {255, 170, 20};
   }
 }
 // The enemies' tones are drawn a little more opaque: violet and orange over green ground would otherwise read as grey and olive.
-inline uint8_t toneAlpha(Tone t, int alpha) { return (uint8_t)(t == Tone::FoeMove || t == Tone::FoeAttack ? alpha + 50 : alpha); }
+inline uint8_t toneAlpha(Tone t, int alpha) {
+  return (uint8_t)(t == Tone::FoeMove || t == Tone::FoeAttack || t == Tone::ChargeFrom || t == Tone::ChargeAim ? alpha + 50 : alpha);
+}
 inline Color toneColor(Tone t, int alpha) {
   const ToneRgb c = toneRgb(t);
   return Color(c.r, c.g, c.b, toneAlpha(t, alpha));

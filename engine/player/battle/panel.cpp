@@ -13,6 +13,7 @@
 #include "battle/mapweapon_text.h"
 #include "core/base/log.h"
 #include "battle/rank_text.h"
+#include "battle/speed_text.h"
 #include "battle/unit_info_rank.h"
 #include "ui/input_hints.h"
 #include "ui/text.h"
@@ -228,6 +229,15 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   y += 6;
   // Rows that would run past the panel bottom (tall fonts) are dropped, not overdrawn.
   const int bottom = c.layout.vh - lh;
+  if (b.speedGame() && y <= bottom) {  // docs/TURN_ORDER.md: the charge the clock has built, and the action it is charging
+    row(r, x, y, w, "Charge", intStr(std::max(0, u.ct)) + "/" + intStr(db.rules.speed.threshold));
+    y += rh;
+    const int pend = b.pendingOf(u.id);
+    if (pend >= 0 && y <= bottom) {
+      row(r, x, y, w, "Casting", chargeActionName(b, b.pending[(size_t)pend].weapon, b.pending[(size_t)pend].index), kLabel, Color(255, 200, 110));
+      y += rh;
+    }
+  }
   for (size_t s = 0; s < db.stats.size(); ++s) {
     if ((int)s == db.rules.statHp || y > bottom) continue;
     int own = u.stats[s], now = b.stat(u, (int)s);  // an accessory's share shows in colour
@@ -299,7 +309,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   const FactionDef* faction = b.factionOf(b.activeSide);
   r.drawText(x, 2, fitText(r, faction ? side.name + " (" + faction->name + ")" : side.name, w).c_str(), readableOn(sc));
   int y = L.panelTop();
-  row(r, x, y, w, "Turn " + intStr(b.round), (side.ai || autoplay) ? "AI" : "You");
+  row(r, x, y, w, (b.speedGame() ? "Round " : "Turn ") + intStr(b.round), (side.ai || autoplay) ? "AI" : "You");
   y += L.row;
 
   // Resources of the side the player is looking at (economy games, and games with shops to spend them in).

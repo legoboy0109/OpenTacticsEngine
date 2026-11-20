@@ -51,6 +51,7 @@ void BattleScene::logActionMenu(const std::vector<MenuItem>& items) {
 
 void BattleScene::openActionMenu() {
   mode_ = Mode::ActionMenu;
+  aimedChargeSpeed_ = 0;
   overlay_ = Overlay();
   staffList_ = false;
   staffFcOn_ = false;
@@ -67,6 +68,15 @@ void BattleScene::openActionMenu() {
   std::vector<MenuItem> items;
   if (u.acted) {  // "move again": its action is used up, only Info and Wait are left (docs/SRPG.md "Player UI")
     addSrpgInfoEntry(items);
+    items.push_back({"Wait", "", true, kWait});
+    menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
+    anchorActionMenu();
+    logActionMenu(items);
+    return;
+  }
+  if (battle_.speedGame() && battle_.charging(sel_)) {  // docs/TURN_ORDER.md: it may only move (done), wait, or give the charge up
+    addSrpgInfoEntry(items);
+    items.push_back({"Cancel Charge", "", true, kCancelChargeEntry});
     items.push_back({"Wait", "", true, kWait});
     menu_.open(host_.renderer(), "", items, 0, 0, layout_.vw, layout_.vh);
     anchorActionMenu();
@@ -189,6 +199,9 @@ void BattleScene::menuInput(const InputEvent& e) {
       else if (submit(Action::wait(sel_))) finishOrder();
     }
     else if (id == kMoveOnEntry) beginMoveOn();
+    else if (id == kCancelChargeEntry) {  // the charged action is given up; the unit may act after all
+      if (submit(Action::cancelCharge(sel_))) openActionMenu();
+    }
   } else if (mode_ == Mode::StructureMenu || mode_ == Mode::UpgradeMenu) {
     if (res == Menu::Cancelled) {
       if (mode_ == Mode::UpgradeMenu) backToStructure();

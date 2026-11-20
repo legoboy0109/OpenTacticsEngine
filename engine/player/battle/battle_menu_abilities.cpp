@@ -106,6 +106,7 @@ bool BattleScene::abilityChosen(int id) {
   const int ability = opts[(size_t)n].ability;
   const AbilityDef& def = battle_.db->abilities[(size_t)ability];
   const int user = sel_;
+  aimedChargeSpeed_ = def.charge.on() ? def.charge.speed : 0;  // a charged ability: the turn strip shows where it would land while it is aimed
 
   auto clearHint = [this] {
     if (!gPickHint.empty() && notice_ == gPickHint) noticeTime_ = 0;
@@ -115,6 +116,7 @@ bool BattleScene::abilityChosen(int id) {
   // order, a free one leaves the menu open for the rest of the turn.
   auto use = [this, user, ability, clearHint](int target, Cell cell) {
     clearHint();
+    aimedChargeSpeed_ = 0;
     if (!submit(Action::useAbility(user, ability, target, cell))) return;
     const Unit& me = battle_.units[(size_t)user];
     if (battle_.over || !me.alive || me.done) finishOrder();
