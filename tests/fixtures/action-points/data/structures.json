@@ -1,0 +1,2 @@
+{ "structures": [
+  { "id": "factory", "name": "Factory", "capturePoints": 20, "income": { "gold": 6 }, "produces": ["lancer", "tank"] } ] }

@@ -1,0 +1,10 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 10, "height": 5 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["..........", "..........", "....w.....", "..........", ".........."],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human", "resources": { "gold": 20 } },
+             { "id": "red", "name": "Red", "controller": "ai", "resources": { "gold": 0 } } ],
+  "structures": [ { "type": "factory", "x": 0, "y": 4, "side": "blue" } ],
+  "units": [
+    { "type": "lancer", "side": "blue", "x": 1, "y": 2, "id": "lan", "leader": true },
+    { "type": "archer", "side": "blue", "x": 1, "y": 3, "id": "arc" },
+    { "type": "dummy", "side": "red", "x": 6, "y": 2, "id": "foe", "leader": true },
+    { "type": "dummy", "side": "red", "x": 8, "y": 0, "id": "foe2" } ] }

@@ -1,0 +1,10 @@
+{ "units": [
+  { "id": "lancer", "name": "Lancer", "moveType": "foot", "cost": { "gold": 8 }, "stats": { "hp": 30, "str": 6, "def": 2, "mov": 4 }, "weapons": ["sword"], "canCapture": true },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 24, "str": 5, "def": 1, "mov": 3 }, "weapons": ["bow"] },
+  { "id": "poker", "name": "Poker", "moveType": "foot", "stats": { "hp": 30, "str": 5, "def": 2, "mov": 4 }, "weapons": ["spear"] },
+  { "id": "mortarman", "name": "Mortarman", "moveType": "foot", "stats": { "hp": 24, "str": 5, "def": 1, "mov": 3 }, "weapons": ["mortar"] },
+  { "id": "scout", "name": "Scout", "moveType": "foot", "ap": { "step": 2, "softCap": 2 },
+    "stats": { "hp": 20, "str": 5, "def": 1, "mov": 6 }, "weapons": ["sword"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 40, "str": 3, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "tank", "name": "Tank", "moveType": "foot", "cost": { "gold": 5, "ap": 3 },
+    "stats": { "hp": 40, "str": 6, "def": 4, "mov": 3 }, "weapons": ["sword"] } ] }

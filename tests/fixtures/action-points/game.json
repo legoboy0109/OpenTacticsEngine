@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1, "name": "Action Points Fixture",
+  "description": "Test game for the action-point turn system (docs/SRPG.md \"Action points\"). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "ap", "name": "AP", "refill": { "perTurn": 20, "carryOver": 10 } }, { "id": "gold", "name": "Gold" } ],
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "economy": { "enabled": true },
+             "production": { "enabled": true, "builtUnitsCanAct": false },
+             "items": { "weapons": "fixed", "inventorySize": 3 },
+             "actionPoints": { "resource": "ap",
+                               "move": { "costPerStep": 1, "splitMoves": true, "softCap": 4, "softCapPenaltyPercent": 100 },
+                               "attack": { "cost": 2, "attacksPerTurn": 1 } } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def - (tb.def or 0))", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" }, { "id": "ai", "name": "Ai", "file": "maps/ai.json" },
+            { "id": "duel", "name": "Duel", "file": "maps/duel.json" } ]
+}
