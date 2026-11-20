@@ -252,6 +252,12 @@ void attachParentConsole();
 // from run to run would break the tests that compare whole logs. The player logs it at start and after every scene change.
 std::string memoryStatus();
 
+// How many megabytes of art (sheet textures, their mirrored copies and kept pixel copies) the player may hold at once;
+// beyond it the sheets used longest ago are dropped and loaded again when drawn (docs/GRAPHICS.md "Art memory"). Per
+// platform: web 384, UWP 256, Android 192, everything else 768. The environment variable OTE_ART_BUDGET_MB (a whole
+// number, 1 or more) replaces it, for tests and for trying a small device on a big one.
+unsigned artBudgetMB();
+
 // Extra command-line words for a program that cannot be given a command line (the UWP app: LocalState/args.txt, a
 // testing aid; docs/XBOX.md). Empty everywhere else and when there is no such file. A word NAME=value is put into the
 // environment instead of being returned.

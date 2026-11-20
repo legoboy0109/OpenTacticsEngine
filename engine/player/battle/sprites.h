@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "core/battle/battle.h"
+#include "battle/art_budget.h"
 #include "core/data/graphics.h"
 #include "platform/common/image.h"
 #include "platform/platform.h"
@@ -15,35 +16,68 @@ namespace ote {
 
 struct DrawCtx;
 
-// The textures of one game's sheets. Loaded when a game session starts,
-// released when it ends or the game changes. Does not free anything in its
-// destructor (the renderer may already be gone); call release() first.
+// The textures of one game's sheets, made when first asked for and dropped again, least recently used first, when
+// the art held goes over the platform's budget (artBudgetMB(); docs/GRAPHICS.md "Art memory"). Loaded when a game
+// session starts (which only checks the sheet files' headers, nothing is decoded), released when it ends or the game
+// changes. Does not free anything in its destructor (the renderer may already be gone); call release() first.
+//
+// The lookups are const and fill a cache (mutable): drawing code asks, and a sheet's first use decodes its PNG then.
+// A TextureId handed out stays valid until the end of the frame (the caller of beginFrame() ends frames); after
+// that the texture may be gone, so never keep one across frames: ask again.
 class Sprites {
  public:
-  // Decodes every sheet file of the game (logs one error per bad sheet).
+  // Checks every sheet file's header (exists, is a PNG, is at least one cell big; logs one error per bad sheet) and
+  // prepares the cache. Decodes nothing.
   void load(Renderer& r, const std::string& gameDir, const Graphics& g);
   void release(Renderer& r);
-  // Texture of a sheet, 0 when the sheet is not available.
-  TextureId texture(int sheet) const {
-    return sheet >= 0 && (size_t)sheet < tex_.size() ? tex_[(size_t)sheet] : 0;
-  }
+  // A new frame begins (once per frame, before anything draws): what the last frame used may now be dropped.
+  void beginFrame() { budget_.beginFrame(); }
+  // Texture of a sheet, 0 when the sheet is not available (bad file, failed decode: logged once, never retried).
+  TextureId texture(int sheet) const;
   // The sheet drawn from right to left (the battle scene's fighter on the right-hand side), only for the sheets the battle
   // scene's animation sets and effects use; 0 when there is none. Whole cells only: cell column c of the sheet is column
-  // (cols - 1 - c) here, and the pixels right of the last whole cell are not part of it.
-  TextureId mirrored(int sheet) const {
-    return sheet >= 0 && (size_t)sheet < mir_.size() ? mir_[(size_t)sheet] : 0;
-  }
+  // (cols - 1 - c) here, and the pixels right of the last whole cell are not part of it. Made when first asked for.
+  TextureId mirrored(int sheet) const;
   // The decoded pixels of a sheet a tileset uses (the isometric view builds tile pictures from them); null for other sheets.
-  const Image* pixels(int sheet) const {
-    return sheet >= 0 && (size_t)sheet < pix_.size() && !pix_[(size_t)sheet].rgba.empty() ? &pix_[(size_t)sheet] : nullptr;
-  }
-  bool any() const { return !tex_.empty(); }
+  // Kept (and counted in the budget) only for those sheets, as long as the sheet is held; valid until the end of the frame.
+  const Image* pixels(int sheet) const;
+  // Makes the texture of a sheet now (and its mirrored copy with `mirror`), with one decode: for a scene that is about to
+  // use it, so the work happens during its transition and not in the middle of an animation. Same as asking for it.
+  void request(int sheet, bool mirror = false) const;
+  bool any() const { return !slots_.empty(); }
   bool has(const Look& look) const { return look.any() && texture(look.sheet) != 0; }
+  // Drops everything not used in this frame (the OS asks for memory back). Textures are made again when drawn.
+  void trimUnused() {
+    budget_.beginFrame();  // (called between frames: what the last frame drew may go as well)
+    trim(0);
+  }
+  // Art held right now (bytes) and the budget.
+  uint64_t bytesHeld() const { return budget_.total(); }
+  uint64_t budgetBytes() const { return budget_.budget(); }
+  void setBudgetBytes(uint64_t bytes) { budget_.setBudget(bytes); }  // (tests; the player takes artBudgetMB() at load)
 
  private:
-  std::vector<TextureId> tex_;
-  std::vector<TextureId> mir_;
-  std::vector<Image> pix_;  // only the sheets of tilesets
+  struct Slot {
+    bool bad = false;         // the file or its size is unusable, or the decode failed (the error is logged): no texture, ever
+    bool mirrorOk = false;    // the sheet is drawn mirrored by the battle scene (mirrored() answers only for these)
+    bool keepPixels = false;  // a tileset uses it: the decoded pixels stay while the sheet is held
+    bool mirrorTried = false; // the mirrored copy was made (or failed): do not try again until the sheet is dropped
+    int w = 0, h = 0;         // the image's size (from the header)
+    int cols = 0, cellW = 0;  // for the mirrored copy
+    TextureId tex = 0, mir = 0;
+    Image pix;
+  };
+  void trim(uint64_t limit) const;  // drops least recently used sheets (not used this frame) until the total is within limit
+  // Decodes the sheet and makes what is missing: the texture, and with `mirror` the mirrored copy. False when the sheet is bad.
+  bool make(size_t i, bool mirror) const;
+  uint64_t heldBytes(const Slot& s) const;
+  void drop(Slot& s) const;
+
+  mutable std::vector<Slot> slots_;
+  mutable ArtBudget budget_;
+  Renderer* r_ = nullptr;
+  std::string dir_;
+  const Graphics* g_ = nullptr;
 };
 
 // The look of a terrain / of a unit in the style being drawn, or null when it

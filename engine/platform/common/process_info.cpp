@@ -24,6 +24,24 @@
 
 namespace ote {
 
+unsigned artBudgetMB() {
+  const char* env = std::getenv("OTE_ART_BUDGET_MB");
+  if (env && *env) {
+    char* end = nullptr;
+    const long v = std::strtol(env, &end, 10);
+    if (end && *end == 0 && v >= 1 && v <= 1000000) return (unsigned)v;
+  }
+#if defined(__EMSCRIPTEN__)
+  return 384;  // the heap stops at 2 GB, and the page has more to hold than art
+#elif defined(OTE_UWP)
+  return 256;  // an app has about 1 GB on Xbox
+#elif defined(__ANDROID__)
+  return 192;  // phones: the app is killed when the system runs short
+#else
+  return 768;
+#endif
+}
+
 std::string memoryStatus() {
 #if defined(OTE_NXDK)
   return nxdkMemoryStatus();  // 64 MB shared with video: worth a line in the log

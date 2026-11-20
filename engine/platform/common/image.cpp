@@ -39,6 +39,47 @@ bool decodePng(const uint8_t* data, size_t size, Image& out, std::string& err) {
   return decodeChecked(data, size, "PNG", out, err);
 }
 
+bool readPngSize(const uint8_t* data, size_t size, int& width, int& height, std::string& err) {
+  if (!data || size < 8 || std::memcmp(data, kPngMagic, 8) != 0) {
+    err = "the file is not a PNG image";
+    return false;
+  }
+  if (size < 24 || std::memcmp(data + 12, "IHDR", 4) != 0) {
+    err = "the PNG image cannot be decoded (the header is damaged)";
+    return false;
+  }
+  const uint32_t w = ((uint32_t)data[16] << 24) | ((uint32_t)data[17] << 16) | ((uint32_t)data[18] << 8) | data[19];
+  const uint32_t h = ((uint32_t)data[20] << 24) | ((uint32_t)data[21] << 16) | ((uint32_t)data[22] << 8) | data[23];
+  if (w == 0 || h == 0 || w > 65536u || h > 65536u) {  // (stb_image refuses more than 2^24; no sheet is near 65536)
+    err = "the PNG image cannot be decoded (the header gives an invalid size)";
+    return false;
+  }
+  width = (int)w;
+  height = (int)h;
+  return true;
+}
+
+bool readPngFileSize(const std::string& path, int& width, int& height, std::string& err) {
+  FILE* f = openFile(path, "rb");
+  if (!f) {
+    err = "the file is missing or cannot be read";
+    return false;
+  }
+  uint8_t head[24];
+  const size_t n = std::fread(head, 1, sizeof head, f);
+  bool tooBig = false;
+  if (std::fseek(f, 0, SEEK_END) == 0) {
+    const long len = std::ftell(f);
+    tooBig = len > 0 && (size_t)len > kMaxFileBytes;
+  }
+  std::fclose(f);
+  if (tooBig) {
+    err = "the file is far too large for a sprite sheet";
+    return false;
+  }
+  return readPngSize(head, n, width, height, err);
+}
+
 bool decodeImage(const uint8_t* data, size_t size, Image& out, std::string& err) {
   out = Image();
   if (data && size >= 8 && std::memcmp(data, kPngMagic, 8) == 0) return decodeChecked(data, size, "PNG", out, err);

@@ -1,6 +1,7 @@
 // Art: join-piece neighbour test, PNG decoding, and that every shipped game's
 // art covers all of its terrain and unit types.
 #include <cstdio>
+#include <cstring>
 
 #include "core/data/loader.h"
 #include "platform/common/image.h"
@@ -171,4 +172,49 @@ TEST(shipped_water_is_an_animated_join) {
     }
   }
   CHECK_EQ(waters, 3);
+}
+
+// The size from the header alone, for the lazily loaded sheets (Sprites checks a sheet's size at game load and decodes it on demand).
+TEST(png_size_from_the_header_only) {
+  // The 2x2 PNG of the test above, then the same header cut off at 24 bytes (no pixel data at all): the size still reads.
+  static const uint8_t png[] = {
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x08, 0x06, 0x00, 0x00, 0x00, 0x72, 0xb6, 0x0d};
+  int w = 0, h = 0;
+  std::string err;
+  CHECK(readPngSize(png, 24, w, h, err));
+  CHECK_EQ(w, 2);
+  CHECK_EQ(h, 3);
+  CHECK(readPngSize(png, sizeof png, w, h, err));
+  // Not a PNG, too short, a wrong chunk name, a zero side: each a plain error, the sizes untouched.
+  w = h = -1;
+  static const uint8_t junk[] = {'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  CHECK(!readPngSize(junk, sizeof junk, w, h, err));
+  CHECK(err.find("not a PNG") != std::string::npos);
+  CHECK(!readPngSize(png, 20, w, h, err));
+  CHECK(err.find("cannot be decoded") != std::string::npos);
+  uint8_t bad[sizeof png];
+  std::memcpy(bad, png, sizeof png);
+  bad[12] = 'X';
+  CHECK(!readPngSize(bad, sizeof bad, w, h, err));
+  std::memcpy(bad, png, sizeof png);
+  bad[19] = 0;  // width 0
+  CHECK(!readPngSize(bad, sizeof bad, w, h, err));
+  CHECK(err.find("invalid size") != std::string::npos);
+  CHECK_EQ(w, -1);
+  CHECK(!readPngSize(nullptr, 0, w, h, err));
+  // A file: the same, and a missing one.
+  const std::string path = ote_test::tempDir() + "/header_only.png";
+  FILE* f = std::fopen(path.c_str(), "wb");
+  CHECK(f != nullptr);
+  if (f) {
+    std::fwrite(png, 1, 24, f);
+    std::fclose(f);
+    CHECK(readPngFileSize(path, w, h, err));
+    CHECK_EQ(w, 2);
+    CHECK_EQ(h, 3);
+    std::remove(path.c_str());
+  }
+  CHECK(!readPngFileSize(ote_test::tempDir() + "/no-such-file.png", w, h, err));
+  CHECK(err.find("missing") != std::string::npos);
 }

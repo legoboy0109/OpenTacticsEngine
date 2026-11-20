@@ -48,9 +48,9 @@ Renderer3D& PlayerApp::renderer3d() {
 
 namespace {
 // A UWP app has a hard memory budget (docs/XBOX.md); only that platform answers, so other logs are unchanged.
-void logMemory(const char* when) {
+void logMemory(const char* when, uint64_t artBytes) {
   std::string m = memoryStatus();
-  if (!m.empty()) OTE_INFO("memory after %s: %s", when, m.c_str());
+  if (!m.empty()) OTE_INFO("memory after %s: %s, art %llu MB", when, m.c_str(), (unsigned long long)(artBytes >> 20));
 }
 }  // namespace
 
@@ -116,7 +116,7 @@ void PlayerApp::onStart(Renderer& r) {
   else if (!args_.game.empty() && (args_.continueSave || args_.loadSlot > 0)) startFromSave();
   else if (!args_.game.empty()) doLoadGame(args_.game);
   else { applyLauncherLook(); showHome(); runPending(); }
-  logMemory("start");
+  logMemory("start", sprites_.bytesHeld());
 }
 
 std::string PlayerApp::gameDir(const std::string& gameId) const {
@@ -130,7 +130,7 @@ void PlayerApp::runPending() {
   std::function<void()> fn = std::move(pending_);
   pending_ = nullptr;
   fn();
-  logMemory("scene change");
+  logMemory("scene change", sprites_.bytesHeld());
   flushSettings();  // every scene switch is a good moment to save
   syncAudio();
 }
@@ -153,6 +153,7 @@ void PlayerApp::onInput(const InputEvent& e) {
 
 void PlayerApp::update(double dt) {
   ++frameCount_;
+  sprites_.beginFrame();  // art used up to now may be dropped if a sheet needs the room (battle/art_budget.h)
   if (logLevel() == LogLevel::Debug && (frameClock_ += dt) >= 1.0) {  // a frame counter, only while debugging
     frameClock_ -= 1.0;
     OTE_INFO("frame %ld", frameCount_);
