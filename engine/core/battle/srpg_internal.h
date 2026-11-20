@@ -145,7 +145,9 @@ bool strikeForecast(const CombatSetup& setup, bool counter, const CombatMods& ow
 void foldStrikeMods(const StrikeMods& mods, StrikeForecast& numbers) const;
 // Battle::forecast after its checks, also handing back the setup (applyAttack fights with it).
 // `story`: a fight the story stages (docs/EVENTS.md "A staged fight"): no check of teams, sight, range or the move rule.
-bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup, bool story = false) const;
+// `areaMode` (area attacks, docs/SRPG.md "Area attacks and line fire"): 1 = one of the units an area attack hits (no check of team, sight or range: the area did the aiming; no
+// counter-attack), 2 = the unit on the aimed square (the same checks skipped, but it may counter).
+bool forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out, CombatSetup& setup, bool story = false, int areaMode = 0) const;
 // One strike, steps 1 to 8 of the contract. `extra` = the strike a "strikeAgain" gave (it cannot give another).
 void doStrike(const CombatSetup& setup, bool counter, bool extra, std::vector<Event>& events);
 // How many strikes each fighter has made in the fight being resolved (index 0 = the attacker, 1 = the defender): the `strikeNo` of the next
@@ -363,7 +365,8 @@ void storyStoreItems(const Command& c, std::vector<Event>& events);
 void storyFight(const StoryFight& f, std::vector<Event>& events);
 void stagedStrike(const CombatSetup& setup, bool counter, const StoryFightStrike& k, bool lethal, bool wear, bool& ammoSpent, std::vector<Event>& events);
 // What a fight pays in experience (applyAttack and the staged fight's "xp": true): the attacker's reward, the defender's for a counter.
-void fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events);
+// `attackerOnly`: just the attacker's half (the other victims of an area attack).
+void fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events, bool attackerOnly = false);
 // Set only while a story fight runs: its weapons do not wear / nobody may drop below 1 HP. (Never saved: a fight is one command.)
 bool fightNoWear_ = false, fightSpare_ = false;
 

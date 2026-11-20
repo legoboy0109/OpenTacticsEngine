@@ -60,14 +60,13 @@ int Battle::counterWeapon(const Unit& def, Cell defCell, const Unit& atk, Cell a
     int w = itemOf(def.items[(size_t)slot]).weapon;
     return db->weapons[w].counter && versusValue(w, atk, vs) ? w : -1;
   }
-  int dist = grid.distance(defCell, atkCell);
   const std::vector<int>& list = typeOf(def).weapons;
   int any = -1;  // the first that could answer at some distance
   for (size_t i = 0; i < list.size(); ++i) {
     int w = list[i];
     if (!def.ammo.empty() && i < def.ammo.size() && def.ammo[i] == 0) continue;  // out of ammunition: the next weapon answers
     if (!db->weapons[w].counter || !versusValue(w, atk, vs) || weaponForbidden(def, w, nullptr)) continue;
-    if (weaponInRange(w, dist)) return w;
+    if (weaponAims(w, defCell, atkCell, atk.id)) return w;  // in range (and, for line fire, a clear straight line)
     if (any < 0) any = w;
   }
   return any;
@@ -89,7 +88,7 @@ void Battle::setUpCombat(int attacker, int defender, int weapon, Cell from, Comb
   setup.weaponD = counterWeapon(d, d.cell, a, from);
   combatMods(setup, modsA, modsD);
   setup.counters = db->rules.counterAttacks && setup.weaponD >= 0 && !modsA.noCounter &&
-                   (modsD.counterAnyRange || weaponInRange(setup.weaponD, grid.distance(d.cell, from))) &&
+                   (modsD.counterAnyRange || weaponAims(setup.weaponD, d.cell, from, attacker)) &&
                    mayCounterWhileStopped(d);  // a unit that cannot act answers nothing unless its condition says it may
 }
 

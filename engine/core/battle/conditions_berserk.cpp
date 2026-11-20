@@ -56,7 +56,7 @@ bool Battle::berserkPlan(const Unit& u, BerserkPlan& out) const {
       if (!versusValue(w, t, vs)) continue;
       for (Cell s : stops) {
         if (s != u.cell && !db->weapons[(size_t)w].afterMove) continue;
-        if (!weaponInRange(w, grid.distance(s, t.cell))) continue;
+        if (!weaponAims(w, s, t.cell, u.id)) continue;
         out.moveTo = s == u.cell ? kNoCell : s;
         out.target = cand.id;
         out.weapon = w;
