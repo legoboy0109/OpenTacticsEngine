@@ -72,7 +72,7 @@ bool readFaction(const LoadCtx& c, const Database& db, const Json& e, const std:
   if (!e.isObject()) return c.fail(at, "must be an object");
   if (!c.str(e, "id", at, f.id, true) || f.id.empty()) return c.fail(at, "\"id\" is required");
   const std::string where = "faction \"" + f.id + "\"";
-  if (!onlyKeys(c, e, {"id", "name", "description", "units", "structures", "techs", "start", "modifiers", "ai", "tags"}, where)) return false;
+  if (!onlyKeys(c, e, {"id", "name", "description", "units", "structures", "techs", "start", "modifiers", "commanders", "ai", "tags"}, where)) return false;
   f.name = f.id;
   if (!c.str(e, "name", where, f.name) || !c.str(e, "description", where, f.description)) return false;
   if (e.has("name") && f.name.empty()) return c.fail(where, "\"name\" must not be empty text (leave the key out)");
@@ -94,6 +94,13 @@ bool readFaction(const LoadCtx& c, const Database& db, const Json& e, const std:
           return c.fail(where, "\"modifiers\" lists \"" + db.skills[(size_t)g.skill].id + "\" twice with the same filter");
       f.modifiers.push_back(g);
     }
+  }
+  if (e.has("commanders")) {  // the commanders a "choose" side of this faction may pick (docs/COMMANDERS.md)
+    if (db.commanders.empty()) return c.fail(where, "\"commanders\" needs data/commanders.json (this game has no commanders)");
+    if (!idList(c, e, "commanders", where, "commander", [&](const std::string& id) { return db.findCommander(id); }, "data/commanders.json",
+                f.commanders, f.limitCommanders))
+      return false;
+    if (f.commanders.empty()) return c.fail(where, "\"commanders\" is empty (a side of this faction could pick nobody; leave the key out for no limit)");
   }
   if (!readAi(c, db, e, where, f)) return false;
   if (!c.stringList(e, "tags", where, f.tags)) return false;

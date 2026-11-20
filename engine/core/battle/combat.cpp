@@ -229,6 +229,7 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   events.insert(events.end(), strikeEvents.begin(), strikeEvents.end());
   if (hit) events.insert(events.end(), struckEvents.begin(), struckEvents.end());
   events.push_back(e);
+  commanderStrike(units[atk].side, units[def].side, e.d);  // docs/COMMANDERS.md: the meters of both sides fill from the damage (no-op without commanders)
   // 6. Drain: the striker heals a share of the damage it dealt (at least 1), up to its maximum.
   if (strike.drain > 0 && e.d > 0) {
     Unit& striker = units[atk];

@@ -144,6 +144,9 @@ enum class EventType {
   ActionCharging,   // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=square aimed at (the followed unit's square), data={followed unit or -1, speed}
   ChargeResolved,   // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=square it hit; the action's own events follow
   ChargeCancelled,  // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=why: one of kCharge*
+  // Commanders (docs/COMMANDERS.md); only in a game with data/commanders.json.
+  PowerUsed,        // a=side, b=commander, c=power (index in the commander's "powers"), d=meter points paid, data={meter left}; the instant effects follow as their usual events
+  PowerEnded,       // a=side, b=commander, c=power: its side-wide skills are gone
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -295,10 +298,18 @@ struct SideModifier {
   int tech = -1;
   int grant = -1;
   int faction = -1;         // from this faction (index into db->factions), -1 = from a technology
+  // From the side's commander (docs/COMMANDERS.md; then tech and faction are -1 and `grant` indexes the commander's "passive" list, or
+  // the power's "modifiers" when `power` >= 0). Never saved: rebuilt from the commander and the active power.
+  int commander = -1;
+  int power = -1;
 };
 // The side-wide skills a faction gives, in the order of its "modifiers" (factions.cpp). Battle::init puts them at the front of a side's
 // list and the save reader rebuilds them the same way, so a restored battle judges skills in the order the live one did.
 void factionSideModifiers(const Database& db, int faction, std::vector<SideModifier>& out);
+// The side-wide skills of a commander's "passive" list, and of one of its powers' "modifiers" (commander.cpp). The passive ones go at the front of a
+// side's list after the faction's (Battle::init, the save reader); a power's go at the very end while it is active (addSideModifier keeps them last).
+void commanderSideModifiers(const Database& db, int commander, std::vector<SideModifier>& out);
+void commanderPowerModifiers(const Database& db, int commander, int power, std::vector<SideModifier>& out);
 
 struct SideState {
   std::string id, name;
@@ -318,6 +329,13 @@ struct SideState {
   int researchLeft = 0;  // of the side's own turns still to start before it is finished
   std::vector<SideModifier> modifiers;  // side-wide skills (saved only when not empty)
   int faction = -1;         // docs/ECONOMY.md "Factions": index into db->factions, -1 = none (saved only when set)
+  // Commanders (docs/COMMANDERS.md): index into db->commanders (-1 = none), the power meter, the power now active (index into the commander's
+  // "powers", -1 = none) with the number of the side's own turn starts it still has to see (it ends at 0), and per power how often it was used.
+  int commander = -1;
+  int meter = 0;
+  int power = -1;
+  int powerLeft = 0;
+  std::vector<int> powerUses;
   bool difficultyShift = true;  // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this side (map side key)
 };
 
@@ -351,7 +369,9 @@ enum class ActionType {
   // Branching research (docs/ECONOMY.md): the active side gives up the technology under way; free of any unit. Appended last.
   CancelResearch,
   // Speed turn order (docs/TURN_ORDER.md "Charged actions"): `unit` gives up the charged action it has on its way; free, the unit may act after it.
-  CancelCharge
+  CancelCharge,
+  // Commanders (docs/COMMANDERS.md): the active side spends its meter on power `power` of its commander; free of any unit.
+  UsePower
 };
 
 struct Action {
@@ -368,6 +388,7 @@ struct Action {
   int tech = -1;        // StartResearch: index into db->research
   int ability = -1;     // Ability: index into db->abilities
   int itemSlot = -1;    // UseStaff "repair": the slot in the TARGET's inventory of the item to repair (-1 = none)
+  int power = -1;       // UsePower: index into the side's commander's "powers"
   int facing = -1;      // Wait (rules.facing only): the direction the unit looks in when it ends its turn; -1 = it keeps the one it has
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
@@ -391,6 +412,7 @@ struct Action {
   static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
   static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
   static Action cancelCharge(int unit) { Action a; a.type = ActionType::CancelCharge; a.unit = unit; return a; }
+  static Action usePower(int power) { Action a; a.type = ActionType::UsePower; a.power = power; return a; }
   static Action cancelResearch() { Action a; a.type = ActionType::CancelResearch; return a; }
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
@@ -833,6 +855,7 @@ class Battle {
 #include "core/battle/height_api.h"
 #include "core/battle/facing_api.h"
 #include "core/battle/jobs_api.h"
+#include "core/battle/commander_api.h"
 
  private:
   // combat.cpp
@@ -962,6 +985,7 @@ class Battle {
 #include "core/battle/speed_internal.h"
 #include "core/battle/facing_internal.h"
 #include "core/battle/jobs_internal.h"
+#include "core/battle/commander_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

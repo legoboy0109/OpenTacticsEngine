@@ -52,6 +52,7 @@ bool modifiersJson(const SideState& s, Json& out) {
   out = Json::makeArray();
   for (const SideModifier& m : s.modifiers) {
     if (m.faction >= 0) continue;  // a faction's skills are rebuilt from the faction (save_faction.cpp)
+    if (m.commander >= 0) continue;  // so are a commander's, and its active power's (save_commander.cpp)
     Json e = Json::makeObject();
     e.set("skill", num(m.skill));
     e.set("tech", num(m.tech));

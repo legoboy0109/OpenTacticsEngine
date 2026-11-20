@@ -93,6 +93,11 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     }
     sides.push_back(s);
     takeFaction((int)sides.size() - 1, faction);  // its side-wide skills (factions.cpp)
+    // Commanders (docs/COMMANDERS.md): a "choose" nobody picked is settled here, limited to the faction's list (a computer side by the seed). A
+    // commander the map names itself is taken as it is, whatever the faction lists.
+    int commander = sd.commanderChoose ? defaultCommanderChoice(*db, seed, (int)sides.size() - 1, sd.ai, faction) : sd.commander;
+    if (commander >= (int)db->commanders.size()) commander = -1;
+    if (commander >= 0) takeCommander((int)sides.size() - 1, commander);
   }
   teamCount = (int)teamNames.size();
   // A team sees everything only when every one of its sides is a computer side that does.

@@ -202,6 +202,8 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   if (readTextFile(root + "/data/caps.json", probe) && !holdsNothing(probe, "") &&
       !mixJson(f, root, "data/caps.json", false, nullptr, err))
     return false;
+  // Commanders (docs/COMMANDERS.md): only a game that has the file mixes it in (names and descriptions are cosmetic keys).
+  if (readTextFile(root + "/data/commanders.json", probe) && !mixJson(f, root, "data/commanders.json", false, nullptr, err)) return false;
   for (const std::string& sc : db.scripts)
     if (!mixFile(f, root, sc, err)) return false;  // scripts count byte for byte
   return true;

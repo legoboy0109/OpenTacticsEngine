@@ -315,6 +315,8 @@ void BattleView::begin(const Battle& b) {
     case EventType::UnitResupplied:
     case EventType::TerrainChanged:  // beginMapChange (battle_view_mapchange.cpp) took it above
     case EventType::SceneEffect:     // beginStory (battle_view_story.cpp) took it above
+    case EventType::PowerUsed:  // beginCommander (battle_view_commander.cpp) took these above
+    case EventType::PowerEnded:
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
     case EventType::UnitTurnBegan:       // beginSpeed (battle_view_speed.cpp) took these above
     case EventType::RoundStarted:

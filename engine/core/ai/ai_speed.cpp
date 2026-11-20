@@ -101,6 +101,7 @@ bool aiTakeSpeedStep(Battle& battle, std::vector<Event>& events) {
   const int uid = battle.activeUnit, turn = battle.turnNo;
   auto mine = [&]() { return !battle.over && battle.turnNo == turn && battle.activeUnit == uid; };
 
+  if (ai::usePowerIfWorthIt(battle, events)) return mine();  // docs/COMMANDERS.md: a power may be used while the side's own unit has the turn
   int tech;
   if (ai::chooseResearch(battle, tech) && battle.apply(Action::research(tech), events)) return mine();
   int structure, to;

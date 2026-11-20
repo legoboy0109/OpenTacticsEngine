@@ -222,5 +222,11 @@ bool chooseResearch(const Battle& b, int& tech);
 // A structure to upgrade now (only with more than twice the cost to spare), if any.
 bool chooseUpgrade(const Battle& b, int& structure, int& to);
 
+
+// ---- ai_commander.cpp (docs/AI.md "Commanders") ----
+// Uses one of the active side's commander powers when it can pay for it and the power is worth it (the meter is full, or the fighting is about to
+// start, or the heal / refresh pays off); true when it applied one (the caller's step is then over). A side without a commander: false at once.
+bool usePowerIfWorthIt(Battle& b, std::vector<Event>& events);
+
 }  // namespace ai
 }  // namespace ote
