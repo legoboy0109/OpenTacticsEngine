@@ -55,7 +55,14 @@ restarts the chapter's scene), a half-typed anything (no text entry exists), and
 Not handled: a **device reset**. Neither backend reacts to `SDL_EVENT_RENDER_DEVICE_RESET` / `SDL_EVENT_RENDER_TARGETS_RESET`
 (SDL2: `SDL_RENDER_DEVICE_RESET`; the Android hardware 3D context is the exception, it is rebuilt, docs/ANDROID.md "3D"), so the textures `Renderer::createTexture` made (art sheets, the 3D picture, the text atlas)
 are assumed to survive. On Android (GL context loss) and UWP (D3D device removal) they may not; the fix is to rebuild
-`Sprites`, `IsoTiles`, `Show3D` and the `TextEngine` atlas, from a handler that does not exist yet.
+`Sprites`, `IsoTiles`, `Show3D` and the `TextEngine` atlas, from a handler that does not exist yet (`Sprites` is the easy part now: `trimUnused()` drops every texture and they come back on demand).
+
+**Art memory budget.** `artBudgetMB()` (platform.h, implemented once in `platform/common/process_info.cpp`, so a new backend gets
+it for free) says how many MB of art textures the player may hold: web 384, UWP 256, Android 192, others 768; the environment
+variable `OTE_ART_BUDGET_MB` overrides it. Beyond it the player drops the textures used longest ago and makes them again when
+drawn (docs/GRAPHICS.md "Art memory"). A port with less memory than these numbers assume changes the numbers there. A port needs
+nothing else for this, except that `Renderer::destroyTexture` must really free the memory. On low memory `Sprites::trimUnused()`
+frees every art texture.
 
 Tests: the `--input` tokens `background`, `foreground`, `lowmemory`, `terminate` inject these notices
 (`tests/lifecycle_player_test.py`).
@@ -99,7 +106,7 @@ handlers are additions that call the same actions. No screen has text entry. Ski
   `WINAPI_FAMILY=WINAPI_FAMILY_APP` (only the UWP part of the Windows API is declared). SDL2 comes from its own
   `VisualC-WinRT` project (`OTE_UWP_SDL2_SOURCE`, `OTE_UWP_SDL2_LIBDIR`). Two files are C++/CX and compiled with `/ZW`: SDL's
   WinRT entry point and `sdl2_uwp_view.cpp`. The pieces that differ live in `platform/sdl2/sdl2_uwp*.cpp`,
-  `platform/common/uwp.h` and `platform/common/process_info.cpp` (`memoryStatus()`, `platformLaunchArgs()`: a UWP app has
+  `platform/common/uwp.h` and `platform/common/process_info.cpp` (`memoryStatus()`, `artBudgetMB()`, `platformLaunchArgs()`: a UWP app has
   no command line, so `LocalState/args.txt` stands in). This is also the first MSVC build of the SDL2 backend.
 
 ## Still missing

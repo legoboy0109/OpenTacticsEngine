@@ -504,8 +504,41 @@ beyond what the repo's file helpers do, no exceptions). The core never
 decodes images. Textures must survive `setLogicalSize`. Headless runs and
 `--screenshot` must show the art.
 
-A sheet that fails to decode logs one clear error and everything using it
+A sheet that fails to decode logs one clear error (once, not every frame) and everything using it
 falls back to the placeholder look; the game still runs.
+
+### Art memory (loaded on demand, within a budget)
+
+Memory follows what is on screen, not the size of the game: a game of hundreds of sheets (1.4 GB when decoded, 18 MB on
+disk) must run in a browser (2 GB heap), on a 1 GB UWP app and on a phone. `Sprites` (`battle/sprites.h`,
+`battle/sprite_cache.cpp`) therefore works like this:
+
+- **Game load** only reads each sheet file's header (`readPngFileSize` in `platform/common/image.h`: the file exists, is a
+  PNG, is at least one cell big; the same error lines as before for a bad sheet). Nothing is decoded.
+- **First use** of a sheet (`texture(sheet)`) decodes the PNG and makes the texture; the **mirrored copy**
+  (`mirrored(sheet)`, only for the sheets the battle scene turns round) is made when first asked for. The decoded pixels are
+  not kept, except `pixels(sheet)` for the sheets of tilesets (the isometric view samples tiles from them). A sheet whose
+  decode fails logs its error once, then answers 0 for good (the placeholder look).
+- **Budget** (`artBudgetMB()`, platform layer: web 384 MB, UWP 256, Android 192, desktop 768; `OTE_ART_BUDGET_MB=N` replaces
+  it, for tests): the bytes held (width x height x 4 per texture, mirrored copies and kept pixels included) are tracked
+  per sheet (`battle/art_budget.{h,cpp}`, SDL-free and unit-tested). When a new texture takes the total over the budget, the
+  sheets used longest ago are destroyed until it fits, never one used in the current frame. A texture id is therefore valid
+  until the end of the frame it was asked for in (`PlayerApp::update` calls `Sprites::beginFrame()`): never keep one across
+  frames, ask again. If one frame uses more than the budget, the total stays over it until the next frame. A dropped sheet
+  just loads again when drawn; the log says (at most every 5 s, info level) `art memory: dropped N sheet(s), ...`.
+  `memoryStatus()` lines (UWP) end with the art in MB.
+- **Head start**: `FightScene::start` (`fight_scene_preload.cpp`) asks for the fighters' animation sheets (with the mirrored
+  copies they will use), the effects, the backdrop and the platforms, and a battle map's constructor (`art_preload.cpp`) asks
+  for its units, terrains, structures and tileset sheet, so the decodes happen while the scene opens and not in the middle of
+  an animation. Anything else decodes at its first draw (tens of milliseconds for a 2000 x 2000 sheet).
+- **Dropping everything**: `Sprites::release` (game ends) and `trimUnused()` (the OS says low memory; also what a future
+  device-reset handler calls) leave nothing held; all of it reloads on demand.
+- **Not covered**: the 3D views make their own textures from the sheets (`Sheets3D`, on first use of a sheet, kept until the
+  game ends; padded to a power of two, and the Android / Direct3D resilient wrapper keeps a CPU copy of each). They are not
+  under this budget; see the notes in docs/ARCHITECTURE.md. Audio is separate (docs/SOUND.md).
+
+Test fixture: `tools/art/synth_art_game.py` adds many big generated sheets to a game folder (`tests/art_memory_player_test.py`
+uses it; run it by hand to measure peak memory).
 
 ## Starter art
 
