@@ -3,6 +3,7 @@
 // Run a subset:  ote_tests <substring-of-name>
 #pragma once
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 namespace ote_test {
@@ -32,8 +33,16 @@ inline bool truth(bool value) { return value; }
 
 // Root of the source tree, for locating games/ and tests/fixtures/.
 inline std::string sourceDir() { return OTE_SOURCE_DIR; }
-// Scratch folder for tests that write files (the build directory).
-inline std::string tempDir() { return OTE_TEMP_DIR; }
+// Scratch folder for tests that write files: <build>/test-tmp/ote_tests (OTE_TEST_TMP, which CMake sets for ctest, replaces
+// <build>/test-tmp). Never inside the source tree. test_main.cpp wipes and creates it before the run and removes it when
+// every case passed; the Python tests use <same root>/<script name> (tests/ote_testkit.py scratch_dir).
+inline std::string tempDir() {
+  static const std::string dir = [] {
+    const char* root = std::getenv("OTE_TEST_TMP");
+    return std::string(root && *root ? root : OTE_TEMP_DIR "/test-tmp") + "/ote_tests";
+  }();
+  return dir;
+}
 
 }  // namespace ote_test
 

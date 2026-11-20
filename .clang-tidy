@@ -1,0 +1,27 @@
+# Conservative clang-tidy set: bug-finding checks only, no style, naming or modernize noise.
+# Run (needs compile_commands.json: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON):
+#   clang-tidy -p build engine/core/battle/battle.cpp
+# Nothing here is enforced by the build; it is a tool to look for real bugs. Third-party code (third_party/, SDL) is
+# not analysed: the header filter below names only our own folders.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-exception-escape,
+  -bugprone-reserved-identifier,
+  -bugprone-macro-parentheses,
+  -bugprone-branch-clone,
+  -bugprone-signed-bitwise,
+  -bugprone-unchecked-optional-access,
+  performance-for-range-copy,
+  performance-implicit-conversion-in-loop,
+  performance-inefficient-vector-operation,
+  performance-move-const-arg,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param
+WarningsAsErrors: ''
+# Only our own code is reported; engine/platform/common, engine/player and the rest of engine/ are included by "engine/".
+HeaderFilterRegex: '(^|/)(engine|editor/server|tools|tests)/'
+FormatStyle: none

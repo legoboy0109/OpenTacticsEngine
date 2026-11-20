@@ -14,9 +14,9 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, save_of, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -89,7 +89,7 @@ def levels_in(save):
 
 
 def run_all():
-    tmp = tempfile.mkdtemp(prefix='ote_testplay_test_')
+    tmp = scratch_dir()
     global GAMES
     GAMES = os.path.join(tmp, 'games')
     try:

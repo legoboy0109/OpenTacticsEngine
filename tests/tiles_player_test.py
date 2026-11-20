@@ -21,16 +21,16 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     Bmp, run_text, check, failures, inp, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir()
-TMP = tempfile.mkdtemp(prefix='ote-tiles-')
+TMP = scratch_dir()
 
 spec = importlib.util.spec_from_file_location('make_test_tileset', os.path.join(REPO, 'tools/art/make_test_tileset.py'))
 TS = importlib.util.module_from_spec(spec)

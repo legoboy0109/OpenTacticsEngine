@@ -15,7 +15,7 @@ import shutil
 import socket
 import subprocess
 import sys
-import tempfile
+from ote_testkit import scratch_dir  # noqa: E402
 import time
 
 from editor_api_graphics_checks import run_graphics_checks
@@ -132,7 +132,7 @@ def main():
         return 2
     binary = os.path.abspath(sys.argv[1])
     repo = os.path.abspath(sys.argv[2])
-    tmp = tempfile.mkdtemp(prefix="ote-editor-test-")
+    tmp = scratch_dir()
     proc = None
     try:
         games = os.path.join(tmp, "work", "games")

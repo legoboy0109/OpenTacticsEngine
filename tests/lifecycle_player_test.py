@@ -13,9 +13,9 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 PLAYER = ''
 REPO = ''
@@ -51,7 +51,7 @@ def main():
     global PLAYER, REPO, WORK
     PLAYER = os.path.abspath(sys.argv[1])
     REPO = os.path.abspath(sys.argv[2])
-    WORK = tempfile.mkdtemp(prefix='ote-life-', dir=os.environ.get('TMPDIR'))
+    WORK = scratch_dir()
     try:
         # The first unit in the cycle (an APC) steps up; a move alone is half an order and is not saved by itself.
         move = 'wait:30,next,confirm,up,confirm,wait:20'

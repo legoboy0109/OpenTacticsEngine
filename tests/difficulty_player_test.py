@@ -16,9 +16,9 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, read_jsonc, save_of, summary, ticks  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 jsonc = read_jsonc  # (the name this script uses)
 
 repo = ''
@@ -346,7 +346,7 @@ def main():
     PLAYER, repo = os.path.abspath(args[0]), os.path.abspath(args[1])
     bridge = jsonc(os.path.join(repo, 'games/demo-srpg/maps/bridge.json'))
     UNITS = {u['id']: u for u in jsonc(os.path.join(repo, 'games/demo-srpg/data/units.json'))['units']}
-    tmp = tempfile.mkdtemp(prefix='ote_difficulty_test_')
+    tmp = scratch_dir()
     GAMES = os.path.join(tmp, 'games')
     try:
         make_games()

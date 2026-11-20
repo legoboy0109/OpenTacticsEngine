@@ -24,9 +24,9 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, failures, player_and_repo, shots_dir, summary, ticks, write_json  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +36,7 @@ import hex_player_test as hp  # noqa: E402  (its image reader, PNG writer and ch
 check, Image, png_bytes = hp.check, hp.Image, hp.png_bytes
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir(absolute=True)
-TMP = tempfile.mkdtemp(prefix='ote-menuopt-')
+TMP = scratch_dir()
 GAMES = os.path.join(TMP, 'games')
 TILE, MAP_W, MAP_H, VIEW_W, VIEW_H = 24, 9, 7, 352, 259
 IDLE = 'wait:14'

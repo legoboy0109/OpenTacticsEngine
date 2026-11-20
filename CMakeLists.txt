@@ -62,6 +62,23 @@ else()
   set(OTE_NOWARN -w)
 endif()
 
+# Sanitizers (docs/TESTING.md "Sanitizer build"): -DOTE_SANITIZE=address, undefined, address,undefined, or thread (not
+# together with address). Applied to every target of this project, the vendored Lua included, for compile and link; the
+# flags only add run-time checks, no compiler warnings, so the warning sets above are unaffected. Findings are printed and
+# the program carries on (no -fno-sanitize-recover), so one run lists them all. GCC and Clang only: on MSVC, Emscripten,
+# Android and UWP the option is ignored with a message.
+set(OTE_SANITIZE "" CACHE STRING "Sanitizers to build with: address, undefined, address,undefined, thread (empty = off)")
+if(OTE_SANITIZE)
+  if(MSVC OR EMSCRIPTEN OR ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore"
+     OR NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(STATUS "OTE_SANITIZE='${OTE_SANITIZE}' ignored: sanitizers are only wired for GCC and Clang on desktop systems")
+  else()
+    message(STATUS "Building with -fsanitize=${OTE_SANITIZE}")
+    add_compile_options(-fsanitize=${OTE_SANITIZE} -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=${OTE_SANITIZE})
+  endif()
+endif()
+
 # --- Rules core: pure logic, no platform/graphics dependencies ---
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS engine/core/*.cpp)
 add_library(ote_core STATIC ${CORE_SRC})
@@ -440,3 +457,11 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
                      $<TARGET_FILE:ote-editor> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
+
+# Where tests put their scratch data: <build>/test-tmp/<test name>/, never the source tree (docs/TESTING.md "Scratch
+# folders"). ote_tests (tests/test.h) and the Python scripts (tests/ote_testkit.py scratch_dir) read OTE_TEST_TMP; the
+# kit also points TMPDIR there for the programs a script starts. No bytecode cache next to the scripts either.
+get_property(OTE_ALL_TESTS DIRECTORY PROPERTY TESTS)
+foreach(t IN LISTS OTE_ALL_TESTS)
+  set_property(TEST ${t} APPEND PROPERTY ENVIRONMENT "OTE_TEST_TMP=${CMAKE_BINARY_DIR}/test-tmp" "PYTHONDONTWRITEBYTECODE=1")
+endforeach()

@@ -16,16 +16,16 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 REPO = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else '.'
 SIM = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else ''
 FIXTURE = os.path.join(REPO, 'tests', 'fixtures', 'ai-scripted')
-TMP = tempfile.mkdtemp(prefix='ote-aiscripted-')
+TMP = scratch_dir()
 
 
 def sim(game, *args):

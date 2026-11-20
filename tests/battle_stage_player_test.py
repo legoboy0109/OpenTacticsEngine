@@ -16,17 +16,17 @@ import os
 import shutil
 import struct
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     run_text, check, edit, failures, player_and_repo, player_cmd, read_jsonc, shots_dir, summary, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir(absolute=True)
-TMP = tempfile.mkdtemp(prefix='ote-bstage-')
+TMP = scratch_dir()
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)

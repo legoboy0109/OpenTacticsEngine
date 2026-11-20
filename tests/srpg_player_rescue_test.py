@@ -19,9 +19,9 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, player_cmd, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -213,7 +213,7 @@ def main():
     if len(argv) < 2:
         sys.exit(__doc__)
     PLAYER, REPO = os.path.abspath(argv[0]), os.path.abspath(argv[1])
-    TMP = tempfile.mkdtemp(prefix='srpg_rescue_')
+    TMP = scratch_dir()
     GAMES = os.path.join(TMP, 'games')
     try:
         games.write_game(GAMES, 'carry', 'carry')

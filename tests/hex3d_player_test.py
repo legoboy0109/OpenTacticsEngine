@@ -26,7 +26,6 @@ import math
 import os
 import shutil
 import sys
-import tempfile
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +34,7 @@ sys.path.insert(0, HERE)
 import hex_player_test as hp  # noqa: E402  (its game writers, runner and image reader)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 check = hp.check
 near, mix, fresh, save_of, play = hp.near, hp.mix, hp.fresh, hp.save_of, hp.play
@@ -621,7 +621,7 @@ def main():
         SHOTS = os.path.abspath(args[args.index('--shots') + 1])
         os.makedirs(SHOTS, exist_ok=True)
     hp.MAP_W, hp.MAP_H = COLS, ROWS
-    hp.TMP = tempfile.mkdtemp(prefix='ote_hex3d_test_')
+    hp.TMP = scratch_dir()
     hp.GAMES = os.path.join(hp.TMP, 'games')
     try:
         for layout in LAYOUTS:

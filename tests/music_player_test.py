@@ -16,9 +16,9 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, player_and_repo, summary, write_json  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -28,7 +28,7 @@ import srpg_promo_games as promo_games  # noqa: E402
 
 PLAYER, REPO = player_and_repo()
 SHOW = '--show' in sys.argv
-TMP = tempfile.mkdtemp(prefix='ote-music-')
+TMP = scratch_dir()
 
 TRACKS = ['battle', 'boss', 'red_theme', 'green_theme', 'few', 'bossnow', 'promo', 'card', 'prep', 'thunder']
 JINGLES = ('promo', 'card')
@@ -37,7 +37,7 @@ JINGLES = ('promo', 'card')
 def make_audio(root):
     """root/audio/*.wav (the tones) and the text of a data/audio.json that names them."""
     out = os.path.join(root, 'audio')
-    subprocess.run([sys.executable, '-I', os.path.join(REPO, 'tools', 'audio', 'make_music_test_audio.py'), out] + TRACKS, check=True)
+    subprocess.run([sys.executable, '-I', '-B', os.path.join(REPO, 'tools', 'audio', 'make_music_test_audio.py'), out] + TRACKS, check=True)
     return out
 
 
@@ -203,7 +203,7 @@ def read_save(saves, game):
 def run_game_page_difficulty():
     """The game page's Difficulty row (docs/DIFFICULTY.md section 8), with input tokens. The games are the difficulty test's."""
     dg = os.path.join(TMP, 'dgames')
-    subprocess.run([sys.executable, '-I', os.path.join(HERE, 'difficulty_player_test.py'), '--make-games', dg, REPO], check=True,
+    subprocess.run([sys.executable, '-I', '-B', os.path.join(HERE, 'difficulty_player_test.py'), '--make-games', dg, REPO], check=True,
                    stdout=subprocess.DEVNULL)
     CARD = 'confirm,skip,wait:20'
     END = 'menu,confirm,wait:60'
@@ -287,7 +287,7 @@ def run_step_and_animation_sounds():
     tones = os.path.join(TMP, 'step-tones')
     os.makedirs(tones)
     audio = os.path.join(tones, 'audio')
-    subprocess.run([sys.executable, '-I', os.path.join(REPO, 'tools', 'audio', 'make_music_test_audio.py'), audio] + names, check=True)
+    subprocess.run([sys.executable, '-I', '-B', os.path.join(REPO, 'tools', 'audio', 'make_music_test_audio.py'), audio] + names, check=True)
     aj = json.dumps({'music': {'battle': {'file': 'audio/battle.wav'}, 'boss': {'file': 'audio/boss.wav'}},
                      'sounds': {n: {'file': 'audio/%s.wav' % n} for n in names[2:]}, 'use': {'mapMusic': 'battle'}})
     g = sound_game.make_game(games, 'snd', tones, aj, sound_overrides=False)

@@ -16,15 +16,15 @@ Plays tests/fixtures/stage-pres (copied to a temp folder, never changed; its art
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, player_and_repo, shots_dir, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir()
-TMP = tempfile.mkdtemp(prefix='ote-stage-')
+TMP = scratch_dir()
 INTERVAL = 3  # frames per input token
 
 

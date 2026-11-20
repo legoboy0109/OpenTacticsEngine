@@ -21,9 +21,9 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, player_cmd  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -524,7 +524,7 @@ def main():
         print(__doc__)
         return 2
     PLAYER, REPO = os.path.abspath(args[0]), os.path.abspath(args[1])
-    tmp = tempfile.mkdtemp(prefix='ote_sound_')
+    tmp = scratch_dir()
     try:
         run_all(tmp)
     finally:
