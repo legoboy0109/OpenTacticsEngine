@@ -74,6 +74,12 @@ void beginFrame();
 bool inFrame();
 // Waits for the chip to finish what was sent so far (before vertex or texture memory is changed or freed).
 void waitIdle();
+// Chip memory the CPU wants to rewrite while the chip may still be drawing (vertices of a mesh that changes every frame): each
+// draw that reads such a buffer takes a number from noteUse() and keeps it; the buffer is free to be written again once its number
+// is <= idleSeq() (the chip was seen idle after that draw was queued: every wait for the chip raises idleSeq() to the newest
+// number). A buffer that is not free means a wait (waitIdle) or a second buffer to write to.
+uint32_t noteUse();
+uint32_t idleSeq();
 // Sends the frame to the screen at the next vertical blank (waits for the chip first).
 void endFrame();
 // Number of draw commands dropped this frame because the push buffer was full (0 normally).
