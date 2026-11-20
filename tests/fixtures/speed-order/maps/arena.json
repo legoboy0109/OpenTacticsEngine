@@ -1,0 +1,9 @@
+{ "name": "Arena", "grid": { "type": "square", "width": 12, "height": 7 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["............", "............", "............", "....ww......", "............", "............", "............"],
+  "sides": [ { "id": "blue", "name": "Blue", "color": "#4a7fe0", "controller": "human", "resources": { "gold": 0 } },
+             { "id": "red", "name": "Red", "color": "#d9534f", "controller": "ai", "resources": { "gold": 0 } } ],
+  "units": [
+    { "type": "mage", "side": "blue", "x": 3, "y": 3, "id": "mg", "leader": true },
+    { "type": "knight", "side": "blue", "x": 2, "y": 4, "id": "kn" },
+    { "type": "stiff", "side": "red", "x": 7, "y": 3, "id": "foe", "leader": true },
+    { "type": "stiff", "side": "red", "x": 8, "y": 3, "id": "foe2" } ] }

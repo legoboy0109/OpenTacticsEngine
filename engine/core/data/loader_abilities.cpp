@@ -6,6 +6,7 @@
 #include "core/data/loader_content.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_places.h"
+#include "core/data/loader_speed.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 
@@ -181,7 +182,7 @@ bool readEffect(const LoadCtx& c, Database& db, const Json& e, const std::string
 }
 
 bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a) {
-  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem"}, where))
+  if (!onlyKeys(c, e, {"id", "name", "description", "target", "range", "effect", "cost", "uses", "cooldown", "afterMove", "if", "xp", "inflict", "spendsItem", "chargeSpeed", "chargeTargets", "interruptedBy"}, where))
     return false;
   a.name = a.id;
   if (!c.str(e, "name", where, a.name) || !c.str(e, "description", where, a.description)) return false;
@@ -266,6 +267,12 @@ bool readAbility(const LoadCtx& c, Database& db, const Json& e, const std::strin
   if (!c.boolean(e, "afterMove", where, a.afterMove)) return false;
 
   if (!c.boolean(e, "spendsItem", where, a.spendsItem)) return false;
+  if (!readCharge(c, db, e, where, "ability", a.charge)) return false;  // docs/TURN_ORDER.md "Charged actions"
+  if (a.charge.on()) {
+    if (a.free) return c.fail(where, "\"chargeSpeed\" needs \"cost\": \"action\" (declaring a charged action ends the unit's turn)");
+    if (a.effect == AbilityEffect::Unlock) return c.fail(where, "\"chargeSpeed\" cannot go with \"unlock\" (a lock is opened at once)");
+    if (a.target == AbilityTarget::Self && a.charge.aim == ChargeDef::Aim::Cell) return c.fail(where, "\"chargeTargets\": \"cell\" needs a target that is not \"self\"");
+  }
   if (!readAbilityExtras(c, db, e, where, a)) return false;  // "xp", "inflict" (loader_fidelity.cpp)
   if (e.has("if")) {
     // A condition may judge the target unit ("who": "foe"), but not where there is none (a square). There is no

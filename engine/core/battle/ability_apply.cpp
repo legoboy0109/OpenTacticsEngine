@@ -7,7 +7,7 @@
 
 namespace ote {
 
-void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
+void Battle::applyAbility(const Action& action, std::vector<Event>& events, bool resolving) {
   const int uid = action.unit;
   const int ability = action.ability;
   const AbilityDef& def = db->abilities[(size_t)ability];  // validated
@@ -88,9 +88,11 @@ void Battle::applyAbility(const Action& action, std::vector<Event>& events) {
 
   if (def.inflictCond >= 0 && !blocked) abilityInflict(def, uid, target, events);  // "inflict" (docs/SRPG.md "Abilities: experience and conditions")
   abilityExperience(def, uid, target, events);  // "xp"; nothing for an ability without it
-  noteAbilityUse(uid, ability);
-  spendAbilityItem(uid, ability, events);
-  if (!def.free) endOrder(uid);
+  if (!resolving) {  // a charged ability paid for these when it was declared
+    noteAbilityUse(uid, ability);
+    spendAbilityItem(uid, ability, events);
+    if (!def.free) endOrder(uid);
+  }
 
   // A moved unit has stopped somewhere: events waiting for a unit to arrive on that square may run.
   for (const AbilityMove& m : plan.moves) {

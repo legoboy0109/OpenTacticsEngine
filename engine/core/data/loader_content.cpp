@@ -10,6 +10,7 @@
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_damage_types.h"
 #include "core/data/loader_ranks.h"
+#include "core/data/loader_speed.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
 #include "core/data/loader_weapon_locks.h"
@@ -67,6 +68,8 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponArea(c, e, where, w)) return false;  // "fire", "area" (docs/SRPG.md "Area attacks and line fire")
     if (!readWeaponAp(c, db, e, where, w)) return false;  // "apCost", "area"."apExtra" (docs/SRPG.md "Action points")
+    if (!readCharge(c, db, e, where, "weapon", w.charge)) return false;  // "chargeSpeed" etc. (docs/TURN_ORDER.md "Charged actions")
+    if (w.charge.on()) w.counter = false;  // a charged weapon is never an instant answer
     if (!readWeaponHeight(c, db, e, where, w)) return false;  // "heightRange", "area"."vertical" (docs/SRPG.md "Height rules")
     db.straightWeapons = db.straightWeapons || w.aimsStraight();
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md

@@ -15,9 +15,62 @@ bool stillMyTurn(const Battle& b, int side, int round) {
 
 }  // namespace
 
+namespace ai {
+
+// Carries out one unit's chosen order: the walk, then the action, then (whatever happened) never leaving the unit ready, which is what
+// guarantees that every turn terminates. Shared by the usual turn and the speed turn order (ai_speed.cpp).
+void playOrder(Battle& battle, int bestUnit, Order best, std::vector<Event>& events) {
+  if (best.moveTo != kNoCell) {
+    battle.apply(Action::move(bestUnit, best.moveTo), events);
+    // Ambushed ("rules.fog.ambush": "canAct"): the unit stopped short and may still act. What it planned for the
+    // square it meant to reach may not apply here, so it picks again from where it stands (the unit has `moved`,
+    // so bestOrder only considers acting in place: attack if it can, else wait). With "endsTurn" it is done.
+    const Unit& ub = battle.units[bestUnit];
+    if (ub.alive && !ub.done && ub.cell != best.moveTo) {
+      ai::Context again(battle);
+      ai::assignCaptureGoals(again);
+      best = ai::bestOrder(again, ub);
+      best.moveTo = kNoCell;
+    }
+  }
+  bool ok = false;
+  if (best.kind == ActionType::Attack) {
+    Action shot = Action::attack(bestUnit, best.target, best.weapon);
+    shot.cell = best.cell;  // kNoCell for a single-target weapon; the square aimed at for an area weapon
+    ok = battle.apply(shot, events);
+  } else if (best.kind == ActionType::Capture)
+    ok = battle.apply(Action::capture(bestUnit), events);
+  else if (best.kind == ActionType::UseItem)
+    ok = battle.apply(Action::useItem(bestUnit, best.slot, best.target), events);
+  else if (best.kind == ActionType::UseStaff)
+    ok = battle.apply(Action::useStaff(bestUnit, best.slot, best.target), events);
+  else if (best.kind == ActionType::Supply)
+    ok = battle.apply(Action::supply(bestUnit), events);
+  else if (best.kind == ActionType::Promote)
+    ok = battle.apply(Action::promote(bestUnit), events);
+  else if (best.kind == ActionType::Ability) {
+    Action use = Action::useAbility(bestUnit, best.ability, best.target, best.cell);
+    use.slot = best.slot;  // a steal: which of the foe's items
+    ok = battle.apply(use, events);
+  } else if (best.kind == ActionType::BreakPlace)
+    ok = battle.apply(Action::breakPlace(bestUnit, best.structure, best.weapon), events);
+  else if (best.kind == ActionType::OpenPlace)
+    ok = battle.apply(Action::openPlace(bestUnit, best.structure, best.slot), events);
+  else if (best.kind == ActionType::VisitPlace)
+    ok = battle.apply(Action::visitPlace(bestUnit, best.structure), events);
+  // Whatever happened, never leave the unit ready: that is what
+  // guarantees every turn terminates.
+  if (!ok && battle.units[bestUnit].alive && !battle.units[bestUnit].done &&
+      !battle.apply(Action::wait(bestUnit, ai::endFacing(battle, battle.units[bestUnit])), events))  // (rules.facing: it ends its move looking at the nearest foe)
+    battle.apply(Action::endTurn(), events);
+}
+
+}  // namespace ai
+
 bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   if (battle.over) return false;
   if (battle.db->rules.ap.on) return aiTakeApStep(battle, events);  // one shared pool: it is spent where it buys most (ai_ap.cpp)
+  if (battle.db->rules.speed.on) return aiTakeSpeedStep(battle, events);  // units act one at a time: this one's turn only (ai_speed.cpp)
   const int side = battle.activeSide;
   const int round = battle.round;
 
@@ -40,49 +93,7 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   }
 
   if (bestUnit >= 0) {
-    if (best.moveTo != kNoCell) {
-      battle.apply(Action::move(bestUnit, best.moveTo), events);
-      // Ambushed ("rules.fog.ambush": "canAct"): the unit stopped short and may still act. What it planned for the
-      // square it meant to reach may not apply here, so it picks again from where it stands (the unit has `moved`,
-      // so bestOrder only considers acting in place: attack if it can, else wait). With "endsTurn" it is done.
-      const Unit& ub = battle.units[bestUnit];
-      if (ub.alive && !ub.done && ub.cell != best.moveTo) {
-        ai::Context again(battle);
-        ai::assignCaptureGoals(again);
-        best = ai::bestOrder(again, ub);
-        best.moveTo = kNoCell;
-      }
-    }
-    bool ok = false;
-    if (best.kind == ActionType::Attack) {
-      Action shot = Action::attack(bestUnit, best.target, best.weapon);
-      shot.cell = best.cell;  // kNoCell for a single-target weapon; the square aimed at for an area weapon
-      ok = battle.apply(shot, events);
-    } else if (best.kind == ActionType::Capture)
-      ok = battle.apply(Action::capture(bestUnit), events);
-    else if (best.kind == ActionType::UseItem)
-      ok = battle.apply(Action::useItem(bestUnit, best.slot, best.target), events);
-    else if (best.kind == ActionType::UseStaff)
-      ok = battle.apply(Action::useStaff(bestUnit, best.slot, best.target), events);
-    else if (best.kind == ActionType::Supply)
-      ok = battle.apply(Action::supply(bestUnit), events);
-    else if (best.kind == ActionType::Promote)
-      ok = battle.apply(Action::promote(bestUnit), events);
-    else if (best.kind == ActionType::Ability) {
-      Action use = Action::useAbility(bestUnit, best.ability, best.target, best.cell);
-      use.slot = best.slot;  // a steal: which of the foe's items
-      ok = battle.apply(use, events);
-    } else if (best.kind == ActionType::BreakPlace)
-      ok = battle.apply(Action::breakPlace(bestUnit, best.structure, best.weapon), events);
-    else if (best.kind == ActionType::OpenPlace)
-      ok = battle.apply(Action::openPlace(bestUnit, best.structure, best.slot), events);
-    else if (best.kind == ActionType::VisitPlace)
-      ok = battle.apply(Action::visitPlace(bestUnit, best.structure), events);
-    // Whatever happened, never leave the unit ready: that is what
-    // guarantees every turn terminates.
-    if (!ok && battle.units[bestUnit].alive && !battle.units[bestUnit].done &&
-        !battle.apply(Action::wait(bestUnit, ai::endFacing(battle, battle.units[bestUnit])), events))  // (rules.facing: it ends its move looking at the nearest foe)
-      battle.apply(Action::endTurn(), events);
+    ai::playOrder(battle, bestUnit, best, events);
     return stillMyTurn(battle, side, round);
   }
 

@@ -1,0 +1,12 @@
+{ "units": [
+  { "id": "scout", "name": "Scout", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 4, "spd": 20 }, "weapons": ["sword"] },
+  { "id": "knight", "name": "Knight", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3, "spd": 10 }, "weapons": ["sword"] },
+  { "id": "brute", "name": "Brute", "moveType": "foot", "stats": { "hp": 40, "str": 7, "def": 2, "mov": 3, "spd": 5 }, "weapons": ["sword"] },
+  { "id": "twin", "name": "Twin", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3, "spd": 10 }, "weapons": ["sword"] },
+  { "id": "mage", "name": "Mage", "moveType": "foot", "stats": { "hp": 20, "str": 5, "def": 1, "mov": 3, "spd": 10 }, "weapons": ["fire", "bolt", "sword"],
+    "abilities": ["mend", "hush"] },
+  { "id": "dancer", "name": "Dancer", "moveType": "foot", "stats": { "hp": 20, "str": 3, "def": 1, "mov": 3, "spd": 10 }, "weapons": ["sword"],
+    "abilities": ["dance"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 40, "str": 3, "def": 2, "mov": 3, "spd": 10 }, "weapons": ["sword"] },
+  { "id": "frail", "name": "Frail", "moveType": "foot", "stats": { "hp": 5, "str": 3, "def": 1, "mov": 3, "spd": 10 }, "weapons": ["sword"] },
+  { "id": "stiff", "name": "Stiff", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3, "spd": 0 }, "weapons": ["sword"] } ] }

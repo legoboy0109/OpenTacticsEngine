@@ -56,6 +56,12 @@ bool readUnitFacing(Reader& rd, const Battle& b, const Json& j, const std::strin
 void writeUnitAp(const Battle& b, const Unit& u, Json& j);
 bool readUnitAp(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
 
+// ---- speed turn order (save_clock.cpp, docs/TURN_ORDER.md): a unit's "ct" / "turnActed" and the battle's "clock", in a speed game only ----
+void writeUnitClock(const Battle& b, const Unit& u, Json& j);
+bool readUnitClock(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
+void writeBattleClock(const Battle& b, Json& out);
+bool readBattleClock(Reader& rd, const Json& saved, Battle& b);
+
 // ---- jobs (save_jobs.cpp, docs/JOBS.md): units[i] "jobs" and a roster entry's "jobs" ----
 void writeUnitJobs(const Battle& b, const Unit& u, Json& j);
 bool readUnitJobs(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);

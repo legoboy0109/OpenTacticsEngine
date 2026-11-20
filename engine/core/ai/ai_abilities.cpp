@@ -57,7 +57,7 @@ bool tryFrom(const Battle& b, const Unit& u, Cell from, Order& order, bool wantS
   std::vector<AbilityOption> menu;
   b.abilityOptions(u.id, from, menu);
   for (const AbilityOption& o : menu) {
-    if (!o.ok) continue;
+    if (!o.ok || b.abilityCharges(o.ability)) continue;  // (a charged ability is for the speed turn order; ai_speed.cpp does not use them)
     const AbilityDef& d = b.db->abilities[(size_t)o.ability];
     // A free ability is used on the spot, before any move, and the unit is then planned afresh with its turn open.
     if (d.free && from != u.cell) continue;
@@ -92,7 +92,7 @@ bool tryStealFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
   std::vector<AbilityOption> menu;
   b.abilityOptions(u.id, from, menu);
   for (const AbilityOption& o : menu) {
-    if (!o.ok) continue;
+    if (!o.ok || b.abilityCharges(o.ability)) continue;  // (a charged ability is for the speed turn order; ai_speed.cpp does not use them)
     const AbilityDef& d = b.db->abilities[(size_t)o.ability];
     if (d.effect != AbilityEffect::Steal || (d.free && from != u.cell)) continue;
     std::vector<int> targets;
@@ -124,7 +124,7 @@ bool tryCureFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
   std::vector<AbilityOption> menu;
   b.abilityOptions(u.id, from, menu);
   for (const AbilityOption& o : menu) {
-    if (!o.ok) continue;
+    if (!o.ok || b.abilityCharges(o.ability)) continue;  // (a charged ability is for the speed turn order; ai_speed.cpp does not use them)
     const AbilityDef& d = b.db->abilities[(size_t)o.ability];
     if (d.effect != AbilityEffect::Cure || (d.free && from != u.cell)) continue;
     std::vector<int> targets;
@@ -152,7 +152,7 @@ bool tryRefreshFrom(const Battle& b, const Unit& u, Cell from, Order& order) {
   std::vector<AbilityOption> menu;
   b.abilityOptions(u.id, from, menu);
   for (const AbilityOption& o : menu) {
-    if (!o.ok) continue;
+    if (!o.ok || b.abilityCharges(o.ability)) continue;  // (a charged ability is for the speed turn order; ai_speed.cpp does not use them)
     const AbilityDef& d = b.db->abilities[(size_t)o.ability];
     if (d.effect != AbilityEffect::Refresh || (d.free && from != u.cell)) continue;
     std::vector<int> targets;

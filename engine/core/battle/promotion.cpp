@@ -154,7 +154,7 @@ void Battle::promotionLevelUp(int unit, std::vector<Event>& events) {
 // remembered, so every unit of the side whose level meets an "auto" entry is looked at each turn.
 void Battle::promotionTurnStart(std::vector<Event>& events) {
   for (size_t i = 0; i < units.size(); ++i) {  // `units` may grow while a promotion's story events run
-    if (units[i].side != activeSide) continue;
+    if (!ownsTurn(units[i])) continue;
     promotionLevelUp((int)i, events);
   }
 }

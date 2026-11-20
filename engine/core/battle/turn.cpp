@@ -39,6 +39,23 @@ void Battle::refreshUnitForTurn(Unit& u) {
   u.apAttacks = 0;  // docs/SRPG.md "Action points"
   u.acted = u.refreshed = false;
   u.refreshedBy.clear();  // docs/SRPG.md "Refresh an ally"
+  u.turnActed = false;    // docs/TURN_ORDER.md: what the speed clock charges for the turn
+}
+
+// The per-side part of a turn's start (a round's start in a speed game): resource refills, income, the research countdown.
+void Battle::sideTurnEffects(std::vector<Event>& events) {
+  refillTurnStart(events);  // docs/ECONOMY.md "Refilling resources": before the income, so a resource that has both counts the income on top
+  if (db->rules.economy) {
+    std::vector<int> income(db->resources.size(), 0);
+    // Once per owned structure, however many squares it covers.
+    for (const StructureState& st : structures) {
+      if (st.owner != activeSide) continue;
+      for (const Amount& a : defOf(st).income) income[a.resource] += a.amount;
+    }
+    researchIncome(activeSide, income);  // finished technologies' "bonus.income"
+    for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, resourceGain(activeSide, income[r]), events);  // docs/DIFFICULTY.md
+  }
+  researchTurn(events);
 }
 
 void Battle::beginTurn(std::vector<Event>& events) {
@@ -52,18 +69,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
   e.b = round;
   events.push_back(e);
 
-  refillTurnStart(events);  // docs/ECONOMY.md "Refilling resources": before the income, so a resource that has both counts the income on top
-  if (db->rules.economy) {
-    std::vector<int> income(db->resources.size(), 0);
-    // Once per owned structure, however many squares it covers.
-    for (const StructureState& st : structures) {
-      if (st.owner != activeSide) continue;
-      for (const Amount& a : defOf(st).income) income[a.resource] += a.amount;
-    }
-    researchIncome(activeSide, income);  // finished technologies' "bonus.income"
-    for (size_t r = 0; r < income.size(); ++r) changeResource(activeSide, (int)r, resourceGain(activeSide, income[r]), events);  // docs/DIFFICULTY.md
-  }
-  researchTurn(events);
+  sideTurnEffects(events);
   // Repair and supply (docs/ECONOMY.md): after income (it can pay for repairs) and research (a finished bonus
   // changes the maximum HP). Resupply comes before the fuel burns so a unit on a depot is not destroyed by it,
   // and a unit that runs dry is gone before it costs a repair.

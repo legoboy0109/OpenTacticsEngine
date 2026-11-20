@@ -1,0 +1,7 @@
+{ "conditions": [
+  { "id": "poison", "name": "Poison", "description": "Loses 3 HP at the start of each of its turns.", "tag": "Po", "turns": 3,
+    "blocks": [ { "when": "turnStart", "do": [ { "hurt": 3, "to": "self" } ] } ] },
+  { "id": "sleep", "name": "Sleep", "description": "Cannot act or move. Wakes when struck.", "tag": "Zz", "turns": 2, "endsWhenStruck": true,
+    "blocks": [ { "when": "always", "do": [ { "cannotAct": true }, { "cannotMove": true } ] } ] },
+  { "id": "stop", "name": "Stop", "description": "Cannot act for a while; nothing wakes it.", "tag": "St", "turns": 2,
+    "blocks": [ { "when": "always", "do": [ { "cannotAct": true }, { "cannotMove": true } ] } ] } ] }

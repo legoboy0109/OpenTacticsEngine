@@ -270,6 +270,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME action_points_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/action_points_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Speed turn order and charged actions (docs/TURN_ORDER.md "Player"): the turn strip, the active unit, a declared and resolved charge, markers in all four views, a save in the middle of a charge, UI scale 100 and 150.
+    add_test(NAME speed_order_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/speed_order_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Height rules (docs/SRPG.md "Height rules"): the Height row of the terrain panel, reach across a cliff, the refusal reasons, all four views at UI scale 100 and 150.
     # Facing (docs/SRPG.md "Facing"): the direction pick after Wait, the marker in all four views, the arc in the forecast, UI scale 100 and 150, hexagons.
     add_test(NAME facing_player

@@ -270,6 +270,11 @@ void Battle::startNow(std::vector<Event>& events) {
   StoryOccurrence o;  // "before the first turn": the first turn's own events come after TurnStarted
   o.kind = Trigger::Kind::BattleStart;
   fireStory(o, events);
+  if (speedGame()) {  // docs/TURN_ORDER.md: round 1 begins for every side, then the clock runs to the first unit
+    if (!over) speedStart(events);
+    if (story) settle(events);
+    return;
+  }
   if (!over) beginTurn(events);  // an event may have decided the battle already
   if (story) settle(events);  // an event may already have decided things
   if (!over && sides[(size_t)activeSide].defeated) advanceTurn(events);  // the first side ran out of fuel
@@ -278,7 +283,7 @@ void Battle::startNow(std::vector<Event>& events) {
 bool Battle::canAct(int unit) const {
   if (over || unit < 0 || unit >= (int)units.size()) return false;
   const Unit& u = units[unit];
-  return u.alive && u.side == activeSide;
+  return u.alive && ownsTurn(u);
 }
 
 }  // namespace ote

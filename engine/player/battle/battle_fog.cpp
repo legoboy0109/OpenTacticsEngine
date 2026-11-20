@@ -83,8 +83,8 @@ void BattleScene::coverConfirmed() {
 // One step (or, under fog, a run of steps) of the AI. A step whose events the viewer cannot see costs no time at
 // all, so the next one follows in the same frame: a long unseen turn must not take longer than a short one.
 void BattleScene::aiStep() {
-  if (aiTurnKey_ != battle_.round * 1000 + battle_.activeSide) {
-    aiTurnKey_ = battle_.round * 1000 + battle_.activeSide;
+  if (aiTurnKey_ != turnKey()) {
+    aiTurnKey_ = turnKey();
     OTE_INFO("ai: %s acts, round %d t=%.2f", battle_.sides[(size_t)battle_.activeSide].name.c_str(), battle_.round, time_);
   }
   int budget = fogActive_ ? 256 : 1;

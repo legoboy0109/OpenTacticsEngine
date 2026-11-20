@@ -84,7 +84,7 @@ void Battle::conditionsAct(std::vector<Event>& events) {
   if (db->conditions.empty()) return;
   for (size_t i = 0; i < units.size() && !over; ++i) {
     Unit& u = units[i];
-    if (u.side != activeSide || !u.alive || u.cell == kNoCell || u.conditions.empty()) continue;
+    if (!ownsTurn(u) || !u.alive || u.cell == kNoCell || u.conditions.empty()) continue;
     if (conditionBlock(u, ConditionBlock::Act) >= 0) continue;  // a stopped unit does nothing (conditionsPrevent)
     const int c = conditionBlock(u, ConditionBlock::Berserk);
     if (c < 0) continue;

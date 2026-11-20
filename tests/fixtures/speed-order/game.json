@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1, "name": "Speed Order Fixture",
+  "description": "Test game for the speed turn order and charged actions (docs/TURN_ORDER.md). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" }, { "id": "spd", "name": "Speed" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "turnOrder": { "mode": "speed", "stat": "spd", "threshold": 100, "preview": 8 },
+             "economy": { "enabled": true },
+             "items": { "weapons": "fixed", "inventorySize": 3 } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def - (tb.def or 0))", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" }, { "id": "duel", "name": "Duel", "file": "maps/duel.json" }, { "id": "arena", "name": "Arena", "file": "maps/arena.json" } ]
+}

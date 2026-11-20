@@ -169,7 +169,10 @@ Order bestOrder(Context& cx, const Unit& u) {
     considerStaves(b, u, s, travel, best, healKey);  // a staff beats an attack only by its own worth (ai_staves.cpp)
 
     if (weights) options.clear();  // it chooses its attack by its weights, below
-    else b.attackOptions(u.id, s, options);
+    else {
+      b.attackOptions(u.id, s, options);
+      dropCharged(b, options);  // a charged weapon is judged by ai_speed.cpp
+    }
     for (const AttackOption& o : options) {
       const bool walkToWeapon = o.mapWeapon && s != u.cell;  // docs/SRPG.md "Map weapons": only a marked unit goes for one
       if (walkToWeapon && !(u.aiGoals & kAiWeapons)) continue;

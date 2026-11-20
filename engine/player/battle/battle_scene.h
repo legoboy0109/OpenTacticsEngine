@@ -55,7 +55,7 @@ class BattleScene : public Scene {
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
-                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kCancelResearchEntry, kKeepResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry, kMoveOnEntry,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kCancelResearchEntry, kKeepResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry, kMoveOnEntry, kCancelChargeEntry,
                 kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -333,6 +333,13 @@ class BattleScene : public Scene {
   void toggleAllRanges();
   bool clearRanges();
   void addRangeTint(Overlay& ov) const;
+  // --- turn_strip.cpp: the speed turn order's part of the screen (docs/TURN_ORDER.md "Player"); none of it does anything in another game
+  void drawTurnStrip(Renderer& r) const;      // the next entries of the order along the top edge of the map
+  void refreshChargeMarks();                  // the squares of charging units and of the squares they aim at (every frame in a speed game)
+  void addChargeTint(Overlay& ov) const;
+  int turnKey() const { return battle_.speedGame() ? battle_.turnNo : battle_.round * 1000 + battle_.activeSide; }  // changes when a (unit's) turn begins
+  std::vector<uint8_t> chargeFromMask_, chargeAimMask_;
+  int aimedChargeSpeed_ = 0;                  // a charged ability is being aimed: how fast it charges (the strip then shows where it would land)
 
   SceneHost& host_;
   GameSession& session_;
@@ -389,6 +396,7 @@ class BattleScene : public Scene {
   int weaponRow_ = -1;                    // the row picked; >= 0 while Targeting came from the list (Back returns there)
   Cell buildCell_ = kNoCell;
   int turnKey_ = -1;
+  bool jumpCamera_ = false;  // a new unit's turn in a speed game: the camera arrives at once
   int aiTurnKey_ = -1;  // the AI turn the log last said it started
   ItemScreen itemScreen_ = ItemScreen::List;
   ItemPanel itemPanel_;

@@ -18,6 +18,7 @@
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
 #include "core/data/places.h"
+#include "core/data/speed_rules.h"
 #include "core/data/weapon_area.h"
 #include "core/data/ranks.h"
 #include "core/base/types.h"
@@ -156,6 +157,7 @@ struct WeaponDef {
   // Area attacks and line fire (docs/SRPG.md "Area attacks and line fire"); both keys are optional, the defaults are the old single-target weapon.
   FireMode fire = FireMode::Direct;  // weapons.json "fire"
   AreaDef area;                      // weapons.json "area"
+  ChargeDef charge;                  // weapons.json "chargeSpeed" etc. (speed turn order only; docs/TURN_ORDER.md "Charged actions")
   HeightRange heightRange;           // weapons.json "heightRange" (height rules only): how much higher / lower than the shooter the target may stand
   bool aimsStraight() const { return fire == FireMode::Line || area.shape == AreaShape::Line; }  // only along straight lines of the grid
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
@@ -354,7 +356,7 @@ struct FactionDef {
   }
 };
 
-enum class TurnOrder { Sides /*, Speed (planned: per-unit, FFT style) */ };
+enum class TurnOrder { Sides, Speed };  // Speed: docs/TURN_ORDER.md
 
 // game.json "rules.supply" (docs/ECONOMY.md "Repair and supply"); everything off when the block is missing.
 struct SupplyRules {
@@ -402,6 +404,7 @@ struct RulesConfig {
   HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
   UnitRankRules unitRanks;   // "rules.progression.levels" (docs/SRPG.md "Unit ranks"); empty when the game levels up the usual way
   JobRules jobs;             // "rules.jobs" (docs/JOBS.md); only means something when `Database::jobs` is not empty
+  SpeedRules speed;          // "rules.turnOrder": "speed" (docs/TURN_ORDER.md); `on` is false in the usual side-by-side game
   FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See

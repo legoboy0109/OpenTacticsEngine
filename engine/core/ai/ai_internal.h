@@ -1,6 +1,7 @@
 // Internals shared by the AI's source files. Not a public interface:
 // everything the rest of the engine may call is declared in ai.h.
 #pragma once
+#include <algorithm>
 #include <array>
 #include <map>
 #include <memory>
@@ -13,6 +14,9 @@ namespace ote {
 
 // ai_ap.cpp: the computer opponent's turn in a game with action points (docs/AI.md "Action points"); aiTakeStep hands over to it.
 bool aiTakeApStep(Battle& battle, std::vector<Event>& events);
+
+// ai_speed.cpp: the computer opponent's turn in a game with the speed turn order (docs/AI.md "Speed turn order"); aiTakeStep hands over to it.
+bool aiTakeSpeedStep(Battle& battle, std::vector<Event>& events);
 
 namespace ai {
 
@@ -159,6 +163,13 @@ Order retreatOrder(Context& cx, const Unit& u, const std::vector<Cell>& stops);
 
 // ---- ai_order.cpp ----
 Order bestOrder(Context& cx, const Unit& u);
+// ai.cpp: carries out an order: the walk, the action, and a Wait when it did not work (so the unit's turn always ends).
+void playOrder(Battle& battle, int unit, Order order, std::vector<Event>& events);
+// Takes the charged weapons (speed turn order) out of a list of attack options: they are not instant attacks; ai_speed.cpp scores them.
+inline void dropCharged(const Battle& b, std::vector<AttackOption>& options) {
+  if (!b.speedGame()) return;
+  options.erase(std::remove_if(options.begin(), options.end(), [&](const AttackOption& o) { return b.weaponCharges(o.weapon); }), options.end());
+}
 
 // The score a square costs a unit that does something there while enemies could gang up on it (an attack's own terms).
 double exposureCost(const Battle& b, const Unit& u, Cell c);

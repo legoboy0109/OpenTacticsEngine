@@ -145,6 +145,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
   for (Cell s : stops) {
     const int travel = s == u.cell ? 0 : reach.cost[(size_t)s];
     b.attackOptions(u.id, s, options);
+    dropCharged(b, options);  // a charged weapon is judged by ai_speed.cpp
     for (const AttackOption& o : options) {
       if (o.mapWeapon && s != u.cell && !(u.aiGoals & kAiWeapons)) continue;  // a free map weapon only for a unit marked "goesFor": ["weapons"]
       if (ignoredTarget(st, o.target)) continue;

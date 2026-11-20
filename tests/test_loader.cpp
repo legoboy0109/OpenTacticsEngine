@@ -336,7 +336,7 @@ TEST(loader_errors_game) {
   expectGameError("unknown_weapon", "units.json", "laser");
   expectGameError("bad_versus", "weapons.json", "dragon");
   expectGameError("bad_defeat", "game.json", "bogus");
-  expectGameError("bad_turn_order", "game.json", "not supported");
+  expectGameError("bad_turn_order", "game.json", "turnOrder \"initiative\" must be \"sides\"");
   expectGameError("bad_range", "weapons.json", "bow");
 }
 

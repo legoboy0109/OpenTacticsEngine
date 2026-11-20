@@ -145,7 +145,7 @@ void Battle::noteAbilityUse(int unit, int ability) {
 void Battle::abilitiesTurnStart(std::vector<Event>& events) {
   if (db->abilities.empty()) return;
   for (Unit& u : units) {
-    if (u.side != activeSide || !exists(u)) continue;
+    if (!ownsTurn(u) || !exists(u)) continue;
     for (AbilityUse& use : u.abilityUses) {
       if (use.wait > 0) --use.wait;
       use.turn = false;
@@ -155,7 +155,7 @@ void Battle::abilitiesTurnStart(std::vector<Event>& events) {
   // removeSummon can remove others (its own summons), so every unit is looked at as it stands then.
   for (size_t i = 0; i < units.size(); ++i) {
     Unit& u = units[i];
-    if (u.side != activeSide || u.summoner < 0 || u.summonLeft < 0 || !exists(u)) continue;
+    if (!ownsTurn(u) || u.summoner < 0 || u.summonLeft < 0 || !exists(u)) continue;
     if (u.summonLeft == 0) removeSummon((int)i, events);
     else --u.summonLeft;
   }

@@ -9,7 +9,7 @@ namespace ote {
 void Battle::aiTurnStart() {
   touch();
   for (Unit& u : units) {
-    if (!u.alive || u.side != activeSide || u.behaviour.isDefault()) continue;
+    if (!u.alive || !ownsTurn(u) || u.behaviour.isDefault()) continue;
     const AiBehaviour& beh = u.behaviour;
     if (beh.idleTurns > 0) ++u.idleSeen;  // its own turns on the map, from the one it got the key in: idle while this is <= idleTurns
     if (beh.retreat.on) {

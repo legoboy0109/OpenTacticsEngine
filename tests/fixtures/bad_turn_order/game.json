@@ -4,7 +4,7 @@
   "stats": [ { "id": "hp" }, { "id": "mov" } ],
   "roles": { "hp": "hp", "move": "mov" },
   "moveTypes": [ { "id": "foot" } ],
-  "rules": { "turnOrder": "speed" },
+  "rules": { "turnOrder": "initiative" },
   "formulas": { "damage": "1" },
   "maps": [
     { "id": "ok", "file": "maps/ok.json" },

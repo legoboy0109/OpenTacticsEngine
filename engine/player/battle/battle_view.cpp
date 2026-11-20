@@ -120,7 +120,7 @@ void BattleView::beginTurnStarted(const Battle& b) {
   const Event& e = cur_.ev;
   banner = b.sides[e.a].name + " - Turn " + intStr(e.b);
   bannerColor = sideColor(b, e.a);
-  cur_.dur = 0.6f;
+  cur_.dur = b.speedGame() ? 0.35f : 0.6f;  // (units take turns one at a time: the banner of a side's turn is short)
   if (announce_) {
     announce_ = false;
     bannerSub = b.objectiveText();
@@ -252,7 +252,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   cur_.hideAtEnd = false;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSrpg(b) || beginMapChange(b)) return;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
   const float cx = tile_ / 2.0f;
   switch (e.type) {
     case EventType::TurnStarted: beginTurnStarted(b); break;
@@ -316,6 +316,11 @@ void BattleView::begin(const Battle& b) {
     case EventType::TerrainChanged:  // beginMapChange (battle_view_mapchange.cpp) took it above
     case EventType::SceneEffect:     // beginStory (battle_view_story.cpp) took it above
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
+    case EventType::UnitTurnBegan:       // beginSpeed (battle_view_speed.cpp) took these above
+    case EventType::RoundStarted:
+    case EventType::ActionCharging:
+    case EventType::ChargeResolved:
+    case EventType::ChargeCancelled: break;
     // Strategy-RPG entries: beginSrpg (battle_view_srpg.cpp) took them above.
     case EventType::SkillLearned:
     case EventType::SkillActivated:
@@ -375,7 +380,7 @@ void BattleView::progress(const Battle& b) {
   const Event& e = cur_.ev;
   float p = cur_.dur > 0 ? std::min(1.0f, cur_.t / cur_.dur) : 1.0f;
   hasFocus = false;
-  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSrpg(b) || progressMapChange(b)) return;
+  if (progressPlaces(b) || progressStory(b) || progressEconomy(b) || progressSpeed(b) || progressSrpg(b) || progressMapChange(b)) return;
   switch (e.type) {
     case EventType::UnitMoved: {
       UnitView& v = units[e.a];

@@ -22,6 +22,7 @@ void Battle::dressUnit(Unit& u) const {
 
 void Battle::endOrder(int unit, bool afterAttack) {
   Unit& u = units[(size_t)unit];
+  u.turnActed = true;  // docs/TURN_ORDER.md: the clock charges a turn that used its action more
   // A skill gave this unit "act again" during the combat that is ending: its flags were cleared on purpose.
   if (actAgainPending_ == unit) {
     actAgainPending_ = -1;
@@ -55,6 +56,7 @@ void Battle::srpgTurnEnd(std::vector<Event>& events) {
 }
 
 void Battle::srpgUnitGone(int unit, int by, std::vector<Event>& events) {
+  if (speedGame()) chargeUnitGone(unit, events);  // a charged action does not outlive its caster
   if (db->abilities.empty() && db->rules.rescue.mode == RescueMode::Off) return;
   rescueUnitGone(unit, by, events);  // first: the unit it carried may take the square it left
   summonsUnitGone(unit, events);

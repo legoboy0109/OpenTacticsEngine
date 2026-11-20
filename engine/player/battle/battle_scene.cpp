@@ -121,8 +121,13 @@ void BattleScene::beginHumanTurn() {
   sel_ = -1;
   overlay_ = Overlay();
   hasUndo_ = false;
+  if (battle_.speedGame()) {  // docs/TURN_ORDER.md: the cursor and the camera go to the unit that has the turn
+    jumpCamera_ = true;
+    aimedChargeSpeed_ = 0;
+    OTE_INFO("unit turn: %s (round %d)", battle_.activeUnit >= 0 ? battle_.units[(size_t)battle_.activeUnit].name.c_str() : "?", battle_.round);
+  }
   for (const Unit& u : battle_.units)
-    if (u.alive && u.side == battle_.activeSide && !battle_.unitSpent(u)) {
+    if (battle_.mayActNow(u)) {
       cursor_ = u.cell;
       return;
     }
@@ -132,7 +137,7 @@ void BattleScene::beginHumanTurn() {
 // an affordable build. Used only for the "end turn?" hint.
 bool BattleScene::humanHasOptions() const {
   for (const Unit& u : battle_.units)
-    if (u.alive && u.side == battle_.activeSide && !battle_.unitSpent(u)) return true;
+    if (battle_.mayActNow(u)) return true;
   if (!session_.db.rules.production) return false;
   std::vector<int> opts;
   for (Cell c = 0; c < battle_.grid.cellCount(); ++c) {
@@ -156,6 +161,11 @@ void BattleScene::followCamera(double dt) {
   // steady scroll of that length, -1 (not given) = the usual quick ease.
   const bool newFocus = view_.focusSerial != scrollSerial_;
   scrollSerial_ = view_.focusSerial;
+  if (jumpCamera_) {  // a new unit's turn (speed turn order): no gliding from the last unit to this one
+    jumpCamera_ = false;
+    if (proj_.free3d()) freeCam_.snap();
+    else cam_.placed = false;
+  }
   if (newFocus && view_.focusMs > 0 && !proj_.free3d()) {
     scroll_.active = true;
     scroll_.t = 0;
@@ -219,11 +229,12 @@ void BattleScene::update(double dt) {
     if (battle_.over) enterResult();
     else if (!humanTurn()) aiStep();
     else if (fogTurnGate()) return;  // the cover went up (hot-seat): the turn begins when it comes down
-    else if (turnKey_ != battle_.round * 1000 + battle_.activeSide) {
-      turnKey_ = battle_.round * 1000 + battle_.activeSide;
+    else if (turnKey_ != turnKey()) {
+      turnKey_ = turnKey();
       beginHumanTurn();
     }
   }
+  refreshChargeMarks();
   if (humanTurn() && !view_.busy() && !prep_) refreshRanges();  // (does nothing unless the board, the marks or the setting changed)
   if (turnPos_ != (float)turn_) {  // a quarter turn takes a quarter of a second (a sixth on hexagon maps: as fast)
     const int steps = proj_.turnCount();
@@ -271,6 +282,10 @@ std::string BattleScene::hint() const {
     case Mode::Idle:
       if (!humanHasOptions()) return "All units done.  {menuName}: end turn";
       // (the enemy-ranges key only on the plain line: the others have no room for it in 58 characters; the map menu has the entry too)
+      if (battle_.speedGame())  // the unit that has the turn is the only one to pick; the strip along the top says what comes after
+        return proj_.free3d() ? "{dpad}  {ok}:select  {menu}:end turn  {turn}:turn  {tilt}:tilt  {zoom}:zoom"
+               : map3d_ ? "{dpad}:cursor  {ok}:select  {menu}:end turn  {turn}:turn"
+                        : "{dpad}:cursor  {ok}:select  {menu}:end turn  {nextprev}:unit";  // (the end of a line is what a big UI scale cuts)
       return proj_.free3d() ? "{dpad}  {ok}:select  {turn}:turn  {tilt}:tilt  {zoom}:zoom  {menu}:menu"
              : map3d_ ? "{dpad}:cursor  {ok}:select  {nextprev}:units  {turn}:turn  {menu}:menu"
              : rangesOn() ? "{dpad}:cursor  {ok}:select  {nextprev}:units  {menu}:menu  {rangesKey}:ranges"
@@ -334,6 +349,7 @@ void BattleScene::draw(Renderer& r) {
   Overlay shownOverlay = mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_
                          : mode_ == Mode::Targeting ? aimOverlay() : mode_ == Mode::Facing ? faceOverlay() : supplyOverlay();
   addRangeTint(shownOverlay);  // the marked enemies' reach, under the player's own blue / red
+  addChargeTint(shownOverlay);  // speed turn order: the squares of charged actions on their way
   drawMap(r, ctx, shownOverlay, cursor_, human);
   if (prep_) prepDrawSlots(r);  // the numbered deployment squares
   drawFloats(r, ctx, false);
@@ -364,6 +380,7 @@ void BattleScene::draw(Renderer& r) {
   }
   bool aiActing = !battle_.over && !humanTurn();  // nobody to inspect for: AI is playing
   drawPanel(r, ctx, aiActing ? kNoCell : cursor_, autoplay_);
+  drawTurnStrip(r);  // (a speed game only) after the panel, which covers the map's overshoot, and under the hint line and the banners
   if (prep_) prepDrawPanelHead(r);  // "Turn 1 / You" means nothing before the battle: say what this is
   drawHint(r, layout_, hint());
   drawFloats(r, ctx, true);

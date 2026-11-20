@@ -115,6 +115,22 @@ static std::string describeEventText(const Battle& b, const Event& e) {
       return fmt("%s uses %s on %s", unitName(b, e.a).c_str(), itemId(b, e.b).c_str(), unitName(b, e.c).c_str());
     case EventType::UnitHealed:
       return fmt("%s heals %d", unitName(b, e.a).c_str(), e.b);
+    case EventType::UnitTurnBegan:  // docs/TURN_ORDER.md
+      return fmt("-- %s's turn (round %d, charge %d)", unitName(b, e.a).c_str(), e.b, e.c);
+    case EventType::RoundStarted:
+      return fmt("-- round %d begins", e.a);
+    case EventType::ActionCharging:
+      return fmt("%s starts charging %s '%s' at %s (speed %d%s)", unitName(b, e.a).c_str(), e.b ? "weapon" : "ability",
+                 (e.b ? b.db->weapons[(size_t)e.c].id : b.db->abilities[(size_t)e.c].id).c_str(), cellName(b, e.d).c_str(),
+                 e.data.size() > 1 ? e.data[1] : 0, e.data.size() > 0 && e.data[0] >= 0 ? (", follows " + unitName(b, e.data[0])).c_str() : "");
+    case EventType::ChargeResolved:
+      return fmt("%s's charged %s '%s' goes off at %s", unitName(b, e.a).c_str(), e.b ? "weapon" : "ability",
+                 (e.b ? b.db->weapons[(size_t)e.c].id : b.db->abilities[(size_t)e.c].id).c_str(), cellName(b, e.d).c_str());
+    case EventType::ChargeCancelled: {
+      static const char* const why[] = {"the caster fell", "interrupted", "given up", "nothing to hit", "the caster is gone"};
+      return fmt("%s's charged %s '%s' is cancelled: %s", unitName(b, e.a).c_str(), e.b ? "weapon" : "ability",
+                 (e.b ? b.db->weapons[(size_t)e.c].id : b.db->abilities[(size_t)e.c].id).c_str(), e.d >= 0 && e.d < 5 ? why[e.d] : "?");
+    }
     case EventType::UnitFaced:
       return fmt("%s faces %s", unitName(b, e.a).c_str(), directionName(b.grid, e.b).c_str());
     case EventType::JpGained:

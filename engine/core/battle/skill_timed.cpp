@@ -102,7 +102,7 @@ void Battle::runTimedBlock(int owner, int foe, int skill, const SkillBlock& bloc
       // Only on its own side's turn, once a turn. Its flags are cleared now; endOrder (which a combat ends with)
       // is told not to end the turn again.
       Unit& u = units[(size_t)owner];
-      if (u.refreshed || !u.alive || u.side != activeSide) continue;
+      if (u.refreshed || !u.alive || !ownsTurn(u)) continue;
       u.moved = u.done = u.acted = false;
       u.moveSpent = 0;
       u.refreshed = true;
@@ -163,7 +163,7 @@ void Battle::skillsTurnStart(std::vector<Event>& events) {
   std::vector<int> list;
   for (size_t i = 0; i < units.size(); ++i) {
     const Unit& u = units[i];
-    if (!u.alive || u.cell == kNoCell || u.side != activeSide) continue;
+    if (!u.alive || u.cell == kNoCell || !ownsTurn(u)) continue;
     skillsOf(u, -1, list);
     SkillCtx ctx;
     ctx.unit = u.id;

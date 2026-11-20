@@ -70,7 +70,7 @@ void BattleScene::updateSaves() {
     if (!chapterBattle()) clearContinue();
     return;
   }
-  long long turn = (long long)battle_.round * 1024 + battle_.activeSide;
+  long long turn = battle_.speedGame() ? (long long)battle_.turnNo : (long long)battle_.round * 1024 + battle_.activeSide;
   if (turn != savedTurn_) {  // a new turn has begun (either side)
     savedTurn_ = turn;
     dirty_ = true;
