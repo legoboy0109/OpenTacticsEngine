@@ -406,6 +406,13 @@ computer through the forecast like any other.
 
 **Tests.** `tests/test_unit_ranks_ai.cpp`.
 
+### Jobs
+
+In a game with jobs (docs/JOBS.md) the computer needs no new logic: the skills and menu abilities a unit has from its job (the learned entries of the job it uses, and the equipped ones) are part of
+`Battle::skillsOf` and `Battle::abilitiesOf`, which every part of the opponent already reads. An enemy given `"job": "mage", "learned": ["mend"]` on its map entry therefore heals a wounded ally with
+Mend exactly as it would with an ability of its unit type (`considerAbilities`). The computer never changes a job, learns, equips or spends JP, and earns none (`JpGained` is for units of human
+sides). **Tests.** `tests/test_jobs_battle.cpp` (`an_enemy_with_a_job_uses_the_ability_it_learned`, a whole computer-against-computer game is the same every time).
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

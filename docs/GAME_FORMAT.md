@@ -156,6 +156,11 @@ table of ranks on a unit's total experience: the rank is the highest entry whose
 map, and experience stops at the last `at`. `xpPerLevel`, `maxLevel`, a unit type's `maxLevel` and a promotion's `atLevel` are refused beside it. A map unit may say `"xp"`.
 Everything is in docs/SRPG.md "Unit ranks".
 
+`"rules": { "jobs": { "jp": { "perAction": 10, "perDefeat": 20 }, "slots": { "action": 1, "reaction": 1, "support": 1, "movement": 1 }, "jpLevels": [100, 300, 600], "changeIn": "camp+prep" } }`
+(optional; needs `data/jobs.json`) sets the job system's numbers: the JP a unit earns for taking part in a fight and for a defeat, how many entries learned in other jobs may be equipped per slot
+kind, the game-wide table of total JP for job levels 2, 3, ... and whether jobs are changed in the camp only (`"camp"`, the default) or on the preparation screen too (`"camp+prep"`). Everything
+is in docs/JOBS.md.
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -386,6 +391,7 @@ resources on the map. A map side names one with `"faction": "<id>"` or `"faction
       "difficultyShift": false,          // optional: the difficulty's enemy numbers never change this unit (a boss)
       "facing": "north",                 // optional, needs game.json "rules.facing": the direction it starts looking in (squares north / east / south / west; hexagons docs/SRPG.md "Facing"); default: toward the nearest foe
       "xp": 10,                          // optional, needs game.json "rules.progression.levels": the experience it starts with (docs/SRPG.md "Unit ranks")
+      "job": "mage", "learned": ["mend"], // optional, needs data/jobs.json: the job it plays as (it needs no "type") and what it knows; also "jobs" and "equipped" (docs/JOBS.md)
       "stats": { "hp": 26 } }            // optional per-unit overrides (exact: a difficulty never shifts a stat written here)
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)
@@ -491,6 +497,11 @@ blocks of a fight; a condition's `"scale": "turnsLeft"` (a counted condition) ma
 plus `cannotAct`, `cannotMove`, `forbid` and `berserk`), `"inflict"` on a weapon, `"cure"` / `"inflict"` on a usable item, `inflict` and `cure` effects of a
 staff, and the skill effect `immune`. Map events can give and take conditions (`addCondition`, `removeCondition`) and ask (`hasCondition`, docs/EVENTS.md
 "Status conditions"); campaign scenes cannot. A game without the file loads, plays, saves and hashes exactly as before.
+
+**Jobs** (docs/JOBS.md, optional): `data/jobs.json` lists the jobs (`id`, `name`, `unitType` the unit type a unit plays as, `requires` job levels needed, `jpLevels`, `learn`: the skills and
+abilities the job teaches for JP, each with a `cost` and a `slot` kind). A character (`"job"`, `"jobs"`, `"equipped"`, `"learned"`) or a map unit with a `job` uses the system: it earns JP in its
+current job where it earns experience, learns entries, equips a few of them from other jobs and changes job between chapters (and on the preparation screen with `rules.jobs.changeIn`). A
+character or unit without `job` is untouched. The roster carries the state from chapter to chapter and saves hold it. A game without `data/jobs.json` loads, plays, saves and hashes exactly as before.
 
 **Weapon ranks and stat caps** (docs/SRPG.md section 7, both optional): `data/ranks.json` (the maker's rank ladder, e.g. E to S, and
 whether ranks are fixed or grow by use; needs carried weapons), `data/caps.json` (game-wide stat caps), `"rank"` / `"rankXp"` on a

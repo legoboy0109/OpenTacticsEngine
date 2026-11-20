@@ -118,7 +118,7 @@ Research screen. `campaign` (`data/campaign.json`, docs/EVENTS.md "Campaign") is
 the Sound screen. `revision` identifies the on-disk state (a hash of the
 project's files).
 
-**Strategy-RPG sections** (docs/SRPG.md "Editor"; `editor/server/srpg_files.cpp`). `characters`, `skills`, `abilities` and `conditions` (`data/conditions.json`, status conditions, docs/SRPG.md section 9) are
+**Strategy-RPG sections** (docs/SRPG.md "Editor"; `editor/server/srpg_files.cpp`). `characters`, `skills`, `abilities`, `conditions` (`data/conditions.json`, status conditions, docs/SRPG.md section 9) and `jobs` (`data/jobs.json`, docs/JOBS.md; no editor form yet: the helper only carries the list, `rules.jobs` in `game` and the job keys of characters and map units) are
 lists exactly like `items` (each file is `{ "<key>": [ … ] }`; `null` when the file is absent, no problem; a file that is
 unreadable, not an object, or without its list is `null` plus a problem on that file). `supports` is the file's one object, like
 `campaign` (`null` when absent; a file that is not a JSON object is `null` plus a problem on `data/supports.json`). `ranks` and `caps` (weapon ranks and stat caps, docs/SRPG.md section 7) are two more such objects (`{ growth, ranks }` and `{ caps }`; `null` when absent). Entries
