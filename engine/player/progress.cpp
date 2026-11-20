@@ -23,7 +23,9 @@ bool recordStoryComplete(const SaveStore& store, long long at, std::string& err)
   char when[32] = "";
   std::time_t t = (std::time_t)at;
   std::tm utc;
-#if defined(_WIN32)
+#if defined(OTE_NXDK)  // nxdk: no gmtime_s / gmtime_r; one thread, so the plain call is fine
+  if (const std::tm* g = std::gmtime(&t)) { utc = *g; std::strftime(when, sizeof when, "%Y-%m-%dT%H:%M:%SZ", &utc); }
+#elif defined(_WIN32)
   if (gmtime_s(&utc, &t) == 0) std::strftime(when, sizeof when, "%Y-%m-%dT%H:%M:%SZ", &utc);
 #else
   if (gmtime_r(&t, &utc)) std::strftime(when, sizeof when, "%Y-%m-%dT%H:%M:%SZ", &utc);

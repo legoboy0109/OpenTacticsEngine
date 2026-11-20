@@ -199,7 +199,11 @@ std::string formatSavedAt(long long seconds) {
   if (seconds <= 0) return "";
   std::time_t t = (std::time_t)seconds;
   std::tm local;
-#if defined(_WIN32)
+#if defined(OTE_NXDK)  // nxdk: no localtime_s / localtime_r
+  const std::tm* lt = std::localtime(&t);
+  if (!lt) return "";
+  local = *lt;
+#elif defined(_WIN32)
   if (localtime_s(&local, &t) != 0) return "";
 #else
   if (!localtime_r(&t, &local)) return "";

@@ -15,7 +15,25 @@ namespace ote {
 // Opens `utf8Path` with the C library's mode string ("rb", "wb", ...; ASCII only). nullptr on failure, like fopen.
 std::FILE* openFile(const std::string& utf8Path, const char* mode);
 
-#if defined(_WIN32)
+// fread for "read the whole file" loops. On the original Xbox (nxdk) the C library's refill read at end of file fails when
+// the file size is not a multiple of the 2 KB disc sector (seen in xemu: ferror set after the last full read), so there
+// the request is capped to the bytes that remain and end of file is never probed. Elsewhere it is plain fread.
+inline size_t readChunk(std::FILE* f, void* buf, size_t cap) {
+#if defined(OTE_NXDK)
+  long pos = std::ftell(f);
+  if (pos >= 0 && std::fseek(f, 0, SEEK_END) == 0) {
+    long end = std::ftell(f);
+    std::fseek(f, pos, SEEK_SET);
+    if (end >= pos) {
+      if ((size_t)(end - pos) < cap) cap = (size_t)(end - pos);
+      if (cap == 0) return 0;
+    }
+  }
+#endif
+  return std::fread(buf, 1, cap, f);
+}
+
+#if defined(_WIN32) && !defined(OTE_NXDK)
 // UTF-8 -> UTF-16 for the Win32 "W" calls (shared with the platform layer's folder functions). Invalid input is
 // replaced, never rejected. Empty in, empty out.
 std::wstring utf8ToWide(const std::string& utf8);

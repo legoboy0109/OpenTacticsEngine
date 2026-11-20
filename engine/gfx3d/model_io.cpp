@@ -26,7 +26,7 @@ bool readFileBytes(const std::string& path, std::vector<uint8_t>& out) {
   size_t n;
   const size_t kMax = (size_t)512 * 1024 * 1024;  // a runaway file must not eat all memory
   bool ok = true;
-  while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+  while ((n = readChunk(f, buf, sizeof buf)) > 0) {
     out.insert(out.end(), buf, buf + n);
     if (out.size() > kMax) {
       ok = false;

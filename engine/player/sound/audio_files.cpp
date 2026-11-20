@@ -17,7 +17,7 @@ FileBytes readAudioFile(const std::string& path, std::string& err) {
   size_t n;
   const size_t kMax = (size_t)256 * 1024 * 1024;  // a runaway file must not eat all memory
   bool tooBig = false;
-  while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+  while ((n = readChunk(f, buf, sizeof buf)) > 0) {
     bytes->insert(bytes->end(), buf, buf + n);
     if (bytes->size() > kMax) { tooBig = true; break; }
   }
