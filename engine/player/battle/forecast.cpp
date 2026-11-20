@@ -83,7 +83,7 @@ Column makeColumn(Renderer& r, int maxW, const Battle& b, const Unit& u, const U
 
 }  // namespace
 
-void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int weapon, Cell targetCell) {
+void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int weapon, Cell targetCell, const std::string& extra) {
   const Battle& b = c.battle;
   const Layout& L = c.layout;
   Forecast f;
@@ -109,6 +109,7 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
     for (const Line& ln : *col) text += ln.text + "; ";
     text += "| ";
   }
+  if (!extra.empty()) text += extra + "; ";
   if (text != lastLog) {
     lastLog = text;
     OTE_INFO("forecast: %s", text.c_str());
@@ -122,7 +123,7 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   // Up to the whole screen width (not only the map's): a narrow window would cut "Heavy Blow 40%" otherwise. The box
   // is centred on the map and pushed over the panel only as far as it needs.
   colW = std::min(colW, (L.W - 8 - 24) / 2);
-  int rh = L.row, w = colW * 2 + 24, h = (int)rows * rh + 12;
+  int rh = L.row, w = colW * 2 + 24, h = (int)rows * rh + 12 + (extra.empty() ? 0 : rh);
   int x = std::max(4, std::min((L.vw - w) / 2, L.W - 4 - w));
   int ty = 0;
   if (targetCell >= 0) {
@@ -135,7 +136,8 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   r.fillRect(x + 2, y + 2, w, h, Color(0, 0, 0, 110));
   r.fillRect(x, y, w, h, Color(22, 26, 46, 245));
   r.drawRect(x, y, w, h, Color(255, 220, 90));
-  r.fillRect(x + w / 2, y + 4, 1, h - 8, Color(70, 76, 110));
+  r.fillRect(x + w / 2, y + 4, 1, h - 8 - (extra.empty() ? 0 : rh), Color(70, 76, 110));
+  if (!extra.empty()) r.drawText(x + 8, y + 6 + (int)rows * rh, fitText(r, extra, w - 16).c_str(), kNote);
   for (size_t i = 0; i < ca.size(); ++i)
     r.drawText(x + 8, y + 6 + (int)i * rh, fitText(r, ca[i].text, colW).c_str(), ca[i].color);
   for (size_t i = 0; i < cd.size(); ++i)

@@ -24,8 +24,13 @@ bool BattleScene::submit(const Action& a) {
   // The orders of an attack, in the order they were given (the weapon-list tests read these: equip first, then the attack).
   if (a.type == ActionType::Equip)
     OTE_INFO("order: equip %s slot %d", battle_.units[(size_t)a.unit].name.c_str(), a.slot);
-  else if (a.type == ActionType::Attack)
-    OTE_INFO("order: attack %s -> unit %d with %s", battle_.units[(size_t)a.unit].name.c_str(), a.target, battle_.db->weapons[(size_t)a.weapon].name.c_str());
+  else if (a.type == ActionType::Attack) {
+    if (battle_.isAreaWeapon(a.weapon))  // aimed at a square (docs/SRPG.md "Area attacks and line fire")
+      OTE_INFO("order: attack %s -> square %d,%d (unit %d) with %s", battle_.units[(size_t)a.unit].name.c_str(), battle_.grid.x(a.cell),
+               battle_.grid.y(a.cell), a.target, battle_.db->weapons[(size_t)a.weapon].name.c_str());
+    else
+      OTE_INFO("order: attack %s -> unit %d with %s", battle_.units[(size_t)a.unit].name.c_str(), a.target, battle_.db->weapons[(size_t)a.weapon].name.c_str());
+  }
   // A Move is only the first half of an order (it can still be undone); every
   // other action completes one, so the Continue save is due once it has played.
   if (a.type != ActionType::Move) dirty_ = true;
@@ -166,8 +171,8 @@ void BattleScene::handlePointerDown(int x, int y) {
   if (mode_ == Mode::Targeting) {
     // Tapping a target selects it; tapping the selected one fires.
     for (size_t i = 0; i < targets_.size(); ++i) {
-      if (battle_.units[targets_[i].target].cell != c) continue;
-      if ((int)i == targetIdx_ || targets_[targetIdx_].target == targets_[i].target) {
+      if (targets_[i].cell != c) continue;  // (the square aimed at: an area weapon may aim at an empty one)
+      if ((int)i == targetIdx_ || targets_[targetIdx_].cell == c) {
         targetingButton(Button::Confirm);
       } else {
         targetIdx_ = (int)i;
@@ -392,7 +397,7 @@ void BattleScene::enterTargeting(int preferTarget) {
   menu_.close();
   mode_ = Mode::Targeting;
   overlay_ = Overlay();
-  cursor_ = battle_.units[targets_[targetIdx_].target].cell;
+  cursor_ = targets_[targetIdx_].cell;
 }
 
 void BattleScene::targetingButton(Button b) {
@@ -409,10 +414,12 @@ void BattleScene::targetingButton(Button b) {
     uiCue(Cue::Confirm);
     const AttackOption t = targets_[targetIdx_];
     if (weaponRow_ >= 0 && !equipForAttack()) return;  // "pick": the weapon is put in hand first, as the Items menu does
-    if (submit(Action::attack(sel_, t.target, t.weapon))) finishOrder();
+    Action shot = Action::attack(sel_, t.target, t.weapon);
+    if (t.area) shot.cell = t.cell;  // an area weapon: the square aimed at (it may be empty)
+    if (submit(shot)) finishOrder();
     return;
   }
-  cursor_ = battle_.units[targets_[targetIdx_].target].cell;
+  cursor_ = targets_[targetIdx_].cell;
 }
 
 }  // namespace ote

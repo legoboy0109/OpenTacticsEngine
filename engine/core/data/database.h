@@ -13,6 +13,7 @@
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
 #include "core/data/places.h"
+#include "core/data/weapon_area.h"
 #include "core/data/ranks.h"
 #include "core/base/types.h"
 #include "core/grid/grid.h"
@@ -140,6 +141,10 @@ struct WeaponDef {
   std::string damageKind;     // optional free-form word ("physical", "magic", ...): skill tests `weaponKind`, formulas `w.damageKind`
   int damageType = -1;        // index into Database::damageTypes.list; -1 only in a game without damage types (else the first, by default)
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
+  // Area attacks and line fire (docs/SRPG.md "Area attacks and line fire"); both keys are optional, the defaults are the old single-target weapon.
+  FireMode fire = FireMode::Direct;  // weapons.json "fire"
+  AreaDef area;                      // weapons.json "area"
+  bool aimsStraight() const { return fire == FireMode::Line || area.shape == AreaShape::Line; }  // only along straight lines of the grid
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
   // Weapon ranks (docs/SRPG.md section 7); both -1 / 1 in a game without ranks.
   int rankGroup = -1;         // index into RankRules::groups (-1 = no group, or no ranks)
@@ -510,6 +515,7 @@ struct Database {
   // Fog options in use (set by the loaders; they keep sight.cpp from looking when a game has none): a "vision" skill effect, a terrain
   // that blocks sight, a structure kind with a fixed "light".
   bool visionSkills = false, terrainBlocksSight = false, structureLights = false;
+  bool straightWeapons = false;  // some weapon has "fire": "line" or a line-shaped "area" (Battle checks the line only then)
   bool scaledConditions = false;  // some condition has "scale": "turnsLeft" (docs/SRPG.md "Effects that fade")
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool marksUsed = false;     // some skill block sets or tests a mark (docs/SRPG.md "Linking two strike blocks")

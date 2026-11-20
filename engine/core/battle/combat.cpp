@@ -59,13 +59,18 @@ void Battle::attackOptions(int unit, Cell from, std::vector<AttackOption>& out) 
   attackWeaponsAt(u, from, weapons, &mapStructure);  // carried or fixed weapons, plus the one of the structure it would stand on
   for (int w : weapons) {
     if (moved && !db->weapons[w].afterMove) continue;
+    if (db->weapons[w].area.on()) {  // an area weapon aims at squares (area_forecast.cpp)
+      areaOptions(unit, from, w, mapStructure >= 0 && w == mapWeaponOf(mapStructure), out);
+      continue;
+    }
     for (const Unit& t : units) {
       if (!t.alive || !isEnemy(u, t) || !unitVisibleTo(teamOf(u), t)) continue;  // fog: only what the team sees
       double vs;
-      if (!weaponInRange(w, grid.distance(from, t.cell)) || !versusValue(w, t, vs)) continue;
+      if (!weaponAims(w, from, t.cell, unit) || !versusValue(w, t, vs)) continue;  // range; line fire also needs a clear straight line
       AttackOption opt;
       opt.target = t.id;
       opt.weapon = w;
+      opt.cell = t.cell;
       opt.mapWeapon = mapStructure >= 0 && w == mapWeaponOf(mapStructure);
       out.push_back(opt);
     }
@@ -78,7 +83,7 @@ bool Battle::forecast(int attacker, int defender, int weapon, Cell from, Forecas
 }
 
 bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Forecast& out,
-                           CombatSetup& setup, bool storyFight) const {
+                           CombatSetup& setup, bool storyFight, int areaMode) const {
   out = Forecast();
   if (attacker < 0 || attacker >= (int)units.size() || defender < 0 ||
       defender >= (int)units.size() || !grid.valid(from))
@@ -86,18 +91,19 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   const Unit& a = units[attacker];
   const Unit& d = units[defender];
   if (!a.alive || !d.alive) return false;
-  if (!storyFight && (!mayFight(a, d) || !unitVisibleTo(teamOf(a), d))) return false;  // fog: not what it cannot see
+  if (!storyFight && !areaMode && (!mayFight(a, d) || !unitVisibleTo(teamOf(a), d))) return false;  // fog: not what it cannot see
   std::vector<int> owned;
   attackWeaponsAt(a, from, owned);  // (the structure it would stand on may add a weapon)
   if (std::find(owned.begin(), owned.end(), weapon) == owned.end()) return false;
   if (!storyFight && (a.moved || from != a.cell) && !db->weapons[weapon].afterMove) return false;
-  if (!storyFight && !weaponInRange(weapon, grid.distance(from, d.cell))) return false;
+  if (!storyFight && !areaMode && !weaponAims(weapon, from, d.cell, attacker)) return false;  // range, and the straight-line rules of line fire
 
   // Everything below only reads the battle (this method is const; no roll is made), so a unit's stats cannot change between
   // the formula calls of this forecast: let the formulas work them out once (Formulas::BatchScope).
   Formulas::BatchScope formulaBatch(formulas);
   CombatMods modsA, modsD;
   setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
+  if (areaMode == 1) setup.counters = false;  // only the unit on the aimed square may answer an area attack
   if (!strikeForecast(setup, false, modsA, modsD, out.attack)) return false;
   if (setup.counters && !strikeForecast(setup, true, modsD, modsA, out.counter)) setup.counters = false;
   out.defenderFirst = setup.counters && modsD.strikeFirst && !modsA.strikeFirst;
@@ -155,7 +161,12 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   // A map weapon (docs/SRPG.md "Map weapons"): spent, or the structure turned into another kind in this fight, means no strike.
   int slot = -1;
   const bool mapStrike = !counter && setup.mapStructure >= 0;
-  if (mapStrike) {
+  // An area attack (area_attack.cpp) checked its weapon once and wears it once, after its last strike: its own strikes neither look at
+  // the wear nor cause any (a counter-attack is an ordinary strike).
+  const bool areaStrike = fightArea_ && !counter;
+  if (areaStrike) {
+    // (nothing to check)
+  } else if (mapStrike) {
     if (mapWeaponUses(setup.mapStructure) == 0 || mapWeaponOf(setup.mapStructure) != weapon) return;
   } else if (db->rules.items.carriedWeapons && (slot = weaponSlot(units[atk], weapon)) < 0) {
     return;
@@ -178,7 +189,8 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   e.c = weapon;
   e.d = 0;
   e.flags = counter ? kCounter : 0;
-  if (mapStrike) e.flags |= kMapWeapon | (mapWeaponUses(setup.mapStructure) == 1 ? kMapWeaponSpent : 0);
+  if (mapStrike) e.flags |= kMapWeapon | (!areaStrike && mapWeaponUses(setup.mapStructure) == 1 ? kMapWeaponSpent : 0);
+  if (fightArea_) e.flags |= kArea;
   // 3. Hit. (A hit of 0 still rolls, as it always did.)
   bool hit = f.hit >= 100 || (db->rules.hitRollAverage ? rollHitAverage(f.hit) : rng.chance(f.hit));
   // A "recoil" with "instead" (docs/SRPG.md "Skill blocks, third set"): a strike that lands turns on its wielder, who takes the damage
@@ -262,28 +274,51 @@ void Battle::doStrike(const CombatSetup& setup, bool counter, bool extra, std::v
   }
   // 7. Wear, drops, defeat.
   if (slot >= 0 && !fightNoWear_) spendUse(atk, slot, events);  // every strike made wears the weapon, hit or miss
-  if (mapStrike) spendMapWeapon(setup.mapStructure, events);  // ... and the structure's weapon likewise
+  if (mapStrike && !areaStrike) spendMapWeapon(setup.mapStructure, events);  // ... and the structure's weapon likewise
   if (e.flags & kKill) {
-    // What the fallen unit was marked to drop goes to the one who struck it down.
-    std::vector<ItemStack> drops;
-    for (const ItemStack& s : units[def].items)
-      if (s.drop) drops.push_back(s);
-    killUnit(def, events, atk);
-    for (const ItemStack& s : drops) giveTo(atk, s, kDropped, events);
-    defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events
-    unitDefeated(def, atk, events);  // may run story events: nothing below may hold a reference into `units`
+    if (fightArea_) pendingKills_.push_back({def, atk, false});  // an area attack lets every victim be struck first
+    else defeatStruck(def, atk, events);  // (may run story events: nothing below may hold a reference into `units`)
   }
   if (wielderDown && units[atk].alive) {  // the weapon finished its own wielder: a normal defeat, with no one to credit
-    killUnit(atk, events);
-    defeatQuote(atk, events);
-    unitDefeated(atk, -1, events);
+    if (fightArea_) {
+      pendingKills_.push_back({atk, -1, true});
+    } else {
+      killUnit(atk, events);
+      defeatQuote(atk, events);
+      unitDefeated(atk, -1, events);
+    }
   }
   // 8. "Strike again": one more strike through the same steps, hit or miss; that one cannot give another.
   if (strike.strikeAgain && !extra && !over && units[atk].alive && units[def].alive)
     doStrike(setup, counter, true, events);
 }
 
+// What the fallen unit was marked to drop goes to the one who struck it down.
+void Battle::defeatStruck(int def, int killer, std::vector<Event>& events) {
+  std::vector<ItemStack> drops;
+  for (const ItemStack& s : units[def].items)
+    if (s.drop) drops.push_back(s);
+  killUnit(def, events, killer);
+  for (const ItemStack& s : drops) giveTo(killer, s, kDropped, events);
+  defeatQuote(def, events);  // the fallen unit's last words come before the story's "defeated" events
+  unitDefeated(def, killer, events);  // may run story events
+}
+
+void Battle::takeWeaponInHand(int unit, int weapon) {
+  if (!db->rules.items.carriedWeapons) return;
+  int slot = weaponSlot(units[unit], weapon);
+  if (slot > 0 && slot != equippedSlot(units[unit])) {
+    ItemStack s = units[unit].items[(size_t)slot];
+    units[unit].items.erase(units[unit].items.begin() + slot);
+    units[unit].items.insert(units[unit].items.begin(), s);
+  }
+}
+
 void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
+  if (isAreaWeapon(action.weapon)) {  // area_attack.cpp
+    applyAreaAttack(action, events);
+    return;
+  }
   int a = action.unit, d = action.target;
   Forecast f;
   CombatSetup setup;
@@ -303,15 +338,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
     return;
   }
 
-  // Attacking with a carried weapon takes it in hand.
-  if (db->rules.items.carriedWeapons) {
-    int slot = weaponSlot(units[a], action.weapon);
-    if (slot > 0 && slot != equippedSlot(units[a])) {
-      ItemStack s = units[a].items[(size_t)slot];
-      units[a].items.erase(units[a].items.begin() + slot);
-      units[a].items.insert(units[a].items.begin(), s);
-    }
-  }
+  takeWeaponInHand(a, action.weapon);  // attacking with a carried weapon takes it in hand
   int hpA = units[a].hp, hpD = units[d].hp;
   fightStrikes_[0] = fightStrikes_[1] = 0;
   fightMarks_.clear();  // marks live for one fight (skill_marks.cpp)
@@ -342,7 +369,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
   if (units[a].alive) endOrder(a, true);
 }
 
-void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events) {
+void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>& events, bool attackerOnly) {
   if (!db->rules.progression) return;
   FormulaCtx ctx;
   ctx.sides = &sides;
@@ -356,6 +383,7 @@ void Battle::fightExperience(int a, int d, int hpA, int hpD, std::vector<Event>&
   } else if (units[a].alive && fightStrikes_[0] > 0) {
     awardXp(a, xpNoDamage(a, d), events);  // "xpNoDamage": a fight that did no damage (nothing unless the game sets it)
   }
+  if (attackerOnly) return;  // one more victim of an area attack: only the unit on the aimed square may have answered
   // Defender's reward for a successful counter.
   if (units[d].alive && units[a].hp < hpA) {
     ctx.a = &units[d];

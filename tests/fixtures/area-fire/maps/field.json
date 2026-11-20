@@ -1,0 +1,11 @@
+{ "name": "Field", "grid": { "type": "square", "width": 10, "height": 7 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["..........", "..........", "....#.....", "..........", "..........", "..........", ".........." ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "mortarman", "side": "blue", "x": 1, "y": 3, "id": "mortar", "leader": true },
+    { "type": "rifleman", "side": "blue", "x": 1, "y": 1, "id": "rifle" },
+    { "type": "flaker", "side": "blue", "x": 1, "y": 5, "id": "flak" },
+    { "type": "dummy", "side": "red", "x": 5, "y": 3, "id": "dummyA" },
+    { "type": "dummy", "side": "red", "x": 6, "y": 3, "id": "dummyB" },
+    { "type": "tough", "side": "red", "x": 5, "y": 4, "id": "toughC", "leader": true },
+    { "type": "dummy", "side": "red", "x": 5, "y": 1, "id": "dummyD" } ] }

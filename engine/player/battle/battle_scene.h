@@ -227,6 +227,7 @@ class BattleScene : public Scene {
   void researchInput(const InputEvent& e);
   void backToStructure();                  // Cancel in Build / Upgrade: the structure menu, or the map
   Overlay supplyOverlay() const;           // the units a Supply would fill, while that entry is selected
+  Overlay aimOverlay() const;              // aiming a line-fire or area weapon: where it can be aimed (blue) and what the shot covers (red)
   void logInspected();                     // [info] line for the unit under the cursor when it has fuel / ammunition
   std::string economyHint() const;
   void drawEconomy(Renderer& r);           // under the panel: the flash of an upgraded structure

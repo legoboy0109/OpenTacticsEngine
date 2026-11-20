@@ -139,7 +139,8 @@ enum : int {
   kLooted = 4096,     // ItemGained / ResourceChanged: it came out of a chest (docs/SRPG.md section 10)
   kLocked = 8192,     // DoorClosed: the story locked it as well
   kMapWeapon = 16384, // Attack: the attacker used the weapon of the structure it stands on (docs/SRPG.md "Map weapons")
-  kMapWeaponSpent = 32768  // Attack with kMapWeapon: that was the structure weapon's last use
+  kMapWeaponSpent = 32768, // Attack with kMapWeapon: that was the structure weapon's last use
+  kArea = 65536            // Attack: one strike of an area attack (docs/SRPG.md "Area attacks and line fire"); the player plays it on the map
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
@@ -324,8 +325,8 @@ enum class ActionType {
 struct Action {
   ActionType type = ActionType::EndTurn;
   int unit = -1;        // Move, Attack, Capture, Wait
-  Cell cell = kNoCell;  // Move destination / Build location
-  int target = -1;      // Attack: defender unit
+  Cell cell = kNoCell;  // Move destination / Build location / Attack with an area weapon: the square aimed at (kNoCell = the target's square)
+  int target = -1;      // Attack: defender unit (an area weapon: the unit on the aimed square, or -1 when `cell` names an empty square)
   int weapon = -1;      // Attack: weapon index (db->weapons)
   int unitType = -1;    // Build
   int slot = -1;        // item actions: position in an inventory, or in the storage (FetchItem); Talk: the story event (-1 = the first that is offered)
@@ -413,8 +414,10 @@ struct ResearchOption {
 };
 
 struct AttackOption {
-  int target = -1;
+  int target = -1;         // the unit attacked; for an area weapon the unit on the aimed square if it is hit, else -1
   int weapon = -1;
+  Cell cell = kNoCell;     // the square aimed at (a single-target weapon: the square of the target)
+  bool area = false;       // an area weapon's option: `cell` says where to aim and `target` may be -1 (docs/SRPG.md "Area attacks and line fire")
   bool mapWeapon = false;  // the weapon is the one of the structure the unit would stand on (docs/SRPG.md "Map weapons")
 };
 
@@ -456,6 +459,8 @@ struct Forecast {
   bool defenderFirst = false;       // the defender strikes before the attacker in each exchange
   std::vector<ForecastNote> notes;  // activations that could fire, in roll order (not folded into the numbers)
 };
+
+#include "core/battle/area_state.h"
 
 // What a repair would do to one unit (repairPreview): HP restored and the price per resource index.
 struct RepairPlan {
@@ -783,6 +788,7 @@ class Battle {
 #include "core/battle/quotes_api.h"
 #include "core/battle/mapchange_api.h"
 #include "core/battle/mapweapon_api.h"
+#include "core/battle/area_api.h"
 
  private:
   // combat.cpp
@@ -903,6 +909,7 @@ class Battle {
 #include "core/battle/srpg_internal.h"
 #include "core/battle/places_internal.h"
 #include "core/battle/difficulty_internal.h"
+#include "core/battle/area_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

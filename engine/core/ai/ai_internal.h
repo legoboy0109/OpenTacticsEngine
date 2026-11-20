@@ -82,6 +82,8 @@ void assignCaptureGoals(Context& cx);
 double typeValue(const Database& db, int type);
 // Score of attacking `target` with `weapon` from `from`; <= 0 means "not worth it".
 double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from);
+// The same for an area weapon aimed at the square `aim` (ai_score.cpp).
+double scoreAreaAttack(const Battle& b, const Unit& u, int weapon, Cell aim, Cell from);
 // Score of starting/continuing a capture of the structure on cell `at` with `u`.
 double scoreCapture(const Battle& b, const Unit& u, Cell at);
 double terrainDefense(const Battle& b, Cell c);

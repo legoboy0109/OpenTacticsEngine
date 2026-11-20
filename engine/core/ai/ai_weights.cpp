@@ -75,6 +75,13 @@ double dangerAt(const Battle& b, const Unit& u, Cell sq, std::unique_ptr<Battle>
     for (Cell s : reach.stops) {
       sim.attackOptions(e.id, s, options);
       for (const AttackOption& o : options) {
+        if (o.area) {  // an area weapon hurts the unit when it is anywhere in the area, not only on the aimed square
+          AreaForecast af;
+          if (!sim.areaForecast(e.id, o.weapon, s, o.cell, af)) continue;
+          for (const AreaVictim& v : af.victims)
+            if (v.unit == me.id) best = std::max(best, predicted(v.hit));
+          continue;
+        }
         if (o.target != me.id) continue;
         Forecast f;
         if (sim.forecast(e.id, me.id, o.weapon, s, f)) best = std::max(best, predicted(f.attack));
@@ -85,8 +92,25 @@ double dangerAt(const Battle& b, const Unit& u, Cell sq, std::unique_ptr<Battle>
   return sum;
 }
 
+// What one struck unit adds to a weighted score: the damage, hit points left, friends next to it and class terms (docs/AI.md "Attack weights").
+// `kill`: the strike is expected to finish it. Shared by a single attack and each victim of an area attack.
+double targetTerms(const Battle& b, const Unit& u, const AiWeightSet& w, const Unit& target, const StrikeForecast& atk, bool& kill) {
+  const double pred = predicted(atk);
+  const double dealt = std::min(pred, (double)target.hp);
+  kill = atk.can && target.hp > 0 && pred >= target.hp;
+  double score = kill ? w.killValue : std::min(dealt, (double)w.dmgCap) * w.dmg;  // dmgTerm
+  score += std::max(0.0, w.leftBase - (target.hp - dealt)) * w.left;                // leftTerm
+  int friends = 0;
+  for (const Unit& a : b.units)
+    if (a.alive && a.id != u.id && !b.isEnemy(u, a) && b.grid.distance(a.cell, target.cell) == 1) ++friends;
+  score += std::min((double)w.friendsCap, (double)friends * w.friends);              // friendsTerm
+  score += (double)w.cls * w.priorityOf(target.type);                                // classTerm
+  return score;
+}
+
 struct Cand {
   int weaponRank = 0, weapon = -1, target = -1;
+  Cell cell = kNoCell;  // an area weapon: the square it aims at (kNoCell for a single-target weapon)
   double score = 0;
   Cell square = kNoCell;
   int travel = 0;
@@ -124,20 +148,30 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
     for (const AttackOption& o : options) {
       if (o.mapWeapon && s != u.cell && !(u.aiGoals & kAiWeapons)) continue;  // a free map weapon only for a unit marked "goesFor": ["weapons"]
       if (ignoredTarget(st, o.target)) continue;
-      const Unit& target = b.units[(size_t)o.target];
       Forecast f;
-      if (!b.forecast(u.id, o.target, o.weapon, s, f)) continue;
-
-      const double pred = predicted(f.attack);
-      const double dealt = std::min(pred, (double)target.hp);
-      const bool kill = f.attack.can && target.hp > 0 && pred >= target.hp;
-      double score = kill ? w.killValue : std::min(dealt, (double)w.dmgCap) * w.dmg;  // dmgTerm
-      score += std::max(0.0, w.leftBase - (target.hp - dealt)) * w.left;                // leftTerm
-      int friends = 0;
-      for (const Unit& a : b.units)
-        if (a.alive && a.id != u.id && !b.isEnemy(u, a) && b.grid.distance(a.cell, target.cell) == 1) ++friends;
-      score += std::min((double)w.friendsCap, (double)friends * w.friends);              // friendsTerm
-      score += (double)w.cls * w.priorityOf(target.type);                                // classTerm
+      bool kill = false;
+      double score;
+      if (o.area) {
+        // An area attack (docs/AI.md "Area attacks"): the terms of every victim the computer knows of added up, a unit of its own side
+        // hit by friendly fire taken off. The unit on the aimed square (if any) gives the counter-attack; one that nets nothing is not made.
+        AreaForecast af;
+        if (!b.areaForecast(u.id, o.weapon, s, o.cell, af)) continue;
+        score = 0;
+        for (size_t i = 0; i < af.victims.size(); ++i) {
+          const AreaVictim& v = af.victims[i];
+          if (!v.seen) continue;
+          bool k = false;
+          const double t = targetTerms(b, u, w, b.units[(size_t)v.unit], v.hit, k);
+          score += v.enemy ? t : -t;
+          if ((int)i == af.primary) kill = k;
+        }
+        if (score <= 0) continue;
+        if (af.primary >= 0) f = af.fight;
+      } else {
+        const Unit& target = b.units[(size_t)o.target];
+        if (!b.forecast(u.id, o.target, o.weapon, s, f)) continue;
+        score = targetTerms(b, u, w, target, f.attack, kill);
+      }
       score += (double)b.round * w.turn;                                                 // turnTerm
       const bool cannotAnswer = !f.counter.can;
       if (cannotAnswer) score += w.noCounterBonus;
@@ -153,6 +187,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
       Cand c;
       c.weapon = o.weapon;
       c.target = o.target;
+      c.cell = o.area ? o.cell : kNoCell;
       c.score = score;
       c.square = s;
       c.travel = travel;
@@ -165,7 +200,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
       c.weaponRank = (int)rank;
       bool merged = false;
       for (Cand& e : cands) {
-        if (e.weapon != c.weapon || e.target != c.target) continue;
+        if (e.weapon != c.weapon || e.target != c.target || e.cell != c.cell) continue;
         merged = true;
         if (c.score > e.score || (c.score == e.score && better(c, e))) {
           c.weaponRank = e.weaponRank;
@@ -181,7 +216,8 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
   std::sort(cands.begin(), cands.end(), [](const Cand& a, const Cand& c) {
     if (a.weaponRank != c.weaponRank) return a.weaponRank < c.weaponRank;
     if (a.weapon != c.weapon) return a.weapon < c.weapon;
-    return a.target < c.target;
+    if (a.target != c.target) return a.target < c.target;
+    return a.cell < c.cell;
   });
   const Cand* chosen = nullptr;
   for (const Cand& c : cands) {
@@ -195,6 +231,7 @@ bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const 
   out.moveTo = chosen->square == u.cell ? kNoCell : chosen->square;
   out.target = chosen->target;
   out.weapon = chosen->weapon;
+  out.cell = chosen->cell;
   return true;
 }
 

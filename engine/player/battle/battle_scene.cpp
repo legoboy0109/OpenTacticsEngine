@@ -329,7 +329,8 @@ void BattleScene::draw(Renderer& r) {
       cam_.y += (float)shakeY;
     }
   }
-  Overlay shownOverlay = mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_ : supplyOverlay();
+  Overlay shownOverlay = mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_
+                         : mode_ == Mode::Targeting ? aimOverlay() : supplyOverlay();
   addRangeTint(shownOverlay);  // the marked enemies' reach, under the player's own blue / red
   drawMap(r, ctx, shownOverlay, cursor_, human);
   if (prep_) prepDrawSlots(r);  // the numbered deployment squares
@@ -373,7 +374,8 @@ void BattleScene::draw(Renderer& r) {
   if (idleView && human) {
     if (mode_ == Mode::Targeting && targetIdx_ < (int)targets_.size()) {
       const AttackOption& t = targets_[targetIdx_];
-      drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
+      if (t.area) drawAreaForecast(r, ctx, sel_, t.weapon, t.cell);
+      else drawForecast(r, ctx, sel_, t.target, t.weapon, battle_.units[t.target].cell);
     }
     if ((mode_ == Mode::PickUnit || mode_ == Mode::PickCell) && staffFcOn_) drawStaffForecast(r, ctx, staffFc_, cursor_);
     if (mode_ == Mode::PickCell && placeFcOn_) drawPlaceForecast(r, ctx, placeFc_, cursor_);

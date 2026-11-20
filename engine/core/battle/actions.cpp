@@ -98,6 +98,11 @@ bool Battle::validate(const Action& action, std::string* why) const {
       return true;
     }
     case ActionType::Attack: {
+      if (isAreaWeapon(action.weapon)) {  // aimed at a square (docs/SRPG.md "Area attacks and line fire")
+        AreaForecast area;
+        if (!areaForecast(action.unit, action.weapon, u.cell, aimedCell(action), area)) return fail(why, "that attack is not possible");
+        return true;
+      }
       Forecast f;
       if (!forecast(action.unit, action.target, action.weapon, u.cell, f))
         return fail(why, "that attack is not possible");

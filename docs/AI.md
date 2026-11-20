@@ -322,6 +322,26 @@ A side that plays a faction (docs/ECONOMY.md "Factions", `data/factions.json`) c
 The AI-vs-AI test (`tests/test_factions.cpp`, map "duel" of `tests/fixtures/factions`: order against horde, both computer) plays three seeds to the end and checks that everything either side built
 was allowed to its faction.
 
+### Area attacks
+
+A unit with an area weapon (docs/SRPG.md "Area attacks and line fire") plans it like any attack: from every square it can reach, with every
+weapon, it considers every square the weapon can aim at that would hit at least one foe it knows of (`Battle::attackOptions` lists them, bounded by the
+weapon's range and the foes in it), **empty squares included**: a burst aimed at the empty square between two enemies is a normal choice.
+
+- **Score.** The default scoring adds the worth of every victim it knows of (the same worth as a single attack on that unit: damage as a share of its
+  value, plus the chance to kill it, a leader that ends the game counting most). A unit of its own side that friendly fire would hit counts **negative at
+  its full worth**, so a shot that costs more than it gains is simply not made (the unit does something else). The counter-attack of the unit on the aimed
+  square is subtracted as for a single attack; the other victims do not answer. The terrain bonus of the square it fires from is added once.
+- **Attack weights** (`"weights"`, above): each victim adds its damage, hit points left, friends-next-to-it and class terms; units of its own side
+  that would be hit take the same terms off; the turn, counter-attack, danger and wounds terms are added once. A shot whose victim terms net 0 or less is not
+  a candidate. The danger term counts an enemy's area weapon that reaches the unit anywhere in its area, not only on the aimed square.
+- **Line fire** is respected by the same rules the fight uses: a square whose straight line is blocked by a unit (its own side included) or a wall is
+  not a target from there, so the unit walks to a square with a clear line (units pass their own side) or does something else.
+- **Cheap and deterministic.** The candidates are only squares near a foe; nothing is random; the same battle gives the same decision. A whole game between
+  two computer sides with area weapons finishes (`tests/test_area_ai.cpp`). The guard wake-up (`couldStrike`) uses the same options.
+- The stance filters of a behaviour (`ignores`, `prefer`, seeking) judge only the unit on the aimed square when it is a foe; an attack on an empty square
+  is judged by its score alone.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
