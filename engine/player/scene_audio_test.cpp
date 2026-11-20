@@ -1,5 +1,7 @@
 #include "scene_audio_test.h"
 
+#include "ui/input_hints.h"
+
 namespace ote {
 
 AudioTestScene::AudioTestScene(SceneHost& host) : host_(host), test_(host.audio(), host.args().audioFile) {}
@@ -17,10 +19,10 @@ void AudioTestScene::update(double) {
 void AudioTestScene::draw(Renderer& r) {
   r.clear(Color(20, 24, 32));
   const char* lines[] = {"Sound test", "", "You should hear a short tune with two chimes.", "It ends by itself after four seconds.",
-                         "Press Cancel to stop it."};
+                         "Press {cancelWord} to stop it."};
   int y = 40;
   for (const char* l : lines) {
-    r.drawText(30, y, l, Color(230, 230, 240), 1);
+    r.drawText(30, y, hintText(l).c_str(), Color(230, 230, 240), 1);
     y += r.lineHeight(1) + 4;
   }
 }

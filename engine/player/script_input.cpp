@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "ui/input_hints.h"
+
 namespace ote {
 namespace {
 
@@ -53,6 +55,10 @@ bool ScriptInput::parse(const std::string& text, int interval, std::string& err)
       found = toInt(tok.substr(5), t.count) && t.count >= 0;
       t.kind = Token::Wait;
     }
+    if (!found && tok.compare(0, 7, "device:") == 0) {
+      found = parseInputDevice(tok.substr(7), t.device);
+      t.kind = Token::Device;
+    }
     if (!found && tok.compare(0, 4, "tap:") == 0) {
       size_t colon = tok.find(':', 4);
       found = colon != std::string::npos && toInt(tok.substr(4, colon - 4), t.x) &&
@@ -75,9 +81,16 @@ void ScriptInput::tick(std::vector<InputEvent>& out, std::vector<Lifecycle>& not
     return;
   }
   if (--wait_ > 0) return;
+  // `device:` words take no time: apply them, then the token after them fires in this same frame.
+  while (next_ < tokens_.size() && tokens_[next_].kind == Token::Device) {
+    device_ = tokens_[next_++].device;
+    deviceChanged_ = true;
+  }
+  if (next_ >= tokens_.size()) { settle_ = 30; return; }
   const Token& t = tokens_[next_++];
   wait_ = interval_;
   InputEvent ev;
+  ev.device = device_;
   if (t.kind == Token::Press) {
     ev.button = t.button;
     ev.type = InputEvent::ButtonDown;

@@ -23,9 +23,9 @@ namespace ote {
 
 constexpr float kDialogueHoldToSkip = 0.5f;  // seconds Cancel / Menu must be held
 // The hint line while a line is up (battle and campaign scenes).
-constexpr const char* kDialogueHint = "Z / tap: next   hold X or Menu, or tap Skip: skip all";
+constexpr const char* kDialogueHint = "{okTap}: next   {skipAll}: skip all";
 // The hint line while a question's answers are up.
-constexpr const char* kChoiceHint = "Up/Down + Z: answer   tap: pick, tap again: confirm";
+constexpr const char* kChoiceHint = "{choiceHint}";
 
 // Where a portrait is in a texture (tex 0 = the speaker has none).
 struct PortraitArt {

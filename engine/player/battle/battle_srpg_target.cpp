@@ -92,8 +92,8 @@ void BattleScene::pickPointer(int x, int y) {
 }
 
 std::string BattleScene::srpgHint() const {
-  if (mode_ == Mode::UnitInfo) return "Left/Right:page  X:close";
-  return pickCells_ ? "Arrows/Tab:next square  Z:choose  X:back" : "Arrows/Tab:next unit  Z:choose  X:back";
+  if (mode_ == Mode::UnitInfo) return "{leftright}:page  {cancel}:close";
+  return pickCells_ ? "{dpadnext}:next square  {ok}:choose  {cancel}:back" : "{dpadnext}:next unit  {ok}:choose  {cancel}:back";
 }
 
 }  // namespace ote

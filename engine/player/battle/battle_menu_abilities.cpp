@@ -121,7 +121,7 @@ bool BattleScene::abilityChosen(int id) {
     else itemActionDone();
   };
   // "Pushes it 2 squares away  Z:use  X:back" while the highlight is on a candidate.
-  const std::string hint = abilityEffectText(*battle_.db, def) + "  Z:use  X:back";
+  const std::string hint = abilityEffectText(*battle_.db, def) + "  {ok}:use  {cancel}:back";
   auto sayHint = [this, hint] {
     gPickHint = hint;
     say(hint);
@@ -132,7 +132,7 @@ bool BattleScene::abilityChosen(int id) {
     battle_.stealOptions(user, ability, battle_.units[(size_t)user].cell, target, o);
     int ok = 0;
     for (const StealOption& e : o) ok += e.ok;
-    gPickHint = "Steal: " + std::to_string(ok) + " of " + std::to_string(o.size()) + " items can be taken  Z:choose  X:back";
+    gPickHint = "Steal: " + std::to_string(ok) + " of " + std::to_string(o.size()) + " items can be taken  {ok}:choose  {cancel}:back";
     say(gPickHint);
   };
 

@@ -304,14 +304,14 @@ void BattleScene::drawItems(Renderer& r) {
 
 std::string BattleScene::itemsHint() const {
   switch (itemScreen_) {
-    case ItemScreen::List: return "Up/Down + Z:choose  X:back";
+    case ItemScreen::List: return "{udok}:choose  {cancel}:back";
     case ItemScreen::Choice:
     case ItemScreen::Target:
-    case ItemScreen::Partner: return "Up/Down + Z:choose  X:back";
-    case ItemScreen::Discard: return "Left/Right + Z:answer  X:keep it";
-    case ItemScreen::Trade: return "Left/Right:unit  Up/Down  Z:hand over  X:back";
-    case ItemScreen::Storage: return "Up/Down + Z:take  X:back";
-    case ItemScreen::Shop: return "Up/Down + Z:buy  X:back";
+    case ItemScreen::Partner: return "{udok}:choose  {cancel}:back";
+    case ItemScreen::Discard: return "{lrok}:answer  {cancel}:keep it";
+    case ItemScreen::Trade: return "{leftright}:unit  {updown}  {ok}:hand over  {cancel}:back";
+    case ItemScreen::Storage: return "{udok}:take  {cancel}:back";
+    case ItemScreen::Shop: return "{udok}:buy  {cancel}:back";
   }
   return "";
 }

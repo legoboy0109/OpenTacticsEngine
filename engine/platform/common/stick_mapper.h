@@ -35,6 +35,7 @@ class StickMapper {
     InputEvent ev;
     ev.type = t;
     ev.button = b;
+    ev.device = InputDevice::Controller;  // sticks and triggers: past the hysteresis only, so noise never switches devices
     out.push_back(ev);
   }
   int dir_[2] = {0, 0};  // -1 / 0 / +1

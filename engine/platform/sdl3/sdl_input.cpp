@@ -45,10 +45,11 @@ Button padButton(Uint8 b) {
   }
 }
 
-InputEvent buttonEvent(InputEvent::Type t, Button b) {
+InputEvent buttonEvent(InputEvent::Type t, Button b, InputDevice device = InputDevice::None) {
   InputEvent ev;
   ev.type = t;
   ev.button = b;
+  ev.device = device;
   return ev;
 }
 
@@ -76,7 +77,9 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       if (down && e.key.repeat && !isDirection(b)) break;
       const PressSource src{e.key.scancode == SDL_SCANCODE_AC_BACK ? PressSource::BackRequest : PressSource::Keyboard, 0};
       if (!dedupe_.pass(b, src, down, static_cast<int64_t>(SDL_GetTicks()))) break;
-      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      // The back request is no keyboard press: on UWP / Android it arrives with (or instead of) a pad's B, and must not switch the hints.
+      const InputDevice dev = src.kind == PressSource::BackRequest ? InputDevice::None : InputDevice::Keyboard;
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b, dev));
       break;
     }
     case SDL_EVENT_GAMEPAD_ADDED:
@@ -101,7 +104,7 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       const bool down = e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
       if (!dedupe_.pass(b, PressSource{PressSource::Pad, static_cast<int>(e.gbutton.which)}, down,
                         static_cast<int64_t>(SDL_GetTicks()))) break;
-      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b, InputDevice::Controller));
       break;
     }
     case SDL_EVENT_GAMEPAD_AXIS_MOTION:
@@ -128,6 +131,9 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       }
       SDL_ConvertEventToRenderCoordinates(renderer, &e);
       InputEvent ev;
+      // Touch arrives as synthesized mouse events (their `which` says so); a real mouse has its own hint wording ("click").
+      const SDL_MouseID who = e.type == SDL_EVENT_MOUSE_MOTION ? e.motion.which : e.button.which;
+      ev.device = who == SDL_TOUCH_MOUSEID ? InputDevice::Touch : InputDevice::Mouse;
       if (e.type == SDL_EVENT_MOUSE_MOTION && dragging_ && (e.motion.state & SDL_BUTTON_RMASK)) {
         ev.type = InputEvent::CameraDrag;  // how far, in logical pixels (rounded: slow drags still add up over events)
         dragX_ += e.motion.xrel;

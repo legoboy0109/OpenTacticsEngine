@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -56,7 +57,7 @@ void drawBanner(Renderer& r, const Layout& L, const std::string& text, Color col
   if (lines.size() > 3) lines.resize(3);
   std::vector<std::string> subLines;
   if (!sub.empty()) {
-    subLines = wrapText(r, sub, maxW);
+    subLines = wrapText(r, hintText(sub), maxW);
     if (subLines.size() > 2) subLines.resize(2);
   }
   int lh = r.lineHeight(sc), slh = r.lineHeight();
@@ -81,7 +82,7 @@ void drawLevelUp(Renderer& r, const Layout& L, const LevelUpPanel& p) {
   if (!p.active) return;
   int maxW = std::max(60, L.vw - 40);
   std::string title = fitText(r, p.title, maxW);
-  std::string foot = p.autoContinue ? "" : "Confirm to continue";
+  std::string foot = p.autoContinue ? "" : hintText("{confirm} to continue");
   int rh = L.row, tw = std::max(textW(r, title), textW(r, foot));
   for (const std::string& s : p.lines) tw = std::max(tw, textW(r, s) + 16);
   int w = std::min(tw + 24, L.vw - 8), rows = (int)p.lines.size();

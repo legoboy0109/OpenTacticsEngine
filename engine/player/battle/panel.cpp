@@ -13,6 +13,7 @@
 #include "battle/mapweapon_text.h"
 #include "core/base/log.h"
 #include "battle/rank_text.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -322,7 +323,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
 void drawHint(Renderer& r, const Layout& L, const std::string& hint) {
   r.fillRect(0, L.vh, L.W, L.hintH, Color(14, 16, 28));
   r.fillRect(0, L.vh, L.W, 1, Color(90, 98, 140));
-  r.drawText(4, L.vh + 2, fitText(r, hint, L.W - 8).c_str(), Color(200, 205, 230));
+  r.drawText(4, L.vh + 2, fitText(r, hintLine(hint), L.W - 8).c_str(), Color(200, 205, 230));
 }
 
 }  // namespace ote

@@ -228,7 +228,7 @@ void GameScene::draw(Renderer& r) {
     if (line >= maxLines) break;
     r.drawText(dx, dy + line * rh, fitText(r, meta[i], dw).c_str(), chrome::kDim);
   }
-  drawFooter(r, "Up/Down: choose   Confirm: open   Cancel: back");
+  drawFooter(r, "{updown}: choose   {confirm}: open   {cancelWord}: back");
   confirm_.draw(r);
   menu_.draw(r);
 }

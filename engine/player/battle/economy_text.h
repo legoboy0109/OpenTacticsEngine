@@ -32,9 +32,9 @@ struct EconomyWords {
   static constexpr const char* kFuel = "Fuel";
   static constexpr const char* kEmpty = "EMPTY";
   // Hint line, notices, floating texts, banners.
-  static constexpr const char* kHintStructure = "Up/Down + Z:choose  X:cancel";
-  static constexpr const char* kHintUpgrade = "Up/Down + Z:upgrade  X:back";
-  static constexpr const char* kHintResearch = "Up/Down + Z:research  X:back";
+  static constexpr const char* kHintStructure = "{udok}:choose  {cancel}:cancel";
+  static constexpr const char* kHintUpgrade = "{udok}:upgrade  {cancel}:back";
+  static constexpr const char* kHintResearch = "{udok}:research  {cancel}:back";
   static constexpr const char* kLowFuel = "Low fuel: move limited to ";
   static constexpr const char* kAlreadyResearching = "Already researching ";
   static constexpr const char* kFloatUpgraded = "Upgraded: ";

@@ -5,6 +5,7 @@
 #include "sound/cue_sink.h"
 #include "core/base/log.h"
 #include "ui/chrome.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -86,7 +87,7 @@ void ErrorScene::draw(Renderer& r) {
     r.drawText(10, head + 10 + i * rh, lines[i].c_str(), Color(255, 220, 215));
   if ((int)lines.size() > maxLines)
     r.drawText(10, head + 10 + maxLines * rh, "... (see log for full text)", Color(200, 150, 150));
-  drawTextCentered(r, w / 2, h - lh - 4, "Cancel / tap to go back", Color(190, 140, 140));
+  drawTextCentered(r, w / 2, h - lh - 4, hintText("{cancelTap} to go back"), Color(190, 140, 140));
 }
 
 }  // namespace ote

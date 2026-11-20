@@ -98,8 +98,8 @@ void BattleScene::enterResult() {
   }
   for (const SideState& s : battle_.sides) anyHuman |= !s.ai;
   soundResult(anyHuman && !autoplay_, humanWon);
-  resultSub_ = chapterBattle() ? "Confirm: continue"
-               : session_.db.campaign ? "Confirm: back to the game page" : "Confirm: back to map select";
+  resultSub_ = chapterBattle() ? "{confirm}: continue"
+               : session_.db.campaign ? "{confirm}: back to the game page" : "{confirm}: back to map select";
   if (battle_.winnerTeam < 0) {
     resultText_ = "DRAW";
     resultColor_ = Color(150, 155, 175);
@@ -262,36 +262,36 @@ std::string BattleScene::hint() const {
   if (view_.dialogue.active) return dialogue_.choosing() ? kChoiceHint : kDialogueHint;
   if (mode_ == Mode::Prep) return prepHint();
   if (mode_ == Mode::Result)
-    return chapterBattle() ? "Confirm / tap: continue"
-           : session_.db.campaign ? "Confirm / tap: back to the game page" : "Confirm / tap: back to map select";
-  if (view_.busy()) return "Confirm / Cancel / tap: skip animation";
+    return chapterBattle() ? "{confirmTap}: continue"
+           : session_.db.campaign ? "{confirmTap}: back to the game page" : "{confirmTap}: back to map select";
+  if (view_.busy()) return "{confirmCancelTap}: skip animation";
   if (!humanTurn()) return battle_.sides[battle_.activeSide].name + " is acting...";
   switch (mode_) {
     case Mode::Idle:
-      if (!humanHasOptions()) return "All units done.  Menu (M): end turn";
-      return proj_.free3d() ? "Arrows  Z:select  ,.:turn  RF:tilt  -=:zoom  M:menu"
-             : map3d_ ? "Arrows:cursor  Z:select  Tab/Q:next unit  ,/.:turn view  M:menu"
-                    : "Arrows:cursor  Z:select  Tab/Q:next/prev unit  M:menu";
+      if (!humanHasOptions()) return "All units done.  {menuName}: end turn";
+      return proj_.free3d() ? "{dpad}  {ok}:select  {turn}:turn  {tilt}:tilt  {zoom}:zoom  {menu}:menu"
+             : map3d_ ? "{dpad}:cursor  {ok}:select  {nextprev}:units  {turn}:turn  {menu}:menu"
+                    : "{dpad}:cursor  {ok}:select  {nextprev}:units  {menu}:menu";
     case Mode::Selected: {
       // A tank too empty for the full move: the blue range is already cut by the core, say why.
       const Unit& su = battle_.units[(size_t)sel_];
       if (battle_.maxFuel(sel_) > 0 && battle_.fuel(sel_) < battle_.stat(su, session_.db.rules.statMove))
-        return EconomyWords::kLowFuel + intStr(battle_.fuel(sel_)) + "  Z:move  X:cancel";
-      return "Arrows:cursor  Z:move here (own cell = stay)  X:cancel";
+        return EconomyWords::kLowFuel + intStr(battle_.fuel(sel_)) + "  {ok}:move  {cancel}:cancel";
+      return "{dpad}:cursor  {ok}:move here (own cell = stay)  {cancel}:cancel";
     }
     case Mode::ActionMenu:
-      return staffList_ ? "Up/Down + Z:choose  X:back" : ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "Up/Down + Z:choose" : "Up/Down + Z:choose  X:undo move";
-    case Mode::Targeting: return "Arrows/Tab:next target  Z:attack  X:back";
+      return staffList_ ? "{udok}:choose  {cancel}:back" : ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "{udok}:choose" : "{udok}:choose  {cancel}:undo move";
+    case Mode::Targeting: return "{dpadnext}:next target  {ok}:attack  {cancel}:back";
     case Mode::WeaponPick: return WeaponWords::kHint;
     case Mode::PickUnit:
     case Mode::PickCell:
     case Mode::UnitInfo: return srpgHint();
     case Mode::Promotion: return promotionHint();
-    case Mode::BuildMenu: return "Up/Down + Z:build  X:cancel";
-    case Mode::EndMenu: return "Up/Down + Z:choose  X:cancel";
-    case Mode::DifficultyMenu: return "Up/Down + Z:choose  X:back";
+    case Mode::BuildMenu: return "{udok}:build  {cancel}:cancel";
+    case Mode::EndMenu: return "{udok}:choose  {cancel}:cancel";
+    case Mode::DifficultyMenu: return "{udok}:choose  {cancel}:back";
     case Mode::Items: return itemsHint();
-    case Mode::Objective: return "Z / X / tap: close";
+    case Mode::Objective: return "{okCancelTap}: close";
     case Mode::StructureMenu:
     case Mode::UpgradeMenu:
     case Mode::Research: return economyHint();

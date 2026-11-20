@@ -7,13 +7,13 @@ namespace ote {
 struct FogWords {
   // The cover between two human turns on one device.
   static constexpr const char* kPassTo = "Pass the device to ";
-  static constexpr const char* kPassHint = "Confirm / tap: start the turn";
+  static constexpr const char* kPassHint = "{confirmTap}: start the turn";
   // An ambush: the move was stopped by an enemy nobody had seen.
   static constexpr const char* kFloatAmbush = "Ambush!";
   static constexpr const char* kNoticeStopped = "Stopped: an enemy was in the way";
   // Ambush rule "canAct": the unit stopped but may still act; the move cannot be undone.
   static constexpr const char* kNoticeCanAct = "Stopped: an enemy was in the way. The unit can still act";
-  static constexpr const char* kHintAmbushed = "Up/Down + Z:choose  X:close (the move stays)";
+  static constexpr const char* kHintAmbushed = "{udok}:choose  {cancel}:close (the move stays)";
 };
 
 }  // namespace ote

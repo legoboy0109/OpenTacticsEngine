@@ -10,7 +10,7 @@ namespace ote {
 
 struct WeaponWords {
   static constexpr const char* kTitle = "Attack with";
-  static constexpr const char* kHint = "Up/Down + Z:choose  X:back";
+  static constexpr const char* kHint = "{udok}:choose  {cancel}:back";
 };
 
 // One row of the weapon list.

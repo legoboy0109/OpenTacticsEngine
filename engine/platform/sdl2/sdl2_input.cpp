@@ -55,10 +55,11 @@ Button padButton(Uint8 b) {
   }
 }
 
-InputEvent buttonEvent(InputEvent::Type t, Button b) {
+InputEvent buttonEvent(InputEvent::Type t, Button b, InputDevice device = InputDevice::None) {
   InputEvent ev;
   ev.type = t;
   ev.button = b;
+  ev.device = device;
   return ev;
 }
 
@@ -92,7 +93,9 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       if (down && e.key.repeat && !isDirection(b)) break;
       const PressSource src{e.key.keysym.scancode == SDL_SCANCODE_AC_BACK ? PressSource::BackRequest : PressSource::Keyboard, 0};
       if (!dedupe_.pass(b, src, down, nowMs())) break;
-      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      // The back request is no keyboard press: on UWP / Android it arrives with (or instead of) a pad's B, and must not switch the hints.
+      const InputDevice dev = src.kind == PressSource::BackRequest ? InputDevice::None : InputDevice::Keyboard;
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b, dev));
       break;
     }
     case SDL_CONTROLLERDEVICEADDED:  // `which` is a device index here
@@ -122,7 +125,7 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       const bool down = e.type == SDL_CONTROLLERBUTTONDOWN;
       if (!dedupe_.pass(b, PressSource{PressSource::Pad, static_cast<int>(e.cbutton.which)}, down,
                         nowMs())) break;
-      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b, InputDevice::Controller));
       break;
     }
     case SDL_CONTROLLERAXISMOTION:
@@ -144,6 +147,8 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
     // SDL_HINT_TOUCH_MOUSE_EVENTS=1), same as in the SDL3 backend.
     case SDL_MOUSEMOTION: {
       InputEvent ev;
+      // a finger's synthesized event says so in `which`; a real mouse has its own hint wording ("click")
+      ev.device = e.motion.which == SDL_TOUCH_MOUSEID ? InputDevice::Touch : InputDevice::Mouse;
       if (dragging_ && (e.motion.state & SDL_BUTTON_RMASK)) {
         if (e.motion.xrel == 0 && e.motion.yrel == 0) break;
         ev.type = InputEvent::CameraDrag;  // how far, in logical pixels
@@ -163,6 +168,7 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       if (e.button.button == SDL_BUTTON_RIGHT) dragging_ = e.type == SDL_MOUSEBUTTONDOWN;
       if (e.button.button != SDL_BUTTON_LEFT) break;
       InputEvent ev;
+      ev.device = e.button.which == SDL_TOUCH_MOUSEID ? InputDevice::Touch : InputDevice::Mouse;
       ev.type = e.type == SDL_MOUSEBUTTONDOWN ? InputEvent::PointerDown : InputEvent::PointerUp;
       ev.x = e.button.x;
       ev.y = e.button.y;

@@ -127,7 +127,7 @@ if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
   set(OTE_PLAYER_LIB_SRC
       ${OTE_COMMON_DIR}/image.cpp ${OTE_COMMON_DIR}/stb_image_impl.cpp ${OTE_COMMON_DIR}/font_registry.cpp ${OTE_COMMON_DIR}/null_audio.cpp ${OTE_COMMON_DIR}/window_fit.cpp ${OTE_COMMON_DIR}/press_dedupe.cpp ${OTE_COMMON_DIR}/screen_fit.cpp ${OTE_COMMON_DIR}/launch_args.cpp ${CMAKE_SOURCE_DIR}/engine/platform/nxdk/video_pick.cpp
       ${OTE_PLAYER_DIR}/saves.cpp ${OTE_PLAYER_DIR}/progress.cpp ${OTE_PLAYER_DIR}/campaign/campaign_logic.cpp ${OTE_PLAYER_DIR}/options/effective.cpp
-      ${OTE_PLAYER_DIR}/ui/text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_box.cpp ${OTE_PLAYER_DIR}/ui/scene_stage.cpp
+      ${OTE_PLAYER_DIR}/ui/text.cpp ${OTE_PLAYER_DIR}/ui/input_hints.cpp ${OTE_PLAYER_DIR}/ui/dialogue_text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_box.cpp ${OTE_PLAYER_DIR}/ui/scene_stage.cpp
       ${OTE_PLAYER_DIR}/ui/scene_stage_layout.cpp ${OTE_PLAYER_DIR}/ui/scene_stage_draw.cpp ${OTE_PLAYER_DIR}/ui/dialogue_portrait.cpp
       ${OTE_PLAYER_DIR}/show3d.cpp ${OTE_PLAYER_DIR}/args.cpp ${OTE_PLAYER_DIR}/options/option_defs.cpp ${OTE_PLAYER_DIR}/battle/map_proj.cpp
       # The sound loader, cue lookup, music director and service (docs/SOUND.md).
@@ -202,6 +202,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # Cancel on the launcher's first screen: nothing / leave / ask first (platform.h launcherBack()).
     add_test(NAME launcher_back_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/launcher_back_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Hint lines name the device in use: keyboard / controller / touch (engine/player/ui/input_hints.h).
+    add_test(NAME input_hints_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/input_hints_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME freebattles_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/freebattles_player_test.py

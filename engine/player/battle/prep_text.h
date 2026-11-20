@@ -25,8 +25,8 @@ struct PrepWords {
   static constexpr const char* kDeployed = "Deployed";   // "Deployed 2 / 3"
   static constexpr const char* kSlot = "Slot";           // "Slot 2"
   static constexpr const char* kOut = "Out";
-  static constexpr const char* kPutIn = "Confirm: put in the battle";
-  static constexpr const char* kTakeOut = "Confirm: take out of the battle";
+  static constexpr const char* kPutIn = "{confirm}: put in the battle";
+  static constexpr const char* kTakeOut = "{confirm}: take out of the battle";
   static constexpr const char* kNobody = "Nobody to choose from.";
   // Positions
   static constexpr const char* kNotASlot = "Not a deployment square";
@@ -62,19 +62,19 @@ struct PrepWords {
   static constexpr const char* kSavedTo = "Saved to slot ";
   static constexpr const char* kLeaveNote = "You will leave the preparation.";
   // Hints
-  static constexpr const char* kHintMain = "Up/Down + Z:choose";
-  static constexpr const char* kHintUnits = "Up/Down  Z:in / out  X:back";
-  static constexpr const char* kHintPick = "Arrows  Z:pick up  X:back";
-  static constexpr const char* kHintPlace = "Arrows  Z:put here  X:keep in place";
-  static constexpr const char* kHintView = "Arrows:look  Z:unit info  X:back";
-  static constexpr const char* kHintList = "Up/Down + Z:choose  X:back";
-  static constexpr const char* kHintTrade = "Left/Right:unit  Up/Down  Z:hand over  X:back";
-  static constexpr const char* kHintBuy = "Up/Down + Z:buy  X:back";
-  static constexpr const char* kHintBuyTabs = "Z:buy  Right:Sell  X:back";
-  static constexpr const char* kHintSellWho = "Z:choose  Left:Buy  X:back";
-  static constexpr const char* kHintSell = "Up/Down + Z:sell  X:back";
-  static constexpr const char* kHintTradeEquip = "Left/Right:unit  Z:hand/equip  X:back";
-  static constexpr const char* kHintAsk = "Left/Right + Z:answer  X:back";
+  static constexpr const char* kHintMain = "{udok}:choose";
+  static constexpr const char* kHintUnits = "{updown}  {ok}:in / out  {cancel}:back";
+  static constexpr const char* kHintPick = "{dpad}  {ok}:pick up  {cancel}:back";
+  static constexpr const char* kHintPlace = "{dpad}  {ok}:put here  {cancel}:keep in place";
+  static constexpr const char* kHintView = "{dpad}:look  {ok}:unit info  {cancel}:back";
+  static constexpr const char* kHintList = "{udok}:choose  {cancel}:back";
+  static constexpr const char* kHintTrade = "{leftright}:unit  {updown}  {ok}:hand over  {cancel}:back";
+  static constexpr const char* kHintBuy = "{udok}:buy  {cancel}:back";
+  static constexpr const char* kHintBuyTabs = "{ok}:buy  {right}:Sell  {cancel}:back";
+  static constexpr const char* kHintSellWho = "{ok}:choose  {left}:Buy  {cancel}:back";
+  static constexpr const char* kHintSell = "{udok}:sell  {cancel}:back";
+  static constexpr const char* kHintTradeEquip = "{leftright}:unit  {ok}:hand/equip  {cancel}:back";
+  static constexpr const char* kHintAsk = "{lrok}:answer  {cancel}:back";
 };
 
 }  // namespace ote
