@@ -173,6 +173,22 @@ TEST(a_charged_weapon_is_never_the_answer_to_a_counter_attack) {
   CHECK(!counter);
 }
 
+TEST(facing_works_in_a_speed_game_and_declaring_turns_the_caster_to_its_aim) {
+  // The mage starts looking at the nearest foe (the dummy to the north, 2 squares); the fire is aimed east: declaring turns it.
+  const std::vector<U> units{{"mage", "blue", 3, 2, "mg"}, {"dummy", "red", 3, 0, "near"}, {"dummy", "red", 7, 2, "foe"}};
+  Scene s("ch_facing", plain(12, 5), units, false, [](skilltest::Copy& c) {
+    c.swap("game.json", "\"items\": { \"weapons\": \"fixed\", \"inventorySize\": 3 } }", "\"items\": { \"weapons\": \"fixed\", \"inventorySize\": 3 }, \"facing\": {} }");
+  });
+  CHECK(s.b().facingGame());
+  const int before = s.unit("mg").facing;
+  CHECK(before >= 0);
+  CHECK(s.shoot("mg", "fire", 7, 2));
+  const int east = 1;  // the square directions are numbered north, east, south, west
+  CHECK(east != before);
+  CHECK_EQ(s.unit("mg").facing, east);
+  CHECK(hasEvent(s, EventType::UnitFaced));
+}
+
 // ---- when it does not go off ----
 
 TEST(a_caster_that_falls_takes_its_action_with_it) {
