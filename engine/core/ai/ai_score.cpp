@@ -66,6 +66,39 @@ double terrainDefense(const Battle& b, Cell c) {
   return d;
 }
 
+// What striking `target` with `atk` is worth: its damage as a share of the unit's value plus the chance to kill it (a leader that ends the game
+// counts more). `pKill` gets the kill chance. Shared by a single attack and each victim of an area attack.
+static double strikeGain(const Battle& b, const Unit& target, const StrikeForecast& atk, double& pKill) {
+  const Database& db = *b.db;
+  const bool leaderRule = db.rules.defeatLeaderDead;
+  double dealt = expectedDamage(db, atk, target.hp);
+  double vTarget = typeValue(db, target.type);
+  double hpFracT = target.hp / (double)std::max(1, b.maxHp(target));
+  double vTargetNow = vTarget * (0.5 + 0.5 * hpFracT);
+
+  double gain = dealt / std::max(1, b.maxHp(target)) * vTarget;
+  pKill = killChance(atk, target.hp);
+  if (target.leader) gain *= leaderRule ? 2.0 : kLeaderDamage;
+  gain += pKill * kKillBonus * vTargetNow;
+  if (target.leader && leaderRule) gain += pKill * kLeaderKill;
+  return gain;
+}
+
+// What the answer of the struck unit costs `u`, scaled by the chance that the strike already killed it.
+static double counterLoss(const Battle& b, const Unit& u, const StrikeForecast& counter, double pKill) {
+  const Database& db = *b.db;
+  const bool leaderRule = db.rules.defeatLeaderDead;
+  double vSelf = typeValue(db, u.type);
+  double hpFracU = u.hp / (double)std::max(1, b.maxHp(u));
+  double cdealt = expectedDamage(db, counter, u.hp);
+  double loss = cdealt / std::max(1, b.maxHp(u)) * vSelf * kCounterWeight;
+  double pDie = killChance(counter, u.hp);
+  loss += pDie * kKillBonus * vSelf * (0.5 + 0.5 * hpFracU);
+  if (u.leader && leaderRule) loss += pDie * kLeaderKill;
+  loss *= (1 - pKill);
+  return loss;
+}
+
 double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from) {
   Forecast f;
   if (!b.forecast(u.id, target.id, weapon, from, f)) return 0;
@@ -73,32 +106,34 @@ double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapo
   double dealt = expectedDamage(db, f.attack, target.hp);
   if (dealt <= 0) return 0;  // cannot hurt it: never worth moving for
 
-  bool leaderRule = db.rules.defeatLeaderDead;
-  double vTarget = typeValue(db, target.type);
-  double hpFracT = target.hp / (double)std::max(1, b.maxHp(target));
-  double vTargetNow = vTarget * (0.5 + 0.5 * hpFracT);
-
-  double gain = dealt / std::max(1, b.maxHp(target)) * vTarget;
-  double pKill = killChance(f.attack, target.hp);
-  if (target.leader) gain *= leaderRule ? 2.0 : kLeaderDamage;
-  gain += pKill * kKillBonus * vTargetNow;
-  if (target.leader && leaderRule) gain += pKill * kLeaderKill;
-
+  double pKill = 0;
+  double gain = strikeGain(b, target, f.attack, pKill);
   // A dead target does not strike back.
   double loss = 0;
-  if (f.counter.can) {
-    double vSelf = typeValue(db, u.type);
-    double hpFracU = u.hp / (double)std::max(1, b.maxHp(u));
-    double cdealt = expectedDamage(db, f.counter, u.hp);
-    loss = cdealt / std::max(1, b.maxHp(u)) * vSelf * kCounterWeight;
-    double pDie = killChance(f.counter, u.hp);
-    loss += pDie * kKillBonus * vSelf * (0.5 + 0.5 * hpFracU);
-    if (u.leader && leaderRule) loss += pDie * kLeaderKill;
-    loss *= (1 - pKill);
-  }
+  if (f.counter.can) loss = counterLoss(b, u, f.counter, pKill);
 
   double score = gain - loss + kDefenseBonus * terrainDefense(b, from);
   return score;
+}
+
+// An area attack (docs/AI.md "Area attacks"): the worth of every victim the computer knows of added up, enemies positive and units of
+// its own side hit by friendly fire negative at full worth, less the counter-attack of the unit on the aimed square.
+double scoreAreaAttack(const Battle& b, const Unit& u, int weapon, Cell aim, Cell from) {
+  AreaForecast af;
+  if (!b.areaForecast(u.id, weapon, from, aim, af)) return 0;
+  const Database& db = *b.db;
+  double score = 0, primaryKill = 0;
+  for (size_t i = 0; i < af.victims.size(); ++i) {
+    const AreaVictim& v = af.victims[i];
+    const Unit& target = b.units[(size_t)v.unit];
+    if (!v.seen || expectedDamage(db, v.hit, target.hp) <= 0) continue;
+    double pKill = 0;
+    const double g = strikeGain(b, target, v.hit, pKill);
+    score += v.enemy ? g : -g;
+    if ((int)i == af.primary) primaryKill = pKill;
+  }
+  if (af.primary >= 0 && af.fight.counter.can) score -= counterLoss(b, u, af.fight.counter, primaryKill);
+  return score + kDefenseBonus * terrainDefense(b, from);
 }
 
 double scoreCapture(const Battle& b, const Unit& u, Cell at) {

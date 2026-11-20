@@ -53,9 +53,11 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
       }
     }
     bool ok = false;
-    if (best.kind == ActionType::Attack)
-      ok = battle.apply(Action::attack(bestUnit, best.target, best.weapon), events);
-    else if (best.kind == ActionType::Capture)
+    if (best.kind == ActionType::Attack) {
+      Action shot = Action::attack(bestUnit, best.target, best.weapon);
+      shot.cell = best.cell;  // kNoCell for a single-target weapon; the square aimed at for an area weapon
+      ok = battle.apply(shot, events);
+    } else if (best.kind == ActionType::Capture)
       ok = battle.apply(Action::capture(bestUnit), events);
     else if (best.kind == ActionType::UseItem)
       ok = battle.apply(Action::useItem(bestUnit, best.slot, best.target), events);

@@ -174,12 +174,14 @@ Order bestOrder(Context& cx, const Unit& u) {
     for (const AttackOption& o : options) {
       const bool walkToWeapon = o.mapWeapon && s != u.cell;  // docs/SRPG.md "Map weapons": only a marked unit goes for one
       if (walkToWeapon && !(u.aiGoals & kAiWeapons)) continue;
-      double sc = scoreAttack(b, u, b.units[o.target], o.weapon, s);
+      double sc = o.area ? scoreAreaAttack(b, u, o.weapon, o.cell, s) : scoreAttack(b, u, b.units[o.target], o.weapon, s);
       if (sc <= 0) continue;
       sc -= outnumbered(b, u, s) * kExposure * typeValue(*b.db, u.type) * fade *
             (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
       if (u.leader && b.db->rules.defeatLeaderDead) sc -= outnumbered(b, u, s) * kLeaderExposure * fade;
-      if (sc <= 0 || !adjustAttack(b, st, u, b.units[o.target], s, sc)) continue;
+      // (an area attack on an empty square, or on one of its own, has no target for the stance's likes and dislikes to judge)
+      const bool judged = o.target >= 0 && b.isEnemy(u, b.units[o.target]);
+      if (sc <= 0 || (judged && !adjustAttack(b, st, u, b.units[o.target], s, sc))) continue;
       sc += kAttackBase - kMoveCostWeight * travel;
       if (walkToWeapon) {
         if (sc > viaMapWeapon.score) {
@@ -189,6 +191,7 @@ Order bestOrder(Context& cx, const Unit& u) {
           viaMapWeapon.moveTo = s;
           viaMapWeapon.target = o.target;
           viaMapWeapon.weapon = o.weapon;
+          viaMapWeapon.cell = o.area ? o.cell : kNoCell;
         }
         continue;
       }
@@ -199,6 +202,7 @@ Order bestOrder(Context& cx, const Unit& u) {
         best.moveTo = s == u.cell ? kNoCell : s;
         best.target = o.target;
         best.weapon = o.weapon;
+        best.cell = o.area ? o.cell : kNoCell;  // an area weapon says which square it aims at
       }
     }
   }
