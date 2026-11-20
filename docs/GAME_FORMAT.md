@@ -73,6 +73,8 @@ id that does not exist is a load error.
     // Optional (docs/ECONOMY.md "Research", "Fog of war"); unknown keys and other values are refused.
     "research": { "needsStructure": false },   // true: research needs an owned structure kind with "research": true. Default
                                                // false: a side can research whenever the game has technologies
+    "display": { "enemyRanges": true },        // optional (docs/SRPG.md "Enemy ranges"): false = the player's enemy-range display (mark an enemy,
+                                               // "show all") is switched off for this game and no player setting turns it on. Default true
     "fog": { "ambush": "endsTurn" },           // a unit that walks into a hidden enemy: "endsTurn" (default) or "canAct"
                                                // (stopped and moved, but it may still attack, wait, capture...)
     // Optional (docs/AI.md "Scripted-style computer players"); unknown keys and out-of-range numbers are refused. No block = the usual computer player.

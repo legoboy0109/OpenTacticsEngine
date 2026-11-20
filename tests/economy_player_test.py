@@ -189,7 +189,7 @@ TO_LAB = 'left,left,left'
 TO_TOWN = 'left,left,left,up,up'
 TO_FACTORY = 'left,left,left,down,down'
 END_TURN = 'menu,confirm,wait:60'
-# The battle menu lists End Turn, Research, Save, Load, Leave battle, Cancel here (no objective on these maps).
+# The battle menu lists End Turn, Research, Save, Load, Leave battle, Enemy ranges: show, Cancel here (no objective on these maps).
 RESEARCH = 'menu,down,confirm,wait:2'
 
 
@@ -215,7 +215,7 @@ def scenarios(tmp):
     check('cancel in Build returns to the structure menu', len(sm) >= 2, str(sm))
     bt = lines(log, 'battle menu:')
     check('the battle menu lists Research after End Turn (and Cancel in the panel returns to it)',
-          bool(bt) and bt[0] == 'battle menu: End Turn, Research, Save, Load, Leave battle, Cancel' and len(bt) >= 2, str(bt))
+          bool(bt) and bt[0] == 'battle menu: End Turn, Research, Save, Load, Leave battle, Enemy ranges: show, Cancel' and len(bt) >= 2, str(bt))
 
     # 2. A lab has nothing of its own to offer (the structure menu does not list Research): Confirm on it opens the
     # battle menu. Greyed rows cannot be confirmed.
