@@ -151,6 +151,11 @@ target when it attacks and by choice when it waits; every attack has an arc (fro
 it) and that a skill condition `{ "arc": "back" }` tests. A map unit may say `"facing"`; it is refused without the block, and for a name that is not a direction of the map's
 grid. Everything is in docs/SRPG.md "Facing".
 
+`"rules": { "progression": { "enabled": true, "levels": [ { "at": 10, "name": "Veteran", "badge": "I", "bonus": { "str": 1 }, "skills": ["steady"] } ] } }` (optional) replaces levelling by a
+table of ranks on a unit's total experience: the rank is the highest entry whose `at` the experience has reached, its `bonus` and `skills` count for the unit, the player shows its `badge` on the
+map, and experience stops at the last `at`. `xpPerLevel`, `maxLevel`, a unit type's `maxLevel` and a promotion's `atLevel` are refused beside it. A map unit may say `"xp"`.
+Everything is in docs/SRPG.md "Unit ranks".
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -380,6 +385,7 @@ resources on the map. A map side names one with `"faction": "<id>"` or `"faction
       "difficulty": ["hard"],            // optional, computer sides only: appears only on these difficulties (docs/DIFFICULTY.md)
       "difficultyShift": false,          // optional: the difficulty's enemy numbers never change this unit (a boss)
       "facing": "north",                 // optional, needs game.json "rules.facing": the direction it starts looking in (squares north / east / south / west; hexagons docs/SRPG.md "Facing"); default: toward the nearest foe
+      "xp": 10,                          // optional, needs game.json "rules.progression.levels": the experience it starts with (docs/SRPG.md "Unit ranks")
       "stats": { "hp": 26 } }            // optional per-unit overrides (exact: a difficulty never shifts a stat written here)
   ],
   "events": [ … ],                       // optional: story events (docs/EVENTS.md)
