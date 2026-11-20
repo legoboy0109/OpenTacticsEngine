@@ -84,8 +84,9 @@ act as one input. **Not tested with a real pad** (xemu gets no input in these ru
 * **Safe area.** An Options row **Screen margin** (Xbox builds only; every other build has the same rows as before):
   Automatic, then 100% down to 76% in steps of 2. The picture resizes as you change it, so the edges can be judged on the
   spot. Stored in `settings.json` as `safeArea` (global, or per game like any option). Automatic = **90% on 480 modes, 95% on
-  720p**. Why: CRTs hide part of every edge; the broadcast rule of thumb is "action safe" 93% (3.5% per edge) and "title safe" 90%
-  (5% per edge) (SMPTE RP 218, EBU R95; quoted from memory, not re-checked here), and all of this UI is text; HD sets overscan
+  720p**. Why: CRTs hide part of every edge; the rule of thumb of the CRT era was "action safe" 90%
+  (5% per edge) and "title safe" 80% (10% per edge); the 2009 revision for flat panels is 93% / 90%. 90% keeps the UI inside
+  the old action-safe area without wasting a fifth of a 640x480 picture (quoted from memory, not re-checked here); HD sets overscan
   less and many show the picture 1:1. Owner may change both numbers (`defaultSafePercent()`).
 * **16:9.** The dashboard's widescreen flag (`VIDEO_WIDESCREEN` in `XVideoGetEncoderSettings()`) makes a 480 mode anamorphic:
   the console stretches 640x480 to 16:9, so the canvas is drawn narrower in x than in y (x1.2 by x1.6) and looks right on the TV.
