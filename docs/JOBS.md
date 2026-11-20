@@ -33,7 +33,8 @@ Code: `core/jobs/` (`job_rules.*` the rules over a job state, `job_camp.*` the r
 |---|---|
 | `id` | letters, digits, `_`, `-`; unique. |
 | `name` | 1 to 24 characters; default the id. `description` is optional text. |
-| `unitType` | the unit type (`data/units.json`) a unit plays as while it has this job: its stats, movement type, weapons, growths. Several jobs may share one. |
+| `unitType` | optional. The unit type (`data/units.json`) a unit plays as while it has this job: its stats, movement type, weapons, growths (a **class job**). Several jobs may share one. **Without it the job is an overlay** (below). |
+| `bonus` | optional `{ "str": 1, "mov": 1 }`: added to the unit's stats (in `unitStat`, next to rank and accessory bonuses, so formulas, forecasts, the AI and the unit details see it) while this is its current job. Allowed on class jobs too. |
 | `requires` | optional list of `{ "job": id, "level": n }`: the job levels needed in other jobs before this one may be taken. A job that names itself, a cycle, an unknown job or a level the job cannot reach is refused. |
 | `jpLevels` | optional list of total JP for job level 2, 3, ...; rising, at most 19 steps. Replaces the game-wide table for this job. |
 | `learn` | what the job teaches (at most 40 entries): `{ "skill": id }` or `{ "ability": id }` (exactly one), `cost` in JP (0 to 99999) and `slot`: `"action"`, `"reaction"`, `"support"` or `"movement"`. |
@@ -63,8 +64,8 @@ always means one entry. The slot is only the kind of place the entry takes when 
 
 ### Characters and map units
 
-A character (`data/characters.json`) and a map unit (also an `addUnit` command) may write these keys. A unit with a job plays as the **job's unit type**: the character's `type` is replaced
-by it, and a map unit that has a `job` needs no `type` (and may not write one).
+A character (`data/characters.json`) and a map unit (also an `addUnit` command) may write these keys. A unit in a class job plays as the **job's unit type**: the character's `type` is replaced
+by it, and a map unit that has a class `job` needs no `type` (and may not write one); with an overlay job the unit keeps its own type and the map unit needs a `type` ("Class jobs and overlay jobs").
 
 ```json
 { "id": "cora", "name": "Cora", "type": "mage", "level": 1, "job": "mage",
@@ -83,6 +84,62 @@ On a map unit the keys **replace** what its character brings. This is how a desi
 knows Mend. All refusals name the file, the entry and the key (`character "cora": equipped "focus" belongs to the current job (it is active anyway)`), and the job keys in a game without
 `data/jobs.json` are refused.
 
+## Class jobs and overlay jobs
+
+A job with a `unitType` is a **class job**: the unit plays as that type (as above). A job **without** `unitType` is an **overlay job**: the unit keeps its own unit type, level, stats, weapons and
+promotion path, and the job only adds what it teaches (learned skills and abilities, as for any job) and its optional `bonus`. A game may mix both kinds, and all its jobs may be overlays.
+
+```json
+{ "id": "scout", "name": "Scout", "description": "Keeps its own class; quick and keen.",
+  "bonus": { "str": 1, "mov": 1 }, "learn": [ { "skill": "eagle", "cost": 20, "slot": "support" } ] }
+```
+
+**What a unit remembers.** In a game that has at least one overlay job, a unit that uses jobs also keeps its **base type** (`JobState::baseType`): its own class, the one its character or map entry
+names, as promotion later moves it. The type a unit plays as is then **always derived**: a class job's own `unitType`; for an overlay job the base type. Stats follow the way they always did
+(each stat moves by the difference between the new playing type's base and the old one's, never below 0), so:
+
+| from -> to | what happens |
+|---|---|
+| class -> class | the type becomes the new job's; stats shift by the difference (as before). The base type is untouched. |
+| class -> overlay | the type becomes the **base type**; stats shift by (base type - the class job's type). |
+| overlay -> class | the type becomes the job's; stats shift by (the job's type - base type). |
+| overlay -> overlay | nothing changes (only the bonus and the learned entries). |
+
+Changing back is exact (apart from a stat that hit 0 on the way). A game without overlay jobs records no base type and behaves exactly as before.
+
+**Starting jobs.** A character with a class job gets the job's type as always, and in a mixed game its own `type` becomes its base type; with an overlay job its `type` stays. A **map unit**
+(or `addUnit`) with a class job needs and may have no `type` (the job's type is its base); with an overlay job it **needs a `type`** (or a `character`), which is its class
+(`job "scout" keeps the unit's own class, so the unit needs a "type"`); a `type` together with a class job stays refused. A `job` given to a unit with a `character` replaces only the job.
+
+**Promotion.** A unit whose current job is an **overlay job** promotes its base type exactly as a unit in a game without jobs does (by item, by level, from the menu, by a story command): the
+type, the stats and the base type move, the job state stays, and an overlay job plays as the promoted class from then on. A unit in a **class job** does **not** promote (no offer, no automatic
+promotion, a story command does nothing): its type is the job's. Change to an overlay job first. (In games without overlay jobs this is the same rule: a unit with any job cannot promote.)
+
+**Where the code assumed a type.** The preparation screen's "could not stand on slot n" test judges the type the unit would *play as* under the new job (for an overlay job the base type); the
+Jobs screen shows `Plays as a Knight.` only for class jobs and `Bonus: +1 Strength, +1 Move.` for a job that has one; the unit details, the AI and the roster read the unit's real type; saves check
+that a unit's type fits its job state in games with overlay jobs (docs/SAVES.md).
+
+## Combining levels, ranks and jobs
+
+Levels, promotion, ranks and jobs are independent of each other. Levels and promotion (`rules.progression`, a unit type's `promotions`) work on the unit; ranks on their own counter
+(`rules.ranks`, docs/SRPG.md "Unit ranks": Merit) give small standing bonuses; jobs add JP, skills and abilities, and class jobs also change the type. A worked example (the test fixture
+`tests/fixtures/combo`):
+
+```jsonc
+// game.json "rules"
+"progression": { "enabled": true, "xpPerLevel": 20, "maxLevel": 10 },
+"ranks": { "name": "Merit", "perHit": 5, "perDefeat": 15,
+           "levels": [ { "at": 10, "name": "Veteran", "bonus": { "str": 1 } }, { "at": 30, "name": "Elite", "bonus": { "str": 2, "hp": 4 }, "skills": ["steady"] } ] },
+"jobs": { "jp": { "perAction": 10, "perDefeat": 20 }, "jpLevels": [20, 60, 120], "changeIn": "camp+prep" }
+// data/units.json: "squire" promotes to "captain" at level 2 (automatic); data/jobs.json: class jobs squire, knight, mage and overlay jobs scout (bonus str+1, mov+1), warden (bonus def+2)
+// data/characters.json: Bryn { "type": "squire", "job": "scout" }  Aldric { "type": "squire", "job": "squire" }
+```
+
+One fight pays the attacker experience (10), merit (5) and JP (10) in one go. Bryn (a Scout, an overlay job) reaches level 2 and promotes to Captain; he stays a Scout, his stats are the Captain's
+plus the Scout's bonus, and his Merit and JP go on. Aldric reaches level 2 too but, being a Squire (a class job), does not promote; in the camp he becomes a Warden (overlay): still a Squire by
+type, +2 defense from the job, and from then on he *could* promote. If he is made a Knight (class), he plays as one and cannot; made a Warden again he is a Squire (or the Captain he
+promoted to) again, stats exact. The roster carries level, experience, merit, type, job state and base type from chapter to chapter, and saves hold all of it.
+
 ## The rules
 
 **Job level.** The total JP earned in a job and its table (its own `jpLevels`, else the game's) give the job level: level 1 until the first step, then +1 for every step reached.
@@ -100,7 +157,7 @@ details) sees them like any other skill or ability.
 numbers (a game may allow one reaction entry and three support entries); they do not decide whether an ability is used in the menu. Taking a job that teaches an equipped entry makes it the
 job's own, so it leaves the equipped list. The entries of the current job cannot be equipped (they are active already).
 
-**Changing job** (outside a battle only). The unit type becomes the job's. The stats follow the way a **promotion** moves them: each stat moves by the difference between the new type's base
+**Changing job** (outside a battle only). The unit type becomes the job's (a class job; for an overlay job see "Class jobs and overlay jobs" above). The stats follow the way a **promotion** moves them: each stat moves by the difference between the new type's base
 and the old type's, never below 0, so the character's own stats and the growth it earned stay, and going back restores the exact numbers (unless a stat hit 0 on the way). Level,
 experience, items, learned skills (also those a unit type's `learns` taught) and weapon experience stay. A battle starts at full hit points, so there are none to keep. No stat cap is
 applied on the way. Leveling after the change uses the **new job's unit type growths** (`growthOf` reads the unit's type), and a unit type's own `learns` entries still teach at their levels
@@ -165,5 +222,5 @@ The computer never changes a job and never spends JP.
 - Dual-wield / equipment-slot changes with jobs; per-job stat growth tables beyond what the job's unit type gives; per-job stat caps.
 - Sharing JP with allies (`shareWithAllies`), JP for abilities, JP for units of the computer's sides.
 - Editor forms (the editor server only carries `data/jobs.json` as the `jobs` list, `rules.jobs` in the game and the job keys of characters and map units; docs/EDITOR_API.md).
-- A job requirement on the entries themselves (a learn entry that needs a job level), and unit-type changes by promotion mixed with jobs (a promoted unit keeps its job state; avoid both in one game).
+- A job requirement on the entries themselves (a learn entry that needs a job level). (Promotion mixed with jobs is built: overlay jobs promote, class jobs do not.)
 - The camp's Jobs row before chapter 1.
