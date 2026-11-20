@@ -2,6 +2,7 @@
 
 #include "core/battle/save.h"
 #include "core/base/log.h"
+#include "core/campaign/free_supply.h"
 #include "core/campaign/prep.h"
 #include "core/data/loader.h"
 
@@ -23,6 +24,7 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
+  applyFreeSupply(db, map);  // rules.items.freeBattleStorage: a free battle's stocked supply (never a campaign's)
   if (map.prep) {  // no screen on this path (autoplay, the simulator's rules): the default pick, docs/EVENTS.md "Preparation"
     Playthrough scratch;
     MapDef picked;
@@ -49,8 +51,9 @@ bool GameSession::startMapPrep(const std::string& mapId, unsigned seed, std::str
   startEvents.clear();
   campaign.reset();
   if (!loadMap(db, mapId, map, err)) return false;
+  applyFreeSupply(db, map);  // before the screen folds the prep side's allowance into what it shows
   freePrep.reset(new Playthrough());
-  prepOpen(db, *freePrep, map, false);
+  prepOpenFree(db, *freePrep, map);
   return rebuildFreePrep(seed, err);
 }
 
@@ -63,6 +66,15 @@ bool GameSession::startPreparedMap(unsigned seed, std::string& err) {
   if (!rebuildFreePrep(seed, err)) return false;
   startEvents.clear();
   battle.start(startEvents);
+  std::string log;  // what the preparation handed over: each human named unit's pack, the storage and the funds
+  for (const Unit& u : battle.units) {
+    if (u.storyId.empty() || battle.sides[(size_t)u.side].ai) continue;
+    log += " " + u.storyId + "[";
+    for (size_t i = 0; i < u.items.size(); ++i) log += (i ? "," : "") + db.items[(size_t)u.items[i].item].id;
+    log += "]";
+  }
+  const SideState& mine = battle.sides[(size_t)map.prep->side];
+  OTE_INFO("free battle starts:%s storage=%d funds=%d", log.c_str(), (int)mine.storage.size(), mine.resources.empty() ? 0 : mine.resources[0]);
   freePrep.reset();
   return true;
 }

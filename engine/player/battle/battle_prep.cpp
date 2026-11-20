@@ -97,8 +97,8 @@ void BattleScene::prepMainMenu() {
   std::vector<MenuItem> items;
   items.push_back({PrepWords::kUnits, intStr((int)p.pt->prep.deployed.size()) + "/" + intStr(def.limit), true, kmUnits});
   items.push_back({PrepWords::kPositions, "", true, kmPositions});
-  if (p.campaign && !p.pt->roster.empty()) items.push_back({PrepWords::kItems, "", true, kmItems});
-  if (p.campaign && def.hasShop) {
+  if (!p.pt->roster.empty()) items.push_back({PrepWords::kItems, "", true, kmItems});
+  if (def.hasShop) {
     if (def.shops.size() == 1 && def.shops[0].id.empty()) items.push_back({PrepWords::kShop, "", true, kmShop});  // the single unnamed `shop`
     else
       for (size_t i = 0; i < def.shops.size(); ++i) items.push_back({def.shops[i].name, "", true, kmShopBase + (int)i});  // each shop by name

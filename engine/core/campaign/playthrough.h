@@ -46,6 +46,9 @@ struct PrepState {
   bool open = false;                // the screen is under way (a save made now restores into it)
   bool folded = false;              // the prep side's map allowance (resources, storage) is already in CarriedSide
   std::vector<PrepDeploy> deployed; // who is deployed and where, in order; empty = nothing chosen (the default pick applies)
+  // A free battle's scratch screen (never saved): the roster, storage and funds it holds are the battle's own, so
+  // prepApplyToMap hands them to the map instead of leaving them for a campaign to carry in.
+  bool scratch = false;
   bool any() const { return open || folded || !deployed.empty(); }
 };
 

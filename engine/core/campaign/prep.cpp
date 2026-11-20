@@ -210,6 +210,11 @@ void prepOpen(const Database& db, Playthrough& pt, const MapDef& map, bool carry
   if (pt.prep.deployed.empty()) pt.prep.deployed = prepDefaultDeployment(db, pt, map);
 }
 
+void prepOpenFree(const Database& db, Playthrough& pt, const MapDef& map) {
+  pt.prep.scratch = true;
+  prepOpen(db, pt, map, true);
+}
+
 // ---- who fights and where ----
 
 namespace {
@@ -399,12 +404,27 @@ void prepApplyToMap(const Database& db, const Playthrough& pt, const MapDef& in,
       u.stats.resize(db.stats.size(), 0);
       u.side = prep.side;
     }
+    if (pt.prep.scratch)  // a free battle: what the screen did to the character's items is final
+      if (const RosterUnit* r = pt.findUnit(d.id)) {
+        u.items = r->items;
+        u.hasItems = true;
+      }
     u.x = prep.slots[(size_t)d.slot].x;
     u.y = prep.slots[(size_t)d.slot].y;
     units.push_back(u);
   }
   out.units = units;
-  if (pt.prep.folded) {  // the screen already took the side's map allowance into what it carries
+  if (pt.prep.scratch) {  // a free battle: the screen's storage and funds ARE the side's start (the map's were folded in)
+    MapSideDef& side = out.sides[(size_t)prep.side];
+    side.resources.clear();
+    side.storage.clear();
+    for (const CarriedSide& c : pt.sides)
+      if (c.id == side.id) {
+        for (size_t i = 0; i < c.resources.size(); ++i)
+          if (c.resources[i] != 0) side.resources.push_back({(int)i, c.resources[i]});
+        side.storage = c.storage;
+      }
+  } else if (pt.prep.folded) {  // the screen already took the side's map allowance into what it carries
     out.sides[(size_t)prep.side].resources.clear();
     out.sides[(size_t)prep.side].storage.clear();
   }

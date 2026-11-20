@@ -45,7 +45,7 @@ class GameSession {
   // docs/DIFFICULTY.md: the difficulty a free battle is built with (an id; empty = the game's default). Set by the App from --difficulty or the choice screen.
   std::string difficulty;
   int testLevel = 0;  // --test-level (docs/DIFFICULTY.md "Test level"): 0 = off, -1 = auto, N; given to every battle built here
-  std::unique_ptr<Playthrough> freePrep;  // the preparation screen of a free battle (a scratch playthrough: no roster); else null
+  std::unique_ptr<Playthrough> freePrep;  // the preparation screen of a free battle (a scratch playthrough: the map's own characters as its roster, the side's storage and funds); else null
   // The story being played, when one is (null for a free battle and for games without a campaign).
   // Its chapter battle is `battle` above; it is set up by the App, not by startMap / resume.
   std::unique_ptr<CampaignRun> campaign;

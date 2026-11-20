@@ -31,6 +31,8 @@ bool readRosterCondition(const LoadCtx& c, const Json& e, const std::string& whe
 bool loadProgressionExtras(const LoadCtx& c, const Json& block, Database& db);  // "xpNoDamage", "computerGains" (loader_fidelity.cpp)
 bool readAbilityExtras(const LoadCtx& c, Database& db, const Json& e, const std::string& where, AbilityDef& a);  // an ability's "xp", "inflict"
 bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db);  // game.json "rules.supply"
+// game.json "rules.items.freeBattleStorage" (loader_free_stock.cpp): after the items and resources are known.
+bool loadFreeBattleStock(const std::string& gameFile, Database& db, std::string& err);
 bool loadAiRules(const std::string& gameFile, Database& db, std::string& err);  // game.json "rules.ai" (loader_ai_rules.cpp; docs/AI.md)
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
