@@ -1,0 +1,13 @@
+{ "units": [
+  { "id": "lancer", "name": "Lancer", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "rifleman", "name": "Rifleman", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["rifle"] },
+  { "id": "bomber", "name": "Bomber", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["bomb"] },
+  { "id": "mortarman", "name": "Mortarman", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["mortar"] },
+  { "id": "beamer", "name": "Beamer", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["beam"] },
+  { "id": "crosser", "name": "Crosser", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["cross"] },
+  { "id": "flaker", "name": "Flaker", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["flak"] },
+  { "id": "railer", "name": "Railer", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["rail"] },
+  { "id": "shellman", "name": "Shellman", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 3 }, "weapons": ["shell"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 12, "str": 6, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "frail", "name": "Frail", "moveType": "foot", "stats": { "hp": 5, "str": 6, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "tough", "name": "Tough", "moveType": "foot", "stats": { "hp": 60, "str": 6, "def": 2, "mov": 3 }, "weapons": ["sword"] } ] }

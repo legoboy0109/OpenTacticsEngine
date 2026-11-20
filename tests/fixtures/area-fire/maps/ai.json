@@ -1,0 +1,12 @@
+{ "name": "Ai", "grid": { "type": "square", "width": 10, "height": 7 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["..........", "..........", "....#.....", "..........", "..........", "..........", ".........." ],
+  "sides": [ { "id": "blue", "controller": "ai" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "mortarman", "side": "blue", "x": 0, "y": 3, "id": "bMortar", "leader": true },
+    { "type": "rifleman", "side": "blue", "x": 0, "y": 1, "id": "bRifle" },
+    { "type": "bomber", "side": "blue", "x": 0, "y": 5, "id": "bBomb" },
+    { "type": "lancer", "side": "blue", "x": 1, "y": 4, "id": "bLance" },
+    { "type": "crosser", "side": "red", "x": 9, "y": 3, "id": "rCross", "leader": true },
+    { "type": "railer", "side": "red", "x": 9, "y": 1, "id": "rRail" },
+    { "type": "flaker", "side": "red", "x": 9, "y": 5, "id": "rFlak" },
+    { "type": "lancer", "side": "red", "x": 8, "y": 4, "id": "rLance" } ] }
