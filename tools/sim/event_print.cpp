@@ -117,6 +117,8 @@ static std::string describeEventText(const Battle& b, const Event& e) {
       return fmt("%s heals %d", unitName(b, e.a).c_str(), e.b);
     case EventType::UnitFaced:
       return fmt("%s faces %s", unitName(b, e.a).c_str(), directionName(b.grid, e.b).c_str());
+    case EventType::UnitRankUp:
+      return fmt("%s becomes %s", unitName(b, e.a).c_str(), b.db->rules.unitRanks.levels[(size_t)e.b].name.c_str());
     case EventType::StatsRaised:
       return fmt("%s raised: %s", unitName(b, e.a).c_str(), gains(b, e.data).c_str());
     case EventType::ItemBroke:

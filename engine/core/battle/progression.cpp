@@ -5,12 +5,17 @@ namespace ote {
 
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat) {
   const RulesConfig& rules = db->rules;
-  if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || units[(size_t)unit].level >= levelCap(units[(size_t)unit])) return;
+  const bool ranked = rules.unitRanks.on();  // a rank table replaces levelling: experience is a running total
+  if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || (!ranked && units[(size_t)unit].level >= levelCap(units[(size_t)unit]))) return;
   if (!rules.computerGains && sides[(size_t)units[(size_t)unit].side].ai) return;  // "computerGains": false (docs/SRPG.md "Experience: options")
   if (fromCombat && summonGivesNoXp(unit, events)) return;  // the foe was a summon that gives no experience (docs/SRPG.md "Summoning")
   amount = skillXp(units[(size_t)unit], amount);  // "xpPercent" skills (docs/SRPG.md); unchanged without any
   amount = xpGain(unit, amount);  // the difficulty's xpPercent for a unit of a human side (docs/DIFFICULTY.md)
   if (amount <= 0) return;
+  if (ranked) {
+    awardRankXp(unit, amount, events);
+    return;
+  }
 
   units[(size_t)unit].xp += amount;
   Event gained;

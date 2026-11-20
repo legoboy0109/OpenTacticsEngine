@@ -52,6 +52,12 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
   for (int s : u.learned) add(s);
   if (u.character >= 0 && (size_t)u.character < db->characters.size())
     for (int s : db->characters[(size_t)u.character].skills) add(s);
+  // The skills of the unit's rank (docs/SRPG.md "Unit ranks"): the entry it holds now, not those below it.
+  if (db->rules.unitRanks.on()) {
+    const int rank = unitRank(u);
+    if (rank >= 0)
+      for (int s : db->rules.unitRanks.levels[(size_t)rank].skills) add(s);
+  }
   // The side's own modifiers (finished research today, factions later): as if the unit had them, after what is its own.
   if (u.side >= 0 && (size_t)u.side < sides.size())
     for (const SideModifier& m : sides[(size_t)u.side].modifiers)

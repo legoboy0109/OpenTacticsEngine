@@ -131,6 +131,9 @@ enum class EventType {
   // Facing (docs/SRPG.md "Facing"): a=unit, b=the direction it now looks in (Grid::neighbor numbering), c=the one it looked in before. Only in a game
   // with rules.facing: after a move (the last step), before an attack (toward the target), after a Wait that chose a direction.
   UnitFaced,
+  // Unit ranks (docs/SRPG.md "Unit ranks"): a=unit, b=its new rank, c=the rank it had (-1 = none; indices into rules.unitRanks.levels), data=change per stat index.
+  // Only in a game with a rank table, right after the XpGained that earned it.
+  UnitRankUp,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -575,6 +578,7 @@ class Battle {
   // standing bonuses of its skills and the carry penalty / pair bonus (docs/SRPG.md). Everything that needs a stat
   // asks here (formulas too, through FormulaCtx::battle).
   int stat(const Unit& u, int index) const;
+  int unitRank(const Unit& u) const;  // docs/SRPG.md "Unit ranks": index into rules.unitRanks.levels, -1 = none yet (always -1 without a table)
   int maxHp(const Unit& u) const { return stat(u, db->rules.statHp); }
   int movePoints(const Unit& u) const { return stat(u, db->rules.statMove); }
   // Alive, belongs to the active side, battle not over.
@@ -917,6 +921,8 @@ class Battle {
   void endBattle(int winnerTeam, std::vector<Event>& events);
   // Everything that can end a battle after a change: defeat rules, then objectives.
   void settle(std::vector<Event>& events);
+  // unit_ranks.cpp (docs/SRPG.md "Unit ranks")
+  void awardRankXp(int unit, int amount, std::vector<Event>& events);
   // progression.cpp
   // `fromCombat` false: not a fight, so a summon's "givesXp" does not apply (a staff's experience).
   void awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat = true);

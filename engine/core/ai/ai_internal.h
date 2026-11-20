@@ -99,6 +99,8 @@ int endFacing(const Battle& b, const Unit& u);
 
 // ---- ai_score.cpp ----
 double typeValue(const Database& db, int type);
+// What a unit is worth to the computer: its type's value, a little more for a unit that has earned a rank (docs/AI.md "Unit ranks"); typeValue itself in a game without a rank table.
+double unitValue(const Battle& b, const Unit& u);
 // Score of attacking `target` with `weapon` from `from`; <= 0 means "not worth it".
 double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from);
 // The same for an area weapon aimed at the square `aim` (ai_score.cpp).

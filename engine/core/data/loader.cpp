@@ -9,6 +9,7 @@
 #include "core/data/loader_action_points.h"
 #include "core/data/loader_facing.h"
 #include "core/data/loader_height.h"
+#include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_research_branch.h"
 #include "core/data/loader_conditions.h"
@@ -129,7 +130,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.integer(*blk, "maxLevel", "rules.progression", r.maxLevel)) return false;
   if (!c.str(*blk, "xpHit", "rules.progression", r.fXpHit)) return false;
   if (!c.str(*blk, "xpKill", "rules.progression", r.fXpKill)) return false;
-  if (!loadProgressionExtras(c, *blk, db)) return false;
+  if (!loadProgressionExtras(c, *blk, db) || !loadUnitRankRules(c, *blk, db)) return false;  // the rank table (docs/SRPG.md "Unit ranks") excludes xpPerLevel / maxLevel
   if (r.xpPerLevel < 1) return c.fail("rules.progression", "\"xpPerLevel\" must be at least 1");
   if (r.maxLevel < 1) return c.fail("rules.progression", "\"maxLevel\" must be at least 1");
 
