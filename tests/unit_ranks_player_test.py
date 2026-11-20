@@ -96,7 +96,7 @@ def main():
     for style, label in STYLES:
         _, shot = play(IDLE, 'start_' + style, style=style)
         n = tab_pixels(shot)
-        check('%s: the badges of the two ranked units are drawn (%d tab pixels)' % (label, n), n >= 30, n)
+        check('%s: the badges of the two ranked units are drawn (%d tab pixels)' % (label, n), 15 <= n <= 120, n)
 
     # ---- the first rank: badge appears, box opens, closes by itself
     log, shot = play(attack, 'rankup')
@@ -117,7 +117,10 @@ def main():
         log, shot = play(attack, 'after_' + tag, scale=scale)
         check('the rank-up box at UI scale %s: no UI bug' % (scale or 100), clean(log) and len(lines(log, 'rank up box:')) == 2, log[-300:])
         _, shot = play(IDLE, 'map_' + tag, scale=scale)
-        check('the badges at UI scale %s are drawn' % (scale or 100), tab_pixels(shot) >= 30, tab_pixels(shot))
+        check('the badges at UI scale %s are drawn' % (scale or 100), 15 <= tab_pixels(shot) <= 120, tab_pixels(shot))
+
+    a, b = tab_pixels(os.path.join(TMP, 'map_s100.bmp')), tab_pixels(os.path.join(TMP, 'map_s150.bmp'))
+    check('the badge does not grow with the UI scale (same pixel count at 100 and 150: %d, %d)' % (a, b), a == b, (a, b))
 
     # ---- a game without a table: no badge
     make_game(table=False)

@@ -1034,8 +1034,11 @@ per weapon group and have their own file. A game without `levels` loads, plays, 
 - **Saves.** Nothing new: the rank derives from the saved experience (docs/SAVES.md). **Editor**: the server carries `rules.progression.levels` and the maps' `"xp"` (no forms yet).
   **Computer opponent**: docs/AI.md "Unit ranks".
 
-**Player.** A small gold-on-dark tab with the badge text sits at the bottom right corner of the unit in every kind of view (top-down squares and hexagons, 2D isometric, 3D
-isometric, full 3D; `unit_rank_view.cpp`, drawn next to the condition marker and following the `UnitRankUp` events, so it changes when the event plays). A rank-up floats
+**Player.** A tiny gold-on-dark tab with the badge sits at the bottom right corner of the unit in every kind of view (top-down squares and hexagons, 2D isometric, 3D
+isometric, full 3D; `unit_rank_view.cpp`, drawn next to the condition marker and following the `UnitRankUp` events, so it changes when the event plays). **Size rule:** the badge is drawn
+from rectangles, not with the text font, so it never grows with the UI scale: at most 4/9 of the unit's width on screen and 5 pixels tall (all scaled by `unitWidth / 18`, at least 1, so only the
+map zoom changes it). Up to 3 characters are drawn as 3x5 pixel letters (any case, digits, `* + - ^`) when they fit (3 wide, 1 apart: `I`, `V`, `II` fit a 24px tile; `III` does not); when they do not
+fit, or a character is not in that font, one 2x2 pip per character is drawn instead, as many as fit (at least one). A rank-up floats
 "Elite!" over the unit and opens the level-up box for a moment (title "Elite!", the unit's name, the stat changes, "New skill: ..."); it closes by itself for everybody. The panel and the
 unit details say the rank instead of "Lv": `Elite` / `XP 40/60` (`MAX` at the top). The forecast does not show the rank (its numbers already include the bonus). The player logs
 `rank up box: ...` (the tests read it). Everything fits the 480x270 canvas at UI scale 100 and 150.
