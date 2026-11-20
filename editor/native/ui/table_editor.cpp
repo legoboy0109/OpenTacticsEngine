@@ -56,7 +56,8 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
 
   filter_ = new QLineEdit(this);
   filter_->setObjectName("tableFilter");
-  filter_->setPlaceholderText(tr("Filter rows (only changes what you see, never the file)"));
+  filter_->setPlaceholderText(tr("Filter rows"));
+  filter_->setToolTip(tr("Only changes what you see in the table, never the file"));
   filter_->setClearButtonEnabled(true);
 
   auto button = [this](const QString& text, const QString& name, const QString& tip) {
@@ -122,7 +123,20 @@ TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath
     connect(model_, &QAbstractItemModel::rowsInserted, this, [this] { syncForm(); });
     connect(model_, &QAbstractItemModel::rowsRemoved, this, [this] { syncForm(); });
     connect(model_, &QAbstractItemModel::rowsMoved, this, [this] { syncForm(); });
-    connect(model_, &QAbstractItemModel::modelReset, this, [this] { syncForm(); });
+    // A new column (the form just added a key no row had) resets the model, which would drop the selection and blank the
+    // form under the user's hands: remember the current row across a reset.
+    connect(model_, &QAbstractItemModel::modelAboutToBeReset, this, [this] { rowBeforeReset_ = currentSourceRow(); });
+    connect(model_, &QAbstractItemModel::modelReset, this, [this] {
+      if (rowBeforeReset_ >= 0 && rowBeforeReset_ < model_->rowCount()) {
+        const QModelIndex pi = proxy_->mapFromSource(model_->index(rowBeforeReset_, 0));
+        if (pi.isValid()) {
+          view_->setCurrentIndex(pi);
+          view_->selectRow(pi.row());
+        }
+      }
+      rowBeforeReset_ = -1;
+      syncForm();
+    });
     syncForm();
   }
 

@@ -361,6 +361,7 @@ QWidget* FormView::buildBlock(const SchemaNode& n, const JsonPath& path) {
 QWidget* FormView::buildList(const SchemaNode& n, const JsonPath& path) {
   auto* w = new QWidget;
   w->setObjectName("listField");
+  w->setProperty("path", pathToString(path));  // tests (and the scripted UI test) find a list by its path
   auto* v = new QVBoxLayout(w);
   v->setContentsMargins(0, 0, 0, 0);
   v->setSpacing(4);

@@ -95,6 +95,7 @@ class TableEditor : public QWidget {
   FormView* form_ = nullptr;
   QLabel* formTitle_ = nullptr;
   bool syncPending_ = false;
+  int rowBeforeReset_ = -1;
 };
 
 }  // namespace ote_native

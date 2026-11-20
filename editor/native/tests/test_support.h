@@ -56,6 +56,13 @@ inline bool copyTree(const QString& from, const QString& to) {
   return true;
 }
 
+// A copy of tests/fixtures/<name> in `scratch` (the original is never touched); returns its path.
+inline QString copyFixture(const Scratch& scratch, const QString& name) {
+  const QString dst = scratch.file(name);
+  copyTree(QStringLiteral(OTE_SOURCE_DIR "/tests/fixtures/") + name, dst);
+  return dst;
+}
+
 // A copy of games/demo-srpg in `scratch`; returns its path.
 inline QString copyDemoGame(const Scratch& scratch) {
   const QString dst = scratch.file("demo-srpg");
