@@ -193,6 +193,37 @@ animation and the blinking cursor account for most of them, the shots being take
 The 2D drawn after the 3D picture (HUD, dialogue text) stayed intact over 2,300 frames. Frame times on WARP (software
 device, not representative): work 1.9 ms, interval 17.3 ms (vsync), at the game's resolution.
 
+## One B press (found on the first real console run)
+
+Symptom: one press of B acted as several presses of "back". Reading SDL 2.32.10's WinRT sources (`src/core/winrt/SDL_winrtapp_direct3d.cpp`,
+`src/video/winrt/SDL_winrtkeyboard.cpp`, `src/joystick/windows/SDL_windows_gaming_input.c`):
+
+- **System back request.** With `SDL_HINT_WINRT_HANDLE_BACK_BUTTON=1`, `WINRT_OnBackButtonPressed()` (called for
+  `SystemNavigationManager::BackRequested`, which Xbox raises for B) sends `SDL_SendKeyboardKey` press and release of
+  `SDL_SCANCODE_AC_BACK` at once. The pad's own B button still arrives as `SDL_CONTROLLERBUTTONDOWN` / `UP`. So B = two
+  deliveries, both `Button::Cancel`. A, the d-pad, Start and the rest have no such second path: the system raises no other
+  request for them.
+- **Gamepad virtual keys.** `WINRT_TranslateKeycode()` only knows VirtualKey codes up to 172 (`WinRT_Official_Keycodes`) plus a
+  few OEM codes; the gamepad keys (GamepadA ... 195 and up) fall through to `SDL_SCANCODE_UNKNOWN` (their native scan code is
+  not in `windows_scancode_table`), and our `keyButton()` ignores unknown keys. So A / D-pad do not double through the keyboard
+  (by reading; not seen on a console).
+- **Pad listed several times.** The real console's log showed "gamepad connected: Xbox One Game Controller" three times within
+  1 ms for one pad. `WGI_JoystickInit()` registers `RawGameControllerAdded` and then walks `RawGameControllers`, and both go
+  through `InvokeAdded()`, which has no check for a controller it already knows (no identity compare at all); each call makes
+  a new joystick instance with the same GUID. The backend opens every `SDL_CONTROLLERDEVICEADDED`, so each copy reports every
+  button and every button of the pad (A, d-pad too) can arrive up to three times. (What exactly makes it three, not two, is
+  not visible in the source; the log now prints device index, instance id and GUID per copy.) There is no way to tell from
+  SDL's data that two copies are one physical pad (same GUID, no path, no serial).
+
+Fix: `engine/platform/common/press_dedupe.{h,cpp}` (tests `tests/test_press_dedupe.cpp`), used by `SdlInput::translate()`. Each
+event is tagged with its source: all keyboard keys, the system back request (AC_BACK), or one controller instance. When the
+same logical button goes down from a second source while the first holds it, or within 400 ms of the first source's press, that
+press and its release are dropped; the first line is logged once per run (`input: one press arrived from two sources ...`).
+Keyboard-only use (one source, Escape + Backspace included) and one pad listed once are never touched, and neither is
+direction auto-repeat (same source). Two real pads are merged into one input anyway (the game has one cursor), so merging
+their duplicate presses costs nothing. The hint stays (without it B closes the app). Sticks and triggers are not de-duplicated:
+they are level-based and copies report the same value.
+
 ## What the Windows Store API partition changed
 
 `WINAPI_FAMILY=WINAPI_FAMILY_APP` makes the headers declare only the UWP part of the Windows API; anything else is a compile
