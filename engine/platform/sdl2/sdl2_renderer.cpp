@@ -5,6 +5,9 @@
 #include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/sdl2/sdl2_pixels.h"
+#ifdef OTE_NXDK
+#include "platform/nxdk/nxdk_present.h"
+#endif
 
 namespace ote {
 
@@ -143,6 +146,18 @@ void SdlRenderer::applyLogical() {
   in.anamorphic = screen_.anamorphic;
   in.safePercent = safePercent_ > 0 ? safePercent_ : defaultSafePercent(screen_.highDefinition);
   fit_ = fitCanvas(in);
+#ifdef OTE_NXDK
+  {  // the hardware 3D picture is placed in the same rectangle (platform/nxdk/nxdk_present.h)
+    NxdkFit f;
+    f.x = fit_.x;
+    f.y = fit_.y;
+    f.w = fit_.w;
+    f.h = fit_.h;
+    f.kx = fit_.kx;
+    f.ky = fit_.ky;
+    nxdkSetFit(f);
+  }
+#endif
   // SDL's own logical-size code does the same three steps: viewport in screen pixels (scale 1), then the scale.
   SDL_RenderSetLogicalSize(r_, 0, 0);
   SDL_RenderSetScale(r_, 1.0f, 1.0f);
