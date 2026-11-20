@@ -301,6 +301,14 @@ for the panel, `"exclusiveGroup"` (text; one branch per side), `"requiresStructu
 "Side-wide modifiers"). With `rules.research.needsStructure` on, a structure kind needs `"research": true` to research at (by default no building is needed).
 Everything is in docs/ECONOMY.md.
 
+## data/factions.json (optional)
+
+Factions a side can play (docs/ECONOMY.md "Factions"). A game without this file has none. `{ "factions": [ { "id", "name", "description", "units": ["unit type id"],
+"structures": ["structure id"], "techs": ["technology id"], "start": { "resources": { "gold": 50 } }, "modifiers": ["skill id" | { "skill": "id", "filter": { "type": ... } | { "tag": ... } }],
+"ai": { "weights": { "dmg": 2 } }, "tags": ["text"] } ] }`; only `id` is required and unknown keys are refused. A list that is left out is no restriction
+(`units`, `structures` = the kinds it may upgrade a structure into, `techs`); one that is written is the whole set, even `[]`. `start.resources` is added to the side's own
+resources on the map. A map side names one with `"faction": "<id>"` or `"faction": "choose"` (the person picks before the battle; a computer side takes one from the seed).
+
 ## maps/*.json
 
 ```jsonc
@@ -333,6 +341,7 @@ Everything is in docs/ECONOMY.md.
   "sides": [
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
       "controller": "human",             // or "ai"
+      "faction": "order",                // optional: an id of data/factions.json, or "choose" (docs/ECONOMY.md "Factions")
       "resources": { "funds": 3000 } },
     { "id": "red", "name": "Red", "color": "#cc0000", "controller": "ai" }
   ],

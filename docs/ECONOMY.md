@@ -174,6 +174,70 @@ Optional keys on a technology and one rule; a game that uses none of them loads,
 - **Tests.** `tests/test_research_branches.cpp` and `tests/research_branches_player_test.py` (fixture `tests/fixtures/research-branches`),
   `tests/editor_api_research_branches_checks.py`.
 
+## Factions
+
+Optional. A faction is a named set of limits and starting gifts that a side takes: what it may **produce**, **build** (upgrade into) and **research**, what it
+**starts with**, which skills its units have **side-wide** and how its computer units **fight**. A game without `data/factions.json` has no factions and
+loads, plays, saves, hashes and simulates exactly as before; a side without a `"faction"` key has none either.
+
+```jsonc
+// data/factions.json
+{ "factions": [
+  { "id": "order", "name": "Order", "description": "Disciplined foot soldiers and knights.",   // name defaults to the id; description is optional
+    "units": ["soldier", "archer", "knight"],        // unit types it may PRODUCE (build menu, computer opponent)
+    "structures": ["barracks", "fort"],              // structure kinds it may BUILD: the kinds it may upgrade a structure into
+    "techs": ["drill", "forging"],                   // technologies it may RESEARCH
+    "start": { "resources": { "gold": 50 } },        // ADDED to what the map gives the side (a side's "resources" is the base)
+    "modifiers": [ { "skill": "bulwark", "filter": { "tag": "infantry" } } ],   // side-wide skills from the start: a skill id or { skill, filter }
+    "ai": { "weights": { "dmg": 2, "counter": 1 } }, // attack weights of its computer units (the keys of rules.ai.weights; docs/AI.md "Factions")
+    "tags": ["human"] },                             // free text for makers; the engine does not read them
+  { "id": "free", "name": "Free Company" } ] }       // no lists = no restriction at all
+
+// maps/*.json, in a side:    "faction": "order"     // this side plays order
+//                            "faction": "choose"    // a person's side picks on the faction screen; a computer side takes one from the seed
+```
+
+- **A list that is left out is no restriction.** A list that is written is the whole set, even `[]` (a faction that builds nothing). A unit type, structure
+  or technology that is not in it is refused to the side with the reason "not available to <faction name>", at one place each, beside the checks that
+  already exist: `Battle::canBuild` / `buildOptions` (production; `buildOptions(cell, out, includeLocked = true)` keeps the refused types so a menu can grey
+  them), `upgradeBlocker` in `upgrades.cpp` (structures: what a structure may be *upgraded into*; a structure the map placed stays whatever it is) and
+  `researchBlocker` in `research.cpp` (technologies; it comes before the branch and prerequisite reasons). `Battle::factionBlocksUnit / Structure / Tech(side, index)`
+  return the reason or "". A technology that unlocks a unit (`unlocks.units`) still needs the faction to be allowed to build that unit.
+- **Units and structures already on the map are never removed or changed** because of a faction, and story commands (`addUnit`, `changeSide`, `grantResearch`)
+  ignore the lists: the maker decides there. Starting research (`setStartingResearch`) ignores them too.
+- **Start resources** are *added* to the side's own `resources` on the map: a side with
+  `"gold": 100` on the map and a faction that starts with 50 begins with 150. They must be 0 or more.
+- **Modifiers** go through the side-wide modifier mechanism (docs/SRPG.md "Side-wide modifiers"): `Battle::init` calls `addSideModifier` for each entry, so they
+  are in the side's list *before* any technology's grants. The filter is the same reduced shape as a technology's grants: `{ "type": id }`, `{ "tag": text }` or `{}`.
+- **`ai.weights`** takes the keys of one set of `rules.ai.weights` (docs/AI.md "Attack weights"); a key that is left out keeps that set's default. Unknown keys are refused.
+- **`"faction": "choose"`.** In the player a person's side picks on the faction screen (below) before the battle starts. A computer side picks deterministically from the
+  battle seed and its side number (not from the battle's random stream, which a pick must not shift), so a seed always gives the same pairing and different seeds
+  give different ones. Where nobody can be asked (`--autoplay`, the simulator, a campaign chapter, a map opened by tests) a person's side takes the **first** faction in the file.
+- **Colour stays per side**, never per faction.
+- **Not done:** a story or skill *condition* `{ "faction": id }`. The skill-condition and story-condition tables would each need a new kind (and skills load before
+  factions, so the id would have to be checked later); the unit filter of a side-wide skill already covers "type" and "tag". Left out on purpose.
+
+**Loader refusals** name the file, the entry and the key: `data/factions.json: faction "order": "units" names unknown unit type "dragon" (data/units.json)`,
+`"structures" names unknown structure ...`, `"techs" names unknown technology ...`, `"modifiers": names unknown skill "nope"`, `"start": "resources" names unknown resource`,
+`"start": "resources"."gold" must be 0 or more`, `"units" lists "golem" twice`, `duplicate id`, `unknown key "x" (expected "id", "name", ...)`, `"ai": "weights": unknown key "x"`,
+`"factions" is empty (delete the file if the game has no factions)`; in a map `side "blue": "faction" names unknown faction "elves" (data/factions.json has: ...; or "choose")`
+and `"faction" needs data/factions.json (this game has no factions)` (both for an id and for "choose").
+
+**Saves.** A side with a faction writes `"faction": "<id>"` (docs/SAVES.md). The faction's modifiers are not saved: they are rebuilt from the faction when the save is read.
+
+**Computer opponent.** It only ever sees what `buildOptions`, `researchOptions` and `upgradeOptions` allow it, so it respects the lists without any rule of its own, and a faction that
+can build nothing it wants (or nothing at all) just builds nothing that turn; the turn still ends. Its attack choice uses the faction's `ai.weights` (docs/AI.md "Factions").
+
+**Player.** For a side whose map says `"faction": "choose"` the player shows a **faction screen** before the battle (one per person-controlled side, in side order; a free battle only). It
+is a minimal pick step of its own, not part of a setup screen: the player has no battle setup screen except the optional preparation screen some maps have. One row per faction, the selected
+one's description and what it brings (Units, Starts with, Skills, Builds, Research; only what it says) under the list; Confirm / a tap picks, Cancel goes back to the game page. It comes before the
+difficulty choice. The side info panel's header reads "Blue (Order)". The build menu greys refused units with the reason in the price's place ("not available to Horde"), the upgrade menu
+greys refused kinds the same way, and the research panel lists refused technologies greyed with the reason. At UI scale 150 on the 480x270 canvas the description shrinks to one line and
+the last facts may not fit; the rows and the footer are the difficulty screen's.
+
+**Tests.** `tests/test_factions.cpp` and `tests/factions_player_test.py` (fixture `tests/fixtures/factions`, including an AI-vs-AI game of two different factions),
+`tests/editor_api_factions_checks.py` (the editor server returns, writes and round-trips `factions`; an empty list removes the file).
+
 ## Repair and supply
 
 game.json `rules.supply` (optional):

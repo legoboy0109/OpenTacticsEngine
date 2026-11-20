@@ -713,10 +713,11 @@ unit's skills (standing stat bonuses, combat blocks, turn blocks, conditions, th
 In the judging order they come after the character's own skills and before accessories and the weapon in use; a skill the unit has from another source
 counts once, at its first place.
 
-- **Sources.** In this version the only source is finished research (`grants.skills` on a technology, docs/ECONOMY.md "Branching research"): when a
+- **Sources.** Finished research (`grants.skills` on a technology, docs/ECONOMY.md "Branching research"): when a
   technology finishes (by countdown, instantly, through the story's `grantResearch`, or handed to a chapter by the campaign) its grants are added through
-  `Battle::addSideModifier(side, modifier)`. A later feature (factions) adds its source by calling the same function with its own modifier; nothing in
-  `skillsOf` or the save format of the existing source changes (give the new source its own fields and its own writer in `save_research.cpp`).
+  `Battle::addSideModifier(side, modifier)`. A second source is the faction a side plays (docs/ECONOMY.md "Factions"): `Battle::init` adds the faction's `modifiers` through the same
+  function with `SideModifier::faction` set (tech and grant then say nothing about a technology; `grant` is the entry's place in the faction's list), in front of any technology's grants.
+  `skillsOf` and the save format of the research source do not change: a faction's modifiers are not saved at all, the reader rebuilds them (docs/SAVES.md).
 - **Filter.** `filterType` (a unit type) and `filterTag` (a tag of the unit's type); both empty = every unit of the side. `Battle::modifierApplies(m, unit)`.
   Units that change side (`changeSide`) lose the old side's modifiers and gain the new side's, as the side is read each time.
 - **Saved** as `"modifiers": [ { "skill", "tech", "grant" } ]` on the side, only when the list is not empty (docs/SAVES.md). A save is refused when an entry
