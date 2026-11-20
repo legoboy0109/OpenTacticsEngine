@@ -4,7 +4,7 @@
   python3 tests/commanders_player_test.py ./build/engine/player/ote-player . [--shots DIR]
 
 Plays copies of the synthetic game tests/fixtures/commanders (not a demo): commanders ada, bram, cato; factions order (ada, cato), horde (bram), free (any). Map "pick"
-leaves both sides to "choose" (faction and commander). The copy used here gives Ada a meter that one blow fills and a cheap two-turn power, so the script can play the whole
+leaves both sides to "choose" (faction and commander). The copy used here gives Ada a meter that one blow fills and a cheap one-turn power, so the script can play the whole
 loop in a few inputs. Judged from the [info] lines the player logs, from the saved game and from the screenshots:
 
   - A person's side gets the faction screen, then the commander screen, which lists only the commanders of the picked faction (at UI scale 100 and 150 on the 480x270
@@ -31,11 +31,13 @@ TMP = scratch_dir()
 GAMES = os.path.join(TMP, 'games')
 IDLE = 'wait:40'  # the turn banner plays first; it takes the first inputs otherwise
 # Faction screen: order, horde, free; picking order (first row) leaves ada and cato for the commander screen.
-PICK_ORDER_ADA = 'wait:3,confirm,wait:3,confirm,wait:3'
+PICK_ORDER_ADA = 'wait:3,confirm,wait:3,confirm,wait:3,'
 # The soldier starts under the cursor at (2,1): select it, walk two squares to (4,1), Attack (the first entry), the first target.
 HIT = 'confirm,wait:3,right,right,confirm,wait:3,confirm,wait:3,confirm,wait:30'
 MENU_POWER = 'menu,wait:2,down,confirm,wait:3'  # the map menu: End Turn first, then the powers
-END_TURN = 'menu,wait:2,confirm,wait:60'
+BANNER_OVER = 'wait:60'  # the power's banner takes the inputs while it is up (as any animation: Confirm skips it)
+LEAVE = 'menu,wait:2,down,down,down,down,confirm,wait:5'  # "Leave battle": writes the Continue save as things stand
+END_TURN = 'menu,wait:2,confirm,wait:2'  # (the game stands still while a scripted wait runs: the computer's turn plays in the frames after the script, see `tail`)
 
 
 def write_json(path, doc):
@@ -46,11 +48,15 @@ def write_json(path, doc):
 def make_games():
     shutil.rmtree(GAMES, ignore_errors=True)
     shutil.copytree(os.path.join(REPO, 'tests', 'fixtures', 'commanders'), os.path.join(GAMES, 'cmd'))
+    gpath = os.path.join(GAMES, 'cmd', 'game.json')
+    game = json.load(open(gpath))
+    game['styles'] = [{'id': 'classic', 'name': 'Classic'}, {'id': 'full-3d', 'name': 'Full 3D', 'view': '3d', 'background': '#161a24'}]  # for the full 3D look
+    write_json(gpath, game)
     path = os.path.join(GAMES, 'cmd', 'data', 'commanders.json')
     doc = json.load(open(path))
     ada = next(c for c in doc['commanders'] if c['id'] == 'ada')
     ada['meter'] = {'max': 100, 'perDamageDealt': 50}  # one blow fills it
-    ada['powers'] = [{'id': 'rally', 'name': 'Rally', 'cost': 40, 'turns': 2, 'modifiers': ['frenzy'], 'effects': [{'heal': 5}]},
+    ada['powers'] = [{'id': 'rally', 'name': 'Rally', 'cost': 40, 'modifiers': ['frenzy'], 'effects': [{'heal': 5}]},
                      {'id': 'surge', 'name': 'Surge', 'cost': 90, 'modifiers': ['fleet']}]
     write_json(path, doc)
     # The same game without the commanders file and the keys that name them: nothing should ever show the screen.
@@ -69,9 +75,9 @@ def make_games():
         write_json(mpath, m)
 
 
-def play(game, map_, inp, name, scale=None, saves=None, extra=()):
+def play(game, map_, inp, name, scale=None, saves=None, extra=(), tail=80):
     shot = os.path.join(TMP, name + '.bmp')
-    cmd = player_cmd(PLAYER, GAMES, REPO) + ['--frames', str(ticks(inp) * 4 + 80), '--input-interval', '4', '--fixed-dt', '0.016',
+    cmd = player_cmd(PLAYER, GAMES, REPO) + ['--frames', str(ticks(inp) * 4 + tail), '--input-interval', '4', '--fixed-dt', '0.016',
                                               '--game', game, '--3d', 'software', '--input', inp, '--screenshot', shot]
     if map_:
         cmd += ['--map', map_]
@@ -133,11 +139,15 @@ def main():
     # ---- using a power: the banner, the meter paid, the power active, ended when its two turns are up
     use = PICK_ORDER_ADA + IDLE + ',' + HIT + ',' + MENU_POWER
     for tag, scale in (('use', None), ('use_150', 150)):
-        log = play('cmd', 'pick', use, tag, scale)
+        log = play('cmd', 'pick', use, tag, scale, tail=40)  # a shorter tail: the banner is still up in the picture
         check('%s: the banner names the commander and the power' % tag, lines(log, 'power used:') == ['power used: Ada - Rally (cost 40, meter now 60)'], lines(log, 'power used'))
         check('%s: no UI bug or warning' % tag, clean(log), log[-400:])
-    log = play('cmd', 'pick', use + ',' + END_TURN + ',' + END_TURN, 'ends')
-    check('a two-turn power ends on the second turn start after it was used',
+    log = play('cmd', 'pick', use + ',' + BANNER_OVER, 'after', tail=80)
+    check('after: the panel shows the active power', clean(log), log[-300:])
+    log = play('cmd', 'pick', use, 'use_3d', extra=['--style', 'full-3d'], tail=40)
+    check('use_3d: the power can be used in the full 3D view too', lines(log, 'power used:') == ['power used: Ada - Rally (cost 40, meter now 60)'] and clean(log), log[-300:])
+    log = play('cmd', 'pick', use + ',' + BANNER_OVER + ',' + END_TURN, 'ends', tail=1600)  # the computer plays its turn in the tail, then blue's next turn starts
+    check('a power of one turn ends when the side\'s next turn starts',
           lines(log, 'power ended:') == ['power ended: Ada - Rally'], lines(log, 'power ended'))
 
     # ---- the computer side is never asked, --autoplay asks nobody
@@ -161,18 +171,18 @@ def main():
     # ---- the save carries the commander, the meter and the active power; a restored battle plays on; a commander the game lacks is refused
     sv = os.path.join(TMP, 'saves')
     shutil.rmtree(sv, ignore_errors=True)
-    log = play('cmd', 'pick', use + ',' + END_TURN, 'save', saves=sv)  # End Turn writes the Continue save once blue's next turn begins
+    log = play('cmd', 'pick', use + ',' + BANNER_OVER + ',' + LEAVE, 'save', saves=sv)
     path = os.path.join(sv, 'cmd', 'continue.json')
     save = json.load(open(path)) if os.path.exists(path) else None
     sides = save['battle']['sides'] if save else []
     mine = sides[0].get('commander', {}) if sides else {}
-    check('save: the Continue save has Ada, a meter of 60, and Rally still active with one turn left',
+    check('save: the Continue save has Ada, a meter of 60, and Rally still active with one turn left (Leave battle writes the save as things stand)',
           mine.get('id') == 'ada' and mine.get('meter') == 60 and mine.get('power') == 0 and mine.get('left') == 1 and mine.get('uses') == [1, 0], mine)
     log = play('cmd', None, 'wait:40,menu,wait:3', 'resume', saves=sv, extra=['--continue'])
     pe = lines(log, 'power entries:')
     check('resume: the battle comes back with the power active (both entries say so)',
           bool(pe) and pe[-1] == 'power entries: Power: Rally (active) [grey]; Power: Surge (active) [grey] (meter 60/100)' and clean(log), (pe, log[-300:]))
-    log = play('cmd', None, 'wait:40,' + END_TURN, 'resume_end', saves=sv, extra=['--continue'])
+    log = play('cmd', None, 'wait:40,' + END_TURN, 'resume_end', saves=sv, extra=['--continue'], tail=1600)
     check('resume: the power ends on time in the restored battle', lines(log, 'power ended:') == ['power ended: Ada - Rally'], lines(log, 'power ended'))
     if save:
         save['battle']['sides'][0]['commander']['id'] = 'zed'
