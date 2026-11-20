@@ -140,6 +140,7 @@ bool Battle::validate(const Action& action, std::string* why) const {
 }
 
 bool Battle::apply(const Action& action, std::vector<Event>& events, std::string* why) {
+  touch();
   if (choiceWaiting()) {
     if (why) *why = "a question is waiting for its answer";
     return false;

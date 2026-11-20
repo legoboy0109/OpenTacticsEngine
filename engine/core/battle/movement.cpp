@@ -6,7 +6,14 @@
 
 namespace ote {
 
-void Battle::reachable(int unit, Reach& out) const {
+void Battle::reachable(int unit, Reach& out) const { reachFor(unit, -1, out); }
+
+// viewTeam >= 0 (the display aid that draws what an enemy could do next turn: enemy_ranges.cpp): the search of a fresh turn, as
+// the viewer's team could work it out. The unit's turn flags are not used (during another side's turn they are last turn's), and
+// nothing the viewer cannot see shapes the result: a unit it does not see counts as absent (no gap at its square, no wall around
+// it) and a structure it does not see counts as the kind it last saw (an opened door shows no new path).
+void Battle::reachFor(int unit, int viewTeam, Reach& out) const {
+  const bool seen = viewTeam >= 0;
   int n = grid.cellCount();
   out.cost.assign(n, -1);
   out.parent.assign(n, kNoCell);
@@ -22,7 +29,7 @@ void Battle::reachable(int unit, Reach& out) const {
   const bool pass = passesEnemies(u);
   int budget = movePoints(u);
   // "Move again" (docs/SRPG.md "Turn flags"): after its action only the movement it has not used is left.
-  if (u.acted) budget = std::max(0, budget - u.moveSpent);
+  if (u.acted && !seen) budget = std::max(0, budget - u.moveSpent);
   if (u.fuel >= 0 && u.fuel < budget) budget = u.fuel;  // fuel (docs/ECONOMY.md): the tank limits the reach
   if (!u.conditions.empty() && conditionBlock(u, ConditionBlock::Move) >= 0) budget = 0;  // "cannot move" (docs/SRPG.md section 9)
 
@@ -44,12 +51,20 @@ void Battle::reachable(int unit, Reach& out) const {
     for (int i = 0; i < count; ++i) {
       Cell next = nb[i];
       int step = enterCost(next, moveType);
+      if (seen && fog) {
+        const int si = structureIndexAt(next);
+        if (si >= 0) {
+          const int base = enterCostOf(*db, cells[next].terrain, seenKind(viewTeam, si), moveType);
+          step = db->anyWeatherCost ? weatherEnterCost(next, moveType, base) : base;
+        }
+      }
       if (step <= 0) continue;  // impassable
       if (costCap > 0 && step > costCap) step = costCap;
       int occ = occupant[next];
       // Enemies block (unless the unit may pass through them, and then they are never a stop either: see below);
       // with fog only the ones the unit's team sees (an unseen one is planned around as if absent, and may stop
       // the move when it is carried out: fog_rules.cpp).
+      if (seen && occ != -1 && !unitVisibleTo(viewTeam, units[occ])) occ = -1;  // (no sight line to it: not part of the picture)
       if (!pass && occ != -1 && isEnemy(u, units[occ]) && unitVisibleTo(team, units[occ])) continue;
       int total = node.first + step;
       if (total > budget) continue;
@@ -64,7 +79,10 @@ void Battle::reachable(int unit, Reach& out) const {
   for (Cell c = 0; c < n; ++c) {
     if (out.cost[c] < 0) continue;
     // A square held by an enemy the team does not see looks free to it.
-    if (occupant[c] == -1 || occupant[c] == unit || (isEnemy(u, units[occupant[c]]) && !unitVisibleTo(team, units[occupant[c]]))) {
+    if (seen && occupant[c] != -1 && !unitVisibleTo(viewTeam, units[occupant[c]])) {
+      out.stop[c] = 1;
+      out.stops.push_back(c);
+    } else if (occupant[c] == -1 || occupant[c] == unit || (isEnemy(u, units[occupant[c]]) && !unitVisibleTo(team, units[occupant[c]]))) {
       out.stop[c] = 1;
       out.stops.push_back(c);
     }

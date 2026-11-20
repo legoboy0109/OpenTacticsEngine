@@ -142,8 +142,8 @@ void drawMap(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, bool
       if (shape.hex) drawTerrainHex(r, c, shape.geo, cell, sx, sy);
       else drawTerrain(r, c, cell, sx, sy);
       if (ov.any()) {
-        if (ov.reach[cell]) shape.fill(r, sx, sy, Color(50, 110, 255, 105));
-        else if (ov.attack[cell]) shape.fill(r, sx, sy, Color(255, 50, 50, 105));
+        const Tone tone = toneOf(ov, cell);
+        if (tone != Tone::None) shape.fill(r, sx, sy, toneColor(tone, 105));
       }
     }
   // Structures and units share one pass, sorted by the pixel row of their bottom

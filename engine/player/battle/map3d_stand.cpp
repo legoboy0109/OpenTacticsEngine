@@ -128,8 +128,13 @@ void Map3D::drawStands(const DrawCtx& c, const Overlay& ov) {
       // Brightness: the fog's dimming; a wash of the highlight's colour in move / attack range.
       float k = fogged && c.view.dimmed(cell) ? kFogDim : 1.0f;
       Rgba3D wash(1, 1, 1);
-      if (!ov.reach.empty() && ov.reach[cell]) wash = Rgba3D(0.62f, 0.76f, 1.0f);
-      else if (!ov.attack.empty() && ov.attack[cell]) wash = Rgba3D(1.0f, 0.6f, 0.6f);
+      switch (toneOf(ov, cell)) {
+        case Tone::Move: wash = Rgba3D(0.62f, 0.76f, 1.0f); break;
+        case Tone::Attack: wash = Rgba3D(1.0f, 0.6f, 0.6f); break;
+        case Tone::FoeMove: wash = Rgba3D(0.80f, 0.68f, 1.0f); break;
+        case Tone::FoeAttack: wash = Rgba3D(1.0f, 0.82f, 0.55f); break;
+        default: break;
+      }
       float sx = 0, sz = 0, turn = 0;
       if (s.scatter) standScatter(x, y, sx, sz, turn);
       float mgx, mgy;

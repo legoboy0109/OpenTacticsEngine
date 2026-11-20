@@ -80,6 +80,11 @@ One press must give one ButtonDown / ButtonUp: `platform/common/press_dedupe.h` 
 button comes from another source (back key vs pad button, or a pad listed twice by the OS) while the first holds it or just
 after; both SDL backends use it, a keyboard-only or single-pad user is unaffected (docs/XBOX.md "One B press").
 
+`Button::Ranges` (last in the enum) shows / hides the reach of every enemy in sight in a battle (docs/SRPG.md "Enemy ranges"). Bound in both
+SDL backends to the key `T` and to the pad's Back / View button (`SDL_GAMEPAD_BUTTON_BACK` / `SDL_CONTROLLER_BUTTON_BACK`: the original Xbox
+pad's Back through nxdk's SDL mapping, no file in `platform/nxdk` names it); script token `ranges`; touch has no button, the map menu
+has the entry "Enemy ranges: show / hide" on every device. A new port maps its Back / View button there.
+
 Every screen is operable with a controller alone (d-pad or left stick, A confirm, B cancel, Start = Menu, shoulders =
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
 handlers are additions that call the same actions. No screen has text entry. Skipping a dialogue is "hold Cancel or Menu".

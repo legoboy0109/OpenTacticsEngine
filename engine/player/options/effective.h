@@ -24,6 +24,7 @@ struct LookLayer {
   std::string res3d;  // how big the 3D picture is: "display" or "game"; "" = unset
   std::string battleScene;  // "scene" or "map"; "" = unset (the game decides)
   std::string menuUnavailable;  // "grey" or "hide"; "" = unset (the game decides)
+  std::string enemyRanges;      // "both", "attack" or "off"; "" = unset (movement + attack, unless the game switched the display off)
   int musicVolume = -1;  // 0..10; -1 = unset
   int soundVolume = -1;  // 0..10; -1 = unset
   int safeArea = 0;      // percent of a TV screen the picture may use (original Xbox only, docs/XBOX_OG.md); 0 = unset
@@ -41,6 +42,7 @@ struct GameLook {
   std::vector<char> styleUsable;
   bool battleScene = false;        // game.json "battleScene": the game wants the side-view battle scene by default
   bool menuHide = false;           // game.json "menuUnavailable": "hide": the game wants actions with nothing to act on left out of the menu
+  bool enemyRanges = true;         // game.json rules.display.enemyRanges: false = the game switched the enemy-range display off (the player cannot turn it on)
 };
 
 struct EffectiveLook {
@@ -51,6 +53,7 @@ struct EffectiveLook {
   std::string res3d;   // "display", "game", or "" = automatic (docs/RENDER3D.md "Resolution")
   bool battleScene = false;  // fights are shown as the side-view battle scene (docs/BATTLE_SCENE.md "Settings")
   bool menuHide = false;     // the action menu leaves out entries with nothing to act on (docs/SRPG.md "Menu options")
+  int enemyRanges = 1;       // the enemy-range display: 0 off, 1 movement + attack, 2 attack only (docs/SRPG.md "Enemy ranges")
   int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
   int soundVolume = 7;
   int safeArea = 0;  // 0 = the platform's default for the video mode (only the original Xbox backend uses it)

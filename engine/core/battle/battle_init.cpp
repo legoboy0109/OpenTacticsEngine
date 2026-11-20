@@ -242,6 +242,7 @@ void Battle::structureCells(int s, std::vector<Cell>& out) const {
 }
 
 void Battle::start(std::vector<Event>& events) {
+  touch();
   if (askingChoices()) {  // a question may stop the start half way (story_choice.cpp)
     runAsking(true, Action(), nullptr, {}, 0, events);
     return;

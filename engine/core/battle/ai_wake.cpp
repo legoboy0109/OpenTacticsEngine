@@ -10,6 +10,7 @@ bool sleeper(const Unit& u) { return (u.behaviour.mode == AiMode::Guard && !u.be
 }  // namespace
 
 void Battle::wakeUnit(int unit) {
+  touch();
   if (unit < 0 || unit >= (int)units.size()) return;
   const Unit& u = units[(size_t)unit];
   if (!sleeper(u)) return;  // only a guard has anything to wake from; others never gain the flag (saves stay as they were)
@@ -22,6 +23,7 @@ void Battle::wakeUnit(int unit) {
 }
 
 void Battle::wakeGroup(const std::string& group) {
+  touch();
   if (group.empty()) return;
   for (Unit& o : units)
     if (o.alive && sleeper(o) && o.behaviour.group == group) o.awake = true;

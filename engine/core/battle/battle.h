@@ -440,6 +440,12 @@ struct RepairPlan {
   std::vector<int> cost;  // per resource index; all 0 = free
 };
 
+// A number nobody has had (Battle::stamp). Not thread-safe: the battle is one thread's.
+inline uint64_t nextBattleStamp() {
+  static uint64_t n = 0;
+  return ++n;
+}
+
 class Battle {
  public:
   // ---- state (read freely; write only via apply) ----
@@ -530,8 +536,15 @@ class Battle {
   // Alive, belongs to the active side, battle not over.
   bool canAct(int unit) const;
 
+  // A number that is new after every change made through the public mutators (apply, start, answerChoice, wake*, aiTurnStart,
+  // setDifficulty, refreshSight) and carried by copies, so a copy that is restored (an undo) shows the number it had. Display aids
+  // that cache something computed from the board (the enemy ranges of the player) compare it. Never saved, hashed or read by rules.
+  uint64_t stamp() const { return stamp_; }
+
   // Where the unit could move right now (ignores its `moved` flag).
   void reachable(int unit, Reach& out) const;
+  // The same for display: the unit's reach on a fresh turn as the team `viewTeam` can know it (movement.cpp). Not for the rules.
+  void reachFor(int unit, int viewTeam, Reach& out) const;
   bool pathTo(const Reach& reach, Cell dest, std::vector<Cell>& path) const;
 
   // Attacks available if the unit stood on `from` (pass its own cell for
@@ -625,7 +638,7 @@ class Battle {
   int seenOwnerForSide(int side, int structure) const { return seenOwner(sides[(size_t)side].team, structure); }
   // Sight is recomputed by itself after every change made through apply() and at start / load. Code that edits the
   // public state by hand (tests, tools) calls this afterwards.
-  void refreshSight() const { sight_.valid = false; }
+  void refreshSight() const { sight_.valid = false; touch(); }
   // For loading a save: the last seen owners, one list per team with one entry per structure (checked by the caller).
   void setSeenOwners(const std::vector<std::vector<int>>& owners) { seenOwners_ = owners; sight_.valid = false; }
   // How far a unit of this type standing on `cell` sees: its vision plus what the square gives it (terrain and
@@ -852,6 +865,8 @@ class Battle {
   };
   // Derived data kept lazily: a query recomputes it when `valid` is false. Copies carry it.
   mutable SightCache sight_;
+  void touch() const { stamp_ = nextBattleStamp(); }
+  mutable uint64_t stamp_ = nextBattleStamp();
   // Last seen owner per team and structure; the only part of fog that is state (saved). Updated by sight.
   mutable std::vector<std::vector<int>> seenOwners_;
   // Last seen kind per team and structure, refreshed under exactly the same conditions as the owner.

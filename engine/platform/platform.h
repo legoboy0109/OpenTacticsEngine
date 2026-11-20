@@ -31,7 +31,9 @@ struct Color {
 // (docs/VIEWS.md).
 enum class Button {
   None, Up, Down, Left, Right, Confirm, Cancel, Menu, Next, Prev, TurnLeft, TurnRight, TiltUp, TiltDown, ZoomIn, ZoomOut,
-  Skip  // "skip everything" in a dialogue: no key or pad button makes it, only the --input script (and tests)
+  Skip,  // "skip everything" in a dialogue: no key or pad button makes it, only the --input script (and tests)
+  Ranges  // battle: show / hide the reach of every enemy you can see (key T, pad Back / View; player/battle/enemy_ranges.h). Last: the
+          // buttons before it keep their numbers.
 };
 
 // Which kind of input device made an event. The player names the controls of the device last used in its hint lines

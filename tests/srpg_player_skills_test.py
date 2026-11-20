@@ -181,7 +181,7 @@ def frames_at(script, extra):
 def test_plain_game(game):
     code, log = run(game, 'duel', inp(*ACTION_MENU))
     check('a game without strategy-RPG data has no Info entry', code == 0 and not lines(log, 'action menu:'), log[-300:])
-    code, log = run(game, 'duel', inp(IDLE, 'right', 'confirm', 'wait:3'))
+    code, log = run(game, 'duel', inp(IDLE, 'right', 'menu', 'wait:3'))
     check('and no Unit entry in its battle menu', code == 0 and bool(lines(log, 'battle menu:')) and ', Unit' not in log, log[-300:])
 
 
@@ -202,17 +202,17 @@ def test_menus_and_details(game):
     code, log = run(game, 'duel', inp(*base, 'cancel', 'wait:3'))
     check('%s: Cancel in the details returns to the action menu' % game, len(lines(log, 'action menu:')) >= 2, log[-400:])
     # The battle menu has Unit when the cursor is on a unit, and it opens that unit's details (an enemy: Gorm).
-    code, log = run(game, 'duel', inp(IDLE, 'right', 'confirm', 'wait:3'))   # the cursor starts on Eirik (2,1); Gorm is at (3,1)
+    code, log = run(game, 'duel', inp(IDLE, 'right', 'menu', 'wait:3'))   # the cursor starts on Eirik (2,1); Gorm is at (3,1)
     menu = lines(log, 'battle menu:')
     check('%s: the battle menu has Unit over a unit' % game, bool(menu) and 'Unit' in menu[-1], str(menu))
-    code, log = run(game, 'duel', inp(IDLE, 'right', 'confirm', 'wait:3', 'down', 'confirm', 'wait:3'))
+    code, log = run(game, 'duel', inp(IDLE, 'right', 'menu', 'wait:3', 'down', 'confirm', 'wait:3'))
     pages = lines(log, 'unit details:')
     check('%s: Unit opens the details of the unit under the cursor (Gorm)' % game, bool(pages) and 'Gorm' in pages[-1], str(pages))
     code, log = run(game, 'duel', inp(IDLE, 'down', 'down', 'confirm', 'wait:3'))
     menu = lines(log, 'battle menu:')
     check('%s: the battle menu has no Unit over an empty square' % game, bool(menu) and 'Unit' not in menu[-1], str(menu))
     # Cancel from the battle menu's details goes back to the map (no action menu opens).
-    code, log = run(game, 'duel', inp(IDLE, 'right', 'confirm', 'wait:3', 'down', 'confirm', 'wait:3', 'cancel', 'wait:3'))
+    code, log = run(game, 'duel', inp(IDLE, 'right', 'menu', 'wait:3', 'down', 'confirm', 'wait:3', 'cancel', 'wait:3'))
     check('%s: Cancel in those details goes back to the map' % game, len(lines(log, 'action menu:')) == 0 and bool(lines(log, 'unit details:')), log[-300:])
 
 

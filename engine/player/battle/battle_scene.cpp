@@ -224,6 +224,7 @@ void BattleScene::update(double dt) {
       beginHumanTurn();
     }
   }
+  if (humanTurn() && !view_.busy() && !prep_) refreshRanges();  // (does nothing unless the board, the marks or the setting changed)
   if (turnPos_ != (float)turn_) {  // a quarter turn takes a quarter of a second (a sixth on hexagon maps: as fast)
     const int steps = proj_.turnCount();
     float d = (float)turn_ - turnPos_, step = (float)dt * (float)steps;
@@ -269,8 +270,10 @@ std::string BattleScene::hint() const {
   switch (mode_) {
     case Mode::Idle:
       if (!humanHasOptions()) return "All units done.  {menuName}: end turn";
+      // (the enemy-ranges key only on the plain line: the others have no room for it in 58 characters; the map menu has the entry too)
       return proj_.free3d() ? "{dpad}  {ok}:select  {turn}:turn  {tilt}:tilt  {zoom}:zoom  {menu}:menu"
              : map3d_ ? "{dpad}:cursor  {ok}:select  {nextprev}:units  {turn}:turn  {menu}:menu"
+             : rangesOn() ? "{dpad}:cursor  {ok}:select  {nextprev}:units  {menu}:menu  {rangesKey}:ranges"
                     : "{dpad}:cursor  {ok}:select  {nextprev}:units  {menu}:menu";
     case Mode::Selected: {
       // A tank too empty for the full move: the blue range is already cut by the core, say why.
@@ -325,7 +328,9 @@ void BattleScene::draw(Renderer& r) {
       cam_.y += (float)shakeY;
     }
   }
-  drawMap(r, ctx, mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_ : supplyOverlay(), cursor_, human);
+  Overlay shownOverlay = mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_ : supplyOverlay();
+  addRangeTint(shownOverlay);  // the marked enemies' reach, under the player's own blue / red
+  drawMap(r, ctx, shownOverlay, cursor_, human);
   if (prep_) prepDrawSlots(r);  // the numbered deployment squares
   drawFloats(r, ctx, false);
   drawStory(r);

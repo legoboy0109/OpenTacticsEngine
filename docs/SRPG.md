@@ -3107,6 +3107,58 @@ character, place it on the map, give its unit type a starter skill, build one sk
 
 ---
 
+## Enemy ranges (the "danger zone")
+
+A display aid of the player, not a rule: on the player's turn it can draw where an enemy could move to next turn and, around that,
+what it could hit. Nothing here is saved, changes the Battle, the replay, the simulation or the computer opponent
+(`engine/player/battle/enemy_ranges.*`, `battle_enemy_ranges.cpp`; the area itself is `core/battle/threat_area.*`).
+
+**Using it.** *Mark:* Confirm (or a tap / click) on an enemy you can see toggles a mark on it; marks stay until you unmark the unit,
+Cancel on the plain map clears them all, and they live through your next turns in the same battle (not through a save and load).
+Several marks combine. *Show all:* the Ranges button (keyboard `T`, controller Back / View, the original Xbox's Back) or the map
+menu entry "Enemy ranges: show / hide" (the menu opened by Menu or by a tap on an empty square; the entry is there on every device)
+shows the union of every enemy in sight and hides it again. Confirm on an enemy used to open the map menu; that still happens with
+the feature off, and Menu / a tap on an empty square opens it otherwise (its "Unit" entry shows the unit under the cursor).
+Allied units of another side and your own units cannot be marked.
+
+**What is drawn.** Squares it can move to (its own included) in violet, squares it could attack from there and cannot walk to in
+orange (the player's own selection stays blue / red and wins on a shared square). Every view takes its tint from
+`toneOf()` (`battle_draw.h`): top-down, hexagon, isometric 2D, isometric 3D, full 3D.
+
+**The rules it uses** (one implementation, `threatArea()`): the unit's walk is `Battle::reachFor`, the search of `Battle::reachable`
+on a fresh turn (its turn flags of its last turn are ignored: `acted`, `moveSpent`), and the squares it hits are the ones
+`computeOverlay()` paints for the player's own unit: every weapon `attackWeaponsAt` gives from each square it can stop on (carried
+weapons and the map weapon of a structure it would stand on), within the weapon's minimum and maximum range, a weapon without
+`afterMove` only from the unit's own square. A unit a condition forbids to act has no attack squares. Abilities with a range
+(damaging abilities, staves) are not drawn, as the player's own red squares do not draw them. The tests compare the picture with
+`Battle::reachable` and `Battle::attackOptions` square by square.
+
+**Fog of war.** Only enemies the viewer's team sees *now* can be marked or are counted in "all"; one that is hidden drops out of
+the picture (its mark is kept and comes back when it is seen again). Nothing may betray what is not in sight: in an area, a unit
+the viewer cannot see counts as absent (no gap where it stands, no wall around it), and a structure the viewer cannot see counts as
+the kind it last saw (a door opened out of sight does not widen the picture; `Battle::seenKind`). Squares themselves are never hidden
+by it: a violet square in the fog says only what a visible enemy could do.
+
+**Kept current.** The areas are cached and recomputed when the board changed (`Battle::stamp()`, new after every `apply`, `start`,
+`answerChoice`, wake, `aiTurnStart`, `setDifficulty`, `refreshSight`, and carried by copies so an undo shows the number it had), when
+a mark or the setting changed, or when the viewer changed (hot-seat: marks are cleared). A frame without a change costs a few
+comparisons. A marked unit that dies or leaves is dropped. While the view plays events nothing is drawn.
+
+**Settings.** The player's option "Enemy ranges" (Options screen, global or per game, `settings.json` key `enemyRanges`):
+*Game default* (movement + attack), *Movement + attack*, *Attack only* (one tint over the whole area) and *Off* (Confirm on an enemy
+opens the map menu as it always did; the button and the menu entry do nothing / are not there). A game maker can switch the display
+off for the game with `"rules": { "display": { "enemyRanges": false } }` (docs/GAME_FORMAT.md); no setting turns it back on.
+
+**Log line.** Whenever the display changes the player logs `enemy ranges: N units, M move squares, A attack squares` (squares of
+the move tint, squares of the attack-only tint; with "Attack only" M is 0) and a debug line with the time it took; marks log
+`enemy mark: <name> on|off`, the button `enemy ranges all: on|off`. The tests read them (`tests/enemy_ranges_player_test.py`,
+`tests/test_enemy_ranges.cpp`).
+
+**Cost.** One search per visible enemy per board change, nothing per frame; numbers in the commit that added it
+(a 60-enemy 64 x 64 map: well under a millisecond on a desktop CPU).
+
+---
+
 ## Demo and template content
 
 All names are original to this project; existing demo characters are extended, nothing is taken from any other

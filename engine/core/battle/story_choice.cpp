@@ -74,6 +74,7 @@ void Battle::runAsking(bool isStart, const Action& action, std::shared_ptr<const
 }
 
 bool Battle::answerChoice(int pick, std::vector<Event>& events) {
+  touch();
   std::shared_ptr<ChoiceWait> w = choice_.wait;
   if (!w || pick < 0 || pick >= (int)w->offered.size()) return false;
   std::vector<int> answers = w->answers;

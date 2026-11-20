@@ -66,7 +66,7 @@ in `platform/common/process_info.cpp`.
 
 The Xbox controller through SDL's game-controller API with nxdk SDL's built-in mapping for its Xbox driver, and the same button
 meanings as every other build (docs/PORTING.md "Input"): d-pad or left stick move, A confirm, B cancel, Start menu, White =
-previous (left shoulder), Black = next (right shoulder), X / Y turn the camera, right stick and triggers the free camera (3D
+previous (left shoulder), Black = next (right shoulder), Back = show / hide the enemies' reach in a battle, X / Y turn the camera, right stick and triggers the free camera (3D
 only). Four ports, hot-plug: pads present at start and ones plugged in later are opened (`SDL_CONTROLLERDEVICEADDED`) and all
 act as one input. **Not tested with a real pad** (xemu gets no input in these runs); the scripted-input path (below) stands in.
 

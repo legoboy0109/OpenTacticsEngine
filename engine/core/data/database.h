@@ -407,6 +407,9 @@ struct Database {
   // where a few stay greyed); "attackWeaponChoice": "pick" = Attack asks which weapon first. Presentation only (docs/SRPG.md "Menu options").
   bool menuHideUnavailable = false;
   bool attackWeaponPick = false;
+  // game.json "rules": { "display": { "enemyRanges": false } }: the game maker switches the player's enemy-range display off (default on;
+  // docs/SRPG.md "Enemy ranges"). Presentation only: no rule and no save depends on it.
+  bool enemyRanges = true;
   GridType gridType = GridType::Square;       // game.json "grid": one grid for the whole game (docs/HEX.md)
   HexLayout hexLayout = HexLayout::Pointy;    // only meaningful when gridType is Hex
   std::vector<StatDef> stats;

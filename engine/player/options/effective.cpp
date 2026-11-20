@@ -74,6 +74,10 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
   out.menuHide = game.present && game.menuHide;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.menuUnavailable == "grey" || x.menuUnavailable == "hide"; }))
     out.menuHide = l->menuUnavailable == "hide";
+  // --- enemy ranges: the same layering; a game that switched the display off wins over every setting
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.enemyRanges == "both" || x.enemyRanges == "attack" || x.enemyRanges == "off"; }))
+    out.enemyRanges = l->enemyRanges == "off" ? 0 : l->enemyRanges == "attack" ? 2 : 1;
+  if (game.present && !game.enemyRanges) out.enemyRanges = 0;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.musicVolume >= 0; }))
     out.musicVolume = l->musicVolume > 10 ? 10 : l->musicVolume;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.soundVolume >= 0; }))
