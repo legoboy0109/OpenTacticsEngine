@@ -1,0 +1,5 @@
+{ "characters": [
+  { "id": "aldric", "name": "Aldric", "type": "squire", "level": 1, "job": "squire", "jobs": { "squire": { "jp": 30 } } },
+  { "id": "bryn", "name": "Bryn", "type": "squire", "level": 1, "job": "squire" },
+  { "id": "cora", "name": "Cora", "type": "mage", "level": 1, "job": "mage",
+    "jobs": { "squire": { "jp": 25, "learned": ["guard"] }, "mage": { "jp": 10 } }, "equipped": ["guard"] } ] }

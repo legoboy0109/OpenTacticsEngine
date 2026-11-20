@@ -1,0 +1,13 @@
+{ "jobs": [
+  { "id": "squire", "name": "Squire", "description": "A plain soldier; everyone starts here.", "unitType": "squire",
+    "learn": [ { "skill": "guard", "cost": 30, "slot": "support" },
+               { "ability": "shove", "cost": 40, "slot": "action" },
+               { "skill": "light_step", "cost": 25, "slot": "movement" } ] },
+  { "id": "knight", "name": "Knight", "description": "Heavy armour.", "unitType": "knight",
+    "requires": [ { "job": "squire", "level": 2 } ],
+    "learn": [ { "skill": "iron_will", "cost": 60, "slot": "reaction" } ] },
+  { "id": "mage", "name": "Mage", "description": "Fights from two squares away.", "unitType": "mage",
+    "requires": [ { "job": "squire", "level": 2 } ],
+    "jpLevels": [30, 90],
+    "learn": [ { "ability": "mend", "cost": 50, "slot": "action" },
+               { "skill": "focus", "cost": 40, "slot": "support" } ] } ] }

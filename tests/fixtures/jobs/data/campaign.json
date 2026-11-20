@@ -1,0 +1,8 @@
+{
+  "name": "Two Fields",
+  "rules": { "fallen": "gone", "onDefeat": "retry" },
+  "chapters": [
+    { "id": "ch1", "name": "The First Field", "map": "first" },
+    { "id": "ch2", "name": "The Second Field", "map": "second" }
+  ]
+}
