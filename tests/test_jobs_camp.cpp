@@ -1,6 +1,7 @@
 // docs/JOBS.md "Between chapters": changing a roster character's job, learning and equipping in the camp, what a job change does to the unit type and the
 // stats, the roster carrying the job state across two chapters of the fixture campaign, and the roster in saves. Fixture tests/fixtures/jobs (jobs_fixture.h).
 #include "core/campaign/campaign_save.h"
+#include "core/campaign/prep.h"
 #include "jobs_fixture.h"
 
 using namespace ote;
@@ -168,4 +169,33 @@ TEST(the_roster_with_jobs_goes_through_a_save_and_a_damaged_one_is_refused) {
   CHECK(saysIn(tryWith("\"jobs\":{\"job\":1", "\"jobs\":{\"job\":7"), "playthrough.roster[0].jobs.job: value 7 is outside 0..2"));
   CHECK(saysIn(tryWith("\"spent\":30", "\"spent\":50"), "spent JP must be from 0 to the JP earned"));
   CHECK(saysIn(tryWith("\"equipped\":[0]", "\"equipped\":[5]"), "has not been learned"));
+}
+
+TEST(the_preparation_screen_changes_jobs_only_where_the_game_allows_it) {
+  const char* plain = "\"sides\": [ { \"id\": \"blue\", \"name\": \"Blue\", \"controller\": \"human\" },";
+  const char* withPrep = "\"prep\": { \"slots\": [ { \"x\": 1, \"y\": 1 }, { \"x\": 1, \"y\": 2 }, { \"x\": 1, \"y\": 3 } ], \"limit\": 3 }, \"sides\": [ { \"id\": \"blue\", \"name\": \"Blue\", \"controller\": \"human\" },";
+  for (int allowed = 1; allowed >= 0; --allowed) {
+    AfterChapterOne a(allowed ? "jc_prep_yes" : "jc_prep_no");
+    a.c.swap("maps/second.json", plain, withPrep);
+    if (!allowed) a.c.swap("game.json", "\"changeIn\": \"camp+prep\"", "\"changeIn\": \"camp\"");
+    jobtest::Game g;
+    CHECK(g.load(a.c.dir));
+    g.pt = a.g.pt;
+    MapDef map;
+    std::string err;
+    CHECK(loadMap(g.db, "second", map, err));
+    CHECK(map.prep != nullptr);
+    if (!map.prep) return;
+    prepOpen(g.db, g.pt, map, true);
+    std::string why;
+    CHECK_EQ(jobsChangeAllowedInPrep(g.db) ? 1 : 0, allowed);
+    const bool ok = jobsChangeInPrep(g.db, g.pt, map, "aldric", g.db.findJob("knight"), why);
+    CHECK_EQ(ok ? 1 : 0, allowed);
+    if (allowed) CHECK_EQ(g.rosterUnit("aldric")->jobs.job, g.db.findJob("knight"));
+    else CHECK(saysIn(why, "jobs are changed in the camp, between chapters"));
+    if (!allowed) CHECK(jobsChange(g.db, g.pt, "aldric", g.db.findJob("knight"), why));  // the camp may always change it
+    // Cora joined the roster with the preparation, with her character's job state.
+    CHECK(g.rosterUnit("cora") != nullptr);
+    if (g.rosterUnit("cora")) CHECK_EQ(g.rosterUnit("cora")->jobs.job, g.db.findJob("mage"));
+  }
 }
