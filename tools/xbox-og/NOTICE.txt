@@ -1,0 +1,6 @@
+OpenTacticsEngine for the original Xbox
+
+The engine is GPL-3.0 (GPL-3.0.txt). The demo games' art and sound credits are in demo-srpg-CREDITS.md.
+Built with the open-source nxdk toolchain (https://github.com/XboxDev/nxdk: MIT and other permissive licences, see its
+LICENSES folder), SDL2 (zlib licence), Lua 5.4 (MIT), stb_image / stb_truetype / stb_vorbis (public domain).
+No Microsoft system file or XDK code is in this program.

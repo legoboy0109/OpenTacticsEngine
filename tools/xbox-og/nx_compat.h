@@ -20,3 +20,6 @@
 #define expm1 ote_expm1
 #define scalbn ote_scalbn
 #define fdim ote_fdim
+// nxdk's getenv finds nothing and there is no putenv: the args file's NAME=value words (OTE_LOG_LEVEL ...) live in a small
+// table of ours (nx_compat.c, ote_setenv).
+#define getenv ote_getenv

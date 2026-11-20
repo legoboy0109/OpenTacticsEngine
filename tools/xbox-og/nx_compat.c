@@ -54,3 +54,35 @@ double log1p(double x) { return log(1.0 + x); }
 double expm1(double x) { return exp(x) - 1.0; }
 double scalbn(double x, int n) { return ldexp(x, n); }
 double fdim(double x, double y) { return x > y ? x - y : 0.0; }
+
+// getenv / setenv: nxdk has no environment. Called as getenv everywhere (renamed by nx_compat.h); ote_setenv is ours.
+#include <stdlib.h>
+#include <string.h>
+enum { kMaxEnv = 64 };
+static char* g_envName[kMaxEnv];
+static char* g_envValue[kMaxEnv];
+char* getenv(const char* name) {
+  for (int i = 0; i < kMaxEnv; ++i)
+    if (g_envName[i] && strcmp(g_envName[i], name) == 0) return g_envValue[i];
+  return NULL;
+}
+int ote_setenv(const char* name, const char* value) {
+  int slot = -1;
+  for (int i = 0; i < kMaxEnv; ++i) {
+    if (g_envName[i] && strcmp(g_envName[i], name) == 0) { slot = i; break; }
+    if (!g_envName[i] && slot < 0) slot = i;
+  }
+  if (slot < 0) return -1;
+  char* v = (char*)malloc(strlen(value) + 1);
+  if (!v) return -1;
+  strcpy(v, value);
+  if (!g_envName[slot]) {
+    g_envName[slot] = (char*)malloc(strlen(name) + 1);
+    if (!g_envName[slot]) { free(v); return -1; }
+    strcpy(g_envName[slot], name);
+  } else {
+    free(g_envValue[slot]);
+  }
+  g_envValue[slot] = v;
+  return 0;
+}
