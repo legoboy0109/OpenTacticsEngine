@@ -30,7 +30,7 @@ tools/check_all.sh [--jobs N] [--work DIR] [--only a,b] [--skip a,b] [--skip-e2e
   present, are copied along; nothing is ever installed.
 - **Logs.** Each part's full output is `<logs>/<part>.log` (`build/check-all/` or `DIR/logs/`). The end of the run repeats the
   greppable result lines: `N test(s) run, M failed` (ote_tests), `N passed, M failed` (editor API), ctest's
-  `100% tests passed, 0 tests failed out of N`, `SIMS_IDENTICAL` (or `SIMS_DIFFER`, or `SIMS_BASELINE_SAVED` on the first
+  `100% tests passed ... out of N`, `SIMS_IDENTICAL` (or `SIMS_DIFFER`, or `SIMS_BASELINE_SAVED` on the first
   run), the vitest `Tests` line, Playwright's `N passed` totals and `e2e minutes`.
 - **Sims baseline.** The previous output lives in `build/check-all/sims_baseline.txt` of the checkout (or `--sims-baseline
   FILE`); `--update-baseline` replaces it after an intended rules change. Timings are ignored in the comparison.

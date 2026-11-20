@@ -210,10 +210,10 @@ part_ctest() {
   # audio_player really opens the sound device. Never run by default.
   [ "$AUDIO_TEST" -eq 1 ] && excl=()
   ( cd "$ROOT" && ctest --test-dir build "${excl[@]}" -j "$JOBS" --output-on-failure ) > "$LOGS/ctest.log" 2>&1; rc=$?
-  line="$(grep -E "tests passed, [0-9]+ tests failed" "$LOGS/ctest.log" | tail -1)"
+  line="$(grep -E "^[0-9]+% tests passed" "$LOGS/ctest.log" | tail -1)"
   keep_line "ctest" "$line"
   local skipped
-  skipped="$(grep -cE "\*\*\*Skipped|Skipped" "$LOGS/ctest.log")"
+  skipped="$(grep -cE "^[[:space:]]+[0-9]+ - .*\(Skipped\)" "$LOGS/ctest.log")"
   if [ $rc -eq 0 ]; then record ctest PASS "$line"
   else record ctest FAIL "${line:-no result line}; see $LOGS/ctest.log"; fi
   [ "$skipped" -gt 0 ] && echo "  (ctest reports $skipped skipped entr$( [ "$skipped" -eq 1 ] && echo y || echo ies ); render3d_d3d11 is Windows only)"
@@ -224,12 +224,17 @@ part_sims() {
   local sim="$ROOT/build/ote-sim" out="$LOGS/sims.txt" ok=1
   [ -x "$sim" ] || { record sims SKIPPED "build/ote-sim was not built"; return; }
   : > "$LOGS/sims.log"
-  ( cd "$ROOT" || exit 1
-    "$sim" games/demo-srpg bridge --runs 30
-    "$sim" games/demo-srpg north_road --runs 30
-    "$sim" games/demo-economy twin_rivers --runs 30
-    "$sim" games/demo-hex fortress_ford --runs 30
-    "$sim" games/demo-srpg --campaign --runs 20 ) > "$LOGS/sims.log" 2>&1 || ok=0
+  # The simulators' exit codes are part of what they report (the campaign sim exits 2 when a run ended early, which is
+  # the expected, deterministic result for the demo), so only a crash or a missing program (126 and up) is a failure here.
+  # The results themselves are compared below through the summary lines.
+  local rc
+  for args in "games/demo-srpg bridge --runs 30" "games/demo-srpg north_road --runs 30" \
+              "games/demo-economy twin_rivers --runs 30" "games/demo-hex fortress_ford --runs 30" \
+              "games/demo-srpg --campaign --runs 20"; do
+    # shellcheck disable=SC2086
+    ( cd "$ROOT" && "$sim" $args ) >> "$LOGS/sims.log" 2>&1; rc=$?
+    [ $rc -ge 126 ] && ok=0
+  done
   # Compare without the timing, which differs from run to run.
   grep summary "$LOGS/sims.log" | sed -E 's/; avg [0-9.]+ ms\/run//' > "$out"
   [ "$(wc -l < "$out")" -eq 5 ] || ok=0
