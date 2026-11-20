@@ -1,6 +1,7 @@
 // Height rules (docs/SRPG.md "Height rules"): how far a unit may climb or drop in a step, and what height does to the reach of a weapon.
 // Nothing here changes the battle and nothing uses randomness. A game without "rules.height" never gets past the first line of each function.
 #include <algorithm>
+#include <cstdlib>  // std::abs(int): not pulled in by <algorithm> on every toolchain (Emscripten)
 
 #include "core/battle/battle.h"
 #include "core/grid/area.h"
