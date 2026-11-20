@@ -1,4 +1,5 @@
 #include "battle/battle_scene.h"
+#include "battle/art_preload.h"
 #include "battle/battle_prep_ui.h"
 
 #include <algorithm>
@@ -30,6 +31,8 @@ BattleScene::BattleScene(SceneHost& host, bool preparing)
   if (proj_.view3d()) map3d_.reset(new Map3D(host.renderer3d(), host.show3d(), session_.dir, session_.db.graphics));
   view_.init(battle_, layout_.tile, autoplay_);
   view_.setAudio(&host_.gameAudio());
+  // (A 3D view draws from its own sheet textures, Sheets3D; the flat sheets are then only asked for by the panels and icons.)
+  if (host.sprites() && !proj_.view3d()) preloadMapArt(*host.sprites(), battle_, styleIdx_);  // decode the map's sheets now, while the scene opens
   initFog();  // fog of war: who the screen is drawn for (battle_fog.cpp)
   fogSeenOn_ = battle_.fogOn();
   view_.rewindStartFights(battle_, session_.startEvents);  // a staged fight in a battle-start event shows from before its first blow

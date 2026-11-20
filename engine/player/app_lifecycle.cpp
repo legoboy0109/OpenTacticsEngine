@@ -6,7 +6,7 @@
 // switches: with --no-settings / --no-saving (or a headless run without --settings / --saves) there is no file to write
 // to, so nothing is written. The simulation clock and the sound stand still until the app is in the foreground again.
 //
-// Not handled (and why): the renderer. Neither backend has a device-reset path (no SDL_EVENT_RENDER_DEVICE_RESET /
+// Not handled (and why): the 2D renderer. Neither backend has a device-reset path (no SDL_EVENT_RENDER_DEVICE_RESET /
 // SDL_RENDERTARGETSRESET handling): textures made through Renderer::createTexture are assumed to survive. Watch for
 // this on Android (GL context loss) and UWP (D3D device removal).
 #include "app.h"
@@ -31,9 +31,10 @@ void PlayerApp::onLifecycle(Lifecycle event) {
       audio_.resume();
       break;
     case Lifecycle::LowMemory:
-      // Nothing of ours is safe to drop and cheap to rebuild yet (textures and the loaded game are in use); the settings are
-      // written in case the OS follows this with a kill.
+      // The art textures are cheap to make again (they load on demand), so they all go; the loaded game itself stays. The
+      // settings are written in case the OS follows this with a kill.
       OTE_INFO("lifecycle: low memory");
+      sprites_.trimUnused();
       if (settingsPending()) OTE_INFO("lifecycle: settings written");
       flushSettings();
       break;

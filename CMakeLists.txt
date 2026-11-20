@@ -137,7 +137,7 @@ if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
       # The strategy-RPG shared places and the texts of the battle screens, free of SDL (docs/SRPG.md, docs/BATTLE_SCENE.md).
       ${OTE_PLAYER_DIR}/battle/battle_music.cpp ${OTE_PLAYER_DIR}/battle/promotion_text.cpp ${OTE_PLAYER_DIR}/battle/rank_text.cpp ${OTE_PLAYER_DIR}/battle/staff_text.cpp
       ${OTE_PLAYER_DIR}/battle/condition_text.cpp ${OTE_PLAYER_DIR}/battle/place_text.cpp ${OTE_PLAYER_DIR}/battle/menu_hide.cpp ${OTE_PLAYER_DIR}/battle/weapon_choice.cpp
-      ${OTE_PLAYER_DIR}/battle/mapweapon_text.cpp ${OTE_PLAYER_DIR}/battle/fight_script.cpp ${OTE_PLAYER_DIR}/battle/fight_timeline.cpp)
+      ${OTE_PLAYER_DIR}/battle/art_budget.cpp ${OTE_PLAYER_DIR}/battle/sprite_cache.cpp ${OTE_PLAYER_DIR}/battle/mapweapon_text.cpp ${OTE_PLAYER_DIR}/battle/fight_script.cpp ${OTE_PLAYER_DIR}/battle/fight_timeline.cpp)
   file(GLOB PLAYER_SRPG_LIB_SRC CONFIGURE_DEPENDS ${OTE_PLAYER_DIR}/battle/srpg_pick.cpp ${OTE_PLAYER_DIR}/battle/unit_info*.cpp
        ${OTE_PLAYER_DIR}/battle/battle_view*.cpp ${OTE_PLAYER_DIR}/battle/economy_text.cpp ${OTE_PLAYER_DIR}/battle/item_text.cpp
        ${OTE_PLAYER_DIR}/battle/rescue_menu.cpp ${OTE_PLAYER_DIR}/battle/support_text.cpp)
@@ -337,6 +337,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # Battle scene, 3D (player, windowless).
     add_test(NAME battle_scene3_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/battle_scene3_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Art loaded on demand within a memory budget (player, windowless; builds a game of 150 big sheets).
+    add_test(NAME art_memory_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/art_memory_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Battle stage (player, windowless).
     add_test(NAME battle_stage_player

@@ -96,6 +96,7 @@ class FightScene {
   std::vector<std::vector<EffectTimes>> collectEffects(bool stageOn, const StageLayout& lay);
   void pickBackdrop(const Cell cells[2], const int pair[2]);
   void logStart() const;
+  void preloadArt() const;  // fight_scene_preload.cpp: the sheets the fight draws, asked for now (during the transition)
   void addFloat(const std::string& text, int side, Color c, double life, bool plate = false, int rise = 0);
   const BattleSet* setOf(int side) const;
   // The sheet a fighter draws an animation from: its side's own sheet when the set gives one (docs/BATTLE_SCENE.md "By side").

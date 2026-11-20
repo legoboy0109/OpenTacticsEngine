@@ -28,4 +28,6 @@ bool replaceFile(const std::string& from, const std::string& to) {
 
 void commitUserData() {}
 
+unsigned artBudgetMB() { return 768; }
+
 }  // namespace ote
