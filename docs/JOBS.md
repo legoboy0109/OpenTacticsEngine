@@ -8,7 +8,7 @@ Built: the data (`data/jobs.json`, `rules.jobs`, the job keys of characters and 
 JP is earned), the camp and the preparation screen, the unit details, saves, and the computer opponent (it uses what its units know; nothing new to decide). Not built: see "Left out".
 Code: `core/jobs/` (`job_rules.*` the rules over a job state, `job_camp.*` the roster operations, `job_battle.cpp` the battle side), `core/data/jobs.h` and `loader_jobs.cpp` (data and loader),
 `core/battle/save_jobs.cpp` (saves), `player/jobs/` and `player/campaign/jobs_scene.*` (the screens). Tests: `tests/test_jobs_data.cpp`, `test_jobs_battle.cpp`, `test_jobs_camp.cpp`,
-`test_jobs_text.cpp` (fixture `tests/fixtures/jobs`, helpers `tests/jobs_fixture.h`), `tests/jobs_player_test.py` (the real player, headless), `tests/editor_api_jobs_checks.py`.
+`test_jobs_text.cpp` (fixture `tests/fixtures/jobs`, helpers `tests/jobs_fixture.h`), `tests/jobs_player_test.py` (the real player, headless), `tests/editor_api_jobs_checks.py`. Overlay jobs and the combination with levels, promotion and merit ranks: `tests/test_combo_ranks_jobs.cpp` (fixture `tests/fixtures/combo`, `tests/combo_fixture.h`), `tests/combo_player_test.py`, `tests/editor_api_merit_checks.py`.
 
 ## The data
 

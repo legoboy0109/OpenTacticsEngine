@@ -57,6 +57,11 @@ void JobsScreen::openDetail(int sel) {
   std::string log;
   for (const PanelRow& row : rows.rows) log += (log.empty() ? "" : ", ") + row.label + (row.header ? ":" : "[" + row.extra + "]");
   OTE_INFO("jobs %s %s: %s", jobsTabName(tab_), who_.c_str(), log.c_str());
+  if (tab_ == JobsTab::Jobs) {  // the explanation under each job ("Plays as a Knight." / "Bonus: +1 Strength."), for the player tests
+    std::string text;
+    for (const PanelRow& row : rows.rows) text += (text.empty() ? "" : " | ") + row.label + ": " + row.detail;
+    OTE_INFO("jobs explanations %s: %s", who_.c_str(), text.c_str());
+  }
 }
 
 // Does what the chosen row of the open tab says; a refusal says why in the head line.

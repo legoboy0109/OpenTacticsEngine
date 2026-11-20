@@ -36,8 +36,8 @@ def run_merit_checks(api, tmp, games, templates, check, get_project, put_project
     check("merit: GET carries a map unit's merit", first["aldric"]["merit"] == 8, first["aldric"])
 
     st, res = put_project(api, pid, d, d["revision"], jobs=d["jobs"], characters=d["characters"])
-    check("merit: open + save keeps every key in the files", st == 200 and raw("game.json").count(b'"perDefeat"') == 1
-          and raw("data/jobs.json").count(b'"bonus"') == 2 and raw("maps/first.json").count(b'"merit"') == 1, st)
+    counts = (raw("game.json").count(b'"perHit"'), raw("data/jobs.json").count(b'"bonus"'), raw("maps/first.json").count(b'"merit"'))
+    check("merit: open + save keeps every key in the files", st == 200 and counts == (1, 2, 1), (st, counts))
     st, d2 = get_project(api, pid)
     check("merit: ... the problems are still none and the data read back is the same",
           problems() == [] and d2["jobs"] == d["jobs"] and d2["game"] == d["game"] and d2["maps"] == d["maps"], "differs")
@@ -53,7 +53,11 @@ def run_merit_checks(api, tmp, games, templates, check, get_project, put_project
         put_project(api, pid, cur, cur["revision"], game=copy(d["game"]), maps=copy(d["maps"]), jobs=copy(d["jobs"]), characters=copy(d["characters"]))  # back to valid
 
     refused("an unknown key in the block", lambda b: b["game"]["rules"]["ranks"].__setitem__("colour", 1), "rules.ranks: unknown key \"colour\"")
-    refused("a table beside progression.levels", lambda b: b["game"]["rules"]["progression"].__setitem__("levels", [{"at": 5, "name": "x"}]), "rules.ranks: \"rules.progression\" already has a rank table")
+    def both(b):
+        prog = b["game"]["rules"]["progression"]
+        del prog["xpPerLevel"], prog["maxLevel"]
+        prog["levels"] = [{"at": 5, "name": "x"}]
+    refused("a table beside progression.levels", both, "rules.ranks: \"rules.progression\" already has a rank table")
     refused("a merit above the top rank", lambda b: b["maps"]["first"]["units"][0].__setitem__("merit", 99), "\"merit\" must be a whole number from 0 to 30")
     refused("an unknown stat in a job's bonus", lambda b: b["jobs"][3].__setitem__("bonus", {"luck": 1}), "\"bonus\" names unknown stat \"luck\"")
 

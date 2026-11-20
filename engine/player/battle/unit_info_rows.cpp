@@ -98,7 +98,8 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
   else if (db.rules.progression)
     rows.push_back({"Level", intStr(u.level) + "  XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel), "", kText, kLabel});
   // "rules.ranks": the rank beside the level, with its own counter ("Veteran  Merit 10/30").
-  if (db.rules.unitRanks.merit) rows.push_back({"Rank", unitRankName(b, u), unitRankXpText(b, u), kText, kSmall});
+  // (short words: this row shares the page with Job and Level at UI scale 150 on the 480x270 canvas)
+  if (db.rules.unitRanks.merit) rows.push_back({"Rank", b.unitRank(u) < 0 ? std::string("None") : unitRankName(b, u), unitRankXpText(b, u), kText, kSmall});
   // A unit type with its own top level (units.json "maxLevel") says so; a game without one shows no extra row.
   if (db.rules.progression && b.typeOf(u).maxLevel >= 0)
     rows.push_back({"Level cap", b.typeOf(u).maxLevel == 0 ? std::string("never levels") : intStr(b.typeOf(u).maxLevel), "", kText, kLabel});
