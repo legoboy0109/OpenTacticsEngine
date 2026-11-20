@@ -279,6 +279,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME unit_ranks_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/unit_ranks_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Jobs (docs/JOBS.md): the camp's Jobs screen and the preparation screen's (change, learn, equip), the saves, UI scale 100 and 150, a game without jobs.
+    add_test(NAME jobs_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/jobs_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME height_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/height_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

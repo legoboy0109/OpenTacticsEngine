@@ -107,7 +107,7 @@ JobRows equipTabRows(const Database& db, const RosterUnit& r) {
       for (int flat : p.learned)
         if (db.jobEntries[(size_t)flat].slot == slot && db.jobEntries[(size_t)flat].job != r.jobs.job) mine.push_back(flat);
     const int room = db.rules.jobs.slots[k];
-    if (room == 0 && mine.empty()) continue;
+    if (mine.empty()) continue;  // a kind with nothing learned elsewhere has nothing to choose
     PanelRow head;
     head.header = true;
     head.label = slotWord(slot) + "  " + intStr(jobSlotUsed(db, r.jobs, slot)) + "/" + intStr(room);

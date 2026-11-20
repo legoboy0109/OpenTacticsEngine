@@ -22,7 +22,7 @@ void BattleScene::prepJobsInput(const InputEvent& e) {
     prepMainMenu();
     return;
   }
-  p.jobs->setArea(0, 0, layout_.vw, layout_.vh);
+  p.jobs->setArea(0, 0, layout_.vw + layout_.panelW, layout_.vh);  // the whole width, over the info panel too: the three tabs and the name need it at UI scale 150
   const JobsScreen::Result res = p.jobs->onInput(e, host_.renderer());
   if (p.jobs->takeChanged()) prepChanged();
   if (res == JobsScreen::Closed) {
@@ -34,7 +34,7 @@ void BattleScene::prepJobsInput(const InputEvent& e) {
 void BattleScene::prepJobsDraw(Renderer& r) {
   PrepUi& p = *prep_;
   if (!p.jobs) return;
-  p.jobs->setArea(0, 0, layout_.vw, layout_.vh);
+  p.jobs->setArea(0, 0, layout_.vw + layout_.panelW, layout_.vh);  // the whole width, over the info panel too: the three tabs and the name need it at UI scale 150
   p.jobs->draw(r);
 }
 

@@ -13,6 +13,7 @@ namespace ote {
 
 JobsScreen::JobsScreen(const Database& db, Playthrough& pt, const MapDef* prepMap) : db_(db), pt_(pt), prepMap_(prepMap) {
   panel_.setDetailLines(3);  // "Locked: needs Squire level 2. Plays as a Knight." wants the room on a narrow screen
+  panel_.setMaxWidth(400);   // the three tabs share the title row with the name: at UI scale 150 the usual width leaves the name no room
   openWho(0);
 }
 
