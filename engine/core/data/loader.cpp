@@ -6,6 +6,7 @@
 #include "core/base/fileio.h"
 #include "core/data/campaign.h"
 #include "core/data/events.h"
+#include "core/data/loader_action_points.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_research_branch.h"
 #include "core/data/loader_conditions.h"
@@ -116,6 +117,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   // Strategy-RPG features (docs/SRPG.md): "rules.rescue" and "rules.promotion", each optional.
   if (!loadRescueRules(c, *rules, db) || !loadPromotionRules(c, *rules, db)) return false;
   if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
+  if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }
@@ -219,6 +221,7 @@ static bool loadGameFile(const std::string& path, Database& db, std::string& err
 
   if (!readIdList(c, root, "stats", true, db.stats)) return false;
   if (!readIdList(c, root, "resources", false, db.resources)) return false;
+  if (!loadResourceRefills(c, root, db)) return false;  // "refill" of a resource (docs/ECONOMY.md "Refilling resources")
   if (!readIdList(c, root, "moveTypes", true, db.moveTypes)) return false;
   // Story switches and variables (docs/EVENTS.md); ids are what events refer to.
   if (!readIdList(c, root, "switches", false, db.switches)) return false;

@@ -17,6 +17,7 @@ bool stillMyTurn(const Battle& b, int side, int round) {
 
 bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   if (battle.over) return false;
+  if (battle.db->rules.ap.on) return aiTakeApStep(battle, events);  // one shared pool: it is spent where it buys most (ai_ap.cpp)
   const int side = battle.activeSide;
   const int round = battle.round;
 

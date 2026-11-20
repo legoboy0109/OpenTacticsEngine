@@ -16,6 +16,7 @@ struct AreaDef {
   int radius = 0;               // Radius (1..8), Cross (1..8); Burst is always 1
   int length = 0;               // Line (1..8): the squares of the beam, the target square first
   bool friendlyFire = false;    // true: units of the attacker's own side (and allies) in the area are hit too
+  int apExtra = 0;              // "apExtra": AP added to the weapon's cost for the area (action points only)
   bool on() const { return shape != AreaShape::None; }
 };
 

@@ -36,6 +36,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
       u.moved = u.done = false;
       // The turn flags of "move again" / "act again" (docs/SRPG.md) start over with them.
       u.moveSpent = 0;
+      u.apAttacks = 0;  // docs/SRPG.md "Action points"
       u.acted = u.refreshed = false;
       u.refreshedBy.clear();  // docs/SRPG.md "Refresh an ally"
     }
@@ -46,6 +47,7 @@ void Battle::beginTurn(std::vector<Event>& events) {
   e.b = round;
   events.push_back(e);
 
+  refillTurnStart(events);  // docs/ECONOMY.md "Refilling resources": before the income, so a resource that has both counts the income on top
   if (db->rules.economy) {
     std::vector<int> income(db->resources.size(), 0);
     // Once per owned structure, however many squares it covers.
