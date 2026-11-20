@@ -1,0 +1,12 @@
+{ "units": [
+  { "id": "lancer", "name": "Lancer", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "goat", "name": "Goat", "moveType": "foot", "jump": { "up": 3, "down": 1 }, "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "stiff", "name": "Stiff", "moveType": "foot", "jump": 0, "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "diver", "name": "Diver", "moveType": "foot", "jump": { "down": 5 }, "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "hawk", "name": "Hawk", "moveType": "air", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["bow"] },
+  { "id": "slinger", "name": "Slinger", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["sling"] },
+  { "id": "pikeman", "name": "Pikeman", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["pike"] },
+  { "id": "gunner", "name": "Gunner", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["rifle"] },
+  { "id": "bomber", "name": "Bomber", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["bomb"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 60, "str": 3, "def": 2, "mov": 3 }, "weapons": ["sword"] } ] }

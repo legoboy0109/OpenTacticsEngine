@@ -70,6 +70,7 @@ bool Battle::summonUnit(int summoner, int ability, Cell cell, std::vector<Event>
   markSight();
   s.id = (int)units.size();
   s.cell = cell;
+  s.facing = defaultFacing(cell, teamOf(s));  // rules.facing: it looks at the nearest foe (-1 without facing)
   occupant[(size_t)cell] = s.id;
   sides[(size_t)s.side].everHadUnits = true;
   units.push_back(s);  // `units` may move: nothing above is used again

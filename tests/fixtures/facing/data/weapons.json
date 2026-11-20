@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "sword", "name": "Sword", "props": { "might": 4 } },
+  { "id": "bow", "name": "Bow", "range": [2, 3], "props": { "might": 3 } },
+  { "id": "rifle", "name": "Rifle", "range": [2, 6], "fire": "line", "props": { "might": 5 } },
+  { "id": "bomb", "name": "Bomb", "range": [2, 4], "area": { "shape": "burst", "friendlyFire": true }, "props": { "might": 3 } } ] }

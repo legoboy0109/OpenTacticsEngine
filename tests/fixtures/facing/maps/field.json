@@ -1,0 +1,6 @@
+{ "name": "Field", "grid": { "type": "square", "width": 9, "height": 7 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": [".........", ".........", ".........", ".........", ".........", ".........", "........."],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "type": "lancer", "side": "blue", "x": 1, "y": 3, "id": "lan", "leader": true },
+    { "type": "dummy", "side": "red", "x": 7, "y": 3, "id": "foe", "leader": true, "facing": "west" } ] }

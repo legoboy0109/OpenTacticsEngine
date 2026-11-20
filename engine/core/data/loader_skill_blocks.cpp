@@ -85,7 +85,8 @@ const CondSpec kConds[] = {{"hp", SkillCond::Kind::Hp},           {"near", Skill
                            {"weaponKind", SkillCond::Kind::WeaponKind}, {"turn", SkillCond::Kind::Turn},
                            {"counterattack", SkillCond::Kind::Counterattack}, {"carries", SkillCond::Kind::Carries},
                            {"inventory", SkillCond::Kind::Inventory}, {"strike", SkillCond::Kind::Strike},
-                           {"marked", SkillCond::Kind::Marked}, {"damageType", SkillCond::Kind::DamageType}};
+                           {"marked", SkillCond::Kind::Marked}, {"damageType", SkillCond::Kind::DamageType},
+                           {"arc", SkillCond::Kind::Arc}};
 
 // "turn": { "odd": true } | { "even": true } | { "from": 3, "to": 6 } (either alone) | { "every": 3, "offset": 1 }: the battle's turn number
 // (the same number as "round"). Every k with offset j = the turns whose number divided by k leaves j (default 0).
@@ -144,7 +145,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
                        out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying ||
                        out.kind == SkillCond::Kind::Condition || out.kind == SkillCond::Kind::WeaponKind ||
                        out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory || out.kind == SkillCond::Kind::Marked ||
-                       out.kind == SkillCond::Kind::DamageType;
+                       out.kind == SkillCond::Kind::DamageType || out.kind == SkillCond::Kind::Arc;
   if (e.has("who")) {
     std::string who;
     if (!c.str(e, "who", where, who)) return false;
@@ -153,7 +154,7 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
     if (!scope.foe) return c.fail(where, "\"who\": \"foe\" cannot be used " + std::string(scope.place));
     out.foe = true;
   }
-  if ((out.kind == SkillCond::Kind::Initiating || out.kind == SkillCond::Kind::Distance) && !scope.foePoint)
+  if ((out.kind == SkillCond::Kind::Initiating || out.kind == SkillCond::Kind::Distance || out.kind == SkillCond::Kind::Arc) && !scope.foePoint)
     return c.fail(where, q(key) + " cannot be used " + scope.place + " (there is no combat)");
   if (out.kind == SkillCond::Kind::Formula && !scope.formula)
     return c.fail(where, "\"formula\" cannot be used " + std::string(scope.place));
@@ -232,6 +233,16 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"weaponKind\" must be a damage kind, the word a weapon's \"damageKind\" says");
       out.key = v.asString();
       return true;
+    case SkillCond::Kind::Arc: {  // "arc": "front" | "side" | "back" (docs/SRPG.md "Facing")
+      if (!onlyKeys(c, e, {"arc", "who"}, where)) return false;
+      if (!db.rules.facing.on) return c.fail(where, "\"arc\" needs \"rules\": { \"facing\": ... } in game.json");
+      const std::string arc = v.isString() ? v.asString() : "";
+      if (arc == "front") out.value = 0;
+      else if (arc == "side") out.value = 1;
+      else if (arc == "back") out.value = 2;
+      else return c.fail(where, "\"arc\" must be \"front\", \"side\" or \"back\"");
+      return true;
+    }
     case SkillCond::Kind::DamageType:
       if (!onlyKeys(c, e, {"damageType", "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"damageType\" must be a damage type id (game.json \"damageTypes\")");

@@ -3,33 +3,37 @@
 
 namespace ote {
 
+void markWeaponReach(const Battle& b, int unit, int weapon, Cell s, std::vector<uint8_t>& attack) {
+  const WeaponDef& w = b.db->weapons[(size_t)weapon];
+  std::vector<Cell> around, covered;
+  if (w.aimsStraight() || w.area.on() || b.heightGame()) {
+    // Line fire, area weapons and the height rules (docs/SRPG.md "Area attacks and line fire", "Height rules"): the squares it can really be
+    // aimed at from here (straight lines, stopped by the first unit or wall as they are today; range raised and limited by height), and every
+    // square an aimed attack would cover. Units that may move or fall later change the picture, so this is what the board allows now.
+    b.aimCells(weapon, s, unit, around);
+    for (Cell c : around) {
+      if (!w.area.on()) {
+        attack[(size_t)c] = 1;
+        continue;
+      }
+      b.areaCover(weapon, s, c, covered);
+      for (Cell k : covered) attack[(size_t)k] = 1;
+    }
+    return;
+  }
+  b.grid.within(s, w.maxRange, around);
+  for (Cell c : around)
+    if (b.grid.distance(s, c) >= w.minRange) attack[(size_t)c] = 1;
+}
+
 void attackArea(const Battle& b, const Unit& u, const std::vector<Cell>& stops, std::vector<uint8_t>& attack) {
   attack.assign((size_t)b.grid.cellCount(), 0);
   std::vector<int> weapons;  // what it could use from there: carried weapons, and the weapon of a structure standing there
-  std::vector<Cell> around, covered;
   for (Cell s : stops) {
     b.attackWeaponsAt(u, s, weapons);
     for (int wi : weapons) {
-      const WeaponDef& w = b.db->weapons[(size_t)wi];
-      if (s != u.cell && !w.afterMove) continue;
-      if (w.aimsStraight() || w.area.on()) {
-        // Line fire and area weapons (docs/SRPG.md "Area attacks and line fire"): the squares it can really be aimed at from here
-        // (straight lines, stopped by the first unit or wall as they are today), and every square an aimed attack would cover.
-        // Units that may move or fall later change the picture, so this is what the board allows now.
-        b.aimCells(wi, s, u.id, around);
-        for (Cell c : around) {
-          if (!w.area.on()) {
-            attack[(size_t)c] = 1;
-            continue;
-          }
-          areaCells(b.grid, s, c, w.area, covered);
-          for (Cell k : covered) attack[(size_t)k] = 1;
-        }
-        continue;
-      }
-      b.grid.within(s, w.maxRange, around);
-      for (Cell c : around)
-        if (b.grid.distance(s, c) >= w.minRange) attack[(size_t)c] = 1;
+      if (s != u.cell && !b.db->weapons[(size_t)wi].afterMove) continue;
+      markWeaponReach(b, u.id, wi, s, attack);
     }
   }
 }

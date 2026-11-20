@@ -95,6 +95,17 @@ void drawCell(Renderer& r, const DrawCtx& c, Cell cell, int x, int& y, int w) {
       }
     }
   }
+  if (b.heightGame()) {  // height rules: the square's level decides who can climb it and what can shoot it (docs/SRPG.md "Height rules")
+    row(r, x, y, w, "Height", intStr(b.heightAt(cell)));
+    y += rh;
+    static Cell lastCell = kNoCell;  // once per change, for the player tests (drawn every frame)
+    static int lastHeight = -1;
+    if (cell != lastCell || b.heightAt(cell) != lastHeight) {
+      lastCell = cell;
+      lastHeight = b.heightAt(cell);
+      OTE_INFO("terrain height: %d at %d,%d", lastHeight, b.grid.x(cell), b.grid.y(cell));
+    }
+  }
   Props scratch;
   for (const NamedNumber& p : (c.view.fogged() ? b.numbersAtSeen(c.view.viewerTeam(), cell, scratch) : b.numbersAt(cell, scratch))) {
     row(r, x, y, w, p.key, numStr(p.value));

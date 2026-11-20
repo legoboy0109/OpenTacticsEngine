@@ -132,6 +132,9 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   ctx.tb = &numbersAt(defCell, scratchB);
   ctx.ha = heightAt(atkCell);
   ctx.hb = heightAt(defCell);
+  // Facing (docs/SRPG.md "Facing"): `arc` = from which side of the struck unit this strike comes. An attacker turns to look at its target before
+  // the fight (facing_rules.cpp), so the facing a counter-attack meets is the one toward the defender, not the one the attacker had before.
+  if (facingGame()) ctx.arc = arcAt(defCell, counter ? directionToward(grid, defCell, atkCell) : def.facing, atkCell);
   // Damage types (docs/SRPG.md "Damage types"): `rs` is the defender's resistance against this weapon's type; a type that ignores
   // terrain leaves the formulas an empty `tb` (every terrain and structure number of the defender's square) for this strike.
   if (ctx.w->damageType >= 0) {

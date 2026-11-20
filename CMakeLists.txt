@@ -268,6 +268,14 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME action_points_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/action_points_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Height rules (docs/SRPG.md "Height rules"): the Height row of the terrain panel, reach across a cliff, the refusal reasons, all four views at UI scale 100 and 150.
+    # Facing (docs/SRPG.md "Facing"): the direction pick after Wait, the marker in all four views, the arc in the forecast, UI scale 100 and 150, hexagons.
+    add_test(NAME facing_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/facing_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    add_test(NAME height_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/height_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Factions (docs/ECONOMY.md "Factions"): the faction screen at UI scale 100 and 150, the greyed build menu, saves, no screen without factions.
     add_test(NAME factions_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/factions_player_test.py

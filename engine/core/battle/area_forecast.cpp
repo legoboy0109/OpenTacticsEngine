@@ -21,7 +21,7 @@ bool Battle::areaForecast(int attacker, int weapon, Cell from, Cell target, Area
   if (!weaponAims(weapon, from, target, attacker)) return false;
 
   out.cell = target;
-  areaCells(grid, from, target, db->weapons[(size_t)weapon].area, out.cells);
+  areaCover(weapon, from, target, out.cells);
   std::vector<int> ids;
   for (Cell c : out.cells) {
     const int id = occupant[(size_t)c];
@@ -57,12 +57,11 @@ bool Battle::areaForecast(int attacker, int weapon, Cell from, Cell target, Area
 // Area weapons add one option per aimable square that would hit an enemy the attacker's team can see. Called by attackOptions.
 void Battle::areaOptions(int unit, Cell from, int weapon, bool mapWeapon, std::vector<AttackOption>& out) const {
   const Unit& u = units[(size_t)unit];
-  const AreaDef& area = db->weapons[(size_t)weapon].area;
   const int team = teamOf(u);
   std::vector<Cell> aim, covered;
   aimCells(weapon, from, unit, aim);
   for (Cell c : aim) {
-    areaCells(grid, from, c, area, covered);
+    areaCover(weapon, from, c, covered);
     bool enemy = false;
     for (Cell k : covered) {
       const int id = occupant[(size_t)k];

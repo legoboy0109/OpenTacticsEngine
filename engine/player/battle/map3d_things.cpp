@@ -6,6 +6,7 @@
 #include "battle/battle_draw.h"
 #include "battle/carrier_marker.h"
 #include "battle/condition_marker.h"
+#include "battle/facing_marker.h"
 #include "battle/map3d.h"
 #include "battle/map3d_sizes.h"
 #include "battle/tile_art.h"
@@ -375,6 +376,14 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     }
     drawCarrierMarker(r, c, u, sx + uw / 2, sy - body, uw, al);  // top right corner: a unit with someone off the board
     drawConditionMarker(r, c, u, sx - uw / 2, sy, al);           // bottom left corner: its conditions (docs/SRPG.md section 9)
+    const int fdir = shownFacing(c, u);  // the edge of its square toward the way it looks, on the ground (docs/SRPG.md "Facing")
+    if (fdir >= 0) {
+      float fvx, fvy, k2;
+      int ex, ey;
+      facingEdgeVector(b.grid, fdir, p.tile(), fvx, fvy);
+      if (screen(gx + cx_ * ahead + fvx / p.tile(), gy + cz_ * ahead + fvy / p.tile(), p.elevationAt(gx, gy) * g.stepY(), ex, ey, k2))
+        drawFacingMarker(r, c, u, sx, sy, ex, ey, al);
+    }
     // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
     int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = sx - barW / 2, barY = sy + 2;
     r.fillRect(barX - 1, barY - 1, barW + 2, 4, a(Color(0, 0, 0, 200)));

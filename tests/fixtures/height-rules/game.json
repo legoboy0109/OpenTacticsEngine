@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1, "name": "Height Rules Fixture",
+  "description": "Test game for the height rules (docs/SRPG.md \"Height rules\"). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" }, { "id": "air", "name": "Air" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3 },
+             "height": { "jump": { "default": 1 }, "flyingMoveTypes": ["air"],
+                         "rangeBonus": { "perLevels": 2, "max": 2 }, "lineOfSight": true } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def)", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" }, { "id": "hill", "name": "Hill", "file": "maps/hill.json" },
+            { "id": "cliffs", "name": "Cliffs", "file": "maps/cliffs.json" } ]
+}

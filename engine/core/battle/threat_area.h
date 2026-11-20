@@ -18,6 +18,10 @@ struct ThreatArea {
   int attackOnlyCount = 0;      // set bits of `attack` that are not in `move`
 };
 
+// Marks in `attack` every square weapon `weapon` of `unit` reaches when fired from `s` (squares aimed at and, for an area weapon, covered). The
+// player's own highlight and the enemy-range display both call it. `attack` must already have one entry per cell.
+void markWeaponReach(const Battle& b, int unit, int weapon, Cell s, std::vector<uint8_t>& attack);
+
 // Marks in `attack` every square the unit's weapons reach when it ends its move on one of `stops` (weapons without "afterMove" only
 // from its own square). `attack` is resized and cleared first. Does not look at the unit's turn flags.
 void attackArea(const Battle& b, const Unit& u, const std::vector<Cell>& stops, std::vector<uint8_t>& attack);

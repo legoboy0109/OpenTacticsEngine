@@ -364,6 +364,38 @@ same decision; each call looks at every unit's reach once (bounded by units x sq
 with attacks, walking, capturing, building and research only. **Tests.** `tests/test_ap_ai.cpp` (attacks with the pool, value per AP, a poor pool, building with an AP cost,
 a whole game between two computer sides that finishes identically twice).
 
+### Height rules
+
+In a game with `rules.height` (docs/SRPG.md "Height rules") the computer opponent is the usual one with three differences; a game without the block is byte for byte as before.
+
+- **It obeys.** Its moves come from `Battle::reachable` and its attacks from `Battle::attackOptions` / `forecast`, which apply the jump rule, `heightRange`, the range
+  bonus, line of sight and an area's `vertical`; it never asks for a step or a shot the rules refuse (and a refused order sends the unit to Wait as always).
+- **It walks around cliffs.** The distance fields that tell a unit which way the enemy (or its capture target) lies are worked out per unit **with that unit's jump**
+  (`Context::enemyFieldFor(unit)`, `distanceField(..., jumpUp, jumpDown)`; cached by content, heights and jump included), so a lancer facing a cliff it cannot climb
+  heads for the ramp instead of standing at the foot of the wall. A unit with no limit (a flier, or a game whose default is "none") uses the plain fields.
+- **It likes the high ground, modestly.** `scoreAttack` / `scoreAreaAttack` add 6 per level (at most 3 levels) the attacker stands above the target, and of two equal
+  squares to advance to it takes the higher one (`ai_score.cpp` `highGroundBonus`). The forecast already carries what a game's formulas make of `dh`; this only breaks
+  ties toward the safer shot.
+- Retreat, patrol and the other behaviours' own fields (`distanceField` called without a jump) keep the plain, unlimited step; a move they plan that the rules refuse is
+  simply not available to the unit.
+
+**Tests.** `tests/test_height_ai.cpp`.
+
+### Facing
+
+In a game with `rules.facing` (docs/SRPG.md "Facing") the computer opponent is the usual one with two additions; a game without the block is byte for byte as before.
+
+- **It ends its move looking at the nearest foe.** When a unit's order ends in a Wait (a move to somewhere it does not attack from, an attack the rules refused, a unit with nothing to do) the
+  Wait carries the direction toward the nearest enemy its team sees (`ai::endFacing`, grid distance, the lowest unit id among equals), so units face the front line instead of
+  keeping the direction of their last step. A unit that attacked has turned to its target by itself, a unit that captured or used an item keeps the direction it has.
+- **It picks the side or the back when the game's numbers make that better.** Nothing special: it scores every attack through `Battle::forecast(attacker, defender, weapon, from)`, and the
+  forecast works out the arc from `from`, the square the attack would be made from, against the defender's facing, so a game whose formulas (or skills) pay for a back attack
+  makes the squares behind a foe score higher and the computer walks round to them when the extra steps are worth it (the usual cost of a longer walk is already in the score). Where a
+  game's numbers ignore the arc, all squares score alike and nothing changes. It does not plan to guard its own back (no look at how an enemy could come at it).
+- **Action-point games** (`aiTakeApStep`) have no Wait for the computer, so there its units only turn by walking and attacking.
+
+**Tests.** `tests/test_facing_ai.cpp`.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

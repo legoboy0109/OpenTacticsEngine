@@ -7,6 +7,8 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_action_points.h"
+#include "core/data/loader_facing.h"
+#include "core/data/loader_height.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_research_branch.h"
 #include "core/data/loader_conditions.h"
@@ -118,6 +120,8 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadRescueRules(c, *rules, db) || !loadPromotionRules(c, *rules, db)) return false;
   if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
+  if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
+  if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
   if (r.progression) { r.fXpHit = "10"; r.fXpKill = "30"; }

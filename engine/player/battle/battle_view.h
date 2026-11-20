@@ -33,6 +33,7 @@ struct UnitView {
   bool walking = false;
   float walkDx = 0, walkDy = 0;
   mutable int walkLogged = -1;  // the walk direction the drawing last logged for this move (-1 = none yet); only for the debug log
+  int facing = -1;         // the direction its facing marker shows (docs/SRPG.md "Facing"), as the events have played so far; -1 = the unit's own
   std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)
 };
 

@@ -24,6 +24,9 @@ struct GoalFieldSet {
   HexLayout layout = HexLayout::Pointy;
   int width = 0, height = 0, moveType = 0;
   std::vector<int> costs;                 // Battle::enterCost of every square for moveType
+  // Height rules: a walker with a limited jump (kNoHeightLimit = none, and then `heights` stays empty); the fields then also depend on the map's heights.
+  int jumpUp = kNoHeightLimit, jumpDown = kNoHeightLimit;
+  std::vector<int> heights;
   std::map<Cell, std::vector<int>> fields;  // goal -> distanceField(goal)
   // Many-goal fields (the "toward the enemy" field), keyed by the exact goal list, order included, so no argument
   // about goal order is needed: the same list on the same costs is the same call.
@@ -31,7 +34,7 @@ struct GoalFieldSet {
 };
 
 // The set matching this Battle's current terrain for `moveType` (found, or created and remembered).
-std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType);
+std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType, int jumpUp = kNoHeightLimit, int jumpDown = kNoHeightLimit);
 
 // The field for `goal` within `set`, computing it on first use.
 const std::vector<int>& goalFieldIn(const Battle& b, GoalFieldSet& set, Cell goal);

@@ -69,7 +69,7 @@ data/caps.json         game-wide stat caps                                   (op
 data/conditions.json   status conditions made of blocks                      (optional file; section 9)
 data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
-data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points)
+data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points), heightRange (Height rules)
 data/items.json        accessory: skills; usable: promotes, cure, inflict, opens (keys, section 10); staves (section 8; inflict, cure: section 9; unlock: section 10)
 maps/*.json            per unit: character, goesFor; per structure: id, contents, locked, visitSides, visitUnits; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
@@ -864,6 +864,124 @@ hint line names the price: `Z:move 3 AP  Arrows:cursor  X:cancel`; the blue squa
 `Attack  2 AP` (the cheapest affordable weapon; greyed `used` when the turn's attacks are made, `no AP` when the pool cannot pay), and a **Move** entry
 while the unit may walk on (it opens the destination picking again; Cancel there returns to the menu). The weapon list and the forecast box add `AP n`;
 the red squares and the target list leave out attacks the pool cannot pay. A spent unit is dimmed like a finished one. Every order logs `ap pool: n`.
+
+### Height rules
+
+Optional. The per-cell heights of a map (`"heights"`, whole levels; drawn in every kind of view and read by formulas as `ha`, `hb` and `dh` since "Damage
+types") also **limit steps and shots**. A game without `rules.height` loads, plays, saves and simulates exactly as before: every rule below is behind
+`Database::rules.height.on`, and the maps' heights stay a picture and a formula number.
+
+```jsonc
+// game.json
+"rules": { "height": {
+  "jump": { "default": 1 },                                   // the most a unit climbs / drops in ONE step; { "default": { "up": 2, "down": 3 } } also accepted
+  "flyingMoveTypes": ["air"],                                 // move types that ignore the jump rule altogether
+  "rangeBonus": { "perLevels": 2, "max": 2 },                 // +1 maximum range per 2 levels the shooter stands above the target, at most +2
+  "lineOfSight": true } }                                     // a "fire": "line" shot is stopped by a ridge higher than both ends
+// data/units.json:   "jump": 3  or  "jump": { "up": 3, "down": 1 }   (this type's own limits; a missing half keeps the game's default)
+// data/weapons.json: "heightRange": { "up": 1, "down": 2 }    (the target may stand at most 1 level higher / 2 lower than the shooter; either key may be left out)
+//                    "area": { ..., "vertical": 1 }           (victims more than 1 level above / below the AIMED square are not hit)
+```
+
+Every key is optional (`"height": {}` turns the rules on with no limit anywhere). Numbers are whole levels from 0 to 999 (`rangeBonus.max` 0 to 8).
+`heightRange`, `vertical` and a unit type's `jump` are refused in a game without `rules.height` (the loader names the file, the entry and the key).
+
+- **Steps.** A unit can step from a square to a neighbour only if the neighbour is at most `up` levels higher and at most `down` levels lower: the unit
+  type's own `jump` when it has one (each half falls back to the game's default), else the game's `jump.default`, else no limit. The limit is applied to every
+  step of the walk, so a ramp of single steps is climbable by a unit with jump 1 however high it goes. `Battle::reachFor` (so `reachable`, the highlights, the
+  enemy-range display and the computer opponent) applies it. Units of a **flying move type** (`flyingMoveTypes`, ids from `moveTypes`) ignore it; the engine has no
+  other notion of a flier (a flier is simply a move type whose terrain costs you wrote as 1 everywhere). Heights do not change what a square costs. The one
+  function is `Battle::stepAllowed` (plain numbers) with `Battle::jumpOf(unit)`.
+- **Targets.** A weapon's `heightRange` is judged from the shooter's square to the target's square: a target higher than the shooter by more than `up`, or lower by
+  more than `down`, cannot be hit (a missing key is no limit). It applies to counter-attacks too (the answering weapon is judged from the answerer's square).
+- **Range bonus.** A weapon whose maximum range is more than 1 reaches `min(max, levels above / perLevels)` squares further when the shooter stands higher than
+  the target (whole levels, rounded down; nothing for a shooter on equal or lower ground; the minimum range is untouched). It counts for counters too, so an archer on
+  a tower answers from further away. `Battle::weaponReaches(weapon, from, to)` is the one range test; `weaponAims`, `aimCells`, the forecast, the counter, the
+  enemy-range display and the highlights all go through it.
+- **Line of sight** (`lineOfSight: true`, `"fire": "line"` weapons only): the shot runs along its straight line of squares as before (a unit or a wall stops it);
+  in addition it is stopped when **a square strictly between the shooter's and the target's square is higher than both of them** (`height(between) >
+  max(height(from), height(to))`; a square exactly as high as the higher end lets the shot graze past). Whole levels, no angles; weapons that are not line fire are
+  not checked. Equal ground never blocks.
+- **Areas.** An area attack's `"vertical": n` removes from the covered squares every square more than `n` levels above or below the aimed square (the aimed
+  square always stays), so the victims, the forecast, the highlight and the enemy-range display all agree (`Battle::areaCover`).
+- **Refusals** go through the usual reason: `"too steep to climb there"` (a Move to a square the unit could reach but for the jump rule),
+  `"too high to reach"` / `"too low to hit"` (a target outside the weapon's `heightRange`), `"the high ground is in the way"` (line of sight),
+  `"out of range from this height"`. Where height is not the cause the old texts stand.
+- **Enemy ranges** (docs/SRPG.md "Enemy ranges") use the same functions, so a foe that cannot climb a cliff does not show the plateau as walkable and a sling
+  does not paint what it cannot fire at.
+- **Computer opponent**: docs/AI.md "Height rules" (obeys the rules through the same functions, walks around cliffs, likes shooting down). **Saves**: nothing
+  changes (heights belong to the map; docs/SAVES.md). **Editor**: the server carries every key (no forms yet).
+- **Not built (on purpose):** fall damage, jump as a skill or stat, a height limit for abilities, staves and breaking doors (they keep their plain range rules).
+
+**Player.** The terrain panel shows `Height n` under the terrain name for the square under the cursor in a game with `rules.height`; the blue / red highlights, the
+target lists and the enemy-range display follow the rules automatically. A Confirm on a square across a cliff, or on an enemy the weapon cannot reach in height,
+says why in the hint line. The player logs `terrain height: n at x,y`, `refused: ...` and, for a painted selection, `overlay: N move squares, M attack-only
+squares` (the tests read them).
+
+**Tests.** `tests/test_height_rules.cpp` (steps up / down, asymmetric jumps, fliers, hexagons, `heightRange`, the range bonus and counters, line of sight,
+`vertical`, the enemy-range display, loader refusals, saves, determinism), `tests/test_height_ai.cpp` (obeys, walks round a cliff to a ramp, whole games on
+squares and hexagons finish identically twice; fixture `tests/fixtures/height-rules`, helper `tests/height_fixture.h`), `tests/height_player_test.py` (panel row,
+reach, refusals, UI scale 100 and 150, all four views), `tests/editor_api_height_checks.py`.
+
+### Facing
+
+Optional. Every unit looks in one direction of the grid; where an attack comes from relative to that direction (front, side or back) is a number
+formulas read as `arc` and skills test, so a game decides what a back attack is worth. A game without `rules.facing` loads, plays, saves and simulates exactly
+as before: every rule below is behind `Database::rules.facing.on`, units have no facing, and no event or save key is added.
+
+```jsonc
+// game.json
+"rules": { "facing": { "arcs": { "back": { "name": "Backstab" } } } }     // the block may be {}; "arcs" renames the arcs the forecast shows (front / side / back, each { "name" })
+// maps/*.json, a unit (or a story addUnit): "facing": "north"            // optional; the direction names of the map's grid (below)
+// data/skills.json, a condition:  { "arc": "back" }                       // optional "who": "foe"; see "Formulas and skills"
+// formulas:  "damage": "a.str + w.might - b.def + (arc == 2 and 5 or 0)"  // `arc`: 0 front, 1 side, 2 back (the DEFAULT formulas never read it)
+```
+
+- **Directions.** A facing is a direction number of the grid (`Grid::neighbor`): squares `north east south west` = 0..3; pointy hexagons `northeast east southeast
+  southwest west northwest` = 0..5; flat hexagons `north northeast southeast south southwest northwest` = 0..5 (docs/HEX.md lists the neighbour order; the
+  names are only for maps and logs: `directionName` / `directionFromName` in `core/grid/facing.h`).
+- **Start.** A map unit's `"facing"` is used as written; one without it **looks at the nearest unit of another team** (grid distance, the lowest unit id among equals;
+  on an exact diagonal the lower direction number), and at south when there is nobody (`Battle::defaultFacing`). A unit that is built, summoned or added by a story
+  command gets the same default at the moment it appears (a story `addUnit` may say `"facing"` too).
+- **What turns a unit.** (1) **A move**: it looks where its last step went (a fog ambush: the last step really walked). (2) **An attack**: the attacker turns to look at
+  its target (an area attack: at the aimed square) before its first strike; **the defender never turns** (it keeps the facing it had, so a back attack stays a back
+  attack for every strike of the fight), and the attacker has turned by the time a counter-attack is made, so **a counter-attack always hits the front** of the unit
+  it answers. (3) **Wait**: `Action::wait(unit, direction)` ends the unit's turn looking that way (`-1` keeps its own; refused with `"that is not a direction"`, or `"this game has
+  no facing"` in a game without the rules). Nothing else turns a unit: items, staves, abilities, being pushed or pulled, rescue, the story's `moveUnit` and an attack
+  against it all leave the facing alone.
+- **The arc** (`Battle::arcAt(defenderSquare, facing, attackerSquare)` = `arcOf` in `core/grid/facing.h`, the one function; the forecast, the strikes, the
+  skill condition and the computer opponent all ask it). The direction from the defender to the attacker's square decides: for an attacker not on a straight line
+  the dominant one (squares: the larger of the two distances along the axes; hexagons: the nearest of the six directions by the straight line between the middles).
+  **Squares:** the direction the unit faces is the **front**, the opposite one the **back**, the two others the **sides**. **Hexagons:** the faced direction **and the two
+  next to it** are the **front** (three of six), the opposite direction the **back** (one), the remaining two the **sides**. **Ties:** an attacker exactly on a line between
+  two directions (a true diagonal on squares; a line exactly between two hexagon directions) counts as the **milder of the two arcs** (front before side before
+  back), so a diagonal is never a back attack on squares. The same square, and a unit with no facing, are front.
+- **Formulas and skills.** The strike formulas (damage, hit, crit, strikes) read `arc` (0 front, 1 side, 2 back; a counter strike meets the front, 0); it is 0 everywhere else.
+  The skill condition `{ "arc": "front" | "side" | "back" }` (combat, strike and struck blocks; needs the rules, refused elsewhere) is true when **the owner stands in that arc of
+  the foe** (the owner attacks the foe's back); with `"who": "foe"` it is true when **the foe stands in that arc of the owner** (the owner is hit from behind). The fighter that started
+  the fight has turned to its opponent, so the starter always has the other in front of it: `{ "arc": "back" }` can only be true for an owner that attacks, and
+  `{ "arc": "back", "who": "foe" }` only for an owner that is attacked.
+- **Forecast.** `Forecast::arc` is the arc of the attack from the square it would be made from (the AI and the player both use that square); a counter has none to show.
+- **Events.** `UnitFaced` (before `Choice`; a = unit, b = the new direction, c = the old one) when a facing changes: after the `UnitMoved` of a move, before the first `Attack` of a
+  fight, with a `Wait` that chose another direction. No event when nothing changed. Fog: seen by the unit's team and the teams that see it.
+- **Saves.** A unit's `"facing"` (the direction number), written for every unit that has one in a facing game and for no unit of another game (docs/SAVES.md). **Editor**: the server
+  carries `rules.facing` and the maps' `"facing"` (no forms yet). **Computer opponent**: docs/AI.md "Facing".
+- **Not built (on purpose):** facing-dependent movement (turning costs nothing), zones of control, a free turn before an attack (the attacker turns by itself), art with a
+  picture per direction (walking frames already follow the step; standing pictures have no direction, so a marker shows it), a facing for structures.
+
+**Player.** A small light arrowhead with a dark rim sits on the edge of the unit's square in the direction it looks, in every kind of view (top-down squares and hexagons, 2D
+isometric, 3D isometric, full 3D; `facing_marker.cpp`, drawn next to the condition marker; the picture follows the `UnitFaced` events, so it turns when the unit does). The
+forecast box adds the arc's name (`Back`, or the game's own word) under the attacker's column when the attack is not from the front. **Wait** (action menu) opens
+a skippable pick instead of ending the turn at once: on squares an arrow key (or a tap on a neighbouring square) turns the unit that way and ends its turn,
+Confirm or Cancel keeps its direction; on hexagons Left / Up and Right / Down (and Prev / Next) turn a highlight (red) among the six neighbouring hexagons (blue), Confirm
+commits it, Cancel keeps the direction, a tap on a neighbouring hexagon picks it. The hint line says so; there is no Options row. The player logs `facing pick: ...`,
+`facing chosen: ...` and `faced: ...` (the tests read them).
+
+**Tests.** `tests/test_facing_grid.cpp` (names, directions, arcs on squares and both hexagon layouts, ties), `tests/test_facing_rules.cpp` (start, move, attack, Wait, the arc in
+the forecast and the damage, skills, area attacks, hexagons, saves, the loader, determinism; fixture `tests/fixtures/facing`, helper `tests/facing_fixture.h`),
+`tests/test_facing_ai.cpp` (the facing at the end of a move, the back attack, a whole game with the height rules and facing finishing identically twice),
+`tests/facing_player_test.py` (the pick, the marker in all four views, the forecast arc, UI scale 100 and 150, hexagons, a game without facing),
+`tests/editor_api_facing_checks.py`.
 Everything fits the 480x270 canvas at UI scale 100 and 150 (the long hint puts the price first so a big scale cuts the end, not the price).
 
 **Errors** (each names the file, the entry and the key): `rules.actionPoints: "resource" names unknown resource "mana"`,
@@ -3076,6 +3194,9 @@ New flag bits (after `kBought = 32`): `kSurvived = 64`, `kBlocked = 128`, `kPair
 swaps), `UnitAdded` (a summon), `UnitRemoved` (a summon vanishing), `UnitHealed`, `Dialogue` (support
 conversations), `LevelUp`, `XpGained`. Every change of who is on the board calls `markSight()` first, like the
 existing code, so events are stamped with the sight of the moment.
+
+A facing game adds one entry before `Choice`: `UnitFaced` (a = the unit, b = the direction it now looks in, c = the one it looked in before), after the `UnitMoved` of a move, before the first
+`Attack` of a fight and with a `Wait` that chose another direction (docs/SRPG.md "Facing"); seen by the unit's team and the teams that see the unit.
 
 ## Save format summary and versioning
 

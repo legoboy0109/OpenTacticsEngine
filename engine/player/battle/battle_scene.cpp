@@ -286,6 +286,7 @@ std::string BattleScene::hint() const {
     case Mode::ActionMenu:
       return staffList_ ? "{udok}:choose  {cancel}:back" : ambushed_ ? FogWords::kHintAmbushed : itemsUsed_ ? "{udok}:choose" : "{udok}:choose  {cancel}:undo move";
     case Mode::Targeting: return "{dpadnext}:next target  {ok}:attack  {cancel}:back";
+    case Mode::Facing: return facingHint();
     case Mode::WeaponPick: return WeaponWords::kHint;
     case Mode::PickUnit:
     case Mode::PickCell:
@@ -331,7 +332,7 @@ void BattleScene::draw(Renderer& r) {
     }
   }
   Overlay shownOverlay = mode_ == Mode::Selected || mode_ == Mode::PickUnit || mode_ == Mode::PickCell || mode_ == Mode::Prep ? overlay_
-                         : mode_ == Mode::Targeting ? aimOverlay() : supplyOverlay();
+                         : mode_ == Mode::Targeting ? aimOverlay() : mode_ == Mode::Facing ? faceOverlay() : supplyOverlay();
   addRangeTint(shownOverlay);  // the marked enemies' reach, under the player's own blue / red
   drawMap(r, ctx, shownOverlay, cursor_, human);
   if (prep_) prepDrawSlots(r);  // the numbered deployment squares

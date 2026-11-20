@@ -1,0 +1,10 @@
+{ "name": "Cliffs", "grid": { "type": "square", "width": 8, "height": 5 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["........", "........", "........", "........", "........"],
+  "heights": [[0,0,0,0,0,2,2,2],[0,0,0,0,0,2,2,2],[0,0,0,0,0,2,2,2],[0,0,0,0,0,2,2,2],[0,0,0,0,0,2,2,2]],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "type": "lancer", "side": "blue", "x": 2, "y": 2, "id": "lan", "leader": true },
+    { "type": "slinger", "side": "blue", "x": 4, "y": 1, "id": "sl" },
+    { "type": "goat", "side": "blue", "x": 3, "y": 4, "id": "goat" },
+    { "type": "dummy", "side": "red", "x": 5, "y": 1, "id": "foe", "leader": true },
+    { "type": "dummy", "side": "red", "x": 7, "y": 4, "id": "far" } ] }

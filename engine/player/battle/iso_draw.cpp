@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/facing_marker.h"
 #include "battle/iso_unit.h"
 #include "battle/tile_art.h"
 #include "ui/text.h"
@@ -182,7 +183,14 @@ void drawUnitIso(const Iso& I, const Unit& u, const UnitView& v, float fade) {
     IsoPicture d = I.c.tiles->diamond(I.r, g, 1, 1, false);
     I.r.drawTexture(d.tex, 0, 0, d.w, d.h, x, y, w, h, col);
   };
-  drawIsoUnitFigure(I.r, I.c, u, v, fade, cx, cy, foot, uw, marker);
+  int faceX = kNoFace, faceY = kNoFace;  // the edge of its square toward the way it looks (docs/SRPG.md "Facing")
+  const int fdir = shownFacing(I.c, u);
+  if (fdir >= 0) {
+    float fvx, fvy;
+    facingEdgeVector(I.c.battle.grid, fdir, t, fvx, fvy);
+    I.at(gx + fvx / t, gy + fvy / t, I.p.elevationAt(gx, gy), faceX, faceY);
+  }
+  drawIsoUnitFigure(I.r, I.c, u, v, fade, cx, cy, foot, uw, marker, faceX, faceY);
 }
 
 // The square a unit is drawn on right now (it may be between two while moving).

@@ -81,7 +81,7 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
     // Whatever happened, never leave the unit ready: that is what
     // guarantees every turn terminates.
     if (!ok && battle.units[bestUnit].alive && !battle.units[bestUnit].done &&
-        !battle.apply(Action::wait(bestUnit), events))
+        !battle.apply(Action::wait(bestUnit, ai::endFacing(battle, battle.units[bestUnit])), events))  // (rules.facing: it ends its move looking at the nearest foe)
       battle.apply(Action::endTurn(), events);
     return stillMyTurn(battle, side, round);
   }

@@ -1,0 +1,3 @@
+{ "terrain": [ { "id": "plain", "name": "Plain" },
+               { "id": "wall", "name": "Wall", "moveCost": { "foot": 0, "air": 1 }, "blocksSight": true },
+               { "id": "woods", "name": "Woods", "moveCost": { "foot": 2, "air": 1 }, "props": { "def": 2 } } ] }

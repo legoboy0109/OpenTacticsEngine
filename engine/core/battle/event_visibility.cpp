@@ -12,7 +12,7 @@
 //   MoveBlocked: both units' teams and the teams that see either unit.
 //   Attack: both fighters' teams and the teams that see either fighter.
 //   UnitDied, UnitRemoved: the unit's team and the teams that saw it on its square (b).
-//   UnitBuilt, UnitAdded, UnitHealed, CaptureProgress: the unit's team and the teams that see the unit.
+//   UnitBuilt, UnitAdded, UnitFaced, UnitHealed, CaptureProgress: the unit's team and the teams that see the unit.
 //   ItemUsed: the teams that see the user or the target.
 //   UnitRelocated: the unit's team and the teams that see either square (b, c).
 //   SideChanged: both sides' teams and the teams that see the unit.
@@ -103,6 +103,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
       return unitTeam(e.a) | cellSeenBy(e.b) | cellSeenBy(e.c);
     case EventType::UnitBuilt:
     case EventType::UnitAdded:
+    case EventType::UnitFaced:
     case EventType::UnitHealed:
     case EventType::CaptureProgress:
       return unitSeenBy(e.a);

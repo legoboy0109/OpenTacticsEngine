@@ -1,0 +1,8 @@
+{ "units": [
+  { "id": "lancer", "name": "Lancer", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["bow"] },
+  { "id": "gunner", "name": "Gunner", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["rifle"] },
+  { "id": "bomber", "name": "Bomber", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 4 }, "weapons": ["bomb"] },
+  { "id": "assassin", "name": "Assassin", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "weapons": ["sword"], "skills": ["backstabber"] },
+  { "id": "sentry", "name": "Sentry", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["sword"], "skills": ["alert"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 60, "str": 3, "def": 2, "mov": 3 }, "weapons": ["sword"] } ] }

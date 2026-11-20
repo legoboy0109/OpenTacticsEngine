@@ -131,7 +131,10 @@ struct SkillCond {
                     // Marked: the owner (or its foe with "who") has the mark `key` in the fight now running; `flag` false = does not (docs/SRPG.md "Linking two strike blocks").
                     Marked,
                     // DamageType: the weapon's declared damage type (game.json "damageTypes") is `key` (docs/SRPG.md "Damage types").
-                    DamageType };
+                    DamageType,
+                    // Arc: the owner stands in the foe's front / side / back arc (`value` = Arc: 0 front, 1 side, 2 back; with "who": "foe" the foe stands in the owner's
+                    // arc). Needs rules.facing and a combat (docs/SRPG.md "Facing").
+                    Arc };
   enum class TurnMode { Odd, Even, Range, Every };
   Kind kind = Kind::Hp;
   bool foe = false;       // "who": "foe" (an ability's condition: the target unit)

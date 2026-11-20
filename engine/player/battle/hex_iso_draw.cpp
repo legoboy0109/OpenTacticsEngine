@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "battle/battle_draw.h"
+#include "battle/facing_marker.h"
 #include "battle/hex_draw.h"
 #include "battle/iso_unit.h"
 #include "ui/text.h"
@@ -206,7 +207,16 @@ void drawUnitHexIso(const HI& I, const Unit& u, const UnitView& v, float fade) {
     m.T = std::max(2, h & ~1);
     fillHex(I.r, m, x + (w - m.L) / 2, y + (h - m.T) / 2, col);
   };
-  drawIsoUnitFigure(I.r, I.c, u, v, fade, cx, cy, foot, uw, marker);
+  int faceX = kNoFace, faceY = kNoFace;  // the edge of its hexagon toward the way it looks (docs/SRPG.md "Facing")
+  const int fdir = shownFacing(I.c, u);
+  if (fdir >= 0) {
+    float fvx, fvy, ex, ey;
+    facingEdgeVector(I.c.battle.grid, fdir, t, fvx, fvy);
+    g.project(fx + fvx, fy + fvy, I.p.hexElevationAt(fx, fy), ex, ey);
+    faceX = (int)std::lround(ex) - I.camX;
+    faceY = (int)std::lround(ey) - I.camY;
+  }
+  drawIsoUnitFigure(I.r, I.c, u, v, fade, cx, cy, foot, uw, marker, faceX, faceY);
 }
 
 void drawCaptureHexIso(const HI& I, const StructureState& st) {

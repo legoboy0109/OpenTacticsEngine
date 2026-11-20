@@ -88,10 +88,9 @@ bool leaderStaysHome(const Battle& b, const Unit& u) {
 void considerAdvance(ai::Context& cx, const Unit& u, Play& best) {
   const Battle& b = cx.b;
   if (leaderStaysHome(b, u) || b.apMovePointsLeft(u) <= 0) return;
-  const int mt = b.typeOf(u).moveType;
   const std::vector<int>& field = b.typeOf(u).canCapture && (size_t)u.id < cx.assigned.size() && cx.assigned[(size_t)u.id] != kNoCell
-                                      ? cx.goalFieldFor(mt, cx.assigned[(size_t)u.id])
-                                      : cx.enemyFieldFor(mt);
+                                      ? cx.goalFieldFor(u, cx.assigned[(size_t)u.id])
+                                      : cx.enemyFieldFor(u);  // (height rules: around the cliffs the unit cannot climb)
   const int here = field[(size_t)u.cell];
   Reach reach;
   b.reachable(u.id, reach);

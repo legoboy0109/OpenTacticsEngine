@@ -12,15 +12,20 @@ void writeUnitSrpg(const Battle& b, const Unit& u, Json& j) {
   writeRankXp(*b.db, u.weaponXp, j);
   writeUnitConditions(b, u, j);
   writeUnitAp(b, u, j);
+  writeUnitFacing(b, u, j);
 }
 
 bool readUnitSrpg(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u) {
   return readUnitSkills(rd, b, j, where, u) && readUnitAbilities(rd, b, j, where, u) && readUnitRescue(rd, b, j, where, u) &&
          readRankXp(rd, *b.db, j, where, u.weaponXp) && readUnitConditions(rd, b, j, where, u) &&
-         readUnitAp(rd, b, j, where, u);
+         readUnitAp(rd, b, j, where, u) && readUnitFacing(rd, b, j, where, u);
 }
 
-bool checkUnitsSrpg(Reader& rd, Battle& b) { return checkUnitsAbilities(rd, b) && checkUnitsRescue(rd, b); }
+bool checkUnitsSrpg(Reader& rd, Battle& b) {
+  if (!checkUnitsAbilities(rd, b) || !checkUnitsRescue(rd, b)) return false;
+  b.assignFacings();  // a save of a facing game that has no "facing" for a unit (older than the feature): it looks at the nearest foe
+  return true;
+}
 
 void writeBattleSrpg(const Battle& b, Json& out) {
   writeBattleSupports(b, out);
