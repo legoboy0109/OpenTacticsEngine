@@ -16,6 +16,7 @@ int percentOf(int amount, int percent) { return (int)(((long long)amount * perce
 }  // namespace
 
 void Battle::setDifficulty(int index) {
+  touch();
   difficulty = index;
   if (db) resolveDifficulty();  // before init() there is no database yet: init resolves it
 }

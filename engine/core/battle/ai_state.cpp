@@ -7,6 +7,7 @@
 namespace ote {
 
 void Battle::aiTurnStart() {
+  touch();
   for (Unit& u : units) {
     if (!u.alive || u.side != activeSide || u.behaviour.isDefault()) continue;
     const AiBehaviour& beh = u.behaviour;
