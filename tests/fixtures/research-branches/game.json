@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1, "name": "Research Branches Fixture",
+  "description": "Test game for branching research and side-wide modifiers (docs/ECONOMY.md \"Branching research\"). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "resources": [ { "id": "gold", "name": "Gold" } ],
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "economy": { "enabled": true },
+             "research": { "cancelRefundPercent": 50 },
+             "items": { "weapons": "fixed", "inventorySize": 3 } },
+  "formulas": { "damage": "math.max(1, a.str - b.def)", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" } ]
+}

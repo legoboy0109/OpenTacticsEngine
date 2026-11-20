@@ -1,0 +1,3 @@
+{ "units": [
+  { "id": "soldier", "name": "Soldier", "moveType": "foot", "tags": ["infantry"], "stats": { "hp": 40, "str": 8, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "tags": ["ranged"], "stats": { "hp": 30, "str": 7, "def": 1, "mov": 3 }, "weapons": ["sword"] } ] }
