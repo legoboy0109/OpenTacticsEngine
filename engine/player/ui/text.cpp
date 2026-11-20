@@ -66,6 +66,17 @@ std::string fitText(const Renderer& r, const std::string& s, int maxWidth, int s
   return textW(r, "..", scale) <= maxWidth ? ".." : "";
 }
 
+std::string fitNameCount(const Renderer& r, const std::string& name, int count, int maxWidth, int scale) {
+  if (count <= 1) return fitText(r, name, maxWidth, scale);
+  const std::string num = "x" + std::to_string(count);
+  for (const char* gap : {"  ", " "}) {  // the roomy gap first
+    const std::string tail = gap + num;
+    const int room = maxWidth - textW(r, tail, scale);
+    if (room >= textW(r, "..", scale) || (room >= 0 && textW(r, name, scale) <= room)) return fitText(r, name, room, scale) + tail;
+  }
+  return fitText(r, num, maxWidth, scale);  // not even ".. x3": the count alone
+}
+
 int fitScale(const Renderer& r, const std::string& s, int maxWidth, int maxScale) {
   int sc = maxScale < 1 ? 1 : maxScale;
   while (sc > 1 && textW(r, s, sc) > maxWidth) --sc;

@@ -175,6 +175,18 @@ uses left; the equipped weapon is marked. With carried weapons, targeting
 cycles through weapon and target as before; the forecast names the weapon
 and its uses left.
 
+**Stacked storage lists.** Wherever the shared storage is listed (the battle's Storage panel, the storage column of the
+preparation trade panel, the preparation shop's Sell list for the storage) identical copies are ONE row with a count,
+`Potion  x3`; a single copy shows no count. Identical = same item, same uses left and same `drop` flag, so a half-used copy is its
+own row (`Potion  x3  2/2` beside `Potion  1/2`). Rows run in the game's item order (the order of `items.json`), then fuller copies
+first (unlimited, then most uses left), then non-drop before drop. Choosing a row acts on ONE copy: the first (lowest position) of
+the row's identical copies in the storage; the count goes down and the row disappears at 0. Giving an item to storage joins the
+row that matches it. This is only how the lists are drawn: the storage itself (`SideState::storage`, a campaign's carried storage,
+the saves) still holds one entry per copy, in the same order as before, so saves are unchanged. A unit's own inventory is never
+stacked (its slots are individual). The count is never cut when a row is narrow: the name is shortened first
+(`fitNameCount`, engine/player/ui/text.h) and the trade panel widens, up to the screen, when a row needs it (big UI scales).
+Code: engine/player/battle/storage_stack.h (`stackStorage`).
+
 ## Strategy-RPG additions
 
 Accessories can carry skills, a usable item can be a promotion item (`promotes`), a weapon can give skills while wielded, and a character

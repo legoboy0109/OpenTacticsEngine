@@ -29,7 +29,10 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
   }
   // The name matters more than the extra: when both do not fit, the name keeps at least half the row.
   int avail = x + w - 4 - tx, gap = 6;
-  std::string extra = row.extra, label = row.label;
+  std::string extra = row.extra;
+  // The name with its count: fitName(n) is the longest "Name  x3" within n pixels (the count stays whole).
+  auto fitName = [&](int n) { return fitNameCount(r, row.label, row.count, n); };
+  std::string label = row.count > 1 ? row.label + "  x" + intStr(row.count) : row.label;
   const Color extraColor = row.dim ? kGreyed : chrome::kAccent, subColor = row.dim ? kGreyed : chrome::kDim;
   if (twoLines && !extra.empty() && textW(r, label) + gap + textW(r, extra) > avail) {
     // A narrow list with a picture: the extra ("Slot 2") moves down to the second line, right-aligned; the dimmer text on the left
@@ -38,20 +41,31 @@ void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, 
     const int room = avail - gap - textW(r, extra);
     if (textW(r, sub) > room) sub = sub.substr(0, sub.find(' '));
     if (textW(r, sub) > room) sub.clear();
-    r.drawText(tx, ty, fitText(r, label, avail).c_str(), c);
+    r.drawText(tx, ty, fitName(avail).c_str(), c);
     r.drawText(tx, ty + lh, sub.c_str(), subColor);
     const std::string shown = fitText(r, extra, avail);
     r.drawText(x + w - 4 - textW(r, shown), ty + lh, shown.c_str(), extraColor);
     return;
   }
   if (!extra.empty() && textW(r, label) + gap + textW(r, extra) > avail) {
-    int labelMax = std::max(avail / 2, avail - gap - textW(r, extra));
-    label = fitText(r, label, labelMax);
+    // The name keeps half the row; a stacked row lets it shrink to "P.. x3" so the count and the uses both show.
+    int keep = avail / 2;
+    if (row.count > 1) keep = std::min(keep, textW(r, "P.. x" + intStr(row.count)));
+    int labelMax = std::max(keep, avail - gap - textW(r, extra));
+    label = fitName(labelMax);
     extra = fitText(r, extra, std::max(0, avail - gap - textW(r, label)));
   }
-  r.drawText(tx, ty, fitText(r, label, avail).c_str(), c);
+  if (textW(r, label) > avail) label = fitName(avail);
+  r.drawText(tx, ty, label.c_str(), c);
   if (!extra.empty()) r.drawText(x + w - 4 - textW(r, extra), ty, extra.c_str(), extraColor);
   if (twoLines) r.drawText(tx, ty + lh, fitText(r, row.sub, avail).c_str(), subColor);
+}
+
+int panelRowWidth(const Renderer& r, const PanelRow& row) {
+  int s = std::max(3, r.lineHeight() / 3);
+  int w = 4 + s + 3 + textW(r, row.count > 1 ? row.label + "  x" + intStr(row.count) : row.label) + 4;
+  if (!row.extra.empty()) w += 6 + textW(r, row.extra);
+  return w;
 }
 
 void ItemPanel::open(const std::string& title, const std::string& head, const std::vector<PanelRow>& rows,

@@ -9,6 +9,7 @@
 #include "battle/battle_prep_ui.h"
 #include "battle/item_text.h"
 #include "battle/prep_text.h"
+#include "battle/storage_stack.h"
 #include "core/base/log.h"
 #include "sound/cue_sink.h"
 #include "ui/text.h"
@@ -31,6 +32,15 @@ std::string sellFromName(const Playthrough& pt, const std::string& id) {
   if (id.empty()) return PrepWords::kStorage;
   const RosterUnit* r = pt.findUnit(id);
   return r ? r->name : id;
+}
+
+// The rows of a pack's sell list: the storage stacks identical copies (storage_stack.h), a character's items stay one row each.
+// `index` is the position in the pack that choosing the row sells.
+std::vector<StorageRow> sellRows(const std::vector<ItemGrant>& pack, bool storage) {
+  if (storage) return stackStorage(pack);
+  std::vector<StorageRow> rows;
+  for (size_t i = 0; i < pack.size(); ++i) rows.push_back({pack[i].item, pack[i].uses, pack[i].drop, 1, (int)i});
+  return rows;
 }
 
 }  // namespace
@@ -85,21 +95,22 @@ void BattleScene::prepSellItemsOpen(int sel) {
   const std::vector<ItemGrant>& pack = packOf(*p.pt, p.map, p.sellFrom);
   std::vector<PanelRow> rows;
   std::string log;
-  for (size_t i = 0; i < pack.size(); ++i) {
-    const ItemStack s = stackOf(pack[i]);
+  for (const StorageRow& g : sellRows(pack, p.sellFrom.empty())) {
+    const ItemStack s = stackOf(pack[(size_t)g.index]);
     PanelRow row;
     row.label = battle_.itemOf(s).name;
     row.detail = itemDetail(battle_, s);
+    row.count = g.count;
     std::vector<Amount> value;
     std::string why;
-    if (prepSellValue(db, pack[i], value, why)) {
+    if (prepSellValue(db, pack[(size_t)g.index], value, why)) {
       row.extra = priceText(db, value);
     } else {  // not bought: greyed, and the reason where the explanation goes
       row.extra = "-";
       row.dim = true;
       row.detail = why;
     }
-    log += (log.empty() ? "" : ", ") + row.label + " [" + row.extra + "]";
+    log += (log.empty() ? "" : ", ") + row.label + (g.count > 1 ? " x" + intStr(g.count) : "") + " [" + row.extra + "]";
     rows.push_back(row);
   }
   const std::string funds = fundsText(db, prepResources(db, *p.pt, p.map));
@@ -113,12 +124,14 @@ void BattleScene::prepSellPicked() {
   const Database& db = session_.db;
   const int row = itemPanel_.sel();
   const std::vector<ItemGrant>& pack = packOf(*p.pt, p.map, p.sellFrom);
-  if (row < 0 || row >= (int)pack.size()) return;
-  const ItemGrant g = pack[(size_t)row];  // copied: the pack changes below
+  const std::vector<StorageRow> rows = sellRows(pack, p.sellFrom.empty());
+  if (row < 0 || row >= (int)rows.size()) return;
+  const int slot = rows[(size_t)row].index;  // one copy: the first of the row's identical ones
+  const ItemGrant g = pack[(size_t)slot];  // copied: the pack changes below
   std::vector<Amount> value;
   std::string why;
   prepSellValue(db, g, value, why);
-  if (!prepSell(db, *p.pt, p.map, p.sellFrom, row, why, p.shopIx)) {
+  if (!prepSell(db, *p.pt, p.map, p.sellFrom, slot, why, p.shopIx)) {
     uiCue(Cue::Error);
     say(why);
     OTE_INFO("prep refused: %s", why.c_str());
@@ -130,7 +143,7 @@ void BattleScene::prepSellPicked() {
   OTE_INFO("prep: sold %s from %s for %s", db.items[(size_t)g.item].id.c_str(), p.sellFrom.empty() ? "storage" : p.sellFrom.c_str(),
            got.c_str());
   prepChanged();
-  prepSellItemsOpen(std::max(0, std::min(row, (int)packOf(*p.pt, p.map, p.sellFrom).size() - 1)));
+  prepSellItemsOpen(std::max(0, std::min(row, (int)sellRows(packOf(*p.pt, p.map, p.sellFrom), p.sellFrom.empty()).size() - 1)));
 }
 
 // ---- Equip

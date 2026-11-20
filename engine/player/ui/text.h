@@ -17,6 +17,9 @@ inline int rowHeight(const Renderer& r) { return r.lineHeight() + 2; }
 std::vector<std::string> wrapText(const Renderer& r, const std::string& text, int maxWidth, int scale = 1);
 // Truncates (on a character boundary) with ".." so the result is at most maxWidth wide.
 std::string fitText(const Renderer& r, const std::string& s, int maxWidth, int scale = 1);
+// A name followed by its count ("Potion  x3"), at most maxWidth wide: the NAME is shortened with ".." so the count is never cut.
+// count <= 1 = no count (a single copy needs none). Tight: the gap before the count narrows, then the name goes to "..", then only "x3" stays.
+std::string fitNameCount(const Renderer& r, const std::string& name, int count, int maxWidth, int scale = 1);
 // Largest scale in [1, maxScale] at which `s` fits maxWidth (1 if none does).
 int fitScale(const Renderer& r, const std::string& s, int maxWidth, int maxScale);
 std::string intStr(int v);

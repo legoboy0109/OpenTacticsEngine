@@ -15,12 +15,13 @@ import shutil
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts
 from ote_testkit import (  # noqa: E402
-    run_text, check, failures, player_and_repo, player_cmd, read_json, summary, ticks, write_json, scratch_dir)
+    run_text, check, failures, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json, scratch_dir)
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 TMP = scratch_dir()
+SHOTS = shots_dir(absolute=True)  # --shots DIR keeps the storage list's screenshots (BMP)
 
 
 
@@ -34,9 +35,14 @@ def make_game(gid, stock):
     return g
 
 
-def play(gid, inp, saves):
+def play(gid, inp, saves, shot=None, scale=None):
     cmd = player_cmd(PLAYER, TMP, REPO) + ['--frames', str(ticks(inp) * 3 + 90), '--input-interval', '3', '--fixed-dt', '0.016',
                                            '--game', gid, '--saves', saves, '--map', 'orchard', '--input', inp]
+    if shot and SHOTS:
+        os.makedirs(SHOTS, exist_ok=True)
+        cmd += ['--screenshot', os.path.join(SHOTS, shot + '.bmp')]
+    if scale:
+        cmd += ['--ui-scale', str(scale)]
     return run_text(cmd).stdout
 
 
@@ -47,6 +53,45 @@ def at(log, key):
 
 def menu_to(n):
     return ','.join(['down'] * n + ['confirm'])
+
+
+def stock(log):
+    """The rows of the last storage list the player logged, e.g. ['Potion 2/2 x3', 'Potion 1/2', ...]."""
+    line = at(log, 'prep storage:')
+    return line[line.find('[') + 1:line.rfind(']')].split(', ') if '[' in line else []
+
+
+def stacking(saves):
+    """The storage list stacks identical copies: one row with a count per distinct item and state."""
+    to_trade = 'wait:10,' + menu_to(2) + ',confirm,confirm,wait:3'
+    rows = stock(play('stocked', to_trade, saves, shot='storage_stacked_before'))
+    check('stacking: one row per distinct item with x3', len(rows) == 4 and all(r.endswith(' x3') for r in rows) and rows[0] == 'Potion 2/2 x3', str(rows))
+    log = play('stocked', to_trade + ',right,confirm,wait:3', saves, shot='storage_stacked_after_take')
+    check('stacking: taking one copy leaves x2 (one copy moved, not the whole row)', stock(log)[0] == 'Potion 2/2 x2' and 'prep trade: Ilsa [Token, Potion, -]' in log, str(stock(log)))
+    log = play('stocked', to_trade + ',right,confirm,left,down,confirm,wait:3', saves)
+    check('stacking: giving it back merges into the row: x3 again', stock(log) == rows and 'Ilsa [Token, -, -]' in at(log, 'prep trade:'), str(stock(log)))
+    # A partly used copy is its own row, after the fuller ones; taking from the x3 row never touches it.
+    g = os.path.join(TMP, 'mixed')
+    shutil.copytree(os.path.join(TMP, 'stocked'), g)
+    m = read_json(g + '/maps/orchard.json')
+    m['sides'][0]['storage'] = [{'item': 'potion', 'uses': 1}]
+    write_json(g + '/maps/orchard.json', m)
+    log = play('mixed', to_trade, saves, shot='storage_stacked_partial')
+    rows = stock(log)
+    check('stacking: a half-used copy is its own row after the fuller ones', rows[:2] == ['Potion 2/2 x3', 'Potion 1/2'], str(rows))
+    log = play('mixed', to_trade + ',right,confirm,wait:3', saves)
+    check('stacking: taking from the x3 row leaves the half-used row alone', stock(log)[:2] == ['Potion 2/2 x2', 'Potion 1/2'], str(stock(log)))
+    log = play('mixed', to_trade + ',right,down,confirm,wait:3', saves)
+    check('stacking: taking the half-used row moves that copy and its row disappears (the cursor stays on the list)', stock(log)[0] == 'Potion 2/2 x3' and 'Potion 1/2' not in stock(log), str(stock(log)))
+    # The shop's Sell tab lists the storage the same way: one row per distinct item, one copy per confirm, the price column in line.
+    to_sell = 'wait:10,' + menu_to(3) + ',right,down,confirm,wait:3'
+    log = play('stocked', to_sell, saves, shot='storage_stacked_sell')
+    line = at(log, 'prep sell:')
+    check('stacking: the sell list has one row per item with its count and price', line.startswith('prep sell: Storage [Potion x3 [') and line.count(' x3 [') == 4, line)
+    log = play('stocked', to_sell + ',confirm,wait:3', saves)
+    check('stacking: selling sells ONE copy (x3 -> x2)', 'prep: sold potion from storage' in log and at(log, 'prep sell:').startswith('prep sell: Storage [Potion x2 ['), at(log, 'prep sell:'))
+    log = play('stocked', to_trade, saves, shot='storage_stacked_scale150', scale=150)
+    check('stacking: the list opens at UI scale 150%', len(stock(log)) == 4, str(stock(log)))
 
 
 def main():
@@ -66,6 +111,7 @@ def main():
     check('free battle: the trade panel shows Ilsa with the storage', 'prep trade: Ilsa [Token, -, -] with Storage' in log, at(log, 'prep trade'))
     log = play('stocked', to_trade + ',right,confirm,wait:3', saves)
     check('free battle: the potion goes from the storage to Ilsa', 'prep trade: Ilsa [Token, Potion, -] with Storage' in log, at(log, 'prep trade'))
+    stacking(saves)
     # 3. The shop spends the free battle's funds (25 + 100): a tonic (30) for Ilsa, then Begin.
     log = play('stocked', 'wait:10,' + menu_to(3) + ',wait:3', saves)
     check('free battle: the shop shows the funds', 'Gold 125' in at(log, 'prep shop:'), at(log, 'prep shop:'))
