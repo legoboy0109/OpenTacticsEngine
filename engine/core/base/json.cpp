@@ -326,7 +326,13 @@ static void numberInto(std::string& o, double v) {
   char buf[40];
   if (!std::isfinite(v)) { o += "null"; return; }  // JSON has no NaN/inf
   if (v == std::floor(v) && std::fabs(v) < 1e15) std::snprintf(buf, sizeof buf, "%.0f", v);
-  else std::snprintf(buf, sizeof buf, "%.17g", v);
+  else {
+    // The shortest text that reads back as the same number: 0.1 stays "0.1", not "0.10000000000000001".
+    for (int digits = 15; digits <= 17; ++digits) {
+      std::snprintf(buf, sizeof buf, "%.*g", digits, v);
+      if (std::strtod(buf, nullptr) == v) break;
+    }
+  }
   if (buf[0] == '-' && buf[1] == '0' && buf[2] == '\0') { o += '0'; return; }
   o += buf;
 }
