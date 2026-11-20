@@ -194,6 +194,14 @@ int runApp(App& app, const PlatformConfig& config) {
     if (!ren) OTE_INFO("SDL's Direct3D 11 renderer is not available (%s); taking SDL's default", SDL_GetError());
   }
 #endif
+#ifdef __EMSCRIPTEN__
+  // WebGL asked for by name, so a browser that refuses it says why in the log (SDL's own fallback to its software
+  // renderer is silent). The software renderer still follows below.
+  if (!config.headless && !SDL_GetHint(SDL_HINT_RENDER_DRIVER)) {
+    ren = SDL_CreateRenderer(window, "opengles2");
+    if (!ren) OTE_WARN("this browser gave no WebGL (%s); drawing in software, which is slower", SDL_GetError());
+  }
+#endif
   if (!ren) ren = SDL_CreateRenderer(window, config.headless ? SDL_SOFTWARE_RENDERER : nullptr);
   if (!ren && !config.headless) {
     OTE_WARN("default renderer failed (%s); falling back to software", SDL_GetError());
