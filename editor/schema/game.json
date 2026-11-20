@@ -1,0 +1,124 @@
+{
+  "title": "Rules",
+  "files": ["game.json"],
+  "root": {
+    "type": "object",
+    "fields": {
+      "damageTypes": {
+        "type": "list", "help": "The game's own damage types (at most 16). Without this key a game has none. First one is the default of a weapon.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id; weapons name it in damageType, units key resist{} by it." },
+          "name": { "type": "string", "help": "Display name (defaults to the id)." },
+          "ignoresTerrain": { "type": "bool", "default": false, "help": "Terrain defence bonuses do not count against this type." } } }
+      },
+      "resistRange": {
+        "type": "list", "length": 2, "of": { "type": "int", "sample": 3 }, "sample": [-3, 3],
+        "help": "[min, max] allowed for every resist value; must include 0 and needs damageTypes."
+      },
+      "resources": {
+        "type": "list", "help": "Resources of the game (funds, action points ...); a resource may refill each turn.",
+        "of": { "type": "object", "fields": {
+          "id": { "type": "string", "required": true, "help": "Unique id." },
+          "name": { "type": "string", "help": "Display name." },
+          "refill": { "type": "object", "block": true, "help": "At the start of the side's turn the amount becomes min(left over, carryOver) + perTurn.", "fields": {
+            "perTurn": { "type": "int", "required": true, "min": 0, "max": 100000, "help": "Amount added each turn." },
+            "carryOver": { "type": "int", "min": 0, "max": 100000, "default": 0, "help": "Most of the old amount that survives into the next turn." } } } } }
+      },
+      "rules": {
+        "type": "object", "help": "Game rules. Optional blocks have an Enable switch; a game without the block plays as before.",
+        "fields": {
+          "counterAttacks": { "type": "bool", "default": true, "help": "A defender answers an attack when it can." },
+          "defeat": { "type": "list", "help": "What loses a battle for a side.", "of": { "type": "enum", "values": ["noUnits", "leaderDead", "lostHq"] } },
+          "turnOrder": {
+            "type": "object", "block": true, "alt": "string", "sample": { "mode": "speed", "stat": "spd" },
+            "help": "\"sides\" (default) or speed order: units act one at a time (docs/TURN_ORDER.md). A plain \"speed\" string is shown as JSON.",
+            "fields": {
+              "mode": { "type": "enum", "required": true, "values": ["sides", "speed"], "help": "speed: units act by their speed stat." },
+              "stat": { "type": "ref", "ref": "game.json#stats", "help": "Stat that fills the clock (default: a stat named speed)." },
+              "threshold": { "type": "int", "min": 1, "max": 100000, "help": "Clock value at which a unit may act." },
+              "preview": { "type": "int", "min": 1, "max": 30, "help": "Turns shown in the order preview." },
+              "roundTicks": { "type": "int", "min": 1, "max": 100000, "help": "Clock ticks per displayed round." },
+              "ctCost": { "type": "object", "help": "Clock cost of a finished turn by what the unit did (each at least 1).", "fields": {
+                "both": { "type": "int", "min": 0, "max": 100000, "help": "Moved and acted." },
+                "one": { "type": "int", "min": 0, "max": 100000, "help": "Moved or acted." },
+                "none": { "type": "int", "min": 0, "max": 100000, "help": "Did neither." } } } } },
+          "actionPoints": {
+            "type": "object", "block": true, "help": "One shared pool per side pays for walking and attacking (docs/SRPG.md Action points).",
+            "fields": {
+              "resource": { "type": "ref", "ref": "game.json#resources", "required": true, "help": "Resource used as the pool." },
+              "move": { "type": "object", "block": true, "help": "What walking costs.", "fields": {
+                "costPerStep": { "type": "int", "min": 0, "max": 99, "default": 1, "help": "Points per square." },
+                "splitMoves": { "type": "bool", "default": false, "help": "A unit may walk in several parts." },
+                "softCap": { "type": "int", "min": 0, "max": 999, "help": "Movement points that cost the plain price." },
+                "softCapPenaltyPercent": { "type": "int", "min": 0, "max": 1000, "help": "Extra price % beyond softCap (needs softCap)." } } },
+              "attack": { "type": "object", "block": true, "help": "What attacking costs.", "fields": {
+                "cost": { "type": "int", "min": 0, "max": 99, "help": "Points per attack (a weapon's apCost overrides)." },
+                "attacksPerTurn": { "type": "int", "min": 1, "max": 99, "help": "Attacks one unit may make per turn." } } } } },
+          "height": {
+            "type": "object", "block": true, "help": "Height rules: jumping, range bonus, line of sight (docs/SRPG.md Height rules).",
+            "fields": {
+              "jump": { "type": "object", "block": true, "help": "Level differences a unit may climb or drop while walking.", "fields": {
+                "default": { "type": "object", "alt": "number", "sample": { "up": 1, "down": 2 }, "help": "Game default: a number, or { up, down }.", "fields": {
+                  "up": { "type": "int", "min": 0, "max": 999, "help": "Levels it may climb." },
+                  "down": { "type": "int", "min": 0, "max": 999, "help": "Levels it may drop." } } } } },
+              "flyingMoveTypes": { "type": "list", "help": "Move types that ignore height differences.", "of": { "type": "ref", "ref": "game.json#moveTypes" } },
+              "rangeBonus": { "type": "object", "block": true, "help": "Extra range for standing high.", "fields": {
+                "perLevels": { "type": "int", "required": true, "min": 1, "max": 999, "help": "Levels of height for one extra square." },
+                "max": { "type": "int", "required": true, "min": 0, "max": 8, "help": "Most extra squares." } } },
+              "lineOfSight": { "type": "bool", "default": false, "help": "Higher ground blocks shots." } } },
+          "facing": {
+            "type": "object", "block": true, "help": "Units face a direction; hits from behind are stronger (docs/SRPG.md Facing).",
+            "fields": {
+              "arcs": { "type": "object", "block": true, "help": "Names the forecast shows for each arc.", "fields": {
+                "front": { "type": "object", "block": true, "help": "Front arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } },
+                "side": { "type": "object", "block": true, "help": "Side arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } },
+                "back": { "type": "object", "block": true, "help": "Back arc.", "fields": { "name": { "type": "string", "help": "1 to 16 characters." } } } } } } },
+          "research": {
+            "type": "object", "block": true, "help": "Research options (technologies live in data/research.json).",
+            "fields": {
+              "needsStructure": { "type": "bool", "default": false, "help": "Research needs an owned structure with research: true." },
+              "cancelRefundPercent": { "type": "int", "min": 0, "max": 100, "default": 0, "help": "Share of the cost paid back when research is cancelled." } } },
+          "progression": {
+            "type": "object", "block": true, "help": "Experience and levels, or (with levels) a rank table that replaces levelling.",
+            "fields": {
+              "enabled": { "type": "bool", "default": false, "help": "Units gain experience." },
+              "xpPerLevel": { "type": "int", "min": 1, "help": "Experience for one level (not with a rank table)." },
+              "maxLevel": { "type": "int", "min": 1, "help": "Highest level (not with a rank table)." },
+              "xpHit": { "type": "string", "help": "Formula: experience for a hit." },
+              "xpKill": { "type": "string", "help": "Formula: experience for a defeat." },
+              "levels": { "type": "list", "help": "Rank table that replaces levels (excludes xpPerLevel / maxLevel).", "of": { "type": "object", "fields": {
+                "at": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Experience at which the rank starts (rising)." },
+                "name": { "type": "string", "required": true, "help": "1 to 24 characters." },
+                "badge": { "type": "string", "help": "0 to 3 characters shown on the unit." },
+                "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus per stat." },
+                "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills granted by the rank." } } } } } },
+          "ranks": {
+            "type": "object", "block": true, "help": "Merit ranks on their own counter, beside levelling (not with progression.levels).",
+            "fields": {
+              "name": { "type": "string", "help": "Name of the counter, 1 to 16 characters." },
+              "perHit": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a hit." },
+              "perDefeat": { "type": "int", "min": 0, "max": 100000, "help": "Merit for a defeat." },
+              "levels": { "type": "list", "required": true, "help": "The ranks, rising.", "of": { "type": "object", "fields": {
+                "at": { "type": "int", "required": true, "min": 0, "max": 1000000, "help": "Merit at which the rank starts (rising)." },
+                "name": { "type": "string", "required": true, "help": "1 to 24 characters." },
+                "badge": { "type": "string", "help": "0 to 3 characters shown on the unit." },
+                "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat bonus per stat." },
+                "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills granted by the rank." } } } } } },
+          "jobs": {
+            "type": "object", "block": true, "help": "Job system rules; the jobs are in data/jobs.json (docs/JOBS.md).",
+            "fields": {
+              "jp": { "type": "object", "help": "Job points earned.", "fields": {
+                "perAction": { "type": "int", "min": 0, "max": 99999, "help": "JP for an action." },
+                "perDefeat": { "type": "int", "min": 0, "max": 99999, "help": "JP for a defeat." } } },
+              "slots": { "type": "object", "help": "Learned abilities a unit may carry, per slot.", "fields": {
+                "action": { "type": "int", "min": 0, "max": 8, "help": "Action slots." },
+                "reaction": { "type": "int", "min": 0, "max": 8, "help": "Reaction slots." },
+                "support": { "type": "int", "min": 0, "max": 8, "help": "Support slots." },
+                "movement": { "type": "int", "min": 0, "max": 8, "help": "Movement slots." } } },
+              "jpLevels": { "type": "list", "help": "JP totals of the job levels, rising.", "of": { "type": "int", "min": 1, "max": 99999 } },
+              "changeIn": { "type": "enum", "values": ["camp", "camp+prep"], "help": "Where jobs may be changed." } } }
+        }
+      }
+    }
+  }
+}

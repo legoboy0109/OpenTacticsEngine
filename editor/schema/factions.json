@@ -1,0 +1,21 @@
+{
+  "files": ["data/factions.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; a map side names it in faction." },
+      "name": { "type": "string", "help": "Display name." },
+      "description": { "type": "string", "help": "Text shown when the person picks a faction." },
+      "units": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Unit types the faction may build (leave out for all)." },
+      "structures": { "type": "list", "of": { "type": "ref", "ref": "data/structures.json" }, "help": "Structures it may use (leave out for all)." },
+      "techs": { "type": "list", "of": { "type": "ref", "ref": "data/research.json" }, "help": "Technologies it may research (leave out for all)." },
+      "start": { "type": "object", "block": true, "help": "What the side starts with, on top of the map's own.", "fields": {
+        "resources": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "min": 0, "sample": 5 }, "help": "Resources added at the start (0 or more)." } } },
+      "modifiers": { "type": "list", "of": { "type": "json" }, "help": "Side-wide skills: skill ids or { skill, filter }." },
+      "commanders": { "type": "list", "of": { "type": "ref", "ref": "data/commanders.json" }, "help": "Commanders a side of this faction may pick (needs commanders.json; not empty)." },
+      "ai": { "type": "object", "block": true, "help": "Computer-player settings of the faction.", "fields": {
+        "weights": { "type": "json", "sample": { "dmg": 3 }, "help": "One weight set of rules.ai.weights; unwritten keys keep the default." } } },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words (not empty)." }
+    }
+  }
+}

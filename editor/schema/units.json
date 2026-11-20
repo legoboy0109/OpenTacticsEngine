@@ -1,0 +1,27 @@
+{
+  "files": ["data/units.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; maps, research, factions and jobs name it." },
+      "name": { "type": "string", "help": "Display name." },
+      "glyph": { "type": "string", "help": "One letter shown when there is no art." },
+      "moveType": { "type": "ref", "ref": "game.json#moveTypes", "required": true, "help": "How the unit moves over terrain." },
+      "stats": { "type": "map", "ref": "game.json#stats", "expand": true, "of": { "type": "int" }, "help": "Base value per stat of the game." },
+      "growths": { "type": "map", "ref": "game.json#stats", "expand": true, "of": { "type": "int" }, "help": "Stat growth per level." },
+      "maxLevel": { "type": "int", "min": 0, "max": 99, "help": "Level cap of this type (0 = never levels; needs progression)." },
+      "weapons": { "type": "list", "of": { "type": "ref", "ref": "data/weapons.json" }, "help": "Weapons the unit carries." },
+      "wields": { "type": "list", "of": { "type": "string" }, "help": "Weapon groups the unit can use (carried weapons)." },
+      "cost": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int" }, "help": "Price per resource when built." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and filters test." },
+      "resist": { "type": "map", "ref": "game.json#damageTypes", "expand": true, "of": { "type": "int", "sample": 1 }, "help": "Flat resistance per damage type (whole numbers within resistRange)." },
+      "canCapture": { "type": "bool", "default": false, "help": "Can capture structures." },
+      "ap": { "type": "object", "block": true, "help": "Action-point overrides for this type (needs rules.actionPoints).", "fields": {
+        "step": { "type": "int", "min": 0, "max": 99, "help": "Points per square for this type." },
+        "softCap": { "type": "int", "min": 0, "max": 999, "help": "Movement points at plain price for this type." } } },
+      "jump": { "type": "object", "alt": "number", "sample": { "up": 1, "down": 2 }, "help": "Height jump of this type: a number, or { up, down } (needs rules.height).", "fields": {
+        "up": { "type": "int", "min": 0, "max": 999, "help": "Levels it may climb." },
+        "down": { "type": "int", "min": 0, "max": 999, "help": "Levels it may drop." } } }
+    }
+  }
+}

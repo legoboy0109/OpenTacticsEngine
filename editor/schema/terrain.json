@@ -1,0 +1,16 @@
+{
+  "files": ["data/terrain.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; maps list it in their legend." },
+      "name": { "type": "string", "help": "Display name." },
+      "color": { "type": "string", "sample": "#336699", "help": "#rrggbb, used when there is no art." },
+      "glyph": { "type": "string", "help": "One letter shown when there is no art." },
+      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "expand": true, "of": { "type": "int", "sample": 2 }, "help": "Movement points per move type (default 1)." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and formulas test." },
+      "blocksSight": { "type": "bool", "default": false, "help": "Fog of war: a wall that blocks vision." },
+      "props": { "type": "json", "sample": { "def": 1 }, "help": "Numbers the formulas read as t.<name> (def ...)." }
+    }
+  }
+}

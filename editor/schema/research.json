@@ -1,0 +1,26 @@
+{
+  "files": ["data/research.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; other technologies and factions name it." },
+      "name": { "type": "string", "help": "Display name." },
+      "description": { "type": "string", "help": "Text shown in the research screen." },
+      "cost": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int", "min": 0 }, "help": "Price per resource (not negative)." },
+      "turns": { "type": "int", "min": 0, "max": 99, "help": "Turns of research (0 = finished at once)." },
+      "requires": { "type": "list", "of": { "type": "ref", "ref": "data/research.json" }, "help": "Technologies needed first (no loops)." },
+      "unlocks": { "type": "object", "help": "What the technology makes available.", "fields": {
+        "units": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Unit types it unlocks." } } },
+      "bonus": { "type": "object", "block": true, "help": "Side-wide bonus when researched.", "fields": {
+        "types": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "help": "Only these unit types get the stat bonus." },
+        "stats": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "help": "Stat bonus per stat (at least one non-zero)." },
+        "income": { "type": "map", "ref": "game.json#resources", "of": { "type": "int", "sample": 1 }, "help": "Income per resource (needs rules.economy)." } } },
+      "tree": { "type": "string", "help": "Name of the tree (branch) shown in the research screen." },
+      "tier": { "type": "int", "min": 0, "max": 99, "help": "Row of the technology inside its tree." },
+      "exclusiveGroup": { "type": "string", "help": "Technologies of one group exclude each other: a side takes only one." },
+      "requiresStructures": { "type": "list", "of": { "type": "ref", "ref": "data/structures.json" }, "help": "Structures a side must own to research it." },
+      "grants": { "type": "object", "block": true, "help": "Skills given to units of the side.", "fields": {
+        "skills": { "type": "list", "required": true, "of": { "type": "json" }, "help": "Skill ids or { skill, filter } entries." } } }
+    }
+  }
+}
