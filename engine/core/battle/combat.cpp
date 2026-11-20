@@ -102,6 +102,7 @@ bool Battle::forecastFight(int attacker, int defender, int weapon, Cell from, Fo
   // the formula calls of this forecast: let the formulas work them out once (Formulas::BatchScope).
   Formulas::BatchScope formulaBatch(formulas);
   CombatMods modsA, modsD;
+  out.arc = arcOfAttack(d, from);  // rules.facing: which side of the defender the attack comes from (front in a game without facing)
   setUpCombat(attacker, defender, weapon, from, setup, modsA, modsD);
   if (areaMode == 1) setup.counters = false;  // only the unit on the aimed square may answer an area attack
   if (!strikeForecast(setup, false, modsA, modsD, out.attack)) return false;
@@ -338,6 +339,7 @@ void Battle::applyAttack(const Action& action, std::vector<Event>& events) {
     return;
   }
 
+  faceToward(a, units[d].cell, events);  // rules.facing: the attacker turns to its target before the first strike (the defender keeps its facing)
   takeWeaponInHand(a, action.weapon);  // attacking with a carried weapon takes it in hand
   int hpA = units[a].hp, hpD = units[d].hp;
   fightStrikes_[0] = fightStrikes_[1] = 0;

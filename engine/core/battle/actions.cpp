@@ -123,6 +123,8 @@ bool Battle::validate(const Action& action, std::string* why) const {
       if (!canCaptureAt(action.unit, u.cell)) return fail(why, "nothing to capture here");
       return true;
     case ActionType::Wait:
+      if (action.facing >= 0 && !facingGame()) return fail(why, "this game has no facing");
+      if (action.facing >= grid.directionCount()) return fail(why, "that is not a direction");
       return true;
     case ActionType::Supply:
       if (!typeOf(u).supplies) return fail(why, "that unit cannot supply others");
@@ -181,7 +183,10 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::Move: applyMove(action, events); break;
     case ActionType::Attack: apPayAttack(action, events); applyAttack(action, events); break;  // (apPayAttack: the AP of an action-point game)
     case ActionType::Capture: applyCapture(action, events); break;
-    case ActionType::Wait: units[action.unit].done = true; break;
+    case ActionType::Wait:
+      faceUnit(action.unit, action.facing, events);  // rules.facing: the direction it chose to end its turn in (-1 = keeps its own)
+      units[action.unit].done = true;
+      break;
     case ActionType::Build: applyBuild(action, events); break;
     case ActionType::UpgradeStructure: applyUpgrade(action, events); break;
     case ActionType::StartResearch: applyResearch(action, events); break;
@@ -264,6 +269,7 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
     u.cell = dest;
     occupant[u.cell] = action.unit;
   }
+  if (stop > 0) faceUnit(action.unit, grid.directionTo(path[(size_t)stop - 1], path[(size_t)stop]), events);  // rules.facing: it looks where its last step went
   noticeAlong(action.unit, path, stop);
   u.moved = true;
   u.moveSpent += reach.cost[(size_t)dest];  // what "move again" has left is the unit's movement minus this
@@ -354,6 +360,7 @@ void Battle::applyBuild(const Action& action, std::vector<Event>& events) {
   u.hp = maxHp(u);
   stockUnit(u);
   u.moved = u.done = !db->rules.builtUnitsCanAct;
+  u.facing = defaultFacing(action.cell, teamOf(u));  // rules.facing: a built unit looks at the nearest foe (-1 without facing)
   markSight();
   units.push_back(u);
   occupant[action.cell] = u.id;

@@ -182,6 +182,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     sides[u.side].everHadUnits = true;
     units.push_back(u);
   }
+  assignFacings();  // rules.facing: the units the map gave no facing look at the nearest foe (all of them stand on the board now)
 
   // Fog: every team starts out knowing who owns what at the map's start.
   if (fog) {
@@ -221,6 +222,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   const int placedLevel = difficultyLevel(ud);  // docs/DIFFICULTY.md: an enemy of a harder / easier difficulty is built at another level
   u.level = placedLevel;
   u.leader = ud.leader;
+  u.facing = ud.facing;  // -1 unless the map said (rules.facing); the default is given once the unit stands on the board
   u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10
   u.behaviour = ud.behaviour;  // docs/AI.md
   u.stats = ud.stats;

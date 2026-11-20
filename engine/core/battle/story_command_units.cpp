@@ -75,6 +75,7 @@ void Battle::storyAddUnit(const MapUnitDef& def, std::vector<Event>& events) {
   if (u.behaviour.idleTurns > 0 && u.side == activeSide) u.idleSeen = 1;  // docs/AI.md: arriving in its own side's turn, that turn counts as its first
   u.id = (int)units.size();
   u.cell = cell;
+  if (u.facing < 0) u.facing = defaultFacing(cell, teamOf(u));  // rules.facing: the story's own "facing", else the nearest foe (-1 without facing)
   occupant[(size_t)cell] = u.id;
   sides[(size_t)u.side].everHadUnits = true;
   units.push_back(u);

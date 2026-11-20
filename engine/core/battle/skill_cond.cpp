@@ -116,6 +116,19 @@ bool Battle::skillCondHolds(const SkillCond& cond, const SkillCtx& ctx) const {
       if (ca == kNoCell || cb == kNoCell) return false;
       return cmp(cond.op, grid.distance(ca, cb), cond.value);
     }
+    case Kind::Arc: {
+      // `u` is the unit the condition judges (the owner, or the foe with "who"), `o` the other fighter: true when `u` stands in the `arc` of `o`. The
+      // fighter that started the fight has turned to look at the other (facing_rules.cpp), so it always has the other in front of it.
+      if (!ctx.combat || !facingGame() || ctx.foe < 0 || ctx.unit < 0) return false;
+      const int oid = cond.foe ? ctx.unit : ctx.foe;
+      if (oid < 0 || oid >= (int)units.size()) return false;
+      const Unit& o = units[(size_t)oid];
+      const Cell co = (cond.foe ? ctx.cell : ctx.foeCell) == kNoCell ? o.cell : (cond.foe ? ctx.cell : ctx.foeCell);
+      if (cell == kNoCell || co == kNoCell) return false;
+      const bool oStarted = cond.foe ? ctx.initiating : !ctx.initiating;
+      const int facing = oStarted ? directionToward(grid, co, cell) : o.facing;
+      return arcAt(co, facing, cell) == cond.value;
+    }
     case Kind::Condition:
       return hasCondition(u, db->findCondition(cond.key));
     case Kind::Marked:

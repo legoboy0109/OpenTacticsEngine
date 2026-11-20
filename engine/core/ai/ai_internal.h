@@ -92,6 +92,11 @@ void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals
 // that is free.
 void assignCaptureGoals(Context& cx);
 
+// ---- ai_facing.cpp (docs/AI.md "Facing") ----
+// The direction a unit turns to when it ends its turn by waiting: toward the nearest foe its team sees; -1 (keep the facing it has) when the game has no
+// facing or it sees none.
+int endFacing(const Battle& b, const Unit& u);
+
 // ---- ai_score.cpp ----
 double typeValue(const Database& db, int type);
 // Score of attacking `target` with `weapon` from `from`; <= 0 means "not worth it".

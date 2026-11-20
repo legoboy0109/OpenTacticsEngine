@@ -47,7 +47,7 @@ bool Formulas::compile(const std::string& expr, const std::string& label, int& r
   ref = 0;
   if (expr.empty()) return true;
   // Wrapped as a vararg chunk so the expression sees its inputs as locals.
-  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt, difficulty, difficultyId, rs, ha, hb, dh = ...\nreturn (" + expr + "\n)";
+  std::string chunk = "local a, b, w, ta, tb, dist, vs, fw, turn, strikeNo, healed, it, dealt, difficulty, difficultyId, rs, ha, hb, dh, arc = ...\nreturn (" + expr + "\n)";
   if (luaL_loadbuffer(L_, chunk.data(), chunk.size(), label.c_str()) != LUA_OK) {
     err = label + ": " + lua_tostring(L_, -1);
     lua_pop(L_, 1);
@@ -312,8 +312,9 @@ double Formulas::call(int ref, bool& warned, const char* label, const FormulaCtx
   lua_pushinteger(L_, ctx.ha);
   lua_pushinteger(L_, ctx.hb);
   lua_pushinteger(L_, ctx.ha - ctx.hb);
+  lua_pushinteger(L_, ctx.arc);
   double result = def;
-  if (lua_pcall(L_, 19, 1, 0) != LUA_OK) {
+  if (lua_pcall(L_, 20, 1, 0) != LUA_OK) {
     if (!warned) OTE_ERROR("%s failed: %s", label, lua_tostring(L_, -1));
     warned = true;
   } else if (lua_isnumber(L_, -1)) {

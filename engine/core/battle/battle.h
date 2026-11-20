@@ -24,6 +24,7 @@
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
 #include "core/data/events.h"
+#include "core/grid/facing.h"
 #include "core/grid/grid.h"
 
 namespace ote {
@@ -127,6 +128,9 @@ enum class EventType {
   // Branching research (docs/ECONOMY.md "Branching research"): a=side, b=technology, c=turns that were still to go; a refund
   // follows as ResourceChanged.
   ResearchCancelled,
+  // Facing (docs/SRPG.md "Facing"): a=unit, b=the direction it now looks in (Grid::neighbor numbering), c=the one it looked in before. Only in a game
+  // with rules.facing: after a move (the last step), before an attack (toward the target), after a Wait that chose a direction.
+  UnitFaced,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -227,6 +231,9 @@ struct Unit {
   // Taken off the map by a story `removeUnit` with "hide": true (docs/EVENTS.md): alive == false and no square, like a removed unit, but it
   // keeps its hit points and everything else and a `showUnit` / `addUnit` brings it back. Saved only when true.
   bool hidden = false;
+  // Facing (docs/SRPG.md "Facing"): the direction it looks in (Grid::neighbor numbering); -1 and unused in a game without rules.facing, and for a unit
+  // that is off the board before it was ever on it. Saved in facing games only.
+  int facing = -1;
 };
 
 struct CellState {
@@ -337,11 +344,13 @@ struct Action {
   int tech = -1;        // StartResearch: index into db->research
   int ability = -1;     // Ability: index into db->abilities
   int itemSlot = -1;    // UseStaff "repair": the slot in the TARGET's inventory of the item to repair (-1 = none)
+  int facing = -1;      // Wait (rules.facing only): the direction the unit looks in when it ends its turn; -1 = it keeps the one it has
 
   static Action move(int unit, Cell dest) { Action a; a.type = ActionType::Move; a.unit = unit; a.cell = dest; return a; }
   static Action attack(int unit, int target, int weapon) { Action a; a.type = ActionType::Attack; a.unit = unit; a.target = target; a.weapon = weapon; return a; }
   static Action capture(int unit) { Action a; a.type = ActionType::Capture; a.unit = unit; return a; }
   static Action wait(int unit) { Action a; a.type = ActionType::Wait; a.unit = unit; return a; }
+  static Action wait(int unit, int facing) { Action a = wait(unit); a.facing = facing; return a; }  // rules.facing: end the turn looking that way
   static Action build(Cell cell, int unitType) { Action a; a.type = ActionType::Build; a.cell = cell; a.unitType = unitType; return a; }
   static Action endTurn() { return Action(); }
   static Action itemAction(ActionType t, int unit, int slot, int target = -1) {
@@ -457,6 +466,7 @@ struct StrikeForecast {
 };
 struct Forecast {
   StrikeForecast attack, counter;
+  int arc = kArcFront;              // the arc the attack comes from against the defender's facing (docs/SRPG.md "Facing"; always front without facing)
   bool defenderFirst = false;       // the defender strikes before the attacker in each exchange
   std::vector<ForecastNote> notes;  // activations that could fire, in roll order (not folded into the numbers)
 };
@@ -794,6 +804,7 @@ class Battle {
 #include "core/battle/area_api.h"
 #include "core/battle/ap_api.h"
 #include "core/battle/height_api.h"
+#include "core/battle/facing_api.h"
 
  private:
   // combat.cpp
@@ -916,6 +927,7 @@ class Battle {
 #include "core/battle/difficulty_internal.h"
 #include "core/battle/area_internal.h"
 #include "core/battle/ap_internal.h"
+#include "core/battle/facing_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

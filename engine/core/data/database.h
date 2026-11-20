@@ -10,6 +10,7 @@
 #include "core/data/ai_rules.h"
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
+#include "core/data/facing_rules.h"
 #include "core/data/height_rules.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
@@ -397,6 +398,7 @@ struct RulesConfig {
   AiRules ai;                // "rules.ai" (docs/AI.md "Scripted-style computer players")
   ActionPointRules ap;       // "rules.actionPoints" (docs/SRPG.md "Action points"); `on` is false when the block is missing
   HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
+  FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.
@@ -627,6 +629,7 @@ struct MapUnitDef {
   std::vector<int> onlyOn;
   bool difficultyShift = true;
   std::vector<char> statExact;  // per stat index: the placement gave the stat itself (empty = none)
+  int facing = -1;              // "facing" (rules.facing only): the direction it starts looking in (Grid::neighbor numbering); -1 = the default (docs/SRPG.md "Facing")
 };
 
 // A structure placed on a map: `x`, `y` is its top-left square (hexagon games: its middle hexagon).

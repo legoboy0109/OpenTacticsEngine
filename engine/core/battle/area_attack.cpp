@@ -39,6 +39,7 @@ void Battle::applyAreaAttack(const Action& action, std::vector<Event>& events) {
     }
     primary = f.primary >= 0 ? f.victims[(size_t)f.primary].unit : -1;
   }
+  faceToward(a, target, events);  // rules.facing: the attacker turns to the square it aims at; the victims keep their facings
   takeWeaponInHand(a, weapon);
 
   const int hpA = units[a].hp;

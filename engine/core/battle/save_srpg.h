@@ -50,6 +50,9 @@ void writeRosterSkills(const Database& db, const RosterUnit& r, Json& j);
 bool readRosterSkills(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);
 
 // ---- action points (save_ap.cpp, docs/SRPG.md "Action points"): units[i] "apAttacks" ----
+// ---- facing (save_facing.cpp, docs/SRPG.md "Facing"): a unit's "facing" in a game with rules.facing ----
+void writeUnitFacing(const Battle& b, const Unit& u, Json& j);
+bool readUnitFacing(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
 void writeUnitAp(const Battle& b, const Unit& u, Json& j);
 bool readUnitAp(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
 
