@@ -36,7 +36,7 @@ struct NxdkScreen {
   bool anamorphic = false;   // a 480 mode shown as 16:9: pixels are 4/3 wider than high
   bool highDefinition = false;
 };
-// Lists the console's video modes, picks one (OTE_VIDEO=auto|480|720p; video_pick.h) and sets it. Logs what it saw.
+// Lists the console's video modes, picks one (640x480 unless OTE_VIDEO=720p; video_pick.h) and sets it. Logs what it saw.
 NxdkScreen nxdkPrepareVideo();
 const NxdkScreen& nxdkScreen();
 

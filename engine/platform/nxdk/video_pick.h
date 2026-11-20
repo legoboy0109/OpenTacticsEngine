@@ -13,8 +13,8 @@ struct VideoModeInfo {
 
 struct VideoWish {
   bool widescreen = false;  // the dashboard's 16:9 setting (VIDEO_WIDESCREEN in XVideoGetEncoderSettings())
-  // "auto" (the default: 1280x720 when the console offers it and the TV is set to widescreen, else 640x480),
-  // "720p" (720 when offered), "480" (640x480 always). Anything else is "auto".
+  // "720p": 1280x720 when the console offers it. Anything else ("auto", "480"): 640x480, the default, the cheapest picture
+  // for the CPU renderer. (widescreen only matters to the picture's shape, not to the mode: see screen_fit.h.)
   std::string preference = "auto";
 };
 

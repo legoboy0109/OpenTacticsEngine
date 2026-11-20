@@ -65,15 +65,14 @@ TEST(screen_fit_bad_input_is_harmless) {
   CHECK_EQ(defaultSafePercent(true), 95);
 }
 
-TEST(video_pick_prefers_720_only_for_widescreen) {
+TEST(video_pick_takes_480_unless_720p_is_asked_for) {
   std::vector<VideoModeInfo> modes = {{640, 480}, {720, 480}, {1280, 720}};
   VideoWish w;
-  CHECK_EQ(pickVideoMode(modes, w), 0);  // 4:3 set
-  w.widescreen = true;
-  CHECK_EQ(pickVideoMode(modes, w), 2);
+  CHECK_EQ(pickVideoMode(modes, w), 0);
+  w.widescreen = true;  // a 16:9 TV still gets the 480 mode (stretched by the console)
+  CHECK_EQ(pickVideoMode(modes, w), 0);
   w.preference = "480";
   CHECK_EQ(pickVideoMode(modes, w), 0);
-  w.widescreen = false;
   w.preference = "720p";
   CHECK_EQ(pickVideoMode(modes, w), 2);
 }
@@ -81,7 +80,8 @@ TEST(video_pick_prefers_720_only_for_widescreen) {
 TEST(video_pick_falls_back_to_what_is_offered) {
   VideoWish w;
   w.widescreen = true;
-  CHECK_EQ(pickVideoMode({{640, 480}, {720, 480}}, w), 0);  // no 720p offered (composite / S-video)
+  w.preference = "720p";
+  CHECK_EQ(pickVideoMode({{640, 480}, {720, 480}}, w), 0);  // 720p asked for but not offered (composite / S-video)
   CHECK_EQ(pickVideoMode({{1280, 720}}, VideoWish()), 0);   // only 720 offered
   CHECK_EQ(pickVideoMode({{720, 480}}, w), -1);             // nothing we draw well
   CHECK_EQ(pickVideoMode({}, w), -1);
