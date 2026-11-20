@@ -222,6 +222,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   const int placedLevel = difficultyLevel(ud);  // docs/DIFFICULTY.md: an enemy of a harder / easier difficulty is built at another level
   u.level = placedLevel;
   u.xp = ud.xp;  // 0 unless the map says (rank-table games)
+  u.merit = ud.merit;  // 0 unless the map says ("rules.ranks" games)
   u.leader = ud.leader;
   u.facing = ud.facing;  // -1 unless the map said (rules.facing); the default is given once the unit stands on the board
   u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10

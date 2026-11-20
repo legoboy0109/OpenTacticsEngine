@@ -45,6 +45,16 @@ std::string jobsSummary(const Database& db, const RosterUnit& r) {
   return db.jobs[(size_t)r.jobs.job].name + "  Lv " + intStr(jobLevelOf(db, r.jobs, r.jobs.job)) + "  JP " + intStr(jobUnspent(r.jobs, r.jobs.job));
 }
 
+// "Bonus: +2 Str, -1 Def." for a job that has a "bonus"; "" otherwise.
+static std::string jobBonusText(const Database& db, const JobDef& d) {
+  std::string out;
+  for (size_t s = 0; s < d.bonus.size() && s < db.stats.size(); ++s) {
+    if (d.bonus[s] == 0) continue;
+    out += (out.empty() ? "" : ", ") + std::string(d.bonus[s] > 0 ? "+" : "") + intStr(d.bonus[s]) + " " + db.stats[s].name;
+  }
+  return out.empty() ? out : "Bonus: " + out + ".";
+}
+
 JobRows jobsTabRows(const Database& db, const RosterUnit& r) {
   JobRows out;
   for (size_t j = 0; j < db.jobs.size(); ++j) {
@@ -61,7 +71,8 @@ JobRows jobsTabRows(const Database& db, const RosterUnit& r) {
     row.dim = !unlocked;
     row.detail = d.description;
     if (!unlocked) row.detail += (row.detail.empty() ? "" : " ") + std::string("Locked: ") + lock + ".";
-    else if (!row.mark) row.detail += (row.detail.empty() ? "" : " ") + std::string("Plays as a ") + db.unitTypes[(size_t)d.unitType].name + ".";
+    else if (!row.mark && !d.overlay()) row.detail += (row.detail.empty() ? "" : " ") + std::string("Plays as a ") + db.unitTypes[(size_t)d.unitType].name + ".";
+    if (unlocked && !jobBonusText(db, d).empty()) row.detail += (row.detail.empty() ? "" : " ") + jobBonusText(db, d);  // an overlay job's whole point, and a class job's extra
     out.rows.push_back(row);
     out.ref.push_back((int)j);
   }

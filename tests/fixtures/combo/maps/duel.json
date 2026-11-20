@@ -1,0 +1,11 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 8, "height": 5 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": ["........", "........", "........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "character": "aldric", "side": "blue", "x": 2, "y": 2, "leader": true },
+    { "character": "cora", "side": "blue", "x": 1, "y": 0 },
+    { "type": "squire", "side": "blue", "x": 1, "y": 4, "id": "plain" },
+    { "type": "dummy", "side": "red", "x": 3, "y": 2, "id": "foe", "leader": true },
+    { "type": "grunt", "side": "red", "x": 5, "y": 3, "id": "weak" },
+    { "id": "shaman", "side": "red", "x": 6, "y": 3, "job": "mage", "learned": ["mend"], "equipped": [] },
+    { "type": "grunt", "job": "scout", "side": "red", "x": 6, "y": 4, "id": "raider" } ] }

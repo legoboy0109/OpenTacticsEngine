@@ -6,6 +6,9 @@
 
 namespace ote {
 
+// The points the unit's rank derives from: its experience in the old mode, its merit counter with "rules.ranks". The ONE place that decides.
+inline int rankPointsOf(const Database& db, const Unit& u) { return db.rules.unitRanks.merit ? u.merit : u.xp; }
+
 // What the unit's accessories (and staves with a "bonus") add to one stat; two of the same item count once.
 inline int itemBonus(const Database& db, const Unit& u, int statIndex) {
   int sum = 0;
@@ -17,6 +20,13 @@ inline int itemBonus(const Database& db, const Unit& u, int statIndex) {
     if (!earlier) sum += d.bonus[(size_t)statIndex];
   }
   return sum;
+}
+
+// What the unit's current job adds to one stat ("bonus" in data/jobs.json, docs/JOBS.md); 0 for a unit without a job and in a game without jobs.
+inline int jobBonus(const Database& db, const Unit& u, int statIndex) {
+  if (db.jobs.empty() || !u.jobs.on() || u.jobs.job >= (int)db.jobs.size() || statIndex < 0) return 0;
+  const std::vector<int>& b = db.jobs[(size_t)u.jobs.job].bonus;
+  return (size_t)statIndex < b.size() ? b[(size_t)statIndex] : 0;
 }
 
 // What the finished technologies of the unit's side add to one stat (docs/ECONOMY.md "Research"): every
@@ -39,8 +49,10 @@ inline int unitStat(const Database& db, const Unit& u, int statIndex, const std:
   int v = (size_t)statIndex < u.stats.size() ? u.stats[(size_t)statIndex] : 0;
   const bool research = sides && !db.research.empty() && u.side >= 0 && (size_t)u.side < sides->size();
   const bool ranked = db.rules.unitRanks.on();
-  if (ranked) v += db.rules.unitRanks.bonusAt(u.xp, statIndex);  // the unit's rank (docs/SRPG.md "Unit ranks")
-  if (u.items.empty() && !research) return ranked && v < 0 ? 0 : v;
+  if (ranked) v += db.rules.unitRanks.bonusAt(rankPointsOf(db, u), statIndex);  // the unit's rank (docs/SRPG.md "Unit ranks")
+  const int job = jobBonus(db, u, statIndex);
+  v += job;
+  if (u.items.empty() && !research) return (ranked || job != 0) && v < 0 ? 0 : v;
   v += itemBonus(db, u, statIndex);
   if (research) v += researchBonus(db, (*sides)[(size_t)u.side], u, statIndex);
   return v < 0 ? 0 : v;

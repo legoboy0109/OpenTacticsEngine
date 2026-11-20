@@ -52,6 +52,7 @@ RosterUnit rosterEntry(const Battle& b, const Unit& u) {
   r.name = u.name;
   r.level = u.level;
   r.xp = u.xp;
+  r.merit = u.merit;
   r.stats = u.stats;
   r.items = grants(u.items);
   r.weaponXp = u.weaponXp;  // weapon ranks travel with the unit (docs/SRPG.md section 7)

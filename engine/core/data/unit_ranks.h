@@ -19,8 +19,16 @@ struct UnitRankDef {
 struct UnitRankRules {
   std::vector<UnitRankDef> levels;                // rising `at`; empty = the game has no rank table
   std::vector<std::vector<std::string>> skillIds;  // loader scratch: the "skills" ids of each entry until the skills are known
+  // Two ways to drive the same table. false: "rules.progression.levels", the rank derives from the unit's experience and replaces levelling.
+  // true: "rules.ranks", the rank derives from its own saved counter (Unit::merit), and levelling, promotion and the rest are untouched.
+  bool merit = false;
+  std::string counter = "Merit";  // the counter's display name (merit mode)
+  int perHit = 0;                 // merit awarded wherever experience is awarded (a fight hit, a staff use)
+  int perDefeat = 0;              // merit for defeating a unit of another side
 
   bool on() const { return !levels.empty(); }
+  // The table replaces levelling (the experience-driven mode); false in merit mode, where levels work as ever.
+  bool replacesLevels() const { return on() && !merit; }
   // Index of the highest entry whose `at` is not above `xp`; -1 = below the first one (no rank yet).
   int rankAt(int xp) const {
     int r = -1;

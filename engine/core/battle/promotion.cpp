@@ -25,8 +25,13 @@ bool Battle::canStandAs(const Unit& u, int type) const {
   return grid.valid(u.cell) && enterCost(u.cell, db->unitTypes[(size_t)type].moveType) > 0;
 }
 
+bool Battle::jobBlocksPromotion(const Unit& u) const {
+  return db->jobsOn() && u.jobs.on() && u.jobs.job < (int)db->jobs.size() && !db->jobs[(size_t)u.jobs.job].overlay();
+}
+
 void Battle::promotionCandidates(const Unit& u, int item, bool needStand, std::vector<const PromotionDef*>& out) const {
   out.clear();
+  if (jobBlocksPromotion(u)) return;
   for (const PromotionDef& d : typeOf(u).promotions) {
     if (u.level < promotionFromLevel(u, d)) continue;
     if (item >= 0) {
@@ -75,7 +80,7 @@ void Battle::promotionOptions(int unit, int slot, std::vector<int>& out) const {
 bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<Event>& events) {
   if (unit < 0 || unit >= (int)units.size() || toType < 0 || toType >= (int)db->unitTypes.size()) return false;
   Unit& u = units[(size_t)unit];
-  if (!u.alive || !canStandAs(u, toType)) return false;
+  if (!u.alive || !canStandAs(u, toType) || jobBlocksPromotion(u)) return false;
 
   const UnitTypeDef& from = typeOf(u);
   const UnitTypeDef& to = db->unitTypes[(size_t)toType];
@@ -84,6 +89,7 @@ bool Battle::promote(int unit, int toType, const PromotionDef* def, std::vector<
   markSight();  // the unit may see differently as the new type; what was reported so far is stamped first
 
   u.type = toType;
+  if (u.jobs.on() && u.jobs.baseType >= 0) u.jobs.baseType = toType;  // an overlay job plays as the promoted class from now on
   for (size_t s = 0; s < u.stats.size(); ++s) {
     int gain = def && def->hasGains ? def->gains[s] : to.stats[s] - from.stats[s];
     raiseStat(u, (int)s, gain);  // the NEW type's cap judges a positive gain (docs/SRPG.md section 7)
@@ -143,6 +149,7 @@ void Battle::promoteByItem(int unit, int item, int unitType, std::vector<Event>&
 void Battle::promotionLevelUp(int unit, std::vector<Event>& events) {
   if (unit < 0 || unit >= (int)units.size() || !units[(size_t)unit].alive) return;
   const Unit& u = units[(size_t)unit];
+  if (jobBlocksPromotion(u)) return;
   for (const PromotionDef& d : typeOf(u).promotions)
     if (d.atLevel == PromoteAtLevel::Auto && u.level >= promotionFromLevel(u, d) && canStandAs(u, d.to)) {
       promote(unit, d.to, &d, events);

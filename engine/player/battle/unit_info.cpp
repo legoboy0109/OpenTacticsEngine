@@ -24,6 +24,12 @@ void UnitInfoView::open(const Battle& b, int unit) {
   std::string titles;
   for (const UnitInfoPage& p : pages_) titles += (titles.empty() ? "" : ", ") + p.title;
   OTE_INFO("unit details: %s (%s)", b.units[(size_t)unit].name.c_str(), titles.c_str());
+  // The identity rows of the Stats page (class, job, level, rank with its counter), for the player tests; only when the unit has a job or a rank.
+  std::string ident;
+  for (const InfoRow& row : statRows(b, b.units[(size_t)unit]))
+    if (row.label == "Class" || row.label == "Job" || row.label == "Level" || row.label == "Rank")
+      ident += (ident.empty() ? "" : " | ") + row.label + ": " + row.value + (row.note.empty() ? "" : " " + row.note);
+  if (b.db->jobsOn() || b.db->rules.unitRanks.on()) OTE_INFO("unit identity: %s: %s", b.units[(size_t)unit].name.c_str(), ident.c_str());
   // The non-zero damage-type resistances the Stats page lists, for the player tests (only in a game that declares damage types).
   std::string res;
   for (size_t t = 0; t < b.db->damageTypes.list.size(); ++t) {

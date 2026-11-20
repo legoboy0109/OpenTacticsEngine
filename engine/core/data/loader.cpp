@@ -131,6 +131,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!c.str(*blk, "xpHit", "rules.progression", r.fXpHit)) return false;
   if (!c.str(*blk, "xpKill", "rules.progression", r.fXpKill)) return false;
   if (!loadProgressionExtras(c, *blk, db) || !loadUnitRankRules(c, *blk, db)) return false;  // the rank table (docs/SRPG.md "Unit ranks") excludes xpPerLevel / maxLevel
+  if (!loadMeritRankRules(c, *rules, db)) return false;  // "rules.ranks": the same table on its own counter, beside levelling (refused with the table above)
   if (r.xpPerLevel < 1) return c.fail("rules.progression", "\"xpPerLevel\" must be at least 1");
   if (r.maxLevel < 1) return c.fail("rules.progression", "\"maxLevel\" must be at least 1");
 

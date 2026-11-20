@@ -80,6 +80,8 @@ void storyPromote(const Command& c, std::vector<Event>& events);
 // Helpers of promotion.cpp. A unit's promotions that fit now by level and by the way it is asked for: through the
 // item `item` (index into db->items), or (`item` = -1) offered at its level. `needStand`: only those whose unit type
 // the unit could stand as on its square.
+// A unit in a CLASS job (one with a "unitType") cannot promote: its type is the job's. A unit in an overlay job promotes its own type (docs/JOBS.md).
+bool jobBlocksPromotion(const Unit& u) const;
 void promotionCandidates(const Unit& u, int item, bool needStand, std::vector<const PromotionDef*>& out) const;
 bool canStandAs(const Unit& u, int type) const;
 // The promotion that would happen (`unitType` -1 = the first that fits), or null with the reason in `why`.

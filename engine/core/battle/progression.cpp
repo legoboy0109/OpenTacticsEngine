@@ -3,10 +3,17 @@
 
 namespace ote {
 
+// Experience, then the merit that goes with it (docs/SRPG.md "Unit ranks", merit mode): merit comes last so that a level-up and a rank-up of the
+// same action arrive in that order.
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat) {
+  awardXpOnly(unit, amount, events, fromCombat);
+  if (db->rules.unitRanks.merit) awardMerit(unit, db->rules.unitRanks.perHit, events);
+}
+
+void Battle::awardXpOnly(int unit, int amount, std::vector<Event>& events, bool fromCombat) {
   const RulesConfig& rules = db->rules;
   if (db->jobsOn() && !sides[(size_t)units[(size_t)unit].side].ai) awardJp(unit, rules.jobs.jpPerAction, events);  // docs/JOBS.md: wherever experience is awarded, whatever it comes to
-  const bool ranked = rules.unitRanks.on();  // a rank table replaces levelling: experience is a running total
+  const bool ranked = rules.unitRanks.replacesLevels();  // a rank table replaces levelling: experience is a running total
   if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || (!ranked && units[(size_t)unit].level >= levelCap(units[(size_t)unit]))) return;
   if (!rules.computerGains && sides[(size_t)units[(size_t)unit].side].ai) return;  // "computerGains": false (docs/SRPG.md "Experience: options")
   if (fromCombat && summonGivesNoXp(unit, events)) return;  // the foe was a summon that gives no experience (docs/SRPG.md "Summoning")

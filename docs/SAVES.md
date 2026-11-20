@@ -601,7 +601,11 @@ this only covers a hand-written save) looks at the nearest foe when the battle i
 
 ## Unit ranks (docs/SRPG.md "Unit ranks")
 
-Nothing is saved for them: a unit's rank is read off its saved `"xp"` and the game's table, so a save of a game with `rules.progression.levels` restores units with the same ranks, bonuses
+In a game with `rules.ranks` (merit mode) every unit of a battle save and every roster entry also carries `"merit": n`, the counter the rank derives from (0 up to the top entry's `at`); a save
+that lacks it there, has a value outside the range, or has it in any other game is refused (`units[0].merit: value 61 is outside 0..60`, `units[0].merit: this game has no rank counter`). The
+rank itself is still never saved. `rules.ranks` is part of the hashed `game.json` rules. Code: `core/battle/save_merit.cpp`; tests `tests/test_merit_ranks.cpp`, `tests/test_combo_ranks_jobs.cpp`.
+
+In the experience-driven mode (`rules.progression.levels`) nothing is saved for them: a unit's rank is read off its saved `"xp"` and the game's table, so a save of a game with `rules.progression.levels` restores units with the same ranks, bonuses
 and skills (`tests/test_unit_ranks.cpp`). In such a game `xp` is a running total (it stops at the last entry's `at`) and `level` stays a label. A save of any other game is unchanged.
 
 ## Jobs (docs/JOBS.md)
@@ -616,8 +620,10 @@ In a game with `data/jobs.json` a unit that has a job carries `"jobs"` in a batt
 `learned` entries; `equipped` lists the entries equipped from other jobs. Entries are numbered over all jobs in file order (`jobEntries`: the first job's `learn` list, then the next job's). The key is
 written for a unit that uses jobs and for no other, so a unit without a job, a game without jobs and every save of an older game are byte for byte as before. When a save is read every number is
 range-checked and the state must fit the game: a job or entry that does not exist (`units[0].jobs.job: value 9 is outside 0..2`), an entry listed under a job that does not teach it, `spent` above `earned`,
-an equipped entry that was not learned or belongs to the current job, a slot kind with more equipped entries than `rules.jobs.slots` allows, and a `jobs` key in a game without jobs are all refused. The
-roster entry's unit `type` and `stats` are saved as always (a job change moves them). `data/jobs.json` is part of the data hash like the other strategy-RPG files (an empty list counts as no file; names
+an equipped entry that was not learned or belongs to the current job, a slot kind with more equipped entries than `rules.jobs.slots` allows, and a `jobs` key in a game without jobs are all refused. In a game that has an
+overlay job (a job without `unitType`, docs/JOBS.md) the job state also has `"baseType": n` (index into the unit types: the class the unit plays as under an overlay job, moved by promotion), required
+there and refused in any other game; the unit's `type` must then be the class job's type or, under an overlay job, the `baseType` (`units[3].jobs: a unit in the class job "knight" must have the unit type
+"knight"`). The roster entry's unit `type` and `stats` are saved as always (a job change moves them). `data/jobs.json` is part of the data hash like the other strategy-RPG files (an empty list counts as no file; names
 and descriptions are cosmetic), and `rules.jobs` is part of the hashed `game.json` rules. Code: `core/battle/save_jobs.cpp`. Tests: `tests/test_jobs_battle.cpp`, `tests/test_jobs_camp.cpp`.
 
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")

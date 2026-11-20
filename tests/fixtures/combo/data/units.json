@@ -1,0 +1,8 @@
+{ "units": [
+  { "id": "squire", "name": "Squire", "moveType": "foot", "stats": { "hp": 30, "str": 6, "def": 2, "mov": 4 }, "growths": { "str": 50, "hp": 100 }, "weapons": ["sword"],
+    "promotions": [ { "to": "captain", "fromLevel": 2, "atLevel": "auto", "levelAfter": "keep" } ] },
+  { "id": "captain", "name": "Captain", "moveType": "foot", "stats": { "hp": 36, "str": 8, "def": 3, "mov": 4 }, "growths": { "str": 50, "hp": 100 }, "weapons": ["sword"] },
+  { "id": "knight", "name": "Knight", "moveType": "foot", "stats": { "hp": 36, "str": 7, "def": 5, "mov": 3 }, "growths": { "def": 50, "hp": 100 }, "weapons": ["sword"] },
+  { "id": "mage", "name": "Mage", "moveType": "foot", "stats": { "hp": 22, "str": 3, "def": 1, "mov": 4 }, "growths": { "str": 70 }, "weapons": ["rod"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 200, "str": 3, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 12, "str": 3, "def": 0, "mov": 3 }, "weapons": ["sword"] } ] }

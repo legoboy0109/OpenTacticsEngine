@@ -198,6 +198,7 @@ struct Unit {
   std::string name;
   std::string storyId;  // the map's / addUnit's "id" for events ("" = none); fixed once the unit exists
   int level = 1, xp = 0;
+  int merit = 0;           // the rank counter of "rules.ranks" (docs/SRPG.md "Unit ranks"); 0 and unused in every other game
   std::vector<int> stats;  // current maximums, per stat index
   int hp = 0;
   bool moved = false;  // has moved this turn
@@ -600,7 +601,8 @@ class Battle {
   // standing bonuses of its skills and the carry penalty / pair bonus (docs/SRPG.md). Everything that needs a stat
   // asks here (formulas too, through FormulaCtx::battle).
   int stat(const Unit& u, int index) const;
-  int unitRank(const Unit& u) const;  // docs/SRPG.md "Unit ranks": index into rules.unitRanks.levels, -1 = none yet (always -1 without a table)
+  int unitRank(const Unit& u) const;
+  int unitRankPoints(const Unit& u) const;  // what the rank derives from: experience, or the merit counter with "rules.ranks"  // docs/SRPG.md "Unit ranks": index into rules.unitRanks.levels, -1 = none yet (always -1 without a table)
   int maxHp(const Unit& u) const { return stat(u, db->rules.statHp); }
   int movePoints(const Unit& u) const { return stat(u, db->rules.statMove); }
   // Alive, belongs to the active side, battle not over.
@@ -949,7 +951,10 @@ class Battle {
   void settle(std::vector<Event>& events);
   // unit_ranks.cpp (docs/SRPG.md "Unit ranks")
   void awardRankXp(int unit, int amount, std::vector<Event>& events);
+  void awardMerit(int unit, int amount, std::vector<Event>& events);  // "rules.ranks": the counter, then a UnitRankUp when the rank rose
+  void applyRankPoints(int unit, int before, int after, std::vector<Event>& events);  // the shared rank-change consequences (hit points, event)
   // progression.cpp
+  void awardXpOnly(int unit, int amount, std::vector<Event>& events, bool fromCombat);
   // `fromCombat` false: not a fight, so a summon's "givesXp" does not apply (a staff's experience).
   void awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat = true);
 

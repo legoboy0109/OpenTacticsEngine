@@ -48,6 +48,16 @@ void jobAddJp(const Database& db, JobState& s, int amount, int& levelBefore, int
 // within the slots), else the first problem in plain words (no path: the caller adds it). Used by the loaders and the save readers.
 std::string jobStateProblem(const Database& db, const JobState& s);
 
+// ---- class jobs and overlay jobs ----
+// The unit type a unit with job state `s` plays as: a class job's own type; an overlay job plays as the unit's base type (`s.baseType`, what the
+// character / map entry is, as promotion moved it). `fallback` (the type the unit has now) stands in for a state that recorded no base type.
+int jobPlayType(const Database& db, const JobState& s, int job, int fallback);
+// "" when a unit of type `type` fits its job state in a game with overlay jobs (a class job: the job's type; an overlay job: the base type), else the
+// first problem in plain words. Always "" in a game without overlay jobs (the older games never checked).
+std::string jobTypeProblem(const Database& db, const JobState& s, int type);
+// What the unit's current job adds to one stat (0 without a job or a "bonus"). unitStat adds it.
+int jobBonusOf(const Database& db, const JobState& s, int stat);
+
 // ---- words ----
 std::string jobEntryName(const Database& db, int flat);  // the skill's / ability's name
 std::string jobEntryKind(const Database& db, int flat);  // "Skill" / "Ability"

@@ -35,8 +35,8 @@ std::string numStr(double v) {
 // ".." when they do not fit: the value gets at most 60% of the width, the
 // label whatever is left.
 void row(Renderer& r, int x, int y, int w, const std::string& label, const std::string& value,
-         Color lc = kLabel, Color vc = kText) {
-  std::string v = fitText(r, value, w * 3 / 5);
+         Color lc = kLabel, Color vc = kText, int valuePercent = 60) {
+  std::string v = fitText(r, value, w * valuePercent / 100);
   int vw = textW(r, v);
   int gap = std::max(4, r.lineHeight() / 2);
   r.drawText(x, y, fitText(r, label, w - vw - gap).c_str(), lc);
@@ -216,8 +216,12 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   }
   drawRescueRow(r, c, u, x, y, w);  // "Carrying: Bram" (rescue.cpp / panel_rescue.cpp)
   if (db.rules.progression) {
-    if (db.rules.unitRanks.on()) row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, false));  // docs/SRPG.md "Unit ranks": a rank instead of a level
+    if (db.rules.unitRanks.replacesLevels()) row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, false));  // docs/SRPG.md "Unit ranks": a rank instead of a level
     else row(r, x, y, w, "Lv " + intStr(u.level), "XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel));
+    y += rh;
+  }
+  if (db.rules.unitRanks.merit) {  // "rules.ranks": the rank beside the level, with its counter ("Veteran   Merit 10/30")
+    row(r, x, y, w, b.unitRank(u) < 0 ? std::string("None") : unitRankName(b, u), unitRankXpText(b, u, true, true), kLabel, kText, 75);  // short words and a wider value: the panel is narrow at UI scale 150
     y += rh;
   }
   int hp = u.id < (int)c.view.units.size() ? c.view.units[u.id].hp : u.hp;  // displayed, not final

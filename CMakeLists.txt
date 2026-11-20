@@ -287,6 +287,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME jobs_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/jobs_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Levels + merit ranks + class and overlay jobs in one game (docs/JOBS.md "Combining levels, ranks and jobs"): details and panel at UI scale 100 and 150, the Jobs screen, saves.
+    add_test(NAME combo_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/combo_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME height_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/height_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

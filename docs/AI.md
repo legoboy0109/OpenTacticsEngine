@@ -415,7 +415,7 @@ In a game with `rules.facing` (docs/SRPG.md "Facing") the computer opponent is t
 
 ### Unit ranks
 
-In a game with `rules.progression.levels` (docs/SRPG.md "Unit ranks") a unit that holds a rank counts as worth more: `ai::unitValue` is the type's value times `1 + 0.1 x (rank index + 1)`, at most
+In a game with `rules.progression.levels` or `rules.ranks` (docs/SRPG.md "Unit ranks"; the rank derives from experience or from the merit counter) a unit that holds a rank counts as worth more: `ai::unitValue` is the type's value times `1 + 0.1 x (rank index + 1)`, at most
 `1.5` (`kRankValueStep` / `kRankValueMax` in `ai_score.cpp`). It replaces the type's value wherever the computer weighs a unit: the damage and kill value of an attack on it (so it targets
 a veteran a little more eagerly), what it risks in a counter-attack (a veteran takes fewer chances), how much a square's exposure costs it and what healing and curing staves are worth on it
 (so veterans are kept alive and healed first). Everything else is unchanged; a game without the table gets `typeValue` exactly as before. The rank's stat bonus and skills reach the

@@ -1,0 +1,10 @@
+{ "name": "Second Field", "grid": { "type": "square", "width": 8, "height": 5 }, "legend": { ".": "plain", "#": "wall" },
+  "tiles": ["........", "........", "........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "character": "aldric", "side": "blue", "x": 1, "y": 2, "leader": true },
+    { "character": "bryn", "side": "blue", "x": 1, "y": 4 },
+    { "character": "cora", "side": "blue", "x": 1, "y": 0 },
+    { "id": "shaman", "side": "red", "x": 5, "y": 2, "job": "mage", "learned": ["mend"], "leader": true },
+    { "type": "grunt", "side": "red", "x": 5, "y": 3, "id": "buddy" },
+    { "type": "grunt", "job": "scout", "side": "red", "x": 6, "y": 4, "id": "raider" } ] }

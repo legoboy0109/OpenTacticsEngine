@@ -1,0 +1,10 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 8, "height": 5 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["........", "........", "........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 2, "y": 2, "id": "sol", "leader": true },
+    { "type": "soldier", "side": "blue", "x": 1, "y": 4, "id": "vet", "merit": 10 },
+    { "type": "soldier", "side": "blue", "x": 3, "y": 0, "id": "elite", "merit": 30 },
+    { "type": "soldier", "side": "blue", "x": 0, "y": 0, "id": "ready", "merit": 5 },
+    { "type": "dummy", "side": "red", "x": 3, "y": 2, "id": "foe", "leader": true },
+    { "type": "weakling", "side": "red", "x": 6, "y": 0, "id": "weak" } ] }

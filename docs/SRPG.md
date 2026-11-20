@@ -1002,10 +1002,10 @@ without the block), `"apCost" must be a whole number from 0 to 99`, `unit "y", "
 
 ### Unit ranks
 
-Optional. A table of named steps on a unit's **total experience**, as in war games where a unit that defeats enemies becomes a veteran with small bonuses, shown by a
-badge. It is the alternative to the usual levelling (the per-level experience of `xpPerLevel`); not to be confused with the weapon ranks of section 7, which are
-per weapon group and have their own file. A game without `levels` loads, plays, saves and simulates exactly as before: the code is behind
-`Database::rules.unitRanks.on()`, and no event or save key is added.
+Optional. A table of named steps on one counter, as in war games where a unit that defeats enemies becomes a veteran with small bonuses, shown by a badge. **Two modes** drive the
+same table: in the first the counter is the unit's **total experience** and the table is the alternative to the usual levelling (`xpPerLevel`); in the second ("Merit", below) the counter
+is its own saved number and levelling, promotion and the rest work beside it. Not to be confused with the weapon ranks of section 7, which are per weapon group and have their own file. A
+game with neither loads, plays, saves and simulates exactly as before: the code is behind `Database::rules.unitRanks.on()`, and no event or save key is added.
 
 ```jsonc
 // game.json
@@ -1049,16 +1049,51 @@ fit, or a character is not in that font, one 2x2 pip per character is drawn inst
 unit details say the rank instead of "Lv": `Elite` / `XP 40/60` (`MAX` at the top). The forecast does not show the rank (its numbers already include the bonus). The player logs
 `rank up box: ...` (the tests read it). Everything fits the 480x270 canvas at UI scale 100 and 150.
 
+#### Merit: ranks beside levels, classes and jobs (`rules.ranks`)
+
+The table above ties the rank to experience and therefore replaces levelling. To keep levelling (and promotion, and jobs) **and** have ranks, give the table its own counter:
+
+```jsonc
+// game.json
+"rules": { "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20 },
+           "ranks": { "name": "Merit", "perHit": 5, "perDefeat": 20,
+                      "levels": [ { "at": 10, "name": "Veteran", "badge": "I", "bonus": { "str": 1 } },
+                                  { "at": 30, "name": "Elite",   "badge": "II", "bonus": { "str": 2, "hp": 4 }, "skills": ["steady"] } ] } }
+// maps/*.json, a unit (or a story addUnit):  "merit": 10      // optional: the counter it starts with
+```
+
+- **The block.** `name` is the counter's name on screen (1 to 16 plain characters, default `"Merit"`), `perHit` and `perDefeat` (0 to 100,000, default 0) the points paid, `levels` the same
+  entries as above (`at`, `name`, `badge`, `bonus`, `skills`; `at` is now a number of merit points). `perAction` was left out: it would equal `perHit`.
+- **One of the two.** `rules.progression.levels` (rank from experience, replaces levelling) and `rules.ranks` together are refused, naming `rules.ranks`. `rules.ranks` needs nothing else: it
+  works with progression on or off, and `xpPerLevel`, `maxLevel`, unit types' `maxLevel`, promotion's `atLevel` and `learns` all stay allowed.
+- **The counter** is `Unit::merit` (per unit in a battle, per character in the campaign roster, carried over exactly like experience). **One accessor** decides what a rank derives from
+  (`rankPointsOf` in `unit_stats.h`, `Battle::unitRankPoints`): experience in the old mode, merit here. Everything else is shared with the old mode: the bonus in `unitStat`, the skills source, the
+  `UnitRankUp` event, the badge, the panel and detail rows, the computer opponent's unit value, and the hit point rule of a rank-up.
+- **Who earns it.** The units of **every side** (a computer side's units too: no `computerGains`, difficulty or `xpPercent` share applies, since the counter is not experience). `perHit` is paid
+  wherever experience is awarded (the attacker of a fight that hit or struck, a defender that struck back, a staff user whose staff pays experience; `Battle::awardXp`, which also pays JP),
+  *after* the experience, so a level-up and a rank-up of the same action arrive in that order (`LevelUp`, then `UnitRankUp`). `perDefeat` goes to the unit that defeated a unit of another side
+  (`killUnit`). Merit stops at the top entry's `at`; nothing more is paid and nothing announced there. There is no gained-merit event, only the `UnitRankUp` when the rank changes.
+- **Units.** A map unit and a story `addUnit` may say `"merit": n` (0 up to the top `at`; refused without `rules.ranks`, and `"xp"` is refused with it unless the other table is used). A character
+  has no starting merit of its own (it has no starting experience either): the map entry or the roster gives it. A unit that comes from the roster has the merit it left with.
+- **Saves.** `"merit": n` on every unit of a battle save and every roster entry, **only in a game with `rules.ranks`**; missing there, above the top `at`, or present in any other game, the save is
+  refused (docs/SAVES.md).
+- **Player.** The panel and the unit details show the level as ever and the rank with its counter beside it: `Veteran   Merit 10/30` (`MAX` at the top). The badge, floating text and rank box are the
+  ones above. A level-up box and a rank-up box of one action show one after the other.
+- **Combining.** See docs/JOBS.md "Combining levels, ranks and jobs" for a worked example.
+
 **Not built (on purpose):** ranks that stack, a rank per unit type, ranks lost on defeat, a story command that gives experience, a picture for a badge, and the rank in the forecast.
 
 **Errors** (each names the file, the entry and the key): `rules.progression: "xpPerLevel" belongs to levelling, and this game uses the rank table ("levels"): a game uses one or the other`,
 `rules.progression, "levels" entry 2 ("Elite"): "at" must be higher than the one before it (10): the ranks go up in order`, `... "skills" names unknown skill "x" (data/skills.json)`,
 `... "bonus" names unknown stat "luck"`, `... "badge" must be 0 to 3 plain characters ...`, `... unknown key "colour"`, `rules.progression: "levels" needs experience: set "enabled": true`,
-`unit "x": "maxLevel" belongs to levelling ...`, `map unit ...: "xp" needs a rank table ...`, `"xp" must be a whole number from 0 to 60`.
+`unit "x": "maxLevel" belongs to levelling ...`, `map unit ...: "xp" needs a rank table ...`, `"xp" must be a whole number from 0 to 60`; merit mode: `rules.ranks: "rules.progression" already has a rank table ("levels"): a game uses one of the two`,
+`rules.ranks: unknown key "colour"`, `rules.ranks: "perHit" must be a whole number from 0 to 100000`, `rules.ranks: "name" (the counter's name) must be 1 to 16 plain characters`,
+`rules.ranks, "levels" entry 2 ("Elite"): ...` (the same messages as the table above), `map unit ...: "merit" needs a rank counter`, `"merit" must be a whole number from 0 to 60`.
 
 **Tests.** `tests/test_unit_ranks.cpp` (the rank from experience, bonus and skills, rank-up events, clamp at the top, saves, the loader; fixture `tests/fixtures/unit-ranks`),
 `tests/test_unit_ranks_ai.cpp`, `tests/unit_ranks_player_test.py` (badge in all four views, the panel and details, the rank-up box, UI scale 100 and 150, a game without a table),
-`tests/editor_api_unitranks_checks.py`.
+`tests/editor_api_unitranks_checks.py`. Merit mode: `tests/test_merit_ranks.cpp` (fixture `tests/fixtures/merit-ranks`), `tests/test_combo_ranks_jobs.cpp` (fixture `tests/fixtures/combo`),
+`tests/combo_player_test.py`, `tests/editor_api_merit_checks.py`.
 
 ### Side-wide modifiers
 

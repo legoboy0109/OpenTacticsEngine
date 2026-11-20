@@ -68,6 +68,7 @@ from editor_api_height_checks import run_height_checks
 from editor_api_facing_checks import run_facing_checks
 from editor_api_unitranks_checks import run_unitranks_checks
 from editor_api_jobs_checks import run_jobs_checks
+from editor_api_merit_checks import run_merit_checks
 from editor_api_difficulty_checks import run_difficulty_checks
 from editor_api_fidelity_checks import run_fidelity_checks
 
@@ -235,6 +236,7 @@ def main():
         run_facing_checks(api, tmp, games, templates, check, get_project, put_project)
         run_unitranks_checks(api, tmp, games, templates, check, get_project, put_project)
         run_jobs_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_merit_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
