@@ -42,7 +42,6 @@ class TreeEditor : public QWidget {
   void showContextMenu(const QPoint& pos);
   QModelIndex containerForAdd() const;
 
-  Project* project_;
   JsonDocument* doc_;
   JsonTreeModel* model_;
   QTreeView* view_;

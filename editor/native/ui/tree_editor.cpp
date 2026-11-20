@@ -23,7 +23,7 @@ const TypeChoice kTypes[] = {
     {"Object { }", ote::Json::Type::Object}, {"List [ ]", ote::Json::Type::Array}, {"Empty (null)", ote::Json::Type::Null}};
 }  // namespace
 
-TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent) : QWidget(parent), project_(project), doc_(doc) {
+TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent) : QWidget(parent), doc_(doc) {
   setObjectName("treeEditor");
   model_ = new JsonTreeModel(project, doc, this);
   view_ = new QTreeView(this);

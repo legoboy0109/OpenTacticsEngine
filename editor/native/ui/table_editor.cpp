@@ -22,7 +22,7 @@
 namespace ote_native {
 
 TableEditor::TableEditor(Project* project, JsonDocument* doc, JsonPath arrayPath, QWidget* parent)
-    : QWidget(parent), project_(project), doc_(doc) {
+    : QWidget(parent), doc_(doc) {
   setObjectName("tableEditor");
   model_ = new JsonTableModel(project, doc, std::move(arrayPath), this);
   proxy_ = new TableProxy(this);

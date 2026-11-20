@@ -61,7 +61,6 @@ class TableEditor : public QWidget {
   QList<int> selectedSourceRows() const;
   void updateRowButtons();
 
-  Project* project_;
   JsonDocument* doc_;
   JsonTableModel* model_;
   TableProxy* proxy_;
