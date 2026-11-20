@@ -33,6 +33,9 @@ unsigned artBudgetMB() {
   }
 #if defined(__EMSCRIPTEN__)
   return 384;  // the heap stops at 2 GB, and the page has more to hold than art
+#elif defined(OTE_NXDK)
+  return 20;  // original Xbox: 64 MB for everything and the video; the program, Lua, game data and the screen take about
+              // 10 to 15 MB (measured in xemu), so 20 MB of art leaves about 25 MB spare. docs/XBOX_OG.md "Memory"
 #elif defined(OTE_UWP)
   return 256;  // an app has about 1 GB on Xbox
 #elif defined(__ANDROID__)
