@@ -148,7 +148,7 @@ until it fits (texture positions are fractions, nothing above notices; the log s
 that is over the backend's size to it (a box filter weighted by alpha) instead of refusing it: 1024x512 here, 2.7 MB with
 mipmaps; the style's six model textures (1024x1024 each) are held at 512x512. **That style does not fit in the memory**: with its
 meshes and the 2D art the console reaches 61 of 64 MB and some later model textures fail to decode (`outofmem` in the log; what uses
-them keeps the placeholder look, the battle runs). Owner's decision: keep it like this, or leave the style off this console
+them keeps the placeholder look, the battle runs; 8 model pictures failed in the 140-frame test and the picture still differs from the software one in only 2.0% of its pixels). Owner's decision: keep it like this, or leave the style off this console
 (a per-style switch would be needed; `viewSupported()` knows kinds, not styles), or shrink the style's art in the game.
 
 **Debug switches** (words in `args.txt`): `OTE_3D_DEBUG=N` (1 no back-face culling, 2/3 the other winding, 4 front faces culled,

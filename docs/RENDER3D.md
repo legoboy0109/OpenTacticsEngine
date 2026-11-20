@@ -336,7 +336,7 @@ contract and does the other backends' arithmetic; `framePixels()` is null.
   (glTF images, art sheets: `sheets3d.cpp` shrinks a sheet over the size instead of refusing it, for every backend).
 - **Checked by** the host unit tests (`tests/test_nxdk_hw3d.cpp`: swizzle addresses, mipmaps, alpha-weighted halving, the cutting) and
   by the scene set in xemu against the software backend (docs/XBOX_OG.md "3D": 0.3 to 2.5% of pixels differ after blurring away
-  edge noise, for the test scene and every 3D style of the three demos but "Detailed 3D", which does not fit the memory).
+  edge noise, for the test scene and every 3D style of the three demos; "Detailed 3D" differs in 2.0% and does not really fit the memory).
   Never run on a real console.
 
 
