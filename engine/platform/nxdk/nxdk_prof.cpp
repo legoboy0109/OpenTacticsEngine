@@ -12,7 +12,7 @@ double g_count[kCounters];
 
 void format(char* out, int size, int frames) {
   static const char* const kNames[kSlots] = {"update", "draw",     "overlay", "sdl2d", "r3dBegin", "r3dDraw",
-                                             "r3dEnd", "meshFill", "chipWait", "clip", "layer", "present",  "vbl"};
+                                             "r3dEnd", "meshFill", "chipWait", "sdlFill", "sdlCopy", "sdlGlyph", "clip", "layer", "present",  "vbl"};
   static const char* const kCountNames[kCounters] = {"layerKB", "sdlKpix", "layers", "draws", "idxWords", "meshUpd", "meshKB", "tris", "cutMeshes", "outside", "cutReused"};
   const double hz = (double)SDL_GetPerformanceFrequency();
   int n = 0;

@@ -17,6 +17,9 @@ enum Slot {
   kR3dEnd,     // Renderer3D::end: the see-through meshes (inside kDraw)
   kMeshFill,   // createMesh / updateMesh: copies into chip memory (inside kDraw)
   kChipWait,   // spins until the chip has finished (inside several of the others)
+  kSdlFill,    // of kSdl2d: filled rectangles and clears
+  kSdlCopy,    // of kSdl2d: sprites and tiles (images)
+  kSdlGlyph,   // of kSdl2d: text glyphs
   kClip,       // cutting meshes at the camera on the CPU (inside kR3dDraw)
   kLayer,      // the 2D layer's copy into a texture and its rectangle (inside kR3dBegin or kPresent)
   kPresent,    // nxdkPresent without the wait for the vertical blank

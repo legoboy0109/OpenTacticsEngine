@@ -14,11 +14,12 @@
 
 #ifdef OTE_NXDK
 // A timed span of SDL's CPU renderer, with the pixels it writes (docs/XBOX_OG.md "Speed").
-#define OTE_PROF_SDL(pixels)         \
-  prof::Span profSpan(prof::kSdl2d); \
+#define OTE_PROF_SDL(kind, pixels)                                \
+  prof::Span profSpan(prof::kSdl2d);                              \
+  prof::Span profKind(kind);                                      \
   prof::count(prof::kSdlPixels, (pixels))
 #else
-#define OTE_PROF_SDL(pixels) ((void)0)
+#define OTE_PROF_SDL(kind, pixels) ((void)0)
 #endif
 
 namespace ote {
@@ -66,7 +67,7 @@ class SdlRenderer::Target : public TextTarget {
     SDL_SetTextureAlphaMod(t, tint.a);
     SDL_Rect src = {sx, sy, sw, sh};
     SDL_Rect dst = {dx, dy, dw, dh};
-    OTE_PROF_SDL(owner_->pixelsOf(dw, dh, outputSpace));
+    OTE_PROF_SDL(prof::kSdlGlyph, owner_->pixelsOf(dw, dh, outputSpace));
     if (owner_->fixed_) {
       // Fixed screen: switching SDL's viewport per glyph would flush its command queue every time, so the screen-pixel mode
       // stays on across a run of glyphs and is left by the next ordinary draw (SdlRenderer::leaveOutputSpace callers).
@@ -351,7 +352,7 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_SetTextureAlphaMod(t, mod.a);
   SDL_Rect src = {sx, sy, sw, sh};
   SDL_Rect dst = {dx, dy, dw, dh};
-  OTE_PROF_SDL(pixelsOf(dw, dh, false));
+  OTE_PROF_SDL(prof::kSdlCopy, pixelsOf(dw, dh, false));
   leaveOutputSpace();
   SDL_RenderCopy(r_, t, &src, &dst);
 }
@@ -366,7 +367,7 @@ void SdlRenderer::setColor(Color c) {
 }
 
 void SdlRenderer::clear(Color c) {
-  OTE_PROF_SDL(pixelsOf(w_, h_, false) + (fixed_ && !chipScaleOn() ? (double)screen_.w * screen_.h : 0.0));
+  OTE_PROF_SDL(prof::kSdlFill, pixelsOf(w_, h_, false) + (fixed_ && !chipScaleOn() ? (double)screen_.w * screen_.h : 0.0));
 #ifdef OTE_NXDK
   if (chipScale_) {  // the margin is the chip's business (it blacks it out before the first layer); only the canvas is drawn here
     leaveOutputSpace();
@@ -391,7 +392,7 @@ void SdlRenderer::clear(Color c) {
 
 void SdlRenderer::fillRect(int x, int y, int w, int h, Color c) {
   if (w <= 0 || h <= 0) return;
-  OTE_PROF_SDL(pixelsOf(w, h, false));
+  OTE_PROF_SDL(prof::kSdlFill, pixelsOf(w, h, false));
   leaveOutputSpace();
   setColor(c);
   SDL_Rect rect = {x, y, w, h};

@@ -26,9 +26,10 @@ SRCS := $(addprefix $(OUT)/,$(CORE_SRCS) $(LUA_SRCS) $(GFX3D_SRCS) $(AUDIO_SRCS)
 
 # -O2: nxdk's own default is -O0. LUA_USE_C89: no popen/etc. OTE_NXDK: the engine's own switch for the Xbox build.
 # nx_compat.h (force-included) renames the libc functions nxdk stubs out with assert(0); STBI_NO_SIMD: the CPU has SSE
-# but not SSE2, which stb_image would use. OTE_NO_CONSOLE_API: no console to attach to (console.cpp).
+# but not SSE2, which stb_image would use. OTE_NO_CONSOLE_API: no console to attach to (console.cpp). OTE_SDL2_UPLOAD_ARGB8888: SDL's
+# textures are made in the 2D layer's own format (ARGB8888), so that its blitters need no per-pixel conversion (docs/XBOX_OG.md "Speed").
 NXDK_CFLAGS   += -include $(REPO)/tools/xbox-og/nx_compat.h -O2 -std=c99 -DOTE_NXDK=1 -DLUA_USE_C89 -I$(REPO)/third_party/lua/src -I$(REPO)/third_party/stb -w
-NXDK_CXXFLAGS += -include $(REPO)/tools/xbox-og/nx_compat.h -O2 -std=c++17 -fno-rtti -DOTE_NXDK=1 -DOTE_PLATFORM_SDL2=1 -DOTE_NO_CONSOLE_API=1 \
+NXDK_CXXFLAGS += -include $(REPO)/tools/xbox-og/nx_compat.h -O2 -std=c++17 -fno-rtti -DOTE_NXDK=1 -DOTE_PLATFORM_SDL2=1 -DOTE_NO_CONSOLE_API=1 -DOTE_SDL2_UPLOAD_ARGB8888=1 \
                  -DSTBI_NO_SIMD=1 -I$(REPO)/engine -I$(REPO)/engine/player -I$(REPO)/third_party -I$(REPO)/third_party/stb \
                  -I$(REPO)/third_party/lua/src -Wall -Wextra -Wno-unused-parameter
 
