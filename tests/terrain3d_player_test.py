@@ -25,10 +25,10 @@ import shutil
 import struct
 import subprocess
 import sys
-import tempfile
 import zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import check_dash, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 check = check_dash  # this script prints the "PASS name" / "FAIL name -> detail" layout
 
 PLAYER = REPO = ''
@@ -229,7 +229,7 @@ def main():
         print(__doc__)
         return 2
     PLAYER, REPO = os.path.abspath(args[0]), os.path.abspath(args[1])
-    with tempfile.TemporaryDirectory() as tmp:
+    with scratch_dir() as tmp:
         games = os.path.join(tmp, 'games')
         os.makedirs(games)
         picture = {'sheet': 'tree', 'cell': [0, 0]}

@@ -18,9 +18,9 @@ import shutil
 import struct
 import subprocess
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import check, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 PLAYER = ''
 REPO = ''
@@ -85,7 +85,7 @@ def main():
     if '--shots' in args:
         SHOTS = os.path.abspath(args[args.index('--shots') + 1])
         os.makedirs(SHOTS, exist_ok=True)
-    tmp = tempfile.mkdtemp(prefix='ote_demo_economy_test_')
+    tmp = scratch_dir()
     try:
         scenarios(tmp)
     finally:

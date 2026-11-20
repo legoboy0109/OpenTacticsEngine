@@ -14,9 +14,9 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, read_jsonc, save_of, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 jsonc = read_jsonc  # (the name this script uses)
 
 repo = '.'
@@ -146,7 +146,7 @@ WON = ',confirm,wait:10'                           # leave the result banner (th
 
 
 def run_all():
-    tmp = tempfile.mkdtemp(prefix='ote_supports_test_')
+    tmp = scratch_dir()
     global GAMES
     GAMES = os.path.join(tmp, 'games')
     try:

@@ -20,16 +20,16 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     run_text, check, edit, failures, player_and_repo, player_cmd, shots_dir, summary, ticks, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir()
-TMP = tempfile.mkdtemp(prefix='ote-quotes-')
+TMP = scratch_dir()
 
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
 # Select the first unit (Eirik), stay where he is, choose Attack, pick the only target (the forecast shows while picking).

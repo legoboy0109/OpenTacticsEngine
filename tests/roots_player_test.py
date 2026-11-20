@@ -13,15 +13,15 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 
 def main():
     player = os.path.abspath(sys.argv[1])
     repo = os.path.abspath(sys.argv[2])
-    work = tempfile.mkdtemp(prefix='ote-roots-', dir=os.environ.get('TMPDIR'))
+    work = scratch_dir()
     try:
         cwd = os.path.join(work, 'elsewhere')  # a working directory with no games/ in it
         os.mkdir(cwd)

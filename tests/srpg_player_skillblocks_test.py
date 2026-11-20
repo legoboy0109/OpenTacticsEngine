@@ -19,9 +19,9 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, failures, player_cmd, summary, write_json  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -151,7 +151,7 @@ def main():
     if '--shots' in args:
         SHOTS = os.path.abspath(args[args.index('--shots') + 1])
         os.makedirs(SHOTS, exist_ok=True)
-    TMP = tempfile.mkdtemp(prefix='ote_skillblocks_test_')
+    TMP = scratch_dir()
     GAMES = os.path.join(TMP, 'games')
     try:
         write_game(GAMES)

@@ -14,9 +14,11 @@ one total that summary() prints.
 """
 import json
 import os
+import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 
 # ---- checks and the final line ---------------------------------------------------------------------------------
 passed = 0
@@ -66,6 +68,52 @@ def shots_dir(absolute=False):
         return ''
     value = sys.argv[sys.argv.index('--shots') + 1]
     return os.path.abspath(value) if absolute else value
+
+
+# ---- scratch folders -------------------------------------------------------------------------------------------
+# Everything a test writes goes under ONE root: `<build>/test-tmp/` when CMake ran the test (it sets OTE_TEST_TMP; the C++
+# tests use the same folder, tests/test.h), else `<system temp>/ote-test/` when run by hand. Nothing is written into the
+# source tree. This module also points TMPDIR / tempfile at that root, so a program the test starts (the editor helper,
+# a generator under tools/) that makes its own temp folder lands there too and not in /tmp.
+def _scratch_root():
+    root = os.environ.get('OTE_TEST_TMP')
+    if root:
+        os.makedirs(root, exist_ok=True)
+        return os.path.abspath(root)
+    return os.path.join(tempfile.gettempdir(), 'ote-test')
+
+
+_SCRATCH_ROOT = _scratch_root()
+if os.environ.get('OTE_TEST_TMP'):
+    os.environ['TMPDIR'] = os.environ['TEMP'] = os.environ['TMP'] = _SCRATCH_ROOT
+    tempfile.tempdir = _SCRATCH_ROOT
+
+
+class _Scratch(str):
+    """The scratch path (a str) that also works as `with scratch_dir() as tmp:` and removes the folder on leaving it."""
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        shutil.rmtree(str(self), ignore_errors=True)
+        return False
+
+
+def scratch_dir(name=None):
+    """A new, empty folder `<root>/<name>` for this test's scratch data; the script removes it when it passes
+    (`shutil.rmtree(path, ignore_errors=True)`, or leave a `with` block). A leftover of an earlier failed run is wiped
+    first. `name` defaults to the running script's name without `_test` / `.py`; modules a script imports pass their own
+    so two never share a folder. Kept short (24 characters) because Windows paths stop at 260 and the games, saves and
+    screenshots below it are deep."""
+    if not name:
+        name = os.path.basename(sys.argv[0]) if sys.argv and sys.argv[0] else 'test'
+        name = name[:-3] if name.endswith('.py') else name
+        name = name[:-5] if name.endswith('_test') else name
+    name = ''.join(c if c.isalnum() or c in '-_' else '_' for c in name)[:24]
+    path = os.path.join(_SCRATCH_ROOT, name)
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path)
+    return _Scratch(path)
 
 
 # ---- running programs ------------------------------------------------------------------------------------------

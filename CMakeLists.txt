@@ -457,3 +457,11 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
                      $<TARGET_FILE:ote-editor> ${CMAKE_SOURCE_DIR})
   endif()
 endif()
+
+# Where tests put their scratch data: <build>/test-tmp/<test name>/, never the source tree (docs/TESTING.md "Scratch
+# folders"). ote_tests (tests/test.h) and the Python scripts (tests/ote_testkit.py scratch_dir) read OTE_TEST_TMP; the
+# kit also points TMPDIR there for the programs a script starts. No bytecode cache next to the scripts either.
+get_property(OTE_ALL_TESTS DIRECTORY PROPERTY TESTS)
+foreach(t IN LISTS OTE_ALL_TESTS)
+  set_property(TEST ${t} APPEND PROPERTY ENVIRONMENT "OTE_TEST_TMP=${CMAKE_BINARY_DIR}/test-tmp" "PYTHONDONTWRITEBYTECODE=1")
+endforeach()

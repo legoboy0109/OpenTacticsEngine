@@ -6,7 +6,7 @@ import importlib.util
 import json
 import os
 import shutil
-import tempfile
+from ote_testkit import scratch_dir  # noqa: E402
 
 
 def run_tiles_checks(api, tmp, games, templates, check, get_project, put_project):
@@ -35,7 +35,7 @@ def run_tiles_checks(api, tmp, games, templates, check, get_project, put_project
     spec = importlib.util.spec_from_file_location("make_test_tileset", os.path.join(here, "..", "tools", "art", "make_test_tileset.py"))
     gen = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gen)
-    work = tempfile.mkdtemp(prefix="ote-tiles-api-")
+    work = scratch_dir('editor_api_tiles')
     try:
         sheet = os.path.join(work, "tiles.png")
         gen.write_sheet(sheet)

@@ -15,9 +15,9 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text, check, failures, summary  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 PLAYER = ''
 repo = '.'
@@ -132,7 +132,7 @@ def main():
         print(__doc__)
         return 2
     PLAYER, repo = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
-    tmp = tempfile.mkdtemp(prefix='ote_parties_test_')
+    tmp = scratch_dir()
     GAMES = os.path.join(tmp, 'games')
     try:
         os.makedirs(GAMES)

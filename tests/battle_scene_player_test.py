@@ -19,10 +19,10 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     run_text, check, edit, failures, player_and_repo, read_jsonc, shots_dir, summary, ticks, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 read_json = read_jsonc  # this script reads fixtures and games whose JSON has `//` comment lines
 
 sys.dont_write_bytecode = True
@@ -30,7 +30,7 @@ sys.dont_write_bytecode = True
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir(absolute=True)
 BASELINE = os.path.abspath(sys.argv[sys.argv.index('--baseline') + 1]) if '--baseline' in sys.argv else ''
-TMP = tempfile.mkdtemp(prefix='ote-bscene-')
+TMP = scratch_dir()
 
 sys.path.insert(0, os.path.join(REPO, 'tools', 'art'))
 import battle_art  # noqa: E402  (our own generator: original pixel art, no Pillow)

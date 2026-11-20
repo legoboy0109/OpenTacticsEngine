@@ -13,7 +13,7 @@ import os
 import struct
 import subprocess
 import sys
-import tempfile
+from ote_testkit import scratch_dir  # noqa: E402
 
 SCENES = [
     ('test scene, flat', ['--test-3d', '--frames', '30']),
@@ -67,7 +67,7 @@ def main():
         return 2
     player, repo = sys.argv[1], sys.argv[2]
     failed = skipped = passed = 0
-    with tempfile.TemporaryDirectory() as tmp:
+    with scratch_dir() as tmp:
         for name, args in SCENES:
             soft, hard = os.path.join(tmp, 's.bmp'), os.path.join(tmp, 'h.bmp')
             code_s, _ = shot(player, repo, 'software', args, soft)

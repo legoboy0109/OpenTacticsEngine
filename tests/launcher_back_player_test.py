@@ -15,9 +15,9 @@ A temp games folder with the three demos keeps the result independent of what el
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import run_text  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 failures = []
 passed = 0
@@ -61,7 +61,7 @@ def main():
     global PLAYER, REPO, WORK
     PLAYER = os.path.abspath(sys.argv[1])
     REPO = os.path.abspath(sys.argv[2])
-    WORK = tempfile.mkdtemp(prefix='ote-lback-', dir=os.environ.get('TMPDIR'))
+    WORK = scratch_dir()
     try:
         games = os.path.join(WORK, 'games')
         os.makedirs(games)

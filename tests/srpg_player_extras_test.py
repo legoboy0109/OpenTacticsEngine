@@ -20,15 +20,15 @@ import json
 import os
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     run_text, check, edit, failures, inp, lines, player_and_repo, player_cmd, read_json, summary, ticks, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
-TMP = tempfile.mkdtemp(prefix='ote-extras-')
+TMP = scratch_dir()
 IDLE = 'wait:14'  # the turn banner plays first; it takes the first inputs otherwise
 
 

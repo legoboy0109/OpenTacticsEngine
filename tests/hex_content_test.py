@@ -23,7 +23,7 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
+from ote_testkit import scratch_dir  # noqa: E402
 
 root = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.getcwd()
 sim = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else os.path.join(root, 'build', 'ote-sim')
@@ -80,7 +80,7 @@ def generated_files(base):
 
 
 def generator_checks():
-    tmp = tempfile.mkdtemp(prefix='ote_hexgen_')
+    tmp = scratch_dir()
     try:
         runs = []
         for n in range(2):

@@ -31,3 +31,18 @@ style, naming or modernize checks). It reports only our own folders (`engine/`, 
 ```
 cmake -S . -B build-tidy -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && clang-tidy -p build-tidy engine/audio/mixer.cpp
 ```
+
+## Scratch folders
+
+Everything a test writes goes under one root, `<build>/test-tmp/`, in a folder of its own: `test-tmp/ote_tests/` for the
+C++ unit tests (`ote_test::tempDir()` in `tests/test.h`), `test-tmp/<script name>/` for each Python script. A folder is
+removed when its test passes and kept after a failure to look at; the next run wipes a leftover first. Nothing is written
+inside the source tree (CMake also sets `PYTHONDONTWRITEBYTECODE`, so no `__pycache__` appears next to the scripts).
+
+- CMake gives every test `OTE_TEST_TMP=<build>/test-tmp`. Run by hand without it, the Python scripts use
+  `<system temp>/ote-test/` and `ote_tests` uses `<build>/test-tmp/` (the build folder it was compiled in).
+- Python: `tests/ote_testkit.py` has the one function, `scratch_dir(name=None)` (name defaults to the script's own, cut to
+  24 characters so Windows' 260-character limit is no problem). It can also be used as `with scratch_dir() as tmp:`. Importing
+  the kit also points `TMPDIR` at the root, so the programs a script starts (the editor helper, generators under `tools/`)
+  that make their own temp folder land there as well. New scripts should call `scratch_dir()` and never `tempfile.mkdtemp`.
+- `tests/audio_player_test.py` (the one test that plays sound) is deliberately left as it was.

@@ -18,7 +18,7 @@ import os
 import struct
 import subprocess
 import sys
-import tempfile
+from ote_testkit import scratch_dir  # noqa: E402
 
 SKIP = 77  # ctest: SKIP_RETURN_CODE
 
@@ -191,7 +191,7 @@ def main():
         print('SKIP: Direct3D 11 exists on Windows only')
         return SKIP
     player, repo = sys.argv[1], sys.argv[2]
-    with tempfile.TemporaryDirectory() as tmp:
+    with scratch_dir() as tmp:
         windowless(player, repo, tmp)
         window(player, repo, tmp)
     print('\n%d passed, %d failed, %d skipped' % (results['pass'], results['fail'], results['skip']))

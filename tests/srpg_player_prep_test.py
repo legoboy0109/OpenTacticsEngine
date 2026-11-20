@@ -15,16 +15,16 @@ import os
 import re
 import shutil
 import sys
-import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
     run_text, check, failures, player_and_repo, player_cmd, read_json, shots_dir, summary, ticks, write_json)
+from ote_testkit import scratch_dir  # noqa: E402
 
 sys.dont_write_bytecode = True
 
 PLAYER, REPO = player_and_repo()
 SHOTS = shots_dir()
-TMP = tempfile.mkdtemp(prefix='ote-prep-')
+TMP = scratch_dir()
 
 # Chapter 1 played (a title card, a line, end the turn, the result), chapter 2's card and line: the screen opens.
 TO_PREP = 'confirm,confirm,confirm,wait:20,menu,confirm,wait:100,confirm,wait:30,confirm,confirm,confirm,wait:40'

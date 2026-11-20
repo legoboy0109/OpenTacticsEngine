@@ -21,12 +21,12 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 
 root = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.getcwd()
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(root, 'tools', 'audio'))
 from wavio import read_wav  # noqa: E402
+from ote_testkit import scratch_dir  # noqa: E402
 
 CONTRACT_KEYS = ['cursor', 'confirm', 'cancel', 'error', 'step', 'hit', 'miss', 'critical',
                  'heal', 'defeated', 'capture', 'build', 'itemUse', 'gold', 'dialogue',
@@ -127,7 +127,7 @@ def shipped_checks():
     if not shutil.which('ffmpeg'):
         print('no ffmpeg: skipping the "rerun is a no-op" checks')
         return
-    tmp = tempfile.mkdtemp(prefix='ote_audio_rerun_')
+    tmp = scratch_dir('starter_audio_rerun')
     try:
         sub = os.path.join(tmp, 'repo')
         shutil.copytree(os.path.join(root, 'tools', 'audio'), os.path.join(sub, 'tools', 'audio'),
@@ -170,7 +170,7 @@ def shipped_checks():
 
 def main():
     shipped_checks()
-    tmp = tempfile.mkdtemp(prefix='ote_audio_')
+    tmp = scratch_dir('starter_audio')
     try:
         a, b = os.path.join(tmp, 'a'), os.path.join(tmp, 'b')
         generate(a)
