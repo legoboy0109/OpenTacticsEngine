@@ -37,7 +37,7 @@ struct EconomyWords {
   static constexpr const char* kCancelResearch = "Cancel research";
   static constexpr const char* kKeepResearching = "Keep researching";
   static constexpr const char* kNoRefund = "no refund";
-  static constexpr const char* kRefund = "refund ";
+  static constexpr const char* kRefund = "+";
   static constexpr const char* kBannerCancelled = "cancelled ";
   static constexpr const char* kHintCancelResearch = "{udok}:choose  {cancel}:back";
   static constexpr const char* kHintResearchCancel = "{udok}:select  {cancel}:back";

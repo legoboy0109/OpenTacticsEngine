@@ -55,14 +55,15 @@ static std::string researchBlocker(const Battle& b, int side, int tech) {
   if (b.over) return "the battle is over";
   if (side != b.activeSide) return "it is not that side's turn";
   const SideState& s = b.sides[(size_t)side];
+  // A branch already taken or a missing structure is the more useful thing to say than "already researching".
+  std::string branch = b.researchBranchBlocker(side, tech);  // research_branch.cpp
+  if (!branch.empty()) return branch;
   if (s.researching >= 0) return "already researching " + db.research[(size_t)s.researching].name;
   if (!b.canResearch(side)) return "needs a structure that can research";
   std::string missing;
   for (int r : t.needs)
     if (!b.hasTechnology(side, r)) missing += (missing.empty() ? "" : ", ") + db.research[(size_t)r].name;
   if (!missing.empty()) return "needs " + missing;
-  std::string branch = b.researchBranchBlocker(side, tech);  // research_branch.cpp
-  if (!branch.empty()) return branch;
   for (const Amount& a : t.cost)
     if (s.resources[(size_t)a.resource] < a.amount) return "not enough " + db.resources[(size_t)a.resource].name;
   return "";
