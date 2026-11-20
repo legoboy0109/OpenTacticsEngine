@@ -5,6 +5,16 @@
 namespace ote {
 namespace {
 
+// SDL_GetTicks64 is SDL 2.0.18+; the original Xbox's SDL2 (nxdk) is 2.0.9, whose 32-bit millisecond clock wraps after 49 days:
+// plenty for press de-duplication, which only compares times a few hundred milliseconds apart.
+inline int64_t nowMs() {
+#if SDL_VERSION_ATLEAST(2, 0, 18)
+  return static_cast<int64_t>(SDL_GetTicks64());
+#else
+  return static_cast<int64_t>(SDL_GetTicks());
+#endif
+}
+
 Button keyButton(SDL_Scancode sc) {
   switch (sc) {
     case SDL_SCANCODE_UP: case SDL_SCANCODE_W: return Button::Up;
@@ -81,7 +91,7 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       // Auto-repeat is useful for moving a cursor, harmful for Confirm/Cancel.
       if (down && e.key.repeat && !isDirection(b)) break;
       const PressSource src{e.key.keysym.scancode == SDL_SCANCODE_AC_BACK ? PressSource::BackRequest : PressSource::Keyboard, 0};
-      if (!dedupe_.pass(b, src, down, static_cast<int64_t>(SDL_GetTicks64()))) break;
+      if (!dedupe_.pass(b, src, down, nowMs())) break;
       out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }
@@ -111,7 +121,7 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       if (b == Button::None) break;
       const bool down = e.type == SDL_CONTROLLERBUTTONDOWN;
       if (!dedupe_.pass(b, PressSource{PressSource::Pad, static_cast<int>(e.cbutton.which)}, down,
-                        static_cast<int64_t>(SDL_GetTicks64()))) break;
+                        nowMs())) break;
       out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }

@@ -9,6 +9,9 @@
 #ifdef OTE_UWP
 #include "platform/common/uwp.h"
 #endif
+#ifdef OTE_NXDK
+#include "platform/nxdk/nxdk.h"
+#endif
 
 namespace ote {
 namespace {
@@ -36,6 +39,9 @@ std::string contentRoot() {
   if (env.empty()) return androidContentRoot();
 #endif
   if (!env.empty()) return env;
+#ifdef OTE_NXDK
+  return nxdkAppDir();  // original Xbox: the folder the XBE was started from (nxdk mounts it as D:), any drive
+#endif
   // Desktop default (UWP too: the install folder is the program's folder and holds games/ and assets/, read-only):
   // a download unpacked anywhere runs by double-click, because games/ sits next to the program
   // (docs/WINDOWS.md). Otherwise empty = the working directory (a source checkout run from its root).

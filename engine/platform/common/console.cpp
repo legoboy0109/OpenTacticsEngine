@@ -4,8 +4,11 @@
 #ifdef OTE_UWP
 #include "platform/common/uwp.h"
 #endif
+#ifdef OTE_NXDK
+#include "platform/nxdk/nxdk.h"
+#endif
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(OTE_NXDK)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -19,7 +22,9 @@
 
 namespace ote {
 
-#if defined(_WIN32) && defined(WINAPI_FAMILY) && defined(WINAPI_PARTITION_DESKTOP)
+#if defined(OTE_NXDK)
+#define OTE_NO_CONSOLE_API 1  // nxdk defines _WIN32 but has no console: the log goes to a file on the hard disk
+#elif defined(_WIN32) && defined(WINAPI_FAMILY) && defined(WINAPI_PARTITION_DESKTOP)
 #if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define OTE_NO_CONSOLE_API 1  // UWP: there is no console
 #endif
@@ -52,6 +57,8 @@ void attachParentConsole() {
 void attachParentConsole() {
 #ifdef OTE_UWP
   uwpInstallLog();
+#elif defined(OTE_NXDK)
+  nxdkInstallLog();
 #endif
 }
 #endif

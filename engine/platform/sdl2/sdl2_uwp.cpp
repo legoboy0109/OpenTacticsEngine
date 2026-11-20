@@ -14,6 +14,7 @@
 
 #include "core/base/fileio.h"
 #include "core/base/log.h"
+#include "platform/common/launch_args.h"
 #include "platform/common/uwp.h"
 #include "platform/platform.h"
 
@@ -75,26 +76,11 @@ std::vector<std::string> uwpLaunchArgs() {
   size_t n;
   while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) text.append(buf, n);
   std::fclose(f);
-  // Words separated by spaces or line ends; a word that starts like NAME=value (letters, digits, underscore) is an
-  // environment variable for the process (OTE_LOG_LEVEL=debug), everything else is a player argument.
-  std::string word;
-  for (size_t i = 0; i <= text.size(); ++i) {
-    char c = i < text.size() ? text[i] : ' ';
-    if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
-      if (word.empty()) continue;
-      size_t eq = word.find('=');
-      bool env = eq != std::string::npos && eq > 0 && word.compare(0, 2, "--") != 0;
-      for (size_t k = 0; env && k < eq; ++k) {
-        char w = word[k];
-        env = (w >= 'A' && w <= 'Z') || (w >= 'a' && w <= 'z') || (w >= '0' && w <= '9') || w == '_';
-      }
-      if (env) _putenv_s(word.substr(0, eq).c_str(), word.substr(eq + 1).c_str());
-      else out.push_back(word);
-      word.clear();
-    } else {
-      word.push_back(c);
-    }
-  }
+  // Words separated by spaces or line ends; NAME=value words (OTE_LOG_LEVEL=debug) are environment variables for the
+  // process, everything else is a player argument (platform/common/launch_args.h, shared with the original Xbox build).
+  std::vector<std::pair<std::string, std::string>> env;
+  out = parseLaunchArgs(text, env);
+  for (const auto& e : env) _putenv_s(e.first.c_str(), e.second.c_str());
   return out;
 }
 

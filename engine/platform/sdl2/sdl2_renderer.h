@@ -8,10 +8,19 @@
 #include <string>
 #include <vector>
 
+#include "platform/common/screen_fit.h"
 #include "platform/common/text_engine.h"
 #include "platform/platform.h"
 
 namespace ote {
+
+// A display with a fixed size and a TV's overscan (the original Xbox): instead of SDL's letterbox the logical screen goes
+// into a centred rectangle inside the title-safe area (platform/common/screen_fit.h).
+struct FixedScreen {
+  int w = 640, h = 480;
+  bool anamorphic = false;      // 480 mode shown as 16:9: pixels 4/3 wider than high
+  bool highDefinition = false;  // picks the default safe-area margin
+};
 
 class SdlRenderer : public Renderer {
  public:
@@ -26,6 +35,7 @@ class SdlRenderer : public Renderer {
   void fillRect(int x, int y, int w, int h, Color c) override;
   void drawRect(int x, int y, int w, int h, Color c) override;
   void setLogicalSize(int width, int height) override;
+  void setSafeArea(int percent) override;
   bool setFont(const FontRequest& font) override { return text_->setFont(font); }
   void drawText(int x, int y, const char* text, Color c, int scale = 1) override {
     text_->drawText(x, y, text, c, scale);
@@ -43,6 +53,9 @@ class SdlRenderer : public Renderer {
     return true;
   }
 
+  // Switches to the fixed-screen placement (no-op for desktop windows, which never call it).
+  void setFixedScreen(const FixedScreen& screen);
+
   SDL_Renderer* handle() const { return r_; }
   // Saves what the player sees (the whole output, including letterbox bars)
   // as BMP. Call after drawing, before present.
@@ -51,11 +64,19 @@ class SdlRenderer : public Renderer {
  private:
   class Target;  // TextTarget on top of SDL textures
   void setColor(Color c);
+  void applyLogical();       // SDL_RenderSetLogicalSize, or the fixed-screen rectangle
+  void enterOutputSpace();   // fixed screen only: draw in screen pixels until leaveOutputSpace()
+  void leaveOutputSpace();
   SDL_Window* window_;
   SDL_Renderer* r_;
   int w_, h_;
   bool headless_;
   int headlessScale_;
+  bool fixed_ = false;  // fixed-screen placement (setFixedScreen)
+  FixedScreen screen_;
+  ScreenFit fit_;
+  int safePercent_ = 0;  // 0 = the default for the kind of display
+  bool outputMode_ = false;
   bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
   std::vector<uint32_t> uploadScratch_;  // converted pixels while uploading (sdl2_pixels.h); unused with the default format
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot

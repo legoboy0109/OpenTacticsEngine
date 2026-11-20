@@ -110,6 +110,18 @@ std::vector<OptionChoice> volumeChoices(const OptionContext& ctx) {
 void applyMusicVolume(const Json& v, LookLayer& l) { l.musicVolume = v.asInt(-1); }
 void applySoundVolume(const Json& v, LookLayer& l) { l.soundVolume = v.asInt(-1); }
 
+#ifdef OTE_NXDK
+// ---- screen margin (original Xbox only, docs/XBOX_OG.md "Picture") ------------------------------------------------
+// How much of the TV the picture uses; the rest is a black border for what an old TV's overscan hides. The picture
+// resizes as the value changes, so the edges can be judged on the spot. Automatic = 90% on standard definition, 95% on HD.
+std::vector<OptionChoice> safeAreaChoices(const OptionContext& ctx) {
+  std::vector<OptionChoice> out{choice(ctx.game ? "Use global" : "Automatic")};
+  for (int pct = 100; pct >= 76; pct -= 2) out.push_back(choice(std::to_string(pct) + "%", Json::makeNumber(pct)));
+  return out;
+}
+void applySafeArea(const Json& v, LookLayer& l) { l.safeArea = v.asInt(0); }
+#endif
+
 }  // namespace
 
 const std::vector<OptionDef>& optionDefs() {
@@ -124,6 +136,9 @@ const std::vector<OptionDef>& optionDefs() {
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
       {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
       {"menuUnavailable", "Unavailable actions", menuUnavailableChoices, applyMenuUnavailable},
+#ifdef OTE_NXDK
+      {"safeArea", "Screen margin", safeAreaChoices, applySafeArea},  // the one Xbox-only row (not in any other build)
+#endif
       // (last, so the positions the existing option screens are driven by do not move)
   };
   return defs;

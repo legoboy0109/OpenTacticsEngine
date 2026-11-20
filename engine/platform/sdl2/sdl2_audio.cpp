@@ -12,6 +12,9 @@ class SdlAudioOut : public AudioOut {
  public:
   SdlAudioOut(SDL_AudioDeviceID dev, int rate) : dev_(dev), rate_(rate) {}
   ~SdlAudioOut() override {
+    // What the device took: pushed minus what is still queued. 0 played with frames pushed would mean a device that never runs.
+    OTE_INFO("audio: closing; %lld frames pushed, %d still queued (so %lld were played)", (long long)pushed_, queuedFrames(),
+             (long long)pushed_ - queuedFrames());
     SDL_CloseAudioDevice(dev_);
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
   }
@@ -20,6 +23,13 @@ class SdlAudioOut : public AudioOut {
   int channels() const override { return 2; }
   int queuedFrames() const override { return (int)(SDL_GetQueuedAudioSize(dev_) / (2 * sizeof(int16_t))); }
   void push(const int16_t* samples, int frames) override {
+    pushed_ += frames;
+    // A heartbeat in the log (every 5 s of sound pushed, for the original Xbox where the log is the only window into
+    // the audio path): played = pushed - queued must keep growing.
+    if (pushed_ >= nextReport_) {
+      nextReport_ += (long long)rate_ * 5;
+      OTE_DEBUG("audio: %lld frames pushed, %d queued", (long long)pushed_, queuedFrames());
+    }
     if (SDL_QueueAudio(dev_, samples, (Uint32)(frames * 2 * (int)sizeof(int16_t))) != 0)
       OTE_WARN("audio: cannot queue sound: %s", SDL_GetError());
   }
@@ -28,6 +38,8 @@ class SdlAudioOut : public AudioOut {
  private:
   SDL_AudioDeviceID dev_;
   int rate_;
+  long long pushed_ = 0;
+  long long nextReport_ = 0;
 };
 
 }  // namespace
@@ -61,6 +73,7 @@ std::unique_ptr<AudioOut> openAudioOut(int rate, std::string& why) {
     return nullptr;
   }
   SDL_PauseAudioDevice(dev, 0);  // devices start paused
+  OTE_INFO("audio: SDL driver '%s', device opened at %d Hz stereo", SDL_GetCurrentAudioDriver(), rate);
   return std::unique_ptr<AudioOut>(new SdlAudioOut(dev, rate));
 }
 

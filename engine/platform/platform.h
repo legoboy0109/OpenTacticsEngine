@@ -76,6 +76,10 @@ class Renderer {
   // "view" size starts). Drawing coordinates follow immediately.
   virtual void setLogicalSize(int width, int height) = 0;
 
+  // How much of a TV screen the picture may use, in percent (the rest is a black margin for an old TV's overscan); 0 = the
+  // platform's default. Only the original Xbox backend acts on it (docs/XBOX_OG.md "Picture"); everywhere else it is ignored.
+  virtual void setSafeArea(int /*percent*/) {}
+
   // Selects the font for all following text calls. On failure returns false,
   // logs why, and falls back to the built-in pixel font.
   virtual bool setFont(const FontRequest& font) = 0;
@@ -252,6 +256,10 @@ std::string memoryStatus();
 // testing aid; docs/XBOX.md). Empty everywhere else and when there is no such file. A word NAME=value is put into the
 // environment instead of being returned.
 std::vector<std::string> platformLaunchArgs();
+
+// A name (a game id) that is to become a file or folder name under userRoot(). Unchanged everywhere except the original
+// Xbox, whose hard disk accepts only a small set of names (core/base/fatx_names.h, docs/XBOX_OG.md): there it is encoded.
+std::string platformFileName(const std::string& name);
 
 // What Cancel (back / B) does on the launcher's first screen. The answer is the platform's convention, so the player has no
 // platform #ifdef: Android's back key leaves the app (Exit); Xbox / UWP asks first (ConfirmExit); everywhere else a stray

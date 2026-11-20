@@ -32,7 +32,7 @@ void PlayerApp::findSavesFolder() {
 
 SaveStore PlayerApp::saveStore(const std::string& gameId) {
   if (savesRoot_.empty() || gameId.empty()) return SaveStore();
-  return SaveStore(savesRoot_ + "/" + gameId);
+  return SaveStore(savesRoot_ + "/" + platformFileName(gameId));  // the id as a folder name (encoded on the Xbox only)
 }
 
 bool PlayerApp::resumeSave(int slot, std::string& err) {

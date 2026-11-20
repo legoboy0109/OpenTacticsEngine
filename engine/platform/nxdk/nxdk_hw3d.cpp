@@ -1,5 +1,5 @@
-// STUB for the original-Xbox link test: no hardware 3D backend exists (a native NV2A one would go here, see
-// FINDINGS.md), so the player falls back to the software rasterizer. Same three functions sdl2_gl3d.cpp defines.
+// The original Xbox has no hardware 3D backend yet (a native NV2A one would go here, docs/XBOX_OG.md "Step 2"): the 3D views are
+// not offered (player/views.h), and the software drawer is the fallback if something asks for 3D anyway. Same three functions as sdl2_gl3d.cpp.
 #include <memory>
 #include <string>
 

@@ -16,7 +16,11 @@
 #include "platform/common/uwp.h"
 #endif
 
-#if defined(_WIN32)
+#if defined(OTE_NXDK)
+#include <windows.h>
+
+#include "platform/nxdk/nxdk.h"
+#elif defined(_WIN32)
 #include <windows.h>
 #elif defined(__unix__) || defined(__APPLE__) || defined(__EMSCRIPTEN__)
 #include <dirent.h>
@@ -29,6 +33,8 @@ namespace ote {
 std::string userDataDir() {
 #ifdef OTE_UWP
   return uwpLocalStateDir();  // LocalState itself (SDL_GetPrefPath would nest <org>/<app> below it)
+#elif defined(OTE_NXDK)
+  return nxdkUserDataDir();  // <launch folder>/userdata, or a hard-disk folder when that is read-only (nxdk_platform.cpp)
 #else
   char* p = SDL_GetPrefPath("OpenTacticsEngine", "player");  // created if missing, ends with a separator
   if (!p) {
@@ -46,7 +52,7 @@ std::string userDataDir() {
 
 bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
   names.clear();
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(OTE_NXDK)  // nxdk defines _WIN32 but has no wide-char Win32 API
   // The "W" calls with UTF-16 paths: the engine's paths are UTF-8 and the ANSI calls would misread non-ASCII names.
   // FindFirstFileExW (not FindFirstFileW) because it is also in the UWP API subset.
   WIN32_FIND_DATAW fd;
@@ -57,6 +63,21 @@ bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
     if (name.empty() || name[0] == '.') continue;  // ".", "..", hidden
     if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) names.push_back(name);
   } while (FindNextFileW(h, &fd));
+  FindClose(h);
+  return true;
+#elif defined(OTE_NXDK)
+  // nxdk has the ANSI find calls only; Xbox file names are ASCII.
+  WIN32_FIND_DATAA fd;
+  std::string pat = path + "\\*";
+  for (char& c : pat)
+    if (c == '/') c = '\\';
+  HANDLE h = FindFirstFileA(pat.c_str(), &fd);
+  if (h == INVALID_HANDLE_VALUE) return false;
+  do {
+    std::string name = fd.cFileName;
+    if (name.empty() || name[0] == '.') continue;
+    if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) names.push_back(name);
+  } while (FindNextFileA(h, &fd));
   FindClose(h);
   return true;
 #elif defined(OTE_POSIX_DIRS)
@@ -76,7 +97,13 @@ bool listSubdirs(const std::string& path, std::vector<std::string>& names) {
 }
 
 bool makeDir(const std::string& path) {
-#if defined(_WIN32)
+#if defined(OTE_NXDK)
+  std::string p = path;
+  for (char& c : p)
+    if (c == '/') c = '\\';
+  if (CreateDirectoryA(p.c_str(), nullptr)) return true;
+  return GetLastError() == ERROR_ALREADY_EXISTS;
+#elif defined(_WIN32) && !defined(OTE_NXDK)  // nxdk defines _WIN32 but has no wide-char Win32 API
   if (CreateDirectoryW(utf8ToWide(path).c_str(), nullptr)) return true;
   return GetLastError() == ERROR_ALREADY_EXISTS;
 #elif defined(OTE_POSIX_DIRS)
@@ -89,7 +116,7 @@ bool makeDir(const std::string& path) {
 }
 
 bool removeFile(const std::string& path) {
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(OTE_NXDK)  // nxdk defines _WIN32 but has no wide-char Win32 API
   if (DeleteFileW(utf8ToWide(path).c_str())) return true;
   return GetFileAttributesW(utf8ToWide(path).c_str()) == INVALID_FILE_ATTRIBUTES;  // failed because it was not there?
 #else
@@ -102,7 +129,9 @@ bool removeFile(const std::string& path) {
 }
 
 bool replaceFile(const std::string& from, const std::string& to) {
-#if defined(_WIN32)
+#if defined(OTE_NXDK)
+  return nxdkReplaceFile(from, to);  // FATX rename does not replace by itself
+#elif defined(_WIN32)
   return MoveFileExW(utf8ToWide(from).c_str(), utf8ToWide(to).c_str(), MOVEFILE_REPLACE_EXISTING) != 0;
 #else
   return std::rename(from.c_str(), to.c_str()) == 0;  // replaces an existing target on POSIX

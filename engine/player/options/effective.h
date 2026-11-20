@@ -26,6 +26,7 @@ struct LookLayer {
   std::string menuUnavailable;  // "grey" or "hide"; "" = unset (the game decides)
   int musicVolume = -1;  // 0..10; -1 = unset
   int soundVolume = -1;  // 0..10; -1 = unset
+  int safeArea = 0;      // percent of a TV screen the picture may use (original Xbox only, docs/XBOX_OG.md); 0 = unset
 };
 
 // What a game itself asks for. `present` is false on the launcher screens
@@ -52,6 +53,7 @@ struct EffectiveLook {
   bool menuHide = false;     // the action menu leaves out entries with nothing to act on (docs/SRPG.md "Menu options")
   int musicVolume = 7;  // 0..10 (docs/SOUND.md "Options")
   int soundVolume = 7;
+  int safeArea = 0;  // 0 = the platform's default for the video mode (only the original Xbox backend uses it)
 };
 
 // Font size rule: an explicit size setting wins; otherwise the size that
