@@ -274,6 +274,36 @@ TEST(a_unit_with_no_speed_never_has_a_turn_and_a_battle_nobody_can_play_ends_in_
   }
 }
 
+// ---- the story and the objectives count rounds ----
+
+TEST(story_turn_events_fire_at_the_start_of_their_round_and_an_objective_can_count_rounds) {
+  const char* map =
+      "{ \"name\": \"T\", \"grid\": { \"type\": \"square\", \"width\": 12, \"height\": 5 }, \"legend\": { \".\": \"plain\" },\n"
+      "  \"tiles\": [\"............\", \"............\", \"............\", \"............\", \"............\"],\n"
+      "  \"sides\": [ { \"id\": \"blue\", \"controller\": \"human\" }, { \"id\": \"red\", \"controller\": \"ai\" } ],\n"
+      "  \"units\": [ { \"type\": \"knight\", \"side\": \"blue\", \"x\": 1, \"y\": 2, \"id\": \"kn\", \"leader\": true },"
+      " { \"type\": \"dummy\", \"side\": \"red\", \"x\": 9, \"y\": 2, \"id\": \"foe\", \"leader\": true } ],\n"
+      "  \"objectives\": { \"win\": [ { \"survive\": 4 } ] },\n"
+      "  \"events\": [ { \"id\": \"reinforce\", \"when\": { \"turn\": 3, \"side\": \"red\" },"
+      " \"do\": [ { \"addUnit\": { \"type\": \"dummy\", \"side\": \"red\", \"x\": 10, \"y\": 4, \"id\": \"rf\" } } ] } ] }";
+  Scene s("sp_story", map);
+  CHECK_EQ(s.b().unitByStoryId("rf"), -1);
+  int added = 0, roundOfAdd = 0;
+  for (int i = 0; i < 80 && !s.b().over; ++i) {
+    s.pass();
+    for (const Event& e : s.w->events)
+      if (e.type == EventType::UnitAdded) {
+        ++added;
+        roundOfAdd = s.b().round;
+      }
+  }
+  CHECK_EQ(added, 1);                  // once, at the start of round 3 (the "turn": 3 event of the red side), not once per red unit turn
+  CHECK_EQ(roundOfAdd, 3);
+  CHECK(s.b().over);                   // "survive 4 rounds": the human team wins when round 4 has begun
+  CHECK_EQ(s.b().round, 4);
+  CHECK_EQ(s.b().winnerTeam, s.b().sides[0].team);
+}
+
 // ---- the skill that gives another turn ----
 
 TEST(a_refresh_ability_fills_the_target_charge_so_it_acts_as_soon_as_the_order_reaches_it) {

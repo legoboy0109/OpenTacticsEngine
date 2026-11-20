@@ -364,6 +364,23 @@ same decision; each call looks at every unit's reach once (bounded by units x sq
 with attacks, walking, capturing, building and research only. **Tests.** `tests/test_ap_ai.cpp` (attacks with the pool, value per AP, a poor pool, building with an AP cost,
 a whole game between two computer sides that finishes identically twice).
 
+### Speed turn order
+
+In a game with `rules.turnOrder` `"speed"` (docs/TURN_ORDER.md) `aiTakeStep` hands over to `aiTakeSpeedStep` (`core/ai/ai_speed.cpp`): **one call plays (a step of) the unit that has the turn and nobody else**, and
+returns `true` while that unit's turn goes on (the caller loops as ever; `Battle::turnNo` tells a new turn from the same one). A game without the rule runs the unchanged AI, byte for byte.
+
+1. The side's research and upgrades are looked at first (a speed game has no building).
+2. A unit that is **charging** an action only waits (it may not act).
+3. Otherwise the unit's best order is found by the usual scoring (`ai::bestOrder`), and a **charged weapon** is scored the same way and replaces it when it scores higher. Where the action would go
+   off in the order is asked of `Battle::turnPreview` with the action as `extra`, and that decides how far the score can be trusted: not counted at all when it lands beyond **twice the preview length**;
+   **aimed at a square** (an area weapon's default): only when **every enemy it would hit has its turn after the action goes off** (such a unit cannot walk out of the blast); **following a unit**: the score is
+   cut to 90%, and to 70% when that unit has a turn before the action goes off (it may step out of range). The usual exposure of the square and the usual per-square cost apply, and an instant action
+   wins an equal score.
+4. Charged **abilities** are not used by the computer (its heals, summons and the rest skip them); a charged weapon is not counted as an instant attack by any of the other scores.
+
+**It always ends:** every call either plays the unit's order (an attack, a declaration or a Wait ends its turn; a refused order sends it to Wait) or spends something finite (a research, an upgrade). No randomness of its own;
+the same battle gives the same decision, and a computer-against-computer speed game finishes identically twice on square and hexagon grids (`tests/test_speed_save_ai.cpp`).
+
 ### Height rules
 
 In a game with `rules.height` (docs/SRPG.md "Height rules") the computer opponent is the usual one with three differences; a game without the block is byte for byte as before.

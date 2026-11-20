@@ -577,6 +577,16 @@ Two numbers of a unit, **only in a game with `rules.actionPoints`** and only whe
 Both are cleared when the side's turn starts. The pool is a resource of the side and is saved with the resources. A save with `apAttacks` in a game without
 action points, or above `attacksPerTurn`, is refused (`units[3].apAttacks`). A save of any other game is unchanged. Code: `core/battle/save_ap.cpp`.
 
+## Speed turn order (docs/TURN_ORDER.md)
+
+**Only in a game with `rules.turnOrder` `"speed"`.** Each unit gets `"ct": n` (its charge, -100000000 to 100000000; written when not 0) and `"turnActed": true` (it used its action in the turn it is
+having; written when true). The battle gets a `"clock"` object: `"activeUnit"` (the unit that has the turn: alive and on the active side; `-1` only in a finished battle), `"tick"` (0 to `roundTicks` - 1),
+`"turn"` (turns begun) and `"serial"` (the number of the last charged action declared), and `"pending"`: the charged actions on their way, each `{ "unit", "kind": "weapon" | "ability", "id", "counter",
+"follow", "target", "cell", "slot"?, "serial" }`. The `id` is the weapon's or ability's id (not an index) and must name something that charges; `counter` is 0 up to the threshold - 1 (a full one has
+gone off already); the caster is alive and has no other pending action; `"follow": true` needs a `"target"`. `round` and `activeSide` are the usual keys and `activeSide` must be the active unit's side.
+A save of a speed game without `"clock"`, or with any of these keys in a game that is not a speed game, is refused with a path (`battle.clock: missing`, `units[0].ct: this game has no speed turn order`,
+`battle.clock.pending[0].id: "x" is not a weapon of this game`). A save of any other game is unchanged. Code: `core/battle/save_clock.cpp`. Tests: `tests/test_speed_save_ai.cpp`, `speed_order_player_test.py`.
+
 ## Height rules (docs/SRPG.md "Height rules")
 
 Nothing is saved for them: the heights are the map's, the rules are the game's, and every unit's position is saved as always. A save of a game with `rules.height`

@@ -70,7 +70,7 @@ data/conditions.json   status conditions made of blocks                      (op
 data/jobs.json         jobs: JP, learned skills and abilities, equipped slots  (optional file; docs/JOBS.md)
 data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
-data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points), heightRange (Height rules)
+data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points), heightRange (Height rules), chargeSpeed (docs/TURN_ORDER.md)
 data/items.json        accessory: skills; usable: promotes, cure, inflict, opens (keys, section 10); staves (section 8; inflict, cure: section 9; unlock: section 10)
 maps/*.json            per unit: character, goesFor; per structure: id, contents, locked, visitSides, visitUnits; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
@@ -806,6 +806,11 @@ on empty ground has no target to look at: the attacker lunges toward each victim
 order, deferred deaths, counters, friendly fire, ammunition, experience, the random stream, saves, enemy ranges), `tests/test_area_ai.cpp` (fixture
 `tests/fixtures/area-fire`), `tests/area_fire_player_test.py` (boxes, firing, the highlight in all four views, UI scale 150), `tests/editor_api_area_checks.py`
 (the editor server carries the keys).
+
+### Speed turn order
+
+An optional second turn rule beside action points: units act **one at a time, by speed**, and some actions are **charged** (declared, then going off later). Everything is in docs/TURN_ORDER.md. It cannot
+be combined with action points or production.
 
 ### Action points
 

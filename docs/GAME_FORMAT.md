@@ -58,7 +58,7 @@ id that does not exist is a load error.
   "variables": [ { "id": "gold_found", "name": "Gold found" } ],
 
   "rules": {
-    "turnOrder": "sides",              // only "sides" for now
+    "turnOrder": "sides",              // "sides" (default: each side moves all its units, then the next) or "speed" / { "mode": "speed", "stat", "threshold", "preview", "roundTicks", "ctCost" }: units act one at a time by speed, some actions are charged (docs/TURN_ORDER.md)
     "counterAttacks": true,
     "defeat": ["noUnits"],             // any of: noUnits, leaderDead, lostHq (no "hq" structure left)
     "economy":     { "enabled": false },
@@ -244,6 +244,7 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "fire": "line",               // optional: "direct" (default) or "line": only along the straight lines of the grid, the first unit stops the shot; docs/SRPG.md "Area attacks and line fire"
     "apCost": 1,                  // optional, needs game.json "rules.actionPoints": this weapon's AP price instead of the game's attack cost; an "area" may add "apExtra": n (docs/SRPG.md "Action points")
     "area": { "shape": "radius", "radius": 2, "friendlyFire": false },  // optional: hits every unit in the area; shapes burst | radius | cross | line ("length"); same section
+    "chargeSpeed": 25,            // optional, needs game.json "rules.turnOrder": "speed": the attack is charged (declared, goes off later: its counter gains 25 a tick up to the threshold); also "chargeTargets": "unit" | "cell", "interruptedBy": ["sleep"] (docs/TURN_ORDER.md "Charged actions"); abilities take the same three keys
     "heightRange": { "up": 1, "down": 2 },  // optional, needs game.json "rules.height": the target may stand at most 1 level higher / 2 lower than the shooter; an "area" may add "vertical": n (docs/SRPG.md "Height rules")
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
