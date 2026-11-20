@@ -117,8 +117,10 @@ Order of a side's modifiers (so skills are judged in the same order live and aft
   price and what it does, and the meter's rule. Arrows + Confirm, a tap, Cancel goes back.
 - **Side panel**: the commander's name with `meter/top`, a bar with a tick at the price of each power (green while a power can be used, amber while one is active, then "Power: name  turns left").
   It shows the side the screen is for. **Under it, every other side's commander gets one slim block**: the name in that side's colour, `meter/top` (dropped when the row is too narrow, as at UI
-  scale 150, where the bar says it alone), a thin bar with a tick per power price, and while its power runs an amber bar with `P<turns left>`. Rule for three or more sides: the sides are taken in turn
+  scale 150), a thin bar with a tick per power price, and while its power runs an amber bar with `P<turns left>`. Rule for three or more sides: the sides are taken in turn
   order starting with the one after the viewed side (the next to act first), at most **two** blocks, and only while they fit above the cell and unit rows (the unit rows are never pushed off).
+  **When the whole unit summary (eight rows) would not fit under a full block** (UI scale 150 on the 480x270 canvas), the block is the bar alone: three pixel rows in the side's colour with the
+  price ticks, tucked right under the own bar, so the unit's weapon line still fits. The player logs `other meter: <name> <n>/<top> (bar only)` then.
   **Fog hides nothing here**: a meter is not information about the map. The player test logs `other meter: <name> <meter>/<top>` whenever it changes.
 - **Map menu** (the menu of an empty square, with End Turn): one **`Power: <name>`** entry per power with its price; greyed with `needs 12 more` while the meter is short, or `active`.
   Using one shows a banner with the commander's name and the power's name. The idle hint line adds "(power ready)".

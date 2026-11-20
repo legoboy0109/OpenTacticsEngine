@@ -330,7 +330,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
 
   // The commander of the side being looked at (docs/COMMANDERS.md): name, meter, power prices, the active power.
   drawCommanderMeter(r, c, c.view.shownSide(b, autoplay), x, y, w);
-  drawOtherCommanderMeters(r, c, c.view.shownSide(b, autoplay), x, y, w, L.vh - 6 * L.row);  // keeps room for the cell and unit rows
+  drawOtherCommanderMeters(r, c, c.view.shownSide(b, autoplay), x, y, w, L.vh - 6 * L.row, L.vh - 8 * L.row);  // keeps room for the cell and unit rows; bar only when the whole unit summary would not fit
 
   // Research under way for the side being looked at ("Masonry   2": name and the turns left, or "paused").
   const int rs = c.view.shownSide(b, autoplay);

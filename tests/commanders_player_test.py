@@ -168,7 +168,10 @@ def main():
         log = play('cmd', 'field', IDLE + ',' + HIT, tag, scale)
         om = lines(log, 'other meter:')
         check('%s: the enemy commander\'s meter row is there at 0 and has grown after its counter-attack' % tag,
-              len(om) >= 2 and om[0] == 'other meter: Bram 0/60' and om[-1] != om[0] and om[-1].startswith('other meter: Bram ') and clean(log), om)
+              len(om) >= 2 and om[0].startswith('other meter: Bram 0/60') and om[-1] != om[0] and om[-1].startswith('other meter: Bram ') and clean(log), om)
+        # At 150 the block is the bar alone, so that the unit's weapon line still fits; at 100 it has its name row.
+        check('%s: the enemy meter is %s' % (tag, 'the bar alone' if scale else 'a full row'),
+              bool(om) and all(l.endswith('(bar only)') == bool(scale) for l in om), om)
 
     # ---- a fixed commander (map "field"): no screen; the panel and the entries are there from the start
     log = play('cmd', 'field', IDLE + ',menu,wait:3', 'field')

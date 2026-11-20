@@ -190,7 +190,7 @@ void panelResourceAnchor(const Layout& L, int resourceCount, int& x, int& y);
 // Advances `y` by what it drew and returns that height (0 for a side without a commander).
 int drawCommanderMeter(Renderer& r, const DrawCtx& c, int side, int x, int& y, int w);
 // The slim blocks of the other sides' commanders under it (commander_panel_others.cpp: at most two, next to act first; fog hides nothing); `bottom` = last y it may use.
-int drawOtherCommanderMeters(Renderer& r, const DrawCtx& c, int viewed, int x, int& y, int w, int bottom);
+int drawOtherCommanderMeters(Renderer& r, const DrawCtx& c, int viewed, int x, int& y, int w, int bottom, int roomy);
 
 // Combat forecast box for attacker -> defender.
 // `extra`: one more line along the foot of the box (an area attack's other victims; empty = none).
