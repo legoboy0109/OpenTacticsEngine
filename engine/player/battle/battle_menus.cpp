@@ -109,7 +109,8 @@ void BattleScene::openBuildMenu(Cell cell) {
     for (const Amount& a : db.unitTypes[t].cost)
       it.extra += (it.extra.empty() ? "" : " ") + intStr(a.amount) + " " + db.resources[a.resource].name;
     it.enabled = battle_.canAfford(battle_.activeSide, t);
-    if (!battle_.unitUnlocked(battle_.activeSide, t)) {  // the reason ("needs Armor") takes the price's place
+    // The reason ("needs Armor", "not available to Order") takes the price's place.
+    if (!battle_.unitUnlocked(battle_.activeSide, t) || !battle_.factionBlocksUnit(battle_.activeSide, t).empty()) {
       std::string why;
       battle_.canBuild(cell, t, &why);
       it.extra = why;

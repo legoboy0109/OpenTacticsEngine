@@ -34,6 +34,13 @@ class GameSession {
   // starting a turn. Everything is checked first; on failure nothing changes.
   bool resume(const std::string& mapId, const Json& state, std::string& err);
 
+  // Factions (docs/ECONOMY.md "Factions"): the first side of `m` that a person controls, whose faction the map leaves to "choose", and that
+  // has no pick yet; -1 = none left. applyFactionPicks() puts the picks into a freshly loaded map (startMap and startMapPrep do it themselves).
+  int nextFactionPick(const MapDef& m) const;
+  void applyFactionPicks(MapDef& m) const;
+  // Per side of the map being started: the faction index a person picked, -1 = not yet. Cleared by the App when a new battle is asked for.
+  std::vector<int> factionPicks;
+
   Database db;
   Formulas formulas;
   MapDef map;

@@ -282,7 +282,9 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   const SideState& side = b.sides[b.activeSide];
   Color sc = Color::rgb(side.color);
   r.fillRect(px + 1, 0, L.panelW - 1, L.lh + 4, sc);
-  r.drawText(x, 2, fitText(r, side.name, w).c_str(), readableOn(sc));
+  // The faction (docs/ECONOMY.md "Factions") follows the side's name when it has one: "Blue Army (Order)".
+  const FactionDef* faction = b.factionOf(b.activeSide);
+  r.drawText(x, 2, fitText(r, faction ? side.name + " (" + faction->name + ")" : side.name, w).c_str(), readableOn(sc));
   int y = L.panelTop();
   row(r, x, y, w, "Turn " + intStr(b.round), (side.ai || autoplay) ? "AI" : "You");
   y += L.row;

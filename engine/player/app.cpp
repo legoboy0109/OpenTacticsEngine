@@ -258,7 +258,10 @@ void PlayerApp::loadGame(const std::string& gameId) {
 }
 
 void PlayerApp::startBattle(const std::string& mapId) {
-  later([this, mapId] { doStartBattle(mapId); });
+  later([this, mapId] {
+    if (session_) session_->factionPicks.clear();  // a new battle asks for the faction picks afresh
+    doStartBattle(mapId);
+  });
 }
 
 // Ends the current game: its art textures go first (the renderer is alive here).
@@ -324,6 +327,7 @@ void PlayerApp::doLoadGame(const std::string& gameId) {
 
 void PlayerApp::doStartBattle(const std::string& mapId) {
   scene_.reset();
+  if (askFactionIfNeeded(mapId)) return;  // docs/ECONOMY.md "Factions": a side whose faction is "choose" picks first
   if (!difficultyAsked_) {
     if (difficultyNeeded()) {  // docs/DIFFICULTY.md: a free battle asks which difficulty first
       const int at = session_->db.findMap(mapId);

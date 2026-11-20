@@ -97,6 +97,9 @@ class PlayerApp : public App, public SceneHost {
   bool checkDifficultyArg(std::string& err) const;
   bool difficultyAsked_ = false;  // the choice screen was just answered: doStartBattle goes on without asking again
 
+  // app_factions.cpp (docs/ECONOMY.md "Factions"): the faction choice screen before a free battle
+  bool askFactionIfNeeded(const std::string& mapId);  // true = a choice screen is up (the battle start is tried again after the pick)
+
   // app_audio.cpp: choosing the sound device (docs/SOUND.md "Engine design")
   void startAudio();
   void openAudioDevice();
