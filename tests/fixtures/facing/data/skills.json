@@ -1,0 +1,3 @@
+{ "skills": [
+  { "id": "backstabber", "name": "Backstabber", "blocks": [ { "when": "combat", "if": [ { "arc": "back" } ], "do": [ { "damage": 4 } ] } ] },
+  { "id": "alert", "name": "Alert", "blocks": [ { "when": "combat", "if": [ { "arc": "back", "who": "foe" } ], "do": [ { "damageTaken": 4 } ] } ] } ] }
