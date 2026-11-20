@@ -23,6 +23,13 @@ void UnitInfoView::open(const Battle& b, int unit) {
   std::string titles;
   for (const UnitInfoPage& p : pages_) titles += (titles.empty() ? "" : ", ") + p.title;
   OTE_INFO("unit details: %s (%s)", b.units[(size_t)unit].name.c_str(), titles.c_str());
+  // The non-zero damage-type resistances the Stats page lists, for the player tests (only in a game that declares damage types).
+  std::string res;
+  for (size_t t = 0; t < b.db->damageTypes.list.size(); ++t) {
+    const int rs = b.resistOf(b.units[(size_t)unit], (int)t);
+    if (rs != 0) res += (res.empty() ? "" : ", ") + b.db->damageTypes.list[t].name + " res " + (rs > 0 ? "+" : "") + std::to_string(rs);
+  }
+  if (b.db->damageTypes.on()) OTE_INFO("unit resist: %s: %s", b.units[(size_t)unit].name.c_str(), res.c_str());
 }
 
 void UnitInfoView::openPages(int unit, UnitInfoPages pages) {

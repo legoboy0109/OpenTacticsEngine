@@ -21,7 +21,7 @@ constexpr size_t kMaxNotes = 3;  // note lines per column; the rest are summed u
 
 // The lines of one fighter. `first`: it strikes before its foe in each exchange (the defender, see Forecast::
 // defenderFirst). `notes`: the activations of this fighter that could fire (Forecast::notes), in roll order.
-Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int hpAfter, bool showHit,
+Column makeColumn(Renderer& r, int maxW, const Battle& b, const Unit& u, const Unit& foe, const StrikeForecast& sf, int hpAfter, bool showHit,
                   bool showCrit, bool counterMissing, bool first, const std::vector<ForecastNote>& notes) {
   Column col;
   Color sc = Color::rgb(b.sides[u.side].color);
@@ -38,6 +38,21 @@ Column makeColumn(const Battle& b, const Unit& u, const StrikeForecast& sf, int 
     }
     col.push_back({name, kGrey});
     if (mapStructure >= 0) col.push_back({mapWeaponForecastFrom(b, mapStructure), kNote});
+    // Damage types (docs/SRPG.md "Damage types"), only in a game that declares them: "Fire", or "Fire  res +3" with the foe's resistance.
+    const int type = b.db->weapons[sf.weapon].damageType;
+    if (type >= 0) {
+      std::string line = b.db->damageTypes.list[(size_t)type].name;
+      const int rs = b.resistOf(foe, type);
+      if (rs == 0) {
+        col.push_back({line, kGrey});
+      } else {
+        const std::string res = std::string("res ") + (rs > 0 ? "+" : "") + intStr(rs);
+        // One line ("Fire  res +3") when the column is wide enough (a big UI scale narrows it), else the resistance on a line of its own:
+        // the number must never be the part that is cut off.
+        if (textW(r, line + "  " + res) <= maxW) col.push_back({line + "  " + res, kGrey});
+        else { col.push_back({line, kGrey}); col.push_back({res, kGrey}); }
+      }
+    }
   }
   col.push_back({"HP " + intStr(u.hp) + " > " + intStr(hpAfter), hpAfter <= 0 ? Color(255, 110, 100) : kText});
   if (!counterMissing) {
@@ -83,8 +98,8 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   bool showHit = f.attack.hit < 100 || (f.counter.can && f.counter.hit < 100);
   bool showCrit = f.attack.crit > 0 || (f.counter.can && f.counter.crit > 0);
 
-  Column ca = makeColumn(b, a, f.attack, hpA, showHit, showCrit, false, false, f.notes);
-  Column cd = makeColumn(b, d, f.counter, hpD, showHit, showCrit, !f.counter.can, f.defenderFirst, f.notes);
+  Column ca = makeColumn(r, (L.W - 8 - 24) / 2, b, a, d, f.attack, hpA, showHit, showCrit, false, false, f.notes);
+  Column cd = makeColumn(r, (L.W - 8 - 24) / 2, b, d, a, f.counter, hpD, showHit, showCrit, !f.counter.can, f.defenderFirst, f.notes);
   if (!f.counter.can) std::swap(cd[1], cd[2]);  // keep HP right under the name
   size_t rows = std::max(ca.size(), cd.size());
   // The lines, once per change, for the player tests (drawn every frame, so not logged every frame).
