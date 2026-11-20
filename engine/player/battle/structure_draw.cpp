@@ -71,8 +71,8 @@ void drawStructureHex(Renderer& r, const DrawCtx& c, int index, int camX, int ca
     for (Cell cell : cells) {
       int x, y;
       boxOf(cell, x, y);
-      if (ov.reach[(size_t)cell]) fillHex(r, geo, x, y, Color(50, 110, 255, 105));
-      else if (ov.attack[(size_t)cell]) fillHex(r, geo, x, y, Color(255, 50, 50, 105));
+      const Tone tone = toneOf(ov, cell);
+      if (tone != Tone::None) fillHex(r, geo, x, y, toneColor(tone, 105));
     }
   }
 }
@@ -121,8 +121,8 @@ void drawStructure(Renderer& r, const DrawCtx& c, int index, int camX, int camY,
       for (int dx = 0; dx < def.width; ++dx) {
         Cell cell = b.grid.at(st.x + dx, st.y + dy);
         if (cell == kNoCell) continue;
-        if (ov.reach[(size_t)cell]) r.fillRect(sx + dx * t, sy + dy * t, t, t, Color(50, 110, 255, 105));
-        else if (ov.attack[(size_t)cell]) r.fillRect(sx + dx * t, sy + dy * t, t, t, Color(255, 50, 50, 105));
+        const Tone tone = toneOf(ov, cell);
+        if (tone != Tone::None) r.fillRect(sx + dx * t, sy + dy * t, t, t, toneColor(tone, 105));
       }
   }
 }

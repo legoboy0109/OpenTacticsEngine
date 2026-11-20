@@ -99,8 +99,8 @@ void tint(const HI& I, Cell cell, Color col, bool outline = false, int lift = 0,
 
 void overlayTint(const HI& I, const Overlay& ov, Cell cell, int lift = 0) {
   if (!ov.any()) return;
-  if (ov.reach[cell]) tint(I, cell, Color(50, 110, 255, 120), false, lift);
-  else if (ov.attack[cell]) tint(I, cell, Color(255, 50, 50, 120), false, lift);
+  const Tone tone = toneOf(ov, cell);
+  if (tone != Tone::None) tint(I, cell, toneColor(tone, 120), false, lift);
 }
 
 // A structure stands at the height of its highest hexagon.

@@ -107,11 +107,47 @@ inline uint32_t structureRgb(const DrawCtx& c, int structureType) {
   return c.battle.db->structures[t].color;
 }
 
-// Per-cell highlight masks for a selected unit (empty = nothing highlighted).
+// Per-cell highlight masks for a selected unit (empty = nothing highlighted), and, apart, the reach of the enemies the player marked
+// (enemy_ranges.h): `foeMove` / `foeAttack` point at the masks of the scene's EnemyRanges (null = none; both set, one entry per cell).
+// Every kind of view reads a square's tint through toneOf(), so the five views cannot differ: the player's own blue / red win over the
+// enemies' violet / orange on one square.
 struct Overlay {
   std::vector<uint8_t> reach, attack;
-  bool any() const { return !reach.empty(); }
+  const std::vector<uint8_t>* foeMove = nullptr;
+  const std::vector<uint8_t>* foeAttack = nullptr;
+  bool any() const { return !reach.empty() || foeMove; }
 };
+
+enum class Tone : uint8_t { None, Move, Attack, FoeMove, FoeAttack };
+
+inline Tone toneOf(const Overlay& ov, Cell cell) {
+  if (!ov.reach.empty()) {
+    if (ov.reach[(size_t)cell]) return Tone::Move;
+    if (ov.attack[(size_t)cell]) return Tone::Attack;
+  }
+  if (ov.foeMove) {
+    if ((*ov.foeMove)[(size_t)cell]) return Tone::FoeMove;
+    if ((*ov.foeAttack)[(size_t)cell]) return Tone::FoeAttack;
+  }
+  return Tone::None;
+}
+
+// The colour of a tone (not None): blue / red for the player's own unit, violet / orange for what an enemy can reach / hit.
+struct ToneRgb { uint8_t r, g, b; };
+inline ToneRgb toneRgb(Tone t) {
+  switch (t) {
+    case Tone::Move: return {50, 110, 255};
+    case Tone::Attack: return {255, 50, 50};
+    case Tone::FoeMove: return {150, 80, 230};
+    default: return {255, 170, 20};
+  }
+}
+// The enemies' tones are drawn a little more opaque: violet and orange over green ground would otherwise read as grey and olive.
+inline uint8_t toneAlpha(Tone t, int alpha) { return (uint8_t)(t == Tone::FoeMove || t == Tone::FoeAttack ? alpha + 50 : alpha); }
+inline Color toneColor(Tone t, int alpha) {
+  const ToneRgb c = toneRgb(t);
+  return Color(c.r, c.g, c.b, toneAlpha(t, alpha));
+}
 
 // Terrain, then structures and units together (sorted by the row of their
 // bottom edge), overlays, capture numbers, cursor. Draws beyond the viewport edge

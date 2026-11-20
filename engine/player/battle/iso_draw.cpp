@@ -104,8 +104,8 @@ void tint(const Iso& I, int x, int y, Color col, bool outline = false, int lift 
 
 void overlayTint(const Iso& I, const Overlay& ov, Cell cell, int x, int y, int lift = 0) {
   if (!ov.any()) return;
-  if (ov.reach[cell]) tint(I, x, y, Color(50, 110, 255, 120), false, lift);
-  else if (ov.attack[cell]) tint(I, x, y, Color(255, 50, 50, 120), false, lift);
+  const Tone tone = toneOf(ov, cell);
+  if (tone != Tone::None) tint(I, x, y, toneColor(tone, 120), false, lift);
 }
 
 // Elevation a structure stands at: the highest of its squares.

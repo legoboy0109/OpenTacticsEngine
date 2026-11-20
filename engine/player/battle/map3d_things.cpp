@@ -190,8 +190,10 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
     for (int y = 0; y < g.gridH(); ++y)
       for (int x = 0; x < g.gridW(); ++x) {
         Cell cell = b.grid.at(x, y);
-        if (ov.reach[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(50, 110, 255, 120));
-        else if (ov.attack[cell]) groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(255, 50, 50, 120));
+        const Tone tone = toneOf(ov, cell);
+        if (tone == Tone::None) continue;
+        const ToneRgb k = toneRgb(tone);
+        groundQuad(m, c, x, y, 1, 1, topOf(cell, x, y) + 0.016f, 0.03f, Tint3D(k.r, k.g, k.b, toneAlpha(tone, 120)));
       }
   }
   if (showCursor && b.grid.valid(cursor)) {

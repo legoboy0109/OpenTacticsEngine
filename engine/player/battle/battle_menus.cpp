@@ -142,6 +142,8 @@ void BattleScene::openEndMenu() {
   }
   // With a Continue save the battle can be picked up later; without one, leaving ends it.
   items.push_back({continueOn() ? "Leave battle" : "Abandon battle", "", true, kLeave});
+  // The enemy-range display for every device (last but one: the rows above keep their places), so the feature can be found without knowing the key (battle/enemy_ranges.h).
+  if (rangesOn() && humanTurn()) items.push_back({ranges_.all() ? "Enemy ranges: hide" : "Enemy ranges: show", "", true, kRangesEntry});
   items.push_back({"Cancel", "", true, 0});
   std::string log;
   for (const MenuItem& it : items) log += (log.empty() ? "" : ", ") + it.label;
@@ -201,6 +203,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     mode_ = Mode::Idle;
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
     else if (res == Menu::Chosen && id == kObjective) openObjective();
+    else if (res == Menu::Chosen && id == kRangesEntry) toggleAllRanges();
     else if (res == Menu::Chosen && id == kResearchEntry) openResearchPanel();
     else if (res == Menu::Chosen && srpgEndMenuChosen(id)) {}
     else if (res == Menu::Chosen && id == kDifficultyEntry) openDifficultyMenu();

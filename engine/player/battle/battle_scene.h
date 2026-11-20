@@ -17,6 +17,7 @@
 #include "battle/srpg_menu_ids.h"
 #include "battle/srpg_pick.h"
 #include "battle/unit_info.h"
+#include "battle/enemy_ranges.h"
 #include "battle/weapon_choice.h"
 #include "scene.h"
 #include "saves.h"
@@ -52,7 +53,7 @@ class BattleScene : public Scene {
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
-                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kDifficultyEntry, kTestLevelEntry,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry,
                 kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -303,6 +304,15 @@ class BattleScene : public Scene {
   void slotInput(const InputEvent& e);
   void say(const std::string& text);  // short message in the hint line
 
+  // --- battle_enemy_ranges.cpp: the player's enemy-range display (battle/enemy_ranges.h)
+  int viewTeam() const;       // the team whose eyes the screen shows (the active human side's)
+  bool rangesOn() const;      // the feature is available: not switched off by the game or the player, not in the preparation screen
+  void refreshRanges();
+  bool markEnemy(int unit);   // Confirm on a visible enemy: mark / unmark; false = not markable
+  void toggleAllRanges();
+  bool clearRanges();
+  void addRangeTint(Overlay& ov) const;
+
   SceneHost& host_;
   GameSession& session_;
   Battle& battle_;  // lives in the session; undo assigns into it
@@ -327,6 +337,7 @@ class BattleScene : public Scene {
   int turn_ = 0;        // 3D isometric: turns of the camera asked for (quarters; sixths on hexagon maps)
   float turnPos_ = 0;   // where the camera is now (eases towards turn_)
   Overlay overlay_;
+  EnemyRanges ranges_;  // marked enemies / "show all": a display aid, never saved
   Menu menu_;
   Mode mode_ = Mode::Idle;
   bool autoplay_ = false;

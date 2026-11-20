@@ -221,6 +221,8 @@ void BattleScene::idleButton(Button b) {
     case Button::Next: cycleUnit(1); break;
     case Button::Prev: cycleUnit(-1); break;
     case Button::Menu: openEndMenu(); break;
+    case Button::Ranges: toggleAllRanges(); break;
+    case Button::Cancel: clearRanges(); break;  // (nothing else to cancel on the plain map)
     case Button::Confirm: {
       int uid = battle_.unitAt(cursor_);
       if (uid >= 0 && battle_.canAct(uid) && !battle_.units[uid].done && battle_.units[uid].side == battle_.activeSide) {
@@ -238,6 +240,9 @@ void BattleScene::idleButton(Button b) {
           break;
         }
       }
+      // An enemy in sight: mark it (its reach is drawn, enemy_ranges.h). This used to open the map menu, which Menu / a tap on an empty
+      // square still does (and its "Unit" entry shows this unit's details).
+      if (uid >= 0 && rangesOn() && markEnemy(uid)) break;
       uiCue(Cue::Confirm);
       if (!openStructureAt(cursor_)) openEndMenu();  // Build / Upgrade / Research of an own structure (battle_economy.cpp)
       break;
@@ -295,6 +300,7 @@ void BattleScene::selectedButton(Button b) {
     case Button::Down: moveCursor(0, 1); break;
     case Button::Left: moveCursor(-1, 0); break;
     case Button::Right: moveCursor(1, 0); break;
+    case Button::Ranges: toggleAllRanges(); break;
     case Button::Cancel:
       uiCue(Cue::Cancel);
       cursor_ = battle_.units[sel_].cell;
