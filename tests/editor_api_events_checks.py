@@ -48,7 +48,7 @@ def run_events_checks(api, tmp, games, templates, check, get_project, put_projec
         {"id": "ambush", "when": {"turn": 4, "side": "red"}, "if": [{"switch": "village_saved", "is": False}], "repeat": False, "do": [
             {"addUnit": {"type": "soldier", "side": "red", "x": 7, "y": 1, "id": "scout", "name": "Scout", "level": 2, "leader": False}},
             {"moveUnit": "scout", "x": 5, "y": 1},
-            {"changeSide": {"unit": "scout"}, "side": "blue"},
+            {"changeSide": {"unit": "scout"}, "side": "blue", "ready": True},
             {"removeUnit": {"type": "soldier"}},
             {"setVariable": "gold_found", "to": 3}, {"addVariable": "gold_found", "by": -1},
             {"objective": {"text": "Hold out", "win": [{"survive": 6}], "lose": [{"round": 10}]}},

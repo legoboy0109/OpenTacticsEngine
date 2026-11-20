@@ -822,6 +822,7 @@ class Battle {
   void unitDefeated(int unit, int killer, std::vector<Event>& events);
   // turn.cpp
   void beginTurn(std::vector<Event>& events);
+  void refreshUnitForTurn(Unit& u);
   void advanceTurn(std::vector<Event>& events);
   void checkDefeat(std::vector<Event>& events);
   void changeResource(int side, int resource, int delta, std::vector<Event>& events);

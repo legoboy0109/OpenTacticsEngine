@@ -183,8 +183,8 @@ bool StoryLoader::command(const Json& e, const std::string& where, bool talk, Co
   if (k == "changeSide") {
     out.kind = K::ChangeSide;
     std::string side;
-    if (!onlyKeys(e, {"changeSide", "side"}, at) || !filter(v, at, "\"changeSide\"", out.filter) ||
-        !c_.str(e, "side", at, side, true))
+    if (!onlyKeys(e, {"changeSide", "side", "ready"}, at) || !filter(v, at, "\"changeSide\"", out.filter) ||
+        !c_.str(e, "side", at, side, true) || !c_.boolean(e, "ready", at, out.on))  // "ready" travels in `on`
       return false;
     return sideIndex(side, at, "\"side\"", out.side);
   }
