@@ -61,6 +61,7 @@ from editor_api_parties_checks import run_parties_checks
 from editor_api_damage_types_checks import run_damage_types_checks
 from editor_api_research_branches_checks import run_research_branches_checks
 from editor_api_factions_checks import run_factions_checks
+from editor_api_area_checks import run_area_checks
 from editor_api_difficulty_checks import run_difficulty_checks
 from editor_api_fidelity_checks import run_fidelity_checks
 
@@ -221,6 +222,7 @@ def main():
         run_damage_types_checks(api, tmp, games, templates, check, get_project, put_project)
         run_research_branches_checks(api, tmp, games, templates, check, get_project, put_project)
         run_factions_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_area_checks(api, tmp, games, templates, check, get_project, put_project)
         run_fidelity_checks(api, tmp, games, templates, check, get_project, put_project)
         run_learn_checks(api, binary, repo, tmp, learn_file, check)
         # The helper must survive everything above.
