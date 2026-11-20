@@ -4,6 +4,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace ote {
 namespace hw3d {
@@ -15,6 +16,9 @@ size_t swizzledBytes(int width, int height, int levels);
 // Where pixel (x, y) of a width x height level lies, in 4-byte units from the level's start. Width and height are powers of
 // two; for a rectangle the longer side's extra bits are the high bits of the address.
 uint32_t swizzleIndex(int x, int y, int width, int height);
+// Half the size in each direction (a side of 1 stays 1): every new pixel is the average of 2 x 2 old ones, colours weighted
+// by alpha so transparent pixels do not darken the edges of cut-outs. Used to hold a texture in less memory.
+void halveImage(const uint8_t* rgba, int width, int height, std::vector<uint8_t>& out);
 // Fills `dst` (swizzledBytes(width, height, levels) bytes) from R,G,B,A bytes (top row first): converts to A8R8G8B8 words,
 // makes the smaller levels by averaging 2 x 2 pixels, swizzles each level.
 void buildSwizzled(const uint8_t* rgba, int width, int height, int levels, uint32_t* dst);

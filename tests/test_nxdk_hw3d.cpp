@@ -133,3 +133,16 @@ TEST(hw3d_clip_interpolates_what_the_cut_vertices_carry) {
     }
   CHECK(found);
 }
+
+TEST(hw3d_halve_weights_colours_by_alpha) {
+  // 2 x 2: one opaque red pixel and three fully transparent black ones: the result is red, a quarter opaque.
+  const uint8_t px[16] = {255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  std::vector<uint8_t> out;
+  hw3d::halveImage(px, 2, 2, out);
+  CHECK_EQ((int)out.size(), 4);
+  CHECK_EQ((int)out[0], 255);
+  CHECK_EQ((int)out[1], 0);
+  CHECK_EQ((int)out[3], 64);
+  hw3d::halveImage(px, 1, 1, out);  // a 1 x 1 picture stays 1 x 1
+  CHECK_EQ((int)out.size(), 4);
+}

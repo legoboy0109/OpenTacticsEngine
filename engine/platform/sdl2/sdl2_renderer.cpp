@@ -269,7 +269,14 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_RenderCopy(r_, t, &src, &dst);
 }
 
-void SdlRenderer::setColor(Color c) { SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a); }
+void SdlRenderer::setColor(Color c) {
+  SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a);
+#ifdef OTE_NXDK
+  // SDL's CPU renderer blends every fill pixel by pixel while the blend mode is on, also an opaque one; a plain fill is several
+  // times cheaper and is what most of a frame is (docs/XBOX_OG.md "Memory and speed").
+  SDL_SetRenderDrawBlendMode(r_, c.a == 255 ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+#endif
+}
 
 void SdlRenderer::clear(Color c) {
   if (fixed_) {

@@ -61,6 +61,25 @@ uint32_t swizzleIndex(int x, int y, int width, int height) {
   return deposit((uint32_t)x, mx) | deposit((uint32_t)y, my);
 }
 
+void halveImage(const uint8_t* rgba, int width, int height, std::vector<uint8_t>& out) {
+  const int nw = std::max(1, width / 2), nh = std::max(1, height / 2);
+  out.assign((size_t)nw * nh * 4, 0);
+  for (int y = 0; y < nh; ++y)
+    for (int x = 0; x < nw; ++x) {
+      int sum[3] = {0, 0, 0}, alpha = 0, count = 0;
+      for (int k = 0; k < 4; ++k) {
+        int sx = std::min(width - 1, x * 2 + (k & 1)), sy = std::min(height - 1, y * 2 + (k >> 1));
+        const uint8_t* p = &rgba[((size_t)sy * width + sx) * 4];
+        for (int c = 0; c < 3; ++c) sum[c] += p[c] * p[3];
+        alpha += p[3];
+        ++count;
+      }
+      uint8_t* o = &out[((size_t)y * nw + x) * 4];
+      for (int c = 0; c < 3; ++c) o[c] = alpha ? (uint8_t)((sum[c] + alpha / 2) / alpha) : 0;
+      o[3] = (uint8_t)((alpha + count / 2) / count);
+    }
+}
+
 void buildSwizzled(const uint8_t* rgba, int width, int height, int levels, uint32_t* dst) {
   std::vector<uint8_t> cur(rgba, rgba + (size_t)width * height * 4), next;
   int w = width, h = height;

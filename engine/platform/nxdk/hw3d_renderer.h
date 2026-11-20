@@ -73,7 +73,6 @@ class NxdkRenderer3D final : public Renderer3D {
   int clipped_ = 0;
   int debugMode_ = 0;      // OTE_3D_DEBUG
   int frames_ = 0;         // 3D pictures drawn, for the log line every few seconds
-  size_t peakPush_ = 0;
 };
 
 }  // namespace ote

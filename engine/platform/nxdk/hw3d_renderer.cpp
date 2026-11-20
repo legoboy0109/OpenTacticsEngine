@@ -20,7 +20,8 @@ static_assert(offsetof(Vertex3D, nx) == 12 && offsetof(Vertex3D, u) == 24 && off
 namespace {
 
 const float kZScale = 16777215.0f;  // the depth buffer is 24 bits (pbkit's pb_ZScale)
-const float kPixelBias = 0.53125f;  // pbkit's half-pixel offset for window positions
+const float kPixelBias = 0.53125f;
+const size_t kOneTexture = 3u << 20;  // the most one texture (with its mipmaps) may take  // pbkit's half-pixel offset for window positions
 
 size_t pages(size_t bytes) { return (bytes + 4095) & ~(size_t)4095; }
 
@@ -43,8 +44,8 @@ uint32_t texFormat(int w, int h, int levels) {
 
 NxdkRenderer3D::NxdkRenderer3D() {
   const bool big = hw3d::width() > 700;  // 720p: its frame buffers take far more of the 64 MB
-  texBudget_ = (size_t)(big ? 8 : 12) << 20;
-  meshBudget_ = (size_t)(big ? 3 : 4) << 20;
+  texBudget_ = (size_t)(big ? 4 : 6) << 20;  // the 64 MB also hold the 2D art, the chip's buffers and PNG decoding (docs/XBOX_OG.md "3D memory")
+  meshBudget_ = (size_t)2 << 20;
   whiteMem_ = hw3d::alloc(4096);
   if (whiteMem_) {
     uint32_t* w = (uint32_t*)whiteMem_;
@@ -159,13 +160,31 @@ Texture3DId NxdkRenderer3D::createTexture(const uint8_t* rgba, int width, int he
     OTE_ERROR("3D texture refused: %d x %d; each side must be a power of two up to %d", width, height, limit);
     return 0;
   }
+  // Memory is what limits a texture here, not the chip: one that takes more than kOneTexture, or more than is left of the budget,
+  // is held at half the size (and again) until it fits. Texture positions are fractions, so nothing above notices.
+  const int askedW = width, askedH = height;
+  std::vector<uint8_t> small[2];
+  const uint8_t* src = rgba;
+  auto bytesFor = [&](int w, int h) { return pages(hw3d::swizzledBytes(w, h, mipmaps ? hw3d::mipLevelCount(w, h) : 1)); };
+  int flip = 0;
+  while ((bytesFor(width, height) > kOneTexture || texBytes_ + bytesFor(width, height) > texBudget_) && (width > 4 || height > 4)) {
+    hw3d::halveImage(src, width, height, small[flip]);
+    src = small[flip].data();
+    flip ^= 1;
+    width = std::max(1, width / 2);
+    height = std::max(1, height / 2);
+  }
+  rgba = src;
   const int levels = mipmaps ? hw3d::mipLevelCount(width, height) : 1;
-  const size_t bytes = pages(hw3d::swizzledBytes(width, height, levels));
+  const size_t bytes = bytesFor(width, height);
   if (texBytes_ + bytes > texBudget_) {
-    OTE_ERROR("3D texture refused: %d x %d (%u KB) would take the textures over their %u MB budget (%u KB in use)", width, height,
-              (unsigned)(bytes >> 10), (unsigned)(texBudget_ >> 20), (unsigned)(texBytes_ >> 10));
+    OTE_ERROR("3D texture refused: %d x %d would take the textures over their %u MB budget (%u KB in use)", askedW, askedH,
+              (unsigned)(texBudget_ >> 20), (unsigned)(texBytes_ >> 10));
     return 0;
   }
+  if (width != askedW || height != askedH)
+    OTE_INFO("3D texture %d x %d held at %d x %d to stay within the memory budget (%u KB)", askedW, askedH, width, height,
+             (unsigned)(bytes >> 10));
   void* mem = hw3d::alloc(bytes);
   if (!mem) {
     OTE_ERROR("3D texture refused: no chip memory left for %d x %d", width, height);

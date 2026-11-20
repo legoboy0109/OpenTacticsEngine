@@ -75,8 +75,8 @@ void drawLayer(bool opaque) {
   ++g_layers;
 }
 
-bool saveBmp(const std::string& path, const uint8_t* pixels, int w, int h, int pitch) {
-  SDL_Surface* s = SDL_CreateRGBSurfaceWithFormatFrom((void*)pixels, w, h, 32, pitch, SDL_PIXELFORMAT_ARGB8888);
+bool saveBmp(const std::string& path, const uint8_t* pixels, int w, int h, int pitch, Uint32 format = SDL_PIXELFORMAT_ARGB8888) {
+  SDL_Surface* s = SDL_CreateRGBSurfaceWithFormatFrom((void*)pixels, w, h, 32, pitch, format);
   if (!s) return false;
   FILE* fp = openFile(path, "wb");  // the kernel wants backslashes: openFile converts
   bool ok = fp && SDL_SaveBMP_RW(s, SDL_RWFromFP(fp, SDL_TRUE), 1) == 0;
