@@ -1,0 +1,15 @@
+OTE_LOG_LEVEL=debug
+--game
+demo-hex
+--map
+foggy_hills
+--style
+full-3d
+--seed
+2
+--fixed-dt
+0.0166
+--frames
+140
+--screenshot
+D:/userdata/shot.bmp

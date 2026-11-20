@@ -1,0 +1,15 @@
+OTE_LOG_LEVEL=debug
+--game
+demo-srpg
+--map
+bridge
+--style
+detailed-3d
+--seed
+3
+--fixed-dt
+0.0166
+--frames
+140
+--screenshot
+D:/userdata/shot.bmp

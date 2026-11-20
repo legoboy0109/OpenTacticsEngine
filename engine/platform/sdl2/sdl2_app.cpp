@@ -15,6 +15,7 @@
 #include <hal/video.h>
 
 #include "platform/nxdk/nxdk.h"
+#include "platform/nxdk/nxdk_present.h"
 #endif
 #include "platform/sdl2/sdl2_gl3d.h"
 #include "platform/sdl2/sdl2_input.h"
@@ -95,7 +96,12 @@ void frame(Loop& L) {
 #ifdef OTE_NXDK
   nxdkDrawOverlay(*L.gfx);  // only when OTE_XBOX_OVERLAY is set
 #endif
+#ifdef OTE_NXDK
+  // With the chip showing the frames the screenshot is the composed picture, written by nxdkPresent below.
+  if (last && !L.cfg->screenshotPath.empty() && !nxdkChipPresents()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
+#else
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
+#endif
   L.workTicks += SDL_GetPerformanceCounter() - workStart;
   if (++L.timedFrames == kTimedFrames) {
     const Uint64 t = SDL_GetPerformanceCounter();
@@ -117,9 +123,12 @@ void frame(Loop& L) {
     L.timedFrames = 0;
   }
   if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
-  SDL_RenderPresent(L.gfx->handle());
 #ifdef OTE_NXDK
-  XVideoWaitForVBlank();  // the CPU renderer has no vsync of its own: do not spin a core drawing frames nobody sees
+  // The 2D layer is a surface of ours, not the window's: it goes to the screen by nxdkPresent (a copy into the frame buffer, or
+  // the chip's composition once a 3D backend exists), which also waits for the vertical blank (the CPU renderer has no vsync).
+  nxdkPresent(last && nxdkChipPresents() ? L.cfg->screenshotPath : std::string());
+#else
+  SDL_RenderPresent(L.gfx->handle());
 #endif
   // Without working vsync a plain loop would spin a core at 100%.
   if (!L.cfg->headless && !L.vsync) SDL_Delay(1);
@@ -213,7 +222,11 @@ int runApp(App& app, const PlatformConfig& config) {
   } else {
 #ifdef OTE_NXDK
     // The only renderer SDL's Xbox video driver supports is the CPU one (there is no GPU renderer for the NV2A in SDL 2.0.9).
-    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    // It draws into an ARGB surface of our own instead of the window's (which has no alpha): the NV2A shows 3D under the 2D
+    // layer only if the layer can be transparent (platform/nxdk/nxdk_present.h).
+    SDL_Surface* canvas = SDL_CreateRGBSurfaceWithFormat(0, winW, winH, 32, SDL_PIXELFORMAT_ARGB8888);
+    if (canvas) ren = SDL_CreateSoftwareRenderer(canvas);
+    nxdkSetCanvas(canvas);
 #elif defined(_WIN32)
     // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its
     // target (sdl2_d3d11_3d.cpp). On UWP it is SDL2's only hardware renderer anyway; SDL2's desktop default would be

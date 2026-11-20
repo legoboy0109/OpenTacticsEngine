@@ -1,0 +1,10 @@
+OTE_LOG_LEVEL=debug
+--test-3d
+--fixed-dt
+0.0166
+--input
+wait:10,confirm,wait:10,left,wait:30
+--frames
+200
+--screenshot
+D:/userdata/shot.bmp

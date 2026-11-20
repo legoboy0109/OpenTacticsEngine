@@ -5,6 +5,9 @@
 #include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/sdl2/sdl2_pixels.h"
+#ifdef OTE_NXDK
+#include "platform/nxdk/nxdk_present.h"
+#endif
 
 namespace ote {
 
@@ -143,6 +146,18 @@ void SdlRenderer::applyLogical() {
   in.anamorphic = screen_.anamorphic;
   in.safePercent = safePercent_ > 0 ? safePercent_ : defaultSafePercent(screen_.highDefinition);
   fit_ = fitCanvas(in);
+#ifdef OTE_NXDK
+  {  // the hardware 3D picture is placed in the same rectangle (platform/nxdk/nxdk_present.h)
+    NxdkFit f;
+    f.x = fit_.x;
+    f.y = fit_.y;
+    f.w = fit_.w;
+    f.h = fit_.h;
+    f.kx = fit_.kx;
+    f.ky = fit_.ky;
+    nxdkSetFit(f);
+  }
+#endif
   // SDL's own logical-size code does the same three steps: viewport in screen pixels (scale 1), then the scale.
   SDL_RenderSetLogicalSize(r_, 0, 0);
   SDL_RenderSetScale(r_, 1.0f, 1.0f);
@@ -254,7 +269,14 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_RenderCopy(r_, t, &src, &dst);
 }
 
-void SdlRenderer::setColor(Color c) { SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a); }
+void SdlRenderer::setColor(Color c) {
+  SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a);
+#ifdef OTE_NXDK
+  // SDL's CPU renderer blends every fill pixel by pixel while the blend mode is on, also an opaque one; a plain fill is several
+  // times cheaper and is what most of a frame is (docs/XBOX_OG.md "Memory and speed").
+  SDL_SetRenderDrawBlendMode(r_, c.a == 255 ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+#endif
+}
 
 void SdlRenderer::clear(Color c) {
   if (fixed_) {

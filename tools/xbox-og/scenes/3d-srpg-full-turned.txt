@@ -1,0 +1,15 @@
+OTE_LOG_LEVEL=debug
+--game
+demo-srpg
+--map
+bridge
+--style
+full-3d
+--fixed-dt
+0.0166
+--input
+wait:150,turnright,turnright,tiltdown,tiltdown,zoomin,wait:40
+--frames
+400
+--screenshot
+D:/userdata/shot.bmp

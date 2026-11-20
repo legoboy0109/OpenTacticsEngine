@@ -1,0 +1,19 @@
+// The one pixel stage of the original Xbox's 3D backend (docs/RENDER3D.md "Original Xbox backend"): texture colour times the
+// lit vertex colour (col0, already shrunk by 1 - fog), plus the fog share the vertex program put in col1 (fog amount times
+// fog colour). Source for tools/xbox-og/shaders/make_shaders.sh (nxdk's fp20compiler); the generated
+// engine/platform/nxdk/hw3d_ps.inl is committed.
+!!TS1.0
+texture_2d();
+!!RC1.0
+{
+  rgb
+  {
+    spare0 = tex0.rgb * col0.rgb;
+  }
+  alpha
+  {
+    spare0 = tex0.a * col0.a;
+  }
+}
+out.rgb = unsigned(spare0.rgb) + unsigned(col1.rgb);
+out.a = unsigned(spare0.a);

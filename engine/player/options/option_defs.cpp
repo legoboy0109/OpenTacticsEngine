@@ -65,6 +65,7 @@ std::vector<OptionChoice> styleChoices(const OptionContext& ctx) {
 }
 void applyStyle(const Json& v, LookLayer& l) { l.style = v.asString(); }
 
+#ifndef OTE_NXDK  // (the original Xbox has neither row: docs/XBOX_OG.md "3D")
 // ---- what draws 3D (docs/RENDER3D.md) ----------------------------------------
 // The software drawer works everywhere; OpenGL falls back to it by itself on
 // a machine where it cannot be used.
@@ -82,6 +83,7 @@ std::vector<OptionChoice> res3dChoices(const OptionContext& ctx) {
           choice("Game size", Json::makeString("game"))};
 }
 void applyRes3d(const Json& v, LookLayer& l) { l.res3d = v.asString(); }
+#endif
 
 // ---- battle animations (docs/BATTLE_SCENE.md "Settings") -----------------------------------------------------------
 // The scene (side-view fighters) or the quick fight on the map; unset = what the game asks for.
@@ -138,8 +140,11 @@ const std::vector<OptionDef>& optionDefs() {
       {"fontSize", "Text size", sizeChoices, applySize},
       {"uiScale", "UI scale", scaleChoices, applyScale},
       {"style", "Visual style", styleChoices, applyStyle},
+#ifndef OTE_NXDK
+      // Not on the original Xbox: its chip always draws 3D at the screen's resolution and software 3D is unusably slow there.
       {"draw3d", "3D graphics", draw3dChoices, applyDraw3d},
       {"res3d", "3D resolution", res3dChoices, applyRes3d},
+#endif
       {"musicVolume", "Music volume", volumeChoices, applyMusicVolume, true, 7},
       {"soundVolume", "Sound volume", volumeChoices, applySoundVolume, true, 7},
       {"battleScene", "Battle animations", battleSceneChoices, applyBattleScene},
