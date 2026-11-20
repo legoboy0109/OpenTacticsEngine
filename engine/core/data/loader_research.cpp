@@ -2,6 +2,7 @@
 #include <initializer_list>
 
 #include "core/data/loader_content.h"
+#include "core/data/loader_research_branch.h"
 #include "core/data/loader_util.h"
 
 namespace ote {
@@ -80,7 +81,8 @@ bool loadResearch(const std::string& path, Database& db, std::string& err) {
     if (t.id.empty()) return c.fail(where, "\"id\" must not be empty");
     where = "technology \"" + t.id + "\"";
     if (db.findTechnology(t.id) >= 0) return c.fail(where, "duplicate id");
-    if (!onlyKeys(c, e, {"id", "name", "description", "cost", "turns", "requires", "unlocks", "bonus"}, where)) return false;
+    if (!onlyKeys(c, e, {"id", "name", "description", "cost", "turns", "requires", "unlocks", "bonus", "tree", "tier",
+                           "exclusiveGroup", "requiresStructures", "grants"}, where)) return false;
     t.name = t.id;
     if (!c.str(e, "name", where, t.name) || !c.str(e, "description", where, t.description)) return false;
     if (!c.amounts(db, e, "cost", where, t.cost)) return false;
@@ -97,15 +99,22 @@ bool loadResearch(const std::string& path, Database& db, std::string& err) {
     if (e.has("bonus")) {
       const Json* b;
       std::string at = where + ": \"bonus\"";
-      if (!c.object(e, "bonus", where, b) || !onlyKeys(c, *b, {"types", "stats"}, at)) return false;
+      if (!c.object(e, "bonus", where, b) || !onlyKeys(c, *b, {"types", "stats", "income"}, at)) return false;
       if (!unitTypeList(c, db, *b, "types", at, t.bonusTypes)) return false;
-      t.bonus.assign(db.stats.size(), 0);
-      if (!b->has("stats")) return c.fail(where, "\"bonus\" needs \"stats\", for example { \"def\": 1 }");
-      if (!c.statMap(db, *b, "stats", at, t.bonus)) return false;
-      bool any = false;
-      for (int v : t.bonus) any = any || v != 0;
-      if (!any) return c.fail(where, "\"bonus\".\"stats\" must change at least one stat");
+      if (!readBonusIncome(c, db, *b, where, t)) return false;
+      // "stats" may be left out when the bonus is income only.
+      if (b->has("stats") || !b->has("income")) {
+        t.bonus.assign(db.stats.size(), 0);
+        if (!b->has("stats")) return c.fail(where, "\"bonus\" needs \"stats\", for example { \"def\": 1 }");
+        if (!c.statMap(db, *b, "stats", at, t.bonus)) return false;
+        bool any = false;
+        for (int v : t.bonus) any = any || v != 0;
+        if (!any) return c.fail(where, "\"bonus\".\"stats\" must change at least one stat");
+      } else if (b->has("types")) {
+        return c.fail(where, "\"bonus\".\"types\" only narrows \"stats\"; income goes to the whole side");
+      }
     }
+    if (!readBranchKeys(c, db, e, where, t)) return false;
     db.research.push_back(t);
     entries.push_back(&e);
   }

@@ -40,7 +40,7 @@ int Battle::restingWeapon(const Unit& u) const {
 }
 
 // The order is the order in which blocks are judged and chances are rolled (docs/SRPG.md): the type's skills, the
-// learned ones, the character's, accessories in inventory order, the weapon in use. A skill counts once, at its
+// learned ones, the character's, the side's modifiers, accessories in inventory order, the weapon in use. A skill counts once, at its
 // first place.
 void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
   out.clear();
@@ -52,6 +52,10 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
   for (int s : u.learned) add(s);
   if (u.character >= 0 && (size_t)u.character < db->characters.size())
     for (int s : db->characters[(size_t)u.character].skills) add(s);
+  // The side's own modifiers (finished research today, factions later): as if the unit had them, after what is its own.
+  if (u.side >= 0 && (size_t)u.side < sides.size())
+    for (const SideModifier& m : sides[(size_t)u.side].modifiers)
+      if (modifierApplies(m, u)) add(m.skill);
   for (const ItemStack& stack : u.items) {
     const ItemDef& d = itemOf(stack);
     if (d.kind == ItemKind::Accessory)

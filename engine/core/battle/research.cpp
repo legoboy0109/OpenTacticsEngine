@@ -61,6 +61,8 @@ static std::string researchBlocker(const Battle& b, int side, int tech) {
   for (int r : t.needs)
     if (!b.hasTechnology(side, r)) missing += (missing.empty() ? "" : ", ") + db.research[(size_t)r].name;
   if (!missing.empty()) return "needs " + missing;
+  std::string branch = b.researchBranchBlocker(side, tech);  // research_branch.cpp
+  if (!branch.empty()) return branch;
   for (const Amount& a : t.cost)
     if (s.resources[(size_t)a.resource] < a.amount) return "not enough " + db.resources[(size_t)a.resource].name;
   return "";
@@ -107,6 +109,7 @@ void Battle::finishResearch(int side, int tech, std::vector<Event>& events) {
   SideState& s = sides[(size_t)side];
   if (s.researched[(size_t)tech]) return;
   s.researched[(size_t)tech] = 1;
+  applyTechnologyEffects(side, tech);
   if (s.researching == tech) {
     s.researching = -1;
     s.researchLeft = 0;
@@ -132,7 +135,10 @@ void Battle::researchTurn(std::vector<Event>& events) {
 void Battle::setStartingResearch(int side, const std::vector<int>& techs) {
   if (side < 0 || side >= (int)sides.size()) return;
   for (int t : techs)
-    if (t >= 0 && t < (int)db->research.size()) sides[(size_t)side].researched[(size_t)t] = 1;
+    if (t >= 0 && t < (int)db->research.size() && !sides[(size_t)side].researched[(size_t)t]) {
+      sides[(size_t)side].researched[(size_t)t] = 1;
+      applyTechnologyEffects(side, t);
+    }
   for (Unit& u : units)
     if (exists(u) && u.side == side) u.hp = maxHp(u);  // nothing has happened yet: everybody is at full strength
 }

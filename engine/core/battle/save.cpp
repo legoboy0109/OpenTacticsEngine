@@ -75,6 +75,7 @@ bool readSide(Reader& rd, const Database& db, const Json& j, const std::string& 
     s.resources[i] = (int)v.asNumber();
   }
   if (!savejson::readSideResearch(rd, db, j, where, s)) return false;
+  if (!savejson::readSideModifiers(rd, db, j, where, s)) return false;
   return rd.boolean(j, "defeated", where, s.defeated) && rd.boolean(j, "everHadUnits", where, s.everHadUnits) &&
          rd.boolean(j, "hadHq", where, s.hadHq) && rd.boolean(j, "leaderLost", where, s.leaderLost);
 }
@@ -173,6 +174,8 @@ void saveBattleState(const Battle& b, Json& out) {
     if (!s.storage.empty()) j.set("storage", itemsJson(s.storage));
     Json research;
     if (savejson::researchJson(s, research)) j.set("research", research);
+    Json modifiers;
+    if (savejson::modifiersJson(s, modifiers)) j.set("modifiers", modifiers);
     sides.push(j);
   }
   out.set("sides", sides);

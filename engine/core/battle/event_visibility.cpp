@@ -20,7 +20,7 @@
 //   StructureUpgraded: the owner's team and the teams that see any of its squares.
 //   Bookkeeping of one team's own units (XpGained, LevelUp, StatsRaised, ItemBroke, ItemEquipped, ItemLost,
 //   UnitRepaired, UnitResupplied): only the unit's own team.
-//   Resources and items of a side (ResourceChanged, ItemGained, ItemMoved, ResearchStarted, ResearchFinished): only
+//   Resources and items of a side (ResourceChanged, ItemGained, ItemMoved, ResearchStarted, ResearchFinished, ResearchCancelled): only
 //   the side's own team.
 //   Strategy-RPG features (docs/SRPG.md "Events"):
 //   SkillLearned, RankUp, SupportPoints, SupportReached: only the units' own team.
@@ -126,6 +126,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::ResourceChanged:
     case EventType::ResearchStarted:
     case EventType::ResearchFinished:
+    case EventType::ResearchCancelled:
       return sideTeam(e.a);
     case EventType::ItemGained:
       return sideTeam(e.c);

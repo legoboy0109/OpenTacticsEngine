@@ -22,8 +22,12 @@ bool loadOptionRules(const LoadCtx& c, const Json& rules, Database& db) {
   const Json* blk;
   if (!c.object(rules, "research", "rules", blk)) return false;
   if (rules.has("research")) {
-    if (!onlyKey(c, *blk, "rules.research", "needsStructure")) return false;
+    for (const Json::Member& m : blk->members())
+      if (m.first != "needsStructure" && m.first != "cancelRefundPercent")
+        return c.fail("rules.research", "unknown key \"" + m.first + "\" (expected \"needsStructure\", \"cancelRefundPercent\")");
     if (!c.boolean(*blk, "needsStructure", "rules.research", db.rules.researchNeedsStructure)) return false;
+    // Share of the cost paid back when research under way is cancelled; 0 (nothing back) unless the game says.
+    if (!c.integerIn(*blk, "cancelRefundPercent", "rules.research", 0, 100, db.rules.researchCancelRefundPercent)) return false;
   }
   if (!c.object(rules, "fog", "rules", blk)) return false;
   if (rules.has("fog")) {
