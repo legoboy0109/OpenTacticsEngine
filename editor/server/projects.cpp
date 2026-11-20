@@ -272,6 +272,8 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   doc.set("structures", readOptionalList(dir, "data/structures.json", "structures", readProbs));
   doc.set("items", readOptionalList(dir, "data/items.json", "items", readProbs));
   doc.set("research", readOptionalList(dir, "data/research.json", "technologies", readProbs));
+  // factions (docs/ECONOMY.md "Factions"): data/factions.json, the list under "factions"; null when the file is absent.
+  doc.set("factions", readOptionalList(dir, "data/factions.json", "factions", readProbs));
   doc.set("campaign", readOptionalObject(dir, "data/campaign.json", readProbs));
   doc.set("audio", readOptionalObject(dir, "data/audio.json", readProbs));
 
