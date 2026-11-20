@@ -7,6 +7,7 @@
 #include "core/data/campaign.h"
 #include "core/data/events.h"
 #include "core/data/loader_content.h"
+#include "core/data/loader_research_branch.h"
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_damage_types.h"
 #include "core/data/loader_difficulty.h"
@@ -394,6 +395,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!loadCharacters(root + "/data/characters.json", db, err)) return false;  // needs unit types, items, skills, abilities
   if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;
+  if (!resolveResearchStructures(root + "/data/research.json", db, err)) return false;  // "requiresStructures"
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
   if (!loadAiRules(root + "/game.json", db, err)) return false;  // "rules.ai" (docs/AI.md); needs the unit types

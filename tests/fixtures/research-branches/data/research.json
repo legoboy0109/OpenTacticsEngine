@@ -1,0 +1,9 @@
+{ "technologies": [
+  { "id": "tactics", "name": "Tactics", "tree": "Military", "tier": 1, "cost": { "gold": 50 }, "turns": 1 },
+  { "id": "shield_wall", "name": "Shield Wall", "tree": "Military", "tier": 2, "requires": ["tactics"], "exclusiveGroup": "doctrine",
+    "cost": { "gold": 100 }, "turns": 2, "grants": { "skills": [ { "skill": "bulwark", "filter": { "tag": "infantry" } } ] } },
+  { "id": "skirmish", "name": "Skirmish", "tree": "Military", "tier": 2, "requires": ["tactics"], "exclusiveGroup": "doctrine",
+    "cost": { "gold": 100 }, "turns": 2, "grants": { "skills": [ { "skill": "fleet", "filter": { "type": "archer" } } ] } },
+  { "id": "trade", "name": "Trade", "tree": "Economy", "tier": 1, "cost": { "gold": 60 }, "turns": 1, "bonus": { "income": { "gold": 30 } } },
+  { "id": "smelting", "name": "Smelting", "tree": "Economy", "tier": 2, "requires": ["trade"], "requiresStructures": ["forge"],
+    "cost": { "gold": 80 }, "turns": 1, "grants": { "skills": ["bulwark"] } } ] }

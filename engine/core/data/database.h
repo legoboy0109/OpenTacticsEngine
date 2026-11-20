@@ -283,6 +283,14 @@ const int kMaxVision = 20;
 const int kMaxVisionBonus = 10;
 const int kMaxFogTeams = 32;  // an event's "seen by" is a 32-bit mask with one bit per team
 
+// A skill a side's units get as if they had it themselves (side-wide modifier, docs/SRPG.md "Side-wide modifiers").
+// The filter is the unit filter format of the story ("type" / "tag" / {}), reduced to what exists without a map.
+struct SkillGrant {
+  int skill = -1;           // index into Database::skills
+  int filterType = -1;      // only units of this unit type; -1 = any
+  std::string filterTag;    // only units whose type has this tag; "" = any
+};
+
 // One technology (data/research.json, docs/ECONOMY.md "Research").
 struct TechnologyDef {
   std::string id, name, description;
@@ -292,6 +300,14 @@ struct TechnologyDef {
   std::vector<int> unlocksUnits;  // unit types: with any technology listing a type, a side needs one of them to build it
   std::vector<int> bonusTypes;    // unit types the bonus is for; empty = every unit of the side
   std::vector<int> bonus;         // per stat index, added to those units; empty = no bonus
+  // Branching research (docs/ECONOMY.md "Branching research"); every key optional, all empty = a plain technology.
+  std::string tree;               // display grouping only
+  int tier = 0;                   // display order inside a tree only
+  std::string exclusiveGroup;     // once one entry of a group is started or finished by a side, the others are closed to it
+  std::vector<std::string> requiresStructureIds;  // as written; resolved into requiresStructures once structures are loaded
+  std::vector<int> requiresStructures;            // structure kinds the side must own now to start it
+  std::vector<Amount> bonusIncome;                // added to the side's per-turn income once finished (needs rules.economy)
+  std::vector<SkillGrant> grants;                 // skills every matching unit of the side has once finished (Battle::skillsOf)
 };
 const int kMaxResearchTurns = 99;
 
@@ -327,6 +343,7 @@ struct RulesConfig {
   ItemRules items;           // docs/ITEMS.md
   SupplyRules supply;        // docs/ECONOMY.md "Repair and supply"
   bool hitRollAverage = false;  // "rules.hitRoll": "average2" = a strike's hit rolls two numbers and uses their average (docs/SRPG.md "The hit roll")
+  int researchCancelRefundPercent = 0;  // "rules.research.cancelRefundPercent": share of the cost paid back when research is cancelled
   bool researchNeedsStructure = false;  // "rules.research.needsStructure": research needs an owned structure that allows it
   AmbushRule ambush = AmbushRule::EndsTurn;  // "rules.fog.ambush"
   bool progression = false;  // XP + level ups

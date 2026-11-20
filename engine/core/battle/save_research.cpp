@@ -48,6 +48,58 @@ bool researchJson(const SideState& s, Json& out) {
   return true;
 }
 
+bool modifiersJson(const SideState& s, Json& out) {
+  if (s.modifiers.empty()) return false;
+  out = Json::makeArray();
+  for (const SideModifier& m : s.modifiers) {
+    Json e = Json::makeObject();
+    e.set("skill", num(m.skill));
+    e.set("tech", num(m.tech));
+    e.set("grant", num(m.grant));
+    out.push(e);
+  }
+  return true;
+}
+
+bool readSideModifiers(Reader& rd, const Database& db, const Json& side, const std::string& where, SideState& s) {
+  s.modifiers.clear();
+  const std::string at = where + ".modifiers";
+  if (side.has("modifiers")) {
+    if (db.research.empty()) return rd.fail(at, "the game has no research");
+    const Json* list;
+    if (!rd.array(side, "modifiers", where, -1, 100000, list)) return false;
+    for (size_t i = 0; i < list->size(); ++i) {
+      const Json& e = (*list)[i];
+      const std::string here = at + "[" + std::to_string(i) + "]";
+      if (!e.isObject()) return rd.fail(here, "not an object");
+      SideModifier m;
+      if (!rd.integer(e, "skill", here, 0, (int)db.skills.size() - 1, m.skill) ||
+          !rd.integer(e, "tech", here, 0, (int)db.research.size() - 1, m.tech))
+        return false;
+      const std::vector<SkillGrant>& grants = db.research[(size_t)m.tech].grants;
+      if (!rd.integer(e, "grant", here, 0, (int)grants.size() - 1, m.grant)) return false;
+      const SkillGrant& g = grants[(size_t)m.grant];
+      if (!s.researched[(size_t)m.tech]) return rd.fail(here, "\"" + db.research[(size_t)m.tech].id + "\" is not finished");
+      if (g.skill != m.skill) return rd.fail(here, "that grant of \"" + db.research[(size_t)m.tech].id + "\" is another skill");
+      m.filterType = g.filterType;
+      m.filterTag = g.filterTag;
+      for (const SideModifier& o : s.modifiers)
+        if (o.tech == m.tech && o.grant == m.grant) return rd.fail(here, "listed twice");
+      s.modifiers.push_back(m);
+    }
+  }
+  // What a finished technology grants is part of the state: a save that lost it would play differently.
+  for (size_t t = 0; t < s.researched.size(); ++t) {
+    if (!s.researched[t]) continue;
+    for (size_t g = 0; g < db.research[t].grants.size(); ++g) {
+      bool found = false;
+      for (const SideModifier& m : s.modifiers) found = found || (m.tech == (int)t && m.grant == (int)g);
+      if (!found) return rd.fail(at, "\"" + db.research[t].id + "\" is finished but its granted skills are missing");
+    }
+  }
+  return true;
+}
+
 bool readSideResearch(Reader& rd, const Database& db, const Json& side, const std::string& where, SideState& s) {
   s.researched.assign(db.research.size(), 0);
   s.researching = -1;

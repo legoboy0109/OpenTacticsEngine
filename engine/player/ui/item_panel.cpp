@@ -15,6 +15,12 @@ constexpr int kTabGap = 10;
 }  // namespace
 
 void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected) {
+  if (row.header) {
+    const int hy = y + (h - r.lineHeight()) / 2;
+    r.drawText(x + 4, hy, fitText(r, row.label, w - 8).c_str(), chrome::kAccent);
+    r.fillRect(x + 2, y + h - 1, w - 4, 1, kGreyed);
+    return;
+  }
   drawRowBox(r, x, y, w, h, selected);
   int lh = r.lineHeight(), ty = y + (h - lh) / 2;
   const bool twoLines = !row.sub.empty() && h >= 2 * lh + 2;
@@ -80,6 +86,12 @@ void ItemPanel::open(const std::string& title, const std::string& head, const st
   list_ = RowList();
   list_.count = (int)rows_.size();
   list_.sel = std::max(0, std::min(sel, list_.count - 1));
+  skipHeaders(Button::Down);
+}
+
+// A heading cannot be selected: step on in the direction of the key (wraps; stops after one lap if everything is a heading).
+void ItemPanel::skipHeaders(Button dir) {
+  for (int n = 0; n < list_.count && list_.sel >= 0 && list_.sel < list_.count && rows_[(size_t)list_.sel].header; ++n) list_.step(dir);
 }
 
 void ItemPanel::layout(const Renderer& r) {
@@ -141,7 +153,7 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
   layout(r);
   if (e.type == InputEvent::PointerMove) {
     int row = list_.rowAt(e.x, e.y);
-    if (row >= 0) list_.sel = row;
+    if (row >= 0 && !rows_[(size_t)row].header) list_.sel = row;
   } else if (e.type == InputEvent::PointerDown) {
     // A tab's name, with a generous target (the whole title row, half a gap each side): a finger is wider than a letter.
     for (size_t i = 0; i < tabs_.size(); ++i)
@@ -152,6 +164,7 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
         return Tab;
       }
     int row = list_.rowAt(e.x, e.y);
+    if (row >= 0 && rows_[(size_t)row].header) return None;
     if (row >= 0) {
       bool again = row == list_.sel;
       list_.sel = row;
@@ -166,7 +179,10 @@ ItemPanel::Result ItemPanel::onInput(const InputEvent& e, const Renderer& r) {
       uiCue(Cue::Cursor);
       return Tab;
     }
-    if (list_.step(e.button)) return None;
+    if (list_.step(e.button)) {
+      skipHeaders(e.button == Button::Up || e.button == Button::Prev ? Button::Up : Button::Down);
+      return None;
+    }
     if (e.button == Button::Confirm && list_.count > 0) { uiCue(Cue::Confirm); return Picked; }
     if (e.button == Button::Cancel || e.button == Button::Menu) { uiCue(Cue::Cancel); return Back; }
   }

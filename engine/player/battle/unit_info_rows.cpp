@@ -26,8 +26,17 @@ const char* skillSourceName(SkillSource s) {
     case SkillSource::Personal: return "Personal";
     case SkillSource::Item: return "Item";
     case SkillSource::Weapon: return "Weapon";
+    case SkillSource::Side: return "Side";
   }
   return "";
+}
+
+// Does one of the unit's side-wide modifiers give it this skill? (skillsOf puts these after the character's skills.)
+static bool sideGives(const Battle& b, const Unit& u, int skill) {
+  if (u.side < 0 || (size_t)u.side >= b.sides.size()) return false;
+  for (const SideModifier& m : b.sides[(size_t)u.side].modifiers)
+    if (m.skill == skill && b.modifierApplies(m, u)) return true;
+  return false;
 }
 
 std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
@@ -47,6 +56,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
     else if (u.character >= 0 && (size_t)u.character < db.characters.size() &&
              has(db.characters[(size_t)u.character].skills, s))
       row.source = SkillSource::Personal;
+    else if (sideGives(b, u, s)) row.source = SkillSource::Side;
     else {
       bool item = false;
       for (const ItemStack& st : u.items) {

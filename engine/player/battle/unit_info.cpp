@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "battle/unit_info_rows.h"
 #include "core/base/log.h"
 #include "ui/text.h"
 
@@ -30,6 +31,11 @@ void UnitInfoView::open(const Battle& b, int unit) {
     if (rs != 0) res += (res.empty() ? "" : ", ") + b.db->damageTypes.list[t].name + " res " + (rs > 0 ? "+" : "") + std::to_string(rs);
   }
   if (b.db->damageTypes.on()) OTE_INFO("unit resist: %s: %s", b.units[(size_t)unit].name.c_str(), res.c_str());
+  // Skills the unit has from its side (research grants, docs/SRPG.md "Side-wide modifiers"), for the player tests; only when there are any.
+  std::string side;
+  for (const SkillRow& row : skillRows(b, b.units[(size_t)unit]))
+    if (row.source == SkillSource::Side) side += (side.empty() ? "" : ", ") + row.name + " (" + skillSourceName(row.source) + ")";
+  if (!side.empty()) OTE_INFO("unit side skills: %s: %s", b.units[(size_t)unit].name.c_str(), side.c_str());
 }
 
 void UnitInfoView::openPages(int unit, UnitInfoPages pages) {

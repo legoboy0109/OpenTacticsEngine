@@ -124,6 +124,9 @@ enum class EventType {
   // commands: a=SceneFx::Kind, b=text index (picture id, speaker key or weather; -1 none), c=ms (-1 not given), d=Fade colour
   // 0xRRGGBB / Shake strength, flags=kSceneOut / kSceneFadeTrans / kSceneAuto (scene_fx.h). Presentation only.
   SceneEffect,
+  // Branching research (docs/ECONOMY.md "Branching research"): a=side, b=technology, c=turns that were still to go; a refund
+  // follows as ResourceChanged.
+  ResearchCancelled,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -251,6 +254,17 @@ struct StructureState {
   std::vector<std::string> visitUnits;
 };
 
+// A skill every matching unit of a side has as if it had it itself (docs/SRPG.md "Side-wide modifiers"). Battle::skillsOf is
+// the one place that reads them. `tech` / `grant` say where it came from (technology index and its "grants" entry);
+// a later source (factions) adds its own fields and its own writer in save_research.cpp.
+struct SideModifier {
+  int skill = -1;
+  int filterType = -1;      // only units of this unit type; -1 = any
+  std::string filterTag;    // only units whose type has this tag; "" = any
+  int tech = -1;
+  int grant = -1;
+};
+
 struct SideState {
   std::string id, name;
   uint32_t color = 0xffffff;
@@ -267,6 +281,7 @@ struct SideState {
   std::vector<uint8_t> researched;
   int researching = -1;  // technology under way (index into db->research), -1 = none
   int researchLeft = 0;  // of the side's own turns still to start before it is finished
+  std::vector<SideModifier> modifiers;  // side-wide skills (saved only when not empty)
   bool difficultyShift = true;  // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this side (map side key)
 };
 
@@ -296,7 +311,9 @@ enum class ActionType {
   // (like Attack) unless the game's "rules.places" says the actions are automatic.
   OpenPlace,   // `unit` opens a door or chest; `slot` = the inventory slot of the key (-1 = it needs none: not locked)
   VisitPlace,  // `unit` visits the place, or destroys it when it may not visit
-  BreakPlace   // `unit` attacks the door with weapon `weapon` (index into db->weapons)
+  BreakPlace,  // `unit` attacks the door with weapon `weapon` (index into db->weapons)
+  // Branching research (docs/ECONOMY.md): the active side gives up the technology under way; free of any unit. Appended last.
+  CancelResearch
 };
 
 struct Action {
@@ -333,6 +350,7 @@ struct Action {
   static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }
   static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
   static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
+  static Action cancelResearch() { Action a; a.type = ActionType::CancelResearch; return a; }
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
   static Action buyItem(int unit, int item) { Action a; a.type = ActionType::BuyItem; a.unit = unit; a.item = item; return a; }
@@ -580,6 +598,19 @@ class Battle {
   // each with whether it could be started now (only the active side can start any).
   void researchOptions(int side, std::vector<ResearchOption>& out) const;
   bool hasTechnology(int side, int tech) const;
+  // Branching research: can the active side give up the research under way? Fills `why` when not.
+  bool canCancelResearch(std::string* why = nullptr) const;
+  // What cancelling now would pay back (the cost times rules.research.cancelRefundPercent, rounded down), per cost entry.
+  void cancelRefund(int side, std::vector<Amount>& out) const;
+  // The per-turn income that finished technologies add (bonus.income), per resource index.
+  void researchIncome(int side, std::vector<int>& perResource) const;
+  // Adds a side-wide skill (no-op when the same skill, filter and source are there already). The source of a modifier
+  // calls this when it takes effect.
+  void addSideModifier(int side, const SideModifier& m);
+  // Why `side` may not start `tech` for a reason of branching research (a branch already chosen, a missing structure); "" = none.
+  std::string researchBranchBlocker(int side, int tech) const;
+  // Does the modifier apply to this unit (its filter)?
+  bool modifierApplies(const SideModifier& m, const Unit& u) const;
   // The technology under way (index into db->research) or -1; researchTurnsLeft is the number of the
   // side's turns still to start before it is done.
   int researching(int side) const { return sides[(size_t)side].researching; }
@@ -761,6 +792,9 @@ class Battle {
   void applyUpgrade(const Action& action, std::vector<Event>& events);
   bool validateResearch(const Action& action, std::string* why) const;
   void applyResearch(const Action& action, std::vector<Event>& events);
+  void applyCancelResearch(std::vector<Event>& events);
+  // Side effects of a finished technology that are state of their own: its "grants" become side modifiers.
+  void applyTechnologyEffects(int side, int tech);
   // Start of the active side's turn: counts the research under way down (paused without a research structure).
   void researchTurn(std::vector<Event>& events);
   // Marks a technology finished for the side, re-clamps its units' hit points (a bonus may have lowered the

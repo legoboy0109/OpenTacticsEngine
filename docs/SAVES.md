@@ -220,6 +220,10 @@ Decisions where the contract was silent, and the few deviations:
   technologies, every finished or running technology having its prerequisites finished; `current` not
   finished; `left` from 1 to the technology's turns; a `research` key in a game without research is refused;
   a living unit's `hp` is checked against its maximum with the side's research bonus.
+  A side whose finished research granted skills (docs/SRPG.md "Side-wide modifiers") also has
+  `"modifiers": [ { "skill": skill index, "tech": technology index, "grant": index in that technology's grants.skills } ]`, only when not empty.
+  Restoring checks: `tech` finished, `grant` within the technology's grants, `skill` the grant's own skill, no entry twice, and every grant of every
+  finished technology present; the filter is read from the technology, not saved. A `modifiers` key in a game without research is refused.
   A battle on a map with fog of war (docs/ECONOMY.md "Fog of war") also has
   `"seenOwners": [[side index or -1, ...], ...]`: one list per team (in team order), each with one entry per
   structure, what that team last saw of its owner (-1 = nobody's). Required for fog maps, refused otherwise

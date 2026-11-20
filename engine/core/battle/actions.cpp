@@ -68,6 +68,7 @@ bool Battle::validate(const Action& action, std::string* why) const {
   if (action.type == ActionType::Build) return canBuild(action.cell, action.unitType, why);
   if (action.type == ActionType::UpgradeStructure) return validateUpgrade(action, why);
   if (action.type == ActionType::StartResearch) return validateResearch(action, why);
+  if (action.type == ActionType::CancelResearch) return canCancelResearch(why);
 
   // Everything else is a unit order.
   if (!canAct(action.unit)) return fail(why, "that unit cannot act now");
@@ -164,6 +165,7 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::Build: applyBuild(action, events); break;
     case ActionType::UpgradeStructure: applyUpgrade(action, events); break;
     case ActionType::StartResearch: applyResearch(action, events); break;
+    case ActionType::CancelResearch: applyCancelResearch(events); break;
     case ActionType::Supply: applySupply(action, events); break;
     case ActionType::Talk: applyTalk(action, events); break;
     case ActionType::Promote: applyPromote(action, events); break;

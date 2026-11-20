@@ -297,6 +297,7 @@ std::string BattleScene::hint() const {
     case Mode::Objective: return "{okCancelTap}: close";
     case Mode::StructureMenu:
     case Mode::UpgradeMenu:
+    case Mode::ResearchCancel:
     case Mode::Research: return economyHint();
     default: return "";
   }

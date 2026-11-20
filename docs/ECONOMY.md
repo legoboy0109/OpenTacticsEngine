@@ -92,7 +92,7 @@ structures.json, per structure kind:
   the side's turn starts (after `TurnStarted` and income, before story events of that turn); a technology with
   `turns: 1` started now finishes at the start of the side's next turn, `turns: 0` finishes inside the action
   (events `ResearchStarted` with c = 0, then `ResearchFinished`). With `needsStructure` on, owning no research structure at
-  that moment pauses the countdown without losing the progress. No cancelling in this version.
+  that moment pauses the countdown without losing the progress. Cancelling: see "Branching research" below.
 - Bonuses apply through `Battle::stat` / `unitStat(db, unit, stat, &battle.sides)` (so formulas, forecasts and movement
   see them), to every unit of the side whose type is listed (`types` missing = all), for **new and existing units**.
   They add to the unit's own value and to accessory bonuses, never below 0. A rise of maximum HP does not heal;
@@ -100,7 +100,7 @@ structures.json, per structure kind:
   changes side (story `changeSide`) is clamped to its new side's maximum; new units start at full HP.
   The unit's own stored values (`Unit::stats`, roster, saves) never include the bonus.
 - Events (appended after the existing types): `ResearchStarted` (a = side, b = technology, c = turns, 0 = at once),
-  `ResearchFinished` (a = side, b = technology; also from the story command).
+  `ResearchFinished` (a = side, b = technology; also from the story command), `ResearchCancelled` (below).
 - Queries: `researchOptions(side, out)` (technologies not finished and not under way, each `ok` / `why`: "needs
   Tools", "not enough Funds", "already researching X", "needs a structure that can research", "it is not that side's
   turn"), `researching(side)`, `researchTurnsLeft(side)`, `hasTechnology(side, tech)`, `canResearch(side)` (rule off: the game has technologies;
@@ -118,9 +118,61 @@ structures.json, per structure kind:
 - Saves: a side with something to say gets `"research": { "done": [technology indices, ascending], "current": n,
   "left": n }` (`current` and `left` only while one is under way); the carried list in a playthrough is
   `"research": [indices]` on the side. See docs/SAVES.md.
-- AI: it follows the same rule (`canResearch`). Before its builds it starts the **cheapest** technology (by summed cost; ties go to the lowest index) it can
-  start now and pay for while still being able to afford a unit it could build today (a side with nothing to build
-  is not held back).
+- AI: it follows the same rule (`canResearch`). Before its builds it starts the technology with the lowest **price** (the summed cost, less what its
+  branching effects are worth, see below; ties go to the lowest index) it can start now and pay for while still being able to afford a unit it could
+  build today (a side with nothing to build is not held back).
+
+### Branching research
+
+Optional keys on a technology and one rule; a game that uses none of them loads, plays, saves, hashes and simulates exactly as before.
+
+```jsonc
+{ "id": "shield_wall", "name": "Shield Wall", "cost": { "funds": 4000 }, "turns": 2, "requires": ["tactics"],
+  "tree": "Military", "tier": 2,                       // display only: the research panel groups by tree and sorts by tier
+  "exclusiveGroup": "doctrine",                        // one branch per side: see below
+  "requiresStructures": ["forge"],                     // structure kinds the side must own now to START it
+  "bonus": { "income": { "funds": 500 } },             // added to the side's per-turn income once finished ("stats" may then be left out)
+  "grants": { "skills": [ "bulwark",                   // skills every unit of the side has once finished (a side-wide modifier,
+                          { "skill": "fleet", "filter": { "type": "archer" } } ] } }   // docs/SRPG.md "Side-wide modifiers"; filter: { "type": id } | { "tag": text } | {}
+// game.json:  "rules": { "research": { "cancelRefundPercent": 50 } }       // 0..100, default 0
+```
+
+- **`tree` / `tier`** change nothing about the rules. `tier` is a whole number 0..99 (default 0). A game where any technology names a tree or a tier
+  gets the grouped research panel (below); otherwise the panel is the flat list it always was.
+- **`exclusiveGroup`**: once a side has *started or finished* one technology of a group, every other technology of that group is closed to that side
+  (`why`: "closed: you chose Shield Wall"); the other side still has the whole choice. Cancelling the one under way opens the group again. A group of
+  one closes nothing (and is allowed). Story `grantResearch`, a campaign carry-over and starting research ignore the group (the maker decides there).
+- **`requiresStructures`**: the side must own, right now, at least one structure of each listed kind (its *current* kind: an upgraded structure counts as
+  what it became). It is checked when starting; finished research is never taken back when the structure is lost. `why`: "needs a Forge".
+- **`bonus.income`**: `{ resource: n }`, added to the side's income every turn once finished, on top of the structures' income. Needs
+  `rules.economy` (nothing pays income without it; the loader says so). It is the side's own income, so the difficulty's resource share applies to it
+  as to the rest (docs/DIFFICULTY.md). Negative numbers are allowed (an upkeep); at least one must be non-zero.
+- **`grants.skills`**: each entry is a skill id or `{ "skill": id, "filter": ... }`. They become side-wide modifiers the moment the technology finishes
+  (also through `grantResearch` and a campaign carry-over). The filter has the story's unit-filter shape, reduced to what exists without a map: `type`
+  (a unit type id), `tag` (a tag of some unit type) or `{}` / left out for every unit. `unit`, `side` and `team` filters are refused here.
+- **Cancel.** Action `CancelResearch` (`Action::cancelResearch()`, free of any unit, for the active side): refused unless something is under way. It pays back
+  `rules.research.cancelRefundPercent` per cent of each cost entry, rounded down, then the research is gone with its progress (events `ResearchCancelled`:
+  a = side, b = technology, c = turns still to go; the refund follows as `ResourceChanged`). **Default 0**: the existing code paid the cost up front and never
+  returned any, so a game that does not say keeps that (the player's cancel menu then says "no refund"). A technology that finishes inside its own action
+  (`turns: 0`) is never "under way" and cannot be cancelled. `Battle::canCancelResearch(why)`, `Battle::cancelRefund(side, out)`.
+- **Reasons** (`researchOptions` `why`) come in this order: a branch already taken or a structure missing, already researching, no research structure,
+  missing prerequisites, not enough resources. A technology closed by a branch says so even while another is under way.
+- **Loader refusals** name the file, the entry and the key: `research.json: technology "x": "tier" must be a whole number from 0 to 99`, `"requiresStructures"
+  names unknown structure "castle"` (structures load after research, so this is checked once they are in), `"grants"."skills": names unknown skill "nope"`,
+  `"filter"."type" names unknown unit type`, `"filter"."tag" "x" is not a tag of any unit type`, `"bonus"."income" names unknown resource`, `"bonus"."income" needs
+  "rules.economy"`, `"tree" must not be empty text`, `rules.research: "cancelRefundPercent" must be a whole number from 0 to 100`, unknown keys.
+- **Computer opponent.** `Battle::researchOptions` never lists a closed or structure-less entry as startable, so it cannot pick one and cannot
+  deadlock on one (when nothing startable is left it simply researches nothing that turn). It picks the lowest *price*: the summed cost minus 5 turns of an income
+  bonus minus 10 per granted skill (ties: lowest index; a game without these keys has price = cost, the old rule). It never cancels.
+- **Player.** The research panel of a game with trees/tiers shows one list sorted by tree (in file order, entries without a tree last under "Other") and tier,
+  with a heading ("Military  tier 2") where either changes; headings cannot be selected. Each row shows its state: price, "2 turns left" (marked), or "done";
+  greyed rows say why in the detail lines under the list, followed by the description, what it gives (including "+500 Funds per turn" and "Skill: Bulwark for
+  Infantry") and "Closes: ..." for the other branches of its group. Choosing the row under way opens a small menu, "Cancel research (+50 Funds)" / "Keep
+  researching". The banner "<side>: cancelled <technology>" plays for the event. At UI scale 150 on the 480x270 canvas the panel and the menu take the whole
+  width (the info column is covered while they are open) and the panel shows one explanation line fewer, so more rows fit.
+- **Saves.** A side with granted skills also writes `"modifiers"` (docs/SAVES.md). Nothing else is new.
+- **Tests.** `tests/test_research_branches.cpp` and `tests/research_branches_player_test.py` (fixture `tests/fixtures/research-branches`),
+  `tests/editor_api_research_branches_checks.py`.
 
 ## Repair and supply
 

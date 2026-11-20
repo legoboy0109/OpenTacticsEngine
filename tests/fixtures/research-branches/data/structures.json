@@ -1,0 +1,3 @@
+{ "structures": [
+  { "id": "lab", "name": "Lab", "capturePoints": 20, "research": true },
+  { "id": "forge", "name": "Forge", "capturePoints": 20 } ] }

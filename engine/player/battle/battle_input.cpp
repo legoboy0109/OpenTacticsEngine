@@ -134,7 +134,7 @@ void BattleScene::onInput(const InputEvent& e) {
     return;
   }
   if (mode_ == Mode::ActionMenu || mode_ == Mode::BuildMenu || mode_ == Mode::EndMenu || mode_ == Mode::StructureMenu ||
-      mode_ == Mode::UpgradeMenu || mode_ == Mode::DifficultyMenu) {
+      mode_ == Mode::UpgradeMenu || mode_ == Mode::DifficultyMenu || mode_ == Mode::ResearchCancel) {
     menuInput(e);
     return;
   }

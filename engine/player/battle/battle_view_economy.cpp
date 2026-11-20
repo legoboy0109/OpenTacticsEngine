@@ -67,6 +67,15 @@ bool BattleView::beginEconomy(const Battle& b) {
       cur_.dur = showsResources(b, e.a) ? kBannerOwn : kBannerOther;
       return true;
     }
+    case EventType::ResearchCancelled: {
+      const TechnologyDef& t = b.db->research[(size_t)e.b];
+      OTE_INFO("research cancelled: %s %s (%d turns were left)", b.sides[(size_t)e.a].name.c_str(), t.name.c_str(), e.c);
+      banner = b.sides[(size_t)e.a].name + ": " + EconomyWords::kBannerCancelled + t.name;
+      bannerSub.clear();
+      bannerColor = sideTint(b, e.a);
+      cur_.dur = showsResources(b, e.a) ? kBannerOwn : kBannerOther;
+      return true;
+    }
     case EventType::UnitRepaired: {
       const UnitView& v = units[(size_t)e.a];
       const bool own = showsResources(b, b.units[(size_t)e.a].side);
@@ -106,6 +115,7 @@ bool BattleView::progressEconomy(const Battle& b) {
       return true;
     case EventType::ResearchStarted:
     case EventType::ResearchFinished:
+    case EventType::ResearchCancelled:
     case EventType::UnitResupplied: return true;
     default: return false;
   }
@@ -120,6 +130,7 @@ bool BattleView::finishEconomy(const Battle&) {
     case EventType::UnitRepaired: units[(size_t)e.a].hp = e.c; return true;
     case EventType::ResearchStarted:
     case EventType::ResearchFinished:
+    case EventType::ResearchCancelled:
       banner.clear();
       bannerSub.clear();
       return true;

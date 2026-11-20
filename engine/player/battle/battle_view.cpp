@@ -303,6 +303,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::StructureUpgraded:
     case EventType::ResearchStarted:
     case EventType::ResearchFinished:
+    case EventType::ResearchCancelled:
     // Repair and supply (docs/ECONOMY.md): no player UI yet; the unit's HP shows by itself next time it is drawn.
     case EventType::UnitRepaired:  // (its hit points are set when the event ends)
     case EventType::UnitResupplied:

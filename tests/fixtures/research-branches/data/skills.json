@@ -1,0 +1,3 @@
+{ "skills": [
+  { "id": "bulwark", "name": "Bulwark", "description": "Stands firm.", "blocks": [ { "when": "always", "do": [ { "stats": { "def": 2 } } ] } ] },
+  { "id": "fleet", "name": "Fleet", "blocks": [ { "when": "always", "do": [ { "stats": { "mov": 1 } } ] } ] } ] }

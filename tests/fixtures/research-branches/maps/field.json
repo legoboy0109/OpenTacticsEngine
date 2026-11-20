@@ -1,0 +1,10 @@
+{ "name": "Field", "grid": { "type": "square", "width": 6, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["......", "......", "......"],
+  "sides": [ { "id": "blue", "controller": "human", "resources": { "gold": 500 } },
+             { "id": "red", "controller": "ai", "resources": { "gold": 500 } } ],
+  "structures": [ { "type": "lab", "x": 1, "y": 2, "side": "blue" }, { "type": "lab", "x": 4, "y": 2, "side": "red" },
+                  { "type": "forge", "x": 3, "y": 2 } ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 0, "y": 1, "id": "sol", "leader": true },
+    { "type": "archer", "side": "blue", "x": 0, "y": 0, "id": "arc" },
+    { "type": "soldier", "side": "red", "x": 5, "y": 1, "id": "foe", "leader": true } ] }

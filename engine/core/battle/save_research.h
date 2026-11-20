@@ -17,6 +17,13 @@ bool researchJson(const SideState& s, Json& out);
 // finished, and that `left` fits the technology's turns.
 bool readSideResearch(Reader& rd, const Database& db, const Json& side, const std::string& where, SideState& s);
 
+// A side's "modifiers": [ { "skill": index, "tech": technology index, "grant": index in its grants.skills } ] (side-wide skills
+// from finished research, docs/SRPG.md "Side-wide modifiers"). False (nothing to write) when the side has none.
+bool modifiersJson(const SideState& s, Json& out);
+// Reads them into `s` (research already read): every entry must name a finished technology's grant, and every grant of a
+// finished technology must be there. A missing key = no modifiers (and then no finished technology may grant anything).
+bool readSideModifiers(Reader& rd, const Database& db, const Json& side, const std::string& where, SideState& s);
+
 // A plain list of technology indices (ascending, no repeats), as the campaign carries them.
 Json techListJson(const std::vector<int>& techs);
 bool readTechList(Reader& rd, const Database& db, const Json& o, const char* key, const std::string& where,

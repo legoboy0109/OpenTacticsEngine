@@ -1,6 +1,10 @@
 // Spending on research and structure upgrades (docs/ECONOMY.md "AI"). Simple on purpose:
-//  * research: the cheapest technology it could start now, when paying for it still leaves enough to
-//    build something it could build today (so research never starves production);
+//  * research: the technology with the lowest "price" it could start now, when paying for it still leaves enough to
+//    build something it could build today (so research never starves production). The price is the cost, less what
+//    the branching effects are worth (a per-turn income bonus counts for kIncomeTurns turns of income, each granted
+//    side-wide skill for kSkillWorth); without those keys it is the plain cost, as before. Technologies that the
+//    rules close to the side (an exclusive branch already taken, a missing structure) are never offered by
+//    Battle::researchOptions, so they are never picked;
 //  * upgrades: only with money to spare once building is done: more than twice the cost left.
 // Deterministic: the lowest index wins every tie.
 #include "core/ai/ai_internal.h"
@@ -15,6 +19,18 @@ int totalOf(const std::vector<Amount>& cost) {
   for (const Amount& a : cost) sum += a.amount;
   return sum;
 }
+
+const int kIncomeTurns = 5;   // an income bonus is worth this many turns of itself
+const int kSkillWorth = 10;   // one side-wide skill, in resource units
+
+// What the technology is worth beyond its stat bonus and unlocks, in the same units as its cost.
+int effectValue(const TechnologyDef& t) {
+  int v = (int)t.grants.size() * kSkillWorth;
+  for (const Amount& a : t.bonusIncome) v += a.amount * kIncomeTurns;
+  return v;
+}
+
+int priceOf(const TechnologyDef& t) { return totalOf(t.cost) - effectValue(t); }
 
 bool affordsAfter(const Battle& b, int side, const std::vector<Amount>& pay, const std::vector<Amount>& want) {
   for (const Amount& w : want) {
@@ -53,7 +69,7 @@ bool chooseResearch(const Battle& b, int& tech) {
     if (!o.ok) continue;
     const TechnologyDef& t = b.db->research[(size_t)o.tech];
     if (!stillBuilds(b, side, t.cost)) continue;
-    if (best < 0 || totalOf(t.cost) < totalOf(b.db->research[(size_t)best].cost)) best = o.tech;  // strict: ties keep the lowest index
+    if (best < 0 || priceOf(t) < priceOf(b.db->research[(size_t)best])) best = o.tech;  // strict: ties keep the lowest index
   }
   tech = best;
   return best >= 0;
