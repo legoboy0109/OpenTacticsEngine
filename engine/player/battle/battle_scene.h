@@ -48,6 +48,7 @@ class BattleScene : public Scene {
               Prep,                                     // the preparation screen (battle_prep*.cpp)
               DifficultyMenu,                           // the Difficulty entry of the end menu (battle_difficulty.cpp)
               WeaponPick,                               // ...
+              Facing,                                   // after Wait in a facing game: the small direction pick (battle_facing.cpp; docs/SRPG.md "Facing")
               ResearchCancel };                         // "Cancel research?" menu opened from the research panel (battle_economy.cpp)                             // Attack with "attackWeaponChoice": "pick": the weapon list (battle_weapon_pick.cpp)
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
@@ -114,6 +115,14 @@ class BattleScene : public Scene {
   void apKeepAffordable(std::vector<AttackOption>& opts) const;  // drops the attacks the unit may not make or the pool cannot pay
   void beginMoveOn();                                            // the Move entry: pick another square for the unit's remaining movement
   std::string apSelectedHint() const;                            // the hint line while a destination is picked: names the AP price
+  // Facing (docs/SRPG.md "Facing"; battle_facing.cpp): the pick after Wait, skippable (Cancel / Confirm keep the unit's own direction).
+  void beginFacing();
+  void facingButton(Button b);
+  void facingPointer(Cell c);
+  void commitFacing(int dir);                                    // Wait with this direction (-1 = keep)
+  Overlay faceOverlay() const;                                   // the neighbouring squares (blue) and the one chosen (red)
+  std::string facingHint() const;
+  int facingDir_ = -1;                                           // the direction highlighted in Mode::Facing
   bool movingOn_ = false;                                        // Selected was opened from the action menu (Cancel goes back to it)
   void logActionMenu(const std::vector<MenuItem>& items);
   void openBuildMenu(Cell cell);

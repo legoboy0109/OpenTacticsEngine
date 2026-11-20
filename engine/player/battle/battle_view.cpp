@@ -52,6 +52,7 @@ void BattleView::resync(const Battle& b) {
     UnitView& v = units[u.id];
     v.visible = u.alive && u.carriedBy < 0;  // a carried unit (rescue / pair up) is off the board: not drawn
     v.hp = u.hp;
+    v.facing = u.facing;
     for (const ConditionState& cs : u.conditions) v.conds.push_back(cs.condition);
     if (u.alive) cellPos(b, u.cell, v.px, v.py);
   }
@@ -259,6 +260,10 @@ void BattleView::begin(const Battle& b) {
       cur_.dur = std::max(0.02f, kMoveSecPerCell * (float)(cur_.path.size() - 1));
       break;
     case EventType::Attack: beginAttack(b); break;
+    case EventType::UnitFaced:  // docs/SRPG.md "Facing": the marker turns at once (no time of its own)
+      if ((size_t)e.a < units.size()) units[(size_t)e.a].facing = e.b;
+      OTE_INFO("faced: %s looks %s", b.units[(size_t)e.a].name.c_str(), directionName(b.grid, e.b).c_str());  // (the player tests read it)
+      break;
     case EventType::UnitDied: cur_.dur = 0.3f; break;
     case EventType::XpGained:
       addFloat("+" + intStr(e.b) + " XP", units[e.a].px + cx, units[e.a].py - 2, Color(120, 220, 255), 1.1f);

@@ -4,6 +4,7 @@
 
 #include "battle/carrier_marker.h"
 #include "battle/condition_marker.h"
+#include "battle/facing_marker.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -15,7 +16,7 @@ Color shade(float k, int a = 255) { return Color((uint8_t)(255 * k), (uint8_t)(2
 }  // namespace
 
 void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, float fade, int cx, int cy,
-                       int foot, int uw, const IsoShapeFn& marker) {
+                       int foot, int uw, const IsoShapeFn& marker, int faceX, int faceY) {
   const Battle& b = c.battle;
   float al = v.alpha * fade;
   int a = std::max(0, std::min(255, (int)(al * 255.0f + 0.5f)));
@@ -53,6 +54,7 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
   }
   drawCarrierMarker(r, c, u, cx + uw / 2, bodyTop, uw, al);  // top right corner: a unit with someone off the board
   drawConditionMarker(r, c, u, cx - uw / 2, foot, al);       // bottom left corner: its conditions (docs/SRPG.md section 9)
+  if (faceX != kNoFace) drawFacingMarker(r, c, u, cx, cy, faceX, faceY, al);  // on the ground toward the way it looks (docs/SRPG.md "Facing")
   // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = cx - barW / 2, barY = foot + 1;
   r.fillRect(barX - 1, barY - 1, barW + 2, 4, scaled(Color(0, 0, 0, 200), al));

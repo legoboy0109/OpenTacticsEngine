@@ -184,7 +184,10 @@ void BattleScene::menuInput(const InputEvent& e) {
     else if (id == kShop) openShop();
     else if (id == kSupply) { if (submit(Action::supply(sel_))) finishOrder(); }
     else if (id == kCapture) { if (submit(Action::capture(sel_))) finishOrder(); }
-    else if (id == kWait) { if (submit(Action::wait(sel_))) finishOrder(); }
+    else if (id == kWait) {
+      if (battle_.facingGame()) beginFacing();  // rules.facing: which way does it look when it waits? (skippable)
+      else if (submit(Action::wait(sel_))) finishOrder();
+    }
     else if (id == kMoveOnEntry) beginMoveOn();
   } else if (mode_ == Mode::StructureMenu || mode_ == Mode::UpgradeMenu) {
     if (res == Menu::Cancelled) {

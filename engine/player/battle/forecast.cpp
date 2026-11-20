@@ -101,6 +101,7 @@ void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int
   Column ca = makeColumn(r, (L.W - 8 - 24) / 2, b, a, d, f.attack, hpA, showHit, showCrit, false, false, f.notes);
   Column cd = makeColumn(r, (L.W - 8 - 24) / 2, b, d, a, f.counter, hpD, showHit, showCrit, !f.counter.can, f.defenderFirst, f.notes);
   if (b.apGame()) ca.push_back({"AP " + intStr(b.apAttackCost(attacker, weapon)), kNote});  // action points: what this attack costs
+  if (b.facingGame() && f.arc != kArcFront) ca.push_back({b.arcName(f.arc), kNote});          // facing: it comes at the target from the side or the back
   if (!f.counter.can) std::swap(cd[1], cd[2]);  // keep HP right under the name
   size_t rows = std::max(ca.size(), cd.size());
   // The lines, once per change, for the player tests (drawn every frame, so not logged every frame).

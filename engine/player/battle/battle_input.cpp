@@ -157,6 +157,7 @@ void BattleScene::handleButton(Button b) {
     case Mode::Idle: idleButton(b); break;
     case Mode::Selected: selectedButton(b); break;
     case Mode::Targeting: targetingButton(b); break;
+    case Mode::Facing: facingButton(b); break;
     case Mode::PickUnit:
     case Mode::PickCell: pickButton(b); break;
     default: break;
@@ -168,6 +169,10 @@ void BattleScene::handlePointerDown(int x, int y) {
   if (c == kNoCell) return;  // panel / outside the map
   if (mode_ == Mode::PickUnit || mode_ == Mode::PickCell) {
     pickPointer(x, y);
+    return;
+  }
+  if (mode_ == Mode::Facing) {
+    facingPointer(c);
     return;
   }
   if (mode_ == Mode::Targeting) {
