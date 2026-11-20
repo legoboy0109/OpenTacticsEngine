@@ -13,6 +13,7 @@
 #include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/nxdk/hw3d_gpu.h"
+#include "platform/nxdk/nxdk_prof.h"
 
 namespace ote {
 
@@ -21,11 +22,22 @@ namespace {
 SDL_Surface* g_canvas = nullptr;
 NxdkFit g_fit;
 void* g_layerMem[2] = {nullptr, nullptr};  // two textures the canvas is copied into (one per use in a frame, alternating)
+size_t g_layerBytes = 0;                   // what each of them holds
 int g_layers = 0;                          // layers the chip has drawn this frame
 
+// The part of the surface that is the 2D layer: all of it, or (chip scaling) the game's canvas in the top-left corner.
+int canvasWidth() { return g_fit.canvasW > 0 ? g_fit.canvasW : g_canvas->w; }
+int canvasHeight() { return g_fit.canvasH > 0 ? g_fit.canvasH : g_canvas->h; }
+
 bool ensureLayerMemory() {
-  if (g_layerMem[0]) return true;
-  const size_t bytes = (size_t)g_canvas->w * g_canvas->h * 4;
+  const size_t bytes = (size_t)canvasWidth() * canvasHeight() * 4;
+  if (g_layerMem[0] && bytes <= g_layerBytes) return true;
+  if (g_layerMem[0]) {  // the canvas grew (the game changed its logical size)
+    hw3d::waitIdle();
+    hw3d::release(g_layerMem[0]);
+    hw3d::release(g_layerMem[1]);
+    g_layerMem[0] = g_layerMem[1] = nullptr;
+  }
   g_layerMem[0] = hw3d::alloc(bytes);
   g_layerMem[1] = hw3d::alloc(bytes);
   if (!g_layerMem[0] || !g_layerMem[1]) {
@@ -35,20 +47,25 @@ bool ensureLayerMemory() {
     g_layerMem[0] = g_layerMem[1] = nullptr;
     return false;
   }
+  g_layerBytes = bytes;
   return true;
 }
 
-// The canvas goes to the screen as one rectangle: copied into a texture, drawn at window pixel 1:1. The first layer of a frame
-// replaces what is there, later ones are blended on top (the canvas holds premultiplied colour: see nxdk_present.h).
+// The canvas goes to the screen as one rectangle: copied into a texture, drawn at window pixel 1:1 or (chip scaling) stretched
+// over the fitted rectangle. The first layer of a frame replaces what is there, later ones are blended on top (the canvas holds
+// premultiplied colour: see nxdk_present.h).
 void drawLayer(bool opaque) {
   if (!ensureLayerMemory()) return;
-  const int w = g_canvas->w, h = g_canvas->h;
+  prof::Span span(prof::kLayer);
+  const int w = canvasWidth(), h = canvasHeight();
   if (g_layers >= 2) hw3d::waitIdle();  // the texture this layer would overwrite may still be read by an earlier one
   void* mem = g_layerMem[g_layers & 1];
   const uint8_t* src = (const uint8_t*)g_canvas->pixels;
   uint8_t* dst = (uint8_t*)mem;
   for (int y = 0; y < h; ++y) memcpy(dst + (size_t)y * w * 4, src + (size_t)y * g_canvas->pitch, (size_t)w * 4);
   hw3d::flushWrites();
+  prof::count(prof::kLayerBytes, (double)w * h * 4);
+  prof::count(prof::kLayers, 1);
 
   hw3d::HwTexture tex;
   tex.offset = hw3d::physical(mem);
@@ -61,17 +78,26 @@ void drawLayer(bool opaque) {
   pipe.depthTest = false;
   pipe.depthWrite = false;
   pipe.cull = false;
-  pipe.sampling = hw3d::Sampling::Nearest;
+  pipe.sampling = g_fit.canvasW > 0 && g_fit.smooth ? hw3d::Sampling::Linear : hw3d::Sampling::Nearest;
   pipe.edge = hw3d::Edge::Clamp;
   hw3d::VsConstants c;
   hw3d::screenSpaceConstants(c, 1, 1, 1, 1);
   hw3d::Rect all;
-  all.w = w;
-  all.h = h;
+  all.w = hw3d::width();
+  all.h = hw3d::height();
   hw3d::setScissor(all);
   hw3d::setConstants(c);
   hw3d::setPipe(pipe, tex);
-  hw3d::drawQuad(0, 0, (float)w, (float)h, 0, 0, (float)w, (float)h, 0xFFFFFFFFu);
+  if (g_fit.canvasW > 0) {
+    // Chip scaling: the canvas covers only the fitted rectangle, so the first layer blacks out the margin around it first
+    // (the 3D picture and the later layers only draw inside it).
+    const bool margin = g_fit.x > 0 || g_fit.y > 0 || g_fit.x + g_fit.w < hw3d::width() || g_fit.y + g_fit.h < hw3d::height();
+    if (opaque && margin) hw3d::drawQuad(0, 0, (float)hw3d::width(), (float)hw3d::height(), 0, 0, 1, 1, 0xFF000000u);
+    hw3d::drawQuad((float)g_fit.x, (float)g_fit.y, (float)(g_fit.x + g_fit.w), (float)(g_fit.y + g_fit.h), 0, 0, (float)w, (float)h,
+                   0xFFFFFFFFu);
+  } else {
+    hw3d::drawQuad(0, 0, (float)w, (float)h, 0, 0, (float)w, (float)h, 0xFFFFFFFFu);
+  }
   ++g_layers;
 }
 
@@ -86,6 +112,7 @@ bool saveBmp(const std::string& path, const uint8_t* pixels, int w, int h, int p
 }
 
 void presentByCpu(const std::string& shot) {
+  const double t0 = prof::now();
   if (!shot.empty()) saveBmp(shot, (const uint8_t*)g_canvas->pixels, g_canvas->w, g_canvas->h, g_canvas->pitch);
   VIDEO_MODE vm = XVideoGetMode();
   uint8_t* fb = (uint8_t*)XVideoGetFB();
@@ -93,6 +120,10 @@ void presentByCpu(const std::string& shot) {
   const size_t row = (size_t)g_canvas->w * 4;
   for (int y = 0; y < g_canvas->h; ++y) memcpy(fb + (size_t)y * vm.width * 4, src + (size_t)y * g_canvas->pitch, row);
   XVideoFlushFB();  // the frame buffer is write-combined memory
+  prof::count(prof::kLayerBytes, (double)g_canvas->w * g_canvas->h * 4);
+  prof::count(prof::kLayers, 1);
+  prof::g_ticks[prof::kPresent] += prof::now() - t0;
+  prof::Span vbl(prof::kVblank);
   XVideoWaitForVBlank();
 }
 
@@ -101,9 +132,18 @@ void presentByCpu(const std::string& shot) {
 void nxdkSetCanvas(SDL_Surface* canvas) { g_canvas = canvas; }
 void nxdkSetFit(const NxdkFit& fit) { g_fit = fit; }
 bool nxdkChipPresents() { return hw3d::running(); }
+void nxdkStartChip() {
+  // OTE_XBOX_LEGACY=1 (args.txt, debug): the first version's behaviour, for before/after measurements: the chip starts with the
+  // first 3D picture and the 2D layer is drawn at the screen's scale by the CPU.
+  const char* legacy = getenv("OTE_XBOX_LEGACY");
+  if (legacy && *legacy && *legacy != '0') return;
+  std::string why;
+  if (!hw3d::start(why)) OTE_WARN("the graphics chip could not be started (%s): the picture is copied by the CPU and 3D is off", why.c_str());
+}
 
 void nxdkPresent(const std::string& shotIn) {
   if (!g_canvas) return;
+  const double presentStart = prof::now();
   // Debug: OTE_SHOT_EVERY=N saves the composed picture of every Nth frame (the 20th before it) as D:/userdata/dbgNNNN.bmp.
   static int every = -1, frame = 0;
   if (every < 0) {
@@ -133,7 +173,8 @@ void nxdkPresent(const std::string& shotIn) {
       saveBmp(shot, copy.data(), w, h, pitch);
     }
   }
-  hw3d::endFrame();
+  prof::g_ticks[prof::kPresent] += prof::now() - presentStart;
+  hw3d::endFrame();  // (counts its wait for the vertical blank itself; the time before that is the push-buffer hand-over)
   g_layers = 0;
 }
 
@@ -142,7 +183,8 @@ namespace hw3d {
 void canvasLayerDown() {
   if (!g_canvas) return;
   drawLayer(g_layers == 0);
-  SDL_FillRect(g_canvas, nullptr, 0);  // transparent: what the 2D renderer draws next lies over the 3D picture
+  SDL_Rect canvas = {0, 0, canvasWidth(), canvasHeight()};  // (only the part that is the layer: the rest of the surface is unused)
+  SDL_FillRect(g_canvas, &canvas, 0);  // transparent: what the 2D renderer draws next lies over the 3D picture
 }
 
 void canvasRect(int x, int y, int w, int h, int& sx, int& sy, int& sw, int& sh) {

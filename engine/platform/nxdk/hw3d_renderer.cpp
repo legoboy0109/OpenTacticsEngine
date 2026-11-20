@@ -10,6 +10,7 @@
 #include "platform/nxdk/hw3d_gpu.h"
 #include "platform/nxdk/hw3d_texture.h"
 #include "platform/nxdk/nxdk_present.h"
+#include "platform/nxdk/nxdk_prof.h"
 
 namespace ote {
 
@@ -61,7 +62,10 @@ NxdkRenderer3D::NxdkRenderer3D() {
 
 NxdkRenderer3D::~NxdkRenderer3D() {
   hw3d::waitIdle();
-  for (Mesh& m : meshes_) hw3d::release(m.mem);
+  for (Mesh& m : meshes_) {
+    hw3d::release(m.buf[0].mem);
+    hw3d::release(m.buf[1].mem);
+  }
   for (Tex& t : textures_) hw3d::release(t.mem);
   hw3d::release(whiteMem_);
 }
@@ -77,6 +81,7 @@ Caps3D NxdkRenderer3D::caps() const {
 // ---- meshes ------------------------------------------------------------------------------------------------------------
 
 bool NxdkRenderer3D::fill(Mesh& m, const MeshData& data, bool allocate) {
+  prof::Span span(prof::kMeshFill);
   const size_t vcount = data.vertices.size();
   const size_t icount = data.indices.size() / 3 * 3;
   if (vcount == 0 || icount == 0 || vcount > 65535) {
@@ -89,10 +94,14 @@ bool NxdkRenderer3D::fill(Mesh& m, const MeshData& data, bool allocate) {
       OTE_ERROR("3D mesh refused: index %u is outside its %u vertices", (unsigned)data.indices[i], (unsigned)vcount);
       return false;
     }
-  hw3d::waitIdle();  // the chip may still be reading this mesh's vertices from the frame before
+  Buf* into = nullptr;  // where the vertices go
   if (allocate || vcount > m.capacity) {
-    const size_t bytes = pages(vcount * sizeof(Vertex3D));
-    const size_t had = m.mem ? pages(m.capacity * sizeof(Vertex3D)) : 0;
+    hw3d::waitIdle();  // (the memory about to be given back may still be read by the chip)
+    const size_t had = m.buf[0].mem ? pages(m.capacity * sizeof(Vertex3D)) * (size_t)m.buffers : 0;
+    // A mesh that grows on update (a batch of highlights) is given a half more room, so that it does not grow again next frame.
+    size_t room = allocate ? vcount : std::min<size_t>(65535, std::max(vcount, m.capacity + m.capacity / 2));
+    if (meshBytes_ - had + pages(room * sizeof(Vertex3D)) > meshBudget_) room = vcount;
+    const size_t bytes = pages(room * sizeof(Vertex3D));
     if (meshBytes_ - had + bytes > meshBudget_) {
       OTE_ERROR("3D mesh refused: %u vertices would take the meshes over their %u MB budget (%u KB in use)", (unsigned)vcount,
                 (unsigned)(meshBudget_ >> 20), (unsigned)(meshBytes_ >> 10));
@@ -103,13 +112,43 @@ bool NxdkRenderer3D::fill(Mesh& m, const MeshData& data, bool allocate) {
       OTE_ERROR("3D mesh refused: no chip memory left for %u vertices", (unsigned)vcount);
       return false;
     }
-    hw3d::release(m.mem);
+    hw3d::release(m.buf[0].mem);
+    hw3d::release(m.buf[1].mem);
+    m.buf[1] = Buf();
     meshBytes_ = meshBytes_ - had + bytes;
-    m.mem = mem;
-    m.phys = hw3d::physical(mem);
-    m.capacity = vcount;
+    m.buf[0].mem = mem;
+    m.buf[0].phys = hw3d::physical(mem);
+    m.buf[0].lastUse = 0;
+    m.cur = 0;
+    m.buffers = 1;
+    m.capacity = room;
+    into = &m.buf[0];
+  } else if (m.buf[m.cur].lastUse <= hw3d::idleSeq()) {
+    into = &m.buf[m.cur];  // the chip is done with the vertices as they are: rewrite them in place
+  } else {
+    // The chip may still be drawing with them (a pose made before this frame's first draw, or a second change within a frame):
+    // write to the other buffer instead (made the first time it is needed), and wait only if that one is busy too.
+    const int other = 1 - m.cur;
+    const size_t bytes = pages(m.capacity * sizeof(Vertex3D));
+    if (!m.buf[other].mem && meshBytes_ + bytes <= meshBudget_) {
+      void* mem = hw3d::alloc(bytes);
+      if (mem) {
+        m.buf[other].mem = mem;
+        m.buf[other].phys = hw3d::physical(mem);
+        m.buf[other].lastUse = 0;
+        m.buffers = 2;
+        meshBytes_ += bytes;
+      }
+    }
+    if (m.buf[other].mem && m.buf[other].lastUse <= hw3d::idleSeq()) {
+      m.cur = other;
+    } else {
+      hw3d::waitIdle();  // no second buffer (budget) or it is busy as well
+    }
+    into = &m.buf[m.cur];
   }
-  memcpy(m.mem, data.vertices.data(), vcount * sizeof(Vertex3D));
+  memcpy(into->mem, data.vertices.data(), vcount * sizeof(Vertex3D));
+  prof::count(prof::kMeshBytes, (double)(vcount * sizeof(Vertex3D)));
   hw3d::flushWrites();
   m.count = vcount;
   m.indices.resize(icount);
@@ -124,6 +163,7 @@ bool NxdkRenderer3D::fill(Mesh& m, const MeshData& data, bool allocate) {
       m.hi[k] = std::max(m.hi[k], p[k]);
     }
   }
+  m.cut.valid = false;  // new vertices: the cut at the camera is to be made again
   m.used = true;
   return true;
 }
@@ -139,6 +179,7 @@ MeshId NxdkRenderer3D::createMesh(const MeshData& data) {
 
 void NxdkRenderer3D::updateMesh(MeshId id, const MeshData& data) {
   if (id < 1 || (size_t)id > meshes_.size() || !meshes_[(size_t)id - 1].used) return;
+  prof::count(prof::kMeshWrites, 1);
   fill(meshes_[(size_t)id - 1], data, false);
 }
 
@@ -147,8 +188,9 @@ void NxdkRenderer3D::destroyMesh(MeshId id) {
   Mesh& m = meshes_[(size_t)id - 1];
   if (!m.used) return;
   hw3d::waitIdle();
-  meshBytes_ -= pages(m.capacity * sizeof(Vertex3D));
-  hw3d::release(m.mem);
+  meshBytes_ -= pages(m.capacity * sizeof(Vertex3D)) * (size_t)m.buffers;
+  hw3d::release(m.buf[0].mem);
+  hw3d::release(m.buf[1].mem);
   m = Mesh();
 }
 
@@ -242,6 +284,7 @@ void NxdkRenderer3D::clearRect() {
 }
 
 void NxdkRenderer3D::begin(const Frame3D& frame) {
+  prof::Span span(prof::kR3dBegin);
   frame_ = frame;
   frame_.sunDir = normalize(frame.sunDir);
   inFrame_ = false;
@@ -275,6 +318,7 @@ void NxdkRenderer3D::begin(const Frame3D& frame) {
 }
 
 void NxdkRenderer3D::draw(MeshId id, const Mat4& model, const Material3D& material) {
+  prof::Span span(prof::kR3dDraw);
   if (!inFrame_ || id < 1 || (size_t)id > meshes_.size() || !meshes_[(size_t)id - 1].used) return;
   if (material.blend == Blend3D::Blend) {
     // See-through things wait until everything solid is in the picture (far to near by the mesh's origin).
@@ -287,6 +331,7 @@ void NxdkRenderer3D::draw(MeshId id, const Mat4& model, const Material3D& materi
 
 void NxdkRenderer3D::end() {
   if (!inFrame_) return;
+  prof::Span span(prof::kR3dEnd);
   std::stable_sort(blended_.begin(), blended_.end(), [](const Pending& a, const Pending& b) { return a.depth > b.depth; });
   for (const Pending& p : blended_)
     if ((size_t)p.mesh <= meshes_.size() && meshes_[(size_t)p.mesh - 1].used) emit(meshes_[(size_t)p.mesh - 1], p.model, p.material);
@@ -300,7 +345,7 @@ void NxdkRenderer3D::end() {
   }
 }
 
-void NxdkRenderer3D::emit(const Mesh& mesh, const Mat4& model, const Material3D& material) {
+void NxdkRenderer3D::emit(Mesh& mesh, const Mat4& model, const Material3D& material) {
   const Tex* tex = nullptr;
   if (material.texture >= 1 && (size_t)material.texture <= textures_.size() && textures_[(size_t)material.texture - 1].used)
     tex = &textures_[(size_t)material.texture - 1];
@@ -380,28 +425,55 @@ void NxdkRenderer3D::emit(const Mesh& mesh, const Mat4& model, const Material3D&
     c.fogColor[2] = clamp01(frame_.fogColor.b);
   }
   const hw3d::Visibility vis = hw3d::classifyBox(c.clip, mesh.lo, mesh.hi, guard_);
-  if (vis == hw3d::Visibility::Outside) return;
+  if (vis == hw3d::Visibility::Outside) {
+    prof::count(prof::kOutside, 1);
+    return;
+  }
   hw3d::setConstants(c);
   hw3d::setPipe(pipe, ht);
+  mesh.buf[mesh.cur].lastUse = hw3d::noteUse();  // the chip reads these vertices from here on
   if (vis == hw3d::Visibility::Inside) {
-    if (hw3d::drawIndexed(mesh.phys, mesh.indices.data(), mesh.indices.size() / 3)) ++drawCalls_;
+    if (hw3d::drawIndexed(mesh.buf[mesh.cur].phys, mesh.indices.data(), mesh.indices.size() / 3)) {
+      ++drawCalls_;
+      prof::count(prof::kDrawCalls, 1);
+      prof::count(prof::kIndexWords, (double)((mesh.indices.size() + 1) / 2));
+      prof::count(prof::kTris, (double)(mesh.indices.size() / 3));
+    }
     return;
   }
   // Reaches behind the camera or far outside the picture: cut the triangles that cross the edge (hw3d_clip.h).
   ++clipped_;
-  cut_.keep.clear();
-  cut_.loose.clear();
-  hw3d::clipMesh(mesh.cpu.data(), mesh.count, mesh.indices.data(), mesh.indices.size(), c.clip, guard_, cut_);
-  if (!cut_.keep.empty() && hw3d::drawIndexed(mesh.phys, cut_.keep.data(), cut_.keep.size() / 3)) ++drawCalls_;
-  if (!cut_.loose.empty()) {
-    void* mem = hw3d::scratch(cut_.loose.size() * sizeof(Vertex3D));
+  prof::count(prof::kCutMeshes, 1);
+  prof::Span cutSpan(prof::kClip);
+  Mesh::Cut& cut = mesh.cut;
+  if (!cut.valid || cut.guard != guard_ || memcmp(cut.clip, c.clip, sizeof(cut.clip)) != 0) {
+    cutScratch_.keep.clear();
+    cutScratch_.loose.clear();
+    hw3d::clipMesh(mesh.cpu.data(), mesh.count, mesh.indices.data(), mesh.indices.size(), c.clip, guard_, cutScratch_);
+    cut.keep.swap(cutScratch_.keep);
+    cut.loose.swap(cutScratch_.loose);
+    memcpy(cut.clip, c.clip, sizeof(cut.clip));
+    cut.guard = guard_;
+    cut.valid = true;
+  } else {
+    prof::count(prof::kCutReused, 1);
+  }
+  if (!cut.keep.empty() && hw3d::drawIndexed(mesh.buf[mesh.cur].phys, cut.keep.data(), cut.keep.size() / 3)) {
+    ++drawCalls_;
+    prof::count(prof::kTris, (double)(cut.keep.size() / 3));
+  }
+  if (!cut.loose.empty()) {
+    void* mem = hw3d::scratch(cut.loose.size() * sizeof(Vertex3D));
     if (!mem) {
-      OTE_WARN("3D drawing: no room for the triangles cut at the camera (%u vertices); they are left out", (unsigned)cut_.loose.size());
+      OTE_WARN("3D drawing: no room for the triangles cut at the camera (%u vertices); they are left out", (unsigned)cut.loose.size());
       return;
     }
-    memcpy(mem, cut_.loose.data(), cut_.loose.size() * sizeof(Vertex3D));
+    memcpy(mem, cut.loose.data(), cut.loose.size() * sizeof(Vertex3D));
     hw3d::flushWrites();
-    if (hw3d::drawLoose(hw3d::physical(mem), cut_.loose.size())) ++drawCalls_;
+    if (hw3d::drawLoose(hw3d::physical(mem), cut.loose.size())) {
+      ++drawCalls_;
+      prof::count(prof::kTris, (double)(cut.loose.size() / 3));
+    }
   }
 }
 

@@ -67,6 +67,12 @@ class SdlRenderer : public Renderer {
   void applyLogical();       // SDL_RenderSetLogicalSize, or the fixed-screen rectangle
   void enterOutputSpace();   // fixed screen only: draw in screen pixels until leaveOutputSpace()
   void leaveOutputSpace();
+#ifdef OTE_NXDK
+  double pixelsOf(int w, int h, bool outputSpace) const;  // frame profile: destination pixels of a draw (nxdk_prof.h)
+  bool chipScaleOn() const { return chipScale_; }
+  static int chipFactor();
+  bool chipSmooth() const;
+#endif
   SDL_Window* window_;
   SDL_Renderer* r_;
   int w_, h_;
@@ -77,6 +83,13 @@ class SdlRenderer : public Renderer {
   ScreenFit fit_;
   int safePercent_ = 0;  // 0 = the default for the kind of display
   bool outputMode_ = false;
+#ifdef OTE_NXDK
+  // Chip scaling (docs/XBOX_OG.md "Picture"): the 2D layer is drawn at the game's own size times `canvasFactor_` (a whole number,
+  // 1 by default) in the corner of the surface, and the graphics chip stretches it over the fitted rectangle `fit_`.
+  bool chipScale_ = false;
+  int canvasFactor_ = 1;
+  SDL_Rect canvasViewport_ = {0, 0, 0, 0};
+#endif
   bool additive_ = false;  // setAdditiveBlend: the sheets are drawn with SDL_BLENDMODE_ADD
   std::vector<uint32_t> uploadScratch_;  // converted pixels while uploading (sdl2_pixels.h); unused with the default format
   std::vector<SDL_Texture*> images_;  // TextureId n lives at images_[n - 1]; null = free slot

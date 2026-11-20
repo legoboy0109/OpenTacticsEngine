@@ -33,9 +33,9 @@ with a list of offending paths.
 `tools/xbox-og/build.sh --check-game DIR` checks one game folder without building, for people preparing a game.
 
 How it is put together: `tools/xbox-og/Makefile` (nxdk's own makefile does the linking and the XBE; our compile rules
-replace nxdk's so that sources outside the build folder work), `tools/xbox-og/nx_compat.{h,c}` and `nx_printf.c` (libc
+replace nxdk's so that sources outside the build folder work), `tools/xbox-og/nx_compat.{h,c}`, `nx_printf.c` and `nx_mem.c` (libc
 replacements, "nxdk traps"), `engine/platform/nxdk/` (the platform code: `nxdk_platform.cpp`, `nxdk_overlay.cpp`,
-`video_pick.*`, `nxdk_hw3d.cpp` + `hw3d_*` + `nxdk_present.*` = the 3D backend), the SDL2 backend (`engine/platform/sdl2/`, with `OTE_NXDK` switches) on
+`video_pick.*`, `nxdk_prof.*` = the frame profile, `nxdk_hw3d.cpp` + `hw3d_*` + `nxdk_present.*` = the chip: 3D and the 2D layer's composition), the SDL2 backend (`engine/platform/sdl2/`, with `OTE_NXDK` switches) on
 nxdk's SDL2 2.0.9. Every Xbox change is behind `OTE_NXDK` or lives in Xbox-only files; generic helpers (`readChunk()`) are plain
 `fread` everywhere else.
 
@@ -75,12 +75,22 @@ act as one input. **Not tested with a real pad** (xemu gets no input in these ru
 
 * **Mode.** At start the player lists the modes the console offers (`XVideoListModes`; 720p / 1080i appear only when the
   dashboard's video settings allow HDTV) and sets **640x480** (`video_pick.*`). `OTE_VIDEO=720p` in `args.txt` asks for
-  1280x720 when offered. 720p is not the default because every frame is made by the CPU and copied through video memory: in
-  xemu 55 to 67 ms a frame at 720p against 17 to 33 ms at 480.
+  1280x720 when offered. 720p is not the default (it is not on every TV, and
+  the chip's four buffers take 15 MB more of the 64 MB); the speed is no longer the reason: since the chip stretches the 2D layer,
+  720p costs the CPU about what 480 does (section "Speed").
 * **Fit.** The game's logical canvas (480x270 for all demos) is scaled by the largest factor that fits the **safe area** and
   centred (`platform/common/screen_fit.*`, `SdlRenderer::setFixedScreen`): 576x324 inside 640x480 at 90% (x1.2), 1216x684 inside
-  1280x720 at 95% (x2.53). Fractional scale on purpose (a whole-number scale would use only 75% of the screen); text stays
-  readable because the pixel font is drawn through the same scale and smooth fonts are rasterised at the real size.
+  1280x720 at 95% (x2.53). Fractional scale on purpose (a whole-number scale would use only 75% of the screen).
+* **Who scales.** The 2D layer is drawn by SDL's CPU renderer at the game's **own size** (480x270, 1:1, no scaled blits) into the
+  corner of its ARGB surface, and the graphics chip stretches that picture over the fitted rectangle when it composes the frame
+  (one textured rectangle; the chip is running from the start of the program, `nxdkStartChip()`). The margin is blacked out by the
+  chip. The stretch is **linear** unless the factor is a whole number (then nearest pixel, so pixel art stays sharp); at x1.2 and
+  x2.53 that makes text and the pixel font a little softer than the CPU's nearest-pixel scaling was, readable in every mode
+  (pictures: `shots/perf-p-*`). Smooth fonts are rasterised at the canvas size, not the screen size any more (the chip's filter does
+  the rest). 4:3 and anamorphic 16:9 need nothing special: the chip stretches x and y by their own factors. Debug words in
+  `args.txt`: `OTE_XBOX_FILTER=point|linear` (force the filter), `OTE_XBOX_CANVAS=2` (draw the 2D layer at twice the game's size, 4x
+  the CPU cost, a little crisper at 720p), `OTE_XBOX_LEGACY=1` (the first version's path, for measuring: the CPU scales, the chip
+  starts with the first 3D picture). A game whose canvas is larger than the screen uses the old path automatically.
 * **Safe area.** An Options row **Screen margin** (Xbox builds only; every other build has the same rows as before):
   Automatic, then 100% down to 76% in steps of 2. The picture resizes as you change it, so the edges can be judged on the
   spot. Stored in `settings.json` as `safeArea` (global, or per game like any option). Automatic = **90% on 480 modes, 95% on
@@ -110,11 +120,9 @@ The biggest sheets are `demo-srpg/art/detailed_tiles.png` (2048x1024, 8 MB decod
 off here) and `demo-hex/art/iso_tiles.png` (4.6 MB, isometric style: used, art 4 MB in the log). Both are far below the
 budget; a sheet that does not fit simply loads and drops on demand.
 
-Frame time in a battle at 480 (the `frame time` debug line; measured with the first version, whose `work` left out SDL's drawing, see "3D" > Speed; xemu is a PC running the CPU through an emulator, a real 733 MHz
-Pentium III will differ): work 1 to 3 ms, interval 17 ms (60 Hz, the player waits for the vertical blank) when the host was idle
-and 33 ms (30 Hz) under load. 720p: work 1.2 to 3 ms, interval 55 to 67 ms. Start to launcher: 2.1 s after the XBE starts.
-What a real console costs is unknown: the picture is made by SDL's CPU renderer and converted by `SDL_ConvertPixels` into the
-frame buffer (write-combined memory) every frame.
+Frame time: see "Speed" below (it is one list for 2D and 3D). The chip now runs from the start of the program in 2D too, so the
+chip's own memory (three frame buffers, a depth buffer, push buffer: about 10 MB at 480, 25 MB at 720p) is in every run: the Wars
+2D battle at 720p shows 35 MB used (it was about 16), the launcher at 480 about 17 MB. Start to launcher: 2.1 s after the XBE starts.
 
 ## 3D (the NV2A)
 
@@ -127,15 +135,16 @@ chip: see "What an emulator cannot tell" below.
 **Picture and composition.** The 3D picture is drawn straight into the screen at the screen's own pixels (576x324 in the 480
 mode, 1216x684 at 720p), in the rectangle the 2D layer's fit gives the canvas (safe area and anamorphic 16:9 included), under
 whatever the 2D renderer draws afterwards (HUD, menus, text). The 2D layer is SDL's CPU renderer, which on nxdk draws into an
-ARGB surface of our own (the window's surface has no alpha). Until the first 3D backend is made the surface is copied to the
-frame buffer as before (pure 2D is unchanged). The first 3D use starts pbkit, which takes the screen over; from then on the chip
-composes every frame: the surface (2D drawn so far) is copied into a texture and drawn as one rectangle, the 3D picture is drawn
-over it, then the surface is cleared to transparent, what the 2D renderer draws next lands in it, and it is drawn over the picture
-as a second rectangle, blended (premultiplied: SDL's own blending leaves premultiplied colour on a transparent surface). A
-frame without 3D costs one upload and one rectangle, the same copy of 1.2 MB (3.7 MB at 720p) the CPU path made. A clear colour of
-alpha 0 leaves the 2D backdrop showing, as everywhere. Why this design: SDL 2.0.9 has no GPU renderer for the NV2A, and drawing
-the 3D into a CPU picture and reading it back would be slow on a real console (the frame buffer is slow to read); composing on the
-chip needs no read-back and keeps the 2D layer as it is.
+ARGB surface of our own (the window's surface has no alpha), at the game's own size (480x270), not the screen's. The chip starts
+with the program (`nxdkStartChip()`) and composes every frame: the canvas is copied into a texture and drawn as one rectangle
+stretched over the fitted rectangle (the margin around it is blacked out first), the 3D picture is drawn over it, then the canvas
+is cleared to transparent, what the 2D renderer draws next lands in it, and it is drawn over the picture as a second stretched
+rectangle, blended (premultiplied: SDL's own blending leaves premultiplied colour on a transparent surface). A frame without 3D
+costs one upload of 506 KB (480x270x4; before the stretch moved to the chip it was 1.2 MB at 480 and 3.7 MB at 720p) and one
+rectangle; a frame with 3D two uploads. A clear colour of alpha 0 leaves the 2D backdrop showing, as everywhere. Why this design: SDL
+2.0.9 has no GPU renderer for the NV2A, and drawing the 3D into a CPU picture and reading it back would be slow on a real console (the
+frame buffer is slow to read); composing on the chip needs no read-back and keeps the 2D layer as it is. If the chip cannot start the
+player falls back to the first version's path (2D at the screen's scale, copied by the CPU, no 3D).
 
 **Memory** (kernel pages of the 64 MB, `used` in the overlay and the log). The chip's own cost, once 3D starts: three frame
 buffers and a depth buffer (4 x 1.2 MB at 640x480, 4 x 3.7 MB at 1280x720), the 2 MB push buffer, 1 MB for triangles cut at the
@@ -166,12 +175,63 @@ software picture scaled to it; "after a 2 px blur" removes edge and scaling nois
 Differences that remain: triangle edges (the chip's fill rule and 8-bit colour steps), nearest-pixel sampling at the 1.2x scale,
 and units caught at slightly different animation moments.
 
-**Speed** (xemu on a loaded PC, `frame time` log line: `work` = what the player spends in a frame before the picture is sent,
-`interval` = frame to frame; 60 Hz is 16.7 ms): 2D Wars battle at 480: interval 33 ms; 3D isometric (Hex Wars) 34 to 36 ms, full 3D 33 ms; at 720p 2D 67 ms, 3D 72 to 77 ms (60 Hz steps: 17, 33, 50, 67 ms). The `work` figure now includes the 2D layer's drawing (SDL's CPU renderer draws while the player records, it used to run in `SDL_RenderPresent`, after the timer): 11 to 14 ms at 480 in 2D, 16 to 18 ms in 3D isometric, 20 to 44 ms in full 3D (the first window includes loading); the first version's pure-2D `work` of 2.3 ms was only the recording of commands, and its interval was the same 33 ms.
-These say little about a real console: xemu runs the 733 MHz CPU through an emulator and the NV2A through OpenGL, and the host was
-shared with other work (load average 20 to 30). What is certain is the structure: per frame one 1.2 MB upload (two with a 3D
-picture), vertex memory written once per mesh and once per frame for a CPU-posed character, indices written into the push buffer
-(about 290 KB of the 2 MB in a busy 89-draw frame).
+**Speed.** Instruments: `OTE_LOG_LEVEL=debug` prints every 120 frames `frame time: work .. interval ..` and `frame prof: ..` (nxdk_prof.h:
+per-frame milliseconds of update, draw, overlay, SDL's fills / sprite copies / glyphs, the 3D begin / draw / end, mesh copies, chip
+waits, the 2D layer's copy, the wait for the vertical blank, and counts: bytes uploaded, SDL pixels, draws, index words, triangles,
+mesh bytes). `work` = what the player spends in a frame before the picture is sent (the second 2D layer's copy and the blank wait are
+not in it); `interval` = frame to frame (60 Hz is 16.7 ms). All numbers are xemu on a PC, the host mostly idle (load average 3 to 10;
+a loaded host multiplies every figure by 2 to 4 and the intervals jump to 33 or 50 ms: the same build gave `work` 8 and 27 ms in two
+runs); **a real 733 MHz Pentium III will differ, and the chip's real speed is not tested at all**.
+
+Where a frame went (ms, 480x270 canvas on 640x480, Wars / Hex Wars autoplay scenes `perf2-*`; first version -> now):
+
+| | update | game draw | of it SDL 2D | 2D layer copy (first + second) | mesh copies | overlay | waits for the blank | CPU busy | interval |
+|---|---|---|---|---|---|---|---|---|---|
+| 2D battle | 0.2 -> 0.1 | 5.0 -> 1.7 | 6.6 -> 2.4 | 7.2 -> 0.7 | | 2.0 -> 1.0 | 2.7 -> 13.3 | 14.4 -> 3.5 | 17 -> 17 |
+| 3D isometric | 0.4 -> 0.3 | 11.5 -> 3.5 | 3.0 -> 1.7 | 13.6 -> 0.8 | 1.2 -> 0.2 | 1.9 -> 1.2 | 12.6 -> 10.3 | 20.7 -> 6.4 | 33 -> 17 |
+| full 3D | 0.4 -> 0.3 | 15.3 -> 3.6 | 3.0 -> 1.7 | 13.6 -> 0.8 | 1.2 -> 0.2 | 1.8 -> 1.1 | 9.5 -> 11.3 | 24.3 -> 5.4 | 33 -> 17 |
+
+("CPU busy" = interval minus the wait for the blank; "SDL 2D" includes the overlay's drawing, which is outside "game draw". The overlay is only drawn with `OTE_XBOX_OVERLAY=1`, which every perf script
+turns on, so the figures include it.) Pixels the CPU drew a frame in 2D / in 3D: 920 / 620 thousand -> 422 / 223 thousand; bytes
+copied to the chip a frame: 1.2 MB (2.4 MB with 3D; 3.7 / 7.4 MB at 720p) -> 506 KB (1.0 MB with 3D, at both resolutions).
+
+Frame interval (ms; median of the runs of each scene; before = first version, after = now; 60 Hz = 16.7):
+
+| scene | before work / interval | after work / interval |
+|---|---|---|
+| 2D battle, 480 | 7.0 / 16.9 | 3.1 / 16.7 |
+| 3D isometric, 480 | 14.5 / 34.0 | 4.6 / 16.7 |
+| full 3D, 480 | 17.3 / 33.5 | 5.6 / 17.1 |
+| 2D battle, 720p | 30.2 / 59.7 | 3.1 / 16.7 |
+| 3D isometric, 720p | 34.7 / 66.8 | 5.0 / 16.7 |
+| full 3D, 720p | 38.5 / 67.0 | 6.8 / 16.9 |
+
+(Quiet runs, back to back, host load average 3 to 10. Runs made while other jobs loaded the host (15 and more) gave
+the first version `work` 11 to 40 ms and intervals 27 to 68 ms, and this version `work` 11 to 19 ms and intervals 17 to 20 ms in the 480
+scenes. `work` is not comparable for 2D before and after: the first version's `work` left out the 7 ms copy.) What changed it, in the order of
+the gain: (1) `memcpy` was a byte loop ("nxdk traps"): the 1.2 MB copies took 6.8 ms each, 13.6 ms with 3D; (2) the 2D layer is drawn
+at the game's size and stretched by the chip ("Picture"): 0.46 of the pixels, 0.42 of the bytes; (3) SDL's textures are made in the
+canvas's own format (`OTE_SDL2_UPLOAD_ARGB8888`): with the textures in RGBA, SDL's blitters converted every pixel, and a sprite
+copy at 1:1 cost 6.1 ms against 0.6 ms in the matching format; (4) no unconditional wait for the vertical blank per frame (see below);
+(5) the battle view worked out, for every square, "is it hidden behind higher ground" (a ray walk) on every frame the camera moved,
+3.3 ms a frame in full 3D: now only for the squares something is drawn on (shared code, same pictures on every platform);
+(6) 3D: changing meshes alternate two buffers (no stall for the chip), one kick of the chip per draw, a mesh's cut at the camera is kept
+while the camera stands still. Not changed: the structure of the 3D drawing (inline 16-bit indices in the push buffer, one vertex program).
+
+**Pacing.** pbkit has three frame buffers and flips to a finished one at the vertical blank by itself; the first version still waited for
+the next blank after every frame, so a frame that took 17 ms instead of 16.6 cost 33. Now the only wait is `pb_finished()` saying that
+two frames are already queued (then it waits for a blank, which frees a buffer). A frame a little over 16.7 ms costs one repeated
+picture, not a doubled interval; with `OTE_XBOX_PACE=vbl` in `args.txt` the old wait is back (for comparing). The price is up to two
+frames of input delay, as in any triple-buffered game. At 60 Hz the `work` limit is 16.7 ms of this CPU; in xemu the scenes use 3 to 9.
+
+What is certain about a real console is the structure, not the numbers: 1.0 MB or less copied to write-combined memory a frame, a few
+hundred thousand pixels of CPU drawing, 80 to 90 KB of vertex data written, 8 to 10 draws, 2,600 triangles and 22 KB of push buffer
+a frame in the isometric scenes. **Not verified: everything on real hardware** (the NV2A's own speed, the CPU's, WC memory timing
+for `rep movsl`, pbkit's flip behaviour without the per-frame wait). Not done on purpose: skipping the re-render and re-upload of frames in which nothing changed. A reliable "unchanged" test needs the
+draw commands recorded (SDL draws as the game calls it) and the 3D draws and mesh changes hashed; in a battle something always
+moves (idle animation, cursor pulse, water) and in menus the 2D layer already costs 3 ms. Ideas left (expected gain): a hardware 2D renderer (the 2D layer
+drawn by the chip as textured rectangles: about 1.5 to 2.5 ms of CPU in these scenes and the upload; only worth it if a real console
+turns out CPU-bound), skipping unchanged frames (see below), cutting the overlay when it is off (it is a debug aid).
 
 **Limits and traps** (found the hard way):
 
@@ -278,6 +338,11 @@ other platform. Map ids and the like never become file names.
 * **`printf` has no `%f` / `%e` / `%g`** (prints nothing): the JSON writer wrote `"saveVersion":,` and every Continue save was
   unreadable until `nx_printf.c` replaced `snprintf` / `vsnprintf` (checked against the host's printf over 80,000 cases,
   `tools/xbox-og/nx_printf_test.c`; `std::to_string(double)` is not covered).
+* **`memcpy`, `memmove`, `memset` copy one byte per loop turn** (PDCLib). In xemu one 1.2 MB copy into the chip's memory took 6.8 ms,
+  more than all the rest of a 2D frame; `tools/xbox-og/nx_mem.c` defines the three with `rep movsl` / `rep stosl` (the same copy
+  took 0.3 ms) and the linker takes ours before the library's (PDCLib keeps each function in its own object). Everything gains:
+  vectors, SDL's blits, mesh and texture copies. Real hardware's gain will be smaller (a real Pentium III copies bytes faster than
+  xemu's emulated one) but the byte loop was never the right tool.
 * Default stack is 64 KB (the engine keeps 64 KB read buffers on the stack): linked with `-stack:1048576`.
 * stb_image needs `-DSTBI_NO_SIMD` (the CPU has SSE, not SSE2).
 * No `getenv` data and no `putenv`: a small table (`ote_getenv` / `ote_setenv`) carries the args file's environment words.

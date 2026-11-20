@@ -204,7 +204,7 @@ void Map3D::drawHighlights(const DrawCtx& c, const Overlay& ov, Cell cursor, boo
     float Y = topOf(cursor, x, y) + 0.024f;
     frame(batch_.mesh(flat(Blend3D::Blend)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)pulse));
     // Behind higher blocks: again, faintly, over everything.
-    if (hidden_[(size_t)cursor] || standAt(cursor) || standInFront(c, x, y))
+    if (hiddenAt(c, (size_t)cursor) || standAt(cursor) || standInFront(c, x, y))
       frame(batch_.mesh(flat(Blend3D::Blend, false)), c, x, y, 1, 1, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)(pulse * 2 / 5)));
   }
 }
@@ -318,7 +318,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     for (int y = 0; y < g.gridH(); ++y)
       for (int x = 0; x < g.gridW(); ++x) {
         Cell cell = b.grid.at(x, y);
-        if (hidden_[(size_t)cell] || b.structureAt[cell] >= 0) continue;
+        if (b.structureAt[cell] >= 0) continue;
         const TerrainDef& td = b.terrainAt(cell);
         const Look* art = terrainArt(c, b.cells[cell].terrain);
         if (td.glyph == ' ' || (art && sheets_.texture(r3d_, art->sheet))) continue;
@@ -326,6 +326,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
         float tgx, tgy;
         p.cellMid(x, y, tgx, tgy);
         if (!screen(tgx, tgy, p.elevation(x, y) * g.stepY(), sx, sy, k)) continue;
+        if (hiddenAt(c, (size_t)cell)) continue;  // (the ray walk is the dear test: last)
         Color col = Color::rgb(terrainRgb(c, b.cells[cell].terrain));
         Color gc = mix(col, readableOn(col), 0.28f);
         drawGlyphCentered(r, sx, sy, td.glyph, c.view.dimmed(cell) ? fogDim(gc) : gc, glyphPx(k));

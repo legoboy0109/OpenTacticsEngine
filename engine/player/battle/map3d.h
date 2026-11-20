@@ -41,6 +41,7 @@ class Map3D {
   int groundKey(const DrawCtx& c, Cell cell) const;
   void beginFrame(Renderer& r, const DrawCtx& c);
   void updateHidden(const DrawCtx& c);
+  bool hiddenAt(const DrawCtx& c, size_t square);  // worked out when first asked, once per camera
   Spot spot(const DrawCtx& c, float gx, float gy, float elevation) const;
   bool picture(const DrawCtx& c, const Look& look, int x, int y, int w, int h, Material3D& m, float uv[4]);
   void groundQuad(MeshData& m, const DrawCtx& c, int x, int y, float w, float d, float Y, float inset, Tint3D tint,
@@ -94,7 +95,7 @@ class Map3D {
   MeshId ground_ = 0;
   bool built_ = false;
   std::vector<int> terrainKey_;  // the terrain of every square when the ground mesh was built: a change rebuilds it
-  std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle
+  std::vector<uint8_t> hidden_;  // per square: blocks nearer the camera cover its middle (0 no, 1 yes, 2 not worked out yet)
   float hiddenKey_[7] = {-1000, 0, 0, 0, 0, 0, 0};  // the camera hidden_ was worked out for
   // Per frame: the camera's sideways and towards-the-camera directions on the ground, and pixel measures.
   float rx_ = 1, rz_ = 0, cx_ = 0, cz_ = 1, pixels_ = 34, cosP_ = 0.866f;

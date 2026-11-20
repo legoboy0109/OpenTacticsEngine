@@ -315,23 +315,29 @@ contract and does the other backends' arithmetic; `framePixels()` is null.
   shader tool, nothing is compiled at run time, and no Microsoft file is involved. A program rather than the fixed-function
   pipeline because the arithmetic is then exactly the software backend's (and fixed-function lighting on this chip has a different
   model), and it is the path nxdk's samples show.
-- **Composition with the 2D layer** (docs/XBOX_OG.md "3D"): the 2D layer is a surface; when a 3D picture begins, what is drawn so far
-  goes to the screen as one rectangle, the picture is drawn into the frame's rectangle mapped through the same fit (safe area,
-  anamorphic) as the 2D canvas, and what the 2D renderer draws afterwards is blended over it. `renderWidth/Height` and `samples` are
+- **Composition with the 2D layer** (docs/XBOX_OG.md "3D"): the 2D layer is a surface drawn at the game's own size; when a 3D picture
+  begins, what is drawn so far goes to the screen as one rectangle stretched by the chip over the fitted rectangle, the picture is
+  drawn into the frame's rectangle mapped through the same fit (safe area, anamorphic) as the 2D canvas, and what the 2D renderer
+  draws afterwards is blended over it, stretched the same way. `renderWidth/Height` and `samples` are
   ignored: the picture is drawn at the screen's pixels, without smoothing of edges.
 - **Draws**: solid draws go to the push buffer at once, `Blend` ones wait for `end()` and are drawn far to near by the mesh's origin
   without writing depth (as the software backend). Cut-out is the chip's alpha test (`alpha >= ceil(cutoff x 255)`), blend is
   source alpha. Depth is 24 bit, "less"; a material without depth test still writes depth, as the software one. Culling: counter-
   clockwise faces are front.
 - **Meshes** are kept as `Vertex3D` is laid out (36 bytes) in write-combined memory the chip reads in place; indices (16 bit) are
-  written inline into the push buffer per draw. `updateMesh` rewrites the vertices in place (a memcpy) when they still fit.
-  A copy stays in ordinary memory for the CPU cutting.
+  written inline into the push buffer per draw. `updateMesh` rewrites the vertices in place (a memcpy) when the chip is done with them and otherwise
+  into a second buffer the mesh gets the first time it needs one (the two take turns; `hw3d::noteUse` / `idleSeq` say when the chip is done
+  with a buffer), so the CPU never waits for the chip; a mesh that grows gets half again as much room. A copy stays in ordinary memory for the
+  CPU cutting.
 - **Textures**: A8R8G8B8, swizzled, power of two up to 1024 a side, nearest or linear, trilinear with the box-filtered mipmaps made
   when asked; repeat or clamp-to-edge. Memory budgets and the half-size rule: docs/XBOX_OG.md "3D". Without a texture a 1x1 white one.
 - **Clipping**: a mesh whose bounding box is inside the clip volume (in front of the near plane, within a guard band around the screen
   of up to 8 half-screens, about 1800 pixels) is drawn as is; one wholly outside is skipped; one crossing it has its triangles cut
   against the volume by the CPU (`clipMesh`: whole triangles keep their indices, cut ones become loose triangles in memory made for
-  the frame).
+  the frame). The cut is kept with the mesh and reused while the matrix and the guard band stay the same (a still camera: the ground
+  is cut once, not every frame) and forgotten when the mesh changes.
+- **Commands** are written in one block per draw (state, constants, indices) and the chip is told once (`kick()`, hw3d_gpu.cpp); a frame
+  ends with `pb_finished()` (queue it for the flip at the next blank) and waits for a blank only when two frames are already queued.
 - **`Caps3D`**: `maxTextureSize` 1024, `maxMeshVertices` 65535, `fullResolution` true. Over-size content is shrunk by the loaders
   (glTF images, art sheets: `sheets3d.cpp` shrinks a sheet over the size instead of refusing it, for every backend).
 - **Checked by** the host unit tests (`tests/test_nxdk_hw3d.cpp`: swizzle addresses, mipmaps, alpha-weighted halving, the cutting) and

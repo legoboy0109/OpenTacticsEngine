@@ -16,6 +16,7 @@
 
 #include "platform/nxdk/nxdk.h"
 #include "platform/nxdk/nxdk_present.h"
+#include "platform/nxdk/nxdk_prof.h"
 #endif
 #include "platform/sdl2/sdl2_gl3d.h"
 #include "platform/sdl2/sdl2_input.h"
@@ -86,15 +87,30 @@ void frame(Loop& L) {
   L.lastTicks = now;
   if (dt > 0.1) dt = 0.1;
   if (L.cfg->fixedDt > 0) dt = L.cfg->fixedDt;
+#ifdef OTE_NXDK
+  {
+    prof::Span span(prof::kUpdate);
+    L.app->update(dt);
+  }
+#else
   L.app->update(dt);
+#endif
 
   // 3. Draw. The final frame is captured before present (the back buffer is
   // undefined after present on some drivers).
   ++L.frames;
   bool last = L.app->wantsQuit() || (L.cfg->maxFrames > 0 && L.frames >= L.cfg->maxFrames);
-  L.app->draw(*L.gfx);
 #ifdef OTE_NXDK
-  nxdkDrawOverlay(*L.gfx);  // only when OTE_XBOX_OVERLAY is set
+  {
+    prof::Span span(prof::kDraw);
+    L.app->draw(*L.gfx);
+  }
+  {
+    prof::Span span(prof::kOverlay);
+    nxdkDrawOverlay(*L.gfx);  // only when OTE_XBOX_OVERLAY is set
+  }
+#else
+  L.app->draw(*L.gfx);
 #endif
 #ifdef OTE_NXDK
   // With the chip showing the frames the screenshot is the composed picture, written by nxdkPresent below.
@@ -111,6 +127,12 @@ void frame(Loop& L) {
       const int interval = (int)(1e5 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames);
       OTE_DEBUG("frame time: work %d.%02d ms, interval %d.%02d ms (average of %d frames)", work / 100, work % 100,
                 interval / 100, interval % 100, kTimedFrames);
+      char prof[900];  // where the frame went (nxdk_prof.h); the present / vbl part of this window is added at the next window
+      prof::format(prof, (int)sizeof(prof), kTimedFrames);
+      OTE_DEBUG("frame prof: %s", prof);
+    } else {
+      char discard[900];  // the first window includes loading: only reset the counters
+      prof::format(discard, (int)sizeof(discard), kTimedFrames);
     }
 #else
     if (L.intervalStart)
@@ -227,6 +249,7 @@ int runApp(App& app, const PlatformConfig& config) {
     SDL_Surface* canvas = SDL_CreateRGBSurfaceWithFormat(0, winW, winH, 32, SDL_PIXELFORMAT_ARGB8888);
     if (canvas) ren = SDL_CreateSoftwareRenderer(canvas);
     nxdkSetCanvas(canvas);
+    nxdkStartChip();  // the chip shows every frame from the start and stretches the 2D layer (nxdk_present.h)
 #elif defined(_WIN32)
     // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its
     // target (sdl2_d3d11_3d.cpp). On UWP it is SDL2's only hardware renderer anyway; SDL2's desktop default would be

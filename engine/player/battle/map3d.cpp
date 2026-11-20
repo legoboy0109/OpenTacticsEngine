@@ -125,12 +125,17 @@ void Map3D::updateHidden(const DrawCtx& c) {
   for (int i = 0; i < 7 && same; ++i) same = key[i] == hiddenKey_[i];
   if (same) return;
   for (int i = 0; i < 7; ++i) hiddenKey_[i] = key[i];
-  hidden_.assign((size_t)(g.gridW() * g.gridH()), 0);
   bool flat = true;  // flat map: nothing can cover anything
   for (int e : g.elevations()) flat = flat && e == 0;
-  if (flat) return;
-  for (int y = 0; y < g.gridH(); ++y)
-    for (int x = 0; x < g.gridW(); ++x) hidden_[(size_t)(y * g.gridW() + x)] = g.hidden3(x, y);
+  // Each square's answer is a ray walk over the map; only the squares something is asked about (units, the cursor) need one, and
+  // a moving camera (full 3D) changes the key every frame, so they are worked out when asked.
+  hidden_.assign((size_t)(g.gridW() * g.gridH()), flat ? 0 : 2);
+}
+
+bool Map3D::hiddenAt(const DrawCtx& c, size_t square) {
+  if (square >= hidden_.size()) return false;
+  if (hidden_[square] == 2) hidden_[square] = c.proj->hidden3((int)(square % (size_t)c.proj->gridW()), (int)(square / (size_t)c.proj->gridW())) ? 1 : 0;
+  return hidden_[square] != 0;
 }
 
 void Map3D::beginFrame(Renderer& r, const DrawCtx& c) {
@@ -220,7 +225,7 @@ void Map3D::draw(Renderer& r, const DrawCtx& c, const Overlay& ov, Cell cursor, 
       }
       // Behind higher blocks: faint. Behind standing terrain (trees, a peak): a little stronger, a unit in a forest
       // is where the player is looking.
-      if (hidden_[(size_t)(uy * b.grid.width() + ux)]) drawUnit(c, u, v, 0.45f, true);
+      if (hiddenAt(c, (size_t)(uy * b.grid.width() + ux))) drawUnit(c, u, v, 0.45f, true);
       else if (standInFront(c, ux, uy)) drawUnit(c, u, v, 0.6f, true);
     }
   batch_.flush(r3d_);

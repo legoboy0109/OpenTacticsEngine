@@ -3,9 +3,11 @@
 
 #include <hal/video.h>
 #include <pbkit/pbkit.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "core/base/log.h"
+#include "platform/nxdk/nxdk_prof.h"
 
 namespace ote {
 namespace hw3d {
@@ -23,10 +25,23 @@ uint32_t* g_frameBase = nullptr;
 int g_width = 0, g_height = 0;
 int g_dropped = 0;
 size_t g_lastPush = 0;
+uint32_t g_useSeq = 0, g_idleSeq = 0;  // see noteUse() in hw3d_gpu.h
 int g_droppedTotal = 0;
 const size_t kScratchBytes = 1u << 20;
 void* g_scratch = nullptr;
 size_t g_scratchUsed = 0;
+// pbkit's pb_end() tells the chip about the new commands at once (a cache flush and a register write). A draw is a state block, a
+// constants block and the draw itself, so the commands of one draw are collected from `g_pending` on and the chip is told once, by
+// kick(). Everything that looks at what the chip has done, or lets pbkit push commands of its own, kicks first.
+uint32_t* g_pending = nullptr;
+uint32_t* begin() { return g_pending ? g_pending : pb_begin(); }
+void end(uint32_t* p) { g_pending = p; }
+void kick() {
+  if (!g_pending) return;
+  uint32_t* p = g_pending;
+  g_pending = nullptr;
+  pb_end(p);
+}
 int g_arrays = -1;  // which vertex array setup is current: 1 meshes, 0 loose vertices, -1 unknown (new frame)
 
 }  // namespace
@@ -130,7 +145,7 @@ int droppedDraws() { return g_dropped; }
 namespace {
 
 void setBaseState() {
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   // Rectangles the chip may draw in: all eight are the whole screen until a 3D picture narrows them.
   p = pb_push1(p, NV097_SET_WINDOW_CLIP_TYPE, 0);
   for (int i = 0; i < 8; ++i) {
@@ -150,7 +165,7 @@ void setBaseState() {
   p = pb_push1(p, NV097_SET_TRANSFORM_EXECUTION_MODE,
                OTE_MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_MODE_PROGRAM) |
                    OTE_MASK(NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE, NV097_SET_TRANSFORM_EXECUTION_MODE_RANGE_MODE_PRIV));
-  pb_end(p);
+  end(p);
 }
 
 }  // namespace
@@ -159,7 +174,11 @@ void beginFrame() {
   if (!g_started || g_frameOpen) return;
   // First the chip must be done with the previous frame: its commands are in the push buffer we are about to write over,
   // its vertices and textures may change now. (The wait for the vertical blank comes at the end of endFrame.)
-  while (pb_busy()) {
+  {
+    prof::Span wait(prof::kChipWait);
+    while (pb_busy()) {
+    }
+    g_idleSeq = g_useSeq;
   }
   pb_reset();
   pb_target_back_buffer();
@@ -175,17 +194,36 @@ bool inFrame() { return g_frameOpen; }
 
 void waitIdle() {
   if (!g_started) return;
+  kick();
+  prof::Span wait(prof::kChipWait);
   while (pb_busy()) {
   }
+  g_idleSeq = g_useSeq;
 }
+
+uint32_t noteUse() { return ++g_useSeq; }
+uint32_t idleSeq() { return g_idleSeq; }
 
 void endFrame() {
   if (!g_started || !g_frameOpen) return;
+  kick();
   g_lastPush = (size_t)(pb_begin() - g_frameBase) * 4;
-  while (pb_finished()) {  // 1 = no free buffer to swap to yet: try again
+  // pbkit has three frame buffers and flips to a finished one at the next vertical blank by itself. pb_finished() queues this
+  // frame for that flip and answers 1 when two frames are already waiting: that is the only time the player has to wait (for a
+  // blank, which frees a buffer). A frame that takes slightly longer than 16.7 ms then costs one repeated picture, not a whole
+  // 33 ms interval as it did when every frame ended with a wait for the next blank. OTE_XBOX_PACE=vbl brings that wait back
+  // (for comparing: docs/XBOX_OG.md "Speed").
+  {
+    prof::Span vbl(prof::kVblank);
+    while (pb_finished()) pb_wait_for_vbl();
+    static int everyBlank = -1;
+    if (everyBlank < 0) {
+      const char* e = getenv("OTE_XBOX_PACE");
+      everyBlank = e && strcmp(e, "vbl") == 0;
+    }
+    if (everyBlank) pb_wait_for_vbl();
   }
   g_frameOpen = false;
-  pb_wait_for_vbl();  // pace the game at the screen's rate; the chip draws while we wait
   if (g_dropped) {
     g_droppedTotal += g_dropped;
     OTE_WARN("3D drawing: %d draws dropped this frame, the push buffer was full (%d so far)", g_dropped, g_droppedTotal);
@@ -205,7 +243,7 @@ const uint8_t* backBuffer(int& w, int& h, int& pitch) {
 namespace {
 
 bool room(uint32_t dwords) {
-  uint32_t used = (uint32_t)(pb_begin() - g_frameBase);
+  uint32_t used = (uint32_t)(begin() - g_frameBase);
   if (used + dwords + kSpareDwords < kPushBytes / 4) return true;
   ++g_dropped;
   return false;
@@ -216,7 +254,7 @@ uint32_t arrayFormat(uint32_t type, uint32_t size, uint32_t stride) { return typ
 void setArrayFormats(bool mesh) {
   if (g_arrays == (mesh ? 1 : 0)) return;
   g_arrays = mesh ? 1 : 0;
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   pb_push(p++, NV097_SET_VERTEX_DATA_ARRAY_FORMAT, 16);
   for (int i = 0; i < 16; ++i) {
     uint32_t f = NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F;  // type float, size 0 = not an array (the value comes loose)
@@ -226,7 +264,7 @@ void setArrayFormats(bool mesh) {
     if (mesh && i == 9) f = arrayFormat(NV097_SET_VERTEX_DATA_ARRAY_FORMAT_TYPE_F, 2, 36);
     *p++ = f;
   }
-  pb_end(p);
+  end(p);
 }
 
 }  // namespace
@@ -239,12 +277,12 @@ void setScissor(const Rect& r) {
   if (y1 >= g_height) y1 = g_height - 1;
   if (x1 < x0) x1 = x0;
   if (y1 < y0) y1 = y0;
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   for (int i = 0; i < 8; ++i) {  // the union of eight rectangles: all the same one
     p = pb_push1(p, NV097_SET_WINDOW_CLIP_HORIZONTAL + 4 * i, (uint32_t)x0 | ((uint32_t)x1 << 16));
     p = pb_push1(p, NV097_SET_WINDOW_CLIP_VERTICAL + 4 * i, (uint32_t)y0 | ((uint32_t)y1 << 16));
   }
-  pb_end(p);
+  end(p);
 }
 
 void clearDepth(const Rect& r) {
@@ -254,12 +292,13 @@ void clearDepth(const Rect& r) {
   if (x1 > g_width) x1 = g_width;
   if (y1 > g_height) y1 = g_height;
   if (x1 <= x0 || y1 <= y0) return;
+  kick();  // (pbkit writes its own commands)
   pb_erase_depth_stencil_buffer(x0, y0, x1 - x0, y1 - y0);
 }
 
 void setPipe(const Pipe& pipe, const HwTexture& tex) {
   if (!g_frameOpen || !room(64)) return;
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   p = pb_push1(p, NV097_SET_DEPTH_TEST_ENABLE, 1);
   p = pb_push1(p, NV097_SET_DEPTH_FUNC, pipe.depthTest ? NV097_SET_DEPTH_FUNC_V_LESS : NV097_SET_DEPTH_FUNC_V_ALWAYS);
   p = pb_push1(p, NV097_SET_DEPTH_MASK, pipe.depthWrite ? 1 : 0);
@@ -293,12 +332,12 @@ void setPipe(const Pipe& pipe, const HwTexture& tex) {
     p = pb_push1(p, NV097_SET_TEXTURE_IMAGE_RECT, tex.rect);
   }
   p = pb_push1(p, NV097_SET_TEXTURE_FILTER, (minF << 16) | (magF << 24));
-  pb_end(p);
+  end(p);
 }
 
 void setConstants(const VsConstants& c) {
   if (!g_frameOpen || !room(96)) return;
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   p = pb_push1(p, NV097_SET_TRANSFORM_CONSTANT_LOAD, 96);
   const uint32_t* src = (const uint32_t*)&c;
   const uint32_t total = sizeof(VsConstants) / 4;
@@ -308,7 +347,7 @@ void setConstants(const VsConstants& c) {
     memcpy(p, src + i, n * 4);
     p += n;
   }
-  pb_end(p);
+  end(p);
 }
 
 void screenSpaceConstants(VsConstants& c, float r, float g, float b, float a) {
@@ -333,7 +372,7 @@ bool drawIndexed(uint32_t physVertices, const uint16_t* indices, size_t triangle
   size_t packets = (dwords + 1019) / 1020;
   if (!room((uint32_t)(dwords + packets + 40))) return false;
   setArrayFormats(true);
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 0 * 4, physVertices + 0);
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 2 * 4, physVertices + 12);
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 3 * 4, physVertices + 32);
@@ -352,7 +391,8 @@ bool drawIndexed(uint32_t physVertices, const uint16_t* indices, size_t triangle
     sent += take;
   }
   p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
-  pb_end(p);
+  end(p);
+  kick();
   return true;
 }
 
@@ -362,7 +402,7 @@ bool drawLoose(uint32_t physVertices, size_t count) {
   size_t packets = (count + 251) / 252;
   if (!room((uint32_t)(packets * 2 + 40))) return false;
   setArrayFormats(true);
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 0 * 4, physVertices + 0);
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 2 * 4, physVertices + 12);
   p = pb_push1(p, NV097_SET_VERTEX_DATA_ARRAY_OFFSET + 3 * 4, physVertices + 32);
@@ -373,14 +413,15 @@ bool drawLoose(uint32_t physVertices, size_t count) {
     p = pb_push1(p, NV097_DRAW_ARRAYS, (uint32_t)(((take - 1) << 24) | first));
   }
   p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
-  pb_end(p);
+  end(p);
+  kick();
   return true;
 }
 
 bool drawQuad(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, uint32_t colorArgb) {
   if (!g_frameOpen || !room(80)) return false;
   setArrayFormats(false);
-  uint32_t* p = pb_begin();
+  uint32_t* p = begin();
   p = pb_push1(p, NV097_SET_VERTEX_DATA4UB + 3 * 4, colorArgb);
   p = pb_push4f(p, NV097_SET_VERTEX_DATA4F_M + 2 * 16, 0.0f, 0.0f, 1.0f, 0.0f);  // a normal; the quad is drawn unlit anyway
   p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_TRIANGLES);
@@ -391,7 +432,8 @@ bool drawQuad(float x0, float y0, float x1, float y1, float u0, float v0, float 
     p = pb_push4f(p, NV097_SET_VERTEX_DATA4F_M + 0 * 16, px[i], py[i], 0.0f, 1.0f);  // writing position emits the vertex
   }
   p = pb_push1(p, NV097_SET_BEGIN_END, NV097_SET_BEGIN_END_OP_END);
-  pb_end(p);
+  end(p);
+  kick();
   return true;
 }
 
