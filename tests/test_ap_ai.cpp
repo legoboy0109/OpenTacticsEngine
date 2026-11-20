@@ -113,3 +113,29 @@ TEST(a_game_between_two_computer_sides_finishes_the_same_way_every_time) {
   CHECK_EQ(ra, rb);
   CHECK(overA && overB);  // a side was beaten before the guard of 60 turns
 }
+
+TEST(no_turn_of_the_computer_runs_away_whatever_the_pool_and_the_prices) {
+  // Pools from nothing to plenty, free and dear walking, many attacks per turn, no splitting: every turn of both sides ends in a bounded number of steps.
+  struct Variant { const char* from; const char* to; };
+  const std::vector<std::vector<Variant>> variants = {
+      {{"\"perTurn\": 20", "\"perTurn\": 0"}},
+      {{"\"perTurn\": 20", "\"perTurn\": 1"}},
+      {{"\"perTurn\": 20", "\"perTurn\": 7"}},
+      {{"\"perTurn\": 20", "\"perTurn\": 90"}, {"\"costPerStep\": 1", "\"costPerStep\": 0"}},
+      {{"\"attacksPerTurn\": 1", "\"attacksPerTurn\": 5"}, {"\"cost\": 2", "\"cost\": 0"}},
+      {{"\"splitMoves\": true", "\"splitMoves\": false"}},
+      {{"\"softCap\": 4", "\"softCap\": 0"}, {"\"softCapPenaltyPercent\": 100", "\"softCapPenaltyPercent\": 400"}},
+  };
+  int n = 0;
+  for (const std::vector<Variant>& v : variants) {
+    skilltest::Copy c("apai_runaway" + std::to_string(n++), "action-points");
+    for (const Variant& x : v) c.swap("game.json", x.from, x.to);
+    std::string aiMap;
+    readTextFile(ote_test::sourceDir() + "/tests/fixtures/action-points/maps/ai.json", aiMap);
+    c.put("maps/ai.json", aiMap);
+    skilltest::World w("ai", c.dir);
+    int worst = 0;
+    for (int turn = 0; turn < 24 && !w.b().over; ++turn) worst = std::max(worst, aiTurn(w.b(), w.events, 300));
+    CHECK(worst < 300);
+  }
+}
