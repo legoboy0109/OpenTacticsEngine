@@ -190,7 +190,7 @@ void Map3D::drawHighlightsHex(const DrawCtx& c, const Overlay& ov, Cell cursor, 
     const int pulse = 200 + (int)(55 * std::sin(c.time * 6.0f));
     const float Y = topOf(cursor, x, y) + 0.024f;
     hexBand(batch_.mesh(flatMat(Blend3D::Blend)), c, x, y, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)pulse));
-    if (hidden_[(size_t)cursor] || standAt(cursor) || standInFront(c, x, y))  // behind higher blocks: again, faintly
+    if (hiddenAt(c, (size_t)cursor) || standAt(cursor) || standInFront(c, x, y))  // behind higher blocks: again, faintly
       hexBand(batch_.mesh(flatMat(Blend3D::Blend, false)), c, x, y, Y, 0.09f, Tint3D(255, 240, 120, (uint8_t)(pulse * 2 / 5)));
   }
 }
