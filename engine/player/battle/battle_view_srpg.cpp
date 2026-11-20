@@ -24,7 +24,7 @@ bool isSrpgEvent(EventType t) {
     case EventType::SupportPoints: case EventType::SupportReached: case EventType::RankUp:
     case EventType::StaffUsed: case EventType::StaffMissed: case EventType::ItemRepaired: case EventType::AreaLit:
     case EventType::ConditionApplied: case EventType::ConditionEnded: case EventType::ConditionResisted: case EventType::ConditionTick:
-    case EventType::ItemStolen: case EventType::UnitRefreshed: return true;
+    case EventType::ItemStolen: case EventType::UnitRefreshed: case EventType::UnitRankUp: return true;
     default: return false;
   }
 }
@@ -53,6 +53,7 @@ const char* srpgEventName(EventType t) {
     case EventType::ConditionTick: return "ConditionTick";
     case EventType::ItemStolen: return "ItemStolen";
     case EventType::UnitRefreshed: return "UnitRefreshed";
+    case EventType::UnitRankUp: return "UnitRankUp";
     default: return "?";
   }
 }
@@ -62,7 +63,7 @@ const char* srpgEventName(EventType t) {
 bool BattleView::beginSrpg(const Battle& b) {
   const Event& e = cur_.ev;
   if (!isSrpgEvent(e.type)) return false;
-  if (beginSkills(b) || beginPromotion(b) || beginAbilities(b) || beginRescue(b) || beginSupports(b) || beginRanks(b) || beginStaves(b) || beginConditions(b)) return true;
+  if (beginSkills(b) || beginPromotion(b) || beginAbilities(b) || beginRescue(b) || beginSupports(b) || beginRanks(b) || beginUnitRank(b) || beginStaves(b) || beginConditions(b)) return true;
   OTE_INFO("srpg event (not shown yet): %s a=%d b=%d c=%d d=%d flags=%d", srpgEventName(e.type), e.a, e.b, e.c, e.d, e.flags);
   cur_.dur = 0;
   return true;
@@ -70,14 +71,14 @@ bool BattleView::beginSrpg(const Battle& b) {
 
 bool BattleView::progressSrpg(const Battle& b) {
   if (!isSrpgEvent(cur_.ev.type)) return false;
-  (void)(progressSkills(b) || progressPromotion(b) || progressAbilities(b) || progressRescue(b) || progressSupports(b) || progressRanks(b) || progressStaves(b) || progressConditions(b));
+  (void)(progressSkills(b) || progressPromotion(b) || progressAbilities(b) || progressRescue(b) || progressSupports(b) || progressRanks(b) || progressUnitRank(b) || progressStaves(b) || progressConditions(b));
   return true;
 }
 
 bool BattleView::finishSrpg(const Battle& b) {
   const Event& e = cur_.ev;
   if (!isSrpgEvent(e.type)) return false;
-  if (finishSkills(b) || finishPromotion(b) || finishAbilities(b) || finishRescue(b) || finishSupports(b) || finishRanks(b) || finishStaves(b) || finishConditions(b)) return true;
+  if (finishSkills(b) || finishPromotion(b) || finishAbilities(b) || finishRescue(b) || finishSupports(b) || finishRanks(b) || finishUnitRank(b) || finishStaves(b) || finishConditions(b)) return true;
   auto valid = [&](int id) { return id >= 0 && (size_t)id < units.size() && (size_t)id < b.units.size(); };
   switch (e.type) {
     case EventType::UnitRescued:  // a stays, b leaves the board

@@ -93,6 +93,7 @@ void BattleView::push(const std::vector<Event>& events) {
     // SideChanged entry plays (a line like "Join us!" comes first).
     if (e.type == EventType::SideChanged && e.a >= 0 && (size_t)e.a < units.size() && units[(size_t)e.a].side < 0)
       units[(size_t)e.a].side = e.b;
+    pushUnitRank(e);
     pushPromotion(e);  // likewise the old unit type until UnitPromoted plays (battle_view_promotion.cpp)
   }
 }
@@ -323,6 +324,7 @@ void BattleView::begin(const Battle& b) {
     case EventType::AbilityUsed:
     case EventType::ItemStolen:
     case EventType::UnitRefreshed:
+    case EventType::UnitRankUp:
     case EventType::UnitRescued:
     case EventType::UnitDropped:
     case EventType::UnitHanded:

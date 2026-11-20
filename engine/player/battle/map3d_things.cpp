@@ -7,6 +7,7 @@
 #include "battle/carrier_marker.h"
 #include "battle/condition_marker.h"
 #include "battle/facing_marker.h"
+#include "battle/unit_rank_view.h"
 #include "battle/map3d.h"
 #include "battle/map3d_sizes.h"
 #include "battle/tile_art.h"
@@ -376,6 +377,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     }
     drawCarrierMarker(r, c, u, sx + uw / 2, sy - body, uw, al);  // top right corner: a unit with someone off the board
     drawConditionMarker(r, c, u, sx - uw / 2, sy, al);           // bottom left corner: its conditions (docs/SRPG.md section 9)
+    drawRankBadge(r, c, u, sx + uw / 2, sy, al);                  // bottom right corner: its rank (docs/SRPG.md "Unit ranks")
     const int fdir = shownFacing(c, u);  // the edge of its square toward the way it looks, on the ground (docs/SRPG.md "Facing")
     if (fdir >= 0) {
       float fvx, fvy, k2;
