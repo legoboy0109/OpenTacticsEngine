@@ -32,7 +32,8 @@ cmake -S . -B build -G Ninja && cmake --build build
 ./build/ote-editor                         # the editor, then open http://127.0.0.1:8765
 ```
 
-More (SDL2 build, web build, tests): `HANDOFF.md`. Roadmap: `docs/PLAN.md`.
+Run the whole test suite with `tools/check_all.sh` (how, and the single parts: `docs/TESTING.md`).
+More (SDL2 build, web build): `HANDOFF.md`. Roadmap: `docs/PLAN.md`.
 
 ## Licence
 
