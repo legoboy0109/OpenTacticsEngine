@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "platform/common/press_dedupe.h"
 #include "platform/common/stick_mapper.h"
 #include "platform/platform.h"
 
@@ -16,6 +17,8 @@ class SdlInput {
   void translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<InputEvent>& out);
 
  private:
+  // One press, one ButtonDown / ButtonUp even if the platform reports it twice (Android: a pad's B and the back key).
+  PressDedupe dedupe_;
   StickMapper stick_;
   // The camera stick: sideways turns, up and down tilts. The triggers zoom.
   StickMapper camStick_{Button::TurnLeft, Button::TurnRight, Button::TiltUp, Button::TiltDown};

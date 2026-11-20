@@ -80,12 +80,19 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       bool down = e.type == SDL_KEYDOWN;
       // Auto-repeat is useful for moving a cursor, harmful for Confirm/Cancel.
       if (down && e.key.repeat && !isDirection(b)) break;
+      const PressSource src{e.key.keysym.scancode == SDL_SCANCODE_AC_BACK ? PressSource::BackRequest : PressSource::Keyboard, 0};
+      if (!dedupe_.pass(b, src, down, static_cast<int64_t>(SDL_GetTicks64()))) break;
       out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }
     case SDL_CONTROLLERDEVICEADDED:  // `which` is a device index here
       if (SDL_GameController* pad = SDL_GameControllerOpen(e.cdevice.which)) {
-        OTE_INFO("gamepad connected: %s", SDL_GameControllerName(pad));
+        // Instance id and GUID are logged because on Xbox one pad was seen listed three times (docs/XBOX.md): the next
+        // log.txt then shows whether those copies differ in anything.
+        char guid[40] = "";
+        SDL_JoystickGetGUIDString(SDL_JoystickGetDeviceGUID(e.cdevice.which), guid, sizeof guid);
+        OTE_INFO("gamepad connected: %s (device %d, instance %d, guid %s)", SDL_GameControllerName(pad), e.cdevice.which,
+                 static_cast<int>(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad))), guid);
       } else {
         OTE_WARN("cannot open gamepad: %s", SDL_GetError());
       }
@@ -95,13 +102,17 @@ void SdlInput::translate(const SDL_Event& e, std::vector<InputEvent>& out) {
       stick_.reset();
       camStick_.reset();
       triggers_.reset();
+      dedupe_.reset();  // the removed pad's releases may never come
       OTE_INFO("gamepad disconnected");
       break;
     case SDL_CONTROLLERBUTTONDOWN:
     case SDL_CONTROLLERBUTTONUP: {
       Button b = padButton(e.cbutton.button);
       if (b == Button::None) break;
-      out.push_back(buttonEvent(e.type == SDL_CONTROLLERBUTTONDOWN ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      const bool down = e.type == SDL_CONTROLLERBUTTONDOWN;
+      if (!dedupe_.pass(b, PressSource{PressSource::Pad, static_cast<int>(e.cbutton.which)}, down,
+                        static_cast<int64_t>(SDL_GetTicks64()))) break;
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }
     case SDL_CONTROLLERAXISMOTION:
