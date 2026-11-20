@@ -26,11 +26,10 @@ void BattleScene::drawUnitIcon(Renderer& r, int type, int x, int y, int size) {
     const Look& look = set->units[(size_t)type].forSide(battle_.sides[(size_t)side].id);
     if (!ctx.sprites || !ctx.sprites->has(look)) continue;
     const SpriteSrc s = lookSrc(ctx, look);  // the frame of the moment: an animated look idles
-    int dw = size, dh = std::max(1, dw * s.h / std::max(1, s.w));  // keep the cell's proportions, feet on the bottom edge
-    if (dh > size) {
-      dh = size;
-      dw = std::max(1, dh * s.w / std::max(1, s.h));
-    }
+    // As on the map (drawUnitArt): one square wide, the height keeps the cell's proportions, feet on the bottom edge. A frame
+    // taller than it is wide (a rider, a big weapon) therefore stands out over the top of its box instead of being shrunk to
+    // fit, which made such units half the size of the others in one list.
+    const int dw = size, dh = std::max(1, dw * s.h / std::max(1, s.w));
     if (db.graphics.unitMarker) {  // the flat base in the side's colour, as on the map
       const int bh = std::max(2, size / 6);
       r.fillRect(x, y + size - bh, size, bh, Color(20, 20, 28, 200));
