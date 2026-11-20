@@ -2,6 +2,7 @@
 // that name skills and abilities. Loaded after unit types and items (it names them); the skill and ability ids are
 // resolved last, in resolveCharacterRefs, once those lists exist.
 #include "core/data/loader_content.h"
+#include "core/data/loader_damage_types.h"
 #include "core/data/loader_events.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
@@ -13,7 +14,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion", "resist"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -67,6 +68,7 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
     return false;
   if (!readCharacterRanks(c, db, e, where, ch)) return false;  // "ranks", "capAdjust" (docs/SRPG.md section 7)
   if (!c.stringList(e, "tags", where, ch.tags)) return false;  // docs/SRPG.md "Tags"
+  if (!readResist(c, db, e, where, kResistUnset, ch.resist)) return false;  // docs/SRPG.md "Damage types"
   if (!c.stringList(e, "wields", where, ch.wields)) return false;  // extra weapon groups, same shape as a unit type's "wields"
   if (e.has("promotion")) {  // { "fromLevel": 1 }: the lowest level of this character's promotions (docs/SRPG.md "A promotion level per character")
     const Json& pr = e["promotion"];

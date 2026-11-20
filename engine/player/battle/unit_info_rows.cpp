@@ -87,6 +87,13 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
     rows.push_back(row);
   }
   for (const InfoRow& r : rankRows(b, u)) rows.push_back(r);  // weapon ranks: under the stats
+  // Damage types (docs/SRPG.md "Damage types"): the non-zero resistances, signed; a game without types has none of these rows.
+  for (size_t t = 0; t < db.damageTypes.list.size(); ++t) {
+    const int rs = b.resistOf(u, (int)t);
+    if (rs == 0) continue;
+    InfoRow row{db.damageTypes.list[t].name + " res", std::string(rs > 0 ? "+" : "") + intStr(rs), "", rs > 0 ? kUp : kDown, kLabel};
+    rows.push_back(row);
+  }
   return rows;
 }
 

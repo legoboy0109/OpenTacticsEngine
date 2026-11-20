@@ -131,6 +131,17 @@ bool Battle::strikeForecast(const CombatSetup& setup, bool counter, const Combat
   Props scratchA, scratchB;  // outlive the formula calls below
   ctx.ta = &numbersAt(atkCell, scratchA);
   ctx.tb = &numbersAt(defCell, scratchB);
+  ctx.ha = heightAt(atkCell);
+  ctx.hb = heightAt(defCell);
+  // Damage types (docs/SRPG.md "Damage types"): `rs` is the defender's resistance against this weapon's type; a type that ignores
+  // terrain leaves the formulas an empty `tb` (every terrain and structure number of the defender's square) for this strike.
+  if (ctx.w->damageType >= 0) {
+    ctx.rs = resistOf(def, ctx.w->damageType);
+    if (db->damageTypes.list[(size_t)ctx.w->damageType].ignoresTerrain) {
+      scratchB.clear();
+      ctx.tb = &scratchB;
+    }
+  }
   ctx.dist = grid.distance(atkCell, defCell);
 
   out.can = true;

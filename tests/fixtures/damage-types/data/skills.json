@@ -1,0 +1,4 @@
+{ "skills": [
+  { "id": "fire_edge", "name": "Fire Edge", "blocks": [ { "when": "combat", "if": [ { "damageType": "fire" } ], "do": [ { "damage": 3 } ] } ] },
+  { "id": "fire_ward", "name": "Fire Ward",
+    "blocks": [ { "when": "combat", "if": [ { "damageType": "fire", "who": "foe" } ], "do": [ { "damageTaken": -3 } ] } ] } ] }

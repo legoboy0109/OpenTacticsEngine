@@ -1,0 +1,7 @@
+{ "name": "Ai", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........"],
+  "sides": [ { "id": "red", "controller": "ai" }, { "id": "blue", "controller": "human" } ],
+  "units": [
+    { "type": "zapper", "side": "red", "x": 6, "y": 1, "id": "shooter", "leader": true },
+    { "type": "grunt", "side": "blue", "x": 4, "y": 0, "id": "soft" },
+    { "type": "armor", "side": "blue", "x": 4, "y": 2, "id": "hard" } ] }

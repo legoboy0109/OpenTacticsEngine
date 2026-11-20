@@ -58,8 +58,8 @@ double Battle::staffEval(int expr, const Unit& user, const Unit* target, const S
   Props scratchA, scratchB;
   const Cell ca = from == kNoCell ? user.cell : from;
   const Cell cb = target ? (target->id == user.id ? ca : target->cell) : kNoCell;
-  if (ca != kNoCell) fc.ta = &numbersAt(ca, scratchA);
-  if (cb != kNoCell) fc.tb = &numbersAt(cb, scratchB);
+  if (ca != kNoCell) { fc.ta = &numbersAt(ca, scratchA); fc.ha = heightAt(ca); }
+  if (cb != kNoCell) { fc.tb = &numbersAt(cb, scratchB); fc.hb = heightAt(cb); }
   if (ca != kNoCell && cb != kNoCell) fc.dist = grid.distance(ca, cb);
   return formulas->evalExpr(expr, fc, def);
 }

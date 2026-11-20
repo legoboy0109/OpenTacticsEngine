@@ -39,6 +39,9 @@ struct FormulaCtx {
   const Props* tb = nullptr;
   int dist = 0;
   double vs = 1;
+  // `rs`: the defender's flat resistance against the striking weapon's damage type (docs/SRPG.md "Damage types"); 0 without types.
+  // `ha` / `hb`: the height of the square under `a` / `b` (0 without heights); `dh` = ha - hb is worked out by the host.
+  int rs = 0, ha = 0, hb = 0;
   // The battle's sides: a unit's stats then include its side's research bonuses (null = items only).
   const std::vector<SideState>* sides = nullptr;
   // The battle the units are in: their stats are then the stats as the rules see them (Battle::stat: accessories,

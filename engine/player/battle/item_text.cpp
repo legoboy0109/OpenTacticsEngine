@@ -27,10 +27,14 @@ std::string itemDetail(const Battle& b, const ItemStack& s) {
     const std::string gains = gainsText(*b.db, d.bonus);
     if (!gains.empty()) return d.description.empty() ? gains : gains + "  " + d.description;
   }
-  if (!d.description.empty()) return d.description;
+  // A weapon in a game with damage types names its type last ("Range 1-2  Fire"; docs/SRPG.md "Damage types").
+  std::string type;
+  if (d.kind == ItemKind::Weapon && d.weapon >= 0 && b.db->weapons[(size_t)d.weapon].damageType >= 0)
+    type = "  " + b.db->damageTypes.list[(size_t)b.db->weapons[(size_t)d.weapon].damageType].name;
+  if (!d.description.empty()) return d.description + type;
   if (d.kind == ItemKind::Weapon && d.weapon >= 0) {
     const WeaponDef& w = b.db->weapons[(size_t)d.weapon];
-    return "Range " + (w.minRange == w.maxRange ? intStr(w.minRange) : intStr(w.minRange) + "-" + intStr(w.maxRange));
+    return "Range " + (w.minRange == w.maxRange ? intStr(w.minRange) : intStr(w.minRange) + "-" + intStr(w.maxRange)) + type;
   }
   return "";
 }

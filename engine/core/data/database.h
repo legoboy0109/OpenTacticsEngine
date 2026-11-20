@@ -105,6 +105,24 @@ struct StructureDef {
 
 const int kMaxStructureSize = 8;
 
+// Declared damage types (game.json "damageTypes", docs/SRPG.md "Damage types"). Empty list = the game has none and nothing changes.
+struct DamageTypeDef {
+  std::string id, name;
+  bool ignoresTerrain = false;  // a strike of this type sees none of the defender's terrain numbers (`tb` is empty)
+};
+struct DamageTypes {
+  std::vector<DamageTypeDef> list;
+  bool hasRange = false;   // game.json "resistRange": [min, max] bounds every "resist" value
+  int resistMin = 0, resistMax = 0;
+  bool on() const { return !list.empty(); }
+  int find(const std::string& id) const {
+    for (size_t i = 0; i < list.size(); ++i)
+      if (list[i].id == id) return (int)i;
+    return -1;
+  }
+};
+const int kResistUnset = -1000000;  // a character's "resist" entry that was not written (the unit type's value stands)
+
 struct WeaponDef {
   std::string id, name;
   int minRange = 1, maxRange = 1;
@@ -120,6 +138,7 @@ struct WeaponDef {
   std::string damageFormula;  // optional per-weapon override (Lua expr)
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
   std::string damageKind;     // optional free-form word ("physical", "magic", ...): skill tests `weaponKind`, formulas `w.damageKind`
+  int damageType = -1;        // index into Database::damageTypes.list; -1 only in a game without damage types (else the first, by default)
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
   // Weapon ranks (docs/SRPG.md section 7); both -1 / 1 in a game without ranks.
@@ -243,6 +262,7 @@ struct UnitTypeDef {
   // Weapon ranks and stat caps (docs/SRPG.md section 7); empty when the unit type says nothing.
   std::vector<int> rankStart;            // per RankRules::groups index: starting weapon experience
   std::vector<int> caps;                 // per stat index: this class's cap, -1 = none (overrides the game-wide one)
+  std::vector<int> resist;               // per damage type (Database::damageTypes): flat resistance, read as `rs`; empty = all 0
   int maxLevel = -1;                     // units.json "maxLevel": this type's top level (0 = never levels); -1 = rules.progression.maxLevel
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
@@ -454,6 +474,7 @@ struct Database {
   bool strikeNoUsed = false;  // some skill block tests or reads the strike number (docs/SRPG.md "One strike of a fight"): forecasts then work out each strike
   bool marksUsed = false;     // some skill block sets or tests a mark (docs/SRPG.md "Linking two strike blocks")
   bool refreshAbilities = false;  // some ability has the "refresh" effect (saves may then carry Unit::refreshedBy)
+  DamageTypes damageTypes;        // game.json "damageTypes" (docs/SRPG.md "Damage types"); an empty list = the game has none
   DifficultyRules difficulties;   // game.json "difficulties" (docs/DIFFICULTY.md); an empty list = the game has none
 
   // Index lookups by id; -1 when not found.

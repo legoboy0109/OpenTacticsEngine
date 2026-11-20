@@ -85,7 +85,7 @@ const CondSpec kConds[] = {{"hp", SkillCond::Kind::Hp},           {"near", Skill
                            {"weaponKind", SkillCond::Kind::WeaponKind}, {"turn", SkillCond::Kind::Turn},
                            {"counterattack", SkillCond::Kind::Counterattack}, {"carries", SkillCond::Kind::Carries},
                            {"inventory", SkillCond::Kind::Inventory}, {"strike", SkillCond::Kind::Strike},
-                           {"marked", SkillCond::Kind::Marked}};
+                           {"marked", SkillCond::Kind::Marked}, {"damageType", SkillCond::Kind::DamageType}};
 
 // "turn": { "odd": true } | { "even": true } | { "from": 3, "to": 6 } (either alone) | { "every": 3, "offset": 1 }: the battle's turn number
 // (the same number as "round"). Every k with offset j = the turns whose number divided by k leaves j (default 0).
@@ -143,7 +143,8 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
                        out.kind == SkillCond::Kind::Terrain || out.kind == SkillCond::Kind::Structure ||
                        out.kind == SkillCond::Kind::Unit || out.kind == SkillCond::Kind::Carrying ||
                        out.kind == SkillCond::Kind::Condition || out.kind == SkillCond::Kind::WeaponKind ||
-                       out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory || out.kind == SkillCond::Kind::Marked;
+                       out.kind == SkillCond::Kind::Carries || out.kind == SkillCond::Kind::Inventory || out.kind == SkillCond::Kind::Marked ||
+                       out.kind == SkillCond::Kind::DamageType;
   if (e.has("who")) {
     std::string who;
     if (!c.str(e, "who", where, who)) return false;
@@ -229,6 +230,11 @@ bool readCond(const LoadCtx& c, Database& db, const Json& e, const std::string& 
     case SkillCond::Kind::WeaponKind:
       if (!onlyKeys(c, e, {"weaponKind", "who"}, where)) return false;
       if (!v.isString() || v.asString().empty()) return c.fail(where, "\"weaponKind\" must be a damage kind, the word a weapon's \"damageKind\" says");
+      out.key = v.asString();
+      return true;
+    case SkillCond::Kind::DamageType:
+      if (!onlyKeys(c, e, {"damageType", "who"}, where)) return false;
+      if (!v.isString() || v.asString().empty()) return c.fail(where, "\"damageType\" must be a damage type id (game.json \"damageTypes\")");
       out.key = v.asString();
       return true;
     case SkillCond::Kind::Terrain: {  // an id or tag, or a list of them: any one will do
@@ -824,6 +830,10 @@ bool resolveSkillConds(const LoadCtx& c, const Database& db, const std::string& 
         found = false;
         for (const WeaponDef& w : db.weapons) found = found || w.damageKind == k.key;
         what = "\"weaponKind\" names no weapon damage kind \"";
+        break;
+      case SkillCond::Kind::DamageType:
+        found = db.damageTypes.find(k.key) >= 0;
+        what = "\"damageType\" names no damage type in game.json \"damageTypes\": \"";
         break;
       case SkillCond::Kind::Condition:
         found = db.findCondition(k.key) >= 0;

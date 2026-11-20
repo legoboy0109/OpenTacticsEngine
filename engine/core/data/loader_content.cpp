@@ -6,6 +6,7 @@
 
 #include "core/data/loader.h"
 #include "core/data/loader_conditions.h"
+#include "core/data/loader_damage_types.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -60,6 +61,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!c.str(e, "damage", where, w.damageFormula)) return false;
     if (!c.str(e, "group", where, w.group)) return false;
     if (!c.str(e, "damageKind", where, w.damageKind)) return false;  // docs/SRPG.md "Damage kind": a free word, tested by skills
+    if (!readWeaponDamageType(c, db, e, where, w)) return false;  // docs/SRPG.md "Damage types"
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
     if (!readWeaponInflict(c, db, e, where, w)) return false;  // "inflict": a condition on the unit struck (docs/SRPG.md section 9)
@@ -114,6 +116,7 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, u.items)) return false;
     if (!c.amounts(db, e, "cost", where, u.cost)) return false;
     if (!c.stringList(e, "tags", where, u.tags)) return false;
+    if (!readResist(c, db, e, where, 0, u.resist)) return false;  // docs/SRPG.md "Damage types"
     if (!c.boolean(e, "canCapture", where, u.canCapture)) return false;
     if (!readUnitSupply(c, e, where, u) || !readUnitVision(c, e, where, u)) return false;
     // Strategy-RPG features (docs/SRPG.md): each area reads its own keys of a unit type.
