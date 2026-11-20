@@ -185,10 +185,26 @@ struct ItemGrant {
 
 enum class ItemStorage { Off, Anywhere, Structure, Leader };
 
+// What a FREE battle's shared storage holds when it starts (game.json rules.items.freeBattleStorage; docs/GAME_FORMAT.md).
+// Resolved by loadFreeBattleStock after the items are known. `each` copies of every item (full uses) except `except`;
+// `counts` overrides the number for the items it names (0 = none); `funds` is added to every human side's resources.
+struct FreeStockCount {
+  ItemGrant grant;  // item and the uses of one copy
+  int count = 0;
+};
+struct FreeBattleStock {
+  bool given = false;  // the key is present
+  int each = 0;
+  std::vector<int> except;  // item indices
+  std::vector<FreeStockCount> counts;
+  std::vector<Amount> funds;
+};
+
 struct ItemRules {
   bool carriedWeapons = false;  // false: a unit type's weapons, fixed; true: weapons are items
   int inventorySize = 5;
   ItemStorage storage = ItemStorage::Off;
+  FreeBattleStock freeStock;    // see above
   int sellPercent = 50;         // what a shop that buys items pays: this share of the price, scaled by the uses left (0..100)
 };
 const int kMaxInventory = 20;

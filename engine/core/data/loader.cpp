@@ -385,6 +385,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   buildRankGroups(db);
   if (!loadItems(root + "/data/items.json", db, err)) return false;
   addStaffRankGroups(db);  // staff groups after the weapons' (docs/SRPG.md section 8)
+  if (!loadFreeBattleStock(root + "/game.json", db, err)) return false;  // needs the items (and the resources of game.json)
   if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;

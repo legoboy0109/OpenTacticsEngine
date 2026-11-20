@@ -853,8 +853,12 @@ reason, in a game with fixed weapons, for an item that is no weapon, for a weapo
 already in hand. `prepEquipReason` is the same test without changing anything, `prepWieldReason` asks only "can they wield it",
 `prepEquippedAt` says which position is in hand (first wieldable, so a leading weapon that cannot be wielded is not the equipped one).
 
-**Free battles** (no roster): the same calls on a scratch playthrough; the pool is the map's named units of the prep side; positions,
-units and the map view only (no items or shop in the player).
+**Free battles** (no campaign): the same calls on a scratch playthrough opened with `prepOpenFree` (`PrepState::scratch`, never saved). The
+pool is the map's named units of the prep side, and they are also its roster, so **Items** (trade with another character or the storage)
+and the **shop(s)** work exactly as in a campaign, on the battle's own units. The side carries the map's own allowance (`resources`,
+`storage`) plus the free-battle stock (`rules.items.freeBattleStorage`, docs/GAME_FORMAT.md "Free battles"); the shop spends those funds.
+`prepApplyToMap` hands the result to the battle: each deployed character's items, the side's storage and resources. Nothing reaches a
+campaign save or a Continue file; leaving ("Abandon") discards it all. Items appears when the screen has a character, Shop when the map has one.
 
 **Saves.** In phase `battle`, `"playthrough": { "prep": { "open", "folded", "deployed": [ { "id", "slot" } ] }, "lastDeployed": [ids] }`,
 written only when there is something to write. A save made during the preparation has no `"battle"` and restores into the screen; a save
@@ -862,7 +866,7 @@ in the battle restores the same battle (the deployment is in the playthrough). B
 refused with the field named.
 
 **Player** (Mode::Prep in the battle scene; the Battle is set up but not started): menu Units / Positions / Items / Shop / View map /
-Save / Leave (Abandon in a free battle) / Begin. Units: a list with "Slot N" / "Out", `*` for required, the reason in the detail line,
+Save / Leave (Abandon in a free battle) / Begin (Items and Shop in a free battle too). Units: a list with "Slot N" / "Out", `*` for required, the reason in the detail line,
 "Deployed n / limit". Positions: slots numbered on the map, pick up / put down (swap), tap works, a Back button for pointers. Items:
 whose items, trade with another character or the storage (the battle's trade panel). In a game with carried weapons the weapon in hand
 is marked, a weapon the character cannot wield is greyed with the reason in the detail line, and choosing a weapon of the character

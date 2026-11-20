@@ -255,7 +255,24 @@ optional limited uses and prices. A game without this file has no items.
 The switch between fixed and carried weapons, the inventory size and the
 shared storage are in `game.json` under `rules.items`. A map can give each
 unit its own `"items"` and each side a starting `"storage"`. Everything is
-in docs/ITEMS.md. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md). An item of `"kind": "staff"` (a staff a unit wields by
+in docs/ITEMS.md.
+
+**Free battles' stocked supply** (`game.json` `rules.items.freeBattleStorage`, optional): what the shared storage holds when a *free battle*
+starts (a single map started outside a campaign: the launcher's map list, `--map ID`, the editor's Play on one map; with or without a
+preparation screen). Never a campaign chapter, never a `--campaign --chapter` test playthrough. A game without the key behaves as before.
+```jsonc
+"freeBattleStorage": {
+  "each": 3,                       // 0..99 copies of EVERY item, full uses, in the game's item order (identical copies together)
+  "except": ["key_item", "token"], // items "each" skips (only with "each")
+  "items": [ "ring",               // an id = 1 copy; an object sets the count (0..99, 0 = none) and the uses of each copy:
+             { "item": "potion", "count": 5, "uses": 1 } ],   // overrides "each"/"except" for that item; "uses" 1..the item's uses
+  "funds": { "gold": 200 }         // optional: added to every human side's resources, so a preparation shop has money
+}
+```
+Unknown keys, unknown item or resource ids, counts outside 0..99 and an item listed twice are refused with the key named. The stock goes to every
+human side's storage of the map, on top of the map's own `"storage"`. With `rules.items.storage` `"off"` there is no storage and the item part is
+ignored (`funds` still applies). The rules put no size limit on the storage, so none applies. The editor keeps the key as it is (it is in
+`rules.items`, which the editor round-trips); it has no form for it yet. An item may have `"sounds": { "use": "potion" }` (docs/SOUND.md). An item of `"kind": "staff"` (a staff a unit wields by
 group and rank and uses on another unit at range: healing, warping, pulling, swapping, repairing an item, lighting a square in fog)
 has its own keys (`group`, `range`, `target`, `area`, `effects`, `hit`, `xp`, `rank`, `wieldedBy` ...), all specified in docs/SRPG.md
 section 8 "Staves" (the editor's Items form covers every effect). Any item may

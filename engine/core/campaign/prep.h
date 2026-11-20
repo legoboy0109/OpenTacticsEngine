@@ -9,7 +9,7 @@
 // are not candidates and are not part of the choice.
 //
 // Free battles (no campaign) use the same calls with a scratch Playthrough (default-constructed): the candidates are
-// the map's own units, and items and the shop are simply not offered by the player.
+// the map's own units; with prepOpenFree (the player's free battle) they also get a roster, items, storage and the shop.
 #pragma once
 #include <string>
 #include <vector>
@@ -61,6 +61,11 @@ int prepSlotAt(const MapDef& map, int x, int y);
 void prepOpen(const Database& db, Playthrough& pt, const MapDef& map, bool carry);
 // Is a deployment that came from outside (a save) possible on this map? False with the reason.
 bool prepValidate(const Database& db, const Playthrough& pt, const MapDef& map, std::string& err);
+
+// A free battle's screen: a scratch Playthrough whose roster is the map's own candidates and whose side carries the map's
+// allowance, so items, storage and the shop work as in a campaign, on the battle's own units. Sets `pt.prep.scratch`, then
+// is prepOpen(..., true). Nothing of it reaches a campaign save.
+void prepOpenFree(const Database& db, Playthrough& pt, const MapDef& map);
 
 // ---- who fights and where ----
 // Deploys `id` on `slot` (-1 = the first free slot it can stand on).
