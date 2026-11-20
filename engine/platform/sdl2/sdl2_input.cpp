@@ -28,6 +28,7 @@ Button keyButton(SDL_Scancode sc) {
     case SDL_SCANCODE_TAB: case SDL_SCANCODE_E: return Button::Next;
     case SDL_SCANCODE_Q: return Button::Prev;
     case SDL_SCANCODE_M: return Button::Menu;
+    case SDL_SCANCODE_T: return Button::Ranges;  // "threat": the enemies' reach on / off (in a battle)
     case SDL_SCANCODE_COMMA: case SDL_SCANCODE_LEFTBRACKET: return Button::TurnLeft;
     case SDL_SCANCODE_PERIOD: case SDL_SCANCODE_RIGHTBRACKET: return Button::TurnRight;
     case SDL_SCANCODE_PAGEUP: case SDL_SCANCODE_R: return Button::TiltUp;
@@ -47,6 +48,7 @@ Button padButton(Uint8 b) {
     case SDL_CONTROLLER_BUTTON_A: return Button::Confirm;  // south face button
     case SDL_CONTROLLER_BUTTON_B: return Button::Cancel;   // east face button
     case SDL_CONTROLLER_BUTTON_START: return Button::Menu;
+    case SDL_CONTROLLER_BUTTON_BACK: return Button::Ranges;  // Back / View (the original Xbox's Back)
     case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return Button::Prev;
     case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return Button::Next;
     case SDL_CONTROLLER_BUTTON_X: return Button::TurnLeft;   // west face button

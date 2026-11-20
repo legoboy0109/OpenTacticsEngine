@@ -46,7 +46,7 @@ class PressDedupe {
     int64_t lastMs = 0;      // when the owner last pressed (or repeated)
     std::vector<PressSource> muted;  // sources whose press was swallowed and whose release still has to be
   };
-  static constexpr int kButtons = static_cast<int>(Button::Skip) + 1;
+  static constexpr int kButtons = static_cast<int>(Button::Ranges) + 1;
   State states_[kButtons];
   int swallowed_ = 0;
 };

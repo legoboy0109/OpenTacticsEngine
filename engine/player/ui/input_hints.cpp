@@ -20,13 +20,15 @@ int column(InputDevice d) { return d == InputDevice::Controller ? 1 : d == Input
 // The shoulder buttons: the original Xbox pad has White and Black there (platform/nxdk maps White = previous, Black = next).
 #if defined(OTE_NXDK)
 #define OTE_PAD_NEXT "Black"
+#define OTE_PAD_BACK "Back"
 #define OTE_PAD_PREV "White"
 #else
 #define OTE_PAD_NEXT "RB"
+#define OTE_PAD_BACK "View"
 #define OTE_PAD_PREV "LB"
 #endif
 
-// The engine's Buttons, in enum order (Button::None .. Button::Skip). Keyboard: the keys platform/sdl*/..._input.cpp binds
+// The engine's Buttons, in enum order (Button::None .. Button::Ranges). Keyboard: the keys platform/sdl*/..._input.cpp binds
 // first. Controller: the Xbox layout names (A confirm, B cancel, Start menu, LB/RB, X/Y turn the camera). The right
 // stick tilts, the triggers zoom. Touch has no buttons except what is on the screen: a tap confirms, Back is the system back.
 const Row kButtons[] = {
@@ -47,6 +49,7 @@ const Row kButtons[] = {
     {"zoomin", {"=", "RT", "", "="}},
     {"zoomout", {"-", "LT", "", "-"}},
     {"skip", {"", "", "", ""}},  // only the --input script (and tests) makes it
+    {"ranges", {"T", OTE_PAD_BACK, "", "T"}},  // touch: the map menu's "Enemy ranges" entry
 };
 
 // The {tokens} of hint templates: groups and phrases the lines need. Keyboard column = the text the lines had before
@@ -76,6 +79,7 @@ const Row kTokens[] = {
     {"turn", {",/.", "X/Y", "", ",/."}},
     {"tilt", {"R/F", "RS", "", "R/F"}},
     {"zoom", {"-/=", "LT/RT", "", "-/="}},
+    {"rangesKey", {"T", "", "", "T"}},  // the enemy-ranges key where the line has room for it (58 characters): not the pad (View) or touch (menu entry)
     {"skipAll", {"hold X or Menu, or tap Skip", "hold B or Start", "tap Skip", "hold X or Menu, or click Skip"}},
     {"choiceHint", {"Up/Down + Z: answer   tap: pick, tap again: confirm", "D-pad + A: answer", "tap: pick, tap again: confirm", "click: pick, click again: confirm"}},
 };
