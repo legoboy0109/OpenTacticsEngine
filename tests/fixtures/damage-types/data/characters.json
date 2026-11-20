@@ -1,0 +1,2 @@
+{ "characters": [
+  { "id": "ada", "name": "Ada", "type": "wall", "resist": { "kinetic": -1 } } ] }

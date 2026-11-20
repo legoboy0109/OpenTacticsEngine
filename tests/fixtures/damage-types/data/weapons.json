@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "slasher", "name": "Slasher", "props": { "might": 4 } },
+  { "id": "zapper", "name": "Zapper", "damageType": "emf", "range": [1, 2], "props": { "might": 4 } },
+  { "id": "torch", "name": "Torch", "damageType": "fire", "props": { "might": 4 } },
+  { "id": "stick", "name": "Stick", "damageKind": "emf", "props": { "might": 4 } } ] }

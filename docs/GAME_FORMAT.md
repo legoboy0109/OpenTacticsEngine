@@ -127,6 +127,12 @@ A game without the key has no difficulty anywhere. It is not part of a save's da
 stats, a map's own `"difficulty"` numbers, units limited to some difficulties, the story condition, formulas, saves, the player, the editor) is in
 docs/DIFFICULTY.md.
 
+`damageTypes` (optional) declares the game's own damage types: `"damageTypes": [ { "id": "kinetic", "name": "Kinetic" }, { "id": "fire", "name": "Fire",
+"ignoresTerrain": true } ]` (at most 16; unknown keys and duplicate ids refused). A weapon names one with `"damageType"` (default: the first listed), a unit
+type or character has a flat `"resist": { "fire": 3 }` per type (whole numbers, default 0), and the damage formula reads the defender's resistance as `rs`.
+`"resistRange": [-3, 3]` (optional, needs `damageTypes`, must include 0) bounds every `resist` value. A game without `damageTypes` is unchanged
+(the keys `damageType` and `resist` are then refused); nothing about it is saved. Everything is in docs/SRPG.md "Damage types".
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -206,6 +212,7 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "versusDefault": 1,           // omit => targets not in "versus" can't be attacked
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
     "damageKind": "magic",        // optional free word (physical, magic...): skills test it, formulas read w.damageKind; docs/SRPG.md "More skill blocks"
+    "damageType": "fire",         // optional, needs game.json "damageTypes": one of its ids (default: the first); formulas read w.damageType; docs/SRPG.md "Damage types"
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
@@ -239,6 +246,7 @@ or empty list means no lock. The rule, the wording and the loader errors are in 
     "items": ["iron_lance", "salve"],                    // optional: what it starts with (docs/ITEMS.md)
     "cost": { "funds": 3000 },
     "tags": ["armored"],
+    "resist": { "fire": 2, "emf": -1 },                      // optional, needs game.json "damageTypes": flat resistance per type, read as `rs` (docs/SRPG.md "Damage types")
     "canCapture": false,
     "fuel": 60, "fuelPerTurn": 5,                            // optional (docs/ECONOMY.md): tank 1..999; burn per turn
                                                              // (needs fuel, less than fuel)
@@ -457,11 +465,13 @@ Formulas are Lua expressions. Variables:
 |--------|---------|
 | `a`    | acting unit: every stat by id, plus `hp` (current), `maxhp`, `level`, `xp`, `type`, `name`, `tags.<tag>` |
 | `b`    | the other unit (same fields); nil for `capture.amount` |
-| `w`    | the weapon: its `props` as numbers, plus `id`, `group` and `damageKind` as text (`w.group == "sword"`; `""` when it has none) |
+| `w`    | the weapon: its `props` as numbers, plus `id`, `group`, `damageKind` and `damageType` as text (`w.group == "sword"`; `""` when it has none) |
 | `fw`   | the weapon the other fighter fights with, shaped like `w`: its `props` as numbers plus `id` and `group` as text (strike formulas and skill formulas; empty with `none = 1` and numbers reading 0 without one). In the strike formulas `fw.answers` is 1 when the foe can really counter in this fight, else nil. Weapon triangle example: docs/SRPG.md "Formulas in this document" |
 | `ta`, `tb` | the numbers of the square under `a` / `b`: the terrain's `props`, with the `props` of a structure standing there replacing numbers of the same name and adding the others |
 | `dist` | grid distance between them |
 | `vs`   | the weapon's `versus` value for `b` |
+| `rs`   | `b`'s flat resistance against the type of `w` (game.json `damageTypes`, docs/SRPG.md "Damage types"); 0 without types or an entry |
+| `ha`, `hb`, `dh` | the height of the square under `a` / `b` (the map's `heights`, 0 without) and `dh = ha - hb`; no rule uses them, formulas may |
 | `turn` | the battle's turn (round) number; 0 outside a battle. A unit table also has `followShift` and `trianglePercent` (docs/SRPG.md "More skill blocks"), and its `tags` include its character's |
 
 If the hit-point stat is called `hp`, `a.hp` is the *current* value and

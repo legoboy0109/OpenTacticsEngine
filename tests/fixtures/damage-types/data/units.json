@@ -1,0 +1,14 @@
+{ "units": [
+  { "id": "gunner", "name": "Gunner", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["slasher"] },
+  { "id": "zapper", "name": "Zapper", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["zapper"] },
+  { "id": "burner", "name": "Burner", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["torch"] },
+  { "id": "pyro", "name": "Pyro", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["torch"], "skills": ["fire_edge"] },
+  { "id": "ward", "name": "Ward", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["slasher"], "skills": ["fire_ward"] },
+  { "id": "wall", "name": "Plating", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["slasher"],
+    "resist": { "kinetic": 3, "emf": -2, "fire": 1 } },
+  { "id": "tin", "name": "Tin", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 3 }, "weapons": ["slasher"],
+    "resist": { "fire": -3 } },
+  { "id": "kid", "name": "Kid", "moveType": "foot", "stats": { "hp": 40, "str": 0, "def": 2, "mov": 3 }, "weapons": ["slasher"] },
+  { "id": "grunt", "name": "Grunt", "moveType": "foot", "stats": { "hp": 60, "str": 1, "def": 2, "mov": 3 }, "weapons": ["slasher"] },
+  { "id": "armor", "name": "Armor", "moveType": "foot", "stats": { "hp": 60, "str": 1, "def": 2, "mov": 3 }, "weapons": ["slasher"],
+    "resist": { "emf": 3 } } ] }

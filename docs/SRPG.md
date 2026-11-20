@@ -429,6 +429,7 @@ foe. `op` is one of `= != < <= > >=` (`==` accepted), default `>=`.
 | `{ "distance": { "op": "=", "value": 1 } }` | grid distance between the two fighters. Foe points only |
 | `{ "formula": "a.level >= 10 and b.tags.flier" }` | the formula is true or non-zero: `a` = the owner, `b` = the foe. Not in `always` blocks |
 | `{ "weaponKind": "magic" }`, `{ "turn": { "odd": true } }`, `{ "counterattack": false }`, `{ "carries": "potion" }`, `{ "inventory": "full" }` | see "More skill blocks" below |
+| `{ "damageType": "fire" }` | the weapon in use has that declared damage type (`"who": "foe"` = the foe's weapon); see "Damage types" |
 | `{ "strike": "first" }`, `{ "strike": "followUp" }`, `{ "strike": 3 }` | which strike of the fight (`strike` / `struck` blocks only); see "Skill blocks, third set" |
 | `{ "marked": "hit" }`, `{ "marked": "hit", "is": false }` | the unit has (has not) the mark `hit` in the fight now running (`strike`, `struck`, `defeat`, `afterCombat` blocks); see "Linking two strike blocks" |
 
@@ -641,6 +642,68 @@ new active ability, so nothing new is ignored.
 
 **Tests.** `tests/test_srpg_skillblocks.cpp`, `test_srpg_skillblocks_more.cpp`, `test_srpg_skillblocks_units.cpp` (fixture
 `tests/fixtures/srpg-skillblocks`); editor: `tests/unit/skillblocks.test.ts`, `tests/e2e/srpg-skillblocks.spec.ts`, `tests/editor_api_skills_checks.py`.
+
+### Damage types
+
+Optional and general: the game declares its own list of damage types, each weapon has one, each unit type (and character) has a flat
+resistance per type, and the game's damage formula decides what resistance does. A game without `damageTypes` behaves exactly as before:
+same simulations, same saves, same data hash (the types are static data, nothing of them is saved).
+
+```jsonc
+// game.json
+"damageTypes": [ { "id": "kinetic", "name": "Kinetic" }, { "id": "emf", "name": "EMF" },
+                 { "id": "fire", "name": "Fire", "ignoresTerrain": true } ],
+"resistRange": [-3, 3],                            // optional: bounds every "resist" value (must include 0)
+"formulas": { "damage": "math.max(1, a.atk - b.def - (tb.def or 0) - rs)" }
+// weapons.json: "damageType": "fire"              (default: the first listed type)
+// units.json / characters.json: "resist": { "emf": -2, "fire": 3 }   (whole numbers, default 0)
+```
+
+**Worked example (flat resistance, minimum 1).** Attack 10 into defense 2 with resistance 3 on a plain square: `10 - 2 - 3 = 5`; a resistance of
+-2 (a weakness) gives 10. A weak hit (attack 4) against resistance 3 is `max(1, 4 - 2 - 3)` = 1: the `max(1, ...)` is the *game's* formula, the engine
+adds no floor of its own (damage is still clamped at 0 as always). **The default damage formula is not changed**: resistance matters only where a
+game's formulas say `rs`.
+
+**Variables.** `rs` = the defender's resistance against the type of the striking weapon (0 without types or when the unit has no entry);
+`w.damageType` / `fw.damageType` = the type's id as text (`""` without types). Counterattacks and every strike of an exchange use the weapon that
+strikes: in a counter `a` is the defender, `w` its weapon and `rs` the attacker's resistance to *that* type. `rs` is set in the strike formulas
+(`damage`, a weapon's `damage`, `hit`, `crit`, `strikes`), so the forecast, the fight and the computer opponent agree, and 0 elsewhere.
+The map's per-square heights are visible to every formula as `ha` (the square under `a`), `hb` (under `b`) and `dh = ha - hb`, 0 on a map without
+heights; no rule changes, it is groundwork for height rules.
+
+**`ignoresTerrain`.** A strike whose type has `"ignoresTerrain": true` sees an **empty `tb`** in its strike formulas: every number of the defender's
+square (terrain props *and* the props of a structure standing there: defense, avoid, cover and anything else) reads as missing, so `(tb.defense or 0)` is
+0 and so is the avoid in `hit`. That is the reading "ignores cover" = all of the defender's terrain, not only its defence. Not blanked: `ta` (the
+attacker's own square), `hb` / `dh` (heights are not terrain bonuses), and skill conditions that test the square (`{ "terrain": ... }`, a `formula`
+condition): those still see the real squares.
+
+**`damageKind` and `damageType`.** `damageKind` stays what it was, a free word that skills test with `weaponKind`. `damageType` is the declared,
+checked kind: the key is refused when the game declares no types or the id is unknown. They coexist; as a convenience a weapon that writes no
+`damageType` but whose `damageKind` equals a declared type id has that type (otherwise it has the first listed type). `weaponKind` still tests `damageKind`
+only; the new condition `{ "damageType": "fire" }` tests the type (attacker's weapon in use; with `"who": "foe"` the foe's weapon, the "struck by" form),
+usable wherever `weaponKind` is, and an id the game does not declare is refused (`"damageType" names no damage type in game.json "damageTypes"`).
+
+**Characters and map units.** A character may write its own `resist`; an entry it writes replaces its unit type's for that type, an entry it does not
+write stays the type's (`Battle::resistOf`). A map unit entry has no `resist` (stats are per-unit values saved with the battle; resistance is static data):
+give it another unit type or a character.
+
+**What carries a type.** Weapons (so strikes, counters and map weapons, which use a weapon's own definition). Abilities, staves and items do not
+go through the damage formula (they have their own `heal` / effect numbers), so they carry no type and nothing resists them. A door breaker's
+`rs` is 0.
+
+**Computer opponent.** It chooses attacks through `Battle::forecast`, which works out `rs` like the fight does, so it prefers the target that resists less
+with no change of its own (`tests/test_damage_types.cpp`). Its standing-square choice still adds the terrain `defense` number it always read; that is a
+heuristic about where to stand, not a damage estimate.
+
+**Player.** The forecast shows the weapon's type under its name (`Fire`, or `Fire  res +3` when the defender's resistance is not 0), the Stats page
+of the unit info panel lists the non-zero resistances (`Fire res +3`, green when positive, red when negative), and a weapon item's detail line ends with its type
+(`Range 1-2  Fire`). Games without types show none of it.
+
+**Errors** (each names the file, the entry and the key): `damageTypes[1]: unknown key "colour"`, `damageType "emf": duplicate id`, `"resistRange" must be
+[min, max] with two whole numbers`, `weapon "x": "damageType" names unknown damage type "plasma"`, `unit "y": "resist"."fire" must be a whole number`,
+`unit "y": "resist"."fire" must be from -3 to 3 (game.json "resistRange")`, `"damageType" needs "damageTypes" in game.json`.
+
+**Tests.** `tests/test_damage_types.cpp` (fixture `tests/fixtures/damage-types`), `tests/damage_types_player_test.py` (the forecast and info panel in the player).
 
 ### Skill and ability blocks, second set
 

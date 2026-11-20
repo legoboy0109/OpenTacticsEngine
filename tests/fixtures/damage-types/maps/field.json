@@ -1,0 +1,16 @@
+{ "name": "Field", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["........", ".w......", "........"],
+  "heights": [ [0,0,0,0,0,0,0,0], [2,1,0,0,0,0,0,0], [0,0,0,0,0,0,0,0] ],
+  "sides": [ { "id": "blue", "controller": "human" }, { "id": "red", "controller": "ai" } ],
+  "units": [
+    { "type": "gunner", "side": "blue", "x": 0, "y": 1, "id": "gunner", "leader": true },
+    { "type": "zapper", "side": "blue", "x": 0, "y": 0, "id": "zapper" },
+    { "type": "burner", "side": "blue", "x": 0, "y": 2, "id": "burner" },
+    { "type": "tin", "side": "blue", "x": 6, "y": 0, "id": "tin" },
+    { "type": "kid", "side": "blue", "x": 6, "y": 2, "id": "kid" },
+    { "type": "pyro", "side": "blue", "x": 4, "y": 2, "id": "pyro" },
+    { "type": "ward", "side": "red", "x": 3, "y": 0, "id": "ward" },
+    { "type": "wall", "side": "red", "x": 1, "y": 1, "id": "wall", "leader": true },
+    { "type": "burner", "side": "red", "x": 7, "y": 0, "id": "tinfoe" },
+    { "character": "ada", "side": "red", "x": 3, "y": 1 },
+    { "type": "wall", "side": "red", "x": 5, "y": 2, "id": "wallfoe" } ] }

@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1, "name": "Damage Types Fixture",
+  "description": "Small test game for damage types and per-unit resistances (docs/SRPG.md \"Damage types\"). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "damageTypes": [ { "id": "kinetic", "name": "Kinetic" }, { "id": "emf", "name": "EMF" },
+                   { "id": "fire", "name": "Fire", "ignoresTerrain": true } ],
+  "resistRange": [-3, 3],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3 } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def - (tb.def or 0) - rs)", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" }, { "id": "ai", "name": "Ai", "file": "maps/ai.json" } ]
+}
