@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/sdl2/sdl2_pixels.h"
 
@@ -307,7 +308,13 @@ bool SdlRenderer::saveScreenshot(const std::string& path) {
     if (!surf) {
       OTE_ERROR("screenshot: cannot wrap pixels: %s", SDL_GetError());
     } else {
+#ifdef OTE_NXDK
+      // SDL's own file open passes the path to fopen as it is; the Xbox kernel needs backslashes (openFile converts).
+      FILE* fp = openFile(path, "wb");
+      ok = fp && SDL_SaveBMP_RW(surf, SDL_RWFromFP(fp, SDL_TRUE), 1) == 0;
+#else
       ok = SDL_SaveBMP(surf, path.c_str()) == 0;
+#endif
       if (!ok) OTE_ERROR("screenshot: cannot write '%s': %s", path.c_str(), SDL_GetError());
       SDL_FreeSurface(surf);
     }

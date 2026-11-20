@@ -8,6 +8,8 @@
 #                  toolchain and libraries, `make tools`). Required.
 #   --jobs N       parallel compiler jobs (default 4)
 #   --out DIR      where objects and the result go (default <repo>/build-xbox-og, which .gitignore covers)
+#   --test-extra D with --test-iso: the files of folder D are merged into the test disc's app folder (e.g. a games/ folder
+#                  of your own, to see it listed), test disc only
 #   --test-iso     also build a small installer disc image for emulator tests (tools/xbox-og/installer): it copies the app
 #                  folder from the disc to E:\Apps\OpenTacticsEngine and starts it from there. Not how users install.
 #   --test-args F  with --test-iso: the file F goes onto the disc as the app's args.txt (a scripted run, see docs/XBOX_OG.md)
@@ -29,6 +31,7 @@ JOBS=4
 OUT="$REPO/build-xbox-og"
 TEST_ISO=0
 TEST_ARGS=
+TEST_EXTRA=
 GAMES="demo-srpg demo-economy demo-hex"
 
 die() { echo "build.sh: $*" >&2; exit 1; }
@@ -41,10 +44,11 @@ while [ $# -gt 0 ]; do
     --test-iso) TEST_ISO=1; shift ;;
     --test-args) [ $# -ge 2 ] || die "--test-args needs a file"
                  TEST_ARGS="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"; shift 2 ;;
+    --test-extra) [ $# -ge 2 ] || die "--test-extra needs a folder"; TEST_EXTRA="$(cd "$2" && pwd)"; shift 2 ;;
     --check-game) [ $# -ge 2 ] || die "--check-game needs a game folder"
                   G="$(cd "$2" && pwd)" || die "no such folder: $2"
                   exec python3 -I "$HERE/check_names.py" --prefix "E:\\Apps\\OpenTacticsEngine\\games\\$(basename "$G")\\" "$G" ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,26p' "$0"; exit 0 ;;
     *) die "unknown option $1 (see --help)" ;;
   esac
 done
@@ -100,7 +104,7 @@ python3 -I "$HERE/check_names.py" "$APP" || die "some names cannot exist on the 
 if [ "$TEST_ISO" = 1 ]; then
   echo "== building the installer test disc"
   mkdir -p "$OUT/obj-installer"
-  ( cd "$OUT/obj-installer" && make -f "$HERE/installer/Makefile" -j"$JOBS" APP_DIR="$APP" ARGS_FILE="$TEST_ARGS" >"$OUT/make-installer.log" 2>&1 ) ||
+  ( cd "$OUT/obj-installer" && make -f "$HERE/installer/Makefile" -j"$JOBS" APP_DIR="$APP" ARGS_FILE="$TEST_ARGS" EXTRA_DIR="$TEST_EXTRA" >"$OUT/make-installer.log" 2>&1 ) ||
     { tail -30 "$OUT/make-installer.log"; die "the installer build failed (see $OUT/make-installer.log)"; }
   echo "installer disc: $OUT/obj-installer/ote-installer.iso"
 fi

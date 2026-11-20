@@ -1,5 +1,7 @@
 # Xbox / UWP player
 
+(This is the modern-console UWP port. The original 2001 Xbox, built with nxdk, is docs/XBOX_OG.md.)
+
 The player as a UWP app (Universal Windows Platform), x64, for sideloading on an Xbox Series X|S or Xbox One in Developer
 Mode, and for installing on any Windows 10/11 PC. What a port needs in general is in docs/PORTING.md; the Windows desktop
 build it grew out of is in docs/WINDOWS.md; the previous port, with the same app-model decisions, is docs/ANDROID.md.

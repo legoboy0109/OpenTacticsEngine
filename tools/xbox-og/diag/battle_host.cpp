@@ -1,5 +1,5 @@
 // Linux twin of the battle part of main.cpp: same loader, map, seed, loop, summary and hash.
-// Build: see syntax-check.sh / FINDINGS.md; links build/host/libote_core.a and liblua.a.
+// Host (Linux) side of the battle hash check: links the engine core built on the host (ote_core + lua) and prints the same hash the Xbox diagnostic shows.
 #include <cstdio>
 #include <string>
 #include <vector>

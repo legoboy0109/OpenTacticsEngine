@@ -1,4 +1,4 @@
-// Host (Linux) timing of the fixed 3D test scene at the two Xbox resolutions. Build: see FINDINGS.md.
+// Host (Linux) timing of the fixed 3D test scene at the two Xbox resolutions. Links the host build of ote_core; see docs/XBOX_OG.md "Diagnostic program".
 #include <chrono>
 #include <cstdio>
 

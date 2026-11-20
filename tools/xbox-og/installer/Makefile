@@ -1,5 +1,5 @@
 # The test installer (installer/main.cpp) and the two discs made from it. Run through build.sh --test-iso.
-#   APP_DIR=<staged OpenTacticsEngine folder> [ARGS_FILE=<test script>] NXDK_DIR=... make -f <repo>/tools/xbox-og/installer/Makefile
+#   APP_DIR=<staged OpenTacticsEngine folder> [ARGS_FILE=<test script>] [EXTRA_DIR=<folder merged into the payload>] NXDK_DIR=... make -f <repo>/tools/xbox-og/installer/Makefile
 # Results in the cwd: ote-installer.iso (installs the app folder, then starts it) and ote-launcher.iso (starts what is
 # already installed; tiny, for a second boot with the same hard disk).
 SELF := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -27,6 +27,7 @@ $(GEN_XISO): stage-disc
 stage-disc: $(OUTPUT_DIR)/default.xbe
 	@test -n "$(APP_DIR)" || { echo "APP_DIR is not set"; exit 1; }
 	@rm -rf $(OUTPUT_DIR)/payload && mkdir -p $(OUTPUT_DIR)/payload && cp -R $(APP_DIR)/. $(OUTPUT_DIR)/payload/
+	@if [ -n "$(EXTRA_DIR)" ]; then cp -R "$(EXTRA_DIR)"/. $(OUTPUT_DIR)/payload/; fi
 	@if [ -n "$(ARGS_FILE)" ]; then cp "$(ARGS_FILE)" $(OUTPUT_DIR)/payload/args.txt; fi
 	@printf 'install' > $(OUTPUT_DIR)/mode.txt
 	@rm -rf $(CURDIR)/launcher-disc && mkdir -p $(CURDIR)/launcher-disc

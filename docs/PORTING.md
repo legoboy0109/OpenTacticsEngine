@@ -58,7 +58,7 @@ are assumed to survive. On Android (GL context loss) and UWP (D3D device removal
 `Sprites`, `IsoTiles`, `Show3D` and the `TextEngine` atlas, from a handler that does not exist yet (`Sprites` is the easy part now: `trimUnused()` drops every texture and they come back on demand).
 
 **Art memory budget.** `artBudgetMB()` (platform.h, implemented once in `platform/common/process_info.cpp`, so a new backend gets
-it for free) says how many MB of art textures the player may hold: web 384, UWP 256, Android 192, others 768; the environment
+it for free) says how many MB of art textures the player may hold: web 384, UWP 256, Android 192, original Xbox 20, others 768; the environment
 variable `OTE_ART_BUDGET_MB` overrides it. Beyond it the player drops the textures used longest ago and makes them again when
 drawn (docs/GRAPHICS.md "Art memory"). A port with less memory than these numbers assume changes the numbers there. A port needs
 nothing else for this, except that `Renderer::destroyTexture` must really free the memory. On low memory `Sprites::trimUnused()`
@@ -73,7 +73,7 @@ The platform back key (`SDL_SCANCODE_AC_BACK`: Android back, and Xbox B on UWP w
 `SDL_HINT_WINRT_HANDLE_BACK_BUTTON`) is `Button::Cancel` in both backends. What Cancel does on the launcher's first
 screen is the platform's answer, `launcherBack()` in `platform.h` (`common/process_info.cpp`), so the player has no platform
 `#ifdef` there: `Exit` on Android (leaves at once, docs/ANDROID.md), `ConfirmExit` on UWP / Xbox (asks "Exit the player?",
-Yes / No with No selected; Yes quits, docs/XBOX.md), `Nothing` everywhere else, so a stray Esc cannot close the player.
+Yes / No with No selected; Yes quits, docs/XBOX.md; the original Xbox asks too and Yes returns to the dashboard, docs/XBOX_OG.md), `Nothing` everywhere else, so a stray Esc cannot close the player.
 A new port picks its answer there. `OTE_LAUNCHER_BACK=nothing|exit|confirm` overrides it (`tests/launcher_back_player_test.py`).
 
 One press must give one ButtonDown / ButtonUp: `platform/common/press_dedupe.h` drops the second delivery when the same logical
@@ -113,6 +113,15 @@ handlers are additions that call the same actions. No screen has text entry. Ski
   `platform/common/uwp.h` and `platform/common/process_info.cpp` (`memoryStatus()`, `artBudgetMB()`, `platformLaunchArgs()`: a UWP app has
   no command line, so `LocalState/args.txt` stands in). This is also the first MSVC build of the SDL2 backend.
 
+- **Original Xbox (nxdk).** `tools/xbox-og/build.sh --nxdk DIR` builds the player with the open-source nxdk toolchain on its SDL2 2.0.9
+  (the SDL2 backend again, plus `engine/platform/nxdk/`; `OTE_NXDK` is defined by `tools/xbox-og/Makefile`) and stages an app folder to
+  copy to the console's hard disk. The pieces that differ: roots (content = the folder the XBE was started from, `D:`; user
+  data = `<that folder>\userdata`), a fixed 640x480 / 1280x720 screen with a title-safe rectangle instead of a window
+  (`SdlRenderer::setFixedScreen`, `Renderer::setSafeArea`, an Xbox-only "Screen margin" option row), `platformLaunchArgs()` from
+  `D:\args.txt` (test scripts in the emulator), a flushed log file, `platformFileName()` (FATX-safe folder names), the dashboard
+  exit, no 3D views (`viewSupported()`), and libc replacements for what nxdk's C library lacks (`%f` in printf among them).
+  Everything is in docs/XBOX_OG.md.
+
 ## Still missing
 
 Android (native SDL3 APK): built and run on an emulator, see docs/ANDROID.md. Still missing there: a device-reset handler for SDL's 2D textures;
@@ -128,6 +137,10 @@ on a console yet. Hardware 3D is Direct3D 11 on SDL2's device ("Direct3D 11 3D o
 missing: a run on a real Xbox (Device Portal install, the 1 GB budget, B and a real controller, the TV fit, a real GPU),
 D3D11 device removal handling for SDL's 2D textures (same gap as the other platforms, "Not handled" above), a decision
 on B on the launcher, final names and logos.
+
+Original Xbox (nxdk, SDL2 2.0.9, 2D only): built and run in xemu only, see docs/XBOX_OG.md: launcher, the three demos, saves, Continue,
+exit to the dashboard, 4:3 / 16:9 and 480 / 720p. Never run on a real console; sound, a real controller and a real TV unverified; 3D
+off until a native NV2A backend exists.
 
 Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
 (MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`
