@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "platform/common/press_dedupe.h"
 #include "platform/common/stick_mapper.h"
 #include "platform/platform.h"
 
@@ -18,6 +19,9 @@ class SdlInput {
   void translate(const SDL_Event& e, std::vector<InputEvent>& out);
 
  private:
+  // One physical press must give one ButtonDown / ButtonUp even when the platform reports it twice (Xbox B arrives as a
+  // pad button AND as AC_BACK; the WinRT joystick driver may list one pad several times): docs/XBOX.md "One B press".
+  PressDedupe dedupe_;
   StickMapper stick_;
   // The camera stick: sideways turns, up and down tilts. The triggers zoom.
   StickMapper camStick_{Button::TurnLeft, Button::TurnRight, Button::TiltUp, Button::TiltDown};

@@ -69,6 +69,10 @@ screen is the platform's answer, `launcherBack()` in `platform.h` (`common/proce
 Yes / No with No selected; Yes quits, docs/XBOX.md), `Nothing` everywhere else, so a stray Esc cannot close the player.
 A new port picks its answer there. `OTE_LAUNCHER_BACK=nothing|exit|confirm` overrides it (`tests/launcher_back_player_test.py`).
 
+One press must give one ButtonDown / ButtonUp: `platform/common/press_dedupe.h` drops the second delivery when the same logical
+button comes from another source (back key vs pad button, or a pad listed twice by the OS) while the first holds it or just
+after; both SDL backends use it, a keyboard-only or single-pad user is unaffected (docs/XBOX.md "One B press").
+
 Every screen is operable with a controller alone (d-pad or left stick, A confirm, B cancel, Start = Menu, shoulders =
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
 handlers are additions that call the same actions. No screen has text entry. Skipping a dialogue is "hold Cancel or Menu".

@@ -74,6 +74,8 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       bool down = e.type == SDL_EVENT_KEY_DOWN;
       // Auto-repeat is useful for moving a cursor, harmful for Confirm/Cancel.
       if (down && e.key.repeat && !isDirection(b)) break;
+      const PressSource src{e.key.scancode == SDL_SCANCODE_AC_BACK ? PressSource::BackRequest : PressSource::Keyboard, 0};
+      if (!dedupe_.pass(b, src, down, static_cast<int64_t>(SDL_GetTicks()))) break;
       out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }
@@ -89,14 +91,17 @@ void SdlInput::translate(SDL_Event& e, SDL_Renderer* renderer, std::vector<Input
       stick_.reset();
       camStick_.reset();
       triggers_.reset();
+      dedupe_.reset();  // the removed pad's releases may never come
       OTE_INFO("gamepad disconnected");
       break;
     case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
     case SDL_EVENT_GAMEPAD_BUTTON_UP: {
       Button b = padButton(e.gbutton.button);
       if (b == Button::None) break;
-      out.push_back(buttonEvent(
-          e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
+      const bool down = e.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN;
+      if (!dedupe_.pass(b, PressSource{PressSource::Pad, static_cast<int>(e.gbutton.which)}, down,
+                        static_cast<int64_t>(SDL_GetTicks()))) break;
+      out.push_back(buttonEvent(down ? InputEvent::ButtonDown : InputEvent::ButtonUp, b));
       break;
     }
     case SDL_EVENT_GAMEPAD_AXIS_MOTION:

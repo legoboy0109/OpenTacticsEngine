@@ -25,7 +25,7 @@
 .PARAMETER Work
   Work folder for downloads, the SDL2 build, the engine build, the certificate and the output. Default C:\uwp.
 .PARAMETER Version
-  Package version (four numbers). Default 0.1.MMdd.HHmm of the build time: Windows refuses to replace an installed
+  Package version (four numbers). Default 0.1.MMdd.HHmm of the build time (without leading zeros): Windows refuses to replace an installed
   package whose version is the same but whose contents differ, and a newer version updates it in place and keeps its
   saves. (Numbers are at most 65535; MMdd and HHmm always fit.)
 .PARAMETER IdentityName
@@ -38,7 +38,8 @@
 [CmdletBinding()]
 param(
   [string]$Work = 'C:\uwp',
-  [string]$Version = (Get-Date -Format '0.1.MMdd.HHmm'),
+  # Numbers, not text: a version part with a leading zero ("0141" after midnight) is refused by makeappx.
+  [string]$Version = (Get-Date | ForEach-Object { '0.1.{0}.{1}' -f [int]$_.ToString('MMdd'), [int]$_.ToString('HHmm') }),
   [string]$IdentityName = 'OpenTacticsEngine.Player',
   [string]$Publisher = 'CN=OpenTacticsEngine Test',
   [string]$SdkVersion = '10.0.26100.0',
