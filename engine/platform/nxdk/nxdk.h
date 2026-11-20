@@ -40,9 +40,6 @@ struct NxdkScreen {
 NxdkScreen nxdkPrepareVideo();
 const NxdkScreen& nxdkScreen();
 
-// Moves `from` over `to`, replacing it (FATX rename does not replace by itself). True on success.
-bool nxdkReplaceFile(const std::string& from, const std::string& to);
-
 // Leaves the player for the console's dashboard (XLaunchXBEEx with no path: a quick reboot into the BIOS, which starts the
 // dashboard). Does not return.
 [[noreturn]] void nxdkReturnToDashboard();

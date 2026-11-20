@@ -15,8 +15,15 @@ class SdlAudioOut : public AudioOut {
     // What the device took: pushed minus what is still queued. 0 played with frames pushed would mean a device that never runs.
     OTE_INFO("audio: closing; %lld frames pushed, %d still queued (so %lld were played)", (long long)pushed_, queuedFrames(),
              (long long)pushed_ - queuedFrames());
+#ifdef OTE_NXDK
+    // SDL's Xbox audio thread waits for the sound chip's "buffer finished" interrupt; closing the device waits for that
+    // thread, and if the chip never delivers one (xemu without a working audio path; seen) the player would hang here and
+    // never leave. The player leaves for the dashboard (a reboot) right after, so the device is just silenced.
+    SDL_PauseAudioDevice(dev_, 1);
+#else
     SDL_CloseAudioDevice(dev_);
     SDL_QuitSubSystem(SDL_INIT_AUDIO);
+#endif
   }
   bool available() const override { return true; }
   int rate() const override { return rate_; }

@@ -213,28 +213,6 @@ NxdkScreen nxdkPrepareVideo() {
 
 const NxdkScreen& nxdkScreen() { return g_screen; }
 
-bool nxdkReplaceFile(const std::string& from, const std::string& to) {
-  // MoveFileA of nxdk asks for "do not replace"; ask the kernel for "replace if it exists" (what POSIX rename does), so
-  // a save is swapped in one step and never missing in between.
-  std::string f = backslashes(from), t = backslashes(to);
-  ANSI_STRING path;
-  RtlInitAnsiString(&path, f.c_str());
-  OBJECT_ATTRIBUTES attr;
-  InitializeObjectAttributes(&attr, &path, OBJ_CASE_INSENSITIVE, ObDosDevicesDirectory(), NULL);
-  HANDLE h;
-  IO_STATUS_BLOCK io;
-  NTSTATUS st = NtOpenFile(&h, DELETE | SYNCHRONIZE, &attr, &io, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                           FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT);
-  if (!NT_SUCCESS(st)) return false;
-  FILE_RENAME_INFORMATION info;
-  info.ReplaceIfExists = TRUE;
-  info.RootDirectory = ObDosDevicesDirectory();
-  RtlInitAnsiString(&info.FileName, t.c_str());
-  st = NtSetInformationFile(h, &io, &info, sizeof info, FileRenameInformation);
-  NtClose(h);
-  return NT_SUCCESS(st);
-}
-
 void nxdkReturnToDashboard() {
   OTE_INFO("leaving for the dashboard");
   if (g_log != INVALID_HANDLE_VALUE) {

@@ -10,6 +10,7 @@
 #   --out DIR      where objects and the result go (default <repo>/build-xbox-og, which .gitignore covers)
 #   --test-iso     also build a small installer disc image for emulator tests (tools/xbox-og/installer): it copies the app
 #                  folder from the disc to E:\Apps\OpenTacticsEngine and starts it from there. Not how users install.
+#   --test-args F  with --test-iso: the file F goes onto the disc as the app's args.txt (a scripted run, see docs/XBOX_OG.md)
 #
 # Result: <out>/OpenTacticsEngine/  = default.xbe, assets/, games/ (index.json + the three demo games), licenses/.
 # Copy that folder (FTP) to E:\Apps\ (or any folder or partition) and start default.xbe from the dashboard; it runs from where
@@ -27,6 +28,7 @@ NXDK=""
 JOBS=4
 OUT="$REPO/build-xbox-og"
 TEST_ISO=0
+TEST_ARGS=
 GAMES="demo-srpg demo-economy demo-hex"
 
 die() { echo "build.sh: $*" >&2; exit 1; }
@@ -37,6 +39,8 @@ while [ $# -gt 0 ]; do
     --jobs) [ $# -ge 2 ] || die "--jobs needs a number"; JOBS="$2"; shift 2 ;;
     --out) [ $# -ge 2 ] || die "--out needs a folder"; OUT="$2"; shift 2 ;;
     --test-iso) TEST_ISO=1; shift ;;
+    --test-args) [ $# -ge 2 ] || die "--test-args needs a file"
+                 TEST_ARGS="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"; shift 2 ;;
     --check-game) [ $# -ge 2 ] || die "--check-game needs a game folder"
                   G="$(cd "$2" && pwd)" || die "no such folder: $2"
                   exec python3 -I "$HERE/check_names.py" --prefix "E:\\Apps\\OpenTacticsEngine\\games\\$(basename "$G")\\" "$G" ;;
@@ -60,7 +64,10 @@ mkdir -p "$OUT/obj-build"
 export NXDK_DIR="$NXDK"
 export PATH="$NXDK/bin:$PATH"
 cd "$OUT/obj-build"
-find obj -name '*.d' -delete 2>/dev/null || true   # a dependency file from another checkout path would break make
+# Dependency files (obj/**/*.d) hold absolute paths, so objects built from another checkout would confuse make: start clean
+# when the repository folder or the nxdk folder changed since the last build here, keep them (header changes rebuild) otherwise.
+STAMP="$REPO|$NXDK"
+if [ "$(cat "$OUT/obj-build/.build-stamp" 2>/dev/null || true)" != "$STAMP" ]; then rm -rf obj; printf '%s' "$STAMP" > "$OUT/obj-build/.build-stamp"; fi
 echo "== building the XBE (-j$JOBS)"
 make -f "$HERE/Makefile" -j"$JOBS" >"$OUT/make.log" 2>&1 || { tail -30 "$OUT/make.log"; die "the nxdk build failed (full log: $OUT/make.log)"; }
 if grep -E "warning:" "$OUT/make.log" | grep -q "engine/\|tools/xbox-og"; then
@@ -93,7 +100,7 @@ python3 -I "$HERE/check_names.py" "$APP" || die "some names cannot exist on the 
 if [ "$TEST_ISO" = 1 ]; then
   echo "== building the installer test disc"
   mkdir -p "$OUT/obj-installer"
-  ( cd "$OUT/obj-installer" && make -f "$HERE/installer/Makefile" -j"$JOBS" APP_DIR="$APP" >"$OUT/make-installer.log" 2>&1 ) ||
+  ( cd "$OUT/obj-installer" && make -f "$HERE/installer/Makefile" -j"$JOBS" APP_DIR="$APP" ARGS_FILE="$TEST_ARGS" >"$OUT/make-installer.log" 2>&1 ) ||
     { tail -30 "$OUT/make-installer.log"; die "the installer build failed (see $OUT/make-installer.log)"; }
   echo "installer disc: $OUT/obj-installer/ote-installer.iso"
 fi

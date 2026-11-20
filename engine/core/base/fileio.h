@@ -33,6 +33,13 @@ inline size_t readChunk(std::FILE* f, void* buf, size_t cap) {
   return std::fread(buf, 1, cap, f);
 }
 
+#if defined(OTE_NXDK)
+// Original Xbox (nxdk): the kernel wants backslashes and nxdk's rename() neither converts '/' nor replaces an existing file.
+// Moves `from` over `to` in one kernel call (what POSIX rename does) and deletes a file; both take paths with '/' or '\\'.
+bool nxReplaceFile(const std::string& from, const std::string& to);
+bool nxRemoveFile(const std::string& path);  // true when the file is gone afterwards (also if it never existed)
+#endif
+
 #if defined(_WIN32) && !defined(OTE_NXDK)
 // UTF-8 -> UTF-16 for the Win32 "W" calls (shared with the platform layer's folder functions). Invalid input is
 // replaced, never rejected. Empty in, empty out.

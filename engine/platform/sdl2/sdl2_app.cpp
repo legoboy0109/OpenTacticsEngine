@@ -99,10 +99,19 @@ void frame(Loop& L) {
   L.workTicks += SDL_GetPerformanceCounter() - workStart;
   if (++L.timedFrames == kTimedFrames) {
     const Uint64 t = SDL_GetPerformanceCounter();
+#ifdef OTE_NXDK
+    if (L.intervalStart) {  // the same line without %f (nxdk's printf has none): hundredths of a millisecond
+      const int work = (int)(1e5 * (double)L.workTicks / L.tickHz / kTimedFrames);
+      const int interval = (int)(1e5 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames);
+      OTE_DEBUG("frame time: work %d.%02d ms, interval %d.%02d ms (average of %d frames)", work / 100, work % 100,
+                interval / 100, interval % 100, kTimedFrames);
+    }
+#else
     if (L.intervalStart)
       OTE_DEBUG("frame time: work %.1f ms, interval %.1f ms (average of %d frames)",
                 1e3 * (double)L.workTicks / L.tickHz / kTimedFrames,
                 1e3 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames, kTimedFrames);
+#endif
     L.intervalStart = t;
     L.workTicks = 0;
     L.timedFrames = 0;
@@ -280,13 +289,15 @@ int runApp(App& app, const PlatformConfig& config) {
   }
 
   app.onStop();          // the player lets go of the audio device while SDL is still up
+#ifdef OTE_NXDK
+  // The console has nothing to return to but its dashboard, and leaving that way restarts the machine, so SDL's own
+  // teardown (which can wait on a sound chip that never answers) is skipped. Settings were flushed when the quit arrived.
+  if (!config.headless) nxdkReturnToDashboard();
+#endif
   shutdownHardware3D();  // its GL context must go before SDL does
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);
   SDL_Quit();
-#ifdef OTE_NXDK
-  if (!config.headless) nxdkReturnToDashboard();  // there is nothing to return to otherwise (settings were flushed on quit)
-#endif
   return 0;
 }
 

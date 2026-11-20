@@ -19,7 +19,7 @@ COMMON_SRCS  := $(call find,engine/platform/common,*.cpp) engine/platform/common
 NXDK_SRCS    := $(patsubst $(REPO)/%,%,$(wildcard $(REPO)/engine/platform/nxdk/*.cpp))
 # The SDL2 backend; the OpenGL / Direct3D 11 / UWP glue is not built (nxdk_hw3d.cpp stands in for the 3D glue).
 BACKEND_SRCS := engine/platform/sdl2/sdl2_app.cpp engine/platform/sdl2/sdl2_audio.cpp engine/platform/sdl2/sdl2_files.cpp \
-                engine/platform/sdl2/sdl2_input.cpp engine/platform/sdl2/sdl2_renderer.cpp tools/xbox-og/nx_compat.c
+                engine/platform/sdl2/sdl2_input.cpp engine/platform/sdl2/sdl2_renderer.cpp tools/xbox-og/nx_compat.c tools/xbox-og/nx_printf.c
 PLAYER_SRCS  := $(call find,engine/player,*.cpp)
 
 SRCS := $(addprefix $(OUT)/,$(CORE_SRCS) $(LUA_SRCS) $(GFX3D_SRCS) $(AUDIO_SRCS) $(COMMON_SRCS) $(NXDK_SRCS) $(BACKEND_SRCS) $(PLAYER_SRCS))

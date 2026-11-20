@@ -111,6 +111,9 @@ int main() {
     std::fclose(m);
   }
   if (std::strncmp(mode, "install", 7) == 0) {
+    // A test script (args.txt) from an earlier run must not outlive a build that has none.
+    SetFileAttributesA("E:\\Apps\\OpenTacticsEngine\\args.txt", FILE_ATTRIBUTE_NORMAL);
+    DeleteFileA("E:\\Apps\\OpenTacticsEngine\\args.txt");
     say("copying D:\\payload to %s ...", kDest);
     copyTree("D:\\payload", kDest, 0);
     char b[80];
@@ -118,6 +121,12 @@ int main() {
     say("install done: %s", b);
   } else {
     say("mode '%s': nothing to copy", mode);
+  }
+  if (std::strncmp(mode, "dash", 4) == 0) {  // test of the player's exit path: ask for the dashboard exactly as the player does
+    say("asking for the dashboard (XLaunchXBEEx with no path)", "", "");
+    if (g_log) std::fclose(g_log);
+    XLaunchXBEEx(nullptr, nullptr);
+    for (;;) Sleep(1000);
   }
   std::string xbe = std::string(kDest) + "\\default.xbe";
   if (GetFileAttributesA(xbe.c_str()) == INVALID_FILE_ATTRIBUTES || g_errors) {

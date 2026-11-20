@@ -1,6 +1,9 @@
 #include "core/base/fileio.h"
 
 #if defined(OTE_NXDK)
+#include <windows.h>
+#include <xboxkrnl/xboxkrnl.h>
+
 #include "core/base/fatx_names.h"
 #include "core/base/log.h"
 #endif
@@ -61,6 +64,45 @@ std::FILE* openFile(const std::string& utf8Path, const char* mode) {
 }
 #else
 std::FILE* openFile(const std::string& utf8Path, const char* mode) { return std::fopen(utf8Path.c_str(), mode); }
+#endif
+
+#if defined(OTE_NXDK)
+namespace {
+std::string backslashed(std::string p) {
+  for (char& c : p)
+    if (c == '/') c = '\\';
+  return p;
+}
+}  // namespace
+
+bool nxReplaceFile(const std::string& from, const std::string& to) {
+  // nxdk's MoveFileA asks the kernel for "do not replace" (and a save must never be missing in between), so ask for
+  // "replace if it exists" directly.
+  std::string f = backslashed(from), t = backslashed(to);
+  ANSI_STRING path;
+  RtlInitAnsiString(&path, f.c_str());
+  OBJECT_ATTRIBUTES attr;
+  InitializeObjectAttributes(&attr, &path, OBJ_CASE_INSENSITIVE, ObDosDevicesDirectory(), NULL);
+  HANDLE h;
+  IO_STATUS_BLOCK io;
+  NTSTATUS st = NtOpenFile(&h, DELETE | SYNCHRONIZE, &attr, &io, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT);
+  if (!NT_SUCCESS(st)) return false;
+  FILE_RENAME_INFORMATION info;
+  info.ReplaceIfExists = TRUE;
+  info.RootDirectory = ObDosDevicesDirectory();
+  RtlInitAnsiString(&info.FileName, t.c_str());
+  st = NtSetInformationFile(h, &io, &info, sizeof info, FileRenameInformation);
+  NtClose(h);
+  return NT_SUCCESS(st);
+}
+
+bool nxRemoveFile(const std::string& path) {
+  std::string p = backslashed(path);
+  SetFileAttributesA(p.c_str(), FILE_ATTRIBUTE_NORMAL);  // a read-only attribute (files copied from a disc) blocks deleting
+  if (DeleteFileA(p.c_str())) return true;
+  return GetFileAttributesA(p.c_str()) == INVALID_FILE_ATTRIBUTES;  // failed because it was not there?
+}
 #endif
 
 }  // namespace ote

@@ -116,7 +116,9 @@ bool makeDir(const std::string& path) {
 }
 
 bool removeFile(const std::string& path) {
-#if defined(_WIN32) && !defined(OTE_NXDK)  // nxdk defines _WIN32 but has no wide-char Win32 API
+#if defined(OTE_NXDK)
+  return nxRemoveFile(path);  // backslashes, and a disc's read-only attribute cleared (core/base/fileio.cpp)
+#elif defined(_WIN32)  // nxdk defines _WIN32 but has no wide-char Win32 API
   if (DeleteFileW(utf8ToWide(path).c_str())) return true;
   return GetFileAttributesW(utf8ToWide(path).c_str()) == INVALID_FILE_ATTRIBUTES;  // failed because it was not there?
 #else
@@ -130,7 +132,7 @@ bool removeFile(const std::string& path) {
 
 bool replaceFile(const std::string& from, const std::string& to) {
 #if defined(OTE_NXDK)
-  return nxdkReplaceFile(from, to);  // FATX rename does not replace by itself
+  return nxReplaceFile(from, to);  // FATX rename does not replace by itself (core/base/fileio.cpp)
 #elif defined(_WIN32)
   return MoveFileExW(utf8ToWide(from).c_str(), utf8ToWide(to).c_str(), MOVEFILE_REPLACE_EXISTING) != 0;
 #else

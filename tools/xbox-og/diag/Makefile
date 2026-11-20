@@ -14,7 +14,7 @@ CORE_SRCS := $(shell cd $(REPO) && find engine/core -name '*.cpp' | sort)
 LUA_SRCS  := $(filter-out third_party/lua/src/lua.c third_party/lua/src/luac.c, \
                $(shell cd $(REPO) && find third_party/lua/src -name '*.c' | sort))
 EXTRA_SRCS := engine/platform/common/bitmap_font.cpp engine/platform/common/bitmap_font_data.c engine/gfx3d/soft3d.cpp engine/gfx3d/shapes.cpp \
-               tools/xbox-og/bench3d.cpp tools/xbox-og/nx_compat.c tools/xbox-og/main.cpp
+               tools/xbox-og/bench3d.cpp tools/xbox-og/nx_compat.c tools/xbox-og/nx_printf.c tools/xbox-og/main.cpp
 
 SRCS := $(addprefix $(OUT)/,$(CORE_SRCS) $(LUA_SRCS) $(EXTRA_SRCS))
 
