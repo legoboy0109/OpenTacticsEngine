@@ -82,6 +82,9 @@ void MainWindow::buildDocks() {
   undoView_->setObjectName("undoView");
   historyDock->setWidget(undoView_);
   addDockWidget(Qt::RightDockWidgetArea, historyDock);
+  // Sensible first sizes (a saved layout overrides them): the table gets the room, the lists stay narrow and short.
+  resizeDocks({files_, historyDock}, {210, 190}, Qt::Horizontal);
+  resizeDocks({problems_}, {120}, Qt::Vertical);
 }
 
 QString MainWindow::currentRel() const {
@@ -128,7 +131,7 @@ void MainWindow::showProblems() {
   QHash<QString, int> counts;
   for (const auto& p : list) counts[QString::fromStdString(p.file)]++;
   files_->setProblemCounts(counts);
-  problemsLabel_->setText(list.empty() ? tr("No problems") : tr("%1 problem(s)").arg(list.size()));
+  problemsLabel_->setText(list.empty() ? tr("No problems") : (list.size() == 1 ? tr("1 problem") : tr("%1 problems").arg(list.size())));
 }
 
 void MainWindow::closeProject() {

@@ -54,7 +54,7 @@ void FileListDock::refreshText(const QString& rel) {
   QStringList notes;
   if (dirty_.value(rel)) text += " *";
   if (external_.value(rel)) notes << tr("changed on disk");
-  if (problems_.value(rel) > 0) notes << tr("%1 problem(s)").arg(problems_.value(rel));
+  if (problems_.value(rel) > 0) notes << (problems_.value(rel) == 1 ? tr("1 problem") : tr("%1 problems").arg(problems_.value(rel)));
   if (!notes.isEmpty()) text += "  (" + notes.join(", ") + ")";
   it->setText(0, text);
   it->setToolTip(0, rel);
