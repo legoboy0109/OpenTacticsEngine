@@ -4,7 +4,57 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-16) — read this first
+## Latest (2026-11-19, night) — read this first
+
+origin/main = 75795e5 (full check 47: ote_tests 2309 both builds, editor API 1399, ctest 66/66, vitest 1614, e2e 616 in
+15.7 min, sims identical). Local main is two merges ahead (enemy ranges, stacked storage lists): full check 48 was started;
+push only after it passes. The section below this one is older; the ports part of it is still right.
+
+Pushed today, all fully checked:
+- Audit jobs D6 (`-DOTE_SANITIZE`, `.clang-tidy`, docs/TESTING.md), D7 (`tools/check_all.sh`), D8 (test scratch under
+  `<build>/test-tmp`).
+- One B press arriving from two sources is one press (`engine/platform/common/press_dedupe.*`, docs/XBOX.md). Not yet
+  confirmed on the owner's Series X pad.
+- Art loads on demand inside a budget (`battle/sprite_cache.cpp`, `battle/art_budget.*`, `artBudgetMB()`): a 640-sheet game
+  peaked at 2.6 GB at load, now under 200 MB. 3D sheets/models and sound effects are not under the budget.
+- **Original Xbox (2001) port, step 1: the 2D player via nxdk** (docs/XBOX_OG.md; `engine/platform/nxdk/`, `tools/xbox-og/`).
+  Runs in xemu only: hard-disk install, user data in `<launch folder>\userdata`, B on the launcher asks then returns to the
+  dashboard, "Screen margin" option (90% at 480, 95% at 720p; CRT-era title safe was 80%, action safe 90%), FATX-safe names
+  (`core/base/fatx_names.*`), 640x480 default, 720p opt-in. Sound is unproven (xemu's chip consumed nothing). Toolchain and
+  the emulator loop live outside the repo in `/home/kadenm/Projects/OpenTacticsEngine-OGXbox/` (README.txt there).
+- Web player: Emscripten's `Browser` helper is linked, so a browser that refuses WebGL draws in software instead of
+  stopping ("Browser is not defined", seen in the owner's Vivaldi); a warning line says why WebGL was refused.
+- List icons of units are sized as on the map (tall frames were shrunk to half).
+- Free battles: Items and the shops in the preparation screen, and `rules.items.freeBattleStorage`
+  (`{each, except, items, funds}`; docs/GAME_FORMAT.md). Known gap: the Continue save of a free battle does not carry
+  preparation trades.
+- Hint lines name the device in use (`engine/player/ui/input_hints.*`; keyboard, controller, touch, mouse = "click";
+  White/Black on the original Xbox; `OTE_INPUT_DEVICE`, script word `device:NAME`; docs/PORTING.md).
+- `tests/art_memory_player_test.py` works on Windows.
+
+Merged locally, in full check 48:
+- Enemy ranges (docs/SRPG.md "Enemy ranges"): Confirm on a visible enemy marks its move (violet) and attack (orange)
+  squares; the new `Button::Ranges` (`T`, pad Back/View, map-menu row) toggles all; option `enemyRanges`; game rule
+  `rules.display.enemyRanges`. Confirm on an enemy no longer opens the map menu; Cancel on the idle map clears marks
+  (both await the owner's review).
+- Identical copies in storage lists are one row with a count (`battle/storage_stack.h`, docs/ITEMS.md).
+
+Running as agent jobs when this was written: the native NV2A 3D backend for the original Xbox (step 2), and damage types
+(first of the new mechanics). The plan for the new mechanics (damage types, side-wide effects + branching research,
+factions, line fire + area attacks, AP turns, height, facing, rank table, CO powers, speed turns, jobs) is in
+`.agent/notes.md` "New mechanics plan"; the owner's OverClock project (`/home/kadenm/Projects/UntitledTBT`) is ideas only
+and is never edited.
+
+Builds in the Windows VM from 278e11e: Windows desktop zero warnings, ote_tests 2299, ctest 63/63 with the test fix;
+`builds/uwp/OpenTacticsPlayer_0.1.1120.446_x64.appx` (B fix + on-demand art) is the package to install on the Series X
+when the console is free; nothing newer than 278e11e has been built for Windows, UWP or Android.
+
+The private Vision Quest port (`/home/kadenm/Projects/VisionQuestPort`, never in this repo): step 36 fixed classes, levels
+and items of already-recruited characters (the ROM ignores those list rows), forced deployment (ROM table), area events'
+trigger side, and added the free-battle stock. Open with the owner: which "ruins" tiles should be impassable (the ROM says
+passable), recruit music restore (by report, not by disassembly), the "fluctuating" recruit theme (in the song data).
+
+## Earlier (2026-11-16 to 2026-11-19)
 
 Merged, fully checked (ote_tests 1321 both builds, editor_api 758, vitest 897, webtest 152/59, e2e 427 passed / 29
 skipped, demo sims line-for-line identical) and pushed: weapon ranks and stat caps (rules, player, editor screens;
