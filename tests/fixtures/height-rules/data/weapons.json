@@ -1,0 +1,7 @@
+{ "weapons": [
+  { "id": "sword", "name": "Sword", "props": { "might": 4 } },
+  { "id": "bow", "name": "Bow", "range": [2, 3], "props": { "might": 3 } },
+  { "id": "sling", "name": "Sling", "range": [1, 2], "heightRange": { "up": 0 }, "props": { "might": 3 } },
+  { "id": "pike", "name": "Pike", "heightRange": { "up": 1, "down": 1 }, "props": { "might": 5 } },
+  { "id": "rifle", "name": "Rifle", "range": [2, 6], "fire": "line", "props": { "might": 5 } },
+  { "id": "bomb", "name": "Bomb", "range": [2, 4], "area": { "shape": "burst", "vertical": 1, "friendlyFire": true }, "props": { "might": 3 } } ] }
