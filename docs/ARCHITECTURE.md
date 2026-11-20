@@ -80,6 +80,9 @@ SDL-free sources (saves, options, UI text, battle texts, the sound service, the 
 `ote-player`, `ote_tests` and `ote-editor`, so each of those files is compiled once. New SDL-free player files that the
 tests exercise go in its list; the player's own `engine/player/CMakeLists.txt` takes everything else by glob.
 
+`-DOTE_SANITIZE=address,undefined` (or `address`, `undefined`, `thread`) builds every target with the compiler's sanitizers on GCC and
+Clang (ignored with a message elsewhere; default off); `.clang-tidy` is a conservative bug-finding set. Both: docs/TESTING.md.
+
 ## Sound
 
 `engine/audio/` is portable (a static library, `ote_audio`): it turns memory buffers into samples and mixes them, and
