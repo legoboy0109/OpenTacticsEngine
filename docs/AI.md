@@ -342,6 +342,28 @@ weapon's range and the foes in it), **empty squares included**: a burst aimed at
 - The stance filters of a behaviour (`ignores`, `prefer`, seeking) judge only the unit on the aimed square when it is a foe; an attack on an empty square
   is judged by its score alone.
 
+### Action points
+
+In a game with `rules.actionPoints` (docs/SRPG.md "Action points") `aiTakeStep` hands over to `aiTakeApStep` (`core/ai/ai_ap.cpp`); a game without them
+runs the unchanged AI above, byte for byte. The side has one pool, so a call does not pick "a unit's order" but **the play that buys most for its AP**:
+
+1. **Strikes.** For every unit that is not spent, from every square its (pool-limited) reach allows, every attack and capture it could make is scored by the
+   usual scores (`scoreAttack`, `scoreAreaAttack`, `scoreCapture`, minus the usual exposure of the square). The play with the **highest score per AP**
+   (the walk plus the attack, at least 1) wins; ties go to the lowest unit id, then the first square in cell order. Damage and kills are what the score is made of, so a
+   cheap weapon that hurts well beats a dear one that hurts a little, and a kill beats a poke. A play the pool cannot pay in full is never considered.
+2. **Advance.** Only when no unit has a strike: the unit that gains the most distance per AP walks one step toward its goal (its capture target, else
+   the nearest enemy it knows of), to the square that is nearest and, for a tie, cheapest; never to a square that is not nearer. A leader whose death loses the game stays
+   home while it has company.
+3. **Economy, end.** With nothing left it researches, builds and upgrades as the usual AI does (their prices may list AP), then ends its turn.
+
+**It always ends.** Every call spends something finite: an attack counts against `attacksPerTurn`, a walk against the unit's Move stat, a capture ends the unit's
+turn; an order the rules refuse (a fog ambush stopped the walk) sends the unit to Wait, and a turn that cannot continue is ended. No randomness of its own; the same battle gives the
+same decision; each call looks at every unit's reach once (bounded by units x squares x targets). With no AP at all it ends the turn at once.
+
+**Not used in these games:** behaviours (`rules.ai`, per-unit `behaviour`), attack weights, retreat, items, staves, abilities, doors and chests: the units play
+with attacks, walking, capturing, building and research only. **Tests.** `tests/test_ap_ai.cpp` (attacks with the pool, value per AP, a poor pool, building with an AP cost,
+a whole game between two computer sides that finishes identically twice).
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
