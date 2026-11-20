@@ -1,0 +1,4 @@
+{ "units": [
+  { "id": "soldier", "name": "Soldier", "moveType": "foot", "stats": { "hp": 40, "str": 6, "def": 2, "mov": 5 }, "growths": { "hp": 100 }, "weapons": ["sword"] },
+  { "id": "dummy", "name": "Dummy", "moveType": "foot", "stats": { "hp": 200, "str": 3, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "weakling", "name": "Weakling", "moveType": "foot", "stats": { "hp": 8, "str": 3, "def": 0, "mov": 3 }, "weapons": ["sword"] } ] }

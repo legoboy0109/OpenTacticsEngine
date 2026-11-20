@@ -1,0 +1,3 @@
+{ "abilities": [
+  { "id": "shove", "name": "Shove", "description": "Pushes a neighbour one square away.", "target": "enemy", "range": [1, 1], "effect": { "push": 1 }, "cost": "action" },
+  { "id": "mend", "name": "Mend", "description": "Heals an ally.", "target": "ally", "range": [1, 2], "effect": { "heal": 10 }, "cost": "action" } ] }
