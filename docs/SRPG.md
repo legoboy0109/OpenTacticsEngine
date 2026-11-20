@@ -847,7 +847,7 @@ Every key but `resource` is optional (defaults: `costPerStep` 1, `splitMoves` tr
   (or not) exactly as before and cost **no** AP of their own. A **price in AP** is added through the existing cost lists, just by naming the pool's
   resource: a unit type's `"cost": { "gold": 5, "ap": 3 }` (build / produce), a technology's `"cost"` (research), an upgrade's `"cost"`, an item's `"price"` and
   a repair share the same check (`canAfford`) and refuse with the usual "not enough resources". Abilities, staves and items have no AP price of their own
-  (not built; their cost lists do not exist).
+  (not built; their cost lists do not exist). A berserk unit (section 9) acts on its own: its walk is paid, its attack is free and not counted.
 - **Done.** `Battle::unitSpent(unit)` is the one question "is this unit finished": `done`, or (action points) it can neither walk a point nor attack with any
   weapon it has (`apMayMove`, `apMayAttack`: attacks left, the pool pays the cheapest, the "afterMove" rule allows it). The player dims, skips and counts
   units by it. `done` itself only records what the unit did (Wait, an action that ends the turn, attacks and movement used up). **Ending the turn is always
