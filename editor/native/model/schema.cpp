@@ -223,8 +223,11 @@ ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
     }
     case K::Object: {
       ote::Json o = ote::Json::makeObject();
+      bool any = false;
       for (const auto& f : n.fields)
-        if (f.second->required) o.set(f.first, build(*f.second, ids, sample));
+        if (f.second->required) { o.set(f.first, build(*f.second, ids, sample)); any = true; }
+      // A sample of a block without required keys states something (an empty block is often refused by the engine).
+      if (sample && !any && n.block && !n.fields.empty()) o.set(n.fields.front().first, build(*n.fields.front().second, ids, true));
       return o;
     }
     case K::Map: {

@@ -19,7 +19,7 @@
 
 namespace ote_native {
 
-QString warningStyle() { return QStringLiteral("color: #e5534b; font-weight: bold;"); }
+QString warningStyle() { return QStringLiteral("color: #e5534b;"); }
 
 QColor mutedColor(const QWidget* w) {
   // Placeholder text is the palette's own "quiet" colour, so it stays readable in light and dark themes.

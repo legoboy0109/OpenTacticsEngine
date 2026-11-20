@@ -499,12 +499,17 @@ QWidget* FormView::buildOtherKeys(const SchemaNode& n, const JsonPath& path) {
   toggle->setToolButtonStyle(Qt::ToolButtonTextOnly);
   toggle->setAutoRaise(true);
   toggle->setCheckable(true);
-  const QString title = tr("Other keys (%1): in the file, not described by the schema; kept untouched").arg(other.size());
+  const QString title = tr("Other keys (%1)").arg(other.size());
+  toggle->setToolTip(tr("Keys that are in the file but not described by the schema. They are kept exactly as they are."));
   toggle->setText(QStringLiteral("▸ ") + title);
   v->addWidget(toggle);
   auto* body = new QWidget(box);
   auto* bv = new QVBoxLayout(body);
   bv->setContentsMargins(0, 0, 0, 0);
+  auto* why = new QLabel(tr("In the file, not described by the schema. Kept exactly as they are."), body);
+  why->setWordWrap(true);
+  why->setForegroundRole(QPalette::PlaceholderText);
+  bv->addWidget(why);
   auto* text = new QPlainTextEdit(body);
   text->setObjectName("otherKeysText");
   text->setReadOnly(true);

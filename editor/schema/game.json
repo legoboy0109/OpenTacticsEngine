@@ -39,9 +39,9 @@
               "preview": { "type": "int", "min": 1, "max": 30, "help": "Turns shown in the order preview." },
               "roundTicks": { "type": "int", "min": 1, "max": 100000, "help": "Clock ticks per displayed round." },
               "ctCost": { "type": "object", "help": "Clock cost of a finished turn by what the unit did (each at least 1).", "fields": {
-                "both": { "type": "int", "min": 0, "max": 100000, "help": "Moved and acted." },
-                "one": { "type": "int", "min": 0, "max": 100000, "help": "Moved or acted." },
-                "none": { "type": "int", "min": 0, "max": 100000, "help": "Did neither." } } } } },
+                "both": { "type": "int", "min": 1, "max": 100000, "help": "Moved and acted." },
+                "one": { "type": "int", "min": 1, "max": 100000, "help": "Moved or acted." },
+                "none": { "type": "int", "min": 1, "max": 100000, "help": "Did neither." } } } } },
           "actionPoints": {
             "type": "object", "block": true, "help": "One shared pool per side pays for walking and attacking (docs/SRPG.md Action points).",
             "fields": {

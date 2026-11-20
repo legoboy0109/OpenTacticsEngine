@@ -156,6 +156,9 @@ void FormScreenshotTest::scene() {
     t->formContext()->set(child("damageType"), ote::Json::makeString("fire"));
     t->formContext()->set(child("fire"), ote::Json::makeString("line"));
     t->form()->flush();
+    QVERIFY(t->form()->focusKey("damageType"));
+    QTest::qWait(50);
+    t->form()->ensureWidgetVisible(t->form()->findChild<QWidget*>("blockFrame"), 0, 250);  // the area block, with room above
   } else if (scene == "rules") {
     QVERIFY(s.openFixture("action-points"));
     s.w->openFile("game.json");
@@ -165,13 +168,22 @@ void FormScreenshotTest::scene() {
     QVERIFY(t->form()->focusPath({PathStep::member("rules"), PathStep::member("actionPoints")}));
   } else if (scene == "factions") {
     QVERIFY(s.openFixture("factions"));
-    QVERIFY(s.table("data/factions.json", 0));
+    TableEditor* t = s.table("data/factions.json", 0);
+    QVERIFY(t);
+    QTest::qWait(50);
+    QVERIFY(t->form()->focusKey("start"));
   } else if (scene == "jobs") {
     QVERIFY(s.openFixture("jobs"));
-    QVERIFY(s.table("data/jobs.json", 1));
+    TableEditor* t = s.table("data/jobs.json", 1);
+    QVERIFY(t);
+    QTest::qWait(50);
+    QVERIFY(t->form()->focusKey("requires"));
   } else if (scene == "commanders") {
     QVERIFY(s.openFixture("commanders"));
-    QVERIFY(s.table("data/commanders.json", 0));
+    TableEditor* t = s.table("data/commanders.json", 0);
+    QVERIFY(t);
+    QTest::qWait(50);
+    QVERIFY(t->form()->focusKey("meter"));
   } else if (scene == "mismatch") {
     QVERIFY(s.open(ote_test::copyDemoGame(s.tmp)));
     TableEditor* t = s.table("data/weapons.json", 0);
@@ -187,11 +199,13 @@ void FormScreenshotTest::scene() {
     QVERIFY(s.open(ote_test::copyDemoGame(s.tmp)));
     TableEditor* t = s.table("data/units.json", 0);
     QVERIFY(t);
+    QTest::qWait(80);  // the deferred form retarget runs (it rebuilds the form), then layouts settle
     t->form()->flush();
     auto* toggle = t->form()->findChild<QToolButton*>("otherKeysToggle");
     QVERIFY2(toggle, "the demo's units have keys the schema does not describe");
     toggle->setChecked(true);
-    t->form()->ensureWidgetVisible(toggle);
+    QTest::qWait(80);
+    t->form()->ensureWidgetVisible(toggle->parentWidget(), 0, 200);
   }
   save(s.w.get(), name, w, h);
 }

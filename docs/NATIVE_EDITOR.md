@@ -36,6 +36,7 @@ RTTI; only plain non-polymorphic types (`ote::Json`, `ote_editor_core` functions
 ```
 editor/core/        ote_editor_core (static): validateProject, audio check, safe paths, revision hash, log. No HTTP.
                     Linked by ote-editor (the HTTP shell, behaviour unchanged) and by the native editor.
+editor/schema/        hand-written schemas of the data files (milestone 2); also compiled into the program
 editor/native/
   names.h           every user-visible name (product, window title, settings identity)
   model/            QtCore/QtGui only, no widgets
@@ -43,8 +44,11 @@ editor/native/
     json_commands   QUndoCommands: set / insert / erase / move at a path
     project         the folder: documents, shared QUndoStack, atomic save + conflict check, QFileSystemWatcher
     problems_runner validateProject on a worker thread (one at a time, newest request wins)
+    schema          the schema types and loader (editor/schema/*.json), typeOk / sample values
+    id_source       the live id lists ("data/units.json", "game.json#stats") the forms' combo boxes use
     cell_text, tsv, table_shape, play_command, comment_scan   small pure helpers
-  ui/               item models (table, tree), editors, dialogs, main window, prompter, settings
+  ui/               item models (table, tree), editors, dialogs, main window, prompter, settings;
+                    form_context (the one way a form edits), form_fields (leaf widgets), form_view (building, sync)
   tests/            QtTest programs (below)
 ```
 Design rules worth knowing:
@@ -66,6 +70,110 @@ Design rules worth knowing:
 - Saved numbers are written by `ote::Json::dump`, i.e. whole numbers plainly and other numbers with 17 significant digits
   (0.1 becomes 0.10000000000000001). Valid, but ugly; fixing it means changing the engine's writer.
 
+## Schema-driven forms (milestone 2)
+
+A file with a **schema** gets a form; a file without one behaves exactly as in milestone 1 (plain table or tree, nested values
+as raw JSON). Schemas are small hand-written JSON files in `editor/schema/`. They describe keys for the editor only: the
+engine's loader stays the authority on what is valid, and `native_test_conformance` (below) proves the two agree.
+
+What a user sees:
+- **Table files** (`units`, `weapons`, `research`, `factions`, `jobs`, `commanders`, `terrain`, `items`): the table on the left,
+  the form of the selected row on the right (a splitter; the sizes are the user's to change). Scalar keys are table columns, and
+  objects marked `expand` give one real column per member (`stats.hp`, `resist.fire`, `cost.gold`) instead of one JSON cell.
+  Editing an absent nested cell creates the parent object in the same undo step.
+- **`game.json`** and **maps**: two pages under the tab, "Rules" (the form) and "Tree (all keys)". Every optional block
+  (`rules.actionPoints`, `rules.height`, ...) is a frame with an **Enable** checkbox that adds or removes the block (one undo step);
+  required keys of a new block are filled in, so enabling is a valid first step where possible.
+- A form shows the raw key as the label (required keys get a `*`) and the schema's one-line help under the field. Id fields are
+  combo boxes filled from the project's live data (unsaved edits included) and refilled when the referenced file changes;
+  lists have add / remove / move up / move down; maps keyed by ids (stats, damage types, resources) show one row per id; a small
+  `x` removes a key (the game then uses its default).
+- **Nothing is ever lost or blocked.** A key the schema does not know stays in the file untouched and appears under
+  **Other keys (n)** at the bottom of its object: read-only JSON, "Edit as JSON..." (one undo step) and "Show in tree view". A value
+  of the wrong kind (text where a whole number belongs, a list of three where two are expected) is shown as it is, as raw JSON
+  with a red warning, and is never converted; a number outside its range, or a word / id that is not in the list, is kept and
+  marked the same way. Typing something invalid into a field is refused with a note under the field and writes nothing.
+- **Problems jump to the place**: double-clicking a problem opens the file, selects the row it names (by `id`, or by position such
+  as `technologies[2]`) and focuses the key it names; for `game.json` and maps it focuses the block or key (`rules.actionPoints`,
+  `"resistRange"`). When nothing can be placed the file is simply opened.
+- Every edit goes through the same path-based undo commands as the table and the tree: one user action is one undo step, and
+  form, table and tree of the same file always show the same document.
+
+### Where schemas are read from
+`--schema-dir FOLDER` (or the environment variable `OTE_SCHEMA_DIR`) > a folder named `schema` next to the program > the copy
+compiled into the program (Qt resources, so the program works standalone; the test `embeddedSchemasEqualTheSourceFiles` keeps
+the copy equal to `editor/schema/`). A schema file with a mistake is reported in the test, never fatal in the program.
+
+### Schema file format
+```jsonc
+{
+  "title": "Rules",                       // tab title of the form page of a non-table file (default "Form")
+  "files": ["data/weapons.json"],         // project-relative files; "maps/*.json" matches every map
+  "rows":  { /* node */ },                // table files: the schema of ONE row (an object node)
+  "root":  { /* node */ }                 // other files: the schema of the whole document (an object node)
+}
+```
+A **node** (`type` defaults to `object` when `fields` is present, otherwise `json`):
+
+| key | meaning |
+|---|---|
+| `type` | `string`, `int`, `number`, `bool`, `enum`, `ref`, `list`, `object`, `map`, `json` |
+| `help` | one line of developer wording, shown under the field (all wording lives here, never in C++) |
+| `required` | the key must be present (marked `*`; cannot be cleared) |
+| `default` | what the engine assumes when the key is absent (shown as placeholder / "not set: on") |
+| `min`, `max` | range of an `int` / `number` |
+| `values` | the words of an `enum`; for a `ref`, extra words allowed beside the ids (`"choose"`) |
+| `ref` | where ids come from: `"data/units.json"` (ids of its table rows) or `"game.json#damageTypes"` (the list under that key path; items are objects with an `id`, or plain strings). A `ref` node is an id picker; on a `map` it names the allowed keys; an array of sources is allowed |
+| `of` | node of the items of a `list` / values of a `map` |
+| `length` | a `list` of exactly that many items (a pair such as `[min, max]`, shown inline) |
+| `fields` | `{ "key": node, ... }` of an `object`, in display order |
+| `block` | an `object` that may be absent as a whole: shown with an Enable checkbox |
+| `expand` | table: one column per member of this object / per id of this map |
+| `alt` | `"string"`, `"number"` or `"bool"`: another JSON kind the loader also takes as it is (`turnOrder: "speed"`, `jump: 1`); shown as raw JSON without a warning |
+| `sample` | a valid value for the conformance test when the generated one would not do |
+
+`json` fields are shown compactly with "Edit JSON...". Lists with more than 60 items show the first 60 (the tree shows all).
+
+### Adding a key when the engine gains one
+1. Add the key to the schema file of its section (right object, right type, range, help line).
+2. If a new data file appears, add `editor/schema/<name>.json` (it is picked up by CMake and compiled in automatically; re-run CMake).
+3. Run `native_test_conformance`. It names every key that no context tests ("keys no context tests"), every key the loader
+   refuses with a valid sample, every enum word or range end the loader refuses, and every key in a `tests/fixtures` game
+   that the schema does not know. Add the key to a context in `editor/native/tests/test_conformance.cpp` (`contexts()`: which
+   fixture, which prerequisite edits, which key prefixes it claims, and `overrides` for keys that need a special sample).
+   A key that really cannot be sampled goes into `skipped()` / `extraSkips()` with the reason.
+
+## Schema vs loader test (`native_test_conformance`)
+For every key of every schema, nested ones included, the test copies a fixture into a temp folder, applies the few edits the key
+depends on (e.g. the speed fixture for `chargeSpeed`), puts a sample value at the key's place and requires `validateProject` (the
+engine's own check, what the Problems dock shows) to report nothing. Enum keys are tried with every word, numbers at both ends
+of their range; then one invalid value per enum / range / reference is set and the check must complain about **that file**. The
+sample must actually land in the file (a sample that does not is a failure, never a silent pass). The reverse check walks every
+`tests/fixtures` file that has a schema and fails on any key the schema does not know, except where a schema is partial on
+purpose (top level of `game.json`, keys directly under `rules`, older map unit keys, top level of the core data files); the
+reasons are in the test. Cross-key rules (a power costs at most the meter's max, ranks must rise ...) are listed with the reason.
+
+## What is covered
+| Section | State | Note |
+|---|---|---|
+| `game.json` `damageTypes`, `resistRange` | covered | |
+| `game.json` `resources` (+ `refill` block) | covered | id and name too |
+| `rules.actionPoints` (`move`, `attack`) | covered | |
+| `rules.height` (`jump`, `flyingMoveTypes`, `rangeBonus`, `lineOfSight`) | covered | |
+| `rules.facing` (`arcs`) | covered | |
+| `rules.research`, `rules.progression` incl. rank `levels`, `rules.ranks` (merit), `rules.jobs`, `rules.turnOrder` | covered | `turnOrder: "speed"` (plain string) is shown as JSON |
+| `rules.counterAttacks`, `rules.defeat` | covered | other older rule blocks (`economy`, `production`, `items`, `supply`, `ai`, ...) are under Other keys |
+| `game.json` top level (`stats`, `moveTypes`, `view`, `formulas`, ...) | not covered | schema starts with the new mechanics; Other keys + tree |
+| `data/weapons.json` | partly | `damageType`, `fire`, `area{}`, `apCost`, `heightRange`, `chargeSpeed` / `chargeTargets` / `interruptedBy`, `wieldedBy*`, basics; `props` as JSON; ammo, skills, inflict, rank, versus under Other keys |
+| `data/units.json` | partly | `stats` / `growths` / `cost` / `resist` as real columns, `ap{}`, `jump`, `weapons`, `tags`; skills, abilities, promotions, ranks, vision, supply under Other keys |
+| `data/research.json` | covered | `grants.skills` items as JSON (skill id or `{ skill, filter }`) |
+| `data/factions.json` | covered | `modifiers` items and `ai.weights` as JSON |
+| `data/jobs.json` | covered | |
+| `data/commanders.json` | covered | `passive`, `modifiers`, `effects` items as JSON |
+| maps: `sides[]` (`faction`, `commander`, ...), `units[]` (`facing`, ...) | partly | everything else in a map (tiles, legend, events ...) under Other keys |
+| `data/terrain.json`, `data/items.json` | partly | basic keys and the keyed maps; kind-specific item keys under Other keys |
+| everything else (skills, abilities, campaign, characters, graphics, audio, ...) | not covered | generic table / tree as in milestone 1 |
+
 ## Tests
 Registered in ctest as `native_test_*` only when the option is ON. They set `QT_QPA_PLATFORM=offscreen`, so no window ever
 appears; settings go to an ini file in a temp folder, scratch data to `<build>/test-tmp`, and the games are copies of
@@ -83,13 +191,25 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   the measured times are printed.
 - `native_test_problems`, `native_test_window`: the problems check and the scripted window (edit, undo, redo, save, problems naming
   the file, conflict, comment warning, Play command line, remembered state, leaving with unsaved work).
+- `native_test_schema`: schema parsing, kinds, samples, ids.
+- `native_test_form`: one widget per field kind, one undo step per action, refused input, live id combos, lists, maps,
+  blocks, unknown keys byte for byte (edit and undo all: identical text), wrong-kind warnings, form / table / tree in sync,
+  problem messages placed, schema columns.
+- `native_test_form_window`: scripted run on a temp copy of a fixture: new resource, action points enabled in Rules, new
+  damage type, a weapon given it through the combo, save, problems empty, undo all -> files as loaded; problem double-click;
+  "Show in tree view"; no schema -> milestone 1 behaviour.
+- `native_test_conformance`: see above.
+- `native_test_form_screenshots`: units with form, weapons with area and damage type, the Rules page, factions, jobs,
+  commanders, a mismatch warning and the Other keys area, at 1280x720 and 1920x1080, light and dark palette.
 - `native_test_screenshots`: the main window with the units table, the tree on game.json, the problems dock with an error, the
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- Schema-aware forms (typed fields per game format section, pickers for ids and sounds). Everything is generic JSON for now.
+- Forms for the rest of the format (skills, abilities, campaign, characters, graphics, audio, story commands ...), pickers for
+  sounds and art, and the table-level help of a column beyond its tooltip.
 - Lua tooling (editing scripts, formula checks inline, debugging).
-- Live validation of unsaved edits (the problems check runs on saved files only) and jumping to the exact node of a problem.
+- Live validation of unsaved edits (the problems check runs on saved files only); a problem is placed by the names in its
+  message, not by an exact node.
 - In-process preview of a map or battle (Play starts the separate player on the saved files).
 - Non-JSON files (Lua scripts, art, audio) in the file list; creating, renaming and deleting files.
 - Keeping `//` comments.
