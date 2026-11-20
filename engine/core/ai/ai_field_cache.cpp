@@ -15,7 +15,12 @@ const size_t kMaxFieldsPerSet = 2048;
 
 // Per thread: the cache is a pure content-keyed memo, but threads must not share its containers.
 std::vector<std::shared_ptr<GoalFieldSet>>& sets() {
+#if defined(OTE_NXDK)
+  // Original Xbox (nxdk): no TLS destructor support (link error ___tlregdtor) and one thread only.
+  static std::vector<std::shared_ptr<GoalFieldSet>> s;
+#else
   thread_local std::vector<std::shared_ptr<GoalFieldSet>> s;
+#endif
   return s;
 }
 

@@ -78,6 +78,8 @@ EffectiveLook resolveLook(const std::string& assetsDir, const LookLayer& args, c
     out.musicVolume = l->musicVolume > 10 ? 10 : l->musicVolume;
   if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.soundVolume >= 0; }))
     out.soundVolume = l->soundVolume > 10 ? 10 : l->soundVolume;
+  if (const LookLayer* l = firstSetting(layers, [](const LookLayer& x) { return x.safeArea > 0; }))
+    out.safeArea = l->safeArea < 50 ? 50 : l->safeArea > 100 ? 100 : l->safeArea;
   return out;
 }
 

@@ -385,7 +385,7 @@ bool readTextFile(const std::string& path, std::string& out) {
   std::string data;
   char buf[4096];
   size_t n;
-  while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) data.append(buf, n);
+  while ((n = readChunk(f, buf, sizeof buf)) > 0) data.append(buf, n);
   bool ok = !std::ferror(f);
   std::fclose(f);
   if (ok) out = data;

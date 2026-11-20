@@ -11,6 +11,11 @@
 #ifdef OTE_UWP
 #include "platform/common/uwp.h"
 #endif
+#ifdef OTE_NXDK
+#include <hal/video.h>
+
+#include "platform/nxdk/nxdk.h"
+#endif
 #include "platform/sdl2/sdl2_gl3d.h"
 #include "platform/sdl2/sdl2_input.h"
 #include "platform/sdl2/sdl2_renderer.h"
@@ -87,20 +92,35 @@ void frame(Loop& L) {
   ++L.frames;
   bool last = L.app->wantsQuit() || (L.cfg->maxFrames > 0 && L.frames >= L.cfg->maxFrames);
   L.app->draw(*L.gfx);
+#ifdef OTE_NXDK
+  nxdkDrawOverlay(*L.gfx);  // only when OTE_XBOX_OVERLAY is set
+#endif
   if (last && !L.cfg->screenshotPath.empty()) L.gfx->saveScreenshot(L.cfg->screenshotPath);
   L.workTicks += SDL_GetPerformanceCounter() - workStart;
   if (++L.timedFrames == kTimedFrames) {
     const Uint64 t = SDL_GetPerformanceCounter();
+#ifdef OTE_NXDK
+    if (L.intervalStart) {  // the same line without %f (nxdk's printf has none): hundredths of a millisecond
+      const int work = (int)(1e5 * (double)L.workTicks / L.tickHz / kTimedFrames);
+      const int interval = (int)(1e5 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames);
+      OTE_DEBUG("frame time: work %d.%02d ms, interval %d.%02d ms (average of %d frames)", work / 100, work % 100,
+                interval / 100, interval % 100, kTimedFrames);
+    }
+#else
     if (L.intervalStart)
       OTE_DEBUG("frame time: work %.1f ms, interval %.1f ms (average of %d frames)",
                 1e3 * (double)L.workTicks / L.tickHz / kTimedFrames,
                 1e3 * (double)(t - L.intervalStart) / L.tickHz / kTimedFrames, kTimedFrames);
+#endif
     L.intervalStart = t;
     L.workTicks = 0;
     L.timedFrames = 0;
   }
   if (L.lock) SDL_UnlockMutex(L.lock);  // present / vsync wait / delay below are the window in which a suspend notice gets in
   SDL_RenderPresent(L.gfx->handle());
+#ifdef OTE_NXDK
+  XVideoWaitForVBlank();  // the CPU renderer has no vsync of its own: do not spin a core drawing frames nobody sees
+#endif
   // Without working vsync a plain loop would spin a core at 100%.
   if (!L.cfg->headless && !L.vsync) SDL_Delay(1);
   if (last) L.done = true;
@@ -139,6 +159,10 @@ int runApp(App& app, const PlatformConfig& config) {
   // this hint SDL lets the system handle it (docs/XBOX.md). Before SDL_Init: the app object reads it when it starts.
   SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
 #endif
+#ifdef OTE_NXDK
+  // The video mode must be set before SDL starts: SDL's Xbox driver takes its one window from it (docs/XBOX_OG.md).
+  const NxdkScreen tv = config.headless ? NxdkScreen() : nxdkPrepareVideo();
+#endif
   if (!initVideo(config.headless)) return 2;
 #ifdef OTE_UWP
   if (!config.headless) uwpPrepareView();  // full window on Xbox, before the window exists
@@ -148,8 +172,8 @@ int runApp(App& app, const PlatformConfig& config) {
 
   int scale = config.windowScale;
   if (scale < 1 && !config.headless) {
-#if defined(__ANDROID__) || defined(__EMSCRIPTEN__)
-    scale = 1;  // full screen / the page's canvas: the size asked does not matter
+#if defined(__ANDROID__) || defined(__EMSCRIPTEN__) || defined(OTE_NXDK)
+    scale = 1;  // full screen / the page's canvas / the TV: the size asked does not matter
 #else
     // The largest whole scale whose window fits the first display (a 1440x810 window would hang off a 1024x768 screen).
     // UWP too: on a PC SDL asks Windows for that size (TryResizeView); an Xbox keeps the app full screen anyway.
@@ -165,6 +189,14 @@ int runApp(App& app, const PlatformConfig& config) {
   int hs = config.headlessScale < 1 ? 1 : config.headlessScale;
   int winW = config.logicalWidth * (config.headless ? hs : scale);
   int winH = config.logicalHeight * (config.headless ? hs : scale);
+#ifdef OTE_NXDK
+  // SDL's Xbox driver makes its drawing surface from the size asked for here (it only fixes up the window's reported size),
+  // so ask for the whole screen: the picture is placed inside it by SdlRenderer::setFixedScreen.
+  if (!config.headless) {
+    winW = tv.w;
+    winH = tv.h;
+  }
+#endif
   Uint32 flags = config.headless ? SDL_WINDOW_HIDDEN : SDL_WINDOW_RESIZABLE;
   SDL_Window* window = SDL_CreateWindow(config.title.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                         winW, winH, flags);
@@ -179,7 +211,10 @@ int runApp(App& app, const PlatformConfig& config) {
   if (config.headless) {
     ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
   } else {
-#ifdef _WIN32
+#ifdef OTE_NXDK
+    // The only renderer SDL's Xbox video driver supports is the CPU one (there is no GPU renderer for the NV2A in SDL 2.0.9).
+    ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+#elif defined(_WIN32)
     // Direct3D 11 for the 2D layer, so the Direct3D 11 3D backend can share its device and draw straight onto its
     // target (sdl2_d3d11_3d.cpp). On UWP it is SDL2's only hardware renderer anyway; SDL2's desktop default would be
     // Direct3D 9. The SDL_RENDER_DRIVER hint (or environment variable) still wins. Picking a driver turns SDL2's
@@ -193,8 +228,8 @@ int runApp(App& app, const PlatformConfig& config) {
         if (!ren) OTE_INFO("SDL's Direct3D 11 renderer is not available (%s); taking SDL's default", SDL_GetError());
       }
     }
-    if (!ren)
 #endif
+    if (!ren)
       ren = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
       OTE_WARN("accelerated renderer failed (%s); falling back to software", SDL_GetError());
@@ -227,6 +262,15 @@ int runApp(App& app, const PlatformConfig& config) {
     SdlRenderer gfx(window, ren, config.logicalWidth, config.logicalHeight, config.headless, hs);
     loop.gfx = &gfx;
     loop.vsync = !config.headless && vsync;
+#ifdef OTE_NXDK
+    loop.vsync = true;  // frame() waits for the vertical blank itself, so it needs no SDL_Delay
+    FixedScreen fixedScreen;
+    fixedScreen.w = tv.w;
+    fixedScreen.h = tv.h;
+    fixedScreen.anamorphic = tv.anamorphic;
+    fixedScreen.highDefinition = tv.highDefinition;
+    if (!config.headless) gfx.setFixedScreen(fixedScreen);
+#endif
     loop.tickHz = (double)SDL_GetPerformanceFrequency();
     app.onStart(gfx);  // may load content (slow): take the first time stamp afterwards
     loop.lastTicks = SDL_GetPerformanceCounter();
@@ -245,6 +289,11 @@ int runApp(App& app, const PlatformConfig& config) {
   }
 
   app.onStop();          // the player lets go of the audio device while SDL is still up
+#ifdef OTE_NXDK
+  // The console has nothing to return to but its dashboard, and leaving that way restarts the machine, so SDL's own
+  // teardown (which can wait on a sound chip that never answers) is skipped. Settings were flushed when the quit arrived.
+  if (!config.headless) nxdkReturnToDashboard();
+#endif
   shutdownHardware3D();  // its GL context must go before SDL does
   SDL_DestroyRenderer(ren);
   SDL_DestroyWindow(window);

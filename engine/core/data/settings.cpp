@@ -2,6 +2,8 @@
 
 #include <cstdio>
 
+#include "core/base/fileio.h"
+
 namespace ote {
 
 bool Settings::load(const std::string& path, std::string& err) {
@@ -34,7 +36,11 @@ bool Settings::save(std::string& err) {
   if (path_.empty()) return true;
   if (corrupt_) {
     // Keep the unreadable file for the user instead of destroying it.
+#if defined(OTE_NXDK)
+    nxReplaceFile(path_, path_ + ".bad");
+#else
     std::rename(path_.c_str(), (path_ + ".bad").c_str());
+#endif
     corrupt_ = false;
   }
   Json root = Json::makeObject();
@@ -47,8 +53,13 @@ bool Settings::save(std::string& err) {
     err = tmp + ": cannot write settings";
     return false;
   }
+#if defined(OTE_NXDK)
+  const bool replaced = nxReplaceFile(tmp, path_);  // one kernel call that replaces (the Xbox kernel wants backslashes)
+#else
   std::remove(path_.c_str());  // rename() does not replace on Windows
-  if (std::rename(tmp.c_str(), path_.c_str()) != 0) {
+  const bool replaced = std::rename(tmp.c_str(), path_.c_str()) == 0;
+#endif
+  if (!replaced) {
     err = path_ + ": cannot replace settings file";
     return false;
   }

@@ -99,7 +99,7 @@ bool loadPngFile(const std::string& path, Image& out, std::string& err) {
   std::vector<uint8_t> bytes;
   uint8_t buf[16384];
   size_t n;
-  while ((n = std::fread(buf, 1, sizeof buf, f)) > 0) {
+  while ((n = readChunk(f, buf, sizeof buf)) > 0) {
     bytes.insert(bytes.end(), buf, buf + n);
     if (bytes.size() > kMaxFileBytes) break;
   }

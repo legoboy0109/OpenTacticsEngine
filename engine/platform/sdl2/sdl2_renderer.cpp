@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/sdl2/sdl2_pixels.h"
 
@@ -10,7 +11,7 @@ namespace ote {
 // Atlas textures for the text engine. Handles index into tex_.
 class SdlRenderer::Target : public TextTarget {
  public:
-  Target(SDL_Renderer* r, int* lw, int* lh) : r_(r), lw_(lw), lh_(lh) {}
+  Target(SdlRenderer* owner, SDL_Renderer* r, int* lw, int* lh) : owner_(owner), r_(r), lw_(lw), lh_(lh) {}
   ~Target() override {
     for (SDL_Texture* t : tex_)
       if (t) SDL_DestroyTexture(t);
@@ -50,7 +51,21 @@ class SdlRenderer::Target : public TextTarget {
     SDL_SetTextureAlphaMod(t, tint.a);
     SDL_Rect src = {sx, sy, sw, sh};
     SDL_Rect dst = {dx, dy, dw, dh};
-    if (outputSpace) {  // real window pixels: leave the logical mode for this one draw
+    if (owner_->fixed_) {
+      // Fixed screen: switching SDL's viewport per glyph would flush its command queue every time, so the screen-pixel mode
+      // stays on across a run of glyphs and is left by the next ordinary draw (SdlRenderer::leaveOutputSpace callers).
+      if (outputSpace) {
+        owner_->enterOutputSpace();
+        if (owner_->fit_.kx != owner_->fit_.ky) {  // anamorphic: squeeze the glyph (laid out at the y scale) to the x scale
+          const float r = owner_->fit_.kx / owner_->fit_.ky;
+          dst.x = owner_->fit_.x + (int)std::floor((float)(dx - owner_->fit_.x) * r + 0.5f);
+          dst.w = dw * r < 1.0f ? 1 : (int)std::floor((float)dw * r + 0.5f);
+        }
+      } else {
+        owner_->leaveOutputSpace();
+      }
+      SDL_RenderCopy(r_, t, &src, &dst);
+    } else if (outputSpace) {  // real window pixels: leave the logical mode for this one draw
       SDL_RenderSetLogicalSize(r_, 0, 0);
       SDL_RenderCopy(r_, t, &src, &dst);
       SDL_RenderSetLogicalSize(r_, *lw_, *lh_);
@@ -60,6 +75,12 @@ class SdlRenderer::Target : public TextTarget {
   }
 
   void outputTransform(float& scale, float& offsetX, float& offsetY) const override {
+    if (owner_->fixed_) {  // the canvas rectangle; text is laid out at the vertical scale (see drawTexture)
+      scale = owner_->fit_.ky;
+      offsetX = (float)owner_->fit_.x;
+      offsetY = (float)owner_->fit_.y;
+      return;
+    }
     int ow = 0, oh = 0;
     SDL_GetRendererOutputSize(r_, &ow, &oh);
     if (*lw_ <= 0 || *lh_ <= 0 || ow <= 0 || oh <= 0) {
@@ -75,6 +96,7 @@ class SdlRenderer::Target : public TextTarget {
   }
 
  private:
+  SdlRenderer* owner_;
   SDL_Renderer* r_;
   int* lw_;
   int* lh_;
@@ -84,7 +106,7 @@ class SdlRenderer::Target : public TextTarget {
 
 SdlRenderer::SdlRenderer(SDL_Window* window, SDL_Renderer* renderer, int w, int h, bool headless, int headlessScale)
     : window_(window), r_(renderer), w_(w), h_(h), headless_(headless), headlessScale_(headlessScale) {
-  target_.reset(new Target(r_, &w_, &h_));
+  target_.reset(new Target(this, r_, &w_, &h_));
   text_.reset(new TextEngine(*target_));
 }
 
@@ -104,11 +126,68 @@ void SdlRenderer::setLogicalSize(int width, int height) {
     SDL_SetWindowSize(window_, w_ * headlessScale_, h_ * headlessScale_);
     SDL_PumpEvents();  // let the window system apply the new size before the next draw
   }
-  if (SDL_RenderSetLogicalSize(r_, w_, h_) != 0) OTE_WARN("logical size failed: %s", SDL_GetError());
+  applyLogical();
   OTE_INFO("logical size %dx%d", w_, h_);
 }
 
+void SdlRenderer::applyLogical() {
+  if (!fixed_) {
+    if (SDL_RenderSetLogicalSize(r_, w_, h_) != 0) OTE_WARN("logical size failed: %s", SDL_GetError());
+    return;
+  }
+  ScreenFitIn in;
+  in.logicalW = w_;
+  in.logicalH = h_;
+  in.screenW = screen_.w;
+  in.screenH = screen_.h;
+  in.anamorphic = screen_.anamorphic;
+  in.safePercent = safePercent_ > 0 ? safePercent_ : defaultSafePercent(screen_.highDefinition);
+  fit_ = fitCanvas(in);
+  // SDL's own logical-size code does the same three steps: viewport in screen pixels (scale 1), then the scale.
+  SDL_RenderSetLogicalSize(r_, 0, 0);
+  SDL_RenderSetScale(r_, 1.0f, 1.0f);
+  SDL_Rect vp = {fit_.x, fit_.y, fit_.w, fit_.h};
+  SDL_RenderSetViewport(r_, &vp);
+  SDL_RenderSetScale(r_, fit_.kx, fit_.ky);
+  outputMode_ = false;
+  OTE_INFO("screen fit: %dx%d canvas on %dx%d at %d,%d (scale %d/1000 x %d/1000, safe area %d%%)", fit_.w, fit_.h, screen_.w, screen_.h,
+           fit_.x, fit_.y, (int)(fit_.kx * 1000.0f + 0.5f), (int)(fit_.ky * 1000.0f + 0.5f), in.safePercent);
+}
+
+void SdlRenderer::enterOutputSpace() {
+  if (!fixed_ || outputMode_) return;
+  SDL_RenderSetScale(r_, 1.0f, 1.0f);
+  SDL_RenderSetViewport(r_, nullptr);
+  outputMode_ = true;
+}
+
+void SdlRenderer::leaveOutputSpace() {
+  if (!fixed_ || !outputMode_) return;
+  SDL_Rect vp = {fit_.x, fit_.y, fit_.w, fit_.h};
+  SDL_RenderSetViewport(r_, &vp);
+  SDL_RenderSetScale(r_, fit_.kx, fit_.ky);
+  outputMode_ = false;
+}
+
+void SdlRenderer::setFixedScreen(const FixedScreen& screen) {
+  fixed_ = true;
+  screen_ = screen;
+  applyLogical();
+}
+
+void SdlRenderer::setSafeArea(int percent) {
+  if (percent < 0) percent = 0;
+  if (percent == safePercent_) return;
+  safePercent_ = percent;
+  if (fixed_) applyLogical();
+}
+
 void SdlRenderer::displaySize(int& width, int& height) const {
+  if (fixed_) {
+    width = fit_.w;
+    height = fit_.h;
+    return;
+  }
   int ow = 0, oh = 0;
   SDL_GetRendererOutputSize(r_, &ow, &oh);
   if (ow < 1 || oh < 1 || w_ < 1 || h_ < 1) {
@@ -171,18 +250,30 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_SetTextureAlphaMod(t, mod.a);
   SDL_Rect src = {sx, sy, sw, sh};
   SDL_Rect dst = {dx, dy, dw, dh};
+  leaveOutputSpace();
   SDL_RenderCopy(r_, t, &src, &dst);
 }
 
 void SdlRenderer::setColor(Color c) { SDL_SetRenderDrawColor(r_, c.r, c.g, c.b, c.a); }
 
 void SdlRenderer::clear(Color c) {
+  if (fixed_) {
+    // The margin around the canvas stays black (SDL's clear may or may not respect the viewport); the canvas gets the colour.
+    enterOutputSpace();
+    SDL_SetRenderDrawColor(r_, 0, 0, 0, 255);
+    SDL_RenderClear(r_);
+    leaveOutputSpace();
+    setColor(c);
+    SDL_RenderFillRect(r_, nullptr);  // the whole viewport = the canvas
+    return;
+  }
   setColor(c);
   SDL_RenderClear(r_);
 }
 
 void SdlRenderer::fillRect(int x, int y, int w, int h, Color c) {
   if (w <= 0 || h <= 0) return;
+  leaveOutputSpace();
   setColor(c);
   SDL_Rect rect = {x, y, w, h};
   SDL_RenderFillRect(r_, &rect);
@@ -203,7 +294,8 @@ bool SdlRenderer::saveScreenshot(const std::string& path) {
   // SDL2 reads only the current viewport (= the letterboxed content area with
   // a logical size set), so leave the logical mode to capture the whole
   // output like the SDL3 backend does (bars included).
-  SDL_RenderSetLogicalSize(r_, 0, 0);
+  if (fixed_) enterOutputSpace();
+  else SDL_RenderSetLogicalSize(r_, 0, 0);
   int ow = 0, oh = 0;
   SDL_GetRendererOutputSize(r_, &ow, &oh);
   bool ok = false;
@@ -216,12 +308,19 @@ bool SdlRenderer::saveScreenshot(const std::string& path) {
     if (!surf) {
       OTE_ERROR("screenshot: cannot wrap pixels: %s", SDL_GetError());
     } else {
+#ifdef OTE_NXDK
+      // SDL's own file open passes the path to fopen as it is; the Xbox kernel needs backslashes (openFile converts).
+      FILE* fp = openFile(path, "wb");
+      ok = fp && SDL_SaveBMP_RW(surf, SDL_RWFromFP(fp, SDL_TRUE), 1) == 0;
+#else
       ok = SDL_SaveBMP(surf, path.c_str()) == 0;
+#endif
       if (!ok) OTE_ERROR("screenshot: cannot write '%s': %s", path.c_str(), SDL_GetError());
       SDL_FreeSurface(surf);
     }
   }
-  SDL_RenderSetLogicalSize(r_, w_, h_);
+  if (fixed_) leaveOutputSpace();
+  else SDL_RenderSetLogicalSize(r_, w_, h_);
   return ok;
 }
 

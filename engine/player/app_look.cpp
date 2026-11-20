@@ -58,6 +58,7 @@ void PlayerApp::applyLook(const std::string& gameId, const GameLook& game, int w
   LookLayer perGame = gameId.empty() ? LookLayer() : overrideLayer(settings_, gameId);
   look_ = resolveLook(args_.assetsDir, argsLayer(args_), perGame, globalLayer(settings_), game);
   renderer_->setLogicalSize(w, h);
+  renderer_->setSafeArea(look_.safeArea);  // only the original Xbox backend acts on it
   show3d_.setResolution(look_.res3d);
   audio_.setVolumes(look_.musicVolume, look_.soundVolume);
   // Another 3D drawer was chosen: the next user of the 3D layer gets a new
