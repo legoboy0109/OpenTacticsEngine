@@ -1,0 +1,6 @@
+{ "name": "Duel", "grid": { "type": "square", "width": 12, "height": 5 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["............", "............", "............", "............", "............"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human" }, { "id": "red", "name": "Red", "controller": "ai" } ],
+  "units": [
+    { "type": "knight", "side": "blue", "x": 1, "y": 2, "id": "kn", "leader": true },
+    { "type": "dummy", "side": "red", "x": 9, "y": 2, "id": "foe", "leader": true } ] }

@@ -1,0 +1,2 @@
+{ "structures": [
+  { "id": "camp", "name": "Camp", "capturePoints": 10, "income": { "gold": 5 } } ] }

@@ -1,0 +1,5 @@
+{ "weapons": [
+  { "id": "sword", "name": "Sword", "props": { "might": 4 } },
+  { "id": "fire", "name": "Fire", "range": [2, 5], "props": { "might": 6 }, "area": { "shape": "radius", "radius": 1 },
+    "chargeSpeed": 25, "interruptedBy": ["sleep"] },
+  { "id": "bolt", "name": "Bolt", "range": [2, 4], "props": { "might": 7 }, "chargeSpeed": 20 } ] }

@@ -1,0 +1,6 @@
+{ "abilities": [
+  { "id": "mend", "name": "Mend", "description": "Heals an ally after a short charge.", "target": "ally", "range": [1, 3], "effect": { "heal": 10 },
+    "chargeSpeed": 20 },
+  { "id": "hush", "name": "Hush", "description": "Puts a foe to sleep after a charge; it hits the square it was aimed at.", "target": "enemy", "range": [1, 4],
+    "inflict": { "condition": "sleep", "turns": 2 }, "chargeSpeed": 25, "chargeTargets": "cell" },
+  { "id": "dance", "name": "Dance", "description": "An ally may act again at once.", "target": "ally", "effect": { "refresh": true } } ] }
