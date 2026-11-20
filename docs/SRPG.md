@@ -69,7 +69,7 @@ data/caps.json         game-wide stat caps                                   (op
 data/conditions.json   status conditions made of blocks                      (optional file; section 9)
 data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
-data/weapons.json      per weapon: skills, inflict (section 9)
+data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire)
 data/items.json        accessory: skills; usable: promotes, cure, inflict, opens (keys, section 10); staves (section 8; inflict, cure: section 9; unlock: section 10)
 maps/*.json            per unit: character, goesFor; per structure: id, contents, locked, visitSides, visitUnits; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
@@ -704,6 +704,107 @@ of the unit info panel lists the non-zero resistances (`Fire res +3`, green when
 `unit "y": "resist"."fire" must be from -3 to 3 (game.json "resistRange")`, `"damageType" needs "damageTypes" in game.json`.
 
 **Tests.** `tests/test_damage_types.cpp` (fixture `tests/fixtures/damage-types`), `tests/damage_types_player_test.py` (the forecast and info panel in the player).
+
+### Area attacks and line fire
+
+Optional, per weapon, two independent keys in `data/weapons.json`. A weapon with neither is the single-target weapon every game had: the same
+simulations, the same saves, the same data (nothing of this is saved; an attack is one action).
+
+```jsonc
+{ "id": "mortar", "name": "Mortar", "range": [2, 5],
+  "area": { "shape": "radius", "radius": 2, "friendlyFire": false } }          // hits every unit within 2 squares of the aimed square
+{ "id": "rifle", "name": "Rifle", "range": [1, 6], "fire": "line" }            // only along straight lines; the first unit stops the shot
+{ "id": "rail", "name": "Rail Gun", "range": [2, 6], "fire": "line",
+  "area": { "shape": "line", "length": 4 } }                                    // both: a piercing beam along a clear line
+```
+
+**`"fire": "direct" | "line"`** (default `"direct"`, today's rule: any square within `range`). `"line"`: the weapon only aims along the straight lines of
+the grid from the attacker, within `range` (min and max count steps along the line): the 4 orthogonal directions on a square grid, the 6 hexagon
+directions on a hexagon grid (the directions of `Grid::neighbor`, docs/HEX.md). **What stops a shot:** the first unit on the line, whoever it belongs to
+(an ally in the way means no target beyond it, and a unit one square away blocks everything behind it), and a square whose terrain or structure has
+`"blocksSight": true` (a wall, a closed door; that is the engine's one "blocks the view" notion, which line fire reads with or without fog). The blocking
+unit's own square can be aimed at (it is the last square of the line); a wall square cannot, unless a unit stands in it. Only units and `blocksSight`
+squares block: nothing else (height, forest) does. A counter-attack with a line-fire weapon needs the same clear straight line from the counterer to the
+attacker, so a rifleman answers an attacker only along its own row or column.
+
+**`"area": { "shape": ..., "radius": n, "length": n, "friendlyFire": true|false }`.** The attack hits every unit in the area around or through the
+aimed square. One function, `areaCells()` (`engine/core/grid/area.h`), gives the squares of every shape on both grid kinds, and the rules, the forecast,
+the computer opponent, the player's highlight and the enemy-range display all call it. All numbers are whole, 1 to 8 (`kMaxAreaSize`).
+
+| shape | squares | keys |
+|---|---|---|
+| `radius` | every square within `radius` steps of the aimed square (a diamond on a square grid, a hexagon on hexagons) | `radius` |
+| `burst` | the aimed square and its direct neighbours (4 / 6): a named shorthand for `radius` 1 | none |
+| `cross` | the aimed square plus `radius` squares in each direction of the grid (4 / 6) | `radius` |
+| `line` | `length` squares along the straight line from the attacker through the aimed square, **the aimed square first** and then the squares behind it; the beam pierces (nothing stops it but the map edge); the squares between the attacker and the aimed square are not hit | `length` |
+
+A `line` area (with or without `"fire": "line"`) can only be aimed along the straight lines of the grid (it needs a direction). Squares off the map
+edge are simply left out. `friendlyFire` (default `false`): with `false` only units that are foes of the attacker are hit; with `true` every unit in the area
+is hit, allies and the attacker's own side as well. **The attacker itself is never hit.** (A berserk attacker strikes anyone, as it always does.)
+
+**What may be aimed at.** Any square the weapon can aim at (range, and the line rule of `fire` / a `line` area), **empty or not**, as long as at least
+one **foe the attacker's team can see** would be hit. Foes standing in fog are hit all the same, but they do not make an attack possible, are not
+listed and are not counted by the computer opponent (it hits what it cannot see by luck). An ally on the aimed square is not hit unless `friendlyFire`.
+A weapon with a `versus` table leaves out the units it cannot hurt (they are not victims). The `afterMove` rule, ammunition, ranks, wielders and
+carried-weapon rules are those of any weapon.
+
+**Resolution** (`Battle::applyAreaAttack`, `engine/core/battle/area_attack.cpp`):
+
+1. The victims are the units in the area, struck **in unit-id order**. Each strike is the ordinary strike (`doStrike`) against that victim, so damage
+   types, terrain, heights, skills (`strike` / `struck` blocks, activations, drain, recoil, conditions) and the formulas see each victim as in any fight.
+   The random stream is used in that order: one hit roll (and one critical roll when the chance is above 0) per victim, exactly the rolls a single strike
+   makes. `a` is the attacker and `b` the victim in every formula; `dist` is the distance to that victim.
+2. **Deaths are deferred:** every victim is struck first, then the units that fell are removed in the same order, and only then do their `defeated`
+   story events, last words and item drops run (so a victim cannot be missing when a later victim is struck, and a story event of the first death cannot
+   change who is struck next).
+3. **Only the unit on the aimed square (the "primary") may answer**, and only when the weapon and the rules allow a counter today (`rules.counterAttacks`,
+   the unit's answering weapon in range, line fire clear, not stopped by a condition). It answers **once, after the shot** (a skill's `multiStrike`
+   still gives its strikes in a row), if it is still standing; it does not "strike first". Nobody else answers. An ally on the aimed square never answers.
+4. **No follow-ups and no doubles:** every victim is struck once. The attacker's strike count, a follow-up and the "strike again" effect are not used
+   (a counter-attack is an ordinary strike and keeps them).
+5. **One weapon use per attack** (a carried weapon wears once; a map weapon spends one use), **one ammunition** per attack (the primary's counter spends its
+   own), however many victims.
+6. **Experience:** the attacker gets, for each *foe* struck, what a fight with that foe would give (`xpHit`, `xpKill`, `xpNoDamage`), summed; the
+   primary also gives its counter-attack reward to the defender. The level cap applies as always (a unit at the cap gains nothing); there is no cap per
+   attack. Allies hit by friendly fire give nothing. Weapon rank experience (growth `"use"`) is earned once per attack.
+7. "After combat" skills and supports' "fought together" run **once per attack**, told about the primary if there is one, else the first foe struck.
+   A `defeat` block of the attacker fires only for that one (not for every victim that fell).
+
+**Story.** The `fight` trigger fires only when a foe stands on the aimed square (it is the other fighter); an attack on empty ground has none. Quotes
+likewise. Door attacks (`BreakPlace`) ignore `fire` and `area`: they use `range` only.
+
+**API.** `Action::attack(unit, target, weapon)` with `Action::cell` = the square aimed at for an area weapon (`target` is then the unit on it, or -1;
+`cell` unset = the target's square). `Battle::attackOptions` lists an area weapon's squares as options with `area = true` and `cell` (the single-target
+weapons' options are unchanged and also carry the target's `cell`). `Battle::weaponAims`, `aimCells`, `areaForecast` (the victims in order, each with its
+strike forecast, the primary's whole exchange in `fight`) and `isAreaWeapon` are public. Events: every strike is an `Attack` event (`a` attacker, `b`
+victim, `flags` with the new `kArea` = 65536; the primary's counter has `kCounter | kArea`); `UnitDied` events follow all of them. The player plays these strikes
+on the map, one after the other, never in the side-view battle scene.
+
+**Player.** While a line-fire or area weapon is being aimed, the squares it can be aimed at are tinted blue and the squares the shot at the selected target
+covers red (the move / attack tint every view already draws, so the isometric and 3D views have it too); only valid squares can be chosen (Arrows / Next /
+Prev cycle through them in map order, tapping a square selects it, tapping the selected one fires). The forecast box is the usual one for the unit on the aimed
+square plus one more line along its foot for everybody else, **`+2 more: 5, 7 dmg`** (damage of one strike on each other foe, then `ally 4` for allies that
+would be hit; at most five numbers, then `..`); on an empty square the box is its own: attacker, weapon, `Hits 3 foes`, the damages, and
+`1 ally in the way` in red when friendly fire would hit. Both fit the 480x270 canvas at UI scale 100 and 150 (`tests/area_fire_player_test.py`
+keeps the pictures). Not added: a blast animation (each victim is struck in turn like any attack) and Options rows.
+
+**Enemy ranges.** The display of what an enemy can hit shows the real reach: line-fire weapons mark only the squares on unblocked straight lines (stopped
+by the first unit or wall as the board stands now), and area weapons also mark every square their blast covers when aimed at any square they can aim at.
+
+**Computer opponent.** See docs/AI.md "Area attacks".
+
+**Errors** (each names the file, the weapon and the key): `weapon "x": "fire" must be "direct" or "line" (not "arc")`, `"area".shape must be "burst",
+"line", "radius" or "cross"`, `"area" of shape "radius" needs a "radius" (a whole number from 1 to 8)`, `"area"."radius" must be from 1 to 8`,
+`"area"."length" belongs to the shape "line" only`, `"area"."radius" belongs to the shapes "radius" and "cross"`, `"area" has an unknown key "colour"`,
+`"area" needs a "shape"`.
+
+**Not done / known limits.** Strikes of one area attack are not shown in the side-view battle scene (they play on the map). The picture of an attack
+on empty ground has no target to look at: the attacker lunges toward each victim in turn. Staves keep their own area forms (single / radius / all).
+
+**Tests.** `tests/test_area_cells.cpp` (every shape on square and both hexagon layouts, the loader), `tests/test_area_attacks.cpp` (line fire, aiming,
+order, deferred deaths, counters, friendly fire, ammunition, experience, the random stream, saves, enemy ranges), `tests/test_area_ai.cpp` (fixture
+`tests/fixtures/area-fire`), `tests/area_fire_player_test.py` (boxes, firing, the highlight in all four views, UI scale 150), `tests/editor_api_area_checks.py`
+(the editor server carries the keys).
 
 ### Side-wide modifiers
 

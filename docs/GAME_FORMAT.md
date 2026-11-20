@@ -214,6 +214,8 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "group": "bow",               // optional: with carried weapons, who can wield it (units.json "wields")
     "damageKind": "magic",        // optional free word (physical, magic...): skills test it, formulas read w.damageKind; docs/SRPG.md "More skill blocks"
     "damageType": "fire",         // optional, needs game.json "damageTypes": one of its ids (default: the first); formulas read w.damageType; docs/SRPG.md "Damage types"
+    "fire": "line",               // optional: "direct" (default) or "line": only along the straight lines of the grid, the first unit stops the shot; docs/SRPG.md "Area attacks and line fire"
+    "area": { "shape": "radius", "radius": 2, "friendlyFire": false },  // optional: hits every unit in the area; shapes burst | radius | cross | line ("length"); same section
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)
