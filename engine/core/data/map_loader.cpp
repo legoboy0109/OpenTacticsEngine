@@ -6,6 +6,7 @@
 #include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
 #include "core/data/loader_facing.h"
+#include "core/data/loader_jobs.h"
 #include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_factions.h"
 #include "core/data/loader_graphics_art.h"
@@ -217,7 +218,7 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
     if (ci < 0) return c.fail(where, "unknown character \"" + character + "\" (data/characters.json)");
     ch = &db.characters[(size_t)ci];
   }
-  if (!c.str(e, "type", where, type, !isCharacter) || !c.str(e, "side", where, side, true) ||
+  if (!c.str(e, "type", where, type, !isCharacter && !e.has("job")) || !c.str(e, "side", where, side, true) ||
       !c.integer(e, "x", where, u.x, true) || !c.integer(e, "y", where, u.y, true))
     return false;
   if (!c.str(e, "name", where, u.name) || !c.integer(e, "level", where, u.level) ||
@@ -228,8 +229,19 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
     if (!e.has("level")) u.level = ch->level;
     if (u.name.empty()) u.name = ch->name;
   }
+  if (type.empty() && e.has("job") && e["job"].isString() && db.findJob(e["job"].asString()) >= 0)  // a unit with a job needs no "type": the job's
+    type = db.unitTypes[(size_t)db.jobs[(size_t)db.findJob(e["job"].asString())].unitType].id;
   u.type = db.findUnitType(type);
-  if (u.type < 0) return c.fail(where, "unknown unit type \"" + type + "\"");
+  if (u.type < 0 && !(type.empty() && e.has("job"))) return c.fail(where, "unknown unit type \"" + type + "\"");  // (an unknown job is named below)
+  {  // Jobs (docs/JOBS.md): a character brings its own job; the unit's keys replace it. A unit with a job plays as the job's unit type.
+    bool given = false;
+    u.jobs = ch ? ch->jobs : JobState();
+    if (!readJobKeys(c, db, e, where, u.jobs, given)) return false;
+    if (u.jobs.on()) {
+      if (e.has("type")) return c.fail(where, "\"type\" and a job together: the job decides the unit type (remove \"type\")");
+      u.type = db.jobs[(size_t)u.jobs.job].unitType;
+    }
+  }
   u.side = findSide(m, side);
   if (u.side < 0) return c.fail(where, "unknown side \"" + side + "\"");
   where += " (" + type + (u.name.empty() ? "" : " \"" + u.name + "\"") + " at " +

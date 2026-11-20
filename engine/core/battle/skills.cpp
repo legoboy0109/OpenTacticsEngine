@@ -58,6 +58,13 @@ void Battle::skillsOf(const Unit& u, int weapon, std::vector<int>& out) const {
     if (rank >= 0)
       for (int s : db->rules.unitRanks.levels[(size_t)rank].skills) add(s);
   }
+  // The unit's job (docs/JOBS.md): the skills its job taught it, then the equipped ones from its other jobs.
+  if (u.jobs.on()) {
+    std::vector<int> entries;
+    jobEntriesOf(u, entries);
+    for (int flat : entries)
+      if (!db->jobEntries[(size_t)flat].ability) add(db->jobEntries[(size_t)flat].ref);
+  }
   // The side's own modifiers (finished research today, factions later): as if the unit had them, after what is its own.
   if (u.side >= 0 && (size_t)u.side < sides.size())
     for (const SideModifier& m : sides[(size_t)u.side].modifiers)

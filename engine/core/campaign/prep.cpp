@@ -185,6 +185,7 @@ RosterUnit prepRosterEntry(const Database& db, const MapDef& map, const MapUnitD
   r.stats = u.stats;
   r.stats.resize(db.stats.size(), 0);
   r.items = u.hasItems ? u.items : db.unitTypes[(size_t)u.type].items;
+  r.jobs = u.jobs;
   r.skills = u.skills;
   r.side = map.sides[(size_t)u.side].id;
   return r;

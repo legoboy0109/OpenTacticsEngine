@@ -9,6 +9,7 @@
 // APPEND ONLY for the steps after F1: add fields and types at the end of a struct / of this file; do not rename
 // or reorder what is here (other steps are built against it).
 #pragma once
+#include "core/data/jobs.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -100,6 +101,9 @@ struct CharacterDef {
   std::vector<std::string> tags;
   // "promotion": { "fromLevel": n }: the lowest level of every promotion of this character (0 = the promotion entries' own).
   int promotionFromLevel = 0;
+  // Jobs (docs/JOBS.md): the job it starts in and its starting progress; `jobs.job` < 0 = this character does not use the job system. Unit type
+  // `type` above is replaced by the job's when it has one.
+  JobState jobs;
 };
 
 // The wording of all quotes (Battle::storyText, from kQuoteTextBase) and how many battle quotes there are.

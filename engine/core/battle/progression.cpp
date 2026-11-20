@@ -5,6 +5,7 @@ namespace ote {
 
 void Battle::awardXp(int unit, int amount, std::vector<Event>& events, bool fromCombat) {
   const RulesConfig& rules = db->rules;
+  if (db->jobsOn() && !sides[(size_t)units[(size_t)unit].side].ai) awardJp(unit, rules.jobs.jpPerAction, events);  // docs/JOBS.md: wherever experience is awarded, whatever it comes to
   const bool ranked = rules.unitRanks.on();  // a rank table replaces levelling: experience is a running total
   if (!rules.progression || amount <= 0 || !units[(size_t)unit].alive || (!ranked && units[(size_t)unit].level >= levelCap(units[(size_t)unit]))) return;
   if (!rules.computerGains && sides[(size_t)units[(size_t)unit].side].ai) return;  // "computerGains": false (docs/SRPG.md "Experience: options")

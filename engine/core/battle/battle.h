@@ -134,6 +134,9 @@ enum class EventType {
   // Unit ranks (docs/SRPG.md "Unit ranks"): a=unit, b=its new rank, c=the rank it had (-1 = none; indices into rules.unitRanks.levels), data=change per stat index.
   // Only in a game with a rank table, right after the XpGained that earned it.
   UnitRankUp,
+  // Jobs (docs/JOBS.md): a=unit, b=job points it earned, c=its job (index into db->jobs), d=its job level now, flags=kJobLevelUp when that rose. Only in a
+  // game with jobs, for a unit of a human side that has a job, with the experience award (and for a defeat).
+  JpGained,
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -147,7 +150,8 @@ enum : int {
   kLocked = 8192,     // DoorClosed: the story locked it as well
   kMapWeapon = 16384, // Attack: the attacker used the weapon of the structure it stands on (docs/SRPG.md "Map weapons")
   kMapWeaponSpent = 32768, // Attack with kMapWeapon: that was the structure weapon's last use
-  kArea = 65536            // Attack: one strike of an area attack (docs/SRPG.md "Area attacks and line fire"); the player plays it on the map
+  kArea = 65536,           // Attack: one strike of an area attack (docs/SRPG.md "Area attacks and line fire"); the player plays it on the map
+  kJobLevelUp = 131072     // JpGained: the job level rose (docs/JOBS.md)
 };
 // How a door or chest was opened (the `c` of DoorOpened / ChestOpened).
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
@@ -237,6 +241,8 @@ struct Unit {
   // Facing (docs/SRPG.md "Facing"): the direction it looks in (Grid::neighbor numbering); -1 and unused in a game without rules.facing, and for a unit
   // that is off the board before it was ever on it. Saved in facing games only.
   int facing = -1;
+  // Jobs (docs/JOBS.md): the job it uses, what it learned and equipped; `jobs.job` < 0 and unused in a game without jobs and for a unit that has none. Saved in jobs games.
+  JobState jobs;
 };
 
 struct CellState {
@@ -809,6 +815,7 @@ class Battle {
 #include "core/battle/ap_api.h"
 #include "core/battle/height_api.h"
 #include "core/battle/facing_api.h"
+#include "core/battle/jobs_api.h"
 
  private:
   // combat.cpp
@@ -934,6 +941,7 @@ class Battle {
 #include "core/battle/area_internal.h"
 #include "core/battle/ap_internal.h"
 #include "core/battle/facing_internal.h"
+#include "core/battle/jobs_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

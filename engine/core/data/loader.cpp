@@ -9,6 +9,7 @@
 #include "core/data/loader_action_points.h"
 #include "core/data/loader_facing.h"
 #include "core/data/loader_height.h"
+#include "core/data/loader_jobs.h"
 #include "core/data/loader_unit_ranks.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_research_branch.h"
@@ -122,6 +123,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
   if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
+  if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
   if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys
 
   if (!readBlock(c, *rules, "progression", blk, r.progression)) return false;
@@ -401,6 +403,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!checkAmmoNotItems(weaponsPath, db, err)) return false;
   if (!loadUnitTypes(root + "/data/units.json", db, err)) return false;
   if (!loadTerrain(root + "/data/terrain.json", db, err)) return false;
+  if (!loadJobs(root + "/data/jobs.json", db, err)) return false;  // needs unit types, skills, abilities; characters and map units name jobs (docs/JOBS.md)
   if (!loadCharacters(root + "/data/characters.json", db, err)) return false;  // needs unit types, items, skills, abilities
   if (!loadResearch(root + "/data/research.json", db, err)) return false;  // before structures: upgrades name technologies
   if (!loadStructures(root + "/data/structures.json", db, err)) return false;

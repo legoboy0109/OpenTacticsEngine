@@ -30,6 +30,7 @@ void addPlaced(const Database& db, const MapDef& map, Playthrough& pt, const Map
   r.items = ud.hasItems ? ud.items : db.unitTypes[(size_t)ud.type].items;
   r.weaponXp = ud.weaponXp;
   for (int& w : r.weaponXp) w = std::max(0, w);  // -1 = "not said" on a map unit; dressUnit raises a roster entry to its class
+  r.jobs = ud.jobs;
   r.skills = ud.skills;
   r.side = map.sides[(size_t)ud.side].id;
   pt.roster.push_back(r);
