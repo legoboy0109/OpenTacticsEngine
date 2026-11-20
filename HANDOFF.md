@@ -4,16 +4,21 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-20, early morning)
+## Latest (2026-11-20)
 
-- **Pushed (origin/main = 6c2ecba, full check 49 clean):** enemy ranges, stacked storage lists, original Xbox native 3D
-  renderer (step 2, emulator only; `docs/XBOX_OG.md`), damage types (`docs/SRPG.md` "Damage types").
-- **Merged locally, full check 50 running:** side-wide modifiers + branching research (`docs/ECONOMY.md` "Branching research",
-  `docs/SRPG.md` "Side-wide modifiers"). Push `main` if check 50 is clean.
-- **In progress (agent, worktree):** factions (`data/factions.json`). After it: line fire + area attacks, AP turns, height
-  rules/facing, rank table, CO powers, speed turns, jobs (order and designs in `.agent/notes.md` "New mechanics plan").
-- **Owner decisions pending:** "Detailed 3D" style on the original Xbox (recommend hiding it there: 61/64 MB); forecast
-  "res +3" row placement; per-map-unit resistances; research cancel refund default (0%); AI research weights.
+- **Pushed (origin/main = 20acdb4, full checks 49-53 clean):** enemy ranges, stacked storage lists, original Xbox native 3D
+  (step 2, emulator only; `docs/XBOX_OG.md`), and the mechanics series 1-5: damage types, side-wide modifiers + branching
+  research, factions, line fire + area attacks, action-point turns (`docs/SRPG.md`, `docs/ECONOMY.md`).
+- **Merged locally, full check 55 running:** height rules + facing (6), unit ranks (7), and a web-build fix
+  (`height_rules.cpp` needed `<cstdlib>`; check 54 was otherwise clean but its web results were stale). Push if 55 is clean.
+- **Next in the series (large, owner should steer first):** 8 CO units/powers, 9 speed turn order + charged actions,
+  10 jobs. Designs in `.agent/notes.md` "New mechanics plan".
+- **Owner decisions pending** (each feature works with a default): "Detailed 3D" on the original Xbox (recommend hiding:
+  61/64 MB); AP pool per side (built) vs per unit; AP charged per movement point vs per square; research cancel refund 0%;
+  faction start resources added vs replacing, no faction pick in campaigns; area line shape = aimed square + behind;
+  default facing = toward nearest foe, hex arcs 3/2/1; ranks not cumulative, table XOR levelling.
+- **Known gaps:** no editor forms for any of the new mechanics (web editor on hold); AP-game computer opponent is simple;
+  no blast animation; faction screen at 150% cuts text; abilities/staves/items cost no AP.
 - **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK.
 
 ## Earlier (2026-11-19, night) — read this first
