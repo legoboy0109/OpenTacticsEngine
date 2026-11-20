@@ -140,6 +140,12 @@ A resource may carry `"refill": { "perTurn": 20, "carryOver": 10 }`: at the star
 walking and attacking instead of each unit getting one move and one action. A weapon's `"apCost"` (and an area's `"apExtra"`) and a unit type's
 `"ap": { "step", "softCap" }` are refused without it. Everything is in docs/SRPG.md "Action points".
 
+`"rules": { "height": { "jump": { "default": 1 }, "flyingMoveTypes": ["air"], "rangeBonus": { "perLevels": 2, "max": 2 }, "lineOfSight": true } }` (optional) makes
+the map heights limit steps and shots: a unit cannot step between neighbours whose heights differ by more than its jump (a unit type's `"jump": n` or
+`{ "up", "down" }` in units.json; fliers named in `flyingMoveTypes` ignore it), a weapon's `"heightRange": { "up", "down" }` limits how much higher / lower its
+target may stand, the range bonus lengthens ranged weapons fired from high ground, line fire is stopped by a ridge, and an area's `"vertical"` leaves out victims
+too far above or below the aimed square. `jump`, `heightRange` and `vertical` are refused without the block. Everything is in docs/SRPG.md "Height rules".
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -223,6 +229,7 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "fire": "line",               // optional: "direct" (default) or "line": only along the straight lines of the grid, the first unit stops the shot; docs/SRPG.md "Area attacks and line fire"
     "apCost": 1,                  // optional, needs game.json "rules.actionPoints": this weapon's AP price instead of the game's attack cost; an "area" may add "apExtra": n (docs/SRPG.md "Action points")
     "area": { "shape": "radius", "radius": 2, "friendlyFire": false },  // optional: hits every unit in the area; shapes burst | radius | cross | line ("length"); same section
+    "heightRange": { "up": 1, "down": 2 },  // optional, needs game.json "rules.height": the target may stand at most 1 level higher / 2 lower than the shooter; an "area" may add "vertical": n (docs/SRPG.md "Height rules")
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may
     "ammo": 6,                    // optional, 1..99: attacks per supply (fixed weapons only; docs/ECONOMY.md)

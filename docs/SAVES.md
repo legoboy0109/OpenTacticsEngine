@@ -577,6 +577,11 @@ Two numbers of a unit, **only in a game with `rules.actionPoints`** and only whe
 Both are cleared when the side's turn starts. The pool is a resource of the side and is saved with the resources. A save with `apAttacks` in a game without
 action points, or above `attacksPerTurn`, is refused (`units[3].apAttacks`). A save of any other game is unchanged. Code: `core/battle/save_ap.cpp`.
 
+## Height rules (docs/SRPG.md "Height rules")
+
+Nothing is saved for them: the heights are the map's, the rules are the game's, and every unit's position is saved as always. A save of a game with `rules.height`
+restores to a battle that judges steps and shots by the same rules (`tests/test_height_rules.cpp`). A save of any game is unchanged.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

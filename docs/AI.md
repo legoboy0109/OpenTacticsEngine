@@ -364,6 +364,23 @@ same decision; each call looks at every unit's reach once (bounded by units x sq
 with attacks, walking, capturing, building and research only. **Tests.** `tests/test_ap_ai.cpp` (attacks with the pool, value per AP, a poor pool, building with an AP cost,
 a whole game between two computer sides that finishes identically twice).
 
+### Height rules
+
+In a game with `rules.height` (docs/SRPG.md "Height rules") the computer opponent is the usual one with three differences; a game without the block is byte for byte as before.
+
+- **It obeys.** Its moves come from `Battle::reachable` and its attacks from `Battle::attackOptions` / `forecast`, which apply the jump rule, `heightRange`, the range
+  bonus, line of sight and an area's `vertical`; it never asks for a step or a shot the rules refuse (and a refused order sends the unit to Wait as always).
+- **It walks around cliffs.** The distance fields that tell a unit which way the enemy (or its capture target) lies are worked out per unit **with that unit's jump**
+  (`Context::enemyFieldFor(unit)`, `distanceField(..., jumpUp, jumpDown)`; cached by content, heights and jump included), so a lancer facing a cliff it cannot climb
+  heads for the ramp instead of standing at the foot of the wall. A unit with no limit (a flier, or a game whose default is "none") uses the plain fields.
+- **It likes the high ground, modestly.** `scoreAttack` / `scoreAreaAttack` add 6 per level (at most 3 levels) the attacker stands above the target, and of two equal
+  squares to advance to it takes the higher one (`ai_score.cpp` `highGroundBonus`). The forecast already carries what a game's formulas make of `dh`; this only breaks
+  ties toward the safer shot.
+- Retreat, patrol and the other behaviours' own fields (`distanceField` called without a jump) keep the plain, unlimited step; a move they plan that the rules refuse is
+  simply not available to the unit.
+
+**Tests.** `tests/test_height_ai.cpp`.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),
