@@ -104,6 +104,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::UnitBuilt:
     case EventType::UnitAdded:
     case EventType::UnitFaced:
+    case EventType::UnitRankUp:
     case EventType::UnitHealed:
     case EventType::CaptureProgress:
       return unitSeenBy(e.a);

@@ -17,6 +17,8 @@ constexpr double kCounterWeight = 0.7;  // own losses count less than enemy loss
                                         // being aggressive wins games, trading evenly does not
 constexpr double kKillBonus = 0.6;      // of the victim's value
 constexpr double kLeaderDamage = 1.5;   // damage multiplier vs a leader
+constexpr double kRankValueStep = 0.1;  // unit ranks: the value of a unit grows by this share per rank held ...
+constexpr double kRankValueMax = 0.5;   // ... up to this much
 constexpr double kLeaderKill = 20000;   // killing a leader that ends the game
 constexpr double kDefenseBonus = 8;     // per terrain defense point
 constexpr double kHighGround = 6;       // height rules: per level the attacker stands above its target (up to kHighGroundLevels): harder to answer
@@ -61,6 +63,12 @@ double typeValue(const Database& db, int type) {
   return sum > 0 ? sum : kDefaultValue;
 }
 
+double unitValue(const Battle& b, const Unit& u) {
+  const double base = typeValue(*b.db, u.type);
+  if (!b.db->rules.unitRanks.on()) return base;
+  return base * (1 + std::min(kRankValueMax, kRankValueStep * (b.unitRank(u) + 1)));
+}
+
 double terrainDefense(const Battle& b, Cell c) {
   double d = 0;
   Props scratch;
@@ -74,7 +82,7 @@ static double strikeGain(const Battle& b, const Unit& target, const StrikeForeca
   const Database& db = *b.db;
   const bool leaderRule = db.rules.defeatLeaderDead;
   double dealt = expectedDamage(db, atk, target.hp);
-  double vTarget = typeValue(db, target.type);
+  double vTarget = unitValue(b, target);
   double hpFracT = target.hp / (double)std::max(1, b.maxHp(target));
   double vTargetNow = vTarget * (0.5 + 0.5 * hpFracT);
 
@@ -90,7 +98,7 @@ static double strikeGain(const Battle& b, const Unit& target, const StrikeForeca
 static double counterLoss(const Battle& b, const Unit& u, const StrikeForecast& counter, double pKill) {
   const Database& db = *b.db;
   const bool leaderRule = db.rules.defeatLeaderDead;
-  double vSelf = typeValue(db, u.type);
+  double vSelf = unitValue(b, u);
   double hpFracU = u.hp / (double)std::max(1, b.maxHp(u));
   double cdealt = expectedDamage(db, counter, u.hp);
   double loss = cdealt / std::max(1, b.maxHp(u)) * vSelf * kCounterWeight;

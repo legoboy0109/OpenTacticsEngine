@@ -11,6 +11,7 @@
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
 #include "core/data/facing_rules.h"
+#include "core/data/unit_ranks.h"
 #include "core/data/height_rules.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
@@ -398,6 +399,7 @@ struct RulesConfig {
   AiRules ai;                // "rules.ai" (docs/AI.md "Scripted-style computer players")
   ActionPointRules ap;       // "rules.actionPoints" (docs/SRPG.md "Action points"); `on` is false when the block is missing
   HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
+  UnitRankRules unitRanks;   // "rules.progression.levels" (docs/SRPG.md "Unit ranks"); empty when the game levels up the usual way
   FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
@@ -611,6 +613,7 @@ struct MapUnitDef {
   int x = 0, y = 0;
   std::string name;  // empty = use the unit type name
   int level = 1;
+  int xp = 0;        // "xp" (rank-table games only): the experience it starts with
   bool leader = false;
   std::vector<int> stats;  // final per-stat values (type base + overrides)
   bool hasItems = false;         // the map gives this unit its own items (else the type's)

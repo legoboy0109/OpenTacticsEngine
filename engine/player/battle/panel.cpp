@@ -13,6 +13,7 @@
 #include "battle/mapweapon_text.h"
 #include "core/base/log.h"
 #include "battle/rank_text.h"
+#include "battle/unit_info_rank.h"
 #include "ui/input_hints.h"
 #include "ui/text.h"
 
@@ -214,7 +215,8 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   }
   drawRescueRow(r, c, u, x, y, w);  // "Carrying: Bram" (rescue.cpp / panel_rescue.cpp)
   if (db.rules.progression) {
-    row(r, x, y, w, "Lv " + intStr(u.level), "XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel));
+    if (db.rules.unitRanks.on()) row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, false));  // docs/SRPG.md "Unit ranks": a rank instead of a level
+    else row(r, x, y, w, "Lv " + intStr(u.level), "XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel));
     y += rh;
   }
   int hp = u.id < (int)c.view.units.size() ? c.view.units[u.id].hp : u.hp;  // displayed, not final

@@ -49,6 +49,8 @@ bool readPromotion(const LoadCtx& c, const Database& db, const Json& p, size_t i
     else if (v == "offer") d.atLevel = PromoteAtLevel::Offer;
     else if (v == "auto") d.atLevel = PromoteAtLevel::Auto;
     else return c.fail(where, at + ": \"atLevel\" must be \"off\", \"offer\" or \"auto\"");
+    if (d.atLevel != PromoteAtLevel::Off && db.rules.unitRanks.on())
+      return c.fail(where, at + ": \"atLevel\" needs levels, and this game uses the rank table (rules.progression \"levels\"): promote by item, by a story command or from a menu");
     if (d.atLevel != PromoteAtLevel::Off && !db.rules.progression)
       return c.fail(where, at + ": \"atLevel\" needs experience and levels (rules.progression)");
   }

@@ -5,6 +5,7 @@
 #include "battle/battle_draw.h"
 #include "battle/carrier_marker.h"
 #include "battle/facing_marker.h"
+#include "battle/unit_rank_view.h"
 #include "battle/condition_marker.h"
 #include "battle/hex_draw.h"
 #include "battle/tile_art.h"
@@ -86,6 +87,7 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
   }
   drawCarrierMarker(r, c, u, bx + bw, by, bw, al);  // top right corner: a unit with someone off the board (rescue / pair up)
   drawConditionMarker(r, c, u, bx, by + bh, al);     // bottom left corner: its conditions (docs/SRPG.md section 9)
+  drawRankBadge(r, c, u, bx + bw, by + bh, bw, al);  // bottom right corner: its rank (docs/SRPG.md "Unit ranks"; nothing without a rank table)
   drawFacingMarkerFlat(r, c, u, sx + t / 2, sy + t / 2, t, al);  // the edge of the square it looks toward (docs/SRPG.md "Facing"; nothing without facing)
   // HP bar under the block, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barY = sy + t - inset - 2, barW = t - 2 * inset;

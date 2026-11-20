@@ -5,6 +5,7 @@
 
 #include "battle/item_text.h"
 #include "battle/rank_text.h"
+#include "battle/unit_info_rank.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -27,8 +28,18 @@ const char* skillSourceName(SkillSource s) {
     case SkillSource::Item: return "Item";
     case SkillSource::Weapon: return "Weapon";
     case SkillSource::Side: return "Side";
+    case SkillSource::Rank: return "Rank";
   }
   return "";
+}
+
+// Does the unit's rank give it this skill? (skillsOf puts these after the character's skills, before the side's.)
+static bool rankGives(const Battle& b, const Unit& u, int skill) {
+  const int rank = b.unitRank(u);
+  if (rank < 0) return false;
+  for (int s : b.db->rules.unitRanks.levels[(size_t)rank].skills)
+    if (s == skill) return true;
+  return false;
 }
 
 // Does one of the unit's side-wide modifiers give it this skill? (skillsOf puts these after the character's skills.)
@@ -56,6 +67,7 @@ std::vector<SkillRow> skillRows(const Battle& b, const Unit& u) {
     else if (u.character >= 0 && (size_t)u.character < db.characters.size() &&
              has(db.characters[(size_t)u.character].skills, s))
       row.source = SkillSource::Personal;
+    else if (rankGives(b, u, s)) row.source = SkillSource::Rank;
     else if (sideGives(b, u, s)) row.source = SkillSource::Side;
     else {
       bool item = false;
@@ -74,7 +86,9 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
   const Database& db = *b.db;
   std::vector<InfoRow> rows;
   rows.push_back({"Class", b.typeOf(u).name, "", kText, kLabel});
-  if (db.rules.progression)
+  if (db.rules.progression && db.rules.unitRanks.on())  // docs/SRPG.md "Unit ranks": the rank and the experience towards the next, instead of a level
+    rows.push_back({"Rank", unitRankName(b, u) + "  " + unitRankXpText(b, u), "", kText, kLabel});
+  else if (db.rules.progression)
     rows.push_back({"Level", intStr(u.level) + "  XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel), "", kText, kLabel});
   // A unit type with its own top level (units.json "maxLevel") says so; a game without one shows no extra row.
   if (db.rules.progression && b.typeOf(u).maxLevel >= 0)

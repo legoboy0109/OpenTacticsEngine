@@ -106,6 +106,7 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!c.statMap(db, e, "growths", where, u.growths)) return false;
     if (e.has("maxLevel")) {  // docs/SRPG.md "Level cap per unit type"
       if (!db.rules.progression) return c.fail(where, "\"maxLevel\" needs experience: set \"rules\": { \"progression\": { \"enabled\": true } } in game.json");
+      if (db.rules.unitRanks.on()) return c.fail(where, "\"maxLevel\" belongs to levelling, and this game uses the rank table (rules.progression \"levels\")");
       if (!LoadCtx::isWhole(e["maxLevel"]) || e["maxLevel"].asInt() < 0 || e["maxLevel"].asInt() > 99)
         return c.fail(where, "\"maxLevel\" must be a whole number from 0 (never levels) to 99");
       u.maxLevel = e["maxLevel"].asInt();

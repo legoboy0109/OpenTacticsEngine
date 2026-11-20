@@ -19,6 +19,8 @@ namespace ote {
 
 class GameAudio;
 
+constexpr int kRankOwn = -2;  // UnitView::rank: show the rank the unit really has (-1 = none is a real value)
+
 struct UnitView {
   float px = 0, py = 0;  // top-left of the unit's tile in map pixels (animated)
   float ox = 0, oy = 0;  // extra offset (attack lunge)
@@ -33,6 +35,7 @@ struct UnitView {
   bool walking = false;
   float walkDx = 0, walkDy = 0;
   mutable int walkLogged = -1;  // the walk direction the drawing last logged for this move (-1 = none yet); only for the debug log
+  int rank = kRankOwn;    // the rank its map badge shows (docs/SRPG.md "Unit ranks"), as the events have played so far; kRankOwn = the unit's own
   int facing = -1;         // the direction its facing marker shows (docs/SRPG.md "Facing"), as the events have played so far; -1 = the unit's own
   std::vector<int> conds;  // the conditions its map marker shows, as the events have played so far (docs/SRPG.md section 9)
 };
@@ -204,6 +207,10 @@ class BattleView {
   bool beginSrpg(const Battle& b);
   bool progressSrpg(const Battle& b);
   bool finishSrpg(const Battle& b);
+  void pushUnitRank(const Event& e);        // from push(): keeps the old badge until UnitRankUp plays (battle_view_unit_rank.cpp)
+  bool beginUnitRank(const Battle& b);      // battle_view_unit_rank.cpp   UnitRankUp (docs/SRPG.md "Unit ranks")
+  bool progressUnitRank(const Battle& b);
+  bool finishUnitRank(const Battle& b);
   bool beginSkills(const Battle& b);       // battle_view_skills.cpp     SkillLearned, SkillActivated, UnitHurt   (U1)
   bool progressSkills(const Battle& b);
   bool finishSkills(const Battle& b);

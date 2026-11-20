@@ -38,7 +38,9 @@ inline int researchBonus(const Database& db, const SideState& side, const Unit& 
 inline int unitStat(const Database& db, const Unit& u, int statIndex, const std::vector<SideState>* sides = nullptr) {
   int v = (size_t)statIndex < u.stats.size() ? u.stats[(size_t)statIndex] : 0;
   const bool research = sides && !db.research.empty() && u.side >= 0 && (size_t)u.side < sides->size();
-  if (u.items.empty() && !research) return v;
+  const bool ranked = db.rules.unitRanks.on();
+  if (ranked) v += db.rules.unitRanks.bonusAt(u.xp, statIndex);  // the unit's rank (docs/SRPG.md "Unit ranks")
+  if (u.items.empty() && !research) return ranked && v < 0 ? 0 : v;
   v += itemBonus(db, u, statIndex);
   if (research) v += researchBonus(db, (*sides)[(size_t)u.side], u, statIndex);
   return v < 0 ? 0 : v;

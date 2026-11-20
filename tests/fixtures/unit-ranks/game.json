@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1, "name": "Unit Ranks Fixture",
+  "description": "Test game for the rank table (docs/SRPG.md \"Unit ranks\"). Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3 },
+             "progression": { "enabled": true, "xpHit": "10", "xpKill": "30",
+                              "levels": [
+                                { "at": 10, "name": "Veteran", "badge": "I", "bonus": { "str": 1 } },
+                                { "at": 30, "name": "Elite", "badge": "II", "bonus": { "str": 2, "def": 1, "hp": 6 }, "skills": ["steady"] },
+                                { "at": 60, "name": "Hero", "badge": "V", "bonus": { "str": 3, "def": 2, "hp": 10 }, "skills": ["steady"] } ] } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def)", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "field", "name": "Field", "file": "maps/field.json" }, { "id": "duel", "name": "Duel", "file": "maps/duel.json" } ]
+}

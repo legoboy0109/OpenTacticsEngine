@@ -40,7 +40,7 @@ double healValue(const Battle& b, const StaffForecast& f) {
     const int max = std::max(1, b.maxHp(t));
     if (h.amount <= 0) continue;
     if (t.hp * 2 > max && h.amount * 2 < h.nominal) continue;  // a scratch: keep the use for someone who needs it
-    double v = h.amount / (double)max * typeValue(*b.db, t.type) * (h.hit / 100.0);
+    double v = h.amount / (double)max * unitValue(b, t) * (h.hit / 100.0);
     if (t.leader && b.db->rules.defeatLeaderDead) v *= kLeaderHeal;
     value += v;
   }
@@ -52,7 +52,7 @@ double conditionValue(const Battle& b, const Unit& user, const StaffForecast& f)
   double value = 0;
   for (const StaffHit& h : f.hits) {
     const Unit& t = b.units[(size_t)h.unit];
-    double v = kConditionShare * typeValue(*b.db, t.type) * (h.hit / 100.0);
+    double v = kConditionShare * unitValue(b, t) * (h.hit / 100.0);
     if (t.leader && b.db->rules.defeatLeaderDead) v *= kLeaderHeal;
     if (!h.cures.empty() && !b.isEnemy(user, t)) value += v;
     if (h.inflict >= 0 && b.isEnemy(user, t)) value += v;

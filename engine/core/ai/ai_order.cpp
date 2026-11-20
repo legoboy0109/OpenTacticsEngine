@@ -128,7 +128,7 @@ void considerAdvance(Context& cx, const Unit& u, const Stance& st,
 
 double exposureCost(const Battle& b, const Unit& u, Cell c) {
   const double fade = fadeFactor(b);
-  double cost = outnumbered(b, u, c) * kExposure * typeValue(*b.db, u.type) * fade * (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
+  double cost = outnumbered(b, u, c) * kExposure * unitValue(b, u) * fade * (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
   if (u.leader && b.db->rules.defeatLeaderDead) cost += outnumbered(b, u, c) * kLeaderExposure * fade;
   return cost;
 }
@@ -175,7 +175,7 @@ Order bestOrder(Context& cx, const Unit& u) {
       if (walkToWeapon && !(u.aiGoals & kAiWeapons)) continue;
       double sc = o.area ? scoreAreaAttack(b, u, o.weapon, o.cell, s) : scoreAttack(b, u, b.units[o.target], o.weapon, s);
       if (sc <= 0) continue;
-      sc -= outnumbered(b, u, s) * kExposure * typeValue(*b.db, u.type) * fade *
+      sc -= outnumbered(b, u, s) * kExposure * unitValue(b, u) * fade *
             (0.5 + 0.5 * u.hp / (double)std::max(1, b.maxHp(u)));
       if (u.leader && b.db->rules.defeatLeaderDead) sc -= outnumbered(b, u, s) * kLeaderExposure * fade;
       // (an area attack on an empty square, or on one of its own, has no target for the stance's likes and dislikes to judge)

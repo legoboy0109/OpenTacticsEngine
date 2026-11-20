@@ -589,6 +589,11 @@ every unit that has one (a unit off the board that never stood on it has none) a
 refused (`units[2].facing`), and so is a `facing` in the save of a game without the rules. A unit without the key (a save from before the game had facing is refused by the data hash anyway;
 this only covers a hand-written save) looks at the nearest foe when the battle is restored. Code: `core/battle/save_facing.cpp`.
 
+## Unit ranks (docs/SRPG.md "Unit ranks")
+
+Nothing is saved for them: a unit's rank is read off its saved `"xp"` and the game's table, so a save of a game with `rules.progression.levels` restores units with the same ranks, bonuses
+and skills (`tests/test_unit_ranks.cpp`). In such a game `xp` is a running total (it stops at the last entry's `at`) and `level` stays a label. A save of any other game is unchanged.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

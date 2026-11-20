@@ -5,6 +5,7 @@
 #include "battle/carrier_marker.h"
 #include "battle/condition_marker.h"
 #include "battle/facing_marker.h"
+#include "battle/unit_rank_view.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -54,6 +55,7 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
   }
   drawCarrierMarker(r, c, u, cx + uw / 2, bodyTop, uw, al);  // top right corner: a unit with someone off the board
   drawConditionMarker(r, c, u, cx - uw / 2, foot, al);       // bottom left corner: its conditions (docs/SRPG.md section 9)
+  drawRankBadge(r, c, u, cx + uw / 2, foot, uw, al);          // bottom right corner: its rank (docs/SRPG.md "Unit ranks")
   if (faceX != kNoFace) drawFacingMarker(r, c, u, cx, cy, faceX, faceY, al);  // on the ground toward the way it looks (docs/SRPG.md "Facing")
   // HP bar under the feet, using the DISPLAYED hp so it drains with the hit.
   int mx = b.maxHp(u), barW = std::max(4, uw * 3 / 4), barX = cx - barW / 2, barY = foot + 1;

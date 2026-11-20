@@ -994,6 +994,66 @@ without the block), `"apCost" must be a whole number from 0 to 99`, `unit "y", "
 `tests/action_points_player_test.py` (the price in the hint, forecast and menu, the Move entry, saves, the turn refill, UI scale 100 / 150, four views),
 `tests/editor_api_actionpoints_checks.py`.
 
+### Unit ranks
+
+Optional. A table of named steps on a unit's **total experience**, as in war games where a unit that defeats enemies becomes a veteran with small bonuses, shown by a
+badge. It is the alternative to the usual levelling (the per-level experience of `xpPerLevel`); not to be confused with the weapon ranks of section 7, which are
+per weapon group and have their own file. A game without `levels` loads, plays, saves and simulates exactly as before: the code is behind
+`Database::rules.unitRanks.on()`, and no event or save key is added.
+
+```jsonc
+// game.json
+"rules": { "progression": { "enabled": true, "xpHit": "10", "xpKill": "30",
+  "levels": [ { "at": 10, "name": "Veteran", "badge": "I",  "bonus": { "str": 1 } },
+              { "at": 30, "name": "Elite",   "badge": "II", "bonus": { "str": 2, "def": 1, "hp": 6 }, "skills": ["steady"] },
+              { "at": 60, "name": "Hero",    "badge": "V",  "bonus": { "str": 3, "def": 2, "hp": 10 }, "skills": ["steady"] } ] } }
+// maps/*.json, a unit (or a story addUnit):  "xp": 10        // optional: the experience it starts with
+```
+
+- **The table.** `levels` is a list of 1 to 20 entries in rising `at` (total experience, 0 to 1,000,000); each has a `name` (1 to 24 characters), optional `badge` (0 to 3
+  plain characters drawn on the unit; missing = the roman numeral of its place, `""` = none), optional `bonus` (stat id to a whole number, negative allowed) and optional
+  `skills` (skill ids). It needs `"enabled": true`.
+- **The rank** is the highest entry whose `at` the unit's experience has reached; a unit below the first `at` has no rank (no badge, no bonus). It is **never stored**: it is
+  read off the experience that saves, the campaign roster and the editor already carry (`Battle::unitRank`). **Nothing is cumulative**: a rank's bonus and skills are
+  those of its own entry (write Elite's bonus as the whole bonus an Elite has), and a unit that passes on to the next rank loses the previous entry's.
+- **Stats.** A rank's bonus is added in `unitStat` next to accessories and research (so `Battle::stat`, formulas, the forecast, the maximum hit points and the computer
+  opponent all see it, and the unit details show it in colour like an accessory's). A bonus to the hit-point stat raises the maximum; the unit's current hit points rise by
+  the same amount when the rank is earned (and are cut down to the maximum, never below 1, if a bonus is negative).
+- **Skills.** The skills of the held entry are the unit's own, judged after its character's skills and before the side's modifiers (`Battle::skillsOf`); the unit details label
+  them `Rank`.
+- **Experience.** Reused: the same award path, formulas (`xpHit`, `xpKill`, `xpNoDamage`), staves' and abilities' `xp`, `xpPercent` skills, the difficulty's `xpPercent` and
+  `computerGains` as for levelling. Experience is a **running total that stops at the last entry's `at`** (nothing more is paid, no event). No `LevelUp` ever happens:
+  the level stays at what the map says and is only a label. No new experience keys were needed.
+- **Instead of levelling, not beside it.** `rules.progression` keys `xpPerLevel` and `maxLevel`, a unit type's `maxLevel` and a promotion's `"atLevel"` other than `"off"` are
+  **refused** in a game with a table (they would silently do nothing); promotion by item, by a story command and from a menu work as before. Stat growths, `learns` by level
+  and difficulty levels have no effect on a unit's rank (no level-ups; a unit that is placed at level 3 still gets that level's growth once, as always).
+- **Units.** A map unit (and a story `addUnit`) may say `"xp": n` (0 up to the top `at`); refused without a table. A built or summoned unit starts at 0, so no rank unless the first
+  entry says `"at": 0`. Carry-over in campaigns is what the experience already does (the roster keeps `xp`; a chapter starts at full hit points with the rank's bonus).
+- **Event.** `UnitRankUp` (before `Choice`): a = unit, b = new rank, c = old rank (-1 = none; indices into the table), data = change per stat index. It follows the `XpGained` that earned it
+  (a unit that jumps two ranks gets one event). Fog: seen by the teams that see the unit.
+- **Saves.** Nothing new: the rank derives from the saved experience (docs/SAVES.md). **Editor**: the server carries `rules.progression.levels` and the maps' `"xp"` (no forms yet).
+  **Computer opponent**: docs/AI.md "Unit ranks".
+
+**Player.** A tiny gold-on-dark tab with the badge sits at the bottom right corner of the unit in every kind of view (top-down squares and hexagons, 2D isometric, 3D
+isometric, full 3D; `unit_rank_view.cpp`, drawn next to the condition marker and following the `UnitRankUp` events, so it changes when the event plays). **Size rule:** the badge is drawn
+from rectangles, not with the text font, so it never grows with the UI scale: at most 4/9 of the unit's width on screen and 5 pixels tall (all scaled by `unitWidth / 18`, at least 1, so only the
+map zoom changes it). Up to 3 characters are drawn as 3x5 pixel letters (any case, digits, `* + - ^`) when they fit (3 wide, 1 apart: `I`, `V`, `II` fit a 24px tile; `III` does not); when they do not
+fit, or a character is not in that font, one 2x2 pip per character is drawn instead, as many as fit (at least one). A rank-up floats
+"Elite!" over the unit and opens the level-up box for a moment (title "Elite!", the unit's name, the stat changes, "New skill: ..."); it closes by itself for everybody. The panel and the
+unit details say the rank instead of "Lv": `Elite` / `XP 40/60` (`MAX` at the top). The forecast does not show the rank (its numbers already include the bonus). The player logs
+`rank up box: ...` (the tests read it). Everything fits the 480x270 canvas at UI scale 100 and 150.
+
+**Not built (on purpose):** ranks that stack, a rank per unit type, ranks lost on defeat, a story command that gives experience, a picture for a badge, and the rank in the forecast.
+
+**Errors** (each names the file, the entry and the key): `rules.progression: "xpPerLevel" belongs to levelling, and this game uses the rank table ("levels"): a game uses one or the other`,
+`rules.progression, "levels" entry 2 ("Elite"): "at" must be higher than the one before it (10): the ranks go up in order`, `... "skills" names unknown skill "x" (data/skills.json)`,
+`... "bonus" names unknown stat "luck"`, `... "badge" must be 0 to 3 plain characters ...`, `... unknown key "colour"`, `rules.progression: "levels" needs experience: set "enabled": true`,
+`unit "x": "maxLevel" belongs to levelling ...`, `map unit ...: "xp" needs a rank table ...`, `"xp" must be a whole number from 0 to 60`.
+
+**Tests.** `tests/test_unit_ranks.cpp` (the rank from experience, bonus and skills, rank-up events, clamp at the top, saves, the loader; fixture `tests/fixtures/unit-ranks`),
+`tests/test_unit_ranks_ai.cpp`, `tests/unit_ranks_player_test.py` (badge in all four views, the panel and details, the rank-up box, UI scale 100 and 150, a game without a table),
+`tests/editor_api_unitranks_checks.py`.
+
 ### Side-wide modifiers
 
 A side can hold skills that apply to its units as if each unit had them. They are state of the battle (`SideState::modifiers`, a list of
