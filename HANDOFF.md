@@ -4,22 +4,32 @@ Current state of the build, for whoever (or whichever model) continues.
 Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 (structure + binding portability rules) and docs/GAME_FORMAT.md first.
 
-## Latest (2026-11-20)
+## Latest (2026-11-20, afternoon)
 
-- **Pushed (origin/main = 20acdb4, full checks 49-53 clean):** enemy ranges, stacked storage lists, original Xbox native 3D
-  (step 2, emulator only; `docs/XBOX_OG.md`), and the mechanics series 1-5: damage types, side-wide modifiers + branching
-  research, factions, line fire + area attacks, action-point turns (`docs/SRPG.md`, `docs/ECONOMY.md`).
-- **Merged locally, full check 55 running:** height rules + facing (6), unit ranks (7), and a web-build fix
-  (`height_rules.cpp` needed `<cstdlib>`; check 54 was otherwise clean but its web results were stale). Push if 55 is clean.
-- **Next in the series (large, owner should steer first):** 8 CO units/powers, 9 speed turn order + charged actions,
-  10 jobs. Designs in `.agent/notes.md` "New mechanics plan".
-- **Owner decisions pending** (each feature works with a default): "Detailed 3D" on the original Xbox (recommend hiding:
-  61/64 MB); AP pool per side (built) vs per unit; AP charged per movement point vs per square; research cancel refund 0%;
-  faction start resources added vs replacing, no faction pick in campaigns; area line shape = aimed square + behind;
-  default facing = toward nearest foe, hex arcs 3/2/1; ranks not cumulative, table XOR levelling.
-- **Known gaps:** no editor forms for any of the new mechanics (web editor on hold); AP-game computer opponent is simple;
-  no blast animation; faction screen at 150% cuts text; abilities/staves/items cost no AP.
-- **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK.
+- **Pushed (origin/main = 74954ae, full checks 49-58 clean):** original Xbox native 3D (emulator only), mechanics series:
+  damage types, side-wide modifiers + branching research, factions, line fire + area attacks, action points, height rules,
+  facing, unit ranks, jobs (`docs/JOBS.md`), speed turn order + charged actions (`docs/TURN_ORDER.md`); `changeSide`
+  `"ready": true`; style `"largeArt"` (Detailed 3D hidden on the original Xbox).
+- **Merged locally, full check 59 running** (`nice -n 10`): merit ranks + overlay jobs (ranks/jobs independent of levels and
+  classes; `rules.ranks`, job without `unitType`), commanders (`docs/COMMANDERS.md`; enemy meters shown). Push if clean.
+- **In progress (agent, worktree):** original Xbox frame rate, weight on the 3D views (owner saw low fps in xemu, mainly 3D).
+  Ideas: 2D layer at logical size scaled by the chip, skip unchanged frames, faster upload, cache static 3D meshes.
+  It builds into `OpenTacticsEngine-OGXbox/build/ogx-perf`; the owner's test files are in `OpenTacticsEngine-OGXbox/for-testing/`
+  (ISO + app folder, built from 666675d+jobs).
+- **Owner's own xemu:** set up by editing `~/.local/share/xemu/xemu/xemu.toml` with the owner's yes (boot ROM/BIOS paths on the
+  external drive, a COPY of the HDD image, the test ISO as `dvd_path`; backup `xemu.toml.before-paths`). Its file picker only
+  works with `SDL_FILE_DIALOG_DRIVER=zenity` (portal method fails silently inside xemu, cause unknown):
+  `~/.local/share/applications/xemu.desktop` overrides the launcher with that.
+- **Vision Quest (private):** converter step 37 = recruits `ready: true`; output copied to `games/vision-quest`. An editor
+  left running from before a new data key reports "unknown key" problems until restarted.
+- **Owner decisions pending** (each feature works with a default): AP pool per side vs per unit, AP per movement point;
+  research cancel refund 0%; faction start resources added, no faction/commander pick in campaigns; area line shape;
+  default facing toward nearest foe, hex arcs 3/2/1; merit earned by every side; class-job units cannot promote;
+  speed mode refuses actionPoints and production; commander meter rules.
+- **Known gaps:** no editor forms for any new mechanic (web editor on hold); AP-game and speed-game computer opponents are
+  simple; no blast animation; commander portraits not drawn; faction screen at 150% cuts text.
+- **Not rebuilt since 278e11e:** Windows zip, UWP package, Android APK. Series X still has the old package.
+- **Heavy parallel jobs slow the owner's PC** (they noticed in xemu): run full checks with `nice`, at most one agent beside one.
 
 ## Earlier (2026-11-19, night) — read this first
 
