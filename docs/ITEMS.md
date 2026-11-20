@@ -29,6 +29,7 @@ Status: see "Build order" at the end.
   "inventorySize": 5,        // items one unit can carry, 1..20. Default 5.
   "sellPercent": 50,         // 0..100, default 50: what a shop that buys items back pays, as a share of the price
                              // (scaled by uses left: docs/EVENTS.md "Preparation", "Selling"). In-battle shops do not buy.
+  "freeBattleStorage": { "each": 3 },  // optional: what the storage holds when a FREE battle starts (docs/GAME_FORMAT.md "Free battles")
   "storage": "anywhere"      // the side's shared storage: "off" (default), "anywhere",
                              // "structure" (standing on a structure of its own side),
                              // "leader" (the unit is a leader or stands next to one of its side).
