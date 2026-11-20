@@ -14,6 +14,8 @@ endif()
 option(OTE_BUILD_PLAYER "Build the SDL3 player" ON)
 option(OTE_BUILD_TESTS "Build tests and the headless sim tool" ON)
 option(OTE_BUILD_EDITOR "Build the editor helper" ON)
+# The advanced native editor (Qt 6 Widgets, docs/NATIVE_EDITOR.md). OFF by default: nothing else depends on Qt.
+option(OTE_BUILD_NATIVE_EDITOR "Build the native (Qt 6) editor" OFF)
 # MSVC only: link the C/C++ runtime statically (/MT: nothing to install next to the program, what the Windows desktop
 # zip uses) or as the DLL (/MD: needed for UWP and wherever the app brings the Visual C++ runtime itself). docs/WINDOWS.md.
 option(OTE_MSVC_STATIC_RUNTIME "MSVC: static runtime (/MT) instead of the DLL runtime (/MD)" ON)
@@ -84,7 +86,16 @@ file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS engine/core/*.cpp)
 add_library(ote_core STATIC ${CORE_SRC})
 target_include_directories(ote_core PUBLIC engine)
 target_link_libraries(ote_core PUBLIC lua)
-target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
+# The no-exceptions / no-RTTI flags travel to every program that links ote_core. A consumer that needs the normal C++
+# runtime features (the Qt native editor: Qt's moc output and Qt's own headers expect RTTI and exceptions) sets the target
+# property OTE_RTTI_EXCEPTIONS_OK to ON, and the flags are left off ITS compile lines only. $<TARGET_PROPERTY:prop> without
+# a target name is evaluated for the consuming target, which is what makes this a per-consumer switch. Each flag gets its
+# own generator expression because a ';'-list cannot sit inside one.
+set(OTE_CORE_PUBLIC_FLAGS)
+foreach(flag IN LISTS OTE_CXX_FLAGS)
+  list(APPEND OTE_CORE_PUBLIC_FLAGS "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:OTE_RTTI_EXCEPTIONS_OK>>>:${flag}>")
+endforeach()
+target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CORE_PUBLIC_FLAGS})
 
 # --- 3D drawing layer: interface, maths, model loading, the software backend and the
 # OpenGL backend. No platform dependencies and no GL headers or libraries: the OpenGL
@@ -534,6 +545,14 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/editor_api_test.py
                      $<TARGET_FILE:ote-editor> ${CMAKE_SOURCE_DIR})
   endif()
+endif()
+
+if(OTE_BUILD_NATIVE_EDITOR)
+  if(NOT OTE_BUILD_EDITOR OR EMSCRIPTEN)
+    message(FATAL_ERROR "OTE_BUILD_NATIVE_EDITOR needs OTE_BUILD_EDITOR=ON (it links ote_editor_core) and a desktop build")
+  endif()
+  enable_testing()
+  add_subdirectory(editor/native)
 endif()
 
 # Where tests put their scratch data: <build>/test-tmp/<test name>/, never the source tree (docs/TESTING.md "Scratch
