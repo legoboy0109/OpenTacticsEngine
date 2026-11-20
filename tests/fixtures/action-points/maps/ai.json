@@ -1,0 +1,12 @@
+{ "name": "Ai", "grid": { "type": "square", "width": 12, "height": 7 }, "legend": { ".": "plain", "#": "wall", "w": "woods" },
+  "tiles": ["............", "............", "....##......", "....w.......", "............", "............", "............"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "ai", "resources": { "gold": 10 } },
+             { "id": "red", "name": "Red", "controller": "ai", "resources": { "gold": 10 } } ],
+  "structures": [ { "type": "factory", "x": 0, "y": 6, "side": "blue" }, { "type": "factory", "x": 11, "y": 0, "side": "red" } ],
+  "units": [
+    { "type": "lancer", "side": "blue", "x": 0, "y": 3, "id": "bL", "leader": true },
+    { "type": "archer", "side": "blue", "x": 1, "y": 2, "id": "bA" },
+    { "type": "mortarman", "side": "blue", "x": 0, "y": 4, "id": "bM" },
+    { "type": "lancer", "side": "red", "x": 11, "y": 3, "id": "rL", "leader": true },
+    { "type": "archer", "side": "red", "x": 10, "y": 4, "id": "rA" },
+    { "type": "scout", "side": "red", "x": 11, "y": 2, "id": "rS" } ] }

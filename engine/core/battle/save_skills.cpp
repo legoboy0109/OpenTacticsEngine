@@ -39,7 +39,7 @@ bool readSkillList(Reader& rd, const Database& db, const Json& j, const std::str
 
 void writeUnitSkills(const Battle& b, const Unit& u, Json& j) {
   if (!u.learned.empty()) j.set("skills", indexList(u.learned));
-  if (!b.db->turnFlagSkills) return;
+  if (!b.db->turnFlagSkills && !b.db->rules.ap.on) return;  // (an action-point game saves the movement walked this turn too)
   if (u.moveSpent > 0) j.set("moveSpent", Json::makeNumber(u.moveSpent));
   if (u.acted) j.set("acted", Json::makeBool(true));
   if (u.refreshed) j.set("refreshed", Json::makeBool(true));
@@ -52,6 +52,7 @@ bool readUnitSkills(Reader& rd, const Battle& b, const Json& j, const std::strin
   u.acted = u.refreshed = false;
   for (const char* key : {"moveSpent", "acted", "refreshed"})
     if (j.has(key)) {
+      if (std::string(key) == "moveSpent" && db.rules.ap.on) continue;  // action points: how far it walked this turn
       if (db.skills.empty()) return rd.fail(where + "." + key, "this game has no skills");
       if (!db.turnFlagSkills) return rd.fail(where + "." + key, "this game has no \"moveAgain\" or \"actAgain\" skills");
     }

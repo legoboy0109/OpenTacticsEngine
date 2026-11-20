@@ -132,7 +132,7 @@ void Map3D::drawUnitModel(const DrawCtx& c, const Unit& u, const UnitView& v, co
   ModelTint tint;
   tint.side = rgba(Color::rgb(c.battle.sides[(size_t)shownSide(c, u)].color));
   tint.sideMaterial = look.sideMaterial;
-  tint.dim = u.done ? 0.55f : 1.0f;  // dimmed: already acted
+  tint.dim = c.battle.unitSpent(u) ? 0.55f : 1.0f;  // dimmed: already acted
   tint.alpha = v.alpha * fade;
   tint.depthTest = !through;
   drawModel(r3d_, asset, a, place, tint);

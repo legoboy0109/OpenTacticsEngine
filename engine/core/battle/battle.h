@@ -203,9 +203,10 @@ struct Unit {
   int carrying = -1;
   int carriedBy = -1;
   // Turn flags of "move again" / "act again", cleared with `moved` and `done` at the start of the side's turn.
-  int moveSpent = 0;       // movement points spent on moves this turn
+  int moveSpent = 0;       // movement points spent on moves this turn (in an action-point game too: the Move stat limits all of a turn's moves together)
   bool acted = false;      // has used its action; only a move (or Wait) is left
   bool refreshed = false;  // "act again" has been used this turn
+  int apAttacks = 0;       // action points (docs/SRPG.md "Action points"): attacks made this turn; 0 and unused in any other game
   // Weapon ranks (docs/SRPG.md section 7): weapon experience per RankRules::groups index; empty in a game without ranks.
   std::vector<int> weaponXp;
   // Conditions (docs/SRPG.md section 9), in the order they were applied; empty in a game without conditions.
@@ -577,7 +578,8 @@ class Battle {
   // Where the unit could move right now (ignores its `moved` flag).
   void reachable(int unit, Reach& out) const;
   // The same for display: the unit's reach on a fresh turn as the team `viewTeam` can know it (movement.cpp). Not for the rules.
-  void reachFor(int unit, int viewTeam, Reach& out) const;
+  // `limitByAp` false (action-point games only): the search as if the pool were endless, to tell "not enough AP" from "too far".
+  void reachFor(int unit, int viewTeam, Reach& out, bool limitByAp = true) const;
   bool pathTo(const Reach& reach, Cell dest, std::vector<Cell>& path) const;
 
   // Attacks available if the unit stood on `from` (pass its own cell for
@@ -789,6 +791,7 @@ class Battle {
 #include "core/battle/mapchange_api.h"
 #include "core/battle/mapweapon_api.h"
 #include "core/battle/area_api.h"
+#include "core/battle/ap_api.h"
 
  private:
   // combat.cpp
@@ -910,6 +913,7 @@ class Battle {
 #include "core/battle/places_internal.h"
 #include "core/battle/difficulty_internal.h"
 #include "core/battle/area_internal.h"
+#include "core/battle/ap_internal.h"
 
   StoryRun storyRun_;  // transient: empty between actions
   StoryChoice choice_;  // dialogue choices (story_choice.cpp)

@@ -65,6 +65,7 @@ void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, C
   const std::string list = damageList(f, -1, count);
   lines.push_back({"Hits " + intStr(foes) + (foes == 1 ? " foe" : " foes"), kText});
   if (!list.empty()) lines.push_back({list + " dmg", kText});
+  if (b.apGame()) lines.push_back({"AP " + intStr(b.apAttackCost(attacker, weapon)), kNote});  // action points: what the attack costs
   if (friends > 0) lines.push_back({intStr(friends) + (friends == 1 ? " ally in the way" : " allies in the way"), kWarn});
   if (f.primary >= 0 && !f.victims[(size_t)f.primary].enemy) lines.push_back({"Aimed at an ally", kNote});
 

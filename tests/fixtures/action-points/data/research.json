@@ -1,0 +1,2 @@
+{ "technologies": [
+  { "id": "drill", "name": "Drill", "cost": { "gold": 5, "ap": 4 }, "turns": 1, "bonus": { "types": ["lancer"], "stats": { "str": 1 } } } ] }

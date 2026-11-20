@@ -12,7 +12,7 @@ void Battle::reachable(int unit, Reach& out) const { reachFor(unit, -1, out); }
 // the viewer's team could work it out. The unit's turn flags are not used (during another side's turn they are last turn's), and
 // nothing the viewer cannot see shapes the result: a unit it does not see counts as absent (no gap at its square, no wall around
 // it) and a structure it does not see counts as the kind it last saw (an opened door shows no new path).
-void Battle::reachFor(int unit, int viewTeam, Reach& out) const {
+void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp) const {
   const bool seen = viewTeam >= 0;
   int n = grid.cellCount();
   out.cost.assign(n, -1);
@@ -29,7 +29,13 @@ void Battle::reachFor(int unit, int viewTeam, Reach& out) const {
   const bool pass = passesEnemies(u);
   int budget = movePoints(u);
   // "Move again" (docs/SRPG.md "Turn flags"): after its action only the movement it has not used is left.
-  if (u.acted && !seen) budget = std::max(0, budget - u.moveSpent);
+  if (db->rules.ap.on) {
+    // Action points (docs/SRPG.md "Action points"): the Move stat is the most a unit walks per turn over all its moves, and the pool must pay for the
+    // walk. The enemy-range display (`seen`) shows the unit's full Move whatever the foe's pool holds.
+    if (!seen) budget = apMoveBudget(u, budget, limitByAp);
+  } else if (u.acted && !seen) {
+    budget = std::max(0, budget - u.moveSpent);
+  }
   if (u.fuel >= 0 && u.fuel < budget) budget = u.fuel;  // fuel (docs/ECONOMY.md): the tank limits the reach
   if (!u.conditions.empty() && conditionBlock(u, ConditionBlock::Move) >= 0) budget = 0;  // "cannot move" (docs/SRPG.md section 9)
 

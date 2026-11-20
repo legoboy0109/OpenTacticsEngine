@@ -1,0 +1,6 @@
+{ "weapons": [
+  { "id": "sword", "name": "Sword", "props": { "might": 4 } },
+  { "id": "bow", "name": "Bow", "range": [2, 3], "props": { "might": 3 } },
+  { "id": "spear", "name": "Spear", "range": [2, 2], "apCost": 1, "props": { "might": 2 } },
+  { "id": "mortar", "name": "Mortar", "range": [2, 5], "afterMove": false, "apCost": 3,
+    "area": { "shape": "radius", "radius": 1, "apExtra": 1 }, "props": { "might": 4 } } ] }

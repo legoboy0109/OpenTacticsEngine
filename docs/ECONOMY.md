@@ -238,6 +238,24 @@ the last facts may not fit; the rows and the footer are the difficulty screen's.
 **Tests.** `tests/test_factions.cpp` and `tests/factions_player_test.py` (fixture `tests/fixtures/factions`, including an AI-vs-AI game of two different factions),
 `tests/editor_api_factions_checks.py` (the editor server returns, writes and round-trips `factions`; an empty list removes the file).
 
+## Refilling resources
+
+Optional, per resource, in `game.json`. A resource may declare how it is brought back up at the start of **its side's turn**:
+
+```jsonc
+"resources": [ { "id": "ap", "name": "AP", "refill": { "perTurn": 20, "carryOver": 10 } } ]
+```
+
+At the start of each of its own turns a side's amount of that resource becomes **`min(what is left, carryOver) + perTurn`** (`carryOver` defaults to 0:
+nothing is carried; both are whole numbers from 0 to 100000, `perTurn` is required). It happens right after the turn's `TurnStarted` event and before the
+income of the structures, as one `ResourceChanged` event (none when the amount did not change). It is general: any resource may have a refill, and it does
+nothing else (a game that only uses `refill` has no action points; the action-point system of docs/SRPG.md "Action points" just uses it for its pool).
+A resource without `refill` is untouched, so a game without the key plays, saves and simulates as before. Nothing about it is saved (the amounts are).
+
+**Errors** (each names the file, the resource and the key): `resource "ap", "refill": "perTurn" must be a whole number from 0 to 100000`,
+`resource "ap": "refill" needs "perTurn"`, `resource "ap", "refill": unknown key "x" (expected "perTurn", "carryOver")`.
+**Tests.** `tests/test_action_points.cpp` (refill and carry-over, a refill without action points), `tests/editor_api_actionpoints_checks.py`.
+
 ## Repair and supply
 
 game.json `rules.supply` (optional):

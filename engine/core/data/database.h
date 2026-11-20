@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 
+#include "core/data/action_points.h"
 #include "core/data/ai_rules.h"
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
@@ -21,7 +22,13 @@
 namespace ote {
 
 struct StatDef { std::string id, name; };
-struct ResourceDef { std::string id, name; };
+// refill: "refill": { "perTurn": n, "carryOver": m } (docs/ECONOMY.md "Refilling resources"): at the start of the owning side's turn the amount becomes
+// min(what is left, carryOver) + perTurn.
+struct ResourceDef {
+  std::string id, name;
+  bool refill = false;
+  int refillPerTurn = 0, refillCarryOver = 0;
+};
 struct MoveTypeDef { std::string id, name; };
 // Story switches (off / on) and variables (whole numbers, start 0): docs/EVENTS.md.
 struct SwitchDef { std::string id, name; };
@@ -139,6 +146,7 @@ struct WeaponDef {
   std::string damageFormula;  // optional per-weapon override (Lua expr)
   std::string group;          // optional, e.g. "sword": who can wield it as an item (docs/ITEMS.md)
   std::string damageKind;     // optional free-form word ("physical", "magic", ...): skill tests `weaponKind`, formulas `w.damageKind`
+  int apCost = -1;            // weapons.json "apCost" (action points only): what one attack costs; -1 = the game's attack cost
   int damageType = -1;        // index into Database::damageTypes.list; -1 only in a game without damage types (else the first, by default)
   int ammo = 0;               // attacks per supply (1..99); 0 = unlimited (docs/ECONOMY.md "Repair and supply")
   // Area attacks and line fire (docs/SRPG.md "Area attacks and line fire"); both keys are optional, the defaults are the old single-target weapon.
@@ -268,6 +276,8 @@ struct UnitTypeDef {
   std::vector<int> rankStart;            // per RankRules::groups index: starting weapon experience
   std::vector<int> caps;                 // per stat index: this class's cap, -1 = none (overrides the game-wide one)
   std::vector<int> resist;               // per damage type (Database::damageTypes): flat resistance, read as `rs`; empty = all 0
+  int apStep = -1;                       // units.json "ap": { "step" }: AP per movement point (action points only); -1 = the game's costPerStep
+  int apSoftCap = -1;                    // units.json "ap": { "softCap" }: movement points per turn at the plain price; -1 = the game's softCap
   int maxLevel = -1;                     // units.json "maxLevel": this type's top level (0 = never levels); -1 = rules.progression.maxLevel
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
@@ -382,6 +392,7 @@ struct RulesConfig {
   PromotionRules promotion;  // "rules.promotion" (docs/SRPG.md "Promotion")
   PlaceRules places;         // "rules.places" (docs/SRPG.md section 10); the default changes nothing for a game without such structures
   AiRules ai;                // "rules.ai" (docs/AI.md "Scripted-style computer players")
+  ActionPointRules ap;       // "rules.actionPoints" (docs/SRPG.md "Action points"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.

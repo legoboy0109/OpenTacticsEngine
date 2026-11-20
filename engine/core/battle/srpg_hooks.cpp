@@ -27,6 +27,11 @@ void Battle::endOrder(int unit, bool afterAttack) {
     actAgainPending_ = -1;
     return;
   }
+  // Action points: an attack does not end the unit's turn while it has attacks or movement left (docs/SRPG.md "Action points").
+  if (db->rules.ap.on && afterAttack) {
+    if (u.alive) apAfterAttack(u);
+    return;
+  }
   // "Move again": the action is used up but the movement that is left may still be walked.
   if (u.alive && hasMoveAgain(u, afterAttack) && u.moveSpent < movePoints(u)) u.acted = true;
   else u.done = true;

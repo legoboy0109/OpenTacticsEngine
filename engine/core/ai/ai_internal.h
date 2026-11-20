@@ -9,6 +9,10 @@
 #include "core/battle/battle.h"
 
 namespace ote {
+
+// ai_ap.cpp: the computer opponent's turn in a game with action points (docs/AI.md "Action points"); aiTakeStep hands over to it.
+bool aiTakeApStep(Battle& battle, std::vector<Event>& events);
+
 namespace ai {
 
 constexpr int kFar = 1 << 28;  // "unreachable" in a distance field

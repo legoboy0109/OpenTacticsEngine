@@ -570,6 +570,13 @@ holds (the kind's `uses`, or the placement's own: a placement's number is writte
 of one that has them but has not fired, is unchanged. The key is refused on a structure whose present kind has no weapon, and outside 0..9999. After `becomes` the new kind
 starts with its own number (it saves nothing); the becomes kind is accepted as reachable like a map change's. Unit `goes` gains bit 32 (`"weapons"`). Code: `core/battle/save_mapweapon.cpp`.
 
+## Action points (docs/SRPG.md "Action points")
+
+Two numbers of a unit, **only in a game with `rules.actionPoints`** and only when not 0: `"apAttacks": n` (attacks made this turn, from 1 to the game's
+`attacksPerTurn`) and `"moveSpent": n` (the movement points walked this turn: the same key the "move again" skills use, written in such a game too).
+Both are cleared when the side's turn starts. The pool is a resource of the side and is saved with the resources. A save with `apAttacks` in a game without
+action points, or above `attacksPerTurn`, is refused (`units[3].apAttacks`). A save of any other game is unchanged. Code: `core/battle/save_ap.cpp`.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

@@ -85,7 +85,7 @@ bool Battle::validate(const Action& action, std::string* why) const {
 
   switch (action.type) {
     case ActionType::Move: {
-      if (u.moved && !u.acted) return fail(why, "that unit has already moved");
+      if (u.moved && !u.acted && !(db->rules.ap.on && db->rules.ap.splitMoves)) return fail(why, "that unit has already moved");
       if (action.cell == u.cell) return fail(why, "the unit is already there");
       const int stop = conditionBlock(u, ConditionBlock::Move);
       if (stop >= 0) {
@@ -94,10 +94,11 @@ bool Battle::validate(const Action& action, std::string* why) const {
       }
       Reach reach;
       reachable(action.unit, reach);
-      if (!reach.canStop(action.cell)) return fail(why, "the unit cannot reach that cell");
+      if (!reach.canStop(action.cell)) return fail(why, apMoveRefusal(action.unit, action.cell));  // (a game with action points says "not enough AP")
       return true;
     }
     case ActionType::Attack: {
+      if (db->rules.ap.on && !apAttackAllowed(u, action.weapon, why)) return false;  // no attack left, or not enough AP
       if (isAreaWeapon(action.weapon)) {  // aimed at a square (docs/SRPG.md "Area attacks and line fire")
         AreaForecast area;
         if (!areaForecast(action.unit, action.weapon, u.cell, aimedCell(action), area)) return fail(why, "that attack is not possible");
@@ -168,7 +169,7 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
   EventScope scope(*this, events);  // with fog: stamps every event with the teams that saw it
   switch (action.type) {
     case ActionType::Move: applyMove(action, events); break;
-    case ActionType::Attack: applyAttack(action, events); break;
+    case ActionType::Attack: apPayAttack(action, events); applyAttack(action, events); break;  // (apPayAttack: the AP of an action-point game)
     case ActionType::Capture: applyCapture(action, events); break;
     case ActionType::Wait: units[action.unit].done = true; break;
     case ActionType::Build: applyBuild(action, events); break;
@@ -227,6 +228,7 @@ void Battle::applyMove(const Action& action, std::vector<Event>& events) {
   Cell blockedAt = kNoCell;
   const int stop = pathStop(action.unit, path, blocker, blockedAt);
   const Cell dest = path[(size_t)stop];
+  apPayMove(action.unit, reach.cost[(size_t)dest], events);  // action points: the price of the squares really walked, before the move's events
   if (stop > 0) {
     Event e;
     e.type = EventType::UnitMoved;

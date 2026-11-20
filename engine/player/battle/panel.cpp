@@ -292,7 +292,7 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
   // Resources of the side the player is looking at (economy games, and games with shops to spend them in).
   bool shops = false;
   for (const StructureDef& sd : db.structures) shops |= !sd.sells.empty();
-  if (!db.resources.empty() && (db.rules.economy || shops)) {
+  if (!db.resources.empty() && (db.rules.economy || shops || db.rules.ap.on)) {
     const SideState& vs = b.sides[c.view.shownSide(b, autoplay)];
     rule(r, x, y, w);
     for (size_t i = 0; i < db.resources.size(); ++i) {

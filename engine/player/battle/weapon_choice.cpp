@@ -63,6 +63,7 @@ std::vector<WeaponRow> weaponRows(const Battle& b, int unit, Cell from, const st
         if (own[i] == o.weapon && w.ammo > 0) r.uses = intStr(u.ammo[i]) + "/" + intStr(w.ammo);
     }
     r.stats = statsText(b, unit, from, w, o.weapon, o.target);
+    if (b.apGame()) r.stats += "  AP " + intStr(b.apAttackCost(unit, o.weapon));
   }
   return rows;
 }

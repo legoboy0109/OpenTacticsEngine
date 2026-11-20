@@ -17,6 +17,7 @@ void BattleScene::openWeaponPick(int preferTarget, int selectRow) {
   if (sel_ < 0) return;
   const Unit& u = battle_.units[(size_t)sel_];
   battle_.attackOptions(sel_, u.cell, weaponOpts_);
+  apKeepAffordable(weaponOpts_);
   weaponRows_ = weaponRows(battle_, sel_, u.cell, weaponOpts_);
   if (weaponRows_.empty()) return;  // nothing to attack with: the caller keeps its menu
   weaponPrefer_ = preferTarget;

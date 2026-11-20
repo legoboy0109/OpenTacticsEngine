@@ -5,6 +5,7 @@
 #include <cctype>
 
 #include "core/data/loader.h"
+#include "core/data/loader_action_points.h"
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_damage_types.h"
 #include "core/data/loader_ranks.h"
@@ -64,6 +65,7 @@ bool loadWeapons(const std::string& path, Database& db, std::string& err) {
     if (!readWeaponDamageType(c, db, e, where, w)) return false;  // docs/SRPG.md "Damage types"
     if (!readWeaponAmmo(c, e, where, w)) return false;
     if (!readWeaponArea(c, e, where, w)) return false;  // "fire", "area" (docs/SRPG.md "Area attacks and line fire")
+    if (!readWeaponAp(c, db, e, where, w)) return false;  // "apCost", "area"."apExtra" (docs/SRPG.md "Action points")
     db.straightWeapons = db.straightWeapons || w.aimsStraight();
     if (!readWeaponSkills(c, db, e, where, w)) return false;  // docs/SRPG.md
     if (!readWeaponInflict(c, db, e, where, w)) return false;  // "inflict": a condition on the unit struck (docs/SRPG.md section 9)
@@ -121,6 +123,7 @@ bool loadUnitTypes(const std::string& path, Database& db, std::string& err) {
     if (!readResist(c, db, e, where, 0, u.resist)) return false;  // docs/SRPG.md "Damage types"
     if (!c.boolean(e, "canCapture", where, u.canCapture)) return false;
     if (!readUnitSupply(c, e, where, u) || !readUnitVision(c, e, where, u)) return false;
+    if (!readUnitAp(c, db, e, where, u)) return false;  // "ap" (docs/SRPG.md "Action points")
     // Strategy-RPG features (docs/SRPG.md): each area reads its own keys of a unit type.
     if (!readUnitSkills(c, db, e, where, u) || !readUnitAbilities(c, db, e, where, u) ||
         !readUnitPromotions(c, db, e, where, u) || !readUnitPairBonus(c, db, e, where, u) ||

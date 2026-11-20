@@ -134,6 +134,12 @@ type or character has a flat `"resist": { "fire": 3 }` per type (whole numbers, 
 `"resistRange": [-3, 3]` (optional, needs `damageTypes`, must include 0) bounds every `resist` value. A game without `damageTypes` is unchanged
 (the keys `damageType` and `resist` are then refused); nothing about it is saved. Everything is in docs/SRPG.md "Damage types".
 
+A resource may carry `"refill": { "perTurn": 20, "carryOver": 10 }`: at the start of its side's turn the amount becomes `min(left over, carryOver) + perTurn`
+(docs/ECONOMY.md "Refilling resources"). `"rules": { "actionPoints": { "resource": "ap", "move": { "costPerStep", "splitMoves", "softCap",
+"softCapPenaltyPercent" }, "attack": { "cost", "attacksPerTurn" } } }` (optional) turns the game into an action-point game: a side spends one shared pool on
+walking and attacking instead of each unit getting one move and one action. A weapon's `"apCost"` (and an area's `"apExtra"`) and a unit type's
+`"ap": { "step", "softCap" }` are refused without it. Everything is in docs/SRPG.md "Action points".
+
 Every `rules` block and key is optional; defaults are shown above
 (`defeat` defaults to `["noUnits"]`).
 
@@ -215,6 +221,7 @@ specified in docs/SRPG.md section 10; the editor has forms for them (docs/EDITOR
     "damageKind": "magic",        // optional free word (physical, magic...): skills test it, formulas read w.damageKind; docs/SRPG.md "More skill blocks"
     "damageType": "fire",         // optional, needs game.json "damageTypes": one of its ids (default: the first); formulas read w.damageType; docs/SRPG.md "Damage types"
     "fire": "line",               // optional: "direct" (default) or "line": only along the straight lines of the grid, the first unit stops the shot; docs/SRPG.md "Area attacks and line fire"
+    "apCost": 1,                  // optional, needs game.json "rules.actionPoints": this weapon's AP price instead of the game's attack cost; an "area" may add "apExtra": n (docs/SRPG.md "Action points")
     "area": { "shape": "radius", "radius": 2, "friendlyFire": false },  // optional: hits every unit in the area; shapes burst | radius | cross | line ("length"); same section
     "wieldedBy": ["kell"],        // optional: only these characters (data/characters.json) may wield it; docs/SRPG.md
     "wieldedByTypes": ["knight"], // optional: or units of these types (units.json ids); a unit on either list may

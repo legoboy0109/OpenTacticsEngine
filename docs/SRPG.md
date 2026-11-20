@@ -69,7 +69,7 @@ data/caps.json         game-wide stat caps                                   (op
 data/conditions.json   status conditions made of blocks                      (optional file; section 9)
 data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
-data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire)
+data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points)
 data/items.json        accessory: skills; usable: promotes, cure, inflict, opens (keys, section 10); staves (section 8; inflict, cure: section 9; unlock: section 10)
 maps/*.json            per unit: character, goesFor; per structure: id, contents, locked, visitSides, visitUnits; new story commands, conditions and triggers
 data/campaign.json     new scene commands and conditions
@@ -805,6 +805,76 @@ on empty ground has no target to look at: the attacker lunges toward each victim
 order, deferred deaths, counters, friendly fire, ammunition, experience, the random stream, saves, enemy ranges), `tests/test_area_ai.cpp` (fixture
 `tests/fixtures/area-fire`), `tests/area_fire_player_test.py` (boxes, firing, the highlight in all four views, UI scale 150), `tests/editor_api_area_checks.py`
 (the editor server carries the keys).
+
+### Action points
+
+Optional. A turn system where a side spends from **one shared pool** instead of every unit getting one move and one action. A game without
+`rules.actionPoints` loads, plays, saves and simulates exactly as before (every rule below is behind `Database::rules.ap.on`, and the computer
+opponent in such a game is the unchanged one).
+
+```jsonc
+// game.json
+"resources": [ { "id": "ap", "name": "AP", "refill": { "perTurn": 20, "carryOver": 10 } } ],   // the pool; refill: docs/ECONOMY.md "Refilling resources"
+"rules": { "actionPoints": {
+  "resource": "ap",                                                       // the pool: a resource of the side
+  "move":   { "costPerStep": 1, "splitMoves": true, "softCap": 4, "softCapPenaltyPercent": 100 },
+  "attack": { "cost": 2, "attacksPerTurn": 1 } } }
+// data/weapons.json: "apCost": 1 (this weapon's price instead of attack.cost); "area": { ..., "apExtra": 1 } (added for the area)
+// data/units.json:   "ap": { "step": 2, "softCap": 2 }                   (this type's own price per point and cap)
+```
+
+Every key but `resource` is optional (defaults: `costPerStep` 1, `splitMoves` true, no soft cap, penalty 100, `attack.cost` 1, `attacksPerTurn` 1).
+
+- **The pool** is that resource of the side, shared by all its units, so it shows in the side panel like gold ("AP 14"), is paid with `ResourceChanged`
+  events (the payment comes before the action's own events), is saved with the resources and can be spent by anything that lists it in a cost
+  (below). The `refill` is what fills it each turn; the pool and the refill are independent (a game can use `refill` alone).
+- **Moving.** A walk costs `costPerStep` for **every movement point** of the squares crossed (a plain square 1, woods 2 ...), not per square: the
+  cheapest path by movement cost is also the cheapest by AP, so the reach (`Battle::reachable`) is simply the usual search with a smaller budget.
+  A unit's **Move stat is the most it walks per turn over all its moves** (`Unit::moveSpent`, counted in every game since "Turn flags").
+  With `splitMoves` a unit may walk again as long as movement and AP remain; with `"splitMoves": false` one move per turn, as without action points.
+  **Soft cap:** the first `softCap` movement points a unit walks in its turn (counted over all its moves) cost the plain price, every point beyond
+  costs `costPerStep` plus `softCapPenaltyPercent` more (100 = double), **rounded up to a whole AP per point**. A unit type's `"ap": { "step", "softCap" }`
+  replaces the game's `costPerStep` / `softCap` for that type (the penalty percent stays the game's). `Battle::apMoveCost(unit, points)` is the one function.
+  Ambushed by fog: only the squares really walked are paid. Fuel and conditions limit the reach as before.
+- **Attacking** costs `attack.cost`, a weapon's `"apCost"` replaces it, and an area weapon's `"apExtra"` is added (mortar `apCost` 3 + `apExtra` 1 = 4).
+  A map weapon (docs/SRPG.md "Map weapons") costs the same. A unit makes `attacksPerTurn` attacks per turn (`Unit::apAttacks`, cleared at the start of
+  the side's turn). **Counter-attacks cost nothing.** Breaking a door (`BreakPlace`) and the fights a story event starts cost nothing and are not
+  counted. The payment is made when the attack is applied, also when a story event stops the fight before it starts.
+  **An attack does not end the unit's turn** while it has an attack or movement left (`endOrder`); it may walk on afterwards. It ends (`done`) once it has
+  neither. "afterMove": false keeps its meaning: `Unit::moved` is set by any walk, so such a weapon (artillery) must fire **before** the unit's first walk
+  of the turn; a walk after the shot is fine. The "move again" / "act again" skills are not needed in such a game and are not changed.
+- **Other actions** keep their rules and their prices: Wait, Capture, Supply, Talk, items, abilities, staves, rescue, places, promotion end the unit's turn
+  (or not) exactly as before and cost **no** AP of their own. A **price in AP** is added through the existing cost lists, just by naming the pool's
+  resource: a unit type's `"cost": { "gold": 5, "ap": 3 }` (build / produce), a technology's `"cost"` (research), an upgrade's `"cost"`, an item's `"price"` and
+  a repair share the same check (`canAfford`) and refuse with the usual "not enough resources". Abilities, staves and items have no AP price of their own
+  (not built; their cost lists do not exist). A berserk unit (section 9) acts on its own: its walk is paid, its attack is free and not counted.
+- **Done.** `Battle::unitSpent(unit)` is the one question "is this unit finished": `done`, or (action points) it can neither walk a point nor attack with any
+  weapon it has (`apMayMove`, `apMayAttack`: attacks left, the pool pays the cheapest, the "afterMove" rule allows it). The player dims, skips and counts
+  units by it. `done` itself only records what the unit did (Wait, an action that ends the turn, attacks and movement used up). **Ending the turn is always
+  explicit** (End Turn): the engine never ends a side's turn by itself, and the player has no auto-end (its hint says "All units done" once every unit is spent).
+  A unit with attacks left but no foe in reach is not spent (as a unit that has not acted is not "done" in any game).
+- **Refusals** go through the usual reason: `"not enough AP"` (an attack the pool cannot pay, a walk whose squares are in movement range but not payable),
+  `"that unit has no attacks left this turn"`, `"that unit has no movement left"`, `"that unit has already moved"` (`splitMoves` false).
+- **Enemy ranges** (docs/SRPG.md "Enemy ranges") show the foe's reach with its full Move stat and ignore its pool (a foe's pool is the other side's
+  business and refills before it acts); an attack-only range is drawn from every square it could walk to.
+- **Computer opponent**: docs/AI.md "Action points". **Saves**: docs/SAVES.md "Action points". **Editor**: the server carries every key (no forms yet).
+
+**Player.** The side panel lists the pool among the resources (a game without an economy shows the resource rows too). While picking a destination the
+hint line names the price: `Z:move 3 AP  Arrows:cursor  X:cancel`; the blue squares are only those the unit can both reach and pay. The action menu shows
+`Attack  2 AP` (the cheapest affordable weapon; greyed `used` when the turn's attacks are made, `no AP` when the pool cannot pay), and a **Move** entry
+while the unit may walk on (it opens the destination picking again; Cancel there returns to the menu). The weapon list and the forecast box add `AP n`;
+the red squares and the target list leave out attacks the pool cannot pay. A spent unit is dimmed like a finished one. Every order logs `ap pool: n`.
+Everything fits the 480x270 canvas at UI scale 100 and 150 (the long hint puts the price first so a big scale cuts the end, not the price).
+
+**Errors** (each names the file, the entry and the key): `rules.actionPoints: "resource" names unknown resource "mana"`,
+`rules.actionPoints, "move": "costPerStep" must be a whole number from 0 to 99`, `"attacksPerTurn" must be a whole number from 1 to 99`,
+`"softCapPenaltyPercent" must be a whole number from 0 to 1000`, `"softCapPenaltyPercent" needs "softCap"`, `rules.actionPoints: unknown key "x"`,
+`weapon "x": "apCost" needs "rules": { "actionPoints": ... } in game.json` (also `"area"."apExtra"` and a unit type's `"ap"`: the keys are **refused** in a game
+without the block), `"apCost" must be a whole number from 0 to 99`, `unit "y", "ap": unknown key "speed"`; for the refill: docs/ECONOMY.md.
+
+**Tests.** `tests/test_action_points.cpp` and `tests/test_ap_ai.cpp` (fixture `tests/fixtures/action-points`, numbers in `tests/ap_fixture.h`),
+`tests/action_points_player_test.py` (the price in the hint, forecast and menu, the Move entry, saves, the turn refill, UI scale 100 / 150, four views),
+`tests/editor_api_actionpoints_checks.py`.
 
 ### Side-wide modifiers
 

@@ -122,7 +122,7 @@ void BattleScene::beginHumanTurn() {
   overlay_ = Overlay();
   hasUndo_ = false;
   for (const Unit& u : battle_.units)
-    if (u.alive && u.side == battle_.activeSide && !u.done) {
+    if (u.alive && u.side == battle_.activeSide && !battle_.unitSpent(u)) {
       cursor_ = u.cell;
       return;
     }
@@ -132,7 +132,7 @@ void BattleScene::beginHumanTurn() {
 // an affordable build. Used only for the "end turn?" hint.
 bool BattleScene::humanHasOptions() const {
   for (const Unit& u : battle_.units)
-    if (u.alive && u.side == battle_.activeSide && !u.done) return true;
+    if (u.alive && u.side == battle_.activeSide && !battle_.unitSpent(u)) return true;
   if (!session_.db.rules.production) return false;
   std::vector<int> opts;
   for (Cell c = 0; c < battle_.grid.cellCount(); ++c) {
@@ -280,6 +280,7 @@ std::string BattleScene::hint() const {
       const Unit& su = battle_.units[(size_t)sel_];
       if (battle_.maxFuel(sel_) > 0 && battle_.fuel(sel_) < battle_.stat(su, session_.db.rules.statMove))
         return EconomyWords::kLowFuel + intStr(battle_.fuel(sel_)) + "  {ok}:move  {cancel}:cancel";
+      if (battle_.apGame()) return apSelectedHint();  // names the AP price of the square under the cursor
       return "{dpad}:cursor  {ok}:move here (own cell = stay)  {cancel}:cancel";
     }
     case Mode::ActionMenu:
