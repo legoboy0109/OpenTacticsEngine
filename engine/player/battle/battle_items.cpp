@@ -5,6 +5,7 @@
 // view animates the events and the Continue save is written.
 #include "battle/battle_scene.h"
 #include "battle/item_text.h"
+#include "battle/storage_stack.h"
 #include "battle/rank_text.h"
 #include "core/base/log.h"
 #include "ui/text.h"
@@ -136,8 +137,20 @@ void BattleScene::openStorage() {
   menu_.close();
   const std::vector<ItemStack>& store = battle_.sides[(size_t)battle_.units[sel_].side].storage;
   std::vector<PanelRow> rows;
-  for (const ItemStack& s : store) rows.push_back(stackRow(battle_, s, false));
+  for (const StorageRow& g : stackStorage(store)) {  // identical copies are one row with a count
+    ItemStack s;
+    s.item = g.item;
+    s.uses = g.uses;
+    s.drop = g.drop;
+    PanelRow row = stackRow(battle_, s, false);
+    row.count = g.count;
+    rows.push_back(row);
+  }
   itemPanel_.open("Storage", "", rows, "The storage is empty.");
+  std::string log;  // the screen tests read this: one entry per row, "Potion 3/3 x3"
+  for (const PanelRow& r : rows)
+    log += (log.empty() ? "" : ", ") + r.label + (r.extra.empty() ? "" : " " + r.extra) + (r.count > 1 ? " x" + intStr(r.count) : "");
+  OTE_INFO("storage: %d rows [%s]", (int)rows.size(), log.c_str());
 }
 
 void BattleScene::openShop() {
@@ -274,7 +287,10 @@ void BattleScene::itemsInput(const InputEvent& e) {
       if (res == ItemPanel::Back) { closeItems(); openActionMenu(); }
       else if (res == ItemPanel::Picked) {
         if (!battle_.hasRoom(u)) say(u.name + " cannot carry more");
-        else submitItem(Action::fetchItem(sel_, itemPanel_.sel()));
+        else {  // one copy: the first of the row's identical ones
+          const std::vector<StorageRow> rows = stackStorage(battle_.sides[(size_t)u.side].storage);
+          if (itemPanel_.sel() >= 0 && itemPanel_.sel() < (int)rows.size()) submitItem(Action::fetchItem(sel_, rows[(size_t)itemPanel_.sel()].index));
+        }
       }
       break;
     }

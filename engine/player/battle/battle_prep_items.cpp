@@ -5,6 +5,7 @@
 #include "battle/battle_prep_ui.h"
 #include "battle/item_text.h"
 #include "battle/prep_text.h"
+#include "battle/storage_stack.h"
 #include "core/base/log.h"
 #include "sound/cue_sink.h"
 #include "ui/text.h"
@@ -50,7 +51,22 @@ using namespace prepui;
 std::vector<PanelRow> grantRows(const Battle& b, const Playthrough& pt, const std::string& holder,
                                 const std::vector<ItemGrant>& items, int padTo) {
   std::vector<PanelRow> rows;
-  const int equipped = holder.empty() ? -1 : prepEquippedAt(*b.db, pt, holder);
+  if (holder.empty()) {  // the storage: identical copies are one row with a count (battle/storage_stack.h)
+    for (const StorageRow& g : stackStorage(items)) {
+      ItemStack s;
+      s.item = g.item;
+      s.uses = g.uses;
+      s.drop = g.drop;
+      PanelRow row;
+      row.label = b.itemOf(s).name;
+      row.extra = usesText(b, s);
+      row.detail = itemDetail(b, s);
+      row.count = g.count;
+      rows.push_back(row);
+    }
+    return rows;
+  }
+  const int equipped = prepEquippedAt(*b.db, pt, holder);
   for (size_t i = 0; i < items.size(); ++i) {
     const ItemStack s = stackOf(items[i]);
     PanelRow row;
@@ -150,6 +166,10 @@ void BattleScene::prepTradeOpen(int col, int row) {
   if (p.with.empty()) {
     rightName = PrepWords::kStorage;
     right = grantRows(battle_, *p.pt, "", prepStorage(*p.pt, p.map), 0);
+    std::string stock;  // the tests read this: one entry per row, "Potion 3/3 x3"
+    for (const PanelRow& r : right)
+      stock += (stock.empty() ? "" : ", ") + r.label + (r.extra.empty() ? "" : " " + r.extra) + (r.count > 1 ? " x" + intStr(r.count) : "");
+    OTE_INFO("prep storage: %d rows [%s]", (int)right.size(), stock.c_str());
     if (right.empty()) {
       PanelRow none;
       none.label = PrepWords::kStorageEmpty;
@@ -181,8 +201,9 @@ void BattleScene::prepTradePicked(bool direct) {
     if (!direct && prepTradeNeedsChoice(row)) { prepTradeChoiceOpen(row); return; }  // a weapon: Hand over or Equip
     ok = p.with.empty() ? prepStore(db, *p.pt, p.map, p.who, row, why) : prepGive(db, *p.pt, p.map, p.who, row, p.with, why);
   } else if (p.with.empty()) {
-    if (row >= (int)prepStorage(*p.pt, p.map).size()) { say(PrepWords::kNothingToTake); return; }
-    ok = prepFetch(db, *p.pt, p.map, p.who, row, why);
+    const std::vector<StorageRow> stock = stackStorage(prepStorage(*p.pt, p.map));
+    if (row >= (int)stock.size()) { say(PrepWords::kNothingToTake); return; }
+    ok = prepFetch(db, *p.pt, p.map, p.who, stock[(size_t)row].index, why);  // one copy: the first of the row's identical ones
   } else {
     const RosterUnit* b = member(*p.pt, p.with);
     if (!b || row >= (int)b->items.size()) { say(PrepWords::kNothingToTake); return; }

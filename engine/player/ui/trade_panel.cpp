@@ -30,6 +30,12 @@ void TradePanel::open(const std::string& nameA, const std::vector<PanelRow>& a, 
 void TradePanel::layout(const Renderer& r) {
   const int lh = r.lineHeight(), rowH = lh + 4;
   w_ = std::min(aw_ - 8, std::max(220, std::min(320, aw_ - 20)));
+  // What each list's widest row needs (marker, name, count, uses). A panel too narrow for them grows, up to the whole screen (a
+  // stacked storage row, "Potion  x3  2/2", at a big UI scale next to the sidebar), then the columns share what there is.
+  int need[2] = {0, 0};
+  for (int c = 0; c < 2; ++c)
+    for (const PanelRow& row : rows_[c]) need[c] = std::max(need[c], panelRowWidth(r, row));
+  w_ = std::min(std::max(w_, need[0] + need[1] + 2 * kPad + kGap), std::max(w_, r.width() - 8));
   int rows = std::max(1, std::max(list_[0].count, list_[1].count));
   int fixedTop = kPad + lh + 4, fixedBottom = 2 * lh + 4 + kPad;
   int avail = ah_ - 8 - fixedTop - fixedBottom;
@@ -38,14 +44,23 @@ void TradePanel::layout(const Renderer& r) {
   int shown = std::max(1, std::min(rows, avail / rowH));
   int mark = scroll ? lh + 1 : 0;
   h_ = fixedTop + mark + shown * rowH + mark + fixedBottom;
-  x_ = ax_ + (aw_ - w_) / 2;
+  x_ = std::max(4, std::min(ax_ + (aw_ - w_) / 2, r.width() - w_ - 4));  // centred on the area, but never off the screen
   y_ = ay_ + (ah_ - h_) / 2;
-  int colW = (w_ - 2 * kPad - kGap) / 2;
+  // Equal columns, unless one list needs more than half and the other less: then the wide one takes what the narrow one leaves
+  // (a stacked storage row, "Potion  x3  2/2", next to a unit's short "Token").
+  const int total = w_ - 2 * kPad - kGap;
+  int colW[2] = {total / 2, total - total / 2};
+  for (int c = 0; c < 2; ++c)
+    if (need[c] < colW[c] && need[1 - c] > colW[1 - c]) {
+      colW[c] = std::max(need[c], 40);
+      if (need[0] + need[1] > total) colW[c] = std::min(colW[c], total * 35 / 100);  // neither fits whole: the long list gets the bigger share
+      colW[1 - c] = total - colW[c];
+    }
   headY_ = y_ + kPad;
   for (int c = 0; c < 2; ++c) {
     list_[c].rowH = rowH;
-    list_[c].x = x_ + kPad + c * (colW + kGap);
-    list_[c].w = colW;
+    list_[c].x = x_ + kPad + (c ? colW[0] + kGap : 0);
+    list_[c].w = colW[c];
     list_[c].y = y_ + fixedTop + mark;
     list_[c].h = shown * rowH;
   }

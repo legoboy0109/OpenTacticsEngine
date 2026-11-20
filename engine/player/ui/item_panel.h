@@ -21,6 +21,7 @@ struct PanelRow {
   bool dim = false;    // cannot be chosen (shown greyed; choosing it is still reported)
   bool mark = false;   // the equipped weapon
   bool blank = false;  // a free slot ("-")
+  int count = 0;       // identical copies stacked in this row (shown "Name  x3" when above 1; the name is shortened, never the count)
   // A picture before the name (the preparation screen's unit rows): `icon` draws it into the square it is given, `iconSize` is the
   // square's side in pixels (the panel makes the rows tall enough). `sub` is a second, dimmer line under the name ("Lv2 Soldier").
   std::function<void(Renderer&, int x, int y, int size)> icon;
@@ -30,6 +31,9 @@ struct PanelRow {
 
 // One row inside `x, y, w, h` (shared with the trade panel).
 void drawPanelRow(Renderer& r, int x, int y, int w, int h, const PanelRow& row, bool selected);
+// The width one row needs to show everything (marker, name with its count, gap, extra): the trade panel shares the width
+// between its two columns by what their rows need.
+int panelRowWidth(const Renderer& r, const PanelRow& row);
 
 class ItemPanel {
  public:
