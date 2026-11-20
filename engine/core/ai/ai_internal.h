@@ -124,8 +124,9 @@ void considerPatrol(const Stance& st, const Battle& b, const Unit& u, const std:
 bool hostileWithinMoveCost(const Battle& b, const Unit& u, int within);
 
 // ---- ai_weights.cpp (docs/AI.md "Attack weights") ----
-// The unit's best attack by its weight set (rules.ai.weights); false when it has none to make (nothing scores above 0, or attackAtZero is off).
-bool weightedAttack(const Battle& b, const Unit& u, const Stance& st, const Reach& reach, const std::vector<Cell>& stops, Order& out);
+// The unit's best attack by the weight set `w` (its behaviour's rules.ai.weights set, or its side's faction's); false when it has none to make
+// (nothing scores above 0, or attackAtZero is off).
+bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const Stance& st, const Reach& reach, const std::vector<Cell>& stops, Order& out);
 
 // ---- ai_retreat.cpp (docs/AI.md "Retreat to heal") ----
 // The order of a unit that is retreating: a healing item, a step toward the terrain it falls back to (or away from the enemy), else Wait.

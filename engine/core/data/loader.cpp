@@ -11,6 +11,7 @@
 #include "core/data/loader_conditions.h"
 #include "core/data/loader_damage_types.h"
 #include "core/data/loader_difficulty.h"
+#include "core/data/loader_factions.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
@@ -399,6 +400,7 @@ bool loadGame(const std::string& gameDir, Database& out, std::string& err) {
   if (!checkVersusKeys(weaponsPath, db, err)) return false;
   if (!loadStyles(root + "/game.json", db, err)) return false;
   if (!loadAiRules(root + "/game.json", db, err)) return false;  // "rules.ai" (docs/AI.md); needs the unit types
+  if (!loadFactions(root + "/data/factions.json", db, err)) return false;  // needs unit types, structures, research, skills, resources, rules.ai (docs/ECONOMY.md "Factions")
   if (!loadGraphics(root + "/data/graphics.json", db, err)) return false;
   if (!loadCampaign(root + "/data/campaign.json", db, err)) return false;
   if (!loadSupports(root + "/data/supports.json", db, err)) return false;  // needs the characters

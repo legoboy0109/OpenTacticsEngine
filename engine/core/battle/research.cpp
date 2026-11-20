@@ -55,6 +55,8 @@ static std::string researchBlocker(const Battle& b, int side, int tech) {
   if (b.over) return "the battle is over";
   if (side != b.activeSide) return "it is not that side's turn";
   const SideState& s = b.sides[(size_t)side];
+  const std::string held = b.factionBlocksTech(side, tech);  // docs/ECONOMY.md "Factions": the side's faction may not research it
+  if (!held.empty()) return held;
   // A branch already taken or a missing structure is the more useful thing to say than "already researching".
   std::string branch = b.researchBranchBlocker(side, tech);  // research_branch.cpp
   if (!branch.empty()) return branch;

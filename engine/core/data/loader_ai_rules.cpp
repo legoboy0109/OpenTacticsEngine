@@ -35,8 +35,10 @@ const IntKey kKeys[] = {
 
 bool whole(const Json& v, int lo, int hi) { return v.isNumber() && v.asNumber() == std::floor(v.asNumber()) && v.asNumber() >= lo && v.asNumber() <= hi; }
 
-bool readWeightSet(const LoadCtx& c, const Database& db, const std::string& name, const Json& e, AiWeightSet& out) {
-  const std::string where = "rules.ai.weights \"" + name + "\"";
+}  // namespace
+
+// One set of attack weights (a "rules.ai.weights" entry, or a faction's "ai"."weights"). `where` names it in messages, `name` goes into the set.
+bool readAiWeightSet(const LoadCtx& c, const Database& db, const std::string& where, const std::string& name, const Json& e, AiWeightSet& out) {
   if (!e.isObject()) return c.fail(where, "must be an object such as { \"dmg\": 1, \"counter\": 2 }");
   out.name = name;
   for (const Json::Member& m : e.members()) {
@@ -63,8 +65,6 @@ bool readWeightSet(const LoadCtx& c, const Database& db, const std::string& name
   return true;
 }
 
-}  // namespace
-
 bool loadAiRules(const std::string& gameFile, Database& db, std::string& err) {
   Json root;
   if (!loadObjectFile(gameFile, root, err)) return false;
@@ -87,7 +87,7 @@ bool loadAiRules(const std::string& gameFile, Database& db, std::string& err) {
     for (const Json::Member& m : (*blk)["weights"].members()) {
       if (m.first.empty()) return c.fail("rules.ai.weights", "a set needs a name");
       AiWeightSet set;
-      if (!readWeightSet(c, db, m.first, m.second, set)) return false;
+      if (!readAiWeightSet(c, db, "rules.ai.weights \"" + m.first + "\"", m.first, m.second, set)) return false;
       db.rules.ai.weights.push_back(set);
     }
   }

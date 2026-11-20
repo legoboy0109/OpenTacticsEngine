@@ -311,6 +311,28 @@ struct TechnologyDef {
 };
 const int kMaxResearchTurns = 99;
 
+// One faction (data/factions.json, docs/ECONOMY.md "Factions"): what a side that takes it may produce, build and research, what it
+// starts with and what its units get side-wide. A list that was left out is no restriction (limitX false); one that was written
+// is the whole set, even when empty.
+struct FactionDef {
+  std::string id, name, description;
+  bool limitUnits = false, limitStructures = false, limitTechs = false;
+  std::vector<int> units;       // unit types it may produce
+  std::vector<int> structures;  // structure kinds it may build (an upgrade into one)
+  std::vector<int> techs;       // technologies it may research
+  std::vector<Amount> start;    // ADDED to what the map gives the side
+  std::vector<SkillGrant> modifiers;  // side-wide skills from the start (same mechanism as a technology's "grants")
+  bool hasWeights = false;      // "ai": { "weights": ... }: the attack weights of its computer units that have none of their own
+  AiWeightSet weights;
+  std::vector<std::string> tags;
+  static bool allows(bool limited, const std::vector<int>& list, int index) {
+    if (!limited) return true;
+    for (int i : list)
+      if (i == index) return true;
+    return false;
+  }
+};
+
 enum class TurnOrder { Sides /*, Speed (planned: per-unit, FFT style) */ };
 
 // game.json "rules.supply" (docs/ECONOMY.md "Repair and supply"); everything off when the block is missing.
@@ -459,6 +481,7 @@ struct Database {
   std::vector<WeaponDef> weapons;
   std::vector<ItemDef> items;            // data/items.json (optional)
   std::vector<TechnologyDef> research;   // data/research.json (optional)
+  std::vector<FactionDef> factions;      // data/factions.json (optional)
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
@@ -502,6 +525,7 @@ struct Database {
   int findVariable(const std::string& id) const;
   int findTerrain(const std::string& id) const;
   int findStructure(const std::string& id) const;
+  int findFaction(const std::string& id) const;
   int findWeapon(const std::string& id) const;
   int findItem(const std::string& id) const;
   int findTechnology(const std::string& id) const;
@@ -553,6 +577,8 @@ struct MapSideDef {
   std::vector<ItemGrant> storage; // starting contents of the side's shared storage
   int aiSeesAll = -1;             // fog: -1 = follow the map's "aiSeesAll", 0 = this computer side is bound by fog, 1 = it sees everything
   bool difficultyShift = true;    // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this computer side
+  int faction = -1;               // "faction": index into Database::factions, -1 = none (docs/ECONOMY.md "Factions")
+  bool factionChoose = false;     // "faction": "choose": the person picks before the battle (the player), a computer side by the seed (Battle::init)
 };
 
 struct MapUnitDef {

@@ -28,7 +28,7 @@ bool pick(SField& f, const char* who, ai::Order& out) {
   f.b().reachable(u.id, reach);
   ai::Stance st;
   std::vector<Cell> stops(1, u.cell);
-  const bool ok = ai::weightedAttack(f.b(), u, st, reach, stops, out);
+  const bool ok = ai::weightedAttack(f.b(), u, f.b().db->rules.ai.weights[(size_t)u.behaviour.weightSet], st, reach, stops, out);
   out.score -= 200;
   return ok;
 }

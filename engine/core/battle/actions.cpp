@@ -34,8 +34,10 @@ void Battle::buildOptions(Cell cell, std::vector<int>& unitTypes, bool includeLo
   int si = structureAt[cell];
   if (si < 0 || structures[si].owner != activeSide || occupant[cell] != -1) return;
   // The new unit appears on this very square, so it must be able to enter it.
+  // includeLocked also keeps what research or the side's faction holds back, so a menu can show it greyed with the reason.
   for (int t : defOf(structures[si]).produces)
-    if (enterCost(cell, db->unitTypes[t].moveType) > 0 && (includeLocked || unitUnlocked(activeSide, t)))
+    if (enterCost(cell, db->unitTypes[t].moveType) > 0 &&
+        (includeLocked || (unitUnlocked(activeSide, t) && factionBlocksUnit(activeSide, t).empty())))
       unitTypes.push_back(t);
 }
 
@@ -49,6 +51,8 @@ bool Battle::canBuild(Cell cell, int unitType, std::string* why) const {
   const std::vector<int>& list = defOf(structures[si]).produces;
   if (std::find(list.begin(), list.end(), unitType) == list.end()) return fail(why, "that unit cannot be built here");
   if (enterCost(cell, db->unitTypes[unitType].moveType) <= 0) return fail(why, "that unit could not enter this square");
+  const std::string held = factionBlocksUnit(activeSide, unitType);  // docs/ECONOMY.md "Factions"
+  if (!held.empty()) return fail(why, held.c_str());
   if (!unitUnlocked(activeSide, unitType)) {
     std::vector<int> techs;
     unlockedBy(unitType, techs);

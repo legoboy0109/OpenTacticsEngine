@@ -24,6 +24,8 @@ void Battle::pay(int side, const std::vector<Amount>& cost, std::vector<Event>& 
 static std::string upgradeBlocker(const Battle& b, int structure, const UpgradeDef& up) {
   const Database& db = *b.db;
   const int side = b.activeSide;
+  const std::string held = b.factionBlocksStructure(side, up.to);  // docs/ECONOMY.md "Factions"
+  if (!held.empty()) return held;
   if (up.needs >= 0 && !b.hasTechnology(side, up.needs)) return "needs " + db.research[(size_t)up.needs].name;
   std::vector<Cell> cells;
   b.structureCells(structure, cells);

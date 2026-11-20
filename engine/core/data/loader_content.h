@@ -34,6 +34,9 @@ bool loadSupplyRules(const LoadCtx& c, const Json& rules, Database& db);  // gam
 // game.json "rules.items.freeBattleStorage" (loader_free_stock.cpp): after the items and resources are known.
 bool loadFreeBattleStock(const std::string& gameFile, Database& db, std::string& err);
 bool loadAiRules(const std::string& gameFile, Database& db, std::string& err);  // game.json "rules.ai" (loader_ai_rules.cpp; docs/AI.md)
+// One set of attack weights, as "rules.ai.weights" writes them (also a faction's "ai"."weights"; loader_ai_rules.cpp). `where` names it in
+// messages, `name` goes into the set; keys left out keep the AiWeightSet defaults.
+bool readAiWeightSet(const LoadCtx& c, const Database& db, const std::string& where, const std::string& name, const Json& e, AiWeightSet& out);
 bool readWeaponAmmo(const LoadCtx& c, const Json& e, const std::string& where, WeaponDef& w);
 bool readUnitSupply(const LoadCtx& c, const Json& e, const std::string& where, UnitTypeDef& u);
 bool readStructureRepairs(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, StructureDef& s);

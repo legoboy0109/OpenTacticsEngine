@@ -83,7 +83,7 @@ bool Battle::modifierApplies(const SideModifier& m, const Unit& u) const {
 void Battle::addSideModifier(int side, const SideModifier& m) {
   if (side < 0 || side >= (int)sides.size()) return;
   for (const SideModifier& o : sides[(size_t)side].modifiers)
-    if (o.skill == m.skill && o.filterType == m.filterType && o.filterTag == m.filterTag && o.tech == m.tech && o.grant == m.grant) return;
+    if (o.skill == m.skill && o.filterType == m.filterType && o.filterTag == m.filterTag && o.tech == m.tech && o.grant == m.grant && o.faction == m.faction) return;
   sides[(size_t)side].modifiers.push_back(m);
 }
 

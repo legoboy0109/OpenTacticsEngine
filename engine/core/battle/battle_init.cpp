@@ -78,6 +78,13 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
     s.researched.assign(db->research.size(), 0);
     for (const Amount& a : sd.resources)
       if (a.resource >= 0 && a.resource < (int)s.resources.size()) s.resources[a.resource] += a.amount;
+    // Factions (docs/ECONOMY.md): "choose" that nobody picked is settled here (a computer side by the seed); the faction's
+    // start resources are added to the map's.
+    int faction = sd.factionChoose ? defaultFactionChoice(*db, seed, (int)sides.size(), sd.ai) : sd.faction;
+    if (faction >= (int)db->factions.size()) faction = -1;
+    if (faction >= 0)
+      for (const Amount& a : db->factions[(size_t)faction].start)
+        if (a.resource >= 0 && a.resource < (int)s.resources.size()) s.resources[a.resource] += a.amount;
     for (const ItemGrant& g : sd.storage) {
       ItemStack st;
       st.item = g.item;
@@ -85,6 +92,7 @@ bool Battle::init(const Database& database, const MapDef& map, Formulas& formula
       s.storage.push_back(st);
     }
     sides.push_back(s);
+    takeFaction((int)sides.size() - 1, faction);  // its side-wide skills (factions.cpp)
   }
   teamCount = (int)teamNames.size();
   // A team sees everything only when every one of its sides is a computer side that does.

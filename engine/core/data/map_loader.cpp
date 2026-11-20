@@ -5,6 +5,7 @@
 #include "core/data/footprint.h"
 #include "core/data/loader_content.h"
 #include "core/data/loader_difficulty.h"
+#include "core/data/loader_factions.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_map_weapon.h"
@@ -120,6 +121,7 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     }
     if (!c.str(e, "color", where, color)) return false;
     if (!c.boolean(e, "difficultyShift", where, s.difficultyShift)) return false;  // docs/DIFFICULTY.md
+    if (!readSideFaction(c, db, e, where, s)) return false;  // "faction": an id or "choose" (docs/ECONOMY.md "Factions")
     s.color = parseColor(color, 0xffffff);
     if (!c.amounts(db, e, "resources", where, s.resources)) return false;
     if (!readItemGrants(c, db, e, "storage", where, false, -1, s.storage)) return false;
