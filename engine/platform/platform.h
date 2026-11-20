@@ -34,6 +34,12 @@ enum class Button {
   Skip  // "skip everything" in a dialogue: no key or pad button makes it, only the --input script (and tests)
 };
 
+// Which kind of input device made an event. The player names the controls of the device last used in its hint lines
+// (player/ui/input_hints.h). A backend sets it on every event it translates; None = "no information, do not switch" (the
+// system back request, the mouse wheel, quit). Scripted input (--input) is Keyboard unless the script says otherwise.
+// Touch also stands for a mouse press: both are "tap" in the hints.
+enum class InputDevice { None, Keyboard, Controller, Touch };
+
 struct InputEvent {
   // CameraDrag: the pointer's second button (right mouse button) is held and
   // the pointer moved; x, y are how far, not where.
@@ -41,6 +47,7 @@ struct InputEvent {
   Type type = ButtonDown;
   Button button = Button::None;
   int x = 0, y = 0;  // pointer position in LOGICAL pixels
+  InputDevice device = InputDevice::None;
 };
 
 // Which font to draw text with. An empty file means the built-in 8x8 pixel
@@ -265,5 +272,9 @@ std::vector<std::string> platformLaunchArgs();
 // (tests; on UWP it can go into LocalState/args.txt as a NAME=value word).
 enum class LauncherBack { Nothing, Exit, ConfirmExit };
 LauncherBack launcherBack();
+
+// The device a person starts with before any input: the controller on UWP / Xbox / the original Xbox, touch on Android,
+// the keyboard everywhere else (web included). OTE_INPUT_DEVICE=keyboard|controller|touch overrides it (tests).
+InputDevice naturalInputDevice();
 
 }  // namespace ote

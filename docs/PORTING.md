@@ -84,6 +84,18 @@ Every screen is operable with a controller alone (d-pad or left stick, A confirm
 Prev/Next, X/Y = turn camera, right stick and triggers = free camera): all screens take their input as `Button`s; pointer
 handlers are additions that call the same actions. No screen has text entry. Skipping a dialogue is "hold Cancel or Menu".
 
+**Hints name the device in use.** Every hint / reminder line (`Z:select`, `Confirm: open`, `tap: ...`) is a template with
+`{tokens}` that `player/ui/input_hints.h` expands for the device of the most recent real press: keyboard, controller
+(Xbox layout names: A confirm, B cancel, Start menu, LB/RB, X/Y turn the camera, D-pad) or touch (a mouse press counts as a
+tap). Backends report it in `InputEvent::device` on every event they translate (`None` = do not switch: the back request, the
+mouse wheel); only presses switch it, releases, pointer moves and a stick inside its dead zone never do. The start value is
+`naturalInputDevice()` in `platform.h`: controller on UWP / Xbox / the original Xbox, touch on Android, keyboard elsewhere;
+`OTE_INPUT_DEVICE=keyboard|controller|touch` overrides it. A new port sets `device` in its input translation and, if its
+natural device differs, adds itself to `naturalInputDevice()`; it never names a key in a hint. Headless / scripted runs
+(`--input`) are keyboard unless `OTE_INPUT_DEVICE` is set; the script word `device:controller` (or `touch`, `keyboard`)
+changes the device of the tokens after it. A new hint line is written with tokens (see the table in `input_hints.cpp`), never
+with a key name (`tests/test_input_hints.cpp`, `tests/input_hints_player_test.py`).
+
 ## Build
 
 - **Entry point.** `engine/player/main.cpp` includes `platform/platform_main.h`, which pulls in `SDL_main.h` of the

@@ -14,6 +14,9 @@
 #include "scene_audio_test.h"
 #include "scene_options.h"
 #include "scene_select.h"
+#include "ui/input_hints.h"
+
+#include <cstdlib>
 
 namespace ote {
 
@@ -55,6 +58,13 @@ void logMemory(const char* when, uint64_t artBytes) {
 }  // namespace
 
 bool PlayerApp::start(std::string& err) {
+  // The hints name the controls of the device in use. A headless run is scripted: keyboard, so the screens stay the same as
+  // ever, unless OTE_INPUT_DEVICE says otherwise (tests of the other devices).
+  const bool forced = std::getenv("OTE_INPUT_DEVICE") != nullptr;
+  const InputDevice first = args_.headless && !forced ? InputDevice::Keyboard : naturalInputDevice();
+  setInputDevice(first);
+  script_.setDevice(first);
+  if (first != InputDevice::Keyboard) OTE_INFO("input device: %s", inputDeviceName(first));
   if (!args_.input.empty() && !script_.parse(args_.input, args_.inputInterval, err)) return false;
   return true;
 }
@@ -146,6 +156,7 @@ void PlayerApp::quit() {
 void PlayerApp::onInput(const InputEvent& e) {
   // The web only lets sound start after a key press or tap: the device is opened on the first one.
   if (audio_.devicePending() && (e.type == InputEvent::ButtonDown || e.type == InputEvent::PointerDown)) openAudioDevice();
+  if (noteInputEvent(e)) OTE_INFO("input device: %s", inputDeviceName(currentInputDevice()));
   if (e.type == InputEvent::Quit) { quit_ = true; flushSettings(); }
   else if (scene_) scene_->onInput(e);
   runPending();
@@ -165,6 +176,11 @@ void PlayerApp::update(double dt) {
     std::vector<InputEvent> injected;
     std::vector<Lifecycle> notices;
     script_.tick(injected, notices);
+    InputDevice named = InputDevice::None;
+    if (script_.takeDevice(named) && named != currentInputDevice()) {
+      setInputDevice(named);
+      OTE_INFO("input device: %s", inputDeviceName(named));
+    }
     for (Lifecycle n : notices) onLifecycle(n);
     for (const InputEvent& ev : injected) onInput(ev);
     if (script_.finished() && args_.frames == 0) quit_ = true;

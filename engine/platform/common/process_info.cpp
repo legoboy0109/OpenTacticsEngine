@@ -79,4 +79,19 @@ LauncherBack launcherBack() {
 #endif
 }
 
+InputDevice naturalInputDevice() {
+  if (const char* o = std::getenv("OTE_INPUT_DEVICE")) {
+    if (!std::strcmp(o, "keyboard")) return InputDevice::Keyboard;
+    if (!std::strcmp(o, "controller")) return InputDevice::Controller;
+    if (!std::strcmp(o, "touch")) return InputDevice::Touch;
+  }
+#if defined(OTE_UWP) || defined(OTE_NXDK)
+  return InputDevice::Controller;  // consoles: a pad is what is in the hands
+#elif defined(__ANDROID__)
+  return InputDevice::Touch;  // a phone; the first pad button switches to Controller
+#else
+  return InputDevice::Keyboard;
+#endif
+}
+
 }  // namespace ote
