@@ -119,7 +119,7 @@ handlers are additions that call the same actions. No screen has text entry. Ski
   data = `<that folder>\userdata`), a fixed 640x480 / 1280x720 screen with a title-safe rectangle instead of a window
   (`SdlRenderer::setFixedScreen`, `Renderer::setSafeArea`, an Xbox-only "Screen margin" option row), `platformLaunchArgs()` from
   `D:\args.txt` (test scripts in the emulator), a flushed log file, `platformFileName()` (FATX-safe folder names), the dashboard
-  exit, no 3D views (`viewSupported()`), and libc replacements for what nxdk's C library lacks (`%f` in printf among them).
+  exit, hardware 3D on the NV2A (`platform/nxdk/hw3d_*`, `nxdk_present.*`: the 2D layer is a surface of ours that the chip composes over the 3D picture), and libc replacements for what nxdk's C library lacks (`%f` in printf among them).
   Everything is in docs/XBOX_OG.md.
 
 ## Still missing
@@ -138,9 +138,9 @@ missing: a run on a real Xbox (Device Portal install, the 1 GB budget, B and a r
 D3D11 device removal handling for SDL's 2D textures (same gap as the other platforms, "Not handled" above), a decision
 on B on the launcher, final names and logos.
 
-Original Xbox (nxdk, SDL2 2.0.9, 2D only): built and run in xemu only, see docs/XBOX_OG.md: launcher, the three demos, saves, Continue,
-exit to the dashboard, 4:3 / 16:9 and 480 / 720p. Never run on a real console; sound, a real controller and a real TV unverified; 3D
-off until a native NV2A backend exists.
+Original Xbox (nxdk, SDL2 2.0.9): built and run in xemu only, see docs/XBOX_OG.md: launcher, the three demos, saves, Continue,
+exit to the dashboard, 4:3 / 16:9, 480 / 720p, and the 3D styles on a native NV2A backend (docs/RENDER3D.md). Never run on a real
+console; sound, a real controller, a real TV and the real chip (xemu's NV2A is an emulation) unverified.
 
 Non-portable code noticed: the tests are desktop-only and reach `mkdir`/`rmdir`/`chmod` through `tests/posix_compat.h`
 (MSVC shims). `saves.cpp` / `progress.cpp` use `localtime_r` / `gmtime_r` behind `_WIN32` (fine). No `<filesystem>`, `dirent`

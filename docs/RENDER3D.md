@@ -101,6 +101,7 @@ the same.
 | Software (`soft3d.h`) | everywhere: SDL3, SDL2, web, headless tests | built |
 | OpenGL (`gl/gl_renderer3d.h`) | PC (SDL3, SDL2), web, Android | built |
 | Direct3D 11 (`d3d11/d3d11_renderer3d.h`) | Windows desktop (SDL3); UWP / Xbox (SDL2) | built; run on WARP only (no GPU, no console) |
+| NV2A through pbkit (`platform/nxdk/hw3d_*`) | original Xbox (nxdk) | built; run in xemu only |
 | Console SDKs | homebrew ports | with each port |
 
 The software backend draws into an RGBA picture (`framePixels`); the player
@@ -297,6 +298,47 @@ compiled on Windows only (`#ifdef _WIN32` in those files and in
   `SDL_APP_WILLENTERBACKGROUND`, after `ClearState` as the documentation asks
   (`suspending: own device trimmed`); the backend sets all its state again
   every frame.
+
+### Original Xbox (NV2A) backend
+
+`Renderer3D` on the first Xbox's graphics chip through nxdk's pbkit, for the port in docs/XBOX_OG.md. Files in
+`engine/platform/nxdk/`: `hw3d_gpu.*` (pbkit start, frames, memory, the push-buffer commands; the only place that writes them),
+`hw3d_renderer.*` (the `Renderer3D`), `hw3d_texture.*` (swizzling and mipmaps, plain C++), `hw3d_clip.*` (cutting triangles at
+the camera, plain C++), `nxdk_present.*` (the 2D layer and how the chip composes it), `nxdk_hw3d.cpp` (the factory). It keeps the
+contract and does the other backends' arithmetic; `framePixels()` is null.
+
+- **One vertex program and one pixel stage, not the chip's fixed-function pipeline.** `tools/xbox-og/shaders/hw3d_vp.vsh` is
+  NV_vertex_program 1.1 assembly (position with the viewport and divide by w done by hand, which the chip wants; lighting per vertex
+  from one sun and the ambient colour; vertex colour x material colour; fog by distance; texture position) and `hw3d_ps.rc` a
+  register combiner (texture x colour + fog share). nxdk's own `vp20compiler` / `fp20compiler` turn them into
+  `hw3d_vp.inl` / `hw3d_ps.inl` (`tools/xbox-og/shaders/make_shaders.sh NXDK`); the generated files are committed, so a build needs no
+  shader tool, nothing is compiled at run time, and no Microsoft file is involved. A program rather than the fixed-function
+  pipeline because the arithmetic is then exactly the software backend's (and fixed-function lighting on this chip has a different
+  model), and it is the path nxdk's samples show.
+- **Composition with the 2D layer** (docs/XBOX_OG.md "3D"): the 2D layer is a surface; when a 3D picture begins, what is drawn so far
+  goes to the screen as one rectangle, the picture is drawn into the frame's rectangle mapped through the same fit (safe area,
+  anamorphic) as the 2D canvas, and what the 2D renderer draws afterwards is blended over it. `renderWidth/Height` and `samples` are
+  ignored: the picture is drawn at the screen's pixels, without smoothing of edges.
+- **Draws**: solid draws go to the push buffer at once, `Blend` ones wait for `end()` and are drawn far to near by the mesh's origin
+  without writing depth (as the software backend). Cut-out is the chip's alpha test (`alpha >= ceil(cutoff x 255)`), blend is
+  source alpha. Depth is 24 bit, "less"; a material without depth test still writes depth, as the software one. Culling: counter-
+  clockwise faces are front.
+- **Meshes** are kept as `Vertex3D` is laid out (36 bytes) in write-combined memory the chip reads in place; indices (16 bit) are
+  written inline into the push buffer per draw. `updateMesh` rewrites the vertices in place (a memcpy) when they still fit.
+  A copy stays in ordinary memory for the CPU cutting.
+- **Textures**: A8R8G8B8, swizzled, power of two up to 1024 a side, nearest or linear, trilinear with the box-filtered mipmaps made
+  when asked; repeat or clamp-to-edge. Memory budgets and the half-size rule: docs/XBOX_OG.md "3D". Without a texture a 1x1 white one.
+- **Clipping**: a mesh whose bounding box is inside the clip volume (in front of the near plane, within a guard band around the screen
+  of up to 8 half-screens, about 1800 pixels) is drawn as is; one wholly outside is skipped; one crossing it has its triangles cut
+  against the volume by the CPU (`clipMesh`: whole triangles keep their indices, cut ones become loose triangles in memory made for
+  the frame).
+- **`Caps3D`**: `maxTextureSize` 1024, `maxMeshVertices` 65535, `fullResolution` true. Over-size content is shrunk by the loaders
+  (glTF images, art sheets: `sheets3d.cpp` shrinks a sheet over the size instead of refusing it, for every backend).
+- **Checked by** the host unit tests (`tests/test_nxdk_hw3d.cpp`: swizzle addresses, mipmaps, alpha-weighted halving, the cutting) and
+  by the scene set in xemu against the software backend (docs/XBOX_OG.md "3D": 0.3 to 2.5% of pixels differ after blurring away
+  edge noise, for the test scene and every 3D style of the three demos but "Detailed 3D", which does not fit the memory).
+  Never run on a real console.
+
 
 ### Losing the device
 
