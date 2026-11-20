@@ -149,6 +149,10 @@ if(EMSCRIPTEN)
     -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1048576
     -sFORCE_FILESYSTEM=1 -lidbfs.js
     -sEXPORTED_RUNTIME_METHODS=FS,callMain,IDBFS
+    # SDL's software renderer (a browser without WebGL: acceleration off or blocked) shows its picture through
+    # Emscripten's Browser helper, which nothing else pulls in: without this line that browser stops with
+    # "Browser is not defined".
+    "-sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$Browser"
     # The hardware 3D backend: WebGL 2, its functions looked up by name.
     -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1)
 
