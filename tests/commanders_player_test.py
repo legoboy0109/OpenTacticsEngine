@@ -163,6 +163,13 @@ def main():
     check('no commanders file: no screen, no entries, the battle starts',
           not lines(log, 'commander choice:') and not lines(log, 'power entries:') and bool(lines(log, 'turn: Blue')), log[-300:])
 
+    # ---- the enemy's meter is in the panel too (a row under the own meter), at both scales, and it changes when the enemy deals damage (the counter)
+    for tag, scale in (('enemy', None), ('enemy_150', 150)):
+        log = play('cmd', 'field', IDLE + ',' + HIT, tag, scale)
+        om = lines(log, 'other meter:')
+        check('%s: the enemy commander\'s meter row is there at 0 and has grown after its counter-attack' % tag,
+              len(om) >= 2 and om[0] == 'other meter: Bram 0/60' and om[-1] != om[0] and om[-1].startswith('other meter: Bram ') and clean(log), om)
+
     # ---- a fixed commander (map "field"): no screen; the panel and the entries are there from the start
     log = play('cmd', 'field', IDLE + ',menu,wait:3', 'field')
     check('field: no commander screen for a side whose commander the map names',
