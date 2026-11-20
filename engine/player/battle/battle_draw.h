@@ -178,7 +178,13 @@ void drawHint(Renderer& r, const Layout& L, const std::string& hint);
 void panelResourceAnchor(const Layout& L, int resourceCount, int& x, int& y);
 
 // Combat forecast box for attacker -> defender.
-void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int weapon, Cell targetCell);
+// `extra`: one more line along the foot of the box (an area attack's other victims; empty = none).
+void drawForecast(Renderer& r, const DrawCtx& c, int attacker, int defender, int weapon, Cell targetCell, const std::string& extra = std::string());
+// The box of an area attack aimed at `cell` (forecast_area.cpp; docs/SRPG.md "Area attacks and line fire"): the usual forecast of the unit on
+// the square plus a line for everybody else the attack hits, or, for an empty square, a box of its own.
+void drawAreaForecast(Renderer& r, const DrawCtx& c, int attacker, int weapon, Cell cell);
+// The compact line for the victims other than the aimed one, "+2 more: 5, 7 dmg" (allies "ally 4"); empty when there are none that can be seen.
+std::string areaOthersText(const Battle& b, const AreaForecast& f);
 
 // The forecast box of a staff (staff_forecast.cpp; docs/SRPG.md section 8): what the use would do to each unit hit.
 void drawStaffForecast(Renderer& r, const DrawCtx& c, const StaffForecast& f, Cell targetCell);

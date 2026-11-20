@@ -22,12 +22,14 @@ bool BattleView::takeFightRun(const Battle& b) {
     u0 = head.a;
     u1 = head.c;
   } else if (head.type == EventType::Attack) {
+    if (head.flags & kArea) return false;  // one strike of an area attack: played on the map (docs/SRPG.md "Area attacks and line fire")
     u0 = head.a;
     u1 = head.b;
   } else {  // skills fire before the strike they belong to: look for the strike behind them
     for (const Event& e : queue_) {
       if (e.type == EventType::SkillActivated) continue;
       if (e.type == EventType::Attack) {
+        if (e.flags & kArea) return false;
         u0 = e.a;
         u1 = e.b;
       }
