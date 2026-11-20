@@ -42,6 +42,12 @@ void applyPalette(bool dark) {
   p.setColor(QPalette::Button, QColor(58, 58, 58));
   p.setColor(QPalette::ButtonText, QColor(230, 230, 230));
   p.setColor(QPalette::PlaceholderText, QColor(140, 140, 140));
+  // Fusion draws check boxes and frames from these; a real dark theme defines them, the bare palette above did not.
+  p.setColor(QPalette::Light, QColor(90, 90, 90));
+  p.setColor(QPalette::Midlight, QColor(75, 75, 75));
+  p.setColor(QPalette::Mid, QColor(110, 110, 110));
+  p.setColor(QPalette::Dark, QColor(20, 20, 20));
+  p.setColor(QPalette::Shadow, QColor(0, 0, 0));
   p.setColor(QPalette::Highlight, QColor(42, 130, 218));
   p.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
   p.setColor(QPalette::ToolTipBase, QColor(58, 58, 58));

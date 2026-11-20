@@ -95,7 +95,6 @@ void FormWindowTest::severalMechanicsThroughTheFormsThenUndoEverything() {
   JsonDocument* game = project->document("game.json");
   JsonDocument* weapons = project->document("data/weapons.json");
   const QByteArray gameOriginal = game->serialize(), weaponsOriginal = weapons->serialize();
-  const QByteArray gameDisk = ote_test::readFile(win.folder + "/game.json");
 
   // --- Rules page: a new resource "ap", then the action-point block with that resource ---------------------------
   auto* tree = qobject_cast<TreeEditor*>(win.w->editorFor("game.json"));
@@ -177,7 +176,6 @@ void FormWindowTest::severalMechanicsThroughTheFormsThenUndoEverything() {
   QVERIFY(game->root()["rules"].has("actionPoints") == false);
   // The form followed: no "ap" resource left, the block is off again.
   QVERIFY(!form->fieldAt(key(index(path({"resources"}), 1), "id")));
-  Q_UNUSED(gameDisk);
 }
 
 void FormWindowTest::problemsDoubleClickPlacesTheCursor() {
@@ -208,7 +206,7 @@ void FormWindowTest::problemsDoubleClickPlacesTheCursor() {
   QVERIFY(table->form()->hasTarget());
   FieldBase* f = table->form()->fieldAt(key(index(path({"weapons"}), 2), "damageType"));
   QVERIFY(f);
-  QCOMPARE(QString::fromStdString(table->form()->target().back().isIndex ? "row" : "?"), QString("row"));
+  QVERIFY(table->form()->target().back().isIndex);  // the form shows a row of the weapons list
 }
 
 void FormWindowTest::showInTreeOpensTheTreeOfATableFile() {
