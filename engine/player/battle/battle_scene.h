@@ -65,7 +65,8 @@ class BattleScene : public Scene {
   void aiStep();
   void beginHumanTurn();
   bool humanHasOptions() const;
-  std::string hint() const;
+  std::string hint() const;      // the line for the mode, with "(power ready)" added in the idle one (battle_commander.cpp)
+  std::string hintBase() const;  // the line for the mode
   void followCamera(double dt);
   Cell cellAt(int x, int y) const;
   // Box around a square on screen (its top face in the isometric view).
@@ -154,6 +155,10 @@ class BattleScene : public Scene {
   void addSrpgEndEntries(std::vector<MenuItem>& items);  // battle menu, after Objective: Unit
   bool srpgMenuChosen(int id);                           // an id of the action menu outside the old ones
   bool srpgEndMenuChosen(int id);
+  // --- battle_commander.cpp: commander powers in the map menu (docs/COMMANDERS.md "Player")
+  void addPowerEntries(std::vector<MenuItem>& items);  // after End Turn: one "Power: <name>" per power, greyed when it cannot be used
+  bool powerMenuChosen(int id);                        // true when `id` was a power's (it is used)
+  std::string withPowerHint(std::string line) const;
   void addSupportEntries(std::vector<MenuItem>& items);    // battle_menu_supports.cpp (U5)
   bool supportChosen(int id);
   void addAbilityEntries(std::vector<MenuItem>& items);    // battle_menu_abilities.cpp (U3)

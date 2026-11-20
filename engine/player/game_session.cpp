@@ -40,6 +40,7 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
   applyFactionPicks(map);  // the person's choices of the faction screen
+  applyCommanderPicks(map);  // ... and of the commander screen (docs/COMMANDERS.md)
   applyFreeSupply(db, map);  // rules.items.freeBattleStorage: a free battle's stocked supply (never a campaign's)
   if (map.prep) {  // no screen on this path (autoplay, the simulator's rules): the default pick, docs/EVENTS.md "Preparation"
     Playthrough scratch;
@@ -68,6 +69,7 @@ bool GameSession::startMapPrep(const std::string& mapId, unsigned seed, std::str
   campaign.reset();
   if (!loadMap(db, mapId, map, err)) return false;
   applyFactionPicks(map);
+  applyCommanderPicks(map);
   applyFreeSupply(db, map);  // before the screen folds the prep side's allowance into what it shows
   freePrep.reset(new Playthrough());
   prepOpenFree(db, *freePrep, map);

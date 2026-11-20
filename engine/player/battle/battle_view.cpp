@@ -252,7 +252,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   cur_.hideAtEnd = false;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
   const float cx = tile_ / 2.0f;
   switch (e.type) {
     case EventType::TurnStarted: beginTurnStarted(b); break;
@@ -315,6 +315,8 @@ void BattleView::begin(const Battle& b) {
     case EventType::UnitResupplied:
     case EventType::TerrainChanged:  // beginMapChange (battle_view_mapchange.cpp) took it above
     case EventType::SceneEffect:     // beginStory (battle_view_story.cpp) took it above
+    case EventType::PowerUsed:  // beginCommander (battle_view_commander.cpp) took these above
+    case EventType::PowerEnded:
     case EventType::MoveBlocked: break;  // beginFog (battle_view_fog.cpp) plays it for a viewer
     case EventType::UnitTurnBegan:       // beginSpeed (battle_view_speed.cpp) took these above
     case EventType::RoundStarted:
@@ -450,6 +452,8 @@ void BattleView::finish(const Battle& b) {
   switch (e.type) {
     case EventType::TurnStarted:
     case EventType::SideDefeated:
+    case EventType::PowerUsed:
+    case EventType::PowerEnded:
       banner.clear();
       bannerSub.clear();
       break;

@@ -32,7 +32,7 @@ std::vector<MapRef> collectMapRefs(const Json& game) {
 bool isReservedFile(const std::string& rel) {
   return rel == "game.json" || rel == "data/terrain.json" || rel == "data/weapons.json" ||
          rel == "data/units.json" || rel == "data/graphics.json" ||
-         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/factions.json" || rel == "data/campaign.json" ||
+         rel == "data/structures.json" || rel == "data/items.json" || rel == "data/research.json" || rel == "data/factions.json" || rel == "data/commanders.json" || rel == "data/campaign.json" ||
          rel == "data/audio.json" || isSrpgFile(rel);
 }
 
@@ -60,6 +60,7 @@ std::string checkBodyShape(const Json& body) {
   if (badType(body["items"], Json::Type::Array)) return "\"items\" must be an array";
   if (badType(body["research"], Json::Type::Array)) return "\"research\" must be an array";
   if (badType(body["factions"], Json::Type::Array)) return "\"factions\" must be an array";
+  if (badType(body["commanders"], Json::Type::Array)) return "\"commanders\" must be an array";
   // campaign: an object is written; `false` removes data/campaign.json (null / absent leave it alone).
   if (!body["campaign"].isNull() && !body["campaign"].isObject() &&
       !(body["campaign"].type() == Json::Type::Bool && !body["campaign"].asBool()))
@@ -141,12 +142,12 @@ std::string planDataFiles(PutPlan& plan, const Json& body) {
       {"terrain", "data/terrain.json", "terrain"}, {"weapons", "data/weapons.json", "weapons"},
       {"units", "data/units.json", "units"}, {"structures", "data/structures.json", "structures"},
       {"items", "data/items.json", "items"}, {"research", "data/research.json", "technologies"},
-      {"factions", "data/factions.json", "factions"}};
+      {"factions", "data/factions.json", "factions"}, {"commanders", "data/commanders.json", "commanders"}};
   for (const auto& l : lists) {
     if (body[l.key].isNull()) continue;
-    // The loader refuses an empty technology (or faction) list ("delete the file if the game has no research"), so an empty
-    // `research` / `factions` removes its file instead of writing one that would break the game.
-    if ((std::string(l.key) == "research" || std::string(l.key) == "factions") && body[l.key].size() == 0) {
+    // The loader refuses an empty technology (or faction, or commander) list ("delete the file if the game has no research"), so an empty
+    // `research` / `factions` / `commanders` removes its file instead of writing one that would break the game.
+    if ((std::string(l.key) == "research" || std::string(l.key) == "factions" || std::string(l.key) == "commanders") && body[l.key].size() == 0) {
       if (!plan.remove(l.file)) return kEscape;
       continue;
     }

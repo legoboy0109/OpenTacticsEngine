@@ -345,6 +345,8 @@ struct FactionDef {
   std::vector<int> techs;       // technologies it may research
   std::vector<Amount> start;    // ADDED to what the map gives the side
   std::vector<SkillGrant> modifiers;  // side-wide skills from the start (same mechanism as a technology's "grants")
+  bool limitCommanders = false;  // "commanders": the commanders a "choose" side of this faction may pick (docs/COMMANDERS.md); false = any
+  std::vector<int> commanders;   // indices into Database::commanders
   bool hasWeights = false;      // "ai": { "weights": ... }: the attack weights of its computer units that have none of their own
   AiWeightSet weights;
   std::vector<std::string> tags;
@@ -355,6 +357,37 @@ struct FactionDef {
     return false;
   }
 };
+
+// One instant effect of a commander power (data/commanders.json, docs/COMMANDERS.md "Powers"). `filterType` / `filterTag` pick the units it
+// touches (the side-wide skill filter: -1 / "" = every unit it could touch).
+struct CommanderEffect {
+  enum class Kind { Heal, Damage, GiveResource, Refresh };
+  Kind kind = Kind::Heal;
+  int amount = 0;               // Heal / Damage: hit points
+  std::vector<Amount> resources;  // GiveResource
+  int filterType = -1;
+  std::string filterTag;
+};
+
+// One power of a commander. `cost` is in meter points; `turns` counts the side's own turns it lasts (in a speed game: rounds).
+struct CommanderPower {
+  std::string id, name, description;
+  int cost = 0;
+  int turns = 1;
+  int growthPercent = 0;  // each earlier use of this power makes the next cost this much more (of the base cost, whole points)
+  std::vector<SkillGrant> modifiers;     // side-wide skills while it is active
+  std::vector<CommanderEffect> effects;  // applied once, when it is used
+};
+
+// One commander (data/commanders.json, docs/COMMANDERS.md): passive side-wide skills, a power meter and up to kMaxCommanderPowers powers.
+struct CommanderDef {
+  std::string id, name, description, portrait;  // portrait: a portrait id of graphics.json (optional)
+  std::vector<SkillGrant> passive;
+  int meterMax = 0;
+  int perDamageDealt = 0, perDamageTaken = 0, perTurn = 0;  // meter points per hit point of strike damage dealt / taken, and per own turn start
+  std::vector<CommanderPower> powers;
+};
+const int kMaxCommanderPowers = 4;
 
 enum class TurnOrder { Sides, Speed };  // Speed: docs/TURN_ORDER.md
 
@@ -512,6 +545,7 @@ struct Database {
   std::vector<ItemDef> items;            // data/items.json (optional)
   std::vector<TechnologyDef> research;   // data/research.json (optional)
   std::vector<FactionDef> factions;      // data/factions.json (optional)
+  std::vector<CommanderDef> commanders;  // data/commanders.json (optional; docs/COMMANDERS.md)
   std::vector<UnitTypeDef> unitTypes;
   std::vector<std::string> scripts;  // Lua files, relative to rootPath
   std::vector<MapRef> maps;
@@ -559,6 +593,7 @@ struct Database {
   int findTerrain(const std::string& id) const;
   int findStructure(const std::string& id) const;
   int findFaction(const std::string& id) const;
+  int findCommander(const std::string& id) const;
   int findWeapon(const std::string& id) const;
   int findItem(const std::string& id) const;
   int findTechnology(const std::string& id) const;
@@ -619,6 +654,8 @@ struct MapSideDef {
   bool difficultyShift = true;    // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this computer side
   int faction = -1;               // "faction": index into Database::factions, -1 = none (docs/ECONOMY.md "Factions")
   bool factionChoose = false;     // "faction": "choose": the person picks before the battle (the player), a computer side by the seed (Battle::init)
+  int commander = -1;             // "commander": index into Database::commanders, -1 = none (docs/COMMANDERS.md)
+  bool commanderChoose = false;   // "commander": "choose": like factionChoose (the faction's "commanders" list limits the pick)
 };
 
 struct MapUnitDef {

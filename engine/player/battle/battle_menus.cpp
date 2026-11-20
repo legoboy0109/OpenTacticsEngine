@@ -141,6 +141,7 @@ void BattleScene::openBuildMenu(Cell cell) {
 void BattleScene::openEndMenu() {
   mode_ = Mode::EndMenu;
   std::vector<MenuItem> items = {{"End Turn", "", true, kEndTurn}};
+  addPowerEntries(items);  // docs/COMMANDERS.md: "Power: <name>" per power of the side's commander (none without one)
   if (!battle_.objectiveText().empty()) items.push_back({"Objective", "", true, kObjective});  // only when the map has one
   addSrpgEndEntries(items);  // Unit (U1)
   // Research (docs/ECONOMY.md "Player"): whenever the game has technologies. With "needsStructure" and no research
@@ -226,6 +227,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     menu_.close();
     mode_ = Mode::Idle;
     if (res == Menu::Chosen && id == kEndTurn) submit(Action::endTurn());
+    else if (res == Menu::Chosen && powerMenuChosen(id)) {}
     else if (res == Menu::Chosen && id == kObjective) openObjective();
     else if (res == Menu::Chosen && id == kRangesEntry) toggleAllRanges();
     else if (res == Menu::Chosen && id == kResearchEntry) openResearchPanel();

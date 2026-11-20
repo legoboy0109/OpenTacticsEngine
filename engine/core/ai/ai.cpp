@@ -73,6 +73,7 @@ bool aiTakeStep(Battle& battle, std::vector<Event>& events) {
   if (battle.db->rules.speed.on) return aiTakeSpeedStep(battle, events);  // units act one at a time: this one's turn only (ai_speed.cpp)
   const int side = battle.activeSide;
   const int round = battle.round;
+  if (ai::usePowerIfWorthIt(battle, events)) return stillMyTurn(battle, side, round);  // docs/COMMANDERS.md: before the units move
 
   // 1. Best order over all ready units; the single best one goes first so
   //    strong attacks happen early and free up cells for the rest.

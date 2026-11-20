@@ -1,0 +1,9 @@
+{ "units": [
+  { "id": "soldier", "name": "Soldier", "moveType": "foot", "tags": ["infantry"], "cost": { "gold": 10 },
+    "stats": { "hp": 20, "str": 7, "def": 2, "mov": 3 }, "weapons": ["sword"] },
+  { "id": "archer", "name": "Archer", "moveType": "foot", "tags": ["ranged"], "cost": { "gold": 12 },
+    "stats": { "hp": 16, "str": 6, "def": 1, "mov": 3 }, "weapons": ["bow"] },
+  { "id": "knight", "name": "Knight", "moveType": "foot", "tags": ["mounted"], "cost": { "gold": 20 },
+    "stats": { "hp": 28, "str": 9, "def": 4, "mov": 4 }, "weapons": ["sword"] },
+  { "id": "golem", "name": "Golem", "moveType": "foot", "tags": ["heavy"], "cost": { "gold": 25 },
+    "stats": { "hp": 36, "str": 8, "def": 5, "mov": 2 }, "weapons": ["sword"] } ] }

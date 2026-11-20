@@ -29,20 +29,25 @@ bool readSkillGrant(const LoadCtx& c, const Database& db, const Json& g, const s
   out.skill = db.findSkill(skillId);
   if (out.skill < 0) return c.fail(at, "names unknown skill \"" + skillId + "\" (data/skills.json)");
   if (!filter) return true;
-  if (!filter->isObject())
+  return readGrantFilter(c, db, *filter, at, out.filterType, out.filterTag);
+}
+
+// The "filter" of a side-wide skill (also of a commander power's effects): { "type": id } | { "tag": text } | {} (= every unit).
+bool readGrantFilter(const LoadCtx& c, const Database& db, const Json& filter, const std::string& at, int& filterType, std::string& filterTag) {
+  if (!filter.isObject())
     return c.fail(at, "\"filter\" must be { \"type\": id }, { \"tag\": text } or {} for every unit");
-  if (filter->size() == 0) return true;
-  if (filter->size() > 1) return c.fail(at, "\"filter\" names more than one thing; use one of type, tag");
-  const Json::Member& m = filter->members()[0];
+  if (filter.size() == 0) return true;
+  if (filter.size() > 1) return c.fail(at, "\"filter\" names more than one thing; use one of type, tag");
+  const Json::Member& m = filter.members()[0];
   if (!m.second.isString()) return c.fail(at, "\"filter\".\"" + m.first + "\" must be text");
   if (m.first == "type") {
-    out.filterType = db.findUnitType(m.second.asString());
-    if (out.filterType < 0) return c.fail(at, "\"filter\".\"type\" names unknown unit type \"" + m.second.asString() + "\"");
+    filterType = db.findUnitType(m.second.asString());
+    if (filterType < 0) return c.fail(at, "\"filter\".\"type\" names unknown unit type \"" + m.second.asString() + "\"");
   } else if (m.first == "tag") {
-    out.filterTag = m.second.asString();
+    filterTag = m.second.asString();
     bool used = false;
-    for (const UnitTypeDef& u : db.unitTypes) used = used || std::find(u.tags.begin(), u.tags.end(), out.filterTag) != u.tags.end();
-    if (!used) return c.fail(at, "\"filter\".\"tag\" \"" + out.filterTag + "\" is not a tag of any unit type");
+    for (const UnitTypeDef& u : db.unitTypes) used = used || std::find(u.tags.begin(), u.tags.end(), filterTag) != u.tags.end();
+    if (!used) return c.fail(at, "\"filter\".\"tag\" \"" + filterTag + "\" is not a tag of any unit type");
   } else {
     return c.fail(at, "\"filter\" has unknown key \"" + m.first + "\" (side-wide skills can filter by \"type\" or \"tag\")");
   }

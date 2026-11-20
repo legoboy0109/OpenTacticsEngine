@@ -86,6 +86,8 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::SoundRequested:
     case EventType::TerrainChanged:  // terrain is known to everybody anyway
     case EventType::SceneEffect:
+    case EventType::PowerUsed:  // docs/COMMANDERS.md: a commander's power is announced to everybody
+    case EventType::PowerEnded:
       return kSeenByAll;
     case EventType::UnitMoved: {
       uint32_t mask = unitTeam(e.a);

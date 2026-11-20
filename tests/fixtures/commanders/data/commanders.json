@@ -1,0 +1,20 @@
+{ "commanders": [
+  { "id": "ada", "name": "Ada", "description": "A steady captain: infantry stand firm, and her rally heals and hits harder.",
+    "passive": [ { "skill": "bulwark", "filter": { "tag": "infantry" } } ],
+    "meter": { "max": 100, "perDamageDealt": 2, "perDamageTaken": 1 },
+    "powers": [
+      { "id": "rally", "name": "Rally", "description": "Heals every unit 5 and gives +3 Strength until your next turn.", "cost": 40, "modifiers": ["frenzy"],
+        "effects": [ { "heal": 5 } ] },
+      { "id": "surge", "name": "Surge", "description": "Every unit may act again and moves 1 farther for two turns. Costs 50% more each use.", "cost": 80, "turns": 2,
+        "costGrowthPercent": 50, "modifiers": ["fleet"], "effects": [ { "refresh": true } ] } ] },
+  { "id": "bram", "name": "Bram", "description": "Fast but brittle heavies; his storm hurts every enemy and brings gold.",
+    "passive": [ "fleet", { "skill": "brittle", "filter": { "tag": "heavy" } } ],
+    "meter": { "max": 60, "perDamageDealt": 1, "perTurn": 10 },
+    "powers": [
+      { "id": "storm", "name": "Storm", "description": "Hurts every enemy 4 (never defeats) and brings 25 gold.", "cost": 30,
+        "effects": [ { "damage": 4, "to": "enemies" }, { "giveResource": { "gold": 25 } } ] } ] },
+  { "id": "cato", "name": "Cato", "description": "Slow to anger: the meter fills from blows taken.",
+    "meter": { "max": 50, "perDamageTaken": 3 },
+    "powers": [
+      { "id": "wall", "name": "Wall", "cost": 20, "turns": 3, "modifiers": [ { "skill": "bulwark" } ] },
+      { "id": "mend", "name": "Mend", "cost": 25, "effects": [ { "heal": 8, "filter": { "tag": "heavy" } } ] } ] } ] }

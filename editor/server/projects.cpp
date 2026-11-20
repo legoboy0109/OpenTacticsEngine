@@ -274,6 +274,9 @@ ApiResult getProject(const Config& cfg, const std::string& id) {
   doc.set("research", readOptionalList(dir, "data/research.json", "technologies", readProbs));
   // factions (docs/ECONOMY.md "Factions"): data/factions.json, the list under "factions"; null when the file is absent.
   doc.set("factions", readOptionalList(dir, "data/factions.json", "factions", readProbs));
+  // commanders (docs/COMMANDERS.md): data/commanders.json, the list under "commanders"; null when the file is absent. No editor form yet: the data
+  // only passes through (and the loader judges it through /problems).
+  doc.set("commanders", readOptionalList(dir, "data/commanders.json", "commanders", readProbs));
   doc.set("campaign", readOptionalObject(dir, "data/campaign.json", readProbs));
   doc.set("audio", readOptionalObject(dir, "data/audio.json", readProbs));
 

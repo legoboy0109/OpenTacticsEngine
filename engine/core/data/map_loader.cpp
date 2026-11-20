@@ -8,6 +8,7 @@
 #include "core/data/loader_facing.h"
 #include "core/data/loader_jobs.h"
 #include "core/data/loader_unit_ranks.h"
+#include "core/data/loader_commanders.h"
 #include "core/data/loader_factions.h"
 #include "core/data/loader_graphics_art.h"
 #include "core/data/loader_places.h"
@@ -125,6 +126,7 @@ bool loadSides(const LoadCtx& c, const Database& db, const Json& root, MapDef& m
     if (!c.str(e, "color", where, color)) return false;
     if (!c.boolean(e, "difficultyShift", where, s.difficultyShift)) return false;  // docs/DIFFICULTY.md
     if (!readSideFaction(c, db, e, where, s)) return false;  // "faction": an id or "choose" (docs/ECONOMY.md "Factions")
+    if (!readSideCommander(c, db, e, where, s)) return false;  // "commander": an id or "choose" (docs/COMMANDERS.md)
     s.color = parseColor(color, 0xffffff);
     if (!c.amounts(db, e, "resources", where, s.resources)) return false;
     if (!readItemGrants(c, db, e, "storage", where, false, -1, s.storage)) return false;

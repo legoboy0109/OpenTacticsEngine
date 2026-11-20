@@ -1,0 +1,6 @@
+{ "skills": [
+  { "id": "bulwark", "name": "Bulwark", "description": "Stands firm.", "blocks": [ { "when": "always", "do": [ { "stats": { "def": 2 } } ] } ] },
+  { "id": "keen", "name": "Keen", "blocks": [ { "when": "always", "do": [ { "stats": { "str": 1 } } ] } ] },
+  { "id": "fleet", "name": "Fleet", "blocks": [ { "when": "always", "do": [ { "stats": { "mov": 1 } } ] } ] },
+  { "id": "frenzy", "name": "Frenzy", "blocks": [ { "when": "always", "do": [ { "stats": { "str": 3 } } ] } ] },
+  { "id": "brittle", "name": "Brittle", "blocks": [ { "when": "always", "do": [ { "stats": { "def": -2 } } ] } ] } ] }

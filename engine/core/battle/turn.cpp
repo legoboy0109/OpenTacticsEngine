@@ -44,6 +44,7 @@ void Battle::refreshUnitForTurn(Unit& u) {
 
 // The per-side part of a turn's start (a round's start in a speed game): resource refills, income, the research countdown.
 void Battle::sideTurnEffects(std::vector<Event>& events) {
+  commanderTurnStart(events);  // docs/COMMANDERS.md: the side's active power runs down (and ends), the meter gains its per-turn points
   refillTurnStart(events);  // docs/ECONOMY.md "Refilling resources": before the income, so a resource that has both counts the income on top
   if (db->rules.economy) {
     std::vector<int> income(db->resources.size(), 0);

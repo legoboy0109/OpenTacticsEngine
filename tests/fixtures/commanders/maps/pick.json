@@ -1,0 +1,10 @@
+{ "name": "Pick Your Commander", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human", "faction": "choose", "commander": "choose", "resources": { "gold": 100 } },
+             { "id": "red", "name": "Red", "controller": "ai", "faction": "choose", "commander": "choose", "resources": { "gold": 100 } } ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 2, "y": 1, "id": "sol", "leader": true },
+    { "type": "knight", "side": "blue", "x": 2, "y": 0, "id": "kni" },
+    { "type": "golem", "side": "blue", "x": 2, "y": 2, "id": "gol" },
+    { "type": "soldier", "side": "red", "x": 5, "y": 1, "id": "foe", "leader": true },
+    { "type": "golem", "side": "red", "x": 6, "y": 2, "id": "rgo" } ] }

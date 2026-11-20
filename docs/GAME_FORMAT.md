@@ -341,9 +341,17 @@ Everything is in docs/ECONOMY.md.
 
 Factions a side can play (docs/ECONOMY.md "Factions"). A game without this file has none. `{ "factions": [ { "id", "name", "description", "units": ["unit type id"],
 "structures": ["structure id"], "techs": ["technology id"], "start": { "resources": { "gold": 50 } }, "modifiers": ["skill id" | { "skill": "id", "filter": { "type": ... } | { "tag": ... } }],
-"ai": { "weights": { "dmg": 2 } }, "tags": ["text"] } ] }`; only `id` is required and unknown keys are refused. A list that is left out is no restriction
+"commanders": ["commander id"], "ai": { "weights": { "dmg": 2 } }, "tags": ["text"] } ] }`; only `id` is required and unknown keys are refused. A list that is left out is no restriction
 (`units`, `structures` = the kinds it may upgrade a structure into, `techs`); one that is written is the whole set, even `[]`. `start.resources` is added to the side's own
 resources on the map. A map side names one with `"faction": "<id>"` or `"faction": "choose"` (the person picks before the battle; a computer side takes one from the seed).
+
+## data/commanders.json (optional)
+
+Commanders a side can play (docs/COMMANDERS.md). A game without this file has none. `{ "commanders": [ { "id", "name", "description", "portrait", "passive": ["skill id" | { "skill": "id", "filter": ... }],
+"meter": { "max": 100, "perDamageDealt": 2, "perDamageTaken": 1, "perTurn": 0 }, "powers": [ { "id", "name", "description", "cost": 40, "turns": 1, "costGrowthPercent": 0,
+"modifiers": ["skill id" | { "skill": "id", "filter": ... }], "effects": [ { "heal": 5, "filter"? } | { "damage": 4, "to": "enemies", "filter"? } | { "giveResource": { "gold": 25 } } | { "refresh": filter | true } ] } ] } ] }`;
+`id` and `meter` are required, up to 4 powers, unknown keys and any other effect are refused, each message naming file, entry and key. A faction may list `"commanders": ["id"]` (what a `"choose"` side of it may
+pick). A map side names one with `"commander": "<id>"` or `"commander": "choose"`. Everything is in docs/COMMANDERS.md.
 
 ## maps/*.json
 
@@ -378,6 +386,7 @@ resources on the map. A map side names one with `"faction": "<id>"` or `"faction
     { "id": "blue", "name": "Blue", "color": "#3d85c6", "team": "blue",
       "controller": "human",             // or "ai"
       "faction": "order",                // optional: an id of data/factions.json, or "choose" (docs/ECONOMY.md "Factions")
+      "commander": "ada",                // optional: an id of data/commanders.json, or "choose" (docs/COMMANDERS.md)
       "resources": { "funds": 3000 } },
     { "id": "red", "name": "Red", "color": "#cc0000", "controller": "ai" }
   ],

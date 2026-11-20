@@ -121,6 +121,7 @@ void considerAdvance(ai::Context& cx, const Unit& u, Play& best) {
 bool aiTakeApStep(Battle& battle, std::vector<Event>& events) {
   const int side = battle.activeSide;
   const int round = battle.round;
+  if (ai::usePowerIfWorthIt(battle, events)) return !battle.over && battle.activeSide == side && battle.round == round;  // docs/COMMANDERS.md (costs no AP)
   ai::Context cx(battle);
   ai::assignCaptureGoals(cx);
 

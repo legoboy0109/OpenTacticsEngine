@@ -223,6 +223,11 @@ Decisions where the contract was silent, and the few deviations:
   A side that plays a faction (docs/ECONOMY.md "Factions") also has `"faction": "<faction id>"`, only when it has one. The faction's side-wide skills are not
   saved: the reader rebuilds them from the faction and puts them in front of the saved `modifiers`, as a live battle has them. A save is refused when the id is not a
   faction of the game (`sides[i].faction: names unknown faction "x"`), is not text, or when the game has no factions at all.
+  A side that has a commander (docs/COMMANDERS.md) also has `"commander": { "id": "<commander id>", "meter": n, "power": index, "left": turns, "uses": [use count per power] }`: `power` and `left` only while one of
+  its powers is active, `uses` always (one number per power, for the cost growth). The skills (the commander's passive ones and the active power's) are not saved: the reader rebuilds them, the passive ones
+  behind the faction's and in front of the technologies', the power's last. A save is refused when: the id is not a commander of the game (`sides[i].commander.id: names unknown commander "x"`) or the game has none;
+  `meter` is outside 0 to the commander's `max`; `power` is not one of its powers or has no timed skills; `left` is outside 1 to the power's `turns`, or is there without a `power`; `uses` is not one whole number per power
+  or says the active power was never used; or the key is missing for a side the map gives a commander (a side the map leaves to `"choose"` may carry any commander: the person's pick lives only in the save).
   A side whose finished research granted skills (docs/SRPG.md "Side-wide modifiers") also has
   `"modifiers": [ { "skill": skill index, "tech": technology index, "grant": index in that technology's grants.skills } ]`, only when not empty.
   Restoring checks: `tech` finished, `grant` within the technology's grants, `skill` the grant's own skill, no entry twice, and every grant of every

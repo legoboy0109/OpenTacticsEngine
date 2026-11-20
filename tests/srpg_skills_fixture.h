@@ -22,7 +22,7 @@ struct Copy {
     makeDir(dir + "/maps");
     static const char* const files[] = {"game.json",       "data/terrain.json", "data/structures.json", "data/weapons.json",
                                         "data/items.json", "data/units.json",   "data/characters.json", "data/skills.json", "data/research.json", "data/factions.json", "data/ranks.json", "data/conditions.json", "data/abilities.json",
-                                        "maps/field.json", "maps/woods.json",   "maps/story.json", "maps/duel.json"};
+                                        "maps/field.json", "maps/woods.json",   "maps/story.json", "maps/duel.json", "maps/pick.json", "maps/plain.json", "data/commanders.json"};
     for (const char* f : files) {
       std::string text;
       if (readTextFile(ote_test::sourceDir() + "/tests/fixtures/" + fixture + "/" + f, text)) writeTextFile(dir + "/" + f, text);

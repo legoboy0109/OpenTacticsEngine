@@ -259,7 +259,10 @@ void PlayerApp::loadGame(const std::string& gameId) {
 
 void PlayerApp::startBattle(const std::string& mapId) {
   later([this, mapId] {
-    if (session_) session_->factionPicks.clear();  // a new battle asks for the faction picks afresh
+    if (session_) {
+      session_->factionPicks.clear();  // a new battle asks for the faction picks afresh
+      session_->commanderPicks.clear();
+    }
     doStartBattle(mapId);
   });
 }
@@ -328,6 +331,7 @@ void PlayerApp::doLoadGame(const std::string& gameId) {
 void PlayerApp::doStartBattle(const std::string& mapId) {
   scene_.reset();
   if (askFactionIfNeeded(mapId)) return;  // docs/ECONOMY.md "Factions": a side whose faction is "choose" picks first
+  if (askCommanderIfNeeded(mapId)) return;  // docs/COMMANDERS.md: then a side whose commander is "choose" (from its faction's list)
   if (!difficultyAsked_) {
     if (difficultyNeeded()) {  // docs/DIFFICULTY.md: a free battle asks which difficulty first
       const int at = session_->db.findMap(mapId);

@@ -131,6 +131,11 @@ static std::string describeEventText(const Battle& b, const Event& e) {
       return fmt("%s's charged %s '%s' is cancelled: %s", unitName(b, e.a).c_str(), e.b ? "weapon" : "ability",
                  (e.b ? b.db->weapons[(size_t)e.c].id : b.db->abilities[(size_t)e.c].id).c_str(), e.d >= 0 && e.d < 5 ? why[e.d] : "?");
     }
+    case EventType::PowerUsed:  // docs/COMMANDERS.md
+      return fmt("%s uses %s's power '%s' (cost %d, meter now %d)", b.sides[(size_t)e.a].name.c_str(), b.db->commanders[(size_t)e.b].id.c_str(),
+                 b.db->commanders[(size_t)e.b].powers[(size_t)e.c].id.c_str(), e.d, e.data.empty() ? 0 : e.data[0]);
+    case EventType::PowerEnded:
+      return fmt("%s's power '%s' ends", b.sides[(size_t)e.a].name.c_str(), b.db->commanders[(size_t)e.b].powers[(size_t)e.c].id.c_str());
     case EventType::UnitFaced:
       return fmt("%s faces %s", unitName(b, e.a).c_str(), directionName(b.grid, e.b).c_str());
     case EventType::JpGained:
