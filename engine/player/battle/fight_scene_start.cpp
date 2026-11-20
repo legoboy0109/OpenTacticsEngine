@@ -168,6 +168,7 @@ bool FightScene::start(const Env& env, const std::vector<Event>& run) {
   tl_ = buildTimelineList(script_, times, fx, stageOn && lay.each ? lay.panMs : -1,
                          stageOn && lay.each ? lay.panStartMs : -1, art.timing.resultHoldMs, art.timing.resultHoldAgainMs);
   pickBackdrop(cells, pair);
+  preloadArt();
 
   t_ = 0;
   nextBeat_ = 0;
