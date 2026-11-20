@@ -2,7 +2,7 @@
 #pragma once
 #include <string>
 
-#include "config.h"
+#include "common.h"
 
 namespace ote_editor {
 
