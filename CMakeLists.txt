@@ -14,6 +14,8 @@ endif()
 option(OTE_BUILD_PLAYER "Build the SDL3 player" ON)
 option(OTE_BUILD_TESTS "Build tests and the headless sim tool" ON)
 option(OTE_BUILD_EDITOR "Build the editor helper" ON)
+# The advanced native editor (Qt 6 Widgets, docs/NATIVE_EDITOR.md). OFF by default: nothing else depends on Qt.
+option(OTE_BUILD_NATIVE_EDITOR "Build the native (Qt 6) editor" OFF)
 # MSVC only: link the C/C++ runtime statically (/MT: nothing to install next to the program, what the Windows desktop
 # zip uses) or as the DLL (/MD: needed for UWP and wherever the app brings the Visual C++ runtime itself). docs/WINDOWS.md.
 option(OTE_MSVC_STATIC_RUNTIME "MSVC: static runtime (/MT) instead of the DLL runtime (/MD)" ON)
@@ -84,7 +86,16 @@ file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS engine/core/*.cpp)
 add_library(ote_core STATIC ${CORE_SRC})
 target_include_directories(ote_core PUBLIC engine)
 target_link_libraries(ote_core PUBLIC lua)
-target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CXX_FLAGS})
+# The no-exceptions / no-RTTI flags travel to every program that links ote_core. A consumer that needs the normal C++
+# runtime features (the Qt native editor: Qt's moc output and Qt's own headers expect RTTI and exceptions) sets the target
+# property OTE_RTTI_EXCEPTIONS_OK to ON, and the flags are left off ITS compile lines only. $<TARGET_PROPERTY:prop> without
+# a target name is evaluated for the consuming target, which is what makes this a per-consumer switch. Each flag gets its
+# own generator expression because a ';'-list cannot sit inside one.
+set(OTE_CORE_PUBLIC_FLAGS)
+foreach(flag IN LISTS OTE_CXX_FLAGS)
+  list(APPEND OTE_CORE_PUBLIC_FLAGS "$<$<NOT:$<BOOL:$<TARGET_PROPERTY:OTE_RTTI_EXCEPTIONS_OK>>>:${flag}>")
+endforeach()
+target_compile_options(ote_core PRIVATE ${OTE_WARN} PUBLIC ${OTE_CORE_PUBLIC_FLAGS})
 
 # --- 3D drawing layer: interface, maths, model loading, the software backend and the
 # OpenGL backend. No platform dependencies and no GL headers or libraries: the OpenGL
@@ -494,19 +505,30 @@ endif()
 # Unlike the engine it may use exceptions/threads/<filesystem>; handlers catch
 # everything so no error can take the process down.
 if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
-  file(GLOB EDITOR_SRC CONFIGURE_DEPENDS editor/server/*.cpp)
-  add_executable(ote-editor ${EDITOR_SRC})
-  # The player's sound loader and service (decoders, silent mode, no device) come from ote_player_lib: /problems runs the
-  # same checks as the player so an unknown sound id or an over-long effect is reported before Play (docs/SOUND.md).
-  target_link_libraries(ote-editor PRIVATE ote_player_lib ote_core ote_audio)
-  target_include_directories(ote-editor PRIVATE engine/player)
-  # httplib as SYSTEM include: its warnings are not ours to fix.
-  target_include_directories(ote-editor SYSTEM PRIVATE third_party/httplib)
-  target_compile_options(ote-editor PRIVATE ${OTE_WARN})
+  # editor/core: everything that is not HTTP (validation, sound check, safe paths, revision hash, log), shared with the
+  # native editor (docs/NATIVE_EDITOR.md). Built exactly like the server before: exceptions on, the player's sound
+  # loader and service (decoders, silent mode, no device) come from ote_player_lib, so /problems runs the same checks as
+  # the player and an unknown sound id or an over-long effect is reported before Play (docs/SOUND.md).
+  file(GLOB EDITOR_CORE_SRC CONFIGURE_DEPENDS editor/core/*.cpp)
+  add_library(ote_editor_core STATIC ${EDITOR_CORE_SRC})
+  target_link_libraries(ote_editor_core PUBLIC ote_player_lib ote_core ote_audio)
+  target_include_directories(ote_editor_core PUBLIC editor/core PRIVATE engine/player)
+  target_compile_options(ote_editor_core PRIVATE ${OTE_WARN})
   # ote_core exports -fno-exceptions -fno-rtti as PUBLIC options and those come
   # after our own target options, so -fexceptions is set as a per-source flag,
   # which is placed last on the command line and therefore wins.
   # (MSVC: /EHsc is already on for every target, nothing to add.)
+  if(NOT MSVC)
+    set_source_files_properties(${EDITOR_CORE_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
+  endif()
+
+  file(GLOB EDITOR_SRC CONFIGURE_DEPENDS editor/server/*.cpp)
+  add_executable(ote-editor ${EDITOR_SRC})
+  target_link_libraries(ote-editor PRIVATE ote_editor_core ote_player_lib ote_core ote_audio)
+  target_include_directories(ote-editor PRIVATE engine/player)
+  # httplib as SYSTEM include: its warnings are not ours to fix.
+  target_include_directories(ote-editor SYSTEM PRIVATE third_party/httplib)
+  target_compile_options(ote-editor PRIVATE ${OTE_WARN})
   if(NOT MSVC)
     set_source_files_properties(${EDITOR_SRC} PROPERTIES COMPILE_FLAGS "-fexceptions")
   endif()
@@ -523,6 +545,14 @@ if(OTE_BUILD_EDITOR AND NOT EMSCRIPTEN)
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/editor_api_test.py
                      $<TARGET_FILE:ote-editor> ${CMAKE_SOURCE_DIR})
   endif()
+endif()
+
+if(OTE_BUILD_NATIVE_EDITOR)
+  if(NOT OTE_BUILD_EDITOR OR EMSCRIPTEN)
+    message(FATAL_ERROR "OTE_BUILD_NATIVE_EDITOR needs OTE_BUILD_EDITOR=ON (it links ote_editor_core) and a desktop build")
+  endif()
+  enable_testing()
+  add_subdirectory(editor/native)
 endif()
 
 # Where tests put their scratch data: <build>/test-tmp/<test name>/, never the source tree (docs/TESTING.md "Scratch

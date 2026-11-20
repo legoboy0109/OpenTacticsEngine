@@ -53,6 +53,11 @@ class Json {
   const std::vector<Json>& items() const { return items_; }
   const std::vector<Member>& members() const { return members_; }
 
+  // Mutable access to the containers, for tools that edit a parsed tree in place (the native editor's undo commands
+  // insert, erase and reorder children). Keep object keys unique; the lookups above assume it.
+  std::vector<Json>& mutableItems() { return items_; }
+  std::vector<Member>& mutableMembers() { return members_; }
+
   // Builders (used for save files). set() replaces an existing key.
   void push(const Json& v);                        // turns Null into Array
   void set(const std::string& key, const Json& v); // turns Null into Object

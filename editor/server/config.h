@@ -5,11 +5,10 @@
 #include <string>
 #include <vector>
 
+#include "common.h"
 #include "core/base/json.h"
 
 namespace ote_editor {
-
-namespace fs = std::filesystem;
 
 struct Config {
   fs::path gamesDir = "games";
@@ -38,10 +37,5 @@ inline ApiResult apiError(int status, const std::string& message) {
   r.body.set("error", ote::Json::makeString(message));
   return r;
 }
-
-// A problem found in a project; `file` is project-relative ("" if unknown).
-struct Problem {
-  std::string file, message;
-};
 
 }  // namespace ote_editor
