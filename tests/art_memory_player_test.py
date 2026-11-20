@@ -13,8 +13,8 @@ tools/art/synth_art_game.py, four of them drawn as the unit pictures, the rest u
   - a sheet whose file is damaged after its header logs its error once, not every frame, and the game goes on.
 """
 import os
-import resource
 import shutil
+import subprocess
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # the shared kit sits beside the scripts (also under `python -I`)
 from ote_testkit import (  # noqa: E402
@@ -57,7 +57,33 @@ def make_game(gid, sheets=SHEETS):
     return g
 
 
-def run(gid, frames, shot=None, budget=None, inp=INPUT):
+def run_with_peak(cmd, env):
+    """Runs the player; returns (its output, its peak memory in MB). `resource` is POSIX-only: on Windows the peak
+    working set is read from the finished child's handle (Popen keeps it open until the object is dropped)."""
+    if os.name != 'nt':
+        import resource
+        out = run_text(cmd, env=env).stdout
+        return out, resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0  # (kilobytes on Linux)
+    import ctypes
+    from ctypes import wintypes
+
+    class Counters(ctypes.Structure):  # PROCESS_MEMORY_COUNTERS
+        _fields_ = [('cb', wintypes.DWORD), ('PageFaultCount', wintypes.DWORD), ('PeakWorkingSetSize', ctypes.c_size_t),
+                    ('WorkingSetSize', ctypes.c_size_t), ('QuotaPeakPagedPoolUsage', ctypes.c_size_t),
+                    ('QuotaPagedPoolUsage', ctypes.c_size_t), ('QuotaPeakNonPagedPoolUsage', ctypes.c_size_t),
+                    ('QuotaNonPagedPoolUsage', ctypes.c_size_t), ('PagefileUsage', ctypes.c_size_t),
+                    ('PeakPagefileUsage', ctypes.c_size_t)]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env)
+    out, _ = p.communicate(timeout=300)
+    c = Counters()
+    c.cb = ctypes.sizeof(c)
+    get = ctypes.windll.psapi.GetProcessMemoryInfo
+    get.argtypes = [wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD]
+    ok = get(int(p._handle), ctypes.byref(c), c.cb)  # noqa: SLF001 (the handle is the only way to ask after exit)
+    return out, (c.PeakWorkingSetSize / 1048576.0 if ok else 0.0)
+
+
+def run(gid, frames, shot=None, budget=None, inp=INPUT, peak=False):
     saves = os.path.join(TMP, 'saves_' + gid)
     shutil.rmtree(saves, ignore_errors=True)
     cmd = [PLAYER, '--games', TMP, '--assets', os.path.join(REPO, 'assets'), '--headless', '--no-audio', '--no-settings',
@@ -71,6 +97,8 @@ def run(gid, frames, shot=None, budget=None, inp=INPUT):
     env.pop('OTE_ART_BUDGET_MB', None)
     if budget:
         env['OTE_ART_BUDGET_MB'] = str(budget)
+    if peak:
+        return run_with_peak(cmd, env)
     return run_text(cmd, env=env).stdout
 
 
@@ -87,8 +115,7 @@ def main():
 
     # Peak memory first (the kit's children share one maximum, so this run goes before the others): decoding all the
     # sheets of this game at load would hold 150 x 4 MB (about 600 MB) before the first frame.
-    log = run(gid, frames_after)
-    peak_mb = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024.0
+    log, peak_mb = run(gid, frames_after, peak=True)
     check('the big game loads and plays', 'loaded game' in log and 'battle scene: start' in log and 'battle scene: end' in log, log[-600:])
     check('peak memory stays under 250 MB (eager decoding of every sheet would need over 600 MB): %.0f MB' % peak_mb, peak_mb < 250)
     check('no art errors on the way', '[ERROR]' not in log, log[-400:])
