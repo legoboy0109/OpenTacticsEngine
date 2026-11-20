@@ -197,6 +197,7 @@ class BattleView {
   bool progressStory(const Battle& b);
   bool finishStory(const Battle& b);
   // Upgrades, research, repair and supply: battle_view_economy.cpp. Same contract as the story hooks.
+  bool beginCommander(const Battle& b);  // battle_view_commander.cpp   PowerUsed, PowerEnded (docs/COMMANDERS.md); the banner goes with finish()
   bool beginEconomy(const Battle& b);
   bool progressEconomy(const Battle& b);
   bool finishEconomy(const Battle& b);

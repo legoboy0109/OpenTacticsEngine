@@ -252,7 +252,7 @@ void BattleView::begin(const Battle& b) {
   cur_.dur = 0;
   cur_.fired = false;
   cur_.hideAtEnd = false;
-  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
+  if (beginPlaces(b) || beginStory(b) || beginEconomy(b) || beginCommander(b) || beginFog(b) || beginSpeed(b) || beginSrpg(b) || beginMapChange(b)) return;
   const float cx = tile_ / 2.0f;
   switch (e.type) {
     case EventType::TurnStarted: beginTurnStarted(b); break;
@@ -452,6 +452,8 @@ void BattleView::finish(const Battle& b) {
   switch (e.type) {
     case EventType::TurnStarted:
     case EventType::SideDefeated:
+    case EventType::PowerUsed:
+    case EventType::PowerEnded:
       banner.clear();
       bannerSub.clear();
       break;

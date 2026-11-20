@@ -61,6 +61,7 @@ from editor_api_parties_checks import run_parties_checks
 from editor_api_damage_types_checks import run_damage_types_checks
 from editor_api_research_branches_checks import run_research_branches_checks
 from editor_api_factions_checks import run_factions_checks
+from editor_api_commanders_checks import run_commanders_checks
 from editor_api_area_checks import run_area_checks
 from editor_api_actionpoints_checks import run_actionpoints_checks
 from editor_api_speed_checks import run_speed_checks
@@ -228,6 +229,7 @@ def main():
         run_damage_types_checks(api, tmp, games, templates, check, get_project, put_project)
         run_research_branches_checks(api, tmp, games, templates, check, get_project, put_project)
         run_factions_checks(api, tmp, games, templates, check, get_project, put_project)
+        run_commanders_checks(api, tmp, games, templates, check, get_project, put_project)
         run_area_checks(api, tmp, games, templates, check, get_project, put_project)
         run_actionpoints_checks(api, tmp, games, templates, check, get_project, put_project)
         run_speed_checks(api, tmp, games, templates, check, get_project, put_project)

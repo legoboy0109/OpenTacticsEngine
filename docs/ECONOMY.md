@@ -189,6 +189,7 @@ loads, plays, saves, hashes and simulates exactly as before; a side without a `"
     "techs": ["drill", "forging"],                   // technologies it may RESEARCH
     "start": { "resources": { "gold": 50 } },        // ADDED to what the map gives the side (a side's "resources" is the base)
     "modifiers": [ { "skill": "bulwark", "filter": { "tag": "infantry" } } ],   // side-wide skills from the start: a skill id or { skill, filter }
+    "commanders": ["ada", "cato"],                   // the commanders a "choose" side of this faction may pick (docs/COMMANDERS.md); left out = any
     "ai": { "weights": { "dmg": 2, "counter": 1 } }, // attack weights of its computer units (the keys of rules.ai.weights; docs/AI.md "Factions")
     "tags": ["human"] },                             // free text for makers; the engine does not read them
   { "id": "free", "name": "Free Company" } ] }       // no lists = no restriction at all

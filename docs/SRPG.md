@@ -1062,6 +1062,9 @@ unit details say the rank instead of "Lv": `Elite` / `XP 40/60` (`MAX` at the to
 
 ### Side-wide modifiers
 
+A commander (docs/COMMANDERS.md) is the third source of side-wide skills (after finished research and the side's faction): its `passive` skills are always on, and the `modifiers` of its active power while it lasts. They are
+`SideModifier`s with `commander` set (and `power` for the timed ones), never saved, rebuilt from the saved commander state.
+
 A side can hold skills that apply to its units as if each unit had them. They are state of the battle (`SideState::modifiers`, a list of
 `SideModifier { skill, filterType, filterTag, tech, grant }`), and **`Battle::skillsOf` is the only place that reads them**, so everything that reads a
 unit's skills (standing stat bonuses, combat blocks, turn blocks, conditions, the forecast, the AI, the unit details) sees them with no further change.

@@ -322,6 +322,24 @@ A side that plays a faction (docs/ECONOMY.md "Factions", `data/factions.json`) c
 The AI-vs-AI test (`tests/test_factions.cpp`, map "duel" of `tests/fixtures/factions`: order against horde, both computer) plays three seeds to the end and checks that everything either side built
 was allowed to its faction.
 
+### Commanders
+
+A side with a commander (docs/COMMANDERS.md) uses its powers by a few plain rules, checked **before each decision of the side** (in the usual turn, the action-point turn and a speed game's unit turn alike; a power costs no action
+points and no unit's order). Nothing here is random, and nothing needs the AI to know what a power's skills do: they are side-wide modifiers, so the normal scoring and forecasts see them through `Battle::skillsOf`.
+
+1. A power may be used when `Battle::canUsePower` says so (the meter holds its price, none is active).
+2. If the meter is **full** (it would only be wasted), the dearest power it can pay for is used, whatever it does.
+3. Otherwise a power qualifies when one of its parts pays off now:
+   - **timed skills**: the fighting is about to start: at least two of the side's ready units (one, if it has only one) have an enemy it can see within *move + longest weapon range* squares (as the crow flies);
+   - **`heal`**: the matching units would really regain at least twice the amount between them (each counts at most the amount);
+   - **`damage`**: it would hurt at least two enemies (more than 1 hit point left) and the fighting is about to start (as above);
+   - **`giveResource`**: always (it is used as soon as it can be paid for);
+   - **`refresh`**: at least two of the matching units have already moved or acted.
+4. Of the powers that qualify the **dearest** is used (the lowest index among equals).
+
+It cannot stall: using a power takes meter points and, with timed skills, makes it the active power, which blocks the next one, so no decision repeats itself; an instant power can only be repeated while the meter lasts. The test
+`tests/test_commanders_more.cpp` plays two computer sides with commanders chosen from the seed to the end, twice, and compares every event.
+
 ### Area attacks
 
 A unit with an area weapon (docs/SRPG.md "Area attacks and line fire") plans it like any attack: from every square it can reach, with every

@@ -83,6 +83,7 @@ dropped (the document is strict JSON).
   "structures": [ …the "structures" list of data/structures.json… ],
   "items": [ …the "items" list of data/items.json… ],
   "research": [ …the "technologies" list of data/research.json… ],
+  "commanders": [ …the "commanders" list of data/commanders.json, or null (docs/COMMANDERS.md)… ],
   "campaign": { …contents of data/campaign.json… },
   "audio": { …contents of data/audio.json… },
   "characters": [ …the "characters" list of data/characters.json… ],
@@ -145,7 +146,8 @@ is left untouched on disk; `graphics` must be an object and `structures` and `it
 list, anything else is `400`; `structures` is written as `{ "structures": [ … ] }`,
 `items` as `{ "items": [ … ] }`, and an empty list is valid). `research` is a list too, written as
 `{ "technologies": [ … ] }`; **an empty `research` list removes `data/research.json`** instead (the loader refuses an
-empty technology list, so writing one would break the game; the project then reads back `"research": null`). `campaign` is an object, written as it is; **`false` removes
+empty technology list, so writing one would break the game; the project then reads back `"research": null`). `commanders` (docs/COMMANDERS.md) and `factions`
+behave the same way (lists under `"commanders"` / `"factions"`, an empty list removes the file); there is no form for them yet, the data only passes through, and the loader's refusals reach `/problems`. `campaign` is an object, written as it is; **`false` removes
 `data/campaign.json`** (the game goes back to single battles) and any other value is `400`. `audio` works like `campaign`: an
 object is written as it is (key order and unknown keys kept), **`false` removes `data/audio.json`** ("remove all sound": the
 `audio/` files stay) and any other value is `400`. Nothing is validated on write; `/problems` runs the player's sound loader.
@@ -162,7 +164,7 @@ A map unit placed as a character is `{ "character", "side", "x", "y" }` (no `typ
   { "error": …, "revision": "<current>" }` and nothing is written (the
   project changed on disk, e.g. synced from another machine).
 - Otherwise writes `game.json`, `data/terrain.json`, `data/weapons.json`,
-  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/campaign.json`, `data/audio.json`, `data/characters.json`, `data/skills.json`, `data/abilities.json`, `data/conditions.json`, `data/supports.json` (the last five as described above), each map to the `file` named in `game.maps`, and each
+  `data/units.json`, `data/graphics.json`, `data/structures.json`, `data/items.json`, `data/research.json`, `data/factions.json`, `data/commanders.json`, `data/campaign.json`, `data/audio.json`, `data/characters.json`, `data/skills.json`, `data/abilities.json`, `data/conditions.json`, `data/supports.json` (the last five as described above), each map to the `file` named in `game.maps`, and each
   script. Map files that were referenced by the previous `game.maps` but
   are no longer referenced are deleted (only inside the project's `maps/`
   folder). JSON is written pretty-printed with 2-space indentation and

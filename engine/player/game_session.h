@@ -40,6 +40,11 @@ class GameSession {
   void applyFactionPicks(MapDef& m) const;
   // Per side of the map being started: the faction index a person picked, -1 = not yet. Cleared by the App when a new battle is asked for.
   std::vector<int> factionPicks;
+  // Commanders (docs/COMMANDERS.md): the same for "commander": "choose". commanderChoices() lists the commanders the side may pick (its faction's list, else all).
+  int nextCommanderPick(const MapDef& m) const;
+  std::vector<int> commanderChoices(const MapDef& m, int side) const;
+  void applyCommanderPicks(MapDef& m) const;
+  std::vector<int> commanderPicks;
 
   Database db;
   Formulas formulas;

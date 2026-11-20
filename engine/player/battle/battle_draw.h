@@ -186,6 +186,9 @@ void drawHint(Renderer& r, const Layout& L, const std::string& hint);
 
 // Screen position where resource gain floats should appear.
 void panelResourceAnchor(const Layout& L, int resourceCount, int& x, int& y);
+// The commander block of the panel for `side` (commander_panel.cpp): a rule, name and meter numbers, the bar with a tick per power, the active power.
+// Advances `y` by what it drew and returns that height (0 for a side without a commander).
+int drawCommanderMeter(Renderer& r, const DrawCtx& c, int side, int x, int& y, int w);
 
 // Combat forecast box for attacker -> defender.
 // `extra`: one more line along the foot of the box (an area attack's other victims; empty = none).

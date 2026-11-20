@@ -294,6 +294,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME factions_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/factions_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Commanders (docs/COMMANDERS.md): the faction then commander screens at UI scale 100 and 150, the meter, the map menu's powers, a power used and ended, saves mid-power.
+    add_test(NAME commanders_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/commanders_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME fog_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/fog_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

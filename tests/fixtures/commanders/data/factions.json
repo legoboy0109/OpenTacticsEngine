@@ -1,0 +1,5 @@
+{ "factions": [
+  { "id": "order", "name": "Order", "description": "Disciplined; its commanders are Ada and Cato.", "commanders": ["ada", "cato"],
+    "modifiers": [ { "skill": "keen", "filter": { "tag": "infantry" } } ] },
+  { "id": "horde", "name": "Horde", "description": "Its commander is Bram.", "commanders": ["bram"] },
+  { "id": "free", "name": "Free Company", "description": "Any commander." } ] }

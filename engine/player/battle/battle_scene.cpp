@@ -270,6 +270,11 @@ void BattleScene::update(double dt) {
 }
 
 std::string BattleScene::hint() const {
+  const std::string line = hintBase();
+  return mode_ == Mode::Idle && !view_.busy() ? withPowerHint(line) : line;
+}
+
+std::string BattleScene::hintBase() const {
   if (noticeTime_ > 0 && !notice_.empty()) return notice_;
   if (view_.dialogue.active) return dialogue_.choosing() ? kChoiceHint : kDialogueHint;
   if (mode_ == Mode::Prep) return prepHint();

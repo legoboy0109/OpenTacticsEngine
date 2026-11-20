@@ -99,6 +99,8 @@ class PlayerApp : public App, public SceneHost {
 
   // app_factions.cpp (docs/ECONOMY.md "Factions"): the faction choice screen before a free battle
   bool askFactionIfNeeded(const std::string& mapId);  // true = a choice screen is up (the battle start is tried again after the pick)
+  // app_commanders.cpp (docs/COMMANDERS.md "Player"): the commander choice screen, after the faction's
+  bool askCommanderIfNeeded(const std::string& mapId);
 
   // app_audio.cpp: choosing the sound device (docs/SOUND.md "Engine design")
   void startAudio();

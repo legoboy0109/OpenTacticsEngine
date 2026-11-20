@@ -324,6 +324,9 @@ void drawPanel(Renderer& r, const DrawCtx& c, Cell cursor, bool autoplay) {
     }
   }
 
+  // The commander of the side being looked at (docs/COMMANDERS.md): name, meter, power prices, the active power.
+  drawCommanderMeter(r, c, c.view.shownSide(b, autoplay), x, y, w);
+
   // Research under way for the side being looked at ("Masonry   2": name and the turns left, or "paused").
   const int rs = c.view.shownSide(b, autoplay);
   if (b.researching(rs) >= 0) {
