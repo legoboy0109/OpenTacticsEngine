@@ -19,6 +19,8 @@ constexpr double kKillBonus = 0.6;      // of the victim's value
 constexpr double kLeaderDamage = 1.5;   // damage multiplier vs a leader
 constexpr double kLeaderKill = 20000;   // killing a leader that ends the game
 constexpr double kDefenseBonus = 8;     // per terrain defense point
+constexpr double kHighGround = 6;       // height rules: per level the attacker stands above its target (up to kHighGroundLevels): harder to answer
+constexpr int kHighGroundLevels = 3;
 
 // Rough probability that `f` kills a target with `hp` left. Exact when the
 // forecast is deterministic (hit 100); otherwise assumes every needed
@@ -99,6 +101,13 @@ static double counterLoss(const Battle& b, const Unit& u, const StrikeForecast& 
   return loss;
 }
 
+// docs/AI.md "Height rules": a small liking for shooting down from higher ground (only in a game with height rules; it has no other source of
+// preference because the forecast already carries what a game's formulas make of `dh`).
+double highGroundBonus(const Battle& b, Cell from, Cell target) {
+  if (!b.heightGame()) return 0;
+  return kHighGround * std::min(kHighGroundLevels, std::max(0, b.heightAt(from) - b.heightAt(target)));
+}
+
 double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapon, Cell from) {
   Forecast f;
   if (!b.forecast(u.id, target.id, weapon, from, f)) return 0;
@@ -113,6 +122,7 @@ double scoreAttack(const Battle& b, const Unit& u, const Unit& target, int weapo
   if (f.counter.can) loss = counterLoss(b, u, f.counter, pKill);
 
   double score = gain - loss + kDefenseBonus * terrainDefense(b, from);
+  score += highGroundBonus(b, from, target.cell);
   return score;
 }
 
@@ -133,7 +143,7 @@ double scoreAreaAttack(const Battle& b, const Unit& u, int weapon, Cell aim, Cel
     if ((int)i == af.primary) primaryKill = pKill;
   }
   if (af.primary >= 0 && af.fight.counter.can) score -= counterLoss(b, u, af.fight.counter, primaryKill);
-  return score + kDefenseBonus * terrainDefense(b, from);
+  return score + kDefenseBonus * terrainDefense(b, from) + highGroundBonus(b, from, aim);
 }
 
 double scoreCapture(const Battle& b, const Unit& u, Cell at) {

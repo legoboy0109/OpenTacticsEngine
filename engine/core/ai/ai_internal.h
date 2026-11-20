@@ -1,6 +1,7 @@
 // Internals shared by the AI's source files. Not a public interface:
 // everything the rest of the engine may call is declared in ai.h.
 #pragma once
+#include <array>
 #include <map>
 #include <memory>
 #include <vector>
@@ -52,7 +53,15 @@ struct Context {
   }
   const std::vector<int>& enemyFieldFor(int moveType);
   const std::vector<int>& goalFieldFor(int moveType, Cell goal);
+  // The same for a particular unit: with height rules and a limited jump the fields go around the cliffs it cannot take (ai_goals.cpp).
+  const std::vector<int>& enemyFieldFor(const Unit& u);
+  const std::vector<int>& goalFieldFor(const Unit& u, Cell goal);
   GoalFieldSet& goalSetFor(int moveType);  // this move type's cached fields, looked up once per Context
+  // Height rules: fields of units with a limited jump, per (move type, jump up, jump down).
+  std::map<std::array<int, 3>, std::vector<int>> jumpEnemyField;
+  std::map<std::array<int, 3>, std::shared_ptr<GoalFieldSet>> jumpSets;
+  bool jumpKey(const Unit& u, std::array<int, 3>& key) const;
+  GoalFieldSet& jumpSetFor(const std::array<int, 3>& key);
 };
 
 // ---- ai_knowledge.cpp ----
@@ -75,8 +84,9 @@ void enemyGoals(const Battle& b, int side, std::vector<Cell>& out);
 // Travel cost from every cell to the nearest goal, summing terrain entry
 // costs for `moveType` and ignoring units (so a blocked chokepoint still
 // attracts). kFar where no path exists.
+// `jumpUp` / `jumpDown` (height rules): the walker cannot take a step that climbs / drops more than that (kNoHeightLimit = any).
 void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals,
-                   std::vector<int>& out);
+                   std::vector<int>& out, int jumpUp = kNoHeightLimit, int jumpDown = kNoHeightLimit);
 // Fills captureTargets and assigns each ready capturer a distinct structure:
 // the unit walks to the nearest of that structure's squares it can enter and
 // that is free.
@@ -91,6 +101,8 @@ double scoreAreaAttack(const Battle& b, const Unit& u, int weapon, Cell aim, Cel
 // Score of starting/continuing a capture of the structure on cell `at` with `u`.
 double scoreCapture(const Battle& b, const Unit& u, Cell at);
 double terrainDefense(const Battle& b, Cell c);
+// Height rules: what shooting at `target` from `from` gains for being higher (0 without the rules).
+double highGroundBonus(const Battle& b, Cell from, Cell target);
 
 // ---- ai_behaviour.cpp (docs/AI.md): per-unit behaviour; a unit with the default behaviour gets an empty Stance ----
 struct Stance {

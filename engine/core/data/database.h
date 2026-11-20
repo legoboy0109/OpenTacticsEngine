@@ -10,6 +10,7 @@
 #include "core/data/ai_rules.h"
 #include "core/data/behaviour.h"
 #include "core/data/difficulty.h"
+#include "core/data/height_rules.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
@@ -152,6 +153,7 @@ struct WeaponDef {
   // Area attacks and line fire (docs/SRPG.md "Area attacks and line fire"); both keys are optional, the defaults are the old single-target weapon.
   FireMode fire = FireMode::Direct;  // weapons.json "fire"
   AreaDef area;                      // weapons.json "area"
+  HeightRange heightRange;           // weapons.json "heightRange" (height rules only): how much higher / lower than the shooter the target may stand
   bool aimsStraight() const { return fire == FireMode::Line || area.shape == AreaShape::Line; }  // only along straight lines of the grid
   std::vector<int> skills;    // skills it gives while it is the weapon in use (docs/SRPG.md; indices into Database::skills)
   // Weapon ranks (docs/SRPG.md section 7); both -1 / 1 in a game without ranks.
@@ -279,6 +281,7 @@ struct UnitTypeDef {
   int apStep = -1;                       // units.json "ap": { "step" }: AP per movement point (action points only); -1 = the game's costPerStep
   int apSoftCap = -1;                    // units.json "ap": { "softCap" }: movement points per turn at the plain price; -1 = the game's softCap
   int maxLevel = -1;                     // units.json "maxLevel": this type's top level (0 = never levels); -1 = rules.progression.maxLevel
+  int jumpUp = -1, jumpDown = -1;        // units.json "jump" (height rules only): the most it climbs / drops in one step; -1 = the game's default
 };
 // Does a unit type match a "units" / "versus" / "repairs" key: its id, or one of its tags.
 inline bool unitTypeMatchesKey(const UnitTypeDef& t, const std::string& key) {
@@ -393,6 +396,7 @@ struct RulesConfig {
   PlaceRules places;         // "rules.places" (docs/SRPG.md section 10); the default changes nothing for a game without such structures
   AiRules ai;                // "rules.ai" (docs/AI.md "Scripted-style computer players")
   ActionPointRules ap;       // "rules.actionPoints" (docs/SRPG.md "Action points"); `on` is false when the block is missing
+  HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
   // docs/GAME_FORMAT.md "Formulas" for the variables available.

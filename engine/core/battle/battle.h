@@ -579,7 +579,8 @@ class Battle {
   void reachable(int unit, Reach& out) const;
   // The same for display: the unit's reach on a fresh turn as the team `viewTeam` can know it (movement.cpp). Not for the rules.
   // `limitByAp` false (action-point games only): the search as if the pool were endless, to tell "not enough AP" from "too far".
-  void reachFor(int unit, int viewTeam, Reach& out, bool limitByAp = true) const;
+  // `ignoreHeight` (height rules only): the search as if the unit could climb any step, to tell "too steep" from "too far".
+  void reachFor(int unit, int viewTeam, Reach& out, bool limitByAp = true, bool ignoreHeight = false) const;
   bool pathTo(const Reach& reach, Cell dest, std::vector<Cell>& path) const;
 
   // Attacks available if the unit stood on `from` (pass its own cell for
@@ -792,6 +793,7 @@ class Battle {
 #include "core/battle/mapweapon_api.h"
 #include "core/battle/area_api.h"
 #include "core/battle/ap_api.h"
+#include "core/battle/height_api.h"
 
  private:
   // combat.cpp

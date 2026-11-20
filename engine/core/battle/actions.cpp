@@ -94,19 +94,29 @@ bool Battle::validate(const Action& action, std::string* why) const {
       }
       Reach reach;
       reachable(action.unit, reach);
-      if (!reach.canStop(action.cell)) return fail(why, apMoveRefusal(action.unit, action.cell));  // (a game with action points says "not enough AP")
+      if (!reach.canStop(action.cell)) {
+        if (const char* steep = heightMoveRefusal(action.unit, action.cell)) return fail(why, steep);  // height rules: a cliff in the way
+        return fail(why, apMoveRefusal(action.unit, action.cell));  // (a game with action points says "not enough AP")
+      }
       return true;
     }
     case ActionType::Attack: {
       if (db->rules.ap.on && !apAttackAllowed(u, action.weapon, why)) return false;  // no attack left, or not enough AP
       if (isAreaWeapon(action.weapon)) {  // aimed at a square (docs/SRPG.md "Area attacks and line fire")
         AreaForecast area;
-        if (!areaForecast(action.unit, action.weapon, u.cell, aimedCell(action), area)) return fail(why, "that attack is not possible");
+        if (!areaForecast(action.unit, action.weapon, u.cell, aimedCell(action), area)) {
+          const Cell aim = aimedCell(action);
+          const char* high = aim == kNoCell || action.weapon < 0 ? nullptr : heightAimRefusal(action.weapon, u.cell, aim);
+          return fail(why, high ? high : "that attack is not possible");
+        }
         return true;
       }
       Forecast f;
-      if (!forecast(action.unit, action.target, action.weapon, u.cell, f))
-        return fail(why, "that attack is not possible");
+      if (!forecast(action.unit, action.target, action.weapon, u.cell, f)) {
+        const bool known = action.target >= 0 && action.target < (int)units.size() && action.weapon >= 0 && action.weapon < (int)db->weapons.size();
+        const char* high = known ? heightAimRefusal(action.weapon, u.cell, units[(size_t)action.target].cell) : nullptr;  // height rules: why it cannot be hit
+        return fail(why, high ? high : "that attack is not possible");
+      }
       return true;
     }
     case ActionType::Capture:

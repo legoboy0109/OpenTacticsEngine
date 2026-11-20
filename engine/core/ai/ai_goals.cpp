@@ -8,8 +8,9 @@ namespace ote {
 namespace ai {
 
 void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals,
-                   std::vector<int>& out) {
+                   std::vector<int>& out, int jumpUp, int jumpDown) {
   out.assign(b.grid.cellCount(), kFar);
+  const bool limited = jumpUp != kNoHeightLimit || jumpDown != kNoHeightLimit;
   typedef std::pair<int, Cell> Node;
   std::priority_queue<Node, std::vector<Node>, std::greater<Node> > open;
   for (Cell g : goals) {
@@ -34,6 +35,8 @@ void distanceField(const Battle& b, int moveType, const std::vector<Cell>& goals
     Cell nb[Grid::kMaxNeighbors];
     int n = b.grid.neighbors(c, nb);
     for (int i = 0; i < n; ++i) {
+      // Height rules: a walker with a limited jump cannot take the step nb -> c (a goal square, value 0, is only ever the target of an attack).
+      if (limited && node.first != 0 && !b.stepAllowed(jumpUp, jumpDown, nb[i], c)) continue;
       int total = node.first + enter;
       if (total < out[nb[i]]) {
         out[nb[i]] = total;
@@ -66,6 +69,40 @@ GoalFieldSet& Context::goalSetFor(int moveType) {
 
 const std::vector<int>& Context::goalFieldFor(int moveType, Cell goal) {
   return goalFieldIn(b, goalSetFor(moveType), goal);
+}
+
+// Height rules (docs/AI.md "Height rules"): a unit that cannot climb every step needs fields that go around the cliffs it cannot take. A game
+// without the rules, and a unit with no limit, take the plain fields above (so nothing changes for them).
+bool Context::jumpKey(const Unit& u, std::array<int, 3>& key) const {
+  int up, down;
+  b.jumpOf(u, up, down);
+  if (up == kNoHeightLimit && down == kNoHeightLimit) return false;
+  key = {{b.typeOf(u).moveType, up, down}};
+  return true;
+}
+
+const std::vector<int>& Context::enemyFieldFor(const Unit& u) {
+  std::array<int, 3> key;
+  if (!jumpKey(u, key)) return enemyFieldFor(b.typeOf(u).moveType);
+  std::vector<int>& f = jumpEnemyField[key];
+  if (f.empty()) {
+    std::vector<Cell> goals;
+    enemyGoals(b, side, goals);
+    f = goalsFieldIn(b, jumpSetFor(key), goals);
+  }
+  return f;
+}
+
+const std::vector<int>& Context::goalFieldFor(const Unit& u, Cell goal) {
+  std::array<int, 3> key;
+  if (!jumpKey(u, key)) return goalFieldFor(b.typeOf(u).moveType, goal);
+  return goalFieldIn(b, jumpSetFor(key), goal);
+}
+
+GoalFieldSet& Context::jumpSetFor(const std::array<int, 3>& key) {
+  std::shared_ptr<GoalFieldSet>& set = jumpSets[key];
+  if (!set) set = goalFieldSetFor(b, key[0], key[1], key[2]);
+  return *set;
 }
 
 namespace {

@@ -12,7 +12,7 @@ void Battle::reachable(int unit, Reach& out) const { reachFor(unit, -1, out); }
 // the viewer's team could work it out. The unit's turn flags are not used (during another side's turn they are last turn's), and
 // nothing the viewer cannot see shapes the result: a unit it does not see counts as absent (no gap at its square, no wall around
 // it) and a structure it does not see counts as the kind it last saw (an opened door shows no new path).
-void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp) const {
+void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp, bool ignoreHeight) const {
   const bool seen = viewTeam >= 0;
   int n = grid.cellCount();
   out.cost.assign(n, -1);
@@ -28,6 +28,9 @@ void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp) const 
   const int costCap = moveCostCap(u);
   const bool pass = passesEnemies(u);
   int budget = movePoints(u);
+  // Height rules (docs/SRPG.md "Height rules"): the most the unit climbs / drops in one step (no limit without the rules, for a flier, or when asked to ignore it).
+  int jumpUp = kNoHeightLimit, jumpDown = kNoHeightLimit;
+  if (!ignoreHeight) jumpOf(u, jumpUp, jumpDown);
   // "Move again" (docs/SRPG.md "Turn flags"): after its action only the movement it has not used is left.
   if (db->rules.ap.on) {
     // Action points (docs/SRPG.md "Action points"): the Move stat is the most a unit walks per turn over all its moves, and the pool must pay for the
@@ -65,6 +68,9 @@ void Battle::reachFor(int unit, int viewTeam, Reach& out, bool limitByAp) const 
         }
       }
       if (step <= 0) continue;  // impassable
+      if (jumpUp != kNoHeightLimit || jumpDown != kNoHeightLimit) {
+        if (!stepAllowed(jumpUp, jumpDown, c, next)) continue;  // too steep: a cliff the unit cannot climb or drop down
+      }
       if (costCap > 0 && step > costCap) step = costCap;
       int occ = occupant[next];
       // Enemies block (unless the unit may pass through them, and then they are never a stop either: see below);

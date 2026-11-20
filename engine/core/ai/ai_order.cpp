@@ -77,16 +77,15 @@ void considerAdvance(Context& cx, const Unit& u, const Stance& st,
                      const std::vector<Cell>& stops, Order& best) {
   const Battle& b = cx.b;
   if (stops.size() < 2 || leaderStaysHome(b, u)) return;
-  int mt = b.typeOf(u).moveType;
 
   // Capturers walk to their assigned city; everyone else toward the nearest enemy.
   const std::vector<int>* field = nullptr;
   if (b.typeOf(u).canCapture && u.id < (int)cx.assigned.size() && cx.assigned[u.id] != kNoCell)
-    field = &cx.goalFieldFor(mt, cx.assigned[u.id]);
+    field = &cx.goalFieldFor(u, cx.assigned[u.id]);
   else if (st.ownGoals)
     field = &st.goalField;  // "ignores": the nearest hostile unit it does not ignore
   else
-    field = &cx.enemyFieldFor(mt);
+    field = &cx.enemyFieldFor(u);  // (height rules: around the cliffs the unit cannot climb)
 
   // "caution": "none" (docs/AI.md): straight-line pursuit, the outnumbered / danger cost of a square does not count.
   const bool cautious = !(st.beh && st.beh->cautionNone);
@@ -105,7 +104,7 @@ void considerAdvance(Context& cx, const Unit& u, const Stance& st,
   for (Cell s : stops) {
     if (s == u.cell || (*field)[s] >= kFar) continue;
     int val = (*field)[s] + closePenalty(b, u, s, minRange) + danger(b, u, s, fade);
-    double def = terrainDefense(b, s);
+    double def = terrainDefense(b, s) + (b.heightGame() ? 0.01 * b.heightAt(s) : 0);  // (height rules: of equal squares the higher one)
     if (val < bestVal || (val == bestVal && bestCell != kNoCell && def > bestDef)) {
       bestVal = val;
       bestCell = s;

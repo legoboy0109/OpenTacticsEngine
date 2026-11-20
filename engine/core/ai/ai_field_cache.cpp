@@ -26,16 +26,21 @@ std::vector<std::shared_ptr<GoalFieldSet>>& sets() {
 
 }  // namespace
 
-std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType) {
+std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType, int jumpUp, int jumpDown) {
   const Grid& g = b.grid;
   std::vector<int> costs((size_t)g.cellCount());
   for (Cell c = 0; c < g.cellCount(); ++c) costs[(size_t)c] = b.enterCost(c, moveType);
+  std::vector<int> heights;
+  if (jumpUp != kNoHeightLimit || jumpDown != kNoHeightLimit) {
+    heights.resize((size_t)g.cellCount());
+    for (Cell c = 0; c < g.cellCount(); ++c) heights[(size_t)c] = b.heightAt(c);
+  }
 
   std::vector<std::shared_ptr<GoalFieldSet>>& all = sets();
   for (size_t i = 0; i < all.size(); ++i) {
     GoalFieldSet& s = *all[i];
     if (s.moveType != moveType || s.gridType != g.type() || s.layout != g.layout() || s.width != g.width() ||
-        s.height != g.height() || s.costs != costs)
+        s.height != g.height() || s.costs != costs || s.jumpUp != jumpUp || s.jumpDown != jumpDown || s.heights != heights)
       continue;
     if (s.fields.size() + s.multiFields.size() >= kMaxFieldsPerSet) {  // full: replace it by an empty twin
       all.erase(all.begin() + (long)i);
@@ -53,6 +58,9 @@ std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType) {
   fresh->height = g.height();
   fresh->moveType = moveType;
   fresh->costs.swap(costs);
+  fresh->jumpUp = jumpUp;
+  fresh->jumpDown = jumpDown;
+  fresh->heights.swap(heights);
   if (all.size() >= kMaxSets) all.erase(all.begin());  // least recently used
   all.push_back(fresh);
   return fresh;
@@ -60,7 +68,7 @@ std::shared_ptr<GoalFieldSet> goalFieldSetFor(const Battle& b, int moveType) {
 
 const std::vector<int>& goalFieldIn(const Battle& b, GoalFieldSet& set, Cell goal) {
   std::vector<int>& f = set.fields[goal];
-  if (f.empty()) distanceField(b, set.moveType, std::vector<Cell>(1, goal), f);
+  if (f.empty()) distanceField(b, set.moveType, std::vector<Cell>(1, goal), f, set.jumpUp, set.jumpDown);
   return f;
 }
 
@@ -68,7 +76,7 @@ const std::vector<int>& goalsFieldIn(const Battle& b, GoalFieldSet& set, const s
   std::map<std::vector<Cell>, std::vector<int>>::iterator it = set.multiFields.find(goals);
   if (it == set.multiFields.end()) {
     it = set.multiFields.insert(std::make_pair(goals, std::vector<int>())).first;
-    distanceField(b, set.moveType, goals, it->second);
+    distanceField(b, set.moveType, goals, it->second, set.jumpUp, set.jumpDown);
   }
   return it->second;
 }
