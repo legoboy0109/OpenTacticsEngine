@@ -164,7 +164,7 @@ struct Command {
   int item = -1;         // GiveItem, TakeItem
   std::vector<Amount> amounts;  // GiveResource
   int index = -1;        // SetSwitch / SetVariable / AddVariable: the switch / variable; GrantResearch: the technology
-  bool on = false;       // SetSwitch; TakeItem: every copy
+  bool on = false;       // SetSwitch; ChangeSide: "ready"; TakeItem: every copy
   bool hide = false;     // RemoveUnit: "hide": true takes the units off the map without losing them
   UnitReading reading;   // SetVariable / AddVariable: where the number comes from when it is not `value`
   int value = 0;         // SetVariable / AddVariable; PlayMusic / StopMusic: the fade in milliseconds (-1 = not given)

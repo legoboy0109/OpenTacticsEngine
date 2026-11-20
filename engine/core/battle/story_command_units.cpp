@@ -163,6 +163,7 @@ void Battle::cmdChangeSide(const Command& c, std::vector<Event>& events) {
     u.side = c.side;
     sides[(size_t)c.side].everHadUnits = true;
     clampHp(u);  // the new side's research may give it another maximum
+    if (c.on) refreshUnitForTurn(u);  // "ready": true: able to act as if its new side's turn had just begun for it
   }
 }
 

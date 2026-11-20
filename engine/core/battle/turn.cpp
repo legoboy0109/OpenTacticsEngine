@@ -29,17 +29,22 @@ void Battle::lightsTurnStart() {
   if (changed) markSight();
 }
 
+// The per-unit part of a turn's start: every "moved / acted / done" flag and per-turn counter starts over. Only
+// these flags: start-of-turn effects (healing, condition ticks, income) are beginTurn's, and "changeSide" with
+// "ready" (story_command_units.cpp) reuses just this.
+void Battle::refreshUnitForTurn(Unit& u) {
+  u.moved = u.done = false;
+  // The turn flags of "move again" / "act again" (docs/SRPG.md) start over with them.
+  u.moveSpent = 0;
+  u.apAttacks = 0;  // docs/SRPG.md "Action points"
+  u.acted = u.refreshed = false;
+  u.refreshedBy.clear();  // docs/SRPG.md "Refresh an ally"
+}
+
 void Battle::beginTurn(std::vector<Event>& events) {
   lightsTurnStart();
   for (Unit& u : units)
-    if (u.side == activeSide) {
-      u.moved = u.done = false;
-      // The turn flags of "move again" / "act again" (docs/SRPG.md) start over with them.
-      u.moveSpent = 0;
-      u.apAttacks = 0;  // docs/SRPG.md "Action points"
-      u.acted = u.refreshed = false;
-      u.refreshedBy.clear();  // docs/SRPG.md "Refresh an ally"
-    }
+    if (u.side == activeSide) refreshUnitForTurn(u);
 
   Event e;
   e.type = EventType::TurnStarted;
