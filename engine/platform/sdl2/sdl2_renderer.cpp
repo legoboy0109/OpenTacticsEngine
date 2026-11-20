@@ -1,12 +1,24 @@
 #include "platform/sdl2/sdl2_renderer.h"
 
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 
 #include "core/base/fileio.h"
 #include "core/base/log.h"
 #include "platform/sdl2/sdl2_pixels.h"
 #ifdef OTE_NXDK
 #include "platform/nxdk/nxdk_present.h"
+#include "platform/nxdk/nxdk_prof.h"
+#endif
+
+#ifdef OTE_NXDK
+// A timed span of SDL's CPU renderer, with the pixels it writes (docs/XBOX_OG.md "Speed").
+#define OTE_PROF_SDL(pixels)         \
+  prof::Span profSpan(prof::kSdl2d); \
+  prof::count(prof::kSdlPixels, (pixels))
+#else
+#define OTE_PROF_SDL(pixels) ((void)0)
 #endif
 
 namespace ote {
@@ -54,12 +66,18 @@ class SdlRenderer::Target : public TextTarget {
     SDL_SetTextureAlphaMod(t, tint.a);
     SDL_Rect src = {sx, sy, sw, sh};
     SDL_Rect dst = {dx, dy, dw, dh};
+    OTE_PROF_SDL(owner_->pixelsOf(dw, dh, outputSpace));
     if (owner_->fixed_) {
       // Fixed screen: switching SDL's viewport per glyph would flush its command queue every time, so the screen-pixel mode
       // stays on across a run of glyphs and is left by the next ordinary draw (SdlRenderer::leaveOutputSpace callers).
       if (outputSpace) {
         owner_->enterOutputSpace();
-        if (owner_->fit_.kx != owner_->fit_.ky) {  // anamorphic: squeeze the glyph (laid out at the y scale) to the x scale
+#ifdef OTE_NXDK
+        const bool chipStretches = owner_->chipScale_;  // the chip stretches anamorphically itself
+#else
+        const bool chipStretches = false;
+#endif
+        if (!chipStretches && owner_->fit_.kx != owner_->fit_.ky) {  // anamorphic: squeeze the glyph (laid out at the y scale) to the x scale
           const float r = owner_->fit_.kx / owner_->fit_.ky;
           dst.x = owner_->fit_.x + (int)std::floor((float)(dx - owner_->fit_.x) * r + 0.5f);
           dst.w = dw * r < 1.0f ? 1 : (int)std::floor((float)dw * r + 0.5f);
@@ -79,6 +97,13 @@ class SdlRenderer::Target : public TextTarget {
 
   void outputTransform(float& scale, float& offsetX, float& offsetY) const override {
     if (owner_->fixed_) {  // the canvas rectangle; text is laid out at the vertical scale (see drawTexture)
+#ifdef OTE_NXDK
+      if (owner_->chipScale_) {  // the canvas is drawn at the game's size times a whole number; the chip does the rest
+        scale = (float)owner_->canvasFactor_;
+        offsetX = offsetY = 0;
+        return;
+      }
+#endif
       scale = owner_->fit_.ky;
       offsetX = (float)owner_->fit_.x;
       offsetY = (float)owner_->fit_.y;
@@ -155,7 +180,29 @@ void SdlRenderer::applyLogical() {
     f.h = fit_.h;
     f.kx = fit_.kx;
     f.ky = fit_.ky;
+    // The chip stretches the 2D layer when it owns the screen and the canvas (at its whole-number factor) fits the surface.
+    chipScale_ = nxdkChipPresents();
+    canvasFactor_ = chipFactor();
+    if (chipScale_ && (w_ * canvasFactor_ > screen_.w || h_ * canvasFactor_ > screen_.h)) canvasFactor_ = 1;
+    if (chipScale_ && (w_ > screen_.w || h_ > screen_.h)) chipScale_ = false;  // a canvas bigger than the screen: the old way
+    if (chipScale_) {
+      f.canvasW = w_ * canvasFactor_;
+      f.canvasH = h_ * canvasFactor_;
+      f.smooth = chipSmooth();
+    }
     nxdkSetFit(f);
+  }
+  if (chipScale_) {
+    canvasViewport_ = {0, 0, w_ * canvasFactor_, h_ * canvasFactor_};
+    SDL_RenderSetLogicalSize(r_, 0, 0);
+    SDL_RenderSetScale(r_, 1.0f, 1.0f);
+    SDL_RenderSetViewport(r_, &canvasViewport_);
+    SDL_RenderSetScale(r_, (float)canvasFactor_, (float)canvasFactor_);
+    outputMode_ = false;
+    OTE_INFO("screen fit: %dx%d canvas drawn at x%d (%dx%d pixels), stretched by the chip to %dx%d on %dx%d at %d,%d (scale %d/1000 x %d/1000, %s, safe area %d%%)",
+             w_, h_, canvasFactor_, w_ * canvasFactor_, h_ * canvasFactor_, fit_.w, fit_.h, screen_.w, screen_.h, fit_.x, fit_.y,
+             (int)(fit_.kx * 1000.0f + 0.5f), (int)(fit_.ky * 1000.0f + 0.5f), chipSmooth() ? "linear" : "nearest", in.safePercent);
+    return;
   }
 #endif
   // SDL's own logical-size code does the same three steps: viewport in screen pixels (scale 1), then the scale.
@@ -169,15 +216,54 @@ void SdlRenderer::applyLogical() {
            fit_.x, fit_.y, (int)(fit_.kx * 1000.0f + 0.5f), (int)(fit_.ky * 1000.0f + 0.5f), in.safePercent);
 }
 
+#ifdef OTE_NXDK
+// OTE_XBOX_CANVAS=N (args.txt, debug): draw the 2D layer at N times the game's size (default 1; the chip scales the rest).
+int SdlRenderer::chipFactor() {
+  const char* e = getenv("OTE_XBOX_CANVAS");
+  const int n = e ? atoi(e) : 1;
+  return n < 1 ? 1 : n > 4 ? 4 : n;
+}
+
+// OTE_XBOX_FILTER=point|linear (args.txt, debug) decides how the chip stretches the canvas; by default whole-number stretches
+// stay sharp and the others are filtered linearly (docs/XBOX_OG.md "Picture").
+bool SdlRenderer::chipSmooth() const {
+  const char* e = getenv("OTE_XBOX_FILTER");
+  if (e && strcmp(e, "point") == 0) return false;
+  if (e && strcmp(e, "linear") == 0) return true;
+  const float kx = fit_.kx / (float)canvasFactor_, ky = fit_.ky / (float)canvasFactor_;
+  const bool whole = std::fabs(kx - std::floor(kx + 0.5f)) < 0.02f && std::fabs(ky - std::floor(ky + 0.5f)) < 0.02f;
+  return !whole;
+}
+
+double SdlRenderer::pixelsOf(int w, int h, bool outputSpace) const {
+  const double k = fixed_ && !outputSpace && !chipScale_ ? (double)fit_.kx * fit_.ky : (fixed_ && !outputSpace ? (double)canvasFactor_ * canvasFactor_ : 1.0);
+  return (double)w * h * k;
+}
+#endif
+
 void SdlRenderer::enterOutputSpace() {
   if (!fixed_ || outputMode_) return;
   SDL_RenderSetScale(r_, 1.0f, 1.0f);
+#ifdef OTE_NXDK
+  if (chipScale_) {  // the canvas is the output: same rectangle, scale 1
+    SDL_RenderSetViewport(r_, &canvasViewport_);
+    outputMode_ = true;
+    return;
+  }
+#endif
   SDL_RenderSetViewport(r_, nullptr);
   outputMode_ = true;
 }
 
 void SdlRenderer::leaveOutputSpace() {
   if (!fixed_ || !outputMode_) return;
+#ifdef OTE_NXDK
+  if (chipScale_) {
+    SDL_RenderSetScale(r_, (float)canvasFactor_, (float)canvasFactor_);
+    outputMode_ = false;
+    return;
+  }
+#endif
   SDL_Rect vp = {fit_.x, fit_.y, fit_.w, fit_.h};
   SDL_RenderSetViewport(r_, &vp);
   SDL_RenderSetScale(r_, fit_.kx, fit_.ky);
@@ -265,6 +351,7 @@ void SdlRenderer::drawTexture(TextureId id, int sx, int sy, int sw, int sh, int 
   SDL_SetTextureAlphaMod(t, mod.a);
   SDL_Rect src = {sx, sy, sw, sh};
   SDL_Rect dst = {dx, dy, dw, dh};
+  OTE_PROF_SDL(pixelsOf(dw, dh, false));
   leaveOutputSpace();
   SDL_RenderCopy(r_, t, &src, &dst);
 }
@@ -279,6 +366,15 @@ void SdlRenderer::setColor(Color c) {
 }
 
 void SdlRenderer::clear(Color c) {
+  OTE_PROF_SDL(pixelsOf(w_, h_, false) + (fixed_ && !chipScaleOn() ? (double)screen_.w * screen_.h : 0.0));
+#ifdef OTE_NXDK
+  if (chipScale_) {  // the margin is the chip's business (it blacks it out before the first layer); only the canvas is drawn here
+    leaveOutputSpace();
+    setColor(c);
+    SDL_RenderFillRect(r_, nullptr);
+    return;
+  }
+#endif
   if (fixed_) {
     // The margin around the canvas stays black (SDL's clear may or may not respect the viewport); the canvas gets the colour.
     enterOutputSpace();
@@ -295,6 +391,7 @@ void SdlRenderer::clear(Color c) {
 
 void SdlRenderer::fillRect(int x, int y, int w, int h, Color c) {
   if (w <= 0 || h <= 0) return;
+  OTE_PROF_SDL(pixelsOf(w, h, false));
   leaveOutputSpace();
   setColor(c);
   SDL_Rect rect = {x, y, w, h};

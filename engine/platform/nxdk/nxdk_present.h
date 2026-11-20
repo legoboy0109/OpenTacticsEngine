@@ -18,6 +18,11 @@ namespace ote {
 struct NxdkFit {
   int x = 0, y = 0, w = 0, h = 0;
   float kx = 1, ky = 1;
+  // The 2D layer's own size when the chip scales it (the canvas is drawn at the game's size, or a whole multiple of it, in the
+  // top-left corner of the surface and the chip stretches it over x, y, w, h). 0 = the whole surface is drawn 1:1 at the
+  // screen's pixels (the 2D layer is already at the screen's scale, as the first version of the port did).
+  int canvasW = 0, canvasH = 0;
+  bool smooth = false;  // the chip's stretch filters linearly (otherwise nearest pixel)
 };
 
 // The 2D layer's surface (ARGB8888, whole screen). Set once, before the first frame.
@@ -25,6 +30,9 @@ void nxdkSetCanvas(SDL_Surface* canvas);
 void nxdkSetFit(const NxdkFit& fit);
 // True once the NV2A owns the screen (a hardware 3D backend was made): then nxdkPresent composes on the chip.
 bool nxdkChipPresents();
+// Starts the chip at launch (before the first frame) so that even 2D-only runs are composed by it; logs and carries on with the
+// CPU copy when it cannot start.
+void nxdkStartChip();
 
 // Called at the end of every frame, after everything is drawn: shows the frame. `screenshot` = a BMP path for this frame
 // (whole screen, margins included) or empty. In chip mode this waits for the vertical blank itself.
