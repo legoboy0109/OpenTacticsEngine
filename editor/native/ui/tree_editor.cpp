@@ -6,11 +6,15 @@
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
+#include <QRegularExpression>
+#include <QTabWidget>
 #include <QToolButton>
 #include <QTreeView>
 #include <QVBoxLayout>
 
 #include "cell_text.h"
+#include "form_context.h"
+#include "form_view.h"
 #include "json_tree_model.h"
 #include "project.h"
 
@@ -23,7 +27,8 @@ const TypeChoice kTypes[] = {
     {"Object { }", ote::Json::Type::Object}, {"List [ ]", ote::Json::Type::Array}, {"Empty (null)", ote::Json::Type::Null}};
 }  // namespace
 
-TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent) : QWidget(parent), doc_(doc) {
+TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent, const FileSchema* schema, IdSource* ids)
+    : QWidget(parent), doc_(doc), schema_(schema && schema->root ? schema : nullptr) {
   setObjectName("treeEditor");
   model_ = new JsonTreeModel(project, doc, this);
   view_ = new QTreeView(this);
@@ -67,11 +72,33 @@ TreeEditor::TreeEditor(Project* project, JsonDocument* doc, QWidget* parent) : Q
   bar->addStretch(1);
   bar->addWidget(expandButton);
   bar->addWidget(collapseButton);
-  auto* layout = new QVBoxLayout(this);
+  treePage_ = new QWidget(this);
+  auto* layout = new QVBoxLayout(treePage_);
   layout->setContentsMargins(4, 4, 4, 4);
   layout->addLayout(bar);
   layout->addWidget(message_);
   layout->addWidget(view_, 1);
+  auto* root = new QVBoxLayout(this);
+  root->setContentsMargins(0, 0, 0, 0);
+  if (!schema_) {
+    root->addWidget(treePage_);
+  } else {
+    formCtx_ = new FormContext(project, doc, ids, this);
+    form_ = new FormView(formCtx_, schema_->root.get(), this);
+    form_->setTarget({});
+    pages_ = new QTabWidget(this);
+    pages_->setObjectName("treePages");
+    pages_->setTabPosition(QTabWidget::South);
+    pages_->setDocumentMode(true);
+    const QString title = schema_->title.empty() ? tr("Form") : QString::fromStdString(schema_->title);
+    pages_->addTab(form_, title);
+    pages_->addTab(treePage_, tr("Tree (all keys)"));
+    root->addWidget(pages_);
+    connect(form_, &FormView::showInTreeRequested, this, [this](const JsonPath& p) {
+      showTreePage();
+      selectPath(p);
+    });
+  }
 
   connect(delButton, &QPushButton::clicked, this, [this] { removeCurrent(); });
   connect(expandButton, &QPushButton::clicked, view_, &QTreeView::expandAll);
@@ -134,6 +161,47 @@ void TreeEditor::selectPath(const JsonPath& path) {
   for (QModelIndex p = model_->parent(i); p.isValid(); p = model_->parent(p)) view_->expand(p);
   view_->setCurrentIndex(i);
   view_->scrollTo(i);
+}
+
+void TreeEditor::showFormPage() {
+  if (pages_) pages_->setCurrentWidget(form_);
+}
+
+void TreeEditor::showTreePage() {
+  if (pages_) pages_->setCurrentWidget(treePage_);
+}
+
+bool TreeEditor::locateProblem(const QString& message) {
+  // Candidates, best first: dotted paths ("rules.actionPoints", "damageTypes[1]"), then quoted words ("resistRange").
+  static const QRegularExpression dotted("[A-Za-z_][A-Za-z0-9_]*(?:\\[\\d+\\])?(?:\\.[A-Za-z_][A-Za-z0-9_]*(?:\\[\\d+\\])?)+");
+  static const QRegularExpression single("^[A-Za-z_][A-Za-z0-9_]*(?:\\[\\d+\\])?$");
+  static const QRegularExpression quoteRe("\"([^\"]+)\"");
+  static const QRegularExpression step("([A-Za-z_][A-Za-z0-9_]*)|\\[(\\d+)\\]");
+  QStringList candidates;
+  for (auto it = dotted.globalMatch(message); it.hasNext();) candidates << it.next().captured(0);
+  for (auto it = quoteRe.globalMatch(message); it.hasNext();) {
+    const QString q = it.next().captured(1);
+    if (single.match(q).hasMatch()) candidates << q;
+  }
+  for (const QString& cand : candidates) {
+    JsonPath p;
+    for (auto it = step.globalMatch(cand); it.hasNext();) {
+      auto m = it.next();
+      if (m.captured(1).size()) p.push_back(PathStep::member(m.captured(1).toStdString()));
+      else p.push_back(PathStep::at((size_t)m.captured(2).toInt()));
+    }
+    if (form_) {
+      if (form_->focusPath(p)) { showFormPage(); return true; }
+      // A bare key such as "resistRange" or "apCost": look for a field of that name anywhere in the form.
+      if (p.size() == 1 && !p[0].isIndex && form_->focusKey(QString::fromStdString(p[0].key))) { showFormPage(); return true; }
+    }
+    if (resolvePath(doc_->root(), p)) {
+      showTreePage();
+      selectPath(p);
+      return true;
+    }
+  }
+  return false;
 }
 
 void TreeEditor::showContextMenu(const QPoint& pos) {

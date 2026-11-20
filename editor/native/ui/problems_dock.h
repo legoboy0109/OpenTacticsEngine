@@ -22,6 +22,8 @@ class ProblemsDock : public QDockWidget {
 
  signals:
   void openFileRequested(const QString& relPath);
+  // Same activation, with the loader's message so the editor can place the cursor on the row / key it names.
+  void locateRequested(const QString& relPath, const QString& message);
 
  private:
   QListWidget* list_;

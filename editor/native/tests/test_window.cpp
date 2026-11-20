@@ -97,17 +97,13 @@ void WindowTest::editUndoRedoSaveAndProblems() {
   QVERIFY(t);
   QCOMPARE(win.w->tabs()->currentWidget(), t);
   JsonTableModel* m = t->model();
-  const int statsCol = columnOf(m, "stats");
+  // The schema makes "stats.hp" a real column: an edit there is a plain cell edit (no JSON dialog any more).
+  const int statsCol = columnOf(m, "stats.hp");
   QVERIFY(statsCol >= 0);
+  QVERIFY2(columnOf(m, "stats") < 0, "no raw JSON cell where a schema describes the members");
   const int before = m->document()->root()["units"][0]["stats"]["hp"].asInt();
 
-  // Edit a unit's stat through the table's nested-JSON path.
-  t->setNestedEditorHook([](const QString&, const Json& initial, Json* out) {
-    *out = initial;
-    out->set("hp", Json::makeNumber(initial["hp"].asInt() + 5));
-    return true;
-  });
-  t->editNestedCell(t->proxy()->index(0, statsCol));
+  QVERIFY(t->proxy()->setData(t->proxy()->index(0, statsCol), QString::number(before + 5), Qt::EditRole));
   QCOMPARE(m->document()->root()["units"][0]["stats"]["hp"].asInt(), before + 5);
   QVERIFY(m->document()->isDirty());
   QVERIFY(win.w->tabs()->tabText(win.w->tabs()->indexOf(t)).endsWith("*"));

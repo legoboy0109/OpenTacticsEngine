@@ -5,19 +5,26 @@
 #include <functional>
 
 #include "json_document.h"
+#include "schema.h"
 
 class QLabel;
+class QTabWidget;
 class QTreeView;
 
 namespace ote_native {
 
+class FormContext;
+class FormView;
+class IdSource;
 class JsonTreeModel;
 class Project;
 
 class TreeEditor : public QWidget {
   Q_OBJECT
  public:
-  TreeEditor(Project* project, JsonDocument* doc, QWidget* parent = nullptr);
+  // With a schema for the whole document (game.json) the editor has two pages: the schema form and the generic tree.
+  TreeEditor(Project* project, JsonDocument* doc, QWidget* parent = nullptr, const FileSchema* schema = nullptr,
+             IdSource* ids = nullptr);
 
   QTreeView* view() const { return view_; }
   JsonTreeModel* model() const { return model_; }
@@ -30,6 +37,14 @@ class TreeEditor : public QWidget {
   // Replace the current node with a fresh value of another type (the old value is gone from the file, but Undo restores it).
   bool changeCurrentType(ote::Json::Type type);
   void selectPath(const JsonPath& path);  // used when a problem names a spot
+
+  FormView* form() const { return form_; }
+  FormContext* formContext() const { return formCtx_; }
+  QTabWidget* pages() const { return pages_; }
+  void showFormPage();
+  void showTreePage();
+  // Jumps to what a problem message names ("rules.actionPoints", "damageTypes[1]", a quoted key) in the form, else the tree.
+  bool locateProblem(const QString& message);
 
   using KeyPrompt = std::function<QString(const QString& title)>;  // empty string = cancelled
   void setKeyPrompt(KeyPrompt prompt) { keyPrompt_ = std::move(prompt); }
@@ -47,6 +62,11 @@ class TreeEditor : public QWidget {
   QTreeView* view_;
   QLabel* message_;
   KeyPrompt keyPrompt_;
+  QTabWidget* pages_ = nullptr;
+  QWidget* treePage_ = nullptr;
+  FormContext* formCtx_ = nullptr;
+  FormView* form_ = nullptr;
+  const FileSchema* schema_ = nullptr;
 };
 
 }  // namespace ote_native

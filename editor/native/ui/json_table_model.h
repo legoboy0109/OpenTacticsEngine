@@ -9,10 +9,20 @@
 #include <vector>
 
 #include "json_document.h"
+#include "schema.h"
 
 namespace ote_native {
 
+class IdSource;
 class Project;
+
+// One column: a key path inside the row (one step for a plain key, two for "stats.hp"), its usual type, and the schema
+// node that describes it when there is one (null for columns that only exist because a row has the key).
+struct ColumnSpec {
+  std::vector<std::string> path;
+  ote::Json::Type hint = ote::Json::Type::Null;
+  const SchemaNode* node = nullptr;
+};
 
 struct CellEdit {
   int row = 0, col = 0;
@@ -34,7 +44,16 @@ class JsonTableModel : public QAbstractTableModel {
   QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
   Qt::ItemFlags flags(const QModelIndex& index) const override;
 
-  const QString columnKey(int col) const { return QString::fromStdString(columns_[(size_t)col]); }
+  // The column's name: the key, or "parent.child" for a member of a nested object.
+  QString columnKey(int col) const;
+  const ColumnSpec& column(int col) const { return columns_[(size_t)col]; }
+  // Columns come from a schema (nested scalar members become real columns); keys it does not describe still get a column
+  // of their own, as without a schema. `ids` supplies the ids of maps keyed by a reference (stats, damage types).
+  void setSchema(const SchemaNode* rows, IdSource* ids);
+  // True when the cell holds a value of the wrong kind for its schema node (shown with a warning mark).
+  bool cellMismatch(int row, int col, QString* why = nullptr) const;
+  // The first column whose key path starts with `key` (-1 if none): used to jump to a field named by a problem.
+  int columnOfKey(const QString& key) const;
   // The cell's JSON value, nullptr when this row has no such key.
   const ote::Json* cellValue(int row, int col) const;
   bool isNestedCell(int row, int col) const;
@@ -63,18 +82,23 @@ class JsonTableModel : public QAbstractTableModel {
  private:
   const ote::Json* array() const;
   void rebuildColumns();
+  void refreshPlan();  // the ids behind a keyed-by-reference column set changed
+  void changedKey(int row, const std::string& key);  // cells of every column starting with this key
   bool growColumns();  // adds keys seen in the rows but not in columns_; true when something was added
   JsonPath rowPath(int row) const;
   void onAboutToChange(const JsonChange& c);
   void onChanged(const JsonChange& c);
   std::string uniqueId(const ote::Json& row, int afterRow) const;
-  ote::Json::Type columnHint(int col) const { return hints_[(size_t)col]; }
+  ote::Json::Type columnHint(int col) const { return columns_[(size_t)col].hint; }
+  bool covered(const std::string& key) const;  // some column starts with this key
 
   Project* project_;
   JsonDocument* doc_;
   JsonPath arrayPath_;
-  std::vector<std::string> columns_;
-  std::vector<ote::Json::Type> hints_;  // first non-null type seen in each column
+  std::vector<ColumnSpec> columns_;
+  std::vector<ColumnSpec> plan_;        // the schema's columns (a prefix of columns_)
+  const SchemaNode* rowsSchema_ = nullptr;
+  IdSource* ids_ = nullptr;
   bool resetting_ = false;
 };
 
