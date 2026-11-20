@@ -5,6 +5,7 @@
 #include "battle/battle_scene.h"
 #include "battle/condition_text.h"
 #include "core/base/log.h"
+#include "core/battle/threat_area.h"
 #include "sound/cue_sink.h"
 #include "ui/text.h"
 
@@ -286,6 +287,19 @@ void BattleScene::computeOverlay() {
   overlay_.reach.assign(n, 0);
   overlay_.attack.assign(n, 0);
   for (Cell s : reach_.stops) overlay_.reach[s] = 1;
+  // Height rules: one line per painted selection, for the player tests (the squares it can stop on, and the squares only its weapons reach).
+  struct HeightLog {
+    const BattleScene& scene;
+    ~HeightLog() {
+      if (!scene.battle_.heightGame()) return;
+      int move = 0, attack = 0;
+      for (size_t c = 0; c < scene.overlay_.reach.size(); ++c) {
+        move += scene.overlay_.reach[c] ? 1 : 0;
+        attack += scene.overlay_.attack[c] && !scene.overlay_.reach[c] ? 1 : 0;
+      }
+      OTE_INFO("overlay: %d move squares, %d attack-only squares", move, attack);
+    }
+  } heightLog{*this};
   if (u.acted) return;  // it cannot attack any more: no red squares
   if (battle_.apGame() && battle_.apAttacksLeft(u) <= 0) return;  // (action points: the attacks of the turn are made)
   for (Cell s : reach_.stops) {
@@ -297,6 +311,10 @@ void BattleScene::computeOverlay() {
       const WeaponDef& w = battle_.db->weapons[wi];
       if ((s != u.cell || (battle_.apGame() && u.moved)) && !w.afterMove) continue;
       if (battle_.apGame() && walk + battle_.apAttackCost(sel_, wi) > battle_.apPool(u.side)) continue;
+      if (battle_.heightGame()) {  // the height rules raise and limit what a weapon reaches (core/battle/height_rules.cpp): the one shared function says where
+        markWeaponReach(battle_, sel_, wi, s, overlay_.attack);
+        continue;
+      }
       for (Cell c = 0; c < n; ++c) {
         int d = battle_.grid.distance(s, c);
         if (d >= w.minRange && d <= w.maxRange) overlay_.attack[c] = 1;
@@ -350,11 +368,22 @@ void BattleScene::selectedButton(Button b) {
       } else {
         int t = battle_.unitAt(cursor_);
         if (u.acted) { uiCue(Cue::Error); break; }  // no attack left
-        if (t < 0 || !battle_.isEnemy(u, battle_.units[t])) { uiCue(Cue::Error); break; }  // nowhere to go there
+        if (t < 0 || !battle_.isEnemy(u, battle_.units[t])) {  // nowhere to go there
+          uiCue(Cue::Error);
+          if (const char* steep = battle_.heightMoveRefusal(sel_, cursor_)) { say(steep); OTE_INFO("refused: %s", steep); }  // height rules: say why
+          break;
+        }
         std::vector<AttackOption> opts;
         battle_.attackOptions(sel_, u.cell, opts);
+        bool offered = false;
         for (const AttackOption& o : opts)
-          if (o.target == t) { beginAttack(t); break; }
+          if (o.target == t) { beginAttack(t); offered = true; break; }
+        if (!offered) {  // height rules: an enemy it cannot hit because of how high or low it stands
+          std::vector<int> weapons;
+          battle_.attackWeaponsAt(u, u.cell, weapons);
+          for (int w : weapons)
+            if (const char* why = battle_.heightAimRefusal(w, u.cell, cursor_)) { say(why); OTE_INFO("refused: %s", why); break; }
+        }
       }
       break;
     }

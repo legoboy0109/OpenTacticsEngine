@@ -17,7 +17,7 @@ Overlay BattleScene::aimOverlay() const {
   std::vector<Cell> cells;
   battle_.aimCells(t.weapon, battle_.units[(size_t)sel_].cell, sel_, cells);
   for (Cell c : cells) ov.reach[(size_t)c] = 1;  // blue: where it can be aimed
-  areaCells(battle_.grid, battle_.units[(size_t)sel_].cell, t.cell, w.area, cells);
+  battle_.areaCover(t.weapon, battle_.units[(size_t)sel_].cell, t.cell, cells);
   for (Cell c : cells) {  // red: what the shot hits (the aimed square alone for line fire without an area)
     ov.reach[(size_t)c] = 0;
     ov.attack[(size_t)c] = 1;
