@@ -1,0 +1,6 @@
+{ "structures": [
+  { "id": "barracks", "name": "Barracks", "capturePoints": 20, "income": { "gold": 6 },
+    "produces": ["soldier", "archer", "knight", "golem"],
+    "upgrades": [ { "to": "fort", "cost": { "gold": 30 } }, { "to": "keep", "cost": { "gold": 40 } } ] },
+  { "id": "fort", "name": "Fort", "capturePoints": 20, "income": { "gold": 10 }, "produces": ["soldier", "archer", "knight", "golem"] },
+  { "id": "keep", "name": "Keep", "capturePoints": 20, "income": { "gold": 8 }, "produces": ["soldier", "archer", "knight", "golem"] } ] }

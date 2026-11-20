@@ -1,0 +1,12 @@
+{ "factions": [
+  { "id": "order", "name": "Order", "description": "Disciplined foot soldiers and knights, and gold in the vault to start.",
+    "units": ["soldier", "archer", "knight"], "structures": ["barracks", "fort"], "techs": ["drill", "forging"],
+    "start": { "resources": { "gold": 50 } },
+    "modifiers": [ { "skill": "bulwark", "filter": { "tag": "infantry" } } ],
+    "tags": ["human", "disciplined"] },
+  { "id": "horde", "name": "Horde", "description": "Cheap soldiers and golems. No forts, no drill: it fights now.",
+    "units": ["soldier", "golem"], "structures": ["barracks", "keep"], "techs": ["arcana"],
+    "modifiers": ["fleet"],
+    "ai": { "weights": { "dmg": 2, "counter": 1 } },
+    "tags": ["monster"] },
+  { "id": "free", "name": "Free Company", "description": "Takes any unit, any building and any technology." } ] }

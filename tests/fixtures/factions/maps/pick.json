@@ -1,0 +1,8 @@
+{ "name": "Pick Your Side", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human", "faction": "choose", "resources": { "gold": 100 } },
+             { "id": "red", "name": "Red", "controller": "ai", "faction": "choose", "resources": { "gold": 100 } } ],
+  "structures": [ { "type": "barracks", "x": 0, "y": 0, "side": "blue" }, { "type": "barracks", "x": 7, "y": 2, "side": "red" } ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 2, "y": 1, "id": "sol", "leader": true },
+    { "type": "soldier", "side": "red", "x": 5, "y": 1, "id": "foe", "leader": true } ] }
