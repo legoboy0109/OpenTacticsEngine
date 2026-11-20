@@ -705,6 +705,27 @@ of the unit info panel lists the non-zero resistances (`Fire res +3`, green when
 
 **Tests.** `tests/test_damage_types.cpp` (fixture `tests/fixtures/damage-types`), `tests/damage_types_player_test.py` (the forecast and info panel in the player).
 
+### Side-wide modifiers
+
+A side can hold skills that apply to its units as if each unit had them. They are state of the battle (`SideState::modifiers`, a list of
+`SideModifier { skill, filterType, filterTag, tech, grant }`), and **`Battle::skillsOf` is the only place that reads them**, so everything that reads a
+unit's skills (standing stat bonuses, combat blocks, turn blocks, conditions, the forecast, the AI, the unit details) sees them with no further change.
+In the judging order they come after the character's own skills and before accessories and the weapon in use; a skill the unit has from another source
+counts once, at its first place.
+
+- **Sources.** In this version the only source is finished research (`grants.skills` on a technology, docs/ECONOMY.md "Branching research"): when a
+  technology finishes (by countdown, instantly, through the story's `grantResearch`, or handed to a chapter by the campaign) its grants are added through
+  `Battle::addSideModifier(side, modifier)`. A later feature (factions) adds its source by calling the same function with its own modifier; nothing in
+  `skillsOf` or the save format of the existing source changes (give the new source its own fields and its own writer in `save_research.cpp`).
+- **Filter.** `filterType` (a unit type) and `filterTag` (a tag of the unit's type); both empty = every unit of the side. `Battle::modifierApplies(m, unit)`.
+  Units that change side (`changeSide`) lose the old side's modifiers and gain the new side's, as the side is read each time.
+- **Saved** as `"modifiers": [ { "skill", "tech", "grant" } ]` on the side, only when the list is not empty (docs/SAVES.md). A save is refused when an entry
+  names a technology that is not finished, a grant the technology does not have, another skill than that grant, or when a finished technology's grants
+  are missing.
+- **Player.** The unit details list such a skill with the origin "Side" (the same page and row as the unit's own skills), and its effect shows in the stats
+  like any skill's (`Defense 4 (+2)`).
+- **Maximum HP.** A granted skill that raises or lowers the maximum HP behaves like a research stat bonus: the current HP is only clamped (never healed).
+
 ### Skill and ability blocks, second set
 
 Added after the general blocks above. Every game that does not use a new key loads, plays, saves and hashes exactly as before (the maker's files are hashed

@@ -71,8 +71,9 @@ id that does not exist is a load error.
                                                                   // % of the proportional unit cost, 0..100, default 100
                 "structures": true },                             // own structures also refill fuel and ammunition
     // Optional (docs/ECONOMY.md "Research", "Fog of war"); unknown keys and other values are refused.
-    "research": { "needsStructure": false },   // true: research needs an owned structure kind with "research": true. Default
+    "research": { "needsStructure": false,     // true: research needs an owned structure kind with "research": true. Default
                                                // false: a side can research whenever the game has technologies
+                  "cancelRefundPercent": 0 },  // 0..100: share of the cost paid back when research under way is cancelled (default 0)
     "display": { "enemyRanges": true },        // optional (docs/SRPG.md "Enemy ranges"): false = the player's enemy-range display (mark an enemy,
                                                // "show all") is switched off for this game and no player setting turns it on. Default true
     "fog": { "ambush": "endsTurn" },           // a unit that walks into a hidden enemy: "endsTurn" (default) or "canAct"
@@ -294,7 +295,10 @@ both and/or structure kind ids (valid without `heal`); its `uses` are the openin
 Technologies a side can research: cost, turns, prerequisites, unit types they unlock and stat bonuses. A game
 without this file has no research. `{ "technologies": [ { "id", "name", "description", "cost": {…}, "turns": 0..99
 (default 1), "requires": ["id"], "unlocks": { "units": ["id"] }, "bonus": { "types": ["unit id"], "stats":
-{ "def": 1 } } } ] }`; unknown keys are refused. With `rules.research.needsStructure` on, a structure kind needs `"research": true` to research at (by default no building is needed).
+{ "def": 1 } } } ] }`; unknown keys are refused. Optional branching keys (docs/ECONOMY.md "Branching research"): `"tree"` (text) and `"tier"` (0..99)
+for the panel, `"exclusiveGroup"` (text; one branch per side), `"requiresStructures": ["structure id"]`, `"bonus": { "income": { "resource": n } }` and
+`"grants": { "skills": ["skill id" | { "skill": "id", "filter": { "type": "unit type id" } | { "tag": "text" } }] }` (side-wide skills, docs/SRPG.md
+"Side-wide modifiers"). With `rules.research.needsStructure` on, a structure kind needs `"research": true` to research at (by default no building is needed).
 Everything is in docs/ECONOMY.md.
 
 ## maps/*.json

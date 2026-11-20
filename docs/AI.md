@@ -8,7 +8,7 @@ decision; it is stateless on purpose (the same battle always gives the same deci
 Every computer unit that has no `behaviour` block plays like this, and every shipped game, test and `ote-sim` result depends on it staying exactly so:
 
 - Each step it scores the best order of every unit that has not acted (move somewhere, then attack, capture, use a staff or item, supply, promote,
-  use an ability, open / visit a place) and does the single best one; ties go to the lowest unit id. After all have acted it researches, builds and upgrades.
+  use an ability, open / visit a place) and does the single best one; ties go to the lowest unit id. After all have acted it researches (the lowest price: cost less what an income bonus and granted skills are worth, docs/ECONOMY.md "Branching research"; it never picks a technology the rules close to it and never cancels), builds and upgrades.
 - **Attacks.** Every square the unit can stop on x every weapon x every enemy it knows (fog: only what its team sees) is scored from the forecast
   (`ai_score.cpp`): expected damage as a share of the target's worth, plus a bonus for a likely kill (a leader that ends the game is worth far more), minus the
   counterattack it would take, plus a little for defensive terrain, minus a cost for being outnumbered there (`ai_order.cpp`). Any attack that deals damage
