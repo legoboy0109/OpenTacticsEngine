@@ -264,6 +264,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME area_fire_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/area_fire_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Action points (docs/SRPG.md "Action points"): the AP price in the hint line, the forecast and the Attack entry, the Move entry, saves, the turn refill, UI scale 100 and 150.
+    add_test(NAME action_points_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/action_points_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     # Factions (docs/ECONOMY.md "Factions"): the faction screen at UI scale 100 and 150, the greyed build menu, saves, no screen without factions.
     add_test(NAME factions_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/factions_player_test.py
