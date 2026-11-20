@@ -1,0 +1,10 @@
+{ "name": "Field", "grid": { "type": "square", "width": 8, "height": 3 }, "legend": { ".": "plain" },
+  "tiles": ["........", "........", "........"],
+  "sides": [ { "id": "blue", "name": "Blue", "controller": "human", "faction": "order", "resources": { "gold": 100 } },
+             { "id": "red", "name": "Red", "controller": "ai", "faction": "horde", "resources": { "gold": 100 } } ],
+  "structures": [ { "type": "barracks", "x": 0, "y": 0, "side": "blue" }, { "type": "barracks", "x": 7, "y": 2, "side": "red" } ],
+  "units": [
+    { "type": "soldier", "side": "blue", "x": 2, "y": 1, "id": "sol", "leader": true },
+    { "type": "knight", "side": "blue", "x": 2, "y": 0, "id": "kni" },
+    { "type": "golem", "side": "blue", "x": 2, "y": 2, "id": "gol" },
+    { "type": "soldier", "side": "red", "x": 5, "y": 1, "id": "foe", "leader": true } ] }

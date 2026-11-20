@@ -220,6 +220,9 @@ Decisions where the contract was silent, and the few deviations:
   technologies, every finished or running technology having its prerequisites finished; `current` not
   finished; `left` from 1 to the technology's turns; a `research` key in a game without research is refused;
   a living unit's `hp` is checked against its maximum with the side's research bonus.
+  A side that plays a faction (docs/ECONOMY.md "Factions") also has `"faction": "<faction id>"`, only when it has one. The faction's side-wide skills are not
+  saved: the reader rebuilds them from the faction and puts them in front of the saved `modifiers`, as a live battle has them. A save is refused when the id is not a
+  faction of the game (`sides[i].faction: names unknown faction "x"`), is not text, or when the game has no factions at all.
   A side whose finished research granted skills (docs/SRPG.md "Side-wide modifiers") also has
   `"modifiers": [ { "skill": skill index, "tech": technology index, "grant": index in that technology's grants.skills } ]`, only when not empty.
   Restoring checks: `tech` finished, `grant` within the technology's grants, `skill` the grant's own skill, no entry twice, and every grant of every

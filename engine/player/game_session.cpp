@@ -16,6 +16,21 @@ bool GameSession::load(const std::string& gameDir, std::string& err) {
   return formulas.init(db, err);
 }
 
+int GameSession::nextFactionPick(const MapDef& m) const {
+  for (size_t i = 0; i < m.sides.size(); ++i)
+    if (m.sides[i].factionChoose && !m.sides[i].ai && (i >= factionPicks.size() || factionPicks[i] < 0)) return (int)i;
+  return -1;
+}
+
+void GameSession::applyFactionPicks(MapDef& m) const {
+  for (size_t i = 0; i < m.sides.size() && i < factionPicks.size(); ++i) {
+    if (!m.sides[i].factionChoose || m.sides[i].ai || factionPicks[i] < 0 || (size_t)factionPicks[i] >= db.factions.size()) continue;
+    m.sides[i].faction = factionPicks[i];
+    m.sides[i].factionChoose = false;
+    OTE_INFO("faction: side \"%s\" plays %s", m.sides[i].id.c_str(), db.factions[(size_t)factionPicks[i]].id.c_str());
+  }
+}
+
 bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string& err) {
   battle = Battle();
   battle.setAskChoices(askChoices);  // before init / start: a question may come with the first events
@@ -24,6 +39,7 @@ bool GameSession::startMap(const std::string& mapId, unsigned seed, std::string&
   startEvents.clear();
   campaign.reset();  // a free battle is not part of a playthrough
   if (!loadMap(db, mapId, map, err)) return false;
+  applyFactionPicks(map);  // the person's choices of the faction screen
   applyFreeSupply(db, map);  // rules.items.freeBattleStorage: a free battle's stocked supply (never a campaign's)
   if (map.prep) {  // no screen on this path (autoplay, the simulator's rules): the default pick, docs/EVENTS.md "Preparation"
     Playthrough scratch;
@@ -51,6 +67,7 @@ bool GameSession::startMapPrep(const std::string& mapId, unsigned seed, std::str
   startEvents.clear();
   campaign.reset();
   if (!loadMap(db, mapId, map, err)) return false;
+  applyFactionPicks(map);
   applyFreeSupply(db, map);  // before the screen folds the prep side's allowance into what it shows
   freePrep.reset(new Playthrough());
   prepOpenFree(db, *freePrep, map);

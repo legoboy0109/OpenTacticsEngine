@@ -8,10 +8,11 @@ namespace {
 
 const int kMaxTier = 99;
 
+}  // namespace
+
 // { "skill": id, "filter": { "type": id } | { "tag": text } | {} }  or just "skill id".
-// The story's unit filter format reduced to what makes sense without a map: no unit / side / team.
-bool readGrant(const LoadCtx& c, const Database& db, const Json& g, const std::string& where, SkillGrant& out) {
-  const std::string at = where + ": \"grants\".\"skills\"";
+// The story's unit filter format reduced to what makes sense without a map: no unit / side / team. `at` names the place for messages.
+bool readSkillGrant(const LoadCtx& c, const Database& db, const Json& g, const std::string& at, SkillGrant& out) {
   std::string skillId;
   const Json* filter = nullptr;
   if (g.isString()) {
@@ -48,8 +49,6 @@ bool readGrant(const LoadCtx& c, const Database& db, const Json& g, const std::s
   return true;
 }
 
-}  // namespace
-
 bool readBonusIncome(const LoadCtx& c, const Database& db, const Json& bonus, const std::string& where, TechnologyDef& t) {
   if (!bonus.has("income")) return true;
   if (!db.rules.economy) return c.fail(where, "\"bonus\".\"income\" needs \"rules.economy\" in game.json (nothing pays income without it)");
@@ -80,7 +79,7 @@ bool readBranchKeys(const LoadCtx& c, const Database& db, const Json& e, const s
     if (!c.array(*g, "skills", where + ": \"grants\"", list, true)) return false;
     for (size_t i = 0; i < list->size(); ++i) {
       SkillGrant sg;
-      if (!readGrant(c, db, (*list)[i], where, sg)) return false;
+      if (!readSkillGrant(c, db, (*list)[i], where + ": \"grants\".\"skills\"", sg)) return false;
       for (const SkillGrant& other : t.grants)
         if (other.skill == sg.skill && other.filterType == sg.filterType && other.filterTag == sg.filterTag)
           return c.fail(where, "\"grants\".\"skills\" lists \"" + db.skills[(size_t)sg.skill].id + "\" twice with the same filter");

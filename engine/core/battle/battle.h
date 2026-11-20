@@ -255,15 +255,19 @@ struct StructureState {
 };
 
 // A skill every matching unit of a side has as if it had it itself (docs/SRPG.md "Side-wide modifiers"). Battle::skillsOf is
-// the one place that reads them. `tech` / `grant` say where it came from (technology index and its "grants" entry);
-// a later source (factions) adds its own fields and its own writer in save_research.cpp.
+// the one place that reads them. `tech` / `grant` say where it came from (technology index and its "grants" entry), `faction` that it
+// came from the side's faction (then tech is -1 and grant indexes the faction's "modifiers"; never saved: it is rebuilt from the faction).
 struct SideModifier {
   int skill = -1;
   int filterType = -1;      // only units of this unit type; -1 = any
   std::string filterTag;    // only units whose type has this tag; "" = any
   int tech = -1;
   int grant = -1;
+  int faction = -1;         // from this faction (index into db->factions), -1 = from a technology
 };
+// The side-wide skills a faction gives, in the order of its "modifiers" (factions.cpp). Battle::init puts them at the front of a side's
+// list and the save reader rebuilds them the same way, so a restored battle judges skills in the order the live one did.
+void factionSideModifiers(const Database& db, int faction, std::vector<SideModifier>& out);
 
 struct SideState {
   std::string id, name;
@@ -282,6 +286,7 @@ struct SideState {
   int researching = -1;  // technology under way (index into db->research), -1 = none
   int researchLeft = 0;  // of the side's own turns still to start before it is finished
   std::vector<SideModifier> modifiers;  // side-wide skills (saved only when not empty)
+  int faction = -1;         // docs/ECONOMY.md "Factions": index into db->factions, -1 = none (saved only when set)
   bool difficultyShift = true;  // docs/DIFFICULTY.md: false = the enemy numbers of the difficulty never touch this side (map side key)
 };
 
@@ -611,6 +616,17 @@ class Battle {
   std::string researchBranchBlocker(int side, int tech) const;
   // Does the modifier apply to this unit (its filter)?
   bool modifierApplies(const SideModifier& m, const Unit& u) const;
+  // Factions (docs/ECONOMY.md "Factions"; factions.cpp). The side's faction, or null when it has none.
+  const FactionDef* factionOf(int side) const;
+  // "" = the side's faction lets it produce / build (upgrade into) / research this; else the reason ("not available to <faction>").
+  // A side without a faction is never held back.
+  std::string factionBlocksUnit(int side, int unitType) const;
+  std::string factionBlocksStructure(int side, int structureKind) const;
+  std::string factionBlocksTech(int side, int tech) const;
+  // The attack weights the side's faction gives its computer units (null = none), used by a unit that has no set of its own.
+  const AiWeightSet* factionWeights(int side) const;
+  // The index of the faction a "choose" side takes when nobody picks: a computer side by the seed, a person's side the first one.
+  static int defaultFactionChoice(const Database& db, uint32_t seed, int side, bool ai);
   // The technology under way (index into db->research) or -1; researchTurnsLeft is the number of the
   // side's turns still to start before it is done.
   int researching(int side) const { return sides[(size_t)side].researching; }
@@ -795,6 +811,8 @@ class Battle {
   void applyCancelResearch(std::vector<Event>& events);
   // Side effects of a finished technology that are state of their own: its "grants" become side modifiers.
   void applyTechnologyEffects(int side, int tech);
+  // Battle::init: the side takes faction `f` (index, -1 none): its side-wide skills go in; the start resources are added by the caller.
+  void takeFaction(int side, int f);
   // Start of the active side's turn: counts the research under way down (paused without a research structure).
   void researchTurn(std::vector<Event>& events);
   // Marks a technology finished for the side, re-clamps its units' hit points (a bonus may have lowered the

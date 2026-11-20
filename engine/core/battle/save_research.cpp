@@ -49,16 +49,16 @@ bool researchJson(const SideState& s, Json& out) {
 }
 
 bool modifiersJson(const SideState& s, Json& out) {
-  if (s.modifiers.empty()) return false;
   out = Json::makeArray();
   for (const SideModifier& m : s.modifiers) {
+    if (m.faction >= 0) continue;  // a faction's skills are rebuilt from the faction (save_faction.cpp)
     Json e = Json::makeObject();
     e.set("skill", num(m.skill));
     e.set("tech", num(m.tech));
     e.set("grant", num(m.grant));
     out.push(e);
   }
-  return true;
+  return out.size() > 0;
 }
 
 bool readSideModifiers(Reader& rd, const Database& db, const Json& side, const std::string& where, SideState& s) {

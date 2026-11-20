@@ -1,0 +1,4 @@
+{ "technologies": [
+  { "id": "drill", "name": "Drill", "cost": { "gold": 20 }, "turns": 1, "bonus": { "types": ["soldier"], "stats": { "str": 1 } } },
+  { "id": "forging", "name": "Forging", "cost": { "gold": 30 }, "turns": 2, "requires": ["drill"] },
+  { "id": "arcana", "name": "Arcana", "cost": { "gold": 25 }, "turns": 1 } ] }

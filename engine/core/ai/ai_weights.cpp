@@ -109,8 +109,7 @@ bool better(const Cand& a, const Cand& c) {
 
 }  // namespace
 
-bool weightedAttack(const Battle& b, const Unit& u, const Stance& st, const Reach& reach, const std::vector<Cell>& stops, Order& out) {
-  const AiWeightSet& w = b.db->rules.ai.weights[(size_t)u.behaviour.weightSet];
+bool weightedAttack(const Battle& b, const Unit& u, const AiWeightSet& w, const Stance& st, const Reach& reach, const std::vector<Cell>& stops, Order& out) {
   std::vector<int> ownWeapons;
   b.weaponsOf(u, ownWeapons);
   std::vector<Cand> cands;

@@ -146,7 +146,8 @@ Order bestOrder(Context& cx, const Unit& u) {
   if (st.stay) stops.assign(1, u.cell);                // hold: acts from where it stands
   if (u.acted) return moveAgainOrder(b, u, stops);   // action used up: only the rest of its movement
   if (u.retreating && st.beh && st.beh->retreat.on) return retreatOrder(cx, u, stops);  // docs/AI.md "Retreat to heal": no attacking
-  const AiWeightSet* weights = st.beh && st.beh->weightSet >= 0 ? &b.db->rules.ai.weights[(size_t)st.beh->weightSet] : nullptr;  // docs/AI.md "Attack weights"
+  // docs/AI.md "Attack weights": the unit's own set, else the one its side's faction brings (docs/AI.md "Factions"), else the default scoring.
+  const AiWeightSet* weights = st.beh && st.beh->weightSet >= 0 ? &b.db->rules.ai.weights[(size_t)st.beh->weightSet] : b.factionWeights(u.side);
 
   const int healKey = st.beh && st.beh->healsRetreating ? lastRetreatingHeal(b, u, stops) : kHealAnyone;  // docs/AI.md "heals"
   const double fade = fadeFactor(b);
@@ -204,7 +205,7 @@ Order bestOrder(Context& cx, const Unit& u) {
 
   if (weights) {
     Order w;
-    if (weightedAttack(b, u, st, reach, stops, w) && w.score > best.score) best = w;
+    if (weightedAttack(b, u, *weights, st, reach, stops, w) && w.score > best.score) best = w;
   }
 
   // No attack of its own (a capture or a staff may be the best order): a ballista it can reach and fire from beats walking on.

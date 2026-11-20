@@ -25,6 +25,7 @@ int Database::findSwitch(const std::string& id) const { return findById(switches
 int Database::findVariable(const std::string& id) const { return findById(variables, id); }
 int Database::findTerrain(const std::string& id) const { return findById(terrains, id); }
 int Database::findStructure(const std::string& id) const { return findById(structures, id); }
+int Database::findFaction(const std::string& id) const { return findById(factions, id); }
 int Database::findWeapon(const std::string& id) const { return findById(weapons, id); }
 int Database::findItem(const std::string& id) const { return findById(items, id); }
 int Database::findTechnology(const std::string& id) const { return findById(research, id); }

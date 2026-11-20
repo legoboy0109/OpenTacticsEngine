@@ -307,6 +307,21 @@ Each red turn: `scout` (order 1) goes first and picks the highest-scoring attack
 its throne, attacks what is next to it by the same weights, and under 30 % of its hit points drinks its potion instead (and goes on doing so until it is at 100 %). The same behaviour is
 given in one command: `{ "setBehaviour": { "order": 3, "weights": "classic" }, "units": { "unit": "late" } }`. A complete fixture with every key is `tests/fixtures/ai-scripted`.
 
+### Factions
+
+A side that plays a faction (docs/ECONOMY.md "Factions", `data/factions.json`) changes the computer opponent in two ways, both optional:
+
+- **The faction's lists** (`units`, `structures`, `techs`) need nothing of their own in the AI: it chooses what to build from `Battle::buildOptions`, what to research from
+  `Battle::researchOptions` and what to upgrade into from `Battle::upgradeOptions`, and those leave out whatever the side's faction does not allow. A faction that can build nothing the AI wants (or
+  nothing at all, `"units": []`) just builds nothing that turn, researches nothing it may not, and the turn still ends: there is no step that waits for a purchase. The AI also does not
+  save money for something it cannot buy: the research rule "still able to afford a unit it could build today" counts only the units its faction allows.
+- **`ai.weights`.** The attack weights of the faction (the keys of a `rules.ai.weights` set, docs/AI.md "Attack weights"; keys left out keep that set's defaults) are used by **every unit of the side
+  that has no weights set of its own**, i.e. the unit's behaviour has no `"weights"` name. A unit whose behaviour names a set keeps that one. The unit then chooses its attack by the weighted score
+  instead of the default scoring (the one difference to a unit without weights: it never uses the default "outnumbered" cost, see that section). A faction without `ai.weights` changes nothing.
+
+The AI-vs-AI test (`tests/test_factions.cpp`, map "duel" of `tests/fixtures/factions`: order against horde, both computer) plays three seeds to the end and checks that everything either side built
+was allowed to its faction.
+
 ### Tests
 
 `tests/test_ai_behaviour.cpp` (rules, square and hex), `tests/test_ai_behaviour_data.cpp` (loader, commands, saves; fixture `tests/ai_behaviour_fixture.h`),

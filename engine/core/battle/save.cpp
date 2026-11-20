@@ -14,6 +14,7 @@
 #include "core/battle/save_places.h"
 #include "core/battle/save_mapweapon.h"
 #include "core/battle/save_reader.h"
+#include "core/battle/save_faction.h"
 #include "core/battle/save_research.h"
 #include "core/battle/save_srpg.h"
 #include "core/battle/save_story.h"
@@ -76,6 +77,7 @@ bool readSide(Reader& rd, const Database& db, const Json& j, const std::string& 
   }
   if (!savejson::readSideResearch(rd, db, j, where, s)) return false;
   if (!savejson::readSideModifiers(rd, db, j, where, s)) return false;
+  if (!savejson::readSideFaction(rd, db, j, where, s)) return false;  // after the modifiers: its skills go in front of them
   return rd.boolean(j, "defeated", where, s.defeated) && rd.boolean(j, "everHadUnits", where, s.everHadUnits) &&
          rd.boolean(j, "hadHq", where, s.hadHq) && rd.boolean(j, "leaderLost", where, s.leaderLost);
 }
@@ -176,6 +178,7 @@ void saveBattleState(const Battle& b, Json& out) {
     if (savejson::researchJson(s, research)) j.set("research", research);
     Json modifiers;
     if (savejson::modifiersJson(s, modifiers)) j.set("modifiers", modifiers);
+    savejson::writeSideFaction(*b.db, s, j);
     sides.push(j);
   }
   out.set("sides", sides);
