@@ -273,6 +273,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     add_test(NAME facing_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/facing_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Unit ranks (docs/SRPG.md "Unit ranks"): the badge in all four views, the rank-up box, UI scale 100 and 150, a game without a table.
+    add_test(NAME unit_ranks_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/unit_ranks_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME height_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/height_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})

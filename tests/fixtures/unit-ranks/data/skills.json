@@ -1,0 +1,2 @@
+{ "skills": [
+  { "id": "steady", "name": "Steady", "description": "Takes 2 less from every hit.", "blocks": [ { "when": "combat", "do": [ { "damageTaken": -2 } ] } ] } ] }
