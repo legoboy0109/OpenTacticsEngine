@@ -67,6 +67,7 @@ data/supports.json     support rules, pairs, levels, conversations           (op
 data/ranks.json        weapon rank ladder and growth                         (optional file; section 7)
 data/caps.json         game-wide stat caps                                   (optional file; section 7)
 data/conditions.json   status conditions made of blocks                      (optional file; section 9)
+data/jobs.json         jobs: JP, learned skills and abilities, equipped slots  (optional file; docs/JOBS.md)
 data/structures.json   doors, chests and visitable places: "door", "chest", "visit", "blocksSight" (section 10)
 data/units.json        per unit type: skills, learns, abilities, promotions, pairBonus
 data/weapons.json      per weapon: skills, inflict (section 9), fire, area (Area attacks and line fire), apCost (Action points), heightRange (Height rules)

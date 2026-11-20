@@ -13,6 +13,7 @@
 #include "core/data/facing_rules.h"
 #include "core/data/unit_ranks.h"
 #include "core/data/height_rules.h"
+#include "core/data/jobs.h"
 #include "core/data/graphics.h"
 #include "core/data/map_change.h"
 #include "core/data/map_weapon.h"
@@ -400,6 +401,7 @@ struct RulesConfig {
   ActionPointRules ap;       // "rules.actionPoints" (docs/SRPG.md "Action points"); `on` is false when the block is missing
   HeightRules height;        // "rules.height" (docs/SRPG.md "Height rules"); `on` is false when the block is missing
   UnitRankRules unitRanks;   // "rules.progression.levels" (docs/SRPG.md "Unit ranks"); empty when the game levels up the usual way
+  JobRules jobs;             // "rules.jobs" (docs/JOBS.md); only means something when `Database::jobs` is not empty
   FacingRules facing;        // "rules.facing" (docs/SRPG.md "Facing"); `on` is false when the block is missing
 
   // Lua expressions; empty = feature off / engine default. See
@@ -524,6 +526,8 @@ struct Database {
   std::vector<int> statCaps;             // data/caps.json: per stat index the game-wide cap, -1 = none; empty = no caps
   std::vector<StaffDef> staves;          // the staves of data/items.json (an item of kind "staff" points here)
   std::vector<ConditionDef> conditions;  // data/conditions.json (docs/SRPG.md section 9)
+  std::vector<JobDef> jobs;              // data/jobs.json (docs/JOBS.md); empty = the game has no jobs
+  std::vector<JobLearnDef> jobEntries;   // every job's learn entries in file order (JobLearnDef::flat is the index); built by the loader
   // Formula expressions of the new data (skill chances and conditions, rules.rescue.canCarry), in the order the
   // loaders registered them; compiled by Formulas::init and evaluated with Formulas::evalExpr(index, ...).
   std::vector<ExprDef> exprs;
@@ -567,6 +571,8 @@ struct Database {
   int findSkill(const std::string& id) const;
   int findCondition(const std::string& id) const;
   int findAbility(const std::string& id) const;
+  int findJob(const std::string& id) const;
+  bool jobsOn() const { return !jobs.empty(); }
   // The support pair of two characters (indices into `characters`, either order); -1 = they are not a pair.
   int findSupportPair(int characterA, int characterB) const;
   // Registers a formula expression; returns its index for Formulas::evalExpr.
@@ -628,6 +634,8 @@ struct MapUnitDef {
   AiBehaviour behaviour;
   // Skills of its own (docs/SRPG.md "A unit with skills of its own"): indices into Database::skills, learned for good when it is made.
   std::vector<int> skills;
+  // Jobs (docs/JOBS.md): its job and progress (the character's, unless the map says otherwise); `jobs.job` < 0 = none.
+  JobState jobs;
   // docs/DIFFICULTY.md: appears only on these difficulties (indices into DifficultyRules::list; empty = on all); false = the
   // enemy shift never touches it (a boss); a stat the placement wrote itself is exact and never shifted.
   std::vector<int> onlyOn;

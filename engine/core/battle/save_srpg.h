@@ -56,6 +56,12 @@ bool readUnitFacing(Reader& rd, const Battle& b, const Json& j, const std::strin
 void writeUnitAp(const Battle& b, const Unit& u, Json& j);
 bool readUnitAp(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
 
+// ---- jobs (save_jobs.cpp, docs/JOBS.md): units[i] "jobs" and a roster entry's "jobs" ----
+void writeUnitJobs(const Battle& b, const Unit& u, Json& j);
+bool readUnitJobs(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);
+void writeRosterJobs(const Database& db, const RosterUnit& r, Json& j);
+bool readRosterJobs(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);
+
 // ---- conditions (save_conditions.cpp, docs/SRPG.md section 9): units[i] "conditions" ----
 void writeUnitConditions(const Battle& b, const Unit& u, Json& j);
 bool readUnitConditions(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u);

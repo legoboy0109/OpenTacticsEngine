@@ -1,0 +1,5 @@
+{ "skills": [
+  { "id": "guard", "name": "Guard", "description": "Takes 2 less from every hit.", "blocks": [ { "when": "combat", "do": [ { "damageTaken": -2 } ] } ] },
+  { "id": "light_step", "name": "Light Step", "description": "Moves one square further.", "blocks": [ { "when": "always", "do": [ { "stats": { "mov": 1 } } ] } ] },
+  { "id": "iron_will", "name": "Iron Will", "description": "Defense +2.", "blocks": [ { "when": "always", "do": [ { "stats": { "def": 2 } } ] } ] },
+  { "id": "focus", "name": "Focus", "description": "Strength +2.", "blocks": [ { "when": "always", "do": [ { "stats": { "str": 2 } } ] } ] } ] }

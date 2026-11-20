@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1, "name": "Jobs Fixture",
+  "description": "Test game for the job system (docs/JOBS.md): three jobs, a two chapter campaign, an enemy with a job. Not a demo.",
+  "view": { "width": 480, "height": 270, "tileSize": 24 },
+  "stats": [ { "id": "hp", "name": "HP" }, { "id": "str", "name": "Strength" }, { "id": "def", "name": "Defense" },
+             { "id": "mov", "name": "Move" } ],
+  "roles": { "hp": "hp", "move": "mov" },
+  "moveTypes": [ { "id": "foot", "name": "Foot" } ],
+  "rules": { "defeat": ["noUnits"], "counterAttacks": true,
+             "items": { "weapons": "fixed", "inventorySize": 3 },
+             "progression": { "enabled": true, "xpPerLevel": 100, "maxLevel": 20, "xpHit": "10", "xpKill": "30" },
+             "jobs": { "jp": { "perAction": 10, "perDefeat": 20 },
+                       "slots": { "action": 1, "reaction": 1, "support": 1, "movement": 1 },
+                       "jpLevels": [20, 60, 120],
+                       "changeIn": "camp+prep" } },
+  "formulas": { "damage": "math.max(1, a.str + w.might - b.def)", "hit": "100", "strikes": "1" },
+  "maps": [ { "id": "first", "name": "First Field", "file": "maps/first.json" },
+            { "id": "second", "name": "Second Field", "file": "maps/second.json" },
+            { "id": "duel", "name": "Duel", "file": "maps/duel.json" } ]
+}

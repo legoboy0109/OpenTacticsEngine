@@ -226,6 +226,7 @@ Unit Battle::makeUnit(const MapUnitDef& ud) const {
   u.facing = ud.facing;  // -1 unless the map said (rules.facing); the default is given once the unit stands on the board
   u.aiGoals = ud.aiGoals;  // docs/SRPG.md section 10
   u.behaviour = ud.behaviour;  // docs/AI.md
+  u.jobs = ud.jobs;  // docs/JOBS.md
   u.stats = ud.stats;
   u.stats.resize(db->stats.size(), 0);
   for (const ItemGrant& g : ud.hasItems ? ud.items : db->unitTypes[ud.type].items) {

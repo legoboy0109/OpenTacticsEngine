@@ -413,6 +413,7 @@ void Battle::killUnit(int unit, std::vector<Event>& events, int killer) {
   u.cell = kNoCell;
   u.conditions.clear();  // a defeated unit has none (docs/SRPG.md section 9)
   if (u.leader) sides[u.side].leaderLost = true;
+  if (killer >= 0 && killer != unit && units[(size_t)killer].side != u.side) awardDefeatJp(killer, events);  // docs/JOBS.md
   // Last, and `u` is not used after it: its summons vanish, a unit it carried is put down (docs/SRPG.md).
   srpgUnitGone(unit, killer, events);
 }

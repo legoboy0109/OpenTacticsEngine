@@ -9,13 +9,14 @@
 #include "battle/prep_text.h"
 #include "core/base/log.h"
 #include "core/data/loader.h"
+#include "core/jobs/job_camp.h"
 #include "sound/cue_sink.h"
 #include "ui/text.h"
 
 namespace ote {
 namespace {
 
-enum PrepMenuId { kmUnits = 1, kmPositions, kmItems, kmShop, kmView, kmSave, kmLeave, kmBegin, kmShopBase = 100 };  // kmShopBase + n: the n-th shop of a `shops` list
+enum PrepMenuId { kmUnits = 1, kmPositions, kmItems, kmShop, kmView, kmSave, kmLeave, kmBegin, kmJobs, kmShopBase = 100 };  // kmShopBase + n: the n-th shop of a `shops` list
 
 const Color kSlotFree(90, 170, 255, 110), kSlotTaken(110, 220, 120, 130), kSlotCarry(255, 220, 90, 170);
 
@@ -98,6 +99,7 @@ void BattleScene::prepMainMenu() {
   items.push_back({PrepWords::kUnits, intStr((int)p.pt->prep.deployed.size()) + "/" + intStr(def.limit), true, kmUnits});
   items.push_back({PrepWords::kPositions, "", true, kmPositions});
   if (!p.pt->roster.empty()) items.push_back({PrepWords::kItems, "", true, kmItems});
+  if (jobsChangeAllowedInPrep(session_.db) && !jobsRosterIds(session_.db, *p.pt).empty()) items.push_back({"Jobs", "", true, kmJobs});  // docs/JOBS.md "changeIn": "camp+prep"
   if (def.hasShop) {
     if (def.shops.size() == 1 && def.shops[0].id.empty()) items.push_back({PrepWords::kShop, "", true, kmShop});  // the single unnamed `shop`
     else
@@ -142,6 +144,7 @@ void BattleScene::prepMenuChosen(int id) {
       prepLogSlots();
       break;
     case kmItems: prepItemsWhoOpen(); break;
+    case kmJobs: prepJobsOpen(); break;
     case kmShop: p.shopIx = 0; prepShopOpen(); break;
     case kmSave: openSlotList(SlotPanel::Save); break;
     case kmLeave:
@@ -426,6 +429,7 @@ void BattleScene::prepListInput(const InputEvent& e) {
       }
       break;
     }
+    case PrepUi::Screen::Jobs: prepJobsInput(e); break;
     default: prepItemsInput(e); break;
   }
 }
@@ -503,6 +507,7 @@ void BattleScene::prepDraw(Renderer& r) {
   tradePanel_.draw(r);
   menu_.draw(r);
   confirm_.draw(r);
+  if (p.screen == PrepUi::Screen::Jobs) prepJobsDraw(r);
   if (p.screen == PrepUi::Screen::Positions || p.screen == PrepUi::Screen::View) {  // the Back button for pointers
     const int bw = std::max(40, textW(r, "Back") + 16), bh = layout_.lh + 8;
     const int x = layout_.vw - bw - 4, y = layout_.vh - bh - 4;

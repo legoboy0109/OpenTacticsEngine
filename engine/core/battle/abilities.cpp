@@ -27,6 +27,12 @@ void Battle::abilitiesOf(const Unit& u, std::vector<int>& out) const {
   for (int a : typeOf(u).abilities) addOnce(out, a);
   if (u.character >= 0 && (size_t)u.character < db->characters.size())
     for (int a : db->characters[(size_t)u.character].abilities) addOnce(out, a);
+  if (u.jobs.on()) {  // the abilities its job taught it and the equipped ones (docs/JOBS.md)
+    std::vector<int> entries;
+    jobEntriesOf(u, entries);
+    for (int flat : entries)
+      if (db->jobEntries[(size_t)flat].ability) addOnce(out, db->jobEntries[(size_t)flat].ref);
+  }
   if (db->skills.empty()) return;
   std::vector<int> skills;
   skillsOf(u, -1, skills);

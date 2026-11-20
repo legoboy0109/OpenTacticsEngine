@@ -211,6 +211,7 @@ class BattleView {
   bool beginUnitRank(const Battle& b);      // battle_view_unit_rank.cpp   UnitRankUp (docs/SRPG.md "Unit ranks")
   bool progressUnitRank(const Battle& b);
   bool finishUnitRank(const Battle& b);
+  bool beginJobs(const Battle& b);          // battle_view_jobs.cpp   JpGained (docs/JOBS.md): "+10 JP" floats over the unit
   bool beginSkills(const Battle& b);       // battle_view_skills.cpp     SkillLearned, SkillActivated, UnitHurt   (U1)
   bool progressSkills(const Battle& b);
   bool finishSkills(const Battle& b);

@@ -188,7 +188,8 @@ bool mixRules(Fnv& f, const Database& db, std::string& err) {
   struct SrpgFile { const char* rel; const char* list; bool mapFile; };
   static const SrpgFile kSrpg[] = {{"data/characters.json", "characters", true}, {"data/skills.json", "skills", false},
                                    {"data/abilities.json", "abilities", false}, {"data/supports.json", "pairs", true},
-                                   {"data/conditions.json", "conditions", false}};  // docs/SRPG.md section 9
+                                   {"data/conditions.json", "conditions", false},  // docs/SRPG.md section 9
+                                   {"data/jobs.json", "jobs", false}};  // docs/JOBS.md
   for (const SrpgFile& sf : kSrpg) {
     if (!readTextFile(root + "/" + sf.rel, probe) || holdsNothing(probe, sf.list)) continue;
     if (!mixJson(f, root, sf.rel, false, nullptr, err, sf.mapFile)) return false;

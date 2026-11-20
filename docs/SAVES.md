@@ -594,6 +594,22 @@ this only covers a hand-written save) looks at the nearest foe when the battle i
 Nothing is saved for them: a unit's rank is read off its saved `"xp"` and the game's table, so a save of a game with `rules.progression.levels` restores units with the same ranks, bonuses
 and skills (`tests/test_unit_ranks.cpp`). In such a game `xp` is a running total (it stops at the last entry's `at`) and `level` stays a label. A save of any other game is unchanged.
 
+## Jobs (docs/JOBS.md)
+
+In a game with `data/jobs.json` a unit that has a job carries `"jobs"` in a battle save's `units[i]` and in a campaign save's `playthrough.roster[i]`:
+
+```json
+"jobs": { "job": 1, "progress": [ { "job": 0, "earned": 50, "spent": 30, "learned": [0] } ], "equipped": [0] }
+```
+
+`job` is the job it uses (index into `data/jobs.json`); `progress` lists the jobs with something in them, ascending, each with the total JP `earned`, the JP `spent` (written when above 0) and the
+`learned` entries; `equipped` lists the entries equipped from other jobs. Entries are numbered over all jobs in file order (`jobEntries`: the first job's `learn` list, then the next job's). The key is
+written for a unit that uses jobs and for no other, so a unit without a job, a game without jobs and every save of an older game are byte for byte as before. When a save is read every number is
+range-checked and the state must fit the game: a job or entry that does not exist (`units[0].jobs.job: value 9 is outside 0..2`), an entry listed under a job that does not teach it, `spent` above `earned`,
+an equipped entry that was not learned or belongs to the current job, a slot kind with more equipped entries than `rules.jobs.slots` allows, and a `jobs` key in a game without jobs are all refused. The
+roster entry's unit `type` and `stats` are saved as always (a job change moves them). `data/jobs.json` is part of the data hash like the other strategy-RPG files (an empty list counts as no file; names
+and descriptions are cosmetic), and `rules.jobs` is part of the hashed `game.json` rules. Code: `core/battle/save_jobs.cpp`. Tests: `tests/test_jobs_battle.cpp`, `tests/test_jobs_camp.cpp`.
+
 ## Dialogue choices (docs/EVENTS.md "Dialogue choices")
 
 Nothing is added to any save: the picked answer's number is the `choice` command's `store` variable, which lives in `story.variables` of a

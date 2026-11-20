@@ -1,0 +1,3 @@
+{ "weapons": [
+  { "id": "sword", "name": "Sword", "props": { "might": 4 } },
+  { "id": "rod", "name": "Rod", "range": [1, 2], "props": { "might": 3 } } ] }

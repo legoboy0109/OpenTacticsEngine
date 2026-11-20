@@ -4,6 +4,7 @@
 #include "core/data/loader_content.h"
 #include "core/data/loader_damage_types.h"
 #include "core/data/loader_events.h"
+#include "core/data/loader_jobs.h"
 #include "core/data/loader_ranks.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_util.h"
@@ -14,7 +15,7 @@ namespace {
 
 bool knownKey(const std::string& k) {
   static const char* const keys[] = {"id",      "name",   "description", "type",      "level", "stats",
-                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion", "resist"};
+                                     "growths", "skills", "learns",      "abilities", "items",       "ranks", "capAdjust", "wields", "quotes", "tags", "promotion", "resist", "job", "jobs", "equipped", "learned"};
   for (const char* n : keys)
     if (k == n) return true;
   return false;
@@ -78,6 +79,9 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
       return c.fail(where, "\"promotion\": \"fromLevel\" must be a whole number from 1 to " + std::to_string(db.rules.maxLevel));
     ch.promotionFromLevel = pr["fromLevel"].asInt();
   }
+  bool hasJob = false;  // "job", "jobs", "equipped", "learned" (docs/JOBS.md): the unit type of a character with a job is the job's
+  if (!readJobKeys(c, db, e, where, ch.jobs, hasJob)) return false;
+  if (hasJob) ch.type = db.jobs[(size_t)ch.jobs.job].unitType;
   ch.hasItems = e.has("items");
   return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, ch.items);
 }

@@ -138,7 +138,9 @@ if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
       ${OTE_PLAYER_DIR}/battle/battle_music.cpp ${OTE_PLAYER_DIR}/battle/promotion_text.cpp ${OTE_PLAYER_DIR}/battle/rank_text.cpp ${OTE_PLAYER_DIR}/battle/staff_text.cpp
       ${OTE_PLAYER_DIR}/battle/condition_text.cpp ${OTE_PLAYER_DIR}/battle/place_text.cpp ${OTE_PLAYER_DIR}/battle/menu_hide.cpp ${OTE_PLAYER_DIR}/battle/weapon_choice.cpp
       ${OTE_PLAYER_DIR}/battle/art_budget.cpp ${OTE_PLAYER_DIR}/battle/sprite_cache.cpp ${OTE_PLAYER_DIR}/battle/mapweapon_text.cpp ${OTE_PLAYER_DIR}/battle/fight_script.cpp ${OTE_PLAYER_DIR}/battle/fight_timeline.cpp
-      ${OTE_PLAYER_DIR}/battle/enemy_ranges.cpp)
+      ${OTE_PLAYER_DIR}/battle/enemy_ranges.cpp
+      # The words and rows of the Jobs screen (docs/JOBS.md), readable by a unit test.
+      ${OTE_PLAYER_DIR}/jobs/jobs_text.cpp)
   file(GLOB PLAYER_SRPG_LIB_SRC CONFIGURE_DEPENDS ${OTE_PLAYER_DIR}/battle/srpg_pick.cpp ${OTE_PLAYER_DIR}/battle/unit_info*.cpp
        ${OTE_PLAYER_DIR}/battle/battle_view*.cpp ${OTE_PLAYER_DIR}/battle/economy_text.cpp ${OTE_PLAYER_DIR}/battle/research_rows.cpp ${OTE_PLAYER_DIR}/battle/item_text.cpp
        ${OTE_PLAYER_DIR}/battle/rescue_menu.cpp ${OTE_PLAYER_DIR}/battle/support_text.cpp)
@@ -276,6 +278,10 @@ if(OTE_BUILD_PLAYER AND OTE_BUILD_TESTS AND NOT EMSCRIPTEN AND TARGET ote-player
     # Unit ranks (docs/SRPG.md "Unit ranks"): the badge in all four views, the rank-up box, UI scale 100 and 150, a game without a table.
     add_test(NAME unit_ranks_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/unit_ranks_player_test.py
+                     $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
+    # Jobs (docs/JOBS.md): the camp's Jobs screen and the preparation screen's (change, learn, equip), the saves, UI scale 100 and 150, a game without jobs.
+    add_test(NAME jobs_player
+             COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/jobs_player_test.py
                      $<TARGET_FILE:ote-player> ${CMAKE_SOURCE_DIR})
     add_test(NAME height_player
              COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/height_player_test.py

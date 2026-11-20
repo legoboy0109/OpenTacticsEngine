@@ -21,8 +21,8 @@ struct InfoRow {
 std::vector<InfoRow> statRows(const Battle& b, const Unit& u);
 
 // Where a skill on the unit comes from (the first place in the order of Battle::skillsOf).
-enum class SkillSource { Class, Learned, Personal, Item, Weapon, Side, Rank };
-const char* skillSourceName(SkillSource s);  // "Class", "Learned", "Personal", "Item", "Weapon", "Side" (a side-wide modifier, e.g. research), "Rank" (the unit's rank table entry)
+enum class SkillSource { Class, Learned, Personal, Item, Weapon, Side, Rank, Job };
+const char* skillSourceName(SkillSource s);  // "Class", "Learned", "Personal", "Item", "Weapon", "Side" (a side-wide modifier, e.g. research), "Rank" (the unit's rank table entry), "Job" (learned in its job or equipped from another: docs/JOBS.md)
 struct SkillRow {
   int skill = -1;
   std::string name, description;

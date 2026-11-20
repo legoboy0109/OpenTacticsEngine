@@ -6,11 +6,12 @@
 
 #include "battle/battle_scene.h"
 #include "core/campaign/prep.h"
+#include "jobs/jobs_screen.h"
 
 namespace ote {
 
 struct BattleScene::PrepUi {
-  enum class Screen { Main, Units, Positions, ItemsWho, ItemsWith, Trade, TradeChoice, Shop, ShopFor, SellWho, SellItems, View, Begin };
+  enum class Screen { Main, Units, Positions, ItemsWho, ItemsWith, Trade, TradeChoice, Shop, ShopFor, SellWho, SellItems, View, Begin, Jobs };
   Screen screen = Screen::Main;
   MapDef map;                   // the chapter's (or the free battle's) map, as the loader read it
   Playthrough* pt = nullptr;    // the playthrough in play, or the scratch one of a free battle
@@ -24,6 +25,7 @@ struct BattleScene::PrepUi {
   std::string sellFrom;         // SellItems: whose items are listed ("" = the storage)
   int tradeRow = -1;            // TradeChoice: the position of the item the small menu is about
   int overlayUnit = -1;         // View: the enemy whose reach is drawn
+  std::shared_ptr<JobsScreen> jobs;  // Jobs: the screen (docs/JOBS.md); null otherwise
 };
 
 // Small helpers shared by battle_prep_items.cpp and battle_prep_sell.cpp.

@@ -55,6 +55,7 @@ int Database::findSkill(const std::string& id) const {
   return -1;
 }
 int Database::findAbility(const std::string& id) const { return findById(abilities, id); }
+int Database::findJob(const std::string& id) const { return findById(jobs, id); }
 int Database::findCondition(const std::string& id) const { return findById(conditions, id); }
 int Database::findSupportPair(int a, int b) const {
   for (size_t i = 0; i < supports.pairs.size(); ++i) {
