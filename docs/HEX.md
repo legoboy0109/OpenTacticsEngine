@@ -265,6 +265,9 @@ What step 1 built, for the player, art and editor steps.
   - `directionCount()` (4 or 6), `neighbor(cell, dir)` (kNoCell off the map), `directionTo(from, to)` (-1 if not
     adjacent). Direction `i` is the contract's neighbour order; squares are N, E, S, W. Opposite of `i` is `(i + 3) % 6`
     on hexagons. Use these (not pixels) for join bits, edge drawing and anything that needs "the neighbour on the right".
+  - Facing (docs/SRPG.md "Facing"): the direction names a map writes (`directionName` / `directionFromName`, `core/grid/facing.h`): pointy `northeast east southeast southwest west northwest`, flat
+    `north northeast southeast south southwest northwest`, in direction order; the arc of an attack on a hexagon: the faced direction and the two next to it are the front, the opposite one
+    the back, the other two the sides.
   - `neighbors()`, `distance()`, `within()` as before (`neighbors` skips off-map cells, keeping the order).
   - `ringCells(middle, rings, out)`: the middle hexagon, then its six neighbours in direction order; false when any is
     off the map.
