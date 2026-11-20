@@ -44,13 +44,17 @@ std::string techGives(const Database& db, int tech) {
   std::string gains = gainsText(db, t.bonus);
   if (!gains.empty())
     add(gains + (t.bonusTypes.empty() ? std::string(EconomyWords::kForAll) : EconomyWords::kFor + joinNames(db, t.bonusTypes)));
+  if (!t.bonusIncome.empty()) add("+" + priceText(db, t.bonusIncome) + EconomyWords::kPerTurn);
+  for (const SkillGrant& g : t.grants) {
+    std::string who = g.filterType >= 0 ? EconomyWords::kFor + db.unitTypes[(size_t)g.filterType].name
+                                        : !g.filterTag.empty() ? EconomyWords::kFor + g.filterTag : std::string(EconomyWords::kForAll);
+    add(EconomyWords::kSkill + db.skills[(size_t)g.skill].name + who);
+  }
   return out;
 }
 
-namespace {
-
 // The panel's detail lines: what is special about the row (a reason, "in progress"), the description, then what
-// the technology gives.
+// the technology gives, then the other branches it closes.
 std::string techDetail(const Database& db, int tech, const std::string& lead) {
   const TechnologyDef& t = db.research[(size_t)tech];
   std::string out = lead;
@@ -60,10 +64,14 @@ std::string techDetail(const Database& db, int tech, const std::string& lead) {
   };
   add(t.description);
   add(techGives(db, tech));
+  if (!t.exclusiveGroup.empty()) {
+    std::string others;
+    for (size_t o = 0; o < db.research.size(); ++o)
+      if ((int)o != tech && db.research[o].exclusiveGroup == t.exclusiveGroup) others += (others.empty() ? "" : ", ") + db.research[o].name;
+    if (!others.empty()) add(EconomyWords::kCloses + others + ".");
+  }
   return out;
 }
-
-}  // namespace
 
 std::string researchName(const Battle& b, int side) {
   int t = b.researching(side);
@@ -76,6 +84,7 @@ std::string researchLeft(const Battle& b, int side) {
 }
 
 std::vector<PanelRow> researchRows(const Battle& b, int side, std::vector<int>& techOfRow) {
+  if (researchIsGrouped(*b.db)) return groupedResearchRows(b, side, techOfRow);  // research_rows.cpp
   const Database& db = *b.db;
   std::vector<PanelRow> rows;
   techOfRow.clear();

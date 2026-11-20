@@ -47,13 +47,14 @@ class BattleScene : public Scene {
               PickUnit, PickCell, UnitInfo, Promotion,  // the last three: docs/SRPG.md "Player UI", battle_srpg_*.cpp
               Prep,                                     // the preparation screen (battle_prep*.cpp)
               DifficultyMenu,                           // the Difficulty entry of the end menu (battle_difficulty.cpp)
-              WeaponPick };                             // Attack with "attackWeaponChoice": "pick": the weapon list (battle_weapon_pick.cpp)
+              WeaponPick,                               // ...
+              ResearchCancel };                         // "Cancel research?" menu opened from the research panel (battle_economy.cpp)                             // Attack with "attackWeaponChoice": "pick": the weapon list (battle_weapon_pick.cpp)
   // The screens of Mode::Items (battle_items.cpp).
   enum class ItemScreen { List, Choice, Target, Discard, Partner, Trade, Storage, Shop };
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
-                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kCancelResearchEntry, kKeepResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry,
                 kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -221,6 +222,7 @@ class BattleScene : public Scene {
   void openStructureMenu(Cell cell);
   void openUpgradeMenu(int structure);
   void openResearchPanel();
+  void openResearchCancel();  // asks before giving up the research under way
   void economyMenuChosen(int id);          // an entry of the structure or upgrade menu
   void researchInput(const InputEvent& e);
   void backToStructure();                  // Cancel in Build / Upgrade: the structure menu, or the map

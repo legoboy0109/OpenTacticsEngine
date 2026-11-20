@@ -124,6 +124,26 @@ void BattleScene::economyMenuChosen(int id) {
   submit(Action::upgrade(upgradeStructure_, id));
 }
 
+// Two entries beside the panel's place: give the research up (with what comes back), or keep it. Cancel = keep.
+void BattleScene::openResearchCancel() {
+  const int side = battle_.activeSide;
+  std::string why;
+  if (!battle_.canCancelResearch(&why)) {
+    say(why);
+    return;
+  }
+  std::vector<Amount> back;
+  battle_.cancelRefund(side, back);
+  const std::string refund = back.empty() ? std::string(EconomyWords::kNoRefund) : EconomyWords::kRefund + priceText(session_.db, back);
+  researchPanel_.close();
+  mode_ = Mode::ResearchCancel;
+  std::vector<MenuItem> items = {{EconomyWords::kCancelResearch, refund, true, kCancelResearchEntry},
+                                 {EconomyWords::kKeepResearching, "", true, kKeepResearchEntry}};
+  menu_.open(host_.renderer(), session_.db.research[(size_t)battle_.researching(side)].name, items, layout_.vw / 4, layout_.vh / 3,
+             layout_.vw, layout_.vh);
+  OTE_INFO("research cancel menu: %s (%s)", EconomyWords::kCancelResearch, refund.c_str());
+}
+
 void BattleScene::researchInput(const InputEvent& e) {
   researchPanel_.setArea(0, 0, layout_.vw, layout_.vh);
   ItemPanel::Result res = researchPanel_.onInput(e, host_.renderer());
@@ -133,7 +153,8 @@ void BattleScene::researchInput(const InputEvent& e) {
   } else if (res == ItemPanel::Picked) {
     const int tech = techRows_[(size_t)researchPanel_.sel()];
     std::string why;
-    if (tech == battle_.researching(battle_.activeSide)) say(EconomyWords::kAlreadyResearching + session_.db.research[(size_t)tech].name);
+    if (tech < 0) return;  // a heading (the selection never rests on one; belt and braces)
+    if (tech == battle_.researching(battle_.activeSide)) openResearchCancel();  // choosing the one under way offers to cancel it
     else if (!battle_.validate(Action::research(tech), &why)) say(why.empty() ? "Cannot research that" : why);
     else {
       researchPanel_.close();
@@ -191,6 +212,7 @@ std::string BattleScene::economyHint() const {
     case Mode::StructureMenu: return EconomyWords::kHintStructure;
     case Mode::UpgradeMenu: return EconomyWords::kHintUpgrade;
     case Mode::Research: return EconomyWords::kHintResearch;
+    case Mode::ResearchCancel: return EconomyWords::kHintCancelResearch;
     default: return "";
   }
 }

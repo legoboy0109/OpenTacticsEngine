@@ -193,6 +193,11 @@ void BattleScene::menuInput(const InputEvent& e) {
     mode_ = Mode::Idle;
     if (res == Menu::Chosen) submit(Action::build(buildCell_, id));
     else if (structureMenuBack_) backToStructure();
+  } else if (mode_ == Mode::ResearchCancel) {
+    menu_.close();
+    mode_ = Mode::Idle;
+    if (res == Menu::Chosen && id == kCancelResearchEntry) submit(Action::cancelResearch());
+    else openResearchPanel();  // kept, or backed out: the panel again
   } else if (mode_ == Mode::DifficultyMenu) {
     menu_.close();
     mode_ = Mode::Idle;

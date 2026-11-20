@@ -140,7 +140,7 @@ if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
       ${OTE_PLAYER_DIR}/battle/art_budget.cpp ${OTE_PLAYER_DIR}/battle/sprite_cache.cpp ${OTE_PLAYER_DIR}/battle/mapweapon_text.cpp ${OTE_PLAYER_DIR}/battle/fight_script.cpp ${OTE_PLAYER_DIR}/battle/fight_timeline.cpp
       ${OTE_PLAYER_DIR}/battle/enemy_ranges.cpp)
   file(GLOB PLAYER_SRPG_LIB_SRC CONFIGURE_DEPENDS ${OTE_PLAYER_DIR}/battle/srpg_pick.cpp ${OTE_PLAYER_DIR}/battle/unit_info*.cpp
-       ${OTE_PLAYER_DIR}/battle/battle_view*.cpp ${OTE_PLAYER_DIR}/battle/economy_text.cpp ${OTE_PLAYER_DIR}/battle/item_text.cpp
+       ${OTE_PLAYER_DIR}/battle/battle_view*.cpp ${OTE_PLAYER_DIR}/battle/economy_text.cpp ${OTE_PLAYER_DIR}/battle/research_rows.cpp ${OTE_PLAYER_DIR}/battle/item_text.cpp
        ${OTE_PLAYER_DIR}/battle/rescue_menu.cpp ${OTE_PLAYER_DIR}/battle/support_text.cpp)
   list(APPEND OTE_PLAYER_LIB_SRC ${PLAYER_SRPG_LIB_SRC})
   add_library(ote_player_lib STATIC ${OTE_PLAYER_LIB_SRC})

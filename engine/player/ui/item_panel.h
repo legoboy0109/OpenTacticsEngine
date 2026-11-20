@@ -21,6 +21,7 @@ struct PanelRow {
   bool dim = false;    // cannot be chosen (shown greyed; choosing it is still reported)
   bool mark = false;   // the equipped weapon
   bool blank = false;  // a free slot ("-")
+  bool header = false; // a heading between groups of rows: only `label` is shown, the selection steps over it
   int count = 0;       // identical copies stacked in this row (shown "Name  x3" when above 1; the name is shortened, never the count)
   // A picture before the name (the preparation screen's unit rows): `icon` draws it into the square it is given, `iconSize` is the
   // square's side in pixels (the panel makes the rows tall enough). `sub` is a second, dimmer line under the name ("Lv2 Soldier").
@@ -67,6 +68,7 @@ class ItemPanel {
 
  private:
   void layout(const Renderer& r);
+  void skipHeaders(Button dir);
 
   bool open_ = false;
   std::string title_, head_, empty_;
