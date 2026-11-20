@@ -50,7 +50,7 @@ void EndScene::draw(Renderer& r) {
   int y = (h - r.lineHeight(sc) - smallH) / 2;
   drawTextCentered(r, w / 2, y, fitText(r, big_, w - 24, sc), chrome::kAccent, sc);
   if (!small_.empty()) drawTextCentered(r, w / 2, y + r.lineHeight(sc) + 8, fitText(r, small_, w - 24), chrome::kText);
-  drawFooter(r, "Z / tap: back to the game page");
+  drawFooter(r, "{okTap}: back to the game page");
 }
 
 // ---- RetryScene
@@ -116,7 +116,7 @@ void RetryScene::draw(Renderer& r) {
     r.drawText(list_.x + 8, ry + 3, fitText(r, kLabels[i], list_.w - 16).c_str(),
                sel ? chrome::kTextSel : chrome::kText);
   }
-  drawFooter(r, "Up/Down: choose   Confirm: select");
+  drawFooter(r, "{updown}: choose   {confirm}: select");
 }
 
 }  // namespace ote

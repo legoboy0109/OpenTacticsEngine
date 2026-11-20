@@ -137,7 +137,7 @@ void BattleScene::drawPromotion(Renderer& r) {
 }
 
 std::string BattleScene::promotionHint() const {
-  return promoAsk_ ? "Left/Right + Z:answer  X:no" : "Up/Down + Z:choose  X:back";
+  return promoAsk_ ? "{lrok}:answer  {cancel}:no" : "{udok}:choose  {cancel}:back";
 }
 
 }  // namespace ote

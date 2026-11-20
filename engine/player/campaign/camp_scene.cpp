@@ -96,7 +96,7 @@ void CampScene::draw(Renderer& r) {
     if (both) r.drawText(list_.x + list_.w - 8 - extraW, ry + 3, row.extra.c_str(), chrome::kDim);
   }
   list_.drawMore(r, chrome::kDim);
-  drawFooter(r, "Up/Down + Z: choose");
+  drawFooter(r, "{udok}: choose");
 }
 
 std::unique_ptr<Scene> campStep(SceneHost& host) {

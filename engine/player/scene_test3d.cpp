@@ -198,7 +198,7 @@ void Test3DScene::draw(Renderer& r) {
   int lh = r.lineHeight();
   r.fillRect(0, 0, r.width(), lh + 4, Color(0, 0, 0, 140));
   r.drawText(4, 2, perspective_ ? "3D test scene - perspective" : "3D test scene - flat (isometric)", chrome::kTitle);
-  drawFooter(r, "Left/Right turn   Up/Down zoom   Confirm perspective on/off   Cancel quit");
+  drawFooter(r, "{leftright} turn   {updown} zoom   {confirm} perspective on/off   {cancelWord} quit");
 }
 
 }  // namespace ote

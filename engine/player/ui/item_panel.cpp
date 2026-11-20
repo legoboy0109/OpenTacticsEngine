@@ -4,6 +4,7 @@
 
 #include "sound/cue_sink.h"
 #include "ui/chrome.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -186,7 +187,7 @@ void ItemPanel::draw(Renderer& r) {
     drawPanelRow(r, list_.x, list_.rowY(row), list_.w, list_.rowH - 1, rows_[(size_t)row], row == list_.sel);
   }
   list_.drawMore(r, chrome::kAccent);
-  const std::string& d = rows_[(size_t)list_.sel].detail;
+  const std::string d = hintText(rows_[(size_t)list_.sel].detail);
   if (!d.empty()) {
     std::vector<std::string> lines = wrapText(r, d, w_ - 2 * kPad);
     for (int i = 0; i < detailLines_ && i < (int)lines.size(); ++i)

@@ -311,7 +311,7 @@ void StoryScene::draw(Renderer& r) {
     int y = (h - total) / 2;
     if (!head.empty()) drawTextCentered(r, w / 2, y, fitText(r, head, w - 24), chrome::kDim);
     drawTextCentered(r, w / 2, y + headH, fitText(r, name, w - 24, sc), chrome::kTitle, sc);
-    drawFooter(r, "Z / tap: continue");
+    drawFooter(r, "{okTap}: continue");
     return;
   }
   drawStageBackground(r, ctx, stage_);  // nothing when there is none: the scene looks as it always did

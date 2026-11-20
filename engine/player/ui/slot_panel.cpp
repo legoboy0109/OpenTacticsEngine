@@ -5,6 +5,7 @@
 #include "sound/cue_sink.h"
 #include "campaign/campaign_logic.h"
 #include "ui/chrome.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -160,8 +161,8 @@ void SlotPanel::draw(Renderer& r) {
   if (cur.state == SaveInfo::Unusable) {
     drawTextCentered(r, ax_ + aw_ / 2, footY_, fitText(r, cur.reason, aw_ - 2 * kPad), kReason);
   } else {
-    const char* hint = mode_ == Save ? "Confirm: save here   Cancel: back" : "Confirm: load   Cancel: back";
-    drawTextCentered(r, ax_ + aw_ / 2, footY_, fitText(r, hint, aw_ - 2 * kPad), chrome::kHint);
+    const char* hint = mode_ == Save ? "{confirm}: save here   {cancelWord}: back" : "{confirm}: load   {cancelWord}: back";
+    drawTextCentered(r, ax_ + aw_ / 2, footY_, fitText(r, hintText(hint), aw_ - 2 * kPad), chrome::kHint);
   }
   confirm_.draw(r);
 }

@@ -141,9 +141,9 @@ void OptionsScene::draw(Renderer& r) {
   list_.drawMore(r, chrome::kAccent);
   drawPreview(r);
 
-  std::string hint = "Left/Right: change   Cancel: back";
+  std::string hint = "{leftright}: change   {cancelWord}: back";
   if (list_.sel == resetRow())
-    hint = perGame() ? "Confirm: clear this game's overrides" : "Confirm: clear all options";
+    hint = perGame() ? "{confirm}: clear this game's overrides" : "{confirm}: clear all options";
   else if (list_.sel < defCount() && perGame()) hint += "   yellow = overridden";
   drawFooter(r, hint);
 }

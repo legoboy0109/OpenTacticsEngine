@@ -17,7 +17,7 @@ static std::vector<ListEntry> mapEntries(GameSession* s) {
 
 MapSelectScene::MapSelectScene(SceneHost& host)
     : ListScene(host, host.session()->db.name, mapEntries(host.session()),
-                "Select a map   Cancel: back"),
+                "Select a map   {cancelWord}: back"),
       session_(host.session()) {
   // Start the cursor where the player left off.
   std::string last = host.settings().state(lastMapKey(host.currentGameId()), "");

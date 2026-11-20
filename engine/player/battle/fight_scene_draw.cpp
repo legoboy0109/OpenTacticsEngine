@@ -6,6 +6,7 @@
 #include "battle/fight_scene.h"
 #include "battle/fight_scene_geo.h"
 #include "core/base/log.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -524,7 +525,7 @@ void FightScene::draw(Renderer& r) const {
   }
   drawBox(r, g, 0);
   drawBox(r, g, 1);
-  drawTextCentered(r, g.W / 2, g.H - g.lh - 3, "Confirm / tap: skip", Color(150, 158, 190));
+  drawTextCentered(r, g.W / 2, g.H - g.lh - 3, hintText("{confirmTap}: skip"), Color(150, 158, 190));
   drawFlashes(r, g);
   drawFades(r, g, false);
   double fade = 0;

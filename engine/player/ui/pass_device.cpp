@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "battle/fog_text.h"
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -34,7 +35,7 @@ void PassDevice::draw(Renderer& r) const {
     drawTextCentered(r, r.width() / 2, y, ln, Color(240, 242, 255), sc);
     y += lh;
   }
-  drawTextCentered(r, r.width() / 2, y + 8, FogWords::kPassHint, Color(160, 166, 195));
+  drawTextCentered(r, r.width() / 2, y + 8, hintText(FogWords::kPassHint), Color(160, 166, 195));
 }
 
 }  // namespace ote

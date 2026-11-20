@@ -1,5 +1,6 @@
 #include "ui/chrome.h"
 
+#include "ui/input_hints.h"
 #include "ui/text.h"
 
 namespace ote {
@@ -18,7 +19,7 @@ int footerHeight(const Renderer& r) { return r.lineHeight() + 6; }
 
 int drawFooter(Renderer& r, const std::string& text) {
   int y = r.height() - r.lineHeight() - 3;
-  drawTextCentered(r, r.width() / 2, y, fitText(r, text, r.width() - 12), chrome::kHint);
+  drawTextCentered(r, r.width() / 2, y, fitText(r, hintLine(text), r.width() - 12), chrome::kHint);
   return y;
 }
 

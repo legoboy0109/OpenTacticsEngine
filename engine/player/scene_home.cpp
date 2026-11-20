@@ -151,7 +151,7 @@ void HomeScene::draw(Renderer& r) {
   }
   list_.drawMore(r, chrome::kAccent);
   drawInfo(r, infoX_, list_.y, infoW_, list_.h);
-  drawFooter(r, "Up/Down: choose   Confirm: open   or tap");
+  drawFooter(r, "{updown}: choose   {confirm}: open   {orTap}");
   exitAsk_.draw(r);
 }
 

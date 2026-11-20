@@ -107,7 +107,7 @@ void DifficultyScene::draw(Renderer& r) {
     r.drawText(dx, y + used * rh, l.c_str(), chrome::kDim);
     ++used;
   }
-  drawFooter(r, "Up/Down  Confirm  Cancel: back");
+  drawFooter(r, "{updown}  {confirm}  {cancelWord}: back");
 }
 
 }  // namespace ote
