@@ -215,8 +215,12 @@ void drawUnitInfo(Renderer& r, const DrawCtx& c, const Unit& u, int x, int& y, i
   }
   drawRescueRow(r, c, u, x, y, w);  // "Carrying: Bram" (rescue.cpp / panel_rescue.cpp)
   if (db.rules.progression) {
-    if (db.rules.unitRanks.on()) row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, false));  // docs/SRPG.md "Unit ranks": a rank instead of a level
+    if (db.rules.unitRanks.replacesLevels()) row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, false));  // docs/SRPG.md "Unit ranks": a rank instead of a level
     else row(r, x, y, w, "Lv " + intStr(u.level), "XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel));
+    y += rh;
+  }
+  if (db.rules.unitRanks.merit) {  // "rules.ranks": the rank beside the level, with its counter ("Veteran   Merit 10/30")
+    row(r, x, y, w, unitRankName(b, u), unitRankXpText(b, u, true));
     y += rh;
   }
   int hp = u.id < (int)c.view.units.size() ? c.view.units[u.id].hp : u.hp;  // displayed, not final

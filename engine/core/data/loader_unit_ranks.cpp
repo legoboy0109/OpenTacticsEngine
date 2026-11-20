@@ -8,6 +8,7 @@ namespace ote {
 namespace {
 
 constexpr int kMaxUnitRanks = 20;
+constexpr int kMaxPerAward = 100000;
 constexpr int kMaxAt = 1000000;  // total experience; well under the save reader's number limit
 
 std::string q(const std::string& s) { return "\"" + s + "\""; }
@@ -37,17 +38,9 @@ bool printable(const std::string& s) {
   return true;
 }
 
-}  // namespace
-
-bool loadUnitRankRules(const LoadCtx& c, const Json& block, Database& db) {
+// The table itself ("levels": [ ... ]), the same in both modes; `at` names the block it sits in for the messages.
+bool readRankTable(const LoadCtx& c, const Json& block, const std::string& at, Database& db) {
   RulesConfig& r = db.rules;
-  r.unitRanks = UnitRankRules();
-  if (!block.has("levels")) return true;
-  const std::string at = "rules.progression";
-  if (!r.progression) return c.fail(at, "\"levels\" needs experience: set \"enabled\": true");
-  // The two ways to gain power exclude each other: the keys of the other one are refused so a maker is never left wondering why they do nothing.
-  for (const char* k : {"xpPerLevel", "maxLevel"})
-    if (block.has(k)) return c.fail(at, q(k) + " belongs to levelling, and this game uses the rank table (\"levels\"): a game uses one or the other");
   const Json* list;
   if (!c.array(block, "levels", at, list)) return false;
   if (list->size() == 0 || list->size() > (size_t)kMaxUnitRanks)
@@ -81,6 +74,38 @@ bool loadUnitRankRules(const LoadCtx& c, const Json& block, Database& db) {
   return true;
 }
 
+}  // namespace
+
+bool loadUnitRankRules(const LoadCtx& c, const Json& block, Database& db) {
+  RulesConfig& r = db.rules;
+  r.unitRanks = UnitRankRules();
+  if (!block.has("levels")) return true;
+  const std::string at = "rules.progression";
+  if (!r.progression) return c.fail(at, "\"levels\" needs experience: set \"enabled\": true");
+  // The two ways to gain power exclude each other: the keys of the other one are refused so a maker is never left wondering why they do nothing.
+  for (const char* k : {"xpPerLevel", "maxLevel"})
+    if (block.has(k)) return c.fail(at, q(k) + " belongs to levelling, and this game uses the rank table (\"levels\"): a game uses one or the other (to keep levelling beside ranks, put the table in \"rules.ranks\")");
+  return readRankTable(c, block, at, db);
+}
+
+// "rules.ranks" (merit mode): { "name": "Merit", "perHit": 5, "perDefeat": 20, "levels": [ ... ] }. Must run after loadUnitRankRules, which resets the table.
+bool loadMeritRankRules(const LoadCtx& c, const Json& rules, Database& db) {
+  if (!rules.has("ranks")) return true;
+  const Json* blk;
+  if (!c.object(rules, "ranks", "rules", blk)) return false;
+  const std::string at = "rules.ranks";
+  if (db.rules.unitRanks.on())
+    return c.fail(at, "\"rules.progression\" already has a rank table (\"levels\"): a game uses one of the two (\"rules.ranks\" keeps levelling; \"rules.progression\".\"levels\" replaces it)");
+  if (!onlyThese(c, *blk, at, {"name", "perHit", "perDefeat", "levels"})) return false;
+  UnitRankRules& t = db.rules.unitRanks;
+  t.merit = true;
+  if (!c.str(*blk, "name", at, t.counter)) return false;
+  if (t.counter.empty() || t.counter.size() > 16 || !printable(t.counter)) return c.fail(at, "\"name\" (the counter's name) must be 1 to 16 plain characters");
+  if (!c.integerIn(*blk, "perHit", at, 0, kMaxPerAward, t.perHit) || !c.integerIn(*blk, "perDefeat", at, 0, kMaxPerAward, t.perDefeat)) return false;
+  if (!blk->has("levels")) return c.fail(at, "missing required \"levels\" (the ranks: [ { \"at\": 10, \"name\": \"Veteran\" } ])");
+  return readRankTable(c, *blk, at, db);
+}
+
 bool resolveUnitRankSkills(const std::string& root, Database& db, std::string& err) {
   UnitRankRules& t = db.rules.unitRanks;
   const LoadCtx c(err, root + "/game.json");
@@ -88,7 +113,7 @@ bool resolveUnitRankSkills(const std::string& root, Database& db, std::string& e
     for (const std::string& id : t.skillIds[i]) {
       const int s = db.findSkill(id);
       if (s < 0)
-        return c.fail("rules.progression, \"levels\" entry " + std::to_string(i + 1) + " (" + q(t.levels[i].name) + ")", "\"skills\" names unknown skill " + q(id) + " (data/skills.json)");
+        return c.fail(std::string(t.merit ? "rules.ranks" : "rules.progression") + ", \"levels\" entry " + std::to_string(i + 1) + " (" + q(t.levels[i].name) + ")", "\"skills\" names unknown skill " + q(id) + " (data/skills.json)");
       if (std::find(t.levels[i].skills.begin(), t.levels[i].skills.end(), s) == t.levels[i].skills.end()) t.levels[i].skills.push_back(s);
     }
   t.skillIds.clear();
@@ -98,9 +123,17 @@ bool resolveUnitRankSkills(const std::string& root, Database& db, std::string& e
 bool readUnitXp(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u) {
   u.xp = 0;
   if (!e.has("xp")) return true;
-  if (!db.rules.unitRanks.on())
+  if (!db.rules.unitRanks.replacesLevels())
     return c.fail(where, "\"xp\" needs a rank table: \"rules\": { \"progression\": { \"levels\": [ ... ] } } in game.json (levelling keeps its experience per level)");
   return c.integerIn(e, "xp", where, 0, db.rules.unitRanks.topAt(), u.xp);
+}
+
+bool readUnitMerit(const LoadCtx& c, const Database& db, const Json& e, const std::string& where, MapUnitDef& u) {
+  u.merit = 0;
+  if (!e.has("merit")) return true;
+  if (!db.rules.unitRanks.merit)
+    return c.fail(where, "\"merit\" needs a rank counter: \"rules\": { \"ranks\": { \"levels\": [ ... ] } } in game.json");
+  return c.integerIn(e, "merit", where, 0, db.rules.unitRanks.topAt(), u.merit);
 }
 
 }  // namespace ote

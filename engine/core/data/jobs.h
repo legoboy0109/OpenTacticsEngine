@@ -37,7 +37,9 @@ struct JobRequire {
 struct JobDef {
   std::string id, name, description;
   std::string unitTypeId;
-  int unitType = -1;  // index into Database::unitTypes: what a unit plays as while it has this job
+  int unitType = -1;  // index into Database::unitTypes: what a unit plays as while it has this job; -1 = an OVERLAY job (no "unitType": the unit keeps its own type)
+  std::vector<int> bonus;  // "bonus": per stat index (sized to the stat list) added in unitStat while this is the unit's current job; empty = none
+  bool overlay() const { return unitType < 0; }
   std::vector<JobRequire> needs;  // the jobs.json "requires" list (a C++20 keyword, so not the member name)
   std::vector<int> jpLevels;  // total JP for job level 2, 3, ...; empty = the game's table
   std::vector<JobLearnDef> learn;
@@ -62,6 +64,9 @@ struct JobProgress {
 };
 struct JobState {
   int job = -1;                      // the job it uses now (index into Database::jobs)
+  // The unit's OWN unit type (its character's / map entry's class, as promotion moved it): what an overlay job plays as. Recorded only in a game that has
+  // an overlay job (Database::jobsOverlay()); -1 elsewhere, so the saves of every other game are unchanged. A class job plays as its own type instead.
+  int baseType = -1;
   std::vector<JobProgress> progress;  // ascending job index; only jobs with something in them
   std::vector<int> equipped;          // flat learn indices learned in other jobs and equipped, in the order they were equipped
   bool on() const { return job >= 0; }
@@ -82,7 +87,7 @@ struct JobState {
     return *progress.insert(progress.begin() + (long)i, p);
   }
   bool operator==(const JobState& o) const {
-    if (job != o.job || equipped != o.equipped || progress.size() != o.progress.size()) return false;
+    if (job != o.job || baseType != o.baseType || equipped != o.equipped || progress.size() != o.progress.size()) return false;
     for (size_t i = 0; i < progress.size(); ++i) {
       const JobProgress &a = progress[i], &b = o.progress[i];
       if (a.job != b.job || a.earned != b.earned || a.spent != b.spent || a.learned != b.learned) return false;

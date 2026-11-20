@@ -102,7 +102,7 @@ bool readUnit(Reader& rd, const Battle& b, const Json& j, int index, Unit& u) {
   if (u.name.size() > 200) return rd.fail(where + ".name", "unreasonably long");
   if (!readUnitStoryId(rd, j, where, u.storyId)) return false;
   if (!rd.integer(j, "level", where, 1, kMaxLevel, u.level)) return false;
-  if (!rd.integer(j, "xp", where, 0, kMaxNumber, u.xp)) return false;
+  if (!rd.integer(j, "xp", where, 0, kMaxNumber, u.xp) || !savejson::readMerit(rd, db, j, where, u.merit)) return false;
   const Json* stats;
   if (!rd.array(j, "stats", where, (int)db.stats.size(), 0, stats)) return false;
   u.stats.assign(db.stats.size(), 0);
@@ -193,6 +193,7 @@ void saveBattleState(const Battle& b, Json& out) {
     if (!u.storyId.empty()) j.set("id", Json::makeString(u.storyId));
     j.set("level", num(u.level));
     j.set("xp", num(u.xp));
+    savejson::writeMerit(*b.db, u.merit, j);
     Json stats = Json::makeArray();
     for (int s : u.stats) stats.push(num(s));
     j.set("stats", stats);

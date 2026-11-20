@@ -171,10 +171,37 @@ void jobAddJp(const Database& db, JobState& s, int amount, int& levelBefore, int
   levelAfter = jobLevelAt(db, s.job, p.earned);
 }
 
+int jobPlayType(const Database& db, const JobState& s, int job, int fallback) {
+  if (!validJob(db, job)) return fallback;
+  const JobDef& d = db.jobs[(size_t)job];
+  if (!d.overlay()) return d.unitType;
+  return s.baseType >= 0 ? s.baseType : fallback;
+}
+
+std::string jobTypeProblem(const Database& db, const JobState& s, int type) {
+  if (!db.jobsOverlay() || !s.on() || !validJob(db, s.job)) return "";
+  const int want = jobPlayType(db, s, s.job, type);
+  if (want == type) return "";
+  const JobDef& d = db.jobs[(size_t)s.job];
+  return std::string("a unit in ") + (d.overlay() ? "the overlay job \"" : "the class job \"") + d.id + "\" must have the unit type \"" + db.unitTypes[(size_t)want].id + "\" (it has \"" +
+         db.unitTypes[(size_t)type].id + "\")";
+}
+
+int jobBonusOf(const Database& db, const JobState& s, int stat) {
+  if (!s.on() || !validJob(db, s.job) || stat < 0) return 0;
+  const std::vector<int>& b = db.jobs[(size_t)s.job].bonus;
+  return (size_t)stat < b.size() ? b[(size_t)stat] : 0;
+}
+
 std::string jobStateProblem(const Database& db, const JobState& s) {
   if (!db.jobsOn()) return s.on() || !s.progress.empty() || !s.equipped.empty() ? "this game has no jobs" : "";
   if (!s.on()) return s.progress.empty() && s.equipped.empty() ? "" : "has job progress but no job";
   if (!validJob(db, s.job)) return "\"job\" " + std::to_string(s.job) + " is not a job of this game";
+  if (db.jobsOverlay()) {  // the unit's own class is kept so that an overlay job can play as it
+    if (s.baseType < 0 || s.baseType >= (int)db.unitTypes.size()) return "\"baseType\" must be a unit type of this game (the game has overlay jobs: the unit's own class is kept)";
+  } else if (s.baseType >= 0) {
+    return "\"baseType\" belongs to games with overlay jobs (a job without \"unitType\")";
+  }
   int last = -1;
   for (const JobProgress& p : s.progress) {
     const std::string at = "job " + std::to_string(p.job);

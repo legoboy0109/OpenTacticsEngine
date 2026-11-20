@@ -573,6 +573,11 @@ struct Database {
   int findAbility(const std::string& id) const;
   int findJob(const std::string& id) const;
   bool jobsOn() const { return !jobs.empty(); }
+  bool jobsOverlay() const {  // some job has no unit type (docs/JOBS.md "Overlay jobs")
+    for (const JobDef& j : jobs)
+      if (j.overlay()) return true;
+    return false;
+  }
   // The support pair of two characters (indices into `characters`, either order); -1 = they are not a pair.
   int findSupportPair(int characterA, int characterB) const;
   // Registers a formula expression; returns its index for Formulas::evalExpr.
@@ -621,6 +626,7 @@ struct MapUnitDef {
   std::string name;  // empty = use the unit type name
   int level = 1;
   int xp = 0;        // "xp" (rank-table games only): the experience it starts with
+  int merit = 0;     // "merit" ("rules.ranks" games only): the rank counter it starts with
   bool leader = false;
   std::vector<int> stats;  // final per-stat values (type base + overrides)
   bool hasItems = false;         // the map gives this unit its own items (else the type's)

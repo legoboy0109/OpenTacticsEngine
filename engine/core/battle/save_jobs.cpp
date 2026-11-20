@@ -19,6 +19,7 @@ Json indexList(const std::vector<int>& v) {
 Json stateJson(const JobState& s) {
   Json o = Json::makeObject();
   o.set("job", Json::makeNumber(s.job));
+  if (s.baseType >= 0) o.set("baseType", Json::makeNumber(s.baseType));  // only in a game with overlay jobs
   Json list = Json::makeArray();
   for (const JobProgress& p : s.progress) {
     Json e = Json::makeObject();
@@ -55,6 +56,7 @@ bool readState(Reader& rd, const Database& db, const Json& j, const std::string&
   const Json* o;
   if (!rd.object(j, "jobs", where, o)) return false;
   if (!rd.integer(*o, "job", at, 0, (int)db.jobs.size() - 1, out.job)) return false;
+  if (o->has("baseType") && !rd.integer(*o, "baseType", at, 0, (int)db.unitTypes.size() - 1, out.baseType)) return false;
   if (o->has("progress")) {
     const Json* list;
     if (!rd.array(*o, "progress", at, -1, kMaxJobs, list)) return false;
@@ -82,13 +84,21 @@ void writeUnitJobs(const Battle& b, const Unit& u, Json& j) {
   if (b.db->jobsOn() && u.jobs.on()) j.set("jobs", stateJson(u.jobs));
 }
 
-bool readUnitJobs(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u) { return readState(rd, *b.db, j, where, u.jobs); }
+bool readUnitJobs(Reader& rd, const Battle& b, const Json& j, const std::string& where, Unit& u) {
+  if (!readState(rd, *b.db, j, where, u.jobs)) return false;
+  const std::string problem = jobTypeProblem(*b.db, u.jobs, u.type);  // overlay games: the unit type must fit the job
+  return problem.empty() || rd.fail(where + ".jobs", problem);
+}
 
 void writeRosterJobs(const Database& db, const RosterUnit& r, Json& j) {
   if (db.jobsOn() && r.jobs.on()) j.set("jobs", stateJson(r.jobs));
 }
 
-bool readRosterJobs(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r) { return readState(rd, db, j, where, r.jobs); }
+bool readRosterJobs(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r) {
+  if (!readState(rd, db, j, where, r.jobs)) return false;
+  const std::string problem = jobTypeProblem(db, r.jobs, r.type);
+  return problem.empty() || rd.fail(where + ".jobs", problem);
+}
 
 }  // namespace savejson
 }  // namespace ote

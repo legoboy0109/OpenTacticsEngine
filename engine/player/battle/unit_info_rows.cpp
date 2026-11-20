@@ -93,10 +93,12 @@ std::vector<InfoRow> statRows(const Battle& b, const Unit& u) {
     const int left = jobUnspent(u.jobs, u.jobs.job);
     rows.push_back({"Job", b.db->jobs[(size_t)u.jobs.job].name + "  Lv " + intStr(b.unitJobLevel(u)), "JP " + intStr(left), kText, kSmall});
   }
-  if (db.rules.progression && db.rules.unitRanks.on())  // docs/SRPG.md "Unit ranks": the rank and the experience towards the next, instead of a level
+  if (db.rules.progression && db.rules.unitRanks.replacesLevels())  // docs/SRPG.md "Unit ranks": the rank and the experience towards the next, instead of a level
     rows.push_back({"Rank", unitRankName(b, u) + "  " + unitRankXpText(b, u), "", kText, kLabel});
   else if (db.rules.progression)
     rows.push_back({"Level", intStr(u.level) + "  XP " + intStr(u.xp) + "/" + intStr(db.rules.xpPerLevel), "", kText, kLabel});
+  // "rules.ranks": the rank beside the level, with its own counter ("Veteran  Merit 10/30").
+  if (db.rules.unitRanks.merit) rows.push_back({"Rank", unitRankName(b, u), unitRankXpText(b, u), kText, kSmall});
   // A unit type with its own top level (units.json "maxLevel") says so; a game without one shows no extra row.
   if (db.rules.progression && b.typeOf(u).maxLevel >= 0)
     rows.push_back({"Level cap", b.typeOf(u).maxLevel == 0 ? std::string("never levels") : intStr(b.typeOf(u).maxLevel), "", kText, kLabel});

@@ -12,6 +12,7 @@ int Battle::applyRoster(Unit& u) const {
     u.name = r.name;
     u.level = r.level;
     u.xp = r.xp;
+    u.merit = r.merit;
     u.stats = r.stats;
     u.stats.resize(db->stats.size(), 0);
     u.items.clear();

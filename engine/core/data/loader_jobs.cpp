@@ -78,17 +78,24 @@ bool readLearn(const LoadCtx& c, const Database& db, const Json& list, const std
 bool readJob(const LoadCtx& c, const Database& db, const Json& e, size_t index, JobDef& job) {
   std::string where = "jobs[" + std::to_string(index) + "]";
   if (!e.isObject()) return c.fail(where, "must be an object");
-  if (!onlyThese(c, e, where, {"id", "name", "description", "unitType", "requires", "jpLevels", "learn"})) return false;
+  if (!onlyThese(c, e, where, {"id", "name", "description", "unitType", "bonus", "requires", "jpLevels", "learn"})) return false;
   if (!c.str(e, "id", where, job.id, true)) return false;
   if (!isStoryId(job.id)) return c.fail(where, "\"id\" must be letters, digits, \"_\" and \"-\" (got " + q(job.id) + ")");
   where = "job " + q(job.id);
   for (const JobDef& o : db.jobs)
     if (o.id == job.id) return c.fail(where, "duplicate id");
   job.name = job.id;
-  if (!c.str(e, "name", where, job.name) || !c.str(e, "description", where, job.description) || !c.str(e, "unitType", where, job.unitTypeId, true)) return false;
+  if (!c.str(e, "name", where, job.name) || !c.str(e, "description", where, job.description) || !c.str(e, "unitType", where, job.unitTypeId)) return false;
   if (job.name.empty() || job.name.size() > 24) return c.fail(where, "\"name\" must be 1 to 24 characters");
-  job.unitType = db.findUnitType(job.unitTypeId);
-  if (job.unitType < 0) return c.fail(where, "\"unitType\" names unknown unit type " + q(job.unitTypeId) + " (data/units.json)");
+  // No "unitType" = an overlay job: the unit keeps its own type, stats and promotion path (docs/JOBS.md "Overlay jobs").
+  if (e.has("unitType")) {
+    job.unitType = db.findUnitType(job.unitTypeId);
+    if (job.unitType < 0) return c.fail(where, "\"unitType\" names unknown unit type " + q(job.unitTypeId) + " (data/units.json); leave it out for a job that keeps the unit's own class");
+  }
+  if (e.has("bonus")) {
+    job.bonus.assign(db.stats.size(), 0);
+    if (!c.statMap(db, e, "bonus", where, job.bonus)) return false;
+  }
   if (!readLevelTable(c, e, where, job.jpLevels)) return false;
   if (e.has("requires")) {
     const Json* list;
@@ -309,7 +316,10 @@ bool readJobKeys(const LoadCtx& c, const Database& db, const Json& e, const std:
   out.progress.erase(std::remove_if(out.progress.begin(), out.progress.end(),
                                     [](const JobProgress& p) { return p.earned == 0 && p.spent == 0 && p.learned.empty(); }),
                      out.progress.end());
+  // The base type (the unit's own class) is filled in by the caller, who knows the unit type; a stand-in lets the state check run on the rest.
+  out.baseType = db.jobsOverlay() ? 0 : -1;
   const std::string problem = jobStateProblem(db, out);
+  out.baseType = -1;
   if (!problem.empty()) return c.fail(where, problem);
   return true;
 }

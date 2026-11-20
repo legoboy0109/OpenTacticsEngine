@@ -225,11 +225,13 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
       !c.boolean(e, "leader", where, u.leader) || !c.str(e, "id", where, u.id))
     return false;
   if (isCharacter) {
-    if (type.empty()) type = db.unitTypes[(size_t)ch->type].id;
+    // The character's own class: with a class job its `type` is the job's, so a game with overlay jobs kept the original in the job state.
+    if (type.empty()) type = db.unitTypes[(size_t)(ch->jobs.baseType >= 0 ? ch->jobs.baseType : ch->type)].id;
     if (!e.has("level")) u.level = ch->level;
     if (u.name.empty()) u.name = ch->name;
   }
-  if (type.empty() && e.has("job") && e["job"].isString() && db.findJob(e["job"].asString()) >= 0)  // a unit with a job needs no "type": the job's
+  if (type.empty() && e.has("job") && e["job"].isString() && db.findJob(e["job"].asString()) >= 0 &&
+      !db.jobs[(size_t)db.findJob(e["job"].asString())].overlay())  // a unit with a class job needs no "type": the job's (an overlay job keeps the unit's own)
     type = db.unitTypes[(size_t)db.jobs[(size_t)db.findJob(e["job"].asString())].unitType].id;
   u.type = db.findUnitType(type);
   if (u.type < 0 && !(type.empty() && e.has("job"))) return c.fail(where, "unknown unit type \"" + type + "\"");  // (an unknown job is named below)
@@ -238,8 +240,16 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
     u.jobs = ch ? ch->jobs : JobState();
     if (!readJobKeys(c, db, e, where, u.jobs, given)) return false;
     if (u.jobs.on()) {
-      if (e.has("type")) return c.fail(where, "\"type\" and a job together: the job decides the unit type (remove \"type\")");
-      u.type = db.jobs[(size_t)u.jobs.job].unitType;
+      const JobDef& jd = db.jobs[(size_t)u.jobs.job];
+      // The unit's own class, remembered in a game with overlay jobs (docs/JOBS.md "Class jobs and overlay jobs").
+      int own = jd.overlay() ? u.type : (ch ? (ch->jobs.baseType >= 0 ? ch->jobs.baseType : ch->type) : jd.unitType);
+      if (jd.overlay()) {
+        if (u.type < 0) return c.fail(where, "job \"" + jd.id + "\" keeps the unit's own class, so the unit needs a \"type\" (or a \"character\")");
+      } else {
+        if (e.has("type")) return c.fail(where, "\"type\" and a class job together: the job decides the unit type (remove \"type\"; a job without \"unitType\" keeps it)");
+        u.type = jd.unitType;
+      }
+      u.jobs.baseType = db.jobsOverlay() ? own : -1;
     }
   }
   u.side = findSide(m, side);
@@ -261,6 +271,7 @@ bool readUnitHead(const LoadCtx& c, const Database& db, const MapDef& m, const J
   return readUnitGoals(c, m, e, where, u) &&  // "goesFor" (docs/SRPG.md section 10)
          readUnitBehaviour(c, db, m, e, where, u) &&  // "behaviour" (docs/AI.md)
          readUnitXp(c, db, e, where, u) &&  // "xp" (docs/SRPG.md "Unit ranks")
+         readUnitMerit(c, db, e, where, u) &&  // "merit" (the same, "rules.ranks")
          readUnitFacing(c, db, m, e, where, u) &&  // "facing" (docs/SRPG.md "Facing")
          readUnitDifficulty(c, db, e, where, u) &&  // "difficulty", "difficultyShift" (docs/DIFFICULTY.md)
          (u.onlyOn.empty() || m.sides[(size_t)u.side].ai ||

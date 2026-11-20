@@ -83,6 +83,7 @@ int raiseRoster(const Database& db, Battle& calc, Roster& roster, int level) {
     u.type = r.type;
     u.level = r.level;
     u.xp = r.xp;
+    u.merit = r.merit;
     u.stats = r.stats;
     u.stats.resize(db.stats.size(), 0);
     u.learned = r.skills;
@@ -90,6 +91,7 @@ int raiseRoster(const Database& db, Battle& calc, Roster& roster, int level) {
     if (calc.levelUnitTo(u, level) <= 0) continue;
     r.level = u.level;
     r.xp = u.xp;
+    r.merit = u.merit;
     r.stats = u.stats;
     r.skills = u.learned;
     ++raised;

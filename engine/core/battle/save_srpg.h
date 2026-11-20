@@ -31,6 +31,9 @@ bool checkUnitsSrpg(Reader& rd, Battle& b);
 // The battle as a whole (`out` / `saved` is the "battle" object).
 void writeBattleSrpg(const Battle& b, Json& out);
 bool readBattleSrpg(Reader& rd, const Json& saved, Battle& b);
+// The "merit" counter of a unit / roster entry (save_merit.cpp): written only in a game with "rules.ranks"; reading refuses it elsewhere and requires it there.
+void writeMerit(const Database& db, int merit, Json& j);
+bool readMerit(Reader& rd, const Database& db, const Json& j, const std::string& where, int& out);
 // One roster entry of a playthrough. `where` is "playthrough.roster[2]".
 void writeRosterSrpg(const Database& db, const RosterUnit& r, Json& j);
 bool readRosterSrpg(Reader& rd, const Database& db, const Json& j, const std::string& where, RosterUnit& r);

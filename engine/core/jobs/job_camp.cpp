@@ -63,19 +63,22 @@ bool jobsChange(const Database& db, Playthrough& pt, const std::string& id, int 
   if (!jobsChangeReason(db, pt, id, job, why)) return false;
   std::string unused;
   RosterUnit& r = *usable(db, pt, id, unused);
+  // The type it plays as under the new job: the class job's own, or (an overlay job) its base type. From an overlay job to another nothing changes.
+  const int toType = jobPlayType(db, r.jobs, job, r.type);
   const UnitTypeDef& from = db.unitTypes[(size_t)r.type];
-  const UnitTypeDef& to = db.unitTypes[(size_t)db.jobs[(size_t)job].unitType];
+  const UnitTypeDef& to = db.unitTypes[(size_t)toType];
   if (!jobSwitch(db, r.jobs, job, why)) return false;  // cannot fail after the reason test
   r.stats.resize(db.stats.size(), 0);
   for (size_t s = 0; s < r.stats.size(); ++s) r.stats[s] = std::max(0, r.stats[s] + to.stats[s] - from.stats[s]);
-  r.type = db.jobs[(size_t)job].unitType;
+  r.type = toType;
   return true;
 }
 
 bool jobsChangeInPrep(const Database& db, Playthrough& pt, const MapDef& map, const std::string& id, int job, std::string& why) {
   if (!jobsChangeAllowedInPrep(db)) return refuse(why, "jobs are changed in the camp, between chapters");
   if (!jobsChangeReason(db, pt, id, job, why)) return false;
-  const int type = db.jobs[(size_t)job].unitType;
+  const RosterUnit* ru = pt.findUnit(id);
+  const int type = jobPlayType(db, ru ? ru->jobs : JobState(), job, ru ? ru->type : 0);
   for (const PrepDeploy& d : pt.prep.deployed)
     if (d.id == id && !prepCanStand(db, map, type, d.slot))
       return refuse(why, "a " + db.jobs[(size_t)job].name + " could not stand on slot " + std::to_string(d.slot + 1));

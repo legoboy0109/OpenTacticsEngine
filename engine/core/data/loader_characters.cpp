@@ -81,7 +81,12 @@ bool readCharacter(const LoadCtx& c, const Database& db, const Json& e, size_t i
   }
   bool hasJob = false;  // "job", "jobs", "equipped", "learned" (docs/JOBS.md): the unit type of a character with a job is the job's
   if (!readJobKeys(c, db, e, where, ch.jobs, hasJob)) return false;
-  if (hasJob) ch.type = db.jobs[(size_t)ch.jobs.job].unitType;
+  if (hasJob) {
+    // A class job replaces the character's type by the job's; an overlay job leaves it. In a game with overlay jobs the character's own type is kept in
+    // the job state, so that changing to an overlay job (now or later, in the camp) plays as it (docs/JOBS.md "Class jobs and overlay jobs").
+    if (db.jobsOverlay()) ch.jobs.baseType = ch.type;
+    if (!db.jobs[(size_t)ch.jobs.job].overlay()) ch.type = db.jobs[(size_t)ch.jobs.job].unitType;
+  }
   ch.hasItems = e.has("items");
   return readItemGrants(c, db, e, "items", where, true, db.rules.items.inventorySize, ch.items);
 }

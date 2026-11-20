@@ -15,6 +15,7 @@ struct RosterUnit {
   int type = 0;    // index into Database::unitTypes
   std::string name;
   int level = 1, xp = 0;
+  int merit = 0;                 // the rank counter of "rules.ranks" (Unit::merit); 0 in every other game
   std::vector<int> stats;        // per stat index (the unit's own values, without accessories)
   std::vector<ItemGrant> items;  // the inventory with the uses left
   std::string side;              // id of the side it fought on last (informational)

@@ -81,6 +81,7 @@ bool readUnit(Reader& rd, const Database& db, const Json& j, const std::string& 
   if (!j["name"].isString() || j["name"].asString().size() > 200) return rd.fail(where + ".name", "missing, not text or unreasonably long");
   r.name = j["name"].asString();
   if (!rd.integer(j, "level", where, 1, kMaxLevel, r.level) || !rd.integer(j, "xp", where, 0, kMaxNumber, r.xp)) return false;
+  if (!savejson::readMerit(rd, db, j, where, r.merit)) return false;
   if (!readInts(rd, j, "stats", where, (int)db.stats.size(), kMaxNumber, r.stats)) return false;
   std::vector<ItemStack> items;
   if (!savejson::readItems(rd, db, j, "items", where, db.rules.items.inventorySize, items)) return false;
@@ -165,6 +166,7 @@ Json rosterJson(const Database& db, const Roster& roster) {
     j.set("name", Json::makeString(r.name));
     j.set("level", num(r.level));
     j.set("xp", num(r.xp));
+    savejson::writeMerit(db, r.merit, j);
     j.set("stats", intList(r.stats));
     if (!r.items.empty()) j.set("items", savejson::itemsJson(stacks(r.items)));
     j.set("side", Json::makeString(r.side));

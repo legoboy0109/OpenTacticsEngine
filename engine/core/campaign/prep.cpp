@@ -182,6 +182,7 @@ RosterUnit prepRosterEntry(const Database& db, const MapDef& map, const MapUnitD
   r.name = u.name.empty() ? db.unitTypes[(size_t)u.type].name : u.name;
   r.level = u.level;
   r.xp = 0;
+  r.merit = u.merit;
   r.stats = u.stats;
   r.stats.resize(db.stats.size(), 0);
   r.items = u.hasItems ? u.items : db.unitTypes[(size_t)u.type].items;
