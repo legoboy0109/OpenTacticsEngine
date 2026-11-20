@@ -208,7 +208,7 @@ def test_options(tmp):
     check('options: touch steps the volume up and down', s['global'].get('musicVolume') == 8 and
           body[-3:] == ['volumes music=8 sound=7', 'volumes music=9 sound=7', 'volumes music=8 sound=7'], str(lines))
     # Reset to defaults: back to 7 with no tick.
-    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + ',down' * 10 + ',confirm,wait:2'])
+    code, out, lines = headless(tmp, settings, ['--input', TO_OPTIONS + ',down' * 11 + ',confirm,wait:2'])
     s = json.load(open(settings))
     check('options: Reset to defaults clears the volumes', 'musicVolume' not in s['global'] and 'soundVolume' not in s['global'], str(s))
     check('options: ...without a tick', not any('tick' in l for l in lines), '\n'.join(lines))
