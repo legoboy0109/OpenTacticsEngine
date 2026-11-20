@@ -19,6 +19,7 @@
 #include "core/data/loader_factions.h"
 #include "core/data/loader_places.h"
 #include "core/data/loader_ranks.h"
+#include "core/data/loader_speed.h"
 #include "core/data/loader_srpg.h"
 #include "core/data/loader_staves.h"
 #include "core/data/loader_util.h"
@@ -68,10 +69,6 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   const Json* rules;
   if (!c.object(root, "rules", "", rules)) return false;
 
-  std::string order = "sides";
-  if (!c.str(*rules, "turnOrder", "rules", order)) return false;
-  if (order != "sides")
-    return c.fail("rules", "turnOrder \"" + order + "\" is not supported yet (only \"sides\")");
   if (!c.boolean(*rules, "counterAttacks", "rules", r.counterAttacks)) return false;
 
   if (rules->has("defeat")) {
@@ -122,6 +119,7 @@ static bool loadRules(const LoadCtx& c, const Json& root, Database& db) {
   if (!loadRescueRules(c, *rules, db) || !loadPromotionRules(c, *rules, db)) return false;
   if (!loadPlaceRules(c, *rules, db)) return false;  // "rules.places" (docs/SRPG.md section 10)
   if (!loadActionPointRules(c, *rules, db)) return false;  // "rules.actionPoints" (docs/SRPG.md "Action points")
+  if (!loadSpeedRules(c, *rules, db)) return false;  // "rules.turnOrder" (docs/TURN_ORDER.md); after actionPoints and production, which it cannot be combined with
   if (!loadFacingRules(c, *rules, db)) return false;  // "rules.facing" (docs/SRPG.md "Facing"); before the maps whose units may say a "facing"
   if (!loadJobRules(c, *rules, db)) return false;  // "rules.jobs" (docs/JOBS.md); data/jobs.json is read after the unit types
   if (!loadHeightRules(c, *rules, db)) return false;  // "rules.height" (docs/SRPG.md "Height rules"); before the weapons and unit types that use its keys

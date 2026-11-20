@@ -9,6 +9,7 @@
 // APPEND ONLY for the steps after F1: add fields and types at the end of a struct / of this file; do not rename
 // or reorder what is here (other steps are built against it).
 #pragma once
+#include "core/data/speed_rules.h"
 #include "core/data/jobs.h"
 #include <cstdint>
 #include <string>
@@ -301,6 +302,7 @@ struct AbilityDef {
   // target gets after the effect (docs/SRPG.md "Abilities: experience and conditions").
   int xp = 0, xpExpr = -1;
   int inflictCond = -1, inflictTurns = 0;  // index into Database::conditions (conditions load first); turns 0 = the condition's own
+  ChargeDef charge;         // "chargeSpeed" etc. (speed turn order only; docs/TURN_ORDER.md "Charged actions")
   bool spendsItem = false;  // "spendsItem": each use takes one use of the item that gives the ability (docs/SRPG.md "An ability that spends its item")
 };
 

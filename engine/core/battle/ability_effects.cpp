@@ -77,7 +77,10 @@ bool Battle::abilityEffectOk(const Unit& u, const AbilityDef& d, Cell from, cons
     }
     case AbilityEffect::Refresh:
       if (t.side != u.side) return refuse(why, "only a unit of the same side can be refreshed");
-      if (!t.done && !t.acted) return refuse(why, "that unit has not acted yet");
+      if (speedGame()) {  // docs/TURN_ORDER.md: it gets its charge filled instead; not the unit that has the turn, nor one that is ready already
+        if (t.id == activeUnit) return refuse(why, "that unit has its turn now");
+        if (t.ct >= db->rules.speed.threshold) return refuse(why, "that unit is ready already");
+      } else if (!t.done && !t.acted) return refuse(why, "that unit has not acted yet");
       if (conditionBlock(t, ConditionBlock::Act) >= 0) return refuse(why, "that unit cannot act");
       if ((int)t.refreshedBy.size() >= d.refreshPerTurn) return refuse(why, "that unit was already refreshed this turn");
       if (std::find(u.refreshedBy.begin(), u.refreshedBy.end(), t.id) != u.refreshedBy.end())
@@ -116,8 +119,11 @@ void Battle::applyAbilityEffect(const AbilityDef& d, int uid, int target, int sl
     }
     case AbilityEffect::Refresh: {
       Unit& t = units[(size_t)target];
-      t.moved = t.done = t.acted = false;
-      t.moveSpent = 0;
+      if (speedGame()) t.ct = std::max(t.ct, db->rules.speed.threshold);  // docs/TURN_ORDER.md: it acts as soon as the order reaches it
+      else {
+        t.moved = t.done = t.acted = false;
+        t.moveSpent = 0;
+      }
       t.refreshedBy.push_back(uid);
       Event e;
       e.type = EventType::UnitRefreshed;

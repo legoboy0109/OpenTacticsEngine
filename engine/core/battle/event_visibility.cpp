@@ -81,6 +81,7 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
     case EventType::Choice:
     case EventType::Focus:
     case EventType::ObjectiveChanged:
+    case EventType::RoundStarted:  // docs/TURN_ORDER.md
     case EventType::MusicChanged:
     case EventType::SoundRequested:
     case EventType::TerrainChanged:  // terrain is known to everybody anyway
@@ -180,6 +181,13 @@ uint32_t Battle::eventSeenBy(const Event& e) const {
       return footprintSeenBy(e.a);
     case EventType::PlaceHit:
       return unitSeenBy(e.a) | footprintSeenBy(e.b);
+    // Speed turn order (docs/TURN_ORDER.md): a unit's turn and its charged action are seen by the teams that see the unit (and the square it hits).
+    case EventType::UnitTurnBegan:
+    case EventType::ChargeCancelled:
+      return unitSeenBy(e.a);
+    case EventType::ActionCharging:
+    case EventType::ChargeResolved:
+      return unitSeenBy(e.a) | cellSeenBy(e.d);
   }
   return kSeenByAll;
 }

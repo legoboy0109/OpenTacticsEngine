@@ -94,7 +94,7 @@ void Battle::repairTurn(std::vector<Event>& events) {
   if (!db->rules.supply.repair) return;
   for (size_t i = 0; i < units.size(); ++i) {
     Unit& u = units[i];
-    if (!u.alive || u.side != activeSide) continue;
+    if (!u.alive || !ownsTurn(u)) continue;
     RepairPlan plan;
     if (!repairPlan(u, u.cell, plan)) continue;
     bool paid = false;

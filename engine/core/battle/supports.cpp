@@ -91,7 +91,7 @@ void Battle::supportsTurnEnd(std::vector<Event>& events) {
   for (size_t i = 0; i < db->supports.pairs.size(); ++i) {
     const SupportPairDef& p = db->supports.pairs[i];
     const int a = supportUnit(p.a), b = supportUnit(p.b);
-    if (a < 0 || b < 0 || units[(size_t)a].side != activeSide) continue;
+    if (a < 0 || b < 0 || !ownsTurn(units[(size_t)a])) continue;
     if (supportNear(units[(size_t)a], kNoCell, units[(size_t)b], 1)) supportGain((int)i, rules.endTurnAdjacent, events);
   }
 }

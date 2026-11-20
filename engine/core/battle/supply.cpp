@@ -42,7 +42,7 @@ void Battle::resupplyTurn(std::vector<Event>& events) {
   if (db->rules.supply.structures) {
     for (size_t i = 0; i < units.size(); ++i) {
       const Unit& u = units[i];
-      if (!u.alive || u.side != activeSide) continue;
+      if (!u.alive || !ownsTurn(u)) continue;
       int si = structureAt[(size_t)u.cell];
       if (si >= 0 && structures[(size_t)si].owner == u.side) refill((int)i, events);
     }
@@ -50,7 +50,7 @@ void Battle::resupplyTurn(std::vector<Event>& events) {
   std::vector<int> targets;
   for (size_t i = 0; i < units.size(); ++i) {
     const Unit& u = units[i];
-    if (!u.alive || u.side != activeSide || !typeOf(u).supplies) continue;
+    if (!u.alive || !ownsTurn(u) || !typeOf(u).supplies) continue;
     supplyTargetsFrom((int)i, u.cell, targets);
     for (int t : targets) refill(t, events);
   }

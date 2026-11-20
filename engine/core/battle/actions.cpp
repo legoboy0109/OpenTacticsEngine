@@ -73,12 +73,14 @@ bool Battle::validate(const Action& action, std::string* why) const {
   if (action.type == ActionType::UpgradeStructure) return validateUpgrade(action, why);
   if (action.type == ActionType::StartResearch) return validateResearch(action, why);
   if (action.type == ActionType::CancelResearch) return canCancelResearch(why);
+  if (action.type == ActionType::CancelCharge && !speedGame()) return fail(why, "this game has no charged actions");
 
   // Everything else is a unit order.
   if (!canAct(action.unit)) return fail(why, "that unit cannot act now");
   const Unit& u = units[action.unit];
   if (!unitControllable(u, why)) return false;  // asleep, or acting on its own (docs/SRPG.md section 9)
   if (u.done) return fail(why, "that unit has already acted");
+  if (speedGame() && !chargeAllowed(action, why)) return false;  // docs/TURN_ORDER.md: a charging unit may only move; a charged weapon's own rules
   // "Move again" (docs/SRPG.md "Turn flags"): the action is used up, only the rest of its movement is left.
   if (u.acted && action.type != ActionType::Move && action.type != ActionType::Wait)
     return fail(why, "that unit can only move or wait now");
@@ -122,6 +124,8 @@ bool Battle::validate(const Action& action, std::string* why) const {
     case ActionType::Capture:
       if (!canCaptureAt(action.unit, u.cell)) return fail(why, "nothing to capture here");
       return true;
+    case ActionType::CancelCharge:
+      return true;  // chargeAllowed said so
     case ActionType::Wait:
       if (action.facing >= 0 && !facingGame()) return fail(why, "this game has no facing");
       if (action.facing >= grid.directionCount()) return fail(why, "that is not a direction");
@@ -181,7 +185,11 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
   EventScope scope(*this, events);  // with fog: stamps every event with the teams that saw it
   switch (action.type) {
     case ActionType::Move: applyMove(action, events); break;
-    case ActionType::Attack: apPayAttack(action, events); applyAttack(action, events); break;  // (apPayAttack: the AP of an action-point game)
+    case ActionType::Attack:
+      if (weaponCharges(action.weapon)) { declareCharge(action, events); break; }  // docs/TURN_ORDER.md: the shot goes off when its counter fills
+      apPayAttack(action, events);
+      applyAttack(action, events);
+      break;  // (apPayAttack: the AP of an action-point game)
     case ActionType::Capture: applyCapture(action, events); break;
     case ActionType::Wait:
       faceUnit(action.unit, action.facing, events);  // rules.facing: the direction it chose to end its turn in (-1 = keeps its own)
@@ -194,7 +202,13 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::Supply: applySupply(action, events); break;
     case ActionType::Talk: applyTalk(action, events); break;
     case ActionType::Promote: applyPromote(action, events); break;
-    case ActionType::Ability: applyAbility(action, events); break;
+    case ActionType::Ability:
+      if (abilityCharges(action.ability)) declareCharge(action, events);
+      else applyAbility(action, events);
+      break;
+    case ActionType::CancelCharge:
+      if (const int p = pendingOf(action.unit); p >= 0) cancelCharge(p, kChargeByCaster, events);
+      break;
     case ActionType::Rescue:
     case ActionType::Drop:
     case ActionType::GiveUnit:
@@ -207,6 +221,10 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     case ActionType::VisitPlace:
     case ActionType::BreakPlace: applyPlace(action, events, true); break;
     case ActionType::EndTurn:
+      if (speedGame()) {  // docs/TURN_ORDER.md: ends the active unit's turn (speedAfterAction below closes it)
+        if (activeUnit >= 0) units[(size_t)activeUnit].done = true;
+        break;
+      }
       srpgTurnEnd(events);  // what ending a turn earns (supports), before the next side's turn begins
       advanceTurn(events);
       // Without a story nothing can have changed since the last action's check.
@@ -215,6 +233,10 @@ void Battle::applyAction(const Action& action, std::vector<Event>& events) {
     default: applyItemAction(action, events); break;
   }
   settle(events);
+  if (speedGame()) {  // docs/TURN_ORDER.md: a finished (or fallen) unit's turn ends by itself, and the clock runs to the next
+    speedAfterAction(events);
+    return;
+  }
   // A counterattack can eliminate the side whose turn it is.
   if (!over && sides[activeSide].defeated) advanceTurn(events);
 }

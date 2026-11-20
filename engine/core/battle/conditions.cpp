@@ -185,8 +185,9 @@ bool Battle::inflictCondition(int unit, int condition, int turns, int source, st
     u.conditions.push_back(cs);
   }
   events.push_back(cEvent(EventType::ConditionApplied, unit, condition, left, source, refreshed ? kRefreshed : 0));
+  if (speedGame()) chargeCondition(unit, condition, events);  // docs/TURN_ORDER.md: a charged action "interruptedBy" it is cancelled
   // A unit that cannot act loses what is left of its own turn.
-  if (u.side == activeSide && u.cell != kNoCell && conditionBlock(u, ConditionBlock::Act) == condition) u.done = true;
+  if (ownsTurn(u) && u.cell != kNoCell && conditionBlock(u, ConditionBlock::Act) == condition) u.done = true;
   clampHp(u);
   if (fog && db->visionSkills) markSight();  // a condition may add vision (a torch): who sees what changes
   return true;
@@ -216,7 +217,7 @@ int Battle::cureConditions(int unit, const std::vector<int>& ids, bool all, int 
 void Battle::conditionsTurnStart(std::vector<Event>& events) {
   if (db->conditions.empty()) return;
   for (size_t i = 0; i < units.size(); ++i) {
-    if (units[i].side != activeSide || !units[i].alive || units[i].cell == kNoCell || units[i].conditions.empty()) continue;
+    if (!ownsTurn(units[i]) || !units[i].alive || units[i].cell == kNoCell || units[i].conditions.empty()) continue;
     for (size_t k = 0; k < units[i].conditions.size();) {
       const int c = units[i].conditions[k].condition;
       if (db->conditions[(size_t)c].wearOff > 0 && rollActivation(rng, db->conditions[(size_t)c].wearOff)) {
@@ -234,7 +235,7 @@ void Battle::conditionsPrevent(std::vector<Event>& events) {
   if (db->conditions.empty()) return;
   for (size_t i = 0; i < units.size(); ++i) {
     Unit& u = units[i];
-    if (u.side != activeSide || !u.alive || u.cell == kNoCell || u.conditions.empty()) continue;
+    if (!ownsTurn(u) || !u.alive || u.cell == kNoCell || u.conditions.empty()) continue;
     const int c = conditionBlock(u, ConditionBlock::Act);
     if (c < 0) continue;
     u.done = true;  // the AI and the player's menus both skip a finished unit
@@ -246,7 +247,7 @@ void Battle::conditionsPrevent(std::vector<Event>& events) {
 void Battle::conditionsTurnEnd(std::vector<Event>& events) {
   if (db->conditions.empty()) return;
   for (size_t i = 0; i < units.size(); ++i) {
-    if (units[i].side != activeSide || !exists(units[i])) continue;
+    if (!ownsTurn(units[i]) || !exists(units[i])) continue;
     for (size_t k = 0; k < units[i].conditions.size();) {
       if (units[i].conditions[k].left == 0) {
         const int c = units[i].conditions[k].condition;

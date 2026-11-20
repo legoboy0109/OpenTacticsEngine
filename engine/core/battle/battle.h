@@ -20,6 +20,7 @@
 #include "core/battle/mapchange_state.h"
 #include "core/battle/places_state.h"
 #include "core/battle/quotes_state.h"
+#include "core/battle/speed_state.h"
 #include "core/battle/srpg_state.h"
 #include "core/battle/story_state.h"
 #include "core/data/database.h"
@@ -137,6 +138,12 @@ enum class EventType {
   // Jobs (docs/JOBS.md): a=unit, b=job points it earned, c=its job (index into db->jobs), d=its job level now, flags=kJobLevelUp when that rose. Only in a
   // game with jobs, for a unit of a human side that has a job, with the experience award (and for a defeat).
   JpGained,
+  // Speed turn order and charged actions (docs/TURN_ORDER.md); only in a game with "turnOrder": "speed".
+  UnitTurnBegan,    // a=unit whose turn it is now, b=round, c=its charge (the clock stopped here)
+  RoundStarted,     // a=round (the per-side effects of that round have been done)
+  ActionCharging,   // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=square aimed at (the followed unit's square), data={followed unit or -1, speed}
+  ChargeResolved,   // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=square it hit; the action's own events follow
+  ChargeCancelled,  // a=caster, b=0 ability / 1 weapon, c=ability or weapon, d=why: one of kCharge*
   // Dialogue choices (docs/EVENTS.md "Dialogue choices"). Kept last: the numbers of the entries above are part of the golden fight hashes.
   Choice,           // a=speaker unit (-1 none), b=question text, c=free speaker name text (-1 none), d=portrait id text (-1 none), data=the answers' texts (docs/EVENTS.md "Dialogue choices")
 };
@@ -157,6 +164,8 @@ enum : int {
 enum : int { kOpenKey = 0, kOpenTrait = 1, kOpenBreak = 2, kOpenStory = 3, kOpenStaff = 4, kOpenFree = 5 /* it was not locked */ };
 enum : int { kConditionRanOut = 0, kConditionWoreOff = 1, kConditionCured = 2, kConditionReplaced = 3, kConditionStruck = 4 };
 enum : int { kTickActsAlone = 1, kTickCannotAct = 2 };
+// Why a charged action did not go off (ChargeCancelled::d).
+enum : int { kChargeDefeated = 0, kChargeInterrupted = 1, kChargeByCaster = 2, kChargeFizzled = 3, kChargeGone = 4 };
 
 // Bit `t` of Event::seen = team `t` saw the event (docs/ECONOMY.md "Fog of war"). Without fog every event has all bits.
 const uint32_t kSeenByAll = 0xffffffffu;
@@ -193,6 +202,10 @@ struct Unit {
   int hp = 0;
   bool moved = false;  // has moved this turn
   bool done = false;   // has finished acting this turn
+  // Speed turn order (docs/TURN_ORDER.md): the charge the clock builds (it acts at SpeedRules::threshold; 0 and unused in any other game), and whether it
+  // used its action this turn (what its turn costs depends on moved / acted). Saved in speed games only.
+  int ct = 0;
+  bool turnActed = false;
   bool alive = true;
   bool leader = false;
   std::vector<ItemStack> items;  // the inventory, in order (at most rules.items.inventorySize)
@@ -336,7 +349,9 @@ enum class ActionType {
   VisitPlace,  // `unit` visits the place, or destroys it when it may not visit
   BreakPlace,  // `unit` attacks the door with weapon `weapon` (index into db->weapons)
   // Branching research (docs/ECONOMY.md): the active side gives up the technology under way; free of any unit. Appended last.
-  CancelResearch
+  CancelResearch,
+  // Speed turn order (docs/TURN_ORDER.md "Charged actions"): `unit` gives up the charged action it has on its way; free, the unit may act after it.
+  CancelCharge
 };
 
 struct Action {
@@ -375,6 +390,7 @@ struct Action {
   static Action discardItem(int unit, int slot) { return itemAction(ActionType::DiscardItem, unit, slot); }
   static Action talk(int unit, int target, int event = -1) { Action a; a.type = ActionType::Talk; a.unit = unit; a.target = target; a.slot = event; return a; }
   static Action upgrade(int structure, int to) { Action a; a.type = ActionType::UpgradeStructure; a.structure = structure; a.to = to; return a; }
+  static Action cancelCharge(int unit) { Action a; a.type = ActionType::CancelCharge; a.unit = unit; return a; }
   static Action cancelResearch() { Action a; a.type = ActionType::CancelResearch; return a; }
   static Action research(int tech) { Action a; a.type = ActionType::StartResearch; a.tech = tech; return a; }
   static Action supply(int unit) { Action a; a.type = ActionType::Supply; a.unit = unit; return a; }
@@ -813,6 +829,7 @@ class Battle {
 #include "core/battle/mapweapon_api.h"
 #include "core/battle/area_api.h"
 #include "core/battle/ap_api.h"
+#include "core/battle/speed_api.h"
 #include "core/battle/height_api.h"
 #include "core/battle/facing_api.h"
 #include "core/battle/jobs_api.h"
@@ -830,6 +847,7 @@ class Battle {
   // turn.cpp
   void beginTurn(std::vector<Event>& events);
   void refreshUnitForTurn(Unit& u);
+  void sideTurnEffects(std::vector<Event>& events);  // refills, income and research of the active side
   void advanceTurn(std::vector<Event>& events);
   void checkDefeat(std::vector<Event>& events);
   void changeResource(int side, int resource, int delta, std::vector<Event>& events);
@@ -941,6 +959,7 @@ class Battle {
 #include "core/battle/difficulty_internal.h"
 #include "core/battle/area_internal.h"
 #include "core/battle/ap_internal.h"
+#include "core/battle/speed_internal.h"
 #include "core/battle/facing_internal.h"
 #include "core/battle/jobs_internal.h"
 

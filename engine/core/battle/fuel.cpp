@@ -21,7 +21,7 @@ int Battle::maxFuel(int unit) const {
 void Battle::burnFuel(std::vector<Event>& events) {
   std::vector<int> dry;  // units that ran out of fuel and are destroyed
   for (Unit& u : units) {
-    if (!u.alive || u.side != activeSide || u.fuel < 0) continue;
+    if (!u.alive || !ownsTurn(u) || u.fuel < 0) continue;
     int burn = typeOf(u).fuelPerTurn;
     if (burn <= 0) continue;
     u.fuel = std::max(0, u.fuel - burn);

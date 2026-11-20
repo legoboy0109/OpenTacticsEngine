@@ -89,7 +89,8 @@ void promoteByItem(int unit, int item, int unitType, std::vector<Event>& events)
 
 // ---- menu abilities and summons (abilities.cpp and friends, step A1) ----
 bool validateAbility(const Action& action, std::string* why) const;
-void applyAbility(const Action& action, std::vector<Event>& events);
+// `resolving`: a charged ability going off (docs/TURN_ORDER.md): its use, item and the caster's turn were paid when it was declared.
+void applyAbility(const Action& action, std::vector<Event>& events, bool resolving = false);
 void abilitiesTurnStart(std::vector<Event>& events);                 // waits drop, "used this turn" clears, lifetimes
 void summonsUnitGone(int unit, std::vector<Event>& events);          // its summons vanish (in turn theirs)
 
