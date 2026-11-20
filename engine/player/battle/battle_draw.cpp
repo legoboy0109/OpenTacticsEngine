@@ -69,10 +69,10 @@ void drawUnit(Renderer& r, const DrawCtx& c, const Unit& u, const UnitView& v, i
     bh = nh;
   }
   if (const Look* artLook = unitArt(c, u)) {
-    drawUnitArt(r, c, *artLook, u, sx, sy, v.scale, al, u.done);
+    drawUnitArt(r, c, *artLook, u, sx, sy, v.scale, al, b.unitSpent(u));
   } else {
     Color base = Color::rgb(b.sides[shownSide(c, u)].color);
-    if (u.done) base = mix(base, Color(70, 70, 78), 0.55f);  // dimmed: already acted
+    if (b.unitSpent(u)) base = mix(base, Color(70, 70, 78), 0.55f);  // dimmed: already acted
     r.fillRect(bx - 1, by - 1, bw + 2, bh + 2, scaled(Color(0, 0, 0, 200), al));
     r.fillRect(bx, by, bw, bh, scaled(base, al));
     r.fillRect(bx, by, bw, 1, scaled(mix(base, Color(255, 255, 255), 0.35f), al));  // soft top highlight

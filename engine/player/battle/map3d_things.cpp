@@ -240,7 +240,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
   // Solid things are cut out against the depth picture; fading ones are blended in afterwards.
   Blend3D solid = al < 0.999f ? Blend3D::Blend : Blend3D::Opaque;
   Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
-  if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
+  if (b.unitSpent(u)) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
   const ModelAsset* asset = nullptr;
   const ModelLook* model = unitModel(c, u, asset);
   const Look* art = model ? nullptr : unitArt(c, u);
@@ -270,7 +270,7 @@ void Map3D::drawUnit(const DrawCtx& c, const Unit& u, const UnitView& v, float f
               Vec3(feet.X + half, feet.Y + 0.02f, feet.Z - half), Vec3(feet.X - half, feet.Y + 0.02f, feet.Z - half), tintOf(side, al));
     }
     float w = std::max(1.0f, uw * v.scale * pic.k);
-    uint8_t k = (uint8_t)(u.done ? 140 : 255);
+    uint8_t k = (uint8_t)(b.unitSpent(u) ? 140 : 255);
     upright(batch_.mesh(pm), feet, w, w * src.h / std::max(1, src.w), towards, Tint3D(k, k, k, (uint8_t)(255 * al)), uv);
   } else if (model) {
     if (b.db->graphics.unitMarker && !through && c.proj->hex()) {
@@ -366,7 +366,7 @@ void Map3D::drawOnTop(Renderer& r, const DrawCtx& c) {
     if (model) body = (int)((model->height > 0 ? model->height : kUnitModelHeight) * v.scale * g.artPixels() * k * g.uprightSquash() * shown);
     if (!model && !(art && sheets_.texture(r3d_, art->sheet))) {
       Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
-      if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);
+      if (b.unitSpent(u)) side = mix(side, Color(70, 70, 78), 0.55f);
       drawGlyphCentered(r, sx, sy - body / 2, b.db->unitTypes[(size_t)shownType(c, u)].glyph, a(readableOn(side)), std::max(1, body * 3 / 4));
     }
     if (u.leader) {

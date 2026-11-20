@@ -54,7 +54,7 @@ class BattleScene : public Scene {
   enum MenuId { kAttack = 1, kCapture, kWait, kEndTurn, kSave, kLoad, kLeave,
                 kItems, kTrade, kStorage, kShop,
                 kUse, kEquip, kStore, kDiscard, kObjective,
-                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kCancelResearchEntry, kKeepResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry,
+                kSupply, kBuildEntry, kUpgradeEntry, kResearchEntry, kCancelResearchEntry, kKeepResearchEntry, kDifficultyEntry, kTestLevelEntry, kRangesEntry, kMoveOnEntry,
                 kTalkBase = ote::kTalkBase };  // kTalkBase + n = the n-th Talk entry of the action menu (ids of the other groups: srpg_menu_ids.h)
 
   // --- battle_scene.cpp: lifecycle, AI, drawing helpers
@@ -109,6 +109,12 @@ class BattleScene : public Scene {
   void selectUnit(int unit);
   void computeOverlay();
   void openActionMenu();
+  // --- battle_ap.cpp: the action-point turn system (docs/SRPG.md "Action points"); all of it does nothing in a game without it
+  void apActionEntries(std::vector<MenuItem>& items, const std::vector<AttackOption>& opts) const;  // Attack's price / greyed reason, Move
+  void apKeepAffordable(std::vector<AttackOption>& opts) const;  // drops the attacks the unit may not make or the pool cannot pay
+  void beginMoveOn();                                            // the Move entry: pick another square for the unit's remaining movement
+  std::string apSelectedHint() const;                            // the hint line while a destination is picked: names the AP price
+  bool movingOn_ = false;                                        // Selected was opened from the action menu (Cancel goes back to it)
   void logActionMenu(const std::vector<MenuItem>& items);
   void openBuildMenu(Cell cell);
   void openEndMenu();

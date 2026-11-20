@@ -40,7 +40,7 @@ void BattleScene::anchorActionMenu() {
 void BattleScene::logActionMenu(const std::vector<MenuItem>& items) {
   std::string log, rows;
   for (size_t i = 0; i < items.size(); ++i) {
-    log += (i ? ", " : "") + items[i].label + (items[i].enabled ? "" : " [grey]");
+    log += (i ? ", " : "") + items[i].label + (battle_.apGame() && !items[i].extra.empty() ? " (" + items[i].extra + ")" : "") + (items[i].enabled ? "" : " [grey]");
     int x, y;
     menu_.rowCentre((int)i, x, y);
     rows += " " + intStr((int)i) + "@" + intStr(x) + "," + intStr(y);
@@ -74,6 +74,7 @@ void BattleScene::openActionMenu() {
     return;
   }
   if (!opts.empty()) items.push_back({"Attack", "", true, kAttack});
+  apActionEntries(items, opts);  // (action points: the price on the Attack entry, or why it is greyed; a Move entry)
   if (battle_.canCaptureAt(sel_, u.cell)) items.push_back({"Capture", "", true, kCapture});
   addTalkEntries(items);  // story: one entry per partner / event (docs/EVENTS.md)
   addSrpgEntries(items);  // strategy-RPG groups (battle_srpg_menu.cpp); none in a game without those features
@@ -184,6 +185,7 @@ void BattleScene::menuInput(const InputEvent& e) {
     else if (id == kSupply) { if (submit(Action::supply(sel_))) finishOrder(); }
     else if (id == kCapture) { if (submit(Action::capture(sel_))) finishOrder(); }
     else if (id == kWait) { if (submit(Action::wait(sel_))) finishOrder(); }
+    else if (id == kMoveOnEntry) beginMoveOn();
   } else if (mode_ == Mode::StructureMenu || mode_ == Mode::UpgradeMenu) {
     if (res == Menu::Cancelled) {
       if (mode_ == Mode::UpgradeMenu) backToStructure();

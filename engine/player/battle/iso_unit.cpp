@@ -20,7 +20,8 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
   float al = v.alpha * fade;
   int a = std::max(0, std::min(255, (int)(al * 255.0f + 0.5f)));
   Color side = Color::rgb(b.sides[(size_t)shownSide(c, u)].color);
-  if (u.done) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
+  const bool spent = b.unitSpent(u);
+  if (spent) side = mix(side, Color(70, 70, 78), 0.55f);  // dimmed: already acted
   const Look* art = unitArt(c, u);
   int bodyTop;
   if (art) {
@@ -33,7 +34,7 @@ void drawIsoUnitFigure(Renderer& r, const DrawCtx& c, const Unit& u, const UnitV
     const UnitPic pic = unitPic(c, *art, u);
     const SpriteSrc src = drawSrc(c, pic);
     int w = std::max(1, (int)(uw * v.scale * pic.k)), h = std::max(1, w * src.h / std::max(1, src.w));  // (a walking picture: pic.k wider)
-    Color mod = shade(u.done ? 0.55f : 1.0f, a);
+    Color mod = shade(spent ? 0.55f : 1.0f, a);
     r.drawTexture(src.tex, src.x, src.y, src.w, src.h, cx - w / 2, foot - h, w, h, mod);
     bodyTop = foot - h;
   } else {

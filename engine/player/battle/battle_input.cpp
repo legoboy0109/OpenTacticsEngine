@@ -21,6 +21,7 @@ bool BattleScene::submit(const Action& a) {
     return false;
   }
   view_.push(events_);
+  if (battle_.apGame()) OTE_INFO("ap pool: %d (order %d)", battle_.apPool(battle_.activeSide), (int)a.type);  // action points: what is left
   // The orders of an attack, in the order they were given (the weapon-list tests read these: equip first, then the attack).
   if (a.type == ActionType::Equip)
     OTE_INFO("order: equip %s slot %d", battle_.units[(size_t)a.unit].name.c_str(), a.slot);
@@ -203,7 +204,7 @@ void BattleScene::cycleUnit(int dir) {
   int cur = battle_.unitAt(cursor_);
   int best = -1, wrap = -1;
   for (const Unit& u : battle_.units) {
-    if (!u.alive || u.side != battle_.activeSide || u.done) continue;
+    if (!u.alive || u.side != battle_.activeSide || battle_.unitSpent(u)) continue;
     if (dir > 0) {
       if (u.id > cur && best < 0) best = u.id;
       if (wrap < 0) wrap = u.id;
@@ -230,7 +231,7 @@ void BattleScene::idleButton(Button b) {
     case Button::Cancel: clearRanges(); break;  // (nothing else to cancel on the plain map)
     case Button::Confirm: {
       int uid = battle_.unitAt(cursor_);
-      if (uid >= 0 && battle_.canAct(uid) && !battle_.units[uid].done && battle_.units[uid].side == battle_.activeSide) {
+      if (uid >= 0 && battle_.canAct(uid) && !battle_.unitSpent(battle_.units[uid]) && battle_.units[uid].side == battle_.activeSide) {
         selectUnit(uid);
         return;
       }
@@ -264,7 +265,8 @@ void BattleScene::selectUnit(int unit) {
   ambushed_ = false;
   // Moved this turn: only the action is left. (Not for a unit that has acted: it may still move, so it shows its
   // remaining range like a fresh unit; its menu holds Info and Wait only.)
-  if (battle_.units[unit].moved && !battle_.units[unit].acted) {
+  movingOn_ = false;
+  if (battle_.units[unit].moved && !battle_.units[unit].acted && !(battle_.apGame() && battle_.apMayMove(battle_.units[unit]))) {
     openActionMenu();
     return;
   }
@@ -285,12 +287,16 @@ void BattleScene::computeOverlay() {
   overlay_.attack.assign(n, 0);
   for (Cell s : reach_.stops) overlay_.reach[s] = 1;
   if (u.acted) return;  // it cannot attack any more: no red squares
+  if (battle_.apGame() && battle_.apAttacksLeft(u) <= 0) return;  // (action points: the attacks of the turn are made)
   for (Cell s : reach_.stops) {
     std::vector<int> weapons;  // what it could use from there: carried weapons, and the weapon of a structure standing there
     battle_.attackWeaponsAt(u, s, weapons);
+    // Action points: the walk to the square and the attack must both be paid.
+    const int walk = battle_.apGame() && s != u.cell ? battle_.apMoveCost(u, reach_.cost[(size_t)s]) : 0;
     for (int wi : weapons) {
       const WeaponDef& w = battle_.db->weapons[wi];
-      if (s != u.cell && !w.afterMove) continue;
+      if ((s != u.cell || (battle_.apGame() && u.moved)) && !w.afterMove) continue;
+      if (battle_.apGame() && walk + battle_.apAttackCost(sel_, wi) > battle_.apPool(u.side)) continue;
       for (Cell c = 0; c < n; ++c) {
         int d = battle_.grid.distance(s, c);
         if (d >= w.minRange && d <= w.maxRange) overlay_.attack[c] = 1;
@@ -309,6 +315,12 @@ void BattleScene::selectedButton(Button b) {
     case Button::Cancel:
       uiCue(Cue::Cancel);
       cursor_ = battle_.units[sel_].cell;
+      if (movingOn_) {  // asked for from the action menu: back to it, nothing changed
+        movingOn_ = false;
+        overlay_ = Overlay();
+        openActionMenu();
+        break;
+      }
       mode_ = Mode::Idle;
       overlay_ = Overlay();
       break;
@@ -351,6 +363,7 @@ void BattleScene::selectedButton(Button b) {
 }
 
 void BattleScene::finishOrder() {
+  movingOn_ = false;
   mode_ = Mode::Idle;
   menu_.close();
   overlay_ = Overlay();
@@ -369,7 +382,7 @@ void BattleScene::cancelAction() {
     hasUndo_ = false;
   }
   menu_.close();
-  if (battle_.units[sel_].moved) {  // nothing to undo to: back to the map
+  if (battle_.units[sel_].moved && !(battle_.apGame() && battle_.apMayMove(battle_.units[sel_]))) {  // nothing to undo to: back to the map
     finishOrder();
     return;
   }
@@ -385,6 +398,7 @@ void BattleScene::beginAttack(int preferTarget) {
 
 void BattleScene::beginTargeting(int preferTarget) {
   battle_.attackOptions(sel_, battle_.units[sel_].cell, targets_);
+  apKeepAffordable(targets_);
   weaponRow_ = -1;
   enterTargeting(preferTarget);
 }
