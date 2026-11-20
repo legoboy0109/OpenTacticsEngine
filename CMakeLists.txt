@@ -125,7 +125,7 @@ if(OTE_BUILD_TESTS OR OTE_BUILD_PLAYER OR OTE_BUILD_EDITOR)
   set(OTE_PLAYER_DIR ${CMAKE_SOURCE_DIR}/engine/player)
   set(OTE_COMMON_DIR ${CMAKE_SOURCE_DIR}/engine/platform/common)
   set(OTE_PLAYER_LIB_SRC
-      ${OTE_COMMON_DIR}/image.cpp ${OTE_COMMON_DIR}/stb_image_impl.cpp ${OTE_COMMON_DIR}/font_registry.cpp ${OTE_COMMON_DIR}/null_audio.cpp ${OTE_COMMON_DIR}/window_fit.cpp ${OTE_COMMON_DIR}/press_dedupe.cpp ${OTE_COMMON_DIR}/screen_fit.cpp ${OTE_COMMON_DIR}/launch_args.cpp ${CMAKE_SOURCE_DIR}/engine/platform/nxdk/video_pick.cpp
+      ${OTE_COMMON_DIR}/image.cpp ${OTE_COMMON_DIR}/stb_image_impl.cpp ${OTE_COMMON_DIR}/font_registry.cpp ${OTE_COMMON_DIR}/null_audio.cpp ${OTE_COMMON_DIR}/window_fit.cpp ${OTE_COMMON_DIR}/press_dedupe.cpp ${OTE_COMMON_DIR}/screen_fit.cpp ${OTE_COMMON_DIR}/launch_args.cpp ${CMAKE_SOURCE_DIR}/engine/platform/nxdk/video_pick.cpp ${CMAKE_SOURCE_DIR}/engine/platform/nxdk/hw3d_texture.cpp ${CMAKE_SOURCE_DIR}/engine/platform/nxdk/hw3d_clip.cpp
       ${OTE_PLAYER_DIR}/saves.cpp ${OTE_PLAYER_DIR}/progress.cpp ${OTE_PLAYER_DIR}/campaign/campaign_logic.cpp ${OTE_PLAYER_DIR}/options/effective.cpp
       ${OTE_PLAYER_DIR}/ui/text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_text.cpp ${OTE_PLAYER_DIR}/ui/dialogue_box.cpp ${OTE_PLAYER_DIR}/ui/scene_stage.cpp
       ${OTE_PLAYER_DIR}/ui/scene_stage_layout.cpp ${OTE_PLAYER_DIR}/ui/scene_stage_draw.cpp ${OTE_PLAYER_DIR}/ui/dialogue_portrait.cpp
