@@ -31,11 +31,14 @@ struct SchemaNode {
   std::optional<double> min, max;
   ote::Json deflt;   // value the engine assumes when the key is absent (Null = none stated)
   ote::Json sample;  // a valid value for the conformance test when the generated one would not do (Null = generate)
-  std::string alt;                  // another JSON kind the loader also takes as is: "string", "number" or "bool"
+  std::string alt;                  // another JSON kind the loader also takes as is: "string", "number", "bool" or "null"
   std::vector<std::string> values;  // Enum words; for a Ref, extra words allowed beside the ids ("choose")
   std::vector<std::string> refs;    // Ref: id sources; Map: where the keys come from ("file" or "file#key.path")
   NodePtr of;                       // List items, Map values
   int length = -1;                  // List: fixed number of items (a pair such as [min, max])
+  // List with "tuple": a fixed list whose items differ by position ([column, row, "sheet"]); `length` is its size and `of` stays
+  // null. Everything that reads the item node of a list goes through itemNode().
+  std::vector<NodePtr> tuple;
   std::vector<std::pair<std::string, NodePtr>> fields;  // Object, in display order
 
   // A field that applies only while a sibling key has one of some words (items: `heal` only when kind is usable or staff).
@@ -54,6 +57,8 @@ struct SchemaNode {
     std::vector<std::string> matchWith;    // ... and also all of these ("with") ...
     std::vector<std::string> matchUnless;  // ... and none of these ("unless"): setVariable with a number, or reading a unit
     std::string matchKind;  // ... or the value is of this JSON kind ("string", "number", "bool", "array", "object") ...
+    int matchLength = -1;   // ... an "array" of exactly this many items (a cell [c, r] against [c, r, "sheet"]) ...
+    std::string matchFirst; // ... and whose first item is of this JSON kind (one cell [0, 0] against a list of cells [[0, 0]])
     ote::Json matchValue;   // ... or equals this value exactly (matchIsValue)
     bool matchIsValue = false;
     NodePtr node;           // the shape (null for a constant `matchValue`)
@@ -66,7 +71,8 @@ struct SchemaNode {
     std::string hint;
   };
   std::optional<Needs> needs;
-  ote::Json enable;     // block: exactly what the Enable switch writes (Null = built from required keys and defaults)
+  ote::Json enable;     // exactly what a new value of this node starts with: a block's Enable switch, a new list item, a required
+                        // list that must not start empty (Null = built from required keys and defaults)
   bool free = false;    // Map: any key (named sets, free-form numbers) instead of the ids of `ref`
   std::vector<std::string> excludes;  // setting this key removes these sibling keys (turns / until: one of the two)
   std::string summary;     // Object: one-line template of a collapsed list item ("{x},{y}"), see schemaSummary
@@ -79,6 +85,8 @@ struct SchemaNode {
   const SchemaNode& resolved() const;
 
   const SchemaNode* field(const std::string& key) const;
+  // The node of item `index` of a List: its `tuple` entry, else `of` (null when the position has none).
+  const SchemaNode* itemNode(size_t index) const;
   bool isScalar() const;  // String, Int, Number, Bool, Enum, Ref
   static const char* kindName(Kind k);
 };

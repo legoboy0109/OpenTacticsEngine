@@ -13,6 +13,11 @@ const SchemaNode* SchemaNode::field(const std::string& key) const {
   return nullptr;
 }
 
+const SchemaNode* SchemaNode::itemNode(size_t index) const {
+  if (!tuple.empty()) return index < tuple.size() ? tuple[index].get() : nullptr;
+  return of.get();
+}
+
 bool SchemaNode::isScalar() const {
   switch (kind) {
     case Kind::String: case Kind::Int: case Kind::Number: case Kind::Bool: case Kind::Enum: case Kind::Ref: return true;
@@ -172,6 +177,10 @@ struct Parser {
         if (v.name.empty()) errors->push_back(where + ": " + vat + ": a variant needs a \"name\"");
         v.matchKey = vj["key"].asString();
         v.matchKind = vj["kind"].asString();
+        if (vj["length"].isNumber()) v.matchLength = vj["length"].asInt();
+        v.matchFirst = vj["first"].asString();
+        if ((v.matchLength >= 0 || !v.matchFirst.empty()) && v.matchKind != "array")
+          errors->push_back(where + ": " + vat + ": \"length\" and \"first\" go with \"kind\": \"array\"");
         if (vj.has("value")) { v.matchValue = vj["value"]; v.matchIsValue = true; }
         if (int(!v.matchKey.empty()) + int(!v.matchKind.empty()) + int(v.matchIsValue) != 1)
           errors->push_back(where + ": " + vat + ": needs exactly one of \"key\", \"kind\", \"value\"");
@@ -183,12 +192,18 @@ struct Parser {
     }
     if (n->kind == SchemaNode::Kind::Variant && n->variants.empty()) errors->push_back(where + ": " + at + ": variant without \"variants\"");
     if (j.has("of")) n->of = node(j["of"], at + ".of");
+    if (j["tuple"].isArray()) {
+      int i = 0;
+      for (const ote::Json& tj : j["tuple"].items()) n->tuple.push_back(node(tj, at + ".tuple[" + std::to_string(i++) + "]"));
+      n->length = (int)n->tuple.size();
+      if (n->kind != SchemaNode::Kind::List) errors->push_back(where + ": " + at + ": \"tuple\" belongs to a list");
+    }
     if (j["fields"].isObject())
       for (const auto& m : j["fields"].members()) n->fields.emplace_back(m.first, node(m.second, at + "." + m.first));
     if (n->kind == SchemaNode::Kind::Enum && n->values.empty()) errors->push_back(where + ": " + at + ": enum without \"values\"");
     if ((n->kind == SchemaNode::Kind::Ref || (n->kind == SchemaNode::Kind::Map && !n->free)) && n->refs.empty())
       errors->push_back(where + ": " + at + ": " + SchemaNode::kindName(n->kind) + " without \"ref\"");
-    if ((n->kind == SchemaNode::Kind::List || n->kind == SchemaNode::Kind::Map) && !n->of)
+    if ((n->kind == SchemaNode::Kind::List || n->kind == SchemaNode::Kind::Map) && !n->of && n->tuple.empty())
       errors->push_back(where + ": " + at + ": " + SchemaNode::kindName(n->kind) + " without \"of\"");
     return n;
   }

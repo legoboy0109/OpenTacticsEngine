@@ -64,6 +64,8 @@ int variantIndex(const SchemaNode& n, const ote::Json& v) {
       for (const std::string& k : m.matchUnless) ok = ok && !v.has(k.c_str());
       if (ok) return (int)i;
     } else if (jsonKindIs(m.matchKind, v)) {
+      if (m.matchLength >= 0 && (int)v.size() != m.matchLength) continue;
+      if (!m.matchFirst.empty() && (v.size() == 0 || !jsonKindIs(m.matchFirst, v.items()[0]))) continue;
       return (int)i;
     }
   }
@@ -83,7 +85,7 @@ bool fieldApplies(const SchemaNode& parent, const SchemaNode& field, const ote::
 
 bool isAlt(const SchemaNode& n, const ote::Json& v) {
   if (n.alt.empty()) return false;
-  return (n.alt == "string" && v.isString()) || (n.alt == "number" && v.isNumber()) || (n.alt == "bool" && v.isBool());
+  return (n.alt == "string" && v.isString()) || (n.alt == "number" && v.isNumber()) || (n.alt == "bool" && v.isBool()) || (n.alt == "null" && v.isNull());
 }
 
 bool typeOk(const SchemaNode& n, const ote::Json& v) {
@@ -122,7 +124,7 @@ ote::Json variantValue(const SchemaNode::Variant& v, const IdLookup& ids, bool s
 ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
   using K = SchemaNode::Kind;
   if (sample && !n.sample.isNull()) return n.sample;
-  if (!sample && !n.enable.isNull() && n.block) return n.enable;
+  if (!sample && !n.enable.isNull()) return n.enable;  // a block's Enable, a new list item, a required list that must not start empty
   if (!sample && !n.deflt.isNull() && n.isScalar()) return n.deflt;
   switch (n.kind) {
     case K::String: return ote::Json::makeString(sample ? "sample" : "");
@@ -135,6 +137,10 @@ ote::Json build(const SchemaNode& n, const IdLookup& ids, bool sample) {
     }
     case K::List: {
       ote::Json a = ote::Json::makeArray();
+      if (!n.tuple.empty()) {
+        for (const NodePtr& t : n.tuple) a.push(build(*t, ids, sample));
+        return a;
+      }
       if (n.of && (n.length > 0 || sample))
         for (int i = 0; i < std::max(1, n.length); ++i) a.push(build(*n.of, ids, sample));
       return a;

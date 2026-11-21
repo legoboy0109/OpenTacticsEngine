@@ -309,6 +309,63 @@ TEST(schema_ids_table_array_shapes) {
   CHECK(tableArray(J(R"([ 1, 2 ])")) == nullptr);
 }
 
+TEST(schema_engine_variants_tell_arrays_apart_by_length_and_first_item) {
+  SchemaSet set;
+  set.addFromText("t.json", R"({ "files": ["t.json"], "root": { "fields": { "join": { "type": "variant", "variants": [
+      { "name": "one block", "kind": "array", "first": "number", "sample": [0, 2], "node": { "type": "list", "length": 2, "of": { "type": "int" } } },
+      { "name": "several", "kind": "array", "first": "array", "sample": [[0, 2]], "node": { "type": "list", "of": { "type": "list", "length": 2, "of": { "type": "int" } } } } ] },
+    "frame": { "type": "variant", "variants": [
+      { "name": "cell", "kind": "array", "length": 2, "node": { "type": "list", "length": 2, "of": { "type": "int" } } },
+      { "name": "cell of a sheet", "kind": "array", "length": 3, "node": { "type": "list", "tuple": [ { "type": "int" }, { "type": "int" }, { "type": "ref", "ref": "@sheets" } ] } } ] } } } })");
+  CHECK_STR(errorsOf(set), "");
+  const SchemaNode& join = *set.forFile("t.json")->root->field("join");
+  const SchemaNode& frame = *set.forFile("t.json")->root->field("frame");
+  CHECK_EQ(variantIndex(join, J("[0,2]")), 0);
+  CHECK_EQ(variantIndex(join, J("[[0,2],[1,2]]")), 1);
+  CHECK_EQ(variantIndex(join, J("[]")), -1);  // no first item: neither shape
+  CHECK_EQ(variantIndex(join, J("[\"x\"]")), -1);
+  CHECK_EQ(variantIndex(join, J("\"x\"")), -1);
+  CHECK_EQ(variantIndex(frame, J("[1,2]")), 0);
+  CHECK_EQ(variantIndex(frame, J("[1,2,\"fx\"]")), 1);
+  CHECK_EQ(variantIndex(frame, J("[1,2,3,4]")), -1);
+  // A tuple: a fixed list with a node per position (the item node of position 2 is the sheet id); `of` stays unset.
+  const SchemaNode& tuple = *frame.variants[1].node;
+  CHECK_EQ(tuple.length, 3);
+  CHECK(tuple.of == nullptr);
+  CHECK(tuple.itemNode(0)->kind == SchemaNode::Kind::Int);
+  CHECK(tuple.itemNode(2)->kind == SchemaNode::Kind::Ref);
+  CHECK(tuple.itemNode(3) == nullptr);
+  CHECK(typeOk(tuple, J("[1,2,\"fx\"]")));
+  CHECK(!typeOk(tuple, J("[1,2]")));
+  const IdLookup ids = [](const std::vector<std::string>&) { return std::vector<std::string>{"sheetA"}; };
+  CHECK_STR(schemaDefault(tuple, ids).dump(0), "[0,0,\"sheetA\"]");
+  CHECK_STR(schemaSample(tuple, ids).dump(0), "[1,1,\"sheetA\"]");
+  // "length" and "first" belong to kind array; "tuple" to a list.
+  SchemaSet bad;
+  bad.addFromText("b.json", R"({ "files": ["b.json"], "root": { "fields": {
+      "v": { "type": "variant", "variants": [ { "name": "x", "kind": "string", "length": 2, "node": { "type": "string" } } ] },
+      "t": { "type": "string", "tuple": [ { "type": "int" } ] } } } })");
+  CHECK(contains(errorsOf(bad), "\"length\" and \"first\" go with"));
+  CHECK(contains(errorsOf(bad), "\"tuple\" belongs to a list"));
+}
+
+TEST(schema_engine_enable_starts_any_node_and_null_can_be_an_alternative) {
+  SchemaSet set;
+  set.addFromText("t.json", R"({ "files": ["t.json"], "root": { "fields": {
+      "frames": { "type": "list", "required": true, "enable": [[0, 0]], "sample": [[5, 5]], "of": { "type": "list", "length": 2, "of": { "type": "int" } } },
+      "anim": { "type": "object", "alt": "null", "block": true, "fields": { "frames": { "type": "list", "required": true, "enable": [[0, 0]], "of": { "type": "list", "length": 2, "of": { "type": "int" } } } } },
+      "step": { "type": "object", "enable": { "from": 2, "delayMs": 100 }, "fields": { "from": { "type": "int", "required": true, "min": 1 } } } } } })");
+  CHECK_STR(errorsOf(set), "");
+  const SchemaNode& root = *set.forFile("t.json")->root;
+  CHECK_STR(schemaDefault(*root.field("frames"), nullptr).dump(0), "[[0,0]]");  // a required list does not start empty
+  CHECK_STR(schemaSample(*root.field("frames"), nullptr).dump(0), "[[5,5]]");
+  CHECK_STR(schemaDefault(*root.field("anim"), nullptr).dump(0), "{\"frames\":[[0,0]]}");
+  CHECK_STR(schemaDefault(*root.field("step"), nullptr).dump(0), "{\"from\":2,\"delayMs\":100}");  // what a new list item starts with
+  CHECK(isAlt(*root.field("anim"), J("null")));
+  CHECK(typeOk(*root.field("anim"), J("null")));
+  CHECK(!isAlt(*root.field("anim"), J("1")));
+}
+
 TEST(schema_engine_the_real_schemas_load_clean) {
   SchemaSet set;
   set.loadFolder(std::string(OTE_SOURCE_DIR) + "/editor/schema");
