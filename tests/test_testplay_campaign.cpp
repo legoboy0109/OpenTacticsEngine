@@ -140,15 +140,15 @@ TEST(testplay_applychaptertestlevel_auto_uses_the_chapters_hostile_units_and_a_n
   std::string note, err;
   CHECK(beginPlaythroughAt(g.db, pt, "ch3a", "", note, err));
   pt.phase = Phase::Battle;  // the chapter's before scene has run
-  CHECK_EQ(applyChapterTestLevel(g.db, pt, g.formulas, 1, -1, err), 6);  // (5 + 6) / 2 = 5.5 -> 6
-  CHECK_EQ(find(pt.roster, "eirik")->level, 6);
+  CHECK_EQ(applyChapterTestLevel(g.db, pt, g.formulas, 1, -1, err), 8);  // (5 + 6) / 2 = 5.5 -> 6, plus 2
+  CHECK_EQ(find(pt.roster, "eirik")->level, 8);
   // The battle built from it: every human unit is at least 6, the computer's are as the map says.
   Battle b;
-  b.setTestLevel(6);
+  b.setTestLevel(8);
   std::vector<Event> ev;
   CHECK(startChapterBattle(g.db, pt, g.formulas, 1, b, ev, err));
-  CHECK_EQ(b.units[(size_t)b.unitByStoryId("eirik")].level, 6);
-  CHECK_EQ(b.units[(size_t)b.unitByStoryId("wanderer")].level, 6);
+  CHECK_EQ(b.units[(size_t)b.unitByStoryId("eirik")].level, 8);
+  CHECK_EQ(b.units[(size_t)b.unitByStoryId("wanderer")].level, 8);
   // Off does nothing; a number raises the roster to it and is returned.
   Playthrough pt2;
   CHECK(beginPlaythroughAt(g.db, pt2, "ch3a", "", note, err));
@@ -158,6 +158,64 @@ TEST(testplay_applychaptertestlevel_auto_uses_the_chapters_hostile_units_and_a_n
   CHECK_EQ(applyChapterTestLevel(g.db, pt2, g.formulas, 1, 4, err), 4);
   CHECK_EQ(find(pt2.roster, "eirik")->level, 4);
   // A later chapter with `auto` never lowers a unit: the earlier level stays.
-  CHECK_EQ(applyChapterTestLevel(g.db, pt2, g.formulas, 1, -1, err), 6);
-  CHECK_EQ(find(pt2.roster, "eirik")->level, 6);
+  CHECK_EQ(applyChapterTestLevel(g.db, pt2, g.formulas, 1, -1, err), 8);
+  CHECK_EQ(find(pt2.roster, "eirik")->level, 8);
+}
+
+// Weapon ranks follow the roster's level too, once per level actually gained (a later chapter raises only the difference).
+TEST(testplay_levelroster_raises_weapon_ranks_by_the_levels_gained_and_never_twice) {
+  Game g;
+  g.fordJson = fordMap();
+  CHECK(g.load("testplay_roster_ranks"));
+  // Ladder E 0 .. B 120. The hero wields swords (class value 10), the ranger bows.
+  g.db.ranks.ladder = {{"e", "E", 0}, {"d", "D", 30}, {"c", "C", 70}, {"b", "B", 120}};
+  g.db.ranks.groups = {"sword", "bow"};
+  const int sword = g.db.findWeapon("sword"), bow = g.db.findWeapon("bow");
+  g.db.weapons[(size_t)sword].group = "sword";
+  g.db.weapons[(size_t)sword].rankGroup = 0;
+  g.db.weapons[(size_t)bow].group = "bow";
+  g.db.weapons[(size_t)bow].rankGroup = 1;
+  g.db.unitTypes[(size_t)g.db.findUnitType("hero")].wields = {"sword"};
+  g.db.unitTypes[(size_t)g.db.findUnitType("hero")].rankStart = {10, 0};
+  const int perLevel = (120 + 2 * g.db.rules.maxLevel - 1) / (2 * g.db.rules.maxLevel);
+  Playthrough pt;
+  std::string note, err;
+  CHECK(beginPlaythroughAt(g.db, pt, "ch3a", "", note, err));
+  CHECK_EQ(levelRoster(g.db, pt, 6), 4);  // eirik, lyra, wanderer, scout
+  const RosterUnit* eirik = find(pt.roster, "eirik");
+  CHECK_EQ((int)eirik->weaponXp.size(), 2);
+  CHECK_EQ(eirik->weaponXp[0], 10 + 5 * perLevel);  // from the class's 10, five levels
+  CHECK_EQ(eirik->weaponXp[1], 0);                  // a hero has no bow rank
+  CHECK_EQ(levelRoster(g.db, pt, 6), 0);            // again: no levels, no more experience
+  CHECK_EQ(find(pt.roster, "eirik")->weaponXp[0], 10 + 5 * perLevel);
+  CHECK_EQ(levelRoster(g.db, pt, 9), 4);            // the next chapter: only the 3 new levels
+  CHECK_EQ(find(pt.roster, "eirik")->weaponXp[0], 10 + 8 * perLevel);
+}
+
+// The roster promotes by the test level too (rules.promotion.testAt) and a promoted unit is "already promoted" in the next chapter.
+TEST(testplay_levelroster_promotes_once_and_stays_consistent_across_chapters) {
+  Game g;
+  g.fordJson = fordMap();
+  CHECK(g.load("testplay_roster_promote"));
+  const int hero = g.db.findUnitType("hero");
+  UnitTypeDef champ = g.db.unitTypes[(size_t)hero];
+  champ.id = "champion";
+  champ.name = "Champion";
+  g.db.unitTypes.push_back(champ);
+  PromotionDef up;
+  up.to = (int)g.db.unitTypes.size() - 1;
+  up.atLevel = PromoteAtLevel::Offer;
+  up.fromLevel = 20;
+  g.db.unitTypes[(size_t)hero].promotions = {up};
+  g.db.rules.promotion.testAt = 3;
+  Playthrough pt;
+  std::string note, err;
+  CHECK(beginPlaythroughAt(g.db, pt, "ch3a", "", note, err));
+  CHECK_EQ(levelRoster(g.db, pt, 5), 4);
+  const RosterUnit* eirik = find(pt.roster, "eirik");
+  CHECK(eirik->type == up.to && eirik->level == 3);  // 1 + (5 - 3)
+  CHECK(find(pt.roster, "lyra")->level == 5 && find(pt.roster, "lyra")->type == g.db.findUnitType("ranger"));  // cannot promote: plain
+  CHECK_EQ(levelRoster(g.db, pt, 5), 0);  // again: nobody is raised or promoted twice
+  CHECK_EQ(levelRoster(g.db, pt, 7), 4);  // the next chapter: already promoted, effective 3 + 3 = 6 -> level 4
+  CHECK(find(pt.roster, "eirik")->type == up.to && find(pt.roster, "eirik")->level == 4);
 }

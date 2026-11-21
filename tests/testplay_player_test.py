@@ -4,7 +4,7 @@
   python3 tests/testplay_player_test.py ./build/engine/player/ote-player .
 
 Builds the campaign test game of tests/campaign_player_test.py in a temp folder (never in the repo) and changes it into a four-chapter
-campaign whose third chapter has strong enemies (levels 8 and 6, so `auto` is 7) and whose second chapter has a recruit (Mira):
+campaign whose third chapter has strong enemies (levels 8 and 6, so `auto` is 7 + 2 = 9) and whose second chapter has a recruit (Mira):
   --map with --test-level 7 and auto (the log line, the units raised), the option off changes nothing,
   --campaign --chapter ch3 --test-level auto (the before scene of ch3 plays, the roster holds the earlier heroes and the recruit
   at the level, the battle is won, chapter 4 starts; saves only in the temp --saves folder), autoplay from a chapter, the command line.
@@ -55,7 +55,7 @@ def make_game():
     ch2 = load('bridge2')
     ch2['units'].append(cpt.U('archer', 'blue', 1, 4, 'Mira', 'mira', level=1))  # the recruit of chapter 2
     save('bridge2', ch2)
-    ch3 = load('keep')  # strong enemies: levels 8 and 6, so `auto` = 7
+    ch3 = load('keep')  # strong enemies: levels 8 and 6, so `auto` = 7 + 2 = 9
     for u in ch3['units']:
         if u.get('id') == 'warden':
             u['level'] = 8
@@ -111,9 +111,11 @@ def scenarios(tmp):
     check('--map --test-level 7: Kell is raised from 1 to 7', re.search(r'test level: Kell Lv 1 -> 7', log) is not None, log[-400:])
     check('--map --test-level 7: the enemy is not touched', 'test level: Warden' not in log)
 
-    # 2. auto = the rounded average level of the hostile computer units (8 and 6 -> 7).
+    # 2. auto = the rounded average level of the hostile computer units (8 and 6 -> 7), plus 2.
     code, log = play(['--game', 'tp', '--map', 'keep', '--test-level', 'auto', '--autoplay'], frames=600)
-    check('--map --test-level auto is 7 here', re.search(r'test level: 7 \(auto\)', log) is not None, log[-400:])
+    check('--map --test-level auto is 9 here', re.search(r'test level: 9 \(auto\) \(\d+ units? raised\)', log) is not None, log[-400:])
+    check('--map --test-level auto says how: enemy average 7 + 2', 'test level: auto aims at enemy average 7 + 2 = 9' in log, log[-400:])
+    check('--map --test-level auto: Kell is raised from 1 to 9 (no weapon ranks in this game: nothing about ranks)', re.search(r'test level: Kell Lv 1 -> 9\r?\n', log) is not None, log[-400:])
 
     # 3. Without the option nothing is said and nothing is raised.
     code, log = play(['--game', 'tp', '--map', 'keep', '--autoplay'], frames=600)
@@ -126,13 +128,14 @@ def scenarios(tmp):
     check('chapter mode: starts at chapter 3', re.search(r"test playthrough starts at chapter 'ch3' with \d+ roster unit", log) is not None, log[-400:])
     check('chapter mode: chapter 3 is the only battle won', len(re.findall(r'chapter \d battle over \(won\)', log)) == 1 and 'chapter 3 battle over (won)' in log, log[-500:])
     check('chapter mode: the Test level row is in the battle menu', 'battle menu: End Turn, Unit, Test level,' in log, log[-500:])
-    check('chapter mode: auto is 7', re.search(r'test level: 7 \(auto\)', log) is not None, log[-400:])
+    check('chapter mode: auto is 9', re.search(r'test level: 9 \(auto\)', log) is not None, log[-400:])
+    check('chapter mode: the roster lines say how far they went', re.search(r'test level: Kell \(roster\) Lv \d+ -> 9', log) is not None, log[-600:])
     s = save_of(sv, 'tp')  # the Continue save of the TEST run, in the temp folder only
     lv = levels_in(s)
     check('the roster holds the heroes of chapter 1 and the recruit of chapter 2 at the level',
-          s is not None and all(lv.get(i) == 7 for i in ('eirik', 'kell', 'lyra', 'bram', 'mira')), str(lv))
+          s is not None and all(lv.get(i) == 9 for i in ('eirik', 'kell', 'lyra', 'bram', 'mira')), str(lv))
     check('after the won battle the story goes on: the save (temp saves folder) is chapter 4', s is not None and s.get('chapter') == 'ch4', str(s)[:200] if s else 'no save')
-    check('earlier levels above the number stay: nobody was lowered', all(v >= 7 for v in lv.values()), str(lv))
+    check('earlier levels above the number stay: nobody was lowered', all(v >= 9 for v in lv.values()), str(lv))
 
     # 4b. The before scene of the chapter plays first: skipping it writes the Continue save "before scene done" of chapter 3.
     sv4 = fresh('s_scene')

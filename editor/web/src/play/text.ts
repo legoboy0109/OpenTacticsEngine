@@ -19,7 +19,7 @@ export const T = {
   } as const,
   // Test level (docs/DIFFICULTY.md "Test level").
   levelLabel: 'Test level',
-  levelTitle: 'For testing only: your units start at least at this level, so a late map can be tried at once. Automatic uses the average level of the enemies. Nothing is written to the game.',
+  levelTitle: 'For testing only: your units start at least at this level, so a late map can be tried at once. Automatic uses the average level of the enemies plus 2. Nothing is written to the game.',
   levelOff: 'Off',
   levelAuto: 'Automatic',
   levelAutoWith: (n: number) => `Automatic (${n})`,

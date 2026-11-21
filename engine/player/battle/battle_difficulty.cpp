@@ -44,7 +44,7 @@ void BattleScene::addDifficultyEntry(std::vector<MenuItem>& items) {
   items.push_back(it);
 }
 
-// A run with a test level (--test-level, the editor's Play panel) says so in the end menu, in a greyed row: "Test level  7 (auto)".
+// A run with a test level (--test-level, the editor's Play panel) says so in the end menu, in a greyed row: "Test level  9 (auto, +2)".
 // Nothing at all without the option. battle_.testLevelUsed is the number the battle used (0 = automatic found nothing to go by).
 void BattleScene::addTestLevelEntry(std::vector<MenuItem>& items) {
   if (battle_.testLevel == 0) return;
@@ -53,7 +53,7 @@ void BattleScene::addTestLevelEntry(std::vector<MenuItem>& items) {
   it.id = kTestLevelEntry;
   it.enabled = false;
   it.extra = battle_.testLevelUsed > 0 ? std::to_string(battle_.testLevelUsed) : "none";
-  if (battle_.testLevel < 0) it.extra += " (auto)";
+  if (battle_.testLevel < 0) it.extra += " (auto, +" + std::to_string(Battle::kAutoTestLevelBonus) + ")";
   items.push_back(it);
 }
 
