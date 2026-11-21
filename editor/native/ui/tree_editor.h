@@ -17,6 +17,8 @@ class FormContext;
 class FormView;
 class IdSource;
 class JsonTreeModel;
+class MapPage;
+class AppSettings;
 class Project;
 
 class TreeEditor : public QWidget {
@@ -41,6 +43,10 @@ class TreeEditor : public QWidget {
   FormView* form() const { return form_; }
   FormContext* formContext() const { return formCtx_; }
   QTabWidget* pages() const { return pages_; }
+  // Map files only: the painter page (the first page; null for every other file).
+  MapPage* mapPage() const { return mapPage_; }
+  void showMapPage();
+  void setAppSettings(AppSettings* settings);  // lets the painter remember zoom / tool
   void showFormPage();
   void showTreePage();
   // Jumps to what a problem message names ("rules.actionPoints", "damageTypes[1]", a quoted key) in the form, else the tree.
@@ -66,6 +72,7 @@ class TreeEditor : public QWidget {
   QWidget* treePage_ = nullptr;
   FormContext* formCtx_ = nullptr;
   FormView* form_ = nullptr;
+  MapPage* mapPage_ = nullptr;
   const FileSchema* schema_ = nullptr;
 };
 

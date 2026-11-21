@@ -244,6 +244,7 @@ void MainWindow::openFile(const QString& rel) {
     editor = t;
   } else {
     auto* t = new TreeEditor(p, doc, tabs_, schema, ids_);
+    t->setAppSettings(&appSettings_);
     connect(t, &TreeEditor::messageShown, this, [this](const QString& m) { statusBar()->showMessage(m, 8000); });
     editor = t;
   }
