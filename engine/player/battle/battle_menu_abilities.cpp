@@ -38,6 +38,7 @@ void BattleScene::addAbilityEntries(std::vector<MenuItem>& items) {
   for (const AbilityOption& o : opts)
     if (!abilityEntryHidden(hide, o)) labelW = std::max(labelW, textW(r, battle_.db->abilities[(size_t)o.ability].name));
   const int maxExtra = std::max(40, layout_.vw - 36 - textW(r, "  ") - labelW);
+  std::string log;  // for the logs: what the menu offered and the reason of the greyed ones
   for (size_t i = 0; i < opts.size(); ++i) {
     const AbilityOption& o = opts[i];
     if (abilityEntryHidden(hide, o)) continue;
@@ -47,7 +48,9 @@ void BattleScene::addAbilityEntries(std::vector<MenuItem>& items) {
     // entry stays greyed without a reason (the phone-sized screen; the Abilities page of Unit details has the words).
     if (textW(r, extra) > maxExtra) extra = maxExtra >= textW(r, "xxxxxx") ? fitText(r, extra, maxExtra) : "";
     items.push_back({battle_.db->abilities[(size_t)o.ability].name, extra, o.ok, kAbilityBase + (int)i});
+    log += (log.empty() ? "" : ", ") + battle_.db->abilities[(size_t)o.ability].name + (o.ok ? "" : " [" + o.why + "]");
   }
+  if (!log.empty()) OTE_INFO("ability entries of %s: %s", u.name.c_str(), log.c_str());
 }
 
 // "Steal which?": the items of the foe that was picked, the ones that cannot be taken greyed with the reason on the right (the long

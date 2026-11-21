@@ -45,7 +45,15 @@ bool Battle::unlockTargetOk(const Unit& u, int ability, Cell from, Cell cell, st
   if (!structureVisibleTo(teamOf(u), s)) return refuse(why, "you cannot see that");
   if (!p.byTrait) return refuse(why, "a skill cannot open that");
   const int dist = placeDistance(s, from);
-  if (dist < d.minRange || dist > d.maxRange) return refuse(why, "that is out of range");
+  // The kind's "from" (docs/SRPG.md section 10 "Reach"): "on" = the user stands on one of its squares, whatever the ability's range;
+  // "next" = beside it (the range must still reach); "either" = the ability's range alone decides, as it always did.
+  const char* noun = p.isDoor() ? "door" : "chest";
+  if (p.fromOn && !p.fromNext) {
+    if (dist != 0) return refuse(why, std::string("stand on the ") + noun + " to open it");
+  } else {
+    if (p.fromNext && !p.fromOn && dist == 0) return refuse(why, std::string("step off the ") + noun + ": it opens from the next square");
+    if (dist < d.minRange || dist > d.maxRange) return refuse(why, "that is out of range");
+  }
   if (d.unlockNeeds >= 0 && slotOfItem(u, d.unlockNeeds) < 0)
     return refuse(why, "needs a " + db->items[(size_t)d.unlockNeeds].name);
   if (p.isChest() && !roomForLoot(u, s)) return refuse(why, "the unit cannot carry more: drop something first");

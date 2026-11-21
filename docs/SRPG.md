@@ -2976,9 +2976,17 @@ every ability. This is the thief's trait; give it to a unit type or a character 
   formula with the door as the foe `b` (`b.<stat>` = the kind's `stats`, `b.hp` = its hit points; no skills of the attacker, as the door is
   not a unit; no dodge, no counter, no experience, no rank growth). `PlaceHit` per strike; at 0 the door opens (`DoorOpened`, how = break).
   The forecast (`Battle::placeForecast`) gives the damage per strike, the strikes, the hit points before and after and whether it opens.
-- **Trait.** The unlock ability (menu abilities, Cell target) opens a door / chest of its kinds in its range without a key, spending its
-  lockpick use when it has a `needs`. **Staff.** The unlock staff picks a square in its range and, if its `hit` roll succeeds (rolled once with
-  the battle's dice; a miss still spends the use and gives the experience; `StaffMissed` with a = -1), opens the structure; it ignores `by`.
+- **Trait.** The unlock ability (menu abilities, Cell target) opens a door / chest of its kinds without a key, spending its
+  lockpick use when it has a `needs` (`uses`, `cooldown`, `cost` as for any ability). Where it may be used from follows the kind's `from`
+  (the same words as for hand and key): `"either"` (default) = the ability's `range` alone decides, exactly as always (range 2 works,
+  and the unit's own square, distance 0, only when the range's minimum is 0); `"on"` = the user must stand ON one of the structure's squares
+  (distance 0), whatever the `range` says, and the ability cannot open it from next to it (refused with `stand on the chest to open it`; the
+  menu entry is greyed with that reason, and with `"from": "on"` the unit's own square is offered as the target even when the range's
+  minimum is 1); `"next"` = the user must stand next to it, not on it (`step off the chest: it opens from the next square`), and the range
+  must still reach. The computer opponent (`goesFor` chests / doors) with such a trait walks onto an `"on"` chest, then uses the ability;
+  a key it carries is tried first. **Staff.** The unlock staff picks a square in its range and, if its `hit` roll succeeds (rolled once with
+  the battle's dice; a miss still spends the use and gives the experience; `StaffMissed` with a = -1), opens the structure; it ignores `by`
+  **and `from`** (it works at its range from anywhere), and so does a story command.
 - **Chests.** The contents go to the opener's inventory, else the side's shared storage (`rules.items.storage`), the engine's existing
   overflow handling. With no storage a chest with items **cannot be opened** by a unit whose inventory is full (`the unit cannot carry more:
   drop something first`): it does not destroy the loot (the player discards from the Items menu, then opens). Amounts go to the opener's side.
@@ -3020,10 +3028,9 @@ item, ability and map files are hashed whole, so the new keys count only in a ga
 
 Only a marked unit does anything here (`ai_places.cpp`). `chests`: it opens one in reach (unlocked, or it has a key and room) and walks toward the
 nearest. `villages`: it visits one it may and destroys one that is its enemy's, and walks toward the nearest. `doors`: only while the enemy cannot
-be reached at all (a closed door is a wall), it opens a door in reach (unlocked, or with a key it carries) and walks toward the nearest. Scores sit
+be reached at all (a closed door is a wall), it opens a door in reach (unlocked, with a key it carries, or by its unlock ability) and walks toward the nearest. Scores sit
 between advancing and attacking, so a marked unit that can fight, fights. With `"auto"` the move itself does it. An unmarked unit never opens,
-visits or goes toward any of them; a unit that cannot get through simply finds no way and waits (no oscillation). It does not use unlock abilities
-or staves, does not break doors down and does not take a chest it has no room for.
+visits or goes toward any of them; a unit that cannot get through simply finds no way and waits (no oscillation). It does not use unlock staves, does not break doors down and does not take a chest it has no room for.
 
 ### Player
 

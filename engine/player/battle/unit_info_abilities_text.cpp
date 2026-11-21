@@ -106,6 +106,8 @@ std::string abilityShortReason(const std::string& reason) {
   for (const auto& p : kPairs)
     if (reason == p[0]) return p[1];
   if (reason.compare(0, 12, "already has ") == 0) return "limit reached";  // "already has 2 summoned Hounds"
+  if (reason.compare(0, 13, "stand on the ") == 0) return "stand on it";  // an unlock ability of a "from": "on" door or chest
+  if (reason.compare(0, 13, "step off the ") == 0) return "step off it";
   return reason;
 }
 
