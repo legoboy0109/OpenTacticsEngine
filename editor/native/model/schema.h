@@ -62,6 +62,7 @@ struct SchemaNode {
   std::optional<Needs> needs;
   ote::Json enable;     // block: exactly what the Enable switch writes (Null = built from required keys and defaults)
   bool free = false;    // Map: any key (named sets, free-form numbers) instead of the ids of `ref`
+  std::vector<std::string> excludes;  // setting this key removes these sibling keys (turns / until: one of the two)
 
   const SchemaNode* field(const std::string& key) const;
   bool isScalar() const;  // String, Int, Number, Bool, Enum, Ref

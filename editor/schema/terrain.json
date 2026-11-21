@@ -3,14 +3,27 @@
   "rows": {
     "type": "object",
     "fields": {
-      "id": { "type": "string", "required": true, "help": "Unique id; maps list it in their legend." },
+      "id": { "type": "string", "required": true, "help": "Unique id; map legends and styles name it." },
       "name": { "type": "string", "help": "Display name." },
-      "color": { "type": "string", "sample": "#336699", "help": "#rrggbb, used when there is no art." },
-      "glyph": { "type": "string", "help": "One letter shown when there is no art." },
-      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "expand": true, "of": { "type": "int", "sample": 2 }, "help": "Movement points per move type (default 1)." },
-      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and formulas test." },
-      "blocksSight": { "type": "bool", "default": false, "help": "Fog of war: a wall that blocks vision." },
-      "props": { "type": "json", "sample": { "def": 1 }, "help": "Numbers the formulas read as t.<name> (def ...)." }
+      "color": { "type": "string", "sample": "#102030", "help": "Placeholder colour as #rrggbb." },
+      "glyph": { "type": "string", "help": "Placeholder letter." },
+      "moveCost": { "type": "map", "ref": "game.json#moveTypes", "expand": true, "of": { "type": "int", "min": 0 }, "help": "Cost per move type (missing = 1; 0 = cannot enter)." },
+      "weatherCost": { "type": "object", "block": true, "enable": { "rain": { "foot": 2 } }, "help": "Cost per move type while it rains or snows (1 to 99, or blocked; docs/ECONOMY.md Weather).", "fields": {
+        "rain": { "type": "map", "ref": "game.json#moveTypes", "of": { "type": "variant", "variants": [
+          { "name": "cost", "kind": "number", "node": { "type": "int", "min": 1, "max": 99 } },
+          { "name": "blocked", "value": "blocked" } ] }, "help": "Cost while it rains." },
+        "snow": { "type": "map", "ref": "game.json#moveTypes", "of": { "type": "variant", "variants": [
+          { "name": "cost", "kind": "number", "node": { "type": "int", "min": 1, "max": 99 } },
+          { "name": "blocked", "value": "blocked" } ] }, "help": "Cost while it snows." } } },
+      "props": { "type": "map", "free": true, "of": { "type": "number" }, "help": "Numbers the formulas read (defense, avoid ...)." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and conditions test." },
+      "visionBonus": { "type": "variant", "help": "Fog of war: extra sight for a unit standing here (0 to 10), for every unit or only some.", "variants": [
+        { "name": "for every unit", "kind": "number", "node": { "type": "int", "min": 0, "max": 10 } },
+        { "name": "for some units", "key": "amount", "node": { "type": "object", "fields": {
+          "amount": { "type": "int", "required": true, "min": 0, "max": 10, "help": "Extra sight in squares." },
+          "units": { "type": "list", "required": true, "of": { "type": "ref", "ref": ["data/units.json", "tags:data/units.json"] }, "help": "Unit type ids or tags this applies to." } } } } ] },
+      "hides": { "type": "bool", "help": "Fog of war: a unit standing here is seen only from next to it." },
+      "blocksSight": { "type": "bool", "help": "Fog of war: units do not see past a square of this terrain (a wall)." }
     }
   }
 }

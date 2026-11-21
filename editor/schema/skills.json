@@ -1,0 +1,28 @@
+{
+  "files": ["data/skills.json"],
+  "rows": {
+    "type": "object",
+    "fields": {
+      "id": { "type": "string", "required": true, "help": "Unique id; units, items, weapons and characters list it." },
+      "name": { "type": "string", "help": "Display name (defaults to the id)." },
+      "description": { "type": "string", "help": "Text shown on the unit's skill list." },
+      "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words (nullifySkills can target a tag)." },
+      "blocks": { "type": "list", "required": true, "help": "What the skill does (at least one block): when it applies, under which conditions, with which effects.", "of": {
+        "use": "_skills#block", "moreFields": {
+          "do": { "type": "list", "required": true, "help": "Effects (at least one). Which are allowed depends on when.", "of": {
+            "use": "_skills#effect", "moreVariants": [
+              { "name": "nullifySkills", "key": "nullifySkills", "node": { "type": "object", "fields": {
+                "nullifySkills": { "type": "variant", "required": true, "help": "The foe's skills do not work in this fight (combat blocks).", "variants": [
+                  { "name": "all skills", "value": true },
+                  { "name": "these skills", "kind": "array", "node": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" } } },
+                  { "name": "skills with a tag", "key": "tag", "node": { "type": "object", "fields": { "tag": { "type": "string", "required": true, "help": "A skill tag." } } } } ] } } } },
+              { "name": "staffRange", "key": "staffRange", "node": { "type": "object", "fields": {
+                "staffRange": { "type": "variant", "required": true, "help": "Squares added to the reach of staves (always blocks).", "variants": [
+                  { "name": "all staves", "kind": "number", "node": { "type": "int", "min": 1, "max": 10 } },
+                  { "name": "one group", "key": "amount", "node": { "type": "object", "fields": {
+                    "amount": { "type": "int", "required": true, "min": 1, "max": 10, "help": "Squares added." }, "group": { "type": "ref", "ref": "field:group:data/items.json", "help": "Only staves of this group." } } } } ] } } } },
+              { "name": "carryBonus", "key": "carryBonus", "node": { "type": "object", "fields": {
+                "carryBonus": { "type": "int", "required": true, "min": -100, "max": 100, "help": "Added to what the canCarry formula reads as a.carryBonus (always blocks)." } } } } ] } } } } }
+    }
+  }
+}

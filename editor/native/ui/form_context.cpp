@@ -73,6 +73,22 @@ bool FormContext::set(const JsonPath& path, const ote::Json& value, const QStrin
   return true;
 }
 
+bool FormContext::setField(const SchemaNode& node, const JsonPath& path, const ote::Json& value) {
+  std::vector<JsonPath> drop;
+  for (const std::string& k : node.excludes) {
+    JsonPath sib(path.begin(), path.end() - 1);
+    sib.push_back(PathStep::member(k));
+    if (at(sib)) drop.push_back(sib);
+  }
+  if (drop.empty()) return set(path, value);
+  QUndoStack* stack = project_->undoStack();
+  stack->beginMacro(tr("Set %1").arg(pathToString(path)));
+  for (const JsonPath& d : drop) erase(d);
+  const bool ok = set(path, value);
+  stack->endMacro();
+  return ok;
+}
+
 bool FormContext::erase(const JsonPath& path) {
   auto* cmd = new EraseCommand(doc_, path);
   if (!cmd->valid()) {

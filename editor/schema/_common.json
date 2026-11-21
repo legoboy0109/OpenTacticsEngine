@@ -1,5 +1,13 @@
 {
   "defs": {
+    "jump": {
+      "type": "variant",
+      "variants": [
+        { "name": "up and down the same", "kind": "number", "node": { "type": "int", "min": 0, "max": 999 } },
+        { "name": "up and down", "kind": "object", "node": { "type": "object", "fields": {
+          "up": { "type": "int", "min": 0, "max": 999, "help": "Levels it may climb." },
+          "down": { "type": "int", "min": 0, "max": 999, "help": "Levels it may drop." } } }, "sample": { "up": 1, "down": 2 } } ]
+    },
     "grantFilter": {
       "type": "object", "help": "Which units get it: one of type or tag; {} means every unit of the side.",
       "fields": {
@@ -30,6 +38,36 @@
           "refresh": { "type": "variant", "required": true, "help": "Units that may act again.", "variants": [
             { "name": "every unit", "value": true },
             { "name": "filter", "kind": "object", "node": { "use": "grantFilter" } } ] } } } } ]
+    },
+    "inflictWeapon": {
+      "type": "object", "sample": { "condition": "poison" },
+      "fields": {
+        "condition": { "type": "ref", "ref": "data/conditions.json", "required": true, "help": "The condition put on the unit struck." },
+        "chance": { "type": "variant", "help": "Percent (1 to 100; 100 = every hit) or a formula (a = the wielder, b = the unit struck).", "variants": [
+          { "name": "percent", "kind": "number", "node": { "type": "int", "min": 1, "max": 100 } },
+          { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "50" } ] },
+        "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns it lasts (only for conditions that count turns)." } }
+    },
+    "inflictPlain": {
+      "type": "object", "sample": { "condition": "poison" },
+      "fields": {
+        "condition": { "type": "ref", "ref": "data/conditions.json", "required": true, "help": "The condition put on the unit." },
+        "turns": { "type": "int", "min": 1, "max": 99, "help": "Turns it lasts (only for conditions that count turns)." } }
+    },
+    "cureList": {
+      "type": "variant",
+      "variants": [
+        { "name": "all conditions", "value": "all" },
+        { "name": "these conditions", "kind": "array", "node": { "type": "list", "of": { "type": "ref", "ref": "data/conditions.json" } } } ]
+    },
+    "itemGrants": {
+      "type": "list",
+      "of": { "type": "variant", "variants": [
+        { "name": "item id", "kind": "string", "node": { "type": "ref", "ref": "data/items.json" } },
+        { "name": "item with uses", "key": "item", "node": { "type": "object", "fields": {
+          "item": { "type": "ref", "ref": "data/items.json", "required": true, "help": "The item." },
+          "uses": { "type": "int", "min": 1, "help": "Uses left (at most the item's own; not for unlimited items)." },
+          "drop": { "type": "bool", "help": "A unit drops it when defeated (units only)." } } } } ] }
     },
     "aiWeights": {
       "type": "object",

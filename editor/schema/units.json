@@ -12,16 +12,39 @@
       "maxLevel": { "type": "int", "min": 0, "max": 99, "help": "Level cap of this type (0 = never levels; needs progression)." },
       "weapons": { "type": "list", "of": { "type": "ref", "ref": "data/weapons.json" }, "help": "Weapons the unit carries." },
       "wields": { "type": "list", "of": { "type": "string" }, "help": "Weapon groups the unit can use (carried weapons)." },
+      "items": { "use": "_common#itemGrants", "help": "Items a unit of this type starts with (carried items)." },
       "cost": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int" }, "help": "Price per resource when built." },
       "tags": { "type": "list", "of": { "type": "string" }, "help": "Free words that skills and filters test." },
       "resist": { "type": "map", "ref": "game.json#damageTypes", "expand": true, "of": { "type": "int", "sample": 1 }, "help": "Flat resistance per damage type (whole numbers within resistRange)." },
       "canCapture": { "type": "bool", "default": false, "help": "Can capture structures." },
+      "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "help": "Skills the unit type always has." },
+      "learns": { "type": "list", "help": "Skills learned on reaching a level (needs progression).", "of": { "type": "object", "fields": {
+        "level": { "type": "int", "required": true, "min": 2, "max": 99, "help": "Level at which it is learned (2 up to the max level)." },
+        "skill": { "type": "ref", "ref": "data/skills.json", "required": true, "help": "The skill." } } } },
+      "abilities": { "type": "list", "of": { "type": "ref", "ref": "data/abilities.json" }, "help": "Menu abilities of this unit type." },
+      "promotions": { "type": "list", "help": "Classes it can promote to (docs/SRPG.md Promotion).", "of": { "type": "object", "fields": {
+        "to": { "type": "ref", "ref": "data/units.json", "required": true, "help": "The unit type it becomes." },
+        "fromLevel": { "type": "int", "min": 1, "max": 99, "help": "Lowest level that may promote." },
+        "fromLevelFor": { "type": "map", "ref": "data/characters.json", "of": { "type": "int", "min": 1, "max": 99 }, "help": "Another level for named characters." },
+        "atLevel": { "type": "enum", "values": ["off", "offer", "auto"], "help": "off: only by item or story; offer: asked at the level; auto: happens at the level." },
+        "levelAfter": { "type": "enum", "values": ["reset", "keep"], "help": "Level after promoting." },
+        "items": { "type": "list", "of": { "type": "ref", "ref": "data/items.json" }, "help": "Promotion items (promotes: true) that do it." },
+        "gains": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Stat gains on promoting." } } } },
+      "ranks": { "type": "map", "free": true, "of": { "type": "variant", "variants": [
+        { "name": "rank id", "kind": "string", "node": { "type": "ref", "ref": "data/ranks.json#ranks" } },
+        { "name": "weapon experience", "kind": "number", "node": { "type": "int", "min": 0 } } ] },
+        "help": "Starting weapon rank per weapon group (needs data/ranks.json)." },
+      "caps": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "min": 1, "max": 99999 }, "help": "Highest value per stat for this type (needs data/caps.json)." },
+      "pairBonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int" }, "help": "Pair-up bonus of this type (needs rules.rescue pairUp; not the hit points stat)." },
+      "vision": { "type": "int", "min": 0, "max": 20, "help": "Sight in squares under fog of war." },
+      "fuel": { "type": "int", "min": 1, "max": 999, "help": "Fuel tank size (supply rules)." },
+      "fuelPerTurn": { "type": "int", "min": 1, "max": 999, "help": "Fuel used each turn (needs fuel; less than fuel)." },
+      "supplies": { "type": "bool", "help": "Refills the fuel and ammunition of neighbours." },
       "ap": { "type": "object", "block": true, "help": "Action-point overrides for this type (needs rules.actionPoints).", "fields": {
         "step": { "type": "int", "min": 0, "max": 99, "help": "Points per square for this type." },
         "softCap": { "type": "int", "min": 0, "max": 999, "help": "Movement points at plain price for this type." } } },
-      "jump": { "type": "object", "alt": "number", "sample": { "up": 1, "down": 2 }, "help": "Height jump of this type: a number, or { up, down } (needs rules.height).", "fields": {
-        "up": { "type": "int", "min": 0, "max": 999, "help": "Levels it may climb." },
-        "down": { "type": "int", "min": 0, "max": 999, "help": "Levels it may drop." } } }
+      "jump": { "use": "_common#jump", "help": "Height jump of this type: one number, or separate up and down (needs rules.height)." },
+      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (step, attack ...; docs/SOUND.md)." }
     }
   }
 }

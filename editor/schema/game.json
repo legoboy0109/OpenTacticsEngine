@@ -210,9 +210,7 @@
             "type": "object", "block": true, "help": "Height rules: jumping, range bonus, line of sight (docs/SRPG.md Height rules).",
             "fields": {
               "jump": { "type": "object", "block": true, "help": "Level differences a unit may climb or drop while walking.", "fields": {
-                "default": { "type": "object", "alt": "number", "sample": { "up": 1, "down": 2 }, "help": "Game default: a number, or { up, down }.", "fields": {
-                  "up": { "type": "int", "min": 0, "max": 999, "help": "Levels it may climb." },
-                  "down": { "type": "int", "min": 0, "max": 999, "help": "Levels it may drop." } } } } },
+                "default": { "use": "_common#jump", "help": "Game default: one number, or separate up and down." } } },
               "flyingMoveTypes": { "type": "list", "help": "Move types that ignore height differences.", "of": { "type": "ref", "ref": "game.json#moveTypes" } },
               "rangeBonus": { "type": "object", "block": true, "help": "Extra range for standing high.", "fields": {
                 "perLevels": { "type": "int", "required": true, "min": 1, "max": 999, "help": "Levels of height for one extra square." },

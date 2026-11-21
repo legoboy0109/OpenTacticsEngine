@@ -88,7 +88,19 @@ struct Parser {
     ote::Json merged = ote::Json::makeObject();
     for (const auto& m : it->second.members()) merged.set(m.first, m.second);
     for (const auto& m : j.members())
-      if (m.first != "use") merged.set(m.first, m.second);
+      if (m.first != "use" && m.first != "moreVariants" && m.first != "moreFields") merged.set(m.first, m.second);
+    // "moreVariants" / "moreFields": entries added to the def's own list of variants / object of fields (skills and conditions
+    // share most effects and each adds a few of its own).
+    if (j["moreVariants"].isArray()) {
+      ote::Json all = merged["variants"].isArray() ? merged["variants"] : ote::Json::makeArray();
+      for (const ote::Json& v : j["moreVariants"].items()) all.push(v);
+      merged.set("variants", all);
+    }
+    if (j["moreFields"].isObject()) {
+      ote::Json all = merged["fields"].isObject() ? merged["fields"] : ote::Json::makeObject();
+      for (const auto& m : j["moreFields"].members()) all.set(m.first, m.second);
+      merged.set("fields", all);
+    }
     expanding.push_back(ref);
     // The def's own `use` entries are relative to the file that holds the def, not to the file that pulled it in.
     const std::string savedBase = base;
@@ -120,6 +132,7 @@ struct Parser {
     n->refs = strings(j["ref"]);
     if (j["length"].isNumber()) n->length = j["length"].asInt();
     n->free = j["free"].asBool();
+    n->excludes = strings(j["excludes"]);
     if (j.has("enable")) n->enable = j["enable"];
     if (j["when"].isObject()) {
       SchemaNode::When w;

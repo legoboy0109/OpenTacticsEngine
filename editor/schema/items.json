@@ -6,12 +6,75 @@
       "id": { "type": "string", "required": true, "help": "Unique id." },
       "name": { "type": "string", "help": "Display name." },
       "description": { "type": "string", "help": "Text shown in the item menu." },
-      "kind": { "type": "enum", "required": true, "values": ["usable", "weapon", "accessory", "staff"], "help": "Decides which other keys the item takes (heal, weapon, bonus, ...: shown under Other keys)." },
+      "kind": { "type": "enum", "required": true, "values": ["usable", "weapon", "accessory", "staff"], "help": "Decides which other keys the item takes: usable (heal, raise ...), weapon (a carried weapon), accessory (bonus, skills), staff (effects ...)." },
       "uses": { "type": "int", "min": 1, "max": 999, "help": "Uses before it breaks (leave out for unlimited)." },
       "repairable": { "type": "bool", "help": "A staff's repair may mend it (needs uses)." },
       "stealable": { "type": "bool", "help": "A steal ability may take it." },
       "sellable": { "type": "bool", "help": "A shop that buys items takes it." },
-      "price": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int", "min": 0, "sample": 10 }, "help": "Shop price per resource (not negative)." }
+      "price": { "type": "map", "ref": "game.json#resources", "expand": true, "of": { "type": "int", "min": 0, "sample": 10 }, "help": "Shop price per resource (not negative)." },
+      "props": { "type": "map", "free": true, "of": { "type": "number" }, "when": { "kind": ["usable", "accessory", "staff"] }, "help": "Numbers the formulas read as w.<name> (staff) or item numbers." },
+      "target": { "type": "enum", "values": ["self", "ally", "team", "foe", "any"], "when": { "kind": ["usable", "staff"] }, "help": "Whom it is used on: self or ally for a usable item; ally, self, team, foe or any for a staff (default: self for usable, ally for staff)." },
+      "heal": { "type": "variant", "when": { "kind": ["usable"] }, "help": "Hit points restored: a number of 1 or more, or full.", "variants": [
+        { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } }, { "name": "full", "value": "full" } ] },
+      "raise": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "when": { "kind": ["usable"] }, "help": "Permanent stat gains." },
+      "promotes": { "type": "bool", "when": { "kind": ["usable"] }, "help": "Promotes the unit (a promotion item)." },
+      "cure": { "use": "_common#cureList", "when": { "kind": ["usable"] }, "help": "Conditions it removes." },
+      "inflict": { "use": "_common#inflictPlain", "when": { "kind": ["usable"] }, "help": "A condition it puts on the user." },
+      "opens": { "type": "list", "when": { "kind": ["usable"] }, "of": { "type": "ref", "ref": "data/structures.json", "values": ["door", "chest"] }, "help": "What it opens: door, chest or structure ids (a key)." },
+      "light": { "type": "object", "block": true, "when": { "kind": ["usable"] }, "enable": { "radius": 2 }, "sample": { "radius": 3 }, "help": "Lights the area around the user (fog of war).", "fields": {
+        "radius": { "type": "int", "required": true, "min": 1, "max": 10, "help": "Squares lit." },
+        "turns": { "type": "int", "min": 1, "max": 10, "help": "Turns it burns." },
+        "shrink": { "type": "int", "min": 1, "max": 9, "help": "Squares lost each turn (less than the radius)." } } },
+      "weapon": { "type": "ref", "ref": "data/weapons.json", "required": true, "when": { "kind": ["weapon"] }, "help": "The weapon this item is (needs rules.items.weapons carried)." },
+      "bonus": { "type": "map", "ref": "game.json#stats", "of": { "type": "int", "sample": 1 }, "when": { "kind": ["accessory", "staff"] }, "help": "Stat bonus while carried (at least one non-zero)." },
+      "skills": { "type": "list", "of": { "type": "ref", "ref": "data/skills.json" }, "when": { "kind": ["accessory"] }, "help": "Skills it gives while carried." },
+      "group": { "type": "string", "required": true, "when": { "kind": ["staff"] }, "help": "Staff group (what a unit type lists in wields)." },
+      "rank": { "type": "ref", "ref": "data/ranks.json#ranks", "when": { "kind": ["staff"] }, "help": "Weapon rank needed to use it." },
+      "rankXp": { "type": "int", "min": 0, "max": 99, "when": { "kind": ["staff"] }, "help": "Weapon experience a use earns." },
+      "wieldedBy": { "type": "list", "of": { "type": "ref", "ref": "data/characters.json" }, "when": { "kind": ["staff"] }, "help": "Only these characters may use it." },
+      "wieldedByTypes": { "type": "list", "of": { "type": "ref", "ref": "data/units.json" }, "when": { "kind": ["staff"] }, "help": "Only these unit types may use it." },
+      "range": { "type": "variant", "when": { "kind": ["staff"] }, "help": "Reach in squares (1 to 20): a number, [min, max], or a formula.", "variants": [
+        { "name": "up to", "kind": "number", "node": { "type": "int", "min": 1, "max": 20 } },
+        { "name": "min to max", "kind": "array", "node": { "type": "list", "length": 2, "of": { "type": "int", "min": 1, "max": 20 } }, "sample": [1, 2] },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "2" } ] },
+      "area": { "type": "variant", "when": { "kind": ["staff"] }, "help": "Which units it reaches: the one picked, all of the team, or a radius.", "variants": [
+        { "name": "single", "value": "single" }, { "name": "all", "value": "all" },
+        { "name": "radius", "key": "radius", "node": { "type": "object", "fields": { "radius": { "type": "int", "required": true, "min": 1, "max": 10, "help": "Squares around the target." } } } } ] },
+      "effects": { "type": "list", "required": true, "when": { "kind": ["staff"] }, "help": "What the staff does (1 to 4 effects, each exactly one of these).", "of": {
+        "type": "variant", "variants": [
+          { "name": "heal", "key": "heal", "node": { "type": "object", "fields": { "heal": { "type": "variant", "required": true, "help": "Hit points restored.", "variants": [
+            { "name": "amount", "kind": "number", "node": { "type": "int", "min": 1, "max": 1000000 } }, { "name": "full", "value": "full" },
+            { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "5" },
+            { "name": "percent", "key": "percent", "node": { "type": "object", "fields": { "percent": { "type": "int", "required": true, "min": 1, "max": 100, "help": "Percent of the maximum." } } } } ] } } } },
+          { "name": "warp", "key": "warp", "node": { "type": "object", "fields": { "warp": { "type": "object", "required": true, "help": "Moves the target to a square within range.", "fields": {
+            "range": { "type": "variant", "required": true, "help": "How far (1 to 20): a number, [min, max] or a formula.", "variants": [
+              { "name": "up to", "kind": "number", "node": { "type": "int", "min": 1, "max": 20 } },
+              { "name": "min to max", "kind": "array", "node": { "type": "list", "length": 2, "of": { "type": "int", "min": 1, "max": 20 } }, "sample": [1, 2] },
+              { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "2" } ] } } } } } },
+          { "name": "pull", "key": "pull", "node": { "type": "object", "fields": { "pull": { "use": "_skills#flag", "help": "Pulls the target next to the user." } } } },
+          { "name": "swap", "key": "swap", "node": { "type": "object", "fields": { "swap": { "use": "_skills#flag", "help": "Trades places with the target." } } } },
+          { "name": "repair", "key": "repair", "node": { "type": "object", "fields": { "repair": { "type": "variant", "required": true, "help": "Uses given back to an item.", "variants": [
+            { "name": "uses", "kind": "number", "node": { "type": "int", "min": 1, "max": 999 } }, { "name": "full", "value": "full" } ] } } } },
+          { "name": "light", "key": "light", "sample": { "light": { "radius": 3 } }, "node": { "type": "object", "fields": { "light": { "type": "object", "required": true, "help": "Lights a square (fog of war); the only effect of its staff.", "fields": {
+            "radius": { "type": "int", "required": true, "min": 1, "max": 10, "help": "Squares lit." },
+            "turns": { "type": "int", "min": 1, "max": 10, "help": "Turns it burns." },
+            "shrink": { "type": "int", "min": 1, "max": 9, "help": "Squares lost each turn (less than the radius)." } } } } } },
+          { "name": "inflict", "key": "inflict", "node": { "type": "object", "fields": { "inflict": { "use": "_common#inflictPlain", "required": true, "help": "A condition put on the target." } } } },
+          { "name": "cure", "key": "cure", "node": { "type": "object", "fields": { "cure": { "use": "_common#cureList", "required": true, "help": "Conditions removed." } } } },
+          { "name": "unlock", "key": "unlock", "node": { "type": "object", "fields": { "unlock": { "type": "variant", "required": true, "help": "Opens a door or chest; the only effect of its staff.", "variants": [
+            { "name": "any lock", "value": true },
+            { "name": "these kinds", "kind": "array", "node": { "type": "list", "of": { "type": "enum", "values": ["door", "chest"] } } } ] } } } } ] } },
+      "hit": { "type": "variant", "when": { "kind": ["staff"] }, "help": "Chance to work in percent (0 to 100) or a formula; without it the staff never fails.", "variants": [
+        { "name": "percent", "kind": "number", "node": { "type": "int", "min": 0, "max": 100 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "80" } ] },
+      "xp": { "type": "variant", "when": { "kind": ["staff"] }, "help": "Experience for using it (needs progression): a number (0 to 1000) or a formula.", "variants": [
+        { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
+      "xpMiss": { "type": "variant", "when": { "kind": ["staff"] }, "help": "Experience when it missed every unit (needs hit and progression).", "variants": [
+        { "name": "number", "kind": "number", "node": { "type": "int", "min": 0, "max": 1000 } },
+        { "name": "formula", "kind": "string", "node": { "type": "string" }, "sample": "1" } ] },
+      "if": { "type": "list", "when": { "kind": ["staff"] }, "of": { "use": "_skills#condition" }, "help": "Conditions the target must meet (at most 8)." },
+      "sounds": { "type": "map", "free": true, "of": { "type": "string" }, "help": "Sound ids by event (use, healScene ...; docs/SOUND.md)." }
     }
   }
 }

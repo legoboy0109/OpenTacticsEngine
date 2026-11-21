@@ -29,6 +29,15 @@ using ote::Json;
 
 namespace {
 
+// Exact key, or a prefix written with a trailing "*" ("conditions:blocks[].do[]{arc}*").
+const QString* skipReason(const QString& id) {
+  auto it = skipped().find(id);
+  if (it != skipped().end()) return &it->second;
+  for (const auto& s : skipped())
+    if (s.first.endsWith('*') && id.startsWith(s.first.left(s.first.size() - 1))) return &s.second;
+  return nullptr;
+}
+
 // The last path component of an identity key: changing it would break every reference to the entry.
 bool isIdentityKey(const QString& keyPath) { return keyPath.endsWith(".id") || keyPath.endsWith(":id"); }
 
@@ -110,10 +119,12 @@ const Context* contextFor(const QString& keyId) {
   return best;
 }
 
+QString g_working;  // the key being tried, for the message of a bad test table entry
+
 Json parse(const QString& text) {
   Json j;
   std::string err;
-  if (!Json::parse(text.toStdString(), j, err)) qFatal("bad test JSON: %s: %s", qPrintable(text), err.c_str());
+  if (!Json::parse(text.toStdString(), j, err)) qFatal("bad test JSON while trying %s: %s: %s", qPrintable(g_working), qPrintable(text), err.c_str());
   return j;
 }
 
@@ -123,34 +134,37 @@ Json* memberOf(Json& obj, const std::string& key) {
   return nullptr;
 }
 
-// "jobs[2].learn" -> steps; sets (or with "-" removes) the value there.
+// "jobs[2].learn" -> steps; sets (or with "-" removes) the value there. "list[+]" appends, "list[-1]" is the last item.
 bool applyOp(Json& root, const QString& path, const QString& jsonText) {
-  QStringList parts = path.split('.');
+  const QStringList parts = path.split('.');
   Json* node = &root;
   for (int i = 0; i < parts.size(); ++i) {
     QString p = parts[i];
-    int idx = -1;
+    const bool lastPart = i + 1 == parts.size();
     const int br = p.indexOf('[');
-    if (br >= 0 && p.endsWith("[+]") && i + 1 == parts.size()) {  // append to the list
-      Json* list = memberOf(*node, p.left(br).toStdString());
-      if (!list || !list->isArray()) return false;
+    if (br < 0) {  // a plain key
+      if (lastPart) {
+        if (jsonText == "-") return node->erase(p.toStdString());
+        node->set(p.toStdString(), parse(jsonText));
+        return true;
+      }
+      node = memberOf(*node, p.toStdString());
+      if (!node) return false;
+      continue;
+    }
+    const QString index = p.mid(br + 1, p.size() - br - 2);
+    Json* list = memberOf(*node, p.left(br).toStdString());
+    if (!list || !list->isArray()) return false;
+    if (index == "+") {
+      if (!lastPart) return false;
       list->push(parse(jsonText));
       return true;
     }
-    if (br >= 0) { idx = p.mid(br + 1, p.size() - br - 2).toInt(); p = p.left(br); }
-    const bool last = i + 1 == parts.size() && idx < 0;
-    if (last) {
-      if (jsonText == "-") return node->erase(p.toStdString());
-      node->set(p.toStdString(), parse(jsonText));
-      return true;
-    }
-    node = memberOf(*node, p.toStdString());
-    if (!node) return false;
-    if (idx >= 0) {
-      if ((size_t)idx >= node->items().size()) return false;
-      node = &node->mutableItems()[(size_t)idx];
-      if (i + 1 == parts.size()) { *node = parse(jsonText); return true; }
-    }
+    int idx = index.toInt();
+    if (idx < 0) idx += (int)list->items().size();
+    if (idx < 0 || (size_t)idx >= list->items().size()) return false;
+    node = &list->mutableItems()[(size_t)idx];
+    if (lastPart) { *node = parse(jsonText); return true; }
   }
   return false;
 }
@@ -187,11 +201,14 @@ void extrasFor(const SchemaNode& child, const Json& first, bool overridden, std:
   }
 }
 
+void adjustToKindFwd(const SchemaNode& parent, const std::string& key, Json& obj);
+
 // A field with a `when` needs its sibling "kind" to have one of the words; sets it (the first word) when it has not.
 void satisfyWhen(const SchemaNode& parent, const SchemaNode& field, Json& obj) {
   if (!field.when || !obj.isObject()) return;
   if (fieldApplies(parent, field, &obj)) return;
   obj.set(field.when->key, Json::makeString(field.when->values.front()));
+  adjustToKindFwd(parent, field.when->key, obj);
 }
 
 // After the discriminator `key` of `parent` was set to a new word: keys that do not apply any more go, required keys that
@@ -206,6 +223,8 @@ void adjustToKind(const SchemaNode& parent, const std::string& key, Json& obj, c
     }
   }
 }
+
+void adjustToKindFwd(const SchemaNode& parent, const std::string& key, Json& obj) { adjustToKind(parent, key, obj, IdLookup()); }
 
 }  // namespace
 
@@ -249,7 +268,12 @@ void ConformanceTest::initTestCase() {
 
 std::unique_ptr<ConformanceTest::Built> ConformanceTest::build(const Context& c) {
   auto b = std::make_unique<Built>();
-  b->dir = ote_test::copyFixture(b->tmp, c.fixture);
+  if (QString(c.fixture).startsWith("demo-")) {  // a demo game of games/ (for what no fixture has: fuel, fog bonuses)
+    b->dir = b->tmp.file(c.fixture);
+    ote_test::copyTree(QStringLiteral(OTE_SOURCE_DIR "/games/") + c.fixture, b->dir);
+  } else {
+    b->dir = ote_test::copyFixture(b->tmp, c.fixture);
+  }
   for (const Op& op : c.mods) {
     Json root = readJson(b->dir + "/" + op.file);
     if (!applyOp(root, op.path, op.json)) qFatal("context %s: cannot apply %s at %s", c.name, qPrintable(op.file), qPrintable(op.path));
@@ -267,6 +291,7 @@ Json ConformanceTest::sampleFor(const Context& c, const QString& keyId, const Sc
 std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const KeyInfo& k, const Json* value, QString* fileOut, bool* placed,
                                                        std::vector<Json>* extras) {
   *placed = false;
+  g_working = k.id + " [" + c.name + "]";
   auto b = build(c);
   const QString rel = fileOf(b->dir, k.fs);
   *fileOut = rel;
@@ -318,7 +343,15 @@ std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const 
       const QString keyId = schemaName + ":" + path;
       auto ov = c.overrides.find(keyId);
       if (ov != c.overrides.end()) *node = parse(ov->second);
-      else if (variantIndex(*sn, *node) != idx || !last) *node = sampleValueOfVariant(*v, lookup);
+      else if (variantIndex(*sn, *node) != idx || !last) {
+        *node = sampleValueOfVariant(*v, lookup);
+        // Overrides of keys below this shape ("...do[]{stats}.stats") apply to the fresh value too.
+        for (const auto& o : c.overrides)
+          if (o.first.startsWith(keyId + ".")) {
+            const QString rest = o.first.mid(keyId.size() + 1);
+            if (!rest.contains('[') && !rest.contains('*') && !rest.contains('{')) applyOp(*node, rest, o.second);
+          }
+      }
       if (last) {
         const SchemaNode& leaf = v->node ? *v->node : constantNode();
         if (extras && !value && v->node) extrasFor(leaf, *node, ov != c.overrides.end() && leaf.kind != SchemaNode::Kind::Enum, extras);
@@ -354,6 +387,7 @@ std::vector<ote_editor::Problem> ConformanceTest::place(const Context& c, const 
         break;
       }
       node->set(step.toStdString(), value ? *value : first);
+      for (const std::string& ex : child->excludes) node->erase(ex);
       adjustToKind(*sn, step.toStdString(), *node, lookup);
       *placed = memberOf(*node, step.toStdString()) != nullptr;  // a sample that never landed would test nothing
       break;
@@ -412,10 +446,9 @@ void ConformanceTest::everySchemaKeyIsAcceptedByTheLoader() {
       notes << k.id + "  (container: its members are tested one by one, as are its blocks)";
       continue;
     }
-    auto sk = skipped().find(k.id);
-    if (sk != skipped().end()) {
+    if (const QString* sk = skipReason(k.id)) {
       ++skippedCount;
-      notes << k.id + "  (" + sk->second + ")";
+      notes << k.id + "  (" + *sk + ")";
       continue;
     }
     const Context* c = contextFor(k.id);
@@ -453,7 +486,7 @@ void ConformanceTest::anInvalidValueIsRefusedNamingTheFile() {
   QStringList failures, notes;
   int checked = 0;
   for (const KeyInfo& k : keys_) {
-    if (isIdentityKey(k.id) || skipped().count(k.id)) continue;
+    if (isIdentityKey(k.id) || skipReason(k.id)) continue;
     const Context* c = contextFor(k.id);
     if (!c) continue;
     const SchemaNode& n = *k.node;
