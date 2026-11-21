@@ -36,7 +36,8 @@ RTTI; only plain non-polymorphic types (`ote::Json`, `ote_editor_core` functions
 ```
 editor/core/        ote_editor_core (static): validateProject, audio check, safe paths, revision hash, log. No HTTP.
                     Linked by ote-editor (the HTTP shell, behaviour unchanged) and by the native editor.
-editor/schema/        hand-written schemas of the data files (milestone 2); also compiled into the program
+editor/schema/        hand-written schemas of the data files (milestones 2 and 3); also compiled into the program
+                    _common.json, _skills.json: shared definitions only ("defs", pulled in with "use")
 editor/native/
   names.h           every user-visible name (product, window title, settings identity)
   model/            QtCore/QtGui only, no widgets
@@ -48,7 +49,8 @@ editor/native/
     id_source       the live id lists ("data/units.json", "game.json#stats") the forms' combo boxes use
     cell_text, tsv, table_shape, play_command, comment_scan   small pure helpers
   ui/               item models (table, tree), editors, dialogs, main window, prompter, settings;
-                    form_context (the one way a form edits), form_fields (leaf widgets), form_view (building, sync)
+                    form_context (the one way a form edits), form_fields (leaf widgets), form_view (lifecycle, sync, focus),
+                    form_build (objects, blocks, lists, maps, variants; lazy containers), form_other (the Other keys box)
   tests/            QtTest programs (below)
 ```
 Design rules worth knowing:
@@ -129,8 +131,31 @@ A **node** (`type` defaults to `object` when `fields` is present, otherwise `jso
 | `fields` | `{ "key": node, ... }` of an `object`, in display order |
 | `block` | an `object` that may be absent as a whole: shown with an Enable checkbox |
 | `expand` | table: one column per member of this object / per id of this map |
-| `alt` | `"string"`, `"number"` or `"bool"`: another JSON kind the loader also takes as it is (`turnOrder: "speed"`, `jump: 1`); shown as raw JSON without a warning |
-| `sample` | a valid value for the conformance test when the generated one would not do |
+| `alt` | `"string"`, `"number"` or `"bool"`: another JSON kind the loader also takes as it is; shown as raw JSON without a warning (no schema uses it any more: a `variant` gives a real form) |
+| `sample` | a valid value for the conformance test when the generated one would not do (also what a variant writes when picked) |
+| `when` | `{ "kind": ["usable", "staff"] }`: the field applies only while the sibling key `kind` (or its `default`) has one of the words |
+| `type: "variant"` + `variants` | one of several shapes, see below |
+| `free` | a `map` whose keys are the user's own names (no `ref`) |
+| `needs` | `{ "ref": "game.json#resources", "hint": "..." }` on a `block`: Enable is offered only while those ids exist; otherwise the hint is shown |
+| `enable` | on a `block`: exactly what Enable writes |
+| `excludes` | `["until"]`: setting this key removes those siblings in the same undo step (`turns` / `until`) |
+| `min` on a `map` | at least that many entries (a research bonus needs one stat) |
+| `use` | pull in a named definition (below) |
+
+**Variants.** `"variants": [ { "name": "hp", "key": "hp", "node": {...} }, { "name": "plain id", "kind": "string", "node": {...} },
+{ "name": "sides", "value": "sides" } ]`. A variant matches an object that has the key `key`, or a value of JSON kind `kind`
+(`string`, `number`, `bool`, `array`, `object`), or exactly `value` (no `node`). A constant beats a kind. The picker lists the
+`name`s; a variant's `sample` is what picking it writes.
+
+**Definitions.** A schema file may hold `"defs": { "name": node }`; any node may be `{ "use": "name" }` (same file) or
+`{ "use": "_common#name" }` (another file; a file with only defs describes no data file). The node's own keys (help, required ...)
+are laid over the definition; `"moreVariants": [...]` / `"moreFields": {...}` add to a def's variants / fields (skills and
+status conditions share their effects and each adds a few). A definition that contains itself is expanded twice, then ends as
+raw JSON.
+
+**Id sources** (`ref`): a file (`data/units.json`), a key path (`game.json#damageTypes`, `data/ranks.json#ranks`), the file being
+edited (`@sides`, `@units`), the free words of a key (`tags:data/units.json`, `field:group:data/weapons.json`); an array of
+sources is allowed (unit ids and tags).
 
 `json` fields are shown compactly with "Edit JSON...". Lists with more than 60 items show the first 60 (the tree shows all).
 
@@ -153,26 +178,28 @@ sample must actually land in the file (a sample that does not is a failure, neve
 purpose (top level of `game.json`, keys directly under `rules`, older map unit keys, top level of the core data files); the
 reasons are in the test. Cross-key rules (a power costs at most the meter's max, ranks must rise ...) are listed with the reason.
 
+Milestone 3 additions: the tables (which fixture, which edits, which sample for which key) live in `tests/conformance_*.cpp`, split by
+family; a key names its place as `schema:path` with `[]` for list items, `*` for map entries and `{name}` for a variant's shape
+(`skills:blocks[].do[]{hurt}.hurt{percent}.percent`); the most specific claim wins. Skill blocks are probed with an extra skill
+whose block has the `when` an effect or condition belongs to. **Every optional block is also "enabled alone"** (what the Enable
+switch writes) and must be accepted; those that cannot be valid alone carry a reason in `blockExcuses()`. The reverse check now
+reads the demo games too and also fails on a value shape that no variant describes. Keys excused in the reverse check are only the
+raw parts of a map (tile grid, events ...), listed with reasons in `excusedKey()`.
+
 ## What is covered
 | Section | State | Note |
 |---|---|---|
-| `game.json` `damageTypes`, `resistRange` | covered | |
-| `game.json` `resources` (+ `refill` block) | covered | id and name too |
-| `rules.actionPoints` (`move`, `attack`) | covered | |
-| `rules.height` (`jump`, `flyingMoveTypes`, `rangeBonus`, `lineOfSight`) | covered | |
-| `rules.facing` (`arcs`) | covered | |
-| `rules.research`, `rules.progression` incl. rank `levels`, `rules.ranks` (merit), `rules.jobs`, `rules.turnOrder` | covered | `turnOrder: "speed"` (plain string) is shown as JSON |
-| `rules.counterAttacks`, `rules.defeat` | covered | other older rule blocks (`economy`, `production`, `items`, `supply`, `ai`, ...) are under Other keys |
-| `game.json` top level (`stats`, `moveTypes`, `view`, `formulas`, ...) | not covered | schema starts with the new mechanics; Other keys + tree |
-| `data/weapons.json` | partly | `damageType`, `fire`, `area{}`, `apCost`, `heightRange`, `chargeSpeed` / `chargeTargets` / `interruptedBy`, `wieldedBy*`, basics; `props` as JSON; ammo, skills, inflict, rank, versus under Other keys |
-| `data/units.json` | partly | `stats` / `growths` / `cost` / `resist` as real columns, `ap{}`, `jump`, `weapons`, `tags`; skills, abilities, promotions, ranks, vision, supply under Other keys |
-| `data/research.json` | covered | `grants.skills` items as JSON (skill id or `{ skill, filter }`) |
-| `data/factions.json` | covered | `modifiers` items and `ai.weights` as JSON |
-| `data/jobs.json` | covered | |
-| `data/commanders.json` | covered | `passive`, `modifiers`, `effects` items as JSON |
-| maps: `sides[]` (`faction`, `commander`, ...), `units[]` (`facing`, ...) | partly | everything else in a map (tiles, legend, events ...) under Other keys |
-| `data/terrain.json`, `data/items.json` | partly | basic keys and the keyed maps; kind-specific item keys under Other keys |
-| everything else (skills, abilities, campaign, characters, graphics, audio, ...) | not covered | generic table / tree as in milestone 1 |
+| `game.json`: top level (`name` ... `author`, `saving`, `battle*`, `menu*`, `attackWeaponChoice`, `grid`, `view`, `font`, `stats`, `roles`, `resources`, `moveTypes`, `switches`, `variables`, `scripts`, `maps`, `formulas`, `damageTypes`, `resistRange`, `difficulties`, `styles`) | covered | `moveTypes[].sounds` is a free map of raw values (needs audio.json) |
+| `game.json` `rules.*`: `counterAttacks`, `defeat`, `hitRoll`, `turnOrder`, `economy`, `production`, `capture`, `items` (+`freeBattleStorage`), `supply`, `research`, `fog`, `display`, `actionPoints`, `height`, `facing`, `progression` (+ rank table), `ranks`, `jobs`, `rescue`, `promotion`, `places`, `ai` (+ weight sets) | covered | |
+| `data/weapons.json`, `data/units.json`, `data/terrain.json` | covered | `sounds` are free maps of sound ids |
+| `data/items.json` | covered | kind-specific keys with `when`; staff `effects`, `range`, `area`, `hit`, `xp` as variants |
+| `data/skills.json`, `data/conditions.json` | covered | conditions (21 shapes) and effects (40 shapes) are variants; which effect works in which kind of block is in the help line and the engine's check |
+| `data/abilities.json` | covered | `effect` (11 shapes) as a variant |
+| `data/structures.json` | covered | `door`, `chest`, `visit`, map weapon keys |
+| `data/characters.json`, `data/supports.json`, `data/ranks.json`, `data/caps.json` | covered | quotes and support talk as lists of `say` lines |
+| `data/research.json`, `data/factions.json`, `data/jobs.json`, `data/commanders.json` | covered | skill grants and AI weights are real forms now |
+| maps: `name`, `grid`, `fog`, `fogVision`, `aiSeesAll`, `sides[]`, `units[]` (placement, name, level, items, stats), `structures[]` | partly | raw for now: `tiles`, `legend`, `tileLayer`, `heights` (a map painter is later), `events`, `changes`, `prep`, `objectives`, a side's `storage`, a unit's `behaviour`, `character`, `job`, `learned`, `equipped`, `xp`, `merit`, `ranks`, `goesFor` |
+| story events (triggers, commands), `data/campaign.json`, `data/audio.json`, `data/graphics.json`, `art/*.style.json` | not covered | generic table / tree as in milestone 1: milestone 4 |
 
 ## Tests
 Registered in ctest as `native_test_*` only when the option is ON. They set `QT_QPA_PLATFORM=offscreen`, so no window ever
@@ -199,14 +226,26 @@ QT_QPA_PLATFORM=offscreen OTE_SHOT_DIR=/some/folder ./editor/native/native_test_
   damage type, a weapon given it through the combo, save, problems empty, undo all -> files as loaded; problem double-click;
   "Show in tree view"; no schema -> milestone 1 behaviour.
 - `native_test_conformance`: see above.
+- `native_test_form_features`: `when`, variants, free maps, block `needs` / `enable`, lazy building (collapsed containers are not
+  instantiated; focusing a key opens the way), two columns, the table | table + form | form views and their per-kind memory, and
+  a timing test with the real schemas (Rules page with every block on, a skill with 8 blocks x 6 effects; bound 1.5 s, measured ~30 ms).
+- `native_test_form_demo`: the scripted run over a copy of `games/demo-srpg`: every file opened, every row (first 50) selected
+  and fully expanded, no warning mark on untouched valid data, nothing under "Other keys" except what a map keeps raw by design
+  (and the check is shown to fail on a wrong value and an unknown key); Save all without edits rewrites nothing, an edit rewrites
+  only its file, and that file differs from the original only by the edit and the dropped `//` comments.
+- `native_test_form_screenshots3`: skills, an item with kind-specific fields, characters, the campaign and a map's events (still the
+  generic tree), a map's sides and units, the General page of `game.json`, and the three view states, at 1280x720 and 1920x1080.
 - `native_test_form_screenshots`: units with form, weapons with area and damage type, the Rules page, factions, jobs,
   commanders, a mismatch warning and the Other keys area, at 1280x720 and 1920x1080, light and dark palette.
 - `native_test_screenshots`: the main window with the units table, the tree on game.json, the problems dock with an error, the
   nested-JSON dialog, a refused edit, and a dark palette, at 1280x720 and 1920x1080 where it matters.
 
 ## Not there yet
-- Forms for the rest of the format (skills, abilities, campaign, characters, graphics, audio, story commands ...), pickers for
-  sounds and art, and the table-level help of a column beyond its tooltip.
+- Forms for story events (triggers and commands), the campaign, audio, graphics and style files, a map's objectives, preparation
+  screen, behaviours and map changes; pickers for sounds and art; a map painter for the tile grid; and the table-level help of a
+  column beyond its tooltip.
+- Which skill effect or condition is allowed in which kind of block is not filtered in the picker (the help line says, the engine's
+  check refuses).
 - Lua tooling (editing scripts, formula checks inline, debugging).
 - Live validation of unsaved edits (the problems check runs on saved files only); a problem is placed by the names in its
   message, not by an exact node.

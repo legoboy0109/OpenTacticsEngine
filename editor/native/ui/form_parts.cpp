@@ -45,7 +45,7 @@ QString summaryOf(const SchemaNode& itemNode, const ote::Json& item) {
     return name;
   }
   if (!item.isObject()) return {};
-  for (const char* k : {"id", "name", "at", "job", "skill", "ability"}) {
+  for (const char* k : {"id", "name", "at", "job", "skill", "ability", "when"}) {
     const ote::Json& v = item[k];
     if (v.isString() && !v.asString().empty()) return QString::fromStdString(v.asString());
     if (v.isNumber()) return QStringLiteral("%1 %2").arg(k).arg(v.asNumber());
