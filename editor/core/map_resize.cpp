@@ -51,8 +51,9 @@ struct Shifter {
         if (it != footprints->end()) fp = it->second;
       }
       if (!fits(ox + dx, oy + dy, fp)) {
-        std::string label = item["type"].asString();
-        if (label.empty()) label = kind;
+        std::string label = item["type"].asString();  // a unit may be placed as a story character or by its job instead
+        if (label.empty()) label = item["character"].asString();
+        if (label.empty()) label = item["job"].asString();
         if (item["id"].isString()) label += " (" + item["id"].asString() + ")";
         lost.push_back({kind, label, ox, oy});
         continue;

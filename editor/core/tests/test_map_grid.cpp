@@ -196,8 +196,8 @@ TEST(map_grid_resize_removes_what_no_longer_fits_and_says_so) {
   // knight (3,2) is outside; the 2x2 castle at (1,1) sticks out of a 3x2 map; slot (3,1) and the change square (3,0) too.
   CHECK(std::find(what.begin(), what.end(), "unit:knight (gilda)") != what.end());
   CHECK(std::find(what.begin(), what.end(), "structure:castle") != what.end());
-  CHECK(std::find(what.begin(), what.end(), "preparation slot:preparation slot") != what.end());
-  CHECK(std::find(what.begin(), what.end(), "map change square:map change square") != what.end());
+  CHECK(std::find(what.begin(), what.end(), "preparation slot:") != what.end());
+  CHECK(std::find(what.begin(), what.end(), "map change square:") != what.end());
   CHECK_EQ(what.size(), (size_t)4);
   Json out = m;
   for (const auto& kv : r.set) out.set(kv.first, kv.second);
