@@ -6,8 +6,8 @@ Read docs/PLAN.md (roadmap + owner decisions), docs/ARCHITECTURE.md
 
 ## Latest (2026-11-21, night)
 
-- **origin/main = 16870bc** (full check 63 clean: ote_tests 2659, editor API 1572, ctest 79, vitest 1619, e2e 620).
-  **Local main = 0f35ffc** adds `ote-mcp`; full check 64 running (`$S/combined64_verify.txt`); push if clean.
+- **origin/main = local main** (full check 64 clean: ote_tests 2659, editor API 1572, ctest 81, vitest 1619, e2e 620);
+  includes `ote-mcp`.
 - **Mechanics** (all pushed): damage types, research trees, factions, area/line fire, action points, height, facing, ranks,
   jobs, speed turn order, merit ranks + overlay jobs, commanders (enemy meters; bar only at UI 150), `changeSide ready`.
 - **Stricter loaders** (pushed): unknown keys refused with "did you mean", numeric ranges, `ote-editor --validate <folder>`
